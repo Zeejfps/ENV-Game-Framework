@@ -19,19 +19,19 @@ public class MeshAsset_GL
 
     public static MeshAsset_GL Deserialize(BinaryReader reader)
     {
-        Console.WriteLine("Reading Vertices");
+        //Console.WriteLine("Reading Vertices");
         var vertices = ReadFloatArray(reader);
         
-        Console.WriteLine("Reading Uvs");
+        //Console.WriteLine("Reading Uvs");
         var uvs = ReadFloatArray(reader);
         
-        Console.WriteLine("Reading Normals");
+        //Console.WriteLine("Reading Normals");
         var normals = ReadFloatArray(reader);
         
-        Console.WriteLine("Reading Tangents");
+        //Console.WriteLine("Reading Tangents");
         var tangents = ReadFloatArray(reader);
         
-        Console.WriteLine("Reading Triangles");
+        //Console.WriteLine("Reading Triangles");
         var triangles = ReadIntArray(reader);
         
         return new MeshAsset_GL
@@ -63,7 +63,7 @@ public class MeshAsset_GL
     private static float[] ReadFloatArray(BinaryReader reader)
     {
         var length = reader.ReadInt32();
-        Console.WriteLine($"Reading Array of size: {length}");
+        //Console.WriteLine($"Reading Array of size: {length}");
         var data = new float[length];
         for (var i = 0; i < length; i++)
             data[i] = reader.ReadSingle();

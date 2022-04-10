@@ -19,6 +19,8 @@ in vec3 normal;
 in vec3 vert_position;
 in vec2 tex_coord;
 in vec3 frag_pos;
+in vec3 tangent;
+
 layout (location = 0) uniform sampler2D m_diffuse;
 layout (location = 1) uniform sampler2D m_normal_map;
 uniform vec3 camera_position;
@@ -53,5 +55,5 @@ void main()
     
     vec3 result = ambient + diffuse + specular;// + emission;
     
-    out_result = vec4(normal_map, 1.0);
+    out_result = vec4(tangent, 1.0);
 }

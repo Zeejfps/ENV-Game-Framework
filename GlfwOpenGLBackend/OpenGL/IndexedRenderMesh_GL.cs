@@ -8,6 +8,7 @@ public class IndexedRenderMesh_GL : IRenderMesh
     private readonly uint m_Vbo;
     private readonly uint m_Vio;
     private readonly uint m_UvBuffer;
+    private readonly uint m_TangetBuffer;
     private readonly uint m_NormalsBuffer;
 
     private int m_TriangleCount;
@@ -47,6 +48,16 @@ public class IndexedRenderMesh_GL : IRenderMesh
         
         glVertexAttribPointer(2, 2, GL_FLOAT, false, 2 * sizeof(float), NULL);
         glEnableVertexAttribArray(2);  
+        
+        var tangents = mesh.Tangents;
+
+        m_TangetBuffer = glGenBuffer();
+        glBindBuffer(GL_ARRAY_BUFFER, m_TangetBuffer);
+        fixed (float* t = &tangents[0])
+            glBufferData(GL_ARRAY_BUFFER, sizeof(float) * tangents.Length, t, GL_STATIC_DRAW);
+        
+        glVertexAttribPointer(3, 2, GL_FLOAT, false, 2 * sizeof(float), NULL);
+        glEnableVertexAttribArray(3);  
         
         var indices = mesh.Triangles;
         m_TriangleCount = indices.Length;

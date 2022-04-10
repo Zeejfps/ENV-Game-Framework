@@ -3,6 +3,7 @@
 layout (location = 0) in vec3 attr_vertex_position;
 layout (location = 1) in vec3 attr_vertex_normal;
 layout (location = 2) in vec2 attr_vertex_uv;
+layout (location = 3) in vec3 attr_vertex_tangent;
 
 uniform mat4 matrix_projection, matrix_view, matrix_model, normal_matrix;
 
@@ -10,6 +11,7 @@ out vec3 normal;
 out vec3 vert_position;
 out vec3 frag_pos;
 out vec2 tex_coord;
+out vec3 tangent;
 
 void main()
 {
@@ -23,4 +25,5 @@ void main()
     normal = mat3(transpose(inverse(matrix_model))) * attr_vertex_normal;
 
     tex_coord = attr_vertex_uv;
+    tangent = attr_vertex_tangent;
 }

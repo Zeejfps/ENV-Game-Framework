@@ -1,6 +1,4 @@
-﻿using Framework;
-
-namespace Framework;
+﻿namespace Framework;
 
 public interface IMesh : IAsset
 {
@@ -8,4 +6,5 @@ public interface IMesh : IAsset
     float[] Uvs { get; set; }
     float[] Normals { get; }
     int[] Triangles { get; }
+    float[] Tangents { get; }
 }
