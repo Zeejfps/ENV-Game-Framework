@@ -19,17 +19,17 @@ public class TestLight : ISceneObject
     
     public void Load(IScene scene)
     {
-        m_Mesh = scene.Context.AssetDatabase.LoadAsset<IMesh>("Assets/Meshes/Light.obj");
+        //m_Mesh = scene.Context.AssetDatabase.LoadAsset<IMesh>("Assets/Meshes/Light.obj");
     }
 
     public void Update(IScene scene)
     {
-        m_Renderer.Render(new UnlitRenderData
-        {
-            Mesh = m_Mesh,
-            Transform = Transform,
-            Color = new Vector3(1f, 0f, 0.5f)
-        });
+        // m_Renderer.Render(new UnlitRenderData
+        // {
+        //     Mesh = m_Mesh,
+        //     Transform = Transform,
+        //     Color = new Vector3(1f, 0f, 0.5f)
+        // });
     }
 
     public void Unload(IScene scene)

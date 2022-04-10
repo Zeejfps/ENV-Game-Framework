@@ -26,7 +26,7 @@ public class Context_GLFW : IContext
         m_Window = new Window_GLFW();
         m_AssetDatabase = new AssetDatabase();
         
-        m_AssetDatabase.AddLoader(new MeshObjAssetLoaderModule());
+        m_AssetDatabase.AddLoader(new MeshAssetLoader());
         m_AssetDatabase.AddLoader(new MaterialJsonAssetLoader());
         m_AssetDatabase.AddLoader(new TextureAssetLoader_GL());
     }

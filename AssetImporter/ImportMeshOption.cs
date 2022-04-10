@@ -24,7 +24,8 @@ public class ImportMeshOption
         var scene = importer.ImportFile(path, 
             PostProcessSteps.CalculateTangentSpace |
             PostProcessSteps.Triangulate |
-            PostProcessSteps.JoinIdenticalVertices);
+            PostProcessSteps.JoinIdenticalVertices |
+            PostProcessSteps.FlipUVs);
         
         var mesh = scene.Meshes[0];
         Console.Write("Save As: ");
@@ -36,19 +37,35 @@ public class ImportMeshOption
         }
 
         saveAs = saveAs.Replace("\"", "");
+
+        var vertices = mesh.Vertices.Select(v => new List<float> { v.X, v.Y, v.Z }).Aggregate((total, next) =>
+        {
+            total.AddRange(next);
+            return total;
+        }).ToArray();
+
+        var normals = mesh.Normals.Select(v => new List<float> { v.X, v.Y, v.Z }).Aggregate((total, next) =>
+        {
+            total.AddRange(next);
+            return total;
+        }).ToArray();
+        
+        var triangles = mesh.Faces.Select(v => new List<int> { v.Indices[0], v.Indices[1], v.Indices[2] }).Aggregate(
+            (total, next) =>
+            {
+                total.AddRange(next);
+                return total;
+            }).ToArray();
+        
+        Console.WriteLine($"Vertices: {vertices.Length}");
+        Console.WriteLine($"Normals: {normals.Length}");
+        Console.WriteLine($"Triangles: {triangles.Length}");
+        
         var meshAsset = new MeshAsset_GL
         {
-            Vertices = mesh.Vertices.Select(v => new List<float>{v.X, v.Y, v.Z}).Aggregate((total, next) =>
-            {
-                total.AddRange(next);
-                return total;
-            }).ToArray(),
+            Vertices = vertices,
             
-            Normals = mesh.Normals.Select(v => new List<float>{v.X, v.Y, v.Z}).Aggregate((total, next) =>
-            {
-                total.AddRange(next);
-                return total;
-            }).ToArray(),
+            Normals = normals,
             
             Tangents = mesh.Tangents.Select(v => new List<float>{v.X, v.Y, v.Z}).Aggregate((total, next) =>
             {
@@ -56,11 +73,7 @@ public class ImportMeshOption
                 return total;
             }).ToArray(),
             
-            Triangles = mesh.Faces.Select(v => new List<int>{v.Indices[0], v.Indices[1], v.Indices[2]}).Aggregate((total, next) =>
-            {
-                total.AddRange(next);
-                return total;
-            }).ToArray(),
+            Triangles = triangles,
             
             Uvs = mesh.TextureCoordinateChannels[0].Select(v => new List<float>{v.X, v.Y}).Aggregate((total, next) =>
             {
