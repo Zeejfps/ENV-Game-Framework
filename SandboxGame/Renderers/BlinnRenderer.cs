@@ -27,7 +27,7 @@ public class BlinnRenderer : ISceneObject
     
     public void Load(IScene scene)
     {
-        var assetLoader = scene.Context.AssetLoader;
+        var assetLoader = scene.Context.AssetDatabase;
         m_Material = assetLoader.LoadAsset<IMaterial>("Assets/blinn.json");
         m_Texture = assetLoader.LoadAsset<ITexture>("Assets/Textures/uvgrid.texture");
 

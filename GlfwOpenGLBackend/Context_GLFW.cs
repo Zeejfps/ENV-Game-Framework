@@ -8,10 +8,10 @@ public class Context_GLFW : IContext
 {
     public IDisplays Displays { get; }
     public IWindow Window => m_Window;
-    public IAssetDatabase AssetLoader => m_ModularAssetLoader;
+    public IAssetDatabase AssetDatabase => m_AssetDatabase;
 
     private readonly Window_GLFW m_Window;
-    private readonly ModularAssetLoader m_ModularAssetLoader;
+    private readonly AssetDatabase m_AssetDatabase;
     
     public Context_GLFW()
     {
@@ -25,11 +25,11 @@ public class Context_GLFW : IContext
 
         Displays = new Displays_GLFW();
         m_Window = new Window_GLFW();
-        m_ModularAssetLoader = new ModularAssetLoader();
+        m_AssetDatabase = new AssetDatabase();
         
-        m_ModularAssetLoader.AddModule(new MeshAssetLoaderModule());
-        m_ModularAssetLoader.AddModule(new MaterialAssetLoaderModule());
-        m_ModularAssetLoader.AddModule(new TextureAssetLoader_GL());
+        m_AssetDatabase.AddModule(new MeshAssetLoaderModule());
+        m_AssetDatabase.AddModule(new MaterialAssetLoaderModule());
+        m_AssetDatabase.AddModule(new TextureAssetLoader_GL());
     }
     
     public void Dispose()

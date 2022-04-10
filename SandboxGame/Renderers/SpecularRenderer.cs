@@ -32,9 +32,9 @@ public class SpecularRenderer : ISceneObject
     
     public void Load(IScene scene)
     {
-        var assetLoader = scene.Context.AssetLoader;
-        m_Material = assetLoader.LoadAsset<IMaterial>("Assets/Shaders/specular.json");
-        m_Texture = assetLoader.LoadAsset<ITexture>("Assets/Textures/uvgrid.texture");
+        var assetDatabase = scene.Context.AssetDatabase;
+        m_Material = assetDatabase.LoadAsset<IMaterial>("Assets/Shaders/specular.json");
+        m_Texture = assetDatabase.LoadAsset<ITexture>("Assets/Textures/uvgrid.texture");
         m_Framebuffer = scene.Context.Window.Framebuffer;
     }
 

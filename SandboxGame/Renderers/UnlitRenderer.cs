@@ -24,7 +24,7 @@ public class UnlitRenderer : ISceneObject
     
     public void Load(IScene scene)
     {
-        m_Material = scene.Context.AssetLoader.LoadAsset<IMaterial>("Assets/Shaders/unlit.json");
+        m_Material = scene.Context.AssetDatabase.LoadAsset<IMaterial>("Assets/Shaders/unlit.json");
         m_Framebuffer = scene.Context.Window.Framebuffer;
     }
 

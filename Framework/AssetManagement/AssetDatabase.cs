@@ -16,7 +16,7 @@ public interface IAssetLoaderModule<T> : IAssetLoaderModule where T : IAsset
     
 }
 
-public class ModularAssetLoader : IAssetDatabase
+public class AssetDatabase : IAssetDatabase
 {
     private Dictionary<Type, IAssetLoaderModule> m_TypeToModuleMap = new();
 

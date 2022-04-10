@@ -19,7 +19,7 @@ public class TestLight : ISceneObject
     
     public void Load(IScene scene)
     {
-        m_Mesh = scene.Context.AssetLoader.LoadAsset<IMesh>("Assets/Meshes/Light.obj");
+        m_Mesh = scene.Context.AssetDatabase.LoadAsset<IMesh>("Assets/Meshes/Light.obj");
     }
 
     public void Update(IScene scene)
