@@ -10,9 +10,9 @@ public class TestCube : ISceneObject
     private IMesh m_Mesh;
     
     private readonly ITransform m_Transform;
-    private readonly BlinnRenderer m_BlinnRenderer;
+    private readonly SpecularRenderer m_BlinnRenderer;
 
-    public TestCube(BlinnRenderer blinnRenderer)
+    public TestCube(SpecularRenderer blinnRenderer)
     {
         m_BlinnRenderer = blinnRenderer;
         m_Transform = new Transform3D();
@@ -26,7 +26,7 @@ public class TestCube : ISceneObject
 
     public void Update(IScene scene)
     {
-        m_BlinnRenderer.Render(new BlinnRenderData
+        m_BlinnRenderer.Render(new SpecularRendererData
         {
             Mesh = m_Mesh,
             Transform = m_Transform,

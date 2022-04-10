@@ -10,7 +10,7 @@ public class TestScene : IScene
 {
     public IContext Context => m_Context;
 
-    private BlinnRenderer m_BlinnRenderer;
+    private SpecularRenderer m_BlinnRenderer;
     private UnlitRenderer m_UnlitRenderer;
     
     private TestTriangle m_TestTriangle;
@@ -34,7 +34,7 @@ public class TestScene : IScene
 
         var lightTransform = new Transform3D();
         
-        m_BlinnRenderer = new BlinnRenderer(m_Camera, lightTransform);
+        m_BlinnRenderer = new SpecularRenderer(m_Camera, lightTransform);
         m_UnlitRenderer = new UnlitRenderer(m_Camera);
 
         m_Light = new TestLight(m_UnlitRenderer, lightTransform)
