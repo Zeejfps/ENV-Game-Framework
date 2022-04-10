@@ -32,6 +32,10 @@ void main()
     //ambient
     vec3 ambient = light.ambient * texture(texture_main, tex_coord).rgb;
     
+    //normal
+    vec3 normal_map = texture(material.normal_map, tex_coord).rgb;
+    normal_map = normalize(normal * 2.0 - 1.0);
+    
     //diffuse
     vec3 norm = normalize(normal);
     vec3 light_direction = normalize(light.position - frag_pos);
