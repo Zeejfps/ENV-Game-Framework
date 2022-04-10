@@ -5,14 +5,14 @@ struct vertexInfo
 {
     float3 position : POSITION;
     float2 uv: TEXCOORD0;
-    float3 color : COLOR;
+    float4 color : COLOR;
 };
 
 struct v2p
 {
     float4 position : SV_POSITION;
-    float3 uv : TEXCOORD0;
-    float3 color : TEXCOORD1;
+    float2 uv : TEXCOORD0;
+    float4 color : TEXCOORD1;
 };
 
 // uniforms
