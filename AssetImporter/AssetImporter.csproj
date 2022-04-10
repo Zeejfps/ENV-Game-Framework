@@ -10,10 +10,12 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Framework\Framework.csproj" />
+      <ProjectReference Include="..\Mikktspace.NET\Mikktspace.NET.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="BCnEncoder.Net.ImageSharp" Version="1.1.1" />
+      <PackageReference Include="NativeFileDialogs.Net" Version="1.0.0" />
       <PackageReference Include="SixLabors.ImageSharp" Version="2.1.0" />
       <PackageReference Include="Vortice.ShaderCompiler" Version="1.5.8" />
     </ItemGroup>

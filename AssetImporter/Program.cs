@@ -1,10 +1,12 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using AssetImporter;
+using Mikktspace.NET;
 
 Console.WriteLine("Welcome to the Asset Importer");
 
-var importMeshOption = new ImportMaterialOption();
+var importMeshOption = new ImportMeshOption();
+var importMaterialOption = new ImportMaterialOption();
 var importTextureOption = new ImportTextureOption();
 
 var shouldContinue = true;
@@ -22,13 +24,13 @@ while (shouldContinue)
     switch (option)
     {
         case "1":
-            Console.WriteLine("Under construction...");
+            importMeshOption.Run();
             break;
         case "2":
             importTextureOption.Run();
             break;
         case "3":
-            importMeshOption.Run();
+            importMaterialOption.Run();
             break;
         case "0":
             shouldContinue = false;

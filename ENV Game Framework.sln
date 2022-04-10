@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Framework", "Framework\Fram
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AssetImporter", "AssetImporter\AssetImporter.csproj", "{EC2D0A7D-24CE-4D30-BD02-D1203F48EE75}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mikktspace.NET", "Mikktspace.NET\Mikktspace.NET.csproj", "{31CAAF73-CD48-4CC0-BA05-080B0E918F34}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{EC2D0A7D-24CE-4D30-BD02-D1203F48EE75}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EC2D0A7D-24CE-4D30-BD02-D1203F48EE75}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EC2D0A7D-24CE-4D30-BD02-D1203F48EE75}.Release|Any CPU.Build.0 = Release|Any CPU
+		{31CAAF73-CD48-4CC0-BA05-080B0E918F34}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31CAAF73-CD48-4CC0-BA05-080B0E918F34}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31CAAF73-CD48-4CC0-BA05-080B0E918F34}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31CAAF73-CD48-4CC0-BA05-080B0E918F34}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

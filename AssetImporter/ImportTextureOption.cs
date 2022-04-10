@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using BCnEncoder.Encoder;
 using BCnEncoder.Shared;
+using NativeFileDialogs.Net;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using TicTacToePrototype;
@@ -11,6 +12,12 @@ public class ImportTextureOption
 {
     public void Run()
     {
+        Console.WriteLine("[Import Texture]");
+        // Console.WriteLine("1 - Set Image Path");
+        // Console.WriteLine("2 - Set Output Path");
+        // Console.Write("Option: ");
+        // Console.ReadLine();
+        
         Console.Write("Image Path: ");
         var pathToTexture = Console.ReadLine();
         pathToTexture = pathToTexture.Replace("\"", "");
