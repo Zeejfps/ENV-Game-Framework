@@ -6,7 +6,7 @@ public class Mesh : IMesh
     public float[] Uvs { get; set; }
     public float[] Normals { get; set; }
     public int[] Triangles { get; set; }
-
+    public float[] Tangents { get; set; }
     public bool IsLoaded { get; private set; }
 
     public Mesh()
