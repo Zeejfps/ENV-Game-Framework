@@ -1,5 +1,3 @@
-using Framework;
-using GLFW;
 using static OpenGL.Gl;
 
 namespace Framework.GLFW.NET;
@@ -8,7 +6,10 @@ public class ShaderProgram_GL : IShaderProgram
 {
     private uint m_Id;
     private readonly Dictionary<string, int> m_PropertyToIdMap = new();
+    private readonly Dictionary<string, ITexture> m_PropertyToTextureMap = new();
 
+    private int m_ActiveTextureId = 0;
+    
     public ShaderProgram_GL(string shader)
     {
         m_Id = CreateProgram(shader);
@@ -16,7 +17,20 @@ public class ShaderProgram_GL : IShaderProgram
     
     public void Use()
     {
+        m_ActiveTextureId = 0;
         glUseProgram(m_Id);
+
+        // var samplerId = GL_TEXTURE0;
+        // foreach (var kvp in m_PropertyToTextureMap)
+        // {
+        //     var uniform = kvp.Key;
+        //     var texture = kvp.Value;
+        //     var location = GetUniformLocation(uniform);
+        //     glUniform1i(location, samplerId);
+        //     glActiveTexture(samplerId);
+        //     texture.Use();
+        //     samplerId++;
+        // }
     }
     
     public void SetVector3f(string propertyName, float x, float y, float z)
@@ -35,6 +49,16 @@ public class ShaderProgram_GL : IShaderProgram
         var location = GetUniformLocation(propertyName);
         glUniform1f(location, x);
     }
+
+    public void SetTexture2d(string propertyName, ITexture texture)
+    {
+        var location = GetUniformLocation(propertyName);
+        glUniform1i(location, m_ActiveTextureId);
+        glActiveTexture(GL_TEXTURE0 + m_ActiveTextureId);
+        texture.Use();
+        m_ActiveTextureId++;
+    }
+    
     private int GetUniformLocation(string uniformName)
     {
         if (!m_PropertyToIdMap.TryGetValue(uniformName, out var location))

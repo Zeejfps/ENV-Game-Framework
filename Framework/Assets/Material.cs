@@ -1,5 +1,4 @@
 using System.Numerics;
-using Framework;
 
 namespace Framework;
 
@@ -18,6 +17,7 @@ public class Material : IMaterial
     private readonly Dictionary<string, Vector3Property> m_Vector3Properties = new();
     private readonly Dictionary<string, FloatProperty> m_FloatProperties = new();
     private readonly Dictionary<string, Matrix4x4Property> m_Matrix4X4Properties = new();
+    private readonly Dictionary<string, TextureProperty> m_TextureProperties = new();
 
     public void SetVector3(string propertyName, Vector3 value)
     {
@@ -59,7 +59,18 @@ public class Material : IMaterial
     {
         SetVector3(propertyName, new Vector3(x, y, z));
     }
-    
+
+    public void SetTexture2d(string propertyName, ITexture texture)
+    {
+        if (!m_TextureProperties.TryGetValue(propertyName, out var property))
+        {
+            property = new TextureProperty(propertyName);
+            m_AllProperties.Add(property);
+            m_TextureProperties.Add(propertyName, property);
+        }
+
+        property.Value = texture;
+    }
     
     public void SetMatrix4x4(string propertyName, float[] matrix)
     {
@@ -124,6 +135,18 @@ class Matrix4x4Property : MaterialProperty<Matrix4x4>
     public override void Apply(IShaderProgram shaderProgram)
     {
         shaderProgram.SetMatrix4x4f(Name, Value.ToFloatArray());
+    }
+}
+
+class TextureProperty : MaterialProperty<ITexture>
+{
+    public TextureProperty(string name) : base(name)
+    {
+    }
+
+    public override void Apply(IShaderProgram shaderProgram)
+    {
+        shaderProgram.SetTexture2d(Name, Value);
     }
 }
 

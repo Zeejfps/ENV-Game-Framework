@@ -43,24 +43,7 @@ public class MainFramebuffer_GL : IFramebuffer
         material.Apply(shaderProgram);
         renderMesh.Render();
     }
-
-    public void RenderMesh(IMesh mesh, IMaterial material, params ITexture[] textures)
-    {
-        var renderMesh = LoadMesh(mesh);
-        var shaderProgram = LoadShaderProgram(material);
-        
-        shaderProgram.Use();
-        material.Apply(shaderProgram);
-
-        for (var i = 0; i < textures.Length; i++)
-        {
-            var texture = textures[i];
-            glActiveTexture(GL_TEXTURE0 + i);
-            texture.Use();
-        }
-        renderMesh.Render();
-    }
-
+    
     private IRenderMesh LoadMesh(IMesh mesh)
     {
         if (!m_MeshToRenderMeshMap.TryGetValue(mesh, out var renderMesh))

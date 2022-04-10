@@ -6,4 +6,5 @@ public interface IShaderProgram
     void SetMatrix4x4f(string name, float[] matrix);
 
     void SetFloat(string name, float x);
+    void SetTexture2d(string name, ITexture value);
 }

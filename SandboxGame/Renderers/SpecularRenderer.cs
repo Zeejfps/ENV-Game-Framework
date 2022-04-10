@@ -61,7 +61,6 @@ public class SpecularRenderer : ISceneObject
         var framebuffer = m_Framebuffer;
         var mesh = renderData.Mesh;
         var material = m_Material;
-        var textures = new[] {m_Diffuse, m_Normal};
 
         Matrix4x4.Invert(modelMatrix, out var normalMatrix);
         normalMatrix = Matrix4x4.Transpose(normalMatrix);
@@ -81,8 +80,9 @@ public class SpecularRenderer : ISceneObject
         material.SetVector3("light.specular", _specularColor);
         material.SetVector3("light.ambient", _ambientColor);
         material.SetFloat("material.shininess", _shininess);
+        material.SetTexture2d("m_diffuse", m_Diffuse);
+        material.SetTexture2d("m_normal_map", m_Normal);
 
-
-        framebuffer.RenderMesh(mesh, material, textures);
+        framebuffer.RenderMesh(mesh, material);
     }
 }
