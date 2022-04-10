@@ -1,7 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using AssetImporter;
-using Mikktspace.NET;
+﻿using AssetImporter;
 
 Console.WriteLine("Welcome to the Asset Importer");
 

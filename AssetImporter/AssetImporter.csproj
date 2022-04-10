@@ -14,6 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="AssimpNet" Version="4.1.0" />
       <PackageReference Include="BCnEncoder.Net.ImageSharp" Version="1.1.1" />
       <PackageReference Include="NativeFileDialogs.Net" Version="1.0.0" />
       <PackageReference Include="SixLabors.ImageSharp" Version="2.1.0" />
