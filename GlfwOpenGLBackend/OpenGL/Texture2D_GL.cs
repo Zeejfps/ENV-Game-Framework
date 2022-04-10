@@ -11,8 +11,7 @@ public class Texture2D_GL : ITexture
     
     public unsafe Texture2D_GL(int width, int height, byte[] pixels)
     {
-        Console.WriteLine($"Texture: {width}x{height}, pixels: {pixels.Length}");
-        
+        //Console.WriteLine($"Texture: {width}x{height}, pixels: {pixels.Length}");
         m_Id = glGenTexture();
         glBindTexture(GL_TEXTURE_2D, m_Id);
 
@@ -31,10 +30,8 @@ public class Texture2D_GL : ITexture
         int err;
         while ((err = glGetError()) != GL_NO_ERROR)
         {
-            Console.WriteLine($"GL ERROR: {err:x8}");
+            Console.WriteLine($"GL ERROR: {err:X}");
         }
-        
-       
     }
     
     public void Unload()
@@ -45,8 +42,6 @@ public class Texture2D_GL : ITexture
 
     public void Use()
     {
-        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_Id);
-        glActiveTexture(GL_TEXTURE0);
     }
 }

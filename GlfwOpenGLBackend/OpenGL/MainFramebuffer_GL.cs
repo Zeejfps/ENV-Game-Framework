@@ -17,7 +17,7 @@ public class MainFramebuffer_GL : IFramebuffer
         Width = width;
         Height = height;
         Import(getProcAddress);
-        //glEnable(GL_CULL_FACE);
+        glEnable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
     }
 
@@ -44,14 +44,20 @@ public class MainFramebuffer_GL : IFramebuffer
         renderMesh.Render();
     }
 
-    public void RenderMesh(IMesh mesh, IMaterial material, ITexture texture)
+    public void RenderMesh(IMesh mesh, IMaterial material, params ITexture[] textures)
     {
         var renderMesh = LoadMesh(mesh);
         var shaderProgram = LoadShaderProgram(material);
         
         shaderProgram.Use();
         material.Apply(shaderProgram);
-        texture.Use();
+
+        for (var i = 0; i < textures.Length; i++)
+        {
+            var texture = textures[0];
+            glActiveTexture(GL_TEXTURE0 + i);
+            texture.Use();
+        }
         renderMesh.Render();
     }
 

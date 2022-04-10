@@ -7,5 +7,5 @@ public interface IFramebuffer
     void Clear();
     void Resize(int width, int height);
     void RenderMesh(IMesh mesh, IMaterial material);
-    void RenderMesh(IMesh mesh, IMaterial material, ITexture texture);
+    void RenderMesh(IMesh mesh, IMaterial material, params ITexture[] texture);
 }
