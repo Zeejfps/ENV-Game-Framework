@@ -22,5 +22,5 @@ void main()
     frag_pos = vec3(matrix_model * vec4(attr_vertex_position,1.0));
     normal = mat3(transpose(inverse(matrix_model))) * attr_vertex_normal;
 
-    tex_coord = attr_vertex_uv;
+    tex_coord = vec2(attr_vertex_uv.x, -attr_vertex_uv.y);
 }

@@ -2,10 +2,9 @@
 out vec4 out_result;
 
 struct Material {
-    sampler2D diffuse;
+    
     sampler2D specular;
     sampler2D emission;
-    sampler2D normal_map;
     float shininess;
 };
 
@@ -20,27 +19,28 @@ in vec3 normal;
 in vec3 vert_position;
 in vec2 tex_coord;
 in vec3 frag_pos;
-
+layout (location = 0) uniform sampler2D m_diffuse;
+layout (location = 1) uniform sampler2D m_normal_map;
 uniform vec3 camera_position;
 uniform Material material;
 uniform Light light;
-uniform sampler2D texture_main;
+//uniform sampler2D texture_main;
 
 void main()
 {
     
     //ambient
-    vec3 ambient = light.ambient * texture(texture_main, tex_coord).rgb;
+    vec3 ambient = light.ambient * texture(m_diffuse, tex_coord).rgb;
     
     //normal
-    vec3 normal_map = texture(material.normal_map, tex_coord).rgb;
-    normal_map = normalize(normal * 2.0 - 1.0);
+    vec3 normal_map = texture(m_normal_map, tex_coord).rgb;
+    //normal_map = normalize(normal * 2.0 - 1.0);
     
     //diffuse
     vec3 norm = normalize(normal);
     vec3 light_direction = normalize(light.position - frag_pos);
     float diff = max(dot(norm, light_direction),0.0);
-    vec3 diffuse = light.diffuse * diff * texture(texture_main, tex_coord).rgb;
+    vec3 diffuse = light.diffuse * diff * texture(m_diffuse, tex_coord).rgb;
     
     //specular
     vec3 view_direction = normalize(camera_position - frag_pos);
@@ -53,5 +53,5 @@ void main()
     
     vec3 result = ambient + diffuse + specular;// + emission;
     
-    out_result = vec4(result, 1.0);
+    out_result = vec4(normal_map, 1.0);
 }

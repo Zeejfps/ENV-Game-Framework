@@ -13,7 +13,9 @@ public struct SpecularRendererData
 public class SpecularRenderer : ISceneObject
 {
     private IMaterial? m_Material;
-    private ITexture? m_Texture;
+    private ITexture? m_Diffuse;
+    private ITexture? m_Normal;
+
     private IFramebuffer? m_Framebuffer;
     
     private readonly ICamera m_Camera;
@@ -34,7 +36,9 @@ public class SpecularRenderer : ISceneObject
     {
         var assetDatabase = scene.Context.AssetDatabase;
         m_Material = assetDatabase.LoadAsset<IMaterial>("Assets/Shaders/specular.json");
-        m_Texture = assetDatabase.LoadAsset<ITexture>("Assets/Textures/test.texture");
+        m_Diffuse = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_BaseColor.texture");
+        m_Normal = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Normal.texture");
+
         m_Framebuffer = scene.Context.Window.Framebuffer;
     }
 
@@ -57,6 +61,7 @@ public class SpecularRenderer : ISceneObject
         var framebuffer = m_Framebuffer;
         var mesh = renderData.Mesh;
         var material = m_Material;
+        var textures = new[] {m_Diffuse, m_Normal};
 
         Matrix4x4.Invert(modelMatrix, out var normalMatrix);
         normalMatrix = Matrix4x4.Transpose(normalMatrix);
@@ -78,6 +83,6 @@ public class SpecularRenderer : ISceneObject
         material.SetFloat("material.shininess", _shininess);
 
 
-        framebuffer.RenderMesh(mesh, material);
+        framebuffer.RenderMesh(mesh, material, textures);
     }
 }
