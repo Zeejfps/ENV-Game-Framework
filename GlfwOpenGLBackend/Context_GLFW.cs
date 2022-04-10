@@ -1,6 +1,5 @@
-using Framework;
 using GLFW;
-using TicTacToePrototype.OpenGL.AssetLoaders;
+using GlfwOpenGLBackend.AssetLoaders;
 
 namespace Framework.GLFW.NET;
 
@@ -27,9 +26,9 @@ public class Context_GLFW : IContext
         m_Window = new Window_GLFW();
         m_AssetDatabase = new AssetDatabase();
         
-        m_AssetDatabase.AddModule(new MeshAssetLoaderModule());
-        m_AssetDatabase.AddModule(new MaterialAssetLoaderModule());
-        m_AssetDatabase.AddModule(new TextureAssetLoader_GL());
+        m_AssetDatabase.AddLoader(new MeshAssetLoaderModule());
+        m_AssetDatabase.AddLoader(new MaterialJsonAssetLoader());
+        m_AssetDatabase.AddLoader(new TextureAssetLoader_GL());
     }
     
     public void Dispose()

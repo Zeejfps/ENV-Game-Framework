@@ -2646,6 +2646,9 @@ namespace OpenGL
         /// <param name="str">Specifies an array of pointers to strings containing the source code to be loaded into the shader.</param>
         /// <param name="length">Specifies an array of string lengths.</param>
         public static void glShaderSource(uint shader, int count, /*const*/ byte** str, /*const*/ int* length) => _glShaderSource(shader, count, str, length);
+        
+        
+        public static void glShaderBinary(uint n, uint shader, int binaryFormat, void* binary, uint length) => _glShaderBinary(n, shader, binaryFormat, binary, length);
 
         /// <summary>
         ///      Replaces the source code in a shader object.
@@ -8079,6 +8082,9 @@ namespace OpenGL
         public const int GL_COMPRESSED_RGBA_S3TC_DXT1_EXT = 0x83F1;
         public const int GL_COMPRESSED_RGBA_S3TC_DXT3_EXT = 0x83F2;
         public const int GL_COMPRESSED_RGBA_S3TC_DXT5_EXT = 0x83F3;
+        
+        public const int GL_SHADER_BINARY_FORMAT_SPIR_V_ARB = 0x9551;
+        public const int GL_SPIR_V_BINARY_ARB = 0x9552;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		private delegate void PFNGLCULLFACEPROC(int mode);
@@ -8490,6 +8496,9 @@ namespace OpenGL
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		private delegate void PFNGLSHADERSOURCEPROC(uint shader, int count, /*const*/ byte**str, /*const*/ int*length);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void PFNGLSHADERBINARYPROC(uint n, uint shader, int binaryFormat, void* binary, uint length);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		private delegate void PFNGLUSEPROGRAMPROC(uint program);
@@ -9339,6 +9348,7 @@ namespace OpenGL
 		private static PFNGLISSHADERPROC _glIsShader;
 		private static PFNGLLINKPROGRAMPROC _glLinkProgram;
 		private static PFNGLSHADERSOURCEPROC _glShaderSource;
+		private static PFNGLSHADERBINARYPROC _glShaderBinary;
 		private static PFNGLUSEPROGRAMPROC _glUseProgram;
 		private static PFNGLUNIFORM1FPROC _glUniform1f;
 		private static PFNGLUNIFORM2FPROC _glUniform2f;
@@ -9720,6 +9730,7 @@ namespace OpenGL
 			_glIsShader = Marshal.GetDelegateForFunctionPointer<PFNGLISSHADERPROC>(loader.Invoke("glIsShader"));
 			_glLinkProgram = Marshal.GetDelegateForFunctionPointer<PFNGLLINKPROGRAMPROC>(loader.Invoke("glLinkProgram"));
 			_glShaderSource = Marshal.GetDelegateForFunctionPointer<PFNGLSHADERSOURCEPROC>(loader.Invoke("glShaderSource"));
+            _glShaderBinary = Marshal.GetDelegateForFunctionPointer<PFNGLSHADERBINARYPROC>(loader.Invoke("glShaderBinary"));
 			_glUseProgram = Marshal.GetDelegateForFunctionPointer<PFNGLUSEPROGRAMPROC>(loader.Invoke("glUseProgram"));
 			_glUniform1f = Marshal.GetDelegateForFunctionPointer<PFNGLUNIFORM1FPROC>(loader.Invoke("glUniform1f"));
 			_glUniform2f = Marshal.GetDelegateForFunctionPointer<PFNGLUNIFORM2FPROC>(loader.Invoke("glUniform2f"));

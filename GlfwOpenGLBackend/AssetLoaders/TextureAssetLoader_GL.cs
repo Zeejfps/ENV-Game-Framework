@@ -1,6 +1,8 @@
 ﻿using Framework;
+using TicTacToePrototype;
+using TicTacToePrototype.OpenGL.AssetLoaders;
 
-namespace TicTacToePrototype.OpenGL.AssetLoaders;
+namespace GlfwOpenGLBackend.AssetLoaders;
 
 public class TextureAssetLoader_GL : TextureAssetLoaderModule
 {

@@ -1,7 +1,5 @@
 ﻿using System.Runtime.Serialization.Formatters.Binary;
-using Framework.Assets;
 using Framework;
-using Newtonsoft.Json;
 using TicTacToePrototype;
 
 namespace Framework;
@@ -11,7 +9,7 @@ public interface IAssetLoaderModule
     IAsset LoadAsset(string assetPath);
 }
 
-public interface IAssetLoaderModule<T> : IAssetLoaderModule where T : IAsset
+public interface IAssetLoader<T> : IAssetLoaderModule where T : IAsset
 {
     
 }
@@ -29,14 +27,14 @@ public class AssetDatabase : IAssetDatabase
         throw new Exception($"Could not find Module for asset type: {assetType}");
     }
 
-    public void AddModule<T>(IAssetLoaderModule<T> assetLoaderModule) where T : IAsset
+    public void AddLoader<T>(IAssetLoader<T> assetLoaderModule) where T : IAsset
     {
         var assetType = typeof(T);
         m_TypeToModuleMap[assetType] = assetLoaderModule;
     }
 }
 
-public class MeshAssetLoaderModule : IAssetLoaderModule<IMesh>
+public class MeshAssetLoaderModule : IAssetLoader<IMesh>
 {
     private readonly Dictionary<string, IMesh> m_LoadedAssets = new();
 
@@ -55,17 +53,7 @@ public class MeshAssetLoaderModule : IAssetLoaderModule<IMesh>
     }
 }
 
-public class MaterialAssetLoaderModule : IAssetLoaderModule<IMaterial>
-{
-    public IAsset LoadAsset(string assetPath)
-    {
-        var json = File.ReadAllText(assetPath);
-        var materialAsset = JsonConvert.DeserializeObject<MaterialAssetJSON>(json);
-        return new Material(materialAsset.Shader);
-    }
-}
-
-public abstract class TextureAssetLoaderModule : IAssetLoaderModule<ITexture>
+public abstract class TextureAssetLoaderModule : IAssetLoader<ITexture>
 {
     public IAsset LoadAsset(string assetPath)
     {
