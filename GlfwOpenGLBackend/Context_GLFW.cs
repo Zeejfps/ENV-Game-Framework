@@ -8,7 +8,7 @@ public class Context_GLFW : IContext
 {
     public IDisplays Displays { get; }
     public IWindow Window => m_Window;
-    public IAssetLoader AssetLoader => m_ModularAssetLoader;
+    public IAssetDatabase AssetLoader => m_ModularAssetLoader;
 
     private readonly Window_GLFW m_Window;
     private readonly ModularAssetLoader m_ModularAssetLoader;

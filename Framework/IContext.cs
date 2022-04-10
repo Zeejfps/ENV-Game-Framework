@@ -4,5 +4,5 @@ public interface IContext : IDisposable
 {
     IDisplays Displays { get; }
     IWindow Window { get; }
-    IAssetLoader AssetLoader { get; }
+    IAssetDatabase AssetLoader { get; }
 }
