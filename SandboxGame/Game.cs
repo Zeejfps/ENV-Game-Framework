@@ -4,9 +4,9 @@ namespace ENV;
 
 public class Game
 {
-    public IDisplays Displays => Context.Displays;
-    public IWindow Window => Context.Window;
-    public IContext Context { get; }
+    IDisplays Displays => Context.Displays;
+    IWindow Window => Context.Window;
+    IContext Context { get; }
 
     public Game(IContext context)
     {
