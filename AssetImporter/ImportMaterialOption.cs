@@ -9,18 +9,16 @@ public class ImportMaterialOption
     {
         var options = new Options();
         options.SetSourceLanguage(SourceLanguage.GLSL);
-        options.SetTargetEnv(TargetEnvironment.OpenGL, 3);
-        options.SetAutoBindUniforms(true);
-        options.SetAutoMapLocations(true);
-        var compiler = new Compiler(options);
-        
+        options.SetTargetEnv(TargetEnvironment.OpenGL, 450);
+        using var compiler = new Compiler(options);
+
         Console.WriteLine("[Import Material]");
         var vertexShaderPath = ReadPath("Vertex shader path: ");
 
         var vertexShaderSource = File.ReadAllText(vertexShaderPath);
         var vertexShaderFileName = Path.GetFileName(vertexShaderPath);
 
-        var vertexShaderCompilationResult = compiler.Compile(vertexShaderSource, vertexShaderFileName, ShaderKind.VertexShader);
+        using var vertexShaderCompilationResult = compiler.Compile(vertexShaderSource, vertexShaderFileName, ShaderKind.VertexShader);
         if (vertexShaderCompilationResult.Status != CompilationStatus.Success)
         {
             Console.WriteLine(vertexShaderCompilationResult.ErrorMessage);
@@ -32,7 +30,7 @@ public class ImportMaterialOption
         var fragmentShaderSource = File.ReadAllText(fragmentShaderPath);
         var fragmentShaderFileName = Path.GetFileName(fragmentShaderPath);
         
-        var fragmentShaderCompilationResult = compiler.Compile(fragmentShaderSource, fragmentShaderFileName, ShaderKind.FragmentShader);
+        using var fragmentShaderCompilationResult = compiler.Compile(fragmentShaderSource, fragmentShaderFileName, ShaderKind.FragmentShader);
         if (fragmentShaderCompilationResult.Status != CompilationStatus.Success)
         {
             Console.WriteLine(fragmentShaderCompilationResult.ErrorMessage);
