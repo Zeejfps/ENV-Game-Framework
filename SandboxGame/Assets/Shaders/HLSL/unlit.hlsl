@@ -6,19 +6,19 @@ struct vertexInfo
     float3 position : POSITION;
     float2 uv: TEXCOORD0;
     float3 color : COLOR;
-}
+};
 
 struct v2p
 {
     float4 position : SV_POSITION;
     float3 uv : TEXCOORD0;
     float3 color : TEXCOORD1;
-}
+};
 
 // uniforms
 sampler2D MyTexture;
 float2 UVTile;
-matrix4x4 worldViewProjection;
+float4x4 worldViewProjection;
 
 //vert shader func
 v2p vertexShader(vertexInfo input)
