@@ -47,10 +47,19 @@ public class ImportMaterialOption
         
         Console.Write("Save As: ");
         var outputPath = Console.ReadLine();
+        if (string.IsNullOrEmpty(outputPath))
+        {
+            Console.WriteLine("Error invalid path");
+            return;
+        }
 
-        using var stream = File.Open(outputPath, FileMode.OpenOrCreate);
+        outputPath = outputPath.Replace("\"", "");
+
+        using var stream = File.Open(Path.GetFullPath(outputPath), FileMode.OpenOrCreate);
         using var writer = new BinaryWriter(stream);
         materialAsset.Serialize(writer);
+        
+        Console.WriteLine($"Saved Material to: {outputPath}");
     }
 
     private string ReadPath(string message)
