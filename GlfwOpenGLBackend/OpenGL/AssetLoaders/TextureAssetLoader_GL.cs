@@ -10,7 +10,7 @@ public class TextureAssetLoader_GL : TextureAssetLoaderModule
         var width = asset.Width;
         var height = asset.Height;
         var texture = asset.Texture;
-        var pixels = File.ReadAllBytes("Resources/Textures/" + texture + ".dds").Skip(148).ToArray();
+        var pixels = File.ReadAllBytes("Assets/Textures/" + texture + ".dds").Skip(148).ToArray();
         Console.WriteLine($"Read: {pixels.Length}");
         
         return new Texture2D_GL(width, height, pixels);

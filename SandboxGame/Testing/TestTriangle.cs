@@ -26,7 +26,7 @@ public class TestTriangle : ISceneObject
         };
 
         m_Random = new Random();
-        m_Material = new Material("Resources/triangle");
+        m_Material = new Material("Assets/triangle");
     }
 
     public void Load(IScene scene)

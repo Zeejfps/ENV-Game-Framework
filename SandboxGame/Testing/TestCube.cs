@@ -21,7 +21,7 @@ public class TestCube : ISceneObject
     public void Load(IScene scene)
     {
         var assetLoader = scene.Context.AssetLoader;
-        m_Mesh = assetLoader.LoadAsset<IMesh>("Resources/Monkey.obj");
+        m_Mesh = assetLoader.LoadAsset<IMesh>("Assets/Meshes/Monkey.obj");
     }
 
     public void Update(IScene scene)
