@@ -31,4 +31,8 @@
       </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <ClCompile Include="Assets\Shaders\HLSL\unlit.hlsl" />
+    </ItemGroup>
+
 </Project>
