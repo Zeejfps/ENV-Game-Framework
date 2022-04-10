@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Framework\Framework.csproj" />
+      <ProjectReference Include="..\GlfwOpenGLBackend\GlfwOpenGLBackend.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="Resources\**\*">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ContentWithTargetPath Include="Native\Windows\glfw3.dll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <TargetPath>glfw3.dll</TargetPath>
+      </ContentWithTargetPath>
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,18 @@
+﻿using ENV;
+using ENV.Engine;
+
+namespace TicTacToePrototype.OpenGL.AssetLoaders;
+
+public class TextureAssetLoader_GL : TextureAssetLoaderModule
+{
+    protected override ITexture LoadAsset(TextureAsset asset)
+    {
+        var width = asset.Width;
+        var height = asset.Height;
+        var texture = asset.Texture;
+        var pixels = File.ReadAllBytes("Resources/Textures/" + texture + ".dds").Skip(148).ToArray();
+        Console.WriteLine($"Read: {pixels.Length}");
+        
+        return new Texture2D_GL(width, height, pixels);
+    }
+}
