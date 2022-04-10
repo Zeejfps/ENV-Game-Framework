@@ -60,7 +60,7 @@ public class MaterialAssetLoaderModule : IAssetLoaderModule<IMaterial>
     public IAsset LoadAsset(string assetPath)
     {
         var json = File.ReadAllText(assetPath);
-        var materialAsset = JsonConvert.DeserializeObject<MaterialAsset>(json);
+        var materialAsset = JsonConvert.DeserializeObject<MaterialAssetJSON>(json);
         return new Material(materialAsset.Shader);
     }
 }
