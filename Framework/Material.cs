@@ -1,6 +1,5 @@
 using System.Numerics;
 using ENV.Engine;
-using JetBrains.Annotations;
 
 namespace ENV;
 
@@ -95,7 +94,7 @@ abstract class MaterialProperty<T> : MaterialProperty
 {
     public T Value { get; set; }
     
-    protected MaterialProperty([NotNull] string name) : base(name) { }
+    protected MaterialProperty(string name) : base(name) { }
 }
 
 class Vector3Property : MaterialProperty<Vector3>
@@ -118,7 +117,7 @@ class FloatProperty : MaterialProperty<float>
 }
 class Matrix4x4Property : MaterialProperty<Matrix4x4>
 {
-    public Matrix4x4Property([NotNull] string name) : base(name)
+    public Matrix4x4Property(string name) : base(name)
     {
     }
 

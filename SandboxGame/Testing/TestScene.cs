@@ -6,13 +6,6 @@ using TicTacToePrototype;
 
 namespace ENV;
 
-public interface ISceneObject
-{
-    void Load(IScene scene);
-    void Update(IScene scene);
-    void Unload(IScene scene);
-}
-
 public class TestScene : IScene
 {
     public IContext Context => m_Context;
