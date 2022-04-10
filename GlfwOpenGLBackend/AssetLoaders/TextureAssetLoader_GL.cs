@@ -6,14 +6,11 @@ namespace GlfwOpenGLBackend.AssetLoaders;
 
 public class TextureAssetLoader_GL : TextureAssetLoaderModule
 {
-    protected override ITexture LoadAsset(TextureAsset asset)
+    protected override ITexture LoadAsset(TextureAsset_GL asset)
     {
         var width = asset.Width;
         var height = asset.Height;
-        var texture = asset.Texture;
-        var pixels = File.ReadAllBytes("Assets/Textures/" + texture + ".dds").Skip(148).ToArray();
-        Console.WriteLine($"Read: {pixels.Length}");
-        
+        var pixels = asset.Pixels;
         return new Texture2D_GL(width, height, pixels);
     }
 }

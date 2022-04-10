@@ -35,4 +35,8 @@
       <ClCompile Include="Assets\Shaders\HLSL\unlit.hlsl" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Assets\Textures" />
+    </ItemGroup>
+
 </Project>

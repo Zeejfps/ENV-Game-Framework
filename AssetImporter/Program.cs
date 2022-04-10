@@ -5,6 +5,7 @@ using AssetImporter;
 Console.WriteLine("Welcome to the Asset Importer");
 
 var importMeshOption = new ImportMaterialOption();
+var importTextureOption = new ImportTextureOption();
 
 var shouldContinue = true;
 
@@ -21,8 +22,10 @@ while (shouldContinue)
     switch (option)
     {
         case "1":
-        case "2":
             Console.WriteLine("Under construction...");
+            break;
+        case "2":
+            importTextureOption.Run();
             break;
         case "3":
             importMeshOption.Run();

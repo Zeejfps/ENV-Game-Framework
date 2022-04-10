@@ -63,9 +63,9 @@ public abstract class TextureAssetLoaderModule : IAssetLoader<ITexture>
         using var stream = File.Open(assetPath, FileMode.Open);
         using var reader = new BinaryReader(stream);
 
-        var asset = TextureAsset.Deserialize(reader);
+        var asset = TextureAsset_GL.Deserialize(reader);
         return LoadAsset(asset);
     }
 
-    protected abstract ITexture LoadAsset(TextureAsset asset);
+    protected abstract ITexture LoadAsset(TextureAsset_GL asset);
 }
