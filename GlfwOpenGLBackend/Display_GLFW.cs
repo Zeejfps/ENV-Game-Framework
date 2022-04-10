@@ -1,8 +1,8 @@
-using ENV.Engine;
+using Framework;
 using GLFW;
 using Monitor = GLFW.Monitor;
 
-namespace ENV.GLFW.NET;
+namespace Framework.GLFW.NET;
 
 class Display_GLFW : IDisplay
 {

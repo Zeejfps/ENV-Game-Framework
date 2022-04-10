@@ -1,4 +1,4 @@
-namespace ENV.Engine;
+namespace Framework;
 
 public interface IAsset
 {

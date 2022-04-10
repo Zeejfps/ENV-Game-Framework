@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
-using ENV.Engine;
+using Framework;
 using GLFW;
 using Monitor = GLFW.Monitor;
 
-namespace ENV.GLFW.NET;
+namespace Framework.GLFW.NET;
 
 public class Window_GLFW : IWindow
 {

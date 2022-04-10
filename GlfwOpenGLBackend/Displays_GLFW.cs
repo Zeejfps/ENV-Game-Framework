@@ -1,7 +1,7 @@
-using ENV.Engine;
+using Framework;
 using GLFW;
 
-namespace ENV.GLFW.NET;
+namespace Framework.GLFW.NET;
 
 public class Displays_GLFW : IDisplays
 {

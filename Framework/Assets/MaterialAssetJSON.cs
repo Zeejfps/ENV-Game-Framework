@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace ENV.Assets;
+namespace Framework.Assets;
 
 public class MaterialAssetJSON
 {

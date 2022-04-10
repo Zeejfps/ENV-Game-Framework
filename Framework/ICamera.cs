@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace ENV.Engine;
+namespace Framework;
 
 public interface ICamera : ISceneObject
 {

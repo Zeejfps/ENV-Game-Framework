@@ -1,4 +1,4 @@
-﻿namespace ENV.Engine.InputDevices;
+﻿namespace Framework.InputDevices;
 
 public interface IMouse
 {

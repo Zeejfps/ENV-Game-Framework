@@ -1,10 +1,10 @@
 ﻿using System.Runtime.Serialization.Formatters.Binary;
-using ENV.Assets;
-using ENV.Engine;
+using Framework.Assets;
+using Framework;
 using Newtonsoft.Json;
 using TicTacToePrototype;
 
-namespace ENV;
+namespace Framework;
 
 public interface IAssetLoaderModule
 {

@@ -1,6 +1,6 @@
-using ENV.Engine.InputDevices;
+using Framework.InputDevices;
 
-namespace ENV.Engine;
+namespace Framework;
 
 public interface IInput
 {

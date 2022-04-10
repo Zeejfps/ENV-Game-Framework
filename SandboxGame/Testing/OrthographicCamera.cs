@@ -1,8 +1,8 @@
 using System.Numerics;
-using ENV.Engine;
+using Framework;
 using TicTacToePrototype;
 
-namespace ENV;
+namespace Framework;
 
 public class OrthographicCamera : ICamera
 {

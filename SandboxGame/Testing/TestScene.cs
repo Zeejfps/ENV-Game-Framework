@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using System.Numerics;
-using ENV.Engine;
-using ENV.Engine.InputDevices;
+using Framework;
+using Framework.InputDevices;
 using TicTacToePrototype;
 
-namespace ENV;
+namespace Framework;
 
 public class TestScene : IScene
 {

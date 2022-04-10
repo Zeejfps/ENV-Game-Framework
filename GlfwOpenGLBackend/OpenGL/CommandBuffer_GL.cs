@@ -1,7 +1,7 @@
-using ENV.Engine;
+using Framework;
 using static OpenGL.Gl;
 
-namespace ENV.GLFW.NET;
+namespace Framework.GLFW.NET;
 
 class CommandBuffer_GL : ICommandBuffer
 {

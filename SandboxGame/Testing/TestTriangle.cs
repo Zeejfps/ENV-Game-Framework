@@ -1,7 +1,7 @@
-using ENV.Engine;
-using ENV.Engine.InputDevices;
+using Framework;
+using Framework.InputDevices;
 
-namespace ENV;
+namespace Framework;
 
 public class TestTriangle : ISceneObject
 {

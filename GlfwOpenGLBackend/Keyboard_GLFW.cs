@@ -1,6 +1,6 @@
-using ENV.Engine.InputDevices;
+using Framework.InputDevices;
 
-namespace ENV.GLFW.NET;
+namespace Framework.GLFW.NET;
 
 class Keyboard_GLFW : IKeyboard
 {

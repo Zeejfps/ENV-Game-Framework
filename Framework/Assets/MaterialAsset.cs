@@ -1,4 +1,4 @@
-﻿namespace ENV.Assets;
+﻿namespace Framework.Assets;
 
 public class MaterialAsset
 {

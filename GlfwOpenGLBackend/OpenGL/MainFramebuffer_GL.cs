@@ -1,8 +1,8 @@
-﻿using ENV.Engine;
+﻿using Framework;
 using OpenGL;
 using static OpenGL.Gl;
 
-namespace ENV.GLFW.NET;
+namespace Framework.GLFW.NET;
 
 public class MainFramebuffer_GL : IFramebuffer
 {

@@ -1,7 +1,7 @@
-﻿using ENV.Engine.InputDevices;
+﻿using Framework.InputDevices;
 using GLFW;
 
-namespace ENV.GLFW;
+namespace Framework.GLFW;
 
 public static class KeysExtensions
 {

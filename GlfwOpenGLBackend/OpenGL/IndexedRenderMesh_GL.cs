@@ -1,6 +1,6 @@
 ﻿using static OpenGL.Gl;
 
-namespace ENV.GLFW.NET;
+namespace Framework.GLFW.NET;
 
 public class IndexedRenderMesh_GL : IRenderMesh
 {

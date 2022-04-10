@@ -1,4 +1,4 @@
-﻿namespace ENV.GLFW.NET;
+﻿namespace Framework.GLFW.NET;
 
 public interface IRenderMesh
 {

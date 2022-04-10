@@ -1,8 +1,8 @@
-using ENV.Engine;
+using Framework;
 using GLFW;
 using TicTacToePrototype.OpenGL.AssetLoaders;
 
-namespace ENV.GLFW.NET;
+namespace Framework.GLFW.NET;
 
 public class Context_GLFW : IContext
 {

@@ -1,6 +1,6 @@
-using ENV.Engine.InputDevices;
+using Framework.InputDevices;
 
-namespace ENV.GLFW.NET;
+namespace Framework.GLFW.NET;
 
 class Mouse_GLFW : IMouse
 {

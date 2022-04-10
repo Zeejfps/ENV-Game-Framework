@@ -1,9 +1,9 @@
-﻿using ENV.Engine;
-using ENV.Engine.InputDevices;
+﻿using Framework;
+using Framework.InputDevices;
 using GLFW;
 using MouseButton = GLFW.MouseButton;
 
-namespace ENV.GLFW.NET;
+namespace Framework.GLFW.NET;
 
 public class Input_GLFW : IInput
 {
@@ -74,22 +74,22 @@ public class Input_GLFW : IInput
         }
     }
 
-    private Engine.InputDevices.MouseButton MapToMouseButton(MouseButton mouseButton)
+    private Framework.InputDevices.MouseButton MapToMouseButton(MouseButton mouseButton)
     {
         switch (mouseButton)
         {
             case MouseButton.Left:
-                return Engine.InputDevices.MouseButton.Left;
+                return Framework.InputDevices.MouseButton.Left;
             case MouseButton.Right:
-                return Engine.InputDevices.MouseButton.Right;
+                return Framework.InputDevices.MouseButton.Right;
             case MouseButton.Middle:
-                return Engine.InputDevices.MouseButton.Middle;
+                return Framework.InputDevices.MouseButton.Middle;
             case MouseButton.Button4:
             case MouseButton.Button5:
             case MouseButton.Button6:
             case MouseButton.Button7:
             case MouseButton.Button8:
-                return new Engine.InputDevices.MouseButton((int)mouseButton);
+                return new Framework.InputDevices.MouseButton((int)mouseButton);
             default:
                 throw new ArgumentOutOfRangeException(nameof(mouseButton), mouseButton, null);
         }
