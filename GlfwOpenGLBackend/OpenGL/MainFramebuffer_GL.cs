@@ -54,7 +54,7 @@ public class MainFramebuffer_GL : IFramebuffer
 
         for (var i = 0; i < textures.Length; i++)
         {
-            var texture = textures[0];
+            var texture = textures[i];
             glActiveTexture(GL_TEXTURE0 + i);
             texture.Use();
         }
