@@ -22,5 +22,7 @@ Global
 		{E10EED94-4E1F-49CA-9977-49C7ABC7D221}.Release|Any CPU.Build.0 = Release|Any CPU
 		{875BC176-DDB6-4B1A-8C71-28D0E5416CB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{875BC176-DDB6-4B1A-8C71-28D0E5416CB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{875BC176-DDB6-4B1A-8C71-28D0E5416CB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{875BC176-DDB6-4B1A-8C71-28D0E5416CB2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
