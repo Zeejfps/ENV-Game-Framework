@@ -27,7 +27,7 @@ while (shouldContinue)
         case "3":
             importMeshOption.Run();
             break;
-        case "4":
+        case "0":
             shouldContinue = false;
             break;
         default:
