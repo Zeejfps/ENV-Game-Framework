@@ -426,7 +426,7 @@ namespace OpenGL
         ///     Gets the stored error code information.
         /// </summary>
         /// <returns>An OpenGL error code.</returns>
-        public static int GetError() => _glGetError();
+        public static int glGetError() => _glGetError();
         
         /// <summary>
         ///     Set texture parameters.
@@ -2648,8 +2648,32 @@ namespace OpenGL
         public static void glShaderSource(uint shader, int count, /*const*/ byte** str, /*const*/ int* length) => _glShaderSource(shader, count, str, length);
         
         
-        public static void glShaderBinary(uint n, uint shader, int binaryFormat, void* binary, uint length) => _glShaderBinary(n, shader, binaryFormat, binary, length);
+        public static void glShaderBinary(uint n, uint* shader, int binaryFormat, void* binary, uint length) => _glShaderBinary(n, shader, binaryFormat, binary, length);
 
+        public static void glShaderBinary(uint shader, int binaryFormat, void* binary, int length)
+        {
+            var len = System.Convert.ToUInt16(length);
+            var shaders = new uint[1];
+            shaders[0] = shader;
+            fixed (uint* pShaders = &shaders[0])
+                _glShaderBinary(1, pShaders, binaryFormat, binary, len);
+        }
+        
+        public static void glSpecializeShader(uint shader, byte* entryPoint, uint numSpecializationConstants,
+            int* pConstantIndex, int* pConstantValue) => _glSpecializeShader(shader, entryPoint, numSpecializationConstants, pConstantIndex, pConstantValue);
+
+
+        public static void glSpecializeShader(uint shader, string entryPoint, uint numSpecializationConstants,
+            int* pConstantIndex, int* pConstantValue)
+        {
+            var bytes = Encoding.UTF8.GetBytes(entryPoint);
+            fixed (byte* pEntryPoint = &bytes[0])
+            {
+                glSpecializeShader(shader, pEntryPoint, numSpecializationConstants, pConstantIndex, pConstantValue);
+            }
+        }
+        
+        
         /// <summary>
         ///      Replaces the source code in a shader object.
         /// </summary>
@@ -8498,7 +8522,10 @@ namespace OpenGL
 		private delegate void PFNGLSHADERSOURCEPROC(uint shader, int count, /*const*/ byte**str, /*const*/ int*length);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void PFNGLSHADERBINARYPROC(uint n, uint shader, int binaryFormat, void* binary, uint length);
+        private delegate void PFNGLSHADERBINARYPROC(uint n, uint* shader, int binaryFormat, void* binary, uint length);
+        
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void PFNGLSPECIALIZESHADERPROC(uint shader, byte* entryPoint, uint numSpecializationConstants, int* pConstantIndex, int* pConstantValue);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		private delegate void PFNGLUSEPROGRAMPROC(uint program);
@@ -9349,6 +9376,7 @@ namespace OpenGL
 		private static PFNGLLINKPROGRAMPROC _glLinkProgram;
 		private static PFNGLSHADERSOURCEPROC _glShaderSource;
 		private static PFNGLSHADERBINARYPROC _glShaderBinary;
+		private static PFNGLSPECIALIZESHADERPROC _glSpecializeShader;
 		private static PFNGLUSEPROGRAMPROC _glUseProgram;
 		private static PFNGLUNIFORM1FPROC _glUniform1f;
 		private static PFNGLUNIFORM2FPROC _glUniform2f;
@@ -9731,6 +9759,7 @@ namespace OpenGL
 			_glLinkProgram = Marshal.GetDelegateForFunctionPointer<PFNGLLINKPROGRAMPROC>(loader.Invoke("glLinkProgram"));
 			_glShaderSource = Marshal.GetDelegateForFunctionPointer<PFNGLSHADERSOURCEPROC>(loader.Invoke("glShaderSource"));
             _glShaderBinary = Marshal.GetDelegateForFunctionPointer<PFNGLSHADERBINARYPROC>(loader.Invoke("glShaderBinary"));
+            _glSpecializeShader = Marshal.GetDelegateForFunctionPointer<PFNGLSPECIALIZESHADERPROC>(loader.Invoke("glSpecializeShader"));
 			_glUseProgram = Marshal.GetDelegateForFunctionPointer<PFNGLUSEPROGRAMPROC>(loader.Invoke("glUseProgram"));
 			_glUniform1f = Marshal.GetDelegateForFunctionPointer<PFNGLUNIFORM1FPROC>(loader.Invoke("glUniform1f"));
 			_glUniform2f = Marshal.GetDelegateForFunctionPointer<PFNGLUNIFORM2FPROC>(loader.Invoke("glUniform2f"));

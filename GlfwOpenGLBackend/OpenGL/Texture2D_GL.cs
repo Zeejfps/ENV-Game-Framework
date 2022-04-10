@@ -29,9 +29,9 @@ public class Texture2D_GL : ITexture
         //     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, p);
         
         int err;
-        while ((err = GetError()) != GL_NO_ERROR)
+        while ((err = glGetError()) != GL_NO_ERROR)
         {
-            Console.WriteLine($"GL ERROR: {err}");
+            Console.WriteLine($"GL ERROR: {err:x8}");
         }
         
        

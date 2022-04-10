@@ -2,8 +2,8 @@
 
 public class MaterialAsset
 {
-    public byte[] VertexShader { get; init; }
-    public byte[] FragmentShader { get; init; }
+    public byte[] VertexShader { get; init; } = Array.Empty<byte>();
+    public byte[] FragmentShader { get; init; } = Array.Empty<byte>();
 
     public void Serialize(BinaryWriter writer)
     {
