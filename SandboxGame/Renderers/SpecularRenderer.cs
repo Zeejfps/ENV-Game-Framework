@@ -1,25 +1,23 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
-using Framework;
 
 namespace Framework;
 
-public struct SpecularRendererData
+public readonly struct SpecularRendererData
 {
     public IMesh Mesh { get; init; }
     public ITransform Transform { get; init; }
+    public ITexture Diffuse { get; init; }
+    public ITexture Normal { get; init; }
+    public ITexture Roughness { get; init; }
+    public ITexture Occlusion { get; init; }
+    public ITexture Translucency { get; init; }
 }
 
 public class SpecularRenderer : ISceneObject
 {
     private IMaterial? m_Material;
     
-    private ITexture? m_Diffuse;
-    private ITexture? m_Normal;
-    private ITexture? m_Roughness;
-    private ITexture? m_Occlusion;
-    private ITexture? m_Translucency;
-
     private IFramebuffer? m_Framebuffer;
     
     private readonly ICamera m_Camera;
@@ -40,13 +38,6 @@ public class SpecularRenderer : ISceneObject
     {
         var assetDatabase = scene.Context.AssetDatabase;
         m_Material = assetDatabase.LoadAsset<IMaterial>("Assets/Shaders/specular.json");
-        m_Diffuse = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Ship/ship_d.texture");
-        m_Normal = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Ship/ship_n.texture");
-        m_Roughness = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Ship/ship_r.texture");
-        m_Occlusion = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Ship/ship_ao.texture");
-        m_Translucency = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Translucency.texture");
-
-
         m_Framebuffer = scene.Context.Window.Framebuffer;
     }
 
@@ -62,12 +53,12 @@ public class SpecularRenderer : ISceneObject
         m_Material = null;
     }
 
-    public void Render(SpecularRendererData renderData)
+    public void Render(SpecularRendererData data)
     {
         var camera = m_Camera;
-        var modelMatrix = renderData.Transform.WorldMatrix;
+        var modelMatrix = data.Transform.WorldMatrix;
         var framebuffer = m_Framebuffer;
-        var mesh = renderData.Mesh;
+        var mesh = data.Mesh;
         var material = m_Material;
 
         Matrix4x4.Invert(modelMatrix, out var normalMatrix);
@@ -88,11 +79,11 @@ public class SpecularRenderer : ISceneObject
         material.SetVector3("light.specular", _specularColor);
         material.SetVector3("light.ambient", _ambientColor);
         material.SetFloat("material.shininess", _shininess);
-        material.SetTexture2d("material.diffuse", m_Diffuse);
-        material.SetTexture2d("material.normal_map", m_Normal);
-        material.SetTexture2d("material.roughness_map", m_Roughness);
-        material.SetTexture2d("material.occlusion", m_Occlusion);
-        material.SetTexture2d("material.translucency", m_Translucency);
+        material.SetTexture2d("material.diffuse", data.Diffuse);
+        material.SetTexture2d("material.normal_map", data.Normal);
+        material.SetTexture2d("material.roughness_map", data.Roughness);
+        material.SetTexture2d("material.occlusion", data.Occlusion);
+        material.SetTexture2d("material.translucency", data.Translucency);
 
         framebuffer.RenderMesh(mesh, material);
     }

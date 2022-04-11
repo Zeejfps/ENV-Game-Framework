@@ -26,11 +26,11 @@ public class TestCube : ISceneObject
 
     public void Update(IScene scene)
     {
-        m_BlinnRenderer.Render(new SpecularRendererData
-        {
-            Mesh = m_Mesh,
-            Transform = m_Transform,
-        });
+        // m_BlinnRenderer.Render(new SpecularRendererData
+        // {
+        //     Mesh = m_Mesh,
+        //     Transform = m_Transform,
+        // });
     }
 
     public void Unload(IScene scene)
