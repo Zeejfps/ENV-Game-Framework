@@ -119,6 +119,7 @@ public class TestScene : IScene
             m_PitchRotation -= deltaY;
             
             m_Camera.Transform.RotateAround(Vector3.Zero, Vector3.UnitY, -deltaX);
+            m_Camera.Transform.RotateAround(Vector3.Zero, m_Camera.Transform.Right, -deltaY);
             m_Camera.Transform.LookAt(Vector3.UnitY, Vector3.UnitY);
             
             // m_Camera.Transform.WorldRotation = Quaternion.CreateFromYawPitchRoll(m_YawRotation, m_PitchRotation, 0f);
