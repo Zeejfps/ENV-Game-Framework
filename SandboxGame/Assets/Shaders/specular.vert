@@ -6,12 +6,22 @@ layout (location = 2) in vec2 attr_vertex_uv;
 layout (location = 3) in vec3 attr_vertex_tangent;
 
 uniform mat4 matrix_projection, matrix_view, matrix_model, normal_matrix;
+uniform vec3 camera_position;
 
 out vec3 normal;
 out vec3 vert_position;
-out vec3 frag_pos;
-out vec2 tex_coord;
-out vec3 tangent;
+//out vec3 frag_pos;
+//out vec2 tex_coord;
+//out vec3 tangent;
+
+out VS_OUT
+{
+    vec3 frag_pos;
+    vec2 tex_coord;
+    vec3 tangent_view_position;
+    vec3 tangent_frag_position;
+    mat3 tangent_position;
+} vs_out;
 
 void main()
 {
@@ -20,10 +30,21 @@ void main()
 
     gl_Position = matrix_projection * vert_view_position;
     vert_position = vec3(vert_world_position) / vert_world_position.w;
-    
-    frag_pos = vec3(matrix_model * vec4(attr_vertex_position,1.0));
-    normal = mat3(transpose(inverse(matrix_model))) * attr_vertex_normal;
 
-    tex_coord = attr_vertex_uv;
-    tangent = attr_vertex_tangent;
+    vs_out.frag_pos = vec3(matrix_model * vec4(attr_vertex_position,1.0));
+    normal = mat3(transpose(inverse(matrix_model))) * attr_vertex_normal;
+    
+    mat3 normal_matrix2 = transpose(inverse(mat3(matrix_model)));
+    
+    vec3 T = normalize(normal_matrix2*attr_vertex_tangent);
+    vec3 N = normalize(normal_matrix2*attr_vertex_normal);
+    T = normalize(T - dot(T,N) * N);
+    vec3 B = cross(N,T);
+    
+    mat3 TBN = transpose(mat3(T,B,N));
+    
+    vs_out.tex_coord = attr_vertex_uv;
+    vs_out.tangent_position = TBN;
+    vs_out.tangent_view_position = TBN * camera_position;
+    vs_out.tangent_frag_position = TBN * vs_out.frag_pos; 
 }
