@@ -36,6 +36,8 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Assets\Default\Primitives" />
+      <Folder Include="Assets\Default\Textures" />
       <Folder Include="Assets\Textures\Ship" />
     </ItemGroup>
 
