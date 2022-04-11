@@ -3,7 +3,7 @@ using System.Numerics;
 
 namespace Framework;
 
-public readonly struct SpecularRendererData
+public class SpecularRenderable
 {
     public IMesh Mesh { get; init; }
     public ITransform Transform { get; init; }
@@ -16,6 +16,8 @@ public readonly struct SpecularRendererData
 
 public class SpecularRenderer : ISceneObject
 {
+    private readonly Dictionary<IMesh, List<SpecularRenderable>> m_MeshToRenderableMap = new();
+
     private IMaterial? m_Material;
     
     private IFramebuffer? m_Framebuffer;
@@ -33,6 +35,23 @@ public class SpecularRenderer : ISceneObject
         m_Camera = camera;
         m_Light = light;
     }
+
+    public void Add(SpecularRenderable renderable)
+    {
+        var mesh = renderable.Mesh;
+        if (!m_MeshToRenderableMap.TryGetValue(mesh, out var renderables))
+        {
+            renderables = new List<SpecularRenderable>();
+            m_MeshToRenderableMap[mesh] = renderables;
+        }
+        
+        renderables.Add(renderable);
+    }
+
+    public void Remove(SpecularRenderable renderable)
+    {
+        
+    }
     
     public void Load(IScene scene)
     {
@@ -43,7 +62,44 @@ public class SpecularRenderer : ISceneObject
 
     public void Update(IScene scene)
     {
-        
+        var camera = m_Camera;
+        var framebuffer = m_Framebuffer;
+        var material = m_Material;
+        Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
+
+        Debug.Assert(material != null);
+        Debug.Assert(framebuffer != null);
+        material.Use();
+
+        material.SetVector3("light.position", m_Light.WorldPosition);
+        material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
+        material.SetMatrix4x4("matrix_view", viewMatrix);
+        material.SetVector3("camera_position", camera.Transform.WorldPosition);
+        material.SetVector3("light.diffuse", _lightColor);
+        material.SetVector3("light.specular", _specularColor);
+        material.SetVector3("light.ambient", _ambientColor);
+        material.SetFloat("material.shininess", _shininess);
+
+        foreach (var kvp in m_MeshToRenderableMap)
+        {
+            var mesh = kvp.Key;
+            foreach (var renderable in kvp.Value)
+            {
+                var modelMatrix = renderable.Transform.WorldMatrix;
+                Matrix4x4.Invert(modelMatrix, out var normalMatrix);
+                normalMatrix = Matrix4x4.Transpose(normalMatrix);
+                
+                material.SetMatrix4x4("matrix_model", modelMatrix);
+                material.SetMatrix4x4("normal_matrix", normalMatrix);
+                material.SetTexture2d("material.diffuse", renderable.Diffuse);
+                material.SetTexture2d("material.normal_map", renderable.Normal);
+                material.SetTexture2d("material.roughness_map", renderable.Roughness);
+                material.SetTexture2d("material.occlusion", renderable.Occlusion);
+                material.SetTexture2d("material.translucency", renderable.Translucency);
+            }
+            
+            mesh.Render();
+        }
     }
 
     public void Unload(IScene scene)
@@ -51,40 +107,5 @@ public class SpecularRenderer : ISceneObject
         Debug.Assert(m_Material != null);
         m_Material.Unload();
         m_Material = null;
-    }
-
-    public void Render(SpecularRendererData data)
-    {
-        var camera = m_Camera;
-        var modelMatrix = data.Transform.WorldMatrix;
-        var framebuffer = m_Framebuffer;
-        var mesh = data.Mesh;
-        var material = m_Material;
-
-        Matrix4x4.Invert(modelMatrix, out var normalMatrix);
-        normalMatrix = Matrix4x4.Transpose(normalMatrix);
-        
-        Debug.Assert(material != null);
-        Debug.Assert(framebuffer != null);
-
-        Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
-
-        material.Use();
-        material.SetVector3("light.position", m_Light.WorldPosition);
-        material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
-        material.SetMatrix4x4("matrix_view", viewMatrix);
-        material.SetMatrix4x4("matrix_model", modelMatrix);
-        material.SetMatrix4x4("normal_matrix", normalMatrix);
-        material.SetVector3("camera_position", camera.Transform.WorldPosition);
-        material.SetVector3("light.diffuse", _lightColor);
-        material.SetVector3("light.specular", _specularColor);
-        material.SetVector3("light.ambient", _ambientColor);
-        material.SetFloat("material.shininess", _shininess);
-        material.SetTexture2d("material.diffuse", data.Diffuse);
-        material.SetTexture2d("material.normal_map", data.Normal);
-        material.SetTexture2d("material.roughness_map", data.Roughness);
-        material.SetTexture2d("material.occlusion", data.Occlusion);
-        material.SetTexture2d("material.translucency", data.Translucency);
-        mesh.Render();
     }
 }

@@ -39,13 +39,11 @@ public class TestScene : IScene
 
         m_SpecularRenderer = new SpecularRenderer(m_Camera, lightTransform);
         m_UnlitRenderer = new UnlitRenderer(m_Camera);
-
         m_Light = new TestLight(m_UnlitRenderer, lightTransform);
 
         m_Ship = new Ship(m_SpecularRenderer);
         m_Toad = new Toad(m_SpecularRenderer);
         
-        m_SceneObjects.Add(m_SpecularRenderer);
         m_SceneObjects.Add(m_UnlitRenderer);
         m_SceneObjects.Add(m_Camera);
         m_SceneObjects.Add(m_Light);
@@ -56,6 +54,7 @@ public class TestScene : IScene
 
     public void Load()
     {
+        m_SpecularRenderer.Load(this);
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Load(this);
     }
@@ -117,6 +116,8 @@ public class TestScene : IScene
 
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Update(this);
+        
+        m_SpecularRenderer.Update(this);
     }
 }
 

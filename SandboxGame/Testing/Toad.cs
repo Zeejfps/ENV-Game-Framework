@@ -17,8 +17,8 @@ public class Toad : ISceneObject
 
     public Toad(SpecularRenderer specularRenderer)
     {
-        m_SpecularRenderer = specularRenderer;
         Transform = new Transform3D();
+        m_SpecularRenderer = specularRenderer;
     }
     
     public void Load(IScene scene)
@@ -30,11 +30,8 @@ public class Toad : ISceneObject
         m_Roughness = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Roughness.texture");
         m_Occlusion = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_AO.texture");
         m_Translucency = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Translucency.texture");
-    }
-
-    public void Update(IScene scene)
-    {
-        m_SpecularRenderer.Render(new SpecularRendererData
+        
+        m_SpecularRenderer.Add(new SpecularRenderable
         {
             Mesh = m_Mesh,
             Transform = Transform,
@@ -44,6 +41,11 @@ public class Toad : ISceneObject
             Roughness = m_Roughness,
             Translucency = m_Translucency
         });
+    }
+
+    public void Update(IScene scene)
+    {
+        
     }
 
     public void Unload(IScene scene)
