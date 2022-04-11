@@ -2,11 +2,11 @@
 
 public class MeshAsset_GL
 {
-    public float[] Vertices { get; init; }
-    public float[] Uvs { get; init; }
-    public float[] Normals { get; init; }
-    public float[] Tangents { get; init; }
-    public int[] Triangles { get; init; }
+    public float[] Vertices { get; init; } = Array.Empty<float>();
+    public float[] Uvs { get; init; } = Array.Empty<float>();
+    public float[] Normals { get; init; } = Array.Empty<float>();
+    public float[] Tangents { get; init; } = Array.Empty<float>();
+    public int[] Triangles { get; init; } = Array.Empty<int>();
 
     public void Serialize(BinaryWriter writer)
     {

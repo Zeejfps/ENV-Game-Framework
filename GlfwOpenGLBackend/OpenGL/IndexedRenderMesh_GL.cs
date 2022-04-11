@@ -56,7 +56,7 @@ public class IndexedRenderMesh_GL : IRenderMesh
         fixed (float* t = &tangents[0])
             glBufferData(GL_ARRAY_BUFFER, sizeof(float) * tangents.Length, t, GL_STATIC_DRAW);
         
-        glVertexAttribPointer(3, 2, GL_FLOAT, false, 2 * sizeof(float), NULL);
+        glVertexAttribPointer(3, 3, GL_FLOAT, false, 3 * sizeof(float), NULL);
         glEnableVertexAttribArray(3);  
         
         var indices = mesh.Triangles;
