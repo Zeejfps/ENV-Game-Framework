@@ -81,7 +81,7 @@ public class Transform3D : ITransform
 
     private void UpdatePositionAndRotation(Vector3 worldPosition, Quaternion worldRotation)
     {
-        m_WorldPosition = WorldPosition;
+        m_WorldPosition = worldPosition;
         m_WorldRotation = worldRotation;
         UpdateWorldMatrix();
     }

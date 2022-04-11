@@ -10,11 +10,10 @@ public class TestScene : IScene
 {
     public IContext Context => m_Context;
 
-    private SpecularRenderer m_BlinnRenderer;
+    private SpecularRenderer m_SpecularRenderer;
     private UnlitRenderer m_UnlitRenderer;
     
-    private TestTriangle m_TestTriangle;
-    private TestCube m_TestCube;
+    private Ship m_Ship;
 
     private readonly IContext m_Context;
     private readonly ICamera m_Camera;
@@ -39,20 +38,19 @@ public class TestScene : IScene
             WorldPosition = new Vector3(0f, 5f, 0f),
         };
 
-        m_BlinnRenderer = new SpecularRenderer(m_Camera, lightTransform);
+        m_SpecularRenderer = new SpecularRenderer(m_Camera, lightTransform);
         m_UnlitRenderer = new UnlitRenderer(m_Camera);
 
         m_Light = new TestLight(m_UnlitRenderer, lightTransform);
-        
-        m_TestTriangle = new TestTriangle(context, m_Camera);
-        m_TestCube = new TestCube(m_BlinnRenderer);
 
-        m_SceneObjects.Add(m_BlinnRenderer);
+        m_Ship = new Ship(m_SpecularRenderer);
+
+        m_SceneObjects.Add(m_SpecularRenderer);
         m_SceneObjects.Add(m_UnlitRenderer);
-        m_SceneObjects.Add(m_TestCube);
         m_SceneObjects.Add(m_Camera);
         m_SceneObjects.Add(m_Light);
         m_SceneObjects.Add(m_Clock);
+        m_SceneObjects.Add(m_Ship);
     }
 
     public void Load()
@@ -74,24 +72,14 @@ public class TestScene : IScene
     
     public void Update()
     {
-        var speed = m_Clock.FrameDeltaTime * 15f;
-        var rotation = m_Clock.FrameDeltaTime * 0.5f;
+        var speed = m_Clock.FrameDeltaTime * 0.1f;
         var mouse = m_Context.Window.Input.Mouse;
         var keyboard = m_Context.Window.Input.Keyboard;
-
-        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.E))
-        {
-            Console.WriteLine("Wtf");
-            m_TestCube.Transform.RotateInLocalSpace(0f, 0f, 5f);
-        }
         
-        if (m_IsRotating)
-            m_TestCube.Transform.RotateInWorldSpace(rotation, rotation, rotation);
-        
-        if (keyboard.IsKeyPressed(KeyboardKey.W))
-            m_Camera.Transform.WorldPosition += Vector3.UnitY * speed;
-        else if (keyboard.IsKeyPressed(KeyboardKey.S))
-            m_Camera.Transform.WorldPosition -= Vector3.UnitY * speed;
+        // if (keyboard.IsKeyPressed(KeyboardKey.W))
+        //     m_Camera.Transform.WorldPosition += Vector3.UnitZ * speed;
+        // else if (keyboard.IsKeyPressed(KeyboardKey.S))
+        //     m_Camera.Transform.WorldPosition -= Vector3.UnitZ * speed;
         
         if (m_Context.Window.IsFullscreen && keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
             m_Context.Window.IsFullscreen = false;
@@ -99,9 +87,6 @@ public class TestScene : IScene
         if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Space))
             m_IsRotating = !m_IsRotating;
         
-        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.R))
-            m_TestCube.Transform.WorldRotation = Quaternion.Identity;
-
         if (mouse.WasButtonPressedThisFrame(MouseButton.Left))
         {
             m_PrevMouseX = mouse.ScreenX;
