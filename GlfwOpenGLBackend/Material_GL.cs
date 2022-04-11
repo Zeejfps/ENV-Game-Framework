@@ -7,8 +7,6 @@ namespace GlfwOpenGLBackend.AssetLoaders;
 public class Material_GL : IMaterial
 {
     private readonly Dictionary<string, int> m_PropertyToIdMap = new();
-
-    public string Shader { get; }
     public bool IsLoaded { get; private set; }
 
     private uint m_ProgramId;
@@ -31,12 +29,7 @@ public class Material_GL : IMaterial
         m_ProgramId = 0;
         IsLoaded = false;
     }
-    
-    public void Apply(IShaderProgram shaderProgram)
-    {
-        throw new NotImplementedException();
-    }
-    
+
     public void SetFloat(string propertyName, float value)
     {
         var location = GetUniformLocation(propertyName);
@@ -82,5 +75,39 @@ public class Material_GL : IMaterial
         }
 
         return location;
+    }
+
+    public static Material_GL LoadFromSource(string vertexShaderSource, string fragmentShaderSource)
+    {
+        var vertexShader = glCreateShader(GL_VERTEX_SHADER);
+        CompileShader(vertexShader, vertexShaderSource);
+
+        var fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+        CompileShader(fragmentShader, fragmentShaderSource);
+        
+        var program = glCreateProgram();
+        glAttachShader(program, vertexShader);
+        glAttachShader(program, fragmentShader);
+
+        glLinkProgram(program);
+
+        var error = glGetProgramInfoLog(program);
+        if (!string.IsNullOrEmpty(error))
+            throw new Exception($"Error compiling program:\n{error}");
+        
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+
+        return new Material_GL(program);
+    }
+    
+    private static void CompileShader(uint shader, string source)
+    {
+        glShaderSource(shader, source);
+        glCompileShader(shader);
+        
+        var error = glGetShaderInfoLog(shader);
+        if (!string.IsNullOrEmpty(error))
+            throw new Exception($"Error compiling shader: {error}");
     }
 }

@@ -21,39 +21,10 @@ public class DebugMaterialAssetLoader_GL : IAssetLoader<IMaterial>
         if (string.IsNullOrEmpty(pathToFragShader))
             throw new Exception($"Failed to find a fragment shader {fragmentShaderName}");
 
-        var vertShader = File.ReadAllText(pathToVertShader);
-        var fragShader = File.ReadAllText(pathToFragShader);
+        var vertShaderSource = File.ReadAllText(pathToVertShader);
+        var fragShaderSource = File.ReadAllText(pathToFragShader);
         
-        var vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        LoadFromSource(vertexShader, vertShader);
-
-        var fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        LoadFromSource(fragmentShader, fragShader);
-        
-        var program = glCreateProgram();
-        glAttachShader(program, vertexShader);
-        glAttachShader(program, fragmentShader);
-
-        glLinkProgram(program);
-
-        var error = glGetProgramInfoLog(program);
-        if (!string.IsNullOrEmpty(error))
-            throw new Exception($"Error compiling program:\n{error}");
-        
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
-        
-        return new Material_GL(program);
-    }
-    
-    private void LoadFromSource(uint shader, string source)
-    {
-        glShaderSource(shader, source);
-        glCompileShader(shader);
-        
-        var error = glGetShaderInfoLog(shader);
-        if (!string.IsNullOrEmpty(error))
-            throw new Exception($"Error compiling shader: {error}");
+        return Material_GL.LoadFromSource(vertShaderSource, fragShaderSource);
     }
 }
 
@@ -61,40 +32,9 @@ public class MaterialAssetLoader_GL : MaterialAssetLoader
 {
     protected override IMaterial LoadAsset(MaterialAsset_GL asset)
     {
-        var vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        LoadFromSource(vertexShader, asset.VertexShader);
-        //LoadShaderFromBinary(vertexShader, asset.VertexShader);
-
-        var fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        LoadFromSource(fragmentShader, asset.FragmentShader);
-        //LoadShaderFromBinary(fragmentShader, asset.FragmentShader);
-        
-        var program = glCreateProgram();
-        glAttachShader(program, vertexShader);
-        glAttachShader(program, fragmentShader);
-
-        glLinkProgram(program);
-
-        var error = glGetProgramInfoLog(program);
-        if (!string.IsNullOrEmpty(error))
-            throw new Exception($"Error compiling program:\n{error}");
-        
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
-        
-        return new Material_GL(program);
+        return Material_GL.LoadFromSource(asset.VertexShader, asset.FragmentShader);
     }
-
-    private void LoadFromSource(uint shader, string source)
-    {
-        glShaderSource(shader, source);
-        glCompileShader(shader);
-        
-        var error = glGetShaderInfoLog(shader);
-        if (!string.IsNullOrEmpty(error))
-            throw new Exception($"Error compiling shader: {error}");
-    }
-
+    
     private unsafe void LoadShaderFromBinary(uint shader, byte[] shaderData)
     {
         fixed (void* p = &shaderData[0])
