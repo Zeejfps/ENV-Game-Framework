@@ -9,12 +9,12 @@ public class MaterialAssetLoader_GL : MaterialAssetLoader
     protected override IMaterial LoadAsset(MaterialAsset_GL asset)
     {
         var vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        //LoadFromSource(vertexShader, asset.VertexShader)
-        LoadShaderFromBinary(vertexShader, asset.VertexShader);
+        LoadFromSource(vertexShader, asset.VertexShader);
+        //LoadShaderFromBinary(vertexShader, asset.VertexShader);
 
         var fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        //LoadFromSource(fragmentShader, asset.FragmentShader);
-        LoadShaderFromBinary(fragmentShader, asset.FragmentShader);
+        LoadFromSource(fragmentShader, asset.FragmentShader);
+        //LoadShaderFromBinary(fragmentShader, asset.FragmentShader);
         
         var program = glCreateProgram();
         glAttachShader(program, vertexShader);

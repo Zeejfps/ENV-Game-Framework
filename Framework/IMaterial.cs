@@ -4,8 +4,7 @@ namespace Framework;
 
 public interface IMaterial : IAsset
 {
-    string Shader { get; }
-    void Apply(IShaderProgram shaderProgram);
+    void Use();
 
     void SetFloat(string propertyName, float value);
 

@@ -30,7 +30,7 @@ public class Game
         
         var scene = new TestScene(Context);
         scene.Load();
-
+        
         while (Window.IsOpened)
         {
             Window.Update();

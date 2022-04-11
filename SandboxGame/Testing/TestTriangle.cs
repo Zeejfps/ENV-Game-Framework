@@ -26,7 +26,6 @@ public class TestTriangle : ISceneObject
         };
 
         m_Random = new Random();
-        m_Material = new Material("Assets/triangle");
     }
 
     public void Load(IScene scene)
@@ -42,7 +41,6 @@ public class TestTriangle : ISceneObject
         
         m_Material.SetMatrix4x4("matrix_projection", m_Camera.ProjectionMatrix);
         m_Material.SetMatrix4x4("matrix_view", m_Camera.Transform.WorldMatrix);
-        m_Context.Window.Framebuffer.RenderMesh(m_Mesh, m_Material);
     }
 
     public void Unload(IScene scene)

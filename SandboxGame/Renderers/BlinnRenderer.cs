@@ -62,12 +62,13 @@ public class BlinnRenderer : ISceneObject
 
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
         
+        material.Use();
         material.SetVector3("Light.position", m_Light.WorldPosition);
         material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         material.SetMatrix4x4("matrix_view", viewMatrix);
         material.SetMatrix4x4("matrix_model", modelMatrix);
         material.SetMatrix4x4("normal_matrix", normalMatrix);
         material.SetVector3("camera_position", camera.Transform.WorldPosition);
-        framebuffer.RenderMesh(mesh, material);
+        mesh.Render();
     }
 }

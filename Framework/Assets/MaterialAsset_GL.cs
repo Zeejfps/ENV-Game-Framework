@@ -2,24 +2,19 @@
 
 public class MaterialAsset_GL
 {
-    public byte[] VertexShader { get; init; } = Array.Empty<byte>();
-    public byte[] FragmentShader { get; init; } = Array.Empty<byte>();
+    public string VertexShader { get; init; } = string.Empty;
+    public string FragmentShader { get; init; } = string.Empty;
 
     public void Serialize(BinaryWriter writer)
     {
-        writer.Write(VertexShader.Length);
         writer.Write(VertexShader);
-        writer.Write(FragmentShader.Length);
         writer.Write(FragmentShader);
     }
 
     public static MaterialAsset_GL Deserialize(BinaryReader reader)
     {
-        var vertexShaderLength = reader.ReadInt32();
-        var vertexShader = reader.ReadBytes(vertexShaderLength);
-
-        var fragmentShaderLength = reader.ReadInt32();
-        var fragmentShader = reader.ReadBytes(fragmentShaderLength);
+        var vertexShader = reader.ReadString();
+        var fragmentShader = reader.ReadString();
 
         return new MaterialAsset_GL
         {

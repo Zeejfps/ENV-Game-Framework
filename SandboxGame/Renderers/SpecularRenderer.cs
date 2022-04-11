@@ -37,7 +37,7 @@ public class SpecularRenderer : ISceneObject
     public void Load(IScene scene)
     {
         var assetDatabase = scene.Context.AssetDatabase;
-        m_Material = assetDatabase.LoadAsset<IMaterial>("Assets/Shaders/specular.json");
+        m_Material = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/specular.material");
         m_Framebuffer = scene.Context.Window.Framebuffer;
     }
 
@@ -68,7 +68,8 @@ public class SpecularRenderer : ISceneObject
         Debug.Assert(framebuffer != null);
 
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
-        
+
+        material.Use();
         material.SetVector3("light.position", m_Light.WorldPosition);
         material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         material.SetMatrix4x4("matrix_view", viewMatrix);
@@ -84,7 +85,6 @@ public class SpecularRenderer : ISceneObject
         material.SetTexture2d("material.roughness_map", data.Roughness);
         material.SetTexture2d("material.occlusion", data.Occlusion);
         material.SetTexture2d("material.translucency", data.Translucency);
-
-        framebuffer.RenderMesh(mesh, material);
+        mesh.Render();
     }
 }

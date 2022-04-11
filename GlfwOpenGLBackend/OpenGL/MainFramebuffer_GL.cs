@@ -5,8 +5,6 @@ namespace Framework.GLFW.NET;
 
 public class MainFramebuffer_GL : IFramebuffer
 {
-    private readonly Dictionary<string, ShaderProgram_GL> m_ShaderToProgramMap = new();
-
     public int Width { get; private set; }
     public int Height { get; private set; }
     
@@ -30,27 +28,5 @@ public class MainFramebuffer_GL : IFramebuffer
         Width = width;
         Height = height;
         glViewport(0, 0, width, height);
-    }
-
-    public void RenderMesh(IMesh mesh, IMaterial material)
-    {
-        var shaderProgram = LoadShaderProgram(material);
-        
-        shaderProgram.Use();
-        material.Apply(shaderProgram);
-        mesh.Render();
-    }
-    
-    private ShaderProgram_GL LoadShaderProgram(IMaterial material)
-    {
-        var shader = material.Shader;
-        
-        if (!m_ShaderToProgramMap.TryGetValue(shader, out var shaderProgram))
-        {
-            shaderProgram = new ShaderProgram_GL(shader);
-            m_ShaderToProgramMap[shader] = shaderProgram;
-        }
-
-        return shaderProgram;
     }
 }

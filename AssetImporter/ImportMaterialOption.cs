@@ -1,47 +1,17 @@
-﻿using Framework.Assets;
-using Vortice.ShaderCompiler;
-
-namespace AssetImporter;
+﻿namespace AssetImporter;
 
 public class ImportMaterialOption
 {
+    private readonly MaterialAssetImporter_GL m_Importer = new();
+    
     public void Run()
     {
-        var options = new Options();
-        options.SetSourceLanguage(SourceLanguage.GLSL);
-        options.SetTargetEnv(TargetEnvironment.OpenGL, 450);
-        using var compiler = new Compiler(options);
-
         Console.WriteLine("[Import Material]");
         var vertexShaderPath = ReadPath("Vertex shader path: ");
-
         var vertexShaderSource = File.ReadAllText(vertexShaderPath);
-        var vertexShaderFileName = Path.GetFileName(vertexShaderPath);
 
-        using var vertexShaderCompilationResult = compiler.Compile(vertexShaderSource, vertexShaderFileName, ShaderKind.VertexShader);
-        if (vertexShaderCompilationResult.Status != CompilationStatus.Success)
-        {
-            Console.WriteLine(vertexShaderCompilationResult.ErrorMessage);
-            return;
-        }
-        
         var fragmentShaderPath = ReadPath("Fragment shader path: ");
-
         var fragmentShaderSource = File.ReadAllText(fragmentShaderPath);
-        var fragmentShaderFileName = Path.GetFileName(fragmentShaderPath);
-        
-        using var fragmentShaderCompilationResult = compiler.Compile(fragmentShaderSource, fragmentShaderFileName, ShaderKind.FragmentShader);
-        if (fragmentShaderCompilationResult.Status != CompilationStatus.Success)
-        {
-            Console.WriteLine(fragmentShaderCompilationResult.ErrorMessage);
-            return;
-        }
-        
-        var materialAsset = new MaterialAsset_GL
-        {
-            VertexShader = vertexShaderCompilationResult.GetBytecode().ToArray(),
-            FragmentShader = fragmentShaderCompilationResult.GetBytecode().ToArray(),
-        };
         
         Console.Write("Save As: ");
         var outputPath = Console.ReadLine();
@@ -50,12 +20,12 @@ public class ImportMaterialOption
             Console.WriteLine("Error invalid path");
             return;
         }
-
+        
         outputPath = outputPath.Replace("\"", "");
-
-        using var stream = File.Open(Path.GetFullPath(outputPath), FileMode.OpenOrCreate);
-        using var writer = new BinaryWriter(stream);
-        materialAsset.Serialize(writer);
+        
+        m_Importer.VertexShaderSource = vertexShaderSource;
+        m_Importer.FragmentShaderSource = fragmentShaderSource;
+        m_Importer.Import(outputPath);
         
         Console.WriteLine($"Saved Material to: {outputPath}");
     }
