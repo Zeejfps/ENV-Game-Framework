@@ -23,7 +23,7 @@ public class MainFramebuffer_GL : IFramebuffer
 
     public void Clear()
     {
-        glClearColor(.1f, .1f, .2f, 1f);
+        glClearColor(.42f, .607f, .82f, 1f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 

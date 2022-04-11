@@ -13,8 +13,12 @@ public struct SpecularRendererData
 public class SpecularRenderer : ISceneObject
 {
     private IMaterial? m_Material;
+    
     private ITexture? m_Diffuse;
     private ITexture? m_Normal;
+    private ITexture? m_Roughness;
+    private ITexture? m_Occlusion;
+    private ITexture? m_Translucency;
 
     private IFramebuffer? m_Framebuffer;
     
@@ -22,9 +26,9 @@ public class SpecularRenderer : ISceneObject
     private readonly ITransform m_Light;
 
     private Vector3 _lightColor = new Vector3(1f,1f,1f);
-    private Vector3 _ambientColor = new Vector3(.1f,.1f,.2f);
-    private Vector3 _specularColor = new Vector3(1f,1f,1f);
-    private float _shininess = 16f;
+    private Vector3 _ambientColor = new Vector3(.2f,.4f,.6f);
+    private Vector3 _specularColor = new Vector3(.7f,.7f,.7f);
+    private float _shininess = 10f;
 
     public SpecularRenderer(ICamera camera, ITransform light)
     {
@@ -38,6 +42,10 @@ public class SpecularRenderer : ISceneObject
         m_Material = assetDatabase.LoadAsset<IMaterial>("Assets/Shaders/specular.json");
         m_Diffuse = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_BaseColor.texture");
         m_Normal = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Normal.texture");
+        m_Roughness = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Roughness.texture");
+        m_Occlusion = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_AO.texture");
+        m_Translucency = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Translucency.texture");
+
 
         m_Framebuffer = scene.Context.Window.Framebuffer;
     }
@@ -80,8 +88,11 @@ public class SpecularRenderer : ISceneObject
         material.SetVector3("light.specular", _specularColor);
         material.SetVector3("light.ambient", _ambientColor);
         material.SetFloat("material.shininess", _shininess);
-        material.SetTexture2d("m_diffuse", m_Diffuse);
-        material.SetTexture2d("m_normal_map", m_Normal);
+        material.SetTexture2d("material.diffuse", m_Diffuse);
+        material.SetTexture2d("material.normal_map", m_Normal);
+        material.SetTexture2d("material.roughness_map", m_Roughness);
+        material.SetTexture2d("material.occlusion", m_Occlusion);
+        material.SetTexture2d("material.translucency", m_Translucency);
 
         framebuffer.RenderMesh(mesh, material);
     }

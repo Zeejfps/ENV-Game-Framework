@@ -108,6 +108,8 @@ public class TestScene : IScene
             m_PrevMouseY = mouse.ScreenY;
         }
 
+        //m_Light.Transform.WorldPosition += new Vector3(0,m_Clock.FrameDeltaTime,0);
+
         if (mouse.IsButtonPressed(MouseButton.Left))
         {
             var deltaX = (mouse.ScreenX - m_PrevMouseX) * m_Clock.FrameDeltaTime * 1f;

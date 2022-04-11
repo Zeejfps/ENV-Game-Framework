@@ -14,6 +14,7 @@ while (shouldContinue)
     Console.WriteLine("1 - Import Mesh");
     Console.WriteLine("2 - Import Texture");
     Console.WriteLine("3 - Import Material");
+    Console.WriteLine("4 - Import Texture Batch");
     Console.WriteLine("0 - Exit");
     Console.Write("Option: ");
 
@@ -28,6 +29,9 @@ while (shouldContinue)
             break;
         case "3":
             importMaterialOption.Run();
+            break;
+        case "4":
+            importTextureOption.RunBatch();
             break;
         case "0":
             shouldContinue = false;

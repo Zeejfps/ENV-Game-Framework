@@ -10,7 +10,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Framework\Framework.csproj" />
-      <ProjectReference Include="..\Mikktspace.NET\Mikktspace.NET.csproj" />
     </ItemGroup>
 
     <ItemGroup>

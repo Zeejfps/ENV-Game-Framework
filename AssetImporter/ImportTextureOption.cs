@@ -22,8 +22,38 @@ public class ImportTextureOption
         var pathToTexture = Console.ReadLine();
         pathToTexture = pathToTexture.Replace("\"", "");
         
-        var fileName = Path.GetFileNameWithoutExtension(pathToTexture);
+        SaveTexture(pathToTexture);
+    }
 
+    public void RunBatch()
+    {
+        Console.WriteLine("[Import Texture]");
+        // Console.WriteLine("1 - Set Image Path");
+        // Console.WriteLine("2 - Set Output Path");
+        // Console.Write("Option: ");
+        // Console.ReadLine();
+        
+        Console.Write("Image Path: ");
+        var pathToTexture = Console.ReadLine();
+        pathToTexture = pathToTexture?.Replace("\"", "");
+        
+        var ext = new List<string>{"png"};
+        if (pathToTexture == null) return;
+        
+        var eFiles = Directory.EnumerateFiles(pathToTexture, "*.*", SearchOption.TopDirectoryOnly)
+            .Where(s => ext.Contains(Path.GetExtension(s).TrimStart('.').ToLowerInvariant()));
+        var files = eFiles.ToList();
+
+        foreach (var file in files)
+        {
+            SaveTexture(file);
+        }
+    }
+    
+
+    public void SaveTexture(string pathToTexture)
+    {
+        var fileName = Path.GetFileNameWithoutExtension(pathToTexture);
         using var image = Image.Load<Rgba32>(pathToTexture);
 
         var pixelBytes = new byte[image.Width * image.Height * Unsafe.SizeOf<Rgba32>()];
@@ -37,12 +67,12 @@ public class ImportTextureOption
             OutputOptions =
             {
                 GenerateMipMaps = false,
-                Quality = CompressionQuality.Balanced,
+                Quality = CompressionQuality.BestQuality,
                 Format = CompressionFormat.Bc7,
                 //FileFormat = OutputFileFormat.Ktx //Change to Dds for a dds
             }
         };
-
+        
         var data = encoder.EncodeToRawBytes(pixelBytes, image.Width, image.Height, PixelFormat.Rgba32);
 
         var asset = new TextureAsset_GL
@@ -53,12 +83,14 @@ public class ImportTextureOption
         };
     
         Console.Write("Save as: ");
-        var saveAsPath = Console.ReadLine();
+        var saveAsPath = Path.GetDirectoryName(pathToTexture);
+        var filename = Path.GetFileNameWithoutExtension(pathToTexture);
         
-        saveAsPath = saveAsPath.Replace("\"", "");
-
-        using var fileStream = File.Open(saveAsPath, FileMode.OpenOrCreate);
+        //saveAsPath = saveAsPath.Replace("\"", "");
+        var strPath = $@"{saveAsPath}\{filename}.texture";
+        using var fileStream = File.Open(strPath, FileMode.OpenOrCreate);
         using var writer = new BinaryWriter(fileStream);
         asset.Serialize(writer);
+        Console.Write(strPath);
     }
 }
