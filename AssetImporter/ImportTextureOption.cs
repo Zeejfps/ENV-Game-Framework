@@ -91,6 +91,6 @@ public class ImportTextureOption
         using var fileStream = File.Open(strPath, FileMode.OpenOrCreate);
         using var writer = new BinaryWriter(fileStream);
         asset.Serialize(writer);
-        Console.Write(strPath);
+        Console.WriteLine(strPath);
     }
 }
