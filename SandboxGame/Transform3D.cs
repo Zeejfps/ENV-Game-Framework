@@ -5,6 +5,8 @@ namespace TicTacToePrototype;
 
 public class Transform3D : ITransform
 {
+    const float DegToRad = 0.0174533f;
+    
     public Vector3 WorldPosition
     {
         get => m_WorldPosition;
@@ -52,9 +54,9 @@ public class Transform3D : ITransform
 
     public void RotateInWorldSpace(float x, float y, float z)
     {
-        var xRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, x);
-        var yRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, y);
-        var zRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, z);
+        var xRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, DegToRad * x);
+        var yRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, DegToRad * y);
+        var zRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, DegToRad * z);
 
         var totalRotation = xRotation * yRotation * zRotation;
         WorldRotation *= totalRotation;
@@ -62,9 +64,9 @@ public class Transform3D : ITransform
 
     public void RotateInLocalSpace(float x, float y, float z)
     {
-        var xRotation = Quaternion.CreateFromAxisAngle(Right, x);
-        var yRotation = Quaternion.CreateFromAxisAngle(Up, y);
-        var zRotation = Quaternion.CreateFromAxisAngle(Forward, z);
+        var xRotation = Quaternion.CreateFromAxisAngle(Right, DegToRad * x);
+        var yRotation = Quaternion.CreateFromAxisAngle(Up, DegToRad * y);
+        var zRotation = Quaternion.CreateFromAxisAngle(Forward, DegToRad * z);
         
         var totalRotation = xRotation * yRotation * zRotation;
         WorldRotation *= totalRotation;

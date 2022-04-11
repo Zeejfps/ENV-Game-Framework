@@ -34,9 +34,11 @@ public class TestScene : IScene
 
         //m_Camera.Transform.LookAt(Vector3.Zero, Vector3.UnitY);
 
-        var lightTransform = new Transform3D();
-        lightTransform.WorldPosition = new Vector3(0f, 8f, 0f);
-        
+        var lightTransform = new Transform3D
+        {
+            WorldPosition = new Vector3(0f, 5f, 0f),
+        };
+
         m_BlinnRenderer = new SpecularRenderer(m_Camera, lightTransform);
         m_UnlitRenderer = new UnlitRenderer(m_Camera);
 
@@ -51,7 +53,6 @@ public class TestScene : IScene
         m_SceneObjects.Add(m_Camera);
         m_SceneObjects.Add(m_Light);
         m_SceneObjects.Add(m_Clock);
-        
     }
 
     public void Load()
@@ -77,6 +78,12 @@ public class TestScene : IScene
         var rotation = m_Clock.FrameDeltaTime * 0.5f;
         var mouse = m_Context.Window.Input.Mouse;
         var keyboard = m_Context.Window.Input.Keyboard;
+
+        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.E))
+        {
+            Console.WriteLine("Wtf");
+            m_TestCube.Transform.RotateInLocalSpace(0f, 0f, 5f);
+        }
         
         if (m_IsRotating)
             m_TestCube.Transform.RotateInWorldSpace(rotation, rotation, rotation);
