@@ -47,7 +47,7 @@ public class Transform3D : ITransform
     {
         Matrix4x4.Invert(Matrix4x4.CreateLookAt(WorldPosition, target, up), out var lookAt);
         WorldMatrix = lookAt;
-        Matrix4x4.Decompose(WorldMatrix, out _, out m_WorldRotation, out m_WorldPosition);
+        Matrix4x4.Decompose(WorldMatrix, out _, out m_WorldRotation, out _);
     }
 
     public void RotateInWorldSpace(float x, float y, float z)
@@ -69,7 +69,14 @@ public class Transform3D : ITransform
         var totalRotation = xRotation * yRotation * zRotation;
         WorldRotation *= totalRotation;
     }
-    
+
+    public void RotateAround(Vector3 point, Vector3 axis, float angle)
+    {
+        var position = WorldPosition;
+        var vector3 = Vector3.Transform((position - point), Quaternion.CreateFromAxisAngle(axis, angle));
+        WorldPosition = point + vector3;
+    }
+
     private void UpdatePositionAndRotation(Vector3 worldPosition, Quaternion worldRotation)
     {
         m_WorldPosition = WorldPosition;

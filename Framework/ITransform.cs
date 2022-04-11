@@ -15,4 +15,5 @@ public interface ITransform
     void LookAt(Vector3 target, Vector3 up);
     void RotateInWorldSpace(float x, float y, float z);
     void RotateInLocalSpace(float x, float y, float z);
+    void RotateAround(Vector3 point, Vector3 axis, float angle);
 }

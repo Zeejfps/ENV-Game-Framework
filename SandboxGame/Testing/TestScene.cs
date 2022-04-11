@@ -29,7 +29,9 @@ public class TestScene : IScene
         m_Context = context;
         m_Camera = new PerspectiveCamera();
         m_Clock = new TestClock();
-        m_Camera.Transform.WorldPosition = new Vector3(0, 1f, -10f);
+        m_Camera.Transform.WorldPosition = new Vector3(0, 5f, -15f);
+        m_Camera.Transform.LookAt(Vector3.UnitY, Vector3.UnitY);
+
         //m_Camera.Transform.LookAt(Vector3.Zero, Vector3.UnitY);
 
         var lightTransform = new Transform3D();
@@ -74,15 +76,17 @@ public class TestScene : IScene
     private float m_PitchRotation;
     private int m_PrevMouseX;
     private int m_PrevMouseY;
+    private bool m_IsRotating;
     
     public void Update()
     {
         var speed = m_Clock.FrameDeltaTime * 15f;
-        var rotation = m_Clock.FrameDeltaTime * 1f;
+        var rotation = m_Clock.FrameDeltaTime * 0.5f;
         var mouse = m_Context.Window.Input.Mouse;
         var keyboard = m_Context.Window.Input.Keyboard;
         
-        m_TestCube.Transform.RotateInWorldSpace(rotation, rotation, 0f);
+        if (m_IsRotating)
+            m_TestCube.Transform.RotateInWorldSpace(rotation, rotation, rotation);
         
         if (keyboard.IsKeyPressed(KeyboardKey.W))
             m_Camera.Transform.WorldPosition += Vector3.UnitY * speed;
@@ -92,6 +96,12 @@ public class TestScene : IScene
         if (m_Context.Window.IsFullscreen && keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
             m_Context.Window.IsFullscreen = false;
 
+        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Space))
+            m_IsRotating = !m_IsRotating;
+        
+        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.R))
+            m_TestCube.Transform.WorldRotation = Quaternion.Identity;
+
         if (mouse.WasButtonPressedThisFrame(MouseButton.Left))
         {
             m_PrevMouseX = mouse.ScreenX;
@@ -100,14 +110,18 @@ public class TestScene : IScene
 
         if (mouse.IsButtonPressed(MouseButton.Left))
         {
-            var deltaX = (mouse.ScreenX - m_PrevMouseX) * m_Clock.FrameDeltaTime * 0.1f;
-            var deltaY = (mouse.ScreenY - m_PrevMouseY) * m_Clock.FrameDeltaTime * 0.1f;
+            var deltaX = (mouse.ScreenX - m_PrevMouseX) * m_Clock.FrameDeltaTime * 1f;
+            var deltaY = (mouse.ScreenY - m_PrevMouseY) * m_Clock.FrameDeltaTime * 1f;
             m_PrevMouseX = mouse.ScreenX;
             m_PrevMouseY = mouse.ScreenY;
-
+            
             m_YawRotation += deltaX;
             m_PitchRotation -= deltaY;
-            m_Camera.Transform.WorldRotation = Quaternion.CreateFromYawPitchRoll(m_YawRotation, m_PitchRotation, 0f);
+            
+            m_Camera.Transform.RotateAround(Vector3.Zero, Vector3.UnitY, -deltaX);
+            m_Camera.Transform.LookAt(Vector3.UnitY, Vector3.UnitY);
+            
+            // m_Camera.Transform.WorldRotation = Quaternion.CreateFromYawPitchRoll(m_YawRotation, m_PitchRotation, 0f);
         }
 
         // if (keyboard.IsKeyPressed(KeyboardKey.A))
