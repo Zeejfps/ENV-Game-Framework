@@ -12,7 +12,8 @@ public class Material_GL : IMaterial
     public bool IsLoaded { get; private set; }
 
     private uint m_ProgramId;
-    
+    private int m_ActiveTextureId = 0;
+
     public Material_GL(uint programId)
     {
         m_ProgramId = programId;
@@ -21,11 +22,13 @@ public class Material_GL : IMaterial
 
     public void Use()
     {
+        m_ActiveTextureId = 0;
         glUseProgram(m_ProgramId);
     }
     
     public void Unload()
     {
+        m_ProgramId = 0;
         IsLoaded = false;
     }
     
@@ -53,7 +56,11 @@ public class Material_GL : IMaterial
 
     public void SetTexture2d(string propertyName, ITexture texture)
     {
-        throw new NotImplementedException();
+        var location = GetUniformLocation(propertyName);
+        glUniform1i(location, m_ActiveTextureId);
+        glActiveTexture(GL_TEXTURE0 + m_ActiveTextureId);
+        texture.Use();
+        m_ActiveTextureId++;
     }
 
     public void SetMatrix4x4(string propertyName, Matrix4x4 matrix)
