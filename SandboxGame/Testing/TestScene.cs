@@ -14,6 +14,7 @@ public class TestScene : IScene
     private UnlitRenderer m_UnlitRenderer;
     
     private Ship m_Ship;
+    private Toad m_Toad;
 
     private readonly IContext m_Context;
     private readonly ICamera m_Camera;
@@ -30,9 +31,7 @@ public class TestScene : IScene
         m_Clock = new TestClock();
         m_Camera.Transform.WorldPosition = new Vector3(0, 5f, -55f);
         m_Camera.Transform.LookAt(Vector3.UnitY, Vector3.UnitY);
-
-        //m_Camera.Transform.LookAt(Vector3.Zero, Vector3.UnitY);
-
+        
         var lightTransform = new Transform3D
         {
             WorldPosition = new Vector3(0f, 5f, 0f),
@@ -44,13 +43,15 @@ public class TestScene : IScene
         m_Light = new TestLight(m_UnlitRenderer, lightTransform);
 
         m_Ship = new Ship(m_SpecularRenderer);
-
+        m_Toad = new Toad(m_SpecularRenderer);
+        
         m_SceneObjects.Add(m_SpecularRenderer);
         m_SceneObjects.Add(m_UnlitRenderer);
         m_SceneObjects.Add(m_Camera);
         m_SceneObjects.Add(m_Light);
         m_SceneObjects.Add(m_Clock);
         m_SceneObjects.Add(m_Ship);
+        m_SceneObjects.Add(m_Toad);
     }
 
     public void Load()
@@ -64,15 +65,13 @@ public class TestScene : IScene
         
     }
 
-    private float m_YawRotation;
-    private float m_PitchRotation;
     private int m_PrevMouseX;
     private int m_PrevMouseY;
     private bool m_IsRotating;
     
     public void Update()
     {
-        var speed = m_Clock.FrameDeltaTime * 10f;
+        var speed = m_Clock.FrameDeltaTime * 15f;
         var mouse = m_Context.Window.Input.Mouse;
         var keyboard = m_Context.Window.Input.Keyboard;
         
@@ -97,18 +96,13 @@ public class TestScene : IScene
             m_PrevMouseX = mouse.ScreenX;
             m_PrevMouseY = mouse.ScreenY;
         }
-
-        //m_Light.Transform.WorldPosition += new Vector3(0,m_Clock.FrameDeltaTime,0);
-
+        
         if (mouse.IsButtonPressed(MouseButton.Left))
         {
             var deltaX = (mouse.ScreenX - m_PrevMouseX) * m_Clock.FrameDeltaTime * 1f;
             var deltaY = (mouse.ScreenY - m_PrevMouseY) * m_Clock.FrameDeltaTime * 1f;
             m_PrevMouseX = mouse.ScreenX;
             m_PrevMouseY = mouse.ScreenY;
-            
-            m_YawRotation += deltaX;
-            m_PitchRotation -= deltaY;
             
             m_Camera.Transform.RotateAround(Vector3.Zero, Vector3.UnitY, -deltaX);
             m_Camera.Transform.RotateAround(Vector3.Zero, m_Camera.Transform.Right, -deltaY);
