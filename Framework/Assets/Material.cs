@@ -71,11 +71,6 @@ public class Material : IMaterial
 
         property.Value = texture;
     }
-    
-    public void SetMatrix4x4(string propertyName, float[] matrix)
-    {
-        SetMatrix4x4(propertyName, matrix.ToMatrix4x4());
-    }
 
     public void Apply(IShaderProgram shaderProgram)
     {
@@ -134,7 +129,7 @@ class Matrix4x4Property : MaterialProperty<Matrix4x4>
 
     public override void Apply(IShaderProgram shaderProgram)
     {
-        shaderProgram.SetMatrix4x4f(Name, Value.ToFloatArray());
+        shaderProgram.SetMatrix4x4f(Name, Value);
     }
 }
 

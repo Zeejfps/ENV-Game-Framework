@@ -1,3 +1,4 @@
+using System.Numerics;
 using static OpenGL.Gl;
 
 namespace Framework.GLFW.NET;
@@ -39,10 +40,14 @@ public class ShaderProgram_GL : IShaderProgram
         glUniform3f(location, x, y, z);
     }
 
-    public void SetMatrix4x4f(string propertyName, float[] matrix)
+    public void SetMatrix4x4f(string propertyName, Matrix4x4 matrix)
     {
         var location = GetUniformLocation(propertyName);
-        glUniformMatrix4fv(location, 1, false, matrix);
+        unsafe
+        {
+            var p = &matrix.M11;
+            glUniformMatrix4fv(location, 1, false, p);
+        }
     }
     public void SetFloat(string propertyName, float x)
     {
