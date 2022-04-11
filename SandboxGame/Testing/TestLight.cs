@@ -15,6 +15,7 @@ public class TestLight : ISceneObject
     {
         Transform = transform;
         m_Renderer = renderer;
+        Transform.WorldRotation = Quaternion.CreateFromYawPitchRoll(90f, 0f, 0f);
     }
     
     public void Load(IScene scene)

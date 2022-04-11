@@ -35,18 +35,12 @@ public class TestScene : IScene
         //m_Camera.Transform.LookAt(Vector3.Zero, Vector3.UnitY);
 
         var lightTransform = new Transform3D();
+        lightTransform.WorldPosition = new Vector3(0f, 8f, 0f);
         
         m_BlinnRenderer = new SpecularRenderer(m_Camera, lightTransform);
         m_UnlitRenderer = new UnlitRenderer(m_Camera);
 
-        m_Light = new TestLight(m_UnlitRenderer, lightTransform)
-        {
-            Transform =
-            {
-                WorldPosition = new Vector3(0f, 5f, 0f)
-            }
-        };
-
+        m_Light = new TestLight(m_UnlitRenderer, lightTransform);
         
         m_TestTriangle = new TestTriangle(context, m_Camera);
         m_TestCube = new TestCube(m_BlinnRenderer);
@@ -56,7 +50,6 @@ public class TestScene : IScene
         m_SceneObjects.Add(m_TestCube);
         m_SceneObjects.Add(m_Camera);
         m_SceneObjects.Add(m_Light);
-        //m_SceneObjects.Add(m_TestTriangle);
         m_SceneObjects.Add(m_Clock);
         
     }
