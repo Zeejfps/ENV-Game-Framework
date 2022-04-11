@@ -1,6 +1,6 @@
 ﻿namespace Framework.Assets;
 
-public class MaterialAsset
+public class MaterialAsset_GL
 {
     public byte[] VertexShader { get; init; } = Array.Empty<byte>();
     public byte[] FragmentShader { get; init; } = Array.Empty<byte>();
@@ -13,7 +13,7 @@ public class MaterialAsset
         writer.Write(FragmentShader);
     }
 
-    public static MaterialAsset Deserialize(BinaryReader reader)
+    public static MaterialAsset_GL Deserialize(BinaryReader reader)
     {
         var vertexShaderLength = reader.ReadInt32();
         var vertexShader = reader.ReadBytes(vertexShaderLength);
@@ -21,7 +21,7 @@ public class MaterialAsset
         var fragmentShaderLength = reader.ReadInt32();
         var fragmentShader = reader.ReadBytes(fragmentShaderLength);
 
-        return new MaterialAsset
+        return new MaterialAsset_GL
         {
             VertexShader = vertexShader,
             FragmentShader = fragmentShader

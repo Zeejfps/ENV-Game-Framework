@@ -37,7 +37,7 @@ public class ImportMaterialOption
             return;
         }
         
-        var materialAsset = new MaterialAsset
+        var materialAsset = new MaterialAsset_GL
         {
             VertexShader = vertexShaderCompilationResult.GetBytecode().ToArray(),
             FragmentShader = fragmentShaderCompilationResult.GetBytecode().ToArray(),

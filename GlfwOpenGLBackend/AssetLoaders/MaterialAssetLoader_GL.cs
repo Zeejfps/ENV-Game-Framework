@@ -6,12 +6,14 @@ namespace GlfwOpenGLBackend.AssetLoaders;
 
 public class MaterialAssetLoader_GL : MaterialAssetLoader
 {
-    protected override IMaterial LoadAsset(MaterialAsset asset)
+    protected override IMaterial LoadAsset(MaterialAsset_GL asset)
     {
         var vertexShader = glCreateShader(GL_VERTEX_SHADER);
+        //LoadFromSource(vertexShader, asset.VertexShader)
         LoadShaderFromBinary(vertexShader, asset.VertexShader);
 
         var fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+        //LoadFromSource(fragmentShader, asset.FragmentShader);
         LoadShaderFromBinary(fragmentShader, asset.FragmentShader);
         
         var program = glCreateProgram();
@@ -27,7 +29,17 @@ public class MaterialAssetLoader_GL : MaterialAssetLoader
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
         
-        return null;
+        return new Material_GL(program);
+    }
+
+    private void LoadFromSource(uint shader, string source)
+    {
+        glShaderSource(shader, source);
+        glCompileShader(shader);
+        
+        var error = glGetShaderInfoLog(shader);
+        if (!string.IsNullOrEmpty(error))
+            throw new Exception($"Error compiling shader: {error}");
     }
 
     private unsafe void LoadShaderFromBinary(uint shader, byte[] shaderData)

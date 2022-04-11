@@ -1,17 +1,6 @@
 ﻿using Framework.Assets;
-using Newtonsoft.Json;
 
 namespace Framework;
-
-public class MaterialJsonAssetLoader : IAssetLoader<IMaterial>
-{
-    public IAsset LoadAsset(string assetPath)
-    {
-        var json = File.ReadAllText(assetPath);
-        var materialAsset = JsonConvert.DeserializeObject<MaterialAssetJSON>(json);
-        return new Material(materialAsset.Shader);
-    }
-}
 
 public abstract class MaterialAssetLoader : IAssetLoader<IMaterial>
 {
@@ -26,9 +15,9 @@ public abstract class MaterialAssetLoader : IAssetLoader<IMaterial>
         
         using var stream = File.Open(assetPath, FileMode.Open);
         using var reader = new BinaryReader(stream);
-        var materialAsset = MaterialAsset.Deserialize(reader);
+        var materialAsset = MaterialAsset_GL.Deserialize(reader);
         return LoadAsset(materialAsset);
     }
 
-    protected abstract IMaterial LoadAsset(MaterialAsset asset);
+    protected abstract IMaterial LoadAsset(MaterialAsset_GL asset);
 }
