@@ -1,5 +1,4 @@
-﻿using Framework;
-using OpenGL;
+﻿using OpenGL;
 using static OpenGL.Gl;
 
 namespace Framework.GLFW.NET;
@@ -7,7 +6,6 @@ namespace Framework.GLFW.NET;
 public class MainFramebuffer_GL : IFramebuffer
 {
     private readonly Dictionary<string, ShaderProgram_GL> m_ShaderToProgramMap = new();
-    private readonly Dictionary<IMesh, IRenderMesh> m_MeshToRenderMeshMap = new();
 
     public int Width { get; private set; }
     public int Height { get; private set; }
@@ -36,33 +34,13 @@ public class MainFramebuffer_GL : IFramebuffer
 
     public void RenderMesh(IMesh mesh, IMaterial material)
     {
-        var renderMesh = LoadMesh(mesh);
         var shaderProgram = LoadShaderProgram(material);
         
         shaderProgram.Use();
         material.Apply(shaderProgram);
-        renderMesh.Render();
+        mesh.Render();
     }
     
-    private IRenderMesh LoadMesh(IMesh mesh)
-    {
-        if (!m_MeshToRenderMeshMap.TryGetValue(mesh, out var renderMesh))
-        {
-            if (mesh.Triangles != null && mesh.Triangles.Length > 0)
-            {
-                renderMesh = new IndexedRenderMesh_GL(mesh);
-            }
-            else
-            {
-                renderMesh = new VaoRenderMesh_GL(mesh);
-            }
-            
-            m_MeshToRenderMeshMap[mesh] = renderMesh;
-        }
-
-        return renderMesh;
-    }
-
     private ShaderProgram_GL LoadShaderProgram(IMaterial material)
     {
         var shader = material.Shader;

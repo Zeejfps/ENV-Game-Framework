@@ -9,18 +9,18 @@ public class VaoRenderMesh_GL : IRenderMesh
 
     public unsafe VaoRenderMesh_GL(IMesh mesh)
     {
-        m_Vao = glGenVertexArray();
-        m_Vbo = glGenBuffer();
-
-        var vertices = mesh.Vertices;
-        
-        glBindVertexArray(m_Vao);
-        glBindBuffer(GL_ARRAY_BUFFER, m_Vbo);
-        fixed (float* v = &vertices[0])
-            glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.Length, v, GL_STATIC_DRAW);
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 3 * sizeof(float), NULL);
-        glEnableVertexAttribArray(0);
+        // m_Vao = glGenVertexArray();
+        // m_Vbo = glGenBuffer();
+        //
+        // var vertices = mesh.Vertices;
+        //
+        // glBindVertexArray(m_Vao);
+        // glBindBuffer(GL_ARRAY_BUFFER, m_Vbo);
+        // fixed (float* v = &vertices[0])
+        //     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.Length, v, GL_STATIC_DRAW);
+        //
+        // glVertexAttribPointer(0, 3, GL_FLOAT, false, 3 * sizeof(float), NULL);
+        // glEnableVertexAttribArray(0);
     }
 
     public void Render()

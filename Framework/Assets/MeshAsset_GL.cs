@@ -1,12 +1,12 @@
 ﻿namespace Framework.Assets;
 
-public class MeshAsset_GL
+public class MeshAsset_GL : IDisposable
 {
-    public float[] Vertices { get; init; } = Array.Empty<float>();
-    public float[] Uvs { get; init; } = Array.Empty<float>();
-    public float[] Normals { get; init; } = Array.Empty<float>();
-    public float[] Tangents { get; init; } = Array.Empty<float>();
-    public int[] Triangles { get; init; } = Array.Empty<int>();
+    public float[] Vertices { get; set; } = Array.Empty<float>();
+    public float[] Uvs { get; set; } = Array.Empty<float>();
+    public float[] Normals { get; set; } = Array.Empty<float>();
+    public float[] Tangents { get; set; } = Array.Empty<float>();
+    public int[] Triangles { get; set; } = Array.Empty<int>();
 
     public void Serialize(BinaryWriter writer)
     {
@@ -77,5 +77,14 @@ public class MeshAsset_GL
         for (var i = 0; i < length; i++)
             data[i] = reader.ReadInt32();
         return data;
+    }
+
+    public void Dispose()
+    {
+        Vertices = Array.Empty<float>();
+        Uvs  = Array.Empty<float>();
+        Normals = Array.Empty<float>();
+        Tangents = Array.Empty<float>();
+        Triangles = Array.Empty<int>();
     }
 }
