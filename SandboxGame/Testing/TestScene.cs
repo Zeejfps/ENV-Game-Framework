@@ -28,7 +28,7 @@ public class TestScene : IScene
         m_Context = context;
         m_Camera = new PerspectiveCamera();
         m_Clock = new TestClock();
-        m_Camera.Transform.WorldPosition = new Vector3(0, 5f, -15f);
+        m_Camera.Transform.WorldPosition = new Vector3(0, 5f, -55f);
         m_Camera.Transform.LookAt(Vector3.UnitY, Vector3.UnitY);
 
         //m_Camera.Transform.LookAt(Vector3.Zero, Vector3.UnitY);
@@ -72,14 +72,19 @@ public class TestScene : IScene
     
     public void Update()
     {
-        var speed = m_Clock.FrameDeltaTime * 0.1f;
+        var speed = m_Clock.FrameDeltaTime * 10f;
         var mouse = m_Context.Window.Input.Mouse;
         var keyboard = m_Context.Window.Input.Keyboard;
         
-        // if (keyboard.IsKeyPressed(KeyboardKey.W))
-        //     m_Camera.Transform.WorldPosition += Vector3.UnitZ * speed;
-        // else if (keyboard.IsKeyPressed(KeyboardKey.S))
-        //     m_Camera.Transform.WorldPosition -= Vector3.UnitZ * speed;
+        if (keyboard.IsKeyPressed(KeyboardKey.W))
+            m_Camera.Transform.WorldPosition += m_Camera.Transform.Forward * speed;
+        else if (keyboard.IsKeyPressed(KeyboardKey.S))
+            m_Camera.Transform.WorldPosition -= m_Camera.Transform.Forward * speed;
+        
+        if (keyboard.IsKeyPressed(KeyboardKey.A))
+            m_Camera.Transform.WorldPosition -= m_Camera.Transform.Right * speed;
+        else if (keyboard.IsKeyPressed(KeyboardKey.D))
+            m_Camera.Transform.WorldPosition += m_Camera.Transform.Right * speed;
         
         if (m_Context.Window.IsFullscreen && keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
             m_Context.Window.IsFullscreen = false;
@@ -107,16 +112,10 @@ public class TestScene : IScene
             
             m_Camera.Transform.RotateAround(Vector3.Zero, Vector3.UnitY, -deltaX);
             m_Camera.Transform.RotateAround(Vector3.Zero, m_Camera.Transform.Right, -deltaY);
-            m_Camera.Transform.LookAt(Vector3.UnitY, Vector3.UnitY);
-            
-            // m_Camera.Transform.WorldRotation = Quaternion.CreateFromYawPitchRoll(m_YawRotation, m_PitchRotation, 0f);
         }
-
-        // if (keyboard.IsKeyPressed(KeyboardKey.A))
-        //     m_Camera.Position -= Vector3.UnitX * speed;
-        // else if (keyboard.IsKeyPressed(KeyboardKey.D))
-        //     m_Camera.Position += Vector3.UnitX * speed;
-
+        
+        m_Camera.Transform.LookAt(Vector3.UnitY, Vector3.UnitY);
+        
         m_Context.Window.Framebuffer.Clear();
 
         foreach (var sceneObject in m_SceneObjects)

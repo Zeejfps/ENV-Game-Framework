@@ -32,7 +32,7 @@ public class Transform3D : ITransform
     }
 
     public Vector3 Right => Vector3.Transform(Vector3.UnitX, WorldRotation);
-    public Vector3 Forward => Vector3.Transform(Vector3.UnitZ, WorldRotation);
+    public Vector3 Forward => Vector3.Transform(-Vector3.UnitZ, WorldRotation);
     public Vector3 Up => Vector3.Transform(Vector3.UnitY, WorldRotation);
 
     public Matrix4x4 WorldMatrix { get; private set; }
@@ -49,7 +49,7 @@ public class Transform3D : ITransform
     {
         Matrix4x4.Invert(Matrix4x4.CreateLookAt(WorldPosition, target, up), out var lookAt);
         WorldMatrix = lookAt;
-        Matrix4x4.Decompose(WorldMatrix, out _, out m_WorldRotation, out _);
+        Matrix4x4.Decompose(WorldMatrix, out _, out m_WorldRotation, out m_WorldPosition);
     }
 
     public void RotateInWorldSpace(float x, float y, float z)
