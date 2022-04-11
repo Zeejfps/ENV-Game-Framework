@@ -7,6 +7,7 @@ namespace GlfwOpenGLBackend.AssetLoaders;
 public class Material_GL : IMaterial
 {
     private readonly Dictionary<string, int> m_PropertyToIdMap = new();
+    private readonly Dictionary<string, int> m_TextureToSlotMap = new();
     public bool IsLoaded { get; private set; }
 
     private uint m_ProgramId;
@@ -20,7 +21,6 @@ public class Material_GL : IMaterial
 
     public void Use()
     {
-        m_ActiveTextureId = 0;
         glUseProgram(m_ProgramId);
     }
     
@@ -50,10 +50,10 @@ public class Material_GL : IMaterial
     public void SetTexture2d(string propertyName, ITexture texture)
     {
         var location = GetUniformLocation(propertyName);
-        glUniform1i(location, m_ActiveTextureId);
-        glActiveTexture(GL_TEXTURE0 + m_ActiveTextureId);
+        var textureSlot = GetTextureSlot(propertyName);
+        glUniform1i(location, textureSlot);
+        glActiveTexture(GL_TEXTURE0 + textureSlot);
         texture.Use();
-        m_ActiveTextureId++;
     }
 
     public void SetMatrix4x4(string propertyName, Matrix4x4 matrix)
@@ -75,6 +75,17 @@ public class Material_GL : IMaterial
         }
 
         return location;
+    }
+
+    private int GetTextureSlot(string texture)
+    {
+        if (m_TextureToSlotMap.TryGetValue(texture, out var slot))
+            return slot;
+
+        slot = m_ActiveTextureId;
+        m_TextureToSlotMap[texture] = slot;
+        m_ActiveTextureId++;
+        return slot;
     }
 
     public static Material_GL LoadFromSource(string vertexShaderSource, string fragmentShaderSource)
@@ -109,5 +120,32 @@ public class Material_GL : IMaterial
         var error = glGetShaderInfoLog(shader);
         if (!string.IsNullOrEmpty(error))
             throw new Exception($"Error compiling shader: {error}");
+    }
+
+    private static float[] ToFloatArray(Matrix4x4 matrix)
+    {
+        var data = new float[16];
+        
+        data[00] = matrix.M11;
+        data[01] = matrix.M12;
+        data[02] = matrix.M13;
+        data[03] = matrix.M14;
+        
+        data[04] = matrix.M21;
+        data[05] = matrix.M22;
+        data[06] = matrix.M23;
+        data[07] = matrix.M24;
+        
+        data[08] = matrix.M31;
+        data[09] = matrix.M32;
+        data[10] = matrix.M33;
+        data[11] = matrix.M34;
+        
+        data[12] = matrix.M41;
+        data[13] = matrix.M42;
+        data[14] = matrix.M43;
+        data[15] = matrix.M44;
+
+        return data;
     }
 }

@@ -36,8 +36,14 @@ public class AssetDatabase : IAssetDatabase
 
 public abstract class TextureAssetLoaderModule : IAssetLoader<ITexture>
 {
+    private readonly Dictionary<string, ITexture> m_PathToAssetMap = new Dictionary<string, ITexture>();
+    
+    
     public IAsset LoadAsset(string assetPath)
     {
+        if (m_PathToAssetMap.TryGetValue(assetPath, out var texture))
+            return texture;
+        
         if (!File.Exists(assetPath))
             throw new Exception($"File does not exists {assetPath}");
 
@@ -45,7 +51,9 @@ public abstract class TextureAssetLoaderModule : IAssetLoader<ITexture>
         using var reader = new BinaryReader(stream);
 
         var asset = TextureAsset_GL.Deserialize(reader);
-        return LoadAsset(asset);
+        texture = LoadAsset(asset);
+        m_PathToAssetMap[assetPath] = texture;
+        return texture;
     }
 
     protected abstract ITexture LoadAsset(TextureAsset_GL asset);

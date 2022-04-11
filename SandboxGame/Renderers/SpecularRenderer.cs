@@ -96,9 +96,9 @@ public class SpecularRenderer : ISceneObject
                 material.SetTexture2d("material.roughness_map", renderable.Roughness);
                 material.SetTexture2d("material.occlusion", renderable.Occlusion);
                 material.SetTexture2d("material.translucency", renderable.Translucency);
+                
+                mesh.Render();
             }
-            
-            mesh.Render();
         }
     }
 

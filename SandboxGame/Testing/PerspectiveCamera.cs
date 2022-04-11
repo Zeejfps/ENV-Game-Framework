@@ -39,6 +39,6 @@ public class PerspectiveCamera : ICamera
     {
         var window = scene.Context.Window;
         var aspect = window.Framebuffer.Width / (float)window.Framebuffer.Height;
-        ProjectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(Fov * DegToRad, aspect, 0.1f, 100f);
+        ProjectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(Fov * DegToRad, aspect, 0.1f, 500f);
     }
 }

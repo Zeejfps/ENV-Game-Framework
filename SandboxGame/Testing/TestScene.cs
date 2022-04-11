@@ -13,8 +13,11 @@ public class TestScene : IScene
     private SpecularRenderer m_SpecularRenderer;
     private UnlitRenderer m_UnlitRenderer;
     
-    private Ship m_Ship;
+    private Ship m_Ship1;
+    private Ship m_Ship2;
     private Toad m_Toad;
+
+    private List<Ship> m_Ships;
 
     private readonly IContext m_Context;
     private readonly ICamera m_Camera;
@@ -41,14 +44,36 @@ public class TestScene : IScene
         m_UnlitRenderer = new UnlitRenderer(m_Camera);
         m_Light = new TestLight(m_UnlitRenderer, lightTransform);
 
-        m_Ship = new Ship(m_SpecularRenderer);
+        m_Ship1 = new Ship(m_SpecularRenderer);
+        m_Ship2 = new Ship(m_SpecularRenderer);
+        m_Ship2.Transform.WorldPosition = new Vector3(10f, 0f, 0f);
+
+        m_Ships = new List<Ship>();
+        var size = 10;
+        for (var cols = 0; cols < 10; cols++)
+        {
+            for (var rows = 0; rows < 10; rows++)
+            {
+                var ship = new Ship(m_SpecularRenderer)
+                {
+                    Transform =
+                    {
+                        WorldPosition = new Vector3(rows * size - size * 5, cols * size - size * 5, 0f)
+                    }
+                };
+                m_Ships.Add(ship);
+                m_SceneObjects.Add(ship);
+            }
+        }
+        
         m_Toad = new Toad(m_SpecularRenderer);
         
         m_SceneObjects.Add(m_UnlitRenderer);
         m_SceneObjects.Add(m_Camera);
         m_SceneObjects.Add(m_Light);
         m_SceneObjects.Add(m_Clock);
-        m_SceneObjects.Add(m_Ship);
+        m_SceneObjects.Add(m_Ship1);
+        m_SceneObjects.Add(m_Ship2);
         m_SceneObjects.Add(m_Toad);
     }
 
