@@ -69,7 +69,7 @@ void main()
     //emission
     //vec3 emission = texture(material.emission, fs_in.tex_coord).rgb;
     
-    vec3 result = ambient + diffuse + specular + translucency_final;// + emission;
+    vec3 result = ambient + diffuse + specular;// + translucency_final;// + emission;
     
     out_result = vec4(result, 1.0);
 }

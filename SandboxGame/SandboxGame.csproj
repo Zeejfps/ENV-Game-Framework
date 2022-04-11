@@ -36,7 +36,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Assets\Textures" />
+      <Folder Include="Assets\Textures\Ship" />
     </ItemGroup>
 
 </Project>

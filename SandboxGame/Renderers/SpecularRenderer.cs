@@ -40,10 +40,10 @@ public class SpecularRenderer : ISceneObject
     {
         var assetDatabase = scene.Context.AssetDatabase;
         m_Material = assetDatabase.LoadAsset<IMaterial>("Assets/Shaders/specular.json");
-        m_Diffuse = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_BaseColor.texture");
-        m_Normal = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Normal.texture");
-        m_Roughness = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Roughness.texture");
-        m_Occlusion = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_AO.texture");
+        m_Diffuse = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Ship/ship_d.texture");
+        m_Normal = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Ship/ship_n.texture");
+        m_Roughness = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Ship/ship_r.texture");
+        m_Occlusion = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Ship/ship_ao.texture");
         m_Translucency = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Translucency.texture");
 
 
