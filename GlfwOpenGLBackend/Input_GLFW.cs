@@ -94,4 +94,10 @@ public class Input_GLFW : IInput
                 throw new ArgumentOutOfRangeException(nameof(mouseButton), mouseButton, null);
         }
     }
+
+    public void Glfw_MouseScrollCallback(Window _, double x, double y)
+    {
+        m_Mouse.ScrollDeltaX = (float)x;
+        m_Mouse.ScrollDeltaY = (float)y;
+    }
 }

@@ -32,7 +32,6 @@ public class Window_GLFW : IWindow
             UpdateWindowPos();
         }
     }
-
     
     public int Width
     {
@@ -107,6 +106,7 @@ public class Window_GLFW : IWindow
 
     private readonly KeyCallback m_KeyCallback;
     private readonly SizeCallback m_SizeCallback;
+    private readonly MouseCallback m_ScrollCallback;
     private readonly MouseCallback m_MousePositionCallback;
     private readonly MouseButtonCallback m_MouseButtonCallback;
     private readonly PositionCallback m_PositionCallback;
@@ -123,6 +123,7 @@ public class Window_GLFW : IWindow
         m_PositionCallback = Glfw_PositionCallback;
         m_FramebufferSizeCallback = Glfw_FramebufferSizeCallback;
         m_MouseButtonCallback = Glfw_MouseButtonCallback;
+        m_ScrollCallback = Glfw_MouseScrollCallback;
     }
 
     public void Open()
@@ -155,6 +156,7 @@ public class Window_GLFW : IWindow
         Glfw.SetKeyCallback(m_Handle, m_KeyCallback);
         Glfw.SetCursorPositionCallback(m_Handle, m_MousePositionCallback);
         Glfw.SetMouseButtonCallback(m_Handle, m_MouseButtonCallback);
+        Glfw.SetScrollCallback(m_Handle, m_ScrollCallback);
 
         IsOpened = true;
     }
@@ -270,6 +272,11 @@ public class Window_GLFW : IWindow
     private void Glfw_KeyCallback(Window window, Keys key, int scancode, InputState state, ModifierKeys mods)
     {
         m_Input.Glfw_KeyCallback(window, key, scancode, state, mods);
+    }
+    
+    private void Glfw_MouseScrollCallback(Window window, double x, double y)
+    {
+        m_Input.Glfw_MouseScrollCallback(window, x, y);
     }
     
     public override string ToString()

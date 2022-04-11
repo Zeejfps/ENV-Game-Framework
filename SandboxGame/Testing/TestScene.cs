@@ -71,7 +71,7 @@ public class TestScene : IScene
     
     public void Update()
     {
-        var speed = m_Clock.FrameDeltaTime * 15f;
+        var speed = m_Clock.DeltaTime * 15f;
         var mouse = m_Context.Window.Input.Mouse;
         var keyboard = m_Context.Window.Input.Keyboard;
         
@@ -84,6 +84,9 @@ public class TestScene : IScene
             m_Camera.Transform.WorldPosition -= m_Camera.Transform.Right * speed;
         else if (keyboard.IsKeyPressed(KeyboardKey.D))
             m_Camera.Transform.WorldPosition += m_Camera.Transform.Right * speed;
+        
+        if (mouse.ScrollDeltaY != 0)
+            m_Camera.Transform.WorldPosition += m_Camera.Transform.Forward * mouse.ScrollDeltaY * m_Clock.DeltaTime * 100f;
         
         if (m_Context.Window.IsFullscreen && keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
             m_Context.Window.IsFullscreen = false;
@@ -99,8 +102,8 @@ public class TestScene : IScene
         
         if (mouse.IsButtonPressed(MouseButton.Left))
         {
-            var deltaX = (mouse.ScreenX - m_PrevMouseX) * m_Clock.FrameDeltaTime * 1f;
-            var deltaY = (mouse.ScreenY - m_PrevMouseY) * m_Clock.FrameDeltaTime * 1f;
+            var deltaX = (mouse.ScreenX - m_PrevMouseX) * m_Clock.DeltaTime * 1f;
+            var deltaY = (mouse.ScreenY - m_PrevMouseY) * m_Clock.DeltaTime * 1f;
             m_PrevMouseX = mouse.ScreenX;
             m_PrevMouseY = mouse.ScreenY;
             
@@ -119,12 +122,12 @@ public class TestScene : IScene
 
 public interface IClock : ISceneObject
 {
-    float FrameDeltaTime { get; }
+    float DeltaTime { get; }
 }
 
 public class TestClock : IClock
 {
-    public float FrameDeltaTime { get; private set; }
+    public float DeltaTime { get; private set; }
 
     private long m_PrevTime;
 
@@ -144,7 +147,7 @@ public class TestClock : IClock
         var deltaTime = currTime - m_PrevTime;
         m_PrevTime = currTime;
 
-        FrameDeltaTime = (float)deltaTime / Stopwatch.Frequency;
+        DeltaTime = (float)deltaTime / Stopwatch.Frequency;
     }
 
     public void Unload(IScene scene)

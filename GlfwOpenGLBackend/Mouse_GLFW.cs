@@ -6,6 +6,9 @@ class Mouse_GLFW : IMouse
 {
     public int ScreenX { get; set; }
     public int ScreenY { get; set; }
+    
+    public float ScrollDeltaX { get; set; }
+    public float ScrollDeltaY { get; set; }
 
     private readonly HashSet<MouseButton> m_PressedButtons = new();
     private readonly HashSet<MouseButton> m_ButtonsPressedThisFrame = new();
@@ -45,6 +48,8 @@ class Mouse_GLFW : IMouse
     
     public void Update()
     {
+        ScrollDeltaX = 0;
+        ScrollDeltaY = 0;
         m_ButtonsPressedThisFrame.Clear();
         m_ButtonsReleasedThisFrame.Clear();
     }
