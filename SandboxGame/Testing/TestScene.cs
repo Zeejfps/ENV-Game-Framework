@@ -29,7 +29,7 @@ public class TestScene : IScene
         m_Context = context;
         m_Camera = new PerspectiveCamera();
         m_Clock = new TestClock();
-        m_Camera.Transform.WorldPosition = new Vector3(0, 5f, -55f);
+        m_Camera.Transform.WorldPosition = new Vector3(0, 5f, -25f);
         m_Camera.Transform.LookAt(Vector3.UnitY, Vector3.UnitY);
         
         var lightTransform = new Transform3D
