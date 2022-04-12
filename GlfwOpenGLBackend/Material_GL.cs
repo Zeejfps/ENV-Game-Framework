@@ -1,8 +1,9 @@
+using System.Diagnostics;
 using System.Numerics;
 using Framework;
 using static OpenGL.Gl;
 
-namespace GlfwOpenGLBackend.AssetLoaders;
+namespace GlfwOpenGLBackend;
 
 public class Material_GL : IMaterial
 {
@@ -72,10 +73,14 @@ public class Material_GL : IMaterial
         private static Api? s_Instance;
         public static Api Instance => s_Instance ??= new Api();
 
-        private Material_GL m_ActiveMaterial;
-        
+        private Material_GL? m_ActiveMaterial;
+        private readonly Stack<Material_GL> m_MaterialStack = new();
+
         public IMaterialApi Use(Material_GL material)
         {
+            if (m_ActiveMaterial != null)
+                m_MaterialStack.Push(m_ActiveMaterial);
+            
             m_ActiveMaterial = material;
             glUseProgram(material.m_ProgramId);
         
@@ -130,12 +135,15 @@ public class Material_GL : IMaterial
         
         public void Dispose()
         {
-            m_ActiveMaterial = null;
-            glUseProgram(0);
+            if (m_MaterialStack.TryPop(out var material))
+                Use(material);
+            else
+                glUseProgram(0);
         }
         
         private int GetUniformLocation(string uniformName)
         {
+            Debug.Assert(m_ActiveMaterial != null);
             var propertyToIdMap = m_ActiveMaterial.m_PropertyToIdMap;
             if (!propertyToIdMap.TryGetValue(uniformName, out var location))
             {
@@ -148,6 +156,7 @@ public class Material_GL : IMaterial
         
         private int GetTextureSlot(string texture)
         {
+            Debug.Assert(m_ActiveMaterial != null);
             var textureToSlotMap = m_ActiveMaterial.m_TextureToSlotMap;
             if (textureToSlotMap.TryGetValue(texture, out var slot))
                 return slot;
