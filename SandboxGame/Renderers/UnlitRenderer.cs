@@ -39,13 +39,11 @@ public class UnlitRenderer : ISceneObject
     public void Render(UnlitRenderData data)
     {
         var camera = m_Camera;
-        var material = m_Material;
-        var framebuffer = m_Framebuffer;
         
         var modelMatrix = data.Transform.WorldMatrix;
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
         
-        material.Use();
+        var material = m_Material.Use();
         material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         material.SetMatrix4x4("matrix_view", viewMatrix);
         material.SetMatrix4x4("matrix_model", modelMatrix);

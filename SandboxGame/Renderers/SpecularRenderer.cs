@@ -100,10 +100,16 @@ public class SpecularRenderer : ISceneObject
 
     private void RenderFullScreenQuadPass()
     {
-        var framebuffer = m_WindowFramebuffer.Use();
+        Debug.Assert(m_TestRenderbuffer != null);
+
+        Debug.Assert(m_WindowFramebuffer != null);
+        using var framebuffer = m_WindowFramebuffer.Use();
         framebuffer.Clear(.42f, .607f, .82f);
-        m_FullScreenBlitMaterial.Use();
-        m_FullScreenBlitMaterial.SetTexture2d("screenTexture", m_TestRenderbuffer.ColorTexture);
+        
+        Debug.Assert(m_FullScreenBlitMaterial != null);
+        using var material = m_FullScreenBlitMaterial.Use();
+        material.SetTexture2d("screenTexture", m_TestRenderbuffer.ColorTexture);
+        
         m_QuadMesh.Render();
     }
 
@@ -116,13 +122,11 @@ public class SpecularRenderer : ISceneObject
         renderBuffer.Clear(.42f, .607f, .82f);
 
         var camera = m_Camera;
-        var material = m_Material;
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
 
-        Debug.Assert(material != null);
+        Debug.Assert(m_Material != null);
         
-        material.Use();
-
+        using var material = m_Material.Use();
         material.SetVector3("light.position", m_Light.WorldPosition);
         material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         material.SetMatrix4x4("matrix_view", viewMatrix);
