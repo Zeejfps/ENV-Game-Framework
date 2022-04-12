@@ -12,14 +12,11 @@ public class Material_GL : IMaterial
 
     private uint m_ProgramId;
     private int m_ActiveTextureId = 0;
-
-    private readonly Api m_Api;
-
+    
     private Material_GL(uint programId)
     {
         m_ProgramId = programId;
         IsLoaded = true;
-        m_Api = new Api();
     }
 
     public bool IsDepthTestEnabled { get; set; }
@@ -27,8 +24,7 @@ public class Material_GL : IMaterial
 
     public IMaterialApi Use()
     {
-        m_Api.Use(this);
-        return m_Api;
+        return Api.Instance.Use(this);
     }
     
     public void Unload()
@@ -73,9 +69,12 @@ public class Material_GL : IMaterial
 
     class Api : IMaterialApi
     {
+        private static Api? m_Instance;
+        public static Api Instance => m_Instance ??= new Api();
+
         private Material_GL m_ActiveMaterial;
         
-        public void Use(Material_GL material)
+        public IMaterialApi Use(Material_GL material)
         {
             m_ActiveMaterial = material;
             glUseProgram(material.m_ProgramId);
@@ -89,6 +88,8 @@ public class Material_GL : IMaterial
                 glEnable(GL_CULL_FACE);
             else
                 glDisable(GL_CULL_FACE);
+
+            return this;
         }
 
         public void SetFloat(string propertyName, float value)
