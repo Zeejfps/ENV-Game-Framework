@@ -72,12 +72,12 @@ public class SpecularRenderer : ISceneObject
     {
         var assetDatabase = scene.Context.AssetDatabase;
         m_Material = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/specular.material");
-        m_Material.IsBackfaceCullingEnabled = true;
-        m_Material.IsDepthTestEnabled = true;
+        m_Material.UseBackfaceCulling = true;
+        m_Material.UseDepthTest = true;
         
         m_FullScreenBlitMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/fullScreenQuad.material");
-        m_FullScreenBlitMaterial.IsBackfaceCullingEnabled = true;
-        m_FullScreenBlitMaterial.IsDepthTestEnabled = false;
+        m_FullScreenBlitMaterial.UseBackfaceCulling = true;
+        m_FullScreenBlitMaterial.UseDepthTest = false;
         
         m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/quad.mesh");
         //m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/Toad.mesh");

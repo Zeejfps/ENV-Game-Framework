@@ -2,8 +2,8 @@
 
 public interface IMaterial : IAsset
 {
-    bool IsDepthTestEnabled { get; set; }
-    bool IsBackfaceCullingEnabled { get; set; }
+    bool UseDepthTest { get; set; }
+    bool UseBackfaceCulling { get; set; }
 
     IMaterialApi Use();
 }

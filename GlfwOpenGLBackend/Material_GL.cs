@@ -19,8 +19,8 @@ public class Material_GL : IMaterial
         IsLoaded = true;
     }
 
-    public bool IsDepthTestEnabled { get; set; }
-    public bool IsBackfaceCullingEnabled { get; set; }
+    public bool UseDepthTest { get; set; }
+    public bool UseBackfaceCulling { get; set; }
 
     public IMaterialApi Use()
     {
@@ -69,8 +69,8 @@ public class Material_GL : IMaterial
 
     class Api : IMaterialApi
     {
-        private static Api? m_Instance;
-        public static Api Instance => m_Instance ??= new Api();
+        private static Api? s_Instance;
+        public static Api Instance => s_Instance ??= new Api();
 
         private Material_GL m_ActiveMaterial;
         
@@ -79,12 +79,12 @@ public class Material_GL : IMaterial
             m_ActiveMaterial = material;
             glUseProgram(material.m_ProgramId);
         
-            if (material.IsDepthTestEnabled)
+            if (material.UseDepthTest)
                 glEnable(GL_DEPTH_TEST);
             else
                 glDisable(GL_DEPTH_TEST);
 
-            if (material.IsBackfaceCullingEnabled)
+            if (material.UseBackfaceCulling)
                 glEnable(GL_CULL_FACE);
             else
                 glDisable(GL_CULL_FACE);
