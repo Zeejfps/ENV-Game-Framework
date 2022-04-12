@@ -3,7 +3,7 @@ using static OpenGL.Gl;
 
 namespace Framework.GLFW.NET;
 
-public class MainFramebuffer_GL : IFramebuffer
+public class WindowFramebuffer_GL : IFramebuffer
 {
     public int Width { get; private set; }
     public int Height { get; private set; }
@@ -20,6 +20,7 @@ public class MainFramebuffer_GL : IFramebuffer
     public void Use()
     {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, Width, Height);
     }
 
     public void Clear()
@@ -33,5 +34,9 @@ public class MainFramebuffer_GL : IFramebuffer
         Width = width;
         Height = height;
         glViewport(0, 0, width, height);
+    }
+
+    public void Dispose()
+    {
     }
 }

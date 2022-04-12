@@ -64,7 +64,7 @@ public class Window_GLFW : IWindow
     public bool IsOpened { get; private set; }
 
     public IInput Input => m_Input;
-    public IFramebuffer Framebuffer => m_MainFramebuffer;
+    public IFramebuffer Framebuffer => m_WindowFramebuffer;
 
     public bool IsFullscreen
     {
@@ -101,7 +101,7 @@ public class Window_GLFW : IWindow
     
     private Window m_Handle;
 
-    private readonly MainFramebuffer_GL m_MainFramebuffer;
+    private readonly WindowFramebuffer_GL m_WindowFramebuffer;
     private readonly Input_GLFW m_Input;
 
     private readonly KeyCallback m_KeyCallback;
@@ -115,7 +115,7 @@ public class Window_GLFW : IWindow
     public Window_GLFW()
     {
         m_Input = new Input_GLFW();
-        m_MainFramebuffer = new MainFramebuffer_GL();
+        m_WindowFramebuffer = new WindowFramebuffer_GL();
 
         m_KeyCallback = Glfw_KeyCallback;
         m_SizeCallback = Glfw_SizeCallback;
@@ -146,7 +146,7 @@ public class Window_GLFW : IWindow
 
         Glfw.MakeContextCurrent(m_Handle);
         Glfw.GetFramebufferSize(m_Handle, out var framebufferWidth, out var framebufferHeight);
-        m_MainFramebuffer.Init(framebufferWidth, framebufferHeight, Glfw.GetProcAddress);
+        m_WindowFramebuffer.Init(framebufferWidth, framebufferHeight, Glfw.GetProcAddress);
 
         UpdateVsyncState();
         
@@ -256,7 +256,7 @@ public class Window_GLFW : IWindow
     
     private void Glfw_FramebufferSizeCallback(Window window, int width, int height)
     {
-        m_MainFramebuffer.Resize(width, height);
+        m_WindowFramebuffer.Resize(width, height);
     }
     
     private void Glfw_MousePosCallback(Window window, double x, double y)

@@ -33,7 +33,7 @@ public class Context_GLFW : IContext
     
     public IFramebuffer CreateFramebuffer(int width, int height)
     {
-        return new TextureFramebuffer(width, height);
+        return new TextureFramebuffer_GL(width, height);
     }
     
     public void Dispose()
