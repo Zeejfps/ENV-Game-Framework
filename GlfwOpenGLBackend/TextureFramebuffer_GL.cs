@@ -5,11 +5,13 @@ namespace Framework.GLFW.NET;
 
 public class TextureFramebuffer_GL : IFramebuffer
 {
-    public int Width { get; }
-    public int Height { get; }
-    public ITexture? ColorTexture { get; }
-    public ITexture? DepthTexture { get; }
-    
+    public int Width { get; private set; }
+    public int Height { get; private set; }
+    public ITexture? ColorTexture => m_ColorTexture;
+    public ITexture? DepthTexture => m_DepthTexture;
+
+    private ResizableTexture2D_GL m_ColorTexture;
+    private ResizableTexture2D_GL m_DepthTexture;
     private uint m_Id;
 
     public TextureFramebuffer_GL(int width, int height)
@@ -20,15 +22,13 @@ public class TextureFramebuffer_GL : IFramebuffer
         m_Id = glGenFramebuffer();
         glBindFramebuffer(m_Id);
 
-        var colorTexture = new Texture2D_GL(width, height);
-        colorTexture.Use();
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture.Id, 0);
-        ColorTexture = colorTexture;
+        m_ColorTexture = new ResizableTexture2D_GL(width, height);
+        m_ColorTexture.Use();
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorTexture.Id, 0);
 
-        var depthTexture = new Texture2D_GL(width, height);
-        depthTexture.Use();
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture.Id, 0);
-        DepthTexture = depthTexture;
+        m_DepthTexture = new ResizableTexture2D_GL(width, height);
+        m_DepthTexture.Use();
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_DepthTexture.Id, 0);
         
         glBindFramebuffer(0);
     }
@@ -45,7 +45,17 @@ public class TextureFramebuffer_GL : IFramebuffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
+    public void Resize(int width, int height)
+    {
+        Width = width;
+        Height = height;
+        m_ColorTexture.Resize(width, height);
+        m_DepthTexture.Resize(width, height);
+    }
+
     public void Dispose()
     {
+        m_ColorTexture.Unload();
+        m_DepthTexture.Unload();
     }
 }

@@ -3,14 +3,14 @@ using static OpenGL.Gl;
 
 namespace TicTacToePrototype.OpenGL.AssetLoaders;
 
-public class Texture2D_GL : ITexture
+public class CompressedTexture2D_GL : ITexture
 {
     public bool IsLoaded => m_Id != GL_NONE;
     public uint Id => m_Id;
     
     private uint m_Id;
 
-    public unsafe Texture2D_GL(int width, int height, byte[]? pixels = null)
+    public unsafe CompressedTexture2D_GL(int width, int height, byte[]? pixels = null)
     {
         //Console.WriteLine($"Texture: {width}x{height}, pixels: {pixels.Length}");
         m_Id = glGenTexture();
@@ -26,7 +26,6 @@ public class Texture2D_GL : ITexture
         {
             fixed (byte* p = &pixels[0])
                 glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_BPTC_UNORM_ARB, width, height, 0, width*height, p);
-
         }
        
         // fixed (byte* p = &pixels[0])

@@ -50,15 +50,16 @@ public class TestScene : IScene
 
         m_Ships = new List<Ship>();
         var size = 10;
-        for (var cols = 0; cols < 10; cols++)
+        var count = 10;
+        for (var cols = 0; cols < count; cols++)
         {
-            for (var rows = 0; rows < 10; rows++)
+            for (var rows = 0; rows < count; rows++)
             {
                 var ship = new Ship(m_SpecularRenderer)
                 {
                     Transform =
                     {
-                        WorldPosition = new Vector3(rows * size - size * 5, cols * size - size * 5, 0f)
+                        WorldPosition = new Vector3(rows * size - size * count/2, cols * size - size * count/2, 0f)
                     }
                 };
                 m_Ships.Add(ship);

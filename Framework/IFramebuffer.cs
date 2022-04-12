@@ -7,4 +7,5 @@ public interface IFramebuffer : IDisposable
     
     void Use();
     void Clear();
+    void Resize(int width, int height);
 }

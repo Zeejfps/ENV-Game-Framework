@@ -11,6 +11,6 @@ public class TextureAssetLoader_GL : TextureAssetLoaderModule
         var width = asset.Width;
         var height = asset.Height;
         var pixels = asset.Pixels;
-        return new Texture2D_GL(width, height, pixels);
+        return new CompressedTexture2D_GL(width, height, pixels);
     }
 }
