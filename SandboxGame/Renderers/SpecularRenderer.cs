@@ -19,8 +19,12 @@ public class SpecularRenderer : ISceneObject
     private readonly Dictionary<IMesh, List<SpecularRenderable>> m_MeshToRenderableMap = new();
 
     private IMaterial? m_Material;
-    
-    private IFramebuffer? m_Framebuffer;
+    private IMaterial? m_FullScreenBlitMaterial;
+
+    private IFramebuffer? m_WindowFramebuffer;
+    private IFramebuffer? m_TestFramebuffer;
+
+    private IMesh m_QuadMesh;
     
     private readonly ICamera m_Camera;
     private readonly ITransform m_Light;
@@ -29,7 +33,7 @@ public class SpecularRenderer : ISceneObject
     private Vector3 _ambientColor = new Vector3(.2f,.4f,.6f);
     private Vector3 _specularColor = new Vector3(.7f,.7f,.7f);
     private float _shininess = 10f;
-
+    
     public SpecularRenderer(ICamera camera, ITransform light)
     {
         m_Camera = camera;
@@ -57,18 +61,44 @@ public class SpecularRenderer : ISceneObject
     {
         var assetDatabase = scene.Context.AssetDatabase;
         m_Material = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/specular.material");
-        m_Framebuffer = scene.Context.Window.Framebuffer;
+        m_FullScreenBlitMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/fullScreenQuad.material");
+        m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Default/Primitives/Quad.mesh");
+        m_WindowFramebuffer = scene.Context.Window.Framebuffer;
+        m_TestFramebuffer = scene.Context.CreateFramebuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
     }
 
     public void Update(IScene scene)
     {
+        RenderOpaquePass();
+        RenderFullScreenQuadPass();
+    }
+
+    public void Unload(IScene scene)
+    {
+        Debug.Assert(m_Material != null);
+        m_Material.Unload();
+        m_Material = null;
+    }
+
+    private void RenderFullScreenQuadPass()
+    {
+        // m_WindowFramebuffer.Use();
+        // m_WindowFramebuffer.Clear();
+        // m_FullScreenBlitMaterial.Use();
+        // m_QuadMesh.Render();
+    }
+
+    private void RenderOpaquePass()
+    {
+        // m_TestFramebuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
+        // m_TestFramebuffer.Use();
+        // m_TestFramebuffer.Clear();
+
         var camera = m_Camera;
-        var framebuffer = m_Framebuffer;
         var material = m_Material;
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
 
         Debug.Assert(material != null);
-        Debug.Assert(framebuffer != null);
         material.Use();
 
         material.SetVector3("light.position", m_Light.WorldPosition);
@@ -100,12 +130,5 @@ public class SpecularRenderer : ISceneObject
                 mesh.Render();
             }
         }
-    }
-
-    public void Unload(IScene scene)
-    {
-        Debug.Assert(m_Material != null);
-        m_Material.Unload();
-        m_Material = null;
     }
 }

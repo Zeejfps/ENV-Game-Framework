@@ -4,6 +4,8 @@ public class PbrRenderer : ISceneObject
 {
     private IMaterial m_Material;
     private IFramebuffer m_Framebuffer;
+
+    private List<PbrRenderable> m_Renderables = new List<PbrRenderable>();
     
     public void Load(IScene scene)
     {
@@ -19,4 +21,14 @@ public class PbrRenderer : ISceneObject
     {
         
     }
+
+    public void Add(PbrRenderable renderable)
+    {
+        m_Renderables.Add(renderable);
+    }
+}
+
+public class PbrRenderable
+{
+    
 }

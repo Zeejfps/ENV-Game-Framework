@@ -10,8 +10,8 @@ public class TextureFramebuffer_GL : IFramebuffer
     public ITexture? ColorTexture => m_ColorTexture;
     public ITexture? DepthTexture => m_DepthTexture;
 
-    private ResizableTexture2D_GL m_ColorTexture;
-    private ResizableTexture2D_GL m_DepthTexture;
+    private Texture2D_GL m_ColorTexture;
+    private Texture2D_GL m_DepthTexture;
     private uint m_Id;
 
     public TextureFramebuffer_GL(int width, int height)
@@ -21,14 +21,25 @@ public class TextureFramebuffer_GL : IFramebuffer
 
         m_Id = glGenFramebuffer();
         glBindFramebuffer(m_Id);
+        
+        var colorTextureId = glGenTexture();
+        glBindTexture(GL_TEXTURE_2D, colorTextureId);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, IntPtr.Zero);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTextureId, 0);
+        m_ColorTexture = new Texture2D_GL(colorTextureId);
 
-        m_ColorTexture = new ResizableTexture2D_GL(width, height);
-        m_ColorTexture.Use();
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorTexture.Id, 0);
+        var depthTextureId = glGenTexture();
+        glBindTexture(GL_TEXTURE_2D, depthTextureId);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, IntPtr.Zero);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTextureId, 0);
+        m_DepthTexture = new Texture2D_GL(depthTextureId);
 
-        m_DepthTexture = new ResizableTexture2D_GL(width, height);
-        m_DepthTexture.Use();
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_DepthTexture.Id, 0);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            throw new Exception("Failed to create framebuffer");
         
         glBindFramebuffer(0);
     }
@@ -47,10 +58,17 @@ public class TextureFramebuffer_GL : IFramebuffer
 
     public void Resize(int width, int height)
     {
+        if (Width == width && Height == height)
+            return;
+        
         Width = width;
         Height = height;
-        m_ColorTexture.Resize(width, height);
-        m_DepthTexture.Resize(width, height);
+        
+        m_ColorTexture.Use();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, IntPtr.Zero);
+        
+        m_DepthTexture.Use();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, IntPtr.Zero);
     }
 
     public void Dispose()

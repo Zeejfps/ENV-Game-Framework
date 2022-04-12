@@ -29,28 +29,37 @@ public class Mesh_GL : IMesh
         glVertexAttribPointer(0, 3, GL_FLOAT, false, 3 * sizeof(float), NULL);
         glEnableVertexAttribArray(0);
 
-        m_NormalsBuffer = glGenBuffer();
-        glBindBuffer(GL_ARRAY_BUFFER, m_NormalsBuffer);
-        fixed (float* v = &normals[0])
-            glBufferData(GL_ARRAY_BUFFER, sizeof(float) * normals.Length, v, GL_STATIC_DRAW);
-        glVertexAttribPointer(1, 3, GL_FLOAT, false, 3 * sizeof(float), NULL);
-        glEnableVertexAttribArray(1);
+        if (normals != null && normals.Length > 0)
+        {
+            m_NormalsBuffer = glGenBuffer();
+            glBindBuffer(GL_ARRAY_BUFFER, m_NormalsBuffer);
+            fixed (float* v = &normals[0])
+                glBufferData(GL_ARRAY_BUFFER, sizeof(float) * normals.Length, v, GL_STATIC_DRAW);
+            glVertexAttribPointer(1, 3, GL_FLOAT, false, 3 * sizeof(float), NULL);
+            glEnableVertexAttribArray(1);
+        }
 
-        m_UvBuffer = glGenBuffer();
-        glBindBuffer(GL_ARRAY_BUFFER, m_UvBuffer);
-        fixed (float* uv = &uvs[0])
-            glBufferData(GL_ARRAY_BUFFER, sizeof(float) * uvs.Length, uv, GL_STATIC_DRAW);
-        glVertexAttribPointer(2, 2, GL_FLOAT, false, 2 * sizeof(float), NULL);
-        glEnableVertexAttribArray(2);  
-        
-        m_Vio = glGenBuffer();
-        m_TangetBuffer = glGenBuffer();
-        glBindBuffer(GL_ARRAY_BUFFER, m_TangetBuffer);
-        fixed (float* t = &tangents[0])
-            glBufferData(GL_ARRAY_BUFFER, sizeof(float) * tangents.Length, t, GL_STATIC_DRAW);
-        glVertexAttribPointer(3, 3, GL_FLOAT, false, 3 * sizeof(float), NULL);
-        glEnableVertexAttribArray(3);  
-        
+        if (uvs != null && uvs.Length > 0)
+        {
+            m_UvBuffer = glGenBuffer();
+            glBindBuffer(GL_ARRAY_BUFFER, m_UvBuffer);
+            fixed (float* uv = &uvs[0])
+                glBufferData(GL_ARRAY_BUFFER, sizeof(float) * uvs.Length, uv, GL_STATIC_DRAW);
+            glVertexAttribPointer(2, 2, GL_FLOAT, false, 2 * sizeof(float), NULL);
+            glEnableVertexAttribArray(2);  
+        }
+
+        if (tangents != null && tangents.Length > 0)
+        {
+            m_Vio = glGenBuffer();
+            m_TangetBuffer = glGenBuffer();
+            glBindBuffer(GL_ARRAY_BUFFER, m_TangetBuffer);
+            fixed (float* t = &tangents[0])
+                glBufferData(GL_ARRAY_BUFFER, sizeof(float) * tangents.Length, t, GL_STATIC_DRAW);
+            glVertexAttribPointer(3, 3, GL_FLOAT, false, 3 * sizeof(float), NULL);
+            glEnableVertexAttribArray(3);
+        }
+
         m_TriangleCount = indices.Length;
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_Vio);
         fixed (int* i = &indices[0])

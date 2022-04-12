@@ -18,13 +18,13 @@ public class Game
         var primaryDisplay = Displays.PrimaryDisplay;
         
         Window.Title = "Hello World";
-        Window.IsFullscreen = true;
+        //Window.IsFullscreen = true;
         Window.Width = 1280;
         Window.Height = 720;
         Window.PosX = (int)((primaryDisplay.ResolutionX - Window.Width) * 0.5f);
         Window.PosY = (int)((primaryDisplay.ResolutionY - Window.Height) * 0.5f);
         Window.IsResizable = true;
-        //Window.IsVsyncEnabled = true;
+        Window.IsVsyncEnabled = true;
 
         Window.Open();
         

@@ -3,7 +3,7 @@ using static OpenGL.Gl;
 
 namespace TicTacToePrototype.OpenGL.AssetLoaders;
 
-public class ResizableTexture2D_GL : ITexture
+public class Texture2D_GL : ITexture
 {
     public bool IsLoaded { get; private set; }
 
@@ -11,16 +11,9 @@ public class ResizableTexture2D_GL : ITexture
     
     private uint m_Id;
 
-    public ResizableTexture2D_GL(int width, int height)
+    public Texture2D_GL(uint id)
     {
-        m_Id = glGenTexture();
-        glBindTexture(GL_TEXTURE_2D, m_Id);
-        
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexImage2D(GL_TEXTURE2, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, IntPtr.Zero);
-        
-        glBindTexture(GL_TEXTURE_2D, 0);
+        m_Id = id;
     }
     
     public void Use()
