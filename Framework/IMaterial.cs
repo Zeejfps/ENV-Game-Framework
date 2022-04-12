@@ -4,6 +4,9 @@ namespace Framework;
 
 public interface IMaterial : IAsset
 {
+    bool IsDepthTestEnabled { get; set; }
+    bool IsBackfaceCullingEnabled { get; set; }
+
     void Use();
 
     void SetFloat(string propertyName, float value);

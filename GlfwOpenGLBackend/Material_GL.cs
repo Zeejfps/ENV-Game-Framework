@@ -19,9 +19,22 @@ public class Material_GL : IMaterial
         IsLoaded = true;
     }
 
+    public bool IsDepthTestEnabled { get; set; }
+    public bool IsBackfaceCullingEnabled { get; set; }
+
     public void Use()
     {
         glUseProgram(m_ProgramId);
+        
+        if (IsDepthTestEnabled)
+            glEnable(GL_DEPTH_TEST);
+        else
+            glDisable(GL_DEPTH_TEST);
+
+        if (IsBackfaceCullingEnabled)
+            glEnable(GL_CULL_FACE);
+        else
+            glDisable(GL_CULL_FACE);
     }
     
     public void Unload()
