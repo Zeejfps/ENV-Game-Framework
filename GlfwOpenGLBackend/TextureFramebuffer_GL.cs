@@ -14,6 +14,8 @@ public class TextureFramebuffer_GL : IRenderbuffer
     private Texture2D_GL m_DepthTexture;
     private uint m_Id;
 
+    private Api m_Api;
+
     public TextureFramebuffer_GL(int width, int height)
     {
         Width = width;
@@ -42,38 +44,61 @@ public class TextureFramebuffer_GL : IRenderbuffer
             throw new Exception("Failed to create framebuffer");
         
         glBindFramebuffer(0);
-    }
-    
-    public void Use()
-    {
-        glBindFramebuffer(m_Id);
-        glViewport(0, 0, Width, Height);
+
+        m_Api = new Api(this);
     }
 
-    public void Clear(float r, float g, float b)
+    public IFramebufferApi Use()
     {
-        glClearColor(r, g, b, 1f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    }
-
-    public void Resize(int width, int height)
-    {
-        if (Width == width && Height == height)
-            return;
-        
-        Width = width;
-        Height = height;
-        
-        m_ColorTexture.Use();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, IntPtr.Zero);
-        
-        m_DepthTexture.Use();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, IntPtr.Zero);
+        m_Api.Use();
+        return m_Api;
     }
 
     public void Dispose()
     {
         m_ColorTexture.Unload();
         m_DepthTexture.Unload();
+    }
+    
+    class Api : IFramebufferApi
+    {
+        private readonly TextureFramebuffer_GL m_Framebuffer;
+    
+        public Api(TextureFramebuffer_GL framebuffer)
+        {
+            m_Framebuffer = framebuffer;
+        }
+
+        public void Use()
+        {
+            glBindFramebuffer(m_Framebuffer.m_Id);
+            glViewport(0, 0, m_Framebuffer.Width, m_Framebuffer.Height);
+        }
+    
+        public void Clear(float r, float g, float b)
+        {
+            glClearColor(r, g, b, 1f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        }
+
+        public void Resize(int width, int height)
+        {
+            if (m_Framebuffer.Width == width && m_Framebuffer.Height == height)
+                return;
+        
+            m_Framebuffer.Width = width;
+            m_Framebuffer.Height = height;
+        
+            m_Framebuffer.m_ColorTexture.Use();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, IntPtr.Zero);
+        
+            m_Framebuffer.m_DepthTexture.Use();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, IntPtr.Zero);
+        }
+
+        public void Dispose()
+        {
+            glBindFramebuffer(0);
+        }
     }
 }

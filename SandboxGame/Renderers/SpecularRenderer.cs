@@ -3,7 +3,18 @@ using System.Numerics;
 
 namespace Framework;
 
-public class SpecularRenderable
+public interface ISpecularRenderable
+{
+    public IMesh Mesh { get; }
+    public ITransform Transform { get; }
+    public ITexture Diffuse { get; }
+    public ITexture Normal { get; }
+    public ITexture Roughness { get; }
+    public ITexture Occlusion { get; }
+    public ITexture Translucency { get; }
+}
+
+public class SpecularRenderable : ISpecularRenderable
 {
     public IMesh Mesh { get; init; }
     public ITransform Transform { get; init; }
@@ -16,7 +27,7 @@ public class SpecularRenderable
 
 public class SpecularRenderer : ISceneObject
 {
-    private readonly Dictionary<IMesh, List<SpecularRenderable>> m_MeshToRenderableMap = new();
+    private readonly Dictionary<IMesh, List<ISpecularRenderable>> m_MeshToRenderableMap = new();
 
     private IMaterial? m_Material;
     private IMaterial? m_FullScreenBlitMaterial;
@@ -40,19 +51,19 @@ public class SpecularRenderer : ISceneObject
         m_Light = light;
     }
 
-    public void Add(SpecularRenderable renderable)
+    public void Add(ISpecularRenderable renderable)
     {
         var mesh = renderable.Mesh;
         if (!m_MeshToRenderableMap.TryGetValue(mesh, out var renderables))
         {
-            renderables = new List<SpecularRenderable>();
+            renderables = new List<ISpecularRenderable>();
             m_MeshToRenderableMap[mesh] = renderables;
         }
         
         renderables.Add(renderable);
     }
 
-    public void Remove(SpecularRenderable renderable)
+    public void Remove(ISpecularRenderable renderable)
     {
         
     }
@@ -89,8 +100,8 @@ public class SpecularRenderer : ISceneObject
 
     private void RenderFullScreenQuadPass()
     {
-        m_WindowFramebuffer.Use();
-        m_WindowFramebuffer.Clear(.42f, .607f, .82f);
+        var framebuffer = m_WindowFramebuffer.Use();
+        framebuffer.Clear(.42f, .607f, .82f);
         m_FullScreenBlitMaterial.Use();
         m_FullScreenBlitMaterial.SetTexture2d("screenTexture", m_TestRenderbuffer.ColorTexture);
         m_QuadMesh.Render();
@@ -98,9 +109,11 @@ public class SpecularRenderer : ISceneObject
 
     private void RenderOpaquePass()
     {
-        m_TestRenderbuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
-        m_TestRenderbuffer.Use();
-        m_TestRenderbuffer.Clear(.42f, .607f, .82f);
+        Debug.Assert(m_TestRenderbuffer != null);
+
+        using var renderBuffer = m_TestRenderbuffer.Use();
+        renderBuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
+        renderBuffer.Clear(.42f, .607f, .82f);
 
         var camera = m_Camera;
         var material = m_Material;

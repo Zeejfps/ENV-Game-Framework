@@ -1,11 +1,9 @@
 ﻿namespace Framework;
 
-public interface IFramebuffer : IDisposable
+public interface IFramebuffer
 {
     int Width { get; }
     int Height { get; }
 
-    void Use();
-    void Clear(float r, float g, float b);
-    void Resize(int width, int height);
+    IFramebufferApi Use();
 }
