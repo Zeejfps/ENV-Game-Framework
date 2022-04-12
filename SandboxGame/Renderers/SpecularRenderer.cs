@@ -22,7 +22,7 @@ public class SpecularRenderer : ISceneObject
     private IMaterial? m_FullScreenBlitMaterial;
 
     private IFramebuffer? m_WindowFramebuffer;
-    private IFramebuffer? m_TestFramebuffer;
+    private IRenderbuffer? m_TestFramebuffer;
 
     private IMesh m_QuadMesh;
     
