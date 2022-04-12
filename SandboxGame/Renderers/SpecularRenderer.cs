@@ -84,7 +84,7 @@ public class SpecularRenderer : ISceneObject
     private void RenderFullScreenQuadPass()
     {
         m_WindowFramebuffer.Use();
-        m_WindowFramebuffer.Clear();
+        m_WindowFramebuffer.Clear(.42f, .607f, .82f);
         m_FullScreenBlitMaterial.Use();
         m_FullScreenBlitMaterial.SetTexture2d("screenTexture", m_TestFramebuffer.ColorTexture);
         m_QuadMesh.Render();
@@ -94,7 +94,7 @@ public class SpecularRenderer : ISceneObject
     {
         m_TestFramebuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
         m_TestFramebuffer.Use();
-        m_TestFramebuffer.Clear();
+        m_TestFramebuffer.Clear(.42f, .607f, .82f);
 
         var camera = m_Camera;
         var material = m_Material;

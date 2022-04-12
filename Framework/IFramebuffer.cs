@@ -7,6 +7,6 @@ public interface IFramebuffer : IDisposable
     ITexture? ColorTexture { get; }
 
     void Use();
-    void Clear();
+    void Clear(float r, float g, float b);
     void Resize(int width, int height);
 }

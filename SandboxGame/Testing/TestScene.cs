@@ -138,8 +138,6 @@ public class TestScene : IScene
         
         m_Camera.Transform.LookAt(Vector3.UnitY, Vector3.UnitY);
         
-        m_Context.Window.Framebuffer.Clear();
-
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Update(this);
         

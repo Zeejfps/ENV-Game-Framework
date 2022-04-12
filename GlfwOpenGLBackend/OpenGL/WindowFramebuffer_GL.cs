@@ -24,9 +24,9 @@ public class WindowFramebuffer_GL : IFramebuffer
         glDisable(GL_DEPTH_TEST);
     }
 
-    public void Clear()
+    public void Clear(float r, float g, float b)
     {
-        glClearColor(.42f, .607f, .82f, 1f);
+        glClearColor(r,g,b, 1f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
