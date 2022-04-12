@@ -4,6 +4,8 @@ public interface IFramebuffer
 {
     int Width { get; }
     int Height { get; }
+    
+    void Use();
     void Clear();
     void Resize(int width, int height);
 }

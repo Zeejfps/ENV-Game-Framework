@@ -17,6 +17,11 @@ public class MainFramebuffer_GL : IFramebuffer
         glEnable(GL_DEPTH_TEST);
     }
 
+    public void Use()
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
     public void Clear()
     {
         glClearColor(.42f, .607f, .82f, 1f);
