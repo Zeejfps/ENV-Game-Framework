@@ -68,7 +68,7 @@ public class SpecularRenderer : ISceneObject
         m_FullScreenBlitMaterial.IsBackfaceCullingEnabled = true;
         m_FullScreenBlitMaterial.IsDepthTestEnabled = false;
         
-        m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Default/Primitives/Quad.mesh");
+        m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/quad.mesh");
         //m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/Toad.mesh");
         m_WindowFramebuffer = scene.Context.Window.Framebuffer;
         m_TestFramebuffer = scene.Context.CreateFramebuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
