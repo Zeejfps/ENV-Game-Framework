@@ -7,20 +7,21 @@ public class WindowFramebuffer_GL : IFramebuffer
 {
     public int Width { get; private set; }
     public int Height { get; private set; }
-    
+    public ITexture ColorTexture { get; }
+
     public void Init(int width, int height, GetProcAddressHandler getProcAddress)
     {
         Width = width;
         Height = height;
         Import(getProcAddress);
         glEnable(GL_CULL_FACE);
-        glEnable(GL_DEPTH_TEST);
     }
 
     public void Use()
     {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, Width, Height);
+        glDisable(GL_DEPTH_TEST);
     }
 
     public void Clear()

@@ -63,6 +63,7 @@ public class SpecularRenderer : ISceneObject
         m_Material = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/specular.material");
         m_FullScreenBlitMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/fullScreenQuad.material");
         m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Default/Primitives/Quad.mesh");
+        //m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/Toad.mesh");
         m_WindowFramebuffer = scene.Context.Window.Framebuffer;
         m_TestFramebuffer = scene.Context.CreateFramebuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
     }
@@ -82,17 +83,18 @@ public class SpecularRenderer : ISceneObject
 
     private void RenderFullScreenQuadPass()
     {
-        // m_WindowFramebuffer.Use();
-        // m_WindowFramebuffer.Clear();
-        // m_FullScreenBlitMaterial.Use();
-        // m_QuadMesh.Render();
+        m_WindowFramebuffer.Use();
+        m_WindowFramebuffer.Clear();
+        m_FullScreenBlitMaterial.Use();
+        m_FullScreenBlitMaterial.SetTexture2d("screenTexture", m_TestFramebuffer.ColorTexture);
+        m_QuadMesh.Render();
     }
 
     private void RenderOpaquePass()
     {
-        // m_TestFramebuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
-        // m_TestFramebuffer.Use();
-        // m_TestFramebuffer.Clear();
+        m_TestFramebuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
+        m_TestFramebuffer.Use();
+        m_TestFramebuffer.Clear();
 
         var camera = m_Camera;
         var material = m_Material;

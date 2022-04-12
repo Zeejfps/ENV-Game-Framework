@@ -48,6 +48,7 @@ public class TextureFramebuffer_GL : IFramebuffer
     {
         glBindFramebuffer(m_Id);
         glViewport(0, 0, Width, Height);
+        glEnable(GL_DEPTH_TEST);
     }
 
     public void Clear()
