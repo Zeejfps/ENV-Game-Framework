@@ -65,18 +65,42 @@ public class Mesh_GL : IMesh
         fixed (int* i = &indices[0])
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.Length, i, GL_STATIC_DRAW);
     }
-    
-    public void Render()
-    {
-        unsafe
-        {
-            glBindVertexArray(m_Vao);
-            glDrawElements(GL_TRIANGLES, m_TriangleCount, GL_UNSIGNED_INT, NULL);
-        }
-    }
 
     public void Unload()
     {
         
+    }
+
+    public IMeshApi Use()
+    {
+        return Api.Use(this);
+    }
+
+    class Api : IMeshApi
+    {
+        private static Api? s_Instance;
+        private static Api Instance => s_Instance ??= new Api();
+
+        private Mesh_GL m_ActiveMesh;
+        
+        public static IMeshApi Use(Mesh_GL mesh)
+        {
+            Instance.m_ActiveMesh = mesh;
+            glBindVertexArray(mesh.m_Vao);
+            return Instance;
+        }
+        
+        public void Render()
+        {
+            unsafe
+            {
+                glDrawElements(GL_TRIANGLES, Instance.m_ActiveMesh.m_TriangleCount, GL_UNSIGNED_INT, NULL);
+            }
+        }
+
+        public void Dispose()
+        {
+            //glBindVertexArray(0);
+        }
     }
 }

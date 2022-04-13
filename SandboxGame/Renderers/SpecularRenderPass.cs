@@ -86,7 +86,7 @@ public class SpecularRenderPass
 
         foreach (var kvp in m_MeshToRenderableMap)
         {
-            var mesh = kvp.Key;
+            using var mesh = kvp.Key.Use();
             foreach (var renderable in kvp.Value)
             {
                 var modelMatrix = renderable.Transform.WorldMatrix;

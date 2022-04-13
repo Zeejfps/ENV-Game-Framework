@@ -42,7 +42,9 @@ public class UnlitRenderPass
             material.SetMatrix4x4("matrix_view", viewMatrix);
             material.SetMatrix4x4("matrix_model", modelMatrix);
             material.SetVector3("color", data.Color);
-            data.Mesh.Render();
+
+            using var mesh = data.Mesh.Use();
+            mesh.Render();
         }
     }
 
