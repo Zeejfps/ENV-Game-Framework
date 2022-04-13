@@ -1,12 +1,9 @@
 ﻿namespace Framework;
 
-public interface IFramebuffer : IDisposable
+public interface IFramebuffer
 {
     int Width { get; }
     int Height { get; }
-    ITexture? ColorTexture { get; }
 
-    void Use();
-    void Clear();
-    void Resize(int width, int height);
+    IFramebufferApi Use();
 }

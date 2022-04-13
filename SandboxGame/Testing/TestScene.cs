@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Numerics;
-using Framework;
 using Framework.InputDevices;
 using TicTacToePrototype;
 
@@ -10,21 +9,28 @@ public class TestScene : IScene
 {
     public IContext Context => m_Context;
 
-    private SpecularRenderer m_SpecularRenderer;
-    private UnlitRenderer m_UnlitRenderer;
+    private IRenderbuffer m_TempRenderbuffer;
+    private IFramebuffer m_WindowFramebuffer;
     
-    private Ship m_Ship1;
-    private Ship m_Ship2;
-    private Toad m_Toad;
-
-    private List<Ship> m_Ships;
-
+    private SpecularRenderPass m_SpecularRenderPass;
+    private UnlitRenderPass m_UnlitRenderPass;
+    private FullScreenBlitPass m_FullScreenBlitPass;
+    
     private readonly IContext m_Context;
     private readonly ICamera m_Camera;
     private readonly IClock m_Clock;
 
-    private readonly TestLight m_Light;
+    private ITransform m_CameraTarget;
 
+    private int m_PrevMouseX;
+    private int m_PrevMouseY;
+    private int m_ColorBufferIndex;
+    private bool m_IsRotating;
+
+    private Ship m_Ship1;
+    private Toad m_Toad;
+    private List<Ship> m_Ships;
+    private readonly TestLight m_Light;
     private readonly List<ISceneObject> m_SceneObjects = new();
     
     public TestScene(IContext context)
@@ -33,54 +39,46 @@ public class TestScene : IScene
         m_Camera = new PerspectiveCamera();
         m_Clock = new TestClock();
         m_Camera.Transform.WorldPosition = new Vector3(0, 5f, -25f);
-        m_Camera.Transform.LookAt(Vector3.UnitY, Vector3.UnitY);
+        
+        m_CameraTarget = new Transform3D();
+        m_Camera.Transform.LookAt(m_CameraTarget.WorldPosition, Vector3.UnitY);
         
         var lightTransform = new Transform3D
         {
             WorldPosition = new Vector3(0f, 5f, 0f),
         };
-
-        m_SpecularRenderer = new SpecularRenderer(m_Camera, lightTransform);
-        m_UnlitRenderer = new UnlitRenderer(m_Camera);
-        m_Light = new TestLight(m_UnlitRenderer, lightTransform);
-
-        m_Ship1 = new Ship(m_SpecularRenderer);
-        m_Ship2 = new Ship(m_SpecularRenderer);
-        m_Ship2.Transform.WorldPosition = new Vector3(10f, 0f, 0f);
-
-        m_Ships = new List<Ship>();
-        var size = 10;
-        var count = 10;
-        for (var cols = 0; cols < count; cols++)
-        {
-            for (var rows = 0; rows < count; rows++)
-            {
-                var ship = new Ship(m_SpecularRenderer)
-                {
-                    Transform =
-                    {
-                        WorldPosition = new Vector3(rows * size - size * count/2, cols * size - size * count/2, 0f)
-                    }
-                };
-                m_Ships.Add(ship);
-                m_SceneObjects.Add(ship);
-            }
-        }
         
-        m_Toad = new Toad(m_SpecularRenderer);
+        var windowFramebuffer = Context.Window.Framebuffer;
+        m_TempRenderbuffer = context.CreateRenderbuffer(windowFramebuffer.Width, windowFramebuffer.Height, 3, true);
+        m_WindowFramebuffer = context.Window.Framebuffer;
         
-        m_SceneObjects.Add(m_UnlitRenderer);
+        m_SpecularRenderPass = new SpecularRenderPass(lightTransform);
+        m_UnlitRenderPass = new UnlitRenderPass();
+        m_FullScreenBlitPass = new FullScreenBlitPass();
+        
+        m_Light = new TestLight(m_UnlitRenderPass, lightTransform);
+        
+        m_Ship1 = new Ship(m_SpecularRenderPass);
+
+        // This also adds them to the m_SceneObjects
+        // Which is bad... don't do that mmmmkkk?
+        m_Ships = CreateShips();
+
+        m_Toad = new Toad(m_SpecularRenderPass);
+        
         m_SceneObjects.Add(m_Camera);
         m_SceneObjects.Add(m_Light);
         m_SceneObjects.Add(m_Clock);
         m_SceneObjects.Add(m_Ship1);
-        m_SceneObjects.Add(m_Ship2);
         m_SceneObjects.Add(m_Toad);
     }
 
     public void Load()
     {
-        m_SpecularRenderer.Load(this);
+        m_UnlitRenderPass.Load(this);
+        m_SpecularRenderPass.Load(this);
+        m_FullScreenBlitPass.Load(Context);
+        
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Load(this);
     }
@@ -90,11 +88,31 @@ public class TestScene : IScene
         
     }
 
-    private int m_PrevMouseX;
-    private int m_PrevMouseY;
-    private bool m_IsRotating;
-    
     public void Update()
+    {
+        HandleInput();
+        
+        foreach (var sceneObject in m_SceneObjects)
+            sceneObject.Update(this);
+
+        /*
+         * All the Rendering steps below
+         */
+        using (var renderbuffer = m_TempRenderbuffer.Use())
+        {
+            renderbuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
+            renderbuffer.Clear(.42f, .607f, .82f);
+            m_UnlitRenderPass.Render(m_Camera);
+            m_SpecularRenderPass.Render(m_Camera);
+        }
+
+        using (var renderbuffer = m_WindowFramebuffer.Use())
+        {
+            m_FullScreenBlitPass.Render(m_TempRenderbuffer.ColorBuffers[m_ColorBufferIndex]);
+        }
+    }
+
+    private void HandleInput()
     {
         var speed = m_Clock.DeltaTime * 15f;
         var mouse = m_Context.Window.Input.Mouse;
@@ -119,7 +137,8 @@ public class TestScene : IScene
         if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Space))
             m_IsRotating = !m_IsRotating;
         
-        if (mouse.WasButtonPressedThisFrame(MouseButton.Left))
+        if (mouse.WasButtonPressedThisFrame(MouseButton.Left) 
+            || mouse.WasButtonPressedThisFrame(MouseButton.Middle))
         {
             m_PrevMouseX = mouse.ScreenX;
             m_PrevMouseY = mouse.ScreenY;
@@ -132,18 +151,56 @@ public class TestScene : IScene
             m_PrevMouseX = mouse.ScreenX;
             m_PrevMouseY = mouse.ScreenY;
             
-            m_Camera.Transform.RotateAround(Vector3.Zero, Vector3.UnitY, -deltaX);
-            m_Camera.Transform.RotateAround(Vector3.Zero, m_Camera.Transform.Right, -deltaY);
+            m_Camera.Transform.RotateAround(m_CameraTarget.WorldPosition, Vector3.UnitY, -deltaX);
+            m_Camera.Transform.RotateAround(m_CameraTarget.WorldPosition, m_Camera.Transform.Right, -deltaY);
+        }
+
+        if (mouse.IsButtonPressed(MouseButton.Middle))
+        {
+            var deltaX = (mouse.ScreenX - m_PrevMouseX) * m_Clock.DeltaTime * 1f;
+            var deltaY = (mouse.ScreenY - m_PrevMouseY) * m_Clock.DeltaTime * 1f;
+            m_PrevMouseX = mouse.ScreenX;
+            m_PrevMouseY = mouse.ScreenY;
+
+            var movement = (m_Camera.Transform.Right * -deltaX + m_Camera.Transform.Up * deltaY) 
+                           * m_Clock.DeltaTime * 1920f;
+
+            m_Camera.Transform.WorldPosition += movement;
+            m_CameraTarget.WorldPosition += movement;
         }
         
-        m_Camera.Transform.LookAt(Vector3.UnitY, Vector3.UnitY);
+        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Alpha1))
+            m_ColorBufferIndex = 0;
+        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Alpha2))
+            m_ColorBufferIndex = 1;
+        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Alpha3))
+            m_ColorBufferIndex = 2;
         
-        m_Context.Window.Framebuffer.Clear();
+        m_Camera.Transform.LookAt(m_CameraTarget.WorldPosition, Vector3.UnitY);
+    }
 
-        foreach (var sceneObject in m_SceneObjects)
-            sceneObject.Update(this);
-        
-        m_SpecularRenderer.Update(this);
+    private List<Ship> CreateShips()
+    {
+        var ships = new List<Ship>();
+        var size = 10;
+        var count = 10;
+        for (var cols = 0; cols < count; cols++)
+        {
+            for (var rows = 0; rows < count; rows++)
+            {
+                var ship = new Ship(m_SpecularRenderPass)
+                {
+                    Transform =
+                    {
+                        WorldPosition = new Vector3(rows * size - size * count/2, cols * size - size * count/2, 0f)
+                    }
+                };
+                ships.Add(ship);
+                m_SceneObjects.Add(ship);
+            }
+        }
+
+        return ships;
     }
 }
 

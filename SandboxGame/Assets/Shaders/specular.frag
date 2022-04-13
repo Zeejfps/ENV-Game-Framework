@@ -1,5 +1,7 @@
 ﻿#version 460 core
-out vec4 out_result;
+layout (location = 0) out vec4 out_result;
+layout (location = 1) out vec3 out_normal;
+layout (location = 2) out vec3 out_world;
 
 struct Material {
     sampler2D diffuse;
@@ -25,6 +27,7 @@ in VS_OUT {
     mat3 tangent_position;
 } fs_in;
 
+in vec3 FragPos;
 in vec3 normal;
 in vec3 vert_position;
 
@@ -72,4 +75,6 @@ void main()
     vec3 result = ambient + diffuse + specular;// + translucency_final;// + emission;
     
     out_result = vec4(result, 1.0);
+    out_normal = normalize(normal);
+    out_world = FragPos;
 }

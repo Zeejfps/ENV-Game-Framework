@@ -1,8 +1,9 @@
+using System.Diagnostics;
 using System.Numerics;
 using Framework;
 using static OpenGL.Gl;
 
-namespace GlfwOpenGLBackend.AssetLoaders;
+namespace GlfwOpenGLBackend;
 
 public class Material_GL : IMaterial
 {
@@ -12,80 +13,25 @@ public class Material_GL : IMaterial
 
     private uint m_ProgramId;
     private int m_ActiveTextureId = 0;
-
-    public Material_GL(uint programId)
+    
+    private Material_GL(uint programId)
     {
         m_ProgramId = programId;
         IsLoaded = true;
     }
 
-    public void Use()
+    public bool UseDepthTest { get; set; }
+    public bool UseBackfaceCulling { get; set; }
+
+    public IMaterialApi Use()
     {
-        glUseProgram(m_ProgramId);
+        return Api.Use(this);
     }
     
     public void Unload()
     {
         m_ProgramId = 0;
         IsLoaded = false;
-    }
-
-    public void SetFloat(string propertyName, float value)
-    {
-        var location = GetUniformLocation(propertyName);
-        glUniform1f(location, value);
-    }
-
-    public void SetVector3(string propertyName, float x, float y, float z)
-    {
-        var location = GetUniformLocation(propertyName);
-        glUniform3f(location, x, y, z);
-    }
-
-    public void SetVector3(string propertyName, Vector3 vector)
-    {
-        SetVector3(propertyName, vector.X, vector.Y, vector.Z);
-    }
-
-    public void SetTexture2d(string propertyName, ITexture texture)
-    {
-        var location = GetUniformLocation(propertyName);
-        var textureSlot = GetTextureSlot(propertyName);
-        glUniform1i(location, textureSlot);
-        glActiveTexture(GL_TEXTURE0 + textureSlot);
-        texture.Use();
-    }
-
-    public void SetMatrix4x4(string propertyName, Matrix4x4 matrix)
-    {
-        var location = GetUniformLocation(propertyName);
-        unsafe
-        {
-            var p = &matrix.M11;
-            glUniformMatrix4fv(location, 1, false, p);
-        }
-    }
-    
-    private int GetUniformLocation(string uniformName)
-    {
-        if (!m_PropertyToIdMap.TryGetValue(uniformName, out var location))
-        {
-            location = glGetUniformLocation(m_ProgramId, uniformName);
-            m_PropertyToIdMap[uniformName] = location;
-        }
-
-        return location;
-    }
-
-    private int GetTextureSlot(string texture)
-    {
-        if (m_TextureToSlotMap.TryGetValue(texture, out var slot))
-            return slot;
-
-        slot = m_ActiveTextureId;
-        m_TextureToSlotMap[texture] = slot;
-        m_ActiveTextureId++;
-        return slot;
     }
 
     public static Material_GL LoadFromSource(string vertexShaderSource, string fragmentShaderSource)
@@ -122,30 +68,103 @@ public class Material_GL : IMaterial
             throw new Exception($"Error compiling shader: {error}");
     }
 
-    private static float[] ToFloatArray(Matrix4x4 matrix)
+    class Api : IMaterialApi
     {
-        var data = new float[16];
+        private static Api? s_Instance;
+        private static Api Instance => s_Instance ??= new Api();
+        private Material_GL? ActiveMaterial { get; set; }
         
-        data[00] = matrix.M11;
-        data[01] = matrix.M12;
-        data[02] = matrix.M13;
-        data[03] = matrix.M14;
-        
-        data[04] = matrix.M21;
-        data[05] = matrix.M22;
-        data[06] = matrix.M23;
-        data[07] = matrix.M24;
-        
-        data[08] = matrix.M31;
-        data[09] = matrix.M32;
-        data[10] = matrix.M33;
-        data[11] = matrix.M34;
-        
-        data[12] = matrix.M41;
-        data[13] = matrix.M42;
-        data[14] = matrix.M43;
-        data[15] = matrix.M44;
+        private readonly Stack<Material_GL> m_MaterialStack = new();
 
-        return data;
+        public static IMaterialApi Use(Material_GL material)
+        {
+            if (Instance.ActiveMaterial != null)
+                Instance.m_MaterialStack.Push(Instance.ActiveMaterial);
+            
+            Instance.ActiveMaterial = material;
+            glUseProgram(material.m_ProgramId);
+        
+            if (material.UseDepthTest)
+                glEnable(GL_DEPTH_TEST);
+            else
+                glDisable(GL_DEPTH_TEST);
+
+            if (material.UseBackfaceCulling)
+                glEnable(GL_CULL_FACE);
+            else
+                glDisable(GL_CULL_FACE);
+
+            return Instance;
+        }
+
+        public void SetFloat(string propertyName, float value)
+        {
+            var location = GetUniformLocation(propertyName);
+            glUniform1f(location, value);
+        }
+
+        public void SetVector3(string propertyName, float x, float y, float z)
+        {
+            var location = GetUniformLocation(propertyName);
+            glUniform3f(location, x, y, z);
+        }
+
+        public void SetVector3(string propertyName, Vector3 vector)
+        {
+            SetVector3(propertyName, vector.X, vector.Y, vector.Z);
+        }
+
+        public void SetTexture2d(string propertyName, ITexture texture)
+        {
+            var location = GetUniformLocation(propertyName);
+            var textureSlot = GetTextureSlot(propertyName);
+            glUniform1i(location, textureSlot);
+            glActiveTexture(GL_TEXTURE0 + textureSlot);
+            texture.Use();
+        }
+
+        public void SetMatrix4x4(string propertyName, Matrix4x4 matrix)
+        {
+            var location = GetUniformLocation(propertyName);
+            unsafe
+            {
+                var p = &matrix.M11;
+                glUniformMatrix4fv(location, 1, false, p);
+            }
+        }
+        
+        public void Dispose()
+        {
+            if (m_MaterialStack.TryPop(out var material))
+                Use(material);
+            else
+                glUseProgram(0);
+        }
+        
+        private int GetUniformLocation(string uniformName)
+        {
+            Debug.Assert(ActiveMaterial != null);
+            var propertyToIdMap = ActiveMaterial.m_PropertyToIdMap;
+            if (!propertyToIdMap.TryGetValue(uniformName, out var location))
+            {
+                location = glGetUniformLocation(ActiveMaterial.m_ProgramId, uniformName);
+                propertyToIdMap[uniformName] = location;
+            }
+
+            return location;
+        }
+        
+        private int GetTextureSlot(string texture)
+        {
+            Debug.Assert(ActiveMaterial != null);
+            var textureToSlotMap = ActiveMaterial.m_TextureToSlotMap;
+            if (textureToSlotMap.TryGetValue(texture, out var slot))
+                return slot;
+
+            slot = ActiveMaterial.m_ActiveTextureId;
+            textureToSlotMap[texture] = slot;
+            ActiveMaterial.m_ActiveTextureId++;
+            return slot;
+        }
     }
 }

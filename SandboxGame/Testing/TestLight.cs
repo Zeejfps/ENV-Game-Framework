@@ -9,9 +9,9 @@ public class TestLight : ISceneObject
     
     private IMesh m_Mesh;
 
-    private readonly UnlitRenderer m_Renderer;
+    private readonly UnlitRenderPass m_Renderer;
 
-    public TestLight(UnlitRenderer renderer, ITransform transform)
+    public TestLight(UnlitRenderPass renderer, ITransform transform)
     {
         Transform = transform;
         m_Renderer = renderer;
@@ -20,16 +20,17 @@ public class TestLight : ISceneObject
     public void Load(IScene scene)
     {
         m_Mesh = scene.Context.AssetDatabase.LoadAsset<IMesh>("Assets/Meshes/Light.mesh");
-    }
-
-    public void Update(IScene scene)
-    {
-        m_Renderer.Render(new UnlitRenderData
+        m_Renderer.Add(new UnlitRendererable
         {
             Mesh = m_Mesh,
             Transform = Transform,
             Color = new Vector3(1f, 0f, 0.5f)
         });
+    }
+
+    public void Update(IScene scene)
+    {
+        
     }
 
     public void Unload(IScene scene)

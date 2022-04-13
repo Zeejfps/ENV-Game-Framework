@@ -31,9 +31,9 @@ public class Context_GLFW : IContext
         m_AssetDatabase.AddLoader(new TextureAssetLoader_GL());
     }
     
-    public IFramebuffer CreateFramebuffer(int width, int height)
+    public IRenderbuffer CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer)
     {
-        return new TextureFramebuffer_GL(width, height);
+        return new TextureFramebuffer_GL(width, height, colorBufferCount, createDepthBuffer);
     }
     
     public void Dispose()

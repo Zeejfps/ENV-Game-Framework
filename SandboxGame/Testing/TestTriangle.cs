@@ -36,11 +36,14 @@ public class TestTriangle : ISceneObject
     public void Update(IScene scene)
     {
         var keyboard = m_Context.Window.Input.Keyboard;
-        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.R))
-            SetRandomColor();
         
-        m_Material.SetMatrix4x4("matrix_projection", m_Camera.ProjectionMatrix);
-        m_Material.SetMatrix4x4("matrix_view", m_Camera.Transform.WorldMatrix);
+        using var material = m_Material.Use();
+
+        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.R))
+            SetRandomColor(material);
+        
+        material.SetMatrix4x4("matrix_projection", m_Camera.ProjectionMatrix);
+        material.SetMatrix4x4("matrix_view", m_Camera.Transform.WorldMatrix);
     }
 
     public void Unload(IScene scene)
@@ -48,12 +51,12 @@ public class TestTriangle : ISceneObject
         
     }
 
-    private void SetRandomColor()
+    private void SetRandomColor(IMaterialApi material)
     {
         var r = (float) m_Random.NextDouble();
         var g = (float) m_Random.NextDouble();
         var b = (float) m_Random.NextDouble();
 
-        m_Material.SetVector3("color", r, g, b);
+        material.SetVector3("color", r, g, b);
     }
 }

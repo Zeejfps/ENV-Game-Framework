@@ -1,9 +1,21 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
+using Framework.InputDevices;
 
 namespace Framework;
 
-public class SpecularRenderable
+public interface ISpecularRenderable
+{
+    public IMesh Mesh { get; }
+    public ITransform Transform { get; }
+    public ITexture Diffuse { get; }
+    public ITexture Normal { get; }
+    public ITexture Roughness { get; }
+    public ITexture Occlusion { get; }
+    public ITexture Translucency { get; }
+}
+
+public class SpecularRenderable : ISpecularRenderable
 {
     public IMesh Mesh { get; init; }
     public ITransform Transform { get; init; }
@@ -14,19 +26,11 @@ public class SpecularRenderable
     public ITexture Translucency { get; init; }
 }
 
-public class SpecularRenderer : ISceneObject
+public class SpecularRenderPass
 {
-    private readonly Dictionary<IMesh, List<SpecularRenderable>> m_MeshToRenderableMap = new();
+    private readonly Dictionary<IMesh, List<ISpecularRenderable>> m_MeshToRenderableMap = new();
 
-    private IMaterial? m_Material;
-    private IMaterial? m_FullScreenBlitMaterial;
-
-    private IFramebuffer? m_WindowFramebuffer;
-    private IFramebuffer? m_TestFramebuffer;
-
-    private IMesh m_QuadMesh;
-    
-    private readonly ICamera m_Camera;
+    private IMaterial? m_SpecularMaterial;
     private readonly ITransform m_Light;
 
     private Vector3 _lightColor = new Vector3(1f,1f,1f);
@@ -34,25 +38,24 @@ public class SpecularRenderer : ISceneObject
     private Vector3 _specularColor = new Vector3(.7f,.7f,.7f);
     private float _shininess = 10f;
     
-    public SpecularRenderer(ICamera camera, ITransform light)
+    public SpecularRenderPass(ITransform light)
     {
-        m_Camera = camera;
         m_Light = light;
     }
 
-    public void Add(SpecularRenderable renderable)
+    public void Add(ISpecularRenderable renderable)
     {
         var mesh = renderable.Mesh;
         if (!m_MeshToRenderableMap.TryGetValue(mesh, out var renderables))
         {
-            renderables = new List<SpecularRenderable>();
+            renderables = new List<ISpecularRenderable>();
             m_MeshToRenderableMap[mesh] = renderables;
         }
         
         renderables.Add(renderable);
     }
 
-    public void Remove(SpecularRenderable renderable)
+    public void Remove(ISpecularRenderable renderable)
     {
         
     }
@@ -60,49 +63,18 @@ public class SpecularRenderer : ISceneObject
     public void Load(IScene scene)
     {
         var assetDatabase = scene.Context.AssetDatabase;
-        m_Material = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/specular.material");
-        m_FullScreenBlitMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/fullScreenQuad.material");
-        m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Default/Primitives/Quad.mesh");
-        //m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/Toad.mesh");
-        m_WindowFramebuffer = scene.Context.Window.Framebuffer;
-        m_TestFramebuffer = scene.Context.CreateFramebuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
+        m_SpecularMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/specular.material");
+        m_SpecularMaterial.UseBackfaceCulling = true;
+        m_SpecularMaterial.UseDepthTest = true;
     }
-
-    public void Update(IScene scene)
+    
+    public void Render(ICamera camera)
     {
-        RenderOpaquePass();
-        RenderFullScreenQuadPass();
-    }
-
-    public void Unload(IScene scene)
-    {
-        Debug.Assert(m_Material != null);
-        m_Material.Unload();
-        m_Material = null;
-    }
-
-    private void RenderFullScreenQuadPass()
-    {
-        m_WindowFramebuffer.Use();
-        m_WindowFramebuffer.Clear();
-        m_FullScreenBlitMaterial.Use();
-        m_FullScreenBlitMaterial.SetTexture2d("screenTexture", m_TestFramebuffer.ColorTexture);
-        m_QuadMesh.Render();
-    }
-
-    private void RenderOpaquePass()
-    {
-        m_TestFramebuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
-        m_TestFramebuffer.Use();
-        m_TestFramebuffer.Clear();
-
-        var camera = m_Camera;
-        var material = m_Material;
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
 
-        Debug.Assert(material != null);
-        material.Use();
-
+        Debug.Assert(m_SpecularMaterial != null);
+        
+        using var material = m_SpecularMaterial.Use();
         material.SetVector3("light.position", m_Light.WorldPosition);
         material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         material.SetMatrix4x4("matrix_view", viewMatrix);
@@ -123,6 +95,8 @@ public class SpecularRenderer : ISceneObject
                 
                 material.SetMatrix4x4("matrix_model", modelMatrix);
                 material.SetMatrix4x4("normal_matrix", normalMatrix);
+                
+                // TODO: This can be optimized, no point setting the textures if they are the same
                 material.SetTexture2d("material.diffuse", renderable.Diffuse);
                 material.SetTexture2d("material.normal_map", renderable.Normal);
                 material.SetTexture2d("material.roughness_map", renderable.Roughness);
@@ -132,5 +106,12 @@ public class SpecularRenderer : ISceneObject
                 mesh.Render();
             }
         }
+    }
+
+    public void Unload(IScene scene)
+    {
+        Debug.Assert(m_SpecularMaterial != null);
+        m_SpecularMaterial.Unload();
+        m_SpecularMaterial = null;
     }
 }
