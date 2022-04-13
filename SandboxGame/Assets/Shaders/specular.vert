@@ -35,12 +35,10 @@ void main()
     vert_position = vec3(vert_world_position) / vert_world_position.w;
 
     vs_out.frag_pos = vec3(matrix_model * vec4(attr_vertex_position,1.0));
-    normal = mat3(transpose(inverse(matrix_model))) * attr_vertex_normal;
+    normal = (normal_matrix * vec4(attr_vertex_normal, 0)).xyz;
     
-    mat3 normal_matrix2 = transpose(inverse(mat3(matrix_model)));
-    
-    vec3 T = normalize(normal_matrix2*attr_vertex_tangent);
-    vec3 N = normalize(normal_matrix2*attr_vertex_normal);
+    vec3 T = normalize(normal_matrix * vec4(attr_vertex_tangent, 0)).xyz;
+    vec3 N = normalize(normal);
     T = normalize(T - dot(T,N) * N);
     vec3 B = cross(N,T);
     
