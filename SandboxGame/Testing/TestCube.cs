@@ -10,11 +10,11 @@ public class TestCube : ISceneObject
     private IMesh m_Mesh;
     
     private readonly ITransform m_Transform;
-    private readonly SpecularRenderer m_BlinnRenderer;
+    private readonly SpecularRenderPass m_BlinnRenderPass;
 
-    public TestCube(SpecularRenderer blinnRenderer)
+    public TestCube(SpecularRenderPass blinnRenderPass)
     {
-        m_BlinnRenderer = blinnRenderer;
+        m_BlinnRenderPass = blinnRenderPass;
         m_Transform = new Transform3D();
     }
     

@@ -13,12 +13,12 @@ public class Ship : ISceneObject
     private ITexture? m_Occlusion;
     private ITexture? m_Translucency;
 
-    private readonly SpecularRenderer m_SpecularRenderer;
+    private readonly SpecularRenderPass m_SpecularRenderPass;
 
-    public Ship(SpecularRenderer specularRenderer)
+    public Ship(SpecularRenderPass specularRenderPass)
     {
         Transform = new Transform3D();
-        m_SpecularRenderer = specularRenderer;
+        m_SpecularRenderPass = specularRenderPass;
     }
     
     public void Load(IScene scene)
@@ -31,7 +31,7 @@ public class Ship : ISceneObject
         m_Occlusion = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Ship/ship_ao.texture");
         m_Translucency = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Translucency.texture");
         
-        m_SpecularRenderer.Add(new SpecularRenderable
+        m_SpecularRenderPass.Add(new SpecularRenderable
         {
             Mesh = m_Mesh,
             Transform = Transform,

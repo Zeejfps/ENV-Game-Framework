@@ -26,7 +26,7 @@ public class SpecularRenderable : ISpecularRenderable
     public ITexture Translucency { get; init; }
 }
 
-public class SpecularRenderer : ISceneObject
+public class SpecularRenderPass
 {
     private readonly Dictionary<IMesh, List<ISpecularRenderable>> m_MeshToRenderableMap = new();
 
@@ -34,7 +34,6 @@ public class SpecularRenderer : ISceneObject
     private IMaterial? m_FullScreenBlitMaterial;
 
     private IFramebuffer? m_WindowFramebuffer;
-    private IRenderbuffer? m_TestRenderbuffer;
 
     private IMesh m_QuadMesh;
     
@@ -46,7 +45,7 @@ public class SpecularRenderer : ISceneObject
     private Vector3 _specularColor = new Vector3(.7f,.7f,.7f);
     private float _shininess = 10f;
     
-    public SpecularRenderer(ICamera camera, ITransform light)
+    public SpecularRenderPass(ICamera camera, ITransform light)
     {
         m_Camera = camera;
         m_Light = light;
@@ -83,23 +82,13 @@ public class SpecularRenderer : ISceneObject
         m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/quad.mesh");
         //m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/Toad.mesh");
         m_WindowFramebuffer = scene.Context.Window.Framebuffer;
-        m_TestRenderbuffer = scene.Context.CreateRenderbuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height, 3, true);
     }
 
     private int m_ColorBufferIndex;
     
-    public void Update(IScene scene)
+    public void Render()
     {
-        var keyboard = scene.Context.Window.Input.Keyboard;
-        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Alpha1))
-            m_ColorBufferIndex = 0;
-        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Alpha2))
-            m_ColorBufferIndex = 1;
-        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Alpha3))
-            m_ColorBufferIndex = 2;
-        
         RenderOpaquePass();
-        RenderFullScreenQuadPass();
     }
 
     public void Unload(IScene scene)
@@ -109,30 +98,8 @@ public class SpecularRenderer : ISceneObject
         m_Material = null;
     }
 
-    private void RenderFullScreenQuadPass()
-    {
-        Debug.Assert(m_TestRenderbuffer != null);
-
-        Debug.Assert(m_WindowFramebuffer != null);
-        using var framebuffer = m_WindowFramebuffer.Use();
-        framebuffer.Clear(.42f, .607f, .82f);
-        
-        Debug.Assert(m_FullScreenBlitMaterial != null);
-        using var material = m_FullScreenBlitMaterial.Use();
-        material.SetTexture2d("screenTexture", m_TestRenderbuffer.ColorBuffers[m_ColorBufferIndex]);
-
-        m_QuadMesh.Render();
-    }
-
     private void RenderOpaquePass()
     {
-        Debug.Assert(m_TestRenderbuffer != null);
-        Debug.Assert(m_WindowFramebuffer != null);
-
-        using var renderBuffer = m_TestRenderbuffer.Use();
-        renderBuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
-        renderBuffer.Clear(.42f, .607f, .82f);
-
         var camera = m_Camera;
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
 
