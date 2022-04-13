@@ -95,6 +95,8 @@ public class SpecularRenderPass
                 
                 material.SetMatrix4x4("matrix_model", modelMatrix);
                 material.SetMatrix4x4("normal_matrix", normalMatrix);
+                
+                // TODO: This can be optimized, no point setting the textures if they are the same
                 material.SetTexture2d("material.diffuse", renderable.Diffuse);
                 material.SetTexture2d("material.normal_map", renderable.Normal);
                 material.SetTexture2d("material.roughness_map", renderable.Roughness);
