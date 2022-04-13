@@ -32,7 +32,7 @@ public class TextureFramebuffer_GL : IRenderbuffer
         {
             var colorTextureId = glGenTexture();
             glBindTexture(GL_TEXTURE_2D, colorTextureId);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, IntPtr.Zero);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, IntPtr.Zero);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorTextureId, 0);
@@ -85,9 +85,9 @@ public class TextureFramebuffer_GL : IRenderbuffer
             return Instance;
         }
     
-        public void Clear(float r, float g, float b)
+        public void Clear(float r, float g, float b, float a)
         {
-            glClearColor(r, g, b, 1f);
+            glClearColor(r, g, b, a);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
 
@@ -103,7 +103,7 @@ public class TextureFramebuffer_GL : IRenderbuffer
             foreach (var colorBuffer in m_ActiveFramebuffer.ColorBuffers)
             {
                 colorBuffer.Use();
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, IntPtr.Zero);   
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, IntPtr.Zero);   
             }
 
             m_ActiveFramebuffer.m_DepthTexture.Use();

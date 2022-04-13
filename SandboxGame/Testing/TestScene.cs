@@ -104,14 +104,15 @@ public class TestScene : IScene
         using (var renderbuffer = m_TempRenderbuffer.Use())
         {
             renderbuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
-            renderbuffer.Clear(.42f, .607f, .82f);
+            renderbuffer.Clear(0f, 0f, 0f, 0);
             m_UnlitRenderPass.Render(m_Camera);
             m_SpecularRenderPass.Render(m_Camera);
         }
 
         using (var renderbuffer = m_WindowFramebuffer.Use())
         {
-            m_FullScreenBlitPass.Render(m_TempRenderbuffer.ColorBuffers[0],m_TempRenderbuffer.ColorBuffers[1],m_TempRenderbuffer.ColorBuffers[2]);
+            renderbuffer.Clear(.42f, .607f, .82f, 1f);
+            m_FullScreenBlitPass.Render(m_TempRenderbuffer.ColorBuffers[m_ColorBufferIndex]);
         }
     }
 
