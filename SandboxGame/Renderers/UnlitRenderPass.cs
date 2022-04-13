@@ -13,15 +13,9 @@ public class UnlitRendererable
 public class UnlitRenderPass
 {
     private IMaterial m_Material;
-
-    private readonly ICamera m_Camera;
-
+    
     private List<UnlitRendererable> m_Rendererables = new List<UnlitRendererable>();
-
-    public UnlitRenderPass(ICamera camera)
-    {
-        m_Camera = camera;
-    }
+    
     
     public void Load(IScene scene)
     {
@@ -35,9 +29,8 @@ public class UnlitRenderPass
         m_Rendererables.Add(rendererable);
     }
 
-    public void Render()
+    public void Render(ICamera camera)
     {
-        var camera = m_Camera;
         using var material = m_Material.Use();
         material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
 

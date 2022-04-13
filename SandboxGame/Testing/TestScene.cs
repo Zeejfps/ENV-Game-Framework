@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Numerics;
-using Framework;
 using Framework.InputDevices;
 using TicTacToePrototype;
 
@@ -10,26 +9,28 @@ public class TestScene : IScene
 {
     public IContext Context => m_Context;
 
+    private IRenderbuffer m_TempRenderbuffer;
+    private IFramebuffer m_WindowFramebuffer;
+    
     private SpecularRenderPass m_SpecularRenderPass;
     private UnlitRenderPass m_UnlitRenderPass;
     private FullScreenBlitPass m_FullScreenBlitPass;
-
-    private Ship m_Ship1;
-    private Ship m_Ship2;
-    private Toad m_Toad;
-
-    private List<Ship> m_Ships;
-
+    
     private readonly IContext m_Context;
     private readonly ICamera m_Camera;
     private readonly IClock m_Clock;
 
-    private readonly TestLight m_Light;
-
     private ITransform m_CameraTarget;
-    private IRenderbuffer m_Renderbuffer;
-    private IFramebuffer m_WindowFramebuffer;
-    
+
+    private int m_PrevMouseX;
+    private int m_PrevMouseY;
+    private int m_ColorBufferIndex;
+    private bool m_IsRotating;
+
+    private Ship m_Ship1;
+    private Toad m_Toad;
+    private List<Ship> m_Ships;
+    private readonly TestLight m_Light;
     private readonly List<ISceneObject> m_SceneObjects = new();
     
     public TestScene(IContext context)
@@ -40,7 +41,6 @@ public class TestScene : IScene
         m_Camera.Transform.WorldPosition = new Vector3(0, 5f, -25f);
         
         m_CameraTarget = new Transform3D();
-
         m_Camera.Transform.LookAt(m_CameraTarget.WorldPosition, Vector3.UnitY);
         
         var lightTransform = new Transform3D
@@ -49,18 +49,16 @@ public class TestScene : IScene
         };
         
         var windowFramebuffer = Context.Window.Framebuffer;
-        m_Renderbuffer = context.CreateRenderbuffer(windowFramebuffer.Width, windowFramebuffer.Height, 3, true);
+        m_TempRenderbuffer = context.CreateRenderbuffer(windowFramebuffer.Width, windowFramebuffer.Height, 3, true);
         m_WindowFramebuffer = context.Window.Framebuffer;
         
         m_SpecularRenderPass = new SpecularRenderPass(m_Camera, lightTransform);
-        m_UnlitRenderPass = new UnlitRenderPass(m_Camera);
+        m_UnlitRenderPass = new UnlitRenderPass();
         m_FullScreenBlitPass = new FullScreenBlitPass();
         
         m_Light = new TestLight(m_UnlitRenderPass, lightTransform);
         
         m_Ship1 = new Ship(m_SpecularRenderPass);
-        m_Ship2 = new Ship(m_SpecularRenderPass);
-        m_Ship2.Transform.WorldPosition = new Vector3(10f, 0f, 0f);
         
         m_Ships = new List<Ship>();
         var size = 10;
@@ -87,7 +85,6 @@ public class TestScene : IScene
         m_SceneObjects.Add(m_Light);
         m_SceneObjects.Add(m_Clock);
         m_SceneObjects.Add(m_Ship1);
-        m_SceneObjects.Add(m_Ship2);
         m_SceneObjects.Add(m_Toad);
     }
 
@@ -106,13 +103,31 @@ public class TestScene : IScene
         
     }
 
-    private int m_PrevMouseX;
-    private int m_PrevMouseY;
-    private bool m_IsRotating;
-
-    private int m_ColorBufferIndex;
-    
     public void Update()
+    {
+        HandleInput();
+        
+        foreach (var sceneObject in m_SceneObjects)
+            sceneObject.Update(this);
+
+        /*
+         * All the Rendering steps below
+         */
+        using (var renderbuffer = m_TempRenderbuffer.Use())
+        {
+            renderbuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
+            renderbuffer.Clear(.42f, .607f, .82f);
+            m_UnlitRenderPass.Render(m_Camera);
+            m_SpecularRenderPass.Render();
+        }
+
+        using (var renderbuffer = m_WindowFramebuffer.Use())
+        {
+            m_FullScreenBlitPass.Render(m_TempRenderbuffer.ColorBuffers[m_ColorBufferIndex]);
+        }
+    }
+
+    private void HandleInput()
     {
         var speed = m_Clock.DeltaTime * 15f;
         var mouse = m_Context.Window.Input.Mouse;
@@ -177,22 +192,6 @@ public class TestScene : IScene
             m_ColorBufferIndex = 2;
         
         m_Camera.Transform.LookAt(m_CameraTarget.WorldPosition, Vector3.UnitY);
-        
-        foreach (var sceneObject in m_SceneObjects)
-            sceneObject.Update(this);
-
-        using (var renderbuffer = m_Renderbuffer.Use())
-        {
-            renderbuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
-            renderbuffer.Clear(.42f, .607f, .82f);
-            m_UnlitRenderPass.Render();
-            m_SpecularRenderPass.Render();
-        }
-
-        using (var renderbuffer = m_WindowFramebuffer.Use())
-        {
-            m_FullScreenBlitPass.Render(m_Renderbuffer.ColorBuffers[m_ColorBufferIndex]);
-        }
     }
 }
 
