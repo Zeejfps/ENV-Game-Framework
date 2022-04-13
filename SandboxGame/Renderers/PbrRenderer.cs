@@ -1,38 +1,138 @@
-﻿namespace Framework;
+﻿using System.Diagnostics;
+using System.Numerics;
+
+namespace Framework;
 
 public class PbrRenderer : ISceneObject
 {
-    private IMaterial m_Material;
-    private IFramebuffer m_RenderBuffer;
+    private readonly Dictionary<IMesh, List<ISpecularRenderable>> m_MeshToRenderableMap = new();
 
-    private List<PbrRenderable> m_Renderables = new List<PbrRenderable>();
+    private IMaterial? m_Material;
+    private IMaterial? m_FullScreenBlitMaterial;
+
+    private IFramebuffer? m_WindowFramebuffer;
+    private IRenderbuffer? m_TestRenderbuffer;
+
+    private IMesh m_QuadMesh;
+    
+    private readonly ICamera m_Camera;
+    private readonly ITransform m_Light;
+
+    private Vector3 _lightColor = new Vector3(1f,1f,1f);
+    private Vector3 _ambientColor = new Vector3(.2f,.4f,.6f);
+    private Vector3 _specularColor = new Vector3(.7f,.7f,.7f);
+    private float _shininess = 10f;
+    
+    public PbrRenderer(ICamera camera, ITransform light)
+    {
+        m_Camera = camera;
+        m_Light = light;
+    }
+
+    public void Add(ISpecularRenderable renderable)
+    {
+        var mesh = renderable.Mesh;
+        if (!m_MeshToRenderableMap.TryGetValue(mesh, out var renderables))
+        {
+            renderables = new List<ISpecularRenderable>();
+            m_MeshToRenderableMap[mesh] = renderables;
+        }
+        
+        renderables.Add(renderable);
+    }
+
+    public void Remove(ISpecularRenderable renderable)
+    {
+        
+    }
     
     public void Load(IScene scene)
     {
-        m_RenderBuffer = scene.Context.CreateRenderbuffer(
-            scene.Context.Window.Width,
-            scene.Context.Window.Height, 
-            3, 
-            true);
+        var assetDatabase = scene.Context.AssetDatabase;
+        m_Material = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/specular.material");
+        m_Material.UseBackfaceCulling = true;
+        m_Material.UseDepthTest = true;
+        
+        m_FullScreenBlitMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/fullScreenQuad.material");
+        m_FullScreenBlitMaterial.UseBackfaceCulling = true;
+        m_FullScreenBlitMaterial.UseDepthTest = false;
+        
+        m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/quad.mesh");
+        //m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/Toad.mesh");
+        m_WindowFramebuffer = scene.Context.Window.Framebuffer;
+        m_TestRenderbuffer = scene.Context.CreateRenderbuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height, 1, true);
     }
 
     public void Update(IScene scene)
     {
-        
+        RenderOpaquePass();
+        RenderFullScreenQuadPass();
     }
 
     public void Unload(IScene scene)
     {
-        
+        Debug.Assert(m_Material != null);
+        m_Material.Unload();
+        m_Material = null;
     }
 
-    public void Add(PbrRenderable renderable)
+    private void RenderFullScreenQuadPass()
     {
-        m_Renderables.Add(renderable);
-    }
-}
+        Debug.Assert(m_TestRenderbuffer != null);
 
-public class PbrRenderable
-{
-    
+        Debug.Assert(m_WindowFramebuffer != null);
+        using var framebuffer = m_WindowFramebuffer.Use();
+        framebuffer.Clear(.42f, .607f, .82f);
+        
+        Debug.Assert(m_FullScreenBlitMaterial != null);
+        using var material = m_FullScreenBlitMaterial.Use();
+        material.SetTexture2d("screenTexture", m_TestRenderbuffer.ColorBuffers[0]);
+        
+        m_QuadMesh.Render();
+    }
+
+    private void RenderOpaquePass()
+    {
+        Debug.Assert(m_TestRenderbuffer != null);
+
+        using var renderBuffer = m_TestRenderbuffer.Use();
+        renderBuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
+        renderBuffer.Clear(.42f, .607f, .82f);
+
+        var camera = m_Camera;
+        Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
+
+        Debug.Assert(m_Material != null);
+        
+        using var material = m_Material.Use();
+        material.SetVector3("light.position", m_Light.WorldPosition);
+        material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
+        material.SetMatrix4x4("matrix_view", viewMatrix);
+        material.SetVector3("camera_position", camera.Transform.WorldPosition);
+        material.SetVector3("light.diffuse", _lightColor);
+        material.SetVector3("light.specular", _specularColor);
+        material.SetVector3("light.ambient", _ambientColor);
+        material.SetFloat("material.shininess", _shininess);
+
+        foreach (var kvp in m_MeshToRenderableMap)
+        {
+            var mesh = kvp.Key;
+            foreach (var renderable in kvp.Value)
+            {
+                var modelMatrix = renderable.Transform.WorldMatrix;
+                Matrix4x4.Invert(modelMatrix, out var normalMatrix);
+                normalMatrix = Matrix4x4.Transpose(normalMatrix);
+                
+                material.SetMatrix4x4("matrix_model", modelMatrix);
+                material.SetMatrix4x4("normal_matrix", normalMatrix);
+                material.SetTexture2d("material.diffuse", renderable.Diffuse);
+                material.SetTexture2d("material.normal_map", renderable.Normal);
+                material.SetTexture2d("material.roughness_map", renderable.Roughness);
+                material.SetTexture2d("material.occlusion", renderable.Occlusion);
+                material.SetTexture2d("material.translucency", renderable.Translucency);
+                
+                mesh.Render();
+            }
+        }
+    }
 }
