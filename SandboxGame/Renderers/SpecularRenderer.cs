@@ -82,7 +82,7 @@ public class SpecularRenderer : ISceneObject
         m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/quad.mesh");
         //m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/Toad.mesh");
         m_WindowFramebuffer = scene.Context.Window.Framebuffer;
-        m_TestRenderbuffer = scene.Context.CreateRenderbuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height, 1, true);
+        m_TestRenderbuffer = scene.Context.CreateRenderbuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height, 3, true);
     }
 
     public void Update(IScene scene)
@@ -109,7 +109,7 @@ public class SpecularRenderer : ISceneObject
         Debug.Assert(m_FullScreenBlitMaterial != null);
         using var material = m_FullScreenBlitMaterial.Use();
         material.SetTexture2d("screenTexture", m_TestRenderbuffer.ColorBuffers[0]);
-        
+
         m_QuadMesh.Render();
     }
 

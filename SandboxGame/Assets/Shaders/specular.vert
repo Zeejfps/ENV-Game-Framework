@@ -10,6 +10,7 @@ uniform vec3 camera_position;
 
 out vec3 normal;
 out vec3 vert_position;
+out vec3 FragPos;
 //out vec3 frag_pos;
 //out vec2 tex_coord;
 //out vec3 tangent;
@@ -28,6 +29,8 @@ void main()
     vec4 vert_world_position = matrix_model * vec4(attr_vertex_position, 1);
     vec4 vert_view_position = matrix_view * vert_world_position;
 
+    FragPos = vert_world_position.xyz;
+    
     gl_Position = matrix_projection * vert_view_position;
     vert_position = vec3(vert_world_position) / vert_world_position.w;
 
