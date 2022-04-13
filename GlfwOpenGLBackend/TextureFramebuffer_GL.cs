@@ -13,6 +13,7 @@ public class TextureFramebuffer_GL : IRenderbuffer
     private readonly Texture2D_GL[] m_ColorTextures;
     private Texture2D_GL m_DepthTexture;
     private uint m_Id;
+    private int[] m_drawBufferIds;
 
     private Api m_Api;
 
@@ -23,8 +24,9 @@ public class TextureFramebuffer_GL : IRenderbuffer
 
         m_Id = glGenFramebuffer();
         glBindFramebuffer(m_Id);
-
+        
         m_ColorTextures = new Texture2D_GL[colorBufferCount];
+        m_drawBufferIds = new int[colorBufferCount];
         for (var i = 0; i < colorBufferCount; i++)
         {
             var colorTextureId = glGenTexture();
@@ -34,8 +36,9 @@ public class TextureFramebuffer_GL : IRenderbuffer
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorTextureId, 0);
             m_ColorTextures[i] = new Texture2D_GL(colorTextureId);
+            m_drawBufferIds[i] = GL_COLOR_ATTACHMENT0 + i;
         }
-
+        
         if (createDepthBuffer)
         {
             var depthTextureId = glGenTexture();
@@ -80,6 +83,7 @@ public class TextureFramebuffer_GL : IRenderbuffer
         public void Use()
         {
             glBindFramebuffer(m_Framebuffer.m_Id);
+            glDrawBuffers(m_Framebuffer.m_drawBufferIds);
             glViewport(0, 0, m_Framebuffer.Width, m_Framebuffer.Height);
         }
     
