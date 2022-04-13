@@ -16,7 +16,7 @@ public class FullScreenBlitPass
         m_light = light;
     }
 
-    public void Load(IContext context)U
+    public void Load(IContext context)
     {
         var assetDatabase = context.AssetDatabase;
         m_FullScreenBlitMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/fullScreenQuad.material");
