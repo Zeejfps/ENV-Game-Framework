@@ -31,7 +31,6 @@ public class SpecularRenderPass
     private readonly Dictionary<IMesh, List<ISpecularRenderable>> m_MeshToRenderableMap = new();
 
     private IMaterial? m_SpecularMaterial;
-    private readonly ICamera m_Camera;
     private readonly ITransform m_Light;
 
     private Vector3 _lightColor = new Vector3(1f,1f,1f);
@@ -39,9 +38,8 @@ public class SpecularRenderPass
     private Vector3 _specularColor = new Vector3(.7f,.7f,.7f);
     private float _shininess = 10f;
     
-    public SpecularRenderPass(ICamera camera, ITransform light)
+    public SpecularRenderPass(ITransform light)
     {
-        m_Camera = camera;
         m_Light = light;
     }
 
@@ -70,9 +68,8 @@ public class SpecularRenderPass
         m_SpecularMaterial.UseDepthTest = true;
     }
     
-    public void Render()
+    public void Render(ICamera camera)
     {
-        var camera = m_Camera;
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
 
         Debug.Assert(m_SpecularMaterial != null);

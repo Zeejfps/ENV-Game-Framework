@@ -52,33 +52,18 @@ public class TestScene : IScene
         m_TempRenderbuffer = context.CreateRenderbuffer(windowFramebuffer.Width, windowFramebuffer.Height, 3, true);
         m_WindowFramebuffer = context.Window.Framebuffer;
         
-        m_SpecularRenderPass = new SpecularRenderPass(m_Camera, lightTransform);
+        m_SpecularRenderPass = new SpecularRenderPass(lightTransform);
         m_UnlitRenderPass = new UnlitRenderPass();
         m_FullScreenBlitPass = new FullScreenBlitPass();
         
         m_Light = new TestLight(m_UnlitRenderPass, lightTransform);
         
         m_Ship1 = new Ship(m_SpecularRenderPass);
-        
-        m_Ships = new List<Ship>();
-        var size = 10;
-        var count = 10;
-        for (var cols = 0; cols < count; cols++)
-        {
-            for (var rows = 0; rows < count; rows++)
-            {
-                var ship = new Ship(m_SpecularRenderPass)
-                {
-                    Transform =
-                    {
-                        WorldPosition = new Vector3(rows * size - size * count/2, cols * size - size * count/2, 0f)
-                    }
-                };
-                m_Ships.Add(ship);
-                m_SceneObjects.Add(ship);
-            }
-        }
-        
+
+        // This also adds them to the m_SceneObjects
+        // Which is bad... don't do that mmmmkkk?
+        m_Ships = CreateShips();
+
         m_Toad = new Toad(m_SpecularRenderPass);
         
         m_SceneObjects.Add(m_Camera);
@@ -118,7 +103,7 @@ public class TestScene : IScene
             renderbuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
             renderbuffer.Clear(.42f, .607f, .82f);
             m_UnlitRenderPass.Render(m_Camera);
-            m_SpecularRenderPass.Render();
+            m_SpecularRenderPass.Render(m_Camera);
         }
 
         using (var renderbuffer = m_WindowFramebuffer.Use())
@@ -192,6 +177,30 @@ public class TestScene : IScene
             m_ColorBufferIndex = 2;
         
         m_Camera.Transform.LookAt(m_CameraTarget.WorldPosition, Vector3.UnitY);
+    }
+
+    private List<Ship> CreateShips()
+    {
+        var ships = new List<Ship>();
+        var size = 10;
+        var count = 10;
+        for (var cols = 0; cols < count; cols++)
+        {
+            for (var rows = 0; rows < count; rows++)
+            {
+                var ship = new Ship(m_SpecularRenderPass)
+                {
+                    Transform =
+                    {
+                        WorldPosition = new Vector3(rows * size - size * count/2, cols * size - size * count/2, 0f)
+                    }
+                };
+                ships.Add(ship);
+                m_SceneObjects.Add(ship);
+            }
+        }
+
+        return ships;
     }
 }
 
