@@ -10,7 +10,7 @@ public struct BlinnRenderData
     public ITransform Transform { get; init; }
 }
 
-public class BlinnRenderer : ISceneObject
+public class BlinnRenderer
 {
     private IMaterial? m_Material;
     private ITexture? m_Texture;
@@ -32,11 +32,6 @@ public class BlinnRenderer : ISceneObject
         m_Texture = assetLoader.LoadAsset<ITexture>("Assets/Textures/test.texture");
 
         m_Framebuffer = scene.Context.Window.Framebuffer;
-    }
-
-    public void Update(IScene scene)
-    {
-        
     }
 
     public void Unload(IScene scene)

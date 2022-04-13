@@ -3,23 +3,6 @@ using System.Numerics;
 
 namespace Framework;
 
-
-public readonly struct SpecularRenderable
-{
-    public IMesh Mesh { get; init; }
-    public Matrix4x4 WorldMatrix { get; init; }
-    public SpecularRenderableTextures Textures { get; init; }
-}
-
-public struct SpecularRenderableTextures
-{
-    public ITexture Diffuse { get; init; }
-    public ITexture Normal { get; init; }
-    public ITexture Roughness { get; init; }
-    public ITexture Occlusion { get; init; }
-    public ITexture Translucency { get; init; }
-}
-
 public class SpecularRenderPass
 {
     private readonly Dictionary<(IMesh, SpecularRenderableTextures), List<Matrix4x4>> m_MeshToRenderableMap = new();
@@ -37,7 +20,7 @@ public class SpecularRenderPass
         m_Light = light;
     }
 
-    public void Submit(SpecularRenderable renderable)
+    public void Submit(in SpecularRenderable renderable)
     {
         var mesh = renderable.Mesh;
         var textures = renderable.Textures;
@@ -89,13 +72,6 @@ public class SpecularRenderPass
 
             var transforms = m_MeshToRenderableMap[renderGroup];
             material.SetMatrix4x4Array("model_matrices", transforms.ToArray());
-
-            // foreach (var modelMatrix in transforms)
-            // {
-            //     material.SetMatrix4x4("matrix_model", modelMatrix);
-            //     mesh.Render();
-            // }
-            
             mesh.RenderInstanced(transforms.Count);
             m_MeshToRenderableMap[renderGroup].Clear();
         }
@@ -106,5 +82,46 @@ public class SpecularRenderPass
         Debug.Assert(m_SpecularMaterial != null);
         m_SpecularMaterial.Unload();
         m_SpecularMaterial = null;
+    }
+}
+
+public readonly struct SpecularRenderable 
+{
+    public IMesh Mesh { get; init; }
+    public Matrix4x4 WorldMatrix { get; init; }
+    public SpecularRenderableTextures Textures { get; init; }
+}
+
+public struct SpecularRenderableTextures : IEquatable<SpecularRenderableTextures>
+{
+    public ITexture Diffuse { get; init; }
+    public ITexture Normal { get; init; }
+    public ITexture Roughness { get; init; }
+    public ITexture Occlusion { get; init; }
+    public ITexture Translucency { get; init; }
+
+    public bool Equals(SpecularRenderableTextures other)
+    {
+        return Diffuse.Equals(other.Diffuse) && Normal.Equals(other.Normal) && Roughness.Equals(other.Roughness) && Occlusion.Equals(other.Occlusion) && Translucency.Equals(other.Translucency);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is SpecularRenderableTextures other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Diffuse, Normal, Roughness, Occlusion, Translucency);
+    }
+
+    public static bool operator ==(SpecularRenderableTextures left, SpecularRenderableTextures right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(SpecularRenderableTextures left, SpecularRenderableTextures right)
+    {
+        return !left.Equals(right);
     }
 }
