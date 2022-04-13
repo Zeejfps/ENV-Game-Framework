@@ -30,13 +30,7 @@ public class SpecularRenderPass
 {
     private readonly Dictionary<IMesh, List<ISpecularRenderable>> m_MeshToRenderableMap = new();
 
-    private IMaterial? m_Material;
-    private IMaterial? m_FullScreenBlitMaterial;
-
-    private IFramebuffer? m_WindowFramebuffer;
-
-    private IMesh m_QuadMesh;
-    
+    private IMaterial? m_SpecularMaterial;
     private readonly ICamera m_Camera;
     private readonly ITransform m_Light;
 
@@ -71,41 +65,19 @@ public class SpecularRenderPass
     public void Load(IScene scene)
     {
         var assetDatabase = scene.Context.AssetDatabase;
-        m_Material = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/specular.material");
-        m_Material.UseBackfaceCulling = true;
-        m_Material.UseDepthTest = true;
-        
-        m_FullScreenBlitMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/fullScreenQuad.material");
-        m_FullScreenBlitMaterial.UseBackfaceCulling = true;
-        m_FullScreenBlitMaterial.UseDepthTest = false;
-        
-        m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/quad.mesh");
-        //m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/Toad.mesh");
-        m_WindowFramebuffer = scene.Context.Window.Framebuffer;
+        m_SpecularMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/specular.material");
+        m_SpecularMaterial.UseBackfaceCulling = true;
+        m_SpecularMaterial.UseDepthTest = true;
     }
-
-    private int m_ColorBufferIndex;
     
     public void Render()
-    {
-        RenderOpaquePass();
-    }
-
-    public void Unload(IScene scene)
-    {
-        Debug.Assert(m_Material != null);
-        m_Material.Unload();
-        m_Material = null;
-    }
-
-    private void RenderOpaquePass()
     {
         var camera = m_Camera;
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
 
-        Debug.Assert(m_Material != null);
+        Debug.Assert(m_SpecularMaterial != null);
         
-        using var material = m_Material.Use();
+        using var material = m_SpecularMaterial.Use();
         material.SetVector3("light.position", m_Light.WorldPosition);
         material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         material.SetMatrix4x4("matrix_view", viewMatrix);
@@ -135,5 +107,12 @@ public class SpecularRenderPass
                 mesh.Render();
             }
         }
+    }
+
+    public void Unload(IScene scene)
+    {
+        Debug.Assert(m_SpecularMaterial != null);
+        m_SpecularMaterial.Unload();
+        m_SpecularMaterial = null;
     }
 }
