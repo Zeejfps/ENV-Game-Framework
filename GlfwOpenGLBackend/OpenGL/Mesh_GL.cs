@@ -1,4 +1,5 @@
-﻿using static OpenGL.Gl;
+﻿using System.Numerics;
+using static OpenGL.Gl;
 
 namespace Framework.GLFW.NET;
 
@@ -96,6 +97,11 @@ public class Mesh_GL : IMesh
             {
                 glDrawElements(GL_TRIANGLES, Instance.m_ActiveMesh.m_TriangleCount, GL_UNSIGNED_INT, NULL);
             }
+        }
+
+        public void RenderInstanced(Matrix4x4[] transforms)
+        {
+            
         }
 
         public void Dispose()
