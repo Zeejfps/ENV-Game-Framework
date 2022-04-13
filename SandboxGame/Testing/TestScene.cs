@@ -112,7 +112,10 @@ public class TestScene : IScene
         using (var renderbuffer = m_WindowFramebuffer.Use())
         {
             renderbuffer.Clear(.42f, .607f, .82f, 1f);
-            m_FullScreenBlitPass.Render(m_TempRenderbuffer.ColorBuffers[m_ColorBufferIndex]);
+            m_FullScreenBlitPass.Render(
+                m_TempRenderbuffer.ColorBuffers[0],
+                m_TempRenderbuffer.ColorBuffers[1],
+                m_TempRenderbuffer.ColorBuffers[2]);
         }
     }
 
