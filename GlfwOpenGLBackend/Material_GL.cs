@@ -25,7 +25,7 @@ public class Material_GL : IMaterial
 
     public IMaterialApi Use()
     {
-        return Api.Instance.Use(this);
+        return Api.Use(this);
     }
     
     public void Unload()
@@ -71,17 +71,17 @@ public class Material_GL : IMaterial
     class Api : IMaterialApi
     {
         private static Api? s_Instance;
-        public static Api Instance => s_Instance ??= new Api();
-
-        private Material_GL? m_ActiveMaterial;
+        private static Api Instance => s_Instance ??= new Api();
+        private Material_GL? ActiveMaterial { get; set; }
+        
         private readonly Stack<Material_GL> m_MaterialStack = new();
 
-        public IMaterialApi Use(Material_GL material)
+        public static IMaterialApi Use(Material_GL material)
         {
-            if (m_ActiveMaterial != null)
-                m_MaterialStack.Push(m_ActiveMaterial);
+            if (Instance.ActiveMaterial != null)
+                Instance.m_MaterialStack.Push(Instance.ActiveMaterial);
             
-            m_ActiveMaterial = material;
+            Instance.ActiveMaterial = material;
             glUseProgram(material.m_ProgramId);
         
             if (material.UseDepthTest)
@@ -94,7 +94,7 @@ public class Material_GL : IMaterial
             else
                 glDisable(GL_CULL_FACE);
 
-            return this;
+            return Instance;
         }
 
         public void SetFloat(string propertyName, float value)
@@ -143,11 +143,11 @@ public class Material_GL : IMaterial
         
         private int GetUniformLocation(string uniformName)
         {
-            Debug.Assert(m_ActiveMaterial != null);
-            var propertyToIdMap = m_ActiveMaterial.m_PropertyToIdMap;
+            Debug.Assert(ActiveMaterial != null);
+            var propertyToIdMap = ActiveMaterial.m_PropertyToIdMap;
             if (!propertyToIdMap.TryGetValue(uniformName, out var location))
             {
-                location = glGetUniformLocation(m_ActiveMaterial.m_ProgramId, uniformName);
+                location = glGetUniformLocation(ActiveMaterial.m_ProgramId, uniformName);
                 propertyToIdMap[uniformName] = location;
             }
 
@@ -156,14 +156,14 @@ public class Material_GL : IMaterial
         
         private int GetTextureSlot(string texture)
         {
-            Debug.Assert(m_ActiveMaterial != null);
-            var textureToSlotMap = m_ActiveMaterial.m_TextureToSlotMap;
+            Debug.Assert(ActiveMaterial != null);
+            var textureToSlotMap = ActiveMaterial.m_TextureToSlotMap;
             if (textureToSlotMap.TryGetValue(texture, out var slot))
                 return slot;
 
-            slot = m_ActiveMaterial.m_ActiveTextureId;
+            slot = ActiveMaterial.m_ActiveTextureId;
             textureToSlotMap[texture] = slot;
-            m_ActiveMaterial.m_ActiveTextureId++;
+            ActiveMaterial.m_ActiveTextureId++;
             return slot;
         }
     }

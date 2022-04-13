@@ -1,4 +1,5 @@
-﻿using TicTacToePrototype.OpenGL.AssetLoaders;
+﻿using System.Diagnostics;
+using TicTacToePrototype.OpenGL.AssetLoaders;
 using static OpenGL.Gl;
 
 namespace Framework.GLFW.NET;
@@ -54,14 +55,11 @@ public class TextureFramebuffer_GL : IRenderbuffer
             throw new Exception("Failed to create framebuffer");
         
         glBindFramebuffer(0);
-
-        m_Api = new Api(this);
     }
 
     public IFramebufferApi Use()
     {
-        m_Api.Use();
-        return m_Api;
+        return Api.Use(this);
     }
 
     public void Dispose()
@@ -73,18 +71,18 @@ public class TextureFramebuffer_GL : IRenderbuffer
     
     class Api : IFramebufferApi
     {
-        private readonly TextureFramebuffer_GL m_Framebuffer;
-    
-        public Api(TextureFramebuffer_GL framebuffer)
-        {
-            m_Framebuffer = framebuffer;
-        }
+        private static Api? s_Instance;
+        private static Api Instance => s_Instance ??= new Api();
 
-        public void Use()
+        private TextureFramebuffer_GL? m_ActiveFramebuffer;
+        
+        public static Api Use(TextureFramebuffer_GL framebuffer)
         {
-            glBindFramebuffer(m_Framebuffer.m_Id);
-            glDrawBuffers(m_Framebuffer.m_drawBufferIds);
-            glViewport(0, 0, m_Framebuffer.Width, m_Framebuffer.Height);
+            Instance.m_ActiveFramebuffer = framebuffer;
+            glBindFramebuffer(framebuffer.m_Id);
+            glDrawBuffers(framebuffer.m_drawBufferIds);
+            glViewport(0, 0, framebuffer.Width, framebuffer.Height);
+            return Instance;
         }
     
         public void Clear(float r, float g, float b)
@@ -95,25 +93,25 @@ public class TextureFramebuffer_GL : IRenderbuffer
 
         public void Resize(int width, int height)
         {
-            if (m_Framebuffer.Width == width && m_Framebuffer.Height == height)
+            Debug.Assert(m_ActiveFramebuffer != null);
+            if (m_ActiveFramebuffer.Width == width && m_ActiveFramebuffer.Height == height)
                 return;
         
-            m_Framebuffer.Width = width;
-            m_Framebuffer.Height = height;
+            m_ActiveFramebuffer.Width = width;
+            m_ActiveFramebuffer.Height = height;
 
-            foreach (var colorBuffer in m_Framebuffer.ColorBuffers)
+            foreach (var colorBuffer in m_ActiveFramebuffer.ColorBuffers)
             {
                 colorBuffer.Use();
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, IntPtr.Zero);   
             }
 
-            m_Framebuffer.m_DepthTexture.Use();
+            m_ActiveFramebuffer.m_DepthTexture.Use();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, IntPtr.Zero);
         }
 
         public void Dispose()
         {
-            glBindFramebuffer(0);
         }
     }
 }
