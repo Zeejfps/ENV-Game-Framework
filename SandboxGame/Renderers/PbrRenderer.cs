@@ -3,13 +3,17 @@
 public class PbrRenderer : ISceneObject
 {
     private IMaterial m_Material;
-    private IFramebuffer m_Framebuffer;
+    private IFramebuffer m_RenderBuffer;
 
     private List<PbrRenderable> m_Renderables = new List<PbrRenderable>();
     
     public void Load(IScene scene)
     {
-        m_Framebuffer = scene.Context.CreateFramebuffer(scene.Context.Window.Width, scene.Context.Window.Height);
+        m_RenderBuffer = scene.Context.CreateRenderbuffer(
+            scene.Context.Window.Width,
+            scene.Context.Window.Height, 
+            3, 
+            true);
     }
 
     public void Update(IScene scene)

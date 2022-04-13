@@ -5,5 +5,5 @@ public interface IContext : IDisposable
     IDisplays Displays { get; }
     IWindow Window { get; }
     IAssetDatabase AssetDatabase { get; }
-    IRenderbuffer CreateFramebuffer(int width, int height);
+    IRenderbuffer CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer);
 }

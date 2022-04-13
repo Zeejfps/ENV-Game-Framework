@@ -2,6 +2,6 @@
 
 public interface IRenderbuffer : IFramebuffer, IDisposable
 {
-    ITexture ColorTexture { get; }
-    ITexture? DepthTexture { get; }
+    ITexture[] ColorBuffers { get; }
+    ITexture? DepthBuffer { get; }
 }
