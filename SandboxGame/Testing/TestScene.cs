@@ -21,6 +21,7 @@ public class TestScene : IScene
     private readonly IClock m_Clock;
 
     private ITransform m_CameraTarget;
+    private ITransform m_LightPosition;
 
     private int m_PrevMouseX;
     private int m_PrevMouseY;
@@ -54,9 +55,9 @@ public class TestScene : IScene
         
         m_SpecularRenderPass = new SpecularRenderPass(lightTransform);
         m_UnlitRenderPass = new UnlitRenderPass();
-        m_FullScreenBlitPass = new FullScreenBlitPass();
-        
         m_Light = new TestLight(m_UnlitRenderPass, lightTransform);
+        m_FullScreenBlitPass = new FullScreenBlitPass(m_Camera,m_Light.Transform);
+        
         
         m_Ship1 = new Ship(m_SpecularRenderPass);
 
@@ -91,6 +92,8 @@ public class TestScene : IScene
     public void Update()
     {
         HandleInput();
+
+        m_Light.Transform.WorldPosition += new Vector3(MathF.Sin(m_Clock.Time),0,0) * m_Clock.DeltaTime * 5;
         
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Update(this);
@@ -108,7 +111,7 @@ public class TestScene : IScene
 
         using (var renderbuffer = m_WindowFramebuffer.Use())
         {
-            m_FullScreenBlitPass.Render(m_TempRenderbuffer.ColorBuffers[m_ColorBufferIndex]);
+            m_FullScreenBlitPass.Render(m_TempRenderbuffer.ColorBuffers[0],m_TempRenderbuffer.ColorBuffers[1],m_TempRenderbuffer.ColorBuffers[2]);
         }
     }
 
@@ -207,11 +210,13 @@ public class TestScene : IScene
 public interface IClock : ISceneObject
 {
     float DeltaTime { get; }
+    float Time { get; }
 }
 
 public class TestClock : IClock
 {
     public float DeltaTime { get; private set; }
+    public float Time { get; private set; }
 
     private long m_PrevTime;
 
@@ -232,6 +237,7 @@ public class TestClock : IClock
         m_PrevTime = currTime;
 
         DeltaTime = (float)deltaTime / Stopwatch.Frequency;
+        Time += DeltaTime;
     }
 
     public void Unload(IScene scene)

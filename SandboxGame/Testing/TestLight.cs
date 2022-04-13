@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Drawing;
+using System.Numerics;
 using Framework;
 
 namespace Framework;
@@ -6,7 +7,9 @@ namespace Framework;
 public class TestLight : ISceneObject
 {
     public ITransform Transform { get; }
-    
+    public float Intensity { get; set; }
+    public Color Color;
+
     private IMesh m_Mesh;
 
     private readonly UnlitRenderPass m_Renderer;
