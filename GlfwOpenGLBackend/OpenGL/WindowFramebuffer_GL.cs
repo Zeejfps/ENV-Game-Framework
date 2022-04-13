@@ -21,7 +21,7 @@ public class WindowFramebuffer_GL : IFramebuffer
         Height = height;
         Import(getProcAddress);
         
-        glEnable(GL_BLEND);
+        //glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
 

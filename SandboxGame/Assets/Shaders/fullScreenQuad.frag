@@ -33,6 +33,9 @@ void main()
         vec3 diffuse = max(dot(normal, lightDir), 0.0) * albedo * lights[i].Color * lights[i].Power;
         lighting += diffuse / distance;
     }
-    
+    if (normal == vec3(0,0,0))
+    {
+        discard;
+    }
     FragColor = vec4(lighting,1);
 }
