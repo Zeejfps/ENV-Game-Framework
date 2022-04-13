@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Framework;
 using static OpenGL.Gl;
 
@@ -15,7 +16,7 @@ public class Material_GL : IMaterial
     private int m_ActiveTextureId = 0;
     private uint ssbo;
 
-    private float[] m_MatriciesData = new float[0];
+    private int m_MatricesLength;
 
     private Material_GL(uint programId)
     {
@@ -148,44 +149,17 @@ public class Material_GL : IMaterial
 
             var dataLength = matrices.Length * 16;
             var needsResizing = false;
-            if (ActiveMaterial.m_MatriciesData.Length < dataLength)
+            if (ActiveMaterial.m_MatricesLength < matrices.Length)
             {
-                ActiveMaterial.m_MatriciesData = new float[dataLength];
+                ActiveMaterial.m_MatricesLength = matrices.Length;
                 needsResizing = true;
             }
-
-            var data = ActiveMaterial.m_MatriciesData;
-            for (int i = 0, j = 0; i < dataLength; i += 16, j++)
-            {
-                var matrix = matrices[j];
-                
-                data[i + 00] = matrix.M11;
-                data[i + 01] = matrix.M12;
-                data[i + 02] = matrix.M13;
-                data[i + 03] = matrix.M14;
-                
-                data[i + 04] = matrix.M21;
-                data[i + 05] = matrix.M22;
-                data[i + 06] = matrix.M23;
-                data[i + 07] = matrix.M24;
-                
-                data[i + 08] = matrix.M31;
-                data[i + 09] = matrix.M32;
-                data[i + 10] = matrix.M33;
-                data[i + 11] = matrix.M34;
-                
-                data[i + 12] = matrix.M41;
-                data[i + 13] = matrix.M42;
-                data[i + 14] = matrix.M43;
-                data[i + 15] = matrix.M44;
-            }
-
 
             if (needsResizing)
             {
                 unsafe
                 {
-                    fixed (float* p = &data[0])
+                    fixed (void* p = &matrices[0])
                         glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataLength, p, GL_DYNAMIC_COPY);
                     glAssertNoError();
                 }
@@ -194,10 +168,42 @@ public class Material_GL : IMaterial
             {
                 unsafe
                 {
-                    fixed (float* p = &data[0])
+                    fixed (void* p = &matrices[0])
                         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float) * dataLength, p);
                     glAssertNoError();
                 }
+            }
+
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ActiveMaterial.ssbo);
+            glAssertNoError();
+        }
+
+        public void SetData<T>(string propertyName, T buffer) where T : IBuffer
+        {
+            if (ActiveMaterial.ssbo == 0)
+                ActiveMaterial.ssbo = glGenBuffer();
+              
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, ActiveMaterial.ssbo);
+            glAssertNoError();
+
+            var dataSize = buffer.DataSize;
+            var needsResizing = false;
+            if (ActiveMaterial.m_MatricesLength < dataSize)
+            {
+                ActiveMaterial.m_MatricesLength = dataSize;
+                needsResizing = true;
+            }
+
+            if (needsResizing)
+            {
+                
+                glBufferData(GL_SHADER_STORAGE_BUFFER, dataSize, buffer.DataPtr, GL_DYNAMIC_COPY);
+                glAssertNoError();
+            }
+            else
+            {
+                glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, dataSize, buffer.DataPtr);
+                glAssertNoError();
             }
 
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ActiveMaterial.ssbo);
