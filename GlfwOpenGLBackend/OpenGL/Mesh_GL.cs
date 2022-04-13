@@ -63,8 +63,11 @@ public class Mesh_GL : IMesh
 
         m_TriangleCount = indices.Length;
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_Vio);
+        glAssertNoError();
+        
         fixed (int* i = &indices[0])
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.Length, i, GL_STATIC_DRAW);
+        glAssertNoError();
     }
 
     public void Unload()
