@@ -127,6 +127,7 @@ public class SpecularRenderer : ISceneObject
     private void RenderOpaquePass()
     {
         Debug.Assert(m_TestRenderbuffer != null);
+        Debug.Assert(m_WindowFramebuffer != null);
 
         using var renderBuffer = m_TestRenderbuffer.Use();
         renderBuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
