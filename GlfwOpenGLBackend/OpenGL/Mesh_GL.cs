@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using static OpenGL.Gl;
 
 namespace Framework.GLFW.NET;
@@ -134,26 +135,64 @@ public class Mesh_GL : IMesh
                 data[i + 15] = transform.M44;
             }
             
-            glBindBuffer(GL_ARRAY_BUFFER, perInstanceVbo);
-            unsafe
-            {
-                fixed (float* p = &data[0])
-                    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 16 * transforms.Length, p, GL_DYNAMIC_DRAW);
-            }
-            
             glEnableVertexAttribArray(5);
-            glVertexAttribPointer(5, 16, GL_FLOAT, false, 16 * sizeof(float), IntPtr.Zero);
-            glVertexAttribDivisor(5, 2);
+            glAssertNoError();
+            
+            glBindBuffer(GL_ARRAY_BUFFER, perInstanceVbo);
+            glAssertNoError();
 
             unsafe
             {
-                glDrawElementsInstanced(GL_TRIANGLES, Instance.m_ActiveMesh.m_TriangleCount, GL_UNSIGNED_INT, NULL, transforms.Length);
+                fixed (float* p = &data[0])
+                    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 16 * transforms.Length, p, GL_STATIC_DRAW);
+                glAssertNoError();
+            }
+            
+            glVertexAttribPointer(5, 16, GL_FLOAT, false, 16 * sizeof(float), IntPtr.Zero);
+            glAssertNoError();
+
+            glVertexAttribDivisor(5, 1);
+            glAssertNoError();
+
+            unsafe
+            {
+                glDrawElementsInstanced(GL_TRIANGLES, Instance.m_ActiveMesh.m_TriangleCount, GL_UNSIGNED_INT, NULL,
+                    transforms.Length);
+                glAssertNoError();
             }
         }
 
         public void Dispose()
         {
             //glBindVertexArray(0);
+        }
+    }
+
+    static void GlCall(Action action)
+    {
+        action.Invoke();
+        var error = glGetError();
+        if (error != GL_NO_ERROR)
+            throw new Exception($"GL ERROR OCCURED {error:X}");
+    }
+
+    [Conditional("DEBUG")]
+    static void glAssertNoError()
+    {
+        var error = glGetError();
+        if (error != GL_NO_ERROR)
+        {
+            var errorStr = $"Unknown Error {error:X}";
+            switch (error)
+            {
+                case 0x0500:
+                    errorStr = "GL_INVALID_ENUM";
+                    break;
+                case 0x0501:
+                    errorStr = "GL_INVALID_VALUE";
+                    break;
+            }
+            throw new Exception(errorStr);
         }
     }
 }
