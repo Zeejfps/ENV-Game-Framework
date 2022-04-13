@@ -25,6 +25,9 @@ public class TestScene : IScene
 
     private readonly TestLight m_Light;
 
+    private ITransform m_CameraTarget;
+
+    
     private readonly List<ISceneObject> m_SceneObjects = new();
     
     public TestScene(IContext context)
@@ -33,7 +36,10 @@ public class TestScene : IScene
         m_Camera = new PerspectiveCamera();
         m_Clock = new TestClock();
         m_Camera.Transform.WorldPosition = new Vector3(0, 5f, -25f);
-        m_Camera.Transform.LookAt(Vector3.UnitY, Vector3.UnitY);
+        
+        m_CameraTarget = new Transform3D();
+
+        m_Camera.Transform.LookAt(m_CameraTarget.WorldPosition, Vector3.UnitY);
         
         var lightTransform = new Transform3D
         {
@@ -48,6 +54,7 @@ public class TestScene : IScene
         m_Ship2 = new Ship(m_SpecularRenderer);
         m_Ship2.Transform.WorldPosition = new Vector3(10f, 0f, 0f);
 
+        
         m_Ships = new List<Ship>();
         var size = 10;
         var count = 10;
@@ -119,7 +126,8 @@ public class TestScene : IScene
         if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Space))
             m_IsRotating = !m_IsRotating;
         
-        if (mouse.WasButtonPressedThisFrame(MouseButton.Left))
+        if (mouse.WasButtonPressedThisFrame(MouseButton.Left) 
+            || mouse.WasButtonPressedThisFrame(MouseButton.Middle))
         {
             m_PrevMouseX = mouse.ScreenX;
             m_PrevMouseY = mouse.ScreenY;
@@ -132,11 +140,25 @@ public class TestScene : IScene
             m_PrevMouseX = mouse.ScreenX;
             m_PrevMouseY = mouse.ScreenY;
             
-            m_Camera.Transform.RotateAround(Vector3.Zero, Vector3.UnitY, -deltaX);
-            m_Camera.Transform.RotateAround(Vector3.Zero, m_Camera.Transform.Right, -deltaY);
+            m_Camera.Transform.RotateAround(m_CameraTarget.WorldPosition, Vector3.UnitY, -deltaX);
+            m_Camera.Transform.RotateAround(m_CameraTarget.WorldPosition, m_Camera.Transform.Right, -deltaY);
+        }
+
+        if (mouse.IsButtonPressed(MouseButton.Middle))
+        {
+            var deltaX = (mouse.ScreenX - m_PrevMouseX) * m_Clock.DeltaTime * 1f;
+            var deltaY = (mouse.ScreenY - m_PrevMouseY) * m_Clock.DeltaTime * 1f;
+            m_PrevMouseX = mouse.ScreenX;
+            m_PrevMouseY = mouse.ScreenY;
+
+            var movement = (m_Camera.Transform.Right * -deltaX + m_Camera.Transform.Up * deltaY) 
+                           * m_Clock.DeltaTime * 1920f;
+
+            m_Camera.Transform.WorldPosition += movement;
+            m_CameraTarget.WorldPosition += movement;
         }
         
-        m_Camera.Transform.LookAt(Vector3.UnitY, Vector3.UnitY);
+        m_Camera.Transform.LookAt(m_CameraTarget.WorldPosition, Vector3.UnitY);
         
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Update(this);

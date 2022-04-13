@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
+using Framework.InputDevices;
 
 namespace Framework;
 
@@ -85,8 +86,18 @@ public class SpecularRenderer : ISceneObject
         m_TestRenderbuffer = scene.Context.CreateRenderbuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height, 3, true);
     }
 
+    private int m_ColorBufferIndex;
+    
     public void Update(IScene scene)
     {
+        var keyboard = scene.Context.Window.Input.Keyboard;
+        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Alpha1))
+            m_ColorBufferIndex = 0;
+        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Alpha2))
+            m_ColorBufferIndex = 1;
+        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Alpha3))
+            m_ColorBufferIndex = 2;
+        
         RenderOpaquePass();
         RenderFullScreenQuadPass();
     }
@@ -108,7 +119,7 @@ public class SpecularRenderer : ISceneObject
         
         Debug.Assert(m_FullScreenBlitMaterial != null);
         using var material = m_FullScreenBlitMaterial.Use();
-        material.SetTexture2d("screenTexture", m_TestRenderbuffer.ColorBuffers[0]);
+        material.SetTexture2d("screenTexture", m_TestRenderbuffer.ColorBuffers[m_ColorBufferIndex]);
 
         m_QuadMesh.Render();
     }

@@ -26,13 +26,13 @@ public static class KeysExtensions
             case Keys.Alpha0:
                 break;
             case Keys.Alpha1:
-                break;
+                return KeyboardKey.Alpha1;
             case Keys.Alpha2:
-                break;
+                return KeyboardKey.Alpha2;
             case Keys.Alpha3:
-                break;
+                return KeyboardKey.Alpha3;
             case Keys.Alpha4:
-                break;
+                return KeyboardKey.Alpha4;
             case Keys.Alpha5:
                 break;
             case Keys.Alpha6:
@@ -202,13 +202,13 @@ public static class KeysExtensions
             case Keys.Numpad0:
                 break;
             case Keys.Numpad1:
-                break;
+                return KeyboardKey.Alpha1;
             case Keys.Numpad2:
-                break;
+                return KeyboardKey.Alpha2;
             case Keys.Numpad3:
-                break;
+                return KeyboardKey.Alpha3;
             case Keys.Numpad4:
-                break;
+                return KeyboardKey.Alpha4;
             case Keys.Numpad5:
                 break;
             case Keys.Numpad6:

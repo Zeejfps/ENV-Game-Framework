@@ -16,4 +16,5 @@ public interface ITransform
     void RotateInWorldSpace(float x, float y, float z);
     void RotateInLocalSpace(float x, float y, float z);
     void RotateAround(Vector3 point, Vector3 axis, float angle);
+    void TranslateInLocalSpace(float deltaX, float deltaY, float deltaZ);
 }

@@ -10,6 +10,10 @@ public interface IKeyboard
 
 public enum KeyboardKey
 {
+    Alpha1,
+    Alpha2,
+    Alpha3,
+    Alpha4,
     A,
     B,
     C,

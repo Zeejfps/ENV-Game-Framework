@@ -39,7 +39,7 @@ public class Transform3D : ITransform
     
     private Vector3 m_WorldPosition = Vector3.Zero;
     private Quaternion m_WorldRotation = Quaternion.Identity;
-
+    
     public Transform3D()
     {
         UpdateWorldMatrix();
@@ -77,6 +77,11 @@ public class Transform3D : ITransform
         var position = WorldPosition;
         var vector3 = Vector3.Transform((position - point), Quaternion.CreateFromAxisAngle(axis, angle));
         WorldPosition = point + vector3;
+    }
+
+    public void TranslateInLocalSpace(float deltaX, float deltaY, float deltaZ)
+    {
+        WorldPosition += Right * deltaX;
     }
 
     private void UpdatePositionAndRotation(Vector3 worldPosition, Quaternion worldRotation)
