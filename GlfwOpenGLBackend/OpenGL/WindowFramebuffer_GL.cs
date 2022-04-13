@@ -20,6 +20,9 @@ public class WindowFramebuffer_GL : IFramebuffer
         Width = width;
         Height = height;
         Import(getProcAddress);
+        
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
 
     public IFramebufferApi Use()
@@ -53,9 +56,9 @@ public class WindowFramebuffer_GL : IFramebuffer
             glViewport(0, 0, m_Framebuffer.Width, m_Framebuffer.Height);
         }
     
-        public void Clear(float r, float g, float b)
+        public void Clear(float r, float g, float b, float a)
         {
-            glClearColor(r, g, b, 1f);
+            glClearColor(r, g, b, a);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
 

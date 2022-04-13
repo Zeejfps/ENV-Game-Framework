@@ -83,7 +83,7 @@ public class PbrRenderer : ISceneObject
 
         Debug.Assert(m_WindowFramebuffer != null);
         using var framebuffer = m_WindowFramebuffer.Use();
-        framebuffer.Clear(.42f, .607f, .82f);
+        framebuffer.Clear(.42f, .607f, .82f, 0f);
         
         Debug.Assert(m_FullScreenBlitMaterial != null);
         using var material = m_FullScreenBlitMaterial.Use();
@@ -98,7 +98,7 @@ public class PbrRenderer : ISceneObject
 
         using var renderBuffer = m_TestRenderbuffer.Use();
         renderBuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
-        renderBuffer.Clear(.42f, .607f, .82f);
+        renderBuffer.Clear(.42f, .607f, .82f, 0f);
 
         var camera = m_Camera;
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
