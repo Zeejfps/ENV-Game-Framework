@@ -15,6 +15,8 @@ public class Material_GL : IMaterial
     private int m_ActiveTextureId = 0;
     private uint ssbo;
 
+    private float[] m_MatriciesData = new float[0];
+
     private Material_GL(uint programId)
     {
         m_ProgramId = programId;
@@ -141,8 +143,19 @@ public class Material_GL : IMaterial
             if (ActiveMaterial.ssbo == 0)
                 ActiveMaterial.ssbo = glGenBuffer();
 
-            var data = new float[16 * matrices.Length];
-            for (int i = 0, j = 0; i < data.Length; i += 16, j++)
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, ActiveMaterial.ssbo);
+            glAssertNoError();
+
+            var dataLength = matrices.Length * 16;
+            var needsResizing = false;
+            if (ActiveMaterial.m_MatriciesData.Length < dataLength)
+            {
+                Array.Resize(ref ActiveMaterial.m_MatriciesData, dataLength);
+                needsResizing = true;
+            }
+
+            var data = ActiveMaterial.m_MatriciesData;
+            for (int i = 0, j = 0; i < dataLength; i += 16, j++)
             {
                 var matrix = matrices[j];
                 
@@ -166,17 +179,27 @@ public class Material_GL : IMaterial
                 data[i + 14] = matrix.M43;
                 data[i + 15] = matrix.M44;
             }
-            
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, ActiveMaterial.ssbo);
-            glAssertNoError();
 
-            unsafe
+
+            if (needsResizing)
             {
-                fixed (float* p = &data[0])
-                    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * data.Length, p, GL_DYNAMIC_COPY);
-                glAssertNoError();
+                unsafe
+                {
+                    fixed (float* p = &data[0])
+                        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataLength, p, GL_DYNAMIC_COPY);
+                    glAssertNoError();
+                }
             }
-            
+            else
+            {
+                unsafe
+                {
+                    fixed (float* p = &data[0])
+                        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float) * dataLength, p);
+                    glAssertNoError();
+                }
+            }
+
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ActiveMaterial.ssbo);
             glAssertNoError();
 
