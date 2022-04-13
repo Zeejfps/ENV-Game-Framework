@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -1825,6 +1826,26 @@ namespace OpenGL
             }
         }
 
+        [Conditional("DEBUG")]
+        public static void glAssertNoError()
+        {
+            var error = glGetError();
+            if (error != GL_NO_ERROR)
+            {
+                var errorStr = $"Unknown Error {error:X}";
+                switch (error)
+                {
+                    case 0x0500:
+                        errorStr = "GL_INVALID_ENUM";
+                        break;
+                    case 0x0501:
+                        errorStr = "GL_INVALID_VALUE";
+                        break;
+                }
+                throw new Exception(errorStr);
+            }
+        }        
+        
         /// <summary>
         ///     Render primitives from array data.
         /// </summary>

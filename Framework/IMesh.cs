@@ -10,5 +10,5 @@ public interface IMesh : IAsset
 public interface IMeshApi : IDisposable
 {
     void Render();
-    void RenderInstanced(Matrix4x4[] transforms);
+    void RenderInstanced(int instanceCount);
 }

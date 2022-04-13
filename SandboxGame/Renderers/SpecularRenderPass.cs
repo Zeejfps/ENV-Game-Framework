@@ -94,7 +94,7 @@ public class SpecularRenderPass
                 mesh.Render();
             }
             
-            //mesh.RenderInstanced(transforms.ToArray());
+            //mesh.RenderInstanced(transforms.Count);
             m_MeshToRenderableMap[renderGroup].Clear();
         }
     }

@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Numerics;
-using static OpenGL.Gl;
+﻿using static OpenGL.Gl;
 
 namespace Framework.GLFW.NET;
 
@@ -101,63 +99,11 @@ public class Mesh_GL : IMesh
             }
         }
 
-        public void RenderInstanced(Matrix4x4[] transforms)
+        public void RenderInstanced(int instanceCount)
         {
-            var perInstanceVbo = m_ActiveMesh.m_InstancedVbo;
-            if (perInstanceVbo == 0)
-            {
-                perInstanceVbo = glGenBuffer();
-                m_ActiveMesh.m_InstancedVbo = perInstanceVbo;
-            }
-
-            var data = new float[16 * transforms.Length];
-            for (int i = 0, transformIndex = 0; i < data.Length; i += 16, transformIndex++)
-            {
-                var transform = transforms[transformIndex];
-                data[i + 00] = transform.M11;
-                data[i + 01] = transform.M12;
-                data[i + 02] = transform.M13;
-                data[i + 03] = transform.M14;
-                
-                data[i + 04] = transform.M21;
-                data[i + 05] = transform.M22;
-                data[i + 06] = transform.M23;
-                data[i + 07] = transform.M24;
-                
-                data[i + 08] = transform.M31;
-                data[i + 09] = transform.M32;
-                data[i + 10] = transform.M33;
-                data[i + 11] = transform.M34;
-                
-                data[i + 12] = transform.M41;
-                data[i + 13] = transform.M42;
-                data[i + 14] = transform.M43;
-                data[i + 15] = transform.M44;
-            }
-            
-            glEnableVertexAttribArray(5);
-            glAssertNoError();
-            
-            glBindBuffer(GL_ARRAY_BUFFER, perInstanceVbo);
-            glAssertNoError();
-
             unsafe
             {
-                fixed (float* p = &data[0])
-                    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 16 * transforms.Length, p, GL_STATIC_DRAW);
-                glAssertNoError();
-            }
-            
-            glVertexAttribPointer(5, 16, GL_FLOAT, false, 16 * sizeof(float), IntPtr.Zero);
-            glAssertNoError();
-
-            glVertexAttribDivisor(5, 1);
-            glAssertNoError();
-
-            unsafe
-            {
-                glDrawElementsInstanced(GL_TRIANGLES, Instance.m_ActiveMesh.m_TriangleCount, GL_UNSIGNED_INT, NULL,
-                    transforms.Length);
+                glDrawElementsInstanced(GL_TRIANGLES, Instance.m_ActiveMesh.m_TriangleCount, GL_UNSIGNED_INT, NULL, instanceCount);
                 glAssertNoError();
             }
         }
@@ -165,34 +111,6 @@ public class Mesh_GL : IMesh
         public void Dispose()
         {
             //glBindVertexArray(0);
-        }
-    }
-
-    static void GlCall(Action action)
-    {
-        action.Invoke();
-        var error = glGetError();
-        if (error != GL_NO_ERROR)
-            throw new Exception($"GL ERROR OCCURED {error:X}");
-    }
-
-    [Conditional("DEBUG")]
-    static void glAssertNoError()
-    {
-        var error = glGetError();
-        if (error != GL_NO_ERROR)
-        {
-            var errorStr = $"Unknown Error {error:X}";
-            switch (error)
-            {
-                case 0x0500:
-                    errorStr = "GL_INVALID_ENUM";
-                    break;
-                case 0x0501:
-                    errorStr = "GL_INVALID_VALUE";
-                    break;
-            }
-            throw new Exception(errorStr);
         }
     }
 }
