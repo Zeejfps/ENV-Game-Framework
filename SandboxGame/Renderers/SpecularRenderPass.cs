@@ -90,15 +90,11 @@ public class SpecularRenderPass
             var transforms = m_MeshToRenderableMap[renderGroup];
             foreach (var modelMatrix in transforms)
             {
-                Matrix4x4.Invert(modelMatrix, out var normalMatrix);
-                normalMatrix = Matrix4x4.Transpose(normalMatrix);
-                
                 material.SetMatrix4x4("matrix_model", modelMatrix);
-                material.SetMatrix4x4("normal_matrix", normalMatrix);
-
                 mesh.Render();
             }
             
+            //mesh.RenderInstanced(transforms.ToArray());
             m_MeshToRenderableMap[renderGroup].Clear();
         }
     }

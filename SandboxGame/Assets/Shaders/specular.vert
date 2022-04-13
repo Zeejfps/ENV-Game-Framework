@@ -5,7 +5,7 @@ layout (location = 1) in vec3 attr_vertex_normal;
 layout (location = 2) in vec2 attr_vertex_uv;
 layout (location = 3) in vec3 attr_vertex_tangent;
 
-uniform mat4 matrix_projection, matrix_view, matrix_model, normal_matrix;
+uniform mat4 matrix_projection, matrix_view, matrix_model;
 uniform vec3 camera_position;
 
 out vec3 normal;
@@ -26,6 +26,8 @@ out VS_OUT
 
 void main()
 {
+    mat4 normal_matrix = transpose(inverse(matrix_model));
+    
     vec4 vert_world_position = matrix_model * vec4(attr_vertex_position, 1);
     vec4 vert_view_position = matrix_view * vert_world_position;
 
