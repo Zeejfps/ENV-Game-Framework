@@ -88,6 +88,8 @@ public class SpecularRenderPass
             material.SetTexture2d("material.translucency", textures.Translucency);
 
             var transforms = m_MeshToRenderableMap[renderGroup];
+            material.SetMatrix4x4Array("model_matrices", transforms.ToArray());
+
             foreach (var modelMatrix in transforms)
             {
                 material.SetMatrix4x4("matrix_model", modelMatrix);

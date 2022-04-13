@@ -15,6 +15,11 @@ out vec3 FragPos;
 //out vec2 tex_coord;
 //out vec3 tangent;
 
+layout(std430, binding = 0) buffer model_matrices_t
+{
+    mat4 model_matrices[];
+};
+
 out VS_OUT
 {
     vec3 frag_pos;
@@ -26,6 +31,7 @@ out VS_OUT
 
 void main()
 {
+    //mat4 matrix_model = model_matrices[gl_InstanceID];
     mat4 normal_matrix = transpose(inverse(matrix_model));
     
     vec4 vert_world_position = matrix_model * vec4(attr_vertex_position, 1);
