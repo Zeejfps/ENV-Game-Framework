@@ -31,6 +31,8 @@ public class FullScreenBlitPass
         Debug.Assert(m_QuadMesh != null);
         
         using var material = m_FullScreenBlitMaterial.Use();
+        using var mesh = m_QuadMesh.Use();
+        
         material.SetTexture2d("gColor", bufferAlbedo);
         material.SetTexture2d("gNormal", bufferNormal);
         material.SetTexture2d("gPosition", bufferPosition);
@@ -39,6 +41,6 @@ public class FullScreenBlitPass
         material.SetVector3("lights[0].Color", new Vector3(1,1,1));
         material.SetFloat("lights[0].Power", 5);
 
-        m_QuadMesh.Render();
+        mesh.Render();
     }
 }

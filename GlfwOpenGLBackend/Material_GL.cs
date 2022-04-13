@@ -13,7 +13,8 @@ public class Material_GL : IMaterial
 
     private uint m_ProgramId;
     private int m_ActiveTextureId = 0;
-    
+    private uint ssbo;
+
     private Material_GL(uint programId)
     {
         m_ProgramId = programId;
@@ -133,6 +134,55 @@ public class Material_GL : IMaterial
             }
         }
         
+        public void SetMatrix4x4Array(string propertyName, Matrix4x4[] matrices)
+        {
+            Debug.Assert(ActiveMaterial != null);
+            
+            if (ActiveMaterial.ssbo == 0)
+                ActiveMaterial.ssbo = glGenBuffer();
+
+            var data = new float[16 * matrices.Length];
+            for (int i = 0, j = 0; i < data.Length; i += 16, j++)
+            {
+                var matrix = matrices[j];
+                
+                data[i + 00] = matrix.M11;
+                data[i + 01] = matrix.M12;
+                data[i + 02] = matrix.M13;
+                data[i + 03] = matrix.M14;
+                
+                data[i + 04] = matrix.M21;
+                data[i + 05] = matrix.M22;
+                data[i + 06] = matrix.M23;
+                data[i + 07] = matrix.M24;
+                
+                data[i + 08] = matrix.M31;
+                data[i + 09] = matrix.M32;
+                data[i + 10] = matrix.M33;
+                data[i + 11] = matrix.M34;
+                
+                data[i + 12] = matrix.M41;
+                data[i + 13] = matrix.M42;
+                data[i + 14] = matrix.M43;
+                data[i + 15] = matrix.M44;
+            }
+            
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, ActiveMaterial.ssbo);
+            glAssertNoError();
+
+            unsafe
+            {
+                fixed (float* p = &data[0])
+                    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * data.Length, p, GL_DYNAMIC_COPY);
+                glAssertNoError();
+            }
+            
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ActiveMaterial.ssbo);
+            glAssertNoError();
+
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        }
+
         public void Dispose()
         {
             if (m_MaterialStack.TryPop(out var material))

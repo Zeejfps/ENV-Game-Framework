@@ -15,15 +15,7 @@ public class TestTriangle : ISceneObject
     {
         m_Context = context;
         m_Camera = camera;
-        m_Mesh = new Mesh
-        {
-            Vertices = new[]
-            {
-                -0.5f, -0.5f, 0.0f,
-                0.5f, -0.5f, 0.0f,
-                0.0f, 0.5f, 0.0f,
-            }
-        };
+
 
         m_Random = new Random();
     }

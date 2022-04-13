@@ -19,6 +19,8 @@ struct Light {
     vec3 specular;
 };
 
+flat in int instance_id;
+
 in VS_OUT {
     vec3 frag_pos;
     vec2 tex_coord;
@@ -31,10 +33,14 @@ in VS_OUT {
 in vec3 FragPos;
 in vec3 normal;
 in vec3 vert_position;
-uniform mat4 matrix_model;
 uniform vec3 camera_position;
 layout (location = 0) uniform Material material;
 uniform Light light;
+
+layout(std430, binding = 0) buffer model_matrices_t
+{
+    mat4 model_matrices[];
+};
 
 void main()
 {
@@ -74,6 +80,8 @@ void main()
     //vec3 emission = texture(material.emission, fs_in.tex_coord).rgb;
     
     //vec3 result = ambient + diffuse + specular;// + translucency_final;// + emission;
+    
+    mat4 matrix_model = model_matrices[instance_id];
     
     out_result = vec4(color, 1.0);
     vec3 normal_o = normal_map * fs_in.tangent_position; 

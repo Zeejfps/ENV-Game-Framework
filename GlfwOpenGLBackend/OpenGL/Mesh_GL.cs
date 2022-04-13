@@ -14,7 +14,8 @@ public class Mesh_GL : IMesh
     private readonly uint m_NormalsBuffer;
 
     private int m_TriangleCount;
-    
+    private uint m_InstancedVbo;
+
     public unsafe Mesh_GL(float[] vertices, float[] normals, float[] uvs, float[] tangents, int[] indices)
     {
         IsLoaded = true;
@@ -62,21 +63,57 @@ public class Mesh_GL : IMesh
 
         m_TriangleCount = indices.Length;
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_Vio);
+        glAssertNoError();
+        
         fixed (int* i = &indices[0])
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.Length, i, GL_STATIC_DRAW);
-    }
-    
-    public void Render()
-    {
-        unsafe
-        {
-            glBindVertexArray(m_Vao);
-            glDrawElements(GL_TRIANGLES, m_TriangleCount, GL_UNSIGNED_INT, NULL);
-        }
+        glAssertNoError();
     }
 
     public void Unload()
     {
         
+    }
+
+    public IMeshApi Use()
+    {
+        return Api.Use(this);
+    }
+
+    class Api : IMeshApi
+    {
+        private static Api? s_Instance;
+        private static Api Instance => s_Instance ??= new Api();
+
+        private Mesh_GL m_ActiveMesh;
+        
+        public static IMeshApi Use(Mesh_GL mesh)
+        {
+            Instance.m_ActiveMesh = mesh;
+            glBindVertexArray(mesh.m_Vao);
+            return Instance;
+        }
+        
+        public void Render()
+        {
+            unsafe
+            {
+                glDrawElements(GL_TRIANGLES, Instance.m_ActiveMesh.m_TriangleCount, GL_UNSIGNED_INT, NULL);
+            }
+        }
+
+        public void RenderInstanced(int instanceCount)
+        {
+            unsafe
+            {
+                glDrawElementsInstanced(GL_TRIANGLES, Instance.m_ActiveMesh.m_TriangleCount, GL_UNSIGNED_INT, NULL, instanceCount);
+                glAssertNoError();
+            }
+        }
+
+        public void Dispose()
+        {
+            //glBindVertexArray(0);
+        }
     }
 }

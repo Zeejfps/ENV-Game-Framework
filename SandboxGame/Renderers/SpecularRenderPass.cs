@@ -1,24 +1,18 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
-using Framework.InputDevices;
 
 namespace Framework;
 
-public interface ISpecularRenderable
-{
-    public IMesh Mesh { get; }
-    public ITransform Transform { get; }
-    public ITexture Diffuse { get; }
-    public ITexture Normal { get; }
-    public ITexture Roughness { get; }
-    public ITexture Occlusion { get; }
-    public ITexture Translucency { get; }
-}
 
-public class SpecularRenderable : ISpecularRenderable
+public readonly struct SpecularRenderable
 {
     public IMesh Mesh { get; init; }
-    public ITransform Transform { get; init; }
+    public Matrix4x4 WorldMatrix { get; init; }
+    public SpecularRenderableTextures Textures { get; init; }
+}
+
+public struct SpecularRenderableTextures
+{
     public ITexture Diffuse { get; init; }
     public ITexture Normal { get; init; }
     public ITexture Roughness { get; init; }
@@ -28,7 +22,7 @@ public class SpecularRenderable : ISpecularRenderable
 
 public class SpecularRenderPass
 {
-    private readonly Dictionary<IMesh, List<ISpecularRenderable>> m_MeshToRenderableMap = new();
+    private readonly Dictionary<(IMesh, SpecularRenderableTextures), List<Matrix4x4>> m_MeshToRenderableMap = new();
 
     private IMaterial? m_SpecularMaterial;
     private readonly ITransform m_Light;
@@ -43,21 +37,19 @@ public class SpecularRenderPass
         m_Light = light;
     }
 
-    public void Add(ISpecularRenderable renderable)
+    public void Submit(SpecularRenderable renderable)
     {
         var mesh = renderable.Mesh;
-        if (!m_MeshToRenderableMap.TryGetValue(mesh, out var renderables))
+        var textures = renderable.Textures;
+
+        var key = (mesh, textures);
+        if (!m_MeshToRenderableMap.TryGetValue(key, out var renderables))
         {
-            renderables = new List<ISpecularRenderable>();
-            m_MeshToRenderableMap[mesh] = renderables;
+            renderables = new List<Matrix4x4>();
+            m_MeshToRenderableMap[key] = renderables;
         }
         
-        renderables.Add(renderable);
-    }
-
-    public void Remove(ISpecularRenderable renderable)
-    {
-        
+        renderables.Add(renderable.WorldMatrix);
     }
     
     public void Load(IScene scene)
@@ -84,27 +76,28 @@ public class SpecularRenderPass
         material.SetVector3("light.ambient", _ambientColor);
         material.SetFloat("material.shininess", _shininess);
 
-        foreach (var kvp in m_MeshToRenderableMap)
+        foreach (var renderGroup in m_MeshToRenderableMap.Keys)
         {
-            var mesh = kvp.Key;
-            foreach (var renderable in kvp.Value)
-            {
-                var modelMatrix = renderable.Transform.WorldMatrix;
-                Matrix4x4.Invert(modelMatrix, out var normalMatrix);
-                normalMatrix = Matrix4x4.Transpose(normalMatrix);
-                
-                material.SetMatrix4x4("matrix_model", modelMatrix);
-                material.SetMatrix4x4("normal_matrix", normalMatrix);
-                
-                // TODO: This can be optimized, no point setting the textures if they are the same
-                material.SetTexture2d("material.diffuse", renderable.Diffuse);
-                material.SetTexture2d("material.normal_map", renderable.Normal);
-                material.SetTexture2d("material.roughness_map", renderable.Roughness);
-                material.SetTexture2d("material.occlusion", renderable.Occlusion);
-                material.SetTexture2d("material.translucency", renderable.Translucency);
-                
-                mesh.Render();
-            }
+            using var mesh = renderGroup.Item1.Use();
+            var textures = renderGroup.Item2;
+            
+            material.SetTexture2d("material.diffuse", textures.Diffuse);
+            material.SetTexture2d("material.normal_map", textures.Normal);
+            material.SetTexture2d("material.roughness_map", textures.Roughness);
+            material.SetTexture2d("material.occlusion", textures.Occlusion);
+            material.SetTexture2d("material.translucency", textures.Translucency);
+
+            var transforms = m_MeshToRenderableMap[renderGroup];
+            material.SetMatrix4x4Array("model_matrices", transforms.ToArray());
+
+            // foreach (var modelMatrix in transforms)
+            // {
+            //     material.SetMatrix4x4("matrix_model", modelMatrix);
+            //     mesh.Render();
+            // }
+            
+            mesh.RenderInstanced(transforms.Count);
+            m_MeshToRenderableMap[renderGroup].Clear();
         }
     }
 

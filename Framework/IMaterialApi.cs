@@ -12,4 +12,5 @@ public interface IMaterialApi : IDisposable
     void SetTexture2d(string propertyName, ITexture texture);
     
     void SetMatrix4x4(string propertyName, Matrix4x4 matrix);
+    void SetMatrix4x4Array(string propertyName, Matrix4x4[] matrices);
 }

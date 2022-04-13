@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -1825,6 +1826,26 @@ namespace OpenGL
             }
         }
 
+        [Conditional("DEBUG")]
+        public static void glAssertNoError()
+        {
+            var error = glGetError();
+            if (error != GL_NO_ERROR)
+            {
+                var errorStr = $"Unknown Error {error:X}";
+                switch (error)
+                {
+                    case 0x0500:
+                        errorStr = "GL_INVALID_ENUM";
+                        break;
+                    case 0x0501:
+                        errorStr = "GL_INVALID_VALUE";
+                        break;
+                }
+                throw new Exception(errorStr);
+            }
+        }        
+        
         /// <summary>
         ///     Render primitives from array data.
         /// </summary>
@@ -7626,11 +7647,11 @@ namespace OpenGL
 		public const int GL_DYNAMIC_DRAW = 0x88E8;
 		public const int GL_DYNAMIC_READ = 0x88E9;
 		public const int GL_DYNAMIC_COPY = 0x88EA;
-		public const int GL_SAMPLES_PASSED = 0x8914;
-		public const int GL_SRC1_ALPHA = 0x8589;
-		public const int GL_BLEND_EQUATION_RGB = 0x8009;
-		public const int GL_VERTEX_ATTRIB_ARRAY_ENABLED = 0x8622;
-		public const int GL_VERTEX_ATTRIB_ARRAY_SIZE = 0x8623;
+        public const int GL_SAMPLES_PASSED = 0x8914;
+        public const int GL_SRC1_ALPHA = 0x8589;
+        public const int GL_BLEND_EQUATION_RGB = 0x8009;
+        public const int GL_VERTEX_ATTRIB_ARRAY_ENABLED = 0x8622;
+        public const int GL_VERTEX_ATTRIB_ARRAY_SIZE = 0x8623;
 		public const int GL_VERTEX_ATTRIB_ARRAY_STRIDE = 0x8624;
 		public const int GL_VERTEX_ATTRIB_ARRAY_TYPE = 0x8625;
 		public const int GL_CURRENT_VERTEX_ATTRIB = 0x8626;
@@ -8109,6 +8130,8 @@ namespace OpenGL
         
         public const int GL_SHADER_BINARY_FORMAT_SPIR_V_ARB = 0x9551;
         public const int GL_SPIR_V_BINARY_ARB = 0x9552;
+
+        public const int GL_SHADER_STORAGE_BUFFER = 0x90D2;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		private delegate void PFNGLCULLFACEPROC(int mode);

@@ -5,15 +5,24 @@ layout (location = 1) in vec3 attr_vertex_normal;
 layout (location = 2) in vec2 attr_vertex_uv;
 layout (location = 3) in vec3 attr_vertex_tangent;
 
-uniform mat4 matrix_projection, matrix_view, matrix_model, normal_matrix;
+uniform mat4 matrix_projection, matrix_view;
 uniform vec3 camera_position;
 
 out vec3 normal;
 out vec3 vert_position;
 out vec3 FragPos;
+
+flat out int instance_id;
+
+
 //out vec3 frag_pos;
 //out vec2 tex_coord;
 //out vec3 tangent;
+
+layout(std430, binding = 0) buffer model_matrices_t
+{
+    mat4 model_matrices[];
+};
 
 out VS_OUT
 {
@@ -26,6 +35,9 @@ out VS_OUT
 
 void main()
 {
+    mat4 matrix_model = model_matrices[gl_InstanceID];
+    mat4 normal_matrix = transpose(inverse(matrix_model));
+    
     vec4 vert_world_position = matrix_model * vec4(attr_vertex_position, 1);
     vec4 vert_view_position = matrix_view * vert_world_position;
 
@@ -47,5 +59,6 @@ void main()
     vs_out.tex_coord = attr_vertex_uv;
     vs_out.tangent_position = TBN;
     vs_out.tangent_view_position = TBN * camera_position;
-    vs_out.tangent_frag_position = TBN * vs_out.frag_pos; 
+    vs_out.tangent_frag_position = TBN * vs_out.frag_pos;
+    instance_id = gl_InstanceID;
 }
