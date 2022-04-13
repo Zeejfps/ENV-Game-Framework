@@ -40,6 +40,8 @@ public class TextureFramebuffer_GL : IRenderbuffer
             m_drawBufferIds[i] = GL_COLOR_ATTACHMENT0 + i;
         }
         
+        glDrawBuffers(m_drawBufferIds);
+
         if (createDepthBuffer)
         {
             var depthTextureId = glGenTexture();
@@ -50,7 +52,7 @@ public class TextureFramebuffer_GL : IRenderbuffer
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTextureId, 0);
             m_DepthTexture = new Texture2D_GL(depthTextureId);
         }
-
+        
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             throw new Exception("Failed to create framebuffer");
         
@@ -80,7 +82,6 @@ public class TextureFramebuffer_GL : IRenderbuffer
         {
             Instance.m_ActiveFramebuffer = framebuffer;
             glBindFramebuffer(framebuffer.m_Id);
-            glDrawBuffers(framebuffer.m_drawBufferIds);
             glViewport(0, 0, framebuffer.Width, framebuffer.Height);
             return Instance;
         }

@@ -150,7 +150,7 @@ public class Material_GL : IMaterial
             var needsResizing = false;
             if (ActiveMaterial.m_MatriciesData.Length < dataLength)
             {
-                Array.Resize(ref ActiveMaterial.m_MatriciesData, dataLength);
+                ActiveMaterial.m_MatriciesData = new float[dataLength];
                 needsResizing = true;
             }
 
@@ -202,8 +202,6 @@ public class Material_GL : IMaterial
 
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ActiveMaterial.ssbo);
             glAssertNoError();
-
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
         }
 
         public void Dispose()
