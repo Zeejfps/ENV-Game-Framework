@@ -3,13 +3,13 @@ using static OpenGL.Gl;
 
 namespace TicTacToePrototype.OpenGL.AssetLoaders;
 
-public class CompressedTexture2D_GL : ITexture, IEquatable<CompressedTexture2D_GL>
+public class ReadonlyTexture2D_GL : ITexture, IEquatable<ReadonlyTexture2D_GL>
 {
     public bool IsLoaded => m_Id != GL_NONE;
     
     private uint m_Id;
 
-    public unsafe CompressedTexture2D_GL(int width, int height, byte[]? pixels = null)
+    public unsafe ReadonlyTexture2D_GL(int width, int height, byte[]? pixels = null)
     {
         //Console.WriteLine($"Texture: {width}x{height}, pixels: {pixels.Length}");
         m_Id = glGenTexture();
@@ -44,7 +44,7 @@ public class CompressedTexture2D_GL : ITexture, IEquatable<CompressedTexture2D_G
         glBindTexture(GL_TEXTURE_2D, m_Id);
     }
 
-    public bool Equals(CompressedTexture2D_GL? other)
+    public bool Equals(ReadonlyTexture2D_GL? other)
     {
         if (ReferenceEquals(null, other)) return false;
         if (ReferenceEquals(this, other)) return true;
@@ -56,7 +56,7 @@ public class CompressedTexture2D_GL : ITexture, IEquatable<CompressedTexture2D_G
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
         if (obj.GetType() != this.GetType()) return false;
-        return Equals((CompressedTexture2D_GL)obj);
+        return Equals((ReadonlyTexture2D_GL)obj);
     }
 
     public override int GetHashCode()
@@ -64,12 +64,12 @@ public class CompressedTexture2D_GL : ITexture, IEquatable<CompressedTexture2D_G
         return (int)m_Id;
     }
 
-    public static bool operator ==(CompressedTexture2D_GL? left, CompressedTexture2D_GL? right)
+    public static bool operator ==(ReadonlyTexture2D_GL? left, ReadonlyTexture2D_GL? right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(CompressedTexture2D_GL? left, CompressedTexture2D_GL? right)
+    public static bool operator !=(ReadonlyTexture2D_GL? left, ReadonlyTexture2D_GL? right)
     {
         return !Equals(left, right);
     }
