@@ -40,8 +40,8 @@ public class SpecularRenderPass
     {
         var assetDatabase = scene.Context.AssetDatabase;
         m_SpecularMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/specular.material");
-        m_SpecularMaterial.UseBackfaceCulling = true;
-        m_SpecularMaterial.UseDepthTest = true;
+        m_SpecularMaterial.EnableBackfaceCulling = true;
+        m_SpecularMaterial.EnableDepthTest = true;
     }
     
     public void Render(ICamera camera)

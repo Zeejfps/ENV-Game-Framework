@@ -20,8 +20,8 @@ public class FullScreenBlitPass
     {
         var assetDatabase = context.AssetDatabase;
         m_FullScreenBlitMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/fullScreenQuad.material");
-        m_FullScreenBlitMaterial.UseBackfaceCulling = true;
-        m_FullScreenBlitMaterial.UseDepthTest = false;
+        m_FullScreenBlitMaterial.EnableBackfaceCulling = true;
+        m_FullScreenBlitMaterial.EnableDepthTest = false;
         m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/quad.mesh");
     }
     

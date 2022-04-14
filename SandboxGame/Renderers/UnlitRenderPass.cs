@@ -20,8 +20,8 @@ public class UnlitRenderPass
     public void Load(IScene scene)
     {
         m_Material = scene.Context.AssetDatabase.LoadAsset<IMaterial>("Assets/Materials/unlit.material");
-        m_Material.UseDepthTest = true;
-        m_Material.UseBackfaceCulling = true;
+        m_Material.EnableDepthTest = true;
+        m_Material.EnableBackfaceCulling = true;
     }
 
     public void Add(UnlitRendererable rendererable)

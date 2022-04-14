@@ -21,8 +21,9 @@ public class Material_GL : IMaterial
         IsLoaded = true;
     }
 
-    public bool UseDepthTest { get; set; }
-    public bool UseBackfaceCulling { get; set; }
+    public bool EnableDepthTest { get; set; }
+    public bool EnableBackfaceCulling { get; set; }
+    public bool EnableBlending { get; set; }
 
     public IMaterialApi Use()
     {
@@ -85,15 +86,23 @@ public class Material_GL : IMaterial
             Instance.ActiveMaterial = material;
             glUseProgram(material.m_ProgramId);
         
-            if (material.UseDepthTest)
+            if (material.EnableDepthTest)
                 glEnable(GL_DEPTH_TEST);
             else
                 glDisable(GL_DEPTH_TEST);
 
-            if (material.UseBackfaceCulling)
+            if (material.EnableBackfaceCulling)
                 glEnable(GL_CULL_FACE);
             else
                 glDisable(GL_CULL_FACE);
+
+            if (material.EnableBlending)
+            {
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA);
+            }
+            else
+                glDisable(GL_BLEND);
 
             return Instance;
         }

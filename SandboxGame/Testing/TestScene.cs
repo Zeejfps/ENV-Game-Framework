@@ -104,7 +104,7 @@ public class TestScene : IScene
         using (var renderbuffer = m_TempRenderbuffer.Use())
         {
             renderbuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
-            renderbuffer.Clear(0f, 0f, 0f, 0);
+            renderbuffer.Clear(0f, 0f, 0f, 0f);
             m_UnlitRenderPass.Render(m_Camera);
             m_SpecularRenderPass.Render(m_Camera);
         }
