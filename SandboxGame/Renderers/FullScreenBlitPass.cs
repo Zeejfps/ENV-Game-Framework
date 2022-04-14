@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Drawing;
 using System.Numerics;
 
 namespace Framework;
@@ -37,9 +38,18 @@ public class FullScreenBlitPass
         material.SetTexture2d("gNormal", bufferNormal);
         material.SetTexture2d("gPosition", bufferPosition);
         material.SetVector3("viewPos", m_Camera.Transform.WorldPosition);
-        material.SetVector3("lights[0].Position", m_light.WorldPosition);
-        material.SetVector3("lights[0].Color", new Vector3(1,1,1));
-        material.SetFloat("lights[0].Power", 5);
+        
+        var colors = new Color[]{Color.Red, Color.Green, Color.Aqua, Color.Gold, Color.Crimson,Color.Lime};
+        for (int i = 0; i < 4; i++)
+        {
+            var x = new Random(i);
+            var newColor = colors[i];
+            var convert = .003621f;
+            material.SetVector3($"lights[{i}].Position", m_light.WorldPosition + new Vector3(i * 10,0,0));
+            material.SetVector3($"lights[{i}].Color", new Vector3(newColor.R * convert, newColor.G * convert, newColor.B * convert));
+            material.SetFloat($"lights[{i}].Power", 15);
+        }
+        
 
         mesh.Render();
     }

@@ -6,6 +6,7 @@ in vec2 TexCoords;
 uniform sampler2D gAlbedo;
 uniform sampler2D gNormal;
 uniform sampler2D gPosition;
+uniform sampler2D gDepth;
 
 struct Light { 
     vec3 Position;
@@ -13,29 +14,38 @@ struct Light {
     float Power;
 };
 
-const int NR_LIGHTS = 1;
+const int NR_LIGHTS = 4;
 uniform Light lights[NR_LIGHTS];
 uniform vec3 viewPos;
 
 void main()
 {
-    vec3 albedo = texture(gAlbedo, TexCoords).rgb;
+    vec4 albedo = texture(gAlbedo, TexCoords);
     vec3 normal = texture(gNormal, TexCoords).rgb;
     vec3 fragPosition = texture(gPosition, TexCoords).rgb;
     
-    vec3 lighting = albedo * 0.1;
+    vec3 ambient = vec3(.3,.6,.7);
+    vec3 lighting = albedo.rgb * ambient * 0.4;
     vec3 viewDir = normalize(viewPos - fragPosition);
     
+    //point lights
     for (int i = 0; i < NR_LIGHTS; i++)
     {
         float distance = length(lights[i].Position - fragPosition);
+        distance *= distance;
         vec3 lightDir = normalize(lights[i].Position - fragPosition);
-        vec3 diffuse = max(dot(normal, lightDir), 0.0) * albedo * lights[i].Color * lights[i].Power;
+        vec3 diffuse = max(dot(normal, lightDir), 0.0) * albedo.rgb * lights[i].Color * lights[i].Power;
         lighting += diffuse / distance;
     }
+    //directional light
+    vec3 surfaceToLight = normalize(vec3(39,143,0));
+    vec3 diffuse = max(dot(normal, surfaceToLight), 0.0) * albedo.rgb * 0.8;
+    lighting += diffuse;
+    lighting = mix (lighting, ambient, clamp(albedo.a,0,1));
+    
     if (normal == vec3(0,0,0))
     {
-        discard;
+        lighting = vec3(.4,.7,.8);
     }
     FragColor = vec4(lighting,1);
 }

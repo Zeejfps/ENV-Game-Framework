@@ -2,6 +2,7 @@
 layout (location = 0) out vec4 out_result;
 layout (location = 1) out vec3 out_normal;
 layout (location = 2) out vec3 out_world;
+layout (location = 3) out vec3 out_depth;
 
 struct Material {
     sampler2D diffuse;
@@ -83,7 +84,11 @@ void main()
     
     mat4 matrix_model = model_matrices[instance_id];
     
-    out_result = vec4(color, 1.0);
+    float depth = gl_FragCoord.z / gl_FragCoord.w;
+    
+    depth *= 0.01;
+    
+    out_result = vec4(color, depth);
     vec3 normal_o = normal_map * fs_in.tangent_position; 
     out_normal = normalize(mat3(matrix_model) * normal_o);
     out_world = FragPos;
