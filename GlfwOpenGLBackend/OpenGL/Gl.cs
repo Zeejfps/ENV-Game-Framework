@@ -1829,10 +1829,15 @@ namespace OpenGL
         [Conditional("DEBUG")]
         public static void glAssertNoError()
         {
+            Debug.Assert(!glTryGetError(out var error), error);
+        }
+
+        public static bool glTryGetError(out string errorStr)
+        {
             var error = glGetError();
             if (error != GL_NO_ERROR)
             {
-                var errorStr = $"Unknown Error {error:X}";
+                errorStr = $"Unknown Error {error:X}";
                 switch (error)
                 {
                     case 0x0500:
@@ -1842,9 +1847,13 @@ namespace OpenGL
                         errorStr = "GL_INVALID_VALUE";
                         break;
                 }
-                throw new Exception(errorStr);
+
+                return true;
             }
-        }        
+
+            errorStr = string.Empty;
+            return false;
+        }
         
         /// <summary>
         ///     Render primitives from array data.
