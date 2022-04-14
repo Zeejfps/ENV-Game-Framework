@@ -3,10 +3,9 @@ using static OpenGL.Gl;
 
 namespace TicTacToePrototype.OpenGL.AssetLoaders;
 
-public class CompressedTexture2D_GL : ITexture
+public class CompressedTexture2D_GL : ITexture, IEquatable<CompressedTexture2D_GL>
 {
     public bool IsLoaded => m_Id != GL_NONE;
-    public uint Id => m_Id;
     
     private uint m_Id;
 
@@ -31,11 +30,7 @@ public class CompressedTexture2D_GL : ITexture
         // fixed (byte* p = &pixels[0])
         //     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, p);
         
-        int err;
-        while ((err = glGetError()) != GL_NO_ERROR)
-        {
-            Console.WriteLine($"GL ERROR: {err:X}");
-        }
+        glAssertNoError();
     }
     
     public void Unload()
@@ -47,5 +42,35 @@ public class CompressedTexture2D_GL : ITexture
     public void Use()
     {
         glBindTexture(GL_TEXTURE_2D, m_Id);
+    }
+
+    public bool Equals(CompressedTexture2D_GL? other)
+    {
+        if (ReferenceEquals(null, other)) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return m_Id == other.m_Id;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (ReferenceEquals(null, obj)) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj.GetType() != this.GetType()) return false;
+        return Equals((CompressedTexture2D_GL)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return (int)m_Id;
+    }
+
+    public static bool operator ==(CompressedTexture2D_GL? left, CompressedTexture2D_GL? right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(CompressedTexture2D_GL? left, CompressedTexture2D_GL? right)
+    {
+        return !Equals(left, right);
     }
 }

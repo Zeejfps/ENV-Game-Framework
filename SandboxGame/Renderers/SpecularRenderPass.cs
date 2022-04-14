@@ -112,7 +112,11 @@ public struct SpecularRenderableTextures : IEquatable<SpecularRenderableTextures
 
     public bool Equals(SpecularRenderableTextures other)
     {
-        return Diffuse.Equals(other.Diffuse) && Normal.Equals(other.Normal) && Roughness.Equals(other.Roughness) && Occlusion.Equals(other.Occlusion) && Translucency.Equals(other.Translucency);
+        return Diffuse.Equals(other.Diffuse) &&
+               Normal.Equals(other.Normal) &&
+               Roughness.Equals(other.Roughness) &&
+               Occlusion.Equals(other.Occlusion) &&
+               Translucency.Equals(other.Translucency);
     }
 
     public override bool Equals(object? obj)
