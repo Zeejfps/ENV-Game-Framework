@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace Framework;
 
@@ -59,6 +60,8 @@ public class SpecularRenderPass
         material.SetVector3("light.ambient", _ambientColor);
         material.SetFloat("material.shininess", _shininess);
 
+        //var buffer = material.GetBuffer("model_matrices");
+        
         foreach (var renderGroup in m_MeshToRenderableMap.Keys)
         {
             using var mesh = renderGroup.Item1.Use();
@@ -69,14 +72,19 @@ public class SpecularRenderPass
             material.SetTexture2d("material.roughness_map", textures.Roughness);
             material.SetTexture2d("material.occlusion", textures.Occlusion);
             material.SetTexture2d("material.translucency", textures.Translucency);
-
+            
             var transforms = m_MeshToRenderableMap[renderGroup];
-            material.SetMatrix4x4Array("model_matrices", transforms.ToArray());
+
+            // buffer.Clear();
+            // buffer.Put(CollectionsMarshal.AsSpan(transforms));
+            // buffer.Apply();
+            
+            material.SetMatrix4x4Array("model_matrices", CollectionsMarshal.AsSpan(transforms));
             mesh.RenderInstanced(transforms.Count);
             m_MeshToRenderableMap[renderGroup].Clear();
         }
     }
-
+    
     public void Unload(IScene scene)
     {
         Debug.Assert(m_SpecularMaterial != null);

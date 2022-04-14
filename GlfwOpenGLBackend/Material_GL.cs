@@ -137,7 +137,7 @@ public class Material_GL : IMaterial
             }
         }
         
-        public void SetMatrix4x4Array(string propertyName, Matrix4x4[] matrices)
+        public void SetMatrix4x4Array(string propertyName, Span<Matrix4x4> matrices)
         {
             Debug.Assert(ActiveMaterial != null);
             
@@ -178,38 +178,11 @@ public class Material_GL : IMaterial
             glAssertNoError();
         }
 
-        public void SetData<T>(string propertyName, T buffer) where T : IBuffer
+        public IBuffer GetBuffer(string name)
         {
-            if (ActiveMaterial.ssbo == 0)
-                ActiveMaterial.ssbo = glGenBuffer();
-              
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, ActiveMaterial.ssbo);
-            glAssertNoError();
-
-            var dataSize = buffer.DataSize;
-            var needsResizing = false;
-            if (ActiveMaterial.m_MatricesLength < dataSize)
-            {
-                ActiveMaterial.m_MatricesLength = dataSize;
-                needsResizing = true;
-            }
-
-            if (needsResizing)
-            {
-                
-                glBufferData(GL_SHADER_STORAGE_BUFFER, dataSize, buffer.DataPtr, GL_DYNAMIC_COPY);
-                glAssertNoError();
-            }
-            else
-            {
-                glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, dataSize, buffer.DataPtr);
-                glAssertNoError();
-            }
-
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ActiveMaterial.ssbo);
-            glAssertNoError();
+            throw new NotImplementedException();
         }
-
+        
         public void Dispose()
         {
             if (m_MaterialStack.TryPop(out var material))
@@ -242,6 +215,67 @@ public class Material_GL : IMaterial
             textureToSlotMap[texture] = slot;
             ActiveMaterial.m_ActiveTextureId++;
             return slot;
+        }
+    }
+
+    class SSOB : IBuffer
+    {
+        private byte[] m_Data;
+        private int m_Ptr;
+        private bool m_NeedsResizing;
+        
+        public SSOB()
+        {
+        }
+
+        public void Clear()
+        {
+            m_Ptr = 0;
+        }
+
+        public void Put(Span<Matrix4x4> data)
+        {
+            
+        }
+
+        public void Put(Matrix4x4 matrix)
+        {
+            unsafe 
+            {
+                Write(new Span<byte>(&matrix, sizeof(Matrix4x4)));
+            }
+        }
+        
+        public void Apply()
+        {
+            unsafe
+            {
+                fixed (void* p = &m_Data[0])
+                {
+                    if (m_NeedsResizing)
+                    {
+                        glBufferData(GL_SHADER_STORAGE_BUFFER, m_Data.Length, p, GL_DYNAMIC_COPY);
+                        m_NeedsResizing = false;
+                    }
+                    else
+                    {
+                        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, m_Data.Length, p);
+                    }
+                    glAssertNoError();
+                }
+            }
+        }
+
+        private void Write(Span<byte> newData)
+        {
+            if (m_Ptr + newData.Length >= m_Data.Length)
+            {
+                var newLength = Math.Max(m_Data.Length * 2, m_Data.Length + newData.Length);
+                var oldData = m_Data;
+                m_Data = new byte[newLength];
+                //Buffer.BlockCopy(oldData, 0, m_Data, 0, oldData.Length);
+                //Buffer.BlockCopy(newData, 0, m_Data, m_Ptr, newData.Length);
+            }
         }
     }
 }

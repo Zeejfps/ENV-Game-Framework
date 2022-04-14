@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Numerics;
 using TicTacToePrototype;
 
 namespace Framework;
@@ -32,7 +33,7 @@ public class Ship : ISceneObject
         m_Occlusion = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Ship/ship_ao.texture");
         m_Translucency = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Translucency.texture");
     }
-
+    
     public void Update(IScene scene)
     {
         Debug.Assert(m_Mesh != null);
@@ -41,7 +42,7 @@ public class Ship : ISceneObject
         Debug.Assert(m_Occlusion != null);
         Debug.Assert(m_Roughness != null);
         Debug.Assert(m_Translucency != null);
-        
+
         m_SpecularRenderPass.Submit(new SpecularRenderable
         {
             Mesh = m_Mesh,
