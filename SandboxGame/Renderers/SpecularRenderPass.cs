@@ -60,7 +60,7 @@ public class SpecularRenderPass
         material.SetVector3("light.ambient", _ambientColor);
         material.SetFloat("material.shininess", _shininess);
 
-        var modelMatricesBuffer = material.GetBuffer("model_matrices");
+        var modelMatricesBuffer = material.GetBuffer("model_matrices_t");
         
         foreach (var renderGroup in m_MeshToRenderableMap.Keys)
         {

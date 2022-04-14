@@ -140,7 +140,10 @@ public class Material_GL : IMaterial
             if (ActiveMaterial.m_NameToBufferMap.TryGetValue(name, out var buffer))
                 return buffer;
 
-            buffer = new ShaderStorageBuffer_GL();
+            var index = glGetProgramResourceIndex(ActiveMaterial.m_ProgramId, GL_SHADER_STORAGE_BLOCK, name);
+            glAssertNoError();
+            
+            buffer = new ShaderStorageBuffer_GL(index);
             ActiveMaterial.m_NameToBufferMap[name] = buffer;
             return buffer;
         }
