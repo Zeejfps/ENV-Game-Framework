@@ -1,7 +1,6 @@
-using System.Diagnostics;
 using System.Numerics;
+using Framework.Common;
 using Framework.InputDevices;
-using FrameworkCommon;
 using TicTacToePrototype;
 
 namespace Framework;
@@ -39,7 +38,7 @@ public class TestScene : IScene
     {
         m_Context = context;
         m_Camera = new PerspectiveCamera();
-        m_Clock = new TestClock();
+        m_Clock = new Clock();
         m_Camera.Transform.WorldPosition = new Vector3(0, 5f, -25f);
         
         m_CameraTarget = new Transform3D();
@@ -70,7 +69,6 @@ public class TestScene : IScene
         
         m_SceneObjects.Add(m_Camera);
         m_SceneObjects.Add(m_Light);
-        m_SceneObjects.Add(m_Clock);
         m_SceneObjects.Add(m_Ship1);
         m_SceneObjects.Add(m_Toad);
     }
@@ -92,6 +90,8 @@ public class TestScene : IScene
 
     public void Update()
     {
+        m_Clock.Tick();
+        
         HandleInput();
 
         m_Light.Transform.WorldPosition += new Vector3(MathF.Sin(m_Clock.Time),0,0) * m_Clock.DeltaTime * 5;
@@ -209,44 +209,5 @@ public class TestScene : IScene
         }
 
         return ships;
-    }
-}
-
-public interface IClock : ISceneObject
-{
-    float DeltaTime { get; }
-    float Time { get; }
-}
-
-public class TestClock : IClock
-{
-    public float DeltaTime { get; private set; }
-    public float Time { get; private set; }
-
-    private long m_PrevTime;
-
-    public TestClock()
-    {
-        m_PrevTime = Stopwatch.GetTimestamp();
-    }
-
-    public void Load(IScene scene)
-    {
-        
-    }
-
-    public void Update(IScene scene)
-    {
-        var currTime = Stopwatch.GetTimestamp();
-        var deltaTime = currTime - m_PrevTime;
-        m_PrevTime = currTime;
-
-        DeltaTime = (float)deltaTime / Stopwatch.Frequency;
-        Time += DeltaTime;
-    }
-
-    public void Unload(IScene scene)
-    {
-        
     }
 }

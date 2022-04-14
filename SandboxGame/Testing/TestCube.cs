@@ -1,5 +1,5 @@
 using Framework;
-using FrameworkCommon;
+using Framework.Common;
 using TicTacToePrototype;
 
 namespace Framework;

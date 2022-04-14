@@ -24,7 +24,7 @@ public class Game
         Window.PosX = (int)((primaryDisplay.ResolutionX - Window.Width) * 0.5f);
         Window.PosY = (int)((primaryDisplay.ResolutionY - Window.Height) * 0.5f);
         Window.IsResizable = true;
-        Window.IsVsyncEnabled = true;
+        Window.IsVsyncEnabled = false;
 
         Window.Open();
         

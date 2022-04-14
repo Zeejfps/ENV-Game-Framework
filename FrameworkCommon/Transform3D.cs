@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
-using Framework;
 
-namespace FrameworkCommon;
+namespace Framework.Common;
 
 public class Transform3D : ITransform
 {

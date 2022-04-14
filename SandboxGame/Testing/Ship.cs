@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
-using FrameworkCommon;
+using Framework.Common;
 using TicTacToePrototype;
 
 namespace Framework;
