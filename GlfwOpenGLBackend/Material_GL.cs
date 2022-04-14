@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using Framework;
 using static OpenGL.Gl;
 
@@ -10,14 +9,12 @@ public class Material_GL : IMaterial
 {
     private readonly Dictionary<string, int> m_PropertyToIdMap = new();
     private readonly Dictionary<string, int> m_TextureToSlotMap = new();
+    private readonly Dictionary<string, IBuffer> m_NameToBufferMap = new();
     public bool IsLoaded { get; private set; }
 
     private uint m_ProgramId;
     private int m_ActiveTextureId = 0;
-    private uint ssbo;
-
-    private int m_MatricesLength;
-
+    
     private Material_GL(uint programId)
     {
         m_ProgramId = programId;
@@ -136,51 +133,16 @@ public class Material_GL : IMaterial
                 glUniformMatrix4fv(location, 1, false, p);
             }
         }
-        
-        public void SetMatrix4x4Array(string propertyName, Span<Matrix4x4> matrices)
-        {
-            Debug.Assert(ActiveMaterial != null);
-            
-            if (ActiveMaterial.ssbo == 0)
-                ActiveMaterial.ssbo = glGenBuffer();
-
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, ActiveMaterial.ssbo);
-            glAssertNoError();
-
-            var dataLength = matrices.Length * 16;
-            var needsResizing = false;
-            if (ActiveMaterial.m_MatricesLength < matrices.Length)
-            {
-                ActiveMaterial.m_MatricesLength = matrices.Length;
-                needsResizing = true;
-            }
-
-            if (needsResizing)
-            {
-                unsafe
-                {
-                    fixed (void* p = &matrices[0])
-                        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataLength, p, GL_DYNAMIC_COPY);
-                    glAssertNoError();
-                }
-            }
-            else
-            {
-                unsafe
-                {
-                    fixed (void* p = &matrices[0])
-                        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float) * dataLength, p);
-                    glAssertNoError();
-                }
-            }
-
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ActiveMaterial.ssbo);
-            glAssertNoError();
-        }
 
         public IBuffer GetBuffer(string name)
         {
-            throw new NotImplementedException();
+            Debug.Assert(ActiveMaterial != null);
+            if (ActiveMaterial.m_NameToBufferMap.TryGetValue(name, out var buffer))
+                return buffer;
+
+            buffer = new ShaderStorageBuffer_GL();
+            ActiveMaterial.m_NameToBufferMap[name] = buffer;
+            return buffer;
         }
         
         public void Dispose()
@@ -215,67 +177,6 @@ public class Material_GL : IMaterial
             textureToSlotMap[texture] = slot;
             ActiveMaterial.m_ActiveTextureId++;
             return slot;
-        }
-    }
-
-    class SSOB : IBuffer
-    {
-        private byte[] m_Data;
-        private int m_Ptr;
-        private bool m_NeedsResizing;
-        
-        public SSOB()
-        {
-        }
-
-        public void Clear()
-        {
-            m_Ptr = 0;
-        }
-
-        public void Put(Span<Matrix4x4> data)
-        {
-            
-        }
-
-        public void Put(Matrix4x4 matrix)
-        {
-            unsafe 
-            {
-                Write(new Span<byte>(&matrix, sizeof(Matrix4x4)));
-            }
-        }
-        
-        public void Apply()
-        {
-            unsafe
-            {
-                fixed (void* p = &m_Data[0])
-                {
-                    if (m_NeedsResizing)
-                    {
-                        glBufferData(GL_SHADER_STORAGE_BUFFER, m_Data.Length, p, GL_DYNAMIC_COPY);
-                        m_NeedsResizing = false;
-                    }
-                    else
-                    {
-                        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, m_Data.Length, p);
-                    }
-                    glAssertNoError();
-                }
-            }
-        }
-
-        private void Write(Span<byte> newData)
-        {
-            if (m_Ptr + newData.Length >= m_Data.Length)
-            {
-                var newLength = Math.Max(m_Data.Length * 2, m_Data.Length + newData.Length);
-                var oldData = m_Data;
-                m_Data = new byte[newLength];
-                //Buffer.BlockCopy(oldData, 0, m_Data, 0, oldData.Length);
-                //Buffer.BlockCopy(newData, 0, m_Data, m_Ptr, newData.Length);
-            }
         }
     }
 }

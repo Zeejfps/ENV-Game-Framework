@@ -12,15 +12,6 @@ public interface IMaterialApi : IDisposable
     void SetTexture2d(string propertyName, ITexture texture);
     
     void SetMatrix4x4(string propertyName, Matrix4x4 matrix);
-    void SetMatrix4x4Array(string propertyName, Span<Matrix4x4> matrices);
 
     IBuffer GetBuffer(string name);
-}
-
-public interface IBuffer
-{
-    void Clear();
-    void Put(Span<Matrix4x4> data);
-    void Put(Matrix4x4 matrix);
-    void Apply();
 }

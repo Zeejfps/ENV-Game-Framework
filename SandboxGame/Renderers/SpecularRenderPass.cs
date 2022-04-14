@@ -60,7 +60,7 @@ public class SpecularRenderPass
         material.SetVector3("light.ambient", _ambientColor);
         material.SetFloat("material.shininess", _shininess);
 
-        //var buffer = material.GetBuffer("model_matrices");
+        var modelMatricesBuffer = material.GetBuffer("model_matrices");
         
         foreach (var renderGroup in m_MeshToRenderableMap.Keys)
         {
@@ -75,11 +75,13 @@ public class SpecularRenderPass
             
             var transforms = m_MeshToRenderableMap[renderGroup];
 
-            // buffer.Clear();
-            // buffer.Put(CollectionsMarshal.AsSpan(transforms));
-            // buffer.Apply();
-            
-            material.SetMatrix4x4Array("model_matrices", CollectionsMarshal.AsSpan(transforms));
+            using (var buffer = modelMatricesBuffer.Use())
+            {
+                buffer.Clear();
+                buffer.Put(CollectionsMarshal.AsSpan(transforms));
+                buffer.Apply();
+            }
+
             mesh.RenderInstanced(transforms.Count);
             m_MeshToRenderableMap[renderGroup].Clear();
         }
