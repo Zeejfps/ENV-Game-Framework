@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Framework.Common;
 using TicTacToePrototype;
 
 namespace Framework;

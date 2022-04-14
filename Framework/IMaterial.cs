@@ -2,8 +2,9 @@
 
 public interface IMaterial : IAsset
 {
-    bool UseDepthTest { get; set; }
-    bool UseBackfaceCulling { get; set; }
-
+    bool EnableDepthTest { get; set; }
+    bool EnableBackfaceCulling { get; set; }
+    bool EnableBlending { get; set; }
+    
     IMaterialApi Use();
 }

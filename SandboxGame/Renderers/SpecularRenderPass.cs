@@ -40,8 +40,8 @@ public class SpecularRenderPass
     {
         var assetDatabase = scene.Context.AssetDatabase;
         m_SpecularMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/specular.material");
-        m_SpecularMaterial.UseBackfaceCulling = true;
-        m_SpecularMaterial.UseDepthTest = true;
+        m_SpecularMaterial.EnableBackfaceCulling = true;
+        m_SpecularMaterial.EnableDepthTest = true;
     }
     
     public void Render(ICamera camera)
@@ -60,7 +60,7 @@ public class SpecularRenderPass
         material.SetVector3("light.ambient", _ambientColor);
         material.SetFloat("material.shininess", _shininess);
 
-        var modelMatricesBuffer = material.GetBuffer("model_matrices");
+        var modelMatricesBuffer = material.GetBuffer("model_matrices_t");
         
         foreach (var renderGroup in m_MeshToRenderableMap.Keys)
         {
@@ -112,7 +112,11 @@ public struct SpecularRenderableTextures : IEquatable<SpecularRenderableTextures
 
     public bool Equals(SpecularRenderableTextures other)
     {
-        return Diffuse.Equals(other.Diffuse) && Normal.Equals(other.Normal) && Roughness.Equals(other.Roughness) && Occlusion.Equals(other.Occlusion) && Translucency.Equals(other.Translucency);
+        return Diffuse.Equals(other.Diffuse) &&
+               Normal.Equals(other.Normal) &&
+               Roughness.Equals(other.Roughness) &&
+               Occlusion.Equals(other.Occlusion) &&
+               Translucency.Equals(other.Translucency);
     }
 
     public override bool Equals(object? obj)

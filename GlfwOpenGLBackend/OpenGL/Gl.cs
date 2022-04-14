@@ -6981,6 +6981,19 @@ namespace OpenGL
             }
         }
         
+        // GLuint glGetProgramResourceIndex(	GLuint program,
+        //     GLenum programInterface,
+        // const char * name);
+        public static uint glGetProgramResourceIndex(uint program, int programInterface, string name)
+        {
+            var buffer = Encoding.UTF8.GetBytes(name);
+            fixed (byte* b = &buffer[0])
+            {
+                return _glGetProgramResourceIndex(program, programInterface, b);
+            }
+        }
+        
+        
         /// <summary>
         /// Draw multiple instances of a set of elements.
         /// </summary>
@@ -8132,6 +8145,7 @@ namespace OpenGL
         public const int GL_SPIR_V_BINARY_ARB = 0x9552;
 
         public const int GL_SHADER_STORAGE_BUFFER = 0x90D2;
+        public const int GL_SHADER_STORAGE_BLOCK = 0x92E6;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		private delegate void PFNGLCULLFACEPROC(int mode);
@@ -8267,6 +8281,9 @@ namespace OpenGL
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		private delegate void PFNGLGETTEXLEVELPARAMETERIVPROC(int target, int level, int pname, int*args);
+        
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate uint PFNGLGETPROGRAMRESOURCEINDEX(uint program, int programInterface, byte* name);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		private delegate bool PFNGLISENABLEDPROC(int cap);
@@ -9306,6 +9323,7 @@ namespace OpenGL
 		private static PFNGLGETTEXPARAMETERIVPROC _glGetTexParameteriv;
 		private static PFNGLGETTEXLEVELPARAMETERFVPROC _glGetTexLevelParameterfv;
 		private static PFNGLGETTEXLEVELPARAMETERIVPROC _glGetTexLevelParameteriv;
+		private static PFNGLGETPROGRAMRESOURCEINDEX _glGetProgramResourceIndex;
 		private static PFNGLISENABLEDPROC _glIsEnabled;
 		private static PFNGLDEPTHRANGEPROC _glDepthRange;
 		private static PFNGLVIEWPORTPROC _glViewport;
@@ -9689,6 +9707,7 @@ namespace OpenGL
 			_glGetTexParameteriv = Marshal.GetDelegateForFunctionPointer<PFNGLGETTEXPARAMETERIVPROC>(loader.Invoke("glGetTexParameteriv"));
 			_glGetTexLevelParameterfv = Marshal.GetDelegateForFunctionPointer<PFNGLGETTEXLEVELPARAMETERFVPROC>(loader.Invoke("glGetTexLevelParameterfv"));
 			_glGetTexLevelParameteriv = Marshal.GetDelegateForFunctionPointer<PFNGLGETTEXLEVELPARAMETERIVPROC>(loader.Invoke("glGetTexLevelParameteriv"));
+            _glGetProgramResourceIndex = Marshal.GetDelegateForFunctionPointer<PFNGLGETPROGRAMRESOURCEINDEX>(loader.Invoke("glGetProgramResourceIndex"));
 			_glIsEnabled = Marshal.GetDelegateForFunctionPointer<PFNGLISENABLEDPROC>(loader.Invoke("glIsEnabled"));
 			_glDepthRange = Marshal.GetDelegateForFunctionPointer<PFNGLDEPTHRANGEPROC>(loader.Invoke("glDepthRange"));
 			_glViewport = Marshal.GetDelegateForFunctionPointer<PFNGLVIEWPORTPROC>(loader.Invoke("glViewport"));

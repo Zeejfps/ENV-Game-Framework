@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Numerics;
 using Framework;
 using static OpenGL.Gl;
 
@@ -11,12 +10,11 @@ internal class ShaderStorageBuffer_GL : IBuffer
     
     private readonly ShaderStorageBufferApi_GL m_Api;
 
-    public ShaderStorageBuffer_GL()
+    public ShaderStorageBuffer_GL(uint index)
     {
         BufferId = glGenBuffer();
         glAssertNoError();
-        
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, BufferId);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, BufferId);
         glAssertNoError();
 
         m_Api = new ShaderStorageBufferApi_GL(this);
@@ -64,23 +62,6 @@ internal class ShaderStorageBuffer_GL : IBuffer
             }
         }
 
-        public void Put(Span<Matrix4x4> matrices)
-        {
-            unsafe 
-            {
-                fixed (void* p = &matrices[0])
-                    Write(new Span<byte>(p, sizeof(Matrix4x4) * matrices.Length));
-            }
-        }
-
-        public void Put(Matrix4x4 matrix)
-        {
-            unsafe 
-            {
-                Write(new Span<byte>(&matrix, sizeof(Matrix4x4)));
-            }
-        }
-            
         public void Apply()
         {
             unsafe
