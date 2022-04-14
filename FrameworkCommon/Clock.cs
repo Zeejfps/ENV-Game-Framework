@@ -16,8 +16,8 @@ public class Clock : IClock
 
     public void Tick()
     {
-        var deltaTimeMilli = m_Stopwatch.ElapsedMilliseconds;
-        DeltaTime = deltaTimeMilli / 1000f;
+        var deltaTimeTicks = m_Stopwatch.ElapsedTicks;
+        DeltaTime = (float)deltaTimeTicks / Stopwatch.Frequency;
         Time += DeltaTime;
         m_Stopwatch.Restart();
     }
