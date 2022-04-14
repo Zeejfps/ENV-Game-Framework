@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using Framework;
 
-namespace TicTacToePrototype;
+namespace FrameworkCommon;
 
 public class Transform3D : ITransform
 {

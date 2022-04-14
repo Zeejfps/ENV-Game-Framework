@@ -21,6 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\FrameworkCommon\FrameworkCommon.csproj" />
       <ProjectReference Include="..\Framework\Framework.csproj" />
       <ProjectReference Include="..\GlfwOpenGLBackend\GlfwOpenGLBackend.csproj" />
     </ItemGroup>

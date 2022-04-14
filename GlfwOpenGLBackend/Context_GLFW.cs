@@ -1,7 +1,9 @@
+using Framework;
+using Framework.GLFW.NET;
 using GLFW;
 using GlfwOpenGLBackend.AssetLoaders;
 
-namespace Framework.GLFW.NET;
+namespace GlfwOpenGLBackend;
 
 public class Context_GLFW : IContext
 {
