@@ -154,8 +154,8 @@ public class TestScene : IScene
         
         if (mouse.IsButtonPressed(MouseButton.Left))
         {
-            var deltaX = (mouse.ScreenX - m_PrevMouseX) * m_Clock.DeltaTime * 1f;
-            var deltaY = (mouse.ScreenY - m_PrevMouseY) * m_Clock.DeltaTime * 1f;
+            var deltaX = (mouse.ScreenX - m_PrevMouseX) * 0.001f;
+            var deltaY = (mouse.ScreenY - m_PrevMouseY) * 0.001f;
             m_PrevMouseX = mouse.ScreenX;
             m_PrevMouseY = mouse.ScreenY;
             
@@ -165,8 +165,8 @@ public class TestScene : IScene
 
         if (mouse.IsButtonPressed(MouseButton.Middle))
         {
-            var deltaX = (mouse.ScreenX - m_PrevMouseX) * m_Clock.DeltaTime * 1f;
-            var deltaY = (mouse.ScreenY - m_PrevMouseY) * m_Clock.DeltaTime * 1f;
+            var deltaX = (mouse.ScreenX - m_PrevMouseX) * 0.001f;
+            var deltaY = (mouse.ScreenY - m_PrevMouseY) * 0.001f;
             m_PrevMouseX = mouse.ScreenX;
             m_PrevMouseY = mouse.ScreenY;
 
