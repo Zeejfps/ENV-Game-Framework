@@ -10,13 +10,9 @@ public class WindowFramebuffer_GL : IFramebuffer
 
     private Api m_Api;
 
-    public WindowFramebuffer_GL()
+    public WindowFramebuffer_GL(int width, int height, GetProcAddressHandler getProcAddress)
     {
         m_Api = new Api(this);
-    }
-    
-    public void Init(int width, int height, GetProcAddressHandler getProcAddress)
-    {
         Width = width;
         Height = height;
         Import(getProcAddress);

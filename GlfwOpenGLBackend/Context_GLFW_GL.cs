@@ -5,7 +5,7 @@ using GlfwOpenGLBackend.AssetLoaders;
 
 namespace GlfwOpenGLBackend;
 
-public class Context_GLFW : IContext
+public class Context_GLFW_GL : IContext
 {
     public IDisplays Displays { get; }
     public IWindow Window => m_Window;
@@ -14,7 +14,7 @@ public class Context_GLFW : IContext
     private readonly Window_GLFW m_Window;
     private readonly AssetDatabase m_AssetDatabase;
     
-    public Context_GLFW()
+    public Context_GLFW_GL()
     {
         Glfw.Init();
         Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);

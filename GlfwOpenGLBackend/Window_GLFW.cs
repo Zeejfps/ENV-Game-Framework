@@ -59,8 +59,30 @@ public class Window_GLFW : IWindow
         }
     }
 
-    public string Title { get; set; } = "Untitled";
-    public bool IsResizable { get; set; }
+    public string Title
+    {
+        get => m_Title;
+        set
+        {
+            if (m_Title == value)
+                return;
+            m_Title = value;
+            Glfw.SetWindowTitle(m_Handle, m_Title);
+        }
+    }
+
+    public bool IsResizable
+    {
+        get => m_IsResizable;
+        set
+        {
+            if (m_IsResizable == value)
+                return;
+            m_IsResizable = value;
+            Glfw.SetWindowAttribute(m_Handle, WindowAttribute.Resizable, m_IsResizable);
+        }
+    }
+    
     public bool IsOpened { get; private set; }
 
     public IInput Input => m_Input;
@@ -90,12 +112,15 @@ public class Window_GLFW : IWindow
         }
     }
 
+    private string m_Title = "Untitled";
+
     private int m_PosX;
     private int m_PosY;  
     
-    private int m_Width;
-    private int m_Height;
+    private int m_Width = 640;
+    private int m_Height = 480;
 
+    private bool m_IsResizable;
     private bool m_IsFullscreen;
     private bool m_IsVsyncEnabled;
     
@@ -115,7 +140,6 @@ public class Window_GLFW : IWindow
     public Window_GLFW()
     {
         m_Input = new Input_GLFW();
-        m_WindowFramebuffer = new WindowFramebuffer_GL();
 
         m_KeyCallback = Glfw_KeyCallback;
         m_SizeCallback = Glfw_SizeCallback;
@@ -124,34 +148,15 @@ public class Window_GLFW : IWindow
         m_FramebufferSizeCallback = Glfw_FramebufferSizeCallback;
         m_MouseButtonCallback = Glfw_MouseButtonCallback;
         m_ScrollCallback = Glfw_MouseScrollCallback;
-    }
-
-    public void Open()
-    {
-        Glfw.WindowHint(Hint.Resizable, IsResizable);
-
-        if (IsFullscreen)
-        {
-            var monitor = Glfw.PrimaryMonitor;
-            var width = monitor.WorkArea.Width;
-            var height = monitor.WorkArea.Height;
-            m_Handle = Glfw.CreateWindow(width, height, Title, monitor, Window.None);
-        }
-        else
-        {
-            m_Handle = Glfw.CreateWindow(m_Width, m_Height, Title, Monitor.None, Window.None);
-        }
         
-        Debug.Assert(m_Handle != Window.None);
+        Glfw.WindowHint(Hint.Visible, false);
+        Glfw.WindowHint(Hint.Resizable, m_IsResizable);
         
-        UpdateWindowPos();
-
+        m_Handle = Glfw.CreateWindow(Width, Height, Title, Monitor.None, Window.None);
         Glfw.MakeContextCurrent(m_Handle);
         Glfw.GetFramebufferSize(m_Handle, out var framebufferWidth, out var framebufferHeight);
-        m_WindowFramebuffer.Init(framebufferWidth, framebufferHeight, Glfw.GetProcAddress);
+        m_WindowFramebuffer = new WindowFramebuffer_GL(framebufferWidth, framebufferHeight, Glfw.GetProcAddress);
 
-        UpdateVsyncState();
-        
         Glfw.SetWindowSizeCallback(m_Handle, m_SizeCallback);
         Glfw.SetWindowPositionCallback(m_Handle, m_PositionCallback);
         Glfw.SetFramebufferSizeCallback(m_Handle, m_FramebufferSizeCallback);
@@ -159,7 +164,11 @@ public class Window_GLFW : IWindow
         Glfw.SetCursorPositionCallback(m_Handle, m_MousePositionCallback);
         Glfw.SetMouseButtonCallback(m_Handle, m_MouseButtonCallback);
         Glfw.SetScrollCallback(m_Handle, m_ScrollCallback);
+    }
 
+    public void Open()
+    {
+        Glfw.ShowWindow(m_Handle);
         IsOpened = true;
     }
 
@@ -170,7 +179,6 @@ public class Window_GLFW : IWindow
         Glfw.SetWindowShouldClose(m_Handle, true);
         
         m_Handle = default;
-        
         IsOpened = false;
     }
 

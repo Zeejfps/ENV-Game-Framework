@@ -3,7 +3,7 @@
 using GlfwOpenGLBackend;
 using SnakeGame;
 
-using var context = new Context_GLFW();
+using var context = new Context_GLFW_GL();
 
 var primaryDisplay = context.Displays.PrimaryDisplay;
 var window = context.Window;

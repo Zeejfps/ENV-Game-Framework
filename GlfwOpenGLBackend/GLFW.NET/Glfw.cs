@@ -247,7 +247,7 @@ namespace GLFW
         /// <param name="attr">A supported window attribute.</param>
         /// <param name="value">The value to set.</param>
         [DllImport(LIBRARY, EntryPoint = "glfwSetWindowAttrib", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SetWindowAttribute(IntPtr window, WindowAttribute attr, bool value);
+        public static extern void SetWindowAttribute(Window window, WindowAttribute attr, bool value);
 
         [DllImport(LIBRARY, EntryPoint = "glfwGetJoystickHats", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr GetJoystickHats(int joystickId, out int count);
