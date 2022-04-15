@@ -6,7 +6,8 @@ namespace Framework;
 
 public class SpecularRenderPass
 {
-    private readonly Dictionary<(IMesh, SpecularRenderableTextures), List<Matrix4x4>> m_MeshToRenderableMap = new();
+    private readonly Dictionary<(IMesh, SpecularRenderableTextures), List<ITransform>> m_MeshToRenderableMap = new();
+    private readonly Dictionary<ITransform, (IMesh, SpecularRenderableTextures)> m_TransformToGroupMap = new();
 
     private IMaterial? m_SpecularMaterial;
     private readonly ITransform m_Light;
@@ -21,19 +22,21 @@ public class SpecularRenderPass
         m_Light = light;
     }
 
-    public void Submit(in SpecularRenderable renderable)
+    public void Register(in SpecularRenderable renderable)
     {
         var mesh = renderable.Mesh;
         var textures = renderable.Textures;
-
+        var transform = renderable.Transform;
+        
         var key = (mesh, textures);
-        if (!m_MeshToRenderableMap.TryGetValue(key, out var renderables))
+        if (!m_MeshToRenderableMap.TryGetValue(key, out var transforms))
         {
-            renderables = new List<Matrix4x4>();
-            m_MeshToRenderableMap[key] = renderables;
+            transforms = new List<ITransform>();
+            m_MeshToRenderableMap[key] = transforms;
         }
         
-        renderables.Add(renderable.WorldMatrix);
+        transforms.Add(transform);
+        m_TransformToGroupMap[transform] = key;
     }
     
     public void Load(IScene scene)
@@ -74,16 +77,22 @@ public class SpecularRenderPass
             material.SetTexture2d("material.translucency", textures.Translucency);
             
             var transforms = m_MeshToRenderableMap[renderGroup];
+            var transformsCount = transforms.Count;
 
             using (var buffer = modelMatricesBuffer.Use())
             {
                 buffer.Clear();
-                buffer.Put(CollectionsMarshal.AsSpan(transforms));
+
+                for (var i = 0; i < transformsCount; i++)
+                {
+                    var transform = transforms[i];
+                    buffer.Put(transform.WorldMatrix);
+                }
+                
                 buffer.Apply();
             }
 
             mesh.RenderInstanced(transforms.Count);
-            m_MeshToRenderableMap[renderGroup].Clear();
         }
     }
     
@@ -98,7 +107,7 @@ public class SpecularRenderPass
 public readonly struct SpecularRenderable 
 {
     public IMesh Mesh { get; init; }
-    public Matrix4x4 WorldMatrix { get; init; }
+    public ITransform Transform { get; init; }
     public SpecularRenderableTextures Textures { get; init; }
 }
 

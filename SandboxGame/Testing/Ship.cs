@@ -33,21 +33,11 @@ public class Ship : ISceneObject
         m_Roughness = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Ship/ship_r.texture");
         m_Occlusion = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Ship/ship_ao.texture");
         m_Translucency = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Translucency.texture");
-    }
-    
-    public void Update(IScene scene)
-    {
-        Debug.Assert(m_Mesh != null);
-        Debug.Assert(m_Diffuse != null);
-        Debug.Assert(m_Normal != null);
-        Debug.Assert(m_Occlusion != null);
-        Debug.Assert(m_Roughness != null);
-        Debug.Assert(m_Translucency != null);
-
-        m_SpecularRenderPass.Submit(new SpecularRenderable
+        
+        m_SpecularRenderPass.Register(new SpecularRenderable
         {
             Mesh = m_Mesh,
-            WorldMatrix = Transform.WorldMatrix,
+            Transform = Transform,
             Textures = new SpecularRenderableTextures
             {
                 Diffuse = m_Diffuse,
@@ -57,6 +47,11 @@ public class Ship : ISceneObject
                 Translucency = m_Translucency
             }
         });
+    }
+    
+    public void Update(IScene scene)
+    {
+        
     }
 
     public void Unload(IScene scene)
