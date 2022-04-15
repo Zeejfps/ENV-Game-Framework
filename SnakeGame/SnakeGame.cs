@@ -6,11 +6,9 @@ public class Game
 {
     public Game(IContext context)
     {
-        throw new NotImplementedException();
     }
 
-    public void Run()
+    public void Update()
     {
-        throw new NotImplementedException();
     }
 }

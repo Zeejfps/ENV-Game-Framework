@@ -16,13 +16,13 @@ public class Context_GLFW : IContext
     
     public Context_GLFW()
     {
+        Glfw.Init();
         Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
         Glfw.WindowHint(Hint.ContextVersionMajor, 3);
         Glfw.WindowHint(Hint.ContextVersionMinor, 3);
         Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
         Glfw.WindowHint(Hint.Doublebuffer, true);
         Glfw.WindowHint(Hint.Decorated, true);
-
 
         Displays = new Displays_GLFW();
         m_Window = new Window_GLFW();

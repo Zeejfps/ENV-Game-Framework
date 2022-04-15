@@ -59,7 +59,7 @@ public class Window_GLFW : IWindow
         }
     }
 
-    public string Title { get; set; }
+    public string Title { get; set; } = "Untitled";
     public bool IsResizable { get; set; }
     public bool IsOpened { get; private set; }
 
@@ -128,6 +128,8 @@ public class Window_GLFW : IWindow
 
     public void Open()
     {
+        Glfw.WindowHint(Hint.Resizable, IsResizable);
+
         if (IsFullscreen)
         {
             var monitor = Glfw.PrimaryMonitor;
