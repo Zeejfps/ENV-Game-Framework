@@ -1,4 +1,5 @@
 ﻿using Framework;
+using Framework.Common.Cameras;
 
 namespace SnakeGame;
 
@@ -10,11 +11,16 @@ public class Game
     private readonly IClock m_Clock;
 
     private float m_AccumulatedTime;
+
+    private OrthographicCamera m_Camera;
+    private SnakeRenderPass m_SnakeRenderPass;
     
     public Game(IContext context)
     {
         m_Context = context;
         m_Clock = new Clock();
+        m_Camera = new OrthographicCamera(20, 20, 0.1f, 10);
+        m_SnakeRenderPass = new SnakeRenderPass();
         
         var width = 20;
         var height = 20;
@@ -31,6 +37,11 @@ public class Game
         {
             m_AccumulatedTime = 0f;
             MoveSnake();
+        }
+
+        using (var framebuffer = m_Context.Window.Framebuffer.Use())
+        {
+            framebuffer.Clear(1f, 0f, 1f, 1f);
         }
     }
 
