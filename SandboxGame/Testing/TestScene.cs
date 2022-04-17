@@ -1,5 +1,6 @@
 using System.Numerics;
 using Framework.Common;
+using Framework.Common.Cameras;
 using Framework.InputDevices;
 using TicTacToePrototype;
 
@@ -17,7 +18,7 @@ public class TestScene : IScene
     private FullScreenBlitPass m_FullScreenBlitPass;
     
     private readonly IContext m_Context;
-    private readonly ICamera m_Camera;
+    private readonly PerspectiveCamera m_Camera;
     private readonly IClock m_Clock;
 
     private ITransform m_CameraTarget;
@@ -37,7 +38,7 @@ public class TestScene : IScene
     public TestScene(IContext context)
     {
         m_Context = context;
-        m_Camera = new PerspectiveCamera();
+        m_Camera = new PerspectiveCamera(context);
         m_Clock = new Clock();
         m_Camera.Transform.WorldPosition = new Vector3(0, 5f, -25f);
         
@@ -67,7 +68,6 @@ public class TestScene : IScene
 
         m_Toad = new Toad(m_SpecularRenderPass);
         
-        m_SceneObjects.Add(m_Camera);
         m_SceneObjects.Add(m_Light);
         m_SceneObjects.Add(m_Ship1);
         m_SceneObjects.Add(m_Toad);
@@ -90,6 +90,7 @@ public class TestScene : IScene
 
     public void Update()
     {
+        m_Camera.Update();
         m_Clock.Tick();
         
         HandleInput();

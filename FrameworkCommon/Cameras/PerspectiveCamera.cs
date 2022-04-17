@@ -1,9 +1,6 @@
 using System.Numerics;
-using Framework;
-using Framework.Common;
-using TicTacToePrototype;
 
-namespace Framework;
+namespace Framework.Common.Cameras;
 
 public class PerspectiveCamera : ICamera
 {
@@ -15,30 +12,23 @@ public class PerspectiveCamera : ICamera
     
     public ITransform Transform { get; }
 
-    public PerspectiveCamera()
+    private IContext m_Context;
+    
+    public PerspectiveCamera(IContext context)
     {
+        m_Context = context;
         Transform = new Transform3D();
         Fov = 75f;
     }
-
-    public void Load(IScene scene)
+    
+    public void Update()
     {
-        UpdateMatrices(scene);
+        UpdateMatrices();
     }
-
-    public void Update(IScene scene)
+    
+    private void UpdateMatrices()
     {
-        UpdateMatrices(scene);
-    }
-
-    public void Unload(IScene scene)
-    {
-        
-    }
-
-    private void UpdateMatrices(IScene scene)
-    {
-        var window = scene.Context.Window;
+        var window = m_Context.Window;
         var aspect = window.Framebuffer.Width / (float)window.Framebuffer.Height;
         ProjectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(Fov * DegToRad, aspect, 0.1f, 500f);
     }

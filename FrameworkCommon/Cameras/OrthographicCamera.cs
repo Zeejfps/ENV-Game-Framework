@@ -1,9 +1,6 @@
 using System.Numerics;
-using Framework;
-using Framework.Common;
-using TicTacToePrototype;
 
-namespace Framework;
+namespace Framework.Common.Cameras;
 
 public class OrthographicCamera : ICamera
 {
