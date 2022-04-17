@@ -20,7 +20,7 @@ public class Game
         m_Context = context;
         m_Clock = new Clock();
         m_Camera = new OrthographicCamera(20, 20, 0.1f, 10);
-        m_SnakeRenderPass = new SnakeRenderPass();
+        m_SnakeRenderPass = new SnakeRenderPass(m_Context);
         
         var width = 20;
         var height = 20;
@@ -42,6 +42,7 @@ public class Game
         using (var framebuffer = m_Context.Window.Framebuffer.Use())
         {
             framebuffer.Clear(1f, 0f, 1f, 1f);
+            m_SnakeRenderPass.Render(m_Camera);
         }
     }
 

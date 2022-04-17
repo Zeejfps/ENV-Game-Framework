@@ -13,4 +13,10 @@
       <ProjectReference Include="..\GlfwOpenGLBackend\GlfwOpenGLBackend.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="Assets\quad.mesh">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
 </Project>
