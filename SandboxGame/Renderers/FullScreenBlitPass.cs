@@ -6,7 +6,6 @@ namespace Framework;
 
 public class FullScreenBlitPass
 {
-    private IMaterial? m_FullScreenBlitMaterial;
     private readonly ICamera m_Camera;
     private readonly ITransform3D m_light;
 
@@ -16,20 +15,9 @@ public class FullScreenBlitPass
         m_light = light;
     }
 
-    public void Load(IContext context)
+    public void Render(IMesh quadMesh, IMaterial fullScreenBlitMaterial, ITexture bufferAlbedo, ITexture bufferNormal, ITexture bufferPosition)
     {
-        var assetDatabase = context.AssetDatabase;
-        m_FullScreenBlitMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/fullScreenQuad.material");
-        m_FullScreenBlitMaterial.EnableBackfaceCulling = true;
-        m_FullScreenBlitMaterial.EnableDepthTest = false;
-    }
-    
-    public void Render(IMesh quadMesh, ITexture bufferAlbedo, ITexture bufferNormal, ITexture bufferPosition)
-    {
-        Debug.Assert(m_FullScreenBlitMaterial != null);
-        Debug.Assert(quadMesh != null);
-        
-        using var material = m_FullScreenBlitMaterial.Use();
+        using var material = fullScreenBlitMaterial.Use();
         using var mesh = quadMesh.Use();
         
         material.SetTexture2d("gColor", bufferAlbedo);

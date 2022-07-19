@@ -36,6 +36,7 @@ public class TestScene : IScene
     private readonly List<ISceneObject> m_SceneObjects = new();
 
     private IMaterial m_UnlitMaterial;
+    private IMaterial m_FullScreenBlitMaterial;
     private IMesh m_QuadMesh;
     
     public TestScene(IContext context)
@@ -80,15 +81,20 @@ public class TestScene : IScene
 
     public void Load()
     {
-        m_UnlitMaterial = Context.AssetDatabase.LoadAsset<IMaterial>("Assets/Materials/unlit.material");
+        var resourceDatabase = Context.AssetDatabase;
+        
+        m_UnlitMaterial = resourceDatabase.LoadAsset<IMaterial>("Assets/Materials/unlit.material");
         m_UnlitMaterial.EnableDepthTest = true;
         m_UnlitMaterial.EnableBackfaceCulling = false;
         
-        m_QuadMesh = Context.AssetDatabase.LoadAsset<IMesh>("Assets/Meshes/quad.mesh");
+        m_FullScreenBlitMaterial = resourceDatabase.LoadAsset<IMaterial>("Assets/Materials/fullScreenQuad.material");
+        m_FullScreenBlitMaterial.EnableBackfaceCulling = true;
+        m_FullScreenBlitMaterial.EnableDepthTest = false;
+        
+        m_QuadMesh = resourceDatabase.LoadAsset<IMesh>("Assets/Meshes/quad.mesh");
 
         m_Light.Load(this);
         m_SpecularRenderPass.Load(this);
-        m_FullScreenBlitPass.Load(Context);
         
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Load(this);
@@ -125,6 +131,7 @@ public class TestScene : IScene
         {
             renderbuffer.Clear(.42f, .607f, .82f, 1f);
             m_FullScreenBlitPass.Render(m_QuadMesh,
+                m_FullScreenBlitMaterial,
                 m_TempRenderbuffer.ColorBuffers[0],
                 m_TempRenderbuffer.ColorBuffers[1],
                 m_TempRenderbuffer.ColorBuffers[2]);
