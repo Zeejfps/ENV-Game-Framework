@@ -43,7 +43,7 @@ public class TestTriangle : ISceneObject
         
     }
 
-    private void SetRandomColor(IMaterialApi material)
+    private void SetRandomColor(IMaterialHandle material)
     {
         var r = (float) m_Random.NextDouble();
         var g = (float) m_Random.NextDouble();

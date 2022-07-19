@@ -2,7 +2,7 @@
 
 namespace Framework;
 
-public interface IMaterialApi : IDisposable
+public interface IMaterialHandle : IDisposable
 {
     void SetFloat(string propertyName, float value);
 

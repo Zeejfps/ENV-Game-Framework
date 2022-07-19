@@ -25,9 +25,9 @@ public class Material_GL : IMaterial
     public bool EnableBackfaceCulling { get; set; }
     public bool EnableBlending { get; set; }
 
-    public IMaterialApi Use()
+    public IMaterialHandle Use()
     {
-        return Api.Use(this);
+        return Handle.Use(this);
     }
     
     public void Unload()
@@ -70,15 +70,15 @@ public class Material_GL : IMaterial
             throw new Exception($"Error compiling shader: {error}");
     }
 
-    class Api : IMaterialApi
+    class Handle : IMaterialHandle
     {
-        private static Api? s_Instance;
-        private static Api Instance => s_Instance ??= new Api();
+        private static Handle? s_Instance;
+        private static Handle Instance => s_Instance ??= new Handle();
         private Material_GL? ActiveMaterial { get; set; }
         
         private readonly Stack<Material_GL> m_MaterialStack = new();
 
-        public static IMaterialApi Use(Material_GL material)
+        public static IMaterialHandle Use(Material_GL material)
         {
             if (Instance.ActiveMaterial != null)
                 Instance.m_MaterialStack.Push(Instance.ActiveMaterial);

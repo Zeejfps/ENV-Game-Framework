@@ -6,5 +6,5 @@ public interface IMaterial : IAsset
     bool EnableBackfaceCulling { get; set; }
     bool EnableBlending { get; set; }
     
-    IMaterialApi Use();
+    IMaterialHandle Use();
 }
