@@ -2,7 +2,7 @@
 
 public class ImportMaterialOption
 {
-    private readonly MaterialAssetImporter_GL m_Importer = new();
+    private readonly MaterialAssetImporter m_Importer = new();
     
     public void Run()
     {

@@ -30,7 +30,7 @@ public class DebugMaterialAssetLoader_GL : IAssetLoader<IMaterial>
 
 public class MaterialAssetLoader_GL : MaterialAssetLoader
 {
-    protected override IMaterial LoadAsset(MaterialAsset_GL asset)
+    protected override IMaterial LoadAsset(MaterialAsset asset)
     {
         return Material_GL.LoadFromSource(asset.VertexShader, asset.FragmentShader);
     }

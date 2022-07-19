@@ -2,14 +2,14 @@ using Framework.Assets;
 
 namespace AssetImporter;
 
-public class MaterialAssetImporter_GL
+public class MaterialAssetImporter
 {
     public string VertexShaderSource { get; set; }
     public string FragmentShaderSource { get; set; }
 
     public void Import(string outputPath)
     {
-        var materialAsset = new MaterialAsset_GL
+        var materialAsset = new MaterialAsset
         {
             VertexShader = VertexShaderSource,
             FragmentShader = FragmentShaderSource

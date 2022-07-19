@@ -20,12 +20,12 @@ public abstract class MaterialAssetLoader : IAssetLoader<IMaterial>
         
         using var stream = File.Open(assetPath, FileMode.Open);
         using var reader = new BinaryReader(stream);
-        var materialAsset = MaterialAsset_GL.Deserialize(reader);
+        var materialAsset = MaterialAsset.Deserialize(reader);
 
         material = LoadAsset(materialAsset);
         m_PathToAssetMap[assetPath] = material;
         return material;
     }
 
-    protected abstract IMaterial LoadAsset(MaterialAsset_GL asset);
+    protected abstract IMaterial LoadAsset(MaterialAsset asset);
 }

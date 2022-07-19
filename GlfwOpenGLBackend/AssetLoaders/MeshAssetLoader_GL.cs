@@ -10,7 +10,7 @@ public class MeshAssetLoader_GL : IAssetLoader<IMesh>
         using var stream = File.Open(assetPath, FileMode.Open);
         using var reader = new BinaryReader(stream);
 
-        using var meshAsset = MeshAsset_GL.Deserialize(reader);
+        using var meshAsset = MeshAsset.Deserialize(reader);
         var mesh = new Mesh_GL(meshAsset.Vertices, meshAsset.Normals, meshAsset.Uvs, meshAsset.Tangents, meshAsset.Triangles);
         return mesh;
     }
