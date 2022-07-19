@@ -18,7 +18,7 @@ public class Game
     public Game(IContext context)
     {
         var quadMesh = context.AssetDatabase.LoadAsset<IMesh>("Assets/quad.mesh");
-        var material = context.AssetDatabase.LoadAsset<IMaterial>("");
+        var material = context.AssetDatabase.LoadAsset<IMaterial>("Assets/sprite_material.mat");
         
         m_Context = context;
         m_Clock = new Clock();

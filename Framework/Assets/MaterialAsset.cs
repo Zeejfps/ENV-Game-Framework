@@ -1,9 +1,9 @@
 ﻿namespace Framework.Assets;
 
-public class MaterialAsset
+public class MaterialAsset : IDisposable
 {
-    public string VertexShader { get; init; } = string.Empty;
-    public string FragmentShader { get; init; } = string.Empty;
+    public string VertexShader { get; set; } = string.Empty;
+    public string FragmentShader { get; set; } = string.Empty;
 
     public void Serialize(BinaryWriter writer)
     {
@@ -21,5 +21,11 @@ public class MaterialAsset
             VertexShader = vertexShader,
             FragmentShader = fragmentShader
         };
+    }
+
+    public void Dispose()
+    {
+        VertexShader = string.Empty;
+        FragmentShader = string.Empty;
     }
 }

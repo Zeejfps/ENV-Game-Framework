@@ -30,11 +30,6 @@ public class DebugMaterialAssetLoader_GL : IAssetLoader<IMaterial>
 
 public class MaterialAssetLoader_GL : MaterialAssetLoader
 {
-    protected override IMaterial LoadAsset(MaterialAsset asset)
-    {
-        return Material_GL.LoadFromSource(asset.VertexShader, asset.FragmentShader);
-    }
-    
     private unsafe void LoadShaderFromBinary(uint shader, byte[] shaderData)
     {
         fixed (void* p = &shaderData[0])
@@ -47,5 +42,10 @@ public class MaterialAssetLoader_GL : MaterialAssetLoader
         err = glGetError();
         if (err != GL_NO_ERROR)
             throw new Exception($"Error loading shader: {err:X}");
+    }
+    
+    protected override IMaterial LoadAsset(MaterialAsset asset)
+    {
+        return Material_GL.LoadFromSource(asset.VertexShader, asset.FragmentShader);
     }
 }

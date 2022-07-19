@@ -29,7 +29,7 @@ public class Context_GLFW_GL : IContext
         m_AssetDatabase = new AssetDatabase();
         
         m_AssetDatabase.AddLoader(new MeshAssetLoader_GL());
-        m_AssetDatabase.AddLoader(new DebugMaterialAssetLoader_GL());
+        m_AssetDatabase.AddLoader(new MaterialAssetLoader_GL());
         m_AssetDatabase.AddLoader(new TextureAssetLoader_GL());
     }
     

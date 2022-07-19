@@ -14,9 +14,9 @@ public abstract class MaterialAssetLoader : IAssetLoader<IMaterial>
         if (!File.Exists(assetPath))
             throw new Exception($"Failed to load material at path: {assetPath}");
 
-        var fileExtension = Path.GetExtension(assetPath);
-        if (fileExtension != ".material")
-            throw new Exception("Unknown file type!");
+        // var fileExtension = Path.GetExtension(assetPath);
+        // if (fileExtension != ".material")
+        //     throw new Exception("Unknown file type!");
         
         using var stream = File.Open(assetPath, FileMode.Open);
         using var reader = new BinaryReader(stream);
