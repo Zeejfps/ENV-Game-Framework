@@ -7,7 +7,6 @@ namespace Framework;
 public class FullScreenBlitPass
 {
     private IMaterial? m_FullScreenBlitMaterial;
-    private IMesh? m_QuadMesh;
     private readonly ICamera m_Camera;
     private readonly ITransform3D m_light;
 
@@ -23,23 +22,22 @@ public class FullScreenBlitPass
         m_FullScreenBlitMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/fullScreenQuad.material");
         m_FullScreenBlitMaterial.EnableBackfaceCulling = true;
         m_FullScreenBlitMaterial.EnableDepthTest = false;
-        m_QuadMesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/quad.mesh");
     }
     
-    public void Render(ITexture bufferAlbedo, ITexture bufferNormal, ITexture bufferPosition)
+    public void Render(IMesh quadMesh, ITexture bufferAlbedo, ITexture bufferNormal, ITexture bufferPosition)
     {
         Debug.Assert(m_FullScreenBlitMaterial != null);
-        Debug.Assert(m_QuadMesh != null);
+        Debug.Assert(quadMesh != null);
         
         using var material = m_FullScreenBlitMaterial.Use();
-        using var mesh = m_QuadMesh.Use();
+        using var mesh = quadMesh.Use();
         
         material.SetTexture2d("gColor", bufferAlbedo);
         material.SetTexture2d("gNormal", bufferNormal);
         material.SetTexture2d("gPosition", bufferPosition);
         material.SetVector3("viewPos", m_Camera.Transform.WorldPosition);
         
-        var colors = new Color[]{Color.Red, Color.Green, Color.Aqua, Color.Gold, Color.Crimson,Color.Lime};
+        var colors = new[]{Color.Red, Color.Green, Color.Aqua, Color.Gold, Color.Crimson,Color.Lime};
         for (int i = 0; i < 4; i++)
         {
             var x = new Random(i);

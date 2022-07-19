@@ -18,7 +18,7 @@ public class TestScene : IScene
     private FullScreenBlitPass m_FullScreenBlitPass;
     
     private readonly IContext m_Context;
-    private readonly PerspectiveCamera m_Camera;
+    private readonly ICamera m_Camera;
     private readonly IClock m_Clock;
 
     private ITransform3D m_CameraTarget;
@@ -36,11 +36,14 @@ public class TestScene : IScene
     private readonly List<ISceneObject> m_SceneObjects = new();
 
     private IMaterial m_UnlitMaterial;
+    private IMesh m_QuadMesh;
     
     public TestScene(IContext context)
     {
+        var aspect = context.Window.Width / (float)context.Window.Height;
         m_Context = context;
-        m_Camera = new PerspectiveCamera(context);
+        //m_Camera = new OrthographicCamera(20, 20 / aspect, 0.1f, 100f);
+        m_Camera = new PerspectiveCamera(75f, aspect);
         m_Clock = new Clock();
         m_Camera.Transform.WorldPosition = new Vector3(0, 5f, -25f);
         
@@ -51,6 +54,7 @@ public class TestScene : IScene
         {
             WorldPosition = new Vector3(0f, 5f, 0f),
         };
+        lightTransform.RotateInLocalSpace(0f, 0f, 180f);
         
         m_WindowFramebuffer = context.Window.Framebuffer;
         m_TempRenderbuffer = context.CreateRenderbuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height, 3, true);
@@ -78,8 +82,11 @@ public class TestScene : IScene
     {
         m_UnlitMaterial = Context.AssetDatabase.LoadAsset<IMaterial>("Assets/Materials/unlit.material");
         m_UnlitMaterial.EnableDepthTest = true;
-        m_UnlitMaterial.EnableBackfaceCulling = true;
+        m_UnlitMaterial.EnableBackfaceCulling = false;
         
+        m_QuadMesh = Context.AssetDatabase.LoadAsset<IMesh>("Assets/Meshes/quad.mesh");
+
+        m_Light.Load(this);
         m_SpecularRenderPass.Load(this);
         m_FullScreenBlitPass.Load(Context);
         
@@ -94,34 +101,35 @@ public class TestScene : IScene
 
     public void Update()
     {
-        m_Camera.Update();
+        //m_Camera.Update();
         m_Clock.Tick();
         
         HandleInput();
 
         m_Light.Transform.WorldPosition += new Vector3(MathF.Sin(m_Clock.Time),0,0) * m_Clock.DeltaTime * 5;
         
-        foreach (var sceneObject in m_SceneObjects)
-            sceneObject.Update(this);
-
-        /*
-         * All the Rendering steps below
-         */
+        // foreach (var sceneObject in m_SceneObjects)
+        //     sceneObject.Update(this);
+        //
+        // /*
+        //  * All the Rendering steps below
+        //  */
         using (var renderbuffer = m_TempRenderbuffer.Use())
         {
             renderbuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
             renderbuffer.Clear(0f, 0f, 0f, 0f);
-            m_UnlitRenderPass.Render(m_Camera, m_UnlitMaterial);
             m_SpecularRenderPass.Render(m_Camera);
         }
 
         using (var renderbuffer = m_WindowFramebuffer.Use())
         {
             renderbuffer.Clear(.42f, .607f, .82f, 1f);
-            m_FullScreenBlitPass.Render(
+            m_FullScreenBlitPass.Render(m_QuadMesh,
                 m_TempRenderbuffer.ColorBuffers[0],
                 m_TempRenderbuffer.ColorBuffers[1],
                 m_TempRenderbuffer.ColorBuffers[2]);
+            
+            m_UnlitRenderPass.Render(m_Camera, m_UnlitMaterial);
         }
     }
 

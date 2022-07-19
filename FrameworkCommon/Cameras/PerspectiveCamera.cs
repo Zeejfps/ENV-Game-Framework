@@ -11,16 +11,12 @@ public class PerspectiveCamera : ICamera
     
     public ITransform3D Transform { get; }
 
-    private IContext m_Context;
     
-    public PerspectiveCamera(IContext context)
+    public PerspectiveCamera(float fov, float aspectRatio)
     {
-        m_Context = context;
         Transform = new Transform3D();
-        Fov = 75f;
-        var window = m_Context.Window;
-        var aspect = window.Framebuffer.Width / (float)window.Framebuffer.Height;
-        ProjectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(Fov * DegToRad, aspect, 0.1f, 500f);
+        Fov = fov;
+        ProjectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(Fov * DegToRad, aspectRatio, 0.1f, 500f);
     }
     
     public void Update()
