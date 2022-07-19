@@ -3,15 +3,11 @@ using Framework.GLFW.NET;
 
 namespace Framework;
 
-public class MeshAssetLoader_GL : IAssetLoader<IMesh>
+public class MeshAssetLoader_GL : MeshAssetLoader
 {
-    public IAsset LoadAsset(string assetPath)
+    protected override IMesh LoadAsset(MeshAsset asset)
     {
-        using var stream = File.Open(assetPath, FileMode.Open);
-        using var reader = new BinaryReader(stream);
-
-        using var meshAsset = MeshAsset.Deserialize(reader);
-        var mesh = new Mesh_GL(meshAsset.Vertices, meshAsset.Normals, meshAsset.Uvs, meshAsset.Tangents, meshAsset.Triangles);
+        var mesh = new Mesh_GL(asset.Vertices, asset.Normals, asset.Uvs, asset.Tangents, asset.Triangles);
         return mesh;
     }
 }
