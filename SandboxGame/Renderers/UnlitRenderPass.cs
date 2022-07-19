@@ -7,7 +7,7 @@ public class UnlitRendererable
 {
     public IMesh Mesh { get; init; }
     public Vector3 Color { get; init; }
-    public ITransform Transform { get; init; }
+    public ITransform3D Transform { get; init; }
 }
 
 public class UnlitRenderPass

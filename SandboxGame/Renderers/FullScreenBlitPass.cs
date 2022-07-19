@@ -9,9 +9,9 @@ public class FullScreenBlitPass
     private IMaterial? m_FullScreenBlitMaterial;
     private IMesh? m_QuadMesh;
     private readonly ICamera m_Camera;
-    private readonly ITransform m_light;
+    private readonly ITransform3D m_light;
 
-    public FullScreenBlitPass(ICamera camera, ITransform light)
+    public FullScreenBlitPass(ICamera camera, ITransform3D light)
     {
         m_Camera = camera;
         m_light = light;

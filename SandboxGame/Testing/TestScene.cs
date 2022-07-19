@@ -21,8 +21,8 @@ public class TestScene : IScene
     private readonly PerspectiveCamera m_Camera;
     private readonly IClock m_Clock;
 
-    private ITransform m_CameraTarget;
-    private ITransform m_LightPosition;
+    private ITransform3D m_CameraTarget;
+    private ITransform3D m_LightPosition;
 
     private int m_PrevMouseX;
     private int m_PrevMouseY;

@@ -6,18 +6,18 @@ namespace Framework;
 
 public class SpecularRenderPass
 {
-    private readonly Dictionary<(IMesh, SpecularRenderableTextures), List<ITransform>> m_MeshToRenderableMap = new();
-    private readonly Dictionary<ITransform, (IMesh, SpecularRenderableTextures)> m_TransformToGroupMap = new();
+    private readonly Dictionary<(IMesh, SpecularRenderableTextures), List<ITransform3D>> m_MeshToRenderableMap = new();
+    private readonly Dictionary<ITransform3D, (IMesh, SpecularRenderableTextures)> m_TransformToGroupMap = new();
 
     private IMaterial? m_SpecularMaterial;
-    private readonly ITransform m_Light;
+    private readonly ITransform3D m_Light;
 
     private Vector3 _lightColor = new Vector3(1f,1f,1f);
     private Vector3 _ambientColor = new Vector3(.2f,.4f,.6f);
     private Vector3 _specularColor = new Vector3(.7f,.7f,.7f);
     private float _shininess = 10f;
     
-    public SpecularRenderPass(ITransform light)
+    public SpecularRenderPass(ITransform3D light)
     {
         m_Light = light;
     }
@@ -31,7 +31,7 @@ public class SpecularRenderPass
         var key = (mesh, textures);
         if (!m_MeshToRenderableMap.TryGetValue(key, out var transforms))
         {
-            transforms = new List<ITransform>();
+            transforms = new List<ITransform3D>();
             m_MeshToRenderableMap[key] = transforms;
         }
         
@@ -107,7 +107,7 @@ public class SpecularRenderPass
 public readonly struct SpecularRenderable 
 {
     public IMesh Mesh { get; init; }
-    public ITransform Transform { get; init; }
+    public ITransform3D Transform { get; init; }
     public SpecularRenderableTextures Textures { get; init; }
 }
 

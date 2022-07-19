@@ -9,7 +9,7 @@ public class PerspectiveCamera : ICamera
     public Matrix4x4 ProjectionMatrix { get; private set; }
     public float Fov { get; set; }
     
-    public ITransform Transform { get; }
+    public ITransform3D Transform { get; }
 
     private IContext m_Context;
     

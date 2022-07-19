@@ -5,5 +5,5 @@ namespace Framework;
 public interface ICamera
 {
     Matrix4x4 ProjectionMatrix { get; }
-    ITransform Transform { get; }
+    ITransform3D Transform { get; }
 }

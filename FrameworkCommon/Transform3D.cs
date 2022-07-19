@@ -2,7 +2,7 @@
 
 namespace Framework.Common;
 
-public class Transform3D : ITransform
+public class Transform3D : ITransform3D
 {
     const float DegToRad = 0.0174533f;
     

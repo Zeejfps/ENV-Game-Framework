@@ -6,7 +6,7 @@ namespace Framework;
 
 public class TestLight : ISceneObject
 {
-    public ITransform Transform { get; }
+    public ITransform3D Transform { get; }
     public float Intensity { get; set; }
     public Color Color;
 
@@ -14,7 +14,7 @@ public class TestLight : ISceneObject
 
     private readonly UnlitRenderPass m_Renderer;
 
-    public TestLight(UnlitRenderPass renderer, ITransform transform)
+    public TestLight(UnlitRenderPass renderer, ITransform3D transform)
     {
         Transform = transform;
         m_Renderer = renderer;

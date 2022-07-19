@@ -2,7 +2,7 @@
 
 namespace Framework;
 
-public interface ITransform
+public interface ITransform3D
 {
     Vector3 WorldPosition { get; set; }
     Quaternion WorldRotation { get; set; }

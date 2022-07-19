@@ -7,7 +7,7 @@ namespace Framework;
 public struct BlinnRenderData
 {
     public IMesh Mesh { get; init; }
-    public ITransform Transform { get; init; }
+    public ITransform3D Transform { get; init; }
 }
 
 public class BlinnRenderer
@@ -17,9 +17,9 @@ public class BlinnRenderer
     private IFramebuffer? m_Framebuffer;
     
     private readonly ICamera m_Camera;
-    private readonly ITransform m_Light;
+    private readonly ITransform3D m_Light;
     
-    public BlinnRenderer(ICamera camera, ITransform light)
+    public BlinnRenderer(ICamera camera, ITransform3D light)
     {
         m_Camera = camera;
         m_Light = light;

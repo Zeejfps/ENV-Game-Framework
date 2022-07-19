@@ -5,7 +5,7 @@ namespace Framework.Common.Cameras;
 public class OrthographicCamera : ICamera
 {
     public Matrix4x4 ProjectionMatrix { get; }
-    public ITransform Transform { get; }
+    public ITransform3D Transform { get; }
 
     public OrthographicCamera(float width, float height, float zNearPlane, float zFarPlane)
     {

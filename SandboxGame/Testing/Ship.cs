@@ -7,7 +7,7 @@ namespace Framework;
 
 public class Ship : ISceneObject
 {
-    public ITransform Transform { get; }
+    public ITransform3D Transform { get; }
     
     private IMesh? m_Mesh;
     private ITexture? m_Diffuse;

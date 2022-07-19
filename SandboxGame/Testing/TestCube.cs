@@ -6,11 +6,11 @@ namespace Framework;
 
 public class TestCube : ISceneObject
 {
-    public ITransform Transform => m_Transform;
+    public ITransform3D Transform => m_Transform;
     
     private IMesh m_Mesh;
     
-    private readonly ITransform m_Transform;
+    private readonly ITransform3D m_Transform;
     private readonly SpecularRenderPass m_BlinnRenderPass;
 
     public TestCube(SpecularRenderPass blinnRenderPass)
