@@ -1,14 +1,6 @@
-﻿using System.Numerics;
-
-namespace Framework;
+﻿namespace Framework;
 
 public interface IMesh : IAsset
 {
-    IMeshApi Use();
-}
-
-public interface IMeshApi : IDisposable
-{
-    void Render();
-    void RenderInstanced(int instanceCount);
+    IMeshHandle Use();
 }

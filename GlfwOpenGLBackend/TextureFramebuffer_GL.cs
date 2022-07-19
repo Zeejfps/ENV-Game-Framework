@@ -17,7 +17,7 @@ public class TextureFramebuffer_GL : IRenderbuffer
     private uint m_Id;
     private int[] m_drawBufferIds;
 
-    private Api m_Api;
+    private Handle m_Handle;
 
     public TextureFramebuffer_GL(int width, int height, int colorBufferCount, bool createDepthBuffer)
     {
@@ -60,9 +60,9 @@ public class TextureFramebuffer_GL : IRenderbuffer
         glBindFramebuffer(0);
     }
 
-    public IFramebufferApi Use()
+    public IFramebufferHandle Use()
     {
-        return Api.Use(this);
+        return Handle.Use(this);
     }
 
     public void Dispose()
@@ -72,14 +72,14 @@ public class TextureFramebuffer_GL : IRenderbuffer
         m_DepthTexture.Unload();
     }
     
-    class Api : IFramebufferApi
+    class Handle : IFramebufferHandle
     {
-        private static Api? s_Instance;
-        private static Api Instance => s_Instance ??= new Api();
+        private static Handle? s_Instance;
+        private static Handle Instance => s_Instance ??= new Handle();
 
         private TextureFramebuffer_GL? m_ActiveFramebuffer;
         
-        public static Api Use(TextureFramebuffer_GL framebuffer)
+        public static Handle Use(TextureFramebuffer_GL framebuffer)
         {
             Instance.m_ActiveFramebuffer = framebuffer;
             glBindFramebuffer(framebuffer.m_Id);

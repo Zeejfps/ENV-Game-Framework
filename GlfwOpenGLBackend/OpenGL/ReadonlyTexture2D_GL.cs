@@ -39,9 +39,10 @@ public class ReadonlyTexture2D_GL : ITexture, IEquatable<ReadonlyTexture2D_GL>
         m_Id = GL_NONE;
     }
 
-    public void Use()
+    public ITextureHandle Use()
     {
         glBindTexture(GL_TEXTURE_2D, m_Id);
+        return new Handle();
     }
 
     public bool Equals(ReadonlyTexture2D_GL? other)
@@ -73,4 +74,6 @@ public class ReadonlyTexture2D_GL : ITexture, IEquatable<ReadonlyTexture2D_GL>
     {
         return !Equals(left, right);
     }
+    
+    class Handle : ITextureHandle {}
 }

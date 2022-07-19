@@ -2,5 +2,5 @@
 
 public interface ITexture : IAsset
 {
-    void Use();
+    ITextureHandle Use();
 }

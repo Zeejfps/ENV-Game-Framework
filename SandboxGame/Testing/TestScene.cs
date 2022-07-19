@@ -50,10 +50,9 @@ public class TestScene : IScene
             WorldPosition = new Vector3(0f, 5f, 0f),
         };
         
-        var windowFramebuffer = Context.Window.Framebuffer;
-        m_TempRenderbuffer = context.CreateRenderbuffer(windowFramebuffer.Width, windowFramebuffer.Height, 3, true);
         m_WindowFramebuffer = context.Window.Framebuffer;
-        
+        m_TempRenderbuffer = context.CreateRenderbuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height, 3, true);
+
         m_SpecularRenderPass = new SpecularRenderPass(lightTransform);
         m_UnlitRenderPass = new UnlitRenderPass();
         m_Light = new TestLight(m_UnlitRenderPass, lightTransform);

@@ -14,9 +14,10 @@ public class Texture2D_GL : ITexture
         m_Id = id;
     }
     
-    public void Use()
+    public ITextureHandle Use()
     {
         glBindTexture(GL_TEXTURE_2D, m_Id);
+        return new Handle();
     }
 
     public void Unload()
@@ -24,5 +25,10 @@ public class Texture2D_GL : ITexture
         glDeleteTexture(m_Id);
         m_Id = 0;
         IsLoaded = false;
+    }
+
+    class Handle : ITextureHandle
+    {
+        
     }
 }

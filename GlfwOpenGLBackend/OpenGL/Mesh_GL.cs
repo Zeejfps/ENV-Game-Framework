@@ -75,19 +75,19 @@ public class Mesh_GL : IMesh
         
     }
 
-    public IMeshApi Use()
+    public IMeshHandle Use()
     {
-        return Api.Use(this);
+        return Handle.Use(this);
     }
 
-    class Api : IMeshApi
+    class Handle : IMeshHandle
     {
-        private static Api? s_Instance;
-        private static Api Instance => s_Instance ??= new Api();
+        private static Handle? s_Instance;
+        private static Handle Instance => s_Instance ??= new Handle();
 
         private Mesh_GL m_ActiveMesh;
         
-        public static IMeshApi Use(Mesh_GL mesh)
+        public static IMeshHandle Use(Mesh_GL mesh)
         {
             Instance.m_ActiveMesh = mesh;
             glBindVertexArray(mesh.m_Vao);

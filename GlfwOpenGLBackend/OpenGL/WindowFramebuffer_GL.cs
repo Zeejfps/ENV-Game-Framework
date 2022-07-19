@@ -8,20 +8,20 @@ public class WindowFramebuffer_GL : IFramebuffer
     public int Width { get; private set; }
     public int Height { get; private set; }
 
-    private Api m_Api;
+    private Handle m_Handle;
 
     public WindowFramebuffer_GL(int width, int height, GetProcAddressHandler getProcAddress)
     {
-        m_Api = new Api(this);
+        m_Handle = new Handle(this);
         Width = width;
         Height = height;
         Import(getProcAddress);
     }
 
-    public IFramebufferApi Use()
+    public IFramebufferHandle Use()
     {
-        m_Api.Use();
-        return m_Api;
+        m_Handle.Use();
+        return m_Handle;
     }
     
     public void Resize(int width, int height)
@@ -34,11 +34,11 @@ public class WindowFramebuffer_GL : IFramebuffer
     {
     }
     
-    class Api : IFramebufferApi
+    class Handle : IFramebufferHandle
     {
         private readonly WindowFramebuffer_GL m_Framebuffer;
     
-        public Api(WindowFramebuffer_GL framebuffer)
+        public Handle(WindowFramebuffer_GL framebuffer)
         {
             m_Framebuffer = framebuffer;
         }
