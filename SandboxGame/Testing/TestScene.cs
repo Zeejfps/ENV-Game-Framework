@@ -34,6 +34,8 @@ public class TestScene : IScene
     private List<Ship> m_Ships;
     private readonly TestLight m_Light;
     private readonly List<ISceneObject> m_SceneObjects = new();
+
+    private IMaterial m_UnlitMaterial;
     
     public TestScene(IContext context)
     {
@@ -74,7 +76,10 @@ public class TestScene : IScene
 
     public void Load()
     {
-        m_UnlitRenderPass.Load(this);
+        m_UnlitMaterial = Context.AssetDatabase.LoadAsset<IMaterial>("Assets/Materials/unlit.material");
+        m_UnlitMaterial.EnableDepthTest = true;
+        m_UnlitMaterial.EnableBackfaceCulling = true;
+        
         m_SpecularRenderPass.Load(this);
         m_FullScreenBlitPass.Load(Context);
         
@@ -106,7 +111,7 @@ public class TestScene : IScene
         {
             renderbuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
             renderbuffer.Clear(0f, 0f, 0f, 0f);
-            m_UnlitRenderPass.Render(m_Camera);
+            m_UnlitRenderPass.Render(m_Camera, m_UnlitMaterial);
             m_SpecularRenderPass.Render(m_Camera);
         }
 

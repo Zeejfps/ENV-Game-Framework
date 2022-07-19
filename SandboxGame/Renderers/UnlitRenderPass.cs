@@ -12,36 +12,26 @@ public class UnlitRendererable
 
 public class UnlitRenderPass
 {
-    private IMaterial m_Material;
-    
-    private List<UnlitRendererable> m_Rendererables = new List<UnlitRendererable>();
-    
-    
-    public void Load(IScene scene)
-    {
-        m_Material = scene.Context.AssetDatabase.LoadAsset<IMaterial>("Assets/Materials/unlit.material");
-        m_Material.EnableDepthTest = true;
-        m_Material.EnableBackfaceCulling = true;
-    }
+    private List<UnlitRendererable> m_Renderables = new();
 
     public void Add(UnlitRendererable rendererable)
     {
-        m_Rendererables.Add(rendererable);
+        m_Renderables.Add(rendererable);
     }
 
-    public void Render(ICamera camera)
+    public void Render(ICamera camera, IMaterial material)
     {
-        using var material = m_Material.Use();
-        material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
+        using var materialHandle = material.Use();
+        materialHandle.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
 
-        foreach (var data in m_Rendererables)
+        foreach (var data in m_Renderables)
         {
             var modelMatrix = data.Transform.WorldMatrix;
             Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
         
-            material.SetMatrix4x4("matrix_view", viewMatrix);
-            material.SetMatrix4x4("matrix_model", modelMatrix);
-            material.SetVector3("color", data.Color);
+            materialHandle.SetMatrix4x4("matrix_view", viewMatrix);
+            materialHandle.SetMatrix4x4("matrix_model", modelMatrix);
+            materialHandle.SetVector3("color", data.Color);
 
             using var mesh = data.Mesh.Use();
             mesh.Render();
