@@ -20,11 +20,18 @@ public abstract class MaterialAssetLoader : IAssetLoader<IMaterial>
         
         using var stream = File.Open(assetPath, FileMode.Open);
         using var reader = new BinaryReader(stream);
-        var materialAsset = MaterialAsset.Deserialize(reader);
 
-        material = LoadAsset(materialAsset);
-        m_PathToAssetMap[assetPath] = material;
-        return material;
+        try
+        {
+            var materialAsset = MaterialAsset.Deserialize(reader);
+            material = LoadAsset(materialAsset);
+            m_PathToAssetMap[assetPath] = material;
+            return material;
+        }
+        catch (Exception e)
+        {
+            throw new Exception($"Failed to deserialize asset: {assetPath}");
+        }
     }
 
     protected abstract IMaterial LoadAsset(MaterialAsset asset);

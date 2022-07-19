@@ -1,4 +1,6 @@
-﻿using Framework;
+﻿using System.Numerics;
+using Framework;
+using Framework.Common;
 using Framework.Common.Cameras;
 
 namespace SnakeGame;
@@ -6,7 +8,7 @@ namespace SnakeGame;
 public class Game
 {
     private Direction m_SnakeDirection = Direction.North;
-    private readonly LinkedList<Point> m_Snake;
+    private readonly LinkedList<ITransform3D> m_Snake;
     private readonly IContext m_Context;
     private readonly IClock m_Clock;
 
@@ -14,23 +16,35 @@ public class Game
 
     private OrthographicCamera m_Camera;
     private SpriteRenderer m_SpriteRenderer;
-    
+
+    private IMesh m_QuadMesh;
+    private IMaterial m_UnlitMaterial;
+
     public Game(IContext context)
     {
-        var quadMesh = context.AssetDatabase.LoadAsset<IMesh>("Assets/quad.mesh");
-        var material = context.AssetDatabase.LoadAsset<IMaterial>("Assets/sprite.material");
-        
+        m_QuadMesh = context.AssetDatabase.LoadAsset<IMesh>("Assets/quad.mesh");
+        m_UnlitMaterial = context.AssetDatabase.LoadAsset<IMaterial>("Assets/sprite.material");
+        m_UnlitMaterial.EnableBackfaceCulling = false;
+
         m_Context = context;
         m_Clock = new Clock();
-        //m_Camera = new OrthographicCamera(2, 2, 0.1f, 10);
-        m_Camera = new OrthographicCamera(2, 2, 0.1f, 10);
-        m_SpriteRenderer = new SpriteRenderer(quadMesh, material);
+        m_Camera = new OrthographicCamera(20, 20, 0.1f, 10)
+        {
+            Transform =
+            {
+                WorldPosition = new Vector3(0f, 0f, -5f),
+            }
+        };
+        m_SpriteRenderer = new SpriteRenderer();
         
         var width = 20;
         var height = 20;
         
-        m_Snake = new LinkedList<Point>();
-        m_Snake.AddFirst(new Point(width / 2, height / 2));
+        m_Snake = new LinkedList<ITransform3D>();
+        m_Snake.AddFirst(new Transform3D
+        {
+            WorldPosition = new Vector3(0f, -5f, 0f),
+        });
     }
 
     public void Update()
@@ -45,17 +59,20 @@ public class Game
 
         using (var framebuffer = m_Context.Window.Framebuffer.Use())
         {
-            framebuffer.Clear(0f, 0f, 0f, 1f);
-            m_SpriteRenderer.Render(m_Camera);
+            framebuffer.Clear(0f, 0.3f, 0f, 1f);
+            m_SpriteRenderer.Render(m_Camera, m_UnlitMaterial, m_QuadMesh, m_Snake);
         }
     }
 
     private void MoveSnake()
     {
         var first = m_Snake.First!.Value;
-        var next = new Point(first.X + m_SnakeDirection.Dx, first.Y + m_SnakeDirection.Dy);
-        
+
+        var tail = m_Snake.Last.Value;
         m_Snake.RemoveLast();
-        m_Snake.AddFirst(next);
+
+        tail.WorldPosition = new Vector3(first.WorldPosition.X + m_SnakeDirection.Dx,
+            first.WorldPosition.Y + m_SnakeDirection.Dy, 0f);
+        m_Snake.AddFirst(tail);
     }
 }
