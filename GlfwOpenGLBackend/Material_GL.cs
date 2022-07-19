@@ -27,7 +27,7 @@ public class Material_GL : IMaterial
 
     public IMaterialHandle Use()
     {
-        return Handle.Use(this);
+        return new Handle(this);
     }
     
     public void Unload()
@@ -72,18 +72,19 @@ public class Material_GL : IMaterial
 
     class Handle : IMaterialHandle
     {
-        private static Handle? s_Instance;
-        private static Handle Instance => s_Instance ??= new Handle();
-        private Material_GL? ActiveMaterial { get; set; }
+        private static Handle? s_ActiveHandle;
         
-        private readonly Stack<Material_GL> m_MaterialStack = new();
-
-        public static IMaterialHandle Use(Material_GL material)
+        private Material_GL Material { get; }
+        private bool IsDisposed { get; set; }
+        
+        public Handle(Material_GL material)
         {
-            if (Instance.ActiveMaterial != null)
-                Instance.m_MaterialStack.Push(Instance.ActiveMaterial);
+            if (s_ActiveHandle != null)
+                s_ActiveHandle.IsDisposed = true;
+
+            s_ActiveHandle = this;
+            Material = material;
             
-            Instance.ActiveMaterial = material;
             glUseProgram(material.m_ProgramId);
         
             if (material.EnableDepthTest)
@@ -103,29 +104,31 @@ public class Material_GL : IMaterial
             }
             else
                 glDisable(GL_BLEND);
-
-            return Instance;
         }
 
         public void SetFloat(string propertyName, float value)
         {
+            Debug.Assert(!IsDisposed);
             var location = GetUniformLocation(propertyName);
             glUniform1f(location, value);
         }
 
         public void SetVector3(string propertyName, float x, float y, float z)
         {
+            Debug.Assert(!IsDisposed);
             var location = GetUniformLocation(propertyName);
             glUniform3f(location, x, y, z);
         }
 
         public void SetVector3(string propertyName, Vector3 vector)
         {
+            Debug.Assert(!IsDisposed);
             SetVector3(propertyName, vector.X, vector.Y, vector.Z);
         }
 
         public void SetTexture2d(string propertyName, ITexture texture)
         {
+            Debug.Assert(!IsDisposed);
             var location = GetUniformLocation(propertyName);
             var textureSlot = GetTextureSlot(propertyName);
             glUniform1i(location, textureSlot);
@@ -135,6 +138,7 @@ public class Material_GL : IMaterial
 
         public void SetMatrix4x4(string propertyName, Matrix4x4 matrix)
         {
+            Debug.Assert(!IsDisposed);
             var location = GetUniformLocation(propertyName);
             unsafe
             {
@@ -145,33 +149,31 @@ public class Material_GL : IMaterial
 
         public IBuffer GetBuffer(string name)
         {
-            Debug.Assert(ActiveMaterial != null);
-            if (ActiveMaterial.m_NameToBufferMap.TryGetValue(name, out var buffer))
+            Debug.Assert(!IsDisposed);
+            if (Material.m_NameToBufferMap.TryGetValue(name, out var buffer))
                 return buffer;
 
-            var index = glGetProgramResourceIndex(ActiveMaterial.m_ProgramId, GL_SHADER_STORAGE_BLOCK, name);
+            var index = glGetProgramResourceIndex(Material.m_ProgramId, GL_SHADER_STORAGE_BLOCK, name);
             glAssertNoError();
             
             buffer = new ShaderStorageBuffer_GL(index);
-            ActiveMaterial.m_NameToBufferMap[name] = buffer;
+            Material.m_NameToBufferMap[name] = buffer;
             return buffer;
         }
         
         public void Dispose()
         {
-            if (m_MaterialStack.TryPop(out var material))
-                Use(material);
-            else
-                glUseProgram(0);
+            glUseProgram(0);
+            IsDisposed = true;
         }
         
         private int GetUniformLocation(string uniformName)
         {
-            Debug.Assert(ActiveMaterial != null);
-            var propertyToIdMap = ActiveMaterial.m_PropertyToIdMap;
+            Debug.Assert(Material != null);
+            var propertyToIdMap = Material.m_PropertyToIdMap;
             if (!propertyToIdMap.TryGetValue(uniformName, out var location))
             {
-                location = glGetUniformLocation(ActiveMaterial.m_ProgramId, uniformName);
+                location = glGetUniformLocation(Material.m_ProgramId, uniformName);
                 propertyToIdMap[uniformName] = location;
             }
 
@@ -180,14 +182,14 @@ public class Material_GL : IMaterial
         
         private int GetTextureSlot(string texture)
         {
-            Debug.Assert(ActiveMaterial != null);
-            var textureToSlotMap = ActiveMaterial.m_TextureToSlotMap;
+            Debug.Assert(!IsDisposed);
+            var textureToSlotMap = Material.m_TextureToSlotMap;
             if (textureToSlotMap.TryGetValue(texture, out var slot))
                 return slot;
 
-            slot = ActiveMaterial.m_ActiveTextureId;
+            slot = Material.m_ActiveTextureId;
             textureToSlotMap[texture] = slot;
-            ActiveMaterial.m_ActiveTextureId++;
+            Material.m_ActiveTextureId++;
             return slot;
         }
     }
