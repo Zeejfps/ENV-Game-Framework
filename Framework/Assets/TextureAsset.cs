@@ -1,6 +1,6 @@
 ﻿namespace TicTacToePrototype;
 
-public class TextureAsset_GL
+public class TextureAsset
 {
     public int Width { get; init; }
     public int Height { get; init; }
@@ -14,18 +14,18 @@ public class TextureAsset_GL
         writer.Write(Pixels);
     }
     
-    public static TextureAsset_GL Deserialize(BinaryReader reader)
+    public static TextureAsset Deserialize(BinaryReader reader)
     {
         var width = reader.ReadInt32();
         var height = reader.ReadInt32();
-        var byteCount = reader.ReadInt32();
-        var texture = reader.ReadBytes(byteCount);
+        var pixelCount = reader.ReadInt32();
+        var pixels = reader.ReadBytes(pixelCount);
         
-        return new TextureAsset_GL
+        return new TextureAsset
         {
             Width = width,
             Height = height,
-            Pixels = texture,
+            Pixels = pixels,
         };
     }
 }

@@ -4,9 +4,9 @@ using TicTacToePrototype.OpenGL.AssetLoaders;
 
 namespace GlfwOpenGLBackend.AssetLoaders;
 
-public class TextureAssetLoader_GL : TextureAssetLoaderModule
+public class TextureAssetLoader_GL : TextureAssetLoader
 {
-    protected override ITexture LoadAsset(TextureAsset_GL asset)
+    protected override ITexture LoadAsset(TextureAsset asset)
     {
         var width = asset.Width;
         var height = asset.Height;

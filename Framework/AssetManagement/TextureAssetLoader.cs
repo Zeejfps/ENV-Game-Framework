@@ -2,7 +2,7 @@
 
 namespace Framework;
 
-public abstract class TextureAssetLoaderModule : IAssetLoader<ITexture>
+public abstract class TextureAssetLoader : IAssetLoader<ITexture>
 {
     public IAsset LoadAsset(string assetPath)
     {
@@ -12,10 +12,10 @@ public abstract class TextureAssetLoaderModule : IAssetLoader<ITexture>
         using var stream = File.Open(assetPath, FileMode.Open);
         using var reader = new BinaryReader(stream);
 
-        var asset = TextureAsset_GL.Deserialize(reader);
+        var asset = TextureAsset.Deserialize(reader);
         var texture = LoadAsset(asset);
         return texture;
     }
 
-    protected abstract ITexture LoadAsset(TextureAsset_GL asset);
+    protected abstract ITexture LoadAsset(TextureAsset asset);
 }
