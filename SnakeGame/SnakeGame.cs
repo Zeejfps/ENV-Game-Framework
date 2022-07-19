@@ -13,14 +13,17 @@ public class Game
     private float m_AccumulatedTime;
 
     private OrthographicCamera m_Camera;
-    private SnakeRenderPass m_SnakeRenderPass;
+    private SpriteRenderer m_SpriteRenderer;
     
     public Game(IContext context)
     {
+        var quadMesh = context.AssetDatabase.LoadAsset<IMesh>("Assets/quad.mesh");
+        var material = context.AssetDatabase.LoadAsset<IMaterial>("");
+        
         m_Context = context;
         m_Clock = new Clock();
         m_Camera = new OrthographicCamera(20, 20, 0.1f, 10);
-        m_SnakeRenderPass = new SnakeRenderPass(m_Context);
+        m_SpriteRenderer = new SpriteRenderer(quadMesh, material);
         
         var width = 20;
         var height = 20;
@@ -42,7 +45,7 @@ public class Game
         using (var framebuffer = m_Context.Window.Framebuffer.Use())
         {
             framebuffer.Clear(1f, 0f, 1f, 1f);
-            m_SnakeRenderPass.Render(m_Camera);
+            m_SpriteRenderer.Render(m_Camera);
         }
     }
 
