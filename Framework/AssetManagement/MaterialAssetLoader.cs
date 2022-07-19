@@ -12,7 +12,7 @@ public abstract class MaterialAssetLoader : IAssetLoader<IMaterial>
             return material;
         
         if (!File.Exists(assetPath))
-            throw new Exception($"Failed to load material at path: {assetPath}");
+            throw new Exception($"File does not exists at path: {assetPath}");
 
         // var fileExtension = Path.GetExtension(assetPath);
         // if (fileExtension != ".material")

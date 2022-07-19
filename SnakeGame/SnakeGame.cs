@@ -18,11 +18,12 @@ public class Game
     public Game(IContext context)
     {
         var quadMesh = context.AssetDatabase.LoadAsset<IMesh>("Assets/quad.mesh");
-        var material = context.AssetDatabase.LoadAsset<IMaterial>("Assets/sprite_material.mat");
+        var material = context.AssetDatabase.LoadAsset<IMaterial>("Assets/sprite.material");
         
         m_Context = context;
         m_Clock = new Clock();
-        m_Camera = new OrthographicCamera(20, 20, 0.1f, 10);
+        //m_Camera = new OrthographicCamera(2, 2, 0.1f, 10);
+        m_Camera = new OrthographicCamera(2, 2, 0.1f, 10);
         m_SpriteRenderer = new SpriteRenderer(quadMesh, material);
         
         var width = 20;
@@ -44,7 +45,7 @@ public class Game
 
         using (var framebuffer = m_Context.Window.Framebuffer.Use())
         {
-            framebuffer.Clear(1f, 0f, 1f, 1f);
+            framebuffer.Clear(0f, 0f, 0f, 1f);
             m_SpriteRenderer.Render(m_Camera);
         }
     }

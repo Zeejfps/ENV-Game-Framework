@@ -15,7 +15,7 @@ public class MaterialAssetImporter
             FragmentShader = FragmentShaderSource
         };
         
-        using var stream = File.Open(Path.GetFullPath(outputPath), FileMode.OpenOrCreate);
+        using var stream = File.Open(Path.GetFullPath(outputPath), FileMode.Create);
         using var writer = new BinaryWriter(stream);
         materialAsset.Serialize(writer);
     }
