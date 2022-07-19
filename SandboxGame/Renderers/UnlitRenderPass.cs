@@ -37,8 +37,4 @@ public class UnlitRenderPass
             mesh.Render();
         }
     }
-
-    public void Unload(IScene scene)
-    {
-    }
 }
