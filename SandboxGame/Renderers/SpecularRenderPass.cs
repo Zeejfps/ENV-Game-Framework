@@ -95,13 +95,6 @@ public class SpecularRenderPass
             mesh.RenderInstanced(transforms.Count);
         }
     }
-    
-    public void Unload(IScene scene)
-    {
-        Debug.Assert(m_SpecularMaterial != null);
-        m_SpecularMaterial.Unload();
-        m_SpecularMaterial = null;
-    }
 }
 
 public readonly struct SpecularRenderable 
