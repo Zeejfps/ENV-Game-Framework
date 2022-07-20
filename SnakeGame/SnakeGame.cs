@@ -28,7 +28,7 @@ public class Game
 
         m_Context = context;
         m_Clock = new Clock();
-        m_Camera = new OrthographicCamera(20, 20, 0.1f, 10)
+        m_Camera = new OrthographicCamera(40, 40, 0.1f, 10)
         {
             Transform =
             {
