@@ -8,10 +8,11 @@ public interface IWindow
     bool IsResizable { get; set; }
     int PosX { get; set; }
     int PosY { get; set; }
-    bool IsOpened { get; }
-    IFramebuffer Framebuffer { get; }
     bool IsFullscreen { get; set; }
     bool IsVsyncEnabled { get; set; }
+    
+    bool IsOpened { get; }
+    IFramebuffer Framebuffer { get; }
 
     void Open();
     void Close();
