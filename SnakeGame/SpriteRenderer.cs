@@ -1,16 +1,33 @@
-﻿ using System.Numerics;
- using Framework;
- using Framework.Common;
+﻿using System.Numerics;
+using Framework;
+namespace SnakeGame;
 
- namespace SnakeGame;
+public struct Entity
+{
+    
+}
+
+public struct SnakeSegment
+{
+    
+}
 
 public class SpriteRenderer
 {
-    private ITransform3D test;
+    
     
     public SpriteRenderer()
     {
-        test = new Transform3D();
+    }
+
+    public void Add(Entity entity)
+    {
+        
+    }
+
+    public void Remove(Entity entity)
+    {
+        
     }
     
     public void Render(ICamera camera, IMaterial material, IMesh quadMesh, IEnumerable<ITransform3D> transforms)

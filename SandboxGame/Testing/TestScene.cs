@@ -143,8 +143,8 @@ public class TestScene : IScene
     private void HandleInput()
     {
         var speed = m_Clock.DeltaTime * 15f;
-        var mouse = m_Context.Window.Input.Mouse;
-        var keyboard = m_Context.Window.Input.Keyboard;
+        var mouse = m_Context.Input.Mouse;
+        var keyboard = m_Context.Input.Keyboard;
         
         if (keyboard.IsKeyPressed(KeyboardKey.W))
             m_Camera.Transform.WorldPosition += m_Camera.Transform.Forward * speed;

@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using Framework;
 using GLFW;
 using Monitor = GLFW.Monitor;
 

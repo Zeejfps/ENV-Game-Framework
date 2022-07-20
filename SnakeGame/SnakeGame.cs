@@ -2,6 +2,7 @@
 using Framework;
 using Framework.Common;
 using Framework.Common.Cameras;
+using Framework.InputDevices;
 
 namespace SnakeGame;
 
@@ -45,6 +46,18 @@ public class Game
         {
             WorldPosition = new Vector3(0f, -5f, 0f),
         });
+        m_Snake.AddFirst(new Transform3D
+        {
+            WorldPosition = new Vector3(0f, -7f, 0f),
+        });
+        m_Snake.AddFirst(new Transform3D
+        {
+            WorldPosition = new Vector3(0f, -9f, 0f),
+        });
+        m_Snake.AddFirst(new Transform3D
+        {
+            WorldPosition = new Vector3(0f, -11f, 0f),
+        });
     }
 
     public void Update()
@@ -62,6 +75,11 @@ public class Game
             framebuffer.Clear(0f, 0.3f, 0f, 1f);
             m_SpriteRenderer.Render(m_Camera, m_UnlitMaterial, m_QuadMesh, m_Snake);
         }
+
+        if (m_Context.Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.A))
+        {
+            m_SnakeDirection = new Direction(-1, 0);
+        }
     }
 
     private void MoveSnake()
@@ -72,7 +90,7 @@ public class Game
         m_Snake.RemoveLast();
 
         tail.WorldPosition = new Vector3(first.WorldPosition.X + m_SnakeDirection.Dx,
-            first.WorldPosition.Y + m_SnakeDirection.Dy, 0f);
+            first.WorldPosition.Y + m_SnakeDirection.Dy * 2f, 0f);
         m_Snake.AddFirst(tail);
     }
 }

@@ -27,7 +27,7 @@ public class TestTriangle : ISceneObject
 
     public void Update(IScene scene)
     {
-        var keyboard = m_Context.Window.Input.Keyboard;
+        var keyboard = m_Context.Input.Keyboard;
         
         using var material = m_Material.Use();
 

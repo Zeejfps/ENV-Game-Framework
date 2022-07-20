@@ -9,6 +9,7 @@ public class Context_GLFW_GL : IContext
 {
     public IDisplays Displays { get; }
     public IWindow Window => m_Window;
+    public IInput Input => m_Window.Input;
     public IAssetDatabase AssetDatabase => m_AssetDatabase;
 
     private readonly Window_GLFW m_Window;

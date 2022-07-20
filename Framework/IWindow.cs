@@ -9,7 +9,6 @@ public interface IWindow
     int PosX { get; set; }
     int PosY { get; set; }
     bool IsOpened { get; }
-    IInput Input { get; }
     IFramebuffer Framebuffer { get; }
     bool IsFullscreen { get; set; }
     bool IsVsyncEnabled { get; set; }
