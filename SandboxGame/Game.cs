@@ -1,4 +1,6 @@
-﻿namespace Framework;
+﻿using TicTacToePrototype;
+
+namespace Framework;
 
 public class Game
 {

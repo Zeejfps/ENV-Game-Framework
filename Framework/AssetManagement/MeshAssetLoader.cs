@@ -9,10 +9,10 @@ public abstract class MeshAssetLoader : IAssetLoader<IGpuMesh>
         using var stream = File.Open(assetPath, FileMode.Open);
         using var reader = new BinaryReader(stream);
 
-        using var meshAsset = MeshAsset.Deserialize(reader);
+        using var meshAsset = CpuMesh.Deserialize(reader);
         var mesh = LoadAsset(meshAsset);
         return mesh;
     }
 
-    protected abstract IGpuMesh LoadAsset(MeshAsset asset);
+    protected abstract IGpuMesh LoadAsset(CpuMesh asset);
 }

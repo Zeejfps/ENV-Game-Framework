@@ -75,7 +75,7 @@ public class ImportTextureOption
         
         var data = encoder.EncodeToRawBytes(pixelBytes, image.Width, image.Height, PixelFormat.Rgba32);
 
-        var asset = new TextureAsset
+        var asset = new CpuTexture
         {
             Width = width,
             Height = height,

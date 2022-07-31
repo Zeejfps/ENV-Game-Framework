@@ -20,11 +20,11 @@ public class Game
     private IGpuMesh m_QuadMesh;
     private IGpuShader m_UnlitMaterial;
 
-    private IAssetDatabase m_AssetLoader;
+    private IAssetService m_AssetLoader;
     private IInput m_Input;
     private IGpuFramebuffer m_WindowFramebuffer;
     
-    public Game(IAssetDatabase assetLoader, IInput input, IGpuFramebuffer windowFramebuffer)
+    public Game(IAssetService assetLoader, IInput input, IGpuFramebuffer windowFramebuffer)
     {
         m_AssetLoader = assetLoader;
         m_Input = input;

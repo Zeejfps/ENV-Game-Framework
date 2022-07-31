@@ -25,7 +25,7 @@ public class Toad : ISceneObject
     
     public void Load(IScene scene)
     {
-        var assetDatabase = scene.Context.AssetDatabase;
+        var assetDatabase = scene.Context.AssetService;
         m_Mesh = assetDatabase.Load<IGpuMesh>("Assets/Meshes/Toad.mesh");
         m_Diffuse = assetDatabase.Load<IGpuTexture>("Assets/Textures/Toad/Toad_BaseColor.texture");
         m_Normal = assetDatabase.Load<IGpuTexture>("Assets/Textures/Toad/Toad_Normal.texture");

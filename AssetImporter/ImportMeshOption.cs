@@ -61,7 +61,7 @@ public class ImportMeshOption
         Console.WriteLine($"Normals: {normals.Length}");
         Console.WriteLine($"Triangles: {triangles.Length}");
         
-        var meshAsset = new MeshAsset
+        var meshAsset = new CpuMesh
         {
             Vertices = vertices,
             

@@ -1,6 +1,6 @@
 ﻿namespace Framework.Assets;
 
-public class MaterialAsset : IDisposable
+public class CpuShader : IDisposable
 {
     public string VertexShader { get; set; } = string.Empty;
     public string FragmentShader { get; set; } = string.Empty;
@@ -11,12 +11,12 @@ public class MaterialAsset : IDisposable
         writer.Write(FragmentShader);
     }
 
-    public static MaterialAsset Deserialize(BinaryReader reader)
+    public static CpuShader Deserialize(BinaryReader reader)
     {
         var vertexShader = reader.ReadString();
         var fragmentShader = reader.ReadString();
 
-        return new MaterialAsset
+        return new CpuShader
         {
             VertexShader = vertexShader,
             FragmentShader = fragmentShader

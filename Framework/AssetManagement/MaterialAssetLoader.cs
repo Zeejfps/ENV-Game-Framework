@@ -23,7 +23,7 @@ public abstract class MaterialAssetLoader : IAssetLoader<IGpuShader>
 
         try
         {
-            var materialAsset = MaterialAsset.Deserialize(reader);
+            var materialAsset = CpuShader.Deserialize(reader);
             material = LoadAsset(materialAsset);
             m_PathToAssetMap[assetPath] = material;
             return material;
@@ -34,5 +34,5 @@ public abstract class MaterialAssetLoader : IAssetLoader<IGpuShader>
         }
     }
 
-    protected abstract IGpuShader LoadAsset(MaterialAsset asset);
+    protected abstract IGpuShader LoadAsset(CpuShader asset);
 }

@@ -10,10 +10,10 @@ public class Context_GLFW_GL : IContext
     public IDisplays Displays { get; }
     public IWindow Window => m_Window;
     public IInput Input => m_Window.Input;
-    public IAssetDatabase AssetDatabase => m_AssetDatabase;
+    public IAssetService AssetService => m_AssetService;
 
     private readonly Window_GLFW m_Window;
-    private readonly AssetDatabase m_AssetDatabase;
+    private readonly AssetService m_AssetService;
     
     public Context_GLFW_GL()
     {
@@ -27,11 +27,11 @@ public class Context_GLFW_GL : IContext
 
         Displays = new Displays_GLFW();
         m_Window = new Window_GLFW();
-        m_AssetDatabase = new AssetDatabase();
+        m_AssetService = new AssetService();
         
-        m_AssetDatabase.AddLoader(new MeshAssetLoader_GL());
-        m_AssetDatabase.AddLoader(new MaterialAssetLoader_GL());
-        m_AssetDatabase.AddLoader(new TextureAssetLoader_GL());
+        m_AssetService.AddLoader(new MeshAssetLoader_GL());
+        m_AssetService.AddLoader(new MaterialAssetLoader_GL());
+        m_AssetService.AddLoader(new TextureAssetLoader_GL());
     }
     
     public IRenderbuffer CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer)

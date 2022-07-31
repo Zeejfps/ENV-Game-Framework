@@ -81,17 +81,17 @@ public class TestScene : IScene
 
     public void Load()
     {
-        var resourceDatabase = Context.AssetDatabase;
+        var assetService = Context.AssetService;
         
-        m_UnlitMaterial = resourceDatabase.Load<IGpuShader>("Assets/Materials/unlit.material");
+        m_UnlitMaterial = assetService.Load<IGpuShader>("Assets/Materials/unlit.material");
         m_UnlitMaterial.EnableDepthTest = true;
         m_UnlitMaterial.EnableBackfaceCulling = false;
         
-        m_FullScreenBlitMaterial = resourceDatabase.Load<IGpuShader>("Assets/Materials/fullScreenQuad.material");
+        m_FullScreenBlitMaterial = assetService.Load<IGpuShader>("Assets/Materials/fullScreenQuad.material");
         m_FullScreenBlitMaterial.EnableBackfaceCulling = true;
         m_FullScreenBlitMaterial.EnableDepthTest = false;
         
-        m_QuadMesh = resourceDatabase.Load<IGpuMesh>("Assets/Meshes/quad.mesh");
+        m_QuadMesh = assetService.Load<IGpuMesh>("Assets/Meshes/quad.mesh");
 
         m_Light.Load(this);
         m_SpecularRenderPass.Load(this);

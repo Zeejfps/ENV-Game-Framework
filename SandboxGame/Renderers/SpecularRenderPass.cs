@@ -41,7 +41,7 @@ public class SpecularRenderPass
     
     public void Load(IScene scene)
     {
-        var assetDatabase = scene.Context.AssetDatabase;
+        var assetDatabase = scene.Context.AssetService;
         m_SpecularMaterial = assetDatabase.Load<IGpuShader>("Assets/Materials/specular.material");
         m_SpecularMaterial.EnableBackfaceCulling = true;
         m_SpecularMaterial.EnableDepthTest = true;

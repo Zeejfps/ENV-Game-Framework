@@ -9,7 +9,7 @@ public class MaterialAssetImporter
 
     public void Import(string outputPath)
     {
-        var materialAsset = new MaterialAsset
+        var materialAsset = new CpuShader
         {
             VertexShader = VertexShaderSource,
             FragmentShader = FragmentShaderSource

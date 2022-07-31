@@ -21,7 +21,7 @@ public class TestCube : ISceneObject
     
     public void Load(IScene scene)
     {
-        var assetLoader = scene.Context.AssetDatabase;
+        var assetLoader = scene.Context.AssetService;
         m_Mesh = assetLoader.Load<IGpuMesh>("Assets/Meshes/ship.mesh");
     }
 

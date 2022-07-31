@@ -1,6 +1,8 @@
-﻿namespace TicTacToePrototype;
+﻿using Framework;
 
-public class TextureAsset
+namespace TicTacToePrototype;
+
+public class CpuTexture : ICpuAsset
 {
     public int Width { get; init; }
     public int Height { get; init; }
@@ -14,18 +16,23 @@ public class TextureAsset
         writer.Write(Pixels);
     }
     
-    public static TextureAsset Deserialize(BinaryReader reader)
+    public static CpuTexture Deserialize(BinaryReader reader)
     {
         var width = reader.ReadInt32();
         var height = reader.ReadInt32();
         var pixelCount = reader.ReadInt32();
         var pixels = reader.ReadBytes(pixelCount);
         
-        return new TextureAsset
+        return new CpuTexture
         {
             Width = width,
             Height = height,
             Pixels = pixels,
         };
+    }
+
+    public void Unload()
+    {
+        
     }
 }

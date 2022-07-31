@@ -27,7 +27,7 @@ public class BlinnRenderer
     
     public void Load(IScene scene)
     {
-        var assetLoader = scene.Context.AssetDatabase;
+        var assetLoader = scene.Context.AssetService;
         m_Material = assetLoader.Load<IGpuShader>("Assets/blinn.json");
         m_Texture = assetLoader.Load<IGpuTexture>("Assets/Textures/test.texture");
 

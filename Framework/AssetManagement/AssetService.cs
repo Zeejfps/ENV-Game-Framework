@@ -1,6 +1,6 @@
 ﻿namespace Framework;
 
-public class AssetDatabase : IAssetDatabase
+public class AssetService : IAssetService
 {
     private readonly Dictionary<Type, IAssetLoader> m_TypeToLoaderMap = new();
     private readonly Dictionary<string, IAsset> m_PathToAssetMap = new();
@@ -19,6 +19,11 @@ public class AssetDatabase : IAssetDatabase
         }
 
         throw new Exception($"Could not find Loader for asset type: {assetType}");
+    }
+
+    public T Convert<T>(IAsset asset)
+    {
+        throw new NotImplementedException();
     }
 
     public void AddLoader<T>(IAssetLoader<T> assetLoader) where T : IAsset

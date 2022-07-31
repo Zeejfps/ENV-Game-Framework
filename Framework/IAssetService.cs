@@ -1,6 +1,7 @@
 namespace Framework;
 
-public interface IAssetDatabase
+public interface IAssetService
 {
     T Load<T>(string assetPath) where T : IAsset;
+    T Convert<T>(IAsset asset);
 }

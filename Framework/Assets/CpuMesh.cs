@@ -1,6 +1,6 @@
 ﻿namespace Framework.Assets;
 
-public class MeshAsset : IDisposable
+public class CpuMesh : IDisposable
 {
     public float[] Vertices { get; set; } = Array.Empty<float>();
     public float[] Uvs { get; set; } = Array.Empty<float>();
@@ -17,7 +17,7 @@ public class MeshAsset : IDisposable
         WriteArray(writer, Triangles);
     }
 
-    public static MeshAsset Deserialize(BinaryReader reader)
+    public static CpuMesh Deserialize(BinaryReader reader)
     {
         //Console.WriteLine("Reading Vertices");
         var vertices = ReadFloatArray(reader);
@@ -34,7 +34,7 @@ public class MeshAsset : IDisposable
         //Console.WriteLine("Reading Triangles");
         var triangles = ReadIntArray(reader);
         
-        return new MeshAsset
+        return new CpuMesh
         {
             Vertices = vertices,
             Uvs = uvs,

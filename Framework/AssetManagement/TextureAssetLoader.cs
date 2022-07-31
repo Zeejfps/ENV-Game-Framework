@@ -12,10 +12,10 @@ public abstract class TextureAssetLoader : IAssetLoader<IGpuTexture>
         using var stream = File.Open(assetPath, FileMode.Open);
         using var reader = new BinaryReader(stream);
 
-        var asset = TextureAsset.Deserialize(reader);
+        var asset = CpuTexture.Deserialize(reader);
         var texture = LoadAsset(asset);
         return texture;
     }
 
-    protected abstract IGpuTexture LoadAsset(TextureAsset asset);
+    protected abstract IGpuTexture LoadAsset(CpuTexture asset);
 }

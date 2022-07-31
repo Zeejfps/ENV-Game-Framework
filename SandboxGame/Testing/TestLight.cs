@@ -22,7 +22,7 @@ public class TestLight : ISceneObject
     
     public void Load(IScene scene)
     {
-        m_Mesh = scene.Context.AssetDatabase.Load<IGpuMesh>("Assets/Meshes/quad.mesh");
+        m_Mesh = scene.Context.AssetService.Load<IGpuMesh>("Assets/Meshes/quad.mesh");
         m_Renderer.Add(new UnlitRendererable
         {
             Mesh = m_Mesh,

@@ -44,7 +44,7 @@ public class MaterialAssetLoader_GL : MaterialAssetLoader
             throw new Exception($"Error loading shader: {err:X}");
     }
     
-    protected override IGpuShader LoadAsset(MaterialAsset asset)
+    protected override IGpuShader LoadAsset(CpuShader asset)
     {
         return Material_GL.LoadFromSource(asset.VertexShader, asset.FragmentShader);
     }

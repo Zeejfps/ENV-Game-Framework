@@ -6,7 +6,7 @@ namespace GlfwOpenGLBackend.AssetLoaders;
 
 public class TextureAssetLoader_GL : TextureAssetLoader
 {
-    protected override IGpuTexture LoadAsset(TextureAsset asset)
+    protected override IGpuTexture LoadAsset(CpuTexture asset)
     {
         var width = asset.Width;
         var height = asset.Height;

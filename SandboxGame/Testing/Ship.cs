@@ -26,7 +26,7 @@ public class Ship : ISceneObject
     
     public void Load(IScene scene)
     {
-        var assetDatabase = scene.Context.AssetDatabase;
+        var assetDatabase = scene.Context.AssetService;
         m_Mesh = assetDatabase.Load<IGpuMesh>("Assets/Meshes/ship.mesh");
         m_Diffuse = assetDatabase.Load<IGpuTexture>("Assets/Textures/Ship/ship_d.texture");
         m_Normal = assetDatabase.Load<IGpuTexture>("Assets/Textures/Ship/ship_n.texture");
