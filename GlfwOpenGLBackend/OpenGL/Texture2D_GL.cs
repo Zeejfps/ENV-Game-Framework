@@ -20,7 +20,7 @@ public class Texture2D_GL : IGpuTexture
         return new Handle();
     }
 
-    public void Unload()
+    public void Dispose()
     {
         glDeleteTexture(m_Id);
         m_Id = 0;

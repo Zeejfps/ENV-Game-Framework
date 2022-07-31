@@ -30,7 +30,7 @@ public class Material_GL : IGpuShader
         return new Handle(this);
     }
     
-    public void Unload()
+    public void Dispose()
     {
         m_ProgramId = 0;
         IsLoaded = false;

@@ -1,6 +1,6 @@
 ﻿namespace Framework.Assets;
 
-public class CpuMesh : IDisposable
+public class CpuMesh : ICpuMesh
 {
     public float[] Vertices { get; set; } = Array.Empty<float>();
     public float[] Uvs { get; set; } = Array.Empty<float>();

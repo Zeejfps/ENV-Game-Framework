@@ -33,7 +33,7 @@ public class ReadonlyTexture2D_GL : IGpuTexture, IEquatable<ReadonlyTexture2D_GL
         glAssertNoError();
     }
     
-    public void Unload()
+    public void Dispose()
     {
         glDeleteTexture(m_Id);
         m_Id = GL_NONE;

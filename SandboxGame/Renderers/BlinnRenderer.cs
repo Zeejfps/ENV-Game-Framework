@@ -37,7 +37,7 @@ public class BlinnRenderer
     public void Unload(IScene scene)
     {
         Debug.Assert(m_Material != null);
-        m_Material.Unload();
+        m_Material.Dispose();
         m_Material = null;
     }
 

@@ -2,7 +2,7 @@
 
 namespace TicTacToePrototype;
 
-public class CpuTexture : ICpuAsset
+public class CpuTexture : ICpuTexture
 {
     public int Width { get; init; }
     public int Height { get; init; }
@@ -31,7 +31,7 @@ public class CpuTexture : ICpuAsset
         };
     }
 
-    public void Unload()
+    public void Dispose()
     {
         
     }

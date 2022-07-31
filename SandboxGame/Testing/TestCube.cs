@@ -36,6 +36,6 @@ public class TestCube : ISceneObject
 
     public void Unload(IScene scene)
     {
-        m_Mesh.Unload();
+        m_Mesh.Dispose();
     }
 }

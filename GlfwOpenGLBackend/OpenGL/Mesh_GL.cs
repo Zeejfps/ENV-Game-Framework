@@ -70,7 +70,7 @@ public class Mesh_GL : IGpuMesh
         glAssertNoError();
     }
 
-    public void Unload()
+    public void Dispose()
     {
         
     }

@@ -68,8 +68,8 @@ public class TextureFramebuffer_GL : IRenderbuffer
     public void Dispose()
     {
         foreach (var colorTexture in m_ColorTextures)
-            colorTexture.Unload();
-        m_DepthTexture.Unload();
+            colorTexture.Dispose();
+        m_DepthTexture.Dispose();
     }
     
     class Handle : IGpuFramebufferHandle

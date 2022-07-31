@@ -1,6 +1,6 @@
 ﻿namespace Framework.Assets;
 
-public class CpuShader : IDisposable
+public class CpuShader : ICpuShader
 {
     public string VertexShader { get; set; } = string.Empty;
     public string FragmentShader { get; set; } = string.Empty;

@@ -1,6 +1,5 @@
 namespace Framework;
 
-public interface IAsset
+public interface IAsset : IDisposable
 {
-    void Unload();
 }
