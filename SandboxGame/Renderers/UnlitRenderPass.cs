@@ -5,7 +5,7 @@ namespace Framework;
 
 public class UnlitRendererable
 {
-    public IMesh Mesh { get; init; }
+    public IGpuMesh Mesh { get; init; }
     public Vector3 Color { get; init; }
     public ITransform3D Transform { get; init; }
 }
@@ -19,7 +19,7 @@ public class UnlitRenderPass
         m_Renderables.Add(rendererable);
     }
 
-    public void Render(ICamera camera, IMaterial material)
+    public void Render(ICamera camera, IGpuShader material)
     {
         using var materialHandle = material.Use();
         materialHandle.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);

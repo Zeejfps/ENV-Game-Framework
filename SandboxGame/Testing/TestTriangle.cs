@@ -5,10 +5,10 @@ namespace Framework;
 
 public class TestTriangle : ISceneObject
 {
-    private readonly IMesh m_Mesh;
+    private readonly IGpuMesh m_Mesh;
     private readonly IContext m_Context;
     private readonly ICamera m_Camera;
-    private readonly IMaterial m_Material;
+    private readonly IGpuShader m_Material;
     private readonly Random m_Random;
     
     public TestTriangle(IContext context, ICamera camera)
@@ -43,7 +43,7 @@ public class TestTriangle : ISceneObject
         
     }
 
-    private void SetRandomColor(IMaterialHandle material)
+    private void SetRandomColor(IGpuShaderHandle material)
     {
         var r = (float) m_Random.NextDouble();
         var g = (float) m_Random.NextDouble();

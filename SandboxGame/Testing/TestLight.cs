@@ -10,7 +10,7 @@ public class TestLight : ISceneObject
     public float Intensity { get; set; }
     public Color Color;
 
-    private IMesh m_Mesh;
+    private IGpuMesh m_Mesh;
 
     private readonly UnlitRenderPass m_Renderer;
 
@@ -22,7 +22,7 @@ public class TestLight : ISceneObject
     
     public void Load(IScene scene)
     {
-        m_Mesh = scene.Context.AssetDatabase.Load<IMesh>("Assets/Meshes/quad.mesh");
+        m_Mesh = scene.Context.AssetDatabase.Load<IGpuMesh>("Assets/Meshes/quad.mesh");
         m_Renderer.Add(new UnlitRendererable
         {
             Mesh = m_Mesh,

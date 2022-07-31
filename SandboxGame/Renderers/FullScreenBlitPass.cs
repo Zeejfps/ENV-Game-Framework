@@ -15,7 +15,7 @@ public class FullScreenBlitPass
         m_light = light;
     }
 
-    public void Render(IMesh quadMesh, IMaterial fullScreenBlitMaterial, ITexture bufferAlbedo, ITexture bufferNormal, ITexture bufferPosition)
+    public void Render(IGpuMesh quadMesh, IGpuShader fullScreenBlitMaterial, IGpuTexture bufferAlbedo, IGpuTexture bufferNormal, IGpuTexture bufferPosition)
     {
         using var material = fullScreenBlitMaterial.Use();
         using var mesh = quadMesh.Use();

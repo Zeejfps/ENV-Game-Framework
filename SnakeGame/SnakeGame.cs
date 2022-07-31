@@ -17,21 +17,21 @@ public class Game
     private OrthographicCamera m_Camera;
     private SpriteRenderer m_SpriteRenderer;
 
-    private IMesh m_QuadMesh;
-    private IMaterial m_UnlitMaterial;
+    private IGpuMesh m_QuadMesh;
+    private IGpuShader m_UnlitMaterial;
 
     private IAssetDatabase m_AssetLoader;
     private IInput m_Input;
-    private IFramebuffer m_WindowFramebuffer;
+    private IGpuFramebuffer m_WindowFramebuffer;
     
-    public Game(IAssetDatabase assetLoader, IInput input, IFramebuffer windowFramebuffer)
+    public Game(IAssetDatabase assetLoader, IInput input, IGpuFramebuffer windowFramebuffer)
     {
         m_AssetLoader = assetLoader;
         m_Input = input;
         m_WindowFramebuffer = windowFramebuffer;
         
-        m_QuadMesh = m_AssetLoader.Load<IMesh>("Assets/quad.mesh");
-        m_UnlitMaterial = m_AssetLoader.Load<IMaterial>("Assets/sprite.material");
+        m_QuadMesh = m_AssetLoader.Load<IGpuMesh>("Assets/quad.mesh");
+        m_UnlitMaterial = m_AssetLoader.Load<IGpuShader>("Assets/sprite.material");
         m_UnlitMaterial.EnableBackfaceCulling = false;
 
         m_Clock = new Clock();

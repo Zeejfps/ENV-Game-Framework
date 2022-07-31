@@ -8,7 +8,7 @@ public class TestCube : ISceneObject
 {
     public ITransform3D Transform => m_Transform;
     
-    private IMesh m_Mesh;
+    private IGpuMesh m_Mesh;
     
     private readonly ITransform3D m_Transform;
     private readonly SpecularRenderPass m_BlinnRenderPass;
@@ -22,7 +22,7 @@ public class TestCube : ISceneObject
     public void Load(IScene scene)
     {
         var assetLoader = scene.Context.AssetDatabase;
-        m_Mesh = assetLoader.Load<IMesh>("Assets/Meshes/ship.mesh");
+        m_Mesh = assetLoader.Load<IGpuMesh>("Assets/Meshes/ship.mesh");
     }
 
     public void Update(IScene scene)

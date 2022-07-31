@@ -12,7 +12,7 @@ public interface IWindow
     bool IsVsyncEnabled { get; set; }
     
     bool IsOpened { get; }
-    IFramebuffer Framebuffer { get; }
+    IGpuFramebuffer Framebuffer { get; }
 
     void Open();
     void Close();

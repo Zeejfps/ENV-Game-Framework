@@ -2,7 +2,7 @@
 
 namespace Framework;
 
-public abstract class MeshAssetLoader : IAssetLoader<IMesh>
+public abstract class MeshAssetLoader : IAssetLoader<IGpuMesh>
 {
     public IAsset LoadAsset(string assetPath)
     {
@@ -14,5 +14,5 @@ public abstract class MeshAssetLoader : IAssetLoader<IMesh>
         return mesh;
     }
 
-    protected abstract IMesh LoadAsset(MeshAsset asset);
+    protected abstract IGpuMesh LoadAsset(MeshAsset asset);
 }

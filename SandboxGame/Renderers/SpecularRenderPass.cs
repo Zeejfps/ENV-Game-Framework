@@ -6,10 +6,10 @@ namespace Framework;
 
 public class SpecularRenderPass
 {
-    private readonly Dictionary<(IMesh, SpecularRenderableTextures), List<ITransform3D>> m_MeshToRenderableMap = new();
-    private readonly Dictionary<ITransform3D, (IMesh, SpecularRenderableTextures)> m_TransformToGroupMap = new();
+    private readonly Dictionary<(IGpuMesh, SpecularRenderableTextures), List<ITransform3D>> m_MeshToRenderableMap = new();
+    private readonly Dictionary<ITransform3D, (IGpuMesh, SpecularRenderableTextures)> m_TransformToGroupMap = new();
 
-    private IMaterial? m_SpecularMaterial;
+    private IGpuShader? m_SpecularMaterial;
     private readonly ITransform3D m_Light;
 
     private Vector3 _lightColor = new Vector3(1f,1f,1f);
@@ -42,7 +42,7 @@ public class SpecularRenderPass
     public void Load(IScene scene)
     {
         var assetDatabase = scene.Context.AssetDatabase;
-        m_SpecularMaterial = assetDatabase.Load<IMaterial>("Assets/Materials/specular.material");
+        m_SpecularMaterial = assetDatabase.Load<IGpuShader>("Assets/Materials/specular.material");
         m_SpecularMaterial.EnableBackfaceCulling = true;
         m_SpecularMaterial.EnableDepthTest = true;
     }
@@ -99,18 +99,18 @@ public class SpecularRenderPass
 
 public readonly struct SpecularRenderable 
 {
-    public IMesh Mesh { get; init; }
+    public IGpuMesh Mesh { get; init; }
     public ITransform3D Transform { get; init; }
     public SpecularRenderableTextures Textures { get; init; }
 }
 
 public struct SpecularRenderableTextures : IEquatable<SpecularRenderableTextures>
 {
-    public ITexture Diffuse { get; init; }
-    public ITexture Normal { get; init; }
-    public ITexture Roughness { get; init; }
-    public ITexture Occlusion { get; init; }
-    public ITexture Translucency { get; init; }
+    public IGpuTexture Diffuse { get; init; }
+    public IGpuTexture Normal { get; init; }
+    public IGpuTexture Roughness { get; init; }
+    public IGpuTexture Occlusion { get; init; }
+    public IGpuTexture Translucency { get; init; }
 
     public bool Equals(SpecularRenderableTextures other)
     {

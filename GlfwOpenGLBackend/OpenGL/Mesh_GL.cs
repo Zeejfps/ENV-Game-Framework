@@ -2,7 +2,7 @@
 
 namespace Framework.GLFW.NET;
 
-public class Mesh_GL : IMesh
+public class Mesh_GL : IGpuMesh
 {
     public bool IsLoaded { get; }
 
@@ -75,19 +75,19 @@ public class Mesh_GL : IMesh
         
     }
 
-    public IMeshHandle Use()
+    public IGpuMeshHandle Use()
     {
         return Handle.Use(this);
     }
 
-    class Handle : IMeshHandle
+    class Handle : IGpuMeshHandle
     {
         private static Handle? s_Instance;
         private static Handle Instance => s_Instance ??= new Handle();
 
         private Mesh_GL m_ActiveMesh;
         
-        public static IMeshHandle Use(Mesh_GL mesh)
+        public static IGpuMeshHandle Use(Mesh_GL mesh)
         {
             Instance.m_ActiveMesh = mesh;
             glBindVertexArray(mesh.m_Vao);

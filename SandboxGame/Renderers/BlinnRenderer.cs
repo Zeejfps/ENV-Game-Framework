@@ -6,15 +6,15 @@ namespace Framework;
 
 public struct BlinnRenderData
 {
-    public IMesh Mesh { get; init; }
+    public IGpuMesh Mesh { get; init; }
     public ITransform3D Transform { get; init; }
 }
 
 public class BlinnRenderer
 {
-    private IMaterial? m_Material;
-    private ITexture? m_Texture;
-    private IFramebuffer? m_Framebuffer;
+    private IGpuShader? m_Material;
+    private IGpuTexture? m_Texture;
+    private IGpuFramebuffer? m_Framebuffer;
     
     private readonly ICamera m_Camera;
     private readonly ITransform3D m_Light;
@@ -28,8 +28,8 @@ public class BlinnRenderer
     public void Load(IScene scene)
     {
         var assetLoader = scene.Context.AssetDatabase;
-        m_Material = assetLoader.Load<IMaterial>("Assets/blinn.json");
-        m_Texture = assetLoader.Load<ITexture>("Assets/Textures/test.texture");
+        m_Material = assetLoader.Load<IGpuShader>("Assets/blinn.json");
+        m_Texture = assetLoader.Load<IGpuTexture>("Assets/Textures/test.texture");
 
         m_Framebuffer = scene.Context.Window.Framebuffer;
     }

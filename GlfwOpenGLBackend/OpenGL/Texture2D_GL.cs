@@ -3,7 +3,7 @@ using static OpenGL.Gl;
 
 namespace GlfwOpenGLBackend.OpenGL;
 
-public class Texture2D_GL : ITexture
+public class Texture2D_GL : IGpuTexture
 {
     public bool IsLoaded { get; private set; }
     
@@ -14,7 +14,7 @@ public class Texture2D_GL : ITexture
         m_Id = id;
     }
     
-    public ITextureHandle Use()
+    public IGpuTextureHandle Use()
     {
         glBindTexture(GL_TEXTURE_2D, m_Id);
         return new Handle();
@@ -27,7 +27,7 @@ public class Texture2D_GL : ITexture
         IsLoaded = false;
     }
 
-    class Handle : ITextureHandle
+    class Handle : IGpuTextureHandle
     {
         
     }

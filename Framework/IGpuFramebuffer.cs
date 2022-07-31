@@ -1,9 +1,9 @@
 ﻿namespace Framework;
 
-public interface IFramebuffer
+public interface IGpuFramebuffer
 {
     int Width { get; }
     int Height { get; }
 
-    IFramebufferHandle Use();
+    IGpuFramebufferHandle Use();
 }

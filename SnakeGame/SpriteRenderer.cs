@@ -30,7 +30,7 @@ public class SpriteRenderer
         
     }
     
-    public void Render(ICamera camera, IMaterial material, IMesh quadMesh, IEnumerable<ITransform3D> transforms)
+    public void Render(ICamera camera, IGpuShader material, IGpuMesh quadMesh, IEnumerable<ITransform3D> transforms)
     {
         using var materialHandle = material.Use();
         using var meshHandle = quadMesh.Use();

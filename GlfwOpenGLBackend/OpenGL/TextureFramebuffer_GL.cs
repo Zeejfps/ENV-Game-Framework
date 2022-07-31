@@ -9,8 +9,8 @@ public class TextureFramebuffer_GL : IRenderbuffer
 {
     public int Width { get; private set; }
     public int Height { get; private set; }
-    public ITexture[] ColorBuffers => m_ColorTextures;
-    public ITexture? DepthBuffer => m_DepthTexture;
+    public IGpuTexture[] ColorBuffers => m_ColorTextures;
+    public IGpuTexture? DepthBuffer => m_DepthTexture;
 
     private readonly Texture2D_GL[] m_ColorTextures;
     private Texture2D_GL m_DepthTexture;
@@ -60,7 +60,7 @@ public class TextureFramebuffer_GL : IRenderbuffer
         glBindFramebuffer(0);
     }
 
-    public IFramebufferHandle Use()
+    public IGpuFramebufferHandle Use()
     {
         return Handle.Use(this);
     }
@@ -72,7 +72,7 @@ public class TextureFramebuffer_GL : IRenderbuffer
         m_DepthTexture.Unload();
     }
     
-    class Handle : IFramebufferHandle
+    class Handle : IGpuFramebufferHandle
     {
         private static Handle? s_Instance;
         private static Handle Instance => s_Instance ??= new Handle();

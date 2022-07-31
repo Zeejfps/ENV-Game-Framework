@@ -11,7 +11,7 @@ public class TestScene : IScene
     public IContext Context => m_Context;
 
     private IRenderbuffer m_TempRenderbuffer;
-    private IFramebuffer m_WindowFramebuffer;
+    private IGpuFramebuffer m_WindowFramebuffer;
     
     private SpecularRenderPass m_SpecularRenderPass;
     private UnlitRenderPass m_UnlitRenderPass;
@@ -35,9 +35,9 @@ public class TestScene : IScene
     private readonly TestLight m_Light;
     private readonly List<ISceneObject> m_SceneObjects = new();
 
-    private IMaterial m_UnlitMaterial;
-    private IMaterial m_FullScreenBlitMaterial;
-    private IMesh m_QuadMesh;
+    private IGpuShader m_UnlitMaterial;
+    private IGpuShader m_FullScreenBlitMaterial;
+    private IGpuMesh m_QuadMesh;
     
     public TestScene(IContext context)
     {
@@ -83,15 +83,15 @@ public class TestScene : IScene
     {
         var resourceDatabase = Context.AssetDatabase;
         
-        m_UnlitMaterial = resourceDatabase.Load<IMaterial>("Assets/Materials/unlit.material");
+        m_UnlitMaterial = resourceDatabase.Load<IGpuShader>("Assets/Materials/unlit.material");
         m_UnlitMaterial.EnableDepthTest = true;
         m_UnlitMaterial.EnableBackfaceCulling = false;
         
-        m_FullScreenBlitMaterial = resourceDatabase.Load<IMaterial>("Assets/Materials/fullScreenQuad.material");
+        m_FullScreenBlitMaterial = resourceDatabase.Load<IGpuShader>("Assets/Materials/fullScreenQuad.material");
         m_FullScreenBlitMaterial.EnableBackfaceCulling = true;
         m_FullScreenBlitMaterial.EnableDepthTest = false;
         
-        m_QuadMesh = resourceDatabase.Load<IMesh>("Assets/Meshes/quad.mesh");
+        m_QuadMesh = resourceDatabase.Load<IGpuMesh>("Assets/Meshes/quad.mesh");
 
         m_Light.Load(this);
         m_SpecularRenderPass.Load(this);

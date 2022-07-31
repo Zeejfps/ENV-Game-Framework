@@ -9,12 +9,12 @@ public class Ship : ISceneObject
 {
     public ITransform3D Transform { get; }
     
-    private IMesh? m_Mesh;
-    private ITexture? m_Diffuse;
-    private ITexture? m_Normal;
-    private ITexture? m_Roughness;
-    private ITexture? m_Occlusion;
-    private ITexture? m_Translucency;
+    private IGpuMesh? m_Mesh;
+    private IGpuTexture? m_Diffuse;
+    private IGpuTexture? m_Normal;
+    private IGpuTexture? m_Roughness;
+    private IGpuTexture? m_Occlusion;
+    private IGpuTexture? m_Translucency;
 
     private readonly SpecularRenderPass m_SpecularRenderPass;
 
@@ -27,12 +27,12 @@ public class Ship : ISceneObject
     public void Load(IScene scene)
     {
         var assetDatabase = scene.Context.AssetDatabase;
-        m_Mesh = assetDatabase.Load<IMesh>("Assets/Meshes/ship.mesh");
-        m_Diffuse = assetDatabase.Load<ITexture>("Assets/Textures/Ship/ship_d.texture");
-        m_Normal = assetDatabase.Load<ITexture>("Assets/Textures/Ship/ship_n.texture");
-        m_Roughness = assetDatabase.Load<ITexture>("Assets/Textures/Ship/ship_r.texture");
-        m_Occlusion = assetDatabase.Load<ITexture>("Assets/Textures/Ship/ship_ao.texture");
-        m_Translucency = assetDatabase.Load<ITexture>("Assets/Textures/Toad/Toad_Translucency.texture");
+        m_Mesh = assetDatabase.Load<IGpuMesh>("Assets/Meshes/ship.mesh");
+        m_Diffuse = assetDatabase.Load<IGpuTexture>("Assets/Textures/Ship/ship_d.texture");
+        m_Normal = assetDatabase.Load<IGpuTexture>("Assets/Textures/Ship/ship_n.texture");
+        m_Roughness = assetDatabase.Load<IGpuTexture>("Assets/Textures/Ship/ship_r.texture");
+        m_Occlusion = assetDatabase.Load<IGpuTexture>("Assets/Textures/Ship/ship_ao.texture");
+        m_Translucency = assetDatabase.Load<IGpuTexture>("Assets/Textures/Toad/Toad_Translucency.texture");
         
         m_SpecularRenderPass.Register(new SpecularRenderable
         {

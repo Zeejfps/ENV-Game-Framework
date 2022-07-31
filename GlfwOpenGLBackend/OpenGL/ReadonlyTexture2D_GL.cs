@@ -3,7 +3,7 @@ using static OpenGL.Gl;
 
 namespace TicTacToePrototype.OpenGL.AssetLoaders;
 
-public class ReadonlyTexture2D_GL : ITexture, IEquatable<ReadonlyTexture2D_GL>
+public class ReadonlyTexture2D_GL : IGpuTexture, IEquatable<ReadonlyTexture2D_GL>
 {
     public bool IsLoaded => m_Id != GL_NONE;
     
@@ -39,7 +39,7 @@ public class ReadonlyTexture2D_GL : ITexture, IEquatable<ReadonlyTexture2D_GL>
         m_Id = GL_NONE;
     }
 
-    public ITextureHandle Use()
+    public IGpuTextureHandle Use()
     {
         glBindTexture(GL_TEXTURE_2D, m_Id);
         return new Handle();
@@ -75,5 +75,5 @@ public class ReadonlyTexture2D_GL : ITexture, IEquatable<ReadonlyTexture2D_GL>
         return !Equals(left, right);
     }
     
-    class Handle : ITextureHandle {}
+    class Handle : IGpuTextureHandle {}
 }

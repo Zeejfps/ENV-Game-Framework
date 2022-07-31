@@ -2,9 +2,9 @@
 
 namespace Framework;
 
-public abstract class MaterialAssetLoader : IAssetLoader<IMaterial>
+public abstract class MaterialAssetLoader : IAssetLoader<IGpuShader>
 {
-    private readonly Dictionary<string, IMaterial> m_PathToAssetMap = new Dictionary<string, IMaterial>();
+    private readonly Dictionary<string, IGpuShader> m_PathToAssetMap = new Dictionary<string, IGpuShader>();
 
     public IAsset LoadAsset(string assetPath)
     {
@@ -34,5 +34,5 @@ public abstract class MaterialAssetLoader : IAssetLoader<IMaterial>
         }
     }
 
-    protected abstract IMaterial LoadAsset(MaterialAsset asset);
+    protected abstract IGpuShader LoadAsset(MaterialAsset asset);
 }

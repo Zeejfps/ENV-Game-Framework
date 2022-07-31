@@ -3,7 +3,7 @@ using static OpenGL.Gl;
 
 namespace Framework.GLFW.NET;
 
-public class WindowFramebuffer_GL : IFramebuffer
+public class WindowFramebuffer_GL : IGpuFramebuffer
 {
     public int Width { get; private set; }
     public int Height { get; private set; }
@@ -18,7 +18,7 @@ public class WindowFramebuffer_GL : IFramebuffer
         Import(getProcAddress);
     }
 
-    public IFramebufferHandle Use()
+    public IGpuFramebufferHandle Use()
     {
         m_Handle.Use();
         return m_Handle;
@@ -34,7 +34,7 @@ public class WindowFramebuffer_GL : IFramebuffer
     {
     }
     
-    class Handle : IFramebufferHandle
+    class Handle : IGpuFramebufferHandle
     {
         private readonly WindowFramebuffer_GL m_Framebuffer;
     

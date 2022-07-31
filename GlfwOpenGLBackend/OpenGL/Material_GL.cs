@@ -5,7 +5,7 @@ using static OpenGL.Gl;
 
 namespace GlfwOpenGLBackend;
 
-public class Material_GL : IMaterial
+public class Material_GL : IGpuShader
 {
     private readonly Dictionary<string, int> m_PropertyToIdMap = new();
     private readonly Dictionary<string, int> m_TextureToSlotMap = new();
@@ -25,7 +25,7 @@ public class Material_GL : IMaterial
     public bool EnableBackfaceCulling { get; set; }
     public bool EnableBlending { get; set; }
 
-    public IMaterialHandle Use()
+    public IGpuShaderHandle Use()
     {
         return new Handle(this);
     }
@@ -70,7 +70,7 @@ public class Material_GL : IMaterial
             throw new Exception($"Error compiling shader: {error}");
     }
 
-    class Handle : IMaterialHandle
+    class Handle : IGpuShaderHandle
     {
         private static Handle? s_ActiveHandle;
         
@@ -126,7 +126,7 @@ public class Material_GL : IMaterial
             SetVector3(propertyName, vector.X, vector.Y, vector.Z);
         }
 
-        public void SetTexture2d(string propertyName, ITexture texture)
+        public void SetTexture2d(string propertyName, IGpuTexture texture)
         {
             Debug.Assert(!IsDisposed);
             var location = GetUniformLocation(propertyName);

@@ -2,7 +2,7 @@
 
 namespace Framework;
 
-public abstract class TextureAssetLoader : IAssetLoader<ITexture>
+public abstract class TextureAssetLoader : IAssetLoader<IGpuTexture>
 {
     public IAsset LoadAsset(string assetPath)
     {
@@ -17,5 +17,5 @@ public abstract class TextureAssetLoader : IAssetLoader<ITexture>
         return texture;
     }
 
-    protected abstract ITexture LoadAsset(TextureAsset asset);
+    protected abstract IGpuTexture LoadAsset(TextureAsset asset);
 }

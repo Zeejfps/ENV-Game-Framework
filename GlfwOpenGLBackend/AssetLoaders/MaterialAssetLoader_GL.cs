@@ -4,7 +4,7 @@ using static OpenGL.Gl;
 
 namespace GlfwOpenGLBackend.AssetLoaders;
 
-public class DebugMaterialAssetLoader_GL : IAssetLoader<IMaterial>
+public class DebugMaterialAssetLoader_GL : IAssetLoader<IGpuShader>
 {
     public IAsset LoadAsset(string assetPath)
     {
@@ -44,7 +44,7 @@ public class MaterialAssetLoader_GL : MaterialAssetLoader
             throw new Exception($"Error loading shader: {err:X}");
     }
     
-    protected override IMaterial LoadAsset(MaterialAsset asset)
+    protected override IGpuShader LoadAsset(MaterialAsset asset)
     {
         return Material_GL.LoadFromSource(asset.VertexShader, asset.FragmentShader);
     }

@@ -85,7 +85,7 @@ public class Window_GLFW : IWindow
     public bool IsOpened { get; private set; }
 
     public IInput Input => m_Input;
-    public IFramebuffer Framebuffer => m_WindowFramebuffer;
+    public IGpuFramebuffer Framebuffer => m_WindowFramebuffer;
 
     public bool IsFullscreen
     {
