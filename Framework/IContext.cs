@@ -6,5 +6,5 @@ public interface IContext : IDisposable
     IWindow Window { get; }
     IInput Input { get; }
     IAssetService AssetService { get; }
-    IRenderbuffer CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer);
+    IGpuRenderbuffer CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer);
 }

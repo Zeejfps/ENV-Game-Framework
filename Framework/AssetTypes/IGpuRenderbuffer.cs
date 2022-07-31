@@ -1,6 +1,6 @@
 ﻿namespace Framework;
 
-public interface IRenderbuffer : IGpuFramebuffer, IDisposable
+public interface IGpuRenderbuffer : IGpuFramebuffer
 {
     IGpuTexture[] ColorBuffers { get; }
     IGpuTexture? DepthBuffer { get; }

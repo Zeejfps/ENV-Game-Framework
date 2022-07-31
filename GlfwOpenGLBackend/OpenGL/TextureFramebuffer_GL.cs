@@ -5,7 +5,7 @@ using static OpenGL.Gl;
 
 namespace Framework.GLFW.NET;
 
-public class TextureFramebuffer_GL : IRenderbuffer
+public class TextureFramebuffer_GL : IGpuRenderbuffer
 {
     public int Width { get; private set; }
     public int Height { get; private set; }

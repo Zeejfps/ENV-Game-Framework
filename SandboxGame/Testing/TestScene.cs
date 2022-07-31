@@ -10,7 +10,7 @@ public class TestScene : IScene
 {
     public IContext Context => m_Context;
 
-    private IRenderbuffer m_TempRenderbuffer;
+    private IGpuRenderbuffer m_TempRenderbuffer;
     private IGpuFramebuffer m_WindowFramebuffer;
     
     private SpecularRenderPass m_SpecularRenderPass;
