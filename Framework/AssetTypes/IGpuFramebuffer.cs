@@ -1,6 +1,6 @@
 ﻿namespace Framework;
 
-public interface IGpuFramebuffer : IGpuAsset
+public interface IGpuFramebuffer : IAsset
 {
     int Width { get; }
     int Height { get; }

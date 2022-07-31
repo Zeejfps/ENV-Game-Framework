@@ -58,6 +58,7 @@ public class TestScene : IScene
         lightTransform.RotateInLocalSpace(0f, 0f, 180f);
         
         m_WindowFramebuffer = context.Window.Framebuffer;
+        
         m_TempRenderbuffer = context.CreateRenderbuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height, 3, true);
 
         m_SpecularRenderPass = new SpecularRenderPass(lightTransform);

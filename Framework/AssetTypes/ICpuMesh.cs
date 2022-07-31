@@ -1,6 +1,6 @@
 ﻿namespace Framework;
 
-public interface ICpuMesh : ICpuAsset
+public interface ICpuMesh : IAsset
 {
     public float[] Vertices { get; set; }
     public float[] Uvs { get; set; }

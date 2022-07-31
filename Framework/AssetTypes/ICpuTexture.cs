@@ -1,6 +1,6 @@
 ﻿namespace Framework;
 
-public interface ICpuTexture : ICpuAsset
+public interface ICpuTexture : IAsset
 {
     int Width { get; }
     int Height { get; }
