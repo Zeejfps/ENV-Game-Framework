@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\FrameworkCommon\FrameworkCommon.csproj" />
       <ProjectReference Include="..\Framework\Framework.csproj" />
     </ItemGroup>
 
