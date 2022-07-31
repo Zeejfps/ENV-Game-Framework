@@ -42,7 +42,7 @@ public class SpecularRenderPass
     public void Load(IScene scene)
     {
         var assetDatabase = scene.Context.AssetDatabase;
-        m_SpecularMaterial = assetDatabase.LoadAsset<IMaterial>("Assets/Materials/specular.material");
+        m_SpecularMaterial = assetDatabase.Load<IMaterial>("Assets/Materials/specular.material");
         m_SpecularMaterial.EnableBackfaceCulling = true;
         m_SpecularMaterial.EnableDepthTest = true;
     }

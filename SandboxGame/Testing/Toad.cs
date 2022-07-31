@@ -26,12 +26,12 @@ public class Toad : ISceneObject
     public void Load(IScene scene)
     {
         var assetDatabase = scene.Context.AssetDatabase;
-        m_Mesh = assetDatabase.LoadAsset<IMesh>("Assets/Meshes/Toad.mesh");
-        m_Diffuse = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_BaseColor.texture");
-        m_Normal = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Normal.texture");
-        m_Roughness = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Roughness.texture");
-        m_Occlusion = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_AO.texture");
-        m_Translucency = assetDatabase.LoadAsset<ITexture>("Assets/Textures/Toad/Toad_Translucency.texture");
+        m_Mesh = assetDatabase.Load<IMesh>("Assets/Meshes/Toad.mesh");
+        m_Diffuse = assetDatabase.Load<ITexture>("Assets/Textures/Toad/Toad_BaseColor.texture");
+        m_Normal = assetDatabase.Load<ITexture>("Assets/Textures/Toad/Toad_Normal.texture");
+        m_Roughness = assetDatabase.Load<ITexture>("Assets/Textures/Toad/Toad_Roughness.texture");
+        m_Occlusion = assetDatabase.Load<ITexture>("Assets/Textures/Toad/Toad_AO.texture");
+        m_Translucency = assetDatabase.Load<ITexture>("Assets/Textures/Toad/Toad_Translucency.texture");
 
         m_SpecularRenderPass.Register(new SpecularRenderable
         {

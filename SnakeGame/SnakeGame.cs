@@ -10,7 +10,6 @@ public class Game
 {
     private Direction m_SnakeDirection = Direction.North;
     private readonly LinkedList<ITransform3D> m_Snake;
-    private readonly IContext m_Context;
     private readonly IClock m_Clock;
 
     private float m_AccumulatedTime;
@@ -21,13 +20,20 @@ public class Game
     private IMesh m_QuadMesh;
     private IMaterial m_UnlitMaterial;
 
-    public Game(IContext context)
+    private IAssetDatabase m_AssetLoader;
+    private IInput m_Input;
+    private IFramebuffer m_WindowFramebuffer;
+    
+    public Game(IAssetDatabase assetLoader, IInput input, IFramebuffer windowFramebuffer)
     {
-        m_QuadMesh = context.AssetDatabase.LoadAsset<IMesh>("Assets/quad.mesh");
-        m_UnlitMaterial = context.AssetDatabase.LoadAsset<IMaterial>("Assets/sprite.material");
+        m_AssetLoader = assetLoader;
+        m_Input = input;
+        m_WindowFramebuffer = windowFramebuffer;
+        
+        m_QuadMesh = m_AssetLoader.Load<IMesh>("Assets/quad.mesh");
+        m_UnlitMaterial = m_AssetLoader.Load<IMaterial>("Assets/sprite.material");
         m_UnlitMaterial.EnableBackfaceCulling = false;
 
-        m_Context = context;
         m_Clock = new Clock();
         m_Camera = new OrthographicCamera(40, 40, 0.1f, 10)
         {
@@ -70,13 +76,13 @@ public class Game
             MoveSnake();
         }
 
-        using (var framebuffer = m_Context.Window.Framebuffer.Use())
+        using (var framebuffer = m_WindowFramebuffer.Use())
         {
             framebuffer.Clear(0f, 0.3f, 0f, 1f);
             m_SpriteRenderer.Render(m_Camera, m_UnlitMaterial, m_QuadMesh, m_Snake);
         }
 
-        if (m_Context.Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.A))
+        if (m_Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.A))
         {
             m_SnakeDirection = new Direction(-1, 0);
         }

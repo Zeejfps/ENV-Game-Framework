@@ -83,15 +83,15 @@ public class TestScene : IScene
     {
         var resourceDatabase = Context.AssetDatabase;
         
-        m_UnlitMaterial = resourceDatabase.LoadAsset<IMaterial>("Assets/Materials/unlit.material");
+        m_UnlitMaterial = resourceDatabase.Load<IMaterial>("Assets/Materials/unlit.material");
         m_UnlitMaterial.EnableDepthTest = true;
         m_UnlitMaterial.EnableBackfaceCulling = false;
         
-        m_FullScreenBlitMaterial = resourceDatabase.LoadAsset<IMaterial>("Assets/Materials/fullScreenQuad.material");
+        m_FullScreenBlitMaterial = resourceDatabase.Load<IMaterial>("Assets/Materials/fullScreenQuad.material");
         m_FullScreenBlitMaterial.EnableBackfaceCulling = true;
         m_FullScreenBlitMaterial.EnableDepthTest = false;
         
-        m_QuadMesh = resourceDatabase.LoadAsset<IMesh>("Assets/Meshes/quad.mesh");
+        m_QuadMesh = resourceDatabase.Load<IMesh>("Assets/Meshes/quad.mesh");
 
         m_Light.Load(this);
         m_SpecularRenderPass.Load(this);

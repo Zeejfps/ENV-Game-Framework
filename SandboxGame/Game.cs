@@ -1,6 +1,4 @@
-﻿using Framework;
-
-namespace Framework;
+﻿namespace Framework;
 
 public class Game
 {

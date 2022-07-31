@@ -16,7 +16,7 @@ window.IsVsyncEnabled = true;
 window.IsResizable = false;
 window.Open();
 
-var game = new Game(context);
+var game = new Game(context.AssetDatabase, context.Input, context.Window.Framebuffer);
 
 while (window.IsOpened)
 {

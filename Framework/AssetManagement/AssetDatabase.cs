@@ -5,7 +5,7 @@ public class AssetDatabase : IAssetDatabase
     private readonly Dictionary<Type, IAssetLoader> m_TypeToLoaderMap = new();
     private readonly Dictionary<string, IAsset> m_PathToAssetMap = new();
 
-    public T LoadAsset<T>(string assetPath) where T : IAsset
+    public T Load<T>(string assetPath) where T : IAsset
     {
         if (m_PathToAssetMap.TryGetValue(assetPath, out var asset))
             return (T)asset;

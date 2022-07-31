@@ -22,7 +22,7 @@ public class TestCube : ISceneObject
     public void Load(IScene scene)
     {
         var assetLoader = scene.Context.AssetDatabase;
-        m_Mesh = assetLoader.LoadAsset<IMesh>("Assets/Meshes/ship.mesh");
+        m_Mesh = assetLoader.Load<IMesh>("Assets/Meshes/ship.mesh");
     }
 
     public void Update(IScene scene)
