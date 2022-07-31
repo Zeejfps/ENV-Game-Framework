@@ -2,9 +2,9 @@
 
 public interface ICpuMesh : ICpuAsset
 {
-}
-
-public interface ICpuShader : ICpuAsset
-{
-    
+    public float[] Vertices { get; set; }
+    public float[] Uvs { get; set; }
+    public float[] Normals { get; set; }
+    public float[] Tangents { get; set; }
+    public int[] Triangles { get; set; }
 }

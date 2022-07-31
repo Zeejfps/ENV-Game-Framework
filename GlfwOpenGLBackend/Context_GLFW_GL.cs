@@ -10,10 +10,10 @@ public class Context_GLFW_GL : IContext
     public IDisplays Displays { get; }
     public IWindow Window => m_Window;
     public IInput Input => m_Window.Input;
-    public IAssetService AssetService => m_AssetService;
+    public ILocator Locator => m_Locator;
 
     private readonly Window_GLFW m_Window;
-    private readonly AssetService m_AssetService;
+    private readonly ILocator m_Locator;
     
     public Context_GLFW_GL()
     {
@@ -27,11 +27,11 @@ public class Context_GLFW_GL : IContext
 
         Displays = new Displays_GLFW();
         m_Window = new Window_GLFW();
-        m_AssetService = new AssetService();
+        m_Locator = new Locator();
         
-        m_AssetService.AddLoader(new MeshAssetLoader_GL());
-        m_AssetService.AddLoader(new MaterialAssetLoader_GL());
-        m_AssetService.AddLoader(new TextureAssetLoader_GL());
+        m_Locator.RegisterSingleton<IAssetLoader<IGpuMesh>>(new GpuMeshAssetLoader_GL());
+        m_Locator.RegisterSingleton<IAssetLoader<IGpuShader>>(new GpuShaderAssetLoader_GL());
+        m_Locator.RegisterSingleton<IAssetLoader<IGpuTexture>>(new GpuTextureAssetLoader_GL());
     }
     
     public IGpuRenderbuffer CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer)

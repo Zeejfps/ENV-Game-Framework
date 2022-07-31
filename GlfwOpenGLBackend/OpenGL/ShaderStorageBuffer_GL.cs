@@ -8,7 +8,7 @@ internal class ShaderStorageBuffer_GL : IBuffer
 {
     public uint BufferId { get; }
     
-    private readonly ShaderStorageBufferApi_GL m_Api;
+    private readonly ShaderStorageBufferApi_GL m_Handle;
 
     public ShaderStorageBuffer_GL(uint index)
     {
@@ -17,17 +17,17 @@ internal class ShaderStorageBuffer_GL : IBuffer
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, BufferId);
         glAssertNoError();
 
-        m_Api = new ShaderStorageBufferApi_GL(this);
+        m_Handle = new ShaderStorageBufferApi_GL(this);
     }
     
-    public IBufferApi Use()
+    public IBufferHandle Use()
     {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, BufferId);
         glAssertNoError();
-        return m_Api;
+        return m_Handle;
     }
 
-    class ShaderStorageBufferApi_GL : IBufferApi
+    class ShaderStorageBufferApi_GL : IBufferHandle
     {
         private int m_Ptr;
         private bool m_NeedsResizing;
@@ -38,6 +38,7 @@ internal class ShaderStorageBuffer_GL : IBuffer
         {
             m_Buffer = buffer;
             m_Data = new byte[256];
+            m_NeedsResizing = true;
         }
 
         public void Clear()

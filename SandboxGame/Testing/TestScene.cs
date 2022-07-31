@@ -66,7 +66,7 @@ public class TestScene : IScene
         m_FullScreenBlitPass = new FullScreenBlitPass(m_Camera,m_Light.Transform);
         
         
-        m_Ship1 = new Ship(m_SpecularRenderPass);
+        //m_Ship1 = new Ship(m_SpecularRenderPass);
 
         // This also adds them to the m_SceneObjects
         // Which is bad... don't do that mmmmkkk?
@@ -75,23 +75,29 @@ public class TestScene : IScene
         m_Toad = new Toad(m_SpecularRenderPass);
         
         m_SceneObjects.Add(m_Light);
-        m_SceneObjects.Add(m_Ship1);
+        //m_SceneObjects.Add(m_Ship1);
         m_SceneObjects.Add(m_Toad);
+
+        foreach (var sceneObject in m_SceneObjects)
+            sceneObject.Load(this);
     }
 
     public void Load()
     {
-        var assetService = Context.AssetService;
-        
-        m_UnlitMaterial = assetService.Load<IGpuShader>("Assets/Materials/unlit.material");
+        var locator = Context.Locator;
+        var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
+        var shaderLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
+
+        m_UnlitMaterial = shaderLoader.Load("Assets/Materials/unlit.material");
+
         m_UnlitMaterial.EnableDepthTest = true;
         m_UnlitMaterial.EnableBackfaceCulling = false;
         
-        m_FullScreenBlitMaterial = assetService.Load<IGpuShader>("Assets/Materials/fullScreenQuad.material");
+        m_FullScreenBlitMaterial = shaderLoader.Load("Assets/Materials/fullScreenQuad.material");
         m_FullScreenBlitMaterial.EnableBackfaceCulling = true;
         m_FullScreenBlitMaterial.EnableDepthTest = false;
         
-        m_QuadMesh = assetService.Load<IGpuMesh>("Assets/Meshes/quad.mesh");
+        m_QuadMesh = meshLoader.Load("Assets/Meshes/quad.mesh");
 
         m_Light.Load(this);
         m_SpecularRenderPass.Load(this);
@@ -209,6 +215,17 @@ public class TestScene : IScene
 
     private List<Ship> CreateShips()
     {
+        var locator = Context.Locator;
+        var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
+        var textureLoader = locator.LocateOrThrow<IAssetLoader<IGpuTexture>>();
+        
+        var mesh = meshLoader.Load("Assets/Meshes/ship.mesh");
+        var diffuse = textureLoader.Load("Assets/Textures/Ship/ship_d.texture");
+        var normal = textureLoader.Load("Assets/Textures/Ship/ship_n.texture");
+        var roughness = textureLoader.Load("Assets/Textures/Ship/ship_r.texture");
+        var occlusion = textureLoader.Load("Assets/Textures/Ship/ship_ao.texture");
+        var translucency = textureLoader.Load("Assets/Textures/Toad/Toad_Translucency.texture");
+
         var ships = new List<Ship>();
         var size = 10;
         var count = 10;
@@ -216,7 +233,7 @@ public class TestScene : IScene
         {
             for (var rows = 0; rows < count; rows++)
             {
-                var ship = new Ship(m_SpecularRenderPass)
+                var ship = new Ship(m_SpecularRenderPass, mesh, diffuse, normal, roughness, occlusion, translucency)
                 {
                     Transform =
                     {

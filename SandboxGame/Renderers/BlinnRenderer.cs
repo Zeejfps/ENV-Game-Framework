@@ -27,9 +27,11 @@ public class BlinnRenderer
     
     public void Load(IScene scene)
     {
-        var assetLoader = scene.Context.AssetService;
-        m_Material = assetLoader.Load<IGpuShader>("Assets/blinn.json");
-        m_Texture = assetLoader.Load<IGpuTexture>("Assets/Textures/test.texture");
+        var locator = scene.Context.Locator;
+        var shaderLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
+        var textureLoader = locator.LocateOrThrow<IAssetLoader<IGpuTexture>>();
+        m_Material = shaderLoader.Load("Assets/blinn.json");
+        m_Texture = textureLoader.Load("Assets/Textures/test.texture");
 
         m_Framebuffer = scene.Context.Window.Framebuffer;
     }

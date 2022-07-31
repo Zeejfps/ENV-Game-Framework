@@ -20,18 +20,21 @@ public class Game
     private IGpuMesh m_QuadMesh;
     private IGpuShader m_UnlitMaterial;
 
-    private IAssetService m_AssetLoader;
+    private ILocator m_Locator;
     private IInput m_Input;
     private IGpuFramebuffer m_WindowFramebuffer;
     
-    public Game(IAssetService assetLoader, IInput input, IGpuFramebuffer windowFramebuffer)
+    public Game(ILocator locator, IInput input, IGpuFramebuffer windowFramebuffer)
     {
-        m_AssetLoader = assetLoader;
+        m_Locator = locator;
         m_Input = input;
         m_WindowFramebuffer = windowFramebuffer;
+
+        var gpuMeshAssetLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
+        var gpuShaderAssetLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
         
-        m_QuadMesh = m_AssetLoader.Load<IGpuMesh>("Assets/quad.mesh");
-        m_UnlitMaterial = m_AssetLoader.Load<IGpuShader>("Assets/sprite.material");
+        m_QuadMesh = gpuMeshAssetLoader.Load("Assets/quad.mesh");
+        m_UnlitMaterial = gpuShaderAssetLoader.Load("Assets/sprite.material");
         m_UnlitMaterial.EnableBackfaceCulling = false;
 
         m_Clock = new Clock();

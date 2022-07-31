@@ -4,9 +4,9 @@ namespace TicTacToePrototype;
 
 public class CpuTexture : ICpuTexture
 {
-    public int Width { get; init; }
-    public int Height { get; init; }
-    public byte[] Pixels { get; init; } = Array.Empty<byte>();
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public byte[] Pixels { get; set; } = Array.Empty<byte>();
 
     public void Serialize(BinaryWriter writer)
     {
@@ -33,6 +33,8 @@ public class CpuTexture : ICpuTexture
 
     public void Dispose()
     {
-        
+        Width = 0;
+        Height = 0;
+        Pixels = Array.Empty<byte>();
     }
 }

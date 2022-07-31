@@ -25,13 +25,16 @@ public class Toad : ISceneObject
     
     public void Load(IScene scene)
     {
-        var assetDatabase = scene.Context.AssetService;
-        m_Mesh = assetDatabase.Load<IGpuMesh>("Assets/Meshes/Toad.mesh");
-        m_Diffuse = assetDatabase.Load<IGpuTexture>("Assets/Textures/Toad/Toad_BaseColor.texture");
-        m_Normal = assetDatabase.Load<IGpuTexture>("Assets/Textures/Toad/Toad_Normal.texture");
-        m_Roughness = assetDatabase.Load<IGpuTexture>("Assets/Textures/Toad/Toad_Roughness.texture");
-        m_Occlusion = assetDatabase.Load<IGpuTexture>("Assets/Textures/Toad/Toad_AO.texture");
-        m_Translucency = assetDatabase.Load<IGpuTexture>("Assets/Textures/Toad/Toad_Translucency.texture");
+        var locator = scene.Context.Locator;
+        var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
+        var textureLoader = locator.LocateOrThrow<IAssetLoader<IGpuTexture>>();
+        
+        m_Mesh = meshLoader.Load("Assets/Meshes/Toad.mesh");
+        m_Diffuse = textureLoader.Load("Assets/Textures/Toad/Toad_BaseColor.texture");
+        m_Normal = textureLoader.Load("Assets/Textures/Toad/Toad_Normal.texture");
+        m_Roughness = textureLoader.Load("Assets/Textures/Toad/Toad_Roughness.texture");
+        m_Occlusion = textureLoader.Load("Assets/Textures/Toad/Toad_AO.texture");
+        m_Translucency = textureLoader.Load("Assets/Textures/Toad/Toad_Translucency.texture");
 
         m_SpecularRenderPass.Register(new SpecularRenderable
         {

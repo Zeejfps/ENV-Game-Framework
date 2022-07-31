@@ -4,10 +4,13 @@ using TicTacToePrototype.OpenGL.AssetLoaders;
 
 namespace GlfwOpenGLBackend.AssetLoaders;
 
-public class TextureAssetLoader_GL : TextureAssetLoader
+public class GpuTextureAssetLoader_GL : IAssetLoader<IGpuTexture>
 {
-    protected override IGpuTexture LoadAsset(CpuTexture asset)
+    private readonly IAssetLoader<ICpuTexture> m_CpuTextureAssetLoader = new CpuTextureAssetLoader();
+
+    public IGpuTexture Load(string assetPath)
     {
+        using var asset = m_CpuTextureAssetLoader.Load(assetPath);
         var width = asset.Width;
         var height = asset.Height;
         var pixels = asset.Pixels;

@@ -18,22 +18,26 @@ public class Ship : ISceneObject
 
     private readonly SpecularRenderPass m_SpecularRenderPass;
 
-    public Ship(SpecularRenderPass specularRenderPass)
+    public Ship(SpecularRenderPass specularRenderPass,
+        IGpuMesh mesh, 
+        IGpuTexture diffuse, 
+        IGpuTexture normal, 
+        IGpuTexture roughness, 
+        IGpuTexture occlusion, 
+        IGpuTexture translucency)
     {
         Transform = new Transform3D();
+        m_Mesh = mesh;
         m_SpecularRenderPass = specularRenderPass;
+        m_Diffuse = diffuse;
+        m_Normal = normal;
+        m_Roughness = roughness;
+        m_Occlusion = occlusion;
+        m_Translucency = translucency;
     }
     
     public void Load(IScene scene)
     {
-        var assetDatabase = scene.Context.AssetService;
-        m_Mesh = assetDatabase.Load<IGpuMesh>("Assets/Meshes/ship.mesh");
-        m_Diffuse = assetDatabase.Load<IGpuTexture>("Assets/Textures/Ship/ship_d.texture");
-        m_Normal = assetDatabase.Load<IGpuTexture>("Assets/Textures/Ship/ship_n.texture");
-        m_Roughness = assetDatabase.Load<IGpuTexture>("Assets/Textures/Ship/ship_r.texture");
-        m_Occlusion = assetDatabase.Load<IGpuTexture>("Assets/Textures/Ship/ship_ao.texture");
-        m_Translucency = assetDatabase.Load<IGpuTexture>("Assets/Textures/Toad/Toad_Translucency.texture");
-        
         m_SpecularRenderPass.Register(new SpecularRenderable
         {
             Mesh = m_Mesh,
