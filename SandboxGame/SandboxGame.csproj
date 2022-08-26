@@ -40,7 +40,7 @@
       <Folder Include="Assets\Default\Primitives" />
       <Folder Include="Assets\Default\Textures" />
       <Folder Include="Assets\Textures\Ship" />
-      <Folder Include="Assets\Materials\" />
+      <Folder Include="Assets\Shaders\" />
     </ItemGroup>
 
 </Project>

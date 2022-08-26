@@ -9,7 +9,7 @@ public class SpecularRenderPass
     private readonly Dictionary<(IGpuMesh, SpecularRenderableTextures), List<ITransform3D>> m_MeshToRenderableMap = new();
     private readonly Dictionary<ITransform3D, (IGpuMesh, SpecularRenderableTextures)> m_TransformToGroupMap = new();
 
-    private IGpuShader? m_SpecularMaterial;
+    private IGpuShader? m_SpecularShader;
     private readonly ITransform3D m_Light;
 
     private Vector3 _lightColor = new Vector3(1f,1f,1f);
@@ -43,18 +43,18 @@ public class SpecularRenderPass
     {
         var locator = scene.Context.Locator;
         var shaderLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
-        m_SpecularMaterial = shaderLoader.Load("Assets/Materials/specular.material");
-        m_SpecularMaterial.EnableBackfaceCulling = true;
-        m_SpecularMaterial.EnableDepthTest = true;
+        m_SpecularShader = shaderLoader.Load("Assets/Shaders/specular.shader");
+        m_SpecularShader.EnableBackfaceCulling = true;
+        m_SpecularShader.EnableDepthTest = true;
     }
     
     public void Render(ICamera camera)
     {
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
 
-        Debug.Assert(m_SpecularMaterial != null);
+        Debug.Assert(m_SpecularShader != null);
         
-        using var material = m_SpecularMaterial.Use();
+        using var material = m_SpecularShader.Use();
         material.SetVector3("light.position", m_Light.WorldPosition);
         material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         material.SetMatrix4x4("matrix_view", viewMatrix);

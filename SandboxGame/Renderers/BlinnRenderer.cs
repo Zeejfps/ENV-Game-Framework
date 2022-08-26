@@ -12,7 +12,7 @@ public struct BlinnRenderData
 
 public class BlinnRenderer
 {
-    private IGpuShader? m_Material;
+    private IGpuShader? m_Shader;
     private IGpuTexture? m_Texture;
     private IGpuFramebuffer? m_Framebuffer;
     
@@ -30,7 +30,7 @@ public class BlinnRenderer
         var locator = scene.Context.Locator;
         var shaderLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
         var textureLoader = locator.LocateOrThrow<IAssetLoader<IGpuTexture>>();
-        m_Material = shaderLoader.Load("Assets/blinn.json");
+        m_Shader = shaderLoader.Load("Assets/Shaders/blinn.shader");
         m_Texture = textureLoader.Load("Assets/Textures/test.texture");
 
         m_Framebuffer = scene.Context.Window.Framebuffer;
@@ -38,9 +38,9 @@ public class BlinnRenderer
 
     public void Unload(IScene scene)
     {
-        Debug.Assert(m_Material != null);
-        m_Material.Dispose();
-        m_Material = null;
+        Debug.Assert(m_Shader != null);
+        m_Shader.Dispose();
+        m_Shader = null;
     }
 
     public void Render(BlinnRenderData renderData)
@@ -51,11 +51,11 @@ public class BlinnRenderer
         Matrix4x4.Invert(modelMatrix, out var normalMatrix);
         normalMatrix = Matrix4x4.Transpose(normalMatrix);
         
-        Debug.Assert(m_Material != null);
+        Debug.Assert(m_Shader != null);
 
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
         
-        using var material = m_Material.Use();
+        using var material = m_Shader.Use();
         using var mesh = renderData.Mesh.Use();
         material.SetVector3("Light.position", m_Light.WorldPosition);
         material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);

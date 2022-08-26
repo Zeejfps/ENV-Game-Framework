@@ -35,8 +35,8 @@ public class TestScene : IScene
     private readonly TestLight m_Light;
     private readonly List<ISceneObject> m_SceneObjects = new();
 
-    private IGpuShader m_UnlitMaterial;
-    private IGpuShader m_FullScreenBlitMaterial;
+    private IGpuShader m_UnlitShader;
+    private IGpuShader m_FullScreenBlitShader;
     private IGpuMesh m_QuadMesh;
     
     public TestScene(IContext context)
@@ -89,14 +89,14 @@ public class TestScene : IScene
         var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
         var shaderLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
 
-        m_UnlitMaterial = shaderLoader.Load("Assets/Materials/unlit.material");
+        m_UnlitShader = shaderLoader.Load("Assets/Shaders/unlit.shader");
 
-        m_UnlitMaterial.EnableDepthTest = true;
-        m_UnlitMaterial.EnableBackfaceCulling = false;
+        m_UnlitShader.EnableDepthTest = true;
+        m_UnlitShader.EnableBackfaceCulling = false;
         
-        m_FullScreenBlitMaterial = shaderLoader.Load("Assets/Materials/fullScreenQuad.material");
-        m_FullScreenBlitMaterial.EnableBackfaceCulling = true;
-        m_FullScreenBlitMaterial.EnableDepthTest = false;
+        m_FullScreenBlitShader = shaderLoader.Load("Assets/Shaders/fullScreenQuad.shader");
+        m_FullScreenBlitShader.EnableBackfaceCulling = true;
+        m_FullScreenBlitShader.EnableDepthTest = false;
         
         m_QuadMesh = meshLoader.Load("Assets/Meshes/quad.mesh");
 
@@ -138,12 +138,12 @@ public class TestScene : IScene
         {
             renderbuffer.Clear(.42f, .607f, .82f, 1f);
             m_FullScreenBlitPass.Render(m_QuadMesh,
-                m_FullScreenBlitMaterial,
+                m_FullScreenBlitShader,
                 m_TempRenderbuffer.ColorBuffers[0],
                 m_TempRenderbuffer.ColorBuffers[1],
                 m_TempRenderbuffer.ColorBuffers[2]);
             
-            m_UnlitRenderPass.Render(m_Camera, m_UnlitMaterial);
+            m_UnlitRenderPass.Render(m_Camera, m_UnlitShader);
         }
     }
 

@@ -1,4 +1,22 @@
-﻿#version 330 core
+﻿#BEGIN vertex_shader
+
+#version 330 core
+layout (location = 0) in vec2 aPos;
+layout (location = 2) in vec2 aTexCoords;
+
+out vec2 TexCoords;
+
+void main()
+{
+    gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
+    TexCoords = vec2(aTexCoords.x, 1-aTexCoords.y);
+}
+    
+#END
+
+#BEGIN fragment_shader
+
+#version 330 core
 out vec4 FragColor;
 
 in vec2 TexCoords;
@@ -49,3 +67,5 @@ void main()
     }
     FragColor = vec4(lighting,1);
 }
+
+#END

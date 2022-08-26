@@ -34,7 +34,7 @@ public class Game
         var gpuShaderAssetLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
         
         m_QuadMesh = gpuMeshAssetLoader.Load("Assets/quad.mesh");
-        m_UnlitMaterial = gpuShaderAssetLoader.Load("Assets/sprite.material");
+        m_UnlitMaterial = gpuShaderAssetLoader.Load("Assets/sprite.shader");
         m_UnlitMaterial.EnableBackfaceCulling = false;
 
         m_Clock = new Clock();

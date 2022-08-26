@@ -14,7 +14,7 @@ public abstract class AssetLoader<T> : IAssetLoader<T> where T : IAsset
         }
         catch (Exception e)
         {
-            throw;
+            throw new Exception($"Failed to load asset: {assetPath}", e);
         }
     }
 

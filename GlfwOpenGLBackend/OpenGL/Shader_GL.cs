@@ -5,7 +5,7 @@ using static OpenGL.Gl;
 
 namespace GlfwOpenGLBackend;
 
-public class Material_GL : IGpuShader
+public class Shader_GL : IGpuShader
 {
     private readonly Dictionary<string, int> m_PropertyToIdMap = new();
     private readonly Dictionary<string, int> m_TextureToSlotMap = new();
@@ -15,7 +15,7 @@ public class Material_GL : IGpuShader
     private uint m_ProgramId;
     private int m_ActiveTextureId = 0;
     
-    private Material_GL(uint programId)
+    private Shader_GL(uint programId)
     {
         m_ProgramId = programId;
         IsLoaded = true;
@@ -36,7 +36,7 @@ public class Material_GL : IGpuShader
         IsLoaded = false;
     }
 
-    public static Material_GL LoadFromSource(string vertexShaderSource, string fragmentShaderSource)
+    public static Shader_GL LoadFromSource(string vertexShaderSource, string fragmentShaderSource)
     {
         var vertexShader = glCreateShader(GL_VERTEX_SHADER);
         CompileShader(vertexShader, vertexShaderSource);
@@ -57,7 +57,7 @@ public class Material_GL : IGpuShader
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
 
-        return new Material_GL(program);
+        return new Shader_GL(program);
     }
     
     private static void CompileShader(uint shader, string source)
@@ -74,10 +74,10 @@ public class Material_GL : IGpuShader
     {
         private static Handle? s_ActiveHandle;
         
-        private Material_GL Material { get; }
+        private Shader_GL Material { get; }
         private bool IsDisposed { get; set; }
         
-        public Handle(Material_GL material)
+        public Handle(Shader_GL material)
         {
             if (s_ActiveHandle != null)
                 s_ActiveHandle.IsDisposed = true;
