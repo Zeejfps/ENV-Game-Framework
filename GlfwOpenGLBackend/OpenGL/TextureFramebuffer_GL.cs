@@ -41,16 +41,15 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
             m_drawBufferIds[i] = GL_COLOR_ATTACHMENT0 + i;
         }
         
-        glDrawBuffers(m_drawBufferIds);
+        if (m_drawBufferIds.Length > 0)
+            glDrawBuffers(m_drawBufferIds);
 
         if (createDepthBuffer)
         {
             var depthTextureId = glGenTexture();
             glBindTexture(GL_TEXTURE_2D, depthTextureId);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, IntPtr.Zero);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTextureId, 0);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, IntPtr.Zero);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT , GL_TEXTURE_2D, depthTextureId, 0);
             m_DepthTexture = new Texture2D_GL(depthTextureId);
         }
         
