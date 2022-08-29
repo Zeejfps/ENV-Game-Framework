@@ -169,20 +169,20 @@ public class Window_GLFW : IWindow
         Glfw.SetScrollCallback(m_Handle, m_ScrollCallback);
     }
 
-    public void Open()
+    public void Show()
     {
         Glfw.ShowWindow(m_Handle);
         IsOpened = true;
     }
 
-    public void OpenCentered()
+    public void ShowCentered()
     {
         PosX = (int)((m_Displays.PrimaryDisplay.ResolutionX - Width) * 0.5f);
         PosY = (int)((m_Displays.PrimaryDisplay.ResolutionY - Height) * 0.5f);
-        Open();
+        Show();
     }
 
-    public void Close()
+    public void Hide()
     {
         Debug.Assert(IsOpened);
         Debug.Assert(m_Handle != Window.None);
@@ -212,7 +212,7 @@ public class Window_GLFW : IWindow
         UpdateWindowSize();
     }
 
-    public void Reposition(int x, int y)
+    public void SetPosition(int x, int y)
     {
         m_PosX = x;
         m_PosY = y;

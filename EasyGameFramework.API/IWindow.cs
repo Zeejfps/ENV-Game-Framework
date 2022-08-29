@@ -16,10 +16,10 @@ public interface IWindow
     bool IsOpened { get; }
     IGpuFramebuffer Framebuffer { get; }
 
-    void Open();
-    void OpenCentered();
-    void Close();
+    void Show();
+    void ShowCentered();
+    void Hide();
     void Update();
     void SetSize(int width, int height);
-    void Reposition(int x, int y);
+    void SetPosition(int x, int y);
 }

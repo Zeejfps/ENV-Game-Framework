@@ -27,7 +27,7 @@ public class Game
         Window.IsResizable = true;
         Window.IsVsyncEnabled = true;
 
-        Window.Open();
+        Window.Show();
         
         var scene = new TestScene(Context);
         scene.Load();

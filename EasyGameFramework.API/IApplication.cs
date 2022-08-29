@@ -12,4 +12,5 @@ public interface IApplication : IDisposable
     
     bool IsRunning { get; }
     void Update();
+    void Quit();
 }

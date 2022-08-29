@@ -14,7 +14,7 @@ public class Application_GLFW_GL : IApplication
     public IWindow Window => m_Window;
     public IInput Input => m_Window.Input;
     public ILocator Locator => m_Locator;
-    public bool IsRunning => Window.IsOpened;
+    public bool IsRunning { get; private set; }
 
     private readonly Window_GLFW m_Window;
     private readonly ILocator m_Locator;
@@ -36,6 +36,8 @@ public class Application_GLFW_GL : IApplication
         m_Locator.RegisterSingleton<IAssetLoader<IGpuMesh>>(new GpuMeshAssetLoader_GL());
         m_Locator.RegisterSingleton<IAssetLoader<IGpuShader>>(new GpuShaderAssetLoader_GL());
         m_Locator.RegisterSingleton<IAssetLoader<IGpuTexture>>(new GpuTextureAssetLoader_GL());
+
+        IsRunning = true;
     }
     
     public IGpuRenderbuffer CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer)
@@ -46,8 +48,15 @@ public class Application_GLFW_GL : IApplication
     public void Update()
     {
         m_Window.Update();
+        if (!m_Window.IsOpened)
+            IsRunning = false;
     }
-    
+
+    public void Quit()
+    {
+        IsRunning = false;
+    }
+
     public void Dispose()
     {
         Glfw.Terminate();

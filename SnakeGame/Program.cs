@@ -1,4 +1,5 @@
 ﻿using EasyGameFramework.API;
+using EasyGameFramework.API.InputDevices;
 using SnakeGame;
 
 var builder = new ApplicationBuilder();
@@ -9,13 +10,19 @@ window.Width = 500;
 window.Height = 500;
 window.IsVsyncEnabled = true;
 window.IsResizable = false;
-window.OpenCentered();
+window.ShowCentered();
 
 var game = new Game(app);
 
 while (app.IsRunning)
 {
     app.Update();
+
+    if (app.Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
+    {
+        app.Quit();
+    }
+    
     game.Update();
 }
 
