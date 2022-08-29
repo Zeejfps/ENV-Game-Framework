@@ -7,9 +7,9 @@ public class Game
 {
     IDisplays Displays => Context.Displays;
     IWindow Window => Context.Window;
-    IContext Context { get; }
+    IApplication Context { get; }
 
-    public Game(IContext context)
+    public Game(IApplication context)
     {
         Context = context;
     }

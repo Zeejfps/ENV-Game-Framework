@@ -8,17 +8,18 @@ using GlfwOpenGLBackend.AssetLoaders;
 
 namespace GlfwOpenGLBackend;
 
-public class Context_GLFW_GL : IContext
+public class Application_GLFW_GL : IApplication
 {
     public IDisplays Displays { get; }
     public IWindow Window => m_Window;
     public IInput Input => m_Window.Input;
     public ILocator Locator => m_Locator;
+    public bool IsRunning => Window.IsOpened;
 
     private readonly Window_GLFW m_Window;
     private readonly ILocator m_Locator;
     
-    public Context_GLFW_GL()
+    public Application_GLFW_GL()
     {
         Glfw.Init();
         Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
@@ -29,7 +30,7 @@ public class Context_GLFW_GL : IContext
         Glfw.WindowHint(Hint.Decorated, true);
 
         Displays = new Displays_GLFW();
-        m_Window = new Window_GLFW();
+        m_Window = new Window_GLFW(Displays);
         m_Locator = new Locator();
         
         m_Locator.RegisterSingleton<IAssetLoader<IGpuMesh>>(new GpuMeshAssetLoader_GL());
@@ -40,6 +41,11 @@ public class Context_GLFW_GL : IContext
     public IGpuRenderbuffer CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer)
     {
         return new TextureFramebuffer_GL(width, height, colorBufferCount, createDepthBuffer);
+    }
+    
+    public void Update()
+    {
+        m_Window.Update();
     }
     
     public void Dispose()

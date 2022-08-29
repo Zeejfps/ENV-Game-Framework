@@ -4,9 +4,9 @@ namespace EasyGameFramework.API;
 
 public sealed class ApplicationBuilder
 {
-    public IContext Build()
+    public IApplication Build()
     {
-        var context = new Context_GLFW_GL();
-        return context;
+        var app = new Application_GLFW_GL();
+        return app;
     }
 }

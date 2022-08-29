@@ -26,14 +26,14 @@ public class Game
     private IInput m_Input;
     private IGpuFramebuffer m_WindowFramebuffer;
     
-    public Game(ILocator locator, IInput input, IGpuFramebuffer windowFramebuffer)
+    public Game(IApplication app)
     {
-        m_Locator = locator;
-        m_Input = input;
-        m_WindowFramebuffer = windowFramebuffer;
+        m_Locator = app.Locator;
+        m_Input = app.Input;
+        m_WindowFramebuffer = app.Window.Framebuffer;
 
-        var gpuMeshAssetLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
-        var gpuShaderAssetLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
+        var gpuMeshAssetLoader = m_Locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
+        var gpuShaderAssetLoader = m_Locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
         
         m_QuadMesh = gpuMeshAssetLoader.Load("Assets/quad.mesh");
         m_UnlitMaterial = gpuShaderAssetLoader.Load("Assets/sprite.shader");

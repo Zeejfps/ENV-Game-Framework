@@ -10,7 +10,7 @@ namespace Framework;
 
 public class TestScene : IScene
 {
-    public IContext Context => m_Context;
+    public IApplication Context => m_Context;
 
     private IGpuRenderbuffer m_TempRenderbuffer;
     private IGpuFramebuffer m_WindowFramebuffer;
@@ -19,7 +19,7 @@ public class TestScene : IScene
     private UnlitRenderPass m_UnlitRenderPass;
     private FullScreenBlitPass m_FullScreenBlitPass;
     
-    private readonly IContext m_Context;
+    private readonly IApplication m_Context;
     private readonly ICamera m_Camera;
     private readonly IClock m_Clock;
 
@@ -41,7 +41,7 @@ public class TestScene : IScene
     private IGpuShader m_FullScreenBlitShader;
     private IGpuMesh m_QuadMesh;
     
-    public TestScene(IContext context)
+    public TestScene(IApplication context)
     {
         var aspect = context.Window.Width / (float)context.Window.Height;
         m_Context = context;

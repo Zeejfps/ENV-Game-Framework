@@ -129,6 +129,7 @@ public class Window_GLFW : IWindow
 
     private readonly WindowFramebuffer_GL m_WindowFramebuffer;
     private readonly Input_GLFW m_Input;
+    private readonly IDisplays m_Displays;
 
     private readonly KeyCallback m_KeyCallback;
     private readonly SizeCallback m_SizeCallback;
@@ -138,8 +139,9 @@ public class Window_GLFW : IWindow
     private readonly PositionCallback m_PositionCallback;
     private readonly SizeCallback m_FramebufferSizeCallback;
 
-    public Window_GLFW()
+    public Window_GLFW(IDisplays displays)
     {
+        m_Displays = displays;
         m_Input = new Input_GLFW();
 
         m_KeyCallback = Glfw_KeyCallback;
@@ -173,6 +175,13 @@ public class Window_GLFW : IWindow
         IsOpened = true;
     }
 
+    public void OpenCentered()
+    {
+        PosX = (int)((m_Displays.PrimaryDisplay.ResolutionX - Width) * 0.5f);
+        PosY = (int)((m_Displays.PrimaryDisplay.ResolutionY - Height) * 0.5f);
+        Open();
+    }
+
     public void Close()
     {
         Debug.Assert(IsOpened);
@@ -196,7 +205,7 @@ public class Window_GLFW : IWindow
             IsOpened = false;
     }
 
-    public void Resize(int width, int height)
+    public void SetSize(int width, int height)
     {
         m_Width = width;
         m_Height = height;

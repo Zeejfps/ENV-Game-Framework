@@ -17,8 +17,9 @@ public interface IWindow
     IGpuFramebuffer Framebuffer { get; }
 
     void Open();
+    void OpenCentered();
     void Close();
     void Update();
-    void Resize(int width, int height);
+    void SetSize(int width, int height);
     void Reposition(int x, int y);
 }
