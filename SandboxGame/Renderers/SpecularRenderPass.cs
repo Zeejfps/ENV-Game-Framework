@@ -7,8 +7,8 @@ namespace Framework;
 
 public class SpecularRenderPass
 {
-    private readonly Dictionary<(IGpuMesh, SpecularRenderableTextures), List<ITransform3D>> m_MeshToRenderableMap = new();
-    private readonly Dictionary<ITransform3D, (IGpuMesh, SpecularRenderableTextures)> m_TransformToGroupMap = new();
+    private readonly Dictionary<(IHandle<IGpuMesh>, SpecularRenderableTextures), List<ITransform3D>> m_MeshToRenderableMap = new();
+    private readonly Dictionary<ITransform3D, (IHandle<IGpuMesh>, SpecularRenderableTextures)> m_TransformToGroupMap = new();
 
     private IHandle<IGpuShader> m_SpecularShaderHandle;
     private readonly ITransform3D m_Light;
@@ -25,7 +25,7 @@ public class SpecularRenderPass
 
     public void Register(in SpecularRenderable renderable)
     {
-        var mesh = renderable.Mesh;
+        var mesh = renderable.MeshHandle;
         var textures = renderable.Textures;
         var transform = renderable.Transform;
         
@@ -101,7 +101,7 @@ public class SpecularRenderPass
 
 public readonly struct SpecularRenderable 
 {
-    public IGpuMesh Mesh { get; init; }
+    public IHandle<IGpuMesh> MeshHandle { get; init; }
     public ITransform3D Transform { get; init; }
     public SpecularRenderableTextures Textures { get; init; }
 }

@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Drawing;
+﻿using System.Drawing;
 using System.Numerics;
 using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
@@ -17,14 +16,14 @@ public class FullScreenBlitPass
         m_light = light;
     }
 
-    public void Render(IGpuMesh quadMesh, IGpu gpu, IHandle<IGpuShader> fullScreenBlitMaterial, IGpuTexture bufferAlbedo, IGpuTexture bufferNormal, IGpuTexture bufferPosition)
+    public void Render(IGpu gpu, IHandle<IGpuMesh> quadMeshHandle, IHandle<IGpuShader> fullScreenBlitMaterial, IGpuTexture bufferAlbedo, IGpuTexture bufferNormal, IGpuTexture bufferPosition)
     {
         gpu.SaveState();
         gpu.EnableBackfaceCulling = true;
         gpu.EnableDepthTest = false;
         
         using var shader = fullScreenBlitMaterial.Use();
-        using var mesh = quadMesh.Use();
+        using var mesh = quadMeshHandle.Use();
         
         shader.SetTexture2d("gColor", bufferAlbedo);
         shader.SetTexture2d("gNormal", bufferNormal);

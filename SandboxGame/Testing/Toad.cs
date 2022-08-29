@@ -10,7 +10,7 @@ public class Toad : ISceneObject
 {
     public ITransform3D Transform { get; }
     
-    private IGpuMesh? m_Mesh;
+    private IHandle<IGpuMesh>? m_MeshHandle;
     private IGpuTexture? m_Diffuse;
     private IGpuTexture? m_Normal;
     private IGpuTexture? m_Roughness;
@@ -27,11 +27,11 @@ public class Toad : ISceneObject
     
     public void Load(IScene scene)
     {
+        var gpu = scene.App.Gpu;
         var locator = scene.App.Locator;
-        var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
         var textureLoader = locator.LocateOrThrow<IAssetLoader<IGpuTexture>>();
         
-        m_Mesh = meshLoader.Load("Assets/Meshes/Toad.mesh");
+        m_MeshHandle = gpu.LoadMesh("Assets/Meshes/Toad.mesh");
         m_Diffuse = textureLoader.Load("Assets/Textures/Toad/Toad_BaseColor.texture");
         m_Normal = textureLoader.Load("Assets/Textures/Toad/Toad_Normal.texture");
         m_Roughness = textureLoader.Load("Assets/Textures/Toad/Toad_Roughness.texture");
@@ -41,7 +41,7 @@ public class Toad : ISceneObject
         m_SpecularRenderPass.Register(new SpecularRenderable
         {
             Transform = Transform,
-            Mesh = m_Mesh,
+            MeshHandle = m_MeshHandle,
             Textures = new SpecularRenderableTextures
             {
                 Diffuse = m_Diffuse,
@@ -55,7 +55,7 @@ public class Toad : ISceneObject
 
     public void Update(IScene scene)
     {
-        Debug.Assert(m_Mesh != null);
+        Debug.Assert(m_MeshHandle != null);
         Debug.Assert(m_Diffuse != null);
         Debug.Assert(m_Normal != null);
         Debug.Assert(m_Occlusion != null);

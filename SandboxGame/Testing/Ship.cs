@@ -8,7 +8,7 @@ public class Ship : ISceneObject
 {
     public ITransform3D Transform { get; }
     
-    private IGpuMesh? m_Mesh;
+    private IHandle<IGpuMesh>? m_Mesh;
     private IGpuTexture? m_Diffuse;
     private IGpuTexture? m_Normal;
     private IGpuTexture? m_Roughness;
@@ -18,7 +18,7 @@ public class Ship : ISceneObject
     private readonly SpecularRenderPass m_SpecularRenderPass;
 
     public Ship(SpecularRenderPass specularRenderPass,
-        IGpuMesh mesh, 
+        IHandle<IGpuMesh> mesh, 
         IGpuTexture diffuse, 
         IGpuTexture normal, 
         IGpuTexture roughness, 
@@ -39,7 +39,7 @@ public class Ship : ISceneObject
     {
         m_SpecularRenderPass.Register(new SpecularRenderable
         {
-            Mesh = m_Mesh,
+            MeshHandle = m_Mesh,
             Transform = Transform,
             Textures = new SpecularRenderableTextures
             {

@@ -39,7 +39,7 @@ public class TestScene : IScene
 
     private IHandle<IGpuShader> m_UnlitShaderHandle;
     private IHandle<IGpuShader> m_FullScreenBlitShaderHandle;
-    private IGpuMesh m_QuadMesh;
+    private IHandle<IGpuMesh> m_QuadMeshHandle;
     private IGpu m_Gpu;
     
     public TestScene(IApplication app)
@@ -91,11 +91,10 @@ public class TestScene : IScene
     {
         var gpu = App.Gpu;
         var locator = App.Locator;
-        var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
 
         m_UnlitShaderHandle = gpu.LoadShader("Assets/Shaders/unlit.shader");
         m_FullScreenBlitShaderHandle = gpu.LoadShader("Assets/Shaders/fullScreenQuad.shader");
-        m_QuadMesh = meshLoader.Load("Assets/Meshes/quad.mesh");
+        m_QuadMeshHandle = gpu.LoadMesh("Assets/Meshes/quad.mesh");
 
         m_Light.Load(this);
         m_SpecularRenderPass.Load(this);
@@ -129,13 +128,13 @@ public class TestScene : IScene
         using (var renderbuffer = m_WindowFramebuffer.Use())
         {
             renderbuffer.Clear(.42f, .607f, .82f, 1f);
-            m_FullScreenBlitPass.Render(m_QuadMesh, m_Gpu,
+            m_FullScreenBlitPass.Render(m_Gpu, m_QuadMeshHandle,
                 m_FullScreenBlitShaderHandle,
                 m_TempRenderbuffer.ColorBuffers[0],
                 m_TempRenderbuffer.ColorBuffers[1],
                 m_TempRenderbuffer.ColorBuffers[2]);
             
-            m_UnlitRenderPass.Render(m_Camera, m_Gpu, m_UnlitShaderHandle);
+            m_UnlitRenderPass.Render(m_Gpu, m_UnlitShaderHandle, m_Camera);
         }
     }
 
@@ -208,11 +207,11 @@ public class TestScene : IScene
 
     private List<Ship> CreateShips()
     {
+        var gpu = App.Gpu;
         var locator = App.Locator;
-        var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
         var textureLoader = locator.LocateOrThrow<IAssetLoader<IGpuTexture>>();
         
-        var mesh = meshLoader.Load("Assets/Meshes/ship.mesh");
+        var mesh = gpu.LoadMesh("Assets/Meshes/ship.mesh");
         var diffuse = textureLoader.Load("Assets/Textures/Ship/ship_d.texture");
         var normal = textureLoader.Load("Assets/Textures/Ship/ship_n.texture");
         var roughness = textureLoader.Load("Assets/Textures/Ship/ship_r.texture");

@@ -1,6 +1,6 @@
 ﻿using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
-using OpenGL;
+using static OpenGL.Gl;
 
 namespace GlfwOpenGLBackend;
 
@@ -15,7 +15,15 @@ public class GpuShaderHandle : IHandle<IGpuShader>
     
     public IGpuShader Use()
     {
-        Gl.glUseProgram(m_Shader.ProgramId);
+        glUseProgram(m_Shader.ProgramId);
         return m_Shader;
+    }
+}
+
+public class GpuTextureHandle : IHandle<IGpuTexture>
+{
+    public IGpuTexture Use()
+    {
+        throw new NotImplementedException();
     }
 }

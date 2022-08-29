@@ -6,7 +6,8 @@ namespace Framework.GLFW.NET;
 public class Mesh_GL : IGpuMesh
 {
     public bool IsLoaded { get; }
-
+    public uint VaoId => m_Vao;
+    
     private readonly uint m_Vao;
     private readonly uint m_Vbo;
     private readonly uint m_Vio;
@@ -76,45 +77,20 @@ public class Mesh_GL : IGpuMesh
         
     }
 
-    public IGpuMeshHandle Use()
+    public void Render()
     {
-        return Handle.Use(this);
+        unsafe
+        {
+            glDrawElements(GL_TRIANGLES, m_TriangleCount, GL_UNSIGNED_INT, NULL);
+        }
     }
 
-    class Handle : IGpuMeshHandle
+    public void RenderInstanced(int instanceCount)
     {
-        private static Handle? s_Instance;
-        private static Handle Instance => s_Instance ??= new Handle();
-
-        private Mesh_GL m_ActiveMesh;
-        
-        public static IGpuMeshHandle Use(Mesh_GL mesh)
+        unsafe
         {
-            Instance.m_ActiveMesh = mesh;
-            glBindVertexArray(mesh.m_Vao);
-            return Instance;
-        }
-        
-        public void Render()
-        {
-            unsafe
-            {
-                glDrawElements(GL_TRIANGLES, Instance.m_ActiveMesh.m_TriangleCount, GL_UNSIGNED_INT, NULL);
-            }
-        }
-
-        public void RenderInstanced(int instanceCount)
-        {
-            unsafe
-            {
-                glDrawElementsInstanced(GL_TRIANGLES, Instance.m_ActiveMesh.m_TriangleCount, GL_UNSIGNED_INT, NULL, instanceCount);
-                glAssertNoError();
-            }
-        }
-
-        public void Dispose()
-        {
-            //glBindVertexArray(0);
+            glDrawElementsInstanced(GL_TRIANGLES, m_TriangleCount, GL_UNSIGNED_INT, NULL, instanceCount);
+            glAssertNoError();
         }
     }
 }

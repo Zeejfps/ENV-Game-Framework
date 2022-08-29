@@ -1,6 +1,7 @@
 ﻿using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
 using EasyGameFramework.AssetManagement;
+using Framework.GLFW.NET;
 using static OpenGL.Gl;
 
 namespace GlfwOpenGLBackend;
@@ -63,11 +64,24 @@ public class Gpu_GL : IGpu
         }
     }
 
-    public IHandle<IGpuShader> LoadShader(string shaderPath)
+    public IHandle<IGpuMesh> LoadMesh(string assetPath)
+    {
+        var cpuMeshLoader = new CpuMeshAssetLoader();
+        var cpuMesh = cpuMeshLoader.Load(assetPath);
+        return new GpuMeshHandle(new Mesh_GL(cpuMesh.Vertices, cpuMesh.Normals, cpuMesh.Uvs, cpuMesh.Tangents,
+            cpuMesh.Triangles));
+    }
+
+    public IHandle<IGpuShader> LoadShader(string assetPath)
     {
         var cpuShaderLoader = new CpuShaderAssetLoader();
-        var cpuShader = cpuShaderLoader.Load(shaderPath);
+        var cpuShader = cpuShaderLoader.Load(assetPath);
         return new GpuShaderHandle(Shader_GL.LoadFromSource(cpuShader.VertexShader, cpuShader.FragmentShader));
+    }
+
+    public IHandle<IGpuTexture> LoadTexture(string assetPath)
+    {
+        throw new NotImplementedException();
     }
 
     public void SaveState()

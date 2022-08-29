@@ -7,7 +7,7 @@ namespace Framework;
 
 public struct BlinnRenderData
 {
-    public IGpuMesh Mesh { get; init; }
+    public IHandle<IGpuMesh> MeshHandle { get; init; }
     public ITransform3D Transform { get; init; }
 }
 
@@ -50,7 +50,7 @@ public class BlinnRenderer
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
         
         using var material = m_Shader.Use();
-        using var mesh = renderData.Mesh.Use();
+        using var mesh = renderData.MeshHandle.Use();
         material.SetVector3("Light.position", m_Light.WorldPosition);
         material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         material.SetMatrix4x4("matrix_view", viewMatrix);

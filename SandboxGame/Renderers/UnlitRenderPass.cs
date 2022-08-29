@@ -6,7 +6,7 @@ namespace Framework;
 
 public class UnlitRendererable
 {
-    public IGpuMesh Mesh { get; init; }
+    public IHandle<IGpuMesh> MeshHandle { get; init; }
     public Vector3 Color { get; init; }
     public ITransform3D Transform { get; init; }
 }
@@ -20,7 +20,7 @@ public class UnlitRenderPass
         m_Renderables.Add(rendererable);
     }
 
-    public void Render(ICamera camera, IGpu gpu, IHandle<IGpuShader> material)
+    public void Render(IGpu gpu, IHandle<IGpuShader> material, ICamera camera)
     {
         gpu.SaveState();
         gpu.EnableDepthTest = true;
@@ -38,7 +38,7 @@ public class UnlitRenderPass
             materialHandle.SetMatrix4x4("matrix_model", modelMatrix);
             materialHandle.SetVector3("color", data.Color);
 
-            using var mesh = data.Mesh.Use();
+            using var mesh = data.MeshHandle.Use();
             mesh.Render();
         }
         

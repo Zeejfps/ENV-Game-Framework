@@ -32,10 +32,10 @@ public class SpriteRenderer
         
     }
     
-    public void Render(ICamera camera, IHandle<IGpuShader> gpuShaderHandle, IGpuMesh quadMesh, IEnumerable<ITransform3D> transforms)
+    public void Render(ICamera camera, IHandle<IGpuShader> gpuShaderHandle, IHandle<IGpuMesh> quadMeshHandle, IEnumerable<ITransform3D> transforms)
     {
         using var shader = gpuShaderHandle.Use();
-        using var meshHandle = quadMesh.Use();
+        using var meshHandle = quadMeshHandle.Use();
 
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
             
