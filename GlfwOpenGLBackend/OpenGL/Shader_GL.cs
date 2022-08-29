@@ -39,13 +39,13 @@ public class Shader_GL : IGpuShader
         SetVector3(propertyName, vector.X, vector.Y, vector.Z);
     }
 
-    public void SetTexture2d(string propertyName, IGpuTexture texture)
+    public void SetTexture2d(string propertyName, IHandle<IGpuTexture> textureHandle)
     {
         var location = GetUniformLocation(propertyName);
         var textureSlot = GetTextureSlot(propertyName);
         glUniform1i(location, textureSlot);
         glActiveTexture(GL_TEXTURE0 + textureSlot);
-        texture.Use();
+        textureHandle.Use();
     }
 
     public void SetMatrix4x4(string propertyName, Matrix4x4 matrix)
@@ -73,7 +73,6 @@ public class Shader_GL : IGpuShader
     
     public void Dispose()
     {
-        glUseProgram(0);
     }
     
     private int GetUniformLocation(string uniformName)

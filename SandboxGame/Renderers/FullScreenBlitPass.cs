@@ -16,7 +16,12 @@ public class FullScreenBlitPass
         m_light = light;
     }
 
-    public void Render(IGpu gpu, IHandle<IGpuMesh> quadMeshHandle, IHandle<IGpuShader> fullScreenBlitMaterial, IGpuTexture bufferAlbedo, IGpuTexture bufferNormal, IGpuTexture bufferPosition)
+    public void Render(IGpu gpu, 
+        IHandle<IGpuMesh> quadMeshHandle,
+        IHandle<IGpuShader> fullScreenBlitMaterial, 
+        IHandle<IGpuTexture> bufferAlbedoHandle, 
+        IHandle<IGpuTexture> bufferNormalHandle, 
+        IHandle<IGpuTexture> bufferPositionHandle)
     {
         gpu.SaveState();
         gpu.EnableBackfaceCulling = true;
@@ -25,9 +30,9 @@ public class FullScreenBlitPass
         using var shader = fullScreenBlitMaterial.Use();
         using var mesh = quadMeshHandle.Use();
         
-        shader.SetTexture2d("gColor", bufferAlbedo);
-        shader.SetTexture2d("gNormal", bufferNormal);
-        shader.SetTexture2d("gPosition", bufferPosition);
+        shader.SetTexture2d("gColor", bufferAlbedoHandle);
+        shader.SetTexture2d("gNormal", bufferNormalHandle);
+        shader.SetTexture2d("gPosition", bufferPositionHandle);
         shader.SetVector3("viewPos", m_Camera.Transform.WorldPosition);
         
         var colors = new[]{Color.Red, Color.Green, Color.Aqua, Color.Gold, Color.Crimson,Color.Lime};

@@ -2,5 +2,4 @@
 
 public interface IGpuTexture : IGpuAsset
 {
-    IGpuTextureHandle Use();
 }

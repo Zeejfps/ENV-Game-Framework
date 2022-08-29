@@ -9,21 +9,21 @@ public class Ship : ISceneObject
     public ITransform3D Transform { get; }
     
     private IHandle<IGpuMesh>? m_Mesh;
-    private IGpuTexture? m_Diffuse;
-    private IGpuTexture? m_Normal;
-    private IGpuTexture? m_Roughness;
-    private IGpuTexture? m_Occlusion;
-    private IGpuTexture? m_Translucency;
+    private IHandle<IGpuTexture>? m_Diffuse;
+    private IHandle<IGpuTexture>? m_Normal;
+    private IHandle<IGpuTexture>? m_Roughness;
+    private IHandle<IGpuTexture>? m_Occlusion;
+    private IHandle<IGpuTexture>? m_Translucency;
 
     private readonly SpecularRenderPass m_SpecularRenderPass;
 
     public Ship(SpecularRenderPass specularRenderPass,
         IHandle<IGpuMesh> mesh, 
-        IGpuTexture diffuse, 
-        IGpuTexture normal, 
-        IGpuTexture roughness, 
-        IGpuTexture occlusion, 
-        IGpuTexture translucency)
+        IHandle<IGpuTexture> diffuse, 
+        IHandle<IGpuTexture> normal, 
+        IHandle<IGpuTexture> roughness, 
+        IHandle<IGpuTexture> occlusion, 
+        IHandle<IGpuTexture> translucency)
     {
         Transform = new Transform3D();
         m_Mesh = mesh;

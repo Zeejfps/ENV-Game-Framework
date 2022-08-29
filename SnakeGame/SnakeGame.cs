@@ -21,14 +21,12 @@ public class Game
     private IHandle<IGpuMesh> m_QuadMeshHandle;
     private IHandle<IGpuShader> m_UnlitShaderHandle;
 
-    private ILocator m_Locator;
     private IInput m_Input;
     private IGpuFramebuffer m_WindowFramebuffer;
     private IGpu m_Gpu;
     
     public Game(IApplication app)
     {
-        m_Locator = app.Locator;
         m_Input = app.Input;
         m_WindowFramebuffer = app.Window.Framebuffer;
         m_Gpu = app.Gpu;

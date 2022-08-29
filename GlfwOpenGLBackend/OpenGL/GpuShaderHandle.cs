@@ -19,11 +19,3 @@ public class GpuShaderHandle : IHandle<IGpuShader>
         return m_Shader;
     }
 }
-
-public class GpuTextureHandle : IHandle<IGpuTexture>
-{
-    public IGpuTexture Use()
-    {
-        throw new NotImplementedException();
-    }
-}

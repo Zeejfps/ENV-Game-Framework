@@ -4,7 +4,6 @@ using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
 using EasyGameFramework.API.InputDevices;
 using EasyGameFramework.Cameras;
-using TicTacToePrototype;
 
 namespace Framework;
 
@@ -90,7 +89,6 @@ public class TestScene : IScene
     public void Load()
     {
         var gpu = App.Gpu;
-        var locator = App.Locator;
 
         m_UnlitShaderHandle = gpu.LoadShader("Assets/Shaders/unlit.shader");
         m_FullScreenBlitShaderHandle = gpu.LoadShader("Assets/Shaders/fullScreenQuad.shader");
@@ -208,15 +206,13 @@ public class TestScene : IScene
     private List<Ship> CreateShips()
     {
         var gpu = App.Gpu;
-        var locator = App.Locator;
-        var textureLoader = locator.LocateOrThrow<IAssetLoader<IGpuTexture>>();
         
         var mesh = gpu.LoadMesh("Assets/Meshes/ship.mesh");
-        var diffuse = textureLoader.Load("Assets/Textures/Ship/ship_d.texture");
-        var normal = textureLoader.Load("Assets/Textures/Ship/ship_n.texture");
-        var roughness = textureLoader.Load("Assets/Textures/Ship/ship_r.texture");
-        var occlusion = textureLoader.Load("Assets/Textures/Ship/ship_ao.texture");
-        var translucency = textureLoader.Load("Assets/Textures/Toad/Toad_Translucency.texture");
+        var diffuse = gpu.LoadTexture("Assets/Textures/Ship/ship_d.texture");
+        var normal = gpu.LoadTexture("Assets/Textures/Ship/ship_n.texture");
+        var roughness = gpu.LoadTexture("Assets/Textures/Ship/ship_r.texture");
+        var occlusion = gpu.LoadTexture("Assets/Textures/Ship/ship_ao.texture");
+        var translucency = gpu.LoadTexture("Assets/Textures/Toad/Toad_Translucency.texture");
 
         var ships = new List<Ship>();
         var size = 10;

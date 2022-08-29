@@ -6,7 +6,8 @@ namespace TicTacToePrototype.OpenGL.AssetLoaders;
 public class ReadonlyTexture2D_GL : IGpuTexture, IEquatable<ReadonlyTexture2D_GL>
 {
     public bool IsLoaded => m_Id != GL_NONE;
-    
+    public uint Id => m_Id;
+
     private uint m_Id;
 
     public unsafe ReadonlyTexture2D_GL(int width, int height, byte[]? pixels = null)
@@ -35,14 +36,6 @@ public class ReadonlyTexture2D_GL : IGpuTexture, IEquatable<ReadonlyTexture2D_GL
     
     public void Dispose()
     {
-        glDeleteTexture(m_Id);
-        m_Id = GL_NONE;
-    }
-
-    public IGpuTextureHandle Use()
-    {
-        glBindTexture(GL_TEXTURE_2D, m_Id);
-        return new Handle();
     }
 
     public bool Equals(ReadonlyTexture2D_GL? other)
@@ -74,6 +67,4 @@ public class ReadonlyTexture2D_GL : IGpuTexture, IEquatable<ReadonlyTexture2D_GL
     {
         return !Equals(left, right);
     }
-    
-    class Handle : IGpuTextureHandle {}
 }

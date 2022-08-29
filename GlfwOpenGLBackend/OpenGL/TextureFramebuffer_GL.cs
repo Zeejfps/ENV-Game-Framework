@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
+using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
+using GlfwOpenGLBackend;
 using GlfwOpenGLBackend.OpenGL;
 using TicTacToePrototype.OpenGL.AssetLoaders;
 using static OpenGL.Gl;
@@ -10,16 +12,14 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
 {
     public int Width { get; private set; }
     public int Height { get; private set; }
-    public IGpuTexture[] ColorBuffers => m_ColorTextures;
-    public IGpuTexture? DepthBuffer => m_DepthTexture;
+    public IHandle<IGpuTexture>[] ColorBuffers => m_ColorTextureHandles;
+    public IHandle<IGpuTexture>? DepthBuffer => m_DepthTextureHandle;
 
-    private readonly Texture2D_GL[] m_ColorTextures;
-    private Texture2D_GL m_DepthTexture;
+    private readonly GpuTextureHandle[] m_ColorTextureHandles;
+    private GpuTextureHandle m_DepthTextureHandle;
     private uint m_Id;
     private int[] m_drawBufferIds;
-
-    private Handle m_Handle;
-
+    
     public TextureFramebuffer_GL(int width, int height, int colorBufferCount, bool createDepthBuffer)
     {
         Width = width;
@@ -28,7 +28,7 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
         m_Id = glGenFramebuffer();
         glBindFramebuffer(m_Id);
         
-        m_ColorTextures = new Texture2D_GL[colorBufferCount];
+        m_ColorTextureHandles = new GpuTextureHandle[colorBufferCount];
         m_drawBufferIds = new int[colorBufferCount];
         for (var i = 0; i < colorBufferCount; i++)
         {
@@ -38,7 +38,7 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorTextureId, 0);
-            m_ColorTextures[i] = new Texture2D_GL(colorTextureId);
+            m_ColorTextureHandles[i] = new GpuTextureHandle(new Texture2D_GL(colorTextureId));
             m_drawBufferIds[i] = GL_COLOR_ATTACHMENT0 + i;
         }
         
@@ -51,7 +51,7 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
             glBindTexture(GL_TEXTURE_2D, depthTextureId);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, IntPtr.Zero);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT , GL_TEXTURE_2D, depthTextureId, 0);
-            m_DepthTexture = new Texture2D_GL(depthTextureId);
+            m_DepthTextureHandle = new GpuTextureHandle(new Texture2D_GL(depthTextureId));
         }
         
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -67,9 +67,7 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
 
     public void Dispose()
     {
-        foreach (var colorTexture in m_ColorTextures)
-            colorTexture.Dispose();
-        m_DepthTexture.Dispose();
+        
     }
     
     class Handle : IGpuFramebufferHandle
@@ -108,7 +106,7 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, IntPtr.Zero);   
             }
 
-            m_ActiveFramebuffer.m_DepthTexture.Use();
+            m_ActiveFramebuffer.m_DepthTextureHandle.Use();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, IntPtr.Zero);
         }
 

@@ -2,6 +2,8 @@
 using EasyGameFramework.API.AssetTypes;
 using EasyGameFramework.AssetManagement;
 using Framework.GLFW.NET;
+using GlfwOpenGLBackend.OpenGL;
+using TicTacToePrototype.OpenGL.AssetLoaders;
 using static OpenGL.Gl;
 
 namespace GlfwOpenGLBackend;
@@ -64,24 +66,30 @@ public class Gpu_GL : IGpu
         }
     }
 
+    private readonly CpuMeshAssetLoader m_CpuMeshLoader = new();
+    private readonly CpuShaderAssetLoader m_CpuShaderLoader = new();
+    private readonly CpuTextureAssetLoader m_CpuTextureAssetLoader = new();
+
     public IHandle<IGpuMesh> LoadMesh(string assetPath)
     {
-        var cpuMeshLoader = new CpuMeshAssetLoader();
-        var cpuMesh = cpuMeshLoader.Load(assetPath);
+        var cpuMesh = m_CpuMeshLoader.Load(assetPath);
         return new GpuMeshHandle(new Mesh_GL(cpuMesh.Vertices, cpuMesh.Normals, cpuMesh.Uvs, cpuMesh.Tangents,
             cpuMesh.Triangles));
     }
 
     public IHandle<IGpuShader> LoadShader(string assetPath)
     {
-        var cpuShaderLoader = new CpuShaderAssetLoader();
-        var cpuShader = cpuShaderLoader.Load(assetPath);
+        var cpuShader = m_CpuShaderLoader.Load(assetPath);
         return new GpuShaderHandle(Shader_GL.LoadFromSource(cpuShader.VertexShader, cpuShader.FragmentShader));
     }
 
     public IHandle<IGpuTexture> LoadTexture(string assetPath)
     {
-        throw new NotImplementedException();
+        var asset = m_CpuTextureAssetLoader.Load(assetPath);
+        var width = asset.Width;
+        var height = asset.Height;
+        var pixels = asset.Pixels;
+        return new GpuReadonlyTextureHandle(new ReadonlyTexture2D_GL(width, height, pixels));
     }
 
     public void SaveState()
