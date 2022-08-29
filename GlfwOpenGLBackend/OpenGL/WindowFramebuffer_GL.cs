@@ -1,5 +1,4 @@
 ﻿using EasyGameFramework.API.AssetTypes;
-using OpenGL;
 using static OpenGL.Gl;
 
 namespace Framework.GLFW.NET;
@@ -10,11 +9,10 @@ public class WindowFramebuffer_GL : IGpuFramebuffer
     public int Height { get; private set; }
     public uint Id => 0;
 
-    public WindowFramebuffer_GL(int width, int height, GetProcAddressHandler getProcAddress)
+    public WindowFramebuffer_GL(int width, int height)
     {
         Width = width;
         Height = height;
-        Import(getProcAddress);
     }
 
     public void Clear(float r, float g, float b, float a)

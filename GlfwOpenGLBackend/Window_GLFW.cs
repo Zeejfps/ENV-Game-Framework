@@ -2,6 +2,7 @@
 using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
 using GLFW;
+using OpenGL;
 using Monitor = GLFW.Monitor;
 
 namespace Framework.GLFW.NET;
@@ -158,7 +159,8 @@ public class Window_GLFW : IWindow
         m_Handle = Glfw.CreateWindow(Width, Height, Title, Monitor.None, Window.None);
         Glfw.MakeContextCurrent(m_Handle);
         Glfw.GetFramebufferSize(m_Handle, out var framebufferWidth, out var framebufferHeight);
-        m_WindowFramebuffer = new WindowFramebuffer_GL(framebufferWidth, framebufferHeight, Glfw.GetProcAddress);
+        Gl.Import(Glfw.GetProcAddress);
+        m_WindowFramebuffer = new WindowFramebuffer_GL(framebufferWidth, framebufferHeight);
         
         Glfw.SetWindowSizeCallback(m_Handle, m_SizeCallback);
         Glfw.SetWindowPositionCallback(m_Handle, m_PositionCallback);

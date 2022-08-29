@@ -2,10 +2,17 @@
 
 namespace Framework;
 
-public static class PbrRenderer
+public class PbrRenderer : IRenderer
 {
-    public static void Render(this IGpu gpu, ICamera camera)
+    public void Add(IRenderable renderable)
     {
-        
+    }
+
+    public void Remove(IRenderable renderable)
+    {
+    }
+
+    public void Render(IGpu gpu, ICamera camera)
+    {
     }
 }

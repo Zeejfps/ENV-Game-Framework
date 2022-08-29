@@ -1,5 +1,4 @@
 using EasyGameFramework.API;
-using EasyGameFramework.API.AssetTypes;
 using Framework.GLFW.NET;
 using GLFW;
 
@@ -8,6 +7,7 @@ namespace GlfwOpenGLBackend;
 public class Application_GLFW_GL : IApplication
 {
     public IDisplays Displays { get; }
+    public IRenderer Renderer { get; }
     public IWindow Window => m_Window;
     public IInput Input => m_Window.Input;
     public IGpu Gpu { get; }
@@ -15,7 +15,7 @@ public class Application_GLFW_GL : IApplication
 
     private readonly Window_GLFW m_Window;
     
-    public Application_GLFW_GL()
+    public Application_GLFW_GL(IRenderer renderer)
     {
         Glfw.Init();
         Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
@@ -26,6 +26,7 @@ public class Application_GLFW_GL : IApplication
         Glfw.WindowHint(Hint.Decorated, true);
 
         Displays = new Displays_GLFW();
+        Renderer = renderer;
         m_Window = new Window_GLFW(Displays);
         Gpu = new Gpu_GL(m_Window.Framebuffer);
 

@@ -80,9 +80,6 @@ public class TestScene : IScene
         m_SceneObjects.Add(m_Light);
         //m_SceneObjects.Add(m_Ship1);
         m_SceneObjects.Add(m_Toad);
-
-        foreach (var sceneObject in m_SceneObjects)
-            sceneObject.Load(this);
     }
 
     public void Load()

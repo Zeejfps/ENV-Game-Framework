@@ -1,12 +1,70 @@
-﻿using GlfwOpenGLBackend;
+﻿using Framework.GLFW.NET;
+using GlfwOpenGLBackend;
 
 namespace EasyGameFramework.API;
 
 public sealed class ApplicationBuilder
 {
+    private DiContainer DiContainer { get; } = new();
+    
+    private bool m_IsBackendSet;
+    
+    public ApplicationBuilder WithGlfwOpenGlBackend()
+    {
+        m_IsBackendSet = true;
+        DiContainer.Register<IApplication, Application_GLFW_GL>();
+        return this;
+    }
+    
+    public ApplicationBuilder WithRenderer<TRenderer>() where TRenderer : IRenderer
+    {
+        DiContainer.Register<IRenderer, TRenderer>();
+        return this;
+    }
+    
     public IApplication Build()
     {
-        var app = new Application_GLFW_GL();
+        if (!m_IsBackendSet)
+            WithGlfwOpenGlBackend();
+        
+        var app = DiContainer.GetInstance<IApplication>();
         return app;
+    }
+}
+
+internal class DiContainer
+{
+    private readonly Dictionary<Type, Func<object>> m_TypeToFactoryMap = new();
+
+    public T GetInstance<T>()
+    {
+        return (T)GetInstance(typeof(T));
+    }
+
+    private object GetInstance(Type type)
+    {
+        if (m_TypeToFactoryMap.TryGetValue(type, out Func<object> fac)) 
+            return fac();
+
+        if (!type.IsAbstract) 
+            return CreateInstance(type);
+        
+        throw new InvalidOperationException("No registration for " + type);
+    }
+
+    private object CreateInstance(Type implementationType)
+    {
+        var ctor = implementationType.GetConstructors().Single();
+        var paramTypes = ctor.GetParameters().Select(p => p.ParameterType);
+        var dependencies = paramTypes.Select(GetInstance).ToArray();
+        var obj = Activator.CreateInstance(implementationType, dependencies);
+        if (obj == null)
+            throw new Exception($"Failed to get instance of obj: {implementationType}");
+        return obj;
+    }
+
+    public void Register<T, TImpl>()
+    {
+        m_TypeToFactoryMap.Add(typeof(T), () => CreateInstance(typeof(TImpl)));
     }
 }
