@@ -5,16 +5,19 @@ using static OpenGL.Gl;
 
 namespace GlfwOpenGLBackend;
 
-public class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffer>, TextureFramebuffer_GL>, IRenderbufferManager
+public class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffer>, GpuRenderbuffer_GL>, IRenderbufferManager
 {
+    public IGpuFramebufferHandle WindowBufferHandle { get; private set; }
+
     private readonly IGpuFramebuffer m_WindowFramebuffer;
     
     public RenderbufferManager_GL(IGpuFramebuffer windowFramebuffer)
     {
         m_WindowFramebuffer = windowFramebuffer;
+        WindowBufferHandle = new GpuWindowFramebufferHandle(m_WindowFramebuffer);
     }
     
-    protected override void OnBound(TextureFramebuffer_GL resource)
+    protected override void OnBound(GpuRenderbuffer_GL resource)
     {
         glBindFramebuffer(resource.Id);
         glViewport(0, 0, resource.Width, resource.Height);
@@ -24,49 +27,12 @@ public class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffe
     {
         glBindFramebuffer(0);
     }
-
-    public int FramebufferWidth
-    {
-        get
-        {
-            if (BoundResource != null)
-                return BoundResource.Width;
-            else
-                return m_WindowFramebuffer.Width;
-        }
-    }
-
-    public int FramebufferHeight
-    {
-        get
-        {
-            if (BoundResource != null)
-                return BoundResource.Height;
-            else
-                return m_WindowFramebuffer.Height;
-        }
-    }
-
-    public IHandle<IGpuTexture>[] ColorBuffers
-    {
-        get
-        {
-            if (BoundResource != null)
-                return BoundResource.ColorBuffers;
-            return Array.Empty<IHandle<IGpuTexture>>();
-        }
-    }
-
-    public IHandle<IGpuTexture>? DepthBuffer
-    {
-        get
-        {
-            if (BoundResource != null)
-                return BoundResource.DepthBuffer;
-            return null;
-        }
-    }
     
+    public void UseWindow()
+    {
+        Use(null);
+    }
+
     public void ClearColor(float r, float g, float b, float a)
     {
         if (BoundResource == null)

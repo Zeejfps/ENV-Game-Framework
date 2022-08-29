@@ -87,10 +87,10 @@ public class Gpu_GL : IGpu
         m_RenderbufferManager = new RenderbufferManager_GL(windowFramebuffer);
     }
     
-    public IHandle<IGpuRenderbuffer> CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer)
+    public IGpuRenderbufferHandle CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer)
     {
-        var buffer = new TextureFramebuffer_GL(m_TextureManager, width, height, colorBufferCount, createDepthBuffer);
-        var handle = new GpuTextureFramebufferHandle(buffer);
+        var buffer = new GpuRenderbuffer_GL(m_TextureManager, width, height, colorBufferCount, createDepthBuffer);
+        var handle = new GpuRenderbufferHandle(buffer);
         m_RenderbufferManager.Add(handle, buffer);
         return handle;
     }

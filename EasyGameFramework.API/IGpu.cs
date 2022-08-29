@@ -13,7 +13,7 @@ public interface IGpu
     ITextureManager TextureManager { get; }
     IRenderbufferManager RenderbufferManager { get; }
 
-    IHandle<IGpuRenderbuffer> CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer);
+    IGpuRenderbufferHandle CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer);
 
     IHandle<IGpuMesh> LoadMesh(string assetPath);
     IHandle<IGpuShader> LoadShader(string assetPath);

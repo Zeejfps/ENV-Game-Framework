@@ -6,7 +6,7 @@ using static OpenGL.Gl;
 
 namespace Framework.GLFW.NET;
 
-public class TextureFramebuffer_GL : IGpuRenderbuffer
+public class GpuRenderbuffer_GL : IGpuRenderbuffer
 {
     public int Width { get; private set; }
     public int Height { get; private set; }
@@ -21,7 +21,7 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
 
     private readonly TextureManager_GL m_TextureManager;
     
-    public TextureFramebuffer_GL(TextureManager_GL textureManager, int width, int height, int colorBufferCount, bool createDepthBuffer)
+    public GpuRenderbuffer_GL(TextureManager_GL textureManager, int width, int height, int colorBufferCount, bool createDepthBuffer)
     {
         m_TextureManager = textureManager;
         
