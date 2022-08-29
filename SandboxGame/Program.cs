@@ -3,7 +3,7 @@ using Framework;
 
 var builder = new ApplicationBuilder();
 builder.WithGlfwOpenGlBackend();
-builder.WithRenderer<ScriptableRenderer>();
+builder.WithRenderer<TestRenderer>();
 
 var app = builder.Build();
 

@@ -13,32 +13,27 @@ public class TestLight : ISceneObject
     public Color Color;
 
     private IHandle<IGpuMesh> m_Mesh;
+    private readonly UnlitMaterial m_Material;
 
-    private readonly UnlitRenderPass m_Renderer;
-
-    private UnlitMaterial m_Material;
-
-    public TestLight(UnlitRenderPass renderer, ITransform3D transform)
+    public TestLight(UnlitMaterial material, ITransform3D transform)
     {
+        m_Material = material;
         Transform = transform;
-        m_Renderer = renderer;
     }
     
     public void Load(IScene scene)
     {
         var gpu = scene.App.Gpu;
         m_Mesh = gpu.LoadMesh("Assets/Meshes/quad.mesh");
-        m_Renderer.Add(new UnlitRendererable
-        {
-            MeshHandle = m_Mesh,
-            Transform = Transform,
-            Color = new Vector3(1f, 0f, 0.5f)
-        });
     }
 
-    public void Render(IRenderer renderer)
+    public void Render()
     {
-        renderer.Render(m_Material, m_Mesh);
+        m_Material.Batch(m_Mesh, new UnlitMaterial.Properties
+        {
+            Color = new Vector3(1f, 0f, 0.5f),
+            ModelMatrix = Transform.WorldMatrix,
+        });
     }
 
     public void Update(IScene scene)

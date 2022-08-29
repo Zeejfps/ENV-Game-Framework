@@ -40,4 +40,9 @@ public class TestCube : ISceneObject
     {
         //m_Mesh.Dispose();
     }
+
+    public void Render()
+    {
+        
+    }
 }

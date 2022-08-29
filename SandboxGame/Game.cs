@@ -31,6 +31,7 @@ public class Game
         {
             App.Update();
             scene.Update();
+            scene.Render();
         }
     }
 }

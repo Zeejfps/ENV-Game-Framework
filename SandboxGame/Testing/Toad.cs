@@ -2,6 +2,7 @@
 using EasyGameFramework;
 using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
+using Framework.Materials;
 using TicTacToePrototype;
 
 namespace Framework;
@@ -16,6 +17,8 @@ public class Toad : ISceneObject
     private IHandle<IGpuTexture>? m_Roughness;
     private IHandle<IGpuTexture>? m_Occlusion;
     private IHandle<IGpuTexture>? m_Translucency;
+
+    private UnlitMaterial m_Material;
 
     private readonly SpecularRenderPass m_SpecularRenderPass;
 
@@ -64,5 +67,13 @@ public class Toad : ISceneObject
     public void Unload(IScene scene)
     {
         
+    }
+
+    public void Render()
+    {
+        // m_Material.Batch(m_MeshHandle, new UnlitMaterial.Properties
+        // {
+        //     ModelMatrix = Transform.WorldMatrix,
+        // });
     }
 }

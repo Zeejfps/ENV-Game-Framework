@@ -4,6 +4,7 @@ using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
 using EasyGameFramework.API.InputDevices;
 using EasyGameFramework.Cameras;
+using Framework.Materials;
 
 namespace Framework;
 
@@ -63,8 +64,11 @@ public class TestScene : IScene
         m_TempRenderbufferHandle = renderbufferManager.GetTempRenderbuffer(3, true);
 
         m_SpecularRenderPass = new SpecularRenderPass();
-        m_UnlitRenderPass = new UnlitRenderPass();
-        m_Light = new TestLight(m_UnlitRenderPass, m_LightPosition);
+
+        var material = UnlitMaterial.Load(m_Gpu);
+        m_UnlitRenderPass = new UnlitRenderPass(material);
+        m_Light = new TestLight(material, m_LightPosition);
+        
         m_FullScreenBlitPass = new FullScreenBlitPass();
         
         //m_Ship1 = new Ship(m_SpecularRenderPass);
@@ -131,7 +135,13 @@ public class TestScene : IScene
             m_TempRenderbufferHandle.ColorBuffers[1],
             m_TempRenderbufferHandle.ColorBuffers[2]);
         
-        m_UnlitRenderPass.Render(m_Gpu, m_Camera, m_UnlitShaderHandle);
+        m_UnlitRenderPass.Render(m_Gpu, m_Camera);
+    }
+
+    public void Render()
+    {
+        foreach (var sceneObject in m_SceneObjects)
+            sceneObject.Render();
     }
 
     private void HandleInput()

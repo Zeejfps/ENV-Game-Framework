@@ -61,4 +61,9 @@ public class Ship : ISceneObject
     {
         
     }
+
+    public void Render()
+    {
+        
+    }
 }

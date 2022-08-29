@@ -1,25 +1,26 @@
 ﻿using EasyGameFramework.API;
-using EasyGameFramework.API.AssetTypes;
+using Framework.Materials;
 
 namespace Framework;
 
-public class ScriptableRenderer : IRenderer
+public class TestRenderer : IRenderer
 {
     private readonly IGpu m_Gpu;
     private readonly UnlitRenderPass m_UnlitRenderPass;
     private readonly SpecularRenderPass m_SpecularRenderPass;
     private readonly FullScreenBlitPass m_FullScreenBlitPass;
 
-    public ScriptableRenderer(IGpu gpu)
+    public TestRenderer(IGpu gpu)
     {
         m_Gpu = gpu;
-        m_UnlitRenderPass = new UnlitRenderPass();
+        m_UnlitRenderPass = new UnlitRenderPass(UnlitMaterial.Load(gpu));
         m_SpecularRenderPass = new SpecularRenderPass();
         m_FullScreenBlitPass = new FullScreenBlitPass();
     }
 
-    public void Render(IGpu gpu, ICamera camera)
+    public void Render(ICamera camera)
     {
+        var gpu = m_Gpu;
         var renderbufferManager = gpu.RenderbufferManager;
         var windowFramebufferWidth = renderbufferManager.WindowBufferHandle.Width;
         var windowFramebufferHeight = renderbufferManager.WindowBufferHandle.Height;
@@ -30,6 +31,7 @@ public class ScriptableRenderer : IRenderer
         renderbufferManager.Bind(tempRenderbufferHandle);
         renderbufferManager.SetSize(windowFramebufferWidth, windowFramebufferHeight);
         renderbufferManager.ClearColorBuffer(0f, 0f, 0f, 0f);
+        
         //m_SpecularRenderPass.Render(gpu, camera, renderScene);
         
         renderbufferManager.BindWindow();
@@ -40,32 +42,8 @@ public class ScriptableRenderer : IRenderer
         //     m_TempRenderbufferHandle.ColorBuffers[1],
         //     m_TempRenderbufferHandle.ColorBuffers[2]);
         //
-        // m_UnlitRenderPass.Render(gpu, camera, m_UnlitShaderHandle);
+        m_UnlitRenderPass.Render(gpu, camera);
 
         renderbufferManager.ReleaseTempRenderbuffer(tempRenderbufferHandle);
-    }
-
-    private readonly Dictionary<IMaterial, HashSet<IHandle<IGpuMesh>>> m_MaterialToMeshesMap = new();
-
-    public void BeginFrame()
-    {
-        m_MaterialToMeshesMap.Clear();
-    }
-
-    public void Render(IMaterial material, IHandle<IGpuMesh> meshHandle)
-    {
-        if (!m_MaterialToMeshesMap.TryGetValue(material, out var meshes))
-        {
-            meshes = new HashSet<IHandle<IGpuMesh>>();
-            m_MaterialToMeshesMap[material] = meshes;
-        }
-        
-        meshes.Clear();
-        meshes.Add(meshHandle);
-    }
-
-    public void EndFrame()
-    {
-        
     }
 }

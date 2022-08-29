@@ -1,49 +1,23 @@
 ﻿using System.Numerics;
 using EasyGameFramework.API;
-using EasyGameFramework.API.AssetTypes;
+using Framework.Materials;
 
 namespace Framework;
 
-public class UnlitRendererable
-{
-    public IHandle<IGpuMesh> MeshHandle { get; init; }
-    public Vector3 Color { get; init; }
-    public ITransform3D Transform { get; init; }
-}
-
 public class UnlitRenderPass
 {
-    private List<UnlitRendererable> m_Renderables = new();
-
-    public void Add(UnlitRendererable rendererable)
+    private readonly UnlitMaterial m_Material;
+    
+    public UnlitRenderPass(UnlitMaterial material)
     {
-        m_Renderables.Add(rendererable);
+        m_Material = material;
     }
-
-    public void Render(IGpu gpu, ICamera camera, IHandle<IGpuShader> shader)
+    
+    public void Render(IGpu gpu, ICamera camera)
     {
-        gpu.SaveState();
-        gpu.EnableDepthTest = true;
-        gpu.EnableBackfaceCulling = false;
-
-        var meshManager = gpu.MeshManager;
-        var shaderManager = gpu.ShaderManager;
-        shaderManager.Bind(shader);
-        shaderManager.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
-
-        foreach (var data in m_Renderables)
-        {
-            var modelMatrix = data.Transform.WorldMatrix;
-            Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
-        
-            shaderManager.SetMatrix4x4("matrix_view", viewMatrix);
-            shaderManager.SetMatrix4x4("matrix_model", modelMatrix);
-            shaderManager.SetVector3("color", data.Color);
-
-            meshManager.Bind(data.MeshHandle);
-            meshManager.Render();
-        }
-        
-        gpu.RestoreState();
+        m_Material.ProjectionMatrix = camera.ProjectionMatrix;
+        Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
+        m_Material.ViewMatrix = viewMatrix;
+        m_Material.RenderBatches(gpu);
     }
 }
