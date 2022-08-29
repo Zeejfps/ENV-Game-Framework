@@ -67,7 +67,7 @@ public class TestScene : IScene
         m_SpecularRenderPass = new SpecularRenderPass();
         m_UnlitRenderPass = new UnlitRenderPass();
         m_Light = new TestLight(m_UnlitRenderPass, m_LightPosition);
-        m_FullScreenBlitPass = new FullScreenBlitPass(m_Camera,m_Light.Transform);
+        m_FullScreenBlitPass = new FullScreenBlitPass();
         
         //m_Ship1 = new Ship(m_SpecularRenderPass);
 
@@ -124,7 +124,10 @@ public class TestScene : IScene
         
         renderbufferManager.BindWindow();
         renderbufferManager.ClearColorBuffer(.42f, .607f, .82f, 1f);
-        m_FullScreenBlitPass.Render(m_Gpu, m_QuadMeshHandle,
+        m_FullScreenBlitPass.Render(m_Gpu, 
+            m_Camera,
+            m_LightPosition,
+            m_QuadMeshHandle,
             m_FullScreenBlitShaderHandle,
             m_TempRenderbufferHandle.ColorBuffers[0],
             m_TempRenderbufferHandle.ColorBuffers[1],
