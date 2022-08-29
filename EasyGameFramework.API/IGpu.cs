@@ -7,6 +7,7 @@ public interface IGpu
     bool EnableDepthTest { get; set; }
     bool EnableBackfaceCulling { get; set; }
     bool EnableBlending { get; set; }
+    IShaderManager ShaderManager { get; }
 
     IHandle<IGpuRenderbuffer> CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer);
 

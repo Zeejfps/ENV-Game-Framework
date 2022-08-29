@@ -2,7 +2,6 @@
 using EasyGameFramework.API.AssetTypes;
 using EasyGameFramework.AssetManagement;
 using Framework.GLFW.NET;
-using GlfwOpenGLBackend.OpenGL;
 using TicTacToePrototype.OpenGL.AssetLoaders;
 using static OpenGL.Gl;
 
@@ -65,10 +64,19 @@ public class Gpu_GL : IGpu
             }
         }
     }
-
+    
     private readonly CpuMeshAssetLoader m_CpuMeshLoader = new();
     private readonly CpuShaderAssetLoader m_CpuShaderLoader = new();
     private readonly CpuTextureAssetLoader m_CpuTextureAssetLoader = new();
+
+    public IShaderManager ShaderManager => m_ShaderManagerGl;
+
+    private ShaderManager_GL m_ShaderManagerGl;
+
+    public Gpu_GL()
+    {
+        m_ShaderManagerGl = new ShaderManager_GL();
+    }
     
     public IHandle<IGpuRenderbuffer> CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer)
     {
@@ -85,7 +93,10 @@ public class Gpu_GL : IGpu
     public IHandle<IGpuShader> LoadShader(string assetPath)
     {
         var cpuShader = m_CpuShaderLoader.Load(assetPath);
-        return new GpuShaderHandle(Shader_GL.LoadFromSource(cpuShader.VertexShader, cpuShader.FragmentShader));
+        var gpuShader = Shader_GL.LoadFromSource(cpuShader.VertexShader, cpuShader.FragmentShader);
+        var handle = new GpuShaderHandle(gpuShader);
+        m_ShaderManagerGl.Add(handle, gpuShader);
+        return handle;
     }
 
     public IHandle<IGpuTexture> LoadTexture(string assetPath)

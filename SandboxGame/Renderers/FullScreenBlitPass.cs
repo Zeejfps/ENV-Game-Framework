@@ -18,7 +18,7 @@ public class FullScreenBlitPass
 
     public void Render(IGpu gpu, 
         IHandle<IGpuMesh> quadMeshHandle,
-        IHandle<IGpuShader> fullScreenBlitMaterial, 
+        IHandle<IGpuShader> fullScreenBlitShaderHandle, 
         IHandle<IGpuTexture> bufferAlbedoHandle, 
         IHandle<IGpuTexture> bufferNormalHandle, 
         IHandle<IGpuTexture> bufferPositionHandle)
@@ -26,14 +26,16 @@ public class FullScreenBlitPass
         gpu.SaveState();
         gpu.EnableBackfaceCulling = true;
         gpu.EnableDepthTest = false;
+
+        var shaderManager = gpu.ShaderManager;
         
-        using var shader = fullScreenBlitMaterial.Use();
+        shaderManager.UseShader(fullScreenBlitShaderHandle);
         using var mesh = quadMeshHandle.Use();
         
-        shader.SetTexture2d("gColor", bufferAlbedoHandle);
-        shader.SetTexture2d("gNormal", bufferNormalHandle);
-        shader.SetTexture2d("gPosition", bufferPositionHandle);
-        shader.SetVector3("viewPos", m_Camera.Transform.WorldPosition);
+        shaderManager.SetTexture2d("gColor", bufferAlbedoHandle);
+        shaderManager.SetTexture2d("gNormal", bufferNormalHandle);
+        shaderManager.SetTexture2d("gPosition", bufferPositionHandle);
+        shaderManager.SetVector3("viewPos", m_Camera.Transform.WorldPosition);
         
         var colors = new[]{Color.Red, Color.Green, Color.Aqua, Color.Gold, Color.Crimson,Color.Lime};
         for (int i = 0; i < 4; i++)
@@ -41,9 +43,9 @@ public class FullScreenBlitPass
             var x = new Random(i);
             var newColor = colors[i];
             var convert = .003621f;
-            shader.SetVector3($"lights[{i}].Position", m_light.WorldPosition + new Vector3(i * 10,0,0));
-            shader.SetVector3($"lights[{i}].Color", new Vector3(newColor.R * convert, newColor.G * convert, newColor.B * convert));
-            shader.SetFloat($"lights[{i}].Power", 15);
+            shaderManager.SetVector3($"lights[{i}].Position", m_light.WorldPosition + new Vector3(i * 10,0,0));
+            shaderManager.SetVector3($"lights[{i}].Color", new Vector3(newColor.R * convert, newColor.G * convert, newColor.B * convert));
+            shaderManager.SetFloat($"lights[{i}].Power", 15);
         }
         
         mesh.Render();

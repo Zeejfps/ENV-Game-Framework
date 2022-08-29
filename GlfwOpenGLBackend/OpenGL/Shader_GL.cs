@@ -11,14 +11,14 @@ public class Shader_GL : IGpuShader
     private readonly Dictionary<string, int> m_TextureToSlotMap = new();
     private readonly Dictionary<string, IBuffer> m_NameToBufferMap = new();
     public bool IsLoaded { get; private set; }
-    public uint ProgramId => m_ProgramId;
+    public uint Id => m_Id;
 
-    private uint m_ProgramId;
+    private uint m_Id;
     private int m_ActiveTextureId = 0;
     
-    private Shader_GL(uint programId)
+    private Shader_GL(uint id)
     {
-        m_ProgramId = programId;
+        m_Id = id;
         IsLoaded = true;
     }
 
@@ -63,7 +63,7 @@ public class Shader_GL : IGpuShader
         if (m_NameToBufferMap.TryGetValue(name, out var buffer))
             return buffer;
 
-        var index = glGetProgramResourceIndex(m_ProgramId, GL_SHADER_STORAGE_BLOCK, name);
+        var index = glGetProgramResourceIndex(m_Id, GL_SHADER_STORAGE_BLOCK, name);
         glAssertNoError();
         
         buffer = new ShaderStorageBuffer_GL(index);
@@ -80,7 +80,7 @@ public class Shader_GL : IGpuShader
         var propertyToIdMap = m_PropertyToIdMap;
         if (!propertyToIdMap.TryGetValue(uniformName, out var location))
         {
-            location = glGetUniformLocation(m_ProgramId, uniformName);
+            location = glGetUniformLocation(m_Id, uniformName);
             propertyToIdMap[uniformName] = location;
         }
 

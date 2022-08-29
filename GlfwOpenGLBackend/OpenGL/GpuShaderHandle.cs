@@ -15,7 +15,7 @@ public class GpuShaderHandle : IHandle<IGpuShader>
     
     public IGpuShader Use()
     {
-        glUseProgram(m_Shader.ProgramId);
+        glUseProgram(m_Shader.Id);
         return m_Shader;
     }
 }

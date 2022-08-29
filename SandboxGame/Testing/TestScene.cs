@@ -117,6 +117,7 @@ public class TestScene : IScene
         // /*
         //  * All the Rendering steps below
         //  */
+
         using var windowFramebuffer = m_WindowFramebuffer.Use();
         IHandle<IGpuTexture>[] tempColorBuffers;
         using (var renderbuffer = m_TempRenderbuffer.Use())
