@@ -33,7 +33,7 @@ public class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffe
         Use(null);
     }
 
-    public void ClearColor(float r, float g, float b, float a)
+    public void ClearColorBuffer(float r, float g, float b, float a)
     {
         if (BoundResource == null)
             m_WindowFramebuffer.Clear(r, g, b, a);

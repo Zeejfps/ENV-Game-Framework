@@ -76,7 +76,7 @@ public class Game
 
         var renderbufferManager = m_Gpu.RenderbufferManager;
         renderbufferManager.Use(null);
-        renderbufferManager.ClearColor(0f, 0.3f, 0f, 1f);
+        renderbufferManager.ClearColorBuffer(0f, 0.3f, 0f, 1f);
         
         m_Gpu.EnableBackfaceCulling = false;
         m_SpriteRenderer.Render(m_Gpu, m_Camera, m_UnlitShaderHandle, m_QuadMeshHandle, m_Snake);

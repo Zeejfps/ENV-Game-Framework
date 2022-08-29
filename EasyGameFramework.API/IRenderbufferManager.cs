@@ -8,6 +8,6 @@ public interface IRenderbufferManager
     
     void Use(IHandle<IGpuRenderbuffer>? framebuffer);
     void UseWindow();
-    void ClearColor(float r, float g, float b, float a);
+    void ClearColorBuffer(float r, float g, float b, float a);
     void SetSize(int width, int height);
 }

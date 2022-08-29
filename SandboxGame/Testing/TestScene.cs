@@ -35,11 +35,11 @@ public class TestScene : IScene
     private readonly TestLight m_Light;
     private readonly List<ISceneObject> m_SceneObjects = new();
 
+    private IGpu m_Gpu;
     private IHandle<IGpuShader> m_UnlitShaderHandle;
     private IHandle<IGpuShader> m_FullScreenBlitShaderHandle;
     private IHandle<IGpuMesh> m_QuadMeshHandle;
-    private IGpu m_Gpu;
-    
+
     public TestScene(IApplication app)
     {
         var aspect = app.Window.Width / (float)app.Window.Height;
@@ -122,11 +122,11 @@ public class TestScene : IScene
         
         renderbufferManager.Use(m_TempRenderbufferHandle);
         renderbufferManager.SetSize(windowFramebufferWidth, windowFramebufferHeight);
-        renderbufferManager.ClearColor(0f, 0f, 0f, 0f);
+        renderbufferManager.ClearColorBuffer(0f, 0f, 0f, 0f);
         m_SpecularRenderPass.Render(m_Gpu, m_Camera);
         
         renderbufferManager.UseWindow();
-        renderbufferManager.ClearColor(.42f, .607f, .82f, 1f);
+        renderbufferManager.ClearColorBuffer(.42f, .607f, .82f, 1f);
         m_FullScreenBlitPass.Render(m_Gpu, m_QuadMeshHandle,
             m_FullScreenBlitShaderHandle,
             m_TempRenderbufferHandle.ColorBuffers[0],
@@ -206,7 +206,6 @@ public class TestScene : IScene
     private List<Ship> CreateShips()
     {
         var gpu = App.Gpu;
-        
         var mesh = gpu.LoadMesh("Assets/Meshes/ship.mesh");
         var diffuse = gpu.LoadTexture("Assets/Textures/Ship/ship_d.texture");
         var normal = gpu.LoadTexture("Assets/Textures/Ship/ship_n.texture");
