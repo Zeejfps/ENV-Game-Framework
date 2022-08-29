@@ -133,7 +133,7 @@ public class TestScene : IScene
             m_TempRenderbufferHandle.ColorBuffers[1],
             m_TempRenderbufferHandle.ColorBuffers[2]);
         
-        m_UnlitRenderPass.Render(m_Gpu, m_UnlitShaderHandle, m_Camera);
+        m_UnlitRenderPass.Render(m_Gpu, m_Camera, m_UnlitShaderHandle);
     }
 
     private void HandleInput()

@@ -20,7 +20,7 @@ public class UnlitRenderPass
         m_Renderables.Add(rendererable);
     }
 
-    public void Render(IGpu gpu, IHandle<IGpuShader> shader, ICamera camera)
+    public void Render(IGpu gpu, ICamera camera, IHandle<IGpuShader> shader)
     {
         gpu.SaveState();
         gpu.EnableDepthTest = true;

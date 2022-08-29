@@ -14,34 +14,31 @@ public class ScriptableRenderer : IRenderer
         m_SpecularRenderPass = new SpecularRenderPass();
         m_FullScreenBlitPass = new FullScreenBlitPass();
     }
-    
-    public void Add(IRenderable renderable)
-    {
-    }
 
-    public void Remove(IRenderable renderable)
+    public void Render(IGpu gpu, ICamera camera, IRenderScene renderScene)
     {
-    }
+        var renderbufferManager = gpu.RenderbufferManager;
+        var windowFramebufferWidth = renderbufferManager.WindowBufferHandle.Width;
+        var windowFramebufferHeight = renderbufferManager.WindowBufferHandle.Height;
 
-    public void Render(IGpu gpu, ICamera camera)
-    {
-        // var renderbufferManager = App.Gpu.RenderbufferManager;
-        // var windowFramebufferWidth = renderbufferManager.WindowBufferHandle.Width;
-        // var windowFramebufferHeight = renderbufferManager.WindowBufferHandle.Height;
+        // var tempRenderbufferHandle =
+        //     renderbufferManager.GetTempRenderbuffer(windowFramebufferWidth, windowFramebufferHeight);
         //
-        // renderbufferManager.Bind(m_TempRenderbufferHandle);
+        // renderbufferManager.Bind(tempRenderbufferHandle);
         // renderbufferManager.SetSize(windowFramebufferWidth, windowFramebufferHeight);
         // renderbufferManager.ClearColorBuffer(0f, 0f, 0f, 0f);
-        // m_SpecularRenderPass.Render(m_Gpu, m_Camera, m_LightPosition);
-        //
+        //m_SpecularRenderPass.Render(gpu, camera, renderScene);
+        
         // renderbufferManager.BindWindow();
         // renderbufferManager.ClearColorBuffer(.42f, .607f, .82f, 1f);
-        // m_FullScreenBlitPass.Render(m_Gpu, m_QuadMeshHandle,
+        // m_FullScreenBlitPass.Render(gpu, m_QuadMeshHandle,
         //     m_FullScreenBlitShaderHandle,
         //     m_TempRenderbufferHandle.ColorBuffers[0],
         //     m_TempRenderbufferHandle.ColorBuffers[1],
         //     m_TempRenderbufferHandle.ColorBuffers[2]);
         //
-        // m_UnlitRenderPass.Render(m_Gpu, m_UnlitShaderHandle, m_Camera);
+        // m_UnlitRenderPass.Render(gpu, camera, m_UnlitShaderHandle);
+
+        //renderbufferManager.ReleaseTempRenderbuffer(tempRenderbufferHandle);
     }
 }
