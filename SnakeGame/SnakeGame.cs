@@ -4,7 +4,6 @@ using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
 using EasyGameFramework.API.InputDevices;
 using EasyGameFramework.Cameras;
-using Framework;
 
 namespace SnakeGame;
 

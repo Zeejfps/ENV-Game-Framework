@@ -35,8 +35,6 @@ public class Application_GLFW_GL : IApplication
         m_Window = new Window_GLFW(Displays);
         m_Locator = new Locator();
 
-        m_Locator.RegisterSingleton<IAssetLoader<IGpuMesh>>(new GpuMeshAssetLoader_GL());
-        m_Locator.RegisterSingleton<IAssetLoader<IGpuShader>>(new GpuShaderAssetLoader_GL());
         m_Locator.RegisterSingleton<IAssetLoader<IGpuTexture>>(new GpuTextureAssetLoader_GL());
 
         IsRunning = true;
