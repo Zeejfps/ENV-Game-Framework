@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using EasyGameFramework.API;
+﻿using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
 using GlfwOpenGLBackend;
 using GlfwOpenGLBackend.OpenGL;
@@ -19,9 +18,13 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
     private IHandle<IGpuTexture> m_DepthTextureHandle;
     private uint m_Id;
     private int[] m_drawBufferIds;
+
+    private readonly TextureManager_GL m_TextureManager;
     
-    public TextureFramebuffer_GL(int width, int height, int colorBufferCount, bool createDepthBuffer)
+    public TextureFramebuffer_GL(TextureManager_GL textureManager, int width, int height, int colorBufferCount, bool createDepthBuffer)
     {
+        m_TextureManager = textureManager;
+        
         Width = width;
         Height = height;
 
@@ -38,8 +41,12 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorTextureId, 0);
-            m_ColorTextureHandles[i] = new GpuTextureHandle(new Texture2D_GL(colorTextureId));
+
+            var texture = new Texture2D_GL(colorTextureId);
+            var handle = new GpuTextureHandle(texture);
+            m_ColorTextureHandles[i] = handle;
             m_drawBufferIds[i] = GL_COLOR_ATTACHMENT0 + i;
+            m_TextureManager.Add(handle, texture);
         }
         
         if (m_drawBufferIds.Length > 0)
@@ -66,7 +73,7 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
-    public void Resize(int width, int height)
+    public void SetSize(int width, int height)
     {
         if (Width == width && Height == height)
             return;
@@ -76,13 +83,12 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
 
         foreach (var colorBuffer in ColorBuffers)
         {
-            colorBuffer.Use();
+            m_TextureManager.Use(colorBuffer);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, IntPtr.Zero);   
         }
 
-        m_DepthTextureHandle.Use();
+        m_TextureManager.Use(m_DepthTextureHandle);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, IntPtr.Zero);
-
     }
 
     public void Dispose()

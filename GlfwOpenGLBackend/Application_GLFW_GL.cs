@@ -25,10 +25,10 @@ public class Application_GLFW_GL : IApplication
         Glfw.WindowHint(Hint.Doublebuffer, true);
         Glfw.WindowHint(Hint.Decorated, true);
 
-        Gpu = new Gpu_GL();
         Displays = new Displays_GLFW();
         m_Window = new Window_GLFW(Displays);
-        
+        Gpu = new Gpu_GL(m_Window.Framebuffer);
+
         IsRunning = true;
     }
 

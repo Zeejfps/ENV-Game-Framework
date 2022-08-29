@@ -23,7 +23,7 @@ public class WindowFramebuffer_GL : IGpuFramebuffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
-    public void Resize(int width, int height)
+    public void SetSize(int width, int height)
     {
         Width = width;
         Height = height;

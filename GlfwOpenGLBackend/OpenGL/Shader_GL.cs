@@ -15,10 +15,13 @@ public class Shader_GL : IGpuShader
 
     private uint m_Id;
     private int m_ActiveTextureId = 0;
+
+    private readonly ITextureManager m_TextureManager;
     
-    private Shader_GL(uint id)
+    private Shader_GL(uint id, ITextureManager textureManager)
     {
         m_Id = id;
+        m_TextureManager = textureManager;
         IsLoaded = true;
     }
 
@@ -45,7 +48,7 @@ public class Shader_GL : IGpuShader
         var textureSlot = GetTextureSlot(propertyName);
         glUniform1i(location, textureSlot);
         glActiveTexture(GL_TEXTURE0 + textureSlot);
-        textureHandle.Use();
+        m_TextureManager.Use(textureHandle);
     }
 
     public void SetMatrix4x4(string propertyName, Matrix4x4 matrix)
@@ -100,7 +103,7 @@ public class Shader_GL : IGpuShader
     }
     
 
-    public static Shader_GL LoadFromSource(string vertexShaderSource, string fragmentShaderSource)
+    public static Shader_GL LoadFromSource(string vertexShaderSource, string fragmentShaderSource, ITextureManager textureManager)
     {
         var vertexShader = glCreateShader(GL_VERTEX_SHADER);
         CompileShader(vertexShader, vertexShaderSource);
@@ -121,7 +124,7 @@ public class Shader_GL : IGpuShader
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
 
-        return new Shader_GL(program);
+        return new Shader_GL(program, textureManager);
     }
     
     private static void CompileShader(uint shader, string source)

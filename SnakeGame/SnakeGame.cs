@@ -22,13 +22,11 @@ public class Game
     private IHandle<IGpuShader> m_UnlitShaderHandle;
 
     private IInput m_Input;
-    private IHandle<IGpuFramebuffer> m_WindowFramebufferHandle;
     private IGpu m_Gpu;
     
     public Game(IApplication app)
     {
         m_Input = app.Input;
-        m_WindowFramebufferHandle = app.Window.FramebufferHandle;
         m_Gpu = app.Gpu;
         
         m_QuadMeshHandle = m_Gpu.LoadMesh("Assets/quad.mesh");
@@ -76,12 +74,13 @@ public class Game
             MoveSnake();
         }
 
-        using (var framebuffer = m_WindowFramebufferHandle.Use())
-        {
-            framebuffer.Clear(0f, 0.3f, 0f, 1f);
-            m_Gpu.EnableBackfaceCulling = false;
-            m_SpriteRenderer.Render(m_Camera, m_UnlitShaderHandle, m_QuadMeshHandle, m_Snake);
-        }
+        var framebufferManager = m_Gpu.RenderbufferManager;
+        
+        framebufferManager.Use(null);
+        framebufferManager.ClearColor(0f, 0.3f, 0f, 1f);
+        
+        m_Gpu.EnableBackfaceCulling = false;
+        m_SpriteRenderer.Render(m_Gpu, m_Camera, m_UnlitShaderHandle, m_QuadMeshHandle, m_Snake);
 
         if (m_Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.A))
         {

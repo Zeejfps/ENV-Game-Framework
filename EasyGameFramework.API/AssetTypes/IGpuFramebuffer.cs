@@ -6,5 +6,5 @@ public interface IGpuFramebuffer : IGpuAsset
     int Height { get; }
     
     void Clear(float r, float g, float b, float a);
-    void Resize(int width, int height);
+    void SetSize(int width, int height);
 }

@@ -49,13 +49,14 @@ public class SpecularRenderPass
     {
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
 
+        var meshManager = gpu.MeshManager;
         var shaderManager = gpu.ShaderManager;
-        
+
         gpu.SaveState();
         gpu.EnableBackfaceCulling = true;
         gpu.EnableDepthTest = true;
         
-        shaderManager.UseShader(m_SpecularShaderHandle);
+        shaderManager.Use(m_SpecularShaderHandle);
         shaderManager.SetVector3("light.position", m_Light.WorldPosition);
         shaderManager.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         shaderManager.SetMatrix4x4("matrix_view", viewMatrix);
@@ -69,7 +70,7 @@ public class SpecularRenderPass
         
         foreach (var renderGroup in m_MeshToRenderableMap.Keys)
         {
-            using var mesh = renderGroup.Item1.Use();
+            meshManager.Use(renderGroup.Item1);
             var textures = renderGroup.Item2;
             
             shaderManager.SetTexture2d("material.diffuse", textures.Diffuse);
@@ -94,7 +95,7 @@ public class SpecularRenderPass
                 buffer.Apply();
             }
 
-            mesh.RenderInstanced(transforms.Count);
+            meshManager.RenderInstanced(transforms.Count);
         }
 
         gpu.RestoreState();

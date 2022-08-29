@@ -9,7 +9,7 @@ public class TestTriangle : ISceneObject
     private readonly IGpuMesh m_Mesh;
     private readonly IApplication m_Context;
     private readonly ICamera m_Camera;
-    private readonly IHandle<IGpuShader> m_Material;
+    private readonly IHandle<IGpuShader> m_Shader;
     private readonly Random m_Random;
     
     public TestTriangle(IApplication context, ICamera camera)
@@ -28,15 +28,17 @@ public class TestTriangle : ISceneObject
 
     public void Update(IScene scene)
     {
+        var gpu = scene.App.Gpu;
         var keyboard = m_Context.Input.Keyboard;
-        
-        using var shader = m_Material.Use();
+
+        var shaderManager = gpu.ShaderManager;
+        shaderManager.Use(m_Shader);
 
         if (keyboard.WasKeyPressedThisFrame(KeyboardKey.R))
-            SetRandomColor(shader);
+            SetRandomColor(shaderManager);
         
-        shader.SetMatrix4x4("matrix_projection", m_Camera.ProjectionMatrix);
-        shader.SetMatrix4x4("matrix_view", m_Camera.Transform.WorldMatrix);
+        shaderManager.SetMatrix4x4("matrix_projection", m_Camera.ProjectionMatrix);
+        shaderManager.SetMatrix4x4("matrix_view", m_Camera.Transform.WorldMatrix);
     }
 
     public void Unload(IScene scene)
@@ -44,12 +46,12 @@ public class TestTriangle : ISceneObject
         
     }
 
-    private void SetRandomColor(IGpuShader material)
+    private void SetRandomColor(IShaderManager shaderManager)
     {
         var r = (float) m_Random.NextDouble();
         var g = (float) m_Random.NextDouble();
         var b = (float) m_Random.NextDouble();
 
-        material.SetVector3("color", r, g, b);
+        shaderManager.SetVector3("color", r, g, b);
     }
 }

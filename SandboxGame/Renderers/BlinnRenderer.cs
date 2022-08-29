@@ -15,7 +15,6 @@ public class BlinnRenderer
 {
     private IHandle<IGpuShader> m_Shader;
     private IHandle<IGpuTexture>? m_Texture;
-    private IHandle<IGpuFramebuffer> m_Framebuffer;
     
     private readonly ICamera m_Camera;
     private readonly ITransform3D m_Light;
@@ -31,12 +30,13 @@ public class BlinnRenderer
         var gpu = scene.App.Gpu;
         m_Shader = gpu.LoadShader("Assets/Shaders/blinn.shader");
         m_Texture = gpu.LoadTexture("Assets/Textures/test.texture");
-
-        m_Framebuffer = scene.App.Window.FramebufferHandle;
     }
     
-    public void Render(BlinnRenderData renderData)
+    public void Render(IGpu gpu, BlinnRenderData renderData)
     {
+        var meshManager = gpu.MeshManager;
+        var shaderManager = gpu.ShaderManager;
+        
         var camera = m_Camera;
         var modelMatrix = renderData.Transform.WorldMatrix;
 
@@ -47,14 +47,15 @@ public class BlinnRenderer
 
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
         
-        using var material = m_Shader.Use();
-        using var mesh = renderData.MeshHandle.Use();
-        material.SetVector3("Light.position", m_Light.WorldPosition);
-        material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
-        material.SetMatrix4x4("matrix_view", viewMatrix);
-        material.SetMatrix4x4("matrix_model", modelMatrix);
-        material.SetMatrix4x4("normal_matrix", normalMatrix);
-        material.SetVector3("camera_position", camera.Transform.WorldPosition);
-        mesh.Render();
+        shaderManager.Use(m_Shader);
+        shaderManager.SetVector3("Light.position", m_Light.WorldPosition);
+        shaderManager.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
+        shaderManager.SetMatrix4x4("matrix_view", viewMatrix);
+        shaderManager.SetMatrix4x4("matrix_model", modelMatrix);
+        shaderManager.SetMatrix4x4("normal_matrix", normalMatrix);
+        shaderManager.SetVector3("camera_position", camera.Transform.WorldPosition);
+        
+        meshManager.Use(renderData.MeshHandle);
+        meshManager.Render();
     }
 }

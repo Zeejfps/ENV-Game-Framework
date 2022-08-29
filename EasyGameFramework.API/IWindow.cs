@@ -1,5 +1,3 @@
-using EasyGameFramework.API.AssetTypes;
-
 namespace EasyGameFramework.API;
 
 public interface IWindow
@@ -14,7 +12,6 @@ public interface IWindow
     bool IsVsyncEnabled { get; set; }
 
     bool IsOpened { get; }
-    IHandle<IGpuFramebuffer> FramebufferHandle { get; }
 
     void Show();
     void ShowCentered();

@@ -27,10 +27,11 @@ public class FullScreenBlitPass
         gpu.EnableBackfaceCulling = true;
         gpu.EnableDepthTest = false;
 
+        var meshManager = gpu.MeshManager;
         var shaderManager = gpu.ShaderManager;
-        
-        shaderManager.UseShader(fullScreenBlitShaderHandle);
-        using var mesh = quadMeshHandle.Use();
+
+        shaderManager.Use(fullScreenBlitShaderHandle);
+        meshManager.Use(quadMeshHandle);
         
         shaderManager.SetTexture2d("gColor", bufferAlbedoHandle);
         shaderManager.SetTexture2d("gNormal", bufferNormalHandle);
@@ -40,7 +41,6 @@ public class FullScreenBlitPass
         var colors = new[]{Color.Red, Color.Green, Color.Aqua, Color.Gold, Color.Crimson,Color.Lime};
         for (int i = 0; i < 4; i++)
         {
-            var x = new Random(i);
             var newColor = colors[i];
             var convert = .003621f;
             shaderManager.SetVector3($"lights[{i}].Position", m_light.WorldPosition + new Vector3(i * 10,0,0));
@@ -48,7 +48,7 @@ public class FullScreenBlitPass
             shaderManager.SetFloat($"lights[{i}].Power", 15);
         }
         
-        mesh.Render();
+        meshManager.Render();
         
         gpu.RestoreState();
     }
