@@ -1,9 +1,6 @@
-﻿using System.Diagnostics;
-using System.Numerics;
-using EasyGameFramework;
+﻿using EasyGameFramework;
 using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
-using TicTacToePrototype;
 
 namespace Framework;
 

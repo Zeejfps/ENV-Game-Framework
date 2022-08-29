@@ -9,7 +9,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\EasyGameFramework.API\EasyGameFrameworkApi.csproj" />
-      <ProjectReference Include="..\EasyGameFramework\EasyGameFramework.csproj" />
       <ProjectReference Include="..\Glfw.NET\Glfw.NET.csproj" />
       <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
     </ItemGroup>

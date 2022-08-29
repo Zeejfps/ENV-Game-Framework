@@ -10,4 +10,8 @@
       <ProjectReference Include="..\EasyGameFramework.API\EasyGameFrameworkApi.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="AssetManagement" />
+    </ItemGroup>
+
 </Project>
