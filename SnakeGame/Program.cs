@@ -26,4 +26,3 @@ while (app.IsRunning)
     
     game.Update();
 }
-

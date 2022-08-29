@@ -5,36 +5,31 @@ namespace Framework;
 
 public class Game
 {
-    IDisplays Displays => Context.Displays;
-    IWindow Window => Context.Window;
-    IApplication Context { get; }
+    IDisplays Displays => App.Displays;
+    IWindow Window => App.Window;
+    IApplication App { get; }
 
-    public Game(IApplication context)
+    public Game(IApplication app)
     {
-        Context = context;
+        App = app;
     }
     
     public void Run()
     {
-        var primaryDisplay = Displays.PrimaryDisplay;
-        
         Window.Title = "Hello World";
         //Window.IsFullscreen = true;
         Window.Width = 1280;
         Window.Height = 720;
-        Window.PosX = (int)((primaryDisplay.ResolutionX - Window.Width) * 0.5f);
-        Window.PosY = (int)((primaryDisplay.ResolutionY - Window.Height) * 0.5f);
         Window.IsResizable = true;
         Window.IsVsyncEnabled = true;
-
-        Window.Show();
+        Window.ShowCentered();
         
-        var scene = new TestScene(Context);
+        var scene = new TestScene(App);
         scene.Load();
         
-        while (Window.IsOpened)
+        while (App.IsRunning)
         {
-            Window.Update();
+            App.Update();
             scene.Update();
         }
     }

@@ -1,8 +1,9 @@
-﻿using Framework;
-using GlfwOpenGLBackend;
+﻿using EasyGameFramework.API;
+using Framework;
 
-using (var context = new Application_GLFW_GL())
-{
-    var game = new Game(context);
-    game.Run();
-}
+var builder = new ApplicationBuilder();
+
+var app = builder.Build();
+
+var game = new Game(app);
+game.Run();
