@@ -10,6 +10,7 @@
     <ItemGroup>
       <ProjectReference Include="..\FrameworkCommon\FrameworkCommon.csproj" />
       <ProjectReference Include="..\Framework\Framework.csproj" />
+      <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
     </ItemGroup>
 
     <ItemGroup>
