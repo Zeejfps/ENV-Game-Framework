@@ -8,6 +8,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\EasyGameFramework.API\EasyGameFrameworkApi.csproj" />
+      <ProjectReference Include="..\GlfwOpenGLBackend\GlfwOpenGLBackend.csproj" />
     </ItemGroup>
 
     <ItemGroup>
