@@ -21,6 +21,7 @@ while (app.IsRunning)
     if (app.Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
     {
         app.Quit();
+        return;
     }
     
     game.Update();
