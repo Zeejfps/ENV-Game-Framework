@@ -10,6 +10,6 @@ public interface IRenderbufferManager
     void BindWindow();
     void ClearColorBuffer(float r, float g, float b, float a);
     void SetSize(int width, int height);
-    IGpuRenderbufferHandle GetTempRenderbuffer(int width, int height, int colorBuffersCount, bool createDepthBuffer);
+    IGpuRenderbufferHandle GetTempRenderbuffer(int colorBuffersCount, bool createDepthBuffer);
     void ReleaseTempRenderbuffer(IGpuRenderbufferHandle tempRenderbufferHandle);
 }

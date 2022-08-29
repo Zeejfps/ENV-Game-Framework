@@ -53,7 +53,7 @@ public class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffe
     
     private readonly Dictionary<(int, bool), Stack<IGpuRenderbufferHandle>> m_RenderBufferPool = new();
 
-    public IGpuRenderbufferHandle GetTempRenderbuffer(int width, int height, int colorBuffersCount, bool createDepthBuffer)
+    public IGpuRenderbufferHandle GetTempRenderbuffer(int colorBuffersCount, bool createDepthBuffer)
     {
         var key = (colorBuffersCount, createDepthBuffer);
         if (!m_RenderBufferPool.TryGetValue(key, out var pool))
@@ -63,14 +63,23 @@ public class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffe
         }
 
         if (pool.Count > 0)
-            return pool.Pop();
+        {
+            var renderBuffer = pool.Pop();
+            return renderBuffer;
+        }
+        else
+        {
+            var width = WindowBufferHandle.Width;
+            var height = WindowBufferHandle.Height;
+            var renderBuffer =
+                new GpuRenderbuffer_GL(m_TextureManager, width, height, colorBuffersCount, createDepthBuffer);
+            var handle = new GpuRenderbufferHandle(renderBuffer);
+            Add(handle, renderBuffer);
+            pool.Push(handle);
+            return handle;
+        }
 
-        var renderBuffer =
-            new GpuRenderbuffer_GL(m_TextureManager, width, height, colorBuffersCount, createDepthBuffer);
-        var handle = new GpuRenderbufferHandle(renderBuffer);
-        Add(handle, renderBuffer);
-        pool.Push(handle);
-        return handle;
+       
     }
 
     public void ReleaseTempRenderbuffer(IGpuRenderbufferHandle tempRenderbufferHandle)

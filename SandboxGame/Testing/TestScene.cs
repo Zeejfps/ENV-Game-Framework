@@ -60,9 +60,7 @@ public class TestScene : IScene
         m_LightPosition.RotateInLocalSpace(0f, 0f, 180f);
         
         var renderbufferManager = app.Gpu.RenderbufferManager;
-        var framebufferWidth = renderbufferManager.WindowBufferHandle.Width;
-        var framebufferHeight = renderbufferManager.WindowBufferHandle.Height;
-        m_TempRenderbufferHandle = renderbufferManager.GetTempRenderbuffer(framebufferWidth, framebufferHeight, 3, true);
+        m_TempRenderbufferHandle = renderbufferManager.GetTempRenderbuffer(3, true);
 
         m_SpecularRenderPass = new SpecularRenderPass();
         m_UnlitRenderPass = new UnlitRenderPass();

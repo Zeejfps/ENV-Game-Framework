@@ -58,7 +58,10 @@ public class GpuRenderbuffer_GL : IGpuRenderbuffer
             glBindTexture(GL_TEXTURE_2D, depthTextureId);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, IntPtr.Zero);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT , GL_TEXTURE_2D, depthTextureId, 0);
-            m_DepthTextureHandle = new GpuTextureHandle(new Texture2D_GL(depthTextureId));
+            var texture = new Texture2D_GL(depthTextureId);
+            var handle = new GpuTextureHandle(texture);
+            m_TextureManager.Add(handle, texture);
+            m_DepthTextureHandle = handle;
         }
         
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)

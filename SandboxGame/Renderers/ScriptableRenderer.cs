@@ -22,7 +22,7 @@ public class ScriptableRenderer : IRenderer
         var windowFramebufferHeight = renderbufferManager.WindowBufferHandle.Height;
 
         var tempRenderbufferHandle =
-            renderbufferManager.GetTempRenderbuffer(windowFramebufferWidth, windowFramebufferHeight, 3, true);
+            renderbufferManager.GetTempRenderbuffer(3, true);
         
         renderbufferManager.Bind(tempRenderbufferHandle);
         renderbufferManager.SetSize(windowFramebufferWidth, windowFramebufferHeight);
