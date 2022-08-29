@@ -1,10 +1,21 @@
-﻿namespace EasyGameFramework.API.AssetTypes;
+﻿using System.Numerics;
 
-public interface IGpuShader : IAsset
+namespace EasyGameFramework.API.AssetTypes;
+
+public interface IGpuShader : IGpuAsset
 {
     bool EnableDepthTest { get; set; }
     bool EnableBackfaceCulling { get; set; }
     bool EnableBlending { get; set; }
+    
+    void SetFloat(string propertyName, float value);
 
-    IGpuShaderHandle Use();
+    void SetVector3(string propertyName, float x, float y, float z);
+    void SetVector3(string propertyName, Vector3 vector);
+
+    void SetTexture2d(string propertyName, IGpuTexture texture);
+
+    void SetMatrix4x4(string propertyName, Matrix4x4 matrix);
+
+    IBuffer GetBuffer(string name);
 }

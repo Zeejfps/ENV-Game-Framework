@@ -23,7 +23,7 @@ public class TestLight : ISceneObject
     
     public void Load(IScene scene)
     {
-        var locator = scene.Context.Locator;
+        var locator = scene.App.Locator;
         var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
         m_Mesh = meshLoader.Load("Assets/Meshes/quad.mesh");
         m_Renderer.Add(new UnlitRendererable

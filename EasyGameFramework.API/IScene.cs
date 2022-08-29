@@ -2,7 +2,7 @@ namespace EasyGameFramework.API;
 
 public interface IScene
 {
-    IApplication Context { get; }
+    IApplication App { get; }
 
     void Update();
 }

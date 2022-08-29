@@ -23,7 +23,7 @@ public class TestCube : ISceneObject
     
     public void Load(IScene scene)
     {
-        var locator = scene.Context.Locator;
+        var locator = scene.App.Locator;
         var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
         m_Mesh = meshLoader.Load("Assets/Meshes/ship.mesh");
     }
@@ -39,6 +39,6 @@ public class TestCube : ISceneObject
 
     public void Unload(IScene scene)
     {
-        m_Mesh.Dispose();
+        //m_Mesh.Dispose();
     }
 }

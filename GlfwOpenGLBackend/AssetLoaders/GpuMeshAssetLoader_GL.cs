@@ -11,7 +11,7 @@ public class GpuMeshAssetLoader_GL : IAssetLoader<IGpuMesh>
 
     public IGpuMesh Load(string assetPath)
     {
-        using var asset = m_CpuMeshAssetLoader.Load(assetPath);
+        var asset = m_CpuMeshAssetLoader.Load(assetPath);
         var mesh = new Mesh_GL(asset.Vertices, asset.Normals, asset.Uvs, asset.Tangents, asset.Triangles);
         return mesh;
     }

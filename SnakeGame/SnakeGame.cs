@@ -20,7 +20,7 @@ public class Game
     private SpriteRenderer m_SpriteRenderer;
 
     private IGpuMesh m_QuadMesh;
-    private IGpuShader m_UnlitMaterial;
+    private IHandle<IGpuShader> m_UnlitShaderHandle;
 
     private ILocator m_Locator;
     private IInput m_Input;
@@ -38,8 +38,8 @@ public class Game
         var gpuShaderAssetLoader = m_Locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
 
         m_QuadMesh = gpuMeshAssetLoader.Load("Assets/quad.mesh");
-        m_UnlitMaterial = gpuShaderAssetLoader.Load("Assets/sprite.shader");
-        m_UnlitMaterial.EnableBackfaceCulling = false;
+        m_UnlitShaderHandle = m_Gpu.LoadShader("Assets/sprite.shader");
+        //m_UnlitShaderHandle.EnableBackfaceCulling = false;
 
         m_Clock = new Clock();
         m_Camera = new OrthographicCamera(40, 40, 0.1f, 10)
@@ -86,7 +86,7 @@ public class Game
         using (var framebuffer = m_WindowFramebuffer.Use())
         {
             framebuffer.Clear(0f, 0.3f, 0f, 1f);
-            m_SpriteRenderer.Render(m_Camera, m_UnlitMaterial, m_QuadMesh, m_Snake);
+            m_SpriteRenderer.Render(m_Camera, m_UnlitShaderHandle, m_QuadMesh, m_Snake);
         }
 
         if (m_Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.A))

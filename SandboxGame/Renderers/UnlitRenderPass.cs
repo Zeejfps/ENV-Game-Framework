@@ -20,7 +20,7 @@ public class UnlitRenderPass
         m_Renderables.Add(rendererable);
     }
 
-    public void Render(ICamera camera, IGpuShader material)
+    public void Render(ICamera camera, IHandle<IGpuShader> material)
     {
         using var materialHandle = material.Use();
         materialHandle.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);

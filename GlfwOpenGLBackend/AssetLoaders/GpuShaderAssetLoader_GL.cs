@@ -36,7 +36,7 @@ public class GpuShaderAssetLoader_GL : IAssetLoader<IGpuShader>
 
     public IGpuShader Load(string assetPath)
     {
-        using var asset = m_CpuShaderAssetLoader.Load(assetPath);
+        var asset = m_CpuShaderAssetLoader.Load(assetPath);
         return Shader_GL.LoadFromSource(asset.VertexShader, asset.FragmentShader);
     }
 

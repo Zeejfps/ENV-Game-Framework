@@ -13,7 +13,7 @@ public class GpuTextureAssetLoader_GL : IAssetLoader<IGpuTexture>
 
     public IGpuTexture Load(string assetPath)
     {
-        using var asset = m_CpuTextureAssetLoader.Load(assetPath);
+        var asset = m_CpuTextureAssetLoader.Load(assetPath);
         var width = asset.Width;
         var height = asset.Height;
         var pixels = asset.Pixels;

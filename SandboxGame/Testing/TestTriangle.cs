@@ -9,7 +9,7 @@ public class TestTriangle : ISceneObject
     private readonly IGpuMesh m_Mesh;
     private readonly IApplication m_Context;
     private readonly ICamera m_Camera;
-    private readonly IGpuShader m_Material;
+    private readonly IHandle<IGpuShader> m_Material;
     private readonly Random m_Random;
     
     public TestTriangle(IApplication context, ICamera camera)
@@ -30,13 +30,13 @@ public class TestTriangle : ISceneObject
     {
         var keyboard = m_Context.Input.Keyboard;
         
-        using var material = m_Material.Use();
+        using var shader = m_Material.Use();
 
         if (keyboard.WasKeyPressedThisFrame(KeyboardKey.R))
-            SetRandomColor(material);
+            SetRandomColor(shader);
         
-        material.SetMatrix4x4("matrix_projection", m_Camera.ProjectionMatrix);
-        material.SetMatrix4x4("matrix_view", m_Camera.Transform.WorldMatrix);
+        shader.SetMatrix4x4("matrix_projection", m_Camera.ProjectionMatrix);
+        shader.SetMatrix4x4("matrix_view", m_Camera.Transform.WorldMatrix);
     }
 
     public void Unload(IScene scene)
@@ -44,7 +44,7 @@ public class TestTriangle : ISceneObject
         
     }
 
-    private void SetRandomColor(IGpuShaderHandle material)
+    private void SetRandomColor(IGpuShader material)
     {
         var r = (float) m_Random.NextDouble();
         var g = (float) m_Random.NextDouble();

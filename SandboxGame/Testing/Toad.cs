@@ -27,7 +27,7 @@ public class Toad : ISceneObject
     
     public void Load(IScene scene)
     {
-        var locator = scene.Context.Locator;
+        var locator = scene.App.Locator;
         var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
         var textureLoader = locator.LocateOrThrow<IAssetLoader<IGpuTexture>>();
         

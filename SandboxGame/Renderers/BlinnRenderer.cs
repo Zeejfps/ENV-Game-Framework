@@ -13,7 +13,7 @@ public struct BlinnRenderData
 
 public class BlinnRenderer
 {
-    private IGpuShader? m_Shader;
+    private IHandle<IGpuShader> m_Shader;
     private IGpuTexture? m_Texture;
     private IGpuFramebuffer? m_Framebuffer;
     
@@ -28,22 +28,15 @@ public class BlinnRenderer
     
     public void Load(IScene scene)
     {
-        var locator = scene.Context.Locator;
-        var shaderLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
+        var gpu = scene.App.Gpu;
+        var locator = scene.App.Locator;
         var textureLoader = locator.LocateOrThrow<IAssetLoader<IGpuTexture>>();
-        m_Shader = shaderLoader.Load("Assets/Shaders/blinn.shader");
+        m_Shader = gpu.LoadShader("Assets/Shaders/blinn.shader");
         m_Texture = textureLoader.Load("Assets/Textures/test.texture");
 
-        m_Framebuffer = scene.Context.Window.Framebuffer;
+        m_Framebuffer = scene.App.Window.Framebuffer;
     }
-
-    public void Unload(IScene scene)
-    {
-        Debug.Assert(m_Shader != null);
-        m_Shader.Dispose();
-        m_Shader = null;
-    }
-
+    
     public void Render(BlinnRenderData renderData)
     {
         var camera = m_Camera;

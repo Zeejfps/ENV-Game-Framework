@@ -10,7 +10,7 @@ namespace Framework;
 
 public class TestScene : IScene
 {
-    public IApplication Context => m_Context;
+    public IApplication App => m_App;
 
     private IGpuRenderbuffer m_TempRenderbuffer;
     private IGpuFramebuffer m_WindowFramebuffer;
@@ -19,7 +19,7 @@ public class TestScene : IScene
     private UnlitRenderPass m_UnlitRenderPass;
     private FullScreenBlitPass m_FullScreenBlitPass;
     
-    private readonly IApplication m_Context;
+    private readonly IApplication m_App;
     private readonly ICamera m_Camera;
     private readonly IClock m_Clock;
 
@@ -37,14 +37,14 @@ public class TestScene : IScene
     private readonly TestLight m_Light;
     private readonly List<ISceneObject> m_SceneObjects = new();
 
-    private IGpuShader m_UnlitShader;
-    private IGpuShader m_FullScreenBlitShader;
+    private IHandle<IGpuShader> m_UnlitShaderHandle;
+    private IHandle<IGpuShader> m_FullScreenBlitShaderHandle;
     private IGpuMesh m_QuadMesh;
     
-    public TestScene(IApplication context)
+    public TestScene(IApplication app)
     {
-        var aspect = context.Window.Width / (float)context.Window.Height;
-        m_Context = context;
+        var aspect = app.Window.Width / (float)app.Window.Height;
+        m_App = app;
         //m_Camera = new OrthographicCamera(20, 20 / aspect, 0.1f, 100f);
         m_Camera = new PerspectiveCamera(75f, aspect);
         m_Clock = new Clock();
@@ -59,9 +59,9 @@ public class TestScene : IScene
         };
         lightTransform.RotateInLocalSpace(0f, 0f, 180f);
         
-        m_WindowFramebuffer = context.Window.Framebuffer;
+        m_WindowFramebuffer = app.Window.Framebuffer;
         
-        m_TempRenderbuffer = context.CreateRenderbuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height, 3, true);
+        m_TempRenderbuffer = app.CreateRenderbuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height, 3, true);
 
         m_SpecularRenderPass = new SpecularRenderPass(lightTransform);
         m_UnlitRenderPass = new UnlitRenderPass();
@@ -87,18 +87,19 @@ public class TestScene : IScene
 
     public void Load()
     {
-        var locator = Context.Locator;
+        var gpu = App.Gpu;
+        var locator = App.Locator;
         var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
         var shaderLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
 
-        m_UnlitShader = shaderLoader.Load("Assets/Shaders/unlit.shader");
+        m_UnlitShaderHandle = gpu.LoadShader("Assets/Shaders/unlit.shader");
 
-        m_UnlitShader.EnableDepthTest = true;
-        m_UnlitShader.EnableBackfaceCulling = false;
+        // m_UnlitShaderHandle.EnableDepthTest = true;
+        // m_UnlitShaderHandle.EnableBackfaceCulling = false;
         
-        m_FullScreenBlitShader = shaderLoader.Load("Assets/Shaders/fullScreenQuad.shader");
-        m_FullScreenBlitShader.EnableBackfaceCulling = true;
-        m_FullScreenBlitShader.EnableDepthTest = false;
+        m_FullScreenBlitShaderHandle = gpu.LoadShader("Assets/Shaders/fullScreenQuad.shader");
+        // m_FullScreenBlitShaderHandle.EnableBackfaceCulling = true;
+        // m_FullScreenBlitShaderHandle.EnableDepthTest = false;
         
         m_QuadMesh = meshLoader.Load("Assets/Meshes/quad.mesh");
 
@@ -140,20 +141,20 @@ public class TestScene : IScene
         {
             renderbuffer.Clear(.42f, .607f, .82f, 1f);
             m_FullScreenBlitPass.Render(m_QuadMesh,
-                m_FullScreenBlitShader,
+                m_FullScreenBlitShaderHandle,
                 m_TempRenderbuffer.ColorBuffers[0],
                 m_TempRenderbuffer.ColorBuffers[1],
                 m_TempRenderbuffer.ColorBuffers[2]);
             
-            m_UnlitRenderPass.Render(m_Camera, m_UnlitShader);
+            m_UnlitRenderPass.Render(m_Camera, m_UnlitShaderHandle);
         }
     }
 
     private void HandleInput()
     {
         var speed = m_Clock.DeltaTime * 15f;
-        var mouse = m_Context.Input.Mouse;
-        var keyboard = m_Context.Input.Keyboard;
+        var mouse = m_App.Input.Mouse;
+        var keyboard = m_App.Input.Keyboard;
         
         if (keyboard.IsKeyPressed(KeyboardKey.W))
             m_Camera.Transform.WorldPosition += m_Camera.Transform.Forward * speed;
@@ -168,8 +169,8 @@ public class TestScene : IScene
         if (mouse.ScrollDeltaY != 0)
             m_Camera.Transform.WorldPosition += m_Camera.Transform.Forward * mouse.ScrollDeltaY * m_Clock.DeltaTime * 100f;
         
-        if (m_Context.Window.IsFullscreen && keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
-            m_Context.Window.IsFullscreen = false;
+        if (m_App.Window.IsFullscreen && keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
+            m_App.Window.IsFullscreen = false;
 
         if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Space))
             m_IsRotating = !m_IsRotating;
@@ -218,7 +219,7 @@ public class TestScene : IScene
 
     private List<Ship> CreateShips()
     {
-        var locator = Context.Locator;
+        var locator = App.Locator;
         var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
         var textureLoader = locator.LocateOrThrow<IAssetLoader<IGpuTexture>>();
         
