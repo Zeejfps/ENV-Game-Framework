@@ -1,4 +1,7 @@
-﻿namespace Framework;
+﻿using EasyGameFramework.API;
+using EasyGameFramework.API.AssetTypes;
+
+namespace Framework;
 
 public abstract class AssetLoader<T> : IAssetLoader<T> where T : IAsset
 {

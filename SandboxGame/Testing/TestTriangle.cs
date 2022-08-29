@@ -1,5 +1,7 @@
+using EasyGameFramework.API;
+using EasyGameFramework.API.AssetTypes;
+using EasyGameFramework.API.InputDevices;
 using Framework;
-using Framework.InputDevices;
 
 namespace Framework;
 

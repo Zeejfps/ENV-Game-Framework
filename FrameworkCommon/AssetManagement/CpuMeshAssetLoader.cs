@@ -1,4 +1,5 @@
-﻿using Framework.Assets;
+﻿using EasyGameFramework.API.AssetTypes;
+using Framework.Assets;
 
 namespace Framework;
 

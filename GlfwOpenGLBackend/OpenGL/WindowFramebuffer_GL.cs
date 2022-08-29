@@ -1,4 +1,5 @@
-﻿using OpenGL;
+﻿using EasyGameFramework.API.AssetTypes;
+using OpenGL;
 using static OpenGL.Gl;
 
 namespace Framework.GLFW.NET;

@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
+using EasyGameFramework.API;
+using EasyGameFramework.API.AssetTypes;
 
 namespace Framework;
 

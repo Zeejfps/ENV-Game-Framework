@@ -1,4 +1,4 @@
-﻿using Framework.InputDevices;
+﻿using EasyGameFramework.API.InputDevices;
 using GLFW;
 
 namespace Framework.GLFW;

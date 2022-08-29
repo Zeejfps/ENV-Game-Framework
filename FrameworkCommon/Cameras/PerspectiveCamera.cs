@@ -1,4 +1,5 @@
 using System.Numerics;
+using EasyGameFramework.API;
 
 namespace Framework.Common.Cameras;
 

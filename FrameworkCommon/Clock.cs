@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using EasyGameFramework.API;
 
 namespace Framework;
 

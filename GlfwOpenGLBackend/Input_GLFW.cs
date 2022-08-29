@@ -1,5 +1,6 @@
-﻿using Framework;
-using Framework.InputDevices;
+﻿using EasyGameFramework.API;
+using EasyGameFramework.API.InputDevices;
+using Framework;
 using GLFW;
 using MouseButton = GLFW.MouseButton;
 
@@ -74,22 +75,22 @@ public class Input_GLFW : IInput
         }
     }
 
-    private Framework.InputDevices.MouseButton MapToMouseButton(MouseButton mouseButton)
+    private EasyGameFramework.API.InputDevices.MouseButton MapToMouseButton(MouseButton mouseButton)
     {
         switch (mouseButton)
         {
             case MouseButton.Left:
-                return Framework.InputDevices.MouseButton.Left;
+                return EasyGameFramework.API.InputDevices.MouseButton.Left;
             case MouseButton.Right:
-                return Framework.InputDevices.MouseButton.Right;
+                return EasyGameFramework.API.InputDevices.MouseButton.Right;
             case MouseButton.Middle:
-                return Framework.InputDevices.MouseButton.Middle;
+                return EasyGameFramework.API.InputDevices.MouseButton.Middle;
             case MouseButton.Button4:
             case MouseButton.Button5:
             case MouseButton.Button6:
             case MouseButton.Button7:
             case MouseButton.Button8:
-                return new Framework.InputDevices.MouseButton((int)mouseButton);
+                return new EasyGameFramework.API.InputDevices.MouseButton((int)mouseButton);
             default:
                 throw new ArgumentOutOfRangeException(nameof(mouseButton), mouseButton, null);
         }

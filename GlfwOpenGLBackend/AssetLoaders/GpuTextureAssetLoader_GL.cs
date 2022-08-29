@@ -1,4 +1,6 @@
-﻿using Framework;
+﻿using EasyGameFramework.API;
+using EasyGameFramework.API.AssetTypes;
+using Framework;
 using TicTacToePrototype;
 using TicTacToePrototype.OpenGL.AssetLoaders;
 

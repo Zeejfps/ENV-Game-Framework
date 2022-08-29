@@ -1,4 +1,5 @@
-﻿using TicTacToePrototype;
+﻿using EasyGameFramework.API.AssetTypes;
+using TicTacToePrototype;
 
 namespace Framework;
 

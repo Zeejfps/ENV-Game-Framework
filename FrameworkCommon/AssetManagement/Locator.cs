@@ -1,4 +1,6 @@
-﻿namespace Framework;
+﻿using EasyGameFramework.API;
+
+namespace Framework;
 
 public class Locator : ILocator
 {

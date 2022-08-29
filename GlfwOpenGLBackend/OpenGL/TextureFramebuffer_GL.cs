@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using EasyGameFramework.API.AssetTypes;
 using GlfwOpenGLBackend.OpenGL;
 using TicTacToePrototype.OpenGL.AssetLoaders;
 using static OpenGL.Gl;

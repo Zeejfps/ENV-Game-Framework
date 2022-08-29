@@ -1,8 +1,10 @@
 ﻿using System.Numerics;
+using EasyGameFramework.API;
+using EasyGameFramework.API.AssetTypes;
+using EasyGameFramework.API.InputDevices;
 using Framework;
 using Framework.Common;
 using Framework.Common.Cameras;
-using Framework.InputDevices;
 
 namespace SnakeGame;
 

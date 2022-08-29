@@ -1,4 +1,6 @@
-﻿using Framework.GLFW.NET;
+﻿using EasyGameFramework.API;
+using EasyGameFramework.API.AssetTypes;
+using Framework.GLFW.NET;
 
 namespace Framework;
 

@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using EasyGameFramework.API;
+using EasyGameFramework.API.AssetTypes;
 using GLFW;
 using Monitor = GLFW.Monitor;
 

@@ -1,4 +1,6 @@
-﻿namespace Framework.Assets;
+﻿using EasyGameFramework.API.AssetTypes;
+
+namespace Framework.Assets;
 
 public class CpuMesh : ICpuMesh
 {
