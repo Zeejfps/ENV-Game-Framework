@@ -69,7 +69,12 @@ public class Gpu_GL : IGpu
     private readonly CpuMeshAssetLoader m_CpuMeshLoader = new();
     private readonly CpuShaderAssetLoader m_CpuShaderLoader = new();
     private readonly CpuTextureAssetLoader m_CpuTextureAssetLoader = new();
-
+    
+    public IGpuRenderbuffer CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer)
+    {
+        return new TextureFramebuffer_GL(width, height, colorBufferCount, createDepthBuffer);
+    }
+    
     public IHandle<IGpuMesh> LoadMesh(string assetPath)
     {
         var cpuMesh = m_CpuMeshLoader.Load(assetPath);

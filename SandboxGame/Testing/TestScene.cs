@@ -62,7 +62,7 @@ public class TestScene : IScene
         
         m_WindowFramebuffer = app.Window.Framebuffer;
         
-        m_TempRenderbuffer = app.CreateRenderbuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height, 3, true);
+        m_TempRenderbuffer = app.Gpu.CreateRenderbuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height, 3, true);
 
         m_SpecularRenderPass = new SpecularRenderPass(lightTransform);
         m_UnlitRenderPass = new UnlitRenderPass();

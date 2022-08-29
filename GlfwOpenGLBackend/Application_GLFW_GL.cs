@@ -31,12 +31,7 @@ public class Application_GLFW_GL : IApplication
         
         IsRunning = true;
     }
-    
-    public IGpuRenderbuffer CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer)
-    {
-        return new TextureFramebuffer_GL(width, height, colorBufferCount, createDepthBuffer);
-    }
-    
+
     public void Update()
     {
         m_Window.Update();
