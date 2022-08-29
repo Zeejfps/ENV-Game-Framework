@@ -2,10 +2,15 @@
 
 public interface IKeyboard
 {
+    void PressKey(KeyboardKey key);
+    void ReleaseKey(KeyboardKey key);
+    
     bool WasKeyPressedThisFrame(KeyboardKey key);
     bool WasKeyReleasedThisFrame(KeyboardKey key);
     bool IsKeyPressed(KeyboardKey key);
     bool IsKeyReleased(KeyboardKey key);
+
+    void Update();
 }
 
 public enum KeyboardKey

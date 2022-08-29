@@ -12,9 +12,9 @@ public class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffe
     private readonly IGpuFramebuffer m_WindowFramebuffer;
     private readonly TextureManager_GL m_TextureManager;
     
-    public RenderbufferManager_GL(IGpuFramebuffer windowFramebuffer, TextureManager_GL textureManager)
+    public RenderbufferManager_GL(IWindow window, TextureManager_GL textureManager)
     {
-        m_WindowFramebuffer = windowFramebuffer;
+        m_WindowFramebuffer = window.Framebuffer;
         m_TextureManager = textureManager;
         WindowBufferHandle = new GpuWindowFramebufferHandle(m_WindowFramebuffer);
     }

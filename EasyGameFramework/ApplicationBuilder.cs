@@ -12,6 +12,10 @@ public sealed class ApplicationBuilder
     
     public ApplicationBuilder WithGlfwOpenGlBackend()
     {
+        DiContainer.Register<IDisplays, Displays_GLFW>();
+        DiContainer.Register<IInput, Input_GLFW>();
+        DiContainer.Register<IWindow, Window_GLFW>();
+        DiContainer.Register<IGpu, Gpu_GL>();
         DiContainer.Register<IApplication, Application_GLFW_GL>();
         m_IsBackendSet = true;
         return this;
@@ -44,6 +48,7 @@ public sealed class ApplicationBuilder
 
 internal class DiContainer
 {
+    private readonly Dictionary<Type, object> m_TypeToInstanceMap = new();
     private readonly Dictionary<Type, Func<object>> m_TypeToFactoryMap = new();
 
     public T GetInstance<T>()
@@ -53,11 +58,22 @@ internal class DiContainer
 
     private object GetInstance(Type type)
     {
-        if (m_TypeToFactoryMap.TryGetValue(type, out Func<object> fac)) 
-            return fac();
+        if (m_TypeToInstanceMap.TryGetValue(type, out var instance))
+            return instance;
 
-        if (!type.IsAbstract) 
-            return CreateInstance(type);
+        if (m_TypeToFactoryMap.TryGetValue(type, out Func<object> factory))
+        {
+            instance = factory.Invoke();
+            m_TypeToInstanceMap[type] = instance;
+            return instance;
+        }
+
+        if (!type.IsAbstract)
+        {
+            instance = CreateInstance(type);
+            m_TypeToInstanceMap[type] = instance;
+            return instance;
+        }
         
         throw new InvalidOperationException("No registration for " + type);
     }

@@ -72,29 +72,20 @@ public class Gpu_GL : IGpu
     public IMeshManager MeshManager => m_MeshManager;
     public IShaderManager ShaderManager => m_ShaderManager;
     public ITextureManager TextureManager => m_TextureManager;
-    public IRenderbufferManager RenderbufferManager => m_RenderbufferManager;
+    public IRenderbufferManager RenderbufferManager { get; set; }
 
-    private MeshManager_GL m_MeshManager;
-    private ShaderManager_GL m_ShaderManager;
-    private TextureManager_GL m_TextureManager;
-    private RenderbufferManager_GL m_RenderbufferManager;
+    private readonly MeshManager_GL m_MeshManager;
+    private readonly ShaderManager_GL m_ShaderManager;
+    private readonly TextureManager_GL m_TextureManager;
 
-    public Gpu_GL(IGpuFramebuffer windowFramebuffer)
+    public Gpu_GL(IWindow window)
     {
         m_MeshManager = new MeshManager_GL();
         m_ShaderManager = new ShaderManager_GL();
         m_TextureManager = new TextureManager_GL();
-        m_RenderbufferManager = new RenderbufferManager_GL(windowFramebuffer, m_TextureManager);
+        RenderbufferManager = new RenderbufferManager_GL(window, m_TextureManager);
     }
-    
-    public IGpuRenderbufferHandle CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer)
-    {
-        var buffer = new GpuRenderbuffer_GL(m_TextureManager, width, height, colorBufferCount, createDepthBuffer);
-        var handle = new GpuRenderbufferHandle(buffer);
-        m_RenderbufferManager.Add(handle, buffer);
-        return handle;
-    }
-    
+
     public IHandle<IGpuMesh> LoadMesh(string assetPath)
     {
         var cpuMesh = m_CpuMeshLoader.Load(assetPath);

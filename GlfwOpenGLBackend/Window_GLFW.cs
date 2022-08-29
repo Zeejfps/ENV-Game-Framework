@@ -87,7 +87,6 @@ public class Window_GLFW : IWindow
     
     public bool IsOpened { get; private set; }
 
-    public IInput Input => m_Input;
     public IGpuFramebuffer Framebuffer => m_WindowFramebuffer;
 
     public bool IsFullscreen
@@ -129,8 +128,8 @@ public class Window_GLFW : IWindow
     private Window m_Handle;
 
     private readonly WindowFramebuffer_GL m_WindowFramebuffer;
-    private readonly Input_GLFW m_Input;
     private readonly IDisplays m_Displays;
+    private readonly IInput m_Input;
 
     private readonly KeyCallback m_KeyCallback;
     private readonly SizeCallback m_SizeCallback;
@@ -140,10 +139,18 @@ public class Window_GLFW : IWindow
     private readonly PositionCallback m_PositionCallback;
     private readonly SizeCallback m_FramebufferSizeCallback;
 
-    public Window_GLFW(IDisplays displays)
+    public Window_GLFW(IDisplays displays, IInput input)
     {
+        Glfw.Init();
+        Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
+        Glfw.WindowHint(Hint.ContextVersionMajor, 3);
+        Glfw.WindowHint(Hint.ContextVersionMinor, 3);
+        Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
+        Glfw.WindowHint(Hint.Doublebuffer, true);
+        Glfw.WindowHint(Hint.Decorated, true);
+        
         m_Displays = displays;
-        m_Input = new Input_GLFW();
+        m_Input = input;
 
         m_KeyCallback = Glfw_KeyCallback;
         m_SizeCallback = Glfw_SizeCallback;
@@ -198,8 +205,10 @@ public class Window_GLFW : IWindow
     {
         Debug.Assert(IsOpened);
         Debug.Assert(m_Handle != Window.None);
-
-        m_Input.Update(m_Handle);
+        
+        Glfw.GetCursorPosition(m_Handle, out var x, out var y);
+        m_Input.Mouse.ScreenX = (int)x;
+        m_Input.Mouse.ScreenY = (int)y;
         Glfw.SwapBuffers(m_Handle);
         Glfw.PollEvents();
 
@@ -283,26 +292,80 @@ public class Window_GLFW : IWindow
     
     private void Glfw_MousePosCallback(Window window, double x, double y)
     {
-        m_Input.Glfw_MousePosCallback(window, x, y);
+        var mouse = m_Input.Mouse;
+        mouse.ScreenX = (int)x;
+        mouse.ScreenY = (int)y;
     }
 
     private void Glfw_MouseButtonCallback(Window window, MouseButton button, InputState state, ModifierKeys modifiers)
     {
-        m_Input.Glfw_MouseButtonCallback(window, button, state, modifiers);
+        var mouse = m_Input.Mouse;
+        var mouseButton = MapToMouseButton(button);
+        switch (state)
+        {
+            case InputState.Release:
+                mouse.ReleaseButton(mouseButton);
+                break;
+            case InputState.Press:
+                mouse.PressButton(mouseButton);
+                break;
+            case InputState.Repeat:
+                mouse.PressButton(mouseButton);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(state), state, null);
+        }
     }
     
-    private void Glfw_KeyCallback(Window window, Keys key, int scancode, InputState state, ModifierKeys mods)
+    private void Glfw_KeyCallback(Window window, Keys glfwKey, int scancode, InputState state, ModifierKeys mods)
     {
-        m_Input.Glfw_KeyCallback(window, key, scancode, state, mods);
+        var keyboard = m_Input.Keyboard;
+        var key = glfwKey.ToKeyboardKey();
+        switch (state)
+        {
+            case InputState.Release:
+                keyboard.ReleaseKey(key);
+                break;
+            case InputState.Press:
+                keyboard.PressKey(key);
+                break;
+            case InputState.Repeat:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(state), state, null);
+        }
     }
     
     private void Glfw_MouseScrollCallback(Window window, double x, double y)
     {
-        m_Input.Glfw_MouseScrollCallback(window, x, y);
+        var mouse = m_Input.Mouse;
+        mouse.ScrollDeltaX = (float)x;
+        mouse.ScrollDeltaX = (float)y;
     }
     
     public override string ToString()
     {
         return $"x{PosX} y{PosY}, {Width}x{Height}";
+    }
+    
+    private EasyGameFramework.API.InputDevices.MouseButton MapToMouseButton(MouseButton mouseButton)
+    {
+        switch (mouseButton)
+        {
+            case MouseButton.Left:
+                return EasyGameFramework.API.InputDevices.MouseButton.Left;
+            case MouseButton.Right:
+                return EasyGameFramework.API.InputDevices.MouseButton.Right;
+            case MouseButton.Middle:
+                return EasyGameFramework.API.InputDevices.MouseButton.Middle;
+            case MouseButton.Button4:
+            case MouseButton.Button5:
+            case MouseButton.Button6:
+            case MouseButton.Button7:
+            case MouseButton.Button8:
+                return new EasyGameFramework.API.InputDevices.MouseButton((int)mouseButton);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(mouseButton), mouseButton, null);
+        }
     }
 }

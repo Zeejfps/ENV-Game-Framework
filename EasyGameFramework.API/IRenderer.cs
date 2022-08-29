@@ -1,10 +1,8 @@
-﻿namespace EasyGameFramework.API;
+﻿using EasyGameFramework.API.AssetTypes;
+
+namespace EasyGameFramework.API;
 
 public interface IRenderer
 {
-    void Add(IRenderable renderable);
-
-    void Remove(IRenderable renderable);
-    
-    void Render(IGpu gpu, ICamera camera);
+    void Render(IMaterial material, IHandle<IGpuMesh> meshHandle);
 }

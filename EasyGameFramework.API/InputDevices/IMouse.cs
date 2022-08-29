@@ -14,6 +14,8 @@ public interface IMouse
     public bool WasButtonReleasedThisFrame(MouseButton button);
     public bool IsButtonPressed(MouseButton button);
     public bool IsButtonReleased(MouseButton button);
+
+    void Update();
 }
 
 public readonly struct MouseButton : IEquatable<MouseButton>
