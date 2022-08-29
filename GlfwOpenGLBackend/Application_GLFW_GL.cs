@@ -14,6 +14,7 @@ public class Application_GLFW_GL : IApplication
     public IWindow Window => m_Window;
     public IInput Input => m_Window.Input;
     public ILocator Locator => m_Locator;
+    public IGpu Gpu { get; }
     public bool IsRunning { get; private set; }
 
     private readonly Window_GLFW m_Window;

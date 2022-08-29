@@ -8,9 +8,11 @@ public interface IApplication : IDisposable
     IWindow Window { get; }
     IInput Input { get; }
     ILocator Locator { get; }
+    IGpu Gpu { get; }
     IGpuRenderbuffer CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer);
     
     bool IsRunning { get; }
+    
     void Update();
     void Quit();
 }

@@ -25,16 +25,18 @@ public class Game
     private ILocator m_Locator;
     private IInput m_Input;
     private IGpuFramebuffer m_WindowFramebuffer;
+    private IGpu m_Gpu;
     
     public Game(IApplication app)
     {
         m_Locator = app.Locator;
         m_Input = app.Input;
         m_WindowFramebuffer = app.Window.Framebuffer;
-
+        m_Gpu = app.Gpu;
+        
         var gpuMeshAssetLoader = m_Locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
         var gpuShaderAssetLoader = m_Locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
-        
+
         m_QuadMesh = gpuMeshAssetLoader.Load("Assets/quad.mesh");
         m_UnlitMaterial = gpuShaderAssetLoader.Load("Assets/sprite.shader");
         m_UnlitMaterial.EnableBackfaceCulling = false;
