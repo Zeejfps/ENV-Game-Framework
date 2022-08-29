@@ -10,14 +10,8 @@
     <ItemGroup>
       <ProjectReference Include="..\FrameworkCommon\FrameworkCommon.csproj" />
       <ProjectReference Include="..\Framework\Framework.csproj" />
+      <ProjectReference Include="..\Glfw.NET\Glfw.NET.csproj" />
       <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ContentWithTargetPath Include="Native\Windows\glfw3.dll">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <TargetPath>glfw3.dll</TargetPath>
-        </ContentWithTargetPath>
     </ItemGroup>
 
 </Project>

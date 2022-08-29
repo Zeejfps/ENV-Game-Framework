@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
-using JetBrains.Annotations;
 
 namespace OpenGL
 {
@@ -346,7 +347,7 @@ namespace OpenGL
         ///     GL_SHADING_LANGUAGE_VERSION
         /// </param>
         /// <returns>The requested value.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static string glGetString(int name)
         {
             var buffer = new IntPtr(_glGetString(name));
@@ -361,7 +362,7 @@ namespace OpenGL
         /// </param>
         /// <param name="index">The index of the string to return.</param>
         /// <returns>The requested value.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static string glGetStringi(int name, uint index)
         {
             var buffer = new IntPtr(_glGetStringi(name, index));
@@ -497,7 +498,7 @@ namespace OpenGL
         ///     one of the following: GL_TEXTURE_MIN_FILTER, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_WRAP_S, or GL_TEXTURE_WRAP_T.
         /// </param>
         /// <param name="param">Specifies the value of <paramref name="paramName" />.</param>
-        public static void glTexParameterfv(int target, int paramName, [NotNull] float[] param)
+        public static void glTexParameterfv(int target, int paramName,  float[] param)
         {
             fixed (float* p = &param[0])
             {
@@ -517,7 +518,7 @@ namespace OpenGL
         ///     one of the following: GL_TEXTURE_MIN_FILTER, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_WRAP_S, or GL_TEXTURE_WRAP_T.
         /// </param>
         /// <param name="param">Specifies the value of <paramref name="paramName" />.</param>
-        public static void glTexParameteriv(int target, int paramName, [NotNull] int[] param)
+        public static void glTexParameteriv(int target, int paramName,  int[] param)
         {
             fixed (int* p = &param[0])
             {
@@ -554,7 +555,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="mode">Specifies what kind of primitives to render.</param>
         /// <param name="indices">An array containing the indices.</param>
-        public static void glDrawElements(int mode, [NotNull] byte[] indices)
+        public static void glDrawElements(int mode,  byte[] indices)
         {
             fixed (void* pointer = &indices[0])
             {
@@ -567,7 +568,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="mode">Specifies what kind of primitives to render.</param>
         /// <param name="indices">An array containing the indices.</param>
-        public static void glDrawElements(int mode, [NotNull] ushort[] indices)
+        public static void glDrawElements(int mode,  ushort[] indices)
         {
             fixed (void* pointer = &indices[0])
             {
@@ -580,7 +581,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="mode">Specifies what kind of primitives to render.</param>
         /// <param name="indices">An array containing the indices.</param>
-        public static void glDrawElements(int mode, [NotNull] uint[] indices)
+        public static void glDrawElements(int mode,  uint[] indices)
         {
             fixed (void* pointer = &indices[0])
             {
@@ -642,7 +643,7 @@ namespace OpenGL
         /// <param name="format">Specifies the format of the pixel data.</param>
         /// <param name="type">Specifies the data type of the pixel data.</param>
         /// <param name="pixels">A buffer where the pixel data will be written.<para>Must have enough memory allocated for the desired dimensions and pixel format.</para></param>
-        public static void glReadPixels(int x, int y, int width, int height, int format, int type, [NotNull] byte[] pixels)
+        public static void glReadPixels(int x, int y, int width, int height, int format, int type,  byte[] pixels)
         {
             var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
             var ptr = handle.AddrOfPinnedObject();
@@ -661,7 +662,7 @@ namespace OpenGL
         ///     Specifies a list of color buffers to be drawn into.
         /// </summary>
         /// <param name="buffers">PAn array of symbolic constants specifying the buffers into which fragment colors or data values will be written.</param>
-        public static void glDrawBuffers([NotNull] int[] buffers)
+        public static void glDrawBuffers( int[] buffers)
         {
             fixed (int* buf = &buffers[0])
             {
@@ -861,7 +862,7 @@ namespace OpenGL
         ///     Delete named textures.
         /// </summary>
         /// <param name="textures">Specifies an array of textures to be deleted.</param>
-        public static void glDeleteTextures([CanBeNull] uint[] textures)
+        public static void glDeleteTextures(uint[] textures)
         {
             if (textures is null)
                 return;
@@ -896,7 +897,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="n">Specifies the number of texture names to be generated.</param>
         /// <returns>Generated texture names.</returns>
-        [NotNull]
+        
         [Pure]
         public static uint[] glGenTextures(int n)
         {
@@ -945,7 +946,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="n">Specifies the number of query object names to be generated.</param>
         /// <returns>An array of generated query object names.</returns>
-        [NotNull]
+        
         [Pure]
         public static uint[] glGenQueries(int n)
         {
@@ -1062,7 +1063,7 @@ namespace OpenGL
         ///     Delete named query objects.
         /// </summary>
         /// <param name="ids">An array of query objects to be deleted.</param>
-        public static void glDeleteQueries([NotNull] uint[] ids)
+        public static void glDeleteQueries( uint[] ids)
         {
             fixed (uint* names = &ids[0])
             {
@@ -1236,7 +1237,7 @@ namespace OpenGL
         /// <param name="paramName">Specifies the parameter value to be returned.</param>
         /// <param name="count">The number of values to get.</param>
         /// <returns>The request parameter value.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static bool[] glGetBooleanv(int paramName, int count)
         {
             var value = new bool[count];
@@ -1273,7 +1274,7 @@ namespace OpenGL
         /// <param name="paramName">Specifies the parameter value to be returned.</param>
         /// <param name="count">The number of values to get.</param>
         /// <returns>The request parameter value.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static double[] glGetDoublev(int paramName, int count)
         {
             var value = new double[count];
@@ -1311,7 +1312,7 @@ namespace OpenGL
         /// <param name="paramName">Specifies the parameter value to be returned.</param>
         /// <param name="count">The number of values to get.</param>
         /// <returns>The request parameter value.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static float[] glGetFloatv(int paramName, int count)
         {
             var value = new float[count];
@@ -1348,7 +1349,7 @@ namespace OpenGL
         /// <param name="paramName">Specifies the parameter value to be returned.</param>
         /// <param name="count">The number of values to get.</param>
         /// <returns>The request parameter value.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetIntegerv(int paramName, int count)
         {
             var value = new int[count];
@@ -1385,7 +1386,7 @@ namespace OpenGL
         /// <param name="paramName">Specifies the parameter value to be returned.</param>
         /// <param name="count">The number of values to get.</param>
         /// <returns>The request parameter value.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static long[] glGetInteger64v(int paramName, int count)
         {
             var value = new long[count];
@@ -1403,7 +1404,7 @@ namespace OpenGL
         /// <param name="paramName">Specifies the symbolic name of a texture parameter.</param>
         /// <param name="count">The number of values to get.</param>
         /// <remarks>Array must have enough space allocated to contain the requested value(s).</remarks>
-        [NotNull][Pure]
+        [Pure]
         public static float[] glGetTexParameterfv(int target, int paramName, int count)
         {
             var args = new float[count];
@@ -1421,7 +1422,7 @@ namespace OpenGL
         /// <param name="paramName">Specifies the symbolic name of a texture parameter.</param>
         /// <param name="count">The number of values to get.</param>
         /// <remarks>Array must have enough space allocated to contain the requested value(s).</remarks>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetTexParameteriv(int target, int paramName, int count)
         {
             var args = new int[count];
@@ -1485,7 +1486,7 @@ namespace OpenGL
         /// <param name="paramName">Specifies the symbolic name of a texture parameter.</param>
         /// <param name="count">The number of values to get.</param>
         /// <remarks>Array must have enough space allocated to contain the requested value(s).</remarks>
-        [NotNull][Pure]
+        [Pure]
         public static float[] glGetTexLevelParameterfv(int target, int level, int paramName, int count)
         {
             var args = new float[count];
@@ -1507,7 +1508,7 @@ namespace OpenGL
         /// <param name="paramName">Specifies the symbolic name of a texture parameter.</param>
         /// <param name="count">The number of values to get.</param>
         /// <remarks>Array must have enough space allocated to contain the requested value(s).</remarks>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetTexLevelParameteriv(int target, int level, int paramName, int count)
         {
             var args = new int[count];
@@ -1772,7 +1773,7 @@ namespace OpenGL
         /// <param name="end">Specifies the maximum array index contained in <paramref name="indices" />.</param>
         /// <param name="count">Specifies the number of elements to be rendered.</param>
         /// <param name="indices">The source indices.</param>
-        public static void glDrawRangeElements(int mode, uint start, uint end, int count, [NotNull] byte[] indices)
+        public static void glDrawRangeElements(int mode, uint start, uint end, int count,  byte[] indices)
         {
             fixed (void* i = &indices[0])
             {
@@ -1795,7 +1796,7 @@ namespace OpenGL
         /// <param name="end">Specifies the maximum array index contained in <paramref name="indices" />.</param>
         /// <param name="count">Specifies the number of elements to be rendered.</param>
         /// <param name="indices">The source indices.</param>
-        public static void glDrawRangeElements(int mode, uint start, uint end, int count, [NotNull] ushort[] indices)
+        public static void glDrawRangeElements(int mode, uint start, uint end, int count,  ushort[] indices)
         {
             fixed (void* i = &indices[0])
             {
@@ -1818,7 +1819,7 @@ namespace OpenGL
         /// <param name="end">Specifies the maximum array index contained in <paramref name="indices" />.</param>
         /// <param name="count">Specifies the number of elements to be rendered.</param>
         /// <param name="indices">The source indices.</param>
-        public static void glDrawRangeElements(int mode, uint start, uint end, int count, [NotNull] uint[] indices)
+        public static void glDrawRangeElements(int mode, uint start, uint end, int count,  uint[] indices)
         {
             fixed (void* i = &indices[0])
             {
@@ -2115,7 +2116,7 @@ namespace OpenGL
         ///     Delete named framebuffer objects.
         /// </summary>
         /// <param name="buffers">Specifies an array of framebuffer objects to be deleted.</param>
-        public static void glDeleteFramebuffers([CanBeNull] uint[] buffers)
+        public static void glDeleteFramebuffers(uint[] buffers)
         {
             if (buffers is null)
                 return;
@@ -2173,7 +2174,7 @@ namespace OpenGL
         ///     Delete named renderbuffer objects.
         /// </summary>
         /// <param name="buffers">Specifies an array of renderbuffer objects to be deleted.</param>
-        public static void glDeleteRenderbuffers([CanBeNull] uint[] buffers)
+        public static void glDeleteRenderbuffers(uint[] buffers)
         {
             if (buffers is null)
                 return;
@@ -2194,7 +2195,7 @@ namespace OpenGL
         ///     Delete named buffer objects.
         /// </summary>
         /// <param name="buffers">Specifies an array of buffer objects to be deleted.</param>
-        public static void glDeleteBuffers([CanBeNull] uint[] buffers)
+        public static void glDeleteBuffers(uint[] buffers)
         {
             if (buffers is null)
                 return;
@@ -2228,7 +2229,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="n">Specifies the number of framebuffer object names to be generated.</param>
         /// <returns>An array of generated framebuffer object names.</returns>
-        [Pure][NotNull]
+        [Pure]
         public static uint[] glGenFramebuffers(int n)
         {
             var buffers = new uint[n];
@@ -2263,7 +2264,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="n">Specifies the number of renderbuffer object names to be generated.</param>
         /// <returns>An array of generated renderbuffer object names.</returns>
-        [Pure][NotNull]
+        [Pure]
         public static uint[] glGenRenderbuffers(int n)
         {
             var buffers = new uint[n];
@@ -2298,7 +2299,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="n">Specifies the number of buffer object names to be generated.</param>
         /// <returns>An array of generated buffer object names.</returns>
-        [Pure][NotNull]
+        [Pure]
         public static uint[] glGenBuffers(int n)
         {
             var buffers = new uint[n];
@@ -2342,7 +2343,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="count">Specifies the number of sampler object names to generate.</param>
         /// <returns>An array containing the generated sampler object names.</returns>
-        [NotNull]
+        
         public static uint[] glGenSamplers(int count)
         {
             var samplers = new uint[count];
@@ -2376,7 +2377,7 @@ namespace OpenGL
         ///     Delete named sampler objects.
         /// </summary>
         /// <param name="samplers">Specifies an array of sampler objects to be deleted.</param>
-        public static void glDeleteSamplers([NotNull] uint[] samplers)
+        public static void glDeleteSamplers( uint[] samplers)
         {
             fixed (uint* s = &samplers[0])
             {
@@ -2448,7 +2449,7 @@ namespace OpenGL
         /// <param name="buffer">Specify the buffer to clear.</param>
         /// <param name="drawbuffer">Specify a particular draw buffer to clear.</param>
         /// <param name="value">The value or values to clear the buffer to.</param>
-        public static void glClearBufferiv(int buffer, int drawbuffer, [NotNull] int[] value)
+        public static void glClearBufferiv(int buffer, int drawbuffer,  int[] value)
         {
             fixed (int* v = &value[0])
             {
@@ -2462,7 +2463,7 @@ namespace OpenGL
         /// <param name="buffer">Specify the buffer to clear.</param>
         /// <param name="drawbuffer">Specify a particular draw buffer to clear.</param>
         /// <param name="value">The value or values to clear the buffer to.</param>
-        public static void glClearBufferuiv(int buffer, int drawbuffer, [NotNull] uint[] value)
+        public static void glClearBufferuiv(int buffer, int drawbuffer,  uint[] value)
         {
             fixed (uint* v = &value[0])
             {
@@ -2476,7 +2477,7 @@ namespace OpenGL
         /// <param name="buffer">Specify the buffer to clear.</param>
         /// <param name="drawbuffer">Specify a particular draw buffer to clear.</param>
         /// <param name="value">The value or values to clear the buffer to.</param>
-        public static void glClearBufferfv(int buffer, int drawbuffer, [NotNull] float[] value)
+        public static void glClearBufferfv(int buffer, int drawbuffer,  float[] value)
         {
             fixed (float* v = &value[0])
             {
@@ -2562,7 +2563,7 @@ namespace OpenGL
         ///     The index of the fragment color to which the variable name was bound when the program object program was last
         ///     linked, ot <c>-1</c> if an error occured.
         /// </returns>
-        public static int glGetFragDataIndex(uint program, [NotNull] string name)
+        public static int glGetFragDataIndex(uint program,  string name)
         {
             var buffer = Encoding.UTF8.GetBytes(name);
             fixed (byte* b = &buffer[0])
@@ -2709,7 +2710,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="shader">Specifies the handle of the shader object whose source code is to be replaced.</param>
         /// <param name="source">The source code to be loaded into the shader.</param>
-        public static void glShaderSource(uint shader, [NotNull] string source)
+        public static void glShaderSource(uint shader,  string source)
         {
             var buffer = Encoding.UTF8.GetBytes(source);
             fixed (byte* p = &buffer[0])
@@ -2737,7 +2738,7 @@ namespace OpenGL
         /// <param name="program">Specifies the program object to be queried.</param>
         /// <param name="name">A array of bytes containing the name of the uniform variable whose location is to be queried.</param>
         /// <returns>An integer that represents the location of a specific uniform variable within a program object.</returns>
-        public static int glGetUniformLocation(uint program, [NotNull] byte[] name)
+        public static int glGetUniformLocation(uint program,  byte[] name)
         {
             fixed (byte* b = &name[0])
             {
@@ -2751,7 +2752,7 @@ namespace OpenGL
         /// <param name="program">Specifies the program object to be queried.</param>
         /// <param name="name">A string containing the name of the uniform variable whose location is to be queried.</param>
         /// <returns>An integer that represents the location of a specific uniform variable within a program object.</returns>
-        public static int glGetUniformLocation(uint program, [NotNull] string name)
+        public static int glGetUniformLocation(uint program,  string name)
         {
             var bytes = Encoding.UTF8.GetBytes(name);
             fixed (byte* b = &bytes[0])
@@ -2766,7 +2767,7 @@ namespace OpenGL
         /// <param name="shader">Specifies the shader object to be queried.</param>
         /// <param name="bufSize">Specifies the size of the character buffer for storing the returned source code string.</param>
         /// <returns>The shader source, or <c>null</c> if an error occured.</returns>
-        [CanBeNull][Pure]
+        [Pure]
         public static string glGetShaderSource(uint shader, int bufSize = 4096)
         {
             var buffer = Marshal.AllocHGlobal(bufSize);
@@ -2793,7 +2794,7 @@ namespace OpenGL
         /// <param name="program">Specifies the program object whose information log is to be queried.</param>
         /// <param name="bufSize">Specifies the size of the character buffer for storing the returned information log.</param>
         /// <returns>The info log, or <c>null</c> if an error occured.</returns>
-        [CanBeNull][Pure]
+        [Pure]
         public static string glGetProgramInfoLog(uint program, int bufSize = 1024)
         {
             var buffer = Marshal.AllocHGlobal(bufSize);
@@ -2820,7 +2821,7 @@ namespace OpenGL
         /// <param name="shader">Specifies the shader object whose information log is to be queried.</param>
         /// <param name="bufSize">Specifies the size of the character buffer for storing the returned information log.</param>
         /// <returns>The info log, or <c>null</c> if an error occured.</returns>
-        [CanBeNull][Pure]
+        [Pure]
         public static string glGetShaderInfoLog(uint shader, int bufSize = 1024)
         {
             var buffer = Marshal.AllocHGlobal(bufSize);
@@ -2872,7 +2873,7 @@ namespace OpenGL
         /// </param>
         /// <param name="indices">Specifies a pointer to the location where the indices are stored.</param>
         /// <param name="drawCount">Specifies the size of the count and indices arrays.</param>
-        public static void glMultiDrawElements(int mode, [NotNull] int[] count, int type, IntPtr indices, int drawCount)
+        public static void glMultiDrawElements(int mode,  int[] count, int type, IntPtr indices, int drawCount)
         {
             // Test this actually works
             var ptr = (void**) indices.ToPointer();
@@ -2898,7 +2899,7 @@ namespace OpenGL
         /// <param name="first">An array of starting indices in the enabled arrays.</param>
         /// <param name="count">An array of the number of indices to be rendered.</param>
         /// <param name="drawCount">Specifies the size of the first and count.</param>
-        public static void glMultiDrawArrays(int mode, [NotNull] int[] first, [NotNull] int[] count, int drawCount)
+        public static void glMultiDrawArrays(int mode,  int[] first,  int[] count, int drawCount)
         {
             fixed (int* f = &first[0])
             {
@@ -3147,7 +3148,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="type">Specifies the data type of each color components.</param>
         /// <param name="color">The packed color value.</param>
-        public static void glColorP3uiv(int type, [NotNull] uint[] color)
+        public static void glColorP3uiv(int type,  uint[] color)
         {
             fixed (uint* c = &color[0])
             {
@@ -3160,7 +3161,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="type">Specifies the data type of each color components.</param>
         /// <param name="color">The packed color value.</param>
-        public static void glColorP4uiv(int type, [NotNull] uint[] color)
+        public static void glColorP4uiv(int type,  uint[] color)
         {
             fixed (uint* c = &color[0])
             {
@@ -3180,7 +3181,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="type">Specifies the data type of each color components.</param>
         /// <param name="color">The packed color value.</param>
-        public static void glSecondaryColorP3uiv(int type, [NotNull] uint[] color)
+        public static void glSecondaryColorP3uiv(int type,  uint[] color)
         {
             fixed (uint* c = &color[0])
             {
@@ -3263,7 +3264,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="type">The type.</param>
         /// <param name="coords">The coords.</param>
-        public static void glNormalP3uiv(int type, [NotNull] uint[] coords)
+        public static void glNormalP3uiv(int type,  uint[] coords)
         {
             fixed (uint* c = &coords[0])
             {
@@ -3277,7 +3278,7 @@ namespace OpenGL
         /// <param name="program">The name of the program containing varying out variable whose binding to modify.</param>
         /// <param name="color">The color number to bind the user-defined varying out variable to.</param>
         /// <param name="name">The name of the user-defined varying out variable whose binding to modify.</param>
-        public static void glBindFragDataLocation(uint program, uint color, [NotNull] string name)
+        public static void glBindFragDataLocation(uint program, uint color,  string name)
         {
             var utf8 = Encoding.UTF8.GetBytes(name);
             fixed (byte* b = &utf8[0])
@@ -3293,7 +3294,7 @@ namespace OpenGL
         /// <param name="name">The name of the user-defined varying out variable whose binding to query.</param>
         /// <returns>The requested location, or <c>-1</c> if error occured.</returns>
         [Pure]
-        public static int glGetFragDataLocation(uint program, [NotNull] string name)
+        public static int glGetFragDataLocation(uint program,  string name)
         {
             var utf8 = Encoding.UTF8.GetBytes(name);
             fixed (byte* b = &utf8[0])
@@ -3308,7 +3309,7 @@ namespace OpenGL
         /// <param name="program">Specifies the program object to be queried.</param>
         /// <param name="name">A string containing the name of the attribute variable whose location is to be queried.</param>
         /// <returns>The location of the attribute, or <c>-1</c> if an error occured.</returns>
-        public static int glGetAttribLocation(uint program, [NotNull] string name)
+        public static int glGetAttribLocation(uint program,  string name)
         {
             var utf8 = Encoding.UTF8.GetBytes(name);
             fixed (byte* b = &utf8[0])
@@ -3332,7 +3333,7 @@ namespace OpenGL
         /// <param name="program">Specifies the program object to be queried.</param>
         /// <param name="maxCount">Specifies the size of the array for storing the returned object names.</param>
         /// <returns>An array containing the attached shaders of the specified program.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static uint[] glGetAttachedShaders(uint program, int maxCount)
         {
             int count;
@@ -3350,7 +3351,7 @@ namespace OpenGL
         /// <param name="program">Specifies the handle of the program object in which the association is to be made.</param>
         /// <param name="index">Specifies the index of the generic vertex attribute to be bound.</param>
         /// <param name="name">Specifies a string containing the name of the vertex shader attribute variable to which index is to be bound.</param>
-        public static void glBindAttribLocation(uint program, uint index, [NotNull] string name)
+        public static void glBindAttribLocation(uint program, uint index,  string name)
         {
             var utf8 = Encoding.UTF8.GetBytes(name);
             fixed (byte* b = &utf8[0])
@@ -3370,7 +3371,7 @@ namespace OpenGL
         /// <param name="type">Returns the data type of the attribute variable.</param>
         /// <param name="name">The name of the attribute variable.</param>
         public static void glGetActiveAttrib(uint program, uint index, int bufSize, out int length, out int size,
-            out int type, [NotNull] out string name)
+            out int type,  out string name)
         {
             var buffer = Marshal.AllocHGlobal(bufSize);
             try
@@ -3395,7 +3396,7 @@ namespace OpenGL
         /// <param name="type">Returns the data type of the uniform variable.</param>
         /// <param name="name">Returns a string containing the name of the uniform variable.</param>
         public static void glGetActiveUniform(uint program, uint index, int bufSize, out int length, out int size,
-            out int type, [NotNull] out string name)
+            out int type,  out string name)
         {
             var buffer = Marshal.AllocHGlobal(bufSize);
             try
@@ -3485,7 +3486,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the particular element being queried.</param>
         /// <param name="count">The number of values to get.</param>
         /// <returns>The request parameter value.</returns>
-        [NotNull]
+        
         public static bool[] glGetBooleani_v(int target, uint index, int count)
         {
             var value = new bool[count];
@@ -3503,7 +3504,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the particular element being queried.</param>
         /// <param name="count">The number of values to get.</param>
         /// <returns>The request parameter value.</returns>
-        [NotNull]
+        
         public static int[] glGetIntegeri_v(int target, uint index, int count)
         {
             var value = new int[count];
@@ -3521,7 +3522,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the particular element being queried.</param>
         /// <param name="count">The number of values to get.</param>
         /// <returns>The request parameter value.</returns>
-        [NotNull]
+        
         public static long[] glGetInteger64i_v(int target, uint index, int count)
         {
             var value = new long[count];
@@ -3551,7 +3552,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="n">Specifies the number of vertex array object names to generate.</param>
         /// <returns>An array of generated vertex array object names.</returns>
-        [NotNull]
+        
         [Pure]
         public static uint[] glGenVertexArrays(int n)
         {
@@ -3593,7 +3594,7 @@ namespace OpenGL
         ///     Delete vertex array objects.
         /// </summary>
         /// <param name="arrays">An array of vertex array objects to delete.</param>
-        public static void glDeleteVertexArrays([CanBeNull] uint[] arrays)
+        public static void glDeleteVertexArrays(uint[] arrays)
         {
             if (arrays is null)
                 return;
@@ -3642,7 +3643,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="paramName">Specifies a single-valued point parameter.<para>GL_POINT_FADE_THRESHOLD_SIZE, and GL_POINT_SPRITE_COORD_ORIGIN are accepted.</para></param>
         /// <param name="args">An array of the values to be assigned.</param>
-        public static void glPointParameterfv(int paramName, [NotNull] float[] args)
+        public static void glPointParameterfv(int paramName,  float[] args)
         {
             fixed (float* a = &args[0])
             {
@@ -3655,7 +3656,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="paramName">Specifies a single-valued point parameter.<para>GL_POINT_FADE_THRESHOLD_SIZE, and GL_POINT_SPRITE_COORD_ORIGIN are accepted.</para></param>
         /// <param name="args">An array of the values to be assigned.</param>
-        public static void glPointParameteriv(int paramName, [NotNull] int[] args)
+        public static void glPointParameteriv(int paramName,  int[] args)
         {
             fixed (int* a = &args[0])
             {
@@ -3685,7 +3686,7 @@ namespace OpenGL
         /// <param name="sampler">Specifies the sampler object whose parameter to modify.</param>
         /// <param name="paramName">Specifies the symbolic name of a sampler parameter.</param>
         /// <param name="param">The value to set.</param>
-        public static void glSamplerParameteriv(uint sampler, int paramName, [NotNull] int[] param)
+        public static void glSamplerParameteriv(uint sampler, int paramName,  int[] param)
         {
             fixed (int* p = &param[0])
             {
@@ -3699,7 +3700,7 @@ namespace OpenGL
         /// <param name="sampler">Specifies the sampler object whose parameter to modify.</param>
         /// <param name="paramName">Specifies the symbolic name of a sampler parameter.</param>
         /// <param name="param">The value to set.</param>
-        public static void glSamplerParameterfv(uint sampler, int paramName, [NotNull] float[] param)
+        public static void glSamplerParameterfv(uint sampler, int paramName,  float[] param)
         {
             fixed (float* p = &param[0])
             {
@@ -3745,7 +3746,7 @@ namespace OpenGL
         /// <param name="sampler">Specifies the sampler object whose parameter to modify.</param>
         /// <param name="paramName">Specifies the symbolic name of a sampler parameter.</param>
         /// <param name="param">The value to set.</param>
-        public static void glSamplerParameterIiv(uint sampler, int paramName, [NotNull] int[] param)
+        public static void glSamplerParameterIiv(uint sampler, int paramName,  int[] param)
         {
             fixed (int* p = &param[0])
             {
@@ -3759,7 +3760,7 @@ namespace OpenGL
         /// <param name="sampler">Specifies the sampler object whose parameter to modify.</param>
         /// <param name="paramName">Specifies the symbolic name of a sampler parameter.</param>
         /// <param name="param">The value to set.</param>
-        public static void glSamplerParameterIuiv(uint sampler, int paramName, [NotNull] uint[] param)
+        public static void glSamplerParameterIuiv(uint sampler, int paramName,  uint[] param)
         {
             fixed (uint* p = &param[0])
             {
@@ -3907,7 +3908,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform value to be modified.</param>
         /// <param name="count">Specifies the number of elements that are to be modified.</param>
         /// <param name="value">The values to set.</param>
-        public static void glUniform1fv(int location, int count, [NotNull] float[] value)
+        public static void glUniform1fv(int location, int count,  float[] value)
         {
             fixed (float* v = &value[0])
             {
@@ -3921,7 +3922,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform value to be modified.</param>
         /// <param name="count">Specifies the number of elements that are to be modified.</param>
         /// <param name="value">The values to set.</param>
-        public static void glUniform2fv(int location, int count, [NotNull] float[] value)
+        public static void glUniform2fv(int location, int count,  float[] value)
         {
             fixed (float* v = &value[0])
             {
@@ -3935,7 +3936,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform value to be modified.</param>
         /// <param name="count">Specifies the number of elements that are to be modified.</param>
         /// <param name="value">The values to set.</param>
-        public static void glUniform3fv(int location, int count, [NotNull] float[] value)
+        public static void glUniform3fv(int location, int count,  float[] value)
         {
             fixed (float* v = &value[0])
             {
@@ -3949,7 +3950,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform value to be modified.</param>
         /// <param name="count">Specifies the number of elements that are to be modified.</param>
         /// <param name="value">The values to set.</param>
-        public static void glUniform4fv(int location, int count, [NotNull] float[] value)
+        public static void glUniform4fv(int location, int count,  float[] value)
         {
             fixed (float* v = &value[0])
             {
@@ -3995,7 +3996,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform value to be modified.</param>
         /// <param name="count">Specifies the number of elements that are to be modified.</param>
         /// <param name="value">The values to set.</param>
-        public static void glUniform1iv(int location, int count, [NotNull] int[] value)
+        public static void glUniform1iv(int location, int count,  int[] value)
         {
             fixed (int *v = &value[0])
             {
@@ -4009,7 +4010,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform value to be modified.</param>
         /// <param name="count">Specifies the number of elements that are to be modified.</param>
         /// <param name="value">The values to set.</param>
-        public static void glUniform2iv(int location, int count, [NotNull] int[] value)
+        public static void glUniform2iv(int location, int count,  int[] value)
         {
             fixed (int *v = &value[0])
             {
@@ -4023,7 +4024,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform value to be modified.</param>
         /// <param name="count">Specifies the number of elements that are to be modified.</param>
         /// <param name="value">The values to set.</param>
-        public static void glUniform3iv(int location, int count, [NotNull] int[] value)
+        public static void glUniform3iv(int location, int count,  int[] value)
         {
             fixed (int *v = &value[0])
             {
@@ -4037,7 +4038,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform value to be modified.</param>
         /// <param name="count">Specifies the number of elements that are to be modified.</param>
         /// <param name="value">The values to set.</param>
-        public static void glUniform4iv(int location, int count, [NotNull] int[] value)
+        public static void glUniform4iv(int location, int count,  int[] value)
         {
             fixed (int *v = &value[0])
             {
@@ -4083,7 +4084,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform value to be modified.</param>
         /// <param name="count">Specifies the number of elements that are to be modified.</param>
         /// <param name="value">The values to set.</param>
-        public static void glUniform1uiv(int location, int count, [NotNull] uint[] value)
+        public static void glUniform1uiv(int location, int count,  uint[] value)
         {
             fixed (uint *v = &value[0])
             {
@@ -4097,7 +4098,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform value to be modified.</param>
         /// <param name="count">Specifies the number of elements that are to be modified.</param>
         /// <param name="value">The values to set.</param>
-        public static void glUniform2uiv(int location, int count, [NotNull] uint[] value)
+        public static void glUniform2uiv(int location, int count,  uint[] value)
         {
             fixed (uint *v = &value[0])
             {
@@ -4111,7 +4112,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform value to be modified.</param>
         /// <param name="count">Specifies the number of elements that are to be modified.</param>
         /// <param name="value">The values to set.</param>
-        public static void glUniform3uiv(int location, int count, [NotNull] uint[] value)
+        public static void glUniform3uiv(int location, int count,  uint[] value)
         {
             fixed (uint *v = &value[0])
             {
@@ -4125,7 +4126,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform value to be modified.</param>
         /// <param name="count">Specifies the number of elements that are to be modified.</param>
         /// <param name="value">The values to set.</param>
-        public static void glUniform4uiv(int location, int count, [NotNull] uint[] value)
+        public static void glUniform4uiv(int location, int count,  uint[] value)
         {
             fixed (uint *v = &value[0])
             {
@@ -4266,7 +4267,7 @@ namespace OpenGL
         /// </param>
         /// <param name="type">The data type.</param>
         /// <param name="coords">The value of the coordinates to set.</param>
-        public static void glMultiTexCoordP1uiv(int texture, int type, [NotNull] uint[] coords)
+        public static void glMultiTexCoordP1uiv(int texture, int type,  uint[] coords)
         {
             fixed (uint* c = &coords[0])
             {
@@ -4287,7 +4288,7 @@ namespace OpenGL
         /// </param>
         /// <param name="type">The data type.</param>
         /// <param name="coords">The value of the coordinates to set.</param>
-        public static void glMultiTexCoordP2uiv(int texture, int type, [NotNull] uint[] coords)
+        public static void glMultiTexCoordP2uiv(int texture, int type,  uint[] coords)
         {
             fixed (uint* c = &coords[0])
             {
@@ -4308,7 +4309,7 @@ namespace OpenGL
         /// </param>
         /// <param name="type">The data type.</param>
         /// <param name="coords">The value of the coordinates to set.</param>
-        public static void glMultiTexCoordP3uiv(int texture, int type, [NotNull] uint[] coords)
+        public static void glMultiTexCoordP3uiv(int texture, int type,  uint[] coords)
         {
             fixed (uint* c = &coords[0])
             {
@@ -4329,7 +4330,7 @@ namespace OpenGL
         /// </param>
         /// <param name="type">The data type.</param>
         /// <param name="coords">The value of the coordinates to set.</param>
-        public static void glMultiTexCoordP4uiv(int texture, int type, [NotNull] uint[] coords)
+        public static void glMultiTexCoordP4uiv(int texture, int type,  uint[] coords)
         {
             fixed (uint* c = &coords[0])
             {
@@ -4356,7 +4357,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="type">Specifies the texture unit whose coordinates should be modified.<para>The number of texture units is implementation dependent, but must be at least two. Symbolic constant must be one of GL_TEXTUREi, where i ranges from 0 to GL_MAX_TEXTURE_COORDS - 1, which is an implementation-dependent value.</para></param>
         /// <param name="coords">An array of packed elements.</param>
-        public static void glTexCoordP1uiv(int type, [NotNull] uint[] coords)
+        public static void glTexCoordP1uiv(int type,  uint[] coords)
         {
             fixed (uint* c = &coords[0])
             {
@@ -4383,7 +4384,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="type">Specifies the texture unit whose coordinates should be modified.<para>The number of texture units is implementation dependent, but must be at least two. Symbolic constant must be one of GL_TEXTUREi, where i ranges from 0 to GL_MAX_TEXTURE_COORDS - 1, which is an implementation-dependent value.</para></param>
         /// <param name="coords">An array of packed elements.</param>
-        public static void glTexCoordP2uiv(int type, [NotNull] uint[] coords)
+        public static void glTexCoordP2uiv(int type,  uint[] coords)
         {
             fixed (uint* c = &coords[0])
             {
@@ -4410,7 +4411,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="type">Specifies the texture unit whose coordinates should be modified.<para>The number of texture units is implementation dependent, but must be at least two. Symbolic constant must be one of GL_TEXTUREi, where i ranges from 0 to GL_MAX_TEXTURE_COORDS - 1, which is an implementation-dependent value.</para></param>
         /// <param name="coords">An array of packed elements.</param>
-        public static void glTexCoordP3uiv(int type, [NotNull] uint[] coords)
+        public static void glTexCoordP3uiv(int type,  uint[] coords)
         {
             fixed (uint* c = &coords[0])
             {
@@ -4437,7 +4438,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="type">Specifies the texture unit whose coordinates should be modified.<para>The number of texture units is implementation dependent, but must be at least two. Symbolic constant must be one of GL_TEXTUREi, where i ranges from 0 to GL_MAX_TEXTURE_COORDS - 1, which is an implementation-dependent value.</para></param>
         /// <param name="coords">An array of packed elements.</param>
-        public static void glTexCoordP4uiv(int type, [NotNull] uint[] coords)
+        public static void glTexCoordP4uiv(int type,  uint[] coords)
         {
             fixed (uint* c = &coords[0])
             {
@@ -4699,7 +4700,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib1dv(uint index, [NotNull] double[] value)
+        public static void glVertexAttrib1dv(uint index,  double[] value)
         {
             fixed (double* v = &value[0])
             {
@@ -4712,7 +4713,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib1fv(uint index, [NotNull] float[] value)
+        public static void glVertexAttrib1fv(uint index,  float[] value)
         {
             fixed (float* v = &value[0])
             {
@@ -4725,7 +4726,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib1sv(uint index, [NotNull] short[] value)
+        public static void glVertexAttrib1sv(uint index,  short[] value)
         {
             fixed (short* v = &value[0])
             {
@@ -4738,7 +4739,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib2dv(uint index, [NotNull] double[] value)
+        public static void glVertexAttrib2dv(uint index,  double[] value)
         {
             fixed (double* v = &value[0])
             {
@@ -4751,7 +4752,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib2fv(uint index, [NotNull] float[] value)
+        public static void glVertexAttrib2fv(uint index,  float[] value)
         {
             fixed (float* v = &value[0])
             {
@@ -4764,7 +4765,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib2sv(uint index, [NotNull] short[] value)
+        public static void glVertexAttrib2sv(uint index,  short[] value)
         {
             fixed (short* v = &value[0])
             {
@@ -4777,7 +4778,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib3dv(uint index, [NotNull] double[] value)
+        public static void glVertexAttrib3dv(uint index,  double[] value)
         {
             fixed (double* v = &value[0])
             {
@@ -4790,7 +4791,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib3fv(uint index, [NotNull] float[] value)
+        public static void glVertexAttrib3fv(uint index,  float[] value)
         {
             fixed (float* v = &value[0])
             {
@@ -4803,7 +4804,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib3sv(uint index, [NotNull] short[] value)
+        public static void glVertexAttrib3sv(uint index,  short[] value)
         {
             fixed (short* v = &value[0])
             {
@@ -4816,7 +4817,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib4bv(uint index, [NotNull] sbyte[] value)
+        public static void glVertexAttrib4bv(uint index,  sbyte[] value)
         {
             fixed (sbyte* v = &value[0])
             {
@@ -4829,7 +4830,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib4dv(uint index, [NotNull] double[] value)
+        public static void glVertexAttrib4dv(uint index,  double[] value)
         {
             fixed (double* v = &value[0])
             {
@@ -4842,7 +4843,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib4fv(uint index, [NotNull] float[] value)
+        public static void glVertexAttrib4fv(uint index,  float[] value)
 
         {
             fixed (float* v = &value[0])
@@ -4856,7 +4857,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib4iv(uint index, [NotNull] int[] value)
+        public static void glVertexAttrib4iv(uint index,  int[] value)
         {
             fixed (int* v = &value[0])
             {
@@ -4869,7 +4870,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib4sv(uint index, [NotNull] short[] value)
+        public static void glVertexAttrib4sv(uint index,  short[] value)
         {
             fixed (short* v = &value[0])
             {
@@ -4882,7 +4883,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib4ubv(uint index, [NotNull] byte[] value)
+        public static void glVertexAttrib4ubv(uint index,  byte[] value)
         {
             fixed (byte* v = &value[0])
             {
@@ -4895,7 +4896,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib4uiv(uint index, [NotNull] uint[] value)
+        public static void glVertexAttrib4uiv(uint index,  uint[] value)
         {
             fixed (uint* v = &value[0])
             {
@@ -4908,7 +4909,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
-        public static void glVertexAttrib4usv(uint index, [NotNull] ushort[] value)
+        public static void glVertexAttrib4usv(uint index,  ushort[] value)
         {
             fixed (ushort* v = &value[0])
             {
@@ -4970,7 +4971,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be scaled to normalized values.</remarks>
-        public static void glVertexAttrib4Nbv(uint index, [NotNull] sbyte[] value)
+        public static void glVertexAttrib4Nbv(uint index,  sbyte[] value)
         {
             fixed (sbyte* v = &value[0])
             {
@@ -4984,7 +4985,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be scaled to normalized values.</remarks>
-        public static void glVertexAttrib4Niv(uint index, [NotNull] int[] value)
+        public static void glVertexAttrib4Niv(uint index,  int[] value)
         {
             fixed (int* v = &value[0])
             {
@@ -4998,7 +4999,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be scaled to normalized values.</remarks>
-        public static void glVertexAttrib4Nsv(uint index, [NotNull] short[] value)
+        public static void glVertexAttrib4Nsv(uint index,  short[] value)
         {
             fixed (short* v = &value[0])
             {
@@ -5012,7 +5013,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be scaled to normalized values.</remarks>
-        public static void glVertexAttrib4Nubv(uint index, [NotNull] byte[] value)
+        public static void glVertexAttrib4Nubv(uint index,  byte[] value)
         {
             fixed (byte* v = &value[0])
             {
@@ -5026,7 +5027,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be scaled to normalized values.</remarks>
-        public static void glVertexAttrib4Nuiv(uint index, [NotNull] uint[] value)
+        public static void glVertexAttrib4Nuiv(uint index,  uint[] value)
         {
             fixed (uint* v = &value[0])
             {
@@ -5040,7 +5041,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be scaled to normalized values.</remarks>
-        public static void glVertexAttrib4Nusv(uint index, [NotNull] ushort[] value)
+        public static void glVertexAttrib4Nusv(uint index,  ushort[] value)
         {
             fixed (ushort* v = &value[0])
             {
@@ -5101,7 +5102,7 @@ namespace OpenGL
         /// <param name="paramName">Specifies the symbolic name of a sampler parameter.</param>
         /// <param name="count">The number of elements in the sampler parameters.</param>
         /// <returns>An array of the sampler parameter values.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetSamplerParameteriv(uint sampler, int paramName, int count)
         {
             var values = new int[count];
@@ -5121,7 +5122,7 @@ namespace OpenGL
         /// <param name="count">The number of elements in the sampler parameters.</param>
         /// <returns>An array of the sampler parameter values.</returns>
         /// <remarks>Values are interpreted as fully signed or unsigned.</remarks>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetSamplerParameterIiv(uint sampler, int paramName, int count)
         {
             var values = new int[count];
@@ -5140,7 +5141,7 @@ namespace OpenGL
         /// <param name="paramName">Specifies the symbolic name of a sampler parameter.</param>
         /// <param name="count">The number of elements in the sampler parameters.</param>
         /// <returns>An array of the sampler parameter values.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static float[] glGetSamplerParameterfv(uint sampler, int paramName, int count)
         {
             var values = new float[count];
@@ -5160,7 +5161,7 @@ namespace OpenGL
         /// <param name="count">The number of elements in the sampler parameters.</param>
         /// <returns>An array of the sampler parameter values.</returns>
         /// <remarks>Values are interpreted as fully signed or unsigned.</remarks>
-        [NotNull][Pure]
+        [Pure]
         public static uint[] GetSamplerParameterIuiv(uint sampler, int paramName, int count)
         {
             var values = new uint[count];
@@ -5440,7 +5441,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be extended to fully signed or unsigned integers.</remarks>
-        public static void glVertexAttribI1iv(uint index, [NotNull] int[] value)
+        public static void glVertexAttribI1iv(uint index,  int[] value)
         {
             fixed (int* v = &value[0])
             {
@@ -5454,7 +5455,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be extended to fully signed or unsigned integers.</remarks>
-        public static void glVertexAttribI1uiv(uint index, [NotNull] uint[] value)
+        public static void glVertexAttribI1uiv(uint index,  uint[] value)
         {
             fixed (uint* v = &value[0])
             {
@@ -5468,7 +5469,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be extended to fully signed or unsigned integers.</remarks>
-        public static void glVertexAttribI2iv(uint index, [NotNull] int[] value)
+        public static void glVertexAttribI2iv(uint index,  int[] value)
         {
             fixed (int* v = &value[0])
             {
@@ -5482,7 +5483,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be extended to fully signed or unsigned integers.</remarks>
-        public static void glVertexAttribI2uiv(uint index, [NotNull] uint[] value)
+        public static void glVertexAttribI2uiv(uint index,  uint[] value)
         {
             fixed (uint* v = &value[0])
             {
@@ -5496,7 +5497,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be extended to fully signed or unsigned integers.</remarks>
-        public static void glVertexAttribI3iv(uint index, [NotNull] int[] value)
+        public static void glVertexAttribI3iv(uint index,  int[] value)
         {
             fixed (int* v = &value[0])
             {
@@ -5510,7 +5511,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be extended to fully signed or unsigned integers.</remarks>
-        public static void glVertexAttribI3uiv(uint index, [NotNull] uint[] value)
+        public static void glVertexAttribI3uiv(uint index,  uint[] value)
         {
             fixed (uint* v = &value[0])
             {
@@ -5524,7 +5525,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be extended to fully signed or unsigned integers.</remarks>
-        public static void glVertexAttribI4iv(uint index, [NotNull] int[] value)
+        public static void glVertexAttribI4iv(uint index,  int[] value)
         {
             fixed (int* v = &value[0])
             {
@@ -5538,7 +5539,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be extended to fully signed or unsigned integers.</remarks>
-        public static void glVertexAttribI4uiv(uint index, [NotNull] uint[] value)
+        public static void glVertexAttribI4uiv(uint index,  uint[] value)
         {
             fixed (uint* v = &value[0])
             {
@@ -5552,7 +5553,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be extended to fully signed or unsigned integers.</remarks>
-        public static void glVertexAttribI4bv(uint index, [NotNull] sbyte[] value)
+        public static void glVertexAttribI4bv(uint index,  sbyte[] value)
         {
             fixed (sbyte* v = &value[0])
             {
@@ -5566,7 +5567,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be extended to fully signed or unsigned integers.</remarks>
-        public static void glVertexAttribI4sv(uint index, [NotNull] short[] value)
+        public static void glVertexAttribI4sv(uint index,  short[] value)
         {
             fixed (short* v = &value[0])
             {
@@ -5580,7 +5581,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be extended to fully signed or unsigned integers.</remarks>
-        public static void glVertexAttribI4ubv(uint index, [NotNull] byte[] value)
+        public static void glVertexAttribI4ubv(uint index,  byte[] value)
         {
             fixed (byte* v = &value[0])
             {
@@ -5594,7 +5595,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the generic vertex attribute to be modified.</param>
         /// <param name="value">The vertex data.</param>
         /// <remarks>Values will be extended to fully signed or unsigned integers.</remarks>
-        public static void glVertexAttribI4usv(uint index, [NotNull] ushort[] value)
+        public static void glVertexAttribI4usv(uint index,  ushort[] value)
         {
             fixed (ushort* v = &value[0])
             {
@@ -5638,7 +5639,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="type">Specify the vertex data type.</param>
         /// <param name="value">A array of vertex data.</param>
-        public static void glVertexP2uiv(int type, [NotNull] uint[] value)
+        public static void glVertexP2uiv(int type,  uint[] value)
         {
             fixed (uint* v = &value[0])
             {
@@ -5651,7 +5652,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="type">Specify the vertex data type.</param>
         /// <param name="value">A array of vertex data.</param>
-        public static void glVertexP3uiv(int type, [NotNull] uint[] value)
+        public static void glVertexP3uiv(int type,  uint[] value)
         {
             fixed (uint* v = &value[0])
             {
@@ -5664,7 +5665,7 @@ namespace OpenGL
         /// </summary>
         /// <param name="type">Specify the vertex data type.</param>
         /// <param name="value">A array of vertex data.</param>
-        public static void glVertexP4uiv(int type, [NotNull] uint[] value)
+        public static void glVertexP4uiv(int type,  uint[] value)
         {
             fixed (uint* v = &value[0])
             {
@@ -5766,7 +5767,7 @@ namespace OpenGL
         ///     </para>
         /// </param>
         /// <param name="value">The new packed values to be used for the specified vertex attribute.</param>
-        public static void glVertexAttribP1uiv(uint index, int type, bool normalized, [NotNull] uint[] value)
+        public static void glVertexAttribP1uiv(uint index, int type, bool normalized,  uint[] value)
         {
             fixed (uint* v = &value[0])
             {
@@ -5787,7 +5788,7 @@ namespace OpenGL
         ///     </para>
         /// </param>
         /// <param name="value">The new packed values to be used for the specified vertex attribute.</param>
-        public static void glVertexAttribP2uiv(uint index, int type, bool normalized, [NotNull] uint[] value)
+        public static void glVertexAttribP2uiv(uint index, int type, bool normalized,  uint[] value)
         {
             fixed (uint* v = &value[0])
             {
@@ -5808,7 +5809,7 @@ namespace OpenGL
         ///     </para>
         /// </param>
         /// <param name="value">The new packed values to be used for the specified vertex attribute.</param>
-        public static void glVertexAttribP3uiv(uint index, int type, bool normalized, [NotNull] uint[] value)
+        public static void glVertexAttribP3uiv(uint index, int type, bool normalized,  uint[] value)
         {
             fixed (uint* v = &value[0])
             {
@@ -5829,7 +5830,7 @@ namespace OpenGL
         ///     </para>
         /// </param>
         /// <param name="value">The new packed values to be used for the specified vertex attribute.</param>
-        public static void glVertexAttribP4uiv(uint index, int type, bool normalized, [NotNull] uint[] value)
+        public static void glVertexAttribP4uiv(uint index, int type, bool normalized,  uint[] value)
         {
             fixed (uint* v = &value[0])
             {
@@ -5922,7 +5923,7 @@ namespace OpenGL
         /// <param name="uniformBlockIndex">Specifies the index of the uniform block within program.</param>
         /// <param name="pname">Specifies the name of the parameter to query.</param>
         /// <param name="count">Specifies the number of values to receive.</param>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetActiveUniformBlockiv(uint program, uint uniformBlockIndex, int pname, int count)
         {
             var values = new int[count];
@@ -5940,7 +5941,7 @@ namespace OpenGL
         /// <param name="uniformBlockIndex">Specifies the index of the uniform block within program.</param>
         /// <param name="bufSize">Specifies the size of the buffer addressed by uniformBlockName.</param>
         /// <returns>The name of the uniform block.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static string glGetActiveUniformBlockName(uint program, uint uniformBlockIndex, int bufSize = 512)
         {
             int length;
@@ -5960,7 +5961,7 @@ namespace OpenGL
         /// <param name="colorNumber">The color number to bind the user-defined varying out variable to.</param>
         /// <param name="index">The index of the color input to bind the user-defined varying out variable to.</param>
         /// <param name="name">The name of the user-defined varying out variable whose binding to modify.</param>
-        public static void glBindFragDataLocationIndexed(uint program, uint colorNumber, uint index, [NotNull] string name)
+        public static void glBindFragDataLocationIndexed(uint program, uint colorNumber, uint index,  string name)
         {
             var buffer = Encoding.UTF8.GetBytes(name);
             fixed (byte* b = &buffer[0])
@@ -6008,7 +6009,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the symbolic name of a query object parameter.<para>Accepted values are GL_QUERY_RESULT or GL_QUERY_RESULT_AVAILABLE.</para></param>
         /// <param name="count">The number of values to receive.</param>
         /// <returns>The retrieved values.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static ulong[] glGetQueryObjectui64v(uint id, int pname, int count)
         {
             var values = new ulong[count];
@@ -6026,7 +6027,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the symbolic name of a query object parameter.<para>Accepted values are GL_QUERY_RESULT or GL_QUERY_RESULT_AVAILABLE.</para></param>
         /// <param name="count">The number of values to receive.</param>
         /// <returns>The retrieved values.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static long[] glGetQueryObjecti64v(uint id, int pname, int count)
         {
             var values = new long[count];
@@ -6044,7 +6045,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the symbolic name of a query object parameter.<para>Accepted values are GL_QUERY_RESULT or GL_QUERY_RESULT_AVAILABLE.</para></param>
         /// <param name="count">The number of values to receive.</param>
         /// <returns>The retrieved values.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static uint[] glGetQueryObjectuiv(uint id, int pname, int count)
         {
             var values = new uint[count];
@@ -6062,7 +6063,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the symbolic name of a query object parameter.<para>Accepted values are GL_QUERY_RESULT or GL_QUERY_RESULT_AVAILABLE.</para></param>
         /// <param name="count">The number of values to receive.</param>
         /// <returns>The retrieved values.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetQueryObjectiv(uint id, int pname, int count)
         {
             var values = new int[count];
@@ -6080,7 +6081,7 @@ namespace OpenGL
         /// <param name="uniformIndex">Specifies the index of the active uniform whose name to query.</param>
         /// <param name="bufSize">Specifies the size of the buffer for the string.</param>
         /// <returns>The name of the active uniform.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static string glGetActiveUniformName(uint program, uint uniformIndex, int bufSize = 512)
         {
             int length;
@@ -6122,7 +6123,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the object parameter.</param>
         /// <param name="count">The number of parameters to return..</param>
         /// <returns>The requested parameters.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetProgramiv(uint program, int pname, int count)
         {
             var values = new int[count];
@@ -6148,7 +6149,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the object parameter.<para>Must be GL_SHADER_TYPE, GL_DELETE_STATUS, GL_COMPILE_STATUS, GL_INFO_LOG_LENGTH, or GL_SHADER_SOURCE_LENGTH.</para></param>
         /// <param name="count">The number of parameters to return..</param>
         /// <returns>The requested parameters.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetShaderiv(uint shader, int pname, int count)
         {
             var values = new int[count];
@@ -6174,7 +6175,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the symbolic name of a query object target parameter.<para>Accepted values are GL_CURRENT_QUERY or GL_QUERY_COUNTER_BITS.</para></param>
         /// <param name="count">The number of parameters to return..</param>
         /// <returns>The requested parameters.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetQueryiv(int target, int pname, int count)
         {
             var values = new int[count];
@@ -6200,7 +6201,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform variable to be queried.</param>
         /// <param name="count">The number of values to retrieve.</param>
         /// <returns>The requested values.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static float[] glGetUniformfv(uint program, int location, int count)
         {
             var values = new float[count];
@@ -6226,7 +6227,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform variable to be queried.</param>
         /// <param name="count">The number of values to retrieve.</param>
         /// <returns>The requested values.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static uint[] glGetUniformuiv(uint program, int location, int count)
         {
             var values = new uint[count];
@@ -6252,7 +6253,7 @@ namespace OpenGL
         /// <param name="location">Specifies the location of the uniform variable to be queried.</param>
         /// <param name="count">The number of values to retrieve.</param>
         /// <returns>The requested values.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetUniformiv(uint program, int location, int count)
         {
             var values = new int[count];
@@ -6330,7 +6331,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the symbolic name of the vertex attribute parameter to be queried. </param>
         /// <param name="count">The number of values to retrieve.</param>
         /// <returns>The requested values.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static double[] glGetVertexAttribdv(uint index, int pname, int count)
         {
             var values = new double[count];
@@ -6348,7 +6349,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the symbolic name of the vertex attribute parameter to be queried. </param>
         /// <param name="count">The number of values to retrieve.</param>
         /// <returns>The requested values.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static float[] glGetVertexAttribfv(uint index, int pname, int count)
         {
             var values = new float[count];
@@ -6366,7 +6367,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the symbolic name of the vertex attribute parameter to be queried. </param>
         /// <param name="count">The number of values to retrieve.</param>
         /// <returns>The requested values.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetVertexAttribiv(uint index, int pname, int count)
         {
             var values = new int[count];
@@ -6384,7 +6385,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the symbolic name of the vertex attribute parameter to be queried. </param>
         /// <param name="count">The number of values to retrieve.</param>
         /// <returns>The requested values.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetVertexAttribIiv(uint index, int pname, int count)
         {
             var values = new int[count];
@@ -6402,7 +6403,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the symbolic name of the vertex attribute parameter to be queried. </param>
         /// <param name="count">The number of values to retrieve.</param>
         /// <returns>The requested values.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static uint[] glGetVertexAttribIuiv(uint index, int pname, int count)
         {
             var values = new uint[count];
@@ -6545,7 +6546,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of matrices that are to be modified.</param>
         /// <param name="transpose">Specifies whether to transpose the matrix as the values are loaded into the uniform variable.</param>
         /// <param name="values">An array of count values that will be used to update the specified uniform variable.</param>
-        public static void glUniformMatrix2fv(int location, int count, bool transpose, [NotNull] float[] values)
+        public static void glUniformMatrix2fv(int location, int count, bool transpose,  float[] values)
         {
             fixed (float* value = &values[0])
             {
@@ -6560,7 +6561,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of matrices that are to be modified.</param>
         /// <param name="transpose">Specifies whether to transpose the matrix as the values are loaded into the uniform variable.</param>
         /// <param name="values">An array of count values that will be used to update the specified uniform variable.</param>
-        public static void glUniformMatrix3fv(int location, int count, bool transpose, [NotNull] float[] values)
+        public static void glUniformMatrix3fv(int location, int count, bool transpose,  float[] values)
         {
             fixed (float* value = &values[0])
             {
@@ -6575,7 +6576,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of matrices that are to be modified.</param>
         /// <param name="transpose">Specifies whether to transpose the matrix as the values are loaded into the uniform variable.</param>
         /// <param name="values">An array of count values that will be used to update the specified uniform variable.</param>
-        public static void glUniformMatrix4fv(int location, int count, bool transpose, [NotNull] float[] values)
+        public static void glUniformMatrix4fv(int location, int count, bool transpose,  float[] values)
         {
             fixed (float* value = &values[0])
             {
@@ -6590,7 +6591,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of matrices that are to be modified.</param>
         /// <param name="transpose">Specifies whether to transpose the matrix as the values are loaded into the uniform variable.</param>
         /// <param name="values">An array of count values that will be used to update the specified uniform variable.</param>
-        public static void glUniformMatrix2x3fv(int location, int count, bool transpose, [NotNull] float[] values)
+        public static void glUniformMatrix2x3fv(int location, int count, bool transpose,  float[] values)
         {
             fixed (float* value = &values[0])
             {
@@ -6605,7 +6606,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of matrices that are to be modified.</param>
         /// <param name="transpose">Specifies whether to transpose the matrix as the values are loaded into the uniform variable.</param>
         /// <param name="values">An array of count values that will be used to update the specified uniform variable.</param>
-        public static void glUniformMatrix3x2fv(int location, int count, bool transpose, [NotNull] float[] values)
+        public static void glUniformMatrix3x2fv(int location, int count, bool transpose,  float[] values)
         {
             fixed (float* value = &values[0])
             {
@@ -6620,7 +6621,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of matrices that are to be modified.</param>
         /// <param name="transpose">Specifies whether to transpose the matrix as the values are loaded into the uniform variable.</param>
         /// <param name="values">An array of count values that will be used to update the specified uniform variable.</param>
-        public static void glUniformMatrix2x4fv(int location, int count, bool transpose, [NotNull] float[] values)
+        public static void glUniformMatrix2x4fv(int location, int count, bool transpose,  float[] values)
         {
             fixed (float* value = &values[0])
             {
@@ -6635,7 +6636,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of matrices that are to be modified.</param>
         /// <param name="transpose">Specifies whether to transpose the matrix as the values are loaded into the uniform variable.</param>
         /// <param name="values">An array of count values that will be used to update the specified uniform variable.</param>
-        public static void glUniformMatrix4x2fv(int location, int count, bool transpose, [NotNull] float[] values)
+        public static void glUniformMatrix4x2fv(int location, int count, bool transpose,  float[] values)
         {
             fixed (float* value = &values[0])
             {
@@ -6650,7 +6651,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of matrices that are to be modified.</param>
         /// <param name="transpose">Specifies whether to transpose the matrix as the values are loaded into the uniform variable.</param>
         /// <param name="values">An array of count values that will be used to update the specified uniform variable.</param>
-        public static void glUniformMatrix3x4fv(int location, int count, bool transpose, [NotNull] float[] values)
+        public static void glUniformMatrix3x4fv(int location, int count, bool transpose,  float[] values)
         {
             fixed (float* value = &values[0])
             {
@@ -6665,7 +6666,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of matrices that are to be modified.</param>
         /// <param name="transpose">Specifies whether to transpose the matrix as the values are loaded into the uniform variable.</param>
         /// <param name="values">An array of count values that will be used to update the specified uniform variable.</param>
-        public static void glUniformMatrix4x3fv(int location, int count, bool transpose, [NotNull] float[] values) 
+        public static void glUniformMatrix4x3fv(int location, int count, bool transpose,  float[] values) 
         {
             fixed (float* value = &values[0])
             {
@@ -6695,7 +6696,7 @@ namespace OpenGL
         /// <param name="target">Specifies the target texture.</param>
         /// <param name="pname">Specifies the symbolic name of a single-valued texture parameter.</param>
         /// <param name="args">Specifies the value of the parameters..</param>
-        public static void glTexParameterIiv(int target, int pname, [NotNull] int[] args)
+        public static void glTexParameterIiv(int target, int pname,  int[] args)
         {
             fixed (int* arg = &args[0])
             {
@@ -6709,7 +6710,7 @@ namespace OpenGL
         /// <param name="target">Specifies the target texture.</param>
         /// <param name="pname">Specifies the symbolic name of a single-valued texture parameter.</param>
         /// <param name="args">Specifies the value of the parameters..</param>
-        public static void glTexParameterIuiv(int target, int pname, [NotNull] uint[] args)
+        public static void glTexParameterIuiv(int target, int pname,  uint[] args)
         {
             fixed (uint* arg = &args[0])
             {
@@ -6783,7 +6784,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the symbolic name of a texture parameter.</param>
         /// <param name="count">The number of values to retrieve.</param>
         /// <returns>The texture parameters.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetTexParameterIiv(int target, int pname, int count)
         {
             var values = new int[count];
@@ -6801,7 +6802,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the symbolic name of a texture parameter.</param>
         /// <param name="count">The number of values to retrieve.</param>
         /// <returns>The texture parameters.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static uint[] glGetTexParameterIuiv(int target, int pname, int count)
         {
             var values = new uint[count];
@@ -6819,7 +6820,7 @@ namespace OpenGL
         /// <param name="uniformBlockName">The name of the uniform block whose index to retrieve.</param>
         /// <returns>The index of a uniform block within program.</returns>
         [Pure]
-        public static uint glGetUniformBlockIndex(uint program, [NotNull] string uniformBlockName)
+        public static uint glGetUniformBlockIndex(uint program,  string uniformBlockName)
         {
             var buffer = Encoding.UTF8.GetBytes(uniformBlockName);
             fixed (byte* b = &buffer[0])
@@ -6847,7 +6848,7 @@ namespace OpenGL
         /// <param name="uniformIndices">Specifies an array of <paramref name="uniformCount"/> integers containing the indices of uniforms within program whose parameter <paramref name="pname"/> should be queried.</param>
         /// <param name="pname">Specifies the property of each uniform in uniformIndices that should be written into the corresponding element of <paramref name="args"/>.</param>
         /// <param name="args">Specifies an array of <paramref name="uniformCount"/> integers which are to receive the value of <paramref name="pname"/> for each uniform in <paramref name="uniformIndices"/>.</param>
-        public static void glGetActiveUniformsiv(uint program, int uniformCount, [NotNull] uint[] uniformIndices, int pname, [NotNull] int[] args)
+        public static void glGetActiveUniformsiv(uint program, int uniformCount,  uint[] uniformIndices, int pname,  int[] args)
         {
             fixed (uint* i = &uniformIndices[0])
             {
@@ -6873,7 +6874,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the symbolic name of a buffer object parameter.<para>Must be GL_BUFFER_SIZE or GL_BUFFER_USAGE.</para></param>
         /// <param name="count">The number of values to return.</param>
         /// <returns>The requested parameter.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetBufferParameteriv(int target, int pname, int count)
         {
             var values = new int[count];
@@ -6902,7 +6903,7 @@ namespace OpenGL
         /// <param name="count">The number of properties to retrieve.</param>
         /// <param name="length">Specifies the number of integers placed in the return value.</param>
         /// <returns>The specified properties.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetSynciv(IntPtr sync, int pname, int count, out int length)
         {
             var bufSize = count * sizeof(int);
@@ -6930,7 +6931,7 @@ namespace OpenGL
         /// <param name="target">Specifies the target renderbuffer object.<para>Must be GL_RENDERBUFFER.</para></param>
         /// <param name="pname">Specifies the symbolic name of a renderbuffer object parameter.</param>
         /// <param name="args">An array to write the requested parameter(s).</param>
-        public static void glGetRenderbufferParameteriv(int target, int pname, [NotNull] int[] args)
+        public static void glGetRenderbufferParameteriv(int target, int pname,  int[] args)
         {
             fixed (int* a = &args[0])
             {
@@ -6953,7 +6954,7 @@ namespace OpenGL
         /// <param name="index">Specifies the index of the sample whose position to query.</param>
         /// <param name="count">The number of values to recieve.</param>
         /// <returns>The position of the sample.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static float[] glGetMultisamplefv(int pname, uint index, int count)
         {
             var values = new float[count];
@@ -6982,7 +6983,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of elements to be rendered.</param>
         /// <param name="indices">The indices.</param>
         /// <param name="instanceCount">Specifies the number of instances of the specified range of indices to be rendered.</param>
-        public static void glDrawElementsInstanced(int mode, int count, [NotNull] byte[] indices, int instanceCount)
+        public static void glDrawElementsInstanced(int mode, int count,  byte[] indices, int instanceCount)
         {
             fixed (byte* i = &indices[0])
             {
@@ -7010,7 +7011,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of elements to be rendered.</param>
         /// <param name="indices">The indices.</param>
         /// <param name="instanceCount">Specifies the number of instances of the specified range of indices to be rendered.</param>
-        public static void glDrawElementsInstanced(int mode, int count, [NotNull] ushort[] indices, int instanceCount)
+        public static void glDrawElementsInstanced(int mode, int count,  ushort[] indices, int instanceCount)
         {
             fixed (ushort* i = &indices[0])
             {
@@ -7025,7 +7026,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of elements to be rendered.</param>
         /// <param name="indices">The indices.</param>
         /// <param name="instanceCount">Specifies the number of instances of the specified range of indices to be rendered.</param>
-        public static void glDrawElementsInstanced(int mode, int count, [NotNull] uint[] indices, int instanceCount)
+        public static void glDrawElementsInstanced(int mode, int count,  uint[] indices, int instanceCount)
         {
             fixed (uint* i = &indices[0])
             {
@@ -7051,7 +7052,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of elements to be rendered.</param>
         /// <param name="indices">Specifies a pointer to the location where the indices are stored.</param>
         /// <param name="baseVertex">Specifies a constant that should be added to each element of indices when choosing elements from the enabled vertex arrays.</param>
-        public static void glDrawElementsBaseVertex(int mode, int count, [NotNull] byte[] indices, int baseVertex)
+        public static void glDrawElementsBaseVertex(int mode, int count,  byte[] indices, int baseVertex)
         {
             fixed (byte* i = &indices[0])
             {
@@ -7066,7 +7067,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of elements to be rendered.</param>
         /// <param name="indices">Specifies a pointer to the location where the indices are stored.</param>
         /// <param name="baseVertex">Specifies a constant that should be added to each element of indices when choosing elements from the enabled vertex arrays.</param>
-        public static void glDrawElementsBaseVertex(int mode, int count, [NotNull] ushort[] indices, int baseVertex)
+        public static void glDrawElementsBaseVertex(int mode, int count,  ushort[] indices, int baseVertex)
         {
             fixed (ushort* i = &indices[0])
             {
@@ -7081,7 +7082,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of elements to be rendered.</param>
         /// <param name="indices">Specifies a pointer to the location where the indices are stored.</param>
         /// <param name="baseVertex">Specifies a constant that should be added to each element of indices when choosing elements from the enabled vertex arrays.</param>
-        public static void glDrawElementsBaseVertex(int mode, int count, [NotNull] uint[] indices, int baseVertex)
+        public static void glDrawElementsBaseVertex(int mode, int count,  uint[] indices, int baseVertex)
         {
             fixed (uint* i = &indices[0])
             {
@@ -7111,7 +7112,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of elements to be rendered.</param>
         /// <param name="indices">The indices.</param>
         /// <param name="baseVertex">Specifies a constant that should be added to each element of indices when choosing elements from the enabled vertex arrays.</param>
-        public static void glDrawRangeElementsBaseVertex(int mode, uint start, uint end, int count, [NotNull] byte[] indices, int baseVertex)
+        public static void glDrawRangeElementsBaseVertex(int mode, uint start, uint end, int count,  byte[] indices, int baseVertex)
         {
             fixed (byte* i = &indices[0])
             {
@@ -7128,7 +7129,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of elements to be rendered.</param>
         /// <param name="indices">The indices.</param>
         /// <param name="baseVertex">Specifies a constant that should be added to each element of indices when choosing elements from the enabled vertex arrays.</param>
-        public static void glDrawRangeElementsBaseVertex(int mode, uint start, uint end, int count, [NotNull] ushort[] indices, int baseVertex)
+        public static void glDrawRangeElementsBaseVertex(int mode, uint start, uint end, int count,  ushort[] indices, int baseVertex)
         {
             fixed (ushort* i = &indices[0])
             {
@@ -7145,7 +7146,7 @@ namespace OpenGL
         /// <param name="count">Specifies the number of elements to be rendered.</param>
         /// <param name="indices">The indices.</param>
         /// <param name="baseVertex">Specifies a constant that should be added to each element of indices when choosing elements from the enabled vertex arrays.</param>
-        public static void glDrawRangeElementsBaseVertex(int mode, uint start, uint end, int count, [NotNull] uint[] indices, int baseVertex)
+        public static void glDrawRangeElementsBaseVertex(int mode, uint start, uint end, int count,  uint[] indices, int baseVertex)
         {
             fixed (uint* i = &indices[0])
             {
@@ -7172,7 +7173,7 @@ namespace OpenGL
         /// <param name="indices">The indices.</param>
         /// <param name="instanceCount">Specifies the number of instances of the indexed geometry that should be drawn.</param>
         /// <param name="baseVertex">Specifies a constant that should be added to each element of indices when choosing elements from the enabled vertex arrays.</param>
-        public static void glDrawElementsInstancedBaseVertex(int mode, int count, [NotNull] byte[] indices, int instanceCount, int baseVertex)
+        public static void glDrawElementsInstancedBaseVertex(int mode, int count,  byte[] indices, int instanceCount, int baseVertex)
         {
             fixed (byte *i = &indices[0])
             {
@@ -7188,7 +7189,7 @@ namespace OpenGL
         /// <param name="indices">The indices.</param>
         /// <param name="instanceCount">Specifies the number of instances of the indexed geometry that should be drawn.</param>
         /// <param name="baseVertex">Specifies a constant that should be added to each element of indices when choosing elements from the enabled vertex arrays.</param>
-        public static void glDrawElementsInstancedBaseVertex(int mode, int count, [NotNull] ushort[] indices, int instanceCount, int baseVertex)
+        public static void glDrawElementsInstancedBaseVertex(int mode, int count,  ushort[] indices, int instanceCount, int baseVertex)
         {
             fixed (ushort *i = &indices[0])
             {
@@ -7204,7 +7205,7 @@ namespace OpenGL
         /// <param name="indices">The indices.</param>
         /// <param name="instanceCount">Specifies the number of instances of the indexed geometry that should be drawn.</param>
         /// <param name="baseVertex">Specifies a constant that should be added to each element of indices when choosing elements from the enabled vertex arrays.</param>
-        public static void glDrawElementsInstancedBaseVertex(int mode, int count, [NotNull] uint[] indices, int instanceCount, int baseVertex)
+        public static void glDrawElementsInstancedBaseVertex(int mode, int count,  uint[] indices, int instanceCount, int baseVertex)
         {
             fixed (uint *i = &indices[0])
             {
@@ -7218,7 +7219,7 @@ namespace OpenGL
         /// <param name="program">Specifies the name of a program containing uniforms whose indices to query.</param>
         /// <param name="uniformName">The names of the uniform to query.</param>
         /// <returns>The index of the uniform.</returns>
-        public static uint glGetUniformIndex(uint program, [NotNull] string uniformName)
+        public static uint glGetUniformIndex(uint program,  string uniformName)
         {
             uint index;
             var bytes = new[] { Encoding.UTF8.GetBytes(uniformName) };
@@ -7245,7 +7246,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the symbolic name of a buffer object parameter.</param>
         /// <param name="count">The number of parameters to retrieve.</param>
         /// <returns>The requested parameters.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static long[] glGetBufferParameteri64v(int target, int pname, int count)
         {
             var values = new long[count];
@@ -7265,7 +7266,7 @@ namespace OpenGL
         /// <param name="type">The type of the varying.</param>
         /// <param name="name">The name of the varying.</param>
         /// <param name="bufSize">The maximum number of characters, including the null terminator, that may be written into name.</param>
-        public static void glGetTransformFeedbackVarying(uint program, uint index, out int size, out int type, [NotNull] out string name, int bufSize = 512)
+        public static void glGetTransformFeedbackVarying(uint program, uint index, out int size, out int type,  out string name, int bufSize = 512)
         {
             var buffer = Marshal.AllocHGlobal(bufSize);
             _glGetTransformFeedbackVarying(program, index, bufSize, out var length, out size, out type, buffer);
@@ -7290,7 +7291,7 @@ namespace OpenGL
         /// <param name="pname">Specifies the parameter of attachment to query.</param>
         /// <param name="count">The number of parameters to retrieve.</param>
         /// <returns>Returns the value of parameter pname for attachment.</returns>
-        [NotNull][Pure]
+        [Pure]
         public static int[] glGetFramebufferAttachmentParameteriv(int target, int attachment, int pname, int count)
         {
             var values = new int[count];
