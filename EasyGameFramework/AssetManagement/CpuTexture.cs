@@ -1,7 +1,6 @@
 ﻿using EasyGameFramework.API.AssetTypes;
-using Framework;
 
-namespace TicTacToePrototype;
+namespace EasyGameFramework.AssetManagement;
 
 public class CpuTexture : ICpuTexture
 {

@@ -1,5 +1,5 @@
 using Assimp;
-using Framework.Assets;
+using EasyGameFramework.AssetManagement;
 
 public class ImportMeshOption
 {

@@ -1,9 +1,9 @@
 using System.Numerics;
+using EasyGameFramework;
 using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
 using EasyGameFramework.API.InputDevices;
-using Framework.Common;
-using Framework.Common.Cameras;
+using EasyGameFramework.Cameras;
 using TicTacToePrototype;
 
 namespace Framework;

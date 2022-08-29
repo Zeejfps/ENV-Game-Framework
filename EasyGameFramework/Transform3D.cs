@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using EasyGameFramework.API;
 
-namespace Framework.Common;
+namespace EasyGameFramework;
 
 public class Transform3D : ITransform3D
 {

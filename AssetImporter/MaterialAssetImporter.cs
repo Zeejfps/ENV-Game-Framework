@@ -1,4 +1,4 @@
-using Framework.Assets;
+using EasyGameFramework.AssetManagement;
 
 namespace AssetImporter;
 

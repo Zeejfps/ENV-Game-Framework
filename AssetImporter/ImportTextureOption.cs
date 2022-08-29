@@ -1,10 +1,10 @@
 ﻿using System.Runtime.CompilerServices;
 using BCnEncoder.Encoder;
 using BCnEncoder.Shared;
+using EasyGameFramework.AssetManagement;
 using NativeFileDialogs.Net;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using TicTacToePrototype;
 
 namespace AssetImporter;
 

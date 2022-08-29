@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using EasyGameFramework.API;
 
-namespace Framework;
+namespace EasyGameFramework;
 
 public class Clock : IClock
 {

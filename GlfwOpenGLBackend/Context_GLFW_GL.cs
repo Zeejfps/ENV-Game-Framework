@@ -1,5 +1,6 @@
 using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
+using EasyGameFramework.AssetManagement;
 using Framework;
 using Framework.GLFW.NET;
 using GLFW;

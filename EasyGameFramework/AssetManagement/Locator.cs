@@ -1,6 +1,6 @@
 ﻿using EasyGameFramework.API;
 
-namespace Framework;
+namespace EasyGameFramework.AssetManagement;
 
 public class Locator : ILocator
 {
