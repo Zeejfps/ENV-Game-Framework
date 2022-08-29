@@ -40,11 +40,13 @@ public class TestScene : IScene
     private IHandle<IGpuShader> m_UnlitShaderHandle;
     private IHandle<IGpuShader> m_FullScreenBlitShaderHandle;
     private IGpuMesh m_QuadMesh;
+    private IGpu m_Gpu;
     
     public TestScene(IApplication app)
     {
         var aspect = app.Window.Width / (float)app.Window.Height;
         m_App = app;
+        m_Gpu = m_App.Gpu;
         //m_Camera = new OrthographicCamera(20, 20 / aspect, 0.1f, 100f);
         m_Camera = new PerspectiveCamera(75f, aspect);
         m_Clock = new Clock();
@@ -90,17 +92,9 @@ public class TestScene : IScene
         var gpu = App.Gpu;
         var locator = App.Locator;
         var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
-        var shaderLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
 
         m_UnlitShaderHandle = gpu.LoadShader("Assets/Shaders/unlit.shader");
-
-        // m_UnlitShaderHandle.EnableDepthTest = true;
-        // m_UnlitShaderHandle.EnableBackfaceCulling = false;
-        
         m_FullScreenBlitShaderHandle = gpu.LoadShader("Assets/Shaders/fullScreenQuad.shader");
-        // m_FullScreenBlitShaderHandle.EnableBackfaceCulling = true;
-        // m_FullScreenBlitShaderHandle.EnableDepthTest = false;
-        
         m_QuadMesh = meshLoader.Load("Assets/Meshes/quad.mesh");
 
         m_Light.Load(this);
@@ -108,11 +102,6 @@ public class TestScene : IScene
         
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Load(this);
-    }
-
-    public void Unload()
-    {
-        
     }
 
     public void Update()
@@ -134,19 +123,19 @@ public class TestScene : IScene
         {
             renderbuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
             renderbuffer.Clear(0f, 0f, 0f, 0f);
-            m_SpecularRenderPass.Render(m_Camera);
+            m_SpecularRenderPass.Render(m_Gpu, m_Camera);
         }
 
         using (var renderbuffer = m_WindowFramebuffer.Use())
         {
             renderbuffer.Clear(.42f, .607f, .82f, 1f);
-            m_FullScreenBlitPass.Render(m_QuadMesh,
+            m_FullScreenBlitPass.Render(m_QuadMesh, m_Gpu,
                 m_FullScreenBlitShaderHandle,
                 m_TempRenderbuffer.ColorBuffers[0],
                 m_TempRenderbuffer.ColorBuffers[1],
                 m_TempRenderbuffer.ColorBuffers[2]);
             
-            m_UnlitRenderPass.Render(m_Camera, m_UnlitShaderHandle);
+            m_UnlitRenderPass.Render(m_Camera, m_Gpu, m_UnlitShaderHandle);
         }
     }
 

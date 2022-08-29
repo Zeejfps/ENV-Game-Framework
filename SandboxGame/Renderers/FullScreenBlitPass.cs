@@ -17,8 +17,12 @@ public class FullScreenBlitPass
         m_light = light;
     }
 
-    public void Render(IGpuMesh quadMesh, IHandle<IGpuShader> fullScreenBlitMaterial, IGpuTexture bufferAlbedo, IGpuTexture bufferNormal, IGpuTexture bufferPosition)
+    public void Render(IGpuMesh quadMesh, IGpu gpu, IHandle<IGpuShader> fullScreenBlitMaterial, IGpuTexture bufferAlbedo, IGpuTexture bufferNormal, IGpuTexture bufferPosition)
     {
+        gpu.SaveState();
+        gpu.EnableBackfaceCulling = true;
+        gpu.EnableDepthTest = false;
+        
         using var shader = fullScreenBlitMaterial.Use();
         using var mesh = quadMesh.Use();
         
@@ -38,7 +42,8 @@ public class FullScreenBlitPass
             shader.SetFloat($"lights[{i}].Power", 15);
         }
         
-
         mesh.Render();
+        
+        gpu.RestoreState();
     }
 }

@@ -42,18 +42,16 @@ public class SpecularRenderPass
     
     public void Load(IScene scene)
     {
-        var locator = scene.App.Locator;
-        var shaderLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
         m_SpecularShaderHandle = scene.App.Gpu.LoadShader("Assets/Shaders/specular.shader");
-        // m_SpecularShader.EnableBackfaceCulling = true;
-        // m_SpecularShader.EnableDepthTest = true;
     }
     
-    public void Render(ICamera camera)
+    public void Render(IGpu gpu, ICamera camera)
     {
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
-
-        Debug.Assert(m_SpecularShaderHandle != null);
+        
+        gpu.SaveState();
+        gpu.EnableBackfaceCulling = true;
+        gpu.EnableDepthTest = true;
         
         using var shader = m_SpecularShaderHandle.Use();
         shader.SetVector3("light.position", m_Light.WorldPosition);
@@ -96,6 +94,8 @@ public class SpecularRenderPass
 
             mesh.RenderInstanced(transforms.Count);
         }
+
+        gpu.RestoreState();
     }
 }
 

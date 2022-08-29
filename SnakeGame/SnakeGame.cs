@@ -35,11 +35,9 @@ public class Game
         m_Gpu = app.Gpu;
         
         var gpuMeshAssetLoader = m_Locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
-        var gpuShaderAssetLoader = m_Locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
 
         m_QuadMesh = gpuMeshAssetLoader.Load("Assets/quad.mesh");
         m_UnlitShaderHandle = m_Gpu.LoadShader("Assets/sprite.shader");
-        //m_UnlitShaderHandle.EnableBackfaceCulling = false;
 
         m_Clock = new Clock();
         m_Camera = new OrthographicCamera(40, 40, 0.1f, 10)
@@ -86,6 +84,7 @@ public class Game
         using (var framebuffer = m_WindowFramebuffer.Use())
         {
             framebuffer.Clear(0f, 0.3f, 0f, 1f);
+            m_Gpu.EnableBackfaceCulling = false;
             m_SpriteRenderer.Render(m_Camera, m_UnlitShaderHandle, m_QuadMesh, m_Snake);
         }
 

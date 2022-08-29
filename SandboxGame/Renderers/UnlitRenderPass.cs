@@ -20,8 +20,12 @@ public class UnlitRenderPass
         m_Renderables.Add(rendererable);
     }
 
-    public void Render(ICamera camera, IHandle<IGpuShader> material)
+    public void Render(ICamera camera, IGpu gpu, IHandle<IGpuShader> material)
     {
+        gpu.SaveState();
+        gpu.EnableDepthTest = true;
+        gpu.EnableBackfaceCulling = false;
+     
         using var materialHandle = material.Use();
         materialHandle.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
 
@@ -37,5 +41,7 @@ public class UnlitRenderPass
             using var mesh = data.Mesh.Use();
             mesh.Render();
         }
+        
+        gpu.RestoreState();
     }
 }
