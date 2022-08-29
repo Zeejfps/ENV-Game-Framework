@@ -21,14 +21,16 @@ public class TestTriangle : ISceneObject
         m_Random = new Random();
     }
 
+    private IScene m_Scene;
+    
     public void Load(IScene scene)
     {
-        
+        m_Scene = scene;
     }
 
-    public void Update(IScene scene)
+    public void Update(float dt)
     {
-        var gpu = scene.App.Gpu;
+        var gpu = m_Scene.App.Gpu;
         var keyboard = m_Context.Input.Keyboard;
 
         var shaderManager = gpu.ShaderManager;

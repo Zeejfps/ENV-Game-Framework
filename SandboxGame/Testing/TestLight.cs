@@ -36,9 +36,12 @@ public class TestLight : ISceneObject
         });
     }
 
-    public void Update(IScene scene)
+    private float t;
+    
+    public void Update(float dt)
     {
-        
+        t += dt;
+        Transform.WorldPosition += new Vector3(MathF.Sin(t),0,0) * dt * 5;
     }
 
     public void Unload(IScene scene)

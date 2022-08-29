@@ -1,9 +1,7 @@
-﻿using System.Diagnostics;
-using EasyGameFramework;
+﻿using EasyGameFramework;
 using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
 using Framework.Materials;
-using TicTacToePrototype;
 
 namespace Framework;
 
@@ -54,14 +52,8 @@ public class Toad : ISceneObject
         });
     }
 
-    public void Update(IScene scene)
+    public void Update(float dt)
     {
-        Debug.Assert(m_MeshHandle != null);
-        Debug.Assert(m_Diffuse != null);
-        Debug.Assert(m_Normal != null);
-        Debug.Assert(m_Occlusion != null);
-        Debug.Assert(m_Roughness != null);
-        Debug.Assert(m_Translucency != null);
     }
 
     public void Unload(IScene scene)

@@ -103,10 +103,11 @@ public class TestScene : IScene
     {
         //m_Camera.Update();
         m_Clock.Tick();
-        
-        HandleInput();
 
-        m_Light.Transform.WorldPosition += new Vector3(MathF.Sin(m_Clock.Time),0,0) * m_Clock.DeltaTime * 5;
+        foreach (var sceneObject in m_SceneObjects)
+            sceneObject.Update(m_Clock.DeltaTime);
+
+        HandleInput();
         
         // foreach (var sceneObject in m_SceneObjects)
         //     sceneObject.Update(this);

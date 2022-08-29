@@ -27,7 +27,7 @@ public class TestCube : ISceneObject
         m_Mesh = gpu.LoadMesh("Assets/Meshes/ship.mesh");
     }
 
-    public void Update(IScene scene)
+    public void Update(float dt)
     {
         // m_BlinnRenderer.Render(new SpecularRendererData
         // {

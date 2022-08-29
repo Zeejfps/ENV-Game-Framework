@@ -51,8 +51,8 @@ public class Ship : ISceneObject
             }
         });
     }
-    
-    public void Update(IScene scene)
+
+    public void Update(float dt)
     {
         
     }
