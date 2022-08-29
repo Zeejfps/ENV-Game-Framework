@@ -22,13 +22,13 @@ public class Game
     private IHandle<IGpuShader> m_UnlitShaderHandle;
 
     private IInput m_Input;
-    private IGpuFramebuffer m_WindowFramebuffer;
+    private IHandle<IGpuFramebuffer> m_WindowFramebufferHandle;
     private IGpu m_Gpu;
     
     public Game(IApplication app)
     {
         m_Input = app.Input;
-        m_WindowFramebuffer = app.Window.Framebuffer;
+        m_WindowFramebufferHandle = app.Window.FramebufferHandle;
         m_Gpu = app.Gpu;
         
         m_QuadMeshHandle = m_Gpu.LoadMesh("Assets/quad.mesh");
@@ -76,7 +76,7 @@ public class Game
             MoveSnake();
         }
 
-        using (var framebuffer = m_WindowFramebuffer.Use())
+        using (var framebuffer = m_WindowFramebufferHandle.Use())
         {
             framebuffer.Clear(0f, 0.3f, 0f, 1f);
             m_Gpu.EnableBackfaceCulling = false;

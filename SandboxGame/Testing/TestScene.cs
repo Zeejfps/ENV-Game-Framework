@@ -11,8 +11,8 @@ public class TestScene : IScene
 {
     public IApplication App => m_App;
 
-    private IGpuRenderbuffer m_TempRenderbuffer;
-    private IGpuFramebuffer m_WindowFramebuffer;
+    private IHandle<IGpuRenderbuffer> m_TempRenderbuffer;
+    private IHandle<IGpuFramebuffer> m_WindowFramebuffer;
     
     private SpecularRenderPass m_SpecularRenderPass;
     private UnlitRenderPass m_UnlitRenderPass;
@@ -60,9 +60,10 @@ public class TestScene : IScene
         };
         lightTransform.RotateInLocalSpace(0f, 0f, 180f);
         
-        m_WindowFramebuffer = app.Window.Framebuffer;
+        m_WindowFramebuffer = app.Window.FramebufferHandle;
         
-        m_TempRenderbuffer = app.Gpu.CreateRenderbuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height, 3, true);
+        using (var windowFramebuffer = m_WindowFramebuffer.Use())
+            m_TempRenderbuffer = app.Gpu.CreateRenderbuffer(windowFramebuffer.Width, windowFramebuffer.Height, 3, true);
 
         m_SpecularRenderPass = new SpecularRenderPass(lightTransform);
         m_UnlitRenderPass = new UnlitRenderPass();
@@ -112,15 +113,18 @@ public class TestScene : IScene
         
         // foreach (var sceneObject in m_SceneObjects)
         //     sceneObject.Update(this);
-        //
+        
         // /*
         //  * All the Rendering steps below
         //  */
+        using var windowFramebuffer = m_WindowFramebuffer.Use();
+        IHandle<IGpuTexture>[] tempColorBuffers;
         using (var renderbuffer = m_TempRenderbuffer.Use())
         {
-            renderbuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
+            renderbuffer.Resize(windowFramebuffer.Width, windowFramebuffer.Height);
             renderbuffer.Clear(0f, 0f, 0f, 0f);
             m_SpecularRenderPass.Render(m_Gpu, m_Camera);
+            tempColorBuffers = renderbuffer.ColorBuffers;
         }
 
         using (var renderbuffer = m_WindowFramebuffer.Use())
@@ -128,9 +132,9 @@ public class TestScene : IScene
             renderbuffer.Clear(.42f, .607f, .82f, 1f);
             m_FullScreenBlitPass.Render(m_Gpu, m_QuadMeshHandle,
                 m_FullScreenBlitShaderHandle,
-                m_TempRenderbuffer.ColorBuffers[0],
-                m_TempRenderbuffer.ColorBuffers[1],
-                m_TempRenderbuffer.ColorBuffers[2]);
+                tempColorBuffers[0],
+                tempColorBuffers[1],
+                tempColorBuffers[2]);
             
             m_UnlitRenderPass.Render(m_Gpu, m_UnlitShaderHandle, m_Camera);
         }

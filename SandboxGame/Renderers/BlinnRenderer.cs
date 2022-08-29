@@ -15,7 +15,7 @@ public class BlinnRenderer
 {
     private IHandle<IGpuShader> m_Shader;
     private IHandle<IGpuTexture>? m_Texture;
-    private IGpuFramebuffer? m_Framebuffer;
+    private IHandle<IGpuFramebuffer> m_Framebuffer;
     
     private readonly ICamera m_Camera;
     private readonly ITransform3D m_Light;
@@ -32,7 +32,7 @@ public class BlinnRenderer
         m_Shader = gpu.LoadShader("Assets/Shaders/blinn.shader");
         m_Texture = gpu.LoadTexture("Assets/Textures/test.texture");
 
-        m_Framebuffer = scene.App.Window.Framebuffer;
+        m_Framebuffer = scene.App.Window.FramebufferHandle;
     }
     
     public void Render(BlinnRenderData renderData)

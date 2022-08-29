@@ -14,7 +14,7 @@ public interface IWindow
     bool IsVsyncEnabled { get; set; }
 
     bool IsOpened { get; }
-    IGpuFramebuffer Framebuffer { get; }
+    IHandle<IGpuFramebuffer> FramebufferHandle { get; }
 
     void Show();
     void ShowCentered();

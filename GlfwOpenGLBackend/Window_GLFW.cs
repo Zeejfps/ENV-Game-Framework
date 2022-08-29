@@ -87,7 +87,7 @@ public class Window_GLFW : IWindow
     public bool IsOpened { get; private set; }
 
     public IInput Input => m_Input;
-    public IGpuFramebuffer Framebuffer => m_WindowFramebuffer;
+    public IHandle<IGpuFramebuffer> FramebufferHandle { get; }
 
     public bool IsFullscreen
     {
@@ -159,7 +159,8 @@ public class Window_GLFW : IWindow
         Glfw.MakeContextCurrent(m_Handle);
         Glfw.GetFramebufferSize(m_Handle, out var framebufferWidth, out var framebufferHeight);
         m_WindowFramebuffer = new WindowFramebuffer_GL(framebufferWidth, framebufferHeight, Glfw.GetProcAddress);
-
+        FramebufferHandle = new GpuWindowFramebufferHandle(m_WindowFramebuffer);
+        
         Glfw.SetWindowSizeCallback(m_Handle, m_SizeCallback);
         Glfw.SetWindowPositionCallback(m_Handle, m_PositionCallback);
         Glfw.SetFramebufferSizeCallback(m_Handle, m_FramebufferSizeCallback);

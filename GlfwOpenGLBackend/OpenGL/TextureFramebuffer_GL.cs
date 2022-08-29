@@ -3,7 +3,6 @@ using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
 using GlfwOpenGLBackend;
 using GlfwOpenGLBackend.OpenGL;
-using TicTacToePrototype.OpenGL.AssetLoaders;
 using static OpenGL.Gl;
 
 namespace Framework.GLFW.NET;
@@ -14,9 +13,10 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
     public int Height { get; private set; }
     public IHandle<IGpuTexture>[] ColorBuffers => m_ColorTextureHandles;
     public IHandle<IGpuTexture>? DepthBuffer => m_DepthTextureHandle;
+    public uint Id => m_Id;
 
-    private readonly GpuTextureHandle[] m_ColorTextureHandles;
-    private GpuTextureHandle m_DepthTextureHandle;
+    private readonly IHandle<IGpuTexture>[] m_ColorTextureHandles;
+    private IHandle<IGpuTexture> m_DepthTextureHandle;
     private uint m_Id;
     private int[] m_drawBufferIds;
     
@@ -28,7 +28,7 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
         m_Id = glGenFramebuffer();
         glBindFramebuffer(m_Id);
         
-        m_ColorTextureHandles = new GpuTextureHandle[colorBufferCount];
+        m_ColorTextureHandles = new IHandle<IGpuTexture>[colorBufferCount];
         m_drawBufferIds = new int[colorBufferCount];
         for (var i = 0; i < colorBufferCount; i++)
         {
@@ -59,59 +59,34 @@ public class TextureFramebuffer_GL : IGpuRenderbuffer
         
         glBindFramebuffer(0);
     }
-
-    public IGpuFramebufferHandle Use()
+    
+    public void Clear(float r, float g, float b, float a)
     {
-        return Handle.Use(this);
+        glClearColor(r, g, b, a);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+
+    public void Resize(int width, int height)
+    {
+        if (Width == width && Height == height)
+            return;
+        
+        Width = width;
+        Height = height;
+
+        foreach (var colorBuffer in ColorBuffers)
+        {
+            colorBuffer.Use();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, IntPtr.Zero);   
+        }
+
+        m_DepthTextureHandle.Use();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, IntPtr.Zero);
+
     }
 
     public void Dispose()
     {
         
-    }
-    
-    class Handle : IGpuFramebufferHandle
-    {
-        private static Handle? s_Instance;
-        private static Handle Instance => s_Instance ??= new Handle();
-
-        private TextureFramebuffer_GL? m_ActiveFramebuffer;
-        
-        public static Handle Use(TextureFramebuffer_GL framebuffer)
-        {
-            Instance.m_ActiveFramebuffer = framebuffer;
-            glBindFramebuffer(framebuffer.m_Id);
-            glViewport(0, 0, framebuffer.Width, framebuffer.Height);
-            return Instance;
-        }
-    
-        public void Clear(float r, float g, float b, float a)
-        {
-            glClearColor(r, g, b, a);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        }
-
-        public void Resize(int width, int height)
-        {
-            Debug.Assert(m_ActiveFramebuffer != null);
-            if (m_ActiveFramebuffer.Width == width && m_ActiveFramebuffer.Height == height)
-                return;
-        
-            m_ActiveFramebuffer.Width = width;
-            m_ActiveFramebuffer.Height = height;
-
-            foreach (var colorBuffer in m_ActiveFramebuffer.ColorBuffers)
-            {
-                colorBuffer.Use();
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, IntPtr.Zero);   
-            }
-
-            m_ActiveFramebuffer.m_DepthTextureHandle.Use();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, IntPtr.Zero);
-        }
-
-        public void Dispose()
-        {
-        }
     }
 }
