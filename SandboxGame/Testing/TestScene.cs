@@ -53,20 +53,20 @@ public class TestScene : IScene
         m_CameraTarget = new Transform3D();
         m_Camera.Transform.LookAt(m_CameraTarget.WorldPosition, Vector3.UnitY);
         
-        var lightTransform = new Transform3D
+        m_LightPosition = new Transform3D
         {
             WorldPosition = new Vector3(0f, 5f, 0f),
         };
-        lightTransform.RotateInLocalSpace(0f, 0f, 180f);
+        m_LightPosition.RotateInLocalSpace(0f, 0f, 180f);
         
         var framebufferManager = app.Gpu.RenderbufferManager;
         var framebufferWidth = framebufferManager.WindowBufferHandle.Width;
         var framebufferHeight = framebufferManager.WindowBufferHandle.Height;
         m_TempRenderbufferHandle = app.Gpu.CreateRenderbuffer(framebufferWidth, framebufferHeight, 3, true);
 
-        m_SpecularRenderPass = new SpecularRenderPass(lightTransform);
+        m_SpecularRenderPass = new SpecularRenderPass();
         m_UnlitRenderPass = new UnlitRenderPass();
-        m_Light = new TestLight(m_UnlitRenderPass, lightTransform);
+        m_Light = new TestLight(m_UnlitRenderPass, m_LightPosition);
         m_FullScreenBlitPass = new FullScreenBlitPass(m_Camera,m_Light.Transform);
         
         //m_Ship1 = new Ship(m_SpecularRenderPass);
@@ -120,7 +120,7 @@ public class TestScene : IScene
         renderbufferManager.Bind(m_TempRenderbufferHandle);
         renderbufferManager.SetSize(windowFramebufferWidth, windowFramebufferHeight);
         renderbufferManager.ClearColorBuffer(0f, 0f, 0f, 0f);
-        m_SpecularRenderPass.Render(m_Gpu, m_Camera);
+        m_SpecularRenderPass.Render(m_Gpu, m_Camera, m_LightPosition);
         
         renderbufferManager.BindWindow();
         renderbufferManager.ClearColorBuffer(.42f, .607f, .82f, 1f);

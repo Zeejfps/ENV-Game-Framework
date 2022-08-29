@@ -11,17 +11,11 @@ public class SpecularRenderPass
     private readonly Dictionary<ITransform3D, (IHandle<IGpuMesh>, SpecularRenderableTextures)> m_TransformToGroupMap = new();
 
     private IHandle<IGpuShader> m_SpecularShaderHandle;
-    private readonly ITransform3D m_Light;
 
     private Vector3 _lightColor = new Vector3(1f,1f,1f);
     private Vector3 _ambientColor = new Vector3(.2f,.4f,.6f);
     private Vector3 _specularColor = new Vector3(.7f,.7f,.7f);
     private float _shininess = 10f;
-    
-    public SpecularRenderPass(ITransform3D light)
-    {
-        m_Light = light;
-    }
 
     public void Register(in SpecularRenderable renderable)
     {
@@ -45,7 +39,7 @@ public class SpecularRenderPass
         m_SpecularShaderHandle = scene.App.Gpu.LoadShader("Assets/Shaders/specular.shader");
     }
     
-    public void Render(IGpu gpu, ICamera camera)
+    public void Render(IGpu gpu, ICamera camera, ITransform3D light)
     {
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
 
@@ -57,7 +51,7 @@ public class SpecularRenderPass
         gpu.EnableDepthTest = true;
         
         shaderManager.Bind(m_SpecularShaderHandle);
-        shaderManager.SetVector3("light.position", m_Light.WorldPosition);
+        shaderManager.SetVector3("light.position", light.WorldPosition);
         shaderManager.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         shaderManager.SetMatrix4x4("matrix_view", viewMatrix);
         shaderManager.SetVector3("camera_position", camera.Transform.WorldPosition);

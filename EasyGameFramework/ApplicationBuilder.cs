@@ -8,17 +8,24 @@ public sealed class ApplicationBuilder
     private DiContainer DiContainer { get; } = new();
     
     private bool m_IsBackendSet;
+    private bool m_IsRendererSet;
     
     public ApplicationBuilder WithGlfwOpenGlBackend()
     {
-        m_IsBackendSet = true;
         DiContainer.Register<IApplication, Application_GLFW_GL>();
+        m_IsBackendSet = true;
         return this;
     }
     
     public ApplicationBuilder WithRenderer<TRenderer>() where TRenderer : IRenderer
     {
         DiContainer.Register<IRenderer, TRenderer>();
+        m_IsRendererSet = true;
+        return this;
+    }
+    
+    public ApplicationBuilder WithDefaultRenderer()
+    {
         return this;
     }
     
@@ -26,6 +33,9 @@ public sealed class ApplicationBuilder
     {
         if (!m_IsBackendSet)
             WithGlfwOpenGlBackend();
+
+        if (!m_IsRendererSet)
+            WithDefaultRenderer();
         
         var app = DiContainer.GetInstance<IApplication>();
         return app;
