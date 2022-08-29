@@ -10,7 +10,7 @@ public class TestCube : ISceneObject
 {
     public ITransform3D Transform => m_Transform;
     
-    private IGpuMesh m_Mesh;
+    private IHandle<IGpuMesh> m_Mesh;
     
     private readonly ITransform3D m_Transform;
     private readonly SpecularRenderPass m_BlinnRenderPass;
@@ -23,9 +23,8 @@ public class TestCube : ISceneObject
     
     public void Load(IScene scene)
     {
-        var locator = scene.Context.Locator;
-        var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
-        m_Mesh = meshLoader.Load("Assets/Meshes/ship.mesh");
+        var gpu = scene.App.Gpu;
+        m_Mesh = gpu.LoadMesh("Assets/Meshes/ship.mesh");
     }
 
     public void Update(IScene scene)
@@ -39,6 +38,6 @@ public class TestCube : ISceneObject
 
     public void Unload(IScene scene)
     {
-        m_Mesh.Dispose();
+        //m_Mesh.Dispose();
     }
 }

@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Drawing;
+﻿using System.Drawing;
 using System.Numerics;
 using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
@@ -17,28 +16,40 @@ public class FullScreenBlitPass
         m_light = light;
     }
 
-    public void Render(IGpuMesh quadMesh, IGpuShader fullScreenBlitMaterial, IGpuTexture bufferAlbedo, IGpuTexture bufferNormal, IGpuTexture bufferPosition)
+    public void Render(IGpu gpu, 
+        IHandle<IGpuMesh> quadMeshHandle,
+        IHandle<IGpuShader> fullScreenBlitShaderHandle, 
+        IHandle<IGpuTexture> bufferAlbedoHandle, 
+        IHandle<IGpuTexture> bufferNormalHandle, 
+        IHandle<IGpuTexture> bufferPositionHandle)
     {
-        using var material = fullScreenBlitMaterial.Use();
-        using var mesh = quadMesh.Use();
+        gpu.SaveState();
+        gpu.EnableBackfaceCulling = true;
+        gpu.EnableDepthTest = false;
+
+        var meshManager = gpu.MeshManager;
+        var shaderManager = gpu.ShaderManager;
+
+        shaderManager.Use(fullScreenBlitShaderHandle);
+        meshManager.Use(quadMeshHandle);
         
-        material.SetTexture2d("gColor", bufferAlbedo);
-        material.SetTexture2d("gNormal", bufferNormal);
-        material.SetTexture2d("gPosition", bufferPosition);
-        material.SetVector3("viewPos", m_Camera.Transform.WorldPosition);
+        shaderManager.SetTexture2d("gColor", bufferAlbedoHandle);
+        shaderManager.SetTexture2d("gNormal", bufferNormalHandle);
+        shaderManager.SetTexture2d("gPosition", bufferPositionHandle);
+        shaderManager.SetVector3("viewPos", m_Camera.Transform.WorldPosition);
         
         var colors = new[]{Color.Red, Color.Green, Color.Aqua, Color.Gold, Color.Crimson,Color.Lime};
         for (int i = 0; i < 4; i++)
         {
-            var x = new Random(i);
             var newColor = colors[i];
             var convert = .003621f;
-            material.SetVector3($"lights[{i}].Position", m_light.WorldPosition + new Vector3(i * 10,0,0));
-            material.SetVector3($"lights[{i}].Color", new Vector3(newColor.R * convert, newColor.G * convert, newColor.B * convert));
-            material.SetFloat($"lights[{i}].Power", 15);
+            shaderManager.SetVector3($"lights[{i}].Position", m_light.WorldPosition + new Vector3(i * 10,0,0));
+            shaderManager.SetVector3($"lights[{i}].Color", new Vector3(newColor.R * convert, newColor.G * convert, newColor.B * convert));
+            shaderManager.SetFloat($"lights[{i}].Power", 15);
         }
         
-
-        mesh.Render();
+        meshManager.Render();
+        
+        gpu.RestoreState();
     }
 }

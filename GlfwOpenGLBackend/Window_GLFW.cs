@@ -159,7 +159,7 @@ public class Window_GLFW : IWindow
         Glfw.MakeContextCurrent(m_Handle);
         Glfw.GetFramebufferSize(m_Handle, out var framebufferWidth, out var framebufferHeight);
         m_WindowFramebuffer = new WindowFramebuffer_GL(framebufferWidth, framebufferHeight, Glfw.GetProcAddress);
-
+        
         Glfw.SetWindowSizeCallback(m_Handle, m_SizeCallback);
         Glfw.SetWindowPositionCallback(m_Handle, m_PositionCallback);
         Glfw.SetFramebufferSizeCallback(m_Handle, m_FramebufferSizeCallback);
@@ -276,7 +276,7 @@ public class Window_GLFW : IWindow
     
     private void Glfw_FramebufferSizeCallback(Window window, int width, int height)
     {
-        m_WindowFramebuffer.Resize(width, height);
+        m_WindowFramebuffer.SetSize(width, height);
     }
     
     private void Glfw_MousePosCallback(Window window, double x, double y)

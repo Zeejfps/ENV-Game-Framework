@@ -1,6 +1,5 @@
 ﻿namespace EasyGameFramework.API;
 
-public interface IHandle<T> where T : IDisposable
+public interface IHandle<in T>
 {
-    T Use();
 }

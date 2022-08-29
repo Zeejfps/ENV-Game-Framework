@@ -1,19 +1,51 @@
-﻿using EasyGameFramework.API.AssetTypes;
+﻿using GlfwOpenGLBackend.OpenGL;
 using static OpenGL.Gl;
 
 namespace TicTacToePrototype.OpenGL.AssetLoaders;
 
-public class ReadonlyTexture2D_GL : IGpuTexture, IEquatable<ReadonlyTexture2D_GL>
+public class ReadonlyTexture2D_GL : Texture2D_GL, IEquatable<ReadonlyTexture2D_GL>
 {
-    public bool IsLoaded => m_Id != GL_NONE;
-    
-    private uint m_Id;
 
-    public unsafe ReadonlyTexture2D_GL(int width, int height, byte[]? pixels = null)
+    public ReadonlyTexture2D_GL(uint id) : base(id)
+    {
+    }
+    
+
+    public bool Equals(ReadonlyTexture2D_GL? other)
+    {
+        if (ReferenceEquals(null, other)) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Id == other.Id;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (ReferenceEquals(null, obj)) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj.GetType() != this.GetType()) return false;
+        return Equals((ReadonlyTexture2D_GL)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return (int)Id;
+    }
+
+    public static bool operator ==(ReadonlyTexture2D_GL? left, ReadonlyTexture2D_GL? right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(ReadonlyTexture2D_GL? left, ReadonlyTexture2D_GL? right)
+    {
+        return !Equals(left, right);
+    }
+
+    public static unsafe ReadonlyTexture2D_GL Create(int width, int height, byte[]? pixels)
     {
         //Console.WriteLine($"Texture: {width}x{height}, pixels: {pixels.Length}");
-        m_Id = glGenTexture();
-        glBindTexture(GL_TEXTURE_2D, m_Id);
+        var id = glGenTexture();
+        glBindTexture(GL_TEXTURE_2D, id);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
@@ -31,49 +63,7 @@ public class ReadonlyTexture2D_GL : IGpuTexture, IEquatable<ReadonlyTexture2D_GL
         //     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, p);
         
         glAssertNoError();
-    }
-    
-    public void Dispose()
-    {
-        glDeleteTexture(m_Id);
-        m_Id = GL_NONE;
-    }
 
-    public IGpuTextureHandle Use()
-    {
-        glBindTexture(GL_TEXTURE_2D, m_Id);
-        return new Handle();
+        return new ReadonlyTexture2D_GL(id);
     }
-
-    public bool Equals(ReadonlyTexture2D_GL? other)
-    {
-        if (ReferenceEquals(null, other)) return false;
-        if (ReferenceEquals(this, other)) return true;
-        return m_Id == other.m_Id;
-    }
-
-    public override bool Equals(object? obj)
-    {
-        if (ReferenceEquals(null, obj)) return false;
-        if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != this.GetType()) return false;
-        return Equals((ReadonlyTexture2D_GL)obj);
-    }
-
-    public override int GetHashCode()
-    {
-        return (int)m_Id;
-    }
-
-    public static bool operator ==(ReadonlyTexture2D_GL? left, ReadonlyTexture2D_GL? right)
-    {
-        return Equals(left, right);
-    }
-
-    public static bool operator !=(ReadonlyTexture2D_GL? left, ReadonlyTexture2D_GL? right)
-    {
-        return !Equals(left, right);
-    }
-    
-    class Handle : IGpuTextureHandle {}
 }

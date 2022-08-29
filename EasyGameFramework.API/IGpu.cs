@@ -4,7 +4,21 @@ namespace EasyGameFramework.API;
 
 public interface IGpu
 {
-    IHandle<IGpuTexture> LoadTexture(string assetPath);
+    bool EnableDepthTest { get; set; }
+    bool EnableBackfaceCulling { get; set; }
+    bool EnableBlending { get; set; }
 
-    IHandle<IGpuShader> LoadShader(string shaderPath);
+    IMeshManager MeshManager { get; }
+    IShaderManager ShaderManager { get; }
+    ITextureManager TextureManager { get; }
+    IRenderbufferManager RenderbufferManager { get; }
+
+    IGpuRenderbufferHandle CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer);
+
+    IHandle<IGpuMesh> LoadMesh(string assetPath);
+    IHandle<IGpuShader> LoadShader(string assetPath);
+    IHandle<IGpuTexture> LoadTexture(string assetPath);
+    
+    void SaveState();
+    void RestoreState();
 }

@@ -32,21 +32,29 @@ public class SpriteRenderer
         
     }
     
-    public void Render(ICamera camera, IGpuShader material, IGpuMesh quadMesh, IEnumerable<ITransform3D> transforms)
+    public void Render(
+        IGpu gpu,
+        ICamera camera,
+        IHandle<IGpuShader> gpuShaderHandle,
+        IHandle<IGpuMesh> quadMeshHandle,
+        IEnumerable<ITransform3D> transforms)
     {
-        using var materialHandle = material.Use();
-        using var meshHandle = quadMesh.Use();
-
+        var shaderManager = gpu.ShaderManager;
+        var meshManager = gpu.MeshManager;
+        
+        shaderManager.Use(gpuShaderHandle);
+        meshManager.Use(quadMeshHandle);
+        
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
             
-        materialHandle.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
-        materialHandle.SetMatrix4x4("matrix_view", viewMatrix);
-        materialHandle.SetVector3("color", new Vector3(1f, 0f, 1f));
+        shaderManager.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
+        shaderManager.SetMatrix4x4("matrix_view", viewMatrix);
+        shaderManager.SetVector3("color", new Vector3(1f, 0f, 1f));
 
         foreach (var transform in transforms)
         {
-            materialHandle.SetMatrix4x4("matrix_model", transform.WorldMatrix);
-            meshHandle.Render();
+            shaderManager.SetMatrix4x4("matrix_model", transform.WorldMatrix);
+            meshManager.Render();
         }
     }
 }

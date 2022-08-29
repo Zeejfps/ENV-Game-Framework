@@ -11,7 +11,7 @@ public class TestLight : ISceneObject
     public float Intensity { get; set; }
     public Color Color;
 
-    private IGpuMesh m_Mesh;
+    private IHandle<IGpuMesh> m_Mesh;
 
     private readonly UnlitRenderPass m_Renderer;
 
@@ -23,12 +23,11 @@ public class TestLight : ISceneObject
     
     public void Load(IScene scene)
     {
-        var locator = scene.Context.Locator;
-        var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
-        m_Mesh = meshLoader.Load("Assets/Meshes/quad.mesh");
+        var gpu = scene.App.Gpu;
+        m_Mesh = gpu.LoadMesh("Assets/Meshes/quad.mesh");
         m_Renderer.Add(new UnlitRendererable
         {
-            Mesh = m_Mesh,
+            MeshHandle = m_Mesh,
             Transform = Transform,
             Color = new Vector3(1f, 0f, 0.5f)
         });

@@ -2,6 +2,6 @@
 
 public interface IGpuRenderbuffer : IGpuFramebuffer
 {
-    IGpuTexture[] ColorBuffers { get; }
-    IGpuTexture? DepthBuffer { get; }
+    IHandle<IGpuTexture>[] ColorBuffers { get; }
+    IHandle<IGpuTexture>? DepthBuffer { get; }
 }

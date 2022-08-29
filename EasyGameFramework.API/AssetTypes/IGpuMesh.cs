@@ -1,6 +1,7 @@
 ﻿namespace EasyGameFramework.API.AssetTypes;
 
-public interface IGpuMesh : IAsset
+public interface IGpuMesh : IGpuAsset
 {
-    IGpuMeshHandle Use();
+    void Render();
+    void RenderInstanced(int instanceCount);
 }

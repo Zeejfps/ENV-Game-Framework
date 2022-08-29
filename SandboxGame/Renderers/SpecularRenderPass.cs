@@ -7,10 +7,10 @@ namespace Framework;
 
 public class SpecularRenderPass
 {
-    private readonly Dictionary<(IGpuMesh, SpecularRenderableTextures), List<ITransform3D>> m_MeshToRenderableMap = new();
-    private readonly Dictionary<ITransform3D, (IGpuMesh, SpecularRenderableTextures)> m_TransformToGroupMap = new();
+    private readonly Dictionary<(IHandle<IGpuMesh>, SpecularRenderableTextures), List<ITransform3D>> m_MeshToRenderableMap = new();
+    private readonly Dictionary<ITransform3D, (IHandle<IGpuMesh>, SpecularRenderableTextures)> m_TransformToGroupMap = new();
 
-    private IGpuShader? m_SpecularShader;
+    private IHandle<IGpuShader> m_SpecularShaderHandle;
     private readonly ITransform3D m_Light;
 
     private Vector3 _lightColor = new Vector3(1f,1f,1f);
@@ -25,7 +25,7 @@ public class SpecularRenderPass
 
     public void Register(in SpecularRenderable renderable)
     {
-        var mesh = renderable.Mesh;
+        var mesh = renderable.MeshHandle;
         var textures = renderable.Textures;
         var transform = renderable.Transform;
         
@@ -42,41 +42,42 @@ public class SpecularRenderPass
     
     public void Load(IScene scene)
     {
-        var locator = scene.Context.Locator;
-        var shaderLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
-        m_SpecularShader = shaderLoader.Load("Assets/Shaders/specular.shader");
-        m_SpecularShader.EnableBackfaceCulling = true;
-        m_SpecularShader.EnableDepthTest = true;
+        m_SpecularShaderHandle = scene.App.Gpu.LoadShader("Assets/Shaders/specular.shader");
     }
     
-    public void Render(ICamera camera)
+    public void Render(IGpu gpu, ICamera camera)
     {
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
 
-        Debug.Assert(m_SpecularShader != null);
-        
-        using var material = m_SpecularShader.Use();
-        material.SetVector3("light.position", m_Light.WorldPosition);
-        material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
-        material.SetMatrix4x4("matrix_view", viewMatrix);
-        material.SetVector3("camera_position", camera.Transform.WorldPosition);
-        material.SetVector3("light.diffuse", _lightColor);
-        material.SetVector3("light.specular", _specularColor);
-        material.SetVector3("light.ambient", _ambientColor);
-        material.SetFloat("material.shininess", _shininess);
+        var meshManager = gpu.MeshManager;
+        var shaderManager = gpu.ShaderManager;
 
-        var modelMatricesBuffer = material.GetBuffer("model_matrices_t");
+        gpu.SaveState();
+        gpu.EnableBackfaceCulling = true;
+        gpu.EnableDepthTest = true;
+        
+        shaderManager.Use(m_SpecularShaderHandle);
+        shaderManager.SetVector3("light.position", m_Light.WorldPosition);
+        shaderManager.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
+        shaderManager.SetMatrix4x4("matrix_view", viewMatrix);
+        shaderManager.SetVector3("camera_position", camera.Transform.WorldPosition);
+        shaderManager.SetVector3("light.diffuse", _lightColor);
+        shaderManager.SetVector3("light.specular", _specularColor);
+        shaderManager.SetVector3("light.ambient", _ambientColor);
+        shaderManager.SetFloat("material.shininess", _shininess);
+
+        var modelMatricesBuffer = shaderManager.GetBuffer("model_matrices_t");
         
         foreach (var renderGroup in m_MeshToRenderableMap.Keys)
         {
-            using var mesh = renderGroup.Item1.Use();
+            meshManager.Use(renderGroup.Item1);
             var textures = renderGroup.Item2;
             
-            material.SetTexture2d("material.diffuse", textures.Diffuse);
-            material.SetTexture2d("material.normal_map", textures.Normal);
-            material.SetTexture2d("material.roughness_map", textures.Roughness);
-            material.SetTexture2d("material.occlusion", textures.Occlusion);
-            material.SetTexture2d("material.translucency", textures.Translucency);
+            shaderManager.SetTexture2d("material.diffuse", textures.Diffuse);
+            shaderManager.SetTexture2d("material.normal_map", textures.Normal);
+            shaderManager.SetTexture2d("material.roughness_map", textures.Roughness);
+            shaderManager.SetTexture2d("material.occlusion", textures.Occlusion);
+            shaderManager.SetTexture2d("material.translucency", textures.Translucency);
             
             var transforms = m_MeshToRenderableMap[renderGroup];
             var transformsCount = transforms.Count;
@@ -94,25 +95,27 @@ public class SpecularRenderPass
                 buffer.Apply();
             }
 
-            mesh.RenderInstanced(transforms.Count);
+            meshManager.RenderInstanced(transforms.Count);
         }
+
+        gpu.RestoreState();
     }
 }
 
 public readonly struct SpecularRenderable 
 {
-    public IGpuMesh Mesh { get; init; }
+    public IHandle<IGpuMesh> MeshHandle { get; init; }
     public ITransform3D Transform { get; init; }
     public SpecularRenderableTextures Textures { get; init; }
 }
 
 public struct SpecularRenderableTextures : IEquatable<SpecularRenderableTextures>
 {
-    public IGpuTexture Diffuse { get; init; }
-    public IGpuTexture Normal { get; init; }
-    public IGpuTexture Roughness { get; init; }
-    public IGpuTexture Occlusion { get; init; }
-    public IGpuTexture Translucency { get; init; }
+    public IHandle<IGpuTexture> Diffuse { get; init; }
+    public IHandle<IGpuTexture> Normal { get; init; }
+    public IHandle<IGpuTexture> Roughness { get; init; }
+    public IHandle<IGpuTexture> Occlusion { get; init; }
+    public IHandle<IGpuTexture> Translucency { get; init; }
 
     public bool Equals(SpecularRenderableTextures other)
     {

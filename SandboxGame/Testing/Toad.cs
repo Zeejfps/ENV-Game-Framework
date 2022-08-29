@@ -10,12 +10,12 @@ public class Toad : ISceneObject
 {
     public ITransform3D Transform { get; }
     
-    private IGpuMesh? m_Mesh;
-    private IGpuTexture? m_Diffuse;
-    private IGpuTexture? m_Normal;
-    private IGpuTexture? m_Roughness;
-    private IGpuTexture? m_Occlusion;
-    private IGpuTexture? m_Translucency;
+    private IHandle<IGpuMesh>? m_MeshHandle;
+    private IHandle<IGpuTexture>? m_Diffuse;
+    private IHandle<IGpuTexture>? m_Normal;
+    private IHandle<IGpuTexture>? m_Roughness;
+    private IHandle<IGpuTexture>? m_Occlusion;
+    private IHandle<IGpuTexture>? m_Translucency;
 
     private readonly SpecularRenderPass m_SpecularRenderPass;
 
@@ -27,21 +27,19 @@ public class Toad : ISceneObject
     
     public void Load(IScene scene)
     {
-        var locator = scene.Context.Locator;
-        var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
-        var textureLoader = locator.LocateOrThrow<IAssetLoader<IGpuTexture>>();
+        var gpu = scene.App.Gpu;
         
-        m_Mesh = meshLoader.Load("Assets/Meshes/Toad.mesh");
-        m_Diffuse = textureLoader.Load("Assets/Textures/Toad/Toad_BaseColor.texture");
-        m_Normal = textureLoader.Load("Assets/Textures/Toad/Toad_Normal.texture");
-        m_Roughness = textureLoader.Load("Assets/Textures/Toad/Toad_Roughness.texture");
-        m_Occlusion = textureLoader.Load("Assets/Textures/Toad/Toad_AO.texture");
-        m_Translucency = textureLoader.Load("Assets/Textures/Toad/Toad_Translucency.texture");
+        m_MeshHandle = gpu.LoadMesh("Assets/Meshes/Toad.mesh");
+        m_Diffuse = gpu.LoadTexture("Assets/Textures/Toad/Toad_BaseColor.texture");
+        m_Normal = gpu.LoadTexture("Assets/Textures/Toad/Toad_Normal.texture");
+        m_Roughness = gpu.LoadTexture("Assets/Textures/Toad/Toad_Roughness.texture");
+        m_Occlusion = gpu.LoadTexture("Assets/Textures/Toad/Toad_AO.texture");
+        m_Translucency = gpu.LoadTexture("Assets/Textures/Toad/Toad_Translucency.texture");
 
         m_SpecularRenderPass.Register(new SpecularRenderable
         {
             Transform = Transform,
-            Mesh = m_Mesh,
+            MeshHandle = m_MeshHandle,
             Textures = new SpecularRenderableTextures
             {
                 Diffuse = m_Diffuse,
@@ -55,7 +53,7 @@ public class Toad : ISceneObject
 
     public void Update(IScene scene)
     {
-        Debug.Assert(m_Mesh != null);
+        Debug.Assert(m_MeshHandle != null);
         Debug.Assert(m_Diffuse != null);
         Debug.Assert(m_Normal != null);
         Debug.Assert(m_Occlusion != null);

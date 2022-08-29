@@ -1,6 +1,5 @@
 ﻿namespace EasyGameFramework.API.AssetTypes;
 
-public interface IGpuTexture : IAsset
+public interface IGpuTexture : IGpuAsset
 {
-    IGpuTextureHandle Use();
 }

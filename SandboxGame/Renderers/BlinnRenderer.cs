@@ -7,15 +7,14 @@ namespace Framework;
 
 public struct BlinnRenderData
 {
-    public IGpuMesh Mesh { get; init; }
+    public IHandle<IGpuMesh> MeshHandle { get; init; }
     public ITransform3D Transform { get; init; }
 }
 
 public class BlinnRenderer
 {
-    private IGpuShader? m_Shader;
-    private IGpuTexture? m_Texture;
-    private IGpuFramebuffer? m_Framebuffer;
+    private IHandle<IGpuShader> m_Shader;
+    private IHandle<IGpuTexture>? m_Texture;
     
     private readonly ICamera m_Camera;
     private readonly ITransform3D m_Light;
@@ -28,24 +27,16 @@ public class BlinnRenderer
     
     public void Load(IScene scene)
     {
-        var locator = scene.Context.Locator;
-        var shaderLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
-        var textureLoader = locator.LocateOrThrow<IAssetLoader<IGpuTexture>>();
-        m_Shader = shaderLoader.Load("Assets/Shaders/blinn.shader");
-        m_Texture = textureLoader.Load("Assets/Textures/test.texture");
-
-        m_Framebuffer = scene.Context.Window.Framebuffer;
+        var gpu = scene.App.Gpu;
+        m_Shader = gpu.LoadShader("Assets/Shaders/blinn.shader");
+        m_Texture = gpu.LoadTexture("Assets/Textures/test.texture");
     }
-
-    public void Unload(IScene scene)
+    
+    public void Render(IGpu gpu, BlinnRenderData renderData)
     {
-        Debug.Assert(m_Shader != null);
-        m_Shader.Dispose();
-        m_Shader = null;
-    }
-
-    public void Render(BlinnRenderData renderData)
-    {
+        var meshManager = gpu.MeshManager;
+        var shaderManager = gpu.ShaderManager;
+        
         var camera = m_Camera;
         var modelMatrix = renderData.Transform.WorldMatrix;
 
@@ -56,14 +47,15 @@ public class BlinnRenderer
 
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
         
-        using var material = m_Shader.Use();
-        using var mesh = renderData.Mesh.Use();
-        material.SetVector3("Light.position", m_Light.WorldPosition);
-        material.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
-        material.SetMatrix4x4("matrix_view", viewMatrix);
-        material.SetMatrix4x4("matrix_model", modelMatrix);
-        material.SetMatrix4x4("normal_matrix", normalMatrix);
-        material.SetVector3("camera_position", camera.Transform.WorldPosition);
-        mesh.Render();
+        shaderManager.Use(m_Shader);
+        shaderManager.SetVector3("Light.position", m_Light.WorldPosition);
+        shaderManager.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
+        shaderManager.SetMatrix4x4("matrix_view", viewMatrix);
+        shaderManager.SetMatrix4x4("matrix_model", modelMatrix);
+        shaderManager.SetMatrix4x4("normal_matrix", normalMatrix);
+        shaderManager.SetVector3("camera_position", camera.Transform.WorldPosition);
+        
+        meshManager.Use(renderData.MeshHandle);
+        meshManager.Render();
     }
 }

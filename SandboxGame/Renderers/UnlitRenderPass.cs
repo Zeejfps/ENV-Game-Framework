@@ -6,7 +6,7 @@ namespace Framework;
 
 public class UnlitRendererable
 {
-    public IGpuMesh Mesh { get; init; }
+    public IHandle<IGpuMesh> MeshHandle { get; init; }
     public Vector3 Color { get; init; }
     public ITransform3D Transform { get; init; }
 }
@@ -20,22 +20,30 @@ public class UnlitRenderPass
         m_Renderables.Add(rendererable);
     }
 
-    public void Render(ICamera camera, IGpuShader material)
+    public void Render(IGpu gpu, IHandle<IGpuShader> shader, ICamera camera)
     {
-        using var materialHandle = material.Use();
-        materialHandle.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
+        gpu.SaveState();
+        gpu.EnableDepthTest = true;
+        gpu.EnableBackfaceCulling = false;
+
+        var meshManager = gpu.MeshManager;
+        var shaderManager = gpu.ShaderManager;
+        shaderManager.Use(shader);
+        shaderManager.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
 
         foreach (var data in m_Renderables)
         {
             var modelMatrix = data.Transform.WorldMatrix;
             Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
         
-            materialHandle.SetMatrix4x4("matrix_view", viewMatrix);
-            materialHandle.SetMatrix4x4("matrix_model", modelMatrix);
-            materialHandle.SetVector3("color", data.Color);
+            shaderManager.SetMatrix4x4("matrix_view", viewMatrix);
+            shaderManager.SetMatrix4x4("matrix_model", modelMatrix);
+            shaderManager.SetVector3("color", data.Color);
 
-            using var mesh = data.Mesh.Use();
-            mesh.Render();
+            meshManager.Use(data.MeshHandle);
+            meshManager.Render();
         }
+        
+        gpu.RestoreState();
     }
 }

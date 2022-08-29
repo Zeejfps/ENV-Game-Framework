@@ -4,22 +4,20 @@ using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
 using EasyGameFramework.API.InputDevices;
 using EasyGameFramework.Cameras;
-using TicTacToePrototype;
 
 namespace Framework;
 
 public class TestScene : IScene
 {
-    public IApplication Context => m_Context;
+    public IApplication App => m_App;
 
-    private IGpuRenderbuffer m_TempRenderbuffer;
-    private IGpuFramebuffer m_WindowFramebuffer;
+    private IGpuRenderbufferHandle m_TempRenderbufferHandle;
     
     private SpecularRenderPass m_SpecularRenderPass;
     private UnlitRenderPass m_UnlitRenderPass;
     private FullScreenBlitPass m_FullScreenBlitPass;
     
-    private readonly IApplication m_Context;
+    private readonly IApplication m_App;
     private readonly ICamera m_Camera;
     private readonly IClock m_Clock;
 
@@ -37,14 +35,16 @@ public class TestScene : IScene
     private readonly TestLight m_Light;
     private readonly List<ISceneObject> m_SceneObjects = new();
 
-    private IGpuShader m_UnlitShader;
-    private IGpuShader m_FullScreenBlitShader;
-    private IGpuMesh m_QuadMesh;
+    private IHandle<IGpuShader> m_UnlitShaderHandle;
+    private IHandle<IGpuShader> m_FullScreenBlitShaderHandle;
+    private IHandle<IGpuMesh> m_QuadMeshHandle;
+    private IGpu m_Gpu;
     
-    public TestScene(IApplication context)
+    public TestScene(IApplication app)
     {
-        var aspect = context.Window.Width / (float)context.Window.Height;
-        m_Context = context;
+        var aspect = app.Window.Width / (float)app.Window.Height;
+        m_App = app;
+        m_Gpu = m_App.Gpu;
         //m_Camera = new OrthographicCamera(20, 20 / aspect, 0.1f, 100f);
         m_Camera = new PerspectiveCamera(75f, aspect);
         m_Clock = new Clock();
@@ -59,15 +59,15 @@ public class TestScene : IScene
         };
         lightTransform.RotateInLocalSpace(0f, 0f, 180f);
         
-        m_WindowFramebuffer = context.Window.Framebuffer;
-        
-        m_TempRenderbuffer = context.CreateRenderbuffer(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height, 3, true);
+        var framebufferManager = app.Gpu.RenderbufferManager;
+        var framebufferWidth = framebufferManager.WindowBufferHandle.Width;
+        var framebufferHeight = framebufferManager.WindowBufferHandle.Height;
+        m_TempRenderbufferHandle = app.Gpu.CreateRenderbuffer(framebufferWidth, framebufferHeight, 3, true);
 
         m_SpecularRenderPass = new SpecularRenderPass(lightTransform);
         m_UnlitRenderPass = new UnlitRenderPass();
         m_Light = new TestLight(m_UnlitRenderPass, lightTransform);
         m_FullScreenBlitPass = new FullScreenBlitPass(m_Camera,m_Light.Transform);
-        
         
         //m_Ship1 = new Ship(m_SpecularRenderPass);
 
@@ -87,31 +87,17 @@ public class TestScene : IScene
 
     public void Load()
     {
-        var locator = Context.Locator;
-        var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
-        var shaderLoader = locator.LocateOrThrow<IAssetLoader<IGpuShader>>();
+        var gpu = App.Gpu;
 
-        m_UnlitShader = shaderLoader.Load("Assets/Shaders/unlit.shader");
-
-        m_UnlitShader.EnableDepthTest = true;
-        m_UnlitShader.EnableBackfaceCulling = false;
-        
-        m_FullScreenBlitShader = shaderLoader.Load("Assets/Shaders/fullScreenQuad.shader");
-        m_FullScreenBlitShader.EnableBackfaceCulling = true;
-        m_FullScreenBlitShader.EnableDepthTest = false;
-        
-        m_QuadMesh = meshLoader.Load("Assets/Meshes/quad.mesh");
+        m_UnlitShaderHandle = gpu.LoadShader("Assets/Shaders/unlit.shader");
+        m_FullScreenBlitShaderHandle = gpu.LoadShader("Assets/Shaders/fullScreenQuad.shader");
+        m_QuadMeshHandle = gpu.LoadMesh("Assets/Meshes/quad.mesh");
 
         m_Light.Load(this);
         m_SpecularRenderPass.Load(this);
         
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Load(this);
-    }
-
-    public void Unload()
-    {
-        
     }
 
     public void Update()
@@ -125,35 +111,36 @@ public class TestScene : IScene
         
         // foreach (var sceneObject in m_SceneObjects)
         //     sceneObject.Update(this);
-        //
+        
         // /*
         //  * All the Rendering steps below
         //  */
-        using (var renderbuffer = m_TempRenderbuffer.Use())
-        {
-            renderbuffer.Resize(m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
-            renderbuffer.Clear(0f, 0f, 0f, 0f);
-            m_SpecularRenderPass.Render(m_Camera);
-        }
-
-        using (var renderbuffer = m_WindowFramebuffer.Use())
-        {
-            renderbuffer.Clear(.42f, .607f, .82f, 1f);
-            m_FullScreenBlitPass.Render(m_QuadMesh,
-                m_FullScreenBlitShader,
-                m_TempRenderbuffer.ColorBuffers[0],
-                m_TempRenderbuffer.ColorBuffers[1],
-                m_TempRenderbuffer.ColorBuffers[2]);
-            
-            m_UnlitRenderPass.Render(m_Camera, m_UnlitShader);
-        }
+        
+        var renderbufferManager = App.Gpu.RenderbufferManager;
+        var windowFramebufferWidth = renderbufferManager.WindowBufferHandle.Width;
+        var windowFramebufferHeight = renderbufferManager.WindowBufferHandle.Height;
+        
+        renderbufferManager.Use(m_TempRenderbufferHandle);
+        renderbufferManager.SetSize(windowFramebufferWidth, windowFramebufferHeight);
+        renderbufferManager.ClearColor(0f, 0f, 0f, 0f);
+        m_SpecularRenderPass.Render(m_Gpu, m_Camera);
+        
+        renderbufferManager.UseWindow();
+        renderbufferManager.ClearColor(.42f, .607f, .82f, 1f);
+        m_FullScreenBlitPass.Render(m_Gpu, m_QuadMeshHandle,
+            m_FullScreenBlitShaderHandle,
+            m_TempRenderbufferHandle.ColorBuffers[0],
+            m_TempRenderbufferHandle.ColorBuffers[1],
+            m_TempRenderbufferHandle.ColorBuffers[2]);
+        
+        m_UnlitRenderPass.Render(m_Gpu, m_UnlitShaderHandle, m_Camera);
     }
 
     private void HandleInput()
     {
         var speed = m_Clock.DeltaTime * 15f;
-        var mouse = m_Context.Input.Mouse;
-        var keyboard = m_Context.Input.Keyboard;
+        var mouse = m_App.Input.Mouse;
+        var keyboard = m_App.Input.Keyboard;
         
         if (keyboard.IsKeyPressed(KeyboardKey.W))
             m_Camera.Transform.WorldPosition += m_Camera.Transform.Forward * speed;
@@ -168,8 +155,8 @@ public class TestScene : IScene
         if (mouse.ScrollDeltaY != 0)
             m_Camera.Transform.WorldPosition += m_Camera.Transform.Forward * mouse.ScrollDeltaY * m_Clock.DeltaTime * 100f;
         
-        if (m_Context.Window.IsFullscreen && keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
-            m_Context.Window.IsFullscreen = false;
+        if (m_App.Window.IsFullscreen && keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
+            m_App.Window.IsFullscreen = false;
 
         if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Space))
             m_IsRotating = !m_IsRotating;
@@ -218,16 +205,14 @@ public class TestScene : IScene
 
     private List<Ship> CreateShips()
     {
-        var locator = Context.Locator;
-        var meshLoader = locator.LocateOrThrow<IAssetLoader<IGpuMesh>>();
-        var textureLoader = locator.LocateOrThrow<IAssetLoader<IGpuTexture>>();
+        var gpu = App.Gpu;
         
-        var mesh = meshLoader.Load("Assets/Meshes/ship.mesh");
-        var diffuse = textureLoader.Load("Assets/Textures/Ship/ship_d.texture");
-        var normal = textureLoader.Load("Assets/Textures/Ship/ship_n.texture");
-        var roughness = textureLoader.Load("Assets/Textures/Ship/ship_r.texture");
-        var occlusion = textureLoader.Load("Assets/Textures/Ship/ship_ao.texture");
-        var translucency = textureLoader.Load("Assets/Textures/Toad/Toad_Translucency.texture");
+        var mesh = gpu.LoadMesh("Assets/Meshes/ship.mesh");
+        var diffuse = gpu.LoadTexture("Assets/Textures/Ship/ship_d.texture");
+        var normal = gpu.LoadTexture("Assets/Textures/Ship/ship_n.texture");
+        var roughness = gpu.LoadTexture("Assets/Textures/Ship/ship_r.texture");
+        var occlusion = gpu.LoadTexture("Assets/Textures/Ship/ship_ao.texture");
+        var translucency = gpu.LoadTexture("Assets/Textures/Toad/Toad_Translucency.texture");
 
         var ships = new List<Ship>();
         var size = 10;
