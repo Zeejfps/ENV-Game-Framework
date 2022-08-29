@@ -1,6 +1,5 @@
 using System.Buffers;
 using EasyGameFramework.API;
-using Framework;
 using static OpenGL.Gl;
 
 namespace GlfwOpenGLBackend;

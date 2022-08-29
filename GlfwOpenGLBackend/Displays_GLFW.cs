@@ -1,5 +1,4 @@
 using EasyGameFramework.API;
-using Framework;
 using GLFW;
 
 namespace Framework.GLFW.NET;

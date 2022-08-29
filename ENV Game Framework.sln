@@ -8,13 +8,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AssetImporter", "AssetImpor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnakeGame", "SnakeGame\SnakeGame.csproj", "{6552609F-B741-4F0F-80A1-4D54F21585B7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrameworkCommon", "FrameworkCommon\FrameworkCommon.csproj", "{9A29F710-972B-4E60-84EF-43180000D0E3}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenGL.NET", "OpenGL.NET\OpenGL.NET.csproj", "{FE34454F-97B8-4DA4-BE45-E17EAEAB9817}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Glfw.NET", "Glfw.NET\Glfw.NET.csproj", "{2314057E-1B48-43EA-B2DB-E3D9B60F17F0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyGameFrameworkApi", "EasyGameFramework.API\EasyGameFrameworkApi.csproj", "{C2E5E871-60E2-4E3F-91E7-B7DA6C498F14}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyGameFramework", "EasyGameFramework\EasyGameFramework.csproj", "{506B4D52-CC81-4DAC-B979-64A50C4270B2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,10 +38,6 @@ Global
 		{6552609F-B741-4F0F-80A1-4D54F21585B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6552609F-B741-4F0F-80A1-4D54F21585B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6552609F-B741-4F0F-80A1-4D54F21585B7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9A29F710-972B-4E60-84EF-43180000D0E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9A29F710-972B-4E60-84EF-43180000D0E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9A29F710-972B-4E60-84EF-43180000D0E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9A29F710-972B-4E60-84EF-43180000D0E3}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FE34454F-97B8-4DA4-BE45-E17EAEAB9817}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FE34454F-97B8-4DA4-BE45-E17EAEAB9817}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FE34454F-97B8-4DA4-BE45-E17EAEAB9817}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -54,5 +50,9 @@ Global
 		{C2E5E871-60E2-4E3F-91E7-B7DA6C498F14}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C2E5E871-60E2-4E3F-91E7-B7DA6C498F14}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C2E5E871-60E2-4E3F-91E7-B7DA6C498F14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{506B4D52-CC81-4DAC-B979-64A50C4270B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{506B4D52-CC81-4DAC-B979-64A50C4270B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{506B4D52-CC81-4DAC-B979-64A50C4270B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{506B4D52-CC81-4DAC-B979-64A50C4270B2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

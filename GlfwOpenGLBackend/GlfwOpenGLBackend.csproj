@@ -8,8 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\FrameworkCommon\FrameworkCommon.csproj" />
-      <ProjectReference Include="..\Framework\Framework.csproj" />
+      <ProjectReference Include="..\EasyGameFramework.API\EasyGameFrameworkApi.csproj" />
+      <ProjectReference Include="..\EasyGameFramework\EasyGameFramework.csproj" />
       <ProjectReference Include="..\Glfw.NET\Glfw.NET.csproj" />
       <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
     </ItemGroup>

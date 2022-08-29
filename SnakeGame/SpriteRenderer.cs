@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
-using Framework;
+
 namespace SnakeGame;
 
 public struct Entity

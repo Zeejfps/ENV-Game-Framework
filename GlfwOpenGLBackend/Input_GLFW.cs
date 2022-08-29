@@ -1,6 +1,5 @@
 ﻿using EasyGameFramework.API;
 using EasyGameFramework.API.InputDevices;
-using Framework;
 using GLFW;
 using MouseButton = GLFW.MouseButton;
 

@@ -9,7 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\FrameworkCommon\FrameworkCommon.csproj" />
+      <ProjectReference Include="..\EasyGameFramework\EasyGameFramework.csproj" />
       <ProjectReference Include="..\Framework\Framework.csproj" />
     </ItemGroup>
 

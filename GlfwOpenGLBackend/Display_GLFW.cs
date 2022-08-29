@@ -1,5 +1,4 @@
 using EasyGameFramework.API;
-using Framework;
 using GLFW;
 using Monitor = GLFW.Monitor;
 
