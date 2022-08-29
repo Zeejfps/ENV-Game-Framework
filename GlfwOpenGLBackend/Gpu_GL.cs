@@ -84,7 +84,7 @@ public class Gpu_GL : IGpu
         m_MeshManager = new MeshManager_GL();
         m_ShaderManager = new ShaderManager_GL();
         m_TextureManager = new TextureManager_GL();
-        m_RenderbufferManager = new RenderbufferManager_GL(windowFramebuffer);
+        m_RenderbufferManager = new RenderbufferManager_GL(windowFramebuffer, m_TextureManager);
     }
     
     public IGpuRenderbufferHandle CreateRenderbuffer(int width, int height, int colorBufferCount, bool createDepthBuffer)

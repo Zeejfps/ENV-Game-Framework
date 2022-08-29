@@ -15,18 +15,18 @@ public class ScriptableRenderer : IRenderer
         m_FullScreenBlitPass = new FullScreenBlitPass();
     }
 
-    public void Render(IGpu gpu, ICamera camera, IRenderScene renderScene)
+    public void Render(IGpu gpu, ICamera camera)
     {
         var renderbufferManager = gpu.RenderbufferManager;
         var windowFramebufferWidth = renderbufferManager.WindowBufferHandle.Width;
         var windowFramebufferHeight = renderbufferManager.WindowBufferHandle.Height;
 
-        // var tempRenderbufferHandle =
-        //     renderbufferManager.GetTempRenderbuffer(windowFramebufferWidth, windowFramebufferHeight);
-        //
-        // renderbufferManager.Bind(tempRenderbufferHandle);
-        // renderbufferManager.SetSize(windowFramebufferWidth, windowFramebufferHeight);
-        // renderbufferManager.ClearColorBuffer(0f, 0f, 0f, 0f);
+        var tempRenderbufferHandle =
+            renderbufferManager.GetTempRenderbuffer(windowFramebufferWidth, windowFramebufferHeight, 3, true);
+        
+        renderbufferManager.Bind(tempRenderbufferHandle);
+        renderbufferManager.SetSize(windowFramebufferWidth, windowFramebufferHeight);
+        renderbufferManager.ClearColorBuffer(0f, 0f, 0f, 0f);
         //m_SpecularRenderPass.Render(gpu, camera, renderScene);
         
         // renderbufferManager.BindWindow();
@@ -39,6 +39,16 @@ public class ScriptableRenderer : IRenderer
         //
         // m_UnlitRenderPass.Render(gpu, camera, m_UnlitShaderHandle);
 
-        //renderbufferManager.ReleaseTempRenderbuffer(tempRenderbufferHandle);
+        renderbufferManager.ReleaseTempRenderbuffer(tempRenderbufferHandle);
+    }
+
+    public void Add(IRenderable renderable)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Remove(IRenderable renderable)
+    {
+        throw new NotImplementedException();
     }
 }

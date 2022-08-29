@@ -2,5 +2,9 @@
 
 public interface IRenderer
 {
-    void Render(IGpu gpu, ICamera camera, IRenderScene renderScene);
+    void Add(IRenderable renderable);
+
+    void Remove(IRenderable renderable);
+    
+    void Render(IGpu gpu, ICamera camera);
 }

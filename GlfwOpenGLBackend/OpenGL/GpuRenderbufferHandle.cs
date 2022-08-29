@@ -7,7 +7,8 @@ public class GpuRenderbufferHandle : IGpuRenderbufferHandle
 {
     public int Width => m_Renderbuffer.Width;
     public int Height => m_Renderbuffer.Height;
-    
+    public bool HasDepthBuffer => DepthBuffer != null;
+
     public IHandle<IGpuTexture>[] ColorBuffers => m_Renderbuffer.ColorBuffers;
     public IHandle<IGpuTexture>? DepthBuffer => m_Renderbuffer.DepthBuffer;
     
