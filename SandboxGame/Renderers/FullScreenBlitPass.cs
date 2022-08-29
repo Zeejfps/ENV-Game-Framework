@@ -30,8 +30,8 @@ public class FullScreenBlitPass
         var meshManager = gpu.MeshManager;
         var shaderManager = gpu.ShaderManager;
 
-        shaderManager.Use(fullScreenBlitShaderHandle);
-        meshManager.Use(quadMeshHandle);
+        shaderManager.Bind(fullScreenBlitShaderHandle);
+        meshManager.Bind(quadMeshHandle);
         
         shaderManager.SetTexture2d("gColor", bufferAlbedoHandle);
         shaderManager.SetTexture2d("gNormal", bufferNormalHandle);

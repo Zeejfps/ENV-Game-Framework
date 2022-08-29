@@ -4,5 +4,5 @@ namespace EasyGameFramework.API;
 
 public interface ITextureManager
 {
-    void Use(IHandle<IGpuTexture> handle);
+    void Bind(IHandle<IGpuTexture> handle);
 }

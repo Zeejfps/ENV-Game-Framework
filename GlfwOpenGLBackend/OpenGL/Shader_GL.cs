@@ -48,7 +48,7 @@ public class Shader_GL : IGpuShader
         var textureSlot = GetTextureSlot(propertyName);
         glUniform1i(location, textureSlot);
         glActiveTexture(GL_TEXTURE0 + textureSlot);
-        m_TextureManager.Use(textureHandle);
+        m_TextureManager.Bind(textureHandle);
     }
 
     public void SetMatrix4x4(string propertyName, Matrix4x4 matrix)

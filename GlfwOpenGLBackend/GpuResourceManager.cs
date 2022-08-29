@@ -6,7 +6,7 @@ public abstract class GpuResourceManager<THandle, TResource>
 
     private readonly Dictionary<THandle, TResource> m_HandleToResourceMap = new();
 
-    public void Use(THandle? handle)
+    public void Bind(THandle? handle)
     {
         if (handle == null)
         {
@@ -17,6 +17,11 @@ public abstract class GpuResourceManager<THandle, TResource>
 
         BoundResource = m_HandleToResourceMap[handle];
         OnBound(BoundResource);
+    }
+
+    public void Unbind()
+    {
+        Bind(default);
     }
     
     public void Add(THandle handle, TResource resource)

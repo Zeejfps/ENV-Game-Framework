@@ -75,7 +75,7 @@ public class Game
         }
 
         var renderbufferManager = m_Gpu.RenderbufferManager;
-        renderbufferManager.Use(null);
+        renderbufferManager.Bind(null);
         renderbufferManager.ClearColorBuffer(0f, 0.3f, 0f, 1f);
         
         m_Gpu.EnableBackfaceCulling = false;

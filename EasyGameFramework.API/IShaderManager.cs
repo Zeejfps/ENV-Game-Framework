@@ -5,7 +5,7 @@ namespace EasyGameFramework.API;
 
 public interface IShaderManager
 {
-    void Use(IHandle<IGpuShader>? handle);
+    void Bind(IHandle<IGpuShader>? handle);
     
     void SetFloat(string propertyName, float value);
 

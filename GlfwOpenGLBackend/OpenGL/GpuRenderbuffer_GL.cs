@@ -83,11 +83,11 @@ public class GpuRenderbuffer_GL : IGpuRenderbuffer
 
         foreach (var colorBuffer in ColorBuffers)
         {
-            m_TextureManager.Use(colorBuffer);
+            m_TextureManager.Bind(colorBuffer);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, IntPtr.Zero);   
         }
 
-        m_TextureManager.Use(m_DepthTextureHandle);
+        m_TextureManager.Bind(m_DepthTextureHandle);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, IntPtr.Zero);
     }
 

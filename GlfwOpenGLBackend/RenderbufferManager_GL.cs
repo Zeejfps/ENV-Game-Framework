@@ -28,9 +28,9 @@ public class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffe
         glBindFramebuffer(0);
     }
     
-    public void UseWindow()
+    public void BindWindow()
     {
-        Use(null);
+        Bind(null);
     }
 
     public void ClearColorBuffer(float r, float g, float b, float a)

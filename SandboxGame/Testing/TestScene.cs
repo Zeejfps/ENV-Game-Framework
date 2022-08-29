@@ -120,12 +120,12 @@ public class TestScene : IScene
         var windowFramebufferWidth = renderbufferManager.WindowBufferHandle.Width;
         var windowFramebufferHeight = renderbufferManager.WindowBufferHandle.Height;
         
-        renderbufferManager.Use(m_TempRenderbufferHandle);
+        renderbufferManager.Bind(m_TempRenderbufferHandle);
         renderbufferManager.SetSize(windowFramebufferWidth, windowFramebufferHeight);
         renderbufferManager.ClearColorBuffer(0f, 0f, 0f, 0f);
         m_SpecularRenderPass.Render(m_Gpu, m_Camera);
         
-        renderbufferManager.UseWindow();
+        renderbufferManager.BindWindow();
         renderbufferManager.ClearColorBuffer(.42f, .607f, .82f, 1f);
         m_FullScreenBlitPass.Render(m_Gpu, m_QuadMeshHandle,
             m_FullScreenBlitShaderHandle,

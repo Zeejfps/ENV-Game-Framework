@@ -42,8 +42,8 @@ public class SpriteRenderer
         var shaderManager = gpu.ShaderManager;
         var meshManager = gpu.MeshManager;
         
-        shaderManager.Use(gpuShaderHandle);
-        meshManager.Use(quadMeshHandle);
+        shaderManager.Bind(gpuShaderHandle);
+        meshManager.Bind(quadMeshHandle);
         
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
             

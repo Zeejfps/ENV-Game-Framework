@@ -28,7 +28,7 @@ public class UnlitRenderPass
 
         var meshManager = gpu.MeshManager;
         var shaderManager = gpu.ShaderManager;
-        shaderManager.Use(shader);
+        shaderManager.Bind(shader);
         shaderManager.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
 
         foreach (var data in m_Renderables)
@@ -40,7 +40,7 @@ public class UnlitRenderPass
             shaderManager.SetMatrix4x4("matrix_model", modelMatrix);
             shaderManager.SetVector3("color", data.Color);
 
-            meshManager.Use(data.MeshHandle);
+            meshManager.Bind(data.MeshHandle);
             meshManager.Render();
         }
         

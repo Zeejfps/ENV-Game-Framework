@@ -32,7 +32,7 @@ public class TestTriangle : ISceneObject
         var keyboard = m_Context.Input.Keyboard;
 
         var shaderManager = gpu.ShaderManager;
-        shaderManager.Use(m_Shader);
+        shaderManager.Bind(m_Shader);
 
         if (keyboard.WasKeyPressedThisFrame(KeyboardKey.R))
             SetRandomColor(shaderManager);

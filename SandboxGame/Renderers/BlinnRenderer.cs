@@ -47,7 +47,7 @@ public class BlinnRenderer
 
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
         
-        shaderManager.Use(m_Shader);
+        shaderManager.Bind(m_Shader);
         shaderManager.SetVector3("Light.position", m_Light.WorldPosition);
         shaderManager.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         shaderManager.SetMatrix4x4("matrix_view", viewMatrix);
@@ -55,7 +55,7 @@ public class BlinnRenderer
         shaderManager.SetMatrix4x4("normal_matrix", normalMatrix);
         shaderManager.SetVector3("camera_position", camera.Transform.WorldPosition);
         
-        meshManager.Use(renderData.MeshHandle);
+        meshManager.Bind(renderData.MeshHandle);
         meshManager.Render();
     }
 }
