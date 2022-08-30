@@ -117,6 +117,11 @@ public class SnakeGame : Game
         }
     }
 
+    protected override void OnRender(float dt)
+    {
+        
+    }
+
     protected override void OnQuit()
     {
     }

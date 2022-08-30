@@ -6,5 +6,6 @@ public interface IGame
 
     void Start();
     void Update(float dt);
+    void Render(float dt);
     void Quit();
 }
