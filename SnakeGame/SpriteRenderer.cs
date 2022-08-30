@@ -1,49 +1,39 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
 
 namespace Snake;
 
-public struct Entity
-{
-    
-}
-
-public struct SnakeSegment
-{
-    
-}
-
 public class SpriteRenderer
 {
-    
-    
-    public SpriteRenderer()
+    private IGpu Gpu { get; }
+    private IHandle<IGpuShader>? ShaderHandle { get; set; }
+    private IHandle<IGpuMesh>? MeshHandle { get; set; }
+
+    public SpriteRenderer(IGpu gpu)
     {
+        Gpu = gpu;
     }
 
-    public void Add(Entity entity)
+    public void LoadResources()
     {
-        
+        ShaderHandle = Gpu.Shader.Load("Assets/sprite");
+        MeshHandle = Gpu.Mesh.Load("Assets/quad");
     }
 
-    public void Remove(Entity entity)
-    {
-        
-    }
-    
     public void Render(
-        IGpu gpu,
-        ICamera camera,
-        IHandle<IGpuShader> gpuShaderHandle,
-        IHandle<IGpuMesh> quadMeshHandle,
-        IEnumerable<ITransform3D> transforms)
+        IEnumerable<ITransform3D> transforms,
+        ICamera camera)
     {
-        var shader = gpu.Shader;
-        var mesh = gpu.Mesh;
+        Debug.Assert(ShaderHandle != null);
+        Debug.Assert(MeshHandle != null);
         
-        shader.Bind(gpuShaderHandle);
-        mesh.Bind(quadMeshHandle);
+        var shader = Gpu.Shader;
+        var mesh = Gpu.Mesh;
+        
+        shader.Bind(ShaderHandle);
+        mesh.Bind(MeshHandle);
         
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
             

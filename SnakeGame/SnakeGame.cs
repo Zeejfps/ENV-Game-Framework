@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using EasyGameFramework;
 using EasyGameFramework.API;
-using EasyGameFramework.API.AssetTypes;
 using EasyGameFramework.API.InputDevices;
 using EasyGameFramework.Cameras;
 
@@ -15,10 +14,7 @@ public class SnakeGame : Game
     private float m_AccumulatedTime;
 
     private OrthographicCamera m_Camera;
-    private SpriteRenderer m_SpriteRenderer;
-
-    private IHandle<IGpuMesh> m_QuadMeshHandle;
-    private IHandle<IGpuShader> m_UnlitShaderHandle;
+    private SpriteRenderer m_SnakeRenderer;
 
     private IContext Context { get; }
     private IInput Input { get; }
@@ -32,9 +28,6 @@ public class SnakeGame : Game
         Gpu = context.Gpu;
         Logger = context.Logger;
         
-        m_QuadMeshHandle = Gpu.Mesh.Load("Assets/quad");
-        m_UnlitShaderHandle = Gpu.Shader.Load("Assets/sprite");
-
         m_Camera = new OrthographicCamera(40, 40, 0.1f, 10)
         {
             Transform =
@@ -42,7 +35,7 @@ public class SnakeGame : Game
                 WorldPosition = new Vector3(0f, 0f, -5f),
             }
         };
-        m_SpriteRenderer = new SpriteRenderer();
+        m_SnakeRenderer = new SpriteRenderer(Gpu);
         
         var width = 20;
         var height = 20;
@@ -91,6 +84,8 @@ public class SnakeGame : Game
         window.IsVsyncEnabled = true;
         window.IsResizable = false;
         window.ShowCentered();
+
+        m_SnakeRenderer.LoadResources();
     }
 
     protected override void OnUpdate(float dt)
@@ -141,7 +136,7 @@ public class SnakeGame : Game
         renderbuffer.BindWindow();
         renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
     
-        m_SpriteRenderer.Render(Gpu, m_Camera, m_UnlitShaderHandle, m_QuadMeshHandle, m_Snake);
+        m_SnakeRenderer.Render(m_Snake, m_Camera);
         
         gpu.RestoreState();
     }
