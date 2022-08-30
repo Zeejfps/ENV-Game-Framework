@@ -73,7 +73,7 @@ public class SnakeGame : Game
         var tail = m_Snake.Last.Value;
         m_Snake.RemoveLast();
 
-        tail.WorldPosition = new Vector3(first.WorldPosition.X + m_SnakeDirection.Dx,
+        tail.WorldPosition = new Vector3(first.WorldPosition.X + m_SnakeDirection.Dx * 2f,
             first.WorldPosition.Y + m_SnakeDirection.Dy * 2f, 0f);
         m_Snake.AddFirst(tail);
     }
@@ -104,6 +104,18 @@ public class SnakeGame : Game
         if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.A))
         {
             m_SnakeDirection = new Direction(-1, 0);
+        }
+        else if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.D)) 
+        {
+            m_SnakeDirection = new Direction(1, 0);
+        }
+        else if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.W)) 
+        {
+            m_SnakeDirection = new Direction(0, 1);
+        }
+        else if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.S)) 
+        {
+            m_SnakeDirection = new Direction(0, -1);
         }
 
         if (Input.Keyboard.WasAnyKeyPressedThisFrame(out var key))
