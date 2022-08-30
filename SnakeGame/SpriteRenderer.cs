@@ -2,7 +2,7 @@
 using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
 
-namespace SnakeGame;
+namespace Snake;
 
 public struct Entity
 {

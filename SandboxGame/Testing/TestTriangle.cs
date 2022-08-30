@@ -7,12 +7,12 @@ namespace Framework;
 public class TestTriangle : ISceneObject
 {
     private readonly IGpuMesh m_Mesh;
-    private readonly IApplication m_Context;
+    private readonly IContext m_Context;
     private readonly ICamera m_Camera;
     private readonly IHandle<IGpuShader> m_Shader;
     private readonly Random m_Random;
     
-    public TestTriangle(IApplication context, ICamera camera)
+    public TestTriangle(IContext context, ICamera camera)
     {
         m_Context = context;
         m_Camera = camera;

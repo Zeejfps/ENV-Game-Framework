@@ -5,9 +5,9 @@ using EasyGameFramework.API.AssetTypes;
 using EasyGameFramework.API.InputDevices;
 using EasyGameFramework.Cameras;
 
-namespace SnakeGame;
+namespace Snake;
 
-public class Game
+public class SnakeGame : Game
 {
     private Direction m_SnakeDirection = Direction.North;
     private readonly LinkedList<ITransform3D> m_Snake;
@@ -21,11 +21,13 @@ public class Game
     private IHandle<IGpuMesh> m_QuadMeshHandle;
     private IHandle<IGpuShader> m_UnlitShaderHandle;
 
+    private IContext Context { get; }
     private IInput m_Input;
     private IGpu m_Gpu;
     
-    public Game(IApplication app)
+    public SnakeGame(IContext app)
     {
+        Context = app;
         m_Input = app.Input;
         m_Gpu = app.Gpu;
         
@@ -64,8 +66,36 @@ public class Game
         });
     }
 
-    public void Update()
+    private void MoveSnake()
     {
+        var first = m_Snake.First!.Value;
+
+        var tail = m_Snake.Last.Value;
+        m_Snake.RemoveLast();
+
+        tail.WorldPosition = new Vector3(first.WorldPosition.X + m_SnakeDirection.Dx,
+            first.WorldPosition.Y + m_SnakeDirection.Dy * 2f, 0f);
+        m_Snake.AddFirst(tail);
+    }
+
+    protected override void OnStart()
+    {
+        var window = Context.Window;
+        window.Width = 500;
+        window.Height = 500;
+        window.IsVsyncEnabled = true;
+        window.IsResizable = false;
+        window.ShowCentered();
+    }
+
+    protected override void OnUpdate(float dt)
+    {
+        if (Context.Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
+        {
+            Quit();
+            return;
+        }
+        
         m_Clock.Tick();
         m_AccumulatedTime += m_Clock.DeltaTime;
         if (m_AccumulatedTime >= 1f)
@@ -87,15 +117,7 @@ public class Game
         }
     }
 
-    private void MoveSnake()
+    protected override void OnQuit()
     {
-        var first = m_Snake.First!.Value;
-
-        var tail = m_Snake.Last.Value;
-        m_Snake.RemoveLast();
-
-        tail.WorldPosition = new Vector3(first.WorldPosition.X + m_SnakeDirection.Dx,
-            first.WorldPosition.Y + m_SnakeDirection.Dy * 2f, 0f);
-        m_Snake.AddFirst(tail);
     }
 }

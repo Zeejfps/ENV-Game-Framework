@@ -1,28 +1,8 @@
 ﻿using EasyGameFramework.API;
-using EasyGameFramework.API.InputDevices;
-using SnakeGame;
+using Snake;
 
-var builder = new ApplicationBuilder();
-var app = builder.Build();
+var builder = new EngineBuilder();
+builder.WithGame<SnakeGame>();
 
-var window = app.Window;
-window.Width = 500;
-window.Height = 500;
-window.IsVsyncEnabled = true;
-window.IsResizable = false;
-window.ShowCentered();
-
-var game = new Game(app);
-
-while (app.IsRunning)
-{
-    app.Update();
-
-    if (app.Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
-    {
-        app.Quit();
-        return;
-    }
-    
-    game.Update();
-}
+var engine = builder.Build();
+engine.Run();

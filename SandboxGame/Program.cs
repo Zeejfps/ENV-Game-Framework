@@ -1,11 +1,10 @@
 ﻿using EasyGameFramework.API;
 using Framework;
 
-var builder = new ApplicationBuilder();
+var builder = new EngineBuilder();
 builder.WithGlfwOpenGlBackend();
 builder.WithRenderer<TestRenderer>();
+builder.WithGame<SandboxGame>();
 
-var app = builder.Build();
-
-var game = new Game(app);
-game.Run();
+var engine = builder.Build();
+engine.Run();

@@ -3,37 +3,44 @@ using GlfwOpenGLBackend;
 
 namespace EasyGameFramework.API;
 
-public sealed class ApplicationBuilder
+public sealed class EngineBuilder
 {
     private DiContainer DiContainer { get; } = new();
     
     private bool m_IsBackendSet;
     private bool m_IsRendererSet;
     
-    public ApplicationBuilder WithGlfwOpenGlBackend()
+    public EngineBuilder WithGlfwOpenGlBackend()
     {
         DiContainer.Register<IDisplays, Displays_GLFW>();
         DiContainer.Register<IInput, Input_GLFW>();
         DiContainer.Register<IWindow, Window_GLFW>();
         DiContainer.Register<IGpu, Gpu_GL>();
-        DiContainer.Register<IApplication, Application_GLFW_GL>();
+        DiContainer.Register<IEngine, Engine>();
+        DiContainer.Register<IContext, Context>();
         m_IsBackendSet = true;
         return this;
     }
     
-    public ApplicationBuilder WithRenderer<TRenderer>() where TRenderer : IRenderer
+    public EngineBuilder WithRenderer<TRenderer>() where TRenderer : IRenderer
     {
         DiContainer.Register<IRenderer, TRenderer>();
         m_IsRendererSet = true;
         return this;
     }
     
-    public ApplicationBuilder WithDefaultRenderer()
+    public EngineBuilder WithDefaultRenderer()
     {
         return this;
     }
+
+    public EngineBuilder WithGame<TGame>() where TGame : IGame
+    {
+        DiContainer.Register<IGame, TGame>();
+        return this;
+    }
     
-    public IApplication Build()
+    public IEngine Build()
     {
         if (!m_IsBackendSet)
             WithGlfwOpenGlBackend();
@@ -41,8 +48,8 @@ public sealed class ApplicationBuilder
         if (!m_IsRendererSet)
             WithDefaultRenderer();
         
-        var app = DiContainer.GetInstance<IApplication>();
-        return app;
+        var engine = DiContainer.GetInstance<IEngine>();
+        return engine;
     }
 }
 

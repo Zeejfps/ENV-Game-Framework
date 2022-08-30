@@ -1,4 +1,4 @@
-﻿namespace SnakeGame;
+﻿namespace Snake;
 
 public readonly struct Direction
 {
