@@ -29,7 +29,17 @@ public class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffe
     {
         glBindFramebuffer(0);
     }
-    
+
+    protected override GpuRenderbuffer_GL LoadResource(string assetPath)
+    {
+        throw new NotImplementedException();
+    }
+
+    protected override IHandle<IGpuRenderbuffer> CreateHandle(GpuRenderbuffer_GL resource)
+    {
+        return new GpuRenderbufferHandle(resource);
+    }
+
     public void BindWindow()
     {
         Bind(null);
@@ -78,8 +88,6 @@ public class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffe
             pool.Push(handle);
             return handle;
         }
-
-       
     }
 
     public void ReleaseTempRenderbuffer(IGpuRenderbufferHandle tempRenderbufferHandle)

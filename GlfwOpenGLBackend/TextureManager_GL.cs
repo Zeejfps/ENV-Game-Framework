@@ -21,16 +21,18 @@ public class TextureManager_GL : GpuResourceManager<IHandle<IGpuTexture>, Textur
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    public IHandle<IGpuTexture> Load(string assetPath)
+    protected override IHandle<IGpuTexture> CreateHandle(Texture2D_GL resource)
+    {
+        return new GpuReadonlyTextureHandle(resource);
+    }
+
+    protected override Texture2D_GL LoadResource(string assetPath)
     {
         var asset = m_CpuTextureAssetLoader.Load(assetPath);
         var width = asset.Width;
         var height = asset.Height;
         var pixels = asset.Pixels;
         var texture = ReadonlyTexture2D_GL.Create(width, height, pixels);
-        var handle = new GpuReadonlyTextureHandle(texture);
-        Add(handle, texture);
-        BoundResource = texture;
-        return handle;
+        return texture;
     }
 }

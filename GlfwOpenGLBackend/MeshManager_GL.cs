@@ -21,15 +21,16 @@ public class MeshManager_GL : GpuResourceManager<IHandle<IGpuMesh>, Mesh_GL>, IM
         glBindVertexArray(0);
     }
 
-    public IHandle<IGpuMesh> Load(string assetPath)
+    protected override IHandle<IGpuMesh> CreateHandle(Mesh_GL resource)
+    {
+        return new GpuMeshHandle(resource);
+    }
+
+    protected override Mesh_GL LoadResource(string assetPath)
     {
         var cpuMesh = m_CpuMeshLoader.Load(assetPath);
-        var gpuMesh = new Mesh_GL(cpuMesh.Vertices, cpuMesh.Normals, cpuMesh.Uvs, cpuMesh.Tangents,
+        return new Mesh_GL(cpuMesh.Vertices, cpuMesh.Normals, cpuMesh.Uvs, cpuMesh.Tangents,
             cpuMesh.Triangles);
-        var handle = new GpuMeshHandle(gpuMesh);
-        Add(handle, gpuMesh);
-        BoundResource = gpuMesh;
-        return handle;
     }
 
     public void Render()

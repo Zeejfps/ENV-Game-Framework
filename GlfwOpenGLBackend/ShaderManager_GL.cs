@@ -17,16 +17,6 @@ public class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader_G
     {
         m_Texture = texture;
     }
-    
-    public IHandle<IGpuShader> Load(string assetPath)
-    {
-        var cpuShader = m_CpuShaderLoader.Load(assetPath);
-        var gpuShader = Shader_GL.LoadFromSource(cpuShader.VertexShader, cpuShader.FragmentShader, m_Texture);
-        var handle = new GpuShaderHandle(gpuShader);
-        Add(handle, gpuShader);
-        BoundResource = gpuShader;
-        return handle;
-    }
 
     public void SetFloat(string propertyName, float value)
     {
@@ -72,5 +62,16 @@ public class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader_G
     protected override void OnUnbound()
     {
         glUseProgram(0);
+    }
+
+    protected override Shader_GL LoadResource(string assetPath)
+    {
+        var cpuShader = m_CpuShaderLoader.Load(assetPath);
+        return Shader_GL.LoadFromSource(cpuShader.VertexShader, cpuShader.FragmentShader, m_Texture);
+    }
+
+    protected override IHandle<IGpuShader> CreateHandle(Shader_GL resource)
+    {
+        return new GpuShaderHandle(resource);
     }
 }

@@ -2,9 +2,10 @@
 
 public abstract class GpuResourceManager<THandle, TResource>
 {
-    protected TResource? BoundResource { get; set; }
+    protected TResource? BoundResource { get; private set; }
 
     private readonly Dictionary<THandle, TResource> m_HandleToResourceMap = new();
+    private readonly Dictionary<string, THandle> m_LoadedHandles = new();
 
     public void Bind(THandle? handle)
     {
@@ -29,7 +30,24 @@ public abstract class GpuResourceManager<THandle, TResource>
         m_HandleToResourceMap[handle] = resource;
     }
 
-    protected abstract void OnBound(TResource resource);
+    public THandle Load(string assetPath)
+    {
+        if (m_LoadedHandles.TryGetValue(assetPath, out var handle))
+        {
+            Bind(handle);
+            return handle;
+        }
 
+        var resource = LoadResource(assetPath);
+        handle = CreateHandle(resource);
+        m_LoadedHandles[assetPath] = handle;
+        BoundResource = resource;
+        Add(handle, resource);
+        return handle;
+    }
+    
+    protected abstract void OnBound(TResource resource);
     protected abstract void OnUnbound();
+    protected abstract TResource LoadResource(string assetPath);
+    protected abstract THandle CreateHandle(TResource resource);
 }
