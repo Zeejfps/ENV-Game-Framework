@@ -32,7 +32,7 @@ public class SandboxGame : Game
 
     protected override void OnUpdate(float dt)
     {
-        Scene.Update();
+        Scene.Update(dt);
     }
 
     protected override void OnRender(float dt)

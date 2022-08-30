@@ -23,7 +23,7 @@ public class TestCube : ISceneObject
     
     public void Load(IScene scene)
     {
-        var gpu = scene.App.Gpu;
+        var gpu = scene.Context.Gpu;
         m_Mesh = gpu.LoadMesh("Assets/Meshes/ship.mesh");
     }
 

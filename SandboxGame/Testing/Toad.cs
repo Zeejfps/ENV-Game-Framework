@@ -28,7 +28,7 @@ public class Toad : ISceneObject
     
     public void Load(IScene scene)
     {
-        var gpu = scene.App.Gpu;
+        var gpu = scene.Context.Gpu;
         
         m_MeshHandle = gpu.LoadMesh("Assets/Meshes/Toad.mesh");
         m_Diffuse = gpu.LoadTexture("Assets/Textures/Toad/Toad_BaseColor.texture");

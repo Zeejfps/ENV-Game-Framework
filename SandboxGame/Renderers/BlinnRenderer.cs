@@ -27,7 +27,7 @@ public class BlinnRenderer
     
     public void Load(IScene scene)
     {
-        var gpu = scene.App.Gpu;
+        var gpu = scene.Context.Gpu;
         m_Shader = gpu.LoadShader("Assets/Shaders/blinn.shader");
         m_Texture = gpu.LoadTexture("Assets/Textures/test.texture");
     }

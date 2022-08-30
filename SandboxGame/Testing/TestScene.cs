@@ -10,7 +10,7 @@ namespace Framework;
 
 public class TestScene : IScene
 {
-    public IContext App => m_App;
+    public IContext Context => m_App;
 
     private IGpuRenderbufferHandle m_TempRenderbufferHandle;
     
@@ -86,7 +86,7 @@ public class TestScene : IScene
 
     public void Load()
     {
-        var gpu = App.Gpu;
+        var gpu = Context.Gpu;
 
         m_UnlitShaderHandle = gpu.LoadShader("Assets/Shaders/unlit.shader");
         m_FullScreenBlitShaderHandle = gpu.LoadShader("Assets/Shaders/fullScreenQuad.shader");
@@ -99,22 +99,14 @@ public class TestScene : IScene
             sceneObject.Load(this);
     }
 
-    public void Update()
+    public void Update(float dt)
     {
-        //m_Camera.Update();
-        m_Clock.Tick();
+        m_Clock.Tick(dt);
 
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Update(m_Clock.DeltaTime);
 
         HandleInput();
-        
-        // foreach (var sceneObject in m_SceneObjects)
-        //     sceneObject.Update(this);
-        
-        // /*
-        //  * All the Rendering steps below
-        //  */
     }
 
     public void Render()
@@ -122,7 +114,7 @@ public class TestScene : IScene
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Render();
         
-        var renderbuffer = App.Gpu.Renderbuffer;
+        var renderbuffer = Context.Gpu.Renderbuffer;
         var windowFramebufferWidth = renderbuffer.WindowBufferHandle.Width;
         var windowFramebufferHeight = renderbuffer.WindowBufferHandle.Height;
         
@@ -214,7 +206,7 @@ public class TestScene : IScene
 
     private List<Ship> CreateShips()
     {
-        var gpu = App.Gpu;
+        var gpu = Context.Gpu;
         var mesh = gpu.LoadMesh("Assets/Meshes/ship.mesh");
         var diffuse = gpu.LoadTexture("Assets/Textures/Ship/ship_d.texture");
         var normal = gpu.LoadTexture("Assets/Textures/Ship/ship_n.texture");

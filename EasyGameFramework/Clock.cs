@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using EasyGameFramework.API;
+﻿using EasyGameFramework.API;
 
 namespace EasyGameFramework;
 
@@ -7,19 +6,10 @@ public class Clock : IClock
 {
     public float DeltaTime { get; private set; }
     public float Time { get; private set; }
-    
-    private readonly Stopwatch m_Stopwatch;
-    
-    public Clock()
-    {
-        m_Stopwatch = new Stopwatch();
-    }
 
-    public void Tick()
+    public void Tick(float dt)
     {
-        var deltaTimeTicks = m_Stopwatch.ElapsedTicks;
-        DeltaTime = (float)deltaTimeTicks / Stopwatch.Frequency;
+        DeltaTime = dt;
         Time += DeltaTime;
-        m_Stopwatch.Restart();
     }
 }

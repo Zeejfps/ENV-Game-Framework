@@ -30,7 +30,7 @@ public class TestTriangle : ISceneObject
 
     public void Update(float dt)
     {
-        var gpu = m_Scene.App.Gpu;
+        var gpu = m_Scene.Context.Gpu;
         var keyboard = m_Context.Input.Keyboard;
 
         var shaderManager = gpu.Shader;
