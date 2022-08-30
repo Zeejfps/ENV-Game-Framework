@@ -23,12 +23,14 @@ public class SnakeGame : Game
     private IContext Context { get; }
     private IInput Input { get; }
     private IGpu Gpu { get; }
+    private ILogger Logger { get; }
     
     public SnakeGame(IContext context)
     {
         Context = context;
         Input = context.Input;
         Gpu = context.Gpu;
+        Logger = context.Logger;
         
         m_QuadMeshHandle = Gpu.LoadMesh("Assets/quad.mesh");
         m_UnlitShaderHandle = Gpu.LoadShader("Assets/sprite.shader");
@@ -106,7 +108,7 @@ public class SnakeGame : Game
 
         if (Input.Keyboard.WasAnyKeyPressedThisFrame(out var key))
         {
-            Console.WriteLine(key);
+            Logger.Trace(key);
         }
         
         m_AccumulatedTime += dt;

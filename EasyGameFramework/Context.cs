@@ -9,13 +9,15 @@ public sealed class Context : IContext
     public IWindow Window { get; }
     public IInput Input { get; }
     public IGpu Gpu { get; }
+    public ILogger Logger { get; }
 
-    public Context(IDisplays displays, IRenderer renderer, IWindow window, IInput input, IGpu gpu)
+    public Context(IDisplays displays, IRenderer renderer, IWindow window, IInput input, IGpu gpu, ILogger logger)
     {
         Displays = displays;
         Renderer = renderer;
         Window = window;
         Input = input;
         Gpu = gpu;
+        Logger = logger;
     }
 }

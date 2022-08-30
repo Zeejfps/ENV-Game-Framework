@@ -7,4 +7,5 @@ public interface IContext
     IWindow Window { get; }
     IInput Input { get; }
     IGpu Gpu { get; }
+    ILogger Logger { get; }
 }

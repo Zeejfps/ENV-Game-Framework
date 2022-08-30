@@ -16,6 +16,7 @@ public sealed class EngineBuilder
     private bool m_IsWindowingSystemSet;
     private bool m_IsBackendSet;
     private bool m_IsRendererSet;
+    private bool m_IsLoggerSet;
 
     public EngineBuilder WithGlfw()
     {
@@ -37,6 +38,13 @@ public sealed class EngineBuilder
     {
         DiContainer.Register<IRenderer, TRenderer>();
         m_IsRendererSet = true;
+        return this;
+    }
+
+    public EngineBuilder WithLogger<TLogger>() where TLogger : ILogger
+    {
+        DiContainer.Register<ILogger, TLogger>();
+        m_IsLoggerSet = true;
         return this;
     }
     
@@ -62,6 +70,9 @@ public sealed class EngineBuilder
 
         if (!m_IsRendererSet)
             WithDefaultRenderer();
+
+        if (!m_IsLoggerSet)
+            WithLogger<ConsoleLogger>();
         
         DiContainer.Register<IEngine, Engine>();
         DiContainer.Register<IContext, Context>();
