@@ -48,19 +48,19 @@ public class SnakeGame : Game
         var height = 20;
         
         m_Snake = new LinkedList<ITransform3D>();
-        m_Snake.AddFirst(new Transform3D
+        m_Snake.AddLast(new Transform3D
         {
             WorldPosition = new Vector3(0f, -5f, 0f),
         });
-        m_Snake.AddFirst(new Transform3D
+        m_Snake.AddLast(new Transform3D
         {
             WorldPosition = new Vector3(0f, -7f, 0f),
         });
-        m_Snake.AddFirst(new Transform3D
+        m_Snake.AddLast(new Transform3D
         {
             WorldPosition = new Vector3(0f, -9f, 0f),
         });
-        m_Snake.AddFirst(new Transform3D
+        m_Snake.AddLast(new Transform3D
         {
             WorldPosition = new Vector3(0f, -11f, 0f),
         });
@@ -103,19 +103,19 @@ public class SnakeGame : Game
         
         if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.A))
         {
-            m_SnakeDirection = new Direction(-1, 0);
+            m_SnakeDirection = Direction.West;
         }
         else if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.D)) 
         {
-            m_SnakeDirection = new Direction(1, 0);
+            m_SnakeDirection = Direction.East;
         }
         else if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.W)) 
         {
-            m_SnakeDirection = new Direction(0, 1);
+            m_SnakeDirection = Direction.North;
         }
         else if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.S)) 
         {
-            m_SnakeDirection = new Direction(0, -1);
+            m_SnakeDirection = Direction.South;
         }
 
         if (Input.Keyboard.WasAnyKeyPressedThisFrame(out var key))
