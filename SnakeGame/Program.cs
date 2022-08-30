@@ -1,5 +1,4 @@
 ﻿using EasyGameFramework;
-using EasyGameFramework.API;
 using Snake;
 
 var builder = new EngineBuilder();

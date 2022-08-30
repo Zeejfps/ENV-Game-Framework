@@ -7,18 +7,23 @@ namespace EasyGameFramework;
 public sealed class EngineBuilder
 {
     private DiContainer DiContainer { get; } = new();
-    
+
+    private bool m_IsWindowingSystemSet;
     private bool m_IsBackendSet;
     private bool m_IsRendererSet;
-    
-    public EngineBuilder WithGlfwOpenGlBackend()
+
+    public EngineBuilder WithGlfw()
     {
         DiContainer.Register<IDisplays, Displays_GLFW>();
         DiContainer.Register<IInput, Input_GLFW>();
         DiContainer.Register<IWindow, Window_GLFW>();
+        m_IsWindowingSystemSet = true;
+        return this;
+    }
+    
+    public EngineBuilder WithOpenGl()
+    {
         DiContainer.Register<IGpu, Gpu_GL>();
-        DiContainer.Register<IEngine, Engine>();
-        DiContainer.Register<IContext, Context>();
         m_IsBackendSet = true;
         return this;
     }
@@ -43,11 +48,17 @@ public sealed class EngineBuilder
     
     public IEngine Build()
     {
+        if (!m_IsWindowingSystemSet)
+            WithGlfw();
+        
         if (!m_IsBackendSet)
-            WithGlfwOpenGlBackend();
+            WithOpenGl();
 
         if (!m_IsRendererSet)
             WithDefaultRenderer();
+        
+        DiContainer.Register<IEngine, Engine>();
+        DiContainer.Register<IContext, Context>();
         
         var engine = DiContainer.GetInstance<IEngine>();
         return engine;
