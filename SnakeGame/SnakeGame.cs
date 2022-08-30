@@ -11,7 +11,6 @@ public class SnakeGame : Game
 {
     private Direction m_SnakeDirection = Direction.North;
     private readonly LinkedList<ITransform3D> m_Snake;
-    private readonly IClock m_Clock;
 
     private float m_AccumulatedTime;
 
@@ -34,7 +33,6 @@ public class SnakeGame : Game
         m_QuadMeshHandle = m_Gpu.LoadMesh("Assets/quad.mesh");
         m_UnlitShaderHandle = m_Gpu.LoadShader("Assets/sprite.shader");
 
-        m_Clock = new Clock();
         m_Camera = new OrthographicCamera(40, 40, 0.1f, 10)
         {
             Transform =
@@ -111,8 +109,7 @@ public class SnakeGame : Game
             Console.WriteLine(key);
         }
         
-        m_Clock.Tick();
-        m_AccumulatedTime += m_Clock.DeltaTime;
+        m_AccumulatedTime += dt;
         if (m_AccumulatedTime >= 1f)
         {
             m_AccumulatedTime = 0f;
