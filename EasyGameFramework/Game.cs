@@ -29,9 +29,7 @@ public abstract class Game : IGame
     }
 
     protected abstract void OnStart();
-
     protected abstract void OnUpdate(float dt);
     protected abstract void OnRender(float dt);
-    
     protected abstract void OnQuit();
 }

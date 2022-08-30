@@ -78,6 +78,11 @@ public class SnakeGame : Game
         m_Snake.AddFirst(tail);
     }
 
+    private void MoveLeft()
+    {
+        
+    }
+
     protected override void OnStart()
     {
         var window = Context.Window;
@@ -96,17 +101,22 @@ public class SnakeGame : Game
             return;
         }
         
+        if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.A))
+        {
+            m_SnakeDirection = new Direction(-1, 0);
+        }
+
+        if (Input.Keyboard.WasAnyKeyPressedThisFrame(out var key))
+        {
+            Console.WriteLine(key);
+        }
+        
         m_Clock.Tick();
         m_AccumulatedTime += m_Clock.DeltaTime;
         if (m_AccumulatedTime >= 1f)
         {
             m_AccumulatedTime = 0f;
             MoveSnake();
-        }
-        
-        if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.A))
-        {
-            m_SnakeDirection = new Direction(-1, 0);
         }
     }
 

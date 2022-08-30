@@ -4,6 +4,8 @@ public interface IKeyboard
 {
     void PressKey(KeyboardKey key);
     void ReleaseKey(KeyboardKey key);
+
+    bool WasAnyKeyPressedThisFrame(out KeyboardKey key);
     
     bool WasKeyPressedThisFrame(KeyboardKey key);
     bool WasKeyReleasedThisFrame(KeyboardKey key);
@@ -15,6 +17,8 @@ public interface IKeyboard
 
 public enum KeyboardKey
 {
+    None,
+    
     Alpha1,
     Alpha2,
     Alpha3,

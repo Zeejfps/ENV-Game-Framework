@@ -19,7 +19,19 @@ class Keyboard_GLFW : IKeyboard
         if (m_PressedKeys.Remove(key))
             m_KeysReleasedThisFrame.Add(key);
     }
-    
+
+    public bool WasAnyKeyPressedThisFrame(out KeyboardKey key)
+    {
+        if (m_KeysPressedThisFrame.Count == 0)
+        {
+            key = KeyboardKey.None;
+            return false;
+        }
+
+        key = m_KeysPressedThisFrame.First();
+        return true;
+    }
+
     public bool WasKeyPressedThisFrame(KeyboardKey key)
     {
         return m_KeysPressedThisFrame.Contains(key);
