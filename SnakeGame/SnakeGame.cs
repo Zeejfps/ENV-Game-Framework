@@ -22,16 +22,16 @@ public class SnakeGame : Game
 
     private IContext Context { get; }
     private IInput Input { get; }
-    private IGpu m_Gpu;
+    private IGpu Gpu { get; }
     
     public SnakeGame(IContext context)
     {
         Context = context;
         Input = context.Input;
-        m_Gpu = context.Gpu;
+        Gpu = context.Gpu;
         
-        m_QuadMeshHandle = m_Gpu.LoadMesh("Assets/quad.mesh");
-        m_UnlitShaderHandle = m_Gpu.LoadShader("Assets/sprite.shader");
+        m_QuadMeshHandle = Gpu.LoadMesh("Assets/quad.mesh");
+        m_UnlitShaderHandle = Gpu.LoadShader("Assets/sprite.shader");
 
         m_Camera = new OrthographicCamera(40, 40, 0.1f, 10)
         {
@@ -119,14 +119,17 @@ public class SnakeGame : Game
 
     protected override void OnRender(float dt)
     {
-        var renderbufferManager = m_Gpu.Renderbuffer;
-        renderbufferManager.BindWindow();
-        renderbufferManager.ClearColorBuffers(0f, 0.3f, 0f, 1f);
+        var gpu = Gpu;
+        gpu.SaveState();
+        gpu.EnableBackfaceCulling = false;
+
+        var renderbuffer = Gpu.Renderbuffer;
+        renderbuffer.BindWindow();
+        renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
     
-        m_Gpu.SaveState();
-        m_Gpu.EnableBackfaceCulling = false;
-        m_SpriteRenderer.Render(m_Gpu, m_Camera, m_UnlitShaderHandle, m_QuadMeshHandle, m_Snake);
-        m_Gpu.RestoreState();
+        m_SpriteRenderer.Render(Gpu, m_Camera, m_UnlitShaderHandle, m_QuadMeshHandle, m_Snake);
+        
+        gpu.RestoreState();
     }
 
     protected override void OnQuit()
