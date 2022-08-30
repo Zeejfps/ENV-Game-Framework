@@ -34,8 +34,8 @@ public class BlinnRenderer
     
     public void Render(IGpu gpu, BlinnRenderData renderData)
     {
-        var meshManager = gpu.MeshManager;
-        var shaderManager = gpu.ShaderManager;
+        var meshManager = gpu.Mesh;
+        var shaderManager = gpu.Shader;
         
         var camera = m_Camera;
         var modelMatrix = renderData.Transform.WorldMatrix;

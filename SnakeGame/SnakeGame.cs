@@ -119,9 +119,9 @@ public class SnakeGame : Game
 
     protected override void OnRender(float dt)
     {
-        var renderbufferManager = m_Gpu.RenderbufferManager;
+        var renderbufferManager = m_Gpu.Renderbuffer;
         renderbufferManager.BindWindow();
-        renderbufferManager.ClearColorBuffer(0f, 0.3f, 0f, 1f);
+        renderbufferManager.ClearColorBuffers(0f, 0.3f, 0f, 1f);
     
         m_Gpu.SaveState();
         m_Gpu.EnableBackfaceCulling = false;

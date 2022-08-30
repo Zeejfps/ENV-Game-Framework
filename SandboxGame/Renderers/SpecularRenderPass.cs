@@ -42,35 +42,35 @@ public class SpecularRenderPass
     {
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
 
-        var meshManager = gpu.MeshManager;
-        var shaderManager = gpu.ShaderManager;
+        var mesh = gpu.Mesh;
+        var shader = gpu.Shader;
 
         gpu.SaveState();
         gpu.EnableBackfaceCulling = true;
         gpu.EnableDepthTest = true;
         
-        shaderManager.Bind(m_SpecularShaderHandle);
-        shaderManager.SetVector3("light.position", light.WorldPosition);
-        shaderManager.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
-        shaderManager.SetMatrix4x4("matrix_view", viewMatrix);
-        shaderManager.SetVector3("camera_position", camera.Transform.WorldPosition);
-        shaderManager.SetVector3("light.diffuse", _lightColor);
-        shaderManager.SetVector3("light.specular", _specularColor);
-        shaderManager.SetVector3("light.ambient", _ambientColor);
-        shaderManager.SetFloat("material.shininess", _shininess);
+        shader.Bind(m_SpecularShaderHandle);
+        shader.SetVector3("light.position", light.WorldPosition);
+        shader.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
+        shader.SetMatrix4x4("matrix_view", viewMatrix);
+        shader.SetVector3("camera_position", camera.Transform.WorldPosition);
+        shader.SetVector3("light.diffuse", _lightColor);
+        shader.SetVector3("light.specular", _specularColor);
+        shader.SetVector3("light.ambient", _ambientColor);
+        shader.SetFloat("material.shininess", _shininess);
 
-        var modelMatricesBuffer = shaderManager.GetBuffer("model_matrices_t");
+        var modelMatricesBuffer = shader.GetBuffer("model_matrices_t");
         
         foreach (var renderGroup in m_MeshToRenderableMap.Keys)
         {
-            meshManager.Bind(renderGroup.Item1);
+            mesh.Bind(renderGroup.Item1);
             var textures = renderGroup.Item2;
             
-            shaderManager.SetTexture2d("material.diffuse", textures.Diffuse);
-            shaderManager.SetTexture2d("material.normal_map", textures.Normal);
-            shaderManager.SetTexture2d("material.roughness_map", textures.Roughness);
-            shaderManager.SetTexture2d("material.occlusion", textures.Occlusion);
-            shaderManager.SetTexture2d("material.translucency", textures.Translucency);
+            shader.SetTexture2d("material.diffuse", textures.Diffuse);
+            shader.SetTexture2d("material.normal_map", textures.Normal);
+            shader.SetTexture2d("material.roughness_map", textures.Roughness);
+            shader.SetTexture2d("material.occlusion", textures.Occlusion);
+            shader.SetTexture2d("material.translucency", textures.Translucency);
             
             var transforms = m_MeshToRenderableMap[renderGroup];
             var transformsCount = transforms.Count;
@@ -88,7 +88,7 @@ public class SpecularRenderPass
                 buffer.Apply();
             }
 
-            meshManager.RenderInstanced(transforms.Count);
+            mesh.RenderInstanced(transforms.Count);
         }
 
         gpu.RestoreState();

@@ -69,10 +69,10 @@ public class Gpu_GL : IGpu
     private readonly CpuShaderAssetLoader m_CpuShaderLoader = new();
     private readonly CpuTextureAssetLoader m_CpuTextureAssetLoader = new();
 
-    public IMeshManager MeshManager => m_MeshManager;
-    public IShaderManager ShaderManager => m_ShaderManager;
-    public ITextureManager TextureManager => m_TextureManager;
-    public IRenderbufferManager RenderbufferManager { get; set; }
+    public IMeshManager Mesh => m_MeshManager;
+    public IShaderManager Shader => m_ShaderManager;
+    public ITextureManager Texture => m_TextureManager;
+    public IRenderbufferManager Renderbuffer { get; set; }
 
     private readonly MeshManager_GL m_MeshManager;
     private readonly ShaderManager_GL m_ShaderManager;
@@ -83,7 +83,7 @@ public class Gpu_GL : IGpu
         m_MeshManager = new MeshManager_GL();
         m_ShaderManager = new ShaderManager_GL();
         m_TextureManager = new TextureManager_GL();
-        RenderbufferManager = new RenderbufferManager_GL(window, m_TextureManager);
+        Renderbuffer = new RenderbufferManager_GL(window, m_TextureManager);
     }
 
     public IHandle<IGpuMesh> LoadMesh(string assetPath)
@@ -99,7 +99,7 @@ public class Gpu_GL : IGpu
     public IHandle<IGpuShader> LoadShader(string assetPath)
     {
         var cpuShader = m_CpuShaderLoader.Load(assetPath);
-        var gpuShader = Shader_GL.LoadFromSource(cpuShader.VertexShader, cpuShader.FragmentShader, TextureManager);
+        var gpuShader = Shader_GL.LoadFromSource(cpuShader.VertexShader, cpuShader.FragmentShader, Texture);
         var handle = new GpuShaderHandle(gpuShader);
         m_ShaderManager.Add(handle, gpuShader);
         return handle;

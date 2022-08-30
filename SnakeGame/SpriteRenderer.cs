@@ -39,8 +39,8 @@ public class SpriteRenderer
         IHandle<IGpuMesh> quadMeshHandle,
         IEnumerable<ITransform3D> transforms)
     {
-        var shaderManager = gpu.ShaderManager;
-        var meshManager = gpu.MeshManager;
+        var shaderManager = gpu.Shader;
+        var meshManager = gpu.Mesh;
         
         shaderManager.Bind(gpuShaderHandle);
         meshManager.Bind(quadMeshHandle);

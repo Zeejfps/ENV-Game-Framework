@@ -8,10 +8,10 @@ public interface IGpu
     bool EnableBackfaceCulling { get; set; }
     bool EnableBlending { get; set; }
 
-    IMeshManager MeshManager { get; }
-    IShaderManager ShaderManager { get; }
-    ITextureManager TextureManager { get; }
-    IRenderbufferManager RenderbufferManager { get; }
+    IMeshManager Mesh { get; }
+    IShaderManager Shader { get; }
+    ITextureManager Texture { get; }
+    IRenderbufferManager Renderbuffer { get; }
     
     IHandle<IGpuMesh> LoadMesh(string assetPath);
     IHandle<IGpuShader> LoadShader(string assetPath);

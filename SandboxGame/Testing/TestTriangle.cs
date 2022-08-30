@@ -33,7 +33,7 @@ public class TestTriangle : ISceneObject
         var gpu = m_Scene.App.Gpu;
         var keyboard = m_Context.Input.Keyboard;
 
-        var shaderManager = gpu.ShaderManager;
+        var shaderManager = gpu.Shader;
         shaderManager.Bind(m_Shader);
 
         if (keyboard.WasKeyPressedThisFrame(KeyboardKey.R))

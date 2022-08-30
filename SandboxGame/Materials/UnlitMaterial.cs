@@ -31,8 +31,8 @@ public class UnlitMaterial : IMaterial
     public void RenderBatches(IGpu gpu)
     {
         //var gpu = m_Gpu;
-        var meshManager = gpu.MeshManager;
-        var shaderManager = gpu.ShaderManager;
+        var meshManager = gpu.Mesh;
+        var shaderManager = gpu.Shader;
 
         gpu.SaveState();
         gpu.EnableDepthTest = true;

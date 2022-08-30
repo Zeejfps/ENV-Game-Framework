@@ -20,8 +20,8 @@ public class FullScreenBlitPass
         gpu.EnableBackfaceCulling = true;
         gpu.EnableDepthTest = false;
 
-        var meshManager = gpu.MeshManager;
-        var shaderManager = gpu.ShaderManager;
+        var meshManager = gpu.Mesh;
+        var shaderManager = gpu.Shader;
 
         shaderManager.Bind(fullScreenBlitShaderHandle);
         meshManager.Bind(quadMeshHandle);

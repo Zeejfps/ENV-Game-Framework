@@ -60,7 +60,7 @@ public class TestScene : IScene
         };
         m_LightPosition.RotateInLocalSpace(0f, 0f, 180f);
         
-        var renderbufferManager = app.Gpu.RenderbufferManager;
+        var renderbufferManager = app.Gpu.Renderbuffer;
         m_TempRenderbufferHandle = renderbufferManager.GetTempRenderbuffer(3, true);
 
         m_SpecularRenderPass = new SpecularRenderPass();
@@ -115,18 +115,24 @@ public class TestScene : IScene
         // /*
         //  * All the Rendering steps below
         //  */
+    }
+
+    public void Render()
+    {
+        foreach (var sceneObject in m_SceneObjects)
+            sceneObject.Render();
         
-        var renderbufferManager = App.Gpu.RenderbufferManager;
-        var windowFramebufferWidth = renderbufferManager.WindowBufferHandle.Width;
-        var windowFramebufferHeight = renderbufferManager.WindowBufferHandle.Height;
+        var renderbuffer = App.Gpu.Renderbuffer;
+        var windowFramebufferWidth = renderbuffer.WindowBufferHandle.Width;
+        var windowFramebufferHeight = renderbuffer.WindowBufferHandle.Height;
         
-        renderbufferManager.Bind(m_TempRenderbufferHandle);
-        renderbufferManager.SetSize(windowFramebufferWidth, windowFramebufferHeight);
-        renderbufferManager.ClearColorBuffer(0f, 0f, 0f, 0f);
+        renderbuffer.Bind(m_TempRenderbufferHandle);
+        renderbuffer.SetSize(windowFramebufferWidth, windowFramebufferHeight);
+        renderbuffer.ClearColorBuffers(0f, 0f, 0f, 0f);
         m_SpecularRenderPass.Render(m_Gpu, m_Camera, m_LightPosition);
         
-        renderbufferManager.BindWindow();
-        renderbufferManager.ClearColorBuffer(.42f, .607f, .82f, 1f);
+        renderbuffer.BindWindow();
+        renderbuffer.ClearColorBuffers(.42f, .607f, .82f, 1f);
         m_FullScreenBlitPass.Render(m_Gpu, 
             m_Camera,
             m_LightPosition,
@@ -137,12 +143,6 @@ public class TestScene : IScene
             m_TempRenderbufferHandle.ColorBuffers[2]);
         
         m_UnlitRenderPass.Render(m_Gpu, m_Camera);
-    }
-
-    public void Render()
-    {
-        foreach (var sceneObject in m_SceneObjects)
-            sceneObject.Render();
     }
 
     private void HandleInput()

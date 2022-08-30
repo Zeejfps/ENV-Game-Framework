@@ -21,7 +21,7 @@ public class TestRenderer : IRenderer
     public void Render(ICamera camera)
     {
         var gpu = m_Gpu;
-        var renderbufferManager = gpu.RenderbufferManager;
+        var renderbufferManager = gpu.Renderbuffer;
         var windowFramebufferWidth = renderbufferManager.WindowBufferHandle.Width;
         var windowFramebufferHeight = renderbufferManager.WindowBufferHandle.Height;
 
@@ -30,12 +30,12 @@ public class TestRenderer : IRenderer
         
         renderbufferManager.Bind(tempRenderbufferHandle);
         renderbufferManager.SetSize(windowFramebufferWidth, windowFramebufferHeight);
-        renderbufferManager.ClearColorBuffer(0f, 0f, 0f, 0f);
+        renderbufferManager.ClearColorBuffers(0f, 0f, 0f, 0f);
         
         //m_SpecularRenderPass.Render(gpu, camera, renderScene);
         
         renderbufferManager.BindWindow();
-        renderbufferManager.ClearColorBuffer(.42f, .607f, .82f, 1f);
+        renderbufferManager.ClearColorBuffers(.42f, .607f, .82f, 1f);
         // m_FullScreenBlitPass.Render(gpu, m_QuadMeshHandle,
         //     m_FullScreenBlitShaderHandle,
         //     m_TempRenderbufferHandle.ColorBuffers[0],
