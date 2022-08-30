@@ -68,7 +68,7 @@ public class UnlitMaterial : IMaterial
 
     public static UnlitMaterial Load(IGpu gpu)
     {
-        var shader = gpu.LoadShader("Assets/Shaders/unlit.shader");
+        var shader = gpu.Shader.Load("Assets/Shaders/unlit.shader");
         return new UnlitMaterial(shader);
     }
 }

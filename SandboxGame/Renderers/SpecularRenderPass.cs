@@ -35,7 +35,7 @@ public class SpecularRenderPass
     
     public void Load(IScene scene)
     {
-        m_SpecularShaderHandle = scene.Context.Gpu.LoadShader("Assets/Shaders/specular.shader");
+        m_SpecularShaderHandle = scene.Context.Gpu.Shader.Load("Assets/Shaders/specular.shader");
     }
     
     public void Render(IGpu gpu, ICamera camera, ITransform3D light)

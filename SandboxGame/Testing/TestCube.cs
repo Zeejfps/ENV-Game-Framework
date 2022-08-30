@@ -24,7 +24,7 @@ public class TestCube : ISceneObject
     public void Load(IScene scene)
     {
         var gpu = scene.Context.Gpu;
-        m_Mesh = gpu.LoadMesh("Assets/Meshes/ship.mesh");
+        m_Mesh = gpu.Mesh.Load("Assets/Meshes/ship.mesh");
     }
 
     public void Update(float dt)

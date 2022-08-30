@@ -88,9 +88,9 @@ public class TestScene : IScene
     {
         var gpu = Context.Gpu;
 
-        m_UnlitShaderHandle = gpu.LoadShader("Assets/Shaders/unlit.shader");
-        m_FullScreenBlitShaderHandle = gpu.LoadShader("Assets/Shaders/fullScreenQuad.shader");
-        m_QuadMeshHandle = gpu.LoadMesh("Assets/Meshes/quad.mesh");
+        m_UnlitShaderHandle = gpu.Shader.Load("Assets/Shaders/unlit.shader");
+        m_FullScreenBlitShaderHandle = gpu.Shader.Load("Assets/Shaders/fullScreenQuad.shader");
+        m_QuadMeshHandle = gpu.Mesh.Load("Assets/Meshes/quad.mesh");
 
         m_Light.Load(this);
         m_SpecularRenderPass.Load(this);
@@ -207,12 +207,12 @@ public class TestScene : IScene
     private List<Ship> CreateShips()
     {
         var gpu = Context.Gpu;
-        var mesh = gpu.LoadMesh("Assets/Meshes/ship.mesh");
-        var diffuse = gpu.LoadTexture("Assets/Textures/Ship/ship_d.texture");
-        var normal = gpu.LoadTexture("Assets/Textures/Ship/ship_n.texture");
-        var roughness = gpu.LoadTexture("Assets/Textures/Ship/ship_r.texture");
-        var occlusion = gpu.LoadTexture("Assets/Textures/Ship/ship_ao.texture");
-        var translucency = gpu.LoadTexture("Assets/Textures/Toad/Toad_Translucency.texture");
+        var mesh = gpu.Mesh.Load("Assets/Meshes/ship.mesh");
+        var diffuse = gpu.Texture.Load("Assets/Textures/Ship/ship_d.texture");
+        var normal = gpu.Texture.Load("Assets/Textures/Ship/ship_n.texture");
+        var roughness = gpu.Texture.Load("Assets/Textures/Ship/ship_r.texture");
+        var occlusion = gpu.Texture.Load("Assets/Textures/Ship/ship_ao.texture");
+        var translucency = gpu.Texture.Load("Assets/Textures/Toad/Toad_Translucency.texture");
 
         var ships = new List<Ship>();
         var size = 10;

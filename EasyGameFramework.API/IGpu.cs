@@ -1,6 +1,4 @@
-﻿using EasyGameFramework.API.AssetTypes;
-
-namespace EasyGameFramework.API;
+﻿namespace EasyGameFramework.API;
 
 public interface IGpu
 {
@@ -12,10 +10,6 @@ public interface IGpu
     IShaderManager Shader { get; }
     ITextureManager Texture { get; }
     IRenderbufferManager Renderbuffer { get; }
-    
-    IHandle<IGpuMesh> LoadMesh(string assetPath);
-    IHandle<IGpuShader> LoadShader(string assetPath);
-    IHandle<IGpuTexture> LoadTexture(string assetPath);
     
     void SaveState();
     void RestoreState();

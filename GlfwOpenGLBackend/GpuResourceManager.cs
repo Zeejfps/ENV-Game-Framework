@@ -2,7 +2,7 @@
 
 public abstract class GpuResourceManager<THandle, TResource>
 {
-    protected TResource? BoundResource { get; private set; }
+    protected TResource? BoundResource { get; set; }
 
     private readonly Dictionary<THandle, TResource> m_HandleToResourceMap = new();
 

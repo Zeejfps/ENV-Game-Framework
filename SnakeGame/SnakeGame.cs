@@ -32,8 +32,8 @@ public class SnakeGame : Game
         Gpu = context.Gpu;
         Logger = context.Logger;
         
-        m_QuadMeshHandle = Gpu.LoadMesh("Assets/quad.mesh");
-        m_UnlitShaderHandle = Gpu.LoadShader("Assets/sprite.shader");
+        m_QuadMeshHandle = Gpu.Mesh.Load("Assets/quad.mesh");
+        m_UnlitShaderHandle = Gpu.Shader.Load("Assets/sprite.shader");
 
         m_Camera = new OrthographicCamera(40, 40, 0.1f, 10)
         {

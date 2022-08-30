@@ -1,7 +1,6 @@
 ﻿using EasyGameFramework.API;
 using EasyGameFramework.API.AssetTypes;
 using EasyGameFramework.AssetManagement;
-using Framework.GLFW.NET;
 using TicTacToePrototype.OpenGL.AssetLoaders;
 using static OpenGL.Gl;
 
@@ -65,10 +64,6 @@ public class Gpu_GL : IGpu
         }
     }
     
-    private readonly CpuMeshAssetLoader m_CpuMeshLoader = new();
-    private readonly CpuShaderAssetLoader m_CpuShaderLoader = new();
-    private readonly CpuTextureAssetLoader m_CpuTextureAssetLoader = new();
-
     public IMeshManager Mesh => m_MeshManager;
     public IShaderManager Shader => m_ShaderManager;
     public ITextureManager Texture => m_TextureManager;
@@ -81,42 +76,11 @@ public class Gpu_GL : IGpu
     public Gpu_GL(IWindow window)
     {
         m_MeshManager = new MeshManager_GL();
-        m_ShaderManager = new ShaderManager_GL();
         m_TextureManager = new TextureManager_GL();
+        m_ShaderManager = new ShaderManager_GL(m_TextureManager);
         Renderbuffer = new RenderbufferManager_GL(window, m_TextureManager);
     }
-
-    public IHandle<IGpuMesh> LoadMesh(string assetPath)
-    {
-        var cpuMesh = m_CpuMeshLoader.Load(assetPath);
-        var gpuMesh = new Mesh_GL(cpuMesh.Vertices, cpuMesh.Normals, cpuMesh.Uvs, cpuMesh.Tangents,
-            cpuMesh.Triangles);
-        var handle = new GpuMeshHandle(gpuMesh);
-        m_MeshManager.Add(handle, gpuMesh);
-        return handle;
-    }
-
-    public IHandle<IGpuShader> LoadShader(string assetPath)
-    {
-        var cpuShader = m_CpuShaderLoader.Load(assetPath);
-        var gpuShader = Shader_GL.LoadFromSource(cpuShader.VertexShader, cpuShader.FragmentShader, Texture);
-        var handle = new GpuShaderHandle(gpuShader);
-        m_ShaderManager.Add(handle, gpuShader);
-        return handle;
-    }
-
-    public IHandle<IGpuTexture> LoadTexture(string assetPath)
-    {
-        var asset = m_CpuTextureAssetLoader.Load(assetPath);
-        var width = asset.Width;
-        var height = asset.Height;
-        var pixels = asset.Pixels;
-        var texture = ReadonlyTexture2D_GL.Create(width, height, pixels);
-        var handle = new GpuReadonlyTextureHandle(texture);
-        m_TextureManager.Add(handle, texture);
-        return handle;
-    }
-
+    
     public void SaveState()
     {
         StateStack.Push(new State
