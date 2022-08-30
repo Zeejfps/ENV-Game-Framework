@@ -88,9 +88,9 @@ public class TestScene : IScene
     {
         var gpu = Context.Gpu;
 
-        m_UnlitShaderHandle = gpu.Shader.Load("Assets/Shaders/unlit.shader");
-        m_FullScreenBlitShaderHandle = gpu.Shader.Load("Assets/Shaders/fullScreenQuad.shader");
-        m_QuadMeshHandle = gpu.Mesh.Load("Assets/Meshes/quad.mesh");
+        m_UnlitShaderHandle = gpu.Shader.Load("Assets/Shaders/unlit");
+        m_FullScreenBlitShaderHandle = gpu.Shader.Load("Assets/Shaders/fullScreenQuad");
+        m_QuadMeshHandle = gpu.Mesh.Load("Assets/Meshes/quad");
 
         m_Light.Load(this);
         m_SpecularRenderPass.Load(this);

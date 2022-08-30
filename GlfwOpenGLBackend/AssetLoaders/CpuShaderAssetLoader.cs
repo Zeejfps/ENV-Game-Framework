@@ -11,7 +11,9 @@ public class CpuShaderAssetLoader : AssetLoader<ICpuShader>
     //     var shader = CpuShader.Deserialize(reader);
     //     return shader;
     // }
-    
+
+    protected override string FileExtension => ".shader";
+
     protected override ICpuShader Load(Stream stream)
     {
         using var reader = new StreamReader(stream);

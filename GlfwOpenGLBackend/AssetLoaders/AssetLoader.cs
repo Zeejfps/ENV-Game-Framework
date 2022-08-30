@@ -5,8 +5,16 @@ namespace EasyGameFramework.AssetManagement;
 
 public abstract class AssetLoader<T> : IAssetLoader<T> where T : IAsset
 {
+    protected abstract string FileExtension { get; }
+    
     public T Load(string assetPath)
     {
+        var extension = Path.GetExtension(assetPath);
+        if (string.IsNullOrEmpty(extension))
+        {
+            assetPath = assetPath + FileExtension;
+        }
+        
         if (!File.Exists(assetPath))
             throw new Exception($"File does not exists at path: {assetPath}");
 
