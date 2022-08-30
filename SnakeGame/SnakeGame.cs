@@ -103,14 +103,7 @@ public class SnakeGame : Game
             m_AccumulatedTime = 0f;
             MoveSnake();
         }
-
-        var renderbufferManager = m_Gpu.RenderbufferManager;
-        renderbufferManager.Bind(null);
-        renderbufferManager.ClearColorBuffer(0f, 0.3f, 0f, 1f);
         
-        m_Gpu.EnableBackfaceCulling = false;
-        m_SpriteRenderer.Render(m_Gpu, m_Camera, m_UnlitShaderHandle, m_QuadMeshHandle, m_Snake);
-
         if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.A))
         {
             m_SnakeDirection = new Direction(-1, 0);
@@ -119,7 +112,14 @@ public class SnakeGame : Game
 
     protected override void OnRender(float dt)
     {
-        
+        var renderbufferManager = m_Gpu.RenderbufferManager;
+        renderbufferManager.BindWindow();
+        renderbufferManager.ClearColorBuffer(0f, 0.3f, 0f, 1f);
+    
+        m_Gpu.SaveState();
+        m_Gpu.EnableBackfaceCulling = false;
+        m_SpriteRenderer.Render(m_Gpu, m_Camera, m_UnlitShaderHandle, m_QuadMeshHandle, m_Snake);
+        m_Gpu.RestoreState();
     }
 
     protected override void OnQuit()

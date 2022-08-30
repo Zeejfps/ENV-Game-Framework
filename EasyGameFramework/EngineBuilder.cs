@@ -4,6 +4,11 @@ using GlfwOpenGLBackend;
 
 namespace EasyGameFramework;
 
+internal class NullRenderer : IRenderer
+{
+    
+}
+
 public sealed class EngineBuilder
 {
     private DiContainer DiContainer { get; } = new();
@@ -37,6 +42,7 @@ public sealed class EngineBuilder
     
     public EngineBuilder WithDefaultRenderer()
     {
+        DiContainer.Register<IRenderer, NullRenderer>();
         return this;
     }
 

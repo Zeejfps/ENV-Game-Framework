@@ -27,6 +27,7 @@ public class Engine : IEngine
             input.Update();
             window.Update();
             game.Update(0f);
+            game.Render(0f);
         }
     }
 }
