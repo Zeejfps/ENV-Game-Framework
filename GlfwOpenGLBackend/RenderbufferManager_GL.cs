@@ -53,7 +53,7 @@ public class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffe
     
     private readonly Dictionary<(int, bool), Stack<IGpuRenderbufferHandle>> m_RenderBufferPool = new();
 
-    public IGpuRenderbufferHandle GetTempRenderbuffer(int colorBuffersCount, bool createDepthBuffer)
+    public IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer)
     {
         var key = (colorBuffersCount, createDepthBuffer);
         if (!m_RenderBufferPool.TryGetValue(key, out var pool))
