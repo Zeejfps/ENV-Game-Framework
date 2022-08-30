@@ -1,4 +1,6 @@
-﻿namespace EasyGameFramework.API;
+﻿using EasyGameFramework.API;
+
+namespace EasyGameFramework;
 
 public abstract class Game : IGame
 {

@@ -1,7 +1,8 @@
-﻿using Framework.GLFW.NET;
+﻿using EasyGameFramework.API;
+using Framework.GLFW.NET;
 using GlfwOpenGLBackend;
 
-namespace EasyGameFramework.API;
+namespace EasyGameFramework;
 
 public sealed class EngineBuilder
 {

@@ -1,6 +1,6 @@
 using EasyGameFramework.API;
 
-namespace GlfwOpenGLBackend;
+namespace EasyGameFramework;
 
 public class Engine : IEngine
 {
@@ -22,7 +22,7 @@ public class Engine : IEngine
         var window = Window;
         
         game.Start();
-        while (game.IsRunning)
+        while (game.IsRunning && window.IsOpened)
         {
             input.Update();
             window.Update();

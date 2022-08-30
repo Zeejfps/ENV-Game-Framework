@@ -11,8 +11,4 @@
       <ProjectReference Include="..\GlfwOpenGLBackend\GlfwOpenGLBackend.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="AssetManagement" />
-    </ItemGroup>
-
 </Project>

@@ -22,14 +22,14 @@ public class SnakeGame : Game
     private IHandle<IGpuShader> m_UnlitShaderHandle;
 
     private IContext Context { get; }
-    private IInput m_Input;
+    private IInput Input { get; }
     private IGpu m_Gpu;
     
-    public SnakeGame(IContext app)
+    public SnakeGame(IContext context)
     {
-        Context = app;
-        m_Input = app.Input;
-        m_Gpu = app.Gpu;
+        Context = context;
+        Input = context.Input;
+        m_Gpu = context.Gpu;
         
         m_QuadMeshHandle = m_Gpu.LoadMesh("Assets/quad.mesh");
         m_UnlitShaderHandle = m_Gpu.LoadShader("Assets/sprite.shader");
@@ -90,7 +90,7 @@ public class SnakeGame : Game
 
     protected override void OnUpdate(float dt)
     {
-        if (Context.Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
+        if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
         {
             Quit();
             return;
@@ -111,7 +111,7 @@ public class SnakeGame : Game
         m_Gpu.EnableBackfaceCulling = false;
         m_SpriteRenderer.Render(m_Gpu, m_Camera, m_UnlitShaderHandle, m_QuadMeshHandle, m_Snake);
 
-        if (m_Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.A))
+        if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.A))
         {
             m_SnakeDirection = new Direction(-1, 0);
         }
