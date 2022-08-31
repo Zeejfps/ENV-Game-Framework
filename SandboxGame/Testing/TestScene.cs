@@ -1,9 +1,9 @@
 using System.Numerics;
 using EasyGameFramework;
-using EasyGameFramework.API;
-using EasyGameFramework.API.AssetTypes;
-using EasyGameFramework.API.InputDevices;
-using EasyGameFramework.Cameras;
+using EasyGameFramework.Api;
+using EasyGameFramework.Api.AssetTypes;
+using EasyGameFramework.Api.Cameras;
+using EasyGameFramework.Api.InputDevices;
 using Framework.Materials;
 
 namespace Framework;

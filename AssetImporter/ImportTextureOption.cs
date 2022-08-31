@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using BCnEncoder.Encoder;
 using BCnEncoder.Shared;
-using EasyGameFramework.AssetManagement;
+using EasyGameFramework.OpenGL;
 using NativeFileDialogs.Net;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;

@@ -2,8 +2,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SandboxGame", "SandboxGame\SandboxGame.csproj", "{875BC176-DDB6-4B1A-8C71-28D0E5416CB2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GlfwOpenGLBackend", "GlfwOpenGLBackend\GlfwOpenGLBackend.csproj", "{D5C218D9-7C24-4072-B999-213B8519C5EA}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AssetImporter", "AssetImporter\AssetImporter.csproj", "{EC2D0A7D-24CE-4D30-BD02-D1203F48EE75}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnakeGame", "SnakeGame\SnakeGame.csproj", "{6552609F-B741-4F0F-80A1-4D54F21585B7}"
@@ -11,8 +9,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenGL.NET", "OpenGL.NET\OpenGL.NET.csproj", "{FE34454F-97B8-4DA4-BE45-E17EAEAB9817}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Glfw.NET", "Glfw.NET\Glfw.NET.csproj", "{2314057E-1B48-43EA-B2DB-E3D9B60F17F0}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyGameFrameworkApi", "EasyGameFramework.API\EasyGameFrameworkApi.csproj", "{C2E5E871-60E2-4E3F-91E7-B7DA6C498F14}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyGameFramework", "EasyGameFramework\EasyGameFramework.csproj", "{506B4D52-CC81-4DAC-B979-64A50C4270B2}"
 EndProject
@@ -22,10 +18,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{D5C218D9-7C24-4072-B999-213B8519C5EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D5C218D9-7C24-4072-B999-213B8519C5EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D5C218D9-7C24-4072-B999-213B8519C5EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D5C218D9-7C24-4072-B999-213B8519C5EA}.Release|Any CPU.Build.0 = Release|Any CPU
 		{875BC176-DDB6-4B1A-8C71-28D0E5416CB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{875BC176-DDB6-4B1A-8C71-28D0E5416CB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{875BC176-DDB6-4B1A-8C71-28D0E5416CB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -46,10 +38,6 @@ Global
 		{2314057E-1B48-43EA-B2DB-E3D9B60F17F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2314057E-1B48-43EA-B2DB-E3D9B60F17F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2314057E-1B48-43EA-B2DB-E3D9B60F17F0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C2E5E871-60E2-4E3F-91E7-B7DA6C498F14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C2E5E871-60E2-4E3F-91E7-B7DA6C498F14}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C2E5E871-60E2-4E3F-91E7-B7DA6C498F14}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C2E5E871-60E2-4E3F-91E7-B7DA6C498F14}.Release|Any CPU.Build.0 = Release|Any CPU
 		{506B4D52-CC81-4DAC-B979-64A50C4270B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{506B4D52-CC81-4DAC-B979-64A50C4270B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{506B4D52-CC81-4DAC-B979-64A50C4270B2}.Release|Any CPU.ActiveCfg = Release|Any CPU

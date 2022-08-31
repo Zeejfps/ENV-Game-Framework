@@ -1,5 +1,5 @@
 ﻿using EasyGameFramework;
-using EasyGameFramework.API;
+using EasyGameFramework.Api;
 
 namespace Framework;
 

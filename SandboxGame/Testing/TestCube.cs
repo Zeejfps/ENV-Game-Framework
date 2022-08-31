@@ -1,8 +1,5 @@
-using EasyGameFramework;
-using EasyGameFramework.API;
-using EasyGameFramework.API.AssetTypes;
-using Framework;
-using TicTacToePrototype;
+using EasyGameFramework.Api;
+using EasyGameFramework.Api.AssetTypes;
 
 namespace Framework;
 
