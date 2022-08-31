@@ -1,11 +1,9 @@
 ﻿using System.Diagnostics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
-using EasyGameFramework.AssetManagement;
-using Framework.GLFW.NET;
 using static OpenGL.Gl;
 
-namespace GlfwOpenGLBackend;
+namespace EasyGameFramework.OpenGL;
 
 public class MeshManager_GL : GpuResourceManager<IHandle<IGpuMesh>, Mesh_GL>, IMeshManager
 {

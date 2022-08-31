@@ -2,7 +2,7 @@ using System.Buffers;
 using EasyGameFramework.Api;
 using static OpenGL.Gl;
 
-namespace GlfwOpenGLBackend;
+namespace EasyGameFramework.OpenGL;
 
 internal class ShaderStorageBuffer_GL : IBuffer
 {

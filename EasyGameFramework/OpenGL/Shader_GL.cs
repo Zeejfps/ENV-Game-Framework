@@ -3,7 +3,7 @@ using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using static OpenGL.Gl;
 
-namespace GlfwOpenGLBackend;
+namespace EasyGameFramework.OpenGL;
 
 public class Shader_GL : IGpuShader
 {

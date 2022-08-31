@@ -1,7 +1,6 @@
 using System.Numerics;
-using EasyGameFramework.Api;
 
-namespace EasyGameFramework.Cameras;
+namespace EasyGameFramework.Api.Cameras;
 
 public class PerspectiveCamera : ICamera
 {

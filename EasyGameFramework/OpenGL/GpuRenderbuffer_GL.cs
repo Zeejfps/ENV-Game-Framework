@@ -1,10 +1,8 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
-using GlfwOpenGLBackend;
-using GlfwOpenGLBackend.OpenGL;
 using static OpenGL.Gl;
 
-namespace Framework.GLFW.NET;
+namespace EasyGameFramework.OpenGL;
 
 public class GpuRenderbuffer_GL : IGpuRenderbuffer
 {

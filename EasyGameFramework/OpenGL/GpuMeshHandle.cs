@@ -1,9 +1,8 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
-using Framework.GLFW.NET;
 using OpenGL;
 
-namespace GlfwOpenGLBackend;
+namespace EasyGameFramework.OpenGL;
 
 public class GpuMeshHandle : IHandle<IGpuMesh>
 {

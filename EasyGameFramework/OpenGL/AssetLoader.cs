@@ -1,7 +1,7 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 
-namespace EasyGameFramework.AssetManagement;
+namespace EasyGameFramework.OpenGL;
 
 public abstract class AssetLoader<T> : IAssetLoader<T> where T : IAsset
 {

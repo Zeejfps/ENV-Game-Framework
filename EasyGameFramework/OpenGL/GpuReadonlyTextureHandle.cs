@@ -1,9 +1,8 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
-using GlfwOpenGLBackend.OpenGL;
 using static OpenGL.Gl;
 
-namespace GlfwOpenGLBackend;
+namespace EasyGameFramework.OpenGL;
 
 public class GpuReadonlyTextureHandle : IHandle<IGpuTexture>
 {

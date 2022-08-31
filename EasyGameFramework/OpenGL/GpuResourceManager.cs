@@ -1,4 +1,4 @@
-﻿namespace GlfwOpenGLBackend;
+﻿namespace EasyGameFramework.OpenGL;
 
 public abstract class GpuResourceManager<THandle, TResource>
 {

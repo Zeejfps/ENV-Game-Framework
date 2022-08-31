@@ -1,7 +1,7 @@
 ﻿using EasyGameFramework.Api.AssetTypes;
 using static OpenGL.Gl;
 
-namespace Framework.GLFW.NET;
+namespace EasyGameFramework.OpenGL;
 
 public class Mesh_GL : IGpuMesh
 {

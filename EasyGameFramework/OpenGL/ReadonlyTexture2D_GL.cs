@@ -1,7 +1,6 @@
-﻿using GlfwOpenGLBackend.OpenGL;
-using static OpenGL.Gl;
+﻿using static OpenGL.Gl;
 
-namespace TicTacToePrototype.OpenGL.AssetLoaders;
+namespace EasyGameFramework.OpenGL;
 
 public class ReadonlyTexture2D_GL : Texture2D_GL, IEquatable<ReadonlyTexture2D_GL>
 {

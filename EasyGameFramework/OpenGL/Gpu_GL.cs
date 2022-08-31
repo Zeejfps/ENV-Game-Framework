@@ -1,7 +1,7 @@
 ﻿using EasyGameFramework.Api;
 using static OpenGL.Gl;
 
-namespace GlfwOpenGLBackend;
+namespace EasyGameFramework.OpenGL;
 
 public class Gpu_GL : IGpu
 {

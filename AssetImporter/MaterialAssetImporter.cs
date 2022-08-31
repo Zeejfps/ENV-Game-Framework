@@ -1,4 +1,4 @@
-using EasyGameFramework.AssetManagement;
+using EasyGameFramework.OpenGL;
 
 namespace AssetImporter;
 

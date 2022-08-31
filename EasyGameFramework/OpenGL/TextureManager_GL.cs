@@ -1,11 +1,8 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
-using EasyGameFramework.AssetManagement;
-using GlfwOpenGLBackend.OpenGL;
-using TicTacToePrototype.OpenGL.AssetLoaders;
 using static OpenGL.Gl;
 
-namespace GlfwOpenGLBackend;
+namespace EasyGameFramework.OpenGL;
 
 public class TextureManager_GL : GpuResourceManager<IHandle<IGpuTexture>, Texture2D_GL>, ITextureManager
 {

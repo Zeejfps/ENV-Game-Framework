@@ -1,8 +1,7 @@
-﻿using EasyGameFramework.Api;
-using Framework.GLFW.NET;
-using GlfwOpenGLBackend;
+﻿using EasyGameFramework.Glfw;
+using EasyGameFramework.OpenGL;
 
-namespace EasyGameFramework;
+namespace EasyGameFramework.Api;
 
 internal class NullRenderer : IRenderer
 {

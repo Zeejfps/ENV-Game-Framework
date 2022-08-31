@@ -1,14 +1,13 @@
 using EasyGameFramework.Api;
-using GLFW;
 using Monitor = GLFW.Monitor;
 
-namespace Framework.GLFW.NET;
+namespace EasyGameFramework.Glfw;
 
 internal class Display_GLFW : IDisplay
 {
     public Display_GLFW(Monitor monitor)
     {
-        var videoMode = Glfw.GetVideoMode(monitor);
+        var videoMode = GLFW.Glfw.GetVideoMode(monitor);
         ResolutionX = videoMode.Width;
         ResolutionY = videoMode.Height;
         RefreshRate = videoMode.RefreshRate;

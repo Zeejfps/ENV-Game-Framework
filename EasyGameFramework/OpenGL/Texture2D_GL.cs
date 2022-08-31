@@ -1,6 +1,6 @@
 ﻿using EasyGameFramework.Api.AssetTypes;
 
-namespace GlfwOpenGLBackend.OpenGL;
+namespace EasyGameFramework.OpenGL;
 
 public class Texture2D_GL : IGpuTexture
 {

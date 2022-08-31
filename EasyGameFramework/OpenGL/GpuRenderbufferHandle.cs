@@ -1,7 +1,7 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 
-namespace Framework.GLFW.NET;
+namespace EasyGameFramework.OpenGL;
 
 public class GpuRenderbufferHandle : IGpuRenderbufferHandle
 {

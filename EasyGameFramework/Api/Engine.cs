@@ -1,7 +1,6 @@
 using System.Diagnostics;
-using EasyGameFramework.Api;
 
-namespace EasyGameFramework;
+namespace EasyGameFramework.Api;
 
 public class Engine : IEngine
 {

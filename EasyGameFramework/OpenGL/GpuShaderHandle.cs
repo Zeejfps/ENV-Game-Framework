@@ -2,7 +2,7 @@
 using EasyGameFramework.Api.AssetTypes;
 using static OpenGL.Gl;
 
-namespace GlfwOpenGLBackend;
+namespace EasyGameFramework.OpenGL;
 
 public class GpuShaderHandle : IHandle<IGpuShader>
 {

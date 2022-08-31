@@ -1,7 +1,7 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.InputDevices;
 
-namespace Framework.GLFW.NET;
+namespace EasyGameFramework.Glfw;
 
 public class Input_GLFW : IInput
 {

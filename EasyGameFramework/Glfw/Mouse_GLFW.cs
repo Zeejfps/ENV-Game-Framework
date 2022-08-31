@@ -1,6 +1,6 @@
 using EasyGameFramework.Api.InputDevices;
 
-namespace Framework.GLFW.NET;
+namespace EasyGameFramework.Glfw;
 
 internal class Mouse_GLFW : IMouse
 {

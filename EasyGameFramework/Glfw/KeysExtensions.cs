@@ -1,7 +1,7 @@
 ﻿using EasyGameFramework.Api.InputDevices;
 using GLFW;
 
-namespace Framework.GLFW;
+namespace EasyGameFramework.Glfw;
 
 public static class KeysExtensions
 {
