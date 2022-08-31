@@ -90,10 +90,15 @@ public class SnakeGame : Game
         var gpu = Gpu;
         gpu.SaveState();
         gpu.EnableBackfaceCulling = false;
+        gpu.EnableBlending = true;
 
         var renderbuffer = Gpu.Renderbuffer;
         renderbuffer.BindWindow();
         renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
+
+        gpu.Shader.Load("Assets/grid");
+        gpu.Mesh.Load("Assets/quad");
+        gpu.Mesh.Render();
         
         m_SnakeRenderer.Render(Snake, m_Camera);
         
