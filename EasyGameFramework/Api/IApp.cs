@@ -4,7 +4,7 @@ public interface IApp
 {
     bool IsRunning { get; }
 
-    void Start();
+    void Setup();
     void Update();
     void Quit();
 }

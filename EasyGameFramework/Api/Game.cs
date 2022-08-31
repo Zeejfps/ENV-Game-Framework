@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using EasyGameFramework.Core;
 
 namespace EasyGameFramework.Api;
 
@@ -9,21 +10,28 @@ public abstract class Game : IApp
     private readonly Stopwatch m_Stopwatch;
     private float m_DeltaTime = 1f / 60f;
     private double m_Accumulator = 0.0;
+    private readonly GameClock m_Clock;
 
     protected IWindow Window { get; }
     protected IInput Input { get; }
+    protected IClock Clock => m_Clock;
     
     protected Game(IWindow window, IInput input)
     {
         Window = window;
         Input = input;
         m_Stopwatch = new Stopwatch();
+        m_Clock = new GameClock
+        {
+            Time = 0f,
+            DeltaTime = 1f / 60f
+        };
     }
     
-    public void Start()
+    public void Setup()
     {
         IsRunning = true;
-        OnStart();
+        OnSetup();
     }
     
     public void Update()
@@ -47,22 +55,24 @@ public abstract class Game : IApp
 
         while (m_Accumulator >= m_DeltaTime)
         {
-            OnUpdate(m_DeltaTime);
+            OnUpdate();
             Input.Update();
+            m_Clock.Time += Clock.DeltaTime;
             m_Accumulator -= m_DeltaTime;
         }
 
-        OnRender((float)m_Accumulator / m_DeltaTime);
+        var alpha = (float)m_Accumulator / m_DeltaTime;
+        OnRender();
     }
 
     public void Quit()
     {
         IsRunning = false;
-        OnQuit();
+        OnTeardown();
     }
 
-    protected abstract void OnStart();
-    protected abstract void OnUpdate(float dt);
-    protected abstract void OnRender(float dt);
-    protected abstract void OnQuit();
+    protected abstract void OnSetup();
+    protected abstract void OnUpdate();
+    protected abstract void OnRender();
+    protected abstract void OnTeardown();
 }

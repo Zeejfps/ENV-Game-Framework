@@ -1,5 +1,4 @@
-﻿using EasyGameFramework;
-using EasyGameFramework.Api;
+﻿using EasyGameFramework.Api;
 
 namespace Framework;
 
@@ -15,7 +14,7 @@ public class SandboxGame : Game
         Context = context;
     }
 
-    protected override void OnStart()
+    protected override void OnSetup()
     {
         Window.Title = "Hello World";
         //Window.IsFullscreen = true;
@@ -29,17 +28,17 @@ public class SandboxGame : Game
         Scene.Load();
     }
 
-    protected override void OnUpdate(float dt)
+    protected override void OnUpdate()
     {
-        Scene.Update(dt);
+        Scene.Update(Clock.DeltaTime);
     }
 
-    protected override void OnRender(float dt)
+    protected override void OnRender()
     {
         Scene.Render();
     }
 
-    protected override void OnQuit()
+    protected override void OnTeardown()
     {
         
     }

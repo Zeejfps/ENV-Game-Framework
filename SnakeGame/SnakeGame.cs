@@ -36,7 +36,7 @@ public class SnakeGame : Game
         m_SnakeRenderer = new SnakeRenderer(Gpu);
     }
 
-    protected override void OnStart()
+    protected override void OnSetup()
     {
         var window = Window;
         window.Width = 500;
@@ -50,7 +50,7 @@ public class SnakeGame : Game
         Snake.Reset();
     }
 
-    protected override void OnUpdate(float dt)
+    protected override void OnUpdate()
     {
         var keyboard = Input.Keyboard;
         
@@ -82,10 +82,10 @@ public class SnakeGame : Game
             Snake.Reset();
         }
 
-        Snake.Update(dt);
+        Snake.Update(Clock.DeltaTime);
     }
 
-    protected override void OnRender(float dt)
+    protected override void OnRender()
     {
         var gpu = Gpu;
         gpu.SaveState();
@@ -105,7 +105,7 @@ public class SnakeGame : Game
         gpu.RestoreState();
     }
 
-    protected override void OnQuit()
+    protected override void OnTeardown()
     {
     }
 }

@@ -21,7 +21,7 @@ public class TestScene : IScene
     
     private readonly IContext m_App;
     private readonly ICamera m_Camera;
-    private readonly IClock m_Clock;
+    private readonly Clock m_Clock;
 
     private ITransform3D m_CameraTarget;
     private ITransform3D m_LightPosition;
