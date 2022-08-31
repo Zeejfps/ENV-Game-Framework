@@ -6,15 +6,16 @@ namespace EasyGameFramework.Api;
 public abstract class Game : IApp
 {
     public bool IsRunning { get; private set; }
-    
-    private readonly Stopwatch m_Stopwatch;
+
     private float m_DeltaTime = 1f / 60f;
     private double m_Accumulator = 0.0;
+    
+    private readonly Stopwatch m_Stopwatch;
     private readonly GameClock m_Clock;
 
     protected IWindow Window { get; }
     protected IInput Input { get; }
-    protected IClock Clock => m_Clock;
+    protected IGameClock Clock => m_Clock;
     
     protected Game(IWindow window, IInput input)
     {
@@ -24,14 +25,14 @@ public abstract class Game : IApp
         m_Clock = new GameClock
         {
             Time = 0f,
-            DeltaTime = 1f / 60f
+            UpdateDeltaTime = 1f / 60f
         };
     }
     
-    public void Setup()
+    public void Start()
     {
         IsRunning = true;
-        OnSetup();
+        OnStart();
     }
     
     public void Update()
@@ -40,7 +41,7 @@ public abstract class Game : IApp
 
         if (!Window.IsOpened)
         {
-            Quit();
+            Stop();
             return;
         }
         
@@ -51,28 +52,29 @@ public abstract class Game : IApp
         if (frameTime > 0.25)
             frameTime = 0.25;
 
+        m_Clock.FrameDeltaTime = (float)frameTime;
         m_Accumulator += frameTime;
 
         while (m_Accumulator >= m_DeltaTime)
         {
             OnUpdate();
             Input.Update();
-            m_Clock.Time += Clock.DeltaTime;
+            m_Clock.Time += Clock.UpdateDeltaTime;
             m_Accumulator -= m_DeltaTime;
         }
 
-        var alpha = (float)m_Accumulator / m_DeltaTime;
+        m_Clock.FrameLerpFactor = (float)m_Accumulator / m_DeltaTime;
         OnRender();
     }
 
-    public void Quit()
+    public void Stop()
     {
         IsRunning = false;
-        OnTeardown();
+        OnStop();
     }
 
-    protected abstract void OnSetup();
+    protected abstract void OnStart();
     protected abstract void OnUpdate();
     protected abstract void OnRender();
-    protected abstract void OnTeardown();
+    protected abstract void OnStop();
 }

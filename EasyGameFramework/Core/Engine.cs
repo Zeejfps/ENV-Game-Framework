@@ -15,7 +15,7 @@ internal class Engine : IEngine
     {
         var app = App;
 
-        app.Setup();
+        app.Start();
         while (app.IsRunning)
         {
             app.Update();

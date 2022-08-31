@@ -14,7 +14,7 @@ public class SandboxGame : Game
         Context = context;
     }
 
-    protected override void OnSetup()
+    protected override void OnStart()
     {
         Window.Title = "Hello World";
         //Window.IsFullscreen = true;
@@ -30,7 +30,7 @@ public class SandboxGame : Game
 
     protected override void OnUpdate()
     {
-        Scene.Update(Clock.DeltaTime);
+        Scene.Update(Clock.UpdateDeltaTime);
     }
 
     protected override void OnRender()
@@ -38,7 +38,7 @@ public class SandboxGame : Game
         Scene.Render();
     }
 
-    protected override void OnTeardown()
+    protected override void OnStop()
     {
         
     }
