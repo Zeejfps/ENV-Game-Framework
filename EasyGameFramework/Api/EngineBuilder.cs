@@ -52,9 +52,9 @@ public sealed class EngineBuilder
         return this;
     }
 
-    public EngineBuilder WithGame<TGame>() where TGame : IGame
+    public EngineBuilder WithGame<TGame>() where TGame : IApp
     {
-        DiContainer.Register<IGame, TGame>();
+        DiContainer.Register<IApp, TGame>();
         return this;
     }
 

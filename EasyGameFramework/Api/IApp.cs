@@ -1,11 +1,10 @@
 ﻿namespace EasyGameFramework.Api;
 
-public interface IGame
+public interface IApp
 {
     bool IsRunning { get; }
 
     void Start();
-    void Update(float dt);
-    void Render(float dt);
+    void Update();
     void Quit();
 }
