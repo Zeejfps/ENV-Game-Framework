@@ -24,7 +24,7 @@ internal class Keyboard : IKeyboard
     {
         if (m_KeysPressedThisFrame.Count == 0)
         {
-            key = KeyboardKey.None;
+            key = KeyboardKey.Unknown;
             return false;
         }
 

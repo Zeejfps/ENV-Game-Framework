@@ -17,12 +17,14 @@ public interface IKeyboard
 
 public enum KeyboardKey
 {
-    None,
+    Unknown,
 
+    Alpha0,
     Alpha1,
     Alpha2,
     Alpha3,
     Alpha4,
+    
     A,
     B,
     C,
@@ -42,5 +44,12 @@ public enum KeyboardKey
     Y,
 
     Space,
-    Escape
+    Escape,
+    Apostrophe,
+
+    Comma,
+    Period,
+    Slash,
+
+    Minus,
 }

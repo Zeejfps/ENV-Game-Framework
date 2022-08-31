@@ -10,21 +10,21 @@ public static class KeysExtensions
         switch (key)
         {
             case Keys.Unknown:
-                break;
+                return KeyboardKey.Unknown;
             case Keys.Space:
                 return KeyboardKey.Space;
             case Keys.Apostrophe:
-                break;
+                return KeyboardKey.Apostrophe;
             case Keys.Comma:
-                break;
+                return KeyboardKey.Comma;
             case Keys.Minus:
-                break;
+                return KeyboardKey.Minus;
             case Keys.Period:
-                break;
+                return KeyboardKey.Period;
             case Keys.Slash:
-                break;
+                return KeyboardKey.Slash;
             case Keys.Alpha0:
-                break;
+                return KeyboardKey.Alpha0;
             case Keys.Alpha1:
                 return KeyboardKey.Alpha1;
             case Keys.Alpha2:
