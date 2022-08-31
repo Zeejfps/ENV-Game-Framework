@@ -4,7 +4,7 @@ using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Rendering;
 
-namespace Core;
+namespace SampleGames;
 
 public class SnakeRenderer
 {

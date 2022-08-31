@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 
-namespace Core;
+namespace SampleGames;
 
 public class Snake
 {

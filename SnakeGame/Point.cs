@@ -1,4 +1,4 @@
-﻿namespace Core;
+﻿namespace SampleGames;
 
 public readonly struct Point
 {

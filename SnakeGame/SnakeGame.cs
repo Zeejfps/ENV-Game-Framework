@@ -4,7 +4,7 @@ using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
 
-namespace Core;
+namespace SampleGames;
 
 public class SnakeGame : Game
 {
