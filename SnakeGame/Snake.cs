@@ -5,6 +5,9 @@ namespace Core;
 
 public class Snake
 {
+    public float Speed { get; set; } = 1f;
+    public IReadOnlyList<ITransform3D> Segments => m_Segments;
+    
     private Direction Heading { get; set; }
 
     private int HeadIndex { get; set; }
@@ -12,17 +15,14 @@ public class Snake
 
     private int TailIndex { get; set; }
     private ITransform3D Tail => Segments[TailIndex];
-
     private Direction DesiredHeading { get; set; }
 
-    public IReadOnlyList<ITransform3D> Segments => m_Segments;
-    
     private readonly List<ITransform3D> m_Segments = new();
 
     private float m_AccumulatedTime;
     
     private ILogger Logger { get; }
-
+    
     public Snake(ILogger logger)
     {
         Logger = logger;
@@ -48,6 +48,8 @@ public class Snake
             WorldPosition = new Vector3(0f, -11f, 0f),
         });
 
+        Speed = 3f;
+        
         HeadIndex = 0;
         TailIndex = Segments.Count - 1;
         
@@ -58,7 +60,7 @@ public class Snake
     public void Update(float dt)
     {
         m_AccumulatedTime += dt;
-        if (m_AccumulatedTime >= 1f)
+        if (m_AccumulatedTime >= 1f / Speed)
         {
             m_AccumulatedTime = 0f;
             Move();
@@ -82,7 +84,7 @@ public class Snake
         if (TailIndex < 0)
             TailIndex = Segments.Count - 1;
         
-        Logger.Trace($"HeadIndex: {HeadIndex}, TailIndex: {TailIndex}");
+        //Logger.Trace($"HeadIndex: {HeadIndex}, TailIndex: {TailIndex}");
     }
 
     public void TurnWest()

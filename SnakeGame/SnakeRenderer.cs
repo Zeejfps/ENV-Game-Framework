@@ -40,16 +40,10 @@ public class SnakeRenderer
             
         shader.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         shader.SetMatrix4x4("matrix_view", viewMatrix);
+        shader.SetVector3("color", new Vector3(1f, 0f, 1f));
         
-        shader.SetVector3("color", new Vector3(0f, 1f, 0f));
-        shader.SetMatrix4x4("matrix_model", transforms[0].WorldMatrix);
-        mesh.Render();
-
-
-        for (var i = 1; i < transforms.Count; i++)
+        foreach (var transform in transforms)
         {
-            shader.SetVector3("color", new Vector3(i*10 / 20f, i * 10 / 20f, 1f));
-            var transform = transforms[i];
             shader.SetMatrix4x4("matrix_model", transform.WorldMatrix);
             mesh.Render();
         }

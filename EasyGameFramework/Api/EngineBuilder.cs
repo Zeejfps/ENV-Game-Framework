@@ -136,4 +136,9 @@ internal class DiContainer : IAllocator
     {
         return (T)CreateInstance(typeof(T));
     }
+
+    public void Delete<T>(T obj)
+    {
+        
+    }
 }

@@ -25,7 +25,7 @@ public class SnakeGame : Game
         Gpu = context.Gpu;
         Logger = context.Logger;
         Allocator = context.Allocator;
-        
+
         Snake = Allocator.New<Snake>();
         
         m_Camera = new OrthographicCamera(40, 40, 0.1f, 10)
@@ -48,6 +48,7 @@ public class SnakeGame : Game
         window.Height = 500;
         window.IsVsyncEnabled = true;
         window.IsResizable = false;
+        window.Title = "SNAEK";
         window.ShowCentered();
 
         m_SnakeRenderer.LoadResources();
