@@ -63,6 +63,7 @@ public sealed class EngineBuilder
         
         RegisterWindowingSystem();
         
+        DiContainer.Register<IInput, Input>();
         DiContainer.Register<IEngine, Engine>();
         DiContainer.Register<IContext, Context>();
         DiContainer.Register<IAllocator>(() => DiContainer);
@@ -74,7 +75,6 @@ public sealed class EngineBuilder
     private void RegisterWindowingSystem()
     {
         DiContainer.Register<IDisplays, Displays_GLFW>();
-        DiContainer.Register<IInput, Input_GLFW>();
         DiContainer.Register<IWindow, Window_GLFW>();
     }
 }

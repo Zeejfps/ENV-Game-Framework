@@ -2,7 +2,7 @@ using EasyGameFramework.Api.InputDevices;
 
 namespace EasyGameFramework.Glfw;
 
-internal class Keyboard_GLFW : IKeyboard
+internal class Keyboard : IKeyboard
 {
     private readonly HashSet<KeyboardKey> m_KeysPressedThisFrame = new();
     private readonly HashSet<KeyboardKey> m_KeysReleasedThisFrame = new();

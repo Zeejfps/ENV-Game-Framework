@@ -3,16 +3,16 @@ using EasyGameFramework.Api.InputDevices;
 
 namespace EasyGameFramework.Glfw;
 
-public class Input_GLFW : IInput
+internal class Input : IInput
 {
-    private readonly Keyboard_GLFW m_Keyboard;
+    private readonly Keyboard m_Keyboard;
 
-    private readonly Mouse_GLFW m_Mouse;
+    private readonly Mouse m_Mouse;
 
-    public Input_GLFW()
+    public Input()
     {
-        m_Mouse = new Mouse_GLFW();
-        m_Keyboard = new Keyboard_GLFW();
+        m_Mouse = new Mouse();
+        m_Keyboard = new Keyboard();
     }
 
     public IMouse Mouse => m_Mouse;

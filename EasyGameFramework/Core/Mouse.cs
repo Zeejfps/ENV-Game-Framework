@@ -2,15 +2,14 @@ using EasyGameFramework.Api.InputDevices;
 
 namespace EasyGameFramework.Glfw;
 
-internal class Mouse_GLFW : IMouse
+internal class Mouse : IMouse
 {
     private readonly HashSet<MouseButton> m_ButtonsPressedThisFrame = new();
     private readonly HashSet<MouseButton> m_ButtonsReleasedThisFrame = new();
-
     private readonly HashSet<MouseButton> m_PressedButtons = new();
+    
     public int ScreenX { get; set; }
     public int ScreenY { get; set; }
-
     public float ScrollDeltaX { get; set; }
     public float ScrollDeltaY { get; set; }
 
