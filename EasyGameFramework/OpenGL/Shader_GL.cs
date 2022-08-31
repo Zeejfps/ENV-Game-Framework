@@ -31,6 +31,12 @@ public class Shader_GL : IGpuShader
         glUniform1f(location, value);
     }
 
+    public void SetVector2(string propertyName, Vector2 value)
+    {
+        var location = GetUniformLocation(propertyName);
+        glUniform2f(location, value.X, value.Y);
+    }
+    
     public void SetVector3(string propertyName, float x, float y, float z)
     {
         var location = GetUniformLocation(propertyName);

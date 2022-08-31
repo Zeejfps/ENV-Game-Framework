@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using EasyGameFramework.Api;
 
 namespace SampleGames;
@@ -6,52 +7,43 @@ namespace SampleGames;
 public class Snake
 {
     public float Speed { get; set; }
-    public IReadOnlyList<ITransform3D> Segments => m_Segments;
+    public ReadOnlySpan<Vector2> Segments => CollectionsMarshal.AsSpan(m_Segments);
     
     private Direction Heading { get; set; }
 
     private int HeadIndex { get; set; }
-    public ITransform3D Head => Segments[HeadIndex];
+    public Vector2 Head => Segments[HeadIndex];
 
     private int TailIndex { get; set; }
-    private ITransform3D Tail => Segments[TailIndex];
+    private Vector2 Tail => Segments[TailIndex];
     private Direction DesiredHeading { get; set; }
 
-    private readonly List<ITransform3D> m_Segments = new();
+    private readonly List<Vector2> m_Segments = new();
 
     private float m_AccumulatedTime;
     
     private ILogger Logger { get; }
     
-    public Snake(ILogger logger)
+    private Grid Grid { get; }
+    
+    public Snake(ILogger logger, Grid grid)
     {
         Logger = logger;
+        Grid = grid;
     }
 
     public void Reset()
     {
         m_Segments.Clear();
-        m_Segments.Add(new Transform3D
-        {
-            WorldPosition = new Vector3(0f, 0f, 0f),
-        });
-        m_Segments.Add(new Transform3D
-        {
-            WorldPosition = new Vector3(0f, -2f, 0f),
-        });
-        m_Segments.Add(new Transform3D
-        {
-            WorldPosition = new Vector3(0f, -4f, 0f),
-        });
-        m_Segments.Add(new Transform3D
-        {
-            WorldPosition = new Vector3(0f, -6f, 0f),
-        });
+        m_Segments.Add(new Vector2(0f, 0f));
+        m_Segments.Add(new Vector2(0f, -1f));
+        m_Segments.Add(new Vector2(0f, -2f));
+        m_Segments.Add(new Vector2(0f, -3f));
 
         Speed = 3f;
         
         HeadIndex = 0;
-        TailIndex = Segments.Count - 1;
+        TailIndex = Segments.Length - 1;
         
         Heading = Direction.North;
         DesiredHeading = Heading;
@@ -72,17 +64,21 @@ public class Snake
         Heading = DesiredHeading;
 
         var head = Segments[HeadIndex];
-        var tail = Segments[TailIndex];
 
-        var xPos= head.WorldPosition.X + Heading.Dx * 2f;
-        var yPos = head.WorldPosition.Y + Heading.Dy * 2f;
+        var xPos= head.X + Heading.Dx;
+        if (xPos < 0)
+            xPos = Grid.Width - 1;
+        else if (xPos >= Grid.Width)
+            xPos = 0;
         
-        tail.WorldPosition = new Vector3(xPos, yPos, 0f);
+        var yPos = head.Y + Heading.Dy;
+        
+        m_Segments[TailIndex] = new Vector2(xPos, yPos);
 
         HeadIndex = TailIndex;
         TailIndex--;
         if (TailIndex < 0)
-            TailIndex = Segments.Count - 1;
+            TailIndex = Segments.Length - 1;
         
         //Logger.Trace($"HeadIndex: {HeadIndex}, TailIndex: {TailIndex}");
     }

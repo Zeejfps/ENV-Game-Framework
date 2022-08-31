@@ -49,7 +49,10 @@ public class SnakeRenderer
             else
                 shader.SetVector3("color", new Vector3(1f, 0f, 1f));
 
-            shader.SetMatrix4x4("matrix_model", segment.WorldMatrix);
+            var worldMatrix = Matrix4x4.CreateScale(0.5f, 0.5f, 0.5f)
+                              * Matrix4x4.CreateTranslation(segment.X, segment.Y, 0f);
+                
+            shader.SetMatrix4x4("matrix_model", worldMatrix);
             mesh.Render();
         }
     }

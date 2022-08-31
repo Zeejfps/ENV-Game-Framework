@@ -16,6 +16,7 @@ public class SnakeGame : Game
     private ILogger Logger { get; }
     private IAllocator Allocator { get; }
     private Snake Snake { get; }
+    private Grid Grid { get; }
     
     public SnakeGame(IContext context) : base(context.Window, context.Input)
     {
@@ -24,15 +25,13 @@ public class SnakeGame : Game
         Logger = context.Logger;
         Allocator = context.Allocator;
 
+        Grid = new Grid(20, 20);
+        Allocator.Register<Grid>(() => Grid);
+
         Snake = Allocator.New<Snake>();
         
-        m_Camera = new OrthographicCamera(50, 50, 0.1f, 10)
-        {
-            Transform =
-            {
-                WorldPosition = new Vector3(0f, 0f, -5f),
-            }
-        };
+        m_Camera = OrthographicCamera.FromLRBT(0, Grid.Width-1, 0, Grid.Height-1, 0.1f, 10f);
+        m_Camera.Transform.WorldPosition = new Vector3(0f, 0f, -5f);
         m_SnakeRenderer = new SnakeRenderer(Gpu);
     }
 
@@ -97,6 +96,7 @@ public class SnakeGame : Game
         renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
 
         gpu.Shader.Load("Assets/grid");
+        gpu.Shader.SetVector2("u_Pitch", new Vector2(Grid.Width, Grid.Height));
         gpu.Mesh.Load("Assets/quad");
         gpu.Mesh.Render();
         

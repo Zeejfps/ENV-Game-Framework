@@ -30,6 +30,12 @@ public class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader_G
         BoundResource.SetVector3(propertyName, x, y, z);
     }
 
+    public void SetVector2(string propertyName, Vector2 value)
+    {
+        Debug.Assert(BoundResource != null);
+        BoundResource.SetVector2(propertyName, value);
+    }
+
     public void SetVector3(string propertyName, Vector3 value)
     {
         Debug.Assert(BoundResource != null);

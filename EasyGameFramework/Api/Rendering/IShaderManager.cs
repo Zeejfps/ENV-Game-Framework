@@ -11,7 +11,8 @@ public interface IShaderManager
     void SetFloat(string propertyName, float value);
 
     void SetVector3(string propertyName, float x, float y, float z);
-    void SetVector3(string propertyName, Vector3 vector);
+    void SetVector2(string propertyName, Vector2 value);
+    void SetVector3(string propertyName, Vector3 value);
 
     void SetTexture2d(string propertyName, IHandle<IGpuTexture> value);
 
