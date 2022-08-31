@@ -1,8 +1,5 @@
-﻿using System.Diagnostics;
-using System.Numerics;
+﻿using System.Numerics;
 using EasyGameFramework.Api;
-using EasyGameFramework.Api.AssetTypes;
-using EasyGameFramework.Api.InputDevices;
 
 namespace Core;
 
@@ -24,22 +21,13 @@ public class Snake
 
     private float m_AccumulatedTime;
     
-    private IHandle<IGpuShader>? ShaderHandle { get; set; }
-    private IHandle<IGpuMesh>? MeshHandle { get; set; }
-
     private ILogger Logger { get; }
 
     public Snake(ILogger logger)
     {
         Logger = logger;
     }
-    
-    public void Load(IGpu gpu)
-    {
-        ShaderHandle = gpu.Shader.Load("Assets/sprite");
-        MeshHandle = gpu.Mesh.Load("Assets/quad");
-    }
-    
+
     public void Reset()
     {
         m_Segments.Clear();
@@ -75,18 +63,6 @@ public class Snake
             m_AccumulatedTime = 0f;
             Move();
         }
-    }
-
-    public void Render(IGpu gpu)
-    {
-        Debug.Assert(ShaderHandle != null);
-        Debug.Assert(MeshHandle != null);
-        
-        var shader = gpu.Shader;
-        var mesh = gpu.Mesh;
-        
-        shader.Bind(ShaderHandle);
-        mesh.Bind(MeshHandle);
     }
 
     private void Move()

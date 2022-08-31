@@ -104,7 +104,7 @@ public class SnakeGame : Game
         renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
         
         m_SnakeRenderer.Render(Snake.Segments, m_Camera);
-        //Snake.Render(Gpu);
+        
         gpu.RestoreState();
     }
 
