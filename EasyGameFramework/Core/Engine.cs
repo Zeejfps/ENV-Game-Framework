@@ -1,6 +1,8 @@
-namespace EasyGameFramework.Api;
+using EasyGameFramework.Api;
 
-public class Engine : IEngine
+namespace EasyGameFramework.Core;
+
+internal class Engine : IEngine
 {
     public Engine(IInput input, IWindow window, IApp app)
     {

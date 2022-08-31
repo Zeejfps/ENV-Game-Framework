@@ -1,6 +1,8 @@
-﻿namespace EasyGameFramework.Api;
+﻿using EasyGameFramework.Api;
 
-public sealed class ConsoleLogger : ILogger
+namespace EasyGameFramework.Core;
+
+internal sealed class ConsoleLogger : ILogger
 {
     public void Trace(string message)
     {
