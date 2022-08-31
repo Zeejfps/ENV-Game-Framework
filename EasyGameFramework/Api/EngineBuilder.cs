@@ -5,10 +5,9 @@ using EasyGameFramework.OpenGL;
 
 namespace EasyGameFramework.Api;
 
-internal class NullRenderer : IRenderer
-{
-}
-
+/// <summary>
+/// Use this class to start building your GPU powered application.
+/// </summary>
 public sealed class EngineBuilder
 {
     private bool m_IsRenderingApiSet;
@@ -71,4 +70,9 @@ public sealed class EngineBuilder
         DiContainer.Register<IDisplays, Displays_GLFW>();
         DiContainer.Register<IWindow, Window_GLFW>();
     }
+}
+
+// TODO: Probably delete
+internal class NullRenderer : IRenderer
+{
 }

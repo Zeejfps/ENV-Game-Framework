@@ -16,4 +16,10 @@ public class OrthographicCamera : ICamera
     public void Update()
     {
     }
+
+    // public static OrthographicCamera FromLRTB(float left, float right, float top, float bottom, float zNearPlane, float zFarPlane)
+    // {
+    //     var projectionMatrix = Matrix4x4.CreateOrthographicOffCenter(left, right, top, bottom, zNearPlane, zFarPlane);
+    //     
+    // }
 }

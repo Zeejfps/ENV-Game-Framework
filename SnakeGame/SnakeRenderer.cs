@@ -24,7 +24,7 @@ public class SnakeRenderer
     }
 
     public void Render(
-        IReadOnlyList<ITransform3D> transforms,
+        Snake snake,
         ICamera camera)
     {
         Debug.Assert(ShaderHandle != null);
@@ -42,9 +42,14 @@ public class SnakeRenderer
         shader.SetMatrix4x4("matrix_view", viewMatrix);
         shader.SetVector3("color", new Vector3(1f, 0f, 1f));
         
-        foreach (var transform in transforms)
+        foreach (var segment in snake.Segments)
         {
-            shader.SetMatrix4x4("matrix_model", transform.WorldMatrix);
+            if (segment == snake.Head)
+                shader.SetVector3("color", new Vector3(0.1f, 1f, 0.1f));
+            else
+                shader.SetVector3("color", new Vector3(1f, 0f, 1f));
+
+            shader.SetMatrix4x4("matrix_model", segment.WorldMatrix);
             mesh.Render();
         }
     }

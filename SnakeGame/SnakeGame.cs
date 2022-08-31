@@ -26,7 +26,7 @@ public class SnakeGame : Game
 
         Snake = Allocator.New<Snake>();
         
-        m_Camera = new OrthographicCamera(40, 40, 0.1f, 10)
+        m_Camera = new OrthographicCamera(50, 50, 0.1f, 10)
         {
             Transform =
             {
@@ -77,11 +77,6 @@ public class SnakeGame : Game
             Snake.TurnSouth();
         }
 
-        if (keyboard.WasAnyKeyPressedThisFrame(out var key))
-        {
-            //Logger.Trace(key);
-        }
-
         if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Space))
         {
             Snake.Reset();
@@ -100,7 +95,7 @@ public class SnakeGame : Game
         renderbuffer.BindWindow();
         renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
         
-        m_SnakeRenderer.Render(Snake.Segments, m_Camera);
+        m_SnakeRenderer.Render(Snake, m_Camera);
         
         gpu.RestoreState();
     }

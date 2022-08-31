@@ -11,7 +11,7 @@ public class Snake
     private Direction Heading { get; set; }
 
     private int HeadIndex { get; set; }
-    private ITransform3D Head => Segments[HeadIndex];
+    public ITransform3D Head => Segments[HeadIndex];
 
     private int TailIndex { get; set; }
     private ITransform3D Tail => Segments[TailIndex];
@@ -33,19 +33,19 @@ public class Snake
         m_Segments.Clear();
         m_Segments.Add(new Transform3D
         {
-            WorldPosition = new Vector3(0f, -5f, 0f),
+            WorldPosition = new Vector3(0f, 0f, 0f),
         });
         m_Segments.Add(new Transform3D
         {
-            WorldPosition = new Vector3(0f, -7f, 0f),
+            WorldPosition = new Vector3(0f, -2f, 0f),
         });
         m_Segments.Add(new Transform3D
         {
-            WorldPosition = new Vector3(0f, -9f, 0f),
+            WorldPosition = new Vector3(0f, -4f, 0f),
         });
         m_Segments.Add(new Transform3D
         {
-            WorldPosition = new Vector3(0f, -11f, 0f),
+            WorldPosition = new Vector3(0f, -6f, 0f),
         });
 
         Speed = 3f;
