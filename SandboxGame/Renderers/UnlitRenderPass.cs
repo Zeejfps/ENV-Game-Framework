@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
+using EasyGameFramework.Api.Rendering;
 using Framework.Materials;
 
 namespace Framework;

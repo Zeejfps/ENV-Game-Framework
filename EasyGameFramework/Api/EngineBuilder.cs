@@ -1,4 +1,5 @@
-﻿using EasyGameFramework.Core;
+﻿using EasyGameFramework.Api.Rendering;
+using EasyGameFramework.Core;
 using EasyGameFramework.Glfw;
 using EasyGameFramework.OpenGL;
 

@@ -1,6 +1,6 @@
 ﻿using EasyGameFramework.Api.AssetTypes;
 
-namespace EasyGameFramework.Api;
+namespace EasyGameFramework.Api.Rendering;
 
 public interface IMeshManager
 {

@@ -4,6 +4,7 @@ using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.InputDevices;
+using EasyGameFramework.Api.Rendering;
 using Framework.Materials;
 
 namespace Framework;

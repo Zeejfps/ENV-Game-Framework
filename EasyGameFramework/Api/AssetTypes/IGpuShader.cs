@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using EasyGameFramework.Api.Rendering;
 
 namespace EasyGameFramework.Api.AssetTypes;
 

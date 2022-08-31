@@ -1,4 +1,6 @@
-﻿namespace EasyGameFramework.Api;
+﻿using EasyGameFramework.Api.Rendering;
+
+namespace EasyGameFramework.Api;
 
 public sealed class Context : IContext
 {

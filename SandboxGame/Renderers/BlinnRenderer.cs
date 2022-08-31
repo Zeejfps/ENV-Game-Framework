@@ -2,6 +2,7 @@
 using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
+using EasyGameFramework.Api.Rendering;
 
 namespace Framework;
 
