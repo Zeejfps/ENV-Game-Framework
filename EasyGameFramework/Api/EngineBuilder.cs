@@ -11,7 +11,7 @@ internal class NullRenderer : IRenderer
 
 public sealed class EngineBuilder
 {
-    private bool m_IsBackendSet;
+    private bool m_IsRenderingApiSet;
     private bool m_IsLoggerSet;
     private bool m_IsRendererSet;
     
@@ -20,7 +20,7 @@ public sealed class EngineBuilder
     public EngineBuilder WithOpenGl()
     {
         DiContainer.Register<IGpu, Gpu_GL>();
-        m_IsBackendSet = true;
+        m_IsRenderingApiSet = true;
         return this;
     }
 
@@ -38,25 +38,19 @@ public sealed class EngineBuilder
         return this;
     }
 
-    public EngineBuilder WithDefaultRenderer()
+    public EngineBuilder WithApp<TApp>() where TApp : IApp
     {
-        DiContainer.Register<IRenderer, NullRenderer>();
-        return this;
-    }
-
-    public EngineBuilder WithGame<TGame>() where TGame : IApp
-    {
-        DiContainer.Register<IApp, TGame>();
+        DiContainer.Register<IApp, TApp>();
         return this;
     }
 
     public IEngine Build()
     {
-        if (!m_IsBackendSet)
+        if (!m_IsRenderingApiSet)
             WithOpenGl();
 
         if (!m_IsRendererSet)
-            WithDefaultRenderer();
+            WithRenderer<NullRenderer>();
 
         if (!m_IsLoggerSet)
             WithLogger<ConsoleLogger>();

@@ -2,7 +2,7 @@
 using Core;
 
 var builder = new EngineBuilder();
-builder.WithGame<SnakeGame>();
+builder.WithApp<SnakeGame>();
 
 var engine = builder.Build();
 engine.Run();

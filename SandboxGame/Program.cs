@@ -4,7 +4,7 @@ using Framework;
 var builder = new EngineBuilder();
 builder.WithOpenGl();
 builder.WithRenderer<TestRenderer>();
-builder.WithGame<SandboxGame>();
+builder.WithApp<SandboxGame>();
 
 var engine = builder.Build();
 engine.Run();
