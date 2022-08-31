@@ -1,11 +1,11 @@
-﻿using EasyGameFramework.API;
+﻿using EasyGameFramework.Api;
 
 namespace EasyGameFramework;
 
 public abstract class Game : IGame
 {
     public bool IsRunning { get; private set; }
-    
+
     public void Start()
     {
         IsRunning = true;

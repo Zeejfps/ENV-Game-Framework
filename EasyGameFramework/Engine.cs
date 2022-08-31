@@ -1,14 +1,10 @@
 using System.Diagnostics;
-using EasyGameFramework.API;
+using EasyGameFramework.Api;
 
 namespace EasyGameFramework;
 
 public class Engine : IEngine
 {
-    private IGame Game { get; }
-    private IInput Input { get; }
-    private IWindow Window { get; }
-
     private readonly Stopwatch m_Stopwatch;
 
     public Engine(IInput input, IWindow window, IGame game)
@@ -19,12 +15,16 @@ public class Engine : IEngine
         m_Stopwatch = new Stopwatch();
     }
 
+    private IGame Game { get; }
+    private IInput Input { get; }
+    private IWindow Window { get; }
+
     public void Run()
     {
         var game = Game;
         var input = Input;
         var window = Window;
-        
+
         game.Start();
         m_Stopwatch.Start();
         while (game.IsRunning && window.IsOpened)

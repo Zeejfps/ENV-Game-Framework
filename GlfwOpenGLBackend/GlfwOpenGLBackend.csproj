@@ -8,9 +8,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\EasyGameFramework.API\EasyGameFrameworkApi.csproj" />
       <ProjectReference Include="..\Glfw.NET\Glfw.NET.csproj" />
       <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="AssetLoaders" />
+      <Folder Include="OpenGL" />
     </ItemGroup>
 
 </Project>

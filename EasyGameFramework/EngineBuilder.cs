@@ -1,4 +1,4 @@
-﻿using EasyGameFramework.API;
+﻿using EasyGameFramework.Api;
 using Framework.GLFW.NET;
 using GlfwOpenGLBackend;
 
@@ -6,17 +6,16 @@ namespace EasyGameFramework;
 
 internal class NullRenderer : IRenderer
 {
-    
 }
 
 public sealed class EngineBuilder
 {
-    private DiContainer DiContainer { get; } = new();
+    private bool m_IsBackendSet;
+    private bool m_IsLoggerSet;
+    private bool m_IsRendererSet;
 
     private bool m_IsWindowingSystemSet;
-    private bool m_IsBackendSet;
-    private bool m_IsRendererSet;
-    private bool m_IsLoggerSet;
+    private DiContainer DiContainer { get; } = new();
 
     public EngineBuilder WithGlfw()
     {
@@ -26,14 +25,14 @@ public sealed class EngineBuilder
         m_IsWindowingSystemSet = true;
         return this;
     }
-    
+
     public EngineBuilder WithOpenGl()
     {
         DiContainer.Register<IGpu, Gpu_GL>();
         m_IsBackendSet = true;
         return this;
     }
-    
+
     public EngineBuilder WithRenderer<TRenderer>() where TRenderer : IRenderer
     {
         DiContainer.Register<IRenderer, TRenderer>();
@@ -47,7 +46,7 @@ public sealed class EngineBuilder
         m_IsLoggerSet = true;
         return this;
     }
-    
+
     public EngineBuilder WithDefaultRenderer()
     {
         DiContainer.Register<IRenderer, NullRenderer>();
@@ -59,12 +58,12 @@ public sealed class EngineBuilder
         DiContainer.Register<IGame, TGame>();
         return this;
     }
-    
+
     public IEngine Build()
     {
         if (!m_IsWindowingSystemSet)
             WithGlfw();
-        
+
         if (!m_IsBackendSet)
             WithOpenGl();
 
@@ -73,10 +72,10 @@ public sealed class EngineBuilder
 
         if (!m_IsLoggerSet)
             WithLogger<ConsoleLogger>();
-        
+
         DiContainer.Register<IEngine, Engine>();
         DiContainer.Register<IContext, Context>();
-        
+
         var engine = DiContainer.GetInstance<IEngine>();
         return engine;
     }
@@ -84,8 +83,8 @@ public sealed class EngineBuilder
 
 internal class DiContainer
 {
-    private readonly Dictionary<Type, object> m_TypeToInstanceMap = new();
     private readonly Dictionary<Type, Func<object>> m_TypeToFactoryMap = new();
+    private readonly Dictionary<Type, object> m_TypeToInstanceMap = new();
 
     public T GetInstance<T>()
     {
@@ -97,7 +96,7 @@ internal class DiContainer
         if (m_TypeToInstanceMap.TryGetValue(type, out var instance))
             return instance;
 
-        if (m_TypeToFactoryMap.TryGetValue(type, out Func<object> factory))
+        if (m_TypeToFactoryMap.TryGetValue(type, out var factory))
         {
             instance = factory.Invoke();
             m_TypeToInstanceMap[type] = instance;
@@ -110,7 +109,7 @@ internal class DiContainer
             m_TypeToInstanceMap[type] = instance;
             return instance;
         }
-        
+
         throw new InvalidOperationException("No registration for " + type);
     }
 

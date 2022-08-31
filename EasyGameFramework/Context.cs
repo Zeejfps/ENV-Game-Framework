@@ -1,16 +1,9 @@
-﻿using EasyGameFramework.API;
+﻿using EasyGameFramework.Api;
 
 namespace EasyGameFramework;
 
 public sealed class Context : IContext
 {
-    public IDisplays Displays { get; }
-    public IRenderer Renderer { get; }
-    public IWindow Window { get; }
-    public IInput Input { get; }
-    public IGpu Gpu { get; }
-    public ILogger Logger { get; }
-
     public Context(IDisplays displays, IRenderer renderer, IWindow window, IInput input, IGpu gpu, ILogger logger)
     {
         Displays = displays;
@@ -20,4 +13,11 @@ public sealed class Context : IContext
         Gpu = gpu;
         Logger = logger;
     }
+
+    public IDisplays Displays { get; }
+    public IRenderer Renderer { get; }
+    public IWindow Window { get; }
+    public IInput Input { get; }
+    public IGpu Gpu { get; }
+    public ILogger Logger { get; }
 }

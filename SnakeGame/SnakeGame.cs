@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using EasyGameFramework;
-using EasyGameFramework.API;
-using EasyGameFramework.API.InputDevices;
+using EasyGameFramework.Api;
+using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Cameras;
 
 namespace Snake;

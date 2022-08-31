@@ -21,7 +21,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\EasyGameFramework.API\EasyGameFrameworkApi.csproj" />
       <ProjectReference Include="..\EasyGameFramework\EasyGameFramework.csproj" />
     </ItemGroup>
 

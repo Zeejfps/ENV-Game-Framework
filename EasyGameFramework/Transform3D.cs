@@ -1,12 +1,20 @@
 ﻿using System.Numerics;
-using EasyGameFramework.API;
+using EasyGameFramework.Api;
 
 namespace EasyGameFramework;
 
 public class Transform3D : ITransform3D
 {
-    const float DegToRad = 0.0174533f;
-    
+    private const float DegToRad = 0.0174533f;
+
+    private Vector3 m_WorldPosition = Vector3.Zero;
+    private Quaternion m_WorldRotation = Quaternion.Identity;
+
+    public Transform3D()
+    {
+        UpdateWorldMatrix();
+    }
+
     public Vector3 WorldPosition
     {
         get => m_WorldPosition;
@@ -36,14 +44,6 @@ public class Transform3D : ITransform3D
     public Vector3 Up => Vector3.Transform(Vector3.UnitY, WorldRotation);
 
     public Matrix4x4 WorldMatrix { get; private set; }
-    
-    private Vector3 m_WorldPosition = Vector3.Zero;
-    private Quaternion m_WorldRotation = Quaternion.Identity;
-    
-    public Transform3D()
-    {
-        UpdateWorldMatrix();
-    }
 
     public void LookAt(Vector3 target, Vector3 up)
     {
@@ -67,7 +67,7 @@ public class Transform3D : ITransform3D
         var xRotation = Quaternion.CreateFromAxisAngle(Right, DegToRad * x);
         var yRotation = Quaternion.CreateFromAxisAngle(Up, DegToRad * y);
         var zRotation = Quaternion.CreateFromAxisAngle(Forward, DegToRad * z);
-        
+
         var totalRotation = xRotation * yRotation * zRotation;
         WorldRotation *= totalRotation;
     }
@@ -75,7 +75,7 @@ public class Transform3D : ITransform3D
     public void RotateAround(Vector3 point, Vector3 axis, float angle)
     {
         var position = WorldPosition;
-        var vector3 = Vector3.Transform((position - point), Quaternion.CreateFromAxisAngle(axis, angle));
+        var vector3 = Vector3.Transform(position - point, Quaternion.CreateFromAxisAngle(axis, angle));
         WorldPosition = point + vector3;
     }
 
@@ -90,7 +90,7 @@ public class Transform3D : ITransform3D
         m_WorldRotation = worldRotation;
         UpdateWorldMatrix();
     }
-    
+
     private void UpdateWorldMatrix()
     {
         WorldMatrix = Matrix4x4.CreateWorld(WorldPosition, Forward, Up);

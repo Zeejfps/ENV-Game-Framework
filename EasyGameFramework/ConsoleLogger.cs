@@ -1,4 +1,4 @@
-﻿using EasyGameFramework.API;
+﻿using EasyGameFramework.Api;
 
 namespace EasyGameFramework;
 
