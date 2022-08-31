@@ -1,10 +1,6 @@
-﻿namespace EasyGameFramework.Api;
+namespace EasyGameFramework.Api;
 
 public interface IApp
 {
-    bool IsRunning { get; }
-
-    void Start();
-    void Update();
-    void Stop();
+    void Run();
 }

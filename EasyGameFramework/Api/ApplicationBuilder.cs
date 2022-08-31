@@ -8,7 +8,7 @@ namespace EasyGameFramework.Api;
 /// <summary>
 /// Use this class to start building your GPU powered application.
 /// </summary>
-public sealed class EngineBuilder
+public sealed class ApplicationBuilder
 {
     private bool m_IsRenderingApiSet;
     private bool m_IsLoggerSet;
@@ -16,34 +16,28 @@ public sealed class EngineBuilder
     
     private DiContainer DiContainer { get; } = new();
     
-    public EngineBuilder WithOpenGl()
+    public ApplicationBuilder WithOpenGl()
     {
         DiContainer.Register<IGpu, Gpu_GL>();
         m_IsRenderingApiSet = true;
         return this;
     }
 
-    public EngineBuilder WithRenderer<TRenderer>() where TRenderer : IRenderer
+    public ApplicationBuilder WithRenderer<TRenderer>() where TRenderer : IRenderer
     {
         DiContainer.Register<IRenderer, TRenderer>();
         m_IsRendererSet = true;
         return this;
     }
 
-    public EngineBuilder WithLogger<TLogger>() where TLogger : ILogger
+    public ApplicationBuilder WithLogger<TLogger>() where TLogger : ILogger
     {
         DiContainer.Register<ILogger, TLogger>();
         m_IsLoggerSet = true;
         return this;
     }
 
-    public EngineBuilder WithApp<TApp>() where TApp : IApp
-    {
-        DiContainer.Register<IApp, TApp>();
-        return this;
-    }
-
-    public IEngine Build()
+    public IApp Build<TApp>() where TApp : IApp
     {
         if (!m_IsRenderingApiSet)
             WithOpenGl();
@@ -57,11 +51,11 @@ public sealed class EngineBuilder
         RegisterWindowingSystem();
         
         DiContainer.Register<IInput, Input>();
-        DiContainer.Register<IEngine, Engine>();
         DiContainer.Register<IContext, Context>();
         DiContainer.Register<IAllocator>(() => DiContainer);
+        DiContainer.Register<IApp, TApp>();
 
-        var engine = DiContainer.GetInstance<IEngine>();
+        var engine = DiContainer.GetInstance<IApp>();
         return engine;
     }
 

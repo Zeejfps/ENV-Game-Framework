@@ -29,13 +29,22 @@ public abstract class Game : IApp
         };
     }
     
-    public void Start()
+    public void Run()
+    {
+        Start();
+        while (IsRunning)
+        {
+            Update();
+        }
+    }
+    
+    private void Start()
     {
         IsRunning = true;
         OnStart();
     }
     
-    public void Update()
+    private void Update()
     {
         Window.Update();
 

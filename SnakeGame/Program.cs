@@ -1,8 +1,7 @@
-﻿using EasyGameFramework.Api;
-using Core;
+﻿using Core;
+using EasyGameFramework.Api;
 
-var builder = new EngineBuilder();
-builder.WithApp<SnakeGame>();
+var builder = new ApplicationBuilder();
 
-var engine = builder.Build();
-engine.Run();
+var app = builder.Build<SnakeGame>();
+app.Run();
