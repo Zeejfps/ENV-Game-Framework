@@ -3,22 +3,19 @@ using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.InputDevices;
 
-namespace Snake;
+namespace Core;
 
 public class SnakeGame : Game
 {
-    private Direction m_SnakeDirection = Direction.North;
-    private readonly LinkedList<ITransform3D> m_Snake;
-
-    private float m_AccumulatedTime;
-
     private OrthographicCamera m_Camera;
-    private SpriteRenderer m_SnakeRenderer;
+    private SnakeRenderer m_SnakeRenderer;
 
     private IContext Context { get; }
     private IInput Input { get; }
     private IGpu Gpu { get; }
     private ILogger Logger { get; }
+    private IAllocator Allocator { get; }
+    private Snake Snake { get; }
     
     public SnakeGame(IContext context)
     {
@@ -26,6 +23,9 @@ public class SnakeGame : Game
         Input = context.Input;
         Gpu = context.Gpu;
         Logger = context.Logger;
+        Allocator = context.Allocator;
+        
+        Snake = Allocator.New<Snake>();
         
         m_Camera = new OrthographicCamera(40, 40, 0.1f, 10)
         {
@@ -34,45 +34,10 @@ public class SnakeGame : Game
                 WorldPosition = new Vector3(0f, 0f, -5f),
             }
         };
-        m_SnakeRenderer = new SpriteRenderer(Gpu);
+        m_SnakeRenderer = new SnakeRenderer(Gpu);
         
         var width = 20;
         var height = 20;
-        
-        m_Snake = new LinkedList<ITransform3D>();
-        m_Snake.AddLast(new Transform3D
-        {
-            WorldPosition = new Vector3(0f, -5f, 0f),
-        });
-        m_Snake.AddLast(new Transform3D
-        {
-            WorldPosition = new Vector3(0f, -7f, 0f),
-        });
-        m_Snake.AddLast(new Transform3D
-        {
-            WorldPosition = new Vector3(0f, -9f, 0f),
-        });
-        m_Snake.AddLast(new Transform3D
-        {
-            WorldPosition = new Vector3(0f, -11f, 0f),
-        });
-    }
-
-    private void MoveSnake()
-    {
-        var first = m_Snake.First!.Value;
-
-        var tail = m_Snake.Last.Value;
-        m_Snake.RemoveLast();
-
-        tail.WorldPosition = new Vector3(first.WorldPosition.X + m_SnakeDirection.Dx * 2f,
-            first.WorldPosition.Y + m_SnakeDirection.Dy * 2f, 0f);
-        m_Snake.AddFirst(tail);
-    }
-
-    private void MoveLeft()
-    {
-        
     }
 
     protected override void OnStart()
@@ -85,44 +50,47 @@ public class SnakeGame : Game
         window.ShowCentered();
 
         m_SnakeRenderer.LoadResources();
+        Snake.Reset();
     }
 
     protected override void OnUpdate(float dt)
     {
-        if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
+        var keyboard = Input.Keyboard;
+        
+        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
         {
             Quit();
             return;
         }
         
-        if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.A))
+        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.A))
         {
-            m_SnakeDirection = Direction.West;
+            Snake.TurnWest();
         }
-        else if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.D)) 
+        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.D)) 
         {
-            m_SnakeDirection = Direction.East;
+            Snake.TurnEast();
         }
-        else if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.W)) 
+        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.W)) 
         {
-            m_SnakeDirection = Direction.North;
+            Snake.TurnNorth();
         }
-        else if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.S)) 
+        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.S)) 
         {
-            m_SnakeDirection = Direction.South;
+            Snake.TurnSouth();
         }
 
-        if (Input.Keyboard.WasAnyKeyPressedThisFrame(out var key))
+        if (keyboard.WasAnyKeyPressedThisFrame(out var key))
         {
             Logger.Trace(key);
         }
-        
-        m_AccumulatedTime += dt;
-        if (m_AccumulatedTime >= 1f)
+
+        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Space))
         {
-            m_AccumulatedTime = 0f;
-            MoveSnake();
+            Snake.Reset();
         }
+
+        Snake.Update(dt);
     }
 
     protected override void OnRender(float dt)
@@ -134,9 +102,9 @@ public class SnakeGame : Game
         var renderbuffer = Gpu.Renderbuffer;
         renderbuffer.BindWindow();
         renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
-    
-        m_SnakeRenderer.Render(m_Snake, m_Camera);
         
+        m_SnakeRenderer.Render(Snake.Segments, m_Camera);
+        //Snake.Render(Gpu);
         gpu.RestoreState();
     }
 

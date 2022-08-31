@@ -1,0 +1,143 @@
+﻿using System.Diagnostics;
+using System.Numerics;
+using EasyGameFramework.Api;
+using EasyGameFramework.Api.AssetTypes;
+using EasyGameFramework.Api.InputDevices;
+
+namespace Core;
+
+public class Snake
+{
+    private Direction Heading { get; set; }
+
+    private int HeadIndex { get; set; }
+    private ITransform3D Head => Segments[HeadIndex];
+
+    private int TailIndex { get; set; }
+    private ITransform3D Tail => Segments[TailIndex];
+
+    private Direction DesiredHeading { get; set; }
+
+    public IReadOnlyList<ITransform3D> Segments => m_Segments;
+    
+    private readonly List<ITransform3D> m_Segments = new();
+
+    private float m_AccumulatedTime;
+    
+    private IHandle<IGpuShader>? ShaderHandle { get; set; }
+    private IHandle<IGpuMesh>? MeshHandle { get; set; }
+
+    private ILogger Logger { get; }
+
+    public Snake(ILogger logger)
+    {
+        Logger = logger;
+    }
+    
+    public void Load(IGpu gpu)
+    {
+        ShaderHandle = gpu.Shader.Load("Assets/sprite");
+        MeshHandle = gpu.Mesh.Load("Assets/quad");
+    }
+    
+    public void Reset()
+    {
+        m_Segments.Clear();
+        m_Segments.Add(new Transform3D
+        {
+            WorldPosition = new Vector3(0f, -5f, 0f),
+        });
+        m_Segments.Add(new Transform3D
+        {
+            WorldPosition = new Vector3(0f, -7f, 0f),
+        });
+        m_Segments.Add(new Transform3D
+        {
+            WorldPosition = new Vector3(0f, -9f, 0f),
+        });
+        m_Segments.Add(new Transform3D
+        {
+            WorldPosition = new Vector3(0f, -11f, 0f),
+        });
+
+        HeadIndex = 0;
+        TailIndex = Segments.Count - 1;
+        
+        Heading = Direction.North;
+        DesiredHeading = Heading;
+    }
+
+    public void Update(float dt)
+    {
+        m_AccumulatedTime += dt;
+        if (m_AccumulatedTime >= 1f)
+        {
+            m_AccumulatedTime = 0f;
+            Move();
+        }
+    }
+
+    public void Render(IGpu gpu)
+    {
+        Debug.Assert(ShaderHandle != null);
+        Debug.Assert(MeshHandle != null);
+        
+        var shader = gpu.Shader;
+        var mesh = gpu.Mesh;
+        
+        shader.Bind(ShaderHandle);
+        mesh.Bind(MeshHandle);
+    }
+
+    private void Move()
+    {
+        Heading = DesiredHeading;
+
+        var head = Segments[HeadIndex];
+        var tail = Segments[TailIndex];
+
+        var xPos= head.WorldPosition.X + Heading.Dx * 2f;
+        var yPos = head.WorldPosition.Y + Heading.Dy * 2f;
+        
+        tail.WorldPosition = new Vector3(xPos, yPos, 0f);
+
+        HeadIndex = TailIndex;
+        TailIndex--;
+        if (TailIndex < 0)
+            TailIndex = Segments.Count - 1;
+        
+        Logger.Trace($"HeadIndex: {HeadIndex}, TailIndex: {TailIndex}");
+    }
+
+    public void TurnWest()
+    {
+        if (Heading == Direction.East)
+            return;
+        
+        DesiredHeading = Direction.West;
+    }
+
+    public void TurnEast()
+    {
+        if (Heading == Direction.West)
+            return;
+        
+        DesiredHeading = Direction.East;
+    }
+
+    public void TurnNorth()
+    {
+        if (Heading == Direction.South)
+            return;
+
+        DesiredHeading = Direction.North;
+    }
+    
+    public void TurnSouth()
+    {
+        if (Heading == Direction.North)
+            return;
+
+        DesiredHeading = Direction.South;
+    }
+}

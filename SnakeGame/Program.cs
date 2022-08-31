@@ -1,5 +1,5 @@
 ﻿using EasyGameFramework.Api;
-using Snake;
+using Core;
 
 var builder = new EngineBuilder();
 builder.WithGame<SnakeGame>();

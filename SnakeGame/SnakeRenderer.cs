@@ -3,15 +3,15 @@ using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 
-namespace Snake;
+namespace Core;
 
-public class SpriteRenderer
+public class SnakeRenderer
 {
     private IGpu Gpu { get; }
     private IHandle<IGpuShader>? ShaderHandle { get; set; }
     private IHandle<IGpuMesh>? MeshHandle { get; set; }
 
-    public SpriteRenderer(IGpu gpu)
+    public SnakeRenderer(IGpu gpu)
     {
         Gpu = gpu;
     }
@@ -23,7 +23,7 @@ public class SpriteRenderer
     }
 
     public void Render(
-        IEnumerable<ITransform3D> transforms,
+        IReadOnlyList<ITransform3D> transforms,
         ICamera camera)
     {
         Debug.Assert(ShaderHandle != null);
@@ -39,12 +39,19 @@ public class SpriteRenderer
             
         shader.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         shader.SetMatrix4x4("matrix_view", viewMatrix);
-        shader.SetVector3("color", new Vector3(1f, 0f, 1f));
+        
+        shader.SetVector3("color", new Vector3(0f, 1f, 0f));
+        shader.SetMatrix4x4("matrix_model", transforms[0].WorldMatrix);
+        mesh.Render();
 
-        foreach (var transform in transforms)
+
+        for (var i = 1; i < transforms.Count; i++)
         {
+            shader.SetVector3("color", new Vector3(i*10 / 20f, i * 10 / 20f, 1f));
+            var transform = transforms[i];
             shader.SetMatrix4x4("matrix_model", transform.WorldMatrix);
             mesh.Render();
         }
     }
+    
 }

@@ -1,4 +1,4 @@
-﻿namespace Snake;
+﻿namespace Core;
 
 public readonly struct Point
 {

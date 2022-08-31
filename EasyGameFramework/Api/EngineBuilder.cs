@@ -64,6 +64,7 @@ public sealed class EngineBuilder
         
         DiContainer.Register<IEngine, Engine>();
         DiContainer.Register<IContext, Context>();
+        DiContainer.Register<IAllocator>(() => DiContainer);
 
         var engine = DiContainer.GetInstance<IEngine>();
         return engine;
@@ -77,7 +78,7 @@ public sealed class EngineBuilder
     }
 }
 
-internal class DiContainer
+internal class DiContainer : IAllocator
 {
     private readonly Dictionary<Type, Func<object>> m_TypeToFactoryMap = new();
     private readonly Dictionary<Type, object> m_TypeToInstanceMap = new();
@@ -123,5 +124,15 @@ internal class DiContainer
     public void Register<T, TImpl>()
     {
         m_TypeToFactoryMap.Add(typeof(T), () => CreateInstance(typeof(TImpl)));
+    }
+
+    public void Register<T>(Func<object> factory)
+    {
+        m_TypeToFactoryMap.Add(typeof(T), factory);
+    }
+    
+    public T New<T>()
+    {
+        return (T)CreateInstance(typeof(T));
     }
 }
