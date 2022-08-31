@@ -7,9 +7,16 @@ public abstract class Game : IApp
     public bool IsRunning { get; private set; }
     
     private readonly Stopwatch m_Stopwatch;
+    private float m_DeltaTime = 1f / 60f;
+    private double m_Accumulator = 0.0;
 
-    protected Game()
+    protected IWindow Window { get; }
+    protected IInput Input { get; }
+    
+    protected Game(IWindow window, IInput input)
     {
+        Window = window;
+        Input = input;
         m_Stopwatch = new Stopwatch();
     }
     
@@ -18,15 +25,34 @@ public abstract class Game : IApp
         IsRunning = true;
         OnStart();
     }
-
+    
     public void Update()
     {
+        Window.Update();
+
+        if (!Window.IsOpened)
+        {
+            Quit();
+            return;
+        }
+        
         var deltaTimeTicks = m_Stopwatch.ElapsedTicks;
-        var deltaTime = (float)deltaTimeTicks / Stopwatch.Frequency;
         m_Stopwatch.Restart();
         
-        OnUpdate(deltaTime);
-        OnRender(0);
+        var frameTime = (double)deltaTimeTicks / Stopwatch.Frequency;
+        if (frameTime > 0.25)
+            frameTime = 0.25;
+
+        m_Accumulator += frameTime;
+
+        while (m_Accumulator >= m_DeltaTime)
+        {
+            OnUpdate(m_DeltaTime);
+            Input.Update();
+            m_Accumulator -= m_DeltaTime;
+        }
+
+        OnRender((float)m_Accumulator / m_DeltaTime);
     }
 
     public void Quit()

@@ -6,12 +6,11 @@ namespace Framework;
 public class SandboxGame : Game
 {
     IDisplays Displays => Context.Displays;
-    IWindow Window => Context.Window;
     IContext Context { get; }
 
     private TestScene Scene { get; set; }
     
-    public SandboxGame(IContext context)
+    public SandboxGame(IContext context) : base(context.Window, context.Input)
     {
         Context = context;
     }

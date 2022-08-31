@@ -12,16 +12,14 @@ public class SnakeGame : Game
     private SnakeRenderer m_SnakeRenderer;
 
     private IContext Context { get; }
-    private IInput Input { get; }
     private IGpu Gpu { get; }
     private ILogger Logger { get; }
     private IAllocator Allocator { get; }
     private Snake Snake { get; }
     
-    public SnakeGame(IContext context)
+    public SnakeGame(IContext context) : base(context.Window, context.Input)
     {
         Context = context;
-        Input = context.Input;
         Gpu = context.Gpu;
         Logger = context.Logger;
         Allocator = context.Allocator;
@@ -40,7 +38,7 @@ public class SnakeGame : Game
 
     protected override void OnStart()
     {
-        var window = Context.Window;
+        var window = Window;
         window.Width = 500;
         window.Height = 500;
         window.IsVsyncEnabled = true;
@@ -81,7 +79,7 @@ public class SnakeGame : Game
 
         if (keyboard.WasAnyKeyPressedThisFrame(out var key))
         {
-            Logger.Trace(key);
+            //Logger.Trace(key);
         }
 
         if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Space))

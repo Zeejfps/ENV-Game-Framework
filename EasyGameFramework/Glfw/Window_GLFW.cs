@@ -207,15 +207,20 @@ public class Window_GLFW : IWindow
     {
         Debug.Assert(IsOpened);
         Debug.Assert(m_Handle != Window.None);
-
-        GLFW.Glfw.GetCursorPosition(m_Handle, out var x, out var y);
-        m_Input.Mouse.ScreenX = (int)x;
-        m_Input.Mouse.ScreenY = (int)y;
-        GLFW.Glfw.SwapBuffers(m_Handle);
+        
         GLFW.Glfw.PollEvents();
 
         if (GLFW.Glfw.WindowShouldClose(m_Handle))
+        {
             IsOpened = false;
+            return;
+        }
+        
+        GLFW.Glfw.GetCursorPosition(m_Handle, out var x, out var y);
+        m_Input.Mouse.ScreenX = (int)x;
+        m_Input.Mouse.ScreenY = (int)y;
+        
+        GLFW.Glfw.SwapBuffers(m_Handle);
     }
 
     public void SetSize(int width, int height)
