@@ -5,7 +5,7 @@ namespace Core;
 
 public class Snake
 {
-    public float Speed { get; set; } = 1f;
+    public float Speed { get; set; }
     public IReadOnlyList<ITransform3D> Segments => m_Segments;
     
     private Direction Heading { get; set; }

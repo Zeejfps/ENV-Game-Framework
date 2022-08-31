@@ -36,9 +36,6 @@ public class SnakeGame : Game
             }
         };
         m_SnakeRenderer = new SnakeRenderer(Gpu);
-        
-        var width = 20;
-        var height = 20;
     }
 
     protected override void OnStart()

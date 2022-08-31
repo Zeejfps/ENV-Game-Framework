@@ -6,7 +6,7 @@ internal sealed class ConsoleLogger : ILogger
 {
     public void Trace(string message)
     {
-        Console.WriteLine(message);
+        Console.WriteLine($@"[{DateTime.Now}] Trace: {message}");
     }
 
     public void Trace(object obj)
