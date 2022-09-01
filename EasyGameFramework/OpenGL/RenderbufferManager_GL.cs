@@ -22,6 +22,26 @@ public class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffe
 
     public IGpuFramebufferHandle WindowBufferHandle { get; }
 
+    public float Width
+    {
+        get
+        {
+            if (BoundResource == null)
+                return WindowBufferHandle.Width;
+            return BoundResource.Width;
+        }
+    }
+
+    public float Height
+    {
+        get
+        {
+            if (BoundResource == null)
+                return WindowBufferHandle.Height;
+            return BoundResource.Height;
+        }
+    }
+
     protected override void OnBound(GpuRenderbuffer_GL resource)
     {
         glBindFramebuffer(resource.Id);

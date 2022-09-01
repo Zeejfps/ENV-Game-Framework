@@ -72,6 +72,10 @@ public class Snake
             xPos = 0;
         
         var yPos = head.Y + Heading.Dy;
+        if (yPos < 0)
+            yPos = Grid.Height - 1;
+        else if (yPos >= Grid.Height)
+            yPos = 0;
         
         m_Segments[TailIndex] = new Vector2(xPos, yPos);
 

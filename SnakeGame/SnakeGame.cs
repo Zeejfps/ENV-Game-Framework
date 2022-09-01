@@ -30,7 +30,7 @@ public class SnakeGame : Game
 
         Snake = Allocator.New<Snake>();
         
-        m_Camera = OrthographicCamera.FromLRBT(0, Grid.Width-1, 0, Grid.Height-1, 0.1f, 10f);
+        m_Camera = OrthographicCamera.FromLRBT(0, Grid.Width, 0, Grid.Height, 0.1f, 10f);
         m_Camera.Transform.WorldPosition = new Vector3(0f, 0f, -5f);
         m_SnakeRenderer = new SnakeRenderer(Gpu);
     }
@@ -95,8 +95,11 @@ public class SnakeGame : Game
         renderbuffer.BindWindow();
         renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
 
+        var cellWidth = renderbuffer.Width / (float)(Grid.Width);
+        var cellHeight = renderbuffer.Height / (float)(Grid.Height);
+        
         gpu.Shader.Load("Assets/grid");
-        gpu.Shader.SetVector2("u_Pitch", new Vector2(Grid.Width, Grid.Height));
+        gpu.Shader.SetVector2("u_Pitch", new Vector2(cellWidth, cellHeight));
         gpu.Mesh.Load("Assets/quad");
         gpu.Mesh.Render();
         

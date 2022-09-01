@@ -5,6 +5,8 @@ namespace EasyGameFramework.Api.Rendering;
 public interface IRenderbufferManager
 {
     IGpuFramebufferHandle WindowBufferHandle { get; }
+    float Width { get; }
+    float Height { get; }
 
     void Bind(IHandle<IGpuRenderbuffer>? framebuffer);
     void BindWindow();
