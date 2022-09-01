@@ -45,15 +45,15 @@ public class SnakeRenderer
         
         foreach (var segment in snake.Segments)
         {
-            if (segment == snake.Head)
-                shader.SetVector3("color", new Vector3(0.1f, 1f, 0.1f));
-            else
-                shader.SetVector3("color", new Vector3(1f, 0f, 1f));
-        
-            var worldMatrix = Matrix4x4.CreateScale(0.5f)
+            var color = segment == snake.Head
+                ? new Vector3(0.1f, 1f, 0.1f)
+                : new Vector3(1f, 0f, 1f);
+            
+            var modelMatrix = Matrix4x4.CreateScale(0.5f)
                               * Matrix4x4.CreateTranslation(segment.X + 0.5f, segment.Y + 0.5f, 0f);
-                
-            shader.SetMatrix4x4("matrix_model", worldMatrix);
+            
+            shader.SetVector3("color", color);
+            shader.SetMatrix4x4("matrix_model", modelMatrix);
             mesh.Render();
         }
     }
