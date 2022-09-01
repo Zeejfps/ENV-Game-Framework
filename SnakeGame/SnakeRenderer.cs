@@ -40,10 +40,9 @@ public class SnakeRenderer
             
         shader.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         shader.SetMatrix4x4("matrix_view", viewMatrix);
-
-        //var bufferHandle = shader.GetBuffer("model_matrices_t");
         
-        foreach (var segment in snake.Segments)
+        var segments = snake.Segments;
+        foreach (var segment in segments)
         {
             var color = segment == snake.Head
                 ? new Vector3(0.1f, 1f, 0.1f)
