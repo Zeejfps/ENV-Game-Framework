@@ -1,15 +1,15 @@
 ﻿namespace EasyGameFramework.Api;
 
-internal class DiContainer : IAllocator
+internal class DiContainer : IContainer
 {
     private readonly Dictionary<Type, Func<object>> m_TypeToFactoryMap = new();
     private readonly Dictionary<Type, object> m_TypeToInstanceMap = new();
 
-    public T GetInstance<T>()
+    public T New<T>()
     {
         return (T)GetInstance(typeof(T));
     }
-
+    
     private object GetInstance(Type type)
     {
         if (m_TypeToInstanceMap.TryGetValue(type, out var instance))
@@ -51,15 +51,5 @@ internal class DiContainer : IAllocator
     public void Register<T>(Func<object> factory)
     {
         m_TypeToFactoryMap.Add(typeof(T), factory);
-    }
-    
-    public T New<T>()
-    {
-        return (T)CreateInstance(typeof(T));
-    }
-
-    public void Delete<T>(T obj)
-    {
-        
     }
 }

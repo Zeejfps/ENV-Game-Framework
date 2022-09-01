@@ -23,7 +23,6 @@ public class Snake
     private float m_AccumulatedTime;
     
     private ILogger Logger { get; }
-    
     private Grid Grid { get; }
     
     public Snake(ILogger logger, Grid grid)

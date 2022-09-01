@@ -52,10 +52,10 @@ public sealed class ApplicationBuilder
         
         DiContainer.Register<IInput, Input>();
         DiContainer.Register<IContext, Context>();
-        DiContainer.Register<IAllocator>(() => DiContainer);
+        DiContainer.Register<IContainer>(() => DiContainer);
         DiContainer.Register<IApp, TApp>();
 
-        var engine = DiContainer.GetInstance<IApp>();
+        var engine = DiContainer.New<IApp>();
         return engine;
     }
 

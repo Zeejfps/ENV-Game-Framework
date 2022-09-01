@@ -1,6 +1,6 @@
 ﻿namespace SampleGames;
 
-public readonly struct Grid
+public class Grid
 {
     public int Width { get; }
     public int Height { get; }

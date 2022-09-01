@@ -1,8 +1,7 @@
 ﻿namespace EasyGameFramework.Api;
 
-public interface IAllocator
+public interface IContainer
 {
     T New<T>();
-    void Delete<T>(T obj);
     void Register<T>(Func<object> factory);
 }

@@ -7,7 +7,7 @@ public sealed class Context : IContext
     public Context(IDisplays displays, IRenderer renderer, 
         IWindow window, IInput input, 
         IGpu gpu, ILogger logger,
-        IAllocator allocator)
+        IContainer container)
     {
         Displays = displays;
         Renderer = renderer;
@@ -15,7 +15,7 @@ public sealed class Context : IContext
         Input = input;
         Gpu = gpu;
         Logger = logger;
-        Allocator = allocator;
+        Container = container;
     }
 
     public IDisplays Displays { get; }
@@ -24,5 +24,5 @@ public sealed class Context : IContext
     public IInput Input { get; }
     public IGpu Gpu { get; }
     public ILogger Logger { get; }
-    public IAllocator Allocator { get; }
+    public IContainer Container { get; }
 }

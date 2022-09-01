@@ -10,5 +10,5 @@ public interface IContext
     IInput Input { get; }
     IGpu Gpu { get; }
     ILogger Logger { get; }
-    IAllocator Allocator { get; }
+    IContainer Container { get; }
 }
