@@ -12,10 +12,10 @@ public interface IWindow
     int PosY { get; set; }
     bool IsFullscreen { get; set; }
     bool IsVsyncEnabled { get; set; }
-
     bool IsOpened { get; }
     IGpuFramebuffer Framebuffer { get; }
-
+    CursorMode CursorMode { get; set; }
+    
     void Show();
     void ShowCentered();
     void Hide();

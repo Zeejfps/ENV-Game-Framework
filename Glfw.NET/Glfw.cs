@@ -33,6 +33,10 @@ namespace GLFW
 
         #endregion
 
+        public const int CURSOR_NORMAL = 0x00034001;
+        public const int CURSOR_HIDDEN = 0x00034002;
+        public const int CURSOR_DISABLED = 0x00034003;
+        
         #region Constructors
 
         static Glfw()

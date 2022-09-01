@@ -43,6 +43,7 @@ public class SnakeGame : Game
         window.IsVsyncEnabled = true;
         window.IsResizable = false;
         window.Title = "SNAEK";
+        window.CursorMode = CursorMode.HiddenAndLocked;
         window.ShowCentered();
 
         m_SnakeRenderer.LoadResources();
