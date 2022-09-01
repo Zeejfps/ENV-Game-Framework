@@ -141,6 +141,6 @@ public class Shader_GL : IGpuShader
 
         var error = glGetShaderInfoLog(shader);
         if (!string.IsNullOrEmpty(error))
-            throw new Exception($"Error compiling shader: {error}");
+            throw new Exception(error);
     }
 }
