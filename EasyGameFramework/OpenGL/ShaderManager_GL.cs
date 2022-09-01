@@ -73,7 +73,12 @@ public class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader_G
     protected override Shader_GL LoadResource(string assetPath)
     {
         var cpuShader = m_CpuShaderLoader.Load(assetPath);
-        return Shader_GL.LoadFromSource(cpuShader.VertexShader, cpuShader.FragmentShader, m_Texture);
+        var gpuShader = Shader_GL.LoadFromSource(cpuShader.VertexShader, cpuShader.FragmentShader, m_Texture);
+
+        glUseProgram(gpuShader.Id);
+        glAssertNoError();
+        
+        return gpuShader;
     }
 
     protected override IHandle<IGpuShader> CreateHandle(Shader_GL resource)

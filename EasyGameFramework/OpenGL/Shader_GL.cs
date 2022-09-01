@@ -29,18 +29,21 @@ public class Shader_GL : IGpuShader
     {
         var location = GetUniformLocation(propertyName);
         glUniform1f(location, value);
+        glAssertNoError();
     }
 
     public void SetVector2(string propertyName, Vector2 value)
     {
         var location = GetUniformLocation(propertyName);
         glUniform2f(location, value.X, value.Y);
+        glAssertNoError();
     }
     
     public void SetVector3(string propertyName, float x, float y, float z)
     {
         var location = GetUniformLocation(propertyName);
         glUniform3f(location, x, y, z);
+        glAssertNoError();
     }
 
     public void SetVector3(string propertyName, Vector3 vector)
@@ -64,6 +67,7 @@ public class Shader_GL : IGpuShader
         {
             var p = &matrix.M11;
             glUniformMatrix4fv(location, 1, false, p);
+            glAssertNoError();
         }
     }
 
@@ -90,6 +94,7 @@ public class Shader_GL : IGpuShader
         if (!propertyToIdMap.TryGetValue(uniformName, out var location))
         {
             location = glGetUniformLocation(Id, uniformName);
+            glAssertNoError();
             propertyToIdMap[uniformName] = location;
         }
 
@@ -137,8 +142,11 @@ public class Shader_GL : IGpuShader
     private static void CompileShader(uint shader, string source)
     {
         glShaderSource(shader, source);
-        glCompileShader(shader);
+        glAssertNoError();
 
+        glCompileShader(shader);
+        glAssertNoError();
+        
         var error = glGetShaderInfoLog(shader);
         if (!string.IsNullOrEmpty(error))
             throw new Exception(error);
