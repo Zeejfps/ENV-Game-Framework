@@ -25,7 +25,7 @@ public class SnakeGame : Game
         Logger = context.Logger;
         Container = context.Container;
 
-        Grid = new Grid(20, 20);
+        Grid = new Grid(21, 21);
         Container.BindInstance(Grid);
 
         Snake = Container.New<Snake>();
@@ -76,7 +76,7 @@ public class SnakeGame : Game
             Snake.TurnSouth();
         }
 
-        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Space))
+        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.R))
         {
             Snake.Reset();
         }

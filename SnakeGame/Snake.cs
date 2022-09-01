@@ -33,11 +33,14 @@ public class Snake
 
     public void Reset()
     {
+        var centerPositionX = Grid.Width / 2;
+        var centerPositionY = Grid.Height / 2;
+        
         m_Segments.Clear();
-        m_Segments.Add(new Vector2(0f, 0f));
-        m_Segments.Add(new Vector2(0f, -1f));
-        m_Segments.Add(new Vector2(0f, -2f));
-        m_Segments.Add(new Vector2(0f, -3f));
+        m_Segments.Add(new Vector2(centerPositionX, centerPositionY));
+        m_Segments.Add(new Vector2(centerPositionX, centerPositionY-1f));
+        m_Segments.Add(new Vector2(centerPositionX, centerPositionY-2f));
+        m_Segments.Add(new Vector2(centerPositionX, centerPositionY-3f));
 
         Speed = 3f;
         

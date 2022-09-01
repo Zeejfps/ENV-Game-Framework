@@ -1847,6 +1847,9 @@ namespace OpenGL
                     case 0x0501:
                         errorStr = "GL_INVALID_VALUE";
                         break;
+                    case 0x0502:
+                        errorStr = "GL_INVALID_OPERATION";
+                        break;
                 }
 
                 return true;
