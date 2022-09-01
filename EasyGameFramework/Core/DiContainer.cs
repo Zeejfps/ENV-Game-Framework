@@ -43,13 +43,19 @@ internal class DiContainer : IContainer
         return obj;
     }
 
-    public void Register<T, TImpl>()
+    public void Bind<T, TImpl>()
     {
         m_TypeToFactoryMap.Add(typeof(T), () => CreateInstance(typeof(TImpl)));
     }
 
-    public void Register<T>(Func<object> factory)
+    public void BindFactory<T>(Func<object> factory)
     {
         m_TypeToFactoryMap.Add(typeof(T), factory);
+    }
+
+    public void BindInstance<T>(T instance)
+    {
+        var type = typeof(T);
+        m_TypeToInstanceMap[type] = instance;
     }
 }

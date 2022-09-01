@@ -26,7 +26,7 @@ public class SnakeGame : Game
         Container = context.Container;
 
         Grid = new Grid(20, 20);
-        Container.Register<Grid>(() => Grid);
+        Container.BindInstance(Grid);
 
         Snake = Container.New<Snake>();
         

@@ -18,21 +18,21 @@ public sealed class ApplicationBuilder
     
     public ApplicationBuilder WithOpenGl()
     {
-        DiContainer.Register<IGpu, Gpu_GL>();
+        DiContainer.Bind<IGpu, Gpu_GL>();
         m_IsRenderingApiSet = true;
         return this;
     }
 
     public ApplicationBuilder WithRenderer<TRenderer>() where TRenderer : IRenderer
     {
-        DiContainer.Register<IRenderer, TRenderer>();
+        DiContainer.Bind<IRenderer, TRenderer>();
         m_IsRendererSet = true;
         return this;
     }
 
     public ApplicationBuilder WithLogger<TLogger>() where TLogger : ILogger
     {
-        DiContainer.Register<ILogger, TLogger>();
+        DiContainer.Bind<ILogger, TLogger>();
         m_IsLoggerSet = true;
         return this;
     }
@@ -50,10 +50,10 @@ public sealed class ApplicationBuilder
         
         RegisterWindowingSystem();
         
-        DiContainer.Register<IInput, Input>();
-        DiContainer.Register<IContext, Context>();
-        DiContainer.Register<IContainer>(() => DiContainer);
-        DiContainer.Register<IApp, TApp>();
+        DiContainer.Bind<IInput, Input>();
+        DiContainer.Bind<IContext, Context>();
+        DiContainer.Bind<IApp, TApp>();
+        DiContainer.BindInstance<IContainer>(DiContainer);
 
         var engine = DiContainer.New<IApp>();
         return engine;
@@ -61,8 +61,8 @@ public sealed class ApplicationBuilder
 
     private void RegisterWindowingSystem()
     {
-        DiContainer.Register<IDisplays, Displays_GLFW>();
-        DiContainer.Register<IWindow, Window_GLFW>();
+        DiContainer.Bind<IDisplays, Displays_GLFW>();
+        DiContainer.Bind<IWindow, Window_GLFW>();
     }
 }
 
