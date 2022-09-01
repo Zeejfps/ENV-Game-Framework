@@ -53,7 +53,7 @@ public class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffe
         glBindFramebuffer(0);
     }
 
-    protected override GpuRenderbuffer_GL LoadResource(string assetPath)
+    protected override GpuRenderbuffer_GL LoadAndBindResource(string assetPath)
     {
         throw new NotImplementedException();
     }

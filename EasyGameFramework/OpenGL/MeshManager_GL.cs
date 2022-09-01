@@ -25,7 +25,7 @@ public class MeshManager_GL : GpuResourceManager<IHandle<IGpuMesh>, Mesh_GL>, IM
         return new GpuMeshHandle(resource);
     }
 
-    protected override Mesh_GL LoadResource(string assetPath)
+    protected override Mesh_GL LoadAndBindResource(string assetPath)
     {
         var cpuMesh = m_CpuMeshLoader.Load(assetPath);
         return new Mesh_GL(cpuMesh.Vertices, cpuMesh.Normals, cpuMesh.Uvs, cpuMesh.Tangents,

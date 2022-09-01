@@ -24,7 +24,7 @@ public class TextureManager_GL : GpuResourceManager<IHandle<IGpuTexture>, Textur
         return new GpuReadonlyTextureHandle(resource);
     }
 
-    protected override Texture2D_GL LoadResource(string assetPath)
+    protected override Texture2D_GL LoadAndBindResource(string assetPath)
     {
         var asset = m_CpuTextureAssetLoader.Load(assetPath);
         var width = asset.Width;

@@ -37,7 +37,7 @@ public abstract class GpuResourceManager<THandle, TResource>
             return handle;
         }
 
-        var resource = LoadResource(assetPath);
+        var resource = LoadAndBindResource(assetPath);
         handle = CreateHandle(resource);
         m_LoadedHandles[assetPath] = handle;
         BoundResource = resource;
@@ -47,6 +47,6 @@ public abstract class GpuResourceManager<THandle, TResource>
 
     protected abstract void OnBound(TResource resource);
     protected abstract void OnUnbound();
-    protected abstract TResource LoadResource(string assetPath);
+    protected abstract TResource LoadAndBindResource(string assetPath);
     protected abstract THandle CreateHandle(TResource resource);
 }
