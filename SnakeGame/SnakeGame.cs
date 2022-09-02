@@ -17,6 +17,8 @@ public class SnakeGame : Game
     private IContainer Container { get; }
     private Snake Snake { get; }
     private Grid Grid { get; }
+    private Vector2 Apple { get; set; }
+    private Random Random { get; } = new();
     
     public SnakeGame(IContext context) : base(context.Window, context.Input)
     {
@@ -48,6 +50,8 @@ public class SnakeGame : Game
 
         m_SpriteRenderer.LoadResources();
         Snake.Reset();
+
+        Apple = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
     }
 
     protected override void OnUpdate()
@@ -83,6 +87,11 @@ public class SnakeGame : Game
         }
 
         Snake.Update(Clock.UpdateDeltaTime);
+
+        if (Snake.Head == Apple)
+        {
+            Apple = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
+        }
     }
 
     protected override void OnRender()
@@ -96,8 +105,8 @@ public class SnakeGame : Game
         renderbuffer.BindWindow();
         renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
 
-        var cellWidth = renderbuffer.Width / (float)(Grid.Width);
-        var cellHeight = renderbuffer.Height / (float)(Grid.Height);
+        var cellWidth = renderbuffer.Width / Grid.Width;
+        var cellHeight = renderbuffer.Height / Grid.Height;
         
         gpu.Shader.Load("Assets/grid");
         gpu.Shader.SetVector2("u_Pitch", new Vector2(cellWidth, cellHeight));
@@ -106,6 +115,8 @@ public class SnakeGame : Game
         
         m_SpriteRenderer.StartBatch();
 
+        m_SpriteRenderer.DrawSprite(Apple, new Vector3(1f, 0f, 0f));
+        
         foreach (var segment in Snake.Segments)
         {
             var color = segment == Snake.Head
