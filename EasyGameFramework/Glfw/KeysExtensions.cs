@@ -46,7 +46,7 @@ public static class KeysExtensions
             case Keys.SemiColon:
                 break;
             case Keys.Equal:
-                break;
+                return KeyboardKey.Equals;
             case Keys.A:
                 return KeyboardKey.A;
             case Keys.B:

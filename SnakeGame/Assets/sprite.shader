@@ -2,9 +2,11 @@
 
 #version 460 core
 
+const int MAX_BATCH_SIZE = 512;
+
 layout (location = 0) in vec3 attr_vertex_position;
 uniform mat4 matrix_projection, matrix_view;
-uniform mat4 model_matrices[256];
+uniform mat4 model_matrices[MAX_BATCH_SIZE];
 
 flat out int instanceID;
 
@@ -23,12 +25,14 @@ void main()
     
 #version 460 core
 
+const int MAX_BATCH_SIZE = 512;
+
 struct SpriteData {
     vec3 Color;
     mat4 ModelMatrix;
 };
 
-uniform vec3 colors[256];
+uniform vec3 colors[MAX_BATCH_SIZE];
 
 flat in int instanceID;
 

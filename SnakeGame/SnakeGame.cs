@@ -51,7 +51,7 @@ public class SnakeGame : Game
         m_SpriteRenderer.LoadResources();
         Snake.Reset();
 
-        Apple = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
+        Apple = SpawnApple();
     }
 
     protected override void OnUpdate()
@@ -84,13 +84,22 @@ public class SnakeGame : Game
         if (keyboard.WasKeyPressedThisFrame(KeyboardKey.R))
         {
             Snake.Reset();
+            Apple = SpawnApple();
         }
+        
+        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Space))
+            Snake.Grow();
+
+        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Equals))
+            Snake.Speed += 0.5f;
+        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Minus))
+            Snake.Speed -= 0.5f;
 
         Snake.Update(Clock.UpdateDeltaTime);
 
         if (Snake.Head == Apple)
         {
-            Apple = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
+            Apple = SpawnApple();
             Snake.Grow();
         }
     }
@@ -133,5 +142,13 @@ public class SnakeGame : Game
 
     protected override void OnStop()
     {
+    }
+    
+    private Vector2 SpawnApple()
+    {
+        var position = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
+        while (Snake.Segments.Contains(position))
+            position = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
+        return position;
     }
 }

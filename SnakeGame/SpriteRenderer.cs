@@ -8,6 +8,8 @@ namespace SampleGames;
 
 public class SpriteRenderer
 {
+    private const int MAX_BATCH_SIZE = 512;
+    
     private IGpu Gpu { get; }
     private IHandle<IGpuShader>? ShaderHandle { get; set; }
     private IHandle<IGpuMesh>? MeshHandle { get; set; }
@@ -24,8 +26,8 @@ public class SpriteRenderer
     }
 
     private int m_Size = 0;
-    private readonly Vector3[] m_Colors = new Vector3[256];
-    private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[256];
+    private readonly Vector3[] m_Colors = new Vector3[MAX_BATCH_SIZE];
+    private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[MAX_BATCH_SIZE];
     
     public void StartBatch()
     {
