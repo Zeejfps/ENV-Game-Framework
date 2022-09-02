@@ -151,4 +151,30 @@ public class Shader_GL : IGpuShader
         if (!string.IsNullOrEmpty(error))
             throw new Exception(error);
     }
+
+    public void SetVector3Array(string uniformName, ReadOnlySpan<Vector3> array)
+    {
+        var location = GetUniformLocation(uniformName);
+        unsafe
+        {
+            fixed (float* ptr = &array[0].X)
+            {
+                glUniform3fv(location, array.Length * 3, ptr);
+                glAssertNoError();
+            }
+        }
+    }
+    
+    public void SetMatrix4x4Array(string uniformName, ReadOnlySpan<Matrix4x4> array)
+    {
+        var location = GetUniformLocation(uniformName);
+        unsafe
+        {
+            fixed (float* ptr = &array[0].M11)
+            {
+                glUniformMatrix4fv(location, array.Length * 16, false, ptr);
+                glAssertNoError();
+            }
+        }
+    }
 }

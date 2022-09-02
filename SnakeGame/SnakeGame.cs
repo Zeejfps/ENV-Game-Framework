@@ -9,7 +9,7 @@ namespace SampleGames;
 public class SnakeGame : Game
 {
     private OrthographicCamera m_Camera;
-    private SnakeRenderer m_SnakeRenderer;
+    private SpriteRenderer m_SpriteRenderer;
 
     private IContext Context { get; }
     private IGpu Gpu { get; }
@@ -32,7 +32,7 @@ public class SnakeGame : Game
         
         m_Camera = OrthographicCamera.FromLRBT(0, Grid.Width, 0, Grid.Height, 0.1f, 10f);
         m_Camera.Transform.WorldPosition = new Vector3(0f, 0f, -5f);
-        m_SnakeRenderer = new SnakeRenderer(Gpu);
+        m_SpriteRenderer = new SpriteRenderer(Gpu);
     }
 
     protected override void OnStart()
@@ -46,7 +46,7 @@ public class SnakeGame : Game
         window.CursorMode = CursorMode.HiddenAndLocked;
         window.ShowCentered();
 
-        m_SnakeRenderer.LoadResources();
+        m_SpriteRenderer.LoadResources();
         Snake.Reset();
     }
 
@@ -104,7 +104,17 @@ public class SnakeGame : Game
         gpu.Mesh.Load("Assets/quad");
         gpu.Mesh.Render();
         
-        m_SnakeRenderer.Render(Snake, m_Camera);
+        m_SpriteRenderer.StartBatch();
+
+        foreach (var segment in Snake.Segments)
+        {
+            var color = segment == Snake.Head
+                ? new Vector3(0.1f, 1f, 0.1f)
+                : new Vector3(1f, 0f, 1f);
+            m_SpriteRenderer.DrawSprite(segment, color);
+        }
+        
+        m_SpriteRenderer.RenderBatch(m_Camera);
         
         gpu.RestoreState();
     }

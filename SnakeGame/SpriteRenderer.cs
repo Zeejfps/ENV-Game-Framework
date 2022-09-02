@@ -6,13 +6,13 @@ using EasyGameFramework.Api.Rendering;
 
 namespace SampleGames;
 
-public class SnakeRenderer
+public class SpriteRenderer
 {
     private IGpu Gpu { get; }
     private IHandle<IGpuShader>? ShaderHandle { get; set; }
     private IHandle<IGpuMesh>? MeshHandle { get; set; }
 
-    public SnakeRenderer(IGpu gpu)
+    public SpriteRenderer(IGpu gpu)
     {
         Gpu = gpu;
     }
@@ -23,13 +23,31 @@ public class SnakeRenderer
         MeshHandle = Gpu.Mesh.Load("Assets/quad");
     }
 
-    public void Render(
-        Snake snake,
-        ICamera camera)
+    private int m_Size = 0;
+    private readonly Vector3[] m_Colors = new Vector3[256];
+    private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[256];
+    
+    public void StartBatch()
+    {
+        m_Size = 0;
+    }
+
+    public void DrawSprite(Vector2 position, Vector3 color)
+    {
+        var modelMatrix = Matrix4x4.CreateScale(0.5f)
+                          * Matrix4x4.CreateTranslation(position.X + 0.5f, position.Y + 0.5f, 0f);
+
+        m_Colors[m_Size] = color;
+        m_ModelMatrices[m_Size] = modelMatrix;
+        
+        m_Size++;
+    }
+
+    public void RenderBatch(ICamera camera)
     {
         Debug.Assert(ShaderHandle != null);
         Debug.Assert(MeshHandle != null);
-        
+
         var shader = Gpu.Shader;
         var mesh = Gpu.Mesh;
         
@@ -40,21 +58,10 @@ public class SnakeRenderer
             
         shader.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         shader.SetMatrix4x4("matrix_view", viewMatrix);
-        
-        var segments = snake.Segments;
-        foreach (var segment in segments)
-        {
-            var color = segment == snake.Head
-                ? new Vector3(0.1f, 1f, 0.1f)
-                : new Vector3(1f, 0f, 1f);
-            
-            var modelMatrix = Matrix4x4.CreateScale(0.5f)
-                              * Matrix4x4.CreateTranslation(segment.X + 0.5f, segment.Y + 0.5f, 0f);
-            
-            shader.SetVector3("color", color);
-            shader.SetMatrix4x4("matrix_model", modelMatrix);
-            mesh.Render();
-        }
+        shader.SetVector3Array("colors", m_Colors);
+        shader.SetMatrix4x4Array("model_matrices", m_ModelMatrices);
+
+        mesh.RenderInstanced(m_Size);
     }
-    
+
 }

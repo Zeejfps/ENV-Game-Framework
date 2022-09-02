@@ -42,6 +42,12 @@ public class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader_G
         BoundResource.SetVector3(propertyName, value);
     }
 
+    public void SetVector3Array(string uniformName, ReadOnlySpan<Vector3> array)
+    {
+        Debug.Assert(BoundResource != null);
+        BoundResource.SetVector3Array(uniformName, array);
+    }
+
     public void SetTexture2d(string propertyName, IHandle<IGpuTexture> value)
     {
         Debug.Assert(BoundResource != null);
@@ -52,6 +58,12 @@ public class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader_G
     {
         Debug.Assert(BoundResource != null);
         BoundResource.SetMatrix4x4(propertyName, value);
+    }
+
+    public void SetMatrix4x4Array(string uniformName, ReadOnlySpan<Matrix4x4> array)
+    {
+        Debug.Assert(BoundResource != null);
+        BoundResource.SetMatrix4x4Array(uniformName, array);
     }
 
     public IBuffer GetBuffer(string name)
