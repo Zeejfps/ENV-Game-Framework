@@ -120,4 +120,9 @@ public class Snake
 
         DesiredHeading = Direction.South;
     }
+
+    public void Grow()
+    {
+        m_Segments.Add(Head);
+    }
 }

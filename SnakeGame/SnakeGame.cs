@@ -91,6 +91,7 @@ public class SnakeGame : Game
         if (Snake.Head == Apple)
         {
             Apple = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
+            Snake.Grow();
         }
     }
 
