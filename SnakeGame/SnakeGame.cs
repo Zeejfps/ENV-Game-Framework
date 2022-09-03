@@ -102,6 +102,12 @@ public class SnakeGame : Game
             Apple = SpawnApple();
             Snake.Grow();
         }
+
+        if (Snake.IsSelfIntersecting)
+        {
+            Apple = SpawnApple();
+            Snake.Reset();
+        }
     }
 
     protected override void OnRender()

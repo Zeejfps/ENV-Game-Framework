@@ -28,6 +28,9 @@ public class Snake
     
     private IInput Input {get;}
     
+    private bool DidGrowThisFrame { get; set; }
+    public bool IsSelfIntersecting { get; private set; }
+
     public Snake(ILogger logger, IInput input, Grid grid)
     {
         Logger = logger;
@@ -53,6 +56,8 @@ public class Snake
         
         Heading = Direction.North;
         DesiredHeading = Heading;
+        IsSelfIntersecting = false;
+        DidGrowThisFrame = false;
     }
 
     public void Update(float dt)
@@ -89,7 +94,9 @@ public class Snake
         TailIndex--;
         if (TailIndex < 0)
             TailIndex = Segments.Length - 1;
-        
+
+        IsSelfIntersecting = CheckForSelfCollision();
+        DidGrowThisFrame = false;
         //Logger.Trace($"HeadIndex: {HeadIndex}, TailIndex: {TailIndex}");
     }
 
@@ -129,5 +136,25 @@ public class Snake
     {
         m_Segments.Insert(HeadIndex, Head);
         TailIndex++;
+        DidGrowThisFrame = true;
+    }
+
+    private bool CheckForSelfCollision()
+    {
+        if (DidGrowThisFrame)
+            return false;
+        
+        var headPosition = Head;
+        for (var i = 0; i < m_Segments.Count; i++)
+        {
+            if (i == HeadIndex)
+                continue;
+
+            var segmentPosition = Segments[i];
+            if (headPosition == segmentPosition)
+                return true;
+        }
+
+        return false;
     }
 }
