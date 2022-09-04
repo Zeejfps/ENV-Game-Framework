@@ -87,13 +87,13 @@ internal class Input : IInput
 
     private void BindLayer(IInputLayer layer)
     {
-        foreach (var (key, action) in layer.KeyboardBindings)
+        foreach (var (key, action) in layer.KeyboardKeyActionBindings)
             Keyboard.BindKeyToAction(key, action);
     }
 
     private void UnbindLayer(IInputLayer layer)
     {
-        foreach (var (key, action) in layer.KeyboardBindings)
+        foreach (var (key, _) in layer.KeyboardKeyActionBindings)
             Keyboard.UnbindKey(key);
     }
 }

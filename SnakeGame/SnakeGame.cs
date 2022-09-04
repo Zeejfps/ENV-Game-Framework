@@ -1,30 +1,11 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
-using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
 
 namespace SampleGames;
 
-public class TestLayer : IInputLayer
-{
-    // public void Bind(IInput input)
-    // {
-    //     input.Keyboard.BindKeyToAction(KeyboardKey.P, "Game/Pause");
-    // }
-    //
-    // public void Unbind(IInput input)
-    // {
-    //     input.Keyboard.UnbindKey(KeyboardKey.P);
-    // }
-
-    public Dictionary<KeyboardKey, string> KeyboardBindings { get; } = new()
-    {
-        {KeyboardKey.P, "Game/Pause"}
-    };
-}
-
-public class SnakeGame : Game, IInputLayer
+public class SnakeGame : Game
 {
     private OrthographicCamera m_Camera;
     private SpriteRenderer m_SpriteRenderer;
@@ -38,7 +19,8 @@ public class SnakeGame : Game, IInputLayer
     private Vector2 Apple { get; set; }
     private Random Random { get; } = new();
     private IEventBus EventBus { get; }
-    
+    private GameInputLayer GameInputLayer { get; }
+    private UIInputLayer UIInputLayer { get; }
     private bool IsPaused { get; set; }
     
     public SnakeGame(IContext context, IEventBus eventBus) : base(context.Window, context.Input)
@@ -49,6 +31,9 @@ public class SnakeGame : Game, IInputLayer
         Container = context.Container;
         EventBus = eventBus;
 
+        GameInputLayer = new GameInputLayer();
+        UIInputLayer = new UIInputLayer();
+        
         Grid = new Grid(21, 21);
         Container.BindInstance(Grid);
 
@@ -74,7 +59,7 @@ public class SnakeGame : Game, IInputLayer
         Snake.Reset();
 
         Apple = SpawnApple();
-
+        
         Input.BindAction(InputActions.MoveUpAction, Snake.TurnNorth);
         Input.BindAction(InputActions.MoveLeftAction, Snake.TurnWest);
         Input.BindAction(InputActions.MoveRightAction, Snake.TurnEast);
@@ -84,20 +69,7 @@ public class SnakeGame : Game, IInputLayer
         Input.BindAction(InputActions.ResetAction, Reset);
         Input.BindAction(InputActions.QuitAction, Stop);
         Input.BindAction(InputActions.PauseResumeAction, TogglePause);
-        Input.PushLayer(this);
-    }
-
-    private void TogglePause()
-    {
-        if (IsPaused)
-        {
-            IsPaused = false;
-            Input.PopLayer();
-            return;
-        }
-        
-        IsPaused = true;
-        Input.PushLayer(new TestLayer());
+        Input.PushLayer(GameInputLayer);
     }
 
     protected override void OnUpdate()
@@ -160,6 +132,19 @@ public class SnakeGame : Game, IInputLayer
     {
     }
 
+    private void TogglePause()
+    {
+        if (IsPaused)
+        {
+            IsPaused = false;
+            Input.PopLayer();
+            return;
+        }
+        
+        IsPaused = true;
+        Input.PushLayer(UIInputLayer);
+    }
+
     private void IncreaseSpeed()
     {
         Snake.Speed += 0.5f;
@@ -183,25 +168,4 @@ public class SnakeGame : Game, IInputLayer
             position = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
         return position;
     }
-
-    public Dictionary<KeyboardKey, string> KeyboardBindings { get; } = new()
-    {
-        { KeyboardKey.Escape, InputActions.QuitAction },
-        { KeyboardKey.R, InputActions.ResetAction },
-        { KeyboardKey.Equals, InputActions.IncreaseSpeedAction },
-        { KeyboardKey.Minus, InputActions.DecreaseSpeedAction },
-        { KeyboardKey.P, InputActions.PauseResumeAction },
-        
-        { KeyboardKey.W, InputActions.MoveUpAction },
-        { KeyboardKey.UpArrow, InputActions.MoveUpAction },
-        
-        { KeyboardKey.A, InputActions.MoveLeftAction },
-        { KeyboardKey.LeftArrow, InputActions.MoveLeftAction },
-        
-        { KeyboardKey.D, InputActions.MoveRightAction },
-        { KeyboardKey.RightArrow, InputActions.MoveRightAction },
-        
-        { KeyboardKey.S, InputActions.MoveDownAction },
-        { KeyboardKey.DownArrow, InputActions.MoveDownAction },
-    };
 }
