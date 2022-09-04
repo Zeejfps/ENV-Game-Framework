@@ -27,6 +27,7 @@ internal class Keyboard : IKeyboard
             
         EventBus.Publish(new KeyboardKeyPressedEvent
         {
+            Keyboard = this,
             Key = key
         });
     }

@@ -30,6 +30,7 @@ internal class Mouse : IMouse
         m_ButtonsPressedThisFrame.Add(button);
         EventBus.Publish(new MouseButtonPressedEvent
         {
+            Mouse = this,
             Button = button
         });
     }
