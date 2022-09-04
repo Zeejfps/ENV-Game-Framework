@@ -1,6 +1,8 @@
+using EasyGameFramework.Api;
+using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 
-namespace EasyGameFramework.Glfw;
+namespace EasyGameFramework.Core;
 
 internal class Keyboard : IKeyboard
 {
@@ -8,10 +10,23 @@ internal class Keyboard : IKeyboard
     private readonly HashSet<KeyboardKey> m_KeysReleasedThisFrame = new();
     private readonly HashSet<KeyboardKey> m_PressedKeys = new();
 
+    private IEventBus EventBus { get; }
+    
+    public Keyboard(IEventBus eventBus)
+    {
+        EventBus = eventBus;
+    }
+    
     public void PressKey(KeyboardKey key)
     {
         if (m_PressedKeys.Add(key))
+        {
             m_KeysPressedThisFrame.Add(key);
+            EventBus.Publish(new KeyboardKeyPressedEvent
+            {
+                Key = key
+            });
+        }
     }
 
     public void ReleaseKey(KeyboardKey key)
@@ -52,7 +67,7 @@ internal class Keyboard : IKeyboard
         return !m_PressedKeys.Contains(key);
     }
 
-    public void Update()
+    public void Reset()
     {
         m_KeysPressedThisFrame.Clear();
         m_KeysReleasedThisFrame.Clear();

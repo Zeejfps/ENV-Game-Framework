@@ -37,6 +37,12 @@ public sealed class ApplicationBuilder
         return this;
     }
 
+    public ApplicationBuilder With<T, TImpl>()
+    {
+        DiContainer.Bind<T, TImpl>();
+        return this;
+    }
+
     public IApp Build<TApp>() where TApp : IApp
     {
         if (!m_IsRenderingApiSet)
@@ -54,6 +60,7 @@ public sealed class ApplicationBuilder
         DiContainer.Bind<IContext, Context>();
         DiContainer.Bind<IApp, TApp>();
         DiContainer.BindInstance<IContainer>(DiContainer);
+        DiContainer.Bind<IEventBus, EventBus>();
 
         var engine = DiContainer.New<IApp>();
         return engine;

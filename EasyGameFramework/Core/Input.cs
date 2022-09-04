@@ -1,7 +1,7 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.InputDevices;
 
-namespace EasyGameFramework.Glfw;
+namespace EasyGameFramework.Core;
 
 internal class Input : IInput
 {
@@ -9,10 +9,10 @@ internal class Input : IInput
 
     private readonly Mouse m_Mouse;
 
-    public Input()
+    public Input(IEventBus eventBus)
     {
         m_Mouse = new Mouse();
-        m_Keyboard = new Keyboard();
+        m_Keyboard = new Keyboard(eventBus);
     }
 
     public IMouse Mouse => m_Mouse;
@@ -20,7 +20,7 @@ internal class Input : IInput
 
     public void Update()
     {
-        m_Keyboard.Update();
+        m_Keyboard.Reset();
         m_Mouse.Update();
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
+using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
 
@@ -20,12 +21,15 @@ public class SnakeGame : Game
     private Vector2 Apple { get; set; }
     private Random Random { get; } = new();
     
-    public SnakeGame(IContext context) : base(context.Window, context.Input)
+    private IEventBus EventBus { get; }
+    
+    public SnakeGame(IContext context, IEventBus eventBus) : base(context.Window, context.Input)
     {
         Context = context;
         Gpu = context.Gpu;
         Logger = context.Logger;
         Container = context.Container;
+        EventBus = eventBus;
 
         Grid = new Grid(21, 21);
         Container.BindInstance(Grid);
@@ -52,49 +56,12 @@ public class SnakeGame : Game
         Snake.Reset();
 
         Apple = SpawnApple();
+        
+        EventBus.AddListener<KeyboardKeyPressedEvent>(OnKeyboardKeyPressed);
     }
 
     protected override void OnUpdate()
     {
-        var keyboard = Input.Keyboard;
-        
-        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
-        {
-            Stop();
-            return;
-        }
-        
-        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.A))
-        {
-            Snake.TurnWest();
-        }
-        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.D)) 
-        {
-            Snake.TurnEast();
-        }
-        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.W)) 
-        {
-            Snake.TurnNorth();
-        }
-        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.S)) 
-        {
-            Snake.TurnSouth();
-        }
-
-        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.R))
-        {
-            Snake.Reset();
-            Apple = SpawnApple();
-        }
-        
-        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Space))
-            Snake.Grow();
-
-        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Equals))
-            Snake.Speed += 0.5f;
-        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Minus))
-            Snake.Speed -= 0.5f;
-
         Snake.Update(Clock.UpdateDeltaTime);
 
         if (Snake.Head == Apple)
@@ -149,7 +116,49 @@ public class SnakeGame : Game
     protected override void OnStop()
     {
     }
-    
+
+    private void OnKeyboardKeyPressed(KeyboardKeyPressedEvent evt)
+    {
+        var key = evt.Key;
+        
+        if (key == KeyboardKey.Escape)
+        {
+            Stop();
+            return;
+        }
+        
+        if (key == KeyboardKey.A)
+        {
+            Snake.TurnWest();
+        }
+        else if (key == KeyboardKey.D) 
+        {
+            Snake.TurnEast();
+        }
+        else if (key == KeyboardKey.W) 
+        {
+            Snake.TurnNorth();
+        }
+        else if (key == KeyboardKey.S) 
+        {
+            Snake.TurnSouth();
+        }
+
+        if (key == KeyboardKey.R)
+        {
+            Snake.Reset();
+            Apple = SpawnApple();
+        }
+        
+        if (key == KeyboardKey.Space)
+            Snake.Grow();
+
+        if (key == KeyboardKey.Equals)
+            Snake.Speed += 0.5f;
+        else if (key == KeyboardKey.Minus)
+            Snake.Speed -= 0.5f;
+    }
+
     private Vector2 SpawnApple()
     {
         var position = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));

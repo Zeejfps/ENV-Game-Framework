@@ -12,5 +12,5 @@ public interface IKeyboard
     bool IsKeyPressed(KeyboardKey key);
     bool IsKeyReleased(KeyboardKey key);
 
-    void Update();
+    void Reset();
 }
