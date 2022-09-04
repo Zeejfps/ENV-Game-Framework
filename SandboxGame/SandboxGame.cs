@@ -4,14 +4,16 @@ namespace Framework;
 
 public class SandboxGame : Game
 {
-    IDisplays Displays => Context.Displays;
     IContext Context { get; }
 
     private TestScene Scene { get; set; }
     
-    public SandboxGame(IContext context) : base(context.Window, context.Input)
+    private ILogger Logger { get; }
+    
+    public SandboxGame(IContext context, ILogger logger) : base(context.Window, context.Input)
     {
         Context = context;
+        Logger = logger;
     }
 
     protected override void OnStart()
@@ -24,7 +26,7 @@ public class SandboxGame : Game
         Window.IsVsyncEnabled = true;
         Window.ShowCentered();
         
-        Scene = new TestScene(Context);
+        Scene = new TestScene(Context, Logger);
         Scene.Load();
     }
 

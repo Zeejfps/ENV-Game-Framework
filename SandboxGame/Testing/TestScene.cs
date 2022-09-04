@@ -28,7 +28,6 @@ public class TestScene : IScene
 
     private int m_PrevMouseX;
     private int m_PrevMouseY;
-    private int m_ColorBufferIndex;
     private bool m_IsRotating;
 
     private Ship m_Ship1;
@@ -42,8 +41,12 @@ public class TestScene : IScene
     private IHandle<IGpuShader> m_FullScreenBlitShaderHandle;
     private IHandle<IGpuMesh> m_QuadMeshHandle;
 
-    public TestScene(IContext app)
+    private ILogger Logger { get; }
+    
+    public TestScene(IContext app, ILogger logger)
     {
+        Logger = logger;
+        
         var aspect = app.Window.Width / (float)app.Window.Height;
         m_App = app;
         m_Gpu = m_App.Gpu;
@@ -171,40 +174,44 @@ public class TestScene : IScene
         }
         
         if (mouse.IsButtonPressed(MouseButton.Left))
-        {
-            var deltaX = (mouse.ScreenX - m_PrevMouseX) * 0.001f;
-            var deltaY = (mouse.ScreenY - m_PrevMouseY) * 0.001f;
-            m_PrevMouseX = mouse.ScreenX;
-            m_PrevMouseY = mouse.ScreenY;
-            
-            m_Camera.Transform.RotateAround(m_CameraTarget.WorldPosition, Vector3.UnitY, -deltaX);
-            m_Camera.Transform.RotateAround(m_CameraTarget.WorldPosition, m_Camera.Transform.Right, -deltaY);
-        }
+            RotateCamera();
 
         if (mouse.IsButtonPressed(MouseButton.Middle))
-        {
-            var deltaX = (mouse.ScreenX - m_PrevMouseX) * 0.001f;
-            var deltaY = (mouse.ScreenY - m_PrevMouseY) * 0.001f;
-            m_PrevMouseX = mouse.ScreenX;
-            m_PrevMouseY = mouse.ScreenY;
+            PanCamera();
 
-            var movement = (m_Camera.Transform.Right * -deltaX + m_Camera.Transform.Up * deltaY) 
-                           * m_Clock.DeltaTime * 1920f;
-
-            m_Camera.Transform.WorldPosition += movement;
-            m_CameraTarget.WorldPosition += movement;
-        }
-        
-        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Alpha1))
-            m_ColorBufferIndex = 0;
-        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Alpha2))
-            m_ColorBufferIndex = 1;
-        else if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Alpha3))
-            m_ColorBufferIndex = 2;
-        
         m_Camera.Transform.LookAt(m_CameraTarget.WorldPosition, Vector3.UnitY);
     }
 
+    private void RotateCamera()
+    {
+        var mouse = m_App.Input.Mouse;
+
+        var deltaX = (mouse.ScreenX - m_PrevMouseX) * 0.001f;
+        var deltaY = (mouse.ScreenY - m_PrevMouseY) * 0.001f;
+        m_PrevMouseX = mouse.ScreenX;
+        m_PrevMouseY = mouse.ScreenY;
+            
+        m_Camera.Transform.RotateAround(m_CameraTarget.WorldPosition, Vector3.UnitY, -deltaX);
+        m_Camera.Transform.RotateAround(m_CameraTarget.WorldPosition, m_Camera.Transform.Right, -deltaY);
+
+    }
+
+    private void PanCamera()
+    {
+        var mouse = m_App.Input.Mouse;
+        
+        var deltaX = (mouse.ScreenX - m_PrevMouseX) * 0.001f;
+        var deltaY = (mouse.ScreenY - m_PrevMouseY) * 0.001f;
+        m_PrevMouseX = mouse.ScreenX;
+        m_PrevMouseY = mouse.ScreenY;
+
+        var movement = (m_Camera.Transform.Right * -deltaX + m_Camera.Transform.Up * deltaY) 
+                       * m_Clock.DeltaTime * 1920f;
+
+        m_Camera.Transform.WorldPosition += movement;
+        m_CameraTarget.WorldPosition += movement;
+    }
+    
     private List<Ship> CreateShips()
     {
         var gpu = Context.Gpu;

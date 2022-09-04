@@ -375,7 +375,7 @@ public class Window_GLFW : IWindow
     {
         var mouse = m_Input.Mouse;
         mouse.ScrollDeltaX = (float)x;
-        mouse.ScrollDeltaX = (float)y;
+        mouse.ScrollDeltaY = (float)y;
     }
 
     public override string ToString()
