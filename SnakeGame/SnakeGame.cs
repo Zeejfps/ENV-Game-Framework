@@ -1,13 +1,25 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
-using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
 
 namespace SampleGames;
 
-public class SnakeGame : Game
+public class TestLayer : IInputLayer
+{
+    public void Bind(IInput input)
+    {
+        input.Keyboard.BindKeyToAction(KeyboardKey.P, "Game/Pause");
+    }
+
+    public void Unbind(IInput input)
+    {
+        input.Keyboard.UnbindKey(KeyboardKey.P);
+    }
+}
+
+public class SnakeGame : Game, IInputLayer
 {
     private OrthographicCamera m_Camera;
     private SpriteRenderer m_SpriteRenderer;
@@ -20,8 +32,9 @@ public class SnakeGame : Game
     private Grid Grid { get; }
     private Vector2 Apple { get; set; }
     private Random Random { get; } = new();
-    
     private IEventBus EventBus { get; }
+    
+    private bool IsPaused { get; set; }
     
     public SnakeGame(IContext context, IEventBus eventBus) : base(context.Window, context.Input)
     {
@@ -43,23 +56,6 @@ public class SnakeGame : Game
 
     protected override void OnStart()
     {
-        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.Escape, "Quit");
-        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.R, "Reset");
-        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.Equals, "IncreaseSpeed");
-        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.Minus, "DecreaseSpeed");
-        
-        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.W, "MoveUp");
-        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.UpArrow, "MoveUp");
-
-        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.A, "MoveLeft");
-        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.LeftArrow, "MoveLeft");
-
-        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.D, "MoveRight");
-        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.RightArrow, "MoveRight");
-
-        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.S, "MoveDown");
-        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.DownArrow, "MoveDown");
-
         var window = Window;
         window.Width = 500;
         window.Height = 500;
@@ -74,18 +70,36 @@ public class SnakeGame : Game
 
         Apple = SpawnApple();
 
-        Input.BindAction("MoveUp", Snake.TurnNorth);
-        Input.BindAction("MoveLeft", Snake.TurnWest);
-        Input.BindAction("MoveRight", Snake.TurnEast);
-        Input.BindAction("MoveDown", Snake.TurnSouth);
-        Input.BindAction("IncreaseSpeed", IncreaseSpeed);
-        Input.BindAction("DecreaseSpeed", DecreaseSpeed);
-        Input.BindAction("Reset", Reset);
-        Input.BindAction("Quit", Stop);
+        Input.BindAction(InputActions.MoveUpAction, Snake.TurnNorth);
+        Input.BindAction(InputActions.MoveLeftAction, Snake.TurnWest);
+        Input.BindAction(InputActions.MoveRightAction, Snake.TurnEast);
+        Input.BindAction(InputActions.MoveDownAction, Snake.TurnSouth);
+        Input.BindAction(InputActions.IncreaseSpeedAction, IncreaseSpeed);
+        Input.BindAction(InputActions.DecreaseSpeedAction, DecreaseSpeed);
+        Input.BindAction(InputActions.ResetAction, Reset);
+        Input.BindAction(InputActions.QuitAction, Stop);
+        Input.BindAction(InputActions.PauseResumeAction, TogglePause);
+        Input.PushLayer(this);
+    }
+
+    private void TogglePause()
+    {
+        if (IsPaused)
+        {
+            IsPaused = false;
+            Input.PopLayer();
+            return;
+        }
+        
+        IsPaused = true;
+        Input.PushLayer(new TestLayer());
     }
 
     protected override void OnUpdate()
     {
+        if (IsPaused)
+            return;
+        
         Snake.Update(Clock.UpdateDeltaTime);
 
         if (Snake.Head == Apple)
@@ -163,5 +177,39 @@ public class SnakeGame : Game
         while (Snake.Segments.Contains(position))
             position = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
         return position;
+    }
+
+    public void Bind(IInput input)
+    {
+        input.Keyboard.BindKeyToAction(KeyboardKey.Escape, InputActions.QuitAction);
+        input.Keyboard.BindKeyToAction(KeyboardKey.R, InputActions.ResetAction);
+        input.Keyboard.BindKeyToAction(KeyboardKey.Equals, InputActions.IncreaseSpeedAction);
+        input.Keyboard.BindKeyToAction(KeyboardKey.Minus, InputActions.DecreaseSpeedAction);
+        input.Keyboard.BindKeyToAction(KeyboardKey.W, InputActions.MoveUpAction);
+        input.Keyboard.BindKeyToAction(KeyboardKey.UpArrow, InputActions.MoveUpAction);
+        input.Keyboard.BindKeyToAction(KeyboardKey.A, InputActions.MoveLeftAction);
+        input.Keyboard.BindKeyToAction(KeyboardKey.LeftArrow, InputActions.MoveLeftAction);
+        input.Keyboard.BindKeyToAction(KeyboardKey.D, InputActions.MoveRightAction);
+        input.Keyboard.BindKeyToAction(KeyboardKey.RightArrow, InputActions.MoveRightAction);
+        input.Keyboard.BindKeyToAction(KeyboardKey.S, InputActions.MoveDownAction);
+        input.Keyboard.BindKeyToAction(KeyboardKey.DownArrow, InputActions.MoveDownAction);
+        input.Keyboard.BindKeyToAction(KeyboardKey.P, InputActions.PauseResumeAction);
+    }
+
+    public void Unbind(IInput input)
+    {
+        input.Keyboard.UnbindKey(KeyboardKey.Escape);
+        input.Keyboard.UnbindKey(KeyboardKey.R);
+        input.Keyboard.UnbindKey(KeyboardKey.Equals);
+        input.Keyboard.UnbindKey(KeyboardKey.Minus);
+        input.Keyboard.UnbindKey(KeyboardKey.W);
+        input.Keyboard.UnbindKey(KeyboardKey.UpArrow);
+        input.Keyboard.UnbindKey(KeyboardKey.A);
+        input.Keyboard.UnbindKey(KeyboardKey.LeftArrow);
+        input.Keyboard.UnbindKey(KeyboardKey.D);
+        input.Keyboard.UnbindKey(KeyboardKey.RightArrow);
+        input.Keyboard.UnbindKey(KeyboardKey.S);
+        input.Keyboard.UnbindKey(KeyboardKey.DownArrow);
+        input.Keyboard.UnbindKey(KeyboardKey.P);
     }
 }

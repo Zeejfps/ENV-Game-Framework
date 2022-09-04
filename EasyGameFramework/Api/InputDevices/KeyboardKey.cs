@@ -21,6 +21,7 @@ public enum KeyboardKey
     I,
     J,
     K,
+    P,
     Q,
     R,
     S,

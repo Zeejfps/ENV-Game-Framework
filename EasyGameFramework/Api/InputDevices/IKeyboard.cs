@@ -14,7 +14,7 @@ public interface IKeyboard
 
     void Reset();
     
-    void CreateKeyToActionBinding(KeyboardKey key, string actionName);
-    void ClearKeyBinding(KeyboardKey key);
+    void BindKeyToAction(KeyboardKey key, string actionName);
+    void UnbindKey(KeyboardKey key);
 
 }

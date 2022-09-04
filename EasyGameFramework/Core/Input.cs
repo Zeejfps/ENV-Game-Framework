@@ -14,7 +14,8 @@ internal class Input : IInput
     public IKeyboard Keyboard => m_Keyboard;
     private ILogger Logger { get; }
 
-    private readonly Dictionary<string, List<Action>> m_ActionToHandlerMap = new();
+    private readonly Dictionary<string, HashSet<Action>> m_ActionToHandlerMap = new();
+    private readonly Stack<IInputLayer> m_InputLayerStack = new();
 
     public Input(ILogger logger, IEventBus eventBus)
     {
@@ -46,7 +47,7 @@ internal class Input : IInput
     {
         if (!m_ActionToHandlerMap.TryGetValue(actionName, out var handlers))
         {
-            handlers = new List<Action>();
+            handlers = new HashSet<Action>();
             m_ActionToHandlerMap[actionName] = handlers;
         }
         handlers.Add(handler);
@@ -54,6 +55,8 @@ internal class Input : IInput
 
     public void UnbindAction(string actionName, Action handler)
     {
+        if (m_ActionToHandlerMap.TryGetValue(actionName, out var handlers))
+            handlers.Remove(handler);
     }
 
     public void BindAxis(string axisName, Action<float> handler)
@@ -62,5 +65,23 @@ internal class Input : IInput
 
     public void UnbindAxis(string axisName, Action<float> handler)
     {
+    }
+
+    public void PushLayer(IInputLayer inputLayer)
+    {
+        if (m_InputLayerStack.Count > 0)
+            m_InputLayerStack.Peek().Unbind(this);
+        
+        inputLayer.Bind(this);
+        m_InputLayerStack.Push(inputLayer);
+    }
+
+    public void PopLayer()
+    {
+        var inputLayer = m_InputLayerStack.Pop();
+        inputLayer.Unbind(this);
+        
+        if (m_InputLayerStack.Count > 0)
+            m_InputLayerStack.Peek().Bind(this);
     }
 }

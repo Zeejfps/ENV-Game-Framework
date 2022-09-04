@@ -77,12 +77,12 @@ internal class Keyboard : IKeyboard
         m_KeysReleasedThisFrame.Clear();
     }
 
-    public void CreateKeyToActionBinding(KeyboardKey key, string actionName)
+    public void BindKeyToAction(KeyboardKey key, string actionName)
     {
         m_KeyToActionMap[key] = actionName;
     }
 
-    public void ClearKeyBinding(KeyboardKey key)
+    public void UnbindKey(KeyboardKey key)
     {
         m_KeyToActionMap.Remove(key);
     }
