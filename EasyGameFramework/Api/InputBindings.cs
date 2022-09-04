@@ -1,4 +1,7 @@
 ﻿using EasyGameFramework.Api.InputDevices;
+using IniParser;
+using IniParser.Model;
+using IniParser.Parser;
 
 namespace EasyGameFramework.Api;
 
@@ -22,8 +25,35 @@ public abstract class InputBindings : IInputBindings
         
     }
     
-    public Task LoadFromFileAsync(string pathToFile)
+    public async Task LoadFromFileAsync(string pathToFile, CancellationToken cancellationToken = default)
     {
-        return Task.CompletedTask;
+        if (!File.Exists(pathToFile))
+            return;
+        
+        var text = await File.ReadAllTextAsync(pathToFile, cancellationToken);
+        var parser = new IniDataParser();
+        var data = parser.Parse(text);
+        var mappings = data["Keymappings"];
+        
+    }
+
+    public async Task SaveToFileAsync(string pathToFile)
+    {
+        IniData data;
+        if (File.Exists(pathToFile))
+        {
+            var text = await File.ReadAllTextAsync(pathToFile);
+            var parser = new IniDataParser();
+            data = parser.Parse(text);
+        }
+        else
+        {
+            data = new IniData();
+        }
+        
+        foreach (var (key, action) in DefaultKeyboardKeyBindings)
+            data["Keymappings"][action] = key.ToString();
+        
+        await File.WriteAllTextAsync(pathToFile, data.ToString());
     }
 }

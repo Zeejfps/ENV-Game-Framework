@@ -70,6 +70,8 @@ public class SnakeGame : Game
         Input.BindAction(InputActions.QuitAction, Stop);
         Input.BindAction(InputActions.PauseResumeAction, TogglePause);
         Input.Bindings = GameInputBindings;
+
+        GameInputBindings.SaveToFileAsync("C:/Users/zvasi/Documents/Dev/ENV Game Framework/SnakeGame/Assets/test.ini").Wait();
     }
 
     protected override void OnUpdate()
