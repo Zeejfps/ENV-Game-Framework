@@ -43,6 +43,23 @@ public class SnakeGame : Game
 
     protected override void OnStart()
     {
+        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.Escape, "Quit");
+        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.R, "Reset");
+        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.Equals, "IncreaseSpeed");
+        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.Minus, "DecreaseSpeed");
+        
+        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.W, "MoveUp");
+        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.UpArrow, "MoveUp");
+
+        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.A, "MoveLeft");
+        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.LeftArrow, "MoveLeft");
+
+        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.D, "MoveRight");
+        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.RightArrow, "MoveRight");
+
+        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.S, "MoveDown");
+        Input.Keyboard.CreateKeyToActionBinding(KeyboardKey.DownArrow, "MoveDown");
+
         var window = Window;
         window.Width = 500;
         window.Height = 500;
@@ -56,8 +73,15 @@ public class SnakeGame : Game
         Snake.Reset();
 
         Apple = SpawnApple();
-        
-        EventBus.AddListener<KeyboardKeyPressedEvent>(OnKeyboardKeyPressed);
+
+        Input.BindAction("MoveUp", Snake.TurnNorth);
+        Input.BindAction("MoveLeft", Snake.TurnWest);
+        Input.BindAction("MoveRight", Snake.TurnEast);
+        Input.BindAction("MoveDown", Snake.TurnSouth);
+        Input.BindAction("IncreaseSpeed", IncreaseSpeed);
+        Input.BindAction("DecreaseSpeed", DecreaseSpeed);
+        Input.BindAction("Reset", Reset);
+        Input.BindAction("Quit", Stop);
     }
 
     protected override void OnUpdate()
@@ -117,46 +141,20 @@ public class SnakeGame : Game
     {
     }
 
-    private void OnKeyboardKeyPressed(KeyboardKeyPressedEvent evt)
+    private void IncreaseSpeed()
     {
-        var key = evt.Key;
-        
-        if (key == KeyboardKey.Escape)
-        {
-            Stop();
-            return;
-        }
-        
-        if (key == KeyboardKey.A)
-        {
-            Snake.TurnWest();
-        }
-        else if (key == KeyboardKey.D) 
-        {
-            Snake.TurnEast();
-        }
-        else if (key == KeyboardKey.W) 
-        {
-            Snake.TurnNorth();
-        }
-        else if (key == KeyboardKey.S) 
-        {
-            Snake.TurnSouth();
-        }
+        Snake.Speed += 0.5f;
+    }
 
-        if (key == KeyboardKey.R)
-        {
-            Snake.Reset();
-            Apple = SpawnApple();
-        }
-        
-        if (key == KeyboardKey.Space)
-            Snake.Grow();
+    private void DecreaseSpeed()
+    {
+        Snake.Speed -= 0.5f;
+    }
 
-        if (key == KeyboardKey.Equals)
-            Snake.Speed += 0.5f;
-        else if (key == KeyboardKey.Minus)
-            Snake.Speed -= 0.5f;
+    private void Reset()
+    {
+        Snake.Reset();
+        Apple = SpawnApple();
     }
 
     private Vector2 SpawnApple()

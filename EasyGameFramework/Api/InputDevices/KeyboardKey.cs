@@ -38,4 +38,9 @@ public enum KeyboardKey
 
     Equals,
     Minus,
+
+    UpArrow,
+    LeftArrow,
+    RightArrow,
+    DownArrow,
 }

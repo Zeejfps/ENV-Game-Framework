@@ -124,13 +124,13 @@ public static class KeysExtensions
             case Keys.Delete:
                 break;
             case Keys.Right:
-                break;
+                return KeyboardKey.RightArrow;
             case Keys.Left:
-                break;
+                return KeyboardKey.LeftArrow;
             case Keys.Down:
-                break;
+                return KeyboardKey.DownArrow;
             case Keys.Up:
-                break;
+                return KeyboardKey.UpArrow;
             case Keys.PageUp:
                 break;
             case Keys.PageDown:

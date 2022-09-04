@@ -13,4 +13,8 @@ public interface IKeyboard
     bool IsKeyReleased(KeyboardKey key);
 
     void Reset();
+    
+    void CreateKeyToActionBinding(KeyboardKey key, string actionName);
+    void ClearKeyBinding(KeyboardKey key);
+
 }

@@ -2,27 +2,27 @@
 
 internal class EventBus : IEventBus
 {
-    public void Publish<TEvent>() where TEvent : unmanaged
+    public void Publish<TEvent>() where TEvent : struct
     {
         Listeners<TEvent>.Get(this).Notify(new TEvent());
     }
 
-    public void Publish<TEvent>(in TEvent evt) where TEvent : unmanaged
+    public void Publish<TEvent>(in TEvent evt) where TEvent : struct
     {
         Listeners<TEvent>.Get(this).Notify(evt);
     }
 
-    public void AddListener<TEvent>(Action<TEvent> listener) where TEvent : unmanaged
+    public void AddListener<TEvent>(EventListener<TEvent> listener) where TEvent : struct
     {
         Listeners<TEvent>.Get(this).AddListener(listener);
     }
 
-    public void RemoveListener<TEvent>(Action<TEvent> listener) where TEvent : unmanaged
+    public void RemoveListener<TEvent>(EventListener<TEvent> listener) where TEvent : struct
     {
         Listeners<TEvent>.Get(this).RemoveListener(listener);
     }
 
-    private class Listeners<TEvent>
+    private class Listeners<TEvent> where TEvent : struct
     {
         private static readonly Dictionary<IEventBus, Listeners<TEvent>> s_BusToListenersMap = new();
         
@@ -36,7 +36,7 @@ internal class EventBus : IEventBus
             return listeners;
         }
 
-        private readonly List<Action<TEvent>> m_Listeners = new();
+        private readonly List<EventListener<TEvent>> m_Listeners = new();
 
         public void Notify(in TEvent evt)
         {
@@ -44,12 +44,12 @@ internal class EventBus : IEventBus
                 listener.Invoke(evt);
         }
         
-        public void AddListener(Action<TEvent> listener)
+        public void AddListener(EventListener<TEvent> listener)
         {
             m_Listeners.Add(listener);
         }
 
-        public void RemoveListener(Action<TEvent> listener)
+        public void RemoveListener(EventListener<TEvent> listener)
         {
             m_Listeners.Remove(listener);
         }

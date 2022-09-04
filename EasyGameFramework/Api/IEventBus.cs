@@ -1,10 +1,12 @@
 ﻿namespace EasyGameFramework.Api;
 
+public delegate void EventListener<in TEvent>(TEvent evt);
+
 public interface IEventBus
 {
-    void Publish<TEvent>() where TEvent : unmanaged;
-    void Publish<TEvent>(in TEvent evt) where TEvent : unmanaged;
+    void Publish<TEvent>() where TEvent : struct;
+    void Publish<TEvent>(in TEvent evt) where TEvent : struct;
     
-    void AddListener<TEvent>(Action<TEvent> listener) where TEvent : unmanaged;
-    void RemoveListener<TEvent>(Action<TEvent> listener) where TEvent : unmanaged;
+    void AddListener<TEvent>(EventListener<TEvent> listener) where TEvent : struct;
+    void RemoveListener<TEvent>(EventListener<TEvent> listener) where TEvent : struct;
 }

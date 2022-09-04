@@ -15,5 +15,5 @@ public interface IMouse
     public bool IsButtonPressed(MouseButton button);
     public bool IsButtonReleased(MouseButton button);
 
-    void Update();
+    void Reset();
 }

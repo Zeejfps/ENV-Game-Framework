@@ -45,7 +45,7 @@ internal class Mouse : IMouse
         return !m_PressedButtons.Contains(button);
     }
 
-    public void Update()
+    public void Reset()
     {
         ScrollDeltaX = 0;
         ScrollDeltaY = 0;

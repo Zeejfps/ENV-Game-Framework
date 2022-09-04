@@ -9,6 +9,7 @@ internal class Keyboard : IKeyboard
     private readonly HashSet<KeyboardKey> m_KeysPressedThisFrame = new();
     private readonly HashSet<KeyboardKey> m_KeysReleasedThisFrame = new();
     private readonly HashSet<KeyboardKey> m_PressedKeys = new();
+    private readonly Dictionary<KeyboardKey, string> m_KeyToActionMap = new();
 
     private IEventBus EventBus { get; }
     
@@ -22,10 +23,13 @@ internal class Keyboard : IKeyboard
         if (m_PressedKeys.Add(key))
         {
             m_KeysPressedThisFrame.Add(key);
-            EventBus.Publish(new KeyboardKeyPressedEvent
+            if (m_KeyToActionMap.TryGetValue(key, out var actionName))
             {
-                Key = key
-            });
+                EventBus.Publish(new ActionPerformedEvent
+                {
+                    ActionName = actionName
+                });
+            }
         }
     }
 
@@ -71,5 +75,15 @@ internal class Keyboard : IKeyboard
     {
         m_KeysPressedThisFrame.Clear();
         m_KeysReleasedThisFrame.Clear();
+    }
+
+    public void CreateKeyToActionBinding(KeyboardKey key, string actionName)
+    {
+        m_KeyToActionMap[key] = actionName;
+    }
+
+    public void ClearKeyBinding(KeyboardKey key)
+    {
+        m_KeyToActionMap.Remove(key);
     }
 }
