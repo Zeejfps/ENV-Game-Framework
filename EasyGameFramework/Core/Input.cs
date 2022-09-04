@@ -16,23 +16,30 @@ internal class Input : IInput
 
     private readonly Dictionary<string, HashSet<Action>> m_ActionToHandlerMap = new();
     private IInputBindings? m_ActiveBindings;
+    
+    private KeyboardKeyBindings KeyboardKeyBindings { get; }
 
     public Input(ILogger logger, IEventBus eventBus)
     {
         Logger = logger;
         m_Mouse = new Mouse();
         m_Keyboard = new Keyboard(eventBus);
+        KeyboardKeyBindings = new KeyboardKeyBindings();
         
-        eventBus.AddListener<InputActionPerformedEvent>(OnActionPerformed);
+        eventBus.AddListener<KeyboardKeyPressedEvent>(OnKeyboardKeyPressed);
     }
 
-    private void OnActionPerformed(InputActionPerformedEvent evt)
+    private void OnKeyboardKeyPressed(KeyboardKeyPressedEvent evt)
     {
-        if (m_ActionToHandlerMap.TryGetValue(evt.ActionName, out var handlers))
+        var key = evt.Key;
+        if (KeyboardKeyBindings.TryGetAction(key, out var action))
         {
-            foreach (var handler in handlers)
+            if (m_ActionToHandlerMap.TryGetValue(action, out var handlers))
             {
-                handler.Invoke();
+                foreach (var handler in handlers)
+                {
+                    handler.Invoke();
+                }
             }
         }
     }
@@ -79,12 +86,12 @@ internal class Input : IInput
     private void Bind(IInputBindings bindings)
     {
         foreach (var (key, action) in bindings.KeyboardKeyToActionBindings)
-            Keyboard.KeyBindings.BindKeyToAction(key, action);
+            KeyboardKeyBindings.BindKeyToAction(key, action);
     }
 
     private void Unbind(IInputBindings bindings)
     {
         foreach (var (key, _) in bindings.KeyboardKeyToActionBindings)
-            Keyboard.KeyBindings.UnbindKey(key);
+            KeyboardKeyBindings.UnbindKey(key);
     }
 }

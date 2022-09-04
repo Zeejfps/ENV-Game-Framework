@@ -11,13 +11,10 @@ internal class Keyboard : IKeyboard
     private readonly HashSet<KeyboardKey> m_PressedKeys = new();
 
     private IEventBus EventBus { get; }
-
-    public IKeyboardKeyBindings KeyBindings { get; }
-
+    
     public Keyboard(IEventBus eventBus)
     {
         EventBus = eventBus;
-        KeyBindings = new KeyboardKeyBindings();
     }
 
     public void PressKey(KeyboardKey key)
@@ -32,14 +29,6 @@ internal class Keyboard : IKeyboard
         {
             Key = key
         });
-        
-        if (KeyBindings.TryGetAction(key, out var actionName))
-        {
-            EventBus.Publish(new InputActionPerformedEvent
-            {
-                ActionName = actionName
-            });
-        }
     }
 
     public void ReleaseKey(KeyboardKey key)

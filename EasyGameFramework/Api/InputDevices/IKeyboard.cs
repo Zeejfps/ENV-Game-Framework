@@ -2,8 +2,6 @@
 
 public interface IKeyboard
 {
-    IKeyboardKeyBindings KeyBindings { get; }
-    
     void PressKey(KeyboardKey key);
     void ReleaseKey(KeyboardKey key);
 
