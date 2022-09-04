@@ -15,6 +15,5 @@ public interface IInput
     void BindAxis(string axisName, Action<float> handler);
     void UnbindAxis(string axisName, Action<float> handler);
     
-    void PushLayer(IInputLayer inputLayer);
-    void PopLayer();
+    void ApplyBindings(IInputBindings inputBindings);
 }

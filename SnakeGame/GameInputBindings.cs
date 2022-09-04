@@ -3,7 +3,7 @@ using EasyGameFramework.Api.InputDevices;
 
 namespace SampleGames;
 
-public class GameInputLayer : IInputLayer
+public class GameInputBindings : IInputBindings
 {
     public Dictionary<KeyboardKey, string> KeyboardKeyActionBindings { get; private set; } = new()
     {

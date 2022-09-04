@@ -3,7 +3,7 @@ using EasyGameFramework.Api.InputDevices;
 
 namespace SampleGames;
 
-public class UIInputLayer : IInputLayer
+public class UIInputBindings : IInputBindings
 {
     public Dictionary<KeyboardKey, string> KeyboardKeyActionBindings { get; } = new()
     {

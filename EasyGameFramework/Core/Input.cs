@@ -15,7 +15,7 @@ internal class Input : IInput
     private ILogger Logger { get; }
 
     private readonly Dictionary<string, HashSet<Action>> m_ActionToHandlerMap = new();
-    private readonly Stack<IInputLayer> m_InputLayerStack = new();
+    private IInputBindings? m_ActiveBindings;
 
     public Input(ILogger logger, IEventBus eventBus)
     {
@@ -67,33 +67,24 @@ internal class Input : IInput
     {
     }
 
-    public void PushLayer(IInputLayer inputLayer)
+    public void ApplyBindings(IInputBindings inputBindings)
     {
-        if (m_InputLayerStack.Count > 0)
-            UnbindLayer(m_InputLayerStack.Peek());
+        if (m_ActiveBindings != null)
+            Unbind(m_ActiveBindings);
         
-        BindLayer(inputLayer);
-        m_InputLayerStack.Push(inputLayer);
+        Bind(inputBindings);
+        m_ActiveBindings = inputBindings;
     }
-
-    public void PopLayer()
+    
+    private void Bind(IInputBindings bindings)
     {
-        var inputLayer = m_InputLayerStack.Pop();
-        UnbindLayer(inputLayer);
-        
-        if (m_InputLayerStack.Count > 0)
-            BindLayer(m_InputLayerStack.Peek());
-    }
-
-    private void BindLayer(IInputLayer layer)
-    {
-        foreach (var (key, action) in layer.KeyboardKeyActionBindings)
+        foreach (var (key, action) in bindings.KeyboardKeyActionBindings)
             Keyboard.BindKeyToAction(key, action);
     }
 
-    private void UnbindLayer(IInputLayer layer)
+    private void Unbind(IInputBindings bindings)
     {
-        foreach (var (key, _) in layer.KeyboardKeyActionBindings)
+        foreach (var (key, _) in bindings.KeyboardKeyActionBindings)
             Keyboard.UnbindKey(key);
     }
 }

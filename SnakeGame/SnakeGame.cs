@@ -19,8 +19,8 @@ public class SnakeGame : Game
     private Vector2 Apple { get; set; }
     private Random Random { get; } = new();
     private IEventBus EventBus { get; }
-    private GameInputLayer GameInputLayer { get; }
-    private UIInputLayer UIInputLayer { get; }
+    private GameInputBindings GameInputBindings { get; }
+    private UIInputBindings UIInputBindings { get; }
     private bool IsPaused { get; set; }
     
     public SnakeGame(IContext context, IEventBus eventBus) : base(context.Window, context.Input)
@@ -31,8 +31,8 @@ public class SnakeGame : Game
         Container = context.Container;
         EventBus = eventBus;
 
-        GameInputLayer = new GameInputLayer();
-        UIInputLayer = new UIInputLayer();
+        GameInputBindings = new GameInputBindings();
+        UIInputBindings = new UIInputBindings();
         
         Grid = new Grid(21, 21);
         Container.BindInstance(Grid);
@@ -69,7 +69,7 @@ public class SnakeGame : Game
         Input.BindAction(InputActions.ResetAction, Reset);
         Input.BindAction(InputActions.QuitAction, Stop);
         Input.BindAction(InputActions.PauseResumeAction, TogglePause);
-        Input.PushLayer(GameInputLayer);
+        Input.ApplyBindings(GameInputBindings);
     }
 
     protected override void OnUpdate()
@@ -137,12 +137,12 @@ public class SnakeGame : Game
         if (IsPaused)
         {
             IsPaused = false;
-            Input.PopLayer();
+            Input.ApplyBindings(GameInputBindings);
             return;
         }
         
         IsPaused = true;
-        Input.PushLayer(UIInputLayer);
+        Input.ApplyBindings(UIInputBindings);
     }
 
     private void IncreaseSpeed()

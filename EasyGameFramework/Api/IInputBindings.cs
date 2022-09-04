@@ -2,7 +2,7 @@
 
 namespace EasyGameFramework.Api;
 
-public interface IInputLayer
+public interface IInputBindings
 {
     Dictionary<KeyboardKey, string> KeyboardKeyActionBindings { get; }
 }
