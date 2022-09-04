@@ -6,15 +6,11 @@ namespace EasyGameFramework.Core;
 
 internal class Input : IInput
 {
-    private readonly Keyboard m_Keyboard;
-
-    private readonly Mouse m_Mouse;
-
-    public IMouse Mouse => m_Mouse;
-    public IKeyboard Keyboard => m_Keyboard;
+    public IMouse Mouse { get; }
+    public IKeyboard Keyboard { get; }
     private ILogger Logger { get; }
 
-    private readonly Dictionary<string, HashSet<Action>> m_ActionToHandlerMap = new();
+    private Dictionary<string, HashSet<Action>> ActionToHandlerMap { get; } = new();
     private IInputBindings? m_ActiveBindings;
     
     private KeyboardKeyBindings KeyboardKeyBindings { get; }
@@ -22,8 +18,8 @@ internal class Input : IInput
     public Input(ILogger logger, IEventBus eventBus)
     {
         Logger = logger;
-        m_Mouse = new Mouse();
-        m_Keyboard = new Keyboard(eventBus);
+        Mouse = new Mouse();
+        Keyboard = new Keyboard(eventBus);
         KeyboardKeyBindings = new KeyboardKeyBindings();
         
         eventBus.AddListener<KeyboardKeyPressedEvent>(OnKeyboardKeyPressed);
@@ -34,7 +30,7 @@ internal class Input : IInput
         var key = evt.Key;
         if (KeyboardKeyBindings.TryGetAction(key, out var action))
         {
-            if (m_ActionToHandlerMap.TryGetValue(action, out var handlers))
+            if (ActionToHandlerMap.TryGetValue(action, out var handlers))
             {
                 foreach (var handler in handlers)
                 {
@@ -46,23 +42,23 @@ internal class Input : IInput
 
     public void Update()
     {
-        m_Keyboard.Reset();
-        m_Mouse.Reset();
+        Keyboard.Reset();
+        Mouse.Reset();
     }
 
     public void BindAction(string actionName, Action handler)
     {
-        if (!m_ActionToHandlerMap.TryGetValue(actionName, out var handlers))
+        if (!ActionToHandlerMap.TryGetValue(actionName, out var handlers))
         {
             handlers = new HashSet<Action>();
-            m_ActionToHandlerMap[actionName] = handlers;
+            ActionToHandlerMap[actionName] = handlers;
         }
         handlers.Add(handler);
     }
 
     public void UnbindAction(string actionName, Action handler)
     {
-        if (m_ActionToHandlerMap.TryGetValue(actionName, out var handlers))
+        if (ActionToHandlerMap.TryGetValue(actionName, out var handlers))
             handlers.Remove(handler);
     }
 
