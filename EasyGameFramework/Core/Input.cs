@@ -78,13 +78,13 @@ internal class Input : IInput
     
     private void Bind(IInputBindings bindings)
     {
-        foreach (var (key, action) in bindings.KeyboardKeyActionBindings)
-            Keyboard.BindKeyToAction(key, action);
+        foreach (var (key, action) in bindings.KeyboardKeyToActionBindings)
+            Keyboard.KeyBindings.BindKeyToAction(key, action);
     }
 
     private void Unbind(IInputBindings bindings)
     {
-        foreach (var (key, _) in bindings.KeyboardKeyActionBindings)
-            Keyboard.UnbindKey(key);
+        foreach (var (key, _) in bindings.KeyboardKeyToActionBindings)
+            Keyboard.KeyBindings.UnbindKey(key);
     }
 }

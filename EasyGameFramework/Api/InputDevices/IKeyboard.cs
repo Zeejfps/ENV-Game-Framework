@@ -2,6 +2,8 @@
 
 public interface IKeyboard
 {
+    IKeyboardKeyBindings KeyBindings { get; }
+    
     void PressKey(KeyboardKey key);
     void ReleaseKey(KeyboardKey key);
 
@@ -13,8 +15,4 @@ public interface IKeyboard
     bool IsKeyReleased(KeyboardKey key);
 
     void Reset();
-    
-    void BindKeyToAction(KeyboardKey key, string actionName);
-    void UnbindKey(KeyboardKey key);
-
 }

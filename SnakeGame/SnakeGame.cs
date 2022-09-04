@@ -69,6 +69,7 @@ public class SnakeGame : Game
         Input.BindAction(InputActions.ResetAction, Reset);
         Input.BindAction(InputActions.QuitAction, Stop);
         Input.BindAction(InputActions.PauseResumeAction, TogglePause);
+        //Input.BindAxis("Look X", TestingLook);
         Input.ApplyBindings(GameInputBindings);
     }
 
@@ -132,6 +133,10 @@ public class SnakeGame : Game
     {
     }
 
+    private void TestingLook(float value)
+    {
+    }
+    
     private void TogglePause()
     {
         if (IsPaused)

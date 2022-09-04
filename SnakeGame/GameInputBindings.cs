@@ -5,7 +5,7 @@ namespace SampleGames;
 
 public class GameInputBindings : IInputBindings
 {
-    public Dictionary<KeyboardKey, string> KeyboardKeyActionBindings { get; private set; } = new()
+    public Dictionary<KeyboardKey, string> KeyboardKeyToActionBindings { get; private set; } = new()
     {
         { KeyboardKey.Escape,     InputActions.QuitAction },
         { KeyboardKey.R,          InputActions.ResetAction },
@@ -25,4 +25,10 @@ public class GameInputBindings : IInputBindings
         { KeyboardKey.S,          InputActions.MoveDownAction },
         { KeyboardKey.DownArrow,  InputActions.MoveDownAction },
     };
+
+    public Dictionary<MouseButton, string> MouseButtonToActionBindings { get; }
+    
+    public string MouseXAxisBinding { get; }
+    
+    public string MouseYAxisBinding { get; }
 }
