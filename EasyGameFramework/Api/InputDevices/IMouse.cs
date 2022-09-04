@@ -15,5 +15,7 @@ public interface IMouse
     public bool IsButtonPressed(MouseButton button);
     public bool IsButtonReleased(MouseButton button);
 
+    public void SetPosition(int screenX, int screenY);
+    
     void Reset();
 }

@@ -328,8 +328,7 @@ public class Window_GLFW : IWindow
     private void Glfw_MousePosCallback(Window window, double x, double y)
     {
         var mouse = m_Input.Mouse;
-        mouse.ScreenX = (int)x;
-        mouse.ScreenY = (int)y;
+        mouse.SetPosition((int)x, (int)y);
     }
 
     private void Glfw_MouseButtonCallback(Window window, MouseButton button, InputState state, ModifierKeys modifiers)

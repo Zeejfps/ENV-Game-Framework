@@ -60,6 +60,12 @@ internal class Mouse : IMouse
         return !m_PressedButtons.Contains(button);
     }
 
+    public void SetPosition(int screenX, int screenY)
+    {
+        ScreenX = screenX;
+        ScreenY = screenY;
+    }
+
     public void Reset()
     {
         ScrollDeltaX = 0;
