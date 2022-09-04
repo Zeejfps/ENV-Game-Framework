@@ -24,7 +24,7 @@ internal class Input : IInput
         eventBus.AddListener<MouseButtonPressedEvent>(OnMouseButtonPressed);
     }
 
-    private void OnMouseButtonPressed(MouseButtonPressedEvent evt)
+    private void OnMouseButtonPressed(in MouseButtonPressedEvent evt)
     {
         if (Bindings == null)
             return;
@@ -35,7 +35,7 @@ internal class Input : IInput
             OnActionPerformed(action!);
     }
 
-    private void OnKeyboardKeyPressed(KeyboardKeyPressedEvent evt)
+    private void OnKeyboardKeyPressed(in KeyboardKeyPressedEvent evt)
     {
         if (Bindings == null)
             return;

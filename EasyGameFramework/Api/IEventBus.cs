@@ -1,6 +1,6 @@
 ﻿namespace EasyGameFramework.Api;
 
-public delegate void EventListener<in TEvent>(TEvent evt);
+public delegate void EventListener<TEvent>(in TEvent evt) where TEvent : struct;
 
 public interface IEventBus
 {
