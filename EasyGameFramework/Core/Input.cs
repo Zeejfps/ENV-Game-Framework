@@ -23,10 +23,10 @@ internal class Input : IInput
         m_Mouse = new Mouse();
         m_Keyboard = new Keyboard(eventBus);
         
-        eventBus.AddListener<ActionPerformedEvent>(OnActionPerformed);
+        eventBus.AddListener<InputActionPerformedEvent>(OnActionPerformed);
     }
 
-    private void OnActionPerformed(ActionPerformedEvent evt)
+    private void OnActionPerformed(InputActionPerformedEvent evt)
     {
         if (m_ActionToHandlerMap.TryGetValue(evt.ActionName, out var handlers))
         {

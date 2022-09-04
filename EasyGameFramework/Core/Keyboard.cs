@@ -20,16 +20,23 @@ internal class Keyboard : IKeyboard
     
     public void PressKey(KeyboardKey key)
     {
-        if (m_PressedKeys.Add(key))
+        // If we fail to add the key to the collection then it is already pressed
+        if (!m_PressedKeys.Add(key)) 
+            return;
+        
+        m_KeysPressedThisFrame.Add(key);
+            
+        EventBus.Publish(new KeyboardKeyPressedEvent
         {
-            m_KeysPressedThisFrame.Add(key);
-            if (m_KeyToActionMap.TryGetValue(key, out var actionName))
+            Key = key
+        });
+            
+        if (m_KeyToActionMap.TryGetValue(key, out var actionName))
+        {
+            EventBus.Publish(new InputActionPerformedEvent
             {
-                EventBus.Publish(new ActionPerformedEvent
-                {
-                    ActionName = actionName
-                });
-            }
+                ActionName = actionName
+            });
         }
     }
 
