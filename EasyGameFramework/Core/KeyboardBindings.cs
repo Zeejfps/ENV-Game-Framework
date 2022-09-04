@@ -2,7 +2,7 @@
 
 namespace EasyGameFramework.Core;
 
-internal class KeyboardKeyBindings : IKeyboardKeyBindings
+internal class KeyboardBindings : IKeyboardBindings
 {
     private readonly Dictionary<KeyboardKey, string> m_KeyToActionMap = new();
 

@@ -11,33 +11,45 @@ internal class Input : IInput
     private ILogger Logger { get; }
 
     private Dictionary<string, HashSet<Action>> ActionToHandlerMap { get; } = new();
-    private IInputBindings? m_ActiveBindings;
     
-    private KeyboardKeyBindings KeyboardKeyBindings { get; }
+    private IInputBindings? m_ActiveBindings;
+    private IKeyboardBindings KeyboardBindings { get; }
+    private IMouseBindings MouseBindings { get; }
 
     public Input(ILogger logger, IEventBus eventBus)
     {
         Logger = logger;
-        Mouse = new Mouse();
+        Mouse = new Mouse(eventBus);
         Keyboard = new Keyboard(eventBus);
-        KeyboardKeyBindings = new KeyboardKeyBindings();
+
+        MouseBindings = new MouseBindings();
+        KeyboardBindings = new KeyboardBindings();
         
         eventBus.AddListener<KeyboardKeyPressedEvent>(OnKeyboardKeyPressed);
+        eventBus.AddListener<MouseButtonPressedEvent>(OnMouseButtonPressed);
+    }
+
+    private void OnMouseButtonPressed(MouseButtonPressedEvent evt)
+    {
+        var button = evt.Button;
+        if (MouseBindings.TryGetAction(button, out var action))
+            OnActionPerformed(action!);
     }
 
     private void OnKeyboardKeyPressed(KeyboardKeyPressedEvent evt)
     {
         var key = evt.Key;
-        if (KeyboardKeyBindings.TryGetAction(key, out var action))
-        {
-            if (ActionToHandlerMap.TryGetValue(action, out var handlers))
-            {
-                foreach (var handler in handlers)
-                {
-                    handler.Invoke();
-                }
-            }
-        }
+        if (KeyboardBindings.TryGetAction(key, out var action))
+            OnActionPerformed(action!);
+    }
+
+    private void OnActionPerformed(string action)
+    {
+        if (!ActionToHandlerMap.TryGetValue(action, out var handlers))
+            return;
+        
+        foreach (var handler in handlers)
+            handler.Invoke();
     }
 
     public void Update()
@@ -82,12 +94,12 @@ internal class Input : IInput
     private void Bind(IInputBindings bindings)
     {
         foreach (var (key, action) in bindings.KeyboardKeyToActionBindings)
-            KeyboardKeyBindings.BindKeyToAction(key, action);
+            KeyboardBindings.BindKeyToAction(key, action);
     }
 
     private void Unbind(IInputBindings bindings)
     {
         foreach (var (key, _) in bindings.KeyboardKeyToActionBindings)
-            KeyboardKeyBindings.UnbindKey(key);
+            KeyboardBindings.UnbindKey(key);
     }
 }

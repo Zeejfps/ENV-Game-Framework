@@ -1,3 +1,5 @@
+using EasyGameFramework.Api;
+using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 
 namespace EasyGameFramework.Core;
@@ -13,10 +15,23 @@ internal class Mouse : IMouse
     public float ScrollDeltaX { get; set; }
     public float ScrollDeltaY { get; set; }
 
+    private IEventBus EventBus { get; }
+
+    public Mouse(IEventBus eventBus)
+    {
+        EventBus = eventBus;
+    }
+    
     public void PressButton(MouseButton button)
     {
-        if (m_PressedButtons.Add(button))
-            m_ButtonsPressedThisFrame.Add(button);
+        if (!m_PressedButtons.Add(button))
+            return;
+        
+        m_ButtonsPressedThisFrame.Add(button);
+        EventBus.Publish(new MouseButtonPressedEvent
+        {
+            Button = button
+        });
     }
 
     public void ReleaseButton(MouseButton button)
