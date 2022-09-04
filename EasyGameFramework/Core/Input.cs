@@ -70,18 +70,30 @@ internal class Input : IInput
     public void PushLayer(IInputLayer inputLayer)
     {
         if (m_InputLayerStack.Count > 0)
-            m_InputLayerStack.Peek().Unbind(this);
+            UnbindLayer(m_InputLayerStack.Peek());
         
-        inputLayer.Bind(this);
+        BindLayer(inputLayer);
         m_InputLayerStack.Push(inputLayer);
     }
 
     public void PopLayer()
     {
         var inputLayer = m_InputLayerStack.Pop();
-        inputLayer.Unbind(this);
+        UnbindLayer(inputLayer);
         
         if (m_InputLayerStack.Count > 0)
-            m_InputLayerStack.Peek().Bind(this);
+            BindLayer(m_InputLayerStack.Peek());
+    }
+
+    private void BindLayer(IInputLayer layer)
+    {
+        foreach (var (key, action) in layer.KeyboardBindings)
+            Keyboard.BindKeyToAction(key, action);
+    }
+
+    private void UnbindLayer(IInputLayer layer)
+    {
+        foreach (var (key, action) in layer.KeyboardBindings)
+            Keyboard.UnbindKey(key);
     }
 }

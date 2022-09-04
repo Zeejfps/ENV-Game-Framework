@@ -8,15 +8,20 @@ namespace SampleGames;
 
 public class TestLayer : IInputLayer
 {
-    public void Bind(IInput input)
-    {
-        input.Keyboard.BindKeyToAction(KeyboardKey.P, "Game/Pause");
-    }
+    // public void Bind(IInput input)
+    // {
+    //     input.Keyboard.BindKeyToAction(KeyboardKey.P, "Game/Pause");
+    // }
+    //
+    // public void Unbind(IInput input)
+    // {
+    //     input.Keyboard.UnbindKey(KeyboardKey.P);
+    // }
 
-    public void Unbind(IInput input)
+    public Dictionary<KeyboardKey, string> KeyboardBindings { get; } = new()
     {
-        input.Keyboard.UnbindKey(KeyboardKey.P);
-    }
+        {KeyboardKey.P, "Game/Pause"}
+    };
 }
 
 public class SnakeGame : Game, IInputLayer
@@ -179,37 +184,24 @@ public class SnakeGame : Game, IInputLayer
         return position;
     }
 
-    public void Bind(IInput input)
+    public Dictionary<KeyboardKey, string> KeyboardBindings { get; } = new()
     {
-        input.Keyboard.BindKeyToAction(KeyboardKey.Escape, InputActions.QuitAction);
-        input.Keyboard.BindKeyToAction(KeyboardKey.R, InputActions.ResetAction);
-        input.Keyboard.BindKeyToAction(KeyboardKey.Equals, InputActions.IncreaseSpeedAction);
-        input.Keyboard.BindKeyToAction(KeyboardKey.Minus, InputActions.DecreaseSpeedAction);
-        input.Keyboard.BindKeyToAction(KeyboardKey.W, InputActions.MoveUpAction);
-        input.Keyboard.BindKeyToAction(KeyboardKey.UpArrow, InputActions.MoveUpAction);
-        input.Keyboard.BindKeyToAction(KeyboardKey.A, InputActions.MoveLeftAction);
-        input.Keyboard.BindKeyToAction(KeyboardKey.LeftArrow, InputActions.MoveLeftAction);
-        input.Keyboard.BindKeyToAction(KeyboardKey.D, InputActions.MoveRightAction);
-        input.Keyboard.BindKeyToAction(KeyboardKey.RightArrow, InputActions.MoveRightAction);
-        input.Keyboard.BindKeyToAction(KeyboardKey.S, InputActions.MoveDownAction);
-        input.Keyboard.BindKeyToAction(KeyboardKey.DownArrow, InputActions.MoveDownAction);
-        input.Keyboard.BindKeyToAction(KeyboardKey.P, InputActions.PauseResumeAction);
-    }
-
-    public void Unbind(IInput input)
-    {
-        input.Keyboard.UnbindKey(KeyboardKey.Escape);
-        input.Keyboard.UnbindKey(KeyboardKey.R);
-        input.Keyboard.UnbindKey(KeyboardKey.Equals);
-        input.Keyboard.UnbindKey(KeyboardKey.Minus);
-        input.Keyboard.UnbindKey(KeyboardKey.W);
-        input.Keyboard.UnbindKey(KeyboardKey.UpArrow);
-        input.Keyboard.UnbindKey(KeyboardKey.A);
-        input.Keyboard.UnbindKey(KeyboardKey.LeftArrow);
-        input.Keyboard.UnbindKey(KeyboardKey.D);
-        input.Keyboard.UnbindKey(KeyboardKey.RightArrow);
-        input.Keyboard.UnbindKey(KeyboardKey.S);
-        input.Keyboard.UnbindKey(KeyboardKey.DownArrow);
-        input.Keyboard.UnbindKey(KeyboardKey.P);
-    }
+        { KeyboardKey.Escape, InputActions.QuitAction },
+        { KeyboardKey.R, InputActions.ResetAction },
+        { KeyboardKey.Equals, InputActions.IncreaseSpeedAction },
+        { KeyboardKey.Minus, InputActions.DecreaseSpeedAction },
+        { KeyboardKey.P, InputActions.PauseResumeAction },
+        
+        { KeyboardKey.W, InputActions.MoveUpAction },
+        { KeyboardKey.UpArrow, InputActions.MoveUpAction },
+        
+        { KeyboardKey.A, InputActions.MoveLeftAction },
+        { KeyboardKey.LeftArrow, InputActions.MoveLeftAction },
+        
+        { KeyboardKey.D, InputActions.MoveRightAction },
+        { KeyboardKey.RightArrow, InputActions.MoveRightAction },
+        
+        { KeyboardKey.S, InputActions.MoveDownAction },
+        { KeyboardKey.DownArrow, InputActions.MoveDownAction },
+    };
 }
