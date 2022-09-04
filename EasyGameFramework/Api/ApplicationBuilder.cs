@@ -1,4 +1,5 @@
-﻿using EasyGameFramework.Api.Rendering;
+﻿using EasyGameFramework.Api.InputDevices;
+using EasyGameFramework.Api.Rendering;
 using EasyGameFramework.Core;
 using EasyGameFramework.Glfw;
 using EasyGameFramework.OpenGL;
@@ -37,7 +38,7 @@ public sealed class ApplicationBuilder
         return this;
     }
 
-    public ApplicationBuilder With<T, TImpl>()
+    public ApplicationBuilder With<T, TImpl>() where TImpl : T
     {
         DiContainer.Bind<T, TImpl>();
         return this;
@@ -56,6 +57,8 @@ public sealed class ApplicationBuilder
         
         RegisterWindowingSystem();
         
+        DiContainer.Bind<IMouse, Mouse>();
+        DiContainer.Bind<IKeyboard, Keyboard>();
         DiContainer.Bind<IInput, Input>();
         DiContainer.Bind<IContext, Context>();
         DiContainer.Bind<IApp, TApp>();

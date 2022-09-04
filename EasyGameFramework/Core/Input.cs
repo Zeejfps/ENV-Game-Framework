@@ -11,14 +11,13 @@ internal class Input : IInput
     public IInputBindings? Bindings { get; set; }
 
     private ILogger Logger { get; }
-    
     private Dictionary<string, HashSet<Action>> ActionToHandlerMap { get; } = new();
 
-    public Input(ILogger logger, IEventBus eventBus)
+    public Input(ILogger logger, IEventBus eventBus, IMouse mouse, IKeyboard keyboard)
     {
         Logger = logger;
-        Mouse = new Mouse(eventBus);
-        Keyboard = new Keyboard(eventBus);
+        Mouse = mouse;
+        Keyboard = keyboard;
         
         // TODO: Maybe only subscribe when we have bindings?
         eventBus.AddListener<KeyboardKeyPressedEvent>(OnKeyboardKeyPressed);

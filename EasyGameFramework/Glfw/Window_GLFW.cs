@@ -1,12 +1,15 @@
 ﻿using System.Diagnostics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
+using EasyGameFramework.Api.InputDevices;
+using EasyGameFramework.Core;
 using EasyGameFramework.OpenGL;
 using GLFW;
 using OpenGL;
 using static GLFW.Glfw;
 using CursorMode = EasyGameFramework.Api.CursorMode;
 using Monitor = GLFW.Monitor;
+using MouseButton = GLFW.MouseButton;
 
 namespace EasyGameFramework.Glfw;
 
@@ -14,7 +17,6 @@ public class Window_GLFW : IWindow
 {
     private readonly IDisplays m_Displays;
     private readonly SizeCallback m_FramebufferSizeCallback;
-    private readonly IInput m_Input;
 
     private readonly KeyCallback m_KeyCallback;
     private readonly MouseButtonCallback m_MouseButtonCallback;
@@ -38,8 +40,11 @@ public class Window_GLFW : IWindow
     private string m_Title = "Untitled";
 
     private int m_Width = 640;
+    
+    private IMouse Mouse { get; }
+    private IKeyboard Keyboard { get; }
 
-    public Window_GLFW(IDisplays displays, IInput input)
+    public Window_GLFW(IDisplays displays, IMouse mouse, IKeyboard keyboard)
     {
         Init();
         WindowHint(Hint.ClientApi, ClientApi.OpenGL);
@@ -49,8 +54,10 @@ public class Window_GLFW : IWindow
         WindowHint(Hint.Doublebuffer, true);
         WindowHint(Hint.Decorated, true);
 
+        Mouse = mouse;
+        Keyboard = keyboard;
+        
         m_Displays = displays;
-        m_Input = input;
 
         m_KeyCallback = Glfw_KeyCallback;
         m_SizeCallback = Glfw_SizeCallback;
@@ -244,8 +251,8 @@ public class Window_GLFW : IWindow
         }
         
         GetCursorPosition(m_Handle, out var x, out var y);
-        m_Input.Mouse.ScreenX = (int)x;
-        m_Input.Mouse.ScreenY = (int)y;
+        var mouse = Mouse;
+        mouse.SetPosition((int)x, (int)y);
         
         SwapBuffers(m_Handle);
     }
@@ -327,13 +334,13 @@ public class Window_GLFW : IWindow
 
     private void Glfw_MousePosCallback(Window window, double x, double y)
     {
-        var mouse = m_Input.Mouse;
+        var mouse = Mouse;
         mouse.SetPosition((int)x, (int)y);
     }
 
     private void Glfw_MouseButtonCallback(Window window, MouseButton button, InputState state, ModifierKeys modifiers)
     {
-        var mouse = m_Input.Mouse;
+        var mouse = Mouse;
         var mouseButton = MapToMouseButton(button);
         switch (state)
         {
@@ -353,7 +360,7 @@ public class Window_GLFW : IWindow
 
     private void Glfw_KeyCallback(Window window, Keys glfwKey, int scancode, InputState state, ModifierKeys mods)
     {
-        var keyboard = m_Input.Keyboard;
+        var keyboard = Keyboard;
         var key = glfwKey.ToKeyboardKey();
         switch (state)
         {
@@ -372,7 +379,7 @@ public class Window_GLFW : IWindow
 
     private void Glfw_MouseScrollCallback(Window window, double x, double y)
     {
-        var mouse = m_Input.Mouse;
+        var mouse = Mouse;
         mouse.ScrollDeltaX = (float)x;
         mouse.ScrollDeltaY = (float)y;
     }

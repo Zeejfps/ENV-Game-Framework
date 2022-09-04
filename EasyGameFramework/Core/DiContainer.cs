@@ -43,7 +43,7 @@ internal class DiContainer : IContainer
         return obj;
     }
 
-    public void Bind<T, TImpl>()
+    public void Bind<T, TImpl>() where TImpl : T
     {
         m_TypeToFactoryMap.Add(typeof(T), () => CreateInstance(typeof(TImpl)));
     }
