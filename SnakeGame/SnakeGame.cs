@@ -69,7 +69,7 @@ public class SnakeGame : Game
         Input.BindAction(InputActions.ResetAction, Reset);
         Input.BindAction(InputActions.QuitAction, Stop);
         Input.BindAction(InputActions.PauseResumeAction, TogglePause);
-        Input.ApplyBindings(GameInputBindings);
+        Input.Bindings = GameInputBindings;
     }
 
     protected override void OnUpdate()
@@ -137,12 +137,12 @@ public class SnakeGame : Game
         if (IsPaused)
         {
             IsPaused = false;
-            Input.ApplyBindings(GameInputBindings);
+            Input.Bindings = GameInputBindings;
             return;
         }
         
         IsPaused = true;
-        Input.ApplyBindings(UIInputBindings);
+        Input.Bindings = UIInputBindings;
     }
 
     private void IncreaseSpeed()

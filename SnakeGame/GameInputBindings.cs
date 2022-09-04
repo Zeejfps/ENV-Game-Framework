@@ -26,9 +26,8 @@ public class GameInputBindings : IInputBindings
         { KeyboardKey.DownArrow,  InputActions.MoveDownAction },
     };
 
-    public Dictionary<MouseButton, string> MouseButtonToActionBindings { get; }
-    
-    public string MouseXAxisBinding { get; }
-    
-    public string MouseYAxisBinding { get; }
+    public Dictionary<MouseButton, string> MouseButtonToActionBindings { get; } = new()
+    {
+        { MouseButton.Left,       InputActions.ResetAction },
+    };
 }
