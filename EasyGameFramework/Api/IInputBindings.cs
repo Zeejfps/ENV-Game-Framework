@@ -4,6 +4,6 @@ namespace EasyGameFramework.Api;
 
 public interface IInputBindings
 {
-    Dictionary<KeyboardKey, string> KeyboardKeyToActionBindings { get; }
-    Dictionary<MouseButton, string> MouseButtonToActionBindings { get; }
+    bool TryGetAction(KeyboardKey key, out string? action);
+    bool TryGetAction(MouseButton button, out string? action);
 }

@@ -30,8 +30,8 @@ internal class Input : IInput
             return;
         
         var button = evt.Button;
-        var mouseButtonBindings = Bindings.MouseButtonToActionBindings;
-        if (mouseButtonBindings.TryGetValue(button, out var action))
+        var bindings = Bindings;
+        if (bindings.TryGetAction(button, out var action))
             OnActionPerformed(action!);
     }
 
@@ -41,8 +41,8 @@ internal class Input : IInput
             return;
 
         var key = evt.Key;
-        var keyboardKeyBindings = Bindings.KeyboardKeyToActionBindings;
-        if (keyboardKeyBindings.TryGetValue(key, out var action))
+        var bindings = Bindings;
+        if (bindings.TryGetAction(key, out var action))
             OnActionPerformed(action!);
     }
 

@@ -3,9 +3,9 @@ using EasyGameFramework.Api.InputDevices;
 
 namespace SampleGames;
 
-public class GameInputBindings : IInputBindings
+public class GameInputBindings : InputBindings
 {
-    public Dictionary<KeyboardKey, string> KeyboardKeyToActionBindings { get; private set; } = new()
+    protected override Dictionary<KeyboardKey, string> DefaultKeyboardKeyBindings { get; } = new()
     {
         { KeyboardKey.Escape,     InputActions.QuitAction },
         { KeyboardKey.R,          InputActions.ResetAction },
@@ -26,7 +26,7 @@ public class GameInputBindings : IInputBindings
         { KeyboardKey.DownArrow,  InputActions.MoveDownAction },
     };
 
-    public Dictionary<MouseButton, string> MouseButtonToActionBindings { get; } = new()
+    protected override Dictionary<MouseButton, string> DefaultMouseButtonBindings { get; } = new()
     {
         { MouseButton.Left,       InputActions.ResetAction },
     };

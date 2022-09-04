@@ -4,9 +4,24 @@ namespace EasyGameFramework.Api;
 
 public abstract class InputBindings : IInputBindings
 {
-    public abstract Dictionary<KeyboardKey, string> KeyboardKeyToActionBindings { get; }
-    public abstract Dictionary<MouseButton, string> MouseButtonToActionBindings { get; }
+    protected abstract Dictionary<KeyboardKey, string> DefaultKeyboardKeyBindings { get; }
+    protected abstract Dictionary<MouseButton, string> DefaultMouseButtonBindings { get; }
+    
+    public bool TryGetAction(KeyboardKey key, out string? action)
+    {
+        return DefaultKeyboardKeyBindings.TryGetValue(key, out action);
+    }
 
+    public bool TryGetAction(MouseButton button, out string? action)
+    {
+        return DefaultMouseButtonBindings.TryGetValue(button, out action);
+    }
+
+    public void LoadDefaults()
+    {
+        
+    }
+    
     public Task LoadFromFileAsync(string pathToFile)
     {
         return Task.CompletedTask;
