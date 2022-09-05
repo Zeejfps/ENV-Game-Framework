@@ -110,6 +110,20 @@ internal class Input : IInput
         {
             Gamepad = gamepad
         });
+
+        gamepad.ButtonPressed += OnGamepadButtonPressed;
+    }
+
+    private void OnGamepadButtonPressed(GamepadButtonStateChangedEvent evt)
+    {
+        if (Bindings == null)
+            return;
+        
+        var gamepad = evt.Gamepad;
+        var button = evt.Button;
+
+        if (Bindings.TryResolveBinding(gamepad, button, out var action))
+            OnActionPerformed(action!);
     }
 
     public void DisconnectGamepad(int slot)

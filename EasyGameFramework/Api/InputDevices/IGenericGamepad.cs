@@ -1,7 +1,18 @@
 ﻿namespace EasyGameFramework.Api.InputDevices;
 
+public readonly struct GamepadButtonStateChangedEvent
+{
+    public IGenericGamepad Gamepad { get; init; }
+    public InputButton Button { get; init; }
+}
+
+public delegate void GamepadButtonStateChangedDelegate(GamepadButtonStateChangedEvent evt);
+
 public interface IGenericGamepad
 {
+    event GamepadButtonStateChangedDelegate ButtonPressed;
+    event GamepadButtonStateChangedDelegate ButtonReleased;
+    
     InputButton NorthButton { get; }
     InputButton EastButton { get; }
     InputButton SouthButton { get; }
@@ -11,4 +22,6 @@ public interface IGenericGamepad
     InputButton DPadRightButton { get; }
     InputButton DPadDownButton { get; }
     InputButton DPadLeftButton { get; }
+    
+    IEnumerable<InputButton> Buttons { get; }
 }

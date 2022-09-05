@@ -9,4 +9,6 @@ public interface IInputBindings
 
     IDictionary<KeyboardKey, string> OverrideKeyboardKeyBindings { get; }
     IDictionary<MouseButton, string> OverrideMouseButtonBindings { get; }
+
+    bool TryResolveBinding(IGenericGamepad gamepad, InputButton button, out string? action);
 }
