@@ -15,6 +15,8 @@ internal class GenericGamepad_SDL : IGenericGamepad
     public InputButton DPadRightButton { get; } = new();
     public InputButton DPadDownButton { get; } = new();
     public InputButton DPadLeftButton { get; } = new();
+    public InputButton LeftBumperButton { get; } = new();
+    public InputButton RightBumperButton { get; } = new();
 
     public IEnumerable<InputButton> Buttons { get; } 
 
@@ -36,6 +38,8 @@ internal class GenericGamepad_SDL : IGenericGamepad
             DPadRightButton,
             DPadLeftButton,
             DPadDownButton,
+            LeftBumperButton,
+            RightBumperButton,
         };
 
         foreach (var button in Buttons)

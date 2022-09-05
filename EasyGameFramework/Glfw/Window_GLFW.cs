@@ -90,6 +90,13 @@ public class Window_GLFW : IWindow
         SetMouseButtonCallback(m_Handle, m_MouseButtonCallback);
         SetScrollCallback(m_Handle, m_ScrollCallback);
         SetJoystickCallback(m_JoystickCallback);
+
+        for (var i = 0; i < 16; i++)
+        {
+            var joystick = (Joystick)i;
+            if (JoystickPresent(joystick) && JoystickIsGamepad(joystick))
+                ConnectGamepad(joystick);
+        }
     }
 
     public int PosX
@@ -277,6 +284,9 @@ public class Window_GLFW : IWindow
             UpdateButtonState(gamepad.DPadRightButton, state, GamePadButton.DpadRight);
             UpdateButtonState(gamepad.DPadDownButton, state, GamePadButton.DpadDown);
             UpdateButtonState(gamepad.DPadLeftButton, state, GamePadButton.DpadLeft);
+            
+            UpdateButtonState(gamepad.LeftBumperButton, state, GamePadButton.LeftBumper);
+            UpdateButtonState(gamepad.RightBumperButton, state, GamePadButton.RightBumper);
         }
     }
 
@@ -434,7 +444,14 @@ public class Window_GLFW : IWindow
         
         if (!JoystickIsGamepad(joystick))
             return;
-        
+       
+        ConnectGamepad(joystick);
+    }
+
+
+    private void ConnectGamepad(Joystick joystick)
+    {
+        var slot = (int)joystick;
         var joystickName = GetJoystickName(joystick);
         var guid = GetJoystickGuid(joystick);
         var gamepad = new GenericGamepad_SDL(guid, joystickName);

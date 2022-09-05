@@ -23,5 +23,8 @@ public interface IGenericGamepad
     InputButton DPadDownButton { get; }
     InputButton DPadLeftButton { get; }
     
+    InputButton LeftBumperButton { get; }
+    InputButton RightBumperButton { get; }
+    
     IEnumerable<InputButton> Buttons { get; }
 }

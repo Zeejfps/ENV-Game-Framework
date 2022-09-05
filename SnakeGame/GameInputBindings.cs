@@ -39,6 +39,42 @@ public class GameInputBindings : InputBindings
             return true;
         }
 
+        if (button == gamepad.DPadLeftButton)
+        {
+            action = InputActions.MoveLeftAction;
+            return true;
+        }
+
+        if (button == gamepad.DPadRightButton)
+        {
+            action = InputActions.MoveRightAction;
+            return true;
+        }
+
+        if (button == gamepad.DPadUpButton)
+        {
+            action = InputActions.MoveUpAction;
+            return true;
+        }
+
+        if (button == gamepad.DPadDownButton)
+        {
+            action = InputActions.MoveDownAction;
+            return true;
+        }
+
+        if (button == gamepad.RightBumperButton)
+        {
+            action = InputActions.IncreaseSpeedAction;
+            return true;
+        }
+
+        if (button == gamepad.LeftBumperButton)
+        {
+            action = InputActions.DecreaseSpeedAction;
+            return false;
+        }
+
         action = null;
         return false;
     }
