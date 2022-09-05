@@ -5,7 +5,7 @@ namespace SampleGames;
 
 public abstract class Controller
 {
-    protected IInputBindings Bindings { get; set; }
+    protected abstract IInputBindings Bindings { get; }
     
     private Dictionary<string, HashSet<Action>> ActionToHandlerMap { get; } = new();
 
@@ -19,6 +19,12 @@ public abstract class Controller
         handlers.Add(handler);
     }
 
+    protected void UnbindAction(string action, Action handler)
+    {
+        if (ActionToHandlerMap.TryGetValue(action, out var handlers))
+            handlers.Remove(handler);
+    }
+    
     public void Bind(IInput input)
     {
         input.Mouse.ButtonPressed += OnMouseButtonPressed;

@@ -14,21 +14,9 @@ public interface IInput
     IMouse Mouse { get; }
     IKeyboard Keyboard { get; }
     IEnumerable<IGenericGamepad> Gamepads { get; }
-
-    
-    IInputBindings? Bindings { get; set; }
-    
     
     void Update();
     
-    
-    void BindAction(string actionName, Action handler);
-    void UnbindAction(string actionName, Action handler);
-
-    
-    void BindAxis(string axisName, Action<float> handler);
-    void UnbindAxis(string axisName, Action<float> handler);
-
 
     bool TryGetGamepadInSlot(int slot, out IGenericGamepad? gamepad);
     void ConnectGamepad(int slot, IGenericGamepad gamepad);

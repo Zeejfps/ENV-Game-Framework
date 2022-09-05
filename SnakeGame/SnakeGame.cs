@@ -9,6 +9,8 @@ namespace SampleGames;
 
 public class SnakeGame : Game
 {
+    public bool IsPaused { get; set; }
+
     private OrthographicCamera m_Camera;
     private SpriteRenderer m_SpriteRenderer;
 
@@ -27,10 +29,10 @@ public class SnakeGame : Game
     private IEventBus EventBus { get; }
     private GameInputBindings GameInputBindings { get; set; }
     private UIInputBindings UIInputBindings { get; set; }
-    private bool IsPaused { get; set; }
     
     private SnakeController Player1 { get; }
     private SnakeController Player2 { get; }
+    private GameController Controller { get; }
     
     public SnakeGame(
         IContext context,
@@ -56,6 +58,8 @@ public class SnakeGame : Game
         m_Camera = OrthographicCamera.FromLRBT(0, Grid.Width, 0, Grid.Height, 0.1f, 10f);
         m_Camera.Transform.WorldPosition = new Vector3(0f, 0f, -5f);
         m_SpriteRenderer = new SpriteRenderer(Gpu);
+
+        Controller = new GameController(this);
     }
 
     protected override void OnStart()
@@ -71,26 +75,17 @@ public class SnakeGame : Game
 
         m_SpriteRenderer.LoadResources();
         
-        Snake1.Reset();
-        Snake2.Reset();
-
-        Apple = SpawnApple();
-        
         GameInputBindings = PlayerPrefs.LoadInputBindingsAsync<GameInputBindings>().Result;
         UIInputBindings = PlayerPrefs.LoadInputBindingsAsync<UIInputBindings>().Result;
-        
-        Input.BindAction(InputActions.IncreaseSpeedAction, IncreaseSpeed);
-        Input.BindAction(InputActions.DecreaseSpeedAction, DecreaseSpeed);
-        Input.BindAction(InputActions.ResetAction, Reset);
-        Input.BindAction(InputActions.QuitAction, Stop);
-        Input.BindAction(InputActions.PauseResumeAction, TogglePause);
-        Input.Bindings = GameInputBindings;
-        
+
         Player1.Bind(Input);
         Player2.Bind(Input);
+        Controller.Bind(Input);
         
         Input.GamepadConnected += OnGamepadConnected;
         Input.GamepadDisconnected += OnGamepadDisconnected;
+        
+        ResetLevel();
     }
 
     private void OnGamepadConnected(GamepadConnectedEvent evt)
@@ -114,14 +109,6 @@ public class SnakeGame : Game
     {
         if (IsPaused)
             return;
-
-        if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.F))
-        {
-            PlayerPrefs.SaveInputBindingsAsync(Input.Bindings).ContinueWith(args =>
-            {
-                Logger.Trace("Finished");
-            });
-        }
 
         Snake1.Update(Clock.UpdateDeltaTime);
         Snake2.Update(Clock.UpdateDeltaTime);
@@ -187,32 +174,20 @@ public class SnakeGame : Game
     {
     }
 
-    private void TogglePause()
-    {
-        if (IsPaused)
-        {
-            IsPaused = false;
-            Input.Bindings = GameInputBindings;
-            return;
-        }
-        
-        IsPaused = true;
-        Input.Bindings = UIInputBindings;
-    }
-
-    private void IncreaseSpeed()
+    public void IncreaseSpeed()
     {
         Snake1.Speed += 0.5f;
     }
 
-    private void DecreaseSpeed()
+    public void DecreaseSpeed()
     {
         Snake1.Speed -= 0.5f;
     }
 
-    private void Reset()
+    public void ResetLevel()
     {
         Snake1.Reset();
+        Snake2.Reset();
         Apple = SpawnApple();
     }
 
