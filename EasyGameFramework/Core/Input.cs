@@ -34,8 +34,8 @@ internal class Input : IInput
         EventBus.Publish(evt);
 
         var button = evt.Button;
-        var bindings = Bindings;
-        if (bindings.TryGetAction(button, out var action))
+        var bindings = Bindings.ActiveMouseButtonBindings;
+        if (bindings.TryGetValue(button, out var action))
             OnActionPerformed(action!);
     }
 
@@ -47,8 +47,8 @@ internal class Input : IInput
         EventBus.Publish(evt);
         
         var key = evt.Key;
-        var bindings = Bindings;
-        if (bindings.TryGetAction(key, out var action))
+        var bindings = Bindings.ActiveKeyboardKeyBindings;
+        if (bindings.TryGetValue(key, out var action))
             OnActionPerformed(action!);
     }
 

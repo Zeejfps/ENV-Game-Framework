@@ -5,7 +5,7 @@ namespace SampleGames;
 
 public class GameInputBindings : InputBindings
 {
-    protected override Dictionary<KeyboardKey, string> DefaultKeyboardKeyBindings { get; } = new()
+    public override Dictionary<KeyboardKey, string> DefaultKeyboardKeyBindings { get; } = new()
     {
         { KeyboardKey.Escape,     InputActions.QuitAction },
         { KeyboardKey.R,          InputActions.ResetAction },
@@ -26,7 +26,7 @@ public class GameInputBindings : InputBindings
         { KeyboardKey.DownArrow,  InputActions.MoveDownAction },
     };
 
-    protected override Dictionary<MouseButton, string> DefaultMouseButtonBindings { get; } = new()
+    public override Dictionary<MouseButton, string> DefaultMouseButtonBindings { get; } = new()
     {
         { MouseButton.Left,       InputActions.ResetAction },
     };

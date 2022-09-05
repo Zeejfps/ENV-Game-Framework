@@ -43,7 +43,7 @@ public class IniPlayerPrefs : IPlayerPrefs
             }
             var key = (KeyboardKey)value;
             var action = mapping.KeyName;
-            bindings.BindKeyboardKey(key, action);
+            bindings.ActiveKeyboardKeyBindings[key] = action;
         }
 
         var mouseButtonMappings = data[mouseBindingInitGroupName];
@@ -57,7 +57,7 @@ public class IniPlayerPrefs : IPlayerPrefs
 
             var button = new MouseButton(value);
             var action = mapping.KeyName;
-            bindings.BindMouseButton(button, action);
+            bindings.ActiveMouseButtonBindings[button] = action;
         }
 
         return bindings;
@@ -80,10 +80,10 @@ public class IniPlayerPrefs : IPlayerPrefs
         var keyBindingsIniGroupName = inputBindings.GetType().Name + ".Keyboard";
         var mouseBindingInitGroupName = inputBindings.GetType().Name + ".Mouse";
         
-        foreach (var (key, action) in inputBindings.KeyboardBindings)
+        foreach (var (key, action) in inputBindings.ActiveKeyboardKeyBindings)
             data[keyBindingsIniGroupName][action] = ((int)key).ToString();
         
-        foreach (var (button, action) in inputBindings.MouseBindings)
+        foreach (var (button, action) in inputBindings.ActiveMouseButtonBindings)
             data[mouseBindingInitGroupName][action] = button.ToString();
 
         await File.WriteAllTextAsync(pathToFile, data.ToString(), cancellationToke);
