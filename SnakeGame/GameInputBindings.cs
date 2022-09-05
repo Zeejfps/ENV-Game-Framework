@@ -30,4 +30,8 @@ public class GameInputBindings : InputBindings
     {
         { MouseButton.Left,       InputActions.ResetAction },
     };
+
+    public GameInputBindings(ILogger logger) : base(logger)
+    {
+    }
 }

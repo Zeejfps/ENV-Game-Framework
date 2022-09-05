@@ -1,17 +1,25 @@
 ﻿using EasyGameFramework.Api.InputDevices;
-using IniParser.Model;
-using IniParser.Parser;
 
 namespace EasyGameFramework.Api;
 
 public abstract class InputBindings : IInputBindings
 {
-    private const string KeyBindingsIniGroupName = "Bindings.Keyboard";
-    private const string MouseButtonBindingsIniGroupName = "Bindings.Mouse";
-    
     protected abstract Dictionary<KeyboardKey, string> DefaultKeyboardKeyBindings { get; }
     protected abstract Dictionary<MouseButton, string> DefaultMouseButtonBindings { get; }
     
+    private Dictionary<KeyboardKey, string>? ActiveKeyboardKeyBindings { get; set; }
+    private Dictionary<MouseButton, string>? ActiveMouseButtonBindings { get; set; }
+
+    protected ILogger Logger { get; }
+    
+    protected InputBindings(ILogger logger)
+    {
+        Logger = logger;
+    }
+
+    public IEnumerable<KeyValuePair<KeyboardKey, string>> KeyboardBindings => ActiveKeyboardKeyBindings;
+    public IEnumerable<KeyValuePair<MouseButton, string>> MouseBindings => ActiveMouseButtonBindings;
+
     public bool TryGetAction(KeyboardKey key, out string? action)
     {
         return DefaultKeyboardKeyBindings.TryGetValue(key, out action);
@@ -24,41 +32,17 @@ public abstract class InputBindings : IInputBindings
 
     public void LoadDefaults()
     {
-        
-    }
-    
-    public async Task LoadFromFileAsync(string pathToFile, CancellationToken cancellationToken = default)
-    {
-        if (!File.Exists(pathToFile))
-            return;
-        
-        var text = await File.ReadAllTextAsync(pathToFile, cancellationToken);
-        var parser = new IniDataParser();
-        var data = parser.Parse(text);
-        var mappings = data[KeyBindingsIniGroupName];
-        
+        ActiveKeyboardKeyBindings = new Dictionary<KeyboardKey, string>(DefaultKeyboardKeyBindings);
+        ActiveMouseButtonBindings = new Dictionary<MouseButton, string>(DefaultMouseButtonBindings);
     }
 
-    public async Task SaveToFileAsync(string pathToFile)
+    public void BindKeyboardKey(KeyboardKey key, string action)
     {
-        IniData data;
-        if (File.Exists(pathToFile))
-        {
-            var text = await File.ReadAllTextAsync(pathToFile);
-            var parser = new IniDataParser();
-            data = parser.Parse(text);
-        }
-        else
-        {
-            data = new IniData();
-        }
-        
-        foreach (var (key, action) in DefaultKeyboardKeyBindings)
-            data[KeyBindingsIniGroupName][action] = ((int)key).ToString();
-        
-        foreach (var (button, action) in DefaultMouseButtonBindings)
-            data[MouseButtonBindingsIniGroupName][action] = button.ToString();
+        ActiveKeyboardKeyBindings[key] = action;
+    }
 
-        await File.WriteAllTextAsync(pathToFile, data.ToString());
+    public void BindMouseButton(MouseButton button, string action)
+    {
+        ActiveMouseButtonBindings[button] = action;
     }
 }

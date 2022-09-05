@@ -14,25 +14,28 @@ public class SnakeGame : Game
     private IGpu Gpu { get; }
     private ILogger Logger { get; }
     private IContainer Container { get; }
+    private IPlayerPrefs PlayerPrefs { get; }
+    
     private Snake Snake { get; }
     private Grid Grid { get; }
     private Vector2 Apple { get; set; }
     private Random Random { get; } = new();
     private IEventBus EventBus { get; }
-    private GameInputBindings GameInputBindings { get; }
-    private UIInputBindings UIInputBindings { get; }
+    private GameInputBindings GameInputBindings { get; set; }
+    private UIInputBindings UIInputBindings { get; set; }
     private bool IsPaused { get; set; }
     
-    public SnakeGame(IContext context, IEventBus eventBus) : base(context.Window, context.Input)
+    public SnakeGame(
+        IContext context,
+        IEventBus eventBus,
+        IPlayerPrefs playerPrefs) : base(context.Window, context.Input)
     {
         Context = context;
         Gpu = context.Gpu;
         Logger = context.Logger;
         Container = context.Container;
         EventBus = eventBus;
-
-        GameInputBindings = new GameInputBindings();
-        UIInputBindings = new UIInputBindings();
+        PlayerPrefs = playerPrefs;
         
         Grid = new Grid(21, 21);
         Container.BindInstance(Grid);
@@ -60,6 +63,9 @@ public class SnakeGame : Game
 
         Apple = SpawnApple();
         
+        GameInputBindings = PlayerPrefs.LoadInputBindingsAsync<GameInputBindings>().Result;
+        UIInputBindings = PlayerPrefs.LoadInputBindingsAsync<UIInputBindings>().Result;
+
         Input.BindAction(InputActions.MoveUpAction, Snake.TurnNorth);
         Input.BindAction(InputActions.MoveLeftAction, Snake.TurnWest);
         Input.BindAction(InputActions.MoveRightAction, Snake.TurnEast);
@@ -70,8 +76,6 @@ public class SnakeGame : Game
         Input.BindAction(InputActions.QuitAction, Stop);
         Input.BindAction(InputActions.PauseResumeAction, TogglePause);
         Input.Bindings = GameInputBindings;
-
-        GameInputBindings.SaveToFileAsync("C:/Users/zvasi/Documents/Dev/ENV Game Framework/SnakeGame/Assets/test.ini").Wait();
     }
 
     protected override void OnUpdate()

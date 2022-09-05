@@ -11,4 +11,8 @@ public class UIInputBindings : InputBindings
     };
 
     protected override Dictionary<MouseButton, string> DefaultMouseButtonBindings { get; } = new();
+
+    public UIInputBindings(ILogger logger) : base(logger)
+    {
+    }
 }

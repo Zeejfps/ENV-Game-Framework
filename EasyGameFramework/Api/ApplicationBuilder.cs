@@ -63,6 +63,7 @@ public sealed class ApplicationBuilder
         DiContainer.Bind<IContext, Context>();
         DiContainer.Bind<IEventBus, EventBus>();
         DiContainer.Bind<IApp, TApp>();
+        DiContainer.Bind<IPlayerPrefs, IniPlayerPrefs>();
         DiContainer.BindInstance<IContainer>(DiContainer);
 
         var engine = DiContainer.New<IApp>();
