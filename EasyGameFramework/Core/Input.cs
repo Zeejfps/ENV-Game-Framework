@@ -11,24 +11,28 @@ internal class Input : IInput
     public IInputBindings? Bindings { get; set; }
 
     private ILogger Logger { get; }
+    private IEventBus EventBus { get; }
     private Dictionary<string, HashSet<Action>> ActionToHandlerMap { get; } = new();
 
     public Input(ILogger logger, IEventBus eventBus, IMouse mouse, IKeyboard keyboard)
     {
         Logger = logger;
+        EventBus = eventBus;
         Mouse = mouse;
         Keyboard = keyboard;
         
         // TODO: Maybe only subscribe when we have bindings?
-        eventBus.AddListener<KeyboardKeyPressedEvent>(OnKeyboardKeyPressed);
-        eventBus.AddListener<MouseButtonPressedEvent>(OnMouseButtonPressed);
+        Mouse.ButtonPressed += OnMouseButtonPressed;
+        Keyboard.KeyPressed += OnKeyboardKeyPressed;
     }
 
     private void OnMouseButtonPressed(in MouseButtonPressedEvent evt)
     {
         if (Bindings == null)
             return;
-        
+
+        EventBus.Publish(evt);
+
         var button = evt.Button;
         var bindings = Bindings;
         if (bindings.TryGetAction(button, out var action))
@@ -40,6 +44,8 @@ internal class Input : IInput
         if (Bindings == null)
             return;
 
+        EventBus.Publish(evt);
+        
         var key = evt.Key;
         var bindings = Bindings;
         if (bindings.TryGetAction(key, out var action))

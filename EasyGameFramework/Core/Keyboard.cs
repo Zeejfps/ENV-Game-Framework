@@ -6,16 +6,11 @@ namespace EasyGameFramework.Core;
 
 internal class Keyboard : IKeyboard
 {
+    public event KeyboardKeyPressedDelegate? KeyPressed;
+    
     private readonly HashSet<KeyboardKey> m_KeysPressedThisFrame = new();
     private readonly HashSet<KeyboardKey> m_KeysReleasedThisFrame = new();
     private readonly HashSet<KeyboardKey> m_PressedKeys = new();
-
-    private IEventBus EventBus { get; }
-    
-    public Keyboard(IEventBus eventBus)
-    {
-        EventBus = eventBus;
-    }
 
     public void PressKey(KeyboardKey key)
     {
@@ -24,8 +19,7 @@ internal class Keyboard : IKeyboard
             return;
         
         m_KeysPressedThisFrame.Add(key);
-            
-        EventBus.Publish(new KeyboardKeyPressedEvent
+        KeyPressed?.Invoke(new KeyboardKeyPressedEvent
         {
             Keyboard = this,
             Key = key

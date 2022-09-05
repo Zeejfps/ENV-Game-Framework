@@ -1,7 +1,13 @@
-﻿namespace EasyGameFramework.Api.InputDevices;
+﻿using EasyGameFramework.Api.Events;
+
+namespace EasyGameFramework.Api.InputDevices;
+
+public delegate void KeyboardKeyPressedDelegate(in KeyboardKeyPressedEvent evt);
 
 public interface IKeyboard
 {
+    event KeyboardKeyPressedDelegate KeyPressed;
+    
     void PressKey(KeyboardKey key);
     void ReleaseKey(KeyboardKey key);
 

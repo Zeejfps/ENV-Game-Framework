@@ -10,26 +10,22 @@ internal class Mouse : IMouse
     private readonly HashSet<MouseButton> m_ButtonsPressedThisFrame = new();
     private readonly HashSet<MouseButton> m_ButtonsReleasedThisFrame = new();
     private readonly HashSet<MouseButton> m_PressedButtons = new();
+
+    public event MouseMovedDelegate? Moved;
+    public event MouseButtonPressedDelegate? ButtonPressed;
     
     public int ScreenX { get; set; }
     public int ScreenY { get; set; }
     public float ScrollDeltaX { get; set; }
     public float ScrollDeltaY { get; set; }
 
-    private IEventBus EventBus { get; }
-
-    public Mouse(IEventBus eventBus)
-    {
-        EventBus = eventBus;
-    }
-    
     public void PressButton(MouseButton button)
     {
         if (!m_PressedButtons.Add(button))
             return;
         
         m_ButtonsPressedThisFrame.Add(button);
-        EventBus.Publish(new MouseButtonPressedEvent
+        ButtonPressed?.Invoke(new MouseButtonPressedEvent
         {
             Mouse = this,
             Button = button
@@ -67,9 +63,12 @@ internal class Mouse : IMouse
         var deltaX = ScreenX - screenX;
         var deltaY = ScreenY - screenY;
         
+        if (deltaX == 0 && deltaY == 0)
+            return;
+        
         ScreenX = screenX;
         ScreenY = screenY;
-        EventBus.Publish(new MouseMovedEvent
+        Moved?.Invoke(new MouseMovedEvent
         {
             Mouse = this,
             Delta = new Vector2(deltaX, deltaY)
