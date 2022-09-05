@@ -30,26 +30,6 @@ public class Snake
         Grid = grid;
     }
 
-    public void Reset()
-    {
-        var centerPositionX = Grid.Width / 2;
-        var centerPositionY = Grid.Height / 2;
-        
-        m_Segments.Clear();
-        m_Segments.Add(new Vector2(centerPositionX, centerPositionY));
-        m_Segments.Add(new Vector2(centerPositionX, centerPositionY-1f));
-        m_Segments.Add(new Vector2(centerPositionX, centerPositionY-2f));
-        m_Segments.Add(new Vector2(centerPositionX, centerPositionY-3f));
-        
-        HeadIndex = 0;
-        TailIndex = Segments.Length - 1;
-        
-        Heading = Direction.North;
-        DesiredHeading = Heading;
-        IsSelfIntersecting = false;
-        DidGrowThisFrame = false;
-    }
-
     public void Move()
     {
         Heading = DesiredHeading;
@@ -136,5 +116,36 @@ public class Snake
         }
 
         return false;
+    }
+
+    public bool IsCollidingWith(ReadOnlySpan<Vector2> tiles)
+    {
+        foreach (var tile in tiles)
+        {
+            if (Head == tile)
+                return true;
+        }
+
+        return false;
+    }
+
+    public void Spawn(Vector2 tile)
+    {
+        var x = tile.X;
+        var y = tile.Y;
+        
+        m_Segments.Clear();
+        m_Segments.Add(new Vector2(x, y));
+        m_Segments.Add(new Vector2(x, y-1f));
+        m_Segments.Add(new Vector2(x, y-2f));
+        m_Segments.Add(new Vector2(x, y-3f));
+        
+        HeadIndex = 0;
+        TailIndex = Segments.Length - 1;
+        
+        Heading = Direction.North;
+        DesiredHeading = Heading;
+        IsSelfIntersecting = false;
+        DidGrowThisFrame = false;
     }
 }

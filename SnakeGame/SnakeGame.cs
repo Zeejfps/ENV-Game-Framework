@@ -27,7 +27,7 @@ public class SnakeGame : Game
     private SnakeController Player2Controller { get; }
     private GameController GameController { get; }
 
-    private float Speed { get; set; } = 1.5f;
+    private float Speed { get; set; }
     private float m_AccumulatedTime;
 
     public SnakeGame(
@@ -92,18 +92,29 @@ public class SnakeGame : Game
                 snake.Move();
                 if (snake.Head == Apple)
                 {
-                    Apple = SpawnApple();
+                    Apple = FindEmptyTile();
                     snake.Grow();
                 }
 
                 if (snake.IsSelfIntersecting)
                 {
-                    snake.Reset();
+                    ResetLevel();
+                }
+
+                foreach (var otherSnake in Snakes)
+                {
+                    if (snake == otherSnake)
+                        continue;
+                    
+                    if (snake.IsCollidingWith(otherSnake.Segments))
+                    {
+                        ResetLevel();   
+                    }
                 }
             }
         }
     }
-
+    
     protected override void OnRender()
     {
         var gpu = Gpu;
@@ -159,28 +170,30 @@ public class SnakeGame : Game
 
     public void ResetLevel()
     {
-        Speed = 1.5f;
+        m_AccumulatedTime = 0f;
+        Speed = 3f;
         foreach (var snake in Snakes)
         {
-            snake.Reset();
+            var emptyTile = FindEmptyTile();
+            snake.Spawn(emptyTile);
         }
-        Apple = SpawnApple();
+        Apple = FindEmptyTile();
     }
 
-    private Vector2 SpawnApple()
+    private Vector2 FindEmptyTile()
     {
-        var occupiedPositions = new HashSet<Vector2>();
+        var occupiedTiles = new HashSet<Vector2>();
         foreach (var snake in Snakes)
         {
             foreach (var segment in snake.Segments)
             {
-                occupiedPositions.Add(segment);
+                occupiedTiles.Add(segment);
             }
         }
      
-        var position = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
-        while (occupiedPositions.Contains(position))
-            position = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
-        return position;
+        var tile = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
+        while (occupiedTiles.Contains(tile))
+            tile = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
+        return tile;
     }
 }
