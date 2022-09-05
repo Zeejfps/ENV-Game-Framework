@@ -17,7 +17,7 @@ public sealed class Player1InputBindings : InputBindings
     public override IReadOnlyDictionary<MouseButton, string> DefaultMouseButtonBindings { get; } = 
         new Dictionary<MouseButton, string>();
     
-    public override bool TryResolveBinding(IGenericGamepad gamepad, InputButton button, out string? action)
+    public override bool TryResolveBinding(IGenericGamepad gamepad, GamepadButton button, out string? action)
     {
         action = null;
         return false;

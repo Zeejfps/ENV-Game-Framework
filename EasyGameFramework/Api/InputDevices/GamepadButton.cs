@@ -2,15 +2,23 @@
 
 public readonly struct InputButtonStateChangedEvent
 {
-    public InputButton Button { get; init; }
+    public GamepadButton Button { get; init; }
 }
 
 public delegate void InputButtonStateChangedDelegate(InputButtonStateChangedEvent evt);
 
-public sealed class InputButton
+public interface IInputButton
+{
+    event InputButtonStateChangedDelegate? Pressed;
+    event InputButtonStateChangedDelegate? Released;
+    event InputButtonStateChangedDelegate? StageChanged;
+}
+
+public sealed class GamepadButton : IInputButton
 {
     public event InputButtonStateChangedDelegate? Pressed;
     public event InputButtonStateChangedDelegate? Released;
+    public event InputButtonStateChangedDelegate? StageChanged;
 
     private bool m_Value;
 
@@ -34,17 +42,23 @@ public sealed class InputButton
 
     private void OnPressed()
     {
-        Pressed?.Invoke(new InputButtonStateChangedEvent
+        var evt = new InputButtonStateChangedEvent
         {
             Button = this,
-        });
+        };
+        
+        StageChanged?.Invoke(evt);
+        Pressed?.Invoke(evt);
     }
 
     private void OnReleased()
     {
-        Released?.Invoke(new InputButtonStateChangedEvent
+        var evt = new InputButtonStateChangedEvent
         {
             Button = this,
-        });
+        };
+        
+        StageChanged?.Invoke(evt);
+        Released?.Invoke(evt);
     }
 }

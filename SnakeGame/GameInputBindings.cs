@@ -19,7 +19,7 @@ public class GameInputBindings : InputBindings
         { MouseButton.Left,       InputActions.ResetAction },
     };
     
-    public override bool TryResolveBinding(IGenericGamepad gamepad, InputButton button, out string? action)
+    public override bool TryResolveBinding(IGenericGamepad gamepad, GamepadButton button, out string? action)
     {
         if (button == gamepad.SouthButton)
         {
