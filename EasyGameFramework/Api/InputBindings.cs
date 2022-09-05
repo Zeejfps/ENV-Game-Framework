@@ -1,5 +1,4 @@
 ﻿using EasyGameFramework.Api.InputDevices;
-using IniParser;
 using IniParser.Model;
 using IniParser.Parser;
 
@@ -7,6 +6,8 @@ namespace EasyGameFramework.Api;
 
 public abstract class InputBindings : IInputBindings
 {
+    private const string IniGroupName = "Key Bindings";
+    
     protected abstract Dictionary<KeyboardKey, string> DefaultKeyboardKeyBindings { get; }
     protected abstract Dictionary<MouseButton, string> DefaultMouseButtonBindings { get; }
     
@@ -33,7 +34,7 @@ public abstract class InputBindings : IInputBindings
         var text = await File.ReadAllTextAsync(pathToFile, cancellationToken);
         var parser = new IniDataParser();
         var data = parser.Parse(text);
-        var mappings = data["Keymappings"];
+        var mappings = data[IniGroupName];
         
     }
 
@@ -52,7 +53,7 @@ public abstract class InputBindings : IInputBindings
         }
         
         foreach (var (key, action) in DefaultKeyboardKeyBindings)
-            data["Keymappings"][action] = key.ToString();
+            data[IniGroupName][action] = key.ToString();
         
         await File.WriteAllTextAsync(pathToFile, data.ToString());
     }

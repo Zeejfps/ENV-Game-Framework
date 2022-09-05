@@ -1,3 +1,4 @@
+using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
@@ -63,8 +64,16 @@ internal class Mouse : IMouse
 
     public void SetPosition(int screenX, int screenY)
     {
+        var deltaX = ScreenX - screenX;
+        var deltaY = ScreenY - screenY;
+        
         ScreenX = screenX;
         ScreenY = screenY;
+        EventBus.Publish(new MouseMovedEvent
+        {
+            Mouse = this,
+            Delta = new Vector2(deltaX, deltaY)
+        });
     }
 
     public void Reset()

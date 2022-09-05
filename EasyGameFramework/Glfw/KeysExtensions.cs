@@ -76,7 +76,7 @@ public static class KeysExtensions
             case Keys.N:
                 break;
             case Keys.O:
-                break;
+                return KeyboardKey.O;
             case Keys.P:
                 return KeyboardKey.P;
             case Keys.Q:
