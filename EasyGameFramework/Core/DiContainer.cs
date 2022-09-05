@@ -18,14 +18,12 @@ internal class DiContainer : IContainer
         if (m_TypeToFactoryMap.TryGetValue(type, out var factory))
         {
             instance = factory.Invoke();
-            m_TypeToInstanceMap[type] = instance;
             return instance;
         }
 
         if (!type.IsAbstract)
         {
             instance = CreateInstance(type);
-            m_TypeToInstanceMap[type] = instance;
             return instance;
         }
 
@@ -43,9 +41,15 @@ internal class DiContainer : IContainer
         return obj;
     }
 
-    public void Bind<T, TImpl>() where TImpl : T
+    public void BindSingleton<T, TImpl>() where TImpl : T
     {
-        m_TypeToFactoryMap.Add(typeof(T), () => CreateInstance(typeof(TImpl)));
+        m_TypeToFactoryMap.Add(typeof(T), () =>
+        {
+            var type = typeof(T);
+            var instance = CreateInstance(typeof(TImpl));
+            m_TypeToInstanceMap[type] = instance;
+            return instance;
+        });
     }
 
     public void BindFactory<T>(Func<object> factory)
@@ -53,7 +57,7 @@ internal class DiContainer : IContainer
         m_TypeToFactoryMap.Add(typeof(T), factory);
     }
 
-    public void BindInstance<T>(T instance)
+    public void BindSingleton<T>(T instance)
     {
         var type = typeof(T);
         m_TypeToInstanceMap[type] = instance;

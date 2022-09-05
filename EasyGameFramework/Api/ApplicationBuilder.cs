@@ -19,28 +19,28 @@ public sealed class ApplicationBuilder
     
     public ApplicationBuilder WithOpenGl()
     {
-        DiContainer.Bind<IGpu, Gpu_GL>();
+        DiContainer.BindSingleton<IGpu, Gpu_GL>();
         m_IsRenderingApiSet = true;
         return this;
     }
 
     public ApplicationBuilder WithRenderer<TRenderer>() where TRenderer : IRenderer
     {
-        DiContainer.Bind<IRenderer, TRenderer>();
+        DiContainer.BindSingleton<IRenderer, TRenderer>();
         m_IsRendererSet = true;
         return this;
     }
 
     public ApplicationBuilder WithLogger<TLogger>() where TLogger : ILogger
     {
-        DiContainer.Bind<ILogger, TLogger>();
+        DiContainer.BindSingleton<ILogger, TLogger>();
         m_IsLoggerSet = true;
         return this;
     }
 
     public ApplicationBuilder With<T, TImpl>() where TImpl : T
     {
-        DiContainer.Bind<T, TImpl>();
+        DiContainer.BindSingleton<T, TImpl>();
         return this;
     }
 
@@ -57,14 +57,14 @@ public sealed class ApplicationBuilder
         
         RegisterWindowingSystem();
         
-        DiContainer.Bind<IMouse, Mouse>();
-        DiContainer.Bind<IKeyboard, Keyboard>();
-        DiContainer.Bind<IInput, Input>();
-        DiContainer.Bind<IContext, Context>();
-        DiContainer.Bind<IEventBus, EventBus>();
-        DiContainer.Bind<IApp, TApp>();
-        DiContainer.Bind<IPlayerPrefs, IniPlayerPrefs>();
-        DiContainer.BindInstance<IContainer>(DiContainer);
+        DiContainer.BindSingleton<IMouse, Mouse>();
+        DiContainer.BindSingleton<IKeyboard, Keyboard>();
+        DiContainer.BindSingleton<IInput, Input>();
+        DiContainer.BindSingleton<IContext, Context>();
+        DiContainer.BindSingleton<IEventBus, EventBus>();
+        DiContainer.BindSingleton<IApp, TApp>();
+        DiContainer.BindSingleton<IPlayerPrefs, IniPlayerPrefs>();
+        DiContainer.BindSingleton<IContainer>(DiContainer);
 
         var engine = DiContainer.New<IApp>();
         return engine;
@@ -72,8 +72,8 @@ public sealed class ApplicationBuilder
 
     private void RegisterWindowingSystem()
     {
-        DiContainer.Bind<IDisplays, Displays_GLFW>();
-        DiContainer.Bind<IWindow, Window_GLFW>();
+        DiContainer.BindSingleton<IDisplays, Displays_GLFW>();
+        DiContainer.BindSingleton<IWindow, Window_GLFW>();
     }
 }
 

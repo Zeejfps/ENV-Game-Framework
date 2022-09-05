@@ -4,5 +4,5 @@ public interface IContainer
 {
     T New<T>();
     void BindFactory<T>(Func<object> factory);
-    void BindInstance<T>(T instance);
+    void BindSingleton<T>(T instance);
 }

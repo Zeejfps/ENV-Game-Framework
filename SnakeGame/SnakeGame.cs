@@ -18,7 +18,9 @@ public class SnakeGame : Game
     private IContainer Container { get; }
     private IPlayerPrefs PlayerPrefs { get; }
     
-    private Snake Snake { get; }
+    private Snake Snake1 { get; }
+    private Snake Snake2 { get; }
+    
     private Grid Grid { get; }
     private Vector2 Apple { get; set; }
     private Random Random { get; } = new();
@@ -40,9 +42,10 @@ public class SnakeGame : Game
         PlayerPrefs = playerPrefs;
         
         Grid = new Grid(21, 21);
-        Container.BindInstance(Grid);
+        Container.BindSingleton(Grid);
 
-        Snake = Container.New<Snake>();
+        Snake1 = Container.New<Snake>();
+        Snake2 = Container.New<Snake>();
         
         m_Camera = OrthographicCamera.FromLRBT(0, Grid.Width, 0, Grid.Height, 0.1f, 10f);
         m_Camera.Transform.WorldPosition = new Vector3(0f, 0f, -5f);
@@ -61,17 +64,19 @@ public class SnakeGame : Game
         window.ShowCentered();
 
         m_SpriteRenderer.LoadResources();
-        Snake.Reset();
+        
+        Snake1.Reset();
+        Snake2.Reset();
 
         Apple = SpawnApple();
         
         GameInputBindings = PlayerPrefs.LoadInputBindingsAsync<GameInputBindings>().Result;
         UIInputBindings = PlayerPrefs.LoadInputBindingsAsync<UIInputBindings>().Result;
 
-        Input.BindAction(InputActions.MoveUpAction, Snake.TurnNorth);
-        Input.BindAction(InputActions.MoveLeftAction, Snake.TurnWest);
-        Input.BindAction(InputActions.MoveRightAction, Snake.TurnEast);
-        Input.BindAction(InputActions.MoveDownAction, Snake.TurnSouth);
+        Input.BindAction(InputActions.MoveUpAction, Snake1.TurnNorth);
+        Input.BindAction(InputActions.MoveLeftAction, Snake1.TurnWest);
+        Input.BindAction(InputActions.MoveRightAction, Snake1.TurnEast);
+        Input.BindAction(InputActions.MoveDownAction, Snake1.TurnSouth);
         Input.BindAction(InputActions.IncreaseSpeedAction, IncreaseSpeed);
         Input.BindAction(InputActions.DecreaseSpeedAction, DecreaseSpeed);
         Input.BindAction(InputActions.ResetAction, Reset);
@@ -113,18 +118,19 @@ public class SnakeGame : Game
             });
         }
 
-        Snake.Update(Clock.UpdateDeltaTime);
+        Snake1.Update(Clock.UpdateDeltaTime);
+        Snake2.Update(Clock.UpdateDeltaTime);
 
-        if (Snake.Head == Apple)
+        if (Snake1.Head == Apple)
         {
             Apple = SpawnApple();
-            Snake.Grow();
+            Snake1.Grow();
         }
 
-        if (Snake.IsSelfIntersecting)
+        if (Snake1.IsSelfIntersecting)
         {
             Apple = SpawnApple();
-            Snake.Reset();
+            Snake1.Reset();
         }
     }
 
@@ -151,11 +157,19 @@ public class SnakeGame : Game
 
         m_SpriteRenderer.DrawSprite(Apple, new Vector3(1f, 0f, 0f));
         
-        foreach (var segment in Snake.Segments)
+        foreach (var segment in Snake1.Segments)
         {
-            var color = segment == Snake.Head
+            var color = segment == Snake1.Head
                 ? new Vector3(0.1f, 1f, 0.1f)
                 : new Vector3(1f, 0f, 1f);
+            m_SpriteRenderer.DrawSprite(segment, color);
+        }
+        
+        foreach (var segment in Snake2.Segments)
+        {
+            var color = segment == Snake2.Head
+                ? new Vector3(0.3f, 0.5f, 0.3f)
+                : new Vector3(1f, 0.5f, 0.5f);
             m_SpriteRenderer.DrawSprite(segment, color);
         }
         
@@ -183,24 +197,24 @@ public class SnakeGame : Game
 
     private void IncreaseSpeed()
     {
-        Snake.Speed += 0.5f;
+        Snake1.Speed += 0.5f;
     }
 
     private void DecreaseSpeed()
     {
-        Snake.Speed -= 0.5f;
+        Snake1.Speed -= 0.5f;
     }
 
     private void Reset()
     {
-        Snake.Reset();
+        Snake1.Reset();
         Apple = SpawnApple();
     }
 
     private Vector2 SpawnApple()
     {
         var position = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
-        while (Snake.Segments.Contains(position))
+        while (Snake1.Segments.Contains(position))
             position = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
         return position;
     }
