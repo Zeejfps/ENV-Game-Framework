@@ -19,7 +19,7 @@ public class GameInputBindings : InputBindings
         { MouseButton.Left,       InputActions.ResetAction },
     };
     
-    public override bool TryResolveBinding(IGenericGamepad gamepad, GamepadButtonOld button, out string? action)
+    public override bool TryResolveBinding(IGamepad gamepad, GamepadButtonOld button, out string? action)
     {
         if (button == gamepad.RightBumperButton)
         {

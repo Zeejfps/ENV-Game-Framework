@@ -12,12 +12,12 @@ internal class Input : IInput
     public event GamepadButtonStateChangedDelegate? GamepadButtonReleased;
     public IMouse Mouse { get; }
     public IKeyboard Keyboard { get; }
-    public IEnumerable<IGenericGamepad> Gamepads => m_Gamepads.Values;
+    public IEnumerable<IGamepad> Gamepads => m_Gamepads.Values;
 
     private ILogger Logger { get; }
     private IEventBus EventBus { get; }
 
-    private readonly Dictionary<int, IGenericGamepad> m_Gamepads = new();
+    private readonly Dictionary<int, IGamepad> m_Gamepads = new();
 
     public Input(ILogger logger, IEventBus eventBus, IMouse mouse, IKeyboard keyboard)
     {
@@ -47,7 +47,7 @@ internal class Input : IInput
         Mouse.Reset();
     }
 
-    public bool TryGetGamepadInSlot(int slot, out IGenericGamepad? gamepad)
+    public bool TryGetGamepadInSlot(int slot, out IGamepad? gamepad)
     {
         return m_Gamepads.TryGetValue(slot, out gamepad);
     }
@@ -58,7 +58,7 @@ internal class Input : IInput
         GamepadButtonPressed?.Invoke(evt);
     }
 
-    public void ConnectGamepad(int slot, IGenericGamepad gamepad)
+    public void ConnectGamepad(int slot, IGamepad gamepad)
     {
         m_Gamepads.Add(slot, gamepad);
         GamepadConnected?.Invoke(new GamepadConnectedEvent

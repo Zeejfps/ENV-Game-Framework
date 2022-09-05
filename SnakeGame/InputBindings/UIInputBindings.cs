@@ -11,7 +11,7 @@ public class UIInputBindings : InputBindings
     };
 
     public override Dictionary<MouseButton, string> DefaultMouseButtonBindings { get; } = new();
-    public override bool TryResolveBinding(IGenericGamepad gamepad, GamepadButtonOld button, out string? action)
+    public override bool TryResolveBinding(IGamepad gamepad, GamepadButtonOld button, out string? action)
     {
         action = null;
         return false;

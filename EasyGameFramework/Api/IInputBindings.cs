@@ -10,5 +10,5 @@ public interface IInputBindings
     IDictionary<KeyboardKey, string> OverrideKeyboardKeyBindings { get; }
     IDictionary<MouseButton, string> OverrideMouseButtonBindings { get; }
 
-    bool TryResolveBinding(IGenericGamepad gamepad, GamepadButtonOld button, out string? action);
+    bool TryResolveBinding(IGamepad gamepad, GamepadButton button, out string? action);
 }

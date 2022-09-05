@@ -10,5 +10,5 @@ public abstract class InputBindings : IInputBindings
     public IDictionary<KeyboardKey, string> OverrideKeyboardKeyBindings { get; } = new Dictionary<KeyboardKey, string>();
     public IDictionary<MouseButton, string> OverrideMouseButtonBindings { get; } = new Dictionary<MouseButton, string>();
     
-    public abstract bool TryResolveBinding(IGenericGamepad gamepad, GamepadButtonOld button, out string? action);
+    public abstract bool TryResolveBinding(IGamepad gamepad, GamepadButton button, out string? action);
 }
