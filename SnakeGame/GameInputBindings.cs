@@ -12,18 +12,6 @@ public class GameInputBindings : InputBindings
         { KeyboardKey.Equals,     InputActions.IncreaseSpeedAction },
         { KeyboardKey.Minus,      InputActions.DecreaseSpeedAction },
         { KeyboardKey.P,          InputActions.PauseResumeAction },
-        
-        { KeyboardKey.W,          InputActions.MoveUpAction },
-        { KeyboardKey.UpArrow,    InputActions.MoveUpAction },
-        
-        { KeyboardKey.A,          InputActions.MoveLeftAction },
-        { KeyboardKey.LeftArrow,  InputActions.MoveLeftAction },
-        
-        { KeyboardKey.D,          InputActions.MoveRightAction },
-        { KeyboardKey.RightArrow, InputActions.MoveRightAction },
-        
-        { KeyboardKey.S,          InputActions.MoveDownAction },
-        { KeyboardKey.DownArrow,  InputActions.MoveDownAction },
     };
 
     public override Dictionary<MouseButton, string> DefaultMouseButtonBindings { get; } = new()

@@ -52,6 +52,7 @@ internal class Input : IInput
 
         EventBus.Publish(evt);
         
+        Logger.Trace($"Key pressed: {evt.Key}, {Bindings}");
         var key = evt.Key;
         if (Bindings.OverrideKeyboardKeyBindings.TryGetValue(key, out var action))
             OnActionPerformed(action!);
@@ -61,6 +62,7 @@ internal class Input : IInput
 
     private void OnActionPerformed(string action)
     {
+        Logger.Trace($"Action performed: {action}");
         if (!ActionToHandlerMap.TryGetValue(action, out var handlers))
             return;
         

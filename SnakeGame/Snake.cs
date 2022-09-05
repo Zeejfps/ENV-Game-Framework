@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using EasyGameFramework.Api;
-using EasyGameFramework.Api.InputDevices;
 
 namespace SampleGames;
 
@@ -26,16 +25,13 @@ public class Snake
     private ILogger Logger { get; }
     private Grid Grid { get; }
     
-    private IInput Input {get;}
-    
     private bool DidGrowThisFrame { get; set; }
     public bool IsSelfIntersecting { get; private set; }
 
-    public Snake(ILogger logger, IInput input, Grid grid)
+    public Snake(Grid grid, ILogger logger)
     {
         Logger = logger;
         Grid = grid;
-        Input = input;
     }
 
     public void Reset()

@@ -1,23 +1,30 @@
-﻿using EasyGameFramework.Api;
+﻿namespace SampleGames;
 
-namespace SampleGames;
-
-public class SnakeController
+public class SnakeController : Controller
 {
+    private int Index { get; }
     private Snake Snake { get; }
 
-    public SnakeController(Snake snake)
+    public SnakeController(int index, Snake snake)
     {
+        Index = index;
         Snake = snake;
-    }
-
-    public void Bind(IInput input)
-    {
-    }
-
-    public void Unbind()
-    {
         
+        BindAction(InputActions.MoveUpAction, Snake.TurnNorth);
+        BindAction(InputActions.MoveLeftAction, Snake.TurnWest);
+        BindAction(InputActions.MoveRightAction, Snake.TurnEast);
+        BindAction(InputActions.MoveDownAction, Snake.TurnSouth);
+        BindAction(InputActions.IncreaseSpeedAction, IncreaseSpeed);
+        BindAction(InputActions.DecreaseSpeedAction, DecreaseSpeed);
+
+        if (Index == 0)
+        {
+            Bindings = new Player1InputBindings();
+        }
+        else
+        {
+            Bindings = new Player2InputBindings();
+        }
     }
     
     private void IncreaseSpeed()

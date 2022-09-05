@@ -29,6 +29,9 @@ public class SnakeGame : Game
     private UIInputBindings UIInputBindings { get; set; }
     private bool IsPaused { get; set; }
     
+    private SnakeController Player1 { get; }
+    private SnakeController Player2 { get; }
+    
     public SnakeGame(
         IContext context,
         IEventBus eventBus,
@@ -43,9 +46,12 @@ public class SnakeGame : Game
         
         Grid = new Grid(21, 21);
         Container.BindSingleton(Grid);
+        
+        Snake1 = new Snake(Grid, Logger);
+        Player1 = new SnakeController(0, Snake1);
 
-        Snake1 = Container.New<Snake>();
-        Snake2 = Container.New<Snake>();
+        Snake2 = new Snake(Grid, Logger);
+        Player2 = new SnakeController(1, Snake2);
         
         m_Camera = OrthographicCamera.FromLRBT(0, Grid.Width, 0, Grid.Height, 0.1f, 10f);
         m_Camera.Transform.WorldPosition = new Vector3(0f, 0f, -5f);
@@ -72,17 +78,16 @@ public class SnakeGame : Game
         
         GameInputBindings = PlayerPrefs.LoadInputBindingsAsync<GameInputBindings>().Result;
         UIInputBindings = PlayerPrefs.LoadInputBindingsAsync<UIInputBindings>().Result;
-
-        Input.BindAction(InputActions.MoveUpAction, Snake1.TurnNorth);
-        Input.BindAction(InputActions.MoveLeftAction, Snake1.TurnWest);
-        Input.BindAction(InputActions.MoveRightAction, Snake1.TurnEast);
-        Input.BindAction(InputActions.MoveDownAction, Snake1.TurnSouth);
+        
         Input.BindAction(InputActions.IncreaseSpeedAction, IncreaseSpeed);
         Input.BindAction(InputActions.DecreaseSpeedAction, DecreaseSpeed);
         Input.BindAction(InputActions.ResetAction, Reset);
         Input.BindAction(InputActions.QuitAction, Stop);
         Input.BindAction(InputActions.PauseResumeAction, TogglePause);
         Input.Bindings = GameInputBindings;
+        
+        Player1.Bind(Input);
+        Player2.Bind(Input);
         
         Input.GamepadConnected += OnGamepadConnected;
         Input.GamepadDisconnected += OnGamepadDisconnected;
