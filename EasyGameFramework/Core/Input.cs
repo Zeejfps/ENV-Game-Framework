@@ -8,6 +8,8 @@ internal class Input : IInput
 {
     public event GamepadConnectedDelegate? GamepadConnected;
     public event GamepadDisconnectedDelegate? GamepadDisconnected;
+    public event GamepadButtonStateChangedDelegate? GamepadButtonPressed;
+    public event GamepadButtonStateChangedDelegate? GamepadButtonReleased;
     public IMouse Mouse { get; }
     public IKeyboard Keyboard { get; }
     public IEnumerable<IGenericGamepad> Gamepads => m_Gamepads.Values;
@@ -53,6 +55,7 @@ internal class Input : IInput
     private void OnGamepadButtonPressed(GamepadButtonStateChangedEvent evt)
     {
         EventBus.Publish(evt);
+        GamepadButtonPressed?.Invoke(evt);
     }
 
     public void ConnectGamepad(int slot, IGenericGamepad gamepad)

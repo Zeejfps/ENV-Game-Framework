@@ -8,8 +8,10 @@ public delegate void GamepadDisconnectedDelegate(GamePadDisconnectedEvent evt);
 
 public interface IInput
 {
-    event GamepadConnectedDelegate GamepadConnected;
-    event GamepadDisconnectedDelegate GamepadDisconnected;
+    event GamepadConnectedDelegate? GamepadConnected;
+    event GamepadDisconnectedDelegate? GamepadDisconnected;
+    event GamepadButtonStateChangedDelegate? GamepadButtonPressed;
+    event GamepadButtonStateChangedDelegate? GamepadButtonReleased;
     
     IMouse Mouse { get; }
     IKeyboard Keyboard { get; }

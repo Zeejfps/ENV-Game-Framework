@@ -19,6 +19,36 @@ public sealed class Player1InputBindings : InputBindings
     
     public override bool TryResolveBinding(IGenericGamepad gamepad, GamepadButton button, out string? action)
     {
+        if (button == gamepad.SouthButton)
+        {
+            action = InputActions.ResetAction;
+            return true;
+        }
+
+        if (button == gamepad.DPadLeftButton)
+        {
+            action = InputActions.MoveLeftAction;
+            return true;
+        }
+
+        if (button == gamepad.DPadRightButton)
+        {
+            action = InputActions.MoveRightAction;
+            return true;
+        }
+
+        if (button == gamepad.DPadUpButton)
+        {
+            action = InputActions.MoveUpAction;
+            return true;
+        }
+
+        if (button == gamepad.DPadDownButton)
+        {
+            action = InputActions.MoveDownAction;
+            return true;
+        }
+        
         action = null;
         return false;
     }

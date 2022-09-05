@@ -1,5 +1,6 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.Events;
+using EasyGameFramework.Api.InputDevices;
 
 namespace SampleGames;
 
@@ -29,14 +30,27 @@ public abstract class Controller
     {
         input.Mouse.ButtonPressed += OnMouseButtonPressed;
         input.Keyboard.KeyPressed += OnKeyboardKeyPressed;
+        input.GamepadButtonPressed += OnGamepadButtonPressed;
     }
 
     public void Unbind(IInput input)
     {
         input.Mouse.ButtonPressed -= OnMouseButtonPressed;
         input.Keyboard.KeyPressed -= OnKeyboardKeyPressed;
+        input.GamepadButtonPressed -= OnGamepadButtonPressed;
     }
-    
+
+    private void OnGamepadButtonPressed(GamepadButtonStateChangedEvent evt)
+    {
+        if (Bindings == null)
+            return;
+        
+        if (Bindings.TryResolveBinding(evt.Gamepad, evt.Button, out var action))
+        {
+            OnActionPerformed(action!);
+        }
+    }
+
     private void OnMouseButtonPressed(in MouseButtonPressedEvent evt)
     {
         if (Bindings == null)
