@@ -61,9 +61,9 @@ public sealed class ApplicationBuilder
         DiContainer.Bind<IKeyboard, Keyboard>();
         DiContainer.Bind<IInput, Input>();
         DiContainer.Bind<IContext, Context>();
+        DiContainer.Bind<IEventBus, EventBus>();
         DiContainer.Bind<IApp, TApp>();
         DiContainer.BindInstance<IContainer>(DiContainer);
-        DiContainer.Bind<IEventBus, EventBus>();
 
         var engine = DiContainer.New<IApp>();
         return engine;

@@ -37,4 +37,9 @@ public readonly struct MouseButton : IEquatable<MouseButton>
     {
         return !left.Equals(right);
     }
+
+    public override string ToString()
+    {
+        return ButtonId.ToString();
+    }
 }
