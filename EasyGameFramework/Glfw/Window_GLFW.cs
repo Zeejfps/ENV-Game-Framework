@@ -290,7 +290,7 @@ public class Window_GLFW : IWindow
         }
     }
 
-    private void UpdateButtonState(GamepadButton inputButton, GamePadState state, GamePadButton gamepadButton)
+    private void UpdateButtonState(GamepadButtonOld inputButton, GamePadState state, GamePadButton gamepadButton)
     {
         var aButtonState = state.GetButtonState(gamepadButton);
         inputButton.Value = aButtonState is InputState.Press or InputState.Repeat;

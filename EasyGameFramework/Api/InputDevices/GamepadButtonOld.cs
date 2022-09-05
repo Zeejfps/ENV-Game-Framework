@@ -2,7 +2,7 @@
 
 public readonly struct InputButtonStateChangedEvent
 {
-    public GamepadButton Button { get; init; }
+    public GamepadButtonOld Button { get; init; }
 }
 
 public delegate void InputButtonStateChangedDelegate(InputButtonStateChangedEvent evt);
@@ -14,7 +14,7 @@ public interface IInputButton
     event InputButtonStateChangedDelegate? StageChanged;
 }
 
-public sealed class GamepadButton : IInputButton
+public sealed class GamepadButtonOld : IInputButton
 {
     public event InputButtonStateChangedDelegate? Pressed;
     public event InputButtonStateChangedDelegate? Released;

@@ -7,19 +7,19 @@ internal class GenericGamepad_SDL : IGenericGamepad
     public event GamepadButtonStateChangedDelegate? ButtonPressed;
     public event GamepadButtonStateChangedDelegate? ButtonReleased;
     
-    public GamepadButton NorthButton { get; } = new();
-    public GamepadButton EastButton { get; } = new();
-    public GamepadButton WestButton { get; } = new();
-    public GamepadButton SouthButton { get; } = new();
+    public GamepadButtonOld NorthButton { get; } = new();
+    public GamepadButtonOld EastButton { get; } = new();
+    public GamepadButtonOld WestButton { get; } = new();
+    public GamepadButtonOld SouthButton { get; } = new();
 
-    public GamepadButton DPadUpButton { get; } = new();
-    public GamepadButton DPadRightButton { get; } = new();
-    public GamepadButton DPadDownButton { get; } = new();
-    public GamepadButton DPadLeftButton { get; } = new();
-    public GamepadButton LeftBumperButton { get; } = new();
-    public GamepadButton RightBumperButton { get; } = new();
+    public GamepadButtonOld DPadUpButton { get; } = new();
+    public GamepadButtonOld DPadRightButton { get; } = new();
+    public GamepadButtonOld DPadDownButton { get; } = new();
+    public GamepadButtonOld DPadLeftButton { get; } = new();
+    public GamepadButtonOld LeftBumperButton { get; } = new();
+    public GamepadButtonOld RightBumperButton { get; } = new();
 
-    public IEnumerable<GamepadButton> Buttons { get; } 
+    public IEnumerable<GamepadButtonOld> Buttons { get; } 
 
     private string Name { get; }
     private string Guid { get; }

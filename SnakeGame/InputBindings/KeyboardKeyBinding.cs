@@ -1,0 +1,36 @@
+﻿using EasyGameFramework.Api;
+using EasyGameFramework.Api.Events;
+using EasyGameFramework.Api.InputDevices;
+
+namespace SampleGames;
+
+public sealed class KeyboardKeyBinding : IButtonBinding
+{
+    private KeyboardKey Key { get; }
+
+    public KeyboardKeyBinding(KeyboardKey key)
+    {
+        Key = key;
+    }
+
+    public event Action? Pressed;
+    public event Action? Released;
+
+    public void Bind(IInput input)
+    {
+        input.Keyboard.KeyPressed += OnKeyPressed;
+    }
+
+    public void Unbind()
+    {
+        throw new NotImplementedException();
+    }
+
+    private void OnKeyPressed(in KeyboardKeyPressedEvent evt)
+    {
+        if (evt.Key == Key)
+        {
+            Pressed?.Invoke();
+        }
+    }
+}
