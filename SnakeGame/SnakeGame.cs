@@ -24,9 +24,6 @@ public class SnakeGame : Game
     private Vector2 Apple { get; set; }
     private Random Random { get; } = new();
     private IEventBus EventBus { get; }
-    private GameInputBindings GameInputBindings { get; set; }
-    private UIInputBindings UIInputBindings { get; set; }
-    
     private SnakeController Player1Controller { get; }
     private SnakeController Player2Controller { get; }
     private GameController GameController { get; }
@@ -44,21 +41,19 @@ public class SnakeGame : Game
         PlayerPrefs = playerPrefs;
         
         Grid = new Grid(21, 21);
-        Container.BindSingleton(Grid);
-
+        
         Snakes = new[]
         {
             new Snake(Grid, Logger),
             new Snake(Grid, Logger)
         };
-        
-        Player1Controller = new SnakeController(0, Snakes[0]);
-        Player2Controller = new SnakeController(1, Snakes[1]);
-        
+
         m_Camera = OrthographicCamera.FromLRBT(0, Grid.Width, 0, Grid.Height, 0.1f, 10f);
         m_Camera.Transform.WorldPosition = new Vector3(0f, 0f, -5f);
         m_SpriteRenderer = new SpriteRenderer(Gpu);
-
+        
+        Player1Controller = new SnakeController(0, Snakes[0]);
+        Player2Controller = new SnakeController(1, Snakes[1]);
         GameController = new GameController(this);
     }
 
@@ -75,34 +70,11 @@ public class SnakeGame : Game
 
         m_SpriteRenderer.LoadResources();
         
-        GameInputBindings = PlayerPrefs.LoadInputBindingsAsync<GameInputBindings>().Result;
-        UIInputBindings = PlayerPrefs.LoadInputBindingsAsync<UIInputBindings>().Result;
-
         Player1Controller.Bind(Input);
         Player2Controller.Bind(Input);
         GameController.Bind(Input);
-        
-        Input.GamepadConnected += OnGamepadConnected;
-        Input.GamepadDisconnected += OnGamepadDisconnected;
-        
+
         ResetLevel();
-    }
-
-    private void OnGamepadConnected(GamepadConnectedEvent evt)
-    {
-        Logger.Trace($"Gamepad Connected: {evt.Gamepad}");
-        evt.Gamepad.SouthButton.Pressed += SouthButtonOnPressed;
-    }
-
-    private void SouthButtonOnPressed(InputButtonStateChangedEvent evt)
-    {
-        Logger.Trace("A is pressed");
-    }
-
-    private void OnGamepadDisconnected(GamePadDisconnectedEvent evt)
-    {
-        Logger.Trace($"Gamepad Disconnected: {evt.Gamepad}");
-        evt.Gamepad.DPadRightButton.Pressed -= SouthButtonOnPressed;
     }
 
     protected override void OnUpdate()
@@ -121,7 +93,6 @@ public class SnakeGame : Game
 
             if (snake.IsSelfIntersecting)
             {
-                Apple = SpawnApple();
                 snake.Reset();
             }
         }
