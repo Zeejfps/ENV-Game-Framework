@@ -19,18 +19,16 @@ public class Snake
     private readonly List<Vector2> m_Segments = new();
     
     private ILogger Logger { get; }
-    private Grid Grid { get; }
     
     private bool DidGrowThisFrame { get; set; }
     public bool IsSelfIntersecting { get; private set; }
 
-    public Snake(Grid grid, ILogger logger)
+    public Snake(ILogger logger)
     {
         Logger = logger;
-        Grid = grid;
     }
 
-    public void Move()
+    public void Move(GridSize gridSize)
     {
         Heading = DesiredHeading;
 
@@ -38,14 +36,14 @@ public class Snake
 
         var xPos= head.X + Heading.Dx;
         if (xPos < 0)
-            xPos = Grid.Width - 1;
-        else if (xPos >= Grid.Width)
+            xPos = gridSize.Width - 1;
+        else if (xPos >= gridSize.Width)
             xPos = 0;
         
         var yPos = head.Y + Heading.Dy;
         if (yPos < 0)
-            yPos = Grid.Height - 1;
-        else if (yPos >= Grid.Height)
+            yPos = gridSize.Height - 1;
+        else if (yPos >= gridSize.Height)
             yPos = 0;
         
         m_Segments[TailIndex] = new Vector2(xPos, yPos);

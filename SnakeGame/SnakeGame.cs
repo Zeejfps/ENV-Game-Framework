@@ -20,7 +20,7 @@ public class SnakeGame : Game
     private IContainer Container { get; }
     private IPlayerPrefs PlayerPrefs { get; }
     private Snake[] Snakes { get; }
-    private Grid Grid { get; }
+    private GridSize GridSize { get; }
     private Vector2 Apple { get; set; }
     private Random Random { get; } = new();
     private SnakeController Player1Controller { get; }
@@ -40,15 +40,15 @@ public class SnakeGame : Game
         Container = context.Container;
         PlayerPrefs = playerPrefs;
         
-        Grid = new Grid(21, 21);
+        GridSize = new GridSize(21, 21);
         
         Snakes = new[]
         {
-            new Snake(Grid, Logger),
-            new Snake(Grid, Logger)
+            new Snake(Logger),
+            new Snake(Logger)
         };
 
-        m_Camera = OrthographicCamera.FromLRBT(0, Grid.Width, 0, Grid.Height, 0.1f, 10f);
+        m_Camera = OrthographicCamera.FromLRBT(0, GridSize.Width, 0, GridSize.Height, 0.1f, 10f);
         m_Camera.Transform.WorldPosition = new Vector3(0f, 0f, -5f);
         m_SpriteRenderer = new SpriteRenderer(Gpu);
         
@@ -89,7 +89,7 @@ public class SnakeGame : Game
             
             foreach (var snake in Snakes)
             {
-                snake.Move();
+                snake.Move(GridSize);
                 if (snake.Head == Apple)
                 {
                     Apple = FindEmptyTile();
@@ -126,8 +126,8 @@ public class SnakeGame : Game
         renderbuffer.BindWindow();
         renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
 
-        var cellWidth = renderbuffer.Width / Grid.Width;
-        var cellHeight = renderbuffer.Height / Grid.Height;
+        var cellWidth = renderbuffer.Width / GridSize.Width;
+        var cellHeight = renderbuffer.Height / GridSize.Height;
         
         gpu.Shader.Load("Assets/grid");
         gpu.Shader.SetVector2("u_Pitch", new Vector2(cellWidth, cellHeight));
@@ -191,9 +191,9 @@ public class SnakeGame : Game
             }
         }
      
-        var tile = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
+        var tile = new Vector2(Random.Next(0, GridSize.Width), Random.Next(0, GridSize.Height));
         while (occupiedTiles.Contains(tile))
-            tile = new Vector2(Random.Next(0, Grid.Width), Random.Next(0, Grid.Height));
+            tile = new Vector2(Random.Next(0, GridSize.Width), Random.Next(0, GridSize.Height));
         return tile;
     }
 }
