@@ -23,21 +23,21 @@ public class SnakeGame : Game
     private Grid Grid { get; }
     private Vector2 Apple { get; set; }
     private Random Random { get; } = new();
-    private IEventBus EventBus { get; }
     private SnakeController Player1Controller { get; }
     private SnakeController Player2Controller { get; }
     private GameController GameController { get; }
-    
+
+    private float Speed { get; set; } = 1.5f;
+    private float m_AccumulatedTime;
+
     public SnakeGame(
         IContext context,
-        IEventBus eventBus,
         IPlayerPrefs playerPrefs) : base(context.Window, context.Input)
     {
         Context = context;
         Gpu = context.Gpu;
         Logger = context.Logger;
         Container = context.Container;
-        EventBus = eventBus;
         PlayerPrefs = playerPrefs;
         
         Grid = new Grid(21, 21);
@@ -82,18 +82,24 @@ public class SnakeGame : Game
         if (IsPaused)
             return;
 
-        foreach (var snake in Snakes)
+        m_AccumulatedTime += Clock.UpdateDeltaTime;
+        if (m_AccumulatedTime >= 1f / Speed)
         {
-            snake.Update(Clock.UpdateDeltaTime);
-            if (snake.Head == Apple)
+            m_AccumulatedTime = 0f;
+            
+            foreach (var snake in Snakes)
             {
-                Apple = SpawnApple();
-                snake.Grow();
-            }
+                snake.Move();
+                if (snake.Head == Apple)
+                {
+                    Apple = SpawnApple();
+                    snake.Grow();
+                }
 
-            if (snake.IsSelfIntersecting)
-            {
-                snake.Reset();
+                if (snake.IsSelfIntersecting)
+                {
+                    snake.Reset();
+                }
             }
         }
     }
@@ -143,22 +149,17 @@ public class SnakeGame : Game
 
     public void IncreaseSpeed()
     {
-        foreach (var snake in Snakes)
-        {
-            snake.Speed += 0.5f;
-        }
+        Speed += 0.5f;
     }
 
     public void DecreaseSpeed()
     {
-        foreach (var snake in Snakes)
-        {
-            snake.Speed -= 0.5f;
-        }
+        Speed -= 0.5f;
     }
 
     public void ResetLevel()
     {
+        Speed = 1.5f;
         foreach (var snake in Snakes)
         {
             snake.Reset();

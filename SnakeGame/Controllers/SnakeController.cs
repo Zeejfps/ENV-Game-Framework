@@ -17,8 +17,6 @@ public class SnakeController : Controller
         BindAction(InputActions.MoveLeftAction, Snake.TurnWest);
         BindAction(InputActions.MoveRightAction, Snake.TurnEast);
         BindAction(InputActions.MoveDownAction, Snake.TurnSouth);
-        BindAction(InputActions.IncreaseSpeedAction, IncreaseSpeed);
-        BindAction(InputActions.DecreaseSpeedAction, DecreaseSpeed);
 
         if (Index == 0)
         {
@@ -28,15 +26,5 @@ public class SnakeController : Controller
         {
             Bindings = new Player2InputBindings();
         }
-    }
-    
-    private void IncreaseSpeed()
-    {
-        Snake.Speed += 0.5f;
-    }
-
-    private void DecreaseSpeed()
-    {
-        Snake.Speed -= 0.5f;
     }
 }

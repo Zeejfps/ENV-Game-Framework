@@ -6,7 +6,6 @@ namespace SampleGames;
 
 public class Snake
 {
-    public float Speed { get; set; }
     public ReadOnlySpan<Vector2> Segments => CollectionsMarshal.AsSpan(m_Segments);
     
     private Direction Heading { get; set; }
@@ -15,12 +14,9 @@ public class Snake
     public Vector2 Head => Segments[HeadIndex];
 
     private int TailIndex { get; set; }
-    private Vector2 Tail => Segments[TailIndex];
     private Direction DesiredHeading { get; set; }
 
     private readonly List<Vector2> m_Segments = new();
-
-    private float m_AccumulatedTime;
     
     private ILogger Logger { get; }
     private Grid Grid { get; }
@@ -44,8 +40,6 @@ public class Snake
         m_Segments.Add(new Vector2(centerPositionX, centerPositionY-1f));
         m_Segments.Add(new Vector2(centerPositionX, centerPositionY-2f));
         m_Segments.Add(new Vector2(centerPositionX, centerPositionY-3f));
-
-        Speed = 3f;
         
         HeadIndex = 0;
         TailIndex = Segments.Length - 1;
@@ -56,17 +50,7 @@ public class Snake
         DidGrowThisFrame = false;
     }
 
-    public void Update(float dt)
-    {
-        m_AccumulatedTime += dt;
-        if (m_AccumulatedTime >= 1f / Speed)
-        {
-            m_AccumulatedTime = 0f;
-            Move();
-        }
-    }
-
-    private void Move()
+    public void Move()
     {
         Heading = DesiredHeading;
 
