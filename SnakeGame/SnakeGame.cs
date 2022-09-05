@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
+using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
 
 namespace SampleGames;
@@ -82,6 +83,15 @@ public class SnakeGame : Game
     {
         if (IsPaused)
             return;
+
+
+        if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.F))
+        {
+            PlayerPrefs.SaveInputBindingsAsync(Input.Bindings).ContinueWith(args =>
+            {
+                Logger.Trace("Finished");
+            });
+        }
         
         Snake.Update(Clock.UpdateDeltaTime);
 
