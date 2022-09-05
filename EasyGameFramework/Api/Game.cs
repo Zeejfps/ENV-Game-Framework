@@ -74,6 +74,7 @@ public abstract class Game : IApp
 
         m_Clock.FrameLerpFactor = (float)m_Accumulator / m_DeltaTime;
         OnRender();
+        Window.SwapBuffers();
     }
 
     public void Stop()

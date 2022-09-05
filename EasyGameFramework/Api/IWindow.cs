@@ -20,6 +20,7 @@ public interface IWindow
     void ShowCentered();
     void Hide();
     void Update();
+    void SwapBuffers();
     void SetSize(int width, int height);
     void SetPosition(int x, int y);
 }

@@ -260,8 +260,11 @@ public class Window_GLFW : IWindow
         GetCursorPosition(m_Handle, out var x, out var y);
         var mouse = Mouse;
         mouse.SetPosition((int)x, (int)y);
-        
-        SwapBuffers(m_Handle);
+    }
+
+    public void SwapBuffers()
+    {
+        GLFW.Glfw.SwapBuffers(m_Handle);
     }
 
     public void SetSize(int width, int height)
