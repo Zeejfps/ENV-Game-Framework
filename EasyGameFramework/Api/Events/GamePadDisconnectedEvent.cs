@@ -4,5 +4,5 @@ namespace EasyGameFramework.Api.Events;
 
 public readonly struct GamePadDisconnectedEvent
 {
-    public IGamepad Gamepad { get; init; }
+    public IGenericGamepad Gamepad { get; init; }
 }

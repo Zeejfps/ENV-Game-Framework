@@ -83,21 +83,27 @@ public class SnakeGame : Game
         Input.GamepadDisconnected += OnGamepadDisconnected;
     }
 
-    private void OnGamepadDisconnected(GamePadDisconnectedEvent evt)
-    {
-        Logger.Trace($"Gamepad Disconnected: {evt.Gamepad}");
-    }
-
     private void OnGamepadConnected(GamepadConnectedEvent evt)
     {
         Logger.Trace($"Gamepad Connected: {evt.Gamepad}");
+        evt.Gamepad.SouthButton.Pressed += SouthButtonOnPressed;
+    }
+
+    private void SouthButtonOnPressed(InputButtonStateChangedEvent evt)
+    {
+        Logger.Trace("A is pressed");
+    }
+
+    private void OnGamepadDisconnected(GamePadDisconnectedEvent evt)
+    {
+        Logger.Trace($"Gamepad Disconnected: {evt.Gamepad}");
+        evt.Gamepad.DPadRightButton.Pressed -= SouthButtonOnPressed;
     }
 
     protected override void OnUpdate()
     {
         if (IsPaused)
             return;
-
 
         if (Input.Keyboard.WasKeyPressedThisFrame(KeyboardKey.F))
         {
@@ -106,7 +112,7 @@ public class SnakeGame : Game
                 Logger.Trace("Finished");
             });
         }
-        
+
         Snake.Update(Clock.UpdateDeltaTime);
 
         if (Snake.Head == Apple)

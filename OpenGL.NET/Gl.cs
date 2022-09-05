@@ -271,6 +271,8 @@ namespace OpenGL
         /// <param name="count">Specifies the number of indices to be rendered.</param>
         public static void glDrawArrays(int mode, int first, int count) => _glDrawArrays(mode, first, count);
         
+        public static void glDrawPixels(int width, int height, int format, int type, void* data) => _glDrawPixels(width, height, format, type, data);
+
         /// <summary>
         ///     Specify which color buffers are to be drawn into.
         /// </summary>
@@ -8309,6 +8311,9 @@ namespace OpenGL
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		private delegate void PFNGLDRAWARRAYSPROC(int mode, int first, int count);
+        
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void PFNGLDRAWPIEXELSPROC(int width, int height, int format, int type, void *data);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		private delegate void PFNGLDRAWELEMENTSPROC(int mode, int count, int type, /*const*/ void *indices);
@@ -9341,6 +9346,7 @@ namespace OpenGL
 		private static PFNGLDEPTHRANGEPROC _glDepthRange;
 		private static PFNGLVIEWPORTPROC _glViewport;
 		private static PFNGLDRAWARRAYSPROC _glDrawArrays;
+        private static PFNGLDRAWPIEXELSPROC _glDrawPixels;
 		private static PFNGLDRAWELEMENTSPROC _glDrawElements;
 		private static PFNGLPOLYGONOFFSETPROC _glPolygonOffset;
 		private static PFNGLCOPYTEXIMAGE1DPROC _glCopyTexImage1D;
@@ -9725,6 +9731,7 @@ namespace OpenGL
 			_glDepthRange = Marshal.GetDelegateForFunctionPointer<PFNGLDEPTHRANGEPROC>(loader.Invoke("glDepthRange"));
 			_glViewport = Marshal.GetDelegateForFunctionPointer<PFNGLVIEWPORTPROC>(loader.Invoke("glViewport"));
 			_glDrawArrays = Marshal.GetDelegateForFunctionPointer<PFNGLDRAWARRAYSPROC>(loader.Invoke("glDrawArrays"));
+			_glDrawPixels = Marshal.GetDelegateForFunctionPointer<PFNGLDRAWPIEXELSPROC>(loader.Invoke("glDrawPixels"));
 			_glDrawElements = Marshal.GetDelegateForFunctionPointer<PFNGLDRAWELEMENTSPROC>(loader.Invoke("glDrawElements"));
 			_glPolygonOffset = Marshal.GetDelegateForFunctionPointer<PFNGLPOLYGONOFFSETPROC>(loader.Invoke("glPolygonOffset"));
 			_glCopyTexImage1D = Marshal.GetDelegateForFunctionPointer<PFNGLCOPYTEXIMAGE1DPROC>(loader.Invoke("glCopyTexImage1D"));

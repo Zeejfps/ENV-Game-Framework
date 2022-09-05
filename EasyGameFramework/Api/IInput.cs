@@ -13,7 +13,7 @@ public interface IInput
     
     IMouse Mouse { get; }
     IKeyboard Keyboard { get; }
-    IEnumerable<IGamepad> Gamepads { get; }
+    IEnumerable<IGenericGamepad> Gamepads { get; }
 
     
     IInputBindings? Bindings { get; set; }
@@ -30,7 +30,7 @@ public interface IInput
     void UnbindAxis(string axisName, Action<float> handler);
 
 
-    bool TryGetGamepadInSlot(int slot, out IGamepad? gamepad);
-    void ConnectGamepad(int slot, IGamepad gamepad);
+    bool TryGetGamepadInSlot(int slot, out IGenericGamepad? gamepad);
+    void ConnectGamepad(int slot, IGenericGamepad gamepad);
     void DisconnectGamepad(int slot);
 }
