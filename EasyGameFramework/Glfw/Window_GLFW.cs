@@ -24,6 +24,7 @@ public class Window_GLFW : IWindow
     private readonly PositionCallback m_PositionCallback;
     private readonly MouseCallback m_ScrollCallback;
     private readonly SizeCallback m_SizeCallback;
+    private readonly JoystickCallback m_JoystickCallback;
 
     private readonly WindowFramebuffer_GL m_WindowFramebuffer;
 
@@ -41,19 +42,23 @@ public class Window_GLFW : IWindow
 
     private int m_Width = 640;
     
+    private ILogger Logger { get; }
+    private IInput Input { get; }
     private IMouse Mouse { get; }
     private IKeyboard Keyboard { get; }
 
-    public Window_GLFW(IDisplays displays, IMouse mouse, IKeyboard keyboard)
+    public Window_GLFW(ILogger logger, IDisplays displays, IInput input, IMouse mouse, IKeyboard keyboard)
     {
         Init();
         WindowHint(Hint.ClientApi, ClientApi.OpenGL);
         WindowHint(Hint.ContextVersionMajor, 3);
-        WindowHint(Hint.ContextVersionMinor, 3);
+        WindowHint(Hint.ContextVersionMinor, 2);
         WindowHint(Hint.OpenglProfile, Profile.Core);
         WindowHint(Hint.Doublebuffer, true);
         WindowHint(Hint.Decorated, true);
 
+        Logger = logger;
+        Input = input;
         Mouse = mouse;
         Keyboard = keyboard;
         
@@ -66,6 +71,7 @@ public class Window_GLFW : IWindow
         m_FramebufferSizeCallback = Glfw_FramebufferSizeCallback;
         m_MouseButtonCallback = Glfw_MouseButtonCallback;
         m_ScrollCallback = Glfw_MouseScrollCallback;
+        m_JoystickCallback = Glfw_JoystickCallback;
 
         WindowHint(Hint.Visible, false);
         WindowHint(Hint.Resizable, m_IsResizable);
@@ -83,6 +89,7 @@ public class Window_GLFW : IWindow
         SetCursorPositionCallback(m_Handle, m_MousePositionCallback);
         SetMouseButtonCallback(m_Handle, m_MouseButtonCallback);
         SetScrollCallback(m_Handle, m_ScrollCallback);
+        SetJoystickCallback(m_JoystickCallback);
     }
 
     public int PosX
@@ -384,6 +391,27 @@ public class Window_GLFW : IWindow
         mouse.ScrollDeltaY = (float)y;
     }
 
+    private void Glfw_JoystickCallback(Joystick joystick, ConnectionStatus status)
+    {
+        var slot = (int)joystick;
+        
+        if (status != ConnectionStatus.Connected)
+        {
+            if (Input.TryGetGamepadInSlot(slot, out _))
+                Input.DisconnectGamepad(slot);
+            
+            return;
+        }
+        
+        if (!JoystickIsGamepad(joystick))
+            return;
+        
+        var joystickName = GetJoystickName(joystick);
+        var guid = GetJoystickGuid(joystick);
+        var gamepad = new Gamepad_SDL(guid, joystickName);
+        Input.ConnectGamepad(slot, gamepad);
+    }
+    
     public override string ToString()
     {
         return $"x{PosX} y{PosY}, {Width}x{Height}";

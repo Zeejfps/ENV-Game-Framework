@@ -6,13 +6,18 @@ namespace EasyGameFramework.Core;
 
 internal class Input : IInput
 {
+    public event GamepadConnectedDelegate? GamepadConnected;
+    public event GamepadDisconnectedDelegate? GamepadDisconnected;
     public IMouse Mouse { get; }
     public IKeyboard Keyboard { get; }
+    public IEnumerable<IGamepad> Gamepads => m_Gamepads.Values;
     public IInputBindings? Bindings { get; set; }
 
     private ILogger Logger { get; }
     private IEventBus EventBus { get; }
     private Dictionary<string, HashSet<Action>> ActionToHandlerMap { get; } = new();
+
+    private readonly Dictionary<int, IGamepad> m_Gamepads = new();
 
     public Input(ILogger logger, IEventBus eventBus, IMouse mouse, IKeyboard keyboard)
     {
@@ -91,5 +96,34 @@ internal class Input : IInput
 
     public void UnbindAxis(string axisName, Action<float> handler)
     {
+    }
+
+    public bool TryGetGamepadInSlot(int slot, out IGamepad? gamepad)
+    {
+        return m_Gamepads.TryGetValue(slot, out gamepad);
+    }
+
+    public void ConnectGamepad(int slot, IGamepad gamepad)
+    {
+        m_Gamepads.Add(slot, gamepad);
+        GamepadConnected?.Invoke(new GamepadConnectedEvent
+        {
+            Gamepad = gamepad
+        });
+    }
+
+    public void DisconnectGamepad(int slot)
+    {
+        if (!m_Gamepads.TryGetValue(slot, out var gamepad))
+        {
+            Logger.Warn($"No gamepad connected to slot: {slot}");
+            return;
+        }
+        
+        m_Gamepads.Remove(slot);
+        GamepadDisconnected?.Invoke(new GamePadDisconnectedEvent
+        {
+            Gamepad = gamepad
+        });
     }
 }

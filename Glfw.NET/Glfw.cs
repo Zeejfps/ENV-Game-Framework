@@ -286,9 +286,9 @@ namespace GLFW
         /// </summary>
         /// <param name="joystickId">The joystick to query.</param>
         /// <returns>The GUID of the joystick, or <c>null</c> if the joystick is not present or an error occurred.</returns>
-        public static string GetJoystickGuid(int joystickId)
+        public static string GetJoystickGuid(Joystick joystickId)
         {
-            var ptr = GetJoystickGuidPrivate(joystickId);
+            var ptr = GetJoystickGuidPrivate((int)joystickId);
             return ptr == IntPtr.Zero ? null : Util.PtrToStringUTF8(ptr);
         }
 
@@ -315,7 +315,7 @@ namespace GLFW
         /// <param name="joystickId">The joystick to query.</param>
         /// <returns><c>true</c> if a joystick is both present and has a gamepad mapping, or <c>false</c> otherwise.</returns>
         [DllImport(LIBRARY, EntryPoint = "glfwJoystickIsGamepad", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool JoystickIsGamepad(int joystickId);
+        public static extern bool JoystickIsGamepad(Joystick joystickId);
 
         [DllImport(LIBRARY, EntryPoint = "glfwUpdateGamepadMappings", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool UpdateGamepadMappings([NotNull] byte[] mappings);
@@ -345,9 +345,9 @@ namespace GLFW
         ///     The name of the gamepad, or <c>null</c> if the joystick is not present, does not have a mapping or an error
         ///     occurred.
         /// </returns>
-        public static string GetGamepadName(int gamepadId)
+        public static string GetGamepadName(Joystick gamepadId)
         {
-            var ptr = GetGamepadNamePrivate(gamepadId);
+            var ptr = GetGamepadNamePrivate((int)gamepadId);
             return ptr == IntPtr.Zero ? null : Util.PtrToStringUTF8(ptr);
         }
 

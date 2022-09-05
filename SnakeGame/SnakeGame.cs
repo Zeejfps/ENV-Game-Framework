@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
+using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
 
@@ -77,6 +78,19 @@ public class SnakeGame : Game
         Input.BindAction(InputActions.QuitAction, Stop);
         Input.BindAction(InputActions.PauseResumeAction, TogglePause);
         Input.Bindings = GameInputBindings;
+        
+        Input.GamepadConnected += OnGamepadConnected;
+        Input.GamepadDisconnected += OnGamepadDisconnected;
+    }
+
+    private void OnGamepadDisconnected(GamePadDisconnectedEvent evt)
+    {
+        Logger.Trace($"Gamepad Disconnected: {evt.Gamepad}");
+    }
+
+    private void OnGamepadConnected(GamepadConnectedEvent evt)
+    {
+        Logger.Trace($"Gamepad Connected: {evt.Gamepad}");
     }
 
     protected override void OnUpdate()
