@@ -146,21 +146,21 @@ public class SnakeGame : Game
         gpu.Mesh.Load("Assets/quad");
         gpu.Mesh.Render();
         
-        m_SpriteRenderer.StartBatch();
-
-        m_SpriteRenderer.DrawSprite(Apple, new Vector3(1f, 0f, 0f));
-
-        foreach (var snake in Snakes)
+        m_SpriteRenderer.NewBatch();
         {
-            foreach (var segment in snake.Segments)
+            m_SpriteRenderer.DrawSprite(Apple, new Vector3(1f, 0f, 0f));
+
+            foreach (var snake in Snakes)
             {
-                var color = segment == snake.Head
-                    ? new Vector3(0.1f, 1f, 0.1f)
-                    : new Vector3(1f, 0f, 1f);
-                m_SpriteRenderer.DrawSprite(segment, color);
+                foreach (var segment in snake.Segments)
+                {
+                    var color = segment == snake.Head
+                        ? new Vector3(0.1f, 1f, 0.1f)
+                        : new Vector3(1f, 0f, 1f);
+                    m_SpriteRenderer.DrawSprite(segment, color);
+                }
             }
         }
-
         m_SpriteRenderer.RenderBatch(m_Camera);
         
         gpu.RestoreState();

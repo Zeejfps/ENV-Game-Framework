@@ -29,7 +29,7 @@ public class SpriteRenderer
     private readonly Vector3[] m_Colors = new Vector3[MAX_BATCH_SIZE];
     private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[MAX_BATCH_SIZE];
     
-    public void StartBatch()
+    public void NewBatch()
     {
         m_Size = 0;
     }
