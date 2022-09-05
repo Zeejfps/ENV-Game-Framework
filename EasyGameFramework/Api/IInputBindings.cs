@@ -7,8 +7,6 @@ public interface IInputBindings
     IReadOnlyDictionary<KeyboardKey, string> DefaultKeyboardKeyBindings { get; }
     IReadOnlyDictionary<MouseButton, string> DefaultMouseButtonBindings { get; }
 
-    IDictionary<KeyboardKey, string> ActiveKeyboardKeyBindings { get; }
-    IDictionary<MouseButton, string> ActiveMouseButtonBindings { get; }
-
-    void LoadDefaults();
+    IDictionary<KeyboardKey, string> OverrideKeyboardKeyBindings { get; }
+    IDictionary<MouseButton, string> OverrideMouseButtonBindings { get; }
 }

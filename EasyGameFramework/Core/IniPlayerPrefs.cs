@@ -21,7 +21,6 @@ public class IniPlayerPrefs : IPlayerPrefs
     public async Task<T> LoadInputBindingsAsync<T>(CancellationToken cancellationToken = default) where T : IInputBindings
     {
         var bindings = Container.New<T>();
-        bindings.LoadDefaults();
         
         if (!File.Exists(pathToFile))
             return bindings;
@@ -43,7 +42,7 @@ public class IniPlayerPrefs : IPlayerPrefs
             }
             var key = (KeyboardKey)value;
             var action = mapping.KeyName;
-            bindings.ActiveKeyboardKeyBindings[key] = action;
+            bindings.OverrideKeyboardKeyBindings[key] = action;
         }
 
         var mouseButtonMappings = data[mouseBindingInitGroupName];
@@ -57,7 +56,7 @@ public class IniPlayerPrefs : IPlayerPrefs
 
             var button = new MouseButton(value);
             var action = mapping.KeyName;
-            bindings.ActiveMouseButtonBindings[button] = action;
+            bindings.OverrideMouseButtonBindings[button] = action;
         }
 
         return bindings;
@@ -80,10 +79,10 @@ public class IniPlayerPrefs : IPlayerPrefs
         var keyBindingsIniGroupName = inputBindings.GetType().Name + ".Keyboard";
         var mouseBindingInitGroupName = inputBindings.GetType().Name + ".Mouse";
         
-        foreach (var (key, action) in inputBindings.ActiveKeyboardKeyBindings)
+        foreach (var (key, action) in inputBindings.OverrideKeyboardKeyBindings)
             data[keyBindingsIniGroupName][action] = ((int)key).ToString();
         
-        foreach (var (button, action) in inputBindings.ActiveMouseButtonBindings)
+        foreach (var (button, action) in inputBindings.OverrideMouseButtonBindings)
             data[mouseBindingInitGroupName][action] = button.ToString();
 
         await File.WriteAllTextAsync(pathToFile, data.ToString(), cancellationToke);
