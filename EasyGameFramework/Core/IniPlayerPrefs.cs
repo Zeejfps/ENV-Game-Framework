@@ -77,13 +77,13 @@ public class IniPlayerPrefs : IPlayerPrefs
         }
         
         var keyBindingsIniGroupName = inputBindings.GetType().Name + ".Keyboard";
-        var mouseBindingInitGroupName = inputBindings.GetType().Name + ".Mouse";
+        var mouseBindingsIniGroupName = inputBindings.GetType().Name + ".Mouse";
         
         foreach (var (key, action) in inputBindings.OverrideKeyboardKeyBindings)
             data[keyBindingsIniGroupName][action] = ((int)key).ToString();
         
         foreach (var (button, action) in inputBindings.OverrideMouseButtonBindings)
-            data[mouseBindingInitGroupName][action] = button.ToString();
+            data[mouseBindingsIniGroupName][action] = button.ToString();
 
         await File.WriteAllTextAsync(pathToFile, data.ToString(), cancellationToke);
     }
