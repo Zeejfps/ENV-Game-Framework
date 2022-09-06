@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
+using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Core;
 using EasyGameFramework.OpenGL;
@@ -39,6 +40,8 @@ internal class Window_GLFW : IWindow
     private int m_PosY;
     private int m_Width = 640;
     private int m_Height = 480;
+    private int m_MouseX;
+    private int m_MouseY;
     
     private ILogger Logger { get; }
     private IInputSystem Input { get; }
@@ -232,6 +235,18 @@ internal class Window_GLFW : IWindow
     {
         ShowWindow(m_Handle);
         IsOpened = true;
+        Mouse.Moved += OnMouseMoved;
+    }
+
+    private void OnMouseMoved(in MouseMovedEvent evt)
+    {
+        var mouse = evt.Mouse;
+        if (m_MouseX == mouse.ScreenX && m_MouseY == mouse.ScreenY)
+            return;
+
+        m_MouseX = mouse.ScreenX;
+        m_MouseY = mouse.ScreenY;
+        SetCursorPosition(m_Handle, mouse.ScreenX, mouse.ScreenY);
     }
 
     public void ShowCentered()
@@ -265,8 +280,10 @@ internal class Window_GLFW : IWindow
         }
         
         GetCursorPosition(m_Handle, out var x, out var y);
+        m_MouseX = (int)x;
+        m_MouseY = (int)y;
         var mouse = Mouse;
-        mouse.MoveTo((int)x, (int)y);
+        mouse.MoveTo(m_MouseX, m_MouseY);
 
         foreach (var (gamepad, slot) in m_GamepadToSlotMap)
         {
