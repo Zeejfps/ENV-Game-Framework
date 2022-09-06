@@ -45,7 +45,7 @@ public class Window_GLFW : IWindow
     private IMouse Mouse { get; }
     private IKeyboard Keyboard { get; }
 
-    private readonly Dictionary<IGenericGamepad, int> m_GamepadToSlotMap = new();
+    private readonly Dictionary<IGamepad, int> m_GamepadToSlotMap = new();
 
     public Window_GLFW(ILogger logger, IDisplays displays, IInput input, IMouse mouse, IKeyboard keyboard)
     {
@@ -274,26 +274,35 @@ public class Window_GLFW : IWindow
             
             //gamepad.LeftTrigger.Value = state.GetAxis(GamePadAxis.LeftTrigger);
             //gamepad.RightRigger.Value = state.GetAxis(GamePadAxis.RightTrigger);
-
-            UpdateButtonState(gamepad.SouthButton, state, GamePadButton.A);
-            UpdateButtonState(gamepad.NorthButton, state, GamePadButton.Y);
-            UpdateButtonState(gamepad.EastButton, state, GamePadButton.B);
-            UpdateButtonState(gamepad.WestButton, state, GamePadButton.X);
             
-            UpdateButtonState(gamepad.DPadUpButton, state, GamePadButton.DpadUp);
-            UpdateButtonState(gamepad.DPadRightButton, state, GamePadButton.DpadRight);
-            UpdateButtonState(gamepad.DPadDownButton, state, GamePadButton.DpadDown);
-            UpdateButtonState(gamepad.DPadLeftButton, state, GamePadButton.DpadLeft);
+            UpdateButtonState(gamepad, state, GamePadButton.A);
+            UpdateButtonState(gamepad, state, GamePadButton.Y);
+            UpdateButtonState(gamepad, state, GamePadButton.B);
+            UpdateButtonState(gamepad, state, GamePadButton.X);
             
-            UpdateButtonState(gamepad.LeftBumperButton, state, GamePadButton.LeftBumper);
-            UpdateButtonState(gamepad.RightBumperButton, state, GamePadButton.RightBumper);
+            UpdateButtonState(gamepad, state, GamePadButton.DpadUp);
+            UpdateButtonState(gamepad, state, GamePadButton.DpadRight);
+            UpdateButtonState(gamepad, state, GamePadButton.DpadDown);
+            UpdateButtonState(gamepad, state, GamePadButton.DpadLeft);
+            
+            UpdateButtonState(gamepad, state, GamePadButton.LeftBumper);
+            UpdateButtonState(gamepad, state, GamePadButton.RightBumper);
+            
+            UpdateButtonState(gamepad, state, GamePadButton.Back);
+            UpdateButtonState(gamepad, state, GamePadButton.Start);
         }
     }
 
-    private void UpdateButtonState(GamepadButton inputButton, GamePadState state, GamePadButton gamepadButton)
+    private void UpdateButtonState(IGamepad gamepad, GamePadState gamepadState, GamePadButton gamepadButton)
     {
-        var aButtonState = state.GetButtonState(gamepadButton);
-        inputButton.Value = aButtonState is InputState.Press or InputState.Repeat;
+        var button = gamepadButton.ToGamepadButton();
+        var isPressed = gamepad.IsButtonPressed(button);
+        var buttonState = gamepadState.GetButtonState(gamepadButton);
+        
+        if (isPressed && buttonState == InputState.Release)
+            gamepad.ReleaseButton(button);
+        else if (!isPressed && buttonState == InputState.Press)
+            gamepad.PressButton(button);
     } 
 
     public void SwapBuffers()
@@ -454,7 +463,7 @@ public class Window_GLFW : IWindow
         var slot = (int)joystick;
         var joystickName = GetJoystickName(joystick);
         var guid = GetJoystickGuid(joystick);
-        var gamepad = new GenericGamepad_SDL(guid, joystickName);
+        var gamepad = new Gamepad_SDL(guid, joystickName);
         m_GamepadToSlotMap[gamepad] = slot;
         Input.ConnectGamepad(slot, gamepad);
     }

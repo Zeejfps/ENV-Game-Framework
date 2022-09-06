@@ -15,12 +15,12 @@ public interface IInput
     
     IMouse Mouse { get; }
     IKeyboard Keyboard { get; }
-    IEnumerable<IGenericGamepad> Gamepads { get; }
+    IEnumerable<IGamepad> Gamepads { get; }
     
     void Update();
     
 
-    bool TryGetGamepadInSlot(int slot, out IGenericGamepad? gamepad);
-    void ConnectGamepad(int slot, IGenericGamepad gamepad);
+    bool TryGetGamepadInSlot(int slot, out IGamepad? gamepad);
+    void ConnectGamepad(int slot, IGamepad gamepad);
     void DisconnectGamepad(int slot);
 }

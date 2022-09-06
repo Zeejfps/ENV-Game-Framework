@@ -3,53 +3,41 @@ using EasyGameFramework.Api.InputDevices;
 
 namespace SampleGames;
 
-public sealed class Player1InputBindings : InputBindings
+public sealed class Player1InputBindings : PlayerInputBindings
 {
-    public override IReadOnlyDictionary<KeyboardKey, string> DefaultKeyboardKeyBindings { get; } =
-        new Dictionary<KeyboardKey, string>
-        {
-            { KeyboardKey.W,          InputActions.MoveUpAction },
-            { KeyboardKey.A,          InputActions.MoveLeftAction },
-            { KeyboardKey.D,          InputActions.MoveRightAction },
-            { KeyboardKey.S,          InputActions.MoveDownAction },
-        };
-
-    public override IReadOnlyDictionary<MouseButton, string> DefaultMouseButtonBindings { get; } = 
-        new Dictionary<MouseButton, string>();
-    
-    public override bool TryResolveBinding(IGenericGamepad gamepad, GamepadButton button, out string? action)
+    public override InputAction MoveUp { get; } = new()
     {
-        if (button == gamepad.SouthButton)
+        ButtonBindings = new IButtonBinding[]
         {
-            action = InputActions.ResetAction;
-            return true;
+            new KeyboardKeyBinding(KeyboardKey.W),
+            new GamepadButtonBinding(0, GamepadButton.DPadUp)        
         }
+    };
 
-        if (button == gamepad.DPadLeftButton)
+    public override InputAction MoveLeft { get; } = new()
+    {
+        ButtonBindings = new IButtonBinding[]
         {
-            action = InputActions.MoveLeftAction;
-            return true;
+            new KeyboardKeyBinding(KeyboardKey.A),
+            new GamepadButtonBinding(0, GamepadButton.DPadLeft)
         }
-
-        if (button == gamepad.DPadRightButton)
+    };
+    
+    public override InputAction MoveRight { get; }= new()
+    {
+        ButtonBindings = new IButtonBinding[]
         {
-            action = InputActions.MoveRightAction;
-            return true;
+            new KeyboardKeyBinding(KeyboardKey.D),
+            new GamepadButtonBinding(0, GamepadButton.DPadRight)
         }
-
-        if (button == gamepad.DPadUpButton)
+    };
+    
+    public override InputAction MoveDown { get; }= new()
+    {
+        ButtonBindings = new IButtonBinding[]
         {
-            action = InputActions.MoveUpAction;
-            return true;
+            new KeyboardKeyBinding(KeyboardKey.S),
+            new GamepadButtonBinding(0, GamepadButton.DPadDown)
         }
-
-        if (button == gamepad.DPadDownButton)
-        {
-            action = InputActions.MoveDownAction;
-            return true;
-        }
-        
-        action = null;
-        return false;
-    }
+    };
 }

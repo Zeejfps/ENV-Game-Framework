@@ -1,64 +1,56 @@
 ﻿namespace EasyGameFramework.Api.InputDevices;
 
-public readonly struct InputButtonStateChangedEvent
+public readonly struct GamepadButton : IEquatable<GamepadButton>
 {
-    public GamepadButton Button { get; init; }
-}
+    public static readonly GamepadButton South = new(0);
+    public static readonly GamepadButton East = new(1);
+    public static readonly GamepadButton West = new(2);
+    public static readonly GamepadButton North = new(3);
+    
+    public static readonly GamepadButton LeftBumper = new(4);
+    public static readonly GamepadButton RightBumper = new(5);
 
-public delegate void InputButtonStateChangedDelegate(InputButtonStateChangedEvent evt);
+    public static readonly GamepadButton Back = new(6);
+    public static readonly GamepadButton Start = new(7);
+    public static readonly GamepadButton Guide = new(8);
+    
+    public static readonly GamepadButton LeftThumb = new(9);
+    public static readonly GamepadButton RightThumb = new(10);
+    
+    public static readonly GamepadButton DPadUp = new(11);
+    public static readonly GamepadButton DPadLeft = new(12);
+    public static readonly GamepadButton DPadRight = new(13);
+    public static readonly GamepadButton DPadDown = new(14);
 
-public interface IInputButton
-{
-    event InputButtonStateChangedDelegate? Pressed;
-    event InputButtonStateChangedDelegate? Released;
-    event InputButtonStateChangedDelegate? StageChanged;
-}
-
-public sealed class GamepadButton : IInputButton
-{
-    public event InputButtonStateChangedDelegate? Pressed;
-    public event InputButtonStateChangedDelegate? Released;
-    public event InputButtonStateChangedDelegate? StageChanged;
-
-    private bool m_Value;
-
-    public bool Value
+    private readonly int m_Id;
+    
+    public GamepadButton(int id)
     {
-        get => m_Value;
-        set
-        {
-            if (m_Value == value)
-                return;
-            m_Value = value;
-            if (m_Value)
-                OnPressed();
-            else
-                OnReleased();
-        }
+        m_Id = id;
     }
 
-    public bool IsPressed => Value == true;
-    public bool IsReleased => Value == false;
-
-    private void OnPressed()
+    public bool Equals(GamepadButton other)
     {
-        var evt = new InputButtonStateChangedEvent
-        {
-            Button = this,
-        };
-        
-        StageChanged?.Invoke(evt);
-        Pressed?.Invoke(evt);
+        return m_Id == other.m_Id;
     }
 
-    private void OnReleased()
+    public override bool Equals(object? obj)
     {
-        var evt = new InputButtonStateChangedEvent
-        {
-            Button = this,
-        };
-        
-        StageChanged?.Invoke(evt);
-        Released?.Invoke(evt);
+        return obj is GamepadButton other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return m_Id;
+    }
+
+    public static bool operator ==(GamepadButton left, GamepadButton right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(GamepadButton left, GamepadButton right)
+    {
+        return !left.Equals(right);
     }
 }

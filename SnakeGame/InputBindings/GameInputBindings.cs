@@ -5,35 +5,61 @@ namespace SampleGames;
 
 public class GameInputBindings : InputBindings
 {
-    public override Dictionary<KeyboardKey, string> DefaultKeyboardKeyBindings { get; } = new()
+    public InputAction QuitAction { get; } = new()
     {
-        { KeyboardKey.Escape,     InputActions.QuitAction },
-        { KeyboardKey.R,          InputActions.ResetAction },
-        { KeyboardKey.Equals,     InputActions.IncreaseSpeedAction },
-        { KeyboardKey.Minus,      InputActions.DecreaseSpeedAction },
-        { KeyboardKey.P,          InputActions.PauseResumeAction },
-    };
-
-    public override Dictionary<MouseButton, string> DefaultMouseButtonBindings { get; } = new()
-    {
-        { MouseButton.Left,       InputActions.ResetAction },
+        ButtonBindings = new IButtonBinding[]
+        {
+            new KeyboardKeyBinding(KeyboardKey.Escape),
+        }
     };
     
-    public override bool TryResolveBinding(IGenericGamepad gamepad, GamepadButton button, out string? action)
+    public InputAction ResetAction { get; }= new()
     {
-        if (button == gamepad.RightBumperButton)
+        ButtonBindings = new IButtonBinding[]
         {
-            action = InputActions.IncreaseSpeedAction;
-            return true;
+            new KeyboardKeyBinding(KeyboardKey.R),
+            new GamepadButtonBinding(0, GamepadButton.Back)
         }
-
-        if (button == gamepad.LeftBumperButton)
+    };
+    
+    public InputAction IncreaseSpeedAction { get; }= new()
+    {
+        ButtonBindings = new IButtonBinding[]
         {
-            action = InputActions.DecreaseSpeedAction;
-            return false;
+            new KeyboardKeyBinding(KeyboardKey.Equals),
+            new GamepadButtonBinding(0, GamepadButton.RightBumper)
         }
-
-        action = null;
-        return false;
+    };
+    
+    public InputAction DecreaseSpeedAction { get; }= new()
+    {
+        ButtonBindings = new IButtonBinding[]
+        {
+            new KeyboardKeyBinding(KeyboardKey.Minus),
+            new GamepadButtonBinding(0, GamepadButton.LeftBumper)
+        }
+    };
+    
+    public InputAction PauseResumeAction { get; }= new()
+    {
+        ButtonBindings = new IButtonBinding[]
+        {
+            new KeyboardKeyBinding(KeyboardKey.P),
+            new GamepadButtonBinding(0, GamepadButton.Start),
+        }
+    };
+    
+    public override IEnumerable<InputAction> InputActions { get; }
+    
+    public GameInputBindings()
+    {
+        InputActions = new[]
+        {
+            QuitAction,
+            ResetAction,
+            IncreaseSpeedAction,
+            DecreaseSpeedAction,
+            PauseResumeAction,
+        };
     }
 }

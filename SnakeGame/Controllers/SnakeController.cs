@@ -12,19 +12,13 @@ public class SnakeController : Controller
     {
         Index = index;
         Snake = snake;
-        
-        BindAction(InputActions.MoveUpAction, Snake.TurnNorth);
-        BindAction(InputActions.MoveLeftAction, Snake.TurnWest);
-        BindAction(InputActions.MoveRightAction, Snake.TurnEast);
-        BindAction(InputActions.MoveDownAction, Snake.TurnSouth);
 
-        if (Index == 0)
-        {
-            Bindings = new Player1InputBindings();
-        }
-        else
-        {
-            Bindings = new Player2InputBindings();
-        }
+        PlayerInputBindings bindings = Index == 0 ? new Player1InputBindings() : new Player2InputBindings();
+        Bindings = bindings;
+        
+        BindOnPressed(bindings.MoveUp, Snake.TurnNorth);
+        BindOnPressed(bindings.MoveLeft, Snake.TurnWest);
+        BindOnPressed(bindings.MoveRight, Snake.TurnEast);
+        BindOnPressed(bindings.MoveDown, Snake.TurnSouth);
     }
 }
