@@ -83,16 +83,17 @@ public class CameraRigController
         
         var keyboard = InputSystem.Keyboard;
         var cameraRig = CameraRig;
+        var distance = dt * 15f;
 
         if (keyboard.IsKeyPressed(KeyboardKey.W))
-            cameraRig.MoveForward(dt);
+            cameraRig.MoveForward(distance);
         else if (keyboard.IsKeyPressed(KeyboardKey.S))
-            cameraRig.MoveBackwards(dt);
+            cameraRig.MoveBackwards(distance);
 
         if (keyboard.IsKeyPressed(KeyboardKey.A))
-            cameraRig.MoveLeft(dt);
+            cameraRig.MoveLeft(distance);
         else if (keyboard.IsKeyPressed(KeyboardKey.D))
-            cameraRig.MoveRight(dt);
+            cameraRig.MoveRight(distance);
     }
 
     public void Disable()

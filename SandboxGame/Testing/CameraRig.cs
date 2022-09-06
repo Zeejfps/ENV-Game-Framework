@@ -77,38 +77,39 @@ public class CameraRig
         cameraTarget.WorldPosition = cameraTransform.WorldPosition + cameraTransform.Forward * distanceToTarget;
     }
 
-    public void MoveForward(float dt)
+    public void MoveForward(float distance)
     {
         var cameraTransform = Camera.Transform;
-        Move(cameraTransform.Forward, dt);
+        Move(cameraTransform.Forward, distance);
     }
 
-    public void MoveBackwards(float dt)
+    public void MoveBackwards(float distance)
     {
         var cameraTransform = Camera.Transform;
-        Move(-cameraTransform.Forward, dt);
+        Move(-cameraTransform.Forward, distance);
     }
 
-    public void MoveLeft(float dt)
+    public void MoveLeft(float distance)
     {
         var cameraTransform = Camera.Transform;
-        Move(-cameraTransform.Right, dt);
+        Move(-cameraTransform.Right, distance);
     }
 
-    public void MoveRight(float dt)
+    public void MoveRight(float distance)
     {
         var cameraTransform = Camera.Transform;
-        Move(cameraTransform.Right, dt);
+        Move(cameraTransform.Right, distance);
     }
 
-    private void Move(Vector3 direction, float dt)
+    private void Move(Vector3 direction, float distance)
     {
-        var speed = dt * 15f;
         var cameraTarget = CameraTarget;
         var cameraTransform = Camera.Transform;
 
-        cameraTarget.WorldPosition += direction * speed;
-        cameraTransform.WorldPosition += direction * speed;
+        var movement = direction * distance;
+        
+        cameraTarget.WorldPosition += movement;
+        cameraTransform.WorldPosition += movement;
     }
 
     private void LookAtTarget()
