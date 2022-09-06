@@ -3,7 +3,7 @@ using GLFW;
 
 namespace EasyGameFramework.Glfw;
 
-public static class GamepadButtonMapper_GLFW
+internal static class GamepadButtonMapper_GLFW
 {
     public static GamepadButton ToGamepadButton(this GamePadButton button)
     {

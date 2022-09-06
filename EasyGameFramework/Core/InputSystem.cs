@@ -21,7 +21,6 @@ internal class InputSystem : IInputSystem
         Keyboard = keyboard;
         GamepadManager = gamepadManager;
         
-        // TODO: Maybe only subscribe when we have bindings?
         Mouse.ButtonPressed += OnMouseButtonPressed;
         Keyboard.KeyPressed += OnKeyboardKeyPressed;
     }

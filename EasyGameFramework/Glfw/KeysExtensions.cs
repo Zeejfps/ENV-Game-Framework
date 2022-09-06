@@ -3,7 +3,7 @@ using GLFW;
 
 namespace EasyGameFramework.Glfw;
 
-public static class KeysExtensions
+internal static class KeysExtensions
 {
     public static KeyboardKey ToKeyboardKey(this Keys key)
     {

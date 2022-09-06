@@ -13,7 +13,7 @@ using MouseButton = GLFW.MouseButton;
 
 namespace EasyGameFramework.Glfw;
 
-public class Window_GLFW : IWindow
+internal class Window_GLFW : IWindow
 {
     private readonly IDisplays m_Displays;
     private readonly SizeCallback m_FramebufferSizeCallback;
