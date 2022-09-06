@@ -251,12 +251,12 @@ internal class Window_GLFW : IWindow
         IsOpened = false;
     }
 
-    public void Update()
+    public void PollEvents()
     {
         Debug.Assert(IsOpened);
         Debug.Assert(m_Handle != Window.None);
         
-        PollEvents();
+        GLFW.Glfw.PollEvents();
 
         if (WindowShouldClose(m_Handle))
         {

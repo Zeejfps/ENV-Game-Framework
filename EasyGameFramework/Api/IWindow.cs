@@ -19,7 +19,7 @@ public interface IWindow
     void Show();
     void ShowCentered();
     void Hide();
-    void Update();
+    void PollEvents();
     void SwapBuffers();
     void SetSize(int width, int height);
     void SetPosition(int x, int y);

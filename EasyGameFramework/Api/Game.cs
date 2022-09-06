@@ -46,7 +46,7 @@ public abstract class Game : IApp
     
     private void Update()
     {
-        Window.Update();
+        Window.PollEvents();
 
         if (!Window.IsOpened)
         {

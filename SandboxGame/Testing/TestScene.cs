@@ -1,5 +1,4 @@
 using System.Numerics;
-using EasyGameFramework;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Cameras;
@@ -7,6 +6,7 @@ using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
 using Framework.Materials;
+using GLFW;
 
 namespace Framework;
 
@@ -26,9 +26,7 @@ public class TestScene : IScene
 
     private ITransform3D m_CameraTarget;
     private ITransform3D m_LightPosition;
-
-    private int m_PrevMouseX;
-    private int m_PrevMouseY;
+    
     private bool m_IsRotating;
 
     private Ship m_Ship1;
@@ -43,6 +41,8 @@ public class TestScene : IScene
     private IHandle<IGpuMesh> m_QuadMeshHandle;
 
     private ILogger Logger { get; }
+    
+    private CameraController CameraController { get; }
     
     public TestScene(IContext app, ILogger logger)
     {
@@ -87,6 +87,8 @@ public class TestScene : IScene
         m_SceneObjects.Add(m_Light);
         //m_SceneObjects.Add(m_Ship1);
         m_SceneObjects.Add(m_Toad);
+
+        CameraController = new CameraController(m_Camera, m_CameraTarget, m_App.Window, m_App.Input);
     }
 
     public void Load()
@@ -106,17 +108,8 @@ public class TestScene : IScene
         var input = m_App.Input;
         input.Keyboard.KeyPressed += OnKeyPressed;
         input.Mouse.Scrolled += OnMouseWheelScrolled;
-        input.Mouse.ButtonPressed += OnMouseButtonPressed;
-    }
-
-    private void OnMouseButtonPressed(in MouseButtonStateChangedEvent evt)
-    {
-        var mouse = evt.Mouse;
-        if (evt.Button == MouseButton.Left || evt.Button == MouseButton.Middle)
-        {
-            m_PrevMouseX = mouse.ScreenX;
-            m_PrevMouseY = mouse.ScreenY;
-        }
+        
+        CameraController.Bind();
     }
 
     private void OnMouseWheelScrolled(in MouseWheelScrolledEvent evt)
@@ -144,7 +137,7 @@ public class TestScene : IScene
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Update(m_Clock.DeltaTime);
 
-        HandleInput();
+        CameraController.Update(dt);
     }
 
     public void Render()
@@ -175,61 +168,6 @@ public class TestScene : IScene
         m_UnlitRenderPass.Render(m_Gpu, m_Camera);
     }
 
-    private void HandleInput()
-    {
-        var speed = m_Clock.DeltaTime * 15f;
-        var mouse = m_App.Input.Mouse;
-        var keyboard = m_App.Input.Keyboard;
-        
-        if (keyboard.IsKeyPressed(KeyboardKey.W))
-            m_Camera.Transform.WorldPosition += m_Camera.Transform.Forward * speed;
-        else if (keyboard.IsKeyPressed(KeyboardKey.S))
-            m_Camera.Transform.WorldPosition -= m_Camera.Transform.Forward * speed;
-        
-        if (keyboard.IsKeyPressed(KeyboardKey.A))
-            m_Camera.Transform.WorldPosition -= m_Camera.Transform.Right * speed;
-        else if (keyboard.IsKeyPressed(KeyboardKey.D))
-            m_Camera.Transform.WorldPosition += m_Camera.Transform.Right * speed;
-
-        if (mouse.IsButtonPressed(MouseButton.Left))
-            RotateCamera();
-
-        if (mouse.IsButtonPressed(MouseButton.Middle))
-            PanCamera();
-
-        m_Camera.Transform.LookAt(m_CameraTarget.WorldPosition, Vector3.UnitY);
-    }
-
-    private void RotateCamera()
-    {
-        var mouse = m_App.Input.Mouse;
-
-        var deltaX = (mouse.ScreenX - m_PrevMouseX) * 0.001f;
-        var deltaY = (mouse.ScreenY - m_PrevMouseY) * 0.001f;
-        m_PrevMouseX = mouse.ScreenX;
-        m_PrevMouseY = mouse.ScreenY;
-            
-        m_Camera.Transform.RotateAround(m_CameraTarget.WorldPosition, Vector3.UnitY, -deltaX);
-        m_Camera.Transform.RotateAround(m_CameraTarget.WorldPosition, m_Camera.Transform.Right, -deltaY);
-
-    }
-
-    private void PanCamera()
-    {
-        var mouse = m_App.Input.Mouse;
-        
-        var deltaX = (mouse.ScreenX - m_PrevMouseX) * 0.001f;
-        var deltaY = (mouse.ScreenY - m_PrevMouseY) * 0.001f;
-        m_PrevMouseX = mouse.ScreenX;
-        m_PrevMouseY = mouse.ScreenY;
-
-        var movement = (m_Camera.Transform.Right * -deltaX + m_Camera.Transform.Up * deltaY) 
-                       * m_Clock.DeltaTime * 1920f;
-
-        m_Camera.Transform.WorldPosition += movement;
-        m_CameraTarget.WorldPosition += movement;
-    }
-    
     private List<Ship> CreateShips()
     {
         var gpu = Context.Gpu;
