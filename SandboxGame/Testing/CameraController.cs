@@ -7,9 +7,10 @@ namespace Framework;
 
 public class CameraController
 {
+    public bool IsEnabled { get; private set; }
+    
     private ICamera Camera { get; }
     private ITransform3D CameraTarget { get; }
-    
     private IInputSystem InputSystem { get; }
     private IWindow Window { get; }
     
@@ -21,29 +22,56 @@ public class CameraController
         Window = window;
     }
 
-    public void Bind()
+    public void Enable()
     {
-        InputSystem.Mouse.Moved += OnMouseMoved;
+        if (IsEnabled)
+            return;
+        
+        var mouse = InputSystem.Mouse;
+        mouse.Moved += OnMouseMoved;
+        mouse.Scrolled += OnMouseWheelScrolled;
+        IsEnabled = true;
+    }
+
+    public void Disable()
+    {
+        if (!IsEnabled)
+            return;
+        
+        var mouse = InputSystem.Mouse;
+        mouse.Moved -= OnMouseMoved;
+        mouse.Scrolled -= OnMouseWheelScrolled;
+        IsEnabled = false;
     }
 
     public void Update(float dt)
     {
+        if (!IsEnabled)
+            return;
+        
         var camera = Camera;
         var speed = dt * 15f;
         var keyboard = InputSystem.Keyboard;
         var cameraTarget = CameraTarget;
+        var cameraTransform = camera.Transform;
         
         if (keyboard.IsKeyPressed(KeyboardKey.W))
-            camera.Transform.WorldPosition += camera.Transform.Forward * speed;
+            cameraTransform.WorldPosition += cameraTransform.Forward * speed;
         else if (keyboard.IsKeyPressed(KeyboardKey.S))
-            camera.Transform.WorldPosition -= camera.Transform.Forward * speed;
+            cameraTransform.WorldPosition -= cameraTransform.Forward * speed;
         
         if (keyboard.IsKeyPressed(KeyboardKey.A))
-            camera.Transform.WorldPosition -= camera.Transform.Right * speed;
+            cameraTransform.WorldPosition -= cameraTransform.Right * speed;
         else if (keyboard.IsKeyPressed(KeyboardKey.D))
-            camera.Transform.WorldPosition += camera.Transform.Right * speed;
+            cameraTransform.WorldPosition += cameraTransform.Right * speed;
         
-        camera.Transform.LookAt(cameraTarget.WorldPosition, Vector3.UnitY);
+        cameraTransform.LookAt(cameraTarget.WorldPosition, Vector3.UnitY);
+    }
+    
+    private void OnMouseWheelScrolled(in MouseWheelScrolledEvent evt)
+    {
+        var camera = Camera;
+        camera.Transform.WorldPosition += camera.Transform.Forward * evt.DeltaY;
     }
 
     private void OnMouseMoved(in MouseMovedEvent evt)

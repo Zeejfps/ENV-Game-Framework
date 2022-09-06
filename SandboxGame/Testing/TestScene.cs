@@ -6,7 +6,6 @@ using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
 using Framework.Materials;
-using GLFW;
 
 namespace Framework;
 
@@ -27,8 +26,6 @@ public class TestScene : IScene
     private ITransform3D m_CameraTarget;
     private ITransform3D m_LightPosition;
     
-    private bool m_IsRotating;
-
     private Ship m_Ship1;
     private Toad m_Toad;
     private List<Ship> m_Ships;
@@ -107,14 +104,8 @@ public class TestScene : IScene
 
         var input = m_App.Input;
         input.Keyboard.KeyPressed += OnKeyPressed;
-        input.Mouse.Scrolled += OnMouseWheelScrolled;
         
-        CameraController.Bind();
-    }
-
-    private void OnMouseWheelScrolled(in MouseWheelScrolledEvent evt)
-    {
-        m_Camera.Transform.WorldPosition += m_Camera.Transform.Forward * evt.DeltaY * m_Clock.DeltaTime * 100f;
+        CameraController.Enable();
     }
 
     private void OnKeyPressed(in KeyboardKeyStateChangedEvent evt)
@@ -123,9 +114,6 @@ public class TestScene : IScene
         {
             case KeyboardKey.Escape when m_App.Window.IsFullscreen:
                 m_App.Window.IsFullscreen = false;
-                break;
-            case KeyboardKey.Space:
-                m_IsRotating = !m_IsRotating;
                 break;
         }
     }
