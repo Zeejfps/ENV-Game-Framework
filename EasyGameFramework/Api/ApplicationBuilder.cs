@@ -59,12 +59,13 @@ public sealed class ApplicationBuilder
         
         DiContainer.BindSingleton<IMouse, Mouse>();
         DiContainer.BindSingleton<IKeyboard, Keyboard>();
-        DiContainer.BindSingleton<IInput, Input>();
+        DiContainer.BindSingleton<IInputSystem, InputSystem>();
         DiContainer.BindSingleton<IContext, Context>();
         DiContainer.BindSingleton<IEventBus, EventBus>();
         DiContainer.BindSingleton<IApp, TApp>();
         DiContainer.BindSingleton<IPlayerPrefs, IniPlayerPrefs>();
         DiContainer.BindSingleton<IContainer>(DiContainer);
+        DiContainer.BindSingleton<IGamepadManager, GamepadManager>();
 
         var engine = DiContainer.New<IApp>();
         return engine;

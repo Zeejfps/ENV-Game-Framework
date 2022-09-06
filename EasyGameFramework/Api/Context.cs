@@ -5,7 +5,7 @@ namespace EasyGameFramework.Api;
 public sealed class Context : IContext
 {
     public Context(IDisplays displays, IRenderer renderer, 
-        IWindow window, IInput input, 
+        IWindow window, IInputSystem input, 
         IGpu gpu, ILogger logger,
         IContainer container)
     {
@@ -21,7 +21,7 @@ public sealed class Context : IContext
     public IDisplays Displays { get; }
     public IRenderer Renderer { get; }
     public IWindow Window { get; }
-    public IInput Input { get; }
+    public IInputSystem Input { get; }
     public IGpu Gpu { get; }
     public ILogger Logger { get; }
     public IContainer Container { get; }

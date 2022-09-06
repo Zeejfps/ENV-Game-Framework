@@ -1,11 +1,9 @@
-﻿namespace EasyGameFramework.Api.InputDevices;
+﻿using EasyGameFramework.Api.Events;
 
-public readonly struct GamepadButtonStateChangedEvent
-{
-    public IGamepad Gamepad { get; init; }
-    public GamepadButton Button { get; init; }
-}
+namespace EasyGameFramework.Api.InputDevices;
 
+public delegate void GamepadConnectedDelegate(GamepadConnectedEvent evt);
+public delegate void GamepadDisconnectedDelegate(GamePadDisconnectedEvent evt);
 public delegate void GamepadButtonStateChangedDelegate(GamepadButtonStateChangedEvent evt);
 
 public interface IGamepad

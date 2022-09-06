@@ -17,10 +17,10 @@ public sealed class GamepadButtonBinding : IButtonBinding
         m_Button = button;
     }
 
-    public void Bind(IInput input)
+    public void Bind(IInputSystem input)
     {
-        input.GamepadConnected += OnGamepadConnected;
-        if (input.TryGetGamepadInSlot(m_Slot, out var gamepad))
+        input.GamepadManager.GamepadConnected += OnGamepadConnected;
+        if (input.GamepadManager.TryGetGamepadInSlot(m_Slot, out var gamepad))
             gamepad!.ButtonPressed += OnButtonPressed;
     }
 
@@ -41,8 +41,8 @@ public sealed class GamepadButtonBinding : IButtonBinding
         Pressed?.Invoke();
     }
 
-    public void Unbind(IInput input)
+    public void Unbind(IInputSystem input)
     {
-        input.GamepadConnected -= OnGamepadConnected;
+        input.GamepadManager.GamepadConnected -= OnGamepadConnected;
     }
 }

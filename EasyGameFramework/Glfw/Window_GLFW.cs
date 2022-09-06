@@ -41,13 +41,13 @@ public class Window_GLFW : IWindow
     private int m_Height = 480;
     
     private ILogger Logger { get; }
-    private IInput Input { get; }
+    private IInputSystem Input { get; }
     private IMouse Mouse { get; }
     private IKeyboard Keyboard { get; }
 
     private readonly Dictionary<IGamepad, int> m_GamepadToSlotMap = new();
 
-    public Window_GLFW(ILogger logger, IDisplays displays, IInput input, IMouse mouse, IKeyboard keyboard)
+    public Window_GLFW(ILogger logger, IDisplays displays, IInputSystem input, IMouse mouse, IKeyboard keyboard)
     {
         Init();
         WindowHint(Hint.ClientApi, ClientApi.OpenGL);
@@ -439,13 +439,14 @@ public class Window_GLFW : IWindow
     private void Glfw_JoystickCallback(Joystick joystick, ConnectionStatus status)
     {
         var slot = (int)joystick;
+        var gamepadManager = Input.GamepadManager;
         
         if (status != ConnectionStatus.Connected)
         {
-            if (Input.TryGetGamepadInSlot(slot, out var connectedGamepad))
+            if (gamepadManager.TryGetGamepadInSlot(slot, out var connectedGamepad))
             {
                 m_GamepadToSlotMap.Remove(connectedGamepad!);
-                Input.DisconnectGamepad(slot);
+                gamepadManager.DisconnectGamepad(slot);
             }
             return;
         }
@@ -464,7 +465,7 @@ public class Window_GLFW : IWindow
         var guid = GetJoystickGuid(joystick);
         var gamepad = new Gamepad_SDL(guid, joystickName);
         m_GamepadToSlotMap[gamepad] = slot;
-        Input.ConnectGamepad(slot, gamepad);
+        Input.GamepadManager.ConnectGamepad(slot, gamepad);
     }
     
     public override string ToString()

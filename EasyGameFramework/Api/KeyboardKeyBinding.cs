@@ -15,12 +15,12 @@ public sealed class KeyboardKeyBinding : IButtonBinding
     public event Action? Pressed;
     public event Action? Released;
 
-    public void Bind(IInput input)
+    public void Bind(IInputSystem input)
     {
         input.Keyboard.KeyPressed += OnKeyPressed;
     }
 
-    public void Unbind(IInput input)
+    public void Unbind(IInputSystem input)
     {
         
     }

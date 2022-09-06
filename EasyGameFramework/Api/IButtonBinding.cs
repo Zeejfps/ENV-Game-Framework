@@ -5,6 +5,6 @@ public interface IButtonBinding
     event Action Pressed;
     event Action Released;
     
-    void Bind(IInput input);
-    void Unbind(IInput input);
+    void Bind(IInputSystem input);
+    void Unbind(IInputSystem input);
 }

@@ -14,10 +14,10 @@ public abstract class Game : IApp
     private readonly GameClock m_Clock;
 
     protected IWindow Window { get; }
-    protected IInput Input { get; }
+    protected IInputSystem Input { get; }
     protected IGameClock Clock => m_Clock;
     
-    protected Game(IWindow window, IInput input)
+    protected Game(IWindow window, IInputSystem input)
     {
         Window = window;
         Input = input;

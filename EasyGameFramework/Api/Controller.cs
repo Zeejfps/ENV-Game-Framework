@@ -10,7 +10,7 @@ public abstract class Controller
             binding.Pressed += handler;
     }
 
-    public void Bind(IInput input)
+    public void Bind(IInputSystem input)
     {
         foreach (var inputAction in Bindings.InputActions)
         {

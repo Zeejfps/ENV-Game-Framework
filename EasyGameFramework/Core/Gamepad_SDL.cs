@@ -1,4 +1,5 @@
-﻿using EasyGameFramework.Api.InputDevices;
+﻿using EasyGameFramework.Api.Events;
+using EasyGameFramework.Api.InputDevices;
 
 namespace EasyGameFramework.Core;
 
