@@ -24,17 +24,15 @@ public class CameraRig
         LookAtTarget();
     }
     
-    public void Orbit(float deltaX, float deltaY)
+    public void Orbit(float deltaYaw, float deltaPitch)
     {
-        var window = Window;
-        deltaX /= window.Width;
-        deltaY /= window.Width;
-        
         var camera = Camera;
         var cameraTarget = CameraTarget;
 
-        camera.Transform.RotateAround(cameraTarget.WorldPosition, Vector3.UnitY, -deltaX);
-        camera.Transform.RotateAround(cameraTarget.WorldPosition, camera.Transform.Right, -deltaY);
+        var deg2Rad = MathF.PI / 180f;
+
+        camera.Transform.RotateAround(cameraTarget.WorldPosition, Vector3.UnitY, deltaYaw * deg2Rad);
+        camera.Transform.RotateAround(cameraTarget.WorldPosition, camera.Transform.Right, deltaPitch * deg2Rad);
         
         LookAtTarget();
     }
