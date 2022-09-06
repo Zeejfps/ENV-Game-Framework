@@ -1,8 +1,7 @@
-﻿using EasyGameFramework.Api;
-using EasyGameFramework.Api.Events;
+﻿using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 
-namespace SampleGames;
+namespace EasyGameFramework.Api;
 
 public sealed class KeyboardKeyBinding : IButtonBinding
 {

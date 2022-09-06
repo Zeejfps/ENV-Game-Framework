@@ -17,7 +17,7 @@ public static class GamepadButtonMapper_GLFW
             GamePadButton.RightBumper => GamepadButton.RightBumper,
             GamePadButton.Back => GamepadButton.Back,
             GamePadButton.Start => GamepadButton.Start,
-            GamePadButton.Guide => GamepadButton.Guid,
+            GamePadButton.Guide => GamepadButton.Guide,
             GamePadButton.LeftThumb => GamepadButton.LeftThumb,
             GamePadButton.RightThumb => GamepadButton.RightThumb,
             GamePadButton.DpadUp => GamepadButton.DPadUp,

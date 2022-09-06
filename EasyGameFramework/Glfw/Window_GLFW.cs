@@ -287,6 +287,9 @@ public class Window_GLFW : IWindow
             
             UpdateButtonState(gamepad, state, GamePadButton.LeftBumper);
             UpdateButtonState(gamepad, state, GamePadButton.RightBumper);
+            
+            UpdateButtonState(gamepad, state, GamePadButton.Back);
+            UpdateButtonState(gamepad, state, GamePadButton.Start);
         }
     }
 

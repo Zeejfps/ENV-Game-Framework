@@ -10,7 +10,6 @@ public class GameInputBindings : InputBindings
         ButtonBindings = new IButtonBinding[]
         {
             new KeyboardKeyBinding(KeyboardKey.Escape),
-            new GamepadButtonBinding(0, GamepadButton.Back)
         }
     };
     
@@ -19,6 +18,7 @@ public class GameInputBindings : InputBindings
         ButtonBindings = new IButtonBinding[]
         {
             new KeyboardKeyBinding(KeyboardKey.R),
+            new GamepadButtonBinding(0, GamepadButton.Back)
         }
     };
     
@@ -45,6 +45,7 @@ public class GameInputBindings : InputBindings
         ButtonBindings = new IButtonBinding[]
         {
             new KeyboardKeyBinding(KeyboardKey.P),
+            new GamepadButtonBinding(0, GamepadButton.Start),
         }
     };
     

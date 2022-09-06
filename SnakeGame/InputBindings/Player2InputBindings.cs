@@ -27,7 +27,7 @@ public sealed class Player2InputBindings : PlayerInputBindings
     {
         ButtonBindings = new IButtonBinding[]
         {
-            new KeyboardKeyBinding(KeyboardKey.W),
+            new KeyboardKeyBinding(KeyboardKey.UpArrow),
             new GamepadButtonBinding(1, GamepadButton.DPadUp)        
         }
     };
@@ -36,7 +36,7 @@ public sealed class Player2InputBindings : PlayerInputBindings
     {
         ButtonBindings = new IButtonBinding[]
         {
-            new KeyboardKeyBinding(KeyboardKey.A),
+            new KeyboardKeyBinding(KeyboardKey.LeftArrow),
             new GamepadButtonBinding(1, GamepadButton.DPadLeft)
         }
     };
@@ -45,7 +45,7 @@ public sealed class Player2InputBindings : PlayerInputBindings
     {
         ButtonBindings = new IButtonBinding[]
         {
-            new KeyboardKeyBinding(KeyboardKey.D),
+            new KeyboardKeyBinding(KeyboardKey.RightArrow),
             new GamepadButtonBinding(1, GamepadButton.DPadRight)
         }
     };
@@ -54,7 +54,7 @@ public sealed class Player2InputBindings : PlayerInputBindings
     {
         ButtonBindings = new IButtonBinding[]
         {
-            new KeyboardKeyBinding(KeyboardKey.S),
+            new KeyboardKeyBinding(KeyboardKey.DownArrow),
             new GamepadButtonBinding(1, GamepadButton.DPadDown)
         }
     };

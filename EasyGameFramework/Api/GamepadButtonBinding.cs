@@ -1,10 +1,9 @@
-﻿using EasyGameFramework.Api;
-using EasyGameFramework.Api.Events;
+﻿using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 
-namespace SampleGames;
+namespace EasyGameFramework.Api;
 
-public class GamepadButtonBinding : IButtonBinding
+public sealed class GamepadButtonBinding : IButtonBinding
 {
     public event Action? Pressed;
 

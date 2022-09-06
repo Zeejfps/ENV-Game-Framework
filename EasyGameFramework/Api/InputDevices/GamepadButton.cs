@@ -12,7 +12,7 @@ public readonly struct GamepadButton : IEquatable<GamepadButton>
 
     public static readonly GamepadButton Back = new(6);
     public static readonly GamepadButton Start = new(7);
-    public static readonly GamepadButton Guid = new(8);
+    public static readonly GamepadButton Guide = new(8);
     
     public static readonly GamepadButton LeftThumb = new(9);
     public static readonly GamepadButton RightThumb = new(10);
