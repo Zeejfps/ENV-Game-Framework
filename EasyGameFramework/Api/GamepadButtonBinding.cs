@@ -6,7 +6,6 @@ namespace EasyGameFramework.Api;
 public sealed class GamepadButtonBinding : IButtonBinding
 {
     public event Action? Pressed;
-
     public event Action? Released;
 
     private readonly int m_Slot;
