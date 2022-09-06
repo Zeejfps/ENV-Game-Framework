@@ -121,10 +121,18 @@ public class CameraRigController
     {
         var mouse = evt.Mouse;
         if (mouse.IsButtonPressed(MouseButton.Left) && !IsFpsControlsEnabled)
+        {
             CameraRig.Orbit(evt.DeltaX, evt.DeltaY);
+        }
         else if (mouse.IsButtonPressed(MouseButton.Middle) && !IsFpsControlsEnabled)
+        {
             CameraRig.Pan(evt.DeltaX, evt.DeltaY);
+        }
         else if (mouse.IsButtonPressed(MouseButton.Right))
-            CameraRig.Rotate(evt.DeltaX, evt.DeltaY);
+        {
+            var deltaYaw = evt.DeltaX / (float)Window.Width * -180f;
+            var deltaPitch = evt.DeltaY / (float)Window.Width * -180f;
+            CameraRig.Rotate(deltaYaw, deltaPitch);
+        }
     }
 }

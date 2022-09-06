@@ -54,15 +54,15 @@ public class CameraRig
         cameraTransform.WorldPosition += movement;
     }
 
-    public void Rotate(float dx, float dy)
+    public void Rotate(float deltaYaw, float deltaPitch)
     {
         var cameraTarget = CameraTarget;
         var cameraTransform = Camera.Transform;
 
         var distanceToTarget = (cameraTransform.WorldPosition - cameraTarget.WorldPosition).Length();
         
-        CameraYawAngle += dx * -0.1f;
-        CameraPitchAngle += dy * -0.1f;
+        CameraYawAngle += deltaYaw;
+        CameraPitchAngle += deltaPitch;
         
         if (CameraPitchAngle < -89f)
             CameraPitchAngle = -89f;
