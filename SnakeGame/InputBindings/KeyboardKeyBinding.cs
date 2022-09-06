@@ -21,9 +21,9 @@ public sealed class KeyboardKeyBinding : IButtonBinding
         input.Keyboard.KeyPressed += OnKeyPressed;
     }
 
-    public void Unbind()
+    public void Unbind(IInput input)
     {
-        throw new NotImplementedException();
+        
     }
 
     private void OnKeyPressed(in KeyboardKeyPressedEvent evt)

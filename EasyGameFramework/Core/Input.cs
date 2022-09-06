@@ -63,6 +63,7 @@ internal class Input : IInput
         m_Gamepads.Add(slot, gamepad);
         GamepadConnected?.Invoke(new GamepadConnectedEvent
         {
+            Slot = slot,
             Gamepad = gamepad
         });
 

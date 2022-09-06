@@ -32,32 +32,32 @@ public class IniPlayerPrefs : IPlayerPrefs
         var parser = new IniDataParser();
         var data = parser.Parse(text);
         
-        var keyboardKeyMappings = data[keyBindingsIniGroupName];
-        foreach (var mapping in keyboardKeyMappings)
-        {
-            if (!int.TryParse(mapping.Value, out var value))
-            {
-                Logger.Warn($"Could not parse key value: {mapping.Value}");
-                continue;
-            }
-            var key = (KeyboardKey)value;
-            var action = mapping.KeyName;
-            bindings.OverrideKeyboardKeyBindings[key] = action;
-        }
-
-        var mouseButtonMappings = data[mouseBindingInitGroupName];
-        foreach (var mapping in mouseButtonMappings)
-        {
-            if (!int.TryParse(mapping.Value, out var value))
-            {
-                Logger.Warn($"Could not parse key value: {mapping.Value}");
-                continue;
-            }
-
-            var button = new MouseButton(value);
-            var action = mapping.KeyName;
-            bindings.OverrideMouseButtonBindings[button] = action;
-        }
+        // var keyboardKeyMappings = data[keyBindingsIniGroupName];
+        // foreach (var mapping in keyboardKeyMappings)
+        // {
+        //     if (!int.TryParse(mapping.Value, out var value))
+        //     {
+        //         Logger.Warn($"Could not parse key value: {mapping.Value}");
+        //         continue;
+        //     }
+        //     var key = (KeyboardKey)value;
+        //     var action = mapping.KeyName;
+        //     bindings.OverrideKeyboardKeyBindings[key] = action;
+        // }
+        //
+        // var mouseButtonMappings = data[mouseBindingInitGroupName];
+        // foreach (var mapping in mouseButtonMappings)
+        // {
+        //     if (!int.TryParse(mapping.Value, out var value))
+        //     {
+        //         Logger.Warn($"Could not parse key value: {mapping.Value}");
+        //         continue;
+        //     }
+        //
+        //     var button = new MouseButton(value);
+        //     var action = mapping.KeyName;
+        //     bindings.OverrideMouseButtonBindings[button] = action;
+        // }
 
         return bindings;
     }
@@ -79,11 +79,11 @@ public class IniPlayerPrefs : IPlayerPrefs
         var keyBindingsIniGroupName = inputBindings.GetType().Name + ".Keyboard";
         var mouseBindingsIniGroupName = inputBindings.GetType().Name + ".Mouse";
         
-        foreach (var (key, action) in inputBindings.OverrideKeyboardKeyBindings)
-            data[keyBindingsIniGroupName][action] = ((int)key).ToString();
-        
-        foreach (var (button, action) in inputBindings.OverrideMouseButtonBindings)
-            data[mouseBindingsIniGroupName][action] = button.ToString();
+        // foreach (var (key, action) in inputBindings.OverrideKeyboardKeyBindings)
+        //     data[keyBindingsIniGroupName][action] = ((int)key).ToString();
+        //
+        // foreach (var (button, action) in inputBindings.OverrideMouseButtonBindings)
+        //     data[mouseBindingsIniGroupName][action] = button.ToString();
 
         await File.WriteAllTextAsync(pathToFile, data.ToString(), cancellationToke);
     }

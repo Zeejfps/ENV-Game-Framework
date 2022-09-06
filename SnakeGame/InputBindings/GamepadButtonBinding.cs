@@ -1,4 +1,5 @@
 ﻿using EasyGameFramework.Api;
+using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 
 namespace SampleGames;
@@ -20,17 +21,30 @@ public class GamepadButtonBinding : IButtonBinding
 
     public void Bind(IInput input)
     {
-        input.TryGetGamepadInSlot(m_Slot, out var gamepad);
-        gamepad.ButtonPressed += OnButtonPressed;
+        input.GamepadConnected += OnGamepadConnected;
+        if (input.TryGetGamepadInSlot(m_Slot, out var gamepad))
+            gamepad!.ButtonPressed += OnButtonPressed;
     }
 
-    public void Unbind()
+    private void OnGamepadConnected(GamepadConnectedEvent evt)
     {
-        throw new NotImplementedException();
+        if (evt.Slot != m_Slot)
+            return;
+
+        var gamepad = evt.Gamepad;
+        gamepad.ButtonPressed += OnButtonPressed;
     }
 
     private void OnButtonPressed(GamepadButtonStateChangedEvent evt)
     {
+        if (evt.Button != m_Button)
+            return;
         
+        Pressed?.Invoke();
+    }
+
+    public void Unbind(IInput input)
+    {
+        input.GamepadConnected -= OnGamepadConnected;
     }
 }

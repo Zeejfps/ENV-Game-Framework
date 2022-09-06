@@ -1,6 +1,4 @@
-﻿using EasyGameFramework.Api;
-
-namespace SampleGames;
+﻿namespace EasyGameFramework.Api;
 
 public interface IButtonBinding
 {
@@ -8,5 +6,5 @@ public interface IButtonBinding
     event Action Released;
     
     void Bind(IInput input);
-    void Unbind();
+    void Unbind(IInput input);
 }

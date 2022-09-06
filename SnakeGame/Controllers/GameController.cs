@@ -8,18 +8,24 @@ public class GameController : Controller
 
     private IInputBindings m_Bindings;
     
+    private GameInputBindings GameInputBindings { get; }
+    private UIInputBindings UIInputBindings { get; }
+    
     private SnakeGame Game { get; }
     public GameController(SnakeGame game)
     {
         Game = game;
+
+        GameInputBindings = new GameInputBindings();
+        UIInputBindings = new UIInputBindings();
         
-        BindAction(InputActions.QuitAction, Game.Stop);
-        BindAction(InputActions.ResetAction, Game.ResetLevel);
-        BindAction(InputActions.IncreaseSpeedAction, Game.IncreaseSpeed);
-        BindAction(InputActions.DecreaseSpeedAction, Game.DecreaseSpeed);
-        BindAction(InputActions.PauseResumeAction, TogglePause);
-        
-        m_Bindings = new GameInputBindings();
+        m_Bindings = GameInputBindings;
+
+        BindOnPressed(GameInputBindings.QuitAction, Game.Stop);
+        BindOnPressed(GameInputBindings.ResetAction, Game.ResetLevel);
+        BindOnPressed(GameInputBindings.IncreaseSpeedAction, Game.IncreaseSpeed);
+        BindOnPressed(GameInputBindings.DecreaseSpeedAction, Game.DecreaseSpeed);
+        BindOnPressed(GameInputBindings.PauseResumeAction, TogglePause);
     }
     
     private void TogglePause()
@@ -27,11 +33,11 @@ public class GameController : Controller
         if (Game.IsPaused)
         {
             Game.IsPaused = false;
-            m_Bindings = new GameInputBindings();
+            m_Bindings = GameInputBindings;
             return;
         }
         
         Game.IsPaused = true;
-        m_Bindings = new UIInputBindings();
+        m_Bindings = UIInputBindings;
     }
 }
