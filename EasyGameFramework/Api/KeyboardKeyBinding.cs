@@ -25,7 +25,7 @@ public sealed class KeyboardKeyBinding : IButtonBinding
         
     }
 
-    private void OnKeyPressed(in KeyboardKeyPressedEvent evt)
+    private void OnKeyPressed(in KeyboardKeyStateChangedEvent evt)
     {
         if (evt.Key == Key)
         {

@@ -3,6 +3,7 @@ using EasyGameFramework;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Cameras;
+using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
 using Framework.Materials;
@@ -101,6 +102,22 @@ public class TestScene : IScene
         
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Load(this);
+
+        var input = m_App.Input;
+        input.Keyboard.KeyPressed += OnKeyPressed;
+    }
+
+    private void OnKeyPressed(in KeyboardKeyStateChangedEvent evt)
+    {
+        switch (evt.Key)
+        {
+            case KeyboardKey.Escape when m_App.Window.IsFullscreen:
+                m_App.Window.IsFullscreen = false;
+                break;
+            case KeyboardKey.Space:
+                m_IsRotating = !m_IsRotating;
+                break;
+        }
     }
 
     public void Update(float dt)
@@ -159,13 +176,7 @@ public class TestScene : IScene
         
         if (mouse.ScrollDeltaY != 0)
             m_Camera.Transform.WorldPosition += m_Camera.Transform.Forward * mouse.ScrollDeltaY * m_Clock.DeltaTime * 100f;
-        
-        if (m_App.Window.IsFullscreen && keyboard.WasKeyPressedThisFrame(KeyboardKey.Escape))
-            m_App.Window.IsFullscreen = false;
 
-        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.Space))
-            m_IsRotating = !m_IsRotating;
-        
         if (mouse.WasButtonPressedThisFrame(MouseButton.Left) 
             || mouse.WasButtonPressedThisFrame(MouseButton.Middle))
         {

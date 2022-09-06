@@ -36,9 +36,6 @@ public class TestTriangle : ISceneObject
 
         var shaderManager = gpu.Shader;
         shaderManager.Bind(m_Shader);
-
-        if (keyboard.WasKeyPressedThisFrame(KeyboardKey.R))
-            SetRandomColor(shaderManager);
         
         shaderManager.SetMatrix4x4("matrix_projection", m_Camera.ProjectionMatrix);
         shaderManager.SetMatrix4x4("matrix_view", m_Camera.Transform.WorldMatrix);

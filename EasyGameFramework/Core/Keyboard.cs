@@ -5,10 +5,10 @@ namespace EasyGameFramework.Core;
 
 internal class Keyboard : IKeyboard
 {
-    public event KeyboardKeyPressedDelegate? KeyPressed;
-    
-    private readonly HashSet<KeyboardKey> m_KeysPressedThisFrame = new();
-    private readonly HashSet<KeyboardKey> m_KeysReleasedThisFrame = new();
+    public event KeyboardKeyStateChangedDelegate? KeyPressed;
+    public event KeyboardKeyStateChangedDelegate? KeyReleased;
+    public event KeyboardKeyStateChangedDelegate? KeyStateChanged;
+
     private readonly HashSet<KeyboardKey> m_PressedKeys = new();
 
     public void PressKey(KeyboardKey key)
@@ -16,41 +16,14 @@ internal class Keyboard : IKeyboard
         // If we fail to add the key to the collection then it is already pressed
         if (!m_PressedKeys.Add(key)) 
             return;
-        
-        m_KeysPressedThisFrame.Add(key);
-        KeyPressed?.Invoke(new KeyboardKeyPressedEvent
-        {
-            Keyboard = this,
-            Key = key
-        });
+        OnKeyPressed(key);
     }
 
     public void ReleaseKey(KeyboardKey key)
     {
-        if (m_PressedKeys.Remove(key))
-            m_KeysReleasedThisFrame.Add(key);
-    }
-
-    public bool WasAnyKeyPressedThisFrame(out KeyboardKey key)
-    {
-        if (m_KeysPressedThisFrame.Count == 0)
-        {
-            key = KeyboardKey.Unknown;
-            return false;
-        }
-
-        key = m_KeysPressedThisFrame.First();
-        return true;
-    }
-
-    public bool WasKeyPressedThisFrame(KeyboardKey key)
-    {
-        return m_KeysPressedThisFrame.Contains(key);
-    }
-
-    public bool WasKeyReleasedThisFrame(KeyboardKey key)
-    {
-        return m_KeysReleasedThisFrame.Contains(key);
+        if (!m_PressedKeys.Remove(key))
+            return;
+        OnKeyReleased(key);
     }
 
     public bool IsKeyPressed(KeyboardKey key)
@@ -63,9 +36,27 @@ internal class Keyboard : IKeyboard
         return !m_PressedKeys.Contains(key);
     }
 
-    public void Reset()
+    private void OnKeyPressed(KeyboardKey key)
     {
-        m_KeysPressedThisFrame.Clear();
-        m_KeysReleasedThisFrame.Clear();
+        var evt = new KeyboardKeyStateChangedEvent
+        {
+            Key = key,
+            Keyboard = this,
+        };
+        
+        KeyStateChanged?.Invoke(evt);
+        KeyPressed?.Invoke(evt);
+    }
+
+    private void OnKeyReleased(KeyboardKey key)
+    {
+        var evt = new KeyboardKeyStateChangedEvent
+        {
+            Key = key,
+            Keyboard = this,
+        };
+        
+        KeyStateChanged?.Invoke(evt);
+        KeyReleased?.Invoke(evt);
     }
 }

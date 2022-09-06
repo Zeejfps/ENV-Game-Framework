@@ -36,14 +36,13 @@ internal class Input : IInput
         EventBus.Publish(evt);
     }
 
-    private void OnKeyboardKeyPressed(in KeyboardKeyPressedEvent evt)
+    private void OnKeyboardKeyPressed(in KeyboardKeyStateChangedEvent evt)
     {
         EventBus.Publish(evt);
     }
 
     public void Update()
     {
-        Keyboard.Reset();
         Mouse.Reset();
     }
 
