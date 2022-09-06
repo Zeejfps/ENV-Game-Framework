@@ -4,7 +4,7 @@ using EasyGameFramework.Api.Rendering;
 
 namespace EasyGameFramework.OpenGL;
 
-public class GpuRenderbufferHandle : IGpuRenderbufferHandle
+internal class GpuRenderbufferHandle : IGpuRenderbufferHandle
 {
     private readonly GpuRenderbuffer_GL m_Renderbuffer;
 

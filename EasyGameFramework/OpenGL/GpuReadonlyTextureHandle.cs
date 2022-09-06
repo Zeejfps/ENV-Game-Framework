@@ -4,7 +4,7 @@ using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-public class GpuReadonlyTextureHandle : IHandle<IGpuTexture>
+internal class GpuReadonlyTextureHandle : IHandle<IGpuTexture>
 {
     private readonly Texture2D_GL m_Texture;
 

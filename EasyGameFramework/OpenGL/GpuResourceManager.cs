@@ -1,6 +1,6 @@
 ﻿namespace EasyGameFramework.OpenGL;
 
-public abstract class GpuResourceManager<THandle, TResource>
+internal abstract class GpuResourceManager<THandle, TResource>
 {
     private readonly Dictionary<THandle, TResource> m_HandleToResourceMap = new();
     private readonly Dictionary<string, THandle> m_LoadedHandles = new();

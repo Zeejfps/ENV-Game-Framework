@@ -5,7 +5,7 @@ using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-public class TextureManager_GL : GpuResourceManager<IHandle<IGpuTexture>, Texture2D_GL>, ITextureManager
+internal class TextureManager_GL : GpuResourceManager<IHandle<IGpuTexture>, Texture2D_GL>, ITextureManager
 {
     private readonly CpuTextureAssetLoader m_CpuTextureAssetLoader = new();
 

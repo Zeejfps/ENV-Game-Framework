@@ -5,7 +5,7 @@ using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-public class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffer>, GpuRenderbuffer_GL>,
+internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffer>, GpuRenderbuffer_GL>,
     IRenderbufferManager
 {
     private readonly Dictionary<(int, bool), Stack<IGpuRenderbufferHandle>> m_RenderBufferPool = new();

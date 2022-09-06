@@ -6,7 +6,7 @@ using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-public class MeshManager_GL : GpuResourceManager<IHandle<IGpuMesh>, Mesh_GL>, IMeshManager
+internal class MeshManager_GL : GpuResourceManager<IHandle<IGpuMesh>, Mesh_GL>, IMeshManager
 {
     private readonly CpuMeshAssetLoader m_CpuMeshLoader = new();
 

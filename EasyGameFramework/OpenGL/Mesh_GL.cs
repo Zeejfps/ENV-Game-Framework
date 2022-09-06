@@ -3,7 +3,7 @@ using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-public class Mesh_GL : IGpuMesh
+internal class Mesh_GL : IGpuMesh
 {
     private readonly uint m_NormalsBuffer;
     private readonly uint m_TangetBuffer;

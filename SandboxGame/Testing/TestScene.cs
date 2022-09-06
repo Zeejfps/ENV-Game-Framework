@@ -23,7 +23,6 @@ public class TestScene : IScene
     private readonly ICamera m_Camera;
     private readonly Clock m_Clock;
 
-    private ITransform3D m_CameraTarget;
     private ITransform3D m_LightPosition;
     
     private Ship m_Ship1;
@@ -32,7 +31,7 @@ public class TestScene : IScene
     private readonly TestLight m_Light;
     private readonly List<ISceneObject> m_SceneObjects = new();
 
-    private IGpu m_Gpu;
+    private readonly IGpu m_Gpu;
     private IHandle<IGpuShader> m_UnlitShaderHandle;
     private IHandle<IGpuShader> m_FullScreenBlitShaderHandle;
     private IHandle<IGpuMesh> m_QuadMeshHandle;
@@ -52,9 +51,6 @@ public class TestScene : IScene
         m_Camera = new PerspectiveCamera(75f, aspect);
         m_Clock = new Clock();
         m_Camera.Transform.WorldPosition = new Vector3(0, 5f, -25f);
-        
-        m_CameraTarget = new Transform3D();
-        m_Camera.Transform.LookAt(m_CameraTarget.WorldPosition, Vector3.UnitY);
         
         m_LightPosition = new Transform3D
         {
@@ -85,7 +81,7 @@ public class TestScene : IScene
         //m_SceneObjects.Add(m_Ship1);
         m_SceneObjects.Add(m_Toad);
 
-        CameraController = new CameraController(m_Camera, m_CameraTarget, m_App.Window, m_App.Input);
+        CameraController = new CameraController(m_Camera, m_App.Window, m_App.Input);
     }
 
     public void Load()

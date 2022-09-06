@@ -4,7 +4,7 @@ using OpenGL;
 
 namespace EasyGameFramework.OpenGL;
 
-public class GpuMeshHandle : IHandle<IGpuMesh>
+internal class GpuMeshHandle : IHandle<IGpuMesh>
 {
     private readonly Mesh_GL m_MeshGl;
 

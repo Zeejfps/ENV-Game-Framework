@@ -4,7 +4,7 @@ using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-public class GpuRenderbuffer_GL : IGpuRenderbuffer
+internal class GpuRenderbuffer_GL : IGpuRenderbuffer
 {
     private readonly TextureManager_GL m_TextureManager;
     private readonly int[] m_drawBufferIds;

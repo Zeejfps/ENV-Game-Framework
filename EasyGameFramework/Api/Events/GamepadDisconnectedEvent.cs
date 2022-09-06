@@ -2,7 +2,7 @@
 
 namespace EasyGameFramework.Api.Events;
 
-public readonly struct GamePadDisconnectedEvent
+public readonly struct GamepadDisconnectedEvent
 {
     public IGamepad Gamepad { get; init; }
 }

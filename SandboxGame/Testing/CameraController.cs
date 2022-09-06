@@ -14,10 +14,10 @@ public class CameraController
     private IInputSystem InputSystem { get; }
     private IWindow Window { get; }
     
-    public CameraController(ICamera camera, ITransform3D cameraTarget, IWindow window, IInputSystem inputSystem)
+    public CameraController(ICamera camera, IWindow window, IInputSystem inputSystem)
     {
         Camera = camera;
-        CameraTarget = cameraTarget;
+        CameraTarget = new Transform3D();
         InputSystem = inputSystem;
         Window = window;
     }
@@ -28,6 +28,11 @@ public class CameraController
             return;
         
         var mouse = InputSystem.Mouse;
+        var camera = Camera;
+        var cameraTarget = CameraTarget;
+
+        camera.Transform.LookAt(cameraTarget.WorldPosition, Vector3.UnitY);
+
         mouse.Moved += OnMouseMoved;
         mouse.Scrolled += OnMouseWheelScrolled;
         IsEnabled = true;

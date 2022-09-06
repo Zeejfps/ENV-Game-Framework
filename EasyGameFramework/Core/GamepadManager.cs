@@ -53,7 +53,7 @@ internal class GamepadManager : IGamepadManager
         }
         
         m_Gamepads.Remove(slot);
-        GamepadDisconnected?.Invoke(new GamePadDisconnectedEvent
+        GamepadDisconnected?.Invoke(new GamepadDisconnectedEvent
         {
             Gamepad = gamepad
         });
