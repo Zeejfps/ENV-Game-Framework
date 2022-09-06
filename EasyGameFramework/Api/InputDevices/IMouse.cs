@@ -3,27 +3,26 @@
 namespace EasyGameFramework.Api.InputDevices;
 
 public delegate void MouseMovedDelegate(in MouseMovedEvent evt);
-public delegate void MouseButtonPressedDelegate(in MouseButtonPressedEvent evt);
+public delegate void MouseWheelScrolledDelegate(in MouseWheelScrolledEvent evt);
+public delegate void MouseButtonStateChangedDelegate(in MouseButtonStateChangedEvent evt);
 
 public interface IMouse
 {
     event MouseMovedDelegate Moved;
-    event MouseButtonPressedDelegate ButtonPressed;
+    event MouseWheelScrolledDelegate Scrolled;
+    event MouseButtonStateChangedDelegate ButtonPressed;
+    event MouseButtonStateChangedDelegate ButtonReleased;
+    event MouseButtonStateChangedDelegate ButtonStateChanged;
     
-    int ScreenX { get; set; }
-    int ScreenY { get; set; }
-
-    float ScrollDeltaX { get; set; }
-    float ScrollDeltaY { get; set; }
+    int ScreenX { get; }
+    int ScreenY { get; }
 
     void PressButton(MouseButton button);
     void ReleaseButton(MouseButton button);
-    bool WasButtonPressedThisFrame(MouseButton button);
-    bool WasButtonReleasedThisFrame(MouseButton button);
-    bool IsButtonPressed(MouseButton button);
-    bool IsButtonReleased(MouseButton button);
 
-    void SetPosition(int screenX, int screenY);
+    void MoveTo(int screenX, int screenY);
+    void MoveBy(int dx, int dy);
+    void Scroll(float dx, float dy);
     
-    void Reset();
+    bool IsButtonPressed(MouseButton button);
 }

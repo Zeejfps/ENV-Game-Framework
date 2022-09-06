@@ -31,7 +31,7 @@ internal class Input : IInput
         Keyboard.KeyPressed += OnKeyboardKeyPressed;
     }
 
-    private void OnMouseButtonPressed(in MouseButtonPressedEvent evt)
+    private void OnMouseButtonPressed(in MouseButtonStateChangedEvent evt)
     {
         EventBus.Publish(evt);
     }
@@ -39,11 +39,6 @@ internal class Input : IInput
     private void OnKeyboardKeyPressed(in KeyboardKeyStateChangedEvent evt)
     {
         EventBus.Publish(evt);
-    }
-
-    public void Update()
-    {
-        Mouse.Reset();
     }
 
     public bool TryGetGamepadInSlot(int slot, out IGamepad? gamepad)

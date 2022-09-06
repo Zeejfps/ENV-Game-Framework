@@ -105,6 +105,23 @@ public class TestScene : IScene
 
         var input = m_App.Input;
         input.Keyboard.KeyPressed += OnKeyPressed;
+        input.Mouse.Scrolled += OnMouseWheelScrolled;
+        input.Mouse.ButtonPressed += OnMouseButtonPressed;
+    }
+
+    private void OnMouseButtonPressed(in MouseButtonStateChangedEvent evt)
+    {
+        var mouse = evt.Mouse;
+        if (evt.Button == MouseButton.Left || evt.Button == MouseButton.Middle)
+        {
+            m_PrevMouseX = mouse.ScreenX;
+            m_PrevMouseY = mouse.ScreenY;
+        }
+    }
+
+    private void OnMouseWheelScrolled(in MouseWheelScrolledEvent evt)
+    {
+        m_Camera.Transform.WorldPosition += m_Camera.Transform.Forward * evt.DeltaY * m_Clock.DeltaTime * 100f;
     }
 
     private void OnKeyPressed(in KeyboardKeyStateChangedEvent evt)
@@ -173,17 +190,7 @@ public class TestScene : IScene
             m_Camera.Transform.WorldPosition -= m_Camera.Transform.Right * speed;
         else if (keyboard.IsKeyPressed(KeyboardKey.D))
             m_Camera.Transform.WorldPosition += m_Camera.Transform.Right * speed;
-        
-        if (mouse.ScrollDeltaY != 0)
-            m_Camera.Transform.WorldPosition += m_Camera.Transform.Forward * mouse.ScrollDeltaY * m_Clock.DeltaTime * 100f;
 
-        if (mouse.WasButtonPressedThisFrame(MouseButton.Left) 
-            || mouse.WasButtonPressedThisFrame(MouseButton.Middle))
-        {
-            m_PrevMouseX = mouse.ScreenX;
-            m_PrevMouseY = mouse.ScreenY;
-        }
-        
         if (mouse.IsButtonPressed(MouseButton.Left))
             RotateCamera();
 

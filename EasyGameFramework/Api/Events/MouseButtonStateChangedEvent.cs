@@ -2,7 +2,7 @@
 
 namespace EasyGameFramework.Api.Events;
 
-public readonly struct MouseButtonPressedEvent
+public readonly struct MouseButtonStateChangedEvent
 {
     public IMouse Mouse { get; init; }
     public MouseButton Button { get; init; }

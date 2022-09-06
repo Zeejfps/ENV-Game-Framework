@@ -1,5 +1,4 @@
 using System.Numerics;
-using EasyGameFramework.Api;
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 
@@ -7,61 +6,40 @@ namespace EasyGameFramework.Core;
 
 internal class Mouse : IMouse
 {
-    private readonly HashSet<MouseButton> m_ButtonsPressedThisFrame = new();
-    private readonly HashSet<MouseButton> m_ButtonsReleasedThisFrame = new();
-    private readonly HashSet<MouseButton> m_PressedButtons = new();
-
     public event MouseMovedDelegate? Moved;
-    public event MouseButtonPressedDelegate? ButtonPressed;
-    
-    public int ScreenX { get; set; }
-    public int ScreenY { get; set; }
-    public float ScrollDeltaX { get; set; }
-    public float ScrollDeltaY { get; set; }
+    public event MouseWheelScrolledDelegate? Scrolled;
+    public event MouseButtonStateChangedDelegate? ButtonPressed;
+    public event MouseButtonStateChangedDelegate? ButtonReleased;
+    public event MouseButtonStateChangedDelegate? ButtonStateChanged;
+
+    public int ScreenX { get; private set; }
+    public int ScreenY { get; private set; }
+
+    private readonly HashSet<MouseButton> m_PressedButtons = new();
 
     public void PressButton(MouseButton button)
     {
         if (!m_PressedButtons.Add(button))
             return;
-        
-        m_ButtonsPressedThisFrame.Add(button);
-        ButtonPressed?.Invoke(new MouseButtonPressedEvent
-        {
-            Mouse = this,
-            Button = button
-        });
+        OnButtonPressed(button);
     }
 
     public void ReleaseButton(MouseButton button)
     {
-        if (m_PressedButtons.Remove(button))
-            m_ButtonsReleasedThisFrame.Add(button);
+        if (!m_PressedButtons.Remove(button))
+            return;
+        OnButtonReleased(button);
     }
-
-    public bool WasButtonPressedThisFrame(MouseButton button)
-    {
-        return m_ButtonsPressedThisFrame.Contains(button);
-    }
-
-    public bool WasButtonReleasedThisFrame(MouseButton button)
-    {
-        return m_ButtonsReleasedThisFrame.Contains(button);
-    }
-
+    
     public bool IsButtonPressed(MouseButton button)
     {
         return m_PressedButtons.Contains(button);
     }
 
-    public bool IsButtonReleased(MouseButton button)
+    public void MoveTo(int screenX, int screenY)
     {
-        return !m_PressedButtons.Contains(button);
-    }
-
-    public void SetPosition(int screenX, int screenY)
-    {
-        var deltaX = ScreenX - screenX;
-        var deltaY = ScreenY - screenY;
+        var deltaX = screenX - ScreenX;
+        var deltaY = screenY - ScreenY;
         
         if (deltaX == 0 && deltaY == 0)
             return;
@@ -71,20 +49,52 @@ internal class Mouse : IMouse
         Moved?.Invoke(new MouseMovedEvent
         {
             Mouse = this,
-            Delta = new Vector2(deltaX, deltaY)
+            DeltaX = deltaX,
+            DeltaY = deltaY,
         });
     }
 
-    public void Reset()
+    public void MoveBy(int dx, int dy)
     {
-        ScrollDeltaX = 0;
-        ScrollDeltaY = 0;
-        m_ButtonsPressedThisFrame.Clear();
-        m_ButtonsReleasedThisFrame.Clear();
+        MoveTo(ScreenX + dx, ScreenY + dy);
+    }
+
+    public void Scroll(float dx, float dy)
+    {
+        Scrolled?.Invoke(new MouseWheelScrolledEvent
+        {
+            Mouse = this,
+            DeltaX = dx,
+            DeltaY = dy,
+        });
     }
 
     public override string ToString()
     {
         return $"{ScreenX}, {ScreenY}";
+    }
+
+    private void OnButtonPressed(MouseButton button)
+    {
+        var evt = new MouseButtonStateChangedEvent
+        {
+            Button = button,
+            Mouse = this,
+        };
+        
+        ButtonStateChanged?.Invoke(evt);
+        ButtonPressed?.Invoke(evt);
+    }
+
+    private void OnButtonReleased(MouseButton button)
+    {
+        var evt = new MouseButtonStateChangedEvent
+        {
+            Button = button,
+            Mouse = this,
+        };
+        
+        ButtonStateChanged?.Invoke(evt);
+        ButtonReleased?.Invoke(evt);
     }
 }

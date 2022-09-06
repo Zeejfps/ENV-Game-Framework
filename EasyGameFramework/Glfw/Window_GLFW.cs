@@ -266,7 +266,7 @@ public class Window_GLFW : IWindow
         
         GetCursorPosition(m_Handle, out var x, out var y);
         var mouse = Mouse;
-        mouse.SetPosition((int)x, (int)y);
+        mouse.MoveTo((int)x, (int)y);
 
         foreach (var (gamepad, slot) in m_GamepadToSlotMap)
         {
@@ -388,7 +388,7 @@ public class Window_GLFW : IWindow
     private void Glfw_MousePosCallback(Window window, double x, double y)
     {
         var mouse = Mouse;
-        mouse.SetPosition((int)x, (int)y);
+        mouse.MoveTo((int)x, (int)y);
     }
 
     private void Glfw_MouseButtonCallback(Window window, MouseButton button, InputState state, ModifierKeys modifiers)
@@ -433,8 +433,7 @@ public class Window_GLFW : IWindow
     private void Glfw_MouseScrollCallback(Window window, double x, double y)
     {
         var mouse = Mouse;
-        mouse.ScrollDeltaX = (float)x;
-        mouse.ScrollDeltaY = (float)y;
+        mouse.Scroll((float)x, (float)y);
     }
 
     private void Glfw_JoystickCallback(Joystick joystick, ConnectionStatus status)

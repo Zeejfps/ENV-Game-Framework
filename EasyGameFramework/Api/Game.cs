@@ -67,7 +67,6 @@ public abstract class Game : IApp
         while (m_Accumulator >= m_DeltaTime)
         {
             OnUpdate();
-            Input.Update();
             m_Clock.Time += Clock.UpdateDeltaTime;
             m_Accumulator -= m_DeltaTime;
         }
