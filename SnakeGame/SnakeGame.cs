@@ -99,6 +99,7 @@ public class SnakeGame : Game
                 if (snake.IsSelfIntersecting)
                 {
                     ResetLevel();
+                    return;
                 }
 
                 foreach (var otherSnake in Snakes)
@@ -108,7 +109,8 @@ public class SnakeGame : Game
                     
                     if (snake.IsCollidingWith(otherSnake.Segments))
                     {
-                        ResetLevel();   
+                        ResetLevel();  
+                        return;
                     }
                 }
             }
@@ -118,7 +120,6 @@ public class SnakeGame : Game
     protected override void OnRender()
     {
         var gpu = Gpu;
-        gpu.SaveState();
         gpu.EnableBackfaceCulling = false;
         gpu.EnableBlending = true;
 
@@ -150,8 +151,6 @@ public class SnakeGame : Game
             }
         }
         m_SpriteRenderer.RenderBatch(m_Camera);
-        
-        gpu.RestoreState();
     }
 
     protected override void OnStop()
