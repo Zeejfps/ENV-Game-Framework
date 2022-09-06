@@ -189,6 +189,10 @@ internal class Window_GLFW : IWindow
         get => m_CursorMode;
         set
         {
+            if (m_CursorMode == value)
+                return;
+            
+            PollEvents();
             m_CursorMode = value;
             switch (m_CursorMode)
             {
@@ -292,25 +296,25 @@ internal class Window_GLFW : IWindow
             //gamepad.LeftTrigger.Value = state.GetAxis(GamePadAxis.LeftTrigger);
             //gamepad.RightRigger.Value = state.GetAxis(GamePadAxis.RightTrigger);
             
-            UpdateButtonState(gamepad, state, GamePadButton.A);
-            UpdateButtonState(gamepad, state, GamePadButton.Y);
-            UpdateButtonState(gamepad, state, GamePadButton.B);
-            UpdateButtonState(gamepad, state, GamePadButton.X);
+            UpdateGamepadButtonState(gamepad, state, GamePadButton.A);
+            UpdateGamepadButtonState(gamepad, state, GamePadButton.Y);
+            UpdateGamepadButtonState(gamepad, state, GamePadButton.B);
+            UpdateGamepadButtonState(gamepad, state, GamePadButton.X);
             
-            UpdateButtonState(gamepad, state, GamePadButton.DpadUp);
-            UpdateButtonState(gamepad, state, GamePadButton.DpadRight);
-            UpdateButtonState(gamepad, state, GamePadButton.DpadDown);
-            UpdateButtonState(gamepad, state, GamePadButton.DpadLeft);
+            UpdateGamepadButtonState(gamepad, state, GamePadButton.DpadUp);
+            UpdateGamepadButtonState(gamepad, state, GamePadButton.DpadRight);
+            UpdateGamepadButtonState(gamepad, state, GamePadButton.DpadDown);
+            UpdateGamepadButtonState(gamepad, state, GamePadButton.DpadLeft);
             
-            UpdateButtonState(gamepad, state, GamePadButton.LeftBumper);
-            UpdateButtonState(gamepad, state, GamePadButton.RightBumper);
+            UpdateGamepadButtonState(gamepad, state, GamePadButton.LeftBumper);
+            UpdateGamepadButtonState(gamepad, state, GamePadButton.RightBumper);
             
-            UpdateButtonState(gamepad, state, GamePadButton.Back);
-            UpdateButtonState(gamepad, state, GamePadButton.Start);
+            UpdateGamepadButtonState(gamepad, state, GamePadButton.Back);
+            UpdateGamepadButtonState(gamepad, state, GamePadButton.Start);
         }
     }
 
-    private void UpdateButtonState(IGamepad gamepad, GamePadState gamepadState, GamePadButton gamepadButton)
+    private void UpdateGamepadButtonState(IGamepad gamepad, GamePadState gamepadState, GamePadButton gamepadButton)
     {
         var button = gamepadButton.ToGamepadButton();
         var isPressed = gamepad.IsButtonPressed(button);
@@ -441,6 +445,7 @@ internal class Window_GLFW : IWindow
                 keyboard.PressKey(key);
                 break;
             case InputState.Repeat:
+                keyboard.PressKey(key);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(state), state, null);

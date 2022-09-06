@@ -37,19 +37,11 @@ public class CameraRig
         LookAtTarget();
     }
 
-    public void Pan(float deltaX, float deltaY)
+    public void Pan(float leftDelta, float upDelta)
     {
         var camera = Camera;
-        var cameraTarget = CameraTarget;
-        var cameraTransform = camera.Transform;
-        var window = Window;
-        
-        deltaX /= window.Width;
-        deltaY /= window.Width;
-        
-        var movement = (camera.Transform.Right * -deltaX + camera.Transform.Up * deltaY);
-        cameraTarget.WorldPosition += movement;
-        cameraTransform.WorldPosition += movement;
+        var movement = camera.Transform.Right * leftDelta + camera.Transform.Up * upDelta;
+        Move(movement);
     }
 
     public void Rotate(float deltaYaw, float deltaPitch)
@@ -101,11 +93,14 @@ public class CameraRig
 
     private void Move(Vector3 direction, float distance)
     {
+        var movement = direction * distance;
+        Move(movement);
+    }
+
+    private void Move(Vector3 movement)
+    {
         var cameraTarget = CameraTarget;
         var cameraTransform = Camera.Transform;
-
-        var movement = direction * distance;
-        
         cameraTarget.WorldPosition += movement;
         cameraTransform.WorldPosition += movement;
     }

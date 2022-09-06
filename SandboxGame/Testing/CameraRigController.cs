@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using EasyGameFramework.Api;
+﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 
@@ -120,21 +119,28 @@ public class CameraRigController
     private void OnMouseMoved(in MouseMovedEvent evt)
     {
         var mouse = evt.Mouse;
-        if (mouse.IsButtonPressed(MouseButton.Left) && !IsFpsControlsEnabled)
+        if (mouse.IsButtonPressed(MouseButton.Middle) && !IsFpsControlsEnabled)
         {
             var window = Window;
-            var deltaYaw = evt.DeltaX / (float)window.Width * -180f;
-            var deltaPitch = evt.DeltaY / (float)window.Width * -180f;
+            var windowWidth = (float)window.Width;
+            var deltaX = -evt.DeltaX / windowWidth * 100f;
+            var deltaY = evt.DeltaY / windowWidth * 100f;
+            CameraRig.Pan(deltaX, deltaY);
+        }
+        else if (mouse.IsButtonPressed(MouseButton.Left) && !IsFpsControlsEnabled)
+        {
+            var window = Window;
+            var windowWidth = (float)window.Width;
+            var deltaYaw = evt.DeltaX / windowWidth * -180f;
+            var deltaPitch = evt.DeltaY / windowWidth * -180f;
             CameraRig.Orbit(deltaYaw, deltaPitch);
         }
-        else if (mouse.IsButtonPressed(MouseButton.Middle) && !IsFpsControlsEnabled)
+        else if (mouse.IsButtonPressed(MouseButton.Right) && IsFpsControlsEnabled)
         {
-            CameraRig.Pan(evt.DeltaX, evt.DeltaY);
-        }
-        else if (mouse.IsButtonPressed(MouseButton.Right))
-        {
-            var deltaYaw = evt.DeltaX / (float)Window.Width * -180f;
-            var deltaPitch = evt.DeltaY / (float)Window.Width * -180f;
+            var window = Window;
+            var windowWidth = (float)window.Width;
+            var deltaYaw = evt.DeltaX / windowWidth * -180f;
+            var deltaPitch = evt.DeltaY / windowWidth * -180f;
             CameraRig.Rotate(deltaYaw, deltaPitch);
         }
     }
