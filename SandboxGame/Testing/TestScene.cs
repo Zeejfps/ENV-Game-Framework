@@ -20,7 +20,7 @@ public class TestScene : IScene
     private FullScreenBlitPass m_FullScreenBlitPass;
     
     private readonly IContext m_App;
-    private readonly ICamera m_Camera;
+    private readonly CameraRig m_CameraRig;
     private readonly Clock m_Clock;
 
     private ITransform3D m_LightPosition;
@@ -38,7 +38,7 @@ public class TestScene : IScene
 
     private ILogger Logger { get; }
     
-    private CameraController CameraController { get; }
+    private CameraRigController CameraRigController { get; }
     
     public TestScene(IContext app, ILogger logger)
     {
@@ -47,10 +47,8 @@ public class TestScene : IScene
         var aspect = app.Window.Width / (float)app.Window.Height;
         m_App = app;
         m_Gpu = m_App.Gpu;
-        //m_Camera = new OrthographicCamera(20, 20 / aspect, 0.1f, 100f);
-        m_Camera = new PerspectiveCamera(75f, aspect);
         m_Clock = new Clock();
-        m_Camera.Transform.WorldPosition = new Vector3(0, 5f, -25f);
+        m_CameraRig = new CameraRig(m_App.Window);
         
         m_LightPosition = new Transform3D
         {
@@ -81,7 +79,7 @@ public class TestScene : IScene
         //m_SceneObjects.Add(m_Ship1);
         m_SceneObjects.Add(m_Toad);
 
-        CameraController = new CameraController(m_Camera, m_App.Window, m_App.Input);
+        CameraRigController = new CameraRigController(m_CameraRig, m_App.Window, m_App.Input);
     }
 
     public void Load()
@@ -101,7 +99,7 @@ public class TestScene : IScene
         var input = m_App.Input;
         input.Keyboard.KeyPressed += OnKeyPressed;
         
-        CameraController.Enable();
+        CameraRigController.Enable();
     }
 
     private void OnKeyPressed(in KeyboardKeyStateChangedEvent evt)
@@ -121,7 +119,7 @@ public class TestScene : IScene
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Update(m_Clock.DeltaTime);
 
-        CameraController.Update(dt);
+        CameraRigController.Update(dt);
     }
 
     public void Render()
@@ -136,12 +134,12 @@ public class TestScene : IScene
         renderbuffer.Bind(m_TempRenderbufferHandle);
         renderbuffer.SetSize(windowFramebufferWidth, windowFramebufferHeight);
         renderbuffer.ClearColorBuffers(0f, 0f, 0f, 0f);
-        m_SpecularRenderPass.Render(m_Gpu, m_Camera, m_LightPosition);
+        m_SpecularRenderPass.Render(m_Gpu, m_CameraRig.Camera, m_LightPosition);
         
         renderbuffer.BindWindow();
         renderbuffer.ClearColorBuffers(.42f, .607f, .82f, 1f);
         m_FullScreenBlitPass.Render(m_Gpu, 
-            m_Camera,
+            m_CameraRig.Camera,
             m_LightPosition,
             m_QuadMeshHandle,
             m_FullScreenBlitShaderHandle,
@@ -149,7 +147,7 @@ public class TestScene : IScene
             m_TempRenderbufferHandle.ColorBuffers[1],
             m_TempRenderbufferHandle.ColorBuffers[2]);
         
-        m_UnlitRenderPass.Render(m_Gpu, m_Camera);
+        m_UnlitRenderPass.Render(m_Gpu, m_CameraRig.Camera);
     }
 
     private List<Ship> CreateShips()

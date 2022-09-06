@@ -1,0 +1,129 @@
+﻿using System.Numerics;
+using EasyGameFramework.Api;
+using EasyGameFramework.Api.Events;
+using EasyGameFramework.Api.InputDevices;
+
+namespace Framework;
+
+public class CameraRigController
+{
+    public bool IsEnabled { get; private set; }
+    
+    private IInputSystem InputSystem { get; }
+    private IWindow Window { get; }
+    private CameraRig CameraRig { get; }
+    
+    private bool IsFpsControlsEnabled { get; set; }
+    
+    public CameraRigController(CameraRig cameraRig, IWindow window, IInputSystem inputSystem)
+    {
+        CameraRig = cameraRig;
+        InputSystem = inputSystem;
+        Window = window;
+    }
+
+    public void Enable()
+    {
+        if (IsEnabled)
+            return;
+        
+        var mouse = InputSystem.Mouse;
+        mouse.Moved += OnMouseMoved;
+        mouse.Scrolled += OnMouseWheelScrolled;
+        mouse.ButtonPressed += OnMouseButtonPressed;
+        mouse.ButtonReleased += OnMouseButtonReleased;
+        
+        if (mouse.IsButtonPressed(MouseButton.Right))
+            EnableFpsControls();
+        
+        IsEnabled = true;
+    }
+
+    private void OnMouseButtonPressed(in MouseButtonStateChangedEvent evt)
+    {
+        if (evt.Button == MouseButton.Right)
+        {
+            EnableFpsControls();
+        }
+    }
+
+    private void OnMouseButtonReleased(in MouseButtonStateChangedEvent evt)
+    {
+        if (evt.Button == MouseButton.Right)
+        {
+            DisableFpsControls();
+        }
+    }
+
+    private void EnableFpsControls()
+    {
+        if (IsFpsControlsEnabled)
+            return;
+
+        Window.CursorMode = CursorMode.HiddenAndLocked;
+        IsFpsControlsEnabled = true;
+    }
+
+    private void DisableFpsControls()
+    {
+        if (!IsFpsControlsEnabled)
+            return;
+
+        Window.CursorMode = CursorMode.Visible;
+        IsFpsControlsEnabled = false;
+    }
+
+    public void Update(float dt)
+    {
+        if (!IsEnabled)
+            return;
+        
+        if (!IsFpsControlsEnabled)
+            return;
+        
+        var keyboard = InputSystem.Keyboard;
+        var cameraRig = CameraRig;
+
+        if (keyboard.IsKeyPressed(KeyboardKey.W))
+            cameraRig.MoveForward(dt);
+        else if (keyboard.IsKeyPressed(KeyboardKey.S))
+            cameraRig.MoveBackwards(dt);
+
+        if (keyboard.IsKeyPressed(KeyboardKey.A))
+            cameraRig.MoveLeft(dt);
+        else if (keyboard.IsKeyPressed(KeyboardKey.D))
+            cameraRig.MoveRight(dt);
+    }
+
+    public void Disable()
+    {
+        if (!IsEnabled)
+            return;
+        
+        DisableFpsControls();
+        var mouse = InputSystem.Mouse;
+        mouse.Moved -= OnMouseMoved;
+        mouse.Scrolled -= OnMouseWheelScrolled;
+        IsEnabled = false;
+    }
+
+    private void OnMouseWheelScrolled(in MouseWheelScrolledEvent evt)
+    {
+        if (IsFpsControlsEnabled)
+            return;
+        
+        var cameraRig = CameraRig;
+        cameraRig.MoveForward(evt.DeltaY);
+    }
+
+    private void OnMouseMoved(in MouseMovedEvent evt)
+    {
+        var mouse = evt.Mouse;
+        if (mouse.IsButtonPressed(MouseButton.Left) && !IsFpsControlsEnabled)
+            CameraRig.Orbit(evt.DeltaX, evt.DeltaY);
+        else if (mouse.IsButtonPressed(MouseButton.Middle) && !IsFpsControlsEnabled)
+            CameraRig.Pan(evt.DeltaX, evt.DeltaY);
+        else if (mouse.IsButtonPressed(MouseButton.Right))
+            CameraRig.Rotate(evt.DeltaX, evt.DeltaY);
+    }
+}
