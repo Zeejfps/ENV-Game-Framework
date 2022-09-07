@@ -3,22 +3,24 @@ using EasyGameFramework.Core;
 
 namespace EasyGameFramework.Api;
 
-public abstract class GameApp : WindowedApp
+public abstract class Game
 {
+    protected IGameClock Clock => m_Clock;
+    protected IEventLoop EventLoop { get; }
+    protected ILogger Logger { get; }
+
     private float m_DeltaTime = 1f / 60f;
     private double m_Accumulator = 0.0;
     
     private readonly Stopwatch m_Stopwatch;
     private readonly GameClock m_Clock;
-    
-    protected IGameClock Clock => m_Clock;
-    protected ILogger Logger { get; }
 
     private double m_TestTime;
     private int m_Frame;
     
-    protected GameApp(IWindow window, IEventLoop eventLoop, ILogger logger) : base(window, eventLoop)
+    protected Game(IEventLoop eventLoop, ILogger logger)
     {
+        EventLoop = eventLoop;
         Logger = logger;
         m_Stopwatch = new Stopwatch();
         m_Clock = new GameClock
@@ -26,21 +28,18 @@ public abstract class GameApp : WindowedApp
             Time = 0f,
             UpdateDeltaTime = 1f / 60f
         };
-       
     }
 
-    protected sealed override void OnRun()
+    public void Start()
     {
-        EventLoop.OnStart += OnStart;
+        OnStart();
         EventLoop.OnUpdate += Update;
-        EventLoop.OnStop += OnStop;
     }
-    
-    protected sealed override void OnTerminate()
+
+    public void Stop()
     {
-        EventLoop.OnStart -= OnStart;
         EventLoop.OnUpdate -= Update;
-        EventLoop.OnStop -= OnStop;
+        OnStop();
     }
 
     private void Update()

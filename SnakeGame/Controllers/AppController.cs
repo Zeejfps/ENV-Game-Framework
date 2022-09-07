@@ -2,7 +2,7 @@
 
 namespace SampleGames;
 
-public class GameController : Controller
+public class AppController : Controller
 {
     protected override IInputBindings Bindings => m_Bindings;
 
@@ -10,19 +10,21 @@ public class GameController : Controller
     
     private GameInputBindings GameInputBindings { get; }
     private UIInputBindings UIInputBindings { get; }
+    private SnakeGameApp App { get; }
+    private SnakeGame Game { get; }
     
-    private SnakeGameApp Game { get; }
-    public GameController(SnakeGameApp game)
+    public AppController(SnakeGameApp app)
     {
-        Game = game;
+        App = app;
+        Game = App.Game;
 
         GameInputBindings = new GameInputBindings();
         UIInputBindings = new UIInputBindings();
         
         m_Bindings = GameInputBindings;
 
-        BindOnPressed(GameInputBindings.QuitAction, Game.Terminate);
-        BindOnPressed(GameInputBindings.ResetAction, Game.ResetLevel);
+        BindOnPressed(GameInputBindings.QuitAction, App.Terminate);
+        BindOnPressed(GameInputBindings.ResetAction, Game.Restart);
         BindOnPressed(GameInputBindings.IncreaseSpeedAction, Game.IncreaseSpeed);
         BindOnPressed(GameInputBindings.DecreaseSpeedAction, Game.DecreaseSpeed);
         BindOnPressed(GameInputBindings.PauseResumeAction, TogglePause);
