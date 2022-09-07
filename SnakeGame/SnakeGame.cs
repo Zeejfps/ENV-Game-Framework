@@ -40,6 +40,28 @@ public class SnakeGame : Game
         m_SpriteRenderer = new SpriteRenderer(Gpu);
     }
 
+    public void Restart()
+    {
+        m_AccumulatedTime = 0f;
+        Speed = 3f;
+        foreach (var snake in Snakes)
+        {
+            var emptyTile = FindEmptyTile();
+            snake.Spawn(emptyTile);
+        }
+        Apple = FindEmptyTile();
+    }
+
+    public void IncreaseSpeed()
+    {
+        Speed += 0.5f;
+    }
+
+    public void DecreaseSpeed()
+    {
+        Speed -= 0.5f;
+    }
+
     protected override void OnStart()
     {
         var window = Window;
@@ -134,28 +156,6 @@ public class SnakeGame : Game
 
     protected override void OnStop()
     {
-    }
-    
-    public void Restart()
-    {
-        m_AccumulatedTime = 0f;
-        Speed = 3f;
-        foreach (var snake in Snakes)
-        {
-            var emptyTile = FindEmptyTile();
-            snake.Spawn(emptyTile);
-        }
-        Apple = FindEmptyTile();
-    }
-
-    public void IncreaseSpeed()
-    {
-        Speed += 0.5f;
-    }
-
-    public void DecreaseSpeed()
-    {
-        Speed -= 0.5f;
     }
     
     private Vector2 FindEmptyTile()
