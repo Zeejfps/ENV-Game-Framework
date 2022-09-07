@@ -15,8 +15,8 @@ public abstract class Game
     private readonly Stopwatch m_Stopwatch;
     private readonly GameClock m_Clock;
 
-    private double m_TestTime;
-    private int m_Frame;
+    private double m_FpsTime;
+    private int m_FrameCount;
     
     protected Game(IEventLoop eventLoop, ILogger logger)
     {
@@ -44,18 +44,16 @@ public abstract class Game
 
     private void Update()
     {
-        m_Frame++;
-        
         var deltaTimeTicks = m_Stopwatch.ElapsedTicks;
         m_Stopwatch.Restart();
         
         var frameTime = (double)deltaTimeTicks / Stopwatch.Frequency;
-        m_TestTime += frameTime;
-        if (m_TestTime >= 1)
+        m_FpsTime += frameTime;
+        if (m_FpsTime >= 1)
         {
-            Logger.Trace($"FPS: {m_Frame}");
-            m_TestTime = 0;
-            m_Frame = 0;
+            Logger.Trace($"FPS: {m_FrameCount}");
+            m_FpsTime = 0;
+            m_FrameCount = 0;
         } 
         
         if (frameTime > 0.25)
@@ -73,6 +71,7 @@ public abstract class Game
 
         m_Clock.FrameLerpFactor = (float)m_Accumulator / m_DeltaTime;
         OnRender();
+        m_FrameCount++;
     }
 
     protected abstract void OnStart();

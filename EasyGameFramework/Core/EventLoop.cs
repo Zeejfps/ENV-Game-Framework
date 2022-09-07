@@ -4,11 +4,9 @@ namespace EasyGameFramework.Core;
 
 internal sealed class EventLoop : IEventLoop
 {
-    public event Action? OnStart;
     public event Action? OnEarlyUpdate;
     public event Action? OnUpdate;
     public event Action? OnLateUpdate;
-    public event Action? OnStop;
 
     public bool IsRunning { get; private set; }
 
@@ -18,7 +16,6 @@ internal sealed class EventLoop : IEventLoop
             return;
 
         IsRunning = true;
-        OnStart?.Invoke();
         while (IsRunning)
         {
             OnEarlyUpdate?.Invoke();
@@ -30,6 +27,5 @@ internal sealed class EventLoop : IEventLoop
     public void Stop()
     {
         IsRunning = false;
-        OnStop?.Invoke();
     }
 }
