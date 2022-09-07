@@ -12,8 +12,8 @@ internal class Mouse : IMouse
     public event MouseButtonStateChangedDelegate? ButtonReleased;
     public event MouseButtonStateChangedDelegate? ButtonStateChanged;
 
-    public int ScreenX { get; private set; }
-    public int ScreenY { get; private set; }
+    public int ViewportX { get; private set; }
+    public int ViewportY { get; private set; }
 
     private readonly HashSet<MouseButton> m_PressedButtons = new();
 
@@ -36,16 +36,16 @@ internal class Mouse : IMouse
         return m_PressedButtons.Contains(button);
     }
 
-    public void MoveTo(int screenX, int screenY)
+    public void MoveTo(int viewportX, int viewportY)
     {
-        var deltaX = screenX - ScreenX;
-        var deltaY = screenY - ScreenY;
+        var deltaX = viewportX - ViewportX;
+        var deltaY = viewportY - ViewportY;
         
         if (deltaX == 0 && deltaY == 0)
             return;
         
-        ScreenX = screenX;
-        ScreenY = screenY;
+        ViewportX = viewportX;
+        ViewportY = viewportY;
         Moved?.Invoke(new MouseMovedEvent
         {
             Mouse = this,
@@ -56,7 +56,7 @@ internal class Mouse : IMouse
 
     public void MoveBy(int dx, int dy)
     {
-        MoveTo(ScreenX + dx, ScreenY + dy);
+        MoveTo(ViewportX + dx, ViewportY + dy);
     }
 
     public void Scroll(float dx, float dy)
@@ -71,7 +71,7 @@ internal class Mouse : IMouse
 
     public override string ToString()
     {
-        return $"{ScreenX}, {ScreenY}";
+        return $"{ViewportX}, {ViewportY}";
     }
 
     private void OnButtonPressed(MouseButton button)

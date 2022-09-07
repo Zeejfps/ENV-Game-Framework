@@ -47,7 +47,9 @@ public class TestScene : IScene
         m_App = app;
         m_Gpu = m_App.Gpu;
         m_Clock = new Clock(eventLoop);
-        m_CameraRig = new CameraRig(m_App.Window);
+        var window = m_App.Window;
+        var aspect = window.ViewportWidth / (float)window.ViewportHeight;
+        m_CameraRig = new CameraRig(75f, aspect);
         
         m_LightPosition = new Transform3D
         {

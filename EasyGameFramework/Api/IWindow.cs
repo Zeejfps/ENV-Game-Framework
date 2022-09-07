@@ -6,8 +6,8 @@ public interface IWindow
 {
     event Action Closed;
     
-    int Width { get; set; }
-    int Height { get; set; }
+    int ViewportWidth { get; set; }
+    int ViewportHeight { get; set; }
     string Title { get; set; }
     bool IsResizable { get; set; }
     int PosX { get; set; }
@@ -22,6 +22,6 @@ public interface IWindow
     void OpenCentered();
     void Close();
     
-    void SetSize(int width, int height);
-    void SetPosition(int x, int y);
+    void SetViewportSize(int width, int height);
+    void SetTopLeftPosition(int x, int y);
 }

@@ -14,13 +14,13 @@ public interface IMouse
     event MouseButtonStateChangedDelegate ButtonReleased;
     event MouseButtonStateChangedDelegate ButtonStateChanged;
     
-    int ScreenX { get; }
-    int ScreenY { get; }
+    int ViewportX { get; }
+    int ViewportY { get; }
 
     void PressButton(MouseButton button);
     void ReleaseButton(MouseButton button);
 
-    void MoveTo(int screenX, int screenY);
+    void MoveTo(int viewportX, int viewportY);
     void MoveBy(int dx, int dy);
     void Scroll(float dx, float dy);
     

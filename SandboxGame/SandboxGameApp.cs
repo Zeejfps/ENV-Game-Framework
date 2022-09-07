@@ -15,8 +15,8 @@ public class SandboxGameApp : WindowedApp
     {
         window.Title = "Sandbox Game";
         //Window.IsFullscreen = true;
-        window.Width = 1280;
-        window.Height = 720;
+        window.ViewportWidth = 1280;
+        window.ViewportHeight = 720;
         window.IsResizable = true;
         window.IsVsyncEnabled = true;
     }

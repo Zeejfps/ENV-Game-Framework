@@ -40,8 +40,8 @@ internal class Window_GLFW : IWindow
     private string m_Title = "Untitled";
     private int m_PosX;
     private int m_PosY;
-    private int m_Width = 640;
-    private int m_Height = 480;
+    private int m_ViewportWidth = 640;
+    private int m_ViewportHeight = 480;
     private int m_MouseX;
     private int m_MouseY;
     
@@ -89,7 +89,7 @@ internal class Window_GLFW : IWindow
         WindowHint(Hint.Visible, false);
         WindowHint(Hint.Resizable, m_IsResizable);
 
-        m_Handle = CreateWindow(Width, Height, Title, Monitor.None, Window.None);
+        m_Handle = CreateWindow(ViewportWidth, ViewportHeight, Title, Monitor.None, Window.None);
         MakeContextCurrent(m_Handle);
         GetFramebufferSize(m_Handle, out var framebufferWidth, out var framebufferHeight);
         Gl.Import(GetProcAddress);
@@ -138,29 +138,29 @@ internal class Window_GLFW : IWindow
         }
     }
     
-    public int Width
+    public int ViewportWidth
     {
-        get => m_Width;
+        get => m_ViewportWidth;
         set
         {
-            if (m_Width == value)
+            if (m_ViewportWidth == value)
                 return;
 
-            m_Width = value;
-            UpdateWindowSize();
+            m_ViewportWidth = value;
+            UpdateScreenSize();
         }
     }
 
-    public int Height
+    public int ViewportHeight
     {
-        get => m_Height;
+        get => m_ViewportHeight;
         set
         {
-            if (m_Height == value)
+            if (m_ViewportHeight == value)
                 return;
 
-            m_Height = value;
-            UpdateWindowSize();
+            m_ViewportHeight = value;
+            UpdateScreenSize();
         }
     }
 
@@ -260,18 +260,18 @@ internal class Window_GLFW : IWindow
     private void OnMouseMoved(in MouseMovedEvent evt)
     {
         var mouse = evt.Mouse;
-        if (m_MouseX == mouse.ScreenX && m_MouseY == mouse.ScreenY)
+        if (m_MouseX == mouse.ViewportX && m_MouseY == mouse.ViewportY)
             return;
 
-        m_MouseX = mouse.ScreenX;
-        m_MouseY = mouse.ScreenY;
-        SetCursorPosition(m_Handle, mouse.ScreenX, mouse.ScreenY);
+        m_MouseX = mouse.ViewportX;
+        m_MouseY = mouse.ViewportY;
+        SetCursorPosition(m_Handle, mouse.ViewportX, mouse.ViewportY);
     }
 
     public void OpenCentered()
     {
-        PosX = (int)((m_Displays.PrimaryDisplay.ResolutionX - Width) * 0.5f);
-        PosY = (int)((m_Displays.PrimaryDisplay.ResolutionY - Height) * 0.5f);
+        PosX = (int)((m_Displays.PrimaryDisplay.ResolutionX - ViewportWidth) * 0.5f);
+        PosY = (int)((m_Displays.PrimaryDisplay.ResolutionY - ViewportHeight) * 0.5f);
         Open();
     }
 
@@ -292,14 +292,14 @@ internal class Window_GLFW : IWindow
         Closed?.Invoke();
     }
 
-    public void SetSize(int width, int height)
+    public void SetViewportSize(int width, int height)
     {
-        m_Width = width;
-        m_Height = height;
-        UpdateWindowSize();
+        m_ViewportWidth = width;
+        m_ViewportHeight = height;
+        UpdateScreenSize();
     }
 
-    public void SetPosition(int x, int y)
+    public void SetTopLeftPosition(int x, int y)
     {
         m_PosX = x;
         m_PosY = y;
@@ -368,10 +368,10 @@ internal class Window_GLFW : IWindow
         GLFW.Glfw.SwapBuffers(m_Handle);
     }
 
-    private void UpdateWindowSize()
+    private void UpdateScreenSize()
     {
         if (m_Handle != Window.None)
-            SetWindowSize(m_Handle, m_Width, m_Height);
+            SetWindowSize(m_Handle, m_ViewportWidth, m_ViewportHeight);
     }
 
     private void UpdateWindowPos()
@@ -402,7 +402,7 @@ internal class Window_GLFW : IWindow
         }
         else
         {
-            SetWindowMonitor(m_Handle, Monitor.None, m_PosX, m_PosY, m_Width, m_Height, videoMode.RefreshRate);
+            SetWindowMonitor(m_Handle, Monitor.None, m_PosX, m_PosY, m_ViewportWidth, m_ViewportHeight, videoMode.RefreshRate);
         }
     }
 
@@ -411,8 +411,8 @@ internal class Window_GLFW : IWindow
         if (IsFullscreen)
             return;
 
-        m_Width = width;
-        m_Height = height;
+        m_ViewportWidth = width;
+        m_ViewportHeight = height;
     }
 
     private void Glfw_PositionCallback(Window _, int x, int y)
@@ -515,7 +515,7 @@ internal class Window_GLFW : IWindow
     
     public override string ToString()
     {
-        return $"x{PosX} y{PosY}, {Width}x{Height}";
+        return $"x{PosX} y{PosY}, {ViewportWidth}x{ViewportHeight}";
     }
 
     private EasyGameFramework.Api.InputDevices.MouseButton MapToMouseButton(MouseButton mouseButton)

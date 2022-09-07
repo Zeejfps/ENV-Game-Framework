@@ -38,8 +38,8 @@ public class SnakeGameApp : WindowedApp
     
     protected override void Configure(IWindow window)
     {
-        window.Width = 640;
-        window.Height = 640;
+        window.ViewportWidth = 640;
+        window.ViewportHeight = 640;
         window.IsVsyncEnabled = true;
         window.IsResizable = false;
         window.Title = "SNAEK";
