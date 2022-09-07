@@ -11,12 +11,22 @@ public class SandboxGameApp : WindowedApp
         Game = new SandboxGame(context, context.Logger, eventLoop);
     }
 
-    protected override void OnRun()
+    protected override void Configure(IWindow window)
+    {
+        window.Title = "Sandbox Game";
+        //Window.IsFullscreen = true;
+        window.Width = 1280;
+        window.Height = 720;
+        window.IsResizable = true;
+        window.IsVsyncEnabled = true;
+    }
+
+    protected override void Start()
     {
         Game.Start();
     }
 
-    protected override void OnTerminate()
+    protected override void Stop()
     {
         Game.Stop();
     }

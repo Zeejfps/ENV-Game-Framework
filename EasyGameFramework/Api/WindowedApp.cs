@@ -14,21 +14,26 @@ public abstract class WindowedApp
     
     public void Run()
     {
-        OnRun();
-        Window.Closed += OnWindowClosed;
+        var window = Window;
+        window.Closed += OnWindowClosed;
+        Configure(Window);
+        window.OpenCentered();
+        
+        Start();
         EventLoop.Start();
     }
 
     public void Terminate()
     {
-        OnTerminate();
+        Stop();
         EventLoop.Stop();
         if (Window.IsOpened)
             Window.Close();
     }
-
-    protected abstract void OnRun();
-    protected abstract void OnTerminate();
+    
+    protected abstract void Configure(IWindow window);
+    protected abstract void Start();
+    protected abstract void Stop();
     
     private void OnWindowClosed()
     {

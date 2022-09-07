@@ -64,17 +64,7 @@ public class SnakeGame : Game
 
     protected override void OnStart()
     {
-        var window = Window;
-        window.Width = 500;
-        window.Height = 500;
-        window.IsVsyncEnabled = true;
-        window.IsResizable = false;
-        window.Title = "SNAEK";
-        window.CursorMode = CursorMode.HiddenAndLocked;
-        window.OpenCentered();
-
         m_SpriteRenderer.LoadResources();
-
         Restart();
     }
 

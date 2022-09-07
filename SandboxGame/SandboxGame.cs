@@ -21,14 +21,6 @@ public class SandboxGame : Game
 
     protected override void OnStart()
     {
-        Window.Title = "Hello World";
-        //Window.IsFullscreen = true;
-        Window.Width = 1280;
-        Window.Height = 720;
-        Window.IsResizable = true;
-        Window.IsVsyncEnabled = false;
-        Window.OpenCentered();
-        
         Scene.Load();
     }
 

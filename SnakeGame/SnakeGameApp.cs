@@ -7,7 +7,6 @@ public class SnakeGameApp : WindowedApp
 {
     private IContext Context { get; }
     private IGpu Gpu { get; }
-    private IWindow Window { get; }
     private IInputSystem Input { get; }
     private IContainer Container { get; }
     private IPlayerPrefs PlayerPrefs { get; }
@@ -25,7 +24,6 @@ public class SnakeGameApp : WindowedApp
         IEventLoop eventLoop) : base(context.Window, eventLoop)
     {
         Context = context;
-        Window = context.Window;
         Gpu = context.Gpu;
         Input = inputSystem;
         Container = context.Container;
@@ -38,15 +36,25 @@ public class SnakeGameApp : WindowedApp
         AppController = new AppController(this);
     }
     
-    protected override void OnRun()
+    protected override void Configure(IWindow window)
+    {
+        window.Width = 640;
+        window.Height = 640;
+        window.IsVsyncEnabled = true;
+        window.IsResizable = false;
+        window.Title = "SNAEK";
+        window.CursorMode = CursorMode.HiddenAndLocked;
+    }
+
+    protected override void Start()
     {
         Player1Controller.Bind(Input);
         Player2Controller.Bind(Input);
         AppController.Bind(Input);
-        Game.Start();
+        Game.Start();;
     }
 
-    protected override void OnTerminate()
+    protected override void Stop()
     {
         Game.Stop();
     }
