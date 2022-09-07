@@ -40,14 +40,13 @@ public class TestScene : IScene
     
     private CameraRigController CameraRigController { get; }
     
-    public TestScene(IContext app, ILogger logger)
+    public TestScene(IContext app, ILogger logger, IEventLoop eventLoop)
     {
         Logger = logger;
         
-        var aspect = app.Window.Width / (float)app.Window.Height;
         m_App = app;
         m_Gpu = m_App.Gpu;
-        m_Clock = new Clock();
+        m_Clock = new Clock(eventLoop);
         m_CameraRig = new CameraRig(m_App.Window);
         
         m_LightPosition = new Transform3D
@@ -79,7 +78,7 @@ public class TestScene : IScene
         //m_SceneObjects.Add(m_Ship1);
         m_SceneObjects.Add(m_Toad);
 
-        CameraRigController = new CameraRigController(m_CameraRig, m_App.Window, m_App.Input);
+        CameraRigController = new CameraRigController(m_CameraRig, m_App.Window, m_App.Input, m_Clock);
     }
 
     public void Load()
@@ -100,6 +99,7 @@ public class TestScene : IScene
         input.Keyboard.KeyPressed += OnKeyPressed;
         
         CameraRigController.Enable();
+        m_Clock.Start();
     }
 
     private void OnKeyPressed(in KeyboardKeyStateChangedEvent evt)
@@ -114,12 +114,8 @@ public class TestScene : IScene
 
     public void Update(float dt)
     {
-        m_Clock.Tick(dt);
-
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Update(m_Clock.DeltaTime);
-
-        CameraRigController.Update(dt);
     }
 
     public void Render()

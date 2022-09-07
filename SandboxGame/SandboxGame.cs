@@ -16,7 +16,7 @@ public class SandboxGame : Game
     {
         Window = context.Window;
         Context = context;
-        Scene = new TestScene(Context, Logger);
+        Scene = new TestScene(Context, Logger, eventLoop);
     }
 
     protected override void OnStart()
