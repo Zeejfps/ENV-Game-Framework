@@ -7,8 +7,8 @@ namespace Framework;
 public class CameraRig
 {
     public ICamera Camera { get; }
-    private ITransform3D CameraTarget { get; }
     private IWindow Window { get; }
+    private Vector3 CameraTarget { get; set; }
 
     private float CameraYawAngle { get; set; }
     private float CameraPitchAngle { get; set; }
@@ -18,7 +18,7 @@ public class CameraRig
         Window = window;
         var aspect = window.Width / (float)window.Height;
         Camera = new PerspectiveCamera(75f, aspect);
-        CameraTarget = new Transform3D();
+        CameraTarget = new Vector3();
         Camera.Transform.WorldPosition = new Vector3(0, 5f, -25f);
 
         LookAtTarget();
@@ -31,8 +31,8 @@ public class CameraRig
 
         var deg2Rad = MathF.PI / 180f;
 
-        camera.Transform.RotateAround(cameraTarget.WorldPosition, Vector3.UnitY, deltaYaw * deg2Rad);
-        camera.Transform.RotateAround(cameraTarget.WorldPosition, camera.Transform.Right, deltaPitch * deg2Rad);
+        camera.Transform.RotateAround(cameraTarget, Vector3.UnitY, deltaYaw * deg2Rad);
+        camera.Transform.RotateAround(cameraTarget, camera.Transform.Right, deltaPitch * deg2Rad);
         
         LookAtTarget();
     }
@@ -49,7 +49,7 @@ public class CameraRig
         var cameraTarget = CameraTarget;
         var cameraTransform = Camera.Transform;
 
-        var distanceToTarget = (cameraTransform.WorldPosition - cameraTarget.WorldPosition).Length();
+        var distanceToTarget = (cameraTransform.WorldPosition - cameraTarget).Length();
         
         CameraYawAngle += deltaYaw;
         CameraPitchAngle += deltaPitch;
@@ -64,7 +64,9 @@ public class CameraRig
         cameraTransform.WorldRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, CameraYawAngle * deg2Rad) * 
                                         Quaternion.CreateFromAxisAngle(Vector3.UnitX, CameraPitchAngle * deg2Rad);
 
-        cameraTarget.WorldPosition = cameraTransform.WorldPosition + cameraTransform.Forward * distanceToTarget;
+        cameraTarget = cameraTransform.WorldPosition + cameraTransform.Forward * distanceToTarget;
+
+        CameraTarget = cameraTarget;
     }
 
     public void MoveForward(float distance)
@@ -101,8 +103,10 @@ public class CameraRig
     {
         var cameraTarget = CameraTarget;
         var cameraTransform = Camera.Transform;
-        cameraTarget.WorldPosition += movement;
+        cameraTarget += movement;
         cameraTransform.WorldPosition += movement;
+
+        CameraTarget = cameraTarget;
     }
 
     private void LookAtTarget()
@@ -111,7 +115,7 @@ public class CameraRig
         var cameraTransform = Camera.Transform;
         var rad2deg = 180f / MathF.PI;
 
-        cameraTransform.LookAt(cameraTarget.WorldPosition, Vector3.UnitY);
+        cameraTransform.LookAt(cameraTarget, Vector3.UnitY);
         cameraTransform.WorldRotation.ExtractYawPitchRoll(out var yaw, out var pitch, out _);
         
         CameraPitchAngle = pitch * rad2deg;

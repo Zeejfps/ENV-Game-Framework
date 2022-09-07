@@ -1,4 +1,5 @@
-﻿using EasyGameFramework.Api;
+﻿using System.Diagnostics;
+using EasyGameFramework.Api;
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 
@@ -47,17 +48,27 @@ public class CameraRigController
 
     private void OnMouseButtonPressed(in MouseButtonStateChangedEvent evt)
     {
-        if (evt.Button == MouseButton.Right)
+        var button = evt.Button;
+        if (button == MouseButton.Right)
         {
             EnableFpsControls();
+        }
+        else if (button == MouseButton.Left)
+        {
+            Window.CursorMode = CursorMode.HiddenAndLocked;
         }
     }
 
     private void OnMouseButtonReleased(in MouseButtonStateChangedEvent evt)
     {
-        if (evt.Button == MouseButton.Right)
+        var button = evt.Button;
+        if (button == MouseButton.Right)
         {
             DisableFpsControls();
+        }
+        else if (button == MouseButton.Left)
+        {
+            Window.CursorMode = CursorMode.Visible;
         }
     }
 
@@ -81,8 +92,7 @@ public class CameraRigController
 
     private void Update()
     {
-        if (!IsEnabled)
-            return;
+        Debug.Assert(IsEnabled);
         
         if (!IsFpsControlsEnabled)
             return;
