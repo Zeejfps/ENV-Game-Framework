@@ -5,6 +5,10 @@ namespace EasyGameFramework.Api;
 
 public abstract class Game
 {
+    public event Action? Stopped;
+    
+    public bool IsRunning { get; private set; }
+    
     protected IGameClock Clock => m_Clock;
     protected IEventLoop EventLoop { get; }
     protected ILogger Logger { get; }
@@ -32,14 +36,24 @@ public abstract class Game
 
     public void Start()
     {
+        if (IsRunning)
+            return;
+        
         OnStart();
         EventLoop.OnUpdate += Update;
+        IsRunning = true;
     }
 
     public void Stop()
     {
+        if (!IsRunning)
+            return;
+
         EventLoop.OnUpdate -= Update;
         OnStop();
+        
+        IsRunning = false;
+        Stopped?.Invoke();
     }
 
     private void Update()

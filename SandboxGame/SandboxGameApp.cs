@@ -21,12 +21,12 @@ public class SandboxGameApp : WindowedApp
         window.IsVsyncEnabled = true;
     }
 
-    protected override void Start()
+    protected override void OnOpen()
     {
         Game.Start();
     }
 
-    protected override void Stop()
+    protected override void OnClose()
     {
         Game.Stop();
     }

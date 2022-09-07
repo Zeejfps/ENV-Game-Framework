@@ -8,7 +8,7 @@ public class SnakeController : Controller
     private Snake Snake { get; }
     protected override IInputBindings Bindings { get; }
 
-    public SnakeController(int index, Snake snake)
+    public SnakeController(IInputSystem inputSystem, int index, Snake snake) : base(inputSystem)
     {
         Index = index;
         Snake = snake;
@@ -20,5 +20,10 @@ public class SnakeController : Controller
         BindOnPressed(bindings.MoveLeft, Snake.TurnWest);
         BindOnPressed(bindings.MoveRight, Snake.TurnEast);
         BindOnPressed(bindings.MoveDown, Snake.TurnSouth);
+    }
+
+    protected override void OnEnable()
+    {
+        
     }
 }

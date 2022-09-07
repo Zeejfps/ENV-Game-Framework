@@ -3,8 +3,9 @@
 public abstract class WindowedApp
 {
     public IWindow Window { get; }
-    
     protected IEventLoop EventLoop { get; }
+    
+    private bool IsRunning { get; set; }
     
     protected WindowedApp(IWindow window, IEventLoop eventLoop)
     {
@@ -14,30 +15,39 @@ public abstract class WindowedApp
     
     public void Run()
     {
+        if (IsRunning)
+            return;
+
+        IsRunning = true;
+        
         var window = Window;
         window.Closed += OnWindowClosed;
         Configure(Window);
         window.OpenCentered();
         
-        Start();
+        OnOpen();
         EventLoop.Start();
     }
 
-    public void Terminate()
+    public void Close()
     {
-        Stop();
+        if (!IsRunning)
+            return;
+
+        IsRunning = false;
+        OnClose();
         EventLoop.Stop();
         if (Window.IsOpened)
             Window.Close();
     }
     
     protected abstract void Configure(IWindow window);
-    protected abstract void Start();
-    protected abstract void Stop();
+    protected abstract void OnOpen();
+    protected abstract void OnClose();
     
     private void OnWindowClosed()
     {
         Window.Closed -= OnWindowClosed;
-        Terminate();
+        Close();
     }
 }

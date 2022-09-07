@@ -9,17 +9,12 @@ public class SnakeGameApp : WindowedApp
     private IGpu Gpu { get; }
     private IInputSystem Input { get; }
     private IContainer Container { get; }
-    private IPlayerPrefs PlayerPrefs { get; }
     
-    private SnakeController Player1Controller { get; }
-    private SnakeController Player2Controller { get; }
-    private AppController AppController { get; }
-    
-    public SnakeGame Game { get; }
+    private GameController GameController { get; }
+    private SnakeGame Game { get; }
 
     public SnakeGameApp(
         IContext context,
-        IPlayerPrefs playerPrefs,
         IInputSystem inputSystem,
         IEventLoop eventLoop) : base(context.Window, eventLoop)
     {
@@ -27,13 +22,9 @@ public class SnakeGameApp : WindowedApp
         Gpu = context.Gpu;
         Input = inputSystem;
         Container = context.Container;
-        PlayerPrefs = playerPrefs;
 
         Game = new SnakeGame(Window, Gpu, eventLoop, context.Logger);
-        
-        Player1Controller = new SnakeController(0, Game.Snakes[0]);
-        Player2Controller = new SnakeController(1, Game.Snakes[1]);
-        AppController = new AppController(this);
+        GameController = new GameController(Input, Game);
     }
     
     protected override void Configure(IWindow window)
@@ -46,16 +37,22 @@ public class SnakeGameApp : WindowedApp
         window.CursorMode = CursorMode.HiddenAndLocked;
     }
 
-    protected override void Start()
+    protected override void OnOpen()
     {
-        Player1Controller.Bind(Input);
-        Player2Controller.Bind(Input);
-        AppController.Bind(Input);
-        Game.Start();;
+        GameController.Enable();
+        Game.Stopped += Game_OnStopped;
+        Game.Start();
     }
 
-    protected override void Stop()
+    protected override void OnClose()
     {
         Game.Stop();
+    }
+
+    private void Game_OnStopped()
+    {
+        GameController.Disable();
+        Game.Stopped -= Game_OnStopped;
+        Close();
     }
 }

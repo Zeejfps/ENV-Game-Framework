@@ -3,6 +3,13 @@
 public abstract class Controller
 {
     protected abstract IInputBindings Bindings { get; }
+
+    protected IInputSystem InputSystem { get; }
+    
+    public Controller(IInputSystem inputSystem)
+    {
+        InputSystem = inputSystem;
+    }
     
     protected void BindOnPressed(InputAction action, Action handler)
     {
@@ -10,14 +17,23 @@ public abstract class Controller
             binding.Pressed += handler;
     }
 
-    public void Bind(IInputSystem input)
+    public void Enable()
     {
         foreach (var inputAction in Bindings.InputActions)
         {
             foreach (var buttonBinding in inputAction.ButtonBindings)
             {
-                buttonBinding.Bind(input);
+                buttonBinding.Bind(InputSystem);
             }
         }
+
+        OnEnable();
     }
+
+    public void Disable()
+    {
+        
+    }
+
+    protected abstract void OnEnable();
 }
