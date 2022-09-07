@@ -3,5 +3,5 @@ using EasyGameFramework.Api;
 
 var builder = new ApplicationBuilder();
 
-var app = builder.Build<SnakeGame>();
+var app = builder.Build<SnakeGameApp>();
 app.Run();

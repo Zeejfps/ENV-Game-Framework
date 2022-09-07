@@ -44,7 +44,7 @@ public sealed class ApplicationBuilder
         return this;
     }
 
-    public IApp Build<TApp>() where TApp : IApp
+    public TApp Build<TApp>() where TApp : WindowedApp
     {
         if (!m_IsRenderingApiSet)
             WithOpenGl();
@@ -58,16 +58,16 @@ public sealed class ApplicationBuilder
         RegisterWindowingSystem();
         
         DiContainer.BindSingleton<IMouse, Mouse>();
+        DiContainer.BindSingleton<IEventLoop, EventLoop>();
         DiContainer.BindSingleton<IKeyboard, Keyboard>();
         DiContainer.BindSingleton<IInputSystem, InputSystem>();
         DiContainer.BindSingleton<IContext, Context>();
         DiContainer.BindSingleton<IEventBus, EventBus>();
-        DiContainer.BindSingleton<IApp, TApp>();
         DiContainer.BindSingleton<IPlayerPrefs, IniPlayerPrefs>();
         DiContainer.BindSingleton<IContainer>(DiContainer);
         DiContainer.BindSingleton<IGamepadManager, GamepadManager>();
 
-        var engine = DiContainer.New<IApp>();
+        var engine = DiContainer.New<TApp>();
         return engine;
     }
 

@@ -16,6 +16,8 @@ namespace EasyGameFramework.Glfw;
 
 internal class Window_GLFW : IWindow
 {
+    public event Action? Closed;
+
     private readonly IDisplays m_Displays;
     private readonly SizeCallback m_FramebufferSizeCallback;
 
@@ -47,10 +49,17 @@ internal class Window_GLFW : IWindow
     private IInputSystem Input { get; }
     private IMouse Mouse { get; }
     private IKeyboard Keyboard { get; }
+    private IEventLoop EventLoop { get; }
 
     private readonly Dictionary<IGamepad, int> m_GamepadToSlotMap = new();
 
-    public Window_GLFW(ILogger logger, IDisplays displays, IInputSystem input, IMouse mouse, IKeyboard keyboard)
+    public Window_GLFW(
+        ILogger logger, 
+        IDisplays displays,
+        IInputSystem input, 
+        IMouse mouse,
+        IKeyboard keyboard,
+        IEventLoop eventLoop)
     {
         Init();
         WindowHint(Hint.ClientApi, ClientApi.OpenGL);
@@ -64,6 +73,7 @@ internal class Window_GLFW : IWindow
         Input = input;
         Mouse = mouse;
         Keyboard = keyboard;
+        EventLoop = eventLoop;
         
         m_Displays = displays;
 
@@ -127,7 +137,7 @@ internal class Window_GLFW : IWindow
             UpdateWindowPos();
         }
     }
-
+    
     public int Width
     {
         get => m_Width;
@@ -192,7 +202,9 @@ internal class Window_GLFW : IWindow
             if (m_CursorMode == value)
                 return;
             
-            PollEvents();
+            if (IsOpened)
+                PollEvents();
+            
             m_CursorMode = value;
             switch (m_CursorMode)
             {
@@ -235,11 +247,14 @@ internal class Window_GLFW : IWindow
         }
     }
 
-    public void Show()
+    public void Open()
     {
         ShowWindow(m_Handle);
         IsOpened = true;
         Mouse.Moved += OnMouseMoved;
+
+        EventLoop.OnEarlyUpdate += PollEvents;
+        EventLoop.OnLateUpdate += SwapBuffers;
     }
 
     private void OnMouseMoved(in MouseMovedEvent evt)
@@ -253,24 +268,45 @@ internal class Window_GLFW : IWindow
         SetCursorPosition(m_Handle, mouse.ScreenX, mouse.ScreenY);
     }
 
-    public void ShowCentered()
+    public void OpenCentered()
     {
         PosX = (int)((m_Displays.PrimaryDisplay.ResolutionX - Width) * 0.5f);
         PosY = (int)((m_Displays.PrimaryDisplay.ResolutionY - Height) * 0.5f);
-        Show();
+        Open();
     }
 
-    public void Hide()
+    public void Close()
     {
         Debug.Assert(IsOpened);
         Debug.Assert(m_Handle != Window.None);
         SetWindowShouldClose(m_Handle, true);
-
-        m_Handle = default;
-        IsOpened = false;
     }
 
-    public void PollEvents()
+    private void OnClosed()
+    {
+        m_Handle = default;
+        Mouse.Moved -= OnMouseMoved;
+        EventLoop.OnEarlyUpdate -= PollEvents;
+        EventLoop.OnLateUpdate -= SwapBuffers;
+        IsOpened = false;
+        Closed?.Invoke();
+    }
+
+    public void SetSize(int width, int height)
+    {
+        m_Width = width;
+        m_Height = height;
+        UpdateWindowSize();
+    }
+
+    public void SetPosition(int x, int y)
+    {
+        m_PosX = x;
+        m_PosY = y;
+        UpdateWindowPos();
+    }
+    
+    private void PollEvents()
     {
         Debug.Assert(IsOpened);
         Debug.Assert(m_Handle != Window.None);
@@ -280,6 +316,7 @@ internal class Window_GLFW : IWindow
         if (WindowShouldClose(m_Handle))
         {
             IsOpened = false;
+            OnClosed();
             return;
         }
         
@@ -326,23 +363,9 @@ internal class Window_GLFW : IWindow
             gamepad.PressButton(button);
     } 
 
-    public void SwapBuffers()
+    private void SwapBuffers()
     {
         GLFW.Glfw.SwapBuffers(m_Handle);
-    }
-
-    public void SetSize(int width, int height)
-    {
-        m_Width = width;
-        m_Height = height;
-        UpdateWindowSize();
-    }
-
-    public void SetPosition(int x, int y)
-    {
-        m_PosX = x;
-        m_PosY = y;
-        UpdateWindowPos();
     }
 
     private void UpdateWindowSize()

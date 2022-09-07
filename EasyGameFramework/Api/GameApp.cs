@@ -3,61 +3,62 @@ using EasyGameFramework.Core;
 
 namespace EasyGameFramework.Api;
 
-public abstract class Game : IApp
+public abstract class GameApp : WindowedApp
 {
-    public bool IsRunning { get; private set; }
-
     private float m_DeltaTime = 1f / 60f;
     private double m_Accumulator = 0.0;
     
     private readonly Stopwatch m_Stopwatch;
     private readonly GameClock m_Clock;
-
-    protected IWindow Window { get; }
-    protected IInputSystem Input { get; }
-    protected IGameClock Clock => m_Clock;
     
-    protected Game(IWindow window, IInputSystem input)
+    protected IGameClock Clock => m_Clock;
+    protected ILogger Logger { get; }
+
+    private double m_TestTime;
+    private int m_Frame;
+    
+    protected GameApp(IWindow window, IEventLoop eventLoop, ILogger logger) : base(window, eventLoop)
     {
-        Window = window;
-        Input = input;
+        Logger = logger;
         m_Stopwatch = new Stopwatch();
         m_Clock = new GameClock
         {
             Time = 0f,
             UpdateDeltaTime = 1f / 60f
         };
+       
     }
-    
-    public void Run()
+
+    protected sealed override void OnRun()
     {
-        Start();
-        while (IsRunning)
-        {
-            Update();
-        }
+        EventLoop.OnStart += OnStart;
+        EventLoop.OnUpdate += Update;
+        EventLoop.OnStop += OnStop;
     }
     
-    private void Start()
+    protected sealed override void OnTerminate()
     {
-        IsRunning = true;
-        OnStart();
+        EventLoop.OnStart -= OnStart;
+        EventLoop.OnUpdate -= Update;
+        EventLoop.OnStop -= OnStop;
     }
-    
+
     private void Update()
     {
-        Window.PollEvents();
-
-        if (!Window.IsOpened)
-        {
-            Stop();
-            return;
-        }
+        m_Frame++;
         
         var deltaTimeTicks = m_Stopwatch.ElapsedTicks;
         m_Stopwatch.Restart();
         
         var frameTime = (double)deltaTimeTicks / Stopwatch.Frequency;
+        m_TestTime += frameTime;
+        if (m_TestTime >= 1)
+        {
+            Logger.Trace($"FPS: {m_Frame}");
+            m_TestTime = 0;
+            m_Frame = 0;
+        } 
+        
         if (frameTime > 0.25)
             frameTime = 0.25;
 
@@ -73,13 +74,6 @@ public abstract class Game : IApp
 
         m_Clock.FrameLerpFactor = (float)m_Accumulator / m_DeltaTime;
         OnRender();
-        Window.SwapBuffers();
-    }
-
-    public void Stop()
-    {
-        IsRunning = false;
-        OnStop();
     }
 
     protected abstract void OnStart();

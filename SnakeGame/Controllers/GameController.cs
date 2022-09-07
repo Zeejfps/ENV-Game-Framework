@@ -11,8 +11,8 @@ public class GameController : Controller
     private GameInputBindings GameInputBindings { get; }
     private UIInputBindings UIInputBindings { get; }
     
-    private SnakeGame Game { get; }
-    public GameController(SnakeGame game)
+    private SnakeGameApp Game { get; }
+    public GameController(SnakeGameApp game)
     {
         Game = game;
 
@@ -21,7 +21,7 @@ public class GameController : Controller
         
         m_Bindings = GameInputBindings;
 
-        BindOnPressed(GameInputBindings.QuitAction, Game.Stop);
+        BindOnPressed(GameInputBindings.QuitAction, Game.Terminate);
         BindOnPressed(GameInputBindings.ResetAction, Game.ResetLevel);
         BindOnPressed(GameInputBindings.IncreaseSpeedAction, Game.IncreaseSpeed);
         BindOnPressed(GameInputBindings.DecreaseSpeedAction, Game.DecreaseSpeed);

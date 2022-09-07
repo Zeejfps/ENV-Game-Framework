@@ -2,7 +2,6 @@
 
 #version 460
 layout (location = 0) in vec3 attr_VertexPosition;
-layout (location = 1) in vec2 attr_VertexUvs;
 
 void main()
 {
@@ -22,8 +21,7 @@ uniform vec2 u_Pitch  = vec2(20, 20);
 layout(location = 0) out vec4 out_FragColor;
 
 void main() {
-    if (int(mod(gl_FragCoord.x, u_Pitch[0])) == 0 ||
-    int(mod(gl_FragCoord.y, u_Pitch[1])) == 0) {
+    if (int(mod(gl_FragCoord.x, u_Pitch[0])) == 0 || int(mod(gl_FragCoord.y, u_Pitch[1])) == 0) {
         out_FragColor = u_GridColor;
     } else {
         out_FragColor = u_BackgroundColor;

@@ -1,22 +1,17 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
-using EasyGameFramework.Api.Events;
-using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
 
 namespace SampleGames;
 
-public class SnakeGame : Game
+public class SnakeGameApp : GameApp
 {
     public bool IsPaused { get; set; }
-
-    private OrthographicCamera m_Camera;
-    private SpriteRenderer m_SpriteRenderer;
-
+    
     private IContext Context { get; }
     private IGpu Gpu { get; }
-    private ILogger Logger { get; }
+    private IInputSystem Input { get; }
     private IContainer Container { get; }
     private IPlayerPrefs PlayerPrefs { get; }
     private Snake[] Snakes { get; }
@@ -29,14 +24,18 @@ public class SnakeGame : Game
 
     private float Speed { get; set; }
     private float m_AccumulatedTime;
+    private readonly OrthographicCamera m_Camera;
+    private readonly SpriteRenderer m_SpriteRenderer;
 
-    public SnakeGame(
+    public SnakeGameApp(
         IContext context,
-        IPlayerPrefs playerPrefs) : base(context.Window, context.Input)
+        IPlayerPrefs playerPrefs,
+        IInputSystem inputSystem,
+        IEventLoop eventLoop) : base(context.Window, eventLoop, context.Logger)
     {
         Context = context;
         Gpu = context.Gpu;
-        Logger = context.Logger;
+        Input = inputSystem;
         Container = context.Container;
         PlayerPrefs = playerPrefs;
         
@@ -66,7 +65,7 @@ public class SnakeGame : Game
         window.IsResizable = false;
         window.Title = "SNAEK";
         window.CursorMode = CursorMode.HiddenAndLocked;
-        window.ShowCentered();
+        window.OpenCentered();
 
         m_SpriteRenderer.LoadResources();
         

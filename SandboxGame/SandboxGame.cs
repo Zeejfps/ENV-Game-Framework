@@ -2,18 +2,18 @@
 
 namespace Framework;
 
-public class SandboxGame : Game
+public class SandboxGame : GameApp
 {
     IContext Context { get; }
 
     private TestScene Scene { get; set; }
     
-    private ILogger Logger { get; }
-    
-    public SandboxGame(IContext context, ILogger logger) : base(context.Window, context.Input)
+    public SandboxGame(
+        IContext context,
+        ILogger logger,
+        IEventLoop eventLoop) : base(context.Window, eventLoop, logger)
     {
         Context = context;
-        Logger = logger;
     }
 
     protected override void OnStart()
@@ -23,8 +23,8 @@ public class SandboxGame : Game
         Window.Width = 1280;
         Window.Height = 720;
         Window.IsResizable = true;
-        Window.IsVsyncEnabled = true;
-        Window.ShowCentered();
+        Window.IsVsyncEnabled = false;
+        Window.OpenCentered();
         
         Scene = new TestScene(Context, Logger);
         Scene.Load();
