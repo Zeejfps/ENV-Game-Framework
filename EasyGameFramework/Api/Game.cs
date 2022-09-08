@@ -80,6 +80,7 @@ public abstract class Game
         {
             OnUpdate();
             m_Clock.Time += Clock.UpdateDeltaTime;
+            m_Clock.OnTicked();
             m_Accumulator -= m_DeltaTime;
         }
 

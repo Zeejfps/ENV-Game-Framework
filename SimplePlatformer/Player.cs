@@ -16,8 +16,8 @@ public class Player
         Logger.Trace("Jump!");
     }
 
-    public void MoveLeft(float multiplier)
+    public void Move(float axisValue)
     {
-        
+        Logger.Trace($"Moving {axisValue}");   
     }
 }

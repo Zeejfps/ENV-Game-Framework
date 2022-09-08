@@ -15,4 +15,7 @@ public interface IGamepad
     void ReleaseButton(GamepadButton button);
 
     bool IsButtonPressed(GamepadButton button);
+
+    void SetAxisValue(GamepadAxis axis, float value);
+    float GetAxisValue(GamepadAxis axis);
 }

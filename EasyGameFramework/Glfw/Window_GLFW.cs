@@ -333,6 +333,9 @@ internal class Window_GLFW : IWindow
             //gamepad.LeftTrigger.Value = state.GetAxis(GamePadAxis.LeftTrigger);
             //gamepad.RightRigger.Value = state.GetAxis(GamePadAxis.RightTrigger);
             
+            gamepad.SetAxisValue(GamepadAxis.LeftStickX, state.GetAxis(GamePadAxis.LeftX));
+            gamepad.SetAxisValue(GamepadAxis.LeftStickY, state.GetAxis(GamePadAxis.LeftY));
+            
             UpdateGamepadButtonState(gamepad, state, GamePadButton.A);
             UpdateGamepadButtonState(gamepad, state, GamePadButton.Y);
             UpdateGamepadButtonState(gamepad, state, GamePadButton.B);
