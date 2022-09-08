@@ -9,7 +9,6 @@ public class SnakeGameApp : WindowedApp
     private IGpu Gpu { get; }
     private IInputSystem Input { get; }
     private IContainer Container { get; }
-    
     private GameController GameController { get; }
     private SnakeGame Game { get; }
 
