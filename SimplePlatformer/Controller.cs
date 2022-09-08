@@ -4,18 +4,10 @@ using EasyGameFramework.Api.InputDevices;
 
 namespace SimplePlatformer;
 
-public interface IActionBinding
+public sealed class Controller
 {
-    void ExecuteAction();
-}
-
-public sealed partial class Controller
-{
-    private Dictionary<KeyboardKey, Action> KeyboardKeyToActionBindings { get; } = new();
-    private Dictionary<GamepadButton, Action> GamepadButtonToActionBinding { get; } = new();
-    
-    private Dictionary<KeyboardKey, Action> KeyboardKeyToFloatActionBindings { get; } = new();
-    private Dictionary<GamepadAxis, Action<float>> GamepadAxisToActionBindings { get; } = new();
+    private Dictionary<ButtonInput, HashSet<IButtonInputBinding>> ButtonInputBindings { get; } = new();
+    private Dictionary<AxisInput, HashSet<IAxisInputBinding>> AxisInputBindings { get; } = new();
 
     private IGamepad? Gamepad { get; set; }
     private int Slot { get; set; }
@@ -29,14 +21,14 @@ public sealed partial class Controller
         Clock = clock;
     }
 
-    public ButtonBindingBuilder Bind(Action action)
+    public ButtonInputBindingBuilder Bind(ButtonInput input)
     {
-        return new ButtonBindingBuilder(this, action);
+        return new ButtonInputBindingBuilder(this, input);
     }
     
-    public AxisBindingBuilder Bind(Action<float> action)
+    public AxisBindingBuilder Bind(AxisInput input)
     {
-        return new AxisBindingBuilder(this, action);
+        return new AxisBindingBuilder(this, input);
     }
 
     public void Attach(int slotIndex)
@@ -44,100 +36,94 @@ public sealed partial class Controller
         Slot = slotIndex;
         InputSystem.GamepadManager.GamepadConnected += GamepadManager_OnGamepadConnected;
         InputSystem.GamepadManager.GamepadDisconnected += GamepadManager_OnGamepadDisconnected;
-        InputSystem.Keyboard.KeyPressed += Keyboard_OnKeyPressed;
         if (InputSystem.GamepadManager.TryGetGamepadInSlot(slotIndex, out var gamepad))
-        {
             Gamepad = gamepad!;
-            Gamepad.ButtonPressed += Gamepad_OnButtonPressed;
-        }
-        
+
         Clock.Ticked += Update;
     }
 
     public void Detach()
     {
         Clock.Ticked -= Update;
-        InputSystem.Keyboard.KeyPressed -= Keyboard_OnKeyPressed;
         InputSystem.GamepadManager.GamepadConnected -= GamepadManager_OnGamepadConnected;
         InputSystem.GamepadManager.GamepadDisconnected -= GamepadManager_OnGamepadDisconnected;
     }
 
     private void Update()
     {
+        var mouse = InputSystem.Mouse;
         var keyboard = InputSystem.Keyboard;
         var gamepad = Gamepad;
         
-        foreach (var (key, action) in KeyboardKeyToFloatActionBindings)
+        foreach (var (input, bindings) in ButtonInputBindings)
         {
-            if (keyboard.IsKeyPressed(key))
-                action.Invoke();
+            foreach (var binding in bindings)
+            {
+                input.IsPressed |= binding.Poll(keyboard, mouse, gamepad);
+            }
         }
 
-        if (gamepad != null)
+        foreach (var (input, bindings) in AxisInputBindings)
         {
-            foreach (var (axis, action) in GamepadAxisToActionBindings)
+            var value = 0f;
+            foreach (var binding in bindings)
             {
-                var axisValue = gamepad.GetAxisValue(axis);
-                action.Invoke(axisValue);
+                value += binding.Poll(keyboard, mouse, gamepad);
             }
+            
+            if (value < -1)
+                value = -1f;
+            else if (value > 1f)
+                value = 1f;
+
+            input.Value = value;
         }
     }
 
     private void GamepadManager_OnGamepadConnected(GamepadConnectedEvent evt)
     {
         if (Gamepad == null && evt.Slot == Slot)
-        {
             Gamepad = evt.Gamepad;
-            Gamepad.ButtonPressed += Gamepad_OnButtonPressed;
-        }
+        
     }
 
     private void GamepadManager_OnGamepadDisconnected(GamepadDisconnectedEvent evt)
     {
         if (evt.Gamepad == Gamepad)
-        {
-            Gamepad.ButtonPressed -= Gamepad_OnButtonPressed;
             Gamepad = null;
-        }
     }
 
-    private void Keyboard_OnKeyPressed(in KeyboardKeyStateChangedEvent evt)
-    {
-        if(KeyboardKeyToActionBindings.TryGetValue(evt.Key, out var action))
-            action.Invoke();
-    }
-
-    private void Gamepad_OnButtonPressed(GamepadButtonStateChangedEvent evt)
-    {
-        if (GamepadButtonToActionBinding.TryGetValue(evt.Button, out var action))
-            action.Invoke();
-    }
-
-    public class ButtonBindingBuilder
+    public class ButtonInputBindingBuilder
     {
         private Controller Controller { get; }
-        private Action Action { get; }
+        private HashSet<IButtonInputBinding> Bindings { get; }
 
-        public ButtonBindingBuilder(Controller controller, Action action)
+        public ButtonInputBindingBuilder(Controller controller, ButtonInput buttonInput)
         {
             Controller = controller;
-            Action = action;
+            if (!Controller.ButtonInputBindings.TryGetValue(buttonInput, out var bindings))
+            {
+                bindings = new HashSet<IButtonInputBinding>();
+                Controller.ButtonInputBindings[buttonInput] = bindings;
+            }
+
+            Bindings = bindings;
         }
 
-        public ButtonBindingBuilder To(KeyboardKey key)
+        public ButtonInputBindingBuilder To(KeyboardKey key)
         {
-            Controller.KeyboardKeyToActionBindings[key] = Action;
+            Bindings.Add(new KeyboardKeyToButtonInputBinding(key));
             return this;
         }
         
-        public ButtonBindingBuilder To(MouseButton button)
+        public ButtonInputBindingBuilder To(MouseButton button)
         {
             return this;
         }
         
-        public ButtonBindingBuilder To(GamepadButton button)
+        public ButtonInputBindingBuilder To(GamepadButton button)
         {
-            Controller.GamepadButtonToActionBinding[button] = Action;
+            Bindings.Add(new GamepadButtonToButtonInputBinding(button));
             return this;
         }
     }
@@ -145,28 +131,30 @@ public sealed partial class Controller
     public class AxisBindingBuilder
     {
         private Controller Controller { get; }
-        private Action<float> Action { get; }
+        private HashSet<IAxisInputBinding> Bindings { get; }
 
-        public AxisBindingBuilder(Controller controller, Action<float> action)
+        public AxisBindingBuilder(Controller controller, AxisInput axisInput)
         {
             Controller = controller;
-            Action = action;
+
+            if (!controller.AxisInputBindings.TryGetValue(axisInput, out var bindings))
+            {
+                bindings = new HashSet<IAxisInputBinding>();
+                controller.AxisInputBindings[axisInput] = bindings;
+            }
+
+            Bindings = bindings;
         }
 
         public AxisBindingBuilder To(KeyboardKey key, float value)
         {
-            Controller.KeyboardKeyToFloatActionBindings[key] = () => Action.Invoke(value);
+            Bindings.Add(new KeyboardKeyToAxisInputBinding(key, value));
             return this;
         }
 
         public AxisBindingBuilder To(GamepadAxis axis, float deadZoneRadius = 0.01f)
         {
-            Controller.GamepadAxisToActionBindings[axis] = axisValue =>
-            {
-                if (axisValue <= deadZoneRadius)
-                    axisValue = 0f;
-                Action.Invoke(axisValue);
-            };
+            Bindings.Add(new GamepadAxisToAxisInputBinding(axis, deadZoneRadius));
             return this;
         }
     }
