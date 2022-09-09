@@ -10,7 +10,8 @@ public class Player
     public ButtonInput ResetVelocityInput { get; } = new();
     
     private ILogger Logger { get; }
-    public Vector2 Position { get; set; }
+    public Vector2 PrevPosition { get; set; }
+    public Vector2 CurrPosition { get; set; }
     
     private Vector2 Acceleration { get; set; }
     
@@ -40,7 +41,7 @@ public class Player
     private void Jump()
     {
         Velocity = Velocity with { Y = 0f };
-        AddForce(Vector2.UnitY * 30f);
+        AddForce(Vector2.UnitY * 35f);
         Logger.Trace("Jump");
     }
 
@@ -48,33 +49,40 @@ public class Player
     {
         AddForce(Vector2.UnitX * MovementInput.Value);
         
-        if (Position.Y > 0f)
+        if (CurrPosition.Y > 0f)
         {
-            AddForce(Vector2.UnitY * -0.98f);
+            AddForce(Vector2.UnitY * -60.8f * dt);
         }
         else
         {
             Velocity = Velocity with { Y = 0f };
-            Position = Position with { Y = 0f };
+            CurrPosition = CurrPosition with { Y = 0f };
 
-            if (Velocity.LengthSquared() > 0)
+            if (Velocity.LengthSquared() > 0.1f)
             {
                 var frictionDir = Vector2.Normalize(Velocity);
                 AddForce(frictionDir * -0.45f);
             }
+            else
+            {
+                Velocity = Vector2.Zero;
+            }
         }
         
         Velocity += Acceleration;
-        Position += Velocity * dt;
+        PrevPosition = CurrPosition;
+        CurrPosition += Velocity * dt;
 
-        if (Position.X < -17.3f)
+        //Logger.Trace(Velocity);
+        
+        if (CurrPosition.X < -17.3f)
         {
-            Position = Position with { X = -17.3f };
+            CurrPosition = CurrPosition with { X = -17.3f };
             Velocity = Velocity with { X = -Velocity.X };
         }
-        else if (Position.X > 17.3f)
+        else if (CurrPosition.X > 17.3f)
         {
-            Position = Position with { X =  17.3f };
+            CurrPosition = CurrPosition with { X =  17.3f };
             Velocity = Velocity with { X = -Velocity.X };
         }
         

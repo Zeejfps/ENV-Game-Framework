@@ -86,10 +86,10 @@ public class SimplePlatformer : Game
         
         SpriteRenderer.NewBatch();
 
-        var test = Clock.FrameLerpFactor;
+        var lerpFactor = Clock.FrameLerpFactor;
         foreach (var player in Players)
         {
-            var position = player.Position + player.Velocity * Clock.DeltaTime * test;
+            var position = Vector2.Lerp(player.PrevPosition, player.CurrPosition, lerpFactor);
             SpriteRenderer.DrawSprite(position, new Vector3(1f, 0f, 1f), new Vector2(0f, 0.5f));
         }
         
