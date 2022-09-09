@@ -17,7 +17,7 @@ public class SimplePlatformerApp : WindowedApp
         window.IsFullscreen = false;
         window.CursorMode = CursorMode.HiddenAndLocked;
         window.IsResizable = false;
-        window.IsVsyncEnabled = true;
+        window.IsVsyncEnabled = false;
         window.SetViewportSize(1280, 720);
     }
 

@@ -7,7 +7,7 @@ public class Player
 {
     public ButtonInput JumpInput { get; }
     public AxisInput MovementInput { get; }
-    public ButtonInput ResetInput { get; } = new();
+    public ButtonInput ResetVelocityInput { get; } = new();
     
     private ILogger Logger { get; }
     public Vector2 Position { get; set; }
@@ -24,7 +24,7 @@ public class Player
         MovementInput = new AxisInput();
 
         JumpInput.Pressed += Jump;
-        ResetInput.Pressed += ResetSpeedInput_OnPressed;
+        ResetVelocityInput.Pressed += ResetSpeedInput_OnPressed;
     }
 
     private void ResetSpeedInput_OnPressed()
@@ -56,13 +56,27 @@ public class Player
         {
             Velocity = Velocity with { Y = 0f };
             Position = Position with { Y = 0f };
+
+            if (Velocity.LengthSquared() > 0)
+            {
+                var frictionDir = Vector2.Normalize(Velocity);
+                AddForce(frictionDir * -0.45f);
+            }
         }
         
         Velocity += Acceleration;
         Position += Velocity * dt;
-        
-        if (Position.X < -18f || Position.X > 16.5f)
+
+        if (Position.X < -17.3f)
+        {
+            Position = Position with { X = -17.3f };
             Velocity = Velocity with { X = -Velocity.X };
+        }
+        else if (Position.X > 17.3f)
+        {
+            Position = Position with { X =  17.3f };
+            Velocity = Velocity with { X = -Velocity.X };
+        }
         
         Acceleration = Vector2.Zero;
     }

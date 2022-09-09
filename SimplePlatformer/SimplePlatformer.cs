@@ -18,7 +18,7 @@ public class SimplePlatformer : Game
     
     public SimplePlatformer(IEventLoop eventLoop, ILogger logger, IInputSystem inputSystem, IGpu gpu) : base(eventLoop, logger)
     {
-        var maxPlayerCount = 1;
+        var maxPlayerCount = 2;
 
         Gpu = gpu;
         
@@ -47,7 +47,7 @@ public class SimplePlatformer : Game
                 .To(KeyboardKey.D, 1f)
                 .To(GamepadAxis.LeftStickX, 0.08f);
 
-            controller.Bind(player.ResetInput)
+            controller.Bind(player.ResetVelocityInput)
                 .To(KeyboardKey.R)
                 .To(GamepadButton.East);
             
@@ -90,7 +90,7 @@ public class SimplePlatformer : Game
         foreach (var player in Players)
         {
             var position = player.Position + player.Velocity * Clock.DeltaTime * test;
-            SpriteRenderer.DrawSprite(position, new Vector3(1f, 0f, 1f));
+            SpriteRenderer.DrawSprite(position, new Vector3(1f, 0f, 1f), new Vector2(0f, 0.5f));
         }
         
         SpriteRenderer.RenderBatch(Camera);

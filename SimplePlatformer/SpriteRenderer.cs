@@ -34,10 +34,10 @@ public class SpriteRenderer
         m_Size = 0;
     }
 
-    public void DrawSprite(Vector2 position, Vector3 color)
+    public void DrawSprite(Vector2 position, Vector3 color, Vector2 pivot)
     {
         var modelMatrix = Matrix4x4.CreateScale(0.5f)
-                          * Matrix4x4.CreateTranslation(position.X + 0.5f, position.Y + 0.5f, 0f);
+                          * Matrix4x4.CreateTranslation(position.X + pivot.X, position.Y + pivot.Y, 0f);
 
         m_Colors[m_Size] = color;
         m_ModelMatrices[m_Size] = modelMatrix;
