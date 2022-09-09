@@ -1,4 +1,5 @@
-﻿using EasyGameFramework.Api;
+﻿using System.Numerics;
+using EasyGameFramework.Api;
 
 namespace SimplePlatformer;
 
@@ -8,7 +9,8 @@ public class Player
     public AxisInput MovementInput { get; }
     
     private ILogger Logger { get; }
-    
+    public Vector2 Position { get; set; }
+
     public Player(ILogger logger)
     {
         Logger = logger;
@@ -17,7 +19,6 @@ public class Player
         MovementInput = new AxisInput();
 
         JumpInput.Pressed += Jump;
-        MovementInput.ValueChanged += Move;
     }
     
     public void Jump()
@@ -25,8 +26,8 @@ public class Player
         Logger.Trace("Jump!");
     }
 
-    public void Move(float axisValue)
+    public void Update(float dt)
     {
-        Logger.Trace($"Moving {axisValue}");   
+        Position += new Vector2(MovementInput.Value * dt * 10f, 0f);
     }
 }

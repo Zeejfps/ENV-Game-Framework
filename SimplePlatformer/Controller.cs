@@ -35,12 +35,16 @@ public sealed class Controller
 
     public void Attach(int slotIndex)
     {
-        Keyboard = InputSystem.Keyboard;
-        Mouse = InputSystem.Mouse;
+        var inputSystem = InputSystem;
+        var gamepadManager = inputSystem.GamepadManager;
+
         Slot = slotIndex;
-        InputSystem.GamepadManager.GamepadConnected += GamepadManager_OnGamepadConnected;
-        InputSystem.GamepadManager.GamepadDisconnected += GamepadManager_OnGamepadDisconnected;
-        if (InputSystem.GamepadManager.TryGetGamepadInSlot(slotIndex, out var gamepad))
+        Mouse = inputSystem.Mouse;
+        Keyboard = inputSystem.Keyboard;
+
+        gamepadManager.GamepadConnected += GamepadManager_OnGamepadConnected;
+        gamepadManager.GamepadDisconnected += GamepadManager_OnGamepadDisconnected;
+        if (gamepadManager.TryGetGamepadInSlot(slotIndex, out var gamepad))
             Gamepad = gamepad!;
 
         Clock.Ticked += Update;
