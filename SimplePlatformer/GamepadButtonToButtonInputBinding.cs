@@ -11,8 +11,9 @@ public sealed class GamepadButtonToButtonInputBinding : IButtonInputBinding
         m_Button = button;
     }
 
-    public bool Poll(IKeyboard keyboard, IMouse mouse, IGamepad? gamepad)
+    public bool Poll(Controller controller)
     {
+        var gamepad = controller.Gamepad;
         if (gamepad == null)
             return false;
 

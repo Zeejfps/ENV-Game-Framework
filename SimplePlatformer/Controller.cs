@@ -9,9 +9,11 @@ public sealed class Controller
     private Dictionary<ButtonInput, HashSet<IButtonInputBinding>> ButtonInputBindings { get; } = new();
     private Dictionary<AxisInput, HashSet<IAxisInputBinding>> AxisInputBindings { get; } = new();
 
-    private IGamepad? Gamepad { get; set; }
+    public IMouse? Mouse { get; private set; }
+    public IKeyboard? Keyboard { get; private set; }
+    public IGamepad? Gamepad { get; private set; }
+    
     private int Slot { get; set; }
-
     private IInputSystem InputSystem { get; }
     private IClock Clock { get; }
 
@@ -59,7 +61,7 @@ public sealed class Controller
         {
             foreach (var binding in bindings)
             {
-                input.IsPressed |= binding.Poll(keyboard, mouse, gamepad);
+                input.IsPressed |= binding.Poll(this);
             }
         }
 
@@ -84,7 +86,6 @@ public sealed class Controller
     {
         if (Gamepad == null && evt.Slot == Slot)
             Gamepad = evt.Gamepad;
-        
     }
 
     private void GamepadManager_OnGamepadDisconnected(GamepadDisconnectedEvent evt)

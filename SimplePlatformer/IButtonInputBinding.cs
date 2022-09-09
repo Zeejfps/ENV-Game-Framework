@@ -4,5 +4,5 @@ namespace SimplePlatformer;
 
 public interface IButtonInputBinding
 {
-    bool Poll(IKeyboard keyboard, IMouse mouse, IGamepad? gamepad);
+    bool Poll(Controller controller);
 }

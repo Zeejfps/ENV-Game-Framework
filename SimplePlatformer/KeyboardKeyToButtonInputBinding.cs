@@ -11,8 +11,11 @@ public class KeyboardKeyToButtonInputBinding : IButtonInputBinding
         m_Key = key;
     }
 
-    public bool Poll(IKeyboard keyboard, IMouse mouse, IGamepad? gamepad)
+    public bool Poll(Controller controller)
     {
+        var keyboard = controller.Keyboard;
+        if (keyboard == null)
+            return false;
         return keyboard.IsKeyPressed(m_Key);
     }
 }
