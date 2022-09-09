@@ -41,13 +41,13 @@ public class Player
     private void Jump()
     {
         Velocity = Velocity with { Y = 0f };
-        AddForce(Vector2.UnitY * 35f);
+        AddForce(Vector2.UnitY * 20f);
         Logger.Trace("Jump");
     }
 
     public void Update(float dt)
     {
-        AddForce(Vector2.UnitX * MovementInput.Value);
+        AddForce(Vector2.UnitX * MovementInput.Value * dt * 50f);
         
         if (CurrPosition.Y > 0f)
         {
@@ -75,14 +75,14 @@ public class Player
 
         //Logger.Trace(Velocity);
         
-        if (CurrPosition.X < -17.3f)
+        if (CurrPosition.X < -17.3f/2f)
         {
-            CurrPosition = CurrPosition with { X = -17.3f };
+            CurrPosition = CurrPosition with { X = -17.3f /2f};
             Velocity = Velocity with { X = -Velocity.X };
         }
-        else if (CurrPosition.X > 17.3f)
+        else if (CurrPosition.X > 17.3f/2f)
         {
-            CurrPosition = CurrPosition with { X =  17.3f };
+            CurrPosition = CurrPosition with { X =  17.3f/2f };
             Velocity = Velocity with { X = -Velocity.X };
         }
         

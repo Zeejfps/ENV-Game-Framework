@@ -26,7 +26,7 @@ public class SimplePlatformer : Game
         Gpu = gpu;
         
         Camera = new OrthographicCamera(100, 100, 0.1f, 100f);
-        Camera.Transform.WorldPosition += Vector3.UnitY * 10f;
+        Camera.Transform.WorldPosition += Vector3.UnitY * 5;
         
         SpriteRenderer = new SpriteRenderer(gpu);
         CloseAppInput = new ButtonInput();
@@ -69,7 +69,7 @@ public class SimplePlatformer : Game
         }
 
         var aspectRatio = Gpu.Renderbuffer.Width / Gpu.Renderbuffer.Height;
-        Camera.SetSize(20f * aspectRatio, 20);
+        Camera.SetSize(10f * aspectRatio, 10);
         CloseAppInput.Pressed += Stop;
         SpriteRenderer.LoadResources();
 
@@ -96,6 +96,8 @@ public class SimplePlatformer : Game
 
     protected override void OnRender()
     {
+        Gpu.EnableBlending = true;
+        
         var renderbuffer = Gpu.Renderbuffer;
         renderbuffer.ClearColorBuffers(0.2f, 0.2f, 0.2f, 1);
         
@@ -108,7 +110,7 @@ public class SimplePlatformer : Game
             var sprite = new Sprite
             {
                 SpriteSheet = PlayerSpriteSheet!,
-                Offset = new Vector2(10, 10),
+                Offset = new Vector2(16, 16),
                 Size = new Vector2(16, 16),
                 Color = new Vector3(1f, 0f, 1f),
                 Pivot = new Vector2(0f, 0.5f),

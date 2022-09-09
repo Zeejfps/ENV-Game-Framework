@@ -67,7 +67,7 @@ internal class Gpu_GL : IGpu
             if (m_EnableBlending)
             {
                 glEnable(GL_BLEND);
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             }
             else
             {
