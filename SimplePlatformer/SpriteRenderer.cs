@@ -7,35 +7,15 @@ using SimplePlatformer;
 
 namespace SampleGames;
 
-public class SpriteRenderer
+public class SpriteBatch
 {
     private const int MAX_BATCH_SIZE = 512;
-    
-    private IGpu Gpu { get; }
-    private IHandle<IGpuShader>? ShaderHandle { get; set; }
-    private IHandle<IGpuMesh>? MeshHandle { get; set; }
-
-    public SpriteRenderer(IGpu gpu)
-    {
-        Gpu = gpu;
-    }
-
-    public void LoadResources()
-    {
-        ShaderHandle = Gpu.Shader.Load("Assets/sprite");
-        MeshHandle = Gpu.Mesh.Load("Assets/quad");
-    }
 
     private int m_Size = 0;
     private readonly Vector3[] m_Colors = new Vector3[MAX_BATCH_SIZE];
     private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[MAX_BATCH_SIZE];
-    
-    public void NewBatch()
-    {
-        m_Size = 0;
-    }
 
-    public void DrawSprite(Vector2 position, Sprite sprite)
+    public void Add(Vector2 position, Sprite sprite)
     {
         var color = sprite.Color;
         var pivot = sprite.Pivot;
@@ -46,6 +26,71 @@ public class SpriteRenderer
         m_ModelMatrices[m_Size] = modelMatrix;
         
         m_Size++;
+    }
+    
+    public void Clear()
+    {
+        m_Size = 0;
+    }
+}
+
+public class SpriteRenderer
+{
+    private const int MAX_BATCH_SIZE = 512;
+    
+    private IGpu Gpu { get; }
+    private IHandle<IGpuShader>? ShaderHandle { get; set; }
+    private IHandle<IGpuMesh>? MeshHandle { get; set; }
+    private Dictionary<IHandle<IGpuTexture>, SpriteBatch> Batches { get; } = new();
+    
+    private int m_Size = 0;
+    private readonly Vector3[] m_Colors = new Vector3[MAX_BATCH_SIZE];
+    private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[MAX_BATCH_SIZE];
+    
+    public SpriteRenderer(IGpu gpu)
+    {
+        Gpu = gpu;
+    }
+
+    public void LoadResources()
+    {
+        ShaderHandle = Gpu.Shader.Load("Assets/sprite");
+        MeshHandle = Gpu.Mesh.Load("Assets/quad");
+    }
+    
+    public void NewBatch()
+    {
+        m_Size = 0;
+        foreach (var batch in Batches.Values)
+            batch.Clear();
+    }
+
+    public void DrawSprite(Vector2 position, Sprite sprite)
+    {
+        var spriteSheet = sprite.SpriteSheet;
+
+        if (spriteSheet == null)
+        {
+            var color = sprite.Color;
+            var pivot = sprite.Pivot;
+            var modelMatrix = Matrix4x4.CreateScale(0.5f)
+                              * Matrix4x4.CreateTranslation(position.X + pivot.X, position.Y + pivot.Y, 0f);
+
+            m_Colors[m_Size] = color;
+            m_ModelMatrices[m_Size] = modelMatrix;
+            m_Size++;
+        }
+        else
+        {
+            if (!Batches.TryGetValue(spriteSheet, out var batch))
+            {
+                batch = new SpriteBatch();
+                Batches[spriteSheet] = batch;
+            }
+
+            batch.Add(position, sprite);
+        }
+    
     }
 
     public void RenderBatch(ICamera camera)

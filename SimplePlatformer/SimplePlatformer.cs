@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
+using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
@@ -16,6 +17,8 @@ public class SimplePlatformer : Game
     private SpriteRenderer SpriteRenderer { get; }
     private OrthographicCamera Camera { get; }
     
+    private IHandle<IGpuTexture>? PlayerSpriteSheet { get; set; }
+
     public SimplePlatformer(IEventLoop eventLoop, ILogger logger, IInputSystem inputSystem, IGpu gpu) : base(eventLoop, logger)
     {
         var maxPlayerCount = 2;
@@ -69,6 +72,8 @@ public class SimplePlatformer : Game
         Camera.SetSize(20f * aspectRatio, 20);
         CloseAppInput.Pressed += Stop;
         SpriteRenderer.LoadResources();
+
+        PlayerSpriteSheet = Gpu.Texture.Load("Assets/PlayerSpriteSheet");
     }
 
     protected override void OnStop()
@@ -102,6 +107,9 @@ public class SimplePlatformer : Game
             var position = Vector2.Lerp(player.PrevPosition, player.CurrPosition, lerpFactor);
             var sprite = new Sprite
             {
+                //SpriteSheet = PlayerSpriteSheet!,
+                UVs = new Vector2(0.1f, 0.1f),
+                Size = new Vector2(16, 16),
                 Color = new Vector3(1f, 0f, 1f),
                 Pivot = new Vector2(0f, 0.5f),
             };
