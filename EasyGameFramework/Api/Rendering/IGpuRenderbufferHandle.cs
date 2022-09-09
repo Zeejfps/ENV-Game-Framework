@@ -8,6 +8,6 @@ public interface IGpuRenderbufferHandle : IHandle<IGpuRenderbuffer>
     public int Height { get; }
     bool HasDepthBuffer { get; }
 
-    public IHandle<IGpuTexture>[] ColorBuffers { get; }
-    public IHandle<IGpuTexture>? DepthBuffer { get; }
+    public IGpuTextureHandle[] ColorBuffers { get; }
+    public IGpuTextureHandle? DepthBuffer { get; }
 }

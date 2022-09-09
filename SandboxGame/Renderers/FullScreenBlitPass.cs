@@ -13,9 +13,9 @@ public class FullScreenBlitPass
         ITransform3D light,
         IHandle<IGpuMesh> quadMeshHandle,
         IHandle<IGpuShader> fullScreenBlitShaderHandle, 
-        IHandle<IGpuTexture> bufferAlbedoHandle, 
-        IHandle<IGpuTexture> bufferNormalHandle, 
-        IHandle<IGpuTexture> bufferPositionHandle)
+        IGpuTextureHandle bufferAlbedoHandle, 
+        IGpuTextureHandle bufferNormalHandle, 
+        IGpuTextureHandle bufferPositionHandle)
     {
         gpu.SaveState();
         gpu.EnableBackfaceCulling = true;

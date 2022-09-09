@@ -5,9 +5,15 @@
 const int MAX_BATCH_SIZE = 512;
 
 layout (location = 0) in vec3 attr_vertex_position;
+
+uniform sampler2D sprite_sheet;
+uniform vec2 texture_size;
 uniform mat4 matrix_projection, matrix_view;
 uniform mat4 model_matrices[MAX_BATCH_SIZE];
+uniform vec2 offsets[MAX_BATCH_SIZE];
+uniform vec2 sizes[MAX_BATCH_SIZE];
 
+out vec2 frag_uvs;
 flat out int instanceID;
 
 void main()
@@ -17,6 +23,7 @@ void main()
     vec4 vert_world_position = matrix_model * vec4(attr_vertex_position, 1);
     vec4 vert_view_position = matrix_view * vert_world_position;
     gl_Position = matrix_projection * vert_view_position;
+    
 }
     
 #END
@@ -32,15 +39,18 @@ struct SpriteData {
     mat4 ModelMatrix;
 };
 
+uniform sampler2D sprite_sheet;
 uniform vec3 colors[MAX_BATCH_SIZE];
 
 flat in int instanceID;
+in vec2 frag_uvs;
 
 out vec4 out_result;
 
 void main() {
     const vec3 color = colors[instanceID];
-    out_result = vec4(color, 1);
+    const vec4 texture_color = texture(sprite_sheet, frag_uvs);
+    out_result = texture_color;
 }
 
 #END

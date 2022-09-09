@@ -36,6 +36,12 @@ internal class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader
         BoundResource.SetVector2(propertyName, value);
     }
 
+    public void SetVector2Array(string uniformName, ReadOnlySpan<Vector2> array)
+    {
+        Debug.Assert(BoundResource != null);
+        BoundResource.SetVector2Array(uniformName, array);
+    }
+
     public void SetVector3(string propertyName, Vector3 value)
     {
         Debug.Assert(BoundResource != null);
@@ -48,7 +54,7 @@ internal class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader
         BoundResource.SetVector3Array(uniformName, array);
     }
 
-    public void SetTexture2d(string propertyName, IHandle<IGpuTexture> value)
+    public void SetTexture2d(string propertyName, IGpuTextureHandle value)
     {
         Debug.Assert(BoundResource != null);
         BoundResource.SetTexture2d(propertyName, value);

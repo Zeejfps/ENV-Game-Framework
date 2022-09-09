@@ -1,11 +1,15 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
+using EasyGameFramework.Api.Rendering;
 using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-internal class GpuReadonlyTextureHandle : IHandle<IGpuTexture>
+internal class GpuReadonlyTextureHandle : IGpuTextureHandle
 {
+    public int Width => m_Texture.Width;
+    public int Height => m_Texture.Height;
+    
     private readonly Texture2D_GL m_Texture;
 
     public GpuReadonlyTextureHandle(Texture2D_GL texture)

@@ -4,6 +4,6 @@ namespace EasyGameFramework.Api.Rendering;
 
 public interface ITextureManager
 {
-    IHandle<IGpuTexture> Load(string assetPath);
-    void Bind(IHandle<IGpuTexture> handle);
+    IGpuTextureHandle Load(string assetPath);
+    void Bind(IGpuTextureHandle handle);
 }

@@ -4,7 +4,7 @@ namespace EasyGameFramework.OpenGL;
 
 public class ReadonlyTexture2D_GL : Texture2D_GL, IEquatable<ReadonlyTexture2D_GL>
 {
-    public ReadonlyTexture2D_GL(uint id) : base(id)
+    public ReadonlyTexture2D_GL(uint id, int width, int height) : base(id, width, height)
     {
     }
 
@@ -63,6 +63,6 @@ public class ReadonlyTexture2D_GL : Texture2D_GL, IEquatable<ReadonlyTexture2D_G
 
         glAssertNoError();
 
-        return new ReadonlyTexture2D_GL(id);
+        return new ReadonlyTexture2D_GL(id, width, height);
     }
 }

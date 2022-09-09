@@ -1,5 +1,5 @@
-﻿using EasyGameFramework.Api;
-using EasyGameFramework.Api.AssetTypes;
+﻿using EasyGameFramework.Api.AssetTypes;
+using EasyGameFramework.Api.Rendering;
 using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
@@ -20,7 +20,7 @@ internal class GpuRenderbuffer_GL : IGpuRenderbuffer
         Id = glGenFramebuffer();
         glBindFramebuffer(Id);
 
-        ColorBuffers = new IHandle<IGpuTexture>[colorBufferCount];
+        ColorBuffers = new IGpuTextureHandle[colorBufferCount];
         m_drawBufferIds = new int[colorBufferCount];
         for (var i = 0; i < colorBufferCount; i++)
         {
@@ -31,7 +31,7 @@ internal class GpuRenderbuffer_GL : IGpuRenderbuffer
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorTextureId, 0);
 
-            var texture = new Texture2D_GL(colorTextureId);
+            var texture = new Texture2D_GL(colorTextureId, width, height);
             var handle = new GpuTextureHandle(texture);
             ColorBuffers[i] = handle;
             m_drawBufferIds[i] = GL_COLOR_ATTACHMENT0 + i;
@@ -48,7 +48,7 @@ internal class GpuRenderbuffer_GL : IGpuRenderbuffer
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL,
                 GL_UNSIGNED_INT_24_8, IntPtr.Zero);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depthTextureId, 0);
-            var texture = new Texture2D_GL(depthTextureId);
+            var texture = new Texture2D_GL(depthTextureId, width, height);
             var handle = new GpuTextureHandle(texture);
             m_TextureManager.Add(handle, texture);
             DepthBuffer = handle;
@@ -62,9 +62,9 @@ internal class GpuRenderbuffer_GL : IGpuRenderbuffer
 
     public int Width { get; private set; }
     public int Height { get; private set; }
-    public IHandle<IGpuTexture>[] ColorBuffers { get; }
+    public IGpuTextureHandle[] ColorBuffers { get; }
 
-    public IHandle<IGpuTexture>? DepthBuffer { get; }
+    public IGpuTextureHandle? DepthBuffer { get; }
 
     public uint Id { get; }
 

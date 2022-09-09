@@ -105,11 +105,11 @@ public readonly struct SpecularRenderable
 
 public struct SpecularRenderableTextures : IEquatable<SpecularRenderableTextures>
 {
-    public IHandle<IGpuTexture> Diffuse { get; init; }
-    public IHandle<IGpuTexture> Normal { get; init; }
-    public IHandle<IGpuTexture> Roughness { get; init; }
-    public IHandle<IGpuTexture> Occlusion { get; init; }
-    public IHandle<IGpuTexture> Translucency { get; init; }
+    public IGpuTextureHandle Diffuse { get; init; }
+    public IGpuTextureHandle Normal { get; init; }
+    public IGpuTextureHandle Roughness { get; init; }
+    public IGpuTextureHandle Occlusion { get; init; }
+    public IGpuTextureHandle Translucency { get; init; }
 
     public bool Equals(SpecularRenderableTextures other)
     {

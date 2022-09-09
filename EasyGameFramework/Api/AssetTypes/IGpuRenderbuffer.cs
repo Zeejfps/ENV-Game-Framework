@@ -1,7 +1,9 @@
-﻿namespace EasyGameFramework.Api.AssetTypes;
+﻿using EasyGameFramework.Api.Rendering;
+
+namespace EasyGameFramework.Api.AssetTypes;
 
 public interface IGpuRenderbuffer : IGpuFramebuffer
 {
-    IHandle<IGpuTexture>[] ColorBuffers { get; }
-    IHandle<IGpuTexture>? DepthBuffer { get; }
+    IGpuTextureHandle[] ColorBuffers { get; }
+    IGpuTextureHandle? DepthBuffer { get; }
 }

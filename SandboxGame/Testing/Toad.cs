@@ -1,6 +1,7 @@
 ﻿using EasyGameFramework;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
+using EasyGameFramework.Api.Rendering;
 using Framework.Materials;
 
 namespace Framework;
@@ -10,11 +11,11 @@ public class Toad : ISceneObject
     public ITransform3D Transform { get; }
     
     private IHandle<IGpuMesh>? m_MeshHandle;
-    private IHandle<IGpuTexture>? m_Diffuse;
-    private IHandle<IGpuTexture>? m_Normal;
-    private IHandle<IGpuTexture>? m_Roughness;
-    private IHandle<IGpuTexture>? m_Occlusion;
-    private IHandle<IGpuTexture>? m_Translucency;
+    private IGpuTextureHandle? m_Diffuse;
+    private IGpuTextureHandle? m_Normal;
+    private IGpuTextureHandle? m_Roughness;
+    private IGpuTextureHandle? m_Occlusion;
+    private IGpuTextureHandle? m_Translucency;
 
     private UnlitMaterial m_Material;
 

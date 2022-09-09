@@ -51,7 +51,7 @@ public class Shader_GL : IGpuShader
         SetVector3(propertyName, vector.X, vector.Y, vector.Z);
     }
 
-    public void SetTexture2d(string propertyName, IHandle<IGpuTexture> textureHandle)
+    public void SetTexture2d(string propertyName, IGpuTextureHandle textureHandle)
     {
         var location = GetUniformLocation(propertyName);
         var textureSlot = GetTextureSlot(propertyName);
@@ -173,6 +173,19 @@ public class Shader_GL : IGpuShader
             fixed (float* ptr = &array[0].M11)
             {
                 glUniformMatrix4fv(location, array.Length * 16, false, ptr);
+                glAssertNoError();
+            }
+        }
+    }
+
+    public void SetVector2Array(string uniformName, ReadOnlySpan<Vector2> array)
+    {
+        var location = GetUniformLocation(uniformName);
+        unsafe
+        {
+            fixed (float* ptr = &array[0].X)
+            {
+                glUniform2fv(location, array.Length * 2, ptr);
                 glAssertNoError();
             }
         }

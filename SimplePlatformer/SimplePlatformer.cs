@@ -17,7 +17,7 @@ public class SimplePlatformer : Game
     private SpriteRenderer SpriteRenderer { get; }
     private OrthographicCamera Camera { get; }
     
-    private IHandle<IGpuTexture>? PlayerSpriteSheet { get; set; }
+    private IGpuTextureHandle? PlayerSpriteSheet { get; set; }
 
     public SimplePlatformer(IEventLoop eventLoop, ILogger logger, IInputSystem inputSystem, IGpu gpu) : base(eventLoop, logger)
     {
@@ -107,8 +107,8 @@ public class SimplePlatformer : Game
             var position = Vector2.Lerp(player.PrevPosition, player.CurrPosition, lerpFactor);
             var sprite = new Sprite
             {
-                //SpriteSheet = PlayerSpriteSheet!,
-                UVs = new Vector2(0.1f, 0.1f),
+                SpriteSheet = PlayerSpriteSheet!,
+                Offset = new Vector2(10, 10),
                 Size = new Vector2(16, 16),
                 Color = new Vector3(1f, 0f, 1f),
                 Pivot = new Vector2(0f, 0.5f),
