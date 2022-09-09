@@ -71,6 +71,16 @@ public class SimplePlatformer : Game
         SpriteRenderer.LoadResources();
     }
 
+    protected override void OnStop()
+    {
+        CloseAppInput.Pressed -= Stop;
+        for (var i = 0; i < Controllers.Length; i++)
+        {
+            var controller = Controllers[i];
+            controller.Detach();
+        }
+    }
+
     protected override void OnUpdate()
     {
         foreach (var player in Players)
@@ -90,19 +100,14 @@ public class SimplePlatformer : Game
         foreach (var player in Players)
         {
             var position = Vector2.Lerp(player.PrevPosition, player.CurrPosition, lerpFactor);
-            SpriteRenderer.DrawSprite(position, new Vector3(1f, 0f, 1f), new Vector2(0f, 0.5f));
+            var sprite = new Sprite
+            {
+                Color = new Vector3(1f, 0f, 1f),
+                Pivot = new Vector2(0f, 0.5f),
+            };
+            SpriteRenderer.DrawSprite(position, sprite);
         }
         
         SpriteRenderer.RenderBatch(Camera);
-    }
-
-    protected override void OnStop()
-    {
-        CloseAppInput.Pressed -= Stop;
-        for (var i = 0; i < Controllers.Length; i++)
-        {
-            var controller = Controllers[i];
-            controller.Detach();
-        }
     }
 }

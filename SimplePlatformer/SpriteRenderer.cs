@@ -3,6 +3,7 @@ using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Rendering;
+using SimplePlatformer;
 
 namespace SampleGames;
 
@@ -34,8 +35,10 @@ public class SpriteRenderer
         m_Size = 0;
     }
 
-    public void DrawSprite(Vector2 position, Vector3 color, Vector2 pivot)
+    public void DrawSprite(Vector2 position, Sprite sprite)
     {
+        var color = sprite.Color;
+        var pivot = sprite.Pivot;
         var modelMatrix = Matrix4x4.CreateScale(0.5f)
                           * Matrix4x4.CreateTranslation(position.X + pivot.X, position.Y + pivot.Y, 0f);
 
