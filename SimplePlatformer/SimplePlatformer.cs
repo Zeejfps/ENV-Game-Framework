@@ -23,6 +23,7 @@ public class SimplePlatformer : Game
         Gpu = gpu;
         
         Camera = new OrthographicCamera(100, 100, 0.1f, 100f);
+        Camera.Transform.WorldPosition += Vector3.UnitY * 10f;
         
         SpriteRenderer = new SpriteRenderer(gpu);
         CloseAppInput = new ButtonInput();
@@ -45,6 +46,10 @@ public class SimplePlatformer : Game
                 .To(KeyboardKey.A, -1f)
                 .To(KeyboardKey.D, 1f)
                 .To(GamepadAxis.LeftStickX, 0.08f);
+
+            controller.Bind(player.ResetInput)
+                .To(KeyboardKey.R)
+                .To(GamepadButton.East);
             
             controller.Bind(CloseAppInput)
                 .To(KeyboardKey.Escape)
@@ -61,7 +66,7 @@ public class SimplePlatformer : Game
         }
 
         var aspectRatio = Gpu.Renderbuffer.Width / Gpu.Renderbuffer.Height;
-        Camera.SetSize(50f, 50f / aspectRatio);
+        Camera.SetSize(20f * aspectRatio, 20);
         CloseAppInput.Pressed += Stop;
         SpriteRenderer.LoadResources();
     }
@@ -81,9 +86,11 @@ public class SimplePlatformer : Game
         
         SpriteRenderer.NewBatch();
 
+        var test = Clock.FrameLerpFactor;
         foreach (var player in Players)
         {
-            SpriteRenderer.DrawSprite(player.Position, new Vector3(1f, 0f, 1f));
+            var position = player.Position + player.Velocity * Clock.DeltaTime * test;
+            SpriteRenderer.DrawSprite(position, new Vector3(1f, 0f, 1f));
         }
         
         SpriteRenderer.RenderBatch(Camera);
