@@ -35,6 +35,8 @@ public sealed class Controller
 
     public void Attach(int slotIndex)
     {
+        Keyboard = InputSystem.Keyboard;
+        Mouse = InputSystem.Mouse;
         Slot = slotIndex;
         InputSystem.GamepadManager.GamepadConnected += GamepadManager_OnGamepadConnected;
         InputSystem.GamepadManager.GamepadDisconnected += GamepadManager_OnGamepadDisconnected;
@@ -46,6 +48,9 @@ public sealed class Controller
 
     public void Detach()
     {
+        Keyboard = null;
+        Mouse = null;
+        Gamepad = null;
         Clock.Ticked -= Update;
         InputSystem.GamepadManager.GamepadConnected -= GamepadManager_OnGamepadConnected;
         InputSystem.GamepadManager.GamepadDisconnected -= GamepadManager_OnGamepadDisconnected;
