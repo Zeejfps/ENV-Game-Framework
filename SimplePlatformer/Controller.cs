@@ -68,10 +68,12 @@ public sealed class Controller
         
         foreach (var (input, bindings) in ButtonInputBindings)
         {
+            var value = false;
             foreach (var binding in bindings)
             {
-                input.IsPressed |= binding.Poll(this);
+                value |= binding.Poll(this);
             }
+            input.IsPressed = value;
         }
 
         foreach (var (input, bindings) in AxisInputBindings)

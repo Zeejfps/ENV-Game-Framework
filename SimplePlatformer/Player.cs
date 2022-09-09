@@ -10,6 +10,10 @@ public class Player
     
     private ILogger Logger { get; }
     public Vector2 Position { get; set; }
+    
+    private Vector2 Acceleration { get; set; }
+    
+    private Vector2 Velocity { get; set; }
 
     public Player(ILogger logger)
     {
@@ -20,14 +24,32 @@ public class Player
 
         JumpInput.Pressed += Jump;
     }
-    
-    public void Jump()
+
+    public void AddForce(Vector2 force)
     {
-        Logger.Trace("Jump!");
+        Acceleration += force;
+    }
+    
+    private void Jump()
+    {
+        AddForce(Vector2.UnitY * 12f);
+        Logger.Trace("Jump");
     }
 
     public void Update(float dt)
     {
-        Position += new Vector2(MovementInput.Value * dt * 10f, 0f);
+        if (Position.Y > 0f)
+        {
+            AddForce(Vector2.UnitY * -0.98f);
+        }
+        else
+        {
+            Velocity = Velocity with { Y = 0f };
+            Position = Position with { Y = 0f };
+        }
+        
+        Velocity += Acceleration;
+        Position += Velocity * dt;
+        Acceleration = Vector2.Zero;
     }
 }
