@@ -65,7 +65,7 @@ public abstract class Game
         m_FpsTime += frameTime;
         if (m_FpsTime >= 1)
         {
-            Logger.Trace($"FPS: {m_FrameCount}");
+            //Logger.Trace($"FPS: {m_FrameCount}");
             m_FpsTime = 0;
             m_FrameCount = 0;
         } 

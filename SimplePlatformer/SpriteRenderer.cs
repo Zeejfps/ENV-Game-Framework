@@ -29,7 +29,9 @@ public class SpriteBatch
         var size = sprite.Size;
         var color = sprite.Color;
         var pivot = sprite.Pivot;
-        var modelMatrix = Matrix4x4.CreateScale(0.5f)
+
+        var scaleX = sprite.FlipX ? -0.5f : 0.5f;
+        var modelMatrix = Matrix4x4.CreateScale(scaleX, 0.5f, 0.5f)
                           * Matrix4x4.CreateTranslation(position.X + pivot.X, position.Y + pivot.Y, 0f);
 
         m_Offsets[m_Size] = offset;

@@ -12,10 +12,9 @@ public class Player
     private ILogger Logger { get; }
     public Vector2 PrevPosition { get; set; }
     public Vector2 CurrPosition { get; set; }
+    public Vector2 Velocity { get; set; }
     
     private Vector2 Acceleration { get; set; }
-    
-    public Vector2 Velocity { get; set; }
 
     public Player(ILogger logger)
     {
@@ -27,7 +26,7 @@ public class Player
         JumpInput.Pressed += Jump;
         ResetVelocityInput.Pressed += ResetSpeedInput_OnPressed;
     }
-
+    
     private void ResetSpeedInput_OnPressed()
     {
         Velocity = Vector2.Zero;
@@ -47,7 +46,7 @@ public class Player
 
     public void Update(float dt)
     {
-        AddForce(Vector2.UnitX * MovementInput.Value * dt * 50f);
+        AddForce(Vector2.UnitX * MovementInput.Value * dt * 30f);
         
         if (CurrPosition.Y > 0f)
         {
