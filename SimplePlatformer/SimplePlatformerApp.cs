@@ -15,7 +15,7 @@ public class SimplePlatformerApp : WindowedApp
     {
         window.Title = "Simple Platformer";
         window.IsFullscreen = false;
-        window.CursorMode = CursorMode.HiddenAndLocked;
+        //window.CursorMode = CursorMode.HiddenAndLocked;
         window.IsResizable = false;
         window.IsVsyncEnabled = false;
         window.SetViewportSize(1280, 720);

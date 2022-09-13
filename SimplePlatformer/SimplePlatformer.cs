@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
-using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.InputDevices;
+using EasyGameFramework.Api.Physics;
 using EasyGameFramework.Api.Rendering;
 using SampleGames;
 
@@ -16,6 +16,7 @@ public class SimplePlatformer : Game
     private ButtonInput CloseAppInput { get; }
     private SpriteRenderer SpriteRenderer { get; }
     private OrthographicCamera Camera { get; }
+    private IInputSystem InputSystem { get; }
     
     private IGpuTextureHandle? PlayerSpriteSheet { get; set; }
     private Sprite[] Animation { get; set; }
@@ -28,6 +29,7 @@ public class SimplePlatformer : Game
         var maxPlayerCount = 2;
 
         Gpu = gpu;
+        InputSystem = inputSystem;
         
         Camera = new OrthographicCamera(100, 100, 0.1f, 100f);
         Camera.Transform.WorldPosition += Vector3.UnitY * 5;
@@ -171,6 +173,25 @@ public class SimplePlatformer : Game
 
         SpriteRenderer.NewBatch();
 
+        var rect = new Rect
+        {
+            Position = new Vector2(0, 0),
+            Width = 100,
+            Height = 100,
+        };
+
+        if (rect.Contains(new Vector2(InputSystem.Mouse.ViewportX, InputSystem.Mouse.ViewportY)))
+        {
+            Logger.Trace("mouse in rect");
+        }
+
+
+        // SpriteRenderer.DrawSprite(rect.Position, new Sprite
+        // {
+        //     Color = new Vector3(1f, 0f, 1f),
+        //     Size = new Vector2(rect.Width, rect.Height),
+        // });
+        //
         var lerpFactor = Clock.FrameLerpFactor;
         foreach (var player in Players)
         {
