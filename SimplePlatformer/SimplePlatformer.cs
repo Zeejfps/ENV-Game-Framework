@@ -19,12 +19,15 @@ public class SimplePlatformer : Game
     private IInputSystem InputSystem { get; }
     
     private IGpuTextureHandle? PlayerSpriteSheet { get; set; }
-    private Sprite[] Animation { get; set; }
+    private SpriteAnimation Animation { get; }
     
-    private float FrameTime { get; set; }
-    private int Index { get; set; }
+    private Timeline Timeline { get; }
 
-    public SimplePlatformer(IEventLoop eventLoop, ILogger logger, IInputSystem inputSystem, IGpu gpu) : base(eventLoop, logger)
+    public SimplePlatformer(
+        IEventLoop eventLoop,
+        ILogger logger,
+        IInputSystem inputSystem,
+        IGpu gpu) : base(eventLoop, logger)
     {
         var maxPlayerCount = 2;
 
@@ -38,7 +41,66 @@ public class SimplePlatformer : Game
         CloseAppInput = new ButtonInput();
         Players = new Player[maxPlayerCount];
         Controllers = new Controller[maxPlayerCount];
+
+        PlayerSpriteSheet = Gpu.Texture.Load("Assets/PlayerSpriteSheet");
+
+        Animation = SpriteAnimation.Create(new[]
+        {
+
+            new Sprite
+            {
+                Size = new Vector2(16, 16),
+                Offset = new Vector2(16, 16 * 2),
+                Pivot = new Vector2(0f, 0.5f),
+                SpriteSheet = PlayerSpriteSheet,
+            },
+
+            new Sprite
+            {
+                Size = new Vector2(16, 16),
+                Offset = new Vector2(16 * 2, 16 * 2),
+                Pivot = new Vector2(0f, 0.5f),
+                SpriteSheet = PlayerSpriteSheet,
+            },
+
+            new Sprite
+            {
+                Size = new Vector2(16, 16),
+                Offset = new Vector2(16 * 3, 16 * 2),
+                Pivot = new Vector2(0f, 0.5f),
+                SpriteSheet = PlayerSpriteSheet,
+            },
+
+            new Sprite
+            {
+                Size = new Vector2(16, 16),
+                Offset = new Vector2(16 * 4, 16 * 2),
+                Pivot = new Vector2(0f, 0.5f),
+                SpriteSheet = PlayerSpriteSheet,
+            },
+
+            new Sprite
+            {
+                Size = new Vector2(16, 16),
+                Offset = new Vector2(16 * 5, 16 * 2),
+                Pivot = new Vector2(0f, 0.5f),
+                SpriteSheet = PlayerSpriteSheet,
+            },
+
+            new Sprite
+            {
+                Size = new Vector2(16, 16),
+                Offset = new Vector2(16 * 6, 16 * 2),
+                Pivot = new Vector2(0f, 0.5f),
+                SpriteSheet = PlayerSpriteSheet,
+            },
+        });
         
+        Timeline = new Timeline(Clock)
+        {
+            FrameTime = 1f / 15f
+        };
+
         for (var i = 0; i < maxPlayerCount; i++)
         {
             var player = new Player(logger);
@@ -79,59 +141,8 @@ public class SimplePlatformer : Game
         CloseAppInput.Pressed += Stop;
         SpriteRenderer.LoadResources();
 
-        PlayerSpriteSheet = Gpu.Texture.Load("Assets/PlayerSpriteSheet");
 
-        Animation = new[]
-        {
-
-            new Sprite
-            {
-                Size = new Vector2(16, 16),
-                Offset = new Vector2(16, 16 * 2),
-                Pivot = new Vector2(0f, 0.5f),
-                SpriteSheet = PlayerSpriteSheet,
-            },
-            
-            new Sprite
-            {
-                Size = new Vector2(16, 16),
-                Offset = new Vector2(16 * 2, 16 * 2),
-                Pivot = new Vector2(0f, 0.5f),
-                SpriteSheet = PlayerSpriteSheet,
-            },
-            
-            new Sprite
-            {
-                Size = new Vector2(16, 16),
-                Offset = new Vector2(16 * 3, 16 * 2),
-                Pivot = new Vector2(0f, 0.5f),
-                SpriteSheet = PlayerSpriteSheet,
-            },
-            
-            new Sprite
-            {
-                Size = new Vector2(16, 16),
-                Offset = new Vector2(16 * 4, 16 * 2),
-                Pivot = new Vector2(0f, 0.5f),
-                SpriteSheet = PlayerSpriteSheet,
-            },
-            
-            new Sprite
-            {
-                Size = new Vector2(16, 16),
-                Offset = new Vector2(16 * 5, 16 * 2),
-                Pivot = new Vector2(0f, 0.5f),
-                SpriteSheet = PlayerSpriteSheet,
-            },
-            
-            new Sprite
-            {
-                Size = new Vector2(16, 16),
-                Offset = new Vector2(16 * 6, 16 * 2),
-                Pivot = new Vector2(0f, 0.5f),
-                SpriteSheet = PlayerSpriteSheet,
-            },
-        };
+        Timeline.Play(Animation.FrameCount);
     }
 
     protected override void OnStop()
@@ -146,17 +157,7 @@ public class SimplePlatformer : Game
 
     protected override void OnUpdate()
     {
-        FrameTime += Clock.UpdateDeltaTime * MathF.Abs(Players[0].Velocity.X);
-        if (FrameTime >= 0.15f)
-        {
-            FrameTime = 0f;
-
-            Index++;
-            if (Index >= Animation.Length)
-            {
-                Index = 0;
-            }
-        }
+        Timeline.PlaybackSpeed = MathF.Abs(Players[0].Velocity.X);
 
         foreach (var player in Players)
         {
@@ -184,19 +185,12 @@ public class SimplePlatformer : Game
         {
             Logger.Trace("mouse in rect");
         }
-
-
-        // SpriteRenderer.DrawSprite(rect.Position, new Sprite
-        // {
-        //     Color = new Vector3(1f, 0f, 1f),
-        //     Size = new Vector2(rect.Width, rect.Height),
-        // });
-        //
+        
         var lerpFactor = Clock.FrameLerpFactor;
         foreach (var player in Players)
         {
             var position = Vector2.Lerp(player.PrevPosition, player.CurrPosition, lerpFactor);
-            ref var sprite = ref Animation[Index];
+            var sprite = Animation[Timeline.FrameIndex];
 
             if (sprite.FlipX && player.Velocity.X > 0.001f)
             {
@@ -207,7 +201,6 @@ public class SimplePlatformer : Game
             {
                 sprite.FlipX = true;
             }
-            
             SpriteRenderer.DrawSprite(position, sprite);
         }
         
