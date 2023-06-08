@@ -16,11 +16,11 @@ public class OrthographicCamera : ICamera
     private float m_zNearPlane;
     private float m_zFarPlane;
     
-    public OrthographicCamera(float width, float height, float zNearPlane, float zFarPlane)
+    public OrthographicCamera(float size, float zNearPlane, float zFarPlane)
     {
         m_zNearPlane = zNearPlane;
         m_zFarPlane = zFarPlane;
-        ProjectionMatrix = Matrix4x4.CreateOrthographic(width, height, zNearPlane, zFarPlane);
+        ProjectionMatrix = Matrix4x4.CreateOrthographic(size, size, zNearPlane, zFarPlane);
         Transform = new Transform3D();
     }
 

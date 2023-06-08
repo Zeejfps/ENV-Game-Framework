@@ -14,10 +14,10 @@ public sealed class PongApp : WindowedApp
     protected override void Configure(IWindow window)
     {
         window.Title = "Pong";
-        window.IsResizable = false;
-        window.IsVsyncEnabled = true;
-        window.CursorMode = CursorMode.HiddenAndLocked;
-        window.SetViewportSize(640, 480);
+        window.IsResizable = true;
+        window.IsVsyncEnabled = false;
+        window.CursorMode = CursorMode.Visible;
+        window.SetViewportSize(640, 640);
     }
 
     protected override void OnOpen()

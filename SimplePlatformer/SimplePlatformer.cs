@@ -35,7 +35,7 @@ public class SimplePlatformer : Game
         
         var maxPlayerCount = 1;
         
-        Camera = new OrthographicCamera(100, 100, 0.1f, 100f);
+        Camera = new OrthographicCamera(100, 0.1f, 100f);
         Camera.Transform.WorldPosition += Vector3.UnitY * 5;
         
         SpriteRenderer = new SpriteRenderer(window.Gpu);
