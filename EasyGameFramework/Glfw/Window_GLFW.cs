@@ -143,9 +143,6 @@ internal class Window_GLFW : IWindow
         get => m_ViewportWidth;
         set
         {
-            if (IsFullscreen)
-                return;
-            
             if (m_ViewportWidth == value)
                 return;
 
@@ -159,9 +156,6 @@ internal class Window_GLFW : IWindow
         get => m_ViewportHeight;
         set
         {
-            if (IsFullscreen)
-                return;
-            
             if (m_ViewportHeight == value)
                 return;
 
@@ -383,6 +377,9 @@ internal class Window_GLFW : IWindow
 
     private void UpdateScreenSize()
     {
+        if (IsFullscreen)
+            return;
+
         if (m_Handle != Window.None)
             SetWindowSize(m_Handle, m_ViewportWidth, m_ViewportHeight);
     }
