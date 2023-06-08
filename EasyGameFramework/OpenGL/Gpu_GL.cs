@@ -1,5 +1,4 @@
-﻿using EasyGameFramework.Api;
-using EasyGameFramework.Api.AssetTypes;
+﻿using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Rendering;
 using static OpenGL.Gl;
 
