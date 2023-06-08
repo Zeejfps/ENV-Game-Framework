@@ -117,15 +117,29 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
         m_RenderBufferPool[key].Push(tempRenderbufferHandle);
     }
 
-    public void Blit(IHandle<IGpuFramebuffer> src)
+    public void Blit(IHandle<IGpuRenderbuffer> src)
+    {
+        var dstFramebuffer = m_WindowFramebuffer;
+        if (BoundResource != null)
+        {
+            dstFramebuffer = BoundResource;
+        }
+
+        Blit(src, 0, 0, dstFramebuffer.Width, dstFramebuffer.Height);
+    }
+
+    public void Blit(IHandle<IGpuRenderbuffer> src, int dstX, int dstY, int dstWidth, int dstHeight)
     {
         var srcFramebuffer = Get(src);
-        var dstFramebuffer = BoundResource;
+        uint dstFramebufferId = 0;
+        if (BoundResource != null)
+            dstFramebufferId = BoundResource.Id;
+        
         glBindFramebuffer(GL_READ_FRAMEBUFFER, srcFramebuffer.Id);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dstFramebuffer.Id);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dstFramebufferId);
         glBlitFramebuffer(
             0, 0, srcFramebuffer.Width, srcFramebuffer.Height, 
-            0, 0, dstFramebuffer.Width, dstFramebuffer.Height, 
+            dstX, dstY, dstWidth, dstHeight, 
             GL_COLOR_BUFFER_BIT, GL_NEAREST
         );
     }
