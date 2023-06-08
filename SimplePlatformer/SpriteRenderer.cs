@@ -81,7 +81,7 @@ public class SpriteRenderer
 
     public void DrawSprite(Vector2 position, Sprite sprite)
     {
-        var spriteSheet = sprite.SpriteSheet;
+        var spriteSheet = sprite.Texture;
 
         if (spriteSheet == null)
         {

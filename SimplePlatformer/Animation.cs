@@ -2,33 +2,29 @@
 
 namespace SimplePlatformer;
 
-public sealed class Timeline
+public sealed class Animation
 {
     public float PlaybackSpeed { get; set; }
     public float FrameTime { set; get; }
     public int FrameIndex { get; private set; }
     public bool IsPlaying { get; private set; }
+    public int FrameCount { get; set; }
     
     private float Time { get; set; }
     private IClock Clock { get; }
-    private int FrameCount { get; set; }
 
-    public Timeline(IClock clock)
+    public Animation(IClock clock)
     {
         Clock = clock;
         PlaybackSpeed = 1f;
         FrameTime = 1f / 30f;
     }
 
-    public void Play(int frameCount)
+    public void Play()
     {
-        if (frameCount <= 0)
-            throw new Exception($"{nameof(frameCount)} can not be zero or negative");
-
         if (IsPlaying)
             return;
         
-        FrameCount = frameCount;
         Clock.Ticked += Update;
         FrameIndex = 0;
         IsPlaying = true;
@@ -40,7 +36,7 @@ public sealed class Timeline
             return;
         
         IsPlaying = true;
-        Clock.Ticked -= Update;
+        Clock.Ticked += Update;
     }
 
     public void Pause()
@@ -49,7 +45,7 @@ public sealed class Timeline
             return;
         
         IsPlaying = false;
-        Clock.Ticked += Update;
+        Clock.Ticked -= Update;
     }
 
     public void Stop()
