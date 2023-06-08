@@ -45,6 +45,6 @@ public class TestRenderer : IRenderer
         //
         m_UnlitRenderPass.Render(gpu, camera);
 
-        renderbufferManager.ReleaseTempRenderbuffer(tempRenderbufferHandle);
+        renderbufferManager.ReleaseRenderbuffer(tempRenderbufferHandle);
     }
 }

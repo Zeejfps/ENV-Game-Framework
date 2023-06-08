@@ -144,7 +144,7 @@ public class SnakeGame : Game
         Gpu.Renderbuffer.BindToWindow();
         Gpu.Renderbuffer.Blit(renderbuffer);
         
-        Gpu.Renderbuffer.ReleaseTempRenderbuffer(renderbuffer);
+        Gpu.Renderbuffer.ReleaseRenderbuffer(renderbuffer);
     }
 
     protected override void OnStop()

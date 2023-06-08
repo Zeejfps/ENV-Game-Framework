@@ -108,7 +108,7 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
         }
     }
 
-    public void ReleaseTempRenderbuffer(IGpuRenderbufferHandle tempRenderbufferHandle)
+    public void ReleaseRenderbuffer(IGpuRenderbufferHandle tempRenderbufferHandle)
     {
         var key = (tempRenderbufferHandle.ColorBuffers.Length, tempRenderbufferHandle.HasDepthBuffer);
         m_RenderBufferPool[key].Push(tempRenderbufferHandle);
