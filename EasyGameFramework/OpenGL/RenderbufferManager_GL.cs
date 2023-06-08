@@ -63,7 +63,7 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
         return new GpuRenderbufferHandle(resource);
     }
 
-    public void BindWindow()
+    public void BindToWindow()
     {
         Bind(null);
     }

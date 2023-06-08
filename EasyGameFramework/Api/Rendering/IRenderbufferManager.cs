@@ -9,7 +9,7 @@ public interface IRenderbufferManager
     float Height { get; }
 
     void Bind(IHandle<IGpuRenderbuffer>? framebuffer);
-    void BindWindow();
+    void BindToWindow();
     void ClearColorBuffers(float r, float g, float b, float a);
     void SetSize(int width, int height);
     IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer);

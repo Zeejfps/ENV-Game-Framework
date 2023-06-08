@@ -119,7 +119,7 @@ public class SnakeGame : Game
         gpu.EnableBlending = true;
 
         var renderbuffer = Gpu.Renderbuffer;
-        renderbuffer.BindWindow();
+        renderbuffer.BindToWindow();
         renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
 
         m_GridRenderer.Render();

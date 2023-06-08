@@ -35,7 +35,7 @@ public class TestRenderer : IRenderer
         
         //m_SpecularRenderPass.Render(gpu, camera, renderScene);
         
-        renderbufferManager.BindWindow();
+        renderbufferManager.BindToWindow();
         renderbufferManager.ClearColorBuffers(.42f, .607f, .82f, 1f);
         // m_FullScreenBlitPass.Render(gpu, m_QuadMeshHandle,
         //     m_FullScreenBlitShaderHandle,

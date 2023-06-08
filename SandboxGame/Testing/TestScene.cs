@@ -133,7 +133,7 @@ public class TestScene : IScene
         renderbuffer.ClearColorBuffers(0f, 0f, 0f, 0f);
         m_SpecularRenderPass.Render(m_Gpu, m_CameraRig.Camera, m_LightPosition);
         
-        renderbuffer.BindWindow();
+        renderbuffer.BindToWindow();
         renderbuffer.ClearColorBuffers(.42f, .607f, .82f, 1f);
         m_FullScreenBlitPass.Render(m_Gpu, 
             m_CameraRig.Camera,
