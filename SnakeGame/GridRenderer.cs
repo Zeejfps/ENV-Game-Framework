@@ -29,9 +29,9 @@ public sealed class GridRenderer
     {
         var gpu = Gpu;
         
-        var renderbuffer = Gpu.Renderbuffer;
-        var cellWidth = renderbuffer.Width / GridSize.Width;
-        var cellHeight = renderbuffer.Height / GridSize.Height;
+        var activeFramebuffer = Gpu.Renderbuffer;
+        var cellWidth = activeFramebuffer.Width / GridSize.Width;
+        var cellHeight = activeFramebuffer.Height / GridSize.Height;
 
         gpu.Shader.Bind(GridShader);
         gpu.Shader.SetVector2("u_Pitch", new Vector2(cellWidth, cellHeight));

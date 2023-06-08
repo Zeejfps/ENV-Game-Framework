@@ -118,12 +118,13 @@ public class SnakeGame : Game
         gpu.EnableBackfaceCulling = false;
         gpu.EnableBlending = true;
         
-        var renderbuffer = Gpu.Renderbuffer.CreateRenderbuffer(1, true, 512, 512);
-        Gpu.Renderbuffer.Bind(renderbuffer);
-        Gpu.Renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
+        var activeRenderbuffer = gpu.Renderbuffer;
+        var tempRenderbufferHandle = activeRenderbuffer.CreateRenderbuffer(1, false, 320, 320);
+        activeRenderbuffer.Bind(tempRenderbufferHandle);
+        activeRenderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
 
         m_GridRenderer.Render();
-        
+
         m_SpriteRenderer.NewBatch();
         {
             m_SpriteRenderer.DrawSprite(Apple, new Vector3(1f, 0f, 0f));
@@ -140,11 +141,11 @@ public class SnakeGame : Game
             }
         }
         m_SpriteRenderer.RenderBatch(m_Camera);
+
+        activeRenderbuffer.BindToWindow();
+        activeRenderbuffer.Blit(tempRenderbufferHandle);
         
-        Gpu.Renderbuffer.BindToWindow();
-        Gpu.Renderbuffer.Blit(renderbuffer);
-        
-        Gpu.Renderbuffer.ReleaseRenderbuffer(renderbuffer);
+        activeRenderbuffer.ReleaseRenderbuffer(tempRenderbufferHandle);
     }
 
     protected override void OnStop()

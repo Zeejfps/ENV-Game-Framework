@@ -121,7 +121,7 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
         {
             dstFramebuffer = BoundResource;
         }
-
+        
         Blit(src, 0, 0, dstFramebuffer.Width, dstFramebuffer.Height);
     }
 
