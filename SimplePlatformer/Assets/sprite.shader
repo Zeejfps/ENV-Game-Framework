@@ -2,7 +2,7 @@
 
 #version 460 core
 
-const int MAX_BATCH_SIZE = 512;
+const int MAX_BATCH_SIZE = 128;
 
 layout (location = 0) in vec3 attr_vertex_position;
 layout (location = 2) in vec3 attr_vertex_uvs;
@@ -39,7 +39,7 @@ void main()
     
 #version 460 core
 
-const int MAX_BATCH_SIZE = 512;
+const int MAX_BATCH_SIZE = 128;
 
 struct SpriteData {
     vec3 Color;
