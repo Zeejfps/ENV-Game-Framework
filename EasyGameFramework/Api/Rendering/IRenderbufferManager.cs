@@ -14,4 +14,5 @@ public interface IRenderbufferManager
     void SetSize(int width, int height);
     IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer);
     void ReleaseTempRenderbuffer(IGpuRenderbufferHandle tempRenderbufferHandle);
+    void Blit(IHandle<IGpuFramebuffer> src);
 }

@@ -28,6 +28,11 @@ internal abstract class GpuResourceManager<THandle, TResource>
         m_HandleToResourceMap[handle] = resource;
     }
 
+    protected TResource Get(THandle handle)
+    {
+        return m_HandleToResourceMap[handle];
+    }
+
     public THandle Load(string assetPath)
     {
         var resource = LoadAndBindResource(assetPath);
