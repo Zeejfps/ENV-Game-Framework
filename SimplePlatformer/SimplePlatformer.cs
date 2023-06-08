@@ -156,6 +156,8 @@ public class SimplePlatformer : Game
         }
     }
 
+    private int fps;
+    private double dt;
     protected override void OnUpdate()
     {
         Animation.PlaybackSpeed = MathF.Abs(Players[0].Velocity.X);
@@ -195,5 +197,14 @@ public class SimplePlatformer : Game
             SpriteRenderer.DrawSprite(position, sprite);
         }
         SpriteRenderer.RenderBatch(Camera);
+        
+        fps++;
+        dt += Clock.FrameDeltaTime;
+        if (dt >= 1f)
+        {
+            Logger.Trace($"FPS: {fps}");
+            fps = 0;
+            dt = 0f;
+        }
     }
 }
