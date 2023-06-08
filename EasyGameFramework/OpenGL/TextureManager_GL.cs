@@ -6,7 +6,7 @@ namespace EasyGameFramework.OpenGL;
 
 internal class TextureManager_GL : GpuResourceManager<IGpuTextureHandle, Texture2D_GL>, ITextureManager
 {
-    public TextureFilterKind Filter { get; set; }
+    private TextureFilterKind Filter { get; set; }
 
     private readonly CpuTextureAssetLoader m_CpuTextureAssetLoader = new();
 
@@ -33,5 +33,11 @@ internal class TextureManager_GL : GpuResourceManager<IGpuTextureHandle, Texture
         var pixels = asset.Pixels;
         var texture = ReadonlyTexture2D_GL.Create(width, height, pixels, Filter);
         return texture;
+    }
+
+    public IGpuTextureHandle Load(string assetPath, TextureFilterKind filter)
+    {
+        Filter = filter;
+        return Load(assetPath);
     }
 }

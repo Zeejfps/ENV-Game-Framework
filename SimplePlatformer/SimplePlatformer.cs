@@ -42,11 +42,8 @@ public class SimplePlatformer : Game
         CloseAppInput = new ButtonInput();
         Players = new Player[maxPlayerCount];
         Controllers = new Controller[maxPlayerCount];
-
-        // TODO: This is wrong, also, the Texture manager should not be handling other textures based on asset name
-        // Just because we loaded a texture via an asset name doesn't mean we don't want to create a new version of it
-        Gpu.Texture.Filter = TextureFilterKind.Nearest;
-        PlayerSpriteSheetTexture = Gpu.Texture.Load("Assets/PlayerSpriteSheet");
+        
+        PlayerSpriteSheetTexture = Gpu.Texture.Load("Assets/PlayerSpriteSheet", TextureFilterKind.Nearest);
 
         RunAnimationSpriteSheet = SpriteSheet.Create(new[]
         {
@@ -197,7 +194,6 @@ public class SimplePlatformer : Game
             sprite.FlipX = player.IsMovingLeft;
             SpriteRenderer.DrawSprite(position, sprite);
         }
-        
         SpriteRenderer.RenderBatch(Camera);
     }
 }

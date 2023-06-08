@@ -3,7 +3,6 @@
 internal abstract class GpuResourceManager<THandle, TResource>
 {
     private readonly Dictionary<THandle, TResource> m_HandleToResourceMap = new();
-    private readonly Dictionary<string, THandle> m_LoadedHandles = new();
     protected TResource? BoundResource { get; private set; }
 
     public void Bind(THandle? handle)
@@ -31,15 +30,8 @@ internal abstract class GpuResourceManager<THandle, TResource>
 
     public THandle Load(string assetPath)
     {
-        if (m_LoadedHandles.TryGetValue(assetPath, out var handle))
-        {
-            Bind(handle);
-            return handle;
-        }
-
         var resource = LoadAndBindResource(assetPath);
-        handle = CreateHandle(resource);
-        m_LoadedHandles[assetPath] = handle;
+        var handle = CreateHandle(resource);
         BoundResource = resource;
         Add(handle, resource);
         return handle;
