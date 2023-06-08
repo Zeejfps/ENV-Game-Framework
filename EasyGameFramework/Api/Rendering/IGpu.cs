@@ -11,6 +11,9 @@ public interface IGpu
     ITextureManager Texture { get; }
     IRenderbufferManager Renderbuffer { get; }
 
+    IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer, int width, int height);
+    void ReleaseRenderbuffer(IGpuRenderbufferHandle tempRenderbufferHandle);
+    
     void SaveState();
     void RestoreState();
 }

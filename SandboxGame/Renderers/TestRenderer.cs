@@ -27,7 +27,7 @@ public class TestRenderer : IRenderer
         var windowFramebufferHeight = renderbufferManager.WindowBufferHandle.Height;
 
         var tempRenderbufferHandle =
-            renderbufferManager.CreateRenderbuffer(3, true, windowFramebufferWidth, windowFramebufferHeight);
+            gpu.CreateRenderbuffer(3, true, windowFramebufferWidth, windowFramebufferHeight);
         
         renderbufferManager.Bind(tempRenderbufferHandle);
         renderbufferManager.SetSize(windowFramebufferWidth, windowFramebufferHeight);
@@ -45,6 +45,6 @@ public class TestRenderer : IRenderer
         //
         m_UnlitRenderPass.Render(gpu, camera);
 
-        renderbufferManager.ReleaseRenderbuffer(tempRenderbufferHandle);
+        gpu.ReleaseRenderbuffer(tempRenderbufferHandle);
     }
 }

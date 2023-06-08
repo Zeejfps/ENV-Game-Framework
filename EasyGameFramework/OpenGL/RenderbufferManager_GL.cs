@@ -8,15 +8,11 @@ namespace EasyGameFramework.OpenGL;
 internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuffer>, GpuRenderbuffer_GL>,
     IRenderbufferManager
 {
-    private readonly Dictionary<(int, bool), Stack<IGpuRenderbufferHandle>> m_RenderBufferPool = new();
-    private readonly TextureManager_GL m_TextureManager;
-
     private readonly IGpuFramebuffer m_WindowFramebuffer;
 
-    public RenderbufferManager_GL(TextureManager_GL textureManager, IGpuFramebuffer windowFramebuffer)
+    public RenderbufferManager_GL(IGpuFramebuffer windowFramebuffer)
     {
         m_WindowFramebuffer = windowFramebuffer;
-        m_TextureManager = textureManager;
         WindowBufferHandle = new GpuWindowFramebufferHandle(m_WindowFramebuffer);
     }
 
@@ -82,36 +78,6 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
             m_WindowFramebuffer.SetSize(width, height);
         else
             BoundResource.SetSize(width, height);
-    }
-
-    public IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer, int width, int height)
-    {
-        var key = (colorBuffersCount, createDepthBuffer);
-        if (!m_RenderBufferPool.TryGetValue(key, out var pool))
-        {
-            pool = new Stack<IGpuRenderbufferHandle>();
-            m_RenderBufferPool[key] = pool;
-        }
-
-        if (pool.Count > 0)
-        {
-            var renderBuffer = pool.Pop();
-            return renderBuffer;
-        }
-        else
-        {
-            var renderBuffer = new GpuRenderbuffer_GL(m_TextureManager, width, height, colorBuffersCount, createDepthBuffer);
-            var handle = new GpuRenderbufferHandle(renderBuffer);
-            Add(handle, renderBuffer);
-            pool.Push(handle);
-            return handle;
-        }
-    }
-
-    public void ReleaseRenderbuffer(IGpuRenderbufferHandle tempRenderbufferHandle)
-    {
-        var key = (tempRenderbufferHandle.ColorBuffers.Length, tempRenderbufferHandle.HasDepthBuffer);
-        m_RenderBufferPool[key].Push(tempRenderbufferHandle);
     }
 
     public void Blit(IHandle<IGpuRenderbuffer> src)

@@ -117,9 +117,10 @@ public class SnakeGame : Game
         var gpu = Gpu;
         gpu.EnableBackfaceCulling = false;
         gpu.EnableBlending = true;
+
+        var tempRenderbufferHandle = gpu.CreateRenderbuffer(1, false, 320, 320);
         
         var activeRenderbuffer = gpu.Renderbuffer;
-        var tempRenderbufferHandle = activeRenderbuffer.CreateRenderbuffer(1, false, 320, 320);
         activeRenderbuffer.Bind(tempRenderbufferHandle);
         activeRenderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
 
@@ -145,7 +146,7 @@ public class SnakeGame : Game
         activeRenderbuffer.BindToWindow();
         activeRenderbuffer.Blit(tempRenderbufferHandle);
         
-        activeRenderbuffer.ReleaseRenderbuffer(tempRenderbufferHandle);
+        gpu.ReleaseRenderbuffer(tempRenderbufferHandle);
     }
 
     protected override void OnStop()

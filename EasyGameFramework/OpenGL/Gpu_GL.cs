@@ -9,6 +9,9 @@ internal class Gpu_GL : IGpu
     private readonly MeshManager_GL m_MeshManager;
     private readonly ShaderManager_GL m_ShaderManager;
     private readonly TextureManager_GL m_TextureManager;
+    private readonly RenderbufferManager_GL m_RenderBufferManager;
+    
+    private readonly Dictionary<(int, bool), Stack<IGpuRenderbufferHandle>> m_RenderBufferPool = new();
 
     private bool m_EnableBackfaceCulling;
 
@@ -20,7 +23,7 @@ internal class Gpu_GL : IGpu
         m_MeshManager = new MeshManager_GL();
         m_TextureManager = new TextureManager_GL();
         m_ShaderManager = new ShaderManager_GL(m_TextureManager);
-        Renderbuffer = new RenderbufferManager_GL(m_TextureManager, windowFramebuffer);
+        m_RenderBufferManager = new RenderbufferManager_GL(windowFramebuffer);
     }
 
     public bool EnableDepthTest
@@ -79,7 +82,7 @@ internal class Gpu_GL : IGpu
     public IMeshManager Mesh => m_MeshManager;
     public IShaderManager Shader => m_ShaderManager;
     public ITextureManager Texture => m_TextureManager;
-    public IRenderbufferManager Renderbuffer { get; set; }
+    public IRenderbufferManager Renderbuffer => m_RenderBufferManager;
 
     private Stack<State> StateStack { get; } = new();
 
@@ -99,6 +102,36 @@ internal class Gpu_GL : IGpu
         EnableBlending = state.EnableBlending;
         EnableBackfaceCulling = state.EnableBackfaceCulling;
         EnableDepthTest = state.EnableDepthTest;
+    }
+    
+    public IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer, int width, int height)
+    {
+        var key = (colorBuffersCount, createDepthBuffer);
+        if (!m_RenderBufferPool.TryGetValue(key, out var pool))
+        {
+            pool = new Stack<IGpuRenderbufferHandle>();
+            m_RenderBufferPool[key] = pool;
+        }
+
+        if (pool.Count > 0)
+        {
+            var renderBuffer = pool.Pop();
+            return renderBuffer;
+        }
+        else
+        {
+            var renderBuffer = new GpuRenderbuffer_GL(m_TextureManager, width, height, colorBuffersCount, createDepthBuffer);
+            var handle = new GpuRenderbufferHandle(renderBuffer);
+            m_RenderBufferManager.Add(handle, renderBuffer);
+            pool.Push(handle);
+            return handle;
+        }
+    }
+
+    public void ReleaseRenderbuffer(IGpuRenderbufferHandle tempRenderbufferHandle)
+    {
+        var key = (tempRenderbufferHandle.ColorBuffers.Length, tempRenderbufferHandle.HasDepthBuffer);
+        m_RenderBufferPool[key].Push(tempRenderbufferHandle);
     }
 
     private struct State
