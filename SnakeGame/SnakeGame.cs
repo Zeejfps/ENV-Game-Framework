@@ -2,6 +2,7 @@
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.Rendering;
+using SnakeGame;
 
 namespace SampleGames;
 
@@ -21,6 +22,7 @@ public class SnakeGame : Game
     private float m_AccumulatedTime;
     private readonly OrthographicCamera m_Camera;
     private readonly SpriteRenderer m_SpriteRenderer;
+    private readonly GridRenderer m_GridRenderer;
     
     public SnakeGame(IWindow window, IGpu gpu, IEventLoop eventLoop, ILogger logger) : base(eventLoop, logger)
     {
@@ -38,6 +40,7 @@ public class SnakeGame : Game
         m_Camera = OrthographicCamera.FromLRBT(0, GridSize.Width, 0, GridSize.Height, 0.1f, 10f);
         m_Camera.Transform.WorldPosition = new Vector3(0f, 0f, -5f);
         m_SpriteRenderer = new SpriteRenderer(Gpu);
+        m_GridRenderer = new GridRenderer(Gpu, GridSize);
     }
 
     public void Restart()
@@ -65,6 +68,7 @@ public class SnakeGame : Game
     protected override void OnStart()
     {
         m_SpriteRenderer.LoadResources();
+        m_GridRenderer.LoadResources();
         Restart();
     }
 
@@ -83,8 +87,8 @@ public class SnakeGame : Game
                 snake.Move(GridSize);
                 if (snake.Head == Apple)
                 {
-                    Apple = FindEmptyTile();
                     snake.Grow();
+                    Apple = FindEmptyTile();
                 }
 
                 if (snake.IsSelfIntersecting)
@@ -118,13 +122,7 @@ public class SnakeGame : Game
         renderbuffer.BindWindow();
         renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
 
-        var cellWidth = renderbuffer.Width / GridSize.Width;
-        var cellHeight = renderbuffer.Height / GridSize.Height;
-        
-        gpu.Shader.Load("Assets/grid");
-        gpu.Shader.SetVector2("u_Pitch", new Vector2(cellWidth, cellHeight));
-        gpu.Mesh.Load("Assets/quad");
-        gpu.Mesh.Render();
+        m_GridRenderer.Render();
         
         m_SpriteRenderer.NewBatch();
         {
