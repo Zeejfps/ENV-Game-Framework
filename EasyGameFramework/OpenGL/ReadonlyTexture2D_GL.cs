@@ -1,4 +1,5 @@
-﻿using static OpenGL.Gl;
+﻿using EasyGameFramework.Api.Enums;
+using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
@@ -39,17 +40,18 @@ public class ReadonlyTexture2D_GL : Texture2D_GL, IEquatable<ReadonlyTexture2D_G
         return !Equals(left, right);
     }
 
-    public static unsafe ReadonlyTexture2D_GL Create(int width, int height, byte[]? pixels)
+    public static unsafe ReadonlyTexture2D_GL Create(int width, int height, byte[]? pixels, TextureFilterKind textureFilterKind)
     {
-        //Console.WriteLine($"Texture: {width}x{height}, pixels: {pixels.Length}");
         var id = glGenTexture();
         glBindTexture(GL_TEXTURE_2D, id);
+
+        var filterParam = textureFilterKind == TextureFilterKind.Linear ? GL_LINEAR : GL_NEAREST;
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filterParam);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filterParam);
 
         if (pixels != null)
             fixed (byte* p = &pixels[0])

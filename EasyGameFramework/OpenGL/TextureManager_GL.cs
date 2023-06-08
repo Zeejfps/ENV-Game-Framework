@@ -1,5 +1,4 @@
-﻿using EasyGameFramework.Api;
-using EasyGameFramework.Api.AssetTypes;
+﻿using EasyGameFramework.Api.Enums;
 using EasyGameFramework.Api.Rendering;
 using static OpenGL.Gl;
 
@@ -7,6 +6,8 @@ namespace EasyGameFramework.OpenGL;
 
 internal class TextureManager_GL : GpuResourceManager<IGpuTextureHandle, Texture2D_GL>, ITextureManager
 {
+    public TextureFilterKind Filter { get; set; }
+
     private readonly CpuTextureAssetLoader m_CpuTextureAssetLoader = new();
 
     protected override void OnBound(Texture2D_GL resource)
@@ -30,7 +31,7 @@ internal class TextureManager_GL : GpuResourceManager<IGpuTextureHandle, Texture
         var width = asset.Width;
         var height = asset.Height;
         var pixels = asset.Pixels;
-        var texture = ReadonlyTexture2D_GL.Create(width, height, pixels);
+        var texture = ReadonlyTexture2D_GL.Create(width, height, pixels, Filter);
         return texture;
     }
 }

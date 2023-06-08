@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
+using EasyGameFramework.Api.Enums;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Physics;
 using EasyGameFramework.Api.Rendering;
@@ -29,7 +30,7 @@ public class SimplePlatformer : Game
         IInputSystem inputSystem,
         IGpu gpu) : base(eventLoop, logger)
     {
-        var maxPlayerCount = 2;
+        var maxPlayerCount = 1;
 
         Gpu = gpu;
         InputSystem = inputSystem;
@@ -42,7 +43,11 @@ public class SimplePlatformer : Game
         Players = new Player[maxPlayerCount];
         Controllers = new Controller[maxPlayerCount];
 
+        // TODO: This is wrong, also, the Texture manager should not be handling other textures based on asset name
+        // Just because we loaded a texture via an asset name doesn't mean we don't want to create a new version of it
+        Gpu.Texture.Filter = TextureFilterKind.Nearest;
         PlayerSpriteSheetTexture = Gpu.Texture.Load("Assets/PlayerSpriteSheet");
+
         RunAnimationSpriteSheet = SpriteSheet.Create(new[]
         {
 
@@ -170,9 +175,7 @@ public class SimplePlatformer : Game
         
         var renderbuffer = Gpu.Renderbuffer;
         renderbuffer.ClearColorBuffers(0.2f, 0.2f, 0.2f, 1);
-
-        SpriteRenderer.NewBatch();
-
+        
         var rect = new Rect
         {
             Position = new Vector2(0, 0),
@@ -185,6 +188,7 @@ public class SimplePlatformer : Game
             Logger.Trace("mouse in rect");
         }
         
+        SpriteRenderer.NewBatch();
         var lerpFactor = Clock.FrameLerpFactor;
         foreach (var player in Players)
         {

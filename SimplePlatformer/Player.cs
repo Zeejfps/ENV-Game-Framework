@@ -39,6 +39,9 @@ public class Player
     
     private void Jump()
     {
+        if (CurrPosition.Y > 0.5f)
+            return;
+        
         Velocity = Velocity with { Y = 0f };
         AddForce(Vector2.UnitY * 20f);
         Logger.Trace("Jump");
