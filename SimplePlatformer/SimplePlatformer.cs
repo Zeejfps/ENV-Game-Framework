@@ -194,16 +194,7 @@ public class SimplePlatformer : Game
         {
             var position = Vector2.Lerp(player.PrevPosition, player.CurrPosition, lerpFactor);
             var sprite = RunAnimationSpriteSheet[Animation.FrameIndex];
-
-            if (sprite.FlipX && player.Velocity.X > 0.001f)
-            {
-                Logger.Trace(player.Velocity.X);
-                sprite.FlipX = false;
-            }
-            else if (!sprite.FlipX && player.Velocity.X < -0.001f)
-            {
-                sprite.FlipX = true;
-            }
+            sprite.FlipX = player.IsMovingLeft;
             SpriteRenderer.DrawSprite(position, sprite);
         }
         

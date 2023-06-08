@@ -13,6 +13,7 @@ public class Player
     public Vector2 PrevPosition { get; set; }
     public Vector2 CurrPosition { get; set; }
     public Vector2 Velocity { get; set; }
+    public bool IsMovingLeft { get; set; }
     
     private Vector2 Acceleration { get; set; }
 
@@ -89,5 +90,14 @@ public class Player
         }
         
         Acceleration = Vector2.Zero;
+
+        if (Velocity.X < -0.05)
+        {
+            IsMovingLeft = true;
+        }
+        else if (Velocity.X > 0.05)
+        {
+            IsMovingLeft = false;
+        }
     }
 }
