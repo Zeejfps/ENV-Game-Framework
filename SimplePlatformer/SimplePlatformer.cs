@@ -25,20 +25,20 @@ public class SimplePlatformer : Game
     private Animation Animation { get; }
 
     public SimplePlatformer(
+        IWindow window,
         IEventLoop eventLoop,
         ILogger logger,
-        IInputSystem inputSystem,
-        IGpu gpu) : base(eventLoop, logger)
+        IInputSystem inputSystem) : base(eventLoop, logger)
     {
         var maxPlayerCount = 1;
 
-        Gpu = gpu;
+        Gpu = window.Gpu;
         InputSystem = inputSystem;
         
         Camera = new OrthographicCamera(100, 100, 0.1f, 100f);
         Camera.Transform.WorldPosition += Vector3.UnitY * 5;
         
-        SpriteRenderer = new SpriteRenderer(gpu);
+        SpriteRenderer = new SpriteRenderer(window.Gpu);
         CloseAppInput = new ButtonInput();
         Players = new Player[maxPlayerCount];
         Controllers = new Controller[maxPlayerCount];

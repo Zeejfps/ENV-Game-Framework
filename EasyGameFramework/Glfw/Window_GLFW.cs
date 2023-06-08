@@ -3,6 +3,7 @@ using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
+using EasyGameFramework.Api.Rendering;
 using EasyGameFramework.Core;
 using EasyGameFramework.OpenGL;
 using GLFW;
@@ -110,6 +111,8 @@ internal class Window_GLFW : IWindow
             if (JoystickPresent(joystick) && JoystickIsGamepad(joystick))
                 ConnectGamepad(joystick);
         }
+
+        Gpu = new Gpu_GL(Framebuffer);
     }
 
     public int PosX
@@ -190,7 +193,7 @@ internal class Window_GLFW : IWindow
 
     public bool IsOpened { get; private set; }
 
-    public IGpuFramebuffer Framebuffer => m_WindowFramebuffer;
+    private IGpuFramebuffer Framebuffer => m_WindowFramebuffer;
 
     private CursorMode m_CursorMode;
 
@@ -246,6 +249,8 @@ internal class Window_GLFW : IWindow
             UpdateVsyncState();
         }
     }
+
+    public IGpu Gpu { get; }
 
     public void Open()
     {

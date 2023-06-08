@@ -2,7 +2,6 @@
 using Framework;
 
 var builder = new ApplicationBuilder();
-builder.WithOpenGl();
 builder.WithRenderer<TestRenderer>();
 
 var app = builder.Build<SandboxGameApp>();

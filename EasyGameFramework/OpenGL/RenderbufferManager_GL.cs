@@ -13,9 +13,9 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
 
     private readonly IGpuFramebuffer m_WindowFramebuffer;
 
-    public RenderbufferManager_GL(IWindow window, TextureManager_GL textureManager)
+    public RenderbufferManager_GL(TextureManager_GL textureManager, IGpuFramebuffer windowFramebuffer)
     {
-        m_WindowFramebuffer = window.Framebuffer;
+        m_WindowFramebuffer = windowFramebuffer;
         m_TextureManager = textureManager;
         WindowBufferHandle = new GpuWindowFramebufferHandle(m_WindowFramebuffer);
     }

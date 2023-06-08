@@ -1,4 +1,4 @@
-using EasyGameFramework.Api.AssetTypes;
+using EasyGameFramework.Api.Rendering;
 
 namespace EasyGameFramework.Api;
 
@@ -15,9 +15,9 @@ public interface IWindow
     bool IsFullscreen { get; set; }
     bool IsVsyncEnabled { get; set; }
     bool IsOpened { get; }
-    IGpuFramebuffer Framebuffer { get; }
     CursorMode CursorMode { get; set; }
-    
+    IGpu Gpu { get; }
+
     void Open();
     void OpenCentered();
     void Close();

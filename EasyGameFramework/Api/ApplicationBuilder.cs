@@ -11,18 +11,10 @@ namespace EasyGameFramework.Api;
 /// </summary>
 public sealed class ApplicationBuilder
 {
-    private bool m_IsRenderingApiSet;
     private bool m_IsLoggerSet;
     private bool m_IsRendererSet;
     
     private DiContainer DiContainer { get; } = new();
-    
-    public ApplicationBuilder WithOpenGl()
-    {
-        DiContainer.BindSingleton<IGpu, Gpu_GL>();
-        m_IsRenderingApiSet = true;
-        return this;
-    }
 
     public ApplicationBuilder WithRenderer<TRenderer>() where TRenderer : IRenderer
     {
@@ -46,9 +38,6 @@ public sealed class ApplicationBuilder
 
     public TApp Build<TApp>() where TApp : WindowedApp
     {
-        if (!m_IsRenderingApiSet)
-            WithOpenGl();
-
         if (!m_IsRendererSet)
             WithRenderer<NullRenderer>();
 

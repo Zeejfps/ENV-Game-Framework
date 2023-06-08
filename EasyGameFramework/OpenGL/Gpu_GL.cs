@@ -1,4 +1,5 @@
 ﻿using EasyGameFramework.Api;
+using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Rendering;
 using static OpenGL.Gl;
 
@@ -15,12 +16,12 @@ internal class Gpu_GL : IGpu
     private bool m_EnableBlending;
     private bool m_EnableDepthTest;
 
-    public Gpu_GL(IWindow window)
+    public Gpu_GL(IGpuFramebuffer windowFramebuffer)
     {
         m_MeshManager = new MeshManager_GL();
         m_TextureManager = new TextureManager_GL();
         m_ShaderManager = new ShaderManager_GL(m_TextureManager);
-        Renderbuffer = new RenderbufferManager_GL(window, m_TextureManager);
+        Renderbuffer = new RenderbufferManager_GL(m_TextureManager, windowFramebuffer);
     }
 
     public bool EnableDepthTest
