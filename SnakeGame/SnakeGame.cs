@@ -16,7 +16,7 @@ public class SnakeGame : Game
     private Random Random { get; } = new();
     
     private IWindow Window { get; }
-    private IGpu Gpu { get; }
+    private IGpu Gpu => Window.Gpu;
     
     private float Speed { get; set; }
     private float m_AccumulatedTime;
@@ -24,11 +24,9 @@ public class SnakeGame : Game
     private readonly SpriteRenderer m_SpriteRenderer;
     private readonly GridRenderer m_GridRenderer;
     
-    public SnakeGame(IWindow window, IGpu gpu, IEventLoop eventLoop, ILogger logger) : base(eventLoop, logger)
+    public SnakeGame(IWindow window, IEventLoop eventLoop, ILogger logger) : base(eventLoop, logger)
     {
         Window = window;
-        Gpu = gpu;
-        
         GridSize = new GridSize(21, 21);
         
         Snakes = new[]

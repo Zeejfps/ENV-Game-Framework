@@ -47,7 +47,6 @@ internal class Window_GLFW : IWindow
     private int m_MouseY;
     
     private ILogger Logger { get; }
-    private IInputSystem Input { get; }
     private IMouse Mouse { get; }
     private IKeyboard Keyboard { get; }
     private IEventLoop EventLoop { get; }
@@ -250,6 +249,7 @@ internal class Window_GLFW : IWindow
         }
     }
 
+    public IInputSystem Input { get; }
     public IGpu Gpu { get; }
 
     public void Open()

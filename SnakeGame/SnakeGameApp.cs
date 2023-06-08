@@ -22,7 +22,7 @@ public class SnakeGameApp : WindowedApp
         Input = inputSystem;
         Container = context.Container;
 
-        Game = new SnakeGame(Window, Gpu, eventLoop, context.Logger);
+        Game = new SnakeGame(Window, eventLoop, context.Logger);
         GameController = new GameController(Input, Game);
     }
     

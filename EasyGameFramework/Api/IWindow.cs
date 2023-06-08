@@ -17,6 +17,7 @@ public interface IWindow
     bool IsOpened { get; }
     CursorMode CursorMode { get; set; }
     IGpu Gpu { get; }
+    IInputSystem Input { get; }
 
     void Open();
     void OpenCentered();

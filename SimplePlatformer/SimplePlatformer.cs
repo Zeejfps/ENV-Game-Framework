@@ -5,19 +5,21 @@ using EasyGameFramework.Api.Enums;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Physics;
 using EasyGameFramework.Api.Rendering;
+using GLFW;
 using SampleGames;
 
 namespace SimplePlatformer;
 
 public class SimplePlatformer : Game
 {
-    private IGpu Gpu { get; }
+    private IWindow Window { get; }
+    private IGpu Gpu => Window.Gpu;
     private Player[] Players { get; }
     private Controller[] Controllers { get; }
     private ButtonInput CloseAppInput { get; }
     private SpriteRenderer SpriteRenderer { get; }
     private OrthographicCamera Camera { get; }
-    private IInputSystem InputSystem { get; }
+    private IInputSystem InputSystem => Window.Input;
     
     private IGpuTextureHandle? PlayerSpriteSheetTexture { get; set; }
     private SpriteSheet RunAnimationSpriteSheet { get; }
@@ -27,13 +29,11 @@ public class SimplePlatformer : Game
     public SimplePlatformer(
         IWindow window,
         IEventLoop eventLoop,
-        ILogger logger,
-        IInputSystem inputSystem) : base(eventLoop, logger)
+        ILogger logger) : base(eventLoop, logger)
     {
+        Window = window;
+        
         var maxPlayerCount = 1;
-
-        Gpu = window.Gpu;
-        InputSystem = inputSystem;
         
         Camera = new OrthographicCamera(100, 100, 0.1f, 100f);
         Camera.Transform.WorldPosition += Vector3.UnitY * 5;
@@ -106,7 +106,7 @@ public class SimplePlatformer : Game
         for (var i = 0; i < maxPlayerCount; i++)
         {
             var player = new Player(logger);
-            var controller = new Controller(inputSystem, Clock);
+            var controller = new Controller(InputSystem, Clock);
 
             Players[i] = player;
             Controllers[i] = controller;

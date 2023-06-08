@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyGameFramework", "EasyGa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimplePlatformer", "SimplePlatformer\SimplePlatformer.csproj", "{1921E4B3-B737-4465-8E42-C462BDA61460}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pong", "Pong\Pong.csproj", "{4B783C27-C1A1-4D87-A928-10D7BD84C2F1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,5 +50,9 @@ Global
 		{1921E4B3-B737-4465-8E42-C462BDA61460}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1921E4B3-B737-4465-8E42-C462BDA61460}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1921E4B3-B737-4465-8E42-C462BDA61460}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B783C27-C1A1-4D87-A928-10D7BD84C2F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B783C27-C1A1-4D87-A928-10D7BD84C2F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B783C27-C1A1-4D87-A928-10D7BD84C2F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B783C27-C1A1-4D87-A928-10D7BD84C2F1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
