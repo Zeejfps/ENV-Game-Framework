@@ -143,6 +143,9 @@ internal class Window_GLFW : IWindow
         get => m_ViewportWidth;
         set
         {
+            if (IsFullscreen)
+                return;
+            
             if (m_ViewportWidth == value)
                 return;
 
@@ -156,6 +159,9 @@ internal class Window_GLFW : IWindow
         get => m_ViewportHeight;
         set
         {
+            if (IsFullscreen)
+                return;
+            
             if (m_ViewportHeight == value)
                 return;
 
@@ -250,6 +256,7 @@ internal class Window_GLFW : IWindow
     public void Open()
     {
         ShowWindow(m_Handle);
+        UpdateVsyncState();
         IsOpened = true;
         Mouse.Moved += OnMouseMoved;
 
@@ -294,6 +301,9 @@ internal class Window_GLFW : IWindow
 
     public void SetViewportSize(int width, int height)
     {
+        if (IsFullscreen)
+            return;
+        
         m_ViewportWidth = width;
         m_ViewportHeight = height;
         UpdateScreenSize();

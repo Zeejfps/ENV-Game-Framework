@@ -14,10 +14,10 @@ public class SimplePlatformerApp : WindowedApp
     protected override void Configure(IWindow window)
     {
         window.Title = "Simple Platformer";
-        window.IsFullscreen = false;
+        window.IsFullscreen = true;
         //window.CursorMode = CursorMode.HiddenAndLocked;
         window.IsResizable = false;
-        window.IsVsyncEnabled = false;
+        window.IsVsyncEnabled = true;
         window.SetViewportSize(1280, 720);
     }
 
