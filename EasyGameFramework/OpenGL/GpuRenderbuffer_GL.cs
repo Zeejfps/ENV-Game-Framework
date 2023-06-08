@@ -22,6 +22,8 @@ internal class GpuRenderbuffer_GL : IGpuRenderbuffer
 
         ColorBuffers = new IGpuTextureHandle[colorBufferCount];
         m_drawBufferIds = new int[colorBufferCount];
+        
+        // TODO: These can potentially be created in one go?
         for (var i = 0; i < colorBufferCount; i++)
         {
             var colorTextureId = glGenTexture();

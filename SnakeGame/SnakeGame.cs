@@ -118,7 +118,11 @@ public class SnakeGame : Game
         gpu.EnableBackfaceCulling = false;
         gpu.EnableBlending = true;
 
-        var renderbuffer = Gpu.Renderbuffer.CreateRenderbuffer(1, true);
+        // TODO: We need a way to create smaller render buffers (AKA I need to pass W and H)
+        var windowFramebufferWidth = Gpu.Renderbuffer.WindowBufferHandle.Width;
+        var windowFramebufferHeight = Gpu.Renderbuffer.WindowBufferHandle.Height;
+        
+        var renderbuffer = Gpu.Renderbuffer.CreateRenderbuffer(1, true, windowFramebufferHeight, windowFramebufferHeight);
         Gpu.Renderbuffer.Bind(renderbuffer);
         Gpu.Renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
 

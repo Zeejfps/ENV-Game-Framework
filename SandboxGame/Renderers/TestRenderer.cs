@@ -27,7 +27,7 @@ public class TestRenderer : IRenderer
         var windowFramebufferHeight = renderbufferManager.WindowBufferHandle.Height;
 
         var tempRenderbufferHandle =
-            renderbufferManager.CreateRenderbuffer(3, true);
+            renderbufferManager.CreateRenderbuffer(3, true, windowFramebufferWidth, windowFramebufferHeight);
         
         renderbufferManager.Bind(tempRenderbufferHandle);
         renderbufferManager.SetSize(windowFramebufferWidth, windowFramebufferHeight);

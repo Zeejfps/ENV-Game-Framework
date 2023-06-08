@@ -84,7 +84,7 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
             BoundResource.SetSize(width, height);
     }
 
-    public IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer)
+    public IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer, int width, int height)
     {
         var key = (colorBuffersCount, createDepthBuffer);
         if (!m_RenderBufferPool.TryGetValue(key, out var pool))
@@ -100,10 +100,7 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
         }
         else
         {
-            var width = WindowBufferHandle.Width;
-            var height = WindowBufferHandle.Height;
-            var renderBuffer =
-                new GpuRenderbuffer_GL(m_TextureManager, width, height, colorBuffersCount, createDepthBuffer);
+            var renderBuffer = new GpuRenderbuffer_GL(m_TextureManager, width, height, colorBuffersCount, createDepthBuffer);
             var handle = new GpuRenderbufferHandle(renderBuffer);
             Add(handle, renderBuffer);
             pool.Push(handle);
