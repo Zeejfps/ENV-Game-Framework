@@ -22,11 +22,11 @@ public class SpriteBatch
     public ReadOnlySpan<Vector2> Sizes => m_Sizes;
     public ReadOnlySpan<Vector2> Offsets => m_Offsets;
 
-    public void Add(Vector2 position, Vector2 scale, Sprite sprite)
+    public void Add(Vector2 position, Vector2 scale, Sprite sprite, Vector3 tint)
     {
         var offset = sprite.Offset;
         var size = sprite.Size;
-        var color = sprite.Color;
+        var color = tint;
         var pivot = sprite.Pivot;
 
         var scaleX = sprite.FlipX ? -scale.X : scale.X;
@@ -79,13 +79,13 @@ public class SpriteRenderer
             batch.Clear();
     }
 
-    public void DrawSprite(Vector2 position, Vector2 scale, Sprite sprite)
+    public void DrawSprite(Vector2 position, Vector2 scale, Sprite sprite, Vector3 tint)
     {
         var spriteSheet = sprite.Texture;
 
         if (spriteSheet == null)
         {
-            var color = sprite.Color;
+            var color = tint;
             var pivot = sprite.Pivot;
             var modelMatrix = Matrix4x4.CreateScale(scale.X, 0f, scale.Y)
                               * Matrix4x4.CreateTranslation(position.X + pivot.X, position.Y + pivot.Y, 0f);
@@ -102,7 +102,7 @@ public class SpriteRenderer
                 Batches[spriteSheet] = batch;
             }
 
-            batch.Add(position, scale, sprite);
+            batch.Add(position, scale, sprite, tint);
         }
     
     }
