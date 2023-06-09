@@ -150,15 +150,7 @@ public sealed class PongGame : Game
     {
         var camera = Camera;
         var gpu = Gpu;
-
-        //var viewportWidth = Window.ViewportWidth;
-        //var viewportHeight = Window.ViewportHeight;
-        //var fb = gpu.CreateRenderbuffer(1, false, 512, 512);
-
-        var fb = Viewport.Framebuffer;
-        gpu.Renderbuffer.Bind(fb);
-        gpu.Renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
-
+        
         var frameLerpFactor = Time.FrameLerpFactor;
         SpriteRenderer.NewBatch();
         {
@@ -176,20 +168,16 @@ public sealed class PongGame : Game
                 PaddleSprite, 
                 m_IsHit ? new Vector3(1f, 0.7f, 0.1f) : new Vector3(0, 0, 0.2f));
         }
-        SpriteRenderer.RenderBatch(camera);
 
-        // var aspect = 1f;
-        // var min = (int)MathF.Min(viewportWidth, viewportHeight);
-        // var x = (int)MathF.Round(viewportWidth * 0.5f - min * 0.5f);
-        // var y = (int)MathF.Round(viewportHeight * 0.5f - min * 0.5f);
+        // TODO: This should probably come from the camera
+        gpu.Renderbuffer.Bind(Viewport.Framebuffer);
+        gpu.Renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
+        SpriteRenderer.RenderBatch(camera);
         
         gpu.Renderbuffer.BindToWindow();
         gpu.Renderbuffer.ClearColorBuffers(0, 0, 0, 0);
-        // gpu.Renderbuffer.Blit(fb, x, y, min + x, min + y);
         gpu.Renderbuffer.Blit(Viewport);
         gpu.Renderbuffer.Blit(Viewport2);
-        
-        //gpu.ReleaseRenderbuffer(fb);
     }
 
     protected override void OnStop()
