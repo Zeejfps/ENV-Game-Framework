@@ -55,18 +55,17 @@ public sealed class PongGame : Game
             Window.Close();
 
         var paddleSpeed = 30f;
+        var paddlePositionDelta = Clock.UpdateDeltaTime * paddleSpeed;
         
-        Paddle1.PrevPosition = Paddle1.CurrPosition;
         if (keyboard.IsKeyPressed(KeyboardKey.A))
-            Paddle1.CurrPosition -= Vector2.UnitX * Clock.UpdateDeltaTime * paddleSpeed;
+            Paddle1.MoveLeft(paddlePositionDelta);
         else if (keyboard.IsKeyPressed(KeyboardKey.D))
-            Paddle1.CurrPosition += Vector2.UnitX * Clock.UpdateDeltaTime * paddleSpeed;
-
-        Paddle2.PrevPosition = Paddle2.CurrPosition;
+            Paddle1.MoveRight(paddlePositionDelta);
+        
         if (keyboard.IsKeyPressed(KeyboardKey.LeftArrow))
-            Paddle2.CurrPosition -= Vector2.UnitX * Clock.UpdateDeltaTime * paddleSpeed;
+            Paddle2.MoveLeft(paddlePositionDelta);
         else if (keyboard.IsKeyPressed(KeyboardKey.RightArrow))
-            Paddle2.CurrPosition += Vector2.UnitX * Clock.UpdateDeltaTime * paddleSpeed;
+            Paddle2.MoveRight(paddlePositionDelta);
     }
 
     protected override void OnRender()
