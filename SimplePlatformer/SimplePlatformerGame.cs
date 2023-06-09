@@ -129,14 +129,18 @@ public class SimplePlatformerGame : Game
         }
     }
     
-    protected override void Configure(IWindow window)
+    protected override void Configure()
     {
+        var window = Window;
         window.Title = "Simple Platformer";
         window.IsFullscreen = true;
         //window.CursorMode = CursorMode.HiddenAndLocked;
         window.IsResizable = false;
         window.IsVsyncEnabled = true;
         window.SetViewportSize(1280, 720);
+
+        var gpu = Window.Gpu;
+        gpu.EnableBlending = true;
     }
 
     protected override void OnStart()
@@ -180,8 +184,6 @@ public class SimplePlatformerGame : Game
 
     protected override void OnRender()
     {
-        Gpu.EnableBlending = true;
-        
         var renderbuffer = Gpu.Renderbuffer;
         renderbuffer.ClearColorBuffers(0.2f, 0.2f, 0.2f, 1);
         

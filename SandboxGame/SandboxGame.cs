@@ -15,8 +15,9 @@ public class SandboxGame : Game
         Scene = new TestScene(Context, Logger);
     }
 
-    protected override void Configure(IWindow window)
+    protected override void Configure()
     {
+        var window = Window;
         window.Title = "Sandbox Game";
         //Window.IsFullscreen = true;
         window.ViewportWidth = 1280;

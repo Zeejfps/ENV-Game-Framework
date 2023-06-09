@@ -55,8 +55,9 @@ public sealed class PongGame : Game
         };
     }
 
-    protected override void Configure(IWindow window)
+    protected override void Configure()
     {
+        var window = Window;
         window.Title = "Pong";
         window.IsResizable = true;
         window.IsVsyncEnabled = false;

@@ -37,8 +37,9 @@ public abstract class Game : IGame
         if (IsRunning)
             return;
 
+        Configure();
+        
         var window = Window;
-        Configure(window);
         window.Closed += Window_OnClosed;
         window.OpenCentered();
         
@@ -105,7 +106,7 @@ public abstract class Game : IGame
         m_FrameCount++;
     }
 
-    protected abstract void Configure(IWindow window);
+    protected abstract void Configure();
     protected abstract void OnStart();
     protected abstract void OnUpdate();
     protected abstract void OnRender();

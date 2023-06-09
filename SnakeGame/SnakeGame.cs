@@ -39,8 +39,9 @@ public class SnakeGame : Game
         m_GameController = new GameController(window.Input, this);
     }
     
-    protected override void Configure(IWindow window)
+    protected override void Configure()
     {
+        var window = Window;
         window.ViewportWidth = 640;
         window.ViewportHeight = 640;
         window.IsVsyncEnabled = false;
