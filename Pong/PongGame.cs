@@ -30,7 +30,10 @@ public sealed class PongGame : Game
     public PongGame(IWindow window, ILogger logger) : base(window, logger)
     {
         SpriteRenderer = new SpriteRenderer(Gpu);
-        Camera = new OrthographicCamera(100, 0.1f, 100f);
+        Camera = OrthographicCamera.FromLRBT(
+            LevelBounds.Left, LevelBounds.Right, 
+            LevelBounds.Bottom, LevelBounds.Top, 
+            0.01f, 10f);
         
         BottomPaddle = new()
         {
@@ -46,7 +49,7 @@ public sealed class PongGame : Game
             Bounds = LevelBounds
         };
 
-        Ball = new Ball
+        Ball = new Ball(logger)
         {
             Velocity = new Vector2(10, 30),
             Bounds = LevelBounds
@@ -58,7 +61,7 @@ public sealed class PongGame : Game
         var window = Window;
         window.Title = "Pong";
         window.IsResizable = true;
-        window.IsVsyncEnabled = false;
+        window.IsVsyncEnabled = true;
         window.CursorMode = CursorMode.Visible;
         window.SetViewportSize(640, 640);
     }
@@ -69,7 +72,6 @@ public sealed class PongGame : Game
         
         PaddleSprite = new Sprite
         {
-            Color = new Vector3(1f, 1f, 1f),
             Size = new Vector2(32f, 32f),
             Texture = texture
         };
@@ -109,20 +111,38 @@ public sealed class PongGame : Game
     {
         var camera = Camera;
         var gpu = Gpu;
-        gpu.Renderbuffer.ClearColorBuffers(0f, 0f, 0f, 1f);
+
+        var viewportWidth = Window.ViewportWidth;
+        var viewportHeight = Window.ViewportHeight;
+        var fb = gpu.CreateRenderbuffer(1, false, 1024, 1024);
         
+        gpu.Renderbuffer.Bind(fb);
+        gpu.Renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
+
+        var frameLerpFactor = Time.FrameLerpFactor;
         SpriteRenderer.NewBatch();
         {
-            var paddle1Pos = Vector2.Lerp(BottomPaddle.PrevPosition, BottomPaddle.CurrPosition, Time.FrameLerpFactor);
-            SpriteRenderer.DrawSprite(paddle1Pos,  new Vector2(10f, 1f), PaddleSprite);
+            var paddle1Pos = Vector2.Lerp(BottomPaddle.PrevPosition, BottomPaddle.CurrPosition, frameLerpFactor);
+            SpriteRenderer.DrawSprite(paddle1Pos,  new Vector2(10f, 1f), PaddleSprite, Vector3.One);
 
-            var paddle2Pos = Vector2.Lerp(TopPaddle.PrevPosition, TopPaddle.CurrPosition, Time.FrameLerpFactor);
-            SpriteRenderer.DrawSprite(paddle2Pos,  new Vector2(10f, 1f), PaddleSprite);
-            
-            var ballPosition = Vector2.Lerp(Ball.PrevPosition, Ball.CurrPosition, Time.FrameLerpFactor);
-            SpriteRenderer.DrawSprite(ballPosition,  new Vector2(1f, 1f), PaddleSprite);
+            var paddle2Pos = Vector2.Lerp(TopPaddle.PrevPosition, TopPaddle.CurrPosition, frameLerpFactor);
+            SpriteRenderer.DrawSprite(paddle2Pos,  new Vector2(10f, 1f), PaddleSprite, Vector3.One);
+
+            var ballPosition = Vector2.Lerp(Ball.PrevPosition, Ball.CurrPosition, frameLerpFactor);
+            SpriteRenderer.DrawSprite(ballPosition,  new Vector2(1f, 1f), PaddleSprite, new Vector3(0.5f, 0.7f, 0.1f));
         }
         SpriteRenderer.RenderBatch(camera);
+
+        var aspect = 1f;
+        var min = (int)MathF.Min(viewportWidth, viewportHeight);
+        var x = (int)MathF.Round(viewportWidth * 0.5f - min * 0.5f);
+        var y = (int)MathF.Round(viewportHeight * 0.5f - min * 0.5f);
+        
+        gpu.Renderbuffer.BindToWindow();
+        gpu.Renderbuffer.ClearColorBuffers(0, 0, 0, 0);
+        gpu.Renderbuffer.Blit(fb, x, y, min + x, min + y);
+        
+        gpu.ReleaseRenderbuffer(fb);
     }
 
     protected override void OnStop()
