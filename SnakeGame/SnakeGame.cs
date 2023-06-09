@@ -36,7 +36,6 @@ public class SnakeGame : Game
         m_Camera.Transform.WorldPosition = new Vector3(0f, 0f, -5f);
         m_SpriteRenderer = new SpriteRenderer(Gpu);
         m_GridRenderer = new GridRenderer(Gpu, GridSize);
-
         m_GameController = new GameController(window.Input, this);
     }
     
@@ -76,8 +75,8 @@ public class SnakeGame : Game
     {
         m_SpriteRenderer.LoadResources();
         m_GridRenderer.LoadResources();
-        Restart();
         m_GameController.Enable();
+        Restart();
     }
 
     protected override void OnUpdate()

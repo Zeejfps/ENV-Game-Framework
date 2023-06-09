@@ -3,7 +3,7 @@ using EasyGameFramework.Core;
 
 namespace EasyGameFramework.Api;
 
-public abstract class Game
+public abstract class Game : IGame
 {
     public bool IsRunning { get; private set; }
     

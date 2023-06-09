@@ -9,34 +9,34 @@ namespace EasyGameFramework.Api;
 /// <summary>
 /// Use this class to start building your GPU powered application.
 /// </summary>
-public sealed class ApplicationBuilder
+public sealed class GameBuilder
 {
     private bool m_IsLoggerSet;
     private bool m_IsRendererSet;
     
     private DiContainer DiContainer { get; } = new();
 
-    public ApplicationBuilder WithRenderer<TRenderer>() where TRenderer : IRenderer
+    public GameBuilder WithRenderer<TRenderer>() where TRenderer : IRenderer
     {
         DiContainer.BindSingleton<IRenderer, TRenderer>();
         m_IsRendererSet = true;
         return this;
     }
 
-    public ApplicationBuilder WithLogger<TLogger>() where TLogger : ILogger
+    public GameBuilder WithLogger<TLogger>() where TLogger : ILogger
     {
         DiContainer.BindSingleton<ILogger, TLogger>();
         m_IsLoggerSet = true;
         return this;
     }
 
-    public ApplicationBuilder With<T, TImpl>() where TImpl : T
+    public GameBuilder With<T, TImpl>() where TImpl : T
     {
         DiContainer.BindSingleton<T, TImpl>();
         return this;
     }
 
-    public TApp Build<TApp>() where TApp : Game
+    public TGame Build<TGame>() where TGame : IGame
     {
         if (!m_IsRendererSet)
             WithRenderer<NullRenderer>();
@@ -55,7 +55,7 @@ public sealed class ApplicationBuilder
         DiContainer.BindSingleton<IContainer>(DiContainer);
         DiContainer.BindSingleton<IGamepadManager, GamepadManager>();
 
-        var engine = DiContainer.New<TApp>();
+        var engine = DiContainer.New<TGame>();
         return engine;
     }
 
