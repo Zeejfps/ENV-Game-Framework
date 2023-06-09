@@ -28,7 +28,7 @@ public sealed class PongGame : Game
     private Paddle TopPaddle { get; }
     private Ball Ball { get; }
 
-    private BallCollisionSystem BallCollisionSystem { get; } = new BallCollisionSystem();
+    private BallPaddleCollisionSystem BallPaddleCollisionSystem { get; } = new BallPaddleCollisionSystem();
 
     public PongGame(IWindow window, IEventLoop eventLoop, ILogger logger) : base(eventLoop, logger)
     {
@@ -93,7 +93,7 @@ public sealed class PongGame : Game
         else if (keyboard.IsKeyPressed(KeyboardKey.RightArrow))
             TopPaddle.MoveRight(paddlePositionDelta);
         
-        BallCollisionSystem.Update(Ball, BottomPaddle, TopPaddle);
+        BallPaddleCollisionSystem.Update(Ball, BottomPaddle, TopPaddle);
     }
 
     protected override void OnRender()

@@ -1,6 +1,6 @@
 ﻿namespace Pong;
 
-public sealed class BallCollisionSystem
+public sealed class BallPaddleCollisionSystem
 {
     public void Update(Ball ball, Paddle bottomPaddle, Paddle topPaddle)
     {
