@@ -47,7 +47,6 @@ public sealed class ApplicationBuilder
         RegisterWindowingSystem();
         
         DiContainer.BindSingleton<IMouse, Mouse>();
-        DiContainer.BindSingleton<IEventLoop, EventLoop>();
         DiContainer.BindSingleton<IKeyboard, Keyboard>();
         DiContainer.BindSingleton<IInputSystem, InputSystem>();
         DiContainer.BindSingleton<IContext, Context>();
