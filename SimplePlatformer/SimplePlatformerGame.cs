@@ -12,7 +12,6 @@ namespace SimplePlatformer;
 
 public class SimplePlatformerGame : Game
 {
-    private IGpu Gpu => Window.Gpu;
     private Player[] Players { get; }
     private Controller[] Controllers { get; }
     private ButtonInput CloseAppInput { get; }

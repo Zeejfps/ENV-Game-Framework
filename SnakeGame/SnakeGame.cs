@@ -13,8 +13,6 @@ public class SnakeGame : Game
     private Vector2 Apple { get; set; }
     private Random Random { get; } = new();
     
-    private IGpu Gpu => Window.Gpu;
-    
     private float Speed { get; set; }
     private float m_AccumulatedTime;
     private readonly OrthographicCamera m_Camera;

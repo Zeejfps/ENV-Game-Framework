@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using EasyGameFramework.Api.Rendering;
 using EasyGameFramework.Core;
 
 namespace EasyGameFramework.Api;
@@ -10,6 +11,7 @@ public abstract class Game : IGame
     protected IGameTime Time => m_Time;
     protected IWindow Window { get; }
     protected ILogger Logger { get; }
+    protected IGpu Gpu => Window.Gpu;
 
     private float m_DeltaTime = 1f / 60f;
     private double m_Accumulator = 0.0;

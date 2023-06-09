@@ -3,13 +3,11 @@ using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Physics;
-using EasyGameFramework.Api.Rendering;
 
 namespace Pong;
 
 public sealed class PongGame : Game
 {
-    private IGpu Gpu => Window.Gpu;
     private IInputSystem InputSystem => Window.Input;
     private SpriteRenderer SpriteRenderer { get; }
     private ICamera Camera { get; }
