@@ -59,4 +59,11 @@ public class OrthographicCamera : ICamera
     {
         ProjectionMatrix = Matrix4x4.CreateOrthographic(width, height, m_zNearPlane, m_zFarPlane);
     }
+
+    public Vector2 ViewportToWorldPoint(Vector2 viewportPoint)
+    {
+        var worldPointX = viewportPoint.X * Rect.Width - Rect.Width * 0.5f;
+        var worldPointY = viewportPoint.Y * Rect.Height - Rect.Height * 0.5f;
+        return new Vector2(worldPointX, worldPointY);
+    }
 }

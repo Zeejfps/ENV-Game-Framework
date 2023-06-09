@@ -94,10 +94,14 @@ public sealed class PongGame : Game
     protected override void OnUpdate()
     {
         var rayOrigin = new Vector2(-40, 40);
-        var mouseViewportPosition = new Vector2(InputSystem.Mouse.ViewportX, InputSystem.Mouse.ViewportY);
-        var mouseWorldPosition = Viewport.ToWorldPoint(mouseViewportPosition, Camera);
-        Logger.Trace(mouseWorldPosition);
-        var rayDirection = mouseWorldPosition - rayOrigin;
+        var mouseScreenPoint = new Vector2(InputSystem.Mouse.ViewportX, InputSystem.Mouse.ViewportY);
+        Logger.Trace($"Screen Point: {mouseScreenPoint}");
+        var mouseViewportPoint = Window.ScreenToViewportPoint(mouseScreenPoint, Viewport);
+        Logger.Trace($"Viewport Point: {mouseViewportPoint}");
+        var mouseWorldPoint = Camera.ViewportToWorldPoint(mouseViewportPoint);
+        Logger.Trace($"World Point: {mouseWorldPoint}");
+
+        var rayDirection = mouseWorldPoint - rayOrigin;
         var ray = new Ray2D
         {
             Origin = rayOrigin,
@@ -114,7 +118,7 @@ public sealed class PongGame : Game
         m_IsHit = Physics2D.TryRaycastRect(ray, rect, out var result) && result.T <= 1f;
         if (m_IsHit)
         {
-            Logger.Trace($"Hit: {result.HitPoint}");
+            //Logger.Trace($"Hit: {result.HitPoint}");
         }
         
         var keyboard = InputSystem.Keyboard;

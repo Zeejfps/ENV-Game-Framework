@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Events;
@@ -370,6 +371,32 @@ internal class Window_GLFW : IWindow
     public void SwapBuffers()
     {
         GLFW.Glfw.SwapBuffers(m_Handle);
+    }
+
+    public Vector2 ScreenToViewportPoint(Vector2 screenPoint, IViewport viewport)
+    {
+        var screenWidth = m_ViewportWidth;
+        var screenHeight = m_ViewportHeight;
+
+        var screenLeft = viewport.Left * screenWidth;
+        var screenRight = viewport.Right * screenWidth;
+        var screenTop = viewport.Top * screenHeight;
+        var screenBottom = viewport.Bottom * screenHeight;
+
+        var viewportX = (screenPoint.X - screenLeft) / (screenRight - screenLeft);
+        var viewportY = (screenPoint.Y - screenBottom) / (screenTop - screenBottom);
+        
+        return new Vector2(viewportX, viewportY);
+    }
+    
+    private float ConvertPoint(float value, float oldMin, float oldMax, float newMin, float newMax)
+    {
+        float oldRange = oldMax - oldMin;
+        float newRange = newMax - newMin;
+        float normalizedValue = (value - oldMin) / oldRange;
+        float newValue = (normalizedValue * newRange) + newMin;
+
+        return newValue;
     }
 
     private void UpdateScreenSize()

@@ -1,3 +1,5 @@
+using System.Numerics;
+using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.Rendering;
 
 namespace EasyGameFramework.Api;
@@ -27,4 +29,6 @@ public interface IWindow
     void SetTopLeftPosition(int x, int y);
     void PollEvents();
     void SwapBuffers();
+    
+    Vector2 ScreenToViewportPoint(Vector2 screenPoint, IViewport viewport);
 }
