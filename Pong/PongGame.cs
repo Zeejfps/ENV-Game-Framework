@@ -11,7 +11,6 @@ public sealed class PongGame : Game
     private IWindow Window { get; }
     private IGpu Gpu => Window.Gpu;
     private IInputSystem InputSystem => Window.Input;
-    private Paddle Paddle { get; }
     private SpriteRenderer SpriteRenderer { get; }
     private ICamera Camera { get; }
     
@@ -20,7 +19,6 @@ public sealed class PongGame : Game
     public PongGame(IWindow window, IEventLoop eventLoop, ILogger logger) : base(eventLoop, logger)
     {
         Window = window;
-        Paddle = new Paddle();
         SpriteRenderer = new SpriteRenderer(Gpu);
         Camera = new OrthographicCamera(100, 0.1f, 100f);
     }
@@ -38,8 +36,17 @@ public sealed class PongGame : Game
         SpriteRenderer.LoadResources();
     }
 
-    private Vector2 PaddlePrevPos { get; set; } = new(0f, -40f);
-    private Vector2 PaddlePos { get; set; }= new(0f, -40f);
+    private Paddle Paddle1 { get; } = new()
+    {
+        CurrPosition = new Vector2(0, -40f),
+        PrevPosition = new Vector2(0f, -40f)
+    };
+    
+    private Paddle Paddle2 { get; } = new()
+    {
+        CurrPosition = new Vector2(0, 40f),
+        PrevPosition = new Vector2(0f, 40f)
+    };
 
     protected override void OnUpdate()
     {
@@ -47,11 +54,19 @@ public sealed class PongGame : Game
         if (keyboard.IsKeyPressed(KeyboardKey.Escape))
             Window.Close();
 
-        PaddlePrevPos = PaddlePos;
+        var paddleSpeed = 30f;
+        
+        Paddle1.PrevPosition = Paddle1.CurrPosition;
         if (keyboard.IsKeyPressed(KeyboardKey.A))
-            PaddlePos -= Vector2.UnitX * Clock.UpdateDeltaTime * 30f;
+            Paddle1.CurrPosition -= Vector2.UnitX * Clock.UpdateDeltaTime * paddleSpeed;
         else if (keyboard.IsKeyPressed(KeyboardKey.D))
-            PaddlePos += Vector2.UnitX * Clock.UpdateDeltaTime * 30f;
+            Paddle1.CurrPosition += Vector2.UnitX * Clock.UpdateDeltaTime * paddleSpeed;
+
+        Paddle2.PrevPosition = Paddle2.CurrPosition;
+        if (keyboard.IsKeyPressed(KeyboardKey.LeftArrow))
+            Paddle2.CurrPosition -= Vector2.UnitX * Clock.UpdateDeltaTime * paddleSpeed;
+        else if (keyboard.IsKeyPressed(KeyboardKey.RightArrow))
+            Paddle2.CurrPosition += Vector2.UnitX * Clock.UpdateDeltaTime * paddleSpeed;
     }
 
     protected override void OnRender()
@@ -62,8 +77,11 @@ public sealed class PongGame : Game
         
         SpriteRenderer.NewBatch();
         {
-            var pos = Vector2.Lerp(PaddlePrevPos, PaddlePos, Clock.FrameLerpFactor);
-            SpriteRenderer.DrawSprite(pos,  new Vector2(10f, 1f), PaddleSprite);
+            var paddle1Pos = Vector2.Lerp(Paddle1.PrevPosition, Paddle1.CurrPosition, Clock.FrameLerpFactor);
+            SpriteRenderer.DrawSprite(paddle1Pos,  new Vector2(10f, 1f), PaddleSprite);
+
+            var paddle2Pos = Vector2.Lerp(Paddle2.PrevPosition, Paddle2.CurrPosition, Clock.FrameLerpFactor);
+            SpriteRenderer.DrawSprite(paddle2Pos,  new Vector2(10f, 1f), PaddleSprite);
         }
         SpriteRenderer.RenderBatch(camera);
     }
