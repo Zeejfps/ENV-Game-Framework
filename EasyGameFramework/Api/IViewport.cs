@@ -1,6 +1,4 @@
-﻿using EasyGameFramework.Api.AssetTypes;
-
-namespace EasyGameFramework.Api;
+﻿namespace EasyGameFramework.Api;
 
 public interface IViewport
 {
@@ -9,5 +7,4 @@ public interface IViewport
     float Right { get; }
     float Bottom { get; }
     float AspectRatio { get; }
-    IHandle<IGpuRenderbuffer> Framebuffer { get; }
 }

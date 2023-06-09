@@ -37,11 +37,11 @@ public sealed class PongGame : Game
         var fb = Gpu.CreateRenderbuffer(1, false, 200, 200);
 
         Camera = OrthographicCamera.Create(LevelBounds.Width, LevelBounds.Height, 0.01f, 10f);
-        Viewport = new Viewport(fb)
+        Viewport = new Viewport(Camera.AspectRatio)
         {
             Left = 0.5f
         };
-        Viewport2 = new Viewport(fb)
+        Viewport2 = new Viewport(Camera.AspectRatio)
         {
             Right = 0.5f,
         };
@@ -169,15 +169,17 @@ public sealed class PongGame : Game
                 m_IsHit ? new Vector3(1f, 0.7f, 0.1f) : new Vector3(0, 0, 0.2f));
         }
 
-        // TODO: This should probably come from the camera
-        gpu.Renderbuffer.Bind(Viewport.Framebuffer);
+        var fb = gpu.CreateRenderbuffer(1, false, 200, (int)(200 * camera.AspectRatio));
+        gpu.Renderbuffer.Bind(fb);
         gpu.Renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
         SpriteRenderer.RenderBatch(camera);
         
         gpu.Renderbuffer.BindToWindow();
         gpu.Renderbuffer.ClearColorBuffers(0, 0, 0, 0);
-        gpu.Renderbuffer.Blit(Viewport);
-        gpu.Renderbuffer.Blit(Viewport2);
+        gpu.Renderbuffer.Blit(fb, Viewport);
+        gpu.Renderbuffer.Blit(fb, Viewport2);
+        
+        gpu.ReleaseRenderbuffer(fb);
     }
 
     protected override void OnStop()

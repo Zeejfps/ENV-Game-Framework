@@ -21,9 +21,11 @@ public class OrthographicCamera : ICamera
             BottomLeft = new Vector2(width * -0.5f, height * -0.5f)
         };
 
-        return new OrthographicCamera(matrix, rect);
+        var aspectRatio = width / height;
+        return new OrthographicCamera(matrix, rect, aspectRatio);
     }
-    
+
+    public float AspectRatio { get; }
     public Matrix4x4 ProjectionMatrix { get; private set; }
     public ITransform3D Transform { get; }
     public Rect Rect { get; }
@@ -31,11 +33,12 @@ public class OrthographicCamera : ICamera
     private float m_zNearPlane;
     private float m_zFarPlane;
 
-    private OrthographicCamera(Matrix4x4 projectionMatrix, Rect rect)
+    private OrthographicCamera(Matrix4x4 projectionMatrix, Rect rect, float aspectRatio)
     {
         ProjectionMatrix = projectionMatrix;
         Rect = rect;
         Transform = new Transform3D();
+        AspectRatio = aspectRatio;
     }
     
     public OrthographicCamera(float size, float zNearPlane, float zFarPlane)

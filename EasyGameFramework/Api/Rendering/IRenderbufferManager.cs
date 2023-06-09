@@ -14,5 +14,5 @@ public interface IRenderbufferManager
     void SetSize(int width, int height);
     void Blit(IHandle<IGpuRenderbuffer> src);
     void Blit(IHandle<IGpuRenderbuffer> src, int left, int bottom, int right, int top);
-    void Blit(IViewport viewport);
+    void Blit(IHandle<IGpuRenderbuffer> fb, IViewport viewport);
 }

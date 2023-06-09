@@ -108,7 +108,7 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
         );
     }
 
-    public void Blit(IViewport viewport)
+    public void Blit(IHandle<IGpuRenderbuffer> fb, IViewport viewport)
     {
         var windowWidth = BoundResource?.Width ?? WindowBufferHandle.Width;
         var windowHeight = BoundResource?.Height ?? WindowBufferHandle.Height;
@@ -140,7 +140,6 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
         var dstRight = (int)MathF.Round(right - halfWidth + drawHalfWidth);
         var dstBottom = (int)MathF.Round(bottom + halfHeight - drawHalfHeight);
 
-        var fb = viewport.Framebuffer;
         Blit(fb, dstLeft, dstBottom, dstRight, dstTop);
     }
 }
