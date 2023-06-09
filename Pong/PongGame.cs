@@ -2,6 +2,7 @@
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.InputDevices;
+using EasyGameFramework.Api.Physics;
 using EasyGameFramework.Api.Rendering;
 
 namespace Pong;
@@ -13,14 +14,37 @@ public sealed class PongGame : Game
     private IInputSystem InputSystem => Window.Input;
     private SpriteRenderer SpriteRenderer { get; }
     private ICamera Camera { get; }
-    
     private Sprite PaddleSprite { get; set; }
+
+    private Rect LevelBounds = new()
+    {
+        Position = new Vector2(-50, -50),
+        Width = 100,
+        Height = 100,
+    };
+    
+    private Paddle Paddle1 { get; }
+    private Paddle Paddle2 { get; }
     
     public PongGame(IWindow window, IEventLoop eventLoop, ILogger logger) : base(eventLoop, logger)
     {
         Window = window;
         SpriteRenderer = new SpriteRenderer(Gpu);
         Camera = new OrthographicCamera(100, 0.1f, 100f);
+        
+        Paddle1 = new()
+        {
+            CurrPosition = new Vector2(0, -40f),
+            PrevPosition = new Vector2(0f, -40f),
+            Bounds = LevelBounds
+        };
+    
+        Paddle2 = new()
+        {
+            CurrPosition = new Vector2(0, 40f),
+            PrevPosition = new Vector2(0f, 40f),
+            Bounds = LevelBounds
+        };
     }
 
     protected override void OnStart()
@@ -35,18 +59,6 @@ public sealed class PongGame : Game
         };
         SpriteRenderer.LoadResources();
     }
-
-    private Paddle Paddle1 { get; } = new()
-    {
-        CurrPosition = new Vector2(0, -40f),
-        PrevPosition = new Vector2(0f, -40f)
-    };
-    
-    private Paddle Paddle2 { get; } = new()
-    {
-        CurrPosition = new Vector2(0, 40f),
-        PrevPosition = new Vector2(0f, 40f)
-    };
 
     protected override void OnUpdate()
     {
