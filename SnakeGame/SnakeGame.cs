@@ -84,7 +84,7 @@ public class SnakeGame : Game
         if (IsPaused)
             return;
 
-        m_AccumulatedTime += Clock.UpdateDeltaTime;
+        m_AccumulatedTime += Time.UpdateDeltaTime;
         if (m_AccumulatedTime >= 1f / Speed)
         {
             m_AccumulatedTime = 0f;

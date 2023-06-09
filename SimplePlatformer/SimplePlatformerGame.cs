@@ -23,6 +23,7 @@ public class SimplePlatformerGame : Game
     private IGpuTextureHandle? PlayerSpriteSheetTexture { get; set; }
     private SpriteSheet RunAnimationSpriteSheet { get; }
     
+    private IClock Clock { get; }
     private Animation Animation { get; }
 
     public SimplePlatformerGame(
@@ -30,6 +31,8 @@ public class SimplePlatformerGame : Game
         ILogger logger) : base(window, logger)
     {
         var maxPlayerCount = 1;
+
+        Clock = new Clock();
         
         Camera = new OrthographicCamera(100, 0.1f, 100f);
         Camera.Transform.WorldPosition += Vector3.UnitY * 5;
@@ -166,11 +169,12 @@ public class SimplePlatformerGame : Game
     private double dt;
     protected override void OnUpdate()
     {
+        Clock.Tick(Time.UpdateDeltaTime);
         Animation.PlaybackSpeed = MathF.Abs(Players[0].Velocity.X);
 
         foreach (var player in Players)
         {
-            player.Update(Clock.DeltaTime);
+            player.Update(Time.UpdateDeltaTime);
         }
     }
 
@@ -194,7 +198,7 @@ public class SimplePlatformerGame : Game
         }
         
         SpriteRenderer.NewBatch();
-        var lerpFactor = Clock.FrameLerpFactor;
+        var lerpFactor = Time.FrameLerpFactor;
         foreach (var player in Players)
         {
             var position = Vector2.Lerp(player.PrevPosition, player.CurrPosition, lerpFactor);
@@ -205,7 +209,7 @@ public class SimplePlatformerGame : Game
         SpriteRenderer.RenderBatch(Camera);
         
         fps++;
-        dt += Clock.FrameDeltaTime;
+        dt += Time.FrameDeltaTime;
         if (dt >= 1f)
         {
             Logger.Trace($"FPS: {fps}");

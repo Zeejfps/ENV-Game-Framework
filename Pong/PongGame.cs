@@ -86,10 +86,10 @@ public sealed class PongGame : Game
             return;
         }
 
-        Ball.Update(Clock.UpdateDeltaTime);
+        Ball.Update(Time.UpdateDeltaTime);
         
         var paddleSpeed = 30f;
-        var paddlePositionDelta = Clock.UpdateDeltaTime * paddleSpeed;
+        var paddlePositionDelta = Time.UpdateDeltaTime * paddleSpeed;
         
         BottomPaddle.PrevPosition = BottomPaddle.CurrPosition;
         if (keyboard.IsKeyPressed(KeyboardKey.A))
@@ -114,13 +114,13 @@ public sealed class PongGame : Game
         
         SpriteRenderer.NewBatch();
         {
-            var paddle1Pos = Vector2.Lerp(BottomPaddle.PrevPosition, BottomPaddle.CurrPosition, Clock.FrameLerpFactor);
+            var paddle1Pos = Vector2.Lerp(BottomPaddle.PrevPosition, BottomPaddle.CurrPosition, Time.FrameLerpFactor);
             SpriteRenderer.DrawSprite(paddle1Pos,  new Vector2(10f, 1f), PaddleSprite);
 
-            var paddle2Pos = Vector2.Lerp(TopPaddle.PrevPosition, TopPaddle.CurrPosition, Clock.FrameLerpFactor);
+            var paddle2Pos = Vector2.Lerp(TopPaddle.PrevPosition, TopPaddle.CurrPosition, Time.FrameLerpFactor);
             SpriteRenderer.DrawSprite(paddle2Pos,  new Vector2(10f, 1f), PaddleSprite);
             
-            var ballPosition = Vector2.Lerp(Ball.PrevPosition, Ball.CurrPosition, Clock.FrameLerpFactor);
+            var ballPosition = Vector2.Lerp(Ball.PrevPosition, Ball.CurrPosition, Time.FrameLerpFactor);
             SpriteRenderer.DrawSprite(ballPosition,  new Vector2(1f, 1f), PaddleSprite);
         }
         SpriteRenderer.RenderBatch(camera);

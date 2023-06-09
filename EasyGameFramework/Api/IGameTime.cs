@@ -1,6 +1,6 @@
 ﻿namespace EasyGameFramework.Api;
 
-public interface IGameClock : IClock
+public interface IGameTime
 {
     float UpdateDeltaTime { get; }
     float FrameDeltaTime { get; }

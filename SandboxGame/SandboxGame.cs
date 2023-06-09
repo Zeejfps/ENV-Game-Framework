@@ -32,7 +32,7 @@ public class SandboxGame : Game
 
     protected override void OnUpdate()
     {
-        Scene.Update(Clock.UpdateDeltaTime);
+        Scene.Update(Time.UpdateDeltaTime);
     }
 
     protected override void OnRender()

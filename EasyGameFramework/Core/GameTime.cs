@@ -2,19 +2,10 @@
 
 namespace EasyGameFramework.Core;
 
-internal class GameClock : IGameClock
+internal class GameTime : IGameTime
 {
-    public event Action? Ticked;
-    
     public float Time { get; set; }
-    public float DeltaTime => UpdateDeltaTime;
-    
     public float UpdateDeltaTime { get; set; }
     public float FrameDeltaTime { get; set; }
     public float FrameLerpFactor { get; set; }
-
-    public void OnTicked()
-    {
-        Ticked?.Invoke();
-    }
 }

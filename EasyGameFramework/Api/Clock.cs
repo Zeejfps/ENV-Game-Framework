@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace EasyGameFramework.Api;
+﻿namespace EasyGameFramework.Api;
 
 public class Clock : IClock
 {
@@ -9,19 +7,6 @@ public class Clock : IClock
     public float DeltaTime { get; private set; }
     public float Time { get; private set; }
     public float TimeScale { get; set; } = 1f;
-    
-    public Clock()
-    {
-    }
-
-    public void Start()
-    {
-        Time = 0f;
-    }
-
-    public void Stop()
-    {
-    }
 
     public void Tick(float dt)
     {

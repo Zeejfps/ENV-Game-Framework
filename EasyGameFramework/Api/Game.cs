@@ -7,7 +7,7 @@ public abstract class Game : IGame
 {
     public bool IsRunning { get; private set; }
     
-    protected IGameClock Clock => m_Clock;
+    protected IGameTime Time => m_Time;
     protected IWindow Window { get; }
     protected ILogger Logger { get; }
 
@@ -15,7 +15,7 @@ public abstract class Game : IGame
     private double m_Accumulator = 0.0;
     
     private readonly Stopwatch m_Stopwatch;
-    private readonly GameClock m_Clock;
+    private readonly GameTime m_Time;
 
     private double m_FpsTime;
     private int m_FrameCount;
@@ -25,7 +25,7 @@ public abstract class Game : IGame
         Window = window;
         Logger = logger;
         m_Stopwatch = new Stopwatch();
-        m_Clock = new GameClock
+        m_Time = new GameTime
         {
             Time = 0f,
             UpdateDeltaTime = 1f / 60f
@@ -81,7 +81,7 @@ public abstract class Game : IGame
         if (frameTime > 0.25)
             frameTime = 0.25;
 
-        m_Clock.FrameDeltaTime = (float)frameTime;
+        m_Time.FrameDeltaTime = (float)frameTime;
         m_Accumulator += frameTime;
 
         var window = Window;
@@ -92,15 +92,14 @@ public abstract class Game : IGame
                 return;
             
             OnUpdate();
-            m_Clock.Time += Clock.UpdateDeltaTime;
-            m_Clock.OnTicked();
+            m_Time.Time += Time.UpdateDeltaTime;
             m_Accumulator -= m_DeltaTime;
         }
 
         if (!IsRunning || !window.IsOpened)
             return;
         
-        m_Clock.FrameLerpFactor = (float)m_Accumulator / m_DeltaTime;
+        m_Time.FrameLerpFactor = (float)m_Accumulator / m_DeltaTime;
         OnRender();
         window.SwapBuffers();
         m_FrameCount++;
