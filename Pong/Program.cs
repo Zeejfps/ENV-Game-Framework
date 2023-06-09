@@ -2,5 +2,5 @@
 using Pong;
 
 var builder = new ApplicationBuilder();
-var app = builder.Build<PongApp>();
+var app = builder.Build<PongGame>();
 app.Run();

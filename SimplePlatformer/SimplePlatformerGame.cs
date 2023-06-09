@@ -10,7 +10,7 @@ using SampleGames;
 
 namespace SimplePlatformer;
 
-public class SimplePlatformer : Game
+public class SimplePlatformerGame : Game
 {
     private IGpu Gpu => Window.Gpu;
     private Player[] Players { get; }
@@ -25,7 +25,7 @@ public class SimplePlatformer : Game
     
     private Animation Animation { get; }
 
-    public SimplePlatformer(
+    public SimplePlatformerGame(
         IWindow window,
         ILogger logger) : base(window, logger)
     {
@@ -125,6 +125,16 @@ public class SimplePlatformer : Game
                 .To(GamepadButton.Back);
         }
     }
+    
+    protected override void Configure(IWindow window)
+    {
+        window.Title = "Simple Platformer";
+        window.IsFullscreen = true;
+        //window.CursorMode = CursorMode.HiddenAndLocked;
+        window.IsResizable = false;
+        window.IsVsyncEnabled = true;
+        window.SetViewportSize(1280, 720);
+    }
 
     protected override void OnStart()
     {
@@ -136,7 +146,7 @@ public class SimplePlatformer : Game
 
         var aspectRatio = Gpu.Renderbuffer.Width / Gpu.Renderbuffer.Height;
         Camera.SetSize(10f * aspectRatio, 10);
-        CloseAppInput.Pressed += Stop;
+        CloseAppInput.Pressed += Exit;
         SpriteRenderer.LoadResources();
 
         Animation.Play();
@@ -144,7 +154,7 @@ public class SimplePlatformer : Game
 
     protected override void OnStop()
     {
-        CloseAppInput.Pressed -= Stop;
+        CloseAppInput.Pressed -= Exit;
         for (var i = 0; i < Controllers.Length; i++)
         {
             var controller = Controllers[i];

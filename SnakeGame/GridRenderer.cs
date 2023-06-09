@@ -4,8 +4,6 @@ using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Rendering;
 using SampleGames;
 
-namespace SnakeGame;
-
 public sealed class GridRenderer
 {
     public GridRenderer(IGpu gpu, GridSize gridSize)

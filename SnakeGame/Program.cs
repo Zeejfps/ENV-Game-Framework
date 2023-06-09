@@ -1,7 +1,5 @@
-﻿using SampleGames;
-using EasyGameFramework.Api;
+﻿using EasyGameFramework.Api;
 
 var builder = new ApplicationBuilder();
-
-var app = builder.Build<SnakeGameApp>();
+var app = builder.Build<SnakeGame>();
 app.Run();

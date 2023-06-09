@@ -5,8 +5,6 @@ namespace EasyGameFramework.Api;
 
 public abstract class Game
 {
-    public event Action? Stopped;
-    
     public bool IsRunning { get; private set; }
     
     protected IGameClock Clock => m_Clock;
@@ -34,25 +32,35 @@ public abstract class Game
         };
     }
 
-    public void Start()
+    public void Run()
     {
         if (IsRunning)
             return;
+
+        var window = Window;
+        Configure(window);
+        window.Closed += Window_OnClosed;
+        window.OpenCentered();
         
         OnStart();
         IsRunning = true;
         while (IsRunning)
             Update();
+        
+        OnStop();
     }
 
-    public void Stop()
+    public void Exit()
     {
         if (!IsRunning)
             return;
-
         IsRunning = false;
-        OnStop();
-        Stopped?.Invoke();
+    }
+
+    private void Window_OnClosed()
+    {
+        Window.Closed -= Window_OnClosed;
+        Exit();
     }
 
     private void Update()
@@ -75,24 +83,29 @@ public abstract class Game
         m_Clock.FrameDeltaTime = (float)frameTime;
         m_Accumulator += frameTime;
 
+        var window = Window;
         while (m_Accumulator >= m_DeltaTime)
         {
-            Window.PollEvents();
+            window.PollEvents();
+            if (!IsRunning)
+                return;
+            
             OnUpdate();
             m_Clock.Time += Clock.UpdateDeltaTime;
             m_Clock.OnTicked();
             m_Accumulator -= m_DeltaTime;
         }
 
-        if (!Window.IsOpened)
+        if (!window.IsOpened)
             return;
         
         m_Clock.FrameLerpFactor = (float)m_Accumulator / m_DeltaTime;
         OnRender();
-        Window.SwapBuffers();
+        window.SwapBuffers();
         m_FrameCount++;
     }
 
+    protected abstract void Configure(IWindow window);
     protected abstract void OnStart();
     protected abstract void OnUpdate();
     protected abstract void OnRender();

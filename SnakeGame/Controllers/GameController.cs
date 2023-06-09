@@ -24,7 +24,7 @@ public class GameController : Controller
         
         m_Bindings = GameInputBindings;
 
-        BindOnPressed(GameInputBindings.QuitAction, Game.Stop);
+        BindOnPressed(GameInputBindings.QuitAction, Game.Exit);
         BindOnPressed(GameInputBindings.ResetAction, Game.Restart);
         BindOnPressed(GameInputBindings.IncreaseSpeedAction, Game.IncreaseSpeed);
         BindOnPressed(GameInputBindings.DecreaseSpeedAction, Game.DecreaseSpeed);

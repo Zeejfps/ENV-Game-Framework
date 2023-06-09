@@ -15,6 +15,16 @@ public class SandboxGame : Game
         Scene = new TestScene(Context, Logger);
     }
 
+    protected override void Configure(IWindow window)
+    {
+        window.Title = "Sandbox Game";
+        //Window.IsFullscreen = true;
+        window.ViewportWidth = 1280;
+        window.ViewportHeight = 720;
+        window.IsResizable = true;
+        window.IsVsyncEnabled = true;
+    }
+
     protected override void OnStart()
     {
         Scene.Load();

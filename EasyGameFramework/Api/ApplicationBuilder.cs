@@ -36,7 +36,7 @@ public sealed class ApplicationBuilder
         return this;
     }
 
-    public TApp Build<TApp>() where TApp : WindowedApp
+    public TApp Build<TApp>() where TApp : Game
     {
         if (!m_IsRendererSet)
             WithRenderer<NullRenderer>();

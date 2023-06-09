@@ -55,6 +55,15 @@ public sealed class PongGame : Game
         };
     }
 
+    protected override void Configure(IWindow window)
+    {
+        window.Title = "Pong";
+        window.IsResizable = true;
+        window.IsVsyncEnabled = false;
+        window.CursorMode = CursorMode.Visible;
+        window.SetViewportSize(640, 640);
+    }
+
     protected override void OnStart()
     {
         var texture = Gpu.Texture.Load("Assets/white");
@@ -72,7 +81,10 @@ public sealed class PongGame : Game
     {
         var keyboard = InputSystem.Keyboard;
         if (keyboard.IsKeyPressed(KeyboardKey.Escape))
-            Window.Close();
+        {
+            Exit();
+            return;
+        }
 
         Ball.Update(Clock.UpdateDeltaTime);
         

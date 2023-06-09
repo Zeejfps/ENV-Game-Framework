@@ -2,6 +2,5 @@
 using SimplePlatformer;
 
 var builder = new ApplicationBuilder();
-
-var app = builder.Build<SimplePlatformerApp>();
+var app = builder.Build<SimplePlatformerGame>();
 app.Run();

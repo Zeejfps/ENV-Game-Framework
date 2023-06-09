@@ -2,9 +2,7 @@
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.Rendering;
-using SnakeGame;
-
-namespace SampleGames;
+using SampleGames;
 
 public class SnakeGame : Game
 {
@@ -22,6 +20,7 @@ public class SnakeGame : Game
     private readonly OrthographicCamera m_Camera;
     private readonly SpriteRenderer m_SpriteRenderer;
     private readonly GridRenderer m_GridRenderer;
+    private readonly GameController m_GameController;
     
     public SnakeGame(IWindow window, ILogger logger) : base(window, logger)
     {
@@ -37,6 +36,18 @@ public class SnakeGame : Game
         m_Camera.Transform.WorldPosition = new Vector3(0f, 0f, -5f);
         m_SpriteRenderer = new SpriteRenderer(Gpu);
         m_GridRenderer = new GridRenderer(Gpu, GridSize);
+
+        m_GameController = new GameController(window.Input, this);
+    }
+    
+    protected override void Configure(IWindow window)
+    {
+        window.ViewportWidth = 640;
+        window.ViewportHeight = 640;
+        window.IsVsyncEnabled = true;
+        window.IsResizable = false;
+        window.Title = "SNAEK";
+        window.CursorMode = CursorMode.HiddenAndLocked;
     }
 
     public void Restart()
@@ -66,6 +77,7 @@ public class SnakeGame : Game
         m_SpriteRenderer.LoadResources();
         m_GridRenderer.LoadResources();
         Restart();
+        m_GameController.Enable();
     }
 
     protected override void OnUpdate()
