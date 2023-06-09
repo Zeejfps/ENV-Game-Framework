@@ -15,7 +15,6 @@ public class SnakeGame : Game
     private Vector2 Apple { get; set; }
     private Random Random { get; } = new();
     
-    private IWindow Window { get; }
     private IGpu Gpu => Window.Gpu;
     
     private float Speed { get; set; }
@@ -26,7 +25,6 @@ public class SnakeGame : Game
     
     public SnakeGame(IWindow window, ILogger logger) : base(window, logger)
     {
-        Window = window;
         GridSize = new GridSize(21, 21);
         
         Snakes = new[]

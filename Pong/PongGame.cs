@@ -9,7 +9,6 @@ namespace Pong;
 
 public sealed class PongGame : Game
 {
-    private IWindow Window { get; }
     private IGpu Gpu => Window.Gpu;
     private IInputSystem InputSystem => Window.Input;
     private SpriteRenderer SpriteRenderer { get; }
@@ -32,7 +31,6 @@ public sealed class PongGame : Game
 
     public PongGame(IWindow window, ILogger logger) : base(window, logger)
     {
-        Window = window;
         SpriteRenderer = new SpriteRenderer(Gpu);
         Camera = new OrthographicCamera(100, 0.1f, 100f);
         

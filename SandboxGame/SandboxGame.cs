@@ -4,16 +4,13 @@ namespace Framework;
 
 public class SandboxGame : Game
 {
-    IContext Context { get; }
-
-    private IWindow Window { get; }
+    private IContext Context { get; }
     private TestScene Scene { get; }
     
     public SandboxGame(
         IContext context,
         ILogger logger) : base(context.Window, logger)
     {
-        Window = context.Window;
         Context = context;
         Scene = new TestScene(Context, Logger);
     }

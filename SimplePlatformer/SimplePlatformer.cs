@@ -12,7 +12,6 @@ namespace SimplePlatformer;
 
 public class SimplePlatformer : Game
 {
-    private IWindow Window { get; }
     private IGpu Gpu => Window.Gpu;
     private Player[] Players { get; }
     private Controller[] Controllers { get; }
@@ -30,8 +29,6 @@ public class SimplePlatformer : Game
         IWindow window,
         ILogger logger) : base(window, logger)
     {
-        Window = window;
-        
         var maxPlayerCount = 1;
         
         Camera = new OrthographicCamera(100, 0.1f, 100f);
