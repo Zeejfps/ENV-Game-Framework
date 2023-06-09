@@ -69,13 +69,14 @@ public abstract class Game : IGame
         m_Stopwatch.Restart();
         
         var frameTime = (double)deltaTimeTicks / Stopwatch.Frequency;
-        m_FpsTime += frameTime;
-        if (m_FpsTime >= 1)
-        {
-            //Logger.Trace($"FPS: {m_FrameCount}");
-            m_FpsTime = 0;
-            m_FrameCount = 0;
-        } 
+        // m_FpsTime += frameTime;
+        // if (m_FpsTime >= 5)
+        // {
+        //     var fps = m_FrameCount / 5;
+        //     Logger.Trace($"FPS: {fps}");
+        //     m_FpsTime = 0;
+        //     m_FrameCount = 0;
+        // } 
         
         if (frameTime > 0.25)
             frameTime = 0.25;
@@ -96,7 +97,7 @@ public abstract class Game : IGame
             m_Accumulator -= m_DeltaTime;
         }
 
-        if (!window.IsOpened)
+        if (!IsRunning || !window.IsOpened)
             return;
         
         m_Clock.FrameLerpFactor = (float)m_Accumulator / m_DeltaTime;

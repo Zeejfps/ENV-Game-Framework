@@ -43,7 +43,7 @@ public class SnakeGame : Game
     {
         window.ViewportWidth = 640;
         window.ViewportHeight = 640;
-        window.IsVsyncEnabled = true;
+        window.IsVsyncEnabled = false;
         window.IsResizable = false;
         window.Title = "SNAEK";
         window.CursorMode = CursorMode.HiddenAndLocked;
