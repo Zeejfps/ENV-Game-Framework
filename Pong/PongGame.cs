@@ -24,24 +24,26 @@ public sealed class PongGame : Game
         Height = 100,
     };
     
-    private Paddle Paddle1 { get; }
-    private Paddle Paddle2 { get; }
+    private Paddle BottomPaddle { get; }
+    private Paddle TopPaddle { get; }
     private Ball Ball { get; }
-    
+
+    private BallCollisionSystem BallCollisionSystem { get; } = new BallCollisionSystem();
+
     public PongGame(IWindow window, IEventLoop eventLoop, ILogger logger) : base(eventLoop, logger)
     {
         Window = window;
         SpriteRenderer = new SpriteRenderer(Gpu);
         Camera = new OrthographicCamera(100, 0.1f, 100f);
         
-        Paddle1 = new()
+        BottomPaddle = new()
         {
             CurrPosition = new Vector2(0, -40f),
             PrevPosition = new Vector2(0f, -40f),
             Bounds = LevelBounds
         };
     
-        Paddle2 = new()
+        TopPaddle = new()
         {
             CurrPosition = new Vector2(0, 40f),
             PrevPosition = new Vector2(0f, 40f),
@@ -79,15 +81,19 @@ public sealed class PongGame : Game
         var paddleSpeed = 30f;
         var paddlePositionDelta = Clock.UpdateDeltaTime * paddleSpeed;
         
+        BottomPaddle.PrevPosition = BottomPaddle.CurrPosition;
         if (keyboard.IsKeyPressed(KeyboardKey.A))
-            Paddle1.MoveLeft(paddlePositionDelta);
+            BottomPaddle.MoveLeft(paddlePositionDelta);
         else if (keyboard.IsKeyPressed(KeyboardKey.D))
-            Paddle1.MoveRight(paddlePositionDelta);
+            BottomPaddle.MoveRight(paddlePositionDelta);
         
+        TopPaddle.PrevPosition = TopPaddle.CurrPosition;
         if (keyboard.IsKeyPressed(KeyboardKey.LeftArrow))
-            Paddle2.MoveLeft(paddlePositionDelta);
+            TopPaddle.MoveLeft(paddlePositionDelta);
         else if (keyboard.IsKeyPressed(KeyboardKey.RightArrow))
-            Paddle2.MoveRight(paddlePositionDelta);
+            TopPaddle.MoveRight(paddlePositionDelta);
+        
+        BallCollisionSystem.Update(Ball, BottomPaddle, TopPaddle);
     }
 
     protected override void OnRender()
@@ -98,10 +104,10 @@ public sealed class PongGame : Game
         
         SpriteRenderer.NewBatch();
         {
-            var paddle1Pos = Vector2.Lerp(Paddle1.PrevPosition, Paddle1.CurrPosition, Clock.FrameLerpFactor);
+            var paddle1Pos = Vector2.Lerp(BottomPaddle.PrevPosition, BottomPaddle.CurrPosition, Clock.FrameLerpFactor);
             SpriteRenderer.DrawSprite(paddle1Pos,  new Vector2(10f, 1f), PaddleSprite);
 
-            var paddle2Pos = Vector2.Lerp(Paddle2.PrevPosition, Paddle2.CurrPosition, Clock.FrameLerpFactor);
+            var paddle2Pos = Vector2.Lerp(TopPaddle.PrevPosition, TopPaddle.CurrPosition, Clock.FrameLerpFactor);
             SpriteRenderer.DrawSprite(paddle2Pos,  new Vector2(10f, 1f), PaddleSprite);
             
             var ballPosition = Vector2.Lerp(Ball.PrevPosition, Ball.CurrPosition, Clock.FrameLerpFactor);

@@ -12,7 +12,6 @@ public sealed class Paddle
     
     public void MoveLeft(float xDelta)
     {
-        PrevPosition = CurrPosition;
         var newPositionX = CurrPosition.X - xDelta;
         if (newPositionX - Size < Bounds.Left)
             newPositionX = Bounds.Left + Size;
@@ -21,7 +20,6 @@ public sealed class Paddle
 
     public void MoveRight(float xDelta)
     {
-        PrevPosition = CurrPosition;
         var newPositionX = CurrPosition.X + xDelta;
         if (newPositionX + Size > Bounds.Right)
             newPositionX = Bounds.Right - Size;
