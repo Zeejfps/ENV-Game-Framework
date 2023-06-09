@@ -15,6 +15,7 @@ public sealed class PongGame : Game
     private SpriteRenderer SpriteRenderer { get; }
     private ICamera Camera { get; }
     private Sprite PaddleSprite { get; set; }
+    //private Sprite BallSprite { get; set; }
 
     private Rect LevelBounds = new()
     {
@@ -25,6 +26,7 @@ public sealed class PongGame : Game
     
     private Paddle Paddle1 { get; }
     private Paddle Paddle2 { get; }
+    private Ball Ball { get; }
     
     public PongGame(IWindow window, IEventLoop eventLoop, ILogger logger) : base(eventLoop, logger)
     {
@@ -43,6 +45,12 @@ public sealed class PongGame : Game
         {
             CurrPosition = new Vector2(0, 40f),
             PrevPosition = new Vector2(0f, 40f),
+            Bounds = LevelBounds
+        };
+
+        Ball = new Ball
+        {
+            Velocity = new Vector2(10, 30),
             Bounds = LevelBounds
         };
     }
@@ -66,6 +74,8 @@ public sealed class PongGame : Game
         if (keyboard.IsKeyPressed(KeyboardKey.Escape))
             Window.Close();
 
+        Ball.Update(Clock.UpdateDeltaTime);
+        
         var paddleSpeed = 30f;
         var paddlePositionDelta = Clock.UpdateDeltaTime * paddleSpeed;
         
@@ -93,6 +103,9 @@ public sealed class PongGame : Game
 
             var paddle2Pos = Vector2.Lerp(Paddle2.PrevPosition, Paddle2.CurrPosition, Clock.FrameLerpFactor);
             SpriteRenderer.DrawSprite(paddle2Pos,  new Vector2(10f, 1f), PaddleSprite);
+            
+            var ballPosition = Vector2.Lerp(Ball.PrevPosition, Ball.CurrPosition, Clock.FrameLerpFactor);
+            SpriteRenderer.DrawSprite(ballPosition,  new Vector2(1f, 1f), PaddleSprite);
         }
         SpriteRenderer.RenderBatch(camera);
     }

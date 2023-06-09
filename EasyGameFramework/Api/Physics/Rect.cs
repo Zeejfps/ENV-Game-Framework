@@ -9,6 +9,8 @@ public readonly struct Rect
     public float Height { get; init; }
     public float Left => Position.X;
     public float Right => Position.X + Width;
+    public float Top => Position.Y + Height;
+    public float Bottom => Position.Y;
 
     public bool Contains(Vector2 point)
     {
