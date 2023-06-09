@@ -16,8 +16,8 @@ public sealed class PongGame : Game
     //private Sprite BallSprite { get; set; }
 
     private Physics2D Physics2D = new Physics2D();
-    private Viewport Viewport { get; }
-    private Viewport Viewport2 { get; }
+    private IViewport Viewport { get; }
+    private IViewport Viewport2 { get; }
 
     private Rect LevelBounds = new()
     {
@@ -37,13 +37,15 @@ public sealed class PongGame : Game
         var fb = Gpu.CreateRenderbuffer(1, false, 200, 200);
 
         Camera = OrthographicCamera.Create(LevelBounds.Width, LevelBounds.Height, 0.01f, 10f);
-        Viewport = new Viewport(Camera.AspectRatio)
+        Viewport = new Viewport
         {
-            Left = 0.5f
+            Left = 0.5f,
+            AspectRatio = Camera.AspectRatio
         };
-        Viewport2 = new Viewport(Camera.AspectRatio)
+        Viewport2 = new Viewport
         {
             Right = 0.5f,
+            AspectRatio = Camera.AspectRatio
         };
 
         SpriteRenderer = new SpriteRenderer(Gpu);
@@ -94,7 +96,18 @@ public sealed class PongGame : Game
     protected override void OnUpdate()
     {
         var mouseScreenPoint = new Vector2(InputSystem.Mouse.ScreenX, InputSystem.Mouse.ScreenY);
-        var mouseViewportPoint = Window.ScreenToViewportPoint(mouseScreenPoint, Viewport);
+        var viewports = new IViewport[] { Viewport, Viewport2 };
+        var mouseViewportPoint = Vector2.Zero;
+        for (var i = 0; i < viewports.Length; i++)
+        {
+            mouseViewportPoint = Window.ScreenToViewportPoint(mouseScreenPoint, viewports[i]);
+            if (mouseViewportPoint.X < 0f || mouseViewportPoint.X > 1f || 
+                mouseViewportPoint.Y < 0f || mouseViewportPoint.Y > 1f) 
+                continue;
+
+            break;
+        }
+        
         var mouseWorldPoint = Camera.ViewportToWorldPoint(mouseViewportPoint);
 
         var rayOrigin = new Vector2(-40, 40);
@@ -111,8 +124,8 @@ public sealed class PongGame : Game
             Width = 40,
             Height = 40
         };
-
-        m_IsHit = Physics2D.TryRaycastRect(ray, rect, out var result) && result.T <= 1f;
+        
+        m_IsHit = Physics2D.TryRaycastRect(ray, rect, out var result);
         if (m_IsHit)
         {
             //Logger.Trace($"Hit: {result.HitPoint}");

@@ -8,15 +8,17 @@ public readonly struct RaycastResult2D
 {
     public Vector2 Normal { get; init; }
     public Vector2 HitPoint { get; init; }
-    public float T { get; init; }
+    public float Distance { get; init; }
 }
 
 public sealed class Physics2D
 {
     public bool TryRaycastRect(Ray2D ray, Rect rect, out RaycastResult2D result)
     {
-        var nearHitPoint = (rect.BottomLeft - ray.Origin) / ray.Direction;
-        var farHitPoint = (rect.TopRight - ray.Origin) / ray.Direction;
+        var rayDirection = Vector2.Normalize(ray.Direction);
+        var maxLength = ray.Direction.Length();
+        var nearHitPoint = (rect.BottomLeft - ray.Origin) / rayDirection;
+        var farHitPoint = (rect.TopRight - ray.Origin) / rayDirection;
 
         if (nearHitPoint.X > farHitPoint.X)
         {
@@ -42,18 +44,21 @@ public sealed class Physics2D
         if (farT < 0) 
             return false;
 
-        var hitPoint = ray.Origin + ray.Direction * t;
+        if (t > maxLength)
+            return false;
+
+        var hitPoint = ray.Origin + rayDirection * t;
         var normal = Vector2.Zero;
         if (nearHitPoint.X > nearHitPoint.Y)
         {
-            if (ray.Direction.X < 0)
+            if (rayDirection.X < 0)
                 normal = new Vector2(1, 0);
             else
                 normal = new Vector2(-1, 0);
         }
         else if (nearHitPoint.X < nearHitPoint.Y)
         {
-            if (ray.Direction.Y < 0)
+            if (rayDirection.Y < 0)
                 normal = new Vector2(0, 1);
             else
                 normal = new Vector2(0, -1);
@@ -61,7 +66,7 @@ public sealed class Physics2D
 
         result = new RaycastResult2D
         {
-            T = t,
+            Distance = t,
             Normal = normal,
             HitPoint = hitPoint
         };

@@ -15,13 +15,13 @@ public sealed class Viewport : IViewport
 
     private ICamera Camera { get; set; }
 
-    public Viewport(float aspectRatio)
+    public Viewport()
     {
         Left = 0f;
         Top = 1f;
         Right = 1f;
         Bottom = 0f;
-        AspectRatio = aspectRatio;
+        AspectRatio = 1f;
     }
 
     public Vector2 ToWorldPoint(Vector2 viewportPoint, OrthographicCamera camera)
