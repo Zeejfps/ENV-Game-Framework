@@ -13,5 +13,6 @@ public interface IRenderbufferManager
     void ClearColorBuffers(float r, float g, float b, float a);
     void SetSize(int width, int height);
     void Blit(IHandle<IGpuRenderbuffer> src);
-    void Blit(IHandle<IGpuRenderbuffer> src, int dstX, int dstY, int dstWidth, int dstHeight);
+    void Blit(IHandle<IGpuRenderbuffer> src, int left, int bottom, int right, int top);
+    void Blit(IViewport viewport);
 }

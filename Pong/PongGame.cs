@@ -16,7 +16,8 @@ public sealed class PongGame : Game
     //private Sprite BallSprite { get; set; }
 
     private Physics2D Physics2D = new Physics2D();
-    private World2D World2D { get; }
+    private Viewport Viewport { get; }
+    private Viewport Viewport2 { get; }
 
     private Rect LevelBounds = new()
     {
@@ -33,9 +34,18 @@ public sealed class PongGame : Game
 
     public PongGame(IWindow window, ILogger logger) : base(window, logger)
     {
-        World2D = new World2D(window);
+        var fb = Gpu.CreateRenderbuffer(1, false, 200, 200);
 
         Camera = OrthographicCamera.Create(LevelBounds.Width, LevelBounds.Height, 0.01f, 10f);
+        Viewport = new Viewport(fb)
+        {
+            Left = 0.5f
+        };
+        Viewport2 = new Viewport(fb)
+        {
+            Right = 0.5f,
+        };
+
         SpriteRenderer = new SpriteRenderer(Gpu);
 
         BottomPaddle = new()
@@ -85,7 +95,7 @@ public sealed class PongGame : Game
     {
         var rayOrigin = new Vector2(-40, 40);
         var mouseViewportPosition = new Vector2(InputSystem.Mouse.ViewportX, InputSystem.Mouse.ViewportY);
-        var mouseWorldPosition = World2D.ViewportToWorldPoint(mouseViewportPosition, Camera);
+        var mouseWorldPosition = Viewport.ToWorldPoint(mouseViewportPosition, Camera);
         Logger.Trace(mouseWorldPosition);
         var rayDirection = mouseWorldPosition - rayOrigin;
         var ray = new Ray2D
@@ -141,10 +151,11 @@ public sealed class PongGame : Game
         var camera = Camera;
         var gpu = Gpu;
 
-        var viewportWidth = Window.ViewportWidth;
-        var viewportHeight = Window.ViewportHeight;
-        var fb = gpu.CreateRenderbuffer(1, false, 512, 512);
-        
+        //var viewportWidth = Window.ViewportWidth;
+        //var viewportHeight = Window.ViewportHeight;
+        //var fb = gpu.CreateRenderbuffer(1, false, 512, 512);
+
+        var fb = Viewport.Framebuffer;
         gpu.Renderbuffer.Bind(fb);
         gpu.Renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
 
@@ -167,16 +178,18 @@ public sealed class PongGame : Game
         }
         SpriteRenderer.RenderBatch(camera);
 
-        var aspect = 1f;
-        var min = (int)MathF.Min(viewportWidth, viewportHeight);
-        var x = (int)MathF.Round(viewportWidth * 0.5f - min * 0.5f);
-        var y = (int)MathF.Round(viewportHeight * 0.5f - min * 0.5f);
+        // var aspect = 1f;
+        // var min = (int)MathF.Min(viewportWidth, viewportHeight);
+        // var x = (int)MathF.Round(viewportWidth * 0.5f - min * 0.5f);
+        // var y = (int)MathF.Round(viewportHeight * 0.5f - min * 0.5f);
         
         gpu.Renderbuffer.BindToWindow();
         gpu.Renderbuffer.ClearColorBuffers(0, 0, 0, 0);
-        gpu.Renderbuffer.Blit(fb, x, y, min + x, min + y);
+        // gpu.Renderbuffer.Blit(fb, x, y, min + x, min + y);
+        gpu.Renderbuffer.Blit(Viewport);
+        gpu.Renderbuffer.Blit(Viewport2);
         
-        gpu.ReleaseRenderbuffer(fb);
+        //gpu.ReleaseRenderbuffer(fb);
     }
 
     protected override void OnStop()

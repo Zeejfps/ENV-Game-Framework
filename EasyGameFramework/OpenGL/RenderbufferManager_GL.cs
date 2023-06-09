@@ -1,6 +1,7 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Rendering;
+using GLFW;
 using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
@@ -91,7 +92,7 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
         Blit(src, 0, 0, dstFramebuffer.Width, dstFramebuffer.Height);
     }
 
-    public void Blit(IHandle<IGpuRenderbuffer> src, int dstX, int dstY, int dstWidth, int dstHeight)
+    public void Blit(IHandle<IGpuRenderbuffer> src, int left, int bottom, int right, int top)
     {
         var srcFramebuffer = Get(src);
         uint dstFramebufferId = 0;
@@ -102,8 +103,44 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dstFramebufferId);
         glBlitFramebuffer(
             0, 0, srcFramebuffer.Width, srcFramebuffer.Height, 
-            dstX, dstY, dstWidth, dstHeight, 
+            left, bottom, right, top, 
             GL_COLOR_BUFFER_BIT, GL_NEAREST
         );
+    }
+
+    public void Blit(IViewport viewport)
+    {
+        var windowWidth = BoundResource?.Width ?? WindowBufferHandle.Width;
+        var windowHeight = BoundResource?.Height ?? WindowBufferHandle.Height;
+
+        // Rect on the screen we can draw in
+        var left = viewport.Left * windowWidth;
+        var right = viewport.Right * windowWidth;
+        var top = viewport.Top * windowHeight;
+        var bottom = viewport.Bottom * windowHeight;
+        var width = right - left;
+        var height = top - bottom;
+        var halfWidth = width * 0.5f;
+        var halfHeight = height * 0.5f;
+        
+        var aspectRatio = viewport.AspectRatio;
+        var drawWidth = height * aspectRatio;
+        var drawHeight = height;
+        if (height > width)
+        {
+            drawWidth = width;
+            drawHeight = width / aspectRatio;
+        }
+
+        var drawHalfWidth = drawWidth * 0.5f;
+        var drawHalfHeight = drawHeight * 0.5f;
+
+        var dstTop = (int)MathF.Round(top - halfHeight + drawHalfHeight);
+        var dstLeft = (int)MathF.Round(left + halfWidth - drawHalfWidth);
+        var dstRight = (int)MathF.Round(right - halfWidth + drawHalfWidth);
+        var dstBottom = (int)MathF.Round(bottom + halfHeight - drawHalfHeight);
+
+        var fb = viewport.Framebuffer;
+        Blit(fb, dstLeft, dstBottom, dstRight, dstTop);
     }
 }

@@ -38,7 +38,7 @@ public class OrthographicCamera : ICamera
         Transform = new Transform3D();
     }
     
-    private OrthographicCamera(float size, float zNearPlane, float zFarPlane)
+    public OrthographicCamera(float size, float zNearPlane, float zFarPlane)
     {
         m_zNearPlane = zNearPlane;
         m_zFarPlane = zFarPlane;
