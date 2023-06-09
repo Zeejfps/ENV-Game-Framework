@@ -384,7 +384,7 @@ internal class Window_GLFW : IWindow
         var screenBottom = viewport.Bottom * screenHeight;
 
         var viewportX = (screenPoint.X - screenLeft) / (screenRight - screenLeft);
-        var viewportY = (screenPoint.Y - screenBottom) / (screenTop - screenBottom);
+        var viewportY = 1f - (screenPoint.Y - screenBottom) / (screenTop - screenBottom);
         
         return new Vector2(viewportX, viewportY);
     }
