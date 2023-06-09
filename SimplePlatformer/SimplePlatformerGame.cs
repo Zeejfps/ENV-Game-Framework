@@ -136,7 +136,7 @@ public class SimplePlatformerGame : Game
         //window.CursorMode = CursorMode.HiddenAndLocked;
         window.IsResizable = false;
         window.IsVsyncEnabled = true;
-        window.SetViewportSize(1280, 720);
+        window.SetScreenSize(1280, 720);
 
         var gpu = Window.Gpu;
         gpu.EnableBlending = true;
@@ -193,7 +193,7 @@ public class SimplePlatformerGame : Game
             Height = 100,
         };
 
-        if (rect.Contains(new Vector2(InputSystem.Mouse.ViewportX, InputSystem.Mouse.ViewportY)))
+        if (rect.Contains(new Vector2(InputSystem.Mouse.ScreenX, InputSystem.Mouse.ScreenY)))
         {
             Logger.Trace("mouse in rect");
         }

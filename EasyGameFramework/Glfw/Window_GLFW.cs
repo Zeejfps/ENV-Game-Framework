@@ -87,7 +87,7 @@ internal class Window_GLFW : IWindow
         WindowHint(Hint.Visible, false);
         WindowHint(Hint.Resizable, m_IsResizable);
 
-        m_Handle = CreateWindow(ViewportWidth, ViewportHeight, Title, Monitor.None, Window.None);
+        m_Handle = CreateWindow(ScreenWidth, ScreenHeight, Title, Monitor.None, Window.None);
         MakeContextCurrent(m_Handle);
         GetFramebufferSize(m_Handle, out var framebufferWidth, out var framebufferHeight);
         Gl.Import(GetProcAddress);
@@ -138,7 +138,7 @@ internal class Window_GLFW : IWindow
         }
     }
     
-    public int ViewportWidth
+    public int ScreenWidth
     {
         get => m_ViewportWidth;
         set
@@ -151,7 +151,7 @@ internal class Window_GLFW : IWindow
         }
     }
 
-    public int ViewportHeight
+    public int ScreenHeight
     {
         get => m_ViewportHeight;
         set
@@ -261,18 +261,18 @@ internal class Window_GLFW : IWindow
     private void OnMouseMoved(in MouseMovedEvent evt)
     {
         var mouse = evt.Mouse;
-        if (m_MouseX == mouse.ViewportX && m_MouseY == mouse.ViewportY)
+        if (m_MouseX == mouse.ScreenX && m_MouseY == mouse.ScreenY)
             return;
 
-        m_MouseX = mouse.ViewportX;
-        m_MouseY = mouse.ViewportY;
-        SetCursorPosition(m_Handle, mouse.ViewportX, mouse.ViewportY);
+        m_MouseX = mouse.ScreenX;
+        m_MouseY = mouse.ScreenY;
+        SetCursorPosition(m_Handle, mouse.ScreenX, mouse.ScreenY);
     }
 
     public void OpenCentered()
     {
-        PosX = (int)((m_Displays.PrimaryDisplay.ResolutionX - ViewportWidth) * 0.5f);
-        PosY = (int)((m_Displays.PrimaryDisplay.ResolutionY - ViewportHeight) * 0.5f);
+        PosX = (int)((m_Displays.PrimaryDisplay.ResolutionX - ScreenWidth) * 0.5f);
+        PosY = (int)((m_Displays.PrimaryDisplay.ResolutionY - ScreenHeight) * 0.5f);
         Open();
     }
 
@@ -291,7 +291,7 @@ internal class Window_GLFW : IWindow
         Closed?.Invoke();
     }
 
-    public void SetViewportSize(int width, int height)
+    public void SetScreenSize(int width, int height)
     {
         if (IsFullscreen)
             return;
@@ -559,7 +559,7 @@ internal class Window_GLFW : IWindow
     
     public override string ToString()
     {
-        return $"x{PosX} y{PosY}, {ViewportWidth}x{ViewportHeight}";
+        return $"x{PosX} y{PosY}, {ScreenWidth}x{ScreenHeight}";
     }
 
     private EasyGameFramework.Api.InputDevices.MouseButton MapToMouseButton(MouseButton mouseButton)

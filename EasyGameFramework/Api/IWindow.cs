@@ -1,5 +1,4 @@
 using System.Numerics;
-using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.Rendering;
 
 namespace EasyGameFramework.Api;
@@ -8,8 +7,8 @@ public interface IWindow
 {
     event Action Closed;
     
-    int ViewportWidth { get; set; }
-    int ViewportHeight { get; set; }
+    int ScreenWidth { get; set; }
+    int ScreenHeight { get; set; }
     string Title { get; set; }
     bool IsResizable { get; set; }
     int PosX { get; set; }
@@ -25,7 +24,7 @@ public interface IWindow
     void OpenCentered();
     void Close();
     
-    void SetViewportSize(int width, int height);
+    void SetScreenSize(int width, int height);
     void SetTopLeftPosition(int x, int y);
     void PollEvents();
     void SwapBuffers();

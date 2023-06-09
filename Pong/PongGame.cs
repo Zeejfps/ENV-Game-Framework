@@ -76,7 +76,7 @@ public sealed class PongGame : Game
         window.IsResizable = true;
         window.IsVsyncEnabled = true;
         window.CursorMode = CursorMode.Visible;
-        window.SetViewportSize(640, 640);
+        window.SetScreenSize(640, 640);
     }
 
     protected override void OnStart()
@@ -93,14 +93,11 @@ public sealed class PongGame : Game
 
     protected override void OnUpdate()
     {
-        var rayOrigin = new Vector2(-40, 40);
-        var mouseScreenPoint = new Vector2(InputSystem.Mouse.ViewportX, InputSystem.Mouse.ViewportY);
-        Logger.Trace($"Screen Point: {mouseScreenPoint}");
+        var mouseScreenPoint = new Vector2(InputSystem.Mouse.ScreenX, InputSystem.Mouse.ScreenY);
         var mouseViewportPoint = Window.ScreenToViewportPoint(mouseScreenPoint, Viewport);
-        Logger.Trace($"Viewport Point: {mouseViewportPoint}");
         var mouseWorldPoint = Camera.ViewportToWorldPoint(mouseViewportPoint);
-        Logger.Trace($"World Point: {mouseWorldPoint}");
 
+        var rayOrigin = new Vector2(-40, 40);
         var rayDirection = mouseWorldPoint - rayOrigin;
         var ray = new Ray2D
         {

@@ -14,8 +14,8 @@ public interface IMouse
     event MouseButtonStateChangedDelegate ButtonReleased;
     event MouseButtonStateChangedDelegate ButtonStateChanged;
     
-    int ViewportX { get; }
-    int ViewportY { get; }
+    int ScreenX { get; }
+    int ScreenY { get; }
 
     void PressButton(MouseButton button);
     void ReleaseButton(MouseButton button);

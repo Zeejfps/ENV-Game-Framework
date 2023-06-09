@@ -40,8 +40,8 @@ public class SnakeGame : Game
     protected override void Configure()
     {
         var window = Window;
-        window.ViewportWidth = 640;
-        window.ViewportHeight = 640;
+        window.ScreenWidth = 640;
+        window.ScreenHeight = 640;
         window.IsVsyncEnabled = false;
         window.IsResizable = false;
         window.Title = "SNAEK";

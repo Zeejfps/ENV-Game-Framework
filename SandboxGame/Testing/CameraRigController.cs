@@ -136,7 +136,7 @@ public class CameraRigController
         if (mouse.IsButtonPressed(MouseButton.Middle) && !IsFpsControlsEnabled)
         {
             var window = Window;
-            var windowWidth = (float)window.ViewportWidth;
+            var windowWidth = (float)window.ScreenWidth;
             var deltaX = -evt.DeltaX / windowWidth * 100f;
             var deltaY = evt.DeltaY / windowWidth * 100f;
             CameraRig.Pan(deltaX, deltaY);
@@ -144,7 +144,7 @@ public class CameraRigController
         else if (mouse.IsButtonPressed(MouseButton.Left) && !IsFpsControlsEnabled)
         {
             var window = Window;
-            var windowWidth = (float)window.ViewportWidth;
+            var windowWidth = (float)window.ScreenWidth;
             var deltaYaw = evt.DeltaX / windowWidth * -180f;
             var deltaPitch = evt.DeltaY / windowWidth * -180f;
             CameraRig.Orbit(deltaYaw, deltaPitch);
@@ -152,7 +152,7 @@ public class CameraRigController
         else if (mouse.IsButtonPressed(MouseButton.Right) && IsFpsControlsEnabled)
         {
             var window = Window;
-            var windowWidth = (float)window.ViewportWidth;
+            var windowWidth = (float)window.ScreenWidth;
             var deltaYaw = evt.DeltaX / windowWidth * -180f;
             var deltaPitch = evt.DeltaY / windowWidth * -180f;
             CameraRig.Rotate(deltaYaw, deltaPitch);

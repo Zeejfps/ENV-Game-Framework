@@ -20,8 +20,8 @@ public class SandboxGame : Game
         var window = Window;
         window.Title = "Sandbox Game";
         //Window.IsFullscreen = true;
-        window.ViewportWidth = 1280;
-        window.ViewportHeight = 720;
+        window.ScreenWidth = 1280;
+        window.ScreenHeight = 720;
         window.IsResizable = true;
         window.IsVsyncEnabled = true;
     }
