@@ -378,25 +378,35 @@ internal class Window_GLFW : IWindow
         var screenWidth = m_ViewportWidth;
         var screenHeight = m_ViewportHeight;
 
-        var screenLeft = viewport.Left * screenWidth;
-        var screenRight = viewport.Right * screenWidth;
-        var screenTop = viewport.Top * screenHeight;
-        var screenBottom = viewport.Bottom * screenHeight;
+        var screenViewportLeft = viewport.Left * screenWidth;
+        var screenViewportRight = viewport.Right * screenWidth;
+        var screenViewportTop = viewport.Top * screenHeight;
+        var screenViewportBottom = viewport.Bottom * screenHeight;
+        var screenViewportWidth = screenViewportRight - screenViewportLeft;
+        var screenViewportHeight = screenViewportTop - screenViewportBottom;
 
-        var viewportX = (screenPoint.X - screenLeft) / (screenRight - screenLeft);
-        var viewportY = 1f - (screenPoint.Y - screenBottom) / (screenTop - screenBottom);
+        var aspectRatio = viewport.AspectRatio;
+        var test = screenViewportWidth / screenViewportHeight;
+        
+        if (test < aspectRatio)
+        {
+            var h = screenViewportWidth * aspectRatio;
+            var verticalDelta = (screenViewportHeight - h) / 2f;
+            screenViewportTop -= verticalDelta;
+            screenViewportBottom += verticalDelta;
+        }
+        else if (test > aspectRatio)
+        {
+            var w = screenViewportHeight / aspectRatio;
+            var horizontalDelta = (screenViewportWidth - w) / 2f;
+            screenViewportRight -= horizontalDelta;
+            screenViewportLeft += horizontalDelta;
+        }
+        
+        var viewportX = (screenPoint.X - screenViewportLeft) / (screenViewportRight - screenViewportLeft);
+        var viewportY = 1f - (screenPoint.Y - screenViewportBottom) / (screenViewportTop - screenViewportBottom);
         
         return new Vector2(viewportX, viewportY);
-    }
-    
-    private float ConvertPoint(float value, float oldMin, float oldMax, float newMin, float newMax)
-    {
-        float oldRange = oldMax - oldMin;
-        float newRange = newMax - newMin;
-        float normalizedValue = (value - oldMin) / oldRange;
-        float newValue = (normalizedValue * newRange) + newMin;
-
-        return newValue;
     }
 
     private void UpdateScreenSize()
