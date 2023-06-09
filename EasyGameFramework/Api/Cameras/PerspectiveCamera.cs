@@ -19,6 +19,10 @@ public class PerspectiveCamera : ICamera
     public Matrix4x4 ProjectionMatrix { get; }
 
     public ITransform3D Transform { get; }
+    public Vector2 ViewportToWorldPoint(Vector2 point)
+    {
+        throw new NotImplementedException();
+    }
 
     public void Update()
     {

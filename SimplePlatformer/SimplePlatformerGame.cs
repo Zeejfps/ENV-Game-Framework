@@ -188,7 +188,7 @@ public class SimplePlatformerGame : Game
         
         var rect = new Rect
         {
-            Position = new Vector2(0, 0),
+            BottomLeft = new Vector2(0, 0),
             Width = 100,
             Height = 100,
         };

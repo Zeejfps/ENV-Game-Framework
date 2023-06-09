@@ -3,6 +3,7 @@ using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Physics;
+using Pong.Physics;
 
 namespace Pong;
 
@@ -10,13 +11,16 @@ public sealed class PongGame : Game
 {
     private IInputSystem InputSystem => Window.Input;
     private SpriteRenderer SpriteRenderer { get; }
-    private ICamera Camera { get; }
+    private OrthographicCamera Camera { get; }
     private Sprite PaddleSprite { get; set; }
     //private Sprite BallSprite { get; set; }
 
+    private Physics2D Physics2D = new Physics2D();
+    private World2D World2D { get; }
+
     private Rect LevelBounds = new()
     {
-        Position = new Vector2(-50, -50),
+        BottomLeft = new Vector2(-50, -50),
         Width = 100,
         Height = 100,
     };
@@ -29,12 +33,11 @@ public sealed class PongGame : Game
 
     public PongGame(IWindow window, ILogger logger) : base(window, logger)
     {
+        World2D = new World2D(window);
+
+        Camera = OrthographicCamera.Create(LevelBounds.Width, LevelBounds.Height, 0.01f, 10f);
         SpriteRenderer = new SpriteRenderer(Gpu);
-        Camera = OrthographicCamera.FromLRBT(
-            LevelBounds.Left, LevelBounds.Right, 
-            LevelBounds.Bottom, LevelBounds.Top, 
-            0.01f, 10f);
-        
+
         BottomPaddle = new()
         {
             CurrPosition = new Vector2(0, -40f),
@@ -80,6 +83,30 @@ public sealed class PongGame : Game
 
     protected override void OnUpdate()
     {
+        var rayOrigin = new Vector2(-40, 40);
+        var mouseViewportPosition = new Vector2(InputSystem.Mouse.ViewportX, InputSystem.Mouse.ViewportY);
+        var mouseWorldPosition = World2D.ViewportToWorldPoint(mouseViewportPosition, Camera);
+        Logger.Trace(mouseWorldPosition);
+        var rayDirection = mouseWorldPosition - rayOrigin;
+        var ray = new Ray2D
+        {
+            Origin = rayOrigin,
+            Direction = rayDirection
+        };
+
+        var rect = new Rect
+        {
+            BottomLeft = new Vector2(-20, -20),
+            Width = 40,
+            Height = 40
+        };
+
+        m_IsHit = Physics2D.TryRaycastRect(ray, rect, out var result) && result.T <= 1f;
+        if (m_IsHit)
+        {
+            Logger.Trace($"Hit: {result.HitPoint}");
+        }
+        
         var keyboard = InputSystem.Keyboard;
         if (keyboard.IsKeyPressed(KeyboardKey.Escape))
         {
@@ -107,6 +134,8 @@ public sealed class PongGame : Game
         BallPaddleCollisionSystem.Update(Ball, BottomPaddle, TopPaddle);
     }
 
+    private bool m_IsHit;
+    
     protected override void OnRender()
     {
         var camera = Camera;
@@ -114,7 +143,7 @@ public sealed class PongGame : Game
 
         var viewportWidth = Window.ViewportWidth;
         var viewportHeight = Window.ViewportHeight;
-        var fb = gpu.CreateRenderbuffer(1, false, 1024, 1024);
+        var fb = gpu.CreateRenderbuffer(1, false, 512, 512);
         
         gpu.Renderbuffer.Bind(fb);
         gpu.Renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
@@ -130,6 +159,11 @@ public sealed class PongGame : Game
 
             var ballPosition = Vector2.Lerp(Ball.PrevPosition, Ball.CurrPosition, frameLerpFactor);
             SpriteRenderer.DrawSprite(ballPosition,  new Vector2(1f, 1f), PaddleSprite, new Vector3(0.5f, 0.7f, 0.1f));
+            
+            SpriteRenderer.DrawSprite(new Vector2(0, 0),  
+                new Vector2(20f, 20f),
+                PaddleSprite, 
+                m_IsHit ? new Vector3(1f, 0.7f, 0.1f) : new Vector3(0, 0, 0.2f));
         }
         SpriteRenderer.RenderBatch(camera);
 

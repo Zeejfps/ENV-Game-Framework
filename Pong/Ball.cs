@@ -34,6 +34,6 @@ public class Ball
             Velocity = Velocity with { Y = -Velocity.Y };
         
         CurrPosition += Velocity * dt;
-        Logger.Trace(CurrPosition);
+        //Logger.Trace(CurrPosition);
     }
 }
