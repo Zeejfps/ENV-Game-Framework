@@ -10,7 +10,7 @@ public abstract class Game
     public bool IsRunning { get; private set; }
     
     protected IGameClock Clock => m_Clock;
-    protected IEventLoop EventLoop { get; }
+    protected IWindow Window { get; }
     protected ILogger Logger { get; }
 
     private float m_DeltaTime = 1f / 60f;
@@ -22,9 +22,9 @@ public abstract class Game
     private double m_FpsTime;
     private int m_FrameCount;
     
-    protected Game(IEventLoop eventLoop, ILogger logger)
+    protected Game(IWindow window, ILogger logger)
     {
-        EventLoop = eventLoop;
+        Window = window;
         Logger = logger;
         m_Stopwatch = new Stopwatch();
         m_Clock = new GameClock
@@ -40,8 +40,9 @@ public abstract class Game
             return;
         
         OnStart();
-        EventLoop.OnUpdate += Update;
         IsRunning = true;
+        while (IsRunning)
+            Update();
     }
 
     public void Stop()
@@ -49,10 +50,8 @@ public abstract class Game
         if (!IsRunning)
             return;
 
-        EventLoop.OnUpdate -= Update;
-        OnStop();
-        
         IsRunning = false;
+        OnStop();
         Stopped?.Invoke();
     }
 
@@ -78,14 +77,19 @@ public abstract class Game
 
         while (m_Accumulator >= m_DeltaTime)
         {
+            Window.PollEvents();
             OnUpdate();
             m_Clock.Time += Clock.UpdateDeltaTime;
             m_Clock.OnTicked();
             m_Accumulator -= m_DeltaTime;
         }
 
+        if (!Window.IsOpened)
+            return;
+        
         m_Clock.FrameLerpFactor = (float)m_Accumulator / m_DeltaTime;
         OnRender();
+        Window.SwapBuffers();
         m_FrameCount++;
     }
 

@@ -14,15 +14,14 @@ public class SnakeGameApp : WindowedApp
 
     public SnakeGameApp(
         IContext context,
-        IInputSystem inputSystem,
-        IEventLoop eventLoop) : base(context.Window, eventLoop)
+        IInputSystem inputSystem) : base(context.Window)
     {
         Context = context;
         Gpu = context.Gpu;
         Input = inputSystem;
         Container = context.Container;
 
-        Game = new SnakeGame(Window, eventLoop, context.Logger);
+        Game = new SnakeGame(Window, context.Logger);
         GameController = new GameController(Input, Game);
     }
     

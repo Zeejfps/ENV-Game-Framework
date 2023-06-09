@@ -6,7 +6,7 @@ public class SimplePlatformerApp : WindowedApp
 {
     private SimplePlatformer Game { get; }
     
-    public SimplePlatformerApp(IWindow window, IEventLoop eventLoop, IContainer container) : base(window, eventLoop)
+    public SimplePlatformerApp(IWindow window, IContainer container) : base(window)
     {
         Game = container.New<SimplePlatformer>();
     }

@@ -6,9 +6,9 @@ public class SandboxGameApp : WindowedApp
 {
     private SandboxGame Game { get; }
     
-    public SandboxGameApp(IContext context, IEventLoop eventLoop) : base(context.Window, eventLoop)
+    public SandboxGameApp(IContext context) : base(context.Window)
     {
-        Game = new SandboxGame(context, context.Logger, eventLoop);
+        Game = new SandboxGame(context, context.Logger);
     }
 
     protected override void Configure(IWindow window)

@@ -24,7 +24,7 @@ public class SnakeGame : Game
     private readonly SpriteRenderer m_SpriteRenderer;
     private readonly GridRenderer m_GridRenderer;
     
-    public SnakeGame(IWindow window, IEventLoop eventLoop, ILogger logger) : base(eventLoop, logger)
+    public SnakeGame(IWindow window, ILogger logger) : base(window, logger)
     {
         Window = window;
         GridSize = new GridSize(21, 21);

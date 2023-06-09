@@ -12,20 +12,17 @@ public class CameraRigController
     private IInputSystem InputSystem { get; }
     private IWindow Window { get; }
     private CameraRig CameraRig { get; }
-    private IClock Clock { get; }
     
     private bool IsFpsControlsEnabled { get; set; }
     
     public CameraRigController(
         CameraRig cameraRig, 
         IWindow window, 
-        IInputSystem inputSystem,
-        IClock clock)
+        IInputSystem inputSystem)
     {
         CameraRig = cameraRig;
         InputSystem = inputSystem;
         Window = window;
-        Clock = clock;
     }
 
     public void Enable()
@@ -42,7 +39,6 @@ public class CameraRigController
         if (mouse.IsButtonPressed(MouseButton.Right))
             EnableFpsControls();
 
-        Clock.Ticked += Update;
         IsEnabled = true;
     }
 
@@ -90,7 +86,7 @@ public class CameraRigController
         IsFpsControlsEnabled = false;
     }
 
-    private void Update()
+    public void Update(float dt)
     {
         Debug.Assert(IsEnabled);
         
@@ -99,7 +95,7 @@ public class CameraRigController
         
         var keyboard = InputSystem.Keyboard;
         var cameraRig = CameraRig;
-        var distance = Clock.DeltaTime * 15f;
+        var distance = dt * 15f;
 
         if (keyboard.IsKeyPressed(KeyboardKey.W))
             cameraRig.MoveForward(distance);
@@ -117,8 +113,6 @@ public class CameraRigController
         if (!IsEnabled)
             return;
         
-        Clock.Ticked -= Update;
-
         DisableFpsControls();
         var mouse = InputSystem.Mouse;
         mouse.Moved -= OnMouseMoved;

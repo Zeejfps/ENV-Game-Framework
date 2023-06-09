@@ -6,9 +6,9 @@ public sealed class PongApp : WindowedApp
 {
     private PongGame Game { get; }
     
-    public PongApp(IWindow window, ILogger logger, IEventLoop eventLoop) : base(window, eventLoop)
+    public PongApp(IWindow window, ILogger logger) : base(window)
     {
-        Game = new PongGame(window, eventLoop, logger);
+        Game = new PongGame(window, logger);
     }
 
     protected override void Configure(IWindow window)
@@ -22,8 +22,8 @@ public sealed class PongApp : WindowedApp
 
     protected override void OnOpen()
     {
-        Game.Start();
         Game.Stopped += Game_OnStopped;
+        Game.Start();
     }
 
     private void Game_OnStopped()

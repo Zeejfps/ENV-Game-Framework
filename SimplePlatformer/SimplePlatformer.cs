@@ -28,8 +28,7 @@ public class SimplePlatformer : Game
 
     public SimplePlatformer(
         IWindow window,
-        IEventLoop eventLoop,
-        ILogger logger) : base(eventLoop, logger)
+        ILogger logger) : base(window, logger)
     {
         Window = window;
         

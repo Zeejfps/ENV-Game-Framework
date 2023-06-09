@@ -11,12 +11,11 @@ public class SandboxGame : Game
     
     public SandboxGame(
         IContext context,
-        ILogger logger,
-        IEventLoop eventLoop) : base(eventLoop, logger)
+        ILogger logger) : base(context.Window, logger)
     {
         Window = context.Window;
         Context = context;
-        Scene = new TestScene(Context, Logger, eventLoop);
+        Scene = new TestScene(Context, Logger);
     }
 
     protected override void OnStart()

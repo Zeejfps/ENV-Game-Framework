@@ -3,14 +3,12 @@
 public abstract class WindowedApp
 {
     public IWindow Window { get; }
-    protected IEventLoop EventLoop { get; }
     
     private bool IsRunning { get; set; }
     
-    protected WindowedApp(IWindow window, IEventLoop eventLoop)
+    protected WindowedApp(IWindow window)
     {
         Window = window;
-        EventLoop = eventLoop;
     }
     
     public void Run()
@@ -26,7 +24,6 @@ public abstract class WindowedApp
         window.OpenCentered();
         
         OnOpen();
-        EventLoop.Start();
     }
 
     public void Close()
@@ -36,7 +33,6 @@ public abstract class WindowedApp
 
         IsRunning = false;
         OnClose();
-        EventLoop.Stop();
         if (Window.IsOpened)
             Window.Close();
     }

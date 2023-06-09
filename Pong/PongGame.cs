@@ -30,7 +30,7 @@ public sealed class PongGame : Game
 
     private BallPaddleCollisionSystem BallPaddleCollisionSystem { get; } = new BallPaddleCollisionSystem();
 
-    public PongGame(IWindow window, IEventLoop eventLoop, ILogger logger) : base(eventLoop, logger)
+    public PongGame(IWindow window, ILogger logger) : base(window, logger)
     {
         Window = window;
         SpriteRenderer = new SpriteRenderer(Gpu);

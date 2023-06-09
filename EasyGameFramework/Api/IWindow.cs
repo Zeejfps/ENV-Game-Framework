@@ -25,4 +25,6 @@ public interface IWindow
     
     void SetViewportSize(int width, int height);
     void SetTopLeftPosition(int x, int y);
+    void PollEvents();
+    void SwapBuffers();
 }
