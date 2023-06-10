@@ -6,13 +6,20 @@ public class CombatBeesBenchmarkGame : Game
 {
     private const int StartBeeCount = 1000;
     
-    private BeeManager BeeManager { get; }
+    private Field Field { get; }
+    private BeeSystem BeeSystem { get; }
     private BeeSpawner BeeSpawner { get; }
     
     public CombatBeesBenchmarkGame(IContext context) : base(context)
     {
-        BeeManager = new BeeManager();
-        BeeSpawner = new BeeSpawner(BeeManager, StartBeeCount);
+        Field = new Field();
+        BeeSystem = new BeeSystem(Field, new BeeSystemConfig
+        {
+            MaxBeeCount = StartBeeCount,
+            MinBeeSize = 0.25f,
+            MaxBeeSize = 0.5f,
+        });
+        BeeSpawner = new BeeSpawner(BeeSystem, StartBeeCount);
     }
 
     protected override void Configure()
@@ -31,10 +38,12 @@ public class CombatBeesBenchmarkGame : Game
     {
         var dt = Time.UpdateDeltaTime;
         BeeSpawner.Update(dt);
+        BeeSystem.Update(dt);
     }
 
     protected override void OnRender()
     {
+        BeeSystem.Render();
     }
 
     protected override void OnStop()

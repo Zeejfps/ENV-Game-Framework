@@ -1,0 +1,131 @@
+using System.Numerics;
+using System.Runtime.InteropServices;
+
+namespace CombatBeesBenchmark;
+
+public struct Bee
+{
+    public Vector3 Position;
+    public Vector3 Velocity;
+    public Vector3 Direction;
+    public float DeathTimer;
+    public float Size;
+}
+
+public struct BeeSystemConfig
+{
+    public float MinBeeSize { get; init; }
+    public float MaxBeeSize { get; init; }
+    public int MaxBeeCount { get; init; }
+    public float FlightJitter { get; set; }
+    public float Damping { get; set; }
+}
+
+public sealed class BeeSystem
+{
+    private Field Field { get; }
+    private List<Bee>[] BeeTeams { get; }
+    private Random Random { get; }
+    private BeeSystemConfig Config { get; }
+    public int NumberOfBeeTeams { get; }
+
+    public BeeSystem(Field field, BeeSystemConfig config)
+    {
+        Config = config;
+        Field = field;
+        Random = new Random();
+        
+        var numberOfBeeTeams = 2;
+        NumberOfBeeTeams = numberOfBeeTeams;
+        BeeTeams = new List<Bee>[numberOfBeeTeams];
+        var maxBeeCountPerTeam = config.MaxBeeCount / BeeTeams.Length;
+        for (var i = 0; i < numberOfBeeTeams; i++)
+            BeeTeams[i] = new List<Bee>(maxBeeCountPerTeam);
+    }
+
+    public int GetBeeCountForTeam(int teamIndex)
+    {
+        return BeeTeams[teamIndex].Count;
+    }
+
+    public void SpawnBees(int teamIndex, int numberOfBeesToSpawn)
+    {
+        if (numberOfBeesToSpawn < 1)
+            return;
+        
+        for (var i = 0; i < numberOfBeesToSpawn; i++)
+            SpawnBeen(teamIndex);
+    }
+
+    public void Update(float dt)
+    {
+        var flightJitter = Config.FlightJitter * dt;
+        var damping = 1f - Config.Damping * dt;
+        
+        var field = Field;
+        var gravity = field.Gravity * dt;
+        var fieldHalfWidth = field.Size.X * 0.5f;
+        var fieldHalfHeight = field.Size.Z * 0.5f;
+        var bees = CollectionsMarshal.AsSpan(BeeTeams[0]);
+        for (var i = 0; i < bees.Length; i++)
+        {
+            ref var bee = ref bees[i];
+            
+            bee.Velocity += RandomInsideUnitSphere() * flightJitter;
+            bee.Velocity *= damping;
+            bee.Direction = Vector3.Lerp(bee.Direction, Vector3.Normalize(bee.Velocity), dt * 4f);
+            bee.Position += bee.Velocity * dt;
+            
+            if (MathF.Abs(bee.Position.X) > fieldHalfWidth)
+            {
+                bee.Position.X = fieldHalfWidth * MathF.Sign(bee.Position.X);
+                bee.Velocity.X *= -.5f;
+                bee.Velocity.Y *= .8f;
+                bee.Velocity.Z *= .8f;
+            }
+            if (MathF.Abs(bee.Position.Z) > fieldHalfHeight)
+            {
+                bee.Position.Z = fieldHalfHeight * MathF.Sign(bee.Position.Z);
+                bee.Velocity.Z *= -.5f;
+                bee.Velocity.X *= .8f;
+                bee.Velocity.Y *= .8f;
+            }
+            
+        }
+    }
+
+    public void Render()
+    {
+        
+    }
+    
+    private void SpawnBeen(int teamIndex)
+    {
+        var spawnPosition = Vector3.UnitX * (-Field.Size.X * .4f + Field.Size.X * .8f * teamIndex);
+        var bee = new Bee
+        {
+            Position = spawnPosition,
+            Size = RandomFloatInRange(Config.MinBeeSize, Config.MaxBeeSize)
+        };
+        
+        var beeTeam = BeeTeams[teamIndex];
+        beeTeam.Add(bee);
+    }
+
+    private float RandomFloatInRange(float min, float max)
+    {
+        return (float)(Random.NextDouble() * (max - min) + min);
+    }
+    
+    private Vector3 RandomInsideUnitSphere()
+    {
+        float theta = RandomFloatInRange(0f, 2f * MathF.PI);
+        float phi = RandomFloatInRange(0f, MathF.PI);
+
+        float x = MathF.Sin(phi) * MathF.Cos(theta);
+        float y = MathF.Sin(phi) * MathF.Sin(theta);
+        float z = MathF.Cos(phi);
+
+        return new Vector3(x, y, z);
+    }
+}
