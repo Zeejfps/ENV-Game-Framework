@@ -1,7 +1,6 @@
-﻿using EasyGameFramework.Api;
-using EasyGameFramework.Builder;
+﻿using EasyGameFramework.Builder;
 using Pong;
 
 var builder = new GameBuilder();
-var app = builder.Build<PongGame>();
-app.Run();
+var game = builder.Build<PongGame>();
+game.Run();
