@@ -6,7 +6,7 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    private const int StartBeeCount = 100000;
+    private const int StartBeeCount = 1000;
     
     private Field Field { get; }
     private BeeSystem BeeSystem { get; }
@@ -23,6 +23,8 @@ public class CombatBeesBenchmarkGame : Game
             MaxBeeSize = 0.5f,
             FlightJitter = 200f,
             Damping = 0.9f,
+            TeamAttraction = 5f,
+            TeamRepulsion = 4f
         });
         BeeSpawner = new BeeSpawner(BeeSystem, StartBeeCount, Context);
         Camera = new PerspectiveCamera(60f, 1.7777f)

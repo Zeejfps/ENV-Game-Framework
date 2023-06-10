@@ -21,6 +21,7 @@ public struct BeeSystemConfig
     public float FlightJitter { get; set; }
     public float Damping { get; set; }
     public float TeamAttraction { get; set; }
+    public float TeamRepulsion { get; set; }
 }
 
 public sealed class BeeSystem
@@ -84,6 +85,7 @@ public sealed class BeeSystem
         var flightJitter = Config.FlightJitter * dt;
         var damping = 1f - Config.Damping * dt;
         var teamAttraction = Config.TeamAttraction * dt;
+        var teamRepulsion = Config.TeamRepulsion * dt;
 
         var beeTeam = BeeTeams[teamIndex];
         var bees = CollectionsMarshal.AsSpan(beeTeam);
@@ -108,6 +110,12 @@ public sealed class BeeSystem
                 bee.Velocity += delta * (teamAttraction / dist);
             }
             
+            ref var repellentFriend = ref GetRandomBee(bees);
+            delta = repellentFriend.Position - bee.Position;
+            dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
+            if (dist > 0f)
+                bee.Velocity -= delta * (teamRepulsion / dist);
+
             bee.Direction = Vector3.Lerp(bee.Direction, Vector3.Normalize(bee.Velocity), dt * 4f);
             bee.Position += bee.Velocity * dt;
             
@@ -166,7 +174,7 @@ public sealed class BeeSystem
             for (; beeIndex < beeCount && batch.Size < maxBatchSize; beeIndex++)
             {
                 ref var bee = ref bees[beeIndex];
-                batch.Add(bee.Position, bee.Size, beeColor);
+                batch.Add(bee.Position, bee.Direction, bee.Size, beeColor);
             }
         }
 
@@ -264,10 +272,11 @@ class Batch
     private readonly Vector3[] m_Colors = new Vector3[MAX_BATCH_SIZE];
     private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[MAX_BATCH_SIZE];
 
-    public void Add(Vector3 position, float size, Vector3 color)
+    public void Add(Vector3 position, Vector3 direction, float size, Vector3 color)
     {
         var modelMatrix = Matrix4x4.CreateScale(size, size, size)
-                          * Matrix4x4.CreateTranslation(position);
+                        * Matrix4x4.CreateLookAt(Vector3.Zero, direction, Vector3.UnitY)
+                        * Matrix4x4.CreateTranslation(position);
         
         m_Colors[m_Size] = color;
         m_ModelMatrices[m_Size] = modelMatrix;
