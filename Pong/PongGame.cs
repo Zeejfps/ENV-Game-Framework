@@ -32,7 +32,7 @@ public sealed class PongGame : Game
 
     private BallPaddleCollisionSystem BallPaddleCollisionSystem { get; } = new BallPaddleCollisionSystem();
 
-    public PongGame(IBackend backend, ILogger logger) : base(backend, logger)
+    public PongGame(IBackend backend) : base(backend)
     {
         Camera = OrthographicCamera.Create(LevelBounds.Width, LevelBounds.Height, 0.01f, 10f);
         Viewport = new Viewport
@@ -62,7 +62,7 @@ public sealed class PongGame : Game
             Bounds = LevelBounds
         };
 
-        Ball = new Ball(logger)
+        Ball = new Ball(Logger)
         {
             Velocity = new Vector2(10, 30),
             Bounds = LevelBounds

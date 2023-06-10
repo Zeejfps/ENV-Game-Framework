@@ -25,11 +25,11 @@ public abstract class Game : IGame
     private double m_FpsTime;
     private int m_FrameCount;
     
-    protected Game(IBackend backend, ILogger logger)
+    protected Game(IBackend backend)
     {
         Backend = backend;
         Window = backend.WindowFactory.Create();
-        Logger = logger;
+        Logger = backend.Logger;
         m_Stopwatch = new Stopwatch();
         m_Time = new GameTime
         {

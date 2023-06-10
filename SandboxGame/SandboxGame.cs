@@ -7,8 +7,7 @@ public class SandboxGame : Game
     private TestScene Scene { get; }
     
     public SandboxGame(
-        IBackend backend,
-        ILogger logger) : base(backend, logger)
+        IBackend backend) : base(backend)
     {
         Scene = new TestScene(this, Logger);
     }

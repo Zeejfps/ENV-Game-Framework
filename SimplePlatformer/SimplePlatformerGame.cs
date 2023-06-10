@@ -5,7 +5,6 @@ using EasyGameFramework.Api.Enums;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Physics;
 using EasyGameFramework.Api.Rendering;
-using GLFW;
 using SampleGames;
 
 namespace SimplePlatformer;
@@ -26,8 +25,7 @@ public class SimplePlatformerGame : Game
     private Animation Animation { get; }
 
     public SimplePlatformerGame(
-        IBackend backend,
-        ILogger logger) : base(backend, logger)
+        IBackend backend) : base(backend)
     {
         var maxPlayerCount = 1;
 
@@ -103,7 +101,7 @@ public class SimplePlatformerGame : Game
 
         for (var i = 0; i < maxPlayerCount; i++)
         {
-            var player = new Player(logger);
+            var player = new Player(Logger);
             var controller = new Controller(InputSystem, Clock);
 
             Players[i] = player;

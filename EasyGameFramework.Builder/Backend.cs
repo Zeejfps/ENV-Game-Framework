@@ -7,11 +7,13 @@ public sealed class Backend : IBackend
 {
     public IDisplayManager DisplayManager { get; }
     public IWindowFactory WindowFactory { get; }
+    public ILogger Logger { get; }
 
-    public Backend(IDisplayManager displayManager, IWindowFactory windowFactory)
+    public Backend(IDisplayManager displayManager, IWindowFactory windowFactory, ILogger logger)
     {
         DisplayManager = displayManager;
         WindowFactory = windowFactory;
+        Logger = logger;
     }
 }
 
