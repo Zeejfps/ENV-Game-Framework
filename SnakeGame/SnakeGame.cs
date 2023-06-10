@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
-using EasyGameFramework.Api.Rendering;
 using SampleGames;
 
 public class SnakeGame : Game
@@ -20,7 +19,7 @@ public class SnakeGame : Game
     private readonly GridRenderer m_GridRenderer;
     private readonly GameController m_GameController;
     
-    public SnakeGame(IWindow window, ILogger logger) : base(window, logger)
+    public SnakeGame(IBackend backend, ILogger logger) : base(backend, logger)
     {
         GridSize = new GridSize(21, 21);
         
@@ -34,7 +33,7 @@ public class SnakeGame : Game
         m_Camera.Transform.WorldPosition = new Vector3(0f, 0f, -5f);
         m_SpriteRenderer = new SpriteRenderer(Gpu);
         m_GridRenderer = new GridRenderer(Gpu, GridSize);
-        m_GameController = new GameController(window.Input, this);
+        m_GameController = new GameController(Window.Input, this);
     }
     
     protected override void Configure()

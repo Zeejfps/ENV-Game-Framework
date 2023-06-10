@@ -26,8 +26,8 @@ public class SimplePlatformerGame : Game
     private Animation Animation { get; }
 
     public SimplePlatformerGame(
-        IWindow window,
-        ILogger logger) : base(window, logger)
+        IBackend backend,
+        ILogger logger) : base(backend, logger)
     {
         var maxPlayerCount = 1;
 
@@ -36,7 +36,7 @@ public class SimplePlatformerGame : Game
         Camera = new OrthographicCamera(100, 0.1f, 100f);
         Camera.Transform.WorldPosition += Vector3.UnitY * 5;
         
-        SpriteRenderer = new SpriteRenderer(window.Gpu);
+        SpriteRenderer = new SpriteRenderer(Window.Gpu);
         CloseAppInput = new ButtonInput();
         Players = new Player[maxPlayerCount];
         Controllers = new Controller[maxPlayerCount];

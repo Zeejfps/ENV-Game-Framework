@@ -8,8 +8,9 @@ public abstract class Game : IGame
 {
     public bool IsRunning { get; private set; }
     
+    protected IBackend Backend { get; }
     protected IGameTime Time => m_Time;
-    protected IWindow Window { get; }
+    protected IWindow Window { get; private set; }
     protected ILogger Logger { get; }
     protected IGpu Gpu => Window.Gpu;
 
@@ -22,9 +23,10 @@ public abstract class Game : IGame
     private double m_FpsTime;
     private int m_FrameCount;
     
-    protected Game(IWindow window, ILogger logger)
+    protected Game(IBackend backend, ILogger logger)
     {
-        Window = window;
+        Backend = backend;
+        Window = backend.WindowFactory.Create();
         Logger = logger;
         m_Stopwatch = new Stopwatch();
         m_Time = new GameTime

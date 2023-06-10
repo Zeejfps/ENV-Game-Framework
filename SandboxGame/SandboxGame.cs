@@ -8,8 +8,9 @@ public class SandboxGame : Game
     private TestScene Scene { get; }
     
     public SandboxGame(
+        IBackend backend,
         IContext context,
-        ILogger logger) : base(context.Window, logger)
+        ILogger logger) : base(backend, logger)
     {
         Context = context;
         Scene = new TestScene(Context, Logger);

@@ -32,10 +32,8 @@ public sealed class PongGame : Game
 
     private BallPaddleCollisionSystem BallPaddleCollisionSystem { get; } = new BallPaddleCollisionSystem();
 
-    public PongGame(IWindow window, ILogger logger) : base(window, logger)
+    public PongGame(IBackend backend, ILogger logger) : base(backend, logger)
     {
-        var fb = Gpu.CreateRenderbuffer(1, false, 200, 200);
-
         Camera = OrthographicCamera.Create(LevelBounds.Width, LevelBounds.Height, 0.01f, 10f);
         Viewport = new Viewport
         {

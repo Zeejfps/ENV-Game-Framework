@@ -57,9 +57,7 @@ public sealed class Window_GLFW : IWindow
     public Window_GLFW(
         ILogger logger, 
         IDisplayManager displayManager,
-        IInputSystem input, 
-        IMouse mouse,
-        IKeyboard keyboard)
+        IInputSystem input)
     {
         Init();
         WindowHint(Hint.ClientApi, ClientApi.OpenGL);
@@ -71,8 +69,8 @@ public sealed class Window_GLFW : IWindow
 
         Logger = logger;
         Input = input;
-        Mouse = mouse;
-        Keyboard = keyboard;
+        Mouse = input.Mouse;
+        Keyboard = input.Keyboard;
         
         m_DisplayManager = displayManager;
 

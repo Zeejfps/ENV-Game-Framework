@@ -7,7 +7,7 @@ using EasyGameFramework.Glfw;
 namespace EasyGameFramework.Builder;
 
 /// <summary>
-/// Use this class to start building your GPU powered application.
+/// Use this class to start building your GPU powered game.
 /// </summary>
 public sealed class GameBuilder
 {
@@ -38,7 +38,9 @@ public sealed class GameBuilder
         if (!m_IsLoggerSet)
             WithLogger<ConsoleLogger>();
         
+        DiContainer.BindSingleton<IWindowFactory, GlfwWindowFactory>();
         DiContainer.BindSingleton<IDisplayManager, DisplayManagerGlfw>();
+        DiContainer.BindSingleton<IBackend, Backend>();
         DiContainer.BindSingleton<IMouse, Mouse>();
         DiContainer.BindSingleton<IKeyboard, Keyboard>();
         DiContainer.BindSingleton<IInputSystem, InputSystem>();
