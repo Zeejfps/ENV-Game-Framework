@@ -10,15 +10,13 @@ namespace Framework;
 
 public class TestScene : IScene
 {
-    public IContext Context => m_App;
-
     private IGpuRenderbufferHandle m_TempRenderbufferHandle;
     
     private SpecularRenderPass m_SpecularRenderPass;
     private UnlitRenderPass m_UnlitRenderPass;
     private FullScreenBlitPass m_FullScreenBlitPass;
     
-    private readonly IContext m_App;
+    private readonly IGame m_App;
     private readonly CameraRig m_CameraRig;
 
     private ITransform3D m_LightPosition;
@@ -38,10 +36,10 @@ public class TestScene : IScene
     
     private CameraRigController CameraRigController { get; }
     
-    public TestScene(IContext app, ILogger logger)
+    public TestScene(IGame app, ILogger logger)
     {
         Logger = logger;
-        
+
         m_App = app;
         m_Gpu = m_App.Gpu;
         var window = m_App.Window;
@@ -59,11 +57,11 @@ public class TestScene : IScene
         var h = renderbuffer.WindowBufferHandle.Height;
         m_TempRenderbufferHandle = app.Gpu.CreateRenderbuffer(3, true, w, h);
 
-        m_SpecularRenderPass = new SpecularRenderPass();
+        m_SpecularRenderPass = new SpecularRenderPass(m_Gpu);
 
         var material = UnlitMaterial.Load(m_Gpu);
         m_UnlitRenderPass = new UnlitRenderPass(material);
-        m_Light = new TestLight(material, m_LightPosition);
+        m_Light = new TestLight(m_Gpu, material, m_LightPosition);
         
         m_FullScreenBlitPass = new FullScreenBlitPass();
         
@@ -73,7 +71,7 @@ public class TestScene : IScene
         // Which is bad... don't do that mmmmkkk?
         m_Ships = CreateShips();
 
-        m_Toad = new Toad(m_SpecularRenderPass);
+        m_Toad = new Toad(m_Gpu, m_SpecularRenderPass);
         
         m_SceneObjects.Add(m_Light);
         //m_SceneObjects.Add(m_Ship1);
@@ -84,7 +82,7 @@ public class TestScene : IScene
 
     public void Load()
     {
-        var gpu = Context.Gpu;
+        var gpu = m_App.Gpu;
 
         m_UnlitShaderHandle = gpu.Shader.Load("Assets/Shaders/unlit");
         m_FullScreenBlitShaderHandle = gpu.Shader.Load("Assets/Shaders/fullScreenQuad");
@@ -124,7 +122,7 @@ public class TestScene : IScene
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Render();
         
-        var renderbuffer = Context.Gpu.Renderbuffer;
+        var renderbuffer = m_App.Gpu.Renderbuffer;
         var windowFramebufferWidth = renderbuffer.WindowBufferHandle.Width;
         var windowFramebufferHeight = renderbuffer.WindowBufferHandle.Height;
         
@@ -149,7 +147,7 @@ public class TestScene : IScene
 
     private List<Ship> CreateShips()
     {
-        var gpu = Context.Gpu;
+        var gpu = m_App.Gpu;
         var mesh = gpu.Mesh.Load("Assets/Meshes/ship.mesh");
         var diffuse = gpu.Texture.Load("Assets/Textures/Ship/ship_d.texture");
         var normal = gpu.Texture.Load("Assets/Textures/Ship/ship_n.texture");

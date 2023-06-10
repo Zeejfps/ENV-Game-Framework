@@ -19,17 +19,19 @@ public class Toad : ISceneObject
 
     private UnlitMaterial m_Material;
 
+    private IGpu Gpu { get; }
     private readonly SpecularRenderPass m_SpecularRenderPass;
 
-    public Toad(SpecularRenderPass specularRenderPass)
+    public Toad(IGpu gpu, SpecularRenderPass specularRenderPass)
     {
+        Gpu = gpu;
         Transform = new Transform3D();
         m_SpecularRenderPass = specularRenderPass;
     }
     
     public void Load(IScene scene)
     {
-        var gpu = scene.Context.Gpu;
+        var gpu = Gpu;
         
         m_MeshHandle = gpu.Mesh.Load("Assets/Meshes/Toad");
         m_Diffuse = gpu.Texture.Load("Assets/Textures/Toad/Toad_BaseColor");

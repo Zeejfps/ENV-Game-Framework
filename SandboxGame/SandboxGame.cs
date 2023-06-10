@@ -4,16 +4,13 @@ namespace Framework;
 
 public class SandboxGame : Game
 {
-    private IContext Context { get; }
     private TestScene Scene { get; }
     
     public SandboxGame(
         IBackend backend,
-        IContext context,
         ILogger logger) : base(backend, logger)
     {
-        Context = context;
-        Scene = new TestScene(Context, Logger);
+        Scene = new TestScene(this, Logger);
     }
 
     protected override void Configure()

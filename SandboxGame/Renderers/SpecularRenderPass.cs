@@ -17,6 +17,13 @@ public class SpecularRenderPass
     private Vector3 _specularColor = new Vector3(.7f,.7f,.7f);
     private float _shininess = 10f;
 
+    private IGpu Gpu { get; }
+
+    public SpecularRenderPass(IGpu gpu)
+    {
+        Gpu = gpu;
+    }
+
     public void Register(in SpecularRenderable renderable)
     {
         var mesh = renderable.MeshHandle;
@@ -36,7 +43,7 @@ public class SpecularRenderPass
     
     public void Load(IScene scene)
     {
-        m_SpecularShaderHandle = scene.Context.Gpu.Shader.Load("Assets/Shaders/specular.shader");
+        m_SpecularShaderHandle = Gpu.Shader.Load("Assets/Shaders/specular.shader");
     }
     
     public void Render(IGpu gpu, ICamera camera, ITransform3D light)

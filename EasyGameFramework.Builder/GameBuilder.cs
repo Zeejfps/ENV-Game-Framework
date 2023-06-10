@@ -44,7 +44,6 @@ public sealed class GameBuilder
         DiContainer.BindSingleton<IMouse, Mouse>();
         DiContainer.BindSingleton<IKeyboard, Keyboard>();
         DiContainer.BindSingleton<IInputSystem, InputSystem>();
-        DiContainer.BindSingleton<IContext, Context>();
         DiContainer.BindSingleton<IEventBus, EventBus>();
         DiContainer.BindSingleton<IPlayerPrefs, IniPlayerPrefs>();
         DiContainer.BindSingleton<IContainer>(DiContainer);

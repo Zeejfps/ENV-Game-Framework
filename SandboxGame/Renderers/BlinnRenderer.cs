@@ -16,19 +16,21 @@ public class BlinnRenderer
 {
     private IHandle<IGpuShader> m_Shader;
     private IHandle<IGpuTexture>? m_Texture;
-    
+
+    private readonly IGpu m_Gpu;
     private readonly ICamera m_Camera;
     private readonly ITransform3D m_Light;
     
-    public BlinnRenderer(ICamera camera, ITransform3D light)
+    public BlinnRenderer(IGpu gpu, ICamera camera, ITransform3D light)
     {
+        m_Gpu = gpu;
         m_Camera = camera;
         m_Light = light;
     }
     
     public void Load(IScene scene)
     {
-        var gpu = scene.Context.Gpu;
+        var gpu = m_Gpu;
         m_Shader = gpu.Shader.Load("Assets/Shaders/blinn.shader");
         m_Texture = gpu.Texture.Load("Assets/Textures/test.texture");
     }

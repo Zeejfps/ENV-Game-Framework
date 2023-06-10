@@ -2,6 +2,7 @@
 using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
+using EasyGameFramework.Api.Rendering;
 using Framework.Materials;
 
 namespace Framework;
@@ -12,18 +13,20 @@ public class TestLight : ISceneObject
     public float Intensity { get; set; }
     public Color Color;
 
+    private IGpu m_Gpu;
     private IHandle<IGpuMesh> m_Mesh;
     private readonly UnlitMaterial m_Material;
 
-    public TestLight(UnlitMaterial material, ITransform3D transform)
+    public TestLight(IGpu gpu, UnlitMaterial material, ITransform3D transform)
     {
+        m_Gpu = gpu;
         m_Material = material;
         Transform = transform;
     }
     
     public void Load(IScene scene)
     {
-        var gpu = scene.Context.Gpu;
+        var gpu = m_Gpu;
         m_Mesh = gpu.Mesh.Load("Assets/Meshes/quad");
     }
 

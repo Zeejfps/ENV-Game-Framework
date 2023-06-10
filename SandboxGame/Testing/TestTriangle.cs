@@ -8,14 +8,16 @@ namespace Framework;
 public class TestTriangle : ISceneObject
 {
     private readonly IGpuMesh m_Mesh;
-    private readonly IContext m_Context;
+    private readonly IGpu m_Gpu;
     private readonly ICamera m_Camera;
     private readonly IHandle<IGpuShader> m_Shader;
     private readonly Random m_Random;
+    private readonly IInputSystem m_Input;
     
-    public TestTriangle(IContext context, ICamera camera)
+    public TestTriangle(IGpu gpu, IInputSystem input, ICamera camera)
     {
-        m_Context = context;
+        m_Gpu = gpu;
+        m_Input = input;
         m_Camera = camera;
 
 
@@ -31,8 +33,8 @@ public class TestTriangle : ISceneObject
 
     public void Update(float dt)
     {
-        var gpu = m_Scene.Context.Gpu;
-        var keyboard = m_Context.Input.Keyboard;
+        var gpu = m_Gpu;
+        var keyboard = m_Input.Keyboard;
 
         var shaderManager = gpu.Shader;
         shaderManager.Bind(m_Shader);

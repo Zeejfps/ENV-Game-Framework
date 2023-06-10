@@ -15,7 +15,7 @@ public class TestRenderer : IRenderer
     {
         m_Gpu = gpu;
         m_UnlitRenderPass = new UnlitRenderPass(UnlitMaterial.Load(gpu));
-        m_SpecularRenderPass = new SpecularRenderPass();
+        m_SpecularRenderPass = new SpecularRenderPass(m_Gpu);
         m_FullScreenBlitPass = new FullScreenBlitPass();
     }
 
