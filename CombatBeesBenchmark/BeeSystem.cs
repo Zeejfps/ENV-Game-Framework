@@ -74,14 +74,21 @@ public sealed class BeeSystem
 
     public void Update(float dt)
     {
+        UpdateBees(dt, BeeTeams[0]);
+        UpdateBees(dt, BeeTeams[1]);
+    }
+
+    private void UpdateBees(float dt, List<Bee> beeTeam)
+    {
         var flightJitter = Config.FlightJitter * dt;
         var damping = 1f - Config.Damping * dt;
         
         var field = Field;
         //var gravity = field.Gravity * dt;
         var fieldHalfWidth = field.Size.X * 0.5f;
+        var fieldHalfDepth = field.Size.Y * 0.5f;
         var fieldHalfHeight = field.Size.Z * 0.5f;
-        var bees = CollectionsMarshal.AsSpan(BeeTeams[0]);
+        var bees = CollectionsMarshal.AsSpan(beeTeam);
         for (var i = 0; i < bees.Length; i++)
         {
             ref var bee = ref bees[i];
@@ -105,19 +112,48 @@ public sealed class BeeSystem
                 bee.Velocity.X *= .8f;
                 bee.Velocity.Y *= .8f;
             }
-            
+            if (MathF.Abs(bee.Position.Y) > fieldHalfDepth)
+            {
+                bee.Position.Y = fieldHalfDepth * MathF.Sign(bee.Position.Y);
+                bee.Velocity.Y *= -.5f;
+                bee.Velocity.Z *= .8f;
+                bee.Velocity.X *= .8f;
+            }
         }
     }
-
-    private List<Batch> m_Batches = new();
     
-    public void Render(ICamera camera)
+
+    private readonly List<Batch> m_Batches = new();
+
+    private void RenderBees(ICamera camera, List<Bee> beeTeam, Vector3 beeColor)
     {
         foreach (var batch in m_Batches)
             batch.Clear();
 
-        var beeCount = 1000;
+        var bees = CollectionsMarshal.AsSpan(beeTeam);
         
+        var batchCount = m_Batches.Count;
+        var beeCount = bees.Length;
+        var requiredBatchCount = (int)MathF.Ceiling(beeCount / (float)Batch.MAX_BATCH_SIZE);
+        if (batchCount < requiredBatchCount)
+        {
+            var numberOfNeededBatches = requiredBatchCount - batchCount;
+            for (var i = 0; i < numberOfNeededBatches; i++)
+                m_Batches.Add(new Batch());
+        }
+
+        for (var batchIndex = 0; batchIndex < requiredBatchCount; batchIndex++)
+        {
+            var batch = m_Batches[batchIndex];
+            var startBeeIndex = batchIndex * Batch.MAX_BATCH_SIZE;
+            var endBeeIndex = startBeeIndex + Batch.MAX_BATCH_SIZE;
+            for (var beeIndex = startBeeIndex; beeIndex < endBeeIndex && beeIndex < beeCount; beeIndex++)
+            {
+                ref var bee = ref bees[beeIndex];
+                batch.Add(bee.Position, bee.Size, beeColor);
+            }
+        }
+
         var gpu = Context.Window.Gpu;
         gpu.SaveState();
 
@@ -139,6 +175,15 @@ public sealed class BeeSystem
         }
 
         gpu.RestoreState();
+    } 
+    
+    public void Render(ICamera camera)
+    {
+        var beeColor = new Vector3(0.31f, 0.43f, 1f);
+        RenderBees(camera, BeeTeams[0], beeColor);
+
+        beeColor = new Vector3(1f, 0.5f, 0.5f);
+        RenderBees(camera, BeeTeams[1], beeColor);
     }
 
     private void SpawnBeen(int teamIndex)

@@ -1,4 +1,5 @@
-﻿using EasyGameFramework.Api;
+﻿using System.Numerics;
+using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
 
 namespace CombatBeesBenchmark;
@@ -10,7 +11,7 @@ public class CombatBeesBenchmarkGame : Game
     private Field Field { get; }
     private BeeSystem BeeSystem { get; }
     private BeeSpawner BeeSpawner { get; }
-    private OrthographicCamera Camera { get; }
+    private ICamera Camera { get; }
     
     public CombatBeesBenchmarkGame(IContext context) : base(context)
     {
@@ -24,7 +25,13 @@ public class CombatBeesBenchmarkGame : Game
             Damping = 0.9f,
         });
         BeeSpawner = new BeeSpawner(BeeSystem, StartBeeCount);
-        Camera = new OrthographicCamera(10f, 0.1f, 100f);
+        Camera = new PerspectiveCamera(60f, 1.7777f)
+        {
+            Transform =
+            {
+                WorldPosition = new Vector3(0f, 0f, 80f)
+            }
+        };
     }
 
     protected override void Configure()
