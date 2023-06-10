@@ -12,7 +12,7 @@ public abstract class Game : IGame
     public IGpu Gpu => Window.Gpu;
     public IInputSystem Input => Window.Input;
 
-    protected IBackend Backend { get; }
+    protected IContext Context { get; }
     protected IGameTime Time => m_Time;
     protected ILogger Logger { get; }
 
@@ -25,11 +25,11 @@ public abstract class Game : IGame
     private double m_FpsTime;
     private int m_FrameCount;
     
-    protected Game(IBackend backend)
+    protected Game(IContext context)
     {
-        Backend = backend;
-        Window = backend.WindowFactory.Create();
-        Logger = backend.Logger;
+        Context = context;
+        Window = context.Window;
+        Logger = context.Logger;
         m_Stopwatch = new Stopwatch();
         m_Time = new GameTime
         {

@@ -3,17 +3,17 @@ using EasyGameFramework.Glfw;
 
 namespace EasyGameFramework.Builder;
 
-public sealed class Backend : IBackend
+public sealed class Context : IContext
 {
     public IDisplayManager DisplayManager { get; }
-    public IWindowFactory WindowFactory { get; }
+    public IWindow Window { get; }
     public ILogger Logger { get; }
 
-    public Backend(IDisplayManager displayManager, IWindowFactory windowFactory, ILogger logger)
+    public Context(IDisplayManager displayManager, IWindow window, ILogger logger)
     {
         DisplayManager = displayManager;
-        WindowFactory = windowFactory;
         Logger = logger;
+        Window = window;
     }
 }
 
@@ -21,7 +21,7 @@ internal sealed class GlfwWindowFactory : IWindowFactory
 {
     private ILogger Logger { get; }
     private IDisplayManager DisplayManager { get; }
-    private IInputSystem InputSystem;
+    private IInputSystem InputSystem { get; }
 
     public GlfwWindowFactory(ILogger logger, IDisplayManager displayManager, IInputSystem inputSystem)
     {

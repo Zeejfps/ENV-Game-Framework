@@ -19,7 +19,7 @@ public class SnakeGame : Game
     private readonly GridRenderer m_GridRenderer;
     private readonly GameController m_GameController;
     
-    public SnakeGame(IBackend backend) : base(backend)
+    public SnakeGame(IContext context) : base(context)
     {
         GridSize = new GridSize(21, 21);
         

@@ -1,9 +1,9 @@
 ﻿namespace EasyGameFramework.Api;
 
-public interface IBackend
+public interface IContext
 {
     IDisplayManager DisplayManager { get; }
-    IWindowFactory WindowFactory { get; }
+    IWindow Window { get; }
     ILogger Logger { get; }
 }
 

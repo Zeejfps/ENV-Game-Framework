@@ -32,7 +32,7 @@ public sealed class PongGame : Game
 
     private BallPaddleCollisionSystem BallPaddleCollisionSystem { get; } = new BallPaddleCollisionSystem();
 
-    public PongGame(IBackend backend) : base(backend)
+    public PongGame(IContext context) : base(context)
     {
         Camera = OrthographicCamera.Create(LevelBounds.Width, LevelBounds.Height, 0.01f, 10f);
         Viewport = new Viewport

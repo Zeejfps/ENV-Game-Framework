@@ -25,7 +25,7 @@ public class SimplePlatformerGame : Game
     private Animation Animation { get; }
 
     public SimplePlatformerGame(
-        IBackend backend) : base(backend)
+        IContext context) : base(context)
     {
         var maxPlayerCount = 1;
 

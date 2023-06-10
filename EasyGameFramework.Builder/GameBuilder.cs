@@ -40,7 +40,7 @@ public sealed class GameBuilder
         
         DiContainer.BindSingleton<IWindowFactory, GlfwWindowFactory>();
         DiContainer.BindSingleton<IDisplayManager, DisplayManagerGlfw>();
-        DiContainer.BindSingleton<IBackend, Backend>();
+        DiContainer.BindSingleton<IContext, Context>();
         DiContainer.BindSingleton<IMouse, Mouse>();
         DiContainer.BindSingleton<IKeyboard, Keyboard>();
         DiContainer.BindSingleton<IInputSystem, InputSystem>();
