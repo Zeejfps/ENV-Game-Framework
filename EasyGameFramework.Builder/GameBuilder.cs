@@ -1,10 +1,10 @@
-﻿using EasyGameFramework.Api.InputDevices;
+﻿using EasyGameFramework.Api;
+using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
 using EasyGameFramework.Core;
 using EasyGameFramework.Glfw;
-using EasyGameFramework.OpenGL;
 
-namespace EasyGameFramework.Api;
+namespace EasyGameFramework.Builder;
 
 /// <summary>
 /// Use this class to start building your GPU powered application.

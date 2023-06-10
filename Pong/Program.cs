@@ -1,4 +1,5 @@
 ﻿using EasyGameFramework.Api;
+using EasyGameFramework.Builder;
 using Pong;
 
 var builder = new GameBuilder();
