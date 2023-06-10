@@ -108,23 +108,35 @@ public sealed class BeeSystem
             
         }
     }
+
+    private List<Batch> m_Batches = new();
     
     public void Render(ICamera camera)
     {
+        foreach (var batch in m_Batches)
+            batch.Clear();
+
         var beeCount = 1000;
         
         var gpu = Context.Window.Gpu;
         gpu.SaveState();
 
         var activeShader = gpu.Shader;
-        activeShader.Bind(BeeShaderHandle);
+        var activeMesh = gpu.Mesh;
         
+        activeShader.Bind(BeeShaderHandle);
+        activeMesh.Bind(QuadMeshHandle);
+
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
         activeShader.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         activeShader.SetMatrix4x4("matrix_view", viewMatrix);
         
-        gpu.Mesh.Bind(QuadMeshHandle);
-        gpu.Mesh.RenderInstanced(beeCount);
+        foreach (var batch in m_Batches)
+        {
+            activeShader.SetVector3Array("colors", batch.Colors);
+            activeShader.SetMatrix4x4Array("model_matrices", batch.ModelMatrices);
+            activeMesh.RenderInstanced(batch.Size);
+        }
 
         gpu.RestoreState();
     }
@@ -157,5 +169,34 @@ public sealed class BeeSystem
         float z = MathF.Cos(phi);
 
         return new Vector3(x, y, z);
+    }
+}
+
+class Batch
+{
+    public const int MAX_BATCH_SIZE = 128;
+
+    public ReadOnlySpan<Vector3> Colors => m_Colors;
+    public ReadOnlySpan<Matrix4x4> ModelMatrices => m_ModelMatrices;
+    
+    private int m_Size;
+    public int Size => m_Size;
+
+    private readonly Vector3[] m_Colors = new Vector3[MAX_BATCH_SIZE];
+    private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[MAX_BATCH_SIZE];
+
+    public void Add(Vector3 position, float size, Vector3 color)
+    {
+        var modelMatrix = Matrix4x4.CreateScale(size, size, size)
+                          * Matrix4x4.CreateTranslation(position);
+        
+        m_Colors[m_Size] = color;
+        m_ModelMatrices[m_Size] = modelMatrix;
+        m_Size++;
+    }
+    
+    public void Clear()
+    {
+        m_Size = 0;
     }
 }
