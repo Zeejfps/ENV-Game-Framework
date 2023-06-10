@@ -85,6 +85,7 @@ public sealed class PongGame : Game
         
         PaddleSprite = new Sprite
         {
+            Pivot = new Vector2(0.5f, 0.5f),
             Size = new Vector2(32f, 32f),
             Texture = texture
         };
@@ -162,23 +163,25 @@ public sealed class PongGame : Game
     {
         var camera = Camera;
         var gpu = Gpu;
-        
+
         var frameLerpFactor = Time.FrameLerpFactor;
         SpriteRenderer.NewBatch();
         {
+            SpriteRenderer.DrawSprite(new Vector2(0, 0),  
+                new Vector2(20f, 20f),
+                PaddleSprite, 
+                m_IsHit ? new Vector3(1f, 0.7f, 0.1f) : new Vector3(0, 0, 0.2f));
+            
             var paddle1Pos = Vector2.Lerp(BottomPaddle.PrevPosition, BottomPaddle.CurrPosition, frameLerpFactor);
             SpriteRenderer.DrawSprite(paddle1Pos,  new Vector2(10f, 1f), PaddleSprite, Vector3.One);
 
             var paddle2Pos = Vector2.Lerp(TopPaddle.PrevPosition, TopPaddle.CurrPosition, frameLerpFactor);
             SpriteRenderer.DrawSprite(paddle2Pos,  new Vector2(10f, 1f), PaddleSprite, Vector3.One);
 
-            var ballPosition = Vector2.Lerp(Ball.PrevPosition, Ball.CurrPosition, frameLerpFactor);
+            var ballPosition = Ball.CurrPosition;//Vector2.Lerp(Ball.PrevPosition, Ball.CurrPosition, frameLerpFactor);
+            ballPosition.X = MathF.Round(ballPosition.X);
+            ballPosition.Y = MathF.Round(ballPosition.Y);
             SpriteRenderer.DrawSprite(ballPosition,  new Vector2(1f, 1f), PaddleSprite, new Vector3(0.5f, 0.7f, 0.1f));
-            
-            SpriteRenderer.DrawSprite(new Vector2(0, 0),  
-                new Vector2(20f, 20f),
-                PaddleSprite, 
-                m_IsHit ? new Vector3(1f, 0.7f, 0.1f) : new Vector3(0, 0, 0.2f));
         }
 
         var fb = gpu.CreateRenderbuffer(1, false, 200, (int)(200 * camera.AspectRatio));
