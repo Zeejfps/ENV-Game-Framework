@@ -20,6 +20,7 @@ public struct BeeSystemConfig
     public int MaxBeeCount { get; init; }
     public float FlightJitter { get; set; }
     public float Damping { get; set; }
+    public float TeamAttraction { get; set; }
 }
 
 public sealed class BeeSystem
@@ -57,6 +58,7 @@ public sealed class BeeSystem
         if (numberOfBeesToSpawn < 1)
             return;
         
+        //Context.Logger.Trace($"Spawning Bees: {numberOfBeesToSpawn} for team: {teamIndex}");
         for (var i = 0; i < numberOfBeesToSpawn; i++)
             SpawnBeen(teamIndex);
     }
@@ -73,27 +75,39 @@ public sealed class BeeSystem
 
     public void Update(float dt)
     {
-        UpdateBees(dt, BeeTeams[0]);
-        UpdateBees(dt, BeeTeams[1]);
+        UpdateBees(dt, 0);
+        UpdateBees(dt, 1);
     }
 
-    private void UpdateBees(float dt, List<Bee> beeTeam)
+    private void UpdateBees(float dt, int teamIndex)
     {
         var flightJitter = Config.FlightJitter * dt;
         var damping = 1f - Config.Damping * dt;
-        
+        var teamAttraction = Config.TeamAttraction * dt;
+
+        var beeTeam = BeeTeams[teamIndex];
+        var bees = CollectionsMarshal.AsSpan(beeTeam);
+
         var field = Field;
         //var gravity = field.Gravity * dt;
         var fieldHalfWidth = field.Size.X * 0.5f;
         var fieldHalfDepth = field.Size.Y * 0.5f;
         var fieldHalfHeight = field.Size.Z * 0.5f;
-        var bees = CollectionsMarshal.AsSpan(beeTeam);
         for (var i = 0; i < bees.Length; i++)
         {
             ref var bee = ref bees[i];
             
             bee.Velocity += RandomInsideUnitSphere() * flightJitter;
             bee.Velocity *= damping;
+           
+            ref var attractiveFriend = ref GetRandomBee(bees);
+            Vector3 delta = attractiveFriend.Position - bee.Position;
+            var dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
+            if (dist > 0f)
+            {
+                bee.Velocity += delta * (teamAttraction / dist);
+            }
+            
             bee.Direction = Vector3.Lerp(bee.Direction, Vector3.Normalize(bee.Velocity), dt * 4f);
             bee.Position += bee.Velocity * dt;
             
@@ -120,25 +134,26 @@ public sealed class BeeSystem
             }
         }
     }
-    
+
+    private ref Bee GetRandomBee(Span<Bee> bees)
+    {
+        var random = Random;
+        return ref bees[random.Next(0, bees.Length)];
+    }
 
     private readonly List<Batch> m_Batches = new();
 
-    private int DrawBees(List<Bee> beeTeam, Vector3 beeColor, int startBatchIndex)
+    private int DrawBees(int teamIndex, Vector3 beeColor, int startBatchIndex)
     {
-        var maxBatchSize = Batch.MAX_BATCH_SIZE;
-        var bees = CollectionsMarshal.AsSpan(beeTeam);
+        var bees = CollectionsMarshal.AsSpan(BeeTeams[teamIndex]);
         var beeCount = bees.Length;
         if (beeCount == 0)
             return 0;
-
-        var requiredBatchCount = (int)MathF.Ceiling(beeCount / (float)maxBatchSize);
-        //Context.Logger.Trace($"Required Batches: {requiredBatchCount} for BeeCount: {beeCount}");
-        var endBatchIndex = startBatchIndex + requiredBatchCount;
         
-        // If we are starting on a partially filled batch we can remove one from the end
-        if (m_Batches[startBatchIndex].Size != 0)
-            endBatchIndex--;
+        var maxBatchSize = Batch.MAX_BATCH_SIZE;
+        var requiredBatchCount = (int)MathF.Ceiling(beeCount / (float)maxBatchSize);
+        //Context.Logger.Trace($"Required Batches: {requiredBatchCount} for BeeCount: {beeCount} for Team: {teamIndex}");
+        var endBatchIndex = startBatchIndex + requiredBatchCount;
 
         //Context.Logger.Trace($"StartBatchIndex: {startBatchIndex} EndBatchIndex: {endBatchIndex}");
 
@@ -176,10 +191,10 @@ public sealed class BeeSystem
         }
         
         var beeColor = new Vector3(0.31f, 0.43f, 1f);
-        var lastUsedBatchIndex = DrawBees(BeeTeams[0], beeColor, 0);
-
-        beeColor = new Vector3(1f, 0.5f, 0.5f);
-        DrawBees(BeeTeams[1], beeColor, lastUsedBatchIndex);
+        var lastUsedBatchIndex = DrawBees(0, beeColor, 0);
+        
+        beeColor = new Vector3(0.95f, 0.95f, 0.59f);
+        DrawBees(1, beeColor, lastUsedBatchIndex);
         
         var gpu = Context.Window.Gpu;
         gpu.SaveState();
@@ -199,6 +214,7 @@ public sealed class BeeSystem
             activeShader.SetVector3Array("colors", batch.Colors);
             activeShader.SetMatrix4x4Array("model_matrices", batch.ModelMatrices);
             activeMesh.RenderInstanced(batch.Size);
+            //Context.Logger.Trace($"BatchSize: {batch.Size}");
         }
 
         gpu.RestoreState();
