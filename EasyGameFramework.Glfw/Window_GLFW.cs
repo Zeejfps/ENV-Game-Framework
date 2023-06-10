@@ -6,6 +6,7 @@ using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
 using EasyGameFramework.Core;
+using EasyGameFramework.Core.InputDevices;
 using EasyGameFramework.OpenGL;
 using GLFW;
 using OpenGL;
@@ -552,7 +553,7 @@ public sealed class Window_GLFW : IWindow
         var slot = (int)joystick;
         var joystickName = GetJoystickName(joystick);
         var guid = GetJoystickGuid(joystick);
-        var gamepad = new Gamepad_SDL(guid, joystickName);
+        var gamepad = new Gamepad(guid, joystickName);
         m_GamepadToSlotMap[gamepad] = slot;
         Input.GamepadManager.ConnectGamepad(slot, gamepad);
     }

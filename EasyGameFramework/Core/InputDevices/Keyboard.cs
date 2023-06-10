@@ -1,7 +1,7 @@
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 
-namespace EasyGameFramework.Core;
+namespace EasyGameFramework.Core.InputDevices;
 
 public sealed class Keyboard : IKeyboard
 {

@@ -1,5 +1,6 @@
 ﻿using EasyGameFramework.Api.Enums;
 using EasyGameFramework.Api.Rendering;
+using EasyGameFramework.Core.AssetLoaders;
 using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;

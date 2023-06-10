@@ -2,6 +2,7 @@
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
 using EasyGameFramework.Core;
+using EasyGameFramework.Core.InputDevices;
 using EasyGameFramework.Glfw;
 
 namespace EasyGameFramework.Builder;

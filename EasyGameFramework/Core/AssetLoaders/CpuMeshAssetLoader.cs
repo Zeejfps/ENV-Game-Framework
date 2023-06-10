@@ -1,6 +1,6 @@
 ﻿using EasyGameFramework.Api.AssetTypes;
 
-namespace EasyGameFramework.OpenGL;
+namespace EasyGameFramework.Core.AssetLoaders;
 
 public class CpuMeshAssetLoader : AssetLoader<ICpuMesh>
 {

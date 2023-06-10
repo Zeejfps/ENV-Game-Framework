@@ -1,6 +1,6 @@
 ﻿using EasyGameFramework.Api.AssetTypes;
 
-namespace EasyGameFramework.OpenGL;
+namespace EasyGameFramework.Core;
 
 public class CpuTexture : ICpuTexture
 {

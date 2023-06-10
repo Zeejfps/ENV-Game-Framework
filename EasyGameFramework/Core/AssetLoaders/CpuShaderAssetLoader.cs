@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using EasyGameFramework.Api.AssetTypes;
 
-namespace EasyGameFramework.OpenGL;
+namespace EasyGameFramework.Core.AssetLoaders;
 
 public class CpuShaderAssetLoader : AssetLoader<ICpuShader>
 {

@@ -1,6 +1,6 @@
 ﻿using EasyGameFramework.Api.AssetTypes;
 
-namespace EasyGameFramework.OpenGL;
+namespace EasyGameFramework.Core;
 
 public class CpuMesh : ICpuMesh
 {
@@ -79,14 +79,5 @@ public class CpuMesh : ICpuMesh
         for (var i = 0; i < length; i++)
             data[i] = reader.ReadInt32();
         return data;
-    }
-
-    public void Dispose()
-    {
-        Vertices = Array.Empty<float>();
-        Uvs = Array.Empty<float>();
-        Normals = Array.Empty<float>();
-        Tangents = Array.Empty<float>();
-        Triangles = Array.Empty<int>();
     }
 }

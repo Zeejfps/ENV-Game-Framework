@@ -1,20 +1,20 @@
 ﻿using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 
-namespace EasyGameFramework.Core;
+namespace EasyGameFramework.Core.InputDevices;
 
-public sealed class Gamepad_SDL : IGamepad
+public sealed class Gamepad : IGamepad
 {
     public event GamepadButtonStateChangedDelegate? ButtonPressed;
     public event GamepadButtonStateChangedDelegate? ButtonReleased;
-    
-    private string Name { get; }
+
     private string Guid { get; }
+    private string Name { get; }
 
     private readonly HashSet<GamepadButton> m_PressedButtons = new();
     private readonly Dictionary<GamepadAxis, float> m_AxisToValueMap = new();
 
-    public Gamepad_SDL(string guid, string name)
+    public Gamepad(string guid, string name)
     {
         Guid = guid;
         Name = name;

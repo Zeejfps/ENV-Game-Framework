@@ -1,6 +1,6 @@
 ﻿using EasyGameFramework.Api.AssetTypes;
 
-namespace EasyGameFramework.OpenGL;
+namespace EasyGameFramework.Core;
 
 public class CpuShader : ICpuShader
 {
@@ -23,11 +23,5 @@ public class CpuShader : ICpuShader
             VertexShader = vertexShader,
             FragmentShader = fragmentShader
         };
-    }
-
-    public void Dispose()
-    {
-        VertexShader = string.Empty;
-        FragmentShader = string.Empty;
     }
 }
