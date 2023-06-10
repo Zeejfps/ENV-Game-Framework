@@ -13,17 +13,17 @@ namespace EasyGameFramework.Builder;
 public sealed class GameBuilder
 {
     private bool m_IsLoggerSet;
-    private bool m_IsRendererSet;
+    private bool m_IsWindowSet;
     
     private DiContainer DiContainer { get; } = new();
-
-    public GameBuilder WithRenderer<TRenderer>() where TRenderer : IRenderer
+    
+    public GameBuilder WithWindow<TWindow>() where TWindow : IWindow
     {
-        DiContainer.BindSingleton<IRenderer, TRenderer>();
-        m_IsRendererSet = true;
+        DiContainer.BindSingleton<IWindow, TWindow>();
+        m_IsWindowSet = true;
         return this;
     }
-
+ 
     public GameBuilder WithLogger<TLogger>() where TLogger : ILogger
     {
         DiContainer.BindSingleton<ILogger, TLogger>();
@@ -31,22 +31,15 @@ public sealed class GameBuilder
         return this;
     }
 
-    public GameBuilder With<T, TImpl>() where TImpl : T
-    {
-        DiContainer.BindSingleton<T, TImpl>();
-        return this;
-    }
-
     public TGame Build<TGame>() where TGame : IGame
     {
-        if (!m_IsRendererSet)
-            WithRenderer<NullRenderer>();
+        if (!m_IsWindowSet)
+            WithWindow<Window_GLFW>();
 
         if (!m_IsLoggerSet)
             WithLogger<ConsoleLogger>();
         
-        RegisterWindowingSystem();
-        
+        DiContainer.BindSingleton<IDisplays, Displays_GLFW>();
         DiContainer.BindSingleton<IMouse, Mouse>();
         DiContainer.BindSingleton<IKeyboard, Keyboard>();
         DiContainer.BindSingleton<IInputSystem, InputSystem>();
@@ -59,15 +52,4 @@ public sealed class GameBuilder
         var engine = DiContainer.New<TGame>();
         return engine;
     }
-
-    private void RegisterWindowingSystem()
-    {
-        DiContainer.BindSingleton<IDisplays, Displays_GLFW>();
-        DiContainer.BindSingleton<IWindow, Window_GLFW>();
-    }
-}
-
-// TODO: Probably delete
-internal class NullRenderer : IRenderer
-{
 }
