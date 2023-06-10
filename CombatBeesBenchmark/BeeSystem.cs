@@ -109,14 +109,20 @@ public sealed class BeeSystem
         }
     }
     
-    public void Render()
+    public void Render(ICamera camera)
     {
         var beeCount = 1000;
         
         var gpu = Context.Window.Gpu;
         gpu.SaveState();
+
+        var activeShader = gpu.Shader;
+        activeShader.Bind(BeeShaderHandle);
         
-        gpu.Shader.Bind(BeeShaderHandle);
+        Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
+        activeShader.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
+        activeShader.SetMatrix4x4("matrix_view", viewMatrix);
+        
         gpu.Mesh.Bind(QuadMeshHandle);
         gpu.Mesh.RenderInstanced(beeCount);
 
