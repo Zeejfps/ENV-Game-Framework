@@ -38,7 +38,6 @@ public sealed class GameBuilder
         if (!m_IsLoggerSet)
             WithLogger<ConsoleLogger>();
         
-        DiContainer.BindSingleton<IWindowFactory, GlfwWindowFactory>();
         DiContainer.BindSingleton<IDisplayManager, DisplayManagerGlfw>();
         DiContainer.BindSingleton<IContext, Context>();
         DiContainer.BindSingleton<IMouse, Mouse>();
@@ -46,7 +45,6 @@ public sealed class GameBuilder
         DiContainer.BindSingleton<IInputSystem, InputSystem>();
         DiContainer.BindSingleton<IEventBus, EventBus>();
         DiContainer.BindSingleton<IPlayerPrefs, IniPlayerPrefs>();
-        DiContainer.BindSingleton<IContainer>(DiContainer);
         DiContainer.BindSingleton<IGamepadManager, GamepadManager>();
 
         var engine = DiContainer.New<TGame>();

@@ -6,8 +6,3 @@ public interface IContext
     IWindow Window { get; }
     ILogger Logger { get; }
 }
-
-public interface IWindowFactory
-{
-    IWindow Create();
-}

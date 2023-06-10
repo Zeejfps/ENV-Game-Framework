@@ -30,7 +30,7 @@ public sealed class PongGame : Game
     private Paddle TopPaddle { get; }
     private Ball Ball { get; }
 
-    private BallPaddleCollisionSystem BallPaddleCollisionSystem { get; } = new BallPaddleCollisionSystem();
+    private BallPaddleCollisionSystem BallPaddleCollisionSystem { get; } = new();
 
     public PongGame(IContext context) : base(context)
     {

@@ -16,22 +16,3 @@ public sealed class Context : IContext
         Window = window;
     }
 }
-
-internal sealed class GlfwWindowFactory : IWindowFactory
-{
-    private ILogger Logger { get; }
-    private IDisplayManager DisplayManager { get; }
-    private IInputSystem InputSystem { get; }
-
-    public GlfwWindowFactory(ILogger logger, IDisplayManager displayManager, IInputSystem inputSystem)
-    {
-        Logger = logger;
-        DisplayManager = displayManager;
-        InputSystem = inputSystem;
-    }
-
-    public IWindow Create()
-    {
-        return new Window_GLFW(Logger, DisplayManager, InputSystem);
-    }
-}
