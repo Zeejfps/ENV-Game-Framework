@@ -31,6 +31,7 @@ public sealed class Window_GLFW : IWindow
     private readonly MouseCallback m_ScrollCallback;
     private readonly SizeCallback m_SizeCallback;
     private readonly JoystickCallback m_JoystickCallback;
+    private readonly FocusCallback m_FocusCallback;
 
     private readonly WindowFramebuffer_GL m_WindowFramebuffer;
 
@@ -82,6 +83,7 @@ public sealed class Window_GLFW : IWindow
         m_MouseButtonCallback = Glfw_MouseButtonCallback;
         m_ScrollCallback = Glfw_MouseScrollCallback;
         m_JoystickCallback = Glfw_JoystickCallback;
+        m_FocusCallback = Glfw_FocusCallback;
 
         WindowHint(Hint.Visible, false);
         WindowHint(Hint.Resizable, m_IsResizable);
@@ -99,6 +101,7 @@ public sealed class Window_GLFW : IWindow
         SetCursorPositionCallback(m_Handle, m_MousePositionCallback);
         SetMouseButtonCallback(m_Handle, m_MouseButtonCallback);
         SetScrollCallback(m_Handle, m_ScrollCallback);
+        SetWindowFocusCallback(m_Handle, m_FocusCallback);
         SetJoystickCallback(m_JoystickCallback);
 
         for (var i = 0; i < 16; i++)
@@ -188,6 +191,7 @@ public sealed class Window_GLFW : IWindow
     }
 
     public bool IsOpened { get; private set; }
+    public bool IsFocused { get; private set; }
 
     private IGpuFramebuffer Framebuffer => m_WindowFramebuffer;
 
@@ -544,7 +548,11 @@ public sealed class Window_GLFW : IWindow
        
         ConnectGamepad(joystick);
     }
-
+    
+    private void Glfw_FocusCallback(Window window, bool focusing)
+    {
+        IsFocused = focusing;
+    }
 
     private void ConnectGamepad(Joystick joystick)
     {

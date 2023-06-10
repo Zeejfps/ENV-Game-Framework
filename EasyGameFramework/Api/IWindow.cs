@@ -16,6 +16,7 @@ public interface IWindow
     bool IsFullscreen { get; set; }
     bool IsVsyncEnabled { get; set; }
     bool IsOpened { get; }
+    bool IsFocused { get; }
     CursorMode CursorMode { get; set; }
     IGpu Gpu { get; }
     IInputSystem Input { get; }
