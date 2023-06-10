@@ -10,7 +10,6 @@ public struct Bee
     public Vector3 Position;
     public Vector3 Velocity;
     public Vector3 Direction;
-    public float DeathTimer;
     public float Size;
 }
 
@@ -125,35 +124,63 @@ public sealed class BeeSystem
 
     private readonly List<Batch> m_Batches = new();
 
-    private void RenderBees(ICamera camera, List<Bee> beeTeam, Vector3 beeColor)
+    private int DrawBees(List<Bee> beeTeam, Vector3 beeColor, int startBatchIndex)
     {
-        foreach (var batch in m_Batches)
-            batch.Clear();
-
+        var maxBatchSize = Batch.MAX_BATCH_SIZE;
         var bees = CollectionsMarshal.AsSpan(beeTeam);
-        
-        var batchCount = m_Batches.Count;
         var beeCount = bees.Length;
-        var requiredBatchCount = (int)MathF.Ceiling(beeCount / (float)Batch.MAX_BATCH_SIZE);
-        if (batchCount < requiredBatchCount)
-        {
-            var numberOfNeededBatches = requiredBatchCount - batchCount;
-            for (var i = 0; i < numberOfNeededBatches; i++)
-                m_Batches.Add(new Batch());
-        }
+        if (beeCount == 0)
+            return 0;
 
-        for (var batchIndex = 0; batchIndex < requiredBatchCount; batchIndex++)
+        var requiredBatchCount = (int)MathF.Ceiling(beeCount / (float)maxBatchSize);
+        //Context.Logger.Trace($"Required Batches: {requiredBatchCount} for BeeCount: {beeCount}");
+        var endBatchIndex = startBatchIndex + requiredBatchCount;
+        
+        // If we are starting on a partially filled batch we can remove one from the end
+        if (m_Batches[startBatchIndex].Size != 0)
+            endBatchIndex--;
+
+        //Context.Logger.Trace($"StartBatchIndex: {startBatchIndex} EndBatchIndex: {endBatchIndex}");
+
+        var batchIndex = startBatchIndex;
+        var beeIndex = 0;
+        for (; batchIndex < endBatchIndex; batchIndex++)
         {
+            //Context.Logger.Trace($"BatchIndex: {batchIndex}, BatchCount: {m_Batches.Count}, EndBatchIndex: {endBatchIndex}");
             var batch = m_Batches[batchIndex];
-            var startBeeIndex = batchIndex * Batch.MAX_BATCH_SIZE;
-            var endBeeIndex = startBeeIndex + Batch.MAX_BATCH_SIZE;
-            for (var beeIndex = startBeeIndex; beeIndex < endBeeIndex && beeIndex < beeCount; beeIndex++)
+            for (; beeIndex < beeCount && batch.Size < maxBatchSize; beeIndex++)
             {
                 ref var bee = ref bees[beeIndex];
                 batch.Add(bee.Position, bee.Size, beeColor);
             }
         }
 
+        return batchIndex - 1;
+    } 
+    
+    public void Render(ICamera camera)
+    {
+        foreach (var batch in m_Batches)
+            batch.Clear();
+        
+        var batchCount = m_Batches.Count;
+        var totalBeeCount = BeeTeams.Sum(beeTeam => beeTeam.Count);
+
+        var requiredBatchCount = (int)MathF.Ceiling(totalBeeCount / (float)Batch.MAX_BATCH_SIZE);
+        //Context.Logger.Trace($"Required Batch Count: {requiredBatchCount} for TotalBeeCount: {totalBeeCount}");
+        if (batchCount < requiredBatchCount)
+        {
+            var numberOfNeededBatches = requiredBatchCount - batchCount;
+            for (var i = 0; i < numberOfNeededBatches; i++)
+                m_Batches.Add(new Batch());
+        }
+        
+        var beeColor = new Vector3(0.31f, 0.43f, 1f);
+        var lastUsedBatchIndex = DrawBees(BeeTeams[0], beeColor, 0);
+
+        beeColor = new Vector3(1f, 0.5f, 0.5f);
+        DrawBees(BeeTeams[1], beeColor, lastUsedBatchIndex);
+        
         var gpu = Context.Window.Gpu;
         gpu.SaveState();
 
@@ -175,15 +202,6 @@ public sealed class BeeSystem
         }
 
         gpu.RestoreState();
-    } 
-    
-    public void Render(ICamera camera)
-    {
-        var beeColor = new Vector3(0.31f, 0.43f, 1f);
-        RenderBees(camera, BeeTeams[0], beeColor);
-
-        beeColor = new Vector3(1f, 0.5f, 0.5f);
-        RenderBees(camera, BeeTeams[1], beeColor);
     }
 
     private void SpawnBeen(int teamIndex)

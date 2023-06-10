@@ -6,7 +6,7 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    private const int StartBeeCount = 1000;
+    private const int StartBeeCount = 50000;
     
     private Field Field { get; }
     private BeeSystem BeeSystem { get; }
