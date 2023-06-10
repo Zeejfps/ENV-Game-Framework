@@ -1,5 +1,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using EasyGameFramework.Api;
+using EasyGameFramework.Api.AssetTypes;
 
 namespace CombatBeesBenchmark;
 
@@ -23,14 +25,17 @@ public struct BeeSystemConfig
 
 public sealed class BeeSystem
 {
+    public int NumberOfBeeTeams { get; }
+    
+    private IContext Context { get; }
     private Field Field { get; }
     private List<Bee>[] BeeTeams { get; }
     private Random Random { get; }
     private BeeSystemConfig Config { get; }
-    public int NumberOfBeeTeams { get; }
 
-    public BeeSystem(Field field, BeeSystemConfig config)
+    public BeeSystem(IContext context, Field field, BeeSystemConfig config)
     {
+        Context = context;
         Config = config;
         Field = field;
         Random = new Random();
@@ -57,13 +62,23 @@ public sealed class BeeSystem
             SpawnBeen(teamIndex);
     }
 
+    private IHandle<IGpuMesh> QuadMeshHandle { get; set; }
+    private IHandle<IGpuShader> BeeShaderHandle { get; set; }
+
+    public void LoadResources()
+    {
+        var gpu = Context.Window.Gpu;
+        QuadMeshHandle = gpu.Mesh.Load("Assets/quad");
+        BeeShaderHandle = gpu.Shader.Load("Assets/bee");
+    }
+
     public void Update(float dt)
     {
         var flightJitter = Config.FlightJitter * dt;
         var damping = 1f - Config.Damping * dt;
         
         var field = Field;
-        var gravity = field.Gravity * dt;
+        //var gravity = field.Gravity * dt;
         var fieldHalfWidth = field.Size.X * 0.5f;
         var fieldHalfHeight = field.Size.Z * 0.5f;
         var bees = CollectionsMarshal.AsSpan(BeeTeams[0]);
@@ -93,12 +108,21 @@ public sealed class BeeSystem
             
         }
     }
-
+    
     public void Render()
     {
+        var beeCount = 1000;
         
+        var gpu = Context.Window.Gpu;
+        gpu.SaveState();
+        
+        gpu.Shader.Bind(BeeShaderHandle);
+        gpu.Mesh.Bind(QuadMeshHandle);
+        gpu.Mesh.RenderInstanced(beeCount);
+
+        gpu.RestoreState();
     }
-    
+
     private void SpawnBeen(int teamIndex)
     {
         var spawnPosition = Vector3.UnitX * (-Field.Size.X * .4f + Field.Size.X * .8f * teamIndex);
@@ -116,7 +140,7 @@ public sealed class BeeSystem
     {
         return (float)(Random.NextDouble() * (max - min) + min);
     }
-    
+
     private Vector3 RandomInsideUnitSphere()
     {
         float theta = RandomFloatInRange(0f, 2f * MathF.PI);

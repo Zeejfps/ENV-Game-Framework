@@ -11,4 +11,8 @@
       <ProjectReference Include="..\EasyGameFramework.Builder\EasyGameFramework.Builder.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Assets\" />
+    </ItemGroup>
+
 </Project>

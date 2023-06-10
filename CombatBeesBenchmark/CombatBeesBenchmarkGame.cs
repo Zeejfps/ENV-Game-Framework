@@ -13,11 +13,13 @@ public class CombatBeesBenchmarkGame : Game
     public CombatBeesBenchmarkGame(IContext context) : base(context)
     {
         Field = new Field();
-        BeeSystem = new BeeSystem(Field, new BeeSystemConfig
+        BeeSystem = new BeeSystem(Context, Field, new BeeSystemConfig
         {
             MaxBeeCount = StartBeeCount,
             MinBeeSize = 0.25f,
             MaxBeeSize = 0.5f,
+            FlightJitter = 200f,
+            Damping = 0.9f,
         });
         BeeSpawner = new BeeSpawner(BeeSystem, StartBeeCount);
     }
@@ -32,6 +34,7 @@ public class CombatBeesBenchmarkGame : Game
 
     protected override void OnStart()
     {
+        BeeSystem.LoadResources();
     }
 
     protected override void OnUpdate()
