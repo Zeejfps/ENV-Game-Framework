@@ -50,4 +50,9 @@ public sealed class GameBuilder
         var engine = DiContainer.New<TGame>();
         return engine;
     }
+
+    public void With<T, T1>() where T1 : T
+    {
+        DiContainer.BindSingleton<T, T1>();
+    }
 }

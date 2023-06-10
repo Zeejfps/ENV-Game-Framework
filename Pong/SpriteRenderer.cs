@@ -6,49 +6,7 @@ using EasyGameFramework.Api.Rendering;
 
 namespace Pong;
 
-public class SpriteBatch
-{
-    private const int MAX_BATCH_SIZE = 512;
-
-    private int m_Size = 0;
-    private readonly Vector2[] m_Offsets = new Vector2[MAX_BATCH_SIZE];
-    private readonly Vector2[] m_Sizes = new Vector2[MAX_BATCH_SIZE];
-    private readonly Vector3[] m_Colors = new Vector3[MAX_BATCH_SIZE];
-    private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[MAX_BATCH_SIZE];
-
-    public ReadOnlySpan<Vector3> Colors => m_Colors;
-    public ReadOnlySpan<Matrix4x4> ModelMatrices => m_ModelMatrices;
-    public int Size => m_Size;
-    public ReadOnlySpan<Vector2> Sizes => m_Sizes;
-    public ReadOnlySpan<Vector2> Offsets => m_Offsets;
-
-    public void Add(Vector2 position, Vector2 scale, Sprite sprite, Vector3 tint)
-    {
-        var offset = sprite.Offset;
-        var size = sprite.Size;
-        var color = tint;
-        var pivot = sprite.Pivot;
-
-        var scaleX = sprite.FlipX ? -scale.X : scale.X;
-        var scaleY = scale.Y;
-        var modelMatrix = Matrix4x4.CreateScale(scaleX, scaleY, 0f)
-                          * Matrix4x4.CreateTranslation(position.X + pivot.X, position.Y + pivot.Y, 0f);
-
-        m_Offsets[m_Size] = offset;
-        m_Sizes[m_Size] = size;
-        m_Colors[m_Size] = color;
-        m_ModelMatrices[m_Size] = modelMatrix;
-        
-        m_Size++;
-    }
-    
-    public void Clear()
-    {
-        m_Size = 0;
-    }
-}
-
-public class SpriteRenderer
+public class SpriteRenderer : ISpriteRenderer
 {
     private const int MAX_BATCH_SIZE = 512;
     
@@ -61,9 +19,9 @@ public class SpriteRenderer
     private readonly Vector3[] m_Colors = new Vector3[MAX_BATCH_SIZE];
     private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[MAX_BATCH_SIZE];
     
-    public SpriteRenderer(IGpu gpu)
+    public SpriteRenderer(IWindow window)
     {
-        Gpu = gpu;
+        Gpu = window.Gpu;
     }
 
     public void LoadResources()

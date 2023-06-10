@@ -10,8 +10,8 @@ namespace Pong;
 
 public sealed class PongGame : Game
 {
+    private ISpriteRenderer SpriteRenderer { get; }
     private IInputSystem InputSystem => Window.Input;
-    private SpriteRenderer SpriteRenderer { get; }
     private OrthographicCamera Camera { get; }
     private Sprite PaddleSprite { get; set; }
     //private Sprite BallSprite { get; set; }
@@ -33,8 +33,10 @@ public sealed class PongGame : Game
 
     private BallPaddleCollisionSystem BallPaddleCollisionSystem { get; } = new();
 
-    public PongGame(IContext context) : base(context)
+    public PongGame(ISpriteRenderer spriteRenderer, IContext context) : base(context)
     {
+        SpriteRenderer = spriteRenderer;
+        
         Camera = OrthographicCamera.Create(LevelBounds.Width, LevelBounds.Height, 0.01f, 10f);
         Viewport = new Viewport
         {
@@ -46,9 +48,7 @@ public sealed class PongGame : Game
             Right = 0.5f,
             AspectRatio = Camera.AspectRatio
         };
-
-        SpriteRenderer = new SpriteRenderer(Gpu);
-
+        
         BottomPaddle = new()
         {
             CurrPosition = new Vector2(0, -40f),
