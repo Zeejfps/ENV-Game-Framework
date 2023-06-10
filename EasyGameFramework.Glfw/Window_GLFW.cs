@@ -62,8 +62,8 @@ public sealed class Window_GLFW : IWindow
     {
         Init();
         WindowHint(Hint.ClientApi, ClientApi.OpenGL);
-        WindowHint(Hint.ContextVersionMajor, 3);
-        WindowHint(Hint.ContextVersionMinor, 2);
+        WindowHint(Hint.ContextVersionMajor, 4);
+        WindowHint(Hint.ContextVersionMinor, 6);
         WindowHint(Hint.OpenglProfile, Profile.Core);
         WindowHint(Hint.Doublebuffer, true);
         WindowHint(Hint.Decorated, true);
