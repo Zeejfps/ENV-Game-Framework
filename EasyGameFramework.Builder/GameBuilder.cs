@@ -1,6 +1,5 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.InputDevices;
-using EasyGameFramework.Api.Rendering;
 using EasyGameFramework.Core;
 using EasyGameFramework.Core.InputDevices;
 using EasyGameFramework.Glfw;
@@ -39,7 +38,7 @@ public sealed class GameBuilder
         if (!m_IsLoggerSet)
             WithLogger<ConsoleLogger>();
         
-        DiContainer.BindSingleton<IDisplays, Displays_GLFW>();
+        DiContainer.BindSingleton<IDisplayManager, DisplayManagerGlfw>();
         DiContainer.BindSingleton<IMouse, Mouse>();
         DiContainer.BindSingleton<IKeyboard, Keyboard>();
         DiContainer.BindSingleton<IInputSystem, InputSystem>();

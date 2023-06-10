@@ -2,9 +2,9 @@ using EasyGameFramework.Api;
 
 namespace EasyGameFramework.Glfw;
 
-public sealed class Displays_GLFW : IDisplays
+public sealed class DisplayManagerGlfw : IDisplayManager
 {
-    public Displays_GLFW()
+    public DisplayManagerGlfw()
     {
         PrimaryDisplay = new Display_GLFW(GLFW.Glfw.PrimaryMonitor);
     }

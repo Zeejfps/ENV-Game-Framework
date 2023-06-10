@@ -1,6 +1,6 @@
 namespace EasyGameFramework.Api;
 
-public interface IDisplays
+public interface IDisplayManager
 {
     IDisplay PrimaryDisplay { get; }
 }

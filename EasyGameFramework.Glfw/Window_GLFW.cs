@@ -21,7 +21,7 @@ public sealed class Window_GLFW : IWindow
 {
     public event Action? Closed;
 
-    private readonly IDisplays m_Displays;
+    private readonly IDisplayManager m_DisplayManager;
     private readonly SizeCallback m_FramebufferSizeCallback;
 
     private readonly KeyCallback m_KeyCallback;
@@ -56,7 +56,7 @@ public sealed class Window_GLFW : IWindow
 
     public Window_GLFW(
         ILogger logger, 
-        IDisplays displays,
+        IDisplayManager displayManager,
         IInputSystem input, 
         IMouse mouse,
         IKeyboard keyboard)
@@ -74,7 +74,7 @@ public sealed class Window_GLFW : IWindow
         Mouse = mouse;
         Keyboard = keyboard;
         
-        m_Displays = displays;
+        m_DisplayManager = displayManager;
 
         m_KeyCallback = Glfw_KeyCallback;
         m_SizeCallback = Glfw_SizeCallback;
@@ -272,8 +272,8 @@ public sealed class Window_GLFW : IWindow
 
     public void OpenCentered()
     {
-        PosX = (int)((m_Displays.PrimaryDisplay.ResolutionX - ScreenWidth) * 0.5f);
-        PosY = (int)((m_Displays.PrimaryDisplay.ResolutionY - ScreenHeight) * 0.5f);
+        PosX = (int)((m_DisplayManager.PrimaryDisplay.ResolutionX - ScreenWidth) * 0.5f);
+        PosY = (int)((m_DisplayManager.PrimaryDisplay.ResolutionY - ScreenHeight) * 0.5f);
         Open();
     }
 
