@@ -13,7 +13,7 @@ public interface IRenderbufferManager
     void BindToWindow();
     void ClearColorBuffers(float r, float g, float b, float a);
     void SetSize(int width, int height);
-    void Blit(IHandle<IGpuRenderbuffer> src, TextureFilterKind filter);
-    void Blit(IHandle<IGpuRenderbuffer> src, int left, int bottom, int right, int top, TextureFilterKind filter);
-    void Blit(IHandle<IGpuRenderbuffer> fb, IViewport viewport, TextureFilterKind filter);
+    void Blit(IHandle<IGpuRenderbuffer> src, TextureFilterKind filter = TextureFilterKind.Linear);
+    void Blit(IHandle<IGpuRenderbuffer> src, int left, int bottom, int right, int top, TextureFilterKind filter = TextureFilterKind.Linear);
+    void Blit(IHandle<IGpuRenderbuffer> fb, IViewport viewport, TextureFilterKind filter = TextureFilterKind.Linear);
 }
