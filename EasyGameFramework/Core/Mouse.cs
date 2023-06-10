@@ -1,10 +1,9 @@
-using System.Numerics;
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 
 namespace EasyGameFramework.Core;
 
-internal class Mouse : IMouse
+public sealed class Mouse : IMouse
 {
     public event MouseMovedDelegate? Moved;
     public event MouseWheelScrolledDelegate? Scrolled;

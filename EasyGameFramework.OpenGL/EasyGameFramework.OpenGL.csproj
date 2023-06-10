@@ -8,7 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="ini-parser" Version="2.5.2" />
+      <ProjectReference Include="..\EasyGameFramework\EasyGameFramework.csproj" />
+      <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
     </ItemGroup>
 
 </Project>

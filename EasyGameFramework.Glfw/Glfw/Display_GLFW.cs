@@ -3,7 +3,7 @@ using Monitor = GLFW.Monitor;
 
 namespace EasyGameFramework.Glfw;
 
-internal class Display_GLFW : IDisplay
+public sealed class Display_GLFW : IDisplay
 {
     public Display_GLFW(Monitor monitor)
     {

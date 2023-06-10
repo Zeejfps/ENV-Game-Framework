@@ -1,6 +1,6 @@
 ﻿namespace EasyGameFramework.Api;
 
-internal class EventBus : IEventBus
+public sealed class EventBus : IEventBus
 {
     public void Publish<TEvent>() where TEvent : struct
     {

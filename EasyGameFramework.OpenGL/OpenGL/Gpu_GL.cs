@@ -4,7 +4,7 @@ using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-internal class Gpu_GL : IGpu
+public sealed class Gpu_GL : IGpu
 {
     private readonly MeshManager_GL m_MeshManager;
     private readonly ShaderManager_GL m_ShaderManager;

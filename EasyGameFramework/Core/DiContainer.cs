@@ -1,6 +1,6 @@
 ﻿namespace EasyGameFramework.Api;
 
-internal class DiContainer : IContainer
+public sealed class DiContainer : IContainer
 {
     private readonly Dictionary<Type, Func<object>> m_TypeToFactoryMap = new();
     private readonly Dictionary<Type, object> m_TypeToInstanceMap = new();

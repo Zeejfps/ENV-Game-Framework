@@ -4,7 +4,7 @@ using EasyGameFramework.Api.InputDevices;
 
 namespace EasyGameFramework.Core;
 
-internal class GamepadManager : IGamepadManager
+public sealed class GamepadManager : IGamepadManager
 {
     public event GamepadConnectedDelegate? GamepadConnected;
     public event GamepadDisconnectedDelegate? GamepadDisconnected;

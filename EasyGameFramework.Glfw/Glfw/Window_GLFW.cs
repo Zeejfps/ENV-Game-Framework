@@ -16,7 +16,7 @@ using MouseButton = GLFW.MouseButton;
 
 namespace EasyGameFramework.Glfw;
 
-internal class Window_GLFW : IWindow
+public sealed class Window_GLFW : IWindow
 {
     public event Action? Closed;
 

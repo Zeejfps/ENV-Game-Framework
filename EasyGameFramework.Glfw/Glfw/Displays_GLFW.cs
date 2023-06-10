@@ -2,7 +2,7 @@ using EasyGameFramework.Api;
 
 namespace EasyGameFramework.Glfw;
 
-internal class Displays_GLFW : IDisplays
+public sealed class Displays_GLFW : IDisplays
 {
     public Displays_GLFW()
     {

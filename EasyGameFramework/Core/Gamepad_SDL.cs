@@ -3,7 +3,7 @@ using EasyGameFramework.Api.InputDevices;
 
 namespace EasyGameFramework.Core;
 
-internal class Gamepad_SDL : IGamepad
+public sealed class Gamepad_SDL : IGamepad
 {
     public event GamepadButtonStateChangedDelegate? ButtonPressed;
     public event GamepadButtonStateChangedDelegate? ButtonReleased;

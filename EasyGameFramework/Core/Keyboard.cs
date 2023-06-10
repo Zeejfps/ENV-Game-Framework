@@ -3,7 +3,7 @@ using EasyGameFramework.Api.InputDevices;
 
 namespace EasyGameFramework.Core;
 
-internal class Keyboard : IKeyboard
+public sealed class Keyboard : IKeyboard
 {
     public event KeyboardKeyStateChangedDelegate? KeyPressed;
     public event KeyboardKeyStateChangedDelegate? KeyReleased;

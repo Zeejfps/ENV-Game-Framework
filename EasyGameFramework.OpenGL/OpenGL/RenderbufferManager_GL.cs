@@ -1,7 +1,6 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Rendering;
-using GLFW;
 using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;

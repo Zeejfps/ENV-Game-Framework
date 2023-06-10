@@ -4,7 +4,7 @@ using EasyGameFramework.Api.InputDevices;
 
 namespace EasyGameFramework.Core;
 
-internal class InputSystem : IInputSystem
+public sealed class InputSystem : IInputSystem
 {
     public IMouse Mouse { get; }
     public IKeyboard Keyboard { get; }
