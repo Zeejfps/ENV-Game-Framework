@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
+using EasyGameFramework.Api.Enums;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Physics;
 using Pong.Physics;
@@ -37,7 +38,7 @@ public sealed class PongGame : Game
         Camera = OrthographicCamera.Create(LevelBounds.Width, LevelBounds.Height, 0.01f, 10f);
         Viewport = new Viewport
         {
-            Left = 0.5f,
+            Left = 0f,
             AspectRatio = Camera.AspectRatio
         };
         Viewport2 = new Viewport
@@ -85,7 +86,7 @@ public sealed class PongGame : Game
         
         PaddleSprite = new Sprite
         {
-            Pivot = new Vector2(0.5f, 0.5f),
+            //Pivot = new Vector2(0.5f, 0.5f),
             Size = new Vector2(32f, 32f),
             Texture = texture
         };
@@ -178,21 +179,20 @@ public sealed class PongGame : Game
             var paddle2Pos = Vector2.Lerp(TopPaddle.PrevPosition, TopPaddle.CurrPosition, frameLerpFactor);
             SpriteRenderer.DrawSprite(paddle2Pos,  new Vector2(10f, 1f), PaddleSprite, Vector3.One);
 
-            var ballPosition = Ball.CurrPosition;//Vector2.Lerp(Ball.PrevPosition, Ball.CurrPosition, frameLerpFactor);
-            ballPosition.X = MathF.Round(ballPosition.X);
-            ballPosition.Y = MathF.Round(ballPosition.Y);
+            var ballPosition = Vector2.Lerp(Ball.PrevPosition, Ball.CurrPosition, frameLerpFactor);
             SpriteRenderer.DrawSprite(ballPosition,  new Vector2(1f, 1f), PaddleSprite, new Vector3(0.5f, 0.7f, 0.1f));
         }
 
-        var fb = gpu.CreateRenderbuffer(1, false, 200, (int)(200 * camera.AspectRatio));
+        var fbWidth = 2048;
+        var fb = gpu.CreateRenderbuffer(1, false, fbWidth, (int)(fbWidth * camera.AspectRatio));
         gpu.Renderbuffer.Bind(fb);
         gpu.Renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
         SpriteRenderer.RenderBatch(camera);
         
         gpu.Renderbuffer.BindToWindow();
         gpu.Renderbuffer.ClearColorBuffers(0, 0, 0, 0);
-        gpu.Renderbuffer.Blit(fb, Viewport);
-        gpu.Renderbuffer.Blit(fb, Viewport2);
+        gpu.Renderbuffer.Blit(fb, Viewport, TextureFilterKind.Linear);
+        //gpu.Renderbuffer.Blit(fb, Viewport2);
         
         gpu.ReleaseRenderbuffer(fb);
     }

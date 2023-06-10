@@ -1,5 +1,6 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
+using EasyGameFramework.Api.Enums;
 using EasyGameFramework.Api.Rendering;
 using static OpenGL.Gl;
 
@@ -80,7 +81,7 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
             BoundResource.SetSize(width, height);
     }
 
-    public void Blit(IHandle<IGpuRenderbuffer> src)
+    public void Blit(IHandle<IGpuRenderbuffer> src, TextureFilterKind filterKind)
     {
         var dstFramebuffer = m_WindowFramebuffer;
         if (BoundResource != null)
@@ -88,26 +89,28 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
             dstFramebuffer = BoundResource;
         }
         
-        Blit(src, 0, 0, dstFramebuffer.Width, dstFramebuffer.Height);
+        Blit(src, 0, 0, dstFramebuffer.Width, dstFramebuffer.Height, filterKind);
     }
 
-    public void Blit(IHandle<IGpuRenderbuffer> src, int left, int bottom, int right, int top)
+    public void Blit(IHandle<IGpuRenderbuffer> src, int left, int bottom, int right, int top, TextureFilterKind filter)
     {
         var srcFramebuffer = Get(src);
         uint dstFramebufferId = 0;
         if (BoundResource != null)
             dstFramebufferId = BoundResource.Id;
+
+        var f = filter == TextureFilterKind.Linear ? GL_LINEAR : GL_NEAREST;
         
         glBindFramebuffer(GL_READ_FRAMEBUFFER, srcFramebuffer.Id);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dstFramebufferId);
         glBlitFramebuffer(
             0, 0, srcFramebuffer.Width, srcFramebuffer.Height, 
             left, bottom, right, top, 
-            GL_COLOR_BUFFER_BIT, GL_NEAREST
+            GL_COLOR_BUFFER_BIT, f
         );
     }
 
-    public void Blit(IHandle<IGpuRenderbuffer> fb, IViewport viewport)
+    public void Blit(IHandle<IGpuRenderbuffer> fb, IViewport viewport, TextureFilterKind filter)
     {
         var windowWidth = BoundResource?.Width ?? WindowBufferHandle.Width;
         var windowHeight = BoundResource?.Height ?? WindowBufferHandle.Height;
@@ -139,6 +142,6 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
         var dstRight = (int)MathF.Round(right - halfWidth + drawHalfWidth);
         var dstBottom = (int)MathF.Round(bottom + halfHeight - drawHalfHeight);
 
-        Blit(fb, dstLeft, dstBottom, dstRight, dstTop);
+        Blit(fb, dstLeft, dstBottom, dstRight, dstTop, filter);
     }
 }

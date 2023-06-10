@@ -33,7 +33,7 @@ public class Ball
         else if (newPosition.Y <= Bounds.Bottom)
             Velocity = Velocity with { Y = -Velocity.Y };
         
-        CurrPosition = newPosition;
+        CurrPosition += Velocity * dt;
         //Logger.Trace(CurrPosition);
     }
 }
