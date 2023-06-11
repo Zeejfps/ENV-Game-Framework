@@ -441,7 +441,7 @@ public sealed class BeeSystem
 
 class Batch
 {
-    public const int MAX_BATCH_SIZE = 128;
+    public const int MAX_BATCH_SIZE = 512;
 
     public ReadOnlySpan<Vector3> Colors => m_Colors;
     public ReadOnlySpan<Matrix4x4> ModelMatrices => m_ModelMatrices;
@@ -455,8 +455,8 @@ class Batch
     public void Add(Vector3 position, Vector3 direction, float size, Vector3 color)
     {
         var modelMatrix = Matrix4x4.CreateScale(size, size, size)
-                        * Matrix4x4.CreateLookAt(Vector3.Zero, direction, Vector3.UnitY)
-                        * Matrix4x4.CreateTranslation(position);
+                          * Matrix4x4.CreateLookAt(Vector3.Zero, direction, Vector3.UnitY)
+                          * Matrix4x4.CreateTranslation(position);
         
         m_Colors[m_Size] = color;
         m_ModelMatrices[m_Size] = modelMatrix;

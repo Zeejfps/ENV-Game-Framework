@@ -2,7 +2,7 @@
 
 #version 460 core
 
-const int MAX_BATCH_SIZE = 128;
+const int MAX_BATCH_SIZE = 512;
 
 layout (location = 0) in vec3 attr_vertex_position;
 uniform mat4 matrix_projection, matrix_view;
@@ -25,7 +25,7 @@ void main()
     
 #version 460 core
 
-const int MAX_BATCH_SIZE = 128;
+const int MAX_BATCH_SIZE = 512;
 
 uniform vec3 colors[MAX_BATCH_SIZE];
 
