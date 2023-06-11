@@ -76,7 +76,7 @@ public sealed class BeeSystem
     private List<Bee>[] BeeTeams { get; }
     private Random Random { get; }
     private BeeSystemConfig Config { get; }
-
+    
     public BeeSystem(IContext context, Field field, BeeSystemConfig config)
     {
         Context = context;

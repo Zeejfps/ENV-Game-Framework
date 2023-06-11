@@ -7,12 +7,11 @@ namespace CombatBeesBenchmark;
 
 public struct BeeRenderingData
 {
-    public int Count;
     public Memory<Matrix4x4> ModelMatrices;
     public Memory<Vector3> Colors;
 }
 
-public class BeeRenderingSystem
+public sealed class BeeRenderingSystem
 {
     private const int MaxBatchSize = 512;
     private const int MaxBeeCount = 100000;
@@ -35,7 +34,7 @@ public class BeeRenderingSystem
         BeeShaderHandle = gpu.Shader.Load("Assets/bee");
     }
     
-    public void Render(ref BeeRenderingData data)
+    public void Render(BeeRenderingData data)
     {
         var gpu = Gpu;
         var camera = Camera;
@@ -52,7 +51,7 @@ public class BeeRenderingSystem
         activeShader.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         activeShader.SetMatrix4x4("matrix_view", viewMatrix);
         
-        var dataLength = data.Count;
+        var dataLength = data.ModelMatrices.Length;
         var numberOfBatches = (int)MathF.Ceiling(dataLength / (float)MaxBatchSize);
 
         for (var batchIndex = 0; batchIndex < numberOfBatches; batchIndex++)
