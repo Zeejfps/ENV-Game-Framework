@@ -2,55 +2,47 @@
 
 namespace CombatBeesBenchmark;
 
-public struct BeePhysicsSystemData
-{
-    public Memory<BeeData> Bees;
-}
 
 public sealed class BeePhysicsSystem
 {
-    private Field Field { get; }
-
-    public BeePhysicsSystem(Field field)
+    public void Update(float dt)
     {
-        Field = field;
-    }
+        var fieldHalfWidth = Data.FieldWidth * 0.5f;
+        var fieldHalfHeight = Data.FieldHeight * 0.5f;
+        var fieldHalfDepth = Data.FieldDepth * 0.5f;
 
-    public void Update(float dt, BeePhysicsSystemData data)
-    {
-        var field = Field;
-        var fieldHalfX = field.Size.X * 0.5f;
-        var fieldHalfY = field.Size.Y * 0.5f;
-        var fieldHalfZ = field.Size.Z * 0.5f;
-        
-        var dataLength = data.Bees.Length;
-        var transforms = data.Bees.Span;
-        for (var i = 0; i < dataLength; i++)
+        for (var teamIndex = 0; teamIndex < Data.NumberOfBeeTeams; teamIndex++)
         {
-            ref var bee = ref transforms[i];
-            bee.Direction = Vector3.Lerp(bee.Direction, Vector3.Normalize(bee.Velocity), dt * 4f);
-            bee.Position += bee.Velocity * dt;
+            var startIndex = teamIndex * Data.NumberOfBeesPerTeam;
+            var aliveBeeCount = Data.AliveBeeCountPerTeam[teamIndex];
+            var bees = new Span<BeeData>(Data.AliveBees, startIndex, aliveBeeCount);
+            for (var i = 0; i < aliveBeeCount; i++)
+            {
+                ref var bee = ref bees[i];
+                bee.Direction = Vector3.Lerp(bee.Direction, Vector3.Normalize(bee.Velocity), dt * 4f);
+                bee.Position += bee.Velocity * dt;
             
-            if (MathF.Abs(bee.Position.X) > fieldHalfX)
-            {
-                bee.Position.X = fieldHalfX * MathF.Sign(bee.Position.X);
-                bee.Velocity.X *= -.5f;
-                bee.Velocity.Y *= .8f;
-                bee.Velocity.Z *= .8f;
-            }
-            if (MathF.Abs(bee.Position.Z) > fieldHalfZ)
-            {
-                bee.Position.Z = fieldHalfZ * MathF.Sign(bee.Position.Z);
-                bee.Velocity.Z *= -.5f;
-                bee.Velocity.X *= .8f;
-                bee.Velocity.Y *= .8f;
-            }
-            if (MathF.Abs(bee.Position.Y) > fieldHalfY)
-            {
-                bee.Position.Y = fieldHalfY * MathF.Sign(bee.Position.Y);
-                bee.Velocity.Y *= -.5f;
-                bee.Velocity.Z *= .8f;
-                bee.Velocity.X *= .8f;
+                if (MathF.Abs(bee.Position.X) > fieldHalfWidth)
+                {
+                    bee.Position.X = fieldHalfWidth * MathF.Sign(bee.Position.X);
+                    bee.Velocity.X *= -.5f;
+                    bee.Velocity.Y *= .8f;
+                    bee.Velocity.Z *= .8f;
+                }
+                if (MathF.Abs(bee.Position.Z) > fieldHalfDepth)
+                {
+                    bee.Position.Z = fieldHalfDepth * MathF.Sign(bee.Position.Z);
+                    bee.Velocity.Z *= -.5f;
+                    bee.Velocity.X *= .8f;
+                    bee.Velocity.Y *= .8f;
+                }
+                if (MathF.Abs(bee.Position.Y) > fieldHalfHeight)
+                {
+                    bee.Position.Y = fieldHalfHeight * MathF.Sign(bee.Position.Y);
+                    bee.Velocity.Y *= -.5f;
+                    bee.Velocity.Z *= .8f;
+                    bee.Velocity.X *= .8f;
+                }
             }
         }
     }

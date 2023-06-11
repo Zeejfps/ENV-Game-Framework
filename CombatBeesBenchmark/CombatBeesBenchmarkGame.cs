@@ -13,17 +13,15 @@ public class CombatBeesBenchmarkGame : Game
     private BeeSystem BeeSystem { get; }
     private BeeSpawner BeeSpawner { get; }
     
+    private BeeSpawningSystem BeeSpawningSystem { get; }
     private BeeMovementSystem MovementSystem { get; }
     private BeePhysicsSystem BeePhysicsSystem { get; }
     private BeeTransformSystem BeeTransformSystem { get; }
     private BeeRenderingSystem BeeRenderingSystem { get; }
+
     private ICamera Camera { get; }
     private CameraRig CameraRig { get; }
     private CameraRigController CameraRigController { get; }
-
-    private BeeData[] Bees = new BeeData[MaxBeeCount];
-    private Vector3[] BeeColors = new Vector3[MaxBeeCount];
-    private Matrix4x4[] BeeModelMatricies = new Matrix4x4[MaxBeeCount];
     
     public CombatBeesBenchmarkGame(IContext context) : base(context)
     {
@@ -53,8 +51,10 @@ public class CombatBeesBenchmarkGame : Game
         CameraRig = new CameraRig(Camera);
         CameraRigController = new CameraRigController(CameraRig, Window, Input);
 
-        MovementSystem = new BeeMovementSystem(new Random());
-        BeePhysicsSystem = new BeePhysicsSystem(Field);
+        var random = new Random();
+        BeeSpawningSystem = new BeeSpawningSystem(random);
+        MovementSystem = new BeeMovementSystem(random);
+        BeePhysicsSystem = new BeePhysicsSystem();
         BeeTransformSystem = new BeeTransformSystem();
         BeeRenderingSystem = new BeeRenderingSystem(Context.Window.Gpu, Camera);
     }
@@ -69,31 +69,19 @@ public class CombatBeesBenchmarkGame : Game
 
     protected override void OnStart()
     {
-        BeeSystem.LoadResources();
+        //BeeSystem.LoadResources();
+        BeeRenderingSystem.LoadResources();
         CameraRigController.Enable();
     }
 
     protected override void OnUpdate()
     {
         var dt = Time.UpdateDeltaTime;
-        BeeSpawner.Update();
-        BeeSystem.Update(dt);
 
-        MovementSystem.Update(dt, new BeeMovementSystemData
-        {
-            Bees = new Memory<BeeData>(Bees)
-        });
-        
-        BeePhysicsSystem.Update(dt, new BeePhysicsSystemData
-        {
-            Bees = new Memory<BeeData>(Bees)
-        });
-        
-        BeeTransformSystem.Update(new BeeTransformSystemData
-        {
-            Transforms = new Memory<BeeData>(Bees),
-            ModelMatrices = new Memory<Matrix4x4>(BeeModelMatricies)
-        });
+        BeeSpawningSystem.Update();
+        MovementSystem.Update(dt);
+        BeePhysicsSystem.Update(dt);
+        BeeTransformSystem.Update();
         
         CameraRigController.Update(dt);
     }
@@ -105,11 +93,7 @@ public class CombatBeesBenchmarkGame : Game
         activeFramebuffer.BindToWindow();
         activeFramebuffer.ClearColorBuffers(0f, 0.1f, 0.1f, 1f);
 
-        BeeRenderingSystem.Render(new BeeRenderingData
-        {
-            Colors = new Memory<Vector3>(BeeColors),
-            ModelMatrices = new Memory<Matrix4x4>(BeeModelMatricies)
-        });
+        BeeRenderingSystem.Render();
     }
 
     protected override void OnStop()

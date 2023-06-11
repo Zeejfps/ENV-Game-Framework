@@ -5,16 +5,9 @@ using EasyGameFramework.Api.Rendering;
 
 namespace CombatBeesBenchmark;
 
-public struct BeeRenderingData
-{
-    public Memory<Matrix4x4> ModelMatrices;
-    public Memory<Vector3> Colors;
-}
-
 public sealed class BeeRenderingSystem
 {
     private const int MaxBatchSize = 512;
-    private const int MaxBeeCount = 100000;
 
     private IGpu Gpu { get; }
     private ICamera Camera { get; }
@@ -34,7 +27,7 @@ public sealed class BeeRenderingSystem
         BeeShaderHandle = gpu.Shader.Load("Assets/bee");
     }
     
-    public void Render(BeeRenderingData data)
+    public void Render()
     {
         var gpu = Gpu;
         var camera = Camera;
@@ -51,27 +44,23 @@ public sealed class BeeRenderingSystem
         activeShader.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
         activeShader.SetMatrix4x4("matrix_view", viewMatrix);
         
-        var dataLength = data.ModelMatrices.Length;
-        var numberOfBatches = (int)MathF.Ceiling(dataLength / (float)MaxBatchSize);
-
-        for (var batchIndex = 0; batchIndex < numberOfBatches; batchIndex++)
+        for (var teamIndex = 0; teamIndex < Data.NumberOfBeeTeams; teamIndex++)
         {
-            var dataStartIndex = batchIndex * MaxBatchSize;
-            var dataEndIndex = dataStartIndex + MaxBatchSize;
-            if (dataEndIndex > dataLength)
-                dataEndIndex = dataLength;
+            var startIndex = teamIndex * Data.NumberOfBeesPerTeam;
+            var aliveBeesCount = Data.AliveBeeCountPerTeam[teamIndex];
 
-            var batchSize = dataEndIndex - dataStartIndex;
+            var colors = new Span<Vector3>(Data.AliveBeeColors, startIndex, aliveBeesCount);
+            var modelMatrices = new Span<Matrix4x4>(Data.AliveBeenModelMatrices, startIndex, aliveBeesCount);
 
-            var colors = data.Colors.Slice(dataStartIndex, batchSize);
-            activeShader.SetVector3Array("colors", colors.Span);
+            var numBatches = (int)MathF.Ceiling(aliveBeesCount / (float)MaxBatchSize);
+            for (var batchIndex = 0; batchIndex < numBatches; batchIndex++)
+            {
+                activeShader.SetVector3Array("colors", colors);
+                activeShader.SetMatrix4x4Array("model_matrices", modelMatrices);
+                activeMesh.RenderInstanced(aliveBeesCount);
+            } 
+        }
 
-            var modelMatrices = data.ModelMatrices.Slice(dataStartIndex, batchSize);
-            activeShader.SetMatrix4x4Array("model_matrices", modelMatrices.Span);
-            
-            activeMesh.RenderInstanced(batchSize);
-        }    
-        
         gpu.RestoreState();
     }
 }

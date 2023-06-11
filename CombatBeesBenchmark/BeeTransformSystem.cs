@@ -18,20 +18,24 @@ public struct BeeTransformSystemData
 
 public sealed class BeeTransformSystem
 {
-    public void Update(BeeTransformSystemData data)
+    public void Update()
     {
-        var dataLength = data.Transforms.Length;
-        var transforms = data.Transforms.Span;
-        var modelMatrices = data.ModelMatrices.Span;
-        for (var i = 0; i < dataLength; i++)
+        for (var teamIndex = 0; teamIndex < Data.NumberOfBeeTeams; teamIndex++)
         {
-            ref var transform = ref transforms[i];
-            var size = transform.Size;
-            var direction = transform.Direction;
-            var position = transform.Position;
-            modelMatrices[i] = Matrix4x4.CreateScale(size, size, size)
-                             * Matrix4x4.CreateLookAt(Vector3.Zero, direction, Vector3.UnitY)
-                             * Matrix4x4.CreateTranslation(position);
+            var startIndex = teamIndex * Data.NumberOfBeesPerTeam;
+            var aliveBeeCount = Data.AliveBeeCountPerTeam[teamIndex];
+            var aliveBees = new Span<BeeData>(Data.AliveBees, startIndex, aliveBeeCount);
+            var modelMatrices = Data.AliveBeenModelMatrices;
+            for (var i = 0; i < aliveBeeCount; i++)
+            {
+                ref var bee = ref aliveBees[i];
+                var size = bee.Size;
+                var direction = bee.Direction;
+                var position = bee.Position;
+                modelMatrices[i] = Matrix4x4.CreateScale(size, size, size)
+                                   * Matrix4x4.CreateLookAt(Vector3.Zero, direction, Vector3.UnitY)
+                                   * Matrix4x4.CreateTranslation(position);
+            }
         }
     }
 }

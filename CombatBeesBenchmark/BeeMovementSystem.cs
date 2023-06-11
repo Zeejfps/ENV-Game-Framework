@@ -2,11 +2,6 @@
 
 namespace CombatBeesBenchmark;
 
-public struct BeeMovementSystemData
-{
-    public Memory<BeeData> Bees;
-}
-
 public sealed class BeeMovementSystem
 {
     private Random Random { get; }
@@ -16,32 +11,33 @@ public sealed class BeeMovementSystem
         Random = random;
     }
 
-    public void Update(float dt, BeeMovementSystemData data)
+    public void Update(float dt)
     {
-        // TODO: Bass via config
+        // TODO: Pass via config
         var flightJitter = 200f * dt;
         var damping = 0.9f * dt;
-        
-        var dataLength = data.Bees.Length;
-        var bees = data.Bees.Span;
-        for (var i = 0; i < dataLength; i++)
+
+        var numberOfTeams = Data.NumberOfBeeTeams;
+        var numberOfBeesPerTeam = Data.NumberOfBeesPerTeam;
+        for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
         {
-            ref var bee = ref bees[i];
-            bee.Velocity += RandomInsideUnitSphere() * flightJitter;
-            bee.Velocity *= damping;
+            var startIndex = teamIndex * numberOfBeesPerTeam;
+            var beeCount = Data.AliveBeeCountPerTeam[teamIndex];
+            var bees = new Span<BeeData>(Data.AliveBees, startIndex, beeCount);
+            for (var i = 0; i < beeCount; i++)
+            {
+                ref var bee = ref bees[i];
+                bee.Velocity += RandomInsideUnitSphere() * flightJitter;
+                bee.Velocity *= damping;
+            }
         }
-    }
-    
-    private float RandomFloatInRange(float min, float max)
-    {
-        var random = Random;
-        return random.NextSingle() * (max - min) + min;
     }
 
     private Vector3 RandomInsideUnitSphere()
     {
-        var theta = RandomFloatInRange(0f, 2f * MathF.PI);
-        var phi = RandomFloatInRange(0f, MathF.PI);
+        var random = Random;
+        var theta = random.NextSingleInRange(0f, 2f * MathF.PI);
+        var phi = random.NextSingleInRange(0f, MathF.PI);
 
         var sinPhi = MathF.Sin(phi);
         
