@@ -4,7 +4,7 @@ namespace CombatBeesBenchmark;
 
 public static class Data
 {
-    public const int MaxBeeCount = 10000;
+    public const int MaxBeeCount = 100000;
     public const int NumberOfBeeTeams = 2;
     public const int NumberOfBeesPerTeam = MaxBeeCount / NumberOfBeeTeams;
 
@@ -15,6 +15,8 @@ public static class Data
     public const float MaxBeeSize = 0.5f;
     public const float FlightJitter = 200f;
     public const float Damping = 0.9f;
+    public const float TeamAttraction = 5f;
+    public const float TeamRepulsion = 4f;
 
     public static readonly BeeData[] AliveBees = new BeeData[MaxBeeCount];
     public static readonly Vector3[] AliveBeeColors = new Vector3[MaxBeeCount];
@@ -25,4 +27,5 @@ public static class Data
         new Vector3(0.31f, 0.43f, 1f),
         new Vector3(0.95f, 0.95f, 0.59f),
     };
+
 }
