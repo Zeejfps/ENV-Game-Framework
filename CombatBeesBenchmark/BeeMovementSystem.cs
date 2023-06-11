@@ -13,9 +13,8 @@ public sealed class BeeMovementSystem
 
     public void Update(float dt)
     {
-        // TODO: Pass via config
-        var flightJitter = 200f * dt;
-        var damping = 0.9f * dt;
+        var flightJitter = Data.FlightJitter * dt;
+        var damping = 1f - 0.9f * dt;
 
         var numberOfTeams = Data.NumberOfBeeTeams;
         var numberOfBeesPerTeam = Data.NumberOfBeesPerTeam;
