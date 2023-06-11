@@ -15,7 +15,7 @@ public struct Bee
     public float DeathTimer;
 }
 
-public struct EnemyBee
+public struct EnemyBee : IEquatable<EnemyBee>
 {
     public int Index;
     public int TeamIndex;
@@ -25,6 +25,31 @@ public struct EnemyBee
         Index = -1,
         TeamIndex = -1
     };
+
+    public bool Equals(EnemyBee other)
+    {
+        return Index == other.Index && TeamIndex == other.TeamIndex;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is EnemyBee other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Index, TeamIndex);
+    }
+
+    public static bool operator ==(EnemyBee left, EnemyBee right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(EnemyBee left, EnemyBee right)
+    {
+        return !left.Equals(right);
+    }
 }
 
 public readonly struct BeeSystemConfig
@@ -63,11 +88,13 @@ public sealed class BeeSystem
         NumberOfBeeTeams = numberOfBeeTeams;
         BeeTeams = new List<Bee>[numberOfBeeTeams];
         DeadBees = new List<Bee>[numberOfBeeTeams];
+        BeesThatNeedEnemyAssigned = new List<int>[numberOfBeeTeams];
         var maxBeeCountPerTeam = config.MaxBeeCount / BeeTeams.Length;
         for (var i = 0; i < numberOfBeeTeams; i++)
         {
             BeeTeams[i] = new List<Bee>(maxBeeCountPerTeam);
             DeadBees[i] = new List<Bee>(maxBeeCountPerTeam);
+            BeesThatNeedEnemyAssigned[i] = new List<int>(maxBeeCountPerTeam);
         }
     }
 
@@ -103,6 +130,7 @@ public sealed class BeeSystem
     }
 
     private List<Bee>[] DeadBees { get; }
+    private List<int>[] BeesThatNeedEnemyAssigned { get; }
 
     private List<int> BeesToDeleteCache { get; } = new();
     
@@ -170,36 +198,43 @@ public sealed class BeeSystem
         //Context.Logger.Trace($"Dead Bees: {deadBees.Length}, Bees To Delete: {beesToDelete.Count}");
         for (int i = 0; i < beesToDelete.Count; i++)
             deadBeesList.RemoveAt(i);
-        
         beesToDelete.Clear();
+
+        var beesThatNeedEnemyAssigned = BeesThatNeedEnemyAssigned[teamIndex];
+        //Context.Logger.Trace($"Bees need enemies: {beesThatNeedEnemyAssigned.Count}");
+        for (var i = 0; i < beesThatNeedEnemyAssigned.Count; i++)
+        {
+            ref var bee = ref bees[beesThatNeedEnemyAssigned[i]];
+            bee.Enemy = GetRandomEnemyBee(teamIndex);
+            //Context.Logger.Trace($"EnemyID: {bee.Enemy.Index}");
+        }
+        beesThatNeedEnemyAssigned.Clear();
+        
         for (var i = 0; i < bees.Length; i++)
         {
             ref var bee = ref bees[i];
             bee.Velocity += RandomInsideUnitSphere() * flightJitter;
             bee.Velocity *= damping;
        
-            ref var attractiveFriend = ref GetRandomBee(bees);
+            var attractiveFriend = GetRandomBee(bees);
             Vector3 delta = attractiveFriend.Position - bee.Position;
             var dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
             if (dist > 0f)
                 bee.Velocity += delta * (teamAttraction / dist);
 
-            ref var repellentFriend = ref GetRandomBee(bees);
+            var repellentFriend = GetRandomBee(bees);
             delta = repellentFriend.Position - bee.Position;
             dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
             if (dist > 0f)
                 bee.Velocity -= delta * (teamRepulsion / dist);
-
-            if (bee.Enemy.Equals(EnemyBee.Null))
-            {
-                bee.Enemy = GetRandomEnemyBee(teamIndex);
-            }
             
+            //Context.Logger.Trace($"Enemy: {bee.Enemy.Index}");
             var enemyTeam = BeeTeams[bee.Enemy.TeamIndex];
             var enemyBeeIndex = bee.Enemy.Index;
             if (enemyBeeIndex >= enemyTeam.Count)
             {
                 bee.Enemy = EnemyBee.Null;
+                beesThatNeedEnemyAssigned.Add(i);
             }
             else
             {
@@ -215,10 +250,10 @@ public sealed class BeeSystem
                     bee.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
                     if (sqrDist < hitDistance * hitDistance)
                     {
-                        beesToDelete.Add(i);
                         deadBeesList.Add(enemyBee);
                         enemyBee.Velocity *= .5f;
                         bee.Enemy = EnemyBee.Null;
+                        beesThatNeedEnemyAssigned.Add(i);
                     }
                 }
             }
@@ -253,10 +288,10 @@ public sealed class BeeSystem
             aliveBees.RemoveAt(i);
     }
 
-    private ref Bee GetRandomBee(Span<Bee> bees)
+    private Bee GetRandomBee(in Span<Bee> bees)
     {
         var random = Random;
-        return ref bees[random.Next(0, bees.Length)];
+        return bees[random.Next(0, bees.Length)];
     }
 
     private EnemyBee GetRandomEnemyBee(int myTeamIndex)
@@ -388,7 +423,9 @@ public sealed class BeeSystem
         };
         
         var beeTeam = BeeTeams[teamIndex];
+        var index = beeTeam.Count;
         beeTeam.Add(bee);
+        BeesThatNeedEnemyAssigned[teamIndex].Add(index);
     }
 
     private float RandomFloatInRange(float min, float max)
