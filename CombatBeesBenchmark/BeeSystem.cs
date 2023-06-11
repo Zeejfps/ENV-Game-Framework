@@ -158,9 +158,15 @@ public sealed class BeeSystem
                 {
                     bee.Enemy = GetRandomEnemyBee(teamIndex);
                 }
+                
+                var enemyTeam = BeeTeams[bee.Enemy.TeamIndex];
+                var enemyBeeIndex = bee.Enemy.Index;
+                if (enemyBeeIndex >= enemyTeam.Count)
+                {
+                    bee.Enemy = EnemyBee.Null;
+                }
                 else
                 {
-                    var enemyTeam = BeeTeams[bee.Enemy.TeamIndex];
                     ref var enemyBee = ref CollectionsMarshal.AsSpan(enemyTeam)[bee.Enemy.Index];
                     if (enemyBee.IsDead)
                     {

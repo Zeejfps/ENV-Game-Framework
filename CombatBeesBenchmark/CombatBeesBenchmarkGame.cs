@@ -1,17 +1,21 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
+using Framework;
 
 namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    private const int StartBeeCount = 100;
+    private const int StartBeeCount = 1000;
     
     private Field Field { get; }
     private BeeSystem BeeSystem { get; }
     private BeeSpawner BeeSpawner { get; }
     private ICamera Camera { get; }
+    
+    private CameraRig CameraRig { get; }
+    private CameraRigController CameraRigController { get; }
     
     public CombatBeesBenchmarkGame(IContext context) : base(context)
     {
@@ -38,6 +42,9 @@ public class CombatBeesBenchmarkGame : Game
                 WorldPosition = new Vector3(0f, 0f, 80f)
             }
         };
+
+        CameraRig = new CameraRig(Camera);
+        CameraRigController = new CameraRigController(CameraRig, Window, Input);
     }
 
     protected override void Configure()
@@ -51,6 +58,7 @@ public class CombatBeesBenchmarkGame : Game
     protected override void OnStart()
     {
         BeeSystem.LoadResources();
+        CameraRigController.Enable();
     }
 
     protected override void OnUpdate()
