@@ -7,7 +7,7 @@ namespace CombatBeesBenchmark;
 
 public sealed class BeeRenderingSystem
 {
-    private const int MaxBatchSize = 512;
+    private const int MaxBatchSize = 250;
 
     private ILogger Logger { get; }
     private IGpu Gpu { get; }
@@ -59,16 +59,14 @@ public sealed class BeeRenderingSystem
             for (var batchIndex = 0; batchIndex < numBatches; batchIndex++)
             {
                 var s = batchIndex * MaxBatchSize;
-                var l = MaxBatchSize;
-                var e =  s + l;
-                if (e > aliveBeesCount)
-                    l = aliveBeesCount - s;
+                var batchSize = aliveBeesCount - s;
+                if (batchSize > MaxBatchSize)
+                    batchSize = MaxBatchSize;
                 
-                //Logger.Trace($"S: {s} L: {l}");
-
-                activeShader.SetVector3Array("colors", colors.Slice(s, l));
-                activeShader.SetMatrix4x4Array("model_matrices", modelMatrices.Slice(s, l));
-                activeMesh.RenderInstanced(aliveBeesCount);
+                //Logger.Trace($"Batch: {batchIndex} S: {s} BatchSize: {batchSize}");
+                activeShader.SetVector3Array("colors", colors.Slice(s, batchSize));
+                activeShader.SetMatrix4x4Array("model_matrices", modelMatrices.Slice(s, batchSize));
+                activeMesh.RenderInstanced(batchSize);
             } 
         }
 
