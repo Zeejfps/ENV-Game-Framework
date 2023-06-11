@@ -14,6 +14,7 @@ public static class Data
     public const float MinBeeSize = 0.25f;
     public const float MaxBeeSize = 0.5f;
     public const float FlightJitter = 200f;
+    public const float Damping = 0.9f;
 
     public static readonly BeeData[] AliveBees = new BeeData[MaxBeeCount];
     public static readonly Vector3[] AliveBeeColors = new Vector3[MaxBeeCount];
