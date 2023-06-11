@@ -7,7 +7,7 @@ namespace CombatBeesBenchmark;
 
 public sealed class BeeRenderingSystem
 {
-    private const int MaxBatchSize = 250;
+    private const int MaxBatchSize = 150;
 
     private ILogger Logger { get; }
     private IGpu Gpu { get; }

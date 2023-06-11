@@ -45,7 +45,7 @@ public class CombatBeesBenchmarkGame : Game
 
         var random = new Random();
         BeeSpawningSystem = new BeeSpawningSystem(Context, random);
-        MovementSystem = new BeeMovementSystem(random);
+        MovementSystem = new BeeMovementSystem(random, Context.Logger);
         BeePhysicsSystem = new BeePhysicsSystem(Context.Logger);
         BeeTransformSystem = new BeeTransformSystem(Context.Logger);
         BeeRenderingSystem = new BeeRenderingSystem(Context.Logger, Context.Window.Gpu, Camera);
@@ -57,6 +57,7 @@ public class CombatBeesBenchmarkGame : Game
         window.Title = "Combat Bees Benchmark";
         window.SetScreenSize(1280, 720);
         window.IsVsyncEnabled = false;
+        //window.IsFullscreen = true;
     }
 
     protected override void OnStart()
