@@ -7,7 +7,7 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    private const int StartBeeCount = 1000;
+    private const int StartBeeCount = 10000;
     
     private Field Field { get; }
     private BeeSystem BeeSystem { get; }
@@ -59,12 +59,12 @@ public class CombatBeesBenchmarkGame : Game
     {
         BeeSystem.LoadResources();
         CameraRigController.Enable();
+        BeeSpawner.SpawnBees();
     }
 
     protected override void OnUpdate()
     {
         var dt = Time.UpdateDeltaTime;
-        BeeSpawner.Update(dt);
         BeeSystem.Update(dt);
     }
 
