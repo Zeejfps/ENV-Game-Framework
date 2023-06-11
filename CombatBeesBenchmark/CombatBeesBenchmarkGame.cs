@@ -12,6 +12,8 @@ public class CombatBeesBenchmarkGame : Game
     private Field Field { get; }
     private BeeSystem BeeSystem { get; }
     private BeeSpawner BeeSpawner { get; }
+    
+    private BeeMovementSystem MovementSystem { get; }
     private BeePhysicsSystem BeePhysicsSystem { get; }
     private BeeTransformSystem BeeTransformSystem { get; }
     private BeeRenderingSystem BeeRenderingSystem { get; }
@@ -51,6 +53,7 @@ public class CombatBeesBenchmarkGame : Game
         CameraRig = new CameraRig(Camera);
         CameraRigController = new CameraRigController(CameraRig, Window, Input);
 
+        MovementSystem = new BeeMovementSystem(new Random());
         BeePhysicsSystem = new BeePhysicsSystem(Field);
         BeeTransformSystem = new BeeTransformSystem();
         BeeRenderingSystem = new BeeRenderingSystem(Context.Window.Gpu, Camera);
@@ -75,8 +78,12 @@ public class CombatBeesBenchmarkGame : Game
         var dt = Time.UpdateDeltaTime;
         BeeSpawner.Update();
         BeeSystem.Update(dt);
-        CameraRigController.Update(dt);
 
+        MovementSystem.Update(dt, new BeeMovementSystemData
+        {
+            Bees = new Memory<BeeData>(Bees)
+        });
+        
         BeePhysicsSystem.Update(dt, new BeePhysicsSystemData
         {
             Bees = new Memory<BeeData>(Bees)
@@ -87,6 +94,8 @@ public class CombatBeesBenchmarkGame : Game
             Transforms = new Memory<BeeData>(Bees),
             ModelMatrices = new Memory<Matrix4x4>(BeeModelMatricies)
         });
+        
+        CameraRigController.Update(dt);
     }
 
     protected override void OnRender()
