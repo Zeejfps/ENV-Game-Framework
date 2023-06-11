@@ -11,9 +11,9 @@ public struct Bee
     public Vector3 Velocity;
     public Vector3 Direction;
     public float Size;
-    public int TeamIndex;
     public bool IsDead;
     public EnemyBee Enemy;
+    public float DeathTimer;
 }
 
 public struct EnemyBee
@@ -80,7 +80,7 @@ public sealed class BeeSystem
         
         //Context.Logger.Trace($"Spawning Bees: {numberOfBeesToSpawn} for team: {teamIndex}");
         for (var i = 0; i < numberOfBeesToSpawn; i++)
-            SpawnBeen(teamIndex);
+            SpawnBee(teamIndex);
     }
 
     private IHandle<IGpuMesh> QuadMeshHandle { get; set; }
@@ -99,6 +99,8 @@ public sealed class BeeSystem
         UpdateBees(dt, 1);
     }
 
+    private List<int> BeesToDeleteCache { get; } = new();
+    
     private void UpdateBees(float dt, int teamIndex)
     {
         var flightJitter = Config.FlightJitter * dt;
@@ -114,80 +116,106 @@ public sealed class BeeSystem
         var bees = CollectionsMarshal.AsSpan(beeTeam);
 
         var field = Field;
-        //var gravity = field.Gravity * dt;
-        var fieldHalfWidth = field.Size.X * 0.5f;
-        var fieldHalfDepth = field.Size.Y * 0.5f;
-        var fieldHalfHeight = field.Size.Z * 0.5f;
+        var gravity = field.Gravity * dt;
+        var fieldHalfX = field.Size.X * 0.5f;
+        var fieldHalfY = field.Size.Y * 0.5f;
+        var fieldHalfZ = field.Size.Z * 0.5f;
+        
+        var beesToDelete = BeesToDeleteCache;
+        beesToDelete.Clear();
+        
         for (var i = 0; i < bees.Length; i++)
         {
             ref var bee = ref bees[i];
-            
-            bee.Velocity += RandomInsideUnitSphere() * flightJitter;
-            bee.Velocity *= damping;
-           
-            ref var attractiveFriend = ref GetRandomBee(bees);
-            Vector3 delta = attractiveFriend.Position - bee.Position;
-            var dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
-            if (dist > 0f)
-                bee.Velocity += delta * (teamAttraction / dist);
-
-            ref var repellentFriend = ref GetRandomBee(bees);
-            delta = repellentFriend.Position - bee.Position;
-            dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
-            if (dist > 0f)
-                bee.Velocity -= delta * (teamRepulsion / dist);
-
-            if (bee.Enemy.Equals(EnemyBee.Null))
+            if (bee.IsDead)
             {
-                bee.Enemy = GetRandomEnemyBee(teamIndex);
+                bee.Velocity.Y += gravity;
+                bee.DeathTimer -= dt;
+                if (bee.DeathTimer < 0f)
+                {
+                    beesToDelete.Add(i);
+                    continue;
+                }
             }
             else
             {
-                var enemyTeam = BeeTeams[bee.Enemy.TeamIndex];
-                ref var enemyBee = ref CollectionsMarshal.AsSpan(enemyTeam)[bee.Enemy.Index];
-                delta = enemyBee.Position - bee.Position;
-                var sqrDist = delta.LengthSquared();
-                if (sqrDist > attackDistance * attackDistance)
+                bee.Velocity += RandomInsideUnitSphere() * flightJitter;
+                bee.Velocity *= damping;
+           
+                ref var attractiveFriend = ref GetRandomBee(bees);
+                Vector3 delta = attractiveFriend.Position - bee.Position;
+                var dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
+                if (dist > 0f)
+                    bee.Velocity += delta * (teamAttraction / dist);
+
+                ref var repellentFriend = ref GetRandomBee(bees);
+                delta = repellentFriend.Position - bee.Position;
+                dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
+                if (dist > 0f)
+                    bee.Velocity -= delta * (teamRepulsion / dist);
+
+                if (bee.Enemy.Equals(EnemyBee.Null))
                 {
-                    bee.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
+                    bee.Enemy = GetRandomEnemyBee(teamIndex);
                 }
                 else
                 {
-                    bee.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
-                    if (sqrDist < hitDistance * hitDistance)
+                    var enemyTeam = BeeTeams[bee.Enemy.TeamIndex];
+                    ref var enemyBee = ref CollectionsMarshal.AsSpan(enemyTeam)[bee.Enemy.Index];
+                    if (enemyBee.IsDead)
                     {
-                        enemyBee.IsDead = true;
-                        enemyBee.Velocity *= .5f;
                         bee.Enemy = EnemyBee.Null;
                     }
+                    else
+                    {
+                        delta = enemyBee.Position - bee.Position;
+                        var sqrDist = delta.LengthSquared();
+                        if (sqrDist > attackDistance * attackDistance)
+                        {
+                            bee.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
+                        }
+                        else
+                        {
+                            bee.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
+                            if (sqrDist < hitDistance * hitDistance)
+                            {
+                                enemyBee.IsDead = true;
+                                enemyBee.Velocity *= .5f;
+                                bee.Enemy = EnemyBee.Null;
+                            }
+                        }
+                    }
                 }
-            }    
-            
-            bee.Direction = Vector3.Lerp(bee.Direction, Vector3.Normalize(bee.Velocity), dt * 4f);
+                bee.Direction = Vector3.Lerp(bee.Direction, Vector3.Normalize(bee.Velocity), dt * 4f);
+            }
+
             bee.Position += bee.Velocity * dt;
             
-            if (MathF.Abs(bee.Position.X) > fieldHalfWidth)
+            if (MathF.Abs(bee.Position.X) > fieldHalfX)
             {
-                bee.Position.X = fieldHalfWidth * MathF.Sign(bee.Position.X);
+                bee.Position.X = fieldHalfX * MathF.Sign(bee.Position.X);
                 bee.Velocity.X *= -.5f;
                 bee.Velocity.Y *= .8f;
                 bee.Velocity.Z *= .8f;
             }
-            if (MathF.Abs(bee.Position.Z) > fieldHalfHeight)
+            if (MathF.Abs(bee.Position.Z) > fieldHalfZ)
             {
-                bee.Position.Z = fieldHalfHeight * MathF.Sign(bee.Position.Z);
+                bee.Position.Z = fieldHalfZ * MathF.Sign(bee.Position.Z);
                 bee.Velocity.Z *= -.5f;
                 bee.Velocity.X *= .8f;
                 bee.Velocity.Y *= .8f;
             }
-            if (MathF.Abs(bee.Position.Y) > fieldHalfDepth)
+            if (MathF.Abs(bee.Position.Y) > fieldHalfY)
             {
-                bee.Position.Y = fieldHalfDepth * MathF.Sign(bee.Position.Y);
+                bee.Position.Y = fieldHalfY * MathF.Sign(bee.Position.Y);
                 bee.Velocity.Y *= -.5f;
                 bee.Velocity.Z *= .8f;
                 bee.Velocity.X *= .8f;
             }
         }
+
+        for (var i = 0; i < beesToDelete.Count; i++)
+            beeTeam.RemoveAt(i);
     }
 
     private ref Bee GetRandomBee(Span<Bee> bees)
@@ -298,19 +326,20 @@ public sealed class BeeSystem
         gpu.RestoreState();
     }
 
-    private void SpawnBeen(int teamIndex)
+    private void SpawnBee(int teamIndex)
     {
         var spawnPosition = Vector3.UnitX * (-Field.Size.X * .4f + Field.Size.X * .8f * teamIndex);
         var bee = new Bee
         {
             Position = spawnPosition,
             Size = RandomFloatInRange(Config.MinBeeSize, Config.MaxBeeSize),
-            TeamIndex = teamIndex,
             Enemy =
             {
                 Index = -1,
                 TeamIndex = -1
-            }
+            },
+            DeathTimer = 10f,
+            IsDead = false
         };
         
         var beeTeam = BeeTeams[teamIndex];
