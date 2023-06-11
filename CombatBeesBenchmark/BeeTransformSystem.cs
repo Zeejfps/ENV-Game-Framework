@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using EasyGameFramework.Api;
 
 namespace CombatBeesBenchmark;
 
@@ -10,14 +11,15 @@ public struct BeeData
     public float Size;
 }
 
-public struct BeeTransformSystemData
-{
-    public Memory<BeeData> Transforms;
-    public Memory<Matrix4x4> ModelMatrices;
-}
-
 public sealed class BeeTransformSystem
 {
+    public BeeTransformSystem(ILogger logger)
+    {
+        Logger = logger;
+    }
+
+    private ILogger Logger { get; }
+    
     public void Update()
     {
         for (var teamIndex = 0; teamIndex < Data.NumberOfBeeTeams; teamIndex++)
@@ -25,7 +27,7 @@ public sealed class BeeTransformSystem
             var startIndex = teamIndex * Data.NumberOfBeesPerTeam;
             var aliveBeeCount = Data.AliveBeeCountPerTeam[teamIndex];
             var aliveBees = new Span<BeeData>(Data.AliveBees, startIndex, aliveBeeCount);
-            var modelMatrices = Data.AliveBeenModelMatrices;
+            var modelMatrices = new Span<Matrix4x4>(Data.AliveBeenModelMatrices, startIndex, aliveBeeCount);
             for (var i = 0; i < aliveBeeCount; i++)
             {
                 ref var bee = ref aliveBees[i];

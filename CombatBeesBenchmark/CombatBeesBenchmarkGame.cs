@@ -52,11 +52,11 @@ public class CombatBeesBenchmarkGame : Game
         CameraRigController = new CameraRigController(CameraRig, Window, Input);
 
         var random = new Random();
-        BeeSpawningSystem = new BeeSpawningSystem(random);
+        BeeSpawningSystem = new BeeSpawningSystem(Context, random);
         MovementSystem = new BeeMovementSystem(random);
-        BeePhysicsSystem = new BeePhysicsSystem();
-        BeeTransformSystem = new BeeTransformSystem();
-        BeeRenderingSystem = new BeeRenderingSystem(Context.Window.Gpu, Camera);
+        BeePhysicsSystem = new BeePhysicsSystem(Context.Logger);
+        BeeTransformSystem = new BeeTransformSystem(Context.Logger);
+        BeeRenderingSystem = new BeeRenderingSystem(Context.Logger, Context.Window.Gpu, Camera);
     }
 
     protected override void Configure()

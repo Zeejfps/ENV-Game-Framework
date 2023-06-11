@@ -9,13 +9,15 @@ public sealed class BeeRenderingSystem
 {
     private const int MaxBatchSize = 512;
 
+    private ILogger Logger { get; }
     private IGpu Gpu { get; }
     private ICamera Camera { get; }
     private IHandle<IGpuMesh>? QuadMeshHandle { get; set; }
     private IHandle<IGpuShader>? BeeShaderHandle { get; set; }
 
-    public BeeRenderingSystem(IGpu gpu, ICamera camera)
+    public BeeRenderingSystem(ILogger logger, IGpu gpu, ICamera camera)
     {
+        Logger = logger;
         Gpu = gpu;
         Camera = camera;
     }
@@ -53,10 +55,19 @@ public sealed class BeeRenderingSystem
             var modelMatrices = new Span<Matrix4x4>(Data.AliveBeenModelMatrices, startIndex, aliveBeesCount);
 
             var numBatches = (int)MathF.Ceiling(aliveBeesCount / (float)MaxBatchSize);
+            //Logger.Trace($"StartIndex: {startIndex}, Number of batches: {numBatches} for {aliveBeesCount} bees");
             for (var batchIndex = 0; batchIndex < numBatches; batchIndex++)
             {
-                activeShader.SetVector3Array("colors", colors);
-                activeShader.SetMatrix4x4Array("model_matrices", modelMatrices);
+                var s = batchIndex * MaxBatchSize;
+                var l = MaxBatchSize;
+                var e =  s + l;
+                if (e > aliveBeesCount)
+                    l = aliveBeesCount - s;
+                
+                //Logger.Trace($"S: {s} L: {l}");
+
+                activeShader.SetVector3Array("colors", colors.Slice(s, l));
+                activeShader.SetMatrix4x4Array("model_matrices", modelMatrices.Slice(s, l));
                 activeMesh.RenderInstanced(aliveBeesCount);
             } 
         }

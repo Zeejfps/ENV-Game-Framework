@@ -1,13 +1,16 @@
 ﻿using System.Numerics;
+using EasyGameFramework.Api;
 
 namespace CombatBeesBenchmark;
 
 public sealed class BeeSpawningSystem
 {
+    private IContext Context { get; }
     private Random Random { get; }
 
-    public BeeSpawningSystem(Random random)
+    public BeeSpawningSystem(IContext context, Random random)
     {
+        Context = context;
         Random = random;
     }
     
@@ -24,15 +27,24 @@ public sealed class BeeSpawningSystem
         {
             var aliveBeeCount = aliveBeeCountPerTeam[teamIndex];
             var numberOfBeesToSpawn = numberOfBeesPerTeam - aliveBeeCount;
+            if (numberOfBeesToSpawn == 0)
+                continue;
+            
+            //Context.Logger.Trace($"Spawning {numberOfBeesToSpawn} for team {teamIndex}");
             var startIndex = teamIndex * numberOfBeesPerTeam + aliveBeeCount;
             var bees = new Span<BeeData>(Data.AliveBees, startIndex, numberOfBeesToSpawn);
             for (var i = 0; i < numberOfBeesToSpawn; i++)
             {
                 var spawnPosition = Vector3.UnitX * (-fieldWidth * .4f + fieldWidth * .8f * teamIndex);
+                //Context.Logger.Trace($"Spawn Position: {spawnPosition}");
                 ref var bee = ref bees[i];
                 bee.Position = spawnPosition;
                 bee.Size = random.NextSingleInRange(minBeeSize, maxBeeSize);
             }
+
+            var beeColor = Data.TeamColors[teamIndex];
+            Context.Logger.Trace($"Filling {startIndex} to {startIndex + numberOfBeesToSpawn} with {beeColor} color");
+            Array.Fill(Data.AliveBeeColors, beeColor, startIndex, numberOfBeesToSpawn);
             
             aliveBeeCountPerTeam[teamIndex] += numberOfBeesToSpawn;
         }

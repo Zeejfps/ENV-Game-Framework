@@ -1,10 +1,18 @@
 ﻿using System.Numerics;
+using EasyGameFramework.Api;
 
 namespace CombatBeesBenchmark;
 
 
 public sealed class BeePhysicsSystem
 {
+    public BeePhysicsSystem(ILogger logger)
+    {
+        Logger = logger;
+    }
+
+    private ILogger Logger { get; }
+    
     public void Update(float dt)
     {
         var fieldHalfWidth = Data.FieldWidth * 0.5f;
@@ -21,7 +29,8 @@ public sealed class BeePhysicsSystem
                 ref var bee = ref bees[i];
                 bee.Direction = Vector3.Lerp(bee.Direction, Vector3.Normalize(bee.Velocity), dt * 4f);
                 bee.Position += bee.Velocity * dt;
-            
+                //Logger.Trace(bee.Velocity);
+                
                 if (MathF.Abs(bee.Position.X) > fieldHalfWidth)
                 {
                     bee.Position.X = fieldHalfWidth * MathF.Sign(bee.Position.X);
