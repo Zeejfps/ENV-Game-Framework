@@ -93,7 +93,7 @@ public sealed class BeeSystem
         for (var i = 0; i < numberOfBeeTeams; i++)
         {
             BeeTeams[i] = new List<Bee>(maxBeeCountPerTeam);
-            DeadBees[i] = new List<Bee>(maxBeeCountPerTeam);
+            DeadBees[i] = new List<Bee>();
             BeesThatNeedEnemyAssigned[i] = new List<int>(maxBeeCountPerTeam);
         }
     }
@@ -231,24 +231,24 @@ public sealed class BeeSystem
             //Context.Logger.Trace($"Enemy: {bee.Enemy.Index}");
             var enemyTeam = BeeTeams[bee.Enemy.TeamIndex];
 
-            ref var enemyBee = ref CollectionsMarshal.AsSpan(enemyTeam)[bee.Enemy.Index];
-            delta = enemyBee.Position - bee.Position;
-            var sqrDist = delta.LengthSquared();
-            if (sqrDist > attackDistanceSqr)
-            {
-                bee.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
-            }
-            else
-            {
-                bee.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
-                if (sqrDist < hitDistanceSqrd)
-                {
-                    deadBeesList.Add(enemyBee);
-                    enemyBee.Velocity *= .5f;
-                    bee.Enemy = EnemyBee.Null;
-                    beesThatNeedEnemyAssigned.Add(i);
-                }
-            }
+             ref var enemyBee = ref CollectionsMarshal.AsSpan(enemyTeam)[bee.Enemy.Index];
+             delta = enemyBee.Position - bee.Position;
+             var sqrDist = delta.LengthSquared();
+             if (sqrDist > attackDistanceSqr)
+             {
+                 bee.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
+             }
+             else
+             {
+                 bee.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
+                 if (sqrDist < hitDistanceSqrd)
+                 {
+                     deadBeesList.Add(enemyBee);
+                     enemyBee.Velocity *= .5f;
+                     bee.Enemy = EnemyBee.Null;
+                     beesThatNeedEnemyAssigned.Add(i);
+                 }
+             }
 
             bee.Direction = Vector3.Lerp(bee.Direction, Vector3.Normalize(bee.Velocity), dt * 4f);
             bee.Position += bee.Velocity * dt;
@@ -296,7 +296,8 @@ public sealed class BeeSystem
         var randomTeamIndex = random.Next(0, numberOfTeams);
         while (randomTeamIndex == myTeamIndex)
             randomTeamIndex = random.Next(0, numberOfTeams);
-
+        // var randomTeamIndex = 1 - myTeamIndex;
+        
         var bees = BeeTeams[randomTeamIndex];
         if (bees.Count == 0)
             return EnemyBee.Null;

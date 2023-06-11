@@ -15,7 +15,7 @@ public sealed class BeeSpawner
         Context = context;
     }
 
-    public void SpawnBees()
+    public void Update()
     {
         var startBeeCount = StartBeeCount;
         var numberOfBeeTeams = BeeSystem.NumberOfBeeTeams;

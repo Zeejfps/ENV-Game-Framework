@@ -77,7 +77,7 @@ public abstract class Game : IGame
         
         var frameTime = (double)deltaTimeTicks / Stopwatch.Frequency;
         m_FpsTime += frameTime;
-        if (m_FpsTime >= 5)
+        if (m_FpsTime >= 1)
         {
             var fps = m_FrameCount / 5;
             Logger.Trace($"FPS: {fps}");
