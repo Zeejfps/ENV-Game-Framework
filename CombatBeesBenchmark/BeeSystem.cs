@@ -11,17 +11,36 @@ public struct Bee
     public Vector3 Velocity;
     public Vector3 Direction;
     public float Size;
+    public int TeamIndex;
+    public bool IsDead;
+    public EnemyBee Enemy;
 }
 
-public struct BeeSystemConfig
+public struct EnemyBee
+{
+    public int Index;
+    public int TeamIndex;
+
+    public static EnemyBee Null = new()
+    {
+        Index = -1,
+        TeamIndex = -1
+    };
+}
+
+public readonly struct BeeSystemConfig
 {
     public float MinBeeSize { get; init; }
     public float MaxBeeSize { get; init; }
     public int MaxBeeCount { get; init; }
-    public float FlightJitter { get; set; }
-    public float Damping { get; set; }
-    public float TeamAttraction { get; set; }
-    public float TeamRepulsion { get; set; }
+    public float FlightJitter { get; init; }
+    public float Damping { get; init; }
+    public float TeamAttraction { get; init; }
+    public float TeamRepulsion { get; init; }
+    public float AttackDistance { get; init; }
+    public float ChaseForce { get; init; }
+    public float AttackForce { get; init; }
+    public float HitDistance { get; init; }
 }
 
 public sealed class BeeSystem
@@ -86,7 +105,11 @@ public sealed class BeeSystem
         var damping = 1f - Config.Damping * dt;
         var teamAttraction = Config.TeamAttraction * dt;
         var teamRepulsion = Config.TeamRepulsion * dt;
-
+        var chaseForce = Config.ChaseForce * dt;
+        var attackForce = Config.AttackForce * dt;
+        var attackDistance = Config.AttackDistance;
+        var hitDistance = Config.HitDistance;
+        
         var beeTeam = BeeTeams[teamIndex];
         var bees = CollectionsMarshal.AsSpan(beeTeam);
 
@@ -106,16 +129,40 @@ public sealed class BeeSystem
             Vector3 delta = attractiveFriend.Position - bee.Position;
             var dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
             if (dist > 0f)
-            {
                 bee.Velocity += delta * (teamAttraction / dist);
-            }
-            
+
             ref var repellentFriend = ref GetRandomBee(bees);
             delta = repellentFriend.Position - bee.Position;
             dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
             if (dist > 0f)
                 bee.Velocity -= delta * (teamRepulsion / dist);
 
+            if (bee.Enemy.Equals(EnemyBee.Null))
+            {
+                bee.Enemy = GetRandomEnemyBee(teamIndex);
+            }
+            else
+            {
+                var enemyTeam = BeeTeams[bee.Enemy.TeamIndex];
+                ref var enemyBee = ref CollectionsMarshal.AsSpan(enemyTeam)[bee.Enemy.Index];
+                delta = enemyBee.Position - bee.Position;
+                var sqrDist = delta.LengthSquared();
+                if (sqrDist > attackDistance * attackDistance)
+                {
+                    bee.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
+                }
+                else
+                {
+                    bee.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
+                    if (sqrDist < hitDistance * hitDistance)
+                    {
+                        enemyBee.IsDead = true;
+                        enemyBee.Velocity *= .5f;
+                        bee.Enemy = EnemyBee.Null;
+                    }
+                }
+            }    
+            
             bee.Direction = Vector3.Lerp(bee.Direction, Vector3.Normalize(bee.Velocity), dt * 4f);
             bee.Position += bee.Velocity * dt;
             
@@ -149,6 +196,29 @@ public sealed class BeeSystem
         return ref bees[random.Next(0, bees.Length)];
     }
 
+    private EnemyBee GetRandomEnemyBee(int myTeamIndex)
+    {
+        var numberOfTeams = NumberOfBeeTeams;
+        if (numberOfTeams == 1)
+            return EnemyBee.Null;
+
+        var random = Random;
+        var randomTeamIndex = random.Next(0, numberOfTeams);
+        while (randomTeamIndex == myTeamIndex)
+            randomTeamIndex = random.Next(0, numberOfTeams);
+
+        var bees = BeeTeams[randomTeamIndex];
+        if (bees.Count == 0)
+            return EnemyBee.Null;
+        
+        var index = random.Next(0, bees.Count);
+        return new EnemyBee
+        {
+            Index = index,
+            TeamIndex = randomTeamIndex
+        };
+    }
+  
     private readonly List<Batch> m_Batches = new();
 
     private int DrawBees(int teamIndex, Vector3 beeColor, int startBatchIndex)
@@ -234,7 +304,13 @@ public sealed class BeeSystem
         var bee = new Bee
         {
             Position = spawnPosition,
-            Size = RandomFloatInRange(Config.MinBeeSize, Config.MaxBeeSize)
+            Size = RandomFloatInRange(Config.MinBeeSize, Config.MaxBeeSize),
+            TeamIndex = teamIndex,
+            Enemy =
+            {
+                Index = -1,
+                TeamIndex = -1
+            }
         };
         
         var beeTeam = BeeTeams[teamIndex];
