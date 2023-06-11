@@ -143,7 +143,7 @@ public sealed class BeeSystem
         var chaseForce = Config.ChaseForce * dt;
         var attackForce = Config.AttackForce * dt;
         var attackDistanceSqr = Config.AttackDistance * Config.AttackDistance;
-        var hitDistance = Config.HitDistance;
+        var hitDistanceSqrd = Config.HitDistance * Config.HitDistance;
         
         var aliveBees = BeeTeams[teamIndex];
         var bees = CollectionsMarshal.AsSpan(aliveBees);
@@ -230,34 +230,26 @@ public sealed class BeeSystem
             
             //Context.Logger.Trace($"Enemy: {bee.Enemy.Index}");
             var enemyTeam = BeeTeams[bee.Enemy.TeamIndex];
-            var enemyBeeIndex = bee.Enemy.Index;
-            if (enemyBeeIndex >= enemyTeam.Count)
+
+            ref var enemyBee = ref CollectionsMarshal.AsSpan(enemyTeam)[bee.Enemy.Index];
+            delta = enemyBee.Position - bee.Position;
+            var sqrDist = delta.LengthSquared();
+            if (sqrDist > attackDistanceSqr)
             {
-                bee.Enemy = EnemyBee.Null;
-                beesThatNeedEnemyAssigned.Add(i);
+                bee.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
             }
             else
             {
-                ref var enemyBee = ref CollectionsMarshal.AsSpan(enemyTeam)[bee.Enemy.Index];
-                delta = enemyBee.Position - bee.Position;
-                var sqrDist = delta.LengthSquared();
-                if (sqrDist > attackDistanceSqr)
+                bee.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
+                if (sqrDist < hitDistanceSqrd)
                 {
-                    bee.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
-                }
-                else
-                {
-                    bee.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
-                    if (sqrDist < hitDistance * hitDistance)
-                    {
-                        deadBeesList.Add(enemyBee);
-                        enemyBee.Velocity *= .5f;
-                        bee.Enemy = EnemyBee.Null;
-                        beesThatNeedEnemyAssigned.Add(i);
-                    }
+                    deadBeesList.Add(enemyBee);
+                    enemyBee.Velocity *= .5f;
+                    bee.Enemy = EnemyBee.Null;
+                    beesThatNeedEnemyAssigned.Add(i);
                 }
             }
-            
+
             bee.Direction = Vector3.Lerp(bee.Direction, Vector3.Normalize(bee.Velocity), dt * 4f);
             bee.Position += bee.Velocity * dt;
             
