@@ -12,13 +12,14 @@ public class CombatBeesBenchmarkGame : Game
     private Field Field { get; }
     private BeeSystem BeeSystem { get; }
     private BeeSpawner BeeSpawner { get; }
-    private BeeRenderingSystem BeeRenderingSystem { get; }
+    private BeePhysicsSystem BeePhysicsSystem { get; }
     private BeeTransformSystem BeeTransformSystem { get; }
+    private BeeRenderingSystem BeeRenderingSystem { get; }
     private ICamera Camera { get; }
     private CameraRig CameraRig { get; }
     private CameraRigController CameraRigController { get; }
 
-    private BeeTransform[] BeeTransforms = new BeeTransform[MaxBeeCount];
+    private BeeData[] Bees = new BeeData[MaxBeeCount];
     private Vector3[] BeeColors = new Vector3[MaxBeeCount];
     private Matrix4x4[] BeeModelMatricies = new Matrix4x4[MaxBeeCount];
     
@@ -50,6 +51,7 @@ public class CombatBeesBenchmarkGame : Game
         CameraRig = new CameraRig(Camera);
         CameraRigController = new CameraRigController(CameraRig, Window, Input);
 
+        BeePhysicsSystem = new BeePhysicsSystem(Field);
         BeeTransformSystem = new BeeTransformSystem();
         BeeRenderingSystem = new BeeRenderingSystem(Context.Window.Gpu, Camera);
     }
@@ -75,9 +77,14 @@ public class CombatBeesBenchmarkGame : Game
         BeeSystem.Update(dt);
         CameraRigController.Update(dt);
 
+        BeePhysicsSystem.Update(dt, new BeePhysicsSystemData
+        {
+            Bees = new Memory<BeeData>(Bees)
+        });
+        
         BeeTransformSystem.Update(new BeeTransformSystemData
         {
-            Transforms = new Memory<BeeTransform>(BeeTransforms),
+            Transforms = new Memory<BeeData>(Bees),
             ModelMatrices = new Memory<Matrix4x4>(BeeModelMatricies)
         });
     }
@@ -88,8 +95,6 @@ public class CombatBeesBenchmarkGame : Game
         var activeFramebuffer = gpu.Renderbuffer;
         activeFramebuffer.BindToWindow();
         activeFramebuffer.ClearColorBuffers(0f, 0.1f, 0.1f, 1f);
-        
-        //BeeSystem.Render(Camera);
 
         BeeRenderingSystem.Render(new BeeRenderingData
         {

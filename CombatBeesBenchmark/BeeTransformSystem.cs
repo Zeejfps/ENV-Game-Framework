@@ -2,16 +2,17 @@
 
 namespace CombatBeesBenchmark;
 
-public struct BeeTransform
+public struct BeeData
 {
     public Vector3 Position;
     public Vector3 Direction;
+    public Vector3 Velocity;
     public float Size;
 }
 
 public struct BeeTransformSystemData
 {
-    public Memory<BeeTransform> Transforms;
+    public Memory<BeeData> Transforms;
     public Memory<Matrix4x4> ModelMatrices;
 }
 
