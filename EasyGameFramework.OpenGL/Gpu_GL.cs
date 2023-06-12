@@ -83,6 +83,7 @@ public sealed class Gpu_GL : IGpu
     public IShaderManager Shader => m_ShaderManager;
     public ITextureManager Texture => m_TextureManager;
     public IRenderbufferManager Renderbuffer => m_RenderBufferManager;
+    public IBufferController BufferController { get; }
 
     private Stack<State> StateStack { get; } = new();
 
@@ -103,7 +104,12 @@ public sealed class Gpu_GL : IGpu
         EnableBackfaceCulling = state.EnableBackfaceCulling;
         EnableDepthTest = state.EnableDepthTest;
     }
-    
+
+    public IBufferHandle CreateBuffer(BufferKind kind, BufferUsage usage)
+    {
+        throw new NotImplementedException();
+    }
+
     public IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer, int width, int height)
     {
         var key = (colorBuffersCount, createDepthBuffer);

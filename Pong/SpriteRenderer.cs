@@ -34,8 +34,9 @@ public class SpriteRenderer : ISpriteRenderer
         
         // Pipeline = gpu.CreatePipeline();
         //
-        // var vertexBuffer = gpu.CreateBuffer(BufferUsage.StaticDraw);
-        // vertexBuffer.Put(mesh.Vertices);
+        var vertexBuffer = gpu.CreateBuffer(BufferKind.ArrayBuffer, BufferUsage.StaticDraw);
+        gpu.BufferController.Bind(vertexBuffer);
+        gpu.BufferController.Put(mesh.Vertices.AsSpan());
         // vertexBuffer.Upload();
         //
         // var activePipeline = gpu.Pipeline = Pipeline;

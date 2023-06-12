@@ -1,6 +1,6 @@
-﻿namespace EasyGameFramework.Api.Rendering;
+namespace EasyGameFramework.Api.Rendering;
 
-public interface IBuffer : IDisposable
+public interface IBufferController
 {
     void Put<T>(T data) where T : unmanaged;
     void Put<T>(ReadOnlySpan<T> data) where T : unmanaged;

@@ -10,10 +10,13 @@ public interface IGpu
     IShaderManager Shader { get; }
     ITextureManager Texture { get; }
     IRenderbufferManager Renderbuffer { get; }
+    IBufferController BufferController { get; }
 
     IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer, int width, int height);
     void ReleaseRenderbuffer(IGpuRenderbufferHandle tempRenderbufferHandle);
     
     void SaveState();
     void RestoreState();
+    
+    IBufferHandle CreateBuffer(BufferKind kind, BufferUsage usage);
 }

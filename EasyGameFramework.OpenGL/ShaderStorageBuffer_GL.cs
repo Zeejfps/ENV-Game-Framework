@@ -53,7 +53,7 @@ internal class ShaderStorageBuffer_GL : IBufferHandle
             }
         }
 
-        public void Put<T>(Span<T> data) where T : unmanaged
+        public void Put<T>(ReadOnlySpan<T> data) where T : unmanaged
         {
             unsafe
             {
