@@ -8,7 +8,7 @@ namespace EasyGameFramework.OpenGL;
 
 public class Shader_GL : IGpuShader
 {
-    private readonly Dictionary<string, IBuffer> m_NameToBufferMap = new();
+    private readonly Dictionary<string, IBufferHandle> m_NameToBufferMap = new();
     private readonly Dictionary<string, int> m_PropertyToIdMap = new();
 
     private readonly ITextureManager m_TextureManager;
@@ -71,7 +71,7 @@ public class Shader_GL : IGpuShader
         }
     }
 
-    public IBuffer GetBuffer(string name)
+    public IBufferHandle GetBuffer(string name)
     {
         if (m_NameToBufferMap.TryGetValue(name, out var buffer))
             return buffer;

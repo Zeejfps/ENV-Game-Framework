@@ -19,6 +19,8 @@ public class SpriteRenderer : ISpriteRenderer
     private readonly Vector3[] m_Colors = new Vector3[MAX_BATCH_SIZE];
     private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[MAX_BATCH_SIZE];
     
+    private IHandle<IPipeline> Pipeline { get; set; }
+
     public SpriteRenderer(IWindow window)
     {
         Gpu = window.Gpu;
@@ -26,6 +28,20 @@ public class SpriteRenderer : ISpriteRenderer
 
     public void LoadResources()
     {
+        var gpu = Gpu;
+
+        ICpuMesh mesh = null;
+        
+        // Pipeline = gpu.CreatePipeline();
+        //
+        // var vertexBuffer = gpu.CreateBuffer(BufferUsage.StaticDraw);
+        // vertexBuffer.Put(mesh.Vertices);
+        // vertexBuffer.Upload();
+        //
+        // var activePipeline = gpu.Pipeline = Pipeline;
+        // activePipeline.AttachBuffer(0, vertexBuffer);
+        
+        
         ShaderHandle = Gpu.Shader.Load("Assets/sprite");
         MeshHandle = Gpu.Mesh.Load("Assets/quad");
     }

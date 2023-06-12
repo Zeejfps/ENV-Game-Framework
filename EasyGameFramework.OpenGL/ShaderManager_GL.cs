@@ -73,7 +73,7 @@ internal class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader
         BoundResource.SetMatrix4x4Array(uniformName, array);
     }
 
-    public IBuffer GetBuffer(string name)
+    public IBufferHandle GetBuffer(string name)
     {
         Debug.Assert(BoundResource != null);
         return BoundResource.GetBuffer(name);

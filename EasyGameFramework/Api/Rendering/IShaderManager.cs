@@ -19,5 +19,5 @@ public interface IShaderManager
     void SetMatrix4x4(string propertyName, Matrix4x4 value);
     void SetMatrix4x4Array(string uniformName, ReadOnlySpan<Matrix4x4> array);
 
-    IBuffer GetBuffer(string name);
+    IBufferHandle GetBuffer(string name);
 }

@@ -14,5 +14,5 @@ public interface IGpuShader : IGpuAsset
 
     void SetMatrix4x4(string propertyName, Matrix4x4 matrix);
 
-    IBuffer GetBuffer(string name);
+    IBufferHandle GetBuffer(string name);
 }

@@ -83,17 +83,15 @@ public class SpecularRenderPass
             var transforms = m_MeshToRenderableMap[renderGroup];
             var transformsCount = transforms.Count;
 
-            using (var buffer = modelMatricesBuffer.Use())
+            using (var writeBuffer = modelMatricesBuffer.Use())
             {
-                buffer.Clear();
-
                 for (var i = 0; i < transformsCount; i++)
                 {
                     var transform = transforms[i];
-                    buffer.Put(transform.WorldMatrix);
+                    writeBuffer.Put(transform.WorldMatrix);
                 }
                 
-                buffer.Apply();
+                writeBuffer.Write();
             }
 
             mesh.RenderInstanced(transforms.Count);

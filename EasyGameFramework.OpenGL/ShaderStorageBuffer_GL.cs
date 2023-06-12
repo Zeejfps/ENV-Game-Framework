@@ -5,7 +5,7 @@ using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-internal class ShaderStorageBuffer_GL : IBuffer
+internal class ShaderStorageBuffer_GL : IBufferHandle
 {
     private readonly ShaderStorageBufferApi_GL m_Handle;
 
@@ -16,28 +16,26 @@ internal class ShaderStorageBuffer_GL : IBuffer
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, BufferId);
         glAssertNoError();
 
-        m_Handle = new ShaderStorageBufferApi_GL(this);
+        m_Handle = new ShaderStorageBufferApi_GL();
     }
 
     public uint BufferId { get; }
 
-    public IBufferHandle Use()
+    public IBuffer Use()
     {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, BufferId);
         glAssertNoError();
         return m_Handle;
     }
 
-    private class ShaderStorageBufferApi_GL : IBufferHandle
+    private class ShaderStorageBufferApi_GL : IBuffer
     {
-        private readonly ShaderStorageBuffer_GL m_Buffer;
         private byte[] m_Data;
         private bool m_NeedsResizing;
         private int m_Ptr;
 
-        public ShaderStorageBufferApi_GL(ShaderStorageBuffer_GL buffer)
+        public ShaderStorageBufferApi_GL()
         {
-            m_Buffer = buffer;
             m_Data = new byte[256];
             m_NeedsResizing = true;
         }
@@ -66,7 +64,7 @@ internal class ShaderStorageBuffer_GL : IBuffer
             }
         }
 
-        public void Apply()
+        public void Write()
         {
             unsafe
             {
@@ -85,6 +83,8 @@ internal class ShaderStorageBuffer_GL : IBuffer
                     glAssertNoError();
                 }
             }
+            
+            Clear();
         }
 
         private void Write(Span<byte> newData)
