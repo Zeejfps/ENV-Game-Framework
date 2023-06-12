@@ -60,7 +60,6 @@ internal class Mesh_GL : IGpuMesh
 
         if (tangents != null && tangents.Length > 0)
         {
-            m_Vio = glGenBuffer();
             m_TangetBuffer = glGenBuffer();
             glBindBuffer(GL_ARRAY_BUFFER, m_TangetBuffer);
             fixed (float* t = &tangents[0])
@@ -73,6 +72,8 @@ internal class Mesh_GL : IGpuMesh
         }
 
         m_TriangleCount = indices.Length;
+        
+        m_Vio = glGenBuffer();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_Vio);
         glAssertNoError();
 

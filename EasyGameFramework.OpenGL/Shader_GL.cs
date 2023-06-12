@@ -159,7 +159,7 @@ public class Shader_GL : IGpuShader
         {
             fixed (float* ptr = &array[0].X)
             {
-                glUniform3fv(location, array.Length * 3, ptr);
+                glUniform3fv(location, array.Length, ptr);
                 glAssertNoError();
             }
         }
@@ -172,7 +172,7 @@ public class Shader_GL : IGpuShader
         {
             fixed (float* ptr = &array[0].M11)
             {
-                glUniformMatrix4fv(location, array.Length * 16, false, ptr);
+                glUniformMatrix4fv(location, array.Length, false, ptr);
                 glAssertNoError();
             }
         }
@@ -185,7 +185,7 @@ public class Shader_GL : IGpuShader
         {
             fixed (float* ptr = &array[0].X)
             {
-                glUniform2fv(location, array.Length * 2, ptr);
+                glUniform2fv(location, array.Length, ptr);
                 glAssertNoError();
             }
         }
