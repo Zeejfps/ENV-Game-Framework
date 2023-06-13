@@ -6,19 +6,24 @@ namespace EasyGameFramework.OpenGL;
 
 internal sealed class BufferController : IBufferController
 {
+    private BufferHandle Buffer { get; set; }
+    
     public void Bind(IHandle<IBuffer> bufferHandle)
     {
-        throw new NotImplementedException();
+        var buffer = (BufferHandle)bufferHandle;
+        Buffer = buffer;
+        glBindBuffer(buffer.Kind.ToOpenGl(), buffer.Id);
     }
 
-    public void Put<T>(ReadOnlySpan<T> data) where T : unmanaged
+    public void Upload<T>(ReadOnlySpan<T> data) where T : unmanaged
     {
-        throw new NotImplementedException();
-    }
-
-    public void Upload()
-    {
-        throw new NotImplementedException();
+        unsafe
+        {
+            fixed (void* p = &data[0])
+            {
+                glBufferSubData(Buffer.Kind.ToOpenGl(), 0, sizeof(T) * data.Length, p);
+            }
+        }
     }
 
     public IHandle<IBuffer> CreateAndBind(BufferKind kind, BufferUsage usage, int sizeInBytes)

@@ -79,7 +79,7 @@ public abstract class Game : IGame
         m_FpsTime += frameTime;
         if (m_FpsTime >= 1)
         {
-            var fps = m_FrameCount / 5;
+            var fps = m_FrameCount;
             Logger.Trace($"FPS: {fps}");
             m_FpsTime = 0;
             m_FrameCount = 0;

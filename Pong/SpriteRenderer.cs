@@ -120,16 +120,10 @@ public class SpriteRenderer : ISpriteRenderer
         
         foreach (var (spriteSheetHandle, batch) in Batches)
         {
-            shaderController.SetTexture2d("sprite_sheet", spriteSheetHandle);
-            shaderController.SetVector2("texture_size", new Vector2(spriteSheetHandle.Width, spriteSheetHandle.Height));
-            shaderController.SetVector2Array("offsets", batch.Offsets);
-            shaderController.SetVector2Array("sizes", batch.Sizes);
             shaderController.SetVector3Array("colors", batch.Colors);
-            shaderController.SetMatrix4x4Array("model_matrices", batch.ModelMatrices);
             
             bufferController.Bind(ModelMatricesBuffer);
-            bufferController.Put(batch.ModelMatrices);
-            bufferController.Upload();
+            bufferController.Upload(batch.ModelMatrices);
             
             meshController.RenderInstanced(batch.Size);
         }
