@@ -1,6 +1,6 @@
 namespace EasyGameFramework.Api.Rendering;
 
-public interface IBufferHandle
+public interface IBufferHandle : IHandle<IBuffer>
 {
     IBuffer Use();
 }

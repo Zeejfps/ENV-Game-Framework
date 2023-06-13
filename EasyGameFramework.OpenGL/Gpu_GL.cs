@@ -1,4 +1,5 @@
-﻿using EasyGameFramework.Api.AssetTypes;
+﻿using EasyGameFramework.Api;
+using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Rendering;
 using static OpenGL.Gl;
 
@@ -84,6 +85,7 @@ public sealed class Gpu_GL : IGpu
     public ITextureManager Texture => m_TextureManager;
     public IRenderbufferManager Renderbuffer => m_RenderBufferManager;
     public IBufferController BufferController { get; }
+    public IPipelineController PipelineController { get; }
 
     private Stack<State> StateStack { get; } = new();
 
@@ -105,9 +107,14 @@ public sealed class Gpu_GL : IGpu
         EnableDepthTest = state.EnableDepthTest;
     }
 
-    public IBufferHandle CreateBuffer(BufferKind kind, BufferUsage usage)
+    public IBufferHandle CreateBuffer(BufferKind kind, BufferUsage usage, int sizeInBytes)
     {
-        throw new NotImplementedException();
+        return null;
+    }
+
+    public IHandle<IPipeline> CreatePipeline()
+    {
+        return null;
     }
 
     public IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer, int width, int height)

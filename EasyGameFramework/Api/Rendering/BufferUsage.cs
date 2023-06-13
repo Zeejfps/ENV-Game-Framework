@@ -2,5 +2,6 @@ namespace EasyGameFramework.Api.Rendering;
 
 public enum BufferUsage
 {
-    StaticDraw
+    StaticDraw,
+    DynamicDraw
 }

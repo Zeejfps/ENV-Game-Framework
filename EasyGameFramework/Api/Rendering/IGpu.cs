@@ -11,6 +11,7 @@ public interface IGpu
     ITextureManager Texture { get; }
     IRenderbufferManager Renderbuffer { get; }
     IBufferController BufferController { get; }
+    IPipelineController PipelineController { get; }
 
     IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer, int width, int height);
     void ReleaseRenderbuffer(IGpuRenderbufferHandle tempRenderbufferHandle);
@@ -18,5 +19,6 @@ public interface IGpu
     void SaveState();
     void RestoreState();
     
-    IBufferHandle CreateBuffer(BufferKind kind, BufferUsage usage);
+    IBufferHandle CreateBuffer(BufferKind kind, BufferUsage usage, int sizeInBytes);
+    IHandle<IPipeline> CreatePipeline();
 }

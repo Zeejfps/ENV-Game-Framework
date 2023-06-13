@@ -19,7 +19,9 @@ public class SpriteRenderer : ISpriteRenderer
     private readonly Vector3[] m_Colors = new Vector3[MAX_BATCH_SIZE];
     private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[MAX_BATCH_SIZE];
     
-    private IHandle<IPipeline> Pipeline { get; set; }
+    private IBuffer ColorsBuffer { get; set; }
+    private IHandle<IBuffer> ModelMatricesBuffer { get; set; }
+    // private IHandle<IPipeline> Pipeline { get; set; }
 
     public SpriteRenderer(IWindow window)
     {
@@ -30,21 +32,36 @@ public class SpriteRenderer : ISpriteRenderer
     {
         var gpu = Gpu;
 
-        ICpuMesh mesh = null;
+        // ModelMatricesBuffer = gpu.CreateBuffer(
+        //     BufferKind.UniformBuffer, 
+        //     BufferUsage.DynamicDraw, 
+        //     16 * sizeof(float));
+        
+        // var bufferController = gpu.BufferController;
+        // var pipelineController = gpu.PipelineController;
+        //
+        // ICpuMesh mesh = null;
+        // var vertices = mesh.Vertices.AsSpan();
         
         // Pipeline = gpu.CreatePipeline();
         //
-        var vertexBuffer = gpu.CreateBuffer(BufferKind.ArrayBuffer, BufferUsage.StaticDraw);
-        gpu.BufferController.Bind(vertexBuffer);
-        gpu.BufferController.Put(mesh.Vertices.AsSpan());
-        // vertexBuffer.Upload();
+        // var vertexBuffer = gpu.CreateBuffer(
+        //     BufferKind.ArrayBuffer, 
+        //     BufferUsage.DynamicDraw,
+        //     vertices.Length * sizeof(float)
+        // );
+        // bufferController.Bind(vertexBuffer);
+        // bufferController.Put<float>(vertices);
+        // bufferController.Write();
         //
-        // var activePipeline = gpu.Pipeline = Pipeline;
-        // activePipeline.AttachBuffer(0, vertexBuffer);
+        // pipelineController.Bind(Pipeline);
+        // pipelineController.AttachBuffer(0, vertexBuffer);
         
-        
-        ShaderHandle = Gpu.Shader.Load("Assets/sprite");
-        MeshHandle = Gpu.Mesh.Load("Assets/quad");
+        //gpu.Shader.Bind();
+        //gpu.Shader.AttachBuffer(0, vertexBuffer);
+
+        ShaderHandle = gpu.Shader.Load("Assets/sprite");
+        MeshHandle = gpu.Mesh.Load("Assets/quad");
     }
     
     public void NewBatch()
