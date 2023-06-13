@@ -1,14 +1,12 @@
-How to use
+# Getting Started
 
-implement Game.cs
-Example:
-
+### MyGame.cs
 ```C#
 using EasyGameFramework.Api;
 
-public sealed class PongGame : Game
+public sealed class MyGame : Game
 {
-    public PongGame(IContext context) : base(context)
+    public MyGame(IContext context) : base(context)
     {
     }
 
@@ -34,12 +32,11 @@ public sealed class PongGame : Game
 }
 ```
 
-Program.cs
-Create GameBuilder
-Call Build method
-Call Run method
+### Program.cs
 
 ```C#
+using EasyGameFramework.Builder;
+
 var builder = new GameBuilder();
 var game = builder.Build<PongGame>();
 game.Launch();
