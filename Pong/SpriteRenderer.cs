@@ -36,7 +36,7 @@ public class SpriteRenderer : ISpriteRenderer
         ModelMatricesBuffer = bufferController.CreateAndBind(
             BufferKind.UniformBuffer, 
             BufferUsage.DynamicDraw, 
-            16 * sizeof(float));
+            16 * sizeof(float) * MAX_BATCH_SIZE);
         
         // var bufferController = gpu.BufferController;
         // var pipelineController = gpu.PipelineController;

@@ -21,5 +21,5 @@ public interface IShaderManager
 
     IBufferHandle GetBuffer(string name);
     
-    void AttachBuffer(string name, int bindingPoint, IHandle<IBuffer> buffer);
+    void AttachBuffer(string name, uint bindingPoint, IHandle<IBuffer> buffer);
 }
