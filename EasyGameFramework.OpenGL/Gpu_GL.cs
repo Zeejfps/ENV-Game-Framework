@@ -5,16 +5,6 @@ using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-internal sealed class UniformBufferHandle : IHandle<IBuffer>
-{
-    public UniformBuffer UniformBuffer { get; }
-    
-    public UniformBufferHandle(UniformBuffer uniformBuffer)
-    {
-        UniformBuffer = uniformBuffer;
-    }
-}
-
 public sealed class Gpu_GL : IGpu
 {
     private readonly MeshManager_GL m_MeshManager;
@@ -35,6 +25,7 @@ public sealed class Gpu_GL : IGpu
         m_TextureManager = new TextureManager_GL();
         m_ShaderManager = new ShaderManager_GL(m_TextureManager);
         m_RenderBufferManager = new RenderbufferManager_GL(windowFramebuffer);
+        BufferController = new BufferController();
     }
 
     public bool EnableDepthTest

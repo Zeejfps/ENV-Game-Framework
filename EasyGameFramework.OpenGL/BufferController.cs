@@ -1,5 +1,6 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.Rendering;
+using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
@@ -22,11 +23,6 @@ internal sealed class BufferController : IBufferController
 
     public IHandle<IBuffer> CreateAndBind(BufferKind kind, BufferUsage usage, int sizeInBytes)
     {
-        throw new NotImplementedException();
-    }
-
-    public IHandle<IBuffer> CreateBuffer(BufferKind kind, BufferUsage usage, int sizeInBytes)
-    {
         switch (kind)
         {
             case BufferKind.ArrayBuffer:
@@ -38,10 +34,18 @@ internal sealed class BufferController : IBufferController
         }
         return null;
     }
-    
-    private IBufferHandle CreateUniformBuffer(BufferUsage usage, int sizeInBytes)
+
+    private IHandle<IBuffer> CreateUniformBuffer(BufferUsage usage, int sizeInBytes)
     {
-        var buffer = UniformBuffer.Create(usage, sizeInBytes);
-        return null;
+        var bufferId = glGenBuffer();
+
+        glBindBuffer(GL_UNIFORM_BUFFER, bufferId);
+        glAssertNoError();
+
+        glBufferData(GL_UNIFORM_BUFFER, sizeInBytes, IntPtr.Zero, usage.ToOpenGl());
+        glAssertNoError();
+
+        var buffer = new Buffer(bufferId, sizeInBytes);
+        return new BufferHandle(buffer);
     }
 }
