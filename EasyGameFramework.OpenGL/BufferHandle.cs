@@ -5,10 +5,14 @@ namespace EasyGameFramework.OpenGL;
 
 internal sealed class BufferHandle : IHandle<IBuffer>
 {
-    public Buffer Buffer { get; }
-    
-    public BufferHandle(Buffer buffer)
+    public BufferKind Kind { get; }
+    public uint BufferId { get; }
+    public int BufferSizeInBytes { get; }
+
+    public BufferHandle(BufferKind kind, uint bufferId, int bufferSizeInBytes)
     {
-        Buffer = buffer;
+        Kind = kind;
+        BufferId = bufferId;
+        BufferSizeInBytes = bufferSizeInBytes;
     }
 }

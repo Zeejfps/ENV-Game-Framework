@@ -13,10 +13,12 @@ internal class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader
     private readonly CpuShaderAssetLoader m_CpuShaderLoader = new();
 
     private readonly ITextureManager m_Texture;
+    private readonly BufferController m_BufferController;
 
-    public ShaderManager_GL(ITextureManager texture)
+    public ShaderManager_GL(ITextureManager texture, BufferController bufferController)
     {
         m_Texture = texture;
+        m_BufferController = bufferController;
     }
 
     public void SetFloat(string propertyName, float value)
@@ -77,6 +79,11 @@ internal class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader
     {
         Debug.Assert(BoundResource != null);
         return BoundResource.GetBuffer(name);
+    }
+
+    public void AttachBuffer(string name, int bindingPoint, IHandle<IBuffer> handle)
+    {
+        var buffer = (BufferHandle)handle;
     }
 
     protected override void OnBound(Shader_GL resource)

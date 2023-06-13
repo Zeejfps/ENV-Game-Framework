@@ -16,7 +16,7 @@ internal sealed class BufferController : IBufferController
         throw new NotImplementedException();
     }
 
-    public void Write()
+    public void Upload()
     {
         throw new NotImplementedException();
     }
@@ -45,7 +45,6 @@ internal sealed class BufferController : IBufferController
         glBufferData(GL_UNIFORM_BUFFER, sizeInBytes, IntPtr.Zero, usage.ToOpenGl());
         glAssertNoError();
 
-        var buffer = new Buffer(bufferId, sizeInBytes);
-        return new BufferHandle(buffer);
+        return new BufferHandle(BufferKind.UniformBuffer, bufferId, sizeInBytes);
     }
 }
