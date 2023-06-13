@@ -38,6 +38,6 @@ public sealed class MyGame : Game
 using EasyGameFramework.Builder;
 
 var builder = new GameBuilder();
-var game = builder.Build<PongGame>();
+var game = builder.Build<MyGame>();
 game.Launch();
 ```
