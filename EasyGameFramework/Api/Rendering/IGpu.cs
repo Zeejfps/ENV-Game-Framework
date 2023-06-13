@@ -19,6 +19,5 @@ public interface IGpu
     void SaveState();
     void RestoreState();
     
-    IBufferHandle CreateBuffer(BufferKind kind, BufferUsage usage, int sizeInBytes);
     IHandle<IPipeline> CreatePipeline();
 }

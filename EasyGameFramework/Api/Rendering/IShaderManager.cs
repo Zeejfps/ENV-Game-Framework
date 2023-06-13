@@ -20,4 +20,6 @@ public interface IShaderManager
     void SetMatrix4x4Array(string uniformName, ReadOnlySpan<Matrix4x4> array);
 
     IBufferHandle GetBuffer(string name);
+    
+    void AttachBuffer(string name, uint bindingPoint, IHandle<IBuffer> buffer);
 }

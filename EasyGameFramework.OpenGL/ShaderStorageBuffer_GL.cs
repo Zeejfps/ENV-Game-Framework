@@ -108,11 +108,11 @@ internal class ShaderStorageBuffer_GL : IBufferHandle
                 var newLength = Math.Max(m_Data.Length * 2, m_Data.Length + newData.Length);
                 var oldData = m_Data;
                 m_Data = new byte[newLength];
-                Buffer.BlockCopy(oldData, 0, m_Data, 0, oldData.Length);
+                System.Buffer.BlockCopy(oldData, 0, m_Data, 0, oldData.Length);
                 m_NeedsResizing = true;
             }
 
-            Buffer.BlockCopy(newData, 0, m_Data, m_Ptr, newData.Length);
+            System.Buffer.BlockCopy(newData, 0, m_Data, m_Ptr, newData.Length);
             m_Ptr += newData.Length;
         }
 

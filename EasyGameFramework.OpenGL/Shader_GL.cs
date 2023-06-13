@@ -10,6 +10,7 @@ public class Shader_GL : IGpuShader
 {
     private readonly Dictionary<string, IBufferHandle> m_NameToBufferMap = new();
     private readonly Dictionary<string, int> m_PropertyToIdMap = new();
+    private readonly Dictionary<string, uint> m_BlockNameToIdTable = new();
 
     private readonly ITextureManager m_TextureManager;
     private readonly Dictionary<string, int> m_TextureToSlotMap = new();
@@ -101,6 +102,19 @@ public class Shader_GL : IGpuShader
         return location;
     }
 
+    private uint GetUniformBlockIndex(string uniformBlockName)
+    {
+        var blockNameToIdTable = m_BlockNameToIdTable;
+        if (!blockNameToIdTable.TryGetValue(uniformBlockName, out var id))
+        {
+            id = glGetUniformBlockIndex(Id, uniformBlockName);
+            glAssertNoError();
+            blockNameToIdTable[uniformBlockName] = id;
+        }
+
+        return id;
+    }
+
     private int GetTextureSlot(string texture)
     {
         var textureToSlotMap = m_TextureToSlotMap;
@@ -189,5 +203,13 @@ public class Shader_GL : IGpuShader
                 glAssertNoError();
             }
         }
+    }
+
+    public void AttachBuffer(string bufferName, uint bindingPoint, uint bufferId)
+    {
+        glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, bufferId);
+        
+        var index = GetUniformBlockIndex(bufferName);
+        glUniformBlockBinding(Id, index, bindingPoint);
     }
 }

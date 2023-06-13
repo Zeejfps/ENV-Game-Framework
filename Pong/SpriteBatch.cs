@@ -9,10 +9,10 @@ public class SpriteBatch
     private int m_Size = 0;
     private readonly Vector2[] m_Offsets = new Vector2[MAX_BATCH_SIZE];
     private readonly Vector2[] m_Sizes = new Vector2[MAX_BATCH_SIZE];
-    private readonly Vector3[] m_Colors = new Vector3[MAX_BATCH_SIZE];
+    private readonly Vector4[] m_Colors = new Vector4[MAX_BATCH_SIZE];
     private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[MAX_BATCH_SIZE];
 
-    public ReadOnlySpan<Vector3> Colors => m_Colors;
+    public ReadOnlySpan<Vector4> Colors => m_Colors;
     public ReadOnlySpan<Matrix4x4> ModelMatrices => m_ModelMatrices;
     public int Size => m_Size;
     public ReadOnlySpan<Vector2> Sizes => m_Sizes;
@@ -32,7 +32,7 @@ public class SpriteBatch
 
         m_Offsets[m_Size] = offset;
         m_Sizes[m_Size] = size;
-        m_Colors[m_Size] = color;
+        m_Colors[m_Size] = new Vector4(tint, 1f);
         m_ModelMatrices[m_Size] = modelMatrix;
         
         m_Size++;

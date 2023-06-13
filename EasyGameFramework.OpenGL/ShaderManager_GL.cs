@@ -79,6 +79,13 @@ internal class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader
         return BoundResource.GetBuffer(name);
     }
 
+    public void AttachBuffer(string name, uint bindingPoint, IHandle<IBuffer> handle)
+    {
+        Debug.Assert(BoundResource != null);
+        var buffer = (BufferHandle)handle;
+        BoundResource.AttachBuffer(name, bindingPoint, buffer.Id);
+    }
+
     protected override void OnBound(Shader_GL resource)
     {
         glUseProgram(resource.Id);

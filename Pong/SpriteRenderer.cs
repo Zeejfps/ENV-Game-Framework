@@ -19,7 +19,7 @@ public class SpriteRenderer : ISpriteRenderer
     private readonly Vector3[] m_Colors = new Vector3[MAX_BATCH_SIZE];
     private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[MAX_BATCH_SIZE];
     
-    private IBuffer ColorsBuffer { get; set; }
+    private IHandle<IBuffer> ColorsBuffer { get; set; }
     private IHandle<IBuffer> ModelMatricesBuffer { get; set; }
     // private IHandle<IPipeline> Pipeline { get; set; }
 
@@ -31,36 +31,25 @@ public class SpriteRenderer : ISpriteRenderer
     public void LoadResources()
     {
         var gpu = Gpu;
+        var shaderController = gpu.Shader;
+        var bufferController = gpu.BufferController;
+        
+        ShaderHandle = shaderController.Load("Assets/sprite");
 
-        // ModelMatricesBuffer = gpu.CreateBuffer(
-        //     BufferKind.UniformBuffer, 
-        //     BufferUsage.DynamicDraw, 
-        //     16 * sizeof(float));
-        
-        // var bufferController = gpu.BufferController;
-        // var pipelineController = gpu.PipelineController;
-        //
-        // ICpuMesh mesh = null;
-        // var vertices = mesh.Vertices.AsSpan();
-        
-        // Pipeline = gpu.CreatePipeline();
-        //
-        // var vertexBuffer = gpu.CreateBuffer(
-        //     BufferKind.ArrayBuffer, 
-        //     BufferUsage.DynamicDraw,
-        //     vertices.Length * sizeof(float)
-        // );
-        // bufferController.Bind(vertexBuffer);
-        // bufferController.Put<float>(vertices);
-        // bufferController.Write();
-        //
-        // pipelineController.Bind(Pipeline);
-        // pipelineController.AttachBuffer(0, vertexBuffer);
-        
-        //gpu.Shader.Bind();
-        //gpu.Shader.AttachBuffer(0, vertexBuffer);
+        ModelMatricesBuffer = bufferController.CreateAndBind(
+            BufferKind.UniformBuffer, 
+            BufferUsage.DynamicDraw, 
+            16 * sizeof(float) * MAX_BATCH_SIZE);
 
-        ShaderHandle = gpu.Shader.Load("Assets/sprite");
+        shaderController.AttachBuffer("modelMatricesBlock", 0, ModelMatricesBuffer);
+        
+        ColorsBuffer = bufferController.CreateAndBind(
+            BufferKind.UniformBuffer,
+            BufferUsage.DynamicDraw,
+            4 * sizeof(float) * MAX_BATCH_SIZE);
+        
+        shaderController.AttachBuffer("colorsBlock", 1, ColorsBuffer);
+        
         MeshHandle = gpu.Mesh.Load("Assets/quad");
     }
     
@@ -104,25 +93,26 @@ public class SpriteRenderer : ISpriteRenderer
         Debug.Assert(ShaderHandle != null);
         Debug.Assert(MeshHandle != null);
 
-        var shader = Gpu.Shader;
-        var mesh = Gpu.Mesh;
+        var shaderController = Gpu.Shader;
+        var meshController = Gpu.Mesh;
+        var bufferController = Gpu.BufferController;
         
-        shader.Bind(ShaderHandle);
-        mesh.Bind(MeshHandle);
+        shaderController.Bind(ShaderHandle);
+        meshController.Bind(MeshHandle);
 
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
-        shader.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
-        shader.SetMatrix4x4("matrix_view", viewMatrix);
+        shaderController.SetMatrix4x4("matrix_projection", camera.ProjectionMatrix);
+        shaderController.SetMatrix4x4("matrix_view", viewMatrix);
         
         foreach (var (spriteSheetHandle, batch) in Batches)
         {
-            shader.SetTexture2d("sprite_sheet", spriteSheetHandle);
-            shader.SetVector2("texture_size", new Vector2(spriteSheetHandle.Width, spriteSheetHandle.Height));
-            shader.SetVector2Array("offsets", batch.Offsets);
-            shader.SetVector2Array("sizes", batch.Sizes);
-            shader.SetVector3Array("colors", batch.Colors);
-            shader.SetMatrix4x4Array("model_matrices", batch.ModelMatrices);
-            mesh.RenderInstanced(batch.Size);
+            bufferController.Bind(ColorsBuffer);
+            bufferController.Upload(batch.Colors);
+            
+            bufferController.Bind(ModelMatricesBuffer);
+            bufferController.Upload(batch.ModelMatrices);
+            
+            meshController.RenderInstanced(batch.Size);
         }
 
     }

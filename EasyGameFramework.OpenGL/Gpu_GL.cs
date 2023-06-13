@@ -25,6 +25,7 @@ public sealed class Gpu_GL : IGpu
         m_TextureManager = new TextureManager_GL();
         m_ShaderManager = new ShaderManager_GL(m_TextureManager);
         m_RenderBufferManager = new RenderbufferManager_GL(windowFramebuffer);
+        BufferController = new BufferController();
     }
 
     public bool EnableDepthTest
@@ -105,11 +106,6 @@ public sealed class Gpu_GL : IGpu
         EnableBlending = state.EnableBlending;
         EnableBackfaceCulling = state.EnableBackfaceCulling;
         EnableDepthTest = state.EnableDepthTest;
-    }
-
-    public IBufferHandle CreateBuffer(BufferKind kind, BufferUsage usage, int sizeInBytes)
-    {
-        return null;
     }
 
     public IHandle<IPipeline> CreatePipeline()
