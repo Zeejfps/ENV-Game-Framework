@@ -22,10 +22,10 @@ public sealed class BallPaddleCollisionSystem
         {
             BottomLeft = new Vector2(
                 topPaddle.CurrPosition.X - topPaddle.Size - 0.5f,
-                topPaddle.CurrPosition.Y - 1f
+                topPaddle.CurrPosition.Y - 1f - 0.5f
             ),
             Width = topPaddle.Size * 2f + 1f,
-            Height = 2f
+            Height = 2 + 1f
         };
         
         var botPaddleRect = new Rect
@@ -35,7 +35,7 @@ public sealed class BallPaddleCollisionSystem
                 bottomPaddle.CurrPosition.Y - 1f
             ),
             Width = bottomPaddle.Size * 2f + 1f,
-            Height = 2f
+            Height = 2 + 0.5f
         };
 
         var ray = new Ray2D
@@ -46,7 +46,7 @@ public sealed class BallPaddleCollisionSystem
         
         if (Physics2D.TryRaycastRect(ray, topPaddleRect, out var topHit))
         {
-            ball.CurrPosition = topHit.HitPoint + topHit.Normal;
+            ball.CurrPosition = topHit.HitPoint;
             ball.Velocity = ball.Velocity with { Y = -ball.Velocity.Y };
             return;
         }

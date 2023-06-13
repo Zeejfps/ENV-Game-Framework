@@ -24,16 +24,22 @@ public class Ball
         
         var newPosition = CurrPosition + Velocity * dt;
         if (newPosition.X <= Bounds.Left + 0.5f)
+        {
             Velocity = Velocity with { X = -Velocity.X };
+            newPosition.X = Bounds.Left + 0.5f;
+        }
         else if (newPosition.X >= Bounds.Right - 0.5f)
+        {
             Velocity = Velocity with { X = -Velocity.X };
+            newPosition.X = Bounds.Right - 0.5f;
+        }
         
         if (newPosition.Y >= Bounds.Top)
             Velocity = Velocity with { Y = -Velocity.Y };
         else if (newPosition.Y <= Bounds.Bottom)
             Velocity = Velocity with { Y = -Velocity.Y };
         
-        CurrPosition += Velocity * dt;
+        CurrPosition = newPosition;
         //Logger.Trace(CurrPosition);
     }
 }
