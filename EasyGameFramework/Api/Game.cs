@@ -38,23 +38,22 @@ public abstract class Game : IGame
         };
     }
 
-    public void Run()
+    public void Launch()
     {
         if (IsRunning)
             return;
 
-        Configure();
+        OnStartup();
         
         var window = Window;
         window.Closed += Window_OnClosed;
         window.OpenCentered();
         
-        OnStart();
         IsRunning = true;
         while (IsRunning)
             Update();
         
-        OnStop();
+        OnShutdown();
     }
 
     public void Exit()
@@ -112,9 +111,8 @@ public abstract class Game : IGame
         m_FrameCount++;
     }
 
-    protected abstract void Configure();
-    protected abstract void OnStart();
+    protected abstract void OnStartup();
     protected abstract void OnUpdate();
     protected abstract void OnRender();
-    protected abstract void OnStop();
+    protected abstract void OnShutdown();
 }

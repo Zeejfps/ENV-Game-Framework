@@ -72,7 +72,7 @@ public sealed class PongGame : Game
         BallPaddleCollisionSystem = new BallPaddleCollisionSystem(Physics2D, Logger);
     }
 
-    protected override void Configure()
+    protected override void OnStartup()
     {
         var window = Window;
         window.Title = "Pong";
@@ -80,10 +80,7 @@ public sealed class PongGame : Game
         window.IsVsyncEnabled = true;
         window.CursorMode = CursorMode.Visible;
         window.SetScreenSize(640, 640);
-    }
-
-    protected override void OnStart()
-    {
+        
         var texture = Gpu.Texture.Load("Assets/white");
         
         PaddleSprite = new Sprite
@@ -199,7 +196,7 @@ public sealed class PongGame : Game
         gpu.ReleaseRenderbuffer(fb);
     }
 
-    protected override void OnStop()
+    protected override void OnShutdown()
     {
     }
 }

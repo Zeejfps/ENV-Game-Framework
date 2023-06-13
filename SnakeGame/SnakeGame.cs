@@ -35,17 +35,6 @@ public class SnakeGame : Game
         m_GridRenderer = new GridRenderer(Gpu, GridSize);
         m_GameController = new GameController(Window.Input, this);
     }
-    
-    protected override void Configure()
-    {
-        var window = Window;
-        window.ScreenWidth = 640;
-        window.ScreenHeight = 640;
-        window.IsVsyncEnabled = false;
-        window.IsResizable = false;
-        window.Title = "SNAEK";
-        window.CursorMode = CursorMode.HiddenAndLocked;
-    }
 
     public void Restart()
     {
@@ -69,8 +58,16 @@ public class SnakeGame : Game
         Speed -= 0.5f;
     }
 
-    protected override void OnStart()
+    protected override void OnStartup()
     {
+        var window = Window;
+        window.ScreenWidth = 640;
+        window.ScreenHeight = 640;
+        window.IsVsyncEnabled = false;
+        window.IsResizable = false;
+        window.Title = "SNAEK";
+        window.CursorMode = CursorMode.HiddenAndLocked;
+        
         m_SpriteRenderer.LoadResources();
         m_GridRenderer.LoadResources();
         m_GameController.Enable();
@@ -154,7 +151,7 @@ public class SnakeGame : Game
         gpu.ReleaseRenderbuffer(tempRenderbufferHandle);
     }
 
-    protected override void OnStop()
+    protected override void OnShutdown()
     {
     }
     

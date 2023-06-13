@@ -124,8 +124,8 @@ public class SimplePlatformerGame : Game
                 .To(GamepadButton.Back);
         }
     }
-    
-    protected override void Configure()
+
+    protected override void OnStartup()
     {
         var window = Window;
         window.Title = "Simple Platformer";
@@ -137,10 +137,7 @@ public class SimplePlatformerGame : Game
 
         var gpu = Window.Gpu;
         gpu.EnableBlending = true;
-    }
-
-    protected override void OnStart()
-    {
+        
         for (var i = 0; i < Controllers.Length; i++)
         {
             var controller = Controllers[i];
@@ -155,7 +152,7 @@ public class SimplePlatformerGame : Game
         Animation.Play();
     }
 
-    protected override void OnStop()
+    protected override void OnShutdown()
     {
         CloseAppInput.Pressed -= Exit;
         for (var i = 0; i < Controllers.Length; i++)

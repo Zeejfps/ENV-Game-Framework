@@ -51,17 +51,14 @@ public class CombatBeesBenchmarkGame : Game
         BeeRenderingSystem = new BeeRenderingSystem(Context.Logger, Context.Window.Gpu, Camera);
     }
 
-    protected override void Configure()
+    protected override void OnStartup()
     {
         var window = Window;
         window.Title = "Combat Bees Benchmark";
         window.SetScreenSize(1280, 720);
         window.IsVsyncEnabled = false;
         //window.IsFullscreen = true;
-    }
-
-    protected override void OnStart()
-    {
+        
         BeeRenderingSystem.LoadResources();
         CameraRigController.Enable();
     }
@@ -88,7 +85,7 @@ public class CombatBeesBenchmarkGame : Game
         BeeRenderingSystem.Render();
     }
 
-    protected override void OnStop()
+    protected override void OnShutdown()
     {
     }
 }

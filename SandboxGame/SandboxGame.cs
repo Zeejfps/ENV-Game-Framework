@@ -10,8 +10,8 @@ public class SandboxGame : Game
     {
         Scene = new TestScene(this, Logger);
     }
-
-    protected override void Configure()
+    
+    protected override void OnStartup()
     {
         var window = Window;
         window.Title = "Sandbox Game";
@@ -20,10 +20,7 @@ public class SandboxGame : Game
         window.ScreenHeight = 720;
         window.IsResizable = true;
         window.IsVsyncEnabled = true;
-    }
-
-    protected override void OnStart()
-    {
+        
         Scene.Load();
     }
 
@@ -37,7 +34,7 @@ public class SandboxGame : Game
         Scene.Render();
     }
 
-    protected override void OnStop()
+    protected override void OnShutdown()
     {
         
     }

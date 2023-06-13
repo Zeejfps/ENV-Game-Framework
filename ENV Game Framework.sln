@@ -24,6 +24,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyGameFramework.OpenGL", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CombatBeesBenchmark", "CombatBeesBenchmark\CombatBeesBenchmark.csproj", "{033831AB-B2B9-4CC4-9B35-85EEC96DBE30}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataOriented.Pong", "DataOriented.Pong\DataOriented.Pong.csproj", "{A6BC0F22-DD52-4859-AF50-5D36958D1D94}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -78,5 +80,9 @@ Global
 		{033831AB-B2B9-4CC4-9B35-85EEC96DBE30}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{033831AB-B2B9-4CC4-9B35-85EEC96DBE30}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{033831AB-B2B9-4CC4-9B35-85EEC96DBE30}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6BC0F22-DD52-4859-AF50-5D36958D1D94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6BC0F22-DD52-4859-AF50-5D36958D1D94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6BC0F22-DD52-4859-AF50-5D36958D1D94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6BC0F22-DD52-4859-AF50-5D36958D1D94}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
