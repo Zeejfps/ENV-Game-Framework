@@ -1,5 +1,4 @@
 ﻿using EasyGameFramework.Api;
-using EasyGameFramework.Glfw;
 
 namespace EasyGameFramework.Builder;
 

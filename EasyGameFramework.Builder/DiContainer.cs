@@ -1,4 +1,6 @@
-﻿namespace EasyGameFramework.Api;
+﻿using EasyGameFramework.Api;
+
+namespace EasyGameFramework.Builder;
 
 public sealed class DiContainer : IContainer
 {
