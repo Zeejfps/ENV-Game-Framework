@@ -19,13 +19,12 @@ public static class Data
     public const float TeamRepulsion = 4f;
 
     public static readonly BeeData[] AliveBees = new BeeData[MaxBeeCount];
-    public static readonly Vector3[] AliveBeeColors = new Vector3[MaxBeeCount];
+    public static readonly Vector4[] AliveBeeColors = new Vector4[MaxBeeCount];
     public static readonly Matrix4x4[] AliveBeenModelMatrices = new Matrix4x4[MaxBeeCount];
     public static readonly int[] AliveBeeCountPerTeam = new int[NumberOfBeeTeams];
-    public static readonly Vector3[] TeamColors = new Vector3[]
-    {
-        new Vector3(0.31f, 0.43f, 1f),
-        new Vector3(0.95f, 0.95f, 0.59f),
+    public static readonly Vector4[] TeamColors = {
+        new (0.31f, 0.43f, 1f, 1f),
+        new (0.95f, 0.95f, 0.59f, 1f),
     };
 
 }

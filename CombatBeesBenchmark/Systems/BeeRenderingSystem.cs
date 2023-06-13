@@ -7,14 +7,16 @@ namespace CombatBeesBenchmark;
 
 public sealed class BeeRenderingSystem
 {
-    private const int MaxBatchSize = 150;
+    private const int MaxBatchSize = 50000;
 
     private ILogger Logger { get; }
     private IGpu Gpu { get; }
     private ICamera Camera { get; }
     private IHandle<IGpuMesh>? QuadMeshHandle { get; set; }
     private IHandle<IGpuShader>? BeeShaderHandle { get; set; }
-
+    private IHandle<IBuffer> ColorsBuffer { get; set; }
+    private IHandle<IBuffer> ModelMatricesBuffer { get; set; }
+    
     public BeeRenderingSystem(ILogger logger, IGpu gpu, ICamera camera)
     {
         Logger = logger;
@@ -25,8 +27,25 @@ public sealed class BeeRenderingSystem
     public void LoadResources()
     {
         var gpu = Gpu;
+        var shaderController = gpu.Shader;
+        var bufferController = gpu.BufferController;
+        
         QuadMeshHandle = gpu.Mesh.Load("Assets/quad");
-        BeeShaderHandle = gpu.Shader.Load("Assets/bee");
+        BeeShaderHandle = shaderController.Load("Assets/bee");
+        
+        ModelMatricesBuffer = bufferController.CreateAndBind(
+            BufferKind.UniformBuffer, 
+            BufferUsage.DynamicDraw, 
+            16 * sizeof(float) * MaxBatchSize);
+
+        shaderController.AttachBuffer("modelMatricesBlock", 0, ModelMatricesBuffer);
+        
+        ColorsBuffer = bufferController.CreateAndBind(
+            BufferKind.UniformBuffer,
+            BufferUsage.DynamicDraw,
+            4 * sizeof(float) * MaxBatchSize);
+        
+        shaderController.AttachBuffer("colorsBlock", 1, ColorsBuffer);
     }
     
     public void Render()
@@ -38,6 +57,7 @@ public sealed class BeeRenderingSystem
 
         var activeShader = gpu.Shader;
         var activeMesh = gpu.Mesh;
+        var bufferController = gpu.BufferController;
         
         activeShader.Bind(BeeShaderHandle);
         activeMesh.Bind(QuadMeshHandle);
@@ -51,7 +71,7 @@ public sealed class BeeRenderingSystem
             var startIndex = teamIndex * Data.NumberOfBeesPerTeam;
             var aliveBeesCount = Data.AliveBeeCountPerTeam[teamIndex];
 
-            var colors = new Span<Vector3>(Data.AliveBeeColors, startIndex, aliveBeesCount);
+            var colors = new Span<Vector4>(Data.AliveBeeColors, startIndex, aliveBeesCount);
             var modelMatrices = new Span<Matrix4x4>(Data.AliveBeenModelMatrices, startIndex, aliveBeesCount);
 
             var numBatches = (int)MathF.Ceiling(aliveBeesCount / (float)MaxBatchSize);
@@ -64,8 +84,12 @@ public sealed class BeeRenderingSystem
                     batchSize = MaxBatchSize;
                 
                 //Logger.Trace($"Batch: {batchIndex} S: {s} BatchSize: {batchSize}");
-                activeShader.SetVector3Array("colors", colors.Slice(s, batchSize));
-                activeShader.SetMatrix4x4Array("model_matrices", modelMatrices.Slice(s, batchSize));
+                bufferController.Bind(ColorsBuffer);
+                bufferController.Upload<Vector4>(colors.Slice(s, batchSize));
+                
+                bufferController.Bind(ModelMatricesBuffer);
+                bufferController.Upload<Matrix4x4>(modelMatrices.Slice(s, batchSize));
+
                 activeMesh.RenderInstanced(batchSize);
             } 
         }

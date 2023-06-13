@@ -82,10 +82,8 @@ public class SpriteRenderer : ISpriteRenderer
                 batch = new SpriteBatch();
                 Batches[spriteSheet] = batch;
             }
-
             batch.Add(position, scale, sprite, tint);
         }
-    
     }
 
     public void RenderBatch(ICamera camera)
