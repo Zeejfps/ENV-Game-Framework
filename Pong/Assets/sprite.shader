@@ -7,6 +7,9 @@ const int MAX_BATCH_SIZE = 128;
 layout (location = 0) in vec3 attr_vertex_position;
 uniform mat4 matrix_projection, matrix_view;
 uniform mat4 model_matrices[MAX_BATCH_SIZE];
+uniform test {
+    mat4 modelMatrices[];    
+};
 
 flat out int instanceID;
 

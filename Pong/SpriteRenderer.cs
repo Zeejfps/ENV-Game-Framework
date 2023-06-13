@@ -31,11 +31,12 @@ public class SpriteRenderer : ISpriteRenderer
     public void LoadResources()
     {
         var gpu = Gpu;
-
-        // ModelMatricesBuffer = gpu.CreateBuffer(
-        //     BufferKind.UniformBuffer, 
-        //     BufferUsage.DynamicDraw, 
-        //     16 * sizeof(float));
+        var bufferController = gpu.BufferController;
+        
+        ModelMatricesBuffer = bufferController.CreateAndBind(
+            BufferKind.UniformBuffer, 
+            BufferUsage.DynamicDraw, 
+            16 * sizeof(float));
         
         // var bufferController = gpu.BufferController;
         // var pipelineController = gpu.PipelineController;

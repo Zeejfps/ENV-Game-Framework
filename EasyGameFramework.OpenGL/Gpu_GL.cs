@@ -5,6 +5,16 @@ using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
+internal sealed class UniformBufferHandle : IHandle<IBuffer>
+{
+    public UniformBuffer UniformBuffer { get; }
+    
+    public UniformBufferHandle(UniformBuffer uniformBuffer)
+    {
+        UniformBuffer = uniformBuffer;
+    }
+}
+
 public sealed class Gpu_GL : IGpu
 {
     private readonly MeshManager_GL m_MeshManager;
@@ -105,11 +115,6 @@ public sealed class Gpu_GL : IGpu
         EnableBlending = state.EnableBlending;
         EnableBackfaceCulling = state.EnableBackfaceCulling;
         EnableDepthTest = state.EnableDepthTest;
-    }
-
-    public IBufferHandle CreateBuffer(BufferKind kind, BufferUsage usage, int sizeInBytes)
-    {
-        return null;
     }
 
     public IHandle<IPipeline> CreatePipeline()
