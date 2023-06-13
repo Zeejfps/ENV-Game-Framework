@@ -1,5 +1,4 @@
 ﻿using EasyGameFramework.Api.AssetTypes;
-using EasyGameFramework.Api.Enums;
 
 namespace EasyGameFramework.Api.Rendering;
 

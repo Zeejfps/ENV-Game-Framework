@@ -1,4 +1,4 @@
-﻿namespace EasyGameFramework.Api.Enums;
+﻿namespace EasyGameFramework.Api.Rendering;
 
 public enum TextureFilterKind
 {

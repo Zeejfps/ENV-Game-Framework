@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
-using EasyGameFramework.Api.Enums;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Physics;
 using EasyGameFramework.Api.Rendering;

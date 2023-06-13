@@ -1,6 +1,4 @@
-﻿using EasyGameFramework.Api.Enums;
-
-namespace EasyGameFramework.Api.Rendering;
+﻿namespace EasyGameFramework.Api.Rendering;
 
 public interface ITextureManager
 {
