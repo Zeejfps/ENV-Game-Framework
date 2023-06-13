@@ -31,7 +31,7 @@ public sealed class PongGame : Game
     private Paddle TopPaddle { get; }
     private Ball Ball { get; }
 
-    private BallPaddleCollisionSystem BallPaddleCollisionSystem { get; } = new();
+    private BallPaddleCollisionSystem BallPaddleCollisionSystem { get; }
 
     public PongGame(ISpriteRenderer spriteRenderer, IContext context) : base(context)
     {
@@ -53,14 +53,14 @@ public sealed class PongGame : Game
         {
             CurrPosition = new Vector2(0, -40f),
             PrevPosition = new Vector2(0f, -40f),
-            Bounds = LevelBounds
+            LevelBounds = LevelBounds
         };
     
         TopPaddle = new()
         {
             CurrPosition = new Vector2(0, 40f),
             PrevPosition = new Vector2(0f, 40f),
-            Bounds = LevelBounds
+            LevelBounds = LevelBounds
         };
 
         Ball = new Ball(Logger)
@@ -68,6 +68,8 @@ public sealed class PongGame : Game
             Velocity = new Vector2(10, 30),
             Bounds = LevelBounds
         };
+
+        BallPaddleCollisionSystem = new BallPaddleCollisionSystem(Physics2D, Logger);
     }
 
     protected override void Configure()
@@ -155,7 +157,7 @@ public sealed class PongGame : Game
         else if (keyboard.IsKeyPressed(KeyboardKey.RightArrow))
             TopPaddle.MoveRight(paddlePositionDelta);
         
-        BallPaddleCollisionSystem.Update(Ball, BottomPaddle, TopPaddle);
+        BallPaddleCollisionSystem.Update(Time.UpdateDeltaTime, Ball, BottomPaddle, TopPaddle);
     }
 
     private bool m_IsHit;
@@ -168,10 +170,10 @@ public sealed class PongGame : Game
         var frameLerpFactor = Time.FrameLerpFactor;
         SpriteRenderer.NewBatch();
         {
-            SpriteRenderer.DrawSprite(new Vector2(0, 0),  
-                new Vector2(20f, 20f),
-                PaddleSprite, 
-                m_IsHit ? new Vector3(1f, 0.7f, 0.1f) : new Vector3(0, 0, 0.2f));
+            // SpriteRenderer.DrawSprite(new Vector2(0, 0),  
+            //     new Vector2(20f, 20f),
+            //     PaddleSprite, 
+            //     m_IsHit ? new Vector3(1f, 0.7f, 0.1f) : new Vector3(0, 0, 0.2f));
             
             var paddle1Pos = Vector2.Lerp(BottomPaddle.PrevPosition, BottomPaddle.CurrPosition, frameLerpFactor);
             SpriteRenderer.DrawSprite(paddle1Pos,  new Vector2(10f, 1f), PaddleSprite, Vector3.One);
@@ -191,7 +193,7 @@ public sealed class PongGame : Game
         
         gpu.Renderbuffer.BindToWindow();
         gpu.Renderbuffer.ClearColorBuffers(0, 0, 0, 0);
-        gpu.Renderbuffer.Blit(fb, Viewport, TextureFilterKind.Linear);
+        gpu.Renderbuffer.Blit(fb, Viewport);
         //gpu.Renderbuffer.Blit(fb, Viewport2);
         
         gpu.ReleaseRenderbuffer(fb);
