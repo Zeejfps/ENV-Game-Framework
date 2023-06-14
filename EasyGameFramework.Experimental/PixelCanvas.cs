@@ -19,6 +19,8 @@ public sealed class PixelCanvas : IPixelCanvas
 
     public PixelCanvas(ILogger logger, IWindow window, int resolutionX, int resolutionY)
     {
+        ResolutionX = resolutionX;
+        ResolutionY = resolutionY;
         Logger = logger;
         Window = window;
         Gpu = window.Gpu;
@@ -137,6 +139,9 @@ public sealed class PixelCanvas : IPixelCanvas
         
         return new Vector2(x, y);
     }
+
+    public int ResolutionX { get; }
+    public int ResolutionY { get; }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DrawPixel(int x, int y, uint rgba)

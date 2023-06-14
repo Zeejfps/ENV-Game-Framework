@@ -9,4 +9,6 @@ public interface IPixelCanvas
     void DrawRect(int x, int y, int width, int height);
     void Render();
     Vector2 ScreenToCanvasPoint(Vector2 screenPoint);
+    int ResolutionX { get; }
+    int ResolutionY { get; }
 }

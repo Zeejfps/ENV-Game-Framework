@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
+using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.Physics;
 using EasyGameFramework.Experimental;
 using Pong.Physics;
@@ -10,11 +11,13 @@ public sealed class BallPaddleCollisionSystem
 {
     private Physics2D Physics2D { get; }
     private ILogger Logger { get; }
+    private OrthographicCamera Camera { get; }
     private IPixelCanvas PixelCanvas { get; }
 
-    public BallPaddleCollisionSystem(IPixelCanvas pixelCanvas, Physics2D physics2D, ILogger logger)
+    public BallPaddleCollisionSystem(IPixelCanvas pixelCanvas, OrthographicCamera camera, Physics2D physics2D, ILogger logger)
     {
         PixelCanvas = pixelCanvas;
+        Camera = camera;
         Physics2D = physics2D;
         Logger = logger;
     }
@@ -30,10 +33,16 @@ public sealed class BallPaddleCollisionSystem
             Width = topPaddle.Size * 2f + 1f,
             Height = 2 + 1f
         };
-        
-        PixelCanvas.DrawRect((int)topPaddleRect.BottomLeft.X, (int)topPaddleRect.BottomLeft.Y,
-            (int)(topPaddleRect.BottomLeft.X + topPaddleRect.Width), 
-            (int)(topPaddleRect.BottomLeft.Y + topPaddleRect.Height));
+
+        var bottomLeftViewportPoint = Camera.WorldPointToViewport(topPaddleRect.BottomLeft);
+        var topRightViewportPoint = Camera.WorldPointToViewport(topPaddleRect.TopRight);
+        var canvasX = bottomLeftViewportPoint.X * PixelCanvas.ResolutionX;
+        var canvasY = bottomLeftViewportPoint.Y * PixelCanvas.ResolutionY;
+        var canvasW = (topRightViewportPoint.X - bottomLeftViewportPoint.X) * PixelCanvas.ResolutionX;
+        var canvasH = (topRightViewportPoint.Y - bottomLeftViewportPoint.Y) * PixelCanvas.ResolutionY;
+        PixelCanvas.DrawRect((int)canvasX, (int)canvasY,
+            (int)canvasW, 
+            (int)canvasH);
         
         var botPaddleRect = new Rect
         {

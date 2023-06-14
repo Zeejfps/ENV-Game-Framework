@@ -3,7 +3,6 @@ using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Physics;
-using EasyGameFramework.Api.Rendering;
 using EasyGameFramework.Experimental;
 using Pong.Physics;
 
@@ -74,8 +73,8 @@ public sealed class PongGame : Game
         };
 
 
-        PixelCanvas = new PixelCanvas(Logger, Window, 200, 200);
-        BallPaddleCollisionSystem = new BallPaddleCollisionSystem(PixelCanvas, Physics2D, Logger);
+        PixelCanvas = new PixelCanvas(Logger, Window, 640, 640);
+        BallPaddleCollisionSystem = new BallPaddleCollisionSystem(PixelCanvas,Camera, Physics2D, Logger);
     }
 
     protected override void OnStartup()
