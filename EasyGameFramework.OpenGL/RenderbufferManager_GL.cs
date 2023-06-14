@@ -99,7 +99,7 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
         if (BoundResource != null)
             dstFramebufferId = BoundResource.Id;
 
-        var f = filter == TextureFilterKind.Linear ? GL_LINEAR : GL_NEAREST;
+        var f = filter.ToOpenGl();
         
         glBindFramebuffer(GL_READ_FRAMEBUFFER, srcFramebuffer.Id);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dstFramebufferId);

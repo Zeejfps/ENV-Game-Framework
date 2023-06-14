@@ -13,7 +13,12 @@ public interface IGpu
     IBufferController BufferController { get; }
     IPipelineController PipelineController { get; }
 
-    IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer, int width, int height);
+    IGpuRenderbufferHandle CreateRenderbuffer(
+        int colorBuffersCount, 
+        bool createDepthBuffer,
+        int width, int height,
+        TextureFilterKind filterMode = TextureFilterKind.Linear);
+    
     void ReleaseRenderbuffer(IGpuRenderbufferHandle tempRenderbufferHandle);
     
     void SaveState();

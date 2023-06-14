@@ -113,7 +113,9 @@ public sealed class Gpu_GL : IGpu
         return null;
     }
 
-    public IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer, int width, int height)
+    public IGpuRenderbufferHandle CreateRenderbuffer(int colorBuffersCount, bool createDepthBuffer,
+        int width, int height,
+        TextureFilterKind filterMode = TextureFilterKind.Linear)
     {
         var key = (colorBuffersCount, createDepthBuffer);
         if (!m_RenderBufferPool.TryGetValue(key, out var pool))
@@ -129,7 +131,8 @@ public sealed class Gpu_GL : IGpu
         }
         else
         {
-            var renderBuffer = new GpuRenderbuffer_GL(m_TextureManager, width, height, colorBuffersCount, createDepthBuffer);
+            var renderBuffer = new GpuRenderbuffer_GL(m_TextureManager, width, height,
+                colorBuffersCount, createDepthBuffer, filterMode);
             var handle = new GpuRenderbufferHandle(renderBuffer);
             m_RenderBufferManager.Add(handle, renderBuffer);
             pool.Push(handle);

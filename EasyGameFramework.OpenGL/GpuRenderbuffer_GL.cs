@@ -8,14 +8,16 @@ internal class GpuRenderbuffer_GL : IGpuRenderbuffer
 {
     private readonly TextureManager_GL m_TextureManager;
     private readonly int[] m_drawBufferIds;
+    private readonly TextureFilterKind m_FilterMode;
 
     public GpuRenderbuffer_GL(TextureManager_GL textureManager, int width, int height, int colorBufferCount,
-        bool createDepthBuffer)
+        bool createDepthBuffer, TextureFilterKind filterMode)
     {
         m_TextureManager = textureManager;
 
         Width = width;
         Height = height;
+        m_FilterMode = filterMode;
 
         Id = glGenFramebuffer();
         glBindFramebuffer(Id);
@@ -29,7 +31,7 @@ internal class GpuRenderbuffer_GL : IGpuRenderbuffer
             var colorTextureId = glGenTexture();
             glBindTexture(GL_TEXTURE_2D, colorTextureId);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, IntPtr.Zero);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, m_FilterMode.ToOpenGl());
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorTextureId, 0);
 
