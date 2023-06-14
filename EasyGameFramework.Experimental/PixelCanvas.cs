@@ -92,6 +92,8 @@ public sealed class PixelCanvas : IPixelCanvas
         var meshController = gpu.MeshController;
         var textureController = gpu.TextureController;
         var shaderController = gpu.ShaderController;
+
+        gpu.EnableBlending = true;
         
         textureController.SaveState();
 

@@ -4,6 +4,7 @@ using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Physics;
 using EasyGameFramework.Api.Rendering;
+using EasyGameFramework.Experimental;
 using Pong.Physics;
 
 namespace Pong;
@@ -30,6 +31,9 @@ public sealed class PongGame : Game
     private Paddle BottomPaddle { get; }
     private Paddle TopPaddle { get; }
     private Ball Ball { get; }
+    
+    private IPixelCanvas PixelCanvas { get; } 
+    private Vector2 MousePosition { get; set; }
 
     private BallPaddleCollisionSystem BallPaddleCollisionSystem { get; }
 
@@ -70,6 +74,8 @@ public sealed class PongGame : Game
         };
 
         BallPaddleCollisionSystem = new BallPaddleCollisionSystem(Physics2D, Logger);
+
+        PixelCanvas = new PixelCanvas(Logger, Window, 200, 200);
     }
 
     protected override void OnStartup()
@@ -155,6 +161,10 @@ public sealed class PongGame : Game
             TopPaddle.MoveRight(paddlePositionDelta);
         
         BallPaddleCollisionSystem.Update(Time.UpdateDeltaTime, Ball, BottomPaddle, TopPaddle);
+        
+        var mouse = Context.Window.Input.Mouse;
+        var mouseScreenPosition = new Vector2(mouse.ScreenX, mouse.ScreenY);
+        MousePosition = PixelCanvas.ScreenToCanvasPoint(mouseScreenPosition);
     }
 
     private bool m_IsHit;
@@ -187,13 +197,17 @@ public sealed class PongGame : Game
         gpu.FramebufferController.Bind(fb);
         gpu.FramebufferController.ClearColorBuffers(0f, 0.3f, 0f, 1f);
         SpriteRenderer.RenderBatch(camera);
-        
+
         gpu.FramebufferController.BindToWindow();
         gpu.FramebufferController.ClearColorBuffers(0, 0, 0, 0);
         gpu.FramebufferController.Blit(fb, Viewport);
         //gpu.Renderbuffer.Blit(fb, Viewport2);
         
         gpu.ReleaseRenderbuffer(fb);
+        
+        PixelCanvas.Clear();
+        PixelCanvas.DrawLine(0, 0, (int)MousePosition.X, (int)MousePosition.Y);
+        PixelCanvas.Render();
     }
 
     protected override void OnShutdown()

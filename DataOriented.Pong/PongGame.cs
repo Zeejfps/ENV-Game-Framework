@@ -31,6 +31,9 @@ public sealed class PongGame : Game
 
     protected override void OnRender()
     {
+        var gpu = Gpu;
+        gpu.FramebufferController.ClearColorBuffers(0, 0, 0, 0);
+        
         Canvas2D.Clear();
         Canvas2D.DrawLine(0, 0, (int)MousePosition.X, (int)MousePosition.Y);
         Canvas2D.Render();
