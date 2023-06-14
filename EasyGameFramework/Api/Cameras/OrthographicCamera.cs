@@ -67,7 +67,7 @@ public class OrthographicCamera : ICamera
         return new Vector2(worldPointX, worldPointY);
     }
 
-    public Vector2 WorldPointToViewport(Vector2 worldPoint)
+    public Vector2 WorldToViewportPoint(Vector2 worldPoint)
     {
         var x = (worldPoint.X - Rect.Left) / (Rect.Right - Rect.Left);
         var y = (worldPoint.Y - Rect.Bottom) / (Rect.Top - Rect.Bottom);

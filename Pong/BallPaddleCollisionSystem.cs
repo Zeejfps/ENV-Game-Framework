@@ -34,8 +34,8 @@ public sealed class BallPaddleCollisionSystem
             Height = 2 + 1f
         };
 
-        var bottomLeftViewportPoint = Camera.WorldPointToViewport(topPaddleRect.BottomLeft);
-        var topRightViewportPoint = Camera.WorldPointToViewport(topPaddleRect.TopRight);
+        var bottomLeftViewportPoint = Camera.WorldToViewportPoint(topPaddleRect.BottomLeft);
+        var topRightViewportPoint = Camera.WorldToViewportPoint(topPaddleRect.TopRight);
         var canvasX = bottomLeftViewportPoint.X * PixelCanvas.ResolutionX;
         var canvasY = bottomLeftViewportPoint.Y * PixelCanvas.ResolutionY;
         var canvasW = (topRightViewportPoint.X - bottomLeftViewportPoint.X) * PixelCanvas.ResolutionX;
