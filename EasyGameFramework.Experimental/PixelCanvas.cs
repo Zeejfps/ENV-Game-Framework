@@ -44,46 +44,45 @@ public sealed class PixelCanvas : IPixelCanvas
 
     public void DrawLine(int x0, int y0, int x1, int y1)
     {
-        if (x0 < 0)
-            x0 = 0;
-
-        if (y0 < 0)
-            y0 = 0;
-
-        if (x1 < 0)
-            x1 = 0;
-        else if (x1 >= Texture.Width)
-            x1 = Texture.Width - 1;
-
-        if (y1 < 0)
-            y1 = 0;
-        else if (y1 >= Texture.Height)
-            y1 = Texture.Height - 1;
-
-        var dx = Math.Abs(x1 - x0);
-        var dy = Math.Abs(y1 - y0);
-        var sx = (x0 < x1) ? 1 : -1;
-        var sy = (y0 < y1) ? 1 : -1;
-        var err = dx - dy;
-
-        while (true)
+        var width = ResolutionX;
+        var height = ResolutionY;
+        var color = 0xff00ffff;
+        bool steep = Math.Abs(y1 - y0) > Math.Abs(x1 - x0);
+        if (steep)
         {
-            DrawPixel(x0, y0, 0xFF00FF);
+            (x0, y0) = (y0, x0);
+            (x1, y1) = (y1, x1);
+        }
+        if (x0 > x1)
+        {
+            (x0, x1) = (x1, x0);
+            (y0, y1) = (y1, y0);
+        }
 
-            if (x0 == x1 && y0 == y1)
-                break;
+        int dx = x1 - x0;
+        int dy = Math.Abs(y1 - y0);
+        int err = dx / 2;
+        int ystep = (y0 < y1) ? 1 : -1;
+        int y = y0;
 
-            int e2 = 2 * err;
-            if (e2 > -dy)
+        for (int x = x0; x <= x1; x++)
+        {
+            if (steep)
             {
-                err -= dy;
-                x0 += sx;
+                if (x >= 0 && x < height && y >= 0 && y < width)
+                    DrawPixel(y, x, color);
+            }
+            else
+            {
+                if (x >= 0 && x < width && y >= 0 && y < height)
+                    DrawPixel(x, y, color);
             }
 
-            if (e2 < dx)
+            err -= dy;
+            if (err < 0)
             {
+                y += ystep;
                 err += dx;
-                y0 += sy;
             }
         }
     }
@@ -91,19 +90,49 @@ public sealed class PixelCanvas : IPixelCanvas
     public void DrawRect(int x, int y, int width, int height)
     {
         uint color = 0xff00ffff;
+
+        var sx = x;
+        if (sx >= ResolutionX)
+            return;
+        
+        var ex = x + width;
+        if (ex < 0)
+            return;
+
+        var sy = y;
+        if (sy >= ResolutionY)
+            return;
+        
+        var ey = y + height;
+        if (ey < 0)
+            return;
+
+        if (sx < 0)
+            sx = 0;
+        
+        if (ex >= ResolutionX)
+            ex = ResolutionX - 1;
+
+        if (sy < 0)
+            sy = 0;
+
+        if (ey >= ResolutionY)
+            ey = ResolutionY - 1;
+        
+        //Logger.Trace($"X: {sx}, Y: {sy}, EX: {ex}, EY: {ey}");
         
         // Draw top and bottom edges
-        for (int col = x; col < x + width; col++)
+        for (int col = sx; col < ex; col++)
         {
-            DrawPixel(col, y, color);
-            DrawPixel(col, y + height - 1, color);
+            DrawPixel(col, sy, color);
+            DrawPixel(col, ey, color);
         }
 
         // Draw left and right edges
-        for (int row = y + 1; row < y + height - 1; row++)
+        for (int row = sy; row < ey; row++)
         {
-            DrawPixel(x, row, color);
-            DrawPixel( x + width - 1, row, color);
+            DrawPixel(sx, row, color);
+            DrawPixel( ex, row, color);
         }
     }
 

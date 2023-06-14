@@ -35,7 +35,7 @@ public sealed class BallPaddleCollisionSystem
         
         if (Physics2D.TryRaycastRect(ray, topPaddleRect, out var topHit))
         {
-            ball.CurrPosition = topHit.HitPoint;
+            ball.CurrPosition = topHit.HitPoint + topHit.Normal;
             ball.Velocity = ball.Velocity with { Y = -ball.Velocity.Y };
             return;
         }
@@ -48,8 +48,29 @@ public sealed class BallPaddleCollisionSystem
         }
     }
 
-    public void DebugRender(Paddle topPaddle, Paddle bottomPaddle)
+    public void DebugRender(Ball ball, Paddle topPaddle, Paddle bottomPaddle)
     {
+        var resolutionX = PixelCanvas.ResolutionX;
+        var resolutionY = PixelCanvas.ResolutionY;
+        var velocityEnd = Camera.WorldToViewportPoint(ball.CurrPosition + ball.Velocity) *
+                          new Vector2(resolutionX, resolutionY);
+        
+        var ballCenter = Camera.WorldToViewportPoint(ball.CurrPosition);
+        var botLeft = Camera.WorldToViewportPoint(ball.CurrPosition - new Vector2(1f, 1f));
+        var topRight = Camera.WorldToViewportPoint(ball.CurrPosition + Vector2.One);
+        var canvasX = (int)(botLeft.X * PixelCanvas.ResolutionX);
+        var canvasY = (int)(botLeft.Y * PixelCanvas.ResolutionY);
+        var canvasW = (topRight.X - botLeft.X) * PixelCanvas.ResolutionX;
+        var canvasH = (topRight.Y - botLeft.Y) * PixelCanvas.ResolutionY;
+
+        var centerX = (int)(ballCenter.X * PixelCanvas.ResolutionX);
+        var centerY = (int)(ballCenter.Y * resolutionY);
+        
+        //Logger.Trace($"BL: {ballCenter}, TP: {topRight}");
+        //Logger.Trace($"Canvas: X {canvasX}, Y: {canvasY}, W: {canvasW}, H: {canvasH}");
+        PixelCanvas.DrawRect((int)canvasX, (int)canvasY, (int)canvasW, (int)canvasH);
+        PixelCanvas.DrawLine(centerX, centerY, (int)velocityEnd.X, (int)velocityEnd.Y);
+        
         DrawDebugRect(topPaddle);
         DrawDebugRect(bottomPaddle);
     }

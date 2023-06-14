@@ -209,7 +209,7 @@ public sealed class PongGame : Game
 
         gpu.ReleaseRenderbuffer(fb);
         
-        BallPaddleCollisionSystem.DebugRender(TopPaddle, BottomPaddle);
+        BallPaddleCollisionSystem.DebugRender(Ball, TopPaddle, BottomPaddle);
         
         PixelCanvas.DrawLine(0, 0, (int)MousePosition.X, (int)MousePosition.Y);
         PixelCanvas.Render();
