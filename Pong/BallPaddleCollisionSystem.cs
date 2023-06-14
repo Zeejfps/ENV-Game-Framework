@@ -24,35 +24,8 @@ public sealed class BallPaddleCollisionSystem
 
     public void Update(float dt, Ball ball, Paddle bottomPaddle, Paddle topPaddle)
     {
-        var topPaddleRect = new Rect
-        {
-            BottomLeft = new Vector2(
-                topPaddle.CurrPosition.X - topPaddle.Size - 0.5f,
-                topPaddle.CurrPosition.Y - 1f - 0.5f
-            ),
-            Width = topPaddle.Size * 2f + 1f,
-            Height = 2 + 1f
-        };
-
-        var bottomLeftViewportPoint = Camera.WorldToViewportPoint(topPaddleRect.BottomLeft);
-        var topRightViewportPoint = Camera.WorldToViewportPoint(topPaddleRect.TopRight);
-        var canvasX = bottomLeftViewportPoint.X * PixelCanvas.ResolutionX;
-        var canvasY = bottomLeftViewportPoint.Y * PixelCanvas.ResolutionY;
-        var canvasW = (topRightViewportPoint.X - bottomLeftViewportPoint.X) * PixelCanvas.ResolutionX;
-        var canvasH = (topRightViewportPoint.Y - bottomLeftViewportPoint.Y) * PixelCanvas.ResolutionY;
-        PixelCanvas.DrawRect((int)canvasX, (int)canvasY,
-            (int)canvasW, 
-            (int)canvasH);
-        
-        var botPaddleRect = new Rect
-        {
-            BottomLeft = new Vector2(
-                bottomPaddle.CurrPosition.X - bottomPaddle.Size - 0.5f,
-                bottomPaddle.CurrPosition.Y - 1f
-            ),
-            Width = bottomPaddle.Size * 2f + 1f,
-            Height = 2 + 0.5f
-        };
+        var topPaddleRect = CreateCollisionRect(topPaddle);
+        var botPaddleRect = CreateCollisionRect(bottomPaddle);
 
         var ray = new Ray2D
         {
@@ -73,5 +46,38 @@ public sealed class BallPaddleCollisionSystem
             ball.Velocity = ball.Velocity with { Y = -ball.Velocity.Y };
             return;
         }
+    }
+
+    public void DebugRender(Paddle topPaddle, Paddle bottomPaddle)
+    {
+        DrawDebugRect(topPaddle);
+        DrawDebugRect(bottomPaddle);
+    }
+
+    private void DrawDebugRect(Paddle paddle)
+    {
+        var rect = CreateCollisionRect(paddle);
+        var bottomLeftViewportPoint = Camera.WorldToViewportPoint(rect.BottomLeft);
+        var topRightViewportPoint = Camera.WorldToViewportPoint(rect.TopRight);
+        var canvasX = bottomLeftViewportPoint.X * PixelCanvas.ResolutionX;
+        var canvasY = bottomLeftViewportPoint.Y * PixelCanvas.ResolutionY;
+        var canvasW = (topRightViewportPoint.X - bottomLeftViewportPoint.X) * PixelCanvas.ResolutionX;
+        var canvasH = (topRightViewportPoint.Y - bottomLeftViewportPoint.Y) * PixelCanvas.ResolutionY;
+        PixelCanvas.DrawRect((int)canvasX, (int)canvasY,
+            (int)canvasW, 
+            (int)canvasH);
+    }
+
+    private Rect CreateCollisionRect(Paddle paddle)
+    {
+        return new Rect
+        {
+            BottomLeft = new Vector2(
+                paddle.CurrPosition.X - paddle.Size - 0.5f,
+                paddle.CurrPosition.Y - 1f - 0.5f
+            ),
+            Width = paddle.Size * 2f + 1f,
+            Height = 2 + 1f
+        };
     }
 }

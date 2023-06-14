@@ -99,8 +99,6 @@ public sealed class PongGame : Game
 
     protected override void OnUpdate()
     {
-        PixelCanvas.Clear();
-        
         var mouseScreenPoint = new Vector2(InputSystem.Mouse.ScreenX, InputSystem.Mouse.ScreenY);
         var viewports = new IViewport[] { Viewport, Viewport2 };
         var mouseViewportPoint = Vector2.Zero;
@@ -172,6 +170,8 @@ public sealed class PongGame : Game
     
     protected override void OnRender()
     {
+        PixelCanvas.Clear();
+
         var camera = Camera;
         var gpu = Gpu;
         var meshController = gpu.MeshController;
@@ -208,6 +208,8 @@ public sealed class PongGame : Game
         gpu.FramebufferController.Blit(fb, Viewport);
 
         gpu.ReleaseRenderbuffer(fb);
+        
+        BallPaddleCollisionSystem.DebugRender(TopPaddle, BottomPaddle);
         
         PixelCanvas.DrawLine(0, 0, (int)MousePosition.X, (int)MousePosition.Y);
         PixelCanvas.Render();
