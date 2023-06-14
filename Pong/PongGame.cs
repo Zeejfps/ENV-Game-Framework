@@ -81,7 +81,7 @@ public sealed class PongGame : Game
         window.CursorMode = CursorMode.Visible;
         window.SetScreenSize(640, 640);
         
-        var texture = Gpu.Texture.Load("Assets/white");
+        var texture = Gpu.TextureController.Load("Assets/white");
         
         PaddleSprite = new Sprite
         {
@@ -184,13 +184,13 @@ public sealed class PongGame : Game
 
         var fbWidth = 2048;
         var fb = gpu.CreateRenderbuffer(1, false, fbWidth, (int)(fbWidth * camera.AspectRatio));
-        gpu.Renderbuffer.Bind(fb);
-        gpu.Renderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
+        gpu.FramebufferController.Bind(fb);
+        gpu.FramebufferController.ClearColorBuffers(0f, 0.3f, 0f, 1f);
         SpriteRenderer.RenderBatch(camera);
         
-        gpu.Renderbuffer.BindToWindow();
-        gpu.Renderbuffer.ClearColorBuffers(0, 0, 0, 0);
-        gpu.Renderbuffer.Blit(fb, Viewport);
+        gpu.FramebufferController.BindToWindow();
+        gpu.FramebufferController.ClearColorBuffers(0, 0, 0, 0);
+        gpu.FramebufferController.Blit(fb, Viewport);
         //gpu.Renderbuffer.Blit(fb, Viewport2);
         
         gpu.ReleaseRenderbuffer(fb);

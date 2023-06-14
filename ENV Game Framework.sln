@@ -26,6 +26,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CombatBeesBenchmark", "Comb
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataOriented.Pong", "DataOriented.Pong\DataOriented.Pong.csproj", "{A6BC0F22-DD52-4859-AF50-5D36958D1D94}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyGameFramework.Experimental", "EasyGameFramework.Experimental\EasyGameFramework.Experimental.csproj", "{712307B9-BB28-4A1B-AD47-6E0D3D6B061C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -84,5 +86,9 @@ Global
 		{A6BC0F22-DD52-4859-AF50-5D36958D1D94}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A6BC0F22-DD52-4859-AF50-5D36958D1D94}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A6BC0F22-DD52-4859-AF50-5D36958D1D94}.Release|Any CPU.Build.0 = Release|Any CPU
+		{712307B9-BB28-4A1B-AD47-6E0D3D6B061C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{712307B9-BB28-4A1B-AD47-6E0D3D6B061C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{712307B9-BB28-4A1B-AD47-6E0D3D6B061C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{712307B9-BB28-4A1B-AD47-6E0D3D6B061C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

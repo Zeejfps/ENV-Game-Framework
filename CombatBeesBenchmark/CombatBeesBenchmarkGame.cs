@@ -78,7 +78,7 @@ public class CombatBeesBenchmarkGame : Game
     protected override void OnRender()
     {
         var gpu = Context.Window.Gpu;
-        var activeFramebuffer = gpu.Renderbuffer;
+        var activeFramebuffer = gpu.FramebufferController;
         activeFramebuffer.BindToWindow();
         activeFramebuffer.ClearColorBuffers(0f, 0.1f, 0.1f, 1f);
 

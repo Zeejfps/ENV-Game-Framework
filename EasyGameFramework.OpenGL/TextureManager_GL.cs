@@ -1,10 +1,11 @@
-﻿using EasyGameFramework.Api.Rendering;
+﻿using System.Diagnostics;
+using EasyGameFramework.Api.Rendering;
 using EasyGameFramework.Core.AssetLoaders;
 using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-internal class TextureManager_GL : GpuResourceManager<IGpuTextureHandle, Texture2D_GL>, ITextureManager
+internal class TextureManager_GL : GpuResourceManager<IGpuTextureHandle, Texture2D_GL>, ITextureController
 {
     private TextureFilterKind Filter { get; set; }
 
@@ -39,5 +40,19 @@ internal class TextureManager_GL : GpuResourceManager<IGpuTextureHandle, Texture
     {
         Filter = filter;
         return Load(assetPath);
+    }
+
+    public void SaveState()
+    {
+    }
+
+    public void RestoreState()
+    {
+    }
+
+    public void Upload(ReadOnlySpan<byte> pixels)
+    {
+        Debug.Assert(BoundResource != null);
+        BoundResource.Upload(pixels);
     }
 }

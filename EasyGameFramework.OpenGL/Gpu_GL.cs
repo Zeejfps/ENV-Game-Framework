@@ -83,8 +83,8 @@ public sealed class Gpu_GL : IGpu
 
     public IMeshManager Mesh => m_MeshManager;
     public IShaderManager Shader => m_ShaderManager;
-    public ITextureManager Texture => m_TextureManager;
-    public IRenderbufferManager Renderbuffer => m_RenderBufferManager;
+    public ITextureController TextureController => m_TextureManager;
+    public IRenderbufferManager FramebufferController => m_RenderBufferManager;
     public IBufferController BufferController { get; }
     public IPipelineController PipelineController { get; }
 

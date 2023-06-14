@@ -34,11 +34,11 @@ public class Toad : ISceneObject
         var gpu = Gpu;
         
         m_MeshHandle = gpu.Mesh.Load("Assets/Meshes/Toad");
-        m_Diffuse = gpu.Texture.Load("Assets/Textures/Toad/Toad_BaseColor");
-        m_Normal = gpu.Texture.Load("Assets/Textures/Toad/Toad_Normal");
-        m_Roughness = gpu.Texture.Load("Assets/Textures/Toad/Toad_Roughness");
-        m_Occlusion = gpu.Texture.Load("Assets/Textures/Toad/Toad_AO");
-        m_Translucency = gpu.Texture.Load("Assets/Textures/Toad/Toad_Translucency");
+        m_Diffuse = gpu.TextureController.Load("Assets/Textures/Toad/Toad_BaseColor");
+        m_Normal = gpu.TextureController.Load("Assets/Textures/Toad/Toad_Normal");
+        m_Roughness = gpu.TextureController.Load("Assets/Textures/Toad/Toad_Roughness");
+        m_Occlusion = gpu.TextureController.Load("Assets/Textures/Toad/Toad_AO");
+        m_Translucency = gpu.TextureController.Load("Assets/Textures/Toad/Toad_Translucency");
 
         m_SpecularRenderPass.Register(new SpecularRenderable
         {

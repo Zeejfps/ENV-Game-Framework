@@ -52,7 +52,7 @@ public class TestScene : IScene
         };
         m_LightPosition.RotateInLocalSpace(0f, 0f, 180f);
         
-        var renderbuffer = app.Gpu.Renderbuffer;
+        var renderbuffer = app.Gpu.FramebufferController;
         var w = renderbuffer.WindowBufferHandle.Width;
         var h = renderbuffer.WindowBufferHandle.Height;
         m_TempRenderbufferHandle = app.Gpu.CreateRenderbuffer(3, true, w, h);
@@ -122,7 +122,7 @@ public class TestScene : IScene
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Render();
         
-        var renderbuffer = m_App.Gpu.Renderbuffer;
+        var renderbuffer = m_App.Gpu.FramebufferController;
         var windowFramebufferWidth = renderbuffer.WindowBufferHandle.Width;
         var windowFramebufferHeight = renderbuffer.WindowBufferHandle.Height;
         
@@ -149,11 +149,11 @@ public class TestScene : IScene
     {
         var gpu = m_App.Gpu;
         var mesh = gpu.Mesh.Load("Assets/Meshes/ship.mesh");
-        var diffuse = gpu.Texture.Load("Assets/Textures/Ship/ship_d.texture");
-        var normal = gpu.Texture.Load("Assets/Textures/Ship/ship_n.texture");
-        var roughness = gpu.Texture.Load("Assets/Textures/Ship/ship_r.texture");
-        var occlusion = gpu.Texture.Load("Assets/Textures/Ship/ship_ao.texture");
-        var translucency = gpu.Texture.Load("Assets/Textures/Toad/Toad_Translucency.texture");
+        var diffuse = gpu.TextureController.Load("Assets/Textures/Ship/ship_d.texture");
+        var normal = gpu.TextureController.Load("Assets/Textures/Ship/ship_n.texture");
+        var roughness = gpu.TextureController.Load("Assets/Textures/Ship/ship_r.texture");
+        var occlusion = gpu.TextureController.Load("Assets/Textures/Ship/ship_ao.texture");
+        var translucency = gpu.TextureController.Load("Assets/Textures/Toad/Toad_Translucency.texture");
 
         var ships = new List<Ship>();
         var size = 10;

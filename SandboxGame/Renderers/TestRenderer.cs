@@ -22,7 +22,7 @@ public class TestRenderer : IRenderer
     public void Render(ICamera camera)
     {
         var gpu = m_Gpu;
-        var renderbufferManager = gpu.Renderbuffer;
+        var renderbufferManager = gpu.FramebufferController;
         var windowFramebufferWidth = renderbufferManager.WindowBufferHandle.Width;
         var windowFramebufferHeight = renderbufferManager.WindowBufferHandle.Height;
 

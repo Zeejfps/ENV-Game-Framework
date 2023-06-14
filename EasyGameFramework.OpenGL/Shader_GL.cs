@@ -12,11 +12,11 @@ public class Shader_GL : IGpuShader
     private readonly Dictionary<string, int> m_PropertyToIdMap = new();
     private readonly Dictionary<string, uint> m_BlockNameToIdTable = new();
 
-    private readonly ITextureManager m_TextureManager;
+    private readonly ITextureController m_TextureManager;
     private readonly Dictionary<string, int> m_TextureToSlotMap = new();
     private int m_ActiveTextureId;
 
-    private Shader_GL(uint id, ITextureManager textureManager)
+    private Shader_GL(uint id, ITextureController textureManager)
     {
         Id = id;
         m_TextureManager = textureManager;
@@ -129,7 +129,7 @@ public class Shader_GL : IGpuShader
 
 
     public static Shader_GL LoadFromSource(string vertexShaderSource, string fragmentShaderSource,
-        ITextureManager textureManager)
+        ITextureController textureManager)
     {
         var vertexShader = glCreateShader(GL_VERTEX_SHADER);
         CompileShader(vertexShader, vertexShaderSource);

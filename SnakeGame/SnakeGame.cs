@@ -122,7 +122,7 @@ public class SnakeGame : Game
 
         var tempRenderbufferHandle = gpu.CreateRenderbuffer(1, false, 320, 320);
         
-        var activeRenderbuffer = gpu.Renderbuffer;
+        var activeRenderbuffer = gpu.FramebufferController;
         activeRenderbuffer.Bind(tempRenderbufferHandle);
         activeRenderbuffer.ClearColorBuffers(0f, 0.3f, 0f, 1f);
 

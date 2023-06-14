@@ -32,7 +32,7 @@ public class BlinnRenderer
     {
         var gpu = m_Gpu;
         m_Shader = gpu.Shader.Load("Assets/Shaders/blinn.shader");
-        m_Texture = gpu.Texture.Load("Assets/Textures/test.texture");
+        m_Texture = gpu.TextureController.Load("Assets/Textures/test.texture");
     }
     
     public void Render(IGpu gpu, BlinnRenderData renderData)

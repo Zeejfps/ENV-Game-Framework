@@ -8,8 +8,8 @@ public interface IGpu
 
     IMeshManager Mesh { get; }
     IShaderManager Shader { get; }
-    ITextureManager Texture { get; }
-    IRenderbufferManager Renderbuffer { get; }
+    ITextureController TextureController { get; }
+    IRenderbufferManager FramebufferController { get; }
     IBufferController BufferController { get; }
     IPipelineController PipelineController { get; }
 

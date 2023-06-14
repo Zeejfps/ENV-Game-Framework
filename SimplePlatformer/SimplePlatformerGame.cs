@@ -38,7 +38,7 @@ public class SimplePlatformerGame : Game
         Players = new Player[maxPlayerCount];
         Controllers = new Controller[maxPlayerCount];
         
-        PlayerSpriteSheetTexture = Gpu.Texture.Load("Assets/PlayerSpriteSheet", TextureFilterKind.Nearest);
+        PlayerSpriteSheetTexture = Gpu.TextureController.Load("Assets/PlayerSpriteSheet", TextureFilterKind.Nearest);
 
         RunAnimationSpriteSheet = SpriteSheet.Create(new[]
         {
@@ -144,7 +144,7 @@ public class SimplePlatformerGame : Game
             controller.Attach(i);
         }
 
-        var aspectRatio = Gpu.Renderbuffer.Width / Gpu.Renderbuffer.Height;
+        var aspectRatio = Gpu.FramebufferController.Width / Gpu.FramebufferController.Height;
         Camera.SetSize(10f * aspectRatio, 10);
         CloseAppInput.Pressed += Exit;
         SpriteRenderer.LoadResources();
@@ -177,7 +177,7 @@ public class SimplePlatformerGame : Game
 
     protected override void OnRender()
     {
-        var renderbuffer = Gpu.Renderbuffer;
+        var renderbuffer = Gpu.FramebufferController;
         renderbuffer.ClearColorBuffers(0.2f, 0.2f, 0.2f, 1);
         
         var rect = new Rect

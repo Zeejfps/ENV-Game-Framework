@@ -12,9 +12,9 @@ internal class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader
 {
     private readonly CpuShaderAssetLoader m_CpuShaderLoader = new();
 
-    private readonly ITextureManager m_Texture;
+    private readonly ITextureController m_Texture;
 
-    public ShaderManager_GL(ITextureManager texture)
+    public ShaderManager_GL(ITextureController texture)
     {
         m_Texture = texture;
     }

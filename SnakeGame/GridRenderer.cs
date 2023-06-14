@@ -27,7 +27,7 @@ public sealed class GridRenderer
     {
         var gpu = Gpu;
         
-        var activeFramebuffer = Gpu.Renderbuffer;
+        var activeFramebuffer = Gpu.FramebufferController;
         var cellWidth = activeFramebuffer.Width / GridSize.Width;
         var cellHeight = activeFramebuffer.Height / GridSize.Height;
 
