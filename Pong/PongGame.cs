@@ -73,9 +73,9 @@ public sealed class PongGame : Game
             Bounds = LevelBounds
         };
 
-        BallPaddleCollisionSystem = new BallPaddleCollisionSystem(Physics2D, Logger);
 
         PixelCanvas = new PixelCanvas(Logger, Window, 200, 200);
+        BallPaddleCollisionSystem = new BallPaddleCollisionSystem(PixelCanvas, Physics2D, Logger);
     }
 
     protected override void OnStartup()
@@ -100,6 +100,8 @@ public sealed class PongGame : Game
 
     protected override void OnUpdate()
     {
+        PixelCanvas.Clear();
+        
         var mouseScreenPoint = new Vector2(InputSystem.Mouse.ScreenX, InputSystem.Mouse.ScreenY);
         var viewports = new IViewport[] { Viewport, Viewport2 };
         var mouseViewportPoint = Vector2.Zero;
@@ -195,7 +197,7 @@ public sealed class PongGame : Game
             SpriteRenderer.DrawSprite(ballPosition,  new Vector2(1f, 1f), PaddleSprite, new Vector3(0.5f, 0.7f, 0.1f));
         }
 
-        var fbWidth = 100;
+        var fbWidth = 640;
         var fb = gpu.CreateRenderbuffer(1, false, fbWidth, (int)(fbWidth * camera.AspectRatio));
         gpu.FramebufferController.Bind(fb);
         gpu.FramebufferController.ClearColorBuffers(0f, 0.3f, 0f, 1f);
@@ -208,7 +210,6 @@ public sealed class PongGame : Game
 
         gpu.ReleaseRenderbuffer(fb);
         
-        PixelCanvas.Clear();
         PixelCanvas.DrawLine(0, 0, (int)MousePosition.X, (int)MousePosition.Y);
         PixelCanvas.Render();
     }

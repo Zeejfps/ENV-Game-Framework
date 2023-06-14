@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Physics;
+using EasyGameFramework.Experimental;
 using Pong.Physics;
 
 namespace Pong;
@@ -9,9 +10,11 @@ public sealed class BallPaddleCollisionSystem
 {
     private Physics2D Physics2D { get; }
     private ILogger Logger { get; }
+    private IPixelCanvas PixelCanvas { get; }
 
-    public BallPaddleCollisionSystem(Physics2D physics2D, ILogger logger)
+    public BallPaddleCollisionSystem(IPixelCanvas pixelCanvas, Physics2D physics2D, ILogger logger)
     {
+        PixelCanvas = pixelCanvas;
         Physics2D = physics2D;
         Logger = logger;
     }
@@ -27,6 +30,10 @@ public sealed class BallPaddleCollisionSystem
             Width = topPaddle.Size * 2f + 1f,
             Height = 2 + 1f
         };
+        
+        PixelCanvas.DrawRect((int)topPaddleRect.BottomLeft.X, (int)topPaddleRect.BottomLeft.Y,
+            (int)(topPaddleRect.BottomLeft.X + topPaddleRect.Width), 
+            (int)(topPaddleRect.BottomLeft.Y + topPaddleRect.Height));
         
         var botPaddleRect = new Rect
         {

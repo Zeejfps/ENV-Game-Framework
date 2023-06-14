@@ -86,13 +86,32 @@ public sealed class PixelCanvas : IPixelCanvas
         }
     }
 
+    public void DrawRect(int x, int y, int width, int height)
+    {
+        uint color = 0xff00ffff;
+        
+        // Draw top and bottom edges
+        for (int col = x; col < x + width; col++)
+        {
+            DrawPixel(col, y, color);
+            DrawPixel(col, y + height - 1, color);
+        }
+
+        // Draw left and right edges
+        for (int row = y + 1; row < y + height - 1; row++)
+        {
+            DrawPixel(x, row, color);
+            DrawPixel( x + width - 1, row, color);
+        }
+    }
+
     public void Render()
     {
         var gpu = Gpu;
         var meshController = gpu.MeshController;
         var textureController = gpu.TextureController;
         var shaderController = gpu.ShaderController;
-
+        
         gpu.EnableBlending = true;
         
         textureController.SaveState();
