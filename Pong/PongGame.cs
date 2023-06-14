@@ -173,6 +173,9 @@ public sealed class PongGame : Game
     {
         var camera = Camera;
         var gpu = Gpu;
+        var meshController = gpu.MeshController;
+        var textureController = gpu.TextureController;
+        var shaderController = gpu.ShaderController;
 
         var frameLerpFactor = Time.FrameLerpFactor;
         SpriteRenderer.NewBatch();
@@ -192,7 +195,7 @@ public sealed class PongGame : Game
             SpriteRenderer.DrawSprite(ballPosition,  new Vector2(1f, 1f), PaddleSprite, new Vector3(0.5f, 0.7f, 0.1f));
         }
 
-        var fbWidth = 2048;
+        var fbWidth = 100;
         var fb = gpu.CreateRenderbuffer(1, false, fbWidth, (int)(fbWidth * camera.AspectRatio));
         gpu.FramebufferController.Bind(fb);
         gpu.FramebufferController.ClearColorBuffers(0f, 0.3f, 0f, 1f);
@@ -200,9 +203,9 @@ public sealed class PongGame : Game
 
         gpu.FramebufferController.BindToWindow();
         gpu.FramebufferController.ClearColorBuffers(0, 0, 0, 0);
-        gpu.FramebufferController.Blit(fb, Viewport);
-        //gpu.Renderbuffer.Blit(fb, Viewport2);
         
+        gpu.FramebufferController.Blit(fb, Viewport);
+
         gpu.ReleaseRenderbuffer(fb);
         
         PixelCanvas.Clear();

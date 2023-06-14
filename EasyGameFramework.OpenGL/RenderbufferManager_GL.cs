@@ -47,6 +47,7 @@ internal class RenderbufferManager_GL : GpuResourceManager<IHandle<IGpuRenderbuf
     protected override void OnUnbound()
     {
         glBindFramebuffer(0);
+        glViewport(0, 0, m_WindowFramebuffer.Width, m_WindowFramebuffer.Height);
     }
 
     protected override GpuRenderbuffer_GL LoadAndBindResource(string assetPath)

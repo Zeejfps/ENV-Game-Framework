@@ -102,7 +102,7 @@ public sealed class PixelCanvas : IPixelCanvas
         
         shaderController.Bind(FullScreenQuadShader);
         
-        meshController.Bind(QuadMesh);
+        //meshController.Bind(QuadMesh);
         meshController.Render();
         
         textureController.RestoreState();
