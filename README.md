@@ -41,3 +41,5 @@ var builder = new GameBuilder();
 var game = builder.Build<MyGame>();
 game.Launch();
 ```
+
+# Rendering

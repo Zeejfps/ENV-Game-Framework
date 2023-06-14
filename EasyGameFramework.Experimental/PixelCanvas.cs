@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 using EasyGameFramework.Api;
+using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Rendering;
 using EasyGameFramework.Core;
 
@@ -12,7 +13,9 @@ public sealed class PixelCanvas : IPixelCanvas
     private ILogger Logger { get; }
     private IGpu Gpu { get; }
     private CpuTexture Texture { get; }
-    private IGpuRenderbufferHandle Framebuffer { get; set; }
+    private IGpuRenderbufferHandle Framebuffer { get; }
+    private IHandle<IGpuMesh> QuadMesh { get; }
+    private IHandle<IGpuShader> FullScreenQuadShader { get; }
 
     public PixelCanvas(ILogger logger, IWindow window, int resolutionX, int resolutionY)
     {
@@ -26,6 +29,10 @@ public sealed class PixelCanvas : IPixelCanvas
             Pixels = new byte[resolutionX * resolutionY * 4]
         };
         Framebuffer = Gpu.CreateRenderbuffer(1, false, resolutionX, resolutionY);
+
+        var quadMesh = CpuMesh.CreateQuad();
+        QuadMesh = Gpu.MeshController.CreateAndBind(quadMesh);
+        FullScreenQuadShader = Gpu.ShaderController.Load("Assets/fullScreenQuad");
     }
 
     public void Clear()
@@ -82,13 +89,21 @@ public sealed class PixelCanvas : IPixelCanvas
     public void Render()
     {
         var gpu = Gpu;
+        var meshController = gpu.MeshController;
+        var textureController = gpu.TextureController;
+        var shaderController = gpu.ShaderController;
+        
+        textureController.SaveState();
 
-        gpu.TextureController.SaveState();
-        gpu.TextureController.Bind(Framebuffer.ColorBuffers[0]);
-        gpu.TextureController.Upload(Texture.Pixels);
-        gpu.TextureController.RestoreState();
-
-        gpu.FramebufferController.Blit(Framebuffer, TextureFilterKind.Linear);
+        textureController.Bind(Framebuffer.ColorBuffers[0]);
+        textureController.Upload(Texture.Pixels);
+        
+        shaderController.Bind(FullScreenQuadShader);
+        
+        meshController.Bind(QuadMesh);
+        meshController.Render();
+        
+        textureController.RestoreState();
     }
 
     public Vector2 ScreenToCanvasPoint(Vector2 screenPoint)

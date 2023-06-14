@@ -32,8 +32,8 @@ public class UnlitMaterial : IMaterial
     public void RenderBatches(IGpu gpu)
     {
         //var gpu = m_Gpu;
-        var meshManager = gpu.Mesh;
-        var shaderManager = gpu.Shader;
+        var meshManager = gpu.MeshController;
+        var shaderManager = gpu.ShaderController;
 
         gpu.SaveState();
         gpu.EnableDepthTest = true;
@@ -69,7 +69,7 @@ public class UnlitMaterial : IMaterial
 
     public static UnlitMaterial Load(IGpu gpu)
     {
-        var shader = gpu.Shader.Load("Assets/Shaders/unlit.shader");
+        var shader = gpu.ShaderController.Load("Assets/Shaders/unlit.shader");
         return new UnlitMaterial(shader);
     }
 }

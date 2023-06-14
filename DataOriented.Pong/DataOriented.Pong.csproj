@@ -13,4 +13,10 @@
       <ProjectReference Include="..\EasyGameFramework\EasyGameFramework.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Content Include="Assets\**\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
 </Project>

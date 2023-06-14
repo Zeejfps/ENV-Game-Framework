@@ -84,9 +84,9 @@ public class TestScene : IScene
     {
         var gpu = m_App.Gpu;
 
-        m_UnlitShaderHandle = gpu.Shader.Load("Assets/Shaders/unlit");
-        m_FullScreenBlitShaderHandle = gpu.Shader.Load("Assets/Shaders/fullScreenQuad");
-        m_QuadMeshHandle = gpu.Mesh.Load("Assets/Meshes/quad");
+        m_UnlitShaderHandle = gpu.ShaderController.Load("Assets/Shaders/unlit");
+        m_FullScreenBlitShaderHandle = gpu.ShaderController.Load("Assets/Shaders/fullScreenQuad");
+        m_QuadMeshHandle = gpu.MeshController.Load("Assets/Meshes/quad");
 
         m_Light.Load(this);
         m_SpecularRenderPass.Load(this);
@@ -148,7 +148,7 @@ public class TestScene : IScene
     private List<Ship> CreateShips()
     {
         var gpu = m_App.Gpu;
-        var mesh = gpu.Mesh.Load("Assets/Meshes/ship.mesh");
+        var mesh = gpu.MeshController.Load("Assets/Meshes/ship.mesh");
         var diffuse = gpu.TextureController.Load("Assets/Textures/Ship/ship_d.texture");
         var normal = gpu.TextureController.Load("Assets/Textures/Ship/ship_n.texture");
         var roughness = gpu.TextureController.Load("Assets/Textures/Ship/ship_r.texture");

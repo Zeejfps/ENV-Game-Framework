@@ -31,14 +31,14 @@ public class BlinnRenderer
     public void Load(IScene scene)
     {
         var gpu = m_Gpu;
-        m_Shader = gpu.Shader.Load("Assets/Shaders/blinn.shader");
+        m_Shader = gpu.ShaderController.Load("Assets/Shaders/blinn.shader");
         m_Texture = gpu.TextureController.Load("Assets/Textures/test.texture");
     }
     
     public void Render(IGpu gpu, BlinnRenderData renderData)
     {
-        var meshManager = gpu.Mesh;
-        var shaderManager = gpu.Shader;
+        var meshManager = gpu.MeshController;
+        var shaderManager = gpu.ShaderController;
         
         var camera = m_Camera;
         var modelMatrix = renderData.Transform.WorldMatrix;

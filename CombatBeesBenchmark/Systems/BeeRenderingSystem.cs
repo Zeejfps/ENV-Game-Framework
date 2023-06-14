@@ -27,10 +27,10 @@ public sealed class BeeRenderingSystem
     public void LoadResources()
     {
         var gpu = Gpu;
-        var shaderController = gpu.Shader;
+        var shaderController = gpu.ShaderController;
         var bufferController = gpu.BufferController;
         
-        QuadMeshHandle = gpu.Mesh.Load("Assets/quad");
+        QuadMeshHandle = gpu.MeshController.Load("Assets/quad");
         BeeShaderHandle = shaderController.Load("Assets/bee");
         
         ModelMatricesBuffer = bufferController.CreateAndBind(
@@ -55,8 +55,8 @@ public sealed class BeeRenderingSystem
         
         gpu.SaveState();
 
-        var activeShader = gpu.Shader;
-        var activeMesh = gpu.Mesh;
+        var activeShader = gpu.ShaderController;
+        var activeMesh = gpu.MeshController;
         var bufferController = gpu.BufferController;
         
         activeShader.Bind(BeeShaderHandle);

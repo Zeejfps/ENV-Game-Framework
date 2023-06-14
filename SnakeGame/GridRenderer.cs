@@ -19,8 +19,8 @@ public sealed class GridRenderer
 
     public void LoadResources()
     {
-        GridShader = Gpu.Shader.Load("Assets/grid");
-        QuadMesh = Gpu.Mesh.Load("Assets/quad");
+        GridShader = Gpu.ShaderController.Load("Assets/grid");
+        QuadMesh = Gpu.MeshController.Load("Assets/quad");
     }
 
     public void Render()
@@ -31,9 +31,9 @@ public sealed class GridRenderer
         var cellWidth = activeFramebuffer.Width / GridSize.Width;
         var cellHeight = activeFramebuffer.Height / GridSize.Height;
 
-        gpu.Shader.Bind(GridShader);
-        gpu.Shader.SetVector2("u_Pitch", new Vector2(cellWidth, cellHeight));
-        gpu.Mesh.Bind(QuadMesh);
-        gpu.Mesh.Render();
+        gpu.ShaderController.Bind(GridShader);
+        gpu.ShaderController.SetVector2("u_Pitch", new Vector2(cellWidth, cellHeight));
+        gpu.MeshController.Bind(QuadMesh);
+        gpu.MeshController.Render();
     }
 }

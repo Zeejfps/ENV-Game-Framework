@@ -119,8 +119,8 @@ public sealed class BeeSystem
     public void LoadResources()
     {
         var gpu = Context.Window.Gpu;
-        QuadMeshHandle = gpu.Mesh.Load("Assets/quad");
-        BeeShaderHandle = gpu.Shader.Load("Assets/bee");
+        QuadMeshHandle = gpu.MeshController.Load("Assets/quad");
+        BeeShaderHandle = gpu.ShaderController.Load("Assets/bee");
     }
 
     public void Update(float dt)
@@ -379,8 +379,8 @@ public sealed class BeeSystem
         var gpu = Context.Window.Gpu;
         gpu.SaveState();
 
-        var activeShader = gpu.Shader;
-        var activeMesh = gpu.Mesh;
+        var activeShader = gpu.ShaderController;
+        var activeMesh = gpu.MeshController;
         
         activeShader.Bind(BeeShaderHandle);
         activeMesh.Bind(QuadMeshHandle);

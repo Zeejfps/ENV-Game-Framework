@@ -33,7 +33,7 @@ public class Toad : ISceneObject
     {
         var gpu = Gpu;
         
-        m_MeshHandle = gpu.Mesh.Load("Assets/Meshes/Toad");
+        m_MeshHandle = gpu.MeshController.Load("Assets/Meshes/Toad");
         m_Diffuse = gpu.TextureController.Load("Assets/Textures/Toad/Toad_BaseColor");
         m_Normal = gpu.TextureController.Load("Assets/Textures/Toad/Toad_Normal");
         m_Roughness = gpu.TextureController.Load("Assets/Textures/Toad/Toad_Roughness");

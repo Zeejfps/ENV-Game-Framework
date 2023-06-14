@@ -31,7 +31,7 @@ public class SpriteRenderer : ISpriteRenderer
     public void LoadResources()
     {
         var gpu = Gpu;
-        var shaderController = gpu.Shader;
+        var shaderController = gpu.ShaderController;
         var bufferController = gpu.BufferController;
         
         ShaderHandle = shaderController.Load("Assets/sprite");
@@ -50,7 +50,7 @@ public class SpriteRenderer : ISpriteRenderer
         
         shaderController.AttachBuffer("colorsBlock", 1, ColorsBuffer);
         
-        MeshHandle = gpu.Mesh.Load("Assets/quad");
+        MeshHandle = gpu.MeshController.Load("Assets/quad");
     }
     
     public void NewBatch()
@@ -91,8 +91,8 @@ public class SpriteRenderer : ISpriteRenderer
         Debug.Assert(ShaderHandle != null);
         Debug.Assert(MeshHandle != null);
 
-        var shaderController = Gpu.Shader;
-        var meshController = Gpu.Mesh;
+        var shaderController = Gpu.ShaderController;
+        var meshController = Gpu.MeshController;
         var bufferController = Gpu.BufferController;
         
         shaderController.Bind(ShaderHandle);

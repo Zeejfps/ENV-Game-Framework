@@ -6,8 +6,8 @@ public interface IGpu
     bool EnableBackfaceCulling { get; set; }
     bool EnableBlending { get; set; }
 
-    IMeshManager Mesh { get; }
-    IShaderManager Shader { get; }
+    IMeshController MeshController { get; }
+    IShaderManager ShaderController { get; }
     ITextureController TextureController { get; }
     IRenderbufferManager FramebufferController { get; }
     IBufferController BufferController { get; }

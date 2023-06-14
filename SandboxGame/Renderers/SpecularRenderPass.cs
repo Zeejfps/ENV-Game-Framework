@@ -43,15 +43,15 @@ public class SpecularRenderPass
     
     public void Load(IScene scene)
     {
-        m_SpecularShaderHandle = Gpu.Shader.Load("Assets/Shaders/specular.shader");
+        m_SpecularShaderHandle = Gpu.ShaderController.Load("Assets/Shaders/specular.shader");
     }
     
     public void Render(IGpu gpu, ICamera camera, ITransform3D light)
     {
         Matrix4x4.Invert(camera.Transform.WorldMatrix, out var viewMatrix);
 
-        var mesh = gpu.Mesh;
-        var shader = gpu.Shader;
+        var mesh = gpu.MeshController;
+        var shader = gpu.ShaderController;
 
         gpu.SaveState();
         gpu.EnableBackfaceCulling = true;

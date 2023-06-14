@@ -68,8 +68,8 @@ public class SpriteRenderer
 
     public void LoadResources()
     {
-        ShaderHandle = Gpu.Shader.Load("Assets/sprite");
-        MeshHandle = Gpu.Mesh.Load("Assets/quad");
+        ShaderHandle = Gpu.ShaderController.Load("Assets/sprite");
+        MeshHandle = Gpu.MeshController.Load("Assets/quad");
     }
     
     public void NewBatch()
@@ -112,8 +112,8 @@ public class SpriteRenderer
         Debug.Assert(ShaderHandle != null);
         Debug.Assert(MeshHandle != null);
 
-        var shader = Gpu.Shader;
-        var mesh = Gpu.Mesh;
+        var shader = Gpu.ShaderController;
+        var mesh = Gpu.MeshController;
         
         shader.Bind(ShaderHandle);
         mesh.Bind(MeshHandle);

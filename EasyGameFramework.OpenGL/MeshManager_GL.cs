@@ -8,7 +8,7 @@ using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-internal class MeshManager_GL : GpuResourceManager<IHandle<IGpuMesh>, Mesh_GL>, IMeshManager
+internal class MeshManager_GL : GpuResourceManager<IHandle<IGpuMesh>, Mesh_GL>, IMeshController
 {
     private readonly CpuMeshAssetLoader m_CpuMeshLoader = new();
 
@@ -32,6 +32,15 @@ internal class MeshManager_GL : GpuResourceManager<IHandle<IGpuMesh>, Mesh_GL>, 
         var cpuMesh = m_CpuMeshLoader.Load(assetPath);
         return new Mesh_GL(cpuMesh.Vertices, cpuMesh.Normals, cpuMesh.Uvs, cpuMesh.Tangents,
             cpuMesh.Triangles);
+    }
+
+    public IHandle<IGpuMesh> CreateAndBind(CpuMesh mesh)
+    {
+        var resource = new Mesh_GL(mesh.Vertices, mesh.Normals, mesh.Uvs, mesh.Tangents,
+            mesh.Triangles);
+        var handle = new GpuMeshHandle(resource);
+        Add(handle, resource);
+        return handle;
     }
 
     public void Render()

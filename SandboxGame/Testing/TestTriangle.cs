@@ -36,7 +36,7 @@ public class TestTriangle : ISceneObject
         var gpu = m_Gpu;
         var keyboard = m_Input.Keyboard;
 
-        var shaderManager = gpu.Shader;
+        var shaderManager = gpu.ShaderController;
         shaderManager.Bind(m_Shader);
         
         shaderManager.SetMatrix4x4("matrix_projection", m_Camera.ProjectionMatrix);

@@ -27,7 +27,7 @@ public class TestLight : ISceneObject
     public void Load(IScene scene)
     {
         var gpu = m_Gpu;
-        m_Mesh = gpu.Mesh.Load("Assets/Meshes/quad");
+        m_Mesh = gpu.MeshController.Load("Assets/Meshes/quad");
     }
 
     public void Render()

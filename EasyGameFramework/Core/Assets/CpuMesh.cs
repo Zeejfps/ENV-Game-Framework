@@ -1,4 +1,5 @@
-﻿using EasyGameFramework.Api.AssetTypes;
+﻿using System.Numerics;
+using EasyGameFramework.Api.AssetTypes;
 
 namespace EasyGameFramework.Core;
 
@@ -79,5 +80,31 @@ public class CpuMesh : ICpuMesh
         for (var i = 0; i < length; i++)
             data[i] = reader.ReadInt32();
         return data;
+    }
+
+    public static CpuMesh CreateQuad()
+    {
+        return new CpuMesh
+        {
+            Vertices = new[]
+            {
+                -1f, -1f, 0f,
+                1f, -1f, 0f,
+                -1f, 1f, 0f,
+                1f, 1f, 0f
+            },
+            Triangles = new[]
+            {
+                0, 2, 1,
+                2, 3, 1
+            },
+            Uvs = new[]
+            {
+                0f, 0f,
+                1f, 0f,
+                0f, 1f,
+                1f, 1f
+            }
+        };
     }
 }
