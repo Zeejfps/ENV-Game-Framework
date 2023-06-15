@@ -4,7 +4,7 @@ using EasyGameFramework.Api.Physics;
 
 namespace Pong;
 
-public class Ball : IBody
+public class Ball : IPhysicsEntity
 {
     public Ball(ILogger logger)
     {

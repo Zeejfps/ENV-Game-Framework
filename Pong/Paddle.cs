@@ -3,7 +3,7 @@ using EasyGameFramework.Api.Physics;
 
 namespace Pong;
 
-public sealed class Paddle : IBody
+public sealed class Paddle : IPhysicsEntity, IBoxCollider
 {
     public Vector2 Position { get; set; }
     public Vector2 PrevPosition { get; set; }
@@ -26,4 +26,15 @@ public sealed class Paddle : IBody
             newPositionX = LevelBounds.Right - Size;
         Position = Position with { X = newPositionX };
     }
+
+    public Rect AABB =>
+        new()
+        {
+            BottomLeft = new Vector2(
+                Position.X - Size - 0.5f,
+                Position.Y - 1f - 0.5f
+            ),
+            Width = Size * 2f + 1f,
+            Height = 2 + 1f
+        };
 }

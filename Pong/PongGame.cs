@@ -76,7 +76,11 @@ public sealed class PongGame : Game
 
 
         PixelCanvas = new PixelCanvas(Logger, Window, 640, 640);
+        
         BallPaddleCollisionSystem = new BallPaddleCollisionSystem(PixelCanvas,Camera, Physics2D, Logger);
+        BallPaddleCollisionSystem.AddEntity(Ball);
+        BallPaddleCollisionSystem.AddCollider(TopPaddle);
+        BallPaddleCollisionSystem.AddCollider(BottomPaddle);
 
         PositionUpdateSystem = new PositionUpdateSystem(Logger);
         PositionUpdateSystem.Add(Ball);
@@ -170,7 +174,7 @@ public sealed class PongGame : Game
         var mouseScreenPosition = new Vector2(mouse.ScreenX, mouse.ScreenY);
         MousePosition = PixelCanvas.ScreenToCanvasPoint(mouseScreenPosition);
 
-        BallPaddleCollisionSystem.Update(Time.UpdateDeltaTime, Ball, BottomPaddle, TopPaddle);
+        BallPaddleCollisionSystem.Update(Time.UpdateDeltaTime);
         PositionUpdateSystem.Update(Time.UpdateDeltaTime);
     }
 

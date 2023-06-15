@@ -1,26 +1,13 @@
-﻿using System.Numerics;
-using EasyGameFramework.Api;
+﻿using EasyGameFramework.Api;
 
 namespace Pong;
-
-public interface IBody
-{
-    public Vector2 Position { get; set; }
-    public Vector2 Velocity { get; }
-}
-
-struct PositionUpdateSystemInput
-{
-    public Vector2 Position;
-    public Vector2 Velocity;
-}
 
 public sealed class PositionUpdateSystem
 {
     private ILogger Logger { get; }
     private int m_Size;
-    private readonly IBody[] m_Bodies = new IBody[3];
-    private readonly PositionUpdateSystemInput[] m_Data = new PositionUpdateSystemInput[3];
+    private readonly IPhysicsEntity[] m_Bodies = new IPhysicsEntity[3];
+    private readonly PhysicsEntity[] m_Entities = new PhysicsEntity[3];
 
     public PositionUpdateSystem(ILogger logger)
     {
@@ -32,9 +19,9 @@ public sealed class PositionUpdateSystem
         m_Size = 0;
     }
 
-    public void Add(IBody body)
+    public void Add(IPhysicsEntity body)
     {
-        m_Data[m_Size] = new PositionUpdateSystemInput
+        m_Entities[m_Size] = new PhysicsEntity
         {
             Position = body.Position,
             Velocity = body.Velocity
@@ -45,13 +32,13 @@ public sealed class PositionUpdateSystem
 
     public void Update(float dt)
     {
-        var data = m_Data.AsSpan();
+        var data = m_Entities.AsSpan();
         var dataLength = data.Length;
         
         for (var i = 0; i < dataLength; i++)
         {
             var body = m_Bodies[i];
-            data[i] = new PositionUpdateSystemInput
+            data[i] = new PhysicsEntity
             {
                 Position = body.Position,
                 Velocity = body.Velocity

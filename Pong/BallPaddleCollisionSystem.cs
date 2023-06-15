@@ -13,6 +13,12 @@ public sealed class BallPaddleCollisionSystem
     private ILogger Logger { get; }
     private OrthographicCamera Camera { get; }
     private IPixelCanvas PixelCanvas { get; }
+    
+    private readonly List<IPhysicsEntity> m_Bodies = new();
+    private readonly List<IBoxCollider> m_RectColliders = new();
+
+    private readonly Rect[] m_Colliders = new Rect[32];
+    private readonly PhysicsEntity[] m_PhysicsEntities = new PhysicsEntity[32];
 
     public BallPaddleCollisionSystem(IPixelCanvas pixelCanvas, OrthographicCamera camera, Physics2D physics2D, ILogger logger)
     {
@@ -22,29 +28,62 @@ public sealed class BallPaddleCollisionSystem
         Logger = logger;
     }
 
-    public void Update(float dt, Ball ball, Paddle bottomPaddle, Paddle topPaddle)
+    public void AddEntity(IPhysicsEntity body)
     {
-        var topPaddleRect = CreateCollisionRect(topPaddle);
-        var botPaddleRect = CreateCollisionRect(bottomPaddle);
+        m_Bodies.Add(body);
+    }
 
-        var ray = new Ray2D
+    public void AddCollider(IBoxCollider collider)
+    {
+        m_RectColliders.Add(collider);
+    }
+
+    public void Update(float dt)
+    {
+        var colliders = m_Colliders.AsSpan();
+        var colliderCount = m_RectColliders.Count;
+        for (var i = 0; i < colliderCount; i++)
         {
-            Origin = ball.Position,
-            Direction = ball.Velocity * dt
-        };
-        
-        if (Physics2D.TryRaycastRect(ray, topPaddleRect, out var topHit))
-        {
-            ball.Position = topHit.HitPoint + topHit.Normal;
-            ball.Velocity = ball.Velocity with { Y = -ball.Velocity.Y };
-            return;
+            colliders[i] = m_RectColliders[i].AABB;
         }
 
-        if (Physics2D.TryRaycastRect(ray, botPaddleRect, out var botHit))
+        var entities = m_PhysicsEntities.AsSpan();
+        var entityCount = m_Bodies.Count;
+        for (var i = 0; i < entityCount; i++)
         {
-            ball.Position = botHit.HitPoint + botHit.Normal;
-            ball.Velocity = ball.Velocity with { Y = -ball.Velocity.Y };
-            return;
+            var body = m_Bodies[i];
+            entities[i] = new PhysicsEntity
+            {
+                Position = body.Position,
+                Velocity = body.Velocity
+            };
+        }
+        
+        for (var i = 0; i < colliderCount; i++)
+        {
+            ref var collider = ref colliders[i];
+            for (var j = 0; j < entityCount; j++)
+            {
+                ref var entity = ref entities[j];
+                var ray = new Ray2D
+                {
+                    Origin = entity.Position,
+                    Direction = entity.Velocity * dt,
+                };
+                if (Physics2D.TryRaycastRect(ray, collider, out var hit))
+                {
+                    entity.Position = hit.HitPoint + hit.Normal;
+                    entity.Velocity = entity.Velocity with { Y = -entity.Velocity.Y };
+                }
+            }
+        }
+        
+        for (var i = 0; i < entityCount; i++)
+        {
+            var body = m_Bodies[i];
+            ref var entity = ref entities[i];
+            body.Position = entity.Position;
+            body.Velocity = entity.Velocity;
         }
     }
 
