@@ -11,7 +11,7 @@ public struct PhysicsEntityWithColliderState
 public class PaddleCollisionSystem
 {
     private readonly List<IPhysicsEntityWithCollider> m_Entities = new();
-    private readonly PhysicsEntityWithColliderState[] m_States = new PhysicsEntityWithColliderState[32];
+    private readonly PhysicsEntityWithColliderState[] m_States = new PhysicsEntityWithColliderState[5000];
     private Rect Bounds { get; }
 
     public PaddleCollisionSystem(Rect bounds)

@@ -4,7 +4,7 @@ namespace Pong;
 
 public class SpriteBatch
 {
-    private const int MAX_BATCH_SIZE = 512;
+    private const int MAX_BATCH_SIZE = 2000;
 
     private int m_Size = 0;
     private readonly Vector2[] m_Offsets = new Vector2[MAX_BATCH_SIZE];

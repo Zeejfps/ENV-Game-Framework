@@ -90,12 +90,13 @@ public sealed class PongGame : Game
         PositionUpdateSystem.Add(Ball);
         PositionUpdateSystem.Add(TopPaddle);
         PositionUpdateSystem.Add(BottomPaddle);
-        
+
+        var random = new Random();
         for (var i = 0; i < Balls.Length; i++)
         {
             var ball = new Ball(Logger)
             {
-                Velocity = new Vector2(i * 0.5f, i * 20f)
+                Velocity = new Vector2((random.NextSingle() - 0.5f) * 2f * 40f, (random.NextSingle() - 0.5f) * 2f * 40f)
             };
             BallCollisionSystem.AddEntity(ball);
             PositionUpdateSystem.Add(ball);
@@ -103,7 +104,7 @@ public sealed class PongGame : Game
         }
     }
 
-    private Ball[] Balls = new Ball[10];
+    private Ball[] Balls = new Ball[1000];
 
     protected override void OnStartup()
     {

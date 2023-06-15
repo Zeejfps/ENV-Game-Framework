@@ -8,7 +8,7 @@ namespace Pong;
 
 public class SpriteRenderer : ISpriteRenderer
 {
-    private const int MAX_BATCH_SIZE = 512;
+    private const int MAX_BATCH_SIZE = 2000;
     
     private IGpu Gpu { get; }
     private IHandle<IGpuShader>? ShaderHandle { get; set; }

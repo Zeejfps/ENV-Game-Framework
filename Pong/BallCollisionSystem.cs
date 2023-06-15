@@ -17,8 +17,8 @@ public sealed class BallCollisionSystem
     private readonly List<IPhysicsEntity> m_Bodies = new();
     private readonly List<IBoxCollider> m_RectColliders = new();
 
-    private readonly Rect[] m_Colliders = new Rect[32];
-    private readonly PhysicsEntity[] m_PhysicsEntities = new PhysicsEntity[32];
+    private readonly Rect[] m_Colliders = new Rect[5000];
+    private readonly PhysicsEntity[] m_PhysicsEntities = new PhysicsEntity[5000];
     private Rect Bounds { get; }
 
     public BallCollisionSystem(IPixelCanvas pixelCanvas, OrthographicCamera camera, Physics2D physics2D, ILogger logger, Rect bounds)

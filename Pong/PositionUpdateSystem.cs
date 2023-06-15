@@ -6,7 +6,7 @@ public sealed class PositionUpdateSystem
 {
     private ILogger Logger { get; }
     private readonly List<IPhysicsEntity> m_Bodies = new();
-    private readonly PhysicsEntity[] m_Entities = new PhysicsEntity[32];
+    private readonly PhysicsEntity[] m_Entities = new PhysicsEntity[5000];
 
     public PositionUpdateSystem(ILogger logger)
     {
