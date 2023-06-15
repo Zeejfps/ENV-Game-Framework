@@ -96,14 +96,14 @@ public sealed class PongGame : Game
         }
     }
 
-    private Ball[] Balls = new Ball[1000];
+    private Ball[] Balls = new Ball[4000];
 
     protected override void OnStartup()
     {
         var window = Window;
         window.Title = "Pong";
         window.IsResizable = true;
-        window.IsVsyncEnabled = true;
+        window.IsVsyncEnabled = false;
         window.CursorMode = CursorMode.Visible;
         window.SetScreenSize(640, 640);
         
