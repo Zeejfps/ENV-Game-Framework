@@ -29,20 +29,20 @@ public sealed class BallPaddleCollisionSystem
 
         var ray = new Ray2D
         {
-            Origin = ball.CurrPosition,
+            Origin = ball.Position,
             Direction = ball.Velocity * dt
         };
         
         if (Physics2D.TryRaycastRect(ray, topPaddleRect, out var topHit))
         {
-            ball.CurrPosition = topHit.HitPoint + topHit.Normal;
+            ball.Position = topHit.HitPoint + topHit.Normal;
             ball.Velocity = ball.Velocity with { Y = -ball.Velocity.Y };
             return;
         }
 
         if (Physics2D.TryRaycastRect(ray, botPaddleRect, out var botHit))
         {
-            ball.CurrPosition = botHit.HitPoint + botHit.Normal;
+            ball.Position = botHit.HitPoint + botHit.Normal;
             ball.Velocity = ball.Velocity with { Y = -ball.Velocity.Y };
             return;
         }
@@ -52,12 +52,12 @@ public sealed class BallPaddleCollisionSystem
     {
         var resolutionX = PixelCanvas.ResolutionX;
         var resolutionY = PixelCanvas.ResolutionY;
-        var velocityEnd = Camera.WorldToViewportPoint(ball.CurrPosition + ball.Velocity) *
+        var velocityEnd = Camera.WorldToViewportPoint(ball.Position + ball.Velocity) *
                           new Vector2(resolutionX, resolutionY);
         
-        var ballCenter = Camera.WorldToViewportPoint(ball.CurrPosition);
-        var botLeft = Camera.WorldToViewportPoint(ball.CurrPosition - new Vector2(1f, 1f));
-        var topRight = Camera.WorldToViewportPoint(ball.CurrPosition + Vector2.One);
+        var ballCenter = Camera.WorldToViewportPoint(ball.Position);
+        var botLeft = Camera.WorldToViewportPoint(ball.Position - new Vector2(1f, 1f));
+        var topRight = Camera.WorldToViewportPoint(ball.Position + Vector2.One);
         var canvasX = (int)(botLeft.X * PixelCanvas.ResolutionX);
         var canvasY = (int)(botLeft.Y * PixelCanvas.ResolutionY);
         var canvasW = (topRight.X - botLeft.X) * PixelCanvas.ResolutionX;
@@ -94,8 +94,8 @@ public sealed class BallPaddleCollisionSystem
         return new Rect
         {
             BottomLeft = new Vector2(
-                paddle.CurrPosition.X - paddle.Size - 0.5f,
-                paddle.CurrPosition.Y - 1f - 0.5f
+                paddle.Position.X - paddle.Size - 0.5f,
+                paddle.Position.Y - 1f - 0.5f
             ),
             Width = paddle.Size * 2f + 1f,
             Height = 2 + 1f

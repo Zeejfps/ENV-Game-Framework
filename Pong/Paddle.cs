@@ -3,26 +3,27 @@ using EasyGameFramework.Api.Physics;
 
 namespace Pong;
 
-public sealed class Paddle
+public sealed class Paddle : IBody
 {
-    public Vector2 CurrPosition { get; set; }
+    public Vector2 Position { get; set; }
     public Vector2 PrevPosition { get; set; }
     public float Size { get; } = 10;
     public Rect LevelBounds { get; set; }
-    
+    public Vector2 Velocity { get; set; }
+
     public void MoveLeft(float xDelta)
     {
-        var newPositionX = CurrPosition.X - xDelta;
+        var newPositionX = Position.X - xDelta;
         if (newPositionX - Size < LevelBounds.Left)
             newPositionX = LevelBounds.Left + Size;
-        CurrPosition = CurrPosition with { X = newPositionX };
+        Position = Position with { X = newPositionX };
     }
 
     public void MoveRight(float xDelta)
     {
-        var newPositionX = CurrPosition.X + xDelta;
+        var newPositionX = Position.X + xDelta;
         if (newPositionX + Size > LevelBounds.Right)
             newPositionX = LevelBounds.Right - Size;
-        CurrPosition = CurrPosition with { X = newPositionX };
+        Position = Position with { X = newPositionX };
     }
 }

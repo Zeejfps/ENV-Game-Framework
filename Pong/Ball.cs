@@ -4,7 +4,7 @@ using EasyGameFramework.Api.Physics;
 
 namespace Pong;
 
-public class Ball
+public class Ball : IBody
 {
     public Ball(ILogger logger)
     {
@@ -12,7 +12,7 @@ public class Ball
     }
 
     public Vector2 PrevPosition { get; set; }
-    public Vector2 CurrPosition { get; set; }
+    public Vector2 Position { get; set; }
     public Rect Bounds { get; set; }
     public Vector2 Velocity { get; set; } = new(20, 20);
 
@@ -20,9 +20,9 @@ public class Ball
     
     public void Update(float dt)
     {
-        PrevPosition = CurrPosition;
+        //PrevPosition = Position;
         
-        var newPosition = CurrPosition + Velocity * dt;
+        var newPosition = Position + Velocity * dt;
         if (newPosition.X <= Bounds.Left + 0.5f)
         {
             Velocity = Velocity with { X = -Velocity.X };
@@ -39,7 +39,7 @@ public class Ball
         else if (newPosition.Y <= Bounds.Bottom)
             Velocity = Velocity with { Y = -Velocity.Y };
         
-        CurrPosition = newPosition;
+        //Position = newPosition;
         //Logger.Trace(CurrPosition);
     }
 }
