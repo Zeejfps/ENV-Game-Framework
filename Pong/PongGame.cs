@@ -36,8 +36,8 @@ public sealed class PongGame : Game
     private IPixelCanvas PixelCanvas { get; } 
     private Vector2 MousePosition { get; set; }
 
-    private BallPaddleCollisionSystem BallPaddleCollisionSystem { get; }
-    private WallCollisionSystem WallCollisionSystem { get; }
+    private BallCollisionSystem BallCollisionSystem { get; }
+    private PaddleCollisionSystem PaddleCollisionSystem { get; }
 
     public PongGame(ISpriteRenderer spriteRenderer, IContext context) : base(context)
     {
@@ -78,15 +78,14 @@ public sealed class PongGame : Game
 
         PixelCanvas = new PixelCanvas(Logger, Window, 640, 640);
 
-        WallCollisionSystem = new WallCollisionSystem(LevelBounds);
-        WallCollisionSystem.Add(Ball);
-        WallCollisionSystem.Add(TopPaddle);
-        WallCollisionSystem.Add(BottomPaddle);
+        PaddleCollisionSystem = new PaddleCollisionSystem(LevelBounds);
+        PaddleCollisionSystem.Add(TopPaddle);
+        PaddleCollisionSystem.Add(BottomPaddle);
         
-        BallPaddleCollisionSystem = new BallPaddleCollisionSystem(PixelCanvas,Camera, Physics2D, Logger);
-        BallPaddleCollisionSystem.AddEntity(Ball);
-        BallPaddleCollisionSystem.AddCollider(TopPaddle);
-        BallPaddleCollisionSystem.AddCollider(BottomPaddle);
+        BallCollisionSystem = new BallCollisionSystem(PixelCanvas,Camera, Physics2D, Logger, LevelBounds);
+        BallCollisionSystem.AddEntity(Ball);
+        BallCollisionSystem.AddCollider(TopPaddle);
+        BallCollisionSystem.AddCollider(BottomPaddle);
 
         PositionUpdateSystem = new PositionUpdateSystem(Logger);
         PositionUpdateSystem.Add(Ball);
@@ -164,10 +163,12 @@ public sealed class PongGame : Game
         
         BottomPaddle.PrevPosition = BottomPaddle.Position;
         if (keyboard.IsKeyPressed(KeyboardKey.A))
-            BottomPaddle.MoveLeft(paddlePositionDelta);
+            BottomPaddle.Velocity = -Vector2.UnitX * 50f;
         else if (keyboard.IsKeyPressed(KeyboardKey.D))
-            BottomPaddle.MoveRight(paddlePositionDelta);
-        
+            BottomPaddle.Velocity = Vector2.UnitX * 50f;
+        else
+            BottomPaddle.Velocity = Vector2.Zero;
+
         TopPaddle.PrevPosition = TopPaddle.Position;
         if (keyboard.IsKeyPressed(KeyboardKey.LeftArrow))
             TopPaddle.MoveLeft(paddlePositionDelta);
@@ -178,8 +179,8 @@ public sealed class PongGame : Game
         var mouseScreenPosition = new Vector2(mouse.ScreenX, mouse.ScreenY);
         MousePosition = PixelCanvas.ScreenToCanvasPoint(mouseScreenPosition);
 
-        WallCollisionSystem.Update(Time.UpdateDeltaTime);
-        BallPaddleCollisionSystem.Update(Time.UpdateDeltaTime);
+        PaddleCollisionSystem.Update(Time.UpdateDeltaTime);
+        BallCollisionSystem.Update(Time.UpdateDeltaTime);
         PositionUpdateSystem.Update(Time.UpdateDeltaTime);
     }
 
@@ -226,7 +227,7 @@ public sealed class PongGame : Game
 
         gpu.ReleaseRenderbuffer(fb);
         
-        BallPaddleCollisionSystem.DebugRender(Ball, TopPaddle, BottomPaddle);
+        BallCollisionSystem.DebugRender(Ball, TopPaddle, BottomPaddle);
         
         PixelCanvas.DrawLine(0, 0, (int)MousePosition.X, (int)MousePosition.Y);
         PixelCanvas.Render();

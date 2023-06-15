@@ -6,7 +6,9 @@ public readonly struct Rect
 {
     public Vector2 BottomLeft { get; init; }
     public float Width { get; init; }
+    public float HalfWidth => Width * 0.5f;
     public float Height { get; init; }
+    public float HalfHeight => Height * 0.5f;
     public float Left => BottomLeft.X;
     public float Right => BottomLeft.X + Width;
     public float Top => BottomLeft.Y + Height;

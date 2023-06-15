@@ -3,7 +3,7 @@ using EasyGameFramework.Api.Physics;
 
 namespace Pong;
 
-public sealed class Paddle : IPhysicsEntity, IBoxCollider
+public sealed class Paddle : IPhysicsEntity, IBoxCollider, IPhysicsEntityWithCollider
 {
     public Vector2 Position { get; set; }
     public Vector2 PrevPosition { get; set; }
@@ -17,6 +17,11 @@ public sealed class Paddle : IPhysicsEntity, IBoxCollider
             Position = Position,
             Velocity = Velocity
         };
+    }
+
+    public void Load(PhysicsEntityWithColliderState state)
+    {
+        Load(state.PhysicsEntityState);
     }
 
     public void Load(PhysicsEntity state)
@@ -51,4 +56,13 @@ public sealed class Paddle : IPhysicsEntity, IBoxCollider
             Width = Size * 2f + 1f,
             Height = 2 + 1f
         };
+
+    PhysicsEntityWithColliderState IPhysicsEntityWithCollider.Save()
+    {
+        return new PhysicsEntityWithColliderState
+        {
+            PhysicsEntityState = Save(),
+            ColliderState = AABB,
+        };
+    }
 }

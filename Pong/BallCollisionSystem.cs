@@ -7,7 +7,7 @@ using Pong.Physics;
 
 namespace Pong;
 
-public sealed class BallPaddleCollisionSystem
+public sealed class BallCollisionSystem
 {
     private Physics2D Physics2D { get; }
     private ILogger Logger { get; }
@@ -19,13 +19,15 @@ public sealed class BallPaddleCollisionSystem
 
     private readonly Rect[] m_Colliders = new Rect[32];
     private readonly PhysicsEntity[] m_PhysicsEntities = new PhysicsEntity[32];
+    private Rect Bounds { get; }
 
-    public BallPaddleCollisionSystem(IPixelCanvas pixelCanvas, OrthographicCamera camera, Physics2D physics2D, ILogger logger)
+    public BallCollisionSystem(IPixelCanvas pixelCanvas, OrthographicCamera camera, Physics2D physics2D, ILogger logger, Rect bounds)
     {
         PixelCanvas = pixelCanvas;
         Camera = camera;
         Physics2D = physics2D;
         Logger = logger;
+        Bounds = bounds;
     }
 
     public void AddEntity(IPhysicsEntity body)
@@ -66,7 +68,17 @@ public sealed class BallPaddleCollisionSystem
                     Origin = entity.Position,
                     Direction = entity.Velocity * dt,
                 };
-                if (Physics2D.TryRaycastRect(ray, collider, out var hit))
+
+                var newPosition = entity.Position + entity.Velocity * dt;
+                if (newPosition.X < Bounds.Left || newPosition.X > Bounds.Right)
+                {
+                    entity.Velocity = entity.Velocity with { X = -entity.Velocity.X };
+                }
+                if (newPosition.Y <= Bounds.Bottom || newPosition.Y >= Bounds.Top)
+                {
+                    entity.Velocity = entity.Velocity with { Y = -entity.Velocity.Y };
+                }
+                else if (Physics2D.TryRaycastRect(ray, collider, out var hit))
                 {
                     entity.Position = hit.HitPoint + hit.Normal;
                     entity.Velocity = entity.Velocity with { Y = -entity.Velocity.Y };
@@ -110,7 +122,7 @@ public sealed class BallPaddleCollisionSystem
 
     private void DrawDebugRect(Paddle paddle)
     {
-        var rect = CreateCollisionRect(paddle);
+        var rect = paddle.AABB;
         var bottomLeftViewportPoint = Camera.WorldToViewportPoint(rect.BottomLeft);
         var topRightViewportPoint = Camera.WorldToViewportPoint(rect.TopRight);
         var canvasX = bottomLeftViewportPoint.X * PixelCanvas.ResolutionX;
@@ -120,18 +132,5 @@ public sealed class BallPaddleCollisionSystem
         PixelCanvas.DrawRect((int)canvasX, (int)canvasY,
             (int)canvasW, 
             (int)canvasH);
-    }
-
-    private Rect CreateCollisionRect(Paddle paddle)
-    {
-        return new Rect
-        {
-            BottomLeft = new Vector2(
-                paddle.Position.X - paddle.Size - 0.5f,
-                paddle.Position.Y - 1f - 0.5f
-            ),
-            Width = paddle.Size * 2f + 1f,
-            Height = 2 + 1f
-        };
     }
 }

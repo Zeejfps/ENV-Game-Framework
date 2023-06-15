@@ -4,7 +4,7 @@ using EasyGameFramework.Api.Physics;
 
 namespace Pong;
 
-public class Ball : IPhysicsEntity
+public class Ball : IPhysicsEntity, IPhysicsEntityWithCollider
 {
     public Ball(ILogger logger)
     {
@@ -25,9 +25,28 @@ public class Ball : IPhysicsEntity
         };
     }
 
+    public void Load(PhysicsEntityWithColliderState state)
+    {
+        Load(state.PhysicsEntityState);
+    }
+
     public void Load(PhysicsEntity state)
     {
         Position = state.Position;
         Velocity = state.Velocity;
+    }
+
+    PhysicsEntityWithColliderState IPhysicsEntityWithCollider.Save()
+    {
+        return new PhysicsEntityWithColliderState
+        {
+            PhysicsEntityState = Save(),
+            ColliderState = new Rect
+            {
+                BottomLeft = Position - new Vector2(0.5f, 0.5f),
+                Width = 1f,
+                Height = 1f
+            }
+        };
     }
 }
