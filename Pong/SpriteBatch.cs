@@ -4,13 +4,11 @@ namespace Pong;
 
 public class SpriteBatch
 {
-    private const int MAX_BATCH_SIZE = 2000;
-
     private int m_Size = 0;
-    private readonly Vector2[] m_Offsets = new Vector2[MAX_BATCH_SIZE];
-    private readonly Vector2[] m_Sizes = new Vector2[MAX_BATCH_SIZE];
-    private readonly Vector4[] m_Colors = new Vector4[MAX_BATCH_SIZE];
-    private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[MAX_BATCH_SIZE];
+    private readonly Vector2[] m_Offsets = new Vector2[SpriteRenderer.MAX_BATCH_SIZE];
+    private readonly Vector2[] m_Sizes = new Vector2[SpriteRenderer.MAX_BATCH_SIZE];
+    private readonly Vector4[] m_Colors = new Vector4[SpriteRenderer.MAX_BATCH_SIZE];
+    private readonly Matrix4x4[] m_ModelMatrices = new Matrix4x4[SpriteRenderer.MAX_BATCH_SIZE];
 
     public ReadOnlySpan<Vector4> Colors => m_Colors;
     public ReadOnlySpan<Matrix4x4> ModelMatrices => m_ModelMatrices;
