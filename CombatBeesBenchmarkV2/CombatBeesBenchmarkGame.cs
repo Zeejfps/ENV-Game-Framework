@@ -4,8 +4,13 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-   
+    public const int MaxBeeCount = 1000;
     
+    private List<Bee> m_Bees = new();
+    
+    private AliveBeeMovementSystem AliveBeeMovementSystem { get; }
+    private DeadBeeMovementSystem DeadBeeMovementSystem { get; }
+
     public CombatBeesBenchmarkGame(IContext context) : base(context)
     {
         // BeeSystem = new BeeSystem(Context, Field, new BeeSystemConfig
@@ -22,7 +27,17 @@ public class CombatBeesBenchmarkGame : Game
         //     AttackForce = 500f,
         //     HitDistance = 0.5f
         // });
-     
+
+        AliveBeeMovementSystem = new AliveBeeMovementSystem();
+        DeadBeeMovementSystem = new DeadBeeMovementSystem();
+        
+        var random = new Random();
+        
+        for (var i = 0; i < MaxBeeCount; i++)
+        {
+            var bee = new Bee(random, AliveBeeMovementSystem, DeadBeeMovementSystem);
+            m_Bees.Add(bee);
+        }
     }
 
     protected override void OnStartup()

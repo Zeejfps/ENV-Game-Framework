@@ -23,12 +23,17 @@ public struct AttackState
 
 public class BeeAttackSystem
 {
-    private readonly List<IAttack> m_Bees = new();
+    private readonly List<IAttack> m_Attackers = new();
     private readonly AttackState[] m_States = new AttackState[500];
 
-    public void Add(IAttack bee)
+    public void Add(IAttack attacker)
     {
-        m_Bees.Add(bee);
+        m_Attackers.Add(attacker);
+    }
+
+    public void Remove(IAttack attacker)
+    {
+        m_Attackers.Remove(attacker);
     }
 
     public void Update(float dt)
@@ -39,9 +44,9 @@ public class BeeAttackSystem
         var attackForce = 2f * dt;
         
         var states = m_States.AsSpan();
-        var stateCount = m_Bees.Count;
+        var stateCount = m_Attackers.Count;
         for (var i = 0; i < stateCount; i++)
-            states[i] = m_Bees[i].Save();
+            states[i] = m_Attackers[i].Save();
 
         for (var i = 0; i < states.Length; i++)
         {
@@ -66,6 +71,6 @@ public class BeeAttackSystem
         }
         
         for (var i = 0; i < stateCount; i++) 
-            m_Bees[i].Load(states[i]);
+            m_Attackers[i].Load(states[i]);
     }
 }
