@@ -21,11 +21,6 @@ public sealed class PositionUpdateSystem
 
     public void Add(IPhysicsEntity body)
     {
-        m_Entities[m_Size] = new PhysicsEntity
-        {
-            Position = body.Position,
-            Velocity = body.Velocity
-        };
         m_Bodies[m_Size] = body;
         m_Size++;
     }
@@ -38,11 +33,7 @@ public sealed class PositionUpdateSystem
         for (var i = 0; i < dataLength; i++)
         {
             var body = m_Bodies[i];
-            data[i] = new PhysicsEntity
-            {
-                Position = body.Position,
-                Velocity = body.Velocity
-            };
+            data[i] = body.Save();
         }
         
         for (var i = 0; i < dataLength; i++)
@@ -53,7 +44,7 @@ public sealed class PositionUpdateSystem
 
         for (var i = 0; i < dataLength; i++)
         {
-            m_Bodies[i].Position =  data[i].Position;
+            m_Bodies[i].Load(data[i]);
         }
     }
 }

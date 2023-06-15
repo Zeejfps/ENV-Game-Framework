@@ -37,6 +37,7 @@ public sealed class PongGame : Game
     private Vector2 MousePosition { get; set; }
 
     private BallPaddleCollisionSystem BallPaddleCollisionSystem { get; }
+    private WallCollisionSystem WallCollisionSystem { get; }
 
     public PongGame(ISpriteRenderer spriteRenderer, IContext context) : base(context)
     {
@@ -76,6 +77,11 @@ public sealed class PongGame : Game
 
 
         PixelCanvas = new PixelCanvas(Logger, Window, 640, 640);
+
+        WallCollisionSystem = new WallCollisionSystem(LevelBounds);
+        WallCollisionSystem.Add(Ball);
+        WallCollisionSystem.Add(TopPaddle);
+        WallCollisionSystem.Add(BottomPaddle);
         
         BallPaddleCollisionSystem = new BallPaddleCollisionSystem(PixelCanvas,Camera, Physics2D, Logger);
         BallPaddleCollisionSystem.AddEntity(Ball);
@@ -152,8 +158,6 @@ public sealed class PongGame : Game
             Exit();
             return;
         }
-
-        Ball.Update(Time.UpdateDeltaTime);
         
         var paddleSpeed = 30f;
         var paddlePositionDelta = Time.UpdateDeltaTime * paddleSpeed;
@@ -174,6 +178,7 @@ public sealed class PongGame : Game
         var mouseScreenPosition = new Vector2(mouse.ScreenX, mouse.ScreenY);
         MousePosition = PixelCanvas.ScreenToCanvasPoint(mouseScreenPosition);
 
+        WallCollisionSystem.Update(Time.UpdateDeltaTime);
         BallPaddleCollisionSystem.Update(Time.UpdateDeltaTime);
         PositionUpdateSystem.Update(Time.UpdateDeltaTime);
     }

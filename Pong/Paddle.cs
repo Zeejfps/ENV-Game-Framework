@@ -10,6 +10,20 @@ public sealed class Paddle : IPhysicsEntity, IBoxCollider
     public float Size { get; } = 10;
     public Rect LevelBounds { get; set; }
     public Vector2 Velocity { get; set; }
+    public PhysicsEntity Save()
+    {
+        return new PhysicsEntity
+        {
+            Position = Position,
+            Velocity = Velocity
+        };
+    }
+
+    public void Load(PhysicsEntity state)
+    {
+        Position = state.Position;
+        Velocity = state.Velocity;
+    }
 
     public void MoveLeft(float xDelta)
     {

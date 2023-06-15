@@ -52,11 +52,7 @@ public sealed class BallPaddleCollisionSystem
         for (var i = 0; i < entityCount; i++)
         {
             var body = m_Bodies[i];
-            entities[i] = new PhysicsEntity
-            {
-                Position = body.Position,
-                Velocity = body.Velocity
-            };
+            entities[i] = body.Save();
         }
         
         for (var i = 0; i < colliderCount; i++)
@@ -81,9 +77,7 @@ public sealed class BallPaddleCollisionSystem
         for (var i = 0; i < entityCount; i++)
         {
             var body = m_Bodies[i];
-            ref var entity = ref entities[i];
-            body.Position = entity.Position;
-            body.Velocity = entity.Velocity;
+            body.Load(entities[i]);
         }
     }
 
