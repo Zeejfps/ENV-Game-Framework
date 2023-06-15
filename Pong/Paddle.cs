@@ -30,22 +30,6 @@ public sealed class Paddle : IPhysicsEntity, IBoxCollider, IPhysicsEntityWithCol
         Velocity = state.Velocity;
     }
 
-    public void MoveLeft(float xDelta)
-    {
-        var newPositionX = Position.X - xDelta;
-        if (newPositionX - Size < LevelBounds.Left)
-            newPositionX = LevelBounds.Left + Size;
-        Position = Position with { X = newPositionX };
-    }
-
-    public void MoveRight(float xDelta)
-    {
-        var newPositionX = Position.X + xDelta;
-        if (newPositionX + Size > LevelBounds.Right)
-            newPositionX = LevelBounds.Right - Size;
-        Position = Position with { X = newPositionX };
-    }
-
     public Rect AABB =>
         new()
         {

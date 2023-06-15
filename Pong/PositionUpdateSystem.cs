@@ -5,30 +5,23 @@ namespace Pong;
 public sealed class PositionUpdateSystem
 {
     private ILogger Logger { get; }
-    private int m_Size;
-    private readonly IPhysicsEntity[] m_Bodies = new IPhysicsEntity[3];
-    private readonly PhysicsEntity[] m_Entities = new PhysicsEntity[3];
+    private readonly List<IPhysicsEntity> m_Bodies = new();
+    private readonly PhysicsEntity[] m_Entities = new PhysicsEntity[32];
 
     public PositionUpdateSystem(ILogger logger)
     {
         Logger = logger;
     }
-
-    public void Clear()
-    {
-        m_Size = 0;
-    }
-
+    
     public void Add(IPhysicsEntity body)
     {
-        m_Bodies[m_Size] = body;
-        m_Size++;
+        m_Bodies.Add(body);
     }
 
     public void Update(float dt)
     {
         var data = m_Entities.AsSpan();
-        var dataLength = data.Length;
+        var dataLength = m_Bodies.Count;
         
         for (var i = 0; i < dataLength; i++)
         {

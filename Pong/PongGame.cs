@@ -75,7 +75,6 @@ public sealed class PongGame : Game
             Bounds = LevelBounds
         };
 
-
         PixelCanvas = new PixelCanvas(Logger, Window, 640, 640);
 
         PaddleCollisionSystem = new PaddleCollisionSystem(LevelBounds);
@@ -91,7 +90,20 @@ public sealed class PongGame : Game
         PositionUpdateSystem.Add(Ball);
         PositionUpdateSystem.Add(TopPaddle);
         PositionUpdateSystem.Add(BottomPaddle);
+        
+        for (var i = 0; i < Balls.Length; i++)
+        {
+            var ball = new Ball(Logger)
+            {
+                Velocity = new Vector2(i * 0.5f, i * 20f)
+            };
+            BallCollisionSystem.AddEntity(ball);
+            PositionUpdateSystem.Add(ball);
+            Balls[i] = ball;
+        }
     }
+
+    private Ball[] Balls = new Ball[10];
 
     protected override void OnStartup()
     {
@@ -159,22 +171,23 @@ public sealed class PongGame : Game
         }
         
         var paddleSpeed = 30f;
-        var paddlePositionDelta = Time.UpdateDeltaTime * paddleSpeed;
         
         BottomPaddle.PrevPosition = BottomPaddle.Position;
         if (keyboard.IsKeyPressed(KeyboardKey.A))
-            BottomPaddle.Velocity = -Vector2.UnitX * 50f;
+            BottomPaddle.Velocity = -Vector2.UnitX * paddleSpeed;
         else if (keyboard.IsKeyPressed(KeyboardKey.D))
-            BottomPaddle.Velocity = Vector2.UnitX * 50f;
+            BottomPaddle.Velocity = Vector2.UnitX * paddleSpeed;
         else
             BottomPaddle.Velocity = Vector2.Zero;
 
         TopPaddle.PrevPosition = TopPaddle.Position;
         if (keyboard.IsKeyPressed(KeyboardKey.LeftArrow))
-            TopPaddle.MoveLeft(paddlePositionDelta);
+            TopPaddle.Velocity = -Vector2.UnitX * paddleSpeed;
         else if (keyboard.IsKeyPressed(KeyboardKey.RightArrow))
-            TopPaddle.MoveRight(paddlePositionDelta);
-        
+            TopPaddle.Velocity = Vector2.UnitX * paddleSpeed;
+        else 
+            TopPaddle.Velocity = Vector2.Zero;
+
         var mouse = Context.Window.Input.Mouse;
         var mouseScreenPosition = new Vector2(mouse.ScreenX, mouse.ScreenY);
         MousePosition = PixelCanvas.ScreenToCanvasPoint(mouseScreenPosition);
@@ -212,6 +225,12 @@ public sealed class PongGame : Game
 
             var ballPosition = Vector2.Lerp(Ball.Position, Ball.Position + Ball.Velocity * Time.FrameDeltaTime, frameLerpFactor);
             SpriteRenderer.DrawSprite(ballPosition,  new Vector2(1f, 1f), PaddleSprite, new Vector3(0.5f, 0.7f, 0.1f));
+
+            foreach (var ball in Balls)
+            {
+                var bp = Vector2.Lerp(ball.Position, ball.Position + ball.Velocity * Time.FrameDeltaTime, frameLerpFactor);
+                SpriteRenderer.DrawSprite(bp,  new Vector2(1f, 1f), PaddleSprite, new Vector3(0.5f, 0.7f, 0.1f));
+            }
         }
 
         var fbWidth = 640;
