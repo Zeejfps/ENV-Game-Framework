@@ -70,19 +70,33 @@ public sealed class BallCollisionSystem
                 };
 
                 var newPosition = entity.Position + entity.Velocity * dt;
-                if (newPosition.X < Bounds.Left || newPosition.X > Bounds.Right)
+                if (newPosition.X < Bounds.Left)
                 {
+                    newPosition.X = Bounds.Left;
                     entity.Velocity = entity.Velocity with { X = -entity.Velocity.X };
                 }
-                if (newPosition.Y <= Bounds.Bottom || newPosition.Y >= Bounds.Top)
+                else if (newPosition.X > Bounds.Right)
                 {
+                    newPosition.X = Bounds.Right;
+                    entity.Velocity = entity.Velocity with { X = -entity.Velocity.X };
+                }
+                if (newPosition.Y < Bounds.Bottom)
+                {
+                    newPosition.Y = Bounds.Bottom;
+                    entity.Velocity = entity.Velocity with { Y = -entity.Velocity.Y };
+                }
+                else if (newPosition.Y > Bounds.Top)
+                {
+                    newPosition.Y = Bounds.Top;
                     entity.Velocity = entity.Velocity with { Y = -entity.Velocity.Y };
                 }
                 else if (Physics2D.TryRaycastRect(ray, collider, out var hit))
                 {
-                    entity.Position = hit.HitPoint + hit.Normal;
+                    newPosition = hit.HitPoint + hit.Normal;
                     entity.Velocity = entity.Velocity with { Y = -entity.Velocity.Y };
                 }
+
+                entity.Position = newPosition;
             }
         }
         

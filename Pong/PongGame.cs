@@ -10,8 +10,6 @@ namespace Pong;
 
 public sealed class PongGame : Game
 {
-    private PositionUpdateSystem PositionUpdateSystem { get; }
-    
     private ISpriteRenderer SpriteRenderer { get; }
     private IInputSystem InputSystem => Window.Input;
     private OrthographicCamera Camera { get; }
@@ -37,7 +35,7 @@ public sealed class PongGame : Game
     private Vector2 MousePosition { get; set; }
 
     private BallCollisionSystem BallCollisionSystem { get; }
-    private PaddleCollisionSystem PaddleCollisionSystem { get; }
+    private PaddlePhysicsSystem PaddlePhysicsSystem { get; }
 
     public PongGame(ISpriteRenderer spriteRenderer, IContext context) : base(context)
     {
@@ -77,20 +75,15 @@ public sealed class PongGame : Game
 
         PixelCanvas = new PixelCanvas(Logger, Window, 640, 640);
 
-        PaddleCollisionSystem = new PaddleCollisionSystem(LevelBounds);
-        PaddleCollisionSystem.Add(TopPaddle);
-        PaddleCollisionSystem.Add(BottomPaddle);
+        PaddlePhysicsSystem = new PaddlePhysicsSystem(LevelBounds);
+        PaddlePhysicsSystem.Add(TopPaddle);
+        PaddlePhysicsSystem.Add(BottomPaddle);
         
         BallCollisionSystem = new BallCollisionSystem(PixelCanvas,Camera, Physics2D, Logger, LevelBounds);
         BallCollisionSystem.AddEntity(Ball);
         BallCollisionSystem.AddCollider(TopPaddle);
         BallCollisionSystem.AddCollider(BottomPaddle);
-
-        PositionUpdateSystem = new PositionUpdateSystem(Logger);
-        PositionUpdateSystem.Add(Ball);
-        PositionUpdateSystem.Add(TopPaddle);
-        PositionUpdateSystem.Add(BottomPaddle);
-
+        
         var random = new Random();
         for (var i = 0; i < Balls.Length; i++)
         {
@@ -99,7 +92,6 @@ public sealed class PongGame : Game
                 Velocity = new Vector2((random.NextSingle() - 0.5f) * 2f * 40f, (random.NextSingle() - 0.5f) * 2f * 40f)
             };
             BallCollisionSystem.AddEntity(ball);
-            PositionUpdateSystem.Add(ball);
             Balls[i] = ball;
         }
     }
@@ -193,9 +185,8 @@ public sealed class PongGame : Game
         var mouseScreenPosition = new Vector2(mouse.ScreenX, mouse.ScreenY);
         MousePosition = PixelCanvas.ScreenToCanvasPoint(mouseScreenPosition);
 
-        PaddleCollisionSystem.Update(Time.UpdateDeltaTime);
+        PaddlePhysicsSystem.Update(Time.UpdateDeltaTime);
         BallCollisionSystem.Update(Time.UpdateDeltaTime);
-        PositionUpdateSystem.Update(Time.UpdateDeltaTime);
     }
 
     private bool m_IsHit;

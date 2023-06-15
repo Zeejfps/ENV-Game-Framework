@@ -8,13 +8,13 @@ public struct PhysicsEntityWithColliderState
     public Rect ColliderState;
 }
 
-public class PaddleCollisionSystem
+public class PaddlePhysicsSystem
 {
     private readonly List<IPhysicsEntityWithCollider> m_Entities = new();
     private readonly PhysicsEntityWithColliderState[] m_States = new PhysicsEntityWithColliderState[5000];
     private Rect Bounds { get; }
 
-    public PaddleCollisionSystem(Rect bounds)
+    public PaddlePhysicsSystem(Rect bounds)
     {
         Bounds = bounds;
     }
@@ -47,6 +47,10 @@ public class PaddleCollisionSystem
             {
                 physicsEntityState.Position = physicsEntityState.Position with{ X = bounds.Right - colliderState.HalfWidth};
                 physicsEntityState.Velocity = physicsEntityState.Velocity with { X = 0f };
+            }
+            else
+            {
+                physicsEntityState.Position += physicsEntityState.Velocity * dt;
             }
         }
         
