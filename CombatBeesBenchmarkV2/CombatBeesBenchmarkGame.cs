@@ -6,8 +6,10 @@ public class CombatBeesBenchmarkGame : Game
 {
     public const int MaxBeeCount = 1000;
     
+    private World World { get; }
     private AliveBeeMovementSystem AliveBeeMovementSystem { get; }
     private DeadBeeMovementSystem DeadBeeMovementSystem { get; }
+    private BeeRenderingSystem BeeRenderingSystem { get; }
 
     public CombatBeesBenchmarkGame(IContext context) : base(context)
     {
@@ -26,27 +28,30 @@ public class CombatBeesBenchmarkGame : Game
         //     HitDistance = 0.5f
         // });
 
-        AliveBeeMovementSystem = new AliveBeeMovementSystem(MaxBeeCount);
+        AliveBeeMovementSystem = new AliveBeeMovementSystem(MaxBeeCount, Logger);
         DeadBeeMovementSystem = new DeadBeeMovementSystem(MaxBeeCount);
+        BeeRenderingSystem = new BeeRenderingSystem(MaxBeeCount);
         
         var numberOfTeams = 2;
         var numberOfBeesPerTeam = MaxBeeCount / numberOfTeams;
+        Logger.Trace($"Number of bees per team: {numberOfBeesPerTeam}");
         var random = new Random();
 
-        var aliveBeePool = new BeePool<IAliveBee>(random);
-        var deadBeePool = new BeePool<IDeadBee>(random);
-        var world = new World(
+        var aliveBeePool = new BeePool<IAliveBee>(random, numberOfTeams, numberOfBeesPerTeam);
+        var deadBeePool = new BeePool<IDeadBee>(random, numberOfTeams, numberOfBeesPerTeam);
+        World = new World(
             aliveBeePool,
             deadBeePool,
             AliveBeeMovementSystem, 
-            DeadBeeMovementSystem);
+            DeadBeeMovementSystem, 
+            BeeRenderingSystem);
 
         for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
         {
             for (var j = 0; j < numberOfBeesPerTeam; j++)
             {
                 var bee = new DeadBee(teamIndex);
-                world.Spawn(bee);
+                World.Spawn(bee);
             }
         }
     }
@@ -63,17 +68,19 @@ public class CombatBeesBenchmarkGame : Game
     protected override void OnUpdate()
     {
         var dt = Time.UpdateDeltaTime;
-       
         AliveBeeMovementSystem.Update(dt);
         DeadBeeMovementSystem.Update(dt);
+        World.Update(dt);
     }
 
     protected override void OnRender()
     {
         var gpu = Context.Window.Gpu;
-        var activeFramebuffer = gpu.FramebufferController;
-        activeFramebuffer.BindToWindow();
-        activeFramebuffer.ClearColorBuffers(0f, 0.1f, 0.1f, 1f);
+        var framebufferController = gpu.FramebufferController;
+        framebufferController.BindToWindow();
+        framebufferController.ClearColorBuffers(0f, 0.1f, 0.1f, 1f);
+        
+        BeeRenderingSystem.Render();
     }
 
     protected override void OnShutdown()

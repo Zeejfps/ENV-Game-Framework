@@ -6,41 +6,72 @@ public sealed class World
         BeePool<IAliveBee> aliveBeePool,
         BeePool<IDeadBee> deadBeePool,
         AliveBeeMovementSystem aliveBeeMovementSystem,
-        DeadBeeMovementSystem deadBeeMovementSystem)
+        DeadBeeMovementSystem deadBeeMovementSystem,
+        BeeRenderingSystem beeRenderingSystem)
     {
         AliveBeePool = aliveBeePool;
         DeadBeePool = deadBeePool;
         AliveBeeMovementSystem = aliveBeeMovementSystem;
         DeadBeeMovementSystem = deadBeeMovementSystem;
+        BeeRenderingSystem = beeRenderingSystem;
     }
 
     private BeePool<IAliveBee> AliveBeePool { get; }
     private BeePool<IDeadBee> DeadBeePool { get; }
     private AliveBeeMovementSystem AliveBeeMovementSystem { get; }
     private DeadBeeMovementSystem DeadBeeMovementSystem { get; }
+    private BeeRenderingSystem BeeRenderingSystem { get; }
+    private Dictionary<IAliveBee, IAliveBee> BeeTargetTable { get; } = new();
 
-    public IAliveBee GetRandomEnemyBee(int teamIndex)
+    private List<IAliveBee> BeesToKill { get; } = new();
+    private List<IDeadBee> BeesToSpawn { get; } = new();
+
+    public void Spawn(IDeadBee deadBee)
     {
-        return AliveBeePool.GetRandomEnemyBee(teamIndex);
+        BeesToSpawn.Add(deadBee);
     }
 
     public void Kill(IAliveBee aliveBee)
     {
-        AliveBeePool.Remove(aliveBee);
-        AliveBeeMovementSystem.Remove(aliveBee);
-        
-        var deadBee = new DeadBee(aliveBee.TeamIndex);
-        DeadBeePool.Add(deadBee);
-        DeadBeeMovementSystem.Add(deadBee);
+        BeesToKill.Add(aliveBee);
     }
 
-    public void Spawn(IDeadBee bee)
+    public void Update(float dt)
     {
-        DeadBeePool.Remove(bee);
-        DeadBeeMovementSystem.Remove(bee);
+        foreach (var aliveBee in BeesToKill)
+        {
+            AliveBeePool.Remove(aliveBee);
+            AliveBeeMovementSystem.Remove(aliveBee);
+            BeeRenderingSystem.Remove(aliveBee);
 
-        var aliveBee = new AliveBee(bee.TeamIndex, this);
-        AliveBeePool.Add(aliveBee);
-        AliveBeeMovementSystem.Add(aliveBee);
+            var deadBee = new DeadBee(aliveBee.TeamIndex);
+            DeadBeePool.Add(deadBee);
+            DeadBeeMovementSystem.Add(deadBee);
+            BeeRenderingSystem.Add(deadBee);
+        }
+        BeesToKill.Clear();
+
+        foreach (var deadBee in BeesToSpawn)
+        {
+            DeadBeePool.Remove(deadBee);
+            DeadBeeMovementSystem.Remove(deadBee);
+            BeeRenderingSystem.Remove(deadBee);
+
+            var aliveBee = new AliveBee(deadBee.TeamIndex, this);
+            AliveBeePool.Add(aliveBee);
+            AliveBeeMovementSystem.Add(aliveBee);
+            BeeRenderingSystem.Add(aliveBee);
+        }
+        BeesToSpawn.Clear();
+    }
+
+    public IAliveBee GetTarget(AliveBee bee)
+    {
+        if (!BeeTargetTable.TryGetValue(bee, out var target))
+        {
+            target = AliveBeePool.GetRandomEnemyBee(bee.TeamIndex);
+            BeeTargetTable[bee] = target;
+        }
+        return target;
     }
 }

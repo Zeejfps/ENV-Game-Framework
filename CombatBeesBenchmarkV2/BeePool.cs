@@ -3,11 +3,14 @@
 public sealed class BeePool<TBee> where TBee : IBee
 {
     private readonly Random m_Random;
-    private readonly List<TBee>[] m_Teams = new List<TBee>[2];
+    private readonly List<TBee>[] m_Teams;
 
-    public BeePool(Random random)
+    public BeePool(Random random, int numberOfTeams, int numberOfBeesPerTeam)
     {
         m_Random = random;
+        m_Teams = new List<TBee>[numberOfTeams];
+        for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
+            m_Teams[teamIndex] = new List<TBee>(numberOfBeesPerTeam);
     }
 
     public TBee GetRandomEnemyBee(int index)

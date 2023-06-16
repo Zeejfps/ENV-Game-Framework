@@ -1,14 +1,7 @@
 ﻿using System.Numerics;
+using EasyGameFramework.Api;
 
 namespace CombatBeesBenchmark;
-
-public interface IAliveBee : IBee
-{
-    Vector3 Position { get; set; }
-    Vector3 Velocity { get; set; }
-    AliveBeeState Save();
-    void Load(AliveBeeState state);
-}
 
 public struct AliveBeeState
 {
@@ -24,11 +17,13 @@ public struct AliveBeeState
 
 public sealed class AliveBeeMovementSystem
 {
+    private ILogger Logger { get; }
     private readonly List<IAliveBee> m_Entities = new();
     private readonly AliveBeeState[] m_States;
 
-    public AliveBeeMovementSystem(int maxStatCount)
+    public AliveBeeMovementSystem(int maxStatCount, ILogger logger)
     {
+        Logger = logger;
         m_States = new AliveBeeState[maxStatCount];
     }
 
@@ -56,6 +51,7 @@ public sealed class AliveBeeMovementSystem
         
         var states = m_States.AsSpan();
         var stateCount = m_Entities.Count;
+        //Logger.Trace($"State Count: {stateCount}");
         for (var i = 0; i < stateCount; i++)
             states[i] = m_Entities[i].Save();
 
@@ -92,9 +88,13 @@ public sealed class AliveBeeMovementSystem
                     state.IsTargetKilled = true;
                 }
             }
+
+            state.Position += state.Velocity * dt;
         }
-        
+
         for (var i = 0; i < stateCount; i++)
+        {
             m_Entities[i].Load(states[i]);
+        }
     }
 }

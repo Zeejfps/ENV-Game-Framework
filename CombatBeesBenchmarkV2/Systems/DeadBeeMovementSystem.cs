@@ -17,23 +17,50 @@ public struct DeadBeeState
 
 public sealed class DeadBeeMovementSystem
 {
+    private readonly LinkedList<IDeadBee> m_Entities = new();
+    private readonly DeadBeeState[] m_States;
+    
     public DeadBeeMovementSystem(int maxBeeCount)
     {
-        
+        m_States = new DeadBeeState[maxBeeCount];
     }
 
     public void Remove(IDeadBee bee)
     {
-        throw new NotImplementedException();
+        m_Entities.Remove(bee);
     }
 
     public void Add(IDeadBee bee)
     {
-        throw new NotImplementedException();
+        m_Entities.AddLast(bee);
     }
 
     public void Update(float dt)
     {
-        throw new NotImplementedException();
+        var gravity = 0f * dt;
+        var states = m_States;
+        var stateCount = m_Entities.Count;
+
+        var index = 0;
+        foreach (var entity in m_Entities)
+        {
+            states[index] = entity.Save();
+            index++;
+        }
+
+        for (var i = 0; i < stateCount; i++)
+        {
+            ref var state = ref states[i];
+            state.Velocity.Y += gravity;
+            state.Position += state.Velocity * dt;
+            state.DeathTimer -= dt;
+        }
+        
+        index = 0;
+        foreach (var entity in m_Entities)
+        {
+            entity.Load(states[index]);
+            index++;
+        }
     }
 }

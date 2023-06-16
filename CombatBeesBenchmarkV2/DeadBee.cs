@@ -9,12 +9,15 @@ public sealed class DeadBee : IDeadBee
 
     public DeadBeeState Save()
     {
-        throw new NotImplementedException();
+        return new DeadBeeState
+        {
+            
+        };
     }
 
     public void Load(DeadBeeState state)
     {
-        throw new NotImplementedException();
+        
     }
 
     public int TeamIndex { get; }
