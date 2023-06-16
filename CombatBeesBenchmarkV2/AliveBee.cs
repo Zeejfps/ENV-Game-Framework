@@ -35,9 +35,11 @@ public sealed class AliveBee : IAliveBee
         var target = World.GetTarget(this);
         Position = state.Position;
         Velocity = state.Velocity;
+        target.Velocity = state.Velocity;
         if (state.IsTargetKilled)
         {
             World.Kill(target);
+            World.AssignNewTarget(this);
         }
     }
 

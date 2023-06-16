@@ -52,11 +52,12 @@ public sealed class World
             AliveBeePool.Remove(aliveBee);
             AliveBeeMovementSystem.Remove(aliveBee);
             BeeRenderingSystem.Remove(aliveBee);
+            BeeTargetTable.Remove(aliveBee);
 
             var deadBee = new DeadBee(aliveBee.TeamIndex, this)
             {
                 Position = aliveBee.Position,
-                Velocity = aliveBee.Velocity * 0.5f,
+                Velocity = aliveBee.Velocity,
                 DeathTimer = 10f
             };
             DeadBeePool.Add(deadBee);
@@ -93,5 +94,11 @@ public sealed class World
             BeeTargetTable[bee] = target;
         }
         return target;
+    }
+
+    public void AssignNewTarget(AliveBee bee)
+    {
+        var target = AliveBeePool.GetRandomEnemyBee(bee.TeamIndex);
+        BeeTargetTable[bee] = target;
     }
 }
