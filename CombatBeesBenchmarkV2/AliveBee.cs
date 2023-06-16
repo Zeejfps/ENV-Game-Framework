@@ -43,7 +43,7 @@ public sealed class AliveBee : IAliveBee
     {
         return new BeeRenderState
         {
-            Color = new Vector3(1f, 0f, 1f),
+            Color = new Vector4(1f, 0f, 1f, 1f),
             ModelMatrix = Matrix4x4.CreateScale(1f, 1f, 1f)
                           * Matrix4x4.CreateLookAt(Vector3.Zero, LookDirection, Vector3.UnitY)
                           * Matrix4x4.CreateTranslation(Position),

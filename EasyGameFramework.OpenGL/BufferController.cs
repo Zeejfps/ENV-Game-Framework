@@ -22,6 +22,7 @@ internal sealed class BufferController : IBufferController
             fixed (void* p = &data[0])
             {
                 glBufferSubData(Buffer.Kind.ToOpenGl(), 0, sizeof(T) * data.Length, p);
+                glAssertNoError();
             }
         }
     }

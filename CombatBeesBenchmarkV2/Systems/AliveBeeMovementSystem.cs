@@ -39,15 +39,15 @@ public sealed class AliveBeeMovementSystem
     
     public void Update(float dt)
     {
-        var attackDistanceSqr = 2f * dt;
-        var hitDistanceSqrd = 2f * dt;
-        var chaseForce = 2f * dt;
-        var attackForce = 2f * dt;
+        var attackDistanceSqr = 4f * 4f;
+        var hitDistanceSqrd = 0.5f * 0.5f;
+        var chaseForce = 50f * dt;
+        var attackForce = 500f * dt;
 
-        var teamAttraction = 0f * dt;
-        var teamRepulsion = 0f * dt;
-        var flightJitter = 0f * dt;
-        var damping = 0f * dt;
+        var teamAttraction = 5f * dt;
+        var teamRepulsion = 4f * dt;
+        var flightJitter = 200f * dt;
+        var damping = (1f - 0.9f) * dt;
         
         var states = m_States.AsSpan();
         var stateCount = m_Entities.Count;

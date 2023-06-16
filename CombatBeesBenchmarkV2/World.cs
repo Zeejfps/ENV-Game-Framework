@@ -49,7 +49,10 @@ public sealed class World
             AliveBeeMovementSystem.Remove(aliveBee);
             BeeRenderingSystem.Remove(aliveBee);
 
-            var deadBee = new DeadBee(aliveBee.TeamIndex);
+            var deadBee = new DeadBee(aliveBee.TeamIndex, this)
+            {
+                DeathTimer = 10f
+            };
             DeadBeePool.Add(deadBee);
             DeadBeeMovementSystem.Add(deadBee);
             BeeRenderingSystem.Add(deadBee);

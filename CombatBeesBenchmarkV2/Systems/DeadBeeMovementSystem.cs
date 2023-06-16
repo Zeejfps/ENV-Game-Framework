@@ -37,7 +37,7 @@ public sealed class DeadBeeMovementSystem
 
     public void Update(float dt)
     {
-        var gravity = 0f * dt;
+        var gravity = -20f * dt;
         var states = m_States;
         var stateCount = m_Entities.Count;
 

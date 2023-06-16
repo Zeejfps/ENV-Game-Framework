@@ -4,18 +4,24 @@
 
 const int MAX_BATCH_SIZE = 50000;
 
-layout (location = 0) in vec3 attr_vertex_position;
-uniform mat4 matrix_projection, matrix_view;
-uniform modelMatricesBlock {
-    mat4 modelMatrices[MAX_BATCH_SIZE];    
+struct Bee {
+  vec4 color;
 };
+
+layout (location = 0) in vec4 attr_vertex_position;
+
+uniform mat4 matrix_projection, matrix_view;
+layout(std140) uniform modelMatricesBlock {
+    vec4 bees[MAX_BATCH_SIZE];    
+};
+
 flat out int instanceID;
 
 void main()
 {
     instanceID = gl_InstanceID;
-    mat4 matrix_model = modelMatrices[instanceID];
-    vec4 vert_world_position = matrix_model * vec4(attr_vertex_position, 1);
+    //mat4 matrix_model = bees[instanceID].modelMatrix;
+    vec4 vert_world_position = attr_vertex_position;
     vec4 vert_view_position = matrix_view * vert_world_position;
     gl_Position = matrix_projection * vert_view_position;
 }
@@ -28,8 +34,12 @@ void main()
 
 const int MAX_BATCH_SIZE = 50000;
 
-uniform colorsBlock {
-    vec4 colors[MAX_BATCH_SIZE];
+struct Bee {
+  vec4 color;
+};
+
+layout(std140) uniform modelMatricesBlock {
+    vec4 bees[MAX_BATCH_SIZE];    
 };
 
 flat in int instanceID;
@@ -37,7 +47,7 @@ flat in int instanceID;
 out vec4 out_result;
 
 void main() {
-    const vec4 color = colors[instanceID];
+    const vec4 color = bees[instanceID];
     out_result = color;
 }
 

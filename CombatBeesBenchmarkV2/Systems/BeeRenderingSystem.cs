@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Rendering;
-using EasyGameFramework.Core;
 
 namespace CombatBeesBenchmark;
 
@@ -12,9 +11,10 @@ public interface IRenderableBee
     BeeRenderState SaveRenderState();
 }
 
+[StructLayout(LayoutKind.Sequential)]
 public struct BeeRenderState
 {
-    public Vector3 Color;
+    public Vector4 Color;
     public Matrix4x4 ModelMatrix;
 }
 
@@ -38,7 +38,7 @@ public sealed class BeeRenderingSystem
         m_States = new BeeRenderState[maxBeeCount];
 
         BeeShaderHandle = gpu.ShaderController.Load("Assets/bee");
-        QuadMeshHandle = gpu.MeshController.CreateAndBind(CpuMesh.CreateQuad());
+        QuadMeshHandle = gpu.MeshController.Load("Assets/quad");
         BeeBuffer = gpu.BufferController.CreateAndBind(
             BufferKind.UniformBuffer,
             BufferUsage.DynamicDraw, 
@@ -74,6 +74,7 @@ public sealed class BeeRenderingSystem
         bufferController.Bind(BeeBuffer);
         bufferController.Upload<BeeRenderState>(states);
         
+        //Logger.Trace($"Rendering: {stateCount}");
         meshController.RenderInstanced(stateCount);
     }
 

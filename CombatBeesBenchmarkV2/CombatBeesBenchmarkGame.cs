@@ -1,35 +1,24 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
+using Framework;
 
 namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    public const int MaxBeeCount = 4;
+    public const int MaxBeeCount = 100;
     
     private World World { get; }
     private AliveBeeMovementSystem AliveBeeMovementSystem { get; }
     private DeadBeeMovementSystem DeadBeeMovementSystem { get; }
     private BeeRenderingSystem BeeRenderingSystem { get; }
 
+    private CameraRig m_CameraRig;
+    private CameraRigController m_RigController;
+
     public CombatBeesBenchmarkGame(IContext context) : base(context)
     {
-        // BeeSystem = new BeeSystem(Context, Field, new BeeSystemConfig
-        // {
-        //     MaxBeeCount = MaxBeeCount,
-        //     MinBeeSize = 0.25f,
-        //     MaxBeeSize = 0.5f,
-        //     FlightJitter = 200f,
-        //     Damping = 0.9f,
-        //     TeamAttraction = 5f,
-        //     TeamRepulsion = 4f,
-        //     AttackDistance = 4f,
-        //     ChaseForce = 50f,
-        //     AttackForce = 500f,
-        //     HitDistance = 0.5f
-        // });
-
         var camera = new PerspectiveCamera(60f, 1.7777f)
         {
             Transform =
@@ -37,6 +26,8 @@ public class CombatBeesBenchmarkGame : Game
                 WorldPosition = new Vector3(0f, 0f, 60f)
             }
         };
+        m_CameraRig = new CameraRig(camera);
+        m_RigController = new CameraRigController(m_CameraRig, Window, Input);
         AliveBeeMovementSystem = new AliveBeeMovementSystem(MaxBeeCount, Logger);
         DeadBeeMovementSystem = new DeadBeeMovementSystem(MaxBeeCount);
         BeeRenderingSystem = new BeeRenderingSystem(MaxBeeCount, Gpu, camera, Logger);
@@ -60,7 +51,7 @@ public class CombatBeesBenchmarkGame : Game
         {
             for (var j = 0; j < numberOfBeesPerTeam; j++)
             {
-                var bee = new DeadBee(teamIndex);
+                var bee = new DeadBee(teamIndex, World);
                 World.Spawn(bee);
             }
         }
@@ -73,6 +64,7 @@ public class CombatBeesBenchmarkGame : Game
         window.SetScreenSize(1280, 720);
         window.IsVsyncEnabled = false;
         //window.IsFullscreen = true;
+        m_RigController.Enable();
     }
 
     protected override void OnUpdate()
@@ -81,6 +73,7 @@ public class CombatBeesBenchmarkGame : Game
         World.Update(dt);
         AliveBeeMovementSystem.Update(dt);
         DeadBeeMovementSystem.Update(dt);
+        m_RigController.Update(dt);
     }
 
     protected override void OnRender()
