@@ -79,21 +79,21 @@ public sealed class AliveBeeMovementSystem
             if (dist > 0f)
                 state.Velocity -= delta * (teamRepulsion / dist);
             
-            // delta = state.TargetPosition - state.Position;
-            // var sqrDist = delta.LengthSquared();
-            // if (sqrDist > attackDistanceSqr)
-            // {
-            //     state.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
-            // }
-            // else
-            // {
-            //     state.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
-            //     if (sqrDist < hitDistanceSqrd)
-            //     {
-            //         state.TargetVelocity *= .5f;
-            //         state.IsTargetKilled = true;
-            //     }
-            // }
+            delta = state.TargetPosition - state.Position;
+            var sqrDist = delta.LengthSquared();
+            if (sqrDist > attackDistanceSqr)
+            {
+                state.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
+            }
+            else
+            {
+                state.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
+                if (sqrDist < hitDistanceSqrd)
+                {
+                    state.TargetVelocity *= .5f;
+                    state.IsTargetKilled = true;
+                }
+            }
 
             state.Position += state.Velocity * dt;
         }

@@ -46,16 +46,14 @@ public class CombatBeesBenchmarkGame : Game
             AliveBeeMovementSystem, 
             DeadBeeMovementSystem, 
             BeeRenderingSystem,
-            Logger);
+            Logger,
+            random);
 
         for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
         {
             for (var j = 0; j < numberOfBeesPerTeam; j++)
             {
-                var bee = new DeadBee(teamIndex, World)
-                {
-                    //Position = new Vector3(random.NextSingle() * 1f, random.NextSingle() * 1f, 0f)
-                };
+                var bee = new DeadBee(teamIndex, World);
                 World.Spawn(bee);
             }
         }

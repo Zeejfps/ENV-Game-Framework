@@ -13,10 +13,12 @@ public sealed class BeePool<TBee> where TBee : IBee
             m_Teams[teamIndex] = new List<TBee>(numberOfBeesPerTeam);
     }
 
-    public TBee GetRandomEnemyBee(int index)
+    public TBee GetRandomEnemyBee(int teamIndex)
     {
-        var team = m_Teams[index];
-        return team[0];
+        var otherTeam = 1 - teamIndex;
+        var team = m_Teams[otherTeam];
+        var randIndex = m_Random.Next(0, team.Count);
+        return team[randIndex];
     }
 
     public TBee GetRandomFriendlyBee(int index)

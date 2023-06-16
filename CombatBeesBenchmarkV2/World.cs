@@ -1,4 +1,5 @@
-﻿using EasyGameFramework.Api;
+﻿using System.Numerics;
+using EasyGameFramework.Api;
 
 namespace CombatBeesBenchmark;
 
@@ -9,7 +10,7 @@ public sealed class World
         BeePool<IDeadBee> deadBeePool,
         AliveBeeMovementSystem aliveBeeMovementSystem,
         DeadBeeMovementSystem deadBeeMovementSystem,
-        BeeRenderingSystem beeRenderingSystem, ILogger logger)
+        BeeRenderingSystem beeRenderingSystem, ILogger logger, Random random)
     {
         AliveBeePool = aliveBeePool;
         DeadBeePool = deadBeePool;
@@ -17,8 +18,10 @@ public sealed class World
         DeadBeeMovementSystem = deadBeeMovementSystem;
         BeeRenderingSystem = beeRenderingSystem;
         Logger = logger;
+        Random = random;
     }
     
+    private Random Random { get; }
     private ILogger Logger { get; }
     private BeePool<IAliveBee> AliveBeePool { get; }
     private BeePool<IDeadBee> DeadBeePool { get; }
@@ -70,9 +73,10 @@ public sealed class World
             DeadBeeMovementSystem.Remove(deadBee);
             BeeRenderingSystem.Remove(deadBee);
 
+            var spawnPosition = Vector3.UnitX * (-100f * .4f + 100f * .8f * deadBee.TeamIndex);
             var aliveBee = new AliveBee(deadBee.TeamIndex, this)
             {
-                
+                Position = spawnPosition
             };
             AliveBeePool.Add(aliveBee);
             AliveBeeMovementSystem.Add(aliveBee);
