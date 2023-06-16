@@ -1,4 +1,6 @@
-﻿namespace CombatBeesBenchmark;
+﻿using EasyGameFramework.Api;
+
+namespace CombatBeesBenchmark;
 
 public sealed class World
 {
@@ -7,15 +9,17 @@ public sealed class World
         BeePool<IDeadBee> deadBeePool,
         AliveBeeMovementSystem aliveBeeMovementSystem,
         DeadBeeMovementSystem deadBeeMovementSystem,
-        BeeRenderingSystem beeRenderingSystem)
+        BeeRenderingSystem beeRenderingSystem, ILogger logger)
     {
         AliveBeePool = aliveBeePool;
         DeadBeePool = deadBeePool;
         AliveBeeMovementSystem = aliveBeeMovementSystem;
         DeadBeeMovementSystem = deadBeeMovementSystem;
         BeeRenderingSystem = beeRenderingSystem;
+        Logger = logger;
     }
-
+    
+    private ILogger Logger { get; }
     private BeePool<IAliveBee> AliveBeePool { get; }
     private BeePool<IDeadBee> DeadBeePool { get; }
     private AliveBeeMovementSystem AliveBeeMovementSystem { get; }
@@ -23,8 +27,8 @@ public sealed class World
     private BeeRenderingSystem BeeRenderingSystem { get; }
     private Dictionary<IAliveBee, IAliveBee> BeeTargetTable { get; } = new();
 
-    private List<IAliveBee> BeesToKill { get; } = new();
-    private List<IDeadBee> BeesToSpawn { get; } = new();
+    private HashSet<IAliveBee> BeesToKill { get; } = new();
+    private HashSet<IDeadBee> BeesToSpawn { get; } = new();
 
     public void Spawn(IDeadBee deadBee)
     {
@@ -38,6 +42,7 @@ public sealed class World
 
     public void Update(float dt)
     {
+        //Logger.Trace($"Killing Bees: {BeesToKill.Count}");
         foreach (var aliveBee in BeesToKill)
         {
             AliveBeePool.Remove(aliveBee);
@@ -51,6 +56,7 @@ public sealed class World
         }
         BeesToKill.Clear();
 
+        //Logger.Trace($"Spawning Bees: {BeesToSpawn.Count}");
         foreach (var deadBee in BeesToSpawn)
         {
             DeadBeePool.Remove(deadBee);

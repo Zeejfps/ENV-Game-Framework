@@ -1,10 +1,12 @@
-﻿using EasyGameFramework.Api;
+﻿using System.Numerics;
+using EasyGameFramework.Api;
+using EasyGameFramework.Api.Cameras;
 
 namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    public const int MaxBeeCount = 1000;
+    public const int MaxBeeCount = 4;
     
     private World World { get; }
     private AliveBeeMovementSystem AliveBeeMovementSystem { get; }
@@ -28,9 +30,16 @@ public class CombatBeesBenchmarkGame : Game
         //     HitDistance = 0.5f
         // });
 
+        var camera = new PerspectiveCamera(60f, 1.7777f)
+        {
+            Transform =
+            {
+                WorldPosition = new Vector3(0f, 0f, 60f)
+            }
+        };
         AliveBeeMovementSystem = new AliveBeeMovementSystem(MaxBeeCount, Logger);
         DeadBeeMovementSystem = new DeadBeeMovementSystem(MaxBeeCount);
-        BeeRenderingSystem = new BeeRenderingSystem(MaxBeeCount);
+        BeeRenderingSystem = new BeeRenderingSystem(MaxBeeCount, Gpu, camera, Logger);
         
         var numberOfTeams = 2;
         var numberOfBeesPerTeam = MaxBeeCount / numberOfTeams;
@@ -44,7 +53,8 @@ public class CombatBeesBenchmarkGame : Game
             deadBeePool,
             AliveBeeMovementSystem, 
             DeadBeeMovementSystem, 
-            BeeRenderingSystem);
+            BeeRenderingSystem,
+            Logger);
 
         for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
         {
@@ -68,9 +78,9 @@ public class CombatBeesBenchmarkGame : Game
     protected override void OnUpdate()
     {
         var dt = Time.UpdateDeltaTime;
+        World.Update(dt);
         AliveBeeMovementSystem.Update(dt);
         DeadBeeMovementSystem.Update(dt);
-        World.Update(dt);
     }
 
     protected override void OnRender()
