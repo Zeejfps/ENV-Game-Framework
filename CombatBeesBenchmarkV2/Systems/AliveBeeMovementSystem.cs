@@ -2,68 +2,99 @@
 
 namespace CombatBeesBenchmark;
 
-public interface IAliveBee
+public interface IAliveBee : IBee
 {
+    Vector3 Position { get; set; }
+    Vector3 Velocity { get; set; }
     AliveBeeState Save();
     void Load(AliveBeeState state);
 }
 
 public struct AliveBeeState
 {
-    public BeeState Bee;
+    public Vector3 Position;
+    public Vector3 Velocity;
+    public Vector3 MoveDirection;
     public Vector3 AttractionPoint;
     public Vector3 RepellentPoint;
-    public Vector3 RandomDirection;
+    public Vector3 TargetPosition;
+    public Vector3 TargetVelocity;
+    public bool IsTargetKilled;
 }
 
 public sealed class AliveBeeMovementSystem
 {
-    private readonly List<IAliveBee> m_Bees = new();
-    private readonly AliveBeeState[] m_States = new AliveBeeState[500];
+    private readonly List<IAliveBee> m_Entities = new();
+    private readonly AliveBeeState[] m_States;
+
+    public AliveBeeMovementSystem(int maxStatCount)
+    {
+        m_States = new AliveBeeState[maxStatCount];
+    }
 
     public void Add(IAliveBee bee)
     {
-        m_Bees.Add(bee);
+        m_Entities.Add(bee);
     }
 
     public void Remove(IAliveBee bee)
     {
-        m_Bees.Remove(bee);
+        m_Entities.Remove(bee);
     }
     
     public void Update(float dt)
     {
+        var attackDistanceSqr = 2f * dt;
+        var hitDistanceSqrd = 2f * dt;
+        var chaseForce = 2f * dt;
+        var attackForce = 2f * dt;
+
         var teamAttraction = 0f * dt;
         var teamRepulsion = 0f * dt;
         var flightJitter = 0f * dt;
         var damping = 0f * dt;
         
         var states = m_States.AsSpan();
-        var stateCount = m_Bees.Count;
+        var stateCount = m_Entities.Count;
         for (var i = 0; i < stateCount; i++)
-            states[i] = m_Bees[i].Save();
+            states[i] = m_Entities[i].Save();
 
         for (var i = 0; i < stateCount; i++)
         {
             ref var state = ref states[i];
-            ref var bee = ref state.Bee;
-            bee.Velocity += state.RandomDirection * flightJitter;
-            bee.Velocity *= damping;
+            state.Velocity += state.MoveDirection * flightJitter;
+            state.Velocity *= damping;
        
             var attractionPoint = state.AttractionPoint;
-            Vector3 delta = attractionPoint - bee.Position;
+            Vector3 delta = attractionPoint - state.Position;
             var dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
             if (dist > 0f)
-                bee.Velocity += delta * (teamAttraction / dist);
+                state.Velocity += delta * (teamAttraction / dist);
 
             var repellentPoint = state.RepellentPoint;
-            delta = repellentPoint - bee.Position;
+            delta = repellentPoint - state.Position;
             dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
             if (dist > 0f)
-                bee.Velocity -= delta * (teamRepulsion / dist);
+                state.Velocity -= delta * (teamRepulsion / dist);
+            
+            delta = state.TargetPosition - state.Position;
+            var sqrDist = delta.LengthSquared();
+            if (sqrDist > attackDistanceSqr)
+            {
+                state.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
+            }
+            else
+            {
+                state.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
+                if (sqrDist < hitDistanceSqrd)
+                {
+                    state.TargetVelocity *= .5f;
+                    state.IsTargetKilled = true;
+                }
+            }
         }
         
         for (var i = 0; i < stateCount; i++)
-            m_Bees[i].Load(states[i]);
+            m_Entities[i].Load(states[i]);
     }
 }

@@ -6,8 +6,6 @@ public class CombatBeesBenchmarkGame : Game
 {
     public const int MaxBeeCount = 1000;
     
-    private List<Bee> m_Bees = new();
-    
     private AliveBeeMovementSystem AliveBeeMovementSystem { get; }
     private DeadBeeMovementSystem DeadBeeMovementSystem { get; }
 
@@ -28,15 +26,28 @@ public class CombatBeesBenchmarkGame : Game
         //     HitDistance = 0.5f
         // });
 
-        AliveBeeMovementSystem = new AliveBeeMovementSystem();
-        DeadBeeMovementSystem = new DeadBeeMovementSystem();
+        AliveBeeMovementSystem = new AliveBeeMovementSystem(MaxBeeCount);
+        DeadBeeMovementSystem = new DeadBeeMovementSystem(MaxBeeCount);
         
+        var numberOfTeams = 2;
+        var numberOfBeesPerTeam = MaxBeeCount / numberOfTeams;
         var random = new Random();
-        
-        for (var i = 0; i < MaxBeeCount; i++)
+
+        var aliveBeePool = new BeePool<IAliveBee>(random);
+        var deadBeePool = new BeePool<IDeadBee>(random);
+        var world = new World(
+            aliveBeePool,
+            deadBeePool,
+            AliveBeeMovementSystem, 
+            DeadBeeMovementSystem);
+
+        for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
         {
-            var bee = new Bee(random, AliveBeeMovementSystem, DeadBeeMovementSystem);
-            m_Bees.Add(bee);
+            for (var j = 0; j < numberOfBeesPerTeam; j++)
+            {
+                var bee = new DeadBee(teamIndex);
+                world.Spawn(bee);
+            }
         }
     }
 
@@ -52,7 +63,9 @@ public class CombatBeesBenchmarkGame : Game
     protected override void OnUpdate()
     {
         var dt = Time.UpdateDeltaTime;
-
+       
+        AliveBeeMovementSystem.Update(dt);
+        DeadBeeMovementSystem.Update(dt);
     }
 
     protected override void OnRender()
@@ -61,7 +74,6 @@ public class CombatBeesBenchmarkGame : Game
         var activeFramebuffer = gpu.FramebufferController;
         activeFramebuffer.BindToWindow();
         activeFramebuffer.ClearColorBuffers(0f, 0.1f, 0.1f, 1f);
-
     }
 
     protected override void OnShutdown()

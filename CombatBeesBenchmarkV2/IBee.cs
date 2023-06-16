@@ -2,6 +2,5 @@
 
 public interface IBee
 {
-    BeeState Save();
-    void Load(BeeState state);
+    int TeamIndex { get; }
 }
