@@ -42,7 +42,8 @@ public sealed class BeeRenderingSystem
         BeeBuffer = gpu.BufferController.CreateAndBind(
             BufferKind.UniformBuffer,
             BufferUsage.DynamicDraw, 
-            maxBeeCount * Marshal.SizeOf<BeeRenderState>());
+            maxBeeCount * 16 * 4 * sizeof(float));
+        gpu.ShaderController.AttachBuffer("beeDataBlock", 0, BeeBuffer);
     }
 
     public void Render()

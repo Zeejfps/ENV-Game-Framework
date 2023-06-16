@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Drawing;
+using System.Numerics;
 
 namespace CombatBeesBenchmark;
 
@@ -8,12 +9,14 @@ public sealed class AliveBee : IAliveBee
     public Vector3 Position { get; set; }
     public Vector3 Velocity { get; set; }
     public Vector3 LookDirection { get; set; }
+    public Vector4 Color { get; }
     private World World { get; }
 
     public AliveBee(int teamIndex, World world)
     {
         TeamIndex = teamIndex;
         World = world;
+        Color = teamIndex == 0 ? new Vector4(1f, 0f, 0f, 1f) : new Vector4(0f, 0f, 1f, 1f);
     }
 
     public AliveBeeState Save()
@@ -43,10 +46,12 @@ public sealed class AliveBee : IAliveBee
     {
         return new BeeRenderState
         {
-            Color = new Vector4(1f, 0f, 1f, 1f),
+            Color = Color,
             ModelMatrix = Matrix4x4.CreateScale(1f, 1f, 1f)
-                          * Matrix4x4.CreateLookAt(Vector3.Zero, LookDirection, Vector3.UnitY)
+                          //* Matrix4x4.CreateLookAt(Vector3.Zero, LookDirection, Vector3.UnitY)
                           * Matrix4x4.CreateTranslation(Position),
         };
     }
+    
+
 }

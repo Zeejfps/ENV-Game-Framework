@@ -41,10 +41,12 @@ public sealed class DeadBee : IDeadBee
     {
         return new BeeRenderState
         {
-            Color = new Vector4(1f, 0f, 1f, 1f),
-            ModelMatrix = Matrix4x4.CreateScale(1f, 1f, 1f)
-                          * Matrix4x4.CreateLookAt(Vector3.Zero, LookDirection, Vector3.UnitY)
-                          * Matrix4x4.CreateTranslation(Position),
+            Color = new Vector4(0.5f, 1f, 1f, 1f),
+            // ModelMatrix = Matrix4x4.CreateScale(1f, 1f, 1f)
+            //               * Matrix4x4.CreateLookAt(Vector3.Zero, LookDirection, Vector3.UnitY)
+            //               * Matrix4x4.CreateTranslation(Position),
+            ModelMatrix = Matrix4x4.CreateScale(3f, 3f, 3f)
+                        * Matrix4x4.CreateTranslation(Position),
         };
     }
 }

@@ -26,16 +26,17 @@ public class CombatBeesBenchmarkGame : Game
                 WorldPosition = new Vector3(0f, 0f, 60f)
             }
         };
+        var random = new Random();
+
         m_CameraRig = new CameraRig(camera);
         m_RigController = new CameraRigController(m_CameraRig, Window, Input);
-        AliveBeeMovementSystem = new AliveBeeMovementSystem(MaxBeeCount, Logger);
+        AliveBeeMovementSystem = new AliveBeeMovementSystem(MaxBeeCount, Logger, random);
         DeadBeeMovementSystem = new DeadBeeMovementSystem(MaxBeeCount);
         BeeRenderingSystem = new BeeRenderingSystem(MaxBeeCount, Gpu, camera, Logger);
         
         var numberOfTeams = 2;
         var numberOfBeesPerTeam = MaxBeeCount / numberOfTeams;
         Logger.Trace($"Number of bees per team: {numberOfBeesPerTeam}");
-        var random = new Random();
 
         var aliveBeePool = new BeePool<IAliveBee>(random, numberOfTeams, numberOfBeesPerTeam);
         var deadBeePool = new BeePool<IDeadBee>(random, numberOfTeams, numberOfBeesPerTeam);
@@ -51,7 +52,10 @@ public class CombatBeesBenchmarkGame : Game
         {
             for (var j = 0; j < numberOfBeesPerTeam; j++)
             {
-                var bee = new DeadBee(teamIndex, World);
+                var bee = new DeadBee(teamIndex, World)
+                {
+                    //Position = new Vector3(random.NextSingle() * 1f, random.NextSingle() * 1f, 0f)
+                };
                 World.Spawn(bee);
             }
         }

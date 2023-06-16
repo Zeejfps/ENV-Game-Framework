@@ -42,7 +42,8 @@ public sealed class World
 
     public void Update(float dt)
     {
-        //Logger.Trace($"Killing Bees: {BeesToKill.Count}");
+        if (BeesToKill.Count > 0)
+            Logger.Trace($"Killing Bees: {BeesToKill.Count}");
         foreach (var aliveBee in BeesToKill)
         {
             AliveBeePool.Remove(aliveBee);
@@ -51,6 +52,8 @@ public sealed class World
 
             var deadBee = new DeadBee(aliveBee.TeamIndex, this)
             {
+                Position = aliveBee.Position,
+                Velocity = aliveBee.Velocity * 0.5f,
                 DeathTimer = 10f
             };
             DeadBeePool.Add(deadBee);
@@ -59,14 +62,18 @@ public sealed class World
         }
         BeesToKill.Clear();
 
-        //Logger.Trace($"Spawning Bees: {BeesToSpawn.Count}");
+        if (BeesToSpawn.Count > 0)
+            Logger.Trace($"Spawning Bees: {BeesToSpawn.Count}");
         foreach (var deadBee in BeesToSpawn)
         {
             DeadBeePool.Remove(deadBee);
             DeadBeeMovementSystem.Remove(deadBee);
             BeeRenderingSystem.Remove(deadBee);
 
-            var aliveBee = new AliveBee(deadBee.TeamIndex, this);
+            var aliveBee = new AliveBee(deadBee.TeamIndex, this)
+            {
+                
+            };
             AliveBeePool.Add(aliveBee);
             AliveBeeMovementSystem.Add(aliveBee);
             BeeRenderingSystem.Add(aliveBee);
