@@ -48,11 +48,25 @@ public sealed class AliveBee : IAliveBee
         return new BeeRenderState
         {
             Color = Color,
-            ModelMatrix = Matrix4x4.CreateScale(1f, 1f, 1f)
+            ModelMatrix = Matrix4x4.CreateScale(0.25f, 0.25f, 0.25f)
                           //* Matrix4x4.CreateLookAt(Vector3.Zero, LookDirection, Vector3.UnitY)
                           * Matrix4x4.CreateTranslation(Position),
         };
     }
-    
 
+
+    public MovementState SaveMovementState()
+    {
+        return new MovementState
+        {
+            Position = Position,
+            Velocity = Velocity
+        };
+    }
+
+    public void Load(MovementState state)
+    {
+        Position = state.Position;
+        Velocity = state.Velocity;
+    }
 }

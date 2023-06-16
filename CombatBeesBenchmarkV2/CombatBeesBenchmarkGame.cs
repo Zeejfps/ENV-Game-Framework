@@ -13,6 +13,7 @@ public class CombatBeesBenchmarkGame : Game
     private AliveBeeMovementSystem AliveBeeMovementSystem { get; }
     private DeadBeeMovementSystem DeadBeeMovementSystem { get; }
     private BeeRenderingSystem BeeRenderingSystem { get; }
+    private BeeCollisionSystem BeeCollisionSystem { get; }
 
     private CameraRig m_CameraRig;
     private CameraRigController m_RigController;
@@ -33,7 +34,8 @@ public class CombatBeesBenchmarkGame : Game
         AliveBeeMovementSystem = new AliveBeeMovementSystem(MaxBeeCount, Logger, random);
         DeadBeeMovementSystem = new DeadBeeMovementSystem(MaxBeeCount);
         BeeRenderingSystem = new BeeRenderingSystem(MaxBeeCount, Gpu, camera, Logger);
-        
+        BeeCollisionSystem = new BeeCollisionSystem(MaxBeeCount, Logger);
+
         var numberOfTeams = 2;
         var numberOfBeesPerTeam = MaxBeeCount / numberOfTeams;
         Logger.Trace($"Number of bees per team: {numberOfBeesPerTeam}");
@@ -45,6 +47,7 @@ public class CombatBeesBenchmarkGame : Game
             deadBeePool,
             AliveBeeMovementSystem, 
             DeadBeeMovementSystem, 
+            BeeCollisionSystem,
             BeeRenderingSystem,
             Logger,
             random);
@@ -75,6 +78,7 @@ public class CombatBeesBenchmarkGame : Game
         World.Update(dt);
         AliveBeeMovementSystem.Update(dt);
         DeadBeeMovementSystem.Update(dt);
+        BeeCollisionSystem.Update(dt);
         m_RigController.Update(dt);
     }
 

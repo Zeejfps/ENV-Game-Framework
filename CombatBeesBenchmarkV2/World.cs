@@ -10,6 +10,7 @@ public sealed class World
         BeePool<IDeadBee> deadBeePool,
         AliveBeeMovementSystem aliveBeeMovementSystem,
         DeadBeeMovementSystem deadBeeMovementSystem,
+        BeeCollisionSystem beeCollisionSystem,
         BeeRenderingSystem beeRenderingSystem, ILogger logger, Random random)
     {
         AliveBeePool = aliveBeePool;
@@ -17,6 +18,7 @@ public sealed class World
         AliveBeeMovementSystem = aliveBeeMovementSystem;
         DeadBeeMovementSystem = deadBeeMovementSystem;
         BeeRenderingSystem = beeRenderingSystem;
+        BeeCollisionSystem = beeCollisionSystem;
         Logger = logger;
         Random = random;
     }
@@ -28,6 +30,7 @@ public sealed class World
     private AliveBeeMovementSystem AliveBeeMovementSystem { get; }
     private DeadBeeMovementSystem DeadBeeMovementSystem { get; }
     private BeeRenderingSystem BeeRenderingSystem { get; }
+    private BeeCollisionSystem BeeCollisionSystem { get; }
     private Dictionary<IAliveBee, IAliveBee> BeeTargetTable { get; } = new();
 
     private HashSet<IAliveBee> BeesToKill { get; } = new();
@@ -52,6 +55,7 @@ public sealed class World
             AliveBeePool.Remove(aliveBee);
             AliveBeeMovementSystem.Remove(aliveBee);
             BeeRenderingSystem.Remove(aliveBee);
+            BeeCollisionSystem.Remove(aliveBee);
             BeeTargetTable.Remove(aliveBee);
 
             var deadBee = new DeadBee(aliveBee.TeamIndex, this)
@@ -63,6 +67,7 @@ public sealed class World
             DeadBeePool.Add(deadBee);
             DeadBeeMovementSystem.Add(deadBee);
             BeeRenderingSystem.Add(deadBee);
+            BeeCollisionSystem.Add(deadBee);
         }
         BeesToKill.Clear();
 
@@ -73,7 +78,8 @@ public sealed class World
             DeadBeePool.Remove(deadBee);
             DeadBeeMovementSystem.Remove(deadBee);
             BeeRenderingSystem.Remove(deadBee);
-
+            BeeCollisionSystem.Remove(deadBee);
+            
             var spawnPosition = Vector3.UnitX * (-100f * .4f + 100f * .8f * deadBee.TeamIndex);
             var aliveBee = new AliveBee(deadBee.TeamIndex, this)
             {
@@ -82,6 +88,7 @@ public sealed class World
             AliveBeePool.Add(aliveBee);
             AliveBeeMovementSystem.Add(aliveBee);
             BeeRenderingSystem.Add(aliveBee);
+            BeeCollisionSystem.Add(aliveBee);
         }
         BeesToSpawn.Clear();
     }

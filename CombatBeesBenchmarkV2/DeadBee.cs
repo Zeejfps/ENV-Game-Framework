@@ -45,8 +45,23 @@ public sealed class DeadBee : IDeadBee
             // ModelMatrix = Matrix4x4.CreateScale(1f, 1f, 1f)
             //               * Matrix4x4.CreateLookAt(Vector3.Zero, LookDirection, Vector3.UnitY)
             //               * Matrix4x4.CreateTranslation(Position),
-            ModelMatrix = Matrix4x4.CreateScale(3f, 3f, 3f)
+            ModelMatrix = Matrix4x4.CreateScale(0.5f, 0.5f, 0.5f)
                         * Matrix4x4.CreateTranslation(Position),
         };
+    }
+
+    public MovementState SaveMovementState()
+    {
+        return new MovementState
+        {
+            Position = Position,
+            Velocity = Velocity
+        };
+    }
+
+    public void Load(MovementState state)
+    {
+        Position = state.Position;
+        Velocity = state.Velocity;
     }
 }
