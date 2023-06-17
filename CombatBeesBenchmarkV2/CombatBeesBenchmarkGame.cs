@@ -7,7 +7,7 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    public const int MaxBeeCount = 10000;
+    public const int MaxBeeCount = 100000;
     
     private World World { get; }
     private AliveBeeMovementSystem AliveBeeMovementSystem { get; }

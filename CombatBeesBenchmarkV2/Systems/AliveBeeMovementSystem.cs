@@ -53,13 +53,22 @@ public sealed class AliveBeeMovementSystem
         var states = m_States.AsSpan();
         var stateCount = m_Entities.Count;
         //Logger.Trace($"State Count: {stateCount}");
-        for (var i = 0; i < stateCount; i++)
+
+        Parallel.For(0, stateCount, i =>
         {
             var state = m_Entities[i].Save();
             state.MoveDirection = Random.RandomInsideUnitSphere();
             //Logger.Trace($"[{i}] Move Dir: {state.MoveDirection}");
-            states[i] = state;
-        }
+            m_States[i] = state;
+        });
+        
+        // for (var i = 0; i < stateCount; i++)
+        // {
+        //     var state = m_Entities[i].Save();
+        //     state.MoveDirection = Random.RandomInsideUnitSphere();
+        //     //Logger.Trace($"[{i}] Move Dir: {state.MoveDirection}");
+        //     states[i] = state;
+        // }
 
         for (var i = 0; i < stateCount; i++)
         {
@@ -102,9 +111,14 @@ public sealed class AliveBeeMovementSystem
             state.Position += state.Velocity * dt;
         }
 
-        for (var i = 0; i < stateCount; i++)
+        Parallel.For(0, stateCount, (i) =>
         {
-            m_Entities[i].Load(states[i]);
-        }
+            m_Entities[i].Load(m_States[i]);
+        });
+
+        // for (var i = 0; i < stateCount; i++)
+        // {
+        //     m_Entities[i].Load(states[i]);
+        // }
     }
 }
