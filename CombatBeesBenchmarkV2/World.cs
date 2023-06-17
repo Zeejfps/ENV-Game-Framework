@@ -46,7 +46,6 @@ public sealed class World
     private DeadBeeMovementSystem DeadBeeMovementSystem { get; }
     private BeeRenderingSystem BeeRenderingSystem { get; }
     private BeeCollisionSystem BeeCollisionSystem { get; }
-    private Dictionary<Bee, Bee> BeeTargetTable { get; } = new();
 
     private HashSet<Bee> BeesToKill { get; } = new();
     private HashSet<Bee> BeesToSpawn { get; } = new();
@@ -76,7 +75,6 @@ public sealed class World
             //Logger.Trace($"Killing Bee: {bee.GetHashCode()}");
             AliveBeePool.Remove(bee);
             AliveBeeMovementSystem.Remove(bee);
-            BeeTargetTable.Remove(bee);
 
             bee.Velocity *= 0.5f;
             bee.DeathTimer = 5f;
@@ -103,24 +101,8 @@ public sealed class World
         BeesToSpawn.Clear();
     }
 
-    public Bee GetTarget(Bee bee)
+    public Bee GetRandomEnemy(int teamIndex)
     {
-        if (!BeeTargetTable.TryGetValue(bee, out var target))
-        {
-            target = AliveBeePool.GetRandomEnemyBee(bee.TeamIndex);
-            BeeTargetTable[bee] = target;
-        }
-        else if (!target.IsAlive)
-        {
-            target = AliveBeePool.GetRandomEnemyBee(bee.TeamIndex);
-            BeeTargetTable[bee] = target;
-        }
-        return target;
-    }
-
-    public void AssignNewTarget(Bee bee)
-    {
-        var target = AliveBeePool.GetRandomEnemyBee(bee.TeamIndex);
-        BeeTargetTable[bee] = target;
+        return AliveBeePool.GetRandomEnemyBee(teamIndex);
     }
 }

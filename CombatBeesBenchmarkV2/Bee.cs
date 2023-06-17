@@ -6,13 +6,27 @@ public sealed class Bee : IAliveBee, IDeadBee
 {
     public bool IsAlive { get; set; }
     public int TeamIndex { get; }
-    public Vector3 Position { get; set; }
-    public Vector3 Velocity { get; set; }
+
+    private Vector3 m_Position;
+    public Vector3 Position
+    {
+        get => m_Position;
+        set => m_Position = value;
+    }
+
+    private Vector3 m_Velocity;
+    public Vector3 Velocity
+    {
+        get => m_Velocity;
+        set => m_Velocity = value;
+    }
+    
     public Vector3 LookDirection { get; set; }
     public float DeathTimer { get; set; }
     
     public Vector4 Color { get; }
     private World World { get; }
+    private Bee? Target { get; set; }
 
     public Bee(int teamIndex, World world)
     {
@@ -23,19 +37,23 @@ public sealed class Bee : IAliveBee, IDeadBee
 
     public AliveBeeState Save()
     {
-        var target = World.GetTarget(this);
+        if (Target == null || !Target.IsAlive)
+        {
+            Target = World.GetRandomEnemy(TeamIndex);
+        }
+        var target = Target;
         return new AliveBeeState
         {
-            Position = Position,
-            Velocity = Velocity,
+            Position = m_Position,
+            Velocity = m_Velocity,
             TargetPosition = target.Position,
         };
     }
 
     public void Load(DeadBeeState state)
     {
-        Position = state.Position;
-        Velocity = state.Velocity;
+        m_Position = state.Position;
+        m_Velocity = state.Velocity;
         DeathTimer = state.DeathTimer;
         if (DeathTimer <= 0f)
             World.Spawn(this);
@@ -43,13 +61,13 @@ public sealed class Bee : IAliveBee, IDeadBee
 
     public void Load(AliveBeeState state)
     {
-        var target = World.GetTarget(this);
-        Position = state.Position;
-        Velocity = state.Velocity;
-        if (state.IsTargetKilled)
+        var target = Target;
+        m_Position = state.Position;
+        m_Velocity = state.Velocity;
+        if (state.IsTargetKilled && target.IsAlive)
         {
             World.Kill(target);
-            World.AssignNewTarget(this);
+            Target = World.GetRandomEnemy(TeamIndex);
         }
     }
 
@@ -69,23 +87,23 @@ public sealed class Bee : IAliveBee, IDeadBee
     {
         return new MovementState
         {
-            Position = Position,
-            Velocity = Velocity
+            Position = m_Position,
+            Velocity = m_Velocity
         };
     }
 
     public void Load(MovementState state)
     {
-        Position = state.Position;
-        Velocity = state.Velocity;
+        m_Position = state.Position;
+        m_Velocity = state.Velocity;
     }
 
     DeadBeeState IDeadBee.Save()
     {
         return new DeadBeeState
         {
-            Position = Position,
-            Velocity = Velocity,
+            Position = m_Position,
+            Velocity = m_Velocity,
             DeathTimer = DeathTimer
         };
     }
