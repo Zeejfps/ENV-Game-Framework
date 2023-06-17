@@ -2,7 +2,7 @@
 
 #version 460 core
 
-const int MAX_BATCH_SIZE = 50000;
+const int MAX_BATCH_SIZE = 100000;
 
 struct Bee {
   vec4 color;
@@ -33,7 +33,7 @@ void main()
     
 #version 460 core
 
-const int MAX_BATCH_SIZE = 50000;
+const int MAX_BATCH_SIZE = 100000;
 
 struct Bee {
   vec4 color;

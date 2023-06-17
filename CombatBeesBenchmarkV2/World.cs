@@ -26,10 +26,10 @@ public sealed class World
 
         for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
         {
-            Logger.Trace($"Team Index: {teamIndex}");
+            //Logger.Trace($"Team Index: {teamIndex}");
             for (var j = 0; j < numberOfBeesPerTeam; j++)
             {
-                Logger.Trace($"J: {j}");
+                //Logger.Trace($"J: {j}");
                 var bee = new Bee(teamIndex, this);
                 BeeRenderingSystem.Add(bee);
                 BeeCollisionSystem.Add(bee);
@@ -78,7 +78,8 @@ public sealed class World
             AliveBeeMovementSystem.Remove(bee);
             BeeTargetTable.Remove(bee);
 
-            bee.DeathTimer = 1f;
+            bee.Velocity *= 0.5f;
+            bee.DeathTimer = 5f;
             bee.IsAlive = false;
             
             DeadBeePool.Add(bee);

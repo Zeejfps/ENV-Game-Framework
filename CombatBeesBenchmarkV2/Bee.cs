@@ -29,7 +29,6 @@ public sealed class Bee : IAliveBee, IDeadBee
             Position = Position,
             Velocity = Velocity,
             TargetPosition = target.Position,
-            TargetVelocity = target.Velocity,
         };
     }
 
@@ -39,7 +38,7 @@ public sealed class Bee : IAliveBee, IDeadBee
         Velocity = state.Velocity;
         DeathTimer = state.DeathTimer;
         if (DeathTimer <= 0f)
-            World.Kill(this);
+            World.Spawn(this);
     }
 
     public void Load(AliveBeeState state)
@@ -47,7 +46,6 @@ public sealed class Bee : IAliveBee, IDeadBee
         var target = World.GetTarget(this);
         Position = state.Position;
         Velocity = state.Velocity;
-        target.Velocity = state.Velocity;
         if (state.IsTargetKilled)
         {
             World.Kill(target);

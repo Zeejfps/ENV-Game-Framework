@@ -11,7 +11,6 @@ public struct AliveBeeState
     public Vector3 AttractionPoint;
     public Vector3 RepellentPoint;
     public Vector3 TargetPosition;
-    public Vector3 TargetVelocity;
     public bool IsTargetKilled;
 }
 
@@ -58,6 +57,7 @@ public sealed class AliveBeeMovementSystem
         {
             var state = m_Entities[i].Save();
             state.MoveDirection = Random.RandomInsideUnitSphere();
+            //Logger.Trace($"[{i}] Move Dir: {state.MoveDirection}");
             states[i] = state;
         }
 
@@ -67,34 +67,38 @@ public sealed class AliveBeeMovementSystem
             state.Velocity += state.MoveDirection * flightJitter;
             state.Velocity *= damping;
        
-            var attractionPoint = state.AttractionPoint;
-            Vector3 delta = attractionPoint - state.Position;
-            var dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
-            if (dist > 0f)
-                state.Velocity += delta * (teamAttraction / dist);
-            
-            var repellentPoint = state.RepellentPoint;
-            delta = repellentPoint - state.Position;
-            dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
-            if (dist > 0f)
-                state.Velocity -= delta * (teamRepulsion / dist);
-            
-            delta = state.TargetPosition - state.Position;
+            // var attractionPoint = state.AttractionPoint;
+            // Vector3 delta = attractionPoint - state.Position;
+            // var dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
+            // if (dist > 0f)
+            //     state.Velocity += delta * (teamAttraction / dist);
+            //
+            // var repellentPoint = state.RepellentPoint;
+            // delta = repellentPoint - state.Position;
+            // dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
+            // if (dist > 0f)
+            //     state.Velocity -= delta * (teamRepulsion / dist);
+            //
+            var delta = state.TargetPosition - state.Position;
+            //Logger.Trace($"[{i}]: {state.TargetPosition}, Delta: {delta}");
             var sqrDist = delta.LengthSquared();
             if (sqrDist > attackDistanceSqr)
             {
+                //Logger.Trace($"[{i}] Attacking!: {delta}");
+                //Logger.Trace($"[{i}] Vel Before: {state.Velocity}");
                 state.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
+                //Logger.Trace($"[{i}] Vel After: {state.Velocity}");
             }
             else
             {
                 state.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
                 if (sqrDist < hitDistanceSqrd)
                 {
-                    state.TargetVelocity *= .5f;
                     state.IsTargetKilled = true;
                 }
             }
 
+            //Logger.Trace($"[{i}] Velocity: {state.Velocity}");
             state.Position += state.Velocity * dt;
         }
 

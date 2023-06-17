@@ -16,7 +16,7 @@ public abstract class Game : IGame
     protected IGameTime Time => m_Time;
     protected ILogger Logger { get; }
 
-    private float m_DeltaTime = 1f / 60f;
+    private float m_DeltaTime = 1f / 30f;
     private double m_Accumulator = 0.0;
     
     private readonly Stopwatch m_Stopwatch;
