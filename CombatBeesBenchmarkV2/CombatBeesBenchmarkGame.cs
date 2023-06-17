@@ -7,7 +7,7 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    public const int MaxBeeCount = 100;
+    public const int MaxBeeCount = 10000;
     
     private World World { get; }
     private AliveBeeMovementSystem AliveBeeMovementSystem { get; }
@@ -32,7 +32,7 @@ public class CombatBeesBenchmarkGame : Game
         m_CameraRig = new CameraRig(camera);
         m_RigController = new CameraRigController(m_CameraRig, Window, Input);
         AliveBeeMovementSystem = new AliveBeeMovementSystem(MaxBeeCount, Logger, random);
-        DeadBeeMovementSystem = new DeadBeeMovementSystem(MaxBeeCount);
+        DeadBeeMovementSystem = new DeadBeeMovementSystem(MaxBeeCount, Logger);
         BeeRenderingSystem = new BeeRenderingSystem(MaxBeeCount, Gpu, camera, Logger);
         BeeCollisionSystem = new BeeCollisionSystem(MaxBeeCount, Logger);
 
@@ -40,9 +40,11 @@ public class CombatBeesBenchmarkGame : Game
         var numberOfBeesPerTeam = MaxBeeCount / numberOfTeams;
         Logger.Trace($"Number of bees per team: {numberOfBeesPerTeam}");
 
-        var aliveBeePool = new BeePool<IAliveBee>(random, numberOfTeams, numberOfBeesPerTeam);
-        var deadBeePool = new BeePool<IDeadBee>(random, numberOfTeams, numberOfBeesPerTeam);
+        var aliveBeePool = new BeePool<Bee>(random, numberOfTeams, numberOfBeesPerTeam);
+        var deadBeePool = new BeePool<Bee>(random, numberOfTeams, numberOfBeesPerTeam);
         World = new World(
+            numberOfTeams,
+            numberOfBeesPerTeam,
             aliveBeePool,
             deadBeePool,
             AliveBeeMovementSystem, 
@@ -51,15 +53,6 @@ public class CombatBeesBenchmarkGame : Game
             BeeRenderingSystem,
             Logger,
             random);
-
-        for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
-        {
-            for (var j = 0; j < numberOfBeesPerTeam; j++)
-            {
-                var bee = new DeadBee(teamIndex, World);
-                World.Spawn(bee);
-            }
-        }
     }
 
     protected override void OnStartup()

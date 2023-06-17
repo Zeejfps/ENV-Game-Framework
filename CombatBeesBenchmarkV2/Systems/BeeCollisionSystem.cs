@@ -18,7 +18,7 @@ public struct MovementState
 public sealed class BeeCollisionSystem
 {
     private ILogger Logger { get; }
-    private readonly List<IMovableBee> m_Entities = new();
+    private readonly HashSet<IMovableBee> m_Entities = new();
     private readonly MovementState[] m_States;
 
     public BeeCollisionSystem(int maxBeeCount, ILogger logger)
@@ -29,12 +29,14 @@ public sealed class BeeCollisionSystem
 
     public void Add(IMovableBee entity)
     {
-        m_Entities.Add(entity);
+        var added = m_Entities.Add(entity);
+        // Logger.Trace($"Added: {entity.GetHashCode()}, Added?: {added}, Count: {m_Entities.Count}");
     }
 
     public void Remove(IMovableBee entity)
     {
-        m_Entities.Remove(entity);
+        var removed = m_Entities.Remove(entity);
+        // Logger.Trace($"Removed: {entity.GetHashCode()}, Removed?: {removed}, Count: {m_Entities.Count}");
     }
     
     public void Update(float dt)
@@ -45,7 +47,7 @@ public sealed class BeeCollisionSystem
         
         var states = m_States.AsSpan();
         var stateCount = m_Entities.Count;
-        Logger.Trace($"State Count: {stateCount}");
+        //Logger.Trace($"State Count: {stateCount}");
         
         var index = 0;
         foreach (var entity in m_Entities)

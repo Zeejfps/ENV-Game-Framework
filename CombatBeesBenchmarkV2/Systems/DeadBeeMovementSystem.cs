@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using EasyGameFramework.Api;
 
 namespace CombatBeesBenchmark;
 
@@ -17,11 +18,13 @@ public struct DeadBeeState
 
 public sealed class DeadBeeMovementSystem
 {
+    private ILogger Logger { get; }
     private readonly LinkedList<IDeadBee> m_Entities = new();
     private readonly DeadBeeState[] m_States;
     
-    public DeadBeeMovementSystem(int maxBeeCount)
+    public DeadBeeMovementSystem(int maxBeeCount, ILogger logger)
     {
+        Logger = logger;
         m_States = new DeadBeeState[maxBeeCount];
     }
 
@@ -44,6 +47,7 @@ public sealed class DeadBeeMovementSystem
         var index = 0;
         foreach (var entity in m_Entities)
         {
+            //Logger.Trace(index);
             states[index] = entity.Save();
             index++;
         }

@@ -2,16 +2,19 @@
 
 namespace CombatBeesBenchmark;
 
-public sealed class AliveBee : IAliveBee
+public sealed class Bee : IAliveBee, IDeadBee
 {
+    public bool IsAlive { get; set; }
     public int TeamIndex { get; }
     public Vector3 Position { get; set; }
     public Vector3 Velocity { get; set; }
     public Vector3 LookDirection { get; set; }
+    public float DeathTimer { get; set; }
+    
     public Vector4 Color { get; }
     private World World { get; }
 
-    public AliveBee(int teamIndex, World world)
+    public Bee(int teamIndex, World world)
     {
         TeamIndex = teamIndex;
         World = world;
@@ -28,6 +31,15 @@ public sealed class AliveBee : IAliveBee
             TargetPosition = target.Position,
             TargetVelocity = target.Velocity,
         };
+    }
+
+    public void Load(DeadBeeState state)
+    {
+        Position = state.Position;
+        Velocity = state.Velocity;
+        DeathTimer = state.DeathTimer;
+        if (DeathTimer <= 0f)
+            World.Kill(this);
     }
 
     public void Load(AliveBeeState state)
@@ -68,5 +80,15 @@ public sealed class AliveBee : IAliveBee
     {
         Position = state.Position;
         Velocity = state.Velocity;
+    }
+
+    DeadBeeState IDeadBee.Save()
+    {
+        return new DeadBeeState
+        {
+            Position = Position,
+            Velocity = Velocity,
+            DeathTimer = DeathTimer
+        };
     }
 }
