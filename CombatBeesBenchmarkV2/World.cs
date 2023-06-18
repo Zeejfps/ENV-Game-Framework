@@ -74,14 +74,12 @@ public sealed class World
         {
             //Logger.Trace($"Killing Bee: {bee.GetHashCode()}");
             AliveBeePool.Remove(bee);
-            AliveBeeMovementSystem.Remove(bee);
 
             bee.Velocity *= 0.5f;
             bee.DeathTimer = 5f;
             bee.IsAlive = false;
             
             DeadBeePool.Add(bee);
-            DeadBeeMovementSystem.Add(bee);
         }
         BeesToKill.Clear();
 
@@ -90,13 +88,11 @@ public sealed class World
         foreach (var bee in BeesToSpawn)
         {
             DeadBeePool.Remove(bee);
-            DeadBeeMovementSystem.Remove(bee);
             
             var spawnPosition = Vector3.UnitX * (-100f * .4f + 100f * .8f * bee.TeamIndex);
             bee.Position = spawnPosition;
             bee.IsAlive = true;
             AliveBeePool.Add(bee);
-            AliveBeeMovementSystem.Add(bee);
         }
         BeesToSpawn.Clear();
     }

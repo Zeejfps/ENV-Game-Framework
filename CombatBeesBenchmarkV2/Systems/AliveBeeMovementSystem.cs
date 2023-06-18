@@ -19,26 +19,17 @@ public sealed class AliveBeeMovementSystem
 {
     private ILogger Logger { get; }
     private Random Random { get; }
-    private readonly List<IAliveBee> m_Entities = new();
+    private readonly IBeePool<IAliveBee> m_Entities;
     private readonly AliveBeeState[] m_States;
 
-    public AliveBeeMovementSystem(int maxStatCount, ILogger logger, Random random)
+    public AliveBeeMovementSystem(int maxStatCount, IBeePool<IAliveBee> entities, ILogger logger, Random random)
     {
         Logger = logger;
         Random = random;
+        m_Entities = entities;
         m_States = new AliveBeeState[maxStatCount];
     }
 
-    public void Add(IAliveBee bee)
-    {
-        m_Entities.Add(bee);
-    }
-
-    public void Remove(IAliveBee bee)
-    {
-        m_Entities.Remove(bee);
-    }
-    
     public void Update(float dt)
     {
         var attackDistanceSqr = 4f * 4f;
@@ -51,7 +42,6 @@ public sealed class AliveBeeMovementSystem
         var flightJitter = 200f * dt;
         var damping = 1f - 0.9f * dt;
         
-        var states = m_States.AsSpan();
         var stateCount = m_Entities.Count;
         //Logger.Trace($"State Count: {stateCount}");
 
@@ -63,14 +53,7 @@ public sealed class AliveBeeMovementSystem
             m_States[i] = state;
         });
         
-        // for (var i = 0; i < stateCount; i++)
-        // {
-        //     var state = m_Entities[i].Save();
-        //     state.MoveDirection = Random.RandomInsideUnitSphere();
-        //     //Logger.Trace($"[{i}] Move Dir: {state.MoveDirection}");
-        //     states[i] = state;
-        // }
-
+        var states = m_States.AsSpan();
         for (var i = 0; i < stateCount; i++)
         {
             ref var state = ref states[i];
@@ -117,10 +100,5 @@ public sealed class AliveBeeMovementSystem
         {
             m_Entities[i].Load(m_States[i]);
         });
-
-        // for (var i = 0; i < stateCount; i++)
-        // {
-        //     m_Entities[i].Load(states[i]);
-        // }
     }
 }

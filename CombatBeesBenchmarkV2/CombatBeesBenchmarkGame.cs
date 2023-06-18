@@ -31,10 +31,6 @@ public class CombatBeesBenchmarkGame : Game
 
         m_CameraRig = new CameraRig(camera);
         m_RigController = new CameraRigController(m_CameraRig, Window, Input);
-        AliveBeeMovementSystem = new AliveBeeMovementSystem(MaxBeeCount, Logger, random);
-        DeadBeeMovementSystem = new DeadBeeMovementSystem(MaxBeeCount, Logger);
-        BeeRenderingSystem = new BeeRenderingSystem(MaxBeeCount, Gpu, camera, Logger);
-        BeeCollisionSystem = new BeeCollisionSystem(MaxBeeCount, Logger);
 
         var numberOfTeams = 2;
         var numberOfBeesPerTeam = MaxBeeCount / numberOfTeams;
@@ -42,6 +38,12 @@ public class CombatBeesBenchmarkGame : Game
 
         var aliveBeePool = new BeePool<Bee>(random, numberOfTeams, numberOfBeesPerTeam, Logger);
         var deadBeePool = new BeePool<Bee>(random, numberOfTeams, numberOfBeesPerTeam, Logger);
+
+        AliveBeeMovementSystem = new AliveBeeMovementSystem(MaxBeeCount, aliveBeePool, Logger, random);
+        DeadBeeMovementSystem = new DeadBeeMovementSystem(MaxBeeCount, deadBeePool, Logger);
+        BeeRenderingSystem = new BeeRenderingSystem(MaxBeeCount, Gpu, camera, Logger);
+        BeeCollisionSystem = new BeeCollisionSystem(MaxBeeCount, Logger);
+
         World = new World(
             numberOfTeams,
             numberOfBeesPerTeam,

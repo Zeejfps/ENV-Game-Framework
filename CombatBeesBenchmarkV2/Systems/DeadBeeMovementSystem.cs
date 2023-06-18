@@ -19,39 +19,27 @@ public struct DeadBeeState
 public sealed class DeadBeeMovementSystem
 {
     private ILogger Logger { get; }
-    private readonly LinkedList<IDeadBee> m_Entities = new();
+    private IBeePool<IDeadBee> DeadBees { get; }
     private readonly DeadBeeState[] m_States;
     
-    public DeadBeeMovementSystem(int maxBeeCount, ILogger logger)
+    public DeadBeeMovementSystem(int maxBeeCount, IBeePool<IDeadBee> deadBees, ILogger logger)
     {
         Logger = logger;
+        DeadBees = deadBees;
         m_States = new DeadBeeState[maxBeeCount];
-    }
-
-    public void Remove(IDeadBee bee)
-    {
-        m_Entities.Remove(bee);
-    }
-
-    public void Add(IDeadBee bee)
-    {
-        m_Entities.AddLast(bee);
     }
 
     public void Update(float dt)
     {
         var gravity = -20f * dt;
-        var states = m_States;
-        var stateCount = m_Entities.Count;
+        var stateCount = DeadBees.Count;
 
-        var index = 0;
-        foreach (var entity in m_Entities)
+        Parallel.For(0, stateCount, i =>
         {
-            //Logger.Trace(index);
-            states[index] = entity.Save();
-            index++;
-        }
+            m_States[i] = DeadBees[i].Save();
+        });
 
+        var states = m_States.AsSpan();
         for (var i = 0; i < stateCount; i++)
         {
             ref var state = ref states[i];
@@ -60,11 +48,9 @@ public sealed class DeadBeeMovementSystem
             state.DeathTimer -= dt;
         }
         
-        index = 0;
-        foreach (var entity in m_Entities)
+        Parallel.For(0, stateCount, i =>
         {
-            entity.Load(states[index]);
-            index++;
-        }
+            DeadBees[i].Load(m_States[i]);
+        });
     }
 }
