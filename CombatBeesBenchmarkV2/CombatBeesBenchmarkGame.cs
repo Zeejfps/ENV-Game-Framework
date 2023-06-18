@@ -88,11 +88,12 @@ public class CombatBeesBenchmarkGame : Game
         Task.WaitAll(aliveBeesSystemTask, deadBeesSystemTask);
 
         BeeCollisionSystem.Update(dt);
-        m_RigController.Update(dt);
     }
 
     protected override void OnRender()
     {
+        m_RigController.Update(Time.FrameDeltaTime);
+
         var gpu = Context.Window.Gpu;
         var framebufferController = gpu.FramebufferController;
         framebufferController.BindToWindow();
