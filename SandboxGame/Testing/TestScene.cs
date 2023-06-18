@@ -122,17 +122,17 @@ public class TestScene : IScene
         foreach (var sceneObject in m_SceneObjects)
             sceneObject.Render();
         
-        var renderbuffer = m_App.Gpu.FramebufferController;
-        var windowFramebufferWidth = renderbuffer.WindowBufferHandle.Width;
-        var windowFramebufferHeight = renderbuffer.WindowBufferHandle.Height;
+        var framebufferController = m_App.Gpu.FramebufferController;
+        var windowFramebufferWidth = framebufferController.WindowBufferHandle.Width;
+        var windowFramebufferHeight = framebufferController.WindowBufferHandle.Height;
         
-        renderbuffer.Bind(m_TempRenderbufferHandle);
-        renderbuffer.SetSize(windowFramebufferWidth, windowFramebufferHeight);
-        renderbuffer.ClearColorBuffers(0f, 0f, 0f, 0f);
+        framebufferController.Bind(m_TempRenderbufferHandle);
+        framebufferController.SetSize(windowFramebufferWidth, windowFramebufferHeight);
+        framebufferController.ClearColorBuffers(0f, 0f, 0f, 0f);
         m_SpecularRenderPass.Render(m_Gpu, m_CameraRig.Camera, m_LightPosition);
         
-        renderbuffer.BindToWindow();
-        renderbuffer.ClearColorBuffers(.42f, .607f, .82f, 1f);
+        framebufferController.BindToWindow();
+        framebufferController.ClearColorBuffers(.42f, .607f, .82f, 1f);
         m_FullScreenBlitPass.Render(m_Gpu, 
             m_CameraRig.Camera,
             m_LightPosition,

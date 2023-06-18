@@ -1862,7 +1862,7 @@ namespace OpenGL
                         errorStr = "GL_OUT_OF_MEMORY";
                         break;
                     case 0x0506:
-                        errorStr = "GL_INVALID_FRAMEBUFFER_OPERATION";
+                        errorStr = "GL_INVALID_FRAMEBUFFER_OPERATION - Given when doing anything that would attempt to read from or write/render to a framebuffer that is not complete.";
                         break;
                 }
 

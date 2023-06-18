@@ -21,6 +21,7 @@ internal class GpuRenderbuffer_GL : IGpuRenderbuffer
 
         Id = glGenFramebuffer();
         glBindFramebuffer(Id);
+        glAssertNoError();
 
         ColorBuffers = new IGpuTextureHandle[colorBufferCount];
         m_drawBufferIds = new int[colorBufferCount];
@@ -29,11 +30,22 @@ internal class GpuRenderbuffer_GL : IGpuRenderbuffer
         for (var i = 0; i < colorBufferCount; i++)
         {
             var colorTextureId = glGenTexture();
+            glAssertNoError();
+
             glBindTexture(GL_TEXTURE_2D, colorTextureId);
+            glAssertNoError();
+
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, IntPtr.Zero);
+            glAssertNoError();
+
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, m_FilterMode.ToOpenGl());
+            glAssertNoError();
+
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glAssertNoError();
+
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorTextureId, 0);
+            glAssertNoError();
 
             var texture = new Texture2D_GL(colorTextureId, width, height);
             var handle = new GpuTextureHandle(texture);
@@ -43,25 +55,35 @@ internal class GpuRenderbuffer_GL : IGpuRenderbuffer
         }
 
         if (m_drawBufferIds.Length > 0)
+        {
             glDrawBuffers(m_drawBufferIds);
+            glAssertNoError();
+        }
 
         if (createDepthBuffer)
         {
             var depthTextureId = glGenTexture();
             glBindTexture(GL_TEXTURE_2D, depthTextureId);
+            glAssertNoError();
+
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL,
                 GL_UNSIGNED_INT_24_8, IntPtr.Zero);
+            glAssertNoError();
+
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depthTextureId, 0);
+            glAssertNoError();
+
             var texture = new Texture2D_GL(depthTextureId, width, height);
             var handle = new GpuTextureHandle(texture);
             m_TextureManager.Add(handle, texture);
             DepthBuffer = handle;
         }
 
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        var status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE)
             throw new Exception("Failed to create framebuffer");
 
-        glBindFramebuffer(0);
+        //glBindFramebuffer(0);
     }
 
     public int Width { get; private set; }
@@ -90,10 +112,17 @@ internal class GpuRenderbuffer_GL : IGpuRenderbuffer
         {
             m_TextureManager.Bind(colorBuffer);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, IntPtr.Zero);
+            glAssertNoError();
         }
 
-        m_TextureManager.Bind(DepthBuffer);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, IntPtr.Zero);
+        if (DepthBuffer != null)
+        {
+            m_TextureManager.Bind(DepthBuffer);
+            
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL,
+                GL_UNSIGNED_INT_24_8, IntPtr.Zero);
+            glAssertNoError();
+        }
     }
 
     public void Dispose()
