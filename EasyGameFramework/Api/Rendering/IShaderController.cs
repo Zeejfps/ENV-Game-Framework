@@ -3,7 +3,7 @@ using EasyGameFramework.Api.AssetTypes;
 
 namespace EasyGameFramework.Api.Rendering;
 
-public interface IShaderManager
+public interface IShaderController
 {
     IHandle<IGpuShader> Load(string assetPath);
     void Bind(IHandle<IGpuShader>? handle);

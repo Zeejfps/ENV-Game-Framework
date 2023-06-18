@@ -7,7 +7,7 @@ public interface IGpu
     bool EnableBlending { get; set; }
 
     IMeshController MeshController { get; }
-    IShaderManager ShaderController { get; }
+    IShaderController ShaderController { get; }
     ITextureController TextureController { get; }
     IRenderbufferManager FramebufferController { get; }
     IBufferController BufferController { get; }

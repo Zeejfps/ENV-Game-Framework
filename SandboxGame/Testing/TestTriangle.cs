@@ -53,7 +53,7 @@ public class TestTriangle : ISceneObject
         
     }
 
-    private void SetRandomColor(IShaderManager shaderManager)
+    private void SetRandomColor(IShaderController shaderManager)
     {
         var r = (float) m_Random.NextDouble();
         var g = (float) m_Random.NextDouble();

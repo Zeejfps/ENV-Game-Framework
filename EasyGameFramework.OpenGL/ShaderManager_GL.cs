@@ -8,7 +8,7 @@ using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-internal class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader_GL>, IShaderManager
+internal class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader_GL>, IShaderController
 {
     private readonly CpuShaderAssetLoader m_CpuShaderLoader = new();
 

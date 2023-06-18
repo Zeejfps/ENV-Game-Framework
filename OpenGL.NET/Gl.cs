@@ -1852,6 +1852,18 @@ namespace OpenGL
                     case 0x0502:
                         errorStr = "GL_INVALID_OPERATION";
                         break;
+                    case 0x0503:
+                        errorStr = "GL_STACK_OVERFLOW";
+                        break;
+                    case 0x0504:
+                        errorStr = "GL_STACK_UNDERFLOW";
+                        break;
+                    case 0x0505:
+                        errorStr = "GL_OUT_OF_MEMORY";
+                        break;
+                    case 0x0506:
+                        errorStr = "GL_INVALID_FRAMEBUFFER_OPERATION";
+                        break;
                 }
 
                 return true;
