@@ -8,7 +8,10 @@ namespace CombatBeesBenchmark;
 
 public interface IRenderableBee
 {
-    BeeRenderState SaveRenderState();
+    Vector4 Color { get; set; }
+    Vector3 Position { get; set; }
+    Vector3 LookDirection { get; set; }
+    Vector3 Velocity { get; set; }
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -45,14 +48,20 @@ public sealed class BeeRenderingSystem
         gpu.ShaderController.AttachBuffer("beeDataBlock", 0, BeeBuffer);
     }
 
-    public void Render()
+    public void Render(float dt)
     {
         var stateCount = Entities.Count;
         //Logger.Trace($"[RenderingSystem] Entity Count: {Entities.Count}");
         Parallel.For(0, stateCount, i =>
         {
             var entity = Entities[i];
-            m_States[i] = entity.SaveRenderState();
+            m_States[i] = new BeeRenderState
+            {
+                Color = entity.Color,
+                ModelMatrix = Matrix4x4.CreateScale(0.25f, 0.25f, 0.25f)
+                              * Matrix4x4.CreateLookAt(Vector3.Zero, entity.LookDirection, Vector3.UnitY)
+                              * Matrix4x4.CreateTranslation(entity.Position + entity.Velocity * dt),
+            };
         });
         
         var states = m_States.AsSpan();

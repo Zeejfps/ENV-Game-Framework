@@ -99,7 +99,7 @@ public class CombatBeesBenchmarkGame : Game
         framebufferController.BindToWindow();
         framebufferController.ClearColorBuffers(0f, 0.1f, 0.1f, 1f);
         
-        BeeRenderingSystem.Render();
+        BeeRenderingSystem.Render(Time.FrameDeltaTime);
     }
 
     protected override void OnShutdown()

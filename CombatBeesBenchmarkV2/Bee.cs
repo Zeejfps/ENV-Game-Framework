@@ -24,7 +24,7 @@ public sealed class Bee : IAliveBee, IDeadBee
     public Vector3 LookDirection { get; set; }
     public float DeathTimer { get; set; }
     
-    public Vector4 Color { get; }
+    public Vector4 Color { get; set; }
     private World World { get; }
     private Bee? Target { get; set; }
 
@@ -72,18 +72,6 @@ public sealed class Bee : IAliveBee, IDeadBee
             Target = World.GetRandomEnemy(TeamIndex);
         }
     }
-
-    public BeeRenderState SaveRenderState()
-    {
-        return new BeeRenderState
-        {
-            Color = Color,
-            ModelMatrix = Matrix4x4.CreateScale(0.25f, 0.25f, 0.25f)
-                          * Matrix4x4.CreateLookAt(Vector3.Zero, LookDirection, Vector3.UnitY)
-                          * Matrix4x4.CreateTranslation(m_Position),
-        };
-    }
-
 
     public MovementState SaveMovementState()
     {
