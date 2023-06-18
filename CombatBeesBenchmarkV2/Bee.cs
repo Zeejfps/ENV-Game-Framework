@@ -80,7 +80,7 @@ public sealed class Bee : IAliveBee, IDeadBee
             Color = Color,
             ModelMatrix = Matrix4x4.CreateScale(0.25f, 0.25f, 0.25f)
                           * Matrix4x4.CreateLookAt(Vector3.Zero, LookDirection, Vector3.UnitY)
-                          * Matrix4x4.CreateTranslation(Position),
+                          * Matrix4x4.CreateTranslation(m_Position),
         };
     }
 

@@ -47,17 +47,15 @@ public sealed class BeeRenderingSystem
 
     public void Render()
     {
-        var states = m_States.AsSpan();
         var stateCount = Entities.Count;
         //Logger.Trace($"[RenderingSystem] Entity Count: {Entities.Count}");
-
-        var index = 0;
-        foreach (var entity in Entities)
+        Parallel.For(0, stateCount, i =>
         {
-            states[index] = entity.SaveRenderState();
-            index++;
-        }
+            var entity = Entities[i];
+            m_States[i] = entity.SaveRenderState();
+        });
         
+        var states = m_States.AsSpan();
         var gpu = Gpu;
         var camera = Camera;
         var shaderController = gpu.ShaderController;

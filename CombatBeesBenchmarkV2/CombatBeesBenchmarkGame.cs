@@ -67,13 +67,24 @@ public class CombatBeesBenchmarkGame : Game
         //window.IsFullscreen = true;
         m_RigController.Enable();
     }
-
+    
     protected override void OnUpdate()
     {
         var dt = Time.UpdateDeltaTime;
         World.Update(dt);
-        AliveBeeMovementSystem.Update(dt);
-        DeadBeeMovementSystem.Update(dt);
+
+        var aliveBeesSystemTask = Task.Run(() =>
+        {
+            AliveBeeMovementSystem.Update(dt);
+        });
+
+        var deadBeesSystemTask = Task.Run(() =>
+        {
+            DeadBeeMovementSystem.Update(dt);
+        });
+
+        Task.WaitAll(aliveBeesSystemTask, deadBeesSystemTask);
+
         BeeCollisionSystem.Update(dt);
         m_RigController.Update(dt);
     }
