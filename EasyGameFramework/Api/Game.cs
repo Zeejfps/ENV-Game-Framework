@@ -16,7 +16,6 @@ public abstract class Game : IGame
     protected IGameTime Time => m_Time;
     protected ILogger Logger { get; }
 
-    private float m_DeltaTime = 1f / 60f;
     private double m_Accumulator = 0.0;
     
     private readonly Stopwatch m_Stopwatch;
@@ -34,7 +33,7 @@ public abstract class Game : IGame
         m_Time = new GameTime
         {
             Time = 0f,
-            UpdateDeltaTime = 1f / 60f
+            UpdateDeltaTime = 1 / 60f
         };
     }
 
@@ -71,6 +70,7 @@ public abstract class Game : IGame
 
     private void Update()
     {
+        var deltaTime = Time.UpdateDeltaTime;
         var deltaTimeTicks = m_Stopwatch.ElapsedTicks;
         m_Stopwatch.Restart();
         
@@ -91,7 +91,7 @@ public abstract class Game : IGame
         m_Accumulator += frameTime;
 
         var window = Window;
-        while (m_Accumulator >= m_DeltaTime)
+        while (m_Accumulator >= deltaTime)
         {
             window.PollEvents();
             if (!IsRunning)
@@ -99,13 +99,13 @@ public abstract class Game : IGame
             
             OnUpdate();
             m_Time.Time += Time.UpdateDeltaTime;
-            m_Accumulator -= m_DeltaTime;
+            m_Accumulator -= deltaTime;
         }
 
         if (!IsRunning || !window.IsOpened)
             return;
         
-        m_Time.FrameLerpFactor = (float)m_Accumulator / m_DeltaTime;
+        m_Time.FrameLerpFactor = (float)m_Accumulator / deltaTime;
         OnRender();
         window.SwapBuffers();
         m_FrameCount++;

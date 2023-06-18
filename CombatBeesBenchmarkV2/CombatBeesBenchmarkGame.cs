@@ -63,6 +63,8 @@ public class CombatBeesBenchmarkGame : Game
         window.IsVsyncEnabled = false;
         //window.IsFullscreen = true;
         m_RigController.Enable();
+
+        Time.UpdateDeltaTime = 1f / 30f;
     }
 
     protected override void OnUpdate()
