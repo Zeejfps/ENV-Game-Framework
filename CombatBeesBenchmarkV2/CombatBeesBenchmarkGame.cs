@@ -74,19 +74,8 @@ public class CombatBeesBenchmarkGame : Game
     {
         var dt = Time.UpdateDeltaTime;
         World.Update(dt);
-
-        var aliveBeesSystemTask = Task.Run(() =>
-        {
-            AliveBeeMovementSystem.Update(dt);
-        });
-
-        var deadBeesSystemTask = Task.Run(() =>
-        {
-            DeadBeeMovementSystem.Update(dt);
-        });
-
-        Task.WaitAll(aliveBeesSystemTask, deadBeesSystemTask);
-
+        AliveBeeMovementSystem.Update(dt);
+        DeadBeeMovementSystem.Update(dt);
         BeeCollisionSystem.Update(dt);
     }
 
