@@ -20,7 +20,9 @@ public sealed class Bee : IAliveBee, IDeadBee
         get => m_Velocity;
         set => m_Velocity = value;
     }
-    
+
+    public float Size { get; set; }
+
     public Vector3 LookDirection { get; set; }
     public float DeathTimer { get; set; }
     

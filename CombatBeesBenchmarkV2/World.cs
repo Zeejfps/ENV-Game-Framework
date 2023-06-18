@@ -88,9 +88,9 @@ public sealed class World
         foreach (var bee in BeesToSpawn)
         {
             DeadBeePool.Remove(bee);
-            
             var spawnPosition = Vector3.UnitX * (-100f * .4f + 100f * .8f * bee.TeamIndex);
             bee.Position = spawnPosition;
+            bee.Size = Random.NextSingleInRange(0.25f, 0.5f);
             bee.IsAlive = true;
             AliveBeePool.Add(bee);
         }

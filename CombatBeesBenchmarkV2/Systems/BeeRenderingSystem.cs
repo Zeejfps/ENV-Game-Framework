@@ -12,6 +12,7 @@ public interface IRenderableBee
     Vector3 Position { get; set; }
     Vector3 LookDirection { get; set; }
     Vector3 Velocity { get; set; }
+    float Size { get; set; }
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -55,10 +56,11 @@ public sealed class BeeRenderingSystem
         Parallel.For(0, stateCount, i =>
         {
             var entity = Entities[i];
+            var size = entity.Size;
             m_States[i] = new BeeRenderState
             {
                 Color = entity.Color,
-                ModelMatrix = Matrix4x4.CreateScale(0.25f, 0.25f, 0.25f)
+                ModelMatrix = Matrix4x4.CreateScale(size, size, size)
                               * Matrix4x4.CreateLookAt(Vector3.Zero, entity.LookDirection, Vector3.UnitY)
                               * Matrix4x4.CreateTranslation(entity.Position + entity.Velocity * dt),
             };
