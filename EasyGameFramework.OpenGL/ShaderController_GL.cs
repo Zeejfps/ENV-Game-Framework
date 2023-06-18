@@ -8,13 +8,13 @@ using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-internal class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader_GL>, IShaderController
+internal class ShaderController_GL : GpuResourceManager<IHandle<IGpuShader>, Shader_GL>, IShaderController
 {
     private readonly CpuShaderAssetLoader m_CpuShaderLoader = new();
 
     private readonly ITextureController m_Texture;
 
-    public ShaderManager_GL(ITextureController texture)
+    public ShaderController_GL(ITextureController texture)
     {
         m_Texture = texture;
     }
@@ -73,17 +73,18 @@ internal class ShaderManager_GL : GpuResourceManager<IHandle<IGpuShader>, Shader
         BoundResource.SetMatrix4x4Array(uniformName, array);
     }
 
-    public IBufferHandle GetBuffer(string name)
-    {
-        Debug.Assert(BoundResource != null);
-        return BoundResource.GetBuffer(name);
-    }
-
     public void AttachBuffer(string name, uint bindingPoint, IHandle<IBuffer> handle)
     {
         Debug.Assert(BoundResource != null);
-        var buffer = (BufferHandle)handle;
+        var buffer = (Buffer_Gl)handle;
         BoundResource.AttachBuffer(name, bindingPoint, buffer.Id);
+    }
+
+    public void AttachBuffer(string name, uint bindingPoint, IShaderStorageBufferHandle handle)
+    {
+        Debug.Assert(BoundResource != null);
+        var buffer = (Buffer_Gl)handle;
+        BoundResource.AttachShaderStorageBuffer(name, bindingPoint, buffer.Id);
     }
 
     protected override void OnBound(Shader_GL resource)

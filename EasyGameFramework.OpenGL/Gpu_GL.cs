@@ -8,7 +8,7 @@ namespace EasyGameFramework.OpenGL;
 public sealed class Gpu_GL : IGpu
 {
     private readonly MeshManager_GL m_MeshManager;
-    private readonly ShaderManager_GL m_ShaderManager;
+    private readonly ShaderController_GL m_ShaderController;
     private readonly TextureManager_GL m_TextureManager;
     private readonly RenderbufferManager_GL m_RenderBufferManager;
     
@@ -23,7 +23,7 @@ public sealed class Gpu_GL : IGpu
     {
         m_MeshManager = new MeshManager_GL();
         m_TextureManager = new TextureManager_GL();
-        m_ShaderManager = new ShaderManager_GL(m_TextureManager);
+        m_ShaderController = new ShaderController_GL(m_TextureManager);
         m_RenderBufferManager = new RenderbufferManager_GL(windowFramebuffer);
         BufferController = new BufferController();
     }
@@ -82,7 +82,7 @@ public sealed class Gpu_GL : IGpu
     }
 
     public IMeshController MeshController => m_MeshManager;
-    public IShaderController ShaderController => m_ShaderManager;
+    public IShaderController ShaderController => m_ShaderController;
     public ITextureController TextureController => m_TextureManager;
     public IRenderbufferManager FramebufferController => m_RenderBufferManager;
     public IBufferController BufferController { get; }

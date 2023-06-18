@@ -1,5 +1,4 @@
 using System.Numerics;
-using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Rendering;
 using static OpenGL.Gl;
@@ -70,23 +69,6 @@ public class Shader_GL : IGpuShader
             glUniformMatrix4fv(location, 1, false, p);
             glAssertNoError();
         }
-    }
-
-    public IBufferHandle GetBuffer(string name)
-    {
-        if (m_NameToBufferMap.TryGetValue(name, out var buffer))
-            return buffer;
-
-        var index = glGetProgramResourceIndex(Id, GL_SHADER_STORAGE_BLOCK, name);
-        glAssertNoError();
-
-        buffer = new ShaderStorageBuffer_GL(index);
-        m_NameToBufferMap[name] = buffer;
-        return buffer;
-    }
-
-    public void Dispose()
-    {
     }
 
     private int GetUniformLocation(string uniformName)
@@ -211,5 +193,10 @@ public class Shader_GL : IGpuShader
         
         var index = GetUniformBlockIndex(bufferName);
         glUniformBlockBinding(Id, index, bindingPoint);
+    }
+    
+    public void AttachShaderStorageBuffer(string bufferName, uint bindingPoint, uint bufferId)
+    {
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPoint, bufferId);
     }
 }

@@ -6,4 +6,5 @@ public interface IBufferController
     void Upload<T>(ReadOnlySpan<T> data) where T : unmanaged;
 
     IHandle<IBuffer> CreateAndBind(BufferKind kind, BufferUsage usage, int sizeInBytes);
+    IShaderStorageBufferHandle CreateAndBindShaderStorageBuffer(BufferUsage usage, int sizeInBytes);
 }

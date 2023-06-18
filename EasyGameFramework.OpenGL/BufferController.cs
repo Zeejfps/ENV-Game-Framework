@@ -1,4 +1,5 @@
-﻿using EasyGameFramework.Api;
+﻿using System.Diagnostics;
+using EasyGameFramework.Api;
 using EasyGameFramework.Api.Rendering;
 using static OpenGL.Gl;
 
@@ -6,25 +7,18 @@ namespace EasyGameFramework.OpenGL;
 
 internal sealed class BufferController : IBufferController
 {
-    private BufferHandle Buffer { get; set; }
+    private Buffer_Gl Buffer { get; set; }
     
     public void Bind(IHandle<IBuffer> bufferHandle)
     {
-        var buffer = (BufferHandle)bufferHandle;
-        Buffer = buffer;
-        glBindBuffer(buffer.Kind.ToOpenGl(), buffer.Id);
+        Buffer = (Buffer_Gl)bufferHandle;
+        Buffer.Bind();
     }
 
     public void Upload<T>(ReadOnlySpan<T> data) where T : unmanaged
     {
-        unsafe
-        {
-            fixed (void* p = &data[0])
-            {
-                glBufferSubData(Buffer.Kind.ToOpenGl(), 0, sizeof(T) * data.Length, p);
-                glAssertNoError();
-            }
-        }
+        Debug.Assert(Buffer != null);
+        Buffer.Upload(data);
     }
 
     public IHandle<IBuffer> CreateAndBind(BufferKind kind, BufferUsage usage, int sizeInBytes)
@@ -41,6 +35,20 @@ internal sealed class BufferController : IBufferController
         return null;
     }
 
+    public IShaderStorageBufferHandle CreateAndBindShaderStorageBuffer(BufferUsage usage, int sizeInBytes)
+    {
+        var bufferId = glGenBuffer();
+        glAssertNoError();
+        
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, bufferId);
+        glAssertNoError();
+        
+        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeInBytes, IntPtr.Zero, usage.ToOpenGl());
+        glAssertNoError();
+        
+        return new Buffer_Gl(bufferId, GL_SHADER_STORAGE_BUFFER, sizeInBytes);
+    }
+
     private IHandle<IBuffer> CreateUniformBuffer(BufferUsage usage, int sizeInBytes)
     {
         var bufferId = glGenBuffer();
@@ -51,6 +59,6 @@ internal sealed class BufferController : IBufferController
         glBufferData(GL_UNIFORM_BUFFER, sizeInBytes, IntPtr.Zero, usage.ToOpenGl());
         glAssertNoError();
 
-        return new BufferHandle(BufferKind.UniformBuffer, bufferId, sizeInBytes);
+        return new Buffer_Gl(bufferId, GL_UNIFORM_BUFFER, sizeInBytes);
     }
 }

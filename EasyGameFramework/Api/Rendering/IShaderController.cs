@@ -18,8 +18,7 @@ public interface IShaderController
     void SetTexture2d(string propertyName, IGpuTextureHandle value);
     void SetMatrix4x4(string propertyName, Matrix4x4 value);
     void SetMatrix4x4Array(string uniformName, ReadOnlySpan<Matrix4x4> array);
-
-    IBufferHandle GetBuffer(string name);
     
     void AttachBuffer(string name, uint bindingPoint, IHandle<IBuffer> buffer);
+    void AttachBuffer(string name, uint bindingPoint, IShaderStorageBufferHandle buffer);
 }
