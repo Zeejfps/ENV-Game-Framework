@@ -26,7 +26,7 @@ public sealed class BeeRenderingSystem
     private List<IRenderableBee> Entities { get; } = new();
     private IHandle<IGpuShader> BeeShaderHandle { get; }
     private IHandle<IGpuMesh> QuadMeshHandle { get; }
-    private IHandle<IBuffer> BeeBuffer { get; }
+    private IShaderStorageBufferHandle BeeBuffer { get; }
 
     private readonly BeeRenderState[] m_States;
 
@@ -39,8 +39,7 @@ public sealed class BeeRenderingSystem
 
         BeeShaderHandle = gpu.ShaderController.Load("Assets/bee");
         QuadMeshHandle = gpu.MeshController.Load("Assets/quad");
-        BeeBuffer = gpu.BufferController.CreateAndBind(
-            BufferKind.UniformBuffer,
+        BeeBuffer = gpu.BufferController.CreateAndBindShaderStorageBuffer(
             BufferUsage.DynamicDraw, 
             maxBeeCount * 16 * 4 * sizeof(float));
         gpu.ShaderController.AttachBuffer("beeDataBlock", 0, BeeBuffer);

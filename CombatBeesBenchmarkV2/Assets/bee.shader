@@ -2,8 +2,6 @@
 
 #version 460 core
 
-const int MAX_BATCH_SIZE = 100000;
-
 struct Bee {
   vec4 color;
   mat4 modelMatrix;
@@ -12,8 +10,8 @@ struct Bee {
 layout (location = 0) in vec4 attr_vertex_position;
 
 uniform mat4 matrix_projection, matrix_view;
-layout(std140) uniform beeDataBlock {
-    Bee bees[MAX_BATCH_SIZE];    
+layout(std140, binding = 0) buffer beeDataBlock {
+    Bee bees[];    
 };
 
 flat out int instanceID;
@@ -33,15 +31,13 @@ void main()
     
 #version 460 core
 
-const int MAX_BATCH_SIZE = 100000;
-
 struct Bee {
   vec4 color;
   mat4 modelMatrix;
 };
 
-layout(std140) uniform beeDataBlock {
-    Bee bees[MAX_BATCH_SIZE];    
+layout(std140, binding = 0) buffer beeDataBlock {
+    Bee bees[];    
 };
 
 flat in int instanceID;
