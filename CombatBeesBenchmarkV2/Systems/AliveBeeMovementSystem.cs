@@ -47,8 +47,11 @@ public sealed class AliveBeeMovementSystem
 
         Parallel.For(0, stateCount, i =>
         {
-            var state = m_Entities[i].Save();
+            var entity = m_Entities[i];
+            var state = entity.Save();
             state.MoveDirection = Random.RandomInsideUnitSphere();
+            state.AttractionPoint = m_Entities.GetRandomAllyBee(entity.TeamIndex).Position;
+            state.RepellentPoint = m_Entities.GetRandomAllyBee(entity.TeamIndex).Position;
             //Logger.Trace($"[{i}] Move Dir: {state.MoveDirection}");
             m_States[i] = state;
         });
@@ -60,19 +63,19 @@ public sealed class AliveBeeMovementSystem
             state.Velocity += state.MoveDirection * flightJitter;
             state.Velocity *= damping;
        
-            // var attractionPoint = state.AttractionPoint;
-            // Vector3 delta = attractionPoint - state.Position;
-            // var dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
-            // if (dist > 0f)
-            //     state.Velocity += delta * (teamAttraction / dist);
-            //
-            // var repellentPoint = state.RepellentPoint;
-            // delta = repellentPoint - state.Position;
-            // dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
-            // if (dist > 0f)
-            //     state.Velocity -= delta * (teamRepulsion / dist);
-            //
-            var delta = state.TargetPosition - state.Position;
+            var attractionPoint = state.AttractionPoint;
+            Vector3 delta = attractionPoint - state.Position;
+            var dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
+            if (dist > 0f)
+                state.Velocity += delta * (teamAttraction / dist);
+            
+            var repellentPoint = state.RepellentPoint;
+            delta = repellentPoint - state.Position;
+            dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
+            if (dist > 0f)
+                state.Velocity -= delta * (teamRepulsion / dist);
+            
+            delta = state.TargetPosition - state.Position;
             //Logger.Trace($"[{i}]: {state.TargetPosition}, Delta: {delta}");
             var sqrDist = delta.LengthSquared();
             if (sqrDist > attackDistanceSqr)
