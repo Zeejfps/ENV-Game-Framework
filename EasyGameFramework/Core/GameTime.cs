@@ -8,4 +8,9 @@ internal class GameTime : IGameTime
     public float UpdateDeltaTime { get; set; }
     public float FrameDeltaTime { get; set; }
     public float FrameLerpFactor { get; set; }
+    
+    public void SetTargetUpdateDeltaTime(float dt)
+    {
+        UpdateDeltaTime = dt;
+    }
 }

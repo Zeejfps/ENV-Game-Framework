@@ -12,6 +12,7 @@ public struct AliveBeeState
     public Vector3 RepellentPoint;
     public Vector3 TargetPosition;
     public bool IsTargetKilled;
+    public Vector3 LookDirection;
 }
 
 public sealed class AliveBeeMovementSystem
@@ -108,6 +109,7 @@ public sealed class AliveBeeMovementSystem
             }
 
             //Logger.Trace($"[{i}] Velocity: {state.Velocity}");
+            state.LookDirection = Vector3.Lerp(state.LookDirection, Vector3.Normalize(state.Velocity), dt * 4f);
             state.Position += state.Velocity * dt;
         }
 

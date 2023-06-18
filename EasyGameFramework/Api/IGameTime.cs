@@ -2,7 +2,9 @@
 
 public interface IGameTime
 {
-    float UpdateDeltaTime { get; set; }
+    float UpdateDeltaTime { get; }
     float FrameDeltaTime { get; }
     float FrameLerpFactor { get; }
+
+    void SetTargetUpdateDeltaTime(float dt);
 }

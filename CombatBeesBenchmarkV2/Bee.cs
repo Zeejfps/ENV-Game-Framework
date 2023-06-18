@@ -47,6 +47,7 @@ public sealed class Bee : IAliveBee, IDeadBee
             Position = m_Position,
             Velocity = m_Velocity,
             TargetPosition = target.Position,
+            LookDirection = LookDirection,
         };
     }
 
@@ -64,6 +65,7 @@ public sealed class Bee : IAliveBee, IDeadBee
         var target = Target;
         m_Position = state.Position;
         m_Velocity = state.Velocity;
+        LookDirection = state.LookDirection;
         if (state.IsTargetKilled && target.IsAlive)
         {
             World.Kill(target);
@@ -77,7 +79,7 @@ public sealed class Bee : IAliveBee, IDeadBee
         {
             Color = Color,
             ModelMatrix = Matrix4x4.CreateScale(0.25f, 0.25f, 0.25f)
-                          //* Matrix4x4.CreateLookAt(Vector3.Zero, LookDirection, Vector3.UnitY)
+                          * Matrix4x4.CreateLookAt(Vector3.Zero, LookDirection, Vector3.UnitY)
                           * Matrix4x4.CreateTranslation(Position),
         };
     }

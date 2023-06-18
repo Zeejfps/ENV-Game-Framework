@@ -57,14 +57,15 @@ public class CombatBeesBenchmarkGame : Game
 
     protected override void OnStartup()
     {
+        var time = Time;
+        time.SetTargetUpdateDeltaTime(1f / 30f);
+
         var window = Window;
         window.Title = "Combat Bees Benchmark";
         window.SetScreenSize(1280, 720);
         window.IsVsyncEnabled = false;
         //window.IsFullscreen = true;
         m_RigController.Enable();
-
-        Time.UpdateDeltaTime = 1f / 30f;
     }
 
     protected override void OnUpdate()
