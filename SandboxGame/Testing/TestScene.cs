@@ -83,11 +83,17 @@ public class TestScene : IScene
     public void Load()
     {
         var gpu = m_App.Gpu;
-
+        var shaderController = gpu.ShaderController;
+        
+        var hdri = gpu.TextureController.Load("Assets/Textures/grassy_hdri.texture");
+        shaderController.SetTexture2d("material.hdri", hdri);
+        
         m_UnlitShaderHandle = gpu.ShaderController.Load("Assets/Shaders/unlit");
         m_FullScreenBlitShaderHandle = gpu.ShaderController.Load("Assets/Shaders/fullScreenQuad.glsl");
         m_QuadMeshHandle = gpu.MeshController.Load("Assets/Meshes/quad");
+        
 
+        
         m_Light.Load(this);
         m_SpecularRenderPass.Load(this);
         
