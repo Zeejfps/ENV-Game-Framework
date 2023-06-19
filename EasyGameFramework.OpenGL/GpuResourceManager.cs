@@ -2,7 +2,7 @@
 
 internal abstract class GpuResourceManager<THandle, TResource>
 {
-    private readonly Dictionary<THandle, TResource> m_HandleToResourceMap = new();
+    protected readonly Dictionary<THandle, TResource> m_HandleToResourceMap = new();
     protected TResource? BoundResource { get; private set; }
 
     public void Bind(THandle? handle)
@@ -23,10 +23,12 @@ internal abstract class GpuResourceManager<THandle, TResource>
         Bind(default);
     }
 
-    public void Add(THandle handle, TResource resource)
+    public THandle Add(THandle handle, TResource resource)
     {
         m_HandleToResourceMap[handle] = resource;
+        return handle;
     }
+
 
     protected TResource Get(THandle handle)
     {

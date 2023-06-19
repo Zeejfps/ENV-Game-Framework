@@ -3,7 +3,7 @@ using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
 
-public class Texture2D_GL : IGpuTexture
+public class Texture2D_GL : IGpuTexture, ITexture_GL
 {
     public uint Id { get; }
     public int Width { get; }
@@ -22,7 +22,7 @@ public class Texture2D_GL : IGpuTexture
     {
     }
 
-    public void Upload(ReadOnlySpan<byte> pixels)
+    public void Upload(ReadOnlySpan<byte> pixels, int? faceIndex = null)
     {
         glBindTexture(GL_TEXTURE_2D, Id);
         glAssertNoError();
