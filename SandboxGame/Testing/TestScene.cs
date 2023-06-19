@@ -69,7 +69,7 @@ public class TestScene : IScene
 
         // This also adds them to the m_SceneObjects
         // Which is bad... don't do that mmmmkkk?
-        m_Ships = CreateShips();
+        //m_Ships = CreateShips();
 
         m_Toad = new Toad(m_Gpu, m_SpecularRenderPass);
         
@@ -85,7 +85,7 @@ public class TestScene : IScene
         var gpu = m_App.Gpu;
 
         m_UnlitShaderHandle = gpu.ShaderController.Load("Assets/Shaders/unlit");
-        m_FullScreenBlitShaderHandle = gpu.ShaderController.Load("Assets/Shaders/fullScreenQuad");
+        m_FullScreenBlitShaderHandle = gpu.ShaderController.Load("Assets/Shaders/fullScreenQuad.glsl");
         m_QuadMeshHandle = gpu.MeshController.Load("Assets/Meshes/quad");
 
         m_Light.Load(this);

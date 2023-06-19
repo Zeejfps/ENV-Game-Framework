@@ -44,7 +44,7 @@ public class SpecularRenderPass
     
     public void Load(IScene scene)
     {
-        m_SpecularShaderHandle = Gpu.ShaderController.Load("Assets/Shaders/specular.shader");
+        m_SpecularShaderHandle = Gpu.ShaderController.Load("Assets/Shaders/pbr.glsl");
         m_ModelMatrixBuffer = Gpu.BufferController.CreateAndBindShaderStorageBuffer(BufferUsage.DynamicDraw, sizeof(float) * 16 * 1000);
         Gpu.ShaderController.AttachBuffer("model_matrices_t", 0, m_ModelMatrixBuffer);
     }
@@ -69,18 +69,17 @@ public class SpecularRenderPass
         shaderController.SetVector3("light.diffuse", _lightColor);
         shaderController.SetVector3("light.specular", _specularColor);
         shaderController.SetVector3("light.ambient", _ambientColor);
-        shaderController.SetFloat("material.shininess", _shininess);
         
         foreach (var renderGroup in m_MeshToRenderableMap.Keys)
         {
             mesh.Bind(renderGroup.Item1);
             var textures = renderGroup.Item2;
             
-            shaderController.SetTexture2d("material.diffuse", textures.Diffuse);
+            shaderController.SetTexture2d("material.albedo", textures.Diffuse);
             shaderController.SetTexture2d("material.normal_map", textures.Normal);
-            shaderController.SetTexture2d("material.roughness_map", textures.Roughness);
+            shaderController.SetTexture2d("material.metallic", textures.Translucency);
+            shaderController.SetTexture2d("material.roughness", textures.Roughness);
             shaderController.SetTexture2d("material.occlusion", textures.Occlusion);
-            shaderController.SetTexture2d("material.translucency", textures.Translucency);
             
             var transforms = m_MeshToRenderableMap[renderGroup];
             var transformsCount = transforms.Count;
