@@ -35,6 +35,5 @@ public class Texture2D_GL : IGpuTexture, ITexture_GL
                 glAssertNoError();
             }
         }
-        
     }
 }

@@ -21,8 +21,7 @@ public class ReadonlyCubeMap_GL : CubeMapTexture_GL, IEquatable<ReadonlyCubeMap_
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != GetType()) return false;
-        return Equals((ReadonlyCubeMap_GL)obj);
+        return obj.GetType() == GetType() && Equals((ReadonlyCubeMap_GL)obj);
     }
 
     public override int GetHashCode()
@@ -56,14 +55,11 @@ public class ReadonlyCubeMap_GL : CubeMapTexture_GL, IEquatable<ReadonlyCubeMap_
         for (uint i = 0; i < 6; i++)
         {
             byte[] facePixels = facesData[i];
-            if (facePixels != null)
+            unsafe
             {
-                unsafe
+                fixed (byte* p = &facePixels[0])
                 {
-                    fixed (byte* p = &facePixels[0])
-                    {
-                        glCompressedTexImage2D((int)(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i), 0, GL_COMPRESSED_RGBA_BPTC_UNORM_ARB, width, height, 0, width * height, new IntPtr(p));
-                    }
+                    glCompressedTexImage2D((int)(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i), 0, GL_COMPRESSED_RGBA_BPTC_UNORM_ARB, width, height, 0, width * height, new IntPtr(p));
                 }
             }
         }
