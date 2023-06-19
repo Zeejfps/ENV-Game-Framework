@@ -17,6 +17,8 @@
       <PackageReference Include="BCnEncoder.Net.ImageSharp" Version="1.1.1" />
       <PackageReference Include="NativeFileDialogs.Net" Version="1.0.0" />
       <PackageReference Include="SixLabors.ImageSharp" Version="2.1.0" />
+      <PackageReference Include="StbImageSharp" Version="2.27.13" />
+      <PackageReference Include="StbSharp" Version="0.7.2.38" />
       <PackageReference Include="Vortice.ShaderCompiler" Version="1.5.8" />
     </ItemGroup>
 

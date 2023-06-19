@@ -3,8 +3,7 @@ using BCnEncoder.Encoder;
 using BCnEncoder.Shared;
 using EasyGameFramework.Core;
 using NativeFileDialogs.Net;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using StbImageSharp;
 
 namespace AssetImporter;
 
@@ -13,10 +12,6 @@ public class ImportTextureOption
     public void Run()
     {
         Console.WriteLine("[Import Texture]");
-        // Console.WriteLine("1 - Set Image Path");
-        // Console.WriteLine("2 - Set Output Path");
-        // Console.Write("Option: ");
-        // Console.ReadLine();
         
         Console.Write("Image Path: ");
         var pathToTexture = Console.ReadLine();
@@ -28,10 +23,6 @@ public class ImportTextureOption
     public void RunBatch()
     {
         Console.WriteLine("[Import Texture]");
-        // Console.WriteLine("1 - Set Image Path");
-        // Console.WriteLine("2 - Set Output Path");
-        // Console.Write("Option: ");
-        // Console.ReadLine();
         
         Console.Write("Image Path: ");
         var pathToTexture = Console.ReadLine();
@@ -54,13 +45,12 @@ public class ImportTextureOption
     public void SaveTexture(string pathToTexture)
     {
         var fileName = Path.GetFileNameWithoutExtension(pathToTexture);
-        using var image = Image.Load<Rgba32>(pathToTexture);
+        
+        ImageResult imageResult = ImageResult.FromMemory(File.ReadAllBytes(pathToTexture), ColorComponents.RedGreenBlueAlpha);
 
-        var pixelBytes = new byte[image.Width * image.Height * Unsafe.SizeOf<Rgba32>()];
-        image.CopyPixelDataTo(pixelBytes);
-
-        var width = image.Width;
-        var height = image.Height;
+        var pixelBytes = imageResult.Data;
+        var width = imageResult.Width;
+        var height = imageResult.Height;
         
         var encoder = new BcEncoder
         {
@@ -69,11 +59,10 @@ public class ImportTextureOption
                 GenerateMipMaps = false,
                 Quality = CompressionQuality.BestQuality,
                 Format = CompressionFormat.Bc7,
-                //FileFormat = OutputFileFormat.Ktx //Change to Dds for a dds
             }
         };
         
-        var data = encoder.EncodeToRawBytes(pixelBytes, image.Width, image.Height, PixelFormat.Rgba32);
+        var data = encoder.EncodeToRawBytes(pixelBytes, width, height, PixelFormat.Rgba32);
 
         var asset = new CpuTexture
         {
@@ -86,7 +75,6 @@ public class ImportTextureOption
         var saveAsPath = Path.GetDirectoryName(pathToTexture);
         var filename = Path.GetFileNameWithoutExtension(pathToTexture);
         
-        //saveAsPath = saveAsPath.Replace("\"", "");
         var strPath = $@"{saveAsPath}\{filename}.texture";
         using var fileStream = File.Open(strPath, FileMode.OpenOrCreate);
         using var writer = new BinaryWriter(fileStream);
