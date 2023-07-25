@@ -4,7 +4,7 @@ using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmark;
 
-public sealed class Bee : IAliveBee, IDeadBee, IEntity<CollisionComponent>, IEntity<DeadBeeState>
+public sealed class Bee : IAliveBee, IDeadBee, IEntity<CollisionComponent>, IEntity<BeeRenderComponent>
 {
     public bool IsAlive { get; set; }
     public int TeamIndex { get; }
@@ -121,5 +121,20 @@ public sealed class Bee : IAliveBee, IDeadBee, IEntity<CollisionComponent>, IEnt
 
     public void From(ref DeadBeeState component)
     {
+    }
+
+    public void Into(ref BeeRenderComponent component)
+    {
+        component.Color = Color;
+
+        var size = Size;
+        component.ModelMatrix = Matrix4x4.CreateScale(size, size, size)
+                                * Matrix4x4.CreateLookAt(Vector3.Zero, LookDirection, Vector3.UnitY)
+                                * Matrix4x4.CreateTranslation(Position);
+    }
+
+    public void From(ref BeeRenderComponent component)
+    {
+        
     }
 }

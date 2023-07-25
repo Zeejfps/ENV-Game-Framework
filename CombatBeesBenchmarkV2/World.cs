@@ -1,4 +1,6 @@
-﻿using System.Numerics;
+﻿using System.Collections;
+using System.Numerics;
+using System.Runtime.InteropServices;
 using CombatBeesBenchmarkV2.Components;
 using CombatBeesBenchmarkV2.EcsPrototype;
 using EasyGameFramework.Api;
@@ -14,15 +16,12 @@ public sealed class World : IWorld
         BeePool<Bee> deadBeePool,
         AliveBeeMovementSystem aliveBeeMovementSystem,
         DeadBeeMovementSystem deadBeeMovementSystem,
-        //BeeCollisionSystem beeCollisionSystem,
-        BeeRenderingSystem beeRenderingSystem, ILogger logger, Random random)
+        ILogger logger, Random random)
     {
         AliveBeePool = aliveBeePool;
         DeadBeePool = deadBeePool;
         AliveBeeMovementSystem = aliveBeeMovementSystem;
         DeadBeeMovementSystem = deadBeeMovementSystem;
-        BeeRenderingSystem = beeRenderingSystem;
-        //BeeCollisionSystem = beeCollisionSystem;
         Logger = logger;
         Random = random;
 
@@ -33,8 +32,7 @@ public sealed class World : IWorld
             {
                 //Logger.Trace($"J: {j}");
                 var bee = new Bee(teamIndex, this);
-                BeeRenderingSystem.Add(bee);
-                //BeeCollisionSystem.Add(bee);
+                Add<BeeRenderComponent>(bee);
                 Add<CollisionComponent>(bee);
                 Spawn(bee);
             }
@@ -106,14 +104,14 @@ public sealed class World : IWorld
         return AliveBeePool.GetRandomEnemyBee(teamIndex);
     }
 
-    private readonly Dictionary<Type, HashSet<IEntity>> m_ComponentTypeToEntitiesTable = new();
+    private readonly Dictionary<Type, IList> m_ComponentTypeToEntitiesTable = new();
 
-    public IEnumerable<IEntity<TComponent>> Query<TComponent>() where TComponent : struct
+    public IReadOnlyList<IEntity<TComponent>> Query<TComponent>() where TComponent : struct
     {
         var componentType = typeof(TComponent);
         if (m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))
-            return entities.Cast<IEntity<TComponent>>();
-        return Enumerable.Empty<IEntity<TComponent>>();
+            return (List<IEntity<TComponent>>)entities;
+        return Array.Empty<IEntity<TComponent>>();
     }
 
     public void Add<TComponent>(IEntity<TComponent> entity) where TComponent : struct
@@ -121,7 +119,7 @@ public sealed class World : IWorld
         var componentType = typeof(TComponent);
         if (!m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))
         {
-            entities = new HashSet<IEntity>();
+            entities = new List<IEntity<TComponent>>();
             m_ComponentTypeToEntitiesTable[componentType] = entities;
         }
         entities.Add(entity);

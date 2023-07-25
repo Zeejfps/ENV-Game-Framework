@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using CombatBeesBenchmarkV2.Systems;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
 using Framework;
@@ -12,7 +13,7 @@ public class CombatBeesBenchmarkGame : Game
     private World World { get; }
     private AliveBeeMovementSystem AliveBeeMovementSystem { get; }
     private DeadBeeMovementSystem DeadBeeMovementSystem { get; }
-    private BeeRenderingSystem BeeRenderingSystem { get; }
+    private NewBeeRenderingSystem BeeRenderingSystem { get; }
     private NewBeeCollisionSystem BeeCollisionSystem { get; }
 
     private CameraRig m_CameraRig;
@@ -41,7 +42,6 @@ public class CombatBeesBenchmarkGame : Game
 
         AliveBeeMovementSystem = new AliveBeeMovementSystem(MaxBeeCount, aliveBeePool, Logger, random);
         DeadBeeMovementSystem = new DeadBeeMovementSystem(MaxBeeCount, deadBeePool, Logger);
-        BeeRenderingSystem = new BeeRenderingSystem(MaxBeeCount, Gpu, camera, Logger);
 
         World = new World(
             numberOfTeams,
@@ -49,11 +49,11 @@ public class CombatBeesBenchmarkGame : Game
             aliveBeePool,
             deadBeePool,
             AliveBeeMovementSystem, 
-            DeadBeeMovementSystem, 
-            BeeRenderingSystem,
+            DeadBeeMovementSystem,
             Logger,
             random);
         
+        BeeRenderingSystem = new NewBeeRenderingSystem(World, MaxBeeCount, Gpu, camera);
         BeeCollisionSystem = new NewBeeCollisionSystem(World, MaxBeeCount);
     }
 
@@ -88,7 +88,7 @@ public class CombatBeesBenchmarkGame : Game
         framebufferController.BindToWindow();
         framebufferController.ClearColorBuffers(0f, 0.1f, 0.1f, 1f);
         
-        BeeRenderingSystem.Render(Time.FrameDeltaTime);
+        BeeRenderingSystem.Update(Time.FrameDeltaTime);
     }
 
     protected override void OnShutdown()

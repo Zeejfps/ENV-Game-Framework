@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
+using CombatBeesBenchmarkV2.Components;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Rendering;
@@ -15,13 +15,6 @@ public interface IRenderableBee
     float Size { get; set; }
 }
 
-[StructLayout(LayoutKind.Sequential)]
-public struct BeeRenderState
-{
-    public Vector4 Color;
-    public Matrix4x4 ModelMatrix;
-}
-
 public sealed class BeeRenderingSystem
 {
     private IGpu Gpu { get; }
@@ -32,14 +25,14 @@ public sealed class BeeRenderingSystem
     private IHandle<IGpuMesh> QuadMeshHandle { get; }
     private IShaderStorageBufferHandle BeeBuffer { get; }
 
-    private readonly BeeRenderState[] m_States;
+    private readonly BeeRenderComponent[] m_States;
 
     public BeeRenderingSystem(int maxBeeCount, IGpu gpu, ICamera camera, ILogger logger)
     {
         Gpu = gpu;
         Camera = camera;
         Logger = logger;
-        m_States = new BeeRenderState[maxBeeCount];
+        m_States = new BeeRenderComponent[maxBeeCount];
 
         BeeShaderHandle = gpu.ShaderController.Load("Assets/bee");
         QuadMeshHandle = gpu.MeshController.Load("Assets/quad");
@@ -57,7 +50,7 @@ public sealed class BeeRenderingSystem
         {
             var entity = Entities[i];
             var size = entity.Size;
-            m_States[i] = new BeeRenderState
+            m_States[i] = new BeeRenderComponent
             {
                 Color = entity.Color,
                 ModelMatrix = Matrix4x4.CreateScale(size, size, size)
@@ -81,7 +74,7 @@ public sealed class BeeRenderingSystem
         shaderController.SetMatrix4x4("matrix_view", viewMatrix);
         
         bufferController.Bind(BeeBuffer);
-        bufferController.Upload<BeeRenderState>(states);
+        bufferController.Upload<BeeRenderComponent>(states);
         
         //Logger.Trace($"Rendering: {stateCount}");
         meshController.RenderInstanced(stateCount);

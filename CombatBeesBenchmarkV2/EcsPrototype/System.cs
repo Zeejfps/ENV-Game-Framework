@@ -7,8 +7,8 @@ public abstract class System<TComponent> where TComponent : struct
     private readonly IWorld m_World;
     private readonly TComponent[] m_Components;
     
-    private IEnumerable<IEntity<TComponent>>? m_Entities;
-    private int m_ComponentCount;
+    private IReadOnlyList<IEntity<TComponent>> m_Entities;
+    private int ComponentCount => m_Entities.Count;
 
     protected System(IWorld world, int size)
     {
@@ -19,7 +19,7 @@ public abstract class System<TComponent> where TComponent : struct
     public void Update(float dt)
     {
         OnPreUpdate();
-        var components = m_Components.AsSpan(0, m_ComponentCount);
+        var components = m_Components.AsSpan(0, ComponentCount);
         OnUpdate(dt, ref components);
         OnPostUpdate();
     }
@@ -27,26 +27,25 @@ public abstract class System<TComponent> where TComponent : struct
     private void OnPreUpdate()
     {
         m_Entities = m_World.Query<TComponent>();
-        var i = 0;
-        foreach (var entity in m_Entities)
+
+        var entities = m_Entities;
+        Parallel.For(0, entities.Count, (i) =>
         {
+            var entity = entities[i];
             ref var component = ref m_Components[i];
             entity.Into(ref component);
-            i++;
-        }
-
-        m_ComponentCount = i;
+        });
     }
 
     private void OnPostUpdate()
     {
-        var i = 0;
-        foreach (var entity in m_Entities)
+        var entities = m_Entities;
+        Parallel.For(0, entities.Count, (i) =>
         {
+            var entity = entities[i];
             ref var component = ref m_Components[i];
             entity.From(ref component);
-            i++;
-        }
+        });
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
