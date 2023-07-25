@@ -1,32 +1,25 @@
-﻿using System.Numerics;
+﻿using CombatBeesBenchmarkV2.Components;
 using EasyGameFramework.Api;
 
 namespace CombatBeesBenchmark;
 
 public interface IDeadBee : IBee
 {
-    DeadBeeState Save();
-    void Load(DeadBeeState state);
-}
-
-public struct DeadBeeState
-{
-    public Vector3 Position;
-    public Vector3 Velocity;
-    public float DeathTimer;
+    DeadBeeComponent Save();
+    void Load(DeadBeeComponent state);
 }
 
 public sealed class DeadBeeMovementSystem
 {
     private ILogger Logger { get; }
     private IBeePool<Bee> DeadBees { get; }
-    private readonly DeadBeeState[] m_States;
+    private readonly DeadBeeComponent[] m_States;
     
     public DeadBeeMovementSystem(int maxBeeCount, IBeePool<Bee> deadBees, ILogger logger)
     {
         Logger = logger;
         DeadBees = deadBees;
-        m_States = new DeadBeeState[maxBeeCount];
+        m_States = new DeadBeeComponent[maxBeeCount];
     }
 
     public void Update(float dt)
@@ -43,8 +36,8 @@ public sealed class DeadBeeMovementSystem
         for (var i = 0; i < stateCount; i++)
         {
             ref var state = ref states[i];
-            state.Velocity.Y += gravity;
-            state.Position += state.Velocity * dt;
+            state.Movement.Velocity.Y += gravity;
+            state.Movement.Position += state.Movement.Velocity * dt;
             state.DeathTimer -= dt;
         }
         

@@ -47,21 +47,24 @@ public sealed class Bee : IDeadBee,
         Color = teamIndex == 0 ? new Vector4(1f, 0f, 0f, 1f) : new Vector4(0f, 0f, 1f, 1f);
     }
 
-    public void Load(DeadBeeState state)
+    public void Load(DeadBeeComponent state)
     {
-        m_Position = state.Position;
-        m_Velocity = state.Velocity;
+        m_Position = state.Movement.Position;
+        m_Velocity = state.Movement.Velocity;
         DeathTimer = state.DeathTimer;
         if (DeathTimer <= 0f)
             World.Spawn(this);
     }
 
-    DeadBeeState IDeadBee.Save()
+    DeadBeeComponent IDeadBee.Save()
     {
-        return new DeadBeeState
+        return new DeadBeeComponent
         {
-            Position = m_Position,
-            Velocity = m_Velocity,
+            Movement =
+            {
+                Position = m_Position,
+                Velocity = m_Velocity,
+            },
             DeathTimer = DeathTimer
         };
     }
