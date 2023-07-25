@@ -1,8 +1,9 @@
 ﻿using System.Numerics;
+using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmark;
 
-public sealed class Bee : IAliveBee, IDeadBee
+public sealed class Bee : IAliveBee, IDeadBee, IEntity<CollisionComponent>, IEntity<DeadBeeState>
 {
     public bool IsAlive { get; set; }
     public int TeamIndex { get; }
@@ -98,5 +99,26 @@ public sealed class Bee : IAliveBee, IDeadBee
             Velocity = m_Velocity,
             DeathTimer = DeathTimer
         };
+    }
+
+    public void Into(ref CollisionComponent component)
+    {
+        component.MovementState.Position = Position;
+        component.MovementState.Velocity = Velocity;
+    }
+
+    public void From(ref CollisionComponent component)
+    {
+        Position = component.MovementState.Position;
+        Velocity = component.MovementState.Velocity;
+    }
+
+    public void Into(ref DeadBeeState component)
+    {
+        
+    }
+
+    public void From(ref DeadBeeState component)
+    {
     }
 }

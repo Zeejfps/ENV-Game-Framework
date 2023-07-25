@@ -19,11 +19,7 @@ public abstract class System<TComponent> where TComponent : struct
     {
         OnPreUpdate();
         var components = m_Components.AsSpan(0, m_Entities.Count);
-        for (var i = 0; i < components.Length; i++)
-        {
-            ref var component = ref components[i];
-            OnUpdate(dt, ref component);
-        }
+        OnUpdate(dt, ref components);
         OnPostUpdate();
     }
 
@@ -50,5 +46,5 @@ public abstract class System<TComponent> where TComponent : struct
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected abstract void OnUpdate(float dt, ref TComponent component);
+    protected abstract void OnUpdate(float dt, ref Span<TComponent> component);
 }

@@ -1,9 +1,10 @@
 ﻿using System.Numerics;
+using CombatBeesBenchmarkV2.EcsPrototype;
 using EasyGameFramework.Api;
 
 namespace CombatBeesBenchmark;
 
-public sealed class World
+public sealed class World : IWorld
 {
     public World(
         int numberOfTeams,
@@ -33,6 +34,7 @@ public sealed class World
                 var bee = new Bee(teamIndex, this);
                 BeeRenderingSystem.Add(bee);
                 BeeCollisionSystem.Add(bee);
+                Add<CollisionComponent>(bee);
                 Spawn(bee);
             }
         }
@@ -100,5 +102,25 @@ public sealed class World
     public Bee GetRandomEnemy(int teamIndex)
     {
         return AliveBeePool.GetRandomEnemyBee(teamIndex);
+    }
+
+    private readonly Dictionary<Type, HashSet<IEntity>> m_ComponentTypeToEntitiesTable = new();
+
+    public IEnumerable<IEntity<TComponent>> Query<TComponent>() where TComponent : struct
+    {
+        var componentType = typeof(TComponent);
+        if (m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))
+            return entities.Cast<IEntity<TComponent>>();
+        return Enumerable.Empty<IEntity<TComponent>>();
+    }
+
+    public void Add<TComponent>(IEntity<TComponent> entity) where TComponent : struct
+    {
+        
+    }
+
+    public void Remove<TComponent>(IEntity<TComponent> entity) where TComponent : struct
+    {
+        
     }
 }
