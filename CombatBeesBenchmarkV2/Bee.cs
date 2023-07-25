@@ -5,6 +5,7 @@ using CombatBeesBenchmarkV2.EcsPrototype;
 namespace CombatBeesBenchmark;
 
 public sealed class Bee : IBee,
+    IEntity<MovementComponent>,
     IEntity<CollisionComponent>,
     IEntity<BeeRenderComponent>,
     IEntity<AliveBeeComponent>,
@@ -13,29 +14,14 @@ public sealed class Bee : IBee,
     public bool IsAlive { get; set; }
     public int TeamIndex { get; }
 
-    private Vector3 m_Position;
-    public Vector3 Position
-    {
-        get => m_Position;
-        set => m_Position = value;
-    }
-
-    private Vector3 m_Velocity;
-    public Vector3 Velocity
-    {
-        get => m_Velocity;
-        set => m_Velocity = value;
-    }
-
+    public Vector3 Position { get; set; }
+    public Vector3 Velocity { get; set; }
     public float Size { get; set; }
-
     public Vector3 LookDirection { get; set; }
     public float DeathTimer { get; set; }
-    
     public Vector4 Color { get; set; }
     private World World { get; }
     private Bee? Target { get; set; }
-    
     private Random Random { get; }
     private BeePool<Bee> AliveBees { get; }
 
@@ -82,11 +68,7 @@ public sealed class Bee : IBee,
             Target = World.GetRandomEnemy(TeamIndex);
         }
         
-        component.Movement = new MovementComponent
-        {
-            Position = m_Position,
-            Velocity = m_Velocity
-        };
+        Into(ref component.Movement);
         component.TargetPosition = Target.Position;
         component.LookDirection = LookDirection;
         component.MoveDirection = Random.RandomInsideUnitSphere();
@@ -98,8 +80,7 @@ public sealed class Bee : IBee,
     public void From(ref AliveBeeComponent component)
     {
         var target = Target;
-        m_Position = component.Movement.Position;
-        m_Velocity = component.Movement.Velocity;
+        From(ref component.Movement);
         LookDirection = component.LookDirection;
         if (component.IsTargetKilled && target != null && target.IsAlive)
         {
@@ -110,20 +91,27 @@ public sealed class Bee : IBee,
 
     public void Into(ref DeadBeeComponent component)
     {
-        component.Movement = new MovementComponent
-        {
-            Position = m_Position,
-            Velocity = m_Velocity,
-        };
+        Into(ref component.Movement);
         component.DeathTimer = DeathTimer;
     }
 
     public void From(ref DeadBeeComponent component)
     {
-        m_Position = component.Movement.Position;
-        m_Velocity = component.Movement.Velocity;
+        From(ref component.Movement);
         DeathTimer = component.DeathTimer;
         if (DeathTimer <= 0f)
             World.Spawn(this);
+    }
+
+    public void Into(ref MovementComponent component)
+    {
+        component.Position = Position;
+        component.Velocity = Velocity;
+    }
+
+    public void From(ref MovementComponent component)
+    {
+        Position = component.Position;
+        Velocity = component.Velocity;
     }
 }
