@@ -14,13 +14,11 @@ public sealed class World : IWorld
         int numberOfBeesPerTeam,
         BeePool<Bee> aliveBeePool,
         BeePool<Bee> deadBeePool,
-        AliveBeeMovementSystem aliveBeeMovementSystem,
         DeadBeeMovementSystem deadBeeMovementSystem,
         ILogger logger, Random random)
     {
         AliveBeePool = aliveBeePool;
         DeadBeePool = deadBeePool;
-        AliveBeeMovementSystem = aliveBeeMovementSystem;
         DeadBeeMovementSystem = deadBeeMovementSystem;
         Logger = logger;
         Random = random;
@@ -31,7 +29,7 @@ public sealed class World : IWorld
             for (var j = 0; j < numberOfBeesPerTeam; j++)
             {
                 //Logger.Trace($"J: {j}");
-                var bee = new Bee(teamIndex, this);
+                var bee = new Bee(teamIndex, this, random, aliveBeePool);
                 Add<BeeRenderComponent>(bee);
                 Add<CollisionComponent>(bee);
                 Spawn(bee);
@@ -76,6 +74,7 @@ public sealed class World : IWorld
         {
             //Logger.Trace($"Killing Bee: {bee.GetHashCode()}");
             AliveBeePool.Remove(bee);
+            Remove<AliveBeeComponent>(bee);
 
             bee.Velocity *= 0.5f;
             bee.DeathTimer = 5f;
@@ -95,6 +94,7 @@ public sealed class World : IWorld
             bee.Size = Random.NextSingleInRange(0.25f, 0.5f);
             bee.IsAlive = true;
             AliveBeePool.Add(bee);
+            Add<AliveBeeComponent>(bee);
         }
         BeesToSpawn.Clear();
     }
@@ -127,6 +127,8 @@ public sealed class World : IWorld
 
     public void Remove<TComponent>(IEntity<TComponent> entity) where TComponent : struct
     {
-        
+        var componentType = typeof(TComponent);
+        if (m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))
+            entities.Remove(entity);
     }
 }

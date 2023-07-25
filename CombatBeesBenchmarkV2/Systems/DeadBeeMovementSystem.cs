@@ -19,10 +19,10 @@ public struct DeadBeeState
 public sealed class DeadBeeMovementSystem
 {
     private ILogger Logger { get; }
-    private IBeePool<IDeadBee> DeadBees { get; }
+    private IBeePool<Bee> DeadBees { get; }
     private readonly DeadBeeState[] m_States;
     
-    public DeadBeeMovementSystem(int maxBeeCount, IBeePool<IDeadBee> deadBees, ILogger logger)
+    public DeadBeeMovementSystem(int maxBeeCount, IBeePool<Bee> deadBees, ILogger logger)
     {
         Logger = logger;
         DeadBees = deadBees;
@@ -36,7 +36,7 @@ public sealed class DeadBeeMovementSystem
 
         Parallel.For(0, stateCount, i =>
         {
-            m_States[i] = DeadBees[i].Save();
+            m_States[i] = ((IDeadBee)DeadBees[i]).Save();
         });
 
         var states = m_States.AsSpan();

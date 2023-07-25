@@ -1,25 +1,16 @@
-﻿using System.Numerics;
+using System.Numerics;
 using CombatBeesBenchmarkV2.Components;
-using EasyGameFramework.Api;
+using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmark;
 
-public sealed class AliveBeeMovementSystem
+public sealed class NewAliveBeeMovementSystem : System<AliveBeeComponent>
 {
-    private ILogger Logger { get; }
-    private Random Random { get; }
-    private readonly IBeePool<IAliveBee> m_Entities;
-    private readonly AliveBeeComponent[] m_States;
-
-    public AliveBeeMovementSystem(int maxStatCount, IBeePool<IAliveBee> entities, ILogger logger, Random random)
+    public NewAliveBeeMovementSystem(IWorld world, int size) : base(world, size)
     {
-        Logger = logger;
-        Random = random;
-        m_Entities = entities;
-        m_States = new AliveBeeComponent[maxStatCount];
     }
 
-    public void Update(float dt)
+    protected override void OnUpdate(float dt, ref Span<AliveBeeComponent> components)
     {
         var attackDistanceSqr = 4f * 4f;
         var hitDistanceSqrd = 0.5f * 0.5f;
@@ -31,24 +22,10 @@ public sealed class AliveBeeMovementSystem
         var flightJitter = 200f * dt;
         var damping = 1f - 0.9f * dt;
         
-        var stateCount = m_Entities.Count;
-        //Logger.Trace($"State Count: {stateCount}");
-
-        Parallel.For(0, stateCount, i =>
-        {
-            var entity = m_Entities[i];
-            var state = entity.Save();
-            state.MoveDirection = Random.RandomInsideUnitSphere();
-            state.AttractionPoint = m_Entities.GetRandomAllyBee(entity).Position;
-            state.RepellentPoint = m_Entities.GetRandomAllyBee(entity).Position;
-            //Logger.Trace($"[{i}] Move Dir: {state.MoveDirection}");
-            m_States[i] = state;
-        });
-        
-        var states = m_States.AsSpan();
+        var stateCount = components.Length;
         for (var i = 0; i < stateCount; i++)
         {
-            ref var state = ref states[i];
+            ref var state = ref components[i];
             state.Movement.Velocity += state.MoveDirection * flightJitter;
             state.Movement.Velocity *= damping;
        
@@ -87,10 +64,5 @@ public sealed class AliveBeeMovementSystem
             state.LookDirection = Vector3.Lerp(state.LookDirection, Vector3.Normalize(state.Movement.Velocity), dt * 4f);
             state.Movement.Position += state.Movement.Velocity * dt;
         }
-
-        Parallel.For(0, stateCount, (i) =>
-        {
-            m_Entities[i].Load(m_States[i]);
-        });
     }
 }

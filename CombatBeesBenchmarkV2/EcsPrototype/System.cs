@@ -49,5 +49,5 @@ public abstract class System<TComponent> where TComponent : struct
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected abstract void OnUpdate(float dt, ref Span<TComponent> component);
+    protected abstract void OnUpdate(float dt, ref Span<TComponent> components);
 }

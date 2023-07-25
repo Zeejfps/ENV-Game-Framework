@@ -29,7 +29,7 @@ public sealed class NewBeeRenderingSystem : System<BeeRenderComponent>
         gpu.ShaderController.AttachBuffer("beeDataBlock", 0, BeeBuffer);
     }
 
-    protected override void OnUpdate(float dt, ref Span<BeeRenderComponent> component)
+    protected override void OnUpdate(float dt, ref Span<BeeRenderComponent> components)
     {
         var gpu = Gpu;
         var camera = Camera;
@@ -45,9 +45,9 @@ public sealed class NewBeeRenderingSystem : System<BeeRenderComponent>
         shaderController.SetMatrix4x4("matrix_view", viewMatrix);
         
         bufferController.Bind(BeeBuffer);
-        bufferController.Upload<BeeRenderComponent>(component);
+        bufferController.Upload<BeeRenderComponent>(components);
         
         //Logger.Trace($"Rendering: {stateCount}");
-        meshController.RenderInstanced(component.Length);
+        meshController.RenderInstanced(components.Length);
     }
 }

@@ -4,11 +4,11 @@ using EasyGameFramework.Api;
 
 namespace CombatBeesBenchmark;
 
-public interface IBeePool<out TBee>
+public interface IBeePool<TBee>
 {
     int Count { get; }
     TBee this[int i] { get; }
-    TBee GetRandomAllyBee(int friendlyTeamIndex);
+    TBee GetRandomAllyBee(TBee bee);
 }
 
 public sealed class BeePool<TBee> : IBeePool<TBee>, IEnumerable<TBee>
@@ -51,11 +51,17 @@ public sealed class BeePool<TBee> : IBeePool<TBee>, IEnumerable<TBee>
         return team[randIndex];
     }
 
-    public TBee GetRandomAllyBee(int teamIndex)
+    public TBee GetRandomAllyBee(TBee bee)
     {
-        var team = m_Teams[teamIndex];
-        var randIndex = m_Random.Next(0, team.Count);
-        return team[randIndex];
+        TBee ally;
+        do
+        {
+            var team = m_Teams[bee.TeamIndex];
+            var randIndex = m_Random.Next(0, team.Count);
+            ally = team[randIndex];
+        } while (ReferenceEquals(ally, bee));
+
+        return ally;
     }
     
     public void Add(TBee bee)

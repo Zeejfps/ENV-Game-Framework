@@ -4,7 +4,10 @@ using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmark;
 
-public sealed class Bee : IAliveBee, IDeadBee, IEntity<CollisionComponent>, IEntity<BeeRenderComponent>
+public sealed class Bee : IAliveBee, IDeadBee, 
+    IEntity<CollisionComponent>,
+    IEntity<BeeRenderComponent>,
+    IEntity<AliveBeeComponent>
 {
     public bool IsAlive { get; set; }
     public int TeamIndex { get; }
@@ -31,11 +34,16 @@ public sealed class Bee : IAliveBee, IDeadBee, IEntity<CollisionComponent>, IEnt
     public Vector4 Color { get; set; }
     private World World { get; }
     private Bee? Target { get; set; }
+    
+    private Random Random { get; }
+    private BeePool<Bee> AliveBees { get; }
 
-    public Bee(int teamIndex, World world)
+    public Bee(int teamIndex, World world, Random random, BeePool<Bee> aliveBees)
     {
         TeamIndex = teamIndex;
         World = world;
+        Random = random;
+        AliveBees = aliveBees;
         Color = teamIndex == 0 ? new Vector4(1f, 0f, 0f, 1f) : new Vector4(0f, 0f, 1f, 1f);
     }
 
@@ -124,5 +132,38 @@ public sealed class Bee : IAliveBee, IDeadBee, IEntity<CollisionComponent>, IEnt
     public void From(ref BeeRenderComponent component)
     {
         
+    }
+
+    public void Into(ref AliveBeeComponent component)
+    {
+        if (Target == null || !Target.IsAlive)
+        {
+            Target = World.GetRandomEnemy(TeamIndex);
+        }
+        
+        component.Movement = new MovementComponent
+        {
+            Position = m_Position,
+            Velocity = m_Velocity
+        };
+        component.TargetPosition = Target.Position;
+        component.LookDirection = LookDirection;
+        component.MoveDirection = Random.RandomInsideUnitSphere();
+        component.AttractionPoint = AliveBees.GetRandomAllyBee(this).Position;
+        component.RepellentPoint = AliveBees.GetRandomAllyBee(this).Position;
+        component.IsTargetKilled = false;
+    }
+
+    public void From(ref AliveBeeComponent component)
+    {
+        var target = Target;
+        m_Position = component.Movement.Position;
+        m_Velocity = component.Movement.Velocity;
+        LookDirection = component.LookDirection;
+        if (component.IsTargetKilled && target != null && target.IsAlive)
+        {
+            World.Kill(target);
+            Target = World.GetRandomEnemy(TeamIndex);
+        }
     }
 }
