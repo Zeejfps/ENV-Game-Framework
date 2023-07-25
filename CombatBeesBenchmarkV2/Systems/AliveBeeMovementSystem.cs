@@ -1,33 +1,22 @@
 ﻿using System.Numerics;
+using CombatBeesBenchmarkV2.Components;
 using EasyGameFramework.Api;
 
 namespace CombatBeesBenchmark;
-
-public struct AliveBeeState
-{
-    public Vector3 Position;
-    public Vector3 Velocity;
-    public Vector3 MoveDirection;
-    public Vector3 AttractionPoint;
-    public Vector3 RepellentPoint;
-    public Vector3 TargetPosition;
-    public bool IsTargetKilled;
-    public Vector3 LookDirection;
-}
 
 public sealed class AliveBeeMovementSystem
 {
     private ILogger Logger { get; }
     private Random Random { get; }
     private readonly IBeePool<IAliveBee> m_Entities;
-    private readonly AliveBeeState[] m_States;
+    private readonly AliveBeeComponent[] m_States;
 
     public AliveBeeMovementSystem(int maxStatCount, IBeePool<IAliveBee> entities, ILogger logger, Random random)
     {
         Logger = logger;
         Random = random;
         m_Entities = entities;
-        m_States = new AliveBeeState[maxStatCount];
+        m_States = new AliveBeeComponent[maxStatCount];
     }
 
     public void Update(float dt)
@@ -60,34 +49,34 @@ public sealed class AliveBeeMovementSystem
         for (var i = 0; i < stateCount; i++)
         {
             ref var state = ref states[i];
-            state.Velocity += state.MoveDirection * flightJitter;
-            state.Velocity *= damping;
+            state.Movement.Velocity += state.MoveDirection * flightJitter;
+            state.Movement.Velocity *= damping;
        
             var attractionPoint = state.AttractionPoint;
-            Vector3 delta = attractionPoint - state.Position;
+            Vector3 delta = attractionPoint - state.Movement.Position;
             var dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
             if (dist > 0f)
-                state.Velocity += delta * (teamAttraction / dist);
+                state.Movement.Velocity += delta * (teamAttraction / dist);
             
             var repellentPoint = state.RepellentPoint;
-            delta = repellentPoint - state.Position;
+            delta = repellentPoint - state.Movement.Position;
             dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
             if (dist > 0f)
-                state.Velocity -= delta * (teamRepulsion / dist);
+                state.Movement.Velocity -= delta * (teamRepulsion / dist);
             
-            delta = state.TargetPosition - state.Position;
+            delta = state.TargetPosition - state.Movement.Position;
             //Logger.Trace($"[{i}]: {state.TargetPosition}, Delta: {delta}");
             var sqrDist = delta.LengthSquared();
             if (sqrDist > attackDistanceSqr)
             {
                 //Logger.Trace($"[{i}] Attacking!: {delta}");
                 //Logger.Trace($"[{i}] Vel Before: {state.Velocity}");
-                state.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
+                state.Movement.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
                 //Logger.Trace($"[{i}] Vel After: {state.Velocity}");
             }
             else
             {
-                state.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
+                state.Movement.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
                 if (sqrDist < hitDistanceSqrd)
                 {
                     state.IsTargetKilled = true;
@@ -95,8 +84,8 @@ public sealed class AliveBeeMovementSystem
             }
 
             //Logger.Trace($"[{i}] Velocity: {state.Velocity}");
-            state.LookDirection = Vector3.Lerp(state.LookDirection, Vector3.Normalize(state.Velocity), dt * 4f);
-            state.Position += state.Velocity * dt;
+            state.LookDirection = Vector3.Lerp(state.LookDirection, Vector3.Normalize(state.Movement.Velocity), dt * 4f);
+            state.Movement.Position += state.Movement.Velocity * dt;
         }
 
         Parallel.For(0, stateCount, (i) =>

@@ -1,9 +1,10 @@
 ﻿using System.Numerics;
+using CombatBeesBenchmarkV2.Components;
 
 namespace CombatBeesBenchmark;
 
 public interface IAliveBee : IBee, IRenderableBee
 {
-    AliveBeeState Save();
-    void Load(AliveBeeState state);
+    AliveBeeComponent Save();
+    void Load(AliveBeeComponent state);
 }

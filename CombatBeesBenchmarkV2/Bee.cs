@@ -39,17 +39,20 @@ public sealed class Bee : IAliveBee, IDeadBee, IEntity<CollisionComponent>, IEnt
         Color = teamIndex == 0 ? new Vector4(1f, 0f, 0f, 1f) : new Vector4(0f, 0f, 1f, 1f);
     }
 
-    public AliveBeeState Save()
+    public AliveBeeComponent Save()
     {
         if (Target == null || !Target.IsAlive)
         {
             Target = World.GetRandomEnemy(TeamIndex);
         }
         var target = Target;
-        return new AliveBeeState
+        return new AliveBeeComponent
         {
-            Position = m_Position,
-            Velocity = m_Velocity,
+            Movement =
+            {
+                Position = m_Position,
+                Velocity = m_Velocity
+            },
             TargetPosition = target.Position,
             LookDirection = LookDirection,
         };
@@ -64,32 +67,17 @@ public sealed class Bee : IAliveBee, IDeadBee, IEntity<CollisionComponent>, IEnt
             World.Spawn(this);
     }
 
-    public void Load(AliveBeeState state)
+    public void Load(AliveBeeComponent state)
     {
         var target = Target;
-        m_Position = state.Position;
-        m_Velocity = state.Velocity;
+        m_Position = state.Movement.Position;
+        m_Velocity = state.Movement.Velocity;
         LookDirection = state.LookDirection;
         if (state.IsTargetKilled && target.IsAlive)
         {
             World.Kill(target);
             Target = World.GetRandomEnemy(TeamIndex);
         }
-    }
-
-    public MovementComponents SaveMovementState()
-    {
-        return new MovementComponents
-        {
-            Position = m_Position,
-            Velocity = m_Velocity
-        };
-    }
-
-    public void Load(MovementComponents state)
-    {
-        m_Position = state.Position;
-        m_Velocity = state.Velocity;
     }
 
     DeadBeeState IDeadBee.Save()
