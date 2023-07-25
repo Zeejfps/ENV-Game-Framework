@@ -2,7 +2,7 @@
 
 namespace CombatBeesBenchmarkV2.EcsPrototype;
 
-public abstract class System<TComponent> where TComponent : struct
+public abstract class System<TComponent> : ISystem where TComponent : struct
 {
     private readonly IWorld m_World;
     private readonly TComponent[] m_Components;

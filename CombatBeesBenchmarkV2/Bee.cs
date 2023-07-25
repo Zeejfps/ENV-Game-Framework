@@ -4,7 +4,7 @@ using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmark;
 
-public sealed class Bee : IDeadBee, 
+public sealed class Bee : IBee,
     IEntity<CollisionComponent>,
     IEntity<BeeRenderComponent>,
     IEntity<AliveBeeComponent>,
@@ -47,29 +47,7 @@ public sealed class Bee : IDeadBee,
         AliveBees = aliveBees;
         Color = teamIndex == 0 ? new Vector4(1f, 0f, 0f, 1f) : new Vector4(0f, 0f, 1f, 1f);
     }
-
-    public void Load(DeadBeeComponent state)
-    {
-        m_Position = state.Movement.Position;
-        m_Velocity = state.Movement.Velocity;
-        DeathTimer = state.DeathTimer;
-        if (DeathTimer <= 0f)
-            World.Spawn(this);
-    }
-
-    DeadBeeComponent IDeadBee.Save()
-    {
-        return new DeadBeeComponent
-        {
-            Movement =
-            {
-                Position = m_Position,
-                Velocity = m_Velocity,
-            },
-            DeathTimer = DeathTimer
-        };
-    }
-
+    
     public void Into(ref CollisionComponent component)
     {
         component.MovementState.Position = Position;
