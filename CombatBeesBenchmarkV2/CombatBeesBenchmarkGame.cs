@@ -12,7 +12,7 @@ public class CombatBeesBenchmarkGame : Game
     
     private World World { get; }
     private NewAliveBeeMovementSystem AliveBeeMovementSystem { get; }
-    private DeadBeeMovementSystem DeadBeeMovementSystem { get; }
+    private NewDeadBeeMovementSystem DeadBeeMovementSystem { get; }
     private NewBeeRenderingSystem BeeRenderingSystem { get; }
     private NewBeeCollisionSystem BeeCollisionSystem { get; }
 
@@ -40,17 +40,16 @@ public class CombatBeesBenchmarkGame : Game
         var aliveBeePool = new BeePool<Bee>(random, numberOfTeams, numberOfBeesPerTeam, Logger);
         var deadBeePool = new BeePool<Bee>(random, numberOfTeams, numberOfBeesPerTeam, Logger);
 
-        DeadBeeMovementSystem = new DeadBeeMovementSystem(MaxBeeCount, deadBeePool, Logger);
 
         World = new World(
             numberOfTeams,
             numberOfBeesPerTeam,
             aliveBeePool,
             deadBeePool,
-            DeadBeeMovementSystem,
             Logger,
             random);
         
+        DeadBeeMovementSystem = new NewDeadBeeMovementSystem(World, MaxBeeCount);
         AliveBeeMovementSystem = new NewAliveBeeMovementSystem(World, MaxBeeCount);
         BeeRenderingSystem = new NewBeeRenderingSystem(World, MaxBeeCount, Gpu, camera);
         BeeCollisionSystem = new NewBeeCollisionSystem(World, MaxBeeCount);

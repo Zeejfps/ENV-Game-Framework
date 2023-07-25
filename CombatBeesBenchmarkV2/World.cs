@@ -13,12 +13,10 @@ public sealed class World : IWorld
         int numberOfBeesPerTeam,
         BeePool<Bee> aliveBeePool,
         BeePool<Bee> deadBeePool,
-        DeadBeeMovementSystem deadBeeMovementSystem,
         ILogger logger, Random random)
     {
         AliveBeePool = aliveBeePool;
         DeadBeePool = deadBeePool;
-        DeadBeeMovementSystem = deadBeeMovementSystem;
         Logger = logger;
         Random = random;
 
@@ -40,8 +38,6 @@ public sealed class World : IWorld
     private ILogger Logger { get; }
     private BeePool<Bee> AliveBeePool { get; }
     private BeePool<Bee> DeadBeePool { get; }
-    private DeadBeeMovementSystem DeadBeeMovementSystem { get; }
-
     private HashSet<Bee> BeesToKill { get; } = new();
     private HashSet<Bee> BeesToSpawn { get; } = new();
 
@@ -76,6 +72,7 @@ public sealed class World : IWorld
             bee.IsAlive = false;
             
             DeadBeePool.Add(bee);
+            Add<DeadBeeComponent>(bee);
         }
         BeesToKill.Clear();
 
@@ -83,6 +80,7 @@ public sealed class World : IWorld
         //     Logger.Trace($"Spawning Bees: {BeesToSpawn.Count}");
         foreach (var bee in BeesToSpawn)
         {
+            Remove<DeadBeeComponent>(bee);
             DeadBeePool.Remove(bee);
             var spawnPosition = Vector3.UnitX * (-100f * .4f + 100f * .8f * bee.TeamIndex);
             bee.Position = spawnPosition;

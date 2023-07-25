@@ -7,7 +7,8 @@ namespace CombatBeesBenchmark;
 public sealed class Bee : IDeadBee, 
     IEntity<CollisionComponent>,
     IEntity<BeeRenderComponent>,
-    IEntity<AliveBeeComponent>
+    IEntity<AliveBeeComponent>,
+    IEntity<DeadBeeComponent>
 {
     public bool IsAlive { get; set; }
     public int TeamIndex { get; }
@@ -127,5 +128,24 @@ public sealed class Bee : IDeadBee,
             World.Kill(target);
             Target = World.GetRandomEnemy(TeamIndex);
         }
+    }
+
+    public void Into(ref DeadBeeComponent component)
+    {
+        component.Movement = new MovementComponent
+        {
+            Position = m_Position,
+            Velocity = m_Velocity,
+        };
+        component.DeathTimer = DeathTimer;
+    }
+
+    public void From(ref DeadBeeComponent component)
+    {
+        m_Position = component.Movement.Position;
+        m_Velocity = component.Movement.Velocity;
+        DeathTimer = component.DeathTimer;
+        if (DeathTimer <= 0f)
+            World.Spawn(this);
     }
 }
