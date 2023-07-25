@@ -13,7 +13,7 @@ public sealed class World : IWorld
         BeePool<Bee> deadBeePool,
         AliveBeeMovementSystem aliveBeeMovementSystem,
         DeadBeeMovementSystem deadBeeMovementSystem,
-        BeeCollisionSystem beeCollisionSystem,
+        //BeeCollisionSystem beeCollisionSystem,
         BeeRenderingSystem beeRenderingSystem, ILogger logger, Random random)
     {
         AliveBeePool = aliveBeePool;
@@ -21,7 +21,7 @@ public sealed class World : IWorld
         AliveBeeMovementSystem = aliveBeeMovementSystem;
         DeadBeeMovementSystem = deadBeeMovementSystem;
         BeeRenderingSystem = beeRenderingSystem;
-        BeeCollisionSystem = beeCollisionSystem;
+        //BeeCollisionSystem = beeCollisionSystem;
         Logger = logger;
         Random = random;
 
@@ -33,7 +33,7 @@ public sealed class World : IWorld
                 //Logger.Trace($"J: {j}");
                 var bee = new Bee(teamIndex, this);
                 BeeRenderingSystem.Add(bee);
-                BeeCollisionSystem.Add(bee);
+                //BeeCollisionSystem.Add(bee);
                 Add<CollisionComponent>(bee);
                 Spawn(bee);
             }
@@ -47,7 +47,8 @@ public sealed class World : IWorld
     private AliveBeeMovementSystem AliveBeeMovementSystem { get; }
     private DeadBeeMovementSystem DeadBeeMovementSystem { get; }
     private BeeRenderingSystem BeeRenderingSystem { get; }
-    private BeeCollisionSystem BeeCollisionSystem { get; }
+    //private BeeCollisionSystem BeeCollisionSystem { get; }
+    private NewBeeCollisionSystem NewBeeCollisionSystem { get; }
 
     private HashSet<Bee> BeesToKill { get; } = new();
     private HashSet<Bee> BeesToSpawn { get; } = new();
@@ -116,7 +117,13 @@ public sealed class World : IWorld
 
     public void Add<TComponent>(IEntity<TComponent> entity) where TComponent : struct
     {
-        
+        var componentType = typeof(TComponent);
+        if (!m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))
+        {
+            entities = new HashSet<IEntity>();
+            m_ComponentTypeToEntitiesTable[componentType] = entities;
+        }
+        entities.Add(entity);
     }
 
     public void Remove<TComponent>(IEntity<TComponent> entity) where TComponent : struct
