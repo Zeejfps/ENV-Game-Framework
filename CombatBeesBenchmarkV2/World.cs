@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using CombatBeesBenchmarkV2.Components;
 using CombatBeesBenchmarkV2.EcsPrototype;
 using EasyGameFramework.Api;
@@ -41,11 +40,7 @@ public sealed class World : IWorld
     private ILogger Logger { get; }
     private BeePool<Bee> AliveBeePool { get; }
     private BeePool<Bee> DeadBeePool { get; }
-    private AliveBeeMovementSystem AliveBeeMovementSystem { get; }
     private DeadBeeMovementSystem DeadBeeMovementSystem { get; }
-    private BeeRenderingSystem BeeRenderingSystem { get; }
-    //private BeeCollisionSystem BeeCollisionSystem { get; }
-    private NewBeeCollisionSystem NewBeeCollisionSystem { get; }
 
     private HashSet<Bee> BeesToKill { get; } = new();
     private HashSet<Bee> BeesToSpawn { get; } = new();

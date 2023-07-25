@@ -4,7 +4,7 @@ using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmark;
 
-public sealed class Bee : IAliveBee, IDeadBee, 
+public sealed class Bee : IDeadBee, 
     IEntity<CollisionComponent>,
     IEntity<BeeRenderComponent>,
     IEntity<AliveBeeComponent>
@@ -47,25 +47,6 @@ public sealed class Bee : IAliveBee, IDeadBee,
         Color = teamIndex == 0 ? new Vector4(1f, 0f, 0f, 1f) : new Vector4(0f, 0f, 1f, 1f);
     }
 
-    public AliveBeeComponent Save()
-    {
-        if (Target == null || !Target.IsAlive)
-        {
-            Target = World.GetRandomEnemy(TeamIndex);
-        }
-        var target = Target;
-        return new AliveBeeComponent
-        {
-            Movement =
-            {
-                Position = m_Position,
-                Velocity = m_Velocity
-            },
-            TargetPosition = target.Position,
-            LookDirection = LookDirection,
-        };
-    }
-
     public void Load(DeadBeeState state)
     {
         m_Position = state.Position;
@@ -73,19 +54,6 @@ public sealed class Bee : IAliveBee, IDeadBee,
         DeathTimer = state.DeathTimer;
         if (DeathTimer <= 0f)
             World.Spawn(this);
-    }
-
-    public void Load(AliveBeeComponent state)
-    {
-        var target = Target;
-        m_Position = state.Movement.Position;
-        m_Velocity = state.Movement.Velocity;
-        LookDirection = state.LookDirection;
-        if (state.IsTargetKilled && target.IsAlive)
-        {
-            World.Kill(target);
-            Target = World.GetRandomEnemy(TeamIndex);
-        }
     }
 
     DeadBeeState IDeadBee.Save()
@@ -108,15 +76,6 @@ public sealed class Bee : IAliveBee, IDeadBee,
     {
         Position = component.MovementState.Position;
         Velocity = component.MovementState.Velocity;
-    }
-
-    public void Into(ref DeadBeeState component)
-    {
-        
-    }
-
-    public void From(ref DeadBeeState component)
-    {
     }
 
     public void Into(ref BeeRenderComponent component)

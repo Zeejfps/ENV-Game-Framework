@@ -3,7 +3,7 @@ using EasyGameFramework.Api;
 
 namespace CombatBeesBenchmark;
 
-public interface IDeadBee : IBee, IRenderableBee
+public interface IDeadBee : IBee
 {
     DeadBeeState Save();
     void Load(DeadBeeState state);
