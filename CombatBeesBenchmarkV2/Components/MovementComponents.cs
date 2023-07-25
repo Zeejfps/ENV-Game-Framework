@@ -1,8 +1,8 @@
 using System.Numerics;
 
-namespace CombatBeesBenchmark;
+namespace CombatBeesBenchmarkV2.Components;
 
-public struct MovementState
+public struct MovementComponents
 {
     public Vector3 Position;
     public Vector3 Velocity;

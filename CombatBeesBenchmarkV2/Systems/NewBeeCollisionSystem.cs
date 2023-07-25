@@ -1,3 +1,4 @@
+using CombatBeesBenchmarkV2.Components;
 using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmark;

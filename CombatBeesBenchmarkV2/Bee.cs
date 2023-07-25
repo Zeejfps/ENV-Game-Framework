@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using CombatBeesBenchmarkV2.Components;
 using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmark;
@@ -76,16 +77,16 @@ public sealed class Bee : IAliveBee, IDeadBee, IEntity<CollisionComponent>, IEnt
         }
     }
 
-    public MovementState SaveMovementState()
+    public MovementComponents SaveMovementState()
     {
-        return new MovementState
+        return new MovementComponents
         {
             Position = m_Position,
             Velocity = m_Velocity
         };
     }
 
-    public void Load(MovementState state)
+    public void Load(MovementComponents state)
     {
         m_Position = state.Position;
         m_Velocity = state.Velocity;
