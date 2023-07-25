@@ -7,13 +7,12 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    public const int MaxBeeCount = 10000;
+    public const int MaxBeeCount = 100000;
     
     private World World { get; }
     private AliveBeeMovementSystem AliveBeeMovementSystem { get; }
     private DeadBeeMovementSystem DeadBeeMovementSystem { get; }
     private BeeRenderingSystem BeeRenderingSystem { get; }
-    //private BeeCollisionSystem BeeCollisionSystem { get; }
     private NewBeeCollisionSystem BeeCollisionSystem { get; }
 
     private CameraRig m_CameraRig;
@@ -43,7 +42,6 @@ public class CombatBeesBenchmarkGame : Game
         AliveBeeMovementSystem = new AliveBeeMovementSystem(MaxBeeCount, aliveBeePool, Logger, random);
         DeadBeeMovementSystem = new DeadBeeMovementSystem(MaxBeeCount, deadBeePool, Logger);
         BeeRenderingSystem = new BeeRenderingSystem(MaxBeeCount, Gpu, camera, Logger);
-        //BeeCollisionSystem = new BeeCollisionSystem(MaxBeeCount, Logger);
 
         World = new World(
             numberOfTeams,
@@ -52,7 +50,6 @@ public class CombatBeesBenchmarkGame : Game
             deadBeePool,
             AliveBeeMovementSystem, 
             DeadBeeMovementSystem, 
-            //BeeCollisionSystem,
             BeeRenderingSystem,
             Logger,
             random);

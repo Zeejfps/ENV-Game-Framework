@@ -2,7 +2,7 @@
 
 namespace CombatBeesBenchmark;
 
-public interface IAliveBee : IBee, IRenderableBee, IMovableBee
+public interface IAliveBee : IBee, IRenderableBee
 {
     AliveBeeState Save();
     void Load(AliveBeeState state);

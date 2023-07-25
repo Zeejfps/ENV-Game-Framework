@@ -7,7 +7,8 @@ public abstract class System<TComponent> where TComponent : struct
     private readonly IWorld m_World;
     private readonly TComponent[] m_Components;
     
-    private IReadOnlyList<IEntity<TComponent>>? m_Entities;
+    private IEnumerable<IEntity<TComponent>>? m_Entities;
+    private int m_ComponentCount;
 
     protected System(IWorld world, int size)
     {
@@ -18,30 +19,33 @@ public abstract class System<TComponent> where TComponent : struct
     public void Update(float dt)
     {
         OnPreUpdate();
-        var components = m_Components.AsSpan(0, m_Entities.Count);
+        var components = m_Components.AsSpan(0, m_ComponentCount);
         OnUpdate(dt, ref components);
         OnPostUpdate();
     }
 
     private void OnPreUpdate()
     {
-        m_Entities = m_World.Query<TComponent>().ToArray();
-        var entities = m_Entities;
-        for (var i = 0; i < entities.Count; i++)
+        m_Entities = m_World.Query<TComponent>();
+        var i = 0;
+        foreach (var entity in m_Entities)
         {
-            var entity = entities[i];
             ref var component = ref m_Components[i];
             entity.Into(ref component);
+            i++;
         }
+
+        m_ComponentCount = i;
     }
 
     private void OnPostUpdate()
     {
-        for (var i = 0; i < m_Entities.Count; i++)
+        var i = 0;
+        foreach (var entity in m_Entities)
         {
             ref var component = ref m_Components[i];
-            var entity = m_Entities[i];
             entity.From(ref component);
+            i++;
         }
     }
     
