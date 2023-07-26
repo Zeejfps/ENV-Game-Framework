@@ -36,6 +36,8 @@ public sealed class NewBeeRenderingSystem : System<BeeRenderComponent>
         var shaderController = gpu.ShaderController;
         var meshController = gpu.MeshController;
         var bufferController = gpu.BufferController;
+
+        gpu.EnableDepthTest = true;
         
         shaderController.Bind(BeeShaderHandle);
         meshController.Bind(QuadMeshHandle);
