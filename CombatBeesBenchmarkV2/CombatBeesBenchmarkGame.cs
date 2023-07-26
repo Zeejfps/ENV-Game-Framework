@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using CombatBeesBenchmarkV2.EcsPrototype;
 using CombatBeesBenchmarkV2.Systems;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
@@ -9,7 +8,7 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    public const int MaxBeeCount = 100000;
+    public const int MaxBeeCount = 10000;
     
     private World World { get; }
     private NewAliveBeeMovementSystem AliveBeeMovementSystem { get; }

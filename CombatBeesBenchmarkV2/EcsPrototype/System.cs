@@ -6,14 +6,14 @@ public abstract class System<TComponent> : ISystem where TComponent : struct
 {
     private readonly IWorld m_World;
     private readonly TComponent[] m_Components;
-    
-    private IReadOnlyList<IEntity<TComponent>> m_Entities;
-    private int ComponentCount => m_Entities.Count;
+    private readonly IEntity<TComponent>[] m_Entities;
+    private int ComponentCount { get; set; }
 
     protected System(IWorld world, int size)
     {
         m_World = world;
         m_Components = new TComponent[size];
+        m_Entities = new IEntity<TComponent>[size];
     }
     
     public void Update(float dt)
@@ -26,12 +26,10 @@ public abstract class System<TComponent> : ISystem where TComponent : struct
 
     private void OnPreUpdate()
     {
-        m_Entities = m_World.Query<TComponent>();
-
-        var entities = m_Entities;
-        Parallel.For(0, entities.Count, (i) =>
+        ComponentCount = m_World.Query<TComponent>(m_Entities);
+        Parallel.For(0, ComponentCount, (i) =>
         {
-            var entity = entities[i];
+            var entity = m_Entities[i];
             ref var component = ref m_Components[i];
             entity.Into(ref component);
         });
@@ -39,10 +37,9 @@ public abstract class System<TComponent> : ISystem where TComponent : struct
 
     private void OnPostUpdate()
     {
-        var entities = m_Entities;
-        Parallel.For(0, entities.Count, (i) =>
+        Parallel.For(0, ComponentCount, (i) =>
         {
-            var entity = entities[i];
+            var entity = m_Entities[i];
             ref var component = ref m_Components[i];
             entity.From(ref component);
         });

@@ -1,5 +1,7 @@
 ﻿using System.Collections;
+using System.Collections.Concurrent;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using CombatBeesBenchmarkV2.Components;
 using CombatBeesBenchmarkV2.EcsPrototype;
 using EasyGameFramework.Api;
@@ -97,14 +99,24 @@ public sealed class World : IWorld
         return AliveBeePool.GetRandomEnemyBee(teamIndex);
     }
 
-    private readonly Dictionary<Type, IList> m_ComponentTypeToEntitiesTable = new();
+    private readonly ConcurrentDictionary<Type, IList> m_ComponentTypeToEntitiesTable = new();
 
-    public IReadOnlyList<IEntity<TComponent>> Query<TComponent>() where TComponent : struct
+    public int Query<TComponent>(IEntity<TComponent>[] buffer) where TComponent : struct
     {
         var componentType = typeof(TComponent);
         if (m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))
-            return (List<IEntity<TComponent>>)entities;
-        return Array.Empty<IEntity<TComponent>>();
+        {
+            var entitiesList = (List<IEntity<TComponent>>)entities;
+            var entityCount = entitiesList.Count;
+            lock (entitiesList)
+            {
+                var bufferSpan = buffer.AsSpan();
+                var entitiesSpan = CollectionsMarshal.AsSpan(entitiesList);
+                entitiesSpan.TryCopyTo(bufferSpan);
+            }
+            return entityCount;
+        }
+        return 0;
     }
 
     public void Add<TComponent>(IEntity<TComponent> entity) where TComponent : struct
@@ -115,13 +127,17 @@ public sealed class World : IWorld
             entities = new List<IEntity<TComponent>>();
             m_ComponentTypeToEntitiesTable[componentType] = entities;
         }
-        entities.Add(entity);
+        lock (entities)
+            entities.Add(entity);
     }
 
     public void Remove<TComponent>(IEntity<TComponent> entity) where TComponent : struct
     {
         var componentType = typeof(TComponent);
         if (m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))
-            entities.Remove(entity);
+        {
+            lock (entities)
+                entities.Remove(entity);
+        }
     }
 }
