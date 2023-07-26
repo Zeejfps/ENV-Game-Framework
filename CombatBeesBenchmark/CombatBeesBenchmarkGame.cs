@@ -63,7 +63,7 @@ public class CombatBeesBenchmarkGame : Game
         CameraRigController.Enable();
     }
 
-    protected override void OnUpdate()
+    protected override void OnFixedUpdate()
     {
         var dt = Time.UpdateDeltaTime;
 
@@ -75,7 +75,7 @@ public class CombatBeesBenchmarkGame : Game
         CameraRigController.Update(dt);
     }
 
-    protected override void OnRender()
+    protected override void OnUpdate()
     {
         var gpu = Context.Window.Gpu;
         var activeFramebuffer = gpu.FramebufferController;

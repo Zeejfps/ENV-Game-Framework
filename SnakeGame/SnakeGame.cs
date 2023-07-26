@@ -74,7 +74,7 @@ public class SnakeGame : Game
         Restart();
     }
 
-    protected override void OnUpdate()
+    protected override void OnFixedUpdate()
     {
         if (IsPaused)
             return;
@@ -114,7 +114,7 @@ public class SnakeGame : Game
         }
     }
 
-    protected override void OnRender()
+    protected override void OnUpdate()
     {
         var gpu = Gpu;
         gpu.EnableBackfaceCulling = false;

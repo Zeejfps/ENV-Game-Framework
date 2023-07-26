@@ -118,7 +118,7 @@ public sealed class PongGame : Game
         SpriteRenderer.LoadResources();
     }
 
-    protected override void OnUpdate()
+    protected override void OnFixedUpdate()
     {
         var mouseScreenPoint = new Vector2(InputSystem.Mouse.ScreenX, InputSystem.Mouse.ScreenY);
         var viewports = new IViewport[] { Viewport, Viewport2 };
@@ -191,7 +191,7 @@ public sealed class PongGame : Game
 
     private bool m_IsHit;
     
-    protected override void OnRender()
+    protected override void OnUpdate()
     {
         PixelCanvas.Clear();
 

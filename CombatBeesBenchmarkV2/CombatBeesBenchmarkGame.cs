@@ -68,7 +68,7 @@ public class CombatBeesBenchmarkGame : Game
         m_RigController.Enable();
     }
     
-    protected override void OnUpdate()
+    protected override void OnFixedUpdate()
     {
         var dt = Time.UpdateDeltaTime;
         World.Update(dt);
@@ -77,7 +77,7 @@ public class CombatBeesBenchmarkGame : Game
         BeeCollisionSystem.Update(dt);
     }
 
-    protected override void OnRender()
+    protected override void OnUpdate()
     {
         m_RigController.Update(Time.FrameDeltaTime);
 

@@ -24,12 +24,12 @@ public class SandboxGame : Game
         Scene.Load();
     }
 
-    protected override void OnUpdate()
+    protected override void OnFixedUpdate()
     {
         Scene.Update(Time.UpdateDeltaTime);
     }
 
-    protected override void OnRender()
+    protected override void OnUpdate()
     {
         Scene.Render();
     }

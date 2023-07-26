@@ -164,7 +164,7 @@ public class SimplePlatformerGame : Game
 
     private int fps;
     private double dt;
-    protected override void OnUpdate()
+    protected override void OnFixedUpdate()
     {
         Clock.Tick(Time.UpdateDeltaTime);
         Animation.PlaybackSpeed = MathF.Abs(Players[0].Velocity.X);
@@ -175,7 +175,7 @@ public class SimplePlatformerGame : Game
         }
     }
 
-    protected override void OnRender()
+    protected override void OnUpdate()
     {
         var renderbuffer = Gpu.FramebufferController;
         renderbuffer.ClearColorBuffers(0.2f, 0.2f, 0.2f, 1);

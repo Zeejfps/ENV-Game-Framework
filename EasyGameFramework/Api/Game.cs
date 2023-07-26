@@ -97,7 +97,7 @@ public abstract class Game : IGame
             if (!IsRunning)
                 return;
             
-            OnUpdate();
+            OnFixedUpdate();
             m_Time.Time += Time.UpdateDeltaTime;
             m_Accumulator -= deltaTime;
         }
@@ -106,13 +106,13 @@ public abstract class Game : IGame
             return;
         
         m_Time.FrameLerpFactor = (float)m_Accumulator / deltaTime;
-        OnRender();
+        OnUpdate();
         window.SwapBuffers();
         m_FrameCount++;
     }
 
     protected abstract void OnStartup();
+    protected abstract void OnFixedUpdate();
     protected abstract void OnUpdate();
-    protected abstract void OnRender();
     protected abstract void OnShutdown();
 }

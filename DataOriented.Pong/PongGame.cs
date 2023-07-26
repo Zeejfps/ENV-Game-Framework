@@ -22,14 +22,14 @@ public sealed class PongGame : Game
         window.SetScreenSize(640, 640);
     }
 
-    protected override void OnUpdate()
+    protected override void OnFixedUpdate()
     {
         var mouse = Context.Window.Input.Mouse;
         var mouseScreenPosition = new Vector2(mouse.ScreenX, mouse.ScreenY);
         MousePosition = Canvas2D.ScreenToCanvasPoint(mouseScreenPosition);
     }
 
-    protected override void OnRender()
+    protected override void OnUpdate()
     {
         var gpu = Gpu;
         gpu.FramebufferController.ClearColorBuffers(0, 0, 0, 0);
