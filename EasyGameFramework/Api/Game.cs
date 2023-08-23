@@ -90,6 +90,8 @@ public abstract class Game : IGame
         m_Time.FrameDeltaTime = (float)frameTime;
         m_Accumulator += frameTime;
 
+        OnBeginFrame();
+
         var window = Window;
         while (m_Accumulator >= deltaTime)
         {
@@ -107,9 +109,15 @@ public abstract class Game : IGame
         
         m_Time.FrameLerpFactor = (float)m_Accumulator / deltaTime;
         OnUpdate();
+
+        OnEndFrame();
+
         window.SwapBuffers();
         m_FrameCount++;
     }
+
+    protected virtual void OnBeginFrame(){}
+    protected virtual void OnEndFrame(){}
 
     protected abstract void OnStartup();
     protected abstract void OnFixedUpdate();

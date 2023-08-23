@@ -8,7 +8,7 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    public const int MaxBeeCount = 10000;
+    public const int MaxBeeCount = 100000;
     
     private World World { get; }
     private NewAliveBeeMovementSystem AliveBeeMovementSystem { get; }
@@ -66,18 +66,28 @@ public class CombatBeesBenchmarkGame : Game
         //window.IsFullscreen = true;
         m_RigController.Enable();
     }
-    
-    protected override void OnFixedUpdate()
+
+    protected override void OnBeginFrame()
     {
-        var dt = Time.UpdateDeltaTime;
+        World.BeginFrame();
+    }
+
+    protected override void OnEndFrame()
+    {
+        World.EndFrame();
+    }
+
+    protected override void OnFixedUpdate() {}
+
+    protected override void OnUpdate()
+    {
+        var dt = Time.FrameDeltaTime;
+
         World.Update(dt);
         AliveBeeMovementSystem.Update(dt);
         DeadBeeMovementSystem.Update(dt);
         BeeCollisionSystem.Update(dt);
-    }
 
-    protected override void OnUpdate()
-    {
         m_RigController.Update(Time.FrameDeltaTime);
 
         var gpu = Context.Window.Gpu;
