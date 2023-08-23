@@ -13,7 +13,8 @@ public sealed class Bee : IBee,
     IEntity<DeadBeeComponent>,
     IEntity<NeedsAttractRepelPositionsComponent>,
     IEntity<CanAttractOrRepelComponent>,
-    IEntity<TargetComponent>
+    IEntity<TargetComponent>,
+    IEntity<HasTargetComponent>
 {
     public bool IsAlive { get; set; }
     public int TeamIndex { get; }
@@ -25,7 +26,7 @@ public sealed class Bee : IBee,
     public float DeathTimer { get; set; }
     public Vector4 Color { get; set; }
     private World World { get; }
-    private Bee? Target { get; set; }
+    private Vector3 TargetPoint { get; set; }
     private Random Random { get; }
     private Vector3 AttractionPoint { get; set; }
     private Vector3 RepellentPoint { get; set; }
@@ -67,13 +68,8 @@ public sealed class Bee : IBee,
 
     public void Into(ref AliveBeeComponent component)
     {
-        if (Target == null || !Target.IsAlive)
-        {
-            Target = World.GetRandomDeadEnemyBee(TeamIndex);
-        }
-        
         Into(ref component.Movement);
-        component.TargetPosition = Target.Position;
+        component.TargetPosition = TargetPoint;
         component.LookDirection = LookDirection;
         component.MoveDirection = Random.RandomInsideUnitSphere();
         component.AttractionPoint = AttractionPoint;
@@ -83,14 +79,8 @@ public sealed class Bee : IBee,
 
     public void From(ref AliveBeeComponent component)
     {
-        var target = Target;
         From(ref component.Movement);
         LookDirection = component.LookDirection;
-        if (component.IsTargetKilled && target != null && target.IsAlive)
-        {
-            World.Kill(target);
-            Target = World.GetRandomDeadEnemyBee(TeamIndex);
-        }
     }
 
     public void Into(ref DeadBeeComponent component)
@@ -167,10 +157,21 @@ public sealed class Bee : IBee,
     {
         component.Position = Position;
         component.TeamIndex = TeamIndex;
+        component.IsDead = !IsAlive;
     }
 
     public void From(ref TargetComponent component)
     {
 
+    }
+
+    public void Into(ref HasTargetComponent component)
+    {
+        component.TeamIndex = TeamIndex;
+    }
+
+    public void From(ref HasTargetComponent component)
+    {
+        TargetPoint = component.TargetPosition;
     }
 }

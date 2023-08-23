@@ -2,9 +2,8 @@
 
 namespace CombatBeesBenchmarkV2.Components;
 
-public struct TargetComponent
+public struct HasTargetComponent
 {
+    public Vector3 TargetPosition;
     public int TeamIndex;
-    public Vector3 Position;
-    public bool IsDead;
 }
