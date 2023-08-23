@@ -11,7 +11,8 @@ public sealed class Bee : IBee,
     IEntity<BeeRenderComponent>,
     IEntity<AliveBeeComponent>,
     IEntity<DeadBeeComponent>,
-    IEntity<AttractRepelComponent>
+    IEntity<AttractRepelComponent>,
+    IEntity<CanAttractOrRepelComponent>
 {
     public bool IsAlive { get; set; }
     public int TeamIndex { get; }
@@ -77,7 +78,6 @@ public sealed class Bee : IBee,
         component.AttractionPoint = AttractionPoint;
         component.RepellentPoint = RepellentPoint;
         component.IsTargetKilled = false;
-        component.TeamIndex = TeamIndex;
     }
 
     public void From(ref AliveBeeComponent component)
@@ -149,5 +149,16 @@ public sealed class Bee : IBee,
     {
         AttractionPoint = component.AttractionPoint;
         RepellentPoint = component.RepellentPoint;
+    }
+
+    public void Into(ref CanAttractOrRepelComponent component)
+    {
+        component.TeamIndex = TeamIndex;
+        component.Position = Position;
+    }
+
+    public void From(ref CanAttractOrRepelComponent component)
+    {
+
     }
 }

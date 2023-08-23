@@ -34,6 +34,6 @@ public sealed class AttractionAndRepellentPointAssignmentSystem : System<Attract
 
         var randIndex = Random.Next(0, aliveAlliedBees.Count);
         var ally = aliveAlliedBees[randIndex];
-        return ally.Movement.Position;
+        return ally.Position;
     }
 }
