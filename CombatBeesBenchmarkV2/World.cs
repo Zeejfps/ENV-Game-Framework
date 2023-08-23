@@ -26,7 +26,7 @@ public sealed class World : IWorld
             for (var j = 0; j < numberOfBeesPerTeam; j++)
             {
                 //Logger.Trace($"J: {j}");
-                var bee = new Bee(teamIndex, this, random, aliveBeePool);
+                var bee = new Bee(teamIndex, this, random);
                 Add<BeeRenderComponent>(bee);
                 Add<CollisionComponent>(bee);
                 Spawn(bee);
@@ -87,6 +87,11 @@ public sealed class World : IWorld
             Add<AliveBeeComponent>(bee);
         }
         BeesToSpawn.Clear();
+    }
+
+    public Bee GetRandomAllyBee(Bee bee)
+    {
+        return AliveBeePool.GetRandomAllyBee(bee);
     }
 
     public Bee GetRandomEnemy(int teamIndex)

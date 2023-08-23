@@ -23,14 +23,12 @@ public sealed class Bee : IBee,
     private World World { get; }
     private Bee? Target { get; set; }
     private Random Random { get; }
-    private BeePool<Bee> AliveBees { get; }
 
-    public Bee(int teamIndex, World world, Random random, BeePool<Bee> aliveBees)
+    public Bee(int teamIndex, World world, Random random)
     {
         TeamIndex = teamIndex;
         World = world;
         Random = random;
-        AliveBees = aliveBees;
         Color = teamIndex == 0 ? new Vector4(1f, 0f, 0f, 1f) : new Vector4(0f, 0f, 1f, 1f);
     }
     
@@ -72,8 +70,8 @@ public sealed class Bee : IBee,
         component.TargetPosition = Target.Position;
         component.LookDirection = LookDirection;
         component.MoveDirection = Random.RandomInsideUnitSphere();
-        component.AttractionPoint = AliveBees.GetRandomAllyBee(this).Position;
-        component.RepellentPoint = AliveBees.GetRandomAllyBee(this).Position;
+        component.AttractionPoint = World.GetRandomAllyBee(this).Position;
+        component.RepellentPoint = World.GetRandomAllyBee(this).Position;
         component.IsTargetKilled = false;
     }
 
