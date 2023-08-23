@@ -52,7 +52,7 @@ public sealed class World : IWorld
     {
         if (!aliveBee.IsAlive)
             return;
-        
+
         BeesToKill.Add(aliveBee);
     }
 
@@ -69,7 +69,7 @@ public sealed class World : IWorld
             bee.Velocity *= 0.5f;
             bee.DeathTimer = 5f;
             bee.IsAlive = false;
-            
+
             Add<DeadBeeComponent>(bee);
         }
         BeesToKill.Clear();
@@ -89,12 +89,12 @@ public sealed class World : IWorld
         BeesToSpawn.Clear();
     }
 
-    public Bee GetRandomAllyBee(Bee bee)
+    public Bee GetRandomAliveAllyBee(Bee bee)
     {
         return AliveBeePool.GetRandomAllyBee(bee);
     }
 
-    public Bee GetRandomEnemy(int teamIndex)
+    public Bee GetRandomDeadEnemyBee(int teamIndex)
     {
         return AliveBeePool.GetRandomEnemyBee(teamIndex);
     }

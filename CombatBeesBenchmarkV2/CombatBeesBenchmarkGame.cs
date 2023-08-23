@@ -15,9 +15,10 @@ public class CombatBeesBenchmarkGame : Game
     private NewDeadBeeMovementSystem DeadBeeMovementSystem { get; }
     private NewBeeRenderingSystem BeeRenderingSystem { get; }
     private NewBeeCollisionSystem BeeCollisionSystem { get; }
+    private AliveBeeTeamSortingSystem AliveBeeTeamSortingSystem { get; }
 
-    private CameraRig m_CameraRig;
-    private CameraRigController m_RigController;
+    private readonly CameraRig m_CameraRig;
+    private readonly CameraRigController m_CameraRigController;
 
     public CombatBeesBenchmarkGame(IContext context) : base(context)
     {
@@ -31,7 +32,7 @@ public class CombatBeesBenchmarkGame : Game
         var random = new Random();
 
         m_CameraRig = new CameraRig(camera);
-        m_RigController = new CameraRigController(m_CameraRig, Window, Input);
+        m_CameraRigController = new CameraRigController(m_CameraRig, Window, Input);
 
         var numberOfTeams = 2;
         var numberOfBeesPerTeam = MaxBeeCount / numberOfTeams;
@@ -45,7 +46,8 @@ public class CombatBeesBenchmarkGame : Game
             aliveBeePool,
             Logger,
             random);
-        
+
+        AliveBeeTeamSortingSystem = new AliveBeeTeamSortingSystem(World, MaxBeeCount);
         DeadBeeMovementSystem = new NewDeadBeeMovementSystem(World, MaxBeeCount);
         AliveBeeMovementSystem = new NewAliveBeeMovementSystem(World, MaxBeeCount);
         BeeRenderingSystem = new NewBeeRenderingSystem(World, MaxBeeCount, Gpu, camera);
@@ -62,7 +64,7 @@ public class CombatBeesBenchmarkGame : Game
         window.SetScreenSize(1280, 720);
         window.IsVsyncEnabled = false;
         //window.IsFullscreen = true;
-        m_RigController.Enable();
+        m_CameraRigController.Enable();
     }
 
     protected override void OnBeginFrame()
@@ -82,11 +84,12 @@ public class CombatBeesBenchmarkGame : Game
         var dt = Time.FrameDeltaTime;
 
         World.Update(dt);
+        AliveBeeTeamSortingSystem.Update(dt);
         AliveBeeMovementSystem.Update(dt);
         DeadBeeMovementSystem.Update(dt);
         BeeCollisionSystem.Update(dt);
 
-        m_RigController.Update(Time.FrameDeltaTime);
+        m_CameraRigController.Update(Time.FrameDeltaTime);
 
         var gpu = Context.Window.Gpu;
         var framebufferController = gpu.FramebufferController;

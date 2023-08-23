@@ -11,4 +11,5 @@ public struct AliveBeeComponent
     public Vector3 TargetPosition;
     public bool IsTargetKilled;
     public Vector3 LookDirection;
+    public int TeamIndex;
 }

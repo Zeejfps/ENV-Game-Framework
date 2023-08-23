@@ -63,16 +63,17 @@ public sealed class Bee : IBee,
     {
         if (Target == null || !Target.IsAlive)
         {
-            Target = World.GetRandomEnemy(TeamIndex);
+            Target = World.GetRandomDeadEnemyBee(TeamIndex);
         }
         
         Into(ref component.Movement);
         component.TargetPosition = Target.Position;
         component.LookDirection = LookDirection;
         component.MoveDirection = Random.RandomInsideUnitSphere();
-        component.AttractionPoint = World.GetRandomAllyBee(this).Position;
-        component.RepellentPoint = World.GetRandomAllyBee(this).Position;
+        component.AttractionPoint = World.GetRandomAliveAllyBee(this).Position;
+        component.RepellentPoint = World.GetRandomAliveAllyBee(this).Position;
         component.IsTargetKilled = false;
+        component.TeamIndex = TeamIndex;
     }
 
     public void From(ref AliveBeeComponent component)
@@ -83,7 +84,7 @@ public sealed class Bee : IBee,
         if (component.IsTargetKilled && target != null && target.IsAlive)
         {
             World.Kill(target);
-            Target = World.GetRandomEnemy(TeamIndex);
+            Target = World.GetRandomDeadEnemyBee(TeamIndex);
         }
     }
 
