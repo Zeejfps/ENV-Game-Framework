@@ -58,6 +58,7 @@ public sealed class World : IWorld
             Add<DeadBeeComponent>(bee);
             Remove<NeedsAttractRepelPositionsComponent>(bee);
             Remove<CanAttractOrRepelComponent>(bee);
+            Remove<TargetComponent>(bee);
         }
         BeesToKill.Clear();
 
@@ -74,6 +75,7 @@ public sealed class World : IWorld
             Add<AliveBeeComponent>(bee);
             Add<NeedsAttractRepelPositionsComponent>(bee);
             Add<CanAttractOrRepelComponent>(bee);
+            Add<TargetComponent>(bee);
         }
         BeesToSpawn.Clear();
     }

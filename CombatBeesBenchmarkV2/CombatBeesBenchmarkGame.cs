@@ -18,6 +18,7 @@ public class CombatBeesBenchmarkGame : Game
     private NewBeeCollisionSystem BeeCollisionSystem { get; }
     private AttractAndRepelTeamSortingSystem AttractAndRepelTeamSortingSystem { get; }
     private AttractionAndRepellentPointAssignmentSystem AttractionAndRepellentPointAssignmentSystem { get; }
+    private TargetTeamSortingSystem TargetTeamSortingSystem { get; }
 
     private readonly CameraRig m_CameraRig;
     private readonly CameraRigController m_CameraRigController;
@@ -48,6 +49,7 @@ public class CombatBeesBenchmarkGame : Game
             random);
 
         AttractAndRepelTeamSortingSystem = new AttractAndRepelTeamSortingSystem(World, MaxBeeCount);
+        TargetTeamSortingSystem = new TargetTeamSortingSystem(World, MaxBeeCount);
         AttractionAndRepellentPointAssignmentSystem = new AttractionAndRepellentPointAssignmentSystem(World, MaxBeeCount, AttractAndRepelTeamSortingSystem, random);
         DeadBeeMovementSystem = new NewDeadBeeMovementSystem(World, MaxBeeCount);
         AliveBeeMovementSystem = new NewAliveBeeMovementSystem(World, MaxBeeCount);
@@ -98,6 +100,7 @@ public class CombatBeesBenchmarkGame : Game
         var dt = Time.FrameDeltaTime;
 
         AttractAndRepelTeamSortingSystem.Update(dt);
+        TargetTeamSortingSystem.Update(dt);
         AttractionAndRepellentPointAssignmentSystem.Update(dt);
         World.Update(dt);
         AliveBeeMovementSystem.Update(dt);
