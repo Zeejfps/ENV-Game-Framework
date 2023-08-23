@@ -65,7 +65,7 @@ public class CombatBeesBenchmarkGame : Game
 
     protected override void OnFixedUpdate()
     {
-        var dt = Time.UpdateDeltaTime;
+        var dt = Time.FixedUpdateDeltaTime;
 
         BeeSpawningSystem.Update();
         MovementSystem.Update(dt);

@@ -33,7 +33,7 @@ public abstract class Game : IGame
         m_Time = new GameTime
         {
             Time = 0f,
-            UpdateDeltaTime = 1 / 60f
+            FixedUpdateDeltaTime = 1 / 60f
         };
     }
 
@@ -70,7 +70,7 @@ public abstract class Game : IGame
 
     private void Update()
     {
-        var deltaTime = Time.UpdateDeltaTime;
+        var deltaTime = Time.FixedUpdateDeltaTime;
         var deltaTimeTicks = m_Stopwatch.ElapsedTicks;
         m_Stopwatch.Restart();
         
@@ -87,7 +87,7 @@ public abstract class Game : IGame
         if (frameTime > 0.25)
             frameTime = 0.25;
 
-        m_Time.FrameDeltaTime = (float)frameTime;
+        m_Time.UpdateDeltaTime = (float)frameTime;
         m_Accumulator += frameTime;
 
         var window = Window;
@@ -98,7 +98,7 @@ public abstract class Game : IGame
                 return;
             
             OnFixedUpdate();
-            m_Time.Time += Time.UpdateDeltaTime;
+            m_Time.Time += Time.FixedUpdateDeltaTime;
             m_Accumulator -= deltaTime;
         }
 

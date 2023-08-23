@@ -5,12 +5,12 @@ namespace EasyGameFramework.Core;
 internal class GameTime : IGameTime
 {
     public float Time { get; set; }
+    public float FixedUpdateDeltaTime { get; set; }
     public float UpdateDeltaTime { get; set; }
-    public float FrameDeltaTime { get; set; }
     public float FrameLerpFactor { get; set; }
     
-    public void SetTargetUpdateDeltaTime(float dt)
+    public void SetFixedUpdateDeltaTime(float dt)
     {
-        UpdateDeltaTime = dt;
+        FixedUpdateDeltaTime = dt;
     }
 }

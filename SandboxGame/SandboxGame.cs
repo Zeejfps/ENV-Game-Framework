@@ -26,7 +26,7 @@ public class SandboxGame : Game
 
     protected override void OnFixedUpdate()
     {
-        Scene.Update(Time.UpdateDeltaTime);
+        Scene.Update(Time.FixedUpdateDeltaTime);
     }
 
     protected override void OnUpdate()

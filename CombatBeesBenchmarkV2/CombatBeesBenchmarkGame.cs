@@ -8,7 +8,7 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    public const int MaxBeeCount = 10000;
+    public const int MaxBeeCount = 100000;
     
     private World World { get; }
     private NewAliveBeeMovementSystem AliveBeeMovementSystem { get; }
@@ -55,7 +55,7 @@ public class CombatBeesBenchmarkGame : Game
     protected override void OnStartup()
     {
         var time = Time;
-        time.SetTargetUpdateDeltaTime(1f / 30f);
+        time.SetFixedUpdateDeltaTime(1f / 30f);
 
         var window = Window;
         window.Title = "Combat Bees Benchmark";
@@ -67,7 +67,7 @@ public class CombatBeesBenchmarkGame : Game
     
     protected override void OnFixedUpdate()
     {
-        var dt = Time.UpdateDeltaTime;
+        var dt = Time.FixedUpdateDeltaTime;
         World.Update(dt);
         AliveBeeMovementSystem.Update(dt);
         DeadBeeMovementSystem.Update(dt);
@@ -76,14 +76,14 @@ public class CombatBeesBenchmarkGame : Game
 
     protected override void OnUpdate()
     {
-        m_RigController.Update(Time.FrameDeltaTime);
+        m_RigController.Update(Time.UpdateDeltaTime);
 
         var gpu = Context.Window.Gpu;
         var framebufferController = gpu.FramebufferController;
         framebufferController.BindToWindow();
         framebufferController.ClearColorBuffers(0f, 0.1f, 0.1f, 1f);
         
-        BeeRenderingSystem.Update(Time.FrameDeltaTime);
+        BeeRenderingSystem.Update(Time.UpdateDeltaTime);
     }
 
     protected override void OnShutdown()

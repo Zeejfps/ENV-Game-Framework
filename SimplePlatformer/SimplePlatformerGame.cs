@@ -166,12 +166,12 @@ public class SimplePlatformerGame : Game
     private double dt;
     protected override void OnFixedUpdate()
     {
-        Clock.Tick(Time.UpdateDeltaTime);
+        Clock.Tick(Time.FixedUpdateDeltaTime);
         Animation.PlaybackSpeed = MathF.Abs(Players[0].Velocity.X);
 
         foreach (var player in Players)
         {
-            player.Update(Time.UpdateDeltaTime);
+            player.Update(Time.FixedUpdateDeltaTime);
         }
     }
 
@@ -204,7 +204,7 @@ public class SimplePlatformerGame : Game
         SpriteRenderer.RenderBatch(Camera);
         
         fps++;
-        dt += Time.FrameDeltaTime;
+        dt += Time.UpdateDeltaTime;
         if (dt >= 1f)
         {
             Logger.Trace($"FPS: {fps}");

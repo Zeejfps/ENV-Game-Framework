@@ -185,8 +185,8 @@ public sealed class PongGame : Game
         var mouseScreenPosition = new Vector2(mouse.ScreenX, mouse.ScreenY);
         MousePosition = PixelCanvas.ScreenToCanvasPoint(mouseScreenPosition);
 
-        PaddlePhysicsSystem.Update(Time.UpdateDeltaTime);
-        BallCollisionSystem.Update(Time.UpdateDeltaTime);
+        PaddlePhysicsSystem.Update(Time.FixedUpdateDeltaTime);
+        BallCollisionSystem.Update(Time.FixedUpdateDeltaTime);
     }
 
     private bool m_IsHit;
@@ -215,12 +215,12 @@ public sealed class PongGame : Game
             var paddle2Pos = Vector2.Lerp(TopPaddle.PrevPosition, TopPaddle.Position, frameLerpFactor);
             SpriteRenderer.DrawSprite(paddle2Pos,  new Vector2(10f, 1f), PaddleSprite, Vector3.One);
 
-            var ballPosition = Vector2.Lerp(Ball.Position, Ball.Position + Ball.Velocity * Time.FrameDeltaTime, frameLerpFactor);
+            var ballPosition = Vector2.Lerp(Ball.Position, Ball.Position + Ball.Velocity * Time.UpdateDeltaTime, frameLerpFactor);
             SpriteRenderer.DrawSprite(ballPosition,  new Vector2(1f, 1f), PaddleSprite, new Vector3(0.5f, 0.7f, 0.1f));
 
             foreach (var ball in Balls)
             {
-                var bp = Vector2.Lerp(ball.Position, ball.Position + ball.Velocity * Time.FrameDeltaTime, frameLerpFactor);
+                var bp = Vector2.Lerp(ball.Position, ball.Position + ball.Velocity * Time.UpdateDeltaTime, frameLerpFactor);
                 SpriteRenderer.DrawSprite(bp,  new Vector2(1f, 1f), PaddleSprite, new Vector3(0.5f, 0.7f, 0.1f));
             }
         }
