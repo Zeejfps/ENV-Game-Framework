@@ -34,7 +34,7 @@ public sealed class Bee : IBee,
         Color = teamIndex == 0 ? new Vector4(1f, 0f, 0f, 1f) : new Vector4(0f, 0f, 1f, 1f);
     }
     
-    public void Into(ref CollisionComponent component)
+    public void Into(out CollisionComponent component)
     {
         component.MovementState.Position = Position;
         component.MovementState.Velocity = Velocity;
@@ -46,7 +46,7 @@ public sealed class Bee : IBee,
         Velocity = component.MovementState.Velocity;
     }
 
-    public void Into(ref BeeRenderComponent component)
+    public void Into(out BeeRenderComponent component)
     {
         component.Color = Color;
 
@@ -61,14 +61,14 @@ public sealed class Bee : IBee,
         
     }
 
-    public void Into(ref AliveBeeComponent component)
+    public void Into(out AliveBeeComponent component)
     {
         if (Target == null || !Target.IsAlive)
         {
             Target = World.GetRandomEnemy(TeamIndex);
         }
         
-        Into(ref component.Movement);
+        Into(out component.Movement);
         component.TargetPosition = Target.Position;
         component.LookDirection = LookDirection;
         component.MoveDirection = Random.RandomInsideUnitSphere();
@@ -89,9 +89,9 @@ public sealed class Bee : IBee,
         }
     }
 
-    public void Into(ref DeadBeeComponent component)
+    public void Into(out DeadBeeComponent component)
     {
-        Into(ref component.Movement);
+        Into(out component.Movement);
         component.DeathTimer = DeathTimer;
     }
 
@@ -103,7 +103,7 @@ public sealed class Bee : IBee,
             World.Spawn(this);
     }
 
-    public void Into(ref MovementComponent component)
+    public void Into(out MovementComponent component)
     {
         component.Position = Position;
         component.Velocity = Velocity;

@@ -31,7 +31,7 @@ public abstract class System<TComponent> : ISystem where TComponent : struct
         {
             var entity = m_Entities[i];
             ref var component = ref m_Components[i];
-            entity.Into(ref component);
+            entity.Into(out component);
         });
     }
 
