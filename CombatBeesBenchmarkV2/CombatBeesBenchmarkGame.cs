@@ -8,7 +8,7 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    public const int MaxBeeCount = 100000;
+    public const int MaxBeeCount = 1000;
     
     private World World { get; }
     private NewAliveBeeMovementSystem AliveBeeMovementSystem { get; }
@@ -38,13 +38,11 @@ public class CombatBeesBenchmarkGame : Game
         //Logger.Trace($"Number of bees per team: {numberOfBeesPerTeam}");
 
         var aliveBeePool = new BeePool<Bee>(random, numberOfTeams, numberOfBeesPerTeam, Logger);
-        var deadBeePool = new BeePool<Bee>(random, numberOfTeams, numberOfBeesPerTeam, Logger);
-        
+
         World = new World(
             numberOfTeams,
             numberOfBeesPerTeam,
             aliveBeePool,
-            deadBeePool,
             Logger,
             random);
         
