@@ -86,7 +86,6 @@ public sealed class World : IWorld
     private readonly ConcurrentDictionary<Type, IList> m_ComponentTypeToEntitiesTable = new();
     private readonly ConcurrentDictionary<IList, IList> m_EntitiesToAddTable = new();
     private readonly ConcurrentDictionary<IList, IList> m_EntitiesToRemoveTable = new();
-    private readonly ConcurrentDictionary<string, IEntity> m_TagToEntitiesTable = new();
 
     public int Query<TComponent>(IEntity<TComponent>[] buffer) where TComponent : struct
     {
