@@ -2,7 +2,7 @@
 
 namespace CombatBeesBenchmarkV2.Components;
 
-public struct AttractRepelComponent
+public struct NeedsAttractRepelPositionsComponent
 {
     public int TeamIndex;
     public Vector3 AttractionPoint;

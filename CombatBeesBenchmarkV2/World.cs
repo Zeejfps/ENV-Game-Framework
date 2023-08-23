@@ -56,7 +56,7 @@ public sealed class World : IWorld
             bee.IsAlive = false;
 
             Add<DeadBeeComponent>(bee);
-            Remove<AttractRepelComponent>(bee);
+            Remove<NeedsAttractRepelPositionsComponent>(bee);
             Remove<CanAttractOrRepelComponent>(bee);
         }
         BeesToKill.Clear();
@@ -72,15 +72,10 @@ public sealed class World : IWorld
             bee.IsAlive = true;
             AliveBeePool.Add(bee);
             Add<AliveBeeComponent>(bee);
-            Add<AttractRepelComponent>(bee);
+            Add<NeedsAttractRepelPositionsComponent>(bee);
             Add<CanAttractOrRepelComponent>(bee);
         }
         BeesToSpawn.Clear();
-    }
-
-    public Bee GetRandomAliveAllyBee(Bee bee)
-    {
-        return AliveBeePool.GetRandomAllyBee(bee);
     }
 
     public Bee GetRandomDeadEnemyBee(int teamIndex)

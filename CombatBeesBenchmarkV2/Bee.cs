@@ -11,7 +11,7 @@ public sealed class Bee : IBee,
     IEntity<BeeRenderComponent>,
     IEntity<AliveBeeComponent>,
     IEntity<DeadBeeComponent>,
-    IEntity<AttractRepelComponent>,
+    IEntity<NeedsAttractRepelPositionsComponent>,
     IEntity<CanAttractOrRepelComponent>
 {
     public bool IsAlive { get; set; }
@@ -138,14 +138,14 @@ public sealed class Bee : IBee,
         m_Tags.Remove(hashCode);
     }
 
-    public void Into(ref AttractRepelComponent component)
+    public void Into(ref NeedsAttractRepelPositionsComponent component)
     {
         component.AttractionPoint = AttractionPoint;
         component.RepellentPoint = RepellentPoint;
         component.TeamIndex = TeamIndex;
     }
 
-    public void From(ref AttractRepelComponent component)
+    public void From(ref NeedsAttractRepelPositionsComponent component)
     {
         AttractionPoint = component.AttractionPoint;
         RepellentPoint = component.RepellentPoint;

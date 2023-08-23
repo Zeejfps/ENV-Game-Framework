@@ -4,7 +4,7 @@ using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmarkV2.Systems;
 
-public sealed class AttractionAndRepellentPointAssignmentSystem : System<AttractRepelComponent>
+public sealed class AttractionAndRepellentPointAssignmentSystem : System<NeedsAttractRepelPositionsComponent>
 {
     private AttractAndRepelTeamSortingSystem AttractAndRepelTeamSortingSystem { get; }
     private Random Random { get; }
@@ -15,7 +15,7 @@ public sealed class AttractionAndRepellentPointAssignmentSystem : System<Attract
         Random = random;
     }
 
-    protected override void OnUpdate(float dt, ref Span<AttractRepelComponent> components)
+    protected override void OnUpdate(float dt, ref Span<NeedsAttractRepelPositionsComponent> components)
     {
         for (var i = 0; i < components.Length; i++)
         {
