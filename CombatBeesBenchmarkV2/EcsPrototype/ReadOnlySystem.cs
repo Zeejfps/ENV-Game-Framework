@@ -7,18 +7,15 @@ public abstract class ReadOnlySystem<TComponent> : ISystem where TComponent : st
     private readonly IWorld m_World;
     protected readonly TComponent[] m_Components;
     protected readonly IEntity<TComponent>[] m_Entities;
-    protected int ComponentCount { get; set; }
+
+    protected IWorld World => m_World;
+    protected int ComponentCount { get; private set; }
 
     protected ReadOnlySystem(IWorld world, int size)
     {
         m_World = world;
         m_Components = new TComponent[size];
         m_Entities = new IEntity<TComponent>[size];
-    }
-
-    protected IEntity<TComponent> GetEntity(int index)
-    {
-        return m_Entities[index];
     }
 
     public virtual void Update(float dt)
@@ -30,7 +27,10 @@ public abstract class ReadOnlySystem<TComponent> : ISystem where TComponent : st
 
     private void OnPreUpdate()
     {
-        ComponentCount = m_World.Query<TComponent>(m_Entities);
+        ComponentCount = m_World.Query(m_Entities);
+        if (ComponentCount == 0)
+            return;
+
         Parallel.For(0, ComponentCount, (i) =>
         {
             var entity = m_Entities[i];

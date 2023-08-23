@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using CombatBeesBenchmarkV2.Components;
 using CombatBeesBenchmarkV2.EcsPrototype;
+using CombatBeesBenchmarkV2.Systems;
 
 namespace CombatBeesBenchmark;
 
@@ -9,7 +10,8 @@ public sealed class Bee : IBee,
     IEntity<CollisionComponent>,
     IEntity<BeeRenderComponent>,
     IEntity<AliveBeeComponent>,
-    IEntity<DeadBeeComponent>
+    IEntity<DeadBeeComponent>,
+    IEntity<AttractRepelComponent>
 {
     public bool IsAlive { get; set; }
     public int TeamIndex { get; }
@@ -23,6 +25,8 @@ public sealed class Bee : IBee,
     private World World { get; }
     private Bee? Target { get; set; }
     private Random Random { get; }
+    private Vector3 AttractionPoint { get; set; }
+    private Vector3 RepellentPoint { get; set; }
 
     public Bee(int teamIndex, World world, Random random)
     {
@@ -70,8 +74,8 @@ public sealed class Bee : IBee,
         component.TargetPosition = Target.Position;
         component.LookDirection = LookDirection;
         component.MoveDirection = Random.RandomInsideUnitSphere();
-        component.AttractionPoint = World.GetRandomAliveAllyBee(this).Position;
-        component.RepellentPoint = World.GetRandomAliveAllyBee(this).Position;
+        component.AttractionPoint = AttractionPoint;
+        component.RepellentPoint = RepellentPoint;
         component.IsTargetKilled = false;
         component.TeamIndex = TeamIndex;
     }
@@ -112,5 +116,38 @@ public sealed class Bee : IBee,
     {
         Position = component.Position;
         Velocity = component.Velocity;
+    }
+
+    private readonly HashSet<int> m_Tags = new();
+
+    public bool HasTag(ReadOnlySpan<char> tag)
+    {
+        var hashCode = string.GetHashCode(tag);
+        return m_Tags.Contains(hashCode);
+    }
+
+    public void AddTag(ReadOnlySpan<char> tag)
+    {
+        var hashCode = string.GetHashCode(tag);
+        m_Tags.Add(hashCode);
+    }
+
+    public void RemoveTag(ReadOnlySpan<char> tag)
+    {
+        var hashCode = string.GetHashCode(tag);
+        m_Tags.Remove(hashCode);
+    }
+
+    public void Into(ref AttractRepelComponent component)
+    {
+        component.AttractionPoint = AttractionPoint;
+        component.RepellentPoint = RepellentPoint;
+        component.TeamIndex = TeamIndex;
+    }
+
+    public void From(ref AttractRepelComponent component)
+    {
+        AttractionPoint = component.AttractionPoint;
+        RepellentPoint = component.RepellentPoint;
     }
 }

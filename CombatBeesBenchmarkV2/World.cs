@@ -11,27 +11,12 @@ namespace CombatBeesBenchmark;
 public sealed class World : IWorld
 {
     public World(
-        int numberOfTeams,
-        int numberOfBeesPerTeam,
         BeePool<Bee> aliveBeePool,
         ILogger logger, Random random)
     {
         AliveBeePool = aliveBeePool;
         Logger = logger;
         Random = random;
-
-        for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
-        {
-            //Logger.Trace($"Team Index: {teamIndex}");
-            for (var j = 0; j < numberOfBeesPerTeam; j++)
-            {
-                //Logger.Trace($"J: {j}");
-                var bee = new Bee(teamIndex, this, random);
-                Add<BeeRenderComponent>(bee);
-                Add<CollisionComponent>(bee);
-                Spawn(bee);
-            }
-        }
     }
     
     private Random Random { get; }
@@ -44,7 +29,7 @@ public sealed class World : IWorld
     {
         if (deadBee.IsAlive)
             return;
-        
+
         BeesToSpawn.Add(deadBee);
     }
 
@@ -71,6 +56,7 @@ public sealed class World : IWorld
             bee.IsAlive = false;
 
             Add<DeadBeeComponent>(bee);
+            Remove<AttractRepelComponent>(bee);
         }
         BeesToKill.Clear();
 
@@ -85,6 +71,7 @@ public sealed class World : IWorld
             bee.IsAlive = true;
             AliveBeePool.Add(bee);
             Add<AliveBeeComponent>(bee);
+            Add<AttractRepelComponent>(bee);
         }
         BeesToSpawn.Clear();
     }
@@ -102,6 +89,7 @@ public sealed class World : IWorld
     private readonly ConcurrentDictionary<Type, IList> m_ComponentTypeToEntitiesTable = new();
     private readonly ConcurrentDictionary<IList, IList> m_EntitiesToAddTable = new();
     private readonly ConcurrentDictionary<IList, IList> m_EntitiesToRemoveTable = new();
+    private readonly ConcurrentDictionary<string, IEntity> m_TagToEntitiesTable = new();
 
     public int Query<TComponent>(IEntity<TComponent>[] buffer) where TComponent : struct
     {

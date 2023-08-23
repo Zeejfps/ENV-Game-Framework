@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using CombatBeesBenchmarkV2.Components;
 using CombatBeesBenchmarkV2.Systems;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
@@ -15,7 +16,8 @@ public class CombatBeesBenchmarkGame : Game
     private NewDeadBeeMovementSystem DeadBeeMovementSystem { get; }
     private NewBeeRenderingSystem BeeRenderingSystem { get; }
     private NewBeeCollisionSystem BeeCollisionSystem { get; }
-    private AliveBeeTeamSortingSystem AliveBeeTeamSortingSystem { get; }
+    private AttractAndRepelTeamSortingSystem AttractAndRepelTeamSortingSystem { get; }
+    private AttractionAndRepellentPointAssignmentSystem AttractionAndRepellentPointAssignmentSystem { get; }
 
     private readonly CameraRig m_CameraRig;
     private readonly CameraRigController m_CameraRigController;
@@ -41,17 +43,29 @@ public class CombatBeesBenchmarkGame : Game
         var aliveBeePool = new BeePool<Bee>(random, numberOfTeams, numberOfBeesPerTeam, Logger);
 
         World = new World(
-            numberOfTeams,
-            numberOfBeesPerTeam,
             aliveBeePool,
             Logger,
             random);
 
-        AliveBeeTeamSortingSystem = new AliveBeeTeamSortingSystem(World, MaxBeeCount);
+        AttractAndRepelTeamSortingSystem = new AttractAndRepelTeamSortingSystem(World, MaxBeeCount);
+        AttractionAndRepellentPointAssignmentSystem = new AttractionAndRepellentPointAssignmentSystem(World, MaxBeeCount, AttractAndRepelTeamSortingSystem, random);
         DeadBeeMovementSystem = new NewDeadBeeMovementSystem(World, MaxBeeCount);
         AliveBeeMovementSystem = new NewAliveBeeMovementSystem(World, MaxBeeCount);
         BeeRenderingSystem = new NewBeeRenderingSystem(World, MaxBeeCount, Gpu, camera);
         BeeCollisionSystem = new NewBeeCollisionSystem(World, MaxBeeCount);
+
+        for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
+        {
+            //Logger.Trace($"Team Index: {teamIndex}");
+            for (var j = 0; j < numberOfBeesPerTeam; j++)
+            {
+                //Logger.Trace($"J: {j}");
+                var bee = new Bee(teamIndex, World, random);
+                World.Add<BeeRenderComponent>(bee);
+                World.Add<CollisionComponent>(bee);
+                World.Spawn(bee);
+            }
+        }
     }
 
     protected override void OnStartup()
@@ -83,20 +97,21 @@ public class CombatBeesBenchmarkGame : Game
     {
         var dt = Time.FrameDeltaTime;
 
+        AttractAndRepelTeamSortingSystem.Update(dt);
+        AttractionAndRepellentPointAssignmentSystem.Update(dt);
         World.Update(dt);
-        AliveBeeTeamSortingSystem.Update(dt);
         AliveBeeMovementSystem.Update(dt);
         DeadBeeMovementSystem.Update(dt);
         BeeCollisionSystem.Update(dt);
-
-        m_CameraRigController.Update(Time.FrameDeltaTime);
 
         var gpu = Context.Window.Gpu;
         var framebufferController = gpu.FramebufferController;
         framebufferController.BindToWindow();
         framebufferController.ClearColorBuffers(0f, 0.1f, 0.1f, 1f);
         
-        BeeRenderingSystem.Update(Time.FrameDeltaTime);
+        BeeRenderingSystem.Update(dt);
+
+        m_CameraRigController.Update(dt);
     }
 
     protected override void OnShutdown()

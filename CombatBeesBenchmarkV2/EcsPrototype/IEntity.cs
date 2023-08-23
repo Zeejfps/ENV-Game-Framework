@@ -8,5 +8,7 @@ public interface IEntity<TComponent> : IEntity where TComponent : struct
 
 public interface IEntity
 {
-    
+    bool HasTag(ReadOnlySpan<char> tag);
+    void AddTag(ReadOnlySpan<char> tag);
+    void RemoveTag(ReadOnlySpan<char> tag);
 }

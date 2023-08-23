@@ -9,7 +9,7 @@ public struct AliveBeeComponent
     public Vector3 AttractionPoint;
     public Vector3 RepellentPoint;
     public Vector3 TargetPosition;
-    public bool IsTargetKilled;
     public Vector3 LookDirection;
+    public bool IsTargetKilled;
     public int TeamIndex;
 }
