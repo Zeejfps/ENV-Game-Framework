@@ -11,27 +11,12 @@ namespace CombatBeesBenchmark;
 public sealed class World : IWorld
 {
     public World(
-        int numberOfTeams,
-        int numberOfBeesPerTeam,
         BeePool<Bee> aliveBeePool,
         ILogger logger, Random random)
     {
         AliveBeePool = aliveBeePool;
         Logger = logger;
         Random = random;
-
-        for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
-        {
-            //Logger.Trace($"Team Index: {teamIndex}");
-            for (var j = 0; j < numberOfBeesPerTeam; j++)
-            {
-                //Logger.Trace($"J: {j}");
-                var bee = new Bee(teamIndex, this, random, aliveBeePool);
-                Add<BeeRenderComponent>(bee);
-                Add<CollisionComponent>(bee);
-                Spawn(bee);
-            }
-        }
     }
     
     private Random Random { get; }

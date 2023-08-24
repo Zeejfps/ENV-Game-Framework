@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using CombatBeesBenchmarkV2.Components;
 using CombatBeesBenchmarkV2.Systems;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;
@@ -40,8 +41,6 @@ public class CombatBeesBenchmarkGame : Game
         var aliveBeePool = new BeePool<Bee>(random, numberOfTeams, numberOfBeesPerTeam, Logger);
 
         World = new World(
-            numberOfTeams,
-            numberOfBeesPerTeam,
             aliveBeePool,
             Logger,
             random);
@@ -50,6 +49,19 @@ public class CombatBeesBenchmarkGame : Game
         AliveBeeMovementSystem = new NewAliveBeeMovementSystem(World, MaxBeeCount);
         BeeRenderingSystem = new NewBeeRenderingSystem(World, MaxBeeCount, Gpu, camera);
         BeeCollisionSystem = new NewBeeCollisionSystem(World, MaxBeeCount);
+
+        for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
+        {
+            //Logger.Trace($"Team Index: {teamIndex}");
+            for (var j = 0; j < numberOfBeesPerTeam; j++)
+            {
+                //Logger.Trace($"J: {j}");
+                var bee = new Bee(teamIndex, World, random, aliveBeePool);
+                World.Add<BeeRenderComponent>(bee);
+                World.Add<CollisionComponent>(bee);
+                World.Spawn(bee);
+            }
+        }
     }
 
     protected override void OnStartup()
