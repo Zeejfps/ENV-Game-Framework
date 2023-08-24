@@ -69,21 +69,22 @@ public class CombatBeesBenchmarkGame : Game
     {
         var dt = Time.FixedUpdateDeltaTime;
         World.Update(dt);
-        AliveBeeMovementSystem.Update(dt);
-        DeadBeeMovementSystem.Update(dt);
-        BeeCollisionSystem.Update(dt);
     }
 
     protected override void OnUpdate()
     {
-        m_RigController.Update(Time.UpdateDeltaTime);
+        var dt = Time.UpdateDeltaTime;
+        AliveBeeMovementSystem.Update(dt);
+        DeadBeeMovementSystem.Update(dt);
+        BeeCollisionSystem.Update(dt);
+        m_RigController.Update(dt);
 
         var gpu = Context.Window.Gpu;
         var framebufferController = gpu.FramebufferController;
         framebufferController.BindToWindow();
         framebufferController.ClearColorBuffers(0f, 0.1f, 0.1f, 1f);
         
-        BeeRenderingSystem.Update(Time.UpdateDeltaTime);
+        BeeRenderingSystem.Update(dt);
     }
 
     protected override void OnShutdown()

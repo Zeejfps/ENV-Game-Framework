@@ -58,8 +58,6 @@ public sealed class World : IWorld
 
     public void Update(float dt)
     {
-        // if (BeesToKill.Count > 0)
-        //     Logger.Trace($"Killing Bees: {BeesToKill.Count}");
         foreach (var bee in BeesToKill)
         {
             //Logger.Trace($"Killing Bee: {bee.GetHashCode()}");
@@ -74,8 +72,6 @@ public sealed class World : IWorld
         }
         BeesToKill.Clear();
 
-        // if (BeesToSpawn.Count > 0)
-        //     Logger.Trace($"Spawning Bees: {BeesToSpawn.Count}");
         foreach (var bee in BeesToSpawn)
         {
             Remove<DeadBeeComponent>(bee);
