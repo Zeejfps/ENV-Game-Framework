@@ -90,6 +90,9 @@ public sealed class World : IWorld
         return AliveBeePool.GetRandomEnemyBee(teamIndex);
     }
 
+    private bool m_IsInFrame;
+    private readonly ConcurrentDictionary<IList, IList> m_EntitiesToAddTable = new();
+    private readonly ConcurrentDictionary<IList, IList> m_EntitiesToRemoveTable = new();
     private readonly ConcurrentDictionary<Type, IList> m_ComponentTypeToEntitiesTable = new();
 
     public int Query<TComponent>(IEntity<TComponent>[] buffer) where TComponent : struct
@@ -110,16 +113,54 @@ public sealed class World : IWorld
         return 0;
     }
 
+    public void BeginFrame()
+    {
+        m_IsInFrame = true;
+    }
+
+    public void EndFrame()
+    {
+        m_IsInFrame = false;
+        foreach (var (entities, cachedEntities) in m_EntitiesToAddTable)
+        {
+            foreach (var cachedEntity in cachedEntities)
+                entities.Add(cachedEntity);
+
+            cachedEntities.Clear();
+        }
+
+        foreach (var (entities, cachedEntities) in m_EntitiesToRemoveTable)
+        {
+            foreach (var cachedEntity in cachedEntities)
+                entities.Remove(cachedEntity);
+
+            cachedEntities.Clear();
+        }
+    }
+
     public void Add<TComponent>(IEntity<TComponent> entity) where TComponent : struct
     {
         var componentType = typeof(TComponent);
+
+        IList entitiesToAddCache;
         if (!m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))
         {
             entities = new List<IEntity<TComponent>>();
+            entitiesToAddCache = new List<IEntity<TComponent>>();
             m_ComponentTypeToEntitiesTable[componentType] = entities;
+            m_EntitiesToAddTable[entities] = entitiesToAddCache;
+            m_EntitiesToRemoveTable[entities] = new List<IEntity<TComponent>>();
         }
-        lock (entities)
+
+        if (m_IsInFrame)
+        {
+            entitiesToAddCache = m_EntitiesToAddTable[entities];
+            entitiesToAddCache.Add(entity);
+        }
+        else
+        {
             entities.Add(entity);
+        }
     }
 
     public void Remove<TComponent>(IEntity<TComponent> entity) where TComponent : struct
@@ -127,8 +168,15 @@ public sealed class World : IWorld
         var componentType = typeof(TComponent);
         if (m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))
         {
-            lock (entities)
+            if (m_IsInFrame)
+            {
+                var entitiesToRemoveCache = m_EntitiesToRemoveTable[entities];
+                entitiesToRemoveCache.Add(entity);
+            }
+            else
+            {
                 entities.Remove(entity);
+            }
         }
     }
 }

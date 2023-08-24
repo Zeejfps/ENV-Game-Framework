@@ -64,7 +64,17 @@ public class CombatBeesBenchmarkGame : Game
         //window.IsFullscreen = true;
         m_RigController.Enable();
     }
-    
+
+    protected override void OnBeginFrame()
+    {
+        World.BeginFrame();
+    }
+
+    protected override void OnEndFrame()
+    {
+        World.EndFrame();
+    }
+
     protected override void OnFixedUpdate()
     {
         var dt = Time.FixedUpdateDeltaTime;

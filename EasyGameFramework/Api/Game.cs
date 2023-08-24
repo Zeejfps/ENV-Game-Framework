@@ -111,6 +111,8 @@ public abstract class Game : IGame
         m_FrameCount++;
     }
 
+    protected virtual void OnBeginFrame(){}
+    protected virtual void OnEndFrame(){}
     protected abstract void OnStartup();
     protected abstract void OnFixedUpdate();
     protected abstract void OnUpdate();
