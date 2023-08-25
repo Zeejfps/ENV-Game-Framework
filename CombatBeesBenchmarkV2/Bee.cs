@@ -75,11 +75,13 @@ public sealed class Bee : IBee,
         Into(out component.Movement);
         component.TargetPosition = Target.Position;
         component.LookDirection = LookDirection;
-        component.MoveDirection = Random.RandomInsideUnitSphere();
+        component.MoveDirection = MoveDirection;
         component.AttractionPoint = AttractPoint;
         component.RepellentPoint = RepelPoint;
         component.IsTargetKilled = false;
     }
+
+    public Vector3 MoveDirection { get; set; }
 
     public void From(ref AliveBeeComponent component)
     {
@@ -124,11 +126,13 @@ public sealed class Bee : IBee,
         component.AttractionPoint = AttractPoint;
         component.RepellentPoint = RepelPoint;
         component.TeamIndex = TeamIndex;
+        component.MoveDirection = MoveDirection;
     }
 
     public void From(ref AttractRepelComponent component)
     {
         AttractPoint = component.AttractionPoint;
         RepelPoint = component.RepellentPoint;
+        MoveDirection = component.MoveDirection;
     }
 }

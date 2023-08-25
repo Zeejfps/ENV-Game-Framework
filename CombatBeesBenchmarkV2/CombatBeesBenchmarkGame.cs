@@ -46,7 +46,7 @@ public class CombatBeesBenchmarkGame : Game
             Logger,
             random);
 
-        AttractRepelSystem = new AttractRepelSystem(World, MaxBeeCount, aliveBeePool);
+        AttractRepelSystem = new AttractRepelSystem(World, MaxBeeCount, aliveBeePool, random);
         DeadBeeMovementSystem = new NewDeadBeeMovementSystem(World, MaxBeeCount);
         AliveBeeMovementSystem = new NewAliveBeeMovementSystem(World, MaxBeeCount);
         BeeRenderingSystem = new NewBeeRenderingSystem(World, MaxBeeCount, Gpu, camera);

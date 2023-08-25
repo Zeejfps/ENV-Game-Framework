@@ -7,10 +7,12 @@ namespace CombatBeesBenchmarkV2.Systems;
 public sealed class AttractRepelSystem : System<AttractRepelComponent>
 {
     private BeePool<Bee> AliveBeePool { get; }
+    private Random Random { get; }
 
-    public AttractRepelSystem(IWorld world, int size, BeePool<Bee> aliveBeePool) : base(world, size)
+    public AttractRepelSystem(IWorld world, int size, BeePool<Bee> aliveBeePool, Random random) : base(world, size)
     {
         AliveBeePool = aliveBeePool;
+        Random = random;
     }
 
     protected override void OnUpdate(float dt, ref Span<AttractRepelComponent> components)
@@ -20,6 +22,7 @@ public sealed class AttractRepelSystem : System<AttractRepelComponent>
             ref var component = ref components[i];
             component.AttractionPoint = AliveBeePool.GetRandomAllyBee(component.TeamIndex).Position;
             component.RepellentPoint = AliveBeePool.GetRandomAllyBee(component.TeamIndex).Position;
+            component.MoveDirection = Random.RandomInsideUnitSphere();
         }
     }
 }
