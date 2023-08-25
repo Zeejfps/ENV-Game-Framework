@@ -7,7 +7,10 @@ public abstract class System<TComponent> : ISystem where TComponent : struct
     private readonly IWorld m_World;
     private readonly TComponent[] m_Components;
     private readonly IEntity<TComponent>[] m_Entities;
+
     private int ComponentCount { get; set; }
+    protected IWorld World => m_World;
+    protected IEntity<TComponent>[] Entities => m_Entities;
 
     protected System(IWorld world, int size)
     {

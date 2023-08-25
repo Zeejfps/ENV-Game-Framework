@@ -1,7 +1,7 @@
 using CombatBeesBenchmarkV2.Components;
 using CombatBeesBenchmarkV2.EcsPrototype;
 
-namespace CombatBeesBenchmark;
+namespace CombatBeesBenchmarkV2.Systems;
 
 public sealed class NewBeeCollisionSystem : System<CollisionComponent>
 {

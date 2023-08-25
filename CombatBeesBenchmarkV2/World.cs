@@ -54,6 +54,7 @@ public sealed class World : IWorld
             bee.IsAlive = false;
             
             Add<DeadBeeComponent>(bee);
+            Remove<AttractRepelComponent>(bee);
         }
         BeesToKill.Clear();
 
@@ -66,6 +67,7 @@ public sealed class World : IWorld
             bee.IsAlive = true;
             AliveBeePool.Add(bee);
             Add<AliveBeeComponent>(bee);
+            Add<AttractRepelComponent>(bee);
         }
         BeesToSpawn.Clear();
     }

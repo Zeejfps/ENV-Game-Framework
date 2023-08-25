@@ -9,7 +9,8 @@ public sealed class Bee : IBee,
     IEntity<CollisionComponent>,
     IEntity<BeeRenderComponent>,
     IEntity<AliveBeeComponent>,
-    IEntity<DeadBeeComponent>
+    IEntity<DeadBeeComponent>,
+    IEntity<AttractRepelComponent>
 {
     public bool IsAlive { get; set; }
     public int TeamIndex { get; }
@@ -24,6 +25,9 @@ public sealed class Bee : IBee,
     private Bee? Target { get; set; }
     private Random Random { get; }
     private BeePool<Bee> AliveBees { get; }
+    private Vector3 AttractPoint { get; set; }
+    private Vector3 RepelPoint { get; set; }
+
 
     public Bee(int teamIndex, World world, Random random, BeePool<Bee> aliveBees)
     {
@@ -72,8 +76,8 @@ public sealed class Bee : IBee,
         component.TargetPosition = Target.Position;
         component.LookDirection = LookDirection;
         component.MoveDirection = Random.RandomInsideUnitSphere();
-        component.AttractionPoint = AliveBees.GetRandomAllyBee(this).Position;
-        component.RepellentPoint = AliveBees.GetRandomAllyBee(this).Position;
+        component.AttractionPoint = AttractPoint;
+        component.RepellentPoint = RepelPoint;
         component.IsTargetKilled = false;
     }
 
@@ -113,5 +117,18 @@ public sealed class Bee : IBee,
     {
         Position = component.Position;
         Velocity = component.Velocity;
+    }
+
+    public void Into(out AttractRepelComponent component)
+    {
+        component.AttractionPoint = AttractPoint;
+        component.RepellentPoint = RepelPoint;
+        component.TeamIndex = TeamIndex;
+    }
+
+    public void From(ref AttractRepelComponent component)
+    {
+        AttractPoint = component.AttractionPoint;
+        RepelPoint = component.RepellentPoint;
     }
 }

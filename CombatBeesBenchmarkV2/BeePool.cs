@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Numerics;
 using EasyGameFramework.Api;
 
 namespace CombatBeesBenchmark;
@@ -8,7 +7,6 @@ public interface IBeePool<TBee>
 {
     int Count { get; }
     TBee this[int i] { get; }
-    TBee GetRandomAllyBee(TBee bee);
 }
 
 public sealed class BeePool<TBee> : IBeePool<TBee>, IEnumerable<TBee>
@@ -51,16 +49,11 @@ public sealed class BeePool<TBee> : IBeePool<TBee>, IEnumerable<TBee>
         return team[randIndex];
     }
 
-    public TBee GetRandomAllyBee(TBee bee)
+    public TBee GetRandomAllyBee(int teamIndex)
     {
-        TBee ally;
-        do
-        {
-            var team = m_Teams[bee.TeamIndex];
-            var randIndex = m_Random.Next(0, team.Count);
-            ally = team[randIndex];
-        } while (ReferenceEquals(ally, bee));
-
+        var team = m_Teams[teamIndex];
+        var randIndex = m_Random.Next(0, team.Count);
+        var ally = team[randIndex];
         return ally;
     }
     
