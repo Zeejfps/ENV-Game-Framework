@@ -23,19 +23,26 @@ public sealed class Bee : IBee,
     public Vector4 Color { get; set; }
     private World World { get; }
     private Bee? Target { get; set; }
-    private Random Random { get; }
     private BeePool<Bee> AliveBees { get; }
     private Vector3 AttractPoint { get; set; }
     private Vector3 RepelPoint { get; set; }
+    private Vector3 MoveDirection { get; set; }
 
 
-    public Bee(int teamIndex, World world, Random random, BeePool<Bee> aliveBees)
+    public Bee(int teamIndex, World world, BeePool<Bee> aliveBees)
     {
         TeamIndex = teamIndex;
         World = world;
-        Random = random;
         AliveBees = aliveBees;
         Color = teamIndex == 0 ? new Vector4(1f, 0f, 0f, 1f) : new Vector4(0f, 0f, 1f, 1f);
+
+        World.Add<BeeRenderComponent>(this);
+        World.Add<CollisionComponent>(this);
+    }
+
+    public void Spawn()
+    {
+        World.Spawn(this);
     }
     
     public void Into(out CollisionComponent component)
@@ -80,8 +87,6 @@ public sealed class Bee : IBee,
         component.RepellentPoint = RepelPoint;
         component.IsTargetKilled = false;
     }
-
-    public Vector3 MoveDirection { get; set; }
 
     public void From(ref AliveBeeComponent component)
     {

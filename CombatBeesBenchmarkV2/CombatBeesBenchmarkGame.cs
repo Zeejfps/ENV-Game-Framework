@@ -58,10 +58,8 @@ public class CombatBeesBenchmarkGame : Game
             for (var j = 0; j < numberOfBeesPerTeam; j++)
             {
                 //Logger.Trace($"J: {j}");
-                var bee = new Bee(teamIndex, World, random, aliveBeePool);
-                World.Add<BeeRenderComponent>(bee);
-                World.Add<CollisionComponent>(bee);
-                World.Spawn(bee);
+                var bee = new Bee(teamIndex, World, aliveBeePool);
+                bee.Spawn();
             }
         }
     }
