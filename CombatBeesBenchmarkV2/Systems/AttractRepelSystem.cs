@@ -1,10 +1,10 @@
 using CombatBeesBenchmark;
-using CombatBeesBenchmarkV2.Components;
+using CombatBeesBenchmarkV2.Archetype;
 using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmarkV2.Systems;
 
-public sealed class AttractRepelSystem : System<AttractRepelComponent>
+public sealed class AttractRepelSystem : System<AttractRepelArchetype>
 {
     private BeePool<Bee> AliveBeePool { get; }
     private Random Random { get; }
@@ -15,7 +15,7 @@ public sealed class AttractRepelSystem : System<AttractRepelComponent>
         Random = random;
     }
 
-    protected override void OnUpdate(float dt, ref Span<AttractRepelComponent> components)
+    protected override void OnUpdate(float dt, ref Span<AttractRepelArchetype> components)
     {
         for (var i = 0; i < components.Length; i++)
         {

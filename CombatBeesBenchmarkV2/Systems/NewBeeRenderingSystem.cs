@@ -1,5 +1,5 @@
 using System.Numerics;
-using CombatBeesBenchmarkV2.Components;
+using CombatBeesBenchmarkV2.Archetype;
 using CombatBeesBenchmarkV2.EcsPrototype;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
@@ -7,7 +7,7 @@ using EasyGameFramework.Api.Rendering;
 
 namespace CombatBeesBenchmarkV2.Systems;
 
-public sealed class NewBeeRenderingSystem : System<BeeRenderComponent>
+public sealed class NewBeeRenderingSystem : System<BeeRenderArchetype>
 {
     private IGpu Gpu { get; }
     private ICamera Camera { get; }
@@ -28,7 +28,7 @@ public sealed class NewBeeRenderingSystem : System<BeeRenderComponent>
         gpu.ShaderController.AttachBuffer("beeDataBlock", 0, BeeBuffer);
     }
 
-    protected override void OnUpdate(float dt, ref Span<BeeRenderComponent> components)
+    protected override void OnUpdate(float dt, ref Span<BeeRenderArchetype> components)
     {
         var gpu = Gpu;
         var camera = Camera;
@@ -46,7 +46,7 @@ public sealed class NewBeeRenderingSystem : System<BeeRenderComponent>
         shaderController.SetMatrix4x4("matrix_view", viewMatrix);
         
         bufferController.Bind(BeeBuffer);
-        bufferController.Upload<BeeRenderComponent>(components);
+        bufferController.Upload<BeeRenderArchetype>(components);
         
         //Logger.Trace($"Rendering: {stateCount}");
         meshController.RenderInstanced(components.Length);

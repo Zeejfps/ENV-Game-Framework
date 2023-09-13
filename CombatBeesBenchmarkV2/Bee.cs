@@ -1,16 +1,16 @@
 ﻿using System.Numerics;
-using CombatBeesBenchmarkV2.Components;
+using CombatBeesBenchmarkV2.Archetype;
 using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmark;
 
 public sealed class Bee : IBee,
-    IEntity<MovementComponent>,
-    IEntity<CollisionComponent>,
-    IEntity<BeeRenderComponent>,
-    IEntity<AliveBeeComponent>,
-    IEntity<DeadBeeComponent>,
-    IEntity<AttractRepelComponent>
+    IEntity<MovementArchetype>,
+    IEntity<CollisionArchetype>,
+    IEntity<BeeRenderArchetype>,
+    IEntity<AliveBeeArchetype>,
+    IEntity<DeadBeeArchetype>,
+    IEntity<AttractRepelArchetype>
 {
     public bool IsAlive { get; set; }
     public int TeamIndex { get; }
@@ -36,8 +36,8 @@ public sealed class Bee : IBee,
         AliveBees = aliveBees;
         Color = teamIndex == 0 ? new Vector4(1f, 0f, 0f, 1f) : new Vector4(0f, 0f, 1f, 1f);
 
-        World.Add<BeeRenderComponent>(this);
-        World.Add<CollisionComponent>(this);
+        World.Add<BeeRenderArchetype>(this);
+        World.Add<CollisionArchetype>(this);
     }
 
     public void Spawn()
@@ -45,99 +45,99 @@ public sealed class Bee : IBee,
         World.Spawn(this);
     }
     
-    public void Into(out CollisionComponent component)
+    public void Into(out CollisionArchetype archetype)
     {
-        component.MovementState.Position = Position;
-        component.MovementState.Velocity = Velocity;
+        archetype.MovementState.Position = Position;
+        archetype.MovementState.Velocity = Velocity;
     }
 
-    public void From(ref CollisionComponent component)
+    public void From(ref CollisionArchetype archetype)
     {
-        Position = component.MovementState.Position;
-        Velocity = component.MovementState.Velocity;
+        Position = archetype.MovementState.Position;
+        Velocity = archetype.MovementState.Velocity;
     }
 
-    public void Into(out BeeRenderComponent component)
+    public void Into(out BeeRenderArchetype archetype)
     {
-        component.Color = Color;
+        archetype.Color = Color;
 
         var size = Size;
-        component.ModelMatrix = Matrix4x4.CreateScale(size, size, size)
+        archetype.ModelMatrix = Matrix4x4.CreateScale(size, size, size)
                                 * Matrix4x4.CreateLookAt(Vector3.Zero, LookDirection, Vector3.UnitY)
                                 * Matrix4x4.CreateTranslation(Position);
     }
 
-    public void From(ref BeeRenderComponent component)
+    public void From(ref BeeRenderArchetype archetype)
     {
         
     }
 
-    public void Into(out AliveBeeComponent component)
+    public void Into(out AliveBeeArchetype archetype)
     {
         if (Target == null || !Target.IsAlive)
         {
             Target = World.GetRandomEnemy(TeamIndex);
         }
         
-        Into(out component.Movement);
-        component.TargetPosition = Target.Position;
-        component.LookDirection = LookDirection;
-        component.MoveDirection = MoveDirection;
-        component.AttractionPoint = AttractPoint;
-        component.RepellentPoint = RepelPoint;
-        component.IsTargetKilled = false;
+        Into(out archetype.Movement);
+        archetype.TargetPosition = Target.Position;
+        archetype.LookDirection = LookDirection;
+        archetype.MoveDirection = MoveDirection;
+        archetype.AttractionPoint = AttractPoint;
+        archetype.RepellentPoint = RepelPoint;
+        archetype.IsTargetKilled = false;
     }
 
-    public void From(ref AliveBeeComponent component)
+    public void From(ref AliveBeeArchetype archetype)
     {
         var target = Target;
-        From(ref component.Movement);
-        LookDirection = component.LookDirection;
-        if (component.IsTargetKilled && target != null && target.IsAlive)
+        From(ref archetype.Movement);
+        LookDirection = archetype.LookDirection;
+        if (archetype.IsTargetKilled && target != null && target.IsAlive)
         {
             World.Kill(target);
             Target = World.GetRandomEnemy(TeamIndex);
         }
     }
 
-    public void Into(out DeadBeeComponent component)
+    public void Into(out DeadBeeArchetype archetype)
     {
-        Into(out component.Movement);
-        component.DeathTimer = DeathTimer;
+        Into(out archetype.Movement);
+        archetype.DeathTimer = DeathTimer;
     }
 
-    public void From(ref DeadBeeComponent component)
+    public void From(ref DeadBeeArchetype archetype)
     {
-        From(ref component.Movement);
-        DeathTimer = component.DeathTimer;
+        From(ref archetype.Movement);
+        DeathTimer = archetype.DeathTimer;
         if (DeathTimer <= 0f)
             World.Spawn(this);
     }
 
-    public void Into(out MovementComponent component)
+    public void Into(out MovementArchetype archetype)
     {
-        component.Position = Position;
-        component.Velocity = Velocity;
+        archetype.Position = Position;
+        archetype.Velocity = Velocity;
     }
 
-    public void From(ref MovementComponent component)
+    public void From(ref MovementArchetype archetype)
     {
-        Position = component.Position;
-        Velocity = component.Velocity;
+        Position = archetype.Position;
+        Velocity = archetype.Velocity;
     }
 
-    public void Into(out AttractRepelComponent component)
+    public void Into(out AttractRepelArchetype archetype)
     {
-        component.AttractionPoint = AttractPoint;
-        component.RepellentPoint = RepelPoint;
-        component.TeamIndex = TeamIndex;
-        component.MoveDirection = MoveDirection;
+        archetype.AttractionPoint = AttractPoint;
+        archetype.RepellentPoint = RepelPoint;
+        archetype.TeamIndex = TeamIndex;
+        archetype.MoveDirection = MoveDirection;
     }
 
-    public void From(ref AttractRepelComponent component)
+    public void From(ref AttractRepelArchetype archetype)
     {
-        AttractPoint = component.AttractionPoint;
-        RepelPoint = component.RepellentPoint;
-        MoveDirection = component.MoveDirection;
+        AttractPoint = archetype.AttractionPoint;
+        RepelPoint = archetype.RepellentPoint;
+        MoveDirection = archetype.MoveDirection;
     }
 }

@@ -2,21 +2,21 @@
 
 namespace CombatBeesBenchmarkV2.EcsPrototype;
 
-public abstract class System<TComponent> : ISystem where TComponent : struct
+public abstract class System<TArchetype> : ISystem where TArchetype : struct
 {
     private readonly IWorld m_World;
-    private readonly TComponent[] m_Components;
-    private readonly IEntity<TComponent>[] m_Entities;
+    private readonly TArchetype[] m_Components;
+    private readonly IEntity<TArchetype>[] m_Entities;
 
     private int ComponentCount { get; set; }
     protected IWorld World => m_World;
-    protected IEntity<TComponent>[] Entities => m_Entities;
+    protected IEntity<TArchetype>[] Entities => m_Entities;
 
     protected System(IWorld world, int size)
     {
         m_World = world;
-        m_Components = new TComponent[size];
-        m_Entities = new IEntity<TComponent>[size];
+        m_Components = new TArchetype[size];
+        m_Entities = new IEntity<TArchetype>[size];
     }
     
     public void Update(float dt)
@@ -29,7 +29,7 @@ public abstract class System<TComponent> : ISystem where TComponent : struct
 
     private void OnPreUpdate()
     {
-        ComponentCount = m_World.Query<TComponent>(m_Entities);
+        ComponentCount = m_World.Query<TArchetype>(m_Entities);
         Parallel.For(0, ComponentCount, (i) =>
         {
             var entity = m_Entities[i];
@@ -49,5 +49,5 @@ public abstract class System<TComponent> : ISystem where TComponent : struct
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected abstract void OnUpdate(float dt, ref Span<TComponent> components);
+    protected abstract void OnUpdate(float dt, ref Span<TArchetype> components);
 }

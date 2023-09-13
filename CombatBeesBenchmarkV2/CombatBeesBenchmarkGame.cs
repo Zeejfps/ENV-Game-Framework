@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using CombatBeesBenchmarkV2.Components;
 using CombatBeesBenchmarkV2.Systems;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Cameras;

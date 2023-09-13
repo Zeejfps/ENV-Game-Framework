@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using CombatBeesBenchmarkV2.Components;
+using CombatBeesBenchmarkV2.Archetype;
 using CombatBeesBenchmarkV2.EcsPrototype;
 using EasyGameFramework.Api;
 
@@ -47,27 +47,27 @@ public sealed class World : IWorld
         {
             //Logger.Trace($"Killing Bee: {bee.GetHashCode()}");
             AliveBeePool.Remove(bee);
-            Remove<AliveBeeComponent>(bee);
+            Remove<AliveBeeArchetype>(bee);
 
             bee.Velocity *= 0.5f;
             bee.DeathTimer = 5f;
             bee.IsAlive = false;
             
-            Add<DeadBeeComponent>(bee);
-            Remove<AttractRepelComponent>(bee);
+            Add<DeadBeeArchetype>(bee);
+            Remove<AttractRepelArchetype>(bee);
         }
         BeesToKill.Clear();
 
         foreach (var bee in BeesToSpawn)
         {
-            Remove<DeadBeeComponent>(bee);
+            Remove<DeadBeeArchetype>(bee);
             var spawnPosition = Vector3.UnitX * (-100f * .4f + 100f * .8f * bee.TeamIndex);
             bee.Position = spawnPosition;
             bee.Size = Random.NextSingleInRange(0.25f, 0.5f);
             bee.IsAlive = true;
             AliveBeePool.Add(bee);
-            Add<AliveBeeComponent>(bee);
-            Add<AttractRepelComponent>(bee);
+            Add<AliveBeeArchetype>(bee);
+            Add<AttractRepelArchetype>(bee);
         }
         BeesToSpawn.Clear();
     }

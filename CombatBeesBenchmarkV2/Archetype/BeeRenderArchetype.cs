@@ -1,10 +1,10 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 
-namespace CombatBeesBenchmarkV2.Components;
+namespace CombatBeesBenchmarkV2.Archetype;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct BeeRenderComponent
+public struct BeeRenderArchetype
 {
     public Vector4 Color;
     public Matrix4x4 ModelMatrix;

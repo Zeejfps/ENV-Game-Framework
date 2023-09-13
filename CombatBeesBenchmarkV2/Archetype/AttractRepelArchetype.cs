@@ -1,8 +1,8 @@
 using System.Numerics;
 
-namespace CombatBeesBenchmarkV2.Components;
+namespace CombatBeesBenchmarkV2.Archetype;
 
-public struct AttractRepelComponent
+public struct AttractRepelArchetype
 {
     public int TeamIndex;
     public Vector3 AttractionPoint;

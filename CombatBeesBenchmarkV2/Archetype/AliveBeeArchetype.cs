@@ -1,10 +1,10 @@
 using System.Numerics;
 
-namespace CombatBeesBenchmarkV2.Components;
+namespace CombatBeesBenchmarkV2.Archetype;
 
-public struct AliveBeeComponent
+public struct AliveBeeArchetype
 {
-    public MovementComponent Movement;
+    public MovementArchetype Movement;
     public Vector3 MoveDirection;
     public Vector3 AttractionPoint;
     public Vector3 RepellentPoint;
