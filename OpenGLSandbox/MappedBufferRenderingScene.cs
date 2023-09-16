@@ -31,21 +31,16 @@ public sealed class MappedBufferRenderingScene : IScene
         glBufferData(GL_ARRAY_BUFFER, bufferSizeInBytes, IntPtr.Zero, GL_STATIC_DRAW);
         AssertNoGlError();
 
-        var ptr = (void*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        AssertNoGlError();
-
-        var positionBuffer = new Span<Vector2>(ptr, vertexCount);
-        
-        positionBuffer[0] = new Vector2(-0.90f, +0.85f); 
-        positionBuffer[1] = new Vector2(+0.85f, -0.90f);
-        positionBuffer[2] = new Vector2(-0.90f, -0.90f);
-        
-        positionBuffer[3] = new Vector2(+0.90f, +0.90f); 
-        positionBuffer[4] = new Vector2(+0.90f, -0.85f);
-        positionBuffer[5] = new Vector2(-0.85f, +0.90f);
-
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        AssertNoGlError();
+        using (var buffer = new MappedBuffer<Vector2>(GL_ARRAY_BUFFER, vertexCount))
+        {
+            buffer.Write(new Vector2(-0.90f, +0.85f));
+            buffer.Write(new Vector2(+0.85f, -0.90f));
+            buffer.Write(new Vector2(-0.90f, -0.90f));
+            
+            buffer.Write(new Vector2(+0.90f, +0.90f));
+            buffer.Write(new Vector2(+0.90f, -0.85f));
+            buffer.Write(new Vector2(-0.85f, +0.90f));
+        }
         
         glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof(Vector2), IntPtr.Zero);
         glEnableVertexAttribArray(0);
