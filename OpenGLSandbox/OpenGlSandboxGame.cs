@@ -1,4 +1,4 @@
-﻿using EasyGameFramework.Api;using OpenGL;
+﻿using EasyGameFramework.Api;
 using static OpenGL.Gl;
 
 namespace OpenGLSandbox;

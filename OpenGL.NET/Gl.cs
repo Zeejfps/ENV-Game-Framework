@@ -1840,7 +1840,7 @@ namespace OpenGL
             var error = glGetError();
             if (error != GL_NO_ERROR)
             {
-                errorStr = $"Unknown Error {error:X}";
+                errorStr = $"Unknown Error 0x{error:X}";
                 switch (error)
                 {
                     case 0x0500:
