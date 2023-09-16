@@ -11,24 +11,24 @@ public sealed class InstanceRenderingScene : IScene
     public unsafe void Load()
     {
         m_Vao = glGenVertexArray();
-        glAssertNoError();
+        AssertNoGlError();
         
         m_Vbo = glGenBuffer();
-        glAssertNoError();
+        AssertNoGlError();
         
         glBindVertexArray(m_Vao);
-        glAssertNoError();
+        AssertNoGlError();
         
         glBindBuffer(GL_ARRAY_BUFFER, m_Vbo);
-        glAssertNoError();
+        AssertNoGlError();
 
         var vertexCount = 3;
         var bufferSizeInBytes = vertexCount * 3 * sizeof(float);
         glBufferData(GL_ARRAY_BUFFER, bufferSizeInBytes, IntPtr.Zero, GL_STATIC_DRAW);
-        glAssertNoError();
+        AssertNoGlError();
 
         var ptr = (void*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        glAssertNoError();
+        AssertNoGlError();
         
         var buffer = new Span<float>(ptr, vertexCount * 3)
         {
@@ -38,7 +38,7 @@ public sealed class InstanceRenderingScene : IScene
         };
 
         glUnmapBuffer(GL_ARRAY_BUFFER);
-        glAssertNoError();
+        AssertNoGlError();
     }
 
     public void Render()
@@ -50,7 +50,7 @@ public sealed class InstanceRenderingScene : IScene
     }
 
     [Conditional("DEBUG")]
-    private void glAssertNoError()
+    private void AssertNoGlError()
     {
         Debug.Assert(!glTryGetError(out var error), error);
     }
