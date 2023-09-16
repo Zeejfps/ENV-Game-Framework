@@ -1,4 +1,5 @@
 ﻿using static OpenGL.Gl;
+using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
@@ -54,8 +55,8 @@ void main() {
         glVertexAttribPointer(positionAttribIndex, 2, GL_FLOAT, false, 2 * sizeof(float), IntPtr.Zero);
         glEnableVertexAttribArray(positionAttribIndex);
         
-        var vertexShader = CompileShader(GL_VERTEX_SHADER, VertexShaderSource);
-        var fragmentShader = CompileShader(GL_FRAGMENT_SHADER, FragmentShaderSource);
+        var vertexShader = CreateAndCompileShaderFromSource(GL_VERTEX_SHADER, VertexShaderSource);
+        var fragmentShader = CreateAndCompileShaderFromSource(GL_FRAGMENT_SHADER, FragmentShaderSource);
 
         m_ShaderProgram = glCreateProgram();
         var shaderProgram = m_ShaderProgram;
@@ -81,26 +82,7 @@ void main() {
         glUseProgram(shaderProgram);
         glClearColor(1f, 0f, 1f, 1f);
     }
-
-    private unsafe uint CompileShader(int type, string source)
-    {
-        var shader = glCreateShader(type);
-        glShaderSource(shader, source);
-        glCompileShader(shader);
-
-        int status;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-        if (status == GL_FALSE)
-        {
-            var infoLog = glGetShaderInfoLog(shader);
-            Console.WriteLine(infoLog);
-            glDeleteShader(shader);
-            return 0;
-        }
-
-        return shader;
-    }
-
+    
     public void Unload()
     {
         glDeleteVertexArray(m_Vao);

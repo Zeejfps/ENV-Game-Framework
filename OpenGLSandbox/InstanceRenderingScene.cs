@@ -1,5 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System.Numerics;
 using static OpenGL.Gl;
+using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
@@ -23,19 +24,17 @@ public sealed class InstanceRenderingScene : IScene
         AssertNoGlError();
 
         var vertexCount = 3;
-        var bufferSizeInBytes = vertexCount * 3 * sizeof(float);
+        var bufferSizeInBytes = vertexCount * sizeof(Vector3);
         glBufferData(GL_ARRAY_BUFFER, bufferSizeInBytes, IntPtr.Zero, GL_STATIC_DRAW);
         AssertNoGlError();
 
         var ptr = (void*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         AssertNoGlError();
-        
-        var buffer = new Span<float>(ptr, vertexCount * 3)
-        {
-            [0] = 1.0f, [1] = 1.0f, [2] = 1.0f,
-            [3] = 0.0f, [4] = 0.0f, [5] = 2.0f,
-            [6] = 0.0f, [7] = 0.0f, [8] = 0.0f
-        };
+
+        var positionBuffer = new Span<Vector3>(ptr, vertexCount);
+        positionBuffer[0] = new Vector3(0f, 0f, 0f); 
+        positionBuffer[1] = new Vector3(0f, 0f, 0f);
+        positionBuffer[2] = new Vector3(0f, 0f, 0f);
 
         glUnmapBuffer(GL_ARRAY_BUFFER);
         AssertNoGlError();
@@ -47,11 +46,5 @@ public sealed class InstanceRenderingScene : IScene
 
     public void Unload()
     {
-    }
-
-    [Conditional("DEBUG")]
-    private void AssertNoGlError()
-    {
-        Debug.Assert(!glTryGetError(out var error), error);
     }
 }
