@@ -2,7 +2,7 @@
 
 namespace OpenGLSandbox;
 
-public sealed class Program1Scene
+public sealed class BasicRenderingScene : IScene
 {
     const string VertexShaderSource = 
 @"
