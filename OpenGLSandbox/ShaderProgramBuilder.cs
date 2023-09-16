@@ -23,12 +23,14 @@ public sealed class ShaderProgramBuilder
     public unsafe uint Build()
     {
         var shaderProgram = glCreateProgram();
+        AssertNoGlError();
 
         uint vertexShader = 0;
         if (m_VertexShaderFilePath != null)
         {
             vertexShader = CreateAndCompileShaderFromSourceFile(GL_VERTEX_SHADER, m_VertexShaderFilePath);
             glAttachShader(shaderProgram, vertexShader);
+            AssertNoGlError();
         }
 
         uint fragmentShader = 0;
@@ -36,15 +38,20 @@ public sealed class ShaderProgramBuilder
         {
             fragmentShader = CreateAndCompileShaderFromSourceFile(GL_FRAGMENT_SHADER, m_FragmentShaderFilePath);
             glAttachShader(shaderProgram, fragmentShader);
+            AssertNoGlError();
         }
         
         glLinkProgram(shaderProgram);
+        AssertNoGlError();
         
         int status;
         glGetProgramiv(shaderProgram, GL_LINK_STATUS, &status);
+        AssertNoGlError();
+        
         if (status == GL_FALSE)
         {
             var log = glGetProgramInfoLog(shaderProgram);
+            AssertNoGlError();
             Console.WriteLine($"Linking Failed: {log}");
         }
         else
@@ -53,7 +60,10 @@ public sealed class ShaderProgramBuilder
         }
         
         glDeleteShader(vertexShader);
+        AssertNoGlError();
+        
         glDeleteShader(fragmentShader);
+        AssertNoGlError();
 
         return shaderProgram;
     }

@@ -9,7 +9,7 @@ public sealed class OpenGlSandboxGame : Game
     
     public OpenGlSandboxGame(IContext context) : base(context)
     {
-        m_Scene = new BasicRenderingScene();
+        m_Scene = new MappedBufferRenderingScene();
     }
 
     protected override void OnStartup()
