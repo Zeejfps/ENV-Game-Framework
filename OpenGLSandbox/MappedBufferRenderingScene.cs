@@ -41,9 +41,10 @@ public sealed class MappedBufferRenderingScene : IScene
             buffer.Write(new Vector2(+0.90f, -0.85f));
             buffer.Write(new Vector2(-0.85f, +0.90f));
         }
-        
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof(Vector2), IntPtr.Zero);
-        glEnableVertexAttribArray(0);
+
+        uint positionAttributeIndex = 0;
+        glVertexAttribPointer(positionAttributeIndex, 2, GL_FLOAT, false, sizeof(Vector2), IntPtr.Zero);
+        glEnableVertexAttribArray(positionAttributeIndex);
         
         m_ShaderProgram = new ShaderProgramBuilder()
             .WithVertexShader("Assets/basic.vert.glsl")
@@ -57,9 +58,13 @@ public sealed class MappedBufferRenderingScene : IScene
     public void Render()
     {
         glDrawArrays(GL_TRIANGLES, 0, VertexCount);
+        AssertNoGlError();
     }
 
     public void Unload()
     {
+        glDeleteProgram(m_ShaderProgram);
+        glDeleteVertexArray(m_Vao);
+        glDeleteBuffer(m_Vbo);
     }
 }
