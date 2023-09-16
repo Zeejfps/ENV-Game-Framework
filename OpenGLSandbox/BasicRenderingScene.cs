@@ -5,27 +5,6 @@ namespace OpenGLSandbox;
 
 public sealed class BasicRenderingScene : IScene
 {
-    const string VertexShaderSource = 
-@"
-#version 430
-
-layout(location = 0) in vec4 position;
-
-void main() {
-    gl_Position = position;
-}
-";
-
-    const string FragmentShaderSource =
-@"
-#version 430
-out vec4 color;
-
-void main() {
-    color = vec4(0.6f, 0.1f, 1.0f, 1.0);
-}
-";
-    
     private uint m_Vao;
     private uint m_Vbo;
     private uint m_ShaderProgram;
@@ -55,8 +34,8 @@ void main() {
         glVertexAttribPointer(positionAttribIndex, 2, GL_FLOAT, false, 2 * sizeof(float), IntPtr.Zero);
         glEnableVertexAttribArray(positionAttribIndex);
         
-        var vertexShader = CreateAndCompileShaderFromSource(GL_VERTEX_SHADER, VertexShaderSource);
-        var fragmentShader = CreateAndCompileShaderFromSource(GL_FRAGMENT_SHADER, FragmentShaderSource);
+        var vertexShader = CreateAndCompileShaderFromSourceFile(GL_VERTEX_SHADER, "Assets/basic.vert.glsl");
+        var fragmentShader = CreateAndCompileShaderFromSourceFile(GL_FRAGMENT_SHADER, "Assets/basic.frag.glsl");
 
         m_ShaderProgram = glCreateProgram();
         var shaderProgram = m_ShaderProgram;

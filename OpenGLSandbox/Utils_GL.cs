@@ -11,6 +11,12 @@ public static class Utils_GL
         Debug.Assert(!glTryGetError(out var error), error);
     }
 
+    public static unsafe uint CreateAndCompileShaderFromSourceFile(int type, string filePath)
+    {
+        var source = File.ReadAllText(filePath);
+        return CreateAndCompileShaderFromSource(type, source);
+    }
+
     public static unsafe uint CreateAndCompileShaderFromSource(int type, string source)
     {
         var shader = glCreateShader(type);
