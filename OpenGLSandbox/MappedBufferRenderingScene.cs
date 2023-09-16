@@ -4,7 +4,7 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
-public sealed class InstanceRenderingScene : IScene
+public sealed class MappedBufferRenderingScene : IScene
 {
     private uint m_Vao;
     private uint m_Vbo;
@@ -38,6 +38,9 @@ public sealed class InstanceRenderingScene : IScene
 
         glUnmapBuffer(GL_ARRAY_BUFFER);
         AssertNoGlError();
+
+        var vertexShader = CreateAndCompileShaderFromSourceFile(GL_VERTEX_SHADER, "Assets/basic.vert.glsl");
+        var fragmentShader = CreateAndCompileShaderFromSourceFile(GL_FRAGMENT_SHADER, "Assets/basic.frag.glsl");
     }
 
     public void Render()

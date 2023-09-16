@@ -33,32 +33,13 @@ public sealed class BasicRenderingScene : IScene
         uint positionAttribIndex = 0;
         glVertexAttribPointer(positionAttribIndex, 2, GL_FLOAT, false, 2 * sizeof(float), IntPtr.Zero);
         glEnableVertexAttribArray(positionAttribIndex);
-        
-        var vertexShader = CreateAndCompileShaderFromSourceFile(GL_VERTEX_SHADER, "Assets/basic.vert.glsl");
-        var fragmentShader = CreateAndCompileShaderFromSourceFile(GL_FRAGMENT_SHADER, "Assets/basic.frag.glsl");
 
-        m_ShaderProgram = glCreateProgram();
-        var shaderProgram = m_ShaderProgram;
-        glAttachShader(shaderProgram, vertexShader);
-        glAttachShader(shaderProgram, fragmentShader);
-        glLinkProgram(shaderProgram);
+        m_ShaderProgram = new ShaderProgramBuilder()
+            .WithVertexShader("Assets/basic.vert.glsl")
+            .WithFragmentShader("Assets/basic.frag.glsl")
+            .Build();
         
-        int status;
-        glGetProgramiv(shaderProgram, GL_LINK_STATUS, &status);
-        if (status == GL_FALSE)
-        {
-            var log = glGetProgramInfoLog(shaderProgram);
-            Console.WriteLine($"Linking Failed: {log}");
-        }
-        else
-        {
-            Console.WriteLine("Linking succeeded");
-        }
-        
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
-        
-        glUseProgram(shaderProgram);
+        glUseProgram(m_ShaderProgram);
         glClearColor(1f, 0f, 1f, 1f);
     }
     
