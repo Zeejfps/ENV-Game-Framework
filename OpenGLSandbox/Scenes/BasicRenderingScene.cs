@@ -45,7 +45,9 @@ public sealed class BasicRenderingScene : IScene
 
     public void Render()
     {
+        glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        glFlush();
     }
 
     public void Unload()

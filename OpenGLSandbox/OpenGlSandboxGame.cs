@@ -34,17 +34,17 @@ public sealed class OpenGlSandboxGame : Game
 
     private void Keyboard_OnKeyPressed(in KeyboardKeyStateChangedEvent evt)
     {
-        if (evt.Key == KeyboardKey.Space)
-        {
-            var currScene = m_Scenes[m_CurrentSceneIndex];
-            currScene.Unload();
+        if (evt.Key != KeyboardKey.Space)
+            return;
+        
+        var currScene = m_Scenes[m_CurrentSceneIndex];
+        currScene.Unload();
             
-            m_CurrentSceneIndex++;
-            if (m_CurrentSceneIndex >= m_Scenes.Length)
-                m_CurrentSceneIndex = 0;
+        m_CurrentSceneIndex++;
+        if (m_CurrentSceneIndex >= m_Scenes.Length)
+            m_CurrentSceneIndex = 0;
             
-            m_Scenes[m_CurrentSceneIndex].Load();
-        }
+        m_Scenes[m_CurrentSceneIndex].Load();
     }
 
     protected override void OnFixedUpdate()
@@ -53,9 +53,7 @@ public sealed class OpenGlSandboxGame : Game
 
     protected override void OnUpdate()
     {
-        glClear(GL_COLOR_BUFFER_BIT);
         m_Scenes[m_CurrentSceneIndex].Render();
-        glFlush();
     }
 
     protected override void OnShutdown()

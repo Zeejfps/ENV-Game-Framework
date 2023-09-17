@@ -59,8 +59,10 @@ public sealed class MappedBufferRenderingScene : IScene
 
     public void Render()
     {
+        glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, VertexCount);
         AssertNoGlError();
+        glFlush();
     }
 
     public void Unload()

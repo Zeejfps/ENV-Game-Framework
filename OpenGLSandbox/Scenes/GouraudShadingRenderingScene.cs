@@ -102,7 +102,9 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
 
     public void Render()
     {
+        glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, TriangleCount * 3);
+        glFlush();
     }
 
     public void Unload()
