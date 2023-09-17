@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using static OpenGL.Gl;
 using static OpenGLSandbox.Utils_GL;
 
@@ -22,10 +23,29 @@ public sealed unsafe class UIRectRenderingScene : IScene
         public Vector2 UVs;
     }
 
+    struct BorderSize
+    {
+        public float Top;
+        public float Right;
+        public float Bottom;
+        public float Left;
+        
+        public static BorderSize FromTRBL(float top, float right, float bottom, float left)
+        {
+            return new BorderSize
+            {
+                Top = top,
+                Right = right,
+                Bottom = bottom,
+                Left = left
+            };
+        }
+    }
+
     struct PerInstanceAttribs
     {
         public Vector4 Color;
-        public Vector4 BorderSize;
+        public BorderSize BorderSize;
         public Vector4 BorderRadius;
     }
     
@@ -64,9 +84,9 @@ public sealed unsafe class UIRectRenderingScene : IScene
         {
             buffer.Write(new PerInstanceAttribs
             {
-                Color = new Vector4(1f, 0f, 0f, 1f),
-                BorderRadius = new Vector4(0f, 0f, 0f, 0f),
-                BorderSize = new Vector4(0f, 0f, 0f, 0f)
+                Color = new Vector4(0f, 1f, 0f, 1f),
+                BorderSize = BorderSize.FromTRBL(0f, 0f, 0f, 0f),
+                BorderRadius = new Vector4(20f, 10f, 50f, 5f),
             });
         }
 
@@ -74,10 +94,15 @@ public sealed unsafe class UIRectRenderingScene : IScene
         glVertexAttribPointer(colorAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs), Offset(0));
         glEnableVertexAttribArray(colorAttribIndex);
         glVertexAttribDivisor(colorAttribIndex, 1);
-        
+
+        uint borderRadiusAttribIndex = 3;
+        glVertexAttribPointer(borderRadiusAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs), Offset<PerInstanceAttribs>(nameof(PerInstanceAttribs.BorderRadius)));
+        glEnableVertexAttribArray(borderRadiusAttribIndex);
+        glVertexAttribDivisor(borderRadiusAttribIndex, 1);
+
         m_ShaderProgram = new ShaderProgramBuilder()
             .WithVertexShader("Assets/uirect.vert.glsl")
-            .WithFragmentShader("Assets/color.frag.glsl")
+            .WithFragmentShader("Assets/uirect.frag.glsl")
             .Build();
         
         glUseProgram(m_ShaderProgram);

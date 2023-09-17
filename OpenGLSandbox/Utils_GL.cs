@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using static OpenGL.Gl;
 
 namespace OpenGLSandbox;
@@ -16,6 +17,12 @@ public static class Utils_GL
     public static unsafe void* Offset(int offset)
     {
         return (void*)offset;
+    } 
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void* Offset<T>(string field)
+    {
+        return (void*)Marshal.OffsetOf<T>(field);
     } 
 
     public static unsafe uint CreateAndCompileShaderFromSourceFile(int type, string filePath)
