@@ -12,26 +12,31 @@ float roundedBoxSDF(vec2 CenterPosition, vec2 Size, float Radius) {
 
 void main() {
     vec2 rectSize = vec2(150.0f, 150.0f);
+    vec2 rectHalfSize = rectSize / 2.0f;
     vec2 fragCoord = uvs.xy * rectSize;
     float radius;
-    if (uvs.x > 0.5) { // On the right side
+    if (uvs.x > 0.5) {
         if (uvs.y > 0.5) {
-            // Top Side
+            // Top Right
             radius = borderRadius.y;
         }
         else {
-            // Bottom side
+            // Bottom Right
             radius = borderRadius.z;
         }
     }
-    else  {  // On the left side
+    else  {  
         if (uvs.y > 0.5) {
-            // Top Side
+            // Top Left
             radius = borderRadius.x;
         }
         else {
+            // Bottom Left
             radius = borderRadius.w;
         }
     }
-    f_Color = vec4(1.0f - roundedBoxSDF(fragCoord - rectSize / 2.0f, rectSize / 2.0f, radius), 0.0f, 0.0f, 1.0f);
+    
+    float alpha = 1.0f - clamp(roundedBoxSDF(fragCoord - rectHalfSize, rectHalfSize, radius), 0, 1);
+    
+    f_Color = vec4(color.rgb * alpha, alpha);
 }

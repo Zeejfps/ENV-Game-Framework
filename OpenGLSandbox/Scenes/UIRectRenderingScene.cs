@@ -107,6 +107,10 @@ public sealed unsafe class UIRectRenderingScene : IScene
         
         glUseProgram(m_ShaderProgram);
         AssertNoGlError();
+        
+        glClearColor(0.2f, 0.1f, 0.7f, 1f);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
     }
 
     private void WriteVertexDataToBuffers()
