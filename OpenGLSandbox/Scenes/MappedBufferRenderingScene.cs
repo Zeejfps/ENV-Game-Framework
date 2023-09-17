@@ -53,6 +53,8 @@ public sealed class MappedBufferRenderingScene : IScene
         
         glUseProgram(m_ShaderProgram);
         AssertNoGlError();
+        
+        glClearColor(0f, 0f, 0f, 1f);
     }
 
     public void Render()

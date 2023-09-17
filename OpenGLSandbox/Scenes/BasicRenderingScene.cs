@@ -42,16 +42,16 @@ public sealed class BasicRenderingScene : IScene
         glUseProgram(m_ShaderProgram);
         glClearColor(1f, 0f, 1f, 1f);
     }
-    
+
+    public void Render()
+    {
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+
     public void Unload()
     {
         glDeleteVertexArray(m_Vao);
         glDeleteBuffer(m_Vbo);
         glDeleteProgram(m_ShaderProgram);
-    }
-
-    public void Render()
-    {
-        glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 }

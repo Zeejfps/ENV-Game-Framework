@@ -1,22 +1,49 @@
 ﻿using EasyGameFramework.Api;
+using EasyGameFramework.Api.Events;
+using EasyGameFramework.Api.InputDevices;
 using static OpenGL.Gl;
 
 namespace OpenGLSandbox;
 
 public sealed class OpenGlSandboxGame : Game
 {
-    private readonly IScene m_Scene;
+    private readonly IScene[] m_Scenes;
     
+    private int m_CurrentSceneIndex;
+
     public OpenGlSandboxGame(IContext context) : base(context)
     {
-        m_Scene = new MappedBufferRenderingScene();
+        m_Scenes = new IScene[]
+        {
+            new BasicRenderingScene(),
+            new MappedBufferRenderingScene()
+        };
+
+        m_CurrentSceneIndex = 0;
     }
 
     protected override void OnStartup()
     {
         Window.SetScreenSize(640, 640);
 
-        m_Scene.Load();
+        m_Scenes[m_CurrentSceneIndex].Load();
+        
+        Input.Keyboard.KeyPressed += Keyboard_OnKeyPressed;
+    }
+
+    private void Keyboard_OnKeyPressed(in KeyboardKeyStateChangedEvent evt)
+    {
+        if (evt.Key == KeyboardKey.Space)
+        {
+            var currScene = m_Scenes[m_CurrentSceneIndex];
+            currScene.Unload();
+            
+            m_CurrentSceneIndex++;
+            if (m_CurrentSceneIndex >= m_Scenes.Length)
+                m_CurrentSceneIndex = 0;
+            
+            m_Scenes[m_CurrentSceneIndex].Load();
+        }
     }
 
     protected override void OnFixedUpdate()
@@ -26,12 +53,12 @@ public sealed class OpenGlSandboxGame : Game
     protected override void OnUpdate()
     {
         glClear(GL_COLOR_BUFFER_BIT);
-        m_Scene.Render();
+        m_Scenes[m_CurrentSceneIndex].Render();
         glFlush();
     }
 
     protected override void OnShutdown()
     {
-        m_Scene.Unload();
+        m_Scenes[m_CurrentSceneIndex].Unload();
     }
 }
