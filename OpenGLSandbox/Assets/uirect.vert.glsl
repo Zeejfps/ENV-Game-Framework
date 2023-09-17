@@ -19,6 +19,8 @@ void main() {
     borderRadius = v_BorderRadius;
     rectInPixels = v_RectInPixels;
     
+    float rectX = v_RectInPixels.x;
+    float rectY = v_RectInPixels.y;
     float rectWidth = v_RectInPixels.z;
     float rectHeight = v_RectInPixels.w;
     
@@ -26,7 +28,7 @@ void main() {
     float rectHalfHeight = rectHeight * 0.5f;
     
     vec4 position = v_Position;
-    position.x *= rectHalfWidth + rectHalfWidth;
-    position.y *= rectHalfHeight + rectHalfHeight;
+    position.x = (position.x * rectHalfWidth + rectHalfWidth) + rectX;
+    position.y = (position.y * rectHalfHeight + rectHalfHeight) + rectY;
     gl_Position = projection_matrix * position;
 }
