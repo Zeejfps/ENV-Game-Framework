@@ -104,7 +104,7 @@ public sealed unsafe class UIRectRenderingScene : IScene
                 Color = new Vector4(0f, 1f, 0f, 1f),
                 BorderSize = BorderSize.FromTRBL(0f, 0f, 0f, 0f),
                 BorderRadius = new Vector4(5f, 5f, 5f, 5f),
-                Rect = new Rect(0f, 0f, 100f, 30f)
+                Rect = new Rect(100f, 100f, 100f, 30f)
             });
         }
 
@@ -134,7 +134,7 @@ public sealed unsafe class UIRectRenderingScene : IScene
         glUseProgram(m_ShaderProgram);
         AssertNoGlError();
         
-        var projection = Matrix4x4.CreateOrthographic(400f, 400f, 0.1f, 100f);
+        var projection = Matrix4x4.CreateOrthographicOffCenter(0f, 640f, 0f, 640f, 0.1f, 100f);
         float* ptr = &projection.M11;
         glUniformMatrix4fv(projectionMatrixUniformLocation, 1, false, ptr);
         AssertNoGlError();
