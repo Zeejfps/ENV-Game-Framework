@@ -3,6 +3,7 @@
 in vec4 borderRadius;
 in vec4 uvs;
 in vec4 color;
+in vec4 rectInPixels;
 
 out vec4 f_Color;
 
@@ -11,7 +12,7 @@ float roundedBoxSDF(vec2 CenterPosition, vec2 Size, float Radius) {
 }
 
 void main() {
-    vec2 rectSize = vec2(150.0f, 150.0f);
+    vec2 rectSize = vec2(200.0f, 100.0f);
     vec2 rectHalfSize = rectSize / 2.0f;
     vec2 fragCoord = uvs.xy * rectSize;
     float radius;

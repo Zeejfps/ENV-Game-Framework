@@ -42,11 +42,28 @@ public sealed unsafe class UIRectRenderingScene : IScene
         }
     }
 
+    struct Rect
+    {
+        public float X;
+        public float Y;
+        public float Width;
+        public float Height;
+
+        public Rect(float x, float y, float width, float height)
+        {
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+        }
+    }
+
     struct PerInstanceAttribs
     {
         public Vector4 Color;
         public BorderSize BorderSize;
         public Vector4 BorderRadius;
+        public Rect Rect;
     }
     
     private uint m_Vao;
@@ -87,6 +104,7 @@ public sealed unsafe class UIRectRenderingScene : IScene
                 Color = new Vector4(0f, 1f, 0f, 1f),
                 BorderSize = BorderSize.FromTRBL(0f, 0f, 0f, 0f),
                 BorderRadius = new Vector4(20f, 10f, 50f, 5f),
+                Rect = new Rect(0f, 0f, 20f, 10f)
             });
         }
 
@@ -100,6 +118,11 @@ public sealed unsafe class UIRectRenderingScene : IScene
         glEnableVertexAttribArray(borderRadiusAttribIndex);
         glVertexAttribDivisor(borderRadiusAttribIndex, 1);
 
+        uint rectAttribIndex = 4;
+        glVertexAttribPointer(rectAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs), Offset<PerInstanceAttribs>(nameof(PerInstanceAttribs.Rect)));
+        glEnableVertexAttribArray(rectAttribIndex);
+        glVertexAttribDivisor(rectAttribIndex, 1);
+        
         m_ShaderProgram = new ShaderProgramBuilder()
             .WithVertexShader("Assets/uirect.vert.glsl")
             .WithFragmentShader("Assets/uirect.frag.glsl")
@@ -121,17 +144,17 @@ public sealed unsafe class UIRectRenderingScene : IScene
             {
                 V1 =
                 {
-                    Position = new Vector2(-0.5f, -0.5f),
+                    Position = new Vector2(-1f, -1f),
                     UVs = new Vector2(0f, 0f)
                 },
                 V2 =
                 {
-                    Position = new Vector2(0.5f, -0.5f),
+                    Position = new Vector2(1f, -1f),
                     UVs = new Vector2(1f, 0f)
                 },
                 V3 =
                 {
-                    Position = new Vector2(-0.5f, 0.5f),
+                    Position = new Vector2(-1f, 1f),
                     UVs = new Vector2(0f, 1f)
                 }
             });
@@ -140,17 +163,17 @@ public sealed unsafe class UIRectRenderingScene : IScene
             {
                 V1 =
                 {
-                    Position = new Vector2(0.5f, -0.5f),
+                    Position = new Vector2(1f, -1f),
                     UVs = new Vector2(1f, 0f)
                 },
                 V2 =
                 {
-                    Position = new Vector2(0.5f, 0.5f),
+                    Position = new Vector2(1f, 1f),
                     UVs = new Vector2(1f, 1f)
                 },
                 V3 =
                 {
-                    Position = new Vector2(-0.5f, 0.5f),
+                    Position = new Vector2(-1f, 1f),
                     UVs = new Vector2(0f, 1f)
                 }
             });
