@@ -5,17 +5,20 @@ layout(location = 1) in vec4 v_Normals;
 layout(location = 2) in vec4 v_Color;
 layout(location = 3) in vec4 v_BorderRadius;
 layout(location = 4) in vec4 v_RectInPixels;
+layout(location = 5) in vec4 v_BorderColor;
 
 uniform mat4 projection_matrix;
 
 out vec4 uvs;
 out vec4 color;
+out vec4 borderColor;
 out vec4 borderRadius;
 out vec4 rectInPixels;
 
 void main() {
     uvs = v_Normals;
     color = v_Color;
+    borderColor = v_BorderColor;
     borderRadius = v_BorderRadius;
     rectInPixels = v_RectInPixels;
     

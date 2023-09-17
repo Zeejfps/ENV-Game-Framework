@@ -3,6 +3,7 @@
 in vec4 borderRadius;
 in vec4 uvs;
 in vec4 color;
+in vec4 borderColor;
 in vec4 rectInPixels;
 
 out vec4 f_Color;
@@ -18,9 +19,9 @@ float sdRoundBox( in vec2 p, in vec2 b, in vec4 r ){
     return min(max(q.x,q.y),0.0) + length(max(q,0.0)) - r.x;
 }
 
-float roundedBoxSDF(vec2 CenterPosition, vec2 Size, float Radius) {
-    return length(max(abs(CenterPosition)-Size+Radius,0.0))-Radius;
-}
+//float roundedBoxSDF(vec2 CenterPosition, vec2 Size, float Radius) {
+//    return length(max(abs(CenterPosition)-Size+Radius,0.0))-Radius;
+//}
 
 float sdf_border(in float d, in float thickness) {
     return d <= 0.0 ? 1.0 - smoothstep(thickness - 0.4, thickness + 0.4, abs(d)) : 0.0;
@@ -65,7 +66,6 @@ void main() {
     float fill = sdf_fill(distance, 0.5f);
 
     vec4 fillColor   = color; // red
-    vec4 borderColor = vec4(0.0, 1.0, 0.0, 1.0); // green
     
     f_Color = color_blend(f_Color, vec4(fillColor   * fill));
     f_Color = color_blend(f_Color, vec4(borderColor * border));

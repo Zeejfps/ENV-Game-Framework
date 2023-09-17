@@ -61,6 +61,7 @@ public sealed unsafe class UIRectRenderingScene : IScene
     struct PerInstanceAttribs
     {
         public Vector4 Color;
+        public Vector4 BorderColor;
         public BorderSize BorderSize;
         public Vector4 BorderRadius;
         public Rect Rect;
@@ -102,6 +103,7 @@ public sealed unsafe class UIRectRenderingScene : IScene
             buffer.Write(new PerInstanceAttribs
             {
                 Color = new Vector4(1f, 0.5f, 0.6f, 1f),
+                BorderColor = new Vector4(0f, 1f, 0.6f, 1f),
                 BorderSize = BorderSize.FromTRBL(0f, 0f, 0f, 0f),
                 BorderRadius = new Vector4(50f, 50f, 50f, 50f),
                 Rect = new Rect(100f, 100f, 500f, 300f)
@@ -109,19 +111,28 @@ public sealed unsafe class UIRectRenderingScene : IScene
         }
 
         uint colorAttribIndex = 2;
-        glVertexAttribPointer(colorAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs), Offset(0));
+        glVertexAttribPointer(colorAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs), 
+            Offset(0));
         glEnableVertexAttribArray(colorAttribIndex);
         glVertexAttribDivisor(colorAttribIndex, 1);
 
         uint borderRadiusAttribIndex = 3;
-        glVertexAttribPointer(borderRadiusAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs), Offset<PerInstanceAttribs>(nameof(PerInstanceAttribs.BorderRadius)));
+        glVertexAttribPointer(borderRadiusAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs), 
+            Offset<PerInstanceAttribs>(nameof(PerInstanceAttribs.BorderRadius)));
         glEnableVertexAttribArray(borderRadiusAttribIndex);
         glVertexAttribDivisor(borderRadiusAttribIndex, 1);
 
         uint rectAttribIndex = 4;
-        glVertexAttribPointer(rectAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs), Offset<PerInstanceAttribs>(nameof(PerInstanceAttribs.Rect)));
+        glVertexAttribPointer(rectAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs), 
+            Offset<PerInstanceAttribs>(nameof(PerInstanceAttribs.Rect)));
         glEnableVertexAttribArray(rectAttribIndex);
         glVertexAttribDivisor(rectAttribIndex, 1);
+
+        uint borderColorAttribIndex = 5;
+        glVertexAttribPointer(borderColorAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs),
+            Offset<PerInstanceAttribs>(nameof(PerInstanceAttribs.BorderColor)));
+        glEnableVertexAttribArray(borderColorAttribIndex);
+        glVertexAttribDivisor(borderColorAttribIndex, 1);
         
         m_ShaderProgram = new ShaderProgramBuilder()
             .WithVertexShader("Assets/uirect.vert.glsl")
