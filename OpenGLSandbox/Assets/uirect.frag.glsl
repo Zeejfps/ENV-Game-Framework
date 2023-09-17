@@ -1,9 +1,10 @@
 ﻿#version 430
 
-in vec4 borderRadius;
 in vec4 uvs;
 in vec4 color;
+in vec4 borderSize;
 in vec4 borderColor;
+in vec4 borderRadius;
 in vec4 rectInPixels;
 
 out vec4 f_Color;
@@ -62,7 +63,7 @@ void main() {
     //f_Color = vec4(distance, 0, 0, 1);
     
     float distance = sdRoundBox(fragCoord - rectHalfSize, rectHalfSize, vec4(radius));
-    float border = sdf_border(distance, 10.0f);
+    float border = sdf_border(distance, borderSize.x);
     float fill = sdf_fill(distance, 0.5f);
 
     vec4 fillColor   = color; // red
