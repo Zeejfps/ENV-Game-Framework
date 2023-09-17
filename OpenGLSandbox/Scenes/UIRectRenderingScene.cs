@@ -103,8 +103,8 @@ public sealed unsafe class UIRectRenderingScene : IScene
             {
                 Color = new Vector4(0f, 1f, 0f, 1f),
                 BorderSize = BorderSize.FromTRBL(0f, 0f, 0f, 0f),
-                BorderRadius = new Vector4(20f, 10f, 50f, 5f),
-                Rect = new Rect(0f, 0f, 20f, 10f)
+                BorderRadius = new Vector4(20f, 10f, 10f, 5f),
+                Rect = new Rect(0f, 0f, 100f, 50f)
             });
         }
 
@@ -127,8 +127,16 @@ public sealed unsafe class UIRectRenderingScene : IScene
             .WithVertexShader("Assets/uirect.vert.glsl")
             .WithFragmentShader("Assets/uirect.frag.glsl")
             .Build();
+
+        var projectionMatrixUniformLocation = glGetUniformLocation(m_ShaderProgram, "projection_matrix");
+        AssertNoGlError();
         
         glUseProgram(m_ShaderProgram);
+        AssertNoGlError();
+        
+        var projection = Matrix4x4.CreateOrthographic(400f, 400f, 0.1f, 100f);
+        float* ptr = &projection.M11;
+        glUniformMatrix4fv(projectionMatrixUniformLocation, 1, false, ptr);
         AssertNoGlError();
         
         glClearColor(0.2f, 0.1f, 0.7f, 1f);

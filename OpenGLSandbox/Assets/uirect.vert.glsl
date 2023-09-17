@@ -6,6 +6,8 @@ layout(location = 2) in vec4 v_Color;
 layout(location = 3) in vec4 v_BorderRadius;
 layout(location = 4) in vec4 v_RectInPixels;
 
+uniform mat4 projection_matrix;
+
 out vec4 uvs;
 out vec4 color;
 out vec4 borderRadius;
@@ -15,12 +17,16 @@ void main() {
     uvs = v_Normals;
     color = v_Color;
     borderRadius = v_BorderRadius;
+    rectInPixels = v_RectInPixels;
     
     float rectWidth = v_RectInPixels.z;
     float rectHeight = v_RectInPixels.w;
-    float aspect = rectWidth / rectHeight;
+    
+    float rectHalfWidth = rectWidth * 0.5f;
+    float rectHalfHeight = rectHeight * 0.5f;
     
     vec4 position = v_Position;
-    position.y /= aspect;
-    gl_Position = position;
+    position.x *= rectHalfWidth + rectHalfWidth;
+    position.y *= rectHalfHeight + rectHalfHeight;
+    gl_Position = projection_matrix * position;
 }
