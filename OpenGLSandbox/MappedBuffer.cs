@@ -1,22 +1,23 @@
-﻿using OpenGL;
+﻿using static OpenGL.Gl;
+using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
-public sealed class MappedBuffer<T> : IDisposable where T : struct
+public sealed unsafe class MappedBuffer<T> : IDisposable where T : struct
 {
     private readonly int m_Target;
     private readonly int m_BufferSize;
-    private readonly unsafe void* m_BufferPtr;
+    private readonly void* m_BufferPtr;
 
     private int m_Index;
     private bool m_IsDisposed;
 
-    public unsafe MappedBuffer(int target, int size)
+    public MappedBuffer(int target, int size)
     {
         m_Target = target;
         
-        m_BufferPtr = (void*)Gl.glMapBuffer(m_Target, Gl.GL_WRITE_ONLY);
-        Utils_GL.AssertNoGlError();
+        m_BufferPtr = (void*)glMapBuffer(m_Target, GL_WRITE_ONLY);
+        AssertNoGlError();
         
         m_BufferSize = size;
     }
@@ -27,11 +28,11 @@ public sealed class MappedBuffer<T> : IDisposable where T : struct
             return;
         
         m_IsDisposed = true;
-        Gl.glUnmapBuffer(m_Target);
-        Utils_GL.AssertNoGlError();
+        glUnmapBuffer(m_Target);
+        AssertNoGlError();
     }
 
-    public unsafe void Write(T data)
+    public void Write(T data)
     {
         if (m_IsDisposed)
             throw new Exception("Is Disposed!");
