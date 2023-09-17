@@ -3,7 +3,7 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
-public sealed unsafe class MappedBuffer<T> : IDisposable where T : struct
+public sealed unsafe class Buffer<T> : IDisposable where T : unmanaged
 {
     private readonly int m_Target;
     private readonly int m_BufferSize;
@@ -12,7 +12,13 @@ public sealed unsafe class MappedBuffer<T> : IDisposable where T : struct
     private int m_Index;
     private bool m_IsDisposed;
 
-    public MappedBuffer(int target, int size)
+    public static Buffer<T> Allocate(int target, int size, int usage)
+    {
+        glBufferData(target, size * sizeof(T), IntPtr.Zero, usage);
+        return new Buffer<T>(target, size);
+    }
+    
+    public Buffer(int target, int size)
     {
         m_Target = target;
         

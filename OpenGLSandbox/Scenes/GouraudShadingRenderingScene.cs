@@ -6,21 +6,21 @@ namespace OpenGLSandbox;
 using static Gl;
 using static Utils_GL;
 
-public struct Triangle
-{
-    public Vertex V1;
-    public Vertex V2;
-    public Vertex V3;
-}
-
-public struct Vertex
-{
-    public Vector4 Color;
-    public Vector2 Position;
-}
-
 public sealed unsafe class GouraudShadingRenderingScene : IScene
 {
+    struct Triangle
+    {
+        public Vertex V1;
+        public Vertex V2;
+        public Vertex V3;
+    }
+
+    struct Vertex
+    {
+        public Vector4 Color;
+        public Vector2 Position;
+    }
+    
     private const int TriangleCount = 2;
     
     private uint m_Vao;
@@ -44,7 +44,7 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
         glBufferData(GL_ARRAY_BUFFER, TriangleCount * sizeof(Triangle), IntPtr.Zero, GL_STATIC_DRAW);
         AssertNoGlError();
 
-        using (var buffer = new MappedBuffer<Triangle>(GL_ARRAY_BUFFER, TriangleCount))
+        using (var buffer = new Buffer<Triangle>(GL_ARRAY_BUFFER, TriangleCount))
         {
             buffer.Write(new Triangle
             {
@@ -85,10 +85,10 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
             });
         }
 
-        glVertexAttribPointer(0, 4, GL_FLOAT, false, sizeof(Vertex), (void*)0);
+        glVertexAttribPointer(0, 4, GL_FLOAT, false, sizeof(Vertex), Offset(0));
         glEnableVertexAttribArray(0);
 
-        glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(Vertex), (void*)sizeof(Vector4));
+        glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(Vertex), Offset(sizeof(Vector4)));
         glEnableVertexAttribArray(1);
 
         m_ShaderProgram = new ShaderProgramBuilder()
