@@ -15,8 +15,9 @@ public sealed class OpenGlSandboxGame : Game
     {
         m_Scenes = new IScene[]
         {
+            new GouraudShadingRenderingScene(),
             new BasicRenderingScene(),
-            new MappedBufferRenderingScene()
+            new MappedBufferRenderingScene(),
         };
 
         m_CurrentSceneIndex = 0;

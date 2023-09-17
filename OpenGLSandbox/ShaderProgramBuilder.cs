@@ -54,10 +54,6 @@ public sealed class ShaderProgramBuilder
             AssertNoGlError();
             Console.WriteLine($"Linking Failed: {log}");
         }
-        else
-        {
-            Console.WriteLine("Linking succeeded");
-        }
         
         glDeleteShader(vertexShader);
         AssertNoGlError();
