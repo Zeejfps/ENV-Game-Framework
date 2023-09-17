@@ -22,7 +22,7 @@ public sealed class MyGame : Game
     {
     }
 
-    protected override void OnRender()
+    protected override void OnFixedUpdate()
     {
     }
 
@@ -41,5 +41,3 @@ var builder = new GameBuilder();
 var game = builder.Build<MyGame>();
 game.Launch();
 ```
-
-# Rendering
