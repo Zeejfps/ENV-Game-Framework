@@ -101,10 +101,10 @@ public sealed unsafe class UIRectRenderingScene : IScene
         {
             buffer.Write(new PerInstanceAttribs
             {
-                Color = new Vector4(0f, 1f, 0f, 1f),
+                Color = new Vector4(1f, 0.5f, 0.6f, 1f),
                 BorderSize = BorderSize.FromTRBL(0f, 0f, 0f, 0f),
-                BorderRadius = new Vector4(5f, 5f, 5f, 5f),
-                Rect = new Rect(100f, 100f, 100f, 30f)
+                BorderRadius = new Vector4(50f, 50f, 50f, 50f),
+                Rect = new Rect(100f, 100f, 500f, 300f)
             });
         }
 

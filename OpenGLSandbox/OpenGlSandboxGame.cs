@@ -28,7 +28,7 @@ public sealed class OpenGlSandboxGame : Game
     protected override void OnStartup()
     {
         Window.SetScreenSize(640, 640);
-
+        Window.IsResizable = true;
         m_Scenes[m_CurrentSceneIndex].Load();
         
         Input.Keyboard.KeyPressed += Keyboard_OnKeyPressed;
