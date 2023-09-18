@@ -38,6 +38,31 @@ void main() {
     vec2 rectHalfSize = rectSize / 2.0f;
     vec2 fragCoord = uvs.xy * rectSize;
     float radius;
+    float size;
+    
+    if (uvs.x > 0.5) {
+        if (uvs.y > uvs.x) {
+            size = borderSize.x; // Top
+        }
+        else if (1.0 - uvs.y > uvs.x ){
+            size = borderSize.z; // Bottom
+        }
+        else {
+            size = borderSize.y; // Right
+        }
+    }
+    else {
+        if (uvs.y > (1.0 - uvs.x)) {
+            size = borderSize.x; // Top
+        }
+        else if (1.0 - uvs.y > (1.0 -uvs.x)) {
+            size = borderSize.z; // Bottom
+        }
+        else {
+            size = borderSize.w; // Left
+        }
+    }
+    
     if (uvs.x > 0.5) {
         if (uvs.y > 0.5) {
             // Top Right
@@ -63,13 +88,24 @@ void main() {
     //f_Color = vec4(distance, 0, 0, 1);
     
     float distance = sdRoundBox(fragCoord - rectHalfSize, rectHalfSize, vec4(radius));
-    float border = sdf_border(distance, borderSize.x);
+    float border = sdf_border(distance, size);
     float fill = sdf_fill(distance, 0.5f);
 
     vec4 fillColor   = color; // red
     
-    f_Color = color_blend(f_Color, vec4(fillColor   * fill));
-    f_Color = color_blend(f_Color, vec4(borderColor * border));
+    if (fragCoord.x <= 10.0f || fragCoord.x >= rectSize.x - 10.0f || fragCoord.y <= 10.0f)
+    {
+        // Inside the inner rectangle, set the fragment color to the fill color
+        f_Color = vec4(borderColor.rgb, 1.0f-distance);
+    }
+    
+
+    //    else {
+//        f_Color = color_blend(f_Color, vec4(fillColor   * fill));
+//    }
+    
+    
+    //f_Color = color_blend(f_Color, vec4(borderColor * border));
     
     //float alpha = 1.0f - clamp(distance, 0, 1);
     //f_Color = vec4(color.rgb * alpha, alpha);
