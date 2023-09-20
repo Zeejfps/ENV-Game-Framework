@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
 using static OpenGL.Gl;
 using static OpenGLSandbox.Utils_GL;
 
@@ -7,7 +6,7 @@ namespace OpenGLSandbox;
 
 public sealed unsafe class UIRectRenderingScene : IScene
 {
-    private const int InstanceCount = 1;
+    private const int InstanceCount = 2;
     private const int TriangleCount = 2;
     
     struct Triangle
@@ -107,6 +106,14 @@ public sealed unsafe class UIRectRenderingScene : IScene
                 BorderSize = BorderSize.FromTRBL(60f, 00f, 00f, 10f),
                 BorderRadius = new Vector4(80f, 50f, 0f, 50f),
                 Rect = new Rect(100f, 100f, 500f, 300f)
+            });
+            buffer.Write(new PerInstanceAttribs
+            {
+                Color = new Vector4(1.0f, 0f, 1.0f, 1f),
+                BorderColor = new Vector4(0f,0.3f, 1f, 1f),
+                BorderRadius = new Vector4(5f, 5f, 5f, 5f),
+                BorderSize = BorderSize.FromTRBL(5f, 5f, 5f, 5f),
+                Rect = new Rect(10f, 10f, 200f, 100f)
             });
         }
 
@@ -208,7 +215,7 @@ public sealed unsafe class UIRectRenderingScene : IScene
     public void Render()
     {
         glClear(GL_COLOR_BUFFER_BIT);
-        glDrawArrays(GL_TRIANGLES, 0, TriangleCount * 3);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, TriangleCount * 3, InstanceCount);
         glFlush();
     }
 
