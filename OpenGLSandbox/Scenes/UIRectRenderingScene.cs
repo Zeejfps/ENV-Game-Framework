@@ -142,7 +142,7 @@ public sealed unsafe class UIRectRenderingScene : IScene
         
         m_ShaderProgram = new ShaderProgramBuilder()
             .WithVertexShader("Assets/uirect.vert.glsl")
-            .WithFragmentShader("Assets/uirectnew2.frag.glsl")
+            .WithFragmentShader("Assets/uirect.frag.glsl")
             .Build();
 
         var projectionMatrixUniformLocation = glGetUniformLocation(m_ShaderProgram, "projection_matrix");

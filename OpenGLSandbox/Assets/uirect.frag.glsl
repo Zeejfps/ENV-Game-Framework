@@ -1,6 +1,4 @@
-﻿#version 430
-
-in vec4 uvs;
+﻿in vec4 uvs;
 in vec4 color;
 in vec4 borderSize;
 in vec4 borderColor;
@@ -9,104 +7,60 @@ in vec4 rectInPixels;
 
 out vec4 f_Color;
 
-vec4 color_blend(vec4 dst, vec4 src) {
-    return dst * (1.0 - src.a) + src * src.a;
-}
+bool is_inside_ellipse(vec2 testPoint, vec2 ellipseCenter, vec2 ellipseSize) {
+    float x = testPoint.x;
+    float y = testPoint.y;
+    float h = ellipseCenter.x;
+    float k = ellipseCenter.y;
 
-float sdRoundBox( in vec2 p, in vec2 b, in vec4 r ){
-    r.xy = (p.x>0.0)?r.xy : r.zw;
-    r.x  = (p.y>0.0)?r.x  : r.y;
-    vec2 q = abs(p)-b+r.x;
-    return min(max(q.x,q.y),0.0) + length(max(q,0.0)) - r.x;
-}
+    float ellipseWidth = pow(ellipseSize.x, 2.0);
+    float ellipseHeight = pow(ellipseSize.y, 2.0);
 
-//float roundedBoxSDF(vec2 CenterPosition, vec2 Size, float Radius) {
-//    return length(max(abs(CenterPosition)-Size+Radius,0.0))-Radius;
-//}
-
-float sdf_border(in float d, in float thickness) {
-    return d <= 0.0 ? 1.0 - smoothstep(thickness - 0.4, thickness + 0.4, abs(d)) : 0.0;
-}
-
-float sdf_fill(float d, float softness) {
-    d = 1.0 - d;
-    return smoothstep(1.0 - softness, 1.0 + softness, d);
+    float result = pow((x - h), 2.0f) / ellipseWidth + pow((y - k),2.0f) / ellipseHeight;
+    
+    return result <= 1;
 }
 
 void main() {
-    vec2 rectSize = vec2(rectInPixels.z, rectInPixels.w);
-    vec2 rectHalfSize = rectSize / 2.0f;
-    vec2 fragCoord = uvs.xy * rectSize;
-    float radius;
-    float size;
+
+    float rectHeight = rectInPixels.w;
+    float rectHalfHeight = rectHeight / 2.0f;
     
-    if (uvs.x > 0.5) {
-        if (uvs.y > uvs.x) {
-            size = borderSize.x; // Top
+    float rectWidth = rectInPixels.z;
+    float rectHalfWidth = rectWidth / 2.0f;
+    
+    vec2 rectHalfSize = vec2(rectHalfWidth, rectHalfHeight);
+    
+    vec2 fragCoord = uvs.xy * rectInPixels.zw - rectHalfSize;
+    fragCoord = abs(fragCoord);
+
+    float radius = uvs.x > 0.5f ? uvs.y > 0.5f ? borderRadius.y : borderRadius.z : uvs.y > 0.5f ? borderRadius.x : borderRadius.w;
+    //float radius = uvs.x > 0.5f ? borderRadius.y : borderRadius.x;
+    float borderWidth = uvs.x > 0.5f ? borderSize.y : borderSize.w;
+    float borderHeight = uvs.y > 0.5 ? borderSize.x : borderSize.z;
+
+    vec2 pivotPosition = vec2(rectHalfWidth - radius, rectHalfHeight - radius);
+    
+    if (fragCoord.x > pivotPosition.x && fragCoord.y > pivotPosition.y) {
+        float distance = length(fragCoord - pivotPosition);
+        if (distance > radius) {
+            discard;
         }
-        else if (1.0 - uvs.y > uvs.x ){
-            size = borderSize.z; // Bottom
-        }
-        else {
-            size = borderSize.y; // Right
+
+        if (borderHeight < radius && borderWidth < radius) {
+            bool isInsideEllipse = is_inside_ellipse(fragCoord.xy, pivotPosition, vec2((radius - borderWidth), (radius - borderHeight)));
+            if (isInsideEllipse) {
+                f_Color = color;
+                return;
+            }
         }
     }
     else {
-        if (uvs.y > (1.0 - uvs.x)) {
-            size = borderSize.x; // Top
-        }
-        else if (1.0 - uvs.y > (1.0 -uvs.x)) {
-            size = borderSize.z; // Bottom
-        }
-        else {
-            size = borderSize.w; // Left
+        if (fragCoord.x < rectHalfWidth - borderWidth && fragCoord.y < rectHalfHeight - borderHeight){
+            f_Color = color;
+            return;
         }
     }
     
-    if (uvs.x > 0.5) {
-        if (uvs.y > 0.5) {
-            // Top Right
-            radius = borderRadius.y;
-        }
-        else {
-            // Bottom Right
-            radius = borderRadius.z;
-        }
-    }
-    else  {  
-        if (uvs.y > 0.5) {
-            // Top Left
-            radius = borderRadius.x;
-        }
-        else {
-            // Bottom Left
-            radius = borderRadius.w;
-        }
-    }
-    
-    //float distance = roundedBoxSDF(fragCoord - rectHalfSize, rectHalfSize, radius);
-    //f_Color = vec4(distance, 0, 0, 1);
-    
-    float distance = sdRoundBox(fragCoord - rectHalfSize, rectHalfSize, vec4(radius));
-    float border = sdf_border(distance, size);
-    float fill = sdf_fill(distance, 0.5f);
-
-    vec4 fillColor   = color; // red
-    
-    if (fragCoord.x <= 10.0f || fragCoord.x >= rectSize.x - 10.0f || fragCoord.y <= 10.0f)
-    {
-        // Inside the inner rectangle, set the fragment color to the fill color
-        f_Color = vec4(borderColor.rgb, 1.0f-distance);
-    }
-    
-
-    //    else {
-//        f_Color = color_blend(f_Color, vec4(fillColor   * fill));
-//    }
-    
-    
-    //f_Color = color_blend(f_Color, vec4(borderColor * border));
-    
-    //float alpha = 1.0f - clamp(distance, 0, 1);
-    //f_Color = vec4(color.rgb * alpha, alpha);
+    f_Color = borderColor;
 }
