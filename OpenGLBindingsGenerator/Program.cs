@@ -26,6 +26,8 @@ var removedCommands = removed
     .Select(commandElement => commandElement.GetAttribute("name"))
     .ToImmutableHashSet();
 
+Console.WriteLine($"Removed Commands: {removedCommands.Count}");
+
 var removedEnums = removed
     .SelectMany(removeElement => removeElement.GetElementsByTagName("enum").Cast<XmlElement>())
     .Select(enumElement => enumElement.GetAttribute("name"))
@@ -37,21 +39,53 @@ var requiredEnums = glFeatures
     .Where(name => !removedEnums.Contains(name))
     .ToImmutableHashSet();
 
-var enumNameToValueMap = root.GetElementsByTagName("enums").Cast<XmlElement>()
+var requiredCommands = glFeatures
+    .SelectMany(featureElement => featureElement.GetElementsByTagName("command").Cast<XmlElement>())
+    .Select(commandElement => commandElement.GetAttribute("name"))
+    .Where(name => !removedCommands.Contains(name))
+    .ToImmutableHashSet();
+
+Console.WriteLine($"Required Commands: {requiredCommands.Count}");
+
+var enumsToProcess = root.GetElementsByTagName("enums").Cast<XmlElement>()
     .SelectMany(group => group.GetElementsByTagName("enum").Cast<XmlElement>())
     .Where(enumElement => requiredEnums.Contains(enumElement.GetAttribute("name")))
     .ToImmutableArray();
+
+var commandsToProcess = root.GetElementsByTagName("commands").Cast<XmlElement>()
+    .SelectMany(group => group.GetElementsByTagName("command").Cast<XmlElement>())
+    //.Where(commandElement => requiredCommands.Contains(commandElement.ChildNodes[0].ChildNodes[0].Value))
+    .ToImmutableArray();
+
+Console.WriteLine($"Commands to process: {commandsToProcess.Length}");
+Console.WriteLine(commandsToProcess[0].ChildNodes[0].ChildNodes[0].Value);
 
 using (var writer = new StreamWriter(outPath))
 {
     writer.WriteLine("public static unsafe class Test");
     writer.WriteLine("{");
 
-    foreach (var element in enumNameToValueMap)
+    foreach (var element in enumsToProcess)
     {
         var name = element.GetAttribute("name");
         var value = element.GetAttribute("value");
         writer.WriteLine($"\tpublic const int {name} = {value};");
+    }
+
+    writer.WriteLine();
+    
+    for (var i = 0; i < 10; i++)
+    {
+        var command = commandsToProcess[i];
+        var proto = command.GetElementsByTagName("proto").Cast<XmlElement>().First();
+        var returnType = "void";
+        var functionName = proto.GetElementsByTagName("name")
+            .Cast<XmlElement>()
+            .First()
+            .InnerText;
+        writer.WriteLine("\t[UnmanagedFunctionPointer(CallingConvention.Cdecl)]");
+        writer.WriteLine($"\tprivate delegate {returnType} {functionName}Delegate();");
+        writer.WriteLine();
     }
     
     writer.WriteLine("{");
