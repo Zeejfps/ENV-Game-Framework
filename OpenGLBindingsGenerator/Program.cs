@@ -15,8 +15,13 @@ if (root == null)
     return;
 }
 
-var glFeatures = root.GetElementsByTagName("feature").Cast<XmlElement>()
-    .Where(featureNode => featureNode.GetAttribute("api") == "gl");
+// var glFeatures = root.GetElementsByTagName("feature").Cast<XmlElement>()
+//     .Where(featureNode => featureNode.GetAttribute("api") == "gl");
+
+var glFeatures = root
+    .SelectNodes("feature[@api='gl']")!
+    .Cast<XmlElement>()
+    .ToImmutableArray();
 
 var removed = root.GetElementsByTagName("remove").Cast<XmlElement>()
     .ToImmutableArray();
@@ -54,11 +59,12 @@ var enumsToProcess = root.GetElementsByTagName("enums").Cast<XmlElement>()
 
 var commandsToProcess = root.GetElementsByTagName("commands").Cast<XmlElement>()
     .SelectMany(group => group.GetElementsByTagName("command").Cast<XmlElement>())
-    //.Where(commandElement => requiredCommands.Contains(commandElement.ChildNodes[0].ChildNodes[0].Value))
+    .Select(Command.FromXmlElement)
+    .Where(command => requiredCommands.Contains(command.Name))
     .ToImmutableArray();
 
 Console.WriteLine($"Commands to process: {commandsToProcess.Length}");
-Console.WriteLine(commandsToProcess[0].ChildNodes[0].ChildNodes[0].Value);
+// Console.WriteLine(commandsToProcess[0]);
 
 using (var writer = new StreamWriter(outPath))
 {
@@ -73,20 +79,124 @@ using (var writer = new StreamWriter(outPath))
     }
 
     writer.WriteLine();
-    
-    for (var i = 0; i < 10; i++)
+
+    foreach (var command in commandsToProcess)
     {
-        var command = commandsToProcess[i];
-        var proto = command.GetElementsByTagName("proto").Cast<XmlElement>().First();
-        var returnType = "void";
-        var functionName = proto.GetElementsByTagName("name")
-            .Cast<XmlElement>()
-            .First()
-            .InnerText;
         writer.WriteLine("\t[UnmanagedFunctionPointer(CallingConvention.Cdecl)]");
-        writer.WriteLine($"\tprivate delegate {returnType} {functionName}Delegate();");
+        writer.Write($"\tprivate delegate {command.ReturnType} {command.Name}Delegate(");
+        var paramsString = "";
+        foreach (var param in command.Params)
+        {
+            paramsString += $"{param.Type} {param.Name}, ";
+        }
+
+        if (!string.IsNullOrEmpty(paramsString))
+            paramsString = paramsString.Substring(0, paramsString.Length - 2);
+        
+        writer.Write(paramsString);
+        writer.WriteLine(");");
+        
         writer.WriteLine();
     }
     
-    writer.WriteLine("{");
+    writer.WriteLine("}");
+}
+
+
+static class Utils
+{
+    public static Dictionary<string, string> glTypeToDotNetTypeTable = new()
+    {
+        {"GLenum", "int"},
+        {"GLbitfield", "int"},
+        {"GLint", "int"},
+        {"GLuint", "uint"},
+        {"GLsizei", "uint"},
+        {"GLuint64", "ulong"},
+        {"GLubyte", "byte"},
+        {"GLboolean", "bool"},
+        {"GLfloat", "float"},
+        {"GLdouble", "double"},
+        {"GLintptr", "IntPtr"},
+    };
+}
+
+struct Param
+{
+    public string Type;
+    public string Name;
+}
+
+struct Command
+{
+    public string Name;
+    public string ReturnType;
+    public Param[] Params;
+    
+    public static Command FromXmlElement(XmlElement element)
+    {
+        var command = new Command();
+        var protoNode = element.SelectSingleNode("proto");
+        if (protoNode != null)
+        {
+            var ptypeNode = protoNode.SelectSingleNode("ptype");
+            if (ptypeNode != null)
+            {
+                var returnType = ptypeNode.InnerText;
+                if (Utils.glTypeToDotNetTypeTable.TryGetValue(returnType, out var convertedType))
+                    returnType = convertedType;
+                command.ReturnType = returnType;
+            }
+            else
+            {
+                command.ReturnType = "void";
+            }
+
+            var nameNode = protoNode.SelectSingleNode("name");
+            if (nameNode != null)
+            {
+                command.Name = nameNode.InnerText;
+            }
+        }
+
+        var paramNodes = element.SelectNodes("param");
+        if (paramNodes != null)
+        {
+            command.Params = new Param[paramNodes.Count];
+            var i = 0;
+            foreach (var paramNode in paramNodes.Cast<XmlElement>())
+            {
+                var param = new Param();
+
+                var ptypeNode = paramNode.SelectSingleNode("ptype");
+                if (ptypeNode != null)
+                {
+                    var type = ptypeNode.InnerText;
+                    if (Utils.glTypeToDotNetTypeTable.TryGetValue(type, out var convertedType))
+                        type = convertedType;
+                    param.Type = type;
+                    
+                    var nameNode = paramNode.SelectSingleNode("name");
+                    if (nameNode != null)
+                    {
+                        param.Name = nameNode.InnerText;
+                    }
+                }
+                else
+                {
+                    param.Type = paramNode.InnerText.Replace("const", "").Trim();
+                }
+                
+                command.Params[i] = param;
+                i++;
+            }
+        }
+        else
+        {
+            command.Params = Array.Empty<Param>();
+        }
+
+        return command;
+    }
+    
 }
