@@ -32,8 +32,16 @@ public unsafe class BasicTextureRenderingScene : IScene
         glBindTexture(GL_TEXTURE_2D, textureId);
         AssertNoGlError();
         
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 10, 10);
-        AssertNoGlError();
+        var pixels = new uint[]
+        {
+            0xff00ffff,
+            0xff00ffff
+        };
+        fixed (uint* ptr = &pixels[0])
+        {
+            glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA8, 2, 1, 0, GL_RGBA, GL_UNSIGNED_INT, ptr);
+            AssertNoGlError();
+        }
     }
 
     public void Render()
