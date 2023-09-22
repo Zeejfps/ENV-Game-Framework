@@ -69,6 +69,11 @@ Console.WriteLine($"Commands to process: {commandsToProcess.Length}");
 
 using (var writer = new StreamWriter(outPath))
 {
+    writer.WriteLine("using System.Runtime.InteropServices;");
+    writer.WriteLine("using System.Security;");
+    writer.WriteLine();
+    writer.WriteLine("[System.Diagnostics.CodeAnalysis.SuppressMessage(\"ReSharper\", \"IdentifierTypo\")]");
+    writer.WriteLine("[SuppressUnmanagedCodeSecurity]");
     writer.WriteLine("public static unsafe class Test");
     writer.WriteLine("{");
 
@@ -76,7 +81,7 @@ using (var writer = new StreamWriter(outPath))
     {
         var name = element.GetAttribute("name");
         var value = element.GetAttribute("value");
-        writer.WriteLine($"\tpublic const int {name} = {value};");
+        writer.WriteLine($"\tpublic const uint {name} = {value};");
     }
 
     writer.WriteLine();
@@ -112,7 +117,7 @@ static class Utils
 {
     public static Dictionary<string, string> glTypeToDotNetTypeTable = new()
     {
-        {"GLenum", "int"},
+        {"GLenum", "uint"},
         {"GLbitfield", "int"},
         {"GLint", "int"},
         {"GLuint", "uint"},
@@ -124,9 +129,13 @@ static class Utils
         {"GLfloat", "float"},
         {"GLdouble", "double"},
         {"GLintptr", "IntPtr"},
+        {"GLsizeiptr", "IntPtr"},
+        {"GLDEBUGPROC", "IntPtr"},
+        {"GLsync", "IntPtr"},
         {"GLchar", "char"},
         {"GLshort", "short"},
         {"GLushort", "ushort"},
+        {"GLint64", "long"},
     };
 }
 
@@ -187,7 +196,12 @@ struct Command
                     ptypeNode.InnerText = type;
                 }
                 
-                param.Type = paramNode.InnerText.Replace("const", "").Trim();
+                param.Type = paramNode.InnerText
+                    .Replace("const", "")
+                    .Replace("params", "args")
+                    .Replace("string", "str")
+                    .Replace("ref", "reference")
+                    .Trim();
                 
                 command.Params[i] = param;
                 i++;
