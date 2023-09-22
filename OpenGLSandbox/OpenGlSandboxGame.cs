@@ -15,6 +15,7 @@ public sealed class OpenGlSandboxGame : Game
     {
         m_Scenes = new IScene[]
         {
+            new BasicTextureRenderingScene(),
             new UIRectRenderingScene(),
             new RectNormalsRenderingScene(),
             new GouraudShadingRenderingScene(),
