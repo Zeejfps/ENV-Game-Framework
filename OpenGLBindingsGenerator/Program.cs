@@ -8,7 +8,7 @@ var outPath = args[1];
 var xmlDoc = new XmlDocument();
 xmlDoc.PreserveWhitespace = true;
 xmlDoc.Load(pathToXml);
-
+    
 var root = xmlDoc.DocumentElement;
 if (root == null)
 {
@@ -74,14 +74,17 @@ using (var writer = new StreamWriter(outPath))
     writer.WriteLine();
     writer.WriteLine("[System.Diagnostics.CodeAnalysis.SuppressMessage(\"ReSharper\", \"IdentifierTypo\")]");
     writer.WriteLine("[SuppressUnmanagedCodeSecurity]");
-    writer.WriteLine("public static unsafe class Test");
+    writer.WriteLine("public static unsafe class GL46");
     writer.WriteLine("{");
-
+    
+    writer.WriteLine("\tpublic delegate IntPtr GetProcAddressDelegate(string funcName);");
+    writer.WriteLine();
+    
     foreach (var element in enumsToProcess)
     {
         var name = element.GetAttribute("name");
         var value = element.GetAttribute("value");
-        writer.WriteLine($"\tpublic const uint {name} = {value};");
+        writer.WriteLine($"\tpublic const ulong {name} = {value};");
     }
 
     writer.WriteLine();
@@ -90,7 +93,8 @@ using (var writer = new StreamWriter(outPath))
     foreach (var command in commandsToProcess)
     {
         writer.WriteLine("\t[UnmanagedFunctionPointer(CallingConvention.Cdecl)]");
-        writer.Write($"\tprivate delegate {command.ReturnType} {command.Name}Delegate(");
+        var delegateName = $"{command.Name}Delegate";
+        writer.Write($"\tprivate delegate {command.ReturnType} {delegateName}(");
         var paramsString = "";
         foreach (var param in command.Params)
         {
@@ -102,6 +106,18 @@ using (var writer = new StreamWriter(outPath))
         
         writer.Write(paramsString);
         writer.WriteLine(");");
+
+        var paramNames = "";
+        foreach (var param in command.Params)
+        {
+            paramNames += param.Name + ", ";
+        }
+
+        if (paramNames.Length > 2)
+            paramNames = paramNames.Substring(0, paramNames.Length - 2);
+            
+        writer.WriteLine($"\tprivate static {delegateName} s_{command.Name};");
+        writer.WriteLine($"\tpublic static {command.ReturnType} {command.Name}({paramsString}) => s_{command.Name}({paramNames});");
         
         writer.WriteLine();
         i++;
@@ -110,6 +126,17 @@ using (var writer = new StreamWriter(outPath))
         //     break;
     }
     
+    writer.WriteLine("\tpublic static void Import(GetProcAddressDelegate getProcAddress)");
+    writer.WriteLine("\t{");
+
+    foreach (var command in commandsToProcess)
+    {
+        var delegateName = $"{command.Name}Delegate";
+        writer.WriteLine($"\t\ts_{command.Name} = Marshal.GetDelegateForFunctionPointer<{delegateName}>(getProcAddress(\"{command.Name}\"));");
+    }
+    
+    writer.WriteLine("\t}");
+    
     writer.WriteLine("}");
 }
 
@@ -117,7 +144,7 @@ static class Utils
 {
     public static Dictionary<string, string> glTypeToDotNetTypeTable = new()
     {
-        {"GLenum", "uint"},
+        {"GLenum", "ulong"},
         {"GLbitfield", "int"},
         {"GLint", "int"},
         {"GLuint", "uint"},
@@ -194,6 +221,16 @@ struct Command
                         type = convertedType;
 
                     ptypeNode.InnerText = type;
+                }
+
+                var nameNode = paramNode.SelectSingleNode("name");
+                if (nameNode != null)
+                {
+                    param.Name = nameNode.InnerText.Replace("const", "")
+                        .Replace("params", "args")
+                        .Replace("string", "str")
+                        .Replace("ref", "reference")
+                        .Trim();
                 }
                 
                 param.Type = paramNode.InnerText
