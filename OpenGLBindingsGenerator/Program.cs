@@ -6,6 +6,7 @@ using System.Xml;
 var pathToXml = args[0];
 var outPath = args[1];
 var xmlDoc = new XmlDocument();
+xmlDoc.PreserveWhitespace = true;
 xmlDoc.Load(pathToXml);
 
 var root = xmlDoc.DocumentElement;
@@ -80,6 +81,7 @@ using (var writer = new StreamWriter(outPath))
 
     writer.WriteLine();
 
+    var i = 0;
     foreach (var command in commandsToProcess)
     {
         writer.WriteLine("\t[UnmanagedFunctionPointer(CallingConvention.Cdecl)]");
@@ -87,7 +89,7 @@ using (var writer = new StreamWriter(outPath))
         var paramsString = "";
         foreach (var param in command.Params)
         {
-            paramsString += $"{param.Type} {param.Name}, ";
+            paramsString += $"{param.Type}, ";
         }
 
         if (!string.IsNullOrEmpty(paramsString))
@@ -97,11 +99,14 @@ using (var writer = new StreamWriter(outPath))
         writer.WriteLine(");");
         
         writer.WriteLine();
+        i++;
+
+        // if (i > 10)
+        //     break;
     }
     
     writer.WriteLine("}");
 }
-
 
 static class Utils
 {
@@ -113,11 +118,15 @@ static class Utils
         {"GLuint", "uint"},
         {"GLsizei", "uint"},
         {"GLuint64", "ulong"},
+        {"GLbyte", "sbyte"},
         {"GLubyte", "byte"},
         {"GLboolean", "bool"},
         {"GLfloat", "float"},
         {"GLdouble", "double"},
         {"GLintptr", "IntPtr"},
+        {"GLchar", "char"},
+        {"GLshort", "short"},
+        {"GLushort", "ushort"},
     };
 }
 
@@ -167,25 +176,18 @@ struct Command
             foreach (var paramNode in paramNodes.Cast<XmlElement>())
             {
                 var param = new Param();
-
+                
                 var ptypeNode = paramNode.SelectSingleNode("ptype");
                 if (ptypeNode != null)
                 {
                     var type = ptypeNode.InnerText;
                     if (Utils.glTypeToDotNetTypeTable.TryGetValue(type, out var convertedType))
                         type = convertedType;
-                    param.Type = type;
-                    
-                    var nameNode = paramNode.SelectSingleNode("name");
-                    if (nameNode != null)
-                    {
-                        param.Name = nameNode.InnerText;
-                    }
+
+                    ptypeNode.InnerText = type;
                 }
-                else
-                {
-                    param.Type = paramNode.InnerText.Replace("const", "").Trim();
-                }
+                
+                param.Type = paramNode.InnerText.Replace("const", "").Trim();
                 
                 command.Params[i] = param;
                 i++;
