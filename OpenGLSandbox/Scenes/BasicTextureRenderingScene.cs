@@ -24,51 +24,47 @@ struct Triangle
 }
 
 [StructLayout(LayoutKind.Sequential)]
-struct Quad
+readonly struct Quad
 {
-    public readonly Triangle T1;
-    public readonly Triangle T2;
-
-    public Quad()
+    public readonly Triangle T1 = new()
     {
-        T1 = new Triangle
+        V1 =
         {
-            V1 =
-            {
-                Position = new Vector2(-1f, -1f),
-                TexCoords = new Vector2(0f, 0f)
-            },
-            V2 =
-            {
-                Position = new Vector2(1f, -1f),
-                TexCoords = new Vector2(1f, 0f)
-            },
-            V3 =
-            {
-                Position = new Vector2(-1f, 1f),
-                TexCoords = new Vector2(0f, 1f)
-            }
-        };
+            Position = new Vector2(-1f, -1f),
+            TexCoords = new Vector2(0f, 0f)
+        },
+        V2 =
+        {
+            Position = new Vector2(1f, -1f),
+            TexCoords = new Vector2(1f, 0f)
+        },
+        V3 =
+        {
+            Position = new Vector2(-1f, 1f),
+            TexCoords = new Vector2(0f, 1f)
+        }
+    };
+    
+    public readonly Triangle T2 = new()
+    {
+        V1 =
+        {
+            Position = new Vector2(1f, -1f),
+            TexCoords = new Vector2(1f, 0f)
+        },
+        V2 =
+        {
+            Position = new Vector2(1f, 1f),
+            TexCoords = new Vector2(1f, 1f)
+        },
+        V3 =
+        {
+            Position = new Vector2(-1f, 1f),
+            TexCoords = new Vector2(0f, 1f)
+        }
+    };
 
-        T2 = new Triangle
-        {
-            V1 =
-            {
-                Position = new Vector2(1f, -1f),
-                TexCoords = new Vector2(1f, 0f)
-            },
-            V2 =
-            {
-                Position = new Vector2(1f, 1f),
-                TexCoords = new Vector2(1f, 1f)
-            },
-            V3 =
-            {
-                Position = new Vector2(-1f, 1f),
-                TexCoords = new Vector2(0f, 1f)
-            }
-        };
-    }
+    public Quad(){}
 }
 
 public unsafe class BasicTextureRenderingScene : IScene
