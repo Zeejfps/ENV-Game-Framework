@@ -94,7 +94,7 @@ using (var writer = new StreamWriter(outPath))
     {
         writer.WriteLine("\t[UnmanagedFunctionPointer(CallingConvention.Cdecl)]");
         var delegateName = $"{command.Name}Delegate";
-        writer.Write($"\tprivate delegate {command.ReturnType} {delegateName}(");
+        writer.Write($"\tprivate delegate {command.Prototype}Delegate(");
         var paramsString = "";
         foreach (var param in command.Params)
         {
@@ -117,7 +117,7 @@ using (var writer = new StreamWriter(outPath))
             paramNames = paramNames.Substring(0, paramNames.Length - 2);
             
         writer.WriteLine($"\tprivate static {delegateName} s_{command.Name};");
-        writer.WriteLine($"\tpublic static {command.ReturnType} {command.Name}({paramsString}) => s_{command.Name}({paramNames});");
+        writer.WriteLine($"\tpublic static {command.Prototype}({paramsString}) => s_{command.Name}({paramNames});");
         
         writer.WriteLine();
         i++;
@@ -174,8 +174,8 @@ struct Param
 
 struct Command
 {
+    public string Prototype;
     public string Name;
-    public string ReturnType;
     public Param[] Params;
     
     public static Command FromXmlElement(XmlElement element)
@@ -190,12 +190,14 @@ struct Command
                 var returnType = ptypeNode.InnerText;
                 if (Utils.glTypeToDotNetTypeTable.TryGetValue(returnType, out var convertedType))
                     returnType = convertedType;
-                command.ReturnType = returnType;
+                ptypeNode.InnerText = returnType;
             }
-            else
-            {
-                command.ReturnType = "void";
-            }
+
+            var pattern = @"\btest\b";
+            command.Prototype = protoNode.InnerText.Replace("const", "")
+                .Replace("params ", "args")
+                .Replace("string ", "str")
+                .Replace("ref ", "reference");
 
             var nameNode = protoNode.SelectSingleNode("name");
             if (nameNode != null)

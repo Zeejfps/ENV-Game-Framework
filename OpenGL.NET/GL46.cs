@@ -2710,14 +2710,14 @@ public static unsafe class GL46
 	public static void glGetShaderiv(uint shader, int pname, int *args) => s_glGetShaderiv(shader, pname, args);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate byte glGetStringDelegate(int name);
+	private delegate  byte *glGetStringDelegate(int name);
 	private static glGetStringDelegate s_glGetString;
-	public static byte glGetString(int name) => s_glGetString(name);
+	public static  byte *glGetString(int name) => s_glGetString(name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate byte glGetStringiDelegate(int name, uint index);
+	private delegate  byte *glGetStringiDelegate(int name, uint index);
 	private static glGetStringiDelegate s_glGetStringi;
-	public static byte glGetStringi(int name, uint index) => s_glGetStringi(name, index);
+	public static  byte *glGetStringi(int name, uint index) => s_glGetStringi(name, index);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate uint glGetSubroutineIndexDelegate(uint program, int shadertype, char *name);
@@ -3140,24 +3140,24 @@ public static unsafe class GL46
 	public static void glLogicOp(int opcode) => s_glLogicOp(opcode);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glMapBufferDelegate(int target, int access);
+	private delegate void *glMapBufferDelegate(int target, int access);
 	private static glMapBufferDelegate s_glMapBuffer;
-	public static void glMapBuffer(int target, int access) => s_glMapBuffer(target, access);
+	public static void *glMapBuffer(int target, int access) => s_glMapBuffer(target, access);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glMapBufferRangeDelegate(int target, IntPtr offset, IntPtr length, int access);
+	private delegate void *glMapBufferRangeDelegate(int target, IntPtr offset, IntPtr length, int access);
 	private static glMapBufferRangeDelegate s_glMapBufferRange;
-	public static void glMapBufferRange(int target, IntPtr offset, IntPtr length, int access) => s_glMapBufferRange(target, offset, length, access);
+	public static void *glMapBufferRange(int target, IntPtr offset, IntPtr length, int access) => s_glMapBufferRange(target, offset, length, access);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glMapNamedBufferDelegate(uint buffer, int access);
+	private delegate void *glMapNamedBufferDelegate(uint buffer, int access);
 	private static glMapNamedBufferDelegate s_glMapNamedBuffer;
-	public static void glMapNamedBuffer(uint buffer, int access) => s_glMapNamedBuffer(buffer, access);
+	public static void *glMapNamedBuffer(uint buffer, int access) => s_glMapNamedBuffer(buffer, access);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glMapNamedBufferRangeDelegate(uint buffer, IntPtr offset, IntPtr length, int access);
+	private delegate void *glMapNamedBufferRangeDelegate(uint buffer, IntPtr offset, IntPtr length, int access);
 	private static glMapNamedBufferRangeDelegate s_glMapNamedBufferRange;
-	public static void glMapNamedBufferRange(uint buffer, IntPtr offset, IntPtr length, int access) => s_glMapNamedBufferRange(buffer, offset, length, access);
+	public static void *glMapNamedBufferRange(uint buffer, IntPtr offset, IntPtr length, int access) => s_glMapNamedBufferRange(buffer, offset, length, access);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glMemoryBarrierDelegate(int barriers);
