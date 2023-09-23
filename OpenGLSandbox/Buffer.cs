@@ -1,4 +1,4 @@
-﻿using static OpenGL.Gl;
+﻿using static GL46;
 using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
@@ -14,7 +14,7 @@ public sealed unsafe class Buffer<T> : IDisposable where T : unmanaged
 
     public static Buffer<T> AllocateAndMap(int target, int size, int usage)
     {
-        glBufferData(target, size * sizeof(T), IntPtr.Zero, usage);
+        glBufferData(target, new IntPtr(size * sizeof(T)), (void*)0, usage);
         return new Buffer<T>(target, size);
     }
     
@@ -22,7 +22,7 @@ public sealed unsafe class Buffer<T> : IDisposable where T : unmanaged
     {
         m_Target = target;
         
-        m_BufferPtr = (void*)glMapBuffer(m_Target, GL_WRITE_ONLY);
+        m_BufferPtr = glMapBuffer(m_Target, GL_WRITE_ONLY);
         AssertNoGlError();
         
         m_BufferSize = size;
