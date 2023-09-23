@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using static GL46;
@@ -6,6 +7,14 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
+[StructLayout(LayoutKind.Sequential)]
+struct Vertex
+{
+    public Vector2 Position;
+    public Vector2 TexCoords;
+}
+
+[StructLayout(LayoutKind.Sequential)]
 struct Triangle
 {
     public Vertex V1;
@@ -13,10 +22,52 @@ struct Triangle
     public Vertex V3;
 }
 
-struct Vertex
+[StructLayout(LayoutKind.Sequential)]
+struct Quad
 {
-    public Vector2 Position;
-    public Vector2 UVs;
+    public readonly Triangle T1;
+    public readonly Triangle T2;
+
+    public Quad()
+    {
+        T1 = new Triangle
+        {
+            V1 =
+            {
+                Position = new Vector2(-1f, -1f),
+                TexCoords = new Vector2(0f, 0f)
+            },
+            V2 =
+            {
+                Position = new Vector2(1f, -1f),
+                TexCoords = new Vector2(1f, 0f)
+            },
+            V3 =
+            {
+                Position = new Vector2(-1f, 1f),
+                TexCoords = new Vector2(0f, 1f)
+            }
+        };
+
+        T2 = new Triangle
+        {
+            V1 =
+            {
+                Position = new Vector2(1f, -1f),
+                TexCoords = new Vector2(1f, 0f)
+            },
+            V2 =
+            {
+                Position = new Vector2(1f, 1f),
+                TexCoords = new Vector2(1f, 1f)
+            },
+            V3 =
+            {
+                Position = new Vector2(-1f, 1f),
+                TexCoords = new Vector2(0f, 1f)
+            }
+        };
+    }
 }
 
 public unsafe class BasicTextureRenderingScene : IScene
@@ -43,7 +94,7 @@ public unsafe class BasicTextureRenderingScene : IScene
     private uint glGenVertexArray()
     {
         uint vaoId;
-        GL46.glGenVertexArrays(1, &vaoId);
+        glGenVertexArrays(1, &vaoId);
         return vaoId;
     }
     
@@ -56,52 +107,17 @@ public unsafe class BasicTextureRenderingScene : IScene
         
         m_Vbo = getGenBuffer();
         glBindBuffer(GL_ARRAY_BUFFER, m_Vbo);
-        
-        using (var buffer = Buffer<Triangle>.Allocate(GL_ARRAY_BUFFER, 2, GL_STATIC_DRAW))
+
+        var quad = new Quad();
+        using (var buffer = Buffer<Quad>.AllocateAndMap(GL_ARRAY_BUFFER, 1, GL_STATIC_DRAW))
         {
-            buffer.Write(new Triangle
-            {
-                V1 =
-                {
-                    Position = new Vector2(-1f, -1f),
-                    UVs = new Vector2(0f, 0f)
-                },
-                V2 =
-                {
-                    Position = new Vector2(1f, -1f),
-                    UVs = new Vector2(1f, 0f)
-                },
-                V3 =
-                {
-                    Position = new Vector2(-1f, 1f),
-                    UVs = new Vector2(0f, 1f)
-                }
-            });
-            
-            buffer.Write(new Triangle
-            {
-                V1 =
-                {
-                    Position = new Vector2(1f, -1f),
-                    UVs = new Vector2(1f, 0f)
-                },
-                V2 =
-                {
-                    Position = new Vector2(1f, 1f),
-                    UVs = new Vector2(1f, 1f)
-                },
-                V3 =
-                {
-                    Position = new Vector2(-1f, 1f),
-                    UVs = new Vector2(0f, 1f)
-                }
-            });
+            buffer.Write(quad);
         }
         
         glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof(Vertex), Offset(0));
         glEnableVertexAttribArray(0);
         
-        glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(Vertex), Offset<Vertex>(nameof(Vertex.UVs)));
+        glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(Vertex), Offset<Vertex>(nameof(Vertex.TexCoords)));
         glEnableVertexAttribArray(1);
         
         uint textureId;
@@ -122,11 +138,6 @@ public unsafe class BasicTextureRenderingScene : IScene
         AssertNoGlError();
 
         var pixels = image.Pixels;
-        // var pixels = new byte[]
-        // {
-        //     0xff, 0x00, 0x00, 0x00, 0xff, 0x00,
-        //     0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
-        // };
         fixed (byte* ptr = &pixels[0])
         {
             var width = image.Width;

@@ -12,7 +12,7 @@ public sealed unsafe class Buffer<T> : IDisposable where T : unmanaged
     private int m_Index;
     private bool m_IsDisposed;
 
-    public static Buffer<T> Allocate(int target, int size, int usage)
+    public static Buffer<T> AllocateAndMap(int target, int size, int usage)
     {
         glBufferData(target, size * sizeof(T), IntPtr.Zero, usage);
         return new Buffer<T>(target, size);
