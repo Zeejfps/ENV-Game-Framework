@@ -75,6 +75,7 @@ public unsafe class BasicTextureRenderingScene : IScene
     private uint m_Vao;
     private uint m_Vbo;
     private uint m_TextureId;
+    private uint m_PixelUnpackBufferId;
     private uint m_ShaderProgramId;
     private readonly IAssetLoader<ICpuTexture> m_ImageLoader;
 
@@ -83,7 +84,7 @@ public unsafe class BasicTextureRenderingScene : IScene
         m_ImageLoader = loader;
     }
 
-    private uint getGenBuffer()
+    private uint glGenBuffer()
     {
         uint bufferId;
         glGenBuffers(1, &bufferId);
@@ -100,12 +101,14 @@ public unsafe class BasicTextureRenderingScene : IScene
     
     public void Load()
     {
+        // NOTE(Zee): there isn't really a need to load the pixel data into the CPU
+        // We can probably just stream this in directly
         var image = m_ImageLoader.Load("Assets/lol");
 
         m_Vao = glGenVertexArray();
         glBindVertexArray(m_Vao);
         
-        m_Vbo = getGenBuffer();
+        m_Vbo = glGenBuffer();
         glBindBuffer(GL_ARRAY_BUFFER, m_Vbo);
 
         var quad = new Quad();
@@ -131,19 +134,30 @@ public unsafe class BasicTextureRenderingScene : IScene
         glUseProgram(m_ShaderProgramId);
         
         glActiveTexture(GL_TEXTURE0);
+        AssertNoGlError();
         glBindTexture(GL_TEXTURE_2D, textureId);
         AssertNoGlError();
 
-        var pixels = image.Pixels;
-        fixed (byte* ptr = &pixels[0])
-        {
-            var width = image.Width;
-            var height = image.Height;
-            glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_BPTC_UNORM, width, height, 0,
-                pixels.Length, ptr);
-            //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 100, 100, 0, GL_COMPRESSED_RGB8_ETC2, GL_UNSIGNED_BYTE, ptr);
-            AssertNoGlError();
-        }
+        m_PixelUnpackBufferId = glGenBuffer();
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_PixelUnpackBufferId);
+        var imageHeader = LoadImageIntoPixelUnpackBuffer();
+
+        var width = imageHeader.ImageWidth;
+        var height = imageHeader.ImageHeight;
+        var contentSize = imageHeader.ContentSize;
+        glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_BPTC_UNORM, width, height, 0, contentSize, Offset(0));
+        AssertNoGlError();
+        
+        // var pixels = image.Pixels;
+        // fixed (byte* ptr = &pixels[0])
+        // {
+        //     var width = image.Width;
+        //     var height = image.Height;
+        //     glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_BPTC_UNORM, width, height, 0,
+        //         pixels.Length, ptr);
+        //     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 100, 100, 0, GL_COMPRESSED_RGB8_ETC2, GL_UNSIGNED_BYTE, ptr);
+        //     AssertNoGlError();
+        // }
         
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -166,5 +180,53 @@ public unsafe class BasicTextureRenderingScene : IScene
         
         fixed (uint* ptr = &m_TextureId)
             glDeleteTextures(1, ptr);
+    }
+
+    private ImageHeader LoadImageIntoPixelUnpackBuffer()
+    {
+        using var fileStream = File.OpenRead("Assets/lol.texture");
+        
+        var header = new ImageHeader();
+        header.Read(fileStream);
+        
+        Console.WriteLine("Image Width: " + header.ImageWidth);
+        Console.WriteLine("Image Height: " + header.ImageHeight);
+        Console.WriteLine("Image Content Size: " + header.ContentSize + " bytes");
+        Span<byte> buffer = stackalloc byte[256];
+        using (var bufferWriter = BufferWriter<byte>.AllocateAndMap(GL_PIXEL_UNPACK_BUFFER, header.ContentSize, GL_STATIC_DRAW))
+        {
+            int bytesRead;
+            do
+            {
+                bytesRead = fileStream.Read(buffer);
+                if (bytesRead == 0)
+                    break;
+                    
+                bufferWriter.Write(buffer[..bytesRead]);
+            } while (bytesRead == buffer.Length);
+        }
+
+        return header;
+    }
+}
+
+struct ImageHeader
+{
+    public int ImageWidth;
+    public int ImageHeight;
+    public int ContentSize;
+
+    public void Read(FileStream reader)
+    {
+        Span<byte> buffer = stackalloc byte[4];
+        reader.Read(buffer);
+
+        ImageWidth = BitConverter.ToInt32(buffer);
+        
+        reader.Read(buffer);
+        ImageHeight = BitConverter.ToInt32(buffer);
+        
+        reader.Read(buffer);
+        ContentSize = BitConverter.ToInt32(buffer);
     }
 }

@@ -11,7 +11,7 @@ public sealed unsafe class BufferWriter<T> : IDisposable where T : unmanaged
 {
     private readonly int m_Target;
     private readonly int m_BufferSize;
-    private readonly void* m_BufferPtr;
+    private IntPtr m_BufferPtr;
 
     private int m_Index;
     private bool m_IsDisposed;
@@ -34,7 +34,7 @@ public sealed unsafe class BufferWriter<T> : IDisposable where T : unmanaged
     {
         m_Target = target;
         
-        m_BufferPtr = glMapBuffer(m_Target, GL_WRITE_ONLY);
+        m_BufferPtr = new IntPtr(glMapBuffer(m_Target, GL_WRITE_ONLY));
         AssertNoGlError();
         
         m_BufferSize = size;
@@ -60,7 +60,7 @@ public sealed unsafe class BufferWriter<T> : IDisposable where T : unmanaged
         if (m_Index >= m_BufferSize)
             throw new Exception("Buffer capacity reached!");
         
-        var buffer = new Span<T>(m_BufferPtr, m_BufferSize);
+        var buffer = new Span<T>((void*)m_BufferPtr, m_BufferSize);
         buffer[m_Index] = data;
         m_Index++;
     }
@@ -68,5 +68,22 @@ public sealed unsafe class BufferWriter<T> : IDisposable where T : unmanaged
     public void Write(T data)
     {
         Write(ref data);
+    }
+
+    public void Write(Span<T> data)
+    {
+        if (m_IsDisposed)
+            throw new Exception("Is Disposed!");
+
+        if (m_Index >= m_BufferSize)
+            throw new Exception("Buffer capacity reached!");
+
+        if (m_Index + data.Length > m_BufferSize)
+            throw new Exception("This will overflow the buffer!");
+        
+        var buffer = new Span<T>((void*)m_BufferPtr, m_BufferSize);
+        data.CopyTo(buffer);
+        m_BufferPtr += data.Length;
+        m_Index += data.Length;
     }
 }
