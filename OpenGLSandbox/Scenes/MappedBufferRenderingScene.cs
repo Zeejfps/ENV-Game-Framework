@@ -31,7 +31,7 @@ public sealed class MappedBufferRenderingScene : IScene
         glBufferData(GL_ARRAY_BUFFER, bufferSizeInBytes, IntPtr.Zero, GL_STATIC_DRAW);
         AssertNoGlError();
 
-        using (var buffer = new Buffer<Vector2>(GL_ARRAY_BUFFER, vertexCount))
+        using (var buffer = new BufferWriter<Vector2>(GL_ARRAY_BUFFER, vertexCount))
         {
             buffer.Write(new Vector2(-0.90f, +0.85f));
             buffer.Write(new Vector2(+0.85f, -0.90f));

@@ -44,9 +44,9 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
         glBufferData(GL_ARRAY_BUFFER, TriangleCount * sizeof(Triangle), IntPtr.Zero, GL_STATIC_DRAW);
         AssertNoGlError();
 
-        using (var buffer = new Buffer<Triangle>(GL_ARRAY_BUFFER, TriangleCount))
+        using (var buffer = new BufferWriter<Triangle>(GL_ARRAY_BUFFER, TriangleCount))
         {
-            buffer.Write(new Triangle
+            var t1 = new Triangle
             {
                 V1 =
                 {
@@ -63,9 +63,9 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
                     Color = new Vector4(1f, 0f, 0f, 1f),
                     Position = new Vector2(-0.90f, -0.90f),
                 }
-            });
-            
-            buffer.Write(new Triangle
+            };
+
+            var t2 = new Triangle
             {
                 V1 =
                 {
@@ -82,7 +82,10 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
                     Color = new Vector4(1f, 1f, 1f, 1f),
                     Position = new Vector2(-0.85f, +0.90f),
                 }
-            });
+            };
+            
+            buffer.Write(ref t1);
+            buffer.Write(ref t2);
         }
 
         glVertexAttribPointer(0, 4, GL_FLOAT, false, sizeof(Vertex), Offset(0));

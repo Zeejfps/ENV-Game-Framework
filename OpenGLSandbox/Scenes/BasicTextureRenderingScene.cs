@@ -109,10 +109,7 @@ public unsafe class BasicTextureRenderingScene : IScene
         glBindBuffer(GL_ARRAY_BUFFER, m_Vbo);
 
         var quad = new Quad();
-        using (var buffer = Buffer<Quad>.AllocateAndMap(GL_ARRAY_BUFFER, 1, GL_STATIC_DRAW))
-        {
-            buffer.Write(quad);
-        }
+        glBufferData(GL_ARRAY_BUFFER, new IntPtr(sizeof(Quad)), &quad, GL_STATIC_DRAW);
         
         glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof(Vertex), Offset(0));
         glEnableVertexAttribArray(0);

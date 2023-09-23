@@ -3,7 +3,11 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
-public sealed unsafe class Buffer<T> : IDisposable where T : unmanaged
+/// <summary>
+/// A helpful abstraction for using mapped buffers and writing data to the buffer
+/// </summary>
+/// <typeparam name="T"></typeparam>
+public sealed unsafe class BufferWriter<T> : IDisposable where T : unmanaged
 {
     private readonly int m_Target;
     private readonly int m_BufferSize;
@@ -12,13 +16,21 @@ public sealed unsafe class Buffer<T> : IDisposable where T : unmanaged
     private int m_Index;
     private bool m_IsDisposed;
 
-    public static Buffer<T> AllocateAndMap(int target, int size, int usage)
+    // NOTE(Zee): This is doable but bad. If I don't use ref on T data it gets copied
+    // The copy could be a lot of data. I rather explicitly use openGL to upload it
+    // public static void Upload(int target, T data, int usage)
+    // {
+    //     void* ptr = &data;
+    //     glBufferData(target, new IntPtr(sizeof(T)), ptr, usage);
+    // }
+    
+    public static BufferWriter<T> AllocateAndMap(int target, int size, int usage)
     {
         glBufferData(target, new IntPtr(size * sizeof(T)), (void*)0, usage);
-        return new Buffer<T>(target, size);
+        return new BufferWriter<T>(target, size);
     }
     
-    public Buffer(int target, int size)
+    public BufferWriter(int target, int size)
     {
         m_Target = target;
         
@@ -38,7 +50,9 @@ public sealed unsafe class Buffer<T> : IDisposable where T : unmanaged
         AssertNoGlError();
     }
 
-    public void Write(T data)
+    // NOTE(Zee): I am not using the 'in' keyword here because C# creates a 
+    // defensive copy if the struct is not a readonly struct
+    public void Write(ref T data)
     {
         if (m_IsDisposed)
             throw new Exception("Is Disposed!");
@@ -49,5 +63,10 @@ public sealed unsafe class Buffer<T> : IDisposable where T : unmanaged
         var buffer = new Span<T>(m_BufferPtr, m_BufferSize);
         buffer[m_Index] = data;
         m_Index++;
+    }
+    
+    public void Write(T data)
+    {
+        Write(ref data);
     }
 }

@@ -97,7 +97,7 @@ public sealed unsafe class UIRectRenderingScene : IScene
         
         glBindBuffer(GL_ARRAY_BUFFER, m_PerInstanceBuffer);
         AssertNoGlError();
-        using (var buffer = Buffer<PerInstanceAttribs>.AllocateAndMap(GL_ARRAY_BUFFER, InstanceCount, GL_STATIC_DRAW))
+        using (var buffer = BufferWriter<PerInstanceAttribs>.AllocateAndMap(GL_ARRAY_BUFFER, InstanceCount, GL_STATIC_DRAW))
         {
             buffer.Write(new PerInstanceAttribs
             {
@@ -170,7 +170,7 @@ public sealed unsafe class UIRectRenderingScene : IScene
 
     private void WriteVertexDataToBuffers()
     {
-        using (var buffer = Buffer<Triangle>.AllocateAndMap(GL_ARRAY_BUFFER, TriangleCount, GL_STATIC_DRAW))
+        using (var buffer = BufferWriter<Triangle>.AllocateAndMap(GL_ARRAY_BUFFER, TriangleCount, GL_STATIC_DRAW))
         {
             buffer.Write(new Triangle
             {

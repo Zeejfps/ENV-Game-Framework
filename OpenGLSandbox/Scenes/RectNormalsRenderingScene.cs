@@ -46,9 +46,9 @@ public sealed unsafe class RectNormalsRenderingScene : IScene
         glVertexAttribPointer(normalAttribIndex, 2, GL_FLOAT, false, sizeof(Vertex), Offset(sizeof(Vector2)));
         glEnableVertexAttribArray(normalAttribIndex);
         
-        using (var buffer = Buffer<Triangle>.AllocateAndMap(GL_ARRAY_BUFFER, TriangleCount, GL_STATIC_DRAW))
+        using (var writer = BufferWriter<Triangle>.AllocateAndMap(GL_ARRAY_BUFFER, TriangleCount, GL_STATIC_DRAW))
         {
-            buffer.Write(new Triangle
+            writer.Write(new Triangle
             {
                 V1 =
                 {
@@ -67,7 +67,7 @@ public sealed unsafe class RectNormalsRenderingScene : IScene
                 }
             });
             
-            buffer.Write(new Triangle
+            writer.Write(new Triangle
             {
                 V1 =
                 {
