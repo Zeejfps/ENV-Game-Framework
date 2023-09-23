@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
@@ -101,10 +102,6 @@ public unsafe class BasicTextureRenderingScene : IScene
     
     public void Load()
     {
-        // NOTE(Zee): there isn't really a need to load the pixel data into the CPU
-        // We can probably just stream this in directly
-        var image = m_ImageLoader.Load("Assets/lol");
-
         m_Vao = glGenVertexArray();
         glBindVertexArray(m_Vao);
         
@@ -138,32 +135,47 @@ public unsafe class BasicTextureRenderingScene : IScene
         glBindTexture(GL_TEXTURE_2D, textureId);
         AssertNoGlError();
 
-        m_PixelUnpackBufferId = glGenBuffer();
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_PixelUnpackBufferId);
-        var imageHeader = LoadImageIntoPixelUnpackBuffer();
+        var stopwatch = Stopwatch.StartNew();
 
-        var width = imageHeader.ImageWidth;
-        var height = imageHeader.ImageHeight;
-        var contentSize = imageHeader.ContentSize;
-        glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_BPTC_UNORM, width, height, 0, contentSize, Offset(0));
-        AssertNoGlError();
+        // m_PixelUnpackBufferId = glGenBuffer();
+        // glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_PixelUnpackBufferId);
+        // var imageHeader = LoadImageIntoPixelUnpackBuffer();
+        //
+        // var width = imageHeader.ImageWidth;
+        // var height = imageHeader.ImageHeight;
+        // var contentSize = imageHeader.ContentSizeInBytes;
+        // glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_BPTC_UNORM, width, height, 0, contentSize, Offset(0));
+        // AssertNoGlError();
         
-        // var pixels = image.Pixels;
-        // fixed (byte* ptr = &pixels[0])
-        // {
-        //     var width = image.Width;
-        //     var height = image.Height;
-        //     glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_BPTC_UNORM, width, height, 0,
-        //         pixels.Length, ptr);
-        //     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 100, 100, 0, GL_COMPRESSED_RGB8_ETC2, GL_UNSIGNED_BYTE, ptr);
-        //     AssertNoGlError();
-        // }
+        // NOTE(Zee): there isn't really a need to load the pixel data into the CPU
+        // We can probably just stream this in directly
+        // Somehow based on my testing this is still faster.
+        // My assumption is that the glBufferData call is the cause, since we have to allocate that data anyway the first time
+        // Its the same as if I uploaded the data directly.
+        // I speculate all subsequent calls would be faster to use the direct reading into the image.
+        // Also we aren't really measuring the memory savings on the CPU since the data never has to be upload into the RAM at all
+        
+        var image = m_ImageLoader.Load("Assets/lol");
+        
+        var pixels = image.Pixels;
+        fixed (byte* ptr = &pixels[0])
+        {
+            var width = image.Width;
+            var height = image.Height;
+            glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_BPTC_UNORM, width, height, 0,
+                pixels.Length, ptr);
+            AssertNoGlError();
+        }
+        
+        stopwatch.Stop();
+        Console.WriteLine($"Loading took: {stopwatch.ElapsedTicks}");
         
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        
     }
 
     public void Render()
@@ -188,23 +200,32 @@ public unsafe class BasicTextureRenderingScene : IScene
         
         var header = new ImageHeader();
         header.Read(fileStream);
+
+        var test = Stopwatch.StartNew();
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, new IntPtr(header.ContentSizeInBytes), (void*)0, GL_STATIC_DRAW);
+        var bufferPtr = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+        var span = new Span<byte>(bufferPtr, header.ContentSizeInBytes);
+        fileStream.Read(span);
+        glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+        test.Stop();
+        Console.WriteLine(test.ElapsedMilliseconds);
         
-        Console.WriteLine("Image Width: " + header.ImageWidth);
-        Console.WriteLine("Image Height: " + header.ImageHeight);
-        Console.WriteLine("Image Content Size: " + header.ContentSize + " bytes");
-        Span<byte> buffer = stackalloc byte[256];
-        using (var bufferWriter = BufferWriter<byte>.AllocateAndMap(GL_PIXEL_UNPACK_BUFFER, header.ContentSize, GL_STATIC_DRAW))
-        {
-            int bytesRead;
-            do
-            {
-                bytesRead = fileStream.Read(buffer);
-                if (bytesRead == 0)
-                    break;
-                    
-                bufferWriter.Write(buffer[..bytesRead]);
-            } while (bytesRead == buffer.Length);
-        }
+        //Console.WriteLine("Image Width: " + header.ImageWidth);
+        //Console.WriteLine("Image Height: " + header.ImageHeight);
+        //Console.WriteLine("Image Content Size: " + header.ContentSize + " bytes");
+        // Span<byte> buffer = stackalloc byte[4096];
+        // using (var bufferWriter = BufferWriter<byte>.AllocateAndMap(GL_PIXEL_UNPACK_BUFFER, header.ContentSize, GL_STATIC_DRAW))
+        // {
+        //     int bytesRead;
+        //     do
+        //     {
+        //         bytesRead = fileStream.Read(buffer);
+        //         if (bytesRead == 0)
+        //             break;
+        //             
+        //         bufferWriter.Write(buffer[..bytesRead]);
+        //     } while (bytesRead == buffer.Length);
+        // }
 
         return header;
     }
@@ -214,7 +235,7 @@ struct ImageHeader
 {
     public int ImageWidth;
     public int ImageHeight;
-    public int ContentSize;
+    public int ContentSizeInBytes;
 
     public void Read(FileStream reader)
     {
@@ -227,6 +248,6 @@ struct ImageHeader
         ImageHeight = BitConverter.ToInt32(buffer);
         
         reader.Read(buffer);
-        ContentSize = BitConverter.ToInt32(buffer);
+        ContentSizeInBytes = BitConverter.ToInt32(buffer);
     }
 }
