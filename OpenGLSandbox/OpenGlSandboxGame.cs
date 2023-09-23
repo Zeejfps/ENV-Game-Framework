@@ -1,4 +1,5 @@
 ﻿using EasyGameFramework.Api;
+using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 using static OpenGL.Gl;
@@ -11,11 +12,11 @@ public sealed class OpenGlSandboxGame : Game
     
     private int m_CurrentSceneIndex;
 
-    public OpenGlSandboxGame(IContext context) : base(context)
+    public OpenGlSandboxGame(IContext context, IAssetLoader<ICpuTexture> imageLoader) : base(context)
     {
         m_Scenes = new IScene[]
         {
-            new BasicTextureRenderingScene(),
+            new BasicTextureRenderingScene(imageLoader),
             new UIRectRenderingScene(),
             new RectNormalsRenderingScene(),
             new GouraudShadingRenderingScene(),

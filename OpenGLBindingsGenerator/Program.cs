@@ -84,7 +84,7 @@ using (var writer = new StreamWriter(outPath))
     {
         var name = element.GetAttribute("name");
         var value = element.GetAttribute("value");
-        writer.WriteLine($"\tpublic const ulong {name} = {value};");
+        writer.WriteLine($"\tpublic const int {name} = {value};");
     }
 
     writer.WriteLine();
@@ -144,11 +144,11 @@ static class Utils
 {
     public static Dictionary<string, string> glTypeToDotNetTypeTable = new()
     {
-        {"GLenum", "ulong"},
+        {"GLenum", "int"},
         {"GLbitfield", "int"},
         {"GLint", "int"},
+        {"GLsizei", "int"},
         {"GLuint", "uint"},
-        {"GLsizei", "uint"},
         {"GLuint64", "ulong"},
         {"GLbyte", "sbyte"},
         {"GLubyte", "byte"},

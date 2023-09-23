@@ -92,7 +92,7 @@ public sealed class Window_GLFW : IWindow
         MakeContextCurrent(m_Handle);
         GetFramebufferSize(m_Handle, out var framebufferWidth, out var framebufferHeight);
         Gl.Import(GetProcAddress);
-        GL46.Load(GetProcAddress);
+        GL46.Import(GetProcAddress);
         m_WindowFramebuffer = new WindowFramebuffer_GL(framebufferWidth, framebufferHeight);
 
         SetWindowSizeCallback(m_Handle, m_SizeCallback);
