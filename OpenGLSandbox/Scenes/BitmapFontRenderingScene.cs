@@ -37,16 +37,34 @@ public sealed class TgaImage
 
             // Read the image data
             var dataSize = width * height * (bitsPerPixel / 8);
-            pixels = reader.ReadBytes(dataSize);
+
+            uint uploadBufferId;
+            glGenBuffers(1, &uploadBufferId);
+            AssertNoGlError();
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, uploadBufferId);
+            AssertNoGlError();
+
+            glBufferData(GL_PIXEL_UNPACK_BUFFER, new IntPtr(dataSize), (void*)0, GL_STATIC_DRAW);
+            AssertNoGlError();
+            
+            var ptrToBuffer = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+            AssertNoGlError();
+            
+            var buffer = new Span<byte>(ptrToBuffer, dataSize);
+            reader.Read(buffer);
+            
+            glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+            AssertNoGlError();
 
             Console.WriteLine("Image Type: " + imageType);
-            Console.WriteLine("Pixels: " + pixels.Length);
+            Console.WriteLine("Pixels: " + buffer.Length);
             
             // If the image is stored upside down, you may need to flip it
 
-            fixed (void* ptr = &pixels[0])
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, ptr);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, Offset(0));
             AssertNoGlError();
+            
+            glDeleteBuffers(1, &uploadBufferId);
         }
     }
 }
@@ -209,7 +227,8 @@ public sealed unsafe class TextRenderer : IDisposable
             buffer[i] = new PerInstanceData
             {
                 PositionRect = new Rect(xPos, yPos, glyph.Width, glyph.Height),
-                GlyphSheetRect = new Rect(uOffset, vOffset, uScale, vScale)
+                GlyphSheetRect = new Rect(uOffset, vOffset, uScale, vScale),
+                Color = color
             };
             i++;
             cursor.X += glyph.XAdvance;
