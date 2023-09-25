@@ -21,7 +21,7 @@ void main() {
     vec4 position = v_Position;
     position.x = (position.x * rectHalfWidth + rectHalfWidth) + rectX;
     position.y = (position.y * rectHalfHeight + rectHalfHeight) + rectY;
-    gl_Position = v_Position * projection_matrix;
+    gl_Position = projection_matrix * position;
 
     color = vec4(v_Normals, 0, 1);
 }

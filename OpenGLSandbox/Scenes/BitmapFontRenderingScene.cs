@@ -101,7 +101,7 @@ public sealed unsafe class TextRenderer : IDisposable
         AssertNoGlError();
         Console.WriteLine("Projection Matrix Uniform location: " + uniformLocation);
 
-        var projectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, 640f, 0f, 640f, 0.1f, 100f);
+        var projectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, 320f, 0f, 320f, 0.1f, 100f);
         glUniformMatrix4fv(uniformLocation, 1, false, &projectionMatrix.M11);
         AssertNoGlError();
         
@@ -123,13 +123,15 @@ public sealed unsafe class TextRenderer : IDisposable
         foreach (var c in text)
         {
             var glyph = GetGlyph(c);
-            cursor.X += glyph.XAdvance;
+            var xPos = cursor.X + glyph.XOffset;
+            var uPos = cursor.Y;// - glyph.YOffset;
             buffer[i] = new PerInstanceData
             {
-                PositionRect = new Rect(cursor.X, cursor.Y, glyph.Width, glyph.Height),
+                PositionRect = new Rect(xPos, uPos, glyph.Width, glyph.Height),
                 GlyphSheetRect = new Rect(glyph.X, glyph.Y, glyph.Width, glyph.Height)
             };
             i++;
+            cursor.X += glyph.XAdvance;
         }
 
         glUnmapBuffer(GL_ARRAY_BUFFER);
@@ -177,7 +179,7 @@ public sealed class BitmapFontRenderingScene : IScene
     public void Render()
     {
         glClear(GL_COLOR_BUFFER_BIT);
-        TextRenderer.RenderText(0, 0, "Hello World!");
+        TextRenderer.RenderText(20, 200, "Hello world!");
         glFlush();
     }
 
