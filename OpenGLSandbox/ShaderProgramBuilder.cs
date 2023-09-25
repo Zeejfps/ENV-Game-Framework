@@ -1,4 +1,5 @@
-﻿using static GL46;
+﻿using System.Text;
+using static GL46;
 using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
@@ -50,11 +51,12 @@ public sealed class ShaderProgramBuilder
         
         if (status == GL_FALSE)
         {
-            var buffer = stackalloc char[256];
+            Span<byte> buffer = stackalloc byte[256];
             int length;
-            glGetProgramInfoLog(shaderProgram, 256, &length, buffer);
+            fixed (byte* ptr = &buffer[0])
+                glGetProgramInfoLog(shaderProgram, 256, &length, ptr);
             AssertNoGlError();
-            var log = new Span<char>(buffer, length);
+            var log = Encoding.ASCII.GetString(buffer);
             Console.WriteLine($"Linking Failed: {log}");
         }
         

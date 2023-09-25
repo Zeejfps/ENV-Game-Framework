@@ -159,7 +159,7 @@ static class Utils
         {"GLsizeiptr", "IntPtr"},
         {"GLDEBUGPROC", "IntPtr"},
         {"GLsync", "IntPtr"},
-        {"GLchar", "char"},
+        {"GLchar", "byte"},
         {"GLshort", "short"},
         {"GLushort", "ushort"},
         {"GLint64", "long"},

@@ -1420,9 +1420,9 @@ public static unsafe class GL46
 	public static void glBeginTransformFeedback(int primitiveMode) => s_glBeginTransformFeedback(primitiveMode);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glBindAttribLocationDelegate(uint program, uint index, char *name);
+	private delegate void glBindAttribLocationDelegate(uint program, uint index, byte *name);
 	private static glBindAttribLocationDelegate s_glBindAttribLocation;
-	public static void glBindAttribLocation(uint program, uint index, char *name) => s_glBindAttribLocation(program, index, name);
+	public static void glBindAttribLocation(uint program, uint index, byte *name) => s_glBindAttribLocation(program, index, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glBindBufferDelegate(int target, uint buffer);
@@ -1450,14 +1450,14 @@ public static unsafe class GL46
 	public static void glBindBuffersRange(int target, uint first, int count, uint *buffers, IntPtr *offsets, IntPtr *sizes) => s_glBindBuffersRange(target, first, count, buffers, offsets, sizes);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glBindFragDataLocationDelegate(uint program, uint color, char *name);
+	private delegate void glBindFragDataLocationDelegate(uint program, uint color, byte *name);
 	private static glBindFragDataLocationDelegate s_glBindFragDataLocation;
-	public static void glBindFragDataLocation(uint program, uint color, char *name) => s_glBindFragDataLocation(program, color, name);
+	public static void glBindFragDataLocation(uint program, uint color, byte *name) => s_glBindFragDataLocation(program, color, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glBindFragDataLocationIndexedDelegate(uint program, uint colorNumber, uint index, char *name);
+	private delegate void glBindFragDataLocationIndexedDelegate(uint program, uint colorNumber, uint index, byte *name);
 	private static glBindFragDataLocationIndexedDelegate s_glBindFragDataLocationIndexed;
-	public static void glBindFragDataLocationIndexed(uint program, uint colorNumber, uint index, char *name) => s_glBindFragDataLocationIndexed(program, colorNumber, index, name);
+	public static void glBindFragDataLocationIndexed(uint program, uint colorNumber, uint index, byte *name) => s_glBindFragDataLocationIndexed(program, colorNumber, index, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glBindFramebufferDelegate(int target, uint framebuffer);
@@ -1895,9 +1895,9 @@ public static unsafe class GL46
 	public static uint glCreateShader(int type) => s_glCreateShader(type);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate uint glCreateShaderProgramvDelegate(int type, int count, char **strs);
+	private delegate uint glCreateShaderProgramvDelegate(int type, int count, byte **strs);
 	private static glCreateShaderProgramvDelegate s_glCreateShaderProgramv;
-	public static uint glCreateShaderProgramv(int type, int count, char **strs) => s_glCreateShaderProgramv(type, count, strs);
+	public static uint glCreateShaderProgramv(int type, int count, byte **strs) => s_glCreateShaderProgramv(type, count, strs);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glCreateTexturesDelegate(int target, int n, uint *textures);
@@ -1930,9 +1930,9 @@ public static unsafe class GL46
 	public static void glDebugMessageControl(int source, int type, int severity, int count, uint *ids, bool enabled) => s_glDebugMessageControl(source, type, severity, count, ids, enabled);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glDebugMessageInsertDelegate(int source, int type, uint id, int severity, int length, char *buf);
+	private delegate void glDebugMessageInsertDelegate(int source, int type, uint id, int severity, int length, byte *buf);
 	private static glDebugMessageInsertDelegate s_glDebugMessageInsert;
-	public static void glDebugMessageInsert(int source, int type, uint id, int severity, int length, char *buf) => s_glDebugMessageInsert(source, type, id, severity, length, buf);
+	public static void glDebugMessageInsert(int source, int type, uint id, int severity, int length, byte *buf) => s_glDebugMessageInsert(source, type, id, severity, length, buf);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glDeleteBuffersDelegate(int n, uint *buffers);
@@ -2320,19 +2320,19 @@ public static unsafe class GL46
 	public static void glGetActiveAtomicCounterBufferiv(uint program, uint bufferIndex, int pname, int *args) => s_glGetActiveAtomicCounterBufferiv(program, bufferIndex, pname, args);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetActiveAttribDelegate(uint program, uint index, int bufSize, int *length, int *size, int *type, char *name);
+	private delegate void glGetActiveAttribDelegate(uint program, uint index, int bufSize, int *length, int *size, int *type, byte *name);
 	private static glGetActiveAttribDelegate s_glGetActiveAttrib;
-	public static void glGetActiveAttrib(uint program, uint index, int bufSize, int *length, int *size, int *type, char *name) => s_glGetActiveAttrib(program, index, bufSize, length, size, type, name);
+	public static void glGetActiveAttrib(uint program, uint index, int bufSize, int *length, int *size, int *type, byte *name) => s_glGetActiveAttrib(program, index, bufSize, length, size, type, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetActiveSubroutineNameDelegate(uint program, int shadertype, uint index, int bufSize, int *length, char *name);
+	private delegate void glGetActiveSubroutineNameDelegate(uint program, int shadertype, uint index, int bufSize, int *length, byte *name);
 	private static glGetActiveSubroutineNameDelegate s_glGetActiveSubroutineName;
-	public static void glGetActiveSubroutineName(uint program, int shadertype, uint index, int bufSize, int *length, char *name) => s_glGetActiveSubroutineName(program, shadertype, index, bufSize, length, name);
+	public static void glGetActiveSubroutineName(uint program, int shadertype, uint index, int bufSize, int *length, byte *name) => s_glGetActiveSubroutineName(program, shadertype, index, bufSize, length, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetActiveSubroutineUniformNameDelegate(uint program, int shadertype, uint index, int bufSize, int *length, char *name);
+	private delegate void glGetActiveSubroutineUniformNameDelegate(uint program, int shadertype, uint index, int bufSize, int *length, byte *name);
 	private static glGetActiveSubroutineUniformNameDelegate s_glGetActiveSubroutineUniformName;
-	public static void glGetActiveSubroutineUniformName(uint program, int shadertype, uint index, int bufSize, int *length, char *name) => s_glGetActiveSubroutineUniformName(program, shadertype, index, bufSize, length, name);
+	public static void glGetActiveSubroutineUniformName(uint program, int shadertype, uint index, int bufSize, int *length, byte *name) => s_glGetActiveSubroutineUniformName(program, shadertype, index, bufSize, length, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetActiveSubroutineUniformivDelegate(uint program, int shadertype, uint index, int pname, int *values);
@@ -2340,14 +2340,14 @@ public static unsafe class GL46
 	public static void glGetActiveSubroutineUniformiv(uint program, int shadertype, uint index, int pname, int *values) => s_glGetActiveSubroutineUniformiv(program, shadertype, index, pname, values);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetActiveUniformDelegate(uint program, uint index, int bufSize, int *length, int *size, int *type, char *name);
+	private delegate void glGetActiveUniformDelegate(uint program, uint index, int bufSize, int *length, int *size, int *type, byte *name);
 	private static glGetActiveUniformDelegate s_glGetActiveUniform;
-	public static void glGetActiveUniform(uint program, uint index, int bufSize, int *length, int *size, int *type, char *name) => s_glGetActiveUniform(program, index, bufSize, length, size, type, name);
+	public static void glGetActiveUniform(uint program, uint index, int bufSize, int *length, int *size, int *type, byte *name) => s_glGetActiveUniform(program, index, bufSize, length, size, type, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetActiveUniformBlockNameDelegate(uint program, uint uniformBlockIndex, int bufSize, int *length, char *uniformBlockName);
+	private delegate void glGetActiveUniformBlockNameDelegate(uint program, uint uniformBlockIndex, int bufSize, int *length, byte *uniformBlockName);
 	private static glGetActiveUniformBlockNameDelegate s_glGetActiveUniformBlockName;
-	public static void glGetActiveUniformBlockName(uint program, uint uniformBlockIndex, int bufSize, int *length, char *uniformBlockName) => s_glGetActiveUniformBlockName(program, uniformBlockIndex, bufSize, length, uniformBlockName);
+	public static void glGetActiveUniformBlockName(uint program, uint uniformBlockIndex, int bufSize, int *length, byte *uniformBlockName) => s_glGetActiveUniformBlockName(program, uniformBlockIndex, bufSize, length, uniformBlockName);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetActiveUniformBlockivDelegate(uint program, uint uniformBlockIndex, int pname, int *args);
@@ -2355,9 +2355,9 @@ public static unsafe class GL46
 	public static void glGetActiveUniformBlockiv(uint program, uint uniformBlockIndex, int pname, int *args) => s_glGetActiveUniformBlockiv(program, uniformBlockIndex, pname, args);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetActiveUniformNameDelegate(uint program, uint uniformIndex, int bufSize, int *length, char *uniformName);
+	private delegate void glGetActiveUniformNameDelegate(uint program, uint uniformIndex, int bufSize, int *length, byte *uniformName);
 	private static glGetActiveUniformNameDelegate s_glGetActiveUniformName;
-	public static void glGetActiveUniformName(uint program, uint uniformIndex, int bufSize, int *length, char *uniformName) => s_glGetActiveUniformName(program, uniformIndex, bufSize, length, uniformName);
+	public static void glGetActiveUniformName(uint program, uint uniformIndex, int bufSize, int *length, byte *uniformName) => s_glGetActiveUniformName(program, uniformIndex, bufSize, length, uniformName);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetActiveUniformsivDelegate(uint program, int uniformCount, uint *uniformIndices, int pname, int *args);
@@ -2370,9 +2370,9 @@ public static unsafe class GL46
 	public static void glGetAttachedShaders(uint program, int maxCount, int *count, uint *shaders) => s_glGetAttachedShaders(program, maxCount, count, shaders);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate int glGetAttribLocationDelegate(uint program, char *name);
+	private delegate int glGetAttribLocationDelegate(uint program, byte *name);
 	private static glGetAttribLocationDelegate s_glGetAttribLocation;
-	public static int glGetAttribLocation(uint program, char *name) => s_glGetAttribLocation(program, name);
+	public static int glGetAttribLocation(uint program, byte *name) => s_glGetAttribLocation(program, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetBooleani_vDelegate(int target, uint index, bool *data);
@@ -2420,9 +2420,9 @@ public static unsafe class GL46
 	public static void glGetCompressedTextureSubImage(uint texture, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int bufSize, void *pixels) => s_glGetCompressedTextureSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, bufSize, pixels);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate uint glGetDebugMessageLogDelegate(uint count, int bufSize, int *sources, int *types, uint *ids, int *severities, int *lengths, char *messageLog);
+	private delegate uint glGetDebugMessageLogDelegate(uint count, int bufSize, int *sources, int *types, uint *ids, int *severities, int *lengths, byte *messageLog);
 	private static glGetDebugMessageLogDelegate s_glGetDebugMessageLog;
-	public static uint glGetDebugMessageLog(uint count, int bufSize, int *sources, int *types, uint *ids, int *severities, int *lengths, char *messageLog) => s_glGetDebugMessageLog(count, bufSize, sources, types, ids, severities, lengths, messageLog);
+	public static uint glGetDebugMessageLog(uint count, int bufSize, int *sources, int *types, uint *ids, int *severities, int *lengths, byte *messageLog) => s_glGetDebugMessageLog(count, bufSize, sources, types, ids, severities, lengths, messageLog);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetDoublei_vDelegate(int target, uint index, double *data);
@@ -2450,14 +2450,14 @@ public static unsafe class GL46
 	public static void glGetFloatv(int pname, float *data) => s_glGetFloatv(pname, data);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate int glGetFragDataIndexDelegate(uint program, char *name);
+	private delegate int glGetFragDataIndexDelegate(uint program, byte *name);
 	private static glGetFragDataIndexDelegate s_glGetFragDataIndex;
-	public static int glGetFragDataIndex(uint program, char *name) => s_glGetFragDataIndex(program, name);
+	public static int glGetFragDataIndex(uint program, byte *name) => s_glGetFragDataIndex(program, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate int glGetFragDataLocationDelegate(uint program, char *name);
+	private delegate int glGetFragDataLocationDelegate(uint program, byte *name);
 	private static glGetFragDataLocationDelegate s_glGetFragDataLocation;
-	public static int glGetFragDataLocation(uint program, char *name) => s_glGetFragDataLocation(program, name);
+	public static int glGetFragDataLocation(uint program, byte *name) => s_glGetFragDataLocation(program, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetFramebufferAttachmentParameterivDelegate(int target, int attachment, int pname, int *args);
@@ -2545,14 +2545,14 @@ public static unsafe class GL46
 	public static void glGetNamedRenderbufferParameteriv(uint renderbuffer, int pname, int *args) => s_glGetNamedRenderbufferParameteriv(renderbuffer, pname, args);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetObjectLabelDelegate(int identifier, uint name, int bufSize, int *length, char *label);
+	private delegate void glGetObjectLabelDelegate(int identifier, uint name, int bufSize, int *length, byte *label);
 	private static glGetObjectLabelDelegate s_glGetObjectLabel;
-	public static void glGetObjectLabel(int identifier, uint name, int bufSize, int *length, char *label) => s_glGetObjectLabel(identifier, name, bufSize, length, label);
+	public static void glGetObjectLabel(int identifier, uint name, int bufSize, int *length, byte *label) => s_glGetObjectLabel(identifier, name, bufSize, length, label);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetObjectPtrLabelDelegate(void *ptr, int bufSize, int *length, char *label);
+	private delegate void glGetObjectPtrLabelDelegate(void *ptr, int bufSize, int *length, byte *label);
 	private static glGetObjectPtrLabelDelegate s_glGetObjectPtrLabel;
-	public static void glGetObjectPtrLabel(void *ptr, int bufSize, int *length, char *label) => s_glGetObjectPtrLabel(ptr, bufSize, length, label);
+	public static void glGetObjectPtrLabel(void *ptr, int bufSize, int *length, byte *label) => s_glGetObjectPtrLabel(ptr, bufSize, length, label);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetProgramBinaryDelegate(uint program, int bufSize, int *length, int *binaryFormat, void *binary);
@@ -2560,9 +2560,9 @@ public static unsafe class GL46
 	public static void glGetProgramBinary(uint program, int bufSize, int *length, int *binaryFormat, void *binary) => s_glGetProgramBinary(program, bufSize, length, binaryFormat, binary);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetProgramInfoLogDelegate(uint program, int bufSize, int *length, char *infoLog);
+	private delegate void glGetProgramInfoLogDelegate(uint program, int bufSize, int *length, byte *infoLog);
 	private static glGetProgramInfoLogDelegate s_glGetProgramInfoLog;
-	public static void glGetProgramInfoLog(uint program, int bufSize, int *length, char *infoLog) => s_glGetProgramInfoLog(program, bufSize, length, infoLog);
+	public static void glGetProgramInfoLog(uint program, int bufSize, int *length, byte *infoLog) => s_glGetProgramInfoLog(program, bufSize, length, infoLog);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetProgramInterfaceivDelegate(uint program, int programInterface, int pname, int *args);
@@ -2570,9 +2570,9 @@ public static unsafe class GL46
 	public static void glGetProgramInterfaceiv(uint program, int programInterface, int pname, int *args) => s_glGetProgramInterfaceiv(program, programInterface, pname, args);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetProgramPipelineInfoLogDelegate(uint pipeline, int bufSize, int *length, char *infoLog);
+	private delegate void glGetProgramPipelineInfoLogDelegate(uint pipeline, int bufSize, int *length, byte *infoLog);
 	private static glGetProgramPipelineInfoLogDelegate s_glGetProgramPipelineInfoLog;
-	public static void glGetProgramPipelineInfoLog(uint pipeline, int bufSize, int *length, char *infoLog) => s_glGetProgramPipelineInfoLog(pipeline, bufSize, length, infoLog);
+	public static void glGetProgramPipelineInfoLog(uint pipeline, int bufSize, int *length, byte *infoLog) => s_glGetProgramPipelineInfoLog(pipeline, bufSize, length, infoLog);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetProgramPipelineivDelegate(uint pipeline, int pname, int *args);
@@ -2580,24 +2580,24 @@ public static unsafe class GL46
 	public static void glGetProgramPipelineiv(uint pipeline, int pname, int *args) => s_glGetProgramPipelineiv(pipeline, pname, args);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate uint glGetProgramResourceIndexDelegate(uint program, int programInterface, char *name);
+	private delegate uint glGetProgramResourceIndexDelegate(uint program, int programInterface, byte *name);
 	private static glGetProgramResourceIndexDelegate s_glGetProgramResourceIndex;
-	public static uint glGetProgramResourceIndex(uint program, int programInterface, char *name) => s_glGetProgramResourceIndex(program, programInterface, name);
+	public static uint glGetProgramResourceIndex(uint program, int programInterface, byte *name) => s_glGetProgramResourceIndex(program, programInterface, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate int glGetProgramResourceLocationDelegate(uint program, int programInterface, char *name);
+	private delegate int glGetProgramResourceLocationDelegate(uint program, int programInterface, byte *name);
 	private static glGetProgramResourceLocationDelegate s_glGetProgramResourceLocation;
-	public static int glGetProgramResourceLocation(uint program, int programInterface, char *name) => s_glGetProgramResourceLocation(program, programInterface, name);
+	public static int glGetProgramResourceLocation(uint program, int programInterface, byte *name) => s_glGetProgramResourceLocation(program, programInterface, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate int glGetProgramResourceLocationIndexDelegate(uint program, int programInterface, char *name);
+	private delegate int glGetProgramResourceLocationIndexDelegate(uint program, int programInterface, byte *name);
 	private static glGetProgramResourceLocationIndexDelegate s_glGetProgramResourceLocationIndex;
-	public static int glGetProgramResourceLocationIndex(uint program, int programInterface, char *name) => s_glGetProgramResourceLocationIndex(program, programInterface, name);
+	public static int glGetProgramResourceLocationIndex(uint program, int programInterface, byte *name) => s_glGetProgramResourceLocationIndex(program, programInterface, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetProgramResourceNameDelegate(uint program, int programInterface, uint index, int bufSize, int *length, char *name);
+	private delegate void glGetProgramResourceNameDelegate(uint program, int programInterface, uint index, int bufSize, int *length, byte *name);
 	private static glGetProgramResourceNameDelegate s_glGetProgramResourceName;
-	public static void glGetProgramResourceName(uint program, int programInterface, uint index, int bufSize, int *length, char *name) => s_glGetProgramResourceName(program, programInterface, index, bufSize, length, name);
+	public static void glGetProgramResourceName(uint program, int programInterface, uint index, int bufSize, int *length, byte *name) => s_glGetProgramResourceName(program, programInterface, index, bufSize, length, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetProgramResourceivDelegate(uint program, int programInterface, uint index, int propCount, int *props, int count, int *length, int *args);
@@ -2690,9 +2690,9 @@ public static unsafe class GL46
 	public static void glGetSamplerParameteriv(uint sampler, int pname, int *args) => s_glGetSamplerParameteriv(sampler, pname, args);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetShaderInfoLogDelegate(uint shader, int bufSize, int *length, char *infoLog);
+	private delegate void glGetShaderInfoLogDelegate(uint shader, int bufSize, int *length, byte *infoLog);
 	private static glGetShaderInfoLogDelegate s_glGetShaderInfoLog;
-	public static void glGetShaderInfoLog(uint shader, int bufSize, int *length, char *infoLog) => s_glGetShaderInfoLog(shader, bufSize, length, infoLog);
+	public static void glGetShaderInfoLog(uint shader, int bufSize, int *length, byte *infoLog) => s_glGetShaderInfoLog(shader, bufSize, length, infoLog);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetShaderPrecisionFormatDelegate(int shadertype, int precisiontype, int *range, int *precision);
@@ -2700,9 +2700,9 @@ public static unsafe class GL46
 	public static void glGetShaderPrecisionFormat(int shadertype, int precisiontype, int *range, int *precision) => s_glGetShaderPrecisionFormat(shadertype, precisiontype, range, precision);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetShaderSourceDelegate(uint shader, int bufSize, int *length, char *source);
+	private delegate void glGetShaderSourceDelegate(uint shader, int bufSize, int *length, byte *source);
 	private static glGetShaderSourceDelegate s_glGetShaderSource;
-	public static void glGetShaderSource(uint shader, int bufSize, int *length, char *source) => s_glGetShaderSource(shader, bufSize, length, source);
+	public static void glGetShaderSource(uint shader, int bufSize, int *length, byte *source) => s_glGetShaderSource(shader, bufSize, length, source);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetShaderivDelegate(uint shader, int pname, int *args);
@@ -2720,14 +2720,14 @@ public static unsafe class GL46
 	public static  byte *glGetStringi(int name, uint index) => s_glGetStringi(name, index);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate uint glGetSubroutineIndexDelegate(uint program, int shadertype, char *name);
+	private delegate uint glGetSubroutineIndexDelegate(uint program, int shadertype, byte *name);
 	private static glGetSubroutineIndexDelegate s_glGetSubroutineIndex;
-	public static uint glGetSubroutineIndex(uint program, int shadertype, char *name) => s_glGetSubroutineIndex(program, shadertype, name);
+	public static uint glGetSubroutineIndex(uint program, int shadertype, byte *name) => s_glGetSubroutineIndex(program, shadertype, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate int glGetSubroutineUniformLocationDelegate(uint program, int shadertype, char *name);
+	private delegate int glGetSubroutineUniformLocationDelegate(uint program, int shadertype, byte *name);
 	private static glGetSubroutineUniformLocationDelegate s_glGetSubroutineUniformLocation;
-	public static int glGetSubroutineUniformLocation(uint program, int shadertype, char *name) => s_glGetSubroutineUniformLocation(program, shadertype, name);
+	public static int glGetSubroutineUniformLocation(uint program, int shadertype, byte *name) => s_glGetSubroutineUniformLocation(program, shadertype, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetSyncivDelegate(IntPtr sync, int pname, int count, int *length, int *values);
@@ -2810,9 +2810,9 @@ public static unsafe class GL46
 	public static void glGetTextureSubImage(uint texture, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, int bufSize, void *pixels) => s_glGetTextureSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, format, type, bufSize, pixels);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetTransformFeedbackVaryingDelegate(uint program, uint index, int bufSize, int *length, int *size, int *type, char *name);
+	private delegate void glGetTransformFeedbackVaryingDelegate(uint program, uint index, int bufSize, int *length, int *size, int *type, byte *name);
 	private static glGetTransformFeedbackVaryingDelegate s_glGetTransformFeedbackVarying;
-	public static void glGetTransformFeedbackVarying(uint program, uint index, int bufSize, int *length, int *size, int *type, char *name) => s_glGetTransformFeedbackVarying(program, index, bufSize, length, size, type, name);
+	public static void glGetTransformFeedbackVarying(uint program, uint index, int bufSize, int *length, int *size, int *type, byte *name) => s_glGetTransformFeedbackVarying(program, index, bufSize, length, size, type, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetTransformFeedbacki64_vDelegate(uint xfb, int pname, uint index, long *param);
@@ -2830,19 +2830,19 @@ public static unsafe class GL46
 	public static void glGetTransformFeedbackiv(uint xfb, int pname, int *param) => s_glGetTransformFeedbackiv(xfb, pname, param);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate uint glGetUniformBlockIndexDelegate(uint program, char *uniformBlockName);
+	private delegate uint glGetUniformBlockIndexDelegate(uint program, byte *uniformBlockName);
 	private static glGetUniformBlockIndexDelegate s_glGetUniformBlockIndex;
-	public static uint glGetUniformBlockIndex(uint program, char *uniformBlockName) => s_glGetUniformBlockIndex(program, uniformBlockName);
+	public static uint glGetUniformBlockIndex(uint program, byte *uniformBlockName) => s_glGetUniformBlockIndex(program, uniformBlockName);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glGetUniformIndicesDelegate(uint program, int uniformCount, char **uniformNames, uint *uniformIndices);
+	private delegate void glGetUniformIndicesDelegate(uint program, int uniformCount, byte **uniformNames, uint *uniformIndices);
 	private static glGetUniformIndicesDelegate s_glGetUniformIndices;
-	public static void glGetUniformIndices(uint program, int uniformCount, char **uniformNames, uint *uniformIndices) => s_glGetUniformIndices(program, uniformCount, uniformNames, uniformIndices);
+	public static void glGetUniformIndices(uint program, int uniformCount, byte **uniformNames, uint *uniformIndices) => s_glGetUniformIndices(program, uniformCount, uniformNames, uniformIndices);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate int glGetUniformLocationDelegate(uint program, char *name);
+	private delegate int glGetUniformLocationDelegate(uint program, byte *name);
 	private static glGetUniformLocationDelegate s_glGetUniformLocation;
-	public static int glGetUniformLocation(uint program, char *name) => s_glGetUniformLocation(program, name);
+	public static int glGetUniformLocation(uint program, byte *name) => s_glGetUniformLocation(program, name);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glGetUniformSubroutineuivDelegate(int shadertype, int location, uint *args);
@@ -3320,14 +3320,14 @@ public static unsafe class GL46
 	public static void glNormalP3uiv(int type, uint *coords) => s_glNormalP3uiv(type, coords);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glObjectLabelDelegate(int identifier, uint name, int length, char *label);
+	private delegate void glObjectLabelDelegate(int identifier, uint name, int length, byte *label);
 	private static glObjectLabelDelegate s_glObjectLabel;
-	public static void glObjectLabel(int identifier, uint name, int length, char *label) => s_glObjectLabel(identifier, name, length, label);
+	public static void glObjectLabel(int identifier, uint name, int length, byte *label) => s_glObjectLabel(identifier, name, length, label);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glObjectPtrLabelDelegate(void *ptr, int length, char *label);
+	private delegate void glObjectPtrLabelDelegate(void *ptr, int length, byte *label);
 	private static glObjectPtrLabelDelegate s_glObjectPtrLabel;
-	public static void glObjectPtrLabel(void *ptr, int length, char *label) => s_glObjectPtrLabel(ptr, length, label);
+	public static void glObjectPtrLabel(void *ptr, int length, byte *label) => s_glObjectPtrLabel(ptr, length, label);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glPatchParameterfvDelegate(int pname, float *values);
@@ -3670,9 +3670,9 @@ public static unsafe class GL46
 	public static void glProvokingVertex(int mode) => s_glProvokingVertex(mode);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glPushDebugGroupDelegate(int source, uint id, int length, char *message);
+	private delegate void glPushDebugGroupDelegate(int source, uint id, int length, byte *message);
 	private static glPushDebugGroupDelegate s_glPushDebugGroup;
-	public static void glPushDebugGroup(int source, uint id, int length, char *message) => s_glPushDebugGroup(source, id, length, message);
+	public static void glPushDebugGroup(int source, uint id, int length, byte *message) => s_glPushDebugGroup(source, id, length, message);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glQueryCounterDelegate(uint id, int target);
@@ -3790,9 +3790,9 @@ public static unsafe class GL46
 	public static void glShaderBinary(int count, uint *shaders, int binaryFormat, void *binary, int length) => s_glShaderBinary(count, shaders, binaryFormat, binary, length);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glShaderSourceDelegate(uint shader, int count, char **str, int *length);
+	private delegate void glShaderSourceDelegate(uint shader, int count, byte **str, int *length);
 	private static glShaderSourceDelegate s_glShaderSource;
-	public static void glShaderSource(uint shader, int count, char **str, int *length) => s_glShaderSource(shader, count, str, length);
+	public static void glShaderSource(uint shader, int count, byte **str, int *length) => s_glShaderSource(shader, count, str, length);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glShaderStorageBlockBindingDelegate(uint program, uint storageBlockIndex, uint storageBlockBinding);
@@ -3800,9 +3800,9 @@ public static unsafe class GL46
 	public static void glShaderStorageBlockBinding(uint program, uint storageBlockIndex, uint storageBlockBinding) => s_glShaderStorageBlockBinding(program, storageBlockIndex, storageBlockBinding);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glSpecializeShaderDelegate(uint shader, char *pEntryPoint, uint numSpecializationConstants, uint *pConstantIndex, uint *pConstantValue);
+	private delegate void glSpecializeShaderDelegate(uint shader, byte *pEntryPoint, uint numSpecializationConstants, uint *pConstantIndex, uint *pConstantValue);
 	private static glSpecializeShaderDelegate s_glSpecializeShader;
-	public static void glSpecializeShader(uint shader, char *pEntryPoint, uint numSpecializationConstants, uint *pConstantIndex, uint *pConstantValue) => s_glSpecializeShader(shader, pEntryPoint, numSpecializationConstants, pConstantIndex, pConstantValue);
+	public static void glSpecializeShader(uint shader, byte *pEntryPoint, uint numSpecializationConstants, uint *pConstantIndex, uint *pConstantValue) => s_glSpecializeShader(shader, pEntryPoint, numSpecializationConstants, pConstantIndex, pConstantValue);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glStencilFuncDelegate(int func, int reference, uint mask);
@@ -4080,9 +4080,9 @@ public static unsafe class GL46
 	public static void glTransformFeedbackBufferRange(uint xfb, uint index, uint buffer, IntPtr offset, IntPtr size) => s_glTransformFeedbackBufferRange(xfb, index, buffer, offset, size);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	private delegate void glTransformFeedbackVaryingsDelegate(uint program, int count, char **varyings, int bufferMode);
+	private delegate void glTransformFeedbackVaryingsDelegate(uint program, int count, byte **varyings, int bufferMode);
 	private static glTransformFeedbackVaryingsDelegate s_glTransformFeedbackVaryings;
-	public static void glTransformFeedbackVaryings(uint program, int count, char **varyings, int bufferMode) => s_glTransformFeedbackVaryings(program, count, varyings, bufferMode);
+	public static void glTransformFeedbackVaryings(uint program, int count, byte **varyings, int bufferMode) => s_glTransformFeedbackVaryings(program, count, varyings, bufferMode);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glUniform1dDelegate(int location, double x);

@@ -97,7 +97,7 @@ public sealed unsafe class TextRenderer : IDisposable
         var uniformNameAsBytes = Encoding.ASCII.GetBytes("projection_matrix");
         int uniformLocation;
         fixed(byte* ptr = &uniformNameAsBytes[0])
-            uniformLocation = glGetUniformLocation(m_ShaderProgram, (char*)ptr);
+            uniformLocation = glGetUniformLocation(m_ShaderProgram, ptr);
         AssertNoGlError();
         Console.WriteLine("Projection Matrix Uniform location: " + uniformLocation);
 
