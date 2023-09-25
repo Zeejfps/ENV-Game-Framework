@@ -8,7 +8,7 @@ layout(location = 3) in vec4 v_GlyphRect;
 layout(location = 0) uniform mat4 u_ProjectionMatrix;
 layout(location = 1) uniform vec4 u_GlyphSheetSize;
 
-out vec4 color;
+out vec2 texCoords;
 
 void main() {
 
@@ -24,9 +24,7 @@ void main() {
     position.y = (position.y * rectHalfHeight + rectHalfHeight) + rectY;
     gl_Position = u_ProjectionMatrix * position;
 
-    vec2 texCoords = v_Normals;
+    texCoords = v_Normals;
     texCoords.x = texCoords.x * v_GlyphRect.z + v_GlyphRect.x;
     texCoords.y = texCoords.y * v_GlyphRect.w + v_GlyphRect.y;
-    
-    color = vec4(texCoords, 0, 1);
 }

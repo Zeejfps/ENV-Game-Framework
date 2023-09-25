@@ -6,6 +6,52 @@ using BmFont;
 
 namespace OpenGLSandbox;
 
+
+public sealed class TgaImage
+{
+    private string PathToFile { get; }
+    
+    public TgaImage(string pathToFile)
+    {
+        PathToFile = pathToFile;
+    }
+
+    public unsafe void UploadToGpu()
+    {
+        var width = 0;
+        var height = 0;
+        byte[] pixels;
+        using (BinaryReader reader = new BinaryReader(File.Open(PathToFile, FileMode.Open)))
+        {
+            // Read the TGA header
+            byte[] header = reader.ReadBytes(18);
+            int imageType = header[2];
+
+            if (imageType != 2 && imageType != 3)
+            {
+                throw new Exception("Unsupported TGA format.");
+            }
+
+            width = BitConverter.ToInt16(header, 12);
+            height = BitConverter.ToInt16(header, 14);
+            int bitsPerPixel = header[16];
+
+            // Read the image data
+            var dataSize = width * height * (bitsPerPixel / 8);
+            pixels = reader.ReadBytes(dataSize);
+
+            Console.WriteLine("Image Type: " + imageType);
+            Console.WriteLine("Pixels: " + pixels.Length);
+            
+            // If the image is stored upside down, you may need to flip it
+
+            fixed (void* ptr = &pixels[0])
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, ptr);
+            AssertNoGlError();
+        }
+    }
+}
+
 public sealed unsafe class TextRenderer : IDisposable
 {
     struct PerInstanceData
@@ -35,11 +81,6 @@ public sealed unsafe class TextRenderer : IDisposable
         glGenBuffers(1, &vbo);
         AssertNoGlError();
         m_Vbo = vbo;
-
-        uint tex;
-        glGenTextures(1, &tex);
-        AssertNoGlError();
-        m_Tex = tex;
         
         glBindVertexArray(vao);
         AssertNoGlError();
@@ -90,7 +131,7 @@ public sealed unsafe class TextRenderer : IDisposable
         
         m_ShaderProgram = new ShaderProgramBuilder()
             .WithVertexShader("Assets/Shaders/bmpfont.vert.glsl")
-            .WithFragmentShader("Assets/color.frag.glsl")
+            .WithFragmentShader("Assets/tex.frag.glsl")
             .Build();
 
         glUseProgram(m_ShaderProgram);
@@ -103,15 +144,32 @@ public sealed unsafe class TextRenderer : IDisposable
         glUniformMatrix4fv(projectionMatrixUniformLocation, 1, false, &projectionMatrix.M11);
         AssertNoGlError();
         
-        glBindTexture(GL_TEXTURE_2D, tex);
-        AssertNoGlError();
-        
         var font = FontLoader.Load("Assets/bitmapfonts/test.fnt");
         foreach (var glyph in font.Chars)
             m_IdToGlyphTable.Add(glyph.ID, glyph);
 
         ScaleW = font.Common.ScaleW;
         ScaleH = font.Common.ScaleH;
+
+        uint tex;
+        glGenTextures(1, &tex);
+        AssertNoGlError();
+        m_Tex = tex;
+        
+        glActiveTexture(GL_TEXTURE0);
+        AssertNoGlError();
+        glBindTexture(GL_TEXTURE_2D, tex);
+        AssertNoGlError();
+        
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        AssertNoGlError();
+
+        var image = new TgaImage("Assets/bitmapfonts/test_0.tga");
+        image.UploadToGpu();
     }
     
     public void RenderText(int x, int y, ReadOnlySpan<char> text)
@@ -127,7 +185,7 @@ public sealed unsafe class TextRenderer : IDisposable
             var xPos = cursor.X + glyph.XOffset;
             var yPos = cursor.Y;// - glyph.YOffset;
             var uOffset = glyph.X / ScaleW;
-            var vOffset = 1f - (glyph.Y / ScaleH);
+            var vOffset = glyph.Y / ScaleH;
             var uScale = glyph.Width / ScaleW;
             var vScale = glyph.Height / ScaleH;
             //Console.WriteLine($"{c}: ({uOffset}, {vOffset})\t({uScale}, {vScale})");
