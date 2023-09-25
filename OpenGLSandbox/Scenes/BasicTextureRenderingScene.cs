@@ -1,71 +1,10 @@
 ﻿using System.Diagnostics;
-using System.Numerics;
-using System.Runtime.InteropServices;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.AssetTypes;
 using static GL46;
 using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
-
-[StructLayout(LayoutKind.Sequential)]
-struct Vertex
-{
-    public Vector2 Position;
-    public Vector2 TexCoords;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-struct Triangle
-{
-    public Vertex V1;
-    public Vertex V2;
-    public Vertex V3;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-readonly struct Quad
-{
-    public readonly Triangle T1 = new()
-    {
-        V1 =
-        {
-            Position = new Vector2(-1f, -1f),
-            TexCoords = new Vector2(0f, 0f)
-        },
-        V2 =
-        {
-            Position = new Vector2(1f, -1f),
-            TexCoords = new Vector2(1f, 0f)
-        },
-        V3 =
-        {
-            Position = new Vector2(-1f, 1f),
-            TexCoords = new Vector2(0f, 1f)
-        }
-    };
-    
-    public readonly Triangle T2 = new()
-    {
-        V1 =
-        {
-            Position = new Vector2(1f, -1f),
-            TexCoords = new Vector2(1f, 0f)
-        },
-        V2 =
-        {
-            Position = new Vector2(1f, 1f),
-            TexCoords = new Vector2(1f, 1f)
-        },
-        V3 =
-        {
-            Position = new Vector2(-1f, 1f),
-            TexCoords = new Vector2(0f, 1f)
-        }
-    };
-
-    public Quad(){}
-}
 
 public unsafe class BasicTextureRenderingScene : IScene
 {
@@ -104,13 +43,13 @@ public unsafe class BasicTextureRenderingScene : IScene
         m_Vbo = glGenBuffer();
         glBindBuffer(GL_ARRAY_BUFFER, m_Vbo);
 
-        var quad = new Quad();
-        glBufferData(GL_ARRAY_BUFFER, new IntPtr(sizeof(Quad)), &quad, GL_STATIC_DRAW);
+        var quad = new TexturedQuad();
+        glBufferData(GL_ARRAY_BUFFER, new IntPtr(sizeof(TexturedQuad)), &quad, GL_STATIC_DRAW);
         
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof(Vertex), Offset(0));
+        glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof(TexturedQuad.Vertex), Offset(0));
         glEnableVertexAttribArray(0);
         
-        glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(Vertex), Offset<Vertex>(nameof(Vertex.TexCoords)));
+        glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(TexturedQuad.Vertex), Offset<TexturedQuad.Vertex>(nameof(TexturedQuad.Vertex.TexCoords)));
         glEnableVertexAttribArray(1);
         
         uint textureId;
