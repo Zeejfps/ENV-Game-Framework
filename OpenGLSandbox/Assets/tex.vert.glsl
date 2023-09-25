@@ -6,6 +6,6 @@ layout(location = 1) in vec2 v_Normals;
 out vec2 texCoords;
 
 void main() {
-    texCoords = vec2(v_Normals.x, -v_Normals.y);
+    texCoords = vec2(v_Normals.x, v_Normals.y);
     gl_Position = v_Position;
 }

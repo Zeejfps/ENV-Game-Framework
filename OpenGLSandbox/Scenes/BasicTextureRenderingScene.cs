@@ -90,17 +90,20 @@ public unsafe class BasicTextureRenderingScene : IScene
         // I speculate all subsequent calls would be faster to use the direct reading into the image.
         // Also we aren't really measuring the memory savings on the CPU since the data never has to be upload into the RAM at all
         
-        var image = m_ImageLoader.Load("Assets/lol");
-        
-        var pixels = image.Pixels;
-        fixed (byte* ptr = &pixels[0])
-        {
-            var width = image.Width;
-            var height = image.Height;
-            glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_BPTC_UNORM, width, height, 0,
-                pixels.Length, ptr);
-            AssertNoGlError();
-        }
+        // var image = m_ImageLoader.Load("Assets/lol");
+        //
+        // var pixels = image.Pixels;
+        // fixed (byte* ptr = &pixels[0])
+        // {
+        //     var width = image.Width;
+        //     var height = image.Height;
+        //     glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_BPTC_UNORM, width, height, 0,
+        //         pixels.Length, ptr);
+        //     AssertNoGlError();
+        // }
+
+        var image = new TgaImage("Assets/bitmapfonts/test_0.tga");
+        image.UploadToGpu();
         
         stopwatch.Stop();
         Console.WriteLine($"Loading took: {stopwatch.ElapsedTicks}");

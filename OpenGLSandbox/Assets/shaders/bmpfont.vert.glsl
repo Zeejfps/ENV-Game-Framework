@@ -26,5 +26,5 @@ void main() {
 
     texCoords = v_Normals;
     texCoords.x = texCoords.x * v_GlyphRect.z + v_GlyphRect.x;
-    texCoords.y = texCoords.y * v_GlyphRect.w + v_GlyphRect.y;
+    texCoords.y = (1.0 - texCoords.y) * v_GlyphRect.w + v_GlyphRect.y;
 }
