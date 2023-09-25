@@ -96,9 +96,6 @@ public sealed unsafe class TextRenderer : IDisposable
 
         var projectionMatrixUniformLocation = GetUniformLocation("u_ProjectionMatrix");
         Console.WriteLine("Projection Matrix Uniform Location: " + projectionMatrixUniformLocation);
-
-        var glyphSheetSizeUniformLocation = GetUniformLocation("u_GlyphSheetSize");
-        Console.WriteLine("Glyph Sheet Size Uniform Location: " + glyphSheetSizeUniformLocation);
         
         var projectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, 320f, 0f, 320f, 0.1f, 100f);
         glUniformMatrix4fv(projectionMatrixUniformLocation, 1, false, &projectionMatrix.M11);
@@ -110,6 +107,13 @@ public sealed unsafe class TextRenderer : IDisposable
         var font = FontLoader.Load("Assets/bitmapfonts/test.fnt");
         foreach (var glyph in font.Chars)
             m_IdToGlyphTable.Add(glyph.ID, glyph);
+        
+        var glyphSheetSizeUniformLocation = GetUniformLocation("u_GlyphSheetSize");
+        Console.WriteLine("Glyph Sheet Size Uniform Location: " + glyphSheetSizeUniformLocation);
+        if (glyphSheetSizeUniformLocation > -1)
+        {
+            glUniform2f(glyphSheetSizeUniformLocation, font.Common.ScaleW, font.Common.ScaleH);
+        }
     }
     
     public void RenderText(int x, int y, ReadOnlySpan<char> text)
