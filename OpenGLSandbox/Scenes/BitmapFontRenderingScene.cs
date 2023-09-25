@@ -6,7 +6,6 @@ using BmFont;
 
 namespace OpenGLSandbox;
 
-
 public sealed class TgaImage
 {
     private string PathToFile { get; }
@@ -58,6 +57,7 @@ public sealed unsafe class TextRenderer : IDisposable
     {
         public Rect PositionRect;
         public Rect GlyphSheetRect;
+        public Color Color;
     }
     
     private uint m_Vao;
@@ -130,6 +130,14 @@ public sealed unsafe class TextRenderer : IDisposable
         glVertexAttribDivisor(glyphSheetRectAttribLocation, 1);
         AssertNoGlError();
         
+        // NOTE(Zee): I am going to make color a per instance variable on purpose
+        // This allows us to color each letter differently instead of the whole text
+        uint colorRectAttribLocation = 4;
+        glVertexAttribPointer(colorRectAttribLocation, 4, GL_FLOAT, false, sizeof(PerInstanceData), Offset<PerInstanceData>(nameof(PerInstanceData.Color)));
+        glEnableVertexAttribArray(colorRectAttribLocation);
+        glVertexAttribDivisor(colorRectAttribLocation, 1);
+        AssertNoGlError();
+        
         m_ShaderProgram = new ShaderProgramBuilder()
             .WithVertexShader("Assets/Shaders/bmpfont.vert.glsl")
             .WithFragmentShader("Assets/tex.frag.glsl")
@@ -174,7 +182,7 @@ public sealed unsafe class TextRenderer : IDisposable
         image.UploadToGpu();
     }
     
-    public void RenderText(int x, int y, ReadOnlySpan<char> text)
+    public void RenderText(int x, int y, Color color, ReadOnlySpan<char> text)
     {
         var cursor = new Vector2(x, y);
         glBindBuffer(GL_ARRAY_BUFFER, m_PerInstanceBuffer);
@@ -262,7 +270,8 @@ public sealed class BitmapFontRenderingScene : IScene
     public void Render()
     {
         glClear(GL_COLOR_BUFFER_BIT);
-        TextRenderer.RenderText(20, 200, "Hello world!\nAnd this is a brand new\nline?!");
+        var color = Color.FromHex(0xFF00FF, 1f);
+        TextRenderer.RenderText(20, 200, color,"Hello world!\nAnd this is a brand new\nline?!");
         glFlush();
     }
 
