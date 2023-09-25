@@ -70,6 +70,18 @@ public sealed unsafe class TextRenderer : IDisposable
         
         var maxCharCount = 256;
         glBufferData(GL_ARRAY_BUFFER, new IntPtr(maxCharCount * sizeof(PerInstanceData)), (void*)0, GL_STREAM_DRAW);
+        AssertNoGlError();
+
+        uint positionRectAttribLocation = 2;
+        glVertexAttribPointer(positionRectAttribLocation, 4, GL_FLOAT, false, sizeof(PerInstanceData), Offset<PerInstanceData>(nameof(PerInstanceData.PositionRect)));
+        glEnableVertexAttribArray(positionRectAttribLocation);
+        glVertexAttribDivisor(positionRectAttribLocation, 1);
+
+        // Location in the glyph sheet
+        uint glyphSheetRectAttribLocation = 3;
+        glVertexAttribPointer(glyphSheetRectAttribLocation, 4, GL_FLOAT, false, sizeof(PerInstanceData), Offset<PerInstanceData>(nameof(PerInstanceData.GlyphSheetRect)));
+        glEnableVertexAttribArray(glyphSheetRectAttribLocation);
+        glVertexAttribDivisor(glyphSheetRectAttribLocation, 1);
         
         m_ShaderProgram = new ShaderProgramBuilder()
             .WithVertexShader("Assets/normals.vert.glsl")
