@@ -5,7 +5,8 @@ layout(location = 1) in vec2 v_Normals;
 layout(location = 2) in vec4 v_PositionRect;
 layout(location = 3) in vec4 v_GlyphRect;
 
-uniform mat4 projection_matrix;
+layout(location = 0) uniform mat4 u_ProjectionMatrix;
+layout(location = 1) uniform vec4 u_GlyphSheetSize;
 
 out vec4 color;
 
@@ -21,7 +22,8 @@ void main() {
     vec4 position = v_Position;
     position.x = (position.x * rectHalfWidth + rectHalfWidth) + rectX;
     position.y = (position.y * rectHalfHeight + rectHalfHeight) + rectY;
-    gl_Position = projection_matrix * position;
+    gl_Position = u_ProjectionMatrix * position;
 
+    
     color = vec4(v_Normals, 0, 1);
 }

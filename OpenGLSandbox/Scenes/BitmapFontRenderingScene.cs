@@ -94,15 +94,14 @@ public sealed unsafe class TextRenderer : IDisposable
         glUseProgram(m_ShaderProgram);
         AssertNoGlError();
 
-        var uniformNameAsBytes = Encoding.ASCII.GetBytes("projection_matrix");
-        int uniformLocation;
-        fixed(byte* ptr = &uniformNameAsBytes[0])
-            uniformLocation = glGetUniformLocation(m_ShaderProgram, ptr);
-        AssertNoGlError();
-        Console.WriteLine("Projection Matrix Uniform location: " + uniformLocation);
+        var projectionMatrixUniformLocation = GetUniformLocation("u_ProjectionMatrix");
+        Console.WriteLine("Projection Matrix Uniform Location: " + projectionMatrixUniformLocation);
 
+        var glyphSheetSizeUniformLocation = GetUniformLocation("u_GlyphSheetSize");
+        Console.WriteLine("Glyph Sheet Size Uniform Location: " + glyphSheetSizeUniformLocation);
+        
         var projectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, 320f, 0f, 320f, 0.1f, 100f);
-        glUniformMatrix4fv(uniformLocation, 1, false, &projectionMatrix.M11);
+        glUniformMatrix4fv(projectionMatrixUniformLocation, 1, false, &projectionMatrix.M11);
         AssertNoGlError();
         
         glBindTexture(GL_TEXTURE_2D, tex);
@@ -139,6 +138,16 @@ public sealed unsafe class TextRenderer : IDisposable
         glDrawArraysInstanced(GL_TRIANGLES, 0, 6, text.Length);
     }
 
+    private int GetUniformLocation(string uniformName)
+    {
+        var uniformNameAsAsciiBytes = Encoding.ASCII.GetBytes(uniformName);
+        int uniformLocation;
+        fixed(byte* ptr = &uniformNameAsAsciiBytes[0])
+            uniformLocation = glGetUniformLocation(m_ShaderProgram, ptr);
+        AssertNoGlError();
+        return uniformLocation;
+    }
+    
     public void Dispose()
     {
         fixed (uint* vao = &m_Vao)
