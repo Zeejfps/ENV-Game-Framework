@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Text;
 using static GL46;
 using static OpenGLSandbox.Utils_GL;
 using BmFont;
@@ -76,19 +77,32 @@ public sealed unsafe class TextRenderer : IDisposable
         glVertexAttribPointer(positionRectAttribLocation, 4, GL_FLOAT, false, sizeof(PerInstanceData), Offset<PerInstanceData>(nameof(PerInstanceData.PositionRect)));
         glEnableVertexAttribArray(positionRectAttribLocation);
         glVertexAttribDivisor(positionRectAttribLocation, 1);
-
+        AssertNoGlError();
+        
         // Location in the glyph sheet
         uint glyphSheetRectAttribLocation = 3;
         glVertexAttribPointer(glyphSheetRectAttribLocation, 4, GL_FLOAT, false, sizeof(PerInstanceData), Offset<PerInstanceData>(nameof(PerInstanceData.GlyphSheetRect)));
         glEnableVertexAttribArray(glyphSheetRectAttribLocation);
         glVertexAttribDivisor(glyphSheetRectAttribLocation, 1);
+        AssertNoGlError();
         
         m_ShaderProgram = new ShaderProgramBuilder()
-            .WithVertexShader("Assets/normals.vert.glsl")
+            .WithVertexShader("Assets/Shaders/bmpfont.vert.glsl")
             .WithFragmentShader("Assets/color.frag.glsl")
             .Build();
 
         glUseProgram(m_ShaderProgram);
+        AssertNoGlError();
+
+        var uniformNameAsBytes = Encoding.ASCII.GetBytes("projection_matrix");
+        int uniformLocation;
+        fixed(byte* ptr = &uniformNameAsBytes[0])
+            uniformLocation = glGetUniformLocation(m_ShaderProgram, (char*)ptr);
+        AssertNoGlError();
+        Console.WriteLine("Projection Matrix Uniform location: " + uniformLocation);
+
+        var projectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, 640f, 0f, 640f, 0.1f, 100f);
+        glUniformMatrix4fv(uniformLocation, 1, false, &projectionMatrix.M11);
         AssertNoGlError();
         
         glBindTexture(GL_TEXTURE_2D, tex);
