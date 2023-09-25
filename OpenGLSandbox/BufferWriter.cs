@@ -30,6 +30,11 @@ public sealed unsafe class BufferWriter<T> : IDisposable where T : unmanaged
         return new BufferWriter<T>(target, size);
     }
     
+    public static BufferWriter<T> Map(int target, int size)
+    {
+        return new BufferWriter<T>(target, size);
+    }
+    
     public BufferWriter(int target, int size)
     {
         m_Target = target;
