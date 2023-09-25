@@ -21,6 +21,8 @@ public sealed unsafe class TextRenderer : IDisposable
     private uint m_ShaderProgram;
     private FontFile m_Font;
     private Dictionary<int, FontChar> m_IdToGlyphTable = new();
+    private float ScaleW;
+    private float ScaleH;
     
     public TextRenderer()
     {
@@ -107,13 +109,9 @@ public sealed unsafe class TextRenderer : IDisposable
         var font = FontLoader.Load("Assets/bitmapfonts/test.fnt");
         foreach (var glyph in font.Chars)
             m_IdToGlyphTable.Add(glyph.ID, glyph);
-        
-        var glyphSheetSizeUniformLocation = GetUniformLocation("u_GlyphSheetSize");
-        Console.WriteLine("Glyph Sheet Size Uniform Location: " + glyphSheetSizeUniformLocation);
-        if (glyphSheetSizeUniformLocation > -1)
-        {
-            glUniform2f(glyphSheetSizeUniformLocation, font.Common.ScaleW, font.Common.ScaleH);
-        }
+
+        ScaleW = font.Common.ScaleW;
+        ScaleH = font.Common.ScaleH;
     }
     
     public void RenderText(int x, int y, ReadOnlySpan<char> text)
@@ -127,11 +125,16 @@ public sealed unsafe class TextRenderer : IDisposable
         {
             var glyph = GetGlyph(c);
             var xPos = cursor.X + glyph.XOffset;
-            var uPos = cursor.Y;// - glyph.YOffset;
+            var yPos = cursor.Y;// - glyph.YOffset;
+            var uOffset = glyph.X / ScaleW;
+            var vOffset = 1f - (glyph.Y / ScaleH);
+            var uScale = glyph.Width / ScaleW;
+            var vScale = glyph.Height / ScaleH;
+            //Console.WriteLine($"{c}: ({uOffset}, {vOffset})\t({uScale}, {vScale})");
             buffer[i] = new PerInstanceData
             {
-                PositionRect = new Rect(xPos, uPos, glyph.Width, glyph.Height),
-                GlyphSheetRect = new Rect(glyph.X, glyph.Y, glyph.Width, glyph.Height)
+                PositionRect = new Rect(xPos, yPos, glyph.Width, glyph.Height),
+                GlyphSheetRect = new Rect(uOffset, vOffset, uScale, vScale)
             };
             i++;
             cursor.X += glyph.XAdvance;

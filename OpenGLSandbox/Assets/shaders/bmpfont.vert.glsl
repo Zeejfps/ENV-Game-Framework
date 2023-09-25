@@ -24,6 +24,9 @@ void main() {
     position.y = (position.y * rectHalfHeight + rectHalfHeight) + rectY;
     gl_Position = u_ProjectionMatrix * position;
 
+    vec2 texCoords = v_Normals;
+    texCoords.x = texCoords.x * v_GlyphRect.z + v_GlyphRect.x;
+    texCoords.y = texCoords.y * v_GlyphRect.w + v_GlyphRect.y;
     
-    color = vec4(v_Normals, 0, 1);
+    color = vec4(texCoords, 0, 1);
 }
