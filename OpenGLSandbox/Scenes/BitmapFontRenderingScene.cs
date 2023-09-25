@@ -67,8 +67,9 @@ public sealed unsafe class TextRenderer : IDisposable
     private uint m_ShaderProgram;
     private FontFile m_Font;
     private Dictionary<int, FontChar> m_IdToGlyphTable = new();
-    private float ScaleW;
-    private float ScaleH;
+    private readonly float m_ScaleW;
+    private readonly float m_ScaleH;
+    private readonly float m_LineHeight;
     
     public TextRenderer()
     {
@@ -148,8 +149,9 @@ public sealed unsafe class TextRenderer : IDisposable
         foreach (var glyph in font.Chars)
             m_IdToGlyphTable.Add(glyph.ID, glyph);
 
-        ScaleW = font.Common.ScaleW;
-        ScaleH = font.Common.ScaleH;
+        m_ScaleW = font.Common.ScaleW;
+        m_ScaleH = font.Common.ScaleH;
+        m_LineHeight = font.Common.LineHeight;
 
         uint tex;
         glGenTextures(1, &tex);
@@ -181,13 +183,20 @@ public sealed unsafe class TextRenderer : IDisposable
         var i = 0;
         foreach (var c in text)
         {
+            if (c == '\n')
+            {
+                cursor.X = x;
+                cursor.Y -= m_LineHeight;
+                continue;
+            }
+            
             var glyph = GetGlyph(c);
             var xPos = cursor.X + glyph.XOffset;
             var yPos = cursor.Y;// - glyph.YOffset;
-            var uOffset = glyph.X / ScaleW;
-            var vOffset = glyph.Y / ScaleH;
-            var uScale = glyph.Width / ScaleW;
-            var vScale = glyph.Height / ScaleH;
+            var uOffset = glyph.X / m_ScaleW;
+            var vOffset = glyph.Y / m_ScaleH;
+            var uScale = glyph.Width / m_ScaleW;
+            var vScale = glyph.Height / m_ScaleH;
             //Console.WriteLine($"{c}: ({uOffset}, {vOffset})\t({uScale}, {vScale})");
             buffer[i] = new PerInstanceData
             {
@@ -253,7 +262,7 @@ public sealed class BitmapFontRenderingScene : IScene
     public void Render()
     {
         glClear(GL_COLOR_BUFFER_BIT);
-        TextRenderer.RenderText(20, 200, "Hello world!");
+        TextRenderer.RenderText(20, 200, "Hello world!\nAnd this is a brand new\nline?!");
         glFlush();
     }
 
