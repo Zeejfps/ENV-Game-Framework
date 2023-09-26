@@ -87,7 +87,7 @@ public sealed unsafe class TextRenderer : IDisposable
     private Dictionary<int, FontChar> m_IdToGlyphTable = new();
     private readonly float m_ScaleW;
     private readonly float m_ScaleH;
-    private readonly float m_LineHeight;
+    private readonly int m_LineHeight;
     private readonly Random m_Random = new Random();
     
     public TextRenderer()
@@ -200,7 +200,9 @@ public sealed unsafe class TextRenderer : IDisposable
         var image = new TgaImage("Assets/bitmapfonts/test_0.tga");
         image.UploadToGpu();
     }
-    
+
+    public int LineHeight => m_LineHeight;
+
     public void RenderText(int x, int y, Color color, ReadOnlySpan<char> text)
     {
         var cursor = new Vector2(x, y);
@@ -219,7 +221,8 @@ public sealed unsafe class TextRenderer : IDisposable
             
             var glyph = GetGlyph(c);
             var xPos = cursor.X + glyph.XOffset;
-            var yPos = cursor.Y;// - glyph.YOffset;
+            var yPos = cursor.Y - (glyph.YOffset - (m_LineHeight - glyph.Height));
+            
             var uOffset = glyph.X / m_ScaleW;
             var vOffset = glyph.Y / m_ScaleH;
             var uScale = glyph.Width / m_ScaleW;
@@ -292,8 +295,12 @@ public sealed class BitmapFontRenderingScene : IScene
     public void Render()
     {
         glClear(GL_COLOR_BUFFER_BIT);
-        var color = Color.FromHex(0xFF00FF, 1f);
+        var color = Color.FromHex(0xFF0045, 1f);
         TextRenderer.RenderText(20, 200, color,"Hello world!\nAnd this is a brand new\nline?!");
+        TextRenderer.RenderText(50, 300, Color.FromHex(0x0F0f6, 1f),"This is more text");
+        TextRenderer.RenderText(200, 240, Color.FromHex(0x2f8777, 1f),"This is EVEN, MORE, perhaps, MOST,\ntext EVER!!!");
+        TextRenderer.RenderText(0, 0, Color.FromHex(0x2f8777, 1f),"Should align with bottom left corner");
+        TextRenderer.RenderText(0, 640 - TextRenderer.LineHeight, Color.FromHex(0x2f8777, 1f),"Should align with top left corner");
         glFlush();
     }
 
