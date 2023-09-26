@@ -159,19 +159,39 @@ public sealed unsafe class TextRenderer : IDisposable
     {
         var color = style.Color;
         var horizontalAlignment = style.HorizontalTextAlignment;
+        var verticalAlignment = style.VerticalTextAlignment;
         var textWidth = CalculateWidth(text);
-        var padding = 0f;
-
+        var textHeight = CalculateHeight(text);
+        var leftPadding = 0f;
+        var bottomPadding = 0f;
+        
         switch (horizontalAlignment)
         {
             case TextAlignment.Start:
-                padding = 0f;
+                leftPadding = 0f;
                 break;
             case TextAlignment.Center:
-                padding = MathF.Floor((screenRect.Width - textWidth) * 0.5f);
+                leftPadding = MathF.Floor((screenRect.Width - textWidth) * 0.5f);
                 break;
             case TextAlignment.End:
-                padding = MathF.Floor(screenRect.Width - textWidth);
+                leftPadding = MathF.Floor(screenRect.Width - textWidth);
+                break;
+            case TextAlignment.Justify:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+
+        switch (verticalAlignment)
+        {
+            case TextAlignment.Start:
+                bottomPadding = screenRect.Height - textHeight;
+                break;
+            case TextAlignment.Center:
+                bottomPadding = MathF.Floor(screenRect.Height - textHeight) * 0.5f;
+                break;
+            case TextAlignment.End:
+                bottomPadding = 0f;
                 break;
             case TextAlignment.Justify:
                 break;
@@ -179,11 +199,16 @@ public sealed unsafe class TextRenderer : IDisposable
                 throw new ArgumentOutOfRangeException();
         }
         
-        var x = (int)(screenRect.X + padding);
-        var y = (int)(screenRect.Y);
+        var x = (int)(screenRect.X + leftPadding);
+        var y = (int)(screenRect.Y + bottomPadding);
         RenderText(x, y, color, text);
     }
 
+    private int CalculateHeight(ReadOnlySpan<char> text)
+    {
+        return m_Base;
+    }
+    
     private int CalculateWidth(ReadOnlySpan<char> text)
     {
         var textWidthInPixels = 0;
