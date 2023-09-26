@@ -15,6 +15,7 @@ public struct TextStyle
 {
     public TextAlignment HorizontalTextAlignment;
     public TextAlignment VerticalTextAlignment;
+    public Color Color;
     public bool Wrap;
 }
 
@@ -156,7 +157,44 @@ public sealed unsafe class TextRenderer : IDisposable
 
     public void RenderText(Rect screenRect, TextStyle style, ReadOnlySpan<char> text)
     {
+        var color = style.Color;
+        var horizontalAlignment = style.HorizontalTextAlignment;
+        var textWidth = CalculateWidth(text);
+        var padding = 0f;
+
+        switch (horizontalAlignment)
+        {
+            case TextAlignment.Start:
+                padding = 0f;
+                break;
+            case TextAlignment.Center:
+                padding = MathF.Floor((screenRect.Width - textWidth) * 0.5f);
+                break;
+            case TextAlignment.End:
+                padding = MathF.Floor(screenRect.Width - textWidth);
+                break;
+            case TextAlignment.Justify:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
         
+        var x = (int)(screenRect.X + padding);
+        var y = (int)(screenRect.Y);
+        RenderText(x, y, color, text);
+    }
+
+    private int CalculateWidth(ReadOnlySpan<char> text)
+    {
+        var textWidthInPixels = 0;
+        foreach (var c in text)
+        {
+            if (!TryGetGlyph(c, out var glyph))
+                continue;
+            textWidthInPixels += glyph.XOffset + glyph.XAdvance;
+        }
+
+        return textWidthInPixels;
     }
     
     public void RenderText(int x, int y, Color color, ReadOnlySpan<char> text)
@@ -231,11 +269,16 @@ public sealed unsafe class TextRenderer : IDisposable
 
     private FontChar GetGlyph(char c)
     {
-        var id = (int)c;
-        if (m_IdToGlyphTable.TryGetValue(id, out var glyph))
+        if (TryGetGlyph(c, out var glyph))
             return glyph;
         
         Console.WriteLine($"Could not find glyph for char '{c}'");
         return new FontChar();
+    }
+
+    private bool TryGetGlyph(char c, out FontChar glyph)
+    {
+        var id = (int)c;
+        return m_IdToGlyphTable.TryGetValue(id, out glyph);
     }
 }

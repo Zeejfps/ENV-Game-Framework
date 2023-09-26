@@ -18,6 +18,34 @@ public sealed class BitmapFontRenderingScene : IScene
     {
         glClear(GL_COLOR_BUFFER_BIT);
         var color = Color.FromHex(0xFF0045, 1f);
+        TextRenderer.RenderText(
+            new Rect(0, 400, 640f, 100f), 
+            new TextStyle
+            {
+                HorizontalTextAlignment = TextAlignment.Start,
+                Color = Color.FromHex(0xff00ff, 1f),
+            },
+            "Start"
+        );
+        TextRenderer.RenderText(
+            new Rect(0, 400, 640f, 100f), 
+            new TextStyle
+            {
+                HorizontalTextAlignment = TextAlignment.Center,
+                Color = Color.FromHex(0xff00ff, 1f),
+            },
+            "Centered"
+        );
+        
+        TextRenderer.RenderText(
+            new Rect(0, 400, 640f, 100f), 
+            new TextStyle
+            {
+                HorizontalTextAlignment = TextAlignment.End,
+                Color = Color.FromHex(0xff00ff, 1f),
+            },
+            "End"
+        );
         TextRenderer.RenderText(20, 200, color,"Hello world!\nAnd this is a brand new\nline?!");
         TextRenderer.RenderText(50, 300, Color.FromHex(0x0F0f6, 1f),"This is more text");
         TextRenderer.RenderText(200, 240, Color.FromHex(0x2f8777, 1f),"This is EVEN, MORE, perhaps, MOST,\ntext EVER!!! Need to test overlap");
