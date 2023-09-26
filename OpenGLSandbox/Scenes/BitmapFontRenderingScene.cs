@@ -56,8 +56,8 @@ public sealed class TgaImage
             glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
             AssertNoGlError();
 
-            Console.WriteLine("Image Type: " + imageType);
-            Console.WriteLine("Pixels: " + buffer.Length);
+            //Console.WriteLine("Image Type: " + imageType);
+            //Console.WriteLine("Pixels: " + buffer.Length);
             
             // If the image is stored upside down, you may need to flip it
 
@@ -88,6 +88,7 @@ public sealed unsafe class TextRenderer : IDisposable
     private readonly float m_ScaleW;
     private readonly float m_ScaleH;
     private readonly float m_LineHeight;
+    private readonly Random m_Random = new Random();
     
     public TextRenderer()
     {
@@ -158,7 +159,7 @@ public sealed unsafe class TextRenderer : IDisposable
         
         m_ShaderProgram = new ShaderProgramBuilder()
             .WithVertexShader("Assets/Shaders/bmpfont.vert.glsl")
-            .WithFragmentShader("Assets/tex.frag.glsl")
+            .WithFragmentShader("Assets/Shaders/bmpfont.frag.glsl")
             .Build();
 
         glUseProgram(m_ShaderProgram);
@@ -167,7 +168,7 @@ public sealed unsafe class TextRenderer : IDisposable
         var projectionMatrixUniformLocation = GetUniformLocation("u_ProjectionMatrix");
         Console.WriteLine("Projection Matrix Uniform Location: " + projectionMatrixUniformLocation);
         
-        var projectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, 320f, 0f, 320f, 0.1f, 100f);
+        var projectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, 640f, 0f, 640f, 0.1f, 100f);
         glUniformMatrix4fv(projectionMatrixUniformLocation, 1, false, &projectionMatrix.M11);
         AssertNoGlError();
         
@@ -284,6 +285,8 @@ public sealed class BitmapFontRenderingScene : IScene
     public void Load()
     {
         TextRenderer = new TextRenderer();
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA);
     }
 
     public void Render()
