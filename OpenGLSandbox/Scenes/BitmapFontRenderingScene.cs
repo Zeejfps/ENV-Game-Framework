@@ -294,7 +294,8 @@ public sealed class BitmapFontRenderingScene : IScene
     {
         TextRenderer = new TextRenderer();
         glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glClearColor(0f, 0.3f, 0.6f, 1f);
     }
 
     public void Render()
@@ -306,6 +307,7 @@ public sealed class BitmapFontRenderingScene : IScene
         TextRenderer.RenderText(200, 240, Color.FromHex(0x2f8777, 1f),"This is EVEN, MORE, perhaps, MOST,\ntext EVER!!! Need to test overlap");
         TextRenderer.RenderText(0, 0, Color.FromHex(0x2f8777, 1f),"Should align with bottom left corner");
         TextRenderer.RenderText(0, 640 - TextRenderer.LineHeight, Color.FromHex(0x2f8777, 1f),"Should align with top left corner");
+        TextRenderer.RenderText(55, 290, Color.FromHex(0x2f8777, 1f),"Overlapping text");
         glFlush();
     }
 
