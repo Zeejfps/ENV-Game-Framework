@@ -87,6 +87,7 @@ public sealed unsafe class TextRenderer : IDisposable
     private Dictionary<int, FontChar> m_IdToGlyphTable = new();
     private readonly float m_ScaleW;
     private readonly float m_ScaleH;
+    private readonly int m_Base;
     private readonly int m_LineHeight;
     private readonly Random m_Random = new Random();
     
@@ -179,6 +180,7 @@ public sealed unsafe class TextRenderer : IDisposable
         m_ScaleW = font.Common.ScaleW;
         m_ScaleH = font.Common.ScaleH;
         m_LineHeight = font.Common.LineHeight;
+        m_Base = font.Common.Base;
 
         uint tex;
         glGenTextures(1, &tex);
@@ -218,10 +220,13 @@ public sealed unsafe class TextRenderer : IDisposable
                 cursor.Y -= m_LineHeight;
                 continue;
             }
-            
+
+
             var glyph = GetGlyph(c);
             var xPos = cursor.X + glyph.XOffset;
-            var yPos = cursor.Y - (glyph.YOffset - (m_LineHeight - glyph.Height));
+            
+            var offsetFromTop = glyph.YOffset - (m_Base - glyph.Height);
+            var yPos = cursor.Y - offsetFromTop;
             
             var uOffset = glyph.X / m_ScaleW;
             var vOffset = glyph.Y / m_ScaleH;
@@ -298,7 +303,7 @@ public sealed class BitmapFontRenderingScene : IScene
         var color = Color.FromHex(0xFF0045, 1f);
         TextRenderer.RenderText(20, 200, color,"Hello world!\nAnd this is a brand new\nline?!");
         TextRenderer.RenderText(50, 300, Color.FromHex(0x0F0f6, 1f),"This is more text");
-        TextRenderer.RenderText(200, 240, Color.FromHex(0x2f8777, 1f),"This is EVEN, MORE, perhaps, MOST,\ntext EVER!!!");
+        TextRenderer.RenderText(200, 240, Color.FromHex(0x2f8777, 1f),"This is EVEN, MORE, perhaps, MOST,\ntext EVER!!! Need to test overlap");
         TextRenderer.RenderText(0, 0, Color.FromHex(0x2f8777, 1f),"Should align with bottom left corner");
         TextRenderer.RenderText(0, 640 - TextRenderer.LineHeight, Color.FromHex(0x2f8777, 1f),"Should align with top left corner");
         glFlush();
