@@ -26,11 +26,13 @@ public sealed class GuiExperimentsSandboxScene : IScene
 
     private ICommandBuffer CommandBuffer { get; } = new CommandBuffer();
     private TextRenderPass TextRenderPass { get; }
+    private RectRenderPass RectRenderPass { get; }
     private TextRenderer TextRenderer { get; }
     
     public GuiExperimentsSandboxScene()
     {
         TextRenderer = new TextRenderer();
+        RectRenderPass = new RectRenderPass();
         TextRenderPass = new TextRenderPass(TextRenderer);
     }
     
@@ -51,6 +53,7 @@ public sealed class GuiExperimentsSandboxScene : IScene
         m_Button.Render(commandBuffer);
         m_ButtonText.Render(commandBuffer);
 
+        RectRenderPass.Execute(commandBuffer);
         TextRenderPass.Execute(commandBuffer);
     }
 
