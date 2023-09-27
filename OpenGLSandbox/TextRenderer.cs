@@ -21,10 +21,10 @@ public struct TextStyle
 
 public sealed unsafe class TextRenderer : IDisposable
 {
-    struct PerInstanceData
+    struct Glyph
     {
-        public Rect PositionRect;
-        public Rect GlyphSheetRect;
+        public Rect ScreenRect;
+        public Rect TextureRect;
         public Color Color;
     }
     
@@ -86,18 +86,18 @@ public sealed unsafe class TextRenderer : IDisposable
         AssertNoGlError();
         
         var maxCharCount = MaxGlyphCount;
-        glBufferData(GL_ARRAY_BUFFER, new IntPtr(maxCharCount * sizeof(PerInstanceData)), (void*)0, GL_STREAM_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, new IntPtr(maxCharCount * sizeof(Glyph)), (void*)0, GL_DYNAMIC_DRAW);
         AssertNoGlError();
 
         uint positionRectAttribLocation = 2;
-        glVertexAttribPointer(positionRectAttribLocation, 4, GL_FLOAT, false, sizeof(PerInstanceData), Offset<PerInstanceData>(nameof(PerInstanceData.PositionRect)));
+        glVertexAttribPointer(positionRectAttribLocation, 4, GL_FLOAT, false, sizeof(Glyph), Offset<Glyph>(nameof(Glyph.ScreenRect)));
         glEnableVertexAttribArray(positionRectAttribLocation);
         glVertexAttribDivisor(positionRectAttribLocation, 1);
         AssertNoGlError();
         
         // Location in the glyph sheet
         uint glyphSheetRectAttribLocation = 3;
-        glVertexAttribPointer(glyphSheetRectAttribLocation, 4, GL_FLOAT, false, sizeof(PerInstanceData), Offset<PerInstanceData>(nameof(PerInstanceData.GlyphSheetRect)));
+        glVertexAttribPointer(glyphSheetRectAttribLocation, 4, GL_FLOAT, false, sizeof(Glyph), Offset<Glyph>(nameof(Glyph.TextureRect)));
         glEnableVertexAttribArray(glyphSheetRectAttribLocation);
         glVertexAttribDivisor(glyphSheetRectAttribLocation, 1);
         AssertNoGlError();
@@ -105,7 +105,7 @@ public sealed unsafe class TextRenderer : IDisposable
         // NOTE(Zee): I am going to make color a per instance variable on purpose
         // This allows us to color each letter differently instead of the whole text
         uint colorRectAttribLocation = 4;
-        glVertexAttribPointer(colorRectAttribLocation, 4, GL_FLOAT, false, sizeof(PerInstanceData), Offset<PerInstanceData>(nameof(PerInstanceData.Color)));
+        glVertexAttribPointer(colorRectAttribLocation, 4, GL_FLOAT, false, sizeof(Glyph), Offset<Glyph>(nameof(Glyph.Color)));
         glEnableVertexAttribArray(colorRectAttribLocation);
         glVertexAttribDivisor(colorRectAttribLocation, 1);
         AssertNoGlError();
@@ -230,15 +230,18 @@ public sealed unsafe class TextRenderer : IDisposable
     {
         var cursor = new Vector2(x, y);
         glBindBuffer(GL_ARRAY_BUFFER, m_PerInstanceBuffer);
-        var bufferPtr = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        var buffer = new Span<PerInstanceData>(bufferPtr, MaxGlyphCount);
-        var i = m_GlyphCount;
+        // NOTE(Zee): This is working on an orphaned buffer so we don't need synchronization
+        var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, new IntPtr(m_GlyphCount * sizeof(Glyph)), new IntPtr(text.Length * sizeof(Glyph)),  GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+        AssertNoGlError();
+        var buffer = new Span<Glyph>(bufferPtr, text.Length);
+        var i = 0;
         foreach (var c in text)
         {
             if (c == '\n')
             {
                 cursor.X = x;
                 cursor.Y -= m_LineHeight;
+                i++;
                 continue;
             }
 
@@ -254,10 +257,10 @@ public sealed unsafe class TextRenderer : IDisposable
             var uScale = glyph.Width / m_ScaleW;
             var vScale = glyph.Height / m_ScaleH;
             //Console.WriteLine($"{c}: ({uOffset}, {vOffset})\t({uScale}, {vScale})");
-            buffer[i] = new PerInstanceData
+            buffer[i] = new Glyph
             {
-                PositionRect = new Rect(xPos, yPos, glyph.Width, glyph.Height),
-                GlyphSheetRect = new Rect(uOffset, vOffset, uScale, vScale),
+                ScreenRect = new Rect(xPos, yPos, glyph.Width, glyph.Height),
+                TextureRect = new Rect(uOffset, vOffset, uScale, vScale),
                 Color = color
             };
             i++;
@@ -265,7 +268,7 @@ public sealed unsafe class TextRenderer : IDisposable
         }
 
         glUnmapBuffer(GL_ARRAY_BUFFER);
-        m_GlyphCount += text.Length;
+        m_GlyphCount += i;
     }
 
     public void Render()
@@ -318,5 +321,7 @@ public sealed unsafe class TextRenderer : IDisposable
     public void Clear()
     {
         m_GlyphCount = 0;
+        // NOTE(Zee): Orphan the buffer
+        glBufferData(GL_ARRAY_BUFFER, new IntPtr(MaxGlyphCount * sizeof(Glyph)), (void*)0, GL_DYNAMIC_DRAW);
     }
 }
