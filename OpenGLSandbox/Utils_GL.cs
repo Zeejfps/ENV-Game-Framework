@@ -60,4 +60,19 @@ public static class Utils_GL
 
         return shader;
     }
+
+    public static unsafe IntPtr SizeOf<T>() where T : unmanaged
+    {
+        return new IntPtr(sizeof(T));
+    }
+    
+    public static unsafe IntPtr SizeOf<T>(uint count) where T : unmanaged
+    {
+        return new IntPtr(sizeof(T) * count);
+    }
+    
+    public static unsafe IntPtr SizeOf<T>(int count) where T : unmanaged
+    {
+        return new IntPtr(sizeof(T) * count);
+    }
 }

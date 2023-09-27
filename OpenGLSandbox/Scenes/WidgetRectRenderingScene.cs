@@ -8,7 +8,7 @@ public struct Panel
 {
     public Rect ScreenRect;
     public Color Color;
-    public Vector4 BorderColor;
+    public Color BorderColor;
     public BorderSize BorderSize;
     public Vector4 BorderRadius;
 }
@@ -54,7 +54,7 @@ public sealed unsafe class WidgetRectRenderingScene : IScene
             buffer.Write(new Panel
             {
                 Color = new Color(0f, 0.5f, 0.6f, 1f),
-                BorderColor = new Vector4(1f, 0f, 0.6f, 1f),
+                BorderColor = new Color(1f, 0f, 0.6f, 1f),
                 BorderSize = BorderSize.FromTRBL(60f, 00f, 00f, 10f),
                 BorderRadius = new Vector4(80f, 50f, 0f, 50f),
                 ScreenRect = new Rect(100f, 100f, 500f, 300f)
@@ -62,7 +62,7 @@ public sealed unsafe class WidgetRectRenderingScene : IScene
             buffer.Write(new Panel
             {
                 Color = new Color(1.0f, 0f, 1.0f, 1f),
-                BorderColor = new Vector4(0f,0.3f, 1f, 1f),
+                BorderColor = new Color(0f,0.3f, 1f, 1f),
                 BorderRadius = new Vector4(5f, 5f, 5f, 5f),
                 BorderSize = BorderSize.FromTRBL(5f, 5f, 5f, 5f),
                 ScreenRect = new Rect(10f, 10f, 200f, 100f)

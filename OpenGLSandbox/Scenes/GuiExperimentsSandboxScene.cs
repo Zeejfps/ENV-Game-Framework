@@ -7,9 +7,9 @@ public sealed class GuiExperimentsSandboxScene : IScene
 {
     private readonly ContainerWidget m_Button = new()
     {
-        ScreenRect = new Rect(40, 20, 100, 50),
-        BorderSize = BorderSize.FromTRBL(10, 10, 10, 10),
-        BorderRadius = new Vector4(5, 5, 5, 5)
+        ScreenRect = new Rect(100f, 100f, 500f, 300f),
+        BorderSize = BorderSize.FromTRBL(60f, 00f, 00f, 10f),
+        BorderRadius = new Vector4(80f, 50f, 0f, 50f),
     };
     
     private readonly TextWidget m_ButtonText = new()
@@ -26,21 +26,20 @@ public sealed class GuiExperimentsSandboxScene : IScene
 
     private ICommandBuffer CommandBuffer { get; } = new CommandBuffer();
     private TextRenderPass TextRenderPass { get; }
-    private RectRenderPass RectRenderPass { get; }
+    private PanelRenderPass PanelRenderPass { get; }
     private TextRenderer TextRenderer { get; }
     
     public GuiExperimentsSandboxScene()
     {
         TextRenderer = new TextRenderer();
-        RectRenderPass = new RectRenderPass();
+        PanelRenderPass = new PanelRenderPass();
         TextRenderPass = new TextRenderPass(TextRenderer);
     }
     
     public void Load()
     {
-        TextRenderer.Load();
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        PanelRenderPass.Load();
+        //TextRenderer.Load();
     }
 
     public void Render()
@@ -51,10 +50,10 @@ public sealed class GuiExperimentsSandboxScene : IScene
         commandBuffer.Clear();
         
         m_Button.Render(commandBuffer);
-        m_ButtonText.Render(commandBuffer);
+        //m_ButtonText.Render(commandBuffer);
 
-        RectRenderPass.Execute(commandBuffer);
-        TextRenderPass.Execute(commandBuffer);
+        PanelRenderPass.Execute(commandBuffer);
+        //TextRenderPass.Execute(commandBuffer);
     }
 
     public void Unload()
@@ -170,7 +169,8 @@ public sealed class ContainerWidget : Widget
         {
             ScreenRect = ScreenRect,
             BorderRadius = BorderRadius,
-            BorderSize = BorderSize
+            BorderSize = BorderSize,
+            Color = Color.FromHex(0xff00ff, 1f),
         });
     }
 }
