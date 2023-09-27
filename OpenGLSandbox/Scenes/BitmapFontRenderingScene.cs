@@ -20,7 +20,6 @@ public sealed class BitmapFontRenderingScene : IScene
 
         TextRenderer.Clear();
         
-        var color = Color.FromHex(0xFF0045, 1f);
         TextRenderer.DrawText(
             new Rect(0, 0, 640f, 640f), 
             new TextStyle
@@ -60,7 +59,7 @@ public sealed class BitmapFontRenderingScene : IScene
             {
                 VerticalTextAlignment = TextAlignment.Start,
                 HorizontalTextAlignment = TextAlignment.End,
-                Color = Color.FromHex(0xff00ff, 1f),
+                Color = Color.FromHex(0xF4D35E, 1f),
             },
             "Top Right"
         );
@@ -82,7 +81,7 @@ public sealed class BitmapFontRenderingScene : IScene
             {
                 HorizontalTextAlignment = TextAlignment.End,
                 VerticalTextAlignment = TextAlignment.Center,
-                Color = Color.FromHex(0xff00ff, 1f),
+                Color = Color.FromHex(0xF78764, 1f),
             },
             "Right"
         );
@@ -93,7 +92,7 @@ public sealed class BitmapFontRenderingScene : IScene
             {
                 HorizontalTextAlignment = TextAlignment.End,
                 VerticalTextAlignment = TextAlignment.End,
-                Color = Color.FromHex(0xff00ff, 1f),
+                Color = Color.FromHex(0xEBEBD3, 1f),
             },
             "Bottom Right"
         );
