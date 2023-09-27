@@ -166,7 +166,7 @@ public sealed class ContainerWidget : Widget
 
     public void Render(ICommandBuffer commandBuffer)
     {
-        commandBuffer.Add(new DrawRectCommand
+        commandBuffer.Add(new DrawPanelCommand
         {
             ScreenRect = ScreenRect,
             BorderRadius = BorderRadius,
@@ -204,11 +204,12 @@ public sealed class TextWidget : Widget
     }
 }
 
-public struct DrawRectCommand
+public struct DrawPanelCommand
 {
     public Rect ScreenRect;
     public BorderSize BorderSize;
     public Vector4 BorderRadius;
+    public Color Color;
 }
 
 public struct DrawTextCommand

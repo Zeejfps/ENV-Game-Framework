@@ -4,19 +4,19 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
+public struct Panel
+{
+    public Rect ScreenRect;
+    public Color Color;
+    public Vector4 BorderColor;
+    public BorderSize BorderSize;
+    public Vector4 BorderRadius;
+}
+
 public sealed unsafe class WidgetRectRenderingScene : IScene
 {
     private const int InstanceCount = 2;
     private const int TriangleCount = 2;
-
-    struct PerInstanceAttribs
-    {
-        public Vector4 Color;
-        public Vector4 BorderColor;
-        public BorderSize BorderSize;
-        public Vector4 BorderRadius;
-        public Rect Rect;
-    }
     
     private uint m_Vao;
     private uint m_Vbo;
@@ -49,53 +49,53 @@ public sealed unsafe class WidgetRectRenderingScene : IScene
         
         glBindBuffer(GL_ARRAY_BUFFER, m_PerInstanceBuffer);
         AssertNoGlError();
-        using (var buffer = BufferWriter<PerInstanceAttribs>.AllocateAndMap(GL_ARRAY_BUFFER, InstanceCount, GL_STATIC_DRAW))
+        using (var buffer = BufferWriter<Panel>.AllocateAndMap(GL_ARRAY_BUFFER, InstanceCount, GL_STATIC_DRAW))
         {
-            buffer.Write(new PerInstanceAttribs
+            buffer.Write(new Panel
             {
-                Color = new Vector4(0f, 0.5f, 0.6f, 1f),
+                Color = new Color(0f, 0.5f, 0.6f, 1f),
                 BorderColor = new Vector4(1f, 0f, 0.6f, 1f),
                 BorderSize = BorderSize.FromTRBL(60f, 00f, 00f, 10f),
                 BorderRadius = new Vector4(80f, 50f, 0f, 50f),
-                Rect = new Rect(100f, 100f, 500f, 300f)
+                ScreenRect = new Rect(100f, 100f, 500f, 300f)
             });
-            buffer.Write(new PerInstanceAttribs
+            buffer.Write(new Panel
             {
-                Color = new Vector4(1.0f, 0f, 1.0f, 1f),
+                Color = new Color(1.0f, 0f, 1.0f, 1f),
                 BorderColor = new Vector4(0f,0.3f, 1f, 1f),
                 BorderRadius = new Vector4(5f, 5f, 5f, 5f),
                 BorderSize = BorderSize.FromTRBL(5f, 5f, 5f, 5f),
-                Rect = new Rect(10f, 10f, 200f, 100f)
+                ScreenRect = new Rect(10f, 10f, 200f, 100f)
             });
         }
 
         uint colorAttribIndex = 2;
-        glVertexAttribPointer(colorAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs), 
-            Offset(0));
+        glVertexAttribPointer(colorAttribIndex, 4, GL_FLOAT, false, sizeof(Panel), 
+            Offset<Panel>(nameof(Panel.Color)));
         glEnableVertexAttribArray(colorAttribIndex);
         glVertexAttribDivisor(colorAttribIndex, 1);
 
         uint borderRadiusAttribIndex = 3;
-        glVertexAttribPointer(borderRadiusAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs), 
-            Offset<PerInstanceAttribs>(nameof(PerInstanceAttribs.BorderRadius)));
+        glVertexAttribPointer(borderRadiusAttribIndex, 4, GL_FLOAT, false, sizeof(Panel), 
+            Offset<Panel>(nameof(Panel.BorderRadius)));
         glEnableVertexAttribArray(borderRadiusAttribIndex);
         glVertexAttribDivisor(borderRadiusAttribIndex, 1);
 
         uint rectAttribIndex = 4;
-        glVertexAttribPointer(rectAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs), 
-            Offset<PerInstanceAttribs>(nameof(PerInstanceAttribs.Rect)));
+        glVertexAttribPointer(rectAttribIndex, 4, GL_FLOAT, false, sizeof(Panel), 
+            Offset<Panel>(nameof(Panel.ScreenRect)));
         glEnableVertexAttribArray(rectAttribIndex);
         glVertexAttribDivisor(rectAttribIndex, 1);
 
         uint borderColorAttribIndex = 5;
-        glVertexAttribPointer(borderColorAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs),
-            Offset<PerInstanceAttribs>(nameof(PerInstanceAttribs.BorderColor)));
+        glVertexAttribPointer(borderColorAttribIndex, 4, GL_FLOAT, false, sizeof(Panel),
+            Offset<Panel>(nameof(Panel.BorderColor)));
         glEnableVertexAttribArray(borderColorAttribIndex);
         glVertexAttribDivisor(borderColorAttribIndex, 1);
         
         uint borderSizeAttribIndex = 6;
-        glVertexAttribPointer(borderSizeAttribIndex, 4, GL_FLOAT, false, sizeof(PerInstanceAttribs),
-            Offset<PerInstanceAttribs>(nameof(PerInstanceAttribs.BorderSize)));
+        glVertexAttribPointer(borderSizeAttribIndex, 4, GL_FLOAT, false, sizeof(Panel),
+            Offset<Panel>(nameof(Panel.BorderSize)));
         glEnableVertexAttribArray(borderSizeAttribIndex);
         glVertexAttribDivisor(borderSizeAttribIndex, 1);
         

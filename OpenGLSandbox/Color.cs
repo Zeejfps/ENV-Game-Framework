@@ -1,5 +1,8 @@
-﻿namespace OpenGLSandbox;
+﻿using System.Runtime.InteropServices;
 
+namespace OpenGLSandbox;
+
+[StructLayout(LayoutKind.Sequential)]
 public struct Color
 {
     public float R;
@@ -7,6 +10,14 @@ public struct Color
     public float B;
     public float A;
 
+    public Color(float r, float g, float b, float a)
+    {
+        R = r;
+        G = g;
+        B = b;
+        A = a;
+    }
+    
     public static Color FromHex(uint color, float alpha)
     {
         var red = ((color >> 16) & 0xFF) / 255f;    // Extract red
