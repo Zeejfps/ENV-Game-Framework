@@ -18,7 +18,7 @@ public sealed class OpenGlSandboxGame : Game
         {
             new BitmapFontRenderingScene(),
             new BasicTextureRenderingScene(imageLoader),
-            new UIRectRenderingScene(),
+            new WidgetRectRenderingScene(),
             new RectNormalsRenderingScene(),
             new GouraudShadingRenderingScene(),
             new MappedBufferRenderingScene(),
