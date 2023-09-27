@@ -9,25 +9,6 @@ public sealed unsafe class WidgetRectRenderingScene : IScene
     private const int InstanceCount = 2;
     private const int TriangleCount = 2;
 
-    struct BorderSize
-    {
-        public float Top;
-        public float Right;
-        public float Bottom;
-        public float Left;
-        
-        public static BorderSize FromTRBL(float top, float right, float bottom, float left)
-        {
-            return new BorderSize
-            {
-                Top = top,
-                Right = right,
-                Bottom = bottom,
-                Left = left
-            };
-        }
-    }
-
     struct PerInstanceAttribs
     {
         public Vector4 Color;

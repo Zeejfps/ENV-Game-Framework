@@ -4,11 +4,11 @@ namespace OpenGLSandbox;
 
 public sealed class BitmapFontRenderingScene : IScene
 {
-    private TextRenderer TextRenderer { get; set; }
+    private TextRenderer TextRenderer { get; set; } = new TextRenderer();
     
     public void Load()
     {
-        TextRenderer = new TextRenderer();
+        TextRenderer.Load();
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glClearColor(0f, 0.3f, 0.6f, 1f);

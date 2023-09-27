@@ -19,7 +19,7 @@ public struct TextStyle
     public bool Wrap;
 }
 
-public sealed unsafe class TextRenderer : IDisposable
+public sealed unsafe class TextRenderer
 {
     struct Glyph
     {
@@ -35,16 +35,190 @@ public sealed unsafe class TextRenderer : IDisposable
     private uint m_ShaderProgram;
     private FontFile m_Font;
     private Dictionary<int, FontChar> m_IdToGlyphTable = new();
-    private readonly float m_ScaleW;
-    private readonly float m_ScaleH;
-    private readonly int m_Base;
-    private readonly int m_LineHeight;
-    private readonly Random m_Random = new Random();
+    private float m_ScaleW;
+    private float m_ScaleH;
+    private int m_Base;
+    private int m_LineHeight;
 
     private const int MaxGlyphCount = 256;
-    
-    public TextRenderer()
+
+    public int LineHeight => m_LineHeight;
+
+    private int m_GlyphCount;
+
+    public void DrawText(Rect screenRect, TextStyle style, ReadOnlySpan<char> text)
     {
+        var color = style.Color;
+        var horizontalAlignment = style.HorizontalTextAlignment;
+        var verticalAlignment = style.VerticalTextAlignment;
+        var textWidth = CalculateWidth(text);
+        var textHeight = CalculateHeight(text);
+        var leftPadding = 0f;
+        var bottomPadding = 0f;
+        
+        switch (horizontalAlignment)
+        {
+            case TextAlignment.Start:
+                leftPadding = 0f;
+                break;
+            case TextAlignment.Center:
+                leftPadding = MathF.Floor((screenRect.Width - textWidth) * 0.5f);
+                break;
+            case TextAlignment.End:
+                leftPadding = MathF.Floor(screenRect.Width - textWidth);
+                break;
+            case TextAlignment.Justify:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+
+        switch (verticalAlignment)
+        {
+            case TextAlignment.Start:
+                bottomPadding = screenRect.Height - textHeight;
+                break;
+            case TextAlignment.Center:
+                bottomPadding = MathF.Floor(screenRect.Height - textHeight) * 0.5f;
+                break;
+            case TextAlignment.End:
+                bottomPadding = 0f;
+                break;
+            case TextAlignment.Justify:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+        
+        var x = (int)(screenRect.X + leftPadding);
+        var y = (int)(screenRect.Y + bottomPadding);
+        DrawText(x, y, color, text);
+    }
+
+    private int CalculateHeight(ReadOnlySpan<char> text)
+    {
+        return m_Base;
+    }
+    
+    private int CalculateWidth(ReadOnlySpan<char> text)
+    {
+        var textWidthInPixels = 0;
+        foreach (var c in text)
+        {
+            if (!TryGetGlyph(c, out var glyph))
+                continue;
+            textWidthInPixels += glyph.XOffset + glyph.XAdvance;
+        }
+
+        return textWidthInPixels;
+    }
+    
+    public void DrawText(int x, int y, Color color, ReadOnlySpan<char> text)
+    {
+        //Console.WriteLine(text.Length);
+        var cursor = new Vector2(x, y);
+        glBindBuffer(GL_ARRAY_BUFFER, m_PerInstanceBuffer);
+        // NOTE(Zee): This is working on an orphaned buffer so we don't need synchronization
+        var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, new IntPtr(m_GlyphCount * sizeof(Glyph)), new IntPtr(text.Length * sizeof(Glyph)),  GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+        AssertNoGlError();
+        var buffer = new Span<Glyph>(bufferPtr, text.Length);
+        var i = 0;
+        foreach (var c in text)
+        {
+            if (c == '\n')
+            {
+                cursor.X = x;
+                cursor.Y -= m_LineHeight;
+                i++;
+                continue;
+            }
+
+
+            var glyph = GetGlyph(c);
+            var xPos = cursor.X + glyph.XOffset;
+            
+            var offsetFromTop = glyph.YOffset - (m_Base - glyph.Height);
+            var yPos = cursor.Y - offsetFromTop;
+            
+            var uOffset = glyph.X / m_ScaleW;
+            var vOffset = glyph.Y / m_ScaleH;
+            var uScale = glyph.Width / m_ScaleW;
+            var vScale = glyph.Height / m_ScaleH;
+            //Console.WriteLine($"{c}: ({uOffset}, {vOffset})\t({uScale}, {vScale})");
+            buffer[i] = new Glyph
+            {
+                ScreenRect = new Rect(xPos, yPos, glyph.Width, glyph.Height),
+                TextureRect = new Rect(uOffset, vOffset, uScale, vScale),
+                Color = color
+            };
+            i++;
+            cursor.X += glyph.XAdvance;
+        }
+
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        m_GlyphCount += i;
+    }
+
+    public void Render()
+    {
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_GlyphCount);
+    }
+
+    private int GetUniformLocation(string uniformName)
+    {
+        var uniformNameAsAsciiBytes = Encoding.ASCII.GetBytes(uniformName);
+        int uniformLocation;
+        fixed(byte* ptr = &uniformNameAsAsciiBytes[0])
+            uniformLocation = glGetUniformLocation(m_ShaderProgram, ptr);
+        AssertNoGlError();
+        return uniformLocation;
+    }
+    
+    public void Dispose()
+    {
+        m_IdToGlyphTable.Clear();
+        
+        fixed (uint* vao = &m_Vao)
+            glDeleteVertexArrays(1, vao);
+        
+        fixed (uint* vbo = &m_Vbo)
+            glDeleteBuffers(1, vbo);
+        
+        fixed (uint* buffer = &m_PerInstanceBuffer)
+            glDeleteBuffers(1, buffer);
+        
+        fixed (uint* tex = &m_Tex)
+            glDeleteTextures(1, tex);
+        
+        glDeleteProgram(m_ShaderProgram);
+    }
+
+    private FontChar GetGlyph(char c)
+    {
+        if (TryGetGlyph(c, out var glyph))
+            return glyph;
+        
+        Console.WriteLine($"Could not find glyph for char '{c}'");
+        return new FontChar();
+    }
+
+    private bool TryGetGlyph(char c, out FontChar glyph)
+    {
+        var id = (int)c;
+        return m_IdToGlyphTable.TryGetValue(id, out glyph);
+    }
+
+    public void Clear()
+    {
+        m_GlyphCount = 0;
+        // NOTE(Zee): Orphan the buffer
+        glBindBuffer(GL_ARRAY_BUFFER, m_PerInstanceBuffer);
+        glBufferData(GL_ARRAY_BUFFER, new IntPtr(MaxGlyphCount * sizeof(Glyph)), (void*)0, GL_DYNAMIC_DRAW);
+    }
+
+    public void Load()
+    {
+        
         uint vao;
         glGenVertexArrays(1, &vao);
         AssertNoGlError();
@@ -153,175 +327,5 @@ public sealed unsafe class TextRenderer : IDisposable
 
         var image = new TgaImage("Assets/bitmapfonts/test_0.tga");
         image.UploadToGpu();
-    }
-
-    public int LineHeight => m_LineHeight;
-
-    private int m_GlyphCount;
-
-    public void DrawText(Rect screenRect, TextStyle style, ReadOnlySpan<char> text)
-    {
-        var color = style.Color;
-        var horizontalAlignment = style.HorizontalTextAlignment;
-        var verticalAlignment = style.VerticalTextAlignment;
-        var textWidth = CalculateWidth(text);
-        var textHeight = CalculateHeight(text);
-        var leftPadding = 0f;
-        var bottomPadding = 0f;
-        
-        switch (horizontalAlignment)
-        {
-            case TextAlignment.Start:
-                leftPadding = 0f;
-                break;
-            case TextAlignment.Center:
-                leftPadding = MathF.Floor((screenRect.Width - textWidth) * 0.5f);
-                break;
-            case TextAlignment.End:
-                leftPadding = MathF.Floor(screenRect.Width - textWidth);
-                break;
-            case TextAlignment.Justify:
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-
-        switch (verticalAlignment)
-        {
-            case TextAlignment.Start:
-                bottomPadding = screenRect.Height - textHeight;
-                break;
-            case TextAlignment.Center:
-                bottomPadding = MathF.Floor(screenRect.Height - textHeight) * 0.5f;
-                break;
-            case TextAlignment.End:
-                bottomPadding = 0f;
-                break;
-            case TextAlignment.Justify:
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-        
-        var x = (int)(screenRect.X + leftPadding);
-        var y = (int)(screenRect.Y + bottomPadding);
-        DrawText(x, y, color, text);
-    }
-
-    private int CalculateHeight(ReadOnlySpan<char> text)
-    {
-        return m_Base;
-    }
-    
-    private int CalculateWidth(ReadOnlySpan<char> text)
-    {
-        var textWidthInPixels = 0;
-        foreach (var c in text)
-        {
-            if (!TryGetGlyph(c, out var glyph))
-                continue;
-            textWidthInPixels += glyph.XOffset + glyph.XAdvance;
-        }
-
-        return textWidthInPixels;
-    }
-    
-    public void DrawText(int x, int y, Color color, ReadOnlySpan<char> text)
-    {
-        var cursor = new Vector2(x, y);
-        glBindBuffer(GL_ARRAY_BUFFER, m_PerInstanceBuffer);
-        // NOTE(Zee): This is working on an orphaned buffer so we don't need synchronization
-        var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, new IntPtr(m_GlyphCount * sizeof(Glyph)), new IntPtr(text.Length * sizeof(Glyph)),  GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-        AssertNoGlError();
-        var buffer = new Span<Glyph>(bufferPtr, text.Length);
-        var i = 0;
-        foreach (var c in text)
-        {
-            if (c == '\n')
-            {
-                cursor.X = x;
-                cursor.Y -= m_LineHeight;
-                i++;
-                continue;
-            }
-
-
-            var glyph = GetGlyph(c);
-            var xPos = cursor.X + glyph.XOffset;
-            
-            var offsetFromTop = glyph.YOffset - (m_Base - glyph.Height);
-            var yPos = cursor.Y - offsetFromTop;
-            
-            var uOffset = glyph.X / m_ScaleW;
-            var vOffset = glyph.Y / m_ScaleH;
-            var uScale = glyph.Width / m_ScaleW;
-            var vScale = glyph.Height / m_ScaleH;
-            //Console.WriteLine($"{c}: ({uOffset}, {vOffset})\t({uScale}, {vScale})");
-            buffer[i] = new Glyph
-            {
-                ScreenRect = new Rect(xPos, yPos, glyph.Width, glyph.Height),
-                TextureRect = new Rect(uOffset, vOffset, uScale, vScale),
-                Color = color
-            };
-            i++;
-            cursor.X += glyph.XAdvance;
-        }
-
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        m_GlyphCount += i;
-    }
-
-    public void Render()
-    {
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_GlyphCount);
-    }
-
-    private int GetUniformLocation(string uniformName)
-    {
-        var uniformNameAsAsciiBytes = Encoding.ASCII.GetBytes(uniformName);
-        int uniformLocation;
-        fixed(byte* ptr = &uniformNameAsAsciiBytes[0])
-            uniformLocation = glGetUniformLocation(m_ShaderProgram, ptr);
-        AssertNoGlError();
-        return uniformLocation;
-    }
-    
-    public void Dispose()
-    {
-        fixed (uint* vao = &m_Vao)
-            glDeleteVertexArrays(1, vao);
-        
-        fixed (uint* vbo = &m_Vbo)
-            glDeleteBuffers(1, vbo);
-        
-        fixed (uint* buffer = &m_PerInstanceBuffer)
-            glDeleteBuffers(1, buffer);
-        
-        fixed (uint* tex = &m_Tex)
-            glDeleteTextures(1, tex);
-        
-        glDeleteProgram(m_ShaderProgram);
-    }
-
-    private FontChar GetGlyph(char c)
-    {
-        if (TryGetGlyph(c, out var glyph))
-            return glyph;
-        
-        Console.WriteLine($"Could not find glyph for char '{c}'");
-        return new FontChar();
-    }
-
-    private bool TryGetGlyph(char c, out FontChar glyph)
-    {
-        var id = (int)c;
-        return m_IdToGlyphTable.TryGetValue(id, out glyph);
-    }
-
-    public void Clear()
-    {
-        m_GlyphCount = 0;
-        // NOTE(Zee): Orphan the buffer
-        glBufferData(GL_ARRAY_BUFFER, new IntPtr(MaxGlyphCount * sizeof(Glyph)), (void*)0, GL_DYNAMIC_DRAW);
     }
 }
