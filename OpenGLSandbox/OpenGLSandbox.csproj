@@ -21,4 +21,8 @@
 
 
 
+    <ItemGroup>
+      <Folder Include="GUI\" />
+    </ItemGroup>
+
 </Project>

@@ -8,19 +8,6 @@ public sealed unsafe class WidgetRectRenderingScene : IScene
 {
     private const int InstanceCount = 2;
     private const int TriangleCount = 2;
-    
-    struct Triangle
-    {
-        public Vertex V1;
-        public Vertex V2;
-        public Vertex V3;
-    }
-
-    struct Vertex
-    {
-        public Vector2 Position;
-        public Vector2 UVs;
-    }
 
     struct BorderSize
     {
@@ -72,11 +59,11 @@ public sealed unsafe class WidgetRectRenderingScene : IScene
         WriteVertexDataToBuffers();
         
         uint positionAttribIndex = 0;
-        glVertexAttribPointer(positionAttribIndex, 2, GL_FLOAT, false, sizeof(Vertex), Offset(0));
+        glVertexAttribPointer(positionAttribIndex, 2, GL_FLOAT, false, sizeof(TexturedQuad.Vertex), Offset(0));
         glEnableVertexAttribArray(positionAttribIndex);
 
         uint normalAttribIndex = 1;
-        glVertexAttribPointer(normalAttribIndex, 2, GL_FLOAT, false, sizeof(Vertex), Offset(sizeof(Vector2)));
+        glVertexAttribPointer(normalAttribIndex, 2, GL_FLOAT, false, sizeof(TexturedQuad.Vertex), Offset(sizeof(Vector2)));
         glEnableVertexAttribArray(normalAttribIndex);
         
         glBindBuffer(GL_ARRAY_BUFFER, m_PerInstanceBuffer);
