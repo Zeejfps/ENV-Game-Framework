@@ -40,6 +40,8 @@ public sealed unsafe class TextRenderer : IDisposable
     private readonly int m_Base;
     private readonly int m_LineHeight;
     private readonly Random m_Random = new Random();
+
+    private const int MaxGlyphCount = 256;
     
     public TextRenderer()
     {
@@ -83,7 +85,7 @@ public sealed unsafe class TextRenderer : IDisposable
         glBindBuffer(GL_ARRAY_BUFFER, perInstanceBuffer);
         AssertNoGlError();
         
-        var maxCharCount = 256;
+        var maxCharCount = MaxGlyphCount;
         glBufferData(GL_ARRAY_BUFFER, new IntPtr(maxCharCount * sizeof(PerInstanceData)), (void*)0, GL_STREAM_DRAW);
         AssertNoGlError();
 
@@ -155,7 +157,9 @@ public sealed unsafe class TextRenderer : IDisposable
 
     public int LineHeight => m_LineHeight;
 
-    public void RenderText(Rect screenRect, TextStyle style, ReadOnlySpan<char> text)
+    private int m_GlyphCount;
+
+    public void DrawText(Rect screenRect, TextStyle style, ReadOnlySpan<char> text)
     {
         var color = style.Color;
         var horizontalAlignment = style.HorizontalTextAlignment;
@@ -201,7 +205,7 @@ public sealed unsafe class TextRenderer : IDisposable
         
         var x = (int)(screenRect.X + leftPadding);
         var y = (int)(screenRect.Y + bottomPadding);
-        RenderText(x, y, color, text);
+        DrawText(x, y, color, text);
     }
 
     private int CalculateHeight(ReadOnlySpan<char> text)
@@ -222,13 +226,13 @@ public sealed unsafe class TextRenderer : IDisposable
         return textWidthInPixels;
     }
     
-    public void RenderText(int x, int y, Color color, ReadOnlySpan<char> text)
+    public void DrawText(int x, int y, Color color, ReadOnlySpan<char> text)
     {
         var cursor = new Vector2(x, y);
         glBindBuffer(GL_ARRAY_BUFFER, m_PerInstanceBuffer);
         var bufferPtr = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        var buffer = new Span<PerInstanceData>(bufferPtr, text.Length);
-        var i = 0;
+        var buffer = new Span<PerInstanceData>(bufferPtr, MaxGlyphCount);
+        var i = m_GlyphCount;
         foreach (var c in text)
         {
             if (c == '\n')
@@ -261,8 +265,12 @@ public sealed unsafe class TextRenderer : IDisposable
         }
 
         glUnmapBuffer(GL_ARRAY_BUFFER);
-        
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 6, text.Length);
+        m_GlyphCount += text.Length;
+    }
+
+    public void Render()
+    {
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_GlyphCount);
     }
 
     private int GetUniformLocation(string uniformName)
@@ -305,5 +313,10 @@ public sealed unsafe class TextRenderer : IDisposable
     {
         var id = (int)c;
         return m_IdToGlyphTable.TryGetValue(id, out glyph);
+    }
+
+    public void Clear()
+    {
+        m_GlyphCount = 0;
     }
 }

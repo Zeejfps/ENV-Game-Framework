@@ -9,5 +9,5 @@ out vec4 f_Color;
 
 void main() {
     float a = texture(tex, TexCoords).r;
-    f_Color = Color * a;
+    f_Color = vec4(Color.rgb, a);
 }

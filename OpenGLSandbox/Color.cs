@@ -7,11 +7,11 @@ public struct Color
     public float B;
     public float A;
 
-    public static Color FromHex(int color, float alpha)
+    public static Color FromHex(uint color, float alpha)
     {
-        var red = (color >> 16) & 0xFF;    // Extract red
-        var green = (color >> 8) & 0xFF;   // Extract green
-        var blue = color & 0xFF;
+        var red = ((color >> 16) & 0xFF) / 255f;    // Extract red
+        var green = ((color >> 8) & 0xFF) / 255f;   // Extract green
+        var blue = ((color >> 0) & 0xFF) / 255f;
 
         return new Color()
         {
