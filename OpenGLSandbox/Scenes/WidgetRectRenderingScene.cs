@@ -4,7 +4,7 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
-public sealed unsafe class UIRectRenderingScene : IScene
+public sealed unsafe class WidgetRectRenderingScene : IScene
 {
     private const int InstanceCount = 2;
     private const int TriangleCount = 2;
@@ -150,49 +150,13 @@ public sealed unsafe class UIRectRenderingScene : IScene
         glClearColor(0.2f, 0.1f, 0.7f, 1f);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
-    }
+    }  
 
     private void WriteVertexDataToBuffers()
     {
-        using (var buffer = BufferWriter<Triangle>.AllocateAndMap(GL_ARRAY_BUFFER, TriangleCount, GL_STATIC_DRAW))
+        using (var buffer = BufferWriter<TexturedQuad>.AllocateAndMap(GL_ARRAY_BUFFER, TriangleCount, GL_STATIC_DRAW))
         {
-            buffer.Write(new Triangle
-            {
-                V1 =
-                {
-                    Position = new Vector2(-1f, -1f),
-                    UVs = new Vector2(0f, 0f)
-                },
-                V2 =
-                {
-                    Position = new Vector2(1f, -1f),
-                    UVs = new Vector2(1f, 0f)
-                },
-                V3 =
-                {
-                    Position = new Vector2(-1f, 1f),
-                    UVs = new Vector2(0f, 1f)
-                }
-            });
-            
-            buffer.Write(new Triangle
-            {
-                V1 =
-                {
-                    Position = new Vector2(1f, -1f),
-                    UVs = new Vector2(1f, 0f)
-                },
-                V2 =
-                {
-                    Position = new Vector2(1f, 1f),
-                    UVs = new Vector2(1f, 1f)
-                },
-                V3 =
-                {
-                    Position = new Vector2(-1f, 1f),
-                    UVs = new Vector2(0f, 1f)
-                }
-            });
+            buffer.Write(new TexturedQuad());
         }
     }
 
