@@ -105,7 +105,6 @@ public sealed class BitmapFontRenderingScene : IScene
         //TextRenderer.RenderText(55, 290, Color.FromHex(0x2f8777, 1f),"Overlapping text");
         
         TextRenderer.Render();
-        glFlush();
     }
 
     public void Unload()
