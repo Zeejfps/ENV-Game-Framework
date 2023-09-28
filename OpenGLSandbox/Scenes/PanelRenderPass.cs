@@ -71,8 +71,8 @@ public unsafe class PanelRenderPass
         fixed (float* ptr = &m_ProjectionMatrix.M11)
             glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
         AssertNoGlError();
-        
-        var commands = commandBuffer.GetAll<DrawPanelCommand>();
+
+        var commands = commandBuffer.GetAllDrawPanelCommands();
         //Console.WriteLine("Commands: " + commands.Length);
         
         glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);

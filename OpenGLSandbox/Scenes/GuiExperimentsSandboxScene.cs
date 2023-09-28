@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Collections;
+using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.InputDevices;
 using static GL46;
@@ -117,6 +118,7 @@ class TextButton : Widget
     private Color BackgroundHoveredColor { get; } = Color.FromHex(0xfdfbfd, 1f);
     private Color TextNormalColor { get; } = Color.FromHex(0x1b1a1b, 1f);
     private Color TextPressedColor { get; } = Color.FromHex(0x5f5e60, 1f);
+    private Color BorderColor { get; } = Color.FromHex(0xe8e2ea, 1f);
     
     public override void Render(ICommandBuffer commandBuffer)
     {
@@ -131,27 +133,25 @@ class TextButton : Widget
         {
             backgroundColor = BackgroundHoveredColor;
         }
-        
-        commandBuffer.Add(new DrawPanelCommand
-        {
-            BorderRadius = new Vector4(6f, 6f, 6f, 6f),
-            BorderSize = BorderSize.All(1f),
-            BorderColor = Color.FromHex(0xe8e2ea, 1f),
-            ScreenRect = ScreenRect,
-            Color = backgroundColor
-        });
-     
-        commandBuffer.Add(new DrawTextCommand
-        {
-            Style = new TextStyle
-            {
-                HorizontalTextAlignment = TextAlignment.Center,
-                VerticalTextAlignment = TextAlignment.Center,
-                Color = textColor
-            },
-            Text = "5",
-            ScreenRect = ScreenRect
-        });
+
+        ref var command = ref commandBuffer.AddDrawPanelCommand();
+        command.BorderRadius = new Vector4(6f, 6f, 6f, 6f);
+        command.BorderSize = BorderSize.All(1f);
+        command.BorderColor = BorderColor;
+        command.ScreenRect = ScreenRect;
+        command.Color = backgroundColor;
+
+        // commandBuffer.Add(new DrawTextCommand
+        // {
+        //     Style = new TextStyle
+        //     {
+        //         HorizontalTextAlignment = TextAlignment.Center,
+        //         VerticalTextAlignment = TextAlignment.Center,
+        //         Color = textColor
+        //     },
+        //     Text = "5",
+        //     ScreenRect = ScreenRect
+        // });
     }
 }
 
@@ -168,8 +168,8 @@ class TextRenderPass
     {
         var textRenderer = TextRenderer;
         textRenderer.Clear();
-        
-        var commands = commandBuffer.GetAll<DrawTextCommand>();
+
+        var commands = commandBuffer.GetAllDrawTextCommands();
         //Console.WriteLine("Commands: " + commands.Length);
         foreach (var command in commands)
         {
@@ -210,34 +210,36 @@ class CommandStorage<T> : ICommandStorage
 
 class CommandBuffer : ICommandBuffer
 {
-    private Dictionary<Type, ICommandStorage> TypeToStorageTable { get; } = new();
+    private readonly DrawPanelCommand[] m_DrawPanelCommands = new DrawPanelCommand[20000];
+    private readonly DrawTextCommand[] m_DrawTextCommands = new DrawTextCommand[20000];
+
+    private int m_DrawPanelCommandCount;
+    private int m_DrawTextCommandCount;
     
     public void Clear()
     {
-        foreach (var storage in TypeToStorageTable.Values)
-            storage.Clear();
+        m_DrawPanelCommandCount = 0;
+        m_DrawTextCommandCount = 0;
     }
 
-    public void Add<T>(T command)
+    public ref DrawPanelCommand AddDrawPanelCommand()
     {
-        var commandType = typeof(T);
-        if (!TypeToStorageTable.TryGetValue(commandType, out var storage))
-        {
-            storage = new CommandStorage<T>(20000);
-            TypeToStorageTable[commandType] = storage;
-        }
-
-        ((CommandStorage<T>)storage).Add(command);
+        return ref m_DrawPanelCommands[m_DrawPanelCommandCount++];
     }
 
-    public ReadOnlySpan<T> GetAll<T>()
+    public ref DrawTextCommand AddDrawTextCommand()
     {
-        var commandType = typeof(T);
-        if (TypeToStorageTable.TryGetValue(commandType, out var storage))
-        {
-            return ((CommandStorage<T>)storage).GetAll();
-        }
-        return ReadOnlySpan<T>.Empty;
+        return ref m_DrawTextCommands[m_DrawTextCommandCount++];
+    }
+
+    public ReadOnlySpan<DrawPanelCommand> GetAllDrawPanelCommands()
+    {
+        return m_DrawPanelCommands.AsSpan(0, m_DrawPanelCommandCount);
+    }
+    
+    public ReadOnlySpan<DrawTextCommand> GetAllDrawTextCommands()
+    {
+        return m_DrawTextCommands.AsSpan(0, m_DrawTextCommandCount);
     }
 }
 
@@ -254,13 +256,11 @@ public sealed class ContainerWidget : Widget
 
     public override void Render(ICommandBuffer commandBuffer)
     {
-        commandBuffer.Add(new DrawPanelCommand
-        {
-            ScreenRect = ScreenRect,
-            BorderRadius = BorderRadius,
-            BorderSize = BorderSize,
-            Color = Color,
-        });
+        ref var command = ref commandBuffer.AddDrawPanelCommand();
+        command.ScreenRect = ScreenRect;
+        command.BorderRadius = BorderRadius;
+        command.BorderSize = BorderSize;
+        command.Color = Color;
     }
 }
 
@@ -273,8 +273,11 @@ public abstract class Widget : IWidget
 public interface ICommandBuffer
 {
     void Clear();
-    void Add<T>(T command);
-    ReadOnlySpan<T> GetAll<T>();
+
+    public ref DrawPanelCommand AddDrawPanelCommand();
+    public ref DrawTextCommand AddDrawTextCommand();
+    ReadOnlySpan<DrawPanelCommand> GetAllDrawPanelCommands();
+    ReadOnlySpan<DrawTextCommand> GetAllDrawTextCommands();
 }
 
 public sealed class TextWidget : Widget
@@ -285,12 +288,10 @@ public sealed class TextWidget : Widget
 
     public override void Render(ICommandBuffer commandBuffer)
     {
-        commandBuffer.Add(new DrawTextCommand
-        {
-            Style = Style,
-            Text = Text,
-            ScreenRect = ScreenRect
-        });
+        ref var command = ref commandBuffer.AddDrawTextCommand();
+        command.Style = Style;
+        command.Text = Text;
+        command.ScreenRect = ScreenRect;
     }
 }
 
