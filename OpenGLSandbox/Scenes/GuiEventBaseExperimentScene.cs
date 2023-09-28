@@ -12,7 +12,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
     private readonly IInputSystem m_InputSystem;
     private readonly PanelRenderingSystem m_PanelRenderingSystem;
     private readonly TextRenderingSystem m_TextRenderingSystem;
-    private readonly TextButton[] m_TextButtons;
+    private readonly Panel[] m_TextButtons;
     
     public GuiEventBaseExperimentScene(IWindow window, IInputSystem inputSystem)
     {
@@ -26,12 +26,12 @@ public sealed class GuiEventBaseExperimentScene : IScene
         var buttonSize = window.ScreenWidth / (float)w;
         var buttonBorderColor = Color.FromHex(0xff00ff, 1f);
         
-        m_TextButtons = new TextButton[w * h];
+        m_TextButtons = new Panel[w * h];
         for (var i = 0; i < h; i++)
         {
             for (var j = 0; j < w; j++)
             {
-                m_TextButtons[i * w + j] = new TextButton(m_PanelRenderingSystem)
+                m_TextButtons[i * w + j] = new Panel(m_PanelRenderingSystem)
                 {
                     ScreenRect = new Rect(j*buttonSize, i*buttonSize, buttonSize, buttonSize),
                     BorderColor = buttonBorderColor,
@@ -73,7 +73,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         m_TextRenderingSystem.Unload();
     }
     
-    sealed class TextButton : IPanel, IText
+    sealed class Panel : IPanel
     {
         public Color Color { get; set; }
         public Color BorderColor { get; set; }
@@ -84,7 +84,6 @@ public sealed class GuiEventBaseExperimentScene : IScene
         public event Action<IPanel>? BecameDirty;
 
         private bool m_IsHovered;
-
         public bool IsHovered
         {
             get => m_IsHovered;
@@ -93,7 +92,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
 
         private readonly IPanelRenderingSystem m_PanelRenderer;
 
-        public TextButton(IPanelRenderingSystem panelRenderer)
+        public Panel(IPanelRenderingSystem panelRenderer)
         {
             m_PanelRenderer = panelRenderer;
         }
@@ -108,19 +107,13 @@ public sealed class GuiEventBaseExperimentScene : IScene
             m_PanelRenderer.Unregister(this);
         }
 
-
-        public void Update(ref Panel panel)
+        public void Update(ref OpenGLSandbox.Panel panel)
         {
             panel.ScreenRect = ScreenRect;
             panel.BorderColor = BorderColor;
             panel.BorderSize = BorderSize;
             panel.BorderRadius = BorderRadius;
             panel.Color = IsHovered ? Color.FromHex(0xff00ff, 1f) : Color;
-        }
-        
-        public void Update(ref Glyph glyph)
-        {
-            
         }
 
         private void SetField<T>(ref T field, T value)
@@ -134,26 +127,46 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private void OnBecameDirty()
         {
             BecameDirty?.Invoke(this);
-
-            foreach (var listener in m_Listeners)
-            {
-                listener.Invoke(this);
-            }
         }
+    }
 
-        private readonly List<Action<IText>> m_Listeners = new();
+    interface IFont
+    {
+        ReadOnlySpan<IGlyph> CreateGlyphs(string text);
+    }
+    
+    class Text
+    {
+        public string Value { get; set; }
+
+        private readonly ITextRenderingSystem m_TextRenderingSystem;
         
-        event Action<IText>? IText.BecameDirty
+        private IFont m_Font;
+        private IEnumerable<IGlyph> m_Glyphs;
+
+        private void OnValueChanged(string prevValue, string value)
         {
-            add => m_Listeners.Add(value);
-            remove => m_Listeners.Remove(value);
+            var textRenderingSystem = m_TextRenderingSystem;
+            foreach (var glyph in m_Glyphs)
+                textRenderingSystem.Unregister(glyph);
+
+            m_Glyphs = m_Font.CreateGlyphs(value).ToArray();
+        }
+    }
+
+    class GlyphImpl : IGlyph
+    {
+        public event Action<IGlyph>? BecameDirty;
+        public void Update(ref Glyph glyph)
+        {
+            throw new NotImplementedException();
         }
     }
 
     interface IPanel
     {
         event Action<IPanel> BecameDirty;
-        void Update(ref Panel panel);
+        void Update(ref OpenGLSandbox.Panel panel);
     }
 
     interface IPanelRenderingSystem
@@ -162,19 +175,19 @@ public sealed class GuiEventBaseExperimentScene : IScene
         void Unregister(IPanel panel);
     }
 
-    interface IText
+    interface IGlyph
     {
-        event Action<IText> BecameDirty;
+        event Action<IGlyph> BecameDirty;
         void Update(ref Glyph glyph);
     }
     
     interface ITextRenderingSystem
     {
-        void Register(IText panel);
-        void Unregister(IText panel);
+        void Register(IGlyph panel);
+        void Unregister(IGlyph panel);
     }
 
-    sealed unsafe class TextRenderingSystem : RenderingSystem<IText>, ITextRenderingSystem
+    sealed unsafe class TextRenderingSystem : RenderingSystem<IGlyph>, ITextRenderingSystem
     {
         private const uint MaxGlyphCount = 20000;
 
@@ -656,10 +669,10 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);
                 AssertNoGlError();
                 
-                var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<Panel>(maxDirtyPanelCount), GL_MAP_WRITE_BIT);
+                var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<OpenGLSandbox.Panel>(maxDirtyPanelCount), GL_MAP_WRITE_BIT);
                 AssertNoGlError();
                 
-                var buffer = new Span<Panel>(bufferPtr, maxDirtyPanelCount);
+                var buffer = new Span<OpenGLSandbox.Panel>(bufferPtr, maxDirtyPanelCount);
             
                 foreach (var dirtyItemIndex in m_DirtyItems)
                 {
@@ -741,7 +754,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private void SetupInstancesBuffer()
         {
             glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);
-            glBufferData(GL_ARRAY_BUFFER, SizeOf<Panel>(MaxPanelCount), (void*)0, GL_STREAM_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, SizeOf<OpenGLSandbox.Panel>(MaxPanelCount), (void*)0, GL_STREAM_DRAW);
             
             uint colorAttribIndex = 2;
             glVertexAttribPointer(
@@ -749,8 +762,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 4, 
                 GL_FLOAT, 
                 false, 
-                sizeof(Panel), 
-                Offset<Panel>(nameof(Panel.Color))
+                sizeof(OpenGLSandbox.Panel), 
+                Offset<OpenGLSandbox.Panel>(nameof(OpenGLSandbox.Panel.Color))
             );
             glEnableVertexAttribArray(colorAttribIndex);
             glVertexAttribDivisor(colorAttribIndex, 1);
@@ -760,8 +773,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 borderRadiusAttribIndex, 
                 4, GL_FLOAT,
                 false, 
-                sizeof(Panel), 
-                Offset<Panel>(nameof(Panel.BorderRadius))
+                sizeof(OpenGLSandbox.Panel), 
+                Offset<OpenGLSandbox.Panel>(nameof(OpenGLSandbox.Panel.BorderRadius))
             );
             glEnableVertexAttribArray(borderRadiusAttribIndex);
             glVertexAttribDivisor(borderRadiusAttribIndex, 1);
@@ -772,8 +785,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 4, 
                 GL_FLOAT, 
                 false, 
-                sizeof(Panel), 
-                Offset<Panel>(nameof(Panel.ScreenRect))
+                sizeof(OpenGLSandbox.Panel), 
+                Offset<OpenGLSandbox.Panel>(nameof(OpenGLSandbox.Panel.ScreenRect))
             );
             glEnableVertexAttribArray(rectAttribIndex);
             glVertexAttribDivisor(rectAttribIndex, 1);
@@ -783,8 +796,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 borderColorAttribIndex, 
                 4, GL_FLOAT, 
                 false, 
-                sizeof(Panel),
-                Offset<Panel>(nameof(Panel.BorderColor))
+                sizeof(OpenGLSandbox.Panel),
+                Offset<OpenGLSandbox.Panel>(nameof(OpenGLSandbox.Panel.BorderColor))
             );
             glEnableVertexAttribArray(borderColorAttribIndex);
             glVertexAttribDivisor(borderColorAttribIndex, 1);
@@ -795,8 +808,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 4, 
                 GL_FLOAT, 
                 false, 
-                sizeof(Panel),
-                Offset<Panel>(nameof(Panel.BorderSize))
+                sizeof(OpenGLSandbox.Panel),
+                Offset<OpenGLSandbox.Panel>(nameof(OpenGLSandbox.Panel.BorderSize))
             );
             glEnableVertexAttribArray(borderSizeAttribIndex);
             glVertexAttribDivisor(borderSizeAttribIndex, 1);
