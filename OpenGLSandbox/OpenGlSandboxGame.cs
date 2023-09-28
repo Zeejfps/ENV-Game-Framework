@@ -12,11 +12,11 @@ public sealed class OpenGlSandboxGame : Game
     
     private int m_CurrentSceneIndex;
 
-    public OpenGlSandboxGame(IContext context, IAssetLoader<ICpuTexture> imageLoader) : base(context)
+    public OpenGlSandboxGame(IContext context, IInputSystem inputSystem, IAssetLoader<ICpuTexture> imageLoader) : base(context)
     {
         m_Scenes = new IScene[]
         {
-            new GuiExperimentsSandboxScene(),
+            new GuiExperimentsSandboxScene(inputSystem),
             new BitmapFontRenderingScene(),
             new BasicTextureRenderingScene(imageLoader),
             new WidgetRectRenderingScene(),

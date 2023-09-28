@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using EasyGameFramework.Api;
 using static GL46;
 
 namespace OpenGLSandbox;
@@ -34,12 +35,15 @@ public sealed class GuiExperimentsSandboxScene : IScene
     private TextRenderPass TextRenderPass { get; }
     private PanelRenderPass PanelRenderPass { get; }
     private TextRenderer TextRenderer { get; }
+
+    private IInputSystem InputSystem { get; }
     
-    public GuiExperimentsSandboxScene()
+    public GuiExperimentsSandboxScene(IInputSystem inputSystem)
     {
         TextRenderer = new TextRenderer();
         PanelRenderPass = new PanelRenderPass();
         TextRenderPass = new TextRenderPass(TextRenderer);
+        InputSystem = inputSystem;
     }
     
     public void Load()
@@ -50,6 +54,8 @@ public sealed class GuiExperimentsSandboxScene : IScene
 
     public void Render()
     {
+        m_Button.IsHovered = m_Button.ScreenRect.Contains(InputSystem.Mouse.ScreenX, 640 - InputSystem.Mouse.ScreenY);
+        
         glClear(GL_COLOR_BUFFER_BIT);
         
         var commandBuffer = CommandBuffer;
@@ -77,14 +83,19 @@ interface ICommandStorage
 class TextButton : Widget
 {
     public bool IsHovered { get; set; }
+
+    private Color NormalColor { get; } = Color.FromHex(0x00D1FF, 1f);
+    private Color HoveredColor { get; } = Color.FromHex(0xFFE900, 1f);
     
     public override void Render(ICommandBuffer commandBuffer)
     {
+        var color = IsHovered ? HoveredColor : NormalColor;
+        
         commandBuffer.Add(new DrawPanelCommand
         {
             BorderRadius = new Vector4(2f, 2f, 2f, 2f),
             BorderSize = BorderSize.All(2f),
-            BorderColor = Color.FromHex(0x00D1FF, 1f),
+            BorderColor = color,
             ScreenRect = ScreenRect
         });
         
@@ -94,7 +105,7 @@ class TextButton : Widget
             {
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center,
-                Color = Color.FromHex(0x00D1FF, 1f)
+                Color = color
             },
             Text = "BUTTON",
             ScreenRect = ScreenRect
