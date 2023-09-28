@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
+using EasyGameFramework.Api.InputDevices;
 using static GL46;
 
 namespace OpenGLSandbox;
@@ -28,33 +29,54 @@ public sealed class GuiExperimentsSandboxScene : IScene
 
     private readonly TextButton m_Button = new TextButton
     {
-        ScreenRect = new Rect(200f, 300f, 200f, 60f),
+        ScreenRect = new Rect(200f, 300f, 96, 63f),
     };
+
+    private TextButton[] m_TestButtons;
     
     private ICommandBuffer CommandBuffer { get; } = new CommandBuffer();
     private TextRenderPass TextRenderPass { get; }
     private PanelRenderPass PanelRenderPass { get; }
     private TextRenderer TextRenderer { get; }
 
+    public IWindow Window { get; }
     private IInputSystem InputSystem { get; }
     
-    public GuiExperimentsSandboxScene(IInputSystem inputSystem)
+    public GuiExperimentsSandboxScene(IWindow window, IInputSystem inputSystem)
     {
         TextRenderer = new TextRenderer();
-        PanelRenderPass = new PanelRenderPass();
+        PanelRenderPass = new PanelRenderPass(window);
         TextRenderPass = new TextRenderPass(TextRenderer);
+        Window = window;
         InputSystem = inputSystem;
+
+        m_TestButtons = new TextButton[50 * 50];
+        // for (var i = 0; i < 50; i++)
+        // {
+        //     for (var j = 0; j < 50; j++)
+        //     {
+        //         var size = 12.8f;
+        //         m_TestButtons[i * 50 + j] = new TextButton
+        //         {
+        //             ScreenRect = new Rect(i*size, j*size, size, size)
+        //         };
+        //     }
+        // }
+        
     }
     
     public void Load()
     {
         PanelRenderPass.Load();
         TextRenderer.Load();
+        var bg = Color.FromHex(0xf7f0f9, 1f);
+        glClearColor(bg.R, bg.G, bg.B, bg.A);
     }
 
     public void Render()
     {
         m_Button.IsHovered = m_Button.ScreenRect.Contains(InputSystem.Mouse.ScreenX, 640 - InputSystem.Mouse.ScreenY);
+        m_Button.IsPressed = m_Button.IsHovered && InputSystem.Mouse.IsButtonPressed(MouseButton.Left);
         
         glClear(GL_COLOR_BUFFER_BIT);
         
@@ -64,6 +86,11 @@ public sealed class GuiExperimentsSandboxScene : IScene
         //m_Container.Render(commandBuffer);
         m_ButtonText.Render(commandBuffer);
         m_Button.Render(commandBuffer);
+
+        // foreach (var testButton in m_TestButtons)
+        // {
+        //     testButton.Render(commandBuffer);
+        // }
         
         PanelRenderPass.Execute(commandBuffer);
         TextRenderPass.Execute(commandBuffer);
@@ -83,31 +110,46 @@ interface ICommandStorage
 class TextButton : Widget
 {
     public bool IsHovered { get; set; }
+    public bool IsPressed { get; set; }
 
-    private Color NormalColor { get; } = Color.FromHex(0x00D1FF, 1f);
-    private Color HoveredColor { get; } = Color.FromHex(0xFFE900, 1f);
+    private Color BackgroundNormalColor { get; } = Color.FromHex(0xffffff, 1f);
+    private Color BackgroundPressedColor { get; } = Color.FromHex(0xfaf7fc, 1f);
+    private Color BackgroundHoveredColor { get; } = Color.FromHex(0xfdfbfd, 1f);
+    private Color TextNormalColor { get; } = Color.FromHex(0x1b1a1b, 1f);
+    private Color TextPressedColor { get; } = Color.FromHex(0x5f5e60, 1f);
     
     public override void Render(ICommandBuffer commandBuffer)
     {
-        var color = IsHovered ? HoveredColor : NormalColor;
+        var backgroundColor = BackgroundNormalColor;
+        var textColor = TextNormalColor;
+        if (IsPressed)
+        {
+            backgroundColor = BackgroundPressedColor;
+            textColor = TextPressedColor;
+        }
+        else if (IsHovered)
+        {
+            backgroundColor = BackgroundHoveredColor;
+        }
         
         commandBuffer.Add(new DrawPanelCommand
         {
-            BorderRadius = new Vector4(2f, 2f, 2f, 2f),
-            BorderSize = BorderSize.All(2f),
-            BorderColor = color,
-            ScreenRect = ScreenRect
+            BorderRadius = new Vector4(6f, 6f, 6f, 6f),
+            BorderSize = BorderSize.All(1f),
+            BorderColor = Color.FromHex(0xe8e2ea, 1f),
+            ScreenRect = ScreenRect,
+            Color = backgroundColor
         });
-        
+     
         commandBuffer.Add(new DrawTextCommand
         {
             Style = new TextStyle
             {
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center,
-                Color = color
+                Color = textColor
             },
-            Text = "BUTTON",
+            Text = "5",
             ScreenRect = ScreenRect
         });
     }
@@ -181,7 +223,7 @@ class CommandBuffer : ICommandBuffer
         var commandType = typeof(T);
         if (!TypeToStorageTable.TryGetValue(commandType, out var storage))
         {
-            storage = new CommandStorage<T>(512);
+            storage = new CommandStorage<T>(20000);
             TypeToStorageTable[commandType] = storage;
         }
 

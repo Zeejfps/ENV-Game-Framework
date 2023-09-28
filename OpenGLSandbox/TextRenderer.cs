@@ -40,7 +40,7 @@ public sealed unsafe class TextRenderer
     private int m_Base;
     private int m_LineHeight;
 
-    private const int MaxGlyphCount = 256;
+    private const int MaxGlyphCount = 50000;
 
     public int LineHeight => m_LineHeight;
 
@@ -306,13 +306,11 @@ public sealed unsafe class TextRenderer
         AssertNoGlError();
 
         var projectionMatrixUniformLocation = GetUniformLocation("u_ProjectionMatrix");
-        Console.WriteLine("Projection Matrix Uniform Location: " + projectionMatrixUniformLocation);
-        
         var projectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, 640f, 0f, 640f, 0.1f, 100f);
         glUniformMatrix4fv(projectionMatrixUniformLocation, 1, false, &projectionMatrix.M11);
         AssertNoGlError();
         
-        var font = FontLoader.Load("Assets/bitmapfonts/test.fnt");
+        var font = FontLoader.Load("Assets/bitmapfonts/Segoe UI.fnt");
         foreach (var glyph in font.Chars)
             m_IdToGlyphTable.Add(glyph.ID, glyph);
 
@@ -338,7 +336,7 @@ public sealed unsafe class TextRenderer
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         AssertNoGlError();
 
-        var image = new TgaImage("Assets/bitmapfonts/test_0.tga");
+        var image = new TgaImage("Assets/bitmapfonts/Segoe UI_0.tga");
         image.UploadToGpu();
     }
 }

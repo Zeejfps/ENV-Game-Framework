@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Text;
+using EasyGameFramework.Api;
 using static GL46;
 using static OpenGLSandbox.Utils_GL;
 
@@ -17,7 +18,15 @@ public unsafe class PanelRenderPass
     private int m_ProjectionMatrixUniformLocation;
     private Matrix4x4 m_ProjectionMatrix;
     
-    private const uint MaxPanelCount = 512;
+    
+    private const uint MaxPanelCount = 20000;
+    private readonly IWindow m_Window;
+
+    public PanelRenderPass(IWindow window)
+    {
+        m_Window = window;
+    }
+
     public void Load()
     {
         uint vao;
@@ -49,7 +58,9 @@ public unsafe class PanelRenderPass
             m_ProjectionMatrixUniformLocation = glGetUniformLocation(m_ShaderProgram, ptr);
         AssertNoGlError();
 
-        m_ProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, 640f, 0f, 640f, 0.1f, 100f);
+        var screenWidth = m_Window.ScreenWidth;
+        var screenHeight = m_Window.ScreenHeight;
+        m_ProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, screenWidth, 0f, screenHeight, 0.1f, 100f);
     }
     
     public void Execute(ICommandBuffer commandBuffer)
