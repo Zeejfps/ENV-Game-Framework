@@ -11,6 +11,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
     private readonly IWindow m_Window;
     private readonly IInputSystem m_InputSystem;
     private readonly PanelRenderingSystem m_PanelRenderingSystem;
+    private readonly TextRenderingSystem m_TextRenderingSystem;
     private readonly TextButton[] m_TextButtons;
     
     public GuiEventBaseExperimentScene(IWindow window, IInputSystem inputSystem)
@@ -18,6 +19,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         m_Window = window;
         m_InputSystem = inputSystem;
         m_PanelRenderingSystem = new PanelRenderingSystem(window);
+        m_TextRenderingSystem = new TextRenderingSystem(window);
 
         var w = 10;
         var h = 10;
@@ -43,6 +45,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
     public void Load()
     {
         m_PanelRenderingSystem.Load();
+        m_TextRenderingSystem.Load();
         foreach (var textButton in m_TextButtons)
         {
             textButton.OnBecameVisible();
@@ -61,14 +64,16 @@ public sealed class GuiEventBaseExperimentScene : IScene
         
         glClear(GL_COLOR_BUFFER_BIT);
         m_PanelRenderingSystem.Update();
+        m_TextRenderingSystem.Update();
     }
 
     public void Unload()
     {
         m_PanelRenderingSystem.Unload();
+        m_TextRenderingSystem.Unload();
     }
     
-    sealed class TextButton : IPanel
+    sealed class TextButton : IPanel, IText
     {
         public Color Color { get; set; }
         public Color BorderColor { get; set; }
@@ -112,6 +117,11 @@ public sealed class GuiEventBaseExperimentScene : IScene
             panel.BorderRadius = BorderRadius;
             panel.Color = IsHovered ? Color.FromHex(0xff00ff, 1f) : Color;
         }
+        
+        public void Update(ref Glyph glyph)
+        {
+            
+        }
 
         private void SetField<T>(ref T field, T value)
         {
@@ -124,6 +134,19 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private void OnBecameDirty()
         {
             BecameDirty?.Invoke(this);
+
+            foreach (var listener in m_Listeners)
+            {
+                listener.Invoke(this);
+            }
+        }
+
+        private readonly List<Action<IText>> m_Listeners = new();
+        
+        event Action<IText>? IText.BecameDirty
+        {
+            add => m_Listeners.Add(value);
+            remove => m_Listeners.Remove(value);
         }
     }
 
@@ -141,7 +164,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
 
     interface IText
     {
-        event Action BecameDirty;
+        event Action<IText> BecameDirty;
         void Update(ref Glyph glyph);
     }
     
@@ -213,6 +236,9 @@ public sealed class GuiEventBaseExperimentScene : IScene
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             AssertNoGlError();
             
+            var image = new TgaImage("Assets/bitmapfonts/Segoe UI_0.tga");
+            image.UploadToGpu();
+            
             m_ShaderProgram = new ShaderProgramBuilder()
                 .WithVertexShader("Assets/Shaders/bmpfont.vert.glsl")
                 .WithFragmentShader("Assets/Shaders/bmpfont.frag.glsl")
@@ -244,6 +270,110 @@ public sealed class GuiEventBaseExperimentScene : IScene
 
         public void Update()
         {
+            //Console.WriteLine($"Unregistering {m_PanelsToUnregister.Count} panels");
+            foreach (var panel in m_ItemsToUnregister)
+            {
+                panel.BecameDirty -= Item_OnBecameDirty;
+                var id = m_ItemToIndexTable[panel];
+                m_IdsToFill.Add(id);
+                m_IndexToItemTable.Remove(id);
+                m_ItemToIndexTable.Remove(panel);
+            }
+            m_ItemsToUnregister.Clear();
+            
+            //Console.WriteLine($"Registering {m_PanelsToRegister.Count} panels");
+            foreach (var panel in m_ItemsToRegister)
+            {
+                panel.BecameDirty += Item_OnBecameDirty;
+                int id;
+                if (m_IdsToFill.Count > 0)
+                {
+                    id = m_IdsToFill.Min;
+                    //Console.WriteLine($"Reusing an id that needs to be filled. Id: {id}");
+                    m_IdsToFill.Remove(id);
+                }
+                else
+                {
+                    id = m_ItemCount;
+                    //Console.WriteLine($"Assigned a new id. Id: {id}");
+                    m_ItemCount++;
+                }
+
+                m_ItemToIndexTable[panel] = id;
+                m_IndexToItemTable[id] = panel;
+                
+                m_DirtyItems.Add(id);
+            }
+            m_ItemsToRegister.Clear();
+            
+            //Console.WriteLine($"Back filling {m_IdsToFill.Count} ids");
+            foreach (var idToFill in m_IdsToFill.Reverse())
+            {
+                var lastPanelId = m_ItemCount - 1;
+                if (idToFill != lastPanelId)
+                {
+                    //Console.WriteLine($"Moving last panel into an id we need to fill. Id: {idToFill}");
+                    var lastPanel = m_IndexToItemTable[lastPanelId];
+
+                    m_IndexToItemTable.Remove(lastPanelId);
+                    m_IndexToItemTable[idToFill] = lastPanel;
+                    m_ItemToIndexTable[lastPanel] = idToFill;
+
+                    m_DirtyItems.Add(idToFill);
+                }
+                
+                m_ItemCount--;
+            }
+            m_IdsToFill.Clear();
+
+            var maxIndex = m_DirtyItems.Max;
+            //Console.WriteLine($"Max dirty panel index {maxIndex}");
+
+            var maxDirtyGlyphCount = maxIndex + 1;
+
+            m_DirtyItemCount = 0;
+            if (m_DirtyItems.Count > 0)
+            {
+                Console.WriteLine($"Have dirty items: {m_DirtyItems.Count}");
+
+                glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);
+                AssertNoGlError();
+                var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<Glyph>(maxDirtyGlyphCount), GL_MAP_WRITE_BIT);
+                AssertNoGlError();
+                var buffer = new Span<Glyph>(bufferPtr, maxDirtyGlyphCount);
+            
+                foreach (var dirtyItemIndex in m_DirtyItems)
+                {
+                    var srcItem = m_IndexToItemTable[dirtyItemIndex];
+                    var dstIndex = m_DirtyItemCount;
+
+                    if (dirtyItemIndex > m_DirtyItemCount)
+                    {
+                        //Console.WriteLine($"Swaping {panelId} with {dstIndex}");
+                        var srcIndex = dirtyItemIndex;
+
+                        var dstPanel = m_IndexToItemTable[dstIndex];
+            
+                        var dstPanelData = buffer[dstIndex];
+                        buffer[srcIndex] = dstPanelData;
+            
+                        m_IndexToItemTable[srcIndex] = dstPanel;
+                        m_ItemToIndexTable[dstPanel] = srcIndex;
+
+                        m_IndexToItemTable[dstIndex] = srcItem;
+                        m_ItemToIndexTable[srcItem] = dstIndex;
+                    }
+
+                    srcItem.Update(ref buffer[dstIndex]);
+                    m_DirtyItemCount++;
+                }
+                m_DirtyItems.Clear();
+                glUnmapBuffer(GL_ARRAY_BUFFER);
+            }
+            
+            //Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
+            
+            //Console.WriteLine($"Shader program: {m_ShaderProgram}");
             glUseProgram(m_ShaderProgram);
             AssertNoGlError();
             
@@ -352,6 +482,11 @@ public sealed class GuiEventBaseExperimentScene : IScene
         protected readonly HashSet<T> m_ItemsToUnregister = new();
         protected readonly SortedSet<int> m_DirtyItems = new();
         protected readonly SortedSet<int> m_IdsToFill = new();
+        protected readonly Dictionary<T, int> m_ItemToIndexTable = new();
+        protected readonly Dictionary<int, T> m_IndexToItemTable = new();
+        
+        protected int m_DirtyItemCount;
+        protected int m_ItemCount;
         
         public void Register(T item)
         {
@@ -364,19 +499,19 @@ public sealed class GuiEventBaseExperimentScene : IScene
             m_ItemsToUnregister.Add(item);
             m_ItemsToRegister.Remove(item);
         }
+        
+        protected void Item_OnBecameDirty(T item)
+        {
+            var id = m_ItemToIndexTable[item];
+            m_DirtyItems.Add(id);
+        }
     }
     
     sealed unsafe class PanelRenderingSystem : RenderingSystem<IPanel>, IPanelRenderingSystem
     {
         private const uint MaxPanelCount = 20000;
         
-        private readonly Dictionary<IPanel, int> m_PanelToIdTable = new();
-        private readonly Dictionary<int, IPanel> m_IdToPanelTable = new();
-        
         private readonly IWindow m_Window;
-        
-        private int m_DirtyCount;
-        private int m_PanelCount;
         
         private uint m_Vao;
         private uint m_AttributesBuffer;
@@ -457,18 +592,18 @@ public sealed class GuiEventBaseExperimentScene : IScene
             //Console.WriteLine($"Unregistering {m_PanelsToUnregister.Count} panels");
             foreach (var panel in m_ItemsToUnregister)
             {
-                panel.BecameDirty -= Panel_OnBecameDirty;
-                var id = m_PanelToIdTable[panel];
+                panel.BecameDirty -= Item_OnBecameDirty;
+                var id = m_ItemToIndexTable[panel];
                 m_IdsToFill.Add(id);
-                m_IdToPanelTable.Remove(id);
-                m_PanelToIdTable.Remove(panel);
+                m_IndexToItemTable.Remove(id);
+                m_ItemToIndexTable.Remove(panel);
             }
             m_ItemsToUnregister.Clear();
             
             //Console.WriteLine($"Registering {m_PanelsToRegister.Count} panels");
             foreach (var panel in m_ItemsToRegister)
             {
-                panel.BecameDirty += Panel_OnBecameDirty;
+                panel.BecameDirty += Item_OnBecameDirty;
                 int id;
                 if (m_IdsToFill.Count > 0)
                 {
@@ -478,13 +613,13 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 }
                 else
                 {
-                    id = m_PanelCount;
+                    id = m_ItemCount;
                     //Console.WriteLine($"Assigned a new id. Id: {id}");
-                    m_PanelCount++;
+                    m_ItemCount++;
                 }
 
-                m_PanelToIdTable[panel] = id;
-                m_IdToPanelTable[id] = panel;
+                m_ItemToIndexTable[panel] = id;
+                m_IndexToItemTable[id] = panel;
                 
                 m_DirtyItems.Add(id);
             }
@@ -493,20 +628,20 @@ public sealed class GuiEventBaseExperimentScene : IScene
             //Console.WriteLine($"Back filling {m_IdsToFill.Count} ids");
             foreach (var idToFill in m_IdsToFill.Reverse())
             {
-                var lastPanelId = m_PanelCount - 1;
+                var lastPanelId = m_ItemCount - 1;
                 if (idToFill != lastPanelId)
                 {
                     //Console.WriteLine($"Moving last panel into an id we need to fill. Id: {idToFill}");
-                    var lastPanel = m_IdToPanelTable[lastPanelId];
+                    var lastPanel = m_IndexToItemTable[lastPanelId];
 
-                    m_IdToPanelTable.Remove(lastPanelId);
-                    m_IdToPanelTable[idToFill] = lastPanel;
-                    m_PanelToIdTable[lastPanel] = idToFill;
+                    m_IndexToItemTable.Remove(lastPanelId);
+                    m_IndexToItemTable[idToFill] = lastPanel;
+                    m_ItemToIndexTable[lastPanel] = idToFill;
 
                     m_DirtyItems.Add(idToFill);
                 }
                 
-                m_PanelCount--;
+                m_ItemCount--;
             }
             m_IdsToFill.Clear();
 
@@ -515,42 +650,45 @@ public sealed class GuiEventBaseExperimentScene : IScene
 
             var maxDirtyPanelCount = maxIndex + 1;
 
-            m_DirtyCount = 0;
+            m_DirtyItemCount = 0;
             if (m_DirtyItems.Count > 0)
             {
                 glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);
                 AssertNoGlError();
+                
                 var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<Panel>(maxDirtyPanelCount), GL_MAP_WRITE_BIT);
                 AssertNoGlError();
+                
                 var buffer = new Span<Panel>(bufferPtr, maxDirtyPanelCount);
             
-                foreach (var panelId in m_DirtyItems)
+                foreach (var dirtyItemIndex in m_DirtyItems)
                 {
-                    var srcPanel = m_IdToPanelTable[panelId];
-                    var dstIndex = m_DirtyCount;
+                    var srcItem = m_IndexToItemTable[dirtyItemIndex];
+                    var dstIndex = m_DirtyItemCount;
 
-                    if (panelId > m_DirtyCount)
+                    if (dirtyItemIndex > m_DirtyItemCount)
                     {
                         //Console.WriteLine($"Swaping {panelId} with {dstIndex}");
-                        var srcIndex = panelId;
+                        var srcIndex = dirtyItemIndex;
 
-                        var dstPanel = m_IdToPanelTable[dstIndex];
+                        var dstPanel = m_IndexToItemTable[dstIndex];
             
                         var dstPanelData = buffer[dstIndex];
                         buffer[srcIndex] = dstPanelData;
             
-                        m_IdToPanelTable[srcIndex] = dstPanel;
-                        m_PanelToIdTable[dstPanel] = srcIndex;
+                        m_IndexToItemTable[srcIndex] = dstPanel;
+                        m_ItemToIndexTable[dstPanel] = srcIndex;
 
-                        m_IdToPanelTable[dstIndex] = srcPanel;
-                        m_PanelToIdTable[srcPanel] = dstIndex;
+                        m_IndexToItemTable[dstIndex] = srcItem;
+                        m_ItemToIndexTable[srcItem] = dstIndex;
                     }
 
-                    srcPanel.Update(ref buffer[dstIndex]);
-                    m_DirtyCount++;
+                    srcItem.Update(ref buffer[dstIndex]);
+                    m_DirtyItemCount++;
                 }
                 m_DirtyItems.Clear();
                 glUnmapBuffer(GL_ARRAY_BUFFER);
+                AssertNoGlError();
             }
             
             //Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
@@ -564,14 +702,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
             
             glBindVertexArray(m_Vao);
             AssertNoGlError();
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_PanelCount);
+            glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_ItemCount);
             AssertNoGlError();
-        }
-
-        private void Panel_OnBecameDirty(IPanel panel)
-        {
-            var id = m_PanelToIdTable[panel];
-            m_DirtyItems.Add(id);
         }
         
         private void SetupAttributesBuffer()
