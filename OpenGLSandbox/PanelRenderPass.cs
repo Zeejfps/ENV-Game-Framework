@@ -202,4 +202,30 @@ public unsafe class PanelRenderPass
         glEnableVertexAttribArray(borderSizeAttribIndex);
         glVertexAttribDivisor(borderSizeAttribIndex, 1);
     }
+
+    public void Unload()
+    {
+        glBindVertexArray(0);
+        fixed(uint* ptr = &m_Vao)
+            glDeleteVertexArrays(1, ptr);
+        AssertNoGlError();
+        m_Vao = 0;
+            
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        Span<uint> buffers = stackalloc uint[]
+        {
+            m_AttributesBuffer,
+            m_InstancesBuffer
+        };
+        fixed (uint* ptr = &buffers[0])
+            glDeleteBuffers(buffers.Length, ptr);
+        AssertNoGlError();
+        m_AttributesBuffer = 0;
+        m_InstancesBuffer = 0;
+            
+        glUseProgram(0);
+        glDeleteProgram(m_ShaderProgram);
+        AssertNoGlError();
+        m_ShaderProgram = 0;
+    }
 }

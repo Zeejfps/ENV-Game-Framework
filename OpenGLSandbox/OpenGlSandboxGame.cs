@@ -16,6 +16,7 @@ public sealed class OpenGlSandboxGame : Game
     {
         m_Scenes = new IScene[]
         {
+            new GuiEventBaseExperimentScene(Window),
             new GuiCommandBufferExperimentScene(Window, inputSystem),
             new BitmapFontRenderingScene(),
             new BasicTextureRenderingScene(imageLoader),

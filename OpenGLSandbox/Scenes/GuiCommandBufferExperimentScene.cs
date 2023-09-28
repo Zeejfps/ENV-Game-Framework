@@ -98,6 +98,7 @@ public sealed class GuiCommandBufferExperimentScene : IScene
 
     public void Unload()
     {
+        PanelRenderPass.Unload();
         TextRenderer.Dispose();
     }
 }
