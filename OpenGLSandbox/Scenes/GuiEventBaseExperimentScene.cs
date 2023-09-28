@@ -161,6 +161,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private uint m_AttributesBuffer;
         private uint m_InstancesBuffer;
         private uint m_ShaderProgram;
+        private uint m_Texture;
         private int m_ProjectionMatrixUniformLocation;
         private Matrix4x4 m_ProjectionMatrix;
 
@@ -185,11 +186,31 @@ public sealed class GuiEventBaseExperimentScene : IScene
             AssertNoGlError();
             m_InstancesBuffer = id;
             
+            glGenTextures(1, &id);
+            AssertNoGlError();
+            m_Texture = id;
+            
             glBindVertexArray(m_VertexArray);
             AssertNoGlError();
             
             SetupAttributesBuffer();
             SetupInstancesBuffer();
+            
+            glActiveTexture(GL_TEXTURE0);
+            AssertNoGlError();
+            glBindTexture(GL_TEXTURE_2D, m_Texture);
+            AssertNoGlError();
+        
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+            AssertNoGlError();
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            AssertNoGlError();
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            AssertNoGlError();
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            AssertNoGlError();
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            AssertNoGlError();
             
             m_ShaderProgram = new ShaderProgramBuilder()
                 .WithVertexShader("Assets/Shaders/bmpfont.vert.glsl")
@@ -213,6 +234,9 @@ public sealed class GuiEventBaseExperimentScene : IScene
             fixed(uint* ptr = &m_InstancesBuffer)
                 glDeleteBuffers(1, ptr);
             m_InstancesBuffer = 0;
+            
+            fixed(uint* ptr = &m_Texture)
+                glDeleteTextures(1, ptr);
             
             glDeleteProgram(m_ShaderProgram);
         }
