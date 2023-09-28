@@ -1,12 +1,11 @@
-﻿using System.Collections;
-using System.Numerics;
+﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.InputDevices;
 using static GL46;
 
 namespace OpenGLSandbox;
 
-public sealed class GuiExperimentsSandboxScene : IScene
+public sealed class GuiCommandBufferExperimentScene : IScene
 {
     private readonly ContainerWidget m_Container = new()
     {
@@ -43,7 +42,7 @@ public sealed class GuiExperimentsSandboxScene : IScene
     public IWindow Window { get; }
     private IInputSystem InputSystem { get; }
     
-    public GuiExperimentsSandboxScene(IWindow window, IInputSystem inputSystem)
+    public GuiCommandBufferExperimentScene(IWindow window, IInputSystem inputSystem)
     {
         TextRenderer = new TextRenderer();
         PanelRenderPass = new PanelRenderPass(window);
