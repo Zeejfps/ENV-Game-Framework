@@ -155,10 +155,20 @@ public sealed class GuiEventBaseExperimentScene : IScene
     {
         private const uint MaxGlyphCount = 20000;
 
+        private readonly IWindow m_Window;
+        
         private uint m_VertexArray;
         private uint m_AttributesBuffer;
         private uint m_InstancesBuffer;
-        
+        private uint m_ShaderProgram;
+        private int m_ProjectionMatrixUniformLocation;
+        private Matrix4x4 m_ProjectionMatrix;
+
+        public TextRenderingSystem(IWindow window)
+        {
+            m_Window = window;
+        }
+
         public void Load()
         {
             uint id;
@@ -180,11 +190,31 @@ public sealed class GuiEventBaseExperimentScene : IScene
             
             SetupAttributesBuffer();
             SetupInstancesBuffer();
+            
+            m_ShaderProgram = new ShaderProgramBuilder()
+                .WithVertexShader("Assets/Shaders/bmpfont.vert.glsl")
+                .WithFragmentShader("Assets/Shaders/bmpfont.frag.glsl")
+                .Build();
+
+            m_ProjectionMatrixUniformLocation = GetUniformLocation(m_ShaderProgram, "u_ProjectionMatrix");
+            m_ProjectionMatrix= Matrix4x4.CreateOrthographicOffCenter(0f, m_Window.ScreenWidth, 0f, m_Window.ScreenHeight, 0.1f, 100f);
         }
 
         public void Unload()
         {
+            fixed(uint* ptr = &m_VertexArray)
+                glDeleteVertexArrays(1, ptr);
+            m_VertexArray = 0;
             
+            fixed(uint* ptr = &m_AttributesBuffer)
+                glDeleteBuffers(1, ptr);
+            m_AttributesBuffer = 0;
+            
+            fixed(uint* ptr = &m_InstancesBuffer)
+                glDeleteBuffers(1, ptr);
+            m_InstancesBuffer = 0;
+            
+            glDeleteProgram(m_ShaderProgram);
         }
 
         public void Update()

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using static OpenGL.Gl;
 
 namespace OpenGLSandbox;
@@ -61,6 +62,16 @@ public static class Utils_GL
         }
 
         return shader;
+    }
+
+    public static unsafe int GetUniformLocation(uint shaderProgram, string uniformName)
+    {
+        var uniformNameAsAsciiBytes = Encoding.ASCII.GetBytes(uniformName);
+        int uniformLocation;
+        fixed(byte* ptr = &uniformNameAsAsciiBytes[0])
+            uniformLocation = glGetUniformLocation(shaderProgram, ptr);
+        AssertNoGlError();
+        return uniformLocation;
     }
 
     public static unsafe IntPtr SizeOf<T>() where T : unmanaged
