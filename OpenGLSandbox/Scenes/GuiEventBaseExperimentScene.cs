@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using System.Text;
 using EasyGameFramework.Api;
+using EasyGameFramework.Core;
 using static GL46;
 using static OpenGLSandbox.Utils_GL;
 
@@ -8,20 +9,57 @@ namespace OpenGLSandbox;
 
 public sealed class GuiEventBaseExperimentScene : IScene
 {
+    private readonly IWindow m_Window;
+    private readonly IInputSystem m_InputSystem;
     private readonly PanelRenderer m_PanelRenderer;
-
-    public GuiEventBaseExperimentScene(IWindow window)
+    private readonly TextButton[] m_TextButtons;
+    
+    public GuiEventBaseExperimentScene(IWindow window, IInputSystem inputSystem)
     {
+        m_Window = window;
+        m_InputSystem = inputSystem;
         m_PanelRenderer = new PanelRenderer(window);
+
+        var w = 10;
+        var h = 10;
+        var buttonSize = window.ScreenWidth / (float)w;
+        var buttonBorderColor = Color.FromHex(0xff00ff, 1f);
+        
+        m_TextButtons = new TextButton[w * h];
+        for (var i = 0; i < h; i++)
+        {
+            for (var j = 0; j < w; j++)
+            {
+                m_TextButtons[i * w + j] = new TextButton(m_PanelRenderer)
+                {
+                    ScreenRect = new Rect(j*buttonSize, i*buttonSize, buttonSize, buttonSize),
+                    BorderColor = buttonBorderColor,
+                    BorderRadius = new Vector4(6f, 6f, 6f, 6),
+                    BorderSize = BorderSize.All(1f),
+                };
+            }
+        }
     }
     
     public void Load()
     {
-        m_PanelRenderer.Load();   
+        m_PanelRenderer.Load();
+        foreach (var textButton in m_TextButtons)
+        {
+            textButton.OnBecameVisible();
+        }
     }
 
     public void Render()
     {
+        var mouse = m_InputSystem.Mouse;
+        var screenHeight = m_Window.ScreenHeight;
+        foreach (var textButton in m_TextButtons)
+        {
+            var mousePosition = new Vector2(mouse.ScreenX, screenHeight - mouse.ScreenY);
+            textButton.IsHovered = textButton.ScreenRect.Contains(mousePosition);
+        }
+        
         glClear(GL_COLOR_BUFFER_BIT);
         m_PanelRenderer.Update();
     }
@@ -33,32 +71,47 @@ public sealed class GuiEventBaseExperimentScene : IScene
     
     sealed class TextButton : IPanel
     {
+        public Color Color { get; set; }
+        public Color BorderColor { get; set; }
+        public BorderSize BorderSize { get; set; }
+        public Vector4 BorderRadius { get; set; }
+        public Rect ScreenRect { get; set; }
+        
         public event Action<IPanel>? BecameDirty;
 
         private bool m_IsHovered;
-        private bool IsHovered
+
+        public bool IsHovered
         {
             get => m_IsHovered;
             set => SetField(ref m_IsHovered, value);
         }
 
-        private IPanelRenderer PanelRenderer { get; }
-        private ITextRenderer TextRenderer { get; }
+        private readonly IPanelRenderer m_PanelRenderer;
+
+        public TextButton(IPanelRenderer panelRenderer)
+        {
+            m_PanelRenderer = panelRenderer;
+        }
 
         public void OnBecameVisible()
         {
-            PanelRenderer.Register(this);
+            m_PanelRenderer.Register(this);
         }
 
         public void OnBecameHidden()
         {
-            PanelRenderer.Unregister(this);
+            m_PanelRenderer.Unregister(this);
         }
 
 
         public void Update(ref Panel panel)
         {
-            
+            panel.ScreenRect = ScreenRect;
+            panel.BorderColor = BorderColor;
+            panel.BorderSize = BorderSize;
+            panel.BorderRadius = BorderRadius;
+            panel.Color = IsHovered ? Color.FromHex(0xff00ff, 1f) : Color;
         }
 
         private void SetField<T>(ref T field, T value)
@@ -204,7 +257,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
 
         public void Update()
         {
-            Console.WriteLine($"Unregistering {m_PanelsToUnregister.Count} panels");
+            //Console.WriteLine($"Unregistering {m_PanelsToUnregister.Count} panels");
             foreach (var panel in m_PanelsToUnregister)
             {
                 panel.BecameDirty -= Panel_OnBecameDirty;
@@ -215,7 +268,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
             }
             m_PanelsToUnregister.Clear();
             
-            Console.WriteLine($"Registering {m_PanelsToUnregister.Count} panels");
+            //Console.WriteLine($"Registering {m_PanelsToRegister.Count} panels");
             foreach (var panel in m_PanelsToRegister)
             {
                 panel.BecameDirty += Panel_OnBecameDirty;
@@ -223,13 +276,13 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 if (m_IdsToFill.Count > 0)
                 {
                     id = m_IdsToFill.Min;
-                    Console.WriteLine($"Reusing an id that needs to be filled. Id: {id}");
+                    //Console.WriteLine($"Reusing an id that needs to be filled. Id: {id}");
                     m_IdsToFill.Remove(id);
                 }
                 else
                 {
                     id = m_PanelCount;
-                    Console.WriteLine($"Assigned a new id. Id: {id}");
+                    //Console.WriteLine($"Assigned a new id. Id: {id}");
                     m_PanelCount++;
                 }
 
@@ -240,13 +293,13 @@ public sealed class GuiEventBaseExperimentScene : IScene
             }
             m_PanelsToRegister.Clear();
             
-            Console.WriteLine($"Back filling {m_IdsToFill.Count} ids");
+            //Console.WriteLine($"Back filling {m_IdsToFill.Count} ids");
             foreach (var idToFill in m_IdsToFill.Reverse())
             {
                 var lastPanelId = m_PanelCount - 1;
                 if (idToFill != lastPanelId)
                 {
-                    Console.WriteLine($"Moving last panel into an id we need to fill. Id: {idToFill}");
+                    //Console.WriteLine($"Moving last panel into an id we need to fill. Id: {idToFill}");
                     var lastPanel = m_IdToPanelTable[lastPanelId];
 
                     m_IdToPanelTable.Remove(lastPanelId);
@@ -261,16 +314,18 @@ public sealed class GuiEventBaseExperimentScene : IScene
             m_IdsToFill.Clear();
 
             var maxIndex = m_DirtyPanels.Max;
-            Console.WriteLine($"Max dirty panel index {maxIndex}");
+            //Console.WriteLine($"Max dirty panel index {maxIndex}");
+
+            var maxDirtyPanelCount = maxIndex + 1;
 
             m_DirtyCount = 0;
             if (m_DirtyPanels.Count > 0)
             {
                 glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);
                 AssertNoGlError();
-                var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<Panel>(maxIndex), GL_MAP_WRITE_BIT);
+                var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<Panel>(maxDirtyPanelCount), GL_MAP_WRITE_BIT);
                 AssertNoGlError();
-                var buffer = new Span<Panel>(bufferPtr, maxIndex);
+                var buffer = new Span<Panel>(bufferPtr, maxDirtyPanelCount);
             
                 foreach (var panelId in m_DirtyPanels)
                 {
@@ -279,7 +334,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
 
                     if (panelId > m_DirtyCount)
                     {
-                        Console.WriteLine($"Swaping {panelId} with {dstIndex}");
+                        //Console.WriteLine($"Swaping {panelId} with {dstIndex}");
                         var srcIndex = panelId;
 
                         var dstPanel = m_IdToPanelTable[dstIndex];
@@ -301,7 +356,19 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 glUnmapBuffer(GL_ARRAY_BUFFER);
             }
             
-            Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
+            //Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
+            
+            glUseProgram(m_ShaderProgram);
+            AssertNoGlError();
+
+            fixed (float* ptr = &m_ProjectionMatrix.M11)
+                glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
+            AssertNoGlError();
+            
+            glBindVertexArray(m_Vao);
+            AssertNoGlError();
+            glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_PanelCount);
+            AssertNoGlError();
         }
 
         private void Panel_OnBecameDirty(IPanel panel)
