@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using System.Text;
 using EasyGameFramework.Api;
-using EasyGameFramework.Core;
 using static GL46;
 using static OpenGLSandbox.Utils_GL;
 
@@ -11,14 +10,14 @@ public sealed class GuiEventBaseExperimentScene : IScene
 {
     private readonly IWindow m_Window;
     private readonly IInputSystem m_InputSystem;
-    private readonly PanelRenderer m_PanelRenderer;
+    private readonly PanelRenderingSystem m_PanelRenderingSystem;
     private readonly TextButton[] m_TextButtons;
     
     public GuiEventBaseExperimentScene(IWindow window, IInputSystem inputSystem)
     {
         m_Window = window;
         m_InputSystem = inputSystem;
-        m_PanelRenderer = new PanelRenderer(window);
+        m_PanelRenderingSystem = new PanelRenderingSystem(window);
 
         var w = 10;
         var h = 10;
@@ -30,7 +29,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         {
             for (var j = 0; j < w; j++)
             {
-                m_TextButtons[i * w + j] = new TextButton(m_PanelRenderer)
+                m_TextButtons[i * w + j] = new TextButton(m_PanelRenderingSystem)
                 {
                     ScreenRect = new Rect(j*buttonSize, i*buttonSize, buttonSize, buttonSize),
                     BorderColor = buttonBorderColor,
@@ -43,7 +42,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
     
     public void Load()
     {
-        m_PanelRenderer.Load();
+        m_PanelRenderingSystem.Load();
         foreach (var textButton in m_TextButtons)
         {
             textButton.OnBecameVisible();
@@ -61,12 +60,12 @@ public sealed class GuiEventBaseExperimentScene : IScene
         }
         
         glClear(GL_COLOR_BUFFER_BIT);
-        m_PanelRenderer.Update();
+        m_PanelRenderingSystem.Update();
     }
 
     public void Unload()
     {
-        m_PanelRenderer.Unload();
+        m_PanelRenderingSystem.Unload();
     }
     
     sealed class TextButton : IPanel
@@ -87,9 +86,9 @@ public sealed class GuiEventBaseExperimentScene : IScene
             set => SetField(ref m_IsHovered, value);
         }
 
-        private readonly IPanelRenderer m_PanelRenderer;
+        private readonly IPanelRenderingSystem m_PanelRenderer;
 
-        public TextButton(IPanelRenderer panelRenderer)
+        public TextButton(IPanelRenderingSystem panelRenderer)
         {
             m_PanelRenderer = panelRenderer;
         }
@@ -134,7 +133,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         void Update(ref Panel panel);
     }
 
-    interface IPanelRenderer
+    interface IPanelRenderingSystem
     {
         void Register(IPanel panel);
         void Unregister(IPanel panel);
@@ -152,7 +151,137 @@ public sealed class GuiEventBaseExperimentScene : IScene
         void Unregister(IText panel);
     }
 
-    unsafe class PanelRenderer : IPanelRenderer
+    sealed unsafe class TextRenderingSystem
+    {
+        private const uint MaxGlyphCount = 20000;
+
+        private uint m_VertexArray;
+        private uint m_AttributesBuffer;
+        private uint m_InstancesBuffer;
+        
+        public void Load()
+        {
+            uint id;
+
+            glGenVertexArrays(1, &id);
+            AssertNoGlError();
+            m_VertexArray = id;
+            
+            glGenBuffers(1, &id);
+            AssertNoGlError();
+            m_AttributesBuffer = id;
+        
+            glGenBuffers(1, &id);
+            AssertNoGlError();
+            m_InstancesBuffer = id;
+            
+            glBindVertexArray(m_VertexArray);
+            AssertNoGlError();
+            
+            SetupAttributesBuffer();
+            SetupInstancesBuffer();
+        }
+
+        public void Unload()
+        {
+            
+        }
+
+        public void Update()
+        {
+            
+        }
+
+        private void SetupAttributesBuffer()
+        {
+            glBindBuffer(GL_ARRAY_BUFFER, m_AttributesBuffer);
+            AssertNoGlError();
+            
+            var texturedQuad = new TexturedQuad();
+            glBufferData(GL_ARRAY_BUFFER, new IntPtr(sizeof(TexturedQuad)), &texturedQuad, GL_STATIC_DRAW);
+            AssertNoGlError();
+
+            uint positionAttribLocation = 0;
+            glVertexAttribPointer(
+                positionAttribLocation,
+                2, 
+                GL_FLOAT, 
+                false,
+                sizeof(TexturedQuad.Vertex), 
+                Offset<TexturedQuad.Vertex>(nameof(TexturedQuad.Vertex.Position))
+            );
+            AssertNoGlError();
+            glEnableVertexAttribArray(positionAttribLocation);
+            AssertNoGlError();
+
+            uint texCoordsAttribLocation = 1;
+            glVertexAttribPointer(
+                texCoordsAttribLocation, 
+                2, 
+                GL_FLOAT, 
+                false, 
+                sizeof(TexturedQuad.Vertex), 
+                Offset<TexturedQuad.Vertex>(nameof(TexturedQuad.Vertex.TexCoords))
+            );
+            AssertNoGlError();
+            glEnableVertexAttribArray(texCoordsAttribLocation);
+            AssertNoGlError();
+        }
+
+        private void SetupInstancesBuffer()
+        {
+            glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);
+            AssertNoGlError();
+        
+            var maxGlyphCount = MaxGlyphCount;
+            glBufferData(GL_ARRAY_BUFFER, SizeOf<Glyph>(maxGlyphCount), (void*)0, GL_DYNAMIC_DRAW);
+            AssertNoGlError();
+
+            uint positionRectAttribLocation = 2;
+            glVertexAttribPointer(
+                positionRectAttribLocation, 
+                4, 
+                GL_FLOAT, 
+                false,
+                sizeof(Glyph), 
+                Offset<Glyph>(nameof(Glyph.ScreenRect))
+            );
+            glEnableVertexAttribArray(positionRectAttribLocation);
+            glVertexAttribDivisor(positionRectAttribLocation, 1);
+            AssertNoGlError();
+        
+            // Location in the glyph sheet
+            uint glyphSheetRectAttribLocation = 3;
+            glVertexAttribPointer(
+                glyphSheetRectAttribLocation, 
+                4, 
+                GL_FLOAT, 
+                false, 
+                sizeof(Glyph), 
+                Offset<Glyph>(nameof(Glyph.TextureRect))
+            );
+            glEnableVertexAttribArray(glyphSheetRectAttribLocation);
+            glVertexAttribDivisor(glyphSheetRectAttribLocation, 1);
+            AssertNoGlError();
+        
+            // NOTE(Zee): I am going to make color a per instance variable on purpose
+            // This allows us to color each letter differently instead of the whole text
+            uint colorRectAttribLocation = 4;
+            glVertexAttribPointer(
+                colorRectAttribLocation, 
+                4, 
+                GL_FLOAT, 
+                false, 
+                sizeof(Glyph), 
+                Offset<Glyph>(nameof(Glyph.Color))
+            );
+            glEnableVertexAttribArray(colorRectAttribLocation);
+            glVertexAttribDivisor(colorRectAttribLocation, 1);
+            AssertNoGlError();
+        }
+    }
+
+    sealed unsafe class PanelRenderingSystem : IPanelRenderingSystem
     {
         private const uint MaxPanelCount = 20000;
         
@@ -176,7 +305,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private int m_ProjectionMatrixUniformLocation;
         private Matrix4x4 m_ProjectionMatrix;
 
-        public PanelRenderer(IWindow window)
+        public PanelRenderingSystem(IWindow window)
         {
             m_Window = window;
         }

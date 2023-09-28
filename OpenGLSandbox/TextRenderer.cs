@@ -19,14 +19,15 @@ public struct TextStyle
     public bool Wrap;
 }
 
+public struct Glyph
+{
+    public Rect ScreenRect;
+    public Rect TextureRect;
+    public Color Color;
+}
+
 public sealed unsafe class TextRenderer
 {
-    struct Glyph
-    {
-        public Rect ScreenRect;
-        public Rect TextureRect;
-        public Color Color;
-    }
     
     private uint m_Vao;
     private uint m_Vbo;
