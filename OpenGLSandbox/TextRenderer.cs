@@ -97,7 +97,16 @@ public sealed unsafe class TextRenderer
 
     private int CalculateHeight(ReadOnlySpan<char> text)
     {
-        return m_Base;
+        var h = 0;
+        foreach (var c in text)
+        {
+            if (TryGetGlyph(c, out var glyph))
+            {
+                if (glyph.Height > h)
+                    h = glyph.Height;
+            }
+        }
+        return h;
     }
     
     private int CalculateWidth(ReadOnlySpan<char> text)
@@ -161,6 +170,10 @@ public sealed unsafe class TextRenderer
 
     public void Render()
     {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glUseProgram(m_ShaderProgram);
+        glBindVertexArray(m_Vao);
         glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_GlyphCount);
     }
 

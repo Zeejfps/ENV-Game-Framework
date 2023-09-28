@@ -82,7 +82,7 @@ public unsafe class PanelRenderPass
             buffer[i] = new Panel
             {
                 Color = command.Color,
-                BorderColor = Color.FromHex(0x0000ff, 1f),
+                BorderColor = command.BorderColor,
                 BorderSize = command.BorderSize,
                 BorderRadius = command.BorderRadius,
                 ScreenRect = command.ScreenRect,

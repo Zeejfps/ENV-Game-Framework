@@ -5,11 +5,12 @@ namespace OpenGLSandbox;
 
 public sealed class GuiExperimentsSandboxScene : IScene
 {
-    private readonly ContainerWidget m_Button = new()
+    private readonly ContainerWidget m_Container = new()
     {
-        ScreenRect = new Rect(100f, 100f, 500f, 300f),
-        BorderSize = BorderSize.FromTRBL(60f, 00f, 00f, 10f),
-        BorderRadius = new Vector4(80f, 50f, 0f, 50f),
+        Color = Color.FromHex(0x24ff55, 1f),
+        ScreenRect = new Rect(20, 20, 200, 50),
+        BorderSize = BorderSize.FromTRBL(0, 0, 0, 0),
+        BorderRadius = new Vector4(5f, 5f, 5f, 5f),
     };
     
     private readonly TextWidget m_ButtonText = new()
@@ -24,6 +25,11 @@ public sealed class GuiExperimentsSandboxScene : IScene
         }
     };
 
+    private readonly TextButton m_Button = new TextButton
+    {
+        ScreenRect = new Rect(200f, 300f, 200f, 60f),
+    };
+    
     private ICommandBuffer CommandBuffer { get; } = new CommandBuffer();
     private TextRenderPass TextRenderPass { get; }
     private PanelRenderPass PanelRenderPass { get; }
@@ -39,7 +45,7 @@ public sealed class GuiExperimentsSandboxScene : IScene
     public void Load()
     {
         PanelRenderPass.Load();
-        //TextRenderer.Load();
+        TextRenderer.Load();
     }
 
     public void Render()
@@ -49,11 +55,12 @@ public sealed class GuiExperimentsSandboxScene : IScene
         var commandBuffer = CommandBuffer;
         commandBuffer.Clear();
         
+        //m_Container.Render(commandBuffer);
+        m_ButtonText.Render(commandBuffer);
         m_Button.Render(commandBuffer);
-        //m_ButtonText.Render(commandBuffer);
-
+        
         PanelRenderPass.Execute(commandBuffer);
-        //TextRenderPass.Execute(commandBuffer);
+        TextRenderPass.Execute(commandBuffer);
     }
 
     public void Unload()
@@ -65,6 +72,34 @@ public sealed class GuiExperimentsSandboxScene : IScene
 interface ICommandStorage
 {
     void Clear();
+}
+
+class TextButton : Widget
+{
+    public bool IsHovered { get; set; }
+    
+    public override void Render(ICommandBuffer commandBuffer)
+    {
+        commandBuffer.Add(new DrawPanelCommand
+        {
+            BorderRadius = new Vector4(2f, 2f, 2f, 2f),
+            BorderSize = BorderSize.All(2f),
+            BorderColor = Color.FromHex(0x00D1FF, 1f),
+            ScreenRect = ScreenRect
+        });
+        
+        commandBuffer.Add(new DrawTextCommand
+        {
+            Style = new TextStyle
+            {
+                HorizontalTextAlignment = TextAlignment.Center,
+                VerticalTextAlignment = TextAlignment.Center,
+                Color = Color.FromHex(0x00D1FF, 1f)
+            },
+            Text = "BUTTON",
+            ScreenRect = ScreenRect
+        });
+    }
 }
 
 class TextRenderPass
@@ -155,22 +190,23 @@ class CommandBuffer : ICommandBuffer
 
 public interface IWidget
 {
-    
+    void Render(ICommandBuffer commandBuffer);
 }
 
 public sealed class ContainerWidget : Widget
 {
+    public Color Color;
     public BorderSize BorderSize;
     public Vector4 BorderRadius;
 
-    public void Render(ICommandBuffer commandBuffer)
+    public override void Render(ICommandBuffer commandBuffer)
     {
         commandBuffer.Add(new DrawPanelCommand
         {
             ScreenRect = ScreenRect,
             BorderRadius = BorderRadius,
             BorderSize = BorderSize,
-            Color = Color.FromHex(0xff00ff, 1f),
+            Color = Color,
         });
     }
 }
@@ -178,6 +214,7 @@ public sealed class ContainerWidget : Widget
 public abstract class Widget : IWidget
 {
     public Rect ScreenRect { get; set; }
+    public abstract void Render(ICommandBuffer commandBuffer);
 }
 
 public interface ICommandBuffer
@@ -193,7 +230,7 @@ public sealed class TextWidget : Widget
 
     public TextStyle Style { get; set; }
 
-    public void Render(ICommandBuffer commandBuffer)
+    public override void Render(ICommandBuffer commandBuffer)
     {
         commandBuffer.Add(new DrawTextCommand
         {
@@ -210,6 +247,7 @@ public struct DrawPanelCommand
     public BorderSize BorderSize;
     public Vector4 BorderRadius;
     public Color Color;
+    public Color BorderColor;
 }
 
 public struct DrawTextCommand

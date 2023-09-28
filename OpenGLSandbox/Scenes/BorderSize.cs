@@ -17,4 +17,15 @@ public struct BorderSize
             Left = left
         };
     }
+
+    public static BorderSize All(float size)
+    {
+        return new BorderSize
+        {
+            Top = size,
+            Right = size,
+            Bottom = size,
+            Left = size
+        };
+    }
 }
