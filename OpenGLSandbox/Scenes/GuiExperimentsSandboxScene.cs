@@ -51,17 +51,17 @@ public sealed class GuiExperimentsSandboxScene : IScene
         InputSystem = inputSystem;
 
         m_TestButtons = new TextButton[50 * 50];
-        // for (var i = 0; i < 50; i++)
-        // {
-        //     for (var j = 0; j < 50; j++)
-        //     {
-        //         var size = 12.8f;
-        //         m_TestButtons[i * 50 + j] = new TextButton
-        //         {
-        //             ScreenRect = new Rect(i*size, j*size, size, size)
-        //         };
-        //     }
-        // }
+        for (var i = 0; i < 50; i++)
+        {
+            for (var j = 0; j < 50; j++)
+            {
+                var size = 12.8f;
+                m_TestButtons[i * 50 + j] = new TextButton
+                {
+                    ScreenRect = new Rect(i*size, j*size, size, size)
+                };
+            }
+        }
         
     }
     
@@ -87,10 +87,10 @@ public sealed class GuiExperimentsSandboxScene : IScene
         m_ButtonText.Render(commandBuffer);
         m_Button.Render(commandBuffer);
 
-        // foreach (var testButton in m_TestButtons)
-        // {
-        //     testButton.Render(commandBuffer);
-        // }
+        foreach (var testButton in m_TestButtons)
+        {
+            testButton.Render(commandBuffer);
+        }
         
         PanelRenderPass.Execute(commandBuffer);
         TextRenderPass.Execute(commandBuffer);

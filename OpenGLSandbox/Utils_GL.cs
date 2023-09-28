@@ -50,7 +50,9 @@ public static class Utils_GL
         {
             var infoLog = glGetShaderInfoLog(shader);
             AssertNoGlError();
-            
+
+            var shaderTypeAsString = type == GL_VERTEX_SHADER ? "Vertex Shader" : "Fragment Shader";
+            Console.WriteLine($"Failed to compile shader: {shaderTypeAsString}");
             Console.WriteLine(infoLog);
             glDeleteShader(shader);
             AssertNoGlError();
