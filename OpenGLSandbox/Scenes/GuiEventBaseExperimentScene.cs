@@ -196,7 +196,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private const uint MaxGlyphCount = 20000;
 
         private readonly IWindow m_Window;
-        
+        private readonly Dictionary<int, FontChar> m_IdToGlyphTable = new();
+
         private uint m_VertexArray;
         private uint m_AttributesBuffer;
         private uint m_InstancesBuffer;
@@ -204,8 +205,6 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private uint m_Texture;
         private int m_ProjectionMatrixUniformLocation;
         private Matrix4x4 m_ProjectionMatrix;
-        
-        private Dictionary<int, FontChar> m_IdToGlyphTable = new();
         private float m_ScaleW;
         private float m_ScaleH;
         private int m_Base;
@@ -297,6 +296,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 glDeleteTextures(1, ptr);
             
             glDeleteProgram(m_ShaderProgram);
+            
+            m_IdToGlyphTable.Clear();
         }
 
         public void Update()
