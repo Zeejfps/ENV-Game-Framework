@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Text;
+using BmFont;
 using EasyGameFramework.Api;
 using static GL46;
 using static OpenGLSandbox.Utils_GL;
@@ -11,27 +12,27 @@ public sealed class GuiEventBaseExperimentScene : IScene
     private readonly IWindow m_Window;
     private readonly IInputSystem m_InputSystem;
     private readonly PanelRenderingSystem m_PanelRenderingSystem;
-    private readonly TextRenderingSystem m_TextRenderingSystem;
-    private readonly Panel[] m_TextButtons;
+    private readonly BitmapFontTextRenderingSystem m_BitmapFontTextRenderingSystem;
+    private readonly TextButton[] m_TextButtons;
     
     public GuiEventBaseExperimentScene(IWindow window, IInputSystem inputSystem)
     {
         m_Window = window;
         m_InputSystem = inputSystem;
         m_PanelRenderingSystem = new PanelRenderingSystem(window);
-        m_TextRenderingSystem = new TextRenderingSystem(window);
+        m_BitmapFontTextRenderingSystem = new BitmapFontTextRenderingSystem(window);
 
-        var w = 10;
-        var h = 10;
+        var w = 100;
+        var h = 100;
         var buttonSize = window.ScreenWidth / (float)w;
         var buttonBorderColor = Color.FromHex(0xff00ff, 1f);
         
-        m_TextButtons = new Panel[w * h];
+        m_TextButtons = new TextButton[w * h];
         for (var i = 0; i < h; i++)
         {
             for (var j = 0; j < w; j++)
             {
-                m_TextButtons[i * w + j] = new Panel(m_PanelRenderingSystem)
+                m_TextButtons[i * w + j] = new TextButton(m_PanelRenderingSystem, m_BitmapFontTextRenderingSystem)
                 {
                     ScreenRect = new Rect(j*buttonSize, i*buttonSize, buttonSize, buttonSize),
                     BorderColor = buttonBorderColor,
@@ -45,7 +46,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
     public void Load()
     {
         m_PanelRenderingSystem.Load();
-        m_TextRenderingSystem.Load();
+        m_BitmapFontTextRenderingSystem.Load();
         foreach (var textButton in m_TextButtons)
         {
             textButton.OnBecameVisible();
@@ -64,16 +65,20 @@ public sealed class GuiEventBaseExperimentScene : IScene
         
         glClear(GL_COLOR_BUFFER_BIT);
         m_PanelRenderingSystem.Update();
-        m_TextRenderingSystem.Update();
+        m_BitmapFontTextRenderingSystem.Update();
     }
 
     public void Unload()
     {
         m_PanelRenderingSystem.Unload();
-        m_TextRenderingSystem.Unload();
+        m_BitmapFontTextRenderingSystem.Unload();
+    }
+
+    interface IText : IDisposable
+    {
     }
     
-    sealed class Panel : IPanel
+    sealed class TextButton : IPanel
     {
         public Color Color { get; set; }
         public Color BorderColor { get; set; }
@@ -89,25 +94,33 @@ public sealed class GuiEventBaseExperimentScene : IScene
             get => m_IsHovered;
             set => SetField(ref m_IsHovered, value);
         }
-
-        private readonly IPanelRenderingSystem m_PanelRenderer;
-
-        public Panel(IPanelRenderingSystem panelRenderer)
+        
+        private readonly IPanelRenderingSystem m_PanelRenderingSystem;
+        private readonly ITextRenderingSystem m_TextRenderingSystem;
+        
+        public TextButton(IPanelRenderingSystem panelRenderer, ITextRenderingSystem textRenderingSystem)
         {
-            m_PanelRenderer = panelRenderer;
+            m_PanelRenderingSystem = panelRenderer;
+            m_TextRenderingSystem = textRenderingSystem;
         }
 
         public void OnBecameVisible()
         {
-            m_PanelRenderer.Register(this);
+            m_PanelRenderingSystem.Register(this);
+            m_TextRenderingSystem.CreateText(ScreenRect, new TextStyle
+            {
+                Color = Color.FromHex(0x0022ff, 1f),
+                HorizontalTextAlignment = TextAlignment.Center,
+                VerticalTextAlignment = TextAlignment.Center
+            }, "K");
         }
 
         public void OnBecameHidden()
         {
-            m_PanelRenderer.Unregister(this);
+            m_PanelRenderingSystem.Unregister(this);
         }
 
-        public void Update(ref OpenGLSandbox.Panel panel)
+        public void Update(ref Panel panel)
         {
             panel.ScreenRect = ScreenRect;
             panel.BorderColor = BorderColor;
@@ -137,31 +150,23 @@ public sealed class GuiEventBaseExperimentScene : IScene
     
     class Text
     {
+        public Rect ScreenRect { get; set; }
         public string Value { get; set; }
-
-        private readonly ITextRenderingSystem m_TextRenderingSystem;
+        public TextStyle Style { get; set; }
         
-        private IFont m_Font;
-        private IEnumerable<IGlyph> m_Glyphs;
+        private readonly ITextRenderingSystem m_TextRenderingSystem;
+        private IEnumerable<IGlyph> m_Glyphs = Enumerable.Empty<IGlyph>();
 
+        private IText? m_Text;
+        
         private void OnValueChanged(string prevValue, string value)
         {
-            var textRenderingSystem = m_TextRenderingSystem;
-            foreach (var glyph in m_Glyphs)
-                textRenderingSystem.Unregister(glyph);
-
-            m_Glyphs = m_Font.CreateGlyphs(value).ToArray();
+            if (m_Text != null) m_Text.Dispose();
+            m_Text = m_TextRenderingSystem.CreateText(ScreenRect, Style, Value);
         }
     }
-
-    class GlyphImpl : IGlyph
-    {
-        public event Action<IGlyph>? BecameDirty;
-        public void Update(ref Glyph glyph)
-        {
-            throw new NotImplementedException();
-        }
-    }
+    
+    
 
     interface IPanel
     {
@@ -183,11 +188,10 @@ public sealed class GuiEventBaseExperimentScene : IScene
     
     interface ITextRenderingSystem
     {
-        void Register(IGlyph panel);
-        void Unregister(IGlyph panel);
+        IText CreateText(Rect screenPosition, TextStyle style, string value);
     }
 
-    sealed unsafe class TextRenderingSystem : RenderingSystem<IGlyph>, ITextRenderingSystem
+    sealed unsafe class BitmapFontTextRenderingSystem : RenderingSystem<IGlyph>, ITextRenderingSystem
     {
         private const uint MaxGlyphCount = 20000;
 
@@ -200,9 +204,14 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private uint m_Texture;
         private int m_ProjectionMatrixUniformLocation;
         private Matrix4x4 m_ProjectionMatrix;
-        private int m_GlyphCount;
+        
+        private Dictionary<int, FontChar> m_IdToGlyphTable = new();
+        private float m_ScaleW;
+        private float m_ScaleH;
+        private int m_Base;
+        private int m_LineHeight;
 
-        public TextRenderingSystem(IWindow window)
+        public BitmapFontTextRenderingSystem(IWindow window)
         {
             m_Window = window;
         }
@@ -248,6 +257,15 @@ public sealed class GuiEventBaseExperimentScene : IScene
             AssertNoGlError();
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             AssertNoGlError();
+
+            var font = FontLoader.Load("Assets/bitmapfonts/Segoe UI.fnt");
+            foreach (var glyph in font.Chars)
+                m_IdToGlyphTable.Add(glyph.ID, glyph);
+
+            m_ScaleW = font.Common.ScaleW;
+            m_ScaleH = font.Common.ScaleH;
+            m_LineHeight = font.Common.LineHeight;
+            m_Base = font.Common.Base;
             
             var image = new TgaImage("Assets/bitmapfonts/Segoe UI_0.tga");
             image.UploadToGpu();
@@ -258,7 +276,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 .Build();
 
             m_ProjectionMatrixUniformLocation = GetUniformLocation(m_ShaderProgram, "u_ProjectionMatrix");
-            m_ProjectionMatrix= Matrix4x4.CreateOrthographicOffCenter(0f, m_Window.ScreenWidth, 0f, m_Window.ScreenHeight, 0.1f, 100f);
+            m_ProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, m_Window.ScreenWidth, 0f, m_Window.ScreenHeight, 0.1f, 100f);
         }
 
         public void Unload()
@@ -284,20 +302,20 @@ public sealed class GuiEventBaseExperimentScene : IScene
         public void Update()
         {
             //Console.WriteLine($"Unregistering {m_PanelsToUnregister.Count} panels");
-            foreach (var panel in m_ItemsToUnregister)
+            foreach (var item in m_ItemsToUnregister)
             {
-                panel.BecameDirty -= Item_OnBecameDirty;
-                var id = m_ItemToIndexTable[panel];
+                item.BecameDirty -= Item_OnBecameDirty;
+                var id = m_ItemToIndexTable[item];
                 m_IdsToFill.Add(id);
                 m_IndexToItemTable.Remove(id);
-                m_ItemToIndexTable.Remove(panel);
+                m_ItemToIndexTable.Remove(item);
             }
             m_ItemsToUnregister.Clear();
             
             //Console.WriteLine($"Registering {m_PanelsToRegister.Count} panels");
-            foreach (var panel in m_ItemsToRegister)
+            foreach (var item in m_ItemsToRegister)
             {
-                panel.BecameDirty += Item_OnBecameDirty;
+                item.BecameDirty += Item_OnBecameDirty;
                 int id;
                 if (m_IdsToFill.Count > 0)
                 {
@@ -312,8 +330,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
                     m_ItemCount++;
                 }
 
-                m_ItemToIndexTable[panel] = id;
-                m_IndexToItemTable[id] = panel;
+                m_ItemToIndexTable[item] = id;
+                m_IndexToItemTable[id] = item;
                 
                 m_DirtyItems.Add(id);
             }
@@ -347,7 +365,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
             m_DirtyItemCount = 0;
             if (m_DirtyItems.Count > 0)
             {
-                Console.WriteLine($"Have dirty items: {m_DirtyItems.Count}");
+                //Console.WriteLine($"Have dirty items: {m_DirtyItems.Count}");
 
                 glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);
                 AssertNoGlError();
@@ -386,18 +404,25 @@ public sealed class GuiEventBaseExperimentScene : IScene
             
             //Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
             
-            //Console.WriteLine($"Shader program: {m_ShaderProgram}");
-            glUseProgram(m_ShaderProgram);
-            AssertNoGlError();
+            //Console.WriteLine($"Shader program: {m_ShaderProgram}")
+            if (m_ItemCount > 0)
+            {
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                
+                glUseProgram(m_ShaderProgram);
+                AssertNoGlError();
             
-            fixed (float* ptr = &m_ProjectionMatrix.M11)
-                glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
-            AssertNoGlError();
-            
-            glBindVertexArray(m_VertexArray);
-            AssertNoGlError();
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_GlyphCount);
-            AssertNoGlError();
+                fixed (float* ptr = &m_ProjectionMatrix.M11)
+                    glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
+                AssertNoGlError();
+                        
+                glBindVertexArray(m_VertexArray);
+                AssertNoGlError();
+                glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_ItemCount);
+                AssertNoGlError();
+            }
+    
         }
 
         private void SetupAttributesBuffer()
@@ -486,6 +511,184 @@ public sealed class GuiEventBaseExperimentScene : IScene
             glEnableVertexAttribArray(colorRectAttribLocation);
             glVertexAttribDivisor(colorRectAttribLocation, 1);
             AssertNoGlError();
+        }
+
+        public IText CreateText(Rect screenRect, TextStyle style, string text)
+        {
+            var position = CalculatePosition(screenRect, style, text);
+            var cursor = position;
+            var color = style.Color;
+            var glyphs = new List<IGlyph>();
+            foreach (var c in text)
+            {
+                if (c == '\n')
+                {
+                    cursor.X = position.X;
+                    cursor.Y -= m_LineHeight;
+                    continue;
+                }
+                
+                if (!TryGetGlyph(c, out var fontChar))
+                    continue;
+                
+                var xPos = cursor.X + fontChar.XOffset;
+            
+                var offsetFromTop = fontChar.YOffset - (m_Base - fontChar.Height);
+                var yPos = cursor.Y - offsetFromTop;
+            
+                var uOffset = fontChar.X / m_ScaleW;
+                var vOffset = fontChar.Y / m_ScaleH;
+                var uScale = fontChar.Width / m_ScaleW;
+                var vScale = fontChar.Height / m_ScaleH;
+
+                var glyph = new GlyphImpl
+                {
+                    ScreenRect = new Rect(xPos, yPos, fontChar.Width, fontChar.Height),
+                    TextureRect = new Rect(uOffset, vOffset, uScale, vScale),
+                    Color = color
+                };
+                
+                Register(glyph);
+                
+                //Console.WriteLine($"{c}: ({uOffset}, {vOffset})\t({uScale}, {vScale})");
+                cursor.X += fontChar.XAdvance;
+            }
+
+            var textImpl = new TextImpl(this, glyphs);
+            return textImpl;
+        }
+
+        public Vector2 CalculatePosition(Rect screenRect, TextStyle style, string text)
+        {
+            var horizontalAlignment = style.HorizontalTextAlignment;
+            var verticalAlignment = style.VerticalTextAlignment;
+            var textWidth = CalculateWidth(text);
+            var textHeight = CalculateHeight(text);
+            var leftPadding = 0f;
+            var bottomPadding = 0f;
+        
+            switch (horizontalAlignment)
+            {
+                case TextAlignment.Start:
+                    leftPadding = 0f;
+                    break;
+                case TextAlignment.Center:
+                    leftPadding = MathF.Floor((screenRect.Width - textWidth) * 0.5f);
+                    break;
+                case TextAlignment.End:
+                    leftPadding = MathF.Floor(screenRect.Width - textWidth);
+                    break;
+                case TextAlignment.Justify:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            switch (verticalAlignment)
+            {
+                case TextAlignment.Start:
+                    bottomPadding = screenRect.Height - textHeight;
+                    break;
+                case TextAlignment.Center:
+                    bottomPadding = MathF.Floor(screenRect.Height - textHeight) * 0.5f;
+                    break;
+                case TextAlignment.End:
+                    bottomPadding = 0f;
+                    break;
+                case TextAlignment.Justify:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        
+            var x = (int)(screenRect.X + leftPadding);
+            var y = (int)(screenRect.Y + bottomPadding);
+            return new Vector2(x, y);
+        }
+        
+        private int CalculateHeight(ReadOnlySpan<char> text)
+        {
+            var h = 0;
+            foreach (var c in text)
+            {
+                if (TryGetGlyph(c, out var glyph))
+                {
+                    if (glyph.Height > h)
+                        h = glyph.Height;
+                }
+            }
+            return h;
+        }
+    
+        private int CalculateWidth(ReadOnlySpan<char> text)
+        {
+            var textWidthInPixels = 0;
+            foreach (var c in text)
+            {
+                if (!TryGetGlyph(c, out var glyph))
+                    continue;
+                textWidthInPixels += glyph.XOffset + glyph.XAdvance;
+            }
+
+            return textWidthInPixels;
+        }
+        
+        private bool TryGetGlyph(char c, out FontChar glyph)
+        {
+            var id = (int)c;
+            return m_IdToGlyphTable.TryGetValue(id, out glyph);
+        }
+    }
+
+    class TextImpl : IText
+    {
+        private Rect m_ScreenRect;
+        public Rect ScreenRect
+        {
+            get => m_ScreenRect;
+            set
+            {
+                m_ScreenRect = value;
+            }
+        }
+        
+        public TextStyle TextStyle { get; set; }
+
+        private readonly string m_Text;
+        private readonly List<IGlyph> m_Glyphs;
+        private readonly BitmapFontTextRenderingSystem m_TextRenderingSystem;
+
+        public TextImpl(BitmapFontTextRenderingSystem renderingSystem, List<IGlyph> glyphs)
+        {
+            m_TextRenderingSystem = renderingSystem;
+            m_Glyphs = glyphs;
+        }
+
+        private void UpdateGlyphs()
+        {
+            var cursor = m_TextRenderingSystem.CalculatePosition(ScreenRect, TextStyle, m_Text);
+            var chars = m_Text.AsSpan();
+            
+        }
+        
+        public void Dispose()
+        {
+            // TODO release managed resources here
+        }
+    }
+
+    class GlyphImpl : IGlyph
+    {
+        public Rect ScreenRect { get; set; }
+        public Rect TextureRect { get; set; }
+        public Color Color { get; set; }
+        
+        public event Action<IGlyph>? BecameDirty;
+        public void Update(ref Glyph glyph)
+        {
+            glyph.ScreenRect = ScreenRect;
+            glyph.TextureRect = TextureRect;
+            glyph.Color = Color;
         }
     }
 
