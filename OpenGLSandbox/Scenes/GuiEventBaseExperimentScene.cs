@@ -37,6 +37,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
                     BorderColor = buttonBorderColor,
                     BorderRadius = new Vector4(6f, 6f, 6f, 6),
                     BorderSize = BorderSize.All(1f),
+                    Text = $"{j},{i}"
                 };
             }
         }
@@ -75,6 +76,13 @@ public sealed class GuiEventBaseExperimentScene : IScene
 
     sealed class TextButton
     {
+        private string m_Text;
+        public string Text
+        {
+            get => m_Text;
+            set => SetField(ref m_Text, value);
+        }
+        
         public Color BackgroundColor { get; set; }
         public Color BorderColor { get; set; }
         public BorderSize BorderSize { get; set; }
@@ -93,6 +101,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
 
         private IRenderedText? m_RenderedText;
         private IRenderedPanel? m_RenderedPanel;
+        private bool m_IsVisible;
         
         public TextButton(IPanelRenderingSystem panelRenderer, ITextRenderingSystem textRenderingSystem)
         {
@@ -112,10 +121,12 @@ public sealed class GuiEventBaseExperimentScene : IScene
             
             m_RenderedText = m_TextRenderingSystem.Create(ScreenRect, new TextStyle
             {
-                Color = Color.FromHex(0x14F2f0, 1f),
+                Color = Color.FromHex(0xff00ff, 1f),
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center
-            }, "OK");
+            }, Text);
+
+            m_IsVisible = true;
         }
 
         public void OnBecameHidden()
@@ -127,7 +138,9 @@ public sealed class GuiEventBaseExperimentScene : IScene
             if (EqualityComparer<T>.Default.Equals(field, value))
                 return;
             field = value;
-            UpdateView();
+            
+            if (m_IsVisible)
+                UpdateView();
         }
 
         private void UpdateView()
@@ -140,7 +153,14 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 BorderRadius = BorderRadius,
                 BorderSize = BorderSize
             };
+            
             m_RenderedText.ScreenRect = ScreenRect;
+            m_RenderedText.Style = new TextStyle
+            {
+                HorizontalTextAlignment = TextAlignment.Center,
+                VerticalTextAlignment = IsHovered ? TextAlignment.End : TextAlignment.Center,
+                Color = IsHovered ? Color.FromHex(0x14F2f0, 1f) : Color.FromHex(0xff00ff, 1f)
+            };
         }
     }
 
@@ -345,10 +365,10 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);
                 AssertNoGlError();
                 
-                var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<OpenGLSandbox.Panel>(maxDirtyPanelCount), GL_MAP_WRITE_BIT);
+                var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<Panel>(maxDirtyPanelCount), GL_MAP_WRITE_BIT);
                 AssertNoGlError();
                 
-                var buffer = new Span<OpenGLSandbox.Panel>(bufferPtr, maxDirtyPanelCount);
+                var buffer = new Span<Panel>(bufferPtr, maxDirtyPanelCount);
             
                 foreach (var dirtyItemIndex in m_DirtyItems)
                 {
@@ -430,7 +450,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private void SetupInstancesBuffer()
         {
             glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);
-            glBufferData(GL_ARRAY_BUFFER, SizeOf<OpenGLSandbox.Panel>(MaxPanelCount), (void*)0, GL_STREAM_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, SizeOf<Panel>(MaxPanelCount), (void*)0, GL_DYNAMIC_DRAW);
             
             uint colorAttribIndex = 2;
             glVertexAttribPointer(
@@ -438,8 +458,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 4, 
                 GL_FLOAT, 
                 false, 
-                sizeof(OpenGLSandbox.Panel), 
-                Offset<OpenGLSandbox.Panel>(nameof(OpenGLSandbox.Panel.BackgroundColor))
+                sizeof(Panel), 
+                Offset<Panel>(nameof(Panel.BackgroundColor))
             );
             glEnableVertexAttribArray(colorAttribIndex);
             glVertexAttribDivisor(colorAttribIndex, 1);
@@ -449,8 +469,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 borderRadiusAttribIndex, 
                 4, GL_FLOAT,
                 false, 
-                sizeof(OpenGLSandbox.Panel), 
-                Offset<OpenGLSandbox.Panel>(nameof(OpenGLSandbox.Panel.BorderRadius))
+                sizeof(Panel), 
+                Offset<Panel>(nameof(Panel.BorderRadius))
             );
             glEnableVertexAttribArray(borderRadiusAttribIndex);
             glVertexAttribDivisor(borderRadiusAttribIndex, 1);
@@ -461,8 +481,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 4, 
                 GL_FLOAT, 
                 false, 
-                sizeof(OpenGLSandbox.Panel), 
-                Offset<OpenGLSandbox.Panel>(nameof(OpenGLSandbox.Panel.ScreenRect))
+                sizeof(Panel), 
+                Offset<Panel>(nameof(Panel.ScreenRect))
             );
             glEnableVertexAttribArray(rectAttribIndex);
             glVertexAttribDivisor(rectAttribIndex, 1);
@@ -472,8 +492,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 borderColorAttribIndex, 
                 4, GL_FLOAT, 
                 false, 
-                sizeof(OpenGLSandbox.Panel),
-                Offset<OpenGLSandbox.Panel>(nameof(OpenGLSandbox.Panel.BorderColor))
+                sizeof(Panel),
+                Offset<Panel>(nameof(Panel.BorderColor))
             );
             glEnableVertexAttribArray(borderColorAttribIndex);
             glVertexAttribDivisor(borderColorAttribIndex, 1);
@@ -484,8 +504,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 4, 
                 GL_FLOAT, 
                 false, 
-                sizeof(OpenGLSandbox.Panel),
-                Offset<OpenGLSandbox.Panel>(nameof(OpenGLSandbox.Panel.BorderSize))
+                sizeof(Panel),
+                Offset<Panel>(nameof(Panel.BorderSize))
             );
             glEnableVertexAttribArray(borderSizeAttribIndex);
             glVertexAttribDivisor(borderSizeAttribIndex, 1);
@@ -543,103 +563,10 @@ public sealed class GuiEventBaseExperimentScene : IScene
     }
 }
 
-public class RenderedTextImpl : IRenderedText
-{
-    private Rect m_ScreenRect;
-    public Rect ScreenRect
-    {
-        get => m_ScreenRect;
-        set
-        {
-            m_ScreenRect = value;
-        }
-    }
-        
-    public TextStyle Style { get; set; }
-
-    private readonly string m_Text;
-    private readonly List<RenderedGlyphImpl> m_Glyphs = new();
-    private readonly BitmapFontTextRenderingSystem m_TextRenderingSystem;
-
-    public RenderedTextImpl(BitmapFontTextRenderingSystem renderingSystem, Rect screenRect, TextStyle style, string text)
-    {
-        m_TextRenderingSystem = renderingSystem;
-        ScreenRect = screenRect;
-        Style = style;
-        m_Text = text;
-        RegenerateGlyphs();
-        LayoutGlyphs();
-    }
-
-    private void RegenerateGlyphs()
-    {
-        foreach (var glyph in m_Glyphs)
-            m_TextRenderingSystem.Unregister(glyph);
-        m_Glyphs.Clear();
-        
-        foreach (var c in m_Text)
-        {
-            if (c == '\n') continue;
-            var glyph = new RenderedGlyphImpl();
-            m_TextRenderingSystem.Register(glyph);
-            m_Glyphs.Add(glyph);
-        }
-    }
-
-    private void LayoutGlyphs()
-    {
-        var position = m_TextRenderingSystem.CalculatePosition(ScreenRect, Style, m_Text);
-        var cursor = new Vector2(position.X, position.Y);
-        var color = Style.Color;
-        var text = m_Text;
-        var baseOffset = m_TextRenderingSystem.Base;
-        var scaleW = m_TextRenderingSystem.ScaleW;
-        var scaleH = m_TextRenderingSystem.ScaleH;
-        var lineHeight = m_TextRenderingSystem.LineHeight;
-        
-        var i = 0;
-        foreach (var c in text)
-        {
-            if (c == '\n')
-            {
-                cursor.X = position.X;
-                cursor.Y -= lineHeight;
-                continue;
-            }
-                
-            if (!m_TextRenderingSystem.TryGetGlyph(c, out var fontChar))
-                continue;
-                
-            var xPos = cursor.X + fontChar.XOffset;
-            
-            var offsetFromTop = fontChar.YOffset - (baseOffset - fontChar.Height);
-            var yPos = cursor.Y - offsetFromTop;
-            
-            var uOffset = fontChar.X / scaleW;
-            var vOffset = fontChar.Y / scaleH;
-            var uScale = fontChar.Width / scaleW;
-            var vScale = fontChar.Height / scaleH;
-
-            var glyph = m_Glyphs[i];
-            glyph.ScreenRect = new Rect(xPos, yPos, fontChar.Width, fontChar.Height);
-            glyph.TextureRect = new Rect(uOffset, vOffset, uScale, vScale);
-            glyph.Color = color;
-            
-            //Console.WriteLine($"{c}: ({uOffset}, {vOffset})\t({uScale}, {vScale})");
-            cursor.X += fontChar.XAdvance;
-            i++;
-        }
-    }
-        
-    public void Dispose()
-    {
-        // TODO release managed resources here
-    }
-}
-
 public interface IRenderedText : IDisposable
 {
     Rect ScreenRect { get; set; }
+    TextStyle Style { get; set; }
 }
 
 public interface ITextRenderingSystem
@@ -653,15 +580,35 @@ public interface IRenderedGlyph
 
 public class RenderedGlyphImpl : IRenderedGlyph
 {
-    public Rect ScreenRect { get; set; }
+    private Rect m_ScreenRect;
+    public Rect ScreenRect
+    {
+        get => m_ScreenRect;
+        set => SetField(ref m_ScreenRect, value);
+    }
+
+    private Color m_Color;
+    public Color Color
+    {
+        get => m_Color;
+        set => SetField(ref m_Color, value);
+    }
+    
     public Rect TextureRect { get; set; }
-    public Color Color { get; set; }
-        
+
     public event Action<RenderedGlyphImpl>? BecameDirty;
     public void Update(ref Glyph glyph)
     {
         glyph.ScreenRect = ScreenRect;
         glyph.TextureRect = TextureRect;
         glyph.Color = Color;
+    }
+
+    private void SetField<T>(ref T field, T value)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value))
+            return;
+        field = value;
+        BecameDirty?.Invoke(this);
     }
 }

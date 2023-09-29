@@ -25,7 +25,6 @@ public sealed unsafe class BitmapFontTextRenderingSystem : GuiEventBaseExperimen
     private float m_ScaleH;
     private int m_Base;
     private int m_LineHeight;
-
         
     public BitmapFontTextRenderingSystem(IWindow window, string pathToFontFile)
     {
@@ -416,5 +415,108 @@ public sealed unsafe class BitmapFontTextRenderingSystem : GuiEventBaseExperimen
     {
         var id = (int)c;
         return m_IdToGlyphTable.TryGetValue(id, out glyph);
+    }
+}
+
+public class RenderedTextImpl : IRenderedText
+{
+    private Rect m_ScreenRect;
+    public Rect ScreenRect
+    {
+        get => m_ScreenRect;
+        set
+        {
+            m_ScreenRect = value;
+        }
+    }
+
+    private TextStyle m_Style;
+    public TextStyle Style
+    {
+        get => m_Style;
+        set
+        {
+            m_Style = value;
+            LayoutGlyphs();
+        }
+    }
+
+    private readonly string m_Text;
+    private readonly List<RenderedGlyphImpl> m_Glyphs = new();
+    private readonly BitmapFontTextRenderingSystem m_TextRenderingSystem;
+
+    public RenderedTextImpl(BitmapFontTextRenderingSystem renderingSystem, Rect screenRect, TextStyle style, string text)
+    {
+        m_TextRenderingSystem = renderingSystem;
+        m_ScreenRect = screenRect;
+        m_Style = style;
+        m_Text = text;
+        RegenerateGlyphs();
+        LayoutGlyphs();
+    }
+
+    private void RegenerateGlyphs()
+    {
+        foreach (var glyph in m_Glyphs)
+            m_TextRenderingSystem.Unregister(glyph);
+        m_Glyphs.Clear();
+        
+        foreach (var c in m_Text)
+        {
+            if (c == '\n') continue;
+            var glyph = new RenderedGlyphImpl();
+            m_TextRenderingSystem.Register(glyph);
+            m_Glyphs.Add(glyph);
+        }
+    }
+
+    private void LayoutGlyphs()
+    {
+        var position = m_TextRenderingSystem.CalculatePosition(ScreenRect, Style, m_Text);
+        var cursor = new Vector2(position.X, position.Y);
+        var color = Style.Color;
+        var text = m_Text;
+        var baseOffset = m_TextRenderingSystem.Base;
+        var scaleW = m_TextRenderingSystem.ScaleW;
+        var scaleH = m_TextRenderingSystem.ScaleH;
+        var lineHeight = m_TextRenderingSystem.LineHeight;
+        
+        var i = 0;
+        foreach (var c in text)
+        {
+            if (c == '\n')
+            {
+                cursor.X = position.X;
+                cursor.Y -= lineHeight;
+                continue;
+            }
+                
+            if (!m_TextRenderingSystem.TryGetGlyph(c, out var fontChar))
+                continue;
+                
+            var xPos = cursor.X + fontChar.XOffset;
+            
+            var offsetFromTop = fontChar.YOffset - (baseOffset - fontChar.Height);
+            var yPos = cursor.Y - offsetFromTop;
+            
+            var uOffset = fontChar.X / scaleW;
+            var vOffset = fontChar.Y / scaleH;
+            var uScale = fontChar.Width / scaleW;
+            var vScale = fontChar.Height / scaleH;
+
+            var glyph = m_Glyphs[i];
+            glyph.ScreenRect = new Rect(xPos, yPos, fontChar.Width, fontChar.Height);
+            glyph.TextureRect = new Rect(uOffset, vOffset, uScale, vScale);
+            glyph.Color = color;
+            
+            //Console.WriteLine($"{c}: ({uOffset}, {vOffset})\t({uScale}, {vScale})");
+            cursor.X += fontChar.XAdvance;
+            i++;
+        }
+    }
+        
+    public void Dispose()
+    {
+        // TODO release managed resources here
     }
 }
