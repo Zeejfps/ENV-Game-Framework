@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using System.Text;
 using EasyGameFramework.Api;
+using EasyGameFramework.Api.InputDevices;
 using static GL46;
 using static OpenGLSandbox.Utils_GL;
 
@@ -24,7 +25,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         var w = 10;
         var h = 10;
         var buttonSize = window.ScreenWidth / (float)w;
-        var buttonBorderColor = Color.FromHex(0xff00ff, 1f);
+        var buttonBorderColor = Color.FromHex(0xe8e2ea, 1f);
         
         m_TextButtons = new TextButton[w * h];
         for (var i = 0; i < h; i++)
@@ -45,6 +46,9 @@ public sealed class GuiEventBaseExperimentScene : IScene
     
     public void Load()
     {
+        var bg = Color.FromHex(0xf7f0f9, 1f);
+        glClearColor(bg.R, bg.G, bg.B, bg.A);
+        
         m_PanelRenderingSystem.Load();
         m_BitmapFontTextRenderingSystem.Load();
         foreach (var textButton in m_TextButtons)
@@ -61,6 +65,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         {
             var mousePosition = new Vector2(mouse.ScreenX, screenHeight - mouse.ScreenY);
             textButton.IsHovered = textButton.ScreenRect.Contains(mousePosition);
+            textButton.IsPressed = textButton.IsHovered && mouse.IsButtonPressed(MouseButton.Left);
         }
         
         glClear(GL_COLOR_BUFFER_BIT);
@@ -83,7 +88,6 @@ public sealed class GuiEventBaseExperimentScene : IScene
             set => SetField(ref m_Text, value);
         }
         
-        public Color BackgroundColor { get; set; }
         public Color BorderColor { get; set; }
         public BorderSize BorderSize { get; set; }
         public Vector4 BorderRadius { get; set; }
@@ -95,6 +99,13 @@ public sealed class GuiEventBaseExperimentScene : IScene
             get => m_IsHovered;
             set => SetField(ref m_IsHovered, value);
         }
+
+        private bool m_IsPressed;
+        public bool IsPressed
+        {
+            get => m_IsPressed;
+            set => SetField(ref m_IsPressed, value);
+        }
         
         private readonly IPanelRenderingSystem m_PanelRenderingSystem;
         private readonly ITextRenderingSystem m_TextRenderingSystem;
@@ -102,6 +113,13 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private IRenderedText? m_RenderedText;
         private IRenderedPanel? m_RenderedPanel;
         private bool m_IsVisible;
+        
+        private Color BackgroundNormalColor { get; } = Color.FromHex(0xffffff, 1f);
+        private Color BackgroundPressedColor { get; } = Color.FromHex(0xfaf7fc, 1f);
+        private Color BackgroundHoveredColor { get; } = Color.FromHex(0xfdfbfd, 1f);
+        
+        private Color TextNormalColor { get; } = Color.FromHex(0x1b1a1b, 1f);
+        private Color TextPressedColor { get; } = Color.FromHex(0x5f5e60, 1f);
         
         public TextButton(IPanelRenderingSystem panelRenderer, ITextRenderingSystem textRenderingSystem)
         {
@@ -116,12 +134,12 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 BorderColor = BorderColor,
                 BorderRadius = BorderRadius,
                 BorderSize = BorderSize,
-                BackgroundColor = BackgroundColor
+                BackgroundColor = BackgroundNormalColor
             });
             
             m_RenderedText = m_TextRenderingSystem.Create(ScreenRect, new TextStyle
             {
-                Color = Color.FromHex(0xff00ff, 1f),
+                Color = TextNormalColor,
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center
             }, Text);
@@ -146,20 +164,34 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private void UpdateView()
         {
             m_RenderedPanel.ScreenRect = ScreenRect;
+            m_RenderedText.ScreenRect = ScreenRect;
+
+            var backgroundColor = BackgroundNormalColor;
+            var textColor = TextNormalColor;
+            if (IsPressed)
+            {
+                backgroundColor = BackgroundPressedColor;
+                textColor = TextPressedColor;
+            }
+            else if (IsHovered)
+            {
+                backgroundColor = BackgroundHoveredColor;
+            }
+
+            
             m_RenderedPanel.Style = new PanelStyle
             {
-                BackgroundColor = IsHovered ? Color.FromHex(0xff00ff, 1f) : BackgroundColor,
+                BackgroundColor = backgroundColor,
                 BorderColor = BorderColor,
                 BorderRadius = BorderRadius,
                 BorderSize = BorderSize
             };
             
-            m_RenderedText.ScreenRect = ScreenRect;
             m_RenderedText.Style = new TextStyle
             {
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = IsHovered ? TextAlignment.End : TextAlignment.Center,
-                Color = IsHovered ? Color.FromHex(0x14F2f0, 1f) : Color.FromHex(0xff00ff, 1f)
+                Color = textColor
             };
         }
     }
