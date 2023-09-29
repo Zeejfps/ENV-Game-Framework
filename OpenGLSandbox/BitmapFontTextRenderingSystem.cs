@@ -33,6 +33,11 @@ public sealed unsafe class BitmapFontTextRenderingSystem : GuiEventBaseExperimen
         m_PathToFontFile = pathToFontFile;
     }
 
+    public int LineHeight => m_LineHeight;
+    public int Base => m_Base;
+    public float ScaleW => m_ScaleW;
+    public float ScaleH => m_ScaleH;
+
     public void Load()
     {
         uint id;
@@ -329,47 +334,7 @@ public sealed unsafe class BitmapFontTextRenderingSystem : GuiEventBaseExperimen
 
     public IRenderedText Create(Rect screenRect, TextStyle style, string text)
     {
-        var position = CalculatePosition(screenRect, style, text);
-        var cursor = position;
-        var color = style.Color;
-        var glyphs = new List<IRenderedGlyph>();
-        foreach (var c in text)
-        {
-            if (c == '\n')
-            {
-                cursor.X = position.X;
-                cursor.Y -= m_LineHeight;
-                continue;
-            }
-                
-            if (!TryGetGlyph(c, out var fontChar))
-                continue;
-                
-            var xPos = cursor.X + fontChar.XOffset;
-            
-            var offsetFromTop = fontChar.YOffset - (m_Base - fontChar.Height);
-            var yPos = cursor.Y - offsetFromTop;
-            
-            var uOffset = fontChar.X / m_ScaleW;
-            var vOffset = fontChar.Y / m_ScaleH;
-            var uScale = fontChar.Width / m_ScaleW;
-            var vScale = fontChar.Height / m_ScaleH;
-
-            var glyph = new RenderedGlyphImpl
-            {
-                ScreenRect = new Rect(xPos, yPos, fontChar.Width, fontChar.Height),
-                TextureRect = new Rect(uOffset, vOffset, uScale, vScale),
-                Color = color
-            };
-                
-            Register(glyph);
-                
-            //Console.WriteLine($"{c}: ({uOffset}, {vOffset})\t({uScale}, {vScale})");
-            cursor.X += fontChar.XAdvance;
-        }
-
-        var textImpl = new RenderedTextImpl(this, glyphs);
-        return textImpl;
+        return new RenderedTextImpl(this, screenRect, style, text);
     }
 
     public Vector2 CalculatePosition(Rect screenRect, TextStyle style, string text)
@@ -447,7 +412,7 @@ public sealed unsafe class BitmapFontTextRenderingSystem : GuiEventBaseExperimen
         return textWidthInPixels;
     }
         
-    private bool TryGetGlyph(char c, out FontChar glyph)
+    public bool TryGetGlyph(char c, out FontChar glyph)
     {
         var id = (int)c;
         return m_IdToGlyphTable.TryGetValue(id, out glyph);
