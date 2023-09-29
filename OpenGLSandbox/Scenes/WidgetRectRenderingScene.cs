@@ -7,7 +7,7 @@ namespace OpenGLSandbox;
 public struct Panel
 {
     public Rect ScreenRect;
-    public Color Color;
+    public Color BackgroundColor;
     public Color BorderColor;
     public BorderSize BorderSize;
     public Vector4 BorderRadius;
@@ -53,7 +53,7 @@ public sealed unsafe class WidgetRectRenderingScene : IScene
         {
             buffer.Write(new Panel
             {
-                Color = new Color(0f, 0.5f, 0.6f, 1f),
+                BackgroundColor = new Color(0f, 0.5f, 0.6f, 1f),
                 BorderColor = new Color(1f, 0f, 0.6f, 1f),
                 BorderSize = BorderSize.FromTRBL(60f, 00f, 00f, 10f),
                 BorderRadius = new Vector4(80f, 50f, 0f, 50f),
@@ -61,7 +61,7 @@ public sealed unsafe class WidgetRectRenderingScene : IScene
             });
             buffer.Write(new Panel
             {
-                Color = new Color(1.0f, 0f, 1.0f, 1f),
+                BackgroundColor = new Color(1.0f, 0f, 1.0f, 1f),
                 BorderColor = new Color(0f,0.3f, 1f, 1f),
                 BorderRadius = new Vector4(5f, 5f, 5f, 5f),
                 BorderSize = BorderSize.FromTRBL(5f, 5f, 5f, 5f),
@@ -71,7 +71,7 @@ public sealed unsafe class WidgetRectRenderingScene : IScene
 
         uint colorAttribIndex = 2;
         glVertexAttribPointer(colorAttribIndex, 4, GL_FLOAT, false, sizeof(Panel), 
-            Offset<Panel>(nameof(Panel.Color)));
+            Offset<Panel>(nameof(Panel.BackgroundColor)));
         glEnableVertexAttribArray(colorAttribIndex);
         glVertexAttribDivisor(colorAttribIndex, 1);
 

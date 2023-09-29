@@ -92,7 +92,7 @@ public unsafe class PanelRenderPass
             var command = commands[i];
             buffer[i] = new Panel
             {
-                Color = command.Color,
+                BackgroundColor = command.Color,
                 BorderColor = command.BorderColor,
                 BorderSize = command.BorderSize,
                 BorderRadius = command.BorderRadius,
@@ -151,7 +151,7 @@ public unsafe class PanelRenderPass
             GL_FLOAT, 
             false, 
             sizeof(Panel), 
-            Offset<Panel>(nameof(Panel.Color))
+            Offset<Panel>(nameof(Panel.BackgroundColor))
         );
         glEnableVertexAttribArray(colorAttribIndex);
         glVertexAttribDivisor(colorAttribIndex, 1);

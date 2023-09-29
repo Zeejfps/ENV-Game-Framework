@@ -22,8 +22,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
         m_PanelRenderingSystem = new PanelRenderingSystem(window);
         m_BitmapFontTextRenderingSystem = new BitmapFontTextRenderingSystem(window);
 
-        var w = 100;
-        var h = 100;
+        var w = 10;
+        var h = 10;
         var buttonSize = window.ScreenWidth / (float)w;
         var buttonBorderColor = Color.FromHex(0xff00ff, 1f);
         
@@ -74,20 +74,14 @@ public sealed class GuiEventBaseExperimentScene : IScene
         m_BitmapFontTextRenderingSystem.Unload();
     }
 
-    interface IText : IDisposable
+    sealed class TextButton
     {
-    }
-    
-    sealed class TextButton : IPanel
-    {
-        public Color Color { get; set; }
+        public Color BackgroundColor { get; set; }
         public Color BorderColor { get; set; }
         public BorderSize BorderSize { get; set; }
         public Vector4 BorderRadius { get; set; }
         public Rect ScreenRect { get; set; }
         
-        public event Action<IPanel>? BecameDirty;
-
         private bool m_IsHovered;
         public bool IsHovered
         {
@@ -97,6 +91,9 @@ public sealed class GuiEventBaseExperimentScene : IScene
         
         private readonly IPanelRenderingSystem m_PanelRenderingSystem;
         private readonly ITextRenderingSystem m_TextRenderingSystem;
+
+        private IRenderedText? m_RenderedText;
+        private IRenderedPanel? m_RenderedPanel;
         
         public TextButton(IPanelRenderingSystem panelRenderer, ITextRenderingSystem textRenderingSystem)
         {
@@ -106,92 +103,87 @@ public sealed class GuiEventBaseExperimentScene : IScene
 
         public void OnBecameVisible()
         {
-            m_PanelRenderingSystem.Register(this);
-            m_TextRenderingSystem.CreateText(ScreenRect, new TextStyle
+            m_RenderedPanel = m_PanelRenderingSystem.Create(ScreenRect, new PanelStyle
             {
-                Color = Color.FromHex(0x0022ff, 1f),
+                BorderColor = BorderColor,
+                BorderRadius = BorderRadius,
+                BorderSize = BorderSize,
+                BackgroundColor = BackgroundColor
+            });
+            
+            m_RenderedText = m_TextRenderingSystem.Create(ScreenRect, new TextStyle
+            {
+                Color = Color.FromHex(0x14F2f0, 1f),
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center
-            }, "K");
+            }, "OK");
         }
 
         public void OnBecameHidden()
         {
-            m_PanelRenderingSystem.Unregister(this);
         }
-
-        public void Update(ref Panel panel)
-        {
-            panel.ScreenRect = ScreenRect;
-            panel.BorderColor = BorderColor;
-            panel.BorderSize = BorderSize;
-            panel.BorderRadius = BorderRadius;
-            panel.Color = IsHovered ? Color.FromHex(0xff00ff, 1f) : Color;
-        }
-
+        
         private void SetField<T>(ref T field, T value)
         {
             if (EqualityComparer<T>.Default.Equals(field, value))
                 return;
             field = value;
-            OnBecameDirty();
+            UpdateView();
         }
 
-        private void OnBecameDirty()
+        private void UpdateView()
         {
-            BecameDirty?.Invoke(this);
+            m_RenderedPanel.ScreenRect = ScreenRect;
+            m_RenderedPanel.Style = new PanelStyle
+            {
+                BackgroundColor = IsHovered ? Color.FromHex(0xff00ff, 1f) : BackgroundColor,
+                BorderColor = BorderColor,
+                BorderRadius = BorderRadius,
+                BorderSize = BorderSize
+            };
+            m_RenderedText.ScreenRect = ScreenRect;
         }
     }
 
-    interface IFont
+    struct PanelStyle
     {
-        ReadOnlySpan<IGlyph> CreateGlyphs(string text);
+        public Color BackgroundColor;
+        public Color BorderColor;
+        public BorderSize BorderSize;
+        public Vector4 BorderRadius;
     }
-    
-    class Text
-    {
-        public Rect ScreenRect { get; set; }
-        public string Value { get; set; }
-        public TextStyle Style { get; set; }
-        
-        private readonly ITextRenderingSystem m_TextRenderingSystem;
-        private IEnumerable<IGlyph> m_Glyphs = Enumerable.Empty<IGlyph>();
 
-        private IText? m_Text;
-        
-        private void OnValueChanged(string prevValue, string value)
-        {
-            if (m_Text != null) m_Text.Dispose();
-            m_Text = m_TextRenderingSystem.CreateText(ScreenRect, Style, Value);
-        }
+    interface IRenderedText : IDisposable
+    {
+        Rect ScreenRect { get; set; }
     }
-    
-    
 
-    interface IPanel
+    interface IRenderedPanel
     {
-        event Action<IPanel> BecameDirty;
-        void Update(ref OpenGLSandbox.Panel panel);
+        Rect ScreenRect { get; set; }
+        PanelStyle Style { get; set; }
+
+        event Action<IRenderedPanel> BecameDirty;
+        void Update(ref Panel panel);
     }
 
     interface IPanelRenderingSystem
     {
-        void Register(IPanel panel);
-        void Unregister(IPanel panel);
+        IRenderedPanel Create(Rect screenPosition, PanelStyle style);
     }
 
-    interface IGlyph
-    {
-        event Action<IGlyph> BecameDirty;
-        void Update(ref Glyph glyph);
-    }
-    
     interface ITextRenderingSystem
     {
-        IText CreateText(Rect screenPosition, TextStyle style, string value);
+        IRenderedText Create(Rect screenPosition, TextStyle style, string value);
     }
 
-    sealed unsafe class BitmapFontTextRenderingSystem : RenderingSystem<IGlyph>, ITextRenderingSystem
+    interface IRenderedGlyph
+    {
+        event Action<IRenderedGlyph> BecameDirty;
+        void Update(ref Glyph glyph);
+    }
+
+    sealed unsafe class BitmapFontTextRenderingSystem : RenderingSystem<IRenderedGlyph>, ITextRenderingSystem
     {
         private const uint MaxGlyphCount = 20000;
 
@@ -514,12 +506,12 @@ public sealed class GuiEventBaseExperimentScene : IScene
             AssertNoGlError();
         }
 
-        public IText CreateText(Rect screenRect, TextStyle style, string text)
+        public IRenderedText Create(Rect screenRect, TextStyle style, string text)
         {
             var position = CalculatePosition(screenRect, style, text);
             var cursor = position;
             var color = style.Color;
-            var glyphs = new List<IGlyph>();
+            var glyphs = new List<IRenderedGlyph>();
             foreach (var c in text)
             {
                 if (c == '\n')
@@ -542,7 +534,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 var uScale = fontChar.Width / m_ScaleW;
                 var vScale = fontChar.Height / m_ScaleH;
 
-                var glyph = new GlyphImpl
+                var glyph = new RenderedGlyphImpl
                 {
                     ScreenRect = new Rect(xPos, yPos, fontChar.Width, fontChar.Height),
                     TextureRect = new Rect(uOffset, vOffset, uScale, vScale),
@@ -555,7 +547,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 cursor.X += fontChar.XAdvance;
             }
 
-            var textImpl = new TextImpl(this, glyphs);
+            var textImpl = new RenderedTextImpl(this, glyphs);
             return textImpl;
         }
 
@@ -641,7 +633,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         }
     }
 
-    class TextImpl : IText
+    class RenderedTextImpl : IRenderedText
     {
         private Rect m_ScreenRect;
         public Rect ScreenRect
@@ -656,10 +648,10 @@ public sealed class GuiEventBaseExperimentScene : IScene
         public TextStyle TextStyle { get; set; }
 
         private readonly string m_Text;
-        private readonly List<IGlyph> m_Glyphs;
+        private readonly List<IRenderedGlyph> m_Glyphs;
         private readonly BitmapFontTextRenderingSystem m_TextRenderingSystem;
 
-        public TextImpl(BitmapFontTextRenderingSystem renderingSystem, List<IGlyph> glyphs)
+        public RenderedTextImpl(BitmapFontTextRenderingSystem renderingSystem, List<IRenderedGlyph> glyphs)
         {
             m_TextRenderingSystem = renderingSystem;
             m_Glyphs = glyphs;
@@ -678,13 +670,13 @@ public sealed class GuiEventBaseExperimentScene : IScene
         }
     }
 
-    class GlyphImpl : IGlyph
+    class RenderedGlyphImpl : IRenderedGlyph
     {
         public Rect ScreenRect { get; set; }
         public Rect TextureRect { get; set; }
         public Color Color { get; set; }
         
-        public event Action<IGlyph>? BecameDirty;
+        public event Action<IRenderedGlyph>? BecameDirty;
         public void Update(ref Glyph glyph)
         {
             glyph.ScreenRect = ScreenRect;
@@ -724,7 +716,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         }
     }
     
-    sealed unsafe class PanelRenderingSystem : RenderingSystem<IPanel>, IPanelRenderingSystem
+    sealed unsafe class PanelRenderingSystem : RenderingSystem<IRenderedPanel>, IPanelRenderingSystem
     {
         private const uint MaxPanelCount = 20000;
         
@@ -967,7 +959,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 GL_FLOAT, 
                 false, 
                 sizeof(OpenGLSandbox.Panel), 
-                Offset<OpenGLSandbox.Panel>(nameof(OpenGLSandbox.Panel.Color))
+                Offset<OpenGLSandbox.Panel>(nameof(OpenGLSandbox.Panel.BackgroundColor))
             );
             glEnableVertexAttribArray(colorAttribIndex);
             glVertexAttribDivisor(colorAttribIndex, 1);
@@ -1017,6 +1009,56 @@ public sealed class GuiEventBaseExperimentScene : IScene
             );
             glEnableVertexAttribArray(borderSizeAttribIndex);
             glVertexAttribDivisor(borderSizeAttribIndex, 1);
+        }
+
+        public IRenderedPanel Create(Rect screenRect, PanelStyle style)
+        {
+            var p = new RenderedPanelImpl
+            {
+                ScreenRect = screenRect,
+                Style = style
+            };
+            
+            Register(p);
+            return p;
+        }
+    }
+
+    sealed class RenderedPanelImpl : IRenderedPanel
+    {
+        private Rect m_ScreenRect;
+
+        public Rect ScreenRect
+        {
+            get => m_ScreenRect;
+            set
+            {
+                m_ScreenRect = value;
+                BecameDirty?.Invoke(this);
+            }
+        }
+
+        private PanelStyle m_Style;
+        public PanelStyle Style
+        {
+            get => m_Style;
+            set
+            {
+                m_Style = value;
+                BecameDirty?.Invoke(this);
+            }
+        }
+
+        public event Action<IRenderedPanel>? BecameDirty;
+        
+        public void Update(ref Panel panel)
+        {
+            var style = Style;
+            panel.ScreenRect = ScreenRect;
+            panel.BackgroundColor = style.BackgroundColor;
+            panel.BorderRadius = style.BorderRadius;
+            panel.BorderSize = style.BorderSize;
+            panel.BorderColor = style.BorderColor;
         }
     }
 }
