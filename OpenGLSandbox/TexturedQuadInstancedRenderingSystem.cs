@@ -254,7 +254,7 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
                 sizeof(TInstancedData), 
                 Offset<TInstancedData>(field.Name)
             );
-            Console.WriteLine($"Attribute: {attribIndex}, Offset: " + (int)Offset<TInstancedData>(field.Name));
+            //Console.WriteLine($"Attribute: {attribIndex}, Offset: " + (int)Offset<TInstancedData>(field.Name));
             glEnableVertexAttribArray(attribIndex);
             glVertexAttribDivisor(attribIndex, 1);
             attribIndex++;

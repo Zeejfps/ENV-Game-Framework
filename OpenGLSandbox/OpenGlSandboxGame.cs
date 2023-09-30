@@ -2,7 +2,6 @@
 using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
-using static OpenGL.Gl;
 
 namespace OpenGLSandbox;
 
@@ -12,10 +11,11 @@ public sealed class OpenGlSandboxGame : Game
     
     private int m_CurrentSceneIndex;
 
-    public OpenGlSandboxGame(IContext context, IInputSystem inputSystem, IAssetLoader<ICpuTexture> imageLoader) : base(context)
+    public OpenGlSandboxGame(IContext context, CalculatorScene calculatorScene,  IInputSystem inputSystem, IAssetLoader<ICpuTexture> imageLoader) : base(context)
     {
         m_Scenes = new IScene[]
         {
+            calculatorScene,
             new GuiEventBaseExperimentScene(Window, inputSystem),
             new GuiCommandBufferExperimentScene(Window, inputSystem),
             new BitmapFontRenderingScene(),
@@ -32,7 +32,6 @@ public sealed class OpenGlSandboxGame : Game
 
     protected override void OnStartup()
     {
-        Window.SetScreenSize(400, 640);
         Window.IsResizable = true;
         m_Scenes[m_CurrentSceneIndex].Load();
         

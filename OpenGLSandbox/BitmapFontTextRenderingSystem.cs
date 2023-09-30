@@ -6,7 +6,7 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
-public sealed unsafe class BitmapFontTextRenderingSystem : ITextRenderingSystem
+public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
 {
     private const uint MaxGlyphCount = 20000;
 
@@ -25,7 +25,7 @@ public sealed unsafe class BitmapFontTextRenderingSystem : ITextRenderingSystem
 
     private TexturedQuadInstancedRenderingSystem<Glyph> m_Renderer;
         
-    public BitmapFontTextRenderingSystem(IWindow window, string pathToFontFile)
+    public BitmapFontTextRenderer(IWindow window, string pathToFontFile)
     {
         m_Window = window;
         m_PathToFontFile = pathToFontFile;
@@ -241,9 +241,9 @@ public sealed class RenderedTextImpl : IRenderedText
 
     private readonly string m_Text;
     private readonly List<RenderedGlyphImpl> m_Glyphs = new();
-    private readonly BitmapFontTextRenderingSystem m_TextRenderer;
+    private readonly BitmapFontTextRenderer m_TextRenderer;
 
-    public RenderedTextImpl(BitmapFontTextRenderingSystem renderer, Rect screenRect, TextStyle style, string text)
+    public RenderedTextImpl(BitmapFontTextRenderer renderer, Rect screenRect, TextStyle style, string text)
     {
         m_TextRenderer = renderer;
         m_ScreenRect = screenRect;

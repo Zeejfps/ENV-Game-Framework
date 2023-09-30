@@ -6,7 +6,7 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
-public sealed unsafe class PanelRenderingSystem : IPanelRenderingSystem
+public sealed unsafe class PanelRenderer : IPanelRenderer
 {     
     private readonly IWindow m_Window;
     
@@ -16,7 +16,7 @@ public sealed unsafe class PanelRenderingSystem : IPanelRenderingSystem
 
     private readonly TexturedQuadInstancedRenderingSystem<Panel> m_Renderer;
     
-    public PanelRenderingSystem(IWindow window)
+    public PanelRenderer(IWindow window)
     {
         m_Window = window;
         m_Renderer = new TexturedQuadInstancedRenderingSystem<Panel>(20000);
@@ -119,11 +119,11 @@ sealed class RenderedPanelImpl : IRenderedPanel, IInstancedItem<Panel>
         }
     }
 
-    private PanelRenderingSystem PanelRenderingSystem { get; }
+    private PanelRenderer PanelRenderer { get; }
 
-    public RenderedPanelImpl(PanelRenderingSystem panelRenderingSystem)
+    public RenderedPanelImpl(PanelRenderer panelRenderer)
     {
-        PanelRenderingSystem = panelRenderingSystem;
+        PanelRenderer = panelRenderer;
     }
 
     public void Update(ref Panel panel)
@@ -138,7 +138,7 @@ sealed class RenderedPanelImpl : IRenderedPanel, IInstancedItem<Panel>
 
     private void ReleaseUnmanagedResources()
     {
-        PanelRenderingSystem.Destroy(this);
+        PanelRenderer.Destroy(this);
     }
 
     public void Dispose()

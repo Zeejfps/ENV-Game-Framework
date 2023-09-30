@@ -9,16 +9,16 @@ public sealed class GuiEventBaseExperimentScene : IScene
 {
     private readonly IWindow m_Window;
     private readonly IInputSystem m_InputSystem;
-    private readonly PanelRenderingSystem m_PanelRenderingSystem;
-    private readonly BitmapFontTextRenderingSystem m_BitmapFontTextRenderingSystem;
+    private readonly PanelRenderer m_PanelRenderer;
+    private readonly BitmapFontTextRenderer m_BitmapFontTextRenderer;
     private TextButton[]? m_TextButtons;
     
     public GuiEventBaseExperimentScene(IWindow window, IInputSystem inputSystem)
     {
         m_Window = window;
         m_InputSystem = inputSystem;
-        m_PanelRenderingSystem = new PanelRenderingSystem(window);
-        m_BitmapFontTextRenderingSystem = new BitmapFontTextRenderingSystem(window, "Assets/bitmapfonts/Segoe UI.fnt");
+        m_PanelRenderer = new PanelRenderer(window);
+        m_BitmapFontTextRenderer = new BitmapFontTextRenderer(window, "Assets/bitmapfonts/Segoe UI.fnt");
     }
     
     public void Load()
@@ -39,7 +39,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         {
             for (var j = 0; j < w; j++)
             {
-                m_TextButtons[i * w + j] = new TextButton(m_PanelRenderingSystem, m_BitmapFontTextRenderingSystem)
+                m_TextButtons[i * w + j] = new TextButton(m_PanelRenderer, m_BitmapFontTextRenderer)
                 {
                     ScreenRect = new Rect(j*(buttonWidth+padding) + padding, i*(buttonHeight+padding)+padding, buttonWidth, buttonHeight),
                     BorderColor = buttonBorderColor,
@@ -53,8 +53,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
         var bg = Color.FromHex(0xf7f0f9, 1f);
         glClearColor(bg.R, bg.G, bg.B, bg.A);
         
-        m_PanelRenderingSystem.Load();
-        m_BitmapFontTextRenderingSystem.Load();
+        m_PanelRenderer.Load();
+        m_BitmapFontTextRenderer.Load();
         foreach (var textButton in m_TextButtons)
         {
             textButton.IsVisible = true;
@@ -73,15 +73,15 @@ public sealed class GuiEventBaseExperimentScene : IScene
         }
         
         glClear(GL_COLOR_BUFFER_BIT);
-        m_PanelRenderingSystem.Update();
-        m_BitmapFontTextRenderingSystem.Update();
+        m_PanelRenderer.Update();
+        m_BitmapFontTextRenderer.Update();
     }
 
     public void Unload()
     {
         m_TextButtons = null;
-        m_PanelRenderingSystem.Unload();
-        m_BitmapFontTextRenderingSystem.Unload();
+        m_PanelRenderer.Unload();
+        m_BitmapFontTextRenderer.Unload();
     }
 
     sealed class TextButton
@@ -149,8 +149,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
             IsVisible = !IsVisible;
         }
 
-        private readonly IPanelRenderingSystem m_PanelRenderer;
-        private readonly ITextRenderingSystem m_TextRenderer;
+        private readonly IPanelRenderer m_PanelRenderer;
+        private readonly ITextRenderer m_TextRenderer;
 
         private IRenderedText? m_RenderedText;
         private IRenderedPanel? m_RenderedPanel;
@@ -161,7 +161,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private Color TextNormalColor { get; set; } = Color.FromHex(0x1b1a1b, 1f);
         private Color TextPressedColor { get; set; } = Color.FromHex(0x5f5e60, 1f);
         
-        public TextButton(IPanelRenderingSystem panelRenderer, ITextRenderingSystem textRenderer)
+        public TextButton(IPanelRenderer panelRenderer, ITextRenderer textRenderer)
         {
             m_PanelRenderer = panelRenderer;
             m_TextRenderer = textRenderer;
@@ -248,7 +248,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
     }
 }
 
-public interface IPanelRenderingSystem
+public interface IPanelRenderer
 {
     IRenderedPanel Render(Rect screenPosition, PanelStyle style);
 }
@@ -273,7 +273,7 @@ public interface IRenderedText : IDisposable
     TextStyle Style { get; set; }
 }
 
-public interface ITextRenderingSystem
+public interface ITextRenderer
 {
     IRenderedText Render(string value, Rect screenPosition, TextStyle style);
 }
