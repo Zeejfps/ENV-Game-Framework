@@ -4,12 +4,30 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
+[AttributeUsage(AttributeTargets.Field)]
+public sealed class InstancedAttrib : Attribute
+{
+    public InstancedAttrib(uint componentCount, uint componentType)
+    {
+        ComponentCount = (int)componentCount;
+        ComponentType = (int)componentType;
+    }
+
+    public int ComponentCount { get; }
+    public int ComponentType { get; }
+}
+
 public struct Panel
 {
+    [InstancedAttrib(4, GL_FLOAT)]
     public Rect ScreenRect;
+    [InstancedAttrib(4, GL_FLOAT)]
     public Color BackgroundColor;
+    [InstancedAttrib(4, GL_FLOAT)]
     public Color BorderColor;
+    [InstancedAttrib(4, GL_FLOAT)]
     public BorderSize BorderSize;
+    [InstancedAttrib(4, GL_FLOAT)]
     public Vector4 BorderRadius;
 }
 

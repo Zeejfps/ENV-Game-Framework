@@ -14,6 +14,8 @@ public sealed class GuiEventBaseExperimentScene : IScene
     private readonly PanelRenderingSystem m_PanelRenderingSystem;
     private readonly BitmapFontTextRenderingSystem m_BitmapFontTextRenderingSystem;
     private TextButton[] m_TextButtons;
+
+    private TexturedQuadInstancedRenderingSystem<Panel> m_Test;
     
     public GuiEventBaseExperimentScene(IWindow window, IInputSystem inputSystem)
     {
@@ -21,10 +23,14 @@ public sealed class GuiEventBaseExperimentScene : IScene
         m_InputSystem = inputSystem;
         m_PanelRenderingSystem = new PanelRenderingSystem(window);
         m_BitmapFontTextRenderingSystem = new BitmapFontTextRenderingSystem(window, "Assets/bitmapfonts/Segoe UI.fnt");
+
+        m_Test = new TexturedQuadInstancedRenderingSystem<Panel>(10);
     }
     
     public void Load()
     {
+        m_Test.Load();
+        
         m_Window.Title = "Calculator";
         
         var w = 4;

@@ -1,0 +1,244 @@
+﻿using System.Diagnostics;
+using System.Reflection;
+using static GL46;
+using static OpenGLSandbox.Utils_GL;
+
+namespace OpenGLSandbox;
+
+public interface IInstancedItem<TInstancedData> where TInstancedData : unmanaged
+{
+    event Action<IInstancedItem<TInstancedData>> BecameDirty;
+
+    void Update(ref TInstancedData instancedData);
+}
+
+public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData> 
+    where TInstancedData : unmanaged
+{
+    private readonly HashSet<IInstancedItem<TInstancedData>> m_ItemsToRegister = new();
+    private readonly HashSet<IInstancedItem<TInstancedData>> m_ItemsToUnregister = new();
+    private readonly SortedSet<int> m_DirtyItems = new();
+    private readonly SortedSet<int> m_IdsToFill = new();
+    private readonly Dictionary<IInstancedItem<TInstancedData>, int> m_ItemToIndexTable = new();
+    private readonly Dictionary<int, IInstancedItem<TInstancedData>> m_IndexToItemTable = new();
+
+    private readonly uint m_MaxInstanceCount;
+    
+    private uint m_Vao;
+    private uint m_TexturedQuadBuffer;
+    private uint m_InstancedDataBuffer;
+    
+    private int m_DirtyItemCount;
+    private int m_ItemCount;
+
+    public TexturedQuadInstancedRenderingSystem(uint maxInstanceCount)
+    {
+        m_MaxInstanceCount = maxInstanceCount;
+    }
+    
+    public void Register(IInstancedItem<TInstancedData> item)
+    {
+        m_ItemsToRegister.Add(item);
+        m_ItemsToUnregister.Remove(item);
+    }
+
+    public void Unregister(IInstancedItem<TInstancedData> item)
+    {
+        m_ItemsToUnregister.Add(item);
+        m_ItemsToRegister.Remove(item);
+    }
+
+    public void Update()
+    {
+        //Console.WriteLine($"Unregistering {m_PanelsToUnregister.Count} panels");
+        foreach (var item in m_ItemsToUnregister)
+        {
+            item.BecameDirty -= Item_OnBecameDirty;
+            var id = m_ItemToIndexTable[item];
+            m_IdsToFill.Add(id);
+            m_IndexToItemTable.Remove(id);
+            m_ItemToIndexTable.Remove(item);
+        }
+        m_ItemsToUnregister.Clear();
+            
+        //Console.WriteLine($"Registering {m_PanelsToRegister.Count} panels");
+        foreach (var item in m_ItemsToRegister)
+        {
+            item.BecameDirty += Item_OnBecameDirty;
+            int id;
+            if (m_IdsToFill.Count > 0)
+            {
+                id = m_IdsToFill.Min;
+                //Console.WriteLine($"Reusing an id that needs to be filled. Id: {id}");
+                m_IdsToFill.Remove(id);
+            }
+            else
+            {
+                id = m_ItemCount;
+                //Console.WriteLine($"Assigned a new id. Id: {id}");
+                m_ItemCount++;
+            }
+
+            m_ItemToIndexTable[item] = id;
+            m_IndexToItemTable[id] = item;
+                
+            m_DirtyItems.Add(id);
+        }
+        m_ItemsToRegister.Clear();
+            
+        //Console.WriteLine($"Back filling {m_IdsToFill.Count} ids");
+        foreach (var idToFill in m_IdsToFill.Reverse())
+        {
+            var lastPanelId = m_ItemCount - 1;
+            if (idToFill != lastPanelId)
+            {
+                //Console.WriteLine($"Moving last panel into an id we need to fill. Id: {idToFill}");
+                var lastPanel = m_IndexToItemTable[lastPanelId];
+
+                m_IndexToItemTable.Remove(lastPanelId);
+                m_IndexToItemTable[idToFill] = lastPanel;
+                m_ItemToIndexTable[lastPanel] = idToFill;
+
+                m_DirtyItems.Add(idToFill);
+            }
+                
+            m_ItemCount--;
+        }
+        m_IdsToFill.Clear();
+
+        var maxIndex = m_DirtyItems.Max;
+        //Console.WriteLine($"Max dirty panel index {maxIndex}");
+
+        var maxDirtyGlyphCount = maxIndex + 1;
+
+        m_DirtyItemCount = 0;
+        if (m_DirtyItems.Count > 0)
+        {
+            //Console.WriteLine($"Have dirty items: {m_DirtyItems.Count}");
+
+            glBindBuffer(GL_ARRAY_BUFFER, m_InstancedDataBuffer);
+            AssertNoGlError();
+            var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<Glyph>(maxDirtyGlyphCount), GL_MAP_WRITE_BIT);
+            AssertNoGlError();
+            var buffer = new Span<TInstancedData>(bufferPtr, maxDirtyGlyphCount);
+            
+            foreach (var dirtyItemIndex in m_DirtyItems)
+            {
+                var srcItem = m_IndexToItemTable[dirtyItemIndex];
+                var dstIndex = m_DirtyItemCount;
+
+                if (dirtyItemIndex > m_DirtyItemCount)
+                {
+                    //Console.WriteLine($"Swaping {panelId} with {dstIndex}");
+                    var srcIndex = dirtyItemIndex;
+
+                    var dstPanel = m_IndexToItemTable[dstIndex];
+            
+                    var dstPanelData = buffer[dstIndex];
+                    buffer[srcIndex] = dstPanelData;
+            
+                    m_IndexToItemTable[srcIndex] = dstPanel;
+                    m_ItemToIndexTable[dstPanel] = srcIndex;
+
+                    m_IndexToItemTable[dstIndex] = srcItem;
+                    m_ItemToIndexTable[srcItem] = dstIndex;
+                }
+
+                srcItem.Update(ref buffer[dstIndex]);
+                m_DirtyItemCount++;
+            }
+            m_DirtyItems.Clear();
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+        }
+            
+        //Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
+    }
+    
+    private void Item_OnBecameDirty(IInstancedItem<TInstancedData> item)
+    {
+        var id = m_ItemToIndexTable[item];
+        m_DirtyItems.Add(id);
+    }
+
+    public void Load()
+    {
+        uint vao;
+        glGenVertexArrays(1, &vao);
+        AssertNoGlError();
+        m_Vao = vao;
+
+        Span<uint> buffers = stackalloc uint[2];
+        fixed (uint* ptr = &buffers[0])
+            glGenBuffers(buffers.Length, ptr);
+        AssertNoGlError();
+
+        m_TexturedQuadBuffer = buffers[0];
+        m_InstancedDataBuffer = buffers[1];
+        
+        glBindVertexArray(m_Vao);
+        AssertNoGlError();
+        
+        SetupTexturedQuadBuffer();
+        SetupInstancedDataBuffer();
+    }
+    
+    private void SetupTexturedQuadBuffer()
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, m_TexturedQuadBuffer);
+        AssertNoGlError();
+
+        var texturedQuad = new TexturedQuad();
+        glBufferData(GL_ARRAY_BUFFER, SizeOf<TexturedQuad>(), &texturedQuad, GL_STATIC_DRAW);
+        AssertNoGlError();
+            
+        uint positionAttribIndex = 0;
+        glVertexAttribPointer(
+            positionAttribIndex, 
+            2, 
+            GL_FLOAT, 
+            false, 
+            sizeof(TexturedQuad.Vertex), 
+            Offset<TexturedQuad.Vertex>(nameof(TexturedQuad.Vertex.Position))
+        );
+        glEnableVertexAttribArray(positionAttribIndex);
+
+        uint normalAttribIndex = 1;
+        glVertexAttribPointer(
+            normalAttribIndex, 
+            2, 
+            GL_FLOAT,
+            false, 
+            sizeof(TexturedQuad.Vertex),
+            Offset<TexturedQuad.Vertex>(nameof(TexturedQuad.Vertex.TexCoords))
+        );
+        glEnableVertexAttribArray(normalAttribIndex);
+    }
+    
+     private void SetupInstancedDataBuffer()
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, m_InstancedDataBuffer);
+        glBufferData(GL_ARRAY_BUFFER, SizeOf<TInstancedData>(m_MaxInstanceCount), (void*)0, GL_DYNAMIC_DRAW);
+
+        var instancedDataType = typeof(TInstancedData);
+        var fields = instancedDataType.GetFields()
+            .Where(fieldInfo => fieldInfo.GetCustomAttribute<InstancedAttrib>() != null);
+
+        uint attribIndex = 2;
+        foreach (var field in fields)
+        {
+            var attribute = field.GetCustomAttribute<InstancedAttrib>();
+            Debug.Assert(attribute != null);
+            glVertexAttribPointer(
+                attribIndex, 
+                attribute.ComponentCount, 
+                attribute.ComponentType, 
+                false, 
+                sizeof(TInstancedData), 
+                Offset<TInstancedData>(field.Name)
+            );
+            glEnableVertexAttribArray(attribIndex);
+            glVertexAttribDivisor(attribIndex, 1);
+            attribIndex++;
+        }
+    }
+}
