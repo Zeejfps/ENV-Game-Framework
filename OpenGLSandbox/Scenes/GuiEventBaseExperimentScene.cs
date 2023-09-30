@@ -25,11 +25,15 @@ public sealed class GuiEventBaseExperimentScene : IScene
     
     public void Load()
     {
+        m_Window.Title = "Calculator";
+        
         var w = 4;
-        var h = 10;
-        var padding = 2f;
-        var buttonWidth = m_Window.ScreenWidth / (float)w;
-        var buttonHeight = m_Window.ScreenHeight / (float)h;
+        var h = 9;
+        var padding = 4f;
+        var screenWidth = m_Window.ScreenWidth - padding * 2f - padding * (w-1);
+        var screenHeight = m_Window.ScreenHeight - padding * 2f - padding * (h-1);
+        var buttonWidth = screenWidth / w;
+        var buttonHeight = screenHeight / h;
         var buttonBorderColor = Color.FromHex(0xe8e2ea, 1f);
         
         m_TextButtons = new TextButton[w * h];
@@ -39,7 +43,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
             {
                 m_TextButtons[i * w + j] = new TextButton(m_PanelRenderingSystem, m_BitmapFontTextRenderingSystem)
                 {
-                    ScreenRect = new Rect(j*buttonWidth, i*buttonHeight, buttonWidth, buttonHeight),
+                    ScreenRect = new Rect(j*(buttonWidth+padding) + padding, i*(buttonHeight+padding)+padding, buttonWidth, buttonHeight),
                     BorderColor = buttonBorderColor,
                     BorderRadius = new Vector4(6f, 6f, 6f, 6),
                     BorderSize = BorderSize.All(1f),
@@ -116,12 +120,12 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private IRenderedPanel? m_RenderedPanel;
         private bool m_IsVisible;
         
-        private Color BackgroundNormalColor { get; } = Color.FromHex(0xffffff, 1f);
-        private Color BackgroundPressedColor { get; } = Color.FromHex(0xfaf7fc, 1f);
-        private Color BackgroundHoveredColor { get; } = Color.FromHex(0xfdfbfd, 1f);
+        private Color BackgroundNormalColor { get; set; } = Color.FromHex(0xffffff, 1f);
+        private Color BackgroundPressedColor { get; set; } = Color.FromHex(0xfaf7fc, 1f);
+        private Color BackgroundHoveredColor { get; set; } = Color.FromHex(0xfdfbfd, 1f);
         
-        private Color TextNormalColor { get; } = Color.FromHex(0x1b1a1b, 1f);
-        private Color TextPressedColor { get; } = Color.FromHex(0x5f5e60, 1f);
+        private Color TextNormalColor { get; set; } = Color.FromHex(0x1b1a1b, 1f);
+        private Color TextPressedColor { get; set; } = Color.FromHex(0x5f5e60, 1f);
         
         public TextButton(IPanelRenderingSystem panelRenderer, ITextRenderingSystem textRenderingSystem)
         {
@@ -131,6 +135,15 @@ public sealed class GuiEventBaseExperimentScene : IScene
 
         public void OnBecameVisible()
         {
+            if (Text == "3")
+            {
+                BackgroundNormalColor = Color.FromHex(0x0067c0, 1f);
+                BackgroundHoveredColor = Color.FromHex(0x1974c5, 1f);
+                BackgroundPressedColor = Color.FromHex(0x3182cb, 1f);
+                TextNormalColor = Color.FromHex(0xdae9f6, 1f);
+                TextPressedColor = Color.FromHex(0xadcdea, 1f);
+            }
+            
             m_RenderedPanel = m_PanelRenderingSystem.Create(ScreenRect, new PanelStyle
             {
                 BorderColor = BorderColor,
