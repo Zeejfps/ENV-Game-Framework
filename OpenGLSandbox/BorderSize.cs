@@ -28,4 +28,9 @@ public struct BorderSize
             Left = size
         };
     }
+
+    public override string ToString()
+    {
+        return $"{nameof(Top)}: {Top}, {nameof(Right)}: {Right}, {nameof(Bottom)}: {Bottom}, {nameof(Left)}: {Left}";
+    }
 }

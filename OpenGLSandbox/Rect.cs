@@ -47,4 +47,9 @@ public struct Rect
         
         return point.X >= xMin && point.Y >= yMin && point.X < xMax && point.Y < yMax;
     }
+
+    public override string ToString()
+    {
+        return $"{nameof(BottomLeft)}: {BottomLeft}, {nameof(Width)}: {Width}, {nameof(Height)}: {Height}";
+    }
 }

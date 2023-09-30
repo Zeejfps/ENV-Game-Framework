@@ -15,6 +15,8 @@ public interface IInstancedItem<TInstancedData> where TInstancedData : unmanaged
 public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData> 
     where TInstancedData : unmanaged
 {
+    public int ItemCount => m_ItemCount;
+    
     private readonly HashSet<IInstancedItem<TInstancedData>> m_ItemsToRegister = new();
     private readonly HashSet<IInstancedItem<TInstancedData>> m_ItemsToUnregister = new();
     private readonly SortedSet<int> m_DirtyItems = new();
@@ -24,7 +26,7 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
 
     private readonly uint m_MaxInstanceCount;
     
-    private uint m_Vao;
+    private uint m_VertexArrayObject;
     private uint m_TexturedQuadBuffer;
     private uint m_InstancedDataBuffer;
     
@@ -36,13 +38,13 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
         m_MaxInstanceCount = maxInstanceCount;
     }
     
-    public void Register(IInstancedItem<TInstancedData> item)
+    public void Add(IInstancedItem<TInstancedData> item)
     {
         m_ItemsToRegister.Add(item);
         m_ItemsToUnregister.Remove(item);
     }
 
-    public void Unregister(IInstancedItem<TInstancedData> item)
+    public void Remove(IInstancedItem<TInstancedData> item)
     {
         m_ItemsToUnregister.Add(item);
         m_ItemsToRegister.Remove(item);
@@ -50,7 +52,7 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
 
     public void Update()
     {
-        //Console.WriteLine($"Unregistering {m_PanelsToUnregister.Count} panels");
+        //Console.WriteLine($"Unregistering {m_ItemsToUnregister.Count} panels");
         foreach (var item in m_ItemsToUnregister)
         {
             item.BecameDirty -= Item_OnBecameDirty;
@@ -61,7 +63,7 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
         }
         m_ItemsToUnregister.Clear();
             
-        //Console.WriteLine($"Registering {m_PanelsToRegister.Count} panels");
+        //Console.WriteLine($"Registering {m_ItemsToRegister.Count} items");
         foreach (var item in m_ItemsToRegister)
         {
             item.BecameDirty += Item_OnBecameDirty;
@@ -69,13 +71,13 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
             if (m_IdsToFill.Count > 0)
             {
                 id = m_IdsToFill.Min;
-                //Console.WriteLine($"Reusing an id that needs to be filled. Id: {id}");
+                Console.WriteLine($"Reusing an id that needs to be filled. Id: {id}");
                 m_IdsToFill.Remove(id);
             }
             else
             {
                 id = m_ItemCount;
-                //Console.WriteLine($"Assigned a new id. Id: {id}");
+                Console.WriteLine($"Assigned a new id. Id: {id}");
                 m_ItemCount++;
             }
 
@@ -92,7 +94,7 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
             var lastPanelId = m_ItemCount - 1;
             if (idToFill != lastPanelId)
             {
-                //Console.WriteLine($"Moving last panel into an id we need to fill. Id: {idToFill}");
+                Console.WriteLine($"Moving last panel into an id we need to fill. Id: {idToFill}");
                 var lastPanel = m_IndexToItemTable[lastPanelId];
 
                 m_IndexToItemTable.Remove(lastPanelId);
@@ -109,7 +111,7 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
         var maxIndex = m_DirtyItems.Max;
         //Console.WriteLine($"Max dirty panel index {maxIndex}");
 
-        var maxDirtyGlyphCount = maxIndex + 1;
+        var bufferRangeSize = maxIndex + 1;
 
         m_DirtyItemCount = 0;
         if (m_DirtyItems.Count > 0)
@@ -118,9 +120,9 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
 
             glBindBuffer(GL_ARRAY_BUFFER, m_InstancedDataBuffer);
             AssertNoGlError();
-            var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<Glyph>(maxDirtyGlyphCount), GL_MAP_WRITE_BIT);
+            var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<TInstancedData>(bufferRangeSize), GL_MAP_WRITE_BIT);
             AssertNoGlError();
-            var buffer = new Span<TInstancedData>(bufferPtr, maxDirtyGlyphCount);
+            var buffer = new Span<TInstancedData>(bufferPtr, bufferRangeSize);
             
             foreach (var dirtyItemIndex in m_DirtyItems)
             {
@@ -145,13 +147,24 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
                 }
 
                 srcItem.Update(ref buffer[dstIndex]);
+                //Console.WriteLine(buffer[dstIndex]);
                 m_DirtyItemCount++;
             }
             m_DirtyItems.Clear();
             glUnmapBuffer(GL_ARRAY_BUFFER);
+            Console.WriteLine($"Updated Dirty Items: {m_DirtyItemCount}");
         }
             
         //Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
+    }
+
+    public void Render()
+    {
+        glBindVertexArray(m_VertexArrayObject);
+        AssertNoGlError();
+        
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_ItemCount);
+        AssertNoGlError();
     }
     
     private void Item_OnBecameDirty(IInstancedItem<TInstancedData> item)
@@ -165,7 +178,7 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
         uint vao;
         glGenVertexArrays(1, &vao);
         AssertNoGlError();
-        m_Vao = vao;
+        m_VertexArrayObject = vao;
 
         Span<uint> buffers = stackalloc uint[2];
         fixed (uint* ptr = &buffers[0])
@@ -175,7 +188,7 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
         m_TexturedQuadBuffer = buffers[0];
         m_InstancedDataBuffer = buffers[1];
         
-        glBindVertexArray(m_Vao);
+        glBindVertexArray(m_VertexArrayObject);
         AssertNoGlError();
         
         SetupTexturedQuadBuffer();
@@ -236,9 +249,38 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
                 sizeof(TInstancedData), 
                 Offset<TInstancedData>(field.Name)
             );
+            Console.WriteLine($"Attribute: {attribIndex}, Offset: " + (int)Offset<TInstancedData>(field.Name));
             glEnableVertexAttribArray(attribIndex);
             glVertexAttribDivisor(attribIndex, 1);
             attribIndex++;
         }
     }
+
+     public void Unload()
+     {
+         glBindVertexArray(0);
+         fixed(uint* ptr = &m_VertexArrayObject)
+             glDeleteVertexArrays(1, ptr);
+         AssertNoGlError();
+         m_VertexArrayObject = 0;
+            
+         glBindBuffer(GL_ARRAY_BUFFER, 0);
+         Span<uint> buffers = stackalloc uint[]
+         {
+             m_TexturedQuadBuffer,
+             m_InstancedDataBuffer
+         };
+         fixed (uint* ptr = &buffers[0])
+             glDeleteBuffers(buffers.Length, ptr);
+         AssertNoGlError();
+         m_TexturedQuadBuffer = 0;
+         m_InstancedDataBuffer = 0;
+         
+         m_ItemsToRegister.Clear();
+         m_ItemsToUnregister.Clear();
+         m_IdsToFill.Clear();
+         m_ItemToIndexTable.Clear();
+         m_IndexToItemTable.Clear();
+         m_DirtyItems.Clear();
+     }
 }

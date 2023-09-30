@@ -7,10 +7,10 @@ namespace OpenGLSandbox;
 [AttributeUsage(AttributeTargets.Field)]
 public sealed class InstancedAttrib : Attribute
 {
-    public InstancedAttrib(uint componentCount, uint componentType)
+    public InstancedAttrib(uint componentCount, int componentType)
     {
         ComponentCount = (int)componentCount;
-        ComponentType = (int)componentType;
+        ComponentType = componentType;
     }
 
     public int ComponentCount { get; }
@@ -20,15 +20,24 @@ public sealed class InstancedAttrib : Attribute
 public struct Panel
 {
     [InstancedAttrib(4, GL_FLOAT)]
-    public Rect ScreenRect;
-    [InstancedAttrib(4, GL_FLOAT)]
     public Color BackgroundColor;
-    [InstancedAttrib(4, GL_FLOAT)]
-    public Color BorderColor;
-    [InstancedAttrib(4, GL_FLOAT)]
-    public BorderSize BorderSize;
+
     [InstancedAttrib(4, GL_FLOAT)]
     public Vector4 BorderRadius;
+
+    [InstancedAttrib(4, GL_FLOAT)]
+    public Rect ScreenRect;
+
+    [InstancedAttrib(4, GL_FLOAT)]
+    public Color BorderColor;
+
+    [InstancedAttrib(4, GL_FLOAT)]
+    public BorderSize BorderSize;
+
+    public override string ToString()
+    {
+        return $"{nameof(ScreenRect)}: {ScreenRect}, {nameof(BackgroundColor)}: {BackgroundColor}, {nameof(BorderColor)}: {BorderColor}, {nameof(BorderSize)}: {BorderSize}, {nameof(BorderRadius)}: {BorderRadius}";
+    }
 }
 
 public sealed unsafe class WidgetRectRenderingScene : IScene
