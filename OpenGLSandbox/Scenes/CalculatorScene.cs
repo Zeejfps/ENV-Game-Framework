@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using EasyGameFramework.Api;
+using EasyGameFramework.Api.InputDevices;
 using static GL46;
 
 namespace OpenGLSandbox;
@@ -16,6 +17,36 @@ public sealed class CalculatorScene : IScene
     private TextButton? m_TextButton;
 
     private readonly List<Widget> m_Widgets = new();
+
+    private readonly PanelStyle m_ButtonStyleNormal = new()
+    {
+        BackgroundColor = Color.FromHex(0x3e3940, 1f),
+        BorderRadius = new Vector4(7f, 7f, 7f, 7f),
+        BorderColor = Color.FromHex(0x322e35, 1f),
+        BorderSize = BorderSize.All(1f)
+    };
+    
+    private readonly PanelStyle m_ButtonStylePressed = new()
+    {
+        BackgroundColor = Color.FromHex(0x2a262e, 1f),
+        BorderRadius = new Vector4(7f, 7f, 7f, 7f),
+        BorderColor = Color.FromHex(0x332e35, 1f),
+        BorderSize = BorderSize.All(1f)
+    };
+
+    private readonly TextStyle m_ButtonTextStyleNormal = new()
+    {
+        Color = Color.FromHex(0xf7f7f7, 1f),
+        VerticalTextAlignment = TextAlignment.Center,
+        HorizontalTextAlignment = TextAlignment.Center
+    };
+    
+    private readonly TextStyle m_ButtonTextStylePressed = new()
+    {
+        Color = Color.FromHex(0xc8c7c9, 1f),
+        VerticalTextAlignment = TextAlignment.Center,
+        HorizontalTextAlignment = TextAlignment.Center
+    };
 
     public CalculatorScene(IWindow window, IInputSystem inputSystem)
     {
@@ -37,19 +68,10 @@ public sealed class CalculatorScene : IScene
         {
             ScreenRect = new Rect(10f, 10f, 200f, 60f),
             Text = "+/-",
-            PanelStyle = new PanelStyle
-            {
-                BackgroundColor = Color.FromHex(0x3d3940, 1f),
-                BorderRadius = new Vector4(7f, 7f, 7f, 7f),
-                BorderColor = Color.FromHex(0x322e35, 1f),
-                BorderSize = BorderSize.All(1f)
-            },
-            TextStyle = new TextStyle
-            {
-                Color = Color.FromHex(0xf7f7f7, 1f),
-                VerticalTextAlignment = TextAlignment.Center,
-                HorizontalTextAlignment = TextAlignment.Center
-            },
+            PanelStyleNormal = m_ButtonStyleNormal,
+            PanelStylePressed = m_ButtonStylePressed,
+            TextStyleNormal = m_ButtonTextStyleNormal,
+            TextStylePressed = m_ButtonTextStylePressed,
             IsVisible = true
         };
         m_Widgets.Add(m_TextButton);
@@ -65,12 +87,11 @@ public sealed class CalculatorScene : IScene
         foreach (var widget in m_Widgets)
         {
             widget.IsHovered = widget.ScreenRect.Contains(mouseScreenPosition);
+            widget.IsPressed = widget.IsHovered && mouse.IsButtonPressed(MouseButton.Left);
+            widget.Update();
         }
         
         glClear(GL_COLOR_BUFFER_BIT);
-        
-        m_TextButton.Update();
-        
         m_PanelRenderer.Update();
         m_TextRenderer.Update();
     }
@@ -111,6 +132,7 @@ public sealed class CalculatorScene : IScene
                 OnBecameVisible();
             else
                 OnBecameHidden();
+            SetDirty();
         }
         
         protected abstract void OnBecameVisible();
@@ -165,18 +187,32 @@ public sealed class CalculatorScene : IScene
             set => SetField(ref m_Text, value);
         }
 
-        private TextStyle m_TextStyle;
-        public TextStyle TextStyle
+        private TextStyle m_TextStyleNormal;
+        public TextStyle TextStyleNormal
         {
-            get => m_TextStyle;
-            set => SetField(ref m_TextStyle, value);
+            get => m_TextStyleNormal;
+            set => SetField(ref m_TextStyleNormal, value);
         }
 
-        private PanelStyle m_PanelStyle;
-        public PanelStyle PanelStyle
+        private TextStyle m_TextStylePressedPressed;
+        public TextStyle TextStylePressed
         {
-            get => m_PanelStyle;
-            set => SetField(ref m_PanelStyle, value);
+            get => m_TextStylePressedPressed;
+            set => SetField(ref m_TextStylePressedPressed, value);
+        }
+
+        private PanelStyle m_PanelStyleNormal;
+        public PanelStyle PanelStyleNormal
+        {
+            get => m_PanelStyleNormal;
+            set => SetField(ref m_PanelStyleNormal, value);
+        }
+        
+        private PanelStyle m_PanelStylePressed;
+        public PanelStyle PanelStylePressed
+        {
+            get => m_PanelStylePressed;
+            set => SetField(ref m_PanelStylePressed, value);
         }
         
         private readonly ITextRenderer m_TextRenderer;
@@ -193,8 +229,8 @@ public sealed class CalculatorScene : IScene
 
         protected override void OnBecameVisible()
         {
-            m_RenderedPanel = m_PanelRenderer.Render(ScreenRect, PanelStyle);
-            m_RenderedText = m_TextRenderer.Render(Text, ScreenRect, TextStyle);
+            m_RenderedPanel = m_PanelRenderer.Render(ScreenRect, PanelStyleNormal);
+            m_RenderedText = m_TextRenderer.Render(Text, ScreenRect, TextStyleNormal);
         }
 
         protected override void OnBecameHidden()
@@ -211,11 +247,22 @@ public sealed class CalculatorScene : IScene
             Debug.Assert(m_RenderedPanel != null);
             Debug.Assert(m_RenderedText != null);
 
+            var panelStyle = PanelStyleNormal;
+            var textStyle = TextStyleNormal;
+            if (IsPressed)
+            {
+                textStyle = TextStylePressed;
+                panelStyle = PanelStylePressed;
+            }
+            else if (IsHovered)
+            {
+            }
+            
             m_RenderedPanel.ScreenRect = ScreenRect;
-            m_RenderedPanel.Style = PanelStyle;
+            m_RenderedPanel.Style = panelStyle;
             
             m_RenderedText.ScreenRect = ScreenRect;
-            m_RenderedText.Style = TextStyle;
+            m_RenderedText.Style = textStyle;
         }
     }
 }
