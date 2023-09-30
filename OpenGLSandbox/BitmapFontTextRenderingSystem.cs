@@ -6,7 +6,7 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
-public sealed unsafe class BitmapFontTextRenderingSystem : RenderingSystem<RenderedGlyphImpl>, ITextRenderingSystem
+public sealed unsafe class BitmapFontTextRenderingSystem : ITextRenderingSystem
 {
     private const uint MaxGlyphCount = 20000;
 
@@ -25,43 +25,30 @@ public sealed unsafe class BitmapFontTextRenderingSystem : RenderingSystem<Rende
     private float m_ScaleH;
     private int m_Base;
     private int m_LineHeight;
+
+    private TexturedQuadInstancedRenderingSystem<Glyph> m_Renderer;
         
     public BitmapFontTextRenderingSystem(IWindow window, string pathToFontFile)
     {
         m_Window = window;
         m_PathToFontFile = pathToFontFile;
+        m_Renderer = new TexturedQuadInstancedRenderingSystem<Glyph>(MaxGlyphCount);
     }
 
     public int LineHeight => m_LineHeight;
     public int Base => m_Base;
     public float ScaleW => m_ScaleW;
     public float ScaleH => m_ScaleH;
+    public TexturedQuadInstancedRenderingSystem<Glyph> Renderer => m_Renderer;
 
     public void Load()
     {
-        uint id;
-
-        glGenVertexArrays(1, &id);
-        AssertNoGlError();
-        m_VertexArray = id;
-            
-        glGenBuffers(1, &id);
-        AssertNoGlError();
-        m_AttributesBuffer = id;
+        m_Renderer.Load();
         
-        glGenBuffers(1, &id);
-        AssertNoGlError();
-        m_InstancesBuffer = id;
-            
+        uint id;
         glGenTextures(1, &id);
         AssertNoGlError();
         m_Texture = id;
-            
-        glBindVertexArray(m_VertexArray);
-        AssertNoGlError();
-            
-        SetupAttributesBuffer();
-        SetupInstancesBuffer();
             
         glActiveTexture(GL_TEXTURE0);
         AssertNoGlError();
@@ -103,133 +90,24 @@ public sealed unsafe class BitmapFontTextRenderingSystem : RenderingSystem<Rende
 
     public void Unload()
     {
-        fixed(uint* ptr = &m_VertexArray)
-            glDeleteVertexArrays(1, ptr);
-        m_VertexArray = 0;
-            
-        fixed(uint* ptr = &m_AttributesBuffer)
-            glDeleteBuffers(1, ptr);
-        m_AttributesBuffer = 0;
-            
-        fixed(uint* ptr = &m_InstancesBuffer)
-            glDeleteBuffers(1, ptr);
-        m_InstancesBuffer = 0;
+        m_Renderer.Unload();
             
         fixed(uint* ptr = &m_Texture)
             glDeleteTextures(1, ptr);
-            
+        AssertNoGlError();    
+        
         glDeleteProgram(m_ShaderProgram);
-            
+        AssertNoGlError();    
+        
         m_IdToGlyphTable.Clear();
     }
 
     public void Update()
     {
-        //Console.WriteLine($"Unregistering {m_PanelsToUnregister.Count} panels");
-        foreach (var item in m_ItemsToUnregister)
-        {
-            item.BecameDirty -= Item_OnBecameDirty;
-            var id = m_ItemToIndexTable[item];
-            m_IdsToFill.Add(id);
-            m_IndexToItemTable.Remove(id);
-            m_ItemToIndexTable.Remove(item);
-        }
-        m_ItemsToUnregister.Clear();
-            
-        //Console.WriteLine($"Registering {m_PanelsToRegister.Count} panels");
-        foreach (var item in m_ItemsToRegister)
-        {
-            item.BecameDirty += Item_OnBecameDirty;
-            int id;
-            if (m_IdsToFill.Count > 0)
-            {
-                id = m_IdsToFill.Min;
-                //Console.WriteLine($"Reusing an id that needs to be filled. Id: {id}");
-                m_IdsToFill.Remove(id);
-            }
-            else
-            {
-                id = m_ItemCount;
-                //Console.WriteLine($"Assigned a new id. Id: {id}");
-                m_ItemCount++;
-            }
-
-            m_ItemToIndexTable[item] = id;
-            m_IndexToItemTable[id] = item;
-                
-            m_DirtyItems.Add(id);
-        }
-        m_ItemsToRegister.Clear();
-            
-        //Console.WriteLine($"Back filling {m_IdsToFill.Count} ids");
-        foreach (var idToFill in m_IdsToFill.Reverse())
-        {
-            var lastPanelId = m_ItemCount - 1;
-            if (idToFill != lastPanelId)
-            {
-                //Console.WriteLine($"Moving last panel into an id we need to fill. Id: {idToFill}");
-                var lastPanel = m_IndexToItemTable[lastPanelId];
-
-                m_IndexToItemTable.Remove(lastPanelId);
-                m_IndexToItemTable[idToFill] = lastPanel;
-                m_ItemToIndexTable[lastPanel] = idToFill;
-
-                m_DirtyItems.Add(idToFill);
-            }
-                
-            m_ItemCount--;
-        }
-        m_IdsToFill.Clear();
-
-        var maxIndex = m_DirtyItems.Max;
-        //Console.WriteLine($"Max dirty panel index {maxIndex}");
-
-        var maxDirtyGlyphCount = maxIndex + 1;
-
-        m_DirtyItemCount = 0;
-        if (m_DirtyItems.Count > 0)
-        {
-            //Console.WriteLine($"Have dirty items: {m_DirtyItems.Count}");
-
-            glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);
-            AssertNoGlError();
-            var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<Glyph>(maxDirtyGlyphCount), GL_MAP_WRITE_BIT);
-            AssertNoGlError();
-            var buffer = new Span<Glyph>(bufferPtr, maxDirtyGlyphCount);
-            
-            foreach (var dirtyItemIndex in m_DirtyItems)
-            {
-                var srcItem = m_IndexToItemTable[dirtyItemIndex];
-                var dstIndex = m_DirtyItemCount;
-
-                if (dirtyItemIndex > m_DirtyItemCount)
-                {
-                    //Console.WriteLine($"Swaping {panelId} with {dstIndex}");
-                    var srcIndex = dirtyItemIndex;
-
-                    var dstPanel = m_IndexToItemTable[dstIndex];
-            
-                    var dstPanelData = buffer[dstIndex];
-                    buffer[srcIndex] = dstPanelData;
-            
-                    m_IndexToItemTable[srcIndex] = dstPanel;
-                    m_ItemToIndexTable[dstPanel] = srcIndex;
-
-                    m_IndexToItemTable[dstIndex] = srcItem;
-                    m_ItemToIndexTable[srcItem] = dstIndex;
-                }
-
-                srcItem.Update(ref buffer[dstIndex]);
-                m_DirtyItemCount++;
-            }
-            m_DirtyItems.Clear();
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-        }
-            
-        //Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
-            
+        m_Renderer.Update();
+                     
         //Console.WriteLine($"Shader program: {m_ShaderProgram}")
-        if (m_ItemCount > 0)
+        if (m_Renderer.ItemCount > 0)
         {
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -241,96 +119,10 @@ public sealed unsafe class BitmapFontTextRenderingSystem : RenderingSystem<Rende
                 glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
             AssertNoGlError();
                         
-            glBindVertexArray(m_VertexArray);
-            AssertNoGlError();
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_ItemCount);
-            AssertNoGlError();
+            m_Renderer.Render();
         }
     }
-
-    private void SetupAttributesBuffer()
-    {
-        glBindBuffer(GL_ARRAY_BUFFER, m_AttributesBuffer);
-        AssertNoGlError();
-            
-        var texturedQuad = new TexturedQuad();
-        glBufferData(GL_ARRAY_BUFFER, new IntPtr(sizeof(TexturedQuad)), &texturedQuad, GL_STATIC_DRAW);
-        AssertNoGlError();
-
-        uint positionAttribLocation = 0;
-        glVertexAttribPointer(
-            positionAttribLocation,
-            2, 
-            GL_FLOAT, 
-            false,
-            sizeof(TexturedQuad.Vertex), Offset<TexturedQuad.Vertex>(nameof(TexturedQuad.Vertex.Position))
-        );
-        AssertNoGlError();
-        glEnableVertexAttribArray(positionAttribLocation);
-        AssertNoGlError();
-
-        uint texCoordsAttribLocation = 1;
-        glVertexAttribPointer(
-            texCoordsAttribLocation, 
-            2, 
-            GL_FLOAT, 
-            false, 
-            sizeof(TexturedQuad.Vertex), Offset<TexturedQuad.Vertex>(nameof(TexturedQuad.Vertex.TexCoords))
-        );
-        AssertNoGlError();
-        glEnableVertexAttribArray(texCoordsAttribLocation);
-        AssertNoGlError();
-    }
-
-    private void SetupInstancesBuffer()
-    {
-        glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);
-        AssertNoGlError();
-        
-        var maxGlyphCount = MaxGlyphCount;
-        glBufferData(GL_ARRAY_BUFFER, SizeOf<Glyph>(maxGlyphCount), (void*)0, GL_DYNAMIC_DRAW);
-        AssertNoGlError();
-
-        uint positionRectAttribLocation = 2;
-        glVertexAttribPointer(
-            positionRectAttribLocation, 
-            4, 
-            GL_FLOAT, 
-            false,
-            sizeof(Glyph), Offset<Glyph>(nameof(Glyph.ScreenRect))
-        );
-        glEnableVertexAttribArray(positionRectAttribLocation);
-        glVertexAttribDivisor(positionRectAttribLocation, 1);
-        AssertNoGlError();
-        
-        // Location in the glyph sheet
-        uint glyphSheetRectAttribLocation = 3;
-        glVertexAttribPointer(
-            glyphSheetRectAttribLocation, 
-            4, 
-            GL_FLOAT, 
-            false, 
-            sizeof(Glyph), Offset<Glyph>(nameof(Glyph.TextureRect))
-        );
-        glEnableVertexAttribArray(glyphSheetRectAttribLocation);
-        glVertexAttribDivisor(glyphSheetRectAttribLocation, 1);
-        AssertNoGlError();
-        
-        // NOTE(Zee): I am going to make color a per instance variable on purpose
-        // This allows us to color each letter differently instead of the whole text
-        uint colorRectAttribLocation = 4;
-        glVertexAttribPointer(
-            colorRectAttribLocation, 
-            4, 
-            GL_FLOAT, 
-            false, 
-            sizeof(Glyph), Offset<Glyph>(nameof(Glyph.Color))
-        );
-        glEnableVertexAttribArray(colorRectAttribLocation);
-        glVertexAttribDivisor(colorRectAttribLocation, 1);
-        AssertNoGlError();
-    }
-
+    
     public IRenderedText Create(Rect screenRect, TextStyle style, string text)
     {
         return new RenderedTextImpl(this, screenRect, style, text);
@@ -458,14 +250,14 @@ public class RenderedTextImpl : IRenderedText
     private void RegenerateGlyphs()
     {
         foreach (var glyph in m_Glyphs)
-            m_TextRenderingSystem.Unregister(glyph);
+            m_TextRenderingSystem.Renderer.Remove(glyph);
         m_Glyphs.Clear();
         
         foreach (var c in m_Text)
         {
             if (c == '\n') continue;
             var glyph = new RenderedGlyphImpl();
-            m_TextRenderingSystem.Register(glyph);
+            m_TextRenderingSystem.Renderer.Add(glyph);
             m_Glyphs.Add(glyph);
         }
     }

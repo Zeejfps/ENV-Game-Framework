@@ -269,37 +269,6 @@ public struct PanelStyle
     public Vector4 BorderRadius;
 }
 
-public abstract class RenderingSystem<T>
-{
-    protected readonly HashSet<T> m_ItemsToRegister = new();
-    protected readonly HashSet<T> m_ItemsToUnregister = new();
-    protected readonly SortedSet<int> m_DirtyItems = new();
-    protected readonly SortedSet<int> m_IdsToFill = new();
-    protected readonly Dictionary<T, int> m_ItemToIndexTable = new();
-    protected readonly Dictionary<int, T> m_IndexToItemTable = new();
-        
-    protected int m_DirtyItemCount;
-    protected int m_ItemCount;
-        
-    public void Register(T item)
-    {
-        m_ItemsToRegister.Add(item);
-        m_ItemsToUnregister.Remove(item);
-    }
-
-    public void Unregister(T item)
-    {
-        m_ItemsToUnregister.Add(item);
-        m_ItemsToRegister.Remove(item);
-    }
-        
-    protected void Item_OnBecameDirty(T item)
-    {
-        var id = m_ItemToIndexTable[item];
-        m_DirtyItems.Add(id);
-    }
-}
-
 public interface IRenderedText : IDisposable
 {
     Rect ScreenRect { get; set; }
@@ -315,7 +284,7 @@ public interface IRenderedGlyph
 {
 }
 
-public class RenderedGlyphImpl : IRenderedGlyph
+public class RenderedGlyphImpl : IRenderedGlyph, IInstancedItem<Glyph>
 {
     private Rect m_ScreenRect;
     public Rect ScreenRect
@@ -333,7 +302,8 @@ public class RenderedGlyphImpl : IRenderedGlyph
     
     public Rect TextureRect { get; set; }
 
-    public event Action<RenderedGlyphImpl>? BecameDirty;
+    public event Action<IInstancedItem<Glyph>>? BecameDirty;
+    
     public void Update(ref Glyph glyph)
     {
         glyph.ScreenRect = ScreenRect;

@@ -39,6 +39,13 @@ public sealed unsafe class PanelRenderingSystem : IPanelRenderingSystem
         var screenWidth = m_Window.ScreenWidth;
         var screenHeight = m_Window.ScreenHeight;
         m_ProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, screenWidth, 0f, screenHeight, 0.1f, 100f);
+        
+        glUseProgram(m_ShaderProgram);
+        AssertNoGlError();
+        
+        fixed (float* ptr = &m_ProjectionMatrix.M11)
+            glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
+        AssertNoGlError();
     }
 
     public void Unload()
@@ -59,19 +66,13 @@ public sealed unsafe class PanelRenderingSystem : IPanelRenderingSystem
         m_Renderer.Update();
 
         //Console.WriteLine($"Rendering: {m_Renderer.ItemCount}");
-        // if (m_Renderer.ItemCount > 0)
-        // {
-        //     
-        // }
-        
-        glUseProgram(m_ShaderProgram);
-        AssertNoGlError();
-
-        fixed (float* ptr = &m_ProjectionMatrix.M11)
-            glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
-        AssertNoGlError();
+        if (m_Renderer.ItemCount > 0)
+        {
+            glUseProgram(m_ShaderProgram);
+            AssertNoGlError();
             
-        m_Renderer.Render();
+            m_Renderer.Render();
+        }
     }
     
     public IRenderedPanel Create(Rect screenRect, PanelStyle style)
