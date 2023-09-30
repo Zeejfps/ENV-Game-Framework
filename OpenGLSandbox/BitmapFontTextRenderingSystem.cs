@@ -13,10 +13,7 @@ public sealed unsafe class BitmapFontTextRenderingSystem : ITextRenderingSystem
     private readonly IWindow m_Window;
     private readonly string m_PathToFontFile;
     private readonly Dictionary<int, FontChar> m_IdToGlyphTable = new();
-
-    private uint m_VertexArray;
-    private uint m_AttributesBuffer;
-    private uint m_InstancesBuffer;
+    
     private uint m_ShaderProgram;
     private uint m_Texture;
     private int m_ProjectionMatrixUniformLocation;
