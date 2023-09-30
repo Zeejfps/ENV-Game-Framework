@@ -16,7 +16,6 @@ public struct TextStyle
     public TextAlignment HorizontalTextAlignment;
     public TextAlignment VerticalTextAlignment;
     public Color Color;
-    public bool Wrap;
 }
 
 public struct Glyph
