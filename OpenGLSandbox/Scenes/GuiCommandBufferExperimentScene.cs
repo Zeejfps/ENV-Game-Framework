@@ -7,14 +7,6 @@ namespace OpenGLSandbox;
 
 public sealed class GuiCommandBufferExperimentScene : IScene
 {
-    private readonly ContainerWidget m_Container = new()
-    {
-        Color = Color.FromHex(0x24ff55, 1f),
-        ScreenRect = new Rect(20, 20, 200, 50),
-        BorderSize = BorderSize.FromTRBL(0, 0, 0, 0),
-        BorderRadius = new Vector4(5f, 5f, 5f, 5f),
-    };
-    
     private readonly TextWidget m_ButtonText = new()
     {
         ScreenRect = new Rect(20, 20, 200, 50),
@@ -83,7 +75,6 @@ public sealed class GuiCommandBufferExperimentScene : IScene
         var commandBuffer = CommandBuffer;
         commandBuffer.Clear();
         
-        //m_Container.Render(commandBuffer);
         m_ButtonText.Render(commandBuffer);
         m_Button.Render(commandBuffer);
 
@@ -180,34 +171,6 @@ class TextRenderPass
     }
 }
 
-class CommandStorage<T> : ICommandStorage
-{
-    private readonly T[] m_Buffer;
-    private int m_Count;
-
-    public CommandStorage(int size)
-    {
-        m_Buffer = new T[size];
-    }
-    
-    public void Clear()
-    {
-        m_Count = 0;
-    }
-
-    public void Add(T command)
-    {
-        //Console.WriteLine($"Added command: {typeof(T)}");
-        m_Buffer[m_Count] = command;
-        m_Count++;
-    }
-
-    public ReadOnlySpan<T> GetAll()
-    {
-        return m_Buffer.AsSpan(0, m_Count);
-    }
-}
-
 class CommandBuffer : ICommandBuffer
 {
     private readonly DrawPanelCommand[] m_DrawPanelCommands = new DrawPanelCommand[20000];
@@ -243,28 +206,8 @@ class CommandBuffer : ICommandBuffer
     }
 }
 
-public interface IWidget
-{
-    void Render(ICommandBuffer commandBuffer);
-}
 
-public sealed class ContainerWidget : Widget
-{
-    public Color Color;
-    public BorderSize BorderSize;
-    public Vector4 BorderRadius;
-
-    public override void Render(ICommandBuffer commandBuffer)
-    {
-        ref var command = ref commandBuffer.AddDrawPanelCommand();
-        command.ScreenRect = ScreenRect;
-        command.BorderRadius = BorderRadius;
-        command.BorderSize = BorderSize;
-        command.Color = Color;
-    }
-}
-
-public abstract class Widget : IWidget
+public abstract class Widget
 {
     public Rect ScreenRect { get; set; }
     public abstract void Render(ICommandBuffer commandBuffer);
