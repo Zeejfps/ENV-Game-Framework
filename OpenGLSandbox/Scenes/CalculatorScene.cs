@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Numerics;
 using EasyGameFramework.Api;
 using static GL46;
 
@@ -30,16 +31,26 @@ public sealed class CalculatorScene : IScene
         
         m_TextButton = new TextButton(m_PanelRenderer, m_TextRenderer)
         {
-            ScreenPosition = new Rect(0f, 0f, 200f, 60f),
-            Text = "Hello World!",
+            ScreenPosition = new Rect(10f, 10f, 200f, 60f),
+            Text = "+/-",
+            PanelStyle = new PanelStyle
+            {
+                BackgroundColor = Color.FromHex(0x3d3940, 1f),
+                BorderRadius = new Vector4(7f, 7f, 7f, 7f),
+                BorderColor = Color.FromHex(0x322e35, 1f),
+                BorderSize = BorderSize.All(1f)
+            },
             TextStyle = new TextStyle
             {
-                Color = Color.FromHex(0xff00ff, 1f),
+                Color = Color.FromHex(0xf7f7f7, 1f),
                 VerticalTextAlignment = TextAlignment.Center,
                 HorizontalTextAlignment = TextAlignment.Center
             },
             IsVisible = true
         };
+
+        var bgColor = Color.FromHex(0x221e26, 1f);
+        glClearColor(bgColor.R, bgColor.G, bgColor.B, bgColor.A);
     }
 
     public void Update()
@@ -64,11 +75,7 @@ public sealed class CalculatorScene : IScene
         public Rect ScreenPosition
         {
             get => m_ScreenPosition;
-            set
-            {
-                m_ScreenPosition = value;
-                SetDirty();
-            }
+            set => SetField(ref m_ScreenPosition, value);
         }
         
         private bool m_IsVisible;
@@ -97,7 +104,19 @@ public sealed class CalculatorScene : IScene
         protected abstract void OnBecameHidden();
 
         private bool m_IsHovered;
+        public bool IsHovered
+        {
+            get => m_IsHovered;
+            set => SetField(ref m_IsHovered, value);
+        }
+        
         private bool m_IsPressed;
+        public bool IsPressed
+        {
+            get => m_IsPressed;
+            set => SetField(ref m_IsPressed, value);
+        }
+        
         private bool m_IsDirty;
 
         public void Update()
