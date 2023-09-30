@@ -32,7 +32,7 @@ public sealed class OpenGlSandboxGame : Game
 
     protected override void OnStartup()
     {
-        Window.SetScreenSize(640, 640);
+        Window.SetScreenSize(400, 640);
         Window.IsResizable = true;
         m_Scenes[m_CurrentSceneIndex].Load();
         

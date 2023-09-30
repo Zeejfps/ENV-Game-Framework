@@ -13,7 +13,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
     private readonly IInputSystem m_InputSystem;
     private readonly PanelRenderingSystem m_PanelRenderingSystem;
     private readonly BitmapFontTextRenderingSystem m_BitmapFontTextRenderingSystem;
-    private readonly TextButton[] m_TextButtons;
+    private TextButton[] m_TextButtons;
     
     public GuiEventBaseExperimentScene(IWindow window, IInputSystem inputSystem)
     {
@@ -21,10 +21,15 @@ public sealed class GuiEventBaseExperimentScene : IScene
         m_InputSystem = inputSystem;
         m_PanelRenderingSystem = new PanelRenderingSystem(window);
         m_BitmapFontTextRenderingSystem = new BitmapFontTextRenderingSystem(window, "Assets/bitmapfonts/Segoe UI.fnt");
-
-        var w = 10;
+    }
+    
+    public void Load()
+    {
+        var w = 4;
         var h = 10;
-        var buttonSize = window.ScreenWidth / (float)w;
+        var padding = 2f;
+        var buttonWidth = m_Window.ScreenWidth / (float)w;
+        var buttonHeight = m_Window.ScreenHeight / (float)h;
         var buttonBorderColor = Color.FromHex(0xe8e2ea, 1f);
         
         m_TextButtons = new TextButton[w * h];
@@ -34,18 +39,15 @@ public sealed class GuiEventBaseExperimentScene : IScene
             {
                 m_TextButtons[i * w + j] = new TextButton(m_PanelRenderingSystem, m_BitmapFontTextRenderingSystem)
                 {
-                    ScreenRect = new Rect(j*buttonSize, i*buttonSize, buttonSize, buttonSize),
+                    ScreenRect = new Rect(j*buttonWidth, i*buttonHeight, buttonWidth, buttonHeight),
                     BorderColor = buttonBorderColor,
                     BorderRadius = new Vector4(6f, 6f, 6f, 6),
                     BorderSize = BorderSize.All(1f),
-                    Text = $"{j},{i}"
+                    Text = $"{i * w + j}"
                 };
             }
         }
-    }
-    
-    public void Load()
-    {
+        
         var bg = Color.FromHex(0xf7f0f9, 1f);
         glClearColor(bg.R, bg.G, bg.B, bg.A);
         
@@ -177,7 +179,6 @@ public sealed class GuiEventBaseExperimentScene : IScene
             {
                 backgroundColor = BackgroundHoveredColor;
             }
-
             
             m_RenderedPanel.Style = new PanelStyle
             {
