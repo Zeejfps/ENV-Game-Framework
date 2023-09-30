@@ -210,402 +210,402 @@ public sealed class GuiEventBaseExperimentScene : IScene
         }
     }
 
-    public struct PanelStyle
-    {
-        public Color BackgroundColor;
-        public Color BorderColor;
-        public BorderSize BorderSize;
-        public Vector4 BorderRadius;
-    }
-
-    public interface IRenderedPanel
-    {
-        Rect ScreenRect { get; set; }
-        PanelStyle Style { get; set; }
-    }
-
-    public interface IPanelRenderingSystem
-    {
-        IRenderedPanel Create(Rect screenPosition, PanelStyle style);
-    }
-
     // NOTE(Zee): The probably doesn't need to exist?
+}
 
-    public abstract class RenderingSystem<T>
+public interface IPanelRenderingSystem
+{
+    IRenderedPanel Create(Rect screenPosition, PanelStyle style);
+}
+
+public interface IRenderedPanel
+{
+    Rect ScreenRect { get; set; }
+    PanelStyle Style { get; set; }
+}
+
+public sealed class RenderedPanelImpl : IRenderedPanel
+{
+    private Rect m_ScreenRect;
+
+    public Rect ScreenRect
     {
-        protected readonly HashSet<T> m_ItemsToRegister = new();
-        protected readonly HashSet<T> m_ItemsToUnregister = new();
-        protected readonly SortedSet<int> m_DirtyItems = new();
-        protected readonly SortedSet<int> m_IdsToFill = new();
-        protected readonly Dictionary<T, int> m_ItemToIndexTable = new();
-        protected readonly Dictionary<int, T> m_IndexToItemTable = new();
-        
-        protected int m_DirtyItemCount;
-        protected int m_ItemCount;
-        
-        public void Register(T item)
+        get => m_ScreenRect;
+        set
         {
-            m_ItemsToRegister.Add(item);
-            m_ItemsToUnregister.Remove(item);
+            m_ScreenRect = value;
+            BecameDirty?.Invoke(this);
         }
+    }
 
-        public void Unregister(T item)
+    private PanelStyle m_Style;
+    public PanelStyle Style
+    {
+        get => m_Style;
+        set
         {
-            m_ItemsToUnregister.Add(item);
-            m_ItemsToRegister.Remove(item);
+            m_Style = value;
+            BecameDirty?.Invoke(this);
         }
+    }
+
+    public event Action<RenderedPanelImpl>? BecameDirty;
         
-        protected void Item_OnBecameDirty(T item)
+    public void Update(ref Panel panel)
+    {
+        var style = Style;
+        panel.ScreenRect = ScreenRect;
+        panel.BackgroundColor = style.BackgroundColor;
+        panel.BorderRadius = style.BorderRadius;
+        panel.BorderSize = style.BorderSize;
+        panel.BorderColor = style.BorderColor;
+    }
+}
+
+public struct PanelStyle
+{
+    public Color BackgroundColor;
+    public Color BorderColor;
+    public BorderSize BorderSize;
+    public Vector4 BorderRadius;
+}
+
+public abstract class RenderingSystem<T>
+{
+    protected readonly HashSet<T> m_ItemsToRegister = new();
+    protected readonly HashSet<T> m_ItemsToUnregister = new();
+    protected readonly SortedSet<int> m_DirtyItems = new();
+    protected readonly SortedSet<int> m_IdsToFill = new();
+    protected readonly Dictionary<T, int> m_ItemToIndexTable = new();
+    protected readonly Dictionary<int, T> m_IndexToItemTable = new();
+        
+    protected int m_DirtyItemCount;
+    protected int m_ItemCount;
+        
+    public void Register(T item)
+    {
+        m_ItemsToRegister.Add(item);
+        m_ItemsToUnregister.Remove(item);
+    }
+
+    public void Unregister(T item)
+    {
+        m_ItemsToUnregister.Add(item);
+        m_ItemsToRegister.Remove(item);
+    }
+        
+    protected void Item_OnBecameDirty(T item)
+    {
+        var id = m_ItemToIndexTable[item];
+        m_DirtyItems.Add(id);
+    }
+}
+
+public sealed unsafe class PanelRenderingSystem : RenderingSystem<RenderedPanelImpl>, IPanelRenderingSystem
+{
+    private const uint MaxPanelCount = 20000;
+        
+    private readonly IWindow m_Window;
+        
+    private uint m_Vao;
+    private uint m_AttributesBuffer;
+    private uint m_InstancesBuffer;
+    private uint m_ShaderProgram;
+    private int m_ProjectionMatrixUniformLocation;
+    private Matrix4x4 m_ProjectionMatrix;
+
+    public PanelRenderingSystem(IWindow window)
+    {
+        m_Window = window;
+    }
+
+    public void Load()
+    {
+        uint vao;
+        glGenVertexArrays(1, &vao);
+        AssertNoGlError();
+        m_Vao = vao;
+
+        Span<uint> buffers = stackalloc uint[2];
+        fixed (uint* ptr = &buffers[0])
+            glGenBuffers(buffers.Length, ptr);
+        AssertNoGlError();
+
+        m_AttributesBuffer = buffers[0];
+        m_InstancesBuffer = buffers[1];
+        
+        glBindVertexArray(m_Vao);
+        AssertNoGlError();
+        
+        SetupAttributesBuffer();
+        SetupInstancesBuffer();
+        
+        m_ShaderProgram = new ShaderProgramBuilder()
+            .WithVertexShader("Assets/uirect.vert.glsl")
+            .WithFragmentShader("Assets/uirect.frag.glsl")
+            .Build();
+
+        var bytes = Encoding.ASCII.GetBytes("projection_matrix");
+        fixed(byte* ptr = &bytes[0])
+            m_ProjectionMatrixUniformLocation = glGetUniformLocation(m_ShaderProgram, ptr);
+        AssertNoGlError();
+
+        var screenWidth = m_Window.ScreenWidth;
+        var screenHeight = m_Window.ScreenHeight;
+        m_ProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, screenWidth, 0f, screenHeight, 0.1f, 100f);
+    }
+
+    public void Unload()
+    {
+        glBindVertexArray(0);
+        fixed(uint* ptr = &m_Vao)
+            glDeleteVertexArrays(1, ptr);
+        AssertNoGlError();
+        m_Vao = 0;
+            
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        Span<uint> buffers = stackalloc uint[]
         {
-            var id = m_ItemToIndexTable[item];
+            m_AttributesBuffer,
+            m_InstancesBuffer
+        };
+        fixed (uint* ptr = &buffers[0])
+            glDeleteBuffers(buffers.Length, ptr);
+        AssertNoGlError();
+        m_AttributesBuffer = 0;
+        m_InstancesBuffer = 0;
+            
+        glUseProgram(0);
+        glDeleteProgram(m_ShaderProgram);
+        AssertNoGlError();
+        m_ShaderProgram = 0;
+    }
+
+    public void Update()
+    {
+        //Console.WriteLine($"Unregistering {m_PanelsToUnregister.Count} panels");
+        foreach (var panel in m_ItemsToUnregister)
+        {
+            panel.BecameDirty -= Item_OnBecameDirty;
+            var id = m_ItemToIndexTable[panel];
+            m_IdsToFill.Add(id);
+            m_IndexToItemTable.Remove(id);
+            m_ItemToIndexTable.Remove(panel);
+        }
+        m_ItemsToUnregister.Clear();
+            
+        //Console.WriteLine($"Registering {m_PanelsToRegister.Count} panels");
+        foreach (var panel in m_ItemsToRegister)
+        {
+            panel.BecameDirty += Item_OnBecameDirty;
+            int id;
+            if (m_IdsToFill.Count > 0)
+            {
+                id = m_IdsToFill.Min;
+                //Console.WriteLine($"Reusing an id that needs to be filled. Id: {id}");
+                m_IdsToFill.Remove(id);
+            }
+            else
+            {
+                id = m_ItemCount;
+                //Console.WriteLine($"Assigned a new id. Id: {id}");
+                m_ItemCount++;
+            }
+
+            m_ItemToIndexTable[panel] = id;
+            m_IndexToItemTable[id] = panel;
+                
             m_DirtyItems.Add(id);
         }
-    }
-    
-    sealed unsafe class PanelRenderingSystem : RenderingSystem<RenderedPanelImpl>, IPanelRenderingSystem
-    {
-        private const uint MaxPanelCount = 20000;
-        
-        private readonly IWindow m_Window;
-        
-        private uint m_Vao;
-        private uint m_AttributesBuffer;
-        private uint m_InstancesBuffer;
-        private uint m_ShaderProgram;
-        private int m_ProjectionMatrixUniformLocation;
-        private Matrix4x4 m_ProjectionMatrix;
-
-        public PanelRenderingSystem(IWindow window)
-        {
-            m_Window = window;
-        }
-
-        public void Load()
-        {
-            uint vao;
-            glGenVertexArrays(1, &vao);
-            AssertNoGlError();
-            m_Vao = vao;
-
-            Span<uint> buffers = stackalloc uint[2];
-            fixed (uint* ptr = &buffers[0])
-                glGenBuffers(buffers.Length, ptr);
-            AssertNoGlError();
-
-            m_AttributesBuffer = buffers[0];
-            m_InstancesBuffer = buffers[1];
-        
-            glBindVertexArray(m_Vao);
-            AssertNoGlError();
-        
-            SetupAttributesBuffer();
-            SetupInstancesBuffer();
-        
-            m_ShaderProgram = new ShaderProgramBuilder()
-                .WithVertexShader("Assets/uirect.vert.glsl")
-                .WithFragmentShader("Assets/uirect.frag.glsl")
-                .Build();
-
-            var bytes = Encoding.ASCII.GetBytes("projection_matrix");
-            fixed(byte* ptr = &bytes[0])
-                m_ProjectionMatrixUniformLocation = glGetUniformLocation(m_ShaderProgram, ptr);
-            AssertNoGlError();
-
-            var screenWidth = m_Window.ScreenWidth;
-            var screenHeight = m_Window.ScreenHeight;
-            m_ProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, screenWidth, 0f, screenHeight, 0.1f, 100f);
-        }
-
-        public void Unload()
-        {
-            glBindVertexArray(0);
-            fixed(uint* ptr = &m_Vao)
-                glDeleteVertexArrays(1, ptr);
-            AssertNoGlError();
-            m_Vao = 0;
+        m_ItemsToRegister.Clear();
             
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            Span<uint> buffers = stackalloc uint[]
-            {
-                m_AttributesBuffer,
-                m_InstancesBuffer
-            };
-            fixed (uint* ptr = &buffers[0])
-                glDeleteBuffers(buffers.Length, ptr);
-            AssertNoGlError();
-            m_AttributesBuffer = 0;
-            m_InstancesBuffer = 0;
-            
-            glUseProgram(0);
-            glDeleteProgram(m_ShaderProgram);
-            AssertNoGlError();
-            m_ShaderProgram = 0;
-        }
-
-        public void Update()
+        //Console.WriteLine($"Back filling {m_IdsToFill.Count} ids");
+        foreach (var idToFill in m_IdsToFill.Reverse())
         {
-            //Console.WriteLine($"Unregistering {m_PanelsToUnregister.Count} panels");
-            foreach (var panel in m_ItemsToUnregister)
+            var lastPanelId = m_ItemCount - 1;
+            if (idToFill != lastPanelId)
             {
-                panel.BecameDirty -= Item_OnBecameDirty;
-                var id = m_ItemToIndexTable[panel];
-                m_IdsToFill.Add(id);
-                m_IndexToItemTable.Remove(id);
-                m_ItemToIndexTable.Remove(panel);
+                //Console.WriteLine($"Moving last panel into an id we need to fill. Id: {idToFill}");
+                var lastPanel = m_IndexToItemTable[lastPanelId];
+
+                m_IndexToItemTable.Remove(lastPanelId);
+                m_IndexToItemTable[idToFill] = lastPanel;
+                m_ItemToIndexTable[lastPanel] = idToFill;
+
+                m_DirtyItems.Add(idToFill);
             }
-            m_ItemsToUnregister.Clear();
-            
-            //Console.WriteLine($"Registering {m_PanelsToRegister.Count} panels");
-            foreach (var panel in m_ItemsToRegister)
-            {
-                panel.BecameDirty += Item_OnBecameDirty;
-                int id;
-                if (m_IdsToFill.Count > 0)
-                {
-                    id = m_IdsToFill.Min;
-                    //Console.WriteLine($"Reusing an id that needs to be filled. Id: {id}");
-                    m_IdsToFill.Remove(id);
-                }
-                else
-                {
-                    id = m_ItemCount;
-                    //Console.WriteLine($"Assigned a new id. Id: {id}");
-                    m_ItemCount++;
-                }
-
-                m_ItemToIndexTable[panel] = id;
-                m_IndexToItemTable[id] = panel;
                 
-                m_DirtyItems.Add(id);
-            }
-            m_ItemsToRegister.Clear();
-            
-            //Console.WriteLine($"Back filling {m_IdsToFill.Count} ids");
-            foreach (var idToFill in m_IdsToFill.Reverse())
-            {
-                var lastPanelId = m_ItemCount - 1;
-                if (idToFill != lastPanelId)
-                {
-                    //Console.WriteLine($"Moving last panel into an id we need to fill. Id: {idToFill}");
-                    var lastPanel = m_IndexToItemTable[lastPanelId];
-
-                    m_IndexToItemTable.Remove(lastPanelId);
-                    m_IndexToItemTable[idToFill] = lastPanel;
-                    m_ItemToIndexTable[lastPanel] = idToFill;
-
-                    m_DirtyItems.Add(idToFill);
-                }
-                
-                m_ItemCount--;
-            }
-            m_IdsToFill.Clear();
-
-            var maxIndex = m_DirtyItems.Max;
-            //Console.WriteLine($"Max dirty panel index {maxIndex}");
-
-            var maxDirtyPanelCount = maxIndex + 1;
-
-            m_DirtyItemCount = 0;
-            if (m_DirtyItems.Count > 0)
-            {
-                glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);
-                AssertNoGlError();
-                
-                var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<Panel>(maxDirtyPanelCount), GL_MAP_WRITE_BIT);
-                AssertNoGlError();
-                
-                var buffer = new Span<Panel>(bufferPtr, maxDirtyPanelCount);
-            
-                foreach (var dirtyItemIndex in m_DirtyItems)
-                {
-                    var srcItem = m_IndexToItemTable[dirtyItemIndex];
-                    var dstIndex = m_DirtyItemCount;
-
-                    if (dirtyItemIndex > m_DirtyItemCount)
-                    {
-                        //Console.WriteLine($"Swaping {panelId} with {dstIndex}");
-                        var srcIndex = dirtyItemIndex;
-
-                        var dstPanel = m_IndexToItemTable[dstIndex];
-            
-                        var dstPanelData = buffer[dstIndex];
-                        buffer[srcIndex] = dstPanelData;
-            
-                        m_IndexToItemTable[srcIndex] = dstPanel;
-                        m_ItemToIndexTable[dstPanel] = srcIndex;
-
-                        m_IndexToItemTable[dstIndex] = srcItem;
-                        m_ItemToIndexTable[srcItem] = dstIndex;
-                    }
-
-                    srcItem.Update(ref buffer[dstIndex]);
-                    m_DirtyItemCount++;
-                }
-                m_DirtyItems.Clear();
-                glUnmapBuffer(GL_ARRAY_BUFFER);
-                AssertNoGlError();
-            }
-            
-            //Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
-            
-            glUseProgram(m_ShaderProgram);
-            AssertNoGlError();
-
-            fixed (float* ptr = &m_ProjectionMatrix.M11)
-                glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
-            AssertNoGlError();
-            
-            glBindVertexArray(m_Vao);
-            AssertNoGlError();
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_ItemCount);
-            AssertNoGlError();
+            m_ItemCount--;
         }
-        
-        private void SetupAttributesBuffer()
-        {
-            glBindBuffer(GL_ARRAY_BUFFER, m_AttributesBuffer);
-            AssertNoGlError();
+        m_IdsToFill.Clear();
 
-            var texturedQuad = new TexturedQuad();
-            glBufferData(GL_ARRAY_BUFFER, SizeOf<TexturedQuad>(), &texturedQuad, GL_STATIC_DRAW);
-            AssertNoGlError();
-            
-            uint positionAttribIndex = 0;
-            glVertexAttribPointer(
-                positionAttribIndex, 
-                2, 
-                GL_FLOAT, 
-                false, 
-                sizeof(TexturedQuad.Vertex), 
-                Offset<TexturedQuad.Vertex>(nameof(TexturedQuad.Vertex.Position))
-            );
-            glEnableVertexAttribArray(positionAttribIndex);
+        var maxIndex = m_DirtyItems.Max;
+        //Console.WriteLine($"Max dirty panel index {maxIndex}");
 
-            uint normalAttribIndex = 1;
-            glVertexAttribPointer(
-                normalAttribIndex, 
-                2, 
-                GL_FLOAT,
-                false, 
-                sizeof(TexturedQuad.Vertex),
-                Offset<TexturedQuad.Vertex>(nameof(TexturedQuad.Vertex.TexCoords))
-            );
-            glEnableVertexAttribArray(normalAttribIndex);
-        }
-        
-        private void SetupInstancesBuffer()
+        var maxDirtyPanelCount = maxIndex + 1;
+
+        m_DirtyItemCount = 0;
+        if (m_DirtyItems.Count > 0)
         {
             glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);
-            glBufferData(GL_ARRAY_BUFFER, SizeOf<Panel>(MaxPanelCount), (void*)0, GL_DYNAMIC_DRAW);
+            AssertNoGlError();
+                
+            var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<Panel>(maxDirtyPanelCount), GL_MAP_WRITE_BIT);
+            AssertNoGlError();
+                
+            var buffer = new Span<Panel>(bufferPtr, maxDirtyPanelCount);
             
-            uint colorAttribIndex = 2;
-            glVertexAttribPointer(
-                colorAttribIndex, 
-                4, 
-                GL_FLOAT, 
-                false, 
-                sizeof(Panel), 
-                Offset<Panel>(nameof(Panel.BackgroundColor))
-            );
-            glEnableVertexAttribArray(colorAttribIndex);
-            glVertexAttribDivisor(colorAttribIndex, 1);
-
-            uint borderRadiusAttribIndex = 3;
-            glVertexAttribPointer(
-                borderRadiusAttribIndex, 
-                4, GL_FLOAT,
-                false, 
-                sizeof(Panel), 
-                Offset<Panel>(nameof(Panel.BorderRadius))
-            );
-            glEnableVertexAttribArray(borderRadiusAttribIndex);
-            glVertexAttribDivisor(borderRadiusAttribIndex, 1);
-
-            uint rectAttribIndex = 4;
-            glVertexAttribPointer(
-                rectAttribIndex, 
-                4, 
-                GL_FLOAT, 
-                false, 
-                sizeof(Panel), 
-                Offset<Panel>(nameof(Panel.ScreenRect))
-            );
-            glEnableVertexAttribArray(rectAttribIndex);
-            glVertexAttribDivisor(rectAttribIndex, 1);
-
-            uint borderColorAttribIndex = 5;
-            glVertexAttribPointer(
-                borderColorAttribIndex, 
-                4, GL_FLOAT, 
-                false, 
-                sizeof(Panel),
-                Offset<Panel>(nameof(Panel.BorderColor))
-            );
-            glEnableVertexAttribArray(borderColorAttribIndex);
-            glVertexAttribDivisor(borderColorAttribIndex, 1);
-            
-            uint borderSizeAttribIndex = 6;
-            glVertexAttribPointer(
-                borderSizeAttribIndex, 
-                4, 
-                GL_FLOAT, 
-                false, 
-                sizeof(Panel),
-                Offset<Panel>(nameof(Panel.BorderSize))
-            );
-            glEnableVertexAttribArray(borderSizeAttribIndex);
-            glVertexAttribDivisor(borderSizeAttribIndex, 1);
-        }
-
-        public IRenderedPanel Create(Rect screenRect, PanelStyle style)
-        {
-            var p = new RenderedPanelImpl
+            foreach (var dirtyItemIndex in m_DirtyItems)
             {
-                ScreenRect = screenRect,
-                Style = style
-            };
+                var srcItem = m_IndexToItemTable[dirtyItemIndex];
+                var dstIndex = m_DirtyItemCount;
+
+                if (dirtyItemIndex > m_DirtyItemCount)
+                {
+                    //Console.WriteLine($"Swaping {panelId} with {dstIndex}");
+                    var srcIndex = dirtyItemIndex;
+
+                    var dstPanel = m_IndexToItemTable[dstIndex];
             
-            Register(p);
-            return p;
+                    var dstPanelData = buffer[dstIndex];
+                    buffer[srcIndex] = dstPanelData;
+            
+                    m_IndexToItemTable[srcIndex] = dstPanel;
+                    m_ItemToIndexTable[dstPanel] = srcIndex;
+
+                    m_IndexToItemTable[dstIndex] = srcItem;
+                    m_ItemToIndexTable[srcItem] = dstIndex;
+                }
+
+                srcItem.Update(ref buffer[dstIndex]);
+                m_DirtyItemCount++;
+            }
+            m_DirtyItems.Clear();
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            AssertNoGlError();
         }
+            
+        //Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
+            
+        glUseProgram(m_ShaderProgram);
+        AssertNoGlError();
+
+        fixed (float* ptr = &m_ProjectionMatrix.M11)
+            glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
+        AssertNoGlError();
+            
+        glBindVertexArray(m_Vao);
+        AssertNoGlError();
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_ItemCount);
+        AssertNoGlError();
+    }
+        
+    private void SetupAttributesBuffer()
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, m_AttributesBuffer);
+        AssertNoGlError();
+
+        var texturedQuad = new TexturedQuad();
+        glBufferData(GL_ARRAY_BUFFER, SizeOf<TexturedQuad>(), &texturedQuad, GL_STATIC_DRAW);
+        AssertNoGlError();
+            
+        uint positionAttribIndex = 0;
+        glVertexAttribPointer(
+            positionAttribIndex, 
+            2, 
+            GL_FLOAT, 
+            false, 
+            sizeof(TexturedQuad.Vertex), 
+            Offset<TexturedQuad.Vertex>(nameof(TexturedQuad.Vertex.Position))
+        );
+        glEnableVertexAttribArray(positionAttribIndex);
+
+        uint normalAttribIndex = 1;
+        glVertexAttribPointer(
+            normalAttribIndex, 
+            2, 
+            GL_FLOAT,
+            false, 
+            sizeof(TexturedQuad.Vertex),
+            Offset<TexturedQuad.Vertex>(nameof(TexturedQuad.Vertex.TexCoords))
+        );
+        glEnableVertexAttribArray(normalAttribIndex);
+    }
+        
+    private void SetupInstancesBuffer()
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, m_InstancesBuffer);
+        glBufferData(GL_ARRAY_BUFFER, SizeOf<Panel>(MaxPanelCount), (void*)0, GL_DYNAMIC_DRAW);
+            
+        uint colorAttribIndex = 2;
+        glVertexAttribPointer(
+            colorAttribIndex, 
+            4, 
+            GL_FLOAT, 
+            false, 
+            sizeof(Panel), 
+            Offset<Panel>(nameof(Panel.BackgroundColor))
+        );
+        glEnableVertexAttribArray(colorAttribIndex);
+        glVertexAttribDivisor(colorAttribIndex, 1);
+
+        uint borderRadiusAttribIndex = 3;
+        glVertexAttribPointer(
+            borderRadiusAttribIndex, 
+            4, GL_FLOAT,
+            false, 
+            sizeof(Panel), 
+            Offset<Panel>(nameof(Panel.BorderRadius))
+        );
+        glEnableVertexAttribArray(borderRadiusAttribIndex);
+        glVertexAttribDivisor(borderRadiusAttribIndex, 1);
+
+        uint rectAttribIndex = 4;
+        glVertexAttribPointer(
+            rectAttribIndex, 
+            4, 
+            GL_FLOAT, 
+            false, 
+            sizeof(Panel), 
+            Offset<Panel>(nameof(Panel.ScreenRect))
+        );
+        glEnableVertexAttribArray(rectAttribIndex);
+        glVertexAttribDivisor(rectAttribIndex, 1);
+
+        uint borderColorAttribIndex = 5;
+        glVertexAttribPointer(
+            borderColorAttribIndex, 
+            4, GL_FLOAT, 
+            false, 
+            sizeof(Panel),
+            Offset<Panel>(nameof(Panel.BorderColor))
+        );
+        glEnableVertexAttribArray(borderColorAttribIndex);
+        glVertexAttribDivisor(borderColorAttribIndex, 1);
+            
+        uint borderSizeAttribIndex = 6;
+        glVertexAttribPointer(
+            borderSizeAttribIndex, 
+            4, 
+            GL_FLOAT, 
+            false, 
+            sizeof(Panel),
+            Offset<Panel>(nameof(Panel.BorderSize))
+        );
+        glEnableVertexAttribArray(borderSizeAttribIndex);
+        glVertexAttribDivisor(borderSizeAttribIndex, 1);
     }
 
-    sealed class RenderedPanelImpl : IRenderedPanel
+    public IRenderedPanel Create(Rect screenRect, PanelStyle style)
     {
-        private Rect m_ScreenRect;
-
-        public Rect ScreenRect
+        var p = new RenderedPanelImpl
         {
-            get => m_ScreenRect;
-            set
-            {
-                m_ScreenRect = value;
-                BecameDirty?.Invoke(this);
-            }
-        }
-
-        private PanelStyle m_Style;
-        public PanelStyle Style
-        {
-            get => m_Style;
-            set
-            {
-                m_Style = value;
-                BecameDirty?.Invoke(this);
-            }
-        }
-
-        public event Action<RenderedPanelImpl>? BecameDirty;
-        
-        public void Update(ref Panel panel)
-        {
-            var style = Style;
-            panel.ScreenRect = ScreenRect;
-            panel.BackgroundColor = style.BackgroundColor;
-            panel.BorderRadius = style.BorderRadius;
-            panel.BorderSize = style.BorderSize;
-            panel.BorderColor = style.BorderColor;
-        }
+            ScreenRect = screenRect,
+            Style = style
+        };
+            
+        Register(p);
+        return p;
     }
 }
 

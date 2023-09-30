@@ -6,7 +6,7 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
-public sealed unsafe class BitmapFontTextRenderingSystem : GuiEventBaseExperimentScene.RenderingSystem<RenderedGlyphImpl>, ITextRenderingSystem
+public sealed unsafe class BitmapFontTextRenderingSystem : RenderingSystem<RenderedGlyphImpl>, ITextRenderingSystem
 {
     private const uint MaxGlyphCount = 20000;
 
