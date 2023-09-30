@@ -75,9 +75,9 @@ public sealed unsafe class PanelRenderingSystem : IPanelRenderingSystem
         }
     }
     
-    public IRenderedPanel Create(Rect screenRect, PanelStyle style)
+    public IRenderedPanel Render(Rect screenRect, PanelStyle style)
     {
-        var p = new RenderedPanelImpl
+        var p = new RenderedPanelImpl(this)
         {
             ScreenRect = screenRect,
             Style = style
@@ -86,12 +86,18 @@ public sealed unsafe class PanelRenderingSystem : IPanelRenderingSystem
         m_Renderer.Add(p);
         return p;
     }
+
+    internal void Destroy(RenderedPanelImpl panel)
+    {
+        m_Renderer.Remove(panel);
+    }
 }
 
 sealed class RenderedPanelImpl : IRenderedPanel, IInstancedItem<Panel>
 {
+    public event Action<IInstancedItem<Panel>>? BecameDirty;
+    
     private Rect m_ScreenRect;
-
     public Rect ScreenRect
     {
         get => m_ScreenRect;
@@ -113,8 +119,13 @@ sealed class RenderedPanelImpl : IRenderedPanel, IInstancedItem<Panel>
         }
     }
 
-    public event Action<IInstancedItem<Panel>>? BecameDirty;
-        
+    private PanelRenderingSystem PanelRenderingSystem { get; }
+
+    public RenderedPanelImpl(PanelRenderingSystem panelRenderingSystem)
+    {
+        PanelRenderingSystem = panelRenderingSystem;
+    }
+
     public void Update(ref Panel panel)
     {
         var style = Style;
@@ -123,5 +134,21 @@ sealed class RenderedPanelImpl : IRenderedPanel, IInstancedItem<Panel>
         panel.BorderRadius = style.BorderRadius;
         panel.BorderSize = style.BorderSize;
         panel.BorderColor = style.BorderColor;
+    }
+
+    private void ReleaseUnmanagedResources()
+    {
+        PanelRenderingSystem.Destroy(this);
+    }
+
+    public void Dispose()
+    {
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+    }
+
+    ~RenderedPanelImpl()
+    {
+        ReleaseUnmanagedResources();
     }
 }

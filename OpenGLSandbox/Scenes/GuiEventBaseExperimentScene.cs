@@ -57,7 +57,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         m_BitmapFontTextRenderingSystem.Load();
         foreach (var textButton in m_TextButtons)
         {
-            textButton.OnBecameVisible();
+            textButton.IsVisible = true;
         }
     }
 
@@ -97,6 +97,22 @@ public sealed class GuiEventBaseExperimentScene : IScene
         public BorderSize BorderSize { get; set; }
         public Vector4 BorderRadius { get; set; }
         public Rect ScreenRect { get; set; }
+
+        private bool m_IsVisible;
+        public bool IsVisible
+        {
+            get => m_IsVisible;
+            set
+            {
+                if (m_IsVisible == value)
+                    return;
+                m_IsVisible = value;
+                if (m_IsVisible)
+                    OnBecameVisible();
+                else
+                    OnBecameHidden();
+            }
+        }
         
         private bool m_IsHovered;
         public bool IsHovered
@@ -112,12 +128,11 @@ public sealed class GuiEventBaseExperimentScene : IScene
             set => SetField(ref m_IsPressed, value);
         }
         
-        private readonly IPanelRenderingSystem m_PanelRenderingSystem;
-        private readonly ITextRenderingSystem m_TextRenderingSystem;
+        private readonly IPanelRenderingSystem m_PanelRenderer;
+        private readonly ITextRenderingSystem m_TextRenderer;
 
         private IRenderedText? m_RenderedText;
         private IRenderedPanel? m_RenderedPanel;
-        private bool m_IsVisible;
         
         private Color BackgroundNormalColor { get; set; } = Color.FromHex(0xffffff, 1f);
         private Color BackgroundPressedColor { get; set; } = Color.FromHex(0xfaf7fc, 1f);
@@ -125,13 +140,13 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private Color TextNormalColor { get; set; } = Color.FromHex(0x1b1a1b, 1f);
         private Color TextPressedColor { get; set; } = Color.FromHex(0x5f5e60, 1f);
         
-        public TextButton(IPanelRenderingSystem panelRenderer, ITextRenderingSystem textRenderingSystem)
+        public TextButton(IPanelRenderingSystem panelRenderer, ITextRenderingSystem textRenderer)
         {
-            m_PanelRenderingSystem = panelRenderer;
-            m_TextRenderingSystem = textRenderingSystem;
+            m_PanelRenderer = panelRenderer;
+            m_TextRenderer = textRenderer;
         }
 
-        public void OnBecameVisible()
+        private void OnBecameVisible()
         {
             if (Text == "3")
             {
@@ -142,7 +157,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 TextPressedColor = Color.FromHex(0xadcdea, 1f);
             }
             
-            m_RenderedPanel = m_PanelRenderingSystem.Create(ScreenRect, new PanelStyle
+            m_RenderedPanel = m_PanelRenderer.Render(ScreenRect, new PanelStyle
             {
                 BorderColor = BorderColor,
                 BorderRadius = BorderRadius,
@@ -150,18 +165,21 @@ public sealed class GuiEventBaseExperimentScene : IScene
                 BackgroundColor = BackgroundNormalColor
             });
             
-            m_RenderedText = m_TextRenderingSystem.Create(ScreenRect, new TextStyle
+            m_RenderedText = m_TextRenderer.Render(Text, ScreenRect, new TextStyle
             {
                 Color = TextNormalColor,
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center
-            }, Text);
-
-            m_IsVisible = true;
+            });
         }
 
-        public void OnBecameHidden()
+        private void OnBecameHidden()
         {
+            m_RenderedPanel?.Dispose();
+            m_RenderedText?.Dispose();
+
+            m_RenderedPanel = null;
+            m_RenderedText = null;
         }
         
         private void SetField<T>(ref T field, T value)
@@ -211,10 +229,10 @@ public sealed class GuiEventBaseExperimentScene : IScene
 
 public interface IPanelRenderingSystem
 {
-    IRenderedPanel Create(Rect screenPosition, PanelStyle style);
+    IRenderedPanel Render(Rect screenPosition, PanelStyle style);
 }
 
-public interface IRenderedPanel
+public interface IRenderedPanel : IDisposable
 {
     Rect ScreenRect { get; set; }
     PanelStyle Style { get; set; }
@@ -236,7 +254,7 @@ public interface IRenderedText : IDisposable
 
 public interface ITextRenderingSystem
 {
-    IRenderedText Create(Rect screenPosition, TextStyle style, string value);
+    IRenderedText Render(string value, Rect screenPosition, TextStyle style);
 }
 
 public interface IRenderedGlyph

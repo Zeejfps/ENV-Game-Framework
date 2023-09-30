@@ -123,7 +123,7 @@ public sealed unsafe class BitmapFontTextRenderingSystem : ITextRenderingSystem
         }
     }
     
-    public IRenderedText Create(Rect screenRect, TextStyle style, string text)
+    public IRenderedText Render(string text, Rect screenRect, TextStyle style)
     {
         return new RenderedTextImpl(this, screenRect, style, text);
     }
