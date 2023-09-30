@@ -36,7 +36,6 @@ public sealed unsafe class BitmapFontTextRenderingSystem : ITextRenderingSystem
     public int Base => m_Base;
     public float ScaleW => m_ScaleW;
     public float ScaleH => m_ScaleH;
-    public TexturedQuadInstancedRenderingSystem<Glyph> Renderer => m_Renderer;
 
     public void Load()
     {
@@ -205,6 +204,16 @@ public sealed unsafe class BitmapFontTextRenderingSystem : ITextRenderingSystem
         var id = (int)c;
         return m_IdToGlyphTable.TryGetValue(id, out glyph);
     }
+
+    internal void Remove(RenderedGlyphImpl glyph)
+    {
+        m_Renderer.Remove(glyph);
+    }
+
+    internal void Add(RenderedGlyphImpl glyph)
+    {
+        m_Renderer.Add(glyph);
+    }
 }
 
 public sealed class RenderedTextImpl : IRenderedText
@@ -232,11 +241,11 @@ public sealed class RenderedTextImpl : IRenderedText
 
     private readonly string m_Text;
     private readonly List<RenderedGlyphImpl> m_Glyphs = new();
-    private readonly BitmapFontTextRenderingSystem m_TextRenderingSystem;
+    private readonly BitmapFontTextRenderingSystem m_TextRenderer;
 
-    public RenderedTextImpl(BitmapFontTextRenderingSystem renderingSystem, Rect screenRect, TextStyle style, string text)
+    public RenderedTextImpl(BitmapFontTextRenderingSystem renderer, Rect screenRect, TextStyle style, string text)
     {
-        m_TextRenderingSystem = renderingSystem;
+        m_TextRenderer = renderer;
         m_ScreenRect = screenRect;
         m_Style = style;
         m_Text = text;
@@ -251,21 +260,21 @@ public sealed class RenderedTextImpl : IRenderedText
         {
             if (c == '\n') continue;
             var glyph = new RenderedGlyphImpl();
-            m_TextRenderingSystem.Renderer.Add(glyph);
+            m_TextRenderer.Add(glyph);
             m_Glyphs.Add(glyph);
         }
     }
 
     private void LayoutGlyphs()
     {
-        var position = m_TextRenderingSystem.CalculatePosition(ScreenRect, Style, m_Text);
+        var position = m_TextRenderer.CalculatePosition(ScreenRect, Style, m_Text);
         var cursor = new Vector2(position.X, position.Y);
         var color = Style.Color;
         var text = m_Text;
-        var baseOffset = m_TextRenderingSystem.Base;
-        var scaleW = m_TextRenderingSystem.ScaleW;
-        var scaleH = m_TextRenderingSystem.ScaleH;
-        var lineHeight = m_TextRenderingSystem.LineHeight;
+        var baseOffset = m_TextRenderer.Base;
+        var scaleW = m_TextRenderer.ScaleW;
+        var scaleH = m_TextRenderer.ScaleH;
+        var lineHeight = m_TextRenderer.LineHeight;
         
         var i = 0;
         foreach (var c in text)
@@ -277,7 +286,7 @@ public sealed class RenderedTextImpl : IRenderedText
                 continue;
             }
                 
-            if (!m_TextRenderingSystem.TryGetGlyph(c, out var fontChar))
+            if (!m_TextRenderer.TryGetGlyph(c, out var fontChar))
                 continue;
                 
             var xPos = cursor.X + fontChar.XOffset;
@@ -304,7 +313,7 @@ public sealed class RenderedTextImpl : IRenderedText
     private void DestroyAllGlyphs()
     {
         foreach (var glyph in m_Glyphs)
-            m_TextRenderingSystem.Renderer.Remove(glyph);
+            m_TextRenderer.Remove(glyph);
         m_Glyphs.Clear();
     }
 
