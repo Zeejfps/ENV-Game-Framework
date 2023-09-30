@@ -87,3 +87,41 @@ public sealed unsafe class PanelRenderingSystem : IPanelRenderingSystem
         return p;
     }
 }
+
+sealed class RenderedPanelImpl : IRenderedPanel, IInstancedItem<Panel>
+{
+    private Rect m_ScreenRect;
+
+    public Rect ScreenRect
+    {
+        get => m_ScreenRect;
+        set
+        {
+            m_ScreenRect = value;
+            BecameDirty?.Invoke(this);
+        }
+    }
+
+    private PanelStyle m_Style;
+    public PanelStyle Style
+    {
+        get => m_Style;
+        set
+        {
+            m_Style = value;
+            BecameDirty?.Invoke(this);
+        }
+    }
+
+    public event Action<IInstancedItem<Panel>>? BecameDirty;
+        
+    public void Update(ref Panel panel)
+    {
+        var style = Style;
+        panel.ScreenRect = ScreenRect;
+        panel.BackgroundColor = style.BackgroundColor;
+        panel.BorderRadius = style.BorderRadius;
+        panel.BorderSize = style.BorderSize;
+        panel.BorderColor = style.BorderColor;
+    }
+}

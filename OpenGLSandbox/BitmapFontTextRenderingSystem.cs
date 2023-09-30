@@ -312,3 +312,39 @@ public class RenderedTextImpl : IRenderedText
         // TODO release managed resources here
     }
 }
+
+class RenderedGlyphImpl : IRenderedGlyph, IInstancedItem<Glyph>
+{
+    private Rect m_ScreenRect;
+    public Rect ScreenRect
+    {
+        get => m_ScreenRect;
+        set => SetField(ref m_ScreenRect, value);
+    }
+
+    private Color m_Color;
+    public Color Color
+    {
+        get => m_Color;
+        set => SetField(ref m_Color, value);
+    }
+    
+    public Rect TextureRect { get; set; }
+
+    public event Action<IInstancedItem<Glyph>>? BecameDirty;
+    
+    public void Update(ref Glyph glyph)
+    {
+        glyph.ScreenRect = ScreenRect;
+        glyph.TextureRect = TextureRect;
+        glyph.Color = Color;
+    }
+
+    private void SetField<T>(ref T field, T value)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value))
+            return;
+        field = value;
+        BecameDirty?.Invoke(this);
+    }
+}

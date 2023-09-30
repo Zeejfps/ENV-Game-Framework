@@ -222,45 +222,6 @@ public interface IRenderedPanel
     PanelStyle Style { get; set; }
 }
 
-public sealed class RenderedPanelImpl : IRenderedPanel, IInstancedItem<Panel>
-{
-    private Rect m_ScreenRect;
-
-    public Rect ScreenRect
-    {
-        get => m_ScreenRect;
-        set
-        {
-            m_ScreenRect = value;
-            BecameDirty?.Invoke(this);
-        }
-    }
-
-    private PanelStyle m_Style;
-    public PanelStyle Style
-    {
-        get => m_Style;
-        set
-        {
-            m_Style = value;
-            BecameDirty?.Invoke(this);
-        }
-    }
-
-    public event Action<IInstancedItem<Panel>>? BecameDirty;
-        
-    public void Update(ref Panel panel)
-    {
-        Console.WriteLine("Updating panel");
-        var style = Style;
-        panel.ScreenRect = ScreenRect;
-        panel.BackgroundColor = style.BackgroundColor;
-        panel.BorderRadius = style.BorderRadius;
-        panel.BorderSize = style.BorderSize;
-        panel.BorderColor = style.BorderColor;
-    }
-}
-
 public struct PanelStyle
 {
     public Color BackgroundColor;
@@ -282,40 +243,4 @@ public interface ITextRenderingSystem
 
 public interface IRenderedGlyph
 {
-}
-
-public class RenderedGlyphImpl : IRenderedGlyph, IInstancedItem<Glyph>
-{
-    private Rect m_ScreenRect;
-    public Rect ScreenRect
-    {
-        get => m_ScreenRect;
-        set => SetField(ref m_ScreenRect, value);
-    }
-
-    private Color m_Color;
-    public Color Color
-    {
-        get => m_Color;
-        set => SetField(ref m_Color, value);
-    }
-    
-    public Rect TextureRect { get; set; }
-
-    public event Action<IInstancedItem<Glyph>>? BecameDirty;
-    
-    public void Update(ref Glyph glyph)
-    {
-        glyph.ScreenRect = ScreenRect;
-        glyph.TextureRect = TextureRect;
-        glyph.Color = Color;
-    }
-
-    private void SetField<T>(ref T field, T value)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value))
-            return;
-        field = value;
-        BecameDirty?.Invoke(this);
-    }
 }
