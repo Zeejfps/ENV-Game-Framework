@@ -8,15 +8,19 @@ namespace OpenGLSandbox;
 public sealed class CalculatorScene : IScene
 {
     private readonly IWindow m_Window;
-
+    private readonly IInputSystem m_InputSystem;
+    
     private readonly PanelRenderer m_PanelRenderer;
     private readonly BitmapFontTextRenderer m_TextRenderer;
     
     private TextButton? m_TextButton;
 
-    public CalculatorScene(IWindow window)
+    private readonly List<Widget> m_Widgets = new();
+
+    public CalculatorScene(IWindow window, IInputSystem inputSystem)
     {
         m_Window = window;
+        m_InputSystem = inputSystem;
         m_PanelRenderer = new PanelRenderer(window);
         m_TextRenderer = new BitmapFontTextRenderer(window, "Assets/bitmapfonts/Segoe UI.fnt");
     }
@@ -31,7 +35,7 @@ public sealed class CalculatorScene : IScene
         
         m_TextButton = new TextButton(m_PanelRenderer, m_TextRenderer)
         {
-            ScreenPosition = new Rect(10f, 10f, 200f, 60f),
+            ScreenRect = new Rect(10f, 10f, 200f, 60f),
             Text = "+/-",
             PanelStyle = new PanelStyle
             {
@@ -48,6 +52,7 @@ public sealed class CalculatorScene : IScene
             },
             IsVisible = true
         };
+        m_Widgets.Add(m_TextButton);
 
         var bgColor = Color.FromHex(0x221e26, 1f);
         glClearColor(bgColor.R, bgColor.G, bgColor.B, bgColor.A);
@@ -55,6 +60,13 @@ public sealed class CalculatorScene : IScene
 
     public void Update()
     {
+        var mouse = m_InputSystem.Mouse;
+        var mouseScreenPosition = new Vector2(mouse.ScreenX, m_Window.ScreenHeight - mouse.ScreenY);
+        foreach (var widget in m_Widgets)
+        {
+            widget.IsHovered = widget.ScreenRect.Contains(mouseScreenPosition);
+        }
+        
         glClear(GL_COLOR_BUFFER_BIT);
         
         m_TextButton.Update();
@@ -65,17 +77,18 @@ public sealed class CalculatorScene : IScene
 
     public void Unload()
     {
+        m_Widgets.Clear();
         m_PanelRenderer.Unload();
         m_TextRenderer.Unload();
     }
 
     abstract class Widget
     {
-        private Rect m_ScreenPosition;
-        public Rect ScreenPosition
+        private Rect m_ScreenRect;
+        public Rect ScreenRect
         {
-            get => m_ScreenPosition;
-            set => SetField(ref m_ScreenPosition, value);
+            get => m_ScreenRect;
+            set => SetField(ref m_ScreenRect, value);
         }
         
         private bool m_IsVisible;
@@ -118,7 +131,6 @@ public sealed class CalculatorScene : IScene
         }
         
         private bool m_IsDirty;
-
         public void Update()
         {
             if (m_IsDirty && m_IsVisible)
@@ -181,8 +193,8 @@ public sealed class CalculatorScene : IScene
 
         protected override void OnBecameVisible()
         {
-            m_RenderedPanel = m_PanelRenderer.Render(ScreenPosition, PanelStyle);
-            m_RenderedText = m_TextRenderer.Render(Text, ScreenPosition, TextStyle);
+            m_RenderedPanel = m_PanelRenderer.Render(ScreenRect, PanelStyle);
+            m_RenderedText = m_TextRenderer.Render(Text, ScreenRect, TextStyle);
         }
 
         protected override void OnBecameHidden()
@@ -199,10 +211,10 @@ public sealed class CalculatorScene : IScene
             Debug.Assert(m_RenderedPanel != null);
             Debug.Assert(m_RenderedText != null);
 
-            m_RenderedPanel.ScreenRect = ScreenPosition;
+            m_RenderedPanel.ScreenRect = ScreenRect;
             m_RenderedPanel.Style = PanelStyle;
             
-            m_RenderedText.ScreenRect = ScreenPosition;
+            m_RenderedText.ScreenRect = ScreenRect;
             m_RenderedText.Style = TextStyle;
         }
     }
