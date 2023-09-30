@@ -210,7 +210,7 @@ public sealed unsafe class BitmapFontTextRenderingSystem : ITextRenderingSystem
     }
 }
 
-public class RenderedTextImpl : IRenderedText
+public sealed class RenderedTextImpl : IRenderedText
 {
     private Rect m_ScreenRect;
     public Rect ScreenRect
@@ -249,10 +249,7 @@ public class RenderedTextImpl : IRenderedText
 
     private void RegenerateGlyphs()
     {
-        foreach (var glyph in m_Glyphs)
-            m_TextRenderingSystem.Renderer.Remove(glyph);
-        m_Glyphs.Clear();
-        
+        DestroyAllGlyphs();
         foreach (var c in m_Text)
         {
             if (c == '\n') continue;
@@ -306,10 +303,28 @@ public class RenderedTextImpl : IRenderedText
             i++;
         }
     }
-        
+
+    private void DestroyAllGlyphs()
+    {
+        foreach (var glyph in m_Glyphs)
+            m_TextRenderingSystem.Renderer.Remove(glyph);
+        m_Glyphs.Clear();
+    }
+
+    private void ReleaseUnmanagedResources()
+    {
+        DestroyAllGlyphs();
+    }
+
     public void Dispose()
     {
-        // TODO release managed resources here
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+    }
+
+    ~RenderedTextImpl()
+    {
+        ReleaseUnmanagedResources();
     }
 }
 

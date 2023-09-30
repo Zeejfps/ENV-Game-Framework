@@ -125,9 +125,30 @@ public sealed class GuiEventBaseExperimentScene : IScene
         public bool IsPressed
         {
             get => m_IsPressed;
-            set => SetField(ref m_IsPressed, value);
+            set
+            {
+                if (m_IsPressed == value)
+                    return;
+
+                m_IsPressed = value;
+                if (m_IsPressed)
+                    OnPressed();
+                else
+                    OnReleased();
+            }
         }
-        
+
+        private void OnPressed()
+        {
+            if (m_IsVisible)
+                UpdateView();
+        }
+
+        private void OnReleased()
+        {
+            IsVisible = !IsVisible;
+        }
+
         private readonly IPanelRenderingSystem m_PanelRenderer;
         private readonly ITextRenderingSystem m_TextRenderer;
 

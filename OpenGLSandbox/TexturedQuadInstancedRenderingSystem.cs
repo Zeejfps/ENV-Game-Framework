@@ -19,10 +19,10 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
     
     private readonly HashSet<IInstancedItem<TInstancedData>> m_ItemsToRegister = new();
     private readonly HashSet<IInstancedItem<TInstancedData>> m_ItemsToUnregister = new();
-    private readonly SortedSet<int> m_DirtyItems = new();
-    private readonly SortedSet<int> m_IdsToFill = new();
+    private readonly HashSet<IInstancedItem<TInstancedData>> m_DirtyItems = new();
     private readonly Dictionary<IInstancedItem<TInstancedData>, int> m_ItemToIndexTable = new();
     private readonly Dictionary<int, IInstancedItem<TInstancedData>> m_IndexToItemTable = new();
+    private readonly SortedSet<int> m_IdsToFill = new();
 
     private readonly uint m_MaxInstanceCount;
     
@@ -30,7 +30,6 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
     private uint m_TexturedQuadBuffer;
     private uint m_InstancedDataBuffer;
     
-    private int m_DirtyItemCount;
     private int m_ItemCount;
 
     public TexturedQuadInstancedRenderingSystem(uint maxInstanceCount)
@@ -60,6 +59,7 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
             m_IdsToFill.Add(id);
             m_IndexToItemTable.Remove(id);
             m_ItemToIndexTable.Remove(item);
+            m_DirtyItems.Remove(item);
         }
         m_ItemsToUnregister.Clear();
             
@@ -84,7 +84,7 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
             m_ItemToIndexTable[item] = id;
             m_IndexToItemTable[id] = item;
                 
-            m_DirtyItems.Add(id);
+            m_DirtyItems.Add(item);
         }
         m_ItemsToRegister.Clear();
             
@@ -101,19 +101,25 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
                 m_IndexToItemTable[idToFill] = lastPanel;
                 m_ItemToIndexTable[lastPanel] = idToFill;
 
-                m_DirtyItems.Add(idToFill);
+                m_DirtyItems.Add(lastPanel);
             }
                 
             m_ItemCount--;
         }
         m_IdsToFill.Clear();
-
-        var maxIndex = m_DirtyItems.Max;
+        
+        var maxIndex = 0;
+        foreach (var dirtyItem in m_DirtyItems)
+        {
+            var index = m_ItemToIndexTable[dirtyItem];
+            if (index > maxIndex)
+                maxIndex = index;
+        }
+        
         //Console.WriteLine($"Max dirty panel index {maxIndex}");
 
         var bufferRangeSize = maxIndex + 1;
 
-        m_DirtyItemCount = 0;
         if (m_DirtyItems.Count > 0)
         {
             //Console.WriteLine($"Have dirty items: {m_DirtyItems.Count}");
@@ -123,13 +129,13 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
             var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<TInstancedData>(bufferRangeSize), GL_MAP_WRITE_BIT);
             AssertNoGlError();
             var buffer = new Span<TInstancedData>(bufferPtr, bufferRangeSize);
-            
-            foreach (var dirtyItemIndex in m_DirtyItems)
-            {
-                var srcItem = m_IndexToItemTable[dirtyItemIndex];
-                var dstIndex = m_DirtyItemCount;
 
-                if (dirtyItemIndex > m_DirtyItemCount)
+            var dstIndex = 0;
+            foreach (var srcItem in m_DirtyItems)
+            {
+                var dirtyItemIndex = m_ItemToIndexTable[srcItem];
+   
+                if (dirtyItemIndex > dstIndex)
                 {
                     //Console.WriteLine($"Swaping {panelId} with {dstIndex}");
                     var srcIndex = dirtyItemIndex;
@@ -148,11 +154,11 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
 
                 srcItem.Update(ref buffer[dstIndex]);
                 //Console.WriteLine(buffer[dstIndex]);
-                m_DirtyItemCount++;
+                dstIndex++;
             }
+            Console.WriteLine($"Updated Dirty Items: {m_DirtyItems.Count}");
             m_DirtyItems.Clear();
             glUnmapBuffer(GL_ARRAY_BUFFER);
-            Console.WriteLine($"Updated Dirty Items: {m_DirtyItemCount}");
         }
             
         //Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
@@ -169,8 +175,7 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
     
     private void Item_OnBecameDirty(IInstancedItem<TInstancedData> item)
     {
-        var id = m_ItemToIndexTable[item];
-        m_DirtyItems.Add(id);
+        m_DirtyItems.Add(item);
     }
 
     public void Load()
@@ -276,7 +281,6 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
          m_TexturedQuadBuffer = 0;
          m_InstancedDataBuffer = 0;
 
-         m_DirtyItemCount = 0;
          m_ItemCount = 0;
          m_ItemsToRegister.Clear();
          m_ItemsToUnregister.Clear();
