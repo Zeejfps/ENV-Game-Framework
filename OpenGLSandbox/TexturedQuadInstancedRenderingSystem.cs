@@ -275,7 +275,9 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
          AssertNoGlError();
          m_TexturedQuadBuffer = 0;
          m_InstancedDataBuffer = 0;
-         
+
+         m_DirtyItemCount = 0;
+         m_ItemCount = 0;
          m_ItemsToRegister.Clear();
          m_ItemsToUnregister.Clear();
          m_IdsToFill.Clear();

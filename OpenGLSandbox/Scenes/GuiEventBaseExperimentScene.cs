@@ -11,7 +11,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
     private readonly IInputSystem m_InputSystem;
     private readonly PanelRenderingSystem m_PanelRenderingSystem;
     private readonly BitmapFontTextRenderingSystem m_BitmapFontTextRenderingSystem;
-    private TextButton[] m_TextButtons;
+    private TextButton[]? m_TextButtons;
     
     public GuiEventBaseExperimentScene(IWindow window, IInputSystem inputSystem)
     {
@@ -79,6 +79,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
 
     public void Unload()
     {
+        m_TextButtons = null;
         m_PanelRenderingSystem.Unload();
         m_BitmapFontTextRenderingSystem.Unload();
     }
@@ -121,7 +122,6 @@ public sealed class GuiEventBaseExperimentScene : IScene
         private Color BackgroundNormalColor { get; set; } = Color.FromHex(0xffffff, 1f);
         private Color BackgroundPressedColor { get; set; } = Color.FromHex(0xfaf7fc, 1f);
         private Color BackgroundHoveredColor { get; set; } = Color.FromHex(0xfdfbfd, 1f);
-        
         private Color TextNormalColor { get; set; } = Color.FromHex(0x1b1a1b, 1f);
         private Color TextPressedColor { get; set; } = Color.FromHex(0x5f5e60, 1f);
         
@@ -207,8 +207,6 @@ public sealed class GuiEventBaseExperimentScene : IScene
             };
         }
     }
-
-    // NOTE(Zee): The probably doesn't need to exist?
 }
 
 public interface IPanelRenderingSystem
