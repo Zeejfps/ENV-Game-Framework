@@ -43,7 +43,7 @@ public sealed class BasicRenderingScene : IScene
         glClearColor(1f, 0f, 1f, 1f);
     }
 
-    public void Render()
+    public void Update()
     {
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, 6);

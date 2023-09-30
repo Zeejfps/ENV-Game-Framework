@@ -60,7 +60,7 @@ public sealed class OpenGlSandboxGame : Game
 
     protected override void OnUpdate()
     {
-        m_Scenes[m_CurrentSceneIndex].Render();
+        m_Scenes[m_CurrentSceneIndex].Update();
     }
 
     protected override void OnShutdown()

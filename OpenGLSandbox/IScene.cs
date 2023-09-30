@@ -3,6 +3,6 @@
 public interface IScene
 {
     void Load();
-    void Render();
+    void Update();
     void Unload();
 }

@@ -73,7 +73,7 @@ public sealed class GuiCommandBufferExperimentScene : IScene
         glClearColor(bg.R, bg.G, bg.B, bg.A);
     }
 
-    public void Render()
+    public void Update()
     {
         m_Button.IsHovered = m_Button.ScreenRect.Contains(InputSystem.Mouse.ScreenX, 640 - InputSystem.Mouse.ScreenY);
         m_Button.IsPressed = m_Button.IsHovered && InputSystem.Mouse.IsButtonPressed(MouseButton.Left);

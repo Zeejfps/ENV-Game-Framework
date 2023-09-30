@@ -103,7 +103,7 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
         AssertNoGlError();
     }
 
-    public void Render()
+    public void Update()
     {
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, TriangleCount * 3);

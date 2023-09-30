@@ -116,7 +116,7 @@ public unsafe class BasicTextureRenderingScene : IScene
         
     }
 
-    public void Render()
+    public void Update()
     {
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, 6);

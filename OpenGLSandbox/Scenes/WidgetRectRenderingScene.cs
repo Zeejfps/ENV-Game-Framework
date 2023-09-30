@@ -155,7 +155,7 @@ public sealed unsafe class WidgetRectRenderingScene : IScene
         }
     }
 
-    public void Render()
+    public void Update()
     {
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArraysInstanced(GL_TRIANGLES, 0, TriangleCount * 3, InstanceCount);

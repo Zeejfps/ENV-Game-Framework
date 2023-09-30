@@ -61,7 +61,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         }
     }
 
-    public void Render()
+    public void Update()
     {
         var mouse = m_InputSystem.Mouse;
         var screenHeight = m_Window.ScreenHeight;
