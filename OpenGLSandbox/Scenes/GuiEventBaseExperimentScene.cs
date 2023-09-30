@@ -190,7 +190,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
             m_RenderedText.Style = new TextStyle
             {
                 HorizontalTextAlignment = TextAlignment.Center,
-                VerticalTextAlignment = IsHovered ? TextAlignment.End : TextAlignment.Center,
+                VerticalTextAlignment = TextAlignment.Center,
                 Color = textColor
             };
         }
