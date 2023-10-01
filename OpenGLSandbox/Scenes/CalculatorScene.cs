@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Numerics;
-using System.Security.Cryptography;
+﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
@@ -26,11 +24,36 @@ public sealed class CalculatorScene : IScene
         m_PanelRenderer = new PanelRenderer(window);
         m_TextRenderer = new BitmapFontTextRenderer(window, "Assets/bitmapfonts/Segoe UI.fnt");
 
-        m_Context = new TestContext(m_PanelRenderer, m_TextRenderer, inputSystem, window);
-        m_CalculatorWidget = new TextButtonWidget
+
+    }
+
+    public void Load()
+    {
+        m_Window.SetScreenSize(400, 640);
+        m_Window.Title = "Calculator";
+        m_Window.IsResizable = false;
+
+        m_PanelRenderer.Load();
+        m_TextRenderer.Load();
+        
+        var bgColor = Color.FromHex(0x221e26, 1f);
+        glClearColor(bgColor.R, bgColor.G, bgColor.B, bgColor.A);
+        
+        m_Context = new TestContext(m_PanelRenderer, m_TextRenderer, m_InputSystem, m_Window);
+        m_CalculatorWidget = new CalculatorWidget
         {
-            ScreenRect = new Rect(50, 50, 200, 50)
+            ScreenRect = new Rect(0, 0, m_Window.ScreenWidth, m_Window.ScreenHeight)
         };
+    }
+
+    public void Update()
+    {
+        glClear(GL_COLOR_BUFFER_BIT);
+        
+        m_CalculatorWidget.Update(m_Context);
+        
+        m_PanelRenderer.Update();
+        m_TextRenderer.Update();
     }
 
     class TestContext : IBuildContext
@@ -64,40 +87,12 @@ public sealed class CalculatorScene : IScene
         }
     }
 
-    public void Load()
-    {
-        m_Window.SetScreenSize(400, 640);
-        m_Window.Title = "Calculator";
-
-        m_PanelRenderer.Load();
-        m_TextRenderer.Load();
-        
-        var bgColor = Color.FromHex(0x221e26, 1f);
-        glClearColor(bgColor.R, bgColor.G, bgColor.B, bgColor.A);
-    }
-
-    public void Update()
-    {
-        glClear(GL_COLOR_BUFFER_BIT);
-        
-        m_CalculatorWidget.Update(m_Context);
-        
-        m_PanelRenderer.Update();
-        m_TextRenderer.Update();
-    }
-
     public void Unload()
     {
         m_PanelRenderer.Unload();
         m_TextRenderer.Unload();
     }
 
-    interface IWidget : IDisposable
-    {
-        Rect ScreenRect { get; set; }
-        void Update(IBuildContext context);
-    }
-    
     abstract class Widget : IWidget
     {
         public Rect ScreenRect { get; set; }
@@ -168,6 +163,46 @@ public sealed class CalculatorScene : IScene
         public override void Dispose()
         {
             m_RenderedText?.Dispose();
+        }
+    }
+    
+    public struct Offsets
+    {
+        public float Left;
+        public float Right;
+        public float Top;
+        public float Bottom;
+
+        public Offsets(float top, float right, float bottom, float left)
+        {
+            Bottom = bottom;
+            Top = top;
+            Right = right;
+            Left = left;
+        }
+
+        public static Offsets All(float offset)
+        {
+            return new Offsets(offset, offset, offset, offset);
+        }
+    }
+
+    sealed class PaddingWidget : Widget
+    {
+        public Offsets Offsets { get; set; }
+        
+        public IWidget Child { get; set; }
+        
+        protected override IWidget Build(IBuildContext context)
+        {
+            var offset = Offsets;
+            var myScreenRect = ScreenRect;
+            myScreenRect.X += offset.Left;
+            myScreenRect.Y += offset.Bottom;
+            myScreenRect.Width -= offset.Left + offset.Right;
+            myScreenRect.Height -= offset.Top + offset.Bottom;
+            Child.ScreenRect = myScreenRect;
+            return Child;
         }
     }
 
@@ -317,22 +352,17 @@ public sealed class CalculatorScene : IScene
         }
     }
 
-    interface IBuildContext
+    sealed class CalculatorTextButtonWidget : StatefulWidget
     {
-        T Get<T>();
-    }
-    
-    sealed class TextButtonWidget : StatefulWidget
-    {
-        private readonly PanelStyle m_PanelStyleNormal = new()
+        public PanelStyle PanelStyleNormal { get; } = new()
         {
-            BackgroundColor = Color.FromHex(0x3e3940, 1f),
+            BackgroundColor = Color.FromHex(0x403743, 1f),
             BorderRadius = new Vector4(7f, 7f, 7f, 7f),
             BorderColor = Color.FromHex(0x322e35, 1f),
             BorderSize = BorderSize.All(1f)
         };
         
-        private readonly PanelStyle m_PanelStyleHovered = new()
+        public PanelStyle PanelStyleHovered { get; } = new()
         {
             BackgroundColor = Color.FromHex(0x382e3c, 1f),
             BorderRadius = new Vector4(7f, 7f, 7f, 7f),
@@ -370,17 +400,25 @@ public sealed class CalculatorScene : IScene
         }
         
         private bool m_IsPressed;
+
         private bool IsPressed
         {
             get => m_IsPressed;
             set => SetField(ref m_IsPressed, value);
         }
-        
+
+        private string Text { get; set; }
+
+        public CalculatorTextButtonWidget(string text)
+        {
+            Text = text;
+        }
+
         protected override IWidget Build(IBuildContext context)
         {
             //Console.WriteLine("Build:TextButtonWidget");
 
-            var panelStyle = m_PanelStyleNormal;
+            var panelStyle = PanelStyleNormal;
             var textStyle = m_TextStyleNormal;
             if (IsPressed)
             {
@@ -389,7 +427,7 @@ public sealed class CalculatorScene : IScene
             }
             else if (IsHovered)
             {
-                panelStyle = m_PanelStyleHovered;
+                panelStyle = PanelStyleHovered;
             }
 
             return new InputListenerWidget
@@ -407,7 +445,7 @@ public sealed class CalculatorScene : IScene
                         {
                             Style = panelStyle
                         },
-                        new TextWidget("Hi")
+                        new TextWidget(Text)
                         {
                             Style = textStyle
                         }    
@@ -416,5 +454,137 @@ public sealed class CalculatorScene : IScene
             };
         }
     }
+
+    sealed class CalculatorWidget : Widget
+    {
+        private PanelStyle PanelStyleNormal { get; } = new()
+        {
+            BackgroundColor = Color.FromHex(0x3e3940, 1f),
+            BorderRadius = new Vector4(7f, 7f, 7f, 7f),
+            BorderColor = Color.FromHex(0x322e35, 1f),
+            BorderSize = BorderSize.All(1f)
+        };
+        
+        private PanelStyle PanelStyleHovered { get; } = new()
+        {
+            BackgroundColor = Color.FromHex(0x382e3c, 1f),
+            BorderRadius = new Vector4(7f, 7f, 7f, 7f),
+            BorderColor = Color.FromHex(0x332e35, 1f),
+            BorderSize = BorderSize.All(1f)
+        };
+    
+        private readonly PanelStyle m_PanelStylePressed = new()
+        {
+            BackgroundColor = Color.FromHex(0x2a262e, 1f),
+            BorderRadius = new Vector4(7f, 7f, 7f, 7f),
+            BorderColor = Color.FromHex(0x332e35, 1f),
+            BorderSize = BorderSize.All(1f)
+        };
+            
+        private readonly TextStyle m_TextStyleNormal = new()
+        {
+            Color = Color.FromHex(0xf7f7f7, 1f),
+            VerticalTextAlignment = TextAlignment.Center,
+            HorizontalTextAlignment = TextAlignment.Center
+        };
+    
+        private readonly TextStyle m_TextStylePressed = new()
+        {
+            Color = Color.FromHex(0xc8c7c9, 1f),
+            VerticalTextAlignment = TextAlignment.Center,
+            HorizontalTextAlignment = TextAlignment.Center
+        };
+        
+        protected override IWidget Build(IBuildContext context)
+        {
+            return new PaddingWidget
+            {
+                ScreenRect = new Rect(0, 0, 400f, 410f),
+                Offsets = Offsets.All(6f),
+                Child = new GridWidget
+                {
+                    ColumnCount = 4,
+                    RowCount = 6,
+                    Spacing = 2f,
+                    Children = new List<IWidget>
+                    {
+                        new CalculatorTextButtonWidget("+/-"),
+                        new CalculatorTextButtonWidget("0"),
+                        new CalculatorTextButtonWidget("."),
+                        new CalculatorTextButtonWidget("="),
+                        
+                        new CalculatorTextButtonWidget("1"),
+                        new CalculatorTextButtonWidget("2"),
+                        new CalculatorTextButtonWidget("3"),
+                        new CalculatorTextButtonWidget("+"),
+                        
+                        new CalculatorTextButtonWidget("4"),
+                        new CalculatorTextButtonWidget("5"),
+                        new CalculatorTextButtonWidget("6"),
+                        new CalculatorTextButtonWidget("-"),
+                        
+                        new CalculatorTextButtonWidget("7"),
+                        new CalculatorTextButtonWidget("8"),
+                        new CalculatorTextButtonWidget("9"),
+                        new CalculatorTextButtonWidget("x"),
+                        
+                        new CalculatorTextButtonWidget("1/x"),
+                        new CalculatorTextButtonWidget("X^2"),
+                        new CalculatorTextButtonWidget("2SqrX"),
+                        new CalculatorTextButtonWidget("/"),
+                        
+                        new CalculatorTextButtonWidget("%"),
+                        new CalculatorTextButtonWidget("CE"),
+                        new CalculatorTextButtonWidget("C"),
+                        new CalculatorTextButtonWidget("<-"),
+                    }
+                }
+            };
+        }
+    }
+
+    sealed class GridWidget : Widget
+    {
+        public int RowCount { get; set; }
+        public int ColumnCount { get; set; }
+        public float Spacing { get; set; }
+        
+        public List<IWidget> Children { get; set; }
+        
+        protected override IWidget Build(IBuildContext context)
+        {
+            var availableWidth = ScreenRect.Width - (ColumnCount - 1) * Spacing;
+            var availableHeight = ScreenRect.Height - (RowCount - 1) * Spacing;
+            var cellWidth = availableWidth / ColumnCount;
+            var cellHeight = availableHeight / RowCount;
+            var xOffset = ScreenRect.X;
+            var yOffset = ScreenRect.Y;
+            
+            for (var i = 0; i < RowCount; i++)
+            {
+                for (var j = 0; j < ColumnCount; j++)
+                {
+                    var childIndex = j + i * ColumnCount;
+                    if (childIndex >= Children.Count)
+                        break;
+
+                    Children[childIndex].ScreenRect = new Rect(j * cellWidth + xOffset + (j*Spacing), i * cellHeight + i * Spacing + yOffset, cellWidth, cellHeight);
+                }
+            }
+
+            return new MultiChildWidget(Children);
+        }
+    }
+}
+
+interface IBuildContext
+{
+    T Get<T>();
+}
+
+interface IWidget : IDisposable
+{
+    Rect ScreenRect { get; set; }
+    void Update(IBuildContext context);
 }
 

@@ -129,7 +129,13 @@ sealed class RenderedPanelImpl : IRenderedPanel, IInstancedItem<Panel>
     public void Update(ref Panel panel)
     {
         var style = Style;
-        panel.ScreenRect = ScreenRect;
+        var rect = ScreenRect;
+        rect.X = MathF.Floor(rect.X);
+        rect.Y = MathF.Floor(rect.Y);
+        rect.Width = MathF.Floor(rect.Width);
+        rect.Height = MathF.Floor(rect.Height);
+        
+        panel.ScreenRect = rect;
         panel.BackgroundColor = style.BackgroundColor;
         panel.BorderRadius = style.BorderRadius;
         panel.BorderSize = style.BorderSize;

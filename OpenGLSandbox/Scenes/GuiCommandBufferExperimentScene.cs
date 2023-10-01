@@ -7,7 +7,7 @@ namespace OpenGLSandbox;
 
 public sealed class GuiCommandBufferExperimentScene : IScene
 {
-    private readonly TextWidget m_ButtonText = new()
+    private readonly TextWidgetCommandBuffer m_ButtonText = new()
     {
         ScreenRect = new Rect(20, 20, 200, 50),
         Text = "Hello World!",
@@ -99,7 +99,7 @@ interface ICommandStorage
     void Clear();
 }
 
-class TextButton : Widget
+class TextButton : WidgetCommandBuffer
 {
     public bool IsHovered { get; set; }
     public bool IsPressed { get; set; }
@@ -207,7 +207,7 @@ class CommandBuffer : ICommandBuffer
 }
 
 
-public abstract class Widget
+public abstract class WidgetCommandBuffer
 {
     public Rect ScreenRect { get; set; }
     public abstract void Render(ICommandBuffer commandBuffer);
@@ -223,7 +223,7 @@ public interface ICommandBuffer
     ReadOnlySpan<DrawTextCommand> GetAllDrawTextCommands();
 }
 
-public sealed class TextWidget : Widget
+public sealed class TextWidgetCommandBuffer : WidgetCommandBuffer
 {
     public string Text { get; set; } = string.Empty;
 

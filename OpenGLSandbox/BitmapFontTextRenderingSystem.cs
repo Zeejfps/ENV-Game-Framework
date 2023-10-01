@@ -356,7 +356,13 @@ class RenderedGlyphImpl : IRenderedGlyph, IInstancedItem<Glyph>
     
     public void Update(ref Glyph glyph)
     {
-        glyph.ScreenRect = ScreenRect;
+        var rect = ScreenRect;
+        rect.X = MathF.Floor(rect.X);
+        rect.Y = MathF.Floor(rect.Y);
+        rect.Width = MathF.Floor(rect.Width);
+        rect.Height = MathF.Floor(rect.Height);
+
+        glyph.ScreenRect = rect;
         glyph.TextureRect = TextureRect;
         glyph.Color = Color;
     }
