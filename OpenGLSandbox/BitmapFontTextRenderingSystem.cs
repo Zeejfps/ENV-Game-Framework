@@ -174,16 +174,16 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
         
     private int CalculateHeight(ReadOnlySpan<char> text)
     {
-        var h = 0;
-        foreach (var c in text)
-        {
-            if (TryGetGlyph(c, out var glyph))
-            {
-                if (glyph.Height > h)
-                    h = glyph.Height;
-            }
-        }
-        return h;
+        // var h = 0;
+        // foreach (var c in text)
+        // {
+        //     if (TryGetGlyph(c, out var glyph))
+        //     {
+        //         if (glyph.Height > h)
+        //             h = glyph.Height;
+        //     }
+        // }
+        return Base;
     }
     
     private int CalculateWidth(ReadOnlySpan<char> text)
