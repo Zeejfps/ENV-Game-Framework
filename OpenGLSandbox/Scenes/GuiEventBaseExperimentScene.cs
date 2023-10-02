@@ -54,7 +54,14 @@ public sealed class GuiEventBaseExperimentScene : IScene
         glClearColor(bg.R, bg.G, bg.B, bg.A);
         
         m_PanelRenderer.Load();
-        m_BitmapFontTextRenderer.Load();
+        m_BitmapFontTextRenderer.Load(new []
+        {
+            new BmpFontFile
+            {
+                FontFamily = "Segoe UI",
+                PathToFile = "Assets/bitmapfonts/Segoe UI.fnt"
+            }
+        });
         foreach (var textButton in m_TextButtons)
         {
             textButton.IsVisible = true;

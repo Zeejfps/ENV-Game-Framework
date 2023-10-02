@@ -6,6 +6,12 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
+public readonly struct BmpFontFile
+{
+    public string FontFamily { get; init; }
+    public string PathToFile { get; init; }
+}
+
 public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
 {
     private const uint MaxGlyphCount = 20000;
@@ -23,13 +29,13 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
     private int m_Base;
     private int m_LineHeight;
 
-    private TexturedQuadInstancedRenderingSystem<Glyph> m_Renderer;
+    private TexturedQuadInstanceRenderer<Glyph> m_Renderer;
         
     public BitmapFontTextRenderer(IWindow window, string pathToFontFile)
     {
         m_Window = window;
         m_PathToFontFile = pathToFontFile;
-        m_Renderer = new TexturedQuadInstancedRenderingSystem<Glyph>(MaxGlyphCount);
+        m_Renderer = new TexturedQuadInstanceRenderer<Glyph>(MaxGlyphCount);
     }
 
     public int LineHeight => m_LineHeight;
@@ -37,7 +43,7 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
     public float ScaleW => m_ScaleW;
     public float ScaleH => m_ScaleH;
 
-    public void Load()
+    public void Load(BmpFontFile[] files)
     {
         m_Renderer.Load();
         

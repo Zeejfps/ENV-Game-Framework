@@ -35,7 +35,19 @@ public sealed class CalculatorScene : IScene
         m_Window.IsResizable = false;
 
         m_PanelRenderer.Load();
-        m_TextRenderer.Load();
+        m_TextRenderer.Load(new []
+        {
+            new BmpFontFile
+            {
+                FontFamily = "Segoe UI",
+                PathToFile = "Assets/bitmapfonts/Segoe UI.fnt"
+            },
+            new BmpFontFile
+            {
+                FontFamily = "Segoe UI Symbols",
+                PathToFile = "Assets/bitmapfonts/test.fnt"
+            }
+        });
         
         var bgColor = Color.FromHex(0x221e26, 1f);
         glClearColor(bgColor.R, bgColor.G, bgColor.B, bgColor.A);
@@ -498,7 +510,7 @@ public sealed class CalculatorScene : IScene
         
         protected override IWidget Build(IBuildContext context)
         {
-            var x = "\U0001D499";
+            var x = "\U0001D465";
             
             return new PaddingWidget
             {
@@ -533,8 +545,8 @@ public sealed class CalculatorScene : IScene
                         
                         new CalculatorTextButtonWidget("⅟" + x),
                         new CalculatorTextButtonWidget(x + "²"),
-                        new CalculatorTextButtonWidget("2SqrX"),
-                        new CalculatorTextButtonWidget("/"),
+                        new CalculatorTextButtonWidget("\u221A" + x),
+                        new CalculatorTextButtonWidget("\u00F7"),
                         
                         new CalculatorTextButtonWidget("%"),
                         new CalculatorTextButtonWidget("CE"),

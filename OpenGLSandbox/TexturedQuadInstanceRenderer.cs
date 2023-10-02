@@ -12,7 +12,7 @@ public interface IInstancedItem<TInstancedData> where TInstancedData : unmanaged
     void Update(ref TInstancedData instancedData);
 }
 
-public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData> 
+public sealed unsafe class TexturedQuadInstanceRenderer<TInstancedData> 
     where TInstancedData : unmanaged
 {
     public int ItemCount => m_ItemCount;
@@ -32,7 +32,7 @@ public sealed unsafe class TexturedQuadInstancedRenderingSystem<TInstancedData>
     
     private int m_ItemCount;
 
-    public TexturedQuadInstancedRenderingSystem(uint maxInstanceCount)
+    public TexturedQuadInstanceRenderer(uint maxInstanceCount)
     {
         m_MaxInstanceCount = maxInstanceCount;
     }
