@@ -123,85 +123,10 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
     {
         return new RenderedTextImpl(this, screenRect, style, text);
     }
-
-    public Vector2 CalculatePosition(Rect screenRect, TextStyle style, string text)
-    {
-        var horizontalAlignment = style.HorizontalTextAlignment;
-        var verticalAlignment = style.VerticalTextAlignment;
-        var textWidth = CalculateWidth(text);
-        var textHeight = CalculateHeight(text);
-        var leftPadding = 0f;
-        var bottomPadding = 0f;
-        
-        switch (horizontalAlignment)
-        {
-            case TextAlignment.Start:
-                leftPadding = 0f;
-                break;
-            case TextAlignment.Center:
-                leftPadding = MathF.Floor((screenRect.Width - textWidth) * 0.5f);
-                break;
-            case TextAlignment.End:
-                leftPadding = MathF.Floor(screenRect.Width - textWidth);
-                break;
-            case TextAlignment.Justify:
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-
-        switch (verticalAlignment)
-        {
-            case TextAlignment.Start:
-                bottomPadding = screenRect.Height - textHeight;
-                break;
-            case TextAlignment.Center:
-                bottomPadding = MathF.Floor(screenRect.Height - textHeight) * 0.5f;
-                break;
-            case TextAlignment.End:
-                bottomPadding = 0f;
-                break;
-            case TextAlignment.Justify:
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-        
-        var x = (int)(screenRect.X + leftPadding);
-        var y = (int)(screenRect.Y + bottomPadding);
-        return new Vector2(x, y);
-    }
-        
-    private int CalculateHeight(ReadOnlySpan<char> text)
-    {
-        // var h = 0;
-        // foreach (var c in text)
-        // {
-        //     if (TryGetGlyph(c, out var glyph))
-        //     {
-        //         if (glyph.Height > h)
-        //             h = glyph.Height;
-        //     }
-        // }
-        return Base;
-    }
-    
-    private int CalculateWidth(ReadOnlySpan<char> text)
-    {
-        var textWidthInPixels = 0;
-        foreach (var c in text)
-        {
-            if (!TryGetGlyph(c, out var glyph))
-                continue;
-            textWidthInPixels += glyph.XOffset + glyph.XAdvance;
-        }
-
-        return textWidthInPixels;
-    }
         
     public bool TryGetGlyph(int c, out FontChar glyph)
     {
-        Console.WriteLine("Char ID: " + c);
+        //Console.WriteLine("Char ID: " + c);
         return m_IdToGlyphTable.TryGetValue(c, out glyph);
     }
 
@@ -267,7 +192,7 @@ public sealed class RenderedTextImpl : IRenderedText
 
     private void LayoutGlyphs()
     {
-        var position = m_TextRenderer.CalculatePosition(ScreenRect, Style, m_Text);
+        var position = CalculatePosition(ScreenRect, Style, m_Text);
         var cursor = new Vector2(position.X, position.Y);
         var color = Style.Color;
         var text = m_Text;
@@ -308,6 +233,81 @@ public sealed class RenderedTextImpl : IRenderedText
             cursor.X += fontChar.XAdvance;
             i++;
         }
+    }
+    
+    public Vector2 CalculatePosition(Rect screenRect, TextStyle style, string text)
+    {
+        var horizontalAlignment = style.HorizontalTextAlignment;
+        var verticalAlignment = style.VerticalTextAlignment;
+        var textWidth = CalculateWidth(text);
+        var textHeight = CalculateHeight(text);
+        var leftPadding = 0f;
+        var bottomPadding = 0f;
+        
+        switch (horizontalAlignment)
+        {
+            case TextAlignment.Start:
+                leftPadding = 0f;
+                break;
+            case TextAlignment.Center:
+                leftPadding = MathF.Floor((screenRect.Width - textWidth) * 0.5f);
+                break;
+            case TextAlignment.End:
+                leftPadding = MathF.Floor(screenRect.Width - textWidth);
+                break;
+            case TextAlignment.Justify:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+
+        switch (verticalAlignment)
+        {
+            case TextAlignment.Start:
+                bottomPadding = screenRect.Height - textHeight;
+                break;
+            case TextAlignment.Center:
+                bottomPadding = MathF.Floor(screenRect.Height - textHeight) * 0.5f;
+                break;
+            case TextAlignment.End:
+                bottomPadding = 0f;
+                break;
+            case TextAlignment.Justify:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+        
+        var x = (int)(screenRect.X + leftPadding);
+        var y = (int)(screenRect.Y + bottomPadding);
+        return new Vector2(x, y);
+    }
+        
+    private int CalculateHeight(ReadOnlySpan<char> text)
+    {
+        // var h = 0;
+        // foreach (var c in text)
+        // {
+        //     if (TryGetGlyph(c, out var glyph))
+        //     {
+        //         if (glyph.Height > h)
+        //             h = glyph.Height;
+        //     }
+        // }
+        return m_TextRenderer.Base;
+    }
+    
+    private int CalculateWidth(string text)
+    {
+        var textWidthInPixels = 0;
+        foreach (var c in AsCodePoints(text))
+        {
+            if (!m_TextRenderer.TryGetGlyph(c, out var glyph))
+                continue;
+            textWidthInPixels += glyph.XOffset + glyph.XAdvance;
+        }
+
+        return textWidthInPixels;
     }
     
     private IEnumerable<int> AsCodePoints(string s)
