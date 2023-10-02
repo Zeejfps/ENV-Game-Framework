@@ -8,7 +8,7 @@ namespace OpenGLSandbox;
 
 public readonly struct BmpFontFile
 {
-    public string FontFamily { get; init; }
+    public string FontName { get; init; }
     public string PathToFile { get; init; }
 }
 
@@ -24,11 +24,8 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
     private uint m_Texture;
     private int m_ProjectionMatrixUniformLocation;
     private Matrix4x4 m_ProjectionMatrix;
-    private float m_ScaleW;
-    private float m_ScaleH;
-    private int m_Base;
-    private int m_LineHeight;
 
+    private FontFile m_FontFile;
     private TexturedQuadInstanceRenderer<Glyph> m_Renderer;
         
     public BitmapFontTextRenderer(IWindow window, string pathToFontFile)
@@ -38,10 +35,10 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
         m_Renderer = new TexturedQuadInstanceRenderer<Glyph>(MaxGlyphCount);
     }
 
-    public int LineHeight => m_LineHeight;
-    public int Base => m_Base;
-    public float ScaleW => m_ScaleW;
-    public float ScaleH => m_ScaleH;
+    public int LineHeight => m_FontFile.Common.LineHeight;
+    public int Base => m_FontFile.Common.Base;
+    public float ScaleW => m_FontFile.Common.ScaleW;
+    public float ScaleH => m_FontFile.Common.ScaleH;
 
     public void Load(BmpFontFile[] files)
     {
@@ -68,16 +65,11 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         AssertNoGlError();
 
-        var font = FontLoader.Load(m_PathToFontFile);
-        foreach (var glyph in font.Chars)
+        m_FontFile = FontLoader.Load(m_PathToFontFile);
+        foreach (var glyph in m_FontFile.Chars)
             m_IdToGlyphTable.Add(glyph.ID, glyph);
-
-        m_ScaleW = font.Common.ScaleW;
-        m_ScaleH = font.Common.ScaleH;
-        m_LineHeight = font.Common.LineHeight;
-        m_Base = font.Common.Base;
-
-        var imageFileName = font.Pages[0].File;
+        
+        var imageFileName = m_FontFile.Pages[0].File;
         var image = new TgaImage($"Assets/bitmapfonts/" + imageFileName);
         image.UploadToGpu();
             

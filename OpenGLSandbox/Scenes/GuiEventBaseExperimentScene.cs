@@ -58,7 +58,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         {
             new BmpFontFile
             {
-                FontFamily = "Segoe UI",
+                FontName = "Segoe UI",
                 PathToFile = "Assets/bitmapfonts/Segoe UI.fnt"
             }
         });
