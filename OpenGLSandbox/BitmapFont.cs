@@ -52,6 +52,19 @@ namespace BmFont
 			get;
 			set;
 		}
+
+		private readonly Dictionary<int, FontChar> m_IdToCharTable = new();
+
+		public void Update()
+		{
+			foreach (var c in Chars)
+				m_IdToCharTable.Add(c.ID, c);
+		}
+
+		public bool TryGetFontChar(int codePoint, out FontChar c)
+		{
+			return m_IdToCharTable.TryGetValue(codePoint, out c);
+		}
 	}
 
 	[Serializable]
@@ -357,6 +370,7 @@ namespace BmFont
 			TextReader textReader = new StreamReader ( filename );
 			FontFile file = ( FontFile ) deserializer.Deserialize ( textReader );
 			textReader.Close ( );
+			file.Update();
 			return file;
 		}
 	}

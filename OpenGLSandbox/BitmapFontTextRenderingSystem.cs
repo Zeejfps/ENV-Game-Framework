@@ -18,14 +18,13 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
 
     private readonly IWindow m_Window;
     private readonly string m_PathToFontFile;
-    private readonly Dictionary<int, FontChar> m_IdToGlyphTable = new();
     
     private uint m_ShaderProgram;
     private uint m_Texture;
     private int m_ProjectionMatrixUniformLocation;
     private Matrix4x4 m_ProjectionMatrix;
 
-    private FontFile m_FontFile;
+    private FontFile? m_FontFile;
     private TexturedQuadInstanceRenderer<Glyph> m_Renderer;
         
     public BitmapFontTextRenderer(IWindow window, string pathToFontFile)
@@ -34,11 +33,6 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
         m_PathToFontFile = pathToFontFile;
         m_Renderer = new TexturedQuadInstanceRenderer<Glyph>(MaxGlyphCount);
     }
-
-    public int LineHeight => m_FontFile.Common.LineHeight;
-    public int Base => m_FontFile.Common.Base;
-    public float ScaleW => m_FontFile.Common.ScaleW;
-    public float ScaleH => m_FontFile.Common.ScaleH;
 
     public void Load(BmpFontFile[] files)
     {
@@ -66,9 +60,7 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
         AssertNoGlError();
 
         m_FontFile = FontLoader.Load(m_PathToFontFile);
-        foreach (var glyph in m_FontFile.Chars)
-            m_IdToGlyphTable.Add(glyph.ID, glyph);
-        
+
         var imageFileName = m_FontFile.Pages[0].File;
         var image = new TgaImage($"Assets/bitmapfonts/" + imageFileName);
         image.UploadToGpu();
@@ -91,9 +83,9 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
         AssertNoGlError();    
         
         glDeleteProgram(m_ShaderProgram);
-        AssertNoGlError();    
-        
-        m_IdToGlyphTable.Clear();
+        AssertNoGlError();
+
+        m_FontFile = null;
     }
 
     public void Update()
@@ -119,13 +111,13 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
     
     public IRenderedText Render(string text, Rect screenRect, TextStyle style)
     {
-        return new RenderedTextImpl(this, screenRect, style, text);
+        return new RenderedTextImpl(this, m_FontFile, screenRect, style, text);
     }
         
     public bool TryGetGlyph(int c, out FontChar glyph)
     {
         //Console.WriteLine("Char ID: " + c);
-        return m_IdToGlyphTable.TryGetValue(c, out glyph);
+        return m_FontFile.TryGetFontChar(c, out glyph);
     }
 
     internal void Remove(RenderedGlyphImpl glyph)
@@ -165,13 +157,15 @@ public sealed class RenderedTextImpl : IRenderedText
     private readonly string m_Text;
     private readonly List<RenderedGlyphImpl> m_Glyphs = new();
     private readonly BitmapFontTextRenderer m_TextRenderer;
-
-    public RenderedTextImpl(BitmapFontTextRenderer renderer, Rect screenRect, TextStyle style, string text)
+    private readonly FontFile m_FontFile;
+    
+    public RenderedTextImpl(BitmapFontTextRenderer renderer, FontFile fontFile, Rect screenRect, TextStyle style, string text)
     {
         m_TextRenderer = renderer;
         m_ScreenRect = screenRect;
         m_Style = style;
         m_Text = text;
+        m_FontFile = fontFile;
         RegenerateGlyphs();
         LayoutGlyphs();
     }
@@ -194,10 +188,10 @@ public sealed class RenderedTextImpl : IRenderedText
         var cursor = new Vector2(position.X, position.Y);
         var color = Style.Color;
         var text = m_Text;
-        var baseOffset = m_TextRenderer.Base;
-        var scaleW = m_TextRenderer.ScaleW;
-        var scaleH = m_TextRenderer.ScaleH;
-        var lineHeight = m_TextRenderer.LineHeight;
+        var baseOffset = m_FontFile.Common.Base;
+        var scaleW = (float)m_FontFile.Common.ScaleW;
+        var scaleH = (float)m_FontFile.Common.ScaleH;
+        var lineHeight = (float)m_FontFile.Common.LineHeight;
         
         var i = 0;
         foreach (var codePoint in AsCodePoints(text))
@@ -292,7 +286,7 @@ public sealed class RenderedTextImpl : IRenderedText
         //             h = glyph.Height;
         //     }
         // }
-        return m_TextRenderer.Base;
+        return m_FontFile.Common.Base;
     }
     
     private int CalculateWidth(string text)
