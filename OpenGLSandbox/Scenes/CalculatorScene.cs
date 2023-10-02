@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Text;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
@@ -497,6 +498,8 @@ public sealed class CalculatorScene : IScene
         
         protected override IWidget Build(IBuildContext context)
         {
+            var x = "\U0001D499";
+            
             return new PaddingWidget
             {
                 ScreenRect = new Rect(0, 0, 400f, 410f),
@@ -528,15 +531,15 @@ public sealed class CalculatorScene : IScene
                         new CalculatorTextButtonWidget("9"),
                         new CalculatorTextButtonWidget("x"),
                         
-                        new CalculatorTextButtonWidget("1/x"),
-                        new CalculatorTextButtonWidget("X^2"),
+                        new CalculatorTextButtonWidget("⅟" + x),
+                        new CalculatorTextButtonWidget(x + "²"),
                         new CalculatorTextButtonWidget("2SqrX"),
                         new CalculatorTextButtonWidget("/"),
                         
                         new CalculatorTextButtonWidget("%"),
                         new CalculatorTextButtonWidget("CE"),
                         new CalculatorTextButtonWidget("C"),
-                        new CalculatorTextButtonWidget("<-"),
+                        new CalculatorTextButtonWidget(((char)57475).ToString()),
                     }
                 }
             };

@@ -199,10 +199,10 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
         return textWidthInPixels;
     }
         
-    public bool TryGetGlyph(char c, out FontChar glyph)
+    public bool TryGetGlyph(int c, out FontChar glyph)
     {
-        var id = (int)c;
-        return m_IdToGlyphTable.TryGetValue(id, out glyph);
+        Console.WriteLine("Char ID: " + c);
+        return m_IdToGlyphTable.TryGetValue(c, out glyph);
     }
 
     internal void Remove(RenderedGlyphImpl glyph)
@@ -277,16 +277,16 @@ public sealed class RenderedTextImpl : IRenderedText
         var lineHeight = m_TextRenderer.LineHeight;
         
         var i = 0;
-        foreach (var c in text)
+        foreach (var codePoint in AsCodePoints(text))
         {
-            if (c == '\n')
+            if (codePoint == '\n')
             {
                 cursor.X = position.X;
                 cursor.Y -= lineHeight;
                 continue;
             }
                 
-            if (!m_TextRenderer.TryGetGlyph(c, out var fontChar))
+            if (!m_TextRenderer.TryGetGlyph(codePoint, out var fontChar))
                 continue;
                 
             var xPos = cursor.X + fontChar.XOffset;
@@ -307,6 +307,16 @@ public sealed class RenderedTextImpl : IRenderedText
             //Console.WriteLine($"{c}: ({uOffset}, {vOffset})\t({uScale}, {vScale})");
             cursor.X += fontChar.XAdvance;
             i++;
+        }
+    }
+    
+    private IEnumerable<int> AsCodePoints(string s)
+    {
+        for(int i = 0; i < s.Length; ++i)
+        {
+            yield return char.ConvertToUtf32(s, i);
+            if(char.IsHighSurrogate(s, i))
+                i++;
         }
     }
 
