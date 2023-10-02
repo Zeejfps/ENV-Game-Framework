@@ -17,13 +17,13 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
     private const uint MaxGlyphCount = 20000;
 
     private readonly IWindow m_Window;
-    private readonly string m_PathToFontFile;
     
     private uint m_ShaderProgram;
-    private uint m_Texture;
     private int m_ProjectionMatrixUniformLocation;
     private Matrix4x4 m_ProjectionMatrix;
-
+    
+    private readonly string m_PathToFontFile;
+    private uint m_Texture;
     private FontFile? m_FontFile;
     private TexturedQuadInstanceRenderer<Glyph> m_Renderer;
     
@@ -126,18 +126,20 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
 }
 
 
-sealed class BpmFontGlyphRenderer
+sealed unsafe class BmpFontGlyphRenderer : IDisposable
 {
+    private readonly uint m_TextureId;
     private readonly FontFile m_FontFile;
     private readonly TexturedQuadInstanceRenderer<Glyph> m_TexturedQuadInstanceRenderer;
 
-    private BpmFontGlyphRenderer(FontFile fontFile, TexturedQuadInstanceRenderer<Glyph> texturedQuadInstanceRenderer)
+    private BmpFontGlyphRenderer(uint textureId, FontFile fontFile, TexturedQuadInstanceRenderer<Glyph> texturedQuadInstanceRenderer)
     {
+        m_TextureId = textureId;
         m_FontFile = fontFile;
         m_TexturedQuadInstanceRenderer = texturedQuadInstanceRenderer;
     }
 
-    public unsafe BpmFontGlyphRenderer Init(string pathToFontFile)
+    public BmpFontGlyphRenderer Init(string pathToFontFile)
     {
         var texturedQuadInstanceRenderer = new TexturedQuadInstanceRenderer<Glyph>(10_000);
         texturedQuadInstanceRenderer.Load();
@@ -167,7 +169,7 @@ sealed class BpmFontGlyphRenderer
         var image = new TgaImage($"Assets/bitmapfonts/" + imageFileName);
         image.UploadToGpu();
 
-        return new BpmFontGlyphRenderer(fontFile, texturedQuadInstanceRenderer);
+        return new BmpFontGlyphRenderer(textureId, fontFile, texturedQuadInstanceRenderer);
     }
     
     internal void Remove(RenderedGlyphImpl glyph)
@@ -178,6 +180,26 @@ sealed class BpmFontGlyphRenderer
     internal void Add(RenderedGlyphImpl glyph)
     {
         m_TexturedQuadInstanceRenderer.Add(glyph);
+    }
+
+    private void ReleaseUnmanagedResources()
+    {
+        fixed(uint* ptr = &m_TextureId)
+            glDeleteTextures(1, ptr);
+        AssertNoGlError();    
+        
+        m_TexturedQuadInstanceRenderer.Unload();
+    }
+
+    public void Dispose()
+    {
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+    }
+
+    ~BmpFontGlyphRenderer()
+    {
+        ReleaseUnmanagedResources();
     }
 }
 
