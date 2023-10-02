@@ -113,12 +113,6 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
     {
         return new RenderedTextImpl(this, m_FontFile, screenRect, style, text);
     }
-        
-    public bool TryGetGlyph(int c, out FontChar glyph)
-    {
-        //Console.WriteLine("Char ID: " + c);
-        return m_FontFile.TryGetFontChar(c, out glyph);
-    }
 
     internal void Remove(RenderedGlyphImpl glyph)
     {
@@ -203,7 +197,7 @@ public sealed class RenderedTextImpl : IRenderedText
                 continue;
             }
                 
-            if (!m_TextRenderer.TryGetGlyph(codePoint, out var fontChar))
+            if (!m_FontFile.TryGetFontChar(codePoint, out var fontChar))
                 continue;
                 
             var xPos = cursor.X + fontChar.XOffset;
@@ -294,7 +288,7 @@ public sealed class RenderedTextImpl : IRenderedText
         var textWidthInPixels = 0;
         foreach (var c in AsCodePoints(text))
         {
-            if (!m_TextRenderer.TryGetGlyph(c, out var glyph))
+            if (!m_FontFile.TryGetFontChar(c, out var glyph))
                 continue;
             textWidthInPixels += glyph.XOffset + glyph.XAdvance;
         }
