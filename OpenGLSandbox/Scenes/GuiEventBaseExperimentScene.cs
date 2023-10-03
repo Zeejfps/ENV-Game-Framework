@@ -195,6 +195,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
             
             m_RenderedText = m_TextRenderer.Render(Text, ScreenRect, new TextStyle
             {
+                FontName = "Segoe UI",
                 Color = TextNormalColor,
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center

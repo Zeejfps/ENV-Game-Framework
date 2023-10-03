@@ -20,7 +20,7 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
     private int m_ProjectionMatrixUniformLocation;
     private Matrix4x4 m_ProjectionMatrix;
     
-    private BmpFontGlyphRenderer m_Renderer;
+    private readonly Dictionary<string, BmpFontGlyphRenderer> m_FontNameToFontRendererTable = new();
     
     public BitmapFontTextRenderer(IWindow window)
     {
@@ -29,7 +29,11 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
 
     public void Load(BmpFontFile[] files)
     {
-        m_Renderer = BmpFontGlyphRenderer.Init(files[0].PathToFile);
+        foreach (var fontFile in files)
+        {
+            var renderer = BmpFontGlyphRenderer.Init(fontFile.PathToFile);
+            m_FontNameToFontRendererTable.Add(fontFile.FontName, renderer);
+        }
         
         m_ShaderProgram = new ShaderProgramBuilder()
             .WithVertexShader("Assets/Shaders/bmpfont.vert.glsl")
@@ -42,7 +46,9 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
 
     public void Unload()
     {
-        m_Renderer.Dispose();
+        foreach (var renderer in m_FontNameToFontRendererTable.Values)
+            renderer.Dispose();
+        m_FontNameToFontRendererTable.Clear();
         
         glDeleteProgram(m_ShaderProgram);
         AssertNoGlError();
@@ -50,7 +56,8 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
 
     public void Update()
     {
-        m_Renderer.Update();
+        foreach (var renderer in m_FontNameToFontRendererTable.Values)
+            renderer.Update();
                      
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -62,22 +69,16 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
             glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
         AssertNoGlError();
         
-        m_Renderer.Render();
+        foreach (var renderer in m_FontNameToFontRendererTable.Values)
+            renderer.Render();
     }
     
     public IRenderedText Render(string text, Rect screenRect, TextStyle style)
     {
-        return new RenderedTextImpl(this, m_Renderer.FontFile, screenRect, style, text);
-    }
-
-    internal void Remove(RenderedGlyphImpl glyph)
-    {
-        m_Renderer.Remove(glyph);
-    }
-
-    internal void Add(RenderedGlyphImpl glyph)
-    {
-        m_Renderer.Add(glyph);
+        if (m_FontNameToFontRendererTable.TryGetValue(style.FontName, out var font))
+            return new RenderedTextImpl(font, screenRect, style, text);
+        
+        throw new Exception($"Could not find font with name: {style.FontName}");
     }
 }
 
@@ -167,6 +168,8 @@ sealed unsafe class BmpFontGlyphRenderer : IDisposable
 
     public void Render()
     {
+        glBindTexture(GL_TEXTURE_2D, m_TextureId);
+        AssertNoGlError();
         if (m_TexturedQuadInstanceRenderer.ItemCount > 0)
         {
             m_TexturedQuadInstanceRenderer.Render();
@@ -200,16 +203,14 @@ sealed class RenderedTextImpl : IRenderedText
 
     private readonly string m_Text;
     private readonly List<RenderedGlyphImpl> m_Glyphs = new();
-    private readonly BitmapFontTextRenderer m_TextRenderer;
-    private readonly FontFile m_FontFile;
+    private BmpFontGlyphRenderer m_FontRenderer;
     
-    public RenderedTextImpl(BitmapFontTextRenderer renderer, FontFile fontFile, Rect screenRect, TextStyle style, string text)
+    public RenderedTextImpl(BmpFontGlyphRenderer fontRenderer, Rect screenRect, TextStyle style, string text)
     {
-        m_TextRenderer = renderer;
         m_ScreenRect = screenRect;
         m_Style = style;
         m_Text = text;
-        m_FontFile = fontFile;
+        m_FontRenderer = fontRenderer;
         RegenerateGlyphs();
         LayoutGlyphs();
     }
@@ -221,7 +222,7 @@ sealed class RenderedTextImpl : IRenderedText
         {
             if (c == '\n') continue;
             var glyph = new RenderedGlyphImpl();
-            m_TextRenderer.Add(glyph);
+            m_FontRenderer.Add(glyph);
             m_Glyphs.Add(glyph);
         }
     }
@@ -232,10 +233,11 @@ sealed class RenderedTextImpl : IRenderedText
         var cursor = new Vector2(position.X, position.Y);
         var color = Style.Color;
         var text = m_Text;
-        var baseOffset = m_FontFile.Common.Base;
-        var scaleW = (float)m_FontFile.Common.ScaleW;
-        var scaleH = (float)m_FontFile.Common.ScaleH;
-        var lineHeight = (float)m_FontFile.Common.LineHeight;
+        var fontFile = m_FontRenderer.FontFile;
+        var baseOffset = fontFile.Common.Base;
+        var scaleW = (float)fontFile.Common.ScaleW;
+        var scaleH = (float)fontFile.Common.ScaleH;
+        var lineHeight = (float)fontFile.Common.LineHeight;
         
         var i = 0;
         foreach (var codePoint in AsCodePoints(text))
@@ -247,7 +249,7 @@ sealed class RenderedTextImpl : IRenderedText
                 continue;
             }
                 
-            if (!m_FontFile.TryGetFontChar(codePoint, out var fontChar))
+            if (!fontFile.TryGetFontChar(codePoint, out var fontChar))
                 continue;
                 
             var xPos = cursor.X + fontChar.XOffset;
@@ -330,15 +332,17 @@ sealed class RenderedTextImpl : IRenderedText
         //             h = glyph.Height;
         //     }
         // }
-        return m_FontFile.Common.Base;
+        var font = m_FontRenderer.FontFile;
+        return font.Common.Base;
     }
     
     private int CalculateWidth(string text)
     {
+        var font = m_FontRenderer.FontFile;
         var textWidthInPixels = 0;
         foreach (var c in AsCodePoints(text))
         {
-            if (!m_FontFile.TryGetFontChar(c, out var glyph))
+            if (!font.TryGetFontChar(c, out var glyph))
                 continue;
             textWidthInPixels += glyph.XOffset + glyph.XAdvance;
         }
@@ -359,7 +363,7 @@ sealed class RenderedTextImpl : IRenderedText
     private void DestroyAllGlyphs()
     {
         foreach (var glyph in m_Glyphs)
-            m_TextRenderer.Remove(glyph);
+            m_FontRenderer.Remove(glyph);
         m_Glyphs.Clear();
     }
 
