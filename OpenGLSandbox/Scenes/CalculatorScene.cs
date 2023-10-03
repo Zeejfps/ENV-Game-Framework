@@ -30,7 +30,7 @@ public sealed class CalculatorScene : IScene
     {
         m_Window.SetScreenSize(400, 640);
         m_Window.Title = "Calculator";
-        m_Window.IsResizable = false;
+        //m_Window.IsResizable = false;
 
         m_PanelRenderer.Load();
         m_TextRenderer.Load(new []

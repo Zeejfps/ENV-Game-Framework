@@ -20,7 +20,7 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
     private int m_ProjectionMatrixUniformLocation;
     private Matrix4x4 m_ProjectionMatrix;
     
-    private readonly Dictionary<string, BmpFontGlyphRenderer> m_FontNameToFontRendererTable = new();
+    private readonly Dictionary<string, BmpFontRenderer> m_FontNameToFontRendererTable = new();
     
     public BitmapFontTextRenderer(IWindow window)
     {
@@ -31,7 +31,7 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
     {
         foreach (var fontFile in files)
         {
-            var renderer = BmpFontGlyphRenderer.Init(fontFile.PathToFile);
+            var renderer = BmpFontRenderer.Init(fontFile.PathToFile);
             m_FontNameToFontRendererTable.Add(fontFile.FontName, renderer);
         }
         
@@ -64,7 +64,8 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
                 
         glUseProgram(m_ShaderProgram);
         AssertNoGlError();
-            
+
+        m_ProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, m_Window.ScreenWidth, 0f, m_Window.ScreenHeight, 0.1f, 100f);
         fixed (float* ptr = &m_ProjectionMatrix.M11)
             glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
         AssertNoGlError();
@@ -83,13 +84,13 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
 }
 
 
-sealed unsafe class BmpFontGlyphRenderer : IDisposable
+sealed unsafe class BmpFontRenderer : IDisposable
 {
     private readonly uint m_TextureId;
     private readonly FontFile m_FontFile;
     private readonly TexturedQuadInstanceRenderer<Glyph> m_TexturedQuadInstanceRenderer;
 
-    private BmpFontGlyphRenderer(uint textureId, FontFile fontFile, TexturedQuadInstanceRenderer<Glyph> texturedQuadInstanceRenderer)
+    private BmpFontRenderer(uint textureId, FontFile fontFile, TexturedQuadInstanceRenderer<Glyph> texturedQuadInstanceRenderer)
     {
         m_TextureId = textureId;
         m_FontFile = fontFile;
@@ -98,7 +99,7 @@ sealed unsafe class BmpFontGlyphRenderer : IDisposable
 
     public FontFile FontFile => m_FontFile;
 
-    public static BmpFontGlyphRenderer Init(string pathToFontFile)
+    public static BmpFontRenderer Init(string pathToFontFile)
     {
         var texturedQuadInstanceRenderer = new TexturedQuadInstanceRenderer<Glyph>(10_000);
         texturedQuadInstanceRenderer.Load();
@@ -123,12 +124,13 @@ sealed unsafe class BmpFontGlyphRenderer : IDisposable
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         AssertNoGlError();
 
+        var fontFileDirectory = Path.GetDirectoryName(pathToFontFile);
         var fontFile = FontLoader.Load(pathToFontFile);
-        var imageFileName = fontFile.Pages[0].File;
-        var image = new TgaImage($"Assets/bitmapfonts/" + imageFileName);
+        var pageFileName = fontFile.Pages[0].File;
+        var image = new TgaImage(Path.Combine(fontFileDirectory, pageFileName));
         image.UploadToGpu();
 
-        return new BmpFontGlyphRenderer(textureId, fontFile, texturedQuadInstanceRenderer);
+        return new BmpFontRenderer(textureId, fontFile, texturedQuadInstanceRenderer);
     }
     
     internal void Remove(RenderedGlyphImpl glyph)
@@ -156,7 +158,7 @@ sealed unsafe class BmpFontGlyphRenderer : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    ~BmpFontGlyphRenderer()
+    ~BmpFontRenderer()
     {
         ReleaseUnmanagedResources();
     }
@@ -203,9 +205,9 @@ sealed class RenderedTextImpl : IRenderedText
 
     private readonly string m_Text;
     private readonly List<RenderedGlyphImpl> m_Glyphs = new();
-    private BmpFontGlyphRenderer m_FontRenderer;
+    private BmpFontRenderer m_FontRenderer;
     
-    public RenderedTextImpl(BmpFontGlyphRenderer fontRenderer, Rect screenRect, TextStyle style, string text)
+    public RenderedTextImpl(BmpFontRenderer fontRenderer, Rect screenRect, TextStyle style, string text)
     {
         m_ScreenRect = screenRect;
         m_Style = style;
