@@ -14,57 +14,23 @@ public readonly struct BmpFontFile
 
 public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
 {
-    private const uint MaxGlyphCount = 20000;
-
     private readonly IWindow m_Window;
     
     private uint m_ShaderProgram;
     private int m_ProjectionMatrixUniformLocation;
     private Matrix4x4 m_ProjectionMatrix;
     
-    private readonly string m_PathToFontFile;
-    private uint m_Texture;
-    private FontFile? m_FontFile;
-    private TexturedQuadInstanceRenderer<Glyph> m_Renderer;
+    private BmpFontGlyphRenderer m_Renderer;
     
-    public BitmapFontTextRenderer(IWindow window, string pathToFontFile)
+    public BitmapFontTextRenderer(IWindow window)
     {
         m_Window = window;
-        m_PathToFontFile = pathToFontFile;
-        m_Renderer = new TexturedQuadInstanceRenderer<Glyph>(MaxGlyphCount);
     }
 
     public void Load(BmpFontFile[] files)
     {
-        m_Renderer.Load();
+        m_Renderer = BmpFontGlyphRenderer.Init(files[0].PathToFile);
         
-        uint id;
-        glGenTextures(1, &id);
-        AssertNoGlError();
-        m_Texture = id;
-            
-        glActiveTexture(GL_TEXTURE0);
-        AssertNoGlError();
-        glBindTexture(GL_TEXTURE_2D, m_Texture);
-        AssertNoGlError();
-        
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-        AssertNoGlError();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        AssertNoGlError();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        AssertNoGlError();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        AssertNoGlError();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        AssertNoGlError();
-
-        m_FontFile = FontLoader.Load(m_PathToFontFile);
-            
-        var imageFileName = m_FontFile.Pages[0].File;
-        var image = new TgaImage($"Assets/bitmapfonts/" + imageFileName);
-        image.UploadToGpu();
-            
         m_ShaderProgram = new ShaderProgramBuilder()
             .WithVertexShader("Assets/Shaders/bmpfont.vert.glsl")
             .WithFragmentShader("Assets/Shaders/bmpfont.frag.glsl")
@@ -76,42 +42,32 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
 
     public void Unload()
     {
-        m_Renderer.Unload();
-            
-        fixed(uint* ptr = &m_Texture)
-            glDeleteTextures(1, ptr);
-        AssertNoGlError();    
+        m_Renderer.Dispose();
         
         glDeleteProgram(m_ShaderProgram);
         AssertNoGlError();
-
-        m_FontFile = null;
     }
 
     public void Update()
     {
         m_Renderer.Update();
                      
-        //Console.WriteLine($"Shader program: {m_ShaderProgram}")
-        if (m_Renderer.ItemCount > 0)
-        {
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                 
-            glUseProgram(m_ShaderProgram);
-            AssertNoGlError();
+        glUseProgram(m_ShaderProgram);
+        AssertNoGlError();
             
-            fixed (float* ptr = &m_ProjectionMatrix.M11)
-                glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
-            AssertNoGlError();
-                        
-            m_Renderer.Render();
-        }
+        fixed (float* ptr = &m_ProjectionMatrix.M11)
+            glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
+        AssertNoGlError();
+        
+        m_Renderer.Render();
     }
     
     public IRenderedText Render(string text, Rect screenRect, TextStyle style)
     {
-        return new RenderedTextImpl(this, m_FontFile, screenRect, style, text);
+        return new RenderedTextImpl(this, m_Renderer.FontFile, screenRect, style, text);
     }
 
     internal void Remove(RenderedGlyphImpl glyph)
@@ -139,7 +95,9 @@ sealed unsafe class BmpFontGlyphRenderer : IDisposable
         m_TexturedQuadInstanceRenderer = texturedQuadInstanceRenderer;
     }
 
-    public BmpFontGlyphRenderer Init(string pathToFontFile)
+    public FontFile FontFile => m_FontFile;
+
+    public static BmpFontGlyphRenderer Init(string pathToFontFile)
     {
         var texturedQuadInstanceRenderer = new TexturedQuadInstanceRenderer<Glyph>(10_000);
         texturedQuadInstanceRenderer.Load();
@@ -200,6 +158,19 @@ sealed unsafe class BmpFontGlyphRenderer : IDisposable
     ~BmpFontGlyphRenderer()
     {
         ReleaseUnmanagedResources();
+    }
+
+    public void Update()
+    {
+        m_TexturedQuadInstanceRenderer.Update();
+    }
+
+    public void Render()
+    {
+        if (m_TexturedQuadInstanceRenderer.ItemCount > 0)
+        {
+            m_TexturedQuadInstanceRenderer.Render();
+        }
     }
 }
 

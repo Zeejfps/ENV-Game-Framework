@@ -23,9 +23,7 @@ public sealed class CalculatorScene : IScene
         m_Window = window;
         m_InputSystem = inputSystem;
         m_PanelRenderer = new PanelRenderer(window);
-        m_TextRenderer = new BitmapFontTextRenderer(window, "Assets/bitmapfonts/Segoe UI.fnt");
-
-
+        m_TextRenderer = new BitmapFontTextRenderer(window);
     }
 
     public void Load()

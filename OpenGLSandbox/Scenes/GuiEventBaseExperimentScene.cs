@@ -18,7 +18,7 @@ public sealed class GuiEventBaseExperimentScene : IScene
         m_Window = window;
         m_InputSystem = inputSystem;
         m_PanelRenderer = new PanelRenderer(window);
-        m_BitmapFontTextRenderer = new BitmapFontTextRenderer(window, "Assets/bitmapfonts/Segoe UI.fnt");
+        m_BitmapFontTextRenderer = new BitmapFontTextRenderer(window);
     }
     
     public void Load()
