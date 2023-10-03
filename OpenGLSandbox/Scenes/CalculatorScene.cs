@@ -43,7 +43,7 @@ public sealed class CalculatorScene : IScene
             new BmpFontFile
             {
                 FontName = "Segoe UI Symbols",
-                PathToFile = "Assets/bitmapfonts/test.fnt"
+                PathToFile = "Assets/bitmapfonts/Segoe UI Symbols.fnt"
             }
         });
         
