@@ -12,5 +12,11 @@
       <ProjectReference Include="..\EasyGameFramework.GUI\EasyGameFramework.GUI.csproj" />
       <ProjectReference Include="..\EasyGameFramework.OpenGL\EasyGameFramework.OpenGL.csproj" />
     </ItemGroup>
+    
+    <ItemGroup>
+        <Content Include="Assets\**\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
 
 </Project>

@@ -18,21 +18,39 @@ public sealed class ModelViewerApp : Game
 {
     private BuildContext BuildContext { get; }
     private readonly Gui m_Gui;
-
+    private readonly BitmapFontTextRenderer m_TextRenderer;
+    private readonly PanelRenderer m_PanelRenderer;
+    
     public ModelViewerApp(IContext context) : base(context)
     {
-        //BuildContext = new BuildContext();
-        //BuildContext.DiContainer.BindSingleton();
+        m_TextRenderer = new BitmapFontTextRenderer(Window);
+        m_PanelRenderer = new PanelRenderer(Window);
+        
+        BuildContext = new BuildContext();
+        BuildContext.DiContainer.BindSingleton<ITextRenderer>(m_TextRenderer);
+        BuildContext.DiContainer.BindSingleton<IPanelRenderer>(m_PanelRenderer);
+        
         m_Gui = new Gui(Window);
     }
 
     protected override void OnStartup()
     {
+        m_TextRenderer.Load(new []
+        {
+            new BmpFontFile
+            {
+                FontName = "Segoe UI",
+                PathToFile = "Assets/bitmapfonts/Segoe UI.fnt"
+            },
+        });
     }
 
     protected override void OnUpdate()
     {
-        //m_Gui.Update(context);
+        m_Gui.Update(BuildContext);
+        
+        m_PanelRenderer.Update();
+        m_TextRenderer.Update();
     }
 
     protected override void OnFixedUpdate()
