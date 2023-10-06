@@ -8,7 +8,7 @@ public sealed class ModelViewerApp : Game
 
     public ModelViewerApp(IContext context) : base(context)
     {
-        m_Gui = new Gui();
+        m_Gui = new Gui(Window);
     }
 
     protected override void OnStartup()
@@ -16,20 +16,16 @@ public sealed class ModelViewerApp : Game
         m_Gui.IsVisible = true;
     }
 
-    protected override void OnFixedUpdate()
+    protected override void OnUpdate()
     {
+        //m_Gui.Update(context);
     }
 
-    protected override void OnUpdate()
+    protected override void OnFixedUpdate()
     {
     }
 
     protected override void OnShutdown()
     {
     }
-}
-
-public class Gui
-{
-    public bool IsVisible { get; set; }
 }

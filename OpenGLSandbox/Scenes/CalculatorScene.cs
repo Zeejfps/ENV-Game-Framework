@@ -1,8 +1,6 @@
 ﻿using System.Numerics;
 using System.Text;
 using EasyGameFramework.Api;
-using EasyGameFramework.Api.Events;
-using EasyGameFramework.Api.InputDevices;
 using static GL46;
 
 namespace OpenGLSandbox;
@@ -104,53 +102,6 @@ public sealed class CalculatorScene : IScene
         m_TextRenderer.Unload();
     }
 
-    abstract class Widget : IWidget
-    {
-        public Rect ScreenRect { get; set; }
-        
-        private IWidget? m_Content;
-        
-        public virtual void Update(IBuildContext context)
-        {
-            m_Content ??= Build(context);
-            if (m_Content != null && m_Content != this)
-                m_Content.Update(context);
-        }
-
-        public virtual void Dispose()
-        {
-            m_Content?.Dispose();
-            m_Content = null;
-        }
-
-        protected abstract IWidget Build(IBuildContext context);
-    }
-
-    abstract class StatefulWidget : Widget
-    {
-        private bool m_IsDirty;
-        
-        public override void Update(IBuildContext context)
-        {
-            if (m_IsDirty)
-            {
-                m_IsDirty = false;
-                Dispose();
-            }
-            base.Update(context);
-        }
-
-        protected bool SetField<T>(ref T field, T value)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value))
-                return false;
-
-            field = value;
-            m_IsDirty = true;
-            return true;
-        }
-    }
-    
     sealed class TextWidget : Widget
     {
         public string Text { get; }
@@ -272,94 +223,6 @@ public sealed class CalculatorScene : IScene
         {
             m_RenderedPanel?.Dispose();
             m_RenderedPanel = null;
-        }
-    }
-
-    sealed class InputListenerWidget : Widget
-    {
-        public Action? OnPointerEnter { get; set; }
-        public Action? OnPointerExit { get; set; }
-        public Action? OnPointerPressed { get; set; }
-        public Action? OnPointerReleased { get; set; }
-        
-        public IWidget Child { get; init; }
-
-        private bool m_IsHovered;
-        private bool IsPointerHovering
-        {
-            get => m_IsHovered;
-            set
-            {
-                if (m_IsHovered == value)
-                    return;
-                m_IsHovered = value;
-                if (m_IsHovered)
-                    OnPointerEnter?.Invoke();
-                else
-                    OnPointerExit?.Invoke();
-            }
-        }
-
-        private bool m_IsPressed;
-        public bool IsPressed
-        {
-            get => m_IsPressed;
-            set
-            {
-                if (m_IsPressed == value)
-                    return;
-                m_IsPressed = value;
-                if(m_IsPressed)
-                    OnPointerPressed?.Invoke();
-                else
-                    OnPointerReleased?.Invoke();
-            }
-        }
-
-        private int ScreenHeight;
-        private IMouse? m_Mouse;
-
-        protected override IWidget Build(IBuildContext context)
-        {
-            //Console.WriteLine("Build:InputHandlerWidget");
-            
-            var window = context.Get<IWindow>();
-            ScreenHeight = window.ScreenHeight;
-            
-            var inputSystem = context.Get<IInputSystem>();
-            m_Mouse = inputSystem.Mouse;
-            m_Mouse.Moved += Mouse_OnMoved;
-            m_Mouse.ButtonStateChanged += Mouse_OnButtonStateChanged;
-            
-            Child.ScreenRect = ScreenRect;
-
-            m_IsHovered = ScreenRect.Contains(m_Mouse.ScreenX, ScreenHeight - m_Mouse.ScreenY);
-            m_IsPressed = m_IsHovered && m_Mouse.IsButtonPressed(MouseButton.Left);
-            
-            return Child;
-        }
-
-        public override void Dispose()
-        {
-            if (m_Mouse != null)
-            {
-                m_Mouse.Moved -= Mouse_OnMoved;
-                m_Mouse.ButtonStateChanged -= Mouse_OnButtonStateChanged;
-            }
-            base.Dispose();
-        }
-
-        private void Mouse_OnMoved(in MouseMovedEvent evt)
-        {
-            var mouse = evt.Mouse;
-            IsPointerHovering = ScreenRect.Contains(mouse.ScreenX, ScreenHeight - mouse.ScreenY);
-            if (IsPressed && !IsPointerHovering) IsPressed = false;
-        }
-
-        private void Mouse_OnButtonStateChanged(in MouseButtonStateChangedEvent evt)
-        {
-            var mouse = evt.Mouse;
-            IsPressed = m_IsHovered && mouse.IsButtonPressed(MouseButton.Left);
         }
     }
 
