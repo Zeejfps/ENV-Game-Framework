@@ -34,6 +34,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenGLSandbox", "OpenGLSand
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenGLBindingsGenerator", "OpenGLBindingsGenerator\OpenGLBindingsGenerator.csproj", "{447DAE85-08DC-4615-8290-C8A475B3B984}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModelViewer", "ModelViewer\ModelViewer.csproj", "{F2C771BA-4702-4820-9927-F03D7DF26B17}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyGameFramework.GUI", "EasyGameFramework.GUI\EasyGameFramework.GUI.csproj", "{350E0F47-2A19-4964-84BB-5046468F4FD6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -108,5 +112,13 @@ Global
 		{447DAE85-08DC-4615-8290-C8A475B3B984}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{447DAE85-08DC-4615-8290-C8A475B3B984}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{447DAE85-08DC-4615-8290-C8A475B3B984}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F2C771BA-4702-4820-9927-F03D7DF26B17}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2C771BA-4702-4820-9927-F03D7DF26B17}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2C771BA-4702-4820-9927-F03D7DF26B17}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2C771BA-4702-4820-9927-F03D7DF26B17}.Release|Any CPU.Build.0 = Release|Any CPU
+		{350E0F47-2A19-4964-84BB-5046468F4FD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{350E0F47-2A19-4964-84BB-5046468F4FD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{350E0F47-2A19-4964-84BB-5046468F4FD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{350E0F47-2A19-4964-84BB-5046468F4FD6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

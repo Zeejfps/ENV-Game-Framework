@@ -591,15 +591,3 @@ public sealed class CalculatorScene : IScene
         }
     }
 }
-
-interface IBuildContext
-{
-    T Get<T>();
-}
-
-interface IWidget : IDisposable
-{
-    Rect ScreenRect { get; set; }
-    void Update(IBuildContext context);
-}
-
