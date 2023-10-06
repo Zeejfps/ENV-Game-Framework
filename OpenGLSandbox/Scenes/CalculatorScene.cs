@@ -102,72 +102,6 @@ public sealed class CalculatorScene : IScene
         m_TextRenderer.Unload();
     }
 
-    sealed class TextWidget : Widget
-    {
-        public string Text { get; }
-        public TextStyle Style { get; init; }
-        
-        private IRenderedText? m_RenderedText;
-
-        public TextWidget(string text)
-        {
-            Text = text;
-        }
-        
-        protected override IWidget Build(IBuildContext context)
-        {
-            //Console.WriteLine("Build:TextWidget");
-            var renderer = context.Get<ITextRenderer>();
-            m_RenderedText = renderer.Render(Text, ScreenRect, Style);
-            return this;
-        }
-
-        public override void Dispose()
-        {
-            m_RenderedText?.Dispose();
-        }
-    }
-    
-    public struct Offsets
-    {
-        public float Left;
-        public float Right;
-        public float Top;
-        public float Bottom;
-
-        public Offsets(float top, float right, float bottom, float left)
-        {
-            Bottom = bottom;
-            Top = top;
-            Right = right;
-            Left = left;
-        }
-
-        public static Offsets All(float offset)
-        {
-            return new Offsets(offset, offset, offset, offset);
-        }
-    }
-
-    sealed class PaddingWidget : Widget
-    {
-        public Offsets Offsets { get; set; }
-        
-        public IWidget Child { get; set; }
-        
-        protected override IWidget Build(IBuildContext context)
-        {
-            var offset = Offsets;
-            var myScreenRect = ScreenRect;
-            myScreenRect.X += offset.Left;
-            myScreenRect.Y += offset.Bottom;
-            myScreenRect.Width -= offset.Left + offset.Right;
-            myScreenRect.Height -= offset.Top + offset.Bottom;
-            Child.ScreenRect = myScreenRect;
-            return Child;
-        }
-    }
-
     sealed class MultiChildWidget : IWidget
     {
         private readonly IEnumerable<IWidget> m_Children;
@@ -202,27 +136,6 @@ public sealed class CalculatorScene : IScene
             foreach (var widget in Children)
                 widget.ScreenRect = ScreenRect;
             return new MultiChildWidget(Children);
-        }
-    }
-
-    sealed class PanelWidget : Widget
-    {
-        public PanelStyle Style { get; init; }
-
-        private IRenderedPanel? m_RenderedPanel;
-        
-        protected override IWidget Build(IBuildContext context)
-        {
-            //Console.WriteLine("Build:PanelWidget");
-            var renderer = context.Get<IPanelRenderer>();
-            m_RenderedPanel = renderer.Render(ScreenRect, Style);
-            return this;
-        }
-
-        public override void Dispose()
-        {
-            m_RenderedPanel?.Dispose();
-            m_RenderedPanel = null;
         }
     }
 

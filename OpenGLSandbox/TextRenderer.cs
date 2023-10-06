@@ -6,19 +6,6 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
-public enum TextAlignment
-{
-    Start, Center, End, Justify
-}
-
-public struct TextStyle
-{
-    public string FontName;
-    public TextAlignment HorizontalTextAlignment;
-    public TextAlignment VerticalTextAlignment;
-    public Color Color;
-}
-
 public struct Glyph
 {
     [InstancedAttrib(4, GL_FLOAT)]

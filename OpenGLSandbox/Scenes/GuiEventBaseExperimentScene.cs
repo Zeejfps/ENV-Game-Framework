@@ -256,36 +256,6 @@ public sealed class GuiEventBaseExperimentScene : IScene
     }
 }
 
-public interface IPanelRenderer
-{
-    IRenderedPanel Render(Rect screenPosition, PanelStyle style);
-}
-
-public interface IRenderedPanel : IDisposable
-{
-    Rect ScreenRect { get; set; }
-    PanelStyle Style { get; set; }
-}
-
-public struct PanelStyle
-{
-    public Color BackgroundColor;
-    public Color BorderColor;
-    public BorderSize BorderSize;
-    public Vector4 BorderRadius;
-}
-
-public interface IRenderedText : IDisposable
-{
-    Rect ScreenRect { get; set; }
-    TextStyle Style { get; set; }
-}
-
-public interface ITextRenderer
-{
-    IRenderedText Render(string value, Rect screenPosition, TextStyle style);
-}
-
 public interface IRenderedGlyph
 {
 }

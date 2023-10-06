@@ -38,6 +38,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModelViewer", "ModelViewer\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyGameFramework.GUI", "EasyGameFramework.GUI\EasyGameFramework.GUI.csproj", "{350E0F47-2A19-4964-84BB-5046468F4FD6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyGameFramework.Common", "EasyGameFramework.Common\EasyGameFramework.Common.csproj", "{3DF82680-9481-43EF-BD4B-AE590F2AA0B1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -120,5 +122,9 @@ Global
 		{350E0F47-2A19-4964-84BB-5046468F4FD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{350E0F47-2A19-4964-84BB-5046468F4FD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{350E0F47-2A19-4964-84BB-5046468F4FD6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DF82680-9481-43EF-BD4B-AE590F2AA0B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DF82680-9481-43EF-BD4B-AE590F2AA0B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DF82680-9481-43EF-BD4B-AE590F2AA0B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DF82680-9481-43EF-BD4B-AE590F2AA0B1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

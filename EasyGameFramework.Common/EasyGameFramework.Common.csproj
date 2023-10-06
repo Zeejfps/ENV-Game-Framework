@@ -6,9 +6,4 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\EasyGameFramework.Common\EasyGameFramework.Common.csproj" />
-      <ProjectReference Include="..\EasyGameFramework\EasyGameFramework.csproj" />
-    </ItemGroup>
-
 </Project>
