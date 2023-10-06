@@ -102,43 +102,6 @@ public sealed class CalculatorScene : IScene
         m_TextRenderer.Unload();
     }
 
-    sealed class MultiChildWidget : IWidget
-    {
-        private readonly IEnumerable<IWidget> m_Children;
-
-        public Rect ScreenRect { get; set; }
-
-        public MultiChildWidget(IEnumerable<IWidget> children)
-        {
-            m_Children = children;
-        }
-
-        public void Update(IBuildContext context)
-        {
-            foreach (var child in m_Children)
-                child.Update(context);
-        }
-
-        public void Dispose()
-        {
-            foreach (var child in m_Children)
-                child.Dispose();
-        }
-    }
-
-    sealed class StackWidget : Widget
-    {
-        public List<IWidget> Children { get; init; } = new();
-
-        protected override IWidget Build(IBuildContext context)
-        {
-            //Console.WriteLine("Build:StackWidget");
-            foreach (var widget in Children)
-                widget.ScreenRect = ScreenRect;
-            return new MultiChildWidget(Children);
-        }
-    }
-
     sealed class CalculatorTextButtonWidget : StatefulWidget
     {
         public PanelStyle PanelStyleNormal { get; } = new()

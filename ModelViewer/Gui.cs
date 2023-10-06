@@ -33,13 +33,17 @@ public sealed class Button : StatefulWidget
     
     protected override IWidget Build(IBuildContext context)
     {
-        return new PanelWidget
+        return new InputListenerWidget
         {
             ScreenRect = ScreenRect,
-            Style = new PanelStyle
+            Child = new PanelWidget
             {
-                BackgroundColor = Color.FromHex(0xff00ff, 1f),
-                BorderRadius = new Vector4(5f, 5f, 5f, 5f)
+                ScreenRect = ScreenRect,
+                Style = new PanelStyle
+                {
+                    BackgroundColor = Color.FromHex(0xff00ff, 1f),
+                    BorderRadius = new Vector4(5f, 5f, 5f, 5f)
+                }
             }
         };
     }
