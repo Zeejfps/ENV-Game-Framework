@@ -35,6 +35,7 @@ public sealed class ModelViewerApp : Game
 
     protected override void OnStartup()
     {
+        m_PanelRenderer.Load();
         m_TextRenderer.Load(new []
         {
             new BmpFontFile

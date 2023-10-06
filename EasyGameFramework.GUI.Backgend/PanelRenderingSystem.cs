@@ -27,8 +27,8 @@ public sealed unsafe class PanelRenderer : IPanelRenderer
         m_Renderer.Load();
         
         m_ShaderProgram = new ShaderProgramBuilder()
-            .WithVertexShader("Assets/uirect.vert.glsl")
-            .WithFragmentShader("Assets/uirect.frag.glsl")
+            .WithVertexShader("Assets/shaders/uirect.vert.glsl")
+            .WithFragmentShader("Assets/shaders/uirect.frag.glsl")
             .Build();
 
         var bytes = Encoding.ASCII.GetBytes("projection_matrix");
