@@ -4,42 +4,6 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
-[AttributeUsage(AttributeTargets.Field)]
-public sealed class InstancedAttrib : Attribute
-{
-    public InstancedAttrib(uint componentCount, int componentType)
-    {
-        ComponentCount = (int)componentCount;
-        ComponentType = componentType;
-    }
-
-    public int ComponentCount { get; }
-    public int ComponentType { get; }
-}
-
-public struct Panel
-{
-    [InstancedAttrib(4, GL_FLOAT)]
-    public Color BackgroundColor;
-
-    [InstancedAttrib(4, GL_FLOAT)]
-    public Vector4 BorderRadius;
-
-    [InstancedAttrib(4, GL_FLOAT)]
-    public Rect ScreenRect;
-
-    [InstancedAttrib(4, GL_FLOAT)]
-    public Color BorderColor;
-
-    [InstancedAttrib(4, GL_FLOAT)]
-    public BorderSize BorderSize;
-
-    public override string ToString()
-    {
-        return $"{nameof(ScreenRect)}: {ScreenRect}, {nameof(BackgroundColor)}: {BackgroundColor}, {nameof(BorderColor)}: {BorderColor}, {nameof(BorderSize)}: {BorderSize}, {nameof(BorderRadius)}: {BorderRadius}";
-    }
-}
-
 public sealed unsafe class WidgetRectRenderingScene : IScene
 {
     private const int InstanceCount = 2;

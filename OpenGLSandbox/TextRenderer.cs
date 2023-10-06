@@ -6,16 +6,6 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OpenGLSandbox;
 
-public struct Glyph
-{
-    [InstancedAttrib(4, GL_FLOAT)]
-    public Rect ScreenRect;
-    [InstancedAttrib(4, GL_FLOAT)]
-    public Rect TextureRect;
-    [InstancedAttrib(4, GL_FLOAT)]
-    public Color Color;
-}
-
 public sealed unsafe class TextRenderer
 {
     

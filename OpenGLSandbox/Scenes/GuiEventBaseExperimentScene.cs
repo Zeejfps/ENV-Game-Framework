@@ -255,7 +255,3 @@ public sealed class GuiEventBaseExperimentScene : IScene
         }
     }
 }
-
-public interface IRenderedGlyph
-{
-}
