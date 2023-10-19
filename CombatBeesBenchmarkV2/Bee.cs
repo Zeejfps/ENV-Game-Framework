@@ -11,7 +11,8 @@ public sealed class Bee : IBee,
     IEntity<AliveBeeArchetype>,
     IEntity<DeadBeeArchetype>,
     IEntity<AttractRepelArchetype>,
-    IEntity<SpawnableBeeArchetype>
+    IEntity<SpawnableBeeArchetype>,
+    IEntity<NeedTargetArchetype>
 {
     public bool IsAlive { get; set; }
     public int TeamIndex { get; }
@@ -46,6 +47,7 @@ public sealed class Bee : IBee,
     public void Spawn()
     {
         World.Add<SpawnableBeeArchetype>(this);
+        World.Add<NeedTargetArchetype>(this);
     }
 
     public void Kill()
@@ -53,7 +55,7 @@ public sealed class Bee : IBee,
         AliveBees.Remove(this);
 
         Velocity *= 0.5f;
-        DeathTimer = 5f;
+        DeathTimer = 10f;
         IsAlive = false;
 
         World.Remove<AliveBeeArchetype>(this);
@@ -97,7 +99,8 @@ public sealed class Bee : IBee,
     {
         if (Target == null || !Target.IsAlive)
         {
-            Target = AliveBees.GetRandomEnemyBee(TeamIndex);
+            World.Add<NeedTargetArchetype>(this);
+            //Target = AliveBees.GetRandomEnemyBee(TeamIndex);
         }
         
         Into(ref archetype.Movement);
@@ -117,7 +120,8 @@ public sealed class Bee : IBee,
         if (archetype.IsTargetKilled && target != null && target.IsAlive)
         {
             target.Kill();
-            Target = AliveBees.GetRandomEnemyBee(TeamIndex);
+            World.Add<NeedTargetArchetype>(this);
+            //Target = AliveBees.GetRandomEnemyBee(TeamIndex);
         }
     }
 
@@ -179,5 +183,17 @@ public sealed class Bee : IBee,
         World.Remove<DeadBeeArchetype>(this);
         World.Add<AliveBeeArchetype>(this);
         World.Add<AttractRepelArchetype>(this);
+    }
+
+    public void Into(ref NeedTargetArchetype component)
+    {
+        component.In.TeamIndex = TeamIndex;
+    }
+
+    public void From(ref NeedTargetArchetype component)
+    {
+        Target = component.Out.Target;
+        if (Target != null && Target.IsAlive)
+            World.Remove<NeedTargetArchetype>(this);
     }
 }

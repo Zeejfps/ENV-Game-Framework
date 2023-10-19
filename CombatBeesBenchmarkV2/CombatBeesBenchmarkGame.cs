@@ -8,7 +8,7 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    public const int MaxBeeCount = 40000;
+    public const int MaxBeeCount = 100;
     
     private World World { get; }
     private NewAliveBeeMovementSystem AliveBeeMovementSystem { get; }
@@ -17,6 +17,8 @@ public class CombatBeesBenchmarkGame : Game
     private NewBeeCollisionSystem BeeCollisionSystem { get; }
     private AttractRepelSystem AttractRepelSystem { get; }
     private BeeSpawningSystem BeeSpawningSystem { get; }
+    
+    private TargetAssigningSystem TargetAssigningSystem { get; }
 
     private CameraRig m_CameraRig;
     private CameraRigController m_RigController;
@@ -49,6 +51,7 @@ public class CombatBeesBenchmarkGame : Game
         AliveBeeMovementSystem = new NewAliveBeeMovementSystem(World, MaxBeeCount);
         BeeRenderingSystem = new NewBeeRenderingSystem(World, MaxBeeCount, Gpu, camera);
         BeeCollisionSystem = new NewBeeCollisionSystem(World, MaxBeeCount);
+        TargetAssigningSystem = new TargetAssigningSystem(World, MaxBeeCount, aliveBeePool);
 
         for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
         {
@@ -90,13 +93,16 @@ public class CombatBeesBenchmarkGame : Game
     protected override void OnUpdate()
     {
         var dt = Time.UpdateDeltaTime;
+        
         BeeSpawningSystem.Tick(dt);
+        TargetAssigningSystem.Tick(dt);
         AttractRepelSystem.Tick(dt);
         AliveBeeMovementSystem.Tick(dt);
         DeadBeeMovementSystem.Tick(dt);
         BeeCollisionSystem.Tick(dt);
-        m_RigController.Update(dt);
         World.Update(0f);
+        
+        m_RigController.Update(dt);
 
         var gpu = Context.Window.Gpu;
         var framebufferController = gpu.FramebufferController;
