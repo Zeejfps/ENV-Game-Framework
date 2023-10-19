@@ -35,7 +35,10 @@ public sealed class Bee : IBee,
         World = world;
         AliveBees = aliveBees;
         Color = teamIndex == 0 ? new Vector4(1f, 0f, 0f, 1f) : new Vector4(0f, 0f, 1f, 1f);
-
+        
+        Velocity = Vector3.UnitX;
+        LookDirection = Vector3.UnitX;
+        
         World.Add<BeeRenderArchetype>(this);
         World.Add<CollisionArchetype>(this);
     }
@@ -65,6 +68,11 @@ public sealed class Bee : IBee,
         archetype.ModelMatrix = Matrix4x4.CreateScale(size, size, size)
                                 * Matrix4x4.CreateLookAt(Vector3.Zero, LookDirection, Vector3.UnitY)
                                 * Matrix4x4.CreateTranslation(Position);
+
+        // Console.WriteLine($"Size: {size}");
+        // Console.WriteLine($"Position: {Position}");
+        // Console.WriteLine($"LookDir: {LookDirection}");
+        // Console.WriteLine(archetype.ModelMatrix);
     }
 
     public void From(ref BeeRenderArchetype archetype)

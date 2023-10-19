@@ -8,7 +8,7 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    public const int MaxBeeCount = 100;
+    public const int MaxBeeCount = 10;
     
     private World World { get; }
     private NewAliveBeeMovementSystem AliveBeeMovementSystem { get; }
@@ -86,15 +86,12 @@ public class CombatBeesBenchmarkGame : Game
         World.EndFrame();
     }
 
-    protected override void OnFixedUpdate()
-    {
-        var dt = Time.FixedUpdateDeltaTime;
-        World.Update(dt);
-    }
+    protected override void OnFixedUpdate() {}
 
     protected override void OnUpdate()
     {
         var dt = Time.UpdateDeltaTime;
+        World.Update(0f);
         AttractRepelSystem.Tick(dt);
         AliveBeeMovementSystem.Tick(dt);
         DeadBeeMovementSystem.Tick(dt);

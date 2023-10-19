@@ -25,44 +25,45 @@ public sealed class NewAliveBeeMovementSystem : System<AliveBeeArchetype>
         var stateCount = components.Length;
         for (var i = 0; i < stateCount; i++)
         {
-            ref var state = ref components[i];
-            state.Movement.Velocity += state.MoveDirection * flightJitter;
-            state.Movement.Velocity *= damping;
+            ref var component = ref components[i];
+            component.Movement.Velocity += component.MoveDirection * flightJitter;
+            component.Movement.Velocity *= damping;
        
-            var attractionPoint = state.AttractionPoint;
-            Vector3 delta = attractionPoint - state.Movement.Position;
+            var attractionPoint = component.AttractionPoint;
+            Vector3 delta = attractionPoint - component.Movement.Position;
             var dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
             if (dist > 0f)
-                state.Movement.Velocity += delta * (teamAttraction / dist);
+                component.Movement.Velocity += delta * (teamAttraction / dist);
             
-            var repellentPoint = state.RepellentPoint;
-            delta = repellentPoint - state.Movement.Position;
+            var repellentPoint = component.RepellentPoint;
+            delta = repellentPoint - component.Movement.Position;
             dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
             if (dist > 0f)
-                state.Movement.Velocity -= delta * (teamRepulsion / dist);
+                component.Movement.Velocity -= delta * (teamRepulsion / dist);
             
-            delta = state.TargetPosition - state.Movement.Position;
+            delta = component.TargetPosition - component.Movement.Position;
             //Logger.Trace($"[{i}]: {state.TargetPosition}, Delta: {delta}");
             var sqrDist = delta.LengthSquared();
             if (sqrDist > attackDistanceSqr)
             {
                 //Logger.Trace($"[{i}] Attacking!: {delta}");
                 //Logger.Trace($"[{i}] Vel Before: {state.Velocity}");
-                state.Movement.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
+                component.Movement.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
                 //Logger.Trace($"[{i}] Vel After: {state.Velocity}");
             }
             else
             {
-                state.Movement.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
+                component.Movement.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
                 if (sqrDist < hitDistanceSqrd)
                 {
-                    state.IsTargetKilled = true;
+                    component.IsTargetKilled = true;
                 }
             }
 
-            //Logger.Trace($"[{i}] Velocity: {state.Velocity}");
-            state.LookDirection = Vector3.Lerp(state.LookDirection, Vector3.Normalize(state.Movement.Velocity), dt * 4f);
-            state.Movement.Position += state.Movement.Velocity * dt;
+            // Console.WriteLine($"[{i}] Velocity: {component.Movement.Velocity}");
+            // Console.WriteLine($"[{i}] LookDirection: {component.LookDirection}");
+            component.LookDirection = Vector3.Lerp(component.LookDirection, Vector3.Normalize(component.Movement.Velocity), dt * 4f);
+            component.Movement.Position += component.Movement.Velocity * dt;
         }
     }
 }
