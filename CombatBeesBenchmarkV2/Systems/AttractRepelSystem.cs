@@ -6,10 +6,10 @@ namespace CombatBeesBenchmarkV2.Systems;
 
 public sealed class AttractRepelSystem : System<AttractRepelArchetype>
 {
-    private BeePool<Bee> AliveBeePool { get; }
+    private BeePool<Bee?> AliveBeePool { get; }
     private Random Random { get; }
 
-    public AttractRepelSystem(IWorld world, int size, BeePool<Bee> aliveBeePool, Random random) : base(world, size)
+    public AttractRepelSystem(IWorld world, int size, BeePool<Bee?> aliveBeePool, Random random) : base(world, size)
     {
         AliveBeePool = aliveBeePool;
         Random = random;
@@ -20,8 +20,13 @@ public sealed class AttractRepelSystem : System<AttractRepelArchetype>
         for (var i = 0; i < components.Length; i++)
         {
             ref var component = ref components[i];
-            component.AttractionPoint = AliveBeePool.GetRandomAllyBee(component.TeamIndex).Position;
-            component.RepellentPoint = AliveBeePool.GetRandomAllyBee(component.TeamIndex).Position;
+            
+            var allyBee = AliveBeePool.GetRandomAllyBee(component.TeamIndex);
+            if (allyBee != null) component.AttractionPoint = allyBee.Position;
+            
+            allyBee = AliveBeePool.GetRandomAllyBee(component.TeamIndex);
+            if (allyBee != null) component.RepellentPoint = allyBee.Position;
+            
             component.MoveDirection = Random.RandomInsideUnitSphere();
         }
     }

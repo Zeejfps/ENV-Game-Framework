@@ -11,7 +11,7 @@ namespace CombatBeesBenchmark;
 public sealed class World : IWorld
 {
     public World(
-        BeePool<Bee> aliveBeePool,
+        BeePool<Bee?> aliveBeePool,
         ILogger logger, Random random)
     {
         AliveBeePool = aliveBeePool;
@@ -21,19 +21,10 @@ public sealed class World : IWorld
     
     private Random Random { get; }
     private ILogger Logger { get; }
-    private BeePool<Bee> AliveBeePool { get; }
-    private HashSet<Bee> BeesToKill { get; } = new();
-    private HashSet<Bee> BeesToSpawn { get; } = new();
+    private BeePool<Bee?> AliveBeePool { get; }
+    private HashSet<Bee?> BeesToKill { get; } = new();
 
-    public void Spawn(Bee deadBee)
-    {
-        if (deadBee.IsAlive)
-            return;
-        
-        BeesToSpawn.Add(deadBee);
-    }
-
-    public void Kill(Bee aliveBee)
+    public void Kill(Bee? aliveBee)
     {
         if (!aliveBee.IsAlive)
             return;
@@ -57,22 +48,9 @@ public sealed class World : IWorld
             Remove<AttractRepelArchetype>(bee);
         }
         BeesToKill.Clear();
-        
-        foreach (var bee in BeesToSpawn)
-        {
-            Remove<DeadBeeArchetype>(bee);
-            var spawnPosition = Vector3.UnitX * (-100f * .4f + 100f * .8f * bee.TeamIndex);
-            bee.Position = spawnPosition;
-            bee.Size = Random.NextSingleInRange(0.25f, 0.5f);
-            bee.IsAlive = true;
-            AliveBeePool.Add(bee);
-            Add<AliveBeeArchetype>(bee);
-            Add<AttractRepelArchetype>(bee);
-        }
-        BeesToSpawn.Clear();
     }
 
-    public Bee GetRandomEnemy(int teamIndex)
+    public Bee? GetRandomEnemy(int teamIndex)
     {
         return AliveBeePool.GetRandomEnemyBee(teamIndex);
     }
@@ -120,7 +98,7 @@ public sealed class World : IWorld
         }
     }
 
-    public void Add<TComponent>(IEntity<TComponent> entity) where TComponent : struct
+    public void Add<TComponent>(IEntity<TComponent>? entity) where TComponent : struct
     {
         var componentType = typeof(TComponent);
 
@@ -150,7 +128,7 @@ public sealed class World : IWorld
         }
     }
 
-    public void Remove<TComponent>(IEntity<TComponent> entity) where TComponent : struct
+    public void Remove<TComponent>(IEntity<TComponent>? entity) where TComponent : struct
     {
         var componentType = typeof(TComponent);
         if (m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))

@@ -23,17 +23,19 @@ public sealed class Bee : IBee,
     public Vector4 Color { get; set; }
     private World World { get; }
     private Bee? Target { get; set; }
-    private BeePool<Bee> AliveBees { get; }
+    private BeePool<Bee?> AliveBees { get; }
     private Vector3 AttractPoint { get; set; }
     private Vector3 RepelPoint { get; set; }
     private Vector3 MoveDirection { get; set; }
 
+    private readonly Random m_Random;
 
-    public Bee(int teamIndex, World world, BeePool<Bee> aliveBees)
+    public Bee(int teamIndex, World world, BeePool<Bee?> aliveBees, Random random)
     {
         TeamIndex = teamIndex;
         World = world;
         AliveBees = aliveBees;
+        m_Random = random;
         Color = teamIndex == 0 ? new Vector4(1f, 0f, 0f, 1f) : new Vector4(0f, 0f, 1f, 1f);
         
         Velocity = Vector3.UnitX;
@@ -45,7 +47,15 @@ public sealed class Bee : IBee,
 
     public void Spawn()
     {
-        World.Spawn(this);
+        var spawnPosition = Vector3.UnitX * (-100f * .4f + 100f * .8f * TeamIndex);
+        Position = spawnPosition;
+        Size = m_Random.NextSingleInRange(0.25f, 0.5f);
+        IsAlive = true;
+        AliveBees.Add(this);
+        
+        World.Remove<DeadBeeArchetype>(this);
+        World.Add<AliveBeeArchetype>(this);
+        World.Add<AttractRepelArchetype>(this);
     }
     
     public void Into(out CollisionArchetype archetype)
