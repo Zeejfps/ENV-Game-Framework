@@ -7,11 +7,13 @@ namespace CombatBeesBenchmarkV2.Systems;
 
 public sealed class BeeSpawningSystem : System<SpawnableBeeArchetype>
 {
+    private readonly BeePool<Bee> m_AliveBees;
     private readonly Random m_Random;
     
-    public BeeSpawningSystem(IWorld world, int size, Random random) : base(world, size)
+    public BeeSpawningSystem(IWorld world, int size, Random random, BeePool<Bee> aliveBees) : base(world, size)
     {
         m_Random = random;
+        m_AliveBees = aliveBees;
     }
 
     protected override void OnUpdate(float dt, ref Span<SpawnableBeeArchetype> archetypes)
@@ -22,6 +24,7 @@ public sealed class BeeSpawningSystem : System<SpawnableBeeArchetype>
             var spawnPosition = Vector3.UnitX * (-100f * .4f + 100f * .8f * archetype.In.TeamIndex);
             archetype.Out.SpawnPosition = spawnPosition;
             archetype.Out.Size = m_Random.NextSingleInRange(0.25f, 0.5f);
+            m_AliveBees.Add(archetype.In.Bee);
         }
     }
 }

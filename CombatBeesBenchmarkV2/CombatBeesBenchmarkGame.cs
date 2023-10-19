@@ -46,7 +46,7 @@ public class CombatBeesBenchmarkGame : Game
 
         World = new World(Logger);
 
-        BeeSpawningSystem = new BeeSpawningSystem(World, MaxBeeCount, random);
+        BeeSpawningSystem = new BeeSpawningSystem(World, MaxBeeCount, random, aliveBeePool);
         AttractRepelSystem = new AttractRepelSystem(World, MaxBeeCount, aliveBeePool, random);
         DeadBeeMovementSystem = new NewDeadBeeMovementSystem(World, MaxBeeCount);
         AliveBeeMovementSystem = new NewAliveBeeMovementSystem(World, MaxBeeCount);
@@ -61,7 +61,7 @@ public class CombatBeesBenchmarkGame : Game
             for (var j = 0; j < numberOfBeesPerTeam; j++)
             {
                 //Logger.Trace($"J: {j}");
-                var bee = new Bee(teamIndex, World, aliveBeePool);
+                var bee = new Bee(teamIndex, World);
                 bee.Spawn();
             }
         }

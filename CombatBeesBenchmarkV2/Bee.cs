@@ -26,16 +26,14 @@ public sealed class Bee : IBee,
     private Vector4 Color { get; set; }
     private World World { get; }
     private Bee? Target { get; set; }
-    private BeePool<Bee?> AliveBees { get; }
     private Vector3 AttractPoint { get; set; }
     private Vector3 RepelPoint { get; set; }
     private Vector3 MoveDirection { get; set; }
     
-    public Bee(int teamIndex, World world, BeePool<Bee?> aliveBees)
+    public Bee(int teamIndex, World world)
     {
         TeamIndex = teamIndex;
         World = world;
-        AliveBees = aliveBees;
         Color = teamIndex == 0 ? new Vector4(1f, 0f, 0f, 1f) : new Vector4(0f, 0f, 1f, 1f);
         
         Velocity = Vector3.UnitX;
@@ -160,6 +158,7 @@ public sealed class Bee : IBee,
     public void Into(ref SpawnableBeeArchetype component)
     {
         component.In.TeamIndex = TeamIndex;
+        component.In.Bee = this;
     }
 
     public void From(ref SpawnableBeeArchetype component)
@@ -168,7 +167,6 @@ public sealed class Bee : IBee,
         Size = component.Out.Size;
         
         IsAlive = true;
-        AliveBees.Add(this);
         
         World.Remove<SpawnableBeeArchetype>(this);
         World.Remove<DeadBeeArchetype>(this);

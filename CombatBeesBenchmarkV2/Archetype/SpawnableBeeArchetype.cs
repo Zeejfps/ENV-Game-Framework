@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using CombatBeesBenchmark;
 
 namespace CombatBeesBenchmarkV2.Archetype;
 
@@ -10,6 +11,7 @@ public struct SpawnableBeeArchetype
     public struct ReadOnlyData
     {
         public int TeamIndex;
+        public Bee Bee;
     }
     
     public struct WriteOnlyData
