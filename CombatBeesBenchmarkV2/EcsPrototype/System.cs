@@ -26,12 +26,6 @@ public abstract class System<TArchetype> : ISystem where TArchetype : struct
         Write();
     }
 
-    private void Update(float dt)
-    {
-        var components = m_Components.AsSpan(0, ComponentCount);
-        OnUpdate(dt, ref components);
-    }
-
     private void Read()
     {
         ComponentCount = m_World.Query<TArchetype>(m_Entities);
@@ -39,7 +33,7 @@ public abstract class System<TArchetype> : ISystem where TArchetype : struct
         {
             var entity = m_Entities[i];
             ref var component = ref m_Components[i];
-            entity.Into(out component);
+            entity.Into(ref component);
         }
         // Parallel.For(0, ComponentCount, (i) =>
         // {
@@ -47,6 +41,12 @@ public abstract class System<TArchetype> : ISystem where TArchetype : struct
         //     ref var component = ref m_Components[i];
         //     entity.Into(out component);
         // });
+    }
+
+    private void Update(float dt)
+    {
+        var components = m_Components.AsSpan(0, ComponentCount);
+        OnUpdate(dt, ref components);
     }
 
     private void Write()

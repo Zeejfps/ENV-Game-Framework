@@ -1,12 +1,54 @@
 ﻿using System.Collections;
 using System.Collections.Concurrent;
-using System.Numerics;
-using System.Runtime.InteropServices;
-using CombatBeesBenchmarkV2.Archetype;
 using CombatBeesBenchmarkV2.EcsPrototype;
 using EasyGameFramework.Api;
 
 namespace CombatBeesBenchmark;
+
+public interface IEntityRepo : IEnumerable<IEntity>
+{
+    int Count { get; }
+    void Add(IEntity entity);
+    void Remove(IEntity entity);
+    void Clear();
+}
+
+sealed class HashSetEntityRepo<TComponent> : IEntityRepo where TComponent : struct
+{
+    private readonly HashSet<IEntity<TComponent>> m_Entities = new();
+
+    public int Count => m_Entities.Count;
+
+    public void Add(IEntity entity)
+    {
+        m_Entities.Add((IEntity<TComponent>)entity);
+    }
+
+    public void Remove(IEntity entity)
+    {
+        m_Entities.Remove((IEntity<TComponent>)entity);
+    }
+
+    public void Clear()
+    {
+        m_Entities.Clear();
+    }
+
+    public void CopyTo(IEntity<TComponent>[] buffer)
+    {
+        m_Entities.CopyTo(buffer);
+    }
+
+    public IEnumerator<IEntity> GetEnumerator()
+    {
+        return m_Entities.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+}
 
 public sealed class World : IWorld
 {
@@ -23,16 +65,16 @@ public sealed class World : IWorld
     }
 
     private bool m_IsInFrame;
-    private readonly ConcurrentDictionary<IList, IList> m_EntitiesToAddTable = new();
-    private readonly ConcurrentDictionary<IList, IList> m_EntitiesToRemoveTable = new();
-    private readonly Dictionary<Type, IList> m_ComponentTypeToEntitiesTable = new();
+    private readonly ConcurrentDictionary<IEntityRepo, IEntityRepo> m_EntitiesToAddTable = new();
+    private readonly ConcurrentDictionary<IEntityRepo, IEntityRepo> m_EntitiesToRemoveTable = new();
+    private readonly Dictionary<Type, IEntityRepo> m_ComponentTypeToEntitiesTable = new();
 
     public int Query<TComponent>(IEntity<TComponent>[] buffer) where TComponent : struct
     {
         var componentType = typeof(TComponent);
         if (m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))
         {
-            var entitiesList = (List<IEntity<TComponent>>)entities;
+            var entitiesList = (HashSetEntityRepo<TComponent>)entities;
             var entityCount = entitiesList.Count;
             entitiesList.CopyTo(buffer);
             return entityCount;
@@ -71,15 +113,15 @@ public sealed class World : IWorld
 
         //Logger.Trace($"Adding {componentType} to {entity.GetHashCode()}");
 
-        IList entitiesToAddCache;
+        IEntityRepo entitiesToAddCache;
         if (!m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))
         {
             //Logger.Trace($"Did not find list for type: {componentType}");
-            entities = new List<IEntity<TComponent>>();
-            entitiesToAddCache = new List<IEntity<TComponent>>();
+            entities = new HashSetEntityRepo<TComponent>();
+            entitiesToAddCache = new HashSetEntityRepo<TComponent>();
             m_ComponentTypeToEntitiesTable[componentType] = entities;
             m_EntitiesToAddTable[entities] = entitiesToAddCache;
-            m_EntitiesToRemoveTable[entities] = new List<IEntity<TComponent>>();
+            m_EntitiesToRemoveTable[entities] = new HashSetEntityRepo<TComponent>();
         }
 
         if (m_IsInFrame)

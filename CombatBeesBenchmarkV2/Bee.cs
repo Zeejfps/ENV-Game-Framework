@@ -10,7 +10,8 @@ public sealed class Bee : IBee,
     IEntity<BeeRenderArchetype>,
     IEntity<AliveBeeArchetype>,
     IEntity<DeadBeeArchetype>,
-    IEntity<AttractRepelArchetype>
+    IEntity<AttractRepelArchetype>,
+    IEntity<SpawnableBeeArchetype>
 {
     public bool IsAlive { get; set; }
     public int TeamIndex { get; }
@@ -47,15 +48,7 @@ public sealed class Bee : IBee,
 
     public void Spawn()
     {
-        var spawnPosition = Vector3.UnitX * (-100f * .4f + 100f * .8f * TeamIndex);
-        Position = spawnPosition;
-        Size = m_Random.NextSingleInRange(0.25f, 0.5f);
-        IsAlive = true;
-        AliveBees.Add(this);
-        
-        World.Remove<DeadBeeArchetype>(this);
-        World.Add<AliveBeeArchetype>(this);
-        World.Add<AttractRepelArchetype>(this);
+        World.Add<SpawnableBeeArchetype>(this);
     }
 
     public void Kill()
@@ -71,7 +64,7 @@ public sealed class Bee : IBee,
         World.Add<DeadBeeArchetype>(this);
     }
     
-    public void Into(out CollisionArchetype archetype)
+    public void Into(ref CollisionArchetype archetype)
     {
         archetype.MovementState.Position = Position;
         archetype.MovementState.Velocity = Velocity;
@@ -83,7 +76,7 @@ public sealed class Bee : IBee,
         Velocity = archetype.MovementState.Velocity;
     }
 
-    public void Into(out BeeRenderArchetype archetype)
+    public void Into(ref BeeRenderArchetype archetype)
     {
         archetype.Color = Color;
 
@@ -103,14 +96,14 @@ public sealed class Bee : IBee,
         
     }
 
-    public void Into(out AliveBeeArchetype archetype)
+    public void Into(ref AliveBeeArchetype archetype)
     {
         if (Target == null || !Target.IsAlive)
         {
             Target = AliveBees.GetRandomEnemyBee(TeamIndex);
         }
         
-        Into(out archetype.Movement);
+        Into(ref archetype.Movement);
         archetype.TargetPosition = Target?.Position ?? Vector3.Zero;
         archetype.LookDirection = LookDirection;
         archetype.MoveDirection = MoveDirection;
@@ -131,9 +124,9 @@ public sealed class Bee : IBee,
         }
     }
 
-    public void Into(out DeadBeeArchetype archetype)
+    public void Into(ref DeadBeeArchetype archetype)
     {
-        Into(out archetype.Movement);
+        Into(ref archetype.Movement);
         archetype.DeathTimer = DeathTimer;
     }
 
@@ -145,7 +138,7 @@ public sealed class Bee : IBee,
             Spawn();
     }
 
-    public void Into(out MovementArchetype archetype)
+    public void Into(ref MovementArchetype archetype)
     {
         archetype.Position = Position;
         archetype.Velocity = Velocity;
@@ -157,7 +150,7 @@ public sealed class Bee : IBee,
         Velocity = archetype.Velocity;
     }
 
-    public void Into(out AttractRepelArchetype archetype)
+    public void Into(ref AttractRepelArchetype archetype)
     {
         archetype.AttractionPoint = AttractPoint;
         archetype.RepellentPoint = RepelPoint;
@@ -170,5 +163,24 @@ public sealed class Bee : IBee,
         AttractPoint = archetype.AttractionPoint;
         RepelPoint = archetype.RepellentPoint;
         MoveDirection = archetype.MoveDirection;
+    }
+
+    public void Into(ref SpawnableBeeArchetype component)
+    {
+        component.In.TeamIndex = TeamIndex;
+    }
+
+    public void From(ref SpawnableBeeArchetype component)
+    {
+        Position = component.Out.SpawnPosition;
+        Size = component.Out.Size;
+        
+        IsAlive = true;
+        AliveBees.Add(this);
+        
+        World.Remove<SpawnableBeeArchetype>(this);
+        World.Remove<DeadBeeArchetype>(this);
+        World.Add<AliveBeeArchetype>(this);
+        World.Add<AttractRepelArchetype>(this);
     }
 }
