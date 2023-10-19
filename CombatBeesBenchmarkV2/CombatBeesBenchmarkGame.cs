@@ -40,10 +40,7 @@ public class CombatBeesBenchmarkGame : Game
 
         var aliveBeePool = new BeePool<Bee?>(random, numberOfTeams, numberOfBeesPerTeam, Logger);
 
-        World = new World(
-            aliveBeePool,
-            Logger,
-            random);
+        World = new World(Logger);
 
         AttractRepelSystem = new AttractRepelSystem(World, MaxBeeCount, aliveBeePool, random);
         DeadBeeMovementSystem = new NewDeadBeeMovementSystem(World, MaxBeeCount);

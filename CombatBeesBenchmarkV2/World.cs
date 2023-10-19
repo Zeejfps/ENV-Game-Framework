@@ -10,27 +10,16 @@ namespace CombatBeesBenchmark;
 
 public sealed class World : IWorld
 {
-    public World(
-        BeePool<Bee?> aliveBeePool,
-        ILogger logger, Random random)
+    public World(ILogger logger)
     {
-        AliveBeePool = aliveBeePool;
         Logger = logger;
-        Random = random;
     }
     
-    private Random Random { get; }
     private ILogger Logger { get; }
-    private BeePool<Bee?> AliveBeePool { get; }
 
     public void Update(float dt)
     {
         
-    }
-
-    public Bee? GetRandomEnemy(int teamIndex)
-    {
-        return AliveBeePool.GetRandomEnemyBee(teamIndex);
     }
 
     private bool m_IsInFrame;

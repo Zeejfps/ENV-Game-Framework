@@ -107,11 +107,11 @@ public sealed class Bee : IBee,
     {
         if (Target == null || !Target.IsAlive)
         {
-            Target = World.GetRandomEnemy(TeamIndex);
+            Target = AliveBees.GetRandomEnemyBee(TeamIndex);
         }
         
         Into(out archetype.Movement);
-        archetype.TargetPosition = Target.Position;
+        archetype.TargetPosition = Target?.Position ?? Vector3.Zero;
         archetype.LookDirection = LookDirection;
         archetype.MoveDirection = MoveDirection;
         archetype.AttractionPoint = AttractPoint;
@@ -127,7 +127,7 @@ public sealed class Bee : IBee,
         if (archetype.IsTargetKilled && target != null && target.IsAlive)
         {
             target.Kill();
-            Target = World.GetRandomEnemy(TeamIndex);
+            Target = AliveBees.GetRandomEnemyBee(TeamIndex);
         }
     }
 
