@@ -91,12 +91,12 @@ public class CombatBeesBenchmarkGame : Game
     protected override void OnUpdate()
     {
         var dt = Time.UpdateDeltaTime;
-        World.Update(0f);
         AttractRepelSystem.Tick(dt);
         AliveBeeMovementSystem.Tick(dt);
         DeadBeeMovementSystem.Tick(dt);
         BeeCollisionSystem.Tick(dt);
         m_RigController.Update(dt);
+        World.Update(0f);
 
         var gpu = Context.Window.Gpu;
         var framebufferController = gpu.FramebufferController;

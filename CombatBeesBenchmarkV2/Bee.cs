@@ -57,6 +57,19 @@ public sealed class Bee : IBee,
         World.Add<AliveBeeArchetype>(this);
         World.Add<AttractRepelArchetype>(this);
     }
+
+    public void Kill()
+    {
+        AliveBees.Remove(this);
+
+        Velocity *= 0.5f;
+        DeathTimer = 5f;
+        IsAlive = false;
+
+        World.Remove<AliveBeeArchetype>(this);
+        World.Remove<AttractRepelArchetype>(this);
+        World.Add<DeadBeeArchetype>(this);
+    }
     
     public void Into(out CollisionArchetype archetype)
     {
@@ -113,7 +126,7 @@ public sealed class Bee : IBee,
         LookDirection = archetype.LookDirection;
         if (archetype.IsTargetKilled && target != null && target.IsAlive)
         {
-            World.Kill(target);
+            target.Kill();
             Target = World.GetRandomEnemy(TeamIndex);
         }
     }

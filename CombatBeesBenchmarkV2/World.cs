@@ -22,32 +22,10 @@ public sealed class World : IWorld
     private Random Random { get; }
     private ILogger Logger { get; }
     private BeePool<Bee?> AliveBeePool { get; }
-    private HashSet<Bee?> BeesToKill { get; } = new();
-
-    public void Kill(Bee? aliveBee)
-    {
-        if (!aliveBee.IsAlive)
-            return;
-        
-        BeesToKill.Add(aliveBee);
-    }
 
     public void Update(float dt)
     {
-        foreach (var bee in BeesToKill)
-        {
-            //Logger.Trace($"Killing Bee: {bee.GetHashCode()}");
-            AliveBeePool.Remove(bee);
-            Remove<AliveBeeArchetype>(bee);
         
-            bee.Velocity *= 0.5f;
-            bee.DeathTimer = 5f;
-            bee.IsAlive = false;
-            
-            Add<DeadBeeArchetype>(bee);
-            Remove<AttractRepelArchetype>(bee);
-        }
-        BeesToKill.Clear();
     }
 
     public Bee? GetRandomEnemy(int teamIndex)
