@@ -51,19 +51,19 @@ public abstract class System<TArchetype> : ISystem where TArchetype : struct
 
     private void Write()
     {
-        for (var i = 0; i < ComponentCount; i++)
-        {
-            var entity = m_Entities[i];
-            ref var component = ref m_Components[i];
-            entity.From(ref component);
-        }
-        
-        // Parallel.For(0, ComponentCount, (i) =>
+        // for (var i = 0; i < ComponentCount; i++)
         // {
         //     var entity = m_Entities[i];
         //     ref var component = ref m_Components[i];
         //     entity.From(ref component);
-        // });
+        // }
+        
+        Parallel.For(0, ComponentCount, (i) =>
+        {
+            var entity = m_Entities[i];
+            ref var component = ref m_Components[i];
+            entity.From(ref component);
+        });
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

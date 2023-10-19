@@ -13,7 +13,8 @@ public sealed class Bee : IBee,
     IEntity<AttractRepelArchetype>,
     IEntity<SpawnableBeeArchetype>,
     IEntity<NeedTargetArchetype>,
-    IEntity<KilledArchetype>
+    IEntity<KilledArchetype>,
+    IEntity<BeeSpawnedEvent>
 {
     private bool IsAlive { get; set; }
     public int TeamIndex { get; }
@@ -172,6 +173,7 @@ public sealed class Bee : IBee,
         World.Remove<DeadBeeArchetype>(this);
         World.Add<AliveBeeArchetype>(this);
         World.Add<AttractRepelArchetype>(this);
+        World.Add<BeeSpawnedEvent>(this);
     }
 
     public void Into(ref NeedTargetArchetype component)
@@ -199,5 +201,14 @@ public sealed class Bee : IBee,
         
         World.Remove<KilledArchetype>(this);
         World.Add<DeadBeeArchetype>(this);
+    }
+
+    public void Into(ref BeeSpawnedEvent component)
+    {
+        component.Bee = this;
+    }
+
+    public void From(ref BeeSpawnedEvent component)
+    {
     }
 }

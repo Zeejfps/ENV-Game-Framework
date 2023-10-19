@@ -8,7 +8,7 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    public const int MaxBeeCount = 40000;
+    public const int MaxBeeCount = 100_000;
     
     private World World { get; }
     private NewAliveBeeMovementSystem AliveBeeMovementSystem { get; }
@@ -18,6 +18,7 @@ public class CombatBeesBenchmarkGame : Game
     private AttractRepelSystem AttractRepelSystem { get; }
     private BeeSpawningSystem BeeSpawningSystem { get; }
     private KillSystem KillSystem { get; }
+    private BeeSpawnedEventHandlerSystem BeeSpawnedEventHandlerSystem { get; }
     
     private TargetAssigningSystem TargetAssigningSystem { get; }
 
@@ -46,7 +47,8 @@ public class CombatBeesBenchmarkGame : Game
 
         World = new World(Logger);
 
-        BeeSpawningSystem = new BeeSpawningSystem(World, MaxBeeCount, random, aliveBeePool);
+        BeeSpawnedEventHandlerSystem = new BeeSpawnedEventHandlerSystem(World, MaxBeeCount, aliveBeePool);
+        BeeSpawningSystem = new BeeSpawningSystem(World, MaxBeeCount, random);
         AttractRepelSystem = new AttractRepelSystem(World, MaxBeeCount, aliveBeePool, random);
         DeadBeeMovementSystem = new NewDeadBeeMovementSystem(World, MaxBeeCount);
         AliveBeeMovementSystem = new NewAliveBeeMovementSystem(World, MaxBeeCount);
@@ -97,6 +99,7 @@ public class CombatBeesBenchmarkGame : Game
         var dt = Time.UpdateDeltaTime;
         
         BeeSpawningSystem.Tick(dt);
+        BeeSpawnedEventHandlerSystem.Tick(dt);
         TargetAssigningSystem.Tick(dt);
         AttractRepelSystem.Tick(dt);
         AliveBeeMovementSystem.Tick(dt);

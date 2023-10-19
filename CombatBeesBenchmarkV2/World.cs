@@ -21,12 +21,18 @@ sealed class HashSetEntityRepo<TComponent> : IEntityRepo where TComponent : stru
 
     public void Add(IEntity entity)
     {
-        m_Entities.Add((IEntity<TComponent>)entity);
+        lock (m_Entities)
+        {
+            m_Entities.Add((IEntity<TComponent>)entity);
+        }
     }
 
     public void Remove(IEntity entity)
     {
-        m_Entities.Remove((IEntity<TComponent>)entity);
+        lock (m_Entities)
+        {
+            m_Entities.Remove((IEntity<TComponent>)entity);
+        }
     }
 
     public void Clear()
