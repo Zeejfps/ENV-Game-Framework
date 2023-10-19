@@ -111,7 +111,7 @@ public sealed class Bee : IBee,
         From(ref archetype.Movement);
         DeathTimer = archetype.DeathTimer;
         if (DeathTimer <= 0f)
-            World.Spawn(this);
+            Spawn();
     }
 
     public void Into(out MovementArchetype archetype)
