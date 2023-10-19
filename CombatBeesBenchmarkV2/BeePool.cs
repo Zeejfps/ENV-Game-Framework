@@ -45,6 +45,7 @@ public sealed class BeePool<TBee> : IBeePool<TBee>, IEnumerable<TBee>
         var otherTeam = 1 - teamIndex;
         //Logger.Trace($"MyTeam: {teamIndex}: OtherTeam: {otherTeam}");
         var team = m_Teams[otherTeam];
+        if (team.Count == 0) return default;
         var randIndex = m_Random.Next(0, team.Count);
         return team[randIndex];
     }

@@ -8,7 +8,7 @@ namespace CombatBeesBenchmark;
 
 public class CombatBeesBenchmarkGame : Game
 {
-    public const int MaxBeeCount = 100;
+    public const int MaxBeeCount = 40000;
     
     private World World { get; }
     private NewAliveBeeMovementSystem AliveBeeMovementSystem { get; }
@@ -17,6 +17,7 @@ public class CombatBeesBenchmarkGame : Game
     private NewBeeCollisionSystem BeeCollisionSystem { get; }
     private AttractRepelSystem AttractRepelSystem { get; }
     private BeeSpawningSystem BeeSpawningSystem { get; }
+    private KillSystem KillSystem { get; }
     
     private TargetAssigningSystem TargetAssigningSystem { get; }
 
@@ -52,7 +53,8 @@ public class CombatBeesBenchmarkGame : Game
         BeeRenderingSystem = new NewBeeRenderingSystem(World, MaxBeeCount, Gpu, camera);
         BeeCollisionSystem = new NewBeeCollisionSystem(World, MaxBeeCount);
         TargetAssigningSystem = new TargetAssigningSystem(World, MaxBeeCount, aliveBeePool);
-
+        KillSystem = new KillSystem(World, MaxBeeCount, aliveBeePool);
+        
         for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
         {
             //Logger.Trace($"Team Index: {teamIndex}");
@@ -100,6 +102,7 @@ public class CombatBeesBenchmarkGame : Game
         AliveBeeMovementSystem.Tick(dt);
         DeadBeeMovementSystem.Tick(dt);
         BeeCollisionSystem.Tick(dt);
+        KillSystem.Tick(dt);
         World.Update(0f);
         
         m_RigController.Update(dt);
