@@ -91,6 +91,7 @@ public abstract class Game : IGame
         m_Accumulator += frameTime;
 
         var window = Window;
+
         while (m_Accumulator >= deltaTime)
         {
             window.PollEvents();
@@ -106,7 +107,9 @@ public abstract class Game : IGame
             return;
         
         m_Time.FrameLerpFactor = (float)m_Accumulator / deltaTime;
+        OnBeginFrame();
         OnUpdate();
+        OnEndFrame();
         window.SwapBuffers();
         m_FrameCount++;
     }
