@@ -29,18 +29,18 @@ public abstract class System<TArchetype> : ISystem where TArchetype : struct
     private void Read()
     {
         ComponentCount = m_World.Query<TArchetype>(m_Entities);
-        for (var i = 0; i < ComponentCount; i++)
+        // for (var i = 0; i < ComponentCount; i++)
+        // {
+        //     var entity = m_Entities[i];
+        //     ref var component = ref m_Components[i];
+        //     entity.Into(ref component);
+        // }
+        Parallel.For(0, ComponentCount, (i) =>
         {
             var entity = m_Entities[i];
             ref var component = ref m_Components[i];
             entity.Into(ref component);
-        }
-        // Parallel.For(0, ComponentCount, (i) =>
-        // {
-        //     var entity = m_Entities[i];
-        //     ref var component = ref m_Components[i];
-        //     entity.Into(out component);
-        // });
+        });
     }
 
     private void Update(float dt)

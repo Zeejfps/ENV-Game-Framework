@@ -28,15 +28,12 @@ public sealed class Bee : IBee,
     private Vector3 AttractPoint { get; set; }
     private Vector3 RepelPoint { get; set; }
     private Vector3 MoveDirection { get; set; }
-
-    private readonly Random m_Random;
-
-    public Bee(int teamIndex, World world, BeePool<Bee?> aliveBees, Random random)
+    
+    public Bee(int teamIndex, World world, BeePool<Bee?> aliveBees)
     {
         TeamIndex = teamIndex;
         World = world;
         AliveBees = aliveBees;
-        m_Random = random;
         Color = teamIndex == 0 ? new Vector4(1f, 0f, 0f, 1f) : new Vector4(0f, 0f, 1f, 1f);
         
         Velocity = Vector3.UnitX;
