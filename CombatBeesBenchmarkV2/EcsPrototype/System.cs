@@ -19,33 +19,51 @@ public abstract class System<TArchetype> : ISystem where TArchetype : struct
         m_Entities = new IEntity<TArchetype>[size];
     }
     
-    public void Update(float dt)
+    public void Tick(float dt)
     {
-        OnPreUpdate();
-        var components = m_Components.AsSpan(0, ComponentCount);
-        OnUpdate(dt, ref components);
-        OnPostUpdate();
+        Read();
+        Update(dt);
+        Write();
     }
 
-    private void OnPreUpdate()
+    private void Update(float dt)
+    {
+        var components = m_Components.AsSpan(0, ComponentCount);
+        OnUpdate(dt, ref components);
+    }
+
+    private void Read()
     {
         ComponentCount = m_World.Query<TArchetype>(m_Entities);
-        Parallel.For(0, ComponentCount, (i) =>
+        for (var i = 0; i < ComponentCount; i++)
         {
             var entity = m_Entities[i];
             ref var component = ref m_Components[i];
             entity.Into(out component);
-        });
+        }
+        // Parallel.For(0, ComponentCount, (i) =>
+        // {
+        //     var entity = m_Entities[i];
+        //     ref var component = ref m_Components[i];
+        //     entity.Into(out component);
+        // });
     }
 
-    private void OnPostUpdate()
+    private void Write()
     {
-        Parallel.For(0, ComponentCount, (i) =>
+        for (var i = 0; i < ComponentCount; i++)
         {
             var entity = m_Entities[i];
             ref var component = ref m_Components[i];
             entity.From(ref component);
-        });
+        }
+        
+        // Parallel.For(0, ComponentCount, (i) =>
+        // {
+        //     var entity = m_Entities[i];
+        //     ref var component = ref m_Components[i];
+        //     entity.From(ref component);
+        // });
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
