@@ -2,36 +2,30 @@
 
 public sealed class World<TEntity>
 {
-    private readonly Dictionary<Type, List<ISystem>> m_TypeToEntitiesTable = new();
+    private readonly Dictionary<Type, ISystem> m_TypeToEntitiesTable = new();
 
-    public void AddSystem<TArchetype>(ISystem<TEntity, TArchetype> system)
+    public void RegisterSystem<TArchetype>(ISystem<TEntity, TArchetype> system)
     {
         var archetypeType = typeof(TArchetype);
-        if (!m_TypeToEntitiesTable.TryGetValue(archetypeType, out var systems))
-        {
-            systems = new List<ISystem>();
-            m_TypeToEntitiesTable[archetypeType] = systems;
-        }
-        systems.Add(system);
+        m_TypeToEntitiesTable[archetypeType] = system;
     }
     
-    public void AddEntity<TArchetype>(TEntity entity)
+    public void UnregisterSystem<TArchetype>(TEntity entity)
     {
         var archetypeType = typeof(TArchetype);
-        if (m_TypeToEntitiesTable.TryGetValue(archetypeType, out var systems))
-        {
-            foreach (var system in systems)
-                ((ISystem<TEntity, TArchetype>)system).Add(entity);
-        }
+        m_TypeToEntitiesTable.Remove(archetypeType);
     }
 
     public void RemoveEntity<TArchetype>(TEntity entity)
     {
         var type = typeof(TArchetype);
-        if (m_TypeToEntitiesTable.TryGetValue(type, out var systems))
-        {
-            foreach (var system in systems)
-                ((ISystem<TEntity, TArchetype>)system).Remove(entity);
-        }
+        if (m_TypeToEntitiesTable.TryGetValue(type, out var system))
+            ((ISystem<TEntity, TArchetype>)system).Remove(entity);
+    }
+
+    public void Tick(float dt)
+    {
+        foreach (var system in m_TypeToEntitiesTable.Values)
+            system.Tick(dt);
     }
 }
