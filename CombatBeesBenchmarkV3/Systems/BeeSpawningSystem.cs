@@ -39,6 +39,7 @@ public sealed class BeeSpawningSystem : System<Entity, SpawnableBee>
         foreach (var entity in Entities)
         {
             World.RemoveEntity<SpawnableBee>(entity);
+            World.AddEntity<AliveMovableBee>(entity);
         }
     }
 }

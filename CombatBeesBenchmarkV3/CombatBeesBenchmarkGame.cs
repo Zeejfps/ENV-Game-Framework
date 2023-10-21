@@ -1,4 +1,5 @@
-﻿using CombatBeesBenchmarkV3.Archetypes;
+﻿using System.Numerics;
+using CombatBeesBenchmarkV3.Archetypes;
 using CombatBeesBenchmarkV3.EcsPrototype;
 using CombatBeesBenchmarkV3.Systems;
 using EasyGameFramework.Api;
@@ -9,7 +10,6 @@ namespace CombatBeesBenchmarkV3;
 
 public sealed class CombatBeesBenchmarkGame : Game
 {
-    private readonly ICamera m_Camera;
     private readonly World<Entity> m_World;
     private CameraRigController m_RigController;
     
@@ -17,18 +17,27 @@ public sealed class CombatBeesBenchmarkGame : Game
     {
         var random = new Random();
         
-        m_Camera = new PerspectiveCamera(65f, 0.777f);
-        m_RigController = new CameraRigController(new CameraRig(m_Camera), Window, Input);
+        var camera = new PerspectiveCamera(60f, 1.7777f)
+        {
+            Transform =
+            {
+                WorldPosition = new Vector3(0f, 0f, 75f)
+            }
+        };
+        
+        m_RigController = new CameraRigController(new CameraRig(camera), Window, Input);
 
         m_World = new World<Entity>();
         m_World.RegisterSystem(new BeeSpawningSystem(m_World, 100, random));
-        m_World.RegisterSystem(new BeeRenderingSystem(m_World, 100, context.Window.Gpu, m_Camera));
-
+        m_World.RegisterSystem(new BeeRenderingSystem(m_World, 100, context.Window.Gpu, camera));
+        m_World.RegisterSystem(new AliveBeeMovementSystem(m_World, 100));
+        
         for (var i = 0; i < 50; i++)
         {
             var entity = new Entity
             {
-                TeamIndex = 0
+                TeamIndex = 0,
+                Color = new Vector4(1f, 0f, 0f, 1f)
             };
             m_World.AddEntity<SpawnableBee>(entity);
             m_World.AddEntity<RenderableBee>(entity);
@@ -38,7 +47,8 @@ public sealed class CombatBeesBenchmarkGame : Game
         {
             var entity = new Entity
             {
-                TeamIndex = 1
+                TeamIndex = 1,
+                Color = new Vector4(0f, 0f, 1f, 1f)
             };
             m_World.AddEntity<SpawnableBee>(entity);
             m_World.AddEntity<RenderableBee>(entity);
