@@ -10,10 +10,11 @@ public sealed class World<TEntity>
         m_TypeToEntitiesTable[archetypeType] = system;
     }
     
-    public void UnregisterSystem<TArchetype>(TEntity entity)
+    public void AddEntity<TArchetype>(TEntity entity)
     {
-        var archetypeType = typeof(TArchetype);
-        m_TypeToEntitiesTable.Remove(archetypeType);
+        var type = typeof(TArchetype);
+        if (m_TypeToEntitiesTable.TryGetValue(type, out var system))
+            ((ISystem<TEntity, TArchetype>)system).Add(entity);
     }
 
     public void RemoveEntity<TArchetype>(TEntity entity)

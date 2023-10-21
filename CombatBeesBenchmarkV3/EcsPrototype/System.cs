@@ -7,6 +7,8 @@ public abstract class System<TEntity, TArchetype> : ISystem<TEntity, TArchetype>
 
     private readonly TArchetype[] m_Archetypes;
     private readonly List<TEntity> m_Entities = new();
+    private readonly HashSet<TEntity> m_EntitiesToAddBuffer = new();
+    private readonly HashSet<TEntity> m_EntitiesToRemoveBuffer = new();
 
     protected System(World<TEntity> world, int size)
     {
@@ -16,16 +18,24 @@ public abstract class System<TEntity, TArchetype> : ISystem<TEntity, TArchetype>
 
     public void Add(TEntity entity)
     {
-        m_Entities.Add(entity);
+        m_EntitiesToRemoveBuffer.Remove(entity);
+        m_EntitiesToAddBuffer.Add(entity);
     }
 
     public void Remove(TEntity entity)
     {
-        m_Entities.Remove(entity);
+        m_EntitiesToAddBuffer.Remove(entity);
+        m_EntitiesToRemoveBuffer.Add(entity);
     }
 
     public void Tick(float dt)
     {
+        foreach (var entity in m_EntitiesToAddBuffer)
+            m_Entities.Add(entity);
+
+        foreach (var entity in m_EntitiesToRemoveBuffer)
+            m_Entities.Remove(entity);
+        
         Read();
         Update(dt);
         Write();

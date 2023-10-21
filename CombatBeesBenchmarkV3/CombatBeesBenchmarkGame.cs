@@ -22,7 +22,7 @@ public sealed class CombatBeesBenchmarkGame : Game
             {
                 TeamIndex = 0
             };
-            m_World.UnregisterSystem<SpawnableBee>(entity);
+            m_World.AddEntity<SpawnableBee>(entity);
         }
 
         for (var i = 0; i < 50; i++)
@@ -31,7 +31,7 @@ public sealed class CombatBeesBenchmarkGame : Game
             {
                 TeamIndex = 1
             };
-            m_World.UnregisterSystem<SpawnableBee>(entity);
+            m_World.AddEntity<SpawnableBee>(entity);
         }
     }
 
