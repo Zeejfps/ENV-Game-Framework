@@ -31,11 +31,17 @@ public abstract class System<TEntity, TArchetype> : ISystem<TEntity, TArchetype>
     public void Tick(float dt)
     {
         foreach (var entity in m_EntitiesToAddBuffer)
+        {
             m_Entities.Add(entity);
+            OnEntityAdded(entity);
+        }
         m_EntitiesToAddBuffer.Clear();
-        
+
         foreach (var entity in m_EntitiesToRemoveBuffer)
+        {
             m_Entities.Remove(entity);
+            OnEntityRemoved(entity);
+        }
         m_EntitiesToRemoveBuffer.Clear();
         
         Read();
@@ -74,7 +80,9 @@ public abstract class System<TEntity, TArchetype> : ISystem<TEntity, TArchetype>
         OnWrite();
     }
 
-    protected abstract void OnRead();
+    protected virtual void OnEntityAdded(TEntity entity){}
+    protected virtual void OnEntityRemoved(TEntity entity){}
+    protected virtual void OnRead(){}
     protected abstract void OnUpdate(float dt, ref Span<TArchetype> archetypes);
-    protected abstract void OnWrite();
+    protected virtual void OnWrite(){}
 }

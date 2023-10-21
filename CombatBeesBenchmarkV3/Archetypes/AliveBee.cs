@@ -2,7 +2,7 @@
 
 namespace CombatBeesBenchmarkV3.Archetypes;
 
-public struct AliveMovableBee
+public struct AliveBee
 {
     public MovableBee Movement;
     public Vector3 MoveDirection;

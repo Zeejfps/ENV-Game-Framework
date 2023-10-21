@@ -4,8 +4,9 @@ using CombatBeesBenchmarkV3.EcsPrototype;
 
 namespace CombatBeesBenchmarkV3.Systems;
 
-public sealed class AliveBeeMovementSystem : System<Entity, AliveMovableBee>
+public sealed class AliveBeeMovementSystem : System<Entity, AliveBee>
 {
+        
     public AliveBeeMovementSystem(World<Entity> world, int size) : base(world, size)
     {
     }
@@ -15,7 +16,7 @@ public sealed class AliveBeeMovementSystem : System<Entity, AliveMovableBee>
         
     }
 
-    protected override void OnUpdate(float dt, ref Span<AliveMovableBee> archetypes)
+    protected override void OnUpdate(float dt, ref Span<AliveBee> archetypes)
     {
         var attackDistanceSqr = 4f * 4f;
         var hitDistanceSqrd = 0.5f * 0.5f;
@@ -27,48 +28,49 @@ public sealed class AliveBeeMovementSystem : System<Entity, AliveMovableBee>
         var flightJitter = 200f * dt;
         var damping = 1f - 0.9f * dt;
         
-        var stateCount = archetypes.Length;
-        for (var i = 0; i < stateCount; i++)
+        var archetypesLength = archetypes.Length;
+        
+        for (var i = 0; i < archetypesLength; i++)
         {
-            ref var component = ref archetypes[i];
-            component.Movement.Velocity += component.MoveDirection * flightJitter;
-            component.Movement.Velocity *= damping;
+            ref var archetype = ref archetypes[i];
+            archetype.Movement.Velocity += archetype.MoveDirection * flightJitter;
+            archetype.Movement.Velocity *= damping;
        
-            var attractionPoint = component.AttractionPoint;
-            Vector3 delta = attractionPoint - component.Movement.Position;
+            var attractionPoint = archetype.AttractionPoint;
+            Vector3 delta = attractionPoint - archetype.Movement.Position;
             var dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
             if (dist > 0f)
-                component.Movement.Velocity += delta * (teamAttraction / dist);
+                archetype.Movement.Velocity += delta * (teamAttraction / dist);
             
-            var repellentPoint = component.RepellentPoint;
-            delta = repellentPoint - component.Movement.Position;
+            var repellentPoint = archetype.RepellentPoint;
+            delta = repellentPoint - archetype.Movement.Position;
             dist = MathF.Sqrt(delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z);
             if (dist > 0f)
-                component.Movement.Velocity -= delta * (teamRepulsion / dist);
+                archetype.Movement.Velocity -= delta * (teamRepulsion / dist);
             
-            delta = component.TargetPosition - component.Movement.Position;
+            delta = archetype.TargetPosition - archetype.Movement.Position;
             //Logger.Trace($"[{i}]: {state.TargetPosition}, Delta: {delta}");
             var sqrDist = delta.LengthSquared();
             if (sqrDist > attackDistanceSqr)
             {
                 //Logger.Trace($"[{i}] Attacking!: {delta}");
                 //Logger.Trace($"[{i}] Vel Before: {state.Velocity}");
-                component.Movement.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
+                archetype.Movement.Velocity += delta * (chaseForce / MathF.Sqrt(sqrDist));
                 //Logger.Trace($"[{i}] Vel After: {state.Velocity}");
             }
             else
             {
-                component.Movement.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
+                archetype.Movement.Velocity += delta * (attackForce / MathF.Sqrt(sqrDist));
                 if (sqrDist < hitDistanceSqrd)
                 {
-                    component.IsTargetKilled = true;
+                    archetype.IsTargetKilled = true;
                 }
             }
 
             // Console.WriteLine($"[{i}] Velocity: {component.Movement.Velocity}");
             // Console.WriteLine($"[{i}] LookDirection: {component.LookDirection}");
-            component.LookDirection = Vector3.Lerp(component.LookDirection, Vector3.Normalize(component.Movement.Velocity), dt * 4f);
-            component.Movement.Position += component.Movement.Velocity * dt;
+            archetype.LookDirection = Vector3.Lerp(archetype.LookDirection, Vector3.Normalize(archetype.Movement.Velocity), dt * 4f);
+            archetype.Movement.Position += archetype.Movement.Velocity * dt;
         }
     }
 

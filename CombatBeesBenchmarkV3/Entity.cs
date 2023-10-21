@@ -7,7 +7,8 @@ namespace CombatBeesBenchmarkV3;
 public sealed class Entity : 
     IEntity<SpawnableBee>,
     IEntity<RenderableBee>,
-    IEntity<AliveMovableBee>
+    IEntity<AliveBee>,
+    IEntity<AttractableBee>
 {
     public int TeamIndex { get; set; }
     public Vector4 Color { get; set; }
@@ -46,7 +47,7 @@ public sealed class Entity :
     {
     }
 
-    public void Write(ref AliveMovableBee archetype)
+    public void Write(ref AliveBee archetype)
     {
         archetype.Movement.Position = m_Position;
         archetype.Movement.Velocity = m_Velocity;
@@ -56,10 +57,19 @@ public sealed class Entity :
         archetype.AttractionPoint = Vector3.One;
     }
 
-    public void Read(ref AliveMovableBee archetype)
+    public void Read(ref AliveBee archetype)
     {
         m_Position = archetype.Movement.Position;
         m_Velocity = archetype.Movement.Velocity;
         m_MoveDirection = archetype.MoveDirection;
+    }
+
+    public void Write(ref AttractableBee archetype)
+    {
+        
+    }
+
+    public void Read(ref AttractableBee archetype)
+    {
     }
 }

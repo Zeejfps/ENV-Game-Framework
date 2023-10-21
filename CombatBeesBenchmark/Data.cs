@@ -4,7 +4,7 @@ namespace CombatBeesBenchmark;
 
 public static class Data
 {
-    public const int MaxBeeCount = 100000;
+    public const int MaxBeeCount = 40000;
     public const int NumberOfBeeTeams = 2;
     public const int NumberOfBeesPerTeam = MaxBeeCount / NumberOfBeeTeams;
 

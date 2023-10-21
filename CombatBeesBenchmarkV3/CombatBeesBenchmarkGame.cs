@@ -57,6 +57,11 @@ public sealed class CombatBeesBenchmarkGame : Game
 
     protected override void OnStartup()
     {
+        var window = Window;
+        window.Title = "Combat Bees Benchmark";
+        window.SetScreenSize(1280, 720);
+        window.IsVsyncEnabled = false;
+        
         m_RigController.Enable();
     }
 
