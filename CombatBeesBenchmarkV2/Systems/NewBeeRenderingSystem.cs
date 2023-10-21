@@ -48,7 +48,6 @@ public sealed class NewBeeRenderingSystem : System<BeeRenderArchetype>
         bufferController.Bind(BeeBuffer);
         bufferController.Upload<BeeRenderArchetype>(components);
         
-        //Logger.Trace($"Rendering: {stateCount}");
         meshController.RenderInstanced(components.Length);
     }
 }
