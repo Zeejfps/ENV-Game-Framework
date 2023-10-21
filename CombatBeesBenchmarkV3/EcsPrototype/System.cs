@@ -32,9 +32,11 @@ public abstract class System<TEntity, TArchetype> : ISystem<TEntity, TArchetype>
     {
         foreach (var entity in m_EntitiesToAddBuffer)
             m_Entities.Add(entity);
-
+        m_EntitiesToAddBuffer.Clear();
+        
         foreach (var entity in m_EntitiesToRemoveBuffer)
             m_Entities.Remove(entity);
+        m_EntitiesToRemoveBuffer.Clear();
         
         Read();
         Update(dt);
