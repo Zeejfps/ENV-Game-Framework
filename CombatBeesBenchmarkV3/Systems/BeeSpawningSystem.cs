@@ -14,10 +14,6 @@ public sealed class BeeSpawningSystem : System<Entity, SpawnableBee>
         m_Random = random;
     }
 
-    protected override void OnRead()
-    {
-    }
-
     protected override void OnUpdate(float dt, ref Span<SpawnableBee> archetypes)
     {
         for (var i = 0; i < archetypes.Length; i++)

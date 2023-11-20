@@ -11,11 +11,6 @@ public sealed class AliveBeeMovementSystem : System<Entity, AliveBee>
     {
     }
 
-    protected override void OnRead()
-    {
-        
-    }
-
     protected override void OnUpdate(float dt, ref Span<AliveBee> archetypes)
     {
         var attackDistanceSqr = 4f * 4f;
@@ -72,9 +67,5 @@ public sealed class AliveBeeMovementSystem : System<Entity, AliveBee>
             archetype.LookDirection = Vector3.Lerp(archetype.LookDirection, Vector3.Normalize(archetype.Movement.Velocity), dt * 4f);
             archetype.Movement.Position += archetype.Movement.Velocity * dt;
         }
-    }
-
-    protected override void OnWrite()
-    {
     }
 }

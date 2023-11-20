@@ -27,12 +27,13 @@ public sealed class CombatBeesBenchmarkGame : Game
         
         m_RigController = new CameraRigController(new CameraRig(camera), Window, Input);
 
+        var maxBeeCount = 100;
         m_World = new World<Entity>();
-        m_World.RegisterSystem(new BeeSpawningSystem(m_World, 100, random));
-        m_World.RegisterSystem(new BeeRenderingSystem(m_World, 100, context.Window.Gpu, camera));
-        m_World.RegisterSystem(new AliveBeeMovementSystem(m_World, 100));
+        m_World.RegisterSystem(new BeeSpawningSystem(m_World, maxBeeCount, random));
+        m_World.RegisterSystem(new BeeRenderingSystem(m_World, maxBeeCount, context.Window.Gpu, camera));
+        m_World.RegisterSystem(new AliveBeeMovementSystem(m_World, maxBeeCount));
         
-        for (var i = 0; i < 50; i++)
+        for (var i = 0; i < maxBeeCount/2; i++)
         {
             var entity = new Entity
             {
@@ -43,7 +44,7 @@ public sealed class CombatBeesBenchmarkGame : Game
             m_World.AddEntity<RenderableBee>(entity);
         }
 
-        for (var i = 0; i < 50; i++)
+        for (var i = 0; i < maxBeeCount/2; i++)
         {
             var entity = new Entity
             {
