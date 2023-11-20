@@ -63,8 +63,8 @@ public abstract class System<TEntity, TArchetype> : ISystem<TEntity, TArchetype>
 
     private void Update(float dt)
     {
-        var count = m_Entities.Count;
-        var components = m_Archetypes.AsSpan(0, count);
+        var entityCount = m_Entities.Count;
+        var components = m_Archetypes.AsSpan(0, entityCount);
         OnUpdate(dt, ref components);
     }
 
