@@ -7,6 +7,6 @@ public interface IEntity
 
 public interface IEntity<TArchetype> : IEntity
 {
-    void Write(ref TArchetype archetype);
-    void Read(ref TArchetype archetype);
+    void WriteTo(ref TArchetype archetype);
+    void ReadFrom(ref TArchetype archetype);
 }

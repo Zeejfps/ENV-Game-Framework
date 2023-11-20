@@ -56,7 +56,7 @@ public abstract class System<TEntity, TArchetype> : ISystem<TEntity, TArchetype>
         {
             var entity = m_Entities[i];
             ref var component = ref m_Archetypes[i];
-            entity.Write(ref component);
+            entity.WriteTo(ref component);
         });
         OnRead();
     }
@@ -71,12 +71,12 @@ public abstract class System<TEntity, TArchetype> : ISystem<TEntity, TArchetype>
     private void Write()
     {
         var entityCount = m_Entities.Count;
-        Parallel.For(0, entityCount, (i) =>
+        for (var i = 0; i < entityCount; i++)
         {
             var entity = m_Entities[i];
             ref var component = ref m_Archetypes[i];
-            entity.Read(ref component);
-        });
+            entity.ReadFrom(ref component);
+        }
         OnWrite();
     }
 

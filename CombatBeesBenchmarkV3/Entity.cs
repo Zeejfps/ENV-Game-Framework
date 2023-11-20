@@ -18,18 +18,18 @@ public sealed class Entity :
     private Vector3 m_MoveDirection;
     private float m_Size;
     
-    public void Write(ref SpawnableBee archetype)
+    public void WriteTo(ref SpawnableBee archetype)
     {
         archetype.In.TeamIndex = TeamIndex;
     }
 
-    public void Read(ref SpawnableBee archetype)
+    public void ReadFrom(ref SpawnableBee archetype)
     {
         m_Position = archetype.Out.SpawnPosition;
         m_Size = archetype.Out.Size;
     }
 
-    public void Write(ref RenderableBee archetype)
+    public void WriteTo(ref RenderableBee archetype)
     {
         archetype.Color = Color;
 
@@ -43,11 +43,11 @@ public sealed class Entity :
         // Console.WriteLine(archetype.ModelMatrix);
     }
 
-    public void Read(ref RenderableBee archetype)
+    public void ReadFrom(ref RenderableBee archetype)
     {
     }
 
-    public void Write(ref AliveBee archetype)
+    public void WriteTo(ref AliveBee archetype)
     {
         archetype.Movement.Position = m_Position;
         archetype.Movement.Velocity = m_Velocity;
@@ -57,19 +57,19 @@ public sealed class Entity :
         archetype.AttractionPoint = Vector3.One;
     }
 
-    public void Read(ref AliveBee archetype)
+    public void ReadFrom(ref AliveBee archetype)
     {
         m_Position = archetype.Movement.Position;
         m_Velocity = archetype.Movement.Velocity;
         m_MoveDirection = archetype.MoveDirection;
     }
 
-    public void Write(ref AttractableBee archetype)
+    public void WriteTo(ref AttractableBee archetype)
     {
         
     }
 
-    public void Read(ref AttractableBee archetype)
+    public void ReadFrom(ref AttractableBee archetype)
     {
     }
 }
