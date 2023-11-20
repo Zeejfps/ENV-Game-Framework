@@ -10,7 +10,7 @@ public class CombatBeesBenchmarkGame : Game
 {
     public const int MaxBeeCount = 100_000;
     
-    private World World { get; }
+    private World<Bee> World { get; }
     private NewAliveBeeMovementSystem AliveBeeMovementSystem { get; }
     private NewDeadBeeMovementSystem DeadBeeMovementSystem { get; }
     private NewBeeRenderingSystem BeeRenderingSystem { get; }
@@ -45,7 +45,7 @@ public class CombatBeesBenchmarkGame : Game
 
         var aliveBeePool = new BeePool<Bee?>(random, numberOfTeams, numberOfBeesPerTeam, Logger);
 
-        World = new World(Logger);
+        World = new World<Bee>();
 
         BeeSpawnedEventHandlerSystem = new BeeSpawnedEventHandlerSystem(World, MaxBeeCount, aliveBeePool);
         BeeSpawningSystem = new BeeSpawningSystem(World, MaxBeeCount, random);
@@ -56,6 +56,16 @@ public class CombatBeesBenchmarkGame : Game
         BeeCollisionSystem = new NewBeeCollisionSystem(World, MaxBeeCount);
         TargetAssigningSystem = new TargetAssigningSystem(World, MaxBeeCount, aliveBeePool);
         KillSystem = new KillSystem(World, MaxBeeCount, aliveBeePool);
+        
+        World.RegisterSystem(BeeSpawnedEventHandlerSystem);
+        World.RegisterSystem(BeeSpawningSystem);
+        World.RegisterSystem(AttractRepelSystem);
+        World.RegisterSystem(DeadBeeMovementSystem);
+        World.RegisterSystem(AliveBeeMovementSystem);
+        World.RegisterSystem(BeeRenderingSystem);
+        World.RegisterSystem(BeeCollisionSystem);
+        World.RegisterSystem(TargetAssigningSystem);
+        World.RegisterSystem(KillSystem);
         
         for (var teamIndex = 0; teamIndex < numberOfTeams; teamIndex++)
         {
@@ -84,12 +94,10 @@ public class CombatBeesBenchmarkGame : Game
 
     protected override void OnBeginFrame()
     {
-        World.BeginFrame();
     }
 
     protected override void OnEndFrame()
     {
-        World.EndFrame();
     }
 
     protected override void OnFixedUpdate() {}
@@ -106,7 +114,6 @@ public class CombatBeesBenchmarkGame : Game
         DeadBeeMovementSystem.Tick(dt);
         BeeCollisionSystem.Tick(dt);
         KillSystem.Tick(dt);
-        World.Update(0f);
         
         m_RigController.Update(dt);
 

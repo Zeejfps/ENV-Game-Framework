@@ -25,13 +25,13 @@ public sealed class Bee : IBee,
     private Vector3 LookDirection { get; set; }
     private float DeathTimer { get; set; }
     private Vector4 Color { get; set; }
-    private World World { get; }
+    private World<Bee> World { get; }
     private Bee? Target { get; set; }
     private Vector3 AttractPoint { get; set; }
     private Vector3 RepelPoint { get; set; }
     private Vector3 MoveDirection { get; set; }
     
-    public Bee(int teamIndex, World world)
+    public Bee(int teamIndex, World<Bee> world)
     {
         TeamIndex = teamIndex;
         World = world;

@@ -1,16 +1,18 @@
+using CombatBeesBenchmark;
 using CombatBeesBenchmarkV2.Archetype;
 using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmarkV2.Systems;
 
-public sealed class NewBeeCollisionSystem : System<CollisionArchetype>
+public sealed class NewBeeCollisionSystem : System<Bee, CollisionArchetype>
 {
-    public NewBeeCollisionSystem(IWorld world, int size) : base(world, size)
+    public NewBeeCollisionSystem(World<Bee> world, int size) : base(world, size)
     {
     }
 
-    protected override void OnUpdate(float dt, ref Span<CollisionArchetype> components)
+    protected override void OnUpdate(float dt, ref Memory<CollisionArchetype> memory)
     {
+        var components = memory.Span;
         var fieldHalfX = 100f * 0.5f;
         var fieldHalfY = 20f * 0.5f;
         var fieldHalfZ = 30f * 0.5f;

@@ -1,16 +1,18 @@
+using CombatBeesBenchmark;
 using CombatBeesBenchmarkV2.Archetype;
 using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmarkV2.Systems;
 
-public sealed class NewDeadBeeMovementSystem : System<DeadBeeArchetype>
+public sealed class NewDeadBeeMovementSystem : System<Bee, DeadBeeArchetype>
 {
-    public NewDeadBeeMovementSystem(IWorld world, int size) : base(world, size)
+    public NewDeadBeeMovementSystem(World<Bee> world, int size) : base(world, size)
     {
     }
 
-    protected override void OnUpdate(float dt, ref Span<DeadBeeArchetype> components)
+    protected override void OnUpdate(float dt, ref Memory<DeadBeeArchetype> memory)
     {
+        var components = memory.Span;
         var gravity = -20f * dt;
         var stateCount = components.Length;
         for (var i = 0; i < stateCount; i++)

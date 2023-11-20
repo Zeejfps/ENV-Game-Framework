@@ -4,19 +4,20 @@ using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmarkV2.Systems;
 
-public sealed class AttractRepelSystem : System<AttractRepelArchetype>
+public sealed class AttractRepelSystem : System<Bee, AttractRepelArchetype>
 {
     private BeePool<Bee?> AliveBeePool { get; }
     private Random Random { get; }
 
-    public AttractRepelSystem(IWorld world, int size, BeePool<Bee?> aliveBeePool, Random random) : base(world, size)
+    public AttractRepelSystem(World<Bee> world, int size, BeePool<Bee?> aliveBeePool, Random random) : base(world, size)
     {
         AliveBeePool = aliveBeePool;
         Random = random;
     }
 
-    protected override void OnUpdate(float dt, ref Span<AttractRepelArchetype> components)
+    protected override void OnUpdate(float dt, ref Memory<AttractRepelArchetype> memory)
     {
+        var components = memory.Span;
         for (var i = 0; i < components.Length; i++)
         {
             ref var component = ref components[i];

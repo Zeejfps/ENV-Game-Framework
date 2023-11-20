@@ -1,26 +1,53 @@
-﻿using System.Runtime.CompilerServices;
+﻿using CombatBeesBenchmark;
 
 namespace CombatBeesBenchmarkV2.EcsPrototype;
 
-public abstract class System<TArchetype> : ISystem where TArchetype : struct
+public abstract class System<TEntity, TArchetype> : ISystem<TEntity, TArchetype> 
+    where TEntity : IEntity<TArchetype> 
+    where TArchetype : struct
 {
-    private readonly IWorld m_World;
-    private readonly TArchetype[] m_Components;
-    private readonly IEntity<TArchetype>[] m_Entities;
+    protected World<TEntity> World { get; }
+    protected IEnumerable<TEntity> Entities => m_Entities;
 
-    private int ComponentCount { get; set; }
-    protected IWorld World => m_World;
-    protected IEntity<TArchetype>[] Entities => m_Entities;
+    private readonly TArchetype[] m_Archetypes;
+    private readonly List<TEntity> m_Entities = new();
+    private readonly HashSet<TEntity> m_EntitiesToAddBuffer = new();
+    private readonly HashSet<TEntity> m_EntitiesToRemoveBuffer = new();
 
-    protected System(IWorld world, int size)
+    protected System(World<TEntity> world, int size)
     {
-        m_World = world;
-        m_Components = new TArchetype[size];
-        m_Entities = new IEntity<TArchetype>[size];
+        World = world;
+        m_Archetypes = new TArchetype[size];
     }
-    
+
+    public void Add(TEntity entity)
+    {
+        m_EntitiesToRemoveBuffer.Remove(entity);
+        m_EntitiesToAddBuffer.Add(entity);
+    }
+
+    public void Remove(TEntity entity)
+    {
+        m_EntitiesToAddBuffer.Remove(entity);
+        m_EntitiesToRemoveBuffer.Add(entity);
+    }
+
     public void Tick(float dt)
     {
+        foreach (var entity in m_EntitiesToAddBuffer)
+        {
+            m_Entities.Add(entity);
+            OnEntityAdded(entity);
+        }
+        m_EntitiesToAddBuffer.Clear();
+
+        foreach (var entity in m_EntitiesToRemoveBuffer)
+        {
+            m_Entities.Remove(entity);
+            OnEntityRemoved(entity);
+        }
+        m_EntitiesToRemoveBuffer.Clear();
+        
         Read();
         Update(dt);
         Write();
@@ -28,44 +55,38 @@ public abstract class System<TArchetype> : ISystem where TArchetype : struct
 
     private void Read()
     {
-        ComponentCount = m_World.Query<TArchetype>(m_Entities);
-        // for (var i = 0; i < ComponentCount; i++)
-        // {
-        //     var entity = m_Entities[i];
-        //     ref var component = ref m_Components[i];
-        //     entity.Into(ref component);
-        // }
-        Parallel.For(0, ComponentCount, (i) =>
+        var entityCount = m_Entities.Count;
+        Parallel.For(0, entityCount, (i) =>
         {
             var entity = m_Entities[i];
-            ref var component = ref m_Components[i];
+            ref var component = ref m_Archetypes[i];
             entity.Into(ref component);
         });
+        OnRead();
     }
 
     private void Update(float dt)
     {
-        var components = m_Components.AsSpan(0, ComponentCount);
+        var entityCount = m_Entities.Count;
+        var components = m_Archetypes.AsMemory(0, entityCount);
         OnUpdate(dt, ref components);
     }
 
     private void Write()
     {
-        // for (var i = 0; i < ComponentCount; i++)
-        // {
-        //     var entity = m_Entities[i];
-        //     ref var component = ref m_Components[i];
-        //     entity.From(ref component);
-        // }
-        
-        Parallel.For(0, ComponentCount, (i) =>
+        var entityCount = m_Entities.Count;
+        for (var i = 0; i < entityCount; i++)
         {
             var entity = m_Entities[i];
-            ref var component = ref m_Components[i];
+            ref var component = ref m_Archetypes[i];
             entity.From(ref component);
-        });
+        }
+        OnWrite();
     }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected abstract void OnUpdate(float dt, ref Span<TArchetype> components);
+
+    protected virtual void OnEntityAdded(TEntity entity){}
+    protected virtual void OnEntityRemoved(TEntity entity){}
+    protected virtual void OnRead(){}
+    protected abstract void OnUpdate(float dt, ref Memory<TArchetype> memory);
+    protected virtual void OnWrite(){}
 }

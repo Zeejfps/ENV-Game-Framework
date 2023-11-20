@@ -5,17 +5,18 @@ using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmarkV2.Systems;
 
-public sealed class BeeSpawningSystem : System<SpawnableBeeArchetype>
+public sealed class BeeSpawningSystem : System<Bee, SpawnableBeeArchetype>
 {
     private readonly Random m_Random;
     
-    public BeeSpawningSystem(IWorld world, int size, Random random) : base(world, size)
+    public BeeSpawningSystem(World<Bee> world, int size, Random random) : base(world, size)
     {
         m_Random = random;
     }
 
-    protected override void OnUpdate(float dt, ref Span<SpawnableBeeArchetype> archetypes)
+    protected override void OnUpdate(float dt, ref Memory<SpawnableBeeArchetype> memory)
     {
+        var archetypes = memory.Span;
         for (var i = 0; i < archetypes.Length; i++)
         {
             ref var archetype = ref archetypes[i];

@@ -1,163 +1,34 @@
-﻿using System.Collections;
-using System.Collections.Concurrent;
-using CombatBeesBenchmarkV2.EcsPrototype;
-using EasyGameFramework.Api;
+﻿using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmark;
 
-public interface IEntityRepo : IEnumerable<IEntity>
+public sealed class World<TEntity>
 {
-    int Count { get; }
-    void Add(IEntity entity);
-    void Remove(IEntity entity);
-    void Clear();
-}
+    private readonly Dictionary<Type, ISystem> m_TypeToEntitiesTable = new();
 
-sealed class HashSetEntityRepo<TComponent> : IEntityRepo where TComponent : struct
-{
-    private readonly HashSet<IEntity<TComponent>> m_Entities = new();
-
-    public int Count => m_Entities.Count;
-
-    public void Add(IEntity entity)
+    public void RegisterSystem<TArchetype>(ISystem<TEntity, TArchetype> system)
     {
-        lock (m_Entities)
-        {
-            m_Entities.Add((IEntity<TComponent>)entity);
-        }
-    }
-
-    public void Remove(IEntity entity)
-    {
-        lock (m_Entities)
-        {
-            m_Entities.Remove((IEntity<TComponent>)entity);
-        }
-    }
-
-    public void Clear()
-    {
-        m_Entities.Clear();
-    }
-
-    public void CopyTo(IEntity<TComponent>[] buffer)
-    {
-        m_Entities.CopyTo(buffer);
-    }
-
-    public IEnumerator<IEntity> GetEnumerator()
-    {
-        return m_Entities.GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-}
-
-public sealed class World : IWorld
-{
-    public World(ILogger logger)
-    {
-        Logger = logger;
+        var archetypeType = typeof(TArchetype);
+        m_TypeToEntitiesTable[archetypeType] = system;
     }
     
-    private ILogger Logger { get; }
-
-    public void Update(float dt)
+    public void Add<TArchetype>(TEntity entity)
     {
-        
+        var type = typeof(TArchetype);
+        if (m_TypeToEntitiesTable.TryGetValue(type, out var system))
+            ((ISystem<TEntity, TArchetype>)system).Add(entity);
     }
 
-    private bool m_IsInFrame;
-    private readonly ConcurrentDictionary<IEntityRepo, IEntityRepo> m_EntitiesToAddTable = new();
-    private readonly ConcurrentDictionary<IEntityRepo, IEntityRepo> m_EntitiesToRemoveTable = new();
-    private readonly Dictionary<Type, IEntityRepo> m_ComponentTypeToEntitiesTable = new();
-
-    public int Query<TComponent>(IEntity<TComponent>[] buffer) where TComponent : struct
+    public void Remove<TArchetype>(TEntity entity)
     {
-        var componentType = typeof(TComponent);
-        if (m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))
-        {
-            var entitiesList = (HashSetEntityRepo<TComponent>)entities;
-            var entityCount = entitiesList.Count;
-            entitiesList.CopyTo(buffer);
-            return entityCount;
-        }
-        return 0;
+        var type = typeof(TArchetype);
+        if (m_TypeToEntitiesTable.TryGetValue(type, out var system))
+            ((ISystem<TEntity, TArchetype>)system).Remove(entity);
     }
 
-    public void BeginFrame()
+    public void Tick(float dt)
     {
-        m_IsInFrame = true;
-    }
-
-    public void EndFrame()
-    {
-        m_IsInFrame = false;
-        foreach (var (entities, cachedEntities) in m_EntitiesToAddTable)
-        {
-            foreach (var cachedEntity in cachedEntities)
-                entities.Add(cachedEntity);
-
-            cachedEntities.Clear();
-        }
-
-        foreach (var (entities, cachedEntities) in m_EntitiesToRemoveTable)
-        {
-            foreach (var cachedEntity in cachedEntities)
-                entities.Remove(cachedEntity);
-
-            cachedEntities.Clear();
-        }
-    }
-
-    public void Add<TComponent>(IEntity<TComponent>? entity) where TComponent : struct
-    {
-        var componentType = typeof(TComponent);
-
-        //Logger.Trace($"Adding {componentType} to {entity.GetHashCode()}");
-
-        IEntityRepo entitiesToAddCache;
-        if (!m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))
-        {
-            //Logger.Trace($"Did not find list for type: {componentType}");
-            entities = new HashSetEntityRepo<TComponent>();
-            entitiesToAddCache = new HashSetEntityRepo<TComponent>();
-            m_ComponentTypeToEntitiesTable[componentType] = entities;
-            m_EntitiesToAddTable[entities] = entitiesToAddCache;
-            m_EntitiesToRemoveTable[entities] = new HashSetEntityRepo<TComponent>();
-        }
-
-        if (m_IsInFrame)
-        {
-            //Logger.Trace("Is In Frame");
-            entitiesToAddCache = m_EntitiesToAddTable[entities];
-            entitiesToAddCache.Add(entity);
-        }
-        else
-        {
-            //Logger.Trace("Is Out Frame");
-            entities.Add(entity);
-        }
-    }
-
-    public void Remove<TComponent>(IEntity<TComponent>? entity) where TComponent : struct
-    {
-        var componentType = typeof(TComponent);
-        if (m_ComponentTypeToEntitiesTable.TryGetValue(componentType, out var entities))
-        {
-            //Logger.Trace($"Removing {entity.GetHashCode()}");
-            if (m_IsInFrame)
-            {
-                var entitiesToRemoveCache = m_EntitiesToRemoveTable[entities];
-                entitiesToRemoveCache.Add(entity);
-            }
-            else
-            {
-                entities.Remove(entity);
-            }
-        }
+        foreach (var system in m_TypeToEntitiesTable.Values)
+            system.Tick(dt);
     }
 }

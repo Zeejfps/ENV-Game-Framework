@@ -1,17 +1,19 @@
 using System.Numerics;
+using CombatBeesBenchmark;
 using CombatBeesBenchmarkV2.Archetype;
 using CombatBeesBenchmarkV2.EcsPrototype;
 
 namespace CombatBeesBenchmarkV2.Systems;
 
-public sealed class NewAliveBeeMovementSystem : System<AliveBeeArchetype>
+public sealed class NewAliveBeeMovementSystem : System<Bee, AliveBeeArchetype>
 {
-    public NewAliveBeeMovementSystem(IWorld world, int size) : base(world, size)
+    public NewAliveBeeMovementSystem(World<Bee> world, int size) : base(world, size)
     {
     }
 
-    protected override void OnUpdate(float dt, ref Span<AliveBeeArchetype> components)
+    protected override void OnUpdate(float dt, ref Memory<AliveBeeArchetype> memory)
     {
+        var components = memory.Span;
         var attackDistanceSqr = 4f * 4f;
         var hitDistanceSqrd = 0.5f * 0.5f;
         var chaseForce = 50f * dt;
