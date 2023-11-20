@@ -64,7 +64,7 @@ public abstract class System<TEntity, TArchetype> : ISystem<TEntity, TArchetype>
     private void Update(float dt)
     {
         var entityCount = m_Entities.Count;
-        var components = m_Archetypes.AsSpan(0, entityCount);
+        var components = m_Archetypes.AsMemory(0, entityCount);
         OnUpdate(dt, ref components);
     }
 
@@ -83,6 +83,6 @@ public abstract class System<TEntity, TArchetype> : ISystem<TEntity, TArchetype>
     protected virtual void OnEntityAdded(TEntity entity){}
     protected virtual void OnEntityRemoved(TEntity entity){}
     protected virtual void OnRead(){}
-    protected abstract void OnUpdate(float dt, ref Span<TArchetype> archetypes);
+    protected abstract void OnUpdate(float dt, ref Memory<TArchetype> memory);
     protected virtual void OnWrite(){}
 }

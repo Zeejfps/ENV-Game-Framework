@@ -26,13 +26,8 @@ public sealed class BeeRenderingSystem : System<Entity, RenderableBee>
             size * 16 * 4 * sizeof(float));
         gpu.ShaderController.AttachBuffer("beeDataBlock", 0, m_BeeBuffer);
     }
-
-    protected override void OnRead()
-    {
-        
-    }
-
-    protected override void OnUpdate(float dt, ref Span<RenderableBee> archetypes)
+    
+    protected override void OnUpdate(float dt, ref Memory<RenderableBee> memory)
     {
         var gpu = m_Gpu;
         var camera = m_Camera;
@@ -50,13 +45,9 @@ public sealed class BeeRenderingSystem : System<Entity, RenderableBee>
         shaderController.SetMatrix4x4("matrix_view", viewMatrix);
         
         bufferController.Bind(m_BeeBuffer);
-        bufferController.Upload<RenderableBee>(archetypes);
+        bufferController.Upload<RenderableBee>(memory.Span);
         
         //Logger.Trace($"Rendering: {stateCount}");
-        meshController.RenderInstanced(archetypes.Length);
-    }
-
-    protected override void OnWrite()
-    {
+        meshController.RenderInstanced(memory.Length);
     }
 }

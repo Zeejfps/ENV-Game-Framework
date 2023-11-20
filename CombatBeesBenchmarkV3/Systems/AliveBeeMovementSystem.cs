@@ -11,8 +11,10 @@ public sealed class AliveBeeMovementSystem : System<Entity, AliveBee>
     {
     }
 
-    protected override void OnUpdate(float dt, ref Span<AliveBee> archetypes)
+    protected override void OnUpdate(float dt, ref Memory<AliveBee> memory)
     {
+        var archetypes = memory.Span;
+        
         var attackDistanceSqr = 4f * 4f;
         var hitDistanceSqrd = 0.5f * 0.5f;
         var chaseForce = 50f * dt;
