@@ -1,43 +1,32 @@
-﻿namespace Tetris;
+﻿using System.Numerics;
+
+namespace Tetris;
 
 public struct Entity
 {
-    private readonly HashSet<string> m_Tags = new();
+    public Vector2 Position;
 
+    private Flag m_Flags = Flag.None;
+    
     public Entity() {}
 
-    public void AddTag(string tag)
+    public void Set(Flag flag)
     {
-        m_Tags.Add(tag);
+        m_Flags |= flag;
     }
 
-    public void RemoveTag(string tag)
+    public void Clear(Flag flag)
     {
-        m_Tags.Remove(tag);
+        m_Flags &= ~flag;
     }
 
-    public bool WithTags(params string[] tags)
+    public bool Is(Flag flag)
     {
-        foreach (var tag in tags)
-        {
-            if (!m_Tags.Contains(tag))
-            {
-                return false;
-            }
-        }
-        return true;
+        return m_Flags == flag;
     }
 
-    public bool WithoutTags(params string[] tags)
+    public bool Has(Flag flag)
     {
-        foreach (var tag in tags)
-        {
-            if (m_Tags.Contains(tag))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return m_Flags.HasFlag(flag);
     }
 }
