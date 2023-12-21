@@ -44,6 +44,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyGameFramework.GUI.Backg
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CombatBeesBenchmarkV3", "CombatBeesBenchmarkV3\CombatBeesBenchmarkV3.csproj", "{046CD627-4A50-4D0B-B7F2-831DF9C6197A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tetris", "Tetris\Tetris.csproj", "{26DF5F50-9C55-4FA2-B3BA-0580FEEB8452}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -138,5 +140,9 @@ Global
 		{046CD627-4A50-4D0B-B7F2-831DF9C6197A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{046CD627-4A50-4D0B-B7F2-831DF9C6197A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{046CD627-4A50-4D0B-B7F2-831DF9C6197A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{26DF5F50-9C55-4FA2-B3BA-0580FEEB8452}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{26DF5F50-9C55-4FA2-B3BA-0580FEEB8452}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{26DF5F50-9C55-4FA2-B3BA-0580FEEB8452}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{26DF5F50-9C55-4FA2-B3BA-0580FEEB8452}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
