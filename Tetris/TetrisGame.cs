@@ -10,6 +10,9 @@ public sealed class TetrisGame : Game
 
     protected override void OnStartup()
     {
+        Window.Title = "Tetris";
+        Window.SetScreenSize(640, 480);
+        Window.OpenCentered();
     }
 
     protected override void OnFixedUpdate()
