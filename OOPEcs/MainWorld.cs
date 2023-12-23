@@ -9,6 +9,7 @@ public sealed class MainWorld : World
 {
     public MainWorld(
         IWindow window,
+        IClock clock,
         ITextRenderer textRenderer
     ) {
         RegisterSingleton<ITextRenderer>(textRenderer);

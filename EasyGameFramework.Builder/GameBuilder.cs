@@ -30,7 +30,7 @@ public sealed class GameBuilder
         return this;
     }
 
-    public TGame Build<TGame>() where TGame : IGame
+    public TGame Build<TGame>()
     {
         if (!m_IsWindowSet)
             WithWindow<Window_GLFW>();
