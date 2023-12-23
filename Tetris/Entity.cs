@@ -4,11 +4,11 @@ namespace Tetris;
 
 public struct Entity
 {
+    public int Index;
     public Vector2 Position;
-
     private Flag m_Flags = Flag.None;
-    
-    public Entity() {}
+
+    public Entity(){}
 
     public void Set(Flag flag)
     {
