@@ -12,7 +12,7 @@ public sealed class TestGameApp : WindowedApp
     {
         Context.RegisterSingleton<IWindow>(window);
         Context.RegisterSingleton<ILogger>(logger);
-        Context.RegisterSingletonEntity<ITextRenderer, MyTextRenderer>();
+        Context.RegisterSingletonEntity<ITextRenderer, Renderer>();
         Context.RegisterSingletonEntity<IClock, GameClock>();
         Context.RegisterTransientEntity<MainWorld>();
     }
