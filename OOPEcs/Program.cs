@@ -2,5 +2,5 @@
 using OOPEcs;
 
 var builder = new GameBuilder();
-var game = builder.Build<TestGame>();
+var game = builder.Build<TestGameApp>();
 game.Launch();

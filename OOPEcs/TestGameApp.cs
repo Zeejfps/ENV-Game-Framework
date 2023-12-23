@@ -5,28 +5,26 @@ using Tetris;
 
 namespace OOPEcs;
 
-public sealed class TestGame : World
+public sealed class TestGameApp : WindowedApp
 {
     private readonly IWindow m_Window;
-    private readonly GameClock m_GameClock;
     private readonly BitmapFontTextRenderer m_TextRenderer;
     
-    public TestGame(IWindow window, ILogger logger)
+    public TestGameApp(IWindow window, ILogger logger) : base(window)
     {
         m_Window = window;
-        m_GameClock = new GameClock(window, logger);
         m_TextRenderer = new BitmapFontTextRenderer(window);
         
         RegisterSingleton<ILogger>(logger);
         RegisterSingleton<IWindow>(window);
-        RegisterSingleton<IClock>(m_GameClock);
+
         RegisterSingleton<ITextRenderer>(m_TextRenderer);
-        RegisterEntity<MainWorld>();
+        RegisterSingletonEntity<IClock, GameClock>();
+        RegisterTransientEntity<MainWorld>();
     }
 
     public void Launch()
     {
-        m_GameClock.Load();
         m_TextRenderer.Load(new BmpFontFile
         {
             FontName = "test",
@@ -53,7 +51,7 @@ public sealed class TestGame : World
     }
 }
 
-public sealed class GameClock : IClock
+public sealed class GameClock : IClock, IEntity
 {
     public event Action? Ticked;
     public float Time { get; }

@@ -16,8 +16,8 @@ public sealed class MainWorld : World
         RegisterSingleton(window);
         RegisterSingleton(window.Input.Keyboard);
         RegisterSingleton<IClock, Clock>();    
-        RegisterEntity<SuperTestEntity>();
-        RegisterEntity<QuitGameInputAction>();
+        RegisterTransientEntity<SuperTestEntity>();
+        RegisterTransientEntity<QuitGameInputAction>();
     }
 }
 

@@ -20,7 +20,14 @@ public abstract class World : IEntity
         Container.BindSingleton<TInterface, TConcrete>();
     }
     
-    protected void RegisterEntity<T>() where T : IEntity
+    protected void RegisterSingletonEntity<TInterface, TConcrete>() 
+        where TConcrete : class, TInterface, IEntity
+    {
+        Container.BindSingleton<TInterface, TConcrete>();
+        m_EntityFactories.Add(new SingletonEntityFactory<TInterface, TConcrete>(Container));
+    }
+    
+    protected void RegisterTransientEntity<T>() where T : IEntity
     {
         m_EntityFactories.Add(new ConcreteEntityFactory<T>(Container));
     }
@@ -38,5 +45,23 @@ public abstract class World : IEntity
         foreach (var entity in m_Entities)
             entity.Unload();
         m_Entities.Clear();
+    }
+}
+
+sealed class SingletonEntityFactory<TInterface, TConcrete> : IEntityFactory where TConcrete : class, IEntity
+{
+    private TConcrete? m_Instance;
+    private readonly IContainer m_Container;
+
+    public SingletonEntityFactory(IContainer container)
+    {
+        m_Container = container;
+    }
+
+    public IEntity Create()
+    {
+        if (m_Instance == null)
+            m_Instance = m_Container.New<TInterface>() as TConcrete;
+        return m_Instance;
     }
 }
