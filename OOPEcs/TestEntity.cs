@@ -8,11 +8,7 @@ public sealed class TestEntity
 
     public TestEntity()
     {
-        var worldBuilder = new WorldBuilder()
-            .WithEntity<SuperTestEntity>();
 
-        var world = worldBuilder.Build();
-        world.Load();
     }
 }
 
@@ -42,11 +38,6 @@ public sealed class SuperTestEntity : IEntity
 }
 
 
-public interface IClock
-{
-    
-}
-
 public sealed class WorldBuilder
 {
     private readonly List<IEntityFactory> m_EntityFactories = new();
@@ -56,13 +47,19 @@ public sealed class WorldBuilder
     {
         var entities = m_EntityFactories
             .Select(entityFactory => entityFactory.Create());
-        return new World(entities);
+        return new WorldTest(entities);
     }
     
     public WorldBuilder WithEntity<T>() where T : IEntity
     {
         var factory = new ConcreteEntityFactory<T>(m_DiContainer);
         m_EntityFactories.Add(factory);
+        return this;
+    }
+
+    public WorldBuilder WithSingleton<T, TImpl>() where TImpl : T
+    {
+        m_DiContainer.BindSingleton<T, TImpl>();
         return this;
     }
 }
@@ -93,11 +90,11 @@ public interface IWorld : IEntity
 }
 
 
-public sealed class World : IEntity
+public sealed class WorldTest : IEntity
 {
     private readonly List<IEntity> m_Entities;
 
-    public World(IEnumerable<IEntity> entities)
+    public WorldTest(IEnumerable<IEntity> entities)
     {
         m_Entities = entities.ToList();
     }

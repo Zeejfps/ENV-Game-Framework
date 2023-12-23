@@ -27,7 +27,7 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
         m_Window = window;
     }
 
-    public void Load(BmpFontFile[] files)
+    public void Load(params BmpFontFile[] files)
     {
         foreach (var fontFile in files)
         {
