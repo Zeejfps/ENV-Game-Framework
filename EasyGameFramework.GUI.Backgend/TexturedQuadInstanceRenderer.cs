@@ -156,7 +156,7 @@ public sealed unsafe class TexturedQuadInstanceRenderer<TInstancedData>
                 //Console.WriteLine(buffer[dstIndex]);
                 dstIndex++;
             }
-            Console.WriteLine($"Updated Dirty Items: {m_DirtyItems.Count}");
+            //Console.WriteLine($"Updated Dirty Items: {m_DirtyItems.Count}");
             m_DirtyItems.Clear();
             glUnmapBuffer(GL_ARRAY_BUFFER);
         }

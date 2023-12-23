@@ -8,11 +8,10 @@ namespace OOPEcs;
 public sealed class Renderer : IEntity, ITextRenderer
 {
     private readonly IWindow m_Window;
-    private readonly IClock m_Clock;
 
     private readonly BitmapFontTextRenderer m_TextRenderer;
     
-    public Renderer(IWindow window, IClock clock)
+    public Renderer(IWindow window)
     {
         m_Window = window;
         m_TextRenderer = new BitmapFontTextRenderer(window);

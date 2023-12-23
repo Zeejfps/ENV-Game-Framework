@@ -70,11 +70,15 @@ public sealed class QuitGameInputAction : IEntity
         m_Window.Input.Keyboard.KeyPressed -= Keyboard_OnKeyPressed;
     }
 
+    private float m_Phase;
+    
     private void Clock_OnTicked()
     {
         //m_Logger.Trace($"DT: {m_Clock.DeltaTime}");
         var screenRect = m_RenderedText.ScreenRect;
         screenRect.X += m_Clock.DeltaTime * 60f;
+        m_Phase += m_Clock.DeltaTime * 5f;
+        screenRect.Y += MathF.Sin(m_Phase) * 0.01f;
         m_RenderedText.ScreenRect = screenRect;
     }
 

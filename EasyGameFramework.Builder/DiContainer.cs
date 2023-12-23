@@ -43,13 +43,18 @@ public sealed class DiContainer : IContainer
         return obj;
     }
 
-    public void BindSingleton<T, TImpl>() where TImpl : T
+    public void BindSingleton<TInterface, TConcrete>() where TConcrete : TInterface
     {
-        m_TypeToFactoryMap.Add(typeof(T), () =>
+        m_TypeToFactoryMap.Add(typeof(TInterface), () =>
         {
-            var type = typeof(T);
-            var instance = CreateInstance(typeof(TImpl));
-            m_TypeToInstanceMap[type] = instance;
+            var interfaceType = typeof(TInterface);
+            var concreteType = typeof(TConcrete);
+            if (!m_TypeToInstanceMap.TryGetValue(concreteType, out var instance))
+            {
+                instance = CreateInstance(concreteType);
+                m_TypeToInstanceMap[concreteType] = instance;
+            }
+            m_TypeToInstanceMap[interfaceType] = instance;
             return instance;
         });
     }
