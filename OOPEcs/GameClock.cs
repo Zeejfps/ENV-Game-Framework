@@ -7,7 +7,6 @@ namespace OOPEcs;
 public sealed class GameClock : IClock, IEntity
 {
     public event Action? Ticked;
-    public float Time { get; }
     public float DeltaTime { get; private set; }
 
     private readonly IWindow m_Window;
@@ -33,15 +32,14 @@ public sealed class GameClock : IClock, IEntity
 
     private void Window_OnPaint()
     {
-        var deltaTimeTicks = m_Stopwatch.ElapsedTicks;
-        var frameTime = (double)deltaTimeTicks / Stopwatch.Frequency;
-        m_Stopwatch.Restart();
-        Tick((float)frameTime);
+       Tick();
     }
 
-    public void Tick(float dt)
+    private void Tick()
     {
-        DeltaTime = dt;
+        var deltaTimeTicks = m_Stopwatch.ElapsedTicks;
+        DeltaTime = (float)deltaTimeTicks / Stopwatch.Frequency;
+        m_Stopwatch.Restart();
         Ticked?.Invoke();
     }
 }

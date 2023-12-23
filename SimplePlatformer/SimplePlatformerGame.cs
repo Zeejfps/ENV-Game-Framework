@@ -20,7 +20,7 @@ public class SimplePlatformerGame : Game
     private IGpuTextureHandle? PlayerSpriteSheetTexture { get; set; }
     private SpriteSheet RunAnimationSpriteSheet { get; }
     
-    private IClock Clock { get; }
+    private Clock Clock { get; }
     private Animation Animation { get; }
 
     public SimplePlatformerGame(
