@@ -3,31 +3,36 @@ using EasyGameFramework.Builder;
 
 namespace Tetris;
 
-public abstract class World : IEntity
+public sealed class World : IEntity
 {
     private IContainer Container { get; } = new DiContainer();
 
     private readonly List<IEntity> m_Entities = new();
     private readonly List<IEntityFactory> m_EntityFactories = new();
 
-    protected void RegisterSingleton<TInterface>(TInterface instance)
+    public World()
+    {
+        RegisterSingleton<World>(this);
+    }
+    
+    public void RegisterSingleton<TInterface>(TInterface instance)
     {
         Container.BindSingleton(instance);
     }
     
-    protected void RegisterSingleton<TInterface, TConcrete>() where TConcrete : TInterface
+    public void RegisterSingleton<TInterface, TConcrete>() where TConcrete : TInterface
     {
         Container.BindSingleton<TInterface, TConcrete>();
     }
     
-    protected void RegisterSingletonEntity<TInterface, TConcrete>() 
+    public void RegisterSingletonEntity<TInterface, TConcrete>() 
         where TConcrete : class, TInterface, IEntity
     {
         Container.BindSingleton<TInterface, TConcrete>();
         m_EntityFactories.Add(new SingletonEntityFactory<TInterface, TConcrete>(Container));
     }
     
-    protected void RegisterTransientEntity<T>() where T : IEntity
+    public void RegisterTransientEntity<T>() where T : IEntity
     {
         m_EntityFactories.Add(new ConcreteEntityFactory<T>(Container));
     }

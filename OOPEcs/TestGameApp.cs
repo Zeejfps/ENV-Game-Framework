@@ -6,12 +6,24 @@ namespace OOPEcs;
 
 public sealed class TestGameApp : WindowedApp
 {
-    public TestGameApp(IWindow window, ILogger logger) : base(window)
+    private World Context { get; } = new();
+    
+    public TestGameApp(IWindow window, ILogger logger) : base(window, logger)
     {
-        RegisterSingleton<ILogger>(logger);
-        RegisterSingleton<IWindow>(window);
-        RegisterSingletonEntity<ITextRenderer, MyTextRenderer>();
-        RegisterSingletonEntity<IClock, GameClock>();
-        RegisterTransientEntity<MainWorld>();
+        Context.RegisterSingleton<IWindow>(window);
+        Context.RegisterSingleton<ILogger>(logger);
+        Context.RegisterSingletonEntity<ITextRenderer, MyTextRenderer>();
+        Context.RegisterSingletonEntity<IClock, GameClock>();
+        Context.RegisterTransientEntity<MainWorld>();
+    }
+
+    protected override void OnStartup()
+    {
+        Context.Load();
+    }
+
+    protected override void OnShutdown()
+    {
+        Context.Unload();
     }
 }

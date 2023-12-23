@@ -5,19 +5,33 @@ using OpenGLSandbox;
 
 namespace Tetris;
 
-public sealed class MainWorld : World
+public sealed class MainWorld : IEntity
 {
+    private World Context { get; } = new();
+    
     public MainWorld(
         IWindow window,
         IClock clock,
         ITextRenderer textRenderer
-    ) {
-        RegisterSingleton<ITextRenderer>(textRenderer);
-        RegisterSingleton(window);
-        RegisterSingleton(window.Input.Keyboard);
-        RegisterSingleton<IClock, Clock>();    
-        RegisterTransientEntity<SuperTestEntity>();
-        RegisterTransientEntity<QuitGameInputAction>();
+    )
+    {
+        //Context = new World(parentContext);
+        Context.RegisterSingleton(window);
+        Context.RegisterSingleton(window.Input.Keyboard);
+        Context.RegisterSingleton<ITextRenderer>(textRenderer);
+        Context.RegisterSingleton<IClock>(clock);    
+        Context.RegisterTransientEntity<SuperTestEntity>();
+        Context.RegisterTransientEntity<QuitGameInputAction>();
+    }
+
+    public void Load()
+    {
+        Context.Load();
+    }
+
+    public void Unload()
+    {
+        Context.Unload();
     }
 }
 

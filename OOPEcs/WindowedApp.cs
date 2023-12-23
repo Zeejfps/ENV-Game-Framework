@@ -1,22 +1,21 @@
 using EasyGameFramework.Api;
-using Tetris;
 
 namespace OOPEcs;
 
-public abstract class WindowedApp : World
+public abstract class WindowedApp
 {
-    private readonly IWindow m_Window;
-    
-    protected WindowedApp(IWindow window)
+    protected IWindow Window { get; }
+
+    protected WindowedApp(IWindow window, ILogger logger)
     {
-        m_Window = window;
+        Window = window;
     }
     
     public void Launch()
     {
-        Load();
+        OnStartup();
 
-        var window = m_Window;
+        var window = Window;
         window.Title = "OOP ECS";
         window.Closed += Window_OnClosed;
         window.OpenCentered();
@@ -24,6 +23,9 @@ public abstract class WindowedApp : World
     
     private void Window_OnClosed()
     {
-        Unload();
+        OnShutdown();
     }
+
+    protected abstract void OnStartup();
+    protected abstract void OnShutdown();
 }
