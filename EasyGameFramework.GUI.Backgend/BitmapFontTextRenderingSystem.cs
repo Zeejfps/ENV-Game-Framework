@@ -12,7 +12,7 @@ public readonly struct BmpFontFile
     public string PathToFile { get; init; }
 }
 
-public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
+public unsafe class BitmapFontTextRenderer : ITextRenderer
 {
     private readonly IWindow m_Window;
     
