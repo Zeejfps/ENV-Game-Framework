@@ -44,14 +44,11 @@ public abstract class Game : IGame
 
         OnStartup();
         
+        IsRunning = true;
         var window = Window;
         window.Closed += Window_OnClosed;
+        window.Paint += Update;
         window.OpenCentered();
-        
-        IsRunning = true;
-        while (IsRunning)
-            Update();
-        
         OnShutdown();
     }
 
@@ -94,7 +91,6 @@ public abstract class Game : IGame
 
         while (m_Accumulator >= deltaTime)
         {
-            window.PollEvents();
             if (!IsRunning)
                 return;
             
@@ -110,7 +106,6 @@ public abstract class Game : IGame
         OnBeginFrame();
         OnUpdate();
         OnEndFrame();
-        window.SwapBuffers();
         m_FrameCount++;
     }
 

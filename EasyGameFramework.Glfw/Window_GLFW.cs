@@ -19,6 +19,7 @@ namespace EasyGameFramework.Glfw;
 
 public sealed class Window_GLFW : IWindow
 {
+    public event Action? Paint;
     public event Action? Closed;
 
     private readonly IDisplayManager m_DisplayManager;
@@ -256,10 +257,23 @@ public sealed class Window_GLFW : IWindow
 
     public void Open()
     {
+        if (IsOpened)
+            return;
+        
         ShowWindow(m_Handle);
         UpdateVsyncState();
         IsOpened = true;
         Mouse.Moved += OnMouseMoved;
+
+        while (IsOpened)
+        {
+            PollEvents();
+            if (IsOpened)
+            {
+                Paint?.Invoke();
+                SwapBuffers();
+            }
+        }
     }
 
     private void OnMouseMoved(in MouseMovedEvent evt)
@@ -275,6 +289,9 @@ public sealed class Window_GLFW : IWindow
 
     public void OpenCentered()
     {
+        if (IsOpened)
+            return;
+        
         PosX = (int)((m_DisplayManager.PrimaryDisplay.ResolutionX - ScreenWidth) * 0.5f);
         PosY = (int)((m_DisplayManager.PrimaryDisplay.ResolutionY - ScreenHeight) * 0.5f);
         Open();
@@ -312,7 +329,7 @@ public sealed class Window_GLFW : IWindow
         UpdateWindowPos();
     }
     
-    public void PollEvents()
+    private void PollEvents()
     {
         Debug.Assert(IsOpened);
         Debug.Assert(m_Handle != Window.None);
@@ -372,7 +389,7 @@ public sealed class Window_GLFW : IWindow
             gamepad.PressButton(button);
     } 
 
-    public void SwapBuffers()
+    private void SwapBuffers()
     {
         GLFW.Glfw.SwapBuffers(m_Handle);
     }

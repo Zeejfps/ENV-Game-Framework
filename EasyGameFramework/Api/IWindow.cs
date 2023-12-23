@@ -5,6 +5,7 @@ namespace EasyGameFramework.Api;
 
 public interface IWindow
 {
+    event Action Paint;
     event Action Closed;
     
     int ScreenWidth { get; set; }
@@ -27,8 +28,6 @@ public interface IWindow
     
     void SetScreenSize(int width, int height);
     void SetTopLeftPosition(int x, int y);
-    void PollEvents();
-    void SwapBuffers();
     
     Vector2 ScreenToViewportPoint(Vector2 screenPoint, IViewport viewport);
 }

@@ -19,7 +19,6 @@ public sealed class TestGame : Game
     protected override void OnStartup()
     {
         Window.Title = "OOP ECS";
-        Window.OpenCentered();
         
         m_TextRenderer.Load(new BmpFontFile
         {

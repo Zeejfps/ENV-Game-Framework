@@ -24,9 +24,6 @@ public sealed class TetrisGame : Game
     {
         Window.Title = "Tetris";
         Window.SetScreenSize(640, 480);
-        Window.OpenCentered();
-
-     
         SpawnTetromino();
     }
 
