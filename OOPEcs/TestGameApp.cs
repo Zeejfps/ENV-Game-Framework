@@ -14,7 +14,8 @@ public sealed class TestGameApp : WindowedApp
         Context.RegisterSingleton<ILogger>(logger);
         Context.RegisterSingletonEntity<ITextRenderer, Renderer>();
         Context.RegisterSingletonEntity<IClock, GameClock>();
-        Context.RegisterTransientEntity<MainWorld>();
+        Context.RegisterTransientEntity<QuitGameInputAction>();
+        Context.RegisterTransientEntity<HelloWorldEntity>();
     }
 
     protected override void OnStartup()

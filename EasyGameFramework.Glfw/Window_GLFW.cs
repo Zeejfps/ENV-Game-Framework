@@ -5,7 +5,6 @@ using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
-using EasyGameFramework.Core;
 using EasyGameFramework.Core.InputDevices;
 using EasyGameFramework.OpenGL;
 using GLFW;
@@ -17,7 +16,7 @@ using MouseButton = GLFW.MouseButton;
 
 namespace EasyGameFramework.Glfw;
 
-public sealed class Window_GLFW : IWindow
+public sealed class Window_GLFW : IWindow, IDisposable
 {
     public event Action? Paint;
     public event Action? Closed;
@@ -587,24 +586,40 @@ public sealed class Window_GLFW : IWindow
         return $"x{PosX} y{PosY}, {ScreenWidth}x{ScreenHeight}";
     }
 
-    private EasyGameFramework.Api.InputDevices.MouseButton MapToMouseButton(MouseButton mouseButton)
+    private Api.InputDevices.MouseButton MapToMouseButton(MouseButton mouseButton)
     {
         switch (mouseButton)
         {
             case MouseButton.Left:
-                return EasyGameFramework.Api.InputDevices.MouseButton.Left;
+                return Api.InputDevices.MouseButton.Left;
             case MouseButton.Right:
-                return EasyGameFramework.Api.InputDevices.MouseButton.Right;
+                return Api.InputDevices.MouseButton.Right;
             case MouseButton.Middle:
-                return EasyGameFramework.Api.InputDevices.MouseButton.Middle;
+                return Api.InputDevices.MouseButton.Middle;
             case MouseButton.Button4:
             case MouseButton.Button5:
             case MouseButton.Button6:
             case MouseButton.Button7:
             case MouseButton.Button8:
-                return new EasyGameFramework.Api.InputDevices.MouseButton((int)mouseButton);
+                return new Api.InputDevices.MouseButton((int)mouseButton);
             default:
                 throw new ArgumentOutOfRangeException(nameof(mouseButton), mouseButton, null);
         }
+    }
+
+    private void ReleaseUnmanagedResources()
+    {
+        Terminate();
+    }
+
+    public void Dispose()
+    {
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+    }
+
+    ~Window_GLFW()
+    {
+        ReleaseUnmanagedResources();
     }
 }
