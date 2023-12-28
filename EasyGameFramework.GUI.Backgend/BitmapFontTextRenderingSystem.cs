@@ -81,6 +81,13 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
         
         throw new Exception($"Could not find font with name: {style.FontName}");
     }
+
+    public float CalculateTextWidth(string text, string fontName)
+    {
+        if (m_FontNameToFontRendererTable.TryGetValue(fontName, out var fontRenderer))
+            return fontRenderer.CalculateWidth(text);
+        return 0f;
+    }
 }
 
 
@@ -141,6 +148,30 @@ sealed unsafe class BmpFontRenderer : IDisposable
     internal void Add(RenderedGlyphImpl glyph)
     {
         m_TexturedQuadInstanceRenderer.Add(glyph);
+    }
+    
+    public int CalculateWidth(string text)
+    {
+        var font = FontFile;
+        var textWidthInPixels = 0;
+        foreach (var c in AsCodePoints(text))
+        {
+            if (!font.TryGetFontChar(c, out var glyph))
+                continue;
+            textWidthInPixels += glyph.XOffset + glyph.XAdvance;
+        }
+
+        return textWidthInPixels;
+    }
+    
+    public IEnumerable<int> AsCodePoints(string s)
+    {
+        for(int i = 0; i < s.Length; ++i)
+        {
+            yield return char.ConvertToUtf32(s, i);
+            if(char.IsHighSurrogate(s, i))
+                i++;
+        }
     }
 
     private void ReleaseUnmanagedResources()
@@ -338,18 +369,9 @@ sealed class RenderedTextImpl : IRenderedText
         return font.Common.Base;
     }
     
-    private int CalculateWidth(string text)
+    public int CalculateWidth(string text)
     {
-        var font = m_FontRenderer.FontFile;
-        var textWidthInPixels = 0;
-        foreach (var c in AsCodePoints(text))
-        {
-            if (!font.TryGetFontChar(c, out var glyph))
-                continue;
-            textWidthInPixels += glyph.XOffset + glyph.XAdvance;
-        }
-
-        return textWidthInPixels;
+        return m_FontRenderer.CalculateWidth(text);
     }
     
     private IEnumerable<int> AsCodePoints(string s)

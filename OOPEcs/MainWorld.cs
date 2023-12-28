@@ -7,7 +7,7 @@ namespace Tetris;
 
 public sealed class MainWorld : IEntity
 {
-    private World Context { get; } = new();
+    private EntityContext Context { get; } = new();
     
     public MainWorld(
         IWindow window,
@@ -57,12 +57,18 @@ public sealed class HelloWorldEntity : IEntity
 
     public void Load()
     {
-        m_RenderedText = m_TextRenderer.Render("Hello World!", new Rect(0, m_Window.ScreenHeight - 80, 120, 50), new TextStyle
-        {
-            FontName = "test",
-            Color = Color.FromHex(0xff00ff, 1f),
-            HorizontalTextAlignment =  TextAlignment.Center
-        });
+        var fontName = "test";
+        var text = "Hello World!";
+        var textWidth = m_TextRenderer.CalculateTextWidth(text, fontName);
+        m_RenderedText = m_TextRenderer.Render(
+            text: text, 
+            screenPosition: new Rect(0, m_Window.ScreenHeight - 80, textWidth, 50), 
+            style: new TextStyle
+            {
+                FontName = fontName,
+                Color = Color.FromHex(0xff00ff, 1f),
+            }
+        );
         m_Clock.Ticked += Clock_OnTicked;
     }
 
