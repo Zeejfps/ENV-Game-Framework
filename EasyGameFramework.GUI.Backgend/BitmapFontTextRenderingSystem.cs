@@ -74,12 +74,12 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
             renderer.Render();
     }
     
-    public IRenderedText Render(string text, Rect screenRect, TextStyle style)
+    public IRenderedText Render(string text, string fontFamily, Rect screenRect, TextStyle style)
     {
-        if (m_FontNameToFontRendererTable.TryGetValue(style.FontName, out var font))
+        if (m_FontNameToFontRendererTable.TryGetValue(fontFamily, out var font))
             return new RenderedTextImpl(font, screenRect, style, text);
         
-        throw new Exception($"Could not find font with name: {style.FontName}");
+        throw new Exception($"Could not find font with name: {fontFamily}");
     }
 
     public float CalculateTextWidth(string text, string fontName)

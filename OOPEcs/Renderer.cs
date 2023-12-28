@@ -39,9 +39,9 @@ public sealed class Renderer : IEntity, ITextRenderer
         m_TextRenderer.Update();
     }
 
-    public IRenderedText Render(string text, Rect screenPosition, TextStyle style)
+    public IRenderedText Render(string text, string fontFamily, Rect screenPosition, TextStyle style)
     {
-        return m_TextRenderer.Render(text, screenPosition, style);
+        return m_TextRenderer.Render(text, fontFamily, screenPosition, style);
     }
 
     public float CalculateTextWidth(string text, string fontName)

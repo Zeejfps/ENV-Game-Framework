@@ -57,15 +57,15 @@ public sealed class HelloWorldEntity : IEntity
 
     public void Load()
     {
-        var fontName = "test";
+        var fontFamily = "test";
         var text = "Hello World!";
-        var textWidth = m_TextRenderer.CalculateTextWidth(text, fontName);
+        var textWidth = m_TextRenderer.CalculateTextWidth(text, fontFamily);
         m_RenderedText = m_TextRenderer.Render(
             text: text, 
+            fontFamily: fontFamily,
             screenPosition: new Rect(0, m_Window.ScreenHeight - 80, textWidth, 50), 
             style: new TextStyle
             {
-                FontName = fontName,
                 Color = Color.FromHex(0xff00ff, 1f),
             }
         );
