@@ -5,7 +5,7 @@ namespace Tetris;
 
 public sealed class MainWorld : IEntity
 {
-    private EntityContext Context { get; } = new();
+    private Context Context { get; } = new();
     
     public MainWorld(
         IWindow window,

@@ -6,7 +6,7 @@ namespace OOPEcs;
 
 public sealed class TestGameApp : WindowedApp
 {
-    private EntityContext Context { get; } = new();
+    private Context Context { get; } = new();
     
     public TestGameApp(IWindow window, ILogger logger) : base(window, logger)
     {
