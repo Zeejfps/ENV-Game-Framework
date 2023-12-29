@@ -5,43 +5,42 @@ namespace Tetris;
 
 public sealed class Context
 {
-    private IContainer Container { get; } = new DiContainer();
-
-    private readonly Context? m_Parent;
+    private readonly DiContainer m_Container;
     private readonly List<IEntity> m_Entities = new();
     private readonly List<IEntityFactory> m_EntityFactories = new();
-
+    
     public Context()
     {
+        m_Container = new DiContainer();
         RegisterSingleton<Context>(this);
     }
 
     public Context(Context parent)
     {
-        m_Parent = parent;
+        m_Container = new DiContainer(parent.m_Container);
         RegisterSingleton<Context>(this);
     }
     
     public void RegisterSingleton<TInterface>(TInterface instance)
     {
-        Container.BindSingleton(instance);
+        m_Container.BindSingleton(instance);
     }
     
     public void RegisterSingleton<TInterface, TConcrete>() where TConcrete : TInterface
     {
-        Container.BindSingleton<TInterface, TConcrete>();
+        m_Container.BindSingleton<TInterface, TConcrete>();
     }
     
     public void RegisterSingletonEntity<TInterface, TConcrete>() 
         where TConcrete : class, TInterface, IEntity
     {
-        Container.BindSingleton<TInterface, TConcrete>();
-        m_EntityFactories.Add(new SingletonEntityFactory<TInterface, TConcrete>(Container));
+        m_Container.BindSingleton<TInterface, TConcrete>();
+        m_EntityFactories.Add(new SingletonEntityFactory<TInterface, TConcrete>(m_Container));
     }
     
     public void RegisterTransientEntity<T>() where T : IEntity
     {
-        m_EntityFactories.Add(new ConcreteEntityFactory<T>(Container));
+        m_EntityFactories.Add(new TransientEntityFactory<T>(m_Container));
     }
 
     public void Load()

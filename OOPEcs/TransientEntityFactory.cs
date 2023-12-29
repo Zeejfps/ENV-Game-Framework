@@ -2,11 +2,11 @@
 
 namespace Tetris;
 
-sealed class ConcreteEntityFactory<T> : IEntityFactory where T : IEntity
+sealed class TransientEntityFactory<T> : IEntityFactory where T : IEntity
 {
     private readonly IContainer m_Container;
 
-    public ConcreteEntityFactory(IContainer container)
+    public TransientEntityFactory(IContainer container)
     {
         m_Container = container;
     }

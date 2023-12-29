@@ -4,9 +4,20 @@ namespace EasyGameFramework.Builder;
 
 public sealed class DiContainer : IContainer
 {
+    private readonly DiContainer? m_Parent;
     private readonly Dictionary<Type, Func<object>> m_TypeToFactoryMap = new();
     private readonly Dictionary<Type, object> m_TypeToInstanceMap = new();
 
+    public DiContainer()
+    {
+        
+    }
+    
+    public DiContainer(DiContainer parent)
+    {
+        m_Parent = parent;
+    }
+    
     public T New<T>()
     {
         return (T)GetInstance(typeof(T));
@@ -29,6 +40,11 @@ public sealed class DiContainer : IContainer
             return instance;
         }
 
+        if (m_Parent != null)
+        {
+            return m_Parent.GetInstance(type);
+        }
+        
         throw new InvalidOperationException("No registration for " + type);
     }
 
