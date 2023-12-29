@@ -3,15 +3,22 @@ using EasyGameFramework.Builder;
 
 namespace Tetris;
 
-public sealed class EntityContext : IEntity
+public sealed class EntityContext
 {
     private IContainer Container { get; } = new DiContainer();
 
+    private readonly EntityContext? m_Parent;
     private readonly List<IEntity> m_Entities = new();
     private readonly List<IEntityFactory> m_EntityFactories = new();
 
     public EntityContext()
     {
+        RegisterSingleton<EntityContext>(this);
+    }
+
+    public EntityContext(EntityContext parent)
+    {
+        m_Parent = parent;
         RegisterSingleton<EntityContext>(this);
     }
     
