@@ -1,4 +1,5 @@
 ﻿using EasyGameFramework.Api;
+using Entities;
 using OpenGLSandbox;
 using Tetris;
 
@@ -13,8 +14,10 @@ public sealed class TestGameApp : WindowedApp
         Context.RegisterSingleton<IWindow>(window);
         Context.RegisterSingleton<ILogger>(logger);
         Context.RegisterSingletonEntity<ITextRenderer, Renderer>();
+        Context.RegisterSingletonEntity<ISpriteRenderer, Renderer>();
         Context.RegisterSingletonEntity<IClock, GameClock>();
         Context.RegisterTransientEntity<HelloWorldEntity>();
+        Context.RegisterTransientEntity<Monomino>();
     }
 
     protected override void OnStartup()

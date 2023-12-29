@@ -273,6 +273,8 @@ public sealed class Window_GLFW : IWindow, IDisposable
                 SwapBuffers();
             }
         }
+        
+        OnClosed();
     }
 
     private void OnMouseMoved(in MouseMovedEvent evt)
@@ -338,7 +340,6 @@ public sealed class Window_GLFW : IWindow, IDisposable
         if (WindowShouldClose(m_Handle))
         {
             IsOpened = false;
-            OnClosed();
             return;
         }
         
