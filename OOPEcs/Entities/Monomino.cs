@@ -19,6 +19,13 @@ public sealed class Monomino : IEntity
     }
     
     private Rect m_ScreenRect;
+
+    public Vector2 GridPos
+    {
+        get;
+        set;
+    }
+    
     private IRenderedSprite? m_RenderedSprite;
     
     public void Load()
