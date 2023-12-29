@@ -39,7 +39,7 @@ public sealed class GameBuilder
             WithLogger<ConsoleLogger>();
         
         DiContainer.BindSingleton<IDisplayManager, DisplayManagerGlfw>();
-        DiContainer.BindSingleton<IContext, Context>();
+        DiContainer.BindSingleton<IContext, GameContext>();
         DiContainer.BindSingleton<IMouse, Mouse>();
         DiContainer.BindSingleton<IKeyboard, Keyboard>();
         DiContainer.BindSingleton<IInputSystem, InputSystem>();
