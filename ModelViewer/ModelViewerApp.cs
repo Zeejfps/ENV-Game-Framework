@@ -21,7 +21,7 @@ public sealed class ModelViewerApp : Game
     private readonly BitmapFontTextRenderer m_TextRenderer;
     private readonly PanelRenderer m_PanelRenderer;
     
-    public ModelViewerApp(IContext context) : base(context)
+    public ModelViewerApp(IGameContext gameContext) : base(gameContext)
     {
         m_TextRenderer = new BitmapFontTextRenderer(Window);
         m_PanelRenderer = new PanelRenderer(Window);

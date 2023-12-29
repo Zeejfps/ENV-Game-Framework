@@ -1,6 +1,6 @@
 ﻿namespace EasyGameFramework.Api;
 
-public interface IContext
+public interface IGameContext
 {
     IDisplayManager DisplayManager { get; }
     IWindow Window { get; }

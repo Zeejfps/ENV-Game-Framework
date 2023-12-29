@@ -11,7 +11,7 @@ public sealed class OpenGlSandboxGame : Game
     
     private int m_CurrentSceneIndex;
 
-    public OpenGlSandboxGame(IContext context, CalculatorScene calculatorScene,  IInputSystem inputSystem, IAssetLoader<ICpuTexture> imageLoader) : base(context)
+    public OpenGlSandboxGame(IGameContext gameContext, CalculatorScene calculatorScene,  IInputSystem inputSystem, IAssetLoader<ICpuTexture> imageLoader) : base(gameContext)
     {
         m_Scenes = new IScene[]
         {

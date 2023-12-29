@@ -19,7 +19,7 @@ public class SnakeGame : Game
     private readonly GridRenderer m_GridRenderer;
     private readonly GameController m_GameController;
     
-    public SnakeGame(IContext context) : base(context)
+    public SnakeGame(IGameContext gameContext) : base(gameContext)
     {
         GridSize = new GridSize(21, 21);
         

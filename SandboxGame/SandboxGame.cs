@@ -6,7 +6,7 @@ public class SandboxGame : Game
 {
     private TestScene Scene { get; }
     
-    public SandboxGame(IContext context) : base(context)
+    public SandboxGame(IGameContext gameContext) : base(gameContext)
     {
         Scene = new TestScene(this, Logger);
     }

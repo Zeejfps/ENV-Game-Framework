@@ -71,15 +71,15 @@ public sealed class BeeSystem
 {
     public int NumberOfBeeTeams { get; }
     
-    private IContext Context { get; }
+    private IGameContext GameContext { get; }
     private Field Field { get; }
     private List<Bee>[] BeeTeams { get; }
     private Random Random { get; }
     private BeeSystemConfig Config { get; }
     
-    public BeeSystem(IContext context, Field field, BeeSystemConfig config)
+    public BeeSystem(IGameContext gameContext, Field field, BeeSystemConfig config)
     {
-        Context = context;
+        GameContext = gameContext;
         Config = config;
         Field = field;
         Random = new Random();
@@ -118,7 +118,7 @@ public sealed class BeeSystem
 
     public void LoadResources()
     {
-        var gpu = Context.Window.Gpu;
+        var gpu = GameContext.Window.Gpu;
         QuadMeshHandle = gpu.MeshController.Load("Assets/quad");
         BeeShaderHandle = gpu.ShaderController.Load("Assets/bee");
     }
@@ -376,7 +376,7 @@ public sealed class BeeSystem
         beeColor = new Vector3(0.95f, 0.95f, 0.59f);
         DrawBees(1, beeColor, lastUsedBatchIndex);
         
-        var gpu = Context.Window.Gpu;
+        var gpu = GameContext.Window.Gpu;
         gpu.SaveState();
 
         var activeShader = gpu.ShaderController;

@@ -25,7 +25,7 @@ public class CombatBeesBenchmarkGame : Game
     private CameraRig m_CameraRig;
     private CameraRigController m_RigController;
 
-    public CombatBeesBenchmarkGame(IContext context) : base(context)
+    public CombatBeesBenchmarkGame(IGameContext gameContext) : base(gameContext)
     {
         var camera = new PerspectiveCamera(60f, 1.7777f)
         {
@@ -117,7 +117,7 @@ public class CombatBeesBenchmarkGame : Game
         
         m_RigController.Update(dt);
 
-        var gpu = Context.Window.Gpu;
+        var gpu = GameContext.Window.Gpu;
         var framebufferController = gpu.FramebufferController;
         framebufferController.BindToWindow();
         framebufferController.ClearColorBuffers(0f, 0.1f, 0.1f, 1f);

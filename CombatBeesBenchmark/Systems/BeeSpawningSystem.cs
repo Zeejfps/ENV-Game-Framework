@@ -5,12 +5,12 @@ namespace CombatBeesBenchmark;
 
 public sealed class BeeSpawningSystem
 {
-    private IContext Context { get; }
+    private IGameContext GameContext { get; }
     private Random Random { get; }
 
-    public BeeSpawningSystem(IContext context, Random random)
+    public BeeSpawningSystem(IGameContext gameContext, Random random)
     {
-        Context = context;
+        GameContext = gameContext;
         Random = random;
     }
     
@@ -43,7 +43,7 @@ public sealed class BeeSpawningSystem
             }
 
             var beeColor = Data.TeamColors[teamIndex];
-            Context.Logger.Trace($"Filling {startIndex} to {startIndex + numberOfBeesToSpawn} with {beeColor} color");
+            GameContext.Logger.Trace($"Filling {startIndex} to {startIndex + numberOfBeesToSpawn} with {beeColor} color");
             Array.Fill(Data.AliveBeeColors, beeColor, startIndex, numberOfBeesToSpawn);
             
             aliveBeeCountPerTeam[teamIndex] += numberOfBeesToSpawn;

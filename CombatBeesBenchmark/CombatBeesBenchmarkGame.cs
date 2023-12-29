@@ -17,7 +17,7 @@ public class CombatBeesBenchmarkGame : Game
     private CameraRig CameraRig { get; }
     private CameraRigController CameraRigController { get; }
     
-    public CombatBeesBenchmarkGame(IContext context) : base(context)
+    public CombatBeesBenchmarkGame(IGameContext gameContext) : base(gameContext)
     {
         // BeeSystem = new BeeSystem(Context, Field, new BeeSystemConfig
         // {
@@ -44,11 +44,11 @@ public class CombatBeesBenchmarkGame : Game
         CameraRigController = new CameraRigController(CameraRig, Window, Input);
 
         var random = new Random();
-        BeeSpawningSystem = new BeeSpawningSystem(Context, random);
-        MovementSystem = new BeeMovementSystem(random, Context.Logger);
-        BeePhysicsSystem = new BeePhysicsSystem(Context.Logger);
-        BeeTransformSystem = new BeeTransformSystem(Context.Logger);
-        BeeRenderingSystem = new BeeRenderingSystem(Context.Logger, Context.Window.Gpu, Camera);
+        BeeSpawningSystem = new BeeSpawningSystem(GameContext, random);
+        MovementSystem = new BeeMovementSystem(random, GameContext.Logger);
+        BeePhysicsSystem = new BeePhysicsSystem(GameContext.Logger);
+        BeeTransformSystem = new BeeTransformSystem(GameContext.Logger);
+        BeeRenderingSystem = new BeeRenderingSystem(GameContext.Logger, GameContext.Window.Gpu, Camera);
     }
 
     protected override void OnStartup()
@@ -77,7 +77,7 @@ public class CombatBeesBenchmarkGame : Game
 
     protected override void OnUpdate()
     {
-        var gpu = Context.Window.Gpu;
+        var gpu = GameContext.Window.Gpu;
         var activeFramebuffer = gpu.FramebufferController;
         activeFramebuffer.BindToWindow();
         activeFramebuffer.ClearColorBuffers(0f, 0.1f, 0.1f, 1f);

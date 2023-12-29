@@ -8,6 +8,7 @@ public sealed class MainWorld : IEntity
     private Context Context { get; } = new();
     
     public MainWorld(
+        Context context,
         IWindow window,
         IClock clock,
         ITextRenderer textRenderer,

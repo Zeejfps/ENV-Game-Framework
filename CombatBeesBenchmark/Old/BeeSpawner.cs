@@ -6,13 +6,13 @@ public sealed class BeeSpawner
 {
     private int StartBeeCount { get; }
     private BeeSystem BeeSystem { get; }
-    private IContext Context { get; }
+    private IGameContext GameContext { get; }
 
-    public BeeSpawner(BeeSystem beeSystem, int startBeeCount, IContext context)
+    public BeeSpawner(BeeSystem beeSystem, int startBeeCount, IGameContext gameContext)
     {
         BeeSystem = beeSystem;
         StartBeeCount = startBeeCount;
-        Context = context;
+        GameContext = gameContext;
     }
 
     public void Update()

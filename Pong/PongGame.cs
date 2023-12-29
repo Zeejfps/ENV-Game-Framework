@@ -37,7 +37,7 @@ public sealed class PongGame : Game
     private BallCollisionSystem BallCollisionSystem { get; }
     private PaddlePhysicsSystem PaddlePhysicsSystem { get; }
 
-    public PongGame(ISpriteRenderer spriteRenderer, IContext context) : base(context)
+    public PongGame(ISpriteRenderer spriteRenderer, IGameContext gameContext) : base(gameContext)
     {
         SpriteRenderer = spriteRenderer;
         
@@ -181,7 +181,7 @@ public sealed class PongGame : Game
         else 
             TopPaddle.Velocity = Vector2.Zero;
 
-        var mouse = Context.Window.Input.Mouse;
+        var mouse = GameContext.Window.Input.Mouse;
         var mouseScreenPosition = new Vector2(mouse.ScreenX, mouse.ScreenY);
         MousePosition = PixelCanvas.ScreenToCanvasPoint(mouseScreenPosition);
 

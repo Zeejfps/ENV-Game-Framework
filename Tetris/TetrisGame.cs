@@ -16,7 +16,7 @@ public sealed class TetrisGame : Game
     private int m_EntityCount;
     private readonly Entity[] m_Entities = new Entity[1000];
     
-    public TetrisGame(IContext context) : base(context)
+    public TetrisGame(IGameContext gameContext) : base(gameContext)
     {
     }
 
