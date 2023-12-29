@@ -18,17 +18,14 @@ public sealed class Monomino : IEntity
         m_Logger = logger;
     }
     
-    private Vector2 m_GridPosition;
+    private Rect m_ScreenRect;
     private IRenderedSprite? m_RenderedSprite;
     
     public void Load()
     {
-        m_GridPosition = new Vector2(200, 400);
+        m_ScreenRect = new Rect(200, 400, 50, 50);
         m_RenderedSprite = m_SpriteRenderer.Render(
-            screenRect: new Rect(
-                m_GridPosition.X, m_GridPosition.Y,
-                20, 20
-            )
+            screenRect: m_ScreenRect
         );
         m_Clock.Ticked += Clock_OnTicked;
     }
@@ -40,11 +37,7 @@ public sealed class Monomino : IEntity
 
     private void Clock_OnTicked()
     {
-        m_Logger.Trace(m_GridPosition);   
-        m_GridPosition -= Vector2.UnitY * m_Clock.DeltaTime;
-        m_RenderedSprite.ScreenRect = new Rect(
-            m_GridPosition.X, m_GridPosition.Y,
-            20, 20
-        );
+        m_ScreenRect.BottomLeft -= Vector2.UnitY * m_Clock.DeltaTime * 30;
+        m_RenderedSprite.ScreenRect = m_ScreenRect;
     }
 }

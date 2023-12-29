@@ -16,7 +16,15 @@ public struct Rect
     public float Top => Y + Height;
     public float Bottom => Y;
 
-    public Vector2 BottomLeft => new(X, Y);
+    public Vector2 BottomLeft
+    {
+        get => new(X, Y);
+        set
+        {
+            X = value.X;
+            Y = value.Y;
+        }
+    }
     public Vector2 TopRight => BottomLeft + new Vector2(Width, Height);
     
     public Rect(float x, float y, float width, float height)

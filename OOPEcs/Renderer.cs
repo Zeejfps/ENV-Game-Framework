@@ -41,6 +41,9 @@ public sealed class Renderer : IEntity,
 
     public void Unload()
     {
+        if (!m_IsLoaded)
+            return;
+        
         m_SpriteRenderer.Unload();
         m_TextRenderer.Unload();
         m_IsLoaded = false;
@@ -49,7 +52,7 @@ public sealed class Renderer : IEntity,
     private void Window_OnPaint()
     {
         Gl.glClear(Gl.GL_COLOR_BUFFER_BIT | Gl.GL_DEPTH_BUFFER_BIT);
-        m_TextRenderer.Update();
+        //m_TextRenderer.Update();
         m_SpriteRenderer.Update();
     }
 
