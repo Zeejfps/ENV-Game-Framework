@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using OOPEcs;
+using static OpenGL.Gl;
 
 namespace Tetris;
 
@@ -22,7 +23,7 @@ public sealed class TetrisGame : Game
     {
         m_Logger = logger;
         m_SpriteRenderer = new SpriteRenderer(context.Window);
-        m_TetrisRenderer = new TetrisRenderer(logger, m_SpriteRenderer);
+        m_TetrisRenderer = new TetrisRenderer(context.Window, logger, m_SpriteRenderer);
     }
 
     protected override void OnStartup()
@@ -45,17 +46,29 @@ public sealed class TetrisGame : Game
             {
                 new MonominoState
                 {
-                    Position = new Vector2(0f, 10f),
+                    Position = new Vector2(2f, 2),
                     Type = TetrominoType.I
                 },
                 new MonominoState
                 {
-                    Position = new Vector2(10f, 10f),
+                    Position = new Vector2(3, 2),
+                    Type = TetrominoType.I
+                },
+                new MonominoState
+                {
+                    Position = new Vector2(4, 2),
+                    Type = TetrominoType.I
+                },
+                new MonominoState
+                {
+                    Position = new Vector2(3, 3),
                     Type = TetrominoType.I
                 },
             }
         });
         
+        glClearColor(0.1f, 0.4f,0.2f, 1f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         m_SpriteRenderer.Update();
     }
 
