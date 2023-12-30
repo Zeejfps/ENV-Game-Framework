@@ -47,4 +47,9 @@ public sealed class Monomino : IEntity
         m_ScreenRect.BottomLeft -= Vector2.UnitY * m_Clock.DeltaTime * 30;
         m_RenderedSprite.ScreenRect = m_ScreenRect;
     }
+
+    public void MoveDown()
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -18,6 +18,7 @@ public sealed class TestGameApp : WindowedApp
         Context.RegisterSingletonEntity<IClock, GameClock>();
         Context.RegisterTransientEntity<HelloWorldEntity>();
         Context.RegisterTransientEntity<Monomino>();
+        //Context.RegisterTransientEntity<Tetromino>();
     }
 
     protected override void OnStartup()
