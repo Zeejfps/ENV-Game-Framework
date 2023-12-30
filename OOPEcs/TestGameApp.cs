@@ -16,8 +16,8 @@ public sealed class TestGameApp : WindowedApp
         Context.RegisterSingletonEntity<ITextRenderer, Renderer>();
         Context.RegisterSingletonEntity<ISpriteRenderer, Renderer>();
         Context.RegisterSingletonEntity<IClock, GameClock>();
-        Context.RegisterTransientEntity<HelloWorldEntity>();
-        Context.RegisterTransientEntity<Monomino>();
+        //Context.RegisterTransientEntity<HelloWorldEntity>();
+        //Context.RegisterTransientEntity<Monomino>();
         //Context.RegisterTransientEntity<Tetromino>();
     }
 

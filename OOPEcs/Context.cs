@@ -56,4 +56,11 @@ public sealed class Context
             entity.Unload();
         m_Entities.Clear();
     }
+
+    private HashSet<Entity> m_HashSet = new();
+    
+    public void Destroy(Entity entity)
+    {
+        m_HashSet.Remove(entity);
+    }
 }
