@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
+using OOPEcs;
 
 namespace Tetris;
 
@@ -13,37 +14,22 @@ public enum Flag
 
 public sealed class TetrisGame : Game
 {
-    private int m_EntityCount;
-    private readonly Entity[] m_Entities = new Entity[1000];
+    private SpriteRenderer m_SpriteRenderer;
+    private TetrisRenderer m_TetrisRenderer;
+    private ILogger m_Logger;
     
-    public TetrisGame(IGameContext gameContext) : base(gameContext)
+    public TetrisGame(IGameContext context, ILogger logger) : base(context)
     {
+        m_Logger = logger;
+        m_SpriteRenderer = new SpriteRenderer(context.Window);
+        m_TetrisRenderer = new TetrisRenderer(logger, m_SpriteRenderer);
     }
 
     protected override void OnStartup()
     {
         Window.Title = "Tetris";
         Window.SetScreenSize(640, 480);
-        SpawnTetromino();
-    }
-
-    private void SpawnTetromino()
-    {
-        ref var m1 = ref CreateEntity();
-        m1.Set(Flag.Gravity);
-        m1.Position = new Vector2(0, 20);
-
-        ref var m2 = ref CreateEntity();
-        m2.Set(Flag.Gravity);
-        m2.Position = new Vector2(0, 19);
-    }
-
-    private ref Entity CreateEntity()
-    {
-        ref var entity = ref m_Entities[m_EntityCount];
-        entity.Index = m_EntityCount;
-        m_EntityCount++;
-        return ref entity;
+        m_SpriteRenderer.Load();
     }
 
     protected override void OnFixedUpdate()
@@ -52,27 +38,29 @@ public sealed class TetrisGame : Game
 
     protected override void OnUpdate()
     {
-        for (var i = 0; i < m_Entities.Length; i++)
+        m_TetrisRenderer.Render(default, new TetrisSimState
         {
-            ref var entity = ref m_Entities[i];
-            if (entity.Has(Flag.Gravity))
+            PlayState = PlayState.Playing,
+            StaticMonominoStates = new []
             {
-                entity.Position -= Vector2.UnitY;
-
-                if (entity.Position.Y <= 0)
+                new MonominoState
                 {
-                    entity.Clear(Flag.Gravity);   
-                }
+                    Position = new Vector2(0f, 10f),
+                    Type = TetrominoType.I
+                },
+                new MonominoState
+                {
+                    Position = new Vector2(10f, 10f),
+                    Type = TetrominoType.I
+                },
             }
-
-            if (entity.Has(Flag.Renderable))
-            {
-                
-            }
-        }
+        });
+        
+        m_SpriteRenderer.Update();
     }
 
     protected override void OnShutdown()
     {
+        m_SpriteRenderer.Unload();
     }
 }

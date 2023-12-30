@@ -8,7 +8,7 @@ using static OpenGLSandbox.Utils_GL;
 
 namespace OOPEcs;
 
-sealed unsafe class SpriteRenderer : IEntity, ISpriteRenderer
+public sealed unsafe class SpriteRenderer : IEntity, ISpriteRenderer
 {
     private readonly IWindow m_Window;
     private readonly TexturedQuadInstanceRenderer<Sprite> m_TexturedQuadInstanceRenderer;

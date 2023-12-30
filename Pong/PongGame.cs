@@ -181,7 +181,7 @@ public sealed class PongGame : Game
         else 
             TopPaddle.Velocity = Vector2.Zero;
 
-        var mouse = GameContext.Window.Input.Mouse;
+        var mouse = Context.Window.Input.Mouse;
         var mouseScreenPosition = new Vector2(mouse.ScreenX, mouse.ScreenY);
         MousePosition = PixelCanvas.ScreenToCanvasPoint(mouseScreenPosition);
 

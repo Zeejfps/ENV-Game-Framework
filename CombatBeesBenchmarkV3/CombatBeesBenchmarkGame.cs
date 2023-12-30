@@ -75,7 +75,7 @@ public sealed class CombatBeesBenchmarkGame : Game
         var dt = Time.UpdateDeltaTime;
         m_RigController.Update(dt);
 
-        var gpu = GameContext.Window.Gpu;
+        var gpu = Context.Window.Gpu;
         var framebufferController = gpu.FramebufferController;
         framebufferController.BindToWindow();
         framebufferController.ClearColorBuffers(0f, 0.1f, 0.1f, 1f);

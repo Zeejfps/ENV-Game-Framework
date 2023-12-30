@@ -12,7 +12,7 @@ public abstract class Game : IGame
     public IGpu Gpu => Window.Gpu;
     public IInputSystem Input => Window.Input;
 
-    protected IGameContext GameContext { get; }
+    protected IGameContext Context { get; }
     protected IGameTime Time => m_Time;
     protected ILogger Logger { get; }
 
@@ -24,11 +24,11 @@ public abstract class Game : IGame
     private double m_FpsTime;
     private int m_FrameCount;
     
-    protected Game(IGameContext gameContext)
+    protected Game(IGameContext context)
     {
-        GameContext = gameContext;
-        Window = gameContext.Window;
-        Logger = gameContext.Logger;
+        Context = context;
+        Window = context.Window;
+        Logger = context.Logger;
         m_Stopwatch = new Stopwatch();
         m_Time = new GameTime
         {

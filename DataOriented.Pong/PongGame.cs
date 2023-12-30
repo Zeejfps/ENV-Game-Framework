@@ -11,7 +11,7 @@ public sealed class PongGame : Game
     
     public PongGame(IGameContext gameContext) : base(gameContext)
     {
-        Canvas2D = new PixelCanvas(Logger, GameContext.Window, 200, 200);
+        Canvas2D = new PixelCanvas(Logger, Context.Window, 200, 200);
     }
 
     protected override void OnStartup()
@@ -24,7 +24,7 @@ public sealed class PongGame : Game
 
     protected override void OnFixedUpdate()
     {
-        var mouse = GameContext.Window.Input.Mouse;
+        var mouse = Context.Window.Input.Mouse;
         var mouseScreenPosition = new Vector2(mouse.ScreenX, mouse.ScreenY);
         MousePosition = Canvas2D.ScreenToCanvasPoint(mouseScreenPosition);
     }
