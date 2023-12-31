@@ -9,10 +9,20 @@ public sealed class TetrisSim
     private Vector2 m_TetrominoPosition;
     private float m_Time;
     private float m_TimeSinceLastTick;
+
+    private List<Vector2> m_Offsets;
+    private List<MonominoState> m_StaticMonominos = new();
     
     public TetrisSim()
     {
         m_TetrominoPosition = new Vector2(10, 20);
+        m_Offsets = new List<Vector2>
+        {
+            new(-1f, 0f),
+            new(0f, 0f),
+            new(1f, 0f),
+            new(0f, 1f),
+        };
     }
     
     public TetrisSimState Save()
@@ -20,28 +30,35 @@ public sealed class TetrisSim
         return new TetrisSimState
         {
             PlayState = PlayState.Playing,
-            StaticMonominoStates = new []
+            StaticMonominoStates = m_StaticMonominos.ToArray(),
+            // StaticMonominoStates = new []
+            // {
+            //     new MonominoState
+            //     {
+            //         Position = new Vector2(m_TetrominoPosition.X - 1f, m_TetrominoPosition.Y),
+            //         Type = TetrominoType.I
+            //     },
+            //     new MonominoState
+            //     {
+            //         Position = new Vector2(m_TetrominoPosition.X, m_TetrominoPosition.Y),
+            //         Type = TetrominoType.I
+            //     },
+            //     new MonominoState
+            //     {
+            //         Position = new Vector2(m_TetrominoPosition.X + 1f, m_TetrominoPosition.Y),
+            //         Type = TetrominoType.I
+            //     },
+            //     new MonominoState
+            //     {
+            //         Position = new Vector2(m_TetrominoPosition.X, m_TetrominoPosition.Y + 1f),
+            //         Type = TetrominoType.I
+            //     },
+            // },
+            TetrominoState = new TetrominoState
             {
-                new MonominoState
-                {
-                    Position = new Vector2(m_TetrominoPosition.X - 1f, m_TetrominoPosition.Y),
-                    Type = TetrominoType.I
-                },
-                new MonominoState
-                {
-                    Position = new Vector2(m_TetrominoPosition.X, m_TetrominoPosition.Y),
-                    Type = TetrominoType.I
-                },
-                new MonominoState
-                {
-                    Position = new Vector2(m_TetrominoPosition.X + 1f, m_TetrominoPosition.Y),
-                    Type = TetrominoType.I
-                },
-                new MonominoState
-                {
-                    Position = new Vector2(m_TetrominoPosition.X, m_TetrominoPosition.Y + 1f),
-                    Type = TetrominoType.I
-                },
+                Position = m_TetrominoPosition,
+                Offsets = m_Offsets.ToArray(),
+                Type = TetrominoType.I
             }
         };
     }
@@ -107,6 +124,15 @@ public sealed class TetrisSim
 
     private void SpawnTetromino()
     {
-        
+        foreach (var offset in m_Offsets)
+        {
+            m_StaticMonominos.Add(new MonominoState
+            {
+                Position = m_TetrominoPosition + offset,
+                Type = TetrominoType.I
+            });
+        }
+
+        m_TetrominoPosition = new Vector2(10f, 20f);
     }
 }

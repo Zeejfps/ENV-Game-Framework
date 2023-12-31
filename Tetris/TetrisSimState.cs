@@ -20,6 +20,7 @@ public struct TetrominoState
 {
     public Vector2 Position;
     public TetrominoType Type;
+    public Vector2[] Offsets;
 }
 
 public enum TetrominoType

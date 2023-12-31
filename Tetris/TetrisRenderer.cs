@@ -26,6 +26,7 @@ public sealed class TetrisRenderer
         if (currState.PlayState == PlayState.Playing)
         {
             RenderStaticMonominos(currState.StaticMonominoStates);
+            RenderTetromino(currState.TetrominoState);
         }
     }
 
@@ -52,7 +53,39 @@ public sealed class TetrisRenderer
             var sprite = m_MoniminoSprites[i];
             var screenRect = sprite.ScreenRect;
             screenRect.X = state.Position.X * m_GridSize;
-            screenRect.Y = (state.Position.Y - 0.5f)* m_GridSize;
+            screenRect.Y = (state.Position.Y - 0.5f) * m_GridSize;
+            sprite.ScreenRect = screenRect;
+        }
+    }
+    
+    private readonly List<IRenderedSprite> m_TetrominoSprites = new();
+
+    private void RenderTetromino(TetrominoState tetrominoState)
+    {
+        var offsets = tetrominoState.Offsets;
+        var offsetsCount = offsets.Length;
+        var delta = offsetsCount - m_TetrominoSprites.Count;
+        if (delta > 0)
+        {
+            for (var i = 0; i < delta; i++)
+            {
+                m_TetrominoSprites.Add(m_SpriteRenderer.Render(new Rect(0, 0, m_GridSize - 2, m_GridSize - 2)));
+            }
+        }
+        else if (delta < 0)
+        {
+            m_TetrominoSprites.RemoveRange(m_TetrominoSprites.Count - delta, delta);
+        }
+
+        var position = tetrominoState.Position;
+        Debug.Assert(m_TetrominoSprites.Count == offsetsCount);
+        for (var i = 0; i < offsetsCount; i++)
+        {
+            var offset = offsets[i];
+            var sprite = m_TetrominoSprites[i];
+            var screenRect = sprite.ScreenRect;
+            screenRect.X = (position.X + offset.X) * m_GridSize;
+            screenRect.Y = (position.Y + offset.Y - 0.5f) * m_GridSize;
             sprite.ScreenRect = screenRect;
         }
     }
