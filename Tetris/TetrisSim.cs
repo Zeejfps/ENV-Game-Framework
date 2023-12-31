@@ -31,29 +31,6 @@ public sealed class TetrisSim
         {
             PlayState = PlayState.Playing,
             StaticMonominoStates = m_StaticMonominos.ToArray(),
-            // StaticMonominoStates = new []
-            // {
-            //     new MonominoState
-            //     {
-            //         Position = new Vector2(m_TetrominoPosition.X - 1f, m_TetrominoPosition.Y),
-            //         Type = TetrominoType.I
-            //     },
-            //     new MonominoState
-            //     {
-            //         Position = new Vector2(m_TetrominoPosition.X, m_TetrominoPosition.Y),
-            //         Type = TetrominoType.I
-            //     },
-            //     new MonominoState
-            //     {
-            //         Position = new Vector2(m_TetrominoPosition.X + 1f, m_TetrominoPosition.Y),
-            //         Type = TetrominoType.I
-            //     },
-            //     new MonominoState
-            //     {
-            //         Position = new Vector2(m_TetrominoPosition.X, m_TetrominoPosition.Y + 1f),
-            //         Type = TetrominoType.I
-            //     },
-            // },
             TetrominoState = new TetrominoState
             {
                 Position = m_TetrominoPosition,

@@ -340,6 +340,7 @@ public sealed class Window_GLFW : IWindow, IDisposable
         if (WindowShouldClose(m_Handle))
         {
             IsOpened = false;
+            HideWindow(m_Handle);
             return;
         }
         
