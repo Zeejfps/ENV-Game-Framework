@@ -2,7 +2,7 @@
 
 namespace Tetris;
 
-public struct TetrisSimState
+public sealed class TetrisSimState
 {
     public float Time;
     public PlayState PlayState;

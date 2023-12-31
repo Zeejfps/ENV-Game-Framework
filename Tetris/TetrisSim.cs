@@ -4,8 +4,6 @@ namespace Tetris;
 
 public sealed class TetrisSim
 {
-    private TetrisSimState m_TetrisSimState;
-
     private Vector2 m_TetrominoPosition;
     private float m_Time;
     private float m_TimeSinceLastTick;
@@ -25,24 +23,20 @@ public sealed class TetrisSim
         };
     }
     
-    public TetrisSimState Save()
+    public void SaveTo(TetrisSimState state)
     {
-        return new TetrisSimState
+        state.PlayState = PlayState.Playing;
+        state.StaticMonominoStates = m_StaticMonominos.ToArray();
+        state.TetrominoState = new TetrominoState
         {
-            PlayState = PlayState.Playing,
-            StaticMonominoStates = m_StaticMonominos.ToArray(),
-            TetrominoState = new TetrominoState
-            {
-                Position = m_TetrominoPosition,
-                Offsets = m_Offsets.ToArray(),
-                Type = TetrominoType.I
-            }
+            Position = m_TetrominoPosition,
+            Offsets = m_Offsets.ToArray(),
+            Type = TetrominoType.I
         };
     }
 
-    public void Load(TetrisSimState state)
+    public void LoadFrom(TetrisSimState state)
     {
-        m_TetrisSimState = state;
     }
     
     public void Update(float dt)
@@ -54,6 +48,7 @@ public sealed class TetrisSim
             m_TimeSinceLastTick = 0f;
             if (!TryMoveTetrominoDown())
             {
+                OnTetrominoLanded();
                 SpawnTetromino();
             }
         }
@@ -101,6 +96,12 @@ public sealed class TetrisSim
 
     private void SpawnTetromino()
     {
+
+        m_TetrominoPosition = new Vector2(10f, 20f);
+    }
+
+    private void OnTetrominoLanded()
+    {
         foreach (var offset in m_Offsets)
         {
             m_StaticMonominos.Add(new MonominoState
@@ -109,7 +110,5 @@ public sealed class TetrisSim
                 Type = TetrominoType.I
             });
         }
-
-        m_TetrominoPosition = new Vector2(10f, 20f);
     }
 }

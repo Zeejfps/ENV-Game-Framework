@@ -21,6 +21,8 @@ public sealed class TetrisGame : Game
     private ILogger m_Logger;
     private IWindow m_Window;
     private TetrisSim m_TetrisSim;
+    private TetrisSimState m_PrevState = new();
+    private TetrisSimState m_CurrState = new();
     
     public TetrisGame(IGameContext context, ILogger logger, IWindow window) : base(context)
     {
@@ -54,9 +56,11 @@ public sealed class TetrisGame : Game
     protected override void OnUpdate()
     {
         m_TetrisSim.Update(Time.UpdateDeltaTime);
+
+        m_PrevState = m_CurrState;
+        m_TetrisSim.SaveTo(m_CurrState);
         
-        var state = m_TetrisSim.Save();
-        m_TetrisRenderer.Render(default, state);
+        m_TetrisRenderer.Render(m_PrevState, m_CurrState);
         
         glClearColor(0.1f, 0.4f,0.2f, 1f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
