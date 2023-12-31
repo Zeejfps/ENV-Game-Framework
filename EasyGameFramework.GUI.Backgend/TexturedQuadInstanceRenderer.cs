@@ -71,13 +71,13 @@ public sealed unsafe class TexturedQuadInstanceRenderer<TInstancedData>
             if (m_IdsToFill.Count > 0)
             {
                 id = m_IdsToFill.Min;
-                Console.WriteLine($"Reusing an id that needs to be filled. Id: {id}");
+                //Console.WriteLine($"Reusing an id that needs to be filled. Id: {id}");
                 m_IdsToFill.Remove(id);
             }
             else
             {
                 id = m_ItemCount;
-                Console.WriteLine($"Assigned a new id. Id: {id}");
+                //Console.WriteLine($"Assigned a new id. Id: {id}");
                 m_ItemCount++;
             }
 

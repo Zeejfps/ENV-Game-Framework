@@ -4,7 +4,6 @@ namespace Tetris;
 
 public sealed class TetrisSimState
 {
-    public float Time;
     public PlayState PlayState;
     public TetrominoState TetrominoState;
     public MonominoState[] StaticMonominoStates;

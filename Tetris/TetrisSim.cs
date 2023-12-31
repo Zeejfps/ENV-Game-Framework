@@ -5,14 +5,15 @@ namespace Tetris;
 public sealed class TetrisSim
 {
     private Vector2 m_TetrominoPosition;
-    private float m_Time;
     private float m_TimeSinceLastTick;
 
+    private CollisionGrid m_CollisionGrid;
     private List<Vector2> m_Offsets;
     private List<MonominoState> m_StaticMonominos = new();
     
     public TetrisSim()
     {
+        m_CollisionGrid = new CollisionGrid(10, 20);
         m_TetrominoPosition = new Vector2(10, 20);
         m_Offsets = new List<Vector2>
         {
@@ -41,7 +42,6 @@ public sealed class TetrisSim
     
     public void Update(float dt)
     {
-        m_Time += dt;
         m_TimeSinceLastTick += dt;
         if (m_TimeSinceLastTick > 1f)
         {
@@ -87,6 +87,16 @@ public sealed class TetrisSim
     private bool TryMoveTetrominoDown()
     {
         var nextPosition = m_TetrominoPosition - Vector2.UnitY;
+        foreach (var offset in m_Offsets)
+        {
+            var monominoPosition = nextPosition + offset;
+            if (monominoPosition.Y < 0)
+                return false;
+
+            if (m_CollisionGrid.IsPositionOccupied(monominoPosition))
+                return false;
+        }
+        
         if (nextPosition.Y <= 0)
             return false;
 
@@ -96,7 +106,6 @@ public sealed class TetrisSim
 
     private void SpawnTetromino()
     {
-
         m_TetrominoPosition = new Vector2(10f, 20f);
     }
 
