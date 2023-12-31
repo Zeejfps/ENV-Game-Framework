@@ -58,7 +58,10 @@ public sealed class TetrisSim
         if (m_TimeSinceLastTick > 1f)
         {
             m_TimeSinceLastTick = 0f;
-            MoveTetrominoDown();
+            if (!TryMoveTetrominoDown())
+            {
+                SpawnTetromino();
+            }
         }
     }
 
@@ -74,12 +77,12 @@ public sealed class TetrisSim
 
     public void MoveTetrominoDown()
     {
-        m_TetrominoPosition -= Vector2.UnitY;
+        TryMoveTetrominoDown();
     }
 
     public void DropTetrominoInstantly()
     {
-        m_TetrominoPosition += Vector2.UnitY;
+        while (TryMoveTetrominoDown()) {}
     }
 
     public void Pause()
@@ -88,6 +91,21 @@ public sealed class TetrisSim
     }
 
     public void Resume()
+    {
+        
+    }
+
+    private bool TryMoveTetrominoDown()
+    {
+        var nextPosition = m_TetrominoPosition - Vector2.UnitY;
+        if (nextPosition.Y <= 0)
+            return false;
+
+        m_TetrominoPosition = nextPosition;
+        return true;
+    }
+
+    private void SpawnTetromino()
     {
         
     }

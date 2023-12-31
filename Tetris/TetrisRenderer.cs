@@ -52,7 +52,7 @@ public sealed class TetrisRenderer
             var sprite = m_MoniminoSprites[i];
             var screenRect = sprite.ScreenRect;
             screenRect.X = state.Position.X * m_GridSize;
-            screenRect.Y = (state.Position.Y + 0.5f)* m_GridSize;
+            screenRect.Y = (state.Position.Y - 0.5f)* m_GridSize;
             sprite.ScreenRect = screenRect;
         }
     }

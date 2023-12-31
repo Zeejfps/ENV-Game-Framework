@@ -77,5 +77,9 @@ public sealed class TetrisGame : Game
         {
             m_TetrisSim.MoveTetrominoDown();
         }
+        else if (evt.Key == KeyboardKey.Space)
+        {
+            m_TetrisSim.DropTetrominoInstantly();
+        }
     }
 }

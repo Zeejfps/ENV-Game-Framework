@@ -2,7 +2,7 @@
 
 namespace OpenGLSandbox;
 
-public struct Rect
+public struct Rect : IEquatable<Rect>
 {
     public float X;
     public float Y;
@@ -59,5 +59,30 @@ public struct Rect
     public override string ToString()
     {
         return $"{nameof(BottomLeft)}: {BottomLeft}, {nameof(Width)}: {Width}, {nameof(Height)}: {Height}";
+    }
+
+    public bool Equals(Rect other)
+    {
+        return X.Equals(other.X) && Y.Equals(other.Y) && Width.Equals(other.Width) && Height.Equals(other.Height);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is Rect other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(X, Y, Width, Height);
+    }
+
+    public static bool operator ==(Rect left, Rect right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(Rect left, Rect right)
+    {
+        return !left.Equals(right);
     }
 }
