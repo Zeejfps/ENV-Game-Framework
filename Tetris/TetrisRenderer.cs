@@ -7,6 +7,7 @@ namespace Tetris;
 
 public sealed class TetrisRenderer
 {
+    private float m_GridSize = 40;
     private readonly IWindow m_Window;
     private readonly ILogger m_Logger;
     private readonly ISpriteRenderer m_SpriteRenderer;
@@ -16,6 +17,8 @@ public sealed class TetrisRenderer
         m_Window = window;
         m_Logger = logger;
         m_SpriteRenderer = spriteRenderer;
+
+        m_GridSize = window.ScreenHeight / 20f;
     }
 
     public void Render(TetrisSimState prevState, TetrisSimState currState)
@@ -34,7 +37,7 @@ public sealed class TetrisRenderer
         {
             for (var i = 0; i < delta; i++)
             {
-                m_MoniminoSprites.Add(m_SpriteRenderer.Render(new Rect(0, 0, 48f, 48f)));
+                m_MoniminoSprites.Add(m_SpriteRenderer.Render(new Rect(0, 0, m_GridSize - 2, m_GridSize - 2)));
             }
         }
         else if (delta < 0)
@@ -48,8 +51,8 @@ public sealed class TetrisRenderer
             var state = staticMonomino[i];
             var sprite = m_MoniminoSprites[i];
             var screenRect = sprite.ScreenRect;
-            screenRect.X = state.Position.X * 50f;
-            screenRect.Y = state.Position.Y * 50f;
+            screenRect.X = state.Position.X * m_GridSize;
+            screenRect.Y = (state.Position.Y + 0.5f)* m_GridSize;
             sprite.ScreenRect = screenRect;
         }
     }

@@ -7,10 +7,12 @@ public sealed class TetrisSim
     private TetrisSimState m_TetrisSimState;
 
     private Vector2 m_TetrominoPosition;
-
+    private float m_Time;
+    private float m_TimeSinceLastTick;
+    
     public TetrisSim()
     {
-        m_TetrominoPosition = new Vector2(5, 9);
+        m_TetrominoPosition = new Vector2(10, 20);
     }
     
     public TetrisSimState Save()
@@ -51,7 +53,13 @@ public sealed class TetrisSim
     
     public void Update(float dt)
     {
-        
+        m_Time += dt;
+        m_TimeSinceLastTick += dt;
+        if (m_TimeSinceLastTick > 1f)
+        {
+            m_TimeSinceLastTick = 0f;
+            MoveTetrominoDown();
+        }
     }
 
     public void MoveTetrominoRight()
