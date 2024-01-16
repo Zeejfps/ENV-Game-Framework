@@ -35,16 +35,9 @@ public sealed class TetrisRenderer
     {
         var delta = staticMonomino.Length - m_MoniminoSprites.Count;
         if (delta > 0)
-        {
-            for (var i = 0; i < delta; i++)
-            {
-                m_MoniminoSprites.Add(m_SpriteRenderer.Render(new Rect(0, 0, m_GridSize - 2, m_GridSize - 2)));
-            }
-        }
+            CreateSprites(m_MoniminoSprites, delta);
         else if (delta < 0)
-        {
-            m_MoniminoSprites.RemoveRange(m_MoniminoSprites.Count - delta, delta);
-        }
+            DestroySprites(m_MoniminoSprites, -delta);
         
         Debug.Assert(m_MoniminoSprites.Count == staticMonomino.Length);
         for (var i = 0; i < staticMonomino.Length; i++)
@@ -59,28 +52,16 @@ public sealed class TetrisRenderer
     }
     
     private readonly List<IRenderedSprite> m_TetrominoSprites = new();
-
+    
     private void RenderTetromino(TetrominoState tetrominoState)
     {
         var offsets = tetrominoState.Offsets;
         var offsetsCount = offsets.Length;
         var delta = offsetsCount - m_TetrominoSprites.Count;
         if (delta > 0)
-        {
-            for (var i = 0; i < delta; i++)
-            {
-                m_TetrominoSprites.Add(m_SpriteRenderer.Render(new Rect(0, 0, m_GridSize - 2, m_GridSize - 2)));
-            }
-        }
+            CreateSprites(m_TetrominoSprites, delta);
         else if (delta < 0)
-        {
-            for (var i = m_TetrominoSprites.Count - 1; i >= m_TetrominoSprites.Count + delta; i--)
-            {
-                var sprite = m_TetrominoSprites[i];
-                sprite.Dispose();
-                m_TetrominoSprites.RemoveAt(i);
-            }
-        }
+            DestroySprites(m_TetrominoSprites, -delta);
 
         var position = tetrominoState.Position;
         Debug.Assert(m_TetrominoSprites.Count == offsetsCount);
@@ -95,4 +76,23 @@ public sealed class TetrisRenderer
         }
     }
     
+    private void CreateSprites(List<IRenderedSprite> sprites, int count)
+    {
+        for (var i = 0; i < count; i++)
+        {
+            var screenRect = new Rect(0, 0, m_GridSize - 2, m_GridSize - 2);
+            var sprite = m_SpriteRenderer.Render(screenRect);
+            sprites.Add(sprite);
+        }
+    }
+
+    private void DestroySprites(List<IRenderedSprite> sprites, int count)
+    {
+        for (var i = sprites.Count - 1; i >= sprites.Count - count; i--)
+        {
+            var sprite = sprites[i];
+            sprite.Dispose();
+            sprites.RemoveAt(i);
+        }
+    }
 }
