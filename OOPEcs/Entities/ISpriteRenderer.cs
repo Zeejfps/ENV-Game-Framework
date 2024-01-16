@@ -7,7 +7,7 @@ public interface ISpriteRenderer
     IRenderedSprite Render(Rect screenRect);
 }
 
-public interface IRenderedSprite
+public interface IRenderedSprite : IDisposable
 {
     Rect ScreenRect { get; set; }
 }

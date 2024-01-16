@@ -74,7 +74,12 @@ public sealed class TetrisRenderer
         }
         else if (delta < 0)
         {
-            m_TetrominoSprites.RemoveRange(m_TetrominoSprites.Count - delta, delta);
+            for (var i = m_TetrominoSprites.Count - 1; i >= m_TetrominoSprites.Count + delta; i--)
+            {
+                var sprite = m_TetrominoSprites[i];
+                sprite.Dispose();
+                m_TetrominoSprites.RemoveAt(i);
+            }
         }
 
         var position = tetrominoState.Position;
@@ -89,4 +94,5 @@ public sealed class TetrisRenderer
             sprite.ScreenRect = screenRect;
         }
     }
+    
 }

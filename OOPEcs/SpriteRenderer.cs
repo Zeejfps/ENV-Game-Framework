@@ -25,9 +25,14 @@ public sealed unsafe class SpriteRenderer : IEntity, ISpriteRenderer
     
     public IRenderedSprite Render(Rect screenRect)
     {
-        var renderedSprite = new RenderedSpriteImpl(screenRect);
+        var renderedSprite = new RenderedSpriteImpl(screenRect, this);
         m_TexturedQuadInstanceRenderer.Add(renderedSprite);
         return renderedSprite;
+    }
+
+    internal void Destroy(RenderedSpriteImpl renderedSpriteImpl)
+    {
+        m_TexturedQuadInstanceRenderer.Remove(renderedSpriteImpl);
     }
 
     public void Load()
@@ -76,10 +81,13 @@ sealed class RenderedSpriteImpl : IRenderedSprite, IInstancedItem<Sprite>
             BecameDirty?.Invoke(this);
         }
     }
+
+    private readonly SpriteRenderer m_SpriteRenderer;
     
-    public RenderedSpriteImpl(Rect screenRect)
+    public RenderedSpriteImpl(Rect screenRect, SpriteRenderer spriteRenderer)
     {
         ScreenRect = screenRect;
+        m_SpriteRenderer = spriteRenderer;
     }
     
     public event Action<IInstancedItem<Sprite>>? BecameDirty;
@@ -87,6 +95,11 @@ sealed class RenderedSpriteImpl : IRenderedSprite, IInstancedItem<Sprite>
     public void Update(ref Sprite instancedData)
     {
         instancedData.ScreenRect = ScreenRect;
+    }
+
+    public void Dispose()
+    {
+        m_SpriteRenderer.Destroy(this);
     }
 }
 
