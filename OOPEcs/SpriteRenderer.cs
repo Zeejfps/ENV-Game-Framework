@@ -11,12 +11,12 @@ namespace OOPEcs;
 public sealed unsafe class SpriteRenderer : IEntity, ISpriteRenderer
 {
     private readonly IWindow m_Window;
-    private readonly TexturedQuadInstanceRenderer<Sprite> m_TexturedQuadInstanceRenderer;
+    private readonly OpenGlTexturedQuadInstanceRenderer<Sprite> m_TexturedQuadInstanceRenderer;
 
     public SpriteRenderer(IWindow window)
     {
         m_Window = window;
-        m_TexturedQuadInstanceRenderer = new TexturedQuadInstanceRenderer<Sprite>(100);
+        m_TexturedQuadInstanceRenderer = new OpenGlTexturedQuadInstanceRenderer<Sprite>(100);
     }
 
     private uint m_ShaderProgram;

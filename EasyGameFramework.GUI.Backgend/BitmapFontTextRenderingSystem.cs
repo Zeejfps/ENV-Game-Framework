@@ -95,9 +95,9 @@ sealed unsafe class BmpFontRenderer : IDisposable
 {
     private readonly uint m_TextureId;
     private readonly FontFile m_FontFile;
-    private readonly TexturedQuadInstanceRenderer<Glyph> m_TexturedQuadInstanceRenderer;
+    private readonly OpenGlTexturedQuadInstanceRenderer<Glyph> m_TexturedQuadInstanceRenderer;
 
-    private BmpFontRenderer(uint textureId, FontFile fontFile, TexturedQuadInstanceRenderer<Glyph> texturedQuadInstanceRenderer)
+    private BmpFontRenderer(uint textureId, FontFile fontFile, OpenGlTexturedQuadInstanceRenderer<Glyph> texturedQuadInstanceRenderer)
     {
         m_TextureId = textureId;
         m_FontFile = fontFile;
@@ -108,7 +108,7 @@ sealed unsafe class BmpFontRenderer : IDisposable
 
     public static BmpFontRenderer Init(string pathToFontFile)
     {
-        var texturedQuadInstanceRenderer = new TexturedQuadInstanceRenderer<Glyph>(10_000);
+        var texturedQuadInstanceRenderer = new OpenGlTexturedQuadInstanceRenderer<Glyph>(10_000);
         texturedQuadInstanceRenderer.Load();
         
         uint textureId;

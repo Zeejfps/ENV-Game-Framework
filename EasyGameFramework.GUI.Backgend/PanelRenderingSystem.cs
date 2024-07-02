@@ -14,12 +14,12 @@ public sealed unsafe class PanelRenderer : IPanelRenderer
     private int m_ProjectionMatrixUniformLocation;
     private Matrix4x4 m_ProjectionMatrix;
 
-    private readonly TexturedQuadInstanceRenderer<Panel> m_Renderer;
+    private readonly OpenGlTexturedQuadInstanceRenderer<Panel> m_Renderer;
     
     public PanelRenderer(IWindow window)
     {
         m_Window = window;
-        m_Renderer = new TexturedQuadInstanceRenderer<Panel>(20000);
+        m_Renderer = new OpenGlTexturedQuadInstanceRenderer<Panel>(20000);
     }
 
     public void Load()

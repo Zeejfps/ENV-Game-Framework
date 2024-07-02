@@ -10,6 +10,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\EasyGameFramework.Builder\EasyGameFramework.Builder.csproj" />
+      <ProjectReference Include="..\EasyGameFramework.GUI.Backgend\EasyGameFramework.GUI.Backgend.csproj" />
       <ProjectReference Include="..\EasyGameFramework\EasyGameFramework.csproj" />
     </ItemGroup>
     
