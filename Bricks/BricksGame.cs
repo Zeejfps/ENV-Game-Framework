@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
-using EasyGameFramework.Api.Cameras;
 using EasyGameFramework.Api.Physics;
 using static GL46;
 
@@ -14,7 +13,7 @@ public sealed class BricksGame : Game
     private Ball m_Ball;
     private Paddle m_Paddle;
     private readonly Matrix4x4 m_Camera;
-    private readonly Brick[] m_Bricks = new Brick[k_BricksPerRow * 2];
+    private readonly Brick[] m_Bricks = new Brick[k_BricksPerRow * 4];
     private readonly ISpriteRenderer m_SpriteRenderer;
     
     public BricksGame(IGameContext context, ISpriteRenderer spriteRenderer) : base(context)
@@ -34,13 +33,8 @@ public sealed class BricksGame : Game
     protected override void OnStartup()
     {
         Window.Title = "Brickz";
-        var aspect = Window.ScreenWidth / (float)Window.ScreenHeight;
         
         var viewportWidth = Window.ScreenWidth;
-        var viewportHeight = viewportWidth / aspect;
-
-        var halfViewportWidth = viewportWidth * 0.5f;
-        var halfViewportHeight = viewportHeight * 0.5f;
         var rectWidth = viewportWidth / (float)k_BricksPerRow;
         var rectHeight = 20f;
         
