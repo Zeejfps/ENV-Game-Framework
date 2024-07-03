@@ -34,29 +34,29 @@ public sealed class TgaImage
 
             uint uploadBufferId;
             GL46.glGenBuffers(1, &uploadBufferId);
-            Utils_GL.AssertNoGlError();
+            OpenGlUtils.AssertNoGlError();
             GL46.glBindBuffer(GL46.GL_PIXEL_UNPACK_BUFFER, uploadBufferId);
-            Utils_GL.AssertNoGlError();
+            OpenGlUtils.AssertNoGlError();
 
             GL46.glBufferData(GL46.GL_PIXEL_UNPACK_BUFFER, new IntPtr(dataSize), (void*)0, GL46.GL_STATIC_DRAW);
-            Utils_GL.AssertNoGlError();
+            OpenGlUtils.AssertNoGlError();
             
             var ptrToBuffer = GL46.glMapBuffer(GL46.GL_PIXEL_UNPACK_BUFFER, GL46.GL_WRITE_ONLY);
-            Utils_GL.AssertNoGlError();
+            OpenGlUtils.AssertNoGlError();
             
             var buffer = new Span<byte>(ptrToBuffer, dataSize);
             reader.Read(buffer);
             
             GL46.glUnmapBuffer(GL46.GL_PIXEL_UNPACK_BUFFER);
-            Utils_GL.AssertNoGlError();
+            OpenGlUtils.AssertNoGlError();
 
             //Console.WriteLine("Image Type: " + imageType);
             //Console.WriteLine("Pixels: " + buffer.Length);
             
             // If the image is stored upside down, you may need to flip it
 
-            GL46.glTexImage2D(GL46.GL_TEXTURE_2D, 0, GL46.GL_RGBA8, width, height, 0, GL46.GL_RED, GL46.GL_UNSIGNED_BYTE, Utils_GL.Offset(0));
-            Utils_GL.AssertNoGlError();
+            GL46.glTexImage2D(GL46.GL_TEXTURE_2D, 0, GL46.GL_RGBA8, width, height, 0, GL46.GL_RED, GL46.GL_UNSIGNED_BYTE, OpenGlUtils.Offset(0));
+            OpenGlUtils.AssertNoGlError();
             
             GL46.glDeleteBuffers(1, &uploadBufferId);
         }

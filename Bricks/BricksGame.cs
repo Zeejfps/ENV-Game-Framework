@@ -48,10 +48,10 @@ public sealed class BricksGame : Game
                 }
             };
             m_Bricks[i] = brick;
-            m_SpriteRenderer.Add(brick);
+            //m_SpriteRenderer.Add(brick);
         }
 
-        m_SpriteRenderer.Setup();
+        m_SpriteRenderer.Load();
     }
 
     protected override void OnFixedUpdate()

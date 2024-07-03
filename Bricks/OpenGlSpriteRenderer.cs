@@ -1,20 +1,22 @@
 ﻿using OpenGLSandbox;
+using static GL46;
 
 namespace Bricks;
 
 public sealed class OpenGlSpriteRenderer : ISpriteRenderer
 {
     private readonly Dictionary<ITextureHandle, HashSet<ISprite>> m_SpritesByTextureHandlers = new();
-    private readonly OpenGlTexturedQuadInstanceRenderer<SpriteInstanceData> m_InstanceRenderer;
     
     public OpenGlSpriteRenderer()
     {
-        m_InstanceRenderer = new OpenGlTexturedQuadInstanceRenderer<SpriteInstanceData>(500);
     }
     
-    public void Setup()
+    public void Load()
     {
-        m_InstanceRenderer.Load();
+        var vertexShader = OpenGlUtils.CreateAndCompileShaderFromSourceFile(GL_VERTEX_SHADER, "Assets/Shaders/sprite.vert.glsl");
+        var fragmentShader = OpenGlUtils.CreateAndCompileShaderFromSourceFile(GL_FRAGMENT_SHADER, "Assets/Shaders/sprite.frag.glsl");
+
+        //m_InstanceRenderer.Load();
     }
     
     public void Add(ISprite sprite)
@@ -26,13 +28,13 @@ public sealed class OpenGlSpriteRenderer : ISpriteRenderer
             m_SpritesByTextureHandlers[texture] = sprites;
         }
         sprites.Add(sprite);
-        m_InstanceRenderer.Add(sprite);
+        //m_InstanceRenderer.Add(sprite);
     }
     
 
     public void Render()
     {
-        m_InstanceRenderer.Update();
-        m_InstanceRenderer.Render();
+        // m_InstanceRenderer.Update();
+        // m_InstanceRenderer.Render();
     }
 }

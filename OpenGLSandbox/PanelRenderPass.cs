@@ -2,7 +2,7 @@
 using System.Text;
 using EasyGameFramework.Api;
 using static GL46;
-using static OpenGLSandbox.Utils_GL;
+using static OpenGLSandbox.OpenGlUtils;
 
 namespace OpenGLSandbox;
 

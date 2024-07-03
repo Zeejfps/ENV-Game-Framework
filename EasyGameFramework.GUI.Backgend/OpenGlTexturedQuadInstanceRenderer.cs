@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using static GL46;
-using static OpenGLSandbox.Utils_GL;
+using static OpenGLSandbox.OpenGlUtils;
 
 namespace OpenGLSandbox;
 

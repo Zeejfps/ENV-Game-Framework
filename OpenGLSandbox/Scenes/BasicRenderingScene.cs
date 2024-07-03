@@ -1,5 +1,5 @@
 ﻿using static OpenGL.Gl;
-using static OpenGLSandbox.Utils_GL;
+using static OpenGLSandbox.OpenGlUtils;
 
 namespace OpenGLSandbox;
 

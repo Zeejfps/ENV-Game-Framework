@@ -6,7 +6,7 @@ using static OpenGL.Gl;
 
 namespace OpenGLSandbox;
 
-public static class Utils_GL
+public static class OpenGlUtils
 {
     [Conditional("DEBUG")]
     public static void AssertNoGlError()

@@ -19,5 +19,5 @@ public interface ISpriteRenderer
 {
     void Add(ISprite sprite);
     void Render();
-    void Setup();
+    void Load();
 }

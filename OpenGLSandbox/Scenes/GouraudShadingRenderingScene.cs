@@ -4,7 +4,7 @@ using OpenGL;
 namespace OpenGLSandbox;
 
 using static Gl;
-using static Utils_GL;
+using static OpenGlUtils;
 
 public sealed unsafe class GouraudShadingRenderingScene : IScene
 {

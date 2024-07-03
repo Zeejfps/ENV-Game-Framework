@@ -4,7 +4,7 @@ using Entities;
 using OpenGLSandbox;
 using Tetris;
 using static GL46;
-using static OpenGLSandbox.Utils_GL;
+using static OpenGLSandbox.OpenGlUtils;
 
 namespace OOPEcs;
 
