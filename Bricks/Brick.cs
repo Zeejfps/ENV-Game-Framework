@@ -13,6 +13,6 @@ public sealed class Brick : ISprite
     
     public void Update(ref SpriteInstanceData instancedData)
     {
-        
+        instancedData.ScreenRect = ScreenRect;
     }
 }

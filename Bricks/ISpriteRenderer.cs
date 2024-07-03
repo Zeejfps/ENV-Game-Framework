@@ -1,4 +1,5 @@
 ﻿using EasyGameFramework.Api;
+using OpenGL;
 using OpenGLSandbox;
 using Rect = EasyGameFramework.Api.Physics.Rect;
 
@@ -6,13 +7,13 @@ namespace Bricks;
 
 public struct SpriteInstanceData
 {
-    
+    [InstancedAttrib(4, Gl.GL_FLOAT)]
+    public Rect ScreenRect;
 }
 
 public interface ISprite : IInstancedItem<SpriteInstanceData>
 {
     ITextureHandle Texture { get; }
-    Rect ScreenRect { get; }
     Rect UvRect { get; }
 }
 

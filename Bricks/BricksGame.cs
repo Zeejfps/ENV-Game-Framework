@@ -28,13 +28,14 @@ public sealed class BricksGame : Game
     protected override void OnStartup()
     {
         Window.Title = "Brickz";
-        var viewportWidth = Window.ScreenWidth;
+        var viewportWidth = 10f;
         var rectWidth = viewportWidth / (float)k_BricksPerRow;
-        var rectHeight = k_BrickHeight;
+        var rectHeight = rectWidth * 1f;
+        Console.WriteLine(m_Bricks.Length);
         for (var i = 0; i < m_Bricks.Length; i++)
         {
-            var x = (i / k_BricksPerRow) * rectWidth;
-            var y = (i % k_BrickHeight) * rectHeight;
+            var x = (i % k_BricksPerRow) * rectWidth + (i % k_BricksPerRow) * 0.5f;
+            var y = (i / k_BricksPerRow) * rectHeight + (i / k_BricksPerRow) * 0.5f;
             var brick = new Brick
             {
                 ScreenRect = new Rect
@@ -53,7 +54,6 @@ public sealed class BricksGame : Game
             m_Bricks[i] = brick;
             m_SpriteRenderer.Add(brick);
         }
-
         m_SpriteRenderer.Load();
     }
 
