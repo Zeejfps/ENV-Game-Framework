@@ -1,4 +1,5 @@
-﻿using EasyGameFramework.Api;
+﻿using System.Numerics;
+using EasyGameFramework.Api;
 using OpenGL;
 using OpenGLSandbox;
 using Rect = EasyGameFramework.Api.Physics.Rect;
@@ -20,6 +21,6 @@ public interface ISprite : IInstancedItem<SpriteInstanceData>
 public interface ISpriteRenderer
 {
     void Add(ISprite sprite);
-    void Render(ICamera camera);
+    void Render(Matrix4x4 viewProjectionMatrix);
     void Load();
 }

@@ -13,13 +13,19 @@ public sealed class BricksGame : Game
     
     private Ball m_Ball;
     private Paddle m_Paddle;
-    private readonly ICamera m_Camera;
+    private readonly Matrix4x4 m_Camera;
     private readonly Brick[] m_Bricks = new Brick[k_BricksPerRow * 2];
     private readonly ISpriteRenderer m_SpriteRenderer;
     
     public BricksGame(IGameContext context, ISpriteRenderer spriteRenderer) : base(context)
     {
-        m_Camera = new OrthographicCamera(10, 0.1f, 10f);
+        m_Camera = Matrix4x4.CreateOrthographicOffCenter(
+            0, 
+            Window.ScreenWidth, 
+            0, 
+            Window.ScreenHeight,
+            0.1f, 10f);
+        
         m_SpriteRenderer = spriteRenderer;
         m_Ball = new Ball();
         m_Paddle = new Paddle();
@@ -28,14 +34,20 @@ public sealed class BricksGame : Game
     protected override void OnStartup()
     {
         Window.Title = "Brickz";
-        var viewportWidth = 10f;
+        var aspect = Window.ScreenWidth / (float)Window.ScreenHeight;
+        
+        var viewportWidth = Window.ScreenWidth;
+        var viewportHeight = viewportWidth / aspect;
+
+        var halfViewportWidth = viewportWidth * 0.5f;
+        var halfViewportHeight = viewportHeight * 0.5f;
         var rectWidth = viewportWidth / (float)k_BricksPerRow;
-        var rectHeight = rectWidth * 1f;
-        Console.WriteLine(m_Bricks.Length);
+        var rectHeight = 20f;
+        
         for (var i = 0; i < m_Bricks.Length; i++)
         {
-            var x = (i % k_BricksPerRow) * rectWidth + (i % k_BricksPerRow) * 0.5f;
-            var y = (i / k_BricksPerRow) * rectHeight + (i / k_BricksPerRow) * 0.5f;
+            var x = (i % k_BricksPerRow) * rectWidth;
+            var y = Window.ScreenHeight - rectHeight - (i / k_BricksPerRow) * rectHeight;
             var brick = new Brick
             {
                 ScreenRect = new Rect
@@ -44,12 +56,6 @@ public sealed class BricksGame : Game
                     Width = rectWidth,
                     Height = rectHeight
                 },
-                UvRect = new Rect
-                {
-                    BottomLeft = new Vector2(0.1f, 0.1f),
-                    Width = 0.1f,
-                    Height = 0.1f,
-                }
             };
             m_Bricks[i] = brick;
             m_SpriteRenderer.Add(brick);

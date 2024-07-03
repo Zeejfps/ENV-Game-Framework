@@ -1,4 +1,5 @@
-﻿using EasyGameFramework.Api;
+﻿using System.Numerics;
+using EasyGameFramework.Api;
 using OpenGLSandbox;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
@@ -38,13 +39,11 @@ public sealed unsafe class OpenGlSpriteRenderer : ISpriteRenderer
         m_InstanceRenderer.Add(sprite);
     }
     
-    public void Render(ICamera camera)
+    public void Render(Matrix4x4 viewProjectionMatrix)
     {
         glUseProgram(m_ShaderProgram);
         
-        //var m_ProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(0f, m_Window.ScreenWidth, 0f, m_Window.ScreenHeight, 0.1f, 100f);
-        var projectionMatrix = camera.ProjectionMatrix;
-        float* ptr = &projectionMatrix.M11;
+        var ptr = &viewProjectionMatrix.M11;
         glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
         AssertNoGlError();
         

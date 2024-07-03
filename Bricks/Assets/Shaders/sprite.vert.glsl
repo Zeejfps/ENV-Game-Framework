@@ -6,6 +6,8 @@ layout(location = 2) in vec4 v_ScreenRect;
 
 uniform mat4 projection_matrix;
 
+out vec4 f_uvCoords;
+
 void main() {
     float rectX = v_ScreenRect.x;
     float rectY = v_ScreenRect.y;
@@ -18,6 +20,8 @@ void main() {
     vec4 position = v_Position;
     position.x = (position.x * rectHalfWidth + rectHalfWidth) + rectX;
     position.y = (position.y * rectHalfHeight + rectHalfHeight) + rectY;
+
+    f_uvCoords = v_Normals;
     
     gl_Position = projection_matrix * position;
 }
