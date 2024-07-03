@@ -64,6 +64,14 @@ public static class OpenGlUtils
         return shader;
     }
 
+    public static unsafe uint glGenTexture()
+    {
+        uint id;
+        glGenTextures(1, &id);
+        AssertNoGlError();
+        return id;
+    }
+
     public static unsafe int GetUniformLocation(uint shaderProgram, string uniformName)
     {
         var uniformNameAsAsciiBytes = Encoding.ASCII.GetBytes(uniformName);

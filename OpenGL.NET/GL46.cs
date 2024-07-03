@@ -1383,6 +1383,7 @@ public static unsafe class GL46
 	public const int GL_SPIR_V_BINARY = 0x9552;
 	public const int GL_SPIR_V_EXTENSIONS = 0x9553;
 	public const int GL_NUM_SPIR_V_EXTENSIONS = 0x9554;
+	public const int GL_COMPRESSED_RGBA_BPTC_UNORM_ARB = 0x8E8C;
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void glActiveShaderProgramDelegate(uint pipeline, uint program);
