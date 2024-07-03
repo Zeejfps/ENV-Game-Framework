@@ -1,8 +1,14 @@
-﻿using EasyGameFramework.Api.Physics;
+﻿using OpenGLSandbox;
+using Rect = EasyGameFramework.Api.Physics.Rect;
 
 namespace Bricks;
 
-public interface ISprite
+public struct SpriteInstanceData
+{
+    
+}
+
+public interface ISprite : IInstancedItem<SpriteInstanceData>
 {
     ITextureHandle Texture { get; }
     Rect ScreenRect { get; }
