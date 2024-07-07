@@ -10,6 +10,9 @@ public struct SpriteInstanceData
 {
     [InstancedAttrib(4, Gl.GL_FLOAT)]
     public Rect ScreenRect;
+
+    [InstancedAttrib(4, Gl.GL_FLOAT)]
+    public Color Tint;
 }
 
 public interface ISprite : IInstancedItem<SpriteInstanceData>

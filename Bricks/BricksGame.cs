@@ -9,6 +9,19 @@ public sealed class BricksGame : Game
 {
     private const int k_BricksPerRow = 10;
     private const int k_BrickHeight = 20;
+
+    private static readonly Vector3[] BrickColors = {
+        HSVtoRGB(90f, 0.5f, 1f),
+        HSVtoRGB(120f, 0.5f, 1f),
+        HSVtoRGB(140f, 0.5f, 1f),
+        HSVtoRGB(160f, 0.5f, 1f),
+        HSVtoRGB(180f, 0.5f, 1f),
+        HSVtoRGB(200f, 0.5f, 1f),
+        HSVtoRGB(220f, 0.5f, 1f),
+        HSVtoRGB(240f, 0.5f, 1f),
+        HSVtoRGB(260f, 0.5f, 1f),
+        HSVtoRGB(280f, 0.5f, 1f),
+    };
     
     private Ball m_Ball;
     private Paddle m_Paddle;
@@ -50,6 +63,7 @@ public sealed class BricksGame : Game
                     Width = rectWidth,
                     Height = rectHeight
                 },
+                Color = BrickColors[i % BrickColors.Length]
             };
             m_Bricks[i] = brick;
             m_SpriteRenderer.Add(brick);
@@ -69,5 +83,43 @@ public sealed class BricksGame : Game
 
     protected override void OnShutdown()
     {
+    }
+    
+    public static Vector3 HSVtoRGB(float h, float s, float v)
+    {
+        if (s == 0) // Achromatic (grey)
+            return new Vector3(v, v, v);
+
+        h = h / 60f;
+        int i = (int)Math.Floor(h);
+        float f = h - i;
+        float p = v * (1 - s);
+        float q = v * (1 - s * f);
+        float t = v * (1 - s * (1 - f));
+
+        float r, g, b;
+        switch (i)
+        {
+            case 0:
+                r = v; g = t; b = p;
+                break;
+            case 1:
+                r = q; g = v; b = p;
+                break;
+            case 2:
+                r = p; g = v; b = t;
+                break;
+            case 3:
+                r = p; g = q; b = v;
+                break;
+            case 4:
+                r = t; g = p; b = v;
+                break;
+            default: // case 5:
+                r = v; g = p; b = q;
+                break;
+        }
+
+        return new Vector3(r, g, b);
     }
 }

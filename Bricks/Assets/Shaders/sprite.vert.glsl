@@ -3,10 +3,12 @@
 layout(location = 0) in vec4 v_Position;
 layout(location = 1) in vec4 v_Normals;
 layout(location = 2) in vec4 v_ScreenRect;
+layout(location = 3) in vec4 v_Tint;
 
 uniform mat4 projection_matrix;
 
 out vec2 f_uvCoords;
+out vec4 f_Tint;
 
 void main() {
     float rectX = v_ScreenRect.x;
@@ -22,6 +24,7 @@ void main() {
     position.y = (position.y * rectHalfHeight + rectHalfHeight) + rectY;
 
     f_uvCoords = vec2(v_Normals.x * 0.1171875, v_Normals.y * 0.0390625 + 0.0390625);
+    f_Tint = v_Tint;
     
     gl_Position = projection_matrix * position;
 }
