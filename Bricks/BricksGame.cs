@@ -34,8 +34,8 @@ public sealed class BricksGame : Game
         m_Camera = Matrix4x4.CreateOrthographicOffCenter(
             0, 
             Window.ScreenWidth, 
-            0, 
-            Window.ScreenHeight,
+            Window.ScreenHeight, 
+            0,
             0.1f, 10f);
         
         m_SpriteRenderer = spriteRenderer;
@@ -49,17 +49,18 @@ public sealed class BricksGame : Game
         
         var viewportWidth = Window.ScreenWidth;
         var rectWidth = viewportWidth / (float)k_BricksPerRow;
-        var rectHeight = 20f;
+        var rectHeight = k_BrickHeight;
         
         for (var i = 0; i < m_Bricks.Length; i++)
         {
             var x = (i % k_BricksPerRow) * rectWidth;
-            var y = Window.ScreenHeight - rectHeight - (i / k_BricksPerRow) * rectHeight;
+            var y = (i / k_BricksPerRow) * rectHeight;
             var brick = new Brick
             {
-                ScreenRect = new Rect
+                ScreenRect = new ScreenRect
                 {
-                    BottomLeft = new Vector2(x, y),
+                    X = x,
+                    Y = y,
                     Width = rectWidth,
                     Height = rectHeight
                 },

@@ -1,18 +1,24 @@
 ﻿using System.Numerics;
-using EasyGameFramework.Api;
 using OpenGL;
 using OpenGLSandbox;
-using Rect = EasyGameFramework.Api.Physics.Rect;
 
 namespace Bricks;
+
+public struct ScreenRect
+{
+    public float X;
+    public float Y;
+    public float Width;
+    public float Height;
+}
 
 public struct SpriteInstanceData
 {
     [InstancedAttrib(4, Gl.GL_FLOAT)]
-    public Rect AtlasRect;
+    public ScreenRect AtlasRect;
     
     [InstancedAttrib(4, Gl.GL_FLOAT)]
-    public Rect ScreenRect;
+    public ScreenRect ScreenRect;
 
     [InstancedAttrib(4, Gl.GL_FLOAT)]
     public Color Tint;

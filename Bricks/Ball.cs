@@ -9,17 +9,19 @@ public sealed class Ball : ISprite
     public event Action<IInstancedItem<SpriteInstanceData>>? BecameDirty;
     public void Update(ref SpriteInstanceData instancedData)
     {
-        instancedData.Tint = new Color(0f, 0f, 0f, 1f);
-        instancedData.ScreenRect = new Rect
+        instancedData.Tint = new Color(1f, 1f, 1f, 1f);
+        instancedData.ScreenRect = new ScreenRect
         {
-            BottomLeft = new Vector2(30f, 30f),
-            Width = 10f,
-            Height = 10f,
+            X = 320,
+            Y = 240,
+            Width = 20,
+            Height = 20,
         };
-        instancedData.AtlasRect = new Rect
+        instancedData.AtlasRect = new ScreenRect
         {
-            BottomLeft = new Vector2(0f, 20f),
-            Width = 120f,
+            X = 120f,
+            Y = 0f,
+            Width = 20f,
             Height = 20f
         };
     }

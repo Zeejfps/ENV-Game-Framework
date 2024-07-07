@@ -27,10 +27,15 @@ void main() {
     position.x = (position.x * rectHalfWidth + rectHalfWidth) + rectX;
     position.y = (position.y * rectHalfHeight + rectHalfHeight) + rectY;
 
-    float uv_x = v_AtlasRect.z / tex_size.x;
-    float uv_y = v_AtlasRect.w / tex_size.y;
+    float uv_rect_x = v_AtlasRect.x / tex_size.x;
+    float uv_rect_y = v_AtlasRect.y / tex_size.y;
+    float uv_rect_width = v_AtlasRect.z / tex_size.x;
+    float uv_rect_height = v_AtlasRect.w / tex_size.y;
     
-    f_uvCoords = vec2(v_Normals.x * uv_x, v_Normals.y * uv_y + uv_y);
+    float u = v_Normals.x * uv_rect_width + uv_rect_x;
+    float v = v_Normals.y * uv_rect_height + uv_rect_y;
+    
+    f_uvCoords = vec2(u, v);
     f_Tint = v_Tint;
     
     gl_Position = projection_matrix * position;

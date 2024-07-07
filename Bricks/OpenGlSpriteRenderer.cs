@@ -66,6 +66,11 @@ public sealed unsafe class OpenGlSpriteRenderer : ISpriteRenderer
     
     public void Render(Matrix4x4 viewProjectionMatrix)
     {
+        m_InstanceRenderer.Update();
+        
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            
         glUseProgram(m_ShaderProgram);
         glBindTexture(GL_TEXTURE_2D, m_TextureId);
         
@@ -73,7 +78,6 @@ public sealed unsafe class OpenGlSpriteRenderer : ISpriteRenderer
         glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
         AssertNoGlError();
         
-        m_InstanceRenderer.Update();
         m_InstanceRenderer.Render();
     }
 }
