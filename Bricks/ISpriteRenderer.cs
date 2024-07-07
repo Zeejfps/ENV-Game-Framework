@@ -9,6 +9,9 @@ namespace Bricks;
 public struct SpriteInstanceData
 {
     [InstancedAttrib(4, Gl.GL_FLOAT)]
+    public Rect AtlasRect;
+    
+    [InstancedAttrib(4, Gl.GL_FLOAT)]
     public Rect ScreenRect;
 
     [InstancedAttrib(4, Gl.GL_FLOAT)]
@@ -17,8 +20,7 @@ public struct SpriteInstanceData
 
 public interface ISprite : IInstancedItem<SpriteInstanceData>
 {
-    ITextureHandle Texture { get; }
-    Rect UvRect { get; }
+    
 }
 
 public interface ISpriteRenderer

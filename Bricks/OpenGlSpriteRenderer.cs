@@ -9,8 +9,6 @@ namespace Bricks;
 
 public sealed unsafe class OpenGlSpriteRenderer : ISpriteRenderer
 {
-    private readonly Dictionary<ITextureHandle, HashSet<ISprite>> m_SpritesByTextureHandlers = new();
-
     private readonly OpenGlTexturedQuadInstanceRenderer<SpriteInstanceData> m_InstanceRenderer;
     private uint m_ShaderProgram;
     private int m_ProjectionMatrixUniformLocation;

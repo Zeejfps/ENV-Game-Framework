@@ -22,9 +22,9 @@ public sealed class BricksGame : Game
         HSVtoRGB(260f, 0.5f, 1f),
         HSVtoRGB(280f, 0.5f, 1f),
     };
-    
-    private Ball m_Ball;
+
     private Paddle m_Paddle;
+    private readonly Ball m_Ball;
     private readonly Matrix4x4 m_Camera;
     private readonly Brick[] m_Bricks = new Brick[k_BricksPerRow * 4];
     private readonly ISpriteRenderer m_SpriteRenderer;
@@ -63,11 +63,13 @@ public sealed class BricksGame : Game
                     Width = rectWidth,
                     Height = rectHeight
                 },
-                Color = BrickColors[i % BrickColors.Length]
+                Color = BrickColors[i % BrickColors.Length],
             };
             m_Bricks[i] = brick;
             m_SpriteRenderer.Add(brick);
         }
+        
+        m_SpriteRenderer.Add(m_Ball);
         m_SpriteRenderer.Load();
     }
 
