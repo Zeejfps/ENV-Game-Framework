@@ -80,6 +80,8 @@ public sealed class BricksGame : Game
 
     protected override void OnUpdate()
     {
+        m_Ball.Move(Time.UpdateDeltaTime);
+        
         glClear(GL_COLOR_BUFFER_BIT);
         m_SpriteRenderer.Render(m_Camera);
     }

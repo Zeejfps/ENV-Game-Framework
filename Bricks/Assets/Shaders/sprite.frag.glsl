@@ -9,6 +9,6 @@ out vec4 f_Color;
 
 void main() {
     vec4 sample_color = texture(tex, f_uvCoords.rg); 
-    vec4 tintedColor = vec4(f_Tint.rgb * sample_color.rgb, 1);
+    vec4 tintedColor = vec4(f_Tint.rgb * sample_color.rgb, sample_color.a);
     f_Color = tintedColor;
 }

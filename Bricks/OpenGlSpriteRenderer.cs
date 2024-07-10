@@ -38,7 +38,7 @@ public sealed unsafe class OpenGlSpriteRenderer : ISpriteRenderer
         m_TextureId = glGenTexture();
         glBindTexture(GL_TEXTURE_2D, m_TextureId);
 
-        var filterParam = GL_LINEAR;
+        var filterParam = GL_NEAREST;
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
