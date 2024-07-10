@@ -10,7 +10,7 @@ public sealed class Brick : ISprite
     public ScreenRect ScreenRect { get; set; }
     public Vector3 Color { get; set; }
 
-    public void Update(ref SpriteInstanceData instancedData)
+    public void UpdateInstanceData(ref SpriteInstanceData instancedData)
     {
         instancedData.ScreenRect = ScreenRect;
         instancedData.Tint = new Color(Color.X, Color.Y, Color.Z, 1f);

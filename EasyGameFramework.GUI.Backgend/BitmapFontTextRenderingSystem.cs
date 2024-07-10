@@ -427,7 +427,7 @@ sealed class RenderedGlyphImpl : IRenderedGlyph, IInstancedItem<Glyph>
 
     public event Action<IInstancedItem<Glyph>>? BecameDirty;
     
-    public void Update(ref Glyph glyph)
+    public void UpdateInstanceData(ref Glyph glyph)
     {
         var rect = ScreenRect;
         rect.X = MathF.Floor(rect.X);

@@ -9,7 +9,7 @@ public interface IInstancedItem<TInstancedData> where TInstancedData : unmanaged
 {
     event Action<IInstancedItem<TInstancedData>> BecameDirty;
 
-    void Update(ref TInstancedData instancedData);
+    void UpdateInstanceData(ref TInstancedData instancedData);
 }
 
 public sealed unsafe class OpenGlTexturedQuadInstanceRenderer<TInstancedData> 
@@ -152,7 +152,7 @@ public sealed unsafe class OpenGlTexturedQuadInstanceRenderer<TInstancedData>
                     m_ItemToIndexTable[srcItem] = dstIndex;
                 }
 
-                srcItem.Update(ref buffer[dstIndex]);
+                srcItem.UpdateInstanceData(ref buffer[dstIndex]);
                 //Console.WriteLine(buffer[dstIndex]);
                 dstIndex++;
             }

@@ -127,7 +127,7 @@ sealed class RenderedPanelImpl : IRenderedPanel, IInstancedItem<Panel>
         PanelRenderer = panelRenderer;
     }
 
-    public void Update(ref Panel panel)
+    public void UpdateInstanceData(ref Panel panel)
     {
         var style = Style;
         var rect = ScreenRect;

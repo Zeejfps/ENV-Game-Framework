@@ -92,7 +92,7 @@ sealed class RenderedSpriteImpl : IRenderedSprite, IInstancedItem<Sprite>
     
     public event Action<IInstancedItem<Sprite>>? BecameDirty;
     
-    public void Update(ref Sprite instancedData)
+    public void UpdateInstanceData(ref Sprite instancedData)
     {
         instancedData.ScreenRect = ScreenRect;
     }

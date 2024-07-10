@@ -11,7 +11,7 @@ public sealed class Ball : ISprite
     private Vector2 m_Position;
     private Vector2 m_Velocity;
     
-    public void Update(ref SpriteInstanceData instancedData)
+    public void UpdateInstanceData(ref SpriteInstanceData instancedData)
     {
         instancedData.Tint = new Color(1f, 1f, 1f, 1f);
         instancedData.ScreenRect = new ScreenRect
