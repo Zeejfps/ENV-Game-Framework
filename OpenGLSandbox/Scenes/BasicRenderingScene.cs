@@ -1,4 +1,5 @@
-﻿using static OpenGL.Gl;
+﻿using OpenGL;
+using static OpenGL.Gl;
 using static OpenGLSandbox.OpenGlUtils;
 
 namespace OpenGLSandbox;
@@ -25,7 +26,7 @@ public sealed class BasicRenderingScene : IScene
         m_Vao = glGenVertexArray();
         glBindVertexArray(m_Vao);
         
-        m_Vbo = glGenBuffer();
+        m_Vbo = Gl.glGenBuffer();
         glBindBuffer(GL_ARRAY_BUFFER, m_Vbo);
         fixed (float* ptr = &verts[0]) 
             glBufferData(GL_ARRAY_BUFFER, verts.Length * sizeof(float), ptr, GL_STATIC_DRAW);

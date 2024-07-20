@@ -32,6 +32,13 @@ public static class OpenGlUtils
         return CreateAndCompileShaderFromSource(type, source);
     }
 
+    public static unsafe uint glGenBuffer()
+    {
+        uint b;
+        glGenBuffers(1, &b);
+        return b;
+    }
+
     public static unsafe uint CreateAndCompileShaderFromSource(int type, string source)
     {
         var shader = glCreateShader(type);

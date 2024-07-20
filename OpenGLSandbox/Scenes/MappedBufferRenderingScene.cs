@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using OpenGL;
 using static OpenGL.Gl;
 using static OpenGLSandbox.OpenGlUtils;
 
@@ -17,7 +18,7 @@ public sealed class MappedBufferRenderingScene : IScene
         m_Vao = glGenVertexArray();
         AssertNoGlError();
         
-        m_Vbo = glGenBuffer();
+        m_Vbo = Gl.glGenBuffer();
         AssertNoGlError();
         
         glBindVertexArray(m_Vao);

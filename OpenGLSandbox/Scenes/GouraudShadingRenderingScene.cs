@@ -35,7 +35,7 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
         glBindVertexArray(m_Vao);
         AssertNoGlError();
         
-        m_Vbo = glGenBuffer();
+        m_Vbo = Gl.glGenBuffer();
         AssertNoGlError();
         
         glBindBuffer(GL_ARRAY_BUFFER, m_Vbo);

@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using OpenGL;
 using static OpenGL.Gl;
 using static OpenGLSandbox.OpenGlUtils;
 
@@ -29,7 +30,7 @@ public sealed unsafe class RectNormalsRenderingScene : IScene
     {
         m_Vao = glGenVertexArray();
         AssertNoGlError();
-        m_Vbo = glGenBuffer();
+        m_Vbo = Gl.glGenBuffer();
         AssertNoGlError();
         
         glBindVertexArray(m_Vao);
