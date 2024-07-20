@@ -13,7 +13,7 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
     private readonly HashSet<IInstancedItem<TInstancedData>> m_DirtyItems = new();
     private readonly Dictionary<IInstancedItem<TInstancedData>, int> m_ItemToIndexTable = new();
     private readonly Dictionary<int, IInstancedItem<TInstancedData>> m_IndexToItemTable = new();
-    private readonly SortedSet<int> m_IdsToFill = new();
+    private readonly SortedSet<int> m_EmptyIndices = new();
     private readonly uint m_MaxInstanceCount;
     private readonly uint m_VertexAttribIndexOffset;
     
@@ -88,7 +88,7 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
         m_ItemCount = 0;
         m_ItemsToRegister.Clear();
         m_ItemsToUnregister.Clear();
-        m_IdsToFill.Clear();
+        m_EmptyIndices.Clear();
         m_ItemToIndexTable.Clear();
         m_IndexToItemTable.Clear();
         m_DirtyItems.Clear();
@@ -102,9 +102,9 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
         foreach (var item in m_ItemsToUnregister)
         {
             item.BecameDirty -= Item_OnBecameDirty;
-            var id = m_ItemToIndexTable[item];
-            m_IdsToFill.Add(id);
-            m_IndexToItemTable.Remove(id);
+            var index = m_ItemToIndexTable[item];
+            m_EmptyIndices.Add(index);
+            m_IndexToItemTable.Remove(index);
             m_ItemToIndexTable.Remove(item);
             m_DirtyItems.Remove(item);
         }
@@ -119,19 +119,19 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
         foreach (var item in m_ItemsToRegister)
         {
             item.BecameDirty += Item_OnBecameDirty;
-            int id;
-            if (m_IdsToFill.Count > 0)
+            int index;
+            if (m_EmptyIndices.Count > 0)
             {
-                id = m_IdsToFill.Min;
-                m_IdsToFill.Remove(id);
+                index = m_EmptyIndices.Min;
+                m_EmptyIndices.Remove(index);
             }
             else
             {
-                id = m_ItemCount;
+                index = m_ItemCount;
                 m_ItemCount++;
             }
 
-            UpdateItemIndexLookup(item, id);
+            UpdateItemIndexLookup(item, index);
                 
             m_DirtyItems.Add(item);
         }
@@ -141,7 +141,7 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
     // TODO: Better name?
     private void UpdateIds()
     {
-        foreach (var idToFill in m_IdsToFill.Reverse())
+        foreach (var idToFill in m_EmptyIndices.Reverse())
         {
             var lastItemId = m_ItemCount - 1;
             if (idToFill != lastItemId)
@@ -160,50 +160,56 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
                 
             m_ItemCount--;
         }
-        m_IdsToFill.Clear();
+        m_EmptyIndices.Clear();
     }
 
     private void UploadDataToGpu()
     {
         if (m_DirtyItems.Count == 0)
             return;
-        
+
+        var minIndex = int.MaxValue;
         var maxIndex = 0;
         foreach (var dirtyItem in m_DirtyItems)
         {
             var index = m_ItemToIndexTable[dirtyItem];
             if (index > maxIndex)
                 maxIndex = index;
+            if (index < minIndex)
+                minIndex = index;
         }
-        var bufferRangeSize = maxIndex + 1;
+        var bufferLength = (maxIndex + 1) - minIndex;
+        //Console.WriteLine($"Mapping Buffer Range: {minIndex} -> {maxIndex}, Length: {bufferLength}");
         
         glBindBuffer(GL_ARRAY_BUFFER, m_BufferId);
         AssertNoGlError();
-        var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<TInstancedData>(bufferRangeSize), GL_MAP_WRITE_BIT);
+        var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, SizeOf<TInstancedData>(minIndex), SizeOf<TInstancedData>(bufferLength), GL_MAP_WRITE_BIT);
         AssertNoGlError();
-        var buffer = new Span<TInstancedData>(bufferPtr, bufferRangeSize);
+        var buffer = new Span<TInstancedData>(bufferPtr, bufferLength);
 
-        var dstIndex = 0;
-        foreach (var srcItem in m_DirtyItems)
+        foreach (var dirtyItem in m_DirtyItems)
         {
-            var dirtyItemIndex = m_ItemToIndexTable[srcItem];
-   
-            if (dirtyItemIndex > dstIndex)
-            {
-                //Console.WriteLine($"Swaping {panelId} with {dstIndex}");
-                var srcIndex = dirtyItemIndex;
-                var dstItem = m_IndexToItemTable[dstIndex];
-                var dstItemData = buffer[dstIndex];
-                
-                buffer[srcIndex] = dstItemData;
-                
-                UpdateItemIndexLookup(dstItem, srcIndex);
-                UpdateItemIndexLookup(srcItem, dstIndex);
-            }
+            var dirtyItemIndex = m_ItemToIndexTable[dirtyItem];
+            var dstIndex = dirtyItemIndex - minIndex;
 
-            srcItem.UpdateInstanceData(ref buffer[dstIndex]);
+            // NOTE(Zee): Why am I doing this?
+            // I think its because I want the items that change frequently to be at the begging of the 
+            // buffer, that way we don't have to map a large portion of the buffer?
+            // if (dirtyItemIndex > dstIndex)
+            // {
+            //     Console.WriteLine($"Swaping {dirtyItemIndex} with {dstIndex}");
+            //     var srcIndex = dirtyItemIndex;
+            //     var dstItem = m_IndexToItemTable[dstIndex];
+            //     var dstItemData = buffer[dstIndex];
+            //     
+            //     buffer[srcIndex] = dstItemData;
+            //     
+            //     UpdateItemIndexLookup(dstItem, srcIndex);
+            //     UpdateItemIndexLookup(dirtyItem, dstIndex);
+            // }
+
+            dirtyItem.UpdateInstanceData(ref buffer[dstIndex]);
             //Console.WriteLine(buffer[dstIndex]);
-            dstIndex++;
         }
         //Console.WriteLine($"Updated Dirty Items: {m_DirtyItems.Count}");
         m_DirtyItems.Clear();
