@@ -202,10 +202,7 @@ sealed unsafe class BmpFontRenderer : IDisposable
     {
         glBindTexture(GL_TEXTURE_2D, m_TextureId);
         AssertNoGlError();
-        if (m_TexturedQuadInstanceRenderer.ItemCount > 0)
-        {
-            m_TexturedQuadInstanceRenderer.Render();
-        }
+        m_TexturedQuadInstanceRenderer.Render();
     }
 }
 
