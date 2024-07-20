@@ -148,8 +148,10 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
             {
                 //Console.WriteLine($"Moving last panel into an id we need to fill. Id: {idToFill}");
                 var lastItem = m_IndexToItemTable[lastItemId];
-
                 m_IndexToItemTable.Remove(lastItemId);
+                
+                // NOTE(Zee): Not needed here because we are overriding the index in the UpdateItemIndexLookup method
+                //m_ItemToIndexTable.Remove(lastItem);
                 
                 UpdateItemIndexLookup(lastItem, idToFill);
 
