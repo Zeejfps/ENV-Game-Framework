@@ -17,10 +17,10 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
     private readonly uint m_MaxInstanceCount;
     private readonly uint m_VertexAttribIndexOffset;
     
-    private uint m_BufferId;
     private int m_ItemCount;
-
     public int ItemCount => m_ItemCount;
+
+    private readonly DynamicDrawArrayBuffer<TInstancedData> m_Buffer = new();
 
     public VertexAttribInstanceBuffer(uint vertexAttribIndexOffset, uint maxInstancesCount)
     {
@@ -31,11 +31,8 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
     public void Alloc()
     {
         var maxInstancesCount = m_MaxInstanceCount;
+        m_Buffer.Alloc((int)maxInstancesCount);
         
-        m_BufferId = glGenBuffer();
-        glBindBuffer(GL_ARRAY_BUFFER, m_BufferId);
-        glBufferData(GL_ARRAY_BUFFER, SizeOf<TInstancedData>(maxInstancesCount), (void*)0, GL_DYNAMIC_DRAW);
-
         var instancedDataType = typeof(TInstancedData);
         var fields = instancedDataType.GetFields()
             .Where(fieldInfo => fieldInfo.GetCustomAttribute<InstancedAttrib>() != null);
@@ -81,10 +78,7 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
 
     public void Free()
     {
-        var id = m_BufferId;
-        glDeleteBuffers(1, &id);
-        AssertNoGlError();
-        
+        m_Buffer.Free();
         m_ItemCount = 0;
         m_ItemsToRegister.Clear();
         m_ItemsToUnregister.Clear();
@@ -179,43 +173,17 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
                 minIndex = index;
         }
         var bufferLength = (maxIndex + 1) - minIndex;
-        //Console.WriteLine($"Mapping Buffer Range: {minIndex} -> {maxIndex}, Length: {bufferLength}");
-        
-        glBindBuffer(GL_ARRAY_BUFFER, m_BufferId);
-        AssertNoGlError();
-        var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, SizeOf<TInstancedData>(minIndex), SizeOf<TInstancedData>(bufferLength), GL_MAP_WRITE_BIT);
-        AssertNoGlError();
-        var buffer = new Span<TInstancedData>(bufferPtr, bufferLength);
-
-        foreach (var dirtyItem in m_DirtyItems)
+        m_Buffer.MapWrite(minIndex, bufferLength, gpuMemory =>
         {
-            var dirtyItemIndex = m_ItemToIndexTable[dirtyItem];
-            var dstIndex = dirtyItemIndex - minIndex;
-
-            // NOTE(Zee): Why am I doing this?
-            // I think its because I want the items that change frequently to be at the begging of the 
-            // buffer, that way we don't have to map a large portion of the buffer?
-            // if (dirtyItemIndex > dstIndex)
-            // {
-            //     Console.WriteLine($"Swaping {dirtyItemIndex} with {dstIndex}");
-            //     var srcIndex = dirtyItemIndex;
-            //     var dstItem = m_IndexToItemTable[dstIndex];
-            //     var dstItemData = buffer[dstIndex];
-            //     
-            //     buffer[srcIndex] = dstItemData;
-            //     
-            //     UpdateItemIndexLookup(dstItem, srcIndex);
-            //     UpdateItemIndexLookup(dirtyItem, dstIndex);
-            // }
-
-            dirtyItem.UpdateInstanceData(ref buffer[dstIndex]);
-            //Console.WriteLine(buffer[dstIndex]);
-        }
-        //Console.WriteLine($"Updated Dirty Items: {m_DirtyItems.Count}");
-        m_DirtyItems.Clear();
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-
-        //Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
+            var buffer = gpuMemory.Span;
+            foreach (var dirtyItem in m_DirtyItems)
+            {
+                var dirtyItemIndex = m_ItemToIndexTable[dirtyItem];
+                var dstIndex = dirtyItemIndex - minIndex;
+                dirtyItem.UpdateInstanceData(ref buffer[dstIndex]);
+            }
+            m_DirtyItems.Clear();
+        });
     }
 
     private void UpdateItemIndexLookup(IInstancedItem<TInstancedData> item, int index)
