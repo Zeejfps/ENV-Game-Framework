@@ -131,8 +131,7 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
                 m_ItemCount++;
             }
 
-            m_ItemToIndexTable[item] = id;
-            m_IndexToItemTable[id] = item;
+            UpdateItemIndexLookup(item, id);
                 
             m_DirtyItems.Add(item);
         }
@@ -140,22 +139,21 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
     }
 
     // TODO: Better name?
-
     private void UpdateIds()
     {
         foreach (var idToFill in m_IdsToFill.Reverse())
         {
-            var lastPanelId = m_ItemCount - 1;
-            if (idToFill != lastPanelId)
+            var lastItemId = m_ItemCount - 1;
+            if (idToFill != lastItemId)
             {
-                Console.WriteLine($"Moving last panel into an id we need to fill. Id: {idToFill}");
-                var lastPanel = m_IndexToItemTable[lastPanelId];
+                //Console.WriteLine($"Moving last panel into an id we need to fill. Id: {idToFill}");
+                var lastItem = m_IndexToItemTable[lastItemId];
 
-                m_IndexToItemTable.Remove(lastPanelId);
-                m_IndexToItemTable[idToFill] = lastPanel;
-                m_ItemToIndexTable[lastPanel] = idToFill;
+                m_IndexToItemTable.Remove(lastItemId);
+                
+                UpdateItemIndexLookup(lastItem, idToFill);
 
-                m_DirtyItems.Add(lastPanel);
+                m_DirtyItems.Add(lastItem);
             }
                 
             m_ItemCount--;
@@ -192,17 +190,13 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
             {
                 //Console.WriteLine($"Swaping {panelId} with {dstIndex}");
                 var srcIndex = dirtyItemIndex;
-
-                var dstPanel = m_IndexToItemTable[dstIndex];
-            
-                var dstPanelData = buffer[dstIndex];
-                buffer[srcIndex] = dstPanelData;
-            
-                m_IndexToItemTable[srcIndex] = dstPanel;
-                m_ItemToIndexTable[dstPanel] = srcIndex;
-
-                m_IndexToItemTable[dstIndex] = srcItem;
-                m_ItemToIndexTable[srcItem] = dstIndex;
+                var dstItem = m_IndexToItemTable[dstIndex];
+                var dstItemData = buffer[dstIndex];
+                
+                buffer[srcIndex] = dstItemData;
+                
+                UpdateItemIndexLookup(dstItem, srcIndex);
+                UpdateItemIndexLookup(srcItem, dstIndex);
             }
 
             srcItem.UpdateInstanceData(ref buffer[dstIndex]);
@@ -214,6 +208,12 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
         glUnmapBuffer(GL_ARRAY_BUFFER);
 
         //Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
+    }
+
+    private void UpdateItemIndexLookup(IInstancedItem<TInstancedData> item, int index)
+    {
+        m_IndexToItemTable[index] = item;
+        m_ItemToIndexTable[item] = index;
     }
 
     private void Item_OnBecameDirty(IInstancedItem<TInstancedData> item)
