@@ -59,8 +59,6 @@ public sealed unsafe class PanelRenderer : IPanelRenderer
 
     public void Update()
     {
-        m_Renderer.Update();
-        
         //Console.WriteLine($"Rendering: {m_Renderer.ItemCount}");
         if (m_Renderer.ItemCount > 0)
         {

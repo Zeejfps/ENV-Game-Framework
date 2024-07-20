@@ -62,7 +62,6 @@ public sealed unsafe class SpriteRenderer : IEntity, ISpriteRenderer
             glUniformMatrix4fv(m_ProjectionMatrixUniformLocation, 1, false, ptr);
         AssertNoGlError();
         
-        m_TexturedQuadInstanceRenderer.Update();
         m_TexturedQuadInstanceRenderer.Render();
     }
 }

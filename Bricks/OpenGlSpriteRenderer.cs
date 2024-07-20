@@ -66,8 +66,6 @@ public sealed unsafe class OpenGlSpriteRenderer : ISpriteRenderer
     
     public void Render(Matrix4x4 viewProjectionMatrix)
     {
-        m_InstanceRenderer.Update();
-        
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             

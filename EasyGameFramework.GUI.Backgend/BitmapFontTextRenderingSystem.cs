@@ -196,7 +196,6 @@ sealed unsafe class BmpFontRenderer : IDisposable
 
     public void Update()
     {
-        m_TexturedQuadInstanceRenderer.Update();
     }
 
     public void Render()

@@ -49,8 +49,11 @@ public sealed unsafe class OpenGlTexturedQuadInstanceRenderer<TInstancedData>
         m_ItemsToRegister.Remove(item);
     }
 
-    public void Update()
+    private void UnregisterItems()
     {
+        if (m_ItemsToUnregister.Count == 0)
+            return;
+        
         //Console.WriteLine($"Unregistering {m_ItemsToUnregister.Count} panels");
         foreach (var item in m_ItemsToUnregister)
         {
@@ -62,7 +65,13 @@ public sealed unsafe class OpenGlTexturedQuadInstanceRenderer<TInstancedData>
             m_DirtyItems.Remove(item);
         }
         m_ItemsToUnregister.Clear();
-            
+    }
+
+    private void RegisterItems()
+    {
+        if (m_ItemsToRegister.Count == 0)
+            return;
+        
         //Console.WriteLine($"Registering {m_ItemsToRegister.Count} items");
         foreach (var item in m_ItemsToRegister)
         {
@@ -87,7 +96,11 @@ public sealed unsafe class OpenGlTexturedQuadInstanceRenderer<TInstancedData>
             m_DirtyItems.Add(item);
         }
         m_ItemsToRegister.Clear();
-            
+    }
+
+    // TODO: Better name?
+    private void UpdateIds()
+    {
         //Console.WriteLine($"Back filling {m_IdsToFill.Count} ids");
         foreach (var idToFill in m_IdsToFill.Reverse())
         {
@@ -107,65 +120,72 @@ public sealed unsafe class OpenGlTexturedQuadInstanceRenderer<TInstancedData>
             m_ItemCount--;
         }
         m_IdsToFill.Clear();
-        
-        //Console.WriteLine($"Max dirty panel index {maxIndex}");
-        
-        if (m_DirtyItems.Count > 0)
-        {
-            var maxIndex = 0;
-            foreach (var dirtyItem in m_DirtyItems)
-            {
-                var index = m_ItemToIndexTable[dirtyItem];
-                if (index > maxIndex)
-                    maxIndex = index;
-            }
-            
-            var bufferRangeSize = maxIndex + 1;
-
-            //Console.WriteLine($"Have dirty items: {m_DirtyItems.Count}");
-
-            glBindBuffer(GL_ARRAY_BUFFER, m_InstancedDataBuffer);
-            AssertNoGlError();
-            var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<TInstancedData>(bufferRangeSize), GL_MAP_WRITE_BIT);
-            AssertNoGlError();
-            var buffer = new Span<TInstancedData>(bufferPtr, bufferRangeSize);
-
-            var dstIndex = 0;
-            foreach (var srcItem in m_DirtyItems)
-            {
-                var dirtyItemIndex = m_ItemToIndexTable[srcItem];
-   
-                if (dirtyItemIndex > dstIndex)
-                {
-                    //Console.WriteLine($"Swaping {panelId} with {dstIndex}");
-                    var srcIndex = dirtyItemIndex;
-
-                    var dstPanel = m_IndexToItemTable[dstIndex];
-            
-                    var dstPanelData = buffer[dstIndex];
-                    buffer[srcIndex] = dstPanelData;
-            
-                    m_IndexToItemTable[srcIndex] = dstPanel;
-                    m_ItemToIndexTable[dstPanel] = srcIndex;
-
-                    m_IndexToItemTable[dstIndex] = srcItem;
-                    m_ItemToIndexTable[srcItem] = dstIndex;
-                }
-
-                srcItem.UpdateInstanceData(ref buffer[dstIndex]);
-                //Console.WriteLine(buffer[dstIndex]);
-                dstIndex++;
-            }
-            //Console.WriteLine($"Updated Dirty Items: {m_DirtyItems.Count}");
-            m_DirtyItems.Clear();
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-        }
-            
-        //Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
     }
 
+    private void UploadDataToGpu()
+    {
+        if (m_DirtyItems.Count == 0)
+            return;
+        
+        var maxIndex = 0;
+        foreach (var dirtyItem in m_DirtyItems)
+        {
+            var index = m_ItemToIndexTable[dirtyItem];
+            if (index > maxIndex)
+                maxIndex = index;
+        }
+        
+        //Console.WriteLine($"Max dirty panel index {maxIndex}");
+        var bufferRangeSize = maxIndex + 1;
+
+        //Console.WriteLine($"Have dirty items: {m_DirtyItems.Count}");
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_InstancedDataBuffer);
+        AssertNoGlError();
+        var bufferPtr = glMapBufferRange(GL_ARRAY_BUFFER, IntPtr.Zero, SizeOf<TInstancedData>(bufferRangeSize), GL_MAP_WRITE_BIT);
+        AssertNoGlError();
+        var buffer = new Span<TInstancedData>(bufferPtr, bufferRangeSize);
+
+        var dstIndex = 0;
+        foreach (var srcItem in m_DirtyItems)
+        {
+            var dirtyItemIndex = m_ItemToIndexTable[srcItem];
+   
+            if (dirtyItemIndex > dstIndex)
+            {
+                //Console.WriteLine($"Swaping {panelId} with {dstIndex}");
+                var srcIndex = dirtyItemIndex;
+
+                var dstPanel = m_IndexToItemTable[dstIndex];
+            
+                var dstPanelData = buffer[dstIndex];
+                buffer[srcIndex] = dstPanelData;
+            
+                m_IndexToItemTable[srcIndex] = dstPanel;
+                m_ItemToIndexTable[dstPanel] = srcIndex;
+
+                m_IndexToItemTable[dstIndex] = srcItem;
+                m_ItemToIndexTable[srcItem] = dstIndex;
+            }
+
+            srcItem.UpdateInstanceData(ref buffer[dstIndex]);
+            //Console.WriteLine(buffer[dstIndex]);
+            dstIndex++;
+        }
+        //Console.WriteLine($"Updated Dirty Items: {m_DirtyItems.Count}");
+        m_DirtyItems.Clear();
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+
+        //Console.WriteLine($"Dirty Count: {m_DirtyCount}, Panel Count: {m_PanelCount}");
+    }
+    
     public void Render()
     {
+        UnregisterItems();
+        RegisterItems();
+        UpdateIds();
+        UploadDataToGpu();
+        
         glBindVertexArray(m_VertexArrayObject);
         AssertNoGlError();
         
