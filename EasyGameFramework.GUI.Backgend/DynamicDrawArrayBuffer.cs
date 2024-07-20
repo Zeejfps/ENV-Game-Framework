@@ -66,7 +66,8 @@ public sealed class DynamicDrawArrayBuffer<T> where T : unmanaged
     //     
     // }
 
-    public void MapWrite(int offset, int length, Action<GpuMemory<T>> write)
+    // NOTE(Zee): This API may not be the best, but it works for now
+    public void MapWrite(int offset, int length, Action<GpuMemory<T>> writeFunc)
     {
         unsafe
         {
@@ -74,8 +75,9 @@ public sealed class DynamicDrawArrayBuffer<T> where T : unmanaged
             AssertNoGlError();
             var bufferPtr = glMapBufferRange(BindTarget, SizeOf<T>(offset), SizeOf<T>(length), GL_MAP_WRITE_BIT);
             AssertNoGlError();
-            write.Invoke(new GpuMemory<T>(bufferPtr, length));
+            writeFunc.Invoke(new GpuMemory<T>(bufferPtr, length));
             glUnmapBuffer(BindTarget);
+            AssertNoGlError();
         }
     }
     
