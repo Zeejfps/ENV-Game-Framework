@@ -75,7 +75,7 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
     {
         UnregisterItems();
         RegisterItems();
-        UpdateIds();
+        FillEmptyIndices();
         UploadDataToGpu();
     }
 
@@ -139,12 +139,12 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
     }
 
     // TODO: Better name?
-    private void UpdateIds()
+    private void FillEmptyIndices()
     {
-        foreach (var idToFill in m_EmptyIndices.Reverse())
+        foreach (var emptyIndex in m_EmptyIndices.Reverse())
         {
             var lastItemId = m_ItemCount - 1;
-            if (idToFill != lastItemId)
+            if (emptyIndex != lastItemId)
             {
                 //Console.WriteLine($"Moving last panel into an id we need to fill. Id: {idToFill}");
                 var lastItem = m_IndexToItemTable[lastItemId];
@@ -153,7 +153,7 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
                 // NOTE(Zee): Not needed here because we are overriding the index in the UpdateItemIndexLookup method
                 //m_ItemToIndexTable.Remove(lastItem);
                 
-                UpdateItemIndexLookup(lastItem, idToFill);
+                UpdateItemIndexLookup(lastItem, emptyIndex);
 
                 m_DirtyItems.Add(lastItem);
             }
