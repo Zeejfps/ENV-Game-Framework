@@ -6,7 +6,7 @@ namespace OpenGLSandbox;
 using static OpenGlUtils;
 using static GL46;
 
-public sealed unsafe class VertexAttribInstanceDataBuffer<TInstancedData> where TInstancedData : unmanaged
+public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TInstancedData : unmanaged
 {
     private readonly HashSet<IInstancedItem<TInstancedData>> m_ItemsToRegister = new();
     private readonly HashSet<IInstancedItem<TInstancedData>> m_ItemsToUnregister = new();
@@ -22,7 +22,7 @@ public sealed unsafe class VertexAttribInstanceDataBuffer<TInstancedData> where 
 
     public int ItemCount => m_ItemCount;
 
-    public VertexAttribInstanceDataBuffer(uint vertexAttribIndexOffset, uint maxInstancesCount)
+    public VertexAttribInstanceBuffer(uint vertexAttribIndexOffset, uint maxInstancesCount)
     {
         m_VertexAttribIndexOffset = vertexAttribIndexOffset;
         m_MaxInstanceCount = maxInstancesCount;
