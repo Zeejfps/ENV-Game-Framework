@@ -3,13 +3,6 @@ using static OpenGLSandbox.OpenGlUtils;
 
 namespace OpenGLSandbox;
 
-public interface IInstancedItem<TInstancedData> where TInstancedData : unmanaged
-{
-    event Action<IInstancedItem<TInstancedData>> BecameDirty;
-
-    void UpdateInstanceData(ref TInstancedData instancedData);
-}
-
 public sealed unsafe class OpenGlTexturedQuadInstanceRenderer<TInstancedData> 
     where TInstancedData : unmanaged
 {
