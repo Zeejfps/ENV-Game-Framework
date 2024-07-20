@@ -108,20 +108,20 @@ public sealed unsafe class OpenGlTexturedQuadInstanceRenderer<TInstancedData>
         }
         m_IdsToFill.Clear();
         
-        var maxIndex = 0;
-        foreach (var dirtyItem in m_DirtyItems)
-        {
-            var index = m_ItemToIndexTable[dirtyItem];
-            if (index > maxIndex)
-                maxIndex = index;
-        }
-        
         //Console.WriteLine($"Max dirty panel index {maxIndex}");
-
-        var bufferRangeSize = maxIndex + 1;
-
+        
         if (m_DirtyItems.Count > 0)
         {
+            var maxIndex = 0;
+            foreach (var dirtyItem in m_DirtyItems)
+            {
+                var index = m_ItemToIndexTable[dirtyItem];
+                if (index > maxIndex)
+                    maxIndex = index;
+            }
+            
+            var bufferRangeSize = maxIndex + 1;
+
             //Console.WriteLine($"Have dirty items: {m_DirtyItems.Count}");
 
             glBindBuffer(GL_ARRAY_BUFFER, m_InstancedDataBuffer);
