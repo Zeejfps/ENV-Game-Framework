@@ -33,11 +33,6 @@ public sealed class DynamicDrawArrayBuffer<T> where T : unmanaged
     
     private bool m_IsAllocated;
     private uint m_Id;
-    
-    public DynamicDrawArrayBuffer()
-    {
-        
-    }
 
     public void Bind()
     {
@@ -60,12 +55,7 @@ public sealed class DynamicDrawArrayBuffer<T> where T : unmanaged
 
         m_IsAllocated = true;
     }
-
-    // public Span<T> Map()
-    // {
-    //     
-    // }
-
+    
     // NOTE(Zee): This API may not be the best, but it works for now
     public void MapWrite(int offset, int length, Action<GpuMemory<T>> writeFunc)
     {
