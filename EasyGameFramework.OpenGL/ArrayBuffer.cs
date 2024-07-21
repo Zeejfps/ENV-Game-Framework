@@ -36,19 +36,21 @@ public sealed class ArrayBuffer<T> where T : unmanaged
         if (m_IsAllocated)
             throw new NotAllocatedException();
         
-        var sizePtr = SizeOf<T>(size);
         unsafe
         {
-            m_Id = glGenBuffer();
-            glBindBuffer(BindTarget, m_Id);
-            AssertNoGlError();
-            glBufferData(BindTarget, sizePtr, (void*)0, (int)usageHint);
-            AssertNoGlError();
+            AllocUnsafe(size, (void*)0, usageHint);
         }
+    }
 
-        m_Size = sizePtr;
-        m_UsageHint = usageHint;
-        m_IsAllocated = true;
+    public void AllocAndWrite(T data, ArrayBufferUsageHint usageHint)
+    {
+        if (m_IsAllocated)
+            throw new NotAllocatedException();
+        
+        unsafe
+        {
+            AllocUnsafe(1, &data, usageHint);
+        }
     }
 
     public void AllocAndWrite(ReadOnlySpan<T> data, ArrayBufferUsageHint usageHint)
@@ -56,19 +58,23 @@ public sealed class ArrayBuffer<T> where T : unmanaged
         if (m_IsAllocated)
             throw new NotAllocatedException();
 
-        var sizePtr = SizeOf<T>(data.Length);
         unsafe
         {
-            m_Id = glGenBuffer();
-            glBindBuffer(BindTarget, m_Id);
-            AssertNoGlError();
-            fixed (void* ptr = &data[0])
+            fixed (void* dataPtr = &data[0])
             {
-                glBufferData(BindTarget, sizePtr, ptr, (int)usageHint);
-                AssertNoGlError();
+                AllocUnsafe(data.Length, dataPtr, usageHint);
             }
         }
+    }
 
+    private unsafe void AllocUnsafe(int size, void* data, ArrayBufferUsageHint usageHint)
+    {
+        var sizePtr = SizeOf<T>(size);
+        m_Id = glGenBuffer();
+        glBindBuffer(BindTarget, m_Id);
+        AssertNoGlError();
+        glBufferData(BindTarget, sizePtr, data, (int)usageHint);
+        AssertNoGlError();
         m_Size = sizePtr;
         m_UsageHint = usageHint;
         m_IsAllocated = true;
