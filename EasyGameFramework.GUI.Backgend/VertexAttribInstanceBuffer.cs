@@ -173,7 +173,8 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
                 minIndex = index;
         }
         var bufferLength = (maxIndex + 1) - minIndex;
-        m_Buffer.MapWrite(minIndex, bufferLength, gpuMemory =>
+        
+        m_Buffer.WriteMapped(minIndex, bufferLength, gpuMemory =>
         {
             var buffer = gpuMemory.Span;
             foreach (var dirtyItem in m_DirtyItems)
