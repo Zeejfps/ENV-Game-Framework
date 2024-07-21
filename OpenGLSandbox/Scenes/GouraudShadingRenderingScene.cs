@@ -17,7 +17,9 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
 
     struct Vertex
     {
+        [VertexAttrib(4, GL_FLOAT)]
         public Vector4 Color;
+        [VertexAttrib(2, GL_FLOAT)]
         public Vector2 Position;
     }
     

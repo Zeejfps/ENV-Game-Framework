@@ -104,6 +104,6 @@ sealed class RenderedSpriteImpl : IRenderedSprite, IInstancedItem<Sprite>
 
 public struct Sprite
 {
-    [InstancedAttrib(4, GL46.GL_FLOAT)]
+    [VertexAttrib(4, GL46.GL_FLOAT)]
     public Rect ScreenRect;
 }

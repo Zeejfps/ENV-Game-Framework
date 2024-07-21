@@ -1,9 +1,9 @@
 ﻿namespace OpenGLSandbox;
 
 [AttributeUsage(AttributeTargets.Field)]
-public sealed class InstancedAttrib : Attribute
+public sealed class VertexAttrib : Attribute
 {
-    public InstancedAttrib(uint componentCount, int componentType)
+    public VertexAttrib(uint componentCount, int componentType)
     {
         ComponentCount = (int)componentCount;
         ComponentType = componentType;

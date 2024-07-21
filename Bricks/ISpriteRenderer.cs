@@ -14,13 +14,13 @@ public struct ScreenRect
 
 public struct SpriteInstanceData
 {
-    [InstancedAttrib(4, Gl.GL_FLOAT)]
+    [VertexAttrib(4, Gl.GL_FLOAT)]
     public ScreenRect AtlasRect;
     
-    [InstancedAttrib(4, Gl.GL_FLOAT)]
+    [VertexAttrib(4, Gl.GL_FLOAT)]
     public ScreenRect ScreenRect;
 
-    [InstancedAttrib(4, Gl.GL_FLOAT)]
+    [VertexAttrib(4, Gl.GL_FLOAT)]
     public Color Tint;
 }
 

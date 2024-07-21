@@ -35,12 +35,12 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
         
         var instancedDataType = typeof(TInstancedData);
         var fields = instancedDataType.GetFields()
-            .Where(fieldInfo => fieldInfo.GetCustomAttribute<InstancedAttrib>() != null);
+            .Where(fieldInfo => fieldInfo.GetCustomAttribute<VertexAttrib>() != null);
         
         uint attribIndex = m_VertexAttribIndexOffset;
         foreach (var field in fields)
         {
-            var attribute = field.GetCustomAttribute<InstancedAttrib>();
+            var attribute = field.GetCustomAttribute<VertexAttrib>();
             Debug.Assert(attribute != null);
             glVertexAttribPointer(
                 attribIndex, 
