@@ -1,4 +1,5 @@
 ﻿using EasyGameFramework.Api.AssetTypes;
+using OpenGLSandbox;
 using static OpenGL.Gl;
 
 namespace EasyGameFramework.OpenGL;
@@ -21,7 +22,7 @@ internal class Mesh_GL : IGpuMesh
         VaoId = glGenVertexArray();
 
         glBindVertexArray(VaoId);
-
+        
         m_Vbo = glGenBuffer();
         glBindBuffer(GL_ARRAY_BUFFER, m_Vbo);
         fixed (float* v = &vertices[0])

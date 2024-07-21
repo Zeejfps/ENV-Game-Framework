@@ -26,10 +26,15 @@ public readonly struct GpuMemory<T>
     }
 }
 
-public sealed class DynamicDrawArrayBuffer<T> where T : unmanaged
+public enum ArrayBufferUsageHint : int
+{
+    DynamicDraw = GL_DYNAMIC_DRAW,
+    StaticDraw = GL_STATIC_DRAW,
+}
+
+public sealed class ArrayBuffer<T> where T : unmanaged
 {
     private const int BindTarget = GL_ARRAY_BUFFER;
-    private const int UsageHint = GL_DYNAMIC_DRAW;
     
     private bool m_IsAllocated;
     private uint m_Id;
@@ -39,7 +44,7 @@ public sealed class DynamicDrawArrayBuffer<T> where T : unmanaged
         glBindBuffer(BindTarget, m_Id);
     }
 
-    public void Alloc(int size)
+    public void Alloc(int size, ArrayBufferUsageHint usageHint)
     {
         if (m_IsAllocated)
             throw new Exception("Buffer is already allocated");
@@ -49,8 +54,28 @@ public sealed class DynamicDrawArrayBuffer<T> where T : unmanaged
             m_Id = glGenBuffer();
             glBindBuffer(BindTarget, m_Id);
             AssertNoGlError();
-            glBufferData(BindTarget, SizeOf<T>(size), (void*)0, UsageHint);
+            glBufferData(BindTarget, SizeOf<T>(size), (void*)0, (int)usageHint);
             AssertNoGlError();
+        }
+
+        m_IsAllocated = true;
+    }
+    
+    public void AllocAndWrite(ReadOnlySpan<T> data, ArrayBufferUsageHint usageHint)
+    {
+        if (m_IsAllocated)
+            throw new Exception("Buffer is already allocated");
+        
+        unsafe
+        {
+            m_Id = glGenBuffer();
+            glBindBuffer(BindTarget, m_Id);
+            AssertNoGlError();
+            fixed (void* ptr = &data[0])
+            {
+                glBufferData(BindTarget, SizeOf<T>(data.Length), ptr, (int)usageHint);
+                AssertNoGlError();
+            }
         }
 
         m_IsAllocated = true;

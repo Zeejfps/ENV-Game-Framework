@@ -20,7 +20,7 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
     private int m_ItemCount;
     public int ItemCount => m_ItemCount;
 
-    private readonly DynamicDrawArrayBuffer<TInstancedData> m_Buffer = new();
+    private readonly ArrayBuffer<TInstancedData> m_Buffer = new();
 
     public VertexAttribInstanceBuffer(uint vertexAttribIndexOffset, uint maxInstancesCount)
     {
@@ -31,7 +31,7 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
     public void Alloc()
     {
         var maxInstancesCount = m_MaxInstanceCount;
-        m_Buffer.Alloc((int)maxInstancesCount);
+        m_Buffer.Alloc((int)maxInstancesCount, ArrayBufferUsageHint.DynamicDraw);
         
         var instancedDataType = typeof(TInstancedData);
         var fields = instancedDataType.GetFields()
