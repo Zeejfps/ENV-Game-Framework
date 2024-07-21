@@ -26,7 +26,7 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
     private uint m_Vao;
     private uint m_ShaderProgram;
     
-    private IImmutableBuffer<Triangle> m_Vbo = ArrayBuffer<Triangle>.CreateImmutable();
+    private readonly IImmutableBuffer<Triangle> m_Vbo = ArrayBuffer<Triangle>.CreateImmutable();
     
     public void Load()
     {

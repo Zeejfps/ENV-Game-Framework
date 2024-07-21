@@ -17,14 +17,15 @@ public sealed class NotAllocatedException : Exception
     }
 }
 
-public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T> where T : unmanaged
+public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T> 
+    where T : unmanaged
 {
-
-    private MutableBufferUsageHints m_UsageHint;
-    private IntPtr m_Size;
-    private bool m_IsAllocated;
-    private uint m_Id;
-
+    public int BindTarget => GL_ARRAY_BUFFER;
+    public uint Id { get; set; }
+    public MutableBufferUsageHints UsageHint { get; set; }
+    public int Size { get; set; }
+    public bool IsAllocated { get; set; }
+    
     public static IMutableBuffer<T> CreateMutable()
     {
         return new ArrayBuffer<T>();
@@ -34,6 +35,11 @@ public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T> wher
     {
         return new ArrayBuffer<T>();
     }
+
+    private MutableBufferUsageHints m_UsageHint;
+    private IntPtr m_Size;
+    private bool m_IsAllocated;
+    private uint m_Id;
     
     public void Bind()
     {
@@ -171,10 +177,4 @@ public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T> wher
         }
         m_Id = 0;
     }
-
-    public int BindTarget => GL_ARRAY_BUFFER;
-    public uint Id { get; set; }
-    public MutableBufferUsageHints UsageHint { get; set; }
-    public int Size { get; set; }
-    public bool IsAllocated { get; set; }
 }
