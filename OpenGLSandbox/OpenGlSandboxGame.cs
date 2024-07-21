@@ -15,16 +15,16 @@ public sealed class OpenGlSandboxGame : Game
     {
         m_Scenes = new IScene[]
         {
-            calculatorScene,
-            new GuiEventBaseExperimentScene(Window, inputSystem),
-            new GuiCommandBufferExperimentScene(Window, inputSystem),
-            new BitmapFontRenderingScene(),
-            new BasicTextureRenderingScene(imageLoader),
-            new WidgetRectRenderingScene(),
-            new RectNormalsRenderingScene(),
+            // calculatorScene,
+            // new GuiEventBaseExperimentScene(Window, inputSystem),
+            // new GuiCommandBufferExperimentScene(Window, inputSystem),
+            // new BitmapFontRenderingScene(),
+            // new BasicTextureRenderingScene(imageLoader),
+            // new WidgetRectRenderingScene(),
+            // new RectNormalsRenderingScene(),
             new GouraudShadingRenderingScene(),
-            new MappedBufferRenderingScene(),
-            new BasicRenderingScene(),
+            // new MappedBufferRenderingScene(),
+            // new BasicRenderingScene(),
         };
 
         m_CurrentSceneIndex = 0;

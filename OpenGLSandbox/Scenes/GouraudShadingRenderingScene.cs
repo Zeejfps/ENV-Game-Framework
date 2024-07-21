@@ -24,8 +24,9 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
     private const int TriangleCount = 2;
     
     private uint m_Vao;
-    private uint m_Vbo;
     private uint m_ShaderProgram;
+    
+    private ArrayBuffer<Triangle> m_Vbo = new();
     
     public void Load()
     {
@@ -34,19 +35,12 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
         
         glBindVertexArray(m_Vao);
         AssertNoGlError();
-        
-        m_Vbo = Gl.glGenBuffer();
-        AssertNoGlError();
-        
-        glBindBuffer(GL_ARRAY_BUFFER, m_Vbo);
-        AssertNoGlError();
-        
-        glBufferData(GL_ARRAY_BUFFER, TriangleCount * sizeof(Triangle), IntPtr.Zero, GL_STATIC_DRAW);
-        AssertNoGlError();
 
-        using (var buffer = new BufferWriter<Triangle>(GL_ARRAY_BUFFER, TriangleCount))
+        m_Vbo.Alloc(TriangleCount, ArrayBufferUsageHint.StaticDraw);
+        m_Vbo.WriteMapped(0, TriangleCount, memory =>
         {
-            var t1 = new Triangle
+            var data = memory.Span;
+            data[0] = new Triangle
             {
                 V1 =
                 {
@@ -64,8 +58,7 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
                     Position = new Vector2(-0.90f, -0.90f),
                 }
             };
-
-            var t2 = new Triangle
+            data[1] = new Triangle
             {
                 V1 =
                 {
@@ -83,10 +76,7 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
                     Position = new Vector2(-0.85f, +0.90f),
                 }
             };
-            
-            buffer.Write(ref t1);
-            buffer.Write(ref t2);
-        }
+        });
 
         glVertexAttribPointer(0, 4, GL_FLOAT, false, sizeof(Vertex), Offset(0));
         glEnableVertexAttribArray(0);
@@ -113,7 +103,7 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
     public void Unload()
     {
         glDeleteVertexArray(m_Vao);
-        glDeleteBuffer(m_Vbo);
         glDeleteProgram(m_ShaderProgram);
+        m_Vbo.Free();
     }
 }
