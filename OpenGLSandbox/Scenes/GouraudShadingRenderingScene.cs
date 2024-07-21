@@ -26,7 +26,7 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
     private uint m_Vao;
     private uint m_ShaderProgram;
     
-    private ArrayBuffer<Triangle> m_Vbo = new();
+    private IImmutableBuffer<Triangle> m_Vbo = ArrayBuffer<Triangle>.CreateImmutable();
     
     public void Load()
     {
@@ -36,11 +36,9 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
         glBindVertexArray(m_Vao);
         AssertNoGlError();
 
-        m_Vbo.Alloc(TriangleCount, ArrayBufferUsageHint.StaticDraw);
-        m_Vbo.WriteMapped(memory =>
+        Span<Triangle> triangles = stackalloc Triangle[2]
         {
-            var data = memory.Span;
-            data[0] = new Triangle
+            new Triangle
             {
                 V1 =
                 {
@@ -57,8 +55,8 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
                     Color = new Vector4(1f, 0f, 0f, 1f),
                     Position = new Vector2(-0.90f, -0.90f),
                 }
-            };
-            data[1] = new Triangle
+            },
+            new Triangle
             {
                 V1 =
                 {
@@ -75,8 +73,9 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
                     Color = new Vector4(1f, 1f, 1f, 1f),
                     Position = new Vector2(-0.85f, +0.90f),
                 }
-            };
-        });
+            }
+        };
+        m_Vbo.Alloc(triangles);
 
         glVertexAttribPointer(0, 4, GL_FLOAT, false, sizeof(Vertex), Offset(0));
         glEnableVertexAttribArray(0);

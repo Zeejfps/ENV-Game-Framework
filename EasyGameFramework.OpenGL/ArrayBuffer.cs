@@ -3,7 +3,7 @@ using static OpenGLSandbox.OpenGlUtils;
 
 namespace OpenGLSandbox;
 
-public enum ArrayBufferUsageHint : int
+public enum MutableBufferUsageHints : int
 {
     DynamicDraw = GL_DYNAMIC_DRAW,
     StaticDraw = GL_STATIC_DRAW,
@@ -17,21 +17,30 @@ public sealed class NotAllocatedException : Exception
     }
 }
 
-public sealed class ArrayBuffer<T> where T : unmanaged
+public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T> where T : unmanaged
 {
-    private const int BindTarget = GL_ARRAY_BUFFER;
 
-    private ArrayBufferUsageHint m_UsageHint;
+    private MutableBufferUsageHints m_UsageHint;
     private IntPtr m_Size;
     private bool m_IsAllocated;
     private uint m_Id;
 
+    public static IMutableBuffer<T> CreateMutable()
+    {
+        return new ArrayBuffer<T>();
+    }
+
+    public static IImmutableBuffer<T> CreateImmutable()
+    {
+        return new ArrayBuffer<T>();
+    }
+    
     public void Bind()
     {
         glBindBuffer(BindTarget, m_Id);
     }
 
-    public void Alloc(int size, ArrayBufferUsageHint usageHint)
+    public void Alloc(int size, MutableBufferUsageHints usageHint)
     {
         if (m_IsAllocated)
             throw new NotAllocatedException();
@@ -42,7 +51,7 @@ public sealed class ArrayBuffer<T> where T : unmanaged
         }
     }
 
-    public void AllocAndWrite(T data, ArrayBufferUsageHint usageHint)
+    public void AllocAndWrite(T data, MutableBufferUsageHints usageHint)
     {
         if (m_IsAllocated)
             throw new NotAllocatedException();
@@ -53,7 +62,7 @@ public sealed class ArrayBuffer<T> where T : unmanaged
         }
     }
 
-    public void AllocAndWrite(ReadOnlySpan<T> data, ArrayBufferUsageHint usageHint)
+    public void AllocAndWrite(ReadOnlySpan<T> data, MutableBufferUsageHints usageHint)
     {
         if (m_IsAllocated)
             throw new NotAllocatedException();
@@ -67,7 +76,7 @@ public sealed class ArrayBuffer<T> where T : unmanaged
         }
     }
 
-    private unsafe void AllocUnsafe(int size, void* data, ArrayBufferUsageHint usageHint)
+    private unsafe void AllocUnsafe(int size, void* data, MutableBufferUsageHints usageHint)
     {
         var sizePtr = SizeOf<T>(size);
         m_Id = glGenBuffer();
@@ -162,4 +171,10 @@ public sealed class ArrayBuffer<T> where T : unmanaged
         }
         m_Id = 0;
     }
+
+    public int BindTarget => GL_ARRAY_BUFFER;
+    public uint Id { get; set; }
+    public MutableBufferUsageHints UsageHint { get; set; }
+    public int Size { get; set; }
+    public bool IsAllocated { get; set; }
 }

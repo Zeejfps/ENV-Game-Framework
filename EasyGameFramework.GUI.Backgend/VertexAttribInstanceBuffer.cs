@@ -31,7 +31,7 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
     public void Alloc()
     {
         var maxInstancesCount = m_MaxInstanceCount;
-        m_Buffer.Alloc((int)maxInstancesCount, ArrayBufferUsageHint.DynamicDraw);
+        m_Buffer.Alloc((int)maxInstancesCount, MutableBufferUsageHints.DynamicDraw);
         
         var instancedDataType = typeof(TInstancedData);
         var fields = instancedDataType.GetFields()
