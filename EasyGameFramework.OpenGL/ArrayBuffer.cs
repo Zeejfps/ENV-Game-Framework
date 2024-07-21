@@ -9,10 +9,20 @@ public enum ArrayBufferUsageHint : int
     StaticDraw = GL_STATIC_DRAW,
 }
 
+public sealed class NotAllocatedException : Exception
+{
+    public NotAllocatedException() : base("Buffer is not allocated")
+    {
+        
+    }
+}
+
 public sealed class ArrayBuffer<T> where T : unmanaged
 {
     private const int BindTarget = GL_ARRAY_BUFFER;
-    
+
+    private ArrayBufferUsageHint m_UsageHint;
+    private IntPtr m_Size;
     private bool m_IsAllocated;
     private uint m_Id;
 
@@ -24,24 +34,43 @@ public sealed class ArrayBuffer<T> where T : unmanaged
     public void Alloc(int size, ArrayBufferUsageHint usageHint)
     {
         if (m_IsAllocated)
-            throw new Exception("Buffer is already allocated");
+            throw new NotAllocatedException();
         
+        var sizePtr = SizeOf<T>(size);
         unsafe
         {
             m_Id = glGenBuffer();
             glBindBuffer(BindTarget, m_Id);
             AssertNoGlError();
-            glBufferData(BindTarget, SizeOf<T>(size), (void*)0, (int)usageHint);
+            glBufferData(BindTarget, sizePtr, (void*)0, (int)usageHint);
             AssertNoGlError();
         }
 
+        m_Size = sizePtr;
+        m_UsageHint = usageHint;
         m_IsAllocated = true;
+    }
+
+    public void ReAlloc()
+    {
+        unsafe
+        {
+            if (!m_IsAllocated)
+                throw new NotAllocatedException();
+
+            var sizePtr = m_Size;
+            var usageHint = m_UsageHint;
+            glBindBuffer(BindTarget, m_Id);
+            AssertNoGlError();
+            glBufferData(BindTarget, sizePtr, (void*)0, (int)usageHint);
+            AssertNoGlError();
+        }
     }
     
     public void AllocAndWrite(ReadOnlySpan<T> data, ArrayBufferUsageHint usageHint)
     {
         if (m_IsAllocated)
-            throw new Exception("Buffer is already allocated");
+            throw new NotAllocatedException();
         
         unsafe
         {
@@ -60,12 +89,17 @@ public sealed class ArrayBuffer<T> where T : unmanaged
 
     public void Write(int offset, ReadOnlySpan<T> data)
     {
+        if (!m_IsAllocated)
+            throw new NotAllocatedException();
+        
         unsafe
         {
             glBindBuffer(BindTarget, m_Id);
+            AssertNoGlError();
             fixed (void* ptr = &data[0])
             {
                 glBufferSubData(BindTarget, new IntPtr(offset), SizeOf<T>(data.Length), ptr);
+                AssertNoGlError();
             }
         }
     }
@@ -73,6 +107,9 @@ public sealed class ArrayBuffer<T> where T : unmanaged
     // NOTE(Zee): This API may not be the best, but it works for now
     public void WriteMapped(int offset, int length, Action<GpuMemory<T>> writeFunc)
     {
+        if (!m_IsAllocated)
+            throw new NotAllocatedException();
+        
         unsafe
         {
             glBindBuffer(GL_ARRAY_BUFFER, m_Id);
@@ -88,7 +125,7 @@ public sealed class ArrayBuffer<T> where T : unmanaged
     public void Free()
     {
         if (!m_IsAllocated)
-            throw new Exception("Buffer is not allocated");
+            throw new NotAllocatedException();
         
         m_IsAllocated = false;
         unsafe
