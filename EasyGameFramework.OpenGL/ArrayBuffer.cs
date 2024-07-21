@@ -35,20 +35,10 @@ public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T>
     {
         return new ArrayBuffer<T>();
     }
-
-    private MutableBufferUsageHints m_UsageHint;
-    private IntPtr m_Size;
-    private bool m_IsAllocated;
-    private uint m_Id;
     
-    public void Bind()
-    {
-        glBindBuffer(BindTarget, m_Id);
-    }
-
     public void Alloc(int size, MutableBufferUsageHints usageHint)
     {
-        if (m_IsAllocated)
+        if (IsAllocated)
             throw new NotAllocatedException();
         
         unsafe
@@ -59,7 +49,7 @@ public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T>
 
     public void AllocAndWrite(T data, MutableBufferUsageHints usageHint)
     {
-        if (m_IsAllocated)
+        if (IsAllocated)
             throw new NotAllocatedException();
         
         unsafe
@@ -70,7 +60,7 @@ public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T>
 
     public void AllocAndWrite(ReadOnlySpan<T> data, MutableBufferUsageHints usageHint)
     {
-        if (m_IsAllocated)
+        if (IsAllocated)
             throw new NotAllocatedException();
 
         unsafe
@@ -85,40 +75,24 @@ public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T>
     private unsafe void AllocUnsafe(int size, void* data, MutableBufferUsageHints usageHint)
     {
         var sizePtr = SizeOf<T>(size);
-        m_Id = glGenBuffer();
-        glBindBuffer(BindTarget, m_Id);
+        Id = glGenBuffer();
+        glBindBuffer(BindTarget, Id);
         AssertNoGlError();
         glBufferData(BindTarget, sizePtr, data, (int)usageHint);
         AssertNoGlError();
-        m_Size = sizePtr;
-        m_UsageHint = usageHint;
-        m_IsAllocated = true;
-    }
-
-    public void ReAlloc()
-    {
-        unsafe
-        {
-            if (!m_IsAllocated)
-                throw new NotAllocatedException();
-
-            var sizePtr = m_Size;
-            var usageHint = m_UsageHint;
-            glBindBuffer(BindTarget, m_Id);
-            AssertNoGlError();
-            glBufferData(BindTarget, sizePtr, (void*)0, (int)usageHint);
-            AssertNoGlError();
-        }
+        Size = size;
+        UsageHint = usageHint;
+        IsAllocated = true;
     }
 
     public void Write(int offset, ReadOnlySpan<T> data)
     {
-        if (!m_IsAllocated)
+        if (!IsAllocated)
             throw new NotAllocatedException();
         
         unsafe
         {
-            glBindBuffer(BindTarget, m_Id);
+            glBindBuffer(BindTarget, Id);
             AssertNoGlError();
             fixed (void* ptr = &data[0])
             {
@@ -131,12 +105,12 @@ public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T>
     // NOTE(Zee): This API may not be the best, but it works for now
     public void WriteMapped(int offset, int length, Action<GpuMemory<T>> writeFunc)
     {
-        if (!m_IsAllocated)
+        if (!IsAllocated)
             throw new NotAllocatedException();
         
         unsafe
         {
-            glBindBuffer(GL_ARRAY_BUFFER, m_Id);
+            glBindBuffer(GL_ARRAY_BUFFER, Id);
             AssertNoGlError();
             var bufferPtr = glMapBufferRange(BindTarget, SizeOf<T>(offset), SizeOf<T>(length), GL_MAP_WRITE_BIT);
             AssertNoGlError();
@@ -148,16 +122,16 @@ public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T>
     
     public void WriteMapped(Action<GpuMemory<T>> writeFunc)
     {
-        if (!m_IsAllocated)
+        if (!IsAllocated)
             throw new NotAllocatedException();
         
         unsafe
         {
-            glBindBuffer(GL_ARRAY_BUFFER, m_Id);
+            glBindBuffer(GL_ARRAY_BUFFER, Id);
             AssertNoGlError();
             var bufferPtr = glMapBuffer(BindTarget, GL_WRITE_ONLY);
             AssertNoGlError();
-            writeFunc.Invoke(new GpuMemory<T>(bufferPtr, m_Size.ToInt32()));
+            writeFunc.Invoke(new GpuMemory<T>(bufferPtr, Size));
             glUnmapBuffer(BindTarget);
             AssertNoGlError();
         }
@@ -165,16 +139,16 @@ public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T>
     
     public void Free()
     {
-        if (!m_IsAllocated)
+        if (!IsAllocated)
             throw new NotAllocatedException();
         
-        m_IsAllocated = false;
+        IsAllocated = false;
         unsafe
         {
-            var id = m_Id;
+            var id = Id;
             glDeleteBuffers(1, &id);
             AssertNoGlError();
         }
-        m_Id = 0;
+        Id = 0;
     }
 }
