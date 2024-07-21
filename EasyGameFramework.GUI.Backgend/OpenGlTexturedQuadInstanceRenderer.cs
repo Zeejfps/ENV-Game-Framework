@@ -9,7 +9,7 @@ public sealed unsafe class OpenGlTexturedQuadInstanceRenderer<TInstancedData>
     public int ItemCount => m_VertexAttribInstanceBuffer.ItemCount;
     
     private uint m_VertexArrayObject;
-    private uint m_TexturedQuadBuffer;
+    private readonly ArrayBuffer<TexturedQuad> m_TexturedQuadBuffer = new();
     private readonly VertexAttribInstanceBuffer<TInstancedData> m_VertexAttribInstanceBuffer;
 
     public OpenGlTexturedQuadInstanceRenderer(uint maxInstanceCount)
@@ -44,13 +44,6 @@ public sealed unsafe class OpenGlTexturedQuadInstanceRenderer<TInstancedData>
         glGenVertexArrays(1, &vao);
         AssertNoGlError();
         m_VertexArrayObject = vao;
-
-        Span<uint> buffers = stackalloc uint[1];
-        fixed (uint* ptr = &buffers[0])
-            glGenBuffers(buffers.Length, ptr);
-        AssertNoGlError();
-
-        m_TexturedQuadBuffer = buffers[0];
         
         glBindVertexArray(m_VertexArrayObject);
         AssertNoGlError();
@@ -61,12 +54,9 @@ public sealed unsafe class OpenGlTexturedQuadInstanceRenderer<TInstancedData>
     
     private void SetupTexturedQuadBuffer()
     {
-        glBindBuffer(GL_ARRAY_BUFFER, m_TexturedQuadBuffer);
-        AssertNoGlError();
-
-        var texturedQuad = new TexturedQuad();
-        glBufferData(GL_ARRAY_BUFFER, SizeOf<TexturedQuad>(), &texturedQuad, GL_STATIC_DRAW);
-        AssertNoGlError();
+        Span<TexturedQuad> data = stackalloc TexturedQuad[1];
+        data[0] = new TexturedQuad();
+        m_TexturedQuadBuffer.AllocAndWrite(data, ArrayBufferUsageHint.StaticDraw);
             
         uint positionAttribIndex = 0;
         glVertexAttribPointer(
@@ -100,15 +90,8 @@ public sealed unsafe class OpenGlTexturedQuadInstanceRenderer<TInstancedData>
          m_VertexArrayObject = 0;
             
          glBindBuffer(GL_ARRAY_BUFFER, 0);
-         Span<uint> buffers = stackalloc uint[]
-         {
-             m_TexturedQuadBuffer,
-         };
-         fixed (uint* ptr = &buffers[0])
-             glDeleteBuffers(buffers.Length, ptr);
-         AssertNoGlError();
-         m_TexturedQuadBuffer = 0;
          
+         m_TexturedQuadBuffer.Free();
          m_VertexAttribInstanceBuffer.Free();
      }
 }
