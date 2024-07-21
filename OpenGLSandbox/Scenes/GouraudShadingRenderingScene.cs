@@ -37,7 +37,7 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
         AssertNoGlError();
 
         m_Vbo.Alloc(TriangleCount, ArrayBufferUsageHint.StaticDraw);
-        m_Vbo.WriteMapped(0, TriangleCount, memory =>
+        m_Vbo.WriteMapped(memory =>
         {
             var data = memory.Span;
             data[0] = new Triangle

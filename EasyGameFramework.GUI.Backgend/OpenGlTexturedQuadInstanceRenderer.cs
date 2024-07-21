@@ -54,9 +54,12 @@ public sealed unsafe class OpenGlTexturedQuadInstanceRenderer<TInstancedData>
     
     private void SetupTexturedQuadBuffer()
     {
-        Span<TexturedQuad> data = stackalloc TexturedQuad[1];
-        data[0] = new TexturedQuad();
-        m_TexturedQuadBuffer.AllocAndWrite(data, ArrayBufferUsageHint.StaticDraw);
+        m_TexturedQuadBuffer.Alloc(1, ArrayBufferUsageHint.StaticDraw);
+        m_TexturedQuadBuffer.WriteMapped(gpuMemory =>
+        {
+            var data = gpuMemory.Span;
+            data[0] = new TexturedQuad();
+        });
             
         uint positionAttribIndex = 0;
         glVertexAttribPointer(

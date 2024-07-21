@@ -51,6 +51,29 @@ public sealed class ArrayBuffer<T> where T : unmanaged
         m_IsAllocated = true;
     }
 
+    public void AllocAndWrite(ReadOnlySpan<T> data, ArrayBufferUsageHint usageHint)
+    {
+        if (m_IsAllocated)
+            throw new NotAllocatedException();
+
+        var sizePtr = SizeOf<T>(data.Length);
+        unsafe
+        {
+            m_Id = glGenBuffer();
+            glBindBuffer(BindTarget, m_Id);
+            AssertNoGlError();
+            fixed (void* ptr = &data[0])
+            {
+                glBufferData(BindTarget, sizePtr, ptr, (int)usageHint);
+                AssertNoGlError();
+            }
+        }
+
+        m_Size = sizePtr;
+        m_UsageHint = usageHint;
+        m_IsAllocated = true;
+    }
+
     public void ReAlloc()
     {
         unsafe
@@ -65,26 +88,6 @@ public sealed class ArrayBuffer<T> where T : unmanaged
             glBufferData(BindTarget, sizePtr, (void*)0, (int)usageHint);
             AssertNoGlError();
         }
-    }
-    
-    public void AllocAndWrite(ReadOnlySpan<T> data, ArrayBufferUsageHint usageHint)
-    {
-        if (m_IsAllocated)
-            throw new NotAllocatedException();
-        
-        unsafe
-        {
-            m_Id = glGenBuffer();
-            glBindBuffer(BindTarget, m_Id);
-            AssertNoGlError();
-            fixed (void* ptr = &data[0])
-            {
-                glBufferData(BindTarget, SizeOf<T>(data.Length), ptr, (int)usageHint);
-                AssertNoGlError();
-            }
-        }
-
-        m_IsAllocated = true;
     }
 
     public void Write(int offset, ReadOnlySpan<T> data)
@@ -117,6 +120,23 @@ public sealed class ArrayBuffer<T> where T : unmanaged
             var bufferPtr = glMapBufferRange(BindTarget, SizeOf<T>(offset), SizeOf<T>(length), GL_MAP_WRITE_BIT);
             AssertNoGlError();
             writeFunc.Invoke(new GpuMemory<T>(bufferPtr, length));
+            glUnmapBuffer(BindTarget);
+            AssertNoGlError();
+        }
+    }
+    
+    public void WriteMapped(Action<GpuMemory<T>> writeFunc)
+    {
+        if (!m_IsAllocated)
+            throw new NotAllocatedException();
+        
+        unsafe
+        {
+            glBindBuffer(GL_ARRAY_BUFFER, m_Id);
+            AssertNoGlError();
+            var bufferPtr = glMapBuffer(BindTarget, GL_WRITE_ONLY);
+            AssertNoGlError();
+            writeFunc.Invoke(new GpuMemory<T>(bufferPtr, m_Size.ToInt32()));
             glUnmapBuffer(BindTarget);
             AssertNoGlError();
         }
