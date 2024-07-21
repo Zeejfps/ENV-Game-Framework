@@ -36,7 +36,7 @@ public sealed unsafe class GouraudShadingRenderingScene : IScene
         glBindVertexArray(m_Vao);
         AssertNoGlError();
 
-        Span<Triangle> triangles = stackalloc Triangle[2]
+        Span<Triangle> triangles = stackalloc Triangle[]
         {
             new Triangle
             {
