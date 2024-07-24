@@ -17,12 +17,12 @@ public sealed unsafe class OpenGlTexturedQuadInstanceRenderer<TInstancedData>
         m_VertexAttribInstanceBuffer = new VertexAttribInstanceBuffer<TInstancedData>(2, maxInstanceCount);
     }
     
-    public void Add(IInstancedItem<TInstancedData> item)
+    public void Add(IEntity<TInstancedData> item)
     {
         m_VertexAttribInstanceBuffer.Add(item);
     }
 
-    public void Remove(IInstancedItem<TInstancedData> item)
+    public void Remove(IEntity<TInstancedData> item)
     {
         m_VertexAttribInstanceBuffer.Remove(item);
     }

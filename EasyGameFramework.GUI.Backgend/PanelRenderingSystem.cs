@@ -91,9 +91,9 @@ public sealed unsafe class PanelRenderer : IPanelRenderer
     }
 }
 
-sealed class RenderedPanelImpl : IRenderedPanel, IInstancedItem<Panel>
+sealed class RenderedPanelImpl : IRenderedPanel, IEntity<Panel>
 {
-    public event Action<IInstancedItem<Panel>>? BecameDirty;
+    public event Action<IEntity<Panel>>? BecameDirty;
     
     private Rect m_ScreenRect;
     public Rect ScreenRect
@@ -124,7 +124,7 @@ sealed class RenderedPanelImpl : IRenderedPanel, IInstancedItem<Panel>
         PanelRenderer = panelRenderer;
     }
 
-    public void UpdateInstanceData(ref Panel panel)
+    public void LoadComponent(ref Panel panel)
     {
         var style = Style;
         var rect = ScreenRect;

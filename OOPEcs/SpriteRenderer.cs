@@ -66,7 +66,7 @@ public sealed unsafe class SpriteRenderer : IEntity, ISpriteRenderer
     }
 }
 
-sealed class RenderedSpriteImpl : IRenderedSprite, IInstancedItem<Sprite>
+sealed class RenderedSpriteImpl : IRenderedSprite, IEntity<Sprite>
 {
     private Rect m_ScreenRect;
     public Rect ScreenRect
@@ -89,9 +89,9 @@ sealed class RenderedSpriteImpl : IRenderedSprite, IInstancedItem<Sprite>
         m_SpriteRenderer = spriteRenderer;
     }
     
-    public event Action<IInstancedItem<Sprite>>? BecameDirty;
+    public event Action<IEntity<Sprite>>? BecameDirty;
     
-    public void UpdateInstanceData(ref Sprite instancedData)
+    public void LoadComponent(ref Sprite instancedData)
     {
         instancedData.ScreenRect = ScreenRect;
     }

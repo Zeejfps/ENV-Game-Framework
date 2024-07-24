@@ -3,18 +3,18 @@ using OpenGLSandbox;
 
 namespace Bricks;
 
-public sealed class Brick : ISprite
+public sealed class Brick : IEntity<Sprite>
 {
-    public event Action<IInstancedItem<SpriteInstanceData>>? BecameDirty;
+    public event Action<IEntity<Sprite>>? BecameDirty;
 
     public ScreenRect ScreenRect { get; set; }
     public Vector3 Color { get; set; }
 
-    public void UpdateInstanceData(ref SpriteInstanceData instancedData)
+    public void LoadComponent(ref Sprite sprite)
     {
-        instancedData.ScreenRect = ScreenRect;
-        instancedData.Tint = new Color(Color.X, Color.Y, Color.Z, 1f);
-        instancedData.AtlasRect = new ScreenRect
+        sprite.ScreenRect = ScreenRect;
+        sprite.Tint = new Color(Color.X, Color.Y, Color.Z, 1f);
+        sprite.AtlasRect = new ScreenRect
         {
             X = 0f,
             Y = 20f,

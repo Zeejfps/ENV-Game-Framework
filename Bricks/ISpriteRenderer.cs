@@ -12,7 +12,7 @@ public struct ScreenRect
     public float Height;
 }
 
-public struct SpriteInstanceData
+public struct Sprite
 {
     [VertexAttrib(4, Gl.GL_FLOAT)]
     public ScreenRect AtlasRect;
@@ -24,14 +24,9 @@ public struct SpriteInstanceData
     public Color Tint;
 }
 
-public interface ISprite : IInstancedItem<SpriteInstanceData>
-{
-    
-}
-
 public interface ISpriteRenderer
 {
-    void Add(ISprite sprite);
-    void Render(Matrix4x4 viewProjectionMatrix);
+    void Add(IEntity<Sprite> sprite);
     void Load();
+    void Render(Matrix4x4 viewProjectionMatrix);
 }

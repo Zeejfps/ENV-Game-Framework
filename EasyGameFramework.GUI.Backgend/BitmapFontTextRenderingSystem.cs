@@ -403,7 +403,7 @@ sealed class RenderedTextImpl : IRenderedText
         ReleaseUnmanagedResources();
     }
 }
-sealed class RenderedGlyphImpl : IRenderedGlyph, IInstancedItem<Glyph>
+sealed class RenderedGlyphImpl : IRenderedGlyph, IEntity<Glyph>
 {
     private Rect m_ScreenRect;
     public Rect ScreenRect
@@ -421,9 +421,9 @@ sealed class RenderedGlyphImpl : IRenderedGlyph, IInstancedItem<Glyph>
     
     public Rect TextureRect { get; set; }
 
-    public event Action<IInstancedItem<Glyph>>? BecameDirty;
+    public event Action<IEntity<Glyph>>? BecameDirty;
     
-    public void UpdateInstanceData(ref Glyph glyph)
+    public void LoadComponent(ref Glyph glyph)
     {
         var rect = ScreenRect;
         rect.X = MathF.Floor(rect.X);

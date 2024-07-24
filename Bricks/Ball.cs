@@ -4,14 +4,14 @@ using Rect = EasyGameFramework.Api.Physics.Rect;
 
 namespace Bricks;
 
-public sealed class Ball : ISprite
+public sealed class Ball : IEntity<Sprite>
 {
-    public event Action<IInstancedItem<SpriteInstanceData>>? BecameDirty;
+    public event Action<IEntity<Sprite>>? BecameDirty;
 
     private Vector2 m_Position;
     private Vector2 m_Velocity;
     
-    public void UpdateInstanceData(ref SpriteInstanceData instancedData)
+    public void LoadComponent(ref Sprite instancedData)
     {
         instancedData.Tint = new Color(1f, 1f, 1f, 1f);
         instancedData.ScreenRect = new ScreenRect

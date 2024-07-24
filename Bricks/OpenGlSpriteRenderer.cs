@@ -9,7 +9,7 @@ namespace Bricks;
 
 public sealed unsafe class OpenGlSpriteRenderer : ISpriteRenderer
 {
-    private readonly OpenGlTexturedQuadInstanceRenderer<SpriteInstanceData> m_InstanceRenderer;
+    private readonly OpenGlTexturedQuadInstanceRenderer<Sprite> m_InstanceRenderer;
     private uint m_ShaderProgram;
     private int m_ProjectionMatrixUniformLocation;
     private uint m_TextureId;
@@ -18,7 +18,7 @@ public sealed unsafe class OpenGlSpriteRenderer : ISpriteRenderer
     public OpenGlSpriteRenderer(IAssetLoader<ICpuTexture> textureLoader)
     {
         m_TextureLoad = textureLoader;
-        m_InstanceRenderer = new OpenGlTexturedQuadInstanceRenderer<SpriteInstanceData>(200);
+        m_InstanceRenderer = new OpenGlTexturedQuadInstanceRenderer<Sprite>(200);
     }
     
     public void Load()
@@ -59,7 +59,7 @@ public sealed unsafe class OpenGlSpriteRenderer : ISpriteRenderer
         AssertNoGlError();
     }
     
-    public void Add(ISprite sprite)
+    public void Add(IEntity<Sprite> sprite)
     {
         m_InstanceRenderer.Add(sprite);
     }

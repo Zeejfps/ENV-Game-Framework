@@ -8,11 +8,11 @@ using static GL46;
 
 public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TInstancedData : unmanaged
 {
-    private readonly HashSet<IInstancedItem<TInstancedData>> m_ItemsToRegister = new();
-    private readonly HashSet<IInstancedItem<TInstancedData>> m_ItemsToUnregister = new();
-    private readonly HashSet<IInstancedItem<TInstancedData>> m_DirtyItems = new();
-    private readonly Dictionary<IInstancedItem<TInstancedData>, int> m_ItemToIndexTable = new();
-    private readonly Dictionary<int, IInstancedItem<TInstancedData>> m_IndexToItemTable = new();
+    private readonly HashSet<IEntity<TInstancedData>> m_ItemsToRegister = new();
+    private readonly HashSet<IEntity<TInstancedData>> m_ItemsToUnregister = new();
+    private readonly HashSet<IEntity<TInstancedData>> m_DirtyItems = new();
+    private readonly Dictionary<IEntity<TInstancedData>, int> m_ItemToIndexTable = new();
+    private readonly Dictionary<int, IEntity<TInstancedData>> m_IndexToItemTable = new();
     private readonly SortedSet<int> m_EmptyIndices = new();
     private readonly uint m_MaxInstanceCount;
     private readonly uint m_VertexAttribIndexOffset;
@@ -56,13 +56,13 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
         }
     }
 
-    public void Add(IInstancedItem<TInstancedData> item)
+    public void Add(IEntity<TInstancedData> item)
     {
         m_ItemsToRegister.Add(item);
         m_ItemsToUnregister.Remove(item);
     }
 
-    public void Remove(IInstancedItem<TInstancedData> item)
+    public void Remove(IEntity<TInstancedData> item)
     {
         m_ItemsToUnregister.Add(item);
         m_ItemsToRegister.Remove(item);
@@ -181,19 +181,20 @@ public sealed unsafe class VertexAttribInstanceBuffer<TInstancedData> where TIns
             {
                 var dirtyItemIndex = m_ItemToIndexTable[dirtyItem];
                 var dstIndex = dirtyItemIndex - minIndex;
-                dirtyItem.UpdateInstanceData(ref buffer[dstIndex]);
+                ref var test = ref buffer[dstIndex];
+                dirtyItem.LoadComponent(ref test);
             }
             m_DirtyItems.Clear();
         });
     }
 
-    private void UpdateItemIndexLookup(IInstancedItem<TInstancedData> item, int index)
+    private void UpdateItemIndexLookup(IEntity<TInstancedData> item, int index)
     {
         m_IndexToItemTable[index] = item;
         m_ItemToIndexTable[item] = index;
     }
 
-    private void Item_OnBecameDirty(IInstancedItem<TInstancedData> item)
+    private void Item_OnBecameDirty(IEntity<TInstancedData> item)
     {
         m_DirtyItems.Add(item);
     }
