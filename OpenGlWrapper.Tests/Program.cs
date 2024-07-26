@@ -12,6 +12,10 @@ Glfw.MakeContextCurrent(window);
 var context = OpenGlContext.Init(Glfw.GetProcAddress);
 var vaoManager = context.VertexArrayObjectManager;
 var vboManager = context.ArrayBufferManager;
+var framebufferManager = context.FramebufferManager;
+
+// Not needed, Window Framebuffer is the default bound buffer
+framebufferManager.Bind(FramebufferId.WindowFramebuffer);
 
 var vbo = vboManager.CreateAndBind();
 Span<float> vertexData = stackalloc float[]
@@ -35,11 +39,11 @@ vaoManager
     .EnableAndBindAttrib(0, vbo, 3, GlType.Float, false, 3 + 2, 0)
     .EnableAndBindAttrib(1, vbo, 2, GlType.Float, false, 2 + 3, 3);
 
-context.SetClearColor(0.3f, 0.1f, 0.5f, 1f);
+framebufferManager.SetClearColor(0.3f, 0.1f, 0.5f, 1f);
 while (!Glfw.WindowShouldClose(window))
 {
-    context.Clear(ClearFlags.ColorBuffer);
-    context.DrawArrayOfTriangles(vao, 3);
+    framebufferManager.Clear(ClearFlags.ColorBuffer);
+    framebufferManager.DrawArrayOfTriangles(vao, 3);
     
     Glfw.PollEvents();
     Glfw.SwapBuffers(window);
