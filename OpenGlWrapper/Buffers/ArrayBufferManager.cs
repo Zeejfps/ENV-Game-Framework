@@ -2,7 +2,7 @@ using System.Diagnostics;
 using static GL46;
 using static OpenGlWrapper.OpenGlUtils;
 
-namespace OpenGlWrapper;
+namespace OpenGlWrapper.Buffers;
 
 public sealed class ArrayBufferManager
 {
@@ -104,13 +104,13 @@ public sealed class ArrayBufferManager
         return Map<T>(metadata.Length);
     }
 
-    private BufferMemory<T> Map<T>(int length) where T : unmanaged
+    private BufferMemoryRange<T> Map<T>(int length) where T : unmanaged
     {
         unsafe
         {
             var ptr = glMapBuffer(BufferKind, GL_READ_WRITE);
             AssertNoGlError();
-            return new BufferMemory<T>(BufferKind, 0, ptr, length);
+            return new BufferMemoryRange<T>(BufferKind, 0, ptr, length);
         }
     }
     
@@ -172,88 +172,6 @@ class BufferMetadata
     public bool IsFixedSize { get; set; }
     public FixedSizedBufferAccessFlag AccessFlags { get; set; } = FixedSizedBufferAccessFlag.None;
     public int Length { get; set; }
-}
-
-public interface IBufferMemory<T> : IDisposable where T : unmanaged
-{
-    int Length { get; }
-}
-
-public interface IReadOnlyBufferMemory<T> : IBufferMemory<T> where T : unmanaged
-{
-    T Read(int index);
-}
-
-public interface IWriteOnlyBufferMemory<T> : IBufferMemory<T> where T : unmanaged
-{
-    void Write(int index, T data);
-}
-
-public interface IReadWriteBufferMemory<T> : IReadOnlyBufferMemory<T>, IWriteOnlyBufferMemory<T> where T : unmanaged
-{
-    Span<T> Span { get; }
-}
-
-internal sealed class BufferMemory<T> : IReadWriteBufferMemory<T> where T : unmanaged
-{
-    public Span<T> Span
-    {
-        get
-        {
-            unsafe
-            {
-                return new Span<T>(m_Ptr, Length);
-            }
-        }
-    }
-    
-    private readonly uint m_BufferKind;
-
-    private int m_Offset;
-    private unsafe void* m_Ptr;
-    public int Length { get; private set; }
-
-    public unsafe BufferMemory(uint bufferKind, int offset, void* ptr, int length)
-    {
-        m_BufferKind = bufferKind;
-        m_Offset = offset;
-        m_Ptr = ptr;
-        Length = length;
-    }
-    
-    public void Write(int index, T data)
-    {
-        if (index < 0 || index >= Length)
-            throw new IndexOutOfRangeException();
-        
-        var span = Span;
-        span[index] = data;
-    }
-
-    public T Read(int index)
-    {
-        if (index < 0 || index >= Length)
-            throw new IndexOutOfRangeException();
-        
-        return Span[index];
-    }
-
-    public void Flush()
-    {
-        glFlushMappedBufferRange(GL_ARRAY_BUFFER, new IntPtr(m_Offset), new IntPtr(Length));
-    }
-
-    public void Dispose()
-    {
-        unsafe
-        {
-            m_Offset = 0;
-            m_Ptr = (void*)0;
-            Length = 0;
-            glUnmapBuffer(m_BufferKind);
-            AssertNoGlError();
-        }
-    }
 }
 
 public readonly struct ArrayBufferId : IEquatable<ArrayBufferId>
