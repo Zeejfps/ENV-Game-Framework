@@ -44,13 +44,16 @@ public sealed class ShaderProgramManager
         
             if (status == GL_FALSE)
             {
-                Span<byte> buffer = stackalloc byte[256];
+                Span<byte> buffer = stackalloc byte[512];
                 int length;
                 fixed (byte* ptr = &buffer[0])
-                    glGetProgramInfoLog(shaderProgram, 256, &length, ptr);
-                AssertNoGlError();
-                var log = Encoding.ASCII.GetString(buffer);
-                Console.WriteLine($"Linking Failed: {log}");
+                {
+                    glGetProgramInfoLog(shaderProgram, buffer.Length, &length, ptr);
+                    AssertNoGlError();
+                    
+                    var log = Encoding.Default.GetString(ptr, length);
+                    throw new Exception($"Shader program linking failed: {log}");
+                }
             }
         
             glDeleteShader(vertexShader);
@@ -71,6 +74,9 @@ public sealed class ShaderProgramManager
     
     private uint CreateAndCompileShaderFromSource(uint type, string source)
     {
+        if (string.IsNullOrEmpty(source))
+            throw new ArgumentException("Can not be empty or null!", nameof(source));
+        
         unsafe
         {
             var shader = glCreateShader(type);
@@ -97,20 +103,20 @@ public sealed class ShaderProgramManager
         
             if (status == GL_FALSE)
             {
-                int length;
                 Span<byte> infoLogBuffer = stackalloc byte[1024];
                 fixed (byte* ptr = &infoLogBuffer[0])
+                {
+                    int length;
                     glGetShaderInfoLog(shader, infoLogBuffer.Length, &length, ptr);
-                AssertNoGlError();
-
-                var infoLog = Encoding.Default.GetString(infoLogBuffer);
-                var shaderTypeAsString = type == GL_VERTEX_SHADER ? "Vertex Shader" : "Fragment Shader";
-                Console.WriteLine($"Failed to compile shader: {shaderTypeAsString}");
-                Console.WriteLine(infoLog);
-                glDeleteShader(shader);
-                AssertNoGlError();
-            
-                return 0;
+                    AssertNoGlError();
+                    
+                    var infoLog = Encoding.Default.GetString(ptr, length);
+                    var shaderTypeAsString = type == GL_VERTEX_SHADER ? "vertex shader" : "fragment shader";
+                    glDeleteShader(shader);
+                    AssertNoGlError();
+                    
+                    throw new Exception($"Failed to compile {shaderTypeAsString}\n{infoLog}");
+                }
             }
 
             return shader;

@@ -12,4 +12,10 @@
       <ProjectReference Include="..\OpenGlWrapper\OpenGlWrapper.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Content Include="Assets\**\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
 </Project>
