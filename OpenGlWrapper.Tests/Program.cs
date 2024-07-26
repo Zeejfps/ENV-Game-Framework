@@ -66,12 +66,23 @@ var vertexTemplate = vaoManager.CreateTemplate<Vertex>();
 // vboManager.AllocFixedSizedAndUploadData<Vertex>(vertices, FixedSizedBufferAccessFlag.None);
 
 vboManager.AllocFixedSize<Vertex>(vertices.Length, FixedSizedBufferAccessFlag.ReadWrite);
-using (var memory = vboManager.MapReadWrite<Vertex>(vertices.Length))
+using (var memory = vboManager.MapWrite<Vertex>())
 {
-    var span = memory.Span;
     for (var i = 0; i < vertices.Length; i++)
-        span[i] = vertices[i];
+        memory.Write(i, vertices[i]);
 }
+
+using (var memory = vboManager.MapRead<Vertex>())
+{
+    var v1 = memory.Read(0);
+    var v2 = memory.Read(1);
+    var v3 = memory.Read(2);
+    
+    Console.WriteLine($"V1: {v1}");
+    Console.WriteLine($"V2: {v2}");
+    Console.WriteLine($"V3: {v3}");
+}
+
 
 vboManager.MapRange<Vertex>(0, 0, MappedBufferAccessFlag.ReadWrite);
 
@@ -104,6 +115,11 @@ public struct Vertex
 {
     public Vector2 Position;
     public Vector2 UVs;
+
+    public override string ToString()
+    {
+        return $"{nameof(Position)}: {Position}, {nameof(UVs)}: {UVs}";
+    }
 }
 
 

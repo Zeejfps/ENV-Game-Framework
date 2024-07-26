@@ -46,7 +46,7 @@ public sealed class ArrayBufferManager
         unsafe
         {
             fixed (void* dataPtr = &data[0])
-                AllocFixeSizeUnsafe<T>(SizeOf<T>(data.Length), dataPtr, accessFlags);
+                AllocFixeSizeUnsafe<T>(data.Length, dataPtr, accessFlags);
         }
     }
 
@@ -54,26 +54,28 @@ public sealed class ArrayBufferManager
     {
         unsafe
         {
-            AllocFixeSizeUnsafe<T>(SizeOf<T>(length), null, accessFlags);
+            AllocFixeSizeUnsafe<T>(length, null, accessFlags);
         }
     }
 
-    private unsafe void AllocFixeSizeUnsafe<T>(IntPtr size, void* dataPtr, FixedSizedBufferAccessFlag accessFlags)
+    private unsafe void AllocFixeSizeUnsafe<T>(int length, void* dataPtr, FixedSizedBufferAccessFlag accessFlags) where T : unmanaged
     {
         AssertIsBound();
         var buffer = m_BoundResource;
         var metadata = GetMetadata(buffer);
         if (metadata.IsAllocated && metadata.IsFixedSize)
             throw new InvalidOperationException($"Can't re-allocate an already allocated FIXED-SIZED buffer, Id: {buffer.Id}");
-        
+
+        var size = SizeOf<T>(length);
         glBufferStorage(BufferKind, size, dataPtr, (uint)accessFlags);
         AssertNoGlError();
         metadata.IsFixedSize = true;
         metadata.IsAllocated = true;
         metadata.AccessFlags = accessFlags;
+        metadata.Length = length;
     }
     
-    public IReadWriteBufferMemory<T> MapReadWrite<T>(int length) where T : unmanaged
+    public IReadWriteBufferMemory<T> MapReadWrite<T>() where T : unmanaged
     {
         AssertIsBound();
         var metadata = GetMetadata(m_BoundResource);
@@ -81,17 +83,25 @@ public sealed class ArrayBufferManager
             (metadata.AccessFlags & FixedSizedBufferAccessFlag.Write) == 0)
             throw new InvalidOperationException($"Can't map buffer for read-write access, missing access flags. Required Read and Write flag, found: {metadata.AccessFlags}");
 
-        return Map<T>(length);
+        return Map<T>(metadata.Length);
     }
 
-    public IReadOnlyBufferMemory<T> MapRead<T>(int length) where T : unmanaged
+    public IReadOnlyBufferMemory<T> MapRead<T>() where T : unmanaged
     {
         AssertIsBound();
         var metadata = GetMetadata(m_BoundResource);
         if ((metadata.AccessFlags & FixedSizedBufferAccessFlag.Read) == 0)
             throw new InvalidOperationException($"Can't map buffer for read access, missing access flags. Required Read flag, found: {metadata.AccessFlags}");
-
-        return Map<T>(length);
+        return Map<T>(metadata.Length);
+    }
+    
+    public IWriteOnlyBufferMemory<T> MapWrite<T>() where T : unmanaged
+    {
+        AssertIsBound();
+        var metadata = GetMetadata(m_BoundResource);
+        if ((metadata.AccessFlags & FixedSizedBufferAccessFlag.Write) == 0)
+            throw new InvalidOperationException($"Can't map buffer for write access, missing access flags. Required Write flag, found: {metadata.AccessFlags}");
+        return Map<T>(metadata.Length);
     }
 
     private BufferMemory<T> Map<T>(int length) where T : unmanaged
@@ -100,11 +110,11 @@ public sealed class ArrayBufferManager
         {
             var ptr = glMapBuffer(BufferKind, GL_READ_WRITE);
             AssertNoGlError();
-            return new BufferMemory<T>(BufferKind, ptr, length);
+            return new BufferMemory<T>(BufferKind, 0, ptr, length);
         }
     }
     
-    public IBufferMemory<T> MapRange<T>(int startIndex, int length, MappedBufferAccessFlag accessFlag) where T : unmanaged
+    public IBufferMemory<T> MapRange<T>(int offset, int length, MappedBufferAccessFlag accessFlag) where T : unmanaged
     {
         var sizeOf = SizeOf<T>();
         //glMapBufferRange(BufferKind, sizeOf * startIndex, sizeOf * length,);
@@ -161,6 +171,7 @@ class BufferMetadata
     public bool IsAllocated { get; set; }
     public bool IsFixedSize { get; set; }
     public FixedSizedBufferAccessFlag AccessFlags { get; set; } = FixedSizedBufferAccessFlag.None;
+    public int Length { get; set; }
 }
 
 public interface IBufferMemory<T> : IDisposable where T : unmanaged
@@ -195,33 +206,48 @@ internal sealed class BufferMemory<T> : IReadWriteBufferMemory<T> where T : unma
             }
         }
     }
-
+    
     private readonly uint m_BufferKind;
+
+    private int m_Offset;
     private unsafe void* m_Ptr;
     public int Length { get; private set; }
 
-    public unsafe BufferMemory(uint bufferKind, void* ptr, int length)
+    public unsafe BufferMemory(uint bufferKind, int offset, void* ptr, int length)
     {
         m_BufferKind = bufferKind;
+        m_Offset = offset;
         m_Ptr = ptr;
         Length = length;
     }
     
     public void Write(int index, T data)
     {
+        if (index < 0 || index >= Length)
+            throw new IndexOutOfRangeException();
+        
         var span = Span;
         span[index] = data;
     }
 
     public T Read(int index)
     {
+        if (index < 0 || index >= Length)
+            throw new IndexOutOfRangeException();
+        
         return Span[index];
+    }
+
+    public void Flush()
+    {
+        glFlushMappedBufferRange(GL_ARRAY_BUFFER, new IntPtr(m_Offset), new IntPtr(Length));
     }
 
     public void Dispose()
     {
         unsafe
         {
+            m_Offset = 0;
             m_Ptr = (void*)0;
             Length = 0;
             glUnmapBuffer(m_BufferKind);
