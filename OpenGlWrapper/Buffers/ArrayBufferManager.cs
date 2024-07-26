@@ -83,7 +83,7 @@ public sealed class ArrayBufferManager
             (metadata.AccessFlags & FixedSizedBufferAccessFlag.Write) == 0)
             throw new InvalidOperationException($"Can't map buffer for read-write access, missing access flags. Required Read and Write flag, found: {metadata.AccessFlags}");
 
-        return Map<T>(metadata.Length);
+        return MapUnsafe<T>(metadata.Length, GL_READ_WRITE);
     }
 
     public IReadOnlyBufferMemory<T> MapRead<T>() where T : unmanaged
@@ -92,7 +92,7 @@ public sealed class ArrayBufferManager
         var metadata = GetMetadata(m_BoundResource);
         if ((metadata.AccessFlags & FixedSizedBufferAccessFlag.Read) == 0)
             throw new InvalidOperationException($"Can't map buffer for read access, missing access flags. Required Read flag, found: {metadata.AccessFlags}");
-        return Map<T>(metadata.Length);
+        return MapUnsafe<T>(metadata.Length, GL_READ_ONLY);
     }
     
     public IWriteOnlyBufferMemory<T> MapWrite<T>() where T : unmanaged
@@ -101,24 +101,38 @@ public sealed class ArrayBufferManager
         var metadata = GetMetadata(m_BoundResource);
         if ((metadata.AccessFlags & FixedSizedBufferAccessFlag.Write) == 0)
             throw new InvalidOperationException($"Can't map buffer for write access, missing access flags. Required Write flag, found: {metadata.AccessFlags}");
-        return Map<T>(metadata.Length);
+        return MapUnsafe<T>(metadata.Length, GL_WRITE_ONLY);
     }
 
-    private BufferMemoryRange<T> Map<T>(int length) where T : unmanaged
+    public IReadWriteBufferMemoryRange<T> MapReadWriteRange<T>(int offset, int length, BufferMemoryRangeAccessFlag accessFlags) where T : unmanaged
+    {
+        return MapRangeUnsafe<T>(offset, length, GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | (uint)accessFlags);
+    }
+
+    private BufferMemoryRange<T> MapUnsafe<T>(int length, uint access) where T : unmanaged
     {
         unsafe
         {
-            var ptr = glMapBuffer(BufferKind, GL_READ_WRITE);
+            var ptr = glMapBuffer(BufferKind, access);
             AssertNoGlError();
-            return new BufferMemoryRange<T>(BufferKind, 0, ptr, length);
+            if (ptr == null)
+                throw new Exception("Failed to map buffer, Unknown error");
+            
+            return new BufferMemoryRange<T>(BufferKind, 0, ptr, length, (uint)BufferMemoryRangeAccessFlag.None);
         }
     }
     
-    public IBufferMemory<T> MapRange<T>(int offset, int length, MappedBufferAccessFlag accessFlag) where T : unmanaged
+    private BufferMemoryRange<T> MapRangeUnsafe<T>(int offset, int length, uint access) where T : unmanaged
     {
-        var sizeOf = SizeOf<T>();
-        //glMapBufferRange(BufferKind, sizeOf * startIndex, sizeOf * length,);
-        return null;
+        unsafe
+        {
+            var ptr = glMapBufferRange(BufferKind, SizeOf<T>(offset), SizeOf<T>(length), access);
+            AssertNoGlError();
+            if (ptr == null)
+                throw new Exception("Failed to map buffer range, Unknown error");
+            
+            return new BufferMemoryRange<T>(BufferKind, offset, ptr, length, access);
+        }
     }
 
     public void Destroy(ArrayBufferId bufferHandle)

@@ -66,7 +66,7 @@ var vertexTemplate = vaoManager.CreateTemplate<Vertex>();
 // vboManager.AllocFixedSizedAndUploadData<Vertex>(vertices, FixedSizedBufferAccessFlag.None);
 
 vboManager.AllocFixedSize<Vertex>(vertices.Length, FixedSizedBufferAccessFlag.ReadWrite);
-using (var memory = vboManager.MapWrite<Vertex>())
+using (var memory = vboManager.MapReadWriteRange<Vertex>(0, vertices.Length, BufferMemoryRangeAccessFlag.None))
 {
     for (var i = 0; i < vertices.Length; i++)
         memory.Write(i, vertices[i]);
@@ -83,8 +83,6 @@ using (var memory = vboManager.MapRead<Vertex>())
     Console.WriteLine($"V3: {v3}");
 }
 
-
-vboManager.MapRange<Vertex>(0, 0, MappedBufferAccessFlag.ReadWrite);
 
 vaoManager.EnableAndBindAttrib(vertexTemplate, 0, vbo);
 vaoManager.EnableAndBindAttrib(vertexTemplate, 1, vbo);

@@ -1,6 +1,9 @@
+using static GL46;
+using static OpenGlWrapper.OpenGlUtils;
+
 namespace OpenGlWrapper.Buffers;
 
-internal sealed class BufferMemoryRange<T> : IReadWriteBufferMemory<T> where T : unmanaged
+internal sealed class BufferMemoryRange<T> : IReadWriteBufferMemoryRange<T> where T : unmanaged
 {
     public Span<T> Span
     {
@@ -14,17 +17,18 @@ internal sealed class BufferMemoryRange<T> : IReadWriteBufferMemory<T> where T :
     }
     
     private readonly uint m_BufferKind;
-
     private int m_Offset;
     private unsafe void* m_Ptr;
+    private uint m_AccessFlag;
     public int Length { get; private set; }
 
-    public unsafe BufferMemoryRange(uint bufferKind, int offset, void* ptr, int length)
+    public unsafe BufferMemoryRange(uint bufferKind, int offset, void* ptr, int length, uint mappedBufferAccessFlag)
     {
         m_BufferKind = bufferKind;
         m_Offset = offset;
         m_Ptr = ptr;
         Length = length;
+        m_AccessFlag = mappedBufferAccessFlag;
     }
     
     public void Write(int index, T data)
@@ -46,7 +50,11 @@ internal sealed class BufferMemoryRange<T> : IReadWriteBufferMemory<T> where T :
 
     public void Flush()
     {
-        GL46.glFlushMappedBufferRange(GL46.GL_ARRAY_BUFFER, new IntPtr(m_Offset), new IntPtr(Length));
+        if ((m_AccessFlag & GL_MAP_FLUSH_EXPLICIT_BIT) == 0)
+            throw new InvalidOperationException("Can't flush buffer that does not have the FlushExplicit access flag set");
+        
+        glFlushMappedBufferRange(GL_ARRAY_BUFFER, SizeOf<T>(m_Offset), SizeOf<T>(Length));
+        AssertNoGlError();
     }
 
     public void Dispose()
@@ -56,7 +64,7 @@ internal sealed class BufferMemoryRange<T> : IReadWriteBufferMemory<T> where T :
             m_Offset = 0;
             m_Ptr = (void*)0;
             Length = 0;
-            GL46.glUnmapBuffer(m_BufferKind);
+            glUnmapBuffer(m_BufferKind);
             OpenGlUtils.AssertNoGlError();
         }
     }
