@@ -1384,7 +1384,6 @@ public static unsafe class GL46
 	public const uint GL_SPIR_V_BINARY = 0x9552;
 	public const uint GL_SPIR_V_EXTENSIONS = 0x9553;
 	public const uint GL_NUM_SPIR_V_EXTENSIONS = 0x9554;
-	public const uint GL_COMPRESSED_RGBA_BPTC_UNORM_ARB = 0x8E8C;
 
 	private static void* s_glActiveShaderProgram;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1796,7 +1795,7 @@ public static unsafe class GL46
 
 	private static void* s_glCreateShaderProgramv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static uint glCreateShaderProgramv(uint type, int count, byte* strs) => ((delegate* unmanaged[Cdecl]<uint, int, byte*, uint>)s_glCreateShaderProgramv)(type, count, strs);
+	public static uint glCreateShaderProgramv(uint type, int count, byte** strs) => ((delegate* unmanaged[Cdecl]<uint, int, byte**, uint>)s_glCreateShaderProgramv)(type, count, strs);
 
 	private static void* s_glCreateTextures;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2548,7 +2547,7 @@ public static unsafe class GL46
 
 	private static void* s_glGetUniformIndices;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetUniformIndices(uint program, int uniformCount, byte* uniformNames, uint* uniformIndices) => ((delegate* unmanaged[Cdecl]<uint, int, byte*, uint*, void>)s_glGetUniformIndices)(program, uniformCount, uniformNames, uniformIndices);
+	public static void glGetUniformIndices(uint program, int uniformCount, byte** uniformNames, uint* uniformIndices) => ((delegate* unmanaged[Cdecl]<uint, int, byte**, uint*, void>)s_glGetUniformIndices)(program, uniformCount, uniformNames, uniformIndices);
 
 	private static void* s_glGetUniformLocation;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3312,7 +3311,7 @@ public static unsafe class GL46
 
 	private static void* s_glShaderSource;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glShaderSource(uint shader, int count, byte* str, int* length) => ((delegate* unmanaged[Cdecl]<uint, int, byte*, int*, void>)s_glShaderSource)(shader, count, str, length);
+	public static void glShaderSource(uint shader, int count, byte** str, int* length) => ((delegate* unmanaged[Cdecl]<uint, int, byte**, int*, void>)s_glShaderSource)(shader, count, str, length);
 
 	private static void* s_glShaderStorageBlockBinding;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3544,7 +3543,7 @@ public static unsafe class GL46
 
 	private static void* s_glTransformFeedbackVaryings;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTransformFeedbackVaryings(uint program, int count, byte* varyings, uint bufferMode) => ((delegate* unmanaged[Cdecl]<uint, int, byte*, uint, void>)s_glTransformFeedbackVaryings)(program, count, varyings, bufferMode);
+	public static void glTransformFeedbackVaryings(uint program, int count, byte** varyings, uint bufferMode) => ((delegate* unmanaged[Cdecl]<uint, int, byte**, uint, void>)s_glTransformFeedbackVaryings)(program, count, varyings, bufferMode);
 
 	private static void* s_glUniform1d;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]

@@ -248,7 +248,7 @@ struct Command
                         type = convertedType;
                         param.Type = type;
                         if (ptypeNode.NextSibling is XmlText textNode)
-                            param.Type += textNode.InnerText.Replace("const*", "").Trim();
+                            param.Type += textNode.InnerText.Replace("const", "").Trim();
                     }
 
                     ptypeNode.InnerText = type;
