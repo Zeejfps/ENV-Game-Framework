@@ -26,7 +26,7 @@ public sealed unsafe class BufferWriter<T> : IDisposable where T : unmanaged
     
     public static BufferWriter<T> AllocateAndMap(int target, int size, int usage)
     {
-        glBufferData(target, new IntPtr(size * sizeof(T)), (void*)0, usage);
+        glBufferData((uint)target, new IntPtr(size * sizeof(T)), (void*)0, (uint)usage);
         return new BufferWriter<T>(target, size);
     }
     
@@ -39,7 +39,7 @@ public sealed unsafe class BufferWriter<T> : IDisposable where T : unmanaged
     {
         m_Target = target;
         
-        m_BufferPtr = new IntPtr(glMapBuffer(m_Target, GL_WRITE_ONLY));
+        m_BufferPtr = new IntPtr(glMapBuffer((uint)m_Target, GL_WRITE_ONLY));
         AssertNoGlError();
         
         m_BufferSize = size;
@@ -51,7 +51,7 @@ public sealed unsafe class BufferWriter<T> : IDisposable where T : unmanaged
             return;
         
         m_IsDisposed = true;
-        glUnmapBuffer(m_Target);
+        glUnmapBuffer((uint)m_Target);
         AssertNoGlError();
     }
 

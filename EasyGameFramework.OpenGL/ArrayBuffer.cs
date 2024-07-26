@@ -3,7 +3,7 @@ using static OpenGLSandbox.OpenGlUtils;
 
 namespace OpenGLSandbox;
 
-public enum MutableBufferUsageHints : int
+public enum MutableBufferUsageHints : uint
 {
     DynamicDraw = GL_DYNAMIC_DRAW,
     StaticDraw = GL_STATIC_DRAW,
@@ -20,7 +20,7 @@ public sealed class NotAllocatedException : Exception
 public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T> 
     where T : unmanaged
 {
-    public int BindTarget => GL_ARRAY_BUFFER;
+    public uint BindTarget => GL_ARRAY_BUFFER;
     public uint Id { get; set; }
     public MutableBufferUsageHints UsageHint { get; set; }
     public int Size { get; set; }
@@ -78,7 +78,7 @@ public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T>
         Id = glGenBuffer();
         glBindBuffer(BindTarget, Id);
         AssertNoGlError();
-        glBufferData(BindTarget, sizePtr, data, (int)usageHint);
+        glBufferData(BindTarget, sizePtr, data, (uint)usageHint);
         AssertNoGlError();
         Size = size;
         UsageHint = usageHint;
@@ -112,7 +112,7 @@ public sealed class ArrayBuffer<T> : IMutableBuffer<T>, IImmutableBuffer<T>
         {
             glBindBuffer(GL_ARRAY_BUFFER, Id);
             AssertNoGlError();
-            var bufferPtr = glMapBufferRange(BindTarget, SizeOf<T>(offset), SizeOf<T>(length), GL_MAP_WRITE_BIT);
+            var bufferPtr = glMapBufferRange(BindTarget, SizeOf<T>(offset), SizeOf<T>(length), (int)GL_MAP_WRITE_BIT);
             AssertNoGlError();
             writeFunc.Invoke(new GpuMemory<T>(bufferPtr, length));
             glUnmapBuffer(BindTarget);

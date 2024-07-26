@@ -35,7 +35,7 @@ public static class MutableBufferMethods
         
         glBindBuffer(buffer.BindTarget, buffer.Id);
         AssertNoGlError();
-        glBufferData(buffer.BindTarget, sizePtr, data, (int)usageHint);
+        glBufferData(buffer.BindTarget, sizePtr, data, (uint)usageHint);
         AssertNoGlError();
         
         buffer.Size = size;

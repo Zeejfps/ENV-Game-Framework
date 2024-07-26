@@ -71,6 +71,7 @@ Console.WriteLine($"Commands to process: {commandsToProcess.Length}");
 using (var writer = new StreamWriter(outPath))
 {
     //writer.WriteLine("using System.Runtime.InteropServices;");
+    writer.WriteLine("using System.Runtime.CompilerServices;");
     writer.WriteLine("using System.Security;");
     writer.WriteLine(@"// ReSharper disable InconsistentNaming");
     writer.WriteLine();
@@ -86,7 +87,7 @@ using (var writer = new StreamWriter(outPath))
     {
         var name = element.GetAttribute("name");
         var value = element.GetAttribute("value");
-        writer.WriteLine($"\tpublic const int {name} = {value};");
+        writer.WriteLine($"\tpublic const uint {name} = {value};");
     }
 
     writer.WriteLine();
@@ -119,6 +120,7 @@ using (var writer = new StreamWriter(outPath))
         
         writer.WriteLine($"\tprivate static void* s_{command.Name};");
         // writer.WriteLine($"\tpublic static {command.Prototype}({paramsString}) => s_{command.Name}({paramNames});");
+        writer.WriteLine("\t[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]");
         writer.Write($"\tpublic static {command.Prototype}({paramTypeAndNames}) => ");
         writer.Write($"((delegate* unmanaged[Cdecl]<{paramTypes}");
         if (!string.IsNullOrEmpty(paramTypes))
@@ -149,8 +151,8 @@ static class Utils
 {
     public static Dictionary<string, string> glTypeToDotNetTypeTable = new()
     {
-        {"GLenum", "int"},
-        {"GLbitfield", "int"},
+        {"GLenum", "uint"},
+        {"GLbitfield", "uint"},
         {"GLint", "int"},
         {"GLsizei", "int"},
         {"GLuint", "uint"},

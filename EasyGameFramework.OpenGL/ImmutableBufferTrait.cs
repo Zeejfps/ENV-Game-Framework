@@ -4,7 +4,7 @@ using static GL46;
 using static OpenGlUtils;
 
 [Flags]
-public enum AccessFlag
+public enum AccessFlag : uint
 {
     None = 0,
     Dynamic = GL_DYNAMIC_STORAGE_BIT,
@@ -45,7 +45,7 @@ public static class ImmutableBufferMethods
         
         glBindBuffer(buffer.BindTarget, buffer.Id);
         AssertNoGlError();
-        glBufferStorage(buffer.BindTarget, sizePtr, data, (int)flags);
+        glBufferStorage(buffer.BindTarget, sizePtr, data, (uint)flags);
         AssertNoGlError();
         
         buffer.Size = size;

@@ -2,7 +2,7 @@
 
 public interface IBuffer
 {
-    int BindTarget { get; }
+    uint BindTarget { get; }
     uint Id { get; set; }
 }
 

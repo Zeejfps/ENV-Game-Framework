@@ -55,7 +55,7 @@ public sealed class TgaImage
             
             // If the image is stored upside down, you may need to flip it
 
-            GL46.glTexImage2D(GL46.GL_TEXTURE_2D, 0, GL46.GL_RGBA8, width, height, 0, GL46.GL_RED, GL46.GL_UNSIGNED_BYTE, OpenGlUtils.Offset(0));
+            GL46.glTexImage2D(GL46.GL_TEXTURE_2D, 0, (int)GL46.GL_RGBA8, width, height, 0, GL46.GL_RED, GL46.GL_UNSIGNED_BYTE, OpenGlUtils.Offset(0));
             OpenGlUtils.AssertNoGlError();
             
             GL46.glDeleteBuffers(1, &uploadBufferId);

@@ -14,7 +14,7 @@ public static class OpenGlUtils
         Debug.Assert(!glTryGetError(out var error), error);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static unsafe void* Offset(int offset)
     {
         return (void*)offset;
@@ -26,7 +26,7 @@ public static class OpenGlUtils
         return (void*)Marshal.OffsetOf<T>(field);
     } 
 
-    public static unsafe uint CreateAndCompileShaderFromSourceFile(int type, string filePath)
+    public static unsafe uint CreateAndCompileShaderFromSourceFile(uint type, string filePath)
     {
         var source = File.ReadAllText(filePath);
         return CreateAndCompileShaderFromSource(type, source);
@@ -39,9 +39,9 @@ public static class OpenGlUtils
         return b;
     }
 
-    public static unsafe uint CreateAndCompileShaderFromSource(int type, string source)
+    public static unsafe uint CreateAndCompileShaderFromSource(uint type, string source)
     {
-        var shader = glCreateShader(type);
+        var shader = glCreateShader((int)type);
         AssertNoGlError();
         
         glShaderSource(shader, source);
