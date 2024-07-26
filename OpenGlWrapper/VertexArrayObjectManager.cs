@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using static GL46;
 using static OpenGlWrapper.OpenGlUtils;
 
@@ -15,6 +16,8 @@ public sealed class VertexArrayObjectManager
     
     public void Bind(VertexArrayObjectHandle handle)
     {
+        if (handle == m_BoundResource)
+            return;
         glBindVertexArray(handle);
         AssertNoGlError();
         m_BoundResource = handle;
@@ -50,15 +53,37 @@ public sealed class VertexArrayObjectManager
 
     public VertexArrayObjectManager EnableAndBindAttrib(int attribIndex, ArrayBufferHandle vbo, int size, GlType type, bool normalized, int stride, int offset)
     {
-        if (m_BoundResource == VertexArrayObjectHandle.Null)
-            throw new InvalidOperationException("No resource bound");
-        
+        BindAttrib(attribIndex, vbo, size, type, normalized, stride, offset);
+        EnableAttrib(attribIndex);
+        return this;
+    }
+
+    public VertexArrayObjectManager EnableAttrib(int attribIndex)
+    {
+        AssertResourceIsBound();   
+        glEnableVertexArrayAttrib(m_BoundResource, (uint)attribIndex);
+        AssertNoGlError();
+        return this;
+    }
+
+    public VertexArrayObjectManager BindAttrib(int attribIndex, ArrayBufferHandle vbo, int size, GlType type,
+        bool normalized, int stride, int offset)
+    {
+        AssertResourceIsBound();   
         unsafe
         {
             m_ArrayBufferManager.Bind(vbo);
             glVertexAttribPointer((uint)attribIndex, size, (uint)type, normalized, stride, Offset(offset));
+            AssertNoGlError();
             return this;
         }
+    }
+
+    [Conditional("DEBUG")]
+    private void AssertResourceIsBound()
+    {
+        if (m_BoundResource == VertexArrayObjectHandle.Null)
+            throw new InvalidOperationException("No resource bound");
     }
 }
 

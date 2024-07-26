@@ -11,9 +11,9 @@ Glfw.MakeContextCurrent(window);
 
 var context = OpenGlContext.Init(Glfw.GetProcAddress);
 var vaoManager = context.VertexArrayObjectManager;
-var arrayBufferManager = context.ArrayBufferManager;
+var vboManager = context.ArrayBufferManager;
 
-var vbo = arrayBufferManager.CreateAndBind();
+var vbo = vboManager.CreateAndBind();
 Span<float> vertexData = stackalloc float[]
 {
     -1f, -1f, 0f, // Position
@@ -25,18 +25,27 @@ Span<float> vertexData = stackalloc float[]
     +1f, -1f, 0f, // Position
     +1f, +0f,     // UVs
 };
-arrayBufferManager.AllocFixedSizedAndUploadData<float>(vertexData, FixedSizedBufferAccessFlag.None);
+vboManager.AllocFixedSizedAndUploadData<float>(vertexData, FixedSizedBufferAccessFlag.None);
 
-Console.WriteLine($@"IsAllocated: {arrayBufferManager.IsAllocated(vbo)}");
-Console.WriteLine($@"IsFixedSize: {arrayBufferManager.IsFixedSize(vbo)}");
+Console.WriteLine($@"IsAllocated: {vboManager.IsAllocated(vbo)}");
+Console.WriteLine($@"IsFixedSize: {vboManager.IsFixedSize(vbo)}");
 
 var vao = vaoManager.CreateAndBind();
 vaoManager
     .EnableAndBindAttrib(0, vbo, 3, GlType.Float, false, 3 + 2, 0)
     .EnableAndBindAttrib(1, vbo, 2, GlType.Float, false, 2 + 3, 3);
 
-arrayBufferManager.Destroy(vbo);
+context.SetClearColor(0.3f, 0.1f, 0.5f, 1f);
+while (!Glfw.WindowShouldClose(window))
+{
+    context.Clear(ClearFlags.ColorBuffer);
+    context.DrawArrayOfTriangles(vao, 3);
+    
+    Glfw.PollEvents();
+    Glfw.SwapBuffers(window);
+}
+
+vboManager.Destroy(vbo);
 vaoManager.Destroy(vao);
 
-Glfw.SetWindowShouldClose(window, true);
 Glfw.Terminate();
