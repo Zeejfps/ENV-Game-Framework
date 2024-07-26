@@ -6,9 +6,16 @@ namespace OpenGlWrapper;
 
 public sealed class ShaderProgramManager
 {
+    private ShaderProgramId m_BoundResource;
+    
     public void Bind(ShaderProgramId shaderProgram)
     {
+        if (shaderProgram == m_BoundResource)
+            return;
         
+        glUseProgram(shaderProgram.Id);
+        AssertNoGlError();
+        m_BoundResource = shaderProgram;
     }
 
     public ShaderProgramId CompileFromSourceFiles(string vertexShaderFilePath, string fragmentShaderFilePath)

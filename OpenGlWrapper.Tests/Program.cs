@@ -21,13 +21,13 @@ framebufferManager.Bind(FramebufferId.WindowFramebuffer);
 var vbo = vboManager.CreateAndBind();
 Span<float> vertexData = stackalloc float[]
 {
-    -1f, -1f, 0f, // Position
+    -1f, -1f, +1f, // Position
     +0f, +0f,     // UVs
     
-    -1f, +1f, 0f, // Position
+    -1f, +1f, +1f, // Position
     +0f, +1f,     // UVs
     
-    +1f, -1f, 0f, // Position
+    +1f, -1f, +1f, // Position
     +1f, +0f,     // UVs
 };
 vboManager.AllocFixedSizedAndUploadData<float>(vertexData, FixedSizedBufferAccessFlag.None);

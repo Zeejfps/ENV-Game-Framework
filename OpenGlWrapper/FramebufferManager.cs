@@ -36,6 +36,7 @@ public sealed class FramebufferManager
     {
         m_ShaderProgramManager.Bind(shaderProgram);
         m_VertexArrayObjectManager.Bind(vao);
+        
         glDrawArrays(GL_TRIANGLES, 0, indicesCount);
         AssertNoGlError();
     }
