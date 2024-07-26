@@ -14,7 +14,7 @@ Glfw.MakeContextCurrent(window);
 var context = new OpenGlContext(Glfw.GetProcAddress);
 var arrayBufferManager = context.ArrayBufferManager;
 
-var vao = arrayBufferManager.CreateAndBind();
+var vbo = arrayBufferManager.CreateAndBind();
 Span<float> vertexData = stackalloc float[]
 {
     0f, 0f, 0f,
@@ -24,7 +24,7 @@ Span<float> vertexData = stackalloc float[]
 };
 arrayBufferManager.AllocFixedSizedAndUploadData<float>(vertexData, FixedSizedBufferAccessFlag.None);
 
-arrayBufferManager.Destroy(vao);
+arrayBufferManager.Destroy(vbo);
 
 Glfw.SetWindowShouldClose(window, true);
 Glfw.Terminate();

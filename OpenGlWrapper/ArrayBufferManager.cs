@@ -6,7 +6,7 @@ namespace OpenGlWrapper;
 
 public sealed class ArrayBufferManager
 {
-    private uint BufferKind = GL_ARRAY_BUFFER;
+    private uint BufferKind => GL_ARRAY_BUFFER;
     private ArrayBufferHandle m_BoundResource;
     
     public void Bind(ArrayBufferHandle handle)
@@ -37,7 +37,8 @@ public sealed class ArrayBufferManager
         {
             Debug.Assert(m_BoundResource != ArrayBufferHandle.Null, "No resource bound!");
             fixed (void* dataPtr = &data[0])
-                glBufferStorage(BufferKind, SizeOf<T>(data.Length), dataPtr, (uint)accessFlag );
+                glBufferStorage(BufferKind, SizeOf<T>(data.Length), dataPtr, (uint)accessFlag);
+            AssertNoGlError();
         }
     }
 
@@ -49,6 +50,7 @@ public sealed class ArrayBufferManager
             {
                 glBindBuffer(BufferKind, ArrayBufferHandle.Null);
                 AssertNoGlError();
+                m_BoundResource = ArrayBufferHandle.Null;
             }
 
             uint id = bufferHandle;
