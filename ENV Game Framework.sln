@@ -52,6 +52,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SlangIntegrationTest", "Sla
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bricks", "Bricks\Bricks.csproj", "{2B193459-0ABE-43D9-8AE9-D6DBE9BBDCF3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenGlWrapper", "OpenGlWrapper\OpenGlWrapper.csproj", "{F76606B5-C7E8-4969-93DE-80D94194EDFB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenGlWrapper.Tests", "OpenGlWrapper.Tests\OpenGlWrapper.Tests.csproj", "{264A612D-5371-4C39-BD5C-CCE873B031C7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -162,5 +166,13 @@ Global
 		{2B193459-0ABE-43D9-8AE9-D6DBE9BBDCF3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2B193459-0ABE-43D9-8AE9-D6DBE9BBDCF3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2B193459-0ABE-43D9-8AE9-D6DBE9BBDCF3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F76606B5-C7E8-4969-93DE-80D94194EDFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F76606B5-C7E8-4969-93DE-80D94194EDFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F76606B5-C7E8-4969-93DE-80D94194EDFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F76606B5-C7E8-4969-93DE-80D94194EDFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{264A612D-5371-4C39-BD5C-CCE873B031C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{264A612D-5371-4C39-BD5C-CCE873B031C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{264A612D-5371-4C39-BD5C-CCE873B031C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{264A612D-5371-4C39-BD5C-CCE873B031C7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
