@@ -7,14 +7,14 @@ namespace OpenGlWrapper;
 public sealed class VertexArrayObjectManager
 {
     private readonly ArrayBufferManager m_ArrayBufferManager;
-    private VertexArrayObjectHandle m_BoundResource;
+    private VertexArrayObjectId m_BoundResource;
 
     public VertexArrayObjectManager(ArrayBufferManager arrayBufferManager)
     {
         m_ArrayBufferManager = arrayBufferManager;
     }
     
-    public void Bind(VertexArrayObjectHandle handle)
+    public void Bind(VertexArrayObjectId handle)
     {
         if (handle == m_BoundResource)
             return;
@@ -23,7 +23,7 @@ public sealed class VertexArrayObjectManager
         m_BoundResource = handle;
     }
     
-    public VertexArrayObjectHandle CreateAndBind()
+    public VertexArrayObjectId CreateAndBind()
     {
         unsafe
         {
@@ -31,17 +31,17 @@ public sealed class VertexArrayObjectManager
             glGenVertexArrays(1, &id);
             AssertNoGlError();
 
-            var handle = new VertexArrayObjectHandle(id);
+            var handle = new VertexArrayObjectId(id);
             Bind(handle);
 
             return handle;
         }
     }
 
-    public void Destroy(VertexArrayObjectHandle vao)
+    public void Destroy(VertexArrayObjectId vao)
     {
         if (m_BoundResource == vao)
-            Bind(VertexArrayObjectHandle.Null);
+            Bind(VertexArrayObjectId.Null);
         
         unsafe
         {
@@ -82,30 +82,30 @@ public sealed class VertexArrayObjectManager
     [Conditional("DEBUG")]
     private void AssertResourceIsBound()
     {
-        if (m_BoundResource == VertexArrayObjectHandle.Null)
+        if (m_BoundResource == VertexArrayObjectId.Null)
             throw new InvalidOperationException("No resource bound");
     }
 }
 
-public readonly struct VertexArrayObjectHandle : IEquatable<VertexArrayObjectHandle>
+public readonly struct VertexArrayObjectId : IEquatable<VertexArrayObjectId>
 {
-    public static VertexArrayObjectHandle Null => new(0);
+    public static VertexArrayObjectId Null => new(0);
     
     internal uint Id { get; }
 
-    public VertexArrayObjectHandle(uint id)
+    public VertexArrayObjectId(uint id)
     {
         Id = id;
     }
 
-    public bool Equals(VertexArrayObjectHandle other)
+    public bool Equals(VertexArrayObjectId other)
     {
         return Id == other.Id;
     }
 
     public override bool Equals(object? obj)
     {
-        return obj is VertexArrayObjectHandle other && Equals(other);
+        return obj is VertexArrayObjectId other && Equals(other);
     }
 
     public override int GetHashCode()
@@ -113,17 +113,17 @@ public readonly struct VertexArrayObjectHandle : IEquatable<VertexArrayObjectHan
         return (int)Id;
     }
 
-    public static bool operator ==(VertexArrayObjectHandle left, VertexArrayObjectHandle right)
+    public static bool operator ==(VertexArrayObjectId left, VertexArrayObjectId right)
     {
         return left.Equals(right);
     }
 
-    public static bool operator !=(VertexArrayObjectHandle left, VertexArrayObjectHandle right)
+    public static bool operator !=(VertexArrayObjectId left, VertexArrayObjectId right)
     {
         return !left.Equals(right);
     }
     
-    public static implicit operator uint(VertexArrayObjectHandle handle)
+    public static implicit operator uint(VertexArrayObjectId handle)
     {
         return handle.Id;
     }

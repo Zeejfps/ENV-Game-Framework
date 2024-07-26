@@ -5,11 +5,19 @@ namespace OpenGlWrapper;
 
 public sealed class FramebufferManager
 {
+    private readonly ShaderProgramManager m_ShaderProgramManager;
     private readonly VertexArrayObjectManager m_VertexArrayObjectManager;
 
-    public FramebufferManager(VertexArrayObjectManager vertexArrayObjectManager)
+    public FramebufferManager(ShaderProgramManager shaderProgramManager, VertexArrayObjectManager vertexArrayObjectManager)
     {
         m_VertexArrayObjectManager = vertexArrayObjectManager;
+        m_ShaderProgramManager = shaderProgramManager;
+    }
+
+    public void Bind(FramebufferId framebufferId, FramebufferAccessFlag accessFlag = FramebufferAccessFlag.ReadWrite)
+    {
+        glBindFramebuffer((uint)accessFlag, framebufferId.Id);
+        AssertNoGlError();
     }
 
     public void SetClearColor(float r, float g, float b, float a)
@@ -24,16 +32,11 @@ public sealed class FramebufferManager
         AssertNoGlError();
     }
 
-    public void DrawArrayOfTriangles(VertexArrayObjectHandle vao, int indicesCount)
+    public void DrawArrayOfTriangles(ShaderProgramId shaderProgram, VertexArrayObjectId vao, int indicesCount)
     {
+        m_ShaderProgramManager.Bind(shaderProgram);
         m_VertexArrayObjectManager.Bind(vao);
         glDrawArrays(GL_TRIANGLES, 0, indicesCount);
-        AssertNoGlError();
-    }
-
-    public void Bind(FramebufferId framebufferId, FramebufferAccessFlag accessFlag = FramebufferAccessFlag.ReadWrite)
-    {
-        glBindFramebuffer((uint)accessFlag, framebufferId.Id);
         AssertNoGlError();
     }
 }

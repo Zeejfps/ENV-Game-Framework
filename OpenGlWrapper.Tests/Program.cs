@@ -13,6 +13,7 @@ var context = OpenGlContext.Init(Glfw.GetProcAddress);
 var vaoManager = context.VertexArrayObjectManager;
 var vboManager = context.ArrayBufferManager;
 var framebufferManager = context.FramebufferManager;
+var shaderProgramManager = context.ShaderProgramManager;
 
 // Not needed, Window Framebuffer is the default bound buffer
 framebufferManager.Bind(FramebufferId.WindowFramebuffer);
@@ -39,11 +40,16 @@ vaoManager
     .EnableAndBindAttrib(0, vbo, 3, GlType.Float, false, 3 + 2, 0)
     .EnableAndBindAttrib(1, vbo, 2, GlType.Float, false, 2 + 3, 3);
 
+var shaderProgram = shaderProgramManager.CompileFromSourceFiles(
+    "Assets/simple.vert.glsl",
+    "Assets/simple.frag.glsl"
+);
+
 framebufferManager.SetClearColor(0.3f, 0.1f, 0.5f, 1f);
 while (!Glfw.WindowShouldClose(window))
 {
     framebufferManager.Clear(ClearFlags.ColorBuffer);
-    framebufferManager.DrawArrayOfTriangles(vao, 3);
+    framebufferManager.DrawArrayOfTriangles(shaderProgram, vao, 3);
     
     Glfw.PollEvents();
     Glfw.SwapBuffers(window);

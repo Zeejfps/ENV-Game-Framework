@@ -13,8 +13,8 @@ public sealed class OpenGlContext
     {
         ArrayBufferManager = new ArrayBufferManager();
         VertexArrayObjectManager = new VertexArrayObjectManager(ArrayBufferManager);
-        FramebufferManager = new FramebufferManager(VertexArrayObjectManager);
         ShaderProgramManager = new ShaderProgramManager();
+        FramebufferManager = new FramebufferManager(ShaderProgramManager, VertexArrayObjectManager);
     }
 
     public static OpenGlContext Init(GetProcAddressDelegate getProcAddressDelegate)
