@@ -6,6 +6,10 @@ namespace OpenGlWrapper;
 
 public sealed class ArrayBufferManager
 {
+    public ArrayBufferManager()
+    {
+    }
+
     private uint BufferKind => GL_ARRAY_BUFFER;
     private ArrayBufferId m_BoundResource;
 
@@ -37,22 +41,74 @@ public sealed class ArrayBufferManager
         }
     }
 
-    public void AllocFixedSizedAndUploadData<T>(ReadOnlySpan<T> data, FixedSizedBufferAccessFlag accessFlag) where T : unmanaged
+    public void AllocFixedSizedAndUploadData<T>(ReadOnlySpan<T> data, FixedSizedBufferAccessFlag accessFlags) where T : unmanaged
     {
+        unsafe
+        {
+            fixed (void* dataPtr = &data[0])
+                AllocFixeSizeUnsafe<T>(SizeOf<T>(data.Length), dataPtr, accessFlags);
+        }
+    }
+
+    public void AllocFixedSize<T>(int length, FixedSizedBufferAccessFlag accessFlags) where T : unmanaged
+    {
+        unsafe
+        {
+            AllocFixeSizeUnsafe<T>(SizeOf<T>(length), null, accessFlags);
+        }
+    }
+
+    private unsafe void AllocFixeSizeUnsafe<T>(IntPtr size, void* dataPtr, FixedSizedBufferAccessFlag accessFlags)
+    {
+        AssertIsBound();
         var buffer = m_BoundResource;
         var metadata = GetMetadata(buffer);
         if (metadata.IsAllocated && metadata.IsFixedSize)
             throw new InvalidOperationException($"Can't re-allocate an already allocated FIXED-SIZED buffer, Id: {buffer.Id}");
         
+        glBufferStorage(BufferKind, size, dataPtr, (uint)accessFlags);
+        AssertNoGlError();
+        metadata.IsFixedSize = true;
+        metadata.IsAllocated = true;
+        metadata.AccessFlags = accessFlags;
+    }
+    
+    public IReadWriteBufferMemory<T> MapReadWrite<T>(int length) where T : unmanaged
+    {
+        AssertIsBound();
+        var metadata = GetMetadata(m_BoundResource);
+        if ((metadata.AccessFlags & FixedSizedBufferAccessFlag.Read) == 0 ||
+            (metadata.AccessFlags & FixedSizedBufferAccessFlag.Write) == 0)
+            throw new InvalidOperationException($"Can't map buffer for read-write access, missing access flags. Required Read and Write flag, found: {metadata.AccessFlags}");
+
+        return Map<T>(length);
+    }
+
+    public IReadOnlyBufferMemory<T> MapRead<T>(int length) where T : unmanaged
+    {
+        AssertIsBound();
+        var metadata = GetMetadata(m_BoundResource);
+        if ((metadata.AccessFlags & FixedSizedBufferAccessFlag.Read) == 0)
+            throw new InvalidOperationException($"Can't map buffer for read access, missing access flags. Required Read flag, found: {metadata.AccessFlags}");
+
+        return Map<T>(length);
+    }
+
+    private BufferMemory<T> Map<T>(int length) where T : unmanaged
+    {
         unsafe
         {
-            Debug.Assert(buffer != ArrayBufferId.Null, "No resource bound!");
-            fixed (void* dataPtr = &data[0])
-                glBufferStorage(BufferKind, SizeOf<T>(data.Length), dataPtr, (uint)accessFlag);
+            var ptr = glMapBuffer(BufferKind, GL_READ_WRITE);
             AssertNoGlError();
-            metadata.IsFixedSize = true;
-            metadata.IsAllocated = true;
+            return new BufferMemory<T>(BufferKind, ptr, length);
         }
+    }
+    
+    public IBufferMemory<T> MapRange<T>(int startIndex, int length, MappedBufferAccessFlag accessFlag) where T : unmanaged
+    {
+        var sizeOf = SizeOf<T>();
+        //glMapBufferRange(BufferKind, sizeOf * startIndex, sizeOf * length,);
+        return null;
     }
 
     public void Destroy(ArrayBufferId bufferHandle)
@@ -91,12 +147,87 @@ public sealed class ArrayBufferManager
             throw new ArgumentException($"Trying to access metadata for a non-existing buffer: {handle.Id}");
         return metadata;
     }
+
+    [Conditional("DEBUG")]
+    private void AssertIsBound()
+    {
+        Debug.Assert(m_BoundResource != ArrayBufferId.Null, "No resource bound");
+    }
+    
 }
 
 class BufferMetadata
 {
     public bool IsAllocated { get; set; }
     public bool IsFixedSize { get; set; }
+    public FixedSizedBufferAccessFlag AccessFlags { get; set; } = FixedSizedBufferAccessFlag.None;
+}
+
+public interface IBufferMemory<T> : IDisposable where T : unmanaged
+{
+    int Length { get; }
+}
+
+public interface IReadOnlyBufferMemory<T> : IBufferMemory<T> where T : unmanaged
+{
+    T Read(int index);
+}
+
+public interface IWriteOnlyBufferMemory<T> : IBufferMemory<T> where T : unmanaged
+{
+    void Write(int index, T data);
+}
+
+public interface IReadWriteBufferMemory<T> : IReadOnlyBufferMemory<T>, IWriteOnlyBufferMemory<T> where T : unmanaged
+{
+    Span<T> Span { get; }
+}
+
+internal sealed class BufferMemory<T> : IReadWriteBufferMemory<T> where T : unmanaged
+{
+    public Span<T> Span
+    {
+        get
+        {
+            unsafe
+            {
+                return new Span<T>(m_Ptr, Length);
+            }
+        }
+    }
+
+    private readonly uint m_BufferKind;
+    private unsafe void* m_Ptr;
+    public int Length { get; private set; }
+
+    public unsafe BufferMemory(uint bufferKind, void* ptr, int length)
+    {
+        m_BufferKind = bufferKind;
+        m_Ptr = ptr;
+        Length = length;
+    }
+    
+    public void Write(int index, T data)
+    {
+        var span = Span;
+        span[index] = data;
+    }
+
+    public T Read(int index)
+    {
+        return Span[index];
+    }
+
+    public void Dispose()
+    {
+        unsafe
+        {
+            m_Ptr = (void*)0;
+            Length = 0;
+            glUnmapBuffer(m_BufferKind);
+            AssertNoGlError();
+        }
+    }
 }
 
 public readonly struct ArrayBufferId : IEquatable<ArrayBufferId>

@@ -63,7 +63,17 @@ Span<Vertex> vertices = stackalloc Vertex[]
 };
 var vertexTemplate = vaoManager.CreateTemplate<Vertex>();
 
-vboManager.AllocFixedSizedAndUploadData<Vertex>(vertices, FixedSizedBufferAccessFlag.None);
+// vboManager.AllocFixedSizedAndUploadData<Vertex>(vertices, FixedSizedBufferAccessFlag.None);
+
+vboManager.AllocFixedSize<Vertex>(vertices.Length, FixedSizedBufferAccessFlag.ReadWrite);
+using (var memory = vboManager.MapReadWrite<Vertex>(vertices.Length))
+{
+    var span = memory.Span;
+    for (var i = 0; i < vertices.Length; i++)
+        span[i] = vertices[i];
+}
+
+vboManager.MapRange<Vertex>(0, 0, MappedBufferAccessFlag.ReadWrite);
 
 vaoManager.EnableAndBindAttrib(vertexTemplate, 0, vbo);
 vaoManager.EnableAndBindAttrib(vertexTemplate, 1, vbo);
