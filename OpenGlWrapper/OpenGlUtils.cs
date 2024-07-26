@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using static GL46;
 
 namespace OpenGlWrapper;
@@ -52,5 +53,23 @@ public static class OpenGlUtils
 
         errorStr = string.Empty;
         return false;
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe IntPtr SizeOf<T>() where T : unmanaged
+    {
+        return new IntPtr(sizeof(T));
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe IntPtr SizeOf<T>(uint count) where T : unmanaged
+    {
+        return new IntPtr(sizeof(T) * count);
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe IntPtr SizeOf<T>(int count) where T : unmanaged
+    {
+        return new IntPtr(sizeof(T) * count);
     }
 }

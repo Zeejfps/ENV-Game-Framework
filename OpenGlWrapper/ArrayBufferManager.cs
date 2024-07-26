@@ -31,10 +31,14 @@ public sealed class ArrayBufferManager
         }
     }
 
-    public void AllocImmutableAndUpload()
+    public void AllocImmutableAndUpload<T>(ReadOnlySpan<T> data, ImmutableBufferAccessFlag accessFlag) where T : unmanaged
     {
-        Debug.Assert(m_BoundResource != ArrayBufferHandle.Null, "No resource bound!");
-        //glBufferStorage(BufferKind, );
+        unsafe
+        {
+            Debug.Assert(m_BoundResource != ArrayBufferHandle.Null, "No resource bound!");
+            fixed (void* dataPtr = &data[0])
+                glBufferStorage(BufferKind, SizeOf<T>(data.Length), dataPtr, (uint)accessFlag );
+        }
     }
 
     public void Destroy(ArrayBufferHandle bufferHandle)
