@@ -20,40 +20,41 @@ var shaderProgramManager = context.ShaderProgramManager;
 framebufferManager.Bind(FramebufferId.WindowFramebuffer);
 
 var vbo = vboManager.CreateAndBind();
-Span<float> vertexData = stackalloc float[]
-{
-    -1f, -1f, +1f, // Position
-    +0f, +0f,     // UVs
-    
-    -1f, +1f, +1f, // Position
-    +0f, +1f,     // UVs
-    
-    +1f, -1f, +1f, // Position
-    +1f, +0f,     // UVs
-};
-vboManager.AllocFixedSizedAndUploadData<float>(vertexData, FixedSizedBufferAccessFlag.None);
-
-Console.WriteLine($@"IsAllocated: {vboManager.IsAllocated(vbo)}");
-Console.WriteLine($@"IsFixedSize: {vboManager.IsFixedSize(vbo)}");
-
 var vao = vaoManager.CreateAndBind();
-vaoManager
-    .EnableAndBindAttrib(0, vbo, 3, GlType.Float, false, 3 + 2, 0)
-    .EnableAndBindAttrib(1, vbo, 2, GlType.Float, false, 2 + 3, 3);
-
 
 Span<Vertex> vertices = stackalloc Vertex[]
 {
     new Vertex
     {
-        Position = new Vector2(),
-        UVs = new Vector2()
+        Position = new Vector2(-1f, 1f),
+        UVs = new Vector2(0, 1f)
     },
     new Vertex
     {
-        Position = new Vector2(),
-        UVs = new Vector2()
-    }
+        Position = new Vector2(-1f, -1f),
+        UVs = new Vector2(0, 0)
+    },
+    new Vertex
+    {
+        Position = new Vector2(1f, -1f),
+        UVs = new Vector2(1f, 0f)
+    },
+    
+    new Vertex
+    {
+        Position = new Vector2(-1f, 1f),
+        UVs = new Vector2(0, 1f)
+    },
+    new Vertex
+    {
+        Position = new Vector2(1f, -1f),
+        UVs = new Vector2(1, 0)
+    },
+    new Vertex
+    {
+        Position = new Vector2(1f, 1f),
+        UVs = new Vector2(1f, 1f)
+    },
 };
 var vertexTemplate = vaoManager.CreateTemplate<Vertex>();
 
@@ -67,11 +68,12 @@ var shaderProgram = shaderProgramManager.CompileFromSourceFiles(
     "Assets/simple.frag.glsl"
 );
 
+var vertexCount = vertices.Length;
 framebufferManager.SetClearColor(0.3f, 0.1f, 0.5f, 1f);
 while (!Glfw.WindowShouldClose(window))
 {
     framebufferManager.Clear(ClearFlags.ColorBuffer);
-    framebufferManager.DrawArrayOfTriangles(shaderProgram, vao, 3);
+    framebufferManager.DrawArrayOfTriangles(shaderProgram, vao, vertexCount);
     
     Glfw.PollEvents();
     Glfw.SwapBuffers(window);
@@ -87,3 +89,24 @@ public struct Vertex
     public Vector2 Position;
     public Vector2 UVs;
 }
+
+
+// Span<float> vertexData = stackalloc float[]
+// {
+//     -1f, -1f, +1f, // Position
+//     +0f, +0f,     // UVs
+//     
+//     -1f, +1f, +1f, // Position
+//     +0f, +1f,     // UVs
+//     
+//     +1f, -1f, +1f, // Position
+//     +1f, +0f,     // UVs
+// };
+// vboManager.AllocFixedSizedAndUploadData<float>(vertexData, FixedSizedBufferAccessFlag.None);
+//
+// Console.WriteLine($@"IsAllocated: {vboManager.IsAllocated(vbo)}");
+// Console.WriteLine($@"IsFixedSize: {vboManager.IsFixedSize(vbo)}");
+//
+// vaoManager
+//     .EnableAndBindAttrib(0, vbo, 3, GlType.Float, false, 3 + 2, 0)
+//     .EnableAndBindAttrib(1, vbo, 2, GlType.Float, false, 2 + 3, 3);

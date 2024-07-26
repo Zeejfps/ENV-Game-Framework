@@ -88,13 +88,6 @@ public sealed class VertexArrayObjectManager
         }
     }
 
-    [Conditional("DEBUG")]
-    private void AssertResourceIsBound()
-    {
-        if (m_BoundResource == VertexArrayObjectId.Null)
-            throw new InvalidOperationException("No resource bound");
-    }
-
     public VertexArrayObjectTemplate CreateTemplate<T>() where T : unmanaged
     {
         unsafe
@@ -146,10 +139,27 @@ public sealed class VertexArrayObjectManager
                 attribs.Add(attrib);
             }
         
-            return new VertexArrayObjectTemplate(sizeof(T));
+            return new VertexArrayObjectTemplate(sizeof(T), attribs);
         }
     }
+
+    internal VertexArrayObjectMetadata GetMetadata(VertexArrayObjectId id)
+    {
+        return null;
+    }
+
+    [Conditional("DEBUG")]
+    private void AssertResourceIsBound()
+    {
+        if (m_BoundResource == VertexArrayObjectId.Null)
+            throw new InvalidOperationException("No resource bound");
+    }
 }
+
+internal sealed class VertexArrayObjectMetadata
+{
+    
+} 
 
 public sealed class VertexArrayObjectTemplate
 {

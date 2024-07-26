@@ -32,12 +32,11 @@ public sealed class FramebufferManager
         AssertNoGlError();
     }
 
-    public void DrawArrayOfTriangles(ShaderProgramId shaderProgram, VertexArrayObjectId vao, int indicesCount)
+    public void DrawArrayOfTriangles(ShaderProgramId shaderProgram, VertexArrayObjectId vao, int vertexCount, int skipCount = 0)
     {
         m_ShaderProgramManager.Bind(shaderProgram);
         m_VertexArrayObjectManager.Bind(vao);
-        
-        glDrawArrays(GL_TRIANGLES, 0, indicesCount);
+        glDrawArrays(GL_TRIANGLES, skipCount, vertexCount);
         AssertNoGlError();
     }
 }
