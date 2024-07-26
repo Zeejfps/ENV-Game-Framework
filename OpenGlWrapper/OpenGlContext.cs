@@ -6,9 +6,14 @@ public sealed class OpenGlContext
 {
     public ArrayBufferManager ArrayBufferManager { get; }
 
-    public OpenGlContext(GetProcAddressDelegate getProcAddressDelegate)
+    private OpenGlContext()
+    {
+        ArrayBufferManager = new ArrayBufferManager();
+    }
+
+    public static OpenGlContext Init(GetProcAddressDelegate getProcAddressDelegate)
     {
         Import(getProcAddressDelegate);
-        ArrayBufferManager = new ArrayBufferManager();
+        return new OpenGlContext();
     }
 }
