@@ -11,7 +11,7 @@ internal sealed class BufferMemoryRange<T> : IReadWriteBufferMemoryRange<T> wher
         {
             unsafe
             {
-                return new Span<T>(m_Ptr, Length);
+                return new Span<T>(m_Ptr, Count);
             }
         }
     }
@@ -20,20 +20,20 @@ internal sealed class BufferMemoryRange<T> : IReadWriteBufferMemoryRange<T> wher
     private int m_Offset;
     private unsafe void* m_Ptr;
     private uint m_AccessFlag;
-    public int Length { get; private set; }
+    public int Count { get; private set; }
 
     public unsafe BufferMemoryRange(uint bufferKind, int offset, void* ptr, int length, uint mappedBufferAccessFlag)
     {
         m_BufferKind = bufferKind;
         m_Offset = offset;
         m_Ptr = ptr;
-        Length = length;
+        Count = length;
         m_AccessFlag = mappedBufferAccessFlag;
     }
     
     public void Write(int index, T data)
     {
-        if (index < 0 || index >= Length)
+        if (index < 0 || index >= Count)
             throw new IndexOutOfRangeException();
         
         var span = Span;
@@ -42,7 +42,7 @@ internal sealed class BufferMemoryRange<T> : IReadWriteBufferMemoryRange<T> wher
 
     public T Read(int index)
     {
-        if (index < 0 || index >= Length)
+        if (index < 0 || index >= Count)
             throw new IndexOutOfRangeException();
         
         return Span[index];
@@ -53,7 +53,7 @@ internal sealed class BufferMemoryRange<T> : IReadWriteBufferMemoryRange<T> wher
         if ((m_AccessFlag & GL_MAP_FLUSH_EXPLICIT_BIT) == 0)
             throw new InvalidOperationException("Can't flush buffer that does not have the FlushExplicit access flag set");
         
-        glFlushMappedBufferRange(GL_ARRAY_BUFFER, SizeOf<T>(m_Offset), SizeOf<T>(Length));
+        glFlushMappedBufferRange(GL_ARRAY_BUFFER, SizeOf<T>(m_Offset), SizeOf<T>(Count));
         AssertNoGlError();
     }
 
@@ -63,7 +63,7 @@ internal sealed class BufferMemoryRange<T> : IReadWriteBufferMemoryRange<T> wher
         {
             m_Offset = 0;
             m_Ptr = (void*)0;
-            Length = 0;
+            Count = 0;
             glUnmapBuffer(m_BufferKind);
             OpenGlUtils.AssertNoGlError();
         }

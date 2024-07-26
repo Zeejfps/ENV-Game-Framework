@@ -66,13 +66,13 @@ public sealed class ArrayBufferManager
         if (metadata.IsAllocated && metadata.IsFixedSize)
             throw new InvalidOperationException($"Can't re-allocate an already allocated FIXED-SIZED buffer, Id: {buffer.Id}");
 
-        var size = SizeOf<T>(length);
-        glBufferStorage(BufferKind, size, dataPtr, (uint)accessFlags);
+        var sizeInBytes = SizeOf<T>(length);
+        glBufferStorage(BufferKind, sizeInBytes, dataPtr, (uint)accessFlags);
         AssertNoGlError();
         metadata.IsFixedSize = true;
         metadata.IsAllocated = true;
         metadata.AccessFlags = accessFlags;
-        metadata.Length = length;
+        metadata.SizeInBytes = sizeInBytes.ToInt32();
     }
     
     public IReadWriteBufferMemory<T> MapReadWrite<T>() where T : unmanaged
@@ -83,7 +83,7 @@ public sealed class ArrayBufferManager
             (metadata.AccessFlags & FixedSizedBufferAccessFlag.Write) == 0)
             throw new InvalidOperationException($"Can't map buffer for read-write access, missing access flags. Required Read and Write flag, found: {metadata.AccessFlags}");
 
-        return MapUnsafe<T>(metadata.Length, GL_READ_WRITE);
+        return MapUnsafe<T>(metadata.SizeInBytes, GL_READ_WRITE);
     }
 
     public IReadOnlyBufferMemory<T> MapRead<T>() where T : unmanaged
@@ -92,7 +92,7 @@ public sealed class ArrayBufferManager
         var metadata = GetMetadata(m_BoundResource);
         if ((metadata.AccessFlags & FixedSizedBufferAccessFlag.Read) == 0)
             throw new InvalidOperationException($"Can't map buffer for read access, missing access flags. Required Read flag, found: {metadata.AccessFlags}");
-        return MapUnsafe<T>(metadata.Length, GL_READ_ONLY);
+        return MapUnsafe<T>(metadata.SizeInBytes, GL_READ_ONLY);
     }
     
     public IWriteOnlyBufferMemory<T> MapWrite<T>() where T : unmanaged
@@ -101,7 +101,7 @@ public sealed class ArrayBufferManager
         var metadata = GetMetadata(m_BoundResource);
         if ((metadata.AccessFlags & FixedSizedBufferAccessFlag.Write) == 0)
             throw new InvalidOperationException($"Can't map buffer for write access, missing access flags. Required Write flag, found: {metadata.AccessFlags}");
-        return MapUnsafe<T>(metadata.Length, GL_WRITE_ONLY);
+        return MapUnsafe<T>(metadata.SizeInBytes, GL_WRITE_ONLY);
     }
 
     public IReadWriteBufferMemoryRange<T> MapReadWriteRange<T>(int offset, int length, BufferMemoryRangeAccessFlag accessFlags) where T : unmanaged
@@ -109,7 +109,7 @@ public sealed class ArrayBufferManager
         return MapRangeUnsafe<T>(offset, length, GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | (uint)accessFlags);
     }
 
-    private BufferMemoryRange<T> MapUnsafe<T>(int length, uint access) where T : unmanaged
+    private BufferMemoryRange<T> MapUnsafe<T>(int sizeInBytes, uint access) where T : unmanaged
     {
         unsafe
         {
@@ -118,20 +118,22 @@ public sealed class ArrayBufferManager
             if (ptr == null)
                 throw new Exception("Failed to map buffer, Unknown error");
             
-            return new BufferMemoryRange<T>(BufferKind, 0, ptr, length, (uint)BufferMemoryRangeAccessFlag.None);
+            var sizeOfT = SizeOf<T>();
+            var count = sizeInBytes / sizeOfT.ToInt32();
+            return new BufferMemoryRange<T>(BufferKind, 0, ptr, count, (uint)BufferMemoryRangeAccessFlag.None);
         }
     }
     
-    private BufferMemoryRange<T> MapRangeUnsafe<T>(int offset, int length, uint access) where T : unmanaged
+    private BufferMemoryRange<T> MapRangeUnsafe<T>(int offset, int count, uint access) where T : unmanaged
     {
         unsafe
         {
-            var ptr = glMapBufferRange(BufferKind, SizeOf<T>(offset), SizeOf<T>(length), access);
+            var ptr = glMapBufferRange(BufferKind, SizeOf<T>(offset), SizeOf<T>(count), access);
             AssertNoGlError();
             if (ptr == null)
                 throw new Exception("Failed to map buffer range, Unknown error");
             
-            return new BufferMemoryRange<T>(BufferKind, offset, ptr, length, access);
+            return new BufferMemoryRange<T>(BufferKind, offset, ptr, count, access);
         }
     }
 
@@ -185,7 +187,7 @@ class BufferMetadata
     public bool IsAllocated { get; set; }
     public bool IsFixedSize { get; set; }
     public FixedSizedBufferAccessFlag AccessFlags { get; set; } = FixedSizedBufferAccessFlag.None;
-    public int Length { get; set; }
+    public int SizeInBytes { get; set; }
 }
 
 public readonly struct ArrayBufferId : IEquatable<ArrayBufferId>
