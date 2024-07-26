@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Numerics;
 using static GL46;
 using static OpenGlWrapper.OpenGlUtils;
 
@@ -94,25 +95,88 @@ public sealed class VertexArrayObjectManager
             throw new InvalidOperationException("No resource bound");
     }
 
-    public VertexArrayObjectTemplate CreateTemplate<T>()
+    public VertexArrayObjectTemplate CreateTemplate<T>() where T : unmanaged
     {
-        throw new NotImplementedException();
+        unsafe
+        {
+            var type = typeof(T);
+            var fields = type.GetFields();
+
+            var attribs = new List<VertexArrayObjectAttribTemplate>();
+            foreach (var field in fields)
+            {
+                var attribIndex = attribs.Count;
+                var attribSize = 0;
+                var attribType = GlType.Float;
+            
+                var fieldType = field.FieldType;
+                if (fieldType == typeof(Vector2))
+                {
+                    attribType = GlType.Float;
+                    attribSize = 2;
+                }
+                else if (fieldType == typeof(Vector3))
+                {
+                    attribType = GlType.Float;
+                    attribSize = 3;
+                }
+                else if (fieldType == typeof(Vector4))
+                {
+                    attribType = GlType.Float;
+                    attribSize = 4;
+                }
+                else if (fieldType == typeof(Matrix4x4))
+                {
+                    attribType = GlType.Float;
+                    attribSize = 16;
+                }
+                else if (fieldType == typeof(Quaternion))
+                {
+                    attribType = GlType.Float;
+                    attribSize = 4;
+                }
+
+                var attrib = new VertexArrayObjectAttribTemplate
+                {
+                    Index = attribIndex,
+                    Size = attribSize,
+                    Type = attribType,
+                    Offset = AttribOffset<T>(field.Name)
+                };
+                attribs.Add(attrib);
+            }
+        
+            return new VertexArrayObjectTemplate(sizeof(T));
+        }
     }
 }
 
-public readonly struct VertexArrayObjectTemplate
+public sealed class VertexArrayObjectTemplate
 {
-    public IReadOnlyList<VertexArrayObjectAttribTemplate> Attribs { get; }
+    public VertexArrayObjectTemplate(int stride) : this(stride, new List<VertexArrayObjectAttribTemplate>())
+    {
+        
+    }
+    
+    public VertexArrayObjectTemplate(int stride, List<VertexArrayObjectAttribTemplate> attribs)
+    {
+        Stride = stride;
+        m_Attribs = attribs;
+    }
+
+    private readonly List<VertexArrayObjectAttribTemplate> m_Attribs;
+
+    public IReadOnlyList<VertexArrayObjectAttribTemplate> Attribs => m_Attribs;
     public int Stride { get; }
 }
 
-public readonly struct VertexArrayObjectAttribTemplate
+public sealed class VertexArrayObjectAttribTemplate
 {
-    public int Index { get; }
-    public int Size { get; }
-    public GlType Type { get; }
-    public bool Normalize { get; }
-    public int Offset { get; }
+    public int Index { get; init; }
+    public int Size { get; set; }
+    public GlType Type { get; set; }
+    public bool Normalize { get; set; }
+    public int Offset { get; set; }
 }
 
 public readonly struct VertexArrayObjectId : IEquatable<VertexArrayObjectId>

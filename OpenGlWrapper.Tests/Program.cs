@@ -51,12 +51,13 @@ Span<Vertex> vertices = stackalloc Vertex[]
     },
     new Vertex
     {
-        
+        Position = new Vector2(),
+        UVs = new Vector2()
     }
 };
-vboManager.AllocFixedSizedAndUploadData<Vertex>(vertices, FixedSizedBufferAccessFlag.None);
-
 var vertexTemplate = vaoManager.CreateTemplate<Vertex>();
+
+vboManager.AllocFixedSizedAndUploadData<Vertex>(vertices, FixedSizedBufferAccessFlag.None);
 
 vaoManager.EnableAndBindAttrib(vertexTemplate, 0, vbo);
 vaoManager.EnableAndBindAttrib(vertexTemplate, 1, vbo);
@@ -83,27 +84,6 @@ Glfw.Terminate();
 
 public struct Vertex
 {
-    [VertexAttrib(0, 2, GlType.Float)]
     public Vector2 Position;
-    
-    [VertexAttrib(1, 2, GlType.Float)]
     public Vector2 UVs;
-}
-
-
-[AttributeUsage(AttributeTargets.Field)]
-public sealed class VertexAttribAttribute : Attribute
-{
-    public VertexAttribAttribute(uint attribIndex, uint componentCount, GlType componentType, bool normalize = false)
-    {
-        AttributeIndex = attribIndex;
-        ComponentCount = componentCount;
-        ComponentType = componentType;
-        Normalize = normalize;
-    }
-
-    public uint AttributeIndex { get; }
-    public uint ComponentCount { get; }
-    public GlType ComponentType { get; }
-    public bool Normalize { get; }
 }

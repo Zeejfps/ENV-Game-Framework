@@ -85,4 +85,10 @@ public static class OpenGlUtils
     {
         return (void*)Marshal.OffsetOf<T>(field);
     } 
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int AttribOffset<T>(string field)
+    {
+        return Marshal.OffsetOf<T>(field).ToInt32();
+    } 
 }
