@@ -84,6 +84,7 @@ while (!Glfw.WindowShouldClose(window))
     Glfw.SwapBuffers(window);
 }
 
+shaderProgramManager.Destroy(shaderProgram);
 vboManager.Destroy(vbo);
 vaoManager.Destroy(vao);
 

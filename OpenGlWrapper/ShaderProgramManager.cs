@@ -18,6 +18,19 @@ public sealed class ShaderProgramManager
         m_BoundResource = shaderProgram;
     }
 
+    public void Destroy(ShaderProgramId shaderProgramId)
+    {
+        if (m_BoundResource == shaderProgramId)
+        {
+            m_BoundResource = ShaderProgramId.Null;
+            glUseProgram(m_BoundResource.Id);
+            AssertNoGlError();
+        }
+        
+        glDeleteProgram(shaderProgramId.Id);
+        AssertNoGlError();
+    }
+
     public ShaderProgramId CompileFromSourceFiles(string vertexShaderFilePath, string fragmentShaderFilePath)
     {
         var vertexShaderSource = ReadShaderSourceFromFile(vertexShaderFilePath);
