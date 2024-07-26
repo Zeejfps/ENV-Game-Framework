@@ -6,12 +6,29 @@ using static OpenGL.Gl;
 
 namespace OpenGLSandbox;
 
+public sealed class OpenGlException : Exception
+{
+    private readonly StackTrace m_StackTrace;
+
+    public OpenGlException(string error, StackTrace stackTrace) : base(error)
+    {
+        m_StackTrace = stackTrace;
+    }
+
+    public override string? StackTrace => m_StackTrace.ToString();
+}
+
 public static class OpenGlUtils
 {
     [Conditional("DEBUG")]
     public static void AssertNoGlError()
     {
-        Debug.Assert(!glTryGetError(out var error), error);
+        var hasError = glTryGetError(out var error);
+        if (hasError)
+        {
+            var stackTrace = new StackTrace(1, true);
+            throw new OpenGlException(error, stackTrace);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
