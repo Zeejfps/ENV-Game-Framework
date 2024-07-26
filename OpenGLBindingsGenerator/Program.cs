@@ -1,10 +1,11 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
+using System.Text.RegularExpressions;
 using System.Xml;
 
 var pathToXml = args[0];
 var outPath = args[1];
+Console.WriteLine($"Parsing file: {pathToXml} to {outPath}");
+
 var xmlDoc = new XmlDocument();
 xmlDoc.PreserveWhitespace = true;
 xmlDoc.Load(pathToXml);
@@ -69,8 +70,9 @@ Console.WriteLine($"Commands to process: {commandsToProcess.Length}");
 
 using (var writer = new StreamWriter(outPath))
 {
-    writer.WriteLine("using System.Runtime.InteropServices;");
+    //writer.WriteLine("using System.Runtime.InteropServices;");
     writer.WriteLine("using System.Security;");
+    writer.WriteLine(@"// ReSharper disable InconsistentNaming");
     writer.WriteLine();
     writer.WriteLine("[System.Diagnostics.CodeAnalysis.SuppressMessage(\"ReSharper\", \"IdentifierTypo\")]");
     writer.WriteLine("[SuppressUnmanagedCodeSecurity]");
@@ -92,32 +94,36 @@ using (var writer = new StreamWriter(outPath))
     var i = 0;
     foreach (var command in commandsToProcess)
     {
-        writer.WriteLine("\t[UnmanagedFunctionPointer(CallingConvention.Cdecl)]");
-        var delegateName = $"{command.Name}Delegate";
-        writer.Write($"\tprivate delegate {command.Prototype}Delegate(");
-        var paramsString = "";
-        foreach (var param in command.Params)
-        {
-            paramsString += $"{param.Type}, ";
-        }
-
-        if (!string.IsNullOrEmpty(paramsString))
-            paramsString = paramsString.Substring(0, paramsString.Length - 2);
-        
-        writer.Write(paramsString);
-        writer.WriteLine(");");
-
+        //writer.WriteLine("\t[UnmanagedFunctionPointer(CallingConvention.Cdecl)]");
+        //var delegateName = $"{command.Name}Delegate";
+        //writer.Write($"\tprivate delegate {command.Prototype}Delegate(");
+        var paramTypes = "";
         var paramNames = "";
+        var paramTypeAndNames = "";
+
         foreach (var param in command.Params)
         {
+            paramTypes += $"{param.Type}, ";
             paramNames += param.Name + ", ";
+            paramTypeAndNames += param.Type + " " + param.Name + ", ";
         }
 
+        if (!string.IsNullOrEmpty(paramTypes))
+            paramTypes = paramTypes.Substring(0, paramTypes.Length - 2);
+ 
         if (paramNames.Length > 2)
             paramNames = paramNames.Substring(0, paramNames.Length - 2);
-            
-        writer.WriteLine($"\tprivate static {delegateName} s_{command.Name};");
-        writer.WriteLine($"\tpublic static {command.Prototype}({paramsString}) => s_{command.Name}({paramNames});");
+        
+        if (paramTypeAndNames.Length > 2)
+            paramTypeAndNames = paramTypeAndNames.Substring(0, paramTypeAndNames.Length - 2);
+        
+        writer.WriteLine($"\tprivate static void* s_{command.Name};");
+        // writer.WriteLine($"\tpublic static {command.Prototype}({paramsString}) => s_{command.Name}({paramNames});");
+        writer.Write($"\tpublic static {command.Prototype}({paramTypeAndNames}) => ");
+        writer.Write($"((delegate* unmanaged[Cdecl]<{paramTypes}");
+        if (!string.IsNullOrEmpty(paramTypes))
+            writer.Write(", ");
+        writer.WriteLine($"{command.ReturnType}>)s_{command.Name})({paramNames});");
         
         writer.WriteLine();
         i++;
@@ -131,8 +137,7 @@ using (var writer = new StreamWriter(outPath))
 
     foreach (var command in commandsToProcess)
     {
-        var delegateName = $"{command.Name}Delegate";
-        writer.WriteLine($"\t\ts_{command.Name} = Marshal.GetDelegateForFunctionPointer<{delegateName}>(getProcAddress(\"{command.Name}\"));");
+        writer.WriteLine($"\t\ts_{command.Name} = (void*)getProcAddress(\"{command.Name}\");");
     }
     
     writer.WriteLine("\t}");
@@ -174,6 +179,7 @@ struct Param
 
 struct Command
 {
+    public string ReturnType;
     public string Prototype;
     public string Name;
     public Param[] Params;
@@ -189,11 +195,27 @@ struct Command
             {
                 var returnType = ptypeNode.InnerText;
                 if (Utils.glTypeToDotNetTypeTable.TryGetValue(returnType, out var convertedType))
+                {
                     returnType = convertedType;
+                    command.ReturnType = returnType;
+                }
+                
                 ptypeNode.InnerText = returnType;
             }
+            
+            if (protoNode.HasChildNodes)
+            {
+                foreach (var childNode in protoNode.ChildNodes)
+                {
+                    if (childNode is XmlText text)
+                    {  
+                        var value = text.Value;
+                        if (value != null)
+                            command.ReturnType += value.Replace("const", "").Trim();
+                    }
+                }
+            }
 
-            var pattern = @"\btest\b";
             command.Prototype = protoNode.InnerText.Replace("const", "")
                 .Replace("params ", "args")
                 .Replace("string ", "str")
@@ -220,9 +242,21 @@ struct Command
                 {
                     var type = ptypeNode.InnerText;
                     if (Utils.glTypeToDotNetTypeTable.TryGetValue(type, out var convertedType))
+                    {
                         type = convertedType;
+                        param.Type = type;
+                        if (ptypeNode.NextSibling is XmlText textNode)
+                            param.Type += textNode.InnerText.Replace("const*", "").Trim();
+                    }
 
                     ptypeNode.InnerText = type;
+                }
+                
+                if (paramNode.FirstChild is XmlText text)
+                {
+                    var value = text.Value;
+                    if (value != null)
+                        param.Type += value.Replace("const", "").Replace(" ", "");
                 }
 
                 var nameNode = paramNode.SelectSingleNode("name");
@@ -234,13 +268,6 @@ struct Command
                         .Replace("ref", "reference")
                         .Trim();
                 }
-                
-                param.Type = paramNode.InnerText
-                    .Replace("const", "")
-                    .Replace("params", "args")
-                    .Replace("string", "str")
-                    .Replace("ref", "reference")
-                    .Trim();
                 
                 command.Params[i] = param;
                 i++;
