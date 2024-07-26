@@ -1,6 +1,6 @@
 using static GL46;
 
-namespace OpenGlWrapper;
+namespace OpenGlWrapper.Buffers;
 
 [Flags]
 public enum BufferMemoryRangeAccessFlag : uint
