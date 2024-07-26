@@ -7,11 +7,11 @@ namespace OpenGlWrapper;
 public sealed class ArrayBufferManager
 {
     private uint BufferKind => GL_ARRAY_BUFFER;
-    private ArrayBufferHandle m_BoundResource;
+    private ArrayBufferId m_BoundResource;
 
-    private readonly Dictionary<ArrayBufferHandle, BufferMetadata> m_MetadataByHandleLookup = new();
+    private readonly Dictionary<ArrayBufferId, BufferMetadata> m_MetadataByHandleLookup = new();
     
-    public void Bind(ArrayBufferHandle handle)
+    public void Bind(ArrayBufferId handle)
     {
         if (m_BoundResource == handle)
             return;
@@ -21,7 +21,7 @@ public sealed class ArrayBufferManager
         m_BoundResource = handle;
     }
     
-    public ArrayBufferHandle CreateAndBind()
+    public ArrayBufferId CreateAndBind()
     {
         unsafe
         {
@@ -29,7 +29,7 @@ public sealed class ArrayBufferManager
             glGenBuffers(1, &id);
             AssertNoGlError();
             
-            var handle = new ArrayBufferHandle(id);
+            var handle = new ArrayBufferId(id);
             m_MetadataByHandleLookup.Add(handle, new BufferMetadata());
             Bind(handle);
             
@@ -46,7 +46,7 @@ public sealed class ArrayBufferManager
         
         unsafe
         {
-            Debug.Assert(buffer != ArrayBufferHandle.Null, "No resource bound!");
+            Debug.Assert(buffer != ArrayBufferId.Null, "No resource bound!");
             fixed (void* dataPtr = &data[0])
                 glBufferStorage(BufferKind, SizeOf<T>(data.Length), dataPtr, (uint)accessFlag);
             AssertNoGlError();
@@ -55,15 +55,15 @@ public sealed class ArrayBufferManager
         }
     }
 
-    public void Destroy(ArrayBufferHandle bufferHandle)
+    public void Destroy(ArrayBufferId bufferHandle)
     {
         unsafe
         {
             if (m_BoundResource == bufferHandle)
             {
-                glBindBuffer(BufferKind, ArrayBufferHandle.Null);
+                glBindBuffer(BufferKind, ArrayBufferId.Null);
                 AssertNoGlError();
-                m_BoundResource = ArrayBufferHandle.Null;
+                m_BoundResource = ArrayBufferId.Null;
             }
 
             uint id = bufferHandle;
@@ -73,19 +73,19 @@ public sealed class ArrayBufferManager
         }
     }
 
-    public bool IsAllocated(ArrayBufferHandle handle)
+    public bool IsAllocated(ArrayBufferId handle)
     {
         var metadata = GetMetadata(handle);
         return metadata.IsAllocated;
     }
     
-    public bool IsFixedSize(ArrayBufferHandle handle)
+    public bool IsFixedSize(ArrayBufferId handle)
     {
         var metadata = GetMetadata(handle);
         return metadata.IsFixedSize;
     }
 
-    private BufferMetadata GetMetadata(ArrayBufferHandle handle)
+    private BufferMetadata GetMetadata(ArrayBufferId handle)
     {
         if (!m_MetadataByHandleLookup.TryGetValue(handle, out var metadata))
             throw new ArgumentException($"Trying to access metadata for a non-existing buffer: {handle.Id}");
@@ -99,25 +99,25 @@ class BufferMetadata
     public bool IsFixedSize { get; set; }
 }
 
-public readonly struct ArrayBufferHandle : IEquatable<ArrayBufferHandle>
+public readonly struct ArrayBufferId : IEquatable<ArrayBufferId>
 {
-    public static ArrayBufferHandle Null => new(0);
+    public static ArrayBufferId Null => new(0);
     
     internal uint Id { get; }
 
-    public ArrayBufferHandle(uint id)
+    public ArrayBufferId(uint id)
     {
         Id = id;
     }
 
-    public bool Equals(ArrayBufferHandle other)
+    public bool Equals(ArrayBufferId other)
     {
         return Id == other.Id;
     }
 
     public override bool Equals(object? obj)
     {
-        return obj is ArrayBufferHandle other && Equals(other);
+        return obj is ArrayBufferId other && Equals(other);
     }
 
     public override int GetHashCode()
@@ -125,17 +125,17 @@ public readonly struct ArrayBufferHandle : IEquatable<ArrayBufferHandle>
         return (int)Id;
     }
 
-    public static bool operator ==(ArrayBufferHandle left, ArrayBufferHandle right)
+    public static bool operator ==(ArrayBufferId left, ArrayBufferId right)
     {
         return left.Equals(right);
     }
 
-    public static bool operator !=(ArrayBufferHandle left, ArrayBufferHandle right)
+    public static bool operator !=(ArrayBufferId left, ArrayBufferId right)
     {
         return !left.Equals(right);
     }
 
-    public static implicit operator uint(ArrayBufferHandle handle)
+    public static implicit operator uint(ArrayBufferId handle)
     {
         return handle.Id;
     }

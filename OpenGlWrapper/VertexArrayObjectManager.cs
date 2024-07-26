@@ -51,10 +51,18 @@ public sealed class VertexArrayObjectManager
         }
     }
 
-    public VertexArrayObjectManager EnableAndBindAttrib(int attribIndex, ArrayBufferHandle vbo, int size, GlType type, bool normalized, int stride, int offset)
+    public VertexArrayObjectManager EnableAndBindAttrib(int attribIndex, ArrayBufferId vbo, int size, GlType type, bool normalized, int stride, int offset)
     {
         BindAttrib(attribIndex, vbo, size, type, normalized, stride, offset);
         EnableAttrib(attribIndex);
+        return this;
+    }
+    
+    public VertexArrayObjectManager EnableAndBindAttrib(VertexArrayObjectTemplate template, int attribIndex, ArrayBufferId vbo)
+    {
+        var attrib = template.Attribs[attribIndex];
+        BindAttrib(attrib.Index, vbo, attrib.Size, attrib.Type, attrib.Normalize, template.Stride, attrib.Offset);
+        EnableAttrib(attrib.Index);
         return this;
     }
 
@@ -66,7 +74,7 @@ public sealed class VertexArrayObjectManager
         return this;
     }
 
-    public VertexArrayObjectManager BindAttrib(int attribIndex, ArrayBufferHandle vbo, int size, GlType type,
+    public VertexArrayObjectManager BindAttrib(int attribIndex, ArrayBufferId vbo, int size, GlType type,
         bool normalized, int stride, int offset)
     {
         AssertResourceIsBound();   
@@ -85,6 +93,26 @@ public sealed class VertexArrayObjectManager
         if (m_BoundResource == VertexArrayObjectId.Null)
             throw new InvalidOperationException("No resource bound");
     }
+
+    public VertexArrayObjectTemplate CreateTemplate<T>()
+    {
+        throw new NotImplementedException();
+    }
+}
+
+public readonly struct VertexArrayObjectTemplate
+{
+    public IReadOnlyList<VertexArrayObjectAttribTemplate> Attribs { get; }
+    public int Stride { get; }
+}
+
+public readonly struct VertexArrayObjectAttribTemplate
+{
+    public int Index { get; }
+    public int Size { get; }
+    public GlType Type { get; }
+    public bool Normalize { get; }
+    public int Offset { get; }
 }
 
 public readonly struct VertexArrayObjectId : IEquatable<VertexArrayObjectId>

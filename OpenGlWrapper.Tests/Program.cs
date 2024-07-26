@@ -1,5 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using System.Numerics;
 using GLFW;
 using OpenGlWrapper;
 using Monitor = GLFW.Monitor;
@@ -40,6 +41,26 @@ vaoManager
     .EnableAndBindAttrib(0, vbo, 3, GlType.Float, false, 3 + 2, 0)
     .EnableAndBindAttrib(1, vbo, 2, GlType.Float, false, 2 + 3, 3);
 
+
+Span<Vertex> vertices = stackalloc Vertex[]
+{
+    new Vertex
+    {
+        Position = new Vector2(),
+        UVs = new Vector2()
+    },
+    new Vertex
+    {
+        
+    }
+};
+vboManager.AllocFixedSizedAndUploadData<Vertex>(vertices, FixedSizedBufferAccessFlag.None);
+
+var vertexTemplate = vaoManager.CreateTemplate<Vertex>();
+
+vaoManager.EnableAndBindAttrib(vertexTemplate, 0, vbo);
+vaoManager.EnableAndBindAttrib(vertexTemplate, 1, vbo);
+
 var shaderProgram = shaderProgramManager.CompileFromSourceFiles(
     "Assets/simple.vert.glsl",
     "Assets/simple.frag.glsl"
@@ -59,3 +80,30 @@ vboManager.Destroy(vbo);
 vaoManager.Destroy(vao);
 
 Glfw.Terminate();
+
+public struct Vertex
+{
+    [VertexAttrib(0, 2, GlType.Float)]
+    public Vector2 Position;
+    
+    [VertexAttrib(1, 2, GlType.Float)]
+    public Vector2 UVs;
+}
+
+
+[AttributeUsage(AttributeTargets.Field)]
+public sealed class VertexAttribAttribute : Attribute
+{
+    public VertexAttribAttribute(uint attribIndex, uint componentCount, GlType componentType, bool normalize = false)
+    {
+        AttributeIndex = attribIndex;
+        ComponentCount = componentCount;
+        ComponentType = componentType;
+        Normalize = normalize;
+    }
+
+    public uint AttributeIndex { get; }
+    public uint ComponentCount { get; }
+    public GlType ComponentType { get; }
+    public bool Normalize { get; }
+}
