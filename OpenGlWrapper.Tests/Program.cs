@@ -22,7 +22,7 @@ Span<float> vertexData = stackalloc float[]
     0f, 0f,
     1f, 1f
 };
-arrayBufferManager.AllocImmutableAndUpload<float>(vertexData, ImmutableBufferAccessFlag.None);
+arrayBufferManager.AllocFixedSizedAndUploadData<float>(vertexData, FixedSizedBufferAccessFlag.None);
 
 arrayBufferManager.Destroy(vao);
 

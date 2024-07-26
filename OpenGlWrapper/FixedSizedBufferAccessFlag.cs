@@ -1,7 +1,7 @@
 namespace OpenGlWrapper;
 
 [Flags]
-public enum ImmutableBufferAccessFlag : uint
+public enum FixedSizedBufferAccessFlag : uint
 {
     None = 0,
     Dynamic = GL46.GL_DYNAMIC_STORAGE_BIT,

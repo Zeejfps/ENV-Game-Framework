@@ -31,7 +31,7 @@ public sealed class ArrayBufferManager
         }
     }
 
-    public void AllocImmutableAndUpload<T>(ReadOnlySpan<T> data, ImmutableBufferAccessFlag accessFlag) where T : unmanaged
+    public void AllocFixedSizedAndUploadData<T>(ReadOnlySpan<T> data, FixedSizedBufferAccessFlag accessFlag) where T : unmanaged
     {
         unsafe
         {
