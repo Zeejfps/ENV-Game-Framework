@@ -13,6 +13,9 @@ public sealed class ArrayBufferManager
     
     public void Bind(ArrayBufferHandle handle)
     {
+        if (m_BoundResource == handle)
+            return;
+        
         glBindBuffer(BufferKind, handle);
         AssertNoGlError();
         m_BoundResource = handle;
@@ -100,7 +103,7 @@ public readonly struct ArrayBufferHandle : IEquatable<ArrayBufferHandle>
 {
     public static ArrayBufferHandle Null => new(0);
     
-    public uint Id { get; }
+    internal uint Id { get; }
 
     public ArrayBufferHandle(uint id)
     {

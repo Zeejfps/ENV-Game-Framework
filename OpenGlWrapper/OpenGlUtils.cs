@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using static GL46;
 
 namespace OpenGlWrapper;
@@ -72,4 +73,16 @@ public static class OpenGlUtils
     {
         return new IntPtr(sizeof(T) * count);
     }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public static unsafe void* Offset(int offset)
+    {
+        return (void*)offset;
+    } 
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void* Offset<T>(string field)
+    {
+        return (void*)Marshal.OffsetOf<T>(field);
+    } 
 }
