@@ -39,6 +39,11 @@ public sealed class FramebufferManager
         glDrawArrays(GL_TRIANGLES, skipCount, vertexCount);
         AssertNoGlError();
     }
+
+    public void SetViewport(int x, int y, int width, int height)
+    {
+        glViewport(x, y, width, height);
+    }
 }
 
 public readonly struct FramebufferId : IEquatable<FramebufferId>

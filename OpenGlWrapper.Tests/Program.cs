@@ -16,6 +16,11 @@ var vboManager = context.ArrayBufferManager;
 var framebufferManager = context.FramebufferManager;
 var shaderProgramManager = context.ShaderProgramManager;
 
+Glfw.SetFramebufferSizeCallback(window, (_, width, height) =>
+{
+    framebufferManager.SetViewport(0, 0, width, height);
+});
+
 // Not needed, Window Framebuffer is the default bound buffer
 framebufferManager.Bind(FramebufferId.WindowFramebuffer);
 
@@ -74,7 +79,7 @@ while (!Glfw.WindowShouldClose(window))
 {
     framebufferManager.Clear(ClearFlags.ColorBuffer);
     framebufferManager.DrawArrayOfTriangles(shaderProgram, vao, vertexCount);
-    
+
     Glfw.PollEvents();
     Glfw.SwapBuffers(window);
 }
