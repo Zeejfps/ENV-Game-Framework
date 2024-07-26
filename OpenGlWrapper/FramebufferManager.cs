@@ -15,11 +15,13 @@ public sealed class FramebufferManager
     public void SetClearColor(float r, float g, float b, float a)
     {
         glClearColor(r, g, b, a);
+        AssertNoGlError();
     }
 
     public void Clear(ClearFlags flags)
     {
         glClear((uint)flags);
+        AssertNoGlError();
     }
 
     public void DrawArrayOfTriangles(VertexArrayObjectHandle vao, int indicesCount)
@@ -29,13 +31,14 @@ public sealed class FramebufferManager
         AssertNoGlError();
     }
 
-    public void Bind(FramebufferId framebufferId)
+    public void Bind(FramebufferId framebufferId, FramebufferAccessFlag accessFlag = FramebufferAccessFlag.ReadWrite)
     {
-        
+        glBindFramebuffer((uint)accessFlag, framebufferId.Id);
+        AssertNoGlError();
     }
 }
 
-public readonly struct FramebufferId
+public readonly struct FramebufferId : IEquatable<FramebufferId>
 {
     public static FramebufferId WindowFramebuffer => new(0);
     
@@ -44,5 +47,30 @@ public readonly struct FramebufferId
     public FramebufferId(uint id)
     {
         Id = id;
+    }
+
+    public bool Equals(FramebufferId other)
+    {
+        return Id == other.Id;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is FramebufferId other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return (int)Id;
+    }
+
+    public static bool operator ==(FramebufferId left, FramebufferId right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(FramebufferId left, FramebufferId right)
+    {
+        return !left.Equals(right);
     }
 }
