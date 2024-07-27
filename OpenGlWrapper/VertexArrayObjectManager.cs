@@ -156,10 +156,13 @@ public sealed class VertexArrayObjectManager
             throw new InvalidOperationException("No resource bound");
     }
 
-    public void EnableAndBindAttribsFromTemplate(VertexArrayObjectTemplate template, ArrayBufferId buffer)
+    public void EnableAndBindAttribsFromTemplate(VertexArrayObjectTemplate template)
     {
         foreach (var attrib in template.Attribs)
+        {
+            var buffer = attrib.BufferId;
             EnableAndBindAttrib(template, attrib.Index, buffer);
+        }
     }
 }
 
@@ -194,6 +197,7 @@ public sealed class VertexArrayObjectAttribTemplate
     public GlType Type { get; set; }
     public bool Normalize { get; set; }
     public int Offset { get; set; }
+    public ArrayBufferId BufferId { get; set; }
 }
 
 public readonly struct VertexArrayObjectId : IEquatable<VertexArrayObjectId>

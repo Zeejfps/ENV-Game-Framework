@@ -1,4 +1,3 @@
-
 using OpenGlWrapper;
 using OpenGlWrapper.Buffers;
 
@@ -31,9 +30,11 @@ public sealed class MeshRenderer
         vboManager.AllocFixedSizedAndUploadData(mesh.Vertices, FixedSizedBufferAccessFlag.Read);
 
         var vertexTemplate = vaoManager.CreateTemplate<TVertex>();
-
+        foreach (var attrib in vertexTemplate.Attribs)
+            attrib.BufferId = vbo;
+        
         var vao = vaoManager.CreateAndBind();
-        vaoManager.EnableAndBindAttribsFromTemplate(vertexTemplate, vbo);
+        vaoManager.EnableAndBindAttribsFromTemplate(vertexTemplate);
 
         return new OpenGlMeshHandle(vao);
     }
