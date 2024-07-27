@@ -155,6 +155,12 @@ public sealed class VertexArrayObjectManager
         if (m_BoundResource == VertexArrayObjectId.Null)
             throw new InvalidOperationException("No resource bound");
     }
+
+    public void EnableAndBindAttribsFromTemplate(VertexArrayObjectTemplate template, ArrayBufferId buffer)
+    {
+        foreach (var attrib in template.Attribs)
+            EnableAndBindAttrib(template, attrib.Index, buffer);
+    }
 }
 
 internal sealed class VertexArrayObjectMetadata
