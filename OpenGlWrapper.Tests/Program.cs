@@ -5,3 +5,6 @@ using OpenGlWrapper;
 using OpenGlWrapper.Buffers;
 using Monitor = GLFW.Monitor;
 
+
+var test = new RendererTest();
+test.Execute();
