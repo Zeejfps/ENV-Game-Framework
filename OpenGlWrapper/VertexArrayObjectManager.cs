@@ -188,6 +188,12 @@ public sealed class VertexArrayObjectTemplate
 
     public IReadOnlyList<VertexArrayObjectAttribTemplate> Attribs => m_Attribs;
     public int Stride { get; }
+
+    public void AssignBufferToAllAttribs(ArrayBufferId buffer)
+    {
+        foreach (var attrib in Attribs)
+            attrib.BufferId = buffer;
+    }
 }
 
 public sealed class VertexArrayObjectAttribTemplate

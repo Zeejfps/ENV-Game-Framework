@@ -30,8 +30,7 @@ public sealed class MeshRenderer
         vboManager.AllocFixedSizedAndUploadData(mesh.Vertices, FixedSizedBufferAccessFlag.Read);
 
         var vertexTemplate = vaoManager.CreateTemplate<TVertex>();
-        foreach (var attrib in vertexTemplate.Attribs)
-            attrib.BufferId = vbo;
+        vertexTemplate.AssignBufferToAllAttribs(vbo);
         
         var vao = vaoManager.CreateAndBind();
         vaoManager.EnableAndBindAttribsFromTemplate(vertexTemplate);
@@ -49,7 +48,6 @@ public sealed class MeshRenderer
         
         vaoManager.Bind(openGlMeshHandle.Vao);
     }
-    
 }
 
 sealed class OpenGlMeshHandle : IMeshHandle
