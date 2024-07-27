@@ -33,6 +33,7 @@ unsafe
         SearchPathCount = searchPaths.Length
     };
     var createSessionResult = globalSession.CreateSession(desc, out var session);
+    Console.WriteLine("Create Session worked?");
     Console.WriteLine(createSessionResult);
 
     Console.WriteLine(session.GetGlobalSession() == globalSession);
