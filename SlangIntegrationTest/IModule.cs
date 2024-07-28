@@ -4,7 +4,7 @@ namespace SlangIntegrationTest;
 
 [Guid("0c720e64-8722-4d31-8990-638a98b1c279")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-public interface IModule
+public interface IModule : IComponentType
 {
     [PreserveSig]
     int FindEntryPointByName(
@@ -51,4 +51,80 @@ public interface IModule
 
     [PreserveSig]
     IntPtr GetModuleReflection();
+    
+    [PreserveSig]
+    new IntPtr GetSession();
+
+    [PreserveSig]
+    new IntPtr GetLayout(
+        int targetIndex,
+        out IntPtr outDiagnostics);
+
+    [PreserveSig]
+    new int GetSpecializationParamCount();
+
+    [PreserveSig]
+    new int GetEntryPointCode(
+        int entryPointIndex,
+        int targetIndex,
+        out IntPtr outCode,
+        out IntPtr outDiagnostics);
+
+    [PreserveSig]
+    new int GetResultAsFileSystem(
+        int entryPointIndex,
+        int targetIndex,
+        out IntPtr outFileSystem);
+
+    [PreserveSig]
+    new void GetEntryPointHash(
+        int entryPointIndex,
+        int targetIndex,
+        out IntPtr outHash);
+
+    [PreserveSig]
+    new int Specialize(
+        IntPtr specializationArgs,
+        int specializationArgCount,
+        out IntPtr outSpecializedComponentType,
+        out IntPtr outDiagnostics);
+
+    [PreserveSig]
+    new int Link(
+        out IntPtr outLinkedComponentType,
+        out IntPtr outDiagnostics);
+
+    [PreserveSig]
+    new int GetEntryPointHostCallable(
+        int entryPointIndex,
+        int targetIndex,
+        out IntPtr outSharedLibrary,
+        out IntPtr outDiagnostics);
+
+    [PreserveSig]
+    new int RenameEntryPoint(
+        [MarshalAs(UnmanagedType.LPStr)] string newName,
+        out IntPtr outEntryPoint);
+
+    [PreserveSig]
+    new int LinkWithOptions(
+        out IntPtr outLinkedComponentType,
+        uint compilerOptionEntryCount,
+        IntPtr compilerOptionEntries,
+        out IntPtr outDiagnostics);
+
+    [PreserveSig]
+    new int GetTargetCode(
+        int targetIndex,
+        out IntPtr outCode,
+        out IntPtr outDiagnostics);
+    
+    [PreserveSig]
+    new int QueryInterface(ref Guid guid, out IntPtr outObject);
+
+    [PreserveSig]
+    new uint AddRef();
+
+    [PreserveSig]
+    new uint Release();
 }

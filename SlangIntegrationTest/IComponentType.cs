@@ -4,7 +4,7 @@ namespace SlangIntegrationTest;
 
 [Guid("5bc42be8-5c50-4929-9e5e-d15e7c24015f")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-public interface IComponentType
+public interface IComponentType : ISlangUnknown
 {
     [PreserveSig]
     IntPtr GetSession();
@@ -72,4 +72,13 @@ public interface IComponentType
         int targetIndex,
         out IntPtr outCode,
         out IntPtr outDiagnostics);
+    
+    [PreserveSig]
+    new int QueryInterface(ref Guid guid, out IntPtr outObject);
+
+    [PreserveSig]
+    new uint AddRef();
+
+    [PreserveSig]
+    new uint Release();
 }

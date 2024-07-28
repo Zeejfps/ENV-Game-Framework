@@ -4,7 +4,7 @@ namespace SlangIntegrationTest;
 
 [Guid("c140b5fd-0c78-452e-ba7c-1a1e70c7f71c")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-public interface IGlobalSession
+public interface IGlobalSession : ISlangUnknown
 {
     [PreserveSig]
     int CreateSession(
@@ -114,4 +114,13 @@ public interface IGlobalSession
     int GetSessionDescDigest(
         ref SessionDesc sessionDesc,
         [Out] out ISlangBlob outBlob);
+    
+    [PreserveSig]
+    new int QueryInterface(ref Guid guid, out IntPtr outObject);
+
+    [PreserveSig]
+    new uint AddRef();
+
+    [PreserveSig]
+    new uint Release();
 }
