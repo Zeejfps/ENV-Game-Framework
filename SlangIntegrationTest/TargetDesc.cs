@@ -29,7 +29,7 @@ public struct TargetDesc
         StructureSize = Marshal.SizeOf<TargetDesc>();
         Format = SlangCompileTarget.SLANG_TARGET_UNKNOWN;
         Profile = SlangProfileID.Unknown;
-        Flags = SlangTargetFlags.Default;
+        Flags = SlangTargetFlags.SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY;
         FloatingPointMode = SlangFloatingPointMode.SLANG_FLOATING_POINT_MODE_DEFAULT;
         LineDirectiveMode = SlangLineDirectiveMode.SLANG_LINE_DIRECTIVE_MODE_DEFAULT;
         ForceGLSLScalarBufferLayout = false;
