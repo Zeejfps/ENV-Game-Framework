@@ -145,10 +145,7 @@ public struct CompilerOptionEntry { }
 public interface ISlangFileSystem { }
 public interface ICompileRequest { }
 public interface ISlangSharedLibraryLoader { }
-public interface ISlangUnknown { }
-public interface IModule { }
 
-public interface IComponentType { }
 public class TypeReflection { }
 public class TypeLayoutReflection { }
 public struct SpecializationArg { }
@@ -156,6 +153,20 @@ public enum LayoutRules { Default }
 public enum ContainerType { }
 public class SlangCompileRequest { }
 public interface ITypeConformance { }
+
+[Guid("8f241361-f5bd-4ca0-a3ac-02f7fa2402b8")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface IEntryPoint
+{
+    
+}
+
+[Guid("00000000-0000-0000-C000-000000000046")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface ISlangUnknown
+{
+    
+}
 
 public enum SlangPassThrough { }
 public enum SlangSourceLanguage { }
