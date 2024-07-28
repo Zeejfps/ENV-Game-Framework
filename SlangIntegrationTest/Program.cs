@@ -10,61 +10,64 @@ unsafe
         0x8f241361, 0xf5bd, 0x4ca0, 0xa3, 0xac, 0x2, 0xf7, 0xfa, 0x24, 0x2, 0xb8 
     );
     Console.WriteLine($"Module Guid: {entryPointInterfaceGuid}");
-    
-    var createGlobalSessionResult = SlangCompilerAPI.slang_createGlobalSession(0, out var globalSession);
-    if (createGlobalSessionResult < 0 || globalSession == null)
+
+    ComPtr<IGlobalSession> globalSessionPtr = new();
+    var createGlobalSessionResult = SlangCompilerAPI.slang_createGlobalSession(0, ref globalSessionPtr.WriteRef());
+    Console.WriteLine($"Result: {createGlobalSessionResult}");
+    if (createGlobalSessionResult < 0 )
         throw new Exception("Failed to create global session");
 
-    var count = Marshal.AddRef(new IntPtr(&globalSession));
-    Console.WriteLine($"Ref COunt: {count}");
+    var globalSession = globalSessionPtr.Get();
+    // var globalSession = (IGlobalSession*)globalSessionPtr;
     
     try
     {
-        Console.WriteLine($"Result: {createGlobalSessionResult}");
-        Console.WriteLine(globalSession);
-
         var profileId = globalSession.FindProfile("glsl_450");
         Console.WriteLine($"Profile Id: {profileId}");
-
+        
         var targetDesc = new TargetDesc();
         targetDesc.Format = SlangCompileTarget.SLANG_SPIRV;
         targetDesc.Profile = (SlangProfileID)profileId;
-
+        
         var sessionDesc = new SessionDesc();
         sessionDesc.SetTargets(targetDesc);
         sessionDesc.SetSearchPaths("./Shaders");
 
-        var createSessionResult = globalSession.CreateSession(ref sessionDesc, out var session);
+        var sessionPtr = new ComPtr<ISession>();
+        var createSessionResult = globalSession.CreateSession(ref sessionDesc, ref sessionPtr.WriteRef());
         Console.WriteLine($"Create Session Result: {createSessionResult}");
-        if (session == null)
-            throw new Exception("Failed to create session");
-        
-        Console.WriteLine(session.GetGlobalSession() == globalSession);
+        if (createSessionResult < 0)
+            throw new Exception($"Failed to create session: {createSessionResult}");
 
-        var loadedModuleCount = session.GetLoadedModuleCount();
-        Console.WriteLine($"Loaded Module Count: {loadedModuleCount}");
+        var session = sessionPtr.Get();
+        var globalSessionPtrNew = session.GetGlobalSession();
+        Console.WriteLine(globalSessionPtrNew + $", {globalSessionPtr}");
+        Console.WriteLine(session.GetGlobalSession() == globalSessionPtr);
         
-        var module = session.LoadModule("hello-world.slang", out var blob);
-        if (module == null)
-        {
-            var error = "Unknown Error";
-            if (blob != null)
-            {
-                var data = new Span<byte>((void*)blob.GetBufferPointer(), blob.GetBufferSize().ToInt32());
-                error = Encoding.ASCII.GetString(data);
-            }
-            
-            throw new Exception($"Error loading module: {error}");
-        }
-
-        var entryPointName = "computeMain";
-        var findEntryPointByNameResult = module.FindEntryPointByName(entryPointName, out var entryPoint);
-        if (findEntryPointByNameResult < 0 || entryPoint == null)
-            throw new Exception($"Failed to find entry point with name: {entryPointName}");
+        // var loadedModuleCount = session.GetLoadedModuleCount();
+        // Console.WriteLine($"Loaded Module Count: {loadedModuleCount}");
+        //
+        // var module = session.LoadModule("hello-world.slang", out var blob);
+        // if (module == null)
+        // {
+        //     var error = "Unknown Error";
+        //     if (blob != null)
+        //     {
+        //         var data = new Span<byte>((void*)blob.GetBufferPointer(), blob.GetBufferSize().ToInt32());
+        //         error = Encoding.ASCII.GetString(data);
+        //     }
+        //     
+        //     throw new Exception($"Error loading module: {error}");
+        // }
+        //
+        // var entryPointName = "computeMain";
+        // var findEntryPointByNameResult = module.FindEntryPointByName(entryPointName, out var entryPoint);
+        // if (findEntryPointByNameResult < 0 || entryPoint == null)
+        //     throw new Exception($"Failed to find entry point with name: {entryPointName}");
     }
     finally
     {
-        Marshal.Release(new IntPtr(&globalSession));
+        // Marshal.Release(new IntPtr(globalSessionPtr));
         SlangCompilerAPI.slang_shutdown();
     }
     

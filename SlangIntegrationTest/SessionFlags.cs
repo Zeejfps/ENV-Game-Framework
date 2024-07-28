@@ -1,6 +1,6 @@
 ﻿namespace SlangIntegrationTest;
 
-public enum SessionFlags
+public enum SessionFlags : uint
 {
     None = 0
 }

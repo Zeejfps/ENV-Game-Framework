@@ -37,7 +37,7 @@ public struct SessionDesc
         Targets = IntPtr.Zero;
         TargetCount = 0;
         Flags = SessionFlags.None;
-        DefaultMatrixLayoutMode = SlangMatrixLayoutMode.Unknown;
+        DefaultMatrixLayoutMode = SlangMatrixLayoutMode.RowMajor;
         SearchPaths = IntPtr.Zero;
         SearchPathCount = 0;
         PreprocessorMacros = IntPtr.Zero;
@@ -68,19 +68,17 @@ public struct SessionDesc
 
     public void SetTargets(params TargetDesc[] targetDescriptions)
     {
-        var pointerArray = new IntPtr[targetDescriptions.Length];
-        for (int i = 0; i < targetDescriptions.Length; i++)
+        var structSize = StructureSize;
+        var ptrToArrayOfStructs = Marshal.AllocHGlobal(structSize * targetDescriptions.Length);
+        
+        for (var i = 0; i < targetDescriptions.Length; i++)
         {
             var targetDesc = targetDescriptions[i];
-            var ptr = Marshal.AllocHGlobal(targetDesc.StructureSize);
-            Marshal.StructureToPtr(targetDesc, ptr, false);
-            pointerArray[i] = ptr;
+            var ptrToElement = new IntPtr(ptrToArrayOfStructs.ToInt64() + i * structSize);
+            Marshal.StructureToPtr(targetDesc, ptrToElement, false);
         }
-
-        var result = Marshal.AllocHGlobal(IntPtr.Size * pointerArray.Length);
-        Marshal.Copy(pointerArray, 0, result, pointerArray.Length);
         
-        Targets = result;
+        Targets = ptrToArrayOfStructs;
         TargetCount = targetDescriptions.Length;
     }
 }

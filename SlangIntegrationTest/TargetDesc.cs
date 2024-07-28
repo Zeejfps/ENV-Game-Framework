@@ -30,8 +30,8 @@ public struct TargetDesc
         Format = SlangCompileTarget.SLANG_TARGET_UNKNOWN;
         Profile = SlangProfileID.Unknown;
         Flags = SlangTargetFlags.Default;
-        FloatingPointMode = SlangFloatingPointMode.Default;
-        LineDirectiveMode = SlangLineDirectiveMode.Default;
+        FloatingPointMode = SlangFloatingPointMode.SLANG_FLOATING_POINT_MODE_DEFAULT;
+        LineDirectiveMode = SlangLineDirectiveMode.SLANG_LINE_DIRECTIVE_MODE_DEFAULT;
         ForceGLSLScalarBufferLayout = false;
         CompilerOptionEntries = IntPtr.Zero;
         CompilerOptionEntryCount = 0;

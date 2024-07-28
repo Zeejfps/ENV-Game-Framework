@@ -106,9 +106,9 @@ public static class SlangCompilerAPI
     // }
     
     [DllImport("slang.dll")]
-    public static extern SlangResult slang_createGlobalSession(SlangInt apiVersion, out IGlobalSession outGlobalSession);
+    public static extern SlangResult slang_createGlobalSession(SlangInt apiVersion, ref IntPtr outGlobalSessionPtr);
     
-    [DllImport("slang.dll", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport("slang.dll", EntryPoint = "shutdown", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, ExactSpelling = true, PreserveSig = true)]
     public static extern void slang_shutdown();
 
 }
@@ -129,17 +129,6 @@ public enum SlangTargetFlags
     // Add other target flags as needed
 }
 
-public enum SlangFloatingPointMode
-{
-    Default = 0
-    // Add other floating point modes as needed
-}
-
-public enum SlangLineDirectiveMode
-{
-    Default = 0
-    // Add other line directive modes as needed
-}
 public struct PreprocessorMacroDesc { }
 public struct CompilerOptionEntry { }
 public interface ISlangFileSystem { }

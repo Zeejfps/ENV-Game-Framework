@@ -6,7 +6,7 @@ namespace SlangIntegrationTest;
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 public interface ISession
 {
-    IGlobalSession GetGlobalSession();
+    IntPtr GetGlobalSession();
 
     IModule? LoadModule(
         [MarshalAs(UnmanagedType.LPStr)] string moduleName,

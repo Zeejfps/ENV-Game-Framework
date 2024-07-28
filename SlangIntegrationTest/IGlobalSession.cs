@@ -8,8 +8,8 @@ public interface IGlobalSession : ISlangUnknown
 {
     [PreserveSig]
     int CreateSession(
-        [In] ref SessionDesc desc,
-        [Out] out ISession outSession);
+        ref SessionDesc desc,
+        ref IntPtr outSession);
 
     [PreserveSig]
     int FindProfile(
