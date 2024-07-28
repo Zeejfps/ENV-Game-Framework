@@ -53,14 +53,14 @@ public sealed class VertexArrayObjectManager
         }
     }
 
-    public VertexArrayObjectManager EnableAndBindAttrib(int attribIndex, ArrayBufferId vbo, int size, GlType type, bool normalized, int stride, int offset)
+    public VertexArrayObjectManager EnableAndBindAttrib(int attribIndex, ArrayBufferHandle vbo, int size, GlType type, bool normalized, int stride, int offset)
     {
         BindAttrib(attribIndex, vbo, size, type, normalized, stride, offset);
         EnableAttrib(attribIndex);
         return this;
     }
     
-    public VertexArrayObjectManager EnableAndBindAttrib(VertexArrayObjectTemplate template, int attribIndex, ArrayBufferId vbo)
+    public VertexArrayObjectManager EnableAndBindAttrib(VertexArrayObjectTemplate template, int attribIndex, ArrayBufferHandle vbo)
     {
         var attrib = template.Attribs[attribIndex];
         BindAttrib(attrib.Index, vbo, attrib.Size, attrib.Type, attrib.Normalize, template.Stride, attrib.Offset);
@@ -76,7 +76,7 @@ public sealed class VertexArrayObjectManager
         return this;
     }
 
-    public VertexArrayObjectManager BindAttrib(int attribIndex, ArrayBufferId vbo, int size, GlType type,
+    public VertexArrayObjectManager BindAttrib(int attribIndex, ArrayBufferHandle vbo, int size, GlType type,
         bool normalized, int stride, int offset)
     {
         AssertResourceIsBound();   
@@ -189,7 +189,7 @@ public sealed class VertexArrayObjectTemplate
     public IReadOnlyList<VertexArrayObjectAttribTemplate> Attribs => m_Attribs;
     public int Stride { get; }
 
-    public void AssignBufferToAllAttribs(ArrayBufferId buffer)
+    public void AssignBufferToAllAttribs(ArrayBufferHandle buffer)
     {
         foreach (var attrib in Attribs)
             attrib.BufferId = buffer;
@@ -203,7 +203,7 @@ public sealed class VertexArrayObjectAttribTemplate
     public GlType Type { get; set; }
     public bool Normalize { get; set; }
     public int Offset { get; set; }
-    public ArrayBufferId BufferId { get; set; }
+    public ArrayBufferHandle BufferId { get; set; }
 }
 
 public readonly struct VertexArrayObjectId : IEquatable<VertexArrayObjectId>
