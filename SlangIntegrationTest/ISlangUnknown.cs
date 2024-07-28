@@ -6,12 +6,5 @@ namespace SlangIntegrationTest;
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 public interface ISlangUnknown
 {
-    [PreserveSig]
-    int QueryInterface(ref Guid guid, out IntPtr outObject);
 
-    [PreserveSig]
-    uint AddRef();
-
-    [PreserveSig]
-    uint Release();
 }

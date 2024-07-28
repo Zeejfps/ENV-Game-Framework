@@ -15,6 +15,9 @@ unsafe
     if (createGlobalSessionResult < 0 || globalSession == null)
         throw new Exception("Failed to create global session");
 
+    var count = Marshal.AddRef(new IntPtr(&globalSession));
+    Console.WriteLine($"Ref COunt: {count}");
+    
     try
     {
         Console.WriteLine($"Result: {createGlobalSessionResult}");
@@ -35,9 +38,12 @@ unsafe
         Console.WriteLine($"Create Session Result: {createSessionResult}");
         if (session == null)
             throw new Exception("Failed to create session");
-
+        
         Console.WriteLine(session.GetGlobalSession() == globalSession);
 
+        var loadedModuleCount = session.GetLoadedModuleCount();
+        Console.WriteLine($"Loaded Module Count: {loadedModuleCount}");
+        
         var module = session.LoadModule("hello-world.slang", out var blob);
         if (module == null)
         {
@@ -58,6 +64,7 @@ unsafe
     }
     finally
     {
+        Marshal.Release(new IntPtr(&globalSession));
         SlangCompilerAPI.slang_shutdown();
     }
     

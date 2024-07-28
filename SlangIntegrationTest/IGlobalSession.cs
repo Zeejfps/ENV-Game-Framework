@@ -114,13 +114,4 @@ public interface IGlobalSession : ISlangUnknown
     int GetSessionDescDigest(
         ref SessionDesc sessionDesc,
         [Out] out ISlangBlob outBlob);
-    
-    [PreserveSig]
-    new int QueryInterface(ref Guid guid, out IntPtr outObject);
-
-    [PreserveSig]
-    new uint AddRef();
-
-    [PreserveSig]
-    new uint Release();
 }
