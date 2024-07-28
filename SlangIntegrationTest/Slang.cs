@@ -236,8 +236,11 @@ public interface IGlobalSession
 }
 
 // Note: These are placeholder declarations. You'll need to define these types separately.
-public struct SessionDesc { }
 
+public struct TargetDesc { }
+public struct PreprocessorMacroDesc { }
+public struct CompilerOptionEntry { }
+public interface ISlangFileSystem { }
 public interface ISlangBlob { }
 public interface ICompileRequest { }
 public interface ISlangSharedLibraryLoader { }

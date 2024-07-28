@@ -2,6 +2,8 @@
 
 namespace SlangIntegrationTest;
 
+[Guid("67618701-d116-468f-ab3b-474bedce0e3d")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 public interface ISession
 {
     IGlobalSession GetGlobalSession();
