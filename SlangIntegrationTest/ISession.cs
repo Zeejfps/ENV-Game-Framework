@@ -10,7 +10,7 @@ public interface ISession
     IGlobalSession GetGlobalSession();
 
     [PreserveSig]
-    IModule? LoadModule(
+    IntPtr LoadModule(
         [MarshalAs(UnmanagedType.LPStr)] string moduleName,
         [Out] out ISlangBlob? outDiagnostics);
 

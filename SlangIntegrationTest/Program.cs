@@ -51,7 +51,14 @@ unsafe
         var loadedModuleCount = session.GetLoadedModuleCount();
         Console.WriteLine($"Loaded Module Count: {loadedModuleCount}");
         
-        var module = session.LoadModule("hello-world", out var blob);
+        var modulePtr = session.LoadModule("hello-world", out var blob);
+        Console.WriteLine(modulePtr);
+        
+        var refCount = Marshal.AddRef(modulePtr);
+        Console.WriteLine($"Module Ref Count {refCount}");
+        
+        var module = (IModule)Marshal.GetObjectForIUnknown(modulePtr);
+
         if (module == null)
         {
             var error = "Unknown Error";
@@ -67,16 +74,27 @@ unsafe
         loadedModuleCount = session.GetLoadedModuleCount();
         Console.WriteLine($"Loaded Module Count: {loadedModuleCount}");
         
-        var entryPointName = "computeMain";
-        var findEntryPointByNameResult = module.FindEntryPointByName(entryPointName, out var entryPoint);
+        var findEntryPointByNameResult = module.FindEntryPointByName("vertexMain", out var vertexShaderEntryPoint);
+        Console.WriteLine($"Find Entry Point Result: {findEntryPointByNameResult}");
         if (findEntryPointByNameResult < 0)
             throw new Exception($"Failed to find entry point with name: {findEntryPointByNameResult}");
         
-        Console.WriteLine(findEntryPointByNameResult);
+        findEntryPointByNameResult = module.FindEntryPointByName("fragmentMain", out var fragmentShaderEntryPoint);
+        Console.WriteLine($"Find Entry Point Result: {findEntryPointByNameResult}");
+        if (findEntryPointByNameResult < 0)
+            throw new Exception($"Failed to find entry point with name: {findEntryPointByNameResult}");
+        
+        var ptr = Marshal.GetComInterfaceForObject<IModule, IComponentType>(module);
+        Console.WriteLine($"M: {modulePtr} , O {ptr}");
+        var component = (IComponentType)Marshal.GetObjectForIUnknown(ptr);
+        var layoutPtr = component.GetLayout(0, out var blobPtr);
+        Console.WriteLine($"Laout Ptr: {layoutPtr}");
+
+        Marshal.Release(modulePtr);
     }
     finally
     {
-        // Marshal.Release(new IntPtr(globalSessionPtr));
+        Marshal.Release(globalSessionPtr.Ptr);
         SlangCompilerAPI.slang_shutdown();
     }
 }
