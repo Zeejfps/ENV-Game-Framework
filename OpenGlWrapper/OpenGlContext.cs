@@ -9,11 +9,13 @@ public sealed class OpenGlContext
     public VertexArrayObjectManager VertexArrayObjectManager { get; }
     public FramebufferManager FramebufferManager { get; }
     public ShaderProgramManager ShaderProgramManager { get; }
+    public TextureManager TextureManager { get; }
 
     private OpenGlContext()
     {
         ArrayBufferManager = new ArrayBufferManager();
         VertexArrayObjectManager = new VertexArrayObjectManager(ArrayBufferManager);
+        TextureManager = new TextureManager();
         ShaderProgramManager = new ShaderProgramManager();
         FramebufferManager = new FramebufferManager(ShaderProgramManager, VertexArrayObjectManager);
     }

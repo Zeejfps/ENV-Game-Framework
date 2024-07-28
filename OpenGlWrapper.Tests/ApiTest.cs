@@ -64,7 +64,7 @@ public sealed class ApiTest
         };
         var vertexTemplate = vaoManager.CreateTemplate<Vertex>();
 
-// vboManager.AllocFixedSizedAndUploadData<Vertex>(vertices, FixedSizedBufferAccessFlag.None);
+        // vboManager.AllocFixedSizedAndUploadData<Vertex>(vertices, FixedSizedBufferAccessFlag.None);
 
         vboManager.AllocFixedSize<Vertex>(vertices.Length, FixedSizedBufferAccessFlag.ReadWrite);
         using (var memory = vboManager.MapReadWrite<Vertex>())
