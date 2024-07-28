@@ -27,7 +27,7 @@ public struct TargetDesc
     public TargetDesc()
     {
         StructureSize = Marshal.SizeOf<TargetDesc>();
-        Format = SlangCompileTarget.Unknown;
+        Format = SlangCompileTarget.SLANG_TARGET_UNKNOWN;
         Profile = SlangProfileID.Unknown;
         Flags = SlangTargetFlags.Default;
         FloatingPointMode = SlangFloatingPointMode.Default;

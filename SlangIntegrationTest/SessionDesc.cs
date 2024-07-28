@@ -48,4 +48,33 @@ public struct SessionDesc
         CompilerOptionEntries = IntPtr.Zero;
         CompilerOptionEntryCount = 0;
     }
+
+    public void SetSearchPaths(params string[] paths)
+    {
+        // Allocate an array of pointers
+        var pointerArray = new IntPtr[paths.Length];
+        
+        // Allocate and marshal each string
+        for (int i = 0; i < paths.Length; i++)
+            pointerArray[i] = Marshal.StringToHGlobalAnsi(paths[i]);
+        
+        // Allocate memory for the array of pointers
+        var result = Marshal.AllocHGlobal(IntPtr.Size * pointerArray.Length);
+        Marshal.Copy(pointerArray, 0, result, pointerArray.Length);
+
+        SearchPaths = result;
+        SearchPathCount = paths.Length;
+    }
+
+    public void SetTargets(params TargetDesc[] targetDescriptions)
+    {
+        var pointerArray = new IntPtr[targetDescriptions.Length];
+        for (int i = 0; i < targetDescriptions.Length; i++)
+        {
+            var targetDesc = targetDescriptions[i];
+            var ptr = Marshal.AllocHGlobal(targetDesc.StructureSize);
+            Marshal.StructureToPtr(targetDesc, ptr, false);
+            pointerArray[i] = ptr;
+        }
+    }
 }

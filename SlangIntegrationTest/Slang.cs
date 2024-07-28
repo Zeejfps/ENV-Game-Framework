@@ -124,11 +124,6 @@ public static class SlangCompilerAPI
 // Note: These are placeholder declarations. You'll need to define these types separately.
 
 // Enums used in TargetDesc
-public enum SlangCompileTarget
-{
-    Unknown = 0
-    // Add other compile targets as needed
-}
 
 public enum SlangProfileID
 {

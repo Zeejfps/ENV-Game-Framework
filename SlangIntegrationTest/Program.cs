@@ -12,10 +12,21 @@ unsafe
     var profileId = globalSession.FindProfile("glsl_450");
     Console.WriteLine($"Profile Id: {profileId}");
 
-    var sessionDescription = new SessionDesc();
-    var createSessionResult = globalSession.CreateSession(ref sessionDescription, out var session);
-    Console.WriteLine($"Create Session Result: {createSessionResult}");
+    var targetDesc = new TargetDesc();
+    targetDesc.Format = SlangCompileTarget.SLANG_SPIRV;
+    targetDesc.Profile = (SlangProfileID)profileId;
+    
+    var sessionDesc = new SessionDesc();
+    sessionDesc.SetTargets(targetDesc);
+    sessionDesc.SetSearchPaths("./Shaders");
 
+    var createSessionResult = globalSession.CreateSession(ref sessionDesc, out var session);
+    Console.WriteLine($"Create Session Result: {createSessionResult}");
+    if (session == null)
+        throw new Exception("Failed to create session");
+
+    Console.WriteLine(session.GetGlobalSession() == globalSession);
+    
     // var searchPaths = new[]
     // {
     //     "./Shaders"
