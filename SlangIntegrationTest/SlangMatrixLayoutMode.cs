@@ -1,7 +1,8 @@
 ﻿namespace SlangIntegrationTest;
 
-public enum SlangMatrixLayoutMode
+public enum SlangMatrixLayoutMode : uint
 {
-    RowMajor = 0
-    // Add other layout modes as needed
+    Unknown = 0,
+    RowMajor,
+    ColumnMajor
 }

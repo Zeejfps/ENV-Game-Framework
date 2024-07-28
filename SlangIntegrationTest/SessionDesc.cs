@@ -37,7 +37,7 @@ public struct SessionDesc
         Targets = IntPtr.Zero;
         TargetCount = 0;
         Flags = SessionFlags.None;
-        DefaultMatrixLayoutMode = SlangMatrixLayoutMode.RowMajor;
+        DefaultMatrixLayoutMode = SlangMatrixLayoutMode.Unknown;
         SearchPaths = IntPtr.Zero;
         SearchPathCount = 0;
         PreprocessorMacros = IntPtr.Zero;
