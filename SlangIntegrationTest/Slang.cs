@@ -108,7 +108,7 @@ public static class SlangCompilerAPI
     [DllImport("slang.dll")]
     public static extern SlangResult slang_createGlobalSession(SlangInt apiVersion, out IGlobalSession outGlobalSession);
     
-    [DllImport("slang.dll")]
+    [DllImport("slang.dll", CallingConvention = CallingConvention.Cdecl)]
     public static extern void slang_shutdown();
 
 }

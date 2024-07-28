@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using System.Runtime.InteropServices;
+using System.Text;
 using SlangIntegrationTest;
 
 unsafe
@@ -30,9 +31,13 @@ unsafe
     var module = session.LoadModule("hello-world.slang", out var blob);
     if (module == null && blob != null)
     {
-        Console.WriteLine("Error loading module");
+        var data = new Span<byte>((void*)blob.GetBufferPointer(), blob.GetBufferSize().ToInt32());
+        var text = Encoding.ASCII.GetString(data);
+        Console.WriteLine($"Error loading module: {text}");
     }
 
+    SlangCompilerAPI.slang_shutdown();
+    
     // var searchPaths = new[]
     // {
     //     "./Shaders"
