@@ -1,29 +1,11 @@
 ﻿using System.Runtime.InteropServices;
-using System.Text;
+using SlangResult = System.Int32;
+using SlangInt = System.Int64;
 
 namespace SlangIntegrationTest;
 
-using SlangResult = Int32;
-using SlangInt = Int64;
-
 public static class SlangCompilerAPI
 {
-    // [ComImport]
-    // [Guid("00000000-0000-0000-C000-000000000046")]
-    // [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    // public interface ISlangUnknown
-    // {
-    //     // IUnknown methods
-    //     [PreserveSig]
-    //     int QueryInterface(ref Guid riid, out IntPtr ppvObject);
-    //     
-    //     [PreserveSig]
-    //     uint AddRef();
-    //     
-    //     [PreserveSig]
-    //     uint Release();
-    // }
-    //
     // [Guid("c140b5fd-0c78-452e-ba7c-1a1e70c7f71c")]
     // [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     // public interface IGlobalSession : ISlangUnknown
@@ -62,49 +44,6 @@ public static class SlangCompilerAPI
     //     
     // }
     
-    // public struct SessionDesc
-    // {
-    //     private int StructureSize;
-    //
-    //     public IntPtr Targets;
-    //     public SlangInt TargetCount;
-    //     
-    //     public SessionFlags flags = SessionFlags.kSessionFlags_None;
-    //
-    //     public SlangMatrixLayoutMode DefaultMatrixLayoutMode = SlangMatrixLayoutMode.SLANG_MATRIX_LAYOUT_ROW_MAJOR;
-    //
-    //     public IntPtr SearchPaths;
-    //     public SlangInt SearchPathCount;
-    //     
-    //     public IntPtr PreprocessorMacros;
-    //     public SlangInt PreprocessorMacroCount;
-    //     
-    //     public IntPtr FileSystem;
-    //     
-    //     public bool EnableEffectAnnotations;
-    //     public bool AllowGLSLSyntax;
-    //
-    //     public IntPtr CompilerOptionEntries;
-    //     public UInt32 CompilerOptionEntryCount;
-    //
-    //     public SessionDesc()
-    //     {
-    //         StructureSize = Marshal.SizeOf<SessionDesc>();
-    //     }
-    // }
-    //
-    // public enum SlangMatrixLayoutMode : uint
-    // {
-    //     SLANG_MATRIX_LAYOUT_MODE_UNKNOWN = 0,
-    //     SLANG_MATRIX_LAYOUT_ROW_MAJOR,
-    //     SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
-    // }
-    //
-    // public enum SessionFlags
-    // {
-    //     kSessionFlags_None = 0
-    // }
-    
     [DllImport("slang.dll")]
     public static extern SlangResult slang_createGlobalSession(SlangInt apiVersion, ref IntPtr outGlobalSessionPtr);
     
@@ -114,8 +53,6 @@ public static class SlangCompilerAPI
 }
 
 // Note: These are placeholder declarations. You'll need to define these types separately.
-
-// Enums used in TargetDesc
 
 public struct PreprocessorMacroDesc { }
 public struct CompilerOptionEntry { }

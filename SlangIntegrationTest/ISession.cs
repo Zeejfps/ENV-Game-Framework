@@ -6,7 +6,8 @@ namespace SlangIntegrationTest;
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 public interface ISession
 {
-    IntPtr GetGlobalSession();
+    [PreserveSig]
+    IGlobalSession GetGlobalSession();
 
     IModule? LoadModule(
         [MarshalAs(UnmanagedType.LPStr)] string moduleName,
@@ -92,5 +93,5 @@ public interface ISession
         [MarshalAs(UnmanagedType.LPStr)] string moduleName,
         [MarshalAs(UnmanagedType.LPStr)] string path,
         [MarshalAs(UnmanagedType.LPStr)] string source,
-        [Out] out ISlangBlob outDiagnostics);
+        out ISlangBlob outDiagnostics);
 }

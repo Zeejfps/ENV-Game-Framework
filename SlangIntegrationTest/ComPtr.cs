@@ -4,6 +4,8 @@ public sealed class ComPtr<T>
 {
     private IntPtr m_Ptr;
 
+    public IntPtr Ptr => m_Ptr;
+    
     public ref IntPtr WriteRef()
     {
         return ref m_Ptr;

@@ -11,6 +11,8 @@ unsafe
     );
     Console.WriteLine($"Module Guid: {entryPointInterfaceGuid}");
 
+    var sessionInterfaceGuid = new Guid("67618701-d116-468f-ab3b-474bedce0e3d");
+    
     ComPtr<IGlobalSession> globalSessionPtr = new();
     var createGlobalSessionResult = SlangCompilerAPI.slang_createGlobalSession(0, ref globalSessionPtr.WriteRef());
     Console.WriteLine($"Result: {createGlobalSessionResult}");
@@ -18,8 +20,6 @@ unsafe
         throw new Exception("Failed to create global session");
 
     var globalSession = globalSessionPtr.Get();
-    // var globalSession = (IGlobalSession*)globalSessionPtr;
-    
     try
     {
         var profileId = globalSession.FindProfile("glsl_450");
@@ -39,10 +39,14 @@ unsafe
         if (createSessionResult < 0)
             throw new Exception($"Failed to create session: {createSessionResult}");
 
+        Marshal.QueryInterface(sessionPtr.Ptr, ref sessionInterfaceGuid, out var test);
+        var count = Marshal.AddRef(sessionPtr.Ptr);
+        Console.WriteLine($"Session Ptr: {sessionPtr} and Test: {test}, Count: {count}");
+        
         var session = sessionPtr.Get();
         var globalSessionPtrNew = session.GetGlobalSession();
         Console.WriteLine(globalSessionPtrNew + $", {globalSessionPtr}");
-        Console.WriteLine(session.GetGlobalSession() == globalSessionPtr);
+        Console.WriteLine(session.GetGlobalSession() == globalSession);
         
         // var loadedModuleCount = session.GetLoadedModuleCount();
         // Console.WriteLine($"Loaded Module Count: {loadedModuleCount}");
@@ -70,46 +74,4 @@ unsafe
         // Marshal.Release(new IntPtr(globalSessionPtr));
         SlangCompilerAPI.slang_shutdown();
     }
-    
-    // var searchPaths = new[]
-    // {
-    //     "./Shaders"
-    // };
-    //
-    // // Allocate an array of pointers
-    // IntPtr[] pointerArray = new IntPtr[searchPaths.Length];
-    //
-    // // Allocate and marshal each string
-    // for (int i = 0; i < searchPaths.Length; i++)
-    // {
-    //     pointerArray[i] = Marshal.StringToHGlobalAnsi(searchPaths[i]);
-    // }
-    //
-    // // Allocate memory for the array of pointers
-    // IntPtr result = Marshal.AllocHGlobal(IntPtr.Size * pointerArray.Length);
-    // Marshal.Copy(pointerArray, 0, result, pointerArray.Length);
-    //
-    // var desc = new SlangCompilerAPI.SessionDesc
-    // {
-    //     SearchPaths = result,
-    //     SearchPathCount = searchPaths.Length
-    // };
-    // var createSessionResult = globalSession.CreateSession(desc, out var session);
-    // Console.WriteLine("Create Session worked?");
-    // Console.WriteLine(createSessionResult);
-    //
-    // Console.WriteLine(session.GetGlobalSession() == globalSession);
-    //
-    // var name = Marshal.StringToHGlobalAnsi("hello-world.slang");
-    // var module = session.LoadModule(name, out var blob);
-    //
-    // if (blob != null)
-    // {
-    //     //
-    //     Console.WriteLine($"Blob size: {blob.GetBufferSize()}");
-    //     //
-    //     var str = Marshal.PtrToStringAnsi(blob.GetBufferPointer(), blob.GetBufferSize());
-    //     Console.WriteLine(str);
-    // }
-
 }
