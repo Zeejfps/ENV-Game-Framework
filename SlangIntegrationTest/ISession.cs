@@ -8,9 +8,9 @@ public interface ISession
 {
     IGlobalSession GetGlobalSession();
 
-    IModule LoadModule(
+    IModule? LoadModule(
         [MarshalAs(UnmanagedType.LPStr)] string moduleName,
-        [Out] out IBlob outDiagnostics);
+        [Out] out IBlob? outDiagnostics);
 
     IModule LoadModuleFromSource(
         [MarshalAs(UnmanagedType.LPStr)] string moduleName,

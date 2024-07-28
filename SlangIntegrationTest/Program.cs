@@ -26,7 +26,13 @@ unsafe
         throw new Exception("Failed to create session");
 
     Console.WriteLine(session.GetGlobalSession() == globalSession);
-    
+
+    var module = session.LoadModule("hello-world.slang", out var blob);
+    if (module == null && blob != null)
+    {
+        Console.WriteLine("Error loading module");
+    }
+
     // var searchPaths = new[]
     // {
     //     "./Shaders"

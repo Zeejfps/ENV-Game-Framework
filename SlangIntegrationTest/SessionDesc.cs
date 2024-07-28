@@ -76,5 +76,11 @@ public struct SessionDesc
             Marshal.StructureToPtr(targetDesc, ptr, false);
             pointerArray[i] = ptr;
         }
+
+        var result = Marshal.AllocHGlobal(IntPtr.Size * pointerArray.Length);
+        Marshal.Copy(pointerArray, 0, result, pointerArray.Length);
+        
+        Targets = result;
+        TargetCount = targetDescriptions.Length;
     }
 }
