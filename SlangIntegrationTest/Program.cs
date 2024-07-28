@@ -51,7 +51,7 @@ unsafe
         var loadedModuleCount = session.GetLoadedModuleCount();
         Console.WriteLine($"Loaded Module Count: {loadedModuleCount}");
         
-        var module = session.LoadModule("hello-world.slang", out var blob);
+        var module = session.LoadModule("hello-world", out var blob);
         if (module == null)
         {
             var error = "Unknown Error";
@@ -64,10 +64,15 @@ unsafe
             throw new Exception($"Error loading module: {error}");
         }
         
+        loadedModuleCount = session.GetLoadedModuleCount();
+        Console.WriteLine($"Loaded Module Count: {loadedModuleCount}");
+        
         var entryPointName = "computeMain";
         var findEntryPointByNameResult = module.FindEntryPointByName(entryPointName, out var entryPoint);
-        if (findEntryPointByNameResult < 0 || entryPoint == null)
+        if (findEntryPointByNameResult < 0)
             throw new Exception($"Failed to find entry point with name: {findEntryPointByNameResult}");
+        
+        Console.WriteLine(findEntryPointByNameResult);
     }
     finally
     {

@@ -82,8 +82,10 @@ public interface ISession
         ISlangBlob source,
         [Out] out ISlangBlob outDiagnostics);
 
+    [PreserveSig]
     int GetLoadedModuleCount();
 
+    [PreserveSig]
     IModule GetLoadedModule(int index);
 
     [return: MarshalAs(UnmanagedType.Bool)]

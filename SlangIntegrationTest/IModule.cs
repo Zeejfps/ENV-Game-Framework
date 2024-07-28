@@ -4,12 +4,12 @@ namespace SlangIntegrationTest;
 
 [Guid("0c720e64-8722-4d31-8990-638a98b1c279")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-public interface IModule : IComponentType
+public interface IModule
 {
     [PreserveSig]
     int FindEntryPointByName(
         [MarshalAs(UnmanagedType.LPStr)] string name,
-        out IEntryPoint outEntryPoint);
+        out IntPtr outEntryPoint);
 
     [PreserveSig]
     int GetDefinedEntryPointCount();
