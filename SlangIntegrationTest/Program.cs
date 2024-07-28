@@ -64,10 +64,10 @@ unsafe
             throw new Exception($"Error loading module: {error}");
         }
         
-        // var entryPointName = "computeMain";
-        // var findEntryPointByNameResult = module.FindEntryPointByName(entryPointName, out var entryPoint);
-        // if (findEntryPointByNameResult < 0 || entryPoint == null)
-        //     throw new Exception($"Failed to find entry point with name: {entryPointName}");
+        var entryPointName = "computeMain";
+        var findEntryPointByNameResult = module.FindEntryPointByName(entryPointName, out var entryPoint);
+        if (findEntryPointByNameResult < 0 || entryPoint == null)
+            throw new Exception($"Failed to find entry point with name: {findEntryPointByNameResult}");
     }
     finally
     {
