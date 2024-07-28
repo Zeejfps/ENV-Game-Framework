@@ -61,19 +61,7 @@ public static class SlangCompilerAPI
     // {
     //     
     // }
-    //
-    // [ComImport]
-    // [Guid("8BA5FB08-5195-40e2-AC58-0D989C3A0102")]
-    // [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    // public interface ISlangBlob : ISlangUnknown
-    // {
-    //     [PreserveSig]
-    //     IntPtr GetBufferPointer();
-    //     
-    //     [PreserveSig]
-    //     int GetBufferSize();
-    // }
-    //
+    
     // public struct SessionDesc
     // {
     //     private int StructureSize;
@@ -119,6 +107,10 @@ public static class SlangCompilerAPI
     
     [DllImport("slang.dll")]
     public static extern SlangResult slang_createGlobalSession(SlangInt apiVersion, out IGlobalSession outGlobalSession);
+    
+    [DllImport("slang.dll")]
+    public static extern void slang_shutdown();
+
 }
 
 // Note: These are placeholder declarations. You'll need to define these types separately.
@@ -151,12 +143,11 @@ public enum SlangLineDirectiveMode
 public struct PreprocessorMacroDesc { }
 public struct CompilerOptionEntry { }
 public interface ISlangFileSystem { }
-public interface ISlangBlob { }
 public interface ICompileRequest { }
 public interface ISlangSharedLibraryLoader { }
 public interface ISlangUnknown { }
 public interface IModule { }
-public interface IBlob { }
+
 public interface IComponentType { }
 public class TypeReflection { }
 public class TypeLayoutReflection { }

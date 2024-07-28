@@ -10,13 +10,13 @@ public interface ISession
 
     IModule? LoadModule(
         [MarshalAs(UnmanagedType.LPStr)] string moduleName,
-        [Out] out IBlob? outDiagnostics);
+        [Out] out ISlangBlob? outDiagnostics);
 
     IModule LoadModuleFromSource(
         [MarshalAs(UnmanagedType.LPStr)] string moduleName,
         [MarshalAs(UnmanagedType.LPStr)] string path,
-        IBlob source,
-        [Out] out IBlob outDiagnostics);
+        ISlangBlob source,
+        [Out] out ISlangBlob outDiagnostics);
 
     [PreserveSig]
     int CreateCompositeComponentType(
@@ -76,8 +76,8 @@ public interface ISession
     IModule LoadModuleFromIRBlob(
         [MarshalAs(UnmanagedType.LPStr)] string moduleName,
         [MarshalAs(UnmanagedType.LPStr)] string path,
-        IBlob source,
-        [Out] out IBlob outDiagnostics);
+        ISlangBlob source,
+        [Out] out ISlangBlob outDiagnostics);
 
     int GetLoadedModuleCount();
 
@@ -86,11 +86,11 @@ public interface ISession
     [return: MarshalAs(UnmanagedType.Bool)]
     bool IsBinaryModuleUpToDate(
         [MarshalAs(UnmanagedType.LPStr)] string modulePath,
-        IBlob binaryModuleBlob);
+        ISlangBlob binaryModuleBlob);
 
     IModule LoadModuleFromSourceString(
         [MarshalAs(UnmanagedType.LPStr)] string moduleName,
         [MarshalAs(UnmanagedType.LPStr)] string path,
         [MarshalAs(UnmanagedType.LPStr)] string source,
-        [Out] out IBlob outDiagnostics);
+        [Out] out ISlangBlob outDiagnostics);
 }
