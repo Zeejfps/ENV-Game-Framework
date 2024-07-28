@@ -1,0 +1,94 @@
+﻿using System.Runtime.InteropServices;
+
+namespace SlangIntegrationTest;
+
+public interface ISession
+{
+    IGlobalSession GetGlobalSession();
+
+    IModule LoadModule(
+        [MarshalAs(UnmanagedType.LPStr)] string moduleName,
+        [Out] out IBlob outDiagnostics);
+
+    IModule LoadModuleFromSource(
+        [MarshalAs(UnmanagedType.LPStr)] string moduleName,
+        [MarshalAs(UnmanagedType.LPStr)] string path,
+        IBlob source,
+        [Out] out IBlob outDiagnostics);
+
+    [PreserveSig]
+    int CreateCompositeComponentType(
+        [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] IComponentType[] componentTypes,
+        int componentTypeCount,
+        out IComponentType outCompositeComponentType,
+        [Out] out ISlangBlob outDiagnostics);
+
+    TypeReflection SpecializeType(
+        TypeReflection type,
+        [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] SpecializationArg[] specializationArgs,
+        int specializationArgCount,
+        [Out] out ISlangBlob outDiagnostics);
+
+    TypeLayoutReflection GetTypeLayout(
+        TypeReflection type,
+        int targetIndex,
+        LayoutRules rules,
+        [Out] out ISlangBlob outDiagnostics);
+
+    TypeReflection GetContainerType(
+        TypeReflection elementType,
+        ContainerType containerType,
+        [Out] out ISlangBlob outDiagnostics);
+
+    TypeReflection GetDynamicType();
+
+    [PreserveSig]
+    int GetTypeRTTIMangledName(
+        TypeReflection type,
+        [Out] out ISlangBlob outNameBlob);
+
+    [PreserveSig]
+    int GetTypeConformanceWitnessMangledName(
+        TypeReflection type,
+        TypeReflection interfaceType,
+        [Out] out ISlangBlob outNameBlob);
+
+    [PreserveSig]
+    int GetTypeConformanceWitnessSequentialID(
+        TypeReflection type,
+        TypeReflection interfaceType,
+        out uint outId);
+
+    [PreserveSig]
+    int CreateCompileRequest(
+        out SlangCompileRequest outCompileRequest);
+
+    [PreserveSig]
+    int CreateTypeConformanceComponentType(
+        TypeReflection type,
+        TypeReflection interfaceType,
+        out ITypeConformance outConformance,
+        int conformanceIdOverride,
+        [Out] out ISlangBlob outDiagnostics);
+
+    IModule LoadModuleFromIRBlob(
+        [MarshalAs(UnmanagedType.LPStr)] string moduleName,
+        [MarshalAs(UnmanagedType.LPStr)] string path,
+        IBlob source,
+        [Out] out IBlob outDiagnostics);
+
+    int GetLoadedModuleCount();
+
+    IModule GetLoadedModule(int index);
+
+    [return: MarshalAs(UnmanagedType.Bool)]
+    bool IsBinaryModuleUpToDate(
+        [MarshalAs(UnmanagedType.LPStr)] string modulePath,
+        IBlob binaryModuleBlob);
+
+    IModule LoadModuleFromSourceString(
+        [MarshalAs(UnmanagedType.LPStr)] string moduleName,
+        [MarshalAs(UnmanagedType.LPStr)] string path,
+        [MarshalAs(UnmanagedType.LPStr)] string source,
+        [Out] out IBlob outDiagnostics);
+}
