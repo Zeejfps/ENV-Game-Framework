@@ -18,6 +18,7 @@ public sealed class ApiTest
         var vboManager = context.ArrayBufferManager;
         var framebufferManager = context.FramebufferManager;
         var shaderProgramManager = context.ShaderProgramManager;
+        var textureManager = context.Texture2dManager;
 
         Glfw.SetFramebufferSizeCallback(window,
             (_, width, height) => { framebufferManager.SetViewport(0, 0, width, height); });
@@ -27,6 +28,7 @@ public sealed class ApiTest
 
         var vbo = vboManager.CreateAndBind();
         var vao = vaoManager.CreateAndBind();
+        var textureHandle = textureManager.CreateAndBind();
 
         Span<Vertex> vertices = stackalloc Vertex[]
         {
@@ -65,7 +67,7 @@ public sealed class ApiTest
         var vertexTemplate = vaoManager.CreateTemplate<Vertex>();
 
         // vboManager.AllocFixedSizedAndUploadData<Vertex>(vertices, FixedSizedBufferAccessFlag.None);
-
+        
         vboManager.AllocFixedSize<Vertex>(vertices.Length, FixedSizedBufferAccessFlag.ReadWrite);
         using (var memory = vboManager.MapReadWrite<Vertex>())
         {
@@ -107,6 +109,7 @@ public sealed class ApiTest
             Glfw.SwapBuffers(window);
         }
 
+        textureManager.Destroy(textureHandle);
         shaderProgramManager.Destroy(shaderProgram);
         vboManager.Destroy(vbo);
         vaoManager.Destroy(vao);
