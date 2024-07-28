@@ -48,22 +48,22 @@ unsafe
         Console.WriteLine(globalSessionPtrNew + $", {globalSessionPtr}");
         Console.WriteLine(session.GetGlobalSession() == globalSession);
         
-        // var loadedModuleCount = session.GetLoadedModuleCount();
-        // Console.WriteLine($"Loaded Module Count: {loadedModuleCount}");
-        //
-        // var module = session.LoadModule("hello-world.slang", out var blob);
-        // if (module == null)
-        // {
-        //     var error = "Unknown Error";
-        //     if (blob != null)
-        //     {
-        //         var data = new Span<byte>((void*)blob.GetBufferPointer(), blob.GetBufferSize().ToInt32());
-        //         error = Encoding.ASCII.GetString(data);
-        //     }
-        //     
-        //     throw new Exception($"Error loading module: {error}");
-        // }
-        //
+        var loadedModuleCount = session.GetLoadedModuleCount();
+        Console.WriteLine($"Loaded Module Count: {loadedModuleCount}");
+        
+        var module = session.LoadModule("hello-world.slang", out var blob);
+        if (module == null)
+        {
+            var error = "Unknown Error";
+            if (blob != null)
+            {
+                var data = new Span<byte>((void*)blob.GetBufferPointer(), blob.GetBufferSize().ToInt32());
+                error = Encoding.ASCII.GetString(data);
+            }
+            
+            throw new Exception($"Error loading module: {error}");
+        }
+        
         // var entryPointName = "computeMain";
         // var findEntryPointByNameResult = module.FindEntryPointByName(entryPointName, out var entryPoint);
         // if (findEntryPointByNameResult < 0 || entryPoint == null)

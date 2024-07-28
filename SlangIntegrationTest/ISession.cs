@@ -9,10 +9,12 @@ public interface ISession
     [PreserveSig]
     IGlobalSession GetGlobalSession();
 
+    [PreserveSig]
     IModule? LoadModule(
         [MarshalAs(UnmanagedType.LPStr)] string moduleName,
         [Out] out ISlangBlob? outDiagnostics);
 
+    [PreserveSig]
     IModule LoadModuleFromSource(
         [MarshalAs(UnmanagedType.LPStr)] string moduleName,
         [MarshalAs(UnmanagedType.LPStr)] string path,
