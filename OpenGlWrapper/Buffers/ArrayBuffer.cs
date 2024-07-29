@@ -9,10 +9,7 @@ internal class ArrayBuffer : Buffer
     protected override uint Id => Handle.Id;
 
     public ArrayBufferHandle Handle { get; init; }
-    public bool IsAllocated { get; set; }
-    public bool IsFixedSize { get; set; }
-    public FixedSizedBufferAccessFlag AccessFlags { get; set; } = FixedSizedBufferAccessFlag.None;
-    public int SizeInBytes { get; set; }
+
     
     public unsafe void AllocFixedSizedAndUploadData<T>(ReadOnlySpan<T> data, FixedSizedBufferAccessFlag accessFlags) where T : unmanaged
     {

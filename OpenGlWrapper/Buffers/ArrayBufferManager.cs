@@ -55,50 +55,24 @@ public sealed class ArrayBufferManager
     public IReadWriteBufferMemory<T> MapReadWrite<T>() where T : unmanaged
     {
         AssertIsBound();
-        var buffer = m_BoundBuffer!;
-        if ((buffer.AccessFlags & FixedSizedBufferAccessFlag.Read) == 0 ||
-            (buffer.AccessFlags & FixedSizedBufferAccessFlag.Write) == 0)
-            throw new InvalidOperationException($"Can't map buffer for read-write access, missing access flags. Required Read and Write flag, found: {buffer.AccessFlags}");
-
-        return MapUnsafe<T>(buffer.SizeInBytes, GL_READ_WRITE);
+        return m_BoundBuffer!.MapReadWrite<T>();
     }
 
     public IReadOnlyBufferMemory<T> MapRead<T>() where T : unmanaged
     {
         AssertIsBound();
-        var boundBuffer = m_BoundBuffer!;
-        if ((boundBuffer.AccessFlags & FixedSizedBufferAccessFlag.Read) == 0)
-            throw new InvalidOperationException($"Can't map buffer for read access, missing access flags. Required Read flag, found: {boundBuffer.AccessFlags}");
-        return MapUnsafe<T>(boundBuffer.SizeInBytes, GL_READ_ONLY);
+        return m_BoundBuffer!.MapRead<T>();
     }
     
     public IWriteOnlyBufferMemory<T> MapWrite<T>() where T : unmanaged
     {
-        AssertIsBound();
-        var buffer = m_BoundBuffer!;
-        if ((buffer.AccessFlags & FixedSizedBufferAccessFlag.Write) == 0)
-            throw new InvalidOperationException($"Can't map buffer for write access, missing access flags. Required Write flag, found: {buffer.AccessFlags}");
-        return MapUnsafe<T>(buffer.SizeInBytes, GL_WRITE_ONLY);
+        AssertIsBound(); 
+        return m_BoundBuffer!.MapWrite<T>();
     }
 
     public IReadWriteBufferMemoryRange<T> MapReadWriteRange<T>(int offset, int length, BufferMemoryRangeAccessFlag accessFlags) where T : unmanaged
     {
         return MapRangeUnsafe<T>(offset, length, GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | (uint)accessFlags);
-    }
-
-    private BufferMemoryRange<T> MapUnsafe<T>(int sizeInBytes, uint access) where T : unmanaged
-    {
-        unsafe
-        {
-            var ptr = glMapBuffer(BufferKind, access);
-            AssertNoGlError();
-            if (ptr == null)
-                throw new Exception("Failed to map buffer, Unknown error");
-            
-            var sizeOfT = SizeOf<T>();
-            var count = sizeInBytes / sizeOfT.ToInt32();
-            return new BufferMemoryRange<T>(BufferKind, 0, ptr, count, (uint)BufferMemoryRangeAccessFlag.None);
-        }
     }
     
     private BufferMemoryRange<T> MapRangeUnsafe<T>(int offset, int count, uint access) where T : unmanaged
