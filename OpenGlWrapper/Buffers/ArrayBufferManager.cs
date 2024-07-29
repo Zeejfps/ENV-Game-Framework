@@ -17,8 +17,7 @@ public sealed class ArrayBufferManager
             return;
 
         var buffer = GetBuffer(handle);
-        glBindBuffer(BufferKind, handle);
-        AssertNoGlError();
+        buffer.Bind();
         m_BoundBuffer = buffer;
     }
     
@@ -43,35 +42,14 @@ public sealed class ArrayBufferManager
 
     public void AllocFixedSizedAndUploadData<T>(ReadOnlySpan<T> data, FixedSizedBufferAccessFlag accessFlags) where T : unmanaged
     {
-        unsafe
-        {
-            fixed (void* dataPtr = &data[0])
-                AllocFixeSizeUnsafe<T>(data.Length, dataPtr, accessFlags);
-        }
+        AssertIsBound();
+        m_BoundBuffer!.AllocFixedSizedAndUploadData(data, accessFlags);
     }
 
     public void AllocFixedSize<T>(int length, FixedSizedBufferAccessFlag accessFlags) where T : unmanaged
     {
-        unsafe
-        {
-            AllocFixeSizeUnsafe<T>(length, null, accessFlags);
-        }
-    }
-
-    private unsafe void AllocFixeSizeUnsafe<T>(int length, void* dataPtr, FixedSizedBufferAccessFlag accessFlags) where T : unmanaged
-    {
         AssertIsBound();
-        var buffer = m_BoundBuffer!;
-        if (buffer.IsAllocated && buffer.IsFixedSize)
-            throw new InvalidOperationException($"Can't re-allocate an already allocated FIXED-SIZED buffer, Id: {buffer.Handle.Id}");
-
-        var sizeInBytes = SizeOf<T>(length);
-        glBufferStorage(BufferKind, sizeInBytes, dataPtr, (uint)accessFlags);
-        AssertNoGlError();
-        buffer.IsFixedSize = true;
-        buffer.IsAllocated = true;
-        buffer.AccessFlags = accessFlags;
-        buffer.SizeInBytes = sizeInBytes.ToInt32();
+        m_BoundBuffer!.AllocFixedSize<T>(length, accessFlags);
     }
     
     public IReadWriteBufferMemory<T> MapReadWrite<T>() where T : unmanaged
@@ -183,57 +161,5 @@ public sealed class ArrayBufferManager
     private void AssertIsBound()
     {
         Debug.Assert(m_BoundBuffer != null, "No resource bound");
-    }
-    
-}
-
-class ArrayBuffer
-{
-    public ArrayBufferHandle Handle { get; set; }
-    public bool IsAllocated { get; set; }
-    public bool IsFixedSize { get; set; }
-    public FixedSizedBufferAccessFlag AccessFlags { get; set; } = FixedSizedBufferAccessFlag.None;
-    public int SizeInBytes { get; set; }
-}
-
-public readonly struct ArrayBufferHandle : IEquatable<ArrayBufferHandle>
-{
-    public static ArrayBufferHandle Null => new(0);
-    
-    internal uint Id { get; }
-
-    public ArrayBufferHandle(uint id)
-    {
-        Id = id;
-    }
-
-    public bool Equals(ArrayBufferHandle other)
-    {
-        return Id == other.Id;
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is ArrayBufferHandle other && Equals(other);
-    }
-
-    public override int GetHashCode()
-    {
-        return (int)Id;
-    }
-
-    public static bool operator ==(ArrayBufferHandle left, ArrayBufferHandle right)
-    {
-        return left.Equals(right);
-    }
-
-    public static bool operator !=(ArrayBufferHandle left, ArrayBufferHandle right)
-    {
-        return !left.Equals(right);
-    }
-
-    public static implicit operator uint(ArrayBufferHandle handle)
-    {
-        return handle.Id;
     }
 }
