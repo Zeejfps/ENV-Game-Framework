@@ -16,7 +16,16 @@ public sealed class TextField : StatefulWidget
         get => m_IsFocused;
         set => SetField(ref m_IsFocused, value);
     }
-    
+
+    private IRenderedText? m_RenderedText;
+
+    protected override void DisposeContent()
+    {
+        m_RenderedText?.Dispose();
+        m_RenderedText = null;
+        base.DisposeContent();
+    }
+
     protected override IWidget Build(IBuildContext context)
     {
         var normalBackgroundColor = Color.FromHex(0x2D2D2D, 1f);
@@ -24,6 +33,19 @@ public sealed class TextField : StatefulWidget
         
         var normalBorderColor = Color.FromHex(0x9A9A9A, 1f);
         var focusedBorderColor = Color.FromHex(0xDB9EE5, 1f);
+
+        var text = m_StringBuilder.ToString();
+        var textRenderer = context.TextRenderer;
+
+        var textFont = "Segoe UI";
+        var textStyle = new TextStyle
+        {
+            Color = Color.FromHex(0xffffff, 1f),
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        
+        m_RenderedText = textRenderer.Render(text, textFont, ScreenRect, textStyle);
         
         return new InputListenerWidget(m_InputListenerController)
         {
@@ -45,15 +67,10 @@ public sealed class TextField : StatefulWidget
                             BorderColor = IsFocused ? focusedBorderColor : normalBorderColor,
                         }
                     },
-                    new TextWidget(m_StringBuilder.ToString())
+                    new Caret
                     {
-                        FontFamily = "Segoe UI",
-                        Style = new TextStyle
-                        {
-                            Color = Color.FromHex(0xffffff, 1f),
-                            HorizontalTextAlignment = TextAlignment.Center,
-                            VerticalTextAlignment = TextAlignment.Center,
-                        }
+                        RenderedText = m_RenderedText,
+                        GlyphIndex = text.Length - 1,
                     }
                 }
             },
@@ -72,9 +89,40 @@ public sealed class TextField : StatefulWidget
         }
         else
         {
-            m_StringBuilder.Append(key);
+            m_StringBuilder.Append(key.ToString().ToLower());
         }
         
         SetDirty();
+    }
+}
+
+public sealed class Caret : Widget
+{
+    
+    public IRenderedText RenderedText { get; set; }
+    public int GlyphIndex { get; set; }
+    
+    protected override IWidget Build(IBuildContext context)
+    {
+        var renderedText = RenderedText;
+        var glyphIndex = GlyphIndex;
+
+        if (renderedText.GlyphCount == 0)
+            return null;
+        
+        var glyph = renderedText.GetGlyph(glyphIndex);
+        
+        var screenRect = glyph.ScreenRect;
+
+        var caretRect = new Rect(screenRect.X + screenRect.Width, ScreenRect.Y + 20f, 3f, ScreenRect.Height - 40f);
+        
+        return new PanelWidget
+        {
+            ScreenRect = caretRect,
+            Style = new PanelStyle
+            {
+                BackgroundColor = Color.FromHex(0xff00ff, 1f),
+            },
+        };
     }
 }

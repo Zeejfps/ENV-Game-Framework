@@ -85,8 +85,15 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
     public float CalculateTextWidth(string text, string fontName)
     {
         if (m_FontNameToFontRendererTable.TryGetValue(fontName, out var fontRenderer))
-            return fontRenderer.CalculateWidth(text);
+            return fontRenderer.CalculateSize(text, new TextStyle()).Height;
         return 0f;
+    }
+
+    public Size CalculateSize(string text, string fontName, TextStyle style)
+    {
+        if (m_FontNameToFontRendererTable.TryGetValue(fontName, out var fontRenderer))
+            return fontRenderer.CalculateSize(text, style);
+        return new Size();
     }
 }
 
@@ -150,36 +157,6 @@ sealed unsafe class BmpFontRenderer : IDisposable
         m_TexturedQuadInstanceRenderer.Add(glyph);
     }
     
-    public int CalculateWidth(string text)
-    {
-        var font = FontFile;
-        var textWidthInPixels = 0;
-        foreach (var c in AsCodePoints(text))
-        {
-            if (!font.TryGetFontChar(c, out var glyph))
-                continue;
-            textWidthInPixels += glyph.XOffset + glyph.XAdvance;
-        }
-
-        return textWidthInPixels;
-    }
-    
-    public int CalculateHeight(string text)
-    {
-        var font = FontFile;
-        var textHeightInPixels = 0;
-        foreach (var c in AsCodePoints(text))
-        {
-            if (!font.TryGetFontChar(c, out var glyph))
-                continue;
-            var glyphHeight = glyph.Height;
-            if (glyphHeight > textHeightInPixels)
-                textHeightInPixels = glyphHeight;
-        }
-
-        return textHeightInPixels;
-    }
-    
     public IEnumerable<int> AsCodePoints(string s)
     {
         for(int i = 0; i < s.Length; ++i)
@@ -220,6 +197,26 @@ sealed unsafe class BmpFontRenderer : IDisposable
         AssertNoGlError();
         m_TexturedQuadInstanceRenderer.Render();
     }
+
+    public Size CalculateSize(string text, TextStyle style)
+    {
+        var font = FontFile;
+        var textWidthInPixels = 0;
+        var textHeightInPixels = 0;
+        foreach (var c in AsCodePoints(text))
+        {
+            if (!font.TryGetFontChar(c, out var glyph))
+                continue;
+            
+            textWidthInPixels += glyph.XOffset + glyph.XAdvance;
+            
+            var glyphHeight = glyph.Height;
+            if (glyphHeight > textHeightInPixels)
+                textHeightInPixels = glyphHeight;
+        }
+        
+        return new Size(textWidthInPixels, textHeightInPixels);
+    }
 }
 
 sealed class RenderedTextImpl : IRenderedText
@@ -245,6 +242,15 @@ sealed class RenderedTextImpl : IRenderedText
             LayoutGlyphs();
         }
     }
+
+    public int GlyphCount => m_Glyphs.Count;
+    
+    public IRenderedGlyph GetGlyph(int index)
+    {
+        return m_Glyphs[index];
+    }
+
+    public IEnumerable<IRenderedGlyph> Glyphs => m_Glyphs;
 
     private readonly string m_Text;
     private readonly List<RenderedGlyphImpl> m_Glyphs = new();
@@ -325,8 +331,9 @@ sealed class RenderedTextImpl : IRenderedText
     {
         var horizontalAlignment = style.HorizontalTextAlignment;
         var verticalAlignment = style.VerticalTextAlignment;
-        var textWidth = CalculateWidth(text) * style.FontScale;
-        var textHeight = CalculateHeight(text) * style.FontScale;
+        var textSize = m_FontRenderer.CalculateSize(text, style);
+        var textWidth = textSize.Width * style.FontScale;
+        var textHeight = textSize.Height * style.FontScale;
         var leftPadding = 0f;
         var bottomPadding = 0f;
         
@@ -367,16 +374,6 @@ sealed class RenderedTextImpl : IRenderedText
         var x = (int)(screenRect.X + leftPadding);
         var y = (int)(screenRect.Y + bottomPadding);
         return new Vector2(x, y);
-    }
-        
-    private int CalculateHeight(string text)
-    {
-        return m_FontRenderer.CalculateHeight(text);
-    }
-    
-    public int CalculateWidth(string text)
-    {
-        return m_FontRenderer.CalculateWidth(text);
     }
     
     private IEnumerable<int> AsCodePoints(string s)
