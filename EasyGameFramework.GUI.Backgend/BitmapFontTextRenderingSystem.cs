@@ -344,7 +344,6 @@ sealed class RenderedTextImpl : IRenderedText
                 throw new ArgumentOutOfRangeException();
         }
 
-        Console.WriteLine($"Height: {textHeight}");
         switch (verticalAlignment)
         {
             case TextAlignment.Start:
@@ -369,18 +368,6 @@ sealed class RenderedTextImpl : IRenderedText
         
     private int CalculateHeight(string text)
     {
-        // var h = 0;
-        // foreach (var c in text)
-        // {
-        //     if (TryGetGlyph(c, out var glyph))
-        //     {
-        //         if (glyph.Height > h)
-        //             h = glyph.Height;
-        //     }
-        // }
-        // var font = m_FontRenderer.FontFile;
-        // return font.Common.Base;
-
         return m_FontRenderer.CalculateHeight(text);
     }
     

@@ -19,7 +19,7 @@ public sealed class Gui : Widget
         return new Button
         {
             ScreenRect = new Rect(30, 60, 100, 60),
-            Child = new TextWidget("Hello!")
+            Child = new TextWidget("Hellog!")
             {
                 FontFamily = "Segoe UI",
                 Style = new TextStyle
