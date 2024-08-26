@@ -536,7 +536,7 @@ public sealed class Window_GLFW : IWindow, IDisposable
                 keyboard.PressKey(key);
                 break;
             case InputState.Repeat:
-                keyboard.PressKey(key);
+                keyboard.RepeatKey(key);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(state), state, null);

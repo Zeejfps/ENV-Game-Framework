@@ -11,6 +11,11 @@ public sealed class Keyboard : IKeyboard
 
     private readonly HashSet<KeyboardKey> m_PressedKeys = new();
 
+    public void RepeatKey(KeyboardKey key)
+    {
+        OnKeyPressed(key);
+    }
+    
     public void PressKey(KeyboardKey key)
     {
         // If we fail to add the key to the collection then it is already pressed

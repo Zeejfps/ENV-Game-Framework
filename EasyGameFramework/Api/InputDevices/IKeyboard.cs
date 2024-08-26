@@ -10,6 +10,7 @@ public interface IKeyboard
     event KeyboardKeyStateChangedDelegate KeyReleased;
     event KeyboardKeyStateChangedDelegate KeyStateChanged;
     
+    void RepeatKey(KeyboardKey key);
     void PressKey(KeyboardKey key);
     void ReleaseKey(KeyboardKey key);
     
