@@ -18,8 +18,17 @@ public class FocusTree
         var mouse = inputSystem.Mouse;
         mouse.Moved += Mouse_OnMoved;
         mouse.ButtonStateChanged += Mouse_OnButtonStateChanged;
+
+        var keyboard = inputSystem.Keyboard;
+        keyboard.KeyPressed += Keyboard_OnKeyPressed;
+        
         m_Mouse = mouse;
         m_Window = window;
+    }
+
+    private void Keyboard_OnKeyPressed(in KeyboardKeyStateChangedEvent evt)
+    {
+        m_FocusedWidget?.PressKey(evt.Key);
     }
 
     private void Mouse_OnButtonStateChanged(in MouseButtonStateChangedEvent evt)

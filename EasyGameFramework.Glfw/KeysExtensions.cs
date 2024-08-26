@@ -118,7 +118,7 @@ internal static class KeysExtensions
             case Keys.Tab:
                 break;
             case Keys.Backspace:
-                break;
+                return KeyboardKey.Backspace;
             case Keys.Insert:
                 break;
             case Keys.Delete:

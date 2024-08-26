@@ -68,21 +68,10 @@ public sealed class Gui : StatefulWidget
                             Console.WriteLine("Clicked");
                         }
                     },
+                    new TextField(),
+
                 }
             }
-        };
-        
-        return new MultiChildWidget(new []
-        {
-            new PaddingWidget
-            {
-                ScreenRect = new Rect(ScreenRect.Right - 100, ScreenRect.Bottom, 100, 60),
-                Offsets = Offsets.All(10),
-                Child = addButton,
-            }
-        })
-        {
-            ScreenRect = ScreenRect,
         };
     }
 }

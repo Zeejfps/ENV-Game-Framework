@@ -33,6 +33,7 @@ public enum KeyboardKey
     Space,
     Escape,
     Apostrophe,
+    Backspace,
 
     Comma,
     Period,

@@ -1,4 +1,6 @@
-﻿namespace OpenGLSandbox;
+﻿using EasyGameFramework.Api.InputDevices;
+
+namespace OpenGLSandbox;
 
 public sealed class InputListenerWidget : Widget
 {
@@ -6,7 +8,8 @@ public sealed class InputListenerWidget : Widget
     public Action? OnPointerExit { get; set; }
     public Action? OnPointerPressed { get; set; }
     public Action? OnPointerReleased { get; set; }
-        
+    public Action<KeyboardKey>? OnKeyPressed { get; set; }
+
     public IWidget? Child { get; init; }
 
     private bool m_IsHovered;
@@ -40,7 +43,7 @@ public sealed class InputListenerWidget : Widget
                 OnPointerReleased?.Invoke();
         }
     }
-
+    
     public IInputListenerController Controller { get; }
 
     private FocusTree? m_Tree;
@@ -82,6 +85,7 @@ public interface IInputListenerController
     bool IsPressed { get; set; }
     void Add(InputListenerWidget widget);
     void Remove(InputListenerWidget widget);
+    void PressKey(KeyboardKey evtKey);
 }
 
 public sealed class InputListenerController : IInputListenerController
@@ -124,5 +128,13 @@ public sealed class InputListenerController : IInputListenerController
     public void Remove(InputListenerWidget widget)
     {
         m_Widgets.Remove(widget);
+    }
+
+    public void PressKey(KeyboardKey key)
+    {
+        foreach (var widget in m_Widgets)
+        {
+            widget.OnKeyPressed?.Invoke(key);
+        }
     }
 }
