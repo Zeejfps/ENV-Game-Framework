@@ -23,6 +23,33 @@ public sealed class Gui : Widget
                 Console.WriteLine("Clicked");
             }
         };
+
+        return new Column
+        {
+            ScreenRect = ScreenRect,
+            Children =
+            {
+                addButton,
+                new TextWidget("Test")
+                {
+                    FontFamily = "Segoe UI",
+                    Style = new TextStyle
+                    {
+                        HorizontalTextAlignment = TextAlignment.Center,
+                        VerticalTextAlignment = TextAlignment.Center,
+                    }
+                },
+                new TextWidget("Test3")
+                {
+                    FontFamily = "Segoe UI",
+                    Style = new TextStyle
+                    {
+                        HorizontalTextAlignment = TextAlignment.Center,
+                        VerticalTextAlignment = TextAlignment.Center,
+                    }
+                },
+            }
+        };
         
         return new MultiChildWidget(new []
         {
