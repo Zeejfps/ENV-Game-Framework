@@ -15,6 +15,7 @@ public sealed class Gui : Widget
 
     protected override IWidget Build(IBuildContext context)
     {
+        Console.WriteLine("Building");
         return new Button
         {
             ScreenRect = new Rect(30, 60, 100, 60),

@@ -164,6 +164,22 @@ sealed unsafe class BmpFontRenderer : IDisposable
         return textWidthInPixels;
     }
     
+    public int CalculateHeight(string text)
+    {
+        var font = FontFile;
+        var textHeightInPixels = 0;
+        foreach (var c in AsCodePoints(text))
+        {
+            if (!font.TryGetFontChar(c, out var glyph))
+                continue;
+            var glyphHeight = glyph.Height;
+            if (glyphHeight > textHeightInPixels)
+                textHeightInPixels = glyphHeight;
+        }
+
+        return textHeightInPixels;
+    }
+    
     public IEnumerable<int> AsCodePoints(string s)
     {
         for(int i = 0; i < s.Length; ++i)
@@ -328,6 +344,7 @@ sealed class RenderedTextImpl : IRenderedText
                 throw new ArgumentOutOfRangeException();
         }
 
+        Console.WriteLine($"Height: {textHeight}");
         switch (verticalAlignment)
         {
             case TextAlignment.Start:
@@ -350,7 +367,7 @@ sealed class RenderedTextImpl : IRenderedText
         return new Vector2(x, y);
     }
         
-    private int CalculateHeight(ReadOnlySpan<char> text)
+    private int CalculateHeight(string text)
     {
         // var h = 0;
         // foreach (var c in text)
@@ -361,8 +378,10 @@ sealed class RenderedTextImpl : IRenderedText
         //             h = glyph.Height;
         //     }
         // }
-        var font = m_FontRenderer.FontFile;
-        return font.Common.Base;
+        // var font = m_FontRenderer.FontFile;
+        // return font.Common.Base;
+
+        return m_FontRenderer.CalculateHeight(text);
     }
     
     public int CalculateWidth(string text)
