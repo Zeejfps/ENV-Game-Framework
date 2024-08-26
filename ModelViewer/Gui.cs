@@ -15,14 +15,26 @@ public sealed class Gui : Widget
 
     protected override IWidget Build(IBuildContext context)
     {
-        Console.WriteLine("Building");
-        return new TextButton("Hellog!")
+        var addButton = new TextButton("Hellog!")
         {
-            ScreenRect = new Rect(30, 60, 100, 60),
+            ScreenRect = new Rect(ScreenRect.Right - 100, ScreenRect.Bottom, 100, 60),
             OnClicked = () =>
             {
                 Console.WriteLine("Clicked");
             }
+        };
+        
+        return new MultiChildWidget(new []
+        {
+            new PaddingWidget
+            {
+                ScreenRect = new Rect(ScreenRect.Right - 100, ScreenRect.Bottom, 100, 60),
+                Offsets = Offsets.All(10),
+                Child = addButton,
+            }
+        })
+        {
+            ScreenRect = ScreenRect,
         };
     }
 }

@@ -43,18 +43,19 @@ public sealed class ModelViewerApp : Game
             new BmpFontFile
             {
                 FontName = "Segoe UI",
-                PathToFile = "Assets/bitmapfonts/Segoe UI.fnt"
+                PathToFile = "Assets/bitmapfonts/Segoe UI.fnt",
             },
         });
+        
+        GL46.glEnable(GL46.GL_BLEND);
+        GL46.glBlendFunc(GL46.GL_SRC_ALPHA, GL46.GL_ONE_MINUS_SRC_ALPHA);
+        GL46.glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
     }
 
     protected override void OnUpdate()
     {
-        GL46.glEnable(GL46.GL_BLEND);
-        GL46.glBlendFunc(GL46.GL_SRC_ALPHA, GL46.GL_ONE_MINUS_SRC_ALPHA);
-        GL46.glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
         GL46.glClear(GL46.GL_COLOR_BUFFER_BIT | GL46.GL_DEPTH_BUFFER_BIT);
-        
+
         m_Gui.Update(BuildContext);
         
         m_PanelRenderer.Update();

@@ -298,9 +298,12 @@ sealed class RenderedTextImpl : IRenderedText
                 continue;
                 
             var xPos = cursor.X + fontChar.XOffset;
-            
+
+            var fontScale = Style.FontScale;
             var offsetFromTop = fontChar.YOffset - (baseOffset - fontChar.Height);
-            var yPos = cursor.Y - offsetFromTop;
+            var yPos = cursor.Y - offsetFromTop * fontScale;
+            var width = fontChar.Width * fontScale;
+            var height = fontChar.Height * fontScale;
             
             var uOffset = fontChar.X / scaleW;
             var vOffset = fontChar.Y / scaleH;
@@ -308,12 +311,12 @@ sealed class RenderedTextImpl : IRenderedText
             var vScale = fontChar.Height / scaleH;
 
             var glyph = m_Glyphs[i];
-            glyph.ScreenRect = new Rect(xPos, yPos, fontChar.Width, fontChar.Height);
+            glyph.ScreenRect = new Rect(xPos, yPos, width, height);
             glyph.TextureRect = new Rect(uOffset, vOffset, uScale, vScale);
             glyph.Color = color;
             
             //Console.WriteLine($"{c}: ({uOffset}, {vOffset})\t({uScale}, {vScale})");
-            cursor.X += fontChar.XAdvance;
+            cursor.X += fontChar.XAdvance * fontScale;
             i++;
         }
     }
@@ -322,8 +325,8 @@ sealed class RenderedTextImpl : IRenderedText
     {
         var horizontalAlignment = style.HorizontalTextAlignment;
         var verticalAlignment = style.VerticalTextAlignment;
-        var textWidth = CalculateWidth(text);
-        var textHeight = CalculateHeight(text);
+        var textWidth = CalculateWidth(text) * style.FontScale;
+        var textHeight = CalculateHeight(text) * style.FontScale;
         var leftPadding = 0f;
         var bottomPadding = 0f;
         
