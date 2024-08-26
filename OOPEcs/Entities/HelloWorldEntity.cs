@@ -40,7 +40,8 @@ public sealed class HelloWorldEntity : IEntity
 
     public void Unload()
     {
-        
+        m_RenderedText.Dispose();
+        m_RenderedText = null;
     }
 
     private float m_Direction = 1f;

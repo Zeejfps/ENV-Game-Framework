@@ -3,7 +3,7 @@
 namespace OpenGLSandbox;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct Color
+public struct Color : IEquatable<Color>
 {
     public float R;
     public float G;
@@ -36,5 +36,30 @@ public struct Color
     public override string ToString()
     {
         return $"{nameof(R)}: {R}, {nameof(G)}: {G}, {nameof(B)}: {B}, {nameof(A)}: {A}";
+    }
+
+    public bool Equals(Color other)
+    {
+        return R.Equals(other.R) && G.Equals(other.G) && B.Equals(other.B) && A.Equals(other.A);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is Color other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(R, G, B, A);
+    }
+
+    public static bool operator ==(Color left, Color right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(Color left, Color right)
+    {
+        return !left.Equals(right);
     }
 }
