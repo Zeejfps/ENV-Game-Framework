@@ -15,6 +15,11 @@ public abstract class Widget : IWidget
 
     public virtual void Dispose()
     {
+        DisposeContent();
+    }
+
+    protected virtual void DisposeContent()
+    {
         m_Content?.Dispose();
         m_Content = null;
     }

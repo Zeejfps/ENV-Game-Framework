@@ -3,18 +3,32 @@ using OpenGLSandbox;
 
 namespace ModelViewer;
 
-public sealed class Gui : Widget
+public sealed class Gui : StatefulWidget
 {
     public Gui(IWindow window)
     {
         Window = window;
-        ScreenRect = new Rect(0f, 0f, window.ScreenWidth, window.ScreenHeight);
+        Window.Resized += Window_OnResized;
+    }
+
+    public override void Dispose()
+    {
+        Window.Resized -= Window_OnResized;
+        base.Dispose();
+    }
+
+    private void Window_OnResized()
+    {
+        SetDirty();
     }
 
     private IWindow Window { get; }
 
     protected override IWidget Build(IBuildContext context)
     {
+        var window = Window;
+        ScreenRect = new Rect(0f, 0f, window.ScreenWidth, window.ScreenHeight);
+
         var addButton = new TextButton("Hellog!")
         {
             OnClicked = () =>

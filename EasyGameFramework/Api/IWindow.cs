@@ -8,6 +8,8 @@ public interface IWindow
     event Action Paint;
     event Action Closed;
     
+    event Action Resized;
+    
     int ScreenWidth { get; set; }
     int ScreenHeight { get; set; }
     string Title { get; set; }

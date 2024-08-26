@@ -9,7 +9,7 @@ public abstract class StatefulWidget : Widget
         if (m_IsDirty)
         {
             m_IsDirty = false;
-            Dispose();
+            DisposeContent();
         }
         base.Update(context);
     }
@@ -22,5 +22,10 @@ public abstract class StatefulWidget : Widget
         field = value;
         m_IsDirty = true;
         return true;
+    }
+
+    protected void SetDirty()
+    {
+        m_IsDirty = true;
     }
 }

@@ -20,6 +20,7 @@ public sealed class Window_GLFW : IWindow, IDisposable
 {
     public event Action? Paint;
     public event Action? Closed;
+    public event Action? Resized;
 
     private readonly IDisplayManager m_DisplayManager;
     private readonly SizeCallback m_FramebufferSizeCallback;
@@ -493,6 +494,7 @@ public sealed class Window_GLFW : IWindow, IDisposable
     private void Glfw_FramebufferSizeCallback(Window window, int width, int height)
     {
         m_WindowFramebuffer.SetSize(width, height);
+        Resized?.Invoke();
     }
 
     private void Glfw_MousePosCallback(Window window, double x, double y)

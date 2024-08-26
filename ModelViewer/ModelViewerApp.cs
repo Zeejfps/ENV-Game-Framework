@@ -37,6 +37,8 @@ public sealed class ModelViewerApp : Game
 
     protected override void OnStartup()
     {
+        Window.IsResizable = true;
+        Window.SetScreenSize(480, 640);
         m_PanelRenderer.Load();
         m_TextRenderer.Load(new []
         {
