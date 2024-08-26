@@ -117,6 +117,7 @@ public sealed class CalculatorScene : IScene
             
         private readonly TextStyle m_TextStyleNormal = new()
         {
+            FontFamily = "Segoe UI",
             Color = Color.FromHex(0xf7f7f7, 1f),
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center
@@ -124,6 +125,7 @@ public sealed class CalculatorScene : IScene
     
         private readonly TextStyle m_TextStylePressed = new()
         {
+            FontFamily = "Segoe UI",
             Color = Color.FromHex(0xc8c7c9, 1f),
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center
@@ -185,7 +187,6 @@ public sealed class CalculatorScene : IScene
                         },
                         new TextWidget(Text)
                         {
-                            FontFamily = "Segoe UI",
                             Style = textStyle
                         }    
                     }

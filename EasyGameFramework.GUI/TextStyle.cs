@@ -2,6 +2,7 @@
 
 public struct TextStyle
 {
+    public string FontFamily; 
     public float FontScale;
     public TextAlignment HorizontalTextAlignment;
     public TextAlignment VerticalTextAlignment;

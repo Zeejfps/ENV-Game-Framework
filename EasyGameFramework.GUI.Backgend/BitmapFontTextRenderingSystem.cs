@@ -74,8 +74,9 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
             renderer.Render();
     }
     
-    public IRenderedText Render(string text, string fontFamily, Rect screenRect, TextStyle style)
+    public IRenderedText Render(string text, Rect screenRect, TextStyle style)
     {
+        var fontFamily = style.FontFamily;
         if (m_FontNameToFontRendererTable.TryGetValue(fontFamily, out var font))
             return new RenderedTextImpl(font, screenRect, style, text);
         

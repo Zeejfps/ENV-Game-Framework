@@ -28,10 +28,10 @@ public sealed class HelloWorldEntity : IEntity
         var textWidth = m_TextRenderer.CalculateTextWidth(text, fontFamily);
         m_RenderedText = m_TextRenderer.Render(
             text: text, 
-            fontFamily: fontFamily,
             screenPosition: new Rect(0, m_Window.ScreenHeight - 80, textWidth, 50), 
             style: new TextStyle
             {
+                FontFamily = fontFamily,
                 Color = Color.FromHex(0xff00ff, 1f),
             }
         );

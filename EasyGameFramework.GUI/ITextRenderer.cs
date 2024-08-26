@@ -2,9 +2,8 @@
 
 public interface ITextRenderer
 {
-    IRenderedText Render(string text, string fontFamily, Rect screenPosition, TextStyle style);
+    IRenderedText Render(string text, Rect screenPosition, TextStyle style);
     float CalculateTextWidth(string text, string fontName);
-    Size CalculateSize(string text, string fontName, TextStyle style);
 }
 
 public struct Size

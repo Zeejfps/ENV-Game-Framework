@@ -54,9 +54,9 @@ public sealed class TextButton : StatefulWidget
         stack.Children.Add(panel);
         stack.Children.Add(new TextWidget(m_Text)
         {
-            FontFamily = "Segoe UI",
             Style = new TextStyle
             {
+                FontFamily = "Segoe UI",
                 FontScale = 0.5f,
                 Color = Color.FromHex(0xffffff, 1f),
                 HorizontalTextAlignment = TextAlignment.Center,

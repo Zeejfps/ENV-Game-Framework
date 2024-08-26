@@ -53,15 +53,15 @@ public sealed class TextField : StatefulWidget
         var text = m_StringBuilder.ToString();
         var textRenderer = context.TextRenderer;
 
-        var textFont = "Segoe UI";
         var textStyle = new TextStyle
         {
+            FontFamily = "Segoe UI",
             Color = Color.FromHex(0xffffff, 1f),
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
         
-        m_RenderedText = textRenderer.Render(text, textFont, ScreenRect, textStyle);
+        m_RenderedText = textRenderer.Render(text, ScreenRect, textStyle);
         
         return new InputListenerWidget(m_InputListenerController)
         {
