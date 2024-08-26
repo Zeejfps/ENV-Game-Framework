@@ -66,6 +66,11 @@ public sealed class Renderer : IEntity,
         return m_TextRenderer.CalculateTextWidth(text, fontName);
     }
 
+    public Size CalculateSize(string text, string fontName, TextStyle style)
+    {
+        throw new NotImplementedException();
+    }
+
     public IRenderedSprite Render(Rect screenRect)
     {
         return m_SpriteRenderer.Render(screenRect);
