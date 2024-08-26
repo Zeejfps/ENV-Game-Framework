@@ -16,21 +16,12 @@ public sealed class Gui : Widget
     protected override IWidget Build(IBuildContext context)
     {
         Console.WriteLine("Building");
-        return new Button
+        return new TextButton("Hellog!")
         {
             ScreenRect = new Rect(30, 60, 100, 60),
-            Child = new TextWidget("Hellog!")
+            OnClicked = () =>
             {
-                FontFamily = "Segoe UI",
-                Style = new TextStyle
-                {
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    VerticalTextAlignment = TextAlignment.Center,
-                },
-            },
-            OnPressed = () =>
-            {
-                
+                Console.WriteLine("Clicked");
             }
         };
     }
