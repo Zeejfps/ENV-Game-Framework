@@ -68,12 +68,14 @@ public class FocusTree
         
         if (prevFocusedWidget != null)
         {
+            prevFocusedWidget.IsFocused = false;
             prevFocusedWidget.IsHovered = false;
             prevFocusedWidget.IsPressed = false;
         }
 
         if (m_FocusedWidget != null)
         {
+            m_FocusedWidget.IsFocused = true;
             m_FocusedWidget.IsHovered = true;
         }
     }

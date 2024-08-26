@@ -9,6 +9,8 @@ public sealed class InputListenerWidget : Widget
     public Action? OnPointerPressed { get; set; }
     public Action? OnPointerReleased { get; set; }
     public Action<KeyboardKey>? OnKeyPressed { get; set; }
+    public Action? OnFocusGained { get; set; }
+    public Action? OnFocusLost { get; set; }
 
     public IWidget? Child { get; init; }
 
@@ -43,6 +45,23 @@ public sealed class InputListenerWidget : Widget
                 OnPointerReleased?.Invoke();
         }
     }
+
+    private bool m_IsFocused;
+
+    public bool IsFocused
+    {
+        get => m_IsFocused;
+        set
+        {
+            if (m_IsFocused == value)
+                return;
+            m_IsFocused = value;
+            if (m_IsFocused)
+                OnFocusGained?.Invoke();
+            else
+                OnFocusLost?.Invoke();
+        }
+    }
     
     public IInputListenerController Controller { get; }
 
@@ -51,6 +70,7 @@ public sealed class InputListenerWidget : Widget
     public InputListenerWidget(IInputListenerController controller)
     {
         Controller = controller;
+        m_IsFocused = controller.IsFocused;
         m_IsHovered = controller.IsHovered;
         m_IsPressed = controller.IsPressed;
     }
@@ -83,6 +103,7 @@ public interface IInputListenerController
 {
     bool IsHovered { get; set; }
     bool IsPressed { get; set; }
+    bool IsFocused { get; set; }
     void Add(InputListenerWidget widget);
     void Remove(InputListenerWidget widget);
     void PressKey(KeyboardKey evtKey);
@@ -115,6 +136,22 @@ public sealed class InputListenerController : IInputListenerController
             m_IsPressed = value;
             foreach (var widget in m_Widgets)
                 widget.IsPressed = m_IsPressed;
+        }
+    }
+
+    private bool m_IsFocused;
+
+    public bool IsFocused
+    {
+        get => m_IsFocused;
+        set
+        {
+            if (m_IsFocused == value)
+                return;
+
+            m_IsFocused = value;
+            foreach (var widget in m_Widgets)
+                widget.IsFocused = m_IsFocused;
         }
     }
 
