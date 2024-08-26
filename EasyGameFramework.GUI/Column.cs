@@ -4,6 +4,7 @@ namespace ModelViewer;
 
 public sealed class Column : Widget
 {
+    public float Spacing { get; set; }
     public List<Widget> Children { get; } = new();
     
     protected override IWidget Build(IBuildContext context)
@@ -13,7 +14,7 @@ public sealed class Column : Widget
         if (childrenCount < 0)
             return this;
         
-        var childrenHeight = ScreenRect.Height / childrenCount;
+        var childrenHeight = (ScreenRect.Height - Spacing * (childrenCount - 1)) / childrenCount;
         var y = ScreenRect.Y;
         foreach (var child in children)
         {
@@ -23,7 +24,7 @@ public sealed class Column : Widget
             childRect.Width = ScreenRect.Width;
             childRect.Height = childrenHeight;
             child.ScreenRect = childRect;
-            y += childrenHeight;
+            y += childrenHeight + Spacing;
         }
 
         return new MultiChildWidget(children);

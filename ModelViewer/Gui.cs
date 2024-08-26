@@ -17,37 +17,44 @@ public sealed class Gui : Widget
     {
         var addButton = new TextButton("Hellog!")
         {
-            ScreenRect = new Rect(ScreenRect.Right - 100, ScreenRect.Bottom, 100, 60),
             OnClicked = () =>
             {
                 Console.WriteLine("Clicked");
             }
         };
 
-        return new Column
+        return new PaddingWidget
         {
             ScreenRect = ScreenRect,
-            Children =
+            Offsets = Offsets.All(10f),
+            Child = new Column
             {
-                addButton,
-                new TextWidget("Test")
+                Spacing = 10,
+                Children =
                 {
-                    FontFamily = "Segoe UI",
-                    Style = new TextStyle
+                    new TextButton("Test1!")
                     {
-                        HorizontalTextAlignment = TextAlignment.Center,
-                        VerticalTextAlignment = TextAlignment.Center,
-                    }
-                },
-                new TextWidget("Test3")
-                {
-                    FontFamily = "Segoe UI",
-                    Style = new TextStyle
+                        OnClicked = () =>
+                        {
+                            Console.WriteLine("Clicked");
+                        }
+                    },
+                    addButton,
+                    new TextButton("Test3!")
                     {
-                        HorizontalTextAlignment = TextAlignment.Center,
-                        VerticalTextAlignment = TextAlignment.Center,
-                    }
-                },
+                        OnClicked = () =>
+                        {
+                            Console.WriteLine("Clicked");
+                        }
+                    },
+                    new TextButton("Test4!")
+                    {
+                        OnClicked = () =>
+                        {
+                            Console.WriteLine("Clicked");
+                        }
+                    },
+                }
             }
         };
         
