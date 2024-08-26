@@ -72,6 +72,7 @@ public sealed class CalculatorScene : IScene
         
         private IWindow Window { get; }
         private IInputSystem InputSystem { get; }
+        private FocusTree FocusTree { get; }
 
         public TestContext(IPanelRenderer panelRenderer, ITextRenderer textRenderer, IInputSystem inputSystem, IWindow window)
         {
@@ -79,6 +80,7 @@ public sealed class CalculatorScene : IScene
             TextRenderer = textRenderer;
             InputSystem = inputSystem;
             Window = window;
+            FocusTree = new FocusTree(inputSystem, window);
         }
         
         public T Get<T>()
@@ -91,6 +93,8 @@ public sealed class CalculatorScene : IScene
                 return (T)Window;
             if (typeof(T) == typeof(IInputSystem))
                 return (T)InputSystem;
+            if (typeof(T) == typeof(FocusTree))
+                return (T)(object)FocusTree;
             
             return default;
         }
@@ -158,7 +162,8 @@ public sealed class CalculatorScene : IScene
         }
 
         private string Text { get; set; }
-
+        private readonly InputListenerController m_InputListenerController = new();
+        
         public CalculatorTextButtonWidget(string text)
         {
             Text = text;
@@ -180,7 +185,7 @@ public sealed class CalculatorScene : IScene
                 panelStyle = PanelStyleHovered;
             }
 
-            return new InputListenerWidget
+            return new InputListenerWidget(m_InputListenerController)
             {
                 ScreenRect = ScreenRect,
                 OnPointerEnter = () => IsHovered = true,
@@ -245,51 +250,58 @@ public sealed class CalculatorScene : IScene
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center
         };
+
+        private InputListenerController m_InputListenerController = new();
         
         protected override IWidget Build(IBuildContext context)
         {
             var x = "\U0001D465";
-            
-            return new PaddingWidget
+
+            return new InputListenerWidget(m_InputListenerController)
             {
-                ScreenRect = new Rect(0, 0, 400f, 410f),
-                Offsets = Offsets.All(6f),
-                Child = new GridWidget
+                ScreenRect = ScreenRect,
+                OnPointerPressed = () => Console.WriteLine("Wooo Pressed"),
+                Child = new PaddingWidget
                 {
-                    ColumnCount = 4,
-                    RowCount = 6,
-                    Spacing = 2f,
-                    Children = new List<IWidget>
+                    //ScreenRect = new Rect(0, 0, 400f, 410f),
+                    Offsets = Offsets.All(6f),
+                    Child = new GridWidget
                     {
-                        new CalculatorTextButtonWidget("+/-"),
-                        new CalculatorTextButtonWidget("0"),
-                        new CalculatorTextButtonWidget("."),
-                        new CalculatorTextButtonWidget("="),
-                        
-                        new CalculatorTextButtonWidget("1"),
-                        new CalculatorTextButtonWidget("2"),
-                        new CalculatorTextButtonWidget("3"),
-                        new CalculatorTextButtonWidget("+"),
-                        
-                        new CalculatorTextButtonWidget("4"),
-                        new CalculatorTextButtonWidget("5"),
-                        new CalculatorTextButtonWidget("6"),
-                        new CalculatorTextButtonWidget("-"),
-                        
-                        new CalculatorTextButtonWidget("7"),
-                        new CalculatorTextButtonWidget("8"),
-                        new CalculatorTextButtonWidget("9"),
-                        new CalculatorTextButtonWidget("x"),
-                        
-                        new CalculatorTextButtonWidget("⅟" + x),
-                        new CalculatorTextButtonWidget(x + "²"),
-                        new CalculatorTextButtonWidget("\u221A" + x),
-                        new CalculatorTextButtonWidget("\u00F7"),
-                        
-                        new CalculatorTextButtonWidget("%"),
-                        new CalculatorTextButtonWidget("CE"),
-                        new CalculatorTextButtonWidget("C"),
-                        new CalculatorTextButtonWidget(((char)57475).ToString()),
+                        ColumnCount = 4,
+                        RowCount = 6,
+                        Spacing = 2f,
+                        Children = new List<IWidget>
+                        {
+                            new CalculatorTextButtonWidget("+/-"),
+                            new CalculatorTextButtonWidget("0"),
+                            new CalculatorTextButtonWidget("."),
+                            new CalculatorTextButtonWidget("="),
+                            
+                            new CalculatorTextButtonWidget("1"),
+                            new CalculatorTextButtonWidget("2"),
+                            new CalculatorTextButtonWidget("3"),
+                            new CalculatorTextButtonWidget("+"),
+                            
+                            new CalculatorTextButtonWidget("4"),
+                            new CalculatorTextButtonWidget("5"),
+                            new CalculatorTextButtonWidget("6"),
+                            new CalculatorTextButtonWidget("-"),
+                            
+                            new CalculatorTextButtonWidget("7"),
+                            new CalculatorTextButtonWidget("8"),
+                            new CalculatorTextButtonWidget("9"),
+                            new CalculatorTextButtonWidget("x"),
+                            
+                            new CalculatorTextButtonWidget("⅟" + x),
+                            new CalculatorTextButtonWidget(x + "²"),
+                            new CalculatorTextButtonWidget("\u221A" + x),
+                            new CalculatorTextButtonWidget("\u00F7"),
+                            
+                            new CalculatorTextButtonWidget("%"),
+                            new CalculatorTextButtonWidget("CE"),
+                            new CalculatorTextButtonWidget("C"),
+                            new CalculatorTextButtonWidget(((char)57475).ToString()),
+                        }
                     }
                 }
             };
