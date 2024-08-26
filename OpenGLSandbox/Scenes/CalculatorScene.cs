@@ -67,12 +67,11 @@ public sealed class CalculatorScene : IScene
 
     class TestContext : IBuildContext
     {
-        private IPanelRenderer PanelRenderer { get; }
-        private ITextRenderer TextRenderer { get; }
-        
-        private IWindow Window { get; }
-        private IInputSystem InputSystem { get; }
-        private FocusTree FocusTree { get; }
+        public IPanelRenderer PanelRenderer { get; }
+        public ITextRenderer TextRenderer { get; }
+        public IWindow Window { get; }
+        public IInputSystem InputSystem { get; }
+        public FocusTree FocusTree { get; }
 
         public TestContext(IPanelRenderer panelRenderer, ITextRenderer textRenderer, IInputSystem inputSystem, IWindow window)
         {
@@ -81,22 +80,6 @@ public sealed class CalculatorScene : IScene
             InputSystem = inputSystem;
             Window = window;
             FocusTree = new FocusTree(inputSystem, window);
-        }
-        
-        public T Get<T>()
-        {
-            if (typeof(T) == typeof(ITextRenderer))
-                return (T)TextRenderer;
-            if (typeof(T) == typeof(IPanelRenderer))
-                return (T)PanelRenderer;
-            if (typeof(T) == typeof(IWindow))
-                return (T)Window;
-            if (typeof(T) == typeof(IInputSystem))
-                return (T)InputSystem;
-            if (typeof(T) == typeof(FocusTree))
-                return (T)(object)FocusTree;
-            
-            return default;
         }
     }
 

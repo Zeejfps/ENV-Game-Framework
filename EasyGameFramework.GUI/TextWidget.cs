@@ -15,7 +15,7 @@ public sealed class TextWidget : Widget
         
     protected override IWidget Build(IBuildContext context)
     {
-        var renderer = context.Get<ITextRenderer>();
+        var renderer = context.TextRenderer;
         m_RenderedText = renderer.Render(Text, FontFamily, ScreenRect, Style);
         return this;
     }

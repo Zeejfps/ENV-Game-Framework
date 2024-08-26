@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using EasyGameFramework.Api;
+﻿using EasyGameFramework.Api;
 using OpenGLSandbox;
 
 namespace ModelViewer;
@@ -22,28 +21,6 @@ public sealed class Gui : Widget
             OnPressed = () =>
             {
                 
-            }
-        };
-    }
-}
-
-public sealed class Button : StatefulWidget
-{
-    public Action OnPressed { get; set; }
-    
-    protected override IWidget Build(IBuildContext context)
-    {
-        return new InputListenerWidget
-        {
-            ScreenRect = ScreenRect,
-            Child = new PanelWidget
-            {
-                ScreenRect = ScreenRect,
-                Style = new PanelStyle
-                {
-                    BackgroundColor = Color.FromHex(0xff00ff, 1f),
-                    BorderRadius = new Vector4(5f, 5f, 5f, 5f)
-                }
             }
         };
     }

@@ -1,8 +1,4 @@
-﻿using EasyGameFramework.Api;
-using EasyGameFramework.Api.Events;
-using EasyGameFramework.Api.InputDevices;
-
-namespace OpenGLSandbox;
+﻿namespace OpenGLSandbox;
 
 public sealed class InputListenerWidget : Widget
 {
@@ -11,7 +7,7 @@ public sealed class InputListenerWidget : Widget
     public Action? OnPointerPressed { get; set; }
     public Action? OnPointerReleased { get; set; }
         
-    public IWidget Child { get; init; }
+    public IWidget? Child { get; init; }
 
     private bool m_IsHovered;
     public bool IsPointerHovering
@@ -47,8 +43,6 @@ public sealed class InputListenerWidget : Widget
 
     public IInputListenerController Controller { get; }
 
-    private int m_ScreenHeight;
-    private IMouse? m_Mouse;
     private FocusTree? m_Tree;
 
     public InputListenerWidget(IInputListenerController controller)
@@ -60,24 +54,13 @@ public sealed class InputListenerWidget : Widget
     
     protected override IWidget Build(IBuildContext context)
     {
-        m_Tree = context.Get<FocusTree>();
+        m_Tree = context.FocusTree;
         m_Tree.Add(this);
-        //Console.WriteLine("Build:InputHandlerWidget");
-            
-        var window = context.Get<IWindow>();
-        m_ScreenHeight = window.ScreenHeight;
-            
-        // var inputSystem = context.Get<IInputSystem>();
-        // m_Mouse = inputSystem.Mouse;
-        // m_Mouse.Moved += Mouse_OnMoved;
-        // m_Mouse.ButtonStateChanged += Mouse_OnButtonStateChanged;
-            
-        Child.ScreenRect = ScreenRect;
-
-        // m_IsHovered = ScreenRect.Contains(m_Mouse.ScreenX, m_ScreenHeight - m_Mouse.ScreenY);
-        // m_IsPressed = m_IsHovered && m_Mouse.IsButtonPressed(MouseButton.Left);
-
         Controller.Add(this);
+        
+        if (Child != null)
+            Child.ScreenRect = ScreenRect;
+        
         return Child;
     }
 
@@ -88,26 +71,8 @@ public sealed class InputListenerWidget : Widget
             m_Tree.Remove(this);
         }
         
-        if (m_Mouse != null)
-        {
-            m_Mouse.Moved -= Mouse_OnMoved;
-            m_Mouse.ButtonStateChanged -= Mouse_OnButtonStateChanged;
-        }
-        
         Controller.Remove(this);
         base.Dispose();
-    }
-
-    private void Mouse_OnMoved(in MouseMovedEvent evt)
-    {
-        var mouse = evt.Mouse;
-        
-    }
-
-    private void Mouse_OnButtonStateChanged(in MouseButtonStateChangedEvent evt)
-    {
-        var mouse = evt.Mouse;
-        IsPressed = m_IsHovered && mouse.IsButtonPressed(MouseButton.Left);
     }
 }
 

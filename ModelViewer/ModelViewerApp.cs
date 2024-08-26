@@ -6,11 +6,15 @@ namespace ModelViewer;
 
 class BuildContext : IBuildContext
 {
-    public DiContainer DiContainer { get; } = new();
-    
-    public T Get<T>()
+    public IPanelRenderer PanelRenderer { get; }
+    public ITextRenderer TextRenderer { get; }
+    public FocusTree FocusTree { get; }
+
+    public BuildContext(IPanelRenderer panelRenderer, FocusTree focusTree, ITextRenderer textRenderer)
     {
-        return DiContainer.New<T>();
+        PanelRenderer = panelRenderer;
+        FocusTree = focusTree;
+        TextRenderer = textRenderer;
     }
 }
 
@@ -25,11 +29,9 @@ public sealed class ModelViewerApp : Game
     {
         m_TextRenderer = new BitmapFontTextRenderer(Window);
         m_PanelRenderer = new PanelRenderer(Window);
+        var focusTree = new FocusTree(Input, Window);
         
-        BuildContext = new BuildContext();
-        BuildContext.DiContainer.BindSingleton<ITextRenderer>(m_TextRenderer);
-        BuildContext.DiContainer.BindSingleton<IPanelRenderer>(m_PanelRenderer);
-        
+        BuildContext = new BuildContext(m_PanelRenderer, focusTree, m_TextRenderer);
         m_Gui = new Gui(Window);
     }
 

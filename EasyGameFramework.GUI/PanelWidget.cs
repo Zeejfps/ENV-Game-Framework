@@ -9,7 +9,7 @@ public sealed class PanelWidget : Widget
     protected override IWidget Build(IBuildContext context)
     {
         //Console.WriteLine("Build:PanelWidget");
-        var renderer = context.Get<IPanelRenderer>();
+        var renderer = context.PanelRenderer;
         m_RenderedPanel = renderer.Render(ScreenRect, Style);
         return this;
     }

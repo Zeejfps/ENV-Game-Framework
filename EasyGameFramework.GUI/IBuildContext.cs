@@ -2,5 +2,7 @@
 
 public interface IBuildContext
 {
-    T Get<T>();
+    IPanelRenderer PanelRenderer { get; }
+    ITextRenderer TextRenderer { get; }
+    FocusTree FocusTree { get; }
 }
