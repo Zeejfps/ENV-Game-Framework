@@ -17,7 +17,16 @@ public sealed class Gui : Widget
     {
         return new Button
         {
-            ScreenRect = new Rect(10, 10, 60, 60),
+            ScreenRect = new Rect(30, 60, 100, 60),
+            Child = new TextWidget("Hello!")
+            {
+                FontFamily = "Segoe UI",
+                Style = new TextStyle
+                {
+                    HorizontalTextAlignment = TextAlignment.Center,
+                    VerticalTextAlignment = TextAlignment.Center,
+                },
+            },
             OnPressed = () =>
             {
                 
