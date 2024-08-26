@@ -17,6 +17,22 @@ public sealed class TextField : StatefulWidget
         set => SetField(ref m_IsFocused, value);
     }
 
+    private int m_SelectionStartIndex = 0;
+    private int SelectionStartIndex
+    {
+        get => m_SelectionStartIndex;
+        set
+        {
+            if (value < 0)
+                value = 0;
+            
+            if (value >= m_StringBuilder.Length)
+                value = m_StringBuilder.Length - 1;
+            
+            SetField(ref m_SelectionStartIndex, value);
+        }
+    }
+    
     private IRenderedText? m_RenderedText;
 
     protected override void DisposeContent()
@@ -41,7 +57,7 @@ public sealed class TextField : StatefulWidget
         var textStyle = new TextStyle
         {
             Color = Color.FromHex(0xffffff, 1f),
-            HorizontalTextAlignment = TextAlignment.Center,
+            HorizontalTextAlignment = TextAlignment.Start,
             VerticalTextAlignment = TextAlignment.Center,
         };
         
@@ -70,7 +86,7 @@ public sealed class TextField : StatefulWidget
                     new Caret
                     {
                         RenderedText = m_RenderedText,
-                        GlyphIndex = text.Length - 1,
+                        GlyphIndex = SelectionStartIndex,
                     }
                 }
             },
@@ -85,11 +101,21 @@ public sealed class TextField : StatefulWidget
             if (m_StringBuilder.Length == 0)
                 return;
             
-            m_StringBuilder.Remove(m_StringBuilder.Length - 1, 1);
+            m_StringBuilder.Remove(SelectionStartIndex, 1);
+            SelectionStartIndex--;
+        }
+        else if (key == KeyboardKey.LeftArrow)
+        {
+            SelectionStartIndex--;
+        }
+        else if (key == KeyboardKey.RightArrow)
+        {
+            SelectionStartIndex++;
         }
         else
         {
             m_StringBuilder.Append(key.ToString().ToLower());
+            SelectionStartIndex++;
         }
         
         SetDirty();
@@ -98,13 +124,13 @@ public sealed class TextField : StatefulWidget
 
 public sealed class Caret : Widget
 {
-    
     public IRenderedText RenderedText { get; set; }
     public int GlyphIndex { get; set; }
     
     protected override IWidget Build(IBuildContext context)
     {
         var renderedText = RenderedText;
+        var renderedTextBounds = renderedText.Bounds;
         var glyphIndex = GlyphIndex;
 
         if (renderedText.GlyphCount == 0)
@@ -112,9 +138,9 @@ public sealed class Caret : Widget
         
         var glyph = renderedText.GetGlyph(glyphIndex);
         
-        var screenRect = glyph.ScreenRect;
+        var glyphRect = glyph.ScreenRect;
 
-        var caretRect = new Rect(screenRect.X + screenRect.Width, ScreenRect.Y + 20f, 3f, ScreenRect.Height - 40f);
+        var caretRect = new Rect(glyphRect.X + glyphRect.Width + 2f, renderedTextBounds.Y - 10f, 3f, renderedTextBounds.Height + 20f);
         
         return new PanelWidget
         {

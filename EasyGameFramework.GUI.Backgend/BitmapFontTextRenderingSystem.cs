@@ -243,6 +243,7 @@ sealed class RenderedTextImpl : IRenderedText
         }
     }
 
+    public Rect Bounds { get; private set; }
     public int GlyphCount => m_Glyphs.Count;
     
     public IRenderedGlyph GetGlyph(int index)
@@ -280,7 +281,9 @@ sealed class RenderedTextImpl : IRenderedText
 
     private void LayoutGlyphs()
     {
-        var position = CalculatePosition(ScreenRect, Style, m_Text);
+        var textSize = m_FontRenderer.CalculateSize(m_Text, Style);
+        var position = CalculatePosition(ScreenRect, Style, textSize);
+        Bounds = new Rect(position.X, position.Y, textSize.Width, textSize.Height);
         var cursor = new Vector2(position.X, position.Y);
         var color = Style.Color;
         var text = m_Text;
@@ -327,11 +330,10 @@ sealed class RenderedTextImpl : IRenderedText
         }
     }
     
-    public Vector2 CalculatePosition(Rect screenRect, TextStyle style, string text)
+    public Vector2 CalculatePosition(Rect screenRect, TextStyle style, Size textSize)
     {
         var horizontalAlignment = style.HorizontalTextAlignment;
         var verticalAlignment = style.VerticalTextAlignment;
-        var textSize = m_FontRenderer.CalculateSize(text, style);
         var textWidth = textSize.Width * style.FontScale;
         var textHeight = textSize.Height * style.FontScale;
         var leftPadding = 0f;
