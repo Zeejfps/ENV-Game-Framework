@@ -85,7 +85,7 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
     public float CalculateTextWidth(string text, string fontName)
     {
         if (m_FontNameToFontRendererTable.TryGetValue(fontName, out var fontRenderer))
-            return fontRenderer.CalculateSize(text, new TextStyle()).Height;
+            return fontRenderer.CalculateSize(text, new TextStyle()).Width;
         return 0f;
     }
 
@@ -215,7 +215,7 @@ sealed unsafe class BmpFontRenderer : IDisposable
                 textHeightInPixels = glyphHeight;
         }
         
-        return new Size(textWidthInPixels, textHeightInPixels);
+        return new Size(textWidthInPixels, font.Common.Base);
     }
 }
 

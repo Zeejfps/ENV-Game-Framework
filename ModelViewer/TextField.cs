@@ -17,19 +17,19 @@ public sealed class TextField : StatefulWidget
         set => SetField(ref m_IsFocused, value);
     }
 
-    private int m_SelectionStartIndex = 0;
-    private int SelectionStartIndex
+    private int m_CaretIndex = 0;
+    private int CaretIndex
     {
-        get => m_SelectionStartIndex;
+        get => m_CaretIndex;
         set
         {
             if (value < 0)
                 value = 0;
             
-            if (value >= m_StringBuilder.Length)
-                value = m_StringBuilder.Length - 1;
+            if (value > m_StringBuilder.Length)
+                value = m_StringBuilder.Length;
             
-            SetField(ref m_SelectionStartIndex, value);
+            SetField(ref m_CaretIndex, value);
         }
     }
     
@@ -57,7 +57,7 @@ public sealed class TextField : StatefulWidget
         var textStyle = new TextStyle
         {
             Color = Color.FromHex(0xffffff, 1f),
-            HorizontalTextAlignment = TextAlignment.Start,
+            HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
         
@@ -86,7 +86,7 @@ public sealed class TextField : StatefulWidget
                     new Caret
                     {
                         RenderedText = m_RenderedText,
-                        GlyphIndex = SelectionStartIndex,
+                        CaretIndex = CaretIndex,
                     }
                 }
             },
@@ -100,22 +100,31 @@ public sealed class TextField : StatefulWidget
         {
             if (m_StringBuilder.Length == 0)
                 return;
+
+            var glyphIndex = CaretIndex - 1;
+            if (glyphIndex < 0)
+                return;
             
-            m_StringBuilder.Remove(SelectionStartIndex, 1);
-            SelectionStartIndex--;
+            m_StringBuilder.Remove(glyphIndex, 1);
+            CaretIndex--;
+        }
+        else if (key == KeyboardKey.Space)
+        {
+            m_StringBuilder.Append(' ');
+            CaretIndex++;
         }
         else if (key == KeyboardKey.LeftArrow)
         {
-            SelectionStartIndex--;
+            CaretIndex--;
         }
         else if (key == KeyboardKey.RightArrow)
         {
-            SelectionStartIndex++;
+            CaretIndex++;
         }
         else
         {
             m_StringBuilder.Append(key.ToString().ToLower());
-            SelectionStartIndex++;
+            CaretIndex++;
         }
         
         SetDirty();
@@ -125,22 +134,25 @@ public sealed class TextField : StatefulWidget
 public sealed class Caret : Widget
 {
     public IRenderedText RenderedText { get; set; }
-    public int GlyphIndex { get; set; }
+    public int CaretIndex { get; set; }
     
     protected override IWidget Build(IBuildContext context)
     {
         var renderedText = RenderedText;
         var renderedTextBounds = renderedText.Bounds;
-        var glyphIndex = GlyphIndex;
+        var glyphIndex = CaretIndex - 1;
 
-        if (renderedText.GlyphCount == 0)
-            return null;
-        
-        var glyph = renderedText.GetGlyph(glyphIndex);
-        
-        var glyphRect = glyph.ScreenRect;
-
-        var caretRect = new Rect(glyphRect.X + glyphRect.Width + 2f, renderedTextBounds.Y - 10f, 3f, renderedTextBounds.Height + 20f);
+        Rect caretRect;
+        if (renderedText.GlyphCount == 0 || glyphIndex < 0)
+        {
+            caretRect = new Rect(renderedTextBounds.X, renderedTextBounds.Y - 5f, 3f, renderedTextBounds.Height + 5f);
+        }
+        else
+        {
+            var glyph = renderedText.GetGlyph(glyphIndex);
+            var glyphRect = glyph.ScreenRect;
+            caretRect = new Rect(glyphRect.X + glyphRect.Width, renderedTextBounds.Y - 5f, 3f, renderedTextBounds.Height + 5f);
+        }
         
         return new PanelWidget
         {
