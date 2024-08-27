@@ -95,6 +95,19 @@ public sealed class GridList : StatefulWidget
         {
             totalWidth += child.ScreenRect.Width;
         }
+        
+        var focusedChild = children[m_FocusedChildIndex];
+        var focusedChildRect = focusedChild.ScreenRect;
+        if (focusedChildRect.Left < ScreenRect.Right && focusedChildRect.Right > ScreenRect.Right)
+        {
+            var delta = focusedChildRect.Right - ScreenRect.Right;
+            m_Offset -= delta;
+        }
+        else if (focusedChildRect.Right > ScreenRect.Left && focusedChildRect.Left < ScreenRect.Left)
+        {
+            var delta = ScreenRect.Left - focusedChildRect.Left;
+            m_Offset += delta;
+        }
 
         var x = m_Offset;
         for (var i = 0; i < children.Count; i++)
@@ -107,8 +120,7 @@ public sealed class GridList : StatefulWidget
 
             child.IsFocused = i == m_FocusedChildIndex;
         }
-        Console.WriteLine(ScreenRect);
-
+        
         return new InputListenerWidget(m_InputListenerController)
         {
             ScreenRect = ScreenRect,
@@ -130,6 +142,9 @@ public sealed class GridList : StatefulWidget
         else if (key == KeyboardKey.RightArrow)
         {
             m_FocusedChildIndex++;
+            if (m_FocusedChildIndex >= Children.Count)
+                m_FocusedChildIndex = Children.Count - 1;
+            
             SetDirty();
         }
     }
