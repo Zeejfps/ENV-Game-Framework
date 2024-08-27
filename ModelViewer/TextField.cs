@@ -145,13 +145,13 @@ public sealed class Caret : Widget
         Rect caretRect;
         if (renderedText.GlyphCount == 0 || glyphIndex < 0)
         {
-            caretRect = new Rect(renderedTextBounds.X, renderedTextBounds.Y - 5f, 3f, renderedTextBounds.Height + 5f);
+            caretRect = new Rect(renderedTextBounds.X, renderedTextBounds.Y - 5f, 1f, renderedTextBounds.Height + 5f);
         }
         else
         {
             var glyph = renderedText.GetGlyph(glyphIndex);
             var glyphRect = glyph.ScreenRect;
-            caretRect = new Rect(glyphRect.X + glyphRect.Width, renderedTextBounds.Y - 5f, 3f, renderedTextBounds.Height + 5f);
+            caretRect = new Rect(glyphRect.X + glyphRect.Width, renderedTextBounds.Y - 5f, 1f, renderedTextBounds.Height + 5f);
         }
         
         return new PanelWidget

@@ -466,6 +466,9 @@ public sealed class Window_GLFW : IWindow, IDisposable
             var workArea = primaryMonitor.WorkArea;
             SetWindowMonitor(m_Handle, primaryMonitor, workArea.X, workArea.Y, workArea.Width, workArea.Height,
                 videoMode.RefreshRate);
+
+            m_ViewportWidth = workArea.Width;
+            m_ViewportHeight = workArea.Height;
         }
         else
         {
@@ -480,6 +483,7 @@ public sealed class Window_GLFW : IWindow, IDisposable
 
         m_ViewportWidth = width;
         m_ViewportHeight = height;
+        Resized?.Invoke();
     }
 
     private void Glfw_PositionCallback(Window _, int x, int y)
@@ -494,7 +498,6 @@ public sealed class Window_GLFW : IWindow, IDisposable
     private void Glfw_FramebufferSizeCallback(Window window, int width, int height)
     {
         m_WindowFramebuffer.SetSize(width, height);
-        Resized?.Invoke();
     }
 
     private void Glfw_MousePosCallback(Window window, double x, double y)

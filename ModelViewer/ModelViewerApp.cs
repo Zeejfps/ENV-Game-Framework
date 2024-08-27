@@ -37,8 +37,10 @@ public sealed class ModelViewerApp : Game
 
     protected override void OnStartup()
     {
-        Window.IsResizable = true;
-        Window.SetScreenSize(480, 640);
+        Window.IsResizable = false;
+        Window.IsFullscreen = true;
+        Window.IsVsyncEnabled = true;
+        
         m_PanelRenderer.Load();
         m_TextRenderer.Load(new []
         {
@@ -63,9 +65,10 @@ public sealed class ModelViewerApp : Game
         m_PanelRenderer.Update();
         m_TextRenderer.Update();
     }
-
+    
     protected override void OnFixedUpdate()
     {
+   
     }
 
     protected override void OnShutdown()
