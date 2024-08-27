@@ -29,20 +29,14 @@ public sealed class Gui : StatefulWidget
         var window = Window;
         ScreenRect = new Rect(0f, 0f, window.ScreenWidth, window.ScreenHeight);
 
-        var addButton = new TextButton("Hellog!")
-        {
-            OnClicked = () =>
-            {
-                Console.WriteLine("Clicked");
-            }
-        };
-
         return new PaddingWidget
         {
             ScreenRect = ScreenRect,
             Offsets = Offsets.All(10f),
-            Child = new Column
+            Child = new GridWidget
             {
+                ColumnCount = 2,
+                RowCount = 2,
                 Spacing = 10,
                 Children =
                 {
@@ -53,7 +47,6 @@ public sealed class Gui : StatefulWidget
                             Console.WriteLine("Clicked");
                         }
                     },
-                    addButton,
                     new TextButton("Test3!")
                     {
                         OnClicked = () =>
@@ -69,7 +62,7 @@ public sealed class Gui : StatefulWidget
                         }
                     },
                     new TextField(),
-            
+
                 }
             }
         };

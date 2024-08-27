@@ -4,7 +4,7 @@ public sealed class PaddingWidget : Widget
 {
     public Offsets Offsets { get; set; }
         
-    public IWidget Child { get; set; }
+    public IWidget? Child { get; set; }
         
     protected override IWidget Build(IBuildContext context)
     {
@@ -14,7 +14,10 @@ public sealed class PaddingWidget : Widget
         myScreenRect.Y += offset.Bottom;
         myScreenRect.Width -= offset.Left + offset.Right;
         myScreenRect.Height -= offset.Top + offset.Bottom;
-        Child.ScreenRect = myScreenRect;
+        
+        if (Child != null)
+            Child.ScreenRect = myScreenRect;
+        
         return Child;
     }
 }

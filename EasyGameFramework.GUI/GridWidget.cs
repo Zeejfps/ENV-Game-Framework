@@ -5,8 +5,7 @@ public sealed class GridWidget : Widget
     public int RowCount { get; set; }
     public int ColumnCount { get; set; }
     public float Spacing { get; set; }
-        
-    public List<IWidget> Children { get; set; }
+    public List<IWidget>? Children { get; set; } = new();
         
     protected override IWidget Build(IBuildContext context)
     {
