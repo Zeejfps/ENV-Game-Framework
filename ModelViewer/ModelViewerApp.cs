@@ -40,6 +40,8 @@ public sealed class ModelViewerApp : Game
         Window.IsResizable = false;
         Window.IsFullscreen = true;
         Window.IsVsyncEnabled = true;
+        Window.SetScreenSize(1280, 720);
+        Window.RequestFocus();
         
         m_PanelRenderer.Load();
         m_TextRenderer.Load(new []

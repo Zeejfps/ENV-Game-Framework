@@ -289,6 +289,11 @@ public sealed class Window_GLFW : IWindow, IDisposable
         SetCursorPosition(m_Handle, mouse.ScreenX, mouse.ScreenY);
     }
 
+    public void RequestFocus()
+    {
+        FocusWindow(m_Handle);
+    }
+
     public void OpenCentered()
     {
         if (IsOpened)

@@ -32,4 +32,5 @@ public interface IWindow
     void SetTopLeftPosition(int x, int y);
     
     Vector2 ScreenToViewportPoint(Vector2 screenPoint, IViewport viewport);
+    void RequestFocus();
 }
