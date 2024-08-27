@@ -5,7 +5,7 @@ namespace ModelViewer;
 public sealed class Column : Widget
 {
     public float Spacing { get; set; }
-    public List<Widget> Children { get; } = new();
+    public List<Widget> Children { get; set; } = new();
     
     protected override IWidget Build(IBuildContext context)
     {
