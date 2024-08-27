@@ -6,6 +6,7 @@ namespace OpenGLSandbox;
 
 public class FocusTree
 {
+    private IInputListenerController? m_HoveredWidget;
     private IInputListenerController? m_FocusedWidget;
     private IInputSystem m_InputSystem;
     private readonly LinkedList<InputListenerWidget> m_InputListenerWidgets = new();
@@ -46,43 +47,43 @@ public class FocusTree
 
     public void UpdatePointerPosition(int x, int y)
     {
-        IInputListenerController? focusedWidget = null;
+        IInputListenerController? hoveredWidget = null;
         var screenHeight = m_Window.ScreenHeight;
         foreach (var widget in m_InputListenerWidgets.Reverse())
         {
             var isHovered = widget.ScreenRect.Contains(m_Mouse.ScreenX, screenHeight - m_Mouse.ScreenY);
             if (isHovered)
             {
-                focusedWidget = widget.Controller;
+                hoveredWidget = widget.Controller;
                 break;
             }
         }
 
-        var prevFocusedWidget = m_FocusedWidget;
-        m_FocusedWidget = focusedWidget;
+        var prevHoveredWidget = m_HoveredWidget;
+        m_HoveredWidget = hoveredWidget;
 
-        if (prevFocusedWidget == m_FocusedWidget)
+        if (prevHoveredWidget == m_FocusedWidget)
         {
             return;
         }
         
-        if (prevFocusedWidget != null)
+        if (prevHoveredWidget != null)
         {
-            prevFocusedWidget.IsFocused = false;
-            prevFocusedWidget.IsHovered = false;
-            prevFocusedWidget.IsPressed = false;
+            prevHoveredWidget.IsHovered = false;
+            prevHoveredWidget.IsPressed = false;
         }
 
-        if (m_FocusedWidget != null)
+        if (m_HoveredWidget != null)
         {
-            m_FocusedWidget.IsFocused = true;
-            m_FocusedWidget.IsHovered = true;
+            m_HoveredWidget.IsHovered = true;
         }
     }
     
     public void Add(InputListenerWidget listener)
     {
         m_InputListenerWidgets.AddLast(listener);
+        if (listener.IsFocused)
+            m_FocusedWidget = listener.Controller;
     }
     
     public void Remove(InputListenerWidget listener)
