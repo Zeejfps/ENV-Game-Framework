@@ -70,11 +70,11 @@ internal static class KeysExtensions
             case Keys.K:
                 return KeyboardKey.K;
             case Keys.L:
-                break;
+                return KeyboardKey.L;
             case Keys.M:
-                break;
+                return KeyboardKey.M;
             case Keys.N:
-                break;
+                return KeyboardKey.N;
             case Keys.O:
                 return KeyboardKey.O;
             case Keys.P:
