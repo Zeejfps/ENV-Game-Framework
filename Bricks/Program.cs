@@ -12,7 +12,7 @@ var clock = new StopwatchClock();
 var arena = Rectangle.LeftTopWidthHeight(0, 0, 640, 480);
 var bricks = CreateBricks(arena);
 var paddle = new Paddle(app.Input, clock, arena);
-var ball = new Ball(clock, arena, paddle);
+var ball = new Ball(clock, arena, paddle, bricks);
 
 clock.Start();
 while (!app.IsCloseRequested)

@@ -15,13 +15,15 @@ public sealed class Ball
     private IClock Clock { get; }
     private Rectangle Arena { get; }
     private Paddle Paddle { get; }
-    
-    public Ball(IClock clock, Rectangle arena, Paddle paddle)
+    private Brick[] Bricks { get; }
+
+    public Ball(IClock clock, Rectangle arena, Paddle paddle, Brick[] bricks)
     {
         Clock = clock;
         Arena = arena;
         Paddle = paddle;
-        Position = new Vector2(0, 0);
+        Bricks = bricks;
+        Position = new Vector2(arena.Width * 0.5f, arena.Height * 0.5f);
         Velocity = new Vector2(MaxSpeed, MaxSpeed);
     }
 
@@ -41,36 +43,52 @@ public sealed class Ball
         var bounds = CalculateBoundsRectangle();
         CheckAndResolveArenaCollisions(bounds);
         CheckAndResolvePaddleCollisions(bounds);
+        CheckAndResolveBrickCollisions(bounds);
     }
 
     // NOTE(Zee): This will fail if the ball is travelling faster. (Fast enough to phase through the paddle)
+
     private void CheckAndResolvePaddleCollisions(Rectangle ballBounds)
     {
         var paddle = Paddle;
         var paddleBounds = paddle.CalculateBoundsRectangle();
-        var ballIntersectsPaddle = ballBounds.Intersects(paddleBounds);
+        CheckAndResolveCollision(ballBounds, paddleBounds);
+    }
+
+    private void CheckAndResolveBrickCollisions(Rectangle ballBounds)
+    {
+        foreach (var brick in Bricks)
+        {
+            var brickBounds = brick.CalculateBoundsRectangle();
+            CheckAndResolveCollision(ballBounds, brickBounds);
+        }
+    }
+
+    private void CheckAndResolveCollision(Rectangle ballBounds, Rectangle otherBounds)
+    {
+        var ballIntersectsPaddle = ballBounds.Intersects(otherBounds);
         if (!ballIntersectsPaddle)
             return;
 
         // TODO: I need to figure out if it should pop UP / DOWN or LEFT / RIGHT
         var dx = 0f;
-        if (ballBounds.Left < paddleBounds.Left && ballBounds.Right > paddleBounds.Left)
+        if (ballBounds.Left < otherBounds.Left && ballBounds.Right > otherBounds.Left)
         {
-            dx = paddleBounds.Left - ballBounds.Right;
+            dx = otherBounds.Left - ballBounds.Right;
         }
-        else if (ballBounds.Right > paddleBounds.Right && ballBounds.Left < paddleBounds.Right)
+        else if (ballBounds.Right > otherBounds.Right && ballBounds.Left < otherBounds.Right)
         {
-            dx = paddleBounds.Right - ballBounds.Left;
+            dx = otherBounds.Right - ballBounds.Left;
         }
 
         var dy = 0f;
-        if (ballBounds.Top < paddleBounds.Top && ballBounds.Bottom > paddleBounds.Top)
+        if (ballBounds.Top < otherBounds.Top && ballBounds.Bottom > otherBounds.Top)
         {
-            dy = paddleBounds.Top - ballBounds.Bottom;
+            dy = otherBounds.Top - ballBounds.Bottom;
         }
-        else if(ballBounds.Bottom > paddleBounds.Bottom && ballBounds.Top < paddleBounds.Bottom)
+        else if(ballBounds.Bottom > otherBounds.Bottom && ballBounds.Top < otherBounds.Bottom)
         {
-            dy = paddleBounds.Bottom - ballBounds.Top; 
+            dy = otherBounds.Bottom - ballBounds.Top; 
         }
 
         var ady = MathF.Abs(dy);
