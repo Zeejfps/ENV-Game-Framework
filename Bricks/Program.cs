@@ -3,10 +3,10 @@ using Bricks;
 using Bricks.Entities;
 using Bricks.RaylibBackend;
 
-var appBuilder = CreateAppBuilder();
-appBuilder.WithWindowName("Brickz");
-appBuilder.WithCanvasSize(640, 480);
-using var app = appBuilder.Build();
+using var app = CreateAppBuilder()
+    .WithWindowName("Brickz")
+    .WithCanvasSize(640, 480)
+    .Build();
 
 var arena = Rectangle.LeftTopWidthHeight(0, 0, 640, 480);
 var clock = new StopwatchClock();

@@ -6,15 +6,17 @@ public sealed class RaylibAppBuilder : IAppBuilder
     private int _canvasWidth;
     private int _canvasHeight;
     
-    public void WithWindowName(string brickz)
+    public IAppBuilder WithWindowName(string brickz)
     {
         _windowName = brickz;
+        return this;
     }
 
-    public void WithCanvasSize(int width, int height)
+    public IAppBuilder WithCanvasSize(int width, int height)
     {
         _canvasWidth = width;
         _canvasHeight = height;
+        return this;
     }
 
     public IApp Build()
