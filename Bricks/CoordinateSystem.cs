@@ -7,7 +7,7 @@ public static class CoordinateSystem
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsBelow(this float y, float otherY)
     {
-        return y < otherY;
+        return y > otherY;
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
