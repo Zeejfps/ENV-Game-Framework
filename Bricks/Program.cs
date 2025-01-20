@@ -1,11 +1,27 @@
 ﻿using Bricks;
-using EasyGameFramework.Api;
-using EasyGameFramework.Api.AssetTypes;
-using EasyGameFramework.Builder;
-using EasyGameFramework.Core.AssetLoaders;
 
-var builder = new GameBuilder();
-builder.With<ISpriteRenderer, OpenGlSpriteRenderer>();
-builder.With<IAssetLoader<ICpuTexture>, CpuTextureAssetLoader>();
-var game = builder.Build<BricksGame>();
-game.Launch();
+
+var appBuilder = CreateAppBuilder();
+appBuilder.WithWindowName("Brickz");
+appBuilder.WithCanvasSize(640, 480);
+var app = appBuilder.Build();
+
+var clock = new StopwatchClock();
+var arena = Rectangle.LeftTopWidthHeight(0, 0, 640, 480);
+var paddle = new Paddle(app.Input, clock, arena);
+
+clock.Start();
+while (!app.IsCloseRequested)
+{
+    app.Update();
+    paddle.Update();
+    app.Render(paddle);
+    
+    clock.Update();
+}
+
+
+IAppBuilder CreateAppBuilder()
+{
+    return new GlfwOpenGlAppBuilder();
+}
