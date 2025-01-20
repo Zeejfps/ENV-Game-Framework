@@ -15,9 +15,9 @@ public sealed class Ball
     private IClock Clock { get; }
     private Rectangle Arena { get; }
     private Paddle Paddle { get; }
-    private Brick[] Bricks { get; }
+    private BricksRepo Bricks { get; }
 
-    public Ball(IClock clock, Rectangle arena, Paddle paddle, Brick[] bricks)
+    public Ball(IClock clock, Rectangle arena, Paddle paddle, BricksRepo bricks)
     {
         Clock = clock;
         Arena = arena;
@@ -57,18 +57,23 @@ public sealed class Ball
 
     private void CheckAndResolveBrickCollisions(Rectangle ballBounds)
     {
-        foreach (var brick in Bricks)
+        var bricks = Bricks.GetAll();
+        foreach (var brick in bricks)
         {
             var brickBounds = brick.CalculateBoundsRectangle();
-            CheckAndResolveCollision(ballBounds, brickBounds);
+            var collided = CheckAndResolveCollision(ballBounds, brickBounds);
+            if (collided)
+            {
+                brick.Despawn();
+            }
         }
     }
 
-    private void CheckAndResolveCollision(Rectangle ballBounds, Rectangle otherBounds)
+    private bool CheckAndResolveCollision(Rectangle ballBounds, Rectangle otherBounds)
     {
         var ballIntersectsPaddle = ballBounds.Intersects(otherBounds);
         if (!ballIntersectsPaddle)
-            return;
+            return false;
 
         // TODO: I need to figure out if it should pop UP / DOWN or LEFT / RIGHT
         var dx = 0f;
@@ -116,6 +121,8 @@ public sealed class Ball
             ReflectVelocityX();
             MoveXWithVelocity(dx);
         }
+
+        return true;
     }
 
     private void MoveXWithVelocity(float dx)

@@ -7,6 +7,23 @@ public sealed class Brick
     public float Width { get; init; }
     public float Height { get; init; }
 
+    private readonly BricksRepo _bricksRepo;
+
+    public Brick(BricksRepo bricksRepo)
+    {
+        _bricksRepo = bricksRepo;
+    }
+
+    public void Spawn()
+    {
+        _bricksRepo.Add(this);
+    }
+
+    public void Despawn()
+    {
+        _bricksRepo.Remove(this);
+    }
+
     public Rectangle CalculateBoundsRectangle()
     {
         var halfWidth = Width * 0.5f;

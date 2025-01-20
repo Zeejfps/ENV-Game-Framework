@@ -5,7 +5,7 @@ public interface IApp : IDisposable
     bool IsCloseRequested { get; }
     IInput Input { get; }
     void Update();
-    void Render(Paddle paddle, Ball ball, Brick[] bricks);
+    void Render(Paddle paddle, Ball ball, BricksRepo bricks);
 }
 
 public interface IAppBuilder

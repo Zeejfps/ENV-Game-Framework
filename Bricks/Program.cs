@@ -10,22 +10,24 @@ using var app = appBuilder.Build();
 
 var clock = new StopwatchClock();
 var arena = Rectangle.LeftTopWidthHeight(0, 0, 640, 480);
-var bricks = CreateBricks(arena);
+var bricksRepo = new BricksRepo();
+SpawnBricks(bricksRepo, arena);
 var paddle = new Paddle(app.Input, clock, arena);
-var ball = new Ball(clock, arena, paddle, bricks);
+var ball = new Ball(clock, arena, paddle, bricksRepo);
 
 clock.Start();
 while (!app.IsCloseRequested)
 {
     app.Update();
+    bricksRepo.Update();
     paddle.Update();
     ball.Update();
-    app.Render(paddle, ball, bricks);
+    app.Render(paddle, ball, bricksRepo);
     clock.Update();
 }
 
 
-Brick[] CreateBricks(Rectangle arena)
+void SpawnBricks(BricksRepo bricksRepo, Rectangle arena)
 {
     var leftPadding = 10;
     var rightPadding = 10;
@@ -35,7 +37,6 @@ Brick[] CreateBricks(Rectangle arena)
     var bricksPerRowCount = 8;
     var brickRowsCount = 4;
     var brickHeight = 30;
-    var bricks = new Brick[bricksPerRowCount * brickRowsCount];
     var rowWidth = arena.Width - leftPadding - rightPadding - (bricksPerRowCount-1) * horizontalGap;
     var brickWidth = rowWidth / bricksPerRowCount;
     var brickHalfWidth = brickWidth * 0.5f;
@@ -47,17 +48,15 @@ Brick[] CreateBricks(Rectangle arena)
         for (var j = 0; j < bricksPerRowCount; j++)
         {
             var x = (j * brickWidth) + (j * horizontalGap) + brickHalfWidth + leftPadding;
-            var index = j + i * bricksPerRowCount;
-            bricks[index] = new Brick
+            var brick = new Brick(bricksRepo)
             {
                 Position = new Vector2(x, y),
                 Width = brickWidth,
                 Height = brickHeight,
             };
+            brick.Spawn();
         }
     }
-    
-    return bricks;
 }
 
 IAppBuilder CreateAppBuilder()

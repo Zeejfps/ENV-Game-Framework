@@ -41,7 +41,7 @@ internal sealed class RaylibApp : IApp
     {
     }
 
-    public void Render(Paddle paddle, Ball ball, Brick[] bricks)
+    public void Render(Paddle paddle, Ball ball, BricksRepo bricks)
     {
         Raylib.BeginDrawing();
         Raylib.ClearBackground(Color.DarkGray);
@@ -51,8 +51,8 @@ internal sealed class RaylibApp : IApp
         
         var ballRect = ball.CalculateBoundsRectangle();
         DrawRectangle(ballRect, Color.White);
-
-        foreach (var brick in bricks)
+        
+        foreach (var brick in bricks.GetAll())
         {
             var brickRect = brick.CalculateBoundsRectangle();
             DrawRectangle(brickRect, Color.Blue);
