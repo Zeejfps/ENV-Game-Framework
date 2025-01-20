@@ -79,21 +79,21 @@ public sealed class BallEntity : IBall, IDynamicEntity
 
         // TODO: I need to figure out if it should pop UP / DOWN or LEFT / RIGHT
         var dx = 0f;
-        if (ballBounds.Left < otherBounds.Left && ballBounds.Right > otherBounds.Left)
+        if (ballBounds.Left.IsLeft(otherBounds.Left) && ballBounds.Right.IsRight(otherBounds.Left))
         {
             dx = otherBounds.Left - ballBounds.Right;
         }
-        else if (ballBounds.Right > otherBounds.Right && ballBounds.Left < otherBounds.Right)
+        else if (ballBounds.Right.IsRight(otherBounds.Right) && ballBounds.Left.IsLeft(otherBounds.Right))
         {
             dx = otherBounds.Right - ballBounds.Left;
         }
 
         var dy = 0f;
-        if (ballBounds.Top < otherBounds.Top && ballBounds.Bottom > otherBounds.Top)
+        if (ballBounds.Top.IsAbove(otherBounds.Top) && ballBounds.Bottom.IsBelow(otherBounds.Top))
         {
             dy = otherBounds.Top - ballBounds.Bottom;
         }
-        else if(ballBounds.Bottom > otherBounds.Bottom && ballBounds.Top < otherBounds.Bottom)
+        else if(ballBounds.Bottom.IsBelow(otherBounds.Bottom) && ballBounds.Top.IsAbove(otherBounds.Bottom))
         {
             dy = otherBounds.Bottom - ballBounds.Top; 
         }
@@ -163,26 +163,26 @@ public sealed class BallEntity : IBall, IDynamicEntity
 
     private void CheckAndResolveArenaCollisions(Rectangle bounds)
     {
-        if (bounds.Left < Arena.Left)
+        if (bounds.Left.IsLeft(Arena.Left))
         {
             var dx = bounds.Left - Arena.Left;
             Position -= Vector2.UnitX * dx;
             ReflectVelocityX();
         }
-        else if (bounds.Right > Arena.Right)
+        else if (bounds.Right.IsRight(Arena.Right))
         {
             var dx = bounds.Right - Arena.Right;
             Position -= Vector2.UnitX * dx;
             ReflectVelocityX();
         }
         
-        if (bounds.Top < Arena.Top)
+        if (bounds.Top.IsAbove(Arena.Top))
         {
             var dx = bounds.Top - Arena.Top;
             Position -= Vector2.UnitY * dx;
             ReflectVelocityY();
         }
-        else if (bounds.Bottom > Arena.Bottom)
+        else if (bounds.Bottom.IsBelow(Arena.Bottom))
         {
             var dx = bounds.Bottom - Arena.Bottom;
             Position -= Vector2.UnitY * dx;
