@@ -53,33 +53,63 @@ public sealed class Ball
             return;
 
         // TODO: I need to figure out if it should pop UP / DOWN or LEFT / RIGHT
+        var dx = 0f;
         if (ballBounds.Left < paddleBounds.Left && ballBounds.Right > paddleBounds.Left)
         {
-            var dx = paddleBounds.Left - ballBounds.Right;
-            MoveX(-dx);
-            ReflectVelocityX();
+            dx = paddleBounds.Left - ballBounds.Right;
         }
         else if (ballBounds.Right > paddleBounds.Right && ballBounds.Left < paddleBounds.Right)
         {
-            var dx = paddleBounds.Right - ballBounds.Left;
-            MoveX(dx);
-            ReflectVelocityX();
+            dx = paddleBounds.Right - ballBounds.Left;
         }
 
+        var dy = 0f;
         if (ballBounds.Top < paddleBounds.Top && ballBounds.Bottom > paddleBounds.Top)
         {
-            var dy = paddleBounds.Top - ballBounds.Bottom;
-            MoveY(dy);
-            ReflectVelocityY();
+            dy = paddleBounds.Top - ballBounds.Bottom;
         }
         else if(ballBounds.Bottom > paddleBounds.Bottom && ballBounds.Top < paddleBounds.Bottom)
         {
-            var dy = ballBounds.Bottom - paddleBounds.Bottom; 
-            MoveY(dy);
+            dy = paddleBounds.Bottom - ballBounds.Top; 
+        }
+
+        var ady = MathF.Abs(dy);
+        var adx = MathF.Abs(dx);
+        if (adx > 0 && ady > 0)
+        {
+            if (adx > ady)
+            {
+                ReflectVelocityY();
+                MoveYWithVelocity(dy);
+            }
+            else
+            {
+                ReflectVelocityX();
+                MoveXWithVelocity(dx);
+            }
+        }
+        else if (ady > 0)
+        {
             ReflectVelocityY();
+            MoveYWithVelocity(dy);
+        }
+        else if (adx > 0)
+        {
+            ReflectVelocityX();
+            MoveXWithVelocity(dx);
         }
     }
 
+    private void MoveXWithVelocity(float dx)
+    {
+        MoveX(dx * Velocity.X * Clock.DeltaTimeSeconds);
+    }
+
+    private void MoveYWithVelocity(float dy)
+    {
+        MoveY(dy * Velocity.Y * Clock.DeltaTimeSeconds);
+    }
+    
     private void MoveX(float dx)
     {
         Position += Vector2.UnitX * dx;
