@@ -10,13 +10,15 @@ using var app = appBuilder.Build();
 var clock = new StopwatchClock();
 var arena = Rectangle.LeftTopWidthHeight(0, 0, 640, 480);
 var paddle = new Paddle(app.Input, clock, arena);
+var ball = new Ball(clock, arena);
 
 clock.Start();
 while (!app.IsCloseRequested)
 {
     app.Update();
     paddle.Update();
-    app.Render(paddle);
+    ball.Update();
+    app.Render(paddle, ball);
     clock.Update();
 }
 

@@ -33,7 +33,7 @@ internal sealed class RaylibApp : IApp
     public RaylibApp(string windowName, int windowWidth, int windowHeight)
     {
         Input = new RaylibInput();
-        Raylib.SetTargetFPS(90);
+        Raylib.SetConfigFlags(ConfigFlags.VSyncHint);
         Raylib.InitWindow(windowWidth, windowHeight, windowName);
     }
     
@@ -41,19 +41,24 @@ internal sealed class RaylibApp : IApp
     {
     }
 
-    public void Render(Paddle paddle)
+    public void Render(Paddle paddle, Ball ball)
     {
         Raylib.BeginDrawing();
-        Raylib.ClearBackground(Color.Pink);
+        Raylib.ClearBackground(Color.DarkGray);
 
-        var paddleWidth = paddle.Width;
-        var paddleHeight = paddle.Height;
-        var paddleHalfWidth = paddleWidth * 0.5f;
-        var paddleHalfHeight = paddle.Height * 0.5f;
-        var paddleCenterPosition = paddle.CenterPosition;
-        var paddleLeft = paddleCenterPosition.X - paddleHalfWidth;
-        var paddleTop = paddleCenterPosition.Y - paddleHalfHeight;
-        Raylib.DrawRectangle((int)paddleLeft, (int)paddleTop, paddleWidth, paddleHeight, Color.Black);
+        var paddleRect = paddle.CalculateBoundsRectangle();
+        Raylib.DrawRectangle(
+            (int)paddleRect.Left, (int)paddleRect.Top, 
+            (int)paddleRect.Width, (int)paddleRect.Height,
+            Color.Black
+        );
+        
+        var ballRect = ball.CalculateBoundsRectangle();
+        Raylib.DrawRectangle(
+            (int)ballRect.Left, (int)ballRect.Top, 
+            (int)ballRect.Width, (int)ballRect.Height,
+            Color.White
+        );
         
         Raylib.EndDrawing();
     }

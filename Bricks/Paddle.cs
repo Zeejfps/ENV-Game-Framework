@@ -5,8 +5,6 @@ namespace Bricks;
 public sealed class Paddle
 {
     public float HorizontalVelocity { get; private set; }
-
-    // NOTE(Zee): <0, 0> Should be in the dead center of the screen
     public Vector2 CenterPosition { get; private set; }
     public int Width { get; private set; }
     public int Height { get; private set; }
@@ -71,7 +69,7 @@ public sealed class Paddle
         }
     }
 
-    private Rectangle CalculateBoundsRectangle()
+    public Rectangle CalculateBoundsRectangle()
     {
         var halfWidth = Width * 0.5f;
         var halfHeight = Height * 0.5f;
