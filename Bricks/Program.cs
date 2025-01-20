@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Bricks;
+using Bricks.Entities;
 using Bricks.RaylibBackend;
 
 var appBuilder = CreateAppBuilder();
@@ -11,8 +12,8 @@ var clock = new StopwatchClock();
 var arena = Rectangle.LeftTopWidthHeight(0, 0, 640, 480);
 var bricksRepo = new BricksRepo();
 SpawnBricks(bricksRepo, arena);
-var paddle = new Paddle(app.Input, clock, arena);
-var ball = new Ball(clock, arena, paddle, bricksRepo);
+var paddle = new PaddleEntity(app.Input, clock, arena);
+var ball = new BallEntity(clock, arena, paddle, bricksRepo);
 
 clock.Start();
 while (!app.IsCloseRequested)

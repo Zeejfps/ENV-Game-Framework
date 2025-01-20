@@ -1,10 +1,12 @@
-﻿namespace Bricks;
+﻿using Bricks.Entities;
+
+namespace Bricks;
 
 public sealed class BrickzGame
 {
     private IInput Input { get; }
     
-    public Paddle Paddle { get; }
+    public PaddleEntity Paddle { get; }
 
     public BrickzGame(IInput input)
     {

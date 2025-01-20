@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
 
-namespace Bricks;
+namespace Bricks.Entities;
 
-public sealed class Ball
+public sealed class BallEntity
 {
     // NOTE(Zee): Assuming this is the center position of the ball
     public Vector2 Position { get; set; }
@@ -14,10 +14,10 @@ public sealed class Ball
     
     private IClock Clock { get; }
     private Rectangle Arena { get; }
-    private Paddle Paddle { get; }
+    private PaddleEntity Paddle { get; }
     private BricksRepo Bricks { get; }
 
-    public Ball(IClock clock, Rectangle arena, Paddle paddle, BricksRepo bricks)
+    public BallEntity(IClock clock, Rectangle arena, PaddleEntity paddle, BricksRepo bricks)
     {
         Clock = clock;
         Arena = arena;

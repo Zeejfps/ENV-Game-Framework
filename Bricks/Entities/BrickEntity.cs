@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
-using Bricks;
+
+namespace Bricks.Entities;
 
 public sealed class BrickEntity : IBrick
 {

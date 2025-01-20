@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
 
-namespace Bricks;
+namespace Bricks.Entities;
 
-public sealed class Paddle
+public sealed class PaddleEntity
 {
     public float HorizontalVelocity { get; private set; }
     public Vector2 CenterPosition { get; private set; }
@@ -14,7 +14,7 @@ public sealed class Paddle
     private IClock Clock { get; }
     private Rectangle ArenaBounds { get; }
     
-    public Paddle(IInput input, IClock clock, Rectangle arenaBounds)
+    public PaddleEntity(IInput input, IClock clock, Rectangle arenaBounds)
     {
         Input = input;
         Clock = clock;
