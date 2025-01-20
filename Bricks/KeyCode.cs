@@ -3,5 +3,6 @@
 public enum KeyCode
 {
     A,
-    D
+    D,
+    Space
 }

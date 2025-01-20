@@ -1,8 +1,9 @@
 ﻿using System.Numerics;
+using Bricks.Archetypes;
 
 namespace Bricks.Entities;
 
-public sealed class PaddleEntity
+public sealed class PaddleEntity : IDynamicEntity
 {
     public float HorizontalVelocity { get; private set; }
     public Vector2 CenterPosition { get; private set; }
@@ -12,12 +13,14 @@ public sealed class PaddleEntity
     
     private IInput Input { get; }
     private IClock Clock { get; }
+    private World World { get; }
     private Rectangle ArenaBounds { get; }
     
-    public PaddleEntity(IInput input, IClock clock, Rectangle arenaBounds)
+    public PaddleEntity(IInput input, World world, Rectangle arenaBounds)
     {
         Input = input;
-        Clock = clock;
+        World = world;
+        Clock = world.Clock;
         ArenaBounds = arenaBounds;
         CenterPosition = new Vector2(ArenaBounds.Center.X, ArenaBounds.Bottom - 50);
         Width = 100;
@@ -76,5 +79,17 @@ public sealed class PaddleEntity
         var x = CenterPosition.X - halfWidth;
         var y = CenterPosition.Y - halfHeight;
         return Rectangle.LeftTopWidthHeight(x, y, Width, Height);
+    }
+
+    public void Spawn()
+    {
+        World.DynamicEntities.Add(this);
+        World.Paddle = this;
+    }
+
+    public void Despawn()
+    {
+        World.Paddle = null;
+        World.DynamicEntities.Remove(this);
     }
 }

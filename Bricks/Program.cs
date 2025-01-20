@@ -10,11 +10,12 @@ using var app = appBuilder.Build();
 
 var arena = Rectangle.LeftTopWidthHeight(0, 0, 640, 480);
 var clock = new StopwatchClock();
-var paddle = new PaddleEntity(app.Input, clock, arena);
+var world = new World(clock);
 
-var world = new World(clock, paddle);
+var paddle = new PaddleEntity(app.Input, world, arena);
+paddle.Spawn();
 
-var ball = new BallEntity(clock, arena, world);
+var ball = new BallEntity(arena, world);
 ball.Spawn();
 
 SpawnBricks(world, arena);
@@ -23,9 +24,14 @@ clock.Start();
 while (!app.IsCloseRequested)
 {
     app.Update();
+
+    if (app.Input.WasKeyPressedThisFrame(KeyCode.Space))
+    {
+        var newBall = new BallEntity(arena, world);
+        newBall.Spawn();
+    }
+    
     world.Update();
-    paddle.Update();
-    ball.Update();
     app.Render(world);
     clock.Update();
 }

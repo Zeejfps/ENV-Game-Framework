@@ -5,22 +5,23 @@ namespace Bricks;
 
 public sealed class World
 {
+    public PaddleEntity Paddle { get; set; }
     public IClock Clock { get; }
-    public PaddleEntity Paddle { get; }
     public BallsRepo Balls { get; }
     public BricksRepo Bricks { get; }
+    public DynamicEntitiesRepo DynamicEntities { get; }
 
     private readonly IRepo[] _repos;
     
-    public World(IClock clock, PaddleEntity paddle)
+    public World(IClock clock)
     {
         Clock = clock;
-        Paddle = paddle;
         Balls = new BallsRepo();
         Bricks = new BricksRepo();
+        DynamicEntities = new DynamicEntitiesRepo();
         _repos = new IRepo[]
         {
-            Balls, Bricks
+            Balls, Bricks, DynamicEntities
         };
     }
 
@@ -29,6 +30,11 @@ public sealed class World
         foreach (var repo in _repos)
         {
             repo.Update();
+        }
+
+        foreach (var dynamicEntity in DynamicEntities.GetAll())
+        {
+            dynamicEntity.Update();
         }
     }
 }

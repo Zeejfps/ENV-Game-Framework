@@ -1,9 +1,10 @@
 ﻿using System.Numerics;
+using Bricks.Archetypes;
 using Bricks.Repos;
 
 namespace Bricks.Entities;
 
-public sealed class BallEntity : IBall
+public sealed class BallEntity : IBall, IDynamicEntity
 {
     // NOTE(Zee): Assuming this is the center position of the ball
     public Vector2 Position { get; set; }
@@ -13,15 +14,14 @@ public sealed class BallEntity : IBall
     public const int Width = 25; 
     public const int Height = 25; 
     
-    private IClock Clock { get; }
+    private IClock Clock => World.Clock;
     private Rectangle Arena { get; }
     private PaddleEntity Paddle { get; }
     private BricksRepo Bricks { get; }
     private World World { get; }
 
-    public BallEntity(IClock clock, Rectangle arena, World world)
+    public BallEntity(Rectangle arena, World world)
     {
-        Clock = clock;
         Arena = arena;
         World = world;
         Paddle = world.Paddle;
@@ -203,10 +203,12 @@ public sealed class BallEntity : IBall
     public void Spawn()
     {
         World.Balls.Add(this);
+        World.DynamicEntities.Add(this);
     }
 
     public void Despawn()
     {
         World.Balls.Remove(this);
+        World.DynamicEntities.Remove(this);
     }
 }
