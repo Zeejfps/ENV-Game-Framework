@@ -10,7 +10,7 @@ using var app = appBuilder.Build();
 var clock = new StopwatchClock();
 var arena = Rectangle.LeftTopWidthHeight(0, 0, 640, 480);
 var paddle = new Paddle(app.Input, clock, arena);
-var ball = new Ball(clock, arena);
+var ball = new Ball(clock, arena, paddle);
 
 clock.Start();
 while (!app.IsCloseRequested)

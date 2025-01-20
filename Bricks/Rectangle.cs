@@ -11,6 +11,11 @@ public struct Rectangle
     public float Right { get; private set; }
     public float Top { get; private set; }
     public float Bottom { get; private set; }
+
+    public bool Intersects(Rectangle b)
+    {
+        return Left < b.Right && Right > b.Left && Top < b.Bottom && Bottom > b.Top;
+    }
     
     public static Rectangle LeftTopWidthHeight(float left, float top, int width, int height)
     {
