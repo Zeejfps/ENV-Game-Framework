@@ -100,39 +100,43 @@ public sealed class Ball
         var adx = MathF.Abs(dx);
         if (adx > 0 && ady > 0)
         {
-            if (adx > ady)
+            if (ady < adx)
             {
                 ReflectVelocityY();
-                MoveYWithVelocity(dy);
+                MoveY(dy);
+                MoveYWithVelocity();
             }
             else
             {
                 ReflectVelocityX();
-                MoveXWithVelocity(dx);
+                MoveX(dx);
+                MoveXWithVelocity();
             }
         }
         else if (ady > 0)
         {
             ReflectVelocityY();
-            MoveYWithVelocity(dy);
+            MoveY(dy);
+            MoveYWithVelocity();
         }
         else if (adx > 0)
         {
             ReflectVelocityX();
-            MoveXWithVelocity(dx);
+            MoveX(dx);
+            MoveXWithVelocity();
         }
 
         return true;
     }
 
-    private void MoveXWithVelocity(float dx)
+    private void MoveXWithVelocity()
     {
-        MoveX(dx * Velocity.X * Clock.DeltaTimeSeconds);
+        MoveX(Velocity.X * Clock.DeltaTimeSeconds);
     }
 
-    private void MoveYWithVelocity(float dy)
+    private void MoveYWithVelocity()
     {
-        MoveY(dy * Velocity.Y * Clock.DeltaTimeSeconds);
+        MoveY(Velocity.Y * Clock.DeltaTimeSeconds);
     }
     
     private void MoveX(float dx)
