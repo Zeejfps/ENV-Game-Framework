@@ -1,10 +1,11 @@
 ﻿using Bricks;
+using Bricks.RaylibBackend;
 
 
 var appBuilder = CreateAppBuilder();
 appBuilder.WithWindowName("Brickz");
 appBuilder.WithCanvasSize(640, 480);
-var app = appBuilder.Build();
+using var app = appBuilder.Build();
 
 var clock = new StopwatchClock();
 var arena = Rectangle.LeftTopWidthHeight(0, 0, 640, 480);
@@ -16,12 +17,11 @@ while (!app.IsCloseRequested)
     app.Update();
     paddle.Update();
     app.Render(paddle);
-    
     clock.Update();
 }
 
 
 IAppBuilder CreateAppBuilder()
 {
-    return new GlfwOpenGlAppBuilder();
+    return new RaylibAppBuilder();
 }

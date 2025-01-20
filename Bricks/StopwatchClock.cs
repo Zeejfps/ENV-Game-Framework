@@ -21,6 +21,7 @@ public sealed class StopwatchClock : IClock
     {
         var deltaTimeMs = _stopwatch.ElapsedMilliseconds;
         DeltaTimeSeconds = deltaTimeMs / 1000.0f;
+        _stopwatch.Restart();
     }
 
     public void Stop()

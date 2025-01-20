@@ -2,5 +2,5 @@
 
 public interface IInput
 {
-    bool IsKeyPressed(KeyCode keyCode);
+    bool IsKeyDown(KeyCode keyCode);
 }

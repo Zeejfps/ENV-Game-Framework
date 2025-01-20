@@ -1,6 +1,6 @@
 ﻿namespace Bricks;
 
-public interface IApp
+public interface IApp : IDisposable
 {
     bool IsCloseRequested { get; }
     IInput Input { get; }
