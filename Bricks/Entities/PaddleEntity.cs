@@ -59,7 +59,7 @@ public sealed class PaddleEntity : IDynamicEntity
 
     private void CheckAndResolveCanvasCollision()
     {
-        var bounds = CalculateBoundsRectangle();
+        var bounds = GetAABB();
         if (bounds.Left < ArenaBounds.Left)
         {
             var dx = bounds.Left - ArenaBounds.Left;
@@ -72,7 +72,7 @@ public sealed class PaddleEntity : IDynamicEntity
         }
     }
 
-    public Rectangle CalculateBoundsRectangle()
+    public Rectangle GetAABB()
     {
         var halfWidth = Width * 0.5f;
         var halfHeight = Height * 0.5f;

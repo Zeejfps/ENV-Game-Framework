@@ -2,5 +2,5 @@
 
 public interface IBall : IEntity
 {
-    Rectangle CalculateBoundsRectangle();
+    Rectangle GetAABB();
 }

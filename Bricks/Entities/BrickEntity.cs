@@ -30,7 +30,7 @@ public sealed class BrickEntity : IBrick
         _world.Bricks.Remove(this);
     }
 
-    public Rectangle CalculateBoundsRectangle()
+    public Rectangle GetAABB()
     {
         var halfWidth = Width * 0.5f;
         var halfHeight = Height * 0.5f;

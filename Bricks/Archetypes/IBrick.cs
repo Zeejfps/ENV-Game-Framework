@@ -2,7 +2,7 @@
 
 public interface IBrick : IEntity
 {
-    Rectangle CalculateBoundsRectangle();
+    Rectangle GetAABB();
     
     bool IsDamaged { get; }
     

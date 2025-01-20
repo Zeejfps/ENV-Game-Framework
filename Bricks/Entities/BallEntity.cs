@@ -43,18 +43,17 @@ public sealed class BallEntity : IBall, IDynamicEntity
 
     private void CheckAndResolveCollisions()
     {
-        var bounds = CalculateBoundsRectangle();
+        var bounds = GetAABB();
         CheckAndResolveArenaCollisions(bounds);
         CheckAndResolvePaddleCollisions(bounds);
         CheckAndResolveBrickCollisions(bounds);
     }
 
     // NOTE(Zee): This will fail if the ball is travelling faster. (Fast enough to phase through the paddle)
-
     private void CheckAndResolvePaddleCollisions(Rectangle ballBounds)
     {
         var paddle = Paddle;
-        var paddleBounds = paddle.CalculateBoundsRectangle();
+        var paddleBounds = paddle.GetAABB();
         CheckAndResolveCollision(ballBounds, paddleBounds);
     }
 
@@ -63,7 +62,7 @@ public sealed class BallEntity : IBall, IDynamicEntity
         var bricks = Bricks.GetAll();
         foreach (var brick in bricks)
         {
-            var brickBounds = brick.CalculateBoundsRectangle();
+            var brickBounds = brick.GetAABB();
             var collided = CheckAndResolveCollision(ballBounds, brickBounds);
             if (collided)
             {
@@ -191,7 +190,7 @@ public sealed class BallEntity : IBall, IDynamicEntity
         }
     }
 
-    public Rectangle CalculateBoundsRectangle()
+    public Rectangle GetAABB()
     {
         var halfWidth = Width * 0.5f;
         var halfHeight = Height * 0.5f;

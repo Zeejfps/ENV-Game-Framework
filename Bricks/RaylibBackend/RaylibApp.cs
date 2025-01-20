@@ -57,7 +57,7 @@ internal sealed class RaylibApp : IApp
 
     private void DrawBall(IBall ball)
     {
-        var ballRect = ball.CalculateBoundsRectangle();
+        var ballRect = ball.GetAABB();
         DrawBallSprite(ballRect);
     }
 
@@ -73,7 +73,7 @@ internal sealed class RaylibApp : IApp
 
     private void DrawPaddle(PaddleEntity paddle)
     {
-        var paddleRect = paddle.CalculateBoundsRectangle();
+        var paddleRect = paddle.GetAABB();
         DrawPaddleSprite(paddleRect);
     }
 
@@ -89,7 +89,7 @@ internal sealed class RaylibApp : IApp
 
     private void DrawBrick(IBrick brick)
     {
-        var brickRect = brick.CalculateBoundsRectangle();
+        var brickRect = brick.GetAABB();
         if (brick.IsDamaged)
         {
             DrawDamagedBrickSprite(brickRect, Color.Blue);
