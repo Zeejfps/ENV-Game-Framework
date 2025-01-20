@@ -41,26 +41,33 @@ internal sealed class RaylibApp : IApp
     {
     }
 
-    public void Render(Paddle paddle, Ball ball)
+    public void Render(Paddle paddle, Ball ball, Brick[] bricks)
     {
         Raylib.BeginDrawing();
         Raylib.ClearBackground(Color.DarkGray);
 
         var paddleRect = paddle.CalculateBoundsRectangle();
-        Raylib.DrawRectangle(
-            (int)paddleRect.Left, (int)paddleRect.Top, 
-            (int)paddleRect.Width, (int)paddleRect.Height,
-            Color.Black
-        );
+        DrawRectangle(paddleRect, Color.Black);
         
         var ballRect = ball.CalculateBoundsRectangle();
-        Raylib.DrawRectangle(
-            (int)ballRect.Left, (int)ballRect.Top, 
-            (int)ballRect.Width, (int)ballRect.Height,
-            Color.White
-        );
+        DrawRectangle(ballRect, Color.White);
+
+        foreach (var brick in bricks)
+        {
+            var brickRect = brick.CalculateBoundsRectangle();
+            DrawRectangle(brickRect, Color.Blue);
+        }
         
         Raylib.EndDrawing();
+    }
+
+    private void DrawRectangle(Rectangle rect, Color color)
+    {
+        Raylib.DrawRectangle(
+            (int)rect.Left, (int)rect.Top, 
+            (int)rect.Width, (int)rect.Height,
+            color
+        );
     }
 
     public void Dispose()

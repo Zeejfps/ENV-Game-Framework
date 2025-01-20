@@ -17,7 +17,7 @@ public struct Rectangle
         return Left < b.Right && Right > b.Left && Top < b.Bottom && Bottom > b.Top;
     }
     
-    public static Rectangle LeftTopWidthHeight(float left, float top, int width, int height)
+    public static Rectangle LeftTopWidthHeight(float left, float top, float width, float height)
     {
         var halfWith = width * 0.5f;
         var halfHeight = height * 0.5f;
