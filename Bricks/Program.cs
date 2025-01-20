@@ -2,7 +2,6 @@
 using Bricks;
 using Bricks.RaylibBackend;
 
-
 var appBuilder = CreateAppBuilder();
 appBuilder.WithWindowName("Brickz");
 appBuilder.WithCanvasSize(640, 480);
@@ -48,7 +47,7 @@ void SpawnBricks(BricksRepo bricksRepo, Rectangle arena)
         for (var j = 0; j < bricksPerRowCount; j++)
         {
             var x = (j * brickWidth) + (j * horizontalGap) + brickHalfWidth + leftPadding;
-            var brick = new Brick(bricksRepo)
+            var brick = new BrickEntity(bricksRepo)
             {
                 Position = new Vector2(x, y),
                 Width = brickWidth,

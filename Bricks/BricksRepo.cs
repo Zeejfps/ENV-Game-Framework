@@ -2,17 +2,17 @@
 
 public sealed class BricksRepo
 {
-    private readonly HashSet<Brick> _bricksToAdd = new();
-    private readonly HashSet<Brick> _bricksToRemove = new();
-    private readonly HashSet<Brick> _bricks = new();
+    private readonly HashSet<IBrick> _bricksToAdd = new();
+    private readonly HashSet<IBrick> _bricksToRemove = new();
+    private readonly HashSet<IBrick> _bricks = new();
     
-    public void Add(Brick brick)
+    public void Add(IBrick brick)
     {
         _bricksToAdd.Add(brick);
-        _bricksToRemove.Add(brick);
+        _bricksToRemove.Remove(brick);
     }
 
-    public void Remove(Brick brick)
+    public void Remove(IBrick brick)
     {
         _bricksToRemove.Add(brick);
         _bricksToAdd.Remove(brick);
@@ -33,7 +33,7 @@ public sealed class BricksRepo
         _bricksToAdd.Clear();
     }
 
-    public IEnumerable<Brick> GetAll()
+    public IEnumerable<IBrick> GetAll()
     {
         return _bricks;
     }

@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using Bricks;
 
-public sealed class Brick
+public sealed class BrickEntity : IBrick
 {
     public Vector2 Position { get; init; }
     public float Width { get; init; }
@@ -9,7 +9,7 @@ public sealed class Brick
 
     private readonly BricksRepo _bricksRepo;
 
-    public Brick(BricksRepo bricksRepo)
+    public BrickEntity(BricksRepo bricksRepo)
     {
         _bricksRepo = bricksRepo;
     }
