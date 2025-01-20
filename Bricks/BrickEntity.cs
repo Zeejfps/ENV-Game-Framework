@@ -9,9 +9,12 @@ public sealed class BrickEntity : IBrick
 
     private readonly BricksRepo _bricksRepo;
 
+    private int _health;
+
     public BrickEntity(BricksRepo bricksRepo)
     {
         _bricksRepo = bricksRepo;
+        _health = 2;
     }
 
     public void Spawn()
@@ -31,5 +34,14 @@ public sealed class BrickEntity : IBrick
         var left = Position.X - halfWidth;
         var top = Position.Y - halfHeight;
         return Rectangle.LeftTopWidthHeight(left, top, Width, Height);
+    }
+
+    public bool IsDamaged => _health < 2;
+
+    public void TakeDamage()
+    {
+        _health -= 1;
+        if (_health == 0)
+            Despawn();
     }
 }

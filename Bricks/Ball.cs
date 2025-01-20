@@ -64,7 +64,7 @@ public sealed class Ball
             var collided = CheckAndResolveCollision(ballBounds, brickBounds);
             if (collided)
             {
-                brick.Despawn();
+                brick.TakeDamage();
             }
         }
     }
