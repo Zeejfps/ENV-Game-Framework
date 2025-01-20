@@ -1,8 +1,9 @@
 ﻿using System.Numerics;
+using Bricks.Repos;
 
 namespace Bricks.Entities;
 
-public sealed class BallEntity
+public sealed class BallEntity : IBall
 {
     // NOTE(Zee): Assuming this is the center position of the ball
     public Vector2 Position { get; set; }
@@ -16,13 +17,15 @@ public sealed class BallEntity
     private Rectangle Arena { get; }
     private PaddleEntity Paddle { get; }
     private BricksRepo Bricks { get; }
+    private World World { get; }
 
-    public BallEntity(IClock clock, Rectangle arena, PaddleEntity paddle, BricksRepo bricks)
+    public BallEntity(IClock clock, Rectangle arena, World world)
     {
         Clock = clock;
         Arena = arena;
-        Paddle = paddle;
-        Bricks = bricks;
+        World = world;
+        Paddle = world.Paddle;
+        Bricks = world.Bricks;
         Position = new Vector2(arena.Width * 0.5f, arena.Height * 0.5f);
         Velocity = new Vector2(MaxSpeed, MaxSpeed);
     }
@@ -195,5 +198,15 @@ public sealed class BallEntity
         var left = Position.X - halfWidth;
         var top = Position.Y - halfHeight;
         return Rectangle.LeftTopWidthHeight(left, top, Width, Height);
+    }
+
+    public void Spawn()
+    {
+        World.Balls.Add(this);
+    }
+
+    public void Despawn()
+    {
+        World.Balls.Remove(this);
     }
 }

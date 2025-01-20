@@ -2,5 +2,6 @@
 
 public interface IEntity
 {
+    void Spawn();
     void Despawn();
 }

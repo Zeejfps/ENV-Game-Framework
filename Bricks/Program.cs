@@ -8,26 +8,31 @@ appBuilder.WithWindowName("Brickz");
 appBuilder.WithCanvasSize(640, 480);
 using var app = appBuilder.Build();
 
-var clock = new StopwatchClock();
 var arena = Rectangle.LeftTopWidthHeight(0, 0, 640, 480);
-var bricksRepo = new BricksRepo();
-SpawnBricks(bricksRepo, arena);
+var clock = new StopwatchClock();
 var paddle = new PaddleEntity(app.Input, clock, arena);
-var ball = new BallEntity(clock, arena, paddle, bricksRepo);
+
+var world = new World(clock, paddle);
+
+var ball = new BallEntity(clock, arena, world);
+ball.Spawn();
+
+SpawnBricks(world, arena);
 
 clock.Start();
 while (!app.IsCloseRequested)
 {
     app.Update();
-    bricksRepo.Update();
+    world.Update();
     paddle.Update();
     ball.Update();
-    app.Render(paddle, ball, bricksRepo);
+    app.Render(world);
     clock.Update();
 }
 
+return;
 
-void SpawnBricks(BricksRepo bricksRepo, Rectangle arena)
+void SpawnBricks(World world, Rectangle arena)
 {
     var leftPadding = 10;
     var rightPadding = 10;
@@ -48,7 +53,7 @@ void SpawnBricks(BricksRepo bricksRepo, Rectangle arena)
         for (var j = 0; j < bricksPerRowCount; j++)
         {
             var x = (j * brickWidth) + (j * horizontalGap) + brickHalfWidth + leftPadding;
-            var brick = new BrickEntity(bricksRepo)
+            var brick = new BrickEntity(world)
             {
                 Position = new Vector2(x, y),
                 Width = brickWidth,

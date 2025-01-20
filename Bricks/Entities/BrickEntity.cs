@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Bricks.Repos;
 
 namespace Bricks.Entities;
 
@@ -8,24 +9,24 @@ public sealed class BrickEntity : IBrick
     public float Width { get; init; }
     public float Height { get; init; }
 
-    private readonly BricksRepo _bricksRepo;
+    private readonly World _world;
 
     private int _health;
 
-    public BrickEntity(BricksRepo bricksRepo)
+    public BrickEntity(World world)
     {
-        _bricksRepo = bricksRepo;
+        _world = world;
         _health = 2;
     }
 
     public void Spawn()
     {
-        _bricksRepo.Add(this);
+        _world.Bricks.Add(this);
     }
 
     public void Despawn()
     {
-        _bricksRepo.Remove(this);
+        _world.Bricks.Remove(this);
     }
 
     public Rectangle CalculateBoundsRectangle()

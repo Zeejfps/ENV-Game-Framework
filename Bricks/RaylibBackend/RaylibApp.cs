@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Bricks.Entities;
+using Bricks.Repos;
 using Raylib_cs;
 
 namespace Bricks.RaylibBackend;
@@ -23,15 +24,20 @@ internal sealed class RaylibApp : IApp
     {
     }
 
-    public void Render(PaddleEntity paddle, BallEntity ball, BricksRepo bricks)
+    public void Render(World world)
     {
         Raylib.BeginDrawing();
         Raylib.ClearBackground(Color.DarkGray);
 
-        DrawPaddle(paddle);
-        DrawBall(ball);
+        DrawPaddle(world.Paddle);
+
+        foreach (var ball in world.Balls.GetAll())
+        {
+            DrawBall(ball);
+        }
         
-        foreach (var brick in bricks.GetAll())
+        
+        foreach (var brick in world.Bricks.GetAll())
         {
             DrawBrick(brick);
         }
@@ -48,7 +54,7 @@ internal sealed class RaylibApp : IApp
         );
     }
 
-    private void DrawBall(BallEntity ball)
+    private void DrawBall(IBall ball)
     {
         var ballRect = ball.CalculateBoundsRectangle();
         DrawBallSprite(ballRect);
