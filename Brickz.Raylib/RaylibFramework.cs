@@ -51,12 +51,19 @@ internal sealed class RaylibFramework : IFramework
 
         if (_game.State == GameState.Victory)
         {
-            Raylib.DrawRectangle(0, 0, 640, 480, new Color(0f, 0f, 0f, 0.75f));
-            var width = Raylib.MeasureText("Victory!", 50);
-            Raylib.DrawText("Victory!", (int)(320 - width * 0.5f), 180, 50, Color.Green);
+            DrawVictoryScreen();
         }
         
         Raylib.EndDrawing();
+    }
+
+    private void DrawVictoryScreen()
+    {
+        var victoryText = "Victory!";
+        var fontSize = 50;
+        Raylib.DrawRectangle(0, 0, 640, 480, new Color(0f, 0f, 0f, 0.75f));
+        var width = Raylib.MeasureText(victoryText, fontSize);
+        Raylib.DrawText(victoryText, (int)(320 - width * 0.5f), 180, fontSize, Color.Green);
     }
 
     private void DrawRectangle(AABB rect, Color color)
