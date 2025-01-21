@@ -30,13 +30,13 @@ public sealed class BrickEntity : IBrick
         _world.Bricks.Remove(this);
     }
 
-    public Rectangle GetAABB()
+    public AABB GetAABB()
     {
         var halfWidth = Width * 0.5f;
         var halfHeight = Height * 0.5f;
         var left = Position.X - halfWidth;
         var top = Position.Y - halfHeight;
-        return Rectangle.LeftTopWidthHeight(left, top, Width, Height);
+        return AABB.FromLeftTopWidthHeight(left, top, Width, Height);
     }
 
     public bool IsDamaged => _health < 2;

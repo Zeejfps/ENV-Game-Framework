@@ -14,9 +14,9 @@ public sealed class PaddleEntity : IDynamicEntity
     private IInput Input { get; }
     private IClock Clock { get; }
     private World World { get; }
-    private Rectangle ArenaBounds { get; }
+    private AABB ArenaBounds { get; }
     
-    public PaddleEntity(IInput input, World world, Rectangle arenaBounds)
+    public PaddleEntity(IInput input, World world, AABB arenaBounds)
     {
         Input = input;
         World = world;
@@ -72,13 +72,13 @@ public sealed class PaddleEntity : IDynamicEntity
         }
     }
 
-    public Rectangle GetAABB()
+    public AABB GetAABB()
     {
         var halfWidth = Width * 0.5f;
         var halfHeight = Height * 0.5f;
         var x = CenterPosition.X - halfWidth;
         var y = CenterPosition.Y - halfHeight;
-        return Rectangle.LeftTopWidthHeight(x, y, Width, Height);
+        return AABB.FromLeftTopWidthHeight(x, y, Width, Height);
     }
 
     public void Spawn()

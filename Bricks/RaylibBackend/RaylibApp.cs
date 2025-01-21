@@ -46,7 +46,7 @@ internal sealed class RaylibApp : IApp
         Raylib.EndDrawing();
     }
 
-    private void DrawRectangle(Rectangle rect, Color color)
+    private void DrawRectangle(AABB rect, Color color)
     {
         Raylib.DrawRectangle(
             (int)rect.Left, (int)rect.Top, 
@@ -61,7 +61,7 @@ internal sealed class RaylibApp : IApp
         DrawBallSprite(ballRect);
     }
 
-    private void DrawBallSprite(Rectangle ballRect)
+    private void DrawBallSprite(AABB ballRect)
     {
         Raylib.DrawTexturePro(_spriteSheet,
             new Raylib_cs.Rectangle(120, 0, 20, 20),
@@ -77,7 +77,7 @@ internal sealed class RaylibApp : IApp
         DrawPaddleSprite(paddleRect);
     }
 
-    private void DrawPaddleSprite(Rectangle aabb)
+    private void DrawPaddleSprite(AABB aabb)
     {
         Raylib.DrawTexturePro(_spriteSheet,
             new Raylib_cs.Rectangle(0, 0, 120, 19),
@@ -100,7 +100,7 @@ internal sealed class RaylibApp : IApp
         }
     }
 
-    private void DrawDamagedBrickSprite(Rectangle aabb, Color tint)
+    private void DrawDamagedBrickSprite(AABB aabb, Color tint)
     {
         Raylib.DrawTexturePro(_spriteSheet,
             new Raylib_cs.Rectangle(0, 40, 60, 20),
@@ -110,7 +110,7 @@ internal sealed class RaylibApp : IApp
             tint);
     }
 
-    private void DrawNormalBrickSprite(Rectangle aabb, Color tint)
+    private void DrawNormalBrickSprite(AABB aabb, Color tint)
     {
         Raylib.DrawTexturePro(_spriteSheet,
             new Raylib_cs.Rectangle(0, 20, 60, 20),

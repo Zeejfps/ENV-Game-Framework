@@ -1,24 +1,46 @@
-﻿using System.ComponentModel;
-using System.Numerics;
-using EasyGameFramework.Api.Physics;
+﻿using System.Numerics;
 
-namespace Pong.Physics;
+namespace Bricks;
 
 public readonly struct RaycastResult2D
 {
     public Vector2 Normal { get; init; }
     public Vector2 HitPoint { get; init; }
-    public float Distance { get; init; }
+    public float HitDistance { get; init; }
 }
 
-public sealed class Physics2D
+public readonly struct Ray2D
 {
-    public bool TryRaycastRect(Ray2D ray, Rect rect, out RaycastResult2D result)
+    public Vector2 Origin { get; init; }
+    public Vector2 Direction { get; init; }
+}
+
+public static class Physics2D
+{
+    public static bool TryCast(this AABB bounds, Vector2 direction, AABB targetBounds, out RaycastResult2D result)
+    {
+        var expandedTarget = AABB.Expand(targetBounds, bounds.Width * 0.5f, bounds.Height * 0.5f);
+        var ray = new Ray2D
+        {
+            Origin = bounds.Center,
+            Direction = direction,
+        };
+        var hit = TryRaycastRect(ray, expandedTarget, out result);
+        if (!hit)
+            return false;
+
+        if (result.HitDistance <= 0.0f)
+            return false;
+
+        return true;
+    }
+    
+    public static bool TryRaycastRect(Ray2D ray, AABB aabb, out RaycastResult2D result)
     {
         var rayDirection = Vector2.Normalize(ray.Direction);
         var maxLength = ray.Direction.Length();
-        var nearHitPoint = (rect.BottomLeft - ray.Origin) / rayDirection;
-        var farHitPoint = (rect.TopRight - ray.Origin) / rayDirection;
+        var nearHitPoint = (aabb.BottomLeft - ray.Origin) / rayDirection;
+        var farHitPoint = (aabb.TopRight - ray.Origin) / rayDirection;
 
         if (nearHitPoint.X > farHitPoint.X)
         {
@@ -62,7 +84,7 @@ public sealed class Physics2D
 
         result = new RaycastResult2D
         {
-            Distance = t,
+            HitDistance = t,
             Normal = normal,
             HitPoint = hitPoint
         };

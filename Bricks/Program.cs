@@ -8,7 +8,7 @@ using var app = CreateAppBuilder()
     .WithCanvasSize(640, 480)
     .Build();
 
-var arena = Rectangle.LeftTopWidthHeight(0, 0, 640, 480);
+var arena = AABB.FromLeftTopWidthHeight(0, 0, 640, 480);
 var clock = new StopwatchClock();
 var world = new World(clock);
 
@@ -38,7 +38,7 @@ while (!app.IsCloseRequested)
 
 return;
 
-void SpawnBricks(World world, Rectangle arena)
+void SpawnBricks(World world, AABB arena)
 {
     var leftPadding = 10;
     var rightPadding = 10;
