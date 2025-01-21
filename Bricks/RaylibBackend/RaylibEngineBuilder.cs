@@ -1,26 +1,26 @@
 ﻿namespace Bricks.RaylibBackend;
 
-public sealed class RaylibAppBuilder : IAppBuilder
+public sealed class RaylibEngineBuilder : IEngineBuilder
 {
     private string _windowName;
     private int _canvasWidth;
     private int _canvasHeight;
     
-    public IAppBuilder WithWindowName(string brickz)
+    public IEngineBuilder WithWindowName(string brickz)
     {
         _windowName = brickz;
         return this;
     }
 
-    public IAppBuilder WithCanvasSize(int width, int height)
+    public IEngineBuilder WithFramebufferSize(int width, int height)
     {
         _canvasWidth = width;
         _canvasHeight = height;
         return this;
     }
 
-    public IApp Build()
+    public IEngine Build()
     {
-        return new RaylibApp(_windowName, _canvasWidth, _canvasHeight);
+        return new RaylibEngine(_windowName, _canvasWidth, _canvasHeight);
     }
 }

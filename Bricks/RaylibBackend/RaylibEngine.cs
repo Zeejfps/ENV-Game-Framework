@@ -6,23 +6,29 @@ using Raylib_cs;
 
 namespace Bricks.RaylibBackend;
 
-internal sealed class RaylibApp : IApp
+internal sealed class RaylibEngine : IEngine
 {
     public bool IsCloseRequested => Raylib.WindowShouldClose();
     public IKeyboard Keyboard { get; }
     
     private readonly Texture2D _spriteSheet;
 
-    public RaylibApp(string windowName, int windowWidth, int windowHeight)
+    public RaylibEngine(string windowName, int windowWidth, int windowHeight)
     {
         Keyboard = new RaylibKeyboard();
         Raylib.SetConfigFlags(ConfigFlags.VSyncHint);
         Raylib.InitWindow(windowWidth, windowHeight, windowName);
         _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");
     }
-    
-    public void Update()
+
+    public void Run(IGame game)
     {
+        game.OnStartup();
+        while (!Raylib.WindowShouldClose())
+        {
+            game.OnUpdate();
+        }
+        game.OnShutdown();
     }
 
     public void Render(World world)
@@ -131,7 +137,7 @@ internal sealed class RaylibApp : IApp
         GC.SuppressFinalize(this);
     }
 
-    ~RaylibApp()
+    ~RaylibEngine()
     {
         ReleaseUnmanagedResources();
     }
