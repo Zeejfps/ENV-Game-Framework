@@ -71,6 +71,19 @@ public sealed class BrickzGame
         }
     }
 
+    public void Restart()
+    {
+        State = GameState.Playing;
+
+        foreach (var ball in World.Balls.GetAll())
+            ball.Despawn();
+        
+        CreateAndSpawnBall();
+        CreateAndSpawnBricks();
+        World.Paddle.Reset();
+        Clock.Start();
+    }
+    
     public void OnShutdown()
     {
     }

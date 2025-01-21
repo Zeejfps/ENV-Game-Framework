@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using Bricks.Archetypes;
 using Bricks.Entities;
-using Raylib_cs;
+using Raylib_CsLo;
 
 namespace Bricks.RaylibBackend;
 
@@ -9,14 +9,18 @@ internal sealed class RaylibFramework : IFramework
 {
     public IKeyboard Keyboard { get; }
     
-    private readonly Texture2D _spriteSheet;
+    private readonly Texture _spriteSheet;
     private readonly BrickzGame _game;
+
+    private readonly Color _white = new(255, 255, 255, 255);
+    private readonly Color _brickColor = new(0, 121, 241, 255);
 
     public RaylibFramework(string windowName, int windowWidth, int windowHeight)
     {
         Keyboard = new RaylibKeyboard();
-        Raylib.SetConfigFlags(ConfigFlags.VSyncHint);
+        Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT);
         Raylib.InitWindow(windowWidth, windowHeight, windowName);
+        RayGui.GuiLoadStyleDefault();
         _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");
         _game = new BrickzGame(this);
     }
@@ -35,7 +39,7 @@ internal sealed class RaylibFramework : IFramework
     private void Render(World world)
     {
         Raylib.BeginDrawing();
-        Raylib.ClearBackground(Color.DarkGray);
+        Raylib.ClearBackground(new Color(80, 80, 80, 255));
 
         DrawPaddle(world.Paddle);
 
@@ -61,9 +65,16 @@ internal sealed class RaylibFramework : IFramework
     {
         var victoryText = "Victory!";
         var fontSize = 50;
-        Raylib.DrawRectangle(0, 0, 640, 480, new Color(0f, 0f, 0f, 0.75f));
+        Raylib.DrawRectangle(0, 0, 640, 480, new Color(0, 0, 0, 200));
         var width = Raylib.MeasureText(victoryText, fontSize);
-        Raylib.DrawText(victoryText, (int)(320 - width * 0.5f), 180, fontSize, Color.Green);
+        Raylib.DrawText(victoryText, (int)(320 - width * 0.5f), 180, fontSize, new Color(0, 255, 0, 255));
+
+        var buttonPosition = new Rectangle(320 - 50, 250, 100, 30);
+        var restartButtonClicked = RayGui.GuiButton(buttonPosition, "Restart");
+        if (restartButtonClicked)
+        {
+            _game.Restart();
+        }
     }
 
     private void DrawRectangle(AABB rect, Color color)
@@ -88,7 +99,7 @@ internal sealed class RaylibFramework : IFramework
             new Rectangle(ballRect.Left, ballRect.Top, ballRect.Width, ballRect.Height),
             new Vector2(0, 0),
             0, 
-            Color.White);
+            _white);
     }
 
     private void DrawPaddle(PaddleEntity paddle)
@@ -104,7 +115,7 @@ internal sealed class RaylibFramework : IFramework
             new Rectangle(aabb.Left, aabb.Top, aabb.Width, aabb.Height),
             new Vector2(0, 0),
             0, 
-            Color.White);
+            _white);
     }
 
     private void DrawBrick(IBrick brick)
@@ -112,11 +123,11 @@ internal sealed class RaylibFramework : IFramework
         var brickRect = brick.GetAABB();
         if (brick.IsDamaged)
         {
-            DrawDamagedBrickSprite(brickRect, Color.Blue);
+            DrawDamagedBrickSprite(brickRect, _brickColor);
         }
         else
         {
-            DrawNormalBrickSprite(brickRect, Color.Blue);
+            DrawNormalBrickSprite(brickRect, _brickColor);
         }
     }
 

@@ -12,13 +12,16 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Raylib-cs" Version="7.0.0" />
-    </ItemGroup>
-
-    <ItemGroup>
         <Content Include="Assets\**\*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Raylib-CsLo" Version="4.2.0.9" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <TrimmerRootAssembly Include="Raylib-CsLo" />
+    </ItemGroup>
 </Project>

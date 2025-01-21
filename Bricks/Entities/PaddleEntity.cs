@@ -94,4 +94,9 @@ public sealed class PaddleEntity : IDynamicEntity, IPaddle
         World.Paddle = null;
         World.DynamicEntities.Remove(this);
     }
+
+    public void Reset()
+    {
+        CenterPosition = new Vector2(ArenaBounds.Center.X, ArenaBounds.Bottom - 50);
+    }
 }

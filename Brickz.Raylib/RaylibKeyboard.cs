@@ -1,4 +1,4 @@
-﻿using Raylib_cs;
+﻿using Raylib_CsLo;
 
 namespace Bricks.RaylibBackend;
 
@@ -20,11 +20,11 @@ internal sealed class RaylibKeyboard : IKeyboard
     {
         return keyCode switch
         {
-            KeyCode.A => KeyboardKey.A,
-            KeyCode.D => KeyboardKey.D,
-            KeyCode.L => KeyboardKey.L,
-            KeyCode.P => KeyboardKey.P,
-            KeyCode.Space => KeyboardKey.Space,
+            KeyCode.A => KeyboardKey.KEY_A,
+            KeyCode.D => KeyboardKey.KEY_D,
+            KeyCode.L => KeyboardKey.KEY_L,
+            KeyCode.P => KeyboardKey.KEY_P,
+            KeyCode.Space => KeyboardKey.KEY_SPACE,
             _ => throw new ArgumentOutOfRangeException(nameof(keyCode), keyCode, null)
         };
     }
