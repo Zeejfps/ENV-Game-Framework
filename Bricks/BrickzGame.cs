@@ -22,7 +22,7 @@ public sealed class BrickzGame : IGame
 
         var paddle = world.CreatePaddle();
         paddle.Spawn();
-
+        
         var ball = world.CreateBall();
         ball.Spawn();
 
@@ -37,14 +37,13 @@ public sealed class BrickzGame : IGame
     public void OnUpdate()
     {
         var world = World;
-        var engine = Engine;
         
         Clock.Update();
         
         PaddleController.Update();
         ClockController.Update();
         
-        if (engine.Keyboard.WasKeyPressedThisFrame(KeyCode.Space))
+        if (Engine.Keyboard.WasKeyPressedThisFrame(KeyCode.Space))
         {
             var newBall = world.CreateBall();
             newBall.Spawn();

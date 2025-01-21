@@ -1,4 +1,6 @@
-﻿using Bricks;
+﻿using System.IO;
+using Bricks;
+using Bricks.Archetypes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -10,8 +12,9 @@ public class MonoGameEngine : Game, IEngine
 {
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
-
-    private readonly BrickzGame _bricksGame;
+    private Texture2D _spriteSheet;
+    
+    private readonly BrickzGame _game;
     private readonly MonoGameKeyboard _keyboard;
     
     public MonoGameEngine()
@@ -19,14 +22,20 @@ public class MonoGameEngine : Game, IEngine
         _graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
         IsMouseVisible = false;
-        _bricksGame = new BrickzGame(this);
         _keyboard = new MonoGameKeyboard();
+        _game = new BrickzGame(this);
     }
 
     protected override void Initialize()
     {
+        _graphics.IsFullScreen = false;
+        _graphics.SynchronizeWithVerticalRetrace = true;
+        _graphics.PreferredBackBufferWidth = 640;
+        _graphics.PreferredBackBufferHeight = 480;
+        _graphics.ApplyChanges();
+        
         _keyboard.Init();
-        _bricksGame.OnStartup();
+        _game.OnStartup();
         base.Initialize();
     }
 
@@ -34,19 +43,22 @@ public class MonoGameEngine : Game, IEngine
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-        // TODO: use this.Content to load your game content here
+        using var fileStream = new FileStream("Assets/sprite_atlas.png", FileMode.Open);
+        _spriteSheet = Texture2D.FromStream(GraphicsDevice, fileStream);
     }
 
     protected override void Update(GameTime gameTime)
     {
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed ||
             MonoKeys.GetState().IsKeyDown(Keys.Escape))
+        {
             Exit();
-
-        // TODO: Add your update logic here
-
-        _bricksGame.OnUpdate();
-        _keyboard.Update();
+        }
+        else
+        {
+            _game.OnUpdate();
+            _keyboard.Update();
+        }
         base.Update(gameTime);
     }
 
@@ -54,9 +66,68 @@ public class MonoGameEngine : Game, IEngine
     {
         GraphicsDevice.Clear(Color.CornflowerBlue);
 
-        // TODO: Add your drawing code here
+        _spriteBatch.Begin();
+
+        DrawBricks();
+        DrawBalls();
+        DrawPaddle();
+        
+        _spriteBatch.End();
 
         base.Draw(gameTime);
+    }
+
+    private void DrawBricks()
+    {
+        var bricks = _game.World.Bricks.GetAll();
+        foreach (var brick in bricks)
+        {
+            if (brick.IsDamaged)
+            {
+                DrawDamagedBrick(brick);
+            }
+            else
+            {
+                DrawNormalBrick(brick);
+            }
+        }
+    }
+
+    private void DrawDamagedBrick(IBrick brick)
+    {
+        var aabb = brick.GetAABB();
+        var sourceRect = new Rectangle(0, 40, 60, 20);
+        var destinationRect = new Rectangle((int)aabb.Left, (int)aabb.Top, (int)aabb.Width, (int)aabb.Height);
+        _spriteBatch.Draw(_spriteSheet, destinationRect, sourceRect, Color.White);
+    }
+    
+    private void DrawNormalBrick(IBrick brick)
+    {
+        var aabb = brick.GetAABB();
+        var sourceRect = new Rectangle(0, 20, 60, 20);
+        var destinationRect = new Rectangle((int)aabb.Left, (int)aabb.Top, (int)aabb.Width, (int)aabb.Height);
+        _spriteBatch.Draw(_spriteSheet, destinationRect, sourceRect, Color.White);
+    }
+
+    private void DrawPaddle()
+    {
+        var paddle = _game.World.Paddle;
+        var aabb = paddle.GetAABB();
+        var sourceRect = new Rectangle(0, 0, 120, 19);
+        var destinationRect = new Rectangle((int)aabb.Left, (int)aabb.Top, (int)aabb.Width, (int)aabb.Height);
+        _spriteBatch.Draw(_spriteSheet, destinationRect, sourceRect, Color.White);
+    }
+    
+    private void DrawBalls()
+    {
+        var balls = _game.World.Balls.GetAll();
+        foreach (var ball in balls)
+        {
+            var aabb = ball.GetAABB();
+            var sourceRect = new Rectangle(120, 0, 20, 20);
+            var destinationRect = new Rectangle((int)aabb.Left, (int)aabb.Top, (int)aabb.Width, (int)aabb.Height);
+            _spriteBatch.Draw(_spriteSheet, destinationRect, sourceRect, Color.White);
+        }
     }
 
     public IKeyboard Keyboard => _keyboard;
