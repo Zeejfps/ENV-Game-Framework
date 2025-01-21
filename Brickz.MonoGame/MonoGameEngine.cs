@@ -16,6 +16,8 @@ public class MonoGameEngine : Game, IEngine
     
     private readonly BrickzGame _game;
     private readonly MonoGameKeyboard _keyboard;
+    private readonly Color _backgroundColor = new(80, 80, 80, 255);
+    private readonly Color _brickColor = new(0, 121, 241, 255);
     
     public MonoGameEngine()
     {
@@ -64,9 +66,13 @@ public class MonoGameEngine : Game, IEngine
 
     protected override void Draw(GameTime gameTime)
     {
-        GraphicsDevice.Clear(Color.CornflowerBlue);
+        GraphicsDevice.Clear(_backgroundColor);
 
-        _spriteBatch.Begin();
+        _spriteBatch.Begin(
+            SpriteSortMode.Deferred,
+            BlendState.AlphaBlend,
+            SamplerState.PointClamp
+        );
 
         DrawBricks();
         DrawBalls();
@@ -98,7 +104,7 @@ public class MonoGameEngine : Game, IEngine
         var aabb = brick.GetAABB();
         var sourceRect = new Rectangle(0, 40, 60, 20);
         var destinationRect = new Rectangle((int)aabb.Left, (int)aabb.Top, (int)aabb.Width, (int)aabb.Height);
-        _spriteBatch.Draw(_spriteSheet, destinationRect, sourceRect, Color.White);
+        _spriteBatch.Draw(_spriteSheet, destinationRect, sourceRect, _brickColor);
     }
     
     private void DrawNormalBrick(IBrick brick)
@@ -106,7 +112,7 @@ public class MonoGameEngine : Game, IEngine
         var aabb = brick.GetAABB();
         var sourceRect = new Rectangle(0, 20, 60, 20);
         var destinationRect = new Rectangle((int)aabb.Left, (int)aabb.Top, (int)aabb.Width, (int)aabb.Height);
-        _spriteBatch.Draw(_spriteSheet, destinationRect, sourceRect, Color.White);
+        _spriteBatch.Draw(_spriteSheet, destinationRect, sourceRect, _brickColor);
     }
 
     private void DrawPaddle()
