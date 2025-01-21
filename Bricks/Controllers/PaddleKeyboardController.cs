@@ -8,7 +8,7 @@ public sealed class PaddleKeyboardController
     private IKeyboard Keyboard { get; }
     private IPaddle Paddle => World.Paddle;
 
-    public PaddleKeyboardController(IKeyboard keyboard, World world)
+    public PaddleKeyboardController(World world, IKeyboard keyboard)
     {
         World = world;
         Keyboard = keyboard;

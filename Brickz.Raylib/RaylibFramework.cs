@@ -48,6 +48,13 @@ internal sealed class RaylibFramework : IFramework
         {
             DrawBrick(brick);
         }
+
+        if (_game.State == GameState.Victory)
+        {
+            Raylib.DrawRectangle(0, 0, 640, 480, new Color(0f, 0f, 0f, 0.75f));
+            var width = Raylib.MeasureText("Victory!", 50);
+            Raylib.DrawText("Victory!", (int)(320 - width * 0.5f), 180, 50, Color.Green);
+        }
         
         Raylib.EndDrawing();
     }

@@ -1,9 +1,19 @@
 ﻿using Bricks;
 using Bricks.Controllers;
 
+public enum GameState
+{
+    Paused,
+    Playing,
+    Victory,
+    Defeat
+}
+
 public sealed class BrickzGame
 {
     public World World { get; }
+    public GameState State { get; private set; }
+    
     private IFramework Framework { get; }
     private StopwatchClock Clock { get; }
     private PaddleKeyboardController PaddleController { get; }
@@ -11,22 +21,21 @@ public sealed class BrickzGame
     
     public BrickzGame(IFramework framework)
     {
+        Framework = framework;
+        
         var clock = new StopwatchClock();
         var world = new World(clock);
 
-        Framework = framework;
         Clock = clock;
         World = world;
-        PaddleController = new PaddleKeyboardController(framework.Keyboard, world);
+        PaddleController = new PaddleKeyboardController(world, framework.Keyboard);
         ClockController = new ClockController(clock, framework.Keyboard);
-
-        var paddle = world.CreatePaddle();
-        paddle.Spawn();
+ 
+        CreateAndSpawnPaddle();
+        CreateAndSpawnBall();
+        CreateAndSpawnBricks();
         
-        var ball = world.CreateBall();
-        ball.Spawn();
-
-        CreateAndSpawnBricks(world);
+        State = GameState.Playing;
     }
     
     public void OnStartup()
@@ -36,29 +45,51 @@ public sealed class BrickzGame
 
     public void OnUpdate()
     {
-        var world = World;
-        
         Clock.Update();
+
+        if (State != GameState.Playing)
+        {
+            return;
+        }
         
         PaddleController.Update();
         ClockController.Update();
         
         if (Framework.Keyboard.WasKeyPressedThisFrame(KeyCode.Space))
         {
-            var newBall = world.CreateBall();
+            var newBall = World.CreateBall();
             newBall.Spawn();
         }
     
         World.Update();
+        
+        var hasBricks = World.Bricks.GetAll().Any();
+        if (!hasBricks)
+        {
+            Clock.Stop();
+            State = GameState.Victory;
+        }
     }
 
     public void OnShutdown()
     {
     }
-    
-    void CreateAndSpawnBricks(World game)
+
+    private void CreateAndSpawnPaddle()
     {
-        var arena = game.Arena;
+        var paddle = World.CreatePaddle();
+        paddle.Spawn();
+    }
+
+    private void CreateAndSpawnBall()
+    {
+        var ball = World.CreateBall();
+        ball.Spawn();
+    }
+    
+    private void CreateAndSpawnBricks()
+    {
+        var arena = World.Arena;
         var leftPadding = 10;
         var rightPadding = 10;
         var topPadding = 10;
@@ -78,7 +109,7 @@ public sealed class BrickzGame
             for (var j = 0; j < bricksPerRowCount; j++)
             {
                 var x = (j * brickWidth) + (j * horizontalGap) + brickHalfWidth + leftPadding;
-                var brick = game.CreateBrick(x, y, brickWidth, brickHeight);
+                var brick = World.CreateBrick(x, y, brickWidth, brickHeight);
                 brick.Spawn();
             }
         }
