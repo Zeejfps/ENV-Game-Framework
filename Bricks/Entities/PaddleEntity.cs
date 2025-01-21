@@ -11,15 +11,16 @@ public sealed class PaddleEntity : IDynamicEntity, IPaddle
     public int Height { get; private set; }
     public const float MaxMovementSpeed = 300f;
     
-    private IPaddleController Controller { get; }
+    public bool MoveLeftInput { get; set; }
+    public bool MoveRightInput { get; set; }
+    
     private IKeyboard Keyboard { get; }
     private IClock Clock { get; }
     private Game Game { get; }
     private AABB ArenaBounds { get; }
     
-    public PaddleEntity(IPaddleController controller, Game game, AABB arenaBounds)
+    public PaddleEntity(Game game, AABB arenaBounds)
     {
-        Controller = controller;
         Game = game;
         Clock = game.Clock;
         ArenaBounds = arenaBounds;
@@ -30,22 +31,25 @@ public sealed class PaddleEntity : IDynamicEntity, IPaddle
 
     public void Update()
     {
-        HorizontalVelocity = 0;
-        Controller.ApplyInputs(this);
+        UpdateHorizontalVelocity();
         UpdatePosition();
         CheckAndResolveCollision();
     }
 
-    public void MoveLeft()
+    private void UpdateHorizontalVelocity()
     {
-        HorizontalVelocity -= MaxMovementSpeed;
-    }
+        HorizontalVelocity = 0;
+        if (MoveLeftInput)
+        {
+            HorizontalVelocity -= MaxMovementSpeed;
+        }
 
-    public void MoveRight()
-    {
-        HorizontalVelocity += MaxMovementSpeed;
+        if (MoveRightInput)
+        {
+            HorizontalVelocity += MaxMovementSpeed;
+        }
     }
-
+    
     private void UpdatePosition()
     {
         CenterPosition += Vector2.UnitX * HorizontalVelocity * Clock.DeltaTimeSeconds;

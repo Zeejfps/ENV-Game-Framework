@@ -2,6 +2,6 @@
 
 public interface IPaddle
 {
-    void MoveLeft();
-    void MoveRight();
+    bool MoveLeftInput { get; set; }
+    bool MoveRightInput { get; set; }
 }

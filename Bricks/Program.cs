@@ -10,25 +10,27 @@ using var app = CreateAppBuilder()
 
 var arena = AABB.FromLeftTopWidthHeight(0, 0, 640, 480);
 var clock = new StopwatchClock();
-var world = new Game(clock);
+var game = new Game(clock);
 
-var paddleController = new KeyboardPaddleController(app.Keyboard);
-var paddle = new PaddleEntity(paddleController, world, arena);
+var controller = new KeyboardController(app.Keyboard, game);
+
+var paddle = new PaddleEntity(game, arena);
 paddle.Spawn();
 
-var ball = new BallEntity(arena, world);
+var ball = new BallEntity(arena, game);
 ball.Spawn();
 
-SpawnBricks(world, arena);
+SpawnBricks(game, arena);
 
 clock.Start();
 while (!app.IsCloseRequested)
 {
     app.Update();
 
+    controller.Update();
     if (app.Keyboard.WasKeyPressedThisFrame(KeyCode.Space))
     {
-        var newBall = new BallEntity(arena, world);
+        var newBall = new BallEntity(arena, game);
         newBall.Spawn();
     }
     
@@ -45,8 +47,8 @@ while (!app.IsCloseRequested)
         clock.StepForward();
     }
     
-    world.Update();
-    app.Render(world);
+    game.Update();
+    app.Render(game);
     clock.Update();
 }
 
