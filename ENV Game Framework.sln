@@ -56,6 +56,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenGlWrapper", "OpenGlWrap
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenGlWrapper.Tests", "OpenGlWrapper.Tests\OpenGlWrapper.Tests.csproj", "{264A612D-5371-4C39-BD5C-CCE873B031C7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Brickz.MonoGame", "Brickz.MonoGame\Brickz.MonoGame.csproj", "{F4449B06-D0E2-4DD0-9DD0-7209ABFEE9E6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Brickz.Raylib", "Brickz.Raylib\Brickz.Raylib.csproj", "{957A87C4-9286-4CD4-A69E-AAD869221E9B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -174,5 +178,13 @@ Global
 		{264A612D-5371-4C39-BD5C-CCE873B031C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{264A612D-5371-4C39-BD5C-CCE873B031C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{264A612D-5371-4C39-BD5C-CCE873B031C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4449B06-D0E2-4DD0-9DD0-7209ABFEE9E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4449B06-D0E2-4DD0-9DD0-7209ABFEE9E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4449B06-D0E2-4DD0-9DD0-7209ABFEE9E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4449B06-D0E2-4DD0-9DD0-7209ABFEE9E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{957A87C4-9286-4CD4-A69E-AAD869221E9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{957A87C4-9286-4CD4-A69E-AAD869221E9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{957A87C4-9286-4CD4-A69E-AAD869221E9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{957A87C4-9286-4CD4-A69E-AAD869221E9B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
