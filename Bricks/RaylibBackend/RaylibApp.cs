@@ -25,20 +25,20 @@ internal sealed class RaylibApp : IApp
     {
     }
 
-    public void Render(World world)
+    public void Render(Game game)
     {
         Raylib.BeginDrawing();
         Raylib.ClearBackground(Color.DarkGray);
 
-        DrawPaddle(world.Paddle);
+        DrawPaddle(game.Paddle);
 
-        foreach (var ball in world.Balls.GetAll())
+        foreach (var ball in game.Balls.GetAll())
         {
             DrawBall(ball);
         }
         
         
-        foreach (var brick in world.Bricks.GetAll())
+        foreach (var brick in game.Bricks.GetAll())
         {
             DrawBrick(brick);
         }

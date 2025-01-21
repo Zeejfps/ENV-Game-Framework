@@ -3,7 +3,7 @@ using Bricks.Repos;
 
 namespace Bricks;
 
-public sealed class World
+public sealed class Game
 {
     public PaddleEntity Paddle { get; set; }
     public IClock Clock { get; }
@@ -13,7 +13,7 @@ public sealed class World
 
     private readonly IRepo[] _repos;
     
-    public World(IClock clock)
+    public Game(IClock clock)
     {
         Clock = clock;
         Balls = new BallsRepo();

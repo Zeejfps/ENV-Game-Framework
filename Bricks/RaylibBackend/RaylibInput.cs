@@ -22,6 +22,8 @@ internal sealed class RaylibInput : IInput
         {
             KeyCode.A => KeyboardKey.A,
             KeyCode.D => KeyboardKey.D,
+            KeyCode.L => KeyboardKey.L,
+            KeyCode.P => KeyboardKey.P,
             KeyCode.Space => KeyboardKey.Space,
             _ => throw new ArgumentOutOfRangeException(nameof(keyCode), keyCode, null)
         };

@@ -13,14 +13,14 @@ public sealed class PaddleEntity : IDynamicEntity
     
     private IInput Input { get; }
     private IClock Clock { get; }
-    private World World { get; }
+    private Game Game { get; }
     private AABB ArenaBounds { get; }
     
-    public PaddleEntity(IInput input, World world, AABB arenaBounds)
+    public PaddleEntity(IInput input, Game game, AABB arenaBounds)
     {
         Input = input;
-        World = world;
-        Clock = world.Clock;
+        Game = game;
+        Clock = game.Clock;
         ArenaBounds = arenaBounds;
         CenterPosition = new Vector2(ArenaBounds.Center.X, ArenaBounds.Bottom - 50);
         Width = 100;
@@ -83,13 +83,13 @@ public sealed class PaddleEntity : IDynamicEntity
 
     public void Spawn()
     {
-        World.DynamicEntities.Add(this);
-        World.Paddle = this;
+        Game.DynamicEntities.Add(this);
+        Game.Paddle = this;
     }
 
     public void Despawn()
     {
-        World.Paddle = null;
-        World.DynamicEntities.Remove(this);
+        Game.Paddle = null;
+        Game.DynamicEntities.Remove(this);
     }
 }

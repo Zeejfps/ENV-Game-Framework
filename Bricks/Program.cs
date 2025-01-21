@@ -10,7 +10,7 @@ using var app = CreateAppBuilder()
 
 var arena = AABB.FromLeftTopWidthHeight(0, 0, 640, 480);
 var clock = new StopwatchClock();
-var world = new World(clock);
+var world = new Game(clock);
 
 var paddle = new PaddleEntity(app.Input, world, arena);
 paddle.Spawn();
@@ -31,6 +31,19 @@ while (!app.IsCloseRequested)
         newBall.Spawn();
     }
     
+    if (app.Input.WasKeyPressedThisFrame(KeyCode.P))
+    {
+        if (clock.IsRunning)
+            clock.Stop();
+        else
+            clock.Start();
+    }
+    
+    if (app.Input.WasKeyPressedThisFrame(KeyCode.L))
+    {
+        clock.StepForward();
+    }
+    
     world.Update();
     app.Render(world);
     clock.Update();
@@ -38,7 +51,7 @@ while (!app.IsCloseRequested)
 
 return;
 
-void SpawnBricks(World world, AABB arena)
+void SpawnBricks(Game world, AABB arena)
 {
     var leftPadding = 10;
     var rightPadding = 10;

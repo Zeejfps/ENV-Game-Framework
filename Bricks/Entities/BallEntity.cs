@@ -14,18 +14,18 @@ public sealed class BallEntity : IBall, IDynamicEntity
     public const int Width = 25; 
     public const int Height = 25; 
     
-    private IClock Clock => World.Clock;
+    private IClock Clock => Game.Clock;
     private AABB Arena { get; }
     private PaddleEntity Paddle { get; }
     private BricksRepo Bricks { get; }
-    private World World { get; }
+    private Game Game { get; }
     
-    public BallEntity(AABB arena, World world)
+    public BallEntity(AABB arena, Game game)
     {
         Arena = arena;
-        World = world;
-        Paddle = world.Paddle;
-        Bricks = world.Bricks;
+        Game = game;
+        Paddle = game.Paddle;
+        Bricks = game.Bricks;
         Position = new Vector2(arena.Width * 0.5f, arena.Height * 0.5f);
         Velocity = new Vector2(MaxSpeed, MaxSpeed);
     }
@@ -232,13 +232,13 @@ public sealed class BallEntity : IBall, IDynamicEntity
 
     public void Spawn()
     {
-        World.Balls.Add(this);
-        World.DynamicEntities.Add(this);
+        Game.Balls.Add(this);
+        Game.DynamicEntities.Add(this);
     }
 
     public void Despawn()
     {
-        World.Balls.Remove(this);
-        World.DynamicEntities.Remove(this);
+        Game.Balls.Remove(this);
+        Game.DynamicEntities.Remove(this);
     }
 }
