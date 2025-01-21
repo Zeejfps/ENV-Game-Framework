@@ -5,6 +5,7 @@ namespace Bricks;
 
 public sealed class Game
 {
+    public AABB Arena { get; }
     public PaddleEntity Paddle { get; set; }
     public IClock Clock { get; }
     public BallsRepo Balls { get; }
@@ -16,6 +17,7 @@ public sealed class Game
     public Game(IClock clock)
     {
         Clock = clock;
+        Arena = AABB.FromLeftTopWidthHeight(0, 0, 640, 480);
         Balls = new BallsRepo();
         Bricks = new BricksRepo();
         DynamicEntities = new DynamicEntitiesRepo();

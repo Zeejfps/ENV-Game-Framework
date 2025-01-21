@@ -15,18 +15,17 @@ public sealed class BallEntity : IBall, IDynamicEntity
     public const int Height = 25; 
     
     private IClock Clock => Game.Clock;
-    private AABB Arena { get; }
+    private AABB Arena => Game.Arena;
     private PaddleEntity Paddle { get; }
     private BricksRepo Bricks { get; }
     private Game Game { get; }
     
-    public BallEntity(AABB arena, Game game)
+    public BallEntity(Game game)
     {
-        Arena = arena;
         Game = game;
         Paddle = game.Paddle;
         Bricks = game.Bricks;
-        Position = new Vector2(arena.Width * 0.5f, arena.Height * 0.5f);
+        Position = new Vector2(Arena.Width * 0.5f, Arena.Height * 0.5f);
         Velocity = new Vector2(MaxSpeed, MaxSpeed);
     }
 

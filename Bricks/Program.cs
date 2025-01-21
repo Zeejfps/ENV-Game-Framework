@@ -8,29 +8,28 @@ using var app = CreateAppBuilder()
     .WithCanvasSize(640, 480)
     .Build();
 
-var arena = AABB.FromLeftTopWidthHeight(0, 0, 640, 480);
 var clock = new StopwatchClock();
 var game = new Game(clock);
 
-var controller = new KeyboardController(app.Keyboard, game);
+var paddleKeyboardController = new PaddleKeyboardController(app.Keyboard, game);
 
-var paddle = new PaddleEntity(game, arena);
+var paddle = new PaddleEntity(game);
 paddle.Spawn();
 
-var ball = new BallEntity(arena, game);
+var ball = new BallEntity(game);
 ball.Spawn();
 
-SpawnBricks(game, arena);
+SpawnBricks(game);
 
 clock.Start();
 while (!app.IsCloseRequested)
 {
     app.Update();
 
-    controller.Update();
+    paddleKeyboardController.Update();
     if (app.Keyboard.WasKeyPressedThisFrame(KeyCode.Space))
     {
-        var newBall = new BallEntity(arena, game);
+        var newBall = new BallEntity(game);
         newBall.Spawn();
     }
     
@@ -54,8 +53,9 @@ while (!app.IsCloseRequested)
 
 return;
 
-void SpawnBricks(Game world, AABB arena)
+void SpawnBricks(Game game)
 {
+    var arena = game.Arena;
     var leftPadding = 10;
     var rightPadding = 10;
     var topPadding = 10;
@@ -75,7 +75,7 @@ void SpawnBricks(Game world, AABB arena)
         for (var j = 0; j < bricksPerRowCount; j++)
         {
             var x = (j * brickWidth) + (j * horizontalGap) + brickHalfWidth + leftPadding;
-            var brick = new BrickEntity(world)
+            var brick = new BrickEntity(game)
             {
                 Position = new Vector2(x, y),
                 Width = brickWidth,

@@ -17,13 +17,12 @@ public sealed class PaddleEntity : IDynamicEntity, IPaddle
     private IKeyboard Keyboard { get; }
     private IClock Clock { get; }
     private Game Game { get; }
-    private AABB ArenaBounds { get; }
+    private AABB ArenaBounds => Game.Arena;
     
-    public PaddleEntity(Game game, AABB arenaBounds)
+    public PaddleEntity(Game game)
     {
         Game = game;
         Clock = game.Clock;
-        ArenaBounds = arenaBounds;
         CenterPosition = new Vector2(ArenaBounds.Center.X, ArenaBounds.Bottom - 50);
         Width = 100;
         Height = 25;

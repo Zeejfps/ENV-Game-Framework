@@ -1,11 +1,14 @@
-﻿namespace Bricks;
+﻿using Bricks.Archetypes;
 
-public sealed class KeyboardController
+namespace Bricks;
+
+public sealed class PaddleKeyboardController
 {
     private Game Game { get; }
     private IKeyboard Keyboard { get; }
+    private IPaddle Paddle => Game.Paddle;
 
-    public KeyboardController(IKeyboard keyboard, Game game)
+    public PaddleKeyboardController(IKeyboard keyboard, Game game)
     {
         Game = game;
         Keyboard = keyboard;
@@ -13,7 +16,7 @@ public sealed class KeyboardController
 
     public void Update()
     {
-        var paddle = Game.Paddle;
+        var paddle = Paddle;
         paddle.MoveLeftInput = Keyboard.IsKeyDown(KeyCode.A);
         paddle.MoveRightInput = Keyboard.IsKeyDown(KeyCode.D);
     }
