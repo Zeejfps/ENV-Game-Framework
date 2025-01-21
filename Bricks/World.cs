@@ -4,7 +4,7 @@ using Bricks.Repos;
 
 namespace Bricks;
 
-public sealed class Game
+public sealed class World
 {
     public AABB Arena { get; }
     public PaddleEntity Paddle { get; set; }
@@ -15,7 +15,7 @@ public sealed class Game
 
     private readonly IRepo[] _repos;
     
-    public Game(IClock clock)
+    public World(IClock clock)
     {
         Clock = clock;
         Arena = AABB.FromLeftTopWidthHeight(0, 0, 640, 480);

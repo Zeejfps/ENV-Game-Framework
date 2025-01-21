@@ -8,17 +8,17 @@ using var app = CreateAppBuilder()
     .Build();
 
 var clock = new StopwatchClock();
-var game = new Game(clock);
-var paddleController = new PaddleKeyboardController(app.Keyboard, game);
+var world = new World(clock);
+var paddleController = new PaddleKeyboardController(app.Keyboard, world);
 var clockController = new ClockController(clock, app.Keyboard);
 
-var paddle = game.CreatePaddle();
+var paddle = world.CreatePaddle();
 paddle.Spawn();
 
-var ball = game.CreateBall();
+var ball = world.CreateBall();
 ball.Spawn();
 
-CreateAndSpawnBricks(game);
+CreateAndSpawnBricks(world);
 
 clock.Start();
 while (!app.IsCloseRequested)
@@ -30,18 +30,18 @@ while (!app.IsCloseRequested)
 
     if (app.Keyboard.WasKeyPressedThisFrame(KeyCode.Space))
     {
-        var newBall = game.CreateBall();
+        var newBall = world.CreateBall();
         newBall.Spawn();
     }
     
-    game.Update();
-    app.Render(game);
+    world.Update();
+    app.Render(world);
     clock.Update();
 }
 
 return;
 
-void CreateAndSpawnBricks(Game game)
+void CreateAndSpawnBricks(World game)
 {
     var arena = game.Arena;
     var leftPadding = 10;

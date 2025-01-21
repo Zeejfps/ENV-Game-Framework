@@ -10,24 +10,24 @@ public sealed class BrickEntity : IBrick
     public float Width { get; init; }
     public float Height { get; init; }
 
-    private readonly Game m_Game;
+    private readonly World m_World;
 
     private int _health;
 
-    public BrickEntity(Game game)
+    public BrickEntity(World world)
     {
-        m_Game = game;
+        m_World = world;
         _health = 2;
     }
 
     public void Spawn()
     {
-        m_Game.Bricks.Add(this);
+        m_World.Bricks.Add(this);
     }
 
     public void Despawn()
     {
-        m_Game.Bricks.Remove(this);
+        m_World.Bricks.Remove(this);
     }
 
     public AABB GetAABB()

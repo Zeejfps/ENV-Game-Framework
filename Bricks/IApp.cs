@@ -5,5 +5,5 @@ public interface IApp : IDisposable
     bool IsCloseRequested { get; }
     IKeyboard Keyboard { get; }
     void Update();
-    void Render(Game game);
+    void Render(World world);
 }

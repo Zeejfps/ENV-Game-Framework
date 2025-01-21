@@ -4,13 +4,13 @@ namespace Bricks.Controllers;
 
 public sealed class PaddleKeyboardController
 {
-    private Game Game { get; }
+    private World World { get; }
     private IKeyboard Keyboard { get; }
-    private IPaddle Paddle => Game.Paddle;
+    private IPaddle Paddle => World.Paddle;
 
-    public PaddleKeyboardController(IKeyboard keyboard, Game game)
+    public PaddleKeyboardController(IKeyboard keyboard, World world)
     {
-        Game = game;
+        World = world;
         Keyboard = keyboard;
     }
 

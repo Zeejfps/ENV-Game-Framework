@@ -16,13 +16,13 @@ public sealed class PaddleEntity : IDynamicEntity, IPaddle
     
     private IKeyboard Keyboard { get; }
     private IClock Clock { get; }
-    private Game Game { get; }
-    private AABB ArenaBounds => Game.Arena;
+    private World World { get; }
+    private AABB ArenaBounds => World.Arena;
     
-    public PaddleEntity(Game game)
+    public PaddleEntity(World world)
     {
-        Game = game;
-        Clock = game.Clock;
+        World = world;
+        Clock = world.Clock;
         CenterPosition = new Vector2(ArenaBounds.Center.X, ArenaBounds.Bottom - 50);
         Width = 100;
         Height = 25;
@@ -85,13 +85,13 @@ public sealed class PaddleEntity : IDynamicEntity, IPaddle
 
     public void Spawn()
     {
-        Game.DynamicEntities.Add(this);
-        Game.Paddle = this;
+        World.DynamicEntities.Add(this);
+        World.Paddle = this;
     }
 
     public void Despawn()
     {
-        Game.Paddle = null;
-        Game.DynamicEntities.Remove(this);
+        World.Paddle = null;
+        World.DynamicEntities.Remove(this);
     }
 }
