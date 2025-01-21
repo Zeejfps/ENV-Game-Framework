@@ -1,6 +1,6 @@
 ﻿using Bricks.Archetypes;
 
-namespace Bricks;
+namespace Bricks.Controllers;
 
 public sealed class PaddleKeyboardController
 {

@@ -1,6 +1,5 @@
-﻿using System.Numerics;
-using Bricks;
-using Bricks.Entities;
+﻿using Bricks;
+using Bricks.Controllers;
 using Bricks.RaylibBackend;
 
 using var app = CreateAppBuilder()
@@ -10,40 +9,29 @@ using var app = CreateAppBuilder()
 
 var clock = new StopwatchClock();
 var game = new Game(clock);
+var paddleController = new PaddleKeyboardController(app.Keyboard, game);
+var clockController = new ClockController(clock, app.Keyboard);
 
-var paddleKeyboardController = new PaddleKeyboardController(app.Keyboard, game);
-
-var paddle = new PaddleEntity(game);
+var paddle = game.CreatePaddle();
 paddle.Spawn();
 
-var ball = new BallEntity(game);
+var ball = game.CreateBall();
 ball.Spawn();
 
-SpawnBricks(game);
+CreateAndSpawnBricks(game);
 
 clock.Start();
 while (!app.IsCloseRequested)
 {
     app.Update();
 
-    paddleKeyboardController.Update();
+    paddleController.Update();
+    clockController.Update();
+
     if (app.Keyboard.WasKeyPressedThisFrame(KeyCode.Space))
     {
-        var newBall = new BallEntity(game);
+        var newBall = game.CreateBall();
         newBall.Spawn();
-    }
-    
-    if (app.Keyboard.WasKeyPressedThisFrame(KeyCode.P))
-    {
-        if (clock.IsRunning)
-            clock.Stop();
-        else
-            clock.Start();
-    }
-    
-    if (app.Keyboard.WasKeyPressedThisFrame(KeyCode.L))
-    {
-        clock.StepForward();
     }
     
     game.Update();
@@ -53,7 +41,7 @@ while (!app.IsCloseRequested)
 
 return;
 
-void SpawnBricks(Game game)
+void CreateAndSpawnBricks(Game game)
 {
     var arena = game.Arena;
     var leftPadding = 10;
@@ -75,12 +63,7 @@ void SpawnBricks(Game game)
         for (var j = 0; j < bricksPerRowCount; j++)
         {
             var x = (j * brickWidth) + (j * horizontalGap) + brickHalfWidth + leftPadding;
-            var brick = new BrickEntity(game)
-            {
-                Position = new Vector2(x, y),
-                Width = brickWidth,
-                Height = brickHeight,
-            };
+            var brick = game.CreateBrick(x, y, brickWidth, brickHeight);
             brick.Spawn();
         }
     }

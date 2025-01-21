@@ -1,4 +1,5 @@
-﻿using Bricks.Entities;
+﻿using System.Numerics;
+using Bricks.Entities;
 using Bricks.Repos;
 
 namespace Bricks;
@@ -25,6 +26,27 @@ public sealed class Game
         {
             Balls, Bricks, DynamicEntities
         };
+    }
+
+    public BallEntity CreateBall()
+    {
+        return new BallEntity(this);
+    }
+
+    public PaddleEntity CreatePaddle()
+    {
+        return new PaddleEntity(this);
+    }
+
+    public BrickEntity CreateBrick(float x, float y, float width, float height)
+    {
+        var brick = new BrickEntity(this)
+        {
+            Position = new Vector2(x, y),
+            Width = width,
+            Height = height,
+        };
+        return brick;
     }
 
     public void Update()
