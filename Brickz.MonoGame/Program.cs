@@ -1,2 +1,2 @@
-﻿using var game = new Brickz.MonoGame.Game1();
-game.Run();
+﻿using var engine = new Brickz.MonoGame.MonoGameEngine();
+engine.Run();

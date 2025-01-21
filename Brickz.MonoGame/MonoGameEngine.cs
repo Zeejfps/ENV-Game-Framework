@@ -6,25 +6,27 @@ using MonoKeys = Microsoft.Xna.Framework.Input.Keyboard;
 
 namespace Brickz.MonoGame;
 
-public class Game1 : Game, IEngine
+public class MonoGameEngine : Game, IEngine
 {
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
 
-    private BrickzGame _bricksGame;
+    private readonly BrickzGame _bricksGame;
+    private readonly MonoGameKeyboard _keyboard;
     
-    public Game1()
+    public MonoGameEngine()
     {
         _graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
         IsMouseVisible = false;
         _bricksGame = new BrickzGame(this);
+        _keyboard = new MonoGameKeyboard();
     }
 
     protected override void Initialize()
     {
-        // TODO: Add your initialization logic here
-
+        _keyboard.Init();
+        _bricksGame.OnStartup();
         base.Initialize();
     }
 
@@ -43,6 +45,8 @@ public class Game1 : Game, IEngine
 
         // TODO: Add your update logic here
 
+        _bricksGame.OnUpdate();
+        _keyboard.Update();
         base.Update(gameTime);
     }
 
@@ -55,11 +59,7 @@ public class Game1 : Game, IEngine
         base.Draw(gameTime);
     }
 
-    public IKeyboard Keyboard { get; }
-    public void Run(IGame game)
-    {
-        throw new System.NotImplementedException();
-    }
+    public IKeyboard Keyboard => _keyboard;
 
     public void Render(World world)
     {
