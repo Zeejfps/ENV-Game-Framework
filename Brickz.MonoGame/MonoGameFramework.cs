@@ -8,7 +8,7 @@ using MonoKeys = Microsoft.Xna.Framework.Input.Keyboard;
 
 namespace Brickz.MonoGame;
 
-public class MonoGameEngine : Game, IEngine
+public class MonoGameFramework : Game, IFramework
 {
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
@@ -19,7 +19,7 @@ public class MonoGameEngine : Game, IEngine
     private readonly Color _backgroundColor = new(80, 80, 80, 255);
     private readonly Color _brickColor = new(0, 121, 241, 255);
     
-    public MonoGameEngine()
+    public MonoGameFramework()
     {
         _graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";

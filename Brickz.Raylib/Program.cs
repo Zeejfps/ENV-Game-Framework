@@ -2,5 +2,5 @@
 
 using Bricks.RaylibBackend;
 
-var engine = new RaylibEngine("Brickz", 640, 480);
+var engine = new RaylibFramework("Brickz", 640, 480);
 engine.Run();

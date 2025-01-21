@@ -1,24 +1,24 @@
 ﻿using Bricks;
 using Bricks.Controllers;
 
-public sealed class BrickzGame : IGame
+public sealed class BrickzGame
 {
     public World World { get; }
-    private IEngine Engine { get; }
+    private IFramework Framework { get; }
     private StopwatchClock Clock { get; }
     private PaddleKeyboardController PaddleController { get; }
     private ClockController ClockController { get; }
     
-    public BrickzGame(IEngine engine)
+    public BrickzGame(IFramework framework)
     {
         var clock = new StopwatchClock();
         var world = new World(clock);
 
-        Engine = engine;
+        Framework = framework;
         Clock = clock;
         World = world;
-        PaddleController = new PaddleKeyboardController(engine.Keyboard, world);
-        ClockController = new ClockController(clock, engine.Keyboard);
+        PaddleController = new PaddleKeyboardController(framework.Keyboard, world);
+        ClockController = new ClockController(clock, framework.Keyboard);
 
         var paddle = world.CreatePaddle();
         paddle.Spawn();
@@ -43,7 +43,7 @@ public sealed class BrickzGame : IGame
         PaddleController.Update();
         ClockController.Update();
         
-        if (Engine.Keyboard.WasKeyPressedThisFrame(KeyCode.Space))
+        if (Framework.Keyboard.WasKeyPressedThisFrame(KeyCode.Space))
         {
             var newBall = world.CreateBall();
             newBall.Spawn();

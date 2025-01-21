@@ -5,14 +5,14 @@ using Raylib_cs;
 
 namespace Bricks.RaylibBackend;
 
-internal sealed class RaylibEngine : IEngine
+internal sealed class RaylibFramework : IFramework
 {
     public IKeyboard Keyboard { get; }
     
     private readonly Texture2D _spriteSheet;
     private readonly BrickzGame _game;
 
-    public RaylibEngine(string windowName, int windowWidth, int windowHeight)
+    public RaylibFramework(string windowName, int windowWidth, int windowHeight)
     {
         Keyboard = new RaylibKeyboard();
         Raylib.SetConfigFlags(ConfigFlags.VSyncHint);
@@ -137,7 +137,7 @@ internal sealed class RaylibEngine : IEngine
         GC.SuppressFinalize(this);
     }
 
-    ~RaylibEngine()
+    ~RaylibFramework()
     {
         ReleaseUnmanagedResources();
     }

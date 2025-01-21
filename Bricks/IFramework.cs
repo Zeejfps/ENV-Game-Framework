@@ -1,6 +1,6 @@
 ﻿namespace Bricks;
 
-public interface IEngine : IDisposable
+public interface IFramework : IDisposable
 {
     IKeyboard Keyboard { get; }
 }
