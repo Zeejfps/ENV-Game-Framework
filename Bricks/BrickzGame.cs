@@ -46,19 +46,30 @@ public sealed class BrickzGame
     public void OnUpdate()
     {
         Clock.Update();
-
-        if (State != GameState.Playing)
-        {
-            return;
-        }
-        
         PaddleController.Update();
-        ClockController.Update();
+        //ClockController.Update();
         
         if (Framework.Keyboard.WasKeyPressedThisFrame(KeyCode.Space))
         {
             var newBall = World.CreateBall();
             newBall.Spawn();
+        }
+        
+        if (Framework.Keyboard.WasKeyPressedThisFrame(KeyCode.P))
+        {
+            if (State == GameState.Playing)
+            {
+                Pause();
+            }
+            else if (State == GameState.Paused)
+            {
+                Resume();
+            }
+        }
+        
+        if (State != GameState.Playing)
+        {
+            return;
         }
     
         World.Update();
@@ -126,5 +137,23 @@ public sealed class BrickzGame
                 brick.Spawn();
             }
         }
+    }
+
+    public void Resume()
+    {
+        if (State != GameState.Paused)
+            return;
+        
+        Clock.Start();
+        State = GameState.Playing;
+    }
+
+    public void Pause()
+    {
+        if (State != GameState.Playing)
+            return;
+
+        Clock.Stop();
+        State = GameState.Paused;
     }
 }

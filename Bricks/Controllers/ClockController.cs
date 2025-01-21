@@ -14,13 +14,13 @@ public sealed class ClockController
     public void Update()
     {
         var clock = Clock;
-        if (Keyboard.WasKeyPressedThisFrame(KeyCode.P))
-        {
-            if (clock.IsRunning)
-                clock.Stop();
-            else
-                clock.Start();
-        }
+        // if (Keyboard.WasKeyPressedThisFrame(KeyCode.P))
+        // {
+        //     if (clock.IsRunning)
+        //         clock.Stop();
+        //     else
+        //         clock.Start();
+        // }
     
         if (Keyboard.WasKeyPressedThisFrame(KeyCode.L))
         {

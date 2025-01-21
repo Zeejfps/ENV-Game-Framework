@@ -21,6 +21,9 @@ internal sealed class RaylibFramework : IFramework
         Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT);
         Raylib.InitWindow(windowWidth, windowHeight, windowName);
         RayGui.GuiLoadStyleDefault();
+        const int DEFAULT = 0;
+        const int TEXT_SIZE = 16;
+        RayGui.GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
         _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");
         _game = new BrickzGame(this);
     }
@@ -57,23 +60,43 @@ internal sealed class RaylibFramework : IFramework
         {
             DrawVictoryScreen();
         }
+        else if (_game.State == GameState.Paused)
+        {
+            DrawPauseScreen();
+        }
         
         Raylib.EndDrawing();
     }
 
     private void DrawVictoryScreen()
     {
-        var victoryText = "Victory!";
+        var victoryText = "VICTORY!";
         var fontSize = 50;
         Raylib.DrawRectangle(0, 0, 640, 480, new Color(0, 0, 0, 200));
         var width = Raylib.MeasureText(victoryText, fontSize);
         Raylib.DrawText(victoryText, (int)(320 - width * 0.5f), 180, fontSize, new Color(0, 255, 0, 255));
 
-        var buttonPosition = new Rectangle(320 - 50, 250, 100, 30);
-        var restartButtonClicked = RayGui.GuiButton(buttonPosition, "Restart");
+        var buttonPosition = new Rectangle(320 - 100, 250, 200, 40);
+        var restartButtonClicked = RayGui.GuiButton(buttonPosition, "restart");
         if (restartButtonClicked)
         {
             _game.Restart();
+        }
+    }
+
+    private void DrawPauseScreen()
+    {
+        var text = "PAUSED";
+        var fontSize = 50;
+        Raylib.DrawRectangle(0, 0, 640, 480, new Color(0, 0, 0, 200));
+        var width = Raylib.MeasureText(text, fontSize);
+        Raylib.DrawText(text, (int)(320 - width * 0.5f), 180, fontSize, new Color(0, 255, 0, 255));
+        
+        var buttonPosition = new Rectangle(320 - 100, 250, 200, 40);
+        var buttonClicked = RayGui.GuiButton(buttonPosition, "resume");
+        if (buttonClicked)
+        {
+            _game.Resume();
         }
     }
 
