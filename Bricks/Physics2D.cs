@@ -2,11 +2,11 @@
 
 namespace Bricks;
 
-public readonly struct RaycastResult2D
+public readonly struct RaycastHit2D
 {
     public Vector2 Normal { get; init; }
-    public Vector2 HitPoint { get; init; }
-    public float HitDistance { get; init; }
+    public Vector2 Point { get; init; }
+    public float Distance { get; init; }
 }
 
 public readonly struct Ray2D
@@ -17,7 +17,7 @@ public readonly struct Ray2D
 
 public static class Physics2D
 {
-    public static bool TryCast(this AABB bounds, Vector2 direction, AABB targetBounds, out RaycastResult2D result)
+    public static bool TryCast(this AABB bounds, Vector2 direction, AABB targetBounds, out RaycastHit2D hit)
     {
         var expandedTarget = AABB.Expand(targetBounds, bounds.Width * 0.5f, bounds.Height * 0.5f);
         var ray = new Ray2D
@@ -25,17 +25,17 @@ public static class Physics2D
             Origin = bounds.Center,
             Direction = direction,
         };
-        var hit = TryRaycastRect(ray, expandedTarget, out result);
-        if (!hit)
+        var didHit = TryRaycastRect(ray, expandedTarget, out hit);
+        if (!didHit)
             return false;
 
-        if (result.HitDistance <= 0.0f)
+        if (hit.Distance <= 0.0f)
             return false;
 
         return true;
     }
     
-    public static bool TryRaycastRect(Ray2D ray, AABB aabb, out RaycastResult2D result)
+    public static bool TryRaycastRect(Ray2D ray, AABB aabb, out RaycastHit2D hit)
     {
         var rayDirection = Vector2.Normalize(ray.Direction);
         var maxLength = ray.Direction.Length();
@@ -52,7 +52,7 @@ public static class Physics2D
             (farHitPoint.Y, nearHitPoint.Y) = (nearHitPoint.Y, farHitPoint.Y);
         }
 
-        result = default;
+        hit = default;
         if (nearHitPoint.X > farHitPoint.Y || nearHitPoint.Y > farHitPoint.X) 
             return false;
 
@@ -82,11 +82,11 @@ public static class Physics2D
                 normal = new Vector2(0, -1);
         }
 
-        result = new RaycastResult2D
+        hit = new RaycastHit2D
         {
-            HitDistance = t,
+            Distance = t,
             Normal = normal,
-            HitPoint = hitPoint
+            Point = hitPoint
         };
         return true;
     }

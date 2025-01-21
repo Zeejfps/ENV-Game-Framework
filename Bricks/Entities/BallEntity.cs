@@ -50,10 +50,10 @@ public sealed class BallEntity : IBall, IDynamicEntity
         var maxDistance = (Velocity * Clock.DeltaTimeSeconds).Length();
         var paddleBounds = paddle.GetAABB();
         var ballAABB = GetAABB();
-        if (ballAABB.TryCast(movement, paddleBounds, out var result) && result.HitDistance <= maxDistance)
+        if (ballAABB.TryCast(movement, paddleBounds, out var result) && result.Distance <= maxDistance)
         {
             ReflectVelocity(result.Normal);
-            Position += Vector2.Normalize(Velocity) * result.HitDistance;
+            Position += Vector2.Normalize(Velocity) * result.Distance;
             return true;
         }
 
@@ -71,11 +71,11 @@ public sealed class BallEntity : IBall, IDynamicEntity
         foreach (var brick in bricks)
         {
             var brickBounds = brick.GetAABB();
-            if (ballAABB.TryCast(moveDir, brickBounds, out var result) && result.HitDistance < moveDist)
+            if (ballAABB.TryCast(moveDir, brickBounds, out var result) && result.Distance < moveDist)
             {
                 brick.TakeDamage();
                 ReflectVelocity(result.Normal);
-                Position += Vector2.Normalize(moveDir) * result.HitDistance;
+                Position += Vector2.Normalize(moveDir) * result.Distance;
                 return true;
             }
         }
