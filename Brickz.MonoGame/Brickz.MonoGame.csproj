@@ -38,4 +38,8 @@
         <Message Text="Restoring dotnet tools" Importance="High"/>
         <Exec Command="dotnet tool restore"/>
     </Target>
+    <ItemGroup>
+        <TrimmerRootAssembly Include="MonoGame.Framework" />
+        <TrimmerRootAssembly Include="mscorlib" />
+    </ItemGroup>
 </Project>
