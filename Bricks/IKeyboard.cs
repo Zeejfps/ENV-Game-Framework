@@ -1,6 +1,6 @@
 ﻿namespace Bricks;
 
-public interface IInput
+public interface IKeyboard
 {
     bool IsKeyDown(KeyCode keyCode);
     bool WasKeyPressedThisFrame(KeyCode keyCode);

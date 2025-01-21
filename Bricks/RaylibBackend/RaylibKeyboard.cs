@@ -2,7 +2,7 @@
 
 namespace Bricks.RaylibBackend;
 
-internal sealed class RaylibInput : IInput
+internal sealed class RaylibKeyboard : IKeyboard
 {
     public bool IsKeyDown(KeyCode keyCode)
     {

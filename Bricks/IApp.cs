@@ -3,7 +3,7 @@
 public interface IApp : IDisposable
 {
     bool IsCloseRequested { get; }
-    IInput Input { get; }
+    IKeyboard Keyboard { get; }
     void Update();
     void Render(Game game);
 }

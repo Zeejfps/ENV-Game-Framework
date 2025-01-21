@@ -9,13 +9,13 @@ namespace Bricks.RaylibBackend;
 internal sealed class RaylibApp : IApp
 {
     public bool IsCloseRequested => Raylib.WindowShouldClose();
-    public IInput Input { get; }
+    public IKeyboard Keyboard { get; }
     
     private readonly Texture2D _spriteSheet;
 
     public RaylibApp(string windowName, int windowWidth, int windowHeight)
     {
-        Input = new RaylibInput();
+        Keyboard = new RaylibKeyboard();
         Raylib.SetConfigFlags(ConfigFlags.VSyncHint);
         Raylib.InitWindow(windowWidth, windowHeight, windowName);
         _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");

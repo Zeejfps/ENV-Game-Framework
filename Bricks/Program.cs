@@ -12,7 +12,8 @@ var arena = AABB.FromLeftTopWidthHeight(0, 0, 640, 480);
 var clock = new StopwatchClock();
 var world = new Game(clock);
 
-var paddle = new PaddleEntity(app.Input, world, arena);
+var paddleController = new KeyboardPaddleController(app.Keyboard);
+var paddle = new PaddleEntity(paddleController, world, arena);
 paddle.Spawn();
 
 var ball = new BallEntity(arena, world);
@@ -25,13 +26,13 @@ while (!app.IsCloseRequested)
 {
     app.Update();
 
-    if (app.Input.WasKeyPressedThisFrame(KeyCode.Space))
+    if (app.Keyboard.WasKeyPressedThisFrame(KeyCode.Space))
     {
         var newBall = new BallEntity(arena, world);
         newBall.Spawn();
     }
     
-    if (app.Input.WasKeyPressedThisFrame(KeyCode.P))
+    if (app.Keyboard.WasKeyPressedThisFrame(KeyCode.P))
     {
         if (clock.IsRunning)
             clock.Stop();
@@ -39,7 +40,7 @@ while (!app.IsCloseRequested)
             clock.Start();
     }
     
-    if (app.Input.WasKeyPressedThisFrame(KeyCode.L))
+    if (app.Keyboard.WasKeyPressedThisFrame(KeyCode.L))
     {
         clock.StepForward();
     }

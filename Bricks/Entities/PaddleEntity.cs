@@ -3,7 +3,7 @@ using Bricks.Archetypes;
 
 namespace Bricks.Entities;
 
-public sealed class PaddleEntity : IDynamicEntity
+public sealed class PaddleEntity : IDynamicEntity, IPaddle
 {
     public float HorizontalVelocity { get; private set; }
     public Vector2 CenterPosition { get; private set; }
@@ -11,14 +11,15 @@ public sealed class PaddleEntity : IDynamicEntity
     public int Height { get; private set; }
     public const float MaxMovementSpeed = 300f;
     
-    private IInput Input { get; }
+    private IPaddleController Controller { get; }
+    private IKeyboard Keyboard { get; }
     private IClock Clock { get; }
     private Game Game { get; }
     private AABB ArenaBounds { get; }
     
-    public PaddleEntity(IInput input, Game game, AABB arenaBounds)
+    public PaddleEntity(IPaddleController controller, Game game, AABB arenaBounds)
     {
-        Input = input;
+        Controller = controller;
         Game = game;
         Clock = game.Clock;
         ArenaBounds = arenaBounds;
@@ -29,22 +30,20 @@ public sealed class PaddleEntity : IDynamicEntity
 
     public void Update()
     {
-        UpdateHorizontalVelocity();
+        HorizontalVelocity = 0;
+        Controller.ApplyInputs(this);
         UpdatePosition();
         CheckAndResolveCollision();
     }
 
-    private void UpdateHorizontalVelocity()
+    public void MoveLeft()
     {
-        HorizontalVelocity = 0;
-        if (Input.IsKeyDown(KeyCode.A))
-        {
-            HorizontalVelocity -= MaxMovementSpeed;
-        }
-        if (Input.IsKeyDown(KeyCode.D))
-        {
-            HorizontalVelocity += MaxMovementSpeed;
-        }
+        HorizontalVelocity -= MaxMovementSpeed;
+    }
+
+    public void MoveRight()
+    {
+        HorizontalVelocity += MaxMovementSpeed;
     }
 
     private void UpdatePosition()
