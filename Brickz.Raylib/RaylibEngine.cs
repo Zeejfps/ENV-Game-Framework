@@ -1,17 +1,16 @@
 ﻿using System.Numerics;
 using Bricks.Archetypes;
 using Bricks.Entities;
-using Bricks.Repos;
 using Raylib_cs;
 
 namespace Bricks.RaylibBackend;
 
 internal sealed class RaylibEngine : IEngine
 {
-    public bool IsCloseRequested => Raylib.WindowShouldClose();
     public IKeyboard Keyboard { get; }
     
     private readonly Texture2D _spriteSheet;
+    private readonly BrickzGame _game;
 
     public RaylibEngine(string windowName, int windowWidth, int windowHeight)
     {
@@ -19,16 +18,17 @@ internal sealed class RaylibEngine : IEngine
         Raylib.SetConfigFlags(ConfigFlags.VSyncHint);
         Raylib.InitWindow(windowWidth, windowHeight, windowName);
         _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");
+        _game = new BrickzGame(this);
     }
 
-    public void Run(IGame game)
+    public void Run()
     {
-        game.OnStartup();
+        _game.OnStartup();
         while (!Raylib.WindowShouldClose())
         {
-            game.OnUpdate();
+            _game.OnUpdate();
         }
-        game.OnShutdown();
+        _game.OnShutdown();
     }
 
     public void Render(World world)
@@ -70,8 +70,8 @@ internal sealed class RaylibEngine : IEngine
     private void DrawBallSprite(AABB ballRect)
     {
         Raylib.DrawTexturePro(_spriteSheet,
-            new Raylib_cs.Rectangle(120, 0, 20, 20),
-            new Raylib_cs.Rectangle(ballRect.Left, ballRect.Top, ballRect.Width, ballRect.Height),
+            new Rectangle(120, 0, 20, 20),
+            new Rectangle(ballRect.Left, ballRect.Top, ballRect.Width, ballRect.Height),
             new Vector2(0, 0),
             0, 
             Color.White);
@@ -86,8 +86,8 @@ internal sealed class RaylibEngine : IEngine
     private void DrawPaddleSprite(AABB aabb)
     {
         Raylib.DrawTexturePro(_spriteSheet,
-            new Raylib_cs.Rectangle(0, 0, 120, 19),
-            new Raylib_cs.Rectangle(aabb.Left, aabb.Top, aabb.Width, aabb.Height),
+            new Rectangle(0, 0, 120, 19),
+            new Rectangle(aabb.Left, aabb.Top, aabb.Width, aabb.Height),
             new Vector2(0, 0),
             0, 
             Color.White);
@@ -109,8 +109,8 @@ internal sealed class RaylibEngine : IEngine
     private void DrawDamagedBrickSprite(AABB aabb, Color tint)
     {
         Raylib.DrawTexturePro(_spriteSheet,
-            new Raylib_cs.Rectangle(0, 40, 60, 20),
-            new Raylib_cs.Rectangle(aabb.Left, aabb.Top, aabb.Width, aabb.Height),
+            new Rectangle(0, 40, 60, 20),
+            new Rectangle(aabb.Left, aabb.Top, aabb.Width, aabb.Height),
             new Vector2(0, 0),
             0, 
             tint);
@@ -119,8 +119,8 @@ internal sealed class RaylibEngine : IEngine
     private void DrawNormalBrickSprite(AABB aabb, Color tint)
     {
         Raylib.DrawTexturePro(_spriteSheet,
-            new Raylib_cs.Rectangle(0, 20, 60, 20),
-            new Raylib_cs.Rectangle(aabb.Left, aabb.Top, aabb.Width, aabb.Height),
+            new Rectangle(0, 20, 60, 20),
+            new Rectangle(aabb.Left, aabb.Top, aabb.Width, aabb.Height),
             new Vector2(0, 0),
             0, 
             tint);
