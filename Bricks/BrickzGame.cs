@@ -3,8 +3,8 @@ using Bricks.Controllers;
 
 public sealed class BrickzGame : IGame
 {
+    public World World { get; }
     private IEngine Engine { get; }
-    private World World { get; }
     private StopwatchClock Clock { get; }
     private PaddleKeyboardController PaddleController { get; }
     private ClockController ClockController { get; }
@@ -51,8 +51,6 @@ public sealed class BrickzGame : IGame
         }
     
         World.Update();
-        
-        Engine.Render(world);
     }
 
     public void OnShutdown()

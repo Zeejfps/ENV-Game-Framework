@@ -27,11 +27,12 @@ internal sealed class RaylibEngine : IEngine
         while (!Raylib.WindowShouldClose())
         {
             _game.OnUpdate();
+            Render(_game.World);
         }
         _game.OnShutdown();
     }
 
-    public void Render(World world)
+    private void Render(World world)
     {
         Raylib.BeginDrawing();
         Raylib.ClearBackground(Color.DarkGray);
@@ -42,7 +43,6 @@ internal sealed class RaylibEngine : IEngine
         {
             DrawBall(ball);
         }
-        
         
         foreach (var brick in world.Bricks.GetAll())
         {

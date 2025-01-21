@@ -60,9 +60,4 @@ public class MonoGameEngine : Game, IEngine
     }
 
     public IKeyboard Keyboard => _keyboard;
-
-    public void Render(World world)
-    {
-        throw new System.NotImplementedException();
-    }
 }
