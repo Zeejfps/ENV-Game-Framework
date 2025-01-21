@@ -44,9 +44,7 @@ public class MonoGameEngine : Game, IEngine
     protected override void LoadContent()
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
-
-        using var fileStream = new FileStream("Assets/sprite_atlas.png", FileMode.Open);
-        _spriteSheet = Texture2D.FromStream(GraphicsDevice, fileStream);
+        _spriteSheet = Content.Load<Texture2D>("sprite_atlas");
     }
 
     protected override void Update(GameTime gameTime)

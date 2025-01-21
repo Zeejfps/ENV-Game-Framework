@@ -29,6 +29,11 @@
     <ItemGroup>
       <ProjectReference Include="..\Bricks\Bricks.csproj" />
     </ItemGroup>
+    <ItemGroup>
+      <Content Update="Content\sprite_atlas.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
     <Target Name="RestoreDotnetTools" BeforeTargets="Restore">
         <Message Text="Restoring dotnet tools" Importance="High"/>
         <Exec Command="dotnet tool restore"/>
