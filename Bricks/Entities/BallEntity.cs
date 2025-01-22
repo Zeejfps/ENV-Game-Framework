@@ -26,7 +26,7 @@ public sealed class BallEntity : IBall, IDynamicEntity
         Paddle = world.Paddle;
         Bricks = world.Bricks;
         Position = new Vector2(Arena.Width * 0.5f, Arena.Height * 0.5f);
-        Velocity = new Vector2(MaxSpeed, MaxSpeed);
+        Velocity = new Vector2(MaxSpeed, -MaxSpeed);
     }
 
     public void Update()

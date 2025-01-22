@@ -23,7 +23,7 @@ public sealed class PaddleEntity : IDynamicEntity, IPaddle
     {
         World = world;
         Clock = world.Clock;
-        CenterPosition = new Vector2(ArenaBounds.Center.X, ArenaBounds.Bottom - 50);
+        CenterPosition = new Vector2(ArenaBounds.Center.X, ArenaBounds.Bottom - 12.5f);
         Width = 100;
         Height = 25;
     }
@@ -97,6 +97,6 @@ public sealed class PaddleEntity : IDynamicEntity, IPaddle
 
     public void Reset()
     {
-        CenterPosition = new Vector2(ArenaBounds.Center.X, ArenaBounds.Bottom - 50);
+        CenterPosition = new Vector2(ArenaBounds.Center.X, ArenaBounds.Bottom - 12.5f);
     }
 }
