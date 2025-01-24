@@ -35,13 +35,11 @@ public sealed class TextWidget : Widget
         var textRenderer = context.TextRenderer;
         var width = textRenderer.CalculateTextWidth(Text, Style.FontFamily, Style.FontScale);
         var height = textRenderer.CalculateTextHeight(Text, width, Style.FontFamily, Style.FontScale);
-        Console.WriteLine($"Width: {width}");
         return new Rect(0, 0, width, height);
     }
 
     public override void Layout(IBuildContext context)
     {
-        Console.WriteLine($"Layout Text: {ScreenRect}");
         var renderer = context.TextRenderer;
         m_RenderedText = renderer.Render(Text, ScreenRect, Style);
     }

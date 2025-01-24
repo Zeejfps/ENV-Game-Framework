@@ -8,13 +8,11 @@ public sealed class StackWidget : Widget
 
     protected override IWidget BuildContent(IBuildContext context)
     {
-        //Console.WriteLine("Build:StackWidget");
         return new MultiChildWidget(Children);
     }
 
     public override void Layout(IBuildContext context)
     {
-        Console.WriteLine($"Layout Stack: {ScreenRect}");
         foreach (var widget in Children)
             widget.ScreenRect = ScreenRect;
         base.Layout(context);

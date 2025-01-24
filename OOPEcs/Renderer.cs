@@ -64,7 +64,7 @@ public sealed class Renderer : IEntity,
 
     public float CalculateTextWidth(string text, string fontName, float fontSize)
     {
-        return m_TextRenderer.CalculateTextWidth(text, fontName);
+        return m_TextRenderer.CalculateTextWidth(text, fontName, fontSize);
     }
 
     public float CalculateTextHeight(string text, float width, string fontFamily, float fontScale)

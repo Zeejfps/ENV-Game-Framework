@@ -51,7 +51,7 @@ public sealed class GuiWidget : StatefulWidget
                                     VerticalTextAlignment = TextAlignment.Center,
                                 }
                             },
-                            new TextButton("Restart")
+                            new TextButton("restart")
                             {
                                 OnClicked = _game.Restart
                             },

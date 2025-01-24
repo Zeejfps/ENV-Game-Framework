@@ -94,16 +94,4 @@ public sealed class TextButton : StatefulWidget
             OnPointerReleased = () => IsPressed = false,
         };
     }
-
-    public override void Layout(IBuildContext context)
-    {
-        Console.WriteLine("Layout button");
-        
-        base.Layout(context);
-    }
-
-    public override Rect Measure(IBuildContext context)
-    {
-        return base.Measure(context);
-    }
 }

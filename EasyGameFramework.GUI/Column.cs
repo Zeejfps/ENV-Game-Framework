@@ -45,7 +45,6 @@ public sealed class Column : Widget
 
     public override void Layout(IBuildContext context)
     {
-        Console.WriteLine($"Layout Column: {ScreenRect}");
         var children = Children;
         var childrenCount = children.Count;
         if (childrenCount < 0)
@@ -58,7 +57,6 @@ public sealed class Column : Widget
             foreach (var child in children)
             {
                 var layout = child.Measure(context);
-                Console.WriteLine($"{child} Height: {layout.Height}");
                 totalHeight += layout.Height;
             }
         }
@@ -75,7 +73,6 @@ public sealed class Column : Widget
         foreach (var child in children)
         {
             var childRect = child.Measure(context);
-            Console.WriteLine($"Child: {childRect}");
 
             if (CrossAxisAlignment == CrossAxisAlignment.Center)
             {
@@ -83,7 +80,6 @@ public sealed class Column : Widget
             }
             else if (CrossAxisAlignment == CrossAxisAlignment.Start)
             {
-                Console.WriteLine($"X: {ScreenRect.X}");
                 childRect.X = ScreenRect.X;
             }
             else
@@ -98,8 +94,6 @@ public sealed class Column : Widget
             
             if (MainAxisSize == MainAxisSize.Max)
                 childRect.Height = childrenHeight;
-            
-            Console.WriteLine($"Setting {child} Width:{childWidth} Height: {childrenHeight}");
             
             child.ScreenRect = childRect;
             y += childRect.Height + Spacing;

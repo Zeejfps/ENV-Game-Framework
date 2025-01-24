@@ -84,7 +84,7 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
         throw new Exception($"Could not find font with name: {fontFamily}");
     }
 
-    public float CalculateTextWidth(string text, string fontName)
+    public float CalculateTextWidth(string text, string fontName, float fontSize)
     {
         if (m_FontNameToFontRendererTable.TryGetValue(fontName, out var fontRenderer))
             return fontRenderer.CalculateSize(text, new TextStyle()).Width;
