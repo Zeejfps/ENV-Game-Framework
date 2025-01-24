@@ -1,4 +1,4 @@
-﻿namespace OpenGLSandbox;
+﻿namespace EasyGameFramework.GUI;
 
 public abstract class StatefulWidget : Widget
 {

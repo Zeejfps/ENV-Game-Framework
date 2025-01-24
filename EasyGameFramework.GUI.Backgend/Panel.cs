@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using EasyGameFramework.GUI;
 using OpenGL;
 
 namespace OpenGLSandbox;

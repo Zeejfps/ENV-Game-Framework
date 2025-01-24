@@ -1,6 +1,6 @@
 ﻿using EasyGameFramework.Api.InputDevices;
 
-namespace OpenGLSandbox;
+namespace EasyGameFramework.GUI;
 
 public sealed class InputListenerWidget : Widget
 {

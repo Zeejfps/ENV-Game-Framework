@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
+using OpenGLSandbox;
 
-namespace OpenGLSandbox;
+namespace EasyGameFramework.GUI;
 
 public struct PanelStyle
 {

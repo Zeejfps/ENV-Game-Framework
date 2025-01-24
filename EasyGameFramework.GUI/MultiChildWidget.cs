@@ -1,4 +1,6 @@
-﻿namespace OpenGLSandbox;
+﻿using OpenGLSandbox;
+
+namespace EasyGameFramework.GUI;
 
 public sealed class MultiChildWidget : IWidget
 {

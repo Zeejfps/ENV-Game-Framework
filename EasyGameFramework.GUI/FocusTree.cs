@@ -2,7 +2,7 @@
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 
-namespace OpenGLSandbox;
+namespace EasyGameFramework.GUI;
 
 public class FocusTree
 {

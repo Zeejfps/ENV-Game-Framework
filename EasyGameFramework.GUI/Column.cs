@@ -1,6 +1,4 @@
-﻿using OpenGLSandbox;
-
-namespace ModelViewer;
+﻿namespace EasyGameFramework.GUI;
 
 public sealed class Column : Widget
 {

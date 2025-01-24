@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using System.Text;
 using EasyGameFramework.Api;
+using EasyGameFramework.GUI;
 using static GL46;
 
 namespace OpenGLSandbox;

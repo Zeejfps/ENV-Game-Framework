@@ -1,4 +1,5 @@
 using EasyGameFramework.Api;
+using EasyGameFramework.GUI;
 using Entities;
 using OpenGL;
 using OpenGLSandbox;

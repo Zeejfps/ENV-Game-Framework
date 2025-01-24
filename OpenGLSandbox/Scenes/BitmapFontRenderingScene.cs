@@ -1,4 +1,5 @@
-﻿using static GL46;
+﻿using EasyGameFramework.GUI;
+using static GL46;
 
 namespace OpenGLSandbox;
 

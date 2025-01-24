@@ -1,5 +1,6 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Builder;
+using EasyGameFramework.GUI;
 using OpenGLSandbox;
 
 namespace ModelViewer;

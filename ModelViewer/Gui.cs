@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using EasyGameFramework.Api;
 using EasyGameFramework.Api.InputDevices;
+using EasyGameFramework.GUI;
 using OpenGLSandbox;
 
 namespace ModelViewer;

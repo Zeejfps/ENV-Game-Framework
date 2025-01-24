@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using BmFont;
 using EasyGameFramework.Api;
+using EasyGameFramework.GUI;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 
