@@ -58,10 +58,6 @@ public sealed class GuiWidget : StatefulWidget
                 }
             };
         }
-        else
-        {
-            
-        }
         return this;
     }
 }

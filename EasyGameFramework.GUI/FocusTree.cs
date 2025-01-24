@@ -50,11 +50,10 @@ public class FocusTree
                 break;
             }
         }
-
+        
         var prevHoveredWidget = m_HoveredWidget;
         m_HoveredWidget = hoveredWidget;
-
-        if (prevHoveredWidget == m_FocusedWidget)
+        if (prevHoveredWidget == m_HoveredWidget)
         {
             return;
         }
