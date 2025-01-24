@@ -37,6 +37,8 @@ public sealed class GuiWidget : StatefulWidget
                         Spacing = 10,
                         MainAxisSize = MainAxisSize.Min,
                         MainAxisAlignment = MainAxisAlignment.Center,
+                        CrossAxisSize = CrossAxisSize.Min,
+                        CrossAxisAlignment = CrossAxisAlignment.Center,
                         Children =
                         {
                             new TextWidget("DEFEAT :(")

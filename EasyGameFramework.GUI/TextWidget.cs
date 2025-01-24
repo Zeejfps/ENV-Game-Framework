@@ -33,8 +33,9 @@ public sealed class TextWidget : Widget
     public override Rect Measure(IBuildContext context)
     {
         var textRenderer = context.TextRenderer;
-        var width = textRenderer.CalculateTextWidth(Text, Style.FontFamily);
+        var width = textRenderer.CalculateTextWidth(Text, Style.FontFamily, Style.FontScale);
         var height = textRenderer.CalculateTextHeight(Text, width, Style.FontFamily, Style.FontScale);
+        Console.WriteLine($"Width: {width}");
         return new Rect(0, 0, width, height);
     }
 

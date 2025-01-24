@@ -14,9 +14,9 @@ public sealed class RaylibTextRenderer(CommandBuffer commandBuffer) : ITextRende
         return renderedText;
     }
 
-    public float CalculateTextWidth(string text, string fontName)
+    public float CalculateTextWidth(string text, string fontName, float fontSize)
     {
-        return Raylib.MeasureText(text, 40);
+        return Raylib.MeasureText(text, (int)fontSize);
     }
 
     public float CalculateTextHeight(string text, float width, string fontFamily, float fontScale)

@@ -26,7 +26,7 @@ public sealed class HelloWorldEntity : IEntity
     {
         var fontFamily = "test";
         var text = "Hello World!";
-        var textWidth = m_TextRenderer.CalculateTextWidth(text, fontFamily);
+        var textWidth = m_TextRenderer.CalculateTextWidth(text, fontFamily, 1f);
         m_RenderedText = m_TextRenderer.Render(
             text: text, 
             screenPosition: new Rect(0, m_Window.ScreenHeight - 80, textWidth, 50), 

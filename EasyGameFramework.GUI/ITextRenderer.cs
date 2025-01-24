@@ -5,7 +5,7 @@ namespace EasyGameFramework.GUI;
 public interface ITextRenderer
 {
     IRenderedText Render(string text, Rect screenPosition, TextStyle style);
-    float CalculateTextWidth(string text, string fontName);
+    float CalculateTextWidth(string text, string fontName, float fontScale);
     float CalculateTextHeight(string text, float width, string fontFamily, float fontScale);
 }
 

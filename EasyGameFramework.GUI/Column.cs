@@ -15,11 +15,26 @@ public enum MainAxisAlignment
     End,
 }
 
+public enum CrossAxisSize
+{
+    Min,
+    Max
+}
+
+public enum CrossAxisAlignment
+{
+    Start,
+    Center,
+    End,
+}
+
 public sealed class Column : Widget
 {
     public float Spacing { get; set; }
     public MainAxisSize MainAxisSize { get; set; }
+    public CrossAxisSize CrossAxisSize { get; set; }
     public MainAxisAlignment MainAxisAlignment { get; set; }
+    public CrossAxisAlignment CrossAxisAlignment { get; set; }
     public List<Widget> Children { get; set; } = new();
     
     protected override IWidget BuildContent(IBuildContext context)
@@ -48,10 +63,10 @@ public sealed class Column : Widget
             }
         }
         
-        Console.WriteLine($"Total height: {totalHeight}");
+        var childWidth = ScreenRect.Width;
         var childrenHeight = (totalHeight - Spacing * (childrenCount - 1)) / childrenCount;
         var y = ScreenRect.Y;
-
+        
         if (MainAxisAlignment == MainAxisAlignment.Center)
         {
             y = (ScreenRect.Height - totalHeight) * 0.5f;
@@ -59,16 +74,35 @@ public sealed class Column : Widget
         
         foreach (var child in children)
         {
-            var childRect = child.ScreenRect;
-            childRect.X = ScreenRect.X;
+            var childRect = child.Measure(context);
+            Console.WriteLine($"Child: {childRect}");
+
+            if (CrossAxisAlignment == CrossAxisAlignment.Center)
+            {
+                childRect.X = (ScreenRect.Width - childRect.Width) * 0.5f;
+            }
+            else if (CrossAxisAlignment == CrossAxisAlignment.Start)
+            {
+                Console.WriteLine($"X: {ScreenRect.X}");
+                childRect.X = ScreenRect.X;
+            }
+            else
+            {
+                childRect.X = ScreenRect.Width - childRect.Width;
+            }
+            
             childRect.Y = y;
             
-            childRect.Width = ScreenRect.Width;
-            childRect.Height = childrenHeight;
-            Console.WriteLine($"Setting {child} Height: {childrenHeight}");
+            if (CrossAxisSize == CrossAxisSize.Max)
+                childRect.Width = childWidth;
+            
+            if (MainAxisSize == MainAxisSize.Max)
+                childRect.Height = childrenHeight;
+            
+            Console.WriteLine($"Setting {child} Width:{childWidth} Height: {childrenHeight}");
             
             child.ScreenRect = childRect;
-            y += childrenHeight + Spacing;
+            y += childRect.Height + Spacing;
         }
         base.Layout(context);
     }
