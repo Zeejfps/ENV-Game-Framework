@@ -19,7 +19,7 @@ internal sealed class RaylibFramework : IFramework
     private readonly Color _white = new(255, 255, 255, 255);
     private readonly Color _brickColor = new(0, 121, 241, 255);
 
-    private readonly RaylibGuiContext _guiContext;
+    private readonly RaylibGuiContext _guiRenderer;
 
     private readonly Widget _gui;
 
@@ -38,7 +38,7 @@ internal sealed class RaylibFramework : IFramework
         RayGui.GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
         _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");
         _game = new BrickzGame(this);
-        _guiContext = new RaylibGuiContext(_mouse, _keyboard);
+        _guiRenderer = new RaylibGuiContext(_mouse, _keyboard);
         _gui = new GuiWidget(_game);
     }
 
@@ -85,8 +85,9 @@ internal sealed class RaylibFramework : IFramework
             //DrawDefeatScreen();
         }
         
-        _gui.Update(_guiContext);
-        _guiContext.Render();
+        _gui.Update(_guiRenderer);
+        
+        _guiRenderer.Render();
         
         Raylib.EndDrawing();
     }

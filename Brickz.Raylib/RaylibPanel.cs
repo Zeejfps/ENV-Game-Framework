@@ -8,12 +8,14 @@ namespace Bricks.RaylibBackend;
 public sealed class RaylibPanel : IRenderedPanel, IRenderCommand
 {
     private readonly CommandBuffer _commandBuffer;
+    private Shader _panelShader;
     
-    public RaylibPanel(CommandBuffer commandBuffer, Rect screenPosition, PanelStyle style)
+    public RaylibPanel(CommandBuffer commandBuffer, Rect screenPosition, PanelStyle style, Shader panelShader)
     {
         _commandBuffer = commandBuffer;
         ScreenRect = screenPosition;
         Style = style;
+        _panelShader = panelShader;
     }
 
     public Rect ScreenRect { get; set; }
@@ -26,6 +28,7 @@ public sealed class RaylibPanel : IRenderedPanel, IRenderCommand
 
     public void Render()
     {
+        //Raylib.BeginShaderMode(_panelShader);
         var screenRect = ScreenRect;
         var backgroundColor = Style.BackgroundColor;
         Raylib.DrawRectangle(
@@ -38,5 +41,6 @@ public sealed class RaylibPanel : IRenderedPanel, IRenderCommand
                 (byte)(backgroundColor.A * 255)
             )
         );
+        //Raylib.EndShaderMode();
     }
 }
