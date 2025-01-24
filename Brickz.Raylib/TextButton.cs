@@ -40,14 +40,6 @@ public sealed class TextButton : StatefulWidget
             VerticalTextAlignment = TextAlignment.Center,
         };
     }
-    
-    public override Rect DoLayout(IBuildContext context)
-    {
-        return new TextWidget(_text)
-        {
-            Style = _defaultTextStyle,
-        }.DoLayout(context);
-    }
 
     protected override IWidget Build(IBuildContext context)
     {
@@ -56,7 +48,6 @@ public sealed class TextButton : StatefulWidget
         
         var panel = new PanelWidget
         {
-            ScreenRect = ScreenRect,
             Style = new PanelStyle
             {
                 BackgroundColor = IsPressed 
@@ -82,7 +73,10 @@ public sealed class TextButton : StatefulWidget
             text.Style = _defaultTextStyle;
         }
         
-        var stack = new StackWidget();
+        var stack = new StackWidget
+        {
+            ScreenRect = ScreenRect
+        };
         stack.Children.Add(panel);
         stack.Children.Add(text);
         
@@ -99,5 +93,10 @@ public sealed class TextButton : StatefulWidget
             },
             OnPointerReleased = () => IsPressed = false,
         };
+    }
+
+    public override Rect Measure(IBuildContext context)
+    {
+        return base.Measure(context);
     }
 }

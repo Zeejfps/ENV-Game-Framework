@@ -10,10 +10,15 @@ public sealed class PanelWidget : Widget
         
     protected override IWidget Build(IBuildContext context)
     {
+        return this;
+    }
+
+    public override void DoLayout(IBuildContext context)
+    {
         //Console.WriteLine("Build:PanelWidget");
         var renderer = context.PanelRenderer;
         m_RenderedPanel = renderer.Render(ScreenRect, Style);
-        return this;
+        base.DoLayout(context);
     }
 
     public override void Dispose()

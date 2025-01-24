@@ -19,6 +19,17 @@ public sealed class MultiChildWidget : IWidget
             child.Update(context);
     }
 
+    public void DoLayout(IBuildContext context)
+    {
+        foreach (var child in m_Children)
+            child.DoLayout(context);
+    }
+
+    public Rect Measure(IBuildContext context)
+    {
+        return ScreenRect;
+    }
+
     public void Dispose()
     {
         foreach (var child in m_Children)

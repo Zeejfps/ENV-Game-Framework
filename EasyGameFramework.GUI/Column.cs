@@ -1,4 +1,6 @@
-﻿namespace EasyGameFramework.GUI;
+﻿using OpenGLSandbox;
+
+namespace EasyGameFramework.GUI;
 
 public enum MainAxisSize
 {
@@ -23,9 +25,15 @@ public sealed class Column : Widget
     protected override IWidget Build(IBuildContext context)
     {
         var children = Children;
+        return new MultiChildWidget(children);
+    }
+
+    public override void DoLayout(IBuildContext context)
+    {
+        var children = Children;
         var childrenCount = children.Count;
         if (childrenCount < 0)
-            return this;
+            return;
 
         var totalHeight = ScreenRect.Height;
         if (MainAxisSize == MainAxisSize.Min)
@@ -33,7 +41,8 @@ public sealed class Column : Widget
             totalHeight = 0f;
             foreach (var child in children)
             {
-                var layout = child.DoLayout(context);
+                var layout = child.Measure(context);
+                Console.WriteLine($"{child} Height: {layout.Height}");
                 totalHeight += layout.Height;
             }
         }
@@ -58,7 +67,7 @@ public sealed class Column : Widget
             child.ScreenRect = childRect;
             y += childrenHeight + Spacing;
         }
-
-        return new MultiChildWidget(children);
+        
+        base.DoLayout(context);
     }
 }
