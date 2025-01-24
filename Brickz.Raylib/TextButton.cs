@@ -41,7 +41,7 @@ public sealed class TextButton : StatefulWidget
         };
     }
 
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         var normalBackgroundColor = Color.FromHex(0x2d2d2d, 1f);
         var pressedBackgroundColor = Color.FromHex(0x272727, 1f);
@@ -72,17 +72,13 @@ public sealed class TextButton : StatefulWidget
         {
             text.Style = _defaultTextStyle;
         }
-        
-        var stack = new StackWidget
-        {
-            ScreenRect = ScreenRect
-        };
+
+        var stack = new StackWidget();
         stack.Children.Add(panel);
         stack.Children.Add(text);
         
         return new InputListenerWidget(m_InputListenerController)
         {
-            ScreenRect = ScreenRect,
             Child = stack,
             OnPointerEnter = () => IsHovered = true,
             OnPointerExit = () => IsHovered = false,
@@ -93,6 +89,13 @@ public sealed class TextButton : StatefulWidget
             },
             OnPointerReleased = () => IsPressed = false,
         };
+    }
+
+    public override void Layout(IBuildContext context)
+    {
+        Console.WriteLine("Layout button");
+        
+        base.Layout(context);
     }
 
     public override Rect Measure(IBuildContext context)

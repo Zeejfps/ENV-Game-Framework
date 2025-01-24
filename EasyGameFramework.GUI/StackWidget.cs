@@ -6,17 +6,18 @@ public sealed class StackWidget : Widget
 {
     public List<IWidget> Children { get; init; } = new();
 
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         //Console.WriteLine("Build:StackWidget");
         return new MultiChildWidget(Children);
     }
 
-    public override void DoLayout(IBuildContext context)
+    public override void Layout(IBuildContext context)
     {
+        Console.WriteLine($"Layout Stack: {ScreenRect}");
         foreach (var widget in Children)
             widget.ScreenRect = ScreenRect;
-        base.DoLayout(context);
+        base.Layout(context);
     }
 
     public override Rect Measure(IBuildContext context)

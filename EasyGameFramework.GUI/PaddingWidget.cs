@@ -6,7 +6,7 @@ public sealed class PaddingWidget : Widget
         
     public IWidget? Child { get; set; }
         
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         var offset = Offsets;
         var myScreenRect = ScreenRect;

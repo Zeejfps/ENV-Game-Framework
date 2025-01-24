@@ -9,7 +9,7 @@ public sealed class GridWidget : Widget
     public float Spacing { get; set; }
     public List<IWidget>? Children { get; set; } = new();
         
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         var availableWidth = ScreenRect.Width - (ColumnCount - 1) * Spacing;
         var availableHeight = ScreenRect.Height - (RowCount - 1) * Spacing;

@@ -8,17 +8,17 @@ public sealed class PanelWidget : Widget
 
     private IRenderedPanel? m_RenderedPanel;
         
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         return this;
     }
 
-    public override void DoLayout(IBuildContext context)
+    public override void Layout(IBuildContext context)
     {
         //Console.WriteLine("Build:PanelWidget");
         var renderer = context.PanelRenderer;
         m_RenderedPanel = renderer.Render(ScreenRect, Style);
-        base.DoLayout(context);
+        base.Layout(context);
     }
 
     public override void Dispose()

@@ -27,7 +27,7 @@ public sealed class Gui : StatefulWidget
 
     private IWindow Window { get; }
 
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         var window = Window;
         ScreenRect = new Rect(0f, 0f, window.ScreenWidth, window.ScreenHeight);
@@ -87,7 +87,7 @@ public sealed class GridList : StatefulWidget
     private int m_FocusedChildIndex = 0;
     public List<GridItemWidget> Children { get; } = new();
     
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         var children = Children;
         
@@ -163,7 +163,7 @@ public abstract class GridItemWidget : StatefulWidget
 
 public sealed class CustomGridItemWidget : GridItemWidget
 {
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         var focusedPanelStyle = new PanelStyle
         {

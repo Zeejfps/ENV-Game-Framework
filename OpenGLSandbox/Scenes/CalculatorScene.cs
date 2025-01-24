@@ -155,7 +155,7 @@ public sealed class CalculatorScene : IScene
             Text = text;
         }
 
-        protected override IWidget Build(IBuildContext context)
+        protected override IWidget BuildContent(IBuildContext context)
         {
             //Console.WriteLine("Build:TextButtonWidget");
 
@@ -238,7 +238,7 @@ public sealed class CalculatorScene : IScene
 
         private InputListenerController m_InputListenerController = new();
         
-        protected override IWidget Build(IBuildContext context)
+        protected override IWidget BuildContent(IBuildContext context)
         {
             var x = "\U0001D465";
 

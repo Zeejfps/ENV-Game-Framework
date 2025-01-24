@@ -19,10 +19,16 @@ public sealed class MultiChildWidget : IWidget
             child.Update(context);
     }
 
-    public void DoLayout(IBuildContext context)
+    public void Build(IBuildContext context)
     {
         foreach (var child in m_Children)
-            child.DoLayout(context);
+            child.Build(context);
+    }
+
+    public void Layout(IBuildContext context)
+    {
+        foreach (var child in m_Children)
+            child.Layout(context);
     }
 
     public Rect Measure(IBuildContext context)

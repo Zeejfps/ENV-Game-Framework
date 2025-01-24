@@ -32,7 +32,7 @@ public sealed class TextButton : StatefulWidget
         m_Text = text;
     }
     
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         var normalBackgroundColor = Color.FromHex(0x2d2d2d, 1f);
         var pressedBackgroundColor = Color.FromHex(0x272727, 1f);

@@ -14,22 +14,22 @@ public sealed class GuiWidget : StatefulWidget
         {
             SetDirty();
         };
+        ScreenRect = new Rect(0, 0, 640, 480);
     }
     
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         if (_game.State == GameState.Defeat)
         {
             return new StackWidget
             {
-                ScreenRect = new Rect(0, 0, 640, 480),
                 Children =
                 {
                     new PanelWidget
                     {
                         Style = new PanelStyle
                         {
-                            BackgroundColor = new OpenGLSandbox.Color(0f, 0f, 0f, 0.75f),
+                            BackgroundColor = new Color(0f, 0f, 0f, 0.75f),
                         }
                     },
                     new Column
@@ -44,7 +44,7 @@ public sealed class GuiWidget : StatefulWidget
                                 Style = new TextStyle
                                 {
                                     FontScale = 50,
-                                    Color = new OpenGLSandbox.Color(1f, 0f, 0f, 1f),
+                                    Color = new Color(1f, 0f, 0f, 1f),
                                     HorizontalTextAlignment = TextAlignment.Center,
                                     VerticalTextAlignment = TextAlignment.Center,
                                 }

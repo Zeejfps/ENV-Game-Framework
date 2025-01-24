@@ -43,7 +43,7 @@ public sealed class TextField : StatefulWidget
         base.DisposeContent();
     }
 
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         var normalBackgroundColor = Color.FromHex(0x2D2D2D, 1f);
         var focusedBackgroundColor = Color.FromHex(0x1F1F1F, 1f);
@@ -137,7 +137,7 @@ public sealed class Caret : Widget
     public IRenderedText RenderedText { get; set; }
     public int CaretIndex { get; set; }
     
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         var renderedText = RenderedText;
         var renderedTextBounds = renderedText.Bounds;

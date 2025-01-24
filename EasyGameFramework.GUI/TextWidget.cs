@@ -25,7 +25,7 @@ public sealed class TextWidget : Widget
         Text = text;
     }
         
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         return this;
     }
@@ -38,8 +38,9 @@ public sealed class TextWidget : Widget
         return new Rect(0, 0, width, height);
     }
 
-    public override void DoLayout(IBuildContext context)
+    public override void Layout(IBuildContext context)
     {
+        Console.WriteLine($"Layout Text: {ScreenRect}");
         var renderer = context.TextRenderer;
         m_RenderedText = renderer.Render(Text, ScreenRect, Style);
     }

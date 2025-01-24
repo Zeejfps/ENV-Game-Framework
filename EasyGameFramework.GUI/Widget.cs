@@ -12,19 +12,22 @@ public abstract class Widget : IWidget
     {
         if (m_Content == null)
         {
-            m_Content = Build(context);
-            if (m_Content != null && m_Content != this)
-                m_Content.DoLayout(context);
+            Build(context);
+            Layout(context);
         }
-        
         if (m_Content != null && m_Content != this)
         {
             m_Content.Update(context);
         }
     }
 
-    public virtual void DoLayout(IBuildContext context)
+    public virtual void Layout(IBuildContext context)
     {
+        if (m_Content != null && m_Content != this)
+        {
+            m_Content.ScreenRect = ScreenRect;
+            m_Content.Layout(context);
+        }
     }
 
     public virtual void Dispose()
@@ -41,7 +44,19 @@ public abstract class Widget : IWidget
         m_Content = null;
     }
 
-    protected abstract IWidget Build(IBuildContext context);
+    public void Build(IBuildContext context)
+    {
+        if (m_Content != null)
+            return;
+        
+        m_Content = BuildContent(context);
+        if (m_Content != null && m_Content != this)
+        {
+            m_Content.Build(context);
+        }
+    }
+
+    protected abstract IWidget BuildContent(IBuildContext context);
 
     public virtual Rect Measure(IBuildContext context)
     {

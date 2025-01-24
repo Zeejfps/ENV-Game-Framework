@@ -22,14 +22,15 @@ public sealed class Column : Widget
     public MainAxisAlignment MainAxisAlignment { get; set; }
     public List<Widget> Children { get; set; } = new();
     
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         var children = Children;
         return new MultiChildWidget(children);
     }
 
-    public override void DoLayout(IBuildContext context)
+    public override void Layout(IBuildContext context)
     {
+        Console.WriteLine($"Layout Column: {ScreenRect}");
         var children = Children;
         var childrenCount = children.Count;
         if (childrenCount < 0)
@@ -47,6 +48,7 @@ public sealed class Column : Widget
             }
         }
         
+        Console.WriteLine($"Total height: {totalHeight}");
         var childrenHeight = (totalHeight - Spacing * (childrenCount - 1)) / childrenCount;
         var y = ScreenRect.Y;
 
@@ -63,11 +65,11 @@ public sealed class Column : Widget
             
             childRect.Width = ScreenRect.Width;
             childRect.Height = childrenHeight;
+            Console.WriteLine($"Setting {child} Height: {childrenHeight}");
             
             child.ScreenRect = childRect;
             y += childrenHeight + Spacing;
         }
-        
-        base.DoLayout(context);
+        base.Layout(context);
     }
 }

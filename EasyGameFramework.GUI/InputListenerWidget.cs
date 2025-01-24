@@ -75,7 +75,7 @@ public sealed class InputListenerWidget : Widget
         m_IsPressed = controller.IsPressed;
     }
     
-    protected override IWidget Build(IBuildContext context)
+    protected override IWidget BuildContent(IBuildContext context)
     {
         m_Tree = context.FocusTree;
         m_Tree.Add(this);
