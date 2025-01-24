@@ -64,8 +64,28 @@ internal sealed class RaylibFramework : IFramework
         {
             DrawPauseScreen();
         }
+        else if (_game.State == GameState.Defeat)
+        {
+            DrawDefeatScreen();
+        }
         
         Raylib.EndDrawing();
+    }
+
+    private void DrawDefeatScreen()
+    {
+        var victoryText = "DEFEAT :(";
+        var fontSize = 50;
+        Raylib.DrawRectangle(0, 0, 640, 480, new Color(0, 0, 0, 200));
+        var width = Raylib.MeasureText(victoryText, fontSize);
+        Raylib.DrawText(victoryText, (int)(320 - width * 0.5f), 180, fontSize, new Color(255, 50, 0, 255));
+        
+        var buttonPosition = new Rectangle(320 - 100, 250, 200, 40);
+        var restartButtonClicked = RayGui.GuiButton(buttonPosition, "restart");
+        if (restartButtonClicked)
+        {
+            _game.Restart();
+        }
     }
 
     private void DrawVictoryScreen()

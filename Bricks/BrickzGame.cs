@@ -75,10 +75,16 @@ public sealed class BrickzGame
         World.Update();
         
         var hasBricks = World.Bricks.GetAll().Any();
+        var hasBalls = World.Balls.GetAll().Any();
         if (!hasBricks)
         {
             Clock.Stop();
             State = GameState.Victory;
+        }
+        else if (!hasBalls)
+        {
+            Clock.Stop();
+            State = GameState.Defeat;
         }
     }
 
@@ -88,6 +94,9 @@ public sealed class BrickzGame
 
         foreach (var ball in World.Balls.GetAll())
             ball.Despawn();
+        
+        foreach (var brick in World.Bricks.GetAll())
+            brick.Despawn();
         
         CreateAndSpawnBall();
         CreateAndSpawnBricks();

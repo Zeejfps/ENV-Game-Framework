@@ -211,9 +211,7 @@ public sealed class BallEntity : IBall, IDynamicEntity
         }
         else if (bounds.Bottom.IsBelow(Arena.Bottom))
         {
-            var dx = bounds.Bottom - Arena.Bottom;
-            Position -= Vector2.UnitY * dx;
-            ReflectVelocityY();
+            Despawn();
             positionAdjusted = true;
         }
 
