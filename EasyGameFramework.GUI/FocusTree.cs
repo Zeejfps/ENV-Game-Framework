@@ -26,10 +26,10 @@ public class FocusTree
 
     private void Mouse_OnButtonStateChanged(in MouseButtonStateChangedEvent evt)
     {
-        if (m_FocusedWidget == null)
+        if (m_HoveredWidget == null)
             return;
         
-        m_FocusedWidget.IsPressed = evt.Mouse.IsButtonPressed(MouseButton.Left);
+        m_HoveredWidget.IsPressed = evt.Mouse.IsButtonPressed(MouseButton.Left);
     }
 
     private void Mouse_OnMoved(in MouseMovedEvent evt)
@@ -37,7 +37,7 @@ public class FocusTree
         UpdatePointerPosition(evt.Mouse.ScreenX, evt.Mouse.ScreenY);
     }
 
-    public void UpdatePointerPosition(int x, int y)
+    private void UpdatePointerPosition(int x, int y)
     {
         IInputListenerController? hoveredWidget = null;
         var worldCoords = m_Mouse.ToWorldCoords(x, y);

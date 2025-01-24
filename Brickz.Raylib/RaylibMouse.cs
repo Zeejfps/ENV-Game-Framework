@@ -44,13 +44,15 @@ public sealed class RaylibMouse : IMouse
 
     public bool IsButtonPressed(MouseButton button)
     {
-        throw new NotImplementedException();
+        return _isPressed;
     }
 
     public Vector2 ToWorldCoords(int x, int y)
     {
-        return new Vector2(x, 480 - y);
+        return new Vector2(x, y);
     }
+
+    private bool _isPressed;
 
     public void Update()
     {
@@ -67,6 +69,27 @@ public sealed class RaylibMouse : IMouse
                 DeltaX = ScreenX - prevMousePosX,
                 DeltaY = ScreenY - prevMousePosY
             });
+        }
+
+        var wasPressed = _isPressed; 
+        _isPressed = Raylib.IsMouseButtonDown(Raylib.MOUSE_LEFT_BUTTON);
+
+        if (wasPressed != _isPressed)
+        {
+            ButtonStateChanged?.Invoke(new MouseButtonStateChangedEvent
+            {
+                Button = MouseButton.Left,
+                Mouse = this,
+            });
+
+            if (_isPressed)
+            {
+                ButtonPressed?.Invoke(new MouseButtonStateChangedEvent
+                {
+                    Mouse = this,
+                    Button = MouseButton.Left
+                });
+            }
         }
     }
 }

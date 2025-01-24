@@ -83,6 +83,7 @@ public sealed class GuiWidget : StatefulWidget
                             },
                             new TextButton("Restart")
                             {
+                                OnClicked = _game.Restart
                             },
                         }
                     }
