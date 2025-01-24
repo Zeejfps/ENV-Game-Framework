@@ -1,7 +1,10 @@
 ﻿using System.Numerics;
 using Bricks.Archetypes;
 using Bricks.Entities;
+using EasyGameFramework.GUI;
+using OpenGLSandbox;
 using Raylib_CsLo;
+using Color = Raylib_CsLo.Color;
 
 namespace Bricks.RaylibBackend;
 
@@ -15,6 +18,10 @@ internal sealed class RaylibFramework : IFramework
     private readonly Color _white = new(255, 255, 255, 255);
     private readonly Color _brickColor = new(0, 121, 241, 255);
 
+    private readonly RaylibBuildContext _guiContext;
+
+    private readonly Widget _victoryScreen;
+    
     public RaylibFramework(string windowName, int windowWidth, int windowHeight)
     {
         Keyboard = new RaylibKeyboard();
@@ -26,6 +33,27 @@ internal sealed class RaylibFramework : IFramework
         RayGui.GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
         _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");
         _game = new BrickzGame(this);
+        _guiContext = new RaylibBuildContext();
+        _victoryScreen = BuildVictoryScreen();
+    }
+
+    private Widget BuildVictoryScreen()
+    {
+        return new Column
+        {
+            ScreenRect = new Rect(0, 0, 640, 480),
+            Spacing = 10,
+            Children =
+            {
+                new PanelWidget
+                {
+                    Style = new()
+                    {
+                        BackgroundColor = new OpenGLSandbox.Color(1f, 0f, 1f, 1f),
+                    }
+                }
+            }
+        };
     }
 
     public void Run()
@@ -68,6 +96,10 @@ internal sealed class RaylibFramework : IFramework
         {
             DrawDefeatScreen();
         }
+        
+        //_victoryScreen.Update(_guiContext);
+        
+        _guiContext.Render();
         
         Raylib.EndDrawing();
     }

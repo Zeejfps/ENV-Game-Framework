@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Bricks\Bricks.csproj" />
+      <ProjectReference Include="..\EasyGameFramework.GUI\EasyGameFramework.GUI.csproj" />
     </ItemGroup>
 
     <ItemGroup>
