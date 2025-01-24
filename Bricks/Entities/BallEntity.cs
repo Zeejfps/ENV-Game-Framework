@@ -51,7 +51,9 @@ public sealed class BallEntity : IBall, IDynamicEntity
         var ballAABB = GetAABB();
         if (ballAABB.TryCast(movement, paddleBounds, out var result) && result.Distance <= maxDistance)
         {
-            ReflectVelocity(result.Normal);
+            if (result.Normal == Vector2.UnitX || result.Normal == -Vector2.UnitX)
+                ReflectVelocityX();
+            ReflectVelocityY();
             Position += Vector2.Normalize(Velocity) * result.Distance;
             return true;
         }
