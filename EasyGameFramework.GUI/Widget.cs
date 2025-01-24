@@ -27,4 +27,9 @@ public abstract class Widget : IWidget
     }
 
     protected abstract IWidget Build(IBuildContext context);
+
+    public virtual Rect DoLayout(IBuildContext context)
+    {
+        return new Rect();
+    }
 }

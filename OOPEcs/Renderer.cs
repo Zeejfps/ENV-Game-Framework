@@ -67,6 +67,15 @@ public sealed class Renderer : IEntity,
         return m_TextRenderer.CalculateTextWidth(text, fontName);
     }
 
+    public float CalculateTextHeight(string text, float width, string fontFamily, float fontScale)
+    {
+        return m_TextRenderer.CalculateSize(text, fontFamily, new TextStyle
+        {
+            FontFamily = fontFamily,
+            FontScale = fontScale,
+        }).Height;
+    }
+
     public Size CalculateSize(string text, string fontName, TextStyle style)
     {
         throw new NotImplementedException();

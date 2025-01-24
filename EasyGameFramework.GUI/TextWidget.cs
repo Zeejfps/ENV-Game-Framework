@@ -1,4 +1,6 @@
-﻿namespace EasyGameFramework.GUI;
+﻿using OpenGLSandbox;
+
+namespace EasyGameFramework.GUI;
 
 public sealed class TextWidget : Widget
 {
@@ -17,6 +19,14 @@ public sealed class TextWidget : Widget
         var renderer = context.TextRenderer;
         m_RenderedText = renderer.Render(Text, ScreenRect, Style);
         return this;
+    }
+
+    public override Rect DoLayout(IBuildContext context)
+    {
+        var textRenderer = context.TextRenderer;
+        var width = textRenderer.CalculateTextWidth(Text, Style.FontFamily);
+        var height = textRenderer.CalculateTextHeight(Text, width, Style.FontFamily, Style.FontScale);
+        return new Rect(0, 0, width, height);
     }
 
     public override void Dispose()

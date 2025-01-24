@@ -18,6 +18,13 @@ public sealed class RaylibTextRenderer(CommandBuffer commandBuffer) : ITextRende
     {
         return Raylib.MeasureText(text, 40);
     }
+
+    public float CalculateTextHeight(string text, float width, string fontFamily, float fontScale)
+    {
+        var defaultFont = Raylib.GetFontDefault();
+        var size = Raylib.MeasureTextEx(defaultFont, text, fontScale, 0f);
+        return size.Y;
+    }
 }
 
 public sealed class RaylibText : IRenderedText, IRenderCommand

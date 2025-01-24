@@ -91,6 +91,13 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
         return 0f;
     }
 
+    public float CalculateTextHeight(string text, float width, string fontFamily, float fontScale)
+    {
+        if (m_FontNameToFontRendererTable.TryGetValue(fontFamily, out var fontRenderer))
+            return fontRenderer.CalculateSize(text, new TextStyle()).Height;
+        return 0f;
+    }
+
     public Size CalculateSize(string text, string fontName, TextStyle style)
     {
         if (m_FontNameToFontRendererTable.TryGetValue(fontName, out var fontRenderer))
