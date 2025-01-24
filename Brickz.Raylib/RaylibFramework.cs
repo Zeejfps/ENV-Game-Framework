@@ -18,7 +18,7 @@ internal sealed class RaylibFramework : IFramework
     private readonly Color _white = new(255, 255, 255, 255);
     private readonly Color _brickColor = new(0, 121, 241, 255);
 
-    private readonly RaylibBuildContext _guiContext;
+    private readonly RaylibGuiContext _guiContext;
 
     private readonly Widget _victoryScreen;
     
@@ -33,7 +33,7 @@ internal sealed class RaylibFramework : IFramework
         RayGui.GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
         _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");
         _game = new BrickzGame(this);
-        _guiContext = new RaylibBuildContext();
+        _guiContext = new RaylibGuiContext();
         _victoryScreen = BuildVictoryScreen();
     }
 
@@ -45,9 +45,18 @@ internal sealed class RaylibFramework : IFramework
             Spacing = 10,
             Children =
             {
+                new TextWidget("Victory!")
+                {
+                    Style = new TextStyle
+                    {
+                        Color = new OpenGLSandbox.Color(0f, 1f, 0f, 1f),
+                        HorizontalTextAlignment = TextAlignment.Center,
+                        VerticalTextAlignment = TextAlignment.Center,
+                    }
+                },
                 new PanelWidget
                 {
-                    Style = new()
+                    Style = new PanelStyle
                     {
                         BackgroundColor = new OpenGLSandbox.Color(1f, 0f, 1f, 1f),
                     }
