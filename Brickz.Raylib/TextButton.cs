@@ -35,7 +35,7 @@ public sealed class TextButton : StatefulWidget
         _defaultTextStyle = new TextStyle
         {
             Color = Color.FromHex(0xAFAFAF, 1f),
-            FontScale = 30,
+            FontScale = 20,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
@@ -75,7 +75,11 @@ public sealed class TextButton : StatefulWidget
 
         var stack = new StackWidget();
         stack.Children.Add(panel);
-        stack.Children.Add(text);
+        stack.Children.Add(new PaddingWidget
+        {
+            Child = text,
+            Offsets = Offsets.All(15)
+        });
         
         return new InputListenerWidget(m_InputListenerController)
         {
