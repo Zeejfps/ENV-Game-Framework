@@ -8,6 +8,71 @@ using Color = Raylib_CsLo.Color;
 
 namespace Bricks.RaylibBackend;
 
+public sealed class GuiWidget : StatefulWidget
+{
+    private readonly BrickzGame _game;
+
+    public GuiWidget(BrickzGame game)
+    {
+        _game = game;
+        _game.StateChanged += SetDirty;
+    }
+    
+    protected override IWidget Build(IBuildContext context)
+    {
+        if (_game.State == GameState.Victory)
+        {
+            return new Column
+            {
+                ScreenRect = new Rect(100, 0, 440, 480),
+                Spacing = 10,
+                Children =
+                {
+                    new TextWidget("Victory!")
+                    {
+                        Style = new TextStyle
+                        {
+                            Color = new OpenGLSandbox.Color(0f, 1f, 0f, 1f),
+                            HorizontalTextAlignment = TextAlignment.Center,
+                            VerticalTextAlignment = TextAlignment.Center,
+                        }
+                    },
+                    new PanelWidget
+                    {
+                        Style = new PanelStyle
+                        {
+                            BackgroundColor = new OpenGLSandbox.Color(1f, 0f, 1f, 1f),
+                        }
+                    }
+                }
+            };
+        }
+
+        if (_game.State == GameState.Defeat)
+        {
+            return new Column
+            {
+                ScreenRect = new Rect(100, 0, 440, 480),
+                Spacing = 10,
+                Children =
+                {
+                    new TextWidget("DEFEAT :(")
+                    {
+                        Style = new TextStyle
+                        {
+                            FontScale = 50,
+                            Color = new OpenGLSandbox.Color(1f, 0f, 0f, 1f),
+                            HorizontalTextAlignment = TextAlignment.Center,
+                            VerticalTextAlignment = TextAlignment.Center,
+                        }
+                    }
+                }
+            };
+        }
+        return null;
+    }
+}
+
 internal sealed class RaylibFramework : IFramework
 {
     public IKeyboard Keyboard { get; }
@@ -20,7 +85,7 @@ internal sealed class RaylibFramework : IFramework
 
     private readonly RaylibGuiContext _guiContext;
 
-    private readonly Widget _victoryScreen;
+    private readonly Widget _gui;
     
     public RaylibFramework(string windowName, int windowWidth, int windowHeight)
     {
@@ -34,35 +99,7 @@ internal sealed class RaylibFramework : IFramework
         _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");
         _game = new BrickzGame(this);
         _guiContext = new RaylibGuiContext();
-        _victoryScreen = BuildVictoryScreen();
-    }
-
-    private Widget BuildVictoryScreen()
-    {
-        return new Column
-        {
-            ScreenRect = new Rect(0, 0, 640, 480),
-            Spacing = 10,
-            Children =
-            {
-                new TextWidget("Victory!")
-                {
-                    Style = new TextStyle
-                    {
-                        Color = new OpenGLSandbox.Color(0f, 1f, 0f, 1f),
-                        HorizontalTextAlignment = TextAlignment.Center,
-                        VerticalTextAlignment = TextAlignment.Center,
-                    }
-                },
-                new PanelWidget
-                {
-                    Style = new PanelStyle
-                    {
-                        BackgroundColor = new OpenGLSandbox.Color(1f, 0f, 1f, 1f),
-                    }
-                }
-            }
-        };
+        _gui = new GuiWidget(_game);
     }
 
     public void Run()
@@ -106,8 +143,7 @@ internal sealed class RaylibFramework : IFramework
             DrawDefeatScreen();
         }
         
-        //_victoryScreen.Update(_guiContext);
-        
+        _gui.Update(_guiContext);
         _guiContext.Render();
         
         Raylib.EndDrawing();

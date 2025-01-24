@@ -18,7 +18,8 @@ public sealed class BrickzGame
     private StopwatchClock Clock { get; }
     private PaddleKeyboardController PaddleController { get; }
     private ClockController ClockController { get; }
-    
+    public event Action StateChanged;
+
     public BrickzGame(IFramework framework)
     {
         Framework = framework;
@@ -80,11 +81,13 @@ public sealed class BrickzGame
         {
             Clock.Stop();
             State = GameState.Victory;
+            StateChanged?.Invoke();
         }
         else if (!hasBalls)
         {
             Clock.Stop();
             State = GameState.Defeat;
+            StateChanged?.Invoke();
         }
     }
 
@@ -102,6 +105,8 @@ public sealed class BrickzGame
         CreateAndSpawnBricks();
         World.Paddle.Reset();
         Clock.Start();
+        
+        StateChanged?.Invoke();
     }
     
     public void OnShutdown()
@@ -155,6 +160,7 @@ public sealed class BrickzGame
         
         Clock.Start();
         State = GameState.Playing;
+        StateChanged?.Invoke();
     }
 
     public void Pause()
@@ -164,5 +170,6 @@ public sealed class BrickzGame
 
         Clock.Stop();
         State = GameState.Paused;
+        StateChanged?.Invoke();
     }
 }

@@ -51,7 +51,7 @@ public sealed class RaylibText : IRenderedText, IRenderCommand
         _commandBuffer = commandBuffer;
         _style = style;
         _screenPosition = screenPosition;
-        _fontSize = 40;
+        _fontSize = (int)style.FontScale;
         Refresh();
     }
 
@@ -63,7 +63,7 @@ public sealed class RaylibText : IRenderedText, IRenderCommand
             var textWidth = Raylib.MeasureText(_text, _fontSize);
             var rectWidth = _screenPosition.Width;
             
-            _xPos = (rectWidth - textWidth) * 0.5f;
+            _xPos = _screenPosition.Left + (rectWidth - textWidth) * 0.5f;
         }
         else
         {
@@ -75,7 +75,7 @@ public sealed class RaylibText : IRenderedText, IRenderCommand
             var textHeight = _fontSize;
             var rectHeight = _screenPosition.Height;
             
-            _yPos = (rectHeight - textHeight) * 0.5f;
+            _yPos = _screenPosition.Bottom + (rectHeight - textHeight) * 0.5f;
         }
         else
         {
