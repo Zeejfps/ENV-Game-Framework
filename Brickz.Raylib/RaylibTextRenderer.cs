@@ -25,20 +25,29 @@ public sealed class RaylibText : IRenderedText, IRenderCommand
     private Rect _screenPosition;
     public Rect ScreenRect
     {
-        get => _screenPosition; 
-        set => _screenPosition = value;
+        get => _screenPosition;
+        set
+        {
+            _screenPosition = value;
+            _isDirty = true;
+        }
     }
-    
+
     private TextStyle _style;
     public TextStyle Style
     {
         get => _style;
-        set => _style = value;
+        set
+        {
+            _style = value;
+            _isDirty = true;
+        }
     }
     
     private readonly string _text;
     private readonly CommandBuffer _commandBuffer;
 
+    private bool _isDirty;
     private float _xPos;
     private float _yPos;
     private int _fontSize;
@@ -93,6 +102,11 @@ public sealed class RaylibText : IRenderedText, IRenderCommand
 
     public void Render()
     {
+        if (_isDirty)
+        {
+            Refresh();
+            _isDirty = false;
+        }
         Raylib.DrawText(_text, _xPos, _yPos,_fontSize, _color);
     }
     
