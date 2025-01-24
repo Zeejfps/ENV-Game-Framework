@@ -1,4 +1,6 @@
-﻿namespace EasyGameFramework.GUI;
+﻿using OpenGLSandbox;
+
+namespace EasyGameFramework.GUI;
 
 public sealed class PanelWidget : Widget
 {

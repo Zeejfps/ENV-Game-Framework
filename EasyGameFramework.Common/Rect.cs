@@ -40,6 +40,11 @@ public struct Rect : IEquatable<Rect>
         return Contains(new Vector2(x, y));
     }
     
+    public bool Contains(float x, float y)
+    {
+        return Contains(new Vector2(x, y));
+    }
+    
     public bool Contains(Vector2 point)
     {
         return IsPointInRect(this, point);

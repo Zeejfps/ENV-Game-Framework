@@ -1,8 +1,10 @@
-﻿using Raylib_CsLo;
+﻿using EasyGameFramework.Api.InputDevices;
+using Raylib_CsLo;
+using KeyboardKey = Raylib_CsLo.KeyboardKey;
 
 namespace Bricks.RaylibBackend;
 
-internal sealed class RaylibKeyboard : IKeyboard
+public sealed class RaylibKeyboard : IKeyboard, EasyGameFramework.Api.InputDevices.IKeyboard
 {
     public bool IsKeyDown(KeyCode keyCode)
     {
@@ -27,5 +29,39 @@ internal sealed class RaylibKeyboard : IKeyboard
             KeyCode.Space => KeyboardKey.KEY_SPACE,
             _ => throw new ArgumentOutOfRangeException(nameof(keyCode), keyCode, null)
         };
+    }
+
+    public event KeyboardKeyStateChangedDelegate? KeyPressed;
+    public event KeyboardKeyStateChangedDelegate? KeyReleased;
+    public event KeyboardKeyStateChangedDelegate? KeyStateChanged;
+    
+    public void RepeatKey(EasyGameFramework.Api.InputDevices.KeyboardKey key)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void PressKey(EasyGameFramework.Api.InputDevices.KeyboardKey key)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void ReleaseKey(EasyGameFramework.Api.InputDevices.KeyboardKey key)
+    {
+        throw new NotImplementedException();
+    }
+
+    public bool IsKeyPressed(EasyGameFramework.Api.InputDevices.KeyboardKey key)
+    {
+        throw new NotImplementedException();
+    }
+
+    public bool IsKeyReleased(EasyGameFramework.Api.InputDevices.KeyboardKey key)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Update()
+    {
+        
     }
 }

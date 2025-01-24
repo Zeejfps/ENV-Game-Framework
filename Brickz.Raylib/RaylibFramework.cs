@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Bricks.Archetypes;
 using Bricks.Entities;
+using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.GUI;
 using OpenGLSandbox;
 using Raylib_CsLo;
@@ -50,20 +51,39 @@ public sealed class GuiWidget : StatefulWidget
 
         if (_game.State == GameState.Defeat)
         {
-            return new Column
+            return new StackWidget
             {
-                ScreenRect = new Rect(100, 0, 440, 480),
-                Spacing = 10,
+                ScreenRect = new Rect(0, 0, 640, 480),
                 Children =
                 {
-                    new TextWidget("DEFEAT :(")
+                    new PanelWidget
                     {
-                        Style = new TextStyle
+                        Style = new PanelStyle
                         {
-                            FontScale = 50,
-                            Color = new OpenGLSandbox.Color(1f, 0f, 0f, 1f),
-                            HorizontalTextAlignment = TextAlignment.Center,
-                            VerticalTextAlignment = TextAlignment.Center,
+                            BackgroundColor = new OpenGLSandbox.Color(0f, 0f, 0f, 0.75f),
+                        }
+                    },
+                    new Column
+                    {
+                        ScreenRect = new Rect(100, 0, 440, 480),
+                        Spacing = 10,
+                        MainAxisSize = MainAxisSize.Min,
+                        MainAxisAlignment = MainAxisAlignment.Center,
+                        Children =
+                        {
+                            new TextWidget("DEFEAT :(")
+                            {
+                                Style = new TextStyle
+                                {
+                                    FontScale = 50,
+                                    Color = new OpenGLSandbox.Color(1f, 0f, 0f, 1f),
+                                    HorizontalTextAlignment = TextAlignment.Center,
+                                    VerticalTextAlignment = TextAlignment.Center,
+                                }
+                            },
+                            new TextButton("Restart")
+                            {
+                            },
                         }
                     }
                 }
@@ -75,7 +95,8 @@ public sealed class GuiWidget : StatefulWidget
 
 internal sealed class RaylibFramework : IFramework
 {
-    public IKeyboard Keyboard { get; }
+    public IMouse Mouse => _mouse;
+    public IKeyboard Keyboard => _keyboard;
     
     private readonly Texture _spriteSheet;
     private readonly BrickzGame _game;
@@ -86,10 +107,14 @@ internal sealed class RaylibFramework : IFramework
     private readonly RaylibGuiContext _guiContext;
 
     private readonly Widget _gui;
+
+    private RaylibMouse _mouse;
+    private RaylibKeyboard _keyboard;
     
     public RaylibFramework(string windowName, int windowWidth, int windowHeight)
     {
-        Keyboard = new RaylibKeyboard();
+        _mouse = new RaylibMouse();
+        _keyboard = new RaylibKeyboard();
         Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT);
         Raylib.InitWindow(windowWidth, windowHeight, windowName);
         RayGui.GuiLoadStyleDefault();
@@ -98,7 +123,7 @@ internal sealed class RaylibFramework : IFramework
         RayGui.GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
         _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");
         _game = new BrickzGame(this);
-        _guiContext = new RaylibGuiContext();
+        _guiContext = new RaylibGuiContext(_mouse, _keyboard);
         _gui = new GuiWidget(_game);
     }
 
@@ -107,6 +132,8 @@ internal sealed class RaylibFramework : IFramework
         _game.OnStartup();
         while (!Raylib.WindowShouldClose())
         {
+            _mouse.Update();
+            _keyboard.Update();
             _game.OnUpdate();
             Render(_game.World);
         }
@@ -140,7 +167,7 @@ internal sealed class RaylibFramework : IFramework
         }
         else if (_game.State == GameState.Defeat)
         {
-            DrawDefeatScreen();
+            //DrawDefeatScreen();
         }
         
         _gui.Update(_guiContext);

@@ -6,10 +6,18 @@ public enum MainAxisSize
     Max
 }
 
+public enum MainAxisAlignment
+{
+    Start,
+    Center,
+    End,
+}
+
 public sealed class Column : Widget
 {
     public float Spacing { get; set; }
     public MainAxisSize MainAxisSize { get; set; }
+    public MainAxisAlignment MainAxisAlignment { get; set; }
     public List<Widget> Children { get; set; } = new();
     
     protected override IWidget Build(IBuildContext context)
@@ -32,6 +40,12 @@ public sealed class Column : Widget
         
         var childrenHeight = (totalHeight - Spacing * (childrenCount - 1)) / childrenCount;
         var y = ScreenRect.Y;
+
+        if (MainAxisAlignment == MainAxisAlignment.Center)
+        {
+            y = (ScreenRect.Height - totalHeight) * 0.5f;
+        }
+        
         foreach (var child in children)
         {
             var childRect = child.ScreenRect;

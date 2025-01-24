@@ -5,7 +5,18 @@ namespace EasyGameFramework.GUI;
 public sealed class TextWidget : Widget
 {
     public string Text { get; }
-    public TextStyle Style { get; init; }
+
+    private TextStyle _textStyle;
+    public TextStyle Style
+    {
+        get => _textStyle;
+        set
+        {
+            _textStyle = value;
+            if (m_RenderedText != null)
+                m_RenderedText.Style = _textStyle;
+        }
+    }
         
     private IRenderedText? m_RenderedText;
 

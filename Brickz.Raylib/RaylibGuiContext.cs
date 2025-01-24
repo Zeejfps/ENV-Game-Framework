@@ -41,10 +41,11 @@ public sealed class RaylibGuiContext : IBuildContext
     
     private readonly CommandBuffer _commandBuffer = new();
     
-    public RaylibGuiContext()
+    public RaylibGuiContext(RaylibMouse mouse, RaylibKeyboard keyboard)
     {
         _raylibTextRenderer = new RaylibTextRenderer(_commandBuffer);
         _raylibPanelRenderer = new RaylibPanelRenderer(_commandBuffer);
+        FocusTree = new FocusTree(mouse, keyboard);
     }
 
     public void Render()

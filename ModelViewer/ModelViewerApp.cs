@@ -30,7 +30,7 @@ public sealed class ModelViewerApp : Game
     {
         m_TextRenderer = new BitmapFontTextRenderer(Window);
         m_PanelRenderer = new PanelRenderer(Window);
-        var focusTree = new FocusTree(Input, Window);
+        var focusTree = new FocusTree(Input.Mouse, Input.Keyboard);
         
         BuildContext = new BuildContext(m_PanelRenderer, focusTree, m_TextRenderer);
         m_Gui = new Gui(Window);

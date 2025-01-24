@@ -80,7 +80,7 @@ public sealed class CalculatorScene : IScene
             TextRenderer = textRenderer;
             InputSystem = inputSystem;
             Window = window;
-            FocusTree = new FocusTree(inputSystem, window);
+            FocusTree = new FocusTree(inputSystem.Mouse, inputSystem.Keyboard);
         }
     }
 

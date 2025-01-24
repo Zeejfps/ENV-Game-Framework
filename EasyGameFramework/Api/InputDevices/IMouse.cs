@@ -1,4 +1,5 @@
-﻿using EasyGameFramework.Api.Events;
+﻿using System.Numerics;
+using EasyGameFramework.Api.Events;
 
 namespace EasyGameFramework.Api.InputDevices;
 
@@ -25,4 +26,5 @@ public interface IMouse
     void Scroll(float dx, float dy);
     
     bool IsButtonPressed(MouseButton button);
+    Vector2 ToWorldCoords(int x, int y);
 }

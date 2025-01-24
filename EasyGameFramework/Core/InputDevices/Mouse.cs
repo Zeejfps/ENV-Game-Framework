@@ -1,3 +1,4 @@
+using System.Numerics;
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 
@@ -33,6 +34,13 @@ public sealed class Mouse : IMouse
     public bool IsButtonPressed(MouseButton button)
     {
         return m_PressedButtons.Contains(button);
+    }
+
+    public Vector2 ToWorldCoords(int x, int y)
+    {
+        // TODO: This should subtract window height from Y
+        return new Vector2(x, y);
+        //throw new NotImplementedException();
     }
 
     public void MoveTo(int viewportX, int viewportY)

@@ -8,23 +8,15 @@ public class FocusTree
 {
     private IInputListenerController? m_HoveredWidget;
     private IInputListenerController? m_FocusedWidget;
-    private IInputSystem m_InputSystem;
     private readonly LinkedList<InputListenerWidget> m_InputListenerWidgets = new();
     private IMouse m_Mouse;
-    private IWindow m_Window;
     
-    public FocusTree(IInputSystem inputSystem, IWindow window)
+    public FocusTree(IMouse mouse, IKeyboard keyboard)
     {
-        m_InputSystem = inputSystem;
-        var mouse = inputSystem.Mouse;
         mouse.Moved += Mouse_OnMoved;
         mouse.ButtonStateChanged += Mouse_OnButtonStateChanged;
-
-        var keyboard = inputSystem.Keyboard;
         keyboard.KeyPressed += Keyboard_OnKeyPressed;
-        
         m_Mouse = mouse;
-        m_Window = window;
     }
 
     private void Keyboard_OnKeyPressed(in KeyboardKeyStateChangedEvent evt)
@@ -48,10 +40,10 @@ public class FocusTree
     public void UpdatePointerPosition(int x, int y)
     {
         IInputListenerController? hoveredWidget = null;
-        var screenHeight = m_Window.ScreenHeight;
+        var worldCoords = m_Mouse.ToWorldCoords(x, y);
         foreach (var widget in m_InputListenerWidgets.Reverse())
         {
-            var isHovered = widget.ScreenRect.Contains(m_Mouse.ScreenX, screenHeight - m_Mouse.ScreenY);
+            var isHovered = widget.ScreenRect.Contains(worldCoords.X, worldCoords.Y);
             if (isHovered)
             {
                 hoveredWidget = widget.Controller;
