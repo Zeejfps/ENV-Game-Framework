@@ -16,10 +16,17 @@ var window = Glfw.CreateWindow(windowWidth, windowHeight, "Node Graph", Monitor.
 var nodeGraph = new NodeGraph();
 nodeGraph.Nodes.Add(new Node
 {
-    XPos = 0,
-    YPos = 0,
-    Width = 100,
+    XPos = 10f,
+    YPos = 10f,
+    Width = 50,
     Height = 50
+});
+nodeGraph.Nodes.Add(new Node
+{
+    XPos = -50f,
+    YPos = 10f,
+    Width = 30,
+    Height = 10
 });
 var camera = new Camera(windowAspectRatio);
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera);
