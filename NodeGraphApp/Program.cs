@@ -10,7 +10,13 @@ Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
 var window = Glfw.CreateWindow(1280, 720, "Node Graph", Monitor.None, Window.None);
 
 var nodeGraph = new NodeGraph();
-nodeGraph.Nodes.Add(new Node());
+nodeGraph.Nodes.Add(new Node
+{
+    XPos = 0,
+    YPos = 0,
+    Width = 100,
+    Height = 50
+});
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph);
 
 Glfw.MakeContextCurrent(window);
