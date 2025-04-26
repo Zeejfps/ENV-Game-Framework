@@ -31,6 +31,8 @@ nodeGraph.Nodes.Add(new Node
 });
 var camera = new Camera(windowAspectRatio);
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera);
+var cameraDragController = new CameraDragController(window, camera);
+cameraDragController.Enable();
 
 Glfw.SetWindowSizeCallback(window, (window, width, height) =>
 {
@@ -43,14 +45,6 @@ Glfw.SetWindowSizeCallback(window, (window, width, height) =>
 Glfw.SetScrollCallback(window, (window, dx, dy) =>
 {
     camera.ZoomFactor += (float)dy * 0.05f;
-});
-
-Glfw.SetMouseButtonCallback(window, (w, button, state, modifiers) =>
-{
-    if (modifiers == ModifierKeys.Alt && button == MouseButton.Left && state == InputState.Press)
-    {
-        //TODO: Start drag
-    }
 });
 
 Glfw.MakeContextCurrent(window);

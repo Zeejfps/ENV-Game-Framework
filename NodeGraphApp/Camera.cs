@@ -7,6 +7,8 @@ public sealed class Camera
 
     public Matrix4x4 ViewProjectionMatrix { get; private set; }
 
+    public Matrix4x4 ProjectionMatrix { get; private set; }
+
     private float _aspectRatio;
     public float AspectRatio
     {
@@ -50,6 +52,7 @@ public sealed class Camera
         var width = 200 * _zoomFactor;
         var height = width / _aspectRatio;
         var projMatrix = Matrix4x4.CreateOrthographic(width, height, 0.1f, 100f);
+        ProjectionMatrix = projMatrix;
 
         var position = new Vector3(-_position.X, -_position.Y, 0.0f);
         var viewMatrix = Matrix4x4.CreateTranslation(position);
