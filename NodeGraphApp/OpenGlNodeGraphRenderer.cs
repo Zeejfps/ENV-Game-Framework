@@ -60,7 +60,7 @@ public sealed class OpenGlNodeGraphRenderer
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(float) * 2, (void*)0);
 
-        glClearColor(0f, 0f, 0f, 1f);
+        glClearColor(0.1176f, 0.1176f, 	0.1804f, 1f);
     }
 
     public void Update()
