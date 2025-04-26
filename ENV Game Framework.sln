@@ -60,6 +60,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Brickz.MonoGame", "Brickz.M
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Brickz.Raylib", "Brickz.Raylib\Brickz.Raylib.csproj", "{957A87C4-9286-4CD4-A69E-AAD869221E9B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeGraphApp", "NodeGraphApp\NodeGraphApp.csproj", "{78B6A015-58CB-499B-9478-0445872994DF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -186,5 +188,9 @@ Global
 		{957A87C4-9286-4CD4-A69E-AAD869221E9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{957A87C4-9286-4CD4-A69E-AAD869221E9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{957A87C4-9286-4CD4-A69E-AAD869221E9B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78B6A015-58CB-499B-9478-0445872994DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78B6A015-58CB-499B-9478-0445872994DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78B6A015-58CB-499B-9478-0445872994DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78B6A015-58CB-499B-9478-0445872994DF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
