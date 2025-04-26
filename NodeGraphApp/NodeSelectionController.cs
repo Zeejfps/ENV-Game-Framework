@@ -48,24 +48,32 @@ public sealed class NodeSelectionController
             _selectedNode = null;
             foreach (var node in nodes)
             {
-                if (node.XPos + node.Width < worldCursorPos.X)
-                    continue;
-                if (node.YPos + node.Height < worldCursorPos.Y)
-                    continue;
-                if (node.XPos > worldCursorPos.X)
-                    continue;
-                if (node.YPos > worldCursorPos.Y)
-                    continue;
-
-                _selectedNode = node;
-                _mousePos = worldCursorPos;
-                _nodeGraph.Nodes.BringToFront(_selectedNode);
-                break;
+                if (Overlaps(worldCursorPos, node))
+                {
+                    _selectedNode = node;
+                    _mousePos = worldCursorPos;
+                    _nodeGraph.Nodes.BringToFront(_selectedNode);
+                    break;
+                }
             }
         }
         else if (mouse.WasButtonReleasedThisFrame(MouseButton.Left))
         {
             _selectedNode = null;
         }
+    }
+
+    private bool Overlaps(Vector2 worldCursorPos, Node node)
+    {
+        if (node.XPos + node.Width < worldCursorPos.X)
+            return false;
+        if (node.YPos + node.Height < worldCursorPos.Y)
+            return false;
+        if (node.XPos > worldCursorPos.X)
+            return false;
+        if (node.YPos > worldCursorPos.Y)
+            return false;
+
+        return true;
     }
 }
