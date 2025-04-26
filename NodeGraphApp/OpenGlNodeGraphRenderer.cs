@@ -84,10 +84,13 @@ public sealed class OpenGlNodeGraphRenderer
         glDeleteBuffers(1, &vao);
     }
 
-    private void RenderNode(Node node)
+    private unsafe void RenderNode(Node node)
     {
         glUseProgram(_shader);
         glUniform4f(_rectUniformLoc, node.XPos, node.YPos, node.Width, node.Height);
+        var viewProjMat = _camera.ViewProjectionMatrix;
+        var ptr = &viewProjMat.M11;
+        glUniformMatrix4fv(_viewProjUniformLoc, 1, false, ptr);
         glBindVertexArray(_quadVao);
         glDrawArrays(GL_TRIANGLES, 0,  6);
     }
