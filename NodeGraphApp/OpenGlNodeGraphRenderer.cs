@@ -17,14 +17,18 @@ public sealed class OpenGlNodeGraphRenderer
     ];
 
     private readonly NodeGraph _nodeGraph;
+    private readonly Camera _camera;
 
     private uint _quadVao;
     private uint _quadVbo;
     private uint _shader;
+    private int _rectUniformLoc;
+    private int _viewProjUniformLoc;
 
-    public OpenGlNodeGraphRenderer(NodeGraph nodeGraph)
+    public OpenGlNodeGraphRenderer(NodeGraph nodeGraph, Camera camera)
     {
         _nodeGraph = nodeGraph;
+        _camera = camera;
     }
 
     public unsafe void Setup()
@@ -46,6 +50,9 @@ public sealed class OpenGlNodeGraphRenderer
             .WithVertexShader("Assets/simple_vert.glsl")
             .WithFragmentShader("Assets/simple_frag.glsl")
             .Build();
+
+        _rectUniformLoc = GetUniformLocation(_shader, "u_rect");
+        _viewProjUniformLoc = GetUniformLocation(_shader, "u_vp");
 
         glBindBuffer(GL_ARRAY_BUFFER, _quadVbo);
         var size = new IntPtr(sizeof(float) * _vertices.Length);
@@ -80,6 +87,7 @@ public sealed class OpenGlNodeGraphRenderer
     private void RenderNode(Node node)
     {
         glUseProgram(_shader);
+        glUniform4f(_rectUniformLoc, node.XPos, node.YPos, node.Width, node.Height);
         glBindVertexArray(_quadVao);
         glDrawArrays(GL_TRIANGLES, 0,  6);
     }

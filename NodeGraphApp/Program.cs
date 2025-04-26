@@ -17,7 +17,8 @@ nodeGraph.Nodes.Add(new Node
     Width = 100,
     Height = 50
 });
-var renderer = new OpenGlNodeGraphRenderer(nodeGraph);
+var camera = new Camera();
+var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera);
 
 Glfw.MakeContextCurrent(window);
 Glfw.ShowWindow(window);
