@@ -1,16 +1,15 @@
 #version 330
 
 layout(location = 0) in vec2 attr_Position;
-layout(location = 1) in vec4 attr_Uvs;
 
-uniform vec4 u_Color;
+uniform vec4 u_color;
 uniform vec4 u_rect;
 uniform mat4 u_vp;
 uniform vec4 u_borderRadius;
 uniform vec4 u_borderSize;
 uniform vec4 u_borderColor;
 
-out vec4 uvs;
+out vec2 uvs;
 out vec4 color;
 out vec4 borderSize;
 out vec4 borderColor;
@@ -20,8 +19,8 @@ out vec4 rectInPixels;
 void main() {
 
     // Assing out variables
-    uvs = attr_Uvs;
-    color = u_Color;
+    uvs = attr_Position;
+    color = u_color;
     borderSize = u_borderSize;
     borderColor = u_borderColor;
     borderRadius = u_borderRadius;

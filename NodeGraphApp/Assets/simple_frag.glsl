@@ -1,6 +1,6 @@
 #version 330
 
-in vec4 uvs;
+in vec2 uvs;
 in vec4 color;
 in vec4 borderSize;
 in vec4 borderColor;

@@ -7,13 +7,13 @@ public sealed class OpenGlNodeGraphRenderer
     private readonly float[] _vertices =
     [
         // X, Y
-        1f,  1f,   // Top Right
-        1f, -0f,   // Bottom Right
-        -0f,  1f,   // Top Left
+        1f,  1f,   // Right Top
+        1f,  0f,   // Right Bottom
+        0f,  1f,   // Left Top
 
-        -0f,  1f,   // Top Left
-        1f, -0f,   // Bottom Right
-        -0f, -0f    // Bottom Left
+        0f,  1f,   // Left Top
+        1f,  0f,   // Right Bottom
+        0f,  0f    // Left Bottom
     ];
 
     private readonly NodeGraph _nodeGraph;
@@ -24,6 +24,9 @@ public sealed class OpenGlNodeGraphRenderer
     private uint _shader;
     private int _rectUniformLoc;
     private int _viewProjUniformLoc;
+    private int _colorUniformLoc;
+    private int _borderRadiusUniformLoc;
+    private int _borderSizeUniformLoc;
 
     public OpenGlNodeGraphRenderer(NodeGraph nodeGraph, Camera camera)
     {
@@ -50,6 +53,9 @@ public sealed class OpenGlNodeGraphRenderer
 
         _rectUniformLoc = GetUniformLocation(_shader, "u_rect");
         _viewProjUniformLoc = GetUniformLocation(_shader, "u_vp");
+        _colorUniformLoc = GetUniformLocation(_shader, "u_color");
+        _borderRadiusUniformLoc = GetUniformLocation(_shader, "u_borderRadius");
+        _borderSizeUniformLoc = GetUniformLocation(_shader, "u_borderSize");
 
         glBindBuffer(GL_ARRAY_BUFFER, _quadVbo);
         var size = new IntPtr(sizeof(float) * _vertices.Length);
@@ -85,6 +91,9 @@ public sealed class OpenGlNodeGraphRenderer
     {
         glUseProgram(_shader);
         glUniform4f(_rectUniformLoc, node.XPos, node.YPos, node.Width, node.Height);
+        glUniform4f(_colorUniformLoc, 0.1765f, 0.1922f, 0.2588f, 1.0f);
+        glUniform4f(_borderRadiusUniformLoc, 1f, 1f, 1f, 1f);
+        glUniform4f(_borderSizeUniformLoc, 0.15f, 0.15f, 0.15f, 0.15f);
         var viewProjMat = _camera.ViewProjectionMatrix;
         var ptr = &viewProjMat.M11;
         glUniformMatrix4fv(_viewProjUniformLoc, 1, false, ptr);
