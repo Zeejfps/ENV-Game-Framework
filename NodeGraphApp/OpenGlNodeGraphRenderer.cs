@@ -7,13 +7,13 @@ public sealed class OpenGlNodeGraphRenderer
     private readonly float[] _vertices =
     [
         // X, Y
-        0.5f,  0.5f,   // Top Right
-        0.5f, -0.5f,   // Bottom Right
-        -0.5f,  0.5f,   // Top Left
+        1f,  1f,   // Top Right
+        1f, -0f,   // Bottom Right
+        -0f,  1f,   // Top Left
 
-        -0.5f,  0.5f,   // Top Left
-        0.5f, -0.5f,   // Bottom Right
-        -0.5f, -0.5f    // Bottom Left
+        -0f,  1f,   // Top Left
+        1f, -0f,   // Bottom Right
+        -0f, -0f    // Bottom Left
     ];
 
     private readonly NodeGraph _nodeGraph;
