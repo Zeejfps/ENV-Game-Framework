@@ -118,7 +118,7 @@ public sealed class OpenGlNodeGraphRenderer
 
         RenderRectangle(new Rectangle
         {
-            Left = node.XPos+0.5f,
+            Left = node.XPos+0.75f,
             Bottom = node.YPos + 10f,
             Width = 2f,
             Height = 2f,
@@ -129,7 +129,7 @@ public sealed class OpenGlNodeGraphRenderer
 
         RenderRectangle(new Rectangle
         {
-            Left = node.XPos+0.5f,
+            Left = node.XPos+0.75f,
             Bottom = node.YPos + 6f,
             Width = 2f,
             Height = 2f,
@@ -140,7 +140,7 @@ public sealed class OpenGlNodeGraphRenderer
 
         RenderRectangle(new Rectangle
         {
-            Left = node.XPos+0.5f,
+            Left = node.XPos+0.75f,
             Bottom = node.YPos + 2f,
             Width = 2f,
             Height = 2f,

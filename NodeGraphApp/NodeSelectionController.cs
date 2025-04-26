@@ -24,6 +24,7 @@ public sealed class NodeSelectionController
 
     private Vector2 _mousePos;
     private Node? _selectedNode;
+    private Node? _hoveredNode;
 
     public void Update()
     {
@@ -40,22 +41,24 @@ public sealed class NodeSelectionController
             _selectedNode.YPos += delta.Y;
         }
 
-        if (mouse.WasButtonPressedThisFrame(MouseButton.Left))
+        var mousePos = mouse.Position;
+        var worldCursorPos = CoordinateUtils.ScreenToWorldPoint(window, camera, mousePos);
+        var nodes = _nodeGraph.Nodes.GetAll().Reverse();
+        _hoveredNode = null;
+        foreach (var node in nodes)
         {
-            var mousePos = mouse.Position;
-            var worldCursorPos = CoordinateUtils.ScreenToWorldPoint(window, camera, mousePos);
-            var nodes = _nodeGraph.Nodes.GetAll();
-            _selectedNode = null;
-            foreach (var node in nodes)
+            if (Overlaps(worldCursorPos, node))
             {
-                if (Overlaps(worldCursorPos, node))
-                {
-                    _selectedNode = node;
-                    _mousePos = worldCursorPos;
-                    _nodeGraph.Nodes.BringToFront(_selectedNode);
-                    break;
-                }
+                _hoveredNode = node;
+                break;
             }
+        }
+
+        if (mouse.WasButtonPressedThisFrame(MouseButton.Left) && _hoveredNode != null)
+        {
+            _selectedNode = _hoveredNode;
+            _mousePos = worldCursorPos;
+            _nodeGraph.Nodes.BringToFront(_selectedNode);
         }
         else if (mouse.WasButtonReleasedThisFrame(MouseButton.Left))
         {
