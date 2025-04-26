@@ -18,7 +18,7 @@ var window = Glfw.CreateWindow(windowWidth, windowHeight, "Node Graph", Monitor.
 var nodeGraph = new NodeGraph();
 nodeGraph.Nodes.Add(new Node
 {
-    XPos = 10f,
+    XPos = 0f,
     YPos = 10f,
     Width = 40,
     Height = 20
@@ -35,6 +35,7 @@ var keyboard = new Keyboard();
 var camera = new Camera(windowAspectRatio);
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera);
 var cameraDragController = new CameraDragController(window, camera, mouse, keyboard);
+var nodeSelectionController = new NodeSelectionController(window, mouse, camera, nodeGraph);
 
 Glfw.SetMouseButtonCallback(window, (_, button, state, _) =>
 {
@@ -91,6 +92,7 @@ while (!Glfw.WindowShouldClose(window))
     keyboard.Update();
     Glfw.PollEvents();
     cameraDragController.Update();
+    nodeSelectionController.Update();
     renderer.Update();
     Glfw.SwapBuffers(window);
 }
