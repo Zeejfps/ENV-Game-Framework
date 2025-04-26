@@ -13,7 +13,7 @@ public sealed class CameraDragController
     }
 
     private bool _isDragging;
-    private Vector2 _prevCursorScreenPosition;
+    private Vector2 _prevCursorPosition;
 
     public void Enable()
     {
@@ -24,7 +24,7 @@ public sealed class CameraDragController
             {
                 _isDragging = true;
                 Glfw.GetCursorPosition(window, out var posX, out var posY);
-                _prevCursorScreenPosition = new Vector2((float)posX, (float)posY);
+                _prevCursorPosition = new Vector2((float)posX, (float)posY);
             }
             else if (_isDragging && button == MouseButton.Left && state == InputState.Release)
             {
@@ -36,25 +36,25 @@ public sealed class CameraDragController
         {
             if (_isDragging)
             {
-                Glfw.GetWindowSize(window, out var windowWidth, out var windowHeight);
+                Glfw.GetFramebufferSize(window, out var windowWidth, out var windowHeight);
 
                 var camera = _camera;
                 var newCursorScreenPosition = new Vector2((float)posX, (float)posY);
-                var delta = newCursorScreenPosition - _prevCursorScreenPosition;
-                _prevCursorScreenPosition = newCursorScreenPosition;
+                var delta = newCursorScreenPosition - _prevCursorPosition;
+                _prevCursorPosition = newCursorScreenPosition;
 
                 Matrix4x4.Invert(camera.ProjectionMatrix, out var invProj);
                 var ndcCoords = new Vector4
                 {
-                    X = delta.X / windowWidth,
-                    Y = -delta.Y / windowHeight,
+                    X = -2f * delta.X / windowWidth,
+                    Y = 2f * delta.Y / windowHeight,
                     Z = 0,
                     W = 0
                 };
 
                 var worldDelta = Vector4.Transform(ndcCoords, invProj);
                 var cameraDelta = new Vector2(worldDelta.X, worldDelta.Y);
-                camera.Position -= cameraDelta;
+                camera.Position += cameraDelta;
             }
         });
     }

@@ -49,6 +49,7 @@ Glfw.SetScrollCallback(window, (window, dx, dy) =>
 
 Glfw.MakeContextCurrent(window);
 Glfw.ShowWindow(window);
+Glfw.SwapInterval(1);
 
 GL46.Import(Glfw.GetProcAddress);
 
