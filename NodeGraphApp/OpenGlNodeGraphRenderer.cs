@@ -119,33 +119,36 @@ public sealed class OpenGlNodeGraphRenderer
 
         RenderRectangle(new Rectangle
         {
-            Left = node.XPos+0.75f,
+            Left = node.XPos+1f,
             Bottom = node.YPos + 10f,
             Width = 2f,
             Height = 2f,
-            Color = Color.FromRGBA(0.1f, 0.2588f, 0.7412f, 1.0f),
+            Color = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f),
+            BorderColor = Color.FromRGBA(0.1f, 0.2588f, 0.7412f, 1.0f),
             BorderSize = BorderSizeStyle.All(0.25f),
             BorderRadius = BorderRadiusStyle.All(1f)
         });
 
         RenderRectangle(new Rectangle
         {
-            Left = node.XPos+0.75f,
+            Left = node.XPos+1f,
             Bottom = node.YPos + 6f,
             Width = 2f,
             Height = 2f,
-            Color = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f),
+            Color = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f),
+            BorderColor = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f),
             BorderSize = BorderSizeStyle.All(0.25f),
             BorderRadius = BorderRadiusStyle.All(1f)
         });
 
         RenderRectangle(new Rectangle
         {
-            Left = node.XPos+0.75f,
+            Left = node.XPos+1f,
             Bottom = node.YPos + 2f,
             Width = 2f,
             Height = 2f,
-            Color = Color.FromRGBA(0.5f, 0.2588f, 0.3412f, 1.0f),
+            Color = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f),
+            BorderColor = Color.FromRGBA(0.5f, 0.2588f, 0.3412f, 1.0f),
             BorderSize = BorderSizeStyle.All(0.25f),
             BorderRadius = BorderRadiusStyle.All(1f)
         });
