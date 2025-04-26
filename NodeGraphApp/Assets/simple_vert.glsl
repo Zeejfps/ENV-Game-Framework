@@ -1,12 +1,33 @@
 #version 330
 
-layout(location=0) in vec2 in_position;
+layout(location = 0) in vec2 attr_Position;
+layout(location = 1) in vec4 attr_Uvs;
 
+uniform vec4 u_Color;
 uniform vec4 u_rect;
 uniform mat4 u_vp;
+uniform vec4 u_borderRadius;
+uniform vec4 u_borderSize;
+uniform vec4 u_borderColor;
+
+out vec4 uvs;
+out vec4 color;
+out vec4 borderSize;
+out vec4 borderColor;
+out vec4 borderRadius;
+out vec4 rectInPixels;
 
 void main() {
-    vec2 scaledPosition = u_rect.xy + in_position * u_rect.zw;
+
+    // Assing out variables
+    uvs = attr_Uvs;
+    color = u_Color;
+    borderSize = u_borderSize;
+    borderColor = u_borderColor;
+    borderRadius = u_borderRadius;
+    rectInPixels = u_rect;
+
+    vec2 scaledPosition = u_rect.xy + attr_Position * u_rect.zw;
     vec4 position = vec4(scaledPosition.x, scaledPosition.y, 0, 1);
     gl_Position = u_vp * position;
 }
