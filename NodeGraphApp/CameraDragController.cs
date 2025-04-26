@@ -20,13 +20,21 @@ public sealed class CameraDragController
         var window = _window;
         Glfw.SetMouseButtonCallback(window, (_, button, state, modifiers) =>
         {
-            if (modifiers == ModifierKeys.Alt && button == MouseButton.Left && state == InputState.Press)
+            var canStartDragging =
+                modifiers == ModifierKeys.Alt && button == MouseButton.Left && state == InputState.Press;
+            canStartDragging |= button == MouseButton.Middle && state == InputState.Press;
+
+            if (canStartDragging)
             {
                 _isDragging = true;
                 Glfw.GetCursorPosition(window, out var posX, out var posY);
                 _prevCursorPosition = new Vector2((float)posX, (float)posY);
             }
             else if (_isDragging && button == MouseButton.Left && state == InputState.Release)
+            {
+                _isDragging = false;
+            }
+            else if (_isDragging && button == MouseButton.Middle && state == InputState.Release)
             {
                 _isDragging = false;
             }
