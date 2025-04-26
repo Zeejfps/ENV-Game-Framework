@@ -92,7 +92,7 @@ public sealed class OpenGlNodeGraphRenderer
     private void RenderNode(Node node)
     {
         var borderColor = node.IsHovered
-            ? Color.FromRGBA(0.0f, 0.7490f, 1.0f, 1.0f)
+            ? Color.FromRGBA(0.2f, 0.6f, 0.7333f, 1.0f)
             : Color.FromRGBA(0f, 0f, 0f, 1f);
 
         RenderRectangle(new Rectangle
