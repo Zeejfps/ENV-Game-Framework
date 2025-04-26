@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using static OpenGL.Gl;
+using static GL46;
 
 namespace OpenGLSandbox;
 
@@ -29,6 +29,44 @@ public static class OpenGlUtils
             var stackTrace = new StackTrace(1, true);
             throw new OpenGlException(error, stackTrace);
         }
+    }
+
+    public static bool glTryGetError(out string errorStr)
+    {
+        var error = glGetError();
+        if (error != GL_NO_ERROR)
+        {
+            errorStr = $"Unknown Error 0x{error:X}";
+            switch (error)
+            {
+                case 0x0500:
+                    errorStr = "GL_INVALID_ENUM";
+                    break;
+                case 0x0501:
+                    errorStr = "GL_INVALID_VALUE";
+                    break;
+                case 0x0502:
+                    errorStr = "GL_INVALID_OPERATION";
+                    break;
+                case 0x0503:
+                    errorStr = "GL_STACK_OVERFLOW";
+                    break;
+                case 0x0504:
+                    errorStr = "GL_STACK_UNDERFLOW";
+                    break;
+                case 0x0505:
+                    errorStr = "GL_OUT_OF_MEMORY";
+                    break;
+                case 0x0506:
+                    errorStr = "GL_INVALID_FRAMEBUFFER_OPERATION - Given when doing anything that would attempt to read from or write/render to a framebuffer that is not complete.";
+                    break;
+            }
+
+            return true;
+        }
+
+        errorStr = string.Empty;
+        return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -58,7 +96,7 @@ public static class OpenGlUtils
 
     public static unsafe uint CreateAndCompileShaderFromSource(uint type, string source)
     {
-        var shader = glCreateShader((int)type);
+        var shader = glCreateShader(type);
         AssertNoGlError();
         
         glShaderSource(shader, source);
@@ -88,6 +126,20 @@ public static class OpenGlUtils
         return shader;
     }
 
+    public unsafe static void glShaderSource(uint shader,  string source)
+    {
+        var buffer = Encoding.UTF8.GetBytes(source);
+        fixed (byte* p = &buffer[0])
+        {
+            var sources = new[] { p };
+            fixed (byte** s = &sources[0])
+            {
+                var length = buffer.Length;
+                GL46.glShaderSource(shader, 1, s, &length);
+            }
+        }
+    }
+
     public static unsafe uint glGenTexture()
     {
         uint id;
@@ -95,6 +147,34 @@ public static class OpenGlUtils
         AssertNoGlError();
         return id;
     }
+
+    public unsafe static string glGetShaderInfoLog(uint shader, int bufSize = 1024)
+    {
+        var buffer = Marshal.AllocHGlobal(bufSize);
+        try
+        {
+            int length;
+            var source = (byte*) buffer.ToPointer();
+            GL46.glGetShaderInfoLog(shader, bufSize, &length, source);
+            return PtrToStringUtf8(buffer, length);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
+
+    private static string PtrToStringUtf8(IntPtr ptr, int length)
+    {
+        var buffer = new byte[length];
+        Marshal.Copy(ptr, buffer, 0, length);
+        return Encoding.UTF8.GetString(buffer);
+    }
+
 
     public static unsafe int GetUniformLocation(uint shaderProgram, string uniformName)
     {
