@@ -56,7 +56,6 @@ public sealed class CameraDragController
             var delta = newCursorScreenPosition - _prevCursorPosition;
             _prevCursorPosition = newCursorScreenPosition;
 
-            Matrix4x4.Invert(camera.ProjectionMatrix, out var invProj);
             var ndcCoords = new Vector4
             {
                 X = -delta.X / windowWidth,
@@ -64,6 +63,8 @@ public sealed class CameraDragController
                 Z = 0,
                 W = 0
             };
+
+            Matrix4x4.Invert(camera.ProjectionMatrix, out var invProj);
 
             var worldDelta = Vector4.Transform(ndcCoords, invProj);
             var cameraDelta = new Vector2(worldDelta.X, worldDelta.Y);
