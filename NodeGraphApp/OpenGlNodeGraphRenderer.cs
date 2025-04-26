@@ -92,8 +92,8 @@ public sealed class OpenGlNodeGraphRenderer
         glUseProgram(_shader);
         glUniform4f(_rectUniformLoc, node.XPos, node.YPos, node.Width, node.Height);
         glUniform4f(_colorUniformLoc, 0.1765f, 0.1922f, 0.2588f, 1.0f);
-        glUniform4f(_borderRadiusUniformLoc, 1f, 1f, 1f, 1f);
-        glUniform4f(_borderSizeUniformLoc, 0.15f, 0.15f, 0.15f, 0.15f);
+        glUniform4f(_borderRadiusUniformLoc, 0.5f, 0.5f, 0.5f, 0.5f);
+        glUniform4f(_borderSizeUniformLoc, 0.25f, 0.25f, 0.25f, 0.25f);
         var viewProjMat = _camera.ViewProjectionMatrix;
         var ptr = &viewProjMat.M11;
         glUniformMatrix4fv(_viewProjUniformLoc, 1, false, ptr);
