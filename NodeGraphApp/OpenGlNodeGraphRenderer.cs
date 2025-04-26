@@ -115,6 +115,39 @@ public sealed class OpenGlNodeGraphRenderer
             Color = Color.FromRGBA(0.2314f, 0.2588f, 0.3412f, 1.0f),
             BorderSize = BorderSizeStyle.FromLTRB(0f, 0f, 0f, 0.25f)
         });
+
+        RenderRectangle(new Rectangle
+        {
+            Left = node.XPos+0.5f,
+            Bottom = node.YPos + 10f,
+            Width = 2f,
+            Height = 2f,
+            Color = Color.FromRGBA(0.1f, 0.2588f, 0.7412f, 1.0f),
+            BorderSize = BorderSizeStyle.All(0.25f),
+            BorderRadius = BorderRadiusStyle.All(1f)
+        });
+
+        RenderRectangle(new Rectangle
+        {
+            Left = node.XPos+0.5f,
+            Bottom = node.YPos + 6f,
+            Width = 2f,
+            Height = 2f,
+            Color = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f),
+            BorderSize = BorderSizeStyle.All(0.25f),
+            BorderRadius = BorderRadiusStyle.All(1f)
+        });
+
+        RenderRectangle(new Rectangle
+        {
+            Left = node.XPos+0.5f,
+            Bottom = node.YPos + 2f,
+            Width = 2f,
+            Height = 2f,
+            Color = Color.FromRGBA(0.5f, 0.2588f, 0.3412f, 1.0f),
+            BorderSize = BorderSizeStyle.All(0.25f),
+            BorderRadius = BorderRadiusStyle.All(1f)
+        });
     }
 
     private unsafe void RenderRectangle(Rectangle r)
@@ -132,33 +165,14 @@ public sealed class OpenGlNodeGraphRenderer
     }
 }
 
-public struct Rectangle
+public readonly struct Rectangle
 {
-    public float Left;
-    public float Bottom;
-    public float Width;
-    public float Height;
-    public Color Color;
-    public Color BorderColor;
-    public BorderSizeStyle BorderSize;
-    public BorderRadiusStyle BorderRadius;
-}
-
-public readonly struct Color
-{
-    public float R { get; init; }
-    public float G { get; init; }
-    public float B { get; init; }
-    public float A { get; init; }
-
-    public static Color FromRGBA(float r, float g, float b, float a)
-    {
-        return new Color
-        {
-            R = r,
-            G = g,
-            B = b,
-            A = a
-        };
-    }
+    public float Left { get; init; }
+    public float Bottom { get; init; }
+    public float Width { get; init; }
+    public float Height { get; init; }
+    public Color Color { get; init; }
+    public Color BorderColor { get; init; }
+    public BorderSizeStyle BorderSize { get; init; }
+    public BorderRadiusStyle BorderRadius { get; init; }
 }
