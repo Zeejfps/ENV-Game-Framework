@@ -87,17 +87,78 @@ public sealed class OpenGlNodeGraphRenderer
         glDeleteBuffers(1, &vao);
     }
 
-    private unsafe void RenderNode(Node node)
+    private void RenderNode(Node node)
+    {
+        RenderRectangle(new Rectangle
+        {
+            Left = node.XPos,
+            Bottom = node.YPos,
+            Width = node.Width,
+            Height = node.Height,
+            Color = new Color
+            {
+                R = 0.1765f,
+                G = 0.1922f,
+                B = 0.2588f,
+                A = 1f
+            },
+            BorderSize = BorderSizeStyle.All(0.25f),
+            BorderRadius = BorderRadiusStyle.All(0.25f),
+        });
+
+        RenderRectangle(new Rectangle
+        {
+            Left = node.XPos+0.25f,
+            Bottom = node.YPos + 14.75f,
+            Width = node.Width - 0.5f,
+            Height = 5f,
+            Color = Color.FromRGBA(0.2314f, 0.2588f, 0.3412f, 1.0f),
+            BorderSize = BorderSizeStyle.FromLTRB(0f, 0f, 0f, 0.25f)
+        });
+    }
+
+    private unsafe void RenderRectangle(Rectangle r)
     {
         glUseProgram(_shader);
-        glUniform4f(_rectUniformLoc, node.XPos, node.YPos, node.Width, node.Height);
-        glUniform4f(_colorUniformLoc, 0.1765f, 0.1922f, 0.2588f, 1.0f);
-        glUniform4f(_borderRadiusUniformLoc, 0.5f, 0.5f, 0.5f, 0.5f);
-        glUniform4f(_borderSizeUniformLoc, 0.25f, 0.25f, 0.25f, 0.25f);
+        glUniform4f(_rectUniformLoc, r.Left, r.Bottom, r.Width, r.Height);
+        glUniform4f(_colorUniformLoc, r.Color.R, r.Color.G, r.Color.B, r.Color.A);
+        glUniform4f(_borderRadiusUniformLoc, r.BorderRadius.Top, r.BorderRadius.Right, r.BorderRadius.Bottom, r.BorderRadius.Left);
+        glUniform4f(_borderSizeUniformLoc, r.BorderSize.Top, r.BorderSize.Right, r.BorderSize.Bottom, r.BorderSize.Left);
         var viewProjMat = _camera.ViewProjectionMatrix;
         var ptr = &viewProjMat.M11;
         glUniformMatrix4fv(_viewProjUniformLoc, 1, false, ptr);
         glBindVertexArray(_quadVao);
         glDrawArrays(GL_TRIANGLES, 0,  6);
+    }
+}
+
+public struct Rectangle
+{
+    public float Left;
+    public float Bottom;
+    public float Width;
+    public float Height;
+    public Color Color;
+    public Color BorderColor;
+    public BorderSizeStyle BorderSize;
+    public BorderRadiusStyle BorderRadius;
+}
+
+public readonly struct Color
+{
+    public float R { get; init; }
+    public float G { get; init; }
+    public float B { get; init; }
+    public float A { get; init; }
+
+    public static Color FromRGBA(float r, float g, float b, float a)
+    {
+        return new Color
+        {
+            R = r,
+            G = g,
+            B = b,
+            A = a
+        };
     }
 }
