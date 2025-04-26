@@ -69,7 +69,7 @@ Glfw.SetWindowSizeCallback(window, (window, width, height) =>
 {
     var aspectRatio = (float)width / height;
     camera.AspectRatio = aspectRatio;
-    renderer.Render();
+    renderer.Update();
     Glfw.SwapBuffers(window);
 });
 
@@ -91,7 +91,7 @@ while (!Glfw.WindowShouldClose(window))
     keyboard.Update();
     Glfw.PollEvents();
     cameraDragController.Update();
-    renderer.Render();
+    renderer.Update();
     Glfw.SwapBuffers(window);
 }
 renderer.Teardown();
