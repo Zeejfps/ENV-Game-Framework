@@ -7,9 +7,13 @@ public sealed class OpenGlNodeGraphRenderer
     private readonly float[] _vertices =
     [
         // X, Y
-        0.0f,  0.5f,   // Top
-        -0.5f, -0.5f,   // Bottom Left
-        0.5f, -0.5f    // Bottom Right
+        0.5f,  0.5f,   // Top Right
+        0.5f, -0.5f,   // Bottom Right
+        -0.5f,  0.5f,   // Top Left
+
+        -0.5f,  0.5f,   // Top Left
+        0.5f, -0.5f,   // Bottom Right
+        -0.5f, -0.5f    // Bottom Left
     ];
 
     private readonly NodeGraph _nodeGraph;
@@ -43,8 +47,6 @@ public sealed class OpenGlNodeGraphRenderer
             .WithFragmentShader("Assets/simple_frag.glsl")
             .Build();
 
-        Console.WriteLine(_shader);
-
         glBindBuffer(GL_ARRAY_BUFFER, _quadVbo);
         var size = new IntPtr(sizeof(float) * _vertices.Length);
         fixed (void* dataPtr = &_vertices[0])
@@ -52,7 +54,7 @@ public sealed class OpenGlNodeGraphRenderer
 
         glBindVertexArray(_quadVao);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(float) * 3, (void*)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(float) * 2, (void*)0);
 
         glClearColor(0f, 0f, 0f, 1f);
     }
@@ -71,15 +73,14 @@ public sealed class OpenGlNodeGraphRenderer
 
     public unsafe void Teardown()
     {
-        var buffers = stackalloc uint[1];
-        buffers[0] = _quadVao;
-        glDeleteBuffers(1, buffers);
+        var vao = _quadVao;
+        glDeleteBuffers(1, &vao);
     }
 
     private void RenderNode(Node node)
     {
         glUseProgram(_shader);
         glBindVertexArray(_quadVao);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawArrays(GL_TRIANGLES, 0,  6);
     }
 }

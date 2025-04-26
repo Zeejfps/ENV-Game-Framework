@@ -6,4 +6,9 @@ public sealed class NodeRepo
     {
         return _nodes;
     }
+
+    public void Add(Node node)
+    {
+        _nodes.Add(node);
+    }
 }
