@@ -59,8 +59,7 @@ public sealed class NodeSelectionController
 
                 _selectedNode = node;
                 _mousePos = worldCursorPos;
-                _nodeGraph.Nodes.Remove(_selectedNode);
-                _nodeGraph.Nodes.Add(_selectedNode);
+                _nodeGraph.Nodes.BringToFront(_selectedNode);
                 break;
             }
         }

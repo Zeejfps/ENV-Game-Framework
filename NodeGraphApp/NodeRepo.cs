@@ -21,4 +21,13 @@ public sealed class NodeRepo
     {
         _nodes.Insert(index, node);
     }
+
+    public void BringToFront(Node selectedNode)
+    {
+        if (_nodes[^1] == selectedNode)
+            return;
+
+        Remove(selectedNode);
+        Add(selectedNode);
+    }
 }
