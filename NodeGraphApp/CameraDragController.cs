@@ -9,7 +9,11 @@ public sealed class CameraDragController
     private readonly Mouse _mouse;
     private readonly Keyboard _keyboard;
 
-    public CameraDragController(Window window, Camera camera, Mouse mouse, Keyboard keyboard)
+    public CameraDragController(
+        Window window,
+        Camera camera,
+        Mouse mouse,
+        Keyboard keyboard)
     {
         _window = window;
         _camera = camera;
@@ -38,7 +42,8 @@ public sealed class CameraDragController
 
         if (_isDragging)
         {
-            if (mouse.WasButtonReleasedThisFrame(MouseButton.Left))
+            if (mouse.WasButtonReleasedThisFrame(MouseButton.Left) ||
+                mouse.WasButtonReleasedThisFrame(MouseButton.Middle))
             {
                 _isDragging = false;
                 return;
@@ -54,15 +59,15 @@ public sealed class CameraDragController
             Matrix4x4.Invert(camera.ProjectionMatrix, out var invProj);
             var ndcCoords = new Vector4
             {
-                X = -2f * delta.X / windowWidth,
-                Y = 2f * delta.Y / windowHeight,
+                X = -delta.X / windowWidth,
+                Y = delta.Y / windowHeight,
                 Z = 0,
                 W = 0
             };
 
             var worldDelta = Vector4.Transform(ndcCoords, invProj);
             var cameraDelta = new Vector2(worldDelta.X, worldDelta.Y);
-            camera.Position += cameraDelta;
+            camera.Position += cameraDelta * 4f;
         }
     }
 }

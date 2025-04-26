@@ -7,7 +7,7 @@ public sealed class Keyboard
     private readonly HashSet<Keys> _pressedKeys = new();
     private readonly HashSet<Keys> _keysPressedThisFrame = new();
 
-    public bool WasPressedThisFrame(Keys key)
+    public bool WasKeyPressedThisFrame(Keys key)
     {
         return _keysPressedThisFrame.Contains(key);
     }
@@ -19,13 +19,14 @@ public sealed class Keyboard
 
     public void PressKey(Keys key)
     {
+        _keysPressedThisFrame.Add(key);
         _pressedKeys.Add(key);
     }
 
     public void ReleaseKey(Keys key)
     {
-        _keysPressedThisFrame.Add(key);
-        _pressedKeys.Add(key);
+        _keysPressedThisFrame.Remove(key);
+        _pressedKeys.Remove(key);
     }
 
     public void Update()
