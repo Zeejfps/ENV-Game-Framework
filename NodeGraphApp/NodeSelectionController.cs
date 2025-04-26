@@ -42,7 +42,6 @@ public sealed class NodeSelectionController
             };
             var worldNdc = Vector4.Transform(ndcCoords, invProj);
             var worldCursorPos = new Vector2(worldNdc.X, worldNdc.Y) + camera.Position;
-            Console.WriteLine($"World Cursor Pos: {worldCursorPos}");
             var nodes = _nodeGraph.Nodes.GetAll();
             foreach (var node in nodes)
             {
@@ -54,7 +53,7 @@ public sealed class NodeSelectionController
                     continue;
                 if (node.YPos > worldCursorPos.Y)
                     continue;
-
+                
                 Console.WriteLine($"Hit node");
             }
         }

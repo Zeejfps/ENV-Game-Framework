@@ -33,13 +33,10 @@ public sealed class OpenGlNodeGraphRenderer
 
     public unsafe void Setup()
     {
-        Span<uint> vbos = stackalloc uint[1];
-        fixed (uint* ptr = &vbos[0])
-        {
-            glGenBuffers(1, ptr);
-            AssertNoGlError();
-            _quadVbo = vbos[0];
-        }
+        uint vbo;
+        glGenBuffers(1, &vbo);
+        AssertNoGlError();
+        _quadVbo = vbo;
 
         uint vao;
         glGenVertexArrays(1, &vao);
