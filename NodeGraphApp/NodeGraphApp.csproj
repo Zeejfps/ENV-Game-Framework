@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Glfw.NET\Glfw.NET.csproj" />
+      <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
     </ItemGroup>
 
     <Target Name="ShowRuntimeIdentifier" BeforeTargets="Build">
