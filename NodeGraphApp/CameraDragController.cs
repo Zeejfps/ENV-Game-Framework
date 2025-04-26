@@ -49,7 +49,7 @@ public sealed class CameraDragController
                 return;
             }
 
-            Glfw.GetFramebufferSize(window, out var windowWidth, out var windowHeight);
+            Glfw.GetWindowSize(window, out var windowWidth, out var windowHeight);
 
             var camera = _camera;
             var newCursorScreenPosition = mouse.Position;
@@ -68,7 +68,7 @@ public sealed class CameraDragController
 
             var worldDelta = Vector4.Transform(ndcCoords, invProj);
             var cameraDelta = new Vector2(worldDelta.X, worldDelta.Y);
-            camera.Position += cameraDelta * 4f;
+            camera.Position += cameraDelta * 2f;
         }
     }
 }
