@@ -1,4 +1,5 @@
-﻿using GLFW;
+﻿using System.Numerics;
+using GLFW;
 using Monitor = GLFW.Monitor;
 
 Glfw.Init();
@@ -18,15 +19,15 @@ nodeGraph.Nodes.Add(new Node
 {
     XPos = 10f,
     YPos = 10f,
-    Width = 50,
-    Height = 50
+    Width = 40,
+    Height = 20
 });
 nodeGraph.Nodes.Add(new Node
 {
     XPos = -50f,
     YPos = 10f,
-    Width = 30,
-    Height = 10
+    Width = 40,
+    Height = 20
 });
 var camera = new Camera(windowAspectRatio);
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera);
@@ -42,6 +43,14 @@ Glfw.SetWindowSizeCallback(window, (window, width, height) =>
 Glfw.SetScrollCallback(window, (window, dx, dy) =>
 {
     camera.ZoomFactor += (float)dy * 0.05f;
+});
+
+Glfw.SetMouseButtonCallback(window, (w, button, state, modifiers) =>
+{
+    if (modifiers == ModifierKeys.Alt && button == MouseButton.Left && state == InputState.Press)
+    {
+        //TODO: Start drag
+    }
 });
 
 Glfw.MakeContextCurrent(window);

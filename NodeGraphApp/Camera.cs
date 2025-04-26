@@ -33,11 +33,28 @@ public sealed class Camera
         }
     }
 
+    private Vector2 _position;
+
+    public Vector2 Position
+    {
+        get => _position;
+        set
+        {
+            _position = value;
+            UpdateViewProjectionMatrix();
+        }
+    }
+
     private void UpdateViewProjectionMatrix()
     {
         var width = 200 * _zoomFactor;
         var height = width / _aspectRatio;
-        ViewProjectionMatrix = Matrix4x4.CreateOrthographic(width, height, 0.1f, 100f);
+        var projMatrix = Matrix4x4.CreateOrthographic(width, height, 0.1f, 100f);
+
+        var position = new Vector3(-_position.X, -_position.Y, 0.0f);
+        var viewMatrix = Matrix4x4.CreateTranslation(position);
+
+        ViewProjectionMatrix = viewMatrix * projMatrix;
     }
 
     public Camera(float aspectRatio)
