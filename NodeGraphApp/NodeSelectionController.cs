@@ -24,7 +24,27 @@ public sealed class NodeSelectionController
 
     private Vector2 _mousePos;
     private Node? _selectedNode;
+
     private Node? _hoveredNode;
+
+    private Node? HoveredNode
+    {
+        get => _hoveredNode;
+        set
+        {
+            if (_hoveredNode == value)
+                return;
+
+            var prevHoveredNode = _hoveredNode;
+            _hoveredNode = value;
+
+            if (prevHoveredNode != null)
+                prevHoveredNode.IsHovered = false;
+
+            if (_hoveredNode != null)
+                _hoveredNode.IsHovered = true;
+        }
+    }
 
     public void Update()
     {
@@ -44,19 +64,20 @@ public sealed class NodeSelectionController
         var mousePos = mouse.Position;
         var worldCursorPos = CoordinateUtils.ScreenToWorldPoint(window, camera, mousePos);
         var nodes = _nodeGraph.Nodes.GetAll().Reverse();
-        _hoveredNode = null;
+        Node? hoveredNode = null;
         foreach (var node in nodes)
         {
             if (Overlaps(worldCursorPos, node))
             {
-                _hoveredNode = node;
+                hoveredNode = node;
                 break;
             }
         }
+        HoveredNode = hoveredNode;
 
-        if (mouse.WasButtonPressedThisFrame(MouseButton.Left) && _hoveredNode != null)
+        if (mouse.WasButtonPressedThisFrame(MouseButton.Left) && HoveredNode != null)
         {
-            _selectedNode = _hoveredNode;
+            _selectedNode = HoveredNode;
             _mousePos = worldCursorPos;
             _nodeGraph.Nodes.BringToFront(_selectedNode);
         }

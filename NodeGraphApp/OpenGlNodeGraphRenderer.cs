@@ -27,6 +27,7 @@ public sealed class OpenGlNodeGraphRenderer
     private int _colorUniformLoc;
     private int _borderRadiusUniformLoc;
     private int _borderSizeUniformLoc;
+    private int _borderColorUniformLoc;
 
     public OpenGlNodeGraphRenderer(NodeGraph nodeGraph, Camera camera)
     {
@@ -56,6 +57,7 @@ public sealed class OpenGlNodeGraphRenderer
         _colorUniformLoc = GetUniformLocation(_shader, "u_color");
         _borderRadiusUniformLoc = GetUniformLocation(_shader, "u_borderRadius");
         _borderSizeUniformLoc = GetUniformLocation(_shader, "u_borderSize");
+        _borderColorUniformLoc = GetUniformLocation(_shader, "u_borderColor");
 
         glBindBuffer(GL_ARRAY_BUFFER, _quadVbo);
         var size = new IntPtr(sizeof(float) * _vertices.Length);
@@ -89,21 +91,20 @@ public sealed class OpenGlNodeGraphRenderer
 
     private void RenderNode(Node node)
     {
+        var borderColor = node.IsHovered
+            ? Color.FromRGBA(0.0f, 0.7490f, 1.0f, 1.0f)
+            : Color.FromRGBA(0f, 0f, 0f, 1f);
+
         RenderRectangle(new Rectangle
         {
             Left = node.XPos,
             Bottom = node.YPos,
             Width = node.Width,
             Height = node.Height,
-            Color = new Color
-            {
-                R = 0.1765f,
-                G = 0.1922f,
-                B = 0.2588f,
-                A = 1f
-            },
+            Color = Color.FromRGBA(0.1765f, 0.1922f, 0.2588f, 1f),
             BorderSize = BorderSizeStyle.All(0.25f),
             BorderRadius = BorderRadiusStyle.All(0.25f),
+            BorderColor = borderColor
         });
 
         RenderRectangle(new Rectangle
@@ -155,6 +156,7 @@ public sealed class OpenGlNodeGraphRenderer
         glUseProgram(_shader);
         glUniform4f(_rectUniformLoc, r.Left, r.Bottom, r.Width, r.Height);
         glUniform4f(_colorUniformLoc, r.Color.R, r.Color.G, r.Color.B, r.Color.A);
+        glUniform4f(_borderColorUniformLoc, r.BorderColor.R, r.BorderColor.G, r.BorderColor.B, r.BorderColor.A);
         glUniform4f(_borderRadiusUniformLoc, r.BorderRadius.Top, r.BorderRadius.Right, r.BorderRadius.Bottom, r.BorderRadius.Left);
         glUniform4f(_borderSizeUniformLoc, r.BorderSize.Top, r.BorderSize.Right, r.BorderSize.Bottom, r.BorderSize.Left);
         var viewProjMat = _camera.ViewProjectionMatrix;

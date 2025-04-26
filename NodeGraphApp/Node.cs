@@ -4,5 +4,6 @@ public sealed class Node
     public float YPos { get; set; }
     public float Width { get; set; }
     public float Height { get; set; }
+    public bool IsHovered { get; set; }
 }
 
