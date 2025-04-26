@@ -2,6 +2,9 @@ using System.Numerics;
 
 public sealed class Camera
 {
+    public float MinZoomFactor = 0.25f;
+    public float MaxZoomFactor = 3.0f;
+
     public Matrix4x4 ViewProjectionMatrix { get; private set; }
 
     private float _aspectRatio;
@@ -15,16 +18,32 @@ public sealed class Camera
         }
     }
 
+    private float _zoomFactor;
+    public float ZoomFactor
+    {
+        get => _zoomFactor;
+        set
+        {
+            if (value < MinZoomFactor)
+                value = MinZoomFactor;
+            else if (value > MaxZoomFactor)
+                value = MaxZoomFactor;
+            _zoomFactor = value;
+            UpdateViewProjectionMatrix();
+        }
+    }
+
     private void UpdateViewProjectionMatrix()
     {
-        var width = 200;
+        var width = 200 * _zoomFactor;
         var height = width / _aspectRatio;
         ViewProjectionMatrix = Matrix4x4.CreateOrthographic(width, height, 0.1f, 100f);
     }
 
     public Camera(float aspectRatio)
     {
-       _aspectRatio = aspectRatio;
-       UpdateViewProjectionMatrix();
+        _zoomFactor = 1f;
+        _aspectRatio = aspectRatio;
+        UpdateViewProjectionMatrix();
     }
 }

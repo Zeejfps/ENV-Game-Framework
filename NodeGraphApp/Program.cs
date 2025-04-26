@@ -39,6 +39,11 @@ Glfw.SetWindowSizeCallback(window, (window, width, height) =>
     Glfw.SwapBuffers(window);
 });
 
+Glfw.SetScrollCallback(window, (window, dx, dy) =>
+{
+    camera.ZoomFactor += (float)dy * 0.05f;
+});
+
 Glfw.MakeContextCurrent(window);
 Glfw.ShowWindow(window);
 
