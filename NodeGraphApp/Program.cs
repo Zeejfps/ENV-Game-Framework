@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using GLFW;
+using NodeGraphApp;
 using Monitor = GLFW.Monitor;
 
 Glfw.Init();
@@ -29,10 +30,40 @@ nodeGraph.Nodes.Add(new Node
     Width = 40,
     Height = 20
 });
+var mouse = new Mouse();
+var keyboard = new Keyboard();
 var camera = new Camera(windowAspectRatio);
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera);
-var cameraDragController = new CameraDragController(window, camera);
-cameraDragController.Enable();
+var cameraDragController = new CameraDragController(window, camera, mouse, keyboard);
+
+Glfw.SetMouseButtonCallback(window, (_, button, state, _) =>
+{
+    if (state == InputState.Press)
+    {
+        mouse.PressButton(button);
+    }
+    else if (state == InputState.Release)
+    {
+        mouse.ReleaseButton(button);
+    }
+});
+
+Glfw.SetCursorPositionCallback(window, (_, x, y) =>
+{
+    mouse.Position = new Vector2((float)x, (float)y);
+});
+
+Glfw.SetKeyCallback(window, (_, key, code, state, mods) =>
+{
+    if (state == InputState.Press)
+    {
+        keyboard.PressKey(key);
+    }
+    else if (state == InputState.Release)
+    {
+        keyboard.ReleaseKey(key);
+    }
+});
 
 Glfw.SetWindowSizeCallback(window, (window, width, height) =>
 {
@@ -56,7 +87,10 @@ GL46.Import(Glfw.GetProcAddress);
 renderer.Setup();
 while (!Glfw.WindowShouldClose(window))
 {
+    mouse.Update();
+    keyboard.Update();
     Glfw.PollEvents();
+    cameraDragController.Update();
     renderer.Render();
     Glfw.SwapBuffers(window);
 }

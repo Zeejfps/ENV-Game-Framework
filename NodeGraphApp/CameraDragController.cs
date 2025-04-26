@@ -1,76 +1,68 @@
 using System.Numerics;
 using GLFW;
+using NodeGraphApp;
 
 public sealed class CameraDragController
 {
     private readonly Window _window;
     private readonly Camera _camera;
+    private readonly Mouse _mouse;
+    private readonly Keyboard _keyboard;
 
-    public CameraDragController(Window window, Camera camera)
+    public CameraDragController(Window window, Camera camera, Mouse mouse, Keyboard keyboard)
     {
         _window = window;
         _camera = camera;
+        _mouse = mouse;
+        _keyboard = keyboard;
     }
 
     private bool _isDragging;
     private Vector2 _prevCursorPosition;
 
-    public void Enable()
+    public void Update()
     {
         var window = _window;
-        Glfw.SetMouseButtonCallback(window, (_, button, state, modifiers) =>
-        {
-            var canStartDragging =
-                modifiers == ModifierKeys.Alt && button == MouseButton.Left && state == InputState.Press;
-            canStartDragging |= button == MouseButton.Middle && state == InputState.Press;
+        var mouse = _mouse;
+        var keyboard = _keyboard;
 
-            if (canStartDragging)
-            {
-                _isDragging = true;
-                Glfw.GetCursorPosition(window, out var posX, out var posY);
-                _prevCursorPosition = new Vector2((float)posX, (float)posY);
-            }
-            else if (_isDragging && button == MouseButton.Left && state == InputState.Release)
+        var canStartDragging = mouse.WasButtonPressedThisFrame(MouseButton.Left) &&
+                               keyboard.IsKeyPressed(Keys.LeftAlt);
+        canStartDragging |= mouse.WasButtonPressedThisFrame(MouseButton.Middle);
+
+        if (canStartDragging)
+        {
+            _isDragging = true;
+            _prevCursorPosition = mouse.Position;
+        }
+
+        if (_isDragging)
+        {
+            if (mouse.WasButtonReleasedThisFrame(MouseButton.Left))
             {
                 _isDragging = false;
+                return;
             }
-            else if (_isDragging && button == MouseButton.Middle && state == InputState.Release)
+
+            Glfw.GetFramebufferSize(window, out var windowWidth, out var windowHeight);
+
+            var camera = _camera;
+            var newCursorScreenPosition = mouse.Position;
+            var delta = newCursorScreenPosition - _prevCursorPosition;
+            _prevCursorPosition = newCursorScreenPosition;
+
+            Matrix4x4.Invert(camera.ProjectionMatrix, out var invProj);
+            var ndcCoords = new Vector4
             {
-                _isDragging = false;
-            }
-        });
+                X = -2f * delta.X / windowWidth,
+                Y = 2f * delta.Y / windowHeight,
+                Z = 0,
+                W = 0
+            };
 
-        Glfw.SetCursorPositionCallback(window, (_, posX, posY) =>
-        {
-            if (_isDragging)
-            {
-                Glfw.GetFramebufferSize(window, out var windowWidth, out var windowHeight);
-
-                var camera = _camera;
-                var newCursorScreenPosition = new Vector2((float)posX, (float)posY);
-                var delta = newCursorScreenPosition - _prevCursorPosition;
-                _prevCursorPosition = newCursorScreenPosition;
-
-                Matrix4x4.Invert(camera.ProjectionMatrix, out var invProj);
-                var ndcCoords = new Vector4
-                {
-                    X = -2f * delta.X / windowWidth,
-                    Y = 2f * delta.Y / windowHeight,
-                    Z = 0,
-                    W = 0
-                };
-
-                var worldDelta = Vector4.Transform(ndcCoords, invProj);
-                var cameraDelta = new Vector2(worldDelta.X, worldDelta.Y);
-                camera.Position += cameraDelta;
-            }
-        });
-    }
-
-    public void Disable()
-    {
-        var window = _window;
-        Glfw.SetCursorPositionCallback(window, null);
-        Glfw.SetMouseButtonCallback(window, null);
+            var worldDelta = Vector4.Transform(ndcCoords, invProj);
+            var cameraDelta = new Vector2(worldDelta.X, worldDelta.Y);
+            camera.Position += cameraDelta;
+        }
     }
 }
