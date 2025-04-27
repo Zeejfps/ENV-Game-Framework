@@ -53,7 +53,7 @@ public sealed class Node
         _column = new Column
         {
             BoundsChanged = bounds => { Bounds = bounds; },
-            Padding = Padding.All(0.2f),
+            Padding = Padding.All(0.5f),
             ItemGap = 0.25f,
         };
     }

@@ -31,6 +31,8 @@ public sealed class Port
         }
     }
 
+    private readonly VisualNode _portNode;
+    
     public Port()
     {
         var portBackgroundColor = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f);
@@ -39,13 +41,32 @@ public sealed class Port
         var portBorderRadius = BorderRadiusStyle.All(0f);
         var portHeight = 8f;
         
+        _portNode = new VisualNode
+        {
+            Width = 3f,
+            Height = 3f,
+            Color = Color.FromRGBA(0.5f, 0.5f, 0.5f, 1.0f),
+            BorderRadius = BorderRadiusStyle.All(1.5f),
+            BorderSize = BorderSizeStyle.All(0.35f)
+        };
+        
         VisualNode = new VisualNode
         {
             Height = portHeight,
             Color = portBackgroundColor,
             BorderColor = portBorderColor,
             BorderSize = portBorderSize,
-            BorderRadius = portBorderRadius
+            BorderRadius = portBorderRadius,
+            BoundsChanged = bounds =>
+            {
+                _portNode.Bounds = _portNode.Bounds with
+                {
+                    Left = bounds.Left - 1.5f,
+                    Bottom = bounds.Bottom + (portHeight - 3f) / 2f,
+                };
+            }
         };
+        
+        VisualNode.Children.Add(_portNode);
     }
 }

@@ -2,8 +2,27 @@
 
 public sealed class VisualNode
 {
-    public ScreenRect Bounds { get; set; }
+    public Action<ScreenRect>? BoundsChanged;
 
+    private ScreenRect _bounds;
+    public ScreenRect Bounds
+    {
+        get => _bounds;
+        set
+        {
+            if (_bounds == value)
+                return;
+            _bounds = value;
+            BoundsChanged?.Invoke(_bounds);
+        }
+    }
+
+    public float Width
+    {
+        get => Bounds.Width;
+        set => Bounds = Bounds with { Width = value };
+    }
+    
     public float Height
     {
         get => Bounds.Height;
