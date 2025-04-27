@@ -24,16 +24,21 @@ public sealed class OpenGlNodeGraphRenderer
     private readonly MsdfBmpFontLoader _fontLoader;
     private readonly FontData _interFontData;
 
+    // Shared data
     private uint _quadVao;
     private uint _quadVbo;
+
+    // Panel data
     private uint _panelShader;
-    private uint _glyphShader;
     private int _rectUniformLoc;
     private int _viewProjUniformLoc;
     private int _colorUniformLoc;
     private int _borderRadiusUniformLoc;
     private int _borderSizeUniformLoc;
     private int _borderColorUniformLoc;
+
+    // Glyph data
+    private uint _glyphShader;
 
     private readonly Dictionary<int, Glyph> _glyphsByCodePoint = new();
 
