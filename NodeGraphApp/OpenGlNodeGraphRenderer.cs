@@ -31,6 +31,7 @@ public sealed class OpenGlNodeGraphRenderer
     private int _borderRadiusUniformLoc;
     private int _borderSizeUniformLoc;
     private int _borderColorUniformLoc;
+    private FontData _interFontData;
 
     public OpenGlNodeGraphRenderer(NodeGraph nodeGraph, Camera camera, MsdfBmpFontLoader fontLoader)
     {
@@ -41,7 +42,7 @@ public sealed class OpenGlNodeGraphRenderer
 
     public unsafe void Setup()
     {
-        _fontLoader.LoadFromFile("Assets/Fonts/Inter/Inter_24pt-Regular-msdf.json");
+        _interFontData = _fontLoader.LoadFromFile("Assets/Fonts/Inter/Inter_24pt-Regular-msdf.json");
 
         uint vbo;
         glGenBuffers(1, &vbo);
@@ -116,15 +117,15 @@ public sealed class OpenGlNodeGraphRenderer
 
         if (r.Text != null)
         {
-            RenderText();
+            RenderText(r.Bounds, r.Text);
         }
 
         foreach (var child in r.Children)
             RenderVisualNode(child);
     }
 
-    private void RenderText()
+    private void RenderText(ScreenRect bounds, string text)
     {
-
+        
     }
 }
