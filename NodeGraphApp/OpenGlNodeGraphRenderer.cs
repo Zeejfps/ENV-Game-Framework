@@ -1,3 +1,4 @@
+using NodeGraphApp;
 using OpenGLSandbox;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
@@ -95,58 +96,43 @@ public sealed class OpenGlNodeGraphRenderer
             ? Color.FromRGBA(0.2f, 0.6f, 0.7333f, 1.0f)
             : Color.FromRGBA(0f, 0f, 0f, 1f);
 
-        RenderRectangle(new Rectangle
+        RenderRectangle(new VisualNode
         {
-            Left = node.XPos,
-            Bottom = node.YPos,
-            Width = node.Width,
-            Height = node.Height,
+            Bounds = ScreenRect.FromLBWH(node.XPos, node.YPos, node.Width, node.Height),
             Color = Color.FromRGBA(0.1765f, 0.1922f, 0.2588f, 1f),
             BorderSize = BorderSizeStyle.All(0.25f),
             BorderRadius = BorderRadiusStyle.All(0.25f),
             BorderColor = borderColor
         });
 
-        RenderRectangle(new Rectangle
+        RenderRectangle(new VisualNode
         {
-            Left = node.XPos+0.25f,
-            Bottom = node.YPos + 14.75f,
-            Width = node.Width - 0.5f,
-            Height = 5f,
+            Bounds = ScreenRect.FromLBWH(node.XPos+0.25f, node.YPos + 14.75f, node.Width - 0.5f, 5f),
             Color = Color.FromRGBA(0.2314f, 0.2588f, 0.3412f, 1.0f),
             BorderSize = BorderSizeStyle.FromLTRB(0f, 0f, 0f, 0.25f)
         });
 
-        RenderRectangle(new Rectangle
+        RenderRectangle(new VisualNode
         {
-            Left = node.XPos+1f,
-            Bottom = node.YPos + 10f,
-            Width = 2f,
-            Height = 2f,
+            Bounds = ScreenRect.FromLBWH(node.XPos+1f, node.YPos + 10f, 2f, 2f),
             Color = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f),
             BorderColor = Color.FromRGBA(0.1f, 0.2588f, 0.7412f, 1.0f),
             BorderSize = BorderSizeStyle.All(0.25f),
             BorderRadius = BorderRadiusStyle.All(1f)
         });
 
-        RenderRectangle(new Rectangle
+        RenderRectangle(new VisualNode
         {
-            Left = node.XPos+1f,
-            Bottom = node.YPos + 6f,
-            Width = 2f,
-            Height = 2f,
+            Bounds = ScreenRect.FromLBWH(node.XPos+1f, node.YPos + 6f, 2f, 2f),
             Color = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f),
             BorderColor = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f),
             BorderSize = BorderSizeStyle.All(0.25f),
             BorderRadius = BorderRadiusStyle.All(1f)
         });
 
-        RenderRectangle(new Rectangle
+        RenderRectangle(new VisualNode
         {
-            Left = node.XPos+1f,
-            Bottom = node.YPos + 2f,
-            Width = 2f,
-            Height = 2f,
+            Bounds = ScreenRect.FromLBWH(node.XPos+1f, node.YPos + 2f, 2f, 2f),
             Color = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f),
             BorderColor = Color.FromRGBA(0.5f, 0.2588f, 0.3412f, 1.0f),
             BorderSize = BorderSizeStyle.All(0.25f),
@@ -154,10 +140,10 @@ public sealed class OpenGlNodeGraphRenderer
         });
     }
 
-    private unsafe void RenderRectangle(Rectangle r)
+    private unsafe void RenderRectangle(VisualNode r)
     {
         glUseProgram(_shader);
-        glUniform4f(_rectUniformLoc, r.Left, r.Bottom, r.Width, r.Height);
+        glUniform4f(_rectUniformLoc, r.Bounds.Left, r.Bounds.Bottom, r.Bounds.Width, r.Bounds.Height);
         glUniform4f(_colorUniformLoc, r.Color.R, r.Color.G, r.Color.B, r.Color.A);
         glUniform4f(_borderColorUniformLoc, r.BorderColor.R, r.BorderColor.G, r.BorderColor.B, r.BorderColor.A);
         glUniform4f(_borderRadiusUniformLoc, r.BorderRadius.Top, r.BorderRadius.Right, r.BorderRadius.Bottom, r.BorderRadius.Left);
@@ -168,16 +154,4 @@ public sealed class OpenGlNodeGraphRenderer
         glBindVertexArray(_quadVao);
         glDrawArrays(GL_TRIANGLES, 0,  6);
     }
-}
-
-public readonly struct Rectangle
-{
-    public float Left { get; init; }
-    public float Bottom { get; init; }
-    public float Width { get; init; }
-    public float Height { get; init; }
-    public Color Color { get; init; }
-    public Color BorderColor { get; init; }
-    public BorderSizeStyle BorderSize { get; init; }
-    public BorderRadiusStyle BorderRadius { get; init; }
 }
