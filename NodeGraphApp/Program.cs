@@ -62,7 +62,8 @@ var mouse = new Mouse();
 var keyboard = new Keyboard();
 var camera = new Camera(windowAspectRatio);
 var fontLoader = new MsdfBmpFontLoader();
-var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, fontLoader);
+var interFontData = fontLoader.LoadFromFile("Assets/Fonts/Inter/Inter_24pt-Regular-msdf.json");
+var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
 var cameraDragController = new CameraDragController(window, camera, mouse, keyboard);
 var nodeSelectionController = new NodeSelectionController(window, mouse, camera, nodeGraph);
 
