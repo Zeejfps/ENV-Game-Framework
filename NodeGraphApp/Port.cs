@@ -1,9 +1,11 @@
-﻿public sealed class Port
+﻿namespace NodeGraphApp;
+
+public sealed class Port
 {
-    private static Color HoveredBorderColor = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f);
-    private static Color NormalBorderColor = Color.FromRGBA(0f, 0f, 0f, 1f);
-    private static BorderSizeStyle HoveredBorderSize = BorderSizeStyle.All(0.25f);
-    private static BorderSizeStyle NormalBorderSize = BorderSizeStyle.All(0f);
+    private static Color HoveredBorderColor { get; } = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f);
+    private static Color NormalBorderColor { get; } = Color.FromRGBA(0f, 0f, 0f, 1f);
+    private static BorderSizeStyle HoveredBorderSize { get; } = BorderSizeStyle.All(0.25f);
+    private static BorderSizeStyle NormalBorderSize { get; } = BorderSizeStyle.All(0f);
     
     public VisualNode VisualNode { get; }
 
