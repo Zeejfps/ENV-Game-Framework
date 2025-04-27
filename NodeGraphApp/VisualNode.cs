@@ -28,7 +28,8 @@ public sealed class VisualNode
         get => Bounds.Height;
         set => Bounds = Bounds with { Height = value };
     }
-    
+
+    public string? Text { get; set; }
     public Color Color { get; set; }
     public Color BorderColor { get; set; }
     public BorderSizeStyle BorderSize { get; set; }

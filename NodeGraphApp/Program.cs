@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using GLFW;
+using MsdfBmpFont;
 using NodeGraphApp;
 using Monitor = GLFW.Monitor;
 
@@ -60,7 +61,8 @@ nodeGraph.Nodes.Add(n2);
 var mouse = new Mouse();
 var keyboard = new Keyboard();
 var camera = new Camera(windowAspectRatio);
-var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera);
+var fontLoader = new MsdfBmpFontLoader();
+var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, fontLoader);
 var cameraDragController = new CameraDragController(window, camera, mouse, keyboard);
 var nodeSelectionController = new NodeSelectionController(window, mouse, camera, nodeGraph);
 

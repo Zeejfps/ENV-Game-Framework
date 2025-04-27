@@ -1,3 +1,4 @@
+using MsdfBmpFont;
 using NodeGraphApp;
 using OpenGLSandbox;
 using static GL46;
@@ -19,6 +20,7 @@ public sealed class OpenGlNodeGraphRenderer
 
     private readonly NodeGraph _nodeGraph;
     private readonly Camera _camera;
+    private readonly MsdfBmpFontLoader _fontLoader;
 
     private uint _quadVao;
     private uint _quadVbo;
@@ -30,14 +32,17 @@ public sealed class OpenGlNodeGraphRenderer
     private int _borderSizeUniformLoc;
     private int _borderColorUniformLoc;
 
-    public OpenGlNodeGraphRenderer(NodeGraph nodeGraph, Camera camera)
+    public OpenGlNodeGraphRenderer(NodeGraph nodeGraph, Camera camera, MsdfBmpFontLoader fontLoader)
     {
         _nodeGraph = nodeGraph;
         _camera = camera;
+        _fontLoader = fontLoader;
     }
 
     public unsafe void Setup()
     {
+        _fontLoader.LoadFromFile("Assets/Fonts/Inter/Inter_24pt-Regular-msdf.json");
+
         uint vbo;
         glGenBuffers(1, &vbo);
         AssertNoGlError();
@@ -108,8 +113,18 @@ public sealed class OpenGlNodeGraphRenderer
         glUniformMatrix4fv(_viewProjUniformLoc, 1, false, ptr);
         glBindVertexArray(_quadVao);
         glDrawArrays(GL_TRIANGLES, 0,  6);
-        
+
+        if (r.Text != null)
+        {
+            RenderText();
+        }
+
         foreach (var child in r.Children)
             RenderVisualNode(child);
+    }
+
+    private void RenderText()
+    {
+
     }
 }
