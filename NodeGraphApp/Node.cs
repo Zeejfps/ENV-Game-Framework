@@ -12,6 +12,7 @@ public sealed class Node
                 return;
             _bounds = value;
             _flexColumn.Bounds = value;
+            _flexColumn.DoLayout();
             _background.Bounds = value;
         }
     }
@@ -118,6 +119,8 @@ public sealed class Node
                 BoundsChanged = bounds => { port3.Bounds = bounds; }
             }
         ];
+        
+        _flexColumn.Padding = Padding.All(0.25f);
     }
 }
 
