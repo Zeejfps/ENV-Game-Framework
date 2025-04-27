@@ -11,9 +11,9 @@ public sealed class Node
             if (_bounds == value)
                 return;
             _bounds = value;
-            _flexColumn.Bounds = value;
-            _flexColumn.DoLayout();
             _background.Bounds = value;
+            _column.Bounds = value;
+            _column.DoLayout();
         }
     }
 
@@ -39,7 +39,7 @@ public sealed class Node
     public IEnumerable<VisualNode> VisualNodes => _visualNodes;
     
     private readonly List<VisualNode> _visualNodes = [];
-    private readonly FlexColumn _flexColumn;
+    private readonly Column _column;
     private readonly VisualNode _background;
     
     public Node()
@@ -55,6 +55,7 @@ public sealed class Node
         
         var header = new VisualNode
         {
+            Height = 5f,
             BorderRadius = new BorderRadiusStyle
             {
                 TopLeft = 0.25f,
@@ -68,9 +69,11 @@ public sealed class Node
         var portBorderColor = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f);
         var portBorderSize = BorderSizeStyle.All(0f);
         var portBorderRadius = BorderRadiusStyle.All(0f);
+        var portHeight = 8f;
         
         var port1 = new VisualNode
         {
+            Height = portHeight,
             Color = portBackgroundColor,
             BorderColor = portBorderColor,
             BorderSize = portBorderSize,
@@ -80,6 +83,7 @@ public sealed class Node
         
         var port2 = new VisualNode
         {
+            Height = portHeight,
             Color = portBackgroundColor,
             BorderColor = portBorderColor,
             BorderSize = portBorderSize,
@@ -89,6 +93,7 @@ public sealed class Node
         
         var port3 = new VisualNode
         {
+            Height = portHeight,
             Color = portBackgroundColor,
             BorderColor = portBorderColor,
             BorderSize = portBorderSize,
@@ -96,36 +101,38 @@ public sealed class Node
         };
         _visualNodes.Add(port3);
 
-        _flexColumn =
-        [
-            new FlexItem
+        _column = new Column
+        {
+            BoundsChanged = bounds => { Bounds = bounds; },
+            Padding = Padding.All(0.25f),
+            ItemGap = 0.25f,
+            Items =
             {
-                FlexGrow = 0,
-                BaseHeight = 2.5f,
-                BoundsChanged = bounds => { header.Bounds = bounds; }
-            },
+                new ColumnItem
+                {
+                    Bounds = header.Bounds,
+                    BoundsChanged = bounds => { header.Bounds = bounds; }
+                },
             
-            new FlexItem
-            {
-                FlexGrow = 1,
-                BoundsChanged = bounds => { port1.Bounds = bounds; }
-            },
+                new ColumnItem
+                {
+                    Bounds = port1.Bounds,
+                    BoundsChanged = bounds => { port1.Bounds = bounds; }
+                },
 
-            new FlexItem
-            {
-                FlexGrow = 1,
-                BoundsChanged = bounds => { port2.Bounds = bounds; }
-            },
+                new ColumnItem
+                {
+                    Bounds = port2.Bounds,
+                    BoundsChanged = bounds => { port2.Bounds = bounds; }
+                },
 
-            new FlexItem
-            {
-                FlexGrow = 1,
-                BoundsChanged = bounds => { port3.Bounds = bounds; }
+                new ColumnItem
+                {
+                    Bounds = port3.Bounds,
+                    BoundsChanged = bounds => { port3.Bounds = bounds; }
+                }
             }
-        ];
-        
-        _flexColumn.Padding = Padding.All(0.25f);
-        _flexColumn.ItemGap = 0.25f;
+        };
     }
 }
 
