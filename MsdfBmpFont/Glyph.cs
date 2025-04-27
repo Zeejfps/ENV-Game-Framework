@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace MsdfBmpFontUtils;
+namespace MsdfBmpFont;
 
 public sealed class Glyph
 {

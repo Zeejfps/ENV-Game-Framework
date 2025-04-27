@@ -1,21 +1,24 @@
 using System.Text.Json.Serialization;
 
-namespace MsdfBmpFontUtils;
+namespace MsdfBmpFont;
 
 public sealed class FontData
 {
     [JsonPropertyName("info")]
-    public Info Info { get; set; }
+    public required Info Info { get; set; }
 
     [JsonPropertyName("common")]
-    public Common Common { get; set; }
+    public required Common Common { get; set; }
 
     [JsonPropertyName("pages")]
-    public List<string> Pages { get; set; }
+    public required List<string> Pages { get; set; }
 
     [JsonPropertyName("chars")]
-    public List<Glyph> Glyphs { get; set; }
+    public required List<Glyph> Glyphs { get; set; }
+
+    [JsonPropertyName("distanceField")]
+    public required DistanceFieldInfo DistanceFieldInfo { get; set; }
 
     [JsonPropertyName("kernings")]
-    public List<Kerning> Kernings { get; set; }
+    public List<Kerning>? Kernings { get; set; }
 }

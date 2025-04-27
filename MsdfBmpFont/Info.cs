@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
 
+namespace MsdfBmpFont;
+
 public class Info
 {
     [JsonPropertyName("face")]
