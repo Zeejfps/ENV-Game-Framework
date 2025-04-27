@@ -6,6 +6,7 @@ public sealed class FlexColumn : IEnumerable<FlexItem>
 {
     public ScreenRect Bounds { get; set; }
     public Padding Padding { get; set; }
+    public float ItemGap { get; set; }
     
     private readonly List<FlexItem> _items = [];
     
@@ -30,6 +31,8 @@ public sealed class FlexColumn : IEnumerable<FlexItem>
             if (item.FlexGrow == 0f)
                 totalFlexSpace -= item.BaseHeight;
         }
+        
+        totalFlexSpace -= ItemGap * (_items.Count - 1);
 
         var top = Bounds.Top - Padding.Top;
         var left = Bounds.Left + Padding.Left;
@@ -44,7 +47,7 @@ public sealed class FlexColumn : IEnumerable<FlexItem>
             }
 
             item.Bounds = ScreenRect.FromLTWH(left, top, width, height);
-            top -= height;
+            top -= height + ItemGap;
         }
     }
 

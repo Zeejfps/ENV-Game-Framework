@@ -47,7 +47,7 @@ public sealed class Node
         _background = new VisualNode
         {
             Color = Color.FromRGBA(0.1765f, 0.1922f, 0.2588f, 1f),
-            BorderSize = BorderSizeStyle.All(0.25f),
+            BorderSize = BorderSizeStyle.All(0.2f),
             BorderRadius = BorderRadiusStyle.All(0.5f),
             BorderColor = Color.FromRGBA(0f, 0f, 0f, 1f)
         };
@@ -66,8 +66,8 @@ public sealed class Node
         
         var portBackgroundColor = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f);
         var portBorderColor = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f);
-        var portBorderSize = BorderSizeStyle.All(0.25f);
-        var portBorderRadius = BorderRadiusStyle.All(1f);
+        var portBorderSize = BorderSizeStyle.All(0f);
+        var portBorderRadius = BorderRadiusStyle.All(0f);
         
         var port1 = new VisualNode
         {
@@ -92,7 +92,7 @@ public sealed class Node
             Color = portBackgroundColor,
             BorderColor = portBorderColor,
             BorderSize = portBorderSize,
-            BorderRadius = portBorderRadius
+            BorderRadius = portBorderRadius with {BottomLeft = 0.25f, BottomRight = 0.25f}
         };
         _visualNodes.Add(port3);
 
@@ -101,7 +101,7 @@ public sealed class Node
             new FlexItem
             {
                 FlexGrow = 0,
-                BaseHeight = 5f,
+                BaseHeight = 2.5f,
                 BoundsChanged = bounds => { header.Bounds = bounds; }
             },
             
@@ -125,6 +125,7 @@ public sealed class Node
         ];
         
         _flexColumn.Padding = Padding.All(0.25f);
+        _flexColumn.ItemGap = 0.25f;
     }
 }
 
