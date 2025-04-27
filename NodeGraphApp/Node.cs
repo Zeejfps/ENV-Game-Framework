@@ -1,3 +1,4 @@
+using System.Collections;
 using NodeGraphApp;
 
 public sealed class Node
@@ -37,8 +38,10 @@ public sealed class Node
     }
     
     public VisualNode VisualNode { get; }
-    
+    public IEnumerable<Port> Ports => _ports;
+
     private readonly Column _column;
+    private readonly List<Port> _ports = new();
     
     public Node(bool extraChild = false)
     {
@@ -63,12 +66,15 @@ public sealed class Node
         VisualNode.Children.Add(header);
         
         var port1 = new Port();
+        _ports.Add(port1);
         VisualNode.Children.Add(port1.VisualNode);
 
         var port2 = new Port();
+        _ports.Add(port2);
         VisualNode.Children.Add(port2.VisualNode);
 
         var port3 = new Port();
+        _ports.Add(port3);
         VisualNode.Children.Add(port3.VisualNode);
         
         _column = new Column
@@ -107,6 +113,7 @@ public sealed class Node
         if (extraChild)
         {
             var port4 = new Port();
+            _ports.Add(port4);
             VisualNode.Children.Add(port4.VisualNode);
             
             _column.Items.Add(new ColumnItem

@@ -26,7 +26,6 @@ public sealed class NodeSelectionController
     private Node? _selectedNode;
 
     private Node? _hoveredNode;
-
     private Node? HoveredNode
     {
         get => _hoveredNode;
@@ -43,6 +42,26 @@ public sealed class NodeSelectionController
 
             if (_hoveredNode != null)
                 _hoveredNode.IsHovered = true;
+        }
+    }
+    
+    private Port? _hoveredPort;
+    private Port? HoveredPort
+    {
+        get => _hoveredPort;
+        set
+        {
+            if (_hoveredPort == value)
+                return;
+
+            var prevHoveredPort = _hoveredPort;
+            _hoveredPort = value;
+
+            if (prevHoveredPort != null)
+                prevHoveredPort.IsHovered = false;
+
+            if (_hoveredPort != null)
+                _hoveredPort.IsHovered = true;
         }
     }
 
@@ -69,15 +88,26 @@ public sealed class NodeSelectionController
         var worldCursorPos = CoordinateUtils.ScreenToWorldPoint(window, camera, mousePos);
         var nodes = _nodeGraph.Nodes.GetAll().Reverse();
         Node? hoveredNode = null;
+        Port? hoveredPort = null;
         foreach (var node in nodes)
         {
             if (Overlaps(worldCursorPos, node))
             {
                 hoveredNode = node;
+
+                foreach (var port in hoveredNode.Ports)
+                {
+                    if (Overlaps(worldCursorPos, port.VisualNode.Bounds))
+                    {
+                        hoveredPort = port;
+                        break;
+                    }
+                }
                 break;
             }
         }
         HoveredNode = hoveredNode;
+        HoveredPort = hoveredPort;
 
         if (mouse.WasButtonPressedThisFrame(MouseButton.Left) && HoveredNode != null)
         {
@@ -94,7 +124,11 @@ public sealed class NodeSelectionController
     private bool Overlaps(Vector2 worldCursorPos, Node node)
     {
         var bounds = node.Bounds;
-        
+        return Overlaps(worldCursorPos, bounds);
+    }
+    
+    private bool Overlaps(Vector2 worldCursorPos, ScreenRect bounds)
+    {
         if (bounds.Right < worldCursorPos.X)
             return false;
         if (bounds.Top < worldCursorPos.Y)
