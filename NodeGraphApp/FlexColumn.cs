@@ -22,7 +22,7 @@ public sealed class FlexColumn : IEnumerable<FlexItem>
     public void DoLayout()
     {
         var totalFlexGrow = 0f;
-        var totalFlexSpace = Bounds.Height;
+        var totalFlexSpace = Bounds.Height - Padding.Top - Padding.Bottom;
 
         foreach (var item in _items)
         {
@@ -31,9 +31,9 @@ public sealed class FlexColumn : IEnumerable<FlexItem>
                 totalFlexSpace -= item.BaseHeight;
         }
 
-        var top = Bounds.Top;
-        var left = Bounds.Left;
-        var width = Bounds.Width;
+        var top = Bounds.Top - Padding.Top;
+        var left = Bounds.Left + Padding.Left;
+        var width = Bounds.Width - Padding.Left - Padding.Right;
         foreach (var item in _items)
         {
             var height = item.BaseHeight;
