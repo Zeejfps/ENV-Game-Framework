@@ -26,7 +26,7 @@ nodeGraph.Nodes.Add(new Node
         Height = 20
     },
 });
-nodeGraph.Nodes.Add(new Node
+nodeGraph.Nodes.Add(new Node(true)
 {
     Bounds = new ScreenRect
     {

@@ -92,13 +92,10 @@ public sealed class OpenGlNodeGraphRenderer
 
     private void RenderNode(Node node)
     {
-        foreach (var port in node.VisualNodes)
-        {
-            RenderRectangle(port);
-        }
+        RenderVisualNode(node.VisualNode);
     }
 
-    private unsafe void RenderRectangle(VisualNode r)
+    private unsafe void RenderVisualNode(VisualNode r)
     {
         glUseProgram(_shader);
         glUniform4f(_rectUniformLoc, r.Bounds.Left, r.Bounds.Bottom, r.Bounds.Width, r.Bounds.Height);
@@ -111,5 +108,8 @@ public sealed class OpenGlNodeGraphRenderer
         glUniformMatrix4fv(_viewProjUniformLoc, 1, false, ptr);
         glBindVertexArray(_quadVao);
         glDrawArrays(GL_TRIANGLES, 0,  6);
+        
+        foreach (var child in r.Children)
+            RenderVisualNode(child);
     }
 }

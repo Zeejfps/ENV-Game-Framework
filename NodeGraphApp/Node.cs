@@ -11,7 +11,7 @@ public sealed class Node
             if (_bounds == value)
                 return;
             _bounds = value;
-            _background.Bounds = value;
+            VisualNode.Bounds = value;
             _column.Bounds = value;
             _column.DoLayout();
         }
@@ -32,26 +32,23 @@ public sealed class Node
                 ? Color.FromRGBA(0.2f, 0.6f, 0.7333f, 1.0f)
                 : Color.FromRGBA(0f, 0f, 0f, 1f);
 
-            _background.BorderColor = borderColor;
+            VisualNode.BorderColor = borderColor;
         }
     }
-
-    public IEnumerable<VisualNode> VisualNodes => _visualNodes;
     
-    private readonly List<VisualNode> _visualNodes = [];
+    public VisualNode VisualNode { get; }
+    
     private readonly Column _column;
-    private readonly VisualNode _background;
     
-    public Node()
+    public Node(bool extraChild = false)
     {
-        _background = new VisualNode
+        VisualNode = new VisualNode
         {
             Color = Color.FromRGBA(0.1765f, 0.1922f, 0.2588f, 1f),
             BorderSize = BorderSizeStyle.All(0.2f),
             BorderRadius = BorderRadiusStyle.All(0.5f),
             BorderColor = Color.FromRGBA(0f, 0f, 0f, 1f)
         };
-        _visualNodes.Add(_background);
         
         var header = new VisualNode
         {
@@ -63,7 +60,7 @@ public sealed class Node
             },
             Color = Color.FromRGBA(0.2314f, 0.2588f, 0.3412f, 1.0f),
         };
-        _visualNodes.Add(header);
+        VisualNode.Children.Add(header);
         
         var portBackgroundColor = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f);
         var portBorderColor = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f);
@@ -79,7 +76,7 @@ public sealed class Node
             BorderSize = portBorderSize,
             BorderRadius = portBorderRadius
         };
-        _visualNodes.Add(port1);
+        VisualNode.Children.Add(port1);
         
         var port2 = new VisualNode
         {
@@ -89,7 +86,7 @@ public sealed class Node
             BorderSize = portBorderSize,
             BorderRadius = portBorderRadius
         };
-        _visualNodes.Add(port2);
+        VisualNode.Children.Add(port2);
         
         var port3 = new VisualNode
         {
@@ -99,8 +96,8 @@ public sealed class Node
             BorderSize = portBorderSize,
             BorderRadius = portBorderRadius with {BottomLeft = 0.25f, BottomRight = 0.25f}
         };
-        _visualNodes.Add(port3);
-
+        VisualNode.Children.Add(port3);
+        
         _column = new Column
         {
             BoundsChanged = bounds => { Bounds = bounds; },
@@ -133,6 +130,25 @@ public sealed class Node
                 }
             }
         };
+        
+        if (extraChild)
+        {
+            var port4 = new VisualNode
+            {
+                Height = portHeight,
+                Color = portBackgroundColor,
+                BorderColor = portBorderColor,
+                BorderSize = portBorderSize,
+                BorderRadius = portBorderRadius with {BottomLeft = 0.25f, BottomRight = 0.25f}
+            };
+            VisualNode.Children.Add(port4);
+            
+            _column.Items.Add(new ColumnItem
+            {
+                Bounds = port4.Bounds,
+                BoundsChanged = bounds => { port4.Bounds = bounds; }
+            });
+        }
     }
 }
 

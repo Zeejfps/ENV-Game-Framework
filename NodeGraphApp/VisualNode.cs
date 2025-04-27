@@ -14,4 +14,5 @@ public sealed class VisualNode
     public Color BorderColor { get; set; }
     public BorderSizeStyle BorderSize { get; set; }
     public BorderRadiusStyle BorderRadius { get; set; }
+    public List<VisualNode> Children { get; } = new();
 }
