@@ -75,6 +75,7 @@ Glfw.SetKeyCallback(window, (_, key, code, state, mods) =>
 
 Glfw.SetWindowSizeCallback(window, (window, width, height) =>
 {
+    GL46.glViewport(0, 0, width, height);
     var aspectRatio = (float)width / height;
     camera.AspectRatio = aspectRatio;
     renderer.Update();
