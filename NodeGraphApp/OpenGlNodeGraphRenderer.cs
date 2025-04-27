@@ -96,48 +96,20 @@ public sealed class OpenGlNodeGraphRenderer
             ? Color.FromRGBA(0.2f, 0.6f, 0.7333f, 1.0f)
             : Color.FromRGBA(0f, 0f, 0f, 1f);
 
+        var nodeBounds = node.Bounds;
         RenderRectangle(new VisualNode
         {
-            Bounds = ScreenRect.FromLBWH(node.XPos, node.YPos, node.Width, node.Height),
+            Bounds = nodeBounds,
             Color = Color.FromRGBA(0.1765f, 0.1922f, 0.2588f, 1f),
             BorderSize = BorderSizeStyle.All(0.25f),
             BorderRadius = BorderRadiusStyle.All(0.25f),
             BorderColor = borderColor
         });
-
-        RenderRectangle(new VisualNode
+        
+        foreach (var port in node.VisualNodes)
         {
-            Bounds = ScreenRect.FromLBWH(node.XPos+0.25f, node.YPos + 14.75f, node.Width - 0.5f, 5f),
-            Color = Color.FromRGBA(0.2314f, 0.2588f, 0.3412f, 1.0f),
-            BorderSize = BorderSizeStyle.FromLTRB(0f, 0f, 0f, 0.25f)
-        });
-
-        RenderRectangle(new VisualNode
-        {
-            Bounds = ScreenRect.FromLBWH(node.XPos+1f, node.YPos + 10f, 2f, 2f),
-            Color = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f),
-            BorderColor = Color.FromRGBA(0.1f, 0.2588f, 0.7412f, 1.0f),
-            BorderSize = BorderSizeStyle.All(0.25f),
-            BorderRadius = BorderRadiusStyle.All(1f)
-        });
-
-        RenderRectangle(new VisualNode
-        {
-            Bounds = ScreenRect.FromLBWH(node.XPos+1f, node.YPos + 6f, 2f, 2f),
-            Color = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f),
-            BorderColor = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f),
-            BorderSize = BorderSizeStyle.All(0.25f),
-            BorderRadius = BorderRadiusStyle.All(1f)
-        });
-
-        RenderRectangle(new VisualNode
-        {
-            Bounds = ScreenRect.FromLBWH(node.XPos+1f, node.YPos + 2f, 2f, 2f),
-            Color = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f),
-            BorderColor = Color.FromRGBA(0.5f, 0.2588f, 0.3412f, 1.0f),
-            BorderSize = BorderSizeStyle.All(0.25f),
-            BorderRadius = BorderRadiusStyle.All(1f)
-        });
+            RenderRectangle(port);
+        }
     }
 
     private unsafe void RenderRectangle(VisualNode r)

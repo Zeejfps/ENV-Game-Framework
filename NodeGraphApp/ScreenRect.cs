@@ -7,6 +7,7 @@ public readonly struct ScreenRect : IEquatable<ScreenRect>
     public required float Width { get; init; }
     public required float Height { get; init; }
     public float Top => Bottom + Height;
+    public float Right => Left + Width;
 
     public bool Equals(ScreenRect other)
     {

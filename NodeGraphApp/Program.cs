@@ -18,18 +18,25 @@ var window = Glfw.CreateWindow(windowWidth, windowHeight, "Node Graph", Monitor.
 var nodeGraph = new NodeGraph();
 nodeGraph.Nodes.Add(new Node
 {
-    XPos = 0f,
-    YPos = 10f,
-    Width = 40,
-    Height = 20
+    Bounds = new ScreenRect
+    {
+        Left = 0,
+        Bottom = 10,
+        Width = 40,
+        Height = 20
+    },
 });
 nodeGraph.Nodes.Add(new Node
 {
-    XPos = -50f,
-    YPos = 10f,
-    Width = 40,
-    Height = 20
+    Bounds = new ScreenRect
+    {
+        Left = -50,
+        Bottom = 10,
+        Width = 40,
+        Height = 20
+    },
 });
+
 var mouse = new Mouse();
 var keyboard = new Keyboard();
 var camera = new Camera(windowAspectRatio);

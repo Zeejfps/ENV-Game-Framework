@@ -4,7 +4,19 @@ namespace NodeGraphApp;
 
 public sealed class FlexColumn : IEnumerable<FlexItem>
 {
-    public ScreenRect Bounds { get; set; }
+    private ScreenRect _bounds;
+
+    public ScreenRect Bounds
+    {
+        get => _bounds;
+        set
+        {
+            if (_bounds == value)
+                return;
+            _bounds = value;
+            DoLayout();
+        }
+    }
     
     private readonly List<FlexItem> _items = [];
     
@@ -18,7 +30,7 @@ public sealed class FlexColumn : IEnumerable<FlexItem>
         _items.Add(flexItem);
     }
 
-    public void DoLayout()
+    private void DoLayout()
     {
         var totalFlexGrow = 0f;
         var totalFlexSpace = Bounds.Height;

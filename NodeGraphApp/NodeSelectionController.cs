@@ -57,8 +57,12 @@ public sealed class NodeSelectionController
             var currPos = CoordinateUtils.ScreenToWorldPoint(window, camera, mouse.Position);;
             var delta = currPos - _mousePos;
             _mousePos = currPos;
-            _selectedNode.XPos += delta.X;
-            _selectedNode.YPos += delta.Y;
+            var bounds = _selectedNode.Bounds;
+            _selectedNode.Bounds = bounds with
+            {
+                Left = bounds.Left + delta.X,
+                Bottom = bounds.Bottom + delta.Y,
+            };
         }
 
         var mousePos = mouse.Position;
@@ -89,13 +93,15 @@ public sealed class NodeSelectionController
 
     private bool Overlaps(Vector2 worldCursorPos, Node node)
     {
-        if (node.XPos + node.Width < worldCursorPos.X)
+        var bounds = node.Bounds;
+        
+        if (bounds.Right < worldCursorPos.X)
             return false;
-        if (node.YPos + node.Height < worldCursorPos.Y)
+        if (bounds.Top < worldCursorPos.Y)
             return false;
-        if (node.XPos > worldCursorPos.X)
+        if (bounds.Left > worldCursorPos.X)
             return false;
-        if (node.YPos > worldCursorPos.Y)
+        if (bounds.Bottom > worldCursorPos.Y)
             return false;
 
         return true;
