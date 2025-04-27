@@ -19,7 +19,6 @@ public sealed class Node
     }
 
     private bool _isHovered;
-
     public bool IsHovered
     {
         get => _isHovered;
@@ -38,12 +37,11 @@ public sealed class Node
     }
     
     public VisualNode VisualNode { get; }
-    public IEnumerable<Port> Ports => _ports;
+    public List<Port> Ports { get; } = [];
 
     private readonly Column _column;
-    private readonly List<Port> _ports = new();
-    
-    public Node(bool extraChild = false)
+
+    public Node()
     {
         VisualNode = new VisualNode
         {
@@ -52,6 +50,19 @@ public sealed class Node
             BorderRadius = BorderRadiusStyle.All(0.5f),
             BorderColor = Color.FromRGBA(0f, 0f, 0f, 1f)
         };
+
+        _column = new Column
+        {
+            BoundsChanged = bounds => { Bounds = bounds; },
+            Padding = Padding.All(0.2f),
+            ItemGap = 0.25f,
+        };
+    }
+
+    public void Update()
+    {
+        VisualNode.Children.Clear();
+        _column.Items.Clear();
         
         var header = new VisualNode
         {
@@ -64,64 +75,23 @@ public sealed class Node
             Color = Color.FromRGBA(0.2314f, 0.2588f, 0.3412f, 1.0f),
         };
         VisualNode.Children.Add(header);
-        
-        var port1 = new Port();
-        _ports.Add(port1);
-        VisualNode.Children.Add(port1.VisualNode);
-
-        var port2 = new Port();
-        _ports.Add(port2);
-        VisualNode.Children.Add(port2.VisualNode);
-
-        var port3 = new Port();
-        _ports.Add(port3);
-        VisualNode.Children.Add(port3.VisualNode);
-        
-        _column = new Column
+        _column.Items.Add(new ColumnItem
         {
-            BoundsChanged = bounds => { Bounds = bounds; },
-            Padding = Padding.All(0.2f),
-            ItemGap = 0.25f,
-            Items =
-            {
-                new ColumnItem
-                {
-                    Bounds = header.Bounds,
-                    BoundsChanged = bounds => { header.Bounds = bounds; }
-                },
-            
-                new ColumnItem
-                {
-                    Bounds = port1.VisualNode.Bounds,
-                    BoundsChanged = bounds => { port1.VisualNode.Bounds = bounds; }
-                },
-
-                new ColumnItem
-                {
-                    Bounds = port2.VisualNode.Bounds,
-                    BoundsChanged = bounds => { port2.VisualNode.Bounds = bounds; }
-                },
-
-                new ColumnItem
-                {
-                    Bounds = port3.VisualNode.Bounds,
-                    BoundsChanged = bounds => { port3.VisualNode.Bounds = bounds; }
-                }
-            }
-        };
+            Bounds = header.Bounds,
+            BoundsChanged = bounds => { header.Bounds = bounds; }
+        });
         
-        if (extraChild)
+        foreach (var port in Ports)
         {
-            var port4 = new Port();
-            _ports.Add(port4);
-            VisualNode.Children.Add(port4.VisualNode);
-            
             _column.Items.Add(new ColumnItem
             {
-                Bounds = port4.VisualNode.Bounds,
-                BoundsChanged = bounds => { port4.VisualNode.Bounds = bounds; }
+                Bounds = port.VisualNode.Bounds,
+                BoundsChanged = bounds => { port.VisualNode.Bounds = bounds; }
             });
+            VisualNode.Children.Add(port.VisualNode);
         }
+        
+        _column.DoLayout();
     }
 }
 

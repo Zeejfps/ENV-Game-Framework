@@ -16,7 +16,7 @@ var windowAspectRatio = (float)windowWidth / windowHeight;
 var window = Glfw.CreateWindow(windowWidth, windowHeight, "Node Graph", Monitor.None, Window.None);
 
 var nodeGraph = new NodeGraph();
-nodeGraph.Nodes.Add(new Node
+var n1 = new Node
 {
     Bounds = new ScreenRect
     {
@@ -25,8 +25,18 @@ nodeGraph.Nodes.Add(new Node
         Width = 40,
         Height = 20
     },
-});
-nodeGraph.Nodes.Add(new Node(true)
+    Ports =
+    {
+        new Port(),
+        new Port(),
+        new Port(),
+        new Port(),
+        new Port(),
+    }
+};
+n1.Update();
+
+var n2 = new Node
 {
     Bounds = new ScreenRect
     {
@@ -35,7 +45,17 @@ nodeGraph.Nodes.Add(new Node(true)
         Width = 40,
         Height = 20
     },
-});
+    Ports =
+    {
+        new Port(),
+        new Port(),
+        new Port(),
+    }
+};
+n2.Update();
+
+nodeGraph.Nodes.Add(n1);
+nodeGraph.Nodes.Add(n2);
 
 var mouse = new Mouse();
 var keyboard = new Keyboard();
