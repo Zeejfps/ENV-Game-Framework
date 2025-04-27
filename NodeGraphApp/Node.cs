@@ -44,26 +44,30 @@ public sealed class Node
     
     public Node()
     {
-        var portBackgroundColor = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f);
-        var portBorderColor = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f);
-        var portBorderSize = BorderSizeStyle.All(0.25f);
-        var portBorderRadius = BorderRadiusStyle.All(1f);
-
         _background = new VisualNode
         {
             Color = Color.FromRGBA(0.1765f, 0.1922f, 0.2588f, 1f),
             BorderSize = BorderSizeStyle.All(0.25f),
-            BorderRadius = BorderRadiusStyle.All(0.25f),
+            BorderRadius = BorderRadiusStyle.All(0.5f),
             BorderColor = Color.FromRGBA(0f, 0f, 0f, 1f)
         };
         _visualNodes.Add(_background);
         
         var header = new VisualNode
         {
+            BorderRadius = new BorderRadiusStyle
+            {
+                TopLeft = 0.25f,
+                TopRight = 0.25f,
+            },
             Color = Color.FromRGBA(0.2314f, 0.2588f, 0.3412f, 1.0f),
-            BorderSize = BorderSizeStyle.FromLTRB(0f, 0f, 0f, 0.25f)
         };
         _visualNodes.Add(header);
+        
+        var portBackgroundColor = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f);
+        var portBorderColor = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f);
+        var portBorderSize = BorderSizeStyle.All(0.25f);
+        var portBorderRadius = BorderRadiusStyle.All(1f);
         
         var port1 = new VisualNode
         {
