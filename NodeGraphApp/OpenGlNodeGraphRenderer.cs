@@ -26,7 +26,8 @@ public sealed class OpenGlNodeGraphRenderer
 
     private uint _quadVao;
     private uint _quadVbo;
-    private uint _shader;
+    private uint _panelShader;
+    private uint _glyphShader;
     private int _rectUniformLoc;
     private int _viewProjUniformLoc;
     private int _colorUniformLoc;
@@ -57,17 +58,17 @@ public sealed class OpenGlNodeGraphRenderer
         AssertNoGlError();
         _quadVao = vao;
 
-        _shader = new ShaderProgramBuilder()
+        _panelShader = new ShaderProgramBuilder()
             .WithVertexShader("Assets/simple_vert.glsl")
             .WithFragmentShader("Assets/simple_frag.glsl")
             .Build();
 
-        _rectUniformLoc = GetUniformLocation(_shader, "u_rect");
-        _viewProjUniformLoc = GetUniformLocation(_shader, "u_vp");
-        _colorUniformLoc = GetUniformLocation(_shader, "u_color");
-        _borderRadiusUniformLoc = GetUniformLocation(_shader, "u_borderRadius");
-        _borderSizeUniformLoc = GetUniformLocation(_shader, "u_borderSize");
-        _borderColorUniformLoc = GetUniformLocation(_shader, "u_borderColor");
+        _rectUniformLoc = GetUniformLocation(_panelShader, "u_rect");
+        _viewProjUniformLoc = GetUniformLocation(_panelShader, "u_vp");
+        _colorUniformLoc = GetUniformLocation(_panelShader, "u_color");
+        _borderRadiusUniformLoc = GetUniformLocation(_panelShader, "u_borderRadius");
+        _borderSizeUniformLoc = GetUniformLocation(_panelShader, "u_borderSize");
+        _borderColorUniformLoc = GetUniformLocation(_panelShader, "u_borderColor");
 
         glBindBuffer(GL_ARRAY_BUFFER, _quadVbo);
         var size = new IntPtr(sizeof(float) * _vertices.Length);
@@ -106,7 +107,7 @@ public sealed class OpenGlNodeGraphRenderer
 
     private unsafe void RenderVisualNode(VisualNode r)
     {
-        glUseProgram(_shader);
+        glUseProgram(_panelShader);
         glUniform4f(_rectUniformLoc, r.Bounds.Left, r.Bounds.Bottom, r.Bounds.Width, r.Bounds.Height);
         glUniform4f(_colorUniformLoc, r.Color.R, r.Color.G, r.Color.B, r.Color.A);
         glUniform4f(_borderColorUniformLoc, r.BorderColor.R, r.BorderColor.G, r.BorderColor.B, r.BorderColor.A);
@@ -129,8 +130,8 @@ public sealed class OpenGlNodeGraphRenderer
 
     private void RenderText(ScreenRect bounds, string text)
     {
-        var left = bounds.Left;
-        var cursor = new Vector2(left, bounds.Bottom);
+        var lineStart = bounds.Left;
+        var cursor = new Vector2(lineStart, bounds.Bottom);
         var fontFile = _interFontData;
         var baseOffset = fontFile.Common.Base;
         var scaleW = (float)fontFile.Common.ScaleW;
@@ -141,7 +142,7 @@ public sealed class OpenGlNodeGraphRenderer
         {
             if (codePoint == '\n')
             {
-                cursor.X = left;
+                cursor.X = lineStart;
                 cursor.Y -= lineHeight;
                 continue;
             }
@@ -149,11 +150,11 @@ public sealed class OpenGlNodeGraphRenderer
             if (!_glyphsByCodePoint.TryGetValue(codePoint, out var glyphInfo))
                 continue;
 
-            var xPos = cursor.X + glyphInfo.XOffset;
+            var left = cursor.X + glyphInfo.XOffset;
 
             var fontScale = 1f;
             var offsetFromTop = glyphInfo.YOffset - (baseOffset - glyphInfo.Height);
-            var yPos = cursor.Y - offsetFromTop * fontScale;
+            var bottom = cursor.Y - offsetFromTop * fontScale;
             var width = glyphInfo.Width * fontScale;
             var height = glyphInfo.Height * fontScale;
 
@@ -162,8 +163,19 @@ public sealed class OpenGlNodeGraphRenderer
             var uScale = glyphInfo.Width / scaleW;
             var vScale = glyphInfo.Height / scaleH;
 
+            RenderGlyph(new GlyphRect
+            {
+                Bounds = ScreenRect.FromLBWH(left, bottom, width, height),
+                SpriteRect = ScreenRect.FromLBWH(uOffset, vOffset, uScale, vScale)
+            });
+
             cursor.X += glyphInfo.XAdvance * fontScale;
         }
+    }
+
+    private void RenderGlyph(GlyphRect glyph)
+    {
+        //glUseProgram(_glyphShader);
     }
 
     private IEnumerable<int> AsCodePoints(string s)
@@ -175,4 +187,10 @@ public sealed class OpenGlNodeGraphRenderer
                 i++;
         }
     }
+}
+
+public readonly struct GlyphRect
+{
+    public ScreenRect Bounds { get; init; }
+    public ScreenRect SpriteRect { get; init; }
 }
