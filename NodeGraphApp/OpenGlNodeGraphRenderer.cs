@@ -1,3 +1,4 @@
+using System.Numerics;
 using MsdfBmpFont;
 using NodeGraphApp;
 using OpenGLSandbox;
@@ -126,6 +127,11 @@ public sealed class OpenGlNodeGraphRenderer
 
     private void RenderText(ScreenRect bounds, string text)
     {
-        
+        var cursor = new Vector2(bounds.Left, bounds.Bottom);
+        var fontFile = _interFontData;
+        var baseOffset = fontFile.Common.Base;
+        var scaleW = (float)fontFile.Common.ScaleW;
+        var scaleH = (float)fontFile.Common.ScaleH;
+        var lineHeight = (float)fontFile.Common.LineHeight;
     }
 }
