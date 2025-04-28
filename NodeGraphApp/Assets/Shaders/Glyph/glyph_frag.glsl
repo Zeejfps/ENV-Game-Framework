@@ -7,8 +7,13 @@ uniform sampler2D tex;
 out vec4 f_Color;
 
 float median(float r, float g, float b) {
-    // Efficient median calculation: sorts r, g, b and returns the middle value
     return max(min(r, g), min(max(r, g), b));
+}
+
+float screenPxRange() {
+    vec2 unitRange = vec2(6.0) / vec2(textureSize(tex, 0));
+    vec2 screenTexSize = vec2(1.0) / fwidth(TexCoords);
+    return max(0.5 * dot(unitRange, screenTexSize), 1.0);
 }
 
 void main() {
@@ -17,11 +22,9 @@ void main() {
 
     float sd = median(msdf.r, msdf.g, msdf.b);
 
-    float alpha = smoothstep(0.45, 0.55, sd);
+    float pxDist = screenPxRange() * (sd - 0.5);
+  
+    float opacity = clamp(pxDist+0.5, 0.0, 1.0);
 
-    vec4 finalColor = vec4(1, 1, 0.6, 1);
-    
-    finalColor.a *= alpha;
-
-    f_Color = finalColor;
+    f_Color = vec4(0.6, 0.8, 0.7, opacity);
 }
