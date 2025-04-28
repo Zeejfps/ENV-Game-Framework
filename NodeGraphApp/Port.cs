@@ -65,7 +65,7 @@ public sealed class Port
                     Bottom = bounds.Bottom + (portHeight - 3f) / 2f,
                 };
             },
-            Text = "Test",
+            Text = "Test 24",
         };
         
         VisualNode.Children.Add(_portNode);

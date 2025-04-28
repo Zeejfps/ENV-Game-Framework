@@ -20,5 +20,5 @@ public sealed class FontData
     public required DistanceFieldInfo DistanceFieldInfo { get; set; }
 
     [JsonPropertyName("kernings")]
-    public List<Kerning>? Kernings { get; set; }
+    public required List<Kerning> Kernings { get; set; }
 }

@@ -48,6 +48,7 @@ public sealed class OpenGlNodeGraphRenderer
     private uint _fontTextureId;
 
     private readonly Dictionary<int, Glyph> _glyphsByCodePoint = new();
+    private readonly Dictionary<(int, int), int> _kerningPairs = new();
 
     public OpenGlNodeGraphRenderer(NodeGraph nodeGraph, Camera camera, FontData interFontData)
     {
@@ -56,6 +57,9 @@ public sealed class OpenGlNodeGraphRenderer
         _interFontData = interFontData;
         foreach (var glyph in _interFontData.Glyphs)
             _glyphsByCodePoint[glyph.Id] = glyph;
+
+        foreach (var kerning in _interFontData.Kernings)
+            _kerningPairs[(kerning.First, kerning.Second)] = kerning.Amount;
     }
 
     public void Setup()
@@ -94,7 +98,7 @@ public sealed class OpenGlNodeGraphRenderer
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (int)GL_CLAMP_TO_EDGE);
         
         var api = new PngApi();
-        var decodedPng = api.DecodeFromFile("Assets/Fonts/Inter/Inter24pt-Regular.png");
+        var decodedPng = api.DecodeFromFile("Assets/Fonts/Inter/Inter28pt-Regular.png");
         
         var width = decodedPng.Width;
         var height = decodedPng.Height;
@@ -196,6 +200,7 @@ public sealed class OpenGlNodeGraphRenderer
         var scaleH = (float)fontFile.Common.ScaleH;
         var lineHeight = (float)fontFile.Common.LineHeight;
 
+        int? prevCodePoint = null;
         foreach (var codePoint in AsCodePoints(text))
         {
             if (codePoint == '\n')
@@ -209,8 +214,14 @@ public sealed class OpenGlNodeGraphRenderer
                 continue;
             
             var fontScale = 0.1f;
+
+            var kerningOffset = 0;
+            if (prevCodePoint.HasValue &&
+                _kerningPairs.TryGetValue((prevCodePoint.Value, codePoint), out kerningOffset))
+            {
+            }
             
-            var left = cursor.X + glyphInfo.XOffset * fontScale;
+            var left = cursor.X + (glyphInfo.XOffset + kerningOffset) * fontScale;
 
             var offsetFromTop = glyphInfo.YOffset - (baseOffset - glyphInfo.Height);
             var bottom = cursor.Y - offsetFromTop * fontScale;
@@ -229,6 +240,8 @@ public sealed class OpenGlNodeGraphRenderer
             });
 
             cursor.X += glyphInfo.XAdvance * fontScale;
+            
+            prevCodePoint = codePoint;
         }
     }
 
