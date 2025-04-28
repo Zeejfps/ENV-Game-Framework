@@ -192,7 +192,7 @@ public sealed class OpenGlNodeGraphRenderer
         var scaleW = (float)fontFile.Common.ScaleW;
         var scaleH = (float)fontFile.Common.ScaleH;
         var lineHeight = fontFile.Common.LineHeight * fontScale;
-        Console.WriteLine($"Base: {baseOffset}, Line Height: {fontFile.Common.LineHeight}");
+        //Console.WriteLine($"Base: {baseOffset}, Line Height: {fontFile.Common.LineHeight}");
 
         // NOTE(Zee): This is the top of the line
         var baseLine = bounds.Top;
@@ -201,8 +201,27 @@ public sealed class OpenGlNodeGraphRenderer
         var topPadding = 0f;
         if (verticalTextAlignment == TextAlignment.Center)
         {
-            topPadding = (lineHeight / 2.0f - baseOffset);
+            var offset = (fontFile.Common.LineHeight - fontFile.Common.Base) * 0.5f;
+            topPadding = (bounds.Height - fontFile.Common.LineHeight * fontScale) * 0.5f - offset * fontScale;;
         }
+        
+        // RenderVisualNode(new VisualNode
+        // {
+        //     Bounds = ScreenRect.FromLBWH(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height),
+        //     Color = Color.FromRGBA(0f, 1f, 0f, 1f)
+        // });
+        
+        // RenderVisualNode(new VisualNode
+        // {
+        //     Bounds = ScreenRect.FromLTWH(bounds.Left, bounds.Top - topPadding , bounds.Width, fontFile.Common.LineHeight * fontScale),
+        //     Color = Color.FromRGBA(0.5f, 0.5f, 0f, 1f)
+        // });
+        //
+        // RenderVisualNode(new VisualNode
+        // {
+        //     Bounds = ScreenRect.FromLTWH(bounds.Left, bounds.Top - topPadding - 4*fontScale , bounds.Width, fontFile.Common.Base * fontScale),
+        //     Color = Color.FromRGBA(1f, 0.5f, 0.2f, 1f)
+        // });
 
         int? prevCodePoint = null;
         foreach (var codePoint in AsCodePoints(text))
@@ -225,7 +244,7 @@ public sealed class OpenGlNodeGraphRenderer
             }
             
             var left = cursor + (glyphInfo.XOffset + kerningOffset) * fontScale;
-            var bottom = baseLine - (glyphInfo.YOffset + glyphInfo.Height) * fontScale;
+            var bottom = baseLine - topPadding - glyphInfo.YOffset*fontScale - glyphInfo.Height*fontScale;
             var width = glyphInfo.Width * fontScale;
             var height = glyphInfo.Height * fontScale;
 
@@ -233,6 +252,12 @@ public sealed class OpenGlNodeGraphRenderer
             var vOffset = glyphInfo.Y / scaleH;
             var uScale = glyphInfo.Width / scaleW;
             var vScale = glyphInfo.Height / scaleH;
+            
+            // RenderVisualNode(new VisualNode
+            // {
+            //     Bounds = ScreenRect.FromLBWH(left, bottom , width, height),
+            //     Color = Color.FromRGBA(1f, 0f, 1f, 1f)
+            // });
             
             RenderGlyph(new GlyphRect
             {
