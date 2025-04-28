@@ -2,7 +2,7 @@
 
 layout(location = 0) in vec2 attr_Position;
 
-uniform mat4 u_rect;
+uniform vec4 u_rect;
 uniform mat4 u_viewProjMat;
 
 void main() {

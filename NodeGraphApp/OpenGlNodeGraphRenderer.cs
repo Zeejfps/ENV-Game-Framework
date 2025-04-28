@@ -39,6 +39,8 @@ public sealed class OpenGlNodeGraphRenderer
 
     // Glyph data
     private uint _glyphShader;
+    private int _glyphViewProjUnitformLoc;
+    private int _glpyhRectUniformLoc;
 
     private readonly Dictionary<int, Glyph> _glyphsByCodePoint = new();
 
@@ -51,7 +53,27 @@ public sealed class OpenGlNodeGraphRenderer
             _glyphsByCodePoint[glyph.Id] = glyph;
     }
 
-    public unsafe void Setup()
+    public void Setup()
+    {
+        LoadSharedData();
+        LoadPanelData();
+        LoadGlyphData();
+        
+        glClearColor(0.1176f, 0.1176f, 	0.1804f, 1f);
+    }
+
+    private void LoadGlyphData()
+    {
+        _glyphShader = new ShaderProgramBuilder()
+            .WithVertexShader("Assets/Shaders/Glyph/glyph_vert.glsl")
+            .WithFragmentShader("Assets/Shader/Glyph/glyph_frag.glsl")
+            .Build();
+        
+        _glpyhRectUniformLoc = GetUniformLocation(_glyphShader, "u_rect");
+        _glyphViewProjUnitformLoc = GetUniformLocation(_glyphShader, "u_viewProjMat");
+    }
+
+    private unsafe void LoadSharedData()
     {
         uint vbo;
         glGenBuffers(1, &vbo);
@@ -62,7 +84,19 @@ public sealed class OpenGlNodeGraphRenderer
         glGenVertexArrays(1, &vao);
         AssertNoGlError();
         _quadVao = vao;
+        
+        glBindBuffer(GL_ARRAY_BUFFER, _quadVbo);
+        var size = new IntPtr(sizeof(float) * _vertices.Length);
+        fixed (void* dataPtr = &_vertices[0])
+            glBufferData(GL_ARRAY_BUFFER, size, dataPtr, GL_STATIC_DRAW);
 
+        glBindVertexArray(_quadVao);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(float) * 2, (void*)0);
+    }
+
+    private void LoadPanelData()
+    {
         _panelShader = new ShaderProgramBuilder()
             .WithVertexShader("Assets/simple_vert.glsl")
             .WithFragmentShader("Assets/simple_frag.glsl")
@@ -74,17 +108,6 @@ public sealed class OpenGlNodeGraphRenderer
         _borderRadiusUniformLoc = GetUniformLocation(_panelShader, "u_borderRadius");
         _borderSizeUniformLoc = GetUniformLocation(_panelShader, "u_borderSize");
         _borderColorUniformLoc = GetUniformLocation(_panelShader, "u_borderColor");
-
-        glBindBuffer(GL_ARRAY_BUFFER, _quadVbo);
-        var size = new IntPtr(sizeof(float) * _vertices.Length);
-        fixed (void* dataPtr = &_vertices[0])
-            glBufferData(GL_ARRAY_BUFFER, size, dataPtr, GL_STATIC_DRAW);
-
-        glBindVertexArray(_quadVao);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(float) * 2, (void*)0);
-
-        glClearColor(0.1176f, 0.1176f, 	0.1804f, 1f);
     }
 
     public void Update()
@@ -132,7 +155,7 @@ public sealed class OpenGlNodeGraphRenderer
         foreach (var child in r.Children)
             RenderVisualNode(child);
     }
-
+    
     private void RenderText(ScreenRect bounds, string text)
     {
         var lineStart = bounds.Left;
@@ -178,9 +201,16 @@ public sealed class OpenGlNodeGraphRenderer
         }
     }
 
-    private void RenderGlyph(GlyphRect glyph)
+    private unsafe void RenderGlyph(GlyphRect glyph)
     {
-        //glUseProgram(_glyphShader);
+        var bounds = glyph.Bounds;
+        glUseProgram(_glyphShader);
+        glUniform4f(_rectUniformLoc, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
+        var viewProjMat = _camera.ViewProjectionMatrix;
+        var ptr = &viewProjMat.M11;
+        glUniformMatrix4fv(_glyphViewProjUnitformLoc, 1, false, ptr);
+        glBindVertexArray(_quadVao);
+        glDrawArrays(GL_TRIANGLES, 0,  6);
     }
 
     private IEnumerable<int> AsCodePoints(string s)
