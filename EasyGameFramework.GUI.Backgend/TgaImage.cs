@@ -13,24 +13,18 @@ public sealed class TgaImage
     {
         var width = 0;
         var height = 0;
-        byte[] pixels;
         using (BinaryReader reader = new BinaryReader(File.Open(PathToFile, FileMode.Open)))
         {
             // Read the TGA header
             byte[] header = reader.ReadBytes(18);
             int imageType = header[2];
 
-            if (imageType != 2 && imageType != 3)
-            {
-                throw new Exception("Unsupported TGA format.");
-            }
-
             width = BitConverter.ToInt16(header, 12);
             height = BitConverter.ToInt16(header, 14);
             int bitsPerPixel = header[16];
+            var bytesPerPixel = bitsPerPixel / 8;
 
-            // Read the image data
-            var dataSize = width * height * (bitsPerPixel / 8);
+            var dataSize = width * height * bytesPerPixel;
 
             uint uploadBufferId;
             GL46.glGenBuffers(1, &uploadBufferId);
@@ -44,8 +38,43 @@ public sealed class TgaImage
             var ptrToBuffer = GL46.glMapBuffer(GL46.GL_PIXEL_UNPACK_BUFFER, GL46.GL_WRITE_ONLY);
             OpenGlUtils.AssertNoGlError();
             
-            var buffer = new Span<byte>(ptrToBuffer, dataSize);
-            reader.Read(buffer);
+            var pixels = new Span<byte>(ptrToBuffer, dataSize);
+            
+            if (imageType == 2 || imageType == 3)
+            {
+                reader.Read(pixels);
+            }
+            else
+            {
+                // RLE compressed
+                int pixelIndex = 0;
+                byte[] color = new byte[bytesPerPixel]; // reuse this buffer
+
+                while (pixelIndex < pixels.Length)
+                {
+                    byte packetHeader = reader.ReadByte();
+                    int count = (packetHeader & 0x7F) + 1;
+
+                    if ((packetHeader & 0x80) != 0)
+                    {
+                        // RLE - next color is repeated count times
+                        reader.Read(color, 0, bytesPerPixel);
+                        for (int i = 0; i < count; i++)
+                        {
+                            // Write 'color' into the pixel span
+                            color.CopyTo(pixels.Slice(pixelIndex, bytesPerPixel));
+                            pixelIndex += bytesPerPixel;
+                        }
+                    }
+                    else
+                    {
+                        // Raw - next count pixels are raw data
+                        int rawSize = count * bytesPerPixel;
+                        reader.Read(pixels.Slice(pixelIndex, rawSize));
+                        pixelIndex += rawSize;
+                    }
+                }
+            }
             
             GL46.glUnmapBuffer(GL46.GL_PIXEL_UNPACK_BUFFER);
             OpenGlUtils.AssertNoGlError();

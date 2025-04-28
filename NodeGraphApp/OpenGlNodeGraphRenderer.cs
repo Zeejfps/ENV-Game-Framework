@@ -4,6 +4,7 @@ using NodeGraphApp;
 using OpenGLSandbox;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
+using Glyph = MsdfBmpFont.Glyph;
 
 public sealed class OpenGlNodeGraphRenderer
 {
@@ -41,6 +42,7 @@ public sealed class OpenGlNodeGraphRenderer
     private uint _glyphShader;
     private int _glyphViewProjUniformLoc;
     private int _glyphRectUniformLoc;
+    private uint _fontTextureId;
 
     private readonly Dictionary<int, Glyph> _glyphsByCodePoint = new();
 
@@ -62,7 +64,7 @@ public sealed class OpenGlNodeGraphRenderer
         glClearColor(0.1176f, 0.1176f, 	0.1804f, 1f);
     }
 
-    private void LoadGlyphData()
+    private unsafe void LoadGlyphData()
     {
         _glyphShader = new ShaderProgramBuilder()
             .WithVertexShader("Assets/Shaders/Glyph/glyph_vert.glsl")
@@ -71,6 +73,19 @@ public sealed class OpenGlNodeGraphRenderer
         
         _glyphRectUniformLoc = GetUniformLocation(_glyphShader, "u_rect");
         _glyphViewProjUniformLoc = GetUniformLocation(_glyphShader, "u_viewProjMat");
+        
+        uint textureId;
+        glGenTextures(1, &textureId);
+        AssertNoGlError();
+        _fontTextureId = textureId;
+        
+        glActiveTexture(GL_TEXTURE0);
+        AssertNoGlError();
+        glBindTexture(GL_TEXTURE_2D, textureId);
+        AssertNoGlError();
+        
+        var fontImage = new TgaImage("Assets/Fonts/Inter/Inter24pt-Regular.tga");
+        fontImage.UploadToGpu();
     }
 
     private unsafe void LoadSharedData()

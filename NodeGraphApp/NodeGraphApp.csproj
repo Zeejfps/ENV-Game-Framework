@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\EasyGameFramework.GUI.Backgend\EasyGameFramework.GUI.Backgend.csproj" />
       <ProjectReference Include="..\EasyGameFramework.OpenGL\EasyGameFramework.OpenGL.csproj" />
       <ProjectReference Include="..\Glfw.NET\Glfw.NET.csproj" />
       <ProjectReference Include="..\MsdfBmpFont\MsdfBmpFont.csproj" />
