@@ -47,19 +47,14 @@ public sealed class OpenGlNodeGraphRenderer
     private int _glyphTextureUniformLoc;
     private uint _fontTextureId;
 
-    private readonly Dictionary<int, GlyphInfo> _glyphsByCodePoint = new();
-    private readonly Dictionary<(int, int), int> _kerningPairs = new();
+    private readonly MsdfBmpFontMetrics _fontMetrics;
 
     public OpenGlNodeGraphRenderer(NodeGraph nodeGraph, Camera camera, MsdfFontFile interFontData)
     {
         _nodeGraph = nodeGraph;
         _camera = camera;
         _interFontData = interFontData;
-        foreach (var glyph in _interFontData.Glyphs)
-            _glyphsByCodePoint[glyph.Id] = glyph;
-
-        foreach (var kerning in _interFontData.Kernings)
-            _kerningPairs[(kerning.First, kerning.Second)] = kerning.Amount;
+        _fontMetrics = new MsdfBmpFontMetrics(interFontData);
     }
 
     public void Setup()
@@ -111,23 +106,21 @@ public sealed class OpenGlNodeGraphRenderer
     private unsafe void LoadSharedData()
     {
         uint vbo;
-        glGenBuffers(1, &vbo);
-        AssertNoGlError();
+        glGenBuffers(1, &vbo); AssertNoGlError();
         _quadVbo = vbo;
 
         uint vao;
-        glGenVertexArrays(1, &vao);
-        AssertNoGlError();
+        glGenVertexArrays(1, &vao); AssertNoGlError();
         _quadVao = vao;
-        
-        glBindBuffer(GL_ARRAY_BUFFER, _quadVbo);
+
+        glBindBuffer(GL_ARRAY_BUFFER, _quadVbo); AssertNoGlError();
         var size = new IntPtr(sizeof(float) * _vertices.Length);
         fixed (void* dataPtr = &_vertices[0])
-            glBufferData(GL_ARRAY_BUFFER, size, dataPtr, GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, size, dataPtr, GL_STATIC_DRAW); AssertNoGlError();
 
-        glBindVertexArray(_quadVao);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(float) * 2, (void*)0);
+        glBindVertexArray(_quadVao); AssertNoGlError();
+        glEnableVertexAttribArray(0); AssertNoGlError();
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(float) * 2, (void*)0); AssertNoGlError();
     }
 
     private void LoadPanelData()
@@ -215,14 +208,15 @@ public sealed class OpenGlNodeGraphRenderer
                 continue;
             }
 
-            if (!_glyphsByCodePoint.TryGetValue(codePoint, out var glyphInfo))
+            if (!_fontMetrics.TryGetGlyphInfo(codePoint, out var glyphInfo))
                 continue;
             
 
             var kerningOffset = 0;
             if (prevCodePoint.HasValue &&
-                _kerningPairs.TryGetValue((prevCodePoint.Value, codePoint), out kerningOffset))
+                _fontMetrics.TryGetKerningInfo(prevCodePoint.Value, codePoint, out var kerningInfo))
             {
+                kerningOffset = kerningInfo.Amount;
             }
             
             var left = cursor.X + (glyphInfo.XOffset + kerningOffset) * fontScale;
