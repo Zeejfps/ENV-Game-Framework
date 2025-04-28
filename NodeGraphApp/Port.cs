@@ -24,18 +24,18 @@ public sealed class Port
             {
                 VisualNode.BorderSize = HoveredBorderSize;
                 VisualNode.BorderColor = HoveredBorderColor;
-                _portNode.BorderColor = HoveredBorderColor;
+                PortNode.BorderColor = HoveredBorderColor;
             }
             else
             {
                 VisualNode.BorderSize = NormalBorderSize;
                 VisualNode.BorderColor = NormalBorderColor;
-                _portNode.BorderColor = NormalBorderColor;
+                PortNode.BorderColor = NormalBorderColor;
             }
         }
     }
 
-    private readonly VisualNode _portNode;
+    public VisualNode PortNode { get; }
     
     public Port()
     {
@@ -46,7 +46,7 @@ public sealed class Port
         var portHeight = 8f;
 
         var random = new Random();
-        _portNode = new VisualNode
+        PortNode = new VisualNode
         {
             Width = 3f,
             Height = 3f,
@@ -71,7 +71,7 @@ public sealed class Port
             BorderRadius = portBorderRadius,
             BoundsChanged = bounds =>
             {
-                _portNode.Bounds = _portNode.Bounds with
+                PortNode.Bounds = PortNode.Bounds with
                 {
                     Left = bounds.Left - 1.5f,
                     Bottom = bounds.Bottom + (portHeight - 3f) / 2f,
@@ -83,7 +83,7 @@ public sealed class Port
             },
         };
         
-        VisualNode.Children.Add(_portNode);
+        VisualNode.Children.Add(PortNode);
         VisualNode.Children.Add(randomText);
     }
 }

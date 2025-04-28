@@ -91,6 +91,19 @@ public sealed class NodeSelectionController
         Port? hoveredPort = null;
         foreach (var node in nodes)
         {
+            foreach (var port in node.Ports)
+            {
+                if (Overlaps(worldCursorPos, port.PortNode.Bounds))
+                {
+                    hoveredNode = node;
+                    hoveredPort = port;
+                    break;
+                }
+            }
+            
+            if (hoveredNode != null)
+                break;
+            
             if (Overlaps(worldCursorPos, node))
             {
                 hoveredNode = node;
@@ -105,6 +118,8 @@ public sealed class NodeSelectionController
                 }
                 break;
             }
+            
+           
         }
         HoveredNode = hoveredNode;
         HoveredPort = hoveredPort;
