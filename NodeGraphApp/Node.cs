@@ -67,7 +67,7 @@ public sealed class Node
 
         var headerText = new VisualNode
         {
-            Text = "= Hello Node!",
+            Text = "= Helgqlo Node!",
             TextVerticalAlignment = TextAlignment.Center 
         };
         

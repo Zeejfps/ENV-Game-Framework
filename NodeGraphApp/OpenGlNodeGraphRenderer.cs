@@ -192,14 +192,16 @@ public sealed class OpenGlNodeGraphRenderer
         var scaleW = (float)fontFile.Common.ScaleW;
         var scaleH = (float)fontFile.Common.ScaleH;
         var lineHeight = fontFile.Common.LineHeight * fontScale;
-        
+        Console.WriteLine($"Base: {baseOffset}, Line Height: {fontFile.Common.LineHeight}");
+
         // NOTE(Zee): This is the top of the line
-        var cursor = new Vector2(lineStart, bounds.Top);
+        var baseLine = bounds.Top;
+        var cursor = lineStart;
         
         var topPadding = 0f;
         if (verticalTextAlignment == TextAlignment.Center)
         {
-            topPadding = (bounds.Height - lineHeight) * 0.5f;
+            topPadding = (lineHeight / 2.0f - baseOffset);
         }
 
         int? prevCodePoint = null;
@@ -207,14 +209,14 @@ public sealed class OpenGlNodeGraphRenderer
         {
             if (codePoint == '\n')
             {
-                cursor.X = lineStart;
-                cursor.Y -= lineHeight;
+                cursor = lineStart;
+                baseLine -= lineHeight;
                 continue;
             }
 
             if (!_fontMetrics.TryGetGlyphInfo(codePoint, out var glyphInfo))
                 continue;
-
+            
             var kerningOffset = 0;
             if (prevCodePoint.HasValue &&
                 _fontMetrics.TryGetKerningInfo(prevCodePoint.Value, codePoint, out var kerningInfo))
@@ -222,8 +224,8 @@ public sealed class OpenGlNodeGraphRenderer
                 kerningOffset = kerningInfo.Amount;
             }
             
-            var left = cursor.X + (glyphInfo.XOffset + kerningOffset) * fontScale;
-            var bottom = cursor.Y - baseOffset * fontScale - topPadding;
+            var left = cursor + (glyphInfo.XOffset + kerningOffset) * fontScale;
+            var bottom = baseLine - (glyphInfo.YOffset + glyphInfo.Height) * fontScale;
             var width = glyphInfo.Width * fontScale;
             var height = glyphInfo.Height * fontScale;
 
@@ -238,7 +240,7 @@ public sealed class OpenGlNodeGraphRenderer
                 SpriteRect = ScreenRect.FromLBWH(uOffset, vOffset, uScale, vScale)
             });
 
-            cursor.X += glyphInfo.XAdvance * fontScale;
+            cursor += glyphInfo.XAdvance * fontScale;
             
             prevCodePoint = codePoint;
         }
