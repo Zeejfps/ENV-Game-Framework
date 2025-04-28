@@ -24,11 +24,13 @@ public sealed class Port
             {
                 VisualNode.BorderSize = HoveredBorderSize;
                 VisualNode.BorderColor = HoveredBorderColor;
+                _portNode.BorderColor = HoveredBorderColor;
             }
             else
             {
                 VisualNode.BorderSize = NormalBorderSize;
                 VisualNode.BorderColor = NormalBorderColor;
+                _portNode.BorderColor = NormalBorderColor;
             }
         }
     }
