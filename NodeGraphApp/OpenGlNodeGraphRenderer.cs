@@ -96,9 +96,10 @@ public sealed class OpenGlNodeGraphRenderer
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (int)GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (int)GL_CLAMP_TO_EDGE);
-        
+
+        var pageName = _interFontData.Pages[0];
         var api = new PngApi();
-        var decodedPng = api.DecodeFromFile("Assets/Fonts/Inter/Inter28pt-Regular.png");
+        var decodedPng = api.DecodeFromFile($"Assets/Fonts/Inter/{pageName}");
         
         var width = decodedPng.Width;
         var height = decodedPng.Height;

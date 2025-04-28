@@ -40,12 +40,14 @@ public sealed class Port
         var portBorderSize = NormalBorderSize;
         var portBorderRadius = BorderRadiusStyle.All(0f);
         var portHeight = 8f;
-        
+
+        var random = new Random();
         _portNode = new VisualNode
         {
             Width = 3f,
             Height = 3f,
             Color = Color.FromRGBA(0.5f, 0.5f, 0.5f, 1.0f),
+            BorderColor = Color.FromRGBA(random.NextSingle() * 0.7f, random.NextSingle() * 0.7f, 0.5f, 1.0f),
             BorderRadius = BorderRadiusStyle.All(1.5f),
             BorderSize = BorderSizeStyle.All(0.35f),
         };
