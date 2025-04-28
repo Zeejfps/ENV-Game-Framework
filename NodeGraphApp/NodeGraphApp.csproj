@@ -26,4 +26,10 @@
       <Folder Include="Assets\Fonts\Inter\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Reference Include="PngSharp">
+        <HintPath>..\..\PngSharp\PngSharp\bin\Debug\net8.0\PngSharp.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>

@@ -2,6 +2,7 @@ using System.Numerics;
 using MsdfBmpFont;
 using NodeGraphApp;
 using OpenGLSandbox;
+using PngSharp.Api;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 using Glyph = MsdfBmpFont.Glyph;
@@ -42,6 +43,7 @@ public sealed class OpenGlNodeGraphRenderer
     private uint _glyphShader;
     private int _glyphViewProjUniformLoc;
     private int _glyphRectUniformLoc;
+    private int _glyphSpriteRectUniformLoc;
     private int _glyphTextureUniformLoc;
     private uint _fontTextureId;
 
@@ -75,19 +77,28 @@ public sealed class OpenGlNodeGraphRenderer
         _glyphRectUniformLoc = GetUniformLocation(_glyphShader, "u_rect");
         _glyphViewProjUniformLoc = GetUniformLocation(_glyphShader, "u_viewProjMat");
         _glyphTextureUniformLoc = GetUniformLocation(_glyphShader, "tex");
+        _glyphSpriteRectUniformLoc = GetUniformLocation(_glyphShader, "u_spriteRect");
         
         uint textureId;
-        glGenTextures(1, &textureId);
-        AssertNoGlError();
+        glGenTextures(1, &textureId); AssertNoGlError();
         _fontTextureId = textureId;
         
-        glActiveTexture(GL_TEXTURE0);
-        AssertNoGlError();
-        glBindTexture(GL_TEXTURE_2D, textureId);
-        AssertNoGlError();
+        glActiveTexture(GL_TEXTURE0); AssertNoGlError();
+        glBindTexture(GL_TEXTURE_2D, textureId); AssertNoGlError();
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (int)GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (int)GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (int)GL_CLAMP_TO_EDGE);
         
-        var fontImage = new TgaImage("Assets/Fonts/Inter/Inter24pt-Regular.tga");
-        fontImage.UploadToGpu();
+        var api = new PngApi();
+        var decodedPng = api.DecodeFromFile("Assets/Fonts/Inter/Inter24pt-Regular.png");
+        
+        var width = decodedPng.Width;
+        var height = decodedPng.Height;
+
+        fixed(void* ptr = &decodedPng.PixelData[0]) 
+            glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, ptr); AssertNoGlError();
     }
 
     private unsafe void LoadSharedData()
@@ -221,9 +232,12 @@ public sealed class OpenGlNodeGraphRenderer
     private unsafe void RenderGlyph(GlyphRect glyph)
     {
         var bounds = glyph.Bounds;
+        var spriteRect = glyph.SpriteRect;
+        
         glUseProgram(_glyphShader);
         glUniform1i(_glyphTextureUniformLoc, 0);
         glUniform4f(_glyphRectUniformLoc, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
+        glUniform4f(_glyphSpriteRectUniformLoc, spriteRect.Left, spriteRect.Bottom, spriteRect.Width, spriteRect.Height);
         var viewProjMat = _camera.ViewProjectionMatrix;
         var ptr = &viewProjMat.M11;
         glUniformMatrix4fv(_glyphViewProjUniformLoc, 1, false, ptr);

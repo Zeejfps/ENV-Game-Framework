@@ -3,6 +3,7 @@
 layout(location = 0) in vec2 attr_Position;
 
 uniform vec4 u_rect;
+uniform vec4 u_spriteRect;
 uniform mat4 u_viewProjMat;
 
 out vec2 TexCoords;
