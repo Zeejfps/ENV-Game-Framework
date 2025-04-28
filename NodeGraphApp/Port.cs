@@ -47,7 +47,7 @@ public sealed class Port
             Height = 3f,
             Color = Color.FromRGBA(0.5f, 0.5f, 0.5f, 1.0f),
             BorderRadius = BorderRadiusStyle.All(1.5f),
-            BorderSize = BorderSizeStyle.All(0.35f)
+            BorderSize = BorderSizeStyle.All(0.35f),
         };
         
         VisualNode = new VisualNode
@@ -64,7 +64,8 @@ public sealed class Port
                     Left = bounds.Left - 1.5f,
                     Bottom = bounds.Bottom + (portHeight - 3f) / 2f,
                 };
-            }
+            },
+            Text = "Test",
         };
         
         VisualNode.Children.Add(_portNode);

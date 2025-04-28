@@ -56,4 +56,10 @@ public readonly struct ScreenRect : IEquatable<ScreenRect>
             Height = height,
         };
     }
+
+    public override string ToString()
+    {
+        return
+            $"{nameof(Left)}: {Left}, {nameof(Bottom)}: {Bottom}, {nameof(Top)}: {Top}, {nameof(Right)}: {Right}, {nameof(Width)}: {Width}, {nameof(Height)}: {Height}";
+    }
 }

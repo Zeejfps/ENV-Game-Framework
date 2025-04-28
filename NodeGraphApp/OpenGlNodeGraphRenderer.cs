@@ -39,8 +39,8 @@ public sealed class OpenGlNodeGraphRenderer
 
     // Glyph data
     private uint _glyphShader;
-    private int _glyphViewProjUnitformLoc;
-    private int _glpyhRectUniformLoc;
+    private int _glyphViewProjUniformLoc;
+    private int _glyphRectUniformLoc;
 
     private readonly Dictionary<int, Glyph> _glyphsByCodePoint = new();
 
@@ -69,8 +69,8 @@ public sealed class OpenGlNodeGraphRenderer
             .WithFragmentShader("Assets/Shaders/Glyph/glyph_frag.glsl")
             .Build();
         
-        _glpyhRectUniformLoc = GetUniformLocation(_glyphShader, "u_rect");
-        _glyphViewProjUnitformLoc = GetUniformLocation(_glyphShader, "u_viewProjMat");
+        _glyphRectUniformLoc = GetUniformLocation(_glyphShader, "u_rect");
+        _glyphViewProjUniformLoc = GetUniformLocation(_glyphShader, "u_viewProjMat");
     }
 
     private unsafe void LoadSharedData()
@@ -177,10 +177,10 @@ public sealed class OpenGlNodeGraphRenderer
 
             if (!_glyphsByCodePoint.TryGetValue(codePoint, out var glyphInfo))
                 continue;
-
+            
             var left = cursor.X + glyphInfo.XOffset;
 
-            var fontScale = 1f;
+            var fontScale = 0.1f;
             var offsetFromTop = glyphInfo.YOffset - (baseOffset - glyphInfo.Height);
             var bottom = cursor.Y - offsetFromTop * fontScale;
             var width = glyphInfo.Width * fontScale;
@@ -190,7 +190,7 @@ public sealed class OpenGlNodeGraphRenderer
             var vOffset = glyphInfo.Y / scaleH;
             var uScale = glyphInfo.Width / scaleW;
             var vScale = glyphInfo.Height / scaleH;
-
+            
             RenderGlyph(new GlyphRect
             {
                 Bounds = ScreenRect.FromLBWH(left, bottom, width, height),
@@ -205,10 +205,10 @@ public sealed class OpenGlNodeGraphRenderer
     {
         var bounds = glyph.Bounds;
         glUseProgram(_glyphShader);
-        glUniform4f(_rectUniformLoc, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
+        glUniform4f(_glyphRectUniformLoc, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
         var viewProjMat = _camera.ViewProjectionMatrix;
         var ptr = &viewProjMat.M11;
-        glUniformMatrix4fv(_glyphViewProjUnitformLoc, 1, false, ptr);
+        glUniformMatrix4fv(_glyphViewProjUniformLoc, 1, false, ptr);
         glBindVertexArray(_quadVao);
         glDrawArrays(GL_TRIANGLES, 0,  6);
     }
