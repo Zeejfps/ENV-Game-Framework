@@ -42,6 +42,7 @@ public sealed class OpenGlNodeGraphRenderer
     private uint _glyphShader;
     private int _glyphViewProjUniformLoc;
     private int _glyphRectUniformLoc;
+    private int _glyphTextureUniformLoc;
     private uint _fontTextureId;
 
     private readonly Dictionary<int, Glyph> _glyphsByCodePoint = new();
@@ -73,6 +74,7 @@ public sealed class OpenGlNodeGraphRenderer
         
         _glyphRectUniformLoc = GetUniformLocation(_glyphShader, "u_rect");
         _glyphViewProjUniformLoc = GetUniformLocation(_glyphShader, "u_viewProjMat");
+        _glyphTextureUniformLoc = GetUniformLocation(_glyphShader, "tex");
         
         uint textureId;
         glGenTextures(1, &textureId);
@@ -220,6 +222,7 @@ public sealed class OpenGlNodeGraphRenderer
     {
         var bounds = glyph.Bounds;
         glUseProgram(_glyphShader);
+        glUniform1i(_glyphTextureUniformLoc, 0);
         glUniform4f(_glyphRectUniformLoc, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
         var viewProjMat = _camera.ViewProjectionMatrix;
         var ptr = &viewProjMat.M11;
