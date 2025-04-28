@@ -66,7 +66,7 @@ public sealed class OpenGlNodeGraphRenderer
     {
         _glyphShader = new ShaderProgramBuilder()
             .WithVertexShader("Assets/Shaders/Glyph/glyph_vert.glsl")
-            .WithFragmentShader("Assets/Shader/Glyph/glyph_frag.glsl")
+            .WithFragmentShader("Assets/Shaders/Glyph/glyph_frag.glsl")
             .Build();
         
         _glpyhRectUniformLoc = GetUniformLocation(_glyphShader, "u_rect");
