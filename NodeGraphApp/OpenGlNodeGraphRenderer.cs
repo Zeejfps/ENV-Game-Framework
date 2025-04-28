@@ -1,4 +1,5 @@
 using System.Numerics;
+using EasyGameFramework.GUI;
 using MsdfBmpFont;
 using NodeGraphApp;
 using OpenGLSandbox;
@@ -183,15 +184,13 @@ public sealed class OpenGlNodeGraphRenderer
         glDrawArrays(GL_TRIANGLES, 0,  6);
 
         if (r.Text != null)
-        {
-            RenderText(r.Bounds, r.Text);
-        }
+            RenderText(r.Bounds, r.VerticaTextAlignment, r.Text);
 
         foreach (var child in r.Children)
             RenderVisualNode(child);
     }
     
-    private void RenderText(ScreenRect bounds, string text)
+    private void RenderText(ScreenRect bounds, TextAlignment verticalTextAlignment, string text)
     {
         var lineStart = bounds.Left;
         var cursor = new Vector2(lineStart, bounds.Bottom);
@@ -200,6 +199,12 @@ public sealed class OpenGlNodeGraphRenderer
         var scaleW = (float)fontFile.Common.ScaleW;
         var scaleH = (float)fontFile.Common.ScaleH;
         var lineHeight = (float)fontFile.Common.LineHeight;
+        var fontScale = 0.1f;
+        var bottomPadding = 0f;
+        if (verticalTextAlignment == TextAlignment.Center)
+        {
+            bottomPadding = MathF.Floor(bounds.Height - 2.5f) * 0.5f;
+        }
 
         int? prevCodePoint = null;
         foreach (var codePoint in AsCodePoints(text))
@@ -214,7 +219,6 @@ public sealed class OpenGlNodeGraphRenderer
             if (!_glyphsByCodePoint.TryGetValue(codePoint, out var glyphInfo))
                 continue;
             
-            var fontScale = 0.1f;
 
             var kerningOffset = 0;
             if (prevCodePoint.HasValue &&
@@ -225,7 +229,7 @@ public sealed class OpenGlNodeGraphRenderer
             var left = cursor.X + (glyphInfo.XOffset + kerningOffset) * fontScale;
 
             var offsetFromTop = glyphInfo.YOffset - (baseOffset - glyphInfo.Height);
-            var bottom = cursor.Y - offsetFromTop * fontScale;
+            var bottom = (cursor.Y - offsetFromTop * fontScale) + bottomPadding;
             var width = glyphInfo.Width * fontScale;
             var height = glyphInfo.Height * fontScale;
 

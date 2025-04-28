@@ -1,4 +1,6 @@
-﻿namespace NodeGraphApp;
+﻿using EasyGameFramework.GUI;
+
+namespace NodeGraphApp;
 
 public sealed class Port
 {
@@ -68,6 +70,7 @@ public sealed class Port
                 };
             },
             Text = "Test 24",
+            VerticaTextAlignment = TextAlignment.Center
         };
         
         VisualNode.Children.Add(_portNode);

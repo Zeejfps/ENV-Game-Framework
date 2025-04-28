@@ -1,4 +1,5 @@
-﻿using NodeGraphApp;
+﻿using EasyGameFramework.GUI;
+using NodeGraphApp;
 
 public sealed class VisualNode
 {
@@ -35,4 +36,6 @@ public sealed class VisualNode
     public BorderSizeStyle BorderSize { get; set; }
     public BorderRadiusStyle BorderRadius { get; set; }
     public List<VisualNode> Children { get; } = new();
+    
+    public TextAlignment VerticaTextAlignment { get; set; }
 }
