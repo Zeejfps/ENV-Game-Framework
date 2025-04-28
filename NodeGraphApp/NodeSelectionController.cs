@@ -91,7 +91,7 @@ public sealed class NodeSelectionController
         Port? hoveredPort = null;
         foreach (var node in nodes)
         {
-            foreach (var port in node.Ports)
+            foreach (var port in node.InputPorts)
             {
                 if (Overlaps(worldCursorPos, port.PortNode.Bounds))
                 {
@@ -108,7 +108,7 @@ public sealed class NodeSelectionController
             {
                 hoveredNode = node;
 
-                foreach (var port in hoveredNode.Ports)
+                foreach (var port in hoveredNode.InputPorts)
                 {
                     if (Overlaps(worldCursorPos, port.VisualNode.Bounds))
                     {

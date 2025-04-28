@@ -38,7 +38,8 @@ public sealed class Node
     }
     
     public VisualNode VisualNode { get; }
-    public List<Port> Ports { get; } = [];
+    public List<Port> InputPorts { get; } = [];
+    public List<OutputPort> OutputPorts { get; } = [];
 
     private readonly Column _column;
 
@@ -91,7 +92,17 @@ public sealed class Node
             BoundsChanged = bounds => { header.Bounds = bounds; }
         });
         
-        foreach (var port in Ports)
+        foreach (var port in OutputPorts)
+        {
+            _column.Items.Add(new ColumnItem
+            {
+                Bounds = port.VisualNode.Bounds,
+                BoundsChanged = bounds => { port.VisualNode.Bounds = bounds; }
+            });
+            VisualNode.Children.Add(port.VisualNode);
+        }
+        
+        foreach (var port in InputPorts)
         {
             _column.Items.Add(new ColumnItem
             {

@@ -1,8 +1,8 @@
-﻿using EasyGameFramework.GUI;
-
 namespace NodeGraphApp;
 
-public sealed class Port
+using EasyGameFramework.GUI;
+
+public sealed class OutputPort
 {
     private static Color HoveredBorderColor { get; } = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f);
     private static Color NormalBorderColor { get; } = Color.FromRGBA(0f, 0f, 0f, 1f);
@@ -37,7 +37,7 @@ public sealed class Port
 
     public VisualNode PortNode { get; }
     
-    public Port()
+    public OutputPort()
     {
         var portBackgroundColor = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f);
         var portBorderColor = NormalBorderColor;
@@ -58,7 +58,7 @@ public sealed class Port
 
         var randomText = new VisualNode
         {
-            Text = "Input Port 23!",
+            Text = "Output Port 23!",
             TextVerticalAlignment = TextAlignment.Center
         };
         
@@ -73,7 +73,7 @@ public sealed class Port
             {
                 PortNode.Bounds = PortNode.Bounds with
                 {
-                    Left = bounds.Left - 1.5f,
+                    Left = bounds.Right - 1.5f,
                     Bottom = bounds.Bottom + (portHeight - 3f) / 2f,
                 };
                 randomText.Bounds = bounds with

@@ -26,13 +26,18 @@ var n1 = new Node
         Width = 40,
         Height = 20
     },
-    Ports =
+    InputPorts =
     {
         new Port(),
         new Port(),
         new Port(),
         new Port(),
         new Port(),
+    },
+    OutputPorts =
+    {
+        new OutputPort(),
+        new OutputPort(),
     }
 };
 n1.Update();
@@ -46,11 +51,15 @@ var n2 = new Node
         Width = 40,
         Height = 20
     },
-    Ports =
+    InputPorts =
     {
         new Port(),
         new Port(),
         new Port(),
+    },
+    OutputPorts =
+    {
+        new OutputPort(),
     }
 };
 n2.Update();
