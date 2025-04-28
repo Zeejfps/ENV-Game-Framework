@@ -53,6 +53,12 @@ public sealed class Port
             BorderRadius = BorderRadiusStyle.All(1.5f),
             BorderSize = BorderSizeStyle.All(0.35f),
         };
+
+        var randomText = new VisualNode
+        {
+            Text = "Some Port 23!",
+            TextVerticalAlignment = TextAlignment.Center
+        };
         
         VisualNode = new VisualNode
         {
@@ -68,11 +74,14 @@ public sealed class Port
                     Left = bounds.Left - 1.5f,
                     Bottom = bounds.Bottom + (portHeight - 3f) / 2f,
                 };
+                randomText.Bounds = bounds with
+                {
+                    Left = bounds.Left + 2.5f,
+                };
             },
-            Text = "Test 24",
-            VerticaTextAlignment = TextAlignment.Center
         };
         
         VisualNode.Children.Add(_portNode);
+        VisualNode.Children.Add(randomText);
     }
 }

@@ -37,5 +37,5 @@ public sealed class VisualNode
     public BorderRadiusStyle BorderRadius { get; set; }
     public List<VisualNode> Children { get; } = new();
     
-    public TextAlignment VerticaTextAlignment { get; set; }
+    public TextAlignment TextVerticalAlignment { get; set; }
 }

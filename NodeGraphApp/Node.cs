@@ -1,4 +1,6 @@
+using EasyGameFramework.GUI;
 using NodeGraphApp;
+using Column = NodeGraphApp.Column;
 
 public sealed class Node
 {
@@ -62,6 +64,12 @@ public sealed class Node
     {
         VisualNode.Children.Clear();
         _column.Items.Clear();
+
+        var headerText = new VisualNode
+        {
+            Text = "= Hello Node!",
+            TextVerticalAlignment = TextAlignment.Center 
+        };
         
         var header = new VisualNode
         {
@@ -72,8 +80,11 @@ public sealed class Node
                 TopRight = 0.25f,
             },
             Color = Color.FromRGBA(0.2314f, 0.2588f, 0.3412f, 1.0f),
+            BoundsChanged = bounds => headerText.Bounds = bounds
         };
         VisualNode.Children.Add(header);
+        VisualNode.Children.Add(headerText);
+        
         _column.Items.Add(new ColumnItem
         {
             Bounds = header.Bounds,

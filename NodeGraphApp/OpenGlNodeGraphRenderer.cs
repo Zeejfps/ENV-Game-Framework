@@ -176,7 +176,7 @@ public sealed class OpenGlNodeGraphRenderer
         glDrawArrays(GL_TRIANGLES, 0,  6);
 
         if (r.Text != null)
-            RenderText(r.Bounds, r.VerticaTextAlignment, r.Text);
+            RenderText(r.Bounds, r.TextVerticalAlignment, r.Text);
 
         foreach (var child in r.Children)
             RenderVisualNode(child);
@@ -184,18 +184,22 @@ public sealed class OpenGlNodeGraphRenderer
     
     private void RenderText(ScreenRect bounds, TextAlignment verticalTextAlignment, string text)
     {
+        var fontScale = 0.1f;
+
         var lineStart = bounds.Left;
-        var cursor = new Vector2(lineStart, bounds.Bottom);
         var fontFile = _interFontData;
         var baseOffset = fontFile.Common.Base;
         var scaleW = (float)fontFile.Common.ScaleW;
         var scaleH = (float)fontFile.Common.ScaleH;
-        var lineHeight = (float)fontFile.Common.LineHeight;
-        var fontScale = 0.1f;
-        var bottomPadding = 0f;
+        var lineHeight = fontFile.Common.LineHeight * fontScale;
+        
+        // NOTE(Zee): This is the top of the line
+        var cursor = new Vector2(lineStart, bounds.Top);
+        
+        var topPadding = 0f;
         if (verticalTextAlignment == TextAlignment.Center)
         {
-            bottomPadding = MathF.Floor(bounds.Height - 2.5f) * 0.5f;
+            topPadding = (bounds.Height - lineHeight) * 0.5f;
         }
 
         int? prevCodePoint = null;
@@ -210,7 +214,6 @@ public sealed class OpenGlNodeGraphRenderer
 
             if (!_fontMetrics.TryGetGlyphInfo(codePoint, out var glyphInfo))
                 continue;
-            
 
             var kerningOffset = 0;
             if (prevCodePoint.HasValue &&
@@ -220,9 +223,7 @@ public sealed class OpenGlNodeGraphRenderer
             }
             
             var left = cursor.X + (glyphInfo.XOffset + kerningOffset) * fontScale;
-
-            var offsetFromTop = glyphInfo.YOffset - (baseOffset - glyphInfo.Height);
-            var bottom = (cursor.Y - offsetFromTop * fontScale) + bottomPadding;
+            var bottom = cursor.Y - baseOffset * fontScale - topPadding;
             var width = glyphInfo.Width * fontScale;
             var height = glyphInfo.Height * fontScale;
 
