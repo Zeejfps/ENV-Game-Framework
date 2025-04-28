@@ -64,6 +64,8 @@ public sealed class OpenGlNodeGraphRenderer
         LoadPanelData();
         LoadGlyphData();
         
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glClearColor(0.1176f, 0.1176f, 	0.1804f, 1f);
     }
 

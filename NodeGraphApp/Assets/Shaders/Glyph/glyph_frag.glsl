@@ -6,7 +6,22 @@ uniform sampler2D tex;
 
 out vec4 f_Color;
 
+float median(float r, float g, float b) {
+    // Efficient median calculation: sorts r, g, b and returns the middle value
+    return max(min(r, g), min(max(r, g), b));
+}
+
 void main() {
-    f_Color = texture(tex, TexCoords);
-    //f_Color = vec4(a, 0.0, 0.0, 1.0);
+
+    vec3 msdf = texture(tex, TexCoords).rgb;
+
+    float sd = median(msdf.r, msdf.g, msdf.b);
+
+    float alpha = smoothstep(0.4, 0.6, sd);
+
+    vec4 finalColor = vec4(1, 1, 0.6, 1);
+    
+    finalColor.a *= alpha;
+
+    f_Color = finalColor;
 }
