@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace MsdfBmpFont;
 
-public class Info
+public class FontInfo
 {
     [JsonPropertyName("face")]
     public required string Face { get; set; }

@@ -5,7 +5,7 @@ namespace MsdfBmpFont;
 public sealed class DistanceFieldInfo
 {
     [JsonPropertyName("fieldType")]
-    public string FieldType { get; set; }
+    public required string FieldType { get; set; }
 
     [JsonPropertyName("distanceRange")]
     public int DistanceRange { get; set; }

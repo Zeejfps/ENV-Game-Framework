@@ -6,7 +6,6 @@ using OpenGLSandbox;
 using PngSharp.Api;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
-using Glyph = MsdfBmpFont.Glyph;
 
 public sealed class OpenGlNodeGraphRenderer
 {
@@ -24,8 +23,8 @@ public sealed class OpenGlNodeGraphRenderer
 
     private readonly NodeGraph _nodeGraph;
     private readonly Camera _camera;
-    private readonly MsdfBmpFontLoader _fontLoader;
-    private readonly FontData _interFontData;
+    private readonly MsdfBmpFontFileLoader _fontFileLoader;
+    private readonly MsdfFontFile _interFontData;
 
     // Shared data
     private uint _quadVao;
@@ -48,10 +47,10 @@ public sealed class OpenGlNodeGraphRenderer
     private int _glyphTextureUniformLoc;
     private uint _fontTextureId;
 
-    private readonly Dictionary<int, Glyph> _glyphsByCodePoint = new();
+    private readonly Dictionary<int, GlyphInfo> _glyphsByCodePoint = new();
     private readonly Dictionary<(int, int), int> _kerningPairs = new();
 
-    public OpenGlNodeGraphRenderer(NodeGraph nodeGraph, Camera camera, FontData interFontData)
+    public OpenGlNodeGraphRenderer(NodeGraph nodeGraph, Camera camera, MsdfFontFile interFontData)
     {
         _nodeGraph = nodeGraph;
         _camera = camera;

@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace MsdfBmpFont;
 
-public sealed class Glyph
+public sealed class GlyphInfo
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }

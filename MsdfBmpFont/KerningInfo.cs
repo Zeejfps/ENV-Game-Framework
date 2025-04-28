@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace MsdfBmpFont;
 
-public sealed class Kerning
+public sealed class KerningInfo
 {
     [JsonPropertyName("first")]
     public int First { get; set; }

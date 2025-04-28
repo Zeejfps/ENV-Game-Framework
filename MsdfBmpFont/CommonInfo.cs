@@ -2,7 +2,7 @@
 
 namespace MsdfBmpFont;
 
-public class Common
+public class CommonInfo
 {
     [JsonPropertyName("lineHeight")]
     public int LineHeight { get; set; }
