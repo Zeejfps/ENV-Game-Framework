@@ -208,9 +208,10 @@ public sealed class OpenGlNodeGraphRenderer
             if (!_glyphsByCodePoint.TryGetValue(codePoint, out var glyphInfo))
                 continue;
             
-            var left = cursor.X + glyphInfo.XOffset;
-
             var fontScale = 0.1f;
+            
+            var left = cursor.X + glyphInfo.XOffset * fontScale;
+
             var offsetFromTop = glyphInfo.YOffset - (baseOffset - glyphInfo.Height);
             var bottom = cursor.Y - offsetFromTop * fontScale;
             var width = glyphInfo.Width * fontScale;

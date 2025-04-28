@@ -17,7 +17,7 @@ void main() {
 
     float sd = median(msdf.r, msdf.g, msdf.b);
 
-    float alpha = smoothstep(0.4, 0.6, sd);
+    float alpha = smoothstep(0.45, 0.55, sd);
 
     vec4 finalColor = vec4(1, 1, 0.6, 1);
     
