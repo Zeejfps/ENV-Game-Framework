@@ -24,13 +24,14 @@ public sealed class CameraDragController
 
     public void Update()
     {
-        var viewport = _viewport;
         var mouse = _mouse;
+        var viewport = _viewport;
         var keyboard = _keyboard;
 
         var canStartDragging = mouse.WasButtonPressedThisFrame(MouseButton.Left) &&
                                keyboard.IsKeyPressed(Keys.LeftAlt);
         canStartDragging |= mouse.WasButtonPressedThisFrame(MouseButton.Middle);
+        canStartDragging &= viewport.ContainsScreenPoint(mouse.Position);
 
         if (canStartDragging)
         {

@@ -52,6 +52,12 @@ public sealed class Viewport
         return new Vector2(ndcX, ndcY);
     }
 
+    public bool TryScreenToViewportNdcPoint(Vector2 screenPoint, out Vector2 ndcPoint)
+    { 
+        ndcPoint = ScreenToViewportNdcPoint(screenPoint);
+        return ndcPoint.X is >= -1f and <= 1f && ndcPoint.Y is >= -1f and <= 1f;
+    }
+
     public Vector2 ScreenToWorldPoint(Vector2 screenPoint)
     {
         var camera = Camera;
@@ -64,5 +70,10 @@ public sealed class Viewport
         var camera = Camera;
         var ndcCoords = ScreenToViewportNdcPoint(screenPoint);
         return CoordinateUtils.NdcToCameraViewPoint(camera, ndcCoords);
+    }
+
+    public bool ContainsScreenPoint(Vector2 mousePosition)
+    {
+        return TryScreenToViewportNdcPoint(mousePosition, out _);
     }
 }
