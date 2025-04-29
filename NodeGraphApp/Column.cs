@@ -22,7 +22,7 @@ public class Column
         foreach (var item in Items)
         {
             var height = item.Bounds.Height;
-            item.Bounds = ScreenRect.FromLTWH(left, top, width, height);
+            item.Bounds = ScreenRect.FromLeftTopWidthHeight(left, top, width, height);
             top -= height + ItemGap;
         }
         

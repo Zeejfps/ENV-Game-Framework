@@ -46,7 +46,7 @@ public sealed class FlexColumn : IEnumerable<FlexItem>
                 height = flexShare * totalFlexSpace;
             }
 
-            item.Bounds = ScreenRect.FromLTWH(left, top, width, height);
+            item.Bounds = ScreenRect.FromLeftTopWidthHeight(left, top, width, height);
             top -= height + ItemGap;
         }
     }

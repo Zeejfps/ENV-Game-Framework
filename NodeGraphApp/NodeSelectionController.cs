@@ -5,20 +5,17 @@ namespace NodeGraphApp;
 
 public sealed class NodeSelectionController
 {
-    private readonly Window _window;
     private readonly Mouse _mouse;
-    private readonly Camera _camera;
+    private readonly Viewport _viewport;
     private readonly NodeGraph _nodeGraph;
 
     public NodeSelectionController(
-        Window window,
         Mouse mouse,
-        Camera camera,
+        Viewport viewport,
         NodeGraph nodeGraph)
     {
-        _window = window;
         _mouse = mouse;
-        _camera = camera;
+        _viewport = viewport;
         _nodeGraph = nodeGraph;
     }
 
@@ -67,13 +64,12 @@ public sealed class NodeSelectionController
 
     public void Update()
     {
-        var window = _window;
         var mouse = _mouse;
-        var camera = _camera;
+        var viewport = _viewport;
 
         if (_selectedNode != null)
         {
-            var currPos = CoordinateUtils.ScreenToWorldPoint(window, camera, mouse.Position);;
+            var currPos = viewport.ScreenToWorldPoint(mouse.Position);
             var delta = currPos - _mousePos;
             _mousePos = currPos;
             var bounds = _selectedNode.Bounds;
@@ -85,7 +81,7 @@ public sealed class NodeSelectionController
         }
 
         var mousePos = mouse.Position;
-        var worldCursorPos = CoordinateUtils.ScreenToWorldPoint(window, camera, mousePos);
+        var worldCursorPos = viewport.ScreenToWorldPoint(mousePos);
         var nodes = _nodeGraph.Nodes.GetAll().Reverse();
         Node? hoveredNode = null;
         InputPort? hoveredPort = null;

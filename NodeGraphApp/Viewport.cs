@@ -1,0 +1,59 @@
+﻿using System.Numerics;
+using GLFW;
+
+namespace NodeGraphApp;
+
+public sealed class Viewport
+{
+    public ScreenRect Bounds { get; set; }
+    
+    public readonly Window _window;
+    public readonly Camera _camera;
+
+    public Viewport(Window window, Camera camera)
+    {
+        _window = window;
+        _camera = camera;
+    }
+
+    public void MakeActive()
+    {
+        Glfw.GetWindowSize(_window, out var width, out var height);
+        var x = Bounds.Left * width;
+        var y = Bounds.Bottom * height;
+        var w = Bounds.Width * width;
+        var h = Bounds.Height * height;
+        GL46.glViewport((int)x, (int)y, (int)w, (int)h);
+        GL46.glScissor((int)x, (int)y, (int)w, (int)h);
+    }
+
+    public Vector2 ScreenToWorldPoint(Vector2 mousePosition)
+    {
+        var camera = _camera;
+        var ndcCoordinates = ScreenToViewportNdcPoint(mousePosition);
+        return CoordinateUtils.NdcToCameraViewPoint(camera, ndcCoordinates) + camera.Position;
+    }
+    
+    public Vector4 ScreenToViewportNdcPoint(Vector2 screenPoint)
+    {
+        var window = _window;
+        var bounds = Bounds;
+        Glfw.GetWindowSize(window, out var windowWidth, out var windowHeight);
+
+        // Convert screenPoint to normalized screen space [0,1]
+        var normX = screenPoint.X / windowWidth;
+        var normY = 1f - (screenPoint.Y / windowHeight); // Flip from top down to bottom up
+
+        // Convert to viewport-local normalized coordinates [0,1] within the viewport
+        var localX = (normX - bounds.Left) / bounds.Width;
+        var localY = (normY - bounds.Bottom) / bounds.Height;
+        
+        //Console.WriteLine($"Local: {localX}, {localY}");
+
+        // Convert to NDC [-1,1], with (0,0) at the center of the viewport
+        var ndcX = localX * 2f - 1f; // Maps [0,1] to [-1,1]
+        var ndcY =  localY * 2f - 1f; // Maps [0,1] to [-1,1]
+
+        return new Vector4(ndcX, ndcY, 0f, 1f);
+    }
+}

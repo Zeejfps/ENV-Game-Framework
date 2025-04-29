@@ -46,7 +46,7 @@ public readonly struct ScreenRect : IEquatable<ScreenRect>
         };
     }
     
-    public static ScreenRect FromLTWH(float left, float top, float width, float height)
+    public static ScreenRect FromLeftTopWidthHeight(float left, float top, float width, float height)
     {
         return new ScreenRect
         {

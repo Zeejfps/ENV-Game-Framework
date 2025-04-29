@@ -72,11 +72,15 @@ nodeGraph.Nodes.Add(n2);
 var mouse = new Mouse();
 var keyboard = new Keyboard();
 var camera = new Camera(windowAspectRatio);
+var viewport = new Viewport(window, camera)
+{
+    Bounds = ScreenRect.FromLeftTopWidthHeight(0, 1f, 1f, 1f)
+};
 var fontLoader = new MsdfBmpFontFileLoader();
 var interFontData = fontLoader.LoadFromFilePath("Assets/Fonts/Inter/Inter_28pt-Regular-msdf.json");
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
 var cameraDragController = new CameraDragController(window, camera, mouse, keyboard);
-var nodeSelectionController = new NodeSelectionController(window, mouse, camera, nodeGraph);
+var nodeSelectionController = new NodeSelectionController(mouse, viewport, nodeGraph);
 
 Glfw.SetMouseButtonCallback(window, (_, button, state, _) =>
 {
@@ -109,9 +113,9 @@ Glfw.SetKeyCallback(window, (_, key, code, state, mods) =>
 
 Glfw.SetWindowSizeCallback(window, (window, width, height) =>
 {
-    GL46.glViewport(0, 0, width, height);
     var aspectRatio = (float)width / height;
     camera.AspectRatio = aspectRatio;
+    viewport.MakeActive();
     renderer.Update();
     Glfw.SwapBuffers(window);
 });
@@ -127,6 +131,7 @@ Glfw.SwapInterval(1);
 
 GL46.Import(Glfw.GetProcAddress);
 
+GL46.glEnable(GL46.GL_SCISSOR_TEST);
 renderer.Setup();
 while (!Glfw.WindowShouldClose(window))
 {
@@ -135,6 +140,7 @@ while (!Glfw.WindowShouldClose(window))
     Glfw.PollEvents();
     cameraDragController.Update();
     nodeSelectionController.Update();
+    viewport.MakeActive();
     renderer.Update();
     Glfw.SwapBuffers(window);
 }
