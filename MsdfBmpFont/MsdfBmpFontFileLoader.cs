@@ -7,7 +7,7 @@ public sealed class MsdfBmpFontFileLoader
     public MsdfFontFile LoadFromFilePath(string pathToFile)
     {
         var fileContents = File.ReadAllText(pathToFile);
-        var fontData = JsonSerializer.Deserialize<MsdfFontFile>(fileContents);
+        var fontData = JsonSerializer.Deserialize(fileContents, MsdfBmpFontJsonSerializationContext.Default.MsdfFontFile);
         if (fontData == null)
             throw new MsdfBmpFontLoadingException("Failed to deserialize font data");
         return fontData;
@@ -16,7 +16,7 @@ public sealed class MsdfBmpFontFileLoader
     public async Task<MsdfFontFile> LoadFromFilePathAsync(string pathToFile)
     {
         var fileContents = await File.ReadAllTextAsync(pathToFile);
-        var fontData = JsonSerializer.Deserialize<MsdfFontFile>(fileContents);
+        var fontData = JsonSerializer.Deserialize(fileContents, MsdfBmpFontJsonSerializationContext.Default.MsdfFontFile);
         if (fontData == null)
             throw new MsdfBmpFontLoadingException("Failed to deserialize font data");
         return fontData;
