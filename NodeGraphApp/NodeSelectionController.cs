@@ -10,12 +10,12 @@ public sealed class NodeSelectionController
     private readonly NodeGraph _nodeGraph;
 
     public NodeSelectionController(
-        Mouse mouse,
         Viewport viewport,
+        Mouse mouse,
         NodeGraph nodeGraph)
     {
-        _mouse = mouse;
         _viewport = viewport;
+        _mouse = mouse;
         _nodeGraph = nodeGraph;
     }
 

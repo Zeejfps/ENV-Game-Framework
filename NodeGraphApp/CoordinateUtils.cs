@@ -24,15 +24,15 @@ public static class CoordinateUtils
         return new Vector2(cameraViewPoint.X, cameraViewPoint.Y);
     }
 
-    public static Vector2 ScreenToCameraViewPoint(Window window, Camera camera, Vector2 screenPoint)
+    public static Vector2 WindowToCameraViewPoint(Window window, Camera camera, Vector2 screenPoint)
     {
         var ndcCoords = ScreenToNdcPoint(window, screenPoint);
         return NdcToCameraViewPoint(camera, ndcCoords);
     }
 
-    public static Vector2 ScreenToWorldPoint(Window window, Camera camera, Vector2 screenPoint)
+    public static Vector2 WindowToWorldPoint(Window window, Camera camera, Vector2 screenPoint)
     {
-        var cameraViewPoint = ScreenToCameraViewPoint(window, camera, screenPoint);
+        var cameraViewPoint = WindowToCameraViewPoint(window, camera, screenPoint);
         return cameraViewPoint + camera.Position;
     }
 }

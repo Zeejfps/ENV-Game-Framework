@@ -5,19 +5,16 @@ namespace NodeGraphApp;
 
 public sealed class CameraDragController
 {
-    private readonly Window _window;
-    private readonly Camera _camera;
+    private readonly Viewport _viewport;
     private readonly Mouse _mouse;
     private readonly Keyboard _keyboard;
 
     public CameraDragController(
-        Window window,
-        Camera camera,
+        Viewport viewport,
         Mouse mouse,
         Keyboard keyboard)
     {
-        _window = window;
-        _camera = camera;
+        _viewport = viewport;
         _mouse = mouse;
         _keyboard = keyboard;
     }
@@ -27,10 +24,9 @@ public sealed class CameraDragController
 
     public void Update()
     {
-        var window = _window;
+        var viewport = _viewport;
         var mouse = _mouse;
         var keyboard = _keyboard;
-        var camera = _camera;
 
         var canStartDragging = mouse.WasButtonPressedThisFrame(MouseButton.Left) &&
                                keyboard.IsKeyPressed(Keys.LeftAlt);
@@ -39,7 +35,7 @@ public sealed class CameraDragController
         if (canStartDragging)
         {
             _isDragging = true;
-            _prevCursorPosition = CoordinateUtils.ScreenToCameraViewPoint(window, camera, mouse.Position);
+            _prevCursorPosition = viewport.ScreenToCameraViewPoint(mouse.Position);
         }
 
         if (_isDragging)
@@ -51,10 +47,10 @@ public sealed class CameraDragController
                 return;
             }
 
-            var newCursorScreenPosition = CoordinateUtils.ScreenToCameraViewPoint(window, camera, mouse.Position);
+            var newCursorScreenPosition = viewport.ScreenToCameraViewPoint(mouse.Position);
             var delta = newCursorScreenPosition - _prevCursorPosition;
             _prevCursorPosition = newCursorScreenPosition;
-            camera.Position -= delta;
+            viewport.Camera.Position -= delta;
         }
     }
 }

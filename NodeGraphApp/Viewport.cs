@@ -6,34 +6,29 @@ namespace NodeGraphApp;
 public sealed class Viewport
 {
     public ScreenRect Bounds { get; set; }
+    public Camera Camera { get; }
     
-    public readonly Window _window;
-    public readonly Camera _camera;
+    private readonly Window _window;
 
     public Viewport(Window window, Camera camera)
     {
         _window = window;
-        _camera = camera;
+        Camera = camera;
     }
 
-    public void MakeActive()
+    public void Update()
     {
         Glfw.GetWindowSize(_window, out var width, out var height);
         var x = Bounds.Left * width;
         var y = Bounds.Bottom * height;
         var w = Bounds.Width * width;
         var h = Bounds.Height * height;
+        var aspectRatio = w / h;
+        Camera.AspectRatio = aspectRatio;
         GL46.glViewport((int)x, (int)y, (int)w, (int)h);
         GL46.glScissor((int)x, (int)y, (int)w, (int)h);
     }
 
-    public Vector2 ScreenToWorldPoint(Vector2 mousePosition)
-    {
-        var camera = _camera;
-        var ndcCoordinates = ScreenToViewportNdcPoint(mousePosition);
-        return CoordinateUtils.NdcToCameraViewPoint(camera, ndcCoordinates) + camera.Position;
-    }
-    
     public Vector4 ScreenToViewportNdcPoint(Vector2 screenPoint)
     {
         var window = _window;
@@ -55,5 +50,19 @@ public sealed class Viewport
         var ndcY =  localY * 2f - 1f; // Maps [0,1] to [-1,1]
 
         return new Vector4(ndcX, ndcY, 0f, 1f);
+    }
+
+    public Vector2 ScreenToWorldPoint(Vector2 screenPoint)
+    {
+        var camera = Camera;
+        var ndcCoordinates = ScreenToViewportNdcPoint(screenPoint);
+        return CoordinateUtils.NdcToCameraViewPoint(camera, ndcCoordinates) + camera.Position;
+    }
+
+    public Vector2 ScreenToCameraViewPoint(Vector2 screenPoint)
+    {
+        var camera = Camera;
+        var ndcCoords = ScreenToViewportNdcPoint(screenPoint);
+        return CoordinateUtils.NdcToCameraViewPoint(camera, ndcCoords);
     }
 }

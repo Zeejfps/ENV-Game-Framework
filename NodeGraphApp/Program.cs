@@ -79,8 +79,8 @@ var viewport = new Viewport(window, camera)
 var fontLoader = new MsdfBmpFontFileLoader();
 var interFontData = fontLoader.LoadFromFilePath("Assets/Fonts/Inter/Inter_28pt-Regular-msdf.json");
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
-var cameraDragController = new CameraDragController(window, camera, mouse, keyboard);
-var nodeSelectionController = new NodeSelectionController(mouse, viewport, nodeGraph);
+var cameraDragController = new CameraDragController(viewport, mouse, keyboard);
+var nodeSelectionController = new NodeSelectionController(viewport, mouse, nodeGraph);
 
 Glfw.SetMouseButtonCallback(window, (_, button, state, _) =>
 {
@@ -113,9 +113,7 @@ Glfw.SetKeyCallback(window, (_, key, code, state, mods) =>
 
 Glfw.SetWindowSizeCallback(window, (window, width, height) =>
 {
-    var aspectRatio = (float)width / height;
-    camera.AspectRatio = aspectRatio;
-    viewport.MakeActive();
+    viewport.Update();
     renderer.Update();
     Glfw.SwapBuffers(window);
 });
@@ -140,7 +138,7 @@ while (!Glfw.WindowShouldClose(window))
     Glfw.PollEvents();
     cameraDragController.Update();
     nodeSelectionController.Update();
-    viewport.MakeActive();
+    viewport.Update();
     renderer.Update();
     Glfw.SwapBuffers(window);
 }
