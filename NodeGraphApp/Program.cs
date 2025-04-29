@@ -19,6 +19,7 @@ var window = Glfw.CreateWindow(windowWidth, windowHeight, "Node Graph", Monitor.
 var nodeGraph = new NodeGraph();
 var n1 = new Node
 {
+    Title = "Node 1",
     Bounds = new ScreenRect
     {
         Left = 0,
@@ -44,6 +45,7 @@ n1.Update();
 
 var n2 = new Node
 {
+    Title = "Node 31",
     Bounds = new ScreenRect
     {
         Left = -50,

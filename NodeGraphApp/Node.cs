@@ -37,6 +37,7 @@ public sealed class Node
         }
     }
     
+    public string Title { get; set; }
     public VisualNode VisualNode { get; }
     public List<Port> InputPorts { get; } = [];
     public List<OutputPort> OutputPorts { get; } = [];
@@ -68,7 +69,7 @@ public sealed class Node
 
         var headerText = new VisualNode
         {
-            Text = "- Helgqlo Node!",
+            Text = $"- {Title}",
             TextVerticalAlignment = TextAlignment.Center 
         };
         
