@@ -29,7 +29,7 @@ public sealed class Viewport
         GL46.glScissor((int)x, (int)y, (int)w, (int)h);
     }
 
-    public Vector4 ScreenToViewportNdcPoint(Vector2 screenPoint)
+    public Vector2 ScreenToViewportNdcPoint(Vector2 screenPoint)
     {
         var window = _window;
         var bounds = Bounds;
@@ -49,7 +49,7 @@ public sealed class Viewport
         var ndcX = localX * 2f - 1f; // Maps [0,1] to [-1,1]
         var ndcY =  localY * 2f - 1f; // Maps [0,1] to [-1,1]
 
-        return new Vector4(ndcX, ndcY, 0f, 1f);
+        return new Vector2(ndcX, ndcY);
     }
 
     public Vector2 ScreenToWorldPoint(Vector2 screenPoint)
