@@ -29,11 +29,11 @@ var n1 = new Node
     },
     InputPorts =
     {
-        new Port(),
-        new Port(),
-        new Port(),
-        new Port(),
-        new Port(),
+        new InputPort(),
+        new InputPort(),
+        new InputPort(),
+        new InputPort(),
+        new InputPort(),
     },
     OutputPorts =
     {
@@ -55,9 +55,9 @@ var n2 = new Node
     },
     InputPorts =
     {
-        new Port(),
-        new Port(),
-        new Port(),
+        new InputPort(),
+        new InputPort(),
+        new InputPort(),
     },
     OutputPorts =
     {

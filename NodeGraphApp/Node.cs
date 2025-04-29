@@ -39,7 +39,7 @@ public sealed class Node
     
     public string Title { get; set; }
     public VisualNode VisualNode { get; }
-    public List<Port> InputPorts { get; } = [];
+    public List<InputPort> InputPorts { get; } = [];
     public List<OutputPort> OutputPorts { get; } = [];
 
     private readonly Column _column;

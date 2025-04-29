@@ -2,7 +2,7 @@
 
 namespace NodeGraphApp;
 
-public sealed class Port
+public sealed class InputPort
 {
     private static Color HoveredBorderColor { get; } = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f);
     private static Color NormalBorderColor { get; } = Color.FromRGBA(0f, 0f, 0f, 1f);
@@ -37,7 +37,7 @@ public sealed class Port
 
     public VisualNode PortNode { get; }
     
-    public Port()
+    public InputPort()
     {
         var portBackgroundColor = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f);
         var portBorderColor = NormalBorderColor;

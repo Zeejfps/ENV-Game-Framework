@@ -45,8 +45,8 @@ public sealed class NodeSelectionController
         }
     }
     
-    private Port? _hoveredPort;
-    private Port? HoveredPort
+    private InputPort? _hoveredPort;
+    private InputPort? HoveredPort
     {
         get => _hoveredPort;
         set
@@ -88,7 +88,7 @@ public sealed class NodeSelectionController
         var worldCursorPos = CoordinateUtils.ScreenToWorldPoint(window, camera, mousePos);
         var nodes = _nodeGraph.Nodes.GetAll().Reverse();
         Node? hoveredNode = null;
-        Port? hoveredPort = null;
+        InputPort? hoveredPort = null;
         foreach (var node in nodes)
         {
             foreach (var port in node.InputPorts)
