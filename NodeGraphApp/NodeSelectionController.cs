@@ -42,8 +42,8 @@ public sealed class NodeSelectionController
         }
     }
     
-    private InputPort? _hoveredPort;
-    private InputPort? HoveredPort
+    private IPort? _hoveredPort;
+    private IPort? HoveredPort
     {
         get => _hoveredPort;
         set
@@ -84,9 +84,22 @@ public sealed class NodeSelectionController
         var worldCursorPos = viewport.ScreenToWorldPoint(mousePos);
         var nodes = _nodeGraph.Nodes.GetAll().Reverse();
         Node? hoveredNode = null;
-        InputPort? hoveredPort = null;
+        IPort? hoveredPort = null;
         foreach (var node in nodes)
         {
+            foreach (var port in node.OutputPorts)
+            {
+                if (Overlaps(worldCursorPos, port.PortNode.Bounds))
+                {
+                    hoveredNode = node;
+                    hoveredPort = port;
+                    break;
+                }
+            }
+            
+            if (hoveredNode != null)
+                break;
+            
             foreach (var port in node.InputPorts)
             {
                 if (Overlaps(worldCursorPos, port.PortNode.Bounds))
@@ -103,6 +116,18 @@ public sealed class NodeSelectionController
             if (Overlaps(worldCursorPos, node))
             {
                 hoveredNode = node;
+                
+                foreach (var port in hoveredNode.OutputPorts)
+                {
+                    if (Overlaps(worldCursorPos, port.VisualNode.Bounds))
+                    {
+                        hoveredPort = port;
+                        break;
+                    }
+                }
+
+                if (hoveredPort != null)
+                    break;
 
                 foreach (var port in hoveredNode.InputPorts)
                 {
