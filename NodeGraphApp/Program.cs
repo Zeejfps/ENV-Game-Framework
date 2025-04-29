@@ -138,8 +138,10 @@ while (!Glfw.WindowShouldClose(window))
     Glfw.PollEvents();
     cameraDragController.Update();
     nodeSelectionController.Update();
+    
     viewport.Update();
     renderer.Update();
+    
     Glfw.SwapBuffers(window);
 }
 renderer.Teardown();
