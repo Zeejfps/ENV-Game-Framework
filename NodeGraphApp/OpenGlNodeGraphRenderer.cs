@@ -1,3 +1,4 @@
+using System.Numerics;
 using MsdfBmpFont;
 using NodeGraphApp;
 using OpenGL.NET;
@@ -343,10 +344,10 @@ public sealed class OpenGlNodeGraphRenderer
     {
         glUseProgram(_curveShader.Id);
         glBindVertexArray(_curveVao);
-        glUniform1f(_curveP0UniformLoc, curve.P0);
-        glUniform1f(_curveP1UniformLoc, curve.P1);
-        glUniform1f(_curveP2UniformLoc, curve.P2);
-        glUniform1f(_curveP3UniformLoc, curve.P3);
+        glUniform2f(_curveP0UniformLoc, curve.P0.X, curve.P0.Y);
+        glUniform2f(_curveP1UniformLoc, curve.P1.X, curve.P1.Y);
+        glUniform2f(_curveP2UniformLoc, curve.P2.X, curve.P2.Y);
+        glUniform2f(_curveP3UniformLoc, curve.P3.X, curve.P3.Y);
         glDrawArrays(GL_LINE_STRIP, 0, CubicCurve.Steps + 1);
     }
 }
@@ -354,8 +355,8 @@ public sealed class OpenGlNodeGraphRenderer
 public readonly struct CubicCurve
 {
     public const int Steps = 32;
-    public float P0 { get; init; }
-    public float P1 { get; init; }
-    public float P2 { get; init; }
-    public float P3 { get; init; }
+    public Vector2 P0 { get; init; }
+    public Vector2 P1 { get; init; }
+    public Vector2 P2 { get; init; }
+    public Vector2 P3 { get; init; }
 }
