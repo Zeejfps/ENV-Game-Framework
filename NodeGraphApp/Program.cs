@@ -69,7 +69,11 @@ n2.Update();
 nodeGraph.Nodes.Add(n1);
 nodeGraph.Nodes.Add(n2);
 
-var link = new Link();
+var link = new Link
+{
+    StartPosition = Vector2.Zero,
+    EndPosition = new Vector2(50, 50)
+};
 nodeGraph.Links.Add(link);
 
 var mouse = new Mouse();
