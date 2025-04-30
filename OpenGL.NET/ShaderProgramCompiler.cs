@@ -30,14 +30,14 @@ public sealed class ShaderProgramCompiler
 
     public unsafe ShaderProgramInfo Compile()
     {
-        var shaderProgram = glCreateProgram(); AssertNoGlError();
+        var shaderProgramId = glCreateProgram(); AssertNoGlError();
 
         uint vertexShader = 0;
         var vertexShaderFilePath = _vertexShaderFilePath;
         if (!string.IsNullOrEmpty(vertexShaderFilePath))
         {
             vertexShader = CreateAndCompileShaderFromSourceFile(GL_VERTEX_SHADER, vertexShaderFilePath);
-            glAttachShader(shaderProgram, vertexShader); AssertNoGlError();
+            glAttachShader(shaderProgramId, vertexShader); AssertNoGlError();
         }
 
         uint fragmentShader = 0;
@@ -45,20 +45,20 @@ public sealed class ShaderProgramCompiler
         if (!string.IsNullOrEmpty(fragmentShaderFilepath))
         {
             fragmentShader = CreateAndCompileShaderFromSourceFile(GL_FRAGMENT_SHADER, fragmentShaderFilepath);
-            glAttachShader(shaderProgram, fragmentShader); AssertNoGlError();
+            glAttachShader(shaderProgramId, fragmentShader); AssertNoGlError();
         }
 
-        glLinkProgram(shaderProgram); AssertNoGlError();
+        glLinkProgram(shaderProgramId); AssertNoGlError();
 
         int status;
-        glGetProgramiv(shaderProgram, GL_LINK_STATUS, &status); AssertNoGlError();
+        glGetProgramiv(shaderProgramId, GL_LINK_STATUS, &status); AssertNoGlError();
 
         if (status == GL_FALSE)
         {
             Span<byte> buffer = stackalloc byte[256];
             int length;
             fixed (byte* ptr = &buffer[0])
-                glGetProgramInfoLog(shaderProgram, 256, &length, ptr); AssertNoGlError();
+                glGetProgramInfoLog(shaderProgramId, 256, &length, ptr); AssertNoGlError();
             var log = Encoding.ASCII.GetString(buffer);
             Console.WriteLine($"Linking Failed: {log}");
         }
@@ -66,9 +66,17 @@ public sealed class ShaderProgramCompiler
         glDeleteShader(vertexShader); AssertNoGlError();
         glDeleteShader(fragmentShader); AssertNoGlError();
 
+        var uniformLocationByNameLookup = new Dictionary<string, int>();
+        foreach (var uniformName in _uniforms)
+        {
+            var location = GetUniformLocation(shaderProgramId, uniformName);
+            uniformLocationByNameLookup.Add(uniformName, location);
+        }
+
         return new ShaderProgramInfo
         {
-            Id = 0,
+            Id = shaderProgramId,
+            Uniforms = uniformLocationByNameLookup
         };
     }
 }

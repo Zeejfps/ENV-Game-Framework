@@ -178,8 +178,7 @@ public static class OpenGlUtils
         var uniformNameAsAsciiBytes = Encoding.ASCII.GetBytes(uniformName);
         int uniformLocation;
         fixed(byte* ptr = &uniformNameAsAsciiBytes[0])
-            uniformLocation = glGetUniformLocation(shaderProgram, ptr);
-        AssertNoGlError();
+            uniformLocation = glGetUniformLocation(shaderProgram, ptr); AssertNoGlError();
         return uniformLocation;
     }
 
