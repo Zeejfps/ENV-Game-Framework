@@ -71,8 +71,8 @@ public sealed class OpenGlNodeGraphRenderer
     private unsafe void LoadGlyphData()
     {
         _glyphShader = new ShaderProgramBuilder()
-            .WithVertexShader("Assets/Shaders/Glyph/glyph_vert.glsl")
-            .WithFragmentShader("Assets/Shaders/Glyph/glyph_frag.glsl")
+            .WithVertexShader("Assets/Shaders/glyph_vert.glsl")
+            .WithFragmentShader("Assets/Shaders/glyph_frag.glsl")
             .Build();
         
         _glyphRectUniformLoc = GetUniformLocation(_glyphShader, "u_rect");
@@ -125,8 +125,8 @@ public sealed class OpenGlNodeGraphRenderer
     private void LoadPanelData()
     {
         _panelShader = new ShaderProgramBuilder()
-            .WithVertexShader("Assets/simple_vert.glsl")
-            .WithFragmentShader("Assets/simple_frag.glsl")
+            .WithVertexShader("Assets/Shaders/panel_vert.glsl")
+            .WithFragmentShader("Assets/Shaders/panel_frag.glsl")
             .Build();
 
         _rectUniformLoc = GetUniformLocation(_panelShader, "u_rect");
