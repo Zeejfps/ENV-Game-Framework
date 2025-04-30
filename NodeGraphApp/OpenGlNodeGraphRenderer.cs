@@ -100,8 +100,8 @@ public sealed class OpenGlNodeGraphRenderer
         glVertexAttribPointer(0, 1, GL_FLOAT, false, sizeof(float), (void*)0);
 
         _curveShader = NewShader()
-            .WithVertexShader("Assets/Shaders/curve_vert.glsl")
-            .WithFragmentShader("Assets/Shaders/curve_frag.glsl")
+            .WithVertexShader(App.ResolvePath("Assets/Shaders/curve_vert.glsl"))
+            .WithFragmentShader(App.ResolvePath("Assets/Shaders/curve_frag.glsl"))
             .Compile();
 
         _curveP0UniformLoc = GetUniformLocation(_curveShader.Id, "u_p0");
@@ -113,8 +113,8 @@ public sealed class OpenGlNodeGraphRenderer
     private unsafe void LoadGlyphData()
     {
         _glyphShader = NewShader()
-            .WithVertexShader("Assets/Shaders/glyph_vert.glsl")
-            .WithFragmentShader("Assets/Shaders/glyph_frag.glsl")
+            .WithVertexShader(App.ResolvePath("Assets/Shaders/glyph_vert.glsl"))
+            .WithFragmentShader(App.ResolvePath("Assets/Shaders/glyph_frag.glsl"))
             .Compile();
         
         _glyphRectUniformLoc = GetUniformLocation(_glyphShader.Id, "u_rect");
@@ -135,7 +135,7 @@ public sealed class OpenGlNodeGraphRenderer
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (int)GL_CLAMP_TO_EDGE);
 
         var pageName = _interFontData.Pages[0];
-        var fullPath = Path.Combine(AppContext.BaseDirectory, $"Assets/Fonts/Inter/{pageName}");
+        var fullPath = App.ResolvePath($"Assets/Fonts/Inter/{pageName}");
         var decodedPng = Png.DecodeFromFile(fullPath);
         
         var width = decodedPng.Width;
@@ -168,8 +168,8 @@ public sealed class OpenGlNodeGraphRenderer
     private void LoadPanelData()
     {
         _panelShader = NewShader()
-            .WithVertexShader("Assets/Shaders/panel_vert.glsl")
-            .WithFragmentShader("Assets/Shaders/panel_frag.glsl")
+            .WithVertexShader(App.ResolvePath("Assets/Shaders/panel_vert.glsl"))
+            .WithFragmentShader(App.ResolvePath("Assets/Shaders/panel_frag.glsl"))
             .Compile();
 
         _rectUniformLoc = GetUniformLocation(_panelShader.Id, "u_rect");

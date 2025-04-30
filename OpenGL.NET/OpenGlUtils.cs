@@ -78,11 +78,9 @@ public static class OpenGlUtils
         return (void*)Marshal.OffsetOf<T>(field);
     } 
 
-    public static uint CreateAndCompileShaderFromSourceFile(uint type, string filePath)
+    public static uint CreateAndCompileShaderFromSourceFile(uint type, string pathToFile)
     {
-        var appPath = AppContext.BaseDirectory;
-        var fullFilePath = Path.Combine(appPath, filePath);
-        var source = File.ReadAllText(fullFilePath);
+        var source = File.ReadAllText(pathToFile);
         return CreateAndCompileShaderFromSource(type, source);
     }
 
