@@ -191,19 +191,24 @@ public sealed class OpenGlNodeGraphRenderer
         glClear(GL_COLOR_BUFFER_BIT);
 
         var nodeGraph = _nodeGraph;
+        
         var nodes = nodeGraph.Nodes.GetAll();
         foreach (var node in nodes)
         {
             RenderNode(node);
         }
 
-        RenderCurve(new CubicCurve
+        var links = nodeGraph.Links.GetAll();
+        foreach (var link in links)
         {
-            P0 = new Vector2(0, 0),
-            P1 = new Vector2(25f, 0),
-            P2 = new Vector2(35f, 50f),
-            P3 = new Vector2(60f, 50f),
-        });
+            RenderCurve(new CubicCurve
+            {
+                P0 = link.StartPosition,
+                P1 = link.StartPosition + new Vector2(20f, 0f),
+                P2 = link.EndPosition - new Vector2(20f, 0f),
+                P3 = link.EndPosition
+            });
+        }
     }
 
     public unsafe void Teardown()
