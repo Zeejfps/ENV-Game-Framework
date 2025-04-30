@@ -77,7 +77,7 @@ var viewport = new Viewport(window, camera)
     Bounds = ScreenRect.FromLeftTopWidthHeight(0, 1f, 1f, 1f)
 };
 var fontLoader = new MsdfBmpFontFileLoader();
-var interFontData = fontLoader.LoadFromFilePath("Assets/Fonts/Inter/Inter_28pt-Regular-msdf.json");
+var interFontData = fontLoader.LoadFromFilePath("./Assets/Fonts/Inter/Inter_28pt-Regular-msdf.json");
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
 var cameraDragController = new CameraDragController(viewport, mouse, keyboard);
 var nodeSelectionController = new NodeSelectionController(viewport, mouse, nodeGraph);

@@ -80,7 +80,9 @@ public static class OpenGlUtils
 
     public static uint CreateAndCompileShaderFromSourceFile(uint type, string filePath)
     {
-        var source = File.ReadAllText(filePath);
+        var appPath = AppContext.BaseDirectory;
+        var fullFilePath = Path.Combine(appPath, filePath);
+        var source = File.ReadAllText(fullFilePath);
         return CreateAndCompileShaderFromSource(type, source);
     }
 
