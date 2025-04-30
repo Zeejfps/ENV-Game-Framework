@@ -93,8 +93,9 @@ public sealed class OpenGlNodeGraphRenderer
 
         var stepCount = 32;
         var steps = stackalloc float[stepCount];
-        for (var i = 0; i < stepCount; i++)
+        for (var i = 0; i < stepCount-1; i++)
             steps[i] = (float)i / stepCount;
+        steps[stepCount-1] = 1f;
 
         glBindBuffer(GL_ARRAY_BUFFER, _curveVbo);
         glBufferData(GL_ARRAY_BUFFER, new IntPtr(sizeof(float) * stepCount), steps, GL_STATIC_DRAW);
@@ -191,12 +192,6 @@ public sealed class OpenGlNodeGraphRenderer
         glClear(GL_COLOR_BUFFER_BIT);
 
         var nodeGraph = _nodeGraph;
-        
-        var nodes = nodeGraph.Nodes.GetAll();
-        foreach (var node in nodes)
-        {
-            RenderNode(node);
-        }
 
         var links = nodeGraph.Links.GetAll();
         foreach (var link in links)
@@ -208,6 +203,12 @@ public sealed class OpenGlNodeGraphRenderer
                 P2 = link.EndPosition - new Vector2(20f, 0f),
                 P3 = link.EndPosition
             });
+        }
+                
+        var nodes = nodeGraph.Nodes.GetAll();
+        foreach (var node in nodes)
+        {
+            RenderNode(node);
         }
     }
 
@@ -360,17 +361,18 @@ public sealed class OpenGlNodeGraphRenderer
 
     private unsafe void RenderCurve(CubicCurve curve)
     {
+        glPointSize(5f);
         glUseProgram(_curveShader.Id);
         glBindVertexArray(_curveVao);
         glUniform2f(_curveP0UniformLoc, curve.P0.X, curve.P0.Y);
         glUniform2f(_curveP1UniformLoc, curve.P1.X, curve.P1.Y);
         glUniform2f(_curveP2UniformLoc, curve.P2.X, curve.P2.Y);
         glUniform2f(_curveP3UniformLoc, curve.P3.X, curve.P3.Y);
-        glUniform1f(_curveThicknessUniformLoc, 0.85f);
+        glUniform1f(_curveThicknessUniformLoc, 1f);
         var viewProjMat = _camera.ViewProjectionMatrix;
         var ptr = &viewProjMat.M11;
         glUniformMatrix4fv(_curveProjectionUniformLoc, 1, false, ptr);        
-        glDrawArrays(GL_LINE_STRIP, 0, CubicCurve.Steps);
+        glDrawArrays(GL_POINTS, 0, 1);
     }
 }
 
