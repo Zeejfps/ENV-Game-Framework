@@ -135,7 +135,8 @@ public sealed class OpenGlNodeGraphRenderer
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (int)GL_CLAMP_TO_EDGE);
 
         var pageName = _interFontData.Pages[0];
-        var decodedPng = Png.DecodeFromFile($"Assets/Fonts/Inter/{pageName}");
+        var fullPath = Path.Combine(AppContext.BaseDirectory, $"Assets/Fonts/Inter/{pageName}");
+        var decodedPng = Png.DecodeFromFile(fullPath);
         
         var width = decodedPng.Width;
         var height = decodedPng.Height;
