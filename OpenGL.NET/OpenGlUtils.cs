@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using OpenGL.NET;
 using OpenGlWrapper;
 using static GL46;
 
@@ -18,6 +19,11 @@ public static class OpenGlUtils
             var stackTrace = new StackTrace(1, true);
             throw new OpenGlException(error, stackTrace);
         }
+    }
+
+    public static ShaderProgramCompiler NewShader()
+    {
+        return new ShaderProgramCompiler();
     }
 
     public static bool TryGetGlError(out string errorStr)
