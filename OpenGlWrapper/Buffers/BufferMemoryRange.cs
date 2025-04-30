@@ -1,5 +1,5 @@
 using static GL46;
-using static OpenGlWrapper.OpenGlUtils;
+using static OpenGlWrapper.OpenGlUtilsTwo;
 
 namespace OpenGlWrapper.Buffers;
 
@@ -65,7 +65,7 @@ internal sealed class BufferMemoryRange<T> : IReadWriteBufferMemoryRange<T> wher
             m_Ptr = (void*)0;
             Count = 0;
             glUnmapBuffer(m_BufferKind);
-            OpenGlUtils.AssertNoGlError();
+            OpenGlUtilsTwo.AssertNoGlError();
         }
     }
 }

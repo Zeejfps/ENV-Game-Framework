@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Numerics;
 using OpenGlWrapper.Buffers;
 using static GL46;
-using static OpenGlWrapper.OpenGlUtils;
+using static OpenGlWrapper.OpenGlUtilsTwo;
 
 namespace OpenGlWrapper;
 

@@ -5,7 +5,7 @@ using static GL46;
 
 namespace OpenGlWrapper;
 
-public static class OpenGlUtils
+public static class OpenGlUtilsTwo
 {
     [Conditional("DEBUG")]
     public static void AssertNoGlError()

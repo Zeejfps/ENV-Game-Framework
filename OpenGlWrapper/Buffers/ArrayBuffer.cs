@@ -1,5 +1,5 @@
 ﻿using static GL46;
-using static OpenGlWrapper.OpenGlUtils;
+using static OpenGlWrapper.OpenGlUtilsTwo;
 
 namespace OpenGlWrapper.Buffers;
 
