@@ -1,6 +1,6 @@
-using EasyGameFramework.GUI;
 using NodeGraphApp;
 using Column = NodeGraphApp.Column;
+using TextAlignment = NodeGraphApp.TextAlignment;
 
 public sealed class Node
 {

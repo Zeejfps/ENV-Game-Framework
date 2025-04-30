@@ -1,7 +1,5 @@
 namespace NodeGraphApp;
 
-using EasyGameFramework.GUI;
-
 public sealed class OutputPort : IPort
 {
     private static Color HoveredBorderColor { get; } = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f);

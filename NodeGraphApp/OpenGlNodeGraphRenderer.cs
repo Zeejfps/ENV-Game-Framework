@@ -1,12 +1,10 @@
-using System.Numerics;
-using EasyGameFramework.GUI;
 using MsdfBmpFont;
 using NodeGraphApp;
 using OpenGL.NET;
-using OpenGLSandbox;
 using PngSharp.Api;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
+using TextAlignment = NodeGraphApp.TextAlignment;
 
 public sealed class OpenGlNodeGraphRenderer
 {

@@ -1,6 +1,4 @@
-﻿using EasyGameFramework.GUI;
-
-namespace NodeGraphApp;
+﻿namespace NodeGraphApp;
 
 public sealed class InputPort : IPort
 {
