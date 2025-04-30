@@ -69,6 +69,9 @@ n2.Update();
 nodeGraph.Nodes.Add(n1);
 nodeGraph.Nodes.Add(n2);
 
+var link = new Link();
+nodeGraph.Links.Add(link);
+
 var mouse = new Mouse();
 var keyboard = new Keyboard();
 var camera = new Camera(windowAspectRatio);

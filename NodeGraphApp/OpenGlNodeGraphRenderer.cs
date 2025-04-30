@@ -200,8 +200,8 @@ public sealed class OpenGlNodeGraphRenderer
         RenderCurve(new CubicCurve
         {
             P0 = new Vector2(0, 0),
-            P1 = new Vector2(20f, 0),
-            P2 = new Vector2(40f, 50f),
+            P1 = new Vector2(25f, 0),
+            P2 = new Vector2(35f, 50f),
             P3 = new Vector2(60f, 50f),
         });
     }
