@@ -46,8 +46,16 @@ public sealed class OpenGlNodeGraphRenderer
     private int _glyphSpriteRectUniformLoc;
     private int _glyphTextureUniformLoc;
     private uint _fontTextureId;
-
     private readonly MsdfBmpFontMetrics _fontMetrics;
+
+    // Curve data
+    private uint _curveVao;
+    private uint _curveVbo;
+    private uint _curveShader;
+    private int _curveP0UniformLoc;
+    private int _curveP1UniformLoc;
+    private int _curveP2UniformLoc;
+    private int _curveP3UniformLoc;
 
     public OpenGlNodeGraphRenderer(NodeGraph nodeGraph, Camera camera, MsdfFontFile interFontData)
     {
@@ -62,10 +70,45 @@ public sealed class OpenGlNodeGraphRenderer
         LoadSharedData();
         LoadPanelData();
         LoadGlyphData();
+        LoadCurveData();
         
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glClearColor(0.1176f, 0.1176f, 	0.1804f, 1f);
+    }
+
+    private unsafe void LoadCurveData()
+    {
+        uint vbo;
+        glGenBuffers(1, &vbo);
+        _curveVbo = vbo;
+
+        uint vao;
+        glGenVertexArrays(1, &vao);
+        _curveVao = vao;
+
+        glBindVertexArray(vao);
+
+        var stepCount = 32;
+        var steps = stackalloc float[stepCount];
+        for (var i = 0; i < stepCount; i++)
+            steps[i] = (float)i / stepCount;
+
+        glBindBuffer(GL_ARRAY_BUFFER, _curveVbo);
+        glBufferData(GL_ARRAY_BUFFER, new IntPtr(sizeof(float) * stepCount), steps, GL_STATIC_DRAW);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 1, GL_FLOAT, false, sizeof(float), (void*)0);
+
+        _curveShader = new ShaderProgramBuilder()
+            .WithVertexShader("Assets/Shaders/curve_vert.glsl")
+            .WithFragmentShader("Assets/Shaders/curve_frag.glsl")
+            .Build();
+
+        _curveP0UniformLoc = GetUniformLocation(_curveShader, "u_p0");
+        _curveP1UniformLoc = GetUniformLocation(_curveShader, "u_p1");
+        _curveP2UniformLoc = GetUniformLocation(_curveShader, "u_p2");
+        _curveP3UniformLoc = GetUniformLocation(_curveShader, "u_p3");
     }
 
     private unsafe void LoadGlyphData()
@@ -296,8 +339,16 @@ public sealed class OpenGlNodeGraphRenderer
         }
     }
 
-    private void RenderCurve()
+    private void RenderCurve(CubicCurve curve)
     {
 
     }
+}
+
+public readonly struct CubicCurve
+{
+    public float P0 { get; init; }
+    public float P1 { get; init; }
+    public float P2 { get; init; }
+    public float P3 { get; init; }
 }
