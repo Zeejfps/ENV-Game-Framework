@@ -8,7 +8,6 @@ public sealed class ShaderProgramCompiler
 {
     private string? _vertexShaderFilePath;
     private string? _fragmentShaderFilePath;
-    private readonly HashSet<string> _uniforms = new();
 
     public ShaderProgramCompiler WithVertexShader(string filePath)
     {
@@ -19,12 +18,6 @@ public sealed class ShaderProgramCompiler
     public ShaderProgramCompiler WithFragmentShader(string filePath)
     {
         _fragmentShaderFilePath = filePath;
-        return this;
-    }
-
-    public ShaderProgramCompiler WithUniform(string uniformName)
-    {
-        _uniforms.Add(uniformName);
         return this;
     }
 
@@ -66,17 +59,9 @@ public sealed class ShaderProgramCompiler
         glDeleteShader(vertexShader); AssertNoGlError();
         glDeleteShader(fragmentShader); AssertNoGlError();
 
-        var uniformLocationByNameLookup = new Dictionary<string, int>();
-        foreach (var uniformName in _uniforms)
-        {
-            var location = GetUniformLocation(shaderProgramId, uniformName);
-            uniformLocationByNameLookup.Add(uniformName, location);
-        }
-
         return new ShaderProgramInfo
         {
             Id = shaderProgramId,
-            Uniforms = uniformLocationByNameLookup
         };
     }
 }

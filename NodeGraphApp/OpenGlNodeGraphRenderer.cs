@@ -2,6 +2,7 @@ using System.Numerics;
 using EasyGameFramework.GUI;
 using MsdfBmpFont;
 using NodeGraphApp;
+using OpenGL.NET;
 using OpenGLSandbox;
 using PngSharp.Api;
 using static GL46;
@@ -31,7 +32,7 @@ public sealed class OpenGlNodeGraphRenderer
     private uint _quadVbo;
 
     // Panel data
-    private uint _panelShader;
+    private ShaderProgramInfo _panelShader;
     private int _rectUniformLoc;
     private int _viewProjUniformLoc;
     private int _colorUniformLoc;
@@ -40,7 +41,7 @@ public sealed class OpenGlNodeGraphRenderer
     private int _borderColorUniformLoc;
 
     // Glyph data
-    private uint _glyphShader;
+    private ShaderProgramInfo _glyphShader;
     private int _glyphViewProjUniformLoc;
     private int _glyphRectUniformLoc;
     private int _glyphSpriteRectUniformLoc;
@@ -51,7 +52,7 @@ public sealed class OpenGlNodeGraphRenderer
     // Curve data
     private uint _curveVao;
     private uint _curveVbo;
-    private uint _curveShader;
+    private ShaderProgramInfo _curveShader;
     private int _curveP0UniformLoc;
     private int _curveP1UniformLoc;
     private int _curveP2UniformLoc;
@@ -100,28 +101,28 @@ public sealed class OpenGlNodeGraphRenderer
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 1, GL_FLOAT, false, sizeof(float), (void*)0);
 
-        _curveShader = new ShaderProgramBuilder()
+        _curveShader = NewShader()
             .WithVertexShader("Assets/Shaders/curve_vert.glsl")
             .WithFragmentShader("Assets/Shaders/curve_frag.glsl")
-            .Build();
+            .Compile();
 
-        _curveP0UniformLoc = GetUniformLocation(_curveShader, "u_p0");
-        _curveP1UniformLoc = GetUniformLocation(_curveShader, "u_p1");
-        _curveP2UniformLoc = GetUniformLocation(_curveShader, "u_p2");
-        _curveP3UniformLoc = GetUniformLocation(_curveShader, "u_p3");
+        _curveP0UniformLoc = GetUniformLocation(_curveShader.Id, "u_p0");
+        _curveP1UniformLoc = GetUniformLocation(_curveShader.Id, "u_p1");
+        _curveP2UniformLoc = GetUniformLocation(_curveShader.Id, "u_p2");
+        _curveP3UniformLoc = GetUniformLocation(_curveShader.Id, "u_p3");
     }
 
     private unsafe void LoadGlyphData()
     {
-        _glyphShader = new ShaderProgramBuilder()
+        _glyphShader = NewShader()
             .WithVertexShader("Assets/Shaders/glyph_vert.glsl")
             .WithFragmentShader("Assets/Shaders/glyph_frag.glsl")
-            .Build();
+            .Compile();
         
-        _glyphRectUniformLoc = GetUniformLocation(_glyphShader, "u_rect");
-        _glyphViewProjUniformLoc = GetUniformLocation(_glyphShader, "u_viewProjMat");
-        _glyphTextureUniformLoc = GetUniformLocation(_glyphShader, "tex");
-        _glyphSpriteRectUniformLoc = GetUniformLocation(_glyphShader, "u_spriteRect");
+        _glyphRectUniformLoc = GetUniformLocation(_glyphShader.Id, "u_rect");
+        _glyphViewProjUniformLoc = GetUniformLocation(_glyphShader.Id, "u_viewProjMat");
+        _glyphTextureUniformLoc = GetUniformLocation(_glyphShader.Id, "tex");
+        _glyphSpriteRectUniformLoc = GetUniformLocation(_glyphShader.Id, "u_spriteRect");
         
         uint textureId;
         glGenTextures(1, &textureId); AssertNoGlError();
@@ -167,17 +168,17 @@ public sealed class OpenGlNodeGraphRenderer
 
     private void LoadPanelData()
     {
-        _panelShader = new ShaderProgramBuilder()
+        _panelShader = NewShader()
             .WithVertexShader("Assets/Shaders/panel_vert.glsl")
             .WithFragmentShader("Assets/Shaders/panel_frag.glsl")
-            .Build();
+            .Compile();
 
-        _rectUniformLoc = GetUniformLocation(_panelShader, "u_rect");
-        _viewProjUniformLoc = GetUniformLocation(_panelShader, "u_vp");
-        _colorUniformLoc = GetUniformLocation(_panelShader, "u_color");
-        _borderRadiusUniformLoc = GetUniformLocation(_panelShader, "u_borderRadius");
-        _borderSizeUniformLoc = GetUniformLocation(_panelShader, "u_borderSize");
-        _borderColorUniformLoc = GetUniformLocation(_panelShader, "u_borderColor");
+        _rectUniformLoc = GetUniformLocation(_panelShader.Id, "u_rect");
+        _viewProjUniformLoc = GetUniformLocation(_panelShader.Id, "u_vp");
+        _colorUniformLoc = GetUniformLocation(_panelShader.Id, "u_color");
+        _borderRadiusUniformLoc = GetUniformLocation(_panelShader.Id, "u_borderRadius");
+        _borderSizeUniformLoc = GetUniformLocation(_panelShader.Id, "u_borderSize");
+        _borderColorUniformLoc = GetUniformLocation(_panelShader.Id, "u_borderColor");
     }
 
     public void Update()
@@ -205,7 +206,7 @@ public sealed class OpenGlNodeGraphRenderer
 
     private unsafe void RenderVisualNode(VisualNode r)
     {
-        glUseProgram(_panelShader);
+        glUseProgram(_panelShader.Id);
         glUniform4f(_rectUniformLoc, r.Bounds.Left, r.Bounds.Bottom, r.Bounds.Width, r.Bounds.Height);
         glUniform4f(_colorUniformLoc, r.Color.R, r.Color.G, r.Color.B, r.Color.A);
         glUniform4f(_borderColorUniformLoc, r.BorderColor.R, r.BorderColor.G, r.BorderColor.B, r.BorderColor.A);
@@ -318,7 +319,7 @@ public sealed class OpenGlNodeGraphRenderer
         var bounds = glyph.Bounds;
         var spriteRect = glyph.SpriteRect;
         
-        glUseProgram(_glyphShader);
+        glUseProgram(_glyphShader.Id);
         glUniform1i(_glyphTextureUniformLoc, 0);
         glUniform4f(_glyphRectUniformLoc, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
         glUniform4f(_glyphSpriteRectUniformLoc, spriteRect.Left, spriteRect.Bottom, spriteRect.Width, spriteRect.Height);
