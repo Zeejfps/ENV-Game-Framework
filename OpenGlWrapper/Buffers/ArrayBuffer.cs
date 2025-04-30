@@ -1,4 +1,5 @@
-﻿using static GL46;
+﻿using OpenGLSandbox;
+using static GL46;
 using static OpenGlWrapper.OpenGlUtilsTwo;
 
 namespace OpenGlWrapper.Buffers;
@@ -27,7 +28,7 @@ internal class ArrayBuffer : Buffer
         if (IsAllocated && IsFixedSize)
             throw new InvalidOperationException($"Can't re-allocate an already allocated FIXED-SIZED buffer, Id: {Handle.Id}");
 
-        var sizeInBytes = SizeOf<T>(length);
+        var sizeInBytes = OpenGlUtils.SizeOf<T>(length);
         glBufferStorage(Kind, sizeInBytes, dataPtr, (uint)accessFlags);
         AssertNoGlError();
         IsFixedSize = true;

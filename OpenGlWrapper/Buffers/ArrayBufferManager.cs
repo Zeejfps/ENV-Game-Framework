@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using OpenGLSandbox;
 using static GL46;
 using static OpenGlWrapper.OpenGlUtilsTwo;
 
@@ -79,7 +80,7 @@ public sealed class ArrayBufferManager
     {
         unsafe
         {
-            var ptr = glMapBufferRange(BufferKind, SizeOf<T>(offset), SizeOf<T>(count), access);
+            var ptr = glMapBufferRange(BufferKind, OpenGlUtils.SizeOf<T>(offset), OpenGlUtils.SizeOf<T>(count), access);
             AssertNoGlError();
             if (ptr == null)
                 throw new Exception("Failed to map buffer range, Unknown error");

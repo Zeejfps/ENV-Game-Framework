@@ -1,4 +1,5 @@
-﻿using static GL46;
+﻿using OpenGLSandbox;
+using static GL46;
 using static OpenGlWrapper.OpenGlUtilsTwo;
 
 namespace OpenGlWrapper.Buffers;
@@ -50,7 +51,7 @@ internal abstract class Buffer
         if (ptr == null)
             throw new Exception("Failed to map buffer, Unknown error");
             
-        var sizeOfT = SizeOf<T>();
+        var sizeOfT = OpenGlUtils.SizeOf<T>();
         var count = sizeInBytes / sizeOfT.ToInt32();
         return new BufferMemoryRange<T>(bufferKind, 0, ptr, count, (uint)BufferMemoryRangeAccessFlag.None);
     }

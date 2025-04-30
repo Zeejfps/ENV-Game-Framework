@@ -1,3 +1,4 @@
+using OpenGLSandbox;
 using static GL46;
 using static OpenGlWrapper.OpenGlUtilsTwo;
 
@@ -53,7 +54,7 @@ internal sealed class BufferMemoryRange<T> : IReadWriteBufferMemoryRange<T> wher
         if ((m_AccessFlag & GL_MAP_FLUSH_EXPLICIT_BIT) == 0)
             throw new InvalidOperationException("Can't flush buffer that does not have the FlushExplicit access flag set");
         
-        glFlushMappedBufferRange(GL_ARRAY_BUFFER, SizeOf<T>(m_Offset), SizeOf<T>(Count));
+        glFlushMappedBufferRange(GL_ARRAY_BUFFER, OpenGlUtils.SizeOf<T>(m_Offset), OpenGlUtils.SizeOf<T>(Count));
         AssertNoGlError();
     }
 
@@ -65,7 +66,7 @@ internal sealed class BufferMemoryRange<T> : IReadWriteBufferMemoryRange<T> wher
             m_Ptr = (void*)0;
             Count = 0;
             glUnmapBuffer(m_BufferKind);
-            OpenGlUtilsTwo.AssertNoGlError();
+            OpenGlUtils.AssertNoGlError();
         }
     }
 }

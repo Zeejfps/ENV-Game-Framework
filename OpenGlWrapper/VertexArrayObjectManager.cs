@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Numerics;
 using OpenGlWrapper.Buffers;
 using static GL46;
+using OpenGLSandbox;
 using static OpenGlWrapper.OpenGlUtilsTwo;
 
 namespace OpenGlWrapper;
@@ -83,7 +84,7 @@ public sealed class VertexArrayObjectManager
         unsafe
         {
             m_ArrayBufferManager.Bind(vbo);
-            glVertexAttribPointer((uint)attribIndex, size, (uint)type, normalized, stride, Offset(offset));
+            glVertexAttribPointer((uint)attribIndex, size, (uint)type, normalized, stride, OpenGlUtils.Offset(offset));
             AssertNoGlError();
             return this;
         }
@@ -135,7 +136,7 @@ public sealed class VertexArrayObjectManager
                     Index = attribIndex,
                     Size = attribSize,
                     Type = attribType,
-                    Offset = AttribOffset<T>(field.Name)
+                    Offset = OpenGlUtils.AttribOffset<T>(field.Name)
                 };
                 attribs.Add(attrib);
             }

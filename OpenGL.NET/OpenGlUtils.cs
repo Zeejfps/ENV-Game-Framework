@@ -2,21 +2,10 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using OpenGlWrapper;
 using static GL46;
 
 namespace OpenGLSandbox;
-
-public sealed class OpenGlException : Exception
-{
-    private readonly StackTrace m_StackTrace;
-
-    public OpenGlException(string error, StackTrace stackTrace) : base(error)
-    {
-        m_StackTrace = stackTrace;
-    }
-
-    public override string? StackTrace => m_StackTrace.ToString();
-}
 
 public static class OpenGlUtils
 {
@@ -68,6 +57,8 @@ public static class OpenGlUtils
         errorStr = string.Empty;
         return false;
     }
+
+
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static unsafe void* Offset(int offset)
@@ -186,18 +177,27 @@ public static class OpenGlUtils
         return uniformLocation;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe IntPtr SizeOf<T>() where T : unmanaged
     {
         return new IntPtr(sizeof(T));
     }
-    
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe IntPtr SizeOf<T>(uint count) where T : unmanaged
     {
         return new IntPtr(sizeof(T) * count);
     }
-    
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe IntPtr SizeOf<T>(int count) where T : unmanaged
     {
         return new IntPtr(sizeof(T) * count);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int AttribOffset<T>(string field)
+    {
+        return Marshal.OffsetOf<T>(field).ToInt32();
     }
 }

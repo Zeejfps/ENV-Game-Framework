@@ -55,40 +55,4 @@ public static class OpenGlUtilsTwo
         errorStr = string.Empty;
         return false;
     }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe IntPtr SizeOf<T>() where T : unmanaged
-    {
-        return new IntPtr(sizeof(T));
-    }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe IntPtr SizeOf<T>(uint count) where T : unmanaged
-    {
-        return new IntPtr(sizeof(T) * count);
-    }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe IntPtr SizeOf<T>(int count) where T : unmanaged
-    {
-        return new IntPtr(sizeof(T) * count);
-    }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static unsafe void* Offset(int offset)
-    {
-        return (void*)offset;
-    } 
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe void* Offset<T>(string field)
-    {
-        return (void*)Marshal.OffsetOf<T>(field);
-    } 
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int AttribOffset<T>(string field)
-    {
-        return Marshal.OffsetOf<T>(field).ToInt32();
-    } 
 }
