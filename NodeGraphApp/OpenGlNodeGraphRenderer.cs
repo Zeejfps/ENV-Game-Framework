@@ -295,10 +295,9 @@ public sealed class OpenGlNodeGraphRenderer
                 i++;
         }
     }
-}
 
-public readonly struct GlyphRect
-{
-    public ScreenRect Bounds { get; init; }
-    public ScreenRect SpriteRect { get; init; }
+    private void RenderCurve()
+    {
+
+    }
 }
