@@ -18,7 +18,7 @@ public sealed class Viewport
 
     public void Update()
     {
-        Glfw.GetWindowSize(_window, out var width, out var height);
+        Glfw.GetFramebufferSize(_window, out var width, out var height);
         var x = Bounds.Left * width;
         var y = Bounds.Bottom * height;
         var w = Bounds.Width * width;
