@@ -88,6 +88,7 @@ var interFontData = fontLoader.LoadFromFilePath(App.ResolvePath("Assets/Fonts/In
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
 var cameraDragController = new CameraDragController(viewport, mouse, keyboard);
 var nodeSelectionController = new NodeSelectionController(viewport, mouse, nodeGraph);
+var linkPlacementController = new LinkPlacementController(viewport, mouse, link);
 
 Glfw.SetMouseButtonCallback(window, (_, button, state, _) =>
 {
@@ -145,6 +146,7 @@ while (!Glfw.WindowShouldClose(window))
     Glfw.PollEvents();
     cameraDragController.Update();
     nodeSelectionController.Update();
+    linkPlacementController.Update();
     
     viewport.Update();
     renderer.Update();

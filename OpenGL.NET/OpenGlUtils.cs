@@ -111,7 +111,14 @@ public static class OpenGlUtils
             var infoLog = glGetShaderInfoLog(shader);
             AssertNoGlError();
 
-            var shaderTypeAsString = type == GL_VERTEX_SHADER ? "Vertex Shader" : "Fragment Shader";
+            var shaderTypeAsString = "Unknown Shader";
+            if (type == GL_VERTEX_SHADER)
+                shaderTypeAsString = "Vertex Shader";
+            else if (type == GL_FRAGMENT_SHADER)
+                shaderTypeAsString = "Fragment Shader";
+            else if (type == GL_GEOMETRY_SHADER)
+                shaderTypeAsString = "Geometry Shader";
+            
             Console.WriteLine($"Failed to compile shader: {shaderTypeAsString}");
             Console.WriteLine(infoLog);
             glDeleteShader(shader);
