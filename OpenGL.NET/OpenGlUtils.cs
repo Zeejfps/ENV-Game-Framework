@@ -12,7 +12,7 @@ public static class OpenGlUtils
     [Conditional("DEBUG")]
     public static void AssertNoGlError()
     {
-        var hasError = glTryGetError(out var error);
+        var hasError = TryGetGlError(out var error);
         if (hasError)
         {
             var stackTrace = new StackTrace(1, true);
@@ -20,7 +20,7 @@ public static class OpenGlUtils
         }
     }
 
-    public static bool glTryGetError(out string errorStr)
+    public static bool TryGetGlError(out string errorStr)
     {
         var error = glGetError();
         if (error != GL_NO_ERROR)
@@ -72,7 +72,7 @@ public static class OpenGlUtils
         return (void*)Marshal.OffsetOf<T>(field);
     } 
 
-    public static unsafe uint CreateAndCompileShaderFromSourceFile(uint type, string filePath)
+    public static uint CreateAndCompileShaderFromSourceFile(uint type, string filePath)
     {
         var source = File.ReadAllText(filePath);
         return CreateAndCompileShaderFromSource(type, source);
