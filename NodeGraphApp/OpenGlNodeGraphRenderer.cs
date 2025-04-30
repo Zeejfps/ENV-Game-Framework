@@ -56,6 +56,8 @@ public sealed class OpenGlNodeGraphRenderer
     private int _curveP1UniformLoc;
     private int _curveP2UniformLoc;
     private int _curveP3UniformLoc;
+    private int _curveThicknessUniformLoc;
+    private int _curveProjectionUniformLoc;
 
     public OpenGlNodeGraphRenderer(NodeGraph nodeGraph, Camera camera, MsdfFontFile interFontData)
     {
@@ -103,12 +105,15 @@ public sealed class OpenGlNodeGraphRenderer
         _curveShader = NewShader()
             .WithVertexShader(App.ResolvePath("Assets/Shaders/curve_vert.glsl"))
             .WithFragmentShader(App.ResolvePath("Assets/Shaders/curve_frag.glsl"))
+            .WithGeometryShader(App.ResolvePath("Assets/Shaders/curve_geom.glsl"))
             .Compile();
 
         _curveP0UniformLoc = GetUniformLocation(_curveShader.Id, "u_p0");
         _curveP1UniformLoc = GetUniformLocation(_curveShader.Id, "u_p1");
         _curveP2UniformLoc = GetUniformLocation(_curveShader.Id, "u_p2");
         _curveP3UniformLoc = GetUniformLocation(_curveShader.Id, "u_p3");
+        _curveThicknessUniformLoc = GetUniformLocation(_curveShader.Id, "thickness");
+        _curveProjectionUniformLoc = GetUniformLocation(_curveShader.Id, "projection");
     }
 
     private unsafe void LoadGlyphData()
@@ -195,9 +200,9 @@ public sealed class OpenGlNodeGraphRenderer
         RenderCurve(new CubicCurve
         {
             P0 = new Vector2(0, 0),
-            P1 = new Vector2(0.1f, 0),
-            P2 = new Vector2(0.2f, 0.4f),
-            P3 = new Vector2(0.3f, 0.4f),
+            P1 = new Vector2(20f, 0),
+            P2 = new Vector2(40f, 50f),
+            P3 = new Vector2(60f, 50f),
         });
     }
 
@@ -348,7 +353,7 @@ public sealed class OpenGlNodeGraphRenderer
         }
     }
 
-    private void RenderCurve(CubicCurve curve)
+    private unsafe void RenderCurve(CubicCurve curve)
     {
         glUseProgram(_curveShader.Id);
         glBindVertexArray(_curveVao);
@@ -356,6 +361,10 @@ public sealed class OpenGlNodeGraphRenderer
         glUniform2f(_curveP1UniformLoc, curve.P1.X, curve.P1.Y);
         glUniform2f(_curveP2UniformLoc, curve.P2.X, curve.P2.Y);
         glUniform2f(_curveP3UniformLoc, curve.P3.X, curve.P3.Y);
+        glUniform1f(_curveThicknessUniformLoc, 0.85f);
+        var viewProjMat = _camera.ViewProjectionMatrix;
+        var ptr = &viewProjMat.M11;
+        glUniformMatrix4fv(_curveProjectionUniformLoc, 1, false, ptr);        
         glDrawArrays(GL_LINE_STRIP, 0, CubicCurve.Steps);
     }
 }

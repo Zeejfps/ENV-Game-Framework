@@ -4,7 +4,7 @@ layout(location = 0) in float t;
 
 uniform vec2 u_p0, u_p1, u_p2, u_p3;
 
-out vec4 worldPos;
+out vec2 worldPos;
 
 void main() {
     float u = 1.0 - t;
@@ -14,5 +14,5 @@ void main() {
         3*u*t*t * u_p2 +
         t*t*t * u_p3;
 
-    gl_Position = vec4(pos, 0.0, 1.0);
+    worldPos = pos;
 }
