@@ -17,6 +17,7 @@ var windowAspectRatio = (float)windowWidth / windowHeight;
 var window = Glfw.CreateWindow(windowWidth, windowHeight, "Node Graph", Monitor.None, Window.None);
 
 var nodeGraph = new NodeGraph();
+var testOutputPort = new OutputPort();
 var n1 = new Node
 {
     Title = "Node 1",
@@ -37,7 +38,7 @@ var n1 = new Node
     },
     OutputPorts =
     {
-        new OutputPort(),
+        testOutputPort,
         new OutputPort(),
     }
 };
@@ -75,6 +76,8 @@ var link = new Link
     EndPosition = new Vector2(50, 50)
 };
 nodeGraph.Links.Add(link);
+
+nodeGraph.Links.Connect(link, testOutputPort);
 
 var mouse = new Mouse();
 var keyboard = new Keyboard();
@@ -148,6 +151,7 @@ while (!Glfw.WindowShouldClose(window))
     nodeSelectionController.Update();
     linkPlacementController.Update();
     
+    nodeGraph.Update();
     viewport.Update();
     renderer.Update();
     

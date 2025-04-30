@@ -1,4 +1,5 @@
-﻿using NodeGraphApp;
+﻿using System.Numerics;
+using NodeGraphApp;
 using TextAlignment = NodeGraphApp.TextAlignment;
 
 public sealed class VisualNode
@@ -38,4 +39,5 @@ public sealed class VisualNode
     public List<VisualNode> Children { get; } = new();
     
     public TextAlignment TextVerticalAlignment { get; set; }
+    public Vector2 CenterPosition => new(Bounds.Left + Bounds.Width*0.5f, Bounds.Bottom + Bounds.Height*0.5f);
 }
