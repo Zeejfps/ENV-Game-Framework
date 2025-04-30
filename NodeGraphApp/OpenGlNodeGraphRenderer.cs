@@ -341,12 +341,19 @@ public sealed class OpenGlNodeGraphRenderer
 
     private void RenderCurve(CubicCurve curve)
     {
-
+        glUseProgram(_curveShader.Id);
+        glBindVertexArray(_curveVao);
+        glUniform1f(_curveP0UniformLoc, curve.P0);
+        glUniform1f(_curveP1UniformLoc, curve.P1);
+        glUniform1f(_curveP2UniformLoc, curve.P2);
+        glUniform1f(_curveP3UniformLoc, curve.P3);
+        glDrawArrays(GL_LINE_STRIP, 0, CubicCurve.Steps + 1);
     }
 }
 
 public readonly struct CubicCurve
 {
+    public const int Steps = 32;
     public float P0 { get; init; }
     public float P1 { get; init; }
     public float P2 { get; init; }
