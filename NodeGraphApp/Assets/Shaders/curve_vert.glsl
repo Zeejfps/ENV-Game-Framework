@@ -8,9 +8,9 @@ void main() {
     float u = 1.0 - t;
     vec2 pos =
         u*u*u * u_p0 +
-        3*u*u*t * p1 +
-        3*u*t*t * p2 +
-        t*t*t * p3;
+        3*u*u*t * u_p1 +
+        3*u*t*t * u_p2 +
+        t*t*t * u_p3;
 
     gl_Position = vec4(pos, 0.0, 1.0);
 }

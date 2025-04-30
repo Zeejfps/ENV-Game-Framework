@@ -191,6 +191,14 @@ public sealed class OpenGlNodeGraphRenderer
         {
             RenderNode(node);
         }
+
+        RenderCurve(new CubicCurve
+        {
+            P0 = new Vector2(0, 0),
+            P1 = new Vector2(1, 0),
+            P2 = new Vector2(10, 1),
+            P3 = new Vector2(10, 1),
+        });
     }
 
     public unsafe void Teardown()
