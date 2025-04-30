@@ -195,9 +195,9 @@ public sealed class OpenGlNodeGraphRenderer
         RenderCurve(new CubicCurve
         {
             P0 = new Vector2(0, 0),
-            P1 = new Vector2(1, 0),
-            P2 = new Vector2(10, 1),
-            P3 = new Vector2(10, 1),
+            P1 = new Vector2(0.1f, 0),
+            P2 = new Vector2(0.2f, 0.4f),
+            P3 = new Vector2(0.3f, 0.4f),
         });
     }
 
@@ -356,7 +356,7 @@ public sealed class OpenGlNodeGraphRenderer
         glUniform2f(_curveP1UniformLoc, curve.P1.X, curve.P1.Y);
         glUniform2f(_curveP2UniformLoc, curve.P2.X, curve.P2.Y);
         glUniform2f(_curveP3UniformLoc, curve.P3.X, curve.P3.Y);
-        glDrawArrays(GL_LINE_STRIP, 0, CubicCurve.Steps + 1);
+        glDrawArrays(GL_LINE_STRIP, 0, CubicCurve.Steps);
     }
 }
 
