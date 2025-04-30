@@ -4,6 +4,8 @@ layout(location = 0) in float t;
 
 uniform vec2 u_p0, u_p1, u_p2, u_p3;
 
+out vec4 worldPos;
+
 void main() {
     float u = 1.0 - t;
     vec2 pos =

@@ -8,10 +8,17 @@ public sealed class ShaderProgramCompiler
 {
     private string? _vertexShaderFilePath;
     private string? _fragmentShaderFilePath;
+    private string? _geometryShaderFilePath;
 
     public ShaderProgramCompiler WithVertexShader(string filePath)
     {
         _vertexShaderFilePath = filePath;
+        return this;
+    }
+    
+    public ShaderProgramCompiler WithGeometryShader(string filePath)
+    {
+        _geometryShaderFilePath = filePath;
         return this;
     }
 
@@ -25,21 +32,9 @@ public sealed class ShaderProgramCompiler
     {
         var shaderProgramId = glCreateProgram(); AssertNoGlError();
 
-        uint vertexShader = 0;
-        var vertexShaderFilePath = _vertexShaderFilePath;
-        if (!string.IsNullOrEmpty(vertexShaderFilePath))
-        {
-            vertexShader = CreateAndCompileShaderFromSourceFile(GL_VERTEX_SHADER, vertexShaderFilePath);
-            glAttachShader(shaderProgramId, vertexShader); AssertNoGlError();
-        }
-
-        uint fragmentShader = 0;
-        var fragmentShaderFilepath = _fragmentShaderFilePath;
-        if (!string.IsNullOrEmpty(fragmentShaderFilepath))
-        {
-            fragmentShader = CreateAndCompileShaderFromSourceFile(GL_FRAGMENT_SHADER, fragmentShaderFilepath);
-            glAttachShader(shaderProgramId, fragmentShader); AssertNoGlError();
-        }
+        var vertexShader = CompileAndAttachShader(shaderProgramId, GL_VERTEX_SHADER, _vertexShaderFilePath);
+        var fragmentShader = CompileAndAttachShader(shaderProgramId, GL_FRAGMENT_SHADER, _fragmentShaderFilePath);
+        var geometryShader = CompileAndAttachShader(shaderProgramId, GL_GEOMETRY_SHADER, _geometryShaderFilePath);
 
         glLinkProgram(shaderProgramId); AssertNoGlError();
 
@@ -58,10 +53,22 @@ public sealed class ShaderProgramCompiler
 
         glDeleteShader(vertexShader); AssertNoGlError();
         glDeleteShader(fragmentShader); AssertNoGlError();
+        glDeleteShader(geometryShader); AssertNoGlError();
 
         return new ShaderProgramInfo
         {
             Id = shaderProgramId,
         };
+    }
+
+    private uint CompileAndAttachShader(uint shaderProgramId, uint type, string? shaderFilePath)
+    {
+        uint shaderId = 0;
+        if (!string.IsNullOrEmpty(shaderFilePath))
+        {
+            shaderId = CreateAndCompileShaderFromSourceFile(type, shaderFilePath);
+            glAttachShader(shaderProgramId, shaderId); AssertNoGlError();
+        }
+        return shaderId;
     }
 }
