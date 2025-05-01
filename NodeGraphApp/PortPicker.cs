@@ -12,6 +12,13 @@ public sealed class PortPicker
 
     public void Update()
     {
-        HoveredInputPort = _mousePicker.HoveredNode as InputPort;
+        var hoveredNode = _mousePicker.HoveredNode;
+        var hoveredPort = hoveredNode as InputPort;
+        while (hoveredNode != null && hoveredPort == null && hoveredNode.Parent != null)
+        {
+            hoveredNode = hoveredNode.Parent;
+            hoveredPort = hoveredNode as InputPort;
+        }
+        HoveredInputPort = hoveredPort;
     }
 }
