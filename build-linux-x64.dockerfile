@@ -1,5 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 
+RUN apt-get update && apt-get install -y clang
+
 # Set working directory
 WORKDIR /src
 
@@ -12,8 +14,7 @@ RUN dotnet publish "$PROJECT_PATH" \
     -p:PublishAot=true \
     -p:SelfContained=true \
     -p:StripSymbols=true \
-    -o /publish \
-    -v diag
+    -o /publish
 
 FROM scratch AS export
 COPY --from=build /publish /publish
