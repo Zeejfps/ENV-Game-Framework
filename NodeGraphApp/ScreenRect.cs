@@ -1,4 +1,6 @@
-﻿namespace NodeGraphApp;
+﻿using System.Numerics;
+
+namespace NodeGraphApp;
 
 public readonly struct ScreenRect : IEquatable<ScreenRect>
 {
@@ -61,5 +63,18 @@ public readonly struct ScreenRect : IEquatable<ScreenRect>
     {
         return
             $"{nameof(Left)}: {Left}, {nameof(Bottom)}: {Bottom}, {nameof(Top)}: {Top}, {nameof(Right)}: {Right}, {nameof(Width)}: {Width}, {nameof(Height)}: {Height}";
+    }
+
+    public bool Contains(Vector2 point)
+    {
+        if (Right < point.X)
+            return false;
+        if (Top < point.Y)
+            return false;
+        if (Left > point.X)
+            return false;
+        if (Bottom > point.Y)
+            return false;
+        return true;
     }
 }

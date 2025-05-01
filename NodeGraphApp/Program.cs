@@ -98,7 +98,6 @@ var linkPlacementController = new LinkPlacementController(viewport, mouse, portP
 };
 
 var mousePicker = new MousePicker(viewport, mouse, nodeGraph);
-mousePicker.Update();
 
 Glfw.SetMouseButtonCallback(window, (_, button, state, _) =>
 {
@@ -157,6 +156,7 @@ while (!Glfw.WindowShouldClose(window))
     cameraDragController.Update();
     nodeSelectionController.Update();
     linkPlacementController.Update();
+    mousePicker.Update();
     
     nodeGraph.Update();
     viewport.Update();
