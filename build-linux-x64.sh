@@ -1,16 +1,20 @@
 #!/bin/sh
 
+project_path="./NodeGraphApp/NodeGraphApp.csproj"
+output_path="./builds/NodeGraphApp/"
+
 echo "Building image..."
 docker build -t linux-x64-builder \
     --build-arg \
-        PROJECT_PATH=./NodeGraphApp/NodeGraphApp.csproj \
+        PROJECT_PATH=$project_path \
     -f ./build-linux-x64.dockerfile .
 
 echo "Copying artifacts..."
-mkdir -p ./publish/NodeGraphApp/
-docker run --rm -d --name build-artifacts linux-x64-builder sleep infinity
-docker cp build-artifacts:/linux-x64/ ./builds/NodeGraphApp/
-docker stop build-artifacts
+container_name="build-artifacts"
+mkdir -p $output_path
+docker run --rm -d --name $container_name linux-x64-builder sleep infinity
+docker cp $container_name:/linux-x64/ $output_path
+docker stop $container_name
 
 
 
