@@ -14,6 +14,10 @@ public sealed class NodeGraph
             {
                 link.StartPosition = outputPort.Socket.CenterPosition;
             }
+            if (Links.TryGetInputPortForLink(link, out var inputPort))
+            {
+                link.EndPosition = inputPort.Socket.CenterPosition;
+            }
         }
     }
 }
