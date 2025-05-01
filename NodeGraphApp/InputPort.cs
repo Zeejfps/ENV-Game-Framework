@@ -22,18 +22,18 @@ public sealed class InputPort : IPort
             {
                 VisualNode.BorderSize = HoveredBorderSize;
                 VisualNode.BorderColor = HoveredBorderColor;
-                PortNode.BorderColor = HoveredBorderColor;
+                Socket.BorderColor = HoveredBorderColor;
             }
             else
             {
                 VisualNode.BorderSize = NormalBorderSize;
                 VisualNode.BorderColor = NormalBorderColor;
-                PortNode.BorderColor = NormalBorderColor;
+                Socket.BorderColor = NormalBorderColor;
             }
         }
     }
 
-    public VisualNode PortNode { get; }
+    public VisualNode Socket { get; }
     
     public InputPort()
     {
@@ -44,7 +44,7 @@ public sealed class InputPort : IPort
         var portHeight = 8f;
 
         var random = new Random();
-        PortNode = new VisualNode
+        Socket = new VisualNode
         {
             Width = 3f,
             Height = 3f,
@@ -70,7 +70,7 @@ public sealed class InputPort : IPort
             BorderRadius = portBorderRadius,
             BoundsChanged = bounds =>
             {
-                PortNode.Bounds = PortNode.Bounds with
+                Socket.Bounds = Socket.Bounds with
                 {
                     Left = bounds.Left - 1.5f,
                     Bottom = bounds.Bottom + (portHeight - 3f) / 2f,
@@ -82,7 +82,7 @@ public sealed class InputPort : IPort
             },
         };
         
-        VisualNode.Children.Add(PortNode);
+        VisualNode.Children.Add(Socket);
         VisualNode.Children.Add(randomText);
     }
 }
