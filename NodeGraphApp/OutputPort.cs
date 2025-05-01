@@ -31,10 +31,12 @@ public sealed class OutputPort : VisualNode, IPort
         }
     }
 
+    public Node Node { get; }
     public VisualNode Socket { get; }
     
-    public OutputPort()
+    public OutputPort(Node node)
     {
+        Node = node;
         var portBackgroundColor = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f);
         var portBorderColor = NormalBorderColor;
         var portBorderSize = NormalBorderSize;

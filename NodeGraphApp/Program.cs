@@ -17,7 +17,6 @@ var windowAspectRatio = (float)windowWidth / windowHeight;
 var window = Glfw.CreateWindow(windowWidth, windowHeight, "Node Graph", Monitor.None, Window.None);
 
 var nodeGraph = new NodeGraph();
-var testOutputPort = new OutputPort();
 var n1 = new Node
 {
     Title = "Node 1",
@@ -28,20 +27,15 @@ var n1 = new Node
         Width = 40,
         Height = 20
     },
-    InputPorts =
-    {
-        new InputPort(),
-        new InputPort(),
-        new InputPort(),
-        new InputPort(),
-        new InputPort(),
-    },
-    OutputPorts =
-    {
-        testOutputPort,
-        new OutputPort(),
-    }
 };
+n1.AddInputPort();
+n1.AddInputPort();
+n1.AddInputPort();
+n1.AddInputPort();
+n1.AddInputPort();
+n1.AddOutputPort();
+n1.AddOutputPort();
+var testOutputPort = n1.AddOutputPort();
 n1.Update();
 
 var n2 = new Node
@@ -53,18 +47,12 @@ var n2 = new Node
         Bottom = 10,
         Width = 40,
         Height = 20
-    },
-    InputPorts =
-    {
-        new InputPort(),
-        new InputPort(),
-        new InputPort(),
-    },
-    OutputPorts =
-    {
-        new OutputPort(),
     }
 };
+n2.AddInputPort();
+n2.AddInputPort();
+n2.AddInputPort();
+n2.AddOutputPort();
 n2.Update();
 
 nodeGraph.Nodes.Add(n1);

@@ -35,8 +35,14 @@ public sealed class LinkPlacementController
             return;
         }
 
+        Node? ourNode = null;
+        if (_nodeGraph.Links.TryGetOutputPortForLink(link, out var outputPort))
+        {
+            ourNode = outputPort.Node;
+        }
+
         var hoveredInputPort = _portPicker.HoveredInputPort;
-        if (hoveredInputPort != null)
+        if (hoveredInputPort != null && hoveredInputPort.Node != ourNode)
         {
             link.EndPosition = hoveredInputPort.Socket.CenterPosition;
 

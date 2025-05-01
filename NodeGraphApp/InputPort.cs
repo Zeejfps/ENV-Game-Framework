@@ -34,8 +34,9 @@ public sealed class InputPort : VisualNode, IPort
     public Node Node { get; }
     public VisualNode Socket { get; }
     
-    public InputPort()
+    public InputPort(Node node)
     {
+        Node = node;
         var portBackgroundColor = Color.FromRGBA(0.1f, 0.1f, 0.1f, 1.0f);
         var portBorderColor = NormalBorderColor;
         var portBorderSize = NormalBorderSize;

@@ -23,10 +23,12 @@ public sealed class Node : VisualNode
     }
     
     public string Title { get; set; }
-    public List<InputPort> InputPorts { get; } = [];
-    public List<OutputPort> OutputPorts { get; } = [];
+    public IEnumerable<InputPort> InputPorts => _inputPorts;
+    public IEnumerable<OutputPort> OutputPorts => _outputPorts;
 
     private readonly Column _column;
+    private readonly List<InputPort> _inputPorts = [];
+    private readonly List<OutputPort> _outputPorts = [];
 
     public Node()
     {
@@ -43,6 +45,20 @@ public sealed class Node : VisualNode
         };
     }
 
+    public InputPort AddInputPort()
+    {
+        var port = new InputPort(this);
+        _inputPorts.Add(port);
+        return port;
+    }
+    
+    public OutputPort AddOutputPort()
+    {
+        var port = new OutputPort(this);
+        _outputPorts.Add(port);
+        return port;
+    }
+    
     public void Update()
     {
         Children.Clear();
