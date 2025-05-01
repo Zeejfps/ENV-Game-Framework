@@ -7,7 +7,7 @@ echo "Building image..."
 docker build -t linux-x64-builder \
     --build-arg \
         PROJECT_PATH=$project_path \
-    -f ./build-linux-x64.dockerfile .
+    -f ./build_linux-x64.dockerfile .
 
 echo "Copying artifacts..."
 container_name="build-artifacts"
