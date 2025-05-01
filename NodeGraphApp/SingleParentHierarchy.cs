@@ -1,13 +1,12 @@
 ﻿using System.Collections;
 
-public interface INode<T>
+public interface INode<T> where T : class, INode<T>
 {
     T? Parent { get; set; }
-    
-    IList<T> Children { get; }
+    SingleParentHierarchy<T> Children { get; }
 }
 
-public sealed class SingleParentHierarchy<T> : IList<T> where T : class, INode<T>
+public sealed class SingleParentHierarchy<T> : IEnumerable<T> where T : class, INode<T>
 {
     private readonly T _parent;
     private readonly List<T> _children = new();
@@ -27,13 +26,11 @@ public sealed class SingleParentHierarchy<T> : IList<T> where T : class, INode<T
         return GetEnumerator();
     }
 
-    public void Add(T item)
+    public void Add(T child)
     {
-        if (item.Parent != null && item.Parent != _parent)
-            item.Parent.Children.Remove(item);
-        
-        item.Parent = _parent;
-        _children.Add(item);
+        DetachFromOldParent(child);
+        child.Parent = _parent;
+        _children.Add(child);
     }
 
     public void Clear()
@@ -47,12 +44,7 @@ public sealed class SingleParentHierarchy<T> : IList<T> where T : class, INode<T
     {
         return _children.Contains(item);
     }
-
-    public void CopyTo(T[] array, int arrayIndex)
-    {
-        _children.CopyTo(array, arrayIndex);
-    }
-
+    
     public bool Remove(T child)
     {
         var removed = _children.Remove(child);
@@ -70,9 +62,7 @@ public sealed class SingleParentHierarchy<T> : IList<T> where T : class, INode<T
 
     public void Insert(int index, T child)
     {
-        if (child.Parent != null && child.Parent != _parent)
-            child.Parent.Children.Remove(child);
-
+        DetachFromOldParent(child);
         child.Parent = _parent;
         _children.Insert(index, child);
     }
@@ -98,11 +88,15 @@ public sealed class SingleParentHierarchy<T> : IList<T> where T : class, INode<T
                 child.Parent = null;
             }
 
-            if (value.Parent != null && value.Parent != _parent)
-                value.Parent.Children.Remove(value);
-            
+            DetachFromOldParent(value);
             _children[index] = value;
             value.Parent = _parent;
         }
+    }
+
+    private void DetachFromOldParent(T child)
+    {
+        if (child.Parent != null && child.Parent != _parent)
+            child.Parent.Children.Remove(child);
     }
 }

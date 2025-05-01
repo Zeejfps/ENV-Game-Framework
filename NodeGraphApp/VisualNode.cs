@@ -43,7 +43,7 @@ public class VisualNode : INode<VisualNode>
     public BorderSizeStyle BorderSize { get; set; }
     public BorderRadiusStyle BorderRadius { get; set; }
     public VisualNode? Parent { get; private set; }
-    public IList<VisualNode> Children { get; }
+    public SingleParentHierarchy<VisualNode> Children { get; }
     public TextAlignment TextVerticalAlignment { get; set; }
     public Vector2 CenterPosition => new(Bounds.Left + Bounds.Width*0.5f, Bounds.Bottom + Bounds.Height*0.5f);
 
