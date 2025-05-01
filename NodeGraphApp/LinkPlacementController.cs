@@ -35,13 +35,14 @@ public sealed class LinkPlacementController
             return;
         }
 
-        if (_portPicker.TryPickInputPort(mousePosition, out var inputPort))
+        var hoveredInputPort = _portPicker.HoveredInputPort;
+        if (hoveredInputPort != null)
         {
-            link.EndPosition = inputPort.Socket.CenterPosition;
+            link.EndPosition = hoveredInputPort.Socket.CenterPosition;
 
             if (_mouse.WasButtonPressedThisFrame(MouseButton.Left))
             {
-                _nodeGraph.Links.Connect(link, inputPort);
+                _nodeGraph.Links.Connect(link, hoveredInputPort);
                 Link = null;
             }
 

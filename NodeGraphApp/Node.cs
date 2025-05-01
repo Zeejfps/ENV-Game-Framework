@@ -97,20 +97,20 @@ public sealed class Node
         {
             _column.Items.Add(new ColumnItem
             {
-                Bounds = port.VisualNode.Bounds,
-                BoundsChanged = bounds => { port.VisualNode.Bounds = bounds; }
+                Bounds = port.Bounds,
+                BoundsChanged = bounds => { port.Bounds = bounds; }
             });
-            VisualNode.Children.Add(port.VisualNode);
+            VisualNode.Children.Add(port);
         }
         
         foreach (var port in InputPorts)
         {
             _column.Items.Add(new ColumnItem
             {
-                Bounds = port.VisualNode.Bounds,
-                BoundsChanged = bounds => { port.VisualNode.Bounds = bounds; }
+                Bounds = port.Bounds,
+                BoundsChanged = bounds => { port.Bounds = bounds; }
             });
-            VisualNode.Children.Add(port.VisualNode);
+            VisualNode.Children.Add(port);
         }
         
         _column.DoLayout();

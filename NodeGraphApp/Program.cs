@@ -86,7 +86,8 @@ var viewport = new Viewport(window, camera)
 {
     Bounds = ScreenRect.FromLeftTopWidthHeight(0, 1f, 1f, 1f)
 };
-var portPicker = new PortPicker(viewport, nodeGraph);
+var mousePicker = new MousePicker(viewport, mouse, nodeGraph);
+var portPicker = new PortPicker(mousePicker);
 var fontLoader = new MsdfBmpFontFileLoader();
 var interFontData = fontLoader.LoadFromFilePath(App.ResolvePath("Assets/Fonts/Inter/Inter_28pt-Regular-msdf.json"));
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
@@ -96,8 +97,6 @@ var linkPlacementController = new LinkPlacementController(viewport, mouse, portP
 {
     Link = link
 };
-
-var mousePicker = new MousePicker(viewport, mouse, nodeGraph);
 
 Glfw.SetMouseButtonCallback(window, (_, button, state, _) =>
 {
@@ -157,6 +156,7 @@ while (!Glfw.WindowShouldClose(window))
     nodeSelectionController.Update();
     linkPlacementController.Update();
     mousePicker.Update();
+    portPicker.Update();
     
     nodeGraph.Update();
     viewport.Update();

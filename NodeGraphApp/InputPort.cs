@@ -1,14 +1,12 @@
 ﻿namespace NodeGraphApp;
 
-public sealed class InputPort : IPort
+public sealed class InputPort : VisualNode, IPort
 {
     private static Color HoveredBorderColor { get; } = Color.FromRGBA(0.2f, 0.6588f, 0.3412f, 1.0f);
     private static Color NormalBorderColor { get; } = Color.FromRGBA(0f, 0f, 0f, 1f);
     private static BorderSizeStyle HoveredBorderSize { get; } = BorderSizeStyle.All(0.25f);
     private static BorderSizeStyle NormalBorderSize { get; } = BorderSizeStyle.All(0f);
     
-    public VisualNode VisualNode { get; }
-
     private bool _isHovered;
     public bool IsHovered
     {
@@ -20,14 +18,14 @@ public sealed class InputPort : IPort
             _isHovered = value;
             if (_isHovered)
             {
-                VisualNode.BorderSize = HoveredBorderSize;
-                VisualNode.BorderColor = HoveredBorderColor;
+                BorderSize = HoveredBorderSize;
+                BorderColor = HoveredBorderColor;
                 Socket.BorderColor = HoveredBorderColor;
             }
             else
             {
-                VisualNode.BorderSize = NormalBorderSize;
-                VisualNode.BorderColor = NormalBorderColor;
+                BorderSize = NormalBorderSize;
+                BorderColor = NormalBorderColor;
                 Socket.BorderColor = NormalBorderColor;
             }
         }
@@ -60,29 +58,26 @@ public sealed class InputPort : IPort
             Text = "Input Port 23!",
             TextVerticalAlignment = TextAlignment.Center
         };
-        
-        VisualNode = new VisualNode
+
+        Height = portHeight;
+        Color = portBackgroundColor;
+        BorderColor = portBorderColor;
+        BorderSize = portBorderSize;
+        BorderRadius = portBorderRadius;
+        BoundsChanged = bounds =>
         {
-            Height = portHeight,
-            Color = portBackgroundColor,
-            BorderColor = portBorderColor,
-            BorderSize = portBorderSize,
-            BorderRadius = portBorderRadius,
-            BoundsChanged = bounds =>
+            Socket.Bounds = Socket.Bounds with
             {
-                Socket.Bounds = Socket.Bounds with
-                {
-                    Left = bounds.Left - 1.5f,
-                    Bottom = bounds.Bottom + (portHeight - 3f) / 2f,
-                };
-                randomText.Bounds = bounds with
-                {
-                    Left = bounds.Left + 2.5f,
-                };
-            },
+                Left = bounds.Left - 1.5f,
+                Bottom = bounds.Bottom + (portHeight - 3f) / 2f,
+            };
+            randomText.Bounds = bounds with
+            {
+                Left = bounds.Left + 2.5f,
+            };
         };
 
-        VisualNode.Children.Add(randomText);
-        VisualNode.Children.Add(Socket);
+        Children.Add(randomText);
+        Children.Add(Socket);
     }
 }

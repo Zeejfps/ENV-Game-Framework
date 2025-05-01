@@ -2,7 +2,7 @@
 using NodeGraphApp;
 using TextAlignment = NodeGraphApp.TextAlignment;
 
-public sealed class VisualNode
+public class VisualNode
 {
     public Action<ScreenRect>? BoundsChanged;
 
@@ -15,8 +15,13 @@ public sealed class VisualNode
             if (_bounds == value)
                 return;
             _bounds = value;
-            BoundsChanged?.Invoke(_bounds);
+            OnBoundsChanged();
         }
+    }
+
+    protected virtual void OnBoundsChanged()
+    {
+        BoundsChanged?.Invoke(_bounds);
     }
 
     public float Width
@@ -37,7 +42,6 @@ public sealed class VisualNode
     public BorderSizeStyle BorderSize { get; set; }
     public BorderRadiusStyle BorderRadius { get; set; }
     public IList<VisualNode> Children { get; } = new List<VisualNode>();
-    
     public TextAlignment TextVerticalAlignment { get; set; }
     public Vector2 CenterPosition => new(Bounds.Left + Bounds.Width*0.5f, Bounds.Bottom + Bounds.Height*0.5f);
 }
