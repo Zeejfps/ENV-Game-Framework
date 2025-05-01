@@ -21,15 +21,24 @@ public sealed class Node : VisualNode
             BorderColor = borderColor;
         }
     }
+
+    public string Title
+    {
+        get => _header?.Text ?? string.Empty;
+        set => _header.Text = $"- {value}";
+    }
     
-    public string Title { get; set; }
     public IEnumerable<InputPort> InputPorts => _inputPorts;
     public IEnumerable<OutputPort> OutputPorts => _outputPorts;
 
     private readonly Column _column;
+    private readonly Column _topColumn;
+    
     private readonly List<InputPort> _inputPorts = [];
     private readonly List<OutputPort> _outputPorts = [];
 
+    private readonly VisualNode _header;
+    
     public Node()
     {
         Color = Color.FromRGBA(0.1765f, 0.1922f, 0.2588f, 1f);
@@ -41,36 +50,9 @@ public sealed class Node : VisualNode
         {
             BoundsChanged = bounds => { Bounds = bounds; },
             Padding = Padding.All(0.5f),
-            ItemGap = 0.25f,
-        };
-    }
-
-    public InputPort AddInputPort()
-    {
-        var port = new InputPort(this);
-        _inputPorts.Add(port);
-        return port;
-    }
-    
-    public OutputPort AddOutputPort()
-    {
-        var port = new OutputPort(this);
-        _outputPorts.Add(port);
-        return port;
-    }
-    
-    public void Update()
-    {
-        Children.Clear();
-        _column.Items.Clear();
-
-        var headerText = new VisualNode
-        {
-            Text = $"- {Title}",
-            TextVerticalAlignment = TextAlignment.Center 
         };
         
-        var header = new VisualNode
+        _header = new VisualNode
         {
             Height = 5f,
             BorderRadius = new BorderRadiusStyle
@@ -79,37 +61,60 @@ public sealed class Node : VisualNode
                 TopRight = 0.25f,
             },
             Color = Color.FromRGBA(0.2314f, 0.2588f, 0.3412f, 1.0f),
-            BoundsChanged = bounds => headerText.Bounds = bounds
+            TextVerticalAlignment = TextAlignment.Center 
         };
-        Children.Add(header);
-        Children.Add(headerText);
+        Children.Add(_header);
         
         _column.Items.Add(new ColumnItem
         {
-            Bounds = header.Bounds,
-            BoundsChanged = bounds => { header.Bounds = bounds; }
+            Bounds = _header.Bounds,
+            BoundsChanged = bounds => { _header.Bounds = bounds; }
         });
-        
-        foreach (var port in OutputPorts)
+
+        var topColumnItem = new ColumnItem { };
+        _topColumn = new Column
         {
-            _column.Items.Add(new ColumnItem
-            {
-                Bounds = port.Bounds,
-                BoundsChanged = bounds => { port.Bounds = bounds; }
-            });
-            Children.Add(port);
-        }
+            BoundsChanged = bounds => { topColumnItem.Bounds = bounds; },
+        };
         
-        foreach (var port in InputPorts)
+        topColumnItem.BoundsChanged = bounds => 
         {
-            _column.Items.Add(new ColumnItem
-            {
-                Bounds = port.Bounds,
-                BoundsChanged = bounds => { port.Bounds = bounds; }
-            });
-            Children.Add(port);
-        }
-        
+            _topColumn.Bounds = bounds;
+            _topColumn.DoLayout();
+        };
+
+        _column.Items.Add(topColumnItem);
+    }
+
+    public InputPort AddInputPort()
+    {
+        var port = new InputPort(this);
+        _inputPorts.Add(port);
+        _column.Items.Add(new ColumnItem
+        {
+            Bounds = port.Bounds,
+            BoundsChanged = bounds => { port.Bounds = bounds; }
+        });
+        Children.Add(port);
+        return port;
+    }
+    
+    public OutputPort AddOutputPort()
+    {
+        var port = new OutputPort(this);
+        _outputPorts.Add(port);
+        _topColumn.Items.Add(new ColumnItem
+        {
+            Bounds = port.Bounds,
+            BoundsChanged = bounds => { port.Bounds = bounds; }
+        });
+        Children.Add(port);
+        return port;
+    }
+    
+    public void Update()
+    {
+        _topColumn.DoLayout();
         _column.DoLayout();
     }
     
