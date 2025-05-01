@@ -2,23 +2,8 @@ using NodeGraphApp;
 using Column = NodeGraphApp.Column;
 using TextAlignment = NodeGraphApp.TextAlignment;
 
-public sealed class Node
+public sealed class Node : VisualNode
 {
-    private ScreenRect _bounds;
-    public ScreenRect Bounds
-    {
-        get => _bounds;
-        set
-        {
-            if (_bounds == value)
-                return;
-            _bounds = value;
-            VisualNode.Bounds = value;
-            _column.Bounds = value;
-            _column.DoLayout();
-        }
-    }
-
     private bool _isHovered;
     public bool IsHovered
     {
@@ -33,12 +18,11 @@ public sealed class Node
                 ? Color.FromRGBA(0.2f, 0.6f, 0.7333f, 1.0f)
                 : Color.FromRGBA(0f, 0f, 0f, 1f);
 
-            VisualNode.BorderColor = borderColor;
+            BorderColor = borderColor;
         }
     }
     
     public string Title { get; set; }
-    public VisualNode VisualNode { get; }
     public List<InputPort> InputPorts { get; } = [];
     public List<OutputPort> OutputPorts { get; } = [];
 
@@ -46,14 +30,11 @@ public sealed class Node
 
     public Node()
     {
-        VisualNode = new VisualNode
-        {
-            Color = Color.FromRGBA(0.1765f, 0.1922f, 0.2588f, 1f),
-            BorderSize = BorderSizeStyle.All(0.2f),
-            BorderRadius = BorderRadiusStyle.All(0.5f),
-            BorderColor = Color.FromRGBA(0f, 0f, 0f, 1f)
-        };
-
+        Color = Color.FromRGBA(0.1765f, 0.1922f, 0.2588f, 1f);
+        BorderSize = BorderSizeStyle.All(0.2f);
+        BorderRadius = BorderRadiusStyle.All(0.5f);
+        BorderColor = Color.FromRGBA(0f, 0f, 0f, 1f);
+        
         _column = new Column
         {
             BoundsChanged = bounds => { Bounds = bounds; },
@@ -64,7 +45,7 @@ public sealed class Node
 
     public void Update()
     {
-        VisualNode.Children.Clear();
+        Children.Clear();
         _column.Items.Clear();
 
         var headerText = new VisualNode
@@ -84,8 +65,8 @@ public sealed class Node
             Color = Color.FromRGBA(0.2314f, 0.2588f, 0.3412f, 1.0f),
             BoundsChanged = bounds => headerText.Bounds = bounds
         };
-        VisualNode.Children.Add(header);
-        VisualNode.Children.Add(headerText);
+        Children.Add(header);
+        Children.Add(headerText);
         
         _column.Items.Add(new ColumnItem
         {
@@ -100,7 +81,7 @@ public sealed class Node
                 Bounds = port.Bounds,
                 BoundsChanged = bounds => { port.Bounds = bounds; }
             });
-            VisualNode.Children.Add(port);
+            Children.Add(port);
         }
         
         foreach (var port in InputPorts)
@@ -110,10 +91,17 @@ public sealed class Node
                 Bounds = port.Bounds,
                 BoundsChanged = bounds => { port.Bounds = bounds; }
             });
-            VisualNode.Children.Add(port);
+            Children.Add(port);
         }
         
         _column.DoLayout();
+    }
+    
+    protected override void OnBoundsChanged()
+    {
+        _column.Bounds = Bounds;
+        _column.DoLayout();
+        base.OnBoundsChanged();
     }
 }
 

@@ -36,7 +36,7 @@ public sealed class NodeRepo
         for (var i = _nodes.Count - 1; i >= 0; --i)
         {
             var node = _nodes[i];
-            foreach (var traversed in TraverseDepthFirstPostOrder(node.VisualNode))
+            foreach (var traversed in TraverseDepthFirstPostOrder(node))
             {
                 yield return traversed;
             }

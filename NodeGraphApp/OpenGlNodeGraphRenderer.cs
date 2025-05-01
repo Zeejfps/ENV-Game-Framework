@@ -220,7 +220,7 @@ public sealed class OpenGlNodeGraphRenderer
 
     private void RenderNode(Node node)
     {
-        RenderVisualNode(node.VisualNode);
+        RenderVisualNode(node);
     }
 
     private unsafe void RenderVisualNode(VisualNode r)

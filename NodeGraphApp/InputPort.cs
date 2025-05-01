@@ -30,7 +30,8 @@ public sealed class InputPort : VisualNode, IPort
             }
         }
     }
-
+    
+    public Node Node { get; }
     public VisualNode Socket { get; }
     
     public InputPort()
