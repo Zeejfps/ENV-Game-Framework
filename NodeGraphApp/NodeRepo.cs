@@ -1,3 +1,5 @@
+using System.Collections;
+
 public sealed class NodeRepo
 {
     private readonly List<Node> _nodes = new();
@@ -29,5 +31,24 @@ public sealed class NodeRepo
 
         Remove(selectedNode);
         Add(selectedNode);
+    }
+
+    public IEnumerable<VisualNode> TraverseDepthFirstPostOrder()
+    {
+        return _nodes.SelectMany(node => TraverseDepthFirstPostOrder(node.VisualNode));
+    }
+
+    private IEnumerable<VisualNode> TraverseDepthFirstPostOrder(VisualNode node)
+    {
+        var children = node.Children;
+        for (var i = children.Count - 1; i >= 0; --i)
+        {
+            var child = children[i];
+            foreach (var traversed in TraverseDepthFirstPostOrder(child))
+            {
+                yield return traversed;
+            }
+        } 
+        yield return node;
     }
 }

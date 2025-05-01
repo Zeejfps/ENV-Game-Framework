@@ -36,7 +36,7 @@ public sealed class VisualNode
     public Color BorderColor { get; set; }
     public BorderSizeStyle BorderSize { get; set; }
     public BorderRadiusStyle BorderRadius { get; set; }
-    public List<VisualNode> Children { get; } = new();
+    public IList<VisualNode> Children { get; } = new List<VisualNode>();
     
     public TextAlignment TextVerticalAlignment { get; set; }
     public Vector2 CenterPosition => new(Bounds.Left + Bounds.Width*0.5f, Bounds.Bottom + Bounds.Height*0.5f);

@@ -81,8 +81,8 @@ public sealed class InputPort : IPort
                 };
             },
         };
-        
-        VisualNode.Children.Add(Socket);
+
         VisualNode.Children.Add(randomText);
+        VisualNode.Children.Add(Socket);
     }
 }

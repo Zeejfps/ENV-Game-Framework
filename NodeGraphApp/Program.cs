@@ -97,6 +97,9 @@ var linkPlacementController = new LinkPlacementController(viewport, mouse, portP
     Link = link
 };
 
+var mousePicker = new MousePicker(viewport, mouse, nodeGraph);
+mousePicker.Update();
+
 Glfw.SetMouseButtonCallback(window, (_, button, state, _) =>
 {
     if (state == InputState.Press)
