@@ -11,6 +11,25 @@ public sealed class LinkPlacementController
     private readonly NodeGraph _nodeGraph;
     public Link? Link { get; set; }
 
+    private InputPort? _hoveredInputPort;
+    private InputPort? HoveredInputPort
+    {
+        get => _hoveredInputPort;
+        set
+        {
+            if (_hoveredInputPort == value)
+                return;
+            var prevHoveredInputPort = _hoveredInputPort;
+            _hoveredInputPort = value;
+            
+            if (prevHoveredInputPort != null)
+                prevHoveredInputPort.IsHovered = false;
+            
+            if (_hoveredInputPort != null)
+                _hoveredInputPort.IsHovered = true;
+        }
+    }
+    
     public LinkPlacementController(
         Viewport viewport,
         Mouse mouse,
@@ -46,15 +65,17 @@ public sealed class LinkPlacementController
         {
             link.EndPosition = hoveredInputPort.Socket.CenterPosition;
 
+            HoveredInputPort = hoveredInputPort;
             if (_mouse.WasButtonPressedThisFrame(MouseButton.Left))
             {
                 _nodeGraph.Links.Connect(link, hoveredInputPort);
                 Link = null;
+                HoveredInputPort = null;
             }
-
             return;
         }
 
+        HoveredInputPort = null;
         var worldPosition = _viewport.ScreenToWorldPoint(mousePosition);
         link.EndPosition = worldPosition;
     }
