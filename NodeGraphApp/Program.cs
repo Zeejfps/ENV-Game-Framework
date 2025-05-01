@@ -36,7 +36,6 @@ n1.AddInputPort();
 n1.AddOutputPort();
 n1.AddOutputPort();
 var testOutputPort = n1.AddOutputPort();
-n1.Update();
 
 var n2 = new Node
 {

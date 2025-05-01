@@ -48,7 +48,6 @@ public sealed class Node : VisualNode
         
         _column = new Column
         {
-            BoundsChanged = bounds => { Bounds = bounds; },
             Padding = Padding.All(0.5f),
         };
         
@@ -65,36 +64,17 @@ public sealed class Node : VisualNode
         };
         Children.Add(_header);
         
-        _column.Items.Add(new ColumnItem
-        {
-            Bounds = _header.Bounds,
-            BoundsChanged = bounds => { _header.Bounds = bounds; }
-        });
+        _column.AddItem(new VisualNodeColumnItem(_header));
 
-        var topColumnItem = new ColumnItem { };
-        _topColumn = new Column
-        {
-            BoundsChanged = bounds => { topColumnItem.Bounds = bounds; },
-        };
-        
-        topColumnItem.BoundsChanged = bounds => 
-        {
-            _topColumn.Bounds = bounds;
-            _topColumn.Update();
-        };
-
-        _column.Items.Add(topColumnItem);
+        _topColumn = new Column();
+        _column.AddItem(new ColumnColumnItem(_topColumn));
     }
 
     public InputPort AddInputPort()
     {
         var port = new InputPort(this);
         _inputPorts.Add(port);
-        _column.Items.Add(new ColumnItem
-        {
-            Bounds = port.Bounds,
-            BoundsChanged = bounds => { port.Bounds = bounds; }
-        });
+        _column.AddItem(new VisualNodeColumnItem(port));;
         Children.Add(port);
         return port;
     }
@@ -103,24 +83,64 @@ public sealed class Node : VisualNode
     {
         var port = new OutputPort(this);
         _outputPorts.Add(port);
-        _topColumn.Items.Add(new ColumnItem
-        {
-            Bounds = port.Bounds,
-            BoundsChanged = bounds => { port.Bounds = bounds; }
-        });
+        _topColumn.AddItem(new VisualNodeColumnItem(port));
         Children.Add(port);
         return port;
     }
     
     public void Update()
-    { 
-        _topColumn.Update();
+    {
         _column.Update();
+        Bounds = _column.Bounds;
     }
     
     protected override void OnBoundsChanged()
     {
         _column.Bounds = Bounds;
+        _column.Update();
+        base.OnBoundsChanged();
+    }
+}
+
+public sealed class VisualNodeColumnItem : ColumnItem
+{
+    public VisualNode Node { get; }
+    public VisualNodeColumnItem(VisualNode node)
+    {
+        Node = node;
+    }
+
+    protected override void OnUpdate()
+    {
+        Bounds = Node.Bounds;
+    }
+
+    protected override void OnBoundsChanged()
+    {
+        Node.Bounds = Bounds;
+        base.OnBoundsChanged();
+    }
+}
+
+public sealed class ColumnColumnItem : ColumnItem
+{
+    public Column Column { get; }
+    
+    public ColumnColumnItem(Column column)
+    {
+        Column = column;
+    }
+    
+    protected override void OnUpdate()
+    {
+        Column.Update();
+        Bounds = Column.Bounds;
+    }
+
+    protected override void OnBoundsChanged()
+    {
+        Column.Bounds = Bounds;
+        Column.Update();
         base.OnBoundsChanged();
     }
 }
