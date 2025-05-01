@@ -82,7 +82,7 @@ public sealed class KeyboardAndMouseController
             
             hoveredNode = _mousePicker.HoveredNode;
             if (hoveredNode != null && 
-                hoveredNode.ChildOf<InputPort>(out var inputPort) &&
+                hoveredNode.Is<InputPort>(out var inputPort) &&
                 inputPort.Node != _linkedNode)
             {
                 _newLink.EndPosition = inputPort.Socket.CenterPosition;
@@ -131,12 +131,12 @@ public sealed class KeyboardAndMouseController
         hoveredNode = _mousePicker.HoveredNode;
         if (hoveredNode != null)
         {
-            if (hoveredNode.ChildOf<OutputPort>(out var inputPort))
+            if (hoveredNode.Is<OutputPort>(out var inputPort))
             {
                 HoveredOutputPort = inputPort;
                 HoveredNode = null;
             }
-            else if (hoveredNode.ChildOf<Node>(out var node))
+            else if (hoveredNode.Is<Node>(out var node))
             {
                 HoveredOutputPort = null;
                 HoveredNode = node;
@@ -184,9 +184,9 @@ public sealed class KeyboardAndMouseController
 
 public static class VisualNodeExtensions
 {
-    public static bool ChildOf<T>(this VisualNode node, [NotNullWhen(true)] out T? parentOfType) where T : VisualNode
+    public static bool Is<T>(this VisualNode node, [NotNullWhen(true)] out T? parentOfType) where T : VisualNode
     {
-        var parent = node.Parent;
+        var parent = node;
         while (parent != null)
         {
             if (parent is T childOfType)
