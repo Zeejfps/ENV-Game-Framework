@@ -14,7 +14,4 @@ RUN dotnet publish "$PROJECT_PATH" \
     -p:PublishAot=true \
     -p:SelfContained=true \
     -p:StripSymbols=true \
-    -o /publish
-
-FROM scratch AS export
-COPY --from=build /publish /publish
+    -o /linux-x64

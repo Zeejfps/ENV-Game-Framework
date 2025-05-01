@@ -1,8 +1,8 @@
 # Ignore build artifacts
-bin/
-obj/
-out/
-publish/
+**/bin/
+**/obj/
+**/out/
+**/publish/
 
 # User-specific files
 *.user
@@ -21,8 +21,8 @@ Thumbs.db
 .idea/
 
 # Git
-.git/
-.gitignore
+**/.git/
+**/.gitignore
 
 # Docker files that shouldn't be copied
 Dockerfile
