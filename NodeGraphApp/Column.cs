@@ -26,7 +26,6 @@ public class Column
     public int ItemCount => _items.Count;
     
     private bool _isDirty;
-    private bool _isUpdating;
     private readonly List<ColumnItem> _items = new();
 
     public void AddItem(ColumnItem item)
@@ -48,8 +47,7 @@ public class Column
 
     private void OnItemBoundsChanged(ScreenRect bounds)
     {
-        if (!_isUpdating)
-            SetDirty();
+        SetDirty();
     }
 
     private void SetDirty()
@@ -80,8 +78,6 @@ public class Column
         
         if (!_isDirty)
             return;
-
-        _isUpdating = true;
         
         var bounds = Bounds;
         var itemGap = ItemGap;
@@ -109,7 +105,6 @@ public class Column
         }
 
         _bounds = bounds;
-        _isUpdating = false;
         _isDirty = false;
     }
 

@@ -32,7 +32,7 @@ public sealed class Node : VisualNode
     public IEnumerable<OutputPort> OutputPorts => _outputPorts;
 
     private readonly Column _column;
-    private readonly Column _topColumn;
+    private readonly ColumnColumnItem _topColumn;
     
     private readonly List<InputPort> _inputPorts = [];
     private readonly List<OutputPort> _outputPorts = [];
@@ -66,8 +66,8 @@ public sealed class Node : VisualNode
         
         _column.AddItem(new VisualNodeColumnItem(_header));
 
-        _topColumn = new Column();
-        _column.AddItem(new ColumnColumnItem(_topColumn));
+        _topColumn = new ColumnColumnItem(new Column());
+        _column.AddItem(_topColumn);
     }
 
     public InputPort AddInputPort()
@@ -83,7 +83,7 @@ public sealed class Node : VisualNode
     {
         var port = new OutputPort(this);
         _outputPorts.Add(port);
-        _topColumn.AddItem(new VisualNodeColumnItem(port));
+        _topColumn.Column.AddItem(new VisualNodeColumnItem(port));
         Children.Add(port);
         return port;
     }
