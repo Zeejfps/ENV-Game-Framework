@@ -53,7 +53,6 @@ n2.AddInputPort();
 n2.AddInputPort();
 n2.AddInputPort();
 n2.AddOutputPort();
-n2.Update();
 
 nodeGraph.Nodes.Add(n1);
 nodeGraph.Nodes.Add(n2);
@@ -140,12 +139,16 @@ while (!Glfw.WindowShouldClose(window))
     mouse.Update();
     keyboard.Update();
     Glfw.PollEvents();
+    
+    n1.Update();
+    n2.Update();
+    
     cameraDragController.Update();
     nodeSelectionController.Update();
     linkPlacementController.Update();
     mousePicker.Update();
     portPicker.Update();
-    
+
     nodeGraph.Update();
     viewport.Update();
     renderer.Update();

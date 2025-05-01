@@ -80,7 +80,7 @@ public sealed class Node : VisualNode
         topColumnItem.BoundsChanged = bounds => 
         {
             _topColumn.Bounds = bounds;
-            _topColumn.DoLayout();
+            _topColumn.Update();
         };
 
         _column.Items.Add(topColumnItem);
@@ -113,15 +113,14 @@ public sealed class Node : VisualNode
     }
     
     public void Update()
-    {
-        _topColumn.DoLayout();
-        _column.DoLayout();
+    { 
+        _topColumn.Update();
+        _column.Update();
     }
     
     protected override void OnBoundsChanged()
     {
         _column.Bounds = Bounds;
-        _column.DoLayout();
         base.OnBoundsChanged();
     }
 }

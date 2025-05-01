@@ -8,7 +8,7 @@ public class Column
     public float ItemGap { get; set; }
     public List<ColumnItem> Items { get; } = new();
 
-    public void DoLayout()
+    public void Update()
     {
         var totalHeight = ItemGap * (Items.Count - 1) + Padding.Top + Padding.Bottom;
         foreach (var item in Items)
