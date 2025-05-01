@@ -1,0 +1,29 @@
+# Ignore build artifacts
+bin/
+obj/
+out/
+publish/
+
+# User-specific files
+*.user
+*.suo
+*.userprefs
+
+# Logs
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE-specific
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Docker files that shouldn't be copied
+Dockerfile
+.dockerignore
