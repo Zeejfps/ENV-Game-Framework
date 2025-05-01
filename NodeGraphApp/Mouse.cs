@@ -43,4 +43,9 @@ public sealed class Mouse
         _buttonsPressedThisFrame.Clear();
         _buttonsReleasedThisFrame.Clear();
     }
+
+    public bool IsButtonReleased(MouseButton left)
+    {
+        return !_pressedButtons.Contains(left);
+    }
 }

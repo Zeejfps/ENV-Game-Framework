@@ -1,17 +1,21 @@
-﻿namespace NodeGraphApp;
+﻿using System.Numerics;
+
+namespace NodeGraphApp;
 
 public sealed class MousePicker
 {
-    private readonly Mouse _mouse;
-    private readonly Viewport _viewport;
     private readonly NodeGraph _nodeGraph;
     
     public VisualNode? HoveredNode { get; private set; }
+    public Mouse Mouse { get; }
+    public Viewport Viewport { get; }
     
+    public Vector2 MouseWorldPosition => Viewport.ScreenToWorldPoint(Mouse.Position);
+
     public MousePicker(Viewport viewport, Mouse mouse, NodeGraph nodeGraph)
     {
-        _mouse = mouse;
-        _viewport = viewport;
+        Mouse = mouse;
+        Viewport = viewport;
         _nodeGraph = nodeGraph;
     }
     
@@ -21,8 +25,8 @@ public sealed class MousePicker
         VisualNode? hoveredNode = null;
         foreach (var node in scene.Nodes.TraverseDepthFirstPostOrder())
         {
-            var mousePosition = _mouse.Position;
-            var worldPosition = _viewport.ScreenToWorldPoint(mousePosition);
+            var mousePosition = Mouse.Position;
+            var worldPosition = Viewport.ScreenToWorldPoint(mousePosition);
             var bounds = node.Bounds;
             if (bounds.Contains(worldPosition))
             {

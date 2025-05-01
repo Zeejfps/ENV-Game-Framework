@@ -39,4 +39,15 @@ public sealed class LinksRepo
     {
         return _inputPortByLinkLookup.TryGetValue(link, out inputPort);
     }
+
+    public void Disconnect(Link link)
+    {
+        _inputPortByLinkLookup.Remove(link);
+        _outputPortByLinkLookup.Remove(link);
+    }
+
+    public void Remove(Link newLink)
+    {
+        _links.Remove(newLink);
+    }
 }

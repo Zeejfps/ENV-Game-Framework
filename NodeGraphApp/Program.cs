@@ -56,14 +56,14 @@ n2.AddOutputPort();
 nodeGraph.Nodes.Add(n1);
 nodeGraph.Nodes.Add(n2);
 
-var link = new Link
-{
-    StartPosition = Vector2.Zero,
-    EndPosition = new Vector2(50, 50)
-};
-nodeGraph.Links.Add(link);
-
-nodeGraph.Links.Connect(link, testOutputPort);
+// var link = new Link
+// {
+//     StartPosition = Vector2.Zero,
+//     EndPosition = new Vector2(50, 50)
+// };
+// nodeGraph.Links.Add(link);
+//
+// nodeGraph.Links.Connect(link, testOutputPort);
 
 var mouse = new Mouse();
 var keyboard = new Keyboard();
@@ -73,16 +73,18 @@ var viewport = new Viewport(window, camera)
     Bounds = ScreenRect.FromLeftTopWidthHeight(0, 1f, 1f, 1f)
 };
 var mousePicker = new MousePicker(viewport, mouse, nodeGraph);
-var portPicker = new PortPicker(mousePicker);
+// var portPicker = new PortPicker(mousePicker);
 var fontLoader = new MsdfBmpFontFileLoader();
 var interFontData = fontLoader.LoadFromFilePath(App.ResolvePath("Assets/Fonts/Inter/Inter_28pt-Regular-msdf.json"));
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
 var cameraDragController = new CameraDragController(viewport, mouse, keyboard);
-var nodeSelectionController = new NodeSelectionController(viewport, mouse, nodeGraph);
-var linkPlacementController = new LinkPlacementController(viewport, mouse, portPicker, nodeGraph)
-{
-    Link = link
-};
+// var nodeSelectionController = new NodeSelectionController(viewport, mouse, nodeGraph);
+// var linkPlacementController = new LinkPlacementController(viewport, mouse, portPicker, nodeGraph)
+// {
+//     Link = link
+// };
+
+var keyboardAndMouseController = new KeyboardAndMouseController(mousePicker, nodeGraph);
 
 Glfw.SetMouseButtonCallback(window, (_, button, state, _) =>
 {
@@ -143,10 +145,13 @@ while (!Glfw.WindowShouldClose(window))
     n2.Update();
     
     cameraDragController.Update();
-    nodeSelectionController.Update();
-    linkPlacementController.Update();
+    // nodeSelectionController.Update();
+    // linkPlacementController.Update();
+    
     mousePicker.Update();
-    portPicker.Update();
+    // portPicker.Update();
+    
+    keyboardAndMouseController.Update();
 
     nodeGraph.Update();
     viewport.Update();
