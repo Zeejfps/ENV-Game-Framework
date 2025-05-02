@@ -21,12 +21,12 @@ public sealed class MousePicker
     
     public void Update()
     {
+        var mousePosition = Mouse.Position;
+        var worldPosition = Viewport.ScreenToWorldPoint(mousePosition);
         var scene = _nodeGraph;
         VisualNode? hoveredNode = null;
         foreach (var node in scene.Nodes.TraverseDepthFirstPostOrder())
         {
-            var mousePosition = Mouse.Position;
-            var worldPosition = Viewport.ScreenToWorldPoint(mousePosition);
             var bounds = node.Bounds;
             if (bounds.Contains(worldPosition))
             {
@@ -36,6 +36,28 @@ public sealed class MousePicker
         }
 
         HoveredNode = hoveredNode;
+
+        var links = _nodeGraph.BackgroundLinks.GetAll();
+        foreach (var link in links)
+        {
+            var left = MathF.Min(link.StartPosition.X, link.EndPosition.X);
+            var bottom = MathF.Max(link.StartPosition.Y, link.EndPosition.Y);
+            var right = MathF.Max(link.StartPosition.X, link.EndPosition.X);
+            var top = MathF.Max(link.StartPosition.Y, link.EndPosition.Y);
+            var bounds = ScreenRect.FromLeftBottomTopRight(left, bottom, right, top);
+            if (bounds.Contains(worldPosition))
+            {
+                var p0 = link.StartPosition;
+                var p1 = link.StartPosition + new Vector2(20f, 0f);
+                var p2 = link.StartPosition - new Vector2(20f, 0f);
+                var p3 = link.EndPosition;
+                if (BezierUtils.IsPointOverBezier(worldPosition, p0, p1, p2, p3))
+                {
+                    Console.WriteLine("Over Link");
+                    break;
+                }
+            }
+        }
     }
 
     public bool TryPick<T>([NotNullWhen(true)] out T? result, bool includeChildren = true) where T : VisualNode
@@ -53,6 +75,12 @@ public sealed class MousePicker
         if (includeChildren && HoveredNode.ChildOf<T>(out result))
             return true;
 
+        return false;
+    }
+
+    public bool TryPick([NotNullWhen(true)] out Link? pickedLink)
+    {
+        pickedLink = null;
         return false;
     }
 }

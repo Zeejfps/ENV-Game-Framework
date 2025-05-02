@@ -36,6 +36,16 @@ public readonly struct ScreenRect : IEquatable<ScreenRect>
         return !left.Equals(right);
     }
 
+    public static ScreenRect FromLeftBottomTopRight(float left, float bottom, float top, float right)
+    {
+        return new ScreenRect
+        {
+            Left = left,
+            Bottom = bottom,
+            Width = right - left,
+            Height = top - bottom,
+        };
+    }
 
     public static ScreenRect FromLBWH(float left, float bottom, float width, float height)
     {

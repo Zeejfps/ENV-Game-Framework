@@ -65,12 +65,15 @@ public sealed class KeyboardAndMouseController
                 if (_selectedInputPort != null && _linkOutputPort != null)
                 {
                     _nodeGraph.BackgroundLinks.Add(_newLink);
-                    _nodeGraph.Connections.Connect(_newLink, _linkOutputPort, _selectedInputPort);
+                    _nodeGraph.Connections.Connect(_newLink, _selectedInputPort);
                     _selectedInputPort.IsHovered = false;
                     _selectedInputPort = null;
                 }
+                else
+                {
+                    _nodeGraph.Connections.Disconnect(_newLink);
+                }
 
-                _nodeGraph.Connections.Disconnect(_newLink);
                 _nodeGraph.ForegroundLinks.Remove(_newLink);
                 _newLink = null;
                 return;
