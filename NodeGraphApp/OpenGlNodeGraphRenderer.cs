@@ -197,39 +197,33 @@ public sealed class OpenGlNodeGraphRenderer
 
         var backgroundLinks = nodeGraph.BackgroundLinks.GetAll();
         foreach (var link in backgroundLinks)
-        {
-            RenderCurve(new CubicCurve
-            {
-                P0 = link.StartPosition,
-                P1 = link.StartPosition + new Vector2(20f, 0f),
-                P2 = link.EndPosition - new Vector2(20f, 0f),
-                P3 = link.EndPosition,
-                Color = link.IsHovered
-                    ? Color.FromRGBA(0.6667f, 0.7059f, 0.8784f, 1.0f)
-                    : Color.FromRGBA(0.5333f, 0.5725f, 0.7490f, 1.0f)
-            });
-        }
+            RenderLink(link);
 
         var nodes = nodeGraph.Nodes.GetAll();
         foreach (var node in nodes)
-        {
             RenderNode(node);
-        }
         
         var foregroundLinks = nodeGraph.ForegroundLinks.GetAll();
         foreach (var link in foregroundLinks)
+            RenderLink(link);
+    }
+
+    private void RenderLink(Link link)
+    {
+        var color = Color.FromRGBA(0.5333f, 0.5725f, 0.7490f, 1.0f);
+        if (link.IsHovered)
+            color = Color.FromRGBA(0.6667f, 0.7059f, 0.8784f, 1.0f);
+        else if (link.IsSelected)
+            color = Color.FromRGBA(0.0f, 0.7490f, 1.0f, 1.0f);
+                
+        RenderCurve(new CubicCurve
         {
-            RenderCurve(new CubicCurve
-            {
-                P0 = link.StartPosition,
-                P1 = link.StartPosition + new Vector2(20f, 0f),
-                P2 = link.EndPosition - new Vector2(20f, 0f),
-                P3 = link.EndPosition,
-                Color = link.IsHovered
-                    ? Color.FromRGBA(0.8667f, 0.7059f, 0.8784f, 1.0f)
-                    : Color.FromRGBA(0.5333f, 0.5725f, 0.7490f, 1.0f)
-            });
-        }
+            P0 = link.StartPosition,
+            P1 = link.StartPosition + new Vector2(20f, 0f),
+            P2 = link.EndPosition - new Vector2(20f, 0f),
+            P3 = link.EndPosition,
+            Color = color,
+        });
     }
 
     public unsafe void Teardown()

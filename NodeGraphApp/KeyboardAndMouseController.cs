@@ -9,7 +9,6 @@ public sealed class KeyboardAndMouseController
     private readonly MousePicker _mousePicker;
 
     private Link? _hoveredLink = null;
-
     private Link? HoveredLink
     {
         get => _hoveredLink;
@@ -26,6 +25,26 @@ public sealed class KeyboardAndMouseController
 
             if (_hoveredLink != null)
                 _hoveredLink.IsHovered = true;
+        }
+    }
+    
+    private Link? _selectedLink = null;
+    private Link? SelectedLink
+    {
+        get => _selectedLink;
+        set
+        {
+            if (_selectedLink == value)
+                return;
+
+            var prevSelectedLink = _selectedLink;
+            _selectedLink = value;
+
+            if (prevSelectedLink != null)
+                prevSelectedLink.IsSelected = false;
+
+            if (_selectedLink != null)
+                _selectedLink.IsSelected = true;
         }
     }
 
@@ -158,7 +177,7 @@ public sealed class KeyboardAndMouseController
             HoveredNode = node;
             HoveredLink = null;
         }
-        else if (_mousePicker.TryPickLink(out var link))
+        else if (_mousePicker.TryPickLink(out var link) && link != SelectedLink)
         {
             HoveredNode = null;
             HoveredOutputPort = null;
@@ -180,6 +199,15 @@ public sealed class KeyboardAndMouseController
             else if (HoveredNode != null)
             {
                 StartDraggingNode(HoveredNode);
+            }
+            else if (HoveredLink != null)
+            {
+                SelectedLink = HoveredLink;
+                HoveredLink = null;
+            }
+            else if (SelectedLink != null)
+            {
+                SelectedLink = null;
             }
         }
     }
