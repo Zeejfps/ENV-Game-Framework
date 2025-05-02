@@ -64,7 +64,7 @@ public sealed class MousePicker
             {
                 var p0 = link.StartPosition;
                 var p1 = link.StartPosition + new Vector2(20f, 0f);
-                var p2 = link.StartPosition - new Vector2(20f, 0f);
+                var p2 = link.EndPosition - new Vector2(20f, 0f);
                 var p3 = link.EndPosition;
                 if (BezierUtils.IsPointOverBezier(worldPosition, p0, p1, p2, p3))
                 {
