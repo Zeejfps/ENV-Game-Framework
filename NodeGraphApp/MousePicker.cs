@@ -95,7 +95,7 @@ public sealed class MousePicker
         return false;
     }
 
-    public bool TryPick([NotNullWhen(true)] out Link? pickedLink)
+    public bool TryPickLink([NotNullWhen(true)] out Link? pickedLink)
     {
         pickedLink = null;
         return false;

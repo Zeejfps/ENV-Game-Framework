@@ -156,10 +156,17 @@ public sealed class KeyboardAndMouseController
             HoveredOutputPort = null;
             HoveredNode = node;
         }
+        else if (_mousePicker.TryPickLink(out var link))
+        {
+            HoveredNode = null;
+            HoveredOutputPort = null;
+            HoveredLink = link;
+        }
         else
         {
             HoveredNode = null;
             HoveredOutputPort = null;
+            HoveredLink = null;
         }
 
         if (_mousePicker.Mouse.WasButtonPressedThisFrame(MouseButton.Left))
