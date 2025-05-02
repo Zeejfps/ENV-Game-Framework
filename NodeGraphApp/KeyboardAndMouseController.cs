@@ -65,13 +65,12 @@ public sealed class KeyboardAndMouseController
                 if (_selectedInputPort != null && _linkOutputPort != null)
                 {
                     _nodeGraph.BackgroundLinks.Add(_newLink);
-                    _nodeGraph.BackgroundLinks.Connect(_newLink, _linkOutputPort);
-                    _nodeGraph.BackgroundLinks.Connect(_newLink, _selectedInputPort);
+                    _nodeGraph.Connections.Connect(_newLink, _linkOutputPort, _selectedInputPort);
                     _selectedInputPort.IsHovered = false;
                     _selectedInputPort = null;
                 }
 
-                _nodeGraph.ForegroundLinks.Disconnect(_newLink);
+                _nodeGraph.Connections.Disconnect(_newLink);
                 _nodeGraph.ForegroundLinks.Remove(_newLink);
                 _newLink = null;
                 return;
@@ -164,7 +163,7 @@ public sealed class KeyboardAndMouseController
 
         _linkOutputPort = outputPort;
         _nodeGraph.ForegroundLinks.Add(link);
-        _nodeGraph.ForegroundLinks.Connect(link, outputPort);
+        _nodeGraph.Connections.Connect(link, outputPort);
     }
 
     private void StartDraggingNode(Node node)

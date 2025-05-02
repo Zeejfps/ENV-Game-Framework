@@ -6,29 +6,18 @@ public sealed class NodeGraph
     public LinksRepo BackgroundLinks { get; } = new();
     public LinksRepo ForegroundLinks { get; } = new();
 
+    public ConnectionManager Connections { get; } = new();
+
     public void Update()
     {
-        var links = BackgroundLinks.GetAll();
+        var links = BackgroundLinks.GetAll().Concat(ForegroundLinks.GetAll());
         foreach (var link in links)
         {
-            if (BackgroundLinks.TryGetOutputPortForLink(link, out var outputPort))
+            if (Connections.TryGetOutputPortForLink(link, out var outputPort))
             {
                 link.StartPosition = outputPort.Socket.CenterPosition;
             }
-            if (BackgroundLinks.TryGetInputPortForLink(link, out var inputPort))
-            {
-                link.EndPosition = inputPort.Socket.CenterPosition;
-            }
-        }
-
-        var foregroundLinks = ForegroundLinks.GetAll();
-        foreach (var link in foregroundLinks)
-        {
-            if (ForegroundLinks.TryGetOutputPortForLink(link, out var outputPort))
-            {
-                link.StartPosition = outputPort.Socket.CenterPosition;
-            }
-            if (ForegroundLinks.TryGetInputPortForLink(link, out var inputPort))
+            if (Connections.TryGetInputPortForLink(link, out var inputPort))
             {
                 link.EndPosition = inputPort.Socket.CenterPosition;
             }
