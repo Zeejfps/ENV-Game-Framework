@@ -8,6 +8,8 @@ public sealed class MousePicker
     private readonly NodeGraph _nodeGraph;
     
     public VisualNode? HoveredNode { get; private set; }
+    public Link? HoveredLink { get; private set; }
+
     public Mouse Mouse { get; }
     public Viewport Viewport { get; }
     public Vector2 MouseWorldPosition => Viewport.ScreenToWorldPoint(Mouse.Position);
@@ -37,14 +39,27 @@ public sealed class MousePicker
 
         HoveredNode = hoveredNode;
 
+        Link? hoveredLink = null;
         var links = _nodeGraph.BackgroundLinks.GetAll();
         foreach (var link in links)
         {
-            var left = MathF.Min(link.StartPosition.X, link.EndPosition.X);
-            var bottom = MathF.Max(link.StartPosition.Y, link.EndPosition.Y);
-            var right = MathF.Max(link.StartPosition.X, link.EndPosition.X);
-            var top = MathF.Max(link.StartPosition.Y, link.EndPosition.Y);
-            var bounds = ScreenRect.FromLeftBottomTopRight(left, bottom, right, top);
+            var left = link.StartPosition.X;
+            var right = link.EndPosition.X;
+            if (left > right)
+            {
+                left = link.EndPosition.X;
+                right = link.StartPosition.X;
+            }
+
+            var bottom = link.StartPosition.Y;
+            var top = link.EndPosition.Y;
+            if (bottom > top)
+            {
+                bottom = link.EndPosition.Y;
+                top = link.StartPosition.Y;
+            }
+
+            var bounds = ScreenRect.FromLeftBottomTopRight(left, bottom, top, right);
             if (bounds.Contains(worldPosition))
             {
                 var p0 = link.StartPosition;
@@ -53,11 +68,13 @@ public sealed class MousePicker
                 var p3 = link.EndPosition;
                 if (BezierUtils.IsPointOverBezier(worldPosition, p0, p1, p2, p3))
                 {
-                    Console.WriteLine("Over Link");
+                    hoveredLink = link;
                     break;
                 }
             }
         }
+
+        HoveredLink = hoveredLink;
     }
 
     public bool TryPick<T>([NotNullWhen(true)] out T? result, bool includeChildren = true) where T : VisualNode

@@ -8,6 +8,17 @@ public sealed class KeyboardAndMouseController
     private readonly NodeGraph _nodeGraph;
     private readonly MousePicker _mousePicker;
 
+    private Link? _hoveredLink = null;
+
+    private Link? HoveredLink
+    {
+        get => _hoveredLink;
+        set
+        {
+            
+        }
+    }
+
     private OutputPort? _hoveredOutputPort;
     private OutputPort? HoveredOutputPort
     {
