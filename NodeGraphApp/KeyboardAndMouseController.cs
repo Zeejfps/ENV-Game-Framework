@@ -7,6 +7,7 @@ public sealed class KeyboardAndMouseController
 {
     private readonly NodeGraph _nodeGraph;
     private readonly MousePicker _mousePicker;
+    private readonly Keyboard _keyboard;
 
     private Link? _hoveredLink = null;
     private Link? HoveredLink
@@ -90,10 +91,11 @@ public sealed class KeyboardAndMouseController
     private OutputPort? _linkOutputPort;
     private InputPort? _selectedInputPort;
     
-    public KeyboardAndMouseController(MousePicker mousePicker, NodeGraph nodeGraph)
+    public KeyboardAndMouseController(MousePicker mousePicker, NodeGraph nodeGraph, Keyboard keyboard)
     {
         _mousePicker = mousePicker;
         _nodeGraph = nodeGraph;
+        _keyboard = keyboard;
     }
 
     public void Update()
@@ -163,6 +165,13 @@ public sealed class KeyboardAndMouseController
             };
             
             return;   
+        }
+
+        if (SelectedLink != null && _keyboard.WasKeyPressedThisFrame(Keys.Delete))
+        {
+            _nodeGraph.Connections.Disconnect(SelectedLink);
+            _nodeGraph.BackgroundLinks.Remove(SelectedLink);
+            SelectedLink = null;
         }
 
         if (_mousePicker.TryPick<OutputPort>(out var outputPort))

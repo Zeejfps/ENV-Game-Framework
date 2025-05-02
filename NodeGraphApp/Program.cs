@@ -77,7 +77,7 @@ var fontLoader = new MsdfBmpFontFileLoader();
 var interFontData = fontLoader.LoadFromFilePath(App.ResolvePath("Assets/Fonts/Inter/Inter_28pt-Regular-msdf.json"));
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
 var cameraDragController = new CameraDragController(viewport, mouse, keyboard);
-var keyboardAndMouseController = new KeyboardAndMouseController(mousePicker, nodeGraph);
+var keyboardAndMouseController = new KeyboardAndMouseController(mousePicker, nodeGraph, keyboard);
 
 Glfw.SetMouseButtonCallback(window, (_, button, state, _) =>
 {
