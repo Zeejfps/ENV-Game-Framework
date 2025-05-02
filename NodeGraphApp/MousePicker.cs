@@ -59,6 +59,9 @@ public sealed class MousePicker
                 top = link.StartPosition.Y;
             }
 
+            top += 0.5f;
+            bottom -= 0.5f;
+
             var bounds = ScreenRect.FromLeftBottomTopRight(left, bottom, top, right);
             if (bounds.Contains(worldPosition))
             {
