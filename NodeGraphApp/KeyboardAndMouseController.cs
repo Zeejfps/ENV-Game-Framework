@@ -47,6 +47,7 @@ public sealed class KeyboardAndMouseController
 
     private Link? _newLink;
     private Node? _linkedNode;
+    private OutputPort? _linkOutputPort;
     private InputPort? _selectedInputPort;
     
     public KeyboardAndMouseController(MousePicker mousePicker, NodeGraph nodeGraph)
@@ -61,18 +62,17 @@ public sealed class KeyboardAndMouseController
         {
             if (_mousePicker.Mouse.IsButtonReleased(MouseButton.Left))
             {
-                if (_selectedInputPort != null)
+                if (_selectedInputPort != null && _linkOutputPort != null)
                 {
-                    _nodeGraph.Links.Connect(_newLink, _selectedInputPort);
+                    _nodeGraph.BackgroundLinks.Add(_newLink);
+                    _nodeGraph.BackgroundLinks.Connect(_newLink, _linkOutputPort);
+                    _nodeGraph.BackgroundLinks.Connect(_newLink, _selectedInputPort);
                     _selectedInputPort.IsHovered = false;
                     _selectedInputPort = null;
                 }
-                else
-                {
-                    _nodeGraph.Links.Disconnect(_newLink);
-                    _nodeGraph.Links.Remove(_newLink);
-                }
-                
+
+                _nodeGraph.ForegroundLinks.Disconnect(_newLink);
+                _nodeGraph.ForegroundLinks.Remove(_newLink);
                 _newLink = null;
                 return;
             }
@@ -162,8 +162,9 @@ public sealed class KeyboardAndMouseController
         _newLink = link;
         _linkedNode = outputPort.Node;
 
-        _nodeGraph.Links.Add(link);
-        _nodeGraph.Links.Connect(link, outputPort);
+        _linkOutputPort = outputPort;
+        _nodeGraph.ForegroundLinks.Add(link);
+        _nodeGraph.ForegroundLinks.Connect(link, outputPort);
     }
 
     private void StartDraggingNode(Node node)

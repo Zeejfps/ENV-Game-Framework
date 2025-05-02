@@ -3,18 +3,32 @@ namespace NodeGraphApp;
 public sealed class NodeGraph
 {
     public NodeRepo Nodes { get; } = new();
-    public LinksRepo Links { get; } = new();
-    
+    public LinksRepo BackgroundLinks { get; } = new();
+    public LinksRepo ForegroundLinks { get; } = new();
+
     public void Update()
     {
-        var links = Links.GetAll();
+        var links = BackgroundLinks.GetAll();
         foreach (var link in links)
         {
-            if (Links.TryGetOutputPortForLink(link, out var outputPort))
+            if (BackgroundLinks.TryGetOutputPortForLink(link, out var outputPort))
             {
                 link.StartPosition = outputPort.Socket.CenterPosition;
             }
-            if (Links.TryGetInputPortForLink(link, out var inputPort))
+            if (BackgroundLinks.TryGetInputPortForLink(link, out var inputPort))
+            {
+                link.EndPosition = inputPort.Socket.CenterPosition;
+            }
+        }
+
+        var foregroundLinks = ForegroundLinks.GetAll();
+        foreach (var link in foregroundLinks)
+        {
+            if (ForegroundLinks.TryGetOutputPortForLink(link, out var outputPort))
+            {
+                link.StartPosition = outputPort.Socket.CenterPosition;
+            }
+            if (ForegroundLinks.TryGetInputPortForLink(link, out var inputPort))
             {
                 link.EndPosition = inputPort.Socket.CenterPosition;
             }
