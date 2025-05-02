@@ -29,7 +29,7 @@ public static class BezierUtils
     }
 
     // Distance from a point to a cubic bezier curve
-    public static float DistanceToCubicBezier(Vector2 point, Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, int steps = 32)
+    public static float DistanceToCubicBezier(Vector2 point, Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, int steps = 40)
     {
         float minDistance = float.MaxValue;
 
@@ -48,7 +48,7 @@ public static class BezierUtils
     }
 
     // Helper for hit test
-    public static bool IsPointOverBezier(Vector2 mousePos, Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, float threshold = 5f)
+    public static bool IsPointOverBezier(Vector2 mousePos, Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, float threshold = 1f)
     {
         float distance = DistanceToCubicBezier(mousePos, p0, p1, p2, p3);
         return distance <= threshold;

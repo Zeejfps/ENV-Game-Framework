@@ -58,6 +58,7 @@ public sealed class OpenGlNodeGraphRenderer
     private int _curveP3UniformLoc;
     private int _curveThicknessUniformLoc;
     private int _curveProjectionUniformLoc;
+    private int _curveColorUniformLoc;
 
     public OpenGlNodeGraphRenderer(NodeGraph nodeGraph, Camera camera, MsdfFontFile interFontData)
     {
@@ -115,6 +116,7 @@ public sealed class OpenGlNodeGraphRenderer
         _curveP3UniformLoc = GetUniformLocation(_curveShader.Id, "u_p3");
         _curveThicknessUniformLoc = GetUniformLocation(_curveShader.Id, "thickness");
         _curveProjectionUniformLoc = GetUniformLocation(_curveShader.Id, "projection");
+        _curveColorUniformLoc = GetUniformLocation(_curveShader.Id, "u_Color");
     }
 
     private unsafe void LoadGlyphData()
@@ -201,7 +203,10 @@ public sealed class OpenGlNodeGraphRenderer
                 P0 = link.StartPosition,
                 P1 = link.StartPosition + new Vector2(20f, 0f),
                 P2 = link.EndPosition - new Vector2(20f, 0f),
-                P3 = link.EndPosition
+                P3 = link.EndPosition,
+                Color = link.IsHovered
+                    ? Color.FromRGBA(0.6667f, 0.7059f, 0.8784f, 1.0f)
+                    : Color.FromRGBA(0.5333f, 0.5725f, 0.7490f, 1.0f)
             });
         }
 
@@ -219,7 +224,10 @@ public sealed class OpenGlNodeGraphRenderer
                 P0 = link.StartPosition,
                 P1 = link.StartPosition + new Vector2(20f, 0f),
                 P2 = link.EndPosition - new Vector2(20f, 0f),
-                P3 = link.EndPosition
+                P3 = link.EndPosition,
+                Color = link.IsHovered
+                    ? Color.FromRGBA(0.8667f, 0.7059f, 0.8784f, 1.0f)
+                    : Color.FromRGBA(0.5333f, 0.5725f, 0.7490f, 1.0f)
             });
         }
     }
@@ -379,6 +387,7 @@ public sealed class OpenGlNodeGraphRenderer
         glUniform2f(_curveP1UniformLoc, curve.P1.X, curve.P1.Y);
         glUniform2f(_curveP2UniformLoc, curve.P2.X, curve.P2.Y);
         glUniform2f(_curveP3UniformLoc, curve.P3.X, curve.P3.Y);
+        glUniform4f(_curveColorUniformLoc, curve.Color.R, curve.Color.G, curve.Color.B, curve.Color.A);
         glUniform1f(_curveThicknessUniformLoc, 1f);
         var viewProjMat = _camera.ViewProjectionMatrix;
         var ptr = &viewProjMat.M11;
@@ -394,4 +403,5 @@ public readonly struct CubicCurve
     public Vector2 P1 { get; init; }
     public Vector2 P2 { get; init; }
     public Vector2 P3 { get; init; }
+    public Color Color { get; init; }
 }
