@@ -15,7 +15,17 @@ public sealed class KeyboardAndMouseController
         get => _hoveredLink;
         set
         {
-            
+            if (_hoveredLink == value)
+                return;
+
+            var prevHoveredLink = _hoveredLink;
+            _hoveredLink = value;
+
+            if (prevHoveredLink != null)
+                prevHoveredLink.IsHovered = false;
+
+            if (_hoveredLink != null)
+                _hoveredLink.IsHovered = true;
         }
     }
 
