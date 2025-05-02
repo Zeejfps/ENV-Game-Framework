@@ -57,8 +57,6 @@ public sealed class KeyboardAndMouseController
 
     public void Update()
     {
-        VisualNode? hoveredNode;
-        
         if (_newLink != null)
         {
             if (_mousePicker.Mouse.IsButtonReleased(MouseButton.Left))
@@ -78,10 +76,8 @@ public sealed class KeyboardAndMouseController
                 _newLink = null;
                 return;
             }
-            
-            hoveredNode = _mousePicker.HoveredNode;
-            if (hoveredNode != null && 
-                hoveredNode.ChildOf<InputPort>(out var inputPort) &&
+
+            if (_mousePicker.TryPick<InputPort>(out var inputPort) &&
                 inputPort.Node != _linkedNode)
             {
                 _newLink.EndPosition = inputPort.Socket.CenterPosition;
@@ -126,20 +122,16 @@ public sealed class KeyboardAndMouseController
             
             return;   
         }
-        
-        hoveredNode = _mousePicker.HoveredNode;
-        if (hoveredNode != null)
+
+        if (_mousePicker.TryPick<OutputPort>(out var outputPort))
         {
-            if (hoveredNode.ChildOf<OutputPort>(out var inputPort))
-            {
-                HoveredOutputPort = inputPort;
-                HoveredNode = null;
-            }
-            else if (hoveredNode.ChildOf<Node>(out var node))
-            {
-                HoveredOutputPort = null;
-                HoveredNode = node;
-            }
+            HoveredOutputPort = outputPort;
+            HoveredNode = null;
+        }
+        else if (_mousePicker.TryPick<Node>(out var node))
+        {
+            HoveredOutputPort = null;
+            HoveredNode = node;
         }
         else
         {

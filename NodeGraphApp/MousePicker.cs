@@ -10,7 +10,6 @@ public sealed class MousePicker
     public VisualNode? HoveredNode { get; private set; }
     public Mouse Mouse { get; }
     public Viewport Viewport { get; }
-    
     public Vector2 MouseWorldPosition => Viewport.ScreenToWorldPoint(Mouse.Position);
 
     public MousePicker(Viewport viewport, Mouse mouse, NodeGraph nodeGraph)
@@ -41,26 +40,19 @@ public sealed class MousePicker
 
     public bool TryPick<T>([NotNullWhen(true)] out T? result, bool includeChildren = true) where T : VisualNode
     {
-        var scene = _nodeGraph;
-        foreach (var node in scene.Nodes.TraverseDepthFirstPostOrder())
+        if (HoveredNode == null)
         {
-            var mousePosition = Mouse.Position;
-            var worldPosition = Viewport.ScreenToWorldPoint(mousePosition);
-            var bounds = node.Bounds;
-            if (bounds.Contains(worldPosition))
-            {
-                result = node as T;
-                if (result != null)
-                    return true;
-
-                if (includeChildren && node.ChildOf<T>(out result))
-                    return true;
-
-                return false;
-            }
+            result = null;
+            return false;
         }
 
-        result = null;
+        result = HoveredNode as T;
+        if (result != null)
+            return true;
+
+        if (includeChildren && HoveredNode.ChildOf<T>(out result))
+            return true;
+
         return false;
     }
 }
