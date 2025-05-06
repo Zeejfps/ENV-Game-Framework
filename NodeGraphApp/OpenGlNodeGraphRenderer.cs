@@ -206,6 +206,20 @@ public sealed class OpenGlNodeGraphRenderer
         var foregroundLinks = nodeGraph.ForegroundLinks.GetAll();
         foreach (var link in foregroundLinks)
             RenderLink(link);
+        
+        if (_nodeGraph.SelectionBox.IsVisible)
+            RenderSelectionBox(_nodeGraph.SelectionBox);
+    }
+
+    private void RenderSelectionBox(SelectionBox selectionBox)
+    {
+        RenderVisualNode(new VisualNode
+        {
+            Bounds = selectionBox.Bounds,
+            BorderSize = BorderSizeStyle.All(0.5f),
+            BorderColor = Color.FromRGBA(0.2f, 0.6f, 1.0f, 1.0f),
+            Color = Color.FromRGBA(0.2f, 0.6f, 1.0f, 0.2f),
+        });
     }
 
     private void RenderLink(Link link)
