@@ -108,21 +108,11 @@ public sealed class KeyboardAndMouseController
 
         if (_isDragging)
         {
+            var selectionBox = _nodeGraph.SelectionBox;
+            selectionBox.EndPosition = _mousePicker.MouseWorldPosition;
             if (mouse.WasButtonReleasedThisFrame(MouseButton.Left))
             {
-                var endPos = _mousePicker.MouseWorldPosition;
-                var left = _mousePos.X;
-                if (endPos.X < left)
-                    left = endPos.X;
-                
-                var bottom = _mousePos.Y;
-                if (endPos.Y < bottom)
-                    bottom = endPos.Y;
-                
-                var width = MathF.Abs(endPos.X - _mousePos.X);
-                var height = MathF.Abs(endPos.Y - _mousePos.Y);
-
-                var selectionRect = ScreenRect.FromLBWH(left, bottom, width, height);
+                var selectionRect = selectionBox.Bounds;
                 Console.WriteLine($"Selection Rect: {selectionRect}");
 
                 var nodes = _nodeGraph.Nodes.GetAll();
@@ -137,7 +127,8 @@ public sealed class KeyboardAndMouseController
                         DeselectNode(node);
                     }
                 }
-                
+
+                selectionBox.IsVisible = false;
                 _isDragging = false;
             }
             return;
@@ -270,6 +261,7 @@ public sealed class KeyboardAndMouseController
             {
                 _isDragging = true;
                 _mousePos = _mousePicker.MouseWorldPosition;
+                _nodeGraph.SelectionBox.Show(_mousePos);
             }
         }
     }

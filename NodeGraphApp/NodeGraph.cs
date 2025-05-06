@@ -6,6 +6,7 @@ public sealed class NodeGraph
     public LinksRepo BackgroundLinks { get; } = new();
     public LinksRepo ForegroundLinks { get; } = new();
     public ConnectionManager Connections { get; } = new();
+    public SelectionBox SelectionBox { get; } = new();
 
     public void Update()
     {
