@@ -127,6 +127,19 @@ public sealed class KeyboardAndMouseController
                         DeselectNode(node);
                     }
                 }
+                
+                var links = _nodeGraph.BackgroundLinks.GetAll();
+                foreach (var link in links)
+                {
+                    if (selectionRect.Overlaps(link.Bounds))
+                    {
+                        SelectLink(link);
+                    }
+                    else
+                    {
+                        DeselectLink(link);
+                    }
+                }
 
                 selectionBox.IsVisible = false;
                 _isDragging = false;
@@ -265,6 +278,15 @@ public sealed class KeyboardAndMouseController
                 _nodeGraph.SelectionBox.Show(_mousePos);
             }
         }
+    }
+
+    private void SelectLink(Link link)
+    {
+    }
+
+    private void DeselectLink(Link link)
+    {
+        
     }
 
     private void ClearSelectedNodes()

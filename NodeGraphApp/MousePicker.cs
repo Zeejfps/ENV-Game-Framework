@@ -43,26 +43,7 @@ public sealed class MousePicker
         var links = _nodeGraph.BackgroundLinks.GetAll();
         foreach (var link in links)
         {
-            var left = link.StartPosition.X;
-            var right = link.EndPosition.X;
-            if (left > right)
-            {
-                left = link.EndPosition.X;
-                right = link.StartPosition.X;
-            }
-
-            var bottom = link.StartPosition.Y;
-            var top = link.EndPosition.Y;
-            if (bottom > top)
-            {
-                bottom = link.EndPosition.Y;
-                top = link.StartPosition.Y;
-            }
-
-            top += 0.5f;
-            bottom -= 0.5f;
-
-            var bounds = ScreenRect.FromLeftBottomTopRight(left, bottom, top, right);
+            var bounds = link.Bounds;
             if (bounds.Contains(worldPosition))
             {
                 var p0 = link.StartPosition;
