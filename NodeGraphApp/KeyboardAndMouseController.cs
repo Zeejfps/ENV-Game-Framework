@@ -200,13 +200,17 @@ public sealed class KeyboardAndMouseController
             var currPos = _mousePicker.MouseWorldPosition;
             var delta = currPos - _mousePos;
             _mousePos = currPos;
-            var bounds = _draggedNode.Bounds;
-            _draggedNode.Bounds = bounds with
-            {
-                Left = bounds.Left + delta.X,
-                Bottom = bounds.Bottom + delta.Y,
-            };
 
+            foreach (var selectedNode in _selectedNodes)
+            {
+                var bounds = selectedNode.Bounds;
+                selectedNode.Bounds = bounds with
+                {
+                    Left = bounds.Left + delta.X,
+                    Bottom = bounds.Bottom + delta.Y,
+                };
+            }
+            
             return;
         }
         
@@ -251,8 +255,6 @@ public sealed class KeyboardAndMouseController
             }
             else if (HoveredNode != null)
             {
-                ClearSelectedNodes();
-                SelectNode(HoveredNode);
                 StartDraggingNode(HoveredNode);
             }
             else if (HoveredLink != null)
@@ -316,5 +318,16 @@ public sealed class KeyboardAndMouseController
     {
         _mousePos = _mousePicker.MouseWorldPosition;
         _draggedNode = node;
+
+        if (!IsSelected(node))
+        {
+            ClearSelectedNodes();
+            SelectNode(node);
+        }
+    }
+
+    private bool IsSelected(Node node)
+    {
+        return _selectedNodes.Contains(node);
     }
 }
