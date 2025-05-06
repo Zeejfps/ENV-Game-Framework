@@ -91,12 +91,12 @@ while (!Glfw.WindowShouldClose(windowHandle))
     glfwWindowController.Update();
     Glfw.PollEvents();
     
-    nodeGraph.Update();
-    
     cameraDragController.Update();
     mousePicker.Update();
     nodeGraphController.Update();
 
+    nodeGraph.Update();
+    
     viewport.Update();
     renderer.Update();
     

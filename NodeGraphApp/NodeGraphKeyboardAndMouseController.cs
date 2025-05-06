@@ -296,6 +296,7 @@ public sealed class NodeGraphKeyboardAndMouseController
             else if (HoveredLink != null)
             {
                 ClearSelectedNodes();
+                ClearSelectedLinks();
                 SelectLink(HoveredLink);
             }
             else
