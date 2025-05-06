@@ -29,11 +29,11 @@ var n1 = new Node
         Height = 20
     },
 };
-n1.AddInputPort();
-n1.AddInputPort();
-n1.AddInputPort();
-n1.AddInputPort();
-n1.AddInputPort();
+n1.AddInputPort("Port 1");
+n1.AddInputPort("Port 2");
+n1.AddInputPort("Port 3");
+n1.AddInputPort("Port 4");
+n1.AddInputPort("Port 6");
 n1.AddOutputPort();
 n1.AddOutputPort();
 n1.AddOutputPort();
@@ -49,9 +49,9 @@ var n2 = new Node
         Height = 20
     }
 };
-n2.AddInputPort();
-n2.AddInputPort();
-n2.AddInputPort();
+n2.AddInputPort("mesh_name");
+n2.AddInputPort("mesh-Test");
+n2.AddInputPort("Yep");
 n2.AddOutputPort();
 
 nodeGraph.Nodes.Add(n1);

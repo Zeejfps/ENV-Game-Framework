@@ -74,9 +74,12 @@ public sealed class Node : VisualNode
         _column.AddItem(_topColumn);
     }
 
-    public InputPort AddInputPort()
+    public InputPort AddInputPort(string name)
     {
-        var port = new InputPort(this);
+        var port = new InputPort(this)
+        {
+            Name = name
+        };
         _inputPorts.Add(port);
         _column.AddItem(new VisualNodeColumnItem(port));
         Children.Add(port);

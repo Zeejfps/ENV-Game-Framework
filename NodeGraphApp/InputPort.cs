@@ -30,9 +30,17 @@ public sealed class InputPort : VisualNode, IPort
             }
         }
     }
+
+    public string? Name
+    {
+        get => _nameVisualNode.Text;
+        set => _nameVisualNode.Text = value;
+    }
     
     public Node Node { get; }
     public VisualNode Socket { get; }
+
+    private readonly VisualNode _nameVisualNode;
     
     public InputPort(Node node)
     {
@@ -54,10 +62,9 @@ public sealed class InputPort : VisualNode, IPort
             BorderSize = BorderSizeStyle.All(0.35f),
         };
         
-
-        var randomText = new VisualNode
+        _nameVisualNode = new VisualNode
         {
-            Text = "Input Port 23!",
+            //Text = string.Empty,
             TextVerticalAlignment = TextAlignment.Center
         };
 
@@ -73,13 +80,13 @@ public sealed class InputPort : VisualNode, IPort
                 Left = bounds.Left - 1.5f,
                 Bottom = bounds.Bottom + (portHeight - 3f) / 2f,
             };
-            randomText.Bounds = bounds with
+            _nameVisualNode.Bounds = bounds with
             {
                 Left = bounds.Left + 2.5f,
             };
         };
 
-        Children.Add(randomText);
+        Children.Add(_nameVisualNode);
         Children.Add(Socket);
     }
 }

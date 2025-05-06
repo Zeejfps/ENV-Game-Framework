@@ -18,8 +18,8 @@ public sealed class NodeFactory
             Title = "New Node",
             Bounds = RectF.FromLBWH(mousePos.X, mousePos.Y, 50, 0),
         };
-        node.AddInputPort();
-        node.AddInputPort();
+        node.AddInputPort("Port 1");
+        node.AddInputPort("Port 2");
         node.AddOutputPort();
         node.AddOutputPort();
         node.Update();
