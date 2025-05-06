@@ -1,12 +1,12 @@
 ﻿namespace NodeGraphApp;
 
-public delegate void BoundsChangedCallback(ScreenRect bounds);
+public delegate void BoundsChangedCallback(RectF bounds);
 
 public sealed class FlexItem
 {
-    private ScreenRect _bounds;
+    private RectF _bounds;
 
-    public ScreenRect Bounds
+    public RectF Bounds
     {
         get => _bounds;
         set

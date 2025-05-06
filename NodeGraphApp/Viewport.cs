@@ -5,7 +5,7 @@ namespace NodeGraphApp;
 
 public sealed class Viewport
 {
-    public required ScreenRect Bounds { get; set; }
+    public required RectF Bounds { get; set; }
     public Camera Camera { get; }
     
     private readonly Window _window;

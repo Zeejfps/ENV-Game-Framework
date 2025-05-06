@@ -4,7 +4,7 @@ namespace NodeGraphApp;
 
 public sealed class FlexColumn : IEnumerable<FlexItem>
 {
-    public ScreenRect Bounds { get; set; }
+    public RectF Bounds { get; set; }
     public Padding Padding { get; set; }
     public float ItemGap { get; set; }
     
@@ -46,7 +46,7 @@ public sealed class FlexColumn : IEnumerable<FlexItem>
                 height = flexShare * totalFlexSpace;
             }
 
-            item.Bounds = ScreenRect.FromLeftTopWidthHeight(left, top, width, height);
+            item.Bounds = RectF.FromLeftTopWidthHeight(left, top, width, height);
             top -= height + ItemGap;
         }
     }

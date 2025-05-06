@@ -2,8 +2,8 @@
 
 public class Column
 {
-    private ScreenRect _bounds;
-    public ScreenRect Bounds
+    private RectF _bounds;
+    public RectF Bounds
     {
         get => _bounds;
         set => SetField(ref _bounds, value);
@@ -45,7 +45,7 @@ public class Column
         }
     }
 
-    private void OnItemBoundsChanged(ScreenRect bounds)
+    private void OnItemBoundsChanged(RectF bounds)
     {
         SetDirty();
     }
@@ -100,7 +100,7 @@ public class Column
         foreach (var item in items)
         {
             var height = item.Bounds.Height;
-            item.Bounds = ScreenRect.FromLeftTopWidthHeight(left, top, width, height);
+            item.Bounds = RectF.FromLeftTopWidthHeight(left, top, width, height);
             top -= height + itemGap;
         }
 
@@ -120,8 +120,8 @@ public class Column
 
 public abstract class ColumnItem
 {
-    private ScreenRect _bounds;
-    public ScreenRect Bounds
+    private RectF _bounds;
+    public RectF Bounds
     {
         get => _bounds;
         set
@@ -133,7 +133,7 @@ public abstract class ColumnItem
         }
     }
     
-    public event Action<ScreenRect>? BoundsChanged;
+    public event Action<RectF>? BoundsChanged;
 
     public void Update()
     {

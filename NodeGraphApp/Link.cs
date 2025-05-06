@@ -13,7 +13,7 @@ public sealed class Link
     public Vector2 P2 => EndPosition - new Vector2(20f, 0f);
     public Vector2 P3 => EndPosition;
 
-    public ScreenRect Bounds
+    public RectF Bounds
     {
         get
         {
@@ -36,7 +36,7 @@ public sealed class Link
             top += 0.5f;
             bottom -= 0.5f;
 
-            return ScreenRect.FromLeftBottomTopRight(left, bottom, top, right);
+            return RectF.FromLeftBottomTopRight(left, bottom, top, right);
         }
     }
 }

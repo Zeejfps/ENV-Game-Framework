@@ -271,7 +271,7 @@ public sealed class OpenGlNodeGraphRenderer
             RenderVisualNode(child);
     }
     
-    private void RenderText(ScreenRect bounds, TextAlignment verticalTextAlignment, string text)
+    private void RenderText(RectF bounds, TextAlignment verticalTextAlignment, string text)
     {
         var fontScale = 0.1f;
 
@@ -349,8 +349,8 @@ public sealed class OpenGlNodeGraphRenderer
             
             RenderGlyph(new GlyphRect
             {
-                Bounds = ScreenRect.FromLBWH(left, bottom, width, height),
-                SpriteRect = ScreenRect.FromLBWH(uOffset, vOffset, uScale, vScale)
+                Bounds = RectF.FromLBWH(left, bottom, width, height),
+                SpriteRect = RectF.FromLBWH(uOffset, vOffset, uScale, vScale)
             });
 
             cursor += glyphInfo.XAdvance * fontScale;

@@ -4,10 +4,10 @@ using TextAlignment = NodeGraphApp.TextAlignment;
 
 public class VisualNode : INode<VisualNode>
 {
-    public Action<ScreenRect>? BoundsChanged;
+    public Action<RectF>? BoundsChanged;
 
-    private ScreenRect _bounds;
-    public ScreenRect Bounds
+    private RectF _bounds;
+    public RectF Bounds
     {
         get => _bounds;
         set

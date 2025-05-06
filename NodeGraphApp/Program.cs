@@ -21,7 +21,7 @@ var nodeGraph = new NodeGraph();
 var n1 = new Node
 {
     Title = "Node 1",
-    Bounds = new ScreenRect
+    Bounds = new RectF
     {
         Left = 0,
         Bottom = 10,
@@ -41,7 +41,7 @@ n1.AddOutputPort();
 var n2 = new Node
 {
     Title = "Node 31",
-    Bounds = new ScreenRect
+    Bounds = new RectF
     {
         Left = -50,
         Bottom = 10,
@@ -63,7 +63,7 @@ var window = new Window();
 var camera = new Camera(windowAspectRatio);
 var viewport = new Viewport(window, camera)
 {
-    Bounds = ScreenRect.FromLeftTopWidthHeight(0, 1f, 1f, 1f)
+    Bounds = RectF.FromLeftTopWidthHeight(0, 1f, 1f, 1f)
 };
 var mousePicker = new MousePicker(viewport, mouse, nodeGraph);
 var fontLoader = new MsdfBmpFontFileLoader();

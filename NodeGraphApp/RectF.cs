@@ -2,7 +2,7 @@
 
 namespace NodeGraphApp;
 
-public readonly struct ScreenRect : IEquatable<ScreenRect>
+public readonly struct RectF : IEquatable<RectF>
 {
     public required float Left { get; init; }
     public required float Bottom { get; init; }
@@ -11,14 +11,14 @@ public readonly struct ScreenRect : IEquatable<ScreenRect>
     public float Top => Bottom + Height;
     public float Right => Left + Width;
 
-    public bool Equals(ScreenRect other)
+    public bool Equals(RectF other)
     {
         return Left.Equals(other.Left) && Bottom.Equals(other.Bottom) && Width.Equals(other.Width) && Height.Equals(other.Height);
     }
 
     public override bool Equals(object? obj)
     {
-        return obj is ScreenRect other && Equals(other);
+        return obj is RectF other && Equals(other);
     }
 
     public override int GetHashCode()
@@ -26,19 +26,19 @@ public readonly struct ScreenRect : IEquatable<ScreenRect>
         return HashCode.Combine(Left, Bottom, Width, Height);
     }
 
-    public static bool operator ==(ScreenRect left, ScreenRect right)
+    public static bool operator ==(RectF left, RectF right)
     {
         return left.Equals(right);
     }
 
-    public static bool operator !=(ScreenRect left, ScreenRect right)
+    public static bool operator !=(RectF left, RectF right)
     {
         return !left.Equals(right);
     }
 
-    public static ScreenRect FromLeftBottomTopRight(float left, float bottom, float top, float right)
+    public static RectF FromLeftBottomTopRight(float left, float bottom, float top, float right)
     {
-        return new ScreenRect
+        return new RectF
         {
             Left = left,
             Bottom = bottom,
@@ -47,9 +47,9 @@ public readonly struct ScreenRect : IEquatable<ScreenRect>
         };
     }
 
-    public static ScreenRect FromLBWH(float left, float bottom, float width, float height)
+    public static RectF FromLBWH(float left, float bottom, float width, float height)
     {
-        return new ScreenRect
+        return new RectF
         {
             Left = left,
             Bottom = bottom,
@@ -58,9 +58,9 @@ public readonly struct ScreenRect : IEquatable<ScreenRect>
         };
     }
     
-    public static ScreenRect FromLeftTopWidthHeight(float left, float top, float width, float height)
+    public static RectF FromLeftTopWidthHeight(float left, float top, float width, float height)
     {
-        return new ScreenRect
+        return new RectF
         {
             Left = left,
             Bottom = top - height,
@@ -88,7 +88,7 @@ public readonly struct ScreenRect : IEquatable<ScreenRect>
         return true;
     }
 
-    public bool Overlaps(ScreenRect bounds)
+    public bool Overlaps(RectF bounds)
     {
         return Left <= bounds.Right &&
                Right >= bounds.Left &&

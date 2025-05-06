@@ -2,6 +2,6 @@ using NodeGraphApp;
 
 public readonly struct GlyphRect
 {
-    public ScreenRect Bounds { get; init; }
-    public ScreenRect SpriteRect { get; init; }
+    public RectF Bounds { get; init; }
+    public RectF SpriteRect { get; init; }
 }

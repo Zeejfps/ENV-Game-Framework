@@ -54,7 +54,7 @@ public static class BezierUtils
         return distance <= threshold;
     }
     
-    public static bool RectangleOverlapsBezier(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, ScreenRect rect, int steps = 50)
+    public static bool RectangleOverlapsBezier(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, RectF rect, int steps = 50)
     {
         var prev = CubicBezier(p0, p1, p2, p3, 0f);
         if (rect.Contains(prev)) return true;
@@ -72,7 +72,7 @@ public static class BezierUtils
         return false;
     }
     
-    public static bool LineIntersectsRect(Vector2 a, Vector2 b, ScreenRect rect)
+    public static bool LineIntersectsRect(Vector2 a, Vector2 b, RectF rect)
     {
         var rectLines = new[]
         {
