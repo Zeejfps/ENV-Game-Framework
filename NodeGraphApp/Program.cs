@@ -91,12 +91,13 @@ Glfw.SetMouseButtonCallback(window, (_, button, state, _) =>
     }
 });
 
-Glfw.SetCursorPositionCallback(window, (_, x, y) =>
+MouseCallback cursorPositionCallback = (_, x, y) =>
 {
     mouse.Position = new Vector2((float)x, (float)y);
-});
+};
+Glfw.SetCursorPositionCallback(window, cursorPositionCallback);
 
-Glfw.SetKeyCallback(window, (_, key, code, state, mods) =>
+KeyCallback keyCallback = (_, key, _, state, _) =>
 {
     if (state == InputState.Press)
     {
@@ -106,19 +107,23 @@ Glfw.SetKeyCallback(window, (_, key, code, state, mods) =>
     {
         keyboard.ReleaseKey(key);
     }
-});
+};
+Glfw.SetKeyCallback(window, keyCallback);
 
-Glfw.SetWindowSizeCallback(window, (window, width, height) =>
+
+SizeCallback sizeCallback = (_, width, height) =>
 {
     viewport.Update();
     renderer.Update();
     Glfw.SwapBuffers(window);
-});
+};
+Glfw.SetWindowSizeCallback(window, sizeCallback);
 
-Glfw.SetScrollCallback(window, (window, dx, dy) =>
+MouseCallback mouseScrollCallback = (_, dx, dy) =>
 {
     camera.ZoomFactor += (float)dy * 0.05f;
-});
+};
+Glfw.SetScrollCallback(window, mouseScrollCallback);
 
 Glfw.MakeContextCurrent(window);
 Glfw.ShowWindow(window);
