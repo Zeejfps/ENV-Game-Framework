@@ -28,26 +28,6 @@ public sealed class KeyboardAndMouseController
                 _hoveredLink.IsHovered = true;
         }
     }
-    
-    private Link? _selectedLink = null;
-    private Link? SelectedLink
-    {
-        get => _selectedLink;
-        set
-        {
-            if (_selectedLink == value)
-                return;
-
-            var prevSelectedLink = _selectedLink;
-            _selectedLink = value;
-
-            if (prevSelectedLink != null)
-                prevSelectedLink.IsSelected = false;
-
-            if (_selectedLink != null)
-                _selectedLink.IsSelected = true;
-        }
-    }
 
     private OutputPort? _hoveredOutputPort;
     private OutputPort? HoveredOutputPort
@@ -86,6 +66,7 @@ public sealed class KeyboardAndMouseController
     private bool _isDragging;
     
     private readonly HashSet<Node> _selectedNodes = new();
+    private readonly HashSet<Link> _selectedLinks = new();
     
     private Vector2 _mousePos;
     private Node? _draggedNode;
@@ -218,11 +199,14 @@ public sealed class KeyboardAndMouseController
             return;
         }
         
-        if (SelectedLink != null && _keyboard.WasKeyPressedThisFrame(Keys.Delete))
+        if (_selectedLinks.Count > 0 && _keyboard.WasKeyPressedThisFrame(Keys.Delete))
         {
-            _nodeGraph.Connections.Disconnect(SelectedLink);
-            _nodeGraph.BackgroundLinks.Remove(SelectedLink);
-            SelectedLink = null;
+            foreach (var selectedLink in _selectedLinks)
+            {
+                _nodeGraph.Connections.Disconnect(selectedLink);
+                _nodeGraph.BackgroundLinks.Remove(selectedLink);
+            }
+            ClearSelectedLinks();
             return;
         }
 
@@ -238,7 +222,7 @@ public sealed class KeyboardAndMouseController
             HoveredNode = node;
             HoveredLink = null;
         }
-        else if (_mousePicker.TryPickLink(out var link) && link != SelectedLink)
+        else if (_mousePicker.TryPickLink(out var link))
         {
             HoveredNode = null;
             HoveredOutputPort = null;
@@ -264,15 +248,12 @@ public sealed class KeyboardAndMouseController
             else if (HoveredLink != null)
             {
                 ClearSelectedNodes();
-                SelectedLink = HoveredLink;
-                HoveredLink = null;
-            }
-            else if (SelectedLink != null)
-            {
-                SelectedLink = null;
+                SelectLink(HoveredLink);
             }
             else
             {
+                ClearSelectedNodes();
+                ClearSelectedLinks();
                 _isDragging = true;
                 _mousePos = _mousePicker.MouseWorldPosition;
                 _nodeGraph.SelectionBox.Show(_mousePos);
@@ -280,13 +261,29 @@ public sealed class KeyboardAndMouseController
         }
     }
 
+    private void ClearSelectedLinks()
+    {
+        foreach (var link in _selectedLinks)
+        {
+            link.IsSelected = false;
+        }
+        _selectedLinks.Clear();;
+    }
+
     private void SelectLink(Link link)
     {
+        if (_selectedLinks.Add(link))
+        {
+            link.IsSelected = true;
+        }
     }
 
     private void DeselectLink(Link link)
     {
-        
+        if (_selectedLinks.Remove(link))
+        {
+            link.IsSelected = false;
+        }
     }
 
     private void ClearSelectedNodes()
@@ -333,10 +330,10 @@ public sealed class KeyboardAndMouseController
     {
         _mousePos = _mousePicker.MouseWorldPosition;
         _draggedNode = node;
-        SelectedLink = null;
 
         if (!IsSelected(node))
         {
+            ClearSelectedLinks();
             ClearSelectedNodes();
             SelectNode(node);
         }
