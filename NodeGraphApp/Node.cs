@@ -21,6 +21,18 @@ public sealed class Node : VisualNode
             BorderColor = borderColor;
         }
     }
+    
+    private bool _isSelected;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected == value)
+                return;
+            _isSelected = value;
+        }
+    }
 
     public string Title
     {
@@ -30,7 +42,6 @@ public sealed class Node : VisualNode
     
     public IEnumerable<InputPort> InputPorts => _inputPorts;
     public IEnumerable<OutputPort> OutputPorts => _outputPorts;
-    public bool IsSelected { get; set; }
 
     private readonly Column _column;
     private readonly ColumnColumnItem _topColumn;
@@ -93,6 +104,19 @@ public sealed class Node : VisualNode
     {
         _column.Update();
         Bounds = _column.Bounds;
+
+        if (_isSelected)
+        {
+            BorderColor = Color.FromRGBA(0.0f, 0.6627f, 0.8784f, 1.0f);
+        }
+        else if (_isHovered)
+        {
+            BorderColor = Color.FromRGBA(0.1686f, 0.4863f, 0.5804f, 1.0f);
+        }
+        else
+        {
+            BorderColor = Color.FromRGBA(0f, 0f, 0f, 1f);
+        }
     }
     
     protected override void OnBoundsChanged()

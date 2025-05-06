@@ -251,6 +251,8 @@ public sealed class KeyboardAndMouseController
             }
             else if (HoveredNode != null)
             {
+                ClearSelectedNodes();
+                SelectNode(HoveredNode);
                 StartDraggingNode(HoveredNode);
             }
             else if (HoveredLink != null)
@@ -268,6 +270,13 @@ public sealed class KeyboardAndMouseController
                 _mousePos = _mousePicker.MouseWorldPosition;
             }
         }
+    }
+
+    private void ClearSelectedNodes()
+    {
+        foreach (var selectedNode in _selectedNodes)
+            selectedNode.IsSelected = false;
+        _selectedNodes.Clear();
     }
 
     private void SelectNode(Node node)
