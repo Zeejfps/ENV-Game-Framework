@@ -70,9 +70,9 @@ var fontLoader = new MsdfBmpFontFileLoader();
 var interFontData = fontLoader.LoadFromFilePath(App.ResolvePath("Assets/Fonts/Inter/Inter_28pt-Regular-msdf.json"));
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
 var cameraDragController = new CameraDragController(viewport, mouse, keyboard);
-var keyboardAndMouseController = new KeyboardAndMouseController(mousePicker, nodeGraph, keyboard, camera);
-var mouseController = new GlfwMouseController(windowHandle, mouse);
-var keyboardController = new GlfwKeyboardController(windowHandle, keyboard);
+var nodeGraphController = new NodeGraphKeyboardAndMouseController(nodeGraph, camera, mousePicker, keyboard);
+var glfwMouseController = new GlfwMouseController(windowHandle, mouse);
+var glfwKeyboardController = new GlfwKeyboardController(windowHandle, keyboard);
 var windowController = new GlfwWindowController(windowHandle, window, viewport, renderer);
 
 Glfw.MakeContextCurrent(windowHandle);
@@ -85,8 +85,8 @@ GL46.glEnable(GL46.GL_SCISSOR_TEST);
 renderer.Setup();
 while (!Glfw.WindowShouldClose(windowHandle))
 {
-    mouseController.Update();
-    keyboardController.Update();
+    glfwMouseController.Update();
+    glfwKeyboardController.Update();
     Glfw.PollEvents();
     
     windowController.Update();
@@ -96,7 +96,7 @@ while (!Glfw.WindowShouldClose(windowHandle))
     
     cameraDragController.Update();
     mousePicker.Update();
-    keyboardAndMouseController.Update();
+    nodeGraphController.Update();
 
     nodeGraph.Update();
     viewport.Update();

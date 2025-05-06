@@ -3,7 +3,7 @@ using GLFW;
 
 namespace NodeGraphApp;
 
-public sealed class KeyboardAndMouseController
+public sealed class NodeGraphKeyboardAndMouseController
 {
     private readonly NodeGraph _nodeGraph;
     private readonly MousePicker _mousePicker;
@@ -77,7 +77,7 @@ public sealed class KeyboardAndMouseController
     private OutputPort? _linkOutputPort;
     private InputPort? _selectedInputPort;
     
-    public KeyboardAndMouseController(MousePicker mousePicker, NodeGraph nodeGraph, Keyboard keyboard, Camera camera)
+    public NodeGraphKeyboardAndMouseController(NodeGraph nodeGraph, Camera camera, MousePicker mousePicker, Keyboard keyboard)
     {
         _mousePicker = mousePicker;
         _nodeGraph = nodeGraph;
