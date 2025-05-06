@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using GLFW;
+using WindowHandle = GLFW.Window;
 
 namespace NodeGraphApp;
 
@@ -7,11 +8,14 @@ public sealed class GlfwMouseController
 {
     private readonly Mouse _mouse;
 
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly MouseButtonCallback _mouseButtonCallback;
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly MouseCallback _mousePositionCallback;
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly MouseCallback _mouseScrollCallback;
     
-    public GlfwMouseController(Window window, Mouse mouse)
+    public GlfwMouseController(WindowHandle window, Mouse mouse)
     {
         _mouse = mouse;
 

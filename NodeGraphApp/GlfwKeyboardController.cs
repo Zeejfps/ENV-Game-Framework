@@ -1,4 +1,5 @@
 ﻿using GLFW;
+using WindowHandle = GLFW.Window;
 
 namespace NodeGraphApp;
 
@@ -7,7 +8,7 @@ public sealed class GlfwKeyboardController
     private readonly Keyboard _keyboard;
     private readonly KeyCallback _keyCallback;
     
-    public GlfwKeyboardController(Window window, Keyboard keyboard)
+    public GlfwKeyboardController(WindowHandle window, Keyboard keyboard)
     {
         _keyboard = keyboard;
         _keyCallback = (_, key, _, state, _) =>

@@ -3,6 +3,7 @@ using GLFW;
 using MsdfBmpFont;
 using NodeGraphApp;
 using Monitor = GLFW.Monitor;
+using Window = NodeGraphApp.Window;
 
 Glfw.Init();
 
@@ -14,7 +15,7 @@ Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
 var windowWidth = 1280;
 var windowHeight = 720;
 var windowAspectRatio = (float)windowWidth / windowHeight;
-var window = Glfw.CreateWindow(windowWidth, windowHeight, "Node Graph", Monitor.None, Window.None);
+var windowHandle = Glfw.CreateWindow(windowWidth, windowHeight, "Node Graph", Monitor.None, GLFW.Window.None);
 
 var nodeGraph = new NodeGraph();
 var n1 = new Node
@@ -58,6 +59,7 @@ nodeGraph.Nodes.Add(n2);
 
 var mouse = new Mouse();
 var keyboard = new Keyboard();
+var window = new Window();
 var camera = new Camera(windowAspectRatio);
 var viewport = new Viewport(window, camera)
 {
@@ -69,30 +71,25 @@ var interFontData = fontLoader.LoadFromFilePath(App.ResolvePath("Assets/Fonts/In
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
 var cameraDragController = new CameraDragController(viewport, mouse, keyboard);
 var keyboardAndMouseController = new KeyboardAndMouseController(mousePicker, nodeGraph, keyboard, camera);
-var mouseController = new GlfwMouseController(window, mouse);
-var keyboardController = new GlfwKeyboardController(window, keyboard);
+var mouseController = new GlfwMouseController(windowHandle, mouse);
+var keyboardController = new GlfwKeyboardController(windowHandle, keyboard);
+var windowController = new GlfwWindowController(windowHandle, window, viewport, renderer);
 
-SizeCallback sizeCallback = (_, width, height) =>
-{
-    viewport.Update();
-    renderer.Update();
-    Glfw.SwapBuffers(window);
-};
-Glfw.SetWindowSizeCallback(window, sizeCallback);
-
-Glfw.MakeContextCurrent(window);
-Glfw.ShowWindow(window);
+Glfw.MakeContextCurrent(windowHandle);
+Glfw.ShowWindow(windowHandle);
 Glfw.SwapInterval(1);
 
 GL46.Import(Glfw.GetProcAddress);
 
 GL46.glEnable(GL46.GL_SCISSOR_TEST);
 renderer.Setup();
-while (!Glfw.WindowShouldClose(window))
+while (!Glfw.WindowShouldClose(windowHandle))
 {
     mouseController.Update();
     keyboardController.Update();
     Glfw.PollEvents();
+    
+    windowController.Update();
     
     n1.Update();
     n2.Update();
@@ -105,7 +102,7 @@ while (!Glfw.WindowShouldClose(window))
     viewport.Update();
     renderer.Update();
     
-    Glfw.SwapBuffers(window);
+    Glfw.SwapBuffers(windowHandle);
 }
 renderer.Teardown();
 

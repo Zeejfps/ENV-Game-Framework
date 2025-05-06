@@ -18,7 +18,8 @@ public sealed class Viewport
 
     public void Update()
     {
-        Glfw.GetFramebufferSize(_window, out var width, out var height);
+        var width = _window.FramebufferWidth;
+        var height = _window.FramebufferHeight;
         var x = Bounds.Left * width;
         var y = Bounds.Bottom * height;
         var w = Bounds.Width * width;
@@ -33,7 +34,8 @@ public sealed class Viewport
     {
         var window = _window;
         var bounds = Bounds;
-        Glfw.GetWindowSize(window, out var windowWidth, out var windowHeight);
+        var windowWidth = window.Width;
+        var windowHeight = window.Height;
 
         // Convert screenPoint to normalized screen space [0,1]
         var normX = screenPoint.X / windowWidth;
