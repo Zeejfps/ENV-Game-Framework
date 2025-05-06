@@ -73,7 +73,7 @@ var cameraDragController = new CameraDragController(viewport, mouse, keyboard);
 var nodeGraphController = new NodeGraphKeyboardAndMouseController(nodeGraph, camera, mousePicker, keyboard);
 var glfwMouseController = new GlfwMouseController(windowHandle, mouse);
 var glfwKeyboardController = new GlfwKeyboardController(windowHandle, keyboard);
-var windowController = new GlfwWindowController(windowHandle, window, viewport, renderer);
+var glfwWindowController = new GlfwWindowController(windowHandle, window, viewport, renderer);
 
 Glfw.MakeContextCurrent(windowHandle);
 Glfw.ShowWindow(windowHandle);
@@ -87,10 +87,9 @@ while (!Glfw.WindowShouldClose(windowHandle))
 {
     glfwMouseController.Update();
     glfwKeyboardController.Update();
+    glfwWindowController.Update();
     Glfw.PollEvents();
-    
-    windowController.Update();
-    
+
     n1.Update();
     n2.Update();
     
