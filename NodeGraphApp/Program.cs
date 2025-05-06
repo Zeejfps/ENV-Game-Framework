@@ -35,7 +35,7 @@ n1.AddInputPort();
 n1.AddInputPort();
 n1.AddOutputPort();
 n1.AddOutputPort();
-var testOutputPort = n1.AddOutputPort();
+n1.AddOutputPort();
 
 var n2 = new Node
 {
@@ -56,15 +56,6 @@ n2.AddOutputPort();
 nodeGraph.Nodes.Add(n1);
 nodeGraph.Nodes.Add(n2);
 
-// var link = new Link
-// {
-//     StartPosition = Vector2.Zero,
-//     EndPosition = new Vector2(50, 50)
-// };
-// nodeGraph.Links.Add(link);
-//
-// nodeGraph.Links.Connect(link, testOutputPort);
-
 var mouse = new Mouse();
 var keyboard = new Keyboard();
 var camera = new Camera(windowAspectRatio);
@@ -79,7 +70,7 @@ var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
 var cameraDragController = new CameraDragController(viewport, mouse, keyboard);
 var keyboardAndMouseController = new KeyboardAndMouseController(mousePicker, nodeGraph, keyboard);
 
-Glfw.SetMouseButtonCallback(window, (_, button, state, _) =>
+MouseButtonCallback mouseButtonCallback = (_, button, state, _) =>
 {
     if (state == InputState.Press)
     {
@@ -89,7 +80,8 @@ Glfw.SetMouseButtonCallback(window, (_, button, state, _) =>
     {
         mouse.ReleaseButton(button);
     }
-});
+};
+Glfw.SetMouseButtonCallback(window, mouseButtonCallback);
 
 MouseCallback cursorPositionCallback = (_, x, y) =>
 {
