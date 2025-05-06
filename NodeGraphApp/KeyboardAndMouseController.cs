@@ -83,6 +83,8 @@ public sealed class KeyboardAndMouseController
         }
     }
     
+    private bool _isDragging;
+    
     private Vector2 _mousePos;
     private Node? _draggedNode;
 
@@ -100,9 +102,44 @@ public sealed class KeyboardAndMouseController
 
     public void Update()
     {
+        var mouse = _mousePicker.Mouse;
+
+        if (_isDragging)
+        {
+            if (mouse.WasButtonReleasedThisFrame(MouseButton.Left))
+            {
+                var endPos = _mousePicker.MouseWorldPosition;
+                var left = _mousePos.X;
+                if (endPos.X < left)
+                    left = endPos.X;
+                
+                var bottom = _mousePos.Y;
+                if (endPos.Y < bottom)
+                    bottom = endPos.Y;
+                
+                var width = MathF.Abs(endPos.X - _mousePos.X);
+                var height = MathF.Abs(endPos.Y - _mousePos.Y);
+
+                var selectionRect = ScreenRect.FromLBWH(left, bottom, width, height);
+                Console.WriteLine($"Selection Rect: {selectionRect}");
+
+                var nodes = _nodeGraph.Nodes.GetAll();
+                foreach (var node in nodes)
+                {
+                    if (selectionRect.Overlaps(node.Bounds))
+                    {
+                        Console.WriteLine("Overlaps");
+                    }
+                }
+                
+                _isDragging = false;
+            }
+            return;
+        }
+        
         if (_newLink != null)
         {
-            if (_mousePicker.Mouse.IsButtonReleased(MouseButton.Left))
+            if (mouse.IsButtonReleased(MouseButton.Left))
             {
                 if (_selectedInputPort != null && _linkOutputPort != null)
                 {
@@ -128,7 +165,7 @@ public sealed class KeyboardAndMouseController
 
                 if (_selectedInputPort != null && _selectedInputPort != inputPort)
                     _selectedInputPort.IsHovered = false;
-                
+
                 _selectedInputPort = inputPort;
                 _selectedInputPort.IsHovered = true;
                 return;
@@ -139,21 +176,21 @@ public sealed class KeyboardAndMouseController
                 _selectedInputPort.IsHovered = false;
                 _selectedInputPort = null;
             }
-            
+
             var currPos = _mousePicker.MouseWorldPosition;
             _newLink.EndPosition = currPos;
-            
+
             return;
         }
-        
+
         if (_draggedNode != null)
         {
-            if (_mousePicker.Mouse.IsButtonReleased(MouseButton.Left))
+            if (mouse.IsButtonReleased(MouseButton.Left))
             {
                 _draggedNode = null;
                 return;
             }
-            
+
             var currPos = _mousePicker.MouseWorldPosition;
             var delta = currPos - _mousePos;
             _mousePos = currPos;
@@ -163,15 +200,16 @@ public sealed class KeyboardAndMouseController
                 Left = bounds.Left + delta.X,
                 Bottom = bounds.Bottom + delta.Y,
             };
-            
-            return;   
-        }
 
+            return;
+        }
+        
         if (SelectedLink != null && _keyboard.WasKeyPressedThisFrame(Keys.Delete))
         {
             _nodeGraph.Connections.Disconnect(SelectedLink);
             _nodeGraph.BackgroundLinks.Remove(SelectedLink);
             SelectedLink = null;
+            return;
         }
 
         if (_mousePicker.TryPick<OutputPort>(out var outputPort))
@@ -199,7 +237,7 @@ public sealed class KeyboardAndMouseController
             HoveredLink = null;
         }
 
-        if (_mousePicker.Mouse.WasButtonPressedThisFrame(MouseButton.Left))
+        if (mouse.WasButtonPressedThisFrame(MouseButton.Left))
         {
             if (HoveredOutputPort != null)
             {
@@ -217,6 +255,11 @@ public sealed class KeyboardAndMouseController
             else if (SelectedLink != null)
             {
                 SelectedLink = null;
+            }
+            else
+            {
+                _isDragging = true;
+                _mousePos = _mousePicker.MouseWorldPosition;
             }
         }
     }

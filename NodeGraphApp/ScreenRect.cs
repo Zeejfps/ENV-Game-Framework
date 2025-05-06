@@ -87,4 +87,12 @@ public readonly struct ScreenRect : IEquatable<ScreenRect>
             return false;
         return true;
     }
+
+    public bool Overlaps(ScreenRect bounds)
+    {
+        return Left <= bounds.Right &&
+               Right >= bounds.Left &&
+               Bottom <= bounds.Top &&
+               Top >= bounds.Bottom;
+    }
 }
