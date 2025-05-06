@@ -232,10 +232,10 @@ public sealed class OpenGlNodeGraphRenderer
                 
         RenderCurve(new CubicCurve
         {
-            P0 = link.StartPosition,
-            P1 = link.StartPosition + new Vector2(20f, 0f),
-            P2 = link.EndPosition - new Vector2(20f, 0f),
-            P3 = link.EndPosition,
+            P0 = link.P0,
+            P1 = link.P1,
+            P2 = link.P2,
+            P3 = link.P3,
             Color = color,
         });
     }

@@ -46,10 +46,10 @@ public sealed class MousePicker
             var bounds = link.Bounds;
             if (bounds.Contains(worldPosition))
             {
-                var p0 = link.StartPosition;
-                var p1 = link.StartPosition + new Vector2(20f, 0f);
-                var p2 = link.EndPosition - new Vector2(20f, 0f);
-                var p3 = link.EndPosition;
+                var p0 = link.P0;
+                var p1 = link.P1;
+                var p2 = link.P2;
+                var p3 = link.P3;
                 if (BezierUtils.IsPointOverBezier(worldPosition, p0, p1, p2, p3))
                 {
                     hoveredLink = link;

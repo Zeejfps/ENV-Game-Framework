@@ -8,6 +8,11 @@ public sealed class Link
     public bool IsHovered { get; set; }
     public bool IsSelected { get; set; }
 
+    public Vector2 P0 => StartPosition;
+    public Vector2 P1 => StartPosition + new Vector2(20f, 0f);
+    public Vector2 P2 => EndPosition - new Vector2(20f, 0f);
+    public Vector2 P3 => EndPosition;
+
     public ScreenRect Bounds
     {
         get

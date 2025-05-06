@@ -112,7 +112,12 @@ public sealed class KeyboardAndMouseController
                 var links = _nodeGraph.BackgroundLinks.GetAll();
                 foreach (var link in links)
                 {
-                    if (selectionRect.Overlaps(link.Bounds))
+                    var p0 = link.P0;
+                    var p1 = link.P1;
+                    var p2 = link.P2;
+                    var p3 = link.P3;
+                    if (selectionRect.Overlaps(link.Bounds) &&
+                        BezierUtils.RectangleOverlapsBezier(p0, p1, p2, p3, selectionRect))
                     {
                         SelectLink(link);
                     }
