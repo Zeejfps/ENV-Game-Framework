@@ -1,3 +1,5 @@
+using NodeGraphApp;
+
 public sealed class NodeRepo
 {
     private readonly List<Node> _nodes = new();

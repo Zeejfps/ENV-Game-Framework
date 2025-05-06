@@ -1,6 +1,4 @@
-using NodeGraphApp;
-using Column = NodeGraphApp.Column;
-using TextAlignment = NodeGraphApp.TextAlignment;
+namespace NodeGraphApp;
 
 public sealed class Node : VisualNode
 {
@@ -13,12 +11,6 @@ public sealed class Node : VisualNode
             if (_isHovered == value)
                 return;
             _isHovered = value;
-            
-            var borderColor = _isHovered
-                ? Color.FromRGBA(0.2f, 0.6f, 0.7333f, 1.0f)
-                : Color.FromRGBA(0f, 0f, 0f, 1f);
-
-            BorderColor = borderColor;
         }
     }
     
@@ -86,7 +78,7 @@ public sealed class Node : VisualNode
     {
         var port = new InputPort(this);
         _inputPorts.Add(port);
-        _column.AddItem(new VisualNodeColumnItem(port));;
+        _column.AddItem(new VisualNodeColumnItem(port));
         Children.Add(port);
         return port;
     }
@@ -169,4 +161,3 @@ public sealed class ColumnColumnItem : ColumnItem
         base.OnBoundsChanged();
     }
 }
-
