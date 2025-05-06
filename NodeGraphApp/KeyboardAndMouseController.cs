@@ -94,7 +94,6 @@ public sealed class KeyboardAndMouseController
             if (mouse.WasButtonReleasedThisFrame(MouseButton.Left))
             {
                 var selectionRect = selectionBox.Bounds;
-                Console.WriteLine($"Selection Rect: {selectionRect}");
 
                 var nodes = _nodeGraph.Nodes.GetAll();
                 foreach (var node in nodes)
@@ -303,7 +302,6 @@ public sealed class KeyboardAndMouseController
         if (_selectedNodes.Add(node))
         {
             node.IsSelected = true;
-            Console.WriteLine("Selected node");
         }
     }
 
@@ -312,7 +310,6 @@ public sealed class KeyboardAndMouseController
         if (_selectedNodes.Remove(node))
         {
             node.IsSelected = false;
-            Console.WriteLine("Deselected node");
         }
     }
 

@@ -225,10 +225,10 @@ public sealed class OpenGlNodeGraphRenderer
     private void RenderLink(Link link)
     {
         var color = Color.FromRGBA(0.5333f, 0.5725f, 0.7490f, 1.0f);
-        if (link.IsHovered)
-            color = Color.FromRGBA(0.8667f, 0.9059f, 0.9784f, 1.0f);
-        else if (link.IsSelected)
+        if (link.IsSelected)
             color = Color.FromRGBA(0.0f, 0.7490f, 1.0f, 1.0f);
+        else if (link.IsHovered)
+            color = Color.FromRGBA(0.8667f, 0.9059f, 0.9784f, 1.0f);
                 
         RenderCurve(new CubicCurve
         {
