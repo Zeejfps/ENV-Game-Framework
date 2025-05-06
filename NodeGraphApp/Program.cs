@@ -70,20 +70,7 @@ var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
 var cameraDragController = new CameraDragController(viewport, mouse, keyboard);
 var keyboardAndMouseController = new KeyboardAndMouseController(mousePicker, nodeGraph, keyboard, camera);
 var mouseController = new GlfwMouseController(window, mouse);
-
-KeyCallback keyCallback = (_, key, _, state, _) =>
-{
-    if (state == InputState.Press)
-    {
-        keyboard.PressKey(key);
-    }
-    else if (state == InputState.Release)
-    {
-        keyboard.ReleaseKey(key);
-    }
-};
-Glfw.SetKeyCallback(window, keyCallback);
-
+var keyboardController = new GlfwKeyboardController(window, keyboard);
 
 SizeCallback sizeCallback = (_, width, height) =>
 {
@@ -104,8 +91,7 @@ renderer.Setup();
 while (!Glfw.WindowShouldClose(window))
 {
     mouseController.Update();
-    
-    keyboard.Update();
+    keyboardController.Update();
     Glfw.PollEvents();
     
     n1.Update();
