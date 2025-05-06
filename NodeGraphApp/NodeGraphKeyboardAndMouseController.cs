@@ -5,11 +5,6 @@ namespace NodeGraphApp;
 
 public sealed class NodeGraphKeyboardAndMouseController
 {
-    private readonly NodeGraph _nodeGraph;
-    private readonly MousePicker _mousePicker;
-    private readonly Keyboard _keyboard;
-    private readonly Camera _camera;
-
     private Link? _hoveredLink = null;
     private Link? HoveredLink
     {
@@ -77,21 +72,39 @@ public sealed class NodeGraphKeyboardAndMouseController
     private OutputPort? _linkOutputPort;
     private InputPort? _selectedInputPort;
     
-    public NodeGraphKeyboardAndMouseController(NodeGraph nodeGraph, Camera camera, MousePicker mousePicker, Keyboard keyboard)
+    private readonly NodeGraph _nodeGraph;
+    private readonly MousePicker _mousePicker;
+    private readonly Keyboard _keyboard;
+    private readonly Camera _camera;
+    private readonly NodeFactory _nodeFactory;
+    
+    public NodeGraphKeyboardAndMouseController(
+        NodeGraph nodeGraph, 
+        Camera camera,
+        MousePicker mousePicker,
+        Keyboard keyboard, NodeFactory nodeFactory)
     {
         _mousePicker = mousePicker;
         _nodeGraph = nodeGraph;
         _keyboard = keyboard;
+        _nodeFactory = nodeFactory;
         _camera = camera;
     }
 
     public void Update()
     {
         var mouse = _mousePicker.Mouse;
+        var keyboard = _keyboard;
 
         if (mouse.ScrollDelta.Y != 0)
         {
             _camera.ZoomFactor += mouse.ScrollDelta.Y * 0.05f;
+        }
+
+        if (keyboard.WasKeyPressedThisFrame(Keys.A))
+        {
+            var mousePos = _mousePicker.MouseWorldPosition;
+            _nodeFactory.CreateNodeAtPosition(mousePos);
         }
         
         if (_isDragging)

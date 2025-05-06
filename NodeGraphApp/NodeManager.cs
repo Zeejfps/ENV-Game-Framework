@@ -1,6 +1,6 @@
 using NodeGraphApp;
 
-public sealed class NodeRepo
+public sealed class NodeManager
 {
     private readonly List<Node> _nodes = new();
 

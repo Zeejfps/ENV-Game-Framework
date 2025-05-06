@@ -2,7 +2,7 @@ namespace NodeGraphApp;
 
 public sealed class NodeGraph
 {
-    public NodeRepo Nodes { get; } = new();
+    public NodeManager Nodes { get; } = new();
     public LinksRepo BackgroundLinks { get; } = new();
     public LinksRepo ForegroundLinks { get; } = new();
     public ConnectionManager Connections { get; } = new();
@@ -10,6 +10,11 @@ public sealed class NodeGraph
 
     public void Update()
     {
+        foreach (var node in Nodes.GetAll())
+        {
+            node.Update();
+        }
+        
         var links = BackgroundLinks.GetAll()
             .Concat(ForegroundLinks.GetAll());
         foreach (var link in links)
