@@ -210,14 +210,38 @@ public sealed class NodeGraphKeyboardAndMouseController
             return;
         }
         
-        if (_selectedLinks.Count > 0 && _keyboard.WasKeyPressedThisFrame(Keys.Delete))
+        if (_keyboard.WasKeyPressedThisFrame(Keys.Delete) && (_selectedLinks.Count > 0 || _selectedNodes.Count > 0))
         {
             foreach (var selectedLink in _selectedLinks)
             {
                 _nodeGraph.Connections.Disconnect(selectedLink);
                 _nodeGraph.BackgroundLinks.Remove(selectedLink);
             }
+
+            foreach (var selectedNode in _selectedNodes)
+            {
+                _nodeGraph.Nodes.Remove(selectedNode);
+                foreach (var port in selectedNode.InputPorts)
+                {
+                    if (_nodeGraph.Connections.TryGetLinkForInputPort(port, out var link))
+                    {
+                        _nodeGraph.Connections.Disconnect(link);
+                        _nodeGraph.BackgroundLinks.Remove(link);
+                    }
+                }
+                
+                foreach (var port in selectedNode.OutputPorts)
+                {
+                    if (_nodeGraph.Connections.TryGetLinkForOutputPort(port, out var link))
+                    {
+                        _nodeGraph.Connections.Disconnect(link);
+                        _nodeGraph.BackgroundLinks.Remove(link);
+                    }
+                }
+            }
+
             ClearSelectedLinks();
+            ClearSelectedNodes();
             return;
         }
 
