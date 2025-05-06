@@ -30,6 +30,7 @@ public sealed class Node : VisualNode
     
     public IEnumerable<InputPort> InputPorts => _inputPorts;
     public IEnumerable<OutputPort> OutputPorts => _outputPorts;
+    public bool IsSelected { get; set; }
 
     private readonly Column _column;
     private readonly ColumnColumnItem _topColumn;

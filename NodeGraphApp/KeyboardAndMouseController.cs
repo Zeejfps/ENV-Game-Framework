@@ -85,6 +85,8 @@ public sealed class KeyboardAndMouseController
     
     private bool _isDragging;
     
+    private readonly HashSet<Node> _selectedNodes = new();
+    
     private Vector2 _mousePos;
     private Node? _draggedNode;
 
@@ -128,7 +130,11 @@ public sealed class KeyboardAndMouseController
                 {
                     if (selectionRect.Overlaps(node.Bounds))
                     {
-                        Console.WriteLine("Overlaps");
+                        SelectNode(node);
+                    }
+                    else
+                    {
+                        DeselectNode(node);
                     }
                 }
                 
@@ -261,6 +267,24 @@ public sealed class KeyboardAndMouseController
                 _isDragging = true;
                 _mousePos = _mousePicker.MouseWorldPosition;
             }
+        }
+    }
+
+    private void SelectNode(Node node)
+    {
+        if (_selectedNodes.Add(node))
+        {
+            node.IsSelected = true;
+            Console.WriteLine("Selected node");
+        }
+    }
+
+    private void DeselectNode(Node node)
+    {
+        if (_selectedNodes.Remove(node))
+        {
+            node.IsSelected = false;
+            Console.WriteLine("Deselected node");
         }
     }
 
