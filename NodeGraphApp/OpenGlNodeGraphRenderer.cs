@@ -23,7 +23,6 @@ public sealed class OpenGlNodeGraphRenderer
 
     private readonly NodeGraph _nodeGraph;
     private readonly Camera _camera;
-    private readonly MsdfBmpFontFileLoader _fontFileLoader;
     private readonly MsdfFontFile _interFontData;
 
     // Shared data
@@ -278,7 +277,6 @@ public sealed class OpenGlNodeGraphRenderer
 
         var lineStart = bounds.Left;
         var fontFile = _interFontData;
-        var baseOffset = fontFile.Common.Base;
         var scaleW = (float)fontFile.Common.ScaleW;
         var scaleH = (float)fontFile.Common.ScaleH;
         var lineHeight = fontFile.Common.LineHeight * fontScale;
@@ -292,7 +290,7 @@ public sealed class OpenGlNodeGraphRenderer
         if (verticalTextAlignment == TextAlignment.Center)
         {
             var offset = (fontFile.Common.LineHeight - fontFile.Common.Base) * 0.5f;
-            topPadding = (bounds.Height - fontFile.Common.LineHeight * fontScale) * 0.5f - offset * fontScale;;
+            topPadding = (bounds.Height - fontFile.Common.LineHeight * fontScale) * 0.5f - offset * fontScale;
         }
         
         // RenderVisualNode(new VisualNode
