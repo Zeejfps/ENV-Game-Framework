@@ -6,6 +6,8 @@ namespace NodeGraphApp;
 public sealed class Mouse
 {
     public Vector2 Position { get; set; }
+    
+    public Vector2 ScrollDelta { get; set; }
 
     private readonly HashSet<MouseButton> _buttonsPressedThisFrame = new();
     private readonly HashSet<MouseButton> _buttonsReleasedThisFrame = new();

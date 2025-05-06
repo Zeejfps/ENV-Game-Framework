@@ -9,6 +9,7 @@ public sealed class GlfwMouseController
 
     private readonly MouseButtonCallback _mouseButtonCallback;
     private readonly MouseCallback _mousePositionCallback;
+    private readonly MouseCallback _mouseScrollCallback;
     
     public GlfwMouseController(Window window, Mouse mouse)
     {
@@ -32,11 +33,18 @@ public sealed class GlfwMouseController
             mouse.Position = new Vector2((float)x, (float)y);
         };
         Glfw.SetCursorPositionCallback(window, _mousePositionCallback);
+        
+        _mouseScrollCallback = (_, dx, dy) =>
+        {
+            _mouse.ScrollDelta = new Vector2((float)dx, (float)dy);
+        };
+        Glfw.SetScrollCallback(window, _mouseScrollCallback);
     }
 
     public void Update()
     {
         _mouse.ClearButtonsPressedThisFrame();
         _mouse.ClearButtonsReleasedThisFrame();
+        _mouse.ScrollDelta = Vector2.Zero;
     }
 }

@@ -68,7 +68,7 @@ var fontLoader = new MsdfBmpFontFileLoader();
 var interFontData = fontLoader.LoadFromFilePath(App.ResolvePath("Assets/Fonts/Inter/Inter_28pt-Regular-msdf.json"));
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
 var cameraDragController = new CameraDragController(viewport, mouse, keyboard);
-var keyboardAndMouseController = new KeyboardAndMouseController(mousePicker, nodeGraph, keyboard);
+var keyboardAndMouseController = new KeyboardAndMouseController(mousePicker, nodeGraph, keyboard, camera);
 var mouseController = new GlfwMouseController(window, mouse);
 
 KeyCallback keyCallback = (_, key, _, state, _) =>
@@ -92,12 +92,6 @@ SizeCallback sizeCallback = (_, width, height) =>
     Glfw.SwapBuffers(window);
 };
 Glfw.SetWindowSizeCallback(window, sizeCallback);
-
-MouseCallback mouseScrollCallback = (_, dx, dy) =>
-{
-    camera.ZoomFactor += (float)dy * 0.05f;
-};
-Glfw.SetScrollCallback(window, mouseScrollCallback);
 
 Glfw.MakeContextCurrent(window);
 Glfw.ShowWindow(window);

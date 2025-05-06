@@ -8,6 +8,7 @@ public sealed class KeyboardAndMouseController
     private readonly NodeGraph _nodeGraph;
     private readonly MousePicker _mousePicker;
     private readonly Keyboard _keyboard;
+    private readonly Camera _camera;
 
     private Link? _hoveredLink = null;
     private Link? HoveredLink
@@ -76,17 +77,23 @@ public sealed class KeyboardAndMouseController
     private OutputPort? _linkOutputPort;
     private InputPort? _selectedInputPort;
     
-    public KeyboardAndMouseController(MousePicker mousePicker, NodeGraph nodeGraph, Keyboard keyboard)
+    public KeyboardAndMouseController(MousePicker mousePicker, NodeGraph nodeGraph, Keyboard keyboard, Camera camera)
     {
         _mousePicker = mousePicker;
         _nodeGraph = nodeGraph;
         _keyboard = keyboard;
+        _camera = camera;
     }
 
     public void Update()
     {
         var mouse = _mousePicker.Mouse;
 
+        if (mouse.ScrollDelta.Y != 0)
+        {
+            _camera.ZoomFactor += mouse.ScrollDelta.Y * 0.05f;
+        }
+        
         if (_isDragging)
         {
             var selectionBox = _nodeGraph.SelectionBox;
