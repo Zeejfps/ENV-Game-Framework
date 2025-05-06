@@ -36,6 +36,7 @@ public sealed class GlfwMouseController
 
     public void Update()
     {
-        Glfw.PollEvents();
+        _mouse.ClearButtonsPressedThisFrame();
+        _mouse.ClearButtonsReleasedThisFrame();
     }
 }

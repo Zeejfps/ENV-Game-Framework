@@ -109,9 +109,10 @@ GL46.glEnable(GL46.GL_SCISSOR_TEST);
 renderer.Setup();
 while (!Glfw.WindowShouldClose(window))
 {
-    mouse.Update();
-    keyboard.Update();
     mouseController.Update();
+    
+    keyboard.Update();
+    Glfw.PollEvents();
     
     n1.Update();
     n2.Update();

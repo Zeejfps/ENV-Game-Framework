@@ -38,9 +38,13 @@ public sealed class Mouse
         _pressedButtons.Remove(button);
     }
 
-    public void Update()
+    public void ClearButtonsPressedThisFrame()
     {
         _buttonsPressedThisFrame.Clear();
+    }
+
+    public void ClearButtonsReleasedThisFrame()
+    {
         _buttonsReleasedThisFrame.Clear();
     }
 
