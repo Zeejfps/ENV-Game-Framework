@@ -250,6 +250,7 @@ public sealed class KeyboardAndMouseController
             }
             else if (HoveredLink != null)
             {
+                ClearSelectedNodes();
                 SelectedLink = HoveredLink;
                 HoveredLink = null;
             }
@@ -310,6 +311,7 @@ public sealed class KeyboardAndMouseController
     {
         _mousePos = _mousePicker.MouseWorldPosition;
         _draggedNode = node;
+        SelectedLink = null;
 
         if (!IsSelected(node))
         {
