@@ -69,25 +69,7 @@ var interFontData = fontLoader.LoadFromFilePath(App.ResolvePath("Assets/Fonts/In
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
 var cameraDragController = new CameraDragController(viewport, mouse, keyboard);
 var keyboardAndMouseController = new KeyboardAndMouseController(mousePicker, nodeGraph, keyboard);
-
-MouseButtonCallback mouseButtonCallback = (_, button, state, _) =>
-{
-    if (state == InputState.Press)
-    {
-        mouse.PressButton(button);
-    }
-    else if (state == InputState.Release)
-    {
-        mouse.ReleaseButton(button);
-    }
-};
-Glfw.SetMouseButtonCallback(window, mouseButtonCallback);
-
-MouseCallback cursorPositionCallback = (_, x, y) =>
-{
-    mouse.Position = new Vector2((float)x, (float)y);
-};
-Glfw.SetCursorPositionCallback(window, cursorPositionCallback);
+var mouseController = new GlfwMouseController(window, mouse);
 
 KeyCallback keyCallback = (_, key, _, state, _) =>
 {
@@ -129,7 +111,7 @@ while (!Glfw.WindowShouldClose(window))
 {
     mouse.Update();
     keyboard.Update();
-    Glfw.PollEvents();
+    mouseController.Update();
     
     n1.Update();
     n2.Update();
