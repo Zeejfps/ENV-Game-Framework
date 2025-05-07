@@ -9,8 +9,26 @@ public sealed class CreateLinkFromOutputFlow
     private Link? _link;
     private Node? _linkedNode;
     private OutputPort? _outputPort;
-    private InputPort? _hoveredInputPort;
     
+    private InputPort? _hoveredInputPort;
+    private InputPort? HoveredInputPort
+    {
+        get => _hoveredInputPort;
+        set
+        {
+            if (_hoveredInputPort == value)
+                return;
+            
+            var prevHoveredInputPort = _hoveredInputPort;
+            if (prevHoveredInputPort != null)
+                prevHoveredInputPort.IsHovered = false;
+            
+            _hoveredInputPort = value;
+            if (_hoveredInputPort != null)
+                _hoveredInputPort.IsHovered = true;
+        }
+    }
+
     private readonly MousePicker _mousePicker;
     private readonly NodeGraph _nodeGraph;
 
@@ -56,11 +74,11 @@ public sealed class CreateLinkFromOutputFlow
                     return;
                 }
                 
-                if (_hoveredInputPort != null && _outputPort != null)
+                if (HoveredInputPort != null && _outputPort != null)
                 {
                     _nodeGraph.BackgroundLinks.Add(link);
-                    _nodeGraph.Connections.Connect(link, _hoveredInputPort);
-                    _hoveredInputPort = null;
+                    _nodeGraph.Connections.Connect(link, HoveredInputPort);
+                    HoveredInputPort = null;
                 }
                 else
                 {
@@ -87,21 +105,11 @@ public sealed class CreateLinkFromOutputFlow
                 inputPort.Node != _linkedNode)
             {
                 link.EndPosition = inputPort.Socket.CenterPosition;
-
-                if (_hoveredInputPort != null && _hoveredInputPort != inputPort)
-                    _hoveredInputPort.IsHovered = false;
-
-                _hoveredInputPort = inputPort;
-                _hoveredInputPort.IsHovered = true;
+                HoveredInputPort = inputPort;
                 return;
             }
 
-            if (_hoveredInputPort != null)
-            {
-                _hoveredInputPort.IsHovered = false;
-                _hoveredInputPort = null;
-            }
-
+            HoveredInputPort = null;
             var currPos = _mousePicker.MouseWorldPosition;
             link.EndPosition = currPos;
         }
