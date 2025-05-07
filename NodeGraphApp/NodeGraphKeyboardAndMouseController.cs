@@ -5,71 +5,6 @@ namespace NodeGraphApp;
 
 public sealed class NodeGraphKeyboardAndMouseController
 {
-    private Link? _hoveredLink;
-    private Link? HoveredLink
-    {
-        get => _hoveredLink;
-        set
-        {
-            if (_hoveredLink == value)
-                return;
-
-            var prevHoveredLink = _hoveredLink;
-            _hoveredLink = value;
-
-            if (prevHoveredLink != null)
-                prevHoveredLink.IsHovered = false;
-
-            if (_hoveredLink != null)
-                _hoveredLink.IsHovered = true;
-        }
-    }
-
-    private OutputPort? _hoveredOutputPort;
-    private OutputPort? HoveredOutputPort
-    {
-        get => _hoveredOutputPort;
-        set => SetHoveredPort(ref _hoveredOutputPort, value);
-    }
-
-    private InputPort? _hoveredInputPort;
-    private InputPort? HoveredInputPort
-    {
-        get => _hoveredInputPort;
-        set => SetHoveredPort(ref _hoveredInputPort, value);
-    }
-
-    private void SetHoveredPort<T>(ref T? port, T? value) where T : class, IPort
-    {
-        if (port == value)
-            return;
-        var prevHoveredPort = port;
-        port = value;
-
-        if (prevHoveredPort != null)
-            prevHoveredPort.IsHovered = false;
-
-        if (port != null)
-            port.IsHovered = true;
-    }
-    
-    private Node? _hoveredNode;
-    private Node? HoveredNode
-    {
-        get => _hoveredNode;
-        set
-        {
-            if (_hoveredNode == value)
-                return;
-            var prevHoveredNode = _hoveredNode;
-            _hoveredNode = value;
-            if (prevHoveredNode != null)
-                prevHoveredNode.IsHovered = false;
-            if (_hoveredNode != null)
-                _hoveredNode.IsHovered = true;
-        }
-    }
-
     private Vector2 _mousePos;
     private bool _isDragging;
     
@@ -82,6 +17,30 @@ public sealed class NodeGraphKeyboardAndMouseController
     private readonly CreateLinkFromOutputFlow _createLinkFromOutputFlow;
     private readonly CreateLinkFromInputFlow _createLinkFromInputFlow;
     private readonly DragNodesFlow _dragNodesFlow;
+
+    private Link? HoveredLink
+    {
+        get => _nodeGraph.HoveredLink;
+        set => _nodeGraph.HoveredLink = value;
+    }
+    
+    private Node? HoveredNode
+    {
+        get => _nodeGraph.HoveredNode;
+        set => _nodeGraph.HoveredNode = value;
+    }
+    
+    private InputPort? HoveredInputPort
+    {
+        get => _nodeGraph.HoveredInputPort;
+        set => _nodeGraph.HoveredInputPort = value;
+    }
+    
+    private OutputPort? HoveredOutputPort
+    {
+        get => _nodeGraph.HoveredOutputPort;
+        set => _nodeGraph.HoveredOutputPort = value;
+    }
     
     public NodeGraphKeyboardAndMouseController(
         NodeGraph nodeGraph, 

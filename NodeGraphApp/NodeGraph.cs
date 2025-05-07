@@ -2,6 +2,71 @@ namespace NodeGraphApp;
 
 public sealed class NodeGraph
 {
+    private Link? _hoveredLink;
+    public Link? HoveredLink
+    {
+        get => _hoveredLink;
+        set
+        {
+            if (_hoveredLink == value)
+                return;
+
+            var prevHoveredLink = _hoveredLink;
+            _hoveredLink = value;
+
+            if (prevHoveredLink != null)
+                prevHoveredLink.IsHovered = false;
+
+            if (_hoveredLink != null)
+                _hoveredLink.IsHovered = true;
+        }
+    }
+
+    private OutputPort? _hoveredOutputPort;
+    public OutputPort? HoveredOutputPort
+    {
+        get => _hoveredOutputPort;
+        set => SetHoveredPort(ref _hoveredOutputPort, value);
+    }
+
+    private InputPort? _hoveredInputPort;
+    public InputPort? HoveredInputPort
+    {
+        get => _hoveredInputPort;
+        set => SetHoveredPort(ref _hoveredInputPort, value);
+    }
+
+    private void SetHoveredPort<T>(ref T? port, T? value) where T : class, IPort
+    {
+        if (port == value)
+            return;
+        var prevHoveredPort = port;
+        port = value;
+
+        if (prevHoveredPort != null)
+            prevHoveredPort.IsHovered = false;
+
+        if (port != null)
+            port.IsHovered = true;
+    }
+    
+    private Node? _hoveredNode;
+    public Node? HoveredNode
+    {
+        get => _hoveredNode;
+        set
+        {
+            if (_hoveredNode == value)
+                return;
+            var prevHoveredNode = _hoveredNode;
+            _hoveredNode = value;
+            if (prevHoveredNode != null)
+                prevHoveredNode.IsHovered = false;
+            if (_hoveredNode != null)
+                _hoveredNode.IsHovered = true;
+        }
+    }
+    
     public NodeManager Nodes { get; } = new();
     public LinksRepo BackgroundLinks { get; } = new();
     public LinksRepo ForegroundLinks { get; } = new();
