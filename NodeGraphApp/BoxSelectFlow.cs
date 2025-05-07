@@ -30,7 +30,11 @@ public sealed class BoxSelectFlow
         var selectionBox = nodeGraph.SelectionBox;
         selectionBox.EndPosition = mousePosition;
         
-        if (_isMouseDown)
+        if (_isMouseDown && !IsStarted && 
+            _nodeGraph.HoveredNode == null && 
+            _nodeGraph.HoveredLink == null && 
+            _nodeGraph.HoveredInputPort == null && 
+            _nodeGraph.HoveredOutputPort == null)
         {
             var delta = (mousePosition - _mousePos).LengthSquared();
             _mousePos = mousePosition;
@@ -39,6 +43,7 @@ public sealed class BoxSelectFlow
             {
                 _isSelecting = true;
                 IsStarted = true;
+                _nodeGraph.SelectionBox.Show(_mousePos);
             }
         }
 

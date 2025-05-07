@@ -1,13 +1,9 @@
-﻿using System.Numerics;
-using GLFW;
+﻿using GLFW;
 
 namespace NodeGraphApp;
 
 public sealed class NodeGraphKeyboardAndMouseController
 {
-    private Vector2 _mousePos;
-    private bool _isDragging;
-    
     private readonly NodeGraph _nodeGraph;
     private readonly MousePicker _mousePicker;
     private readonly Keyboard _keyboard;
@@ -17,6 +13,7 @@ public sealed class NodeGraphKeyboardAndMouseController
     private readonly CreateLinkFromOutputFlow _createLinkFromOutputFlow;
     private readonly CreateLinkFromInputFlow _createLinkFromInputFlow;
     private readonly DragNodesFlow _dragNodesFlow;
+    private readonly BoxSelectFlow _boxSelectFlow;
 
     private Link? HoveredLink
     {
@@ -58,6 +55,7 @@ public sealed class NodeGraphKeyboardAndMouseController
         _createLinkFromOutputFlow = new CreateLinkFromOutputFlow(mousePicker, nodeGraph);
         _createLinkFromInputFlow = new CreateLinkFromInputFlow(mousePicker, nodeGraph);
         _dragNodesFlow = new DragNodesFlow(mousePicker, nodeGraph);
+        _boxSelectFlow = new BoxSelectFlow(mousePicker, nodeGraph);
     }
 
     public void Update()
@@ -71,6 +69,7 @@ public sealed class NodeGraphKeyboardAndMouseController
             _camera.ZoomFactor += mouse.ScrollDelta.Y * 0.05f;
         }
 
+        _boxSelectFlow.Update();
         _createLinkFromInputFlow.Update();
         _createLinkFromOutputFlow.Update();
         _dragNodesFlow.Update();
@@ -84,51 +83,9 @@ public sealed class NodeGraphKeyboardAndMouseController
             _nodeFactory.CreateNodeAtPosition(mousePos);
         }
         
-        if (_isDragging)
-        {
-            var selectionBox = _nodeGraph.SelectionBox;
-            selectionBox.EndPosition = _mousePicker.MouseWorldPosition;
-            if (mouse.WasButtonReleasedThisFrame(MouseButton.Left))
-            {
-                var selectionRect = selectionBox.Bounds;
-
-                var nodes = _nodeGraph.Nodes.GetAll();
-                foreach (var node in nodes)
-                {
-                    if (selectionRect.Overlaps(node.Bounds))
-                    {
-                        SelectNode(node);
-                    }
-                    else
-                    {
-                        DeselectNode(node);
-                    }
-                }
-                
-                var links = nodeGraph.BackgroundLinks.GetAll();
-                foreach (var link in links)
-                {
-                    var p0 = link.P0;
-                    var p1 = link.P1;
-                    var p2 = link.P2;
-                    var p3 = link.P3;
-                    if (selectionRect.Overlaps(link.Bounds) &&
-                        BezierUtils.RectangleOverlapsBezier(p0, p1, p2, p3, selectionRect))
-                    {
-                        SelectLink(link);
-                    }
-                    else
-                    {
-                        DeselectLink(link);
-                    }
-                }
-
-                selectionBox.IsVisible = false;
-                _isDragging = false;
-            }
+        if (_boxSelectFlow.IsStarted)
             return;
-        }
-
+        
         if (_createLinkFromInputFlow.IsInProgress)
             return;
 
@@ -237,9 +194,6 @@ public sealed class NodeGraphKeyboardAndMouseController
             {
                 ClearSelectedNodes();
                 ClearSelectedLinks();
-                _isDragging = true;
-                _mousePos = _mousePicker.MouseWorldPosition;
-                _nodeGraph.SelectionBox.Show(_mousePos);
             }
         }
     }
@@ -254,11 +208,6 @@ public sealed class NodeGraphKeyboardAndMouseController
         _nodeGraph.SelectLink(link);
     }
 
-    private void DeselectLink(Link link)
-    {
-        _nodeGraph.DeselectLink(link);
-    }
-
     private void ClearSelectedNodes()
     {
         _nodeGraph.ClearSelectedNodes();
@@ -267,10 +216,5 @@ public sealed class NodeGraphKeyboardAndMouseController
     private void SelectNode(Node node)
     {
         _nodeGraph.SelectNode(node);
-    }
-
-    private void DeselectNode(Node node)
-    {
-        _nodeGraph.DeselectNode(node);
     }
 }
