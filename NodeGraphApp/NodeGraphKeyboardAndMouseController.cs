@@ -98,12 +98,12 @@ public sealed class NodeGraphKeyboardAndMouseController
 
         if (keyboard.WasKeyPressedThisFrame(Keys.C) && keyboard.IsKeyPressed(Keys.LeftControl))
         {
-            _nodeGraph.CopySelected();
+            _nodeGraph.Copy();
         }
 
         if (keyboard.WasKeyPressedThisFrame(Keys.V) && keyboard.IsKeyPressed(Keys.V))
         {
-            _nodeGraph.PasteNodes();
+            _nodeGraph.Paste(_mousePicker.MouseWorldPosition);
         }
         
         if ((_keyboard.WasKeyPressedThisFrame(Keys.Delete) || _keyboard.WasKeyPressedThisFrame(Keys.Backspace)) 

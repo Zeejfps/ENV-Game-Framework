@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace NodeGraphApp;
 
 public sealed class NodeGraph
@@ -170,12 +172,14 @@ public sealed class NodeGraph
         }
     }
 
-    public void CopySelected()
+    public void Copy()
     {
-        
+        foreach (var selectedNode in SelectedNodes)
+        {
+        }
     }
 
-    public void PasteNodes()
+    public void Paste(Vector2 position)
     {
         
     }
