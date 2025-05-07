@@ -4,9 +4,9 @@ namespace NodeGraphApp;
 
 public sealed class CreateLinkFromInputFlow
 {
-    public bool IsStarted { get; private set; }
+    public bool IsInProgress { get; private set; }
 
-    private Link? _newLink;
+    private Link? _link;
     private Node? _linkedNode;
     private InputPort? _inputPort;
     private OutputPort? _hoveredOutputPort;
@@ -20,72 +20,90 @@ public sealed class CreateLinkFromInputFlow
         _nodeGraph = nodeGraph;
     }
 
-    public void Start(InputPort inputPort)
-    {
-        var link = new Link
-        {
-            StartPosition = _mousePicker.MouseWorldPosition,
-        };
-
-        _newLink = link;
-        _linkedNode = inputPort.Node;
-
-        _inputPort = inputPort;
-        _nodeGraph.ForegroundLinks.Add(link);
-        _nodeGraph.Connections.Connect(link, inputPort);
-
-        IsStarted = true;
-    }
-
     public void Update()
     {
-        if (_newLink == null)
+        var mouse = _mousePicker.Mouse;
+        var nodeGraph = _nodeGraph;
+        var hoveredInputPort = nodeGraph.HoveredInputPort;
+
+        if (mouse.WasButtonPressedThisFrame(MouseButton.Left))
         {
-            IsStarted = false;
-            return;
+            if (hoveredInputPort != null)
+            {
+                var link = new Link
+                {
+                    StartPosition = _mousePicker.MouseWorldPosition,
+                };
+
+                _link = link;
+                _linkedNode = hoveredInputPort.Node;
+                _inputPort = hoveredInputPort;
+                _nodeGraph.ForegroundLinks.Add(link);
+                _nodeGraph.Connections.Connect(link, hoveredInputPort);
+
+                IsInProgress = true;
+            }
         }
         
-        var mouse = _mousePicker.Mouse;
-        if (mouse.IsButtonReleased(MouseButton.Left))
+        if (mouse.WasButtonReleasedThisFrame(MouseButton.Left))
         {
-            if (_hoveredOutputPort != null && _inputPort != null)
+            if (IsInProgress)
             {
-                _nodeGraph.BackgroundLinks.Add(_newLink);
-                _nodeGraph.Connections.Connect(_newLink, _hoveredOutputPort);
+                var link = _link;
+                if (link == null)
+                {
+                    IsInProgress = false;
+                    return;
+                }
+                
+                if (_hoveredOutputPort != null && _inputPort != null)
+                {
+                    _nodeGraph.BackgroundLinks.Add(link);
+                    _nodeGraph.Connections.Connect(link, _hoveredOutputPort);
+                    _hoveredOutputPort = null;
+                }
+                else
+                {
+                    _nodeGraph.Connections.Disconnect(link);
+                }
+
+                _nodeGraph.ForegroundLinks.Remove(link);
+                _link = null;
+                IsInProgress = false;
+                return;
+            }
+        }
+
+        if (IsInProgress)
+        {
+            var link = _link;
+            if (link == null)
+            {
+                IsInProgress = false;
+                return;
+            }
+            
+            if (_mousePicker.TryPick<OutputPort>(out var outputPort) &&
+                outputPort.Node != _linkedNode)
+            {
+                link.StartPosition = outputPort.Socket.CenterPosition;
+
+                if (_hoveredOutputPort != null && _hoveredOutputPort != outputPort)
+                    _hoveredOutputPort.IsHovered = false;
+
+                _hoveredOutputPort = outputPort;
+                _hoveredOutputPort.IsHovered = true;
+                return;
+            }
+
+            if (_hoveredOutputPort != null)
+            {
                 _hoveredOutputPort.IsHovered = false;
                 _hoveredOutputPort = null;
             }
-            else
-            {
-                _nodeGraph.Connections.Disconnect(_newLink);
-            }
 
-            _nodeGraph.ForegroundLinks.Remove(_newLink);
-            _newLink = null;
-            IsStarted = false;
-            return;
+            var currPos = _mousePicker.MouseWorldPosition;
+            link.StartPosition = currPos;
         }
-
-        if (_mousePicker.TryPick<OutputPort>(out var hoveredOutputPort) &&
-            hoveredOutputPort.Node != _linkedNode)
-        {
-            _newLink.StartPosition = hoveredOutputPort.Socket.CenterPosition;
-
-            if (_hoveredOutputPort != null && _hoveredOutputPort != hoveredOutputPort)
-                _hoveredOutputPort.IsHovered = false;
-
-            _hoveredOutputPort = hoveredOutputPort;
-            _hoveredOutputPort.IsHovered = true;
-            return;
-        }
-
-        if (_hoveredOutputPort != null)
-        {
-            _hoveredOutputPort.IsHovered = false;
-            _hoveredOutputPort = null;
-        }
-
-        var currPos = _mousePicker.MouseWorldPosition;
-        _newLink.StartPosition = currPos;
     }
 }

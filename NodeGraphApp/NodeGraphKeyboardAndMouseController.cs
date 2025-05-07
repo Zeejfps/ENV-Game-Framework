@@ -71,6 +71,7 @@ public sealed class NodeGraphKeyboardAndMouseController
             _camera.ZoomFactor += mouse.ScrollDelta.Y * 0.05f;
         }
 
+        _createLinkFromInputFlow.Update();
         _createLinkFromOutputFlow.Update();
         _dragNodesFlow.Update();
 
@@ -128,11 +129,8 @@ public sealed class NodeGraphKeyboardAndMouseController
             return;
         }
 
-        if (_createLinkFromInputFlow.IsStarted)
-        {
-            _createLinkFromInputFlow.Update();
+        if (_createLinkFromInputFlow.IsInProgress)
             return;
-        }
 
         if (_createLinkFromOutputFlow.IsInProgress)
             return;
@@ -219,7 +217,6 @@ public sealed class NodeGraphKeyboardAndMouseController
             }
             else if (HoveredInputPort != null)
             {
-                _createLinkFromInputFlow.Start(HoveredInputPort);
             }
             else if (HoveredNode != null)
             {
