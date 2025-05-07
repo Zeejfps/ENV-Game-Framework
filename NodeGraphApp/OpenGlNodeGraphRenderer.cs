@@ -267,7 +267,7 @@ public sealed class OpenGlNodeGraphRenderer
         if (r.Text != null)
             RenderText(r.Bounds, r.TextVerticalAlignment, r.Text);
 
-        foreach (var child in r.Children)
+        foreach (var child in r.Hierarchy)
             RenderVisualNode(child);
     }
     

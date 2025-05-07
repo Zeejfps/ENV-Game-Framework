@@ -66,7 +66,7 @@ public sealed class Node : VisualNode
             Color = Color.FromRGBA(0.2314f, 0.2588f, 0.3412f, 1.0f),
             TextVerticalAlignment = TextAlignment.Center 
         };
-        Children.Add(_header);
+        Hierarchy.AddChild(_header);
         
         _column.AddItem(new VisualNodeColumnItem(_header));
 
@@ -82,7 +82,7 @@ public sealed class Node : VisualNode
         };
         _inputPorts.Add(port);
         _column.AddItem(new VisualNodeColumnItem(port));
-        Children.Add(port);
+        Hierarchy.AddChild(port);
         return port;
     }
     
@@ -91,7 +91,7 @@ public sealed class Node : VisualNode
         var port = new OutputPort(this);
         _outputPorts.Add(port);
         _topColumn.Column.AddItem(new VisualNodeColumnItem(port));
-        Children.Add(port);
+        Hierarchy.AddChild(port);
         return port;
     }
     

@@ -41,19 +41,14 @@ public class VisualNode : INode<VisualNode>
     public Color BorderColor { get; set; }
     public BorderSizeStyle BorderSize { get; set; }
     public BorderRadiusStyle BorderRadius { get; set; }
-    public VisualNode? Parent { get; private set; }
-    public SingleParentHierarchy<VisualNode> Children { get; }
+    public VisualNode? Parent => Hierarchy.Parent;
+    public IEnumerable<VisualNode> Children => Hierarchy.Children;
+    public SingleParentHierarchy<VisualNode> Hierarchy { get; }
     public TextAlignment TextVerticalAlignment { get; set; }
     public Vector2 CenterPosition => new(Bounds.Left + Bounds.Width*0.5f, Bounds.Bottom + Bounds.Height*0.5f);
-
-    VisualNode? INode<VisualNode>.Parent
-    {
-        get => Parent;
-        set => Parent = value;
-    }
     
     public VisualNode()
     {
-        Children = new SingleParentHierarchy<VisualNode>(this);
+        Hierarchy = new SingleParentHierarchy<VisualNode>(this);
     }
 }

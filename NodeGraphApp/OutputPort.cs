@@ -78,7 +78,7 @@ public sealed class OutputPort : VisualNode, IPort
             };
         };
         
-        Children.Add(Socket);
-        Children.Add(randomText);
+        Hierarchy.AddChild(Socket);
+        Hierarchy.AddChild(randomText);
     }
 }

@@ -47,10 +47,10 @@ public sealed class NodeManager
 
     private IEnumerable<VisualNode> TraverseDepthFirstPostOrder(VisualNode node)
     {
-        var children = node.Children;
-        for (var i = children.Count - 1; i >= 0; --i)
+        var hierarchy = node.Hierarchy;
+        for (var i = hierarchy.ChildrenCount - 1; i >= 0; --i)
         {
-            var child = children[i];
+            var child = hierarchy[i];
             foreach (var traversed in TraverseDepthFirstPostOrder(child))
             {
                 yield return traversed;

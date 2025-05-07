@@ -86,7 +86,7 @@ public sealed class InputPort : VisualNode, IPort
             };
         };
 
-        Children.Add(_nameVisualNode);
-        Children.Add(Socket);
+        Hierarchy.AddChild(_nameVisualNode);
+        Hierarchy.AddChild(Socket);
     }
 }

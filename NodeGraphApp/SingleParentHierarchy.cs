@@ -1,19 +1,23 @@
 ﻿using System.Collections;
 
+namespace NodeGraphApp;
+
 public interface INode<T> where T : class, INode<T>
 {
-    T? Parent { get; set; }
-    SingleParentHierarchy<T> Children { get; }
+    SingleParentHierarchy<T> Hierarchy { get; }
 }
 
 public sealed class SingleParentHierarchy<T> : IEnumerable<T> where T : class, INode<T>
 {
-    private readonly T _parent;
+    public T? Parent { get; private set; }
+    public IEnumerable<T> Children => _children;
+
+    private readonly T _self;
     private readonly List<T> _children = new();
 
-    public SingleParentHierarchy(T parent)
+    public SingleParentHierarchy(T self)
     {
-        _parent = parent;
+        _self = self;
     }
 
     public IEnumerator<T> GetEnumerator()
@@ -26,17 +30,17 @@ public sealed class SingleParentHierarchy<T> : IEnumerable<T> where T : class, I
         return GetEnumerator();
     }
 
-    public void Add(T child)
+    public void AddChild(T child)
     {
         DetachFromOldParent(child);
-        child.Parent = _parent;
+        child.Hierarchy.Parent = _self;
         _children.Add(child);
     }
 
-    public void Clear()
+    public void RemoveAllChildren()
     {
         foreach (var child in _children)
-            child.Parent = null;
+            child.Hierarchy.Parent = null;
         _children.Clear();
     }
 
@@ -45,25 +49,25 @@ public sealed class SingleParentHierarchy<T> : IEnumerable<T> where T : class, I
         return _children.Contains(item);
     }
     
-    public bool Remove(T child)
+    public bool RemoveChild(T child)
     {
         var removed = _children.Remove(child);
         if (removed)
-            child.Parent = null;
+            child.Hierarchy.Parent = null;
         return removed;
     }
 
-    public int Count => _children.Count;
+    public int ChildrenCount => _children.Count;
     public bool IsReadOnly => false;
     public int IndexOf(T child)
     {
         return _children.IndexOf(child);
     }
 
-    public void Insert(int index, T child)
+    public void InsertChild(int index, T child)
     {
         DetachFromOldParent(child);
-        child.Parent = _parent;
+        child.Hierarchy.Parent = _self;
         _children.Insert(index, child);
     }
 
@@ -72,7 +76,7 @@ public sealed class SingleParentHierarchy<T> : IEnumerable<T> where T : class, I
         if (index >= 0 && index < _children.Count)
         {
             var child = _children[index];
-            child.Parent = null;
+            child.Hierarchy.Parent = null;
         }
         _children.RemoveAt(index);
     }
@@ -85,18 +89,18 @@ public sealed class SingleParentHierarchy<T> : IEnumerable<T> where T : class, I
             if (index >= 0 && index < _children.Count)
             {
                 var child = _children[index];
-                child.Parent = null;
+                child.Hierarchy.Parent = null;
             }
 
             DetachFromOldParent(value);
             _children[index] = value;
-            value.Parent = _parent;
+            value.Hierarchy.Parent = _self;
         }
     }
 
     private void DetachFromOldParent(T child)
     {
-        if (child.Parent != null && child.Parent != _parent)
-            child.Parent.Children.Remove(child);
+        if (child.Hierarchy.Parent != null && child.Hierarchy.Parent != _self)
+            child.Hierarchy.Parent.Hierarchy.RemoveChild(child);
     }
 }
