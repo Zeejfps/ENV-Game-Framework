@@ -69,9 +69,12 @@ var mousePicker = new MousePicker(viewport, mouse, nodeGraph);
 var fontLoader = new MsdfBmpFontFileLoader();
 var interFontData = fontLoader.LoadFromFilePath(App.ResolvePath("Assets/Fonts/Inter/Inter_28pt-Regular-msdf.json"));
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
-var cameraDragController = new CameraDragController(viewport, mouse, keyboard);
+var cameraDragInputLayer = new CameraDragInputLayer(viewport, mouse, keyboard);
 var nodeFactory = new NodeFactory(nodeGraph);
-var nodeGraphController = new NodeGraphKeyboardAndMouseController(nodeGraph, camera, mousePicker, keyboard, nodeFactory);
+var nodeGraphController = new NodeGraphKeyboardAndMouseController(
+    nodeGraph, camera,
+    mousePicker, keyboard,
+    nodeFactory, cameraDragInputLayer);
 var glfwMouseController = new GlfwMouseController(windowHandle, mouse);
 var glfwKeyboardController = new GlfwKeyboardController(windowHandle, keyboard);
 var glfwWindowController = new GlfwWindowController(windowHandle, window, viewport, renderer);
@@ -91,7 +94,6 @@ while (!Glfw.WindowShouldClose(windowHandle))
     glfwWindowController.Update();
     Glfw.PollEvents();
     
-    cameraDragController.Update();
     mousePicker.Update();
     nodeGraphController.Update();
 

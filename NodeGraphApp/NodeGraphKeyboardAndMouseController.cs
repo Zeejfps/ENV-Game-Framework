@@ -88,17 +88,20 @@ public sealed class NodeGraphKeyboardAndMouseController
     private readonly Keyboard _keyboard;
     private readonly Camera _camera;
     private readonly NodeFactory _nodeFactory;
+    private readonly CameraDragInputLayer _cameraDragInputLayer;
     
     public NodeGraphKeyboardAndMouseController(
         NodeGraph nodeGraph, 
         Camera camera,
         MousePicker mousePicker,
-        Keyboard keyboard, NodeFactory nodeFactory)
+        Keyboard keyboard, NodeFactory nodeFactory,
+        CameraDragInputLayer cameraDragInputLayer)
     {
         _mousePicker = mousePicker;
         _nodeGraph = nodeGraph;
         _keyboard = keyboard;
         _nodeFactory = nodeFactory;
+        _cameraDragInputLayer = cameraDragInputLayer;
         _camera = camera;
     }
 
@@ -111,6 +114,9 @@ public sealed class NodeGraphKeyboardAndMouseController
         {
             _camera.ZoomFactor += mouse.ScrollDelta.Y * 0.05f;
         }
+
+        if (_cameraDragInputLayer.ProcessInput())
+            return;
 
         if (keyboard.WasKeyPressedThisFrame(Keys.A))
         {
