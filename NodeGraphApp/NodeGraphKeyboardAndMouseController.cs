@@ -5,7 +5,7 @@ namespace NodeGraphApp;
 
 public sealed class NodeGraphKeyboardAndMouseController
 {
-    private Link? _hoveredLink = null;
+    private Link? _hoveredLink;
     private Link? HoveredLink
     {
         get => _hoveredLink;
@@ -69,11 +69,9 @@ public sealed class NodeGraphKeyboardAndMouseController
                 _hoveredNode.IsHovered = true;
         }
     }
-    
-    private bool _isDragging;
-    
+
     private Vector2 _mousePos;
-    private Node? _draggedNode;
+    private bool _isDragging;
     
     private readonly NodeGraph _nodeGraph;
     private readonly MousePicker _mousePicker;
@@ -83,6 +81,7 @@ public sealed class NodeGraphKeyboardAndMouseController
     private readonly CameraDragInputLayer _cameraDragInputLayer;
     private readonly CreateLinkFromOutputFlow _createLinkFromOutputFlow;
     private readonly CreateLinkFromInputFlow _createLinkFromInputFlow;
+    private readonly DragNodesFlow _dragNodesFlow;
     
     public NodeGraphKeyboardAndMouseController(
         NodeGraph nodeGraph, 
@@ -99,6 +98,7 @@ public sealed class NodeGraphKeyboardAndMouseController
         _camera = camera;
         _createLinkFromOutputFlow = new CreateLinkFromOutputFlow(mousePicker, nodeGraph);
         _createLinkFromInputFlow = new CreateLinkFromInputFlow(mousePicker, nodeGraph);
+        _dragNodesFlow = new DragNodesFlow(mousePicker, nodeGraph);
     }
 
     public void Update()
@@ -178,28 +178,9 @@ public sealed class NodeGraphKeyboardAndMouseController
             return;
         }
 
-        if (_draggedNode != null)
+        if (_dragNodesFlow.IsStarted)
         {
-            if (mouse.IsButtonReleased(MouseButton.Left))
-            {
-                _draggedNode = null;
-                return;
-            }
-
-            var currPos = _mousePicker.MouseWorldPosition;
-            var delta = currPos - _mousePos;
-            _mousePos = currPos;
-
-            foreach (var selectedNode in _nodeGraph.SelectedNodes)
-            {
-                var bounds = selectedNode.Bounds;
-                selectedNode.Bounds = bounds with
-                {
-                    Left = bounds.Left + delta.X,
-                    Bottom = bounds.Bottom + delta.Y,
-                };
-            }
-            
+            _dragNodesFlow.Update();
             return;
         }
         
@@ -287,7 +268,7 @@ public sealed class NodeGraphKeyboardAndMouseController
             }
             else if (HoveredNode != null)
             {
-                StartDraggingNode(HoveredNode);
+                _dragNodesFlow.Start(HoveredNode);
             }
             else if (HoveredLink != null)
             {
@@ -334,23 +315,5 @@ public sealed class NodeGraphKeyboardAndMouseController
     private void DeselectNode(Node node)
     {
         _nodeGraph.DeselectNode(node);
-    }
-
-    private void StartDraggingNode(Node node)
-    {
-        _mousePos = _mousePicker.MouseWorldPosition;
-        _draggedNode = node;
-
-        if (!IsSelected(node))
-        {
-            ClearSelectedLinks();
-            ClearSelectedNodes();
-            SelectNode(node);
-        }
-    }
-
-    private bool IsSelected(Node node)
-    {
-        return _nodeGraph.IsSelected(node);
     }
 }
