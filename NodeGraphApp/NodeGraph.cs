@@ -173,13 +173,15 @@ public sealed class NodeGraph
     }
 
     private List<Node>? _copiedNodes;
+    private List<Link>? _copiedLinks;
     
     public void Copy()
     {
-        if (!_selectedNodes.Any())
+        if (!_selectedNodes.Any() && !_selectedLinks.Any())
             return;
             
         _copiedNodes = _selectedNodes.ToList();
+        _copiedLinks = _selectedLinks.ToList();
     }
     
     public void Paste(Vector2 position)
