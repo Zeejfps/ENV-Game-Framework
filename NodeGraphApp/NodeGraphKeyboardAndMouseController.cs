@@ -68,12 +68,6 @@ public sealed class NodeGraphKeyboardAndMouseController
         {
             _camera.ZoomFactor += mouse.ScrollDelta.Y * 0.05f;
         }
-
-        _boxSelectFlow.Update();
-        _createLinkFromInputFlow.Update();
-        _createLinkFromOutputFlow.Update();
-        _dragNodesFlow.Update();
-        _cameraDragFlow.Update();
         
         if (keyboard.WasKeyPressedThisFrame(Keys.A))
         {
@@ -81,18 +75,23 @@ public sealed class NodeGraphKeyboardAndMouseController
             _nodeFactory.CreateNodeAtPosition(mousePos);
         }
         
+        _cameraDragFlow.Update();
         if (_cameraDragFlow.IsInProgress)
             return;
         
+        _boxSelectFlow.Update();
         if (_boxSelectFlow.IsInProgress)
             return;
         
+        _createLinkFromInputFlow.Update();
         if (_createLinkFromInputFlow.IsInProgress)
             return;
-
+        
+        _createLinkFromOutputFlow.Update();
         if (_createLinkFromOutputFlow.IsInProgress)
             return;
-
+        
+        _dragNodesFlow.Update();
         if (_dragNodesFlow.IsInProgress)
             return;
         
