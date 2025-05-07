@@ -5,7 +5,7 @@ namespace NodeGraphApp;
 
 public sealed class BoxSelectFlow
 {
-    public bool IsStarted { get; private set; }
+    public bool IsInProgress { get; private set; }
 
     private readonly Mouse _mouse;
     private readonly MousePicker _mousePicker;
@@ -30,7 +30,7 @@ public sealed class BoxSelectFlow
         var selectionBox = nodeGraph.SelectionBox;
         selectionBox.EndPosition = mousePosition;
         
-        if (_isMouseDown && !IsStarted && 
+        if (_isMouseDown && !IsInProgress && 
             _nodeGraph.HoveredNode == null && 
             _nodeGraph.HoveredLink == null && 
             _nodeGraph.HoveredInputPort == null && 
@@ -42,7 +42,7 @@ public sealed class BoxSelectFlow
             if (delta > 0.1f)
             {
                 _isSelecting = true;
-                IsStarted = true;
+                IsInProgress = true;
                 _nodeGraph.SelectionBox.Show(_mousePos);
             }
         }
@@ -97,7 +97,7 @@ public sealed class BoxSelectFlow
             }
 
             selectionBox.IsVisible = false;
-            IsStarted = false;
+            IsInProgress = false;
         }
     }
 }

@@ -9,7 +9,7 @@ public sealed class NodeGraphKeyboardAndMouseController
     private readonly Keyboard _keyboard;
     private readonly Camera _camera;
     private readonly NodeFactory _nodeFactory;
-    private readonly CameraDragInputLayer _cameraDragInputLayer;
+    private readonly CameraDragFlow _cameraDragFlow;
     private readonly CreateLinkFromOutputFlow _createLinkFromOutputFlow;
     private readonly CreateLinkFromInputFlow _createLinkFromInputFlow;
     private readonly DragNodesFlow _dragNodesFlow;
@@ -44,13 +44,13 @@ public sealed class NodeGraphKeyboardAndMouseController
         Camera camera,
         MousePicker mousePicker,
         Keyboard keyboard, NodeFactory nodeFactory,
-        CameraDragInputLayer cameraDragInputLayer)
+        CameraDragFlow cameraDragFlow)
     {
         _mousePicker = mousePicker;
         _nodeGraph = nodeGraph;
         _keyboard = keyboard;
         _nodeFactory = nodeFactory;
-        _cameraDragInputLayer = cameraDragInputLayer;
+        _cameraDragFlow = cameraDragFlow;
         _camera = camera;
         _createLinkFromOutputFlow = new CreateLinkFromOutputFlow(mousePicker, nodeGraph);
         _createLinkFromInputFlow = new CreateLinkFromInputFlow(mousePicker, nodeGraph);
@@ -73,17 +73,18 @@ public sealed class NodeGraphKeyboardAndMouseController
         _createLinkFromInputFlow.Update();
         _createLinkFromOutputFlow.Update();
         _dragNodesFlow.Update();
-
-        if (_cameraDragInputLayer.ProcessInput())
-            return;
-
+        _cameraDragFlow.Update();
+        
         if (keyboard.WasKeyPressedThisFrame(Keys.A))
         {
             var mousePos = _mousePicker.MouseWorldPosition;
             _nodeFactory.CreateNodeAtPosition(mousePos);
         }
         
-        if (_boxSelectFlow.IsStarted)
+        if (_cameraDragFlow.IsInProgress)
+            return;
+        
+        if (_boxSelectFlow.IsInProgress)
             return;
         
         if (_createLinkFromInputFlow.IsInProgress)

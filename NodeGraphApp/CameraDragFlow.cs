@@ -3,13 +3,15 @@ using GLFW;
 
 namespace NodeGraphApp;
 
-public sealed class CameraDragInputLayer
+public sealed class CameraDragFlow
 {
+    public bool IsInProgress { get; private set; }
+    
     private readonly Viewport _viewport;
     private readonly Mouse _mouse;
     private readonly Keyboard _keyboard;
 
-    public CameraDragInputLayer(
+    public CameraDragFlow(
         Viewport viewport,
         Mouse mouse,
         Keyboard keyboard)
@@ -22,7 +24,7 @@ public sealed class CameraDragInputLayer
     private bool _isDragging;
     private Vector2 _prevCursorPosition;
 
-    public bool ProcessInput()
+    public void Update()
     {
         var mouse = _mouse;
         var viewport = _viewport;
@@ -37,6 +39,7 @@ public sealed class CameraDragInputLayer
         {
             _isDragging = true;
             _prevCursorPosition = viewport.ScreenToCameraViewPoint(mouse.Position);
+            IsInProgress = true;
         }
 
         if (_isDragging)
@@ -45,17 +48,14 @@ public sealed class CameraDragInputLayer
                 mouse.WasButtonReleasedThisFrame(MouseButton.Middle))
             {
                 _isDragging = false;
-                return true;
+                IsInProgress = false;
+                return;
             }
 
             var newCursorScreenPosition = viewport.ScreenToCameraViewPoint(mouse.Position);
             var delta = newCursorScreenPosition - _prevCursorPosition;
             _prevCursorPosition = newCursorScreenPosition;
             viewport.Camera.Position -= delta;
-
-            return true;
         }
-
-        return false;
     }
 }

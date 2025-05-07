@@ -69,7 +69,7 @@ var mousePicker = new MousePicker(viewport, mouse, nodeGraph);
 var fontLoader = new MsdfBmpFontFileLoader();
 var interFontData = fontLoader.LoadFromFilePath(App.ResolvePath("Assets/Fonts/Inter/Inter_28pt-Regular-msdf.json"));
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
-var cameraDragInputLayer = new CameraDragInputLayer(viewport, mouse, keyboard);
+var cameraDragInputLayer = new CameraDragFlow(viewport, mouse, keyboard);
 var nodeFactory = new NodeFactory(nodeGraph);
 var nodeGraphController = new NodeGraphKeyboardAndMouseController(
     nodeGraph, camera,
