@@ -72,9 +72,6 @@ public sealed class NodeGraphKeyboardAndMouseController
     
     private bool _isDragging;
     
-    private readonly HashSet<Node> _selectedNodes = new();
-    private readonly HashSet<Link> _selectedLinks = new();
-    
     private Vector2 _mousePos;
     private Node? _draggedNode;
     
@@ -108,6 +105,7 @@ public sealed class NodeGraphKeyboardAndMouseController
     {
         var mouse = _mousePicker.Mouse;
         var keyboard = _keyboard;
+        var nodeGraph = _nodeGraph;
 
         if (mouse.ScrollDelta.Y != 0)
         {
@@ -144,7 +142,7 @@ public sealed class NodeGraphKeyboardAndMouseController
                     }
                 }
                 
-                var links = _nodeGraph.BackgroundLinks.GetAll();
+                var links = nodeGraph.BackgroundLinks.GetAll();
                 foreach (var link in links)
                 {
                     var p0 = link.P0;
@@ -192,7 +190,7 @@ public sealed class NodeGraphKeyboardAndMouseController
             var delta = currPos - _mousePos;
             _mousePos = currPos;
 
-            foreach (var selectedNode in _selectedNodes)
+            foreach (var selectedNode in _nodeGraph.SelectedNodes)
             {
                 var bounds = selectedNode.Bounds;
                 selectedNode.Bounds = bounds with
@@ -206,15 +204,15 @@ public sealed class NodeGraphKeyboardAndMouseController
         }
         
         if ((_keyboard.WasKeyPressedThisFrame(Keys.Delete) || _keyboard.WasKeyPressedThisFrame(Keys.Backspace)) 
-            && (_selectedLinks.Count > 0 || _selectedNodes.Count > 0))
+            && (nodeGraph.SelectedNodes.Any() || nodeGraph.SelectedLinks.Any()))
         {
-            foreach (var selectedLink in _selectedLinks)
+            foreach (var selectedLink in nodeGraph.SelectedLinks)
             {
                 _nodeGraph.Connections.Disconnect(selectedLink);
                 _nodeGraph.BackgroundLinks.Remove(selectedLink);
             }
 
-            foreach (var selectedNode in _selectedNodes)
+            foreach (var selectedNode in nodeGraph.SelectedNodes)
             {
                 _nodeGraph.Nodes.Remove(selectedNode);
                 foreach (var port in selectedNode.InputPorts)
@@ -310,50 +308,32 @@ public sealed class NodeGraphKeyboardAndMouseController
 
     private void ClearSelectedLinks()
     {
-        foreach (var link in _selectedLinks)
-        {
-            link.IsSelected = false;
-        }
-        _selectedLinks.Clear();;
+        _nodeGraph.ClearSelectedLinks();
     }
 
     private void SelectLink(Link link)
     {
-        if (_selectedLinks.Add(link))
-        {
-            link.IsSelected = true;
-        }
+        _nodeGraph.SelectLink(link);
     }
 
     private void DeselectLink(Link link)
     {
-        if (_selectedLinks.Remove(link))
-        {
-            link.IsSelected = false;
-        }
+        _nodeGraph.DeselectLink(link);
     }
 
     private void ClearSelectedNodes()
     {
-        foreach (var selectedNode in _selectedNodes)
-            selectedNode.IsSelected = false;
-        _selectedNodes.Clear();
+        _nodeGraph.ClearSelectedNodes();
     }
 
     private void SelectNode(Node node)
     {
-        if (_selectedNodes.Add(node))
-        {
-            node.IsSelected = true;
-        }
+        _nodeGraph.SelectNode(node);
     }
 
     private void DeselectNode(Node node)
     {
-        if (_selectedNodes.Remove(node))
-        {
-            node.IsSelected = false;
-        }
+        _nodeGraph.DeselectNode(node);
     }
 
     private void StartDraggingNode(Node node)
@@ -371,6 +351,6 @@ public sealed class NodeGraphKeyboardAndMouseController
 
     private bool IsSelected(Node node)
     {
-        return _selectedNodes.Contains(node);
+        return _nodeGraph.IsSelected(node);
     }
 }
