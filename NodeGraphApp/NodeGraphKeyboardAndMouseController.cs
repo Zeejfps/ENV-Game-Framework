@@ -29,17 +29,28 @@ public sealed class NodeGraphKeyboardAndMouseController
     private OutputPort? HoveredOutputPort
     {
         get => _hoveredOutputPort;
-        set
-        {
-            if (_hoveredOutputPort == value)
-                return;
-            var prevHoveredInputPort = _hoveredOutputPort;
-            _hoveredOutputPort = value;
-            if (prevHoveredInputPort != null)
-                prevHoveredInputPort.IsHovered = false;
-            if (_hoveredOutputPort != null)
-                _hoveredOutputPort.IsHovered = true;
-        }
+        set => SetHoveredPort(ref _hoveredOutputPort, value);
+    }
+
+    private InputPort? _hoveredInputPort;
+    private InputPort? HoveredInputPort
+    {
+        get => _hoveredInputPort;
+        set => SetHoveredPort(ref _hoveredInputPort, value);
+    }
+
+    private void SetHoveredPort<T>(ref T? port, T? value) where T : class, IPort
+    {
+        if (port == value)
+            return;
+        var prevHoveredPort = port;
+        port = value;
+
+        if (prevHoveredPort != null)
+            prevHoveredPort.IsHovered = false;
+
+        if (port != null)
+            port.IsHovered = true;
     }
     
     private Node? _hoveredNode;
@@ -261,12 +272,21 @@ public sealed class NodeGraphKeyboardAndMouseController
         if (_mousePicker.TryPick<OutputPort>(out var outputPort))
         {
             HoveredOutputPort = outputPort;
+            HoveredInputPort = null;
+            HoveredNode = null;
+            HoveredLink = null;
+        }
+        else if (_mousePicker.TryPick<InputPort>(out var inputPort))
+        {
+            HoveredInputPort = inputPort;
+            HoveredOutputPort = null;
             HoveredNode = null;
             HoveredLink = null;
         }
         else if (_mousePicker.TryPick<Node>(out var node))
         {
             HoveredOutputPort = null;
+            HoveredInputPort = null;
             HoveredNode = node;
             HoveredLink = null;
         }
@@ -274,12 +294,14 @@ public sealed class NodeGraphKeyboardAndMouseController
         {
             HoveredNode = null;
             HoveredOutputPort = null;
+            HoveredInputPort = null;
             HoveredLink = link;
         }
         else
         {
             HoveredNode = null;
             HoveredOutputPort = null;
+            HoveredInputPort = null;
             HoveredLink = null;
         }
 
@@ -288,6 +310,10 @@ public sealed class NodeGraphKeyboardAndMouseController
             if (HoveredOutputPort != null)
             {
                 StartCreatingLink(HoveredOutputPort);
+            }
+            else if (HoveredInputPort != null)
+            {
+                StartCreatingLing(HoveredInputPort);
             }
             else if (HoveredNode != null)
             {
@@ -356,6 +382,17 @@ public sealed class NodeGraphKeyboardAndMouseController
         {
             node.IsSelected = false;
         }
+    }
+
+    private void StartCreatingLing(InputPort inputPort)
+    {
+        var link = new Link
+        {
+            StartPosition = _mousePicker.MouseWorldPosition,
+        };
+
+        _nodeGraph.ForegroundLinks.Add(link);
+        _nodeGraph.Connections.Connect(link, inputPort);
     }
 
     private void StartCreatingLink(OutputPort outputPort)
