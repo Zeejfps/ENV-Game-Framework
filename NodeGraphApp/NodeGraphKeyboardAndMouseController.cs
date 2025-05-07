@@ -95,6 +95,16 @@ public sealed class NodeGraphKeyboardAndMouseController
         _dragNodesFlow.Update();
         if (_dragNodesFlow.IsInProgress)
             return;
+
+        if (keyboard.WasKeyPressedThisFrame(Keys.C) && keyboard.IsKeyPressed(Keys.LeftControl))
+        {
+            _nodeGraph.CopySelected();
+        }
+
+        if (keyboard.WasKeyPressedThisFrame(Keys.V) && keyboard.IsKeyPressed(Keys.V))
+        {
+            _nodeGraph.PasteNodes();
+        }
         
         if ((_keyboard.WasKeyPressedThisFrame(Keys.Delete) || _keyboard.WasKeyPressedThisFrame(Keys.Backspace)) 
             && (nodeGraph.SelectedNodes.Any() || nodeGraph.SelectedLinks.Any()))

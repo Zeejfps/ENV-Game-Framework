@@ -169,4 +169,14 @@ public sealed class NodeGraph
             }
         }
     }
+
+    public void CopySelected()
+    {
+        
+    }
+
+    public void PasteNodes()
+    {
+        
+    }
 }
