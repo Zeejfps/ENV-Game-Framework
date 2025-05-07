@@ -84,7 +84,8 @@ public sealed class NodeGraphKeyboardAndMouseController
     private readonly Camera _camera;
     private readonly NodeFactory _nodeFactory;
     private readonly CameraDragInputLayer _cameraDragInputLayer;
-    private readonly CreateLinkFlow _createLinkFlow;
+    private readonly CreateLinkFromOutputFlow _createLinkFromOutputFlow;
+    private readonly CreateLinkFromInputFlow _createLinkFromInputFlow;
     
     public NodeGraphKeyboardAndMouseController(
         NodeGraph nodeGraph, 
@@ -99,7 +100,8 @@ public sealed class NodeGraphKeyboardAndMouseController
         _nodeFactory = nodeFactory;
         _cameraDragInputLayer = cameraDragInputLayer;
         _camera = camera;
-        _createLinkFlow = new CreateLinkFlow(mousePicker, nodeGraph);
+        _createLinkFromOutputFlow = new CreateLinkFromOutputFlow(mousePicker, nodeGraph);
+        _createLinkFromInputFlow = new CreateLinkFromInputFlow(mousePicker, nodeGraph);
     }
 
     public void Update()
@@ -165,9 +167,19 @@ public sealed class NodeGraphKeyboardAndMouseController
             }
             return;
         }
-        
-        if (_createLinkFlow.IsStarted)
-            _createLinkFlow.Update();
+
+        if (_createLinkFromInputFlow.IsStarted)
+        {
+            Console.WriteLine("Started");
+            _createLinkFromInputFlow.Update();
+            return;
+        }
+
+        if (_createLinkFromOutputFlow.IsStarted)
+        {
+            _createLinkFromOutputFlow.Update();
+            return;
+        }
 
         if (_draggedNode != null)
         {
@@ -269,11 +281,11 @@ public sealed class NodeGraphKeyboardAndMouseController
         {
             if (HoveredOutputPort != null)
             {
-                _createLinkFlow.Start(HoveredOutputPort);
+                _createLinkFromOutputFlow.Start(HoveredOutputPort);
             }
             else if (HoveredInputPort != null)
             {
-                StartCreatingLing(HoveredInputPort);
+                _createLinkFromInputFlow.Start(HoveredInputPort);
             }
             else if (HoveredNode != null)
             {
@@ -342,17 +354,6 @@ public sealed class NodeGraphKeyboardAndMouseController
         {
             node.IsSelected = false;
         }
-    }
-
-    private void StartCreatingLing(InputPort inputPort)
-    {
-        var link = new Link
-        {
-            StartPosition = _mousePicker.MouseWorldPosition,
-        };
-
-        _nodeGraph.ForegroundLinks.Add(link);
-        _nodeGraph.Connections.Connect(link, inputPort);
     }
 
     private void StartDraggingNode(Node node)

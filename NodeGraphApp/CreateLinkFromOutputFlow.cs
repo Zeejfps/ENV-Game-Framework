@@ -2,7 +2,7 @@
 
 namespace NodeGraphApp;
 
-public sealed class CreateLinkFlow
+public sealed class CreateLinkFromOutputFlow
 {
     public bool IsStarted { get; private set; }
 
@@ -14,7 +14,7 @@ public sealed class CreateLinkFlow
     private readonly MousePicker _mousePicker;
     private readonly NodeGraph _nodeGraph;
 
-    public CreateLinkFlow(MousePicker mousePicker, NodeGraph nodeGraph)
+    public CreateLinkFromOutputFlow(MousePicker mousePicker, NodeGraph nodeGraph)
     {
         _mousePicker = mousePicker;
         _nodeGraph = nodeGraph;
