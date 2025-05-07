@@ -43,7 +43,8 @@ public sealed class NodeGraphKeyboardAndMouseController
         NodeGraph nodeGraph, 
         Camera camera,
         MousePicker mousePicker,
-        Keyboard keyboard, NodeFactory nodeFactory,
+        Keyboard keyboard, 
+        NodeFactory nodeFactory,
         CameraDragFlow cameraDragFlow)
     {
         _mousePicker = mousePicker;
