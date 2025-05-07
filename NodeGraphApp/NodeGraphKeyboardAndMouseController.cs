@@ -170,7 +170,6 @@ public sealed class NodeGraphKeyboardAndMouseController
 
         if (_createLinkFromInputFlow.IsStarted)
         {
-            Console.WriteLine("Started");
             _createLinkFromInputFlow.Update();
             return;
         }
@@ -206,7 +205,8 @@ public sealed class NodeGraphKeyboardAndMouseController
             return;
         }
         
-        if (_keyboard.WasKeyPressedThisFrame(Keys.Delete) && (_selectedLinks.Count > 0 || _selectedNodes.Count > 0))
+        if ((_keyboard.WasKeyPressedThisFrame(Keys.Delete) || _keyboard.WasKeyPressedThisFrame(Keys.Backspace)) 
+            && (_selectedLinks.Count > 0 || _selectedNodes.Count > 0))
         {
             foreach (var selectedLink in _selectedLinks)
             {
