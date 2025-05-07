@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace NodeGraphApp;
 
 public sealed class Node : VisualNode
@@ -34,6 +36,21 @@ public sealed class Node : VisualNode
     
     public IEnumerable<InputPort> InputPorts => _inputPorts;
     public IEnumerable<OutputPort> OutputPorts => _outputPorts;
+    public Vector2 Position
+    {
+        get
+        { 
+            return new Vector2(Bounds.Left, Bounds.Bottom);
+        }
+        set
+        {
+            Bounds = Bounds with
+            {
+                Left = value.X,
+                Bottom = value.Y,
+            };
+        }
+    }
 
     private readonly Column _column;
     private readonly ColumnColumnItem _topColumn;
@@ -119,6 +136,27 @@ public sealed class Node : VisualNode
         _column.Bounds = Bounds;
         _column.Update();
         base.OnBoundsChanged();
+    }
+
+    public Node Clone()
+    {
+        var node = new Node
+        {
+            Title = Title,
+            Bounds = Bounds,
+        };
+
+        foreach (var inputPort in _inputPorts)
+        {
+            node.AddInputPort(inputPort.Name);
+        }
+        
+        foreach (var outputPort in _outputPorts)
+        {
+            node.AddOutputPort();
+        }
+        
+        return node;
     }
 }
 

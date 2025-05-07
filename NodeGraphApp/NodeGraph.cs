@@ -172,15 +172,30 @@ public sealed class NodeGraph
         }
     }
 
+    private List<Node>? _copiedNodes;
+    
     public void Copy()
     {
-        foreach (var selectedNode in SelectedNodes)
-        {
-        }
+        if (!_selectedNodes.Any())
+            return;
+            
+        _copiedNodes = _selectedNodes.ToList();
     }
-
+    
     public void Paste(Vector2 position)
     {
+        if (_copiedNodes == null || !_copiedNodes.Any())
+            return;
+    
+        ClearSelectedNodes();
         
+        var offset = position - _copiedNodes[0].Position;
+        foreach (var originalNode in _copiedNodes)
+        {
+            var clone = originalNode.Clone();
+            clone.Position = originalNode.Position + offset;
+            Nodes.Add(clone);
+            SelectNode(clone);
+        }
     }
 }
