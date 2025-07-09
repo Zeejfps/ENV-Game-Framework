@@ -2,9 +2,7 @@
 
 public sealed class QuadTree<T> where T : notnull
 {
-    public int ItemCount => _items.Count;
-
-    private readonly Node<T> _root;
+    private readonly Node _root;
     private readonly Dictionary<T, PointF> _items = new();
 
     public QuadTree(RectF bounds, int maxItemsPerQuad, int maxDepth = 10)
@@ -19,8 +17,10 @@ public sealed class QuadTree<T> where T : notnull
             throw new ArgumentOutOfRangeException(nameof(maxDepth), "Max depth must be at least 1.");
         }
         
-        _root = new Node<T>(maxItemsPerQuad, bounds, 0, maxDepth);
+        _root = new Node(maxItemsPerQuad, bounds, 0, maxDepth);
     }
+    
+    public int ItemCount => _items.Count;
 
     public IEnumerable<T> GetAllItems()
     {
@@ -36,7 +36,7 @@ public sealed class QuadTree<T> where T : notnull
     {
         if (_items.TryAdd(item, position))
         {
-            _root.Insert(new PositionedItem<T>(position, item));
+            _root.Insert(new NodeContents(position, item));
         }
     }
 
@@ -44,12 +44,12 @@ public sealed class QuadTree<T> where T : notnull
     {
         if (_items.TryGetValue(item, out var oldPosition))
         {
-            var oldBoundedItem = new PositionedItem<T>(oldPosition, item);
+            var oldBoundedItem = new NodeContents(oldPosition, item);
             _root.Remove(oldBoundedItem);
         
             _items[item] = position;
 
-            var newBoundedItem = new PositionedItem<T>(position, item);
+            var newBoundedItem = new NodeContents(position, item);
             _root.Insert(newBoundedItem);
         }
         else
@@ -62,7 +62,7 @@ public sealed class QuadTree<T> where T : notnull
     {
         if (_items.Remove(item, out var bounds))
         {
-            var boundedItem = new PositionedItem<T>(bounds, item);
+            var boundedItem = new NodeContents(bounds, item);
             _root.Remove(boundedItem);
         }
     }
@@ -72,14 +72,40 @@ public sealed class QuadTree<T> where T : notnull
         return _items.ContainsKey(item);
     }
     
-    public void QueryNonAlloc(RectF searchArea, List<T> results)
+    public void QueryRectNonAlloc(RectF searchArea, List<T> results)
     {
-        Node<T>.QueryNonAlloc(_root, searchArea, results);
+        Node.QueryNonAlloc(_root, searchArea, results);
     }
 
-    public IEnumerable<T> Query(RectF searchArea)
+    public IEnumerable<T> QueryRect(RectF searchArea)
     {
-        return Node<T>.Query(_root, searchArea);
+        return Node.Query(_root, searchArea);
+    }
+    
+    public void QueryCircle(PointF center, float radius, List<T> results)
+    {
+        var searchArea = new RectF(
+            center.X - radius, 
+            center.Y - radius, 
+            radius * 2, 
+            radius * 2
+        );
+    
+        QueryRectNonAlloc(searchArea, results);
+    
+        var radiusSq = radius * radius;
+        for (var i = results.Count - 1; i >= 0; i--)
+        {
+            if (_items.TryGetValue(results[i], out var pos))
+            {
+                var dx = pos.X - center.X;
+                var dy = pos.Y - center.Y;
+                if (dx * dx + dy * dy > radiusSq)
+                {
+                    results.RemoveAt(i);
+                }
+            }
+        }
     }
 
     public void Clear()
@@ -88,16 +114,16 @@ public sealed class QuadTree<T> where T : notnull
         _items.Clear();
     }
     
-    private sealed class Node<T> where T : notnull
+    private sealed class Node
     {
-        private readonly List<PositionedItem<T>> _children;
+        private readonly List<NodeContents> _children;
         private readonly int _maxItems;
         private readonly RectF _bounds;
         private readonly int _depth;
         private readonly int _maxDepth;
 
         private int _itemCount;
-        private Node<T>[]? _quads;
+        private Node[]? _quads;
         
         public Node(int maxItems, RectF bounds, int depth, int maxDepth)
         {
@@ -105,7 +131,7 @@ public sealed class QuadTree<T> where T : notnull
             _bounds = bounds;
             _depth = depth;
             _maxDepth = maxDepth;
-            _children = new List<PositionedItem<T>>();
+            _children = new List<NodeContents>();
         }
 
         public void QueryNonAlloc(RectF searchArea, List<T> results)
@@ -174,9 +200,9 @@ public sealed class QuadTree<T> where T : notnull
             }
         }
         
-        public static void QueryNonAlloc(Node<T> root, RectF searchArea, List<T> results)
+        public static void QueryNonAlloc(Node root, RectF searchArea, List<T> results)
         {
-            var stack = new Stack<Node<T>>();
+            var stack = new Stack<Node>();
             stack.Push(root);
 
             while (stack.Count > 0)
@@ -209,9 +235,9 @@ public sealed class QuadTree<T> where T : notnull
                 }
             }
         }
-        public static IEnumerable<T> Query(Node<T> root, RectF searchArea)
+        public static IEnumerable<T> Query(Node root, RectF searchArea)
         {
-            var stack = new Stack<Node<T>>();
+            var stack = new Stack<Node>();
             stack.Push(root);
 
             while (stack.Count > 0)
@@ -251,7 +277,7 @@ public sealed class QuadTree<T> where T : notnull
             }
         }
 
-        public void Insert(PositionedItem<T> item)
+        public void Insert(NodeContents item)
         {
             if (_quads != null)
             {
@@ -273,7 +299,7 @@ public sealed class QuadTree<T> where T : notnull
             }
         }
 
-        public bool Remove(PositionedItem<T> item)
+        public bool Remove(NodeContents item)
         {
             var bounds = _bounds;
             if (!bounds.Contains(item.Position))
@@ -305,7 +331,7 @@ public sealed class QuadTree<T> where T : notnull
             return false;
         }
 
-        private IEnumerable<PositionedItem<T>> EnumerateItems()
+        private IEnumerable<NodeContents> EnumerateItems()
         {
             foreach (var child in _children)
             {
@@ -339,7 +365,7 @@ public sealed class QuadTree<T> where T : notnull
             }
         }
         
-        private void CollectItems(List<PositionedItem<T>> items)
+        private void CollectItems(List<NodeContents> items)
         {
             items.AddRange(_children);
             if (_quads != null)
@@ -348,7 +374,7 @@ public sealed class QuadTree<T> where T : notnull
             }
         }
         
-        private void CollectItemsFromQuads(Node<T>[] quads, List<PositionedItem<T>> items)
+        private void CollectItemsFromQuads(Node[] quads, List<NodeContents> items)
         {
             foreach (var quad in quads)
             {
@@ -356,7 +382,7 @@ public sealed class QuadTree<T> where T : notnull
             }
         }
         
-        private bool TryInsertIntoQuads(Node<T>[] quads, PositionedItem<T> item)
+        private bool TryInsertIntoQuads(Node[] quads, NodeContents item)
         {
             var itemPosition = item.Position;
             foreach (var quad in quads)
@@ -383,7 +409,7 @@ public sealed class QuadTree<T> where T : notnull
                 Width: quadWidth,
                 Height: quadHeight
             );
-            var topLeft = new Node<T>(_maxItems, topLeftBounds, depth, _maxDepth);
+            var topLeft = new Node(_maxItems, topLeftBounds, depth, _maxDepth);
 
             var topRightBounds = new RectF(
                 Left: bounds.Left + quadWidth,
@@ -391,7 +417,7 @@ public sealed class QuadTree<T> where T : notnull
                 Width: quadWidth,
                 Height: quadHeight
             );
-            var topRight = new Node<T>(_maxItems, topRightBounds, depth, _maxDepth);
+            var topRight = new Node(_maxItems, topRightBounds, depth, _maxDepth);
             
             var botLeftBounds = new RectF(
                 Left: bounds.Left,
@@ -399,7 +425,7 @@ public sealed class QuadTree<T> where T : notnull
                 Width: quadWidth,
                 Height: quadHeight
             );
-            var botLeft = new Node<T>(_maxItems, botLeftBounds, depth, _maxDepth);
+            var botLeft = new Node(_maxItems, botLeftBounds, depth, _maxDepth);
             
             var botRightBounds = new RectF(
                 Left: bounds.Left + quadWidth,
@@ -407,7 +433,7 @@ public sealed class QuadTree<T> where T : notnull
                 Width: quadWidth,
                 Height: quadHeight
             );
-            var botRight = new Node<T>(_maxItems, botRightBounds, depth, _maxDepth);
+            var botRight = new Node(_maxItems, botRightBounds, depth, _maxDepth);
 
             _quads =
             [
@@ -435,6 +461,7 @@ public sealed class QuadTree<T> where T : notnull
             _itemCount = 0;
         }
     }
+
+    private readonly record struct NodeContents(PointF Position, T Item);
 }
 
-internal readonly record struct PositionedItem<T>(PointF Position, T Item) where T : notnull;
