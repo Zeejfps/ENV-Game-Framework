@@ -330,6 +330,4 @@ public sealed class QuadTree<T> where T : notnull
     }
 }
 
-public readonly record struct PointF(float X, float Y);
-
 internal readonly record struct PositionedItem<T>(PointF Position, T Item) where T : notnull;
