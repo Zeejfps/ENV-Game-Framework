@@ -40,7 +40,7 @@ public sealed class RectFQuadTree<T> where T : notnull
     
     public void QueryNonAlloc(RectF searchArea, List<T> results)
     {
-        _root.Query(searchArea, results);
+        Node<T>.QueryNonAlloc(_root, searchArea, results);
     }
 
     public IEnumerable<T> Query(RectF searchArea)
@@ -157,7 +157,7 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
     private int ItemCount { get; set; }
     private RectF Bounds => bounds;
 
-    public void Query(RectF searchArea, List<T> results)
+    public void QueryNonAlloc(RectF searchArea, List<T> results)
     {
         if (searchArea.Intersects(bounds))
         {
@@ -174,7 +174,64 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
             {
                 foreach (var quad in _quads)
                 {
-                    quad.Query(searchArea, results);
+                    quad.QueryNonAlloc(searchArea, results);
+                }
+            }
+        }
+    }
+    
+    public IEnumerable<T> Query(RectF searchArea)
+    {
+        if (searchArea.Intersects(bounds))
+        {
+            foreach (var child in _children)
+            {
+                var itemBounds = child.Bounds;
+                if (searchArea.Intersects(itemBounds))
+                {
+                    yield return child.Item;
+                }
+            }
+
+            if (_quads != null)
+            {
+                foreach (var quad in _quads)
+                {
+                    var results = quad.Query(searchArea);
+                    foreach (var item in results)
+                    {
+                        yield return item;
+                    }
+                }
+            }
+        }
+    }
+    
+    public static void QueryNonAlloc(Node<T> root, RectF searchArea, List<T> results)
+    {
+        var stack = new Stack<Node<T>>();
+        stack.Push(root);
+
+        while (stack.Count > 0)
+        {
+            var node = stack.Pop();
+            
+            if (!searchArea.Intersects(node.Bounds))
+                continue;
+            
+            foreach (var boundedItem in node._children)
+            {
+                if (searchArea.Intersects(boundedItem.Bounds))
+                {
+                    results.Add(boundedItem.Item);
+                }
+            }
+
+            if (node._quads != null)
+            {
+                foreach (var quad in node._quads)
+                {
+                    stack.Push(quad);
                 }
             }
         }
