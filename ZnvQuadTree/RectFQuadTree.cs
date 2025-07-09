@@ -2,15 +2,18 @@
 
 public sealed class RectFQuadTree<T> where T : notnull
 {
+    public int ItemCount => _items.Count;
+
     private readonly Node<T> _root;
-
-    public int Count => _items.Count;
-
     private readonly Dictionary<T, RectF> _items = new();
 
-    public RectFQuadTree(RectF bounds)
+    public RectFQuadTree(RectF bounds, int maxItemsPerQuad)
     {
-        _root = new Node<T>(10, bounds);
+        if (maxItemsPerQuad < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxItemsPerQuad), "Max items per quad must be at least 1.");
+        }
+        _root = new Node<T>(maxItemsPerQuad, bounds);
     }
 
     public void Insert(T item, RectF bounds)
@@ -91,12 +94,6 @@ public readonly struct RectF : IEquatable<RectF>
                otherRect.Bottom >= Bottom &&
                otherRect.Top <= Top;
     }
-
-    public bool ContainsPoint(float x, float y)
-    {
-        return x >= Left && x < Right &&
-               y >= Bottom && y < Top;
-    }
     
     public bool Equals(RectF other)
     {
@@ -155,9 +152,10 @@ internal readonly struct BoundedItem<T>(RectF bounds, T item) : IEquatable<Bound
     }
 }
 
-internal struct Node<T>(int maxItems, RectF bounds)
+internal sealed class Node<T>(int maxItems, RectF bounds)
 {
     private readonly List<BoundedItem<T>> _children = new();
+    
     private Node<T>[]? _quads;
 
     private int ItemCount { get; set; }
@@ -180,9 +178,8 @@ internal struct Node<T>(int maxItems, RectF bounds)
 
             if (_quads != null)
             {
-                for (var i = 0; i < _quads.Length; i++)
+                foreach (var quad in _quads)
                 {
-                    ref var quad = ref _quads[i];
                     foundCount += quad.Query(searchArea, results);
                 }
             }
@@ -222,15 +219,14 @@ internal struct Node<T>(int maxItems, RectF bounds)
 
         if (_quads != null)
         {
-            for (var i = 0; i < _quads.Length; i++)
+            foreach (var quad in _quads)
             {
-                ref var quad = ref _quads[i]; 
                 if (quad.Remove(item))
                 {
                     ItemCount -= 1;
-                    var remainingItemCount = CountItems(_quads);
-                    if (remainingItemCount == 0)
+                    if (ItemCount < maxItems)
                     {
+                        CollectItemsFromQuads(_quads, _children);
                         _quads = null;
                     }
                     return true;
@@ -247,12 +243,28 @@ internal struct Node<T>(int maxItems, RectF bounds)
         return false;
     }
 
+    private void CollectItems(List<BoundedItem<T>> items)
+    {
+        items.AddRange(_children);
+        if (_quads != null)
+        {
+            CollectItemsFromQuads(_quads, items);
+        }
+    }
+    
+    private void CollectItemsFromQuads(Node<T>[] quads, List<BoundedItem<T>> items)
+    {
+        foreach (var quad in quads)
+        {
+            quad.CollectItems(items);
+        }
+    }
+
     private int CountItems(Node<T>[] quads)
     {
         var itemCount = 0;
-        for (var i = 0; i < quads.Length; i++)
+        foreach (var quad in quads)
         {
-            ref var quad = ref quads[i];
             itemCount += quad.ItemCount;
         }
         return itemCount;
@@ -261,14 +273,13 @@ internal struct Node<T>(int maxItems, RectF bounds)
     private bool InsertIntoQuads(Node<T>[] quads, BoundedItem<T> item)
     {
         var itemBounds = item.Bounds;
-        for (var i = 0; i < quads.Length; i++)
+        foreach (var quad in quads)
         {
-            ref var quad = ref quads[i];
             if (quad.Bounds.FullyContains(itemBounds))
             {
                 quad.Insert(item);
                 return true;
-            }        
+            }  
         }
         return false;
     }
