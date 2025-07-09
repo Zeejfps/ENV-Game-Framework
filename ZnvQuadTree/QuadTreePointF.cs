@@ -138,7 +138,7 @@ public sealed class QuadTreePointF<T> where T : notnull
     
     private sealed class Node
     {
-        private readonly List<Cell> _children;
+        private readonly List<Cell> _cells;
         private readonly int _maxItems;
         private readonly RectF _bounds;
         private readonly int _depth;
@@ -153,7 +153,7 @@ public sealed class QuadTreePointF<T> where T : notnull
             _bounds = bounds;
             _depth = depth;
             _maxDepth = maxDepth;
-            _children = new List<Cell>();
+            _cells = new List<Cell>();
         }
 
         public void QueryNonAlloc(RectF searchArea, List<T> results)
@@ -163,11 +163,11 @@ public sealed class QuadTreePointF<T> where T : notnull
             {
                 if (searchArea.FullyContains(bounds))
                 {
-                    CollectItemsNonAlloc(results);
+                    CollectCellsNonAlloc(results);
                     return;
                 }
                 
-                foreach (var item in _children)
+                foreach (var item in _cells)
                 {
                     var position = item.Position;
                     if (searchArea.Contains(position))
@@ -192,14 +192,14 @@ public sealed class QuadTreePointF<T> where T : notnull
             {
                 if (searchArea.FullyContains(bounds))
                 {
-                    foreach (var item in EnumerateItems())
+                    foreach (var item in EnumerateCells())
                     {
                         yield return item.Item;
                     }
                     yield break;
                 }
                 
-                foreach (var child in _children)
+                foreach (var child in _cells)
                 {
                     var itemPoint = child.Position;
                     if (searchArea.Contains(itemPoint))
@@ -236,11 +236,11 @@ public sealed class QuadTreePointF<T> where T : notnull
 
                 if (searchArea.FullyContains(node._bounds))
                 {
-                    node.CollectItemsNonAlloc(results);
+                    node.CollectCellsNonAlloc(results);
                     continue;
                 }
                 
-                foreach (var boundedItem in node._children)
+                foreach (var boundedItem in node._cells)
                 {
                     if (searchArea.Contains(boundedItem.Position))
                     {
@@ -273,15 +273,15 @@ public sealed class QuadTreePointF<T> where T : notnull
 
                 if (searchArea.FullyContains(node._bounds))
                 {
-                    foreach (var positionedItem in node.EnumerateItems())
+                    foreach (var cell in node.EnumerateCells())
                     {
-                        yield return positionedItem;
+                        yield return cell;
                     }
                     
                     continue;
                 }
                 
-                foreach (var boundedItem in node._children)
+                foreach (var boundedItem in node._cells)
                 {
                     if (searchArea.Contains(boundedItem.Position))
                     {
@@ -310,10 +310,10 @@ public sealed class QuadTreePointF<T> where T : notnull
                 }
             }
             
-            _children.Add(item);
+            _cells.Add(item);
             _itemCount++;
             
-            if (_children.Count > _maxItems &&
+            if (_cells.Count > _maxItems &&
                 _depth < _maxDepth &&
                 _quads == null)
             {
@@ -336,7 +336,7 @@ public sealed class QuadTreePointF<T> where T : notnull
                         _itemCount -= 1;
                         if (_itemCount < _maxItems)
                         {
-                            CollectItemsFromQuads(_quads, _children);
+                            CollectCellsFromQuads(_quads, _cells);
                             _quads = null;
                         }
                         return true;
@@ -344,7 +344,7 @@ public sealed class QuadTreePointF<T> where T : notnull
                 }
             }
 
-            if (_children.Remove(item))
+            if (_cells.Remove(item))
             {
                 _itemCount -= 1;
                 return true;
@@ -353,65 +353,65 @@ public sealed class QuadTreePointF<T> where T : notnull
             return false;
         }
 
-        private IEnumerable<Cell> EnumerateItems()
+        private IEnumerable<Cell> EnumerateCells()
         {
-            foreach (var child in _children)
+            foreach (var cell in _cells)
             {
-                yield return child;
+                yield return cell;
             }
             if (_quads != null)
             {
                 foreach (var quad in _quads)
                 {
-                    var items = quad.EnumerateItems();
-                    foreach (var item in items)
+                    var cells = quad.EnumerateCells();
+                    foreach (var cell in cells)
                     {
-                        yield return item;
+                        yield return cell;
                     }
                 }
             }
         }
         
-        private void CollectItemsNonAlloc(List<T> items)
+        private void CollectCellsNonAlloc(List<T> items)
         {
-            foreach (var child in _children)
+            foreach (var cell in _cells)
             {
-                items.Add(child.Item);
+                items.Add(cell.Item);
             }
             if (_quads != null)
             {
                 foreach (var quad in _quads)
                 {
-                    quad.CollectItemsNonAlloc(items);
+                    quad.CollectCellsNonAlloc(items);
                 }
             }
         }
         
-        private void CollectItems(List<Cell> items)
+        private void CollectAllCells(List<Cell> items)
         {
-            items.AddRange(_children);
+            items.AddRange(_cells);
             if (_quads != null)
             {
-                CollectItemsFromQuads(_quads, items);
+                CollectCellsFromQuads(_quads, items);
             }
         }
         
-        private void CollectItemsFromQuads(Node[] quads, List<Cell> items)
+        private void CollectCellsFromQuads(Node[] quads, List<Cell> cells)
         {
             foreach (var quad in quads)
             {
-                quad.CollectItems(items);
+                quad.CollectAllCells(cells);
             }
         }
         
-        private bool TryInsertIntoQuads(Node[] quads, Cell item)
+        private bool TryInsertIntoQuads(Node[] quads, Cell cell)
         {
-            var itemPosition = item.Position;
+            var cellPosition = cell.Position;
             foreach (var quad in quads)
             {
-                if (quad._bounds.Contains(itemPosition))
+                if (quad._bounds.Contains(cellPosition))
                 {
-                    quad.Insert(item);
+                    quad.Insert(cell);
                     return true;
                 }  
             }
@@ -465,20 +465,20 @@ public sealed class QuadTreePointF<T> where T : notnull
                 botRight
             ];
             
-            for (var i = _children.Count - 1; i >= 0; i--)
+            for (var i = _cells.Count - 1; i >= 0; i--)
             {
-                var item = _children[i];
-                var inserted = TryInsertIntoQuads(_quads, item);
+                var cell = _cells[i];
+                var inserted = TryInsertIntoQuads(_quads, cell);
                 if (inserted)
                 {
-                    _children.RemoveAt(i);
+                    _cells.RemoveAt(i);
                 }
             }
         }
 
         public void Clear()
         {
-            _children.Clear();
+            _cells.Clear();
             _quads = null;
             _itemCount = 0;
         }
