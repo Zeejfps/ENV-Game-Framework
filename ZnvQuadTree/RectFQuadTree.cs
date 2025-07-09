@@ -210,27 +210,22 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
 
     public void Insert(BoundedItem<T> item)
     {
-        var childCount = _children.Count;
-        var quads = _quads;
-        if (childCount >= maxItems && quads == null)
+        if (_quads != null)
         {
-            quads = Split();
-        }
-        
-        if (quads != null)
-        {
-            var inserted = InsertIntoQuads(quads, item);
-            if (!inserted)
+            if (TryInsertIntoQuads(_quads, item))
             {
-                _children.Add(item);
+                ItemCount++;
+                return;
             }
         }
-        else
-        {
-            _children.Add(item);
-        }
-
+        
+        _children.Add(item);
         ItemCount++;
+        
+        if (_children.Count > maxItems && _quads == null)
+        {
+            Split();
+        }
     }
 
     public bool Remove(BoundedItem<T> item)
@@ -281,7 +276,7 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
         }
     }
     
-    private bool InsertIntoQuads(Node<T>[] quads, BoundedItem<T> item)
+    private bool TryInsertIntoQuads(Node<T>[] quads, BoundedItem<T> item)
     {
         var itemBounds = item.Bounds;
         foreach (var quad in quads)
@@ -295,7 +290,7 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
         return false;
     }
     
-    private Node<T>[] Split()
+    private void Split()
     {
         var quadWidth = bounds.Width * 0.5f;
         var quadHeight = bounds.Height * 0.5f;
@@ -343,14 +338,12 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
         for (var i = _children.Count - 1; i >= 0; i--)
         {
             var item = _children[i];
-            var inserted = InsertIntoQuads(_quads, item);
+            var inserted = TryInsertIntoQuads(_quads, item);
             if (inserted)
             {
                 _children.RemoveAt(i);
             }
         }
-
-        return _quads;
     }
 
     public void Clear()
@@ -358,5 +351,16 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
         _children.Clear();
         _quads = null;
         ItemCount = 0;
+    }
+
+    private int CountItems(Node<T>[] quads)
+    {
+        var count = 0;
+        foreach (var quad in quads)
+        {
+            count += quad.ItemCount;
+        }
+
+        return count;
     }
 }
