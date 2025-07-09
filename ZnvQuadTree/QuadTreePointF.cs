@@ -308,9 +308,9 @@ public sealed class QuadTreePointF<T> where T : notnull
             return itemFound;
         }
         
-        public IEnumerable<T> FindNearestN(PointF center, int n, float maxRadius = float.MaxValue, Predicate<T>? predicate = null)
+        public IEnumerable<T> FindNearestN(int nItems, PointF center, float maxRadius = float.MaxValue, Predicate<T>? predicate = null)
         {
-            if (n <= 0) yield break;
+            if (nItems <= 0) yield break;
             
             var results = new SortedSet<(float distanceSq, T item)>(new DistanceComparer());
             var maxDistanceSq = maxRadius * maxRadius;
@@ -320,7 +320,7 @@ public sealed class QuadTreePointF<T> where T : notnull
             
             while (nodesToVisit.TryDequeue(out var node, out var nodeDistanceSq))
             {
-                if (results.Count >= n && nodeDistanceSq > results.Max.distanceSq)
+                if (results.Count >= nItems && nodeDistanceSq > results.Max.distanceSq)
                 {
                     continue;
                 }
@@ -339,7 +339,7 @@ public sealed class QuadTreePointF<T> where T : notnull
                         continue;
                     }
                     
-                    if (results.Count < n)
+                    if (results.Count < nItems)
                     {
                         results.Add((distanceSq, cell.Item));
                     }
@@ -357,7 +357,7 @@ public sealed class QuadTreePointF<T> where T : notnull
                     foreach (var quad in _quads)
                     {
                         var childDistanceSq = quad._bounds.DistanceSqTo(center);
-                        if (results.Count < n || childDistanceSq < maxDistanceSq)
+                        if (results.Count < nItems || childDistanceSq < maxDistanceSq)
                         {
                             nodesToVisit.Enqueue(quad, childDistanceSq);
                         }
