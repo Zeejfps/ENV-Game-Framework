@@ -38,7 +38,8 @@ public readonly struct RectF : IEquatable<RectF>
     
     public bool Contains(PointF point)
     {
-        throw new NotImplementedException();
+        return point.X >= Left && point.X <= Right &&
+               point.Y >= Bottom && point.Y <= Top;
     }
     
     public bool Equals(RectF other)
