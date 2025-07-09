@@ -36,7 +36,7 @@ public sealed class QuadTreePointF<T> where T : notnull
     {
         if (_items.TryAdd(item, position))
         {
-            _root.Insert(new NodeContents(position, item));
+            _root.Insert(new Cell(item, position));
         }
     }
 
@@ -44,12 +44,12 @@ public sealed class QuadTreePointF<T> where T : notnull
     {
         if (_items.TryGetValue(item, out var oldPosition))
         {
-            var oldBoundedItem = new NodeContents(oldPosition, item);
+            var oldBoundedItem = new Cell(item, oldPosition);
             _root.Remove(oldBoundedItem);
         
             _items[item] = position;
 
-            var newBoundedItem = new NodeContents(position, item);
+            var newBoundedItem = new Cell(item, position);
             _root.Insert(newBoundedItem);
         }
         else
@@ -62,7 +62,7 @@ public sealed class QuadTreePointF<T> where T : notnull
     {
         if (_items.Remove(item, out var bounds))
         {
-            var boundedItem = new NodeContents(bounds, item);
+            var boundedItem = new Cell(item, bounds);
             _root.Remove(boundedItem);
         }
     }
@@ -79,7 +79,9 @@ public sealed class QuadTreePointF<T> where T : notnull
 
     public IEnumerable<T> QueryRect(RectF searchArea)
     {
-        return Node.Query(_root, searchArea);
+        return Node
+            .Query(_root, searchArea)
+            .Select(contents => contents.Item);
     }
     
     public void QueryCircleNonAlloc(PointF center, float radius, List<T> results)
@@ -116,20 +118,16 @@ public sealed class QuadTreePointF<T> where T : notnull
             radius * 2, 
             radius * 2
         );
-        
 
-        var rectQueryResults = QueryRect(searchArea);
+        var rectQueryResults = Node.Query(_root, searchArea);
         var radiusSq = radius * radius;
-        return rectQueryResults.Where(result =>
+        return rectQueryResults.Where(cell =>
         {
-            if (_items.TryGetValue(result, out var pos))
-            {
-                var dx = pos.X - center.X;
-                var dy = pos.Y - center.Y;
-                return dx * dx + dy * dy <= radiusSq;
-            }
-            return false;
-        });
+            var pos = cell.Position;
+            var dx = pos.X - center.X;
+            var dy = pos.Y - center.Y;
+            return dx * dx + dy * dy <= radiusSq;
+        }).Select(cell => cell.Item);
     }
 
     public void Clear()
@@ -140,7 +138,7 @@ public sealed class QuadTreePointF<T> where T : notnull
     
     private sealed class Node
     {
-        private readonly List<NodeContents> _children;
+        private readonly List<Cell> _children;
         private readonly int _maxItems;
         private readonly RectF _bounds;
         private readonly int _depth;
@@ -155,7 +153,7 @@ public sealed class QuadTreePointF<T> where T : notnull
             _bounds = bounds;
             _depth = depth;
             _maxDepth = maxDepth;
-            _children = new List<NodeContents>();
+            _children = new List<Cell>();
         }
 
         public void QueryNonAlloc(RectF searchArea, List<T> results)
@@ -259,7 +257,7 @@ public sealed class QuadTreePointF<T> where T : notnull
                 }
             }
         }
-        public static IEnumerable<T> Query(Node root, RectF searchArea)
+        public static IEnumerable<Cell> Query(Node root, RectF searchArea)
         {
             var stack = new Stack<Node>();
             stack.Push(root);
@@ -277,7 +275,7 @@ public sealed class QuadTreePointF<T> where T : notnull
                 {
                     foreach (var positionedItem in node.EnumerateItems())
                     {
-                        yield return positionedItem.Item;
+                        yield return positionedItem;
                     }
                     
                     continue;
@@ -287,7 +285,7 @@ public sealed class QuadTreePointF<T> where T : notnull
                 {
                     if (searchArea.Contains(boundedItem.Position))
                     {
-                        yield return boundedItem.Item;
+                        yield return boundedItem;
                     }
                 }
 
@@ -301,7 +299,7 @@ public sealed class QuadTreePointF<T> where T : notnull
             }
         }
 
-        public void Insert(NodeContents item)
+        public void Insert(Cell item)
         {
             if (_quads != null)
             {
@@ -323,7 +321,7 @@ public sealed class QuadTreePointF<T> where T : notnull
             }
         }
 
-        public bool Remove(NodeContents item)
+        public bool Remove(Cell item)
         {
             var bounds = _bounds;
             if (!bounds.Contains(item.Position))
@@ -355,7 +353,7 @@ public sealed class QuadTreePointF<T> where T : notnull
             return false;
         }
 
-        private IEnumerable<NodeContents> EnumerateItems()
+        private IEnumerable<Cell> EnumerateItems()
         {
             foreach (var child in _children)
             {
@@ -389,7 +387,7 @@ public sealed class QuadTreePointF<T> where T : notnull
             }
         }
         
-        private void CollectItems(List<NodeContents> items)
+        private void CollectItems(List<Cell> items)
         {
             items.AddRange(_children);
             if (_quads != null)
@@ -398,7 +396,7 @@ public sealed class QuadTreePointF<T> where T : notnull
             }
         }
         
-        private void CollectItemsFromQuads(Node[] quads, List<NodeContents> items)
+        private void CollectItemsFromQuads(Node[] quads, List<Cell> items)
         {
             foreach (var quad in quads)
             {
@@ -406,7 +404,7 @@ public sealed class QuadTreePointF<T> where T : notnull
             }
         }
         
-        private bool TryInsertIntoQuads(Node[] quads, NodeContents item)
+        private bool TryInsertIntoQuads(Node[] quads, Cell item)
         {
             var itemPosition = item.Position;
             foreach (var quad in quads)
@@ -486,6 +484,6 @@ public sealed class QuadTreePointF<T> where T : notnull
         }
     }
 
-    private readonly record struct NodeContents(PointF Position, T Item);
+    public readonly record struct Cell(T Item, PointF Position);
 }
 
