@@ -597,7 +597,7 @@ public sealed class QuadTreePointF<T> where T : notnull
         
         private Node CreateChildNode(RectF bounds)
         {
-            return new Node(_maxItemCount, bounds, _depth, _maxDepth, _collapseItemCount);
+            return new Node(_maxItemCount, bounds, _depth + 1, _maxDepth, _collapseItemCount);
         }
     }
 
