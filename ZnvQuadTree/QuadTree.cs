@@ -24,6 +24,12 @@ public sealed class QuadTree<T> where T : notnull
         }
     }
 
+    public void Update(T item, PointF position)
+    {
+        Remove(item);
+        Insert(item, position);
+    }
+
     public void Remove(T item)
     {
         if (_items.Remove(item, out var bounds))
@@ -150,7 +156,6 @@ public sealed class QuadTree<T> where T : notnull
                 }
             }
         }
-
         public static IEnumerable<T> Query(Node<T> root, RectF searchArea)
         {
             var stack = new Stack<Node<T>>();
