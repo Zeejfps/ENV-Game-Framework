@@ -29,4 +29,15 @@ public readonly record struct RectF(float Left, float Bottom, float Width, float
         return point.X >= Left && point.X <= Right &&
                point.Y >= Bottom && point.Y <= Top;
     }
+    
+    public float DistanceSqTo(PointF point)
+    {
+        var closestX = Math.Max(this.Left, Math.Min(point.X, this.Right));
+        var closestY = Math.Max(this.Bottom, Math.Min(point.Y, this.Top));
+
+        var dx = point.X - closestX;
+        var dy = point.Y - closestY;
+        
+        return (dx * dx) + (dy * dy);
+    }
 }
