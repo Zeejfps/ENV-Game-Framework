@@ -158,6 +158,23 @@ public sealed class QuadTreePointF<T> where T : notnull
         _items.Clear();
     }
     
+    public Info GetInfo()
+    {
+        var nodes = new List<NodeInfo>();
+        var maxDepth = 0;
+        _root.CollectNodeInfo(nodes, ref maxDepth);
+        
+        return new Info
+        {
+            MaxDepthReached = maxDepth,
+            TotalNodes = nodes.Count,
+            TotalItems = ItemCount,
+            LeafNodes = nodes.Count(n => !n.IsSplit),
+            InternalNodes = nodes.Count(n => n.IsSplit),
+            Nodes = nodes
+        };
+    }
+    
     private sealed class Node
     {
         private readonly List<Cell> _cells;
@@ -553,7 +570,31 @@ public sealed class QuadTreePointF<T> where T : notnull
             _children = null;
             _itemCount = 0;
         }
-
+    
+        public void CollectNodeInfo(List<NodeInfo> nodes, ref int maxDepth)
+        {
+            maxDepth = Math.Max(maxDepth, _depth);
+        
+            var nodeInfo = new NodeInfo
+            {
+                Depth = _depth,
+                Bounds = _bounds,
+                DirectItemCount = _cells.Count,
+                TotalItemCount = _itemCount,
+                IsSplit = _children != null,
+            };
+        
+            nodes.Add(nodeInfo);
+        
+            if (_children != null)
+            {
+                foreach (var child in _children)
+                {
+                    child.CollectNodeInfo(nodes, ref maxDepth);
+                }
+            }
+        }
+        
         private Node CreateChildNode(RectF bounds)
         {
             return new Node(_maxItemCount, bounds, _depth, _maxDepth, _collapseItemCount);
@@ -561,5 +602,34 @@ public sealed class QuadTreePointF<T> where T : notnull
     }
 
     private readonly record struct Cell(T Item, PointF Position);
+
+    public readonly struct Info
+    {
+        public required int MaxDepthReached { get; init; }
+        public required int TotalNodes { get; init; }
+        public required int TotalItems { get; init; }
+        public required int LeafNodes { get; init; }
+        public required int InternalNodes { get; init; }
+        public required IReadOnlyList<NodeInfo> Nodes { get; init; }
+    
+        public override string ToString()
+        {
+            return $"QuadTree Info: Items={TotalItems}, Nodes={TotalNodes} (Leaf={LeafNodes}, Internal={InternalNodes}), MaxDepth={MaxDepthReached}";
+        }
+    }
+
+    public readonly struct NodeInfo
+    {
+        public required int Depth { get; init; }
+        public required RectF Bounds { get; init; }
+        public required int DirectItemCount { get; init; }
+        public required int TotalItemCount { get; init; }
+        public required bool IsSplit { get; init; }
+    
+        public override string ToString()
+        {
+            return $"Node[Depth={Depth}, Items={DirectItemCount}/{TotalItemCount}, Bounds={Bounds}]";
+        }
+    }
 }
 
