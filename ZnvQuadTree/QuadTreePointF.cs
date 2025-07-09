@@ -1,11 +1,11 @@
 ﻿namespace ZnvQuadTree;
 
-public sealed class QuadTree<T> where T : notnull
+public sealed class QuadTreePointF<T> where T : notnull
 {
     private readonly Node _root;
     private readonly Dictionary<T, PointF> _items = new();
 
-    public QuadTree(RectF bounds, int maxItemsPerQuad, int maxDepth = 10)
+    public QuadTreePointF(RectF bounds, int maxItemsPerQuad, int maxDepth = 10)
     {
         if (maxItemsPerQuad < 1)
         {
