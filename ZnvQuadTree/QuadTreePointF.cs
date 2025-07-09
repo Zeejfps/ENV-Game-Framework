@@ -86,7 +86,7 @@ public sealed class QuadTreePointF<T> where T : notnull
             .QueryCell(_root, searchArea)
             .Select(contents => contents.Item);
     }
-
+    
     private readonly List<Cell> _cellQueryCache = new();
     
     public void FindInCircleNonAlloc(PointF center, float radius, List<T> items)
