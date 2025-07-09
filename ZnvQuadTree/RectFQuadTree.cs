@@ -73,16 +73,31 @@ public readonly struct RectF : IEquatable<RectF>
     public float Width { get; }
     public float Height { get;  }
 
-    public bool Overlaps(RectF otherRect)
+    public bool Intersects(RectF otherRect)
     {
-        throw new NotImplementedException();
+        if (Right <= otherRect.Left || Left >= otherRect.Right)
+            return false; 
+
+        if (Top <= otherRect.Bottom || Bottom >= otherRect.Top)
+            return false;
+
+        return true;
     }
 
-    public bool Contains(RectF otherRect)
+    public bool FullyContains(RectF otherRect)
     {
-        throw new NotImplementedException();
+        return otherRect.Left >= Left &&
+               otherRect.Right <= Right &&
+               otherRect.Bottom >= Bottom &&
+               otherRect.Top <= Top;
     }
 
+    public bool ContainsPoint(float x, float y)
+    {
+        return x >= Left && x < Right &&
+               y >= Bottom && y < Top;
+    }
+    
     public bool Equals(RectF other)
     {
         return Left.Equals(other.Left) && Bottom.Equals(other.Bottom) && Width.Equals(other.Width) && Height.Equals(other.Height);
@@ -140,34 +155,23 @@ internal readonly struct BoundedItem<T>(RectF bounds, T item) : IEquatable<Bound
     }
 }
 
-internal sealed class Node<T>(int maxItems, RectF bounds)
+internal struct Node<T>(int maxItems, RectF bounds)
 {
     private readonly List<BoundedItem<T>> _children = new();
     private Node<T>[]? _quads;
 
-    public int ItemCount
-    {
-        get
-        {
-            var itemCount = _children.Count;
-            if (_quads != null)
-            {
-                itemCount += CountItems(_quads);
-            }
-            return itemCount;
-        }
-    }
-    public RectF Bounds => bounds;
+    private int ItemCount { get; set; }
+    private RectF Bounds => bounds;
 
     public int Query(RectF searchArea, List<T> results)
     {
         var foundCount = 0;
-        if (searchArea.Overlaps(bounds))
+        if (searchArea.Intersects(bounds))
         {
             foreach (var item in _children)
             {
                 var itemBounds = item.Bounds;
-                if (searchArea.Overlaps(itemBounds))
+                if (searchArea.Intersects(itemBounds))
                 {
                     results.Add(item.Item);
                     foundCount++;
@@ -176,8 +180,9 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
 
             if (_quads != null)
             {
-                foreach (var quad in _quads)
+                for (var i = 0; i < _quads.Length; i++)
                 {
+                    ref var quad = ref _quads[i];
                     foundCount += quad.Query(searchArea, results);
                 }
             }
@@ -206,19 +211,23 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
         {
             _children.Add(item);
         }
+
+        ItemCount++;
     }
 
     public bool Remove(BoundedItem<T> item)
     {
-        if (!bounds.Contains(item.Bounds))
+        if (!bounds.FullyContains(item.Bounds))
             return false;
 
         if (_quads != null)
         {
-            foreach (var quad in _quads)
+            for (var i = 0; i < _quads.Length; i++)
             {
+                ref var quad = ref _quads[i]; 
                 if (quad.Remove(item))
                 {
+                    ItemCount -= 1;
                     var remainingItemCount = CountItems(_quads);
                     if (remainingItemCount == 0)
                     {
@@ -228,15 +237,22 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
                 }
             }
         }
-        
-        return _children.Remove(item);
+
+        if (_children.Remove(item))
+        {
+            ItemCount -= 1;
+            return true;
+        }
+
+        return false;
     }
 
     private int CountItems(Node<T>[] quads)
     {
         var itemCount = 0;
-        foreach (var quad in quads)
+        for (var i = 0; i < quads.Length; i++)
         {
+            ref var quad = ref quads[i];
             itemCount += quad.ItemCount;
         }
         return itemCount;
@@ -245,13 +261,14 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
     private bool InsertIntoQuads(Node<T>[] quads, BoundedItem<T> item)
     {
         var itemBounds = item.Bounds;
-        foreach (var quad in quads)
+        for (var i = 0; i < quads.Length; i++)
         {
-            if (quad.Bounds.Contains(itemBounds))
+            ref var quad = ref quads[i];
+            if (quad.Bounds.FullyContains(itemBounds))
             {
                 quad.Insert(item);
                 return true;
-            }
+            }        
         }
         return false;
     }
@@ -263,7 +280,7 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
         
         var topLeftBounds = new RectF(
             left: bounds.Left,
-            bottom: bounds.Bottom + quadWidth,
+            bottom: bounds.Bottom + quadHeight,
             width: quadWidth,
             height: quadHeight
         );
@@ -290,7 +307,7 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
             bottom: bounds.Bottom,
             width: quadWidth,
             height: quadHeight
-        );;
+        );
         var botRight = new Node<T>(maxItems, botRightBounds);
 
         _quads =
@@ -301,19 +318,14 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
             botRight
         ];
         
-        var itemsToRemove = new List<BoundedItem<T>>();
-        foreach (var item in _children)
+        for (var i = _children.Count - 1; i >= 0; i--)
         {
+            var item = _children[i];
             var inserted = InsertIntoQuads(_quads, item);
             if (inserted)
             {
-                itemsToRemove.Add(item);
+                _children.RemoveAt(i);
             }
-        }
-
-        foreach (var item in itemsToRemove)
-        {
-            _children.Remove(item);
         }
 
         return _quads;
@@ -323,5 +335,6 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
     {
         _children.Clear();
         _quads = null;
+        ItemCount = 0;
     }
 }
