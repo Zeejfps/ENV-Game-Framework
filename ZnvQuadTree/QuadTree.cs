@@ -22,6 +22,16 @@ public sealed class QuadTree<T> where T : notnull
         _root = new Node<T>(maxItemsPerQuad, bounds, 0, maxDepth);
     }
 
+    public IEnumerable<T> GetAllItems()
+    {
+        return _items.Keys;
+    }
+
+    public bool TryGetPosition(T item, out PointF position)
+    {
+        return _items.TryGetValue(item, out position);
+    }
+
     public void Insert(T item, PointF position)
     {
         if (_items.TryAdd(item, position))
