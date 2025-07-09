@@ -45,7 +45,7 @@ public sealed class RectFQuadTree<T> where T : notnull
 
     public IEnumerable<T> Query(RectF searchArea)
     {
-        return _root.Query(searchArea);
+        return Node<T>.Query(_root, searchArea);
     }
 
     public void Clear()
@@ -63,14 +63,12 @@ public readonly struct RectF : IEquatable<RectF>
         Bottom = bottom;
         Width = width;
         Height = height;
-        Top = bottom + height;
-        Right = left + width;
     }
 
     public float Left { get; }
     public float Bottom { get; }
-    public float Top { get; }
-    public float Right { get; }
+    public float Top => Bottom + Height;
+    public float Right => Left + Width;
     public float Width { get; }
     public float Height { get;  }
 
@@ -182,27 +180,31 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
         }
     }
 
-    public IEnumerable<T> Query(RectF searchArea)
+    public static IEnumerable<T> Query(Node<T> root, RectF searchArea)
     {
-        if (!searchArea.Intersects(bounds))
-            yield break;
-        
-        foreach (var boundedItem in _children)
-        {
-            var itemBounds = boundedItem.Bounds;
-            if (searchArea.Intersects(itemBounds))
-            {
-                yield return boundedItem.Item;
-            }
-        }
+        var stack = new Stack<Node<T>>();
+        stack.Push(root);
 
-        if (_quads != null)
+        while (stack.Count > 0)
         {
-            foreach (var quad in _quads)
+            var node = stack.Pop();
+        
+            if (!searchArea.Intersects(node.Bounds))
+                continue;
+
+            foreach (var boundedItem in node._children)
             {
-                foreach (var item in quad.Query(searchArea))
+                if (searchArea.Intersects(boundedItem.Bounds))
                 {
-                    yield return item;
+                    yield return boundedItem.Item;
+                }
+            }
+
+            if (node._quads != null)
+            {
+                foreach (var quad in node._quads)
+                {
+                    stack.Push(quad);
                 }
             }
         }
