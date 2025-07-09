@@ -38,9 +38,9 @@ public sealed class RectFQuadTree<T> where T : notnull
         return _items.ContainsKey(item);
     }
     
-    public int Query(RectF searchArea, List<T> results)
+    public void Query(RectF searchArea, List<T> results)
     {
-        return _root.Query(searchArea, results);
+        _root.Query(searchArea, results);
     }
 
     public IEnumerable<T> Query(RectF searchArea)
