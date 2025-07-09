@@ -1,4 +1,6 @@
-﻿namespace ZnvQuadTree;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace ZnvQuadTree;
 
 public sealed class QuadTreePointF<T> where T : notnull
 {
@@ -72,21 +74,21 @@ public sealed class QuadTreePointF<T> where T : notnull
         return _items.ContainsKey(item);
     }
     
-    public void QueryRectNonAlloc(RectF searchArea, List<T> results)
+    public void FindInRectNonAlloc(RectF searchArea, List<T> results)
     {
         _root.QueryItemsNonAlloc(searchArea, results);
     }
 
-    public IEnumerable<T> QueryRect(RectF searchArea)
+    public IEnumerable<T> FindInRect(RectF searchArea)
     {
         return Node
-            .Query(_root, searchArea)
+            .QueryCell(_root, searchArea)
             .Select(contents => contents.Item);
     }
 
     private readonly List<Cell> _cellQueryCache = new();
     
-    public void QueryCircleNonAlloc(PointF center, float radius, List<T> results)
+    public void FindInCircleNonAlloc(PointF center, float radius, List<T> items)
     {
         var searchArea = new RectF(
             center.X - radius, 
@@ -98,13 +100,26 @@ public sealed class QuadTreePointF<T> where T : notnull
         _cellQueryCache.Clear();
         _root.QueryCellsNonAlloc(searchArea, _cellQueryCache);
 
+        var radiusSq = radius * radius;
         foreach (var cell in _cellQueryCache)
         {
-            results.Add(cell.Item);
+            var pos = cell.Position;
+            var dx = pos.X - center.X;
+            var dy = pos.Y - center.Y;
+            if (dx * dx + dy * dy <= radiusSq)
+            {
+                items.Add(cell.Item);
+            }
         }
     }
     
-    public IEnumerable<T> QueryCircle(PointF center, float radius)
+    public IEnumerable<T> FindInCircle(PointF center, float radius)
+    {
+        var cellsInCircle = FindCellsInCircle(center, radius);
+        return cellsInCircle.Select(cell => cell.Item);
+    }
+    
+    private IEnumerable<Cell> FindCellsInCircle(PointF center, float radius)
     {
         var searchArea = new RectF(
             center.X - radius, 
@@ -113,15 +128,39 @@ public sealed class QuadTreePointF<T> where T : notnull
             radius * 2
         );
 
-        var rectQueryResults = Node.Query(_root, searchArea);
+        var queryCircleResults = Node.QueryCell(_root, searchArea);
         var radiusSq = radius * radius;
-        return rectQueryResults.Where(cell =>
+        return queryCircleResults.Where(cell =>
         {
             var pos = cell.Position;
             var dx = pos.X - center.X;
             var dy = pos.Y - center.Y;
             return dx * dx + dy * dy <= radiusSq;
-        }).Select(cell => cell.Item);
+        });
+    }
+
+    public bool TryFindClosest(PointF center, float radius, [NotNullWhen(true)] out T? closestItem, Predicate<T>? predicate = null)
+    {
+        var cells = FindCellsInCircle(center, radius);
+        closestItem = default;
+        var itemFound = false;
+        var shortestDistance = float.MaxValue;
+        foreach (var cell in cells)
+        {
+            if (predicate != null && !predicate.Invoke(cell.Item))
+            {
+                continue;
+            }
+            
+            var distance = cell.Position.DistanceSqTo(center);
+            if (distance < shortestDistance)
+            {
+                shortestDistance = distance;
+                closestItem = cell.Item;
+                itemFound = true;
+            }
+        }
+        return itemFound;
     }
 
     public void Clear()
@@ -281,7 +320,7 @@ public sealed class QuadTreePointF<T> where T : notnull
                 }
             }
         }
-        public static IEnumerable<Cell> Query(Node root, RectF searchArea)
+        public static IEnumerable<Cell> QueryCell(Node root, RectF searchArea)
         {
             var stack = new Stack<Node>();
             stack.Push(root);
