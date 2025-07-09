@@ -1,13 +1,13 @@
 ﻿namespace ZnvQuadTree;
 
-public sealed class RectFQuadTree<T> where T : notnull
+public sealed class QuadTreeRectF<T> where T : notnull
 {
     public int ItemCount => _items.Count;
 
     private readonly Node<T> _root;
     private readonly Dictionary<T, RectF> _items = new();
 
-    public RectFQuadTree(RectF bounds, int maxItemsPerQuad)
+    public QuadTreeRectF(RectF bounds, int maxItemsPerQuad)
     {
         if (maxItemsPerQuad < 1)
         {
