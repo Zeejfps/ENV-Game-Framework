@@ -591,15 +591,17 @@ public sealed class QuadTreePointF<T> where T : notnull
 
         private void RedistributeCells(Node[] quads)
         {
-            for (var i = _cells.Count - 1; i >= 0; i--)
+            // TODO: Use ListPool
+            var remainingCells = new List<Cell>();
+            foreach (var cell in _cells)
             {
-                var cell = _cells[i];
-                var inserted = TryInsertCellIntoQuads(cell, quads);
-                if (inserted)
+                if (!TryInsertCellIntoQuads(cell, quads))
                 {
-                    _cells.RemoveAt(i);
+                    remainingCells.Add(cell);
                 }
             }
+            _cells.Clear();
+            _cells.AddRange(remainingCells);
         }
 
         private Node[] CreateQuadrants()
