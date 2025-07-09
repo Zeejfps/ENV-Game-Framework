@@ -86,6 +86,15 @@ public sealed class QuadTreePointF<T> where T : notnull
             .Select(contents => contents.Item);
     }
     
+    public IEnumerable<T> FindNearestN(PointF center, int nItems, float maxRadius = float.MaxValue, Predicate<T>? predicate = null)
+    {
+        if (nItems <= 0)
+        {
+            return [];
+        }
+        return _root.FindNearestN(nItems, center, maxRadius, predicate);
+    }
+    
     private readonly List<Cell> _cellQueryCache = new();
     
     public void FindInCircleNonAlloc(PointF center, float radius, List<T> items)
