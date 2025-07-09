@@ -38,16 +38,14 @@ public sealed class RectFQuadTree<T> where T : notnull
         return _items.ContainsKey(item);
     }
     
-    public void Query(RectF searchArea, List<T> results)
+    public void QueryNonAlloc(RectF searchArea, List<T> results)
     {
         _root.Query(searchArea, results);
     }
 
     public IEnumerable<T> Query(RectF searchArea)
     {
-        var results = new List<T>();
-        Query(searchArea, results);
-        return results;
+        return _root.Query(searchArea);
     }
 
     public void Clear()
@@ -161,9 +159,8 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
     private int ItemCount { get; set; }
     private RectF Bounds => bounds;
 
-    public int Query(RectF searchArea, List<T> results)
+    public void Query(RectF searchArea, List<T> results)
     {
-        var foundCount = 0;
         if (searchArea.Intersects(bounds))
         {
             foreach (var item in _children)
@@ -172,7 +169,6 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
                 if (searchArea.Intersects(itemBounds))
                 {
                     results.Add(item.Item);
-                    foundCount++;
                 }
             }
 
@@ -180,11 +176,36 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
             {
                 foreach (var quad in _quads)
                 {
-                    foundCount += quad.Query(searchArea, results);
+                    quad.Query(searchArea, results);
                 }
             }
         }
-        return foundCount;
+    }
+
+    public IEnumerable<T> Query(RectF searchArea)
+    {
+        if (!searchArea.Intersects(bounds))
+            yield break;
+        
+        foreach (var boundedItem in _children)
+        {
+            var itemBounds = boundedItem.Bounds;
+            if (searchArea.Intersects(itemBounds))
+            {
+                yield return boundedItem.Item;
+            }
+        }
+
+        if (_quads != null)
+        {
+            foreach (var quad in _quads)
+            {
+                foreach (var item in quad.Query(searchArea))
+                {
+                    yield return item;
+                }
+            }
+        }
     }
 
     public void Insert(BoundedItem<T> item)
@@ -258,16 +279,6 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
         {
             quad.CollectItems(items);
         }
-    }
-
-    private int CountItems(Node<T>[] quads)
-    {
-        var itemCount = 0;
-        foreach (var quad in quads)
-        {
-            itemCount += quad.ItemCount;
-        }
-        return itemCount;
     }
     
     private bool InsertIntoQuads(Node<T>[] quads, BoundedItem<T> item)
