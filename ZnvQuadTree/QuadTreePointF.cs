@@ -82,7 +82,7 @@ public sealed class QuadTreePointF<T> where T : notnull
         return Node.Query(_root, searchArea);
     }
     
-    public void QueryCircle(PointF center, float radius, List<T> results)
+    public void QueryCircleNonAlloc(PointF center, float radius, List<T> results)
     {
         var searchArea = new RectF(
             center.X - radius, 
@@ -106,6 +106,30 @@ public sealed class QuadTreePointF<T> where T : notnull
                 }
             }
         }
+    }
+    
+    public IEnumerable<T> QueryCircle(PointF center, float radius)
+    {
+        var searchArea = new RectF(
+            center.X - radius, 
+            center.Y - radius, 
+            radius * 2, 
+            radius * 2
+        );
+        
+
+        var rectQueryResults = QueryRect(searchArea);
+        var radiusSq = radius * radius;
+        return rectQueryResults.Where(result =>
+        {
+            if (_items.TryGetValue(result, out var pos))
+            {
+                var dx = pos.X - center.X;
+                var dy = pos.Y - center.Y;
+                return dx * dx + dy * dy <= radiusSq;
+            }
+            return false;
+        });
     }
 
     public void Clear()
