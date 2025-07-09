@@ -7,7 +7,7 @@ public sealed class QuadTree<T> where T : notnull
     private readonly Node<T> _root;
     private readonly Dictionary<T, PointF> _items = new();
 
-    public QuadTree(RectF bounds, int maxItemsPerQuad)
+    public QuadTree(RectF bounds, int maxItemsPerQuad, int maxDepth)
     {
         if (maxItemsPerQuad < 1)
         {
@@ -26,8 +26,20 @@ public sealed class QuadTree<T> where T : notnull
 
     public void Update(T item, PointF position)
     {
-        Remove(item);
-        Insert(item, position);
+        if (_items.TryGetValue(item, out var oldPosition))
+        {
+            var oldBoundedItem = new PositionedItem<T>(oldPosition, item);
+            _root.Remove(oldBoundedItem);
+        
+            _items[item] = position;
+
+            var newBoundedItem = new PositionedItem<T>(position, item);
+            _root.Insert(newBoundedItem);
+        }
+        else
+        {
+            Insert(item, position);
+        }
     }
 
     public void Remove(T item)
