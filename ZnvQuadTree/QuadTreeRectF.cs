@@ -293,34 +293,34 @@ internal sealed class Node<T>(int maxItems, RectF bounds)
         var quadHeight = bounds.Height * 0.5f;
         
         var topLeftBounds = new RectF(
-            left: bounds.Left,
-            bottom: bounds.Bottom + quadHeight,
-            width: quadWidth,
-            height: quadHeight
+            Left: bounds.Left,
+            Bottom: bounds.Bottom + quadHeight,
+            Width: quadWidth,
+            Height: quadHeight
         );
         var topLeft = new Node<T>(maxItems, topLeftBounds);
 
         var topRightBounds = new RectF(
-            left: bounds.Left + quadWidth,
-            bottom: bounds.Bottom + quadHeight,
-            width: quadWidth,
-            height: quadHeight
+            Left: bounds.Left + quadWidth,
+            Bottom: bounds.Bottom + quadHeight,
+            Width: quadWidth,
+            Height: quadHeight
         );
         var topRight = new Node<T>(maxItems, topRightBounds);
         
         var botLeftBounds = new RectF(
-            left: bounds.Left,
-            bottom: bounds.Bottom,
-            width: quadWidth,
-            height: quadHeight
+            Left: bounds.Left,
+            Bottom: bounds.Bottom,
+            Width: quadWidth,
+            Height: quadHeight
         );
         var botLeft = new Node<T>(maxItems, botLeftBounds);
         
         var botRightBounds = new RectF(
-            left: bounds.Left + quadWidth,
-            bottom: bounds.Bottom,
-            width: quadWidth,
-            height: quadHeight
+            Left: bounds.Left + quadWidth,
+            Bottom: bounds.Bottom,
+            Width: quadWidth,
+            Height: quadHeight
         );
         var botRight = new Node<T>(maxItems, botRightBounds);
 
