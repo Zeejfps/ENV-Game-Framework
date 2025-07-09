@@ -19,6 +19,11 @@ public sealed class QuadTreePointF<T> where T : notnull
             throw new ArgumentOutOfRangeException(nameof(maxDepth), "Max depth must be at least 1.");
         }
 
+        if (collapseThreshold <= 0f || collapseThreshold > 1f)
+        {
+            throw new ArgumentOutOfRangeException(nameof(collapseThreshold), "Collapse threshold must be between 0 (exclusive) and 1 (inclusive).");
+        }
+        
         var collapseItemCount = (int)MathF.Floor(collapseThreshold * maxItemsPerQuad);
         _root = new Node(maxItemsPerQuad, bounds, 0, maxDepth, collapseItemCount);
     }
