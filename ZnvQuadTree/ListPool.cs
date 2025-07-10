@@ -4,6 +4,7 @@ internal sealed class ListPool<T>
 {
     private List<T>[] _availableLists;
     private int _availableListCount;
+    private object _lock = new();
     
     public ListPool(int initialSize)
     {
@@ -17,22 +18,28 @@ internal sealed class ListPool<T>
 
     public PooledList Rent()
     {
-        if (_availableListCount == 0)
+        lock (_lock)
         {
-            Grow();
-        }
+            if (_availableListCount == 0)
+            {
+                Grow();
+            }
 
-        var list = _availableLists[--_availableListCount];
-        return new PooledList(this, list);
+            var list = _availableLists[--_availableListCount];
+            return new PooledList(this, list);
+        }
     }
 
     private void Return(List<T> list)
     {
-        if (_availableListCount >= _availableLists.Length)
-            return;
+        lock (_lock)
+        {
+            if (_availableListCount >= _availableLists.Length)
+                return;
         
-        list.Clear();
-        _availableLists[_availableListCount++] = list;
+            list.Clear();
+            _availableLists[_availableListCount++] = list;
+        }
     }
 
     private void Grow()
@@ -49,10 +56,11 @@ internal sealed class ListPool<T>
         }
     }
     
-    public readonly ref struct PooledList : IDisposable
+    public ref struct PooledList : IDisposable
     {
-        public readonly List<T> List;
+        public readonly List<T> List; 
         private readonly ListPool<T> _pool;
+        private bool _isDisposed;
 
         internal PooledList(ListPool<T> pool, List<T> list)
         {
@@ -62,6 +70,10 @@ internal sealed class ListPool<T>
 
         public void Dispose()
         {
+            if (_isDisposed)
+                return;
+            
+            _isDisposed = true;
             _pool.Return(List);
         }
     }
