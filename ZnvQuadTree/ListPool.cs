@@ -7,6 +7,7 @@ internal sealed class ListPool<T>
     
     public ListPool(int initialSize)
     {
+        _availableListCount = initialSize;
         _availableLists = new List<T>[initialSize];
         for (var i = 0; i < initialSize; i++)
         {
@@ -36,8 +37,8 @@ internal sealed class ListPool<T>
 
     private void Grow()
     {
-        var oldCapacity = Math.Max(1, _availableLists.Length);
-        var newCapacity = 2 * oldCapacity;
+        var oldCapacity = _availableLists.Length;
+        var newCapacity = 2 * Math.Max(1, oldCapacity);
         
         Array.Resize(ref _availableLists, newCapacity);
         
@@ -48,7 +49,7 @@ internal sealed class ListPool<T>
         }
     }
     
-    public readonly struct PooledList : IDisposable
+    public readonly ref struct PooledList : IDisposable
     {
         public readonly List<T> List;
         private readonly ListPool<T> _pool;
