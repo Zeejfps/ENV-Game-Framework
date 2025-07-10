@@ -21,6 +21,12 @@ public sealed class Bitmap
         Array.Fill(_pixels, color);
     }
 
+    public void FillLine(int x, int y, int width, int color)
+    {
+        var index = y * Width + x;
+        Array.Fill(_pixels, color, index, width);
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public void SetPixel(int x, int y, int color)
     {
