@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ZnvQuadTree;
 
@@ -100,7 +101,6 @@ public sealed class QuadTreePointF<T> where T : notnull
         return _root.FindNearestN(nItems, center, maxRadius, predicate);
     }
     
-    private readonly List<Cell> _cellQueryCache = new();
     
     public void FindInCircleNonAlloc(PointF center, float radius, List<T> items)
     {
@@ -111,11 +111,11 @@ public sealed class QuadTreePointF<T> where T : notnull
             radius * 2
         );
         
-        _cellQueryCache.Clear();
-        _root.QueryCellsNonAlloc(searchArea, _cellQueryCache);
+        using var cellQueryCache = ListPool<Cell>.Shared.Rent();
+        _root.QueryCellsNonAlloc(searchArea, cellQueryCache.List);
 
         var radiusSq = radius * radius;
-        foreach (var cell in _cellQueryCache)
+        foreach (var cell in cellQueryCache.List)
         {
             var pos = cell.Position;
             var dx = pos.X - center.X;
@@ -591,17 +591,16 @@ public sealed class QuadTreePointF<T> where T : notnull
 
         private void RedistributeCells(Node[] quads)
         {
-            // TODO: Use ListPool
-            var remainingCells = new List<Cell>();
+            using var remainingCells = ListPool<Cell>.Shared.Rent();
             foreach (var cell in _cells)
             {
                 if (!TryInsertCellIntoQuads(cell, quads))
                 {
-                    remainingCells.Add(cell);
+                    remainingCells.List.Add(cell);
                 }
             }
             _cells.Clear();
-            _cells.AddRange(remainingCells);
+            _cells.AddRange(remainingCells.List);
         }
 
         private Node[] CreateQuadrants()
@@ -726,7 +725,6 @@ public sealed class QuadTreePointF<T> where T : notnull
             var distanceComparison = x.distanceSq.CompareTo(y.distanceSq);
             if (distanceComparison != 0) return distanceComparison;
         
-            // Use hash code as tiebreaker to handle items at same distance
             return x.item.GetHashCode().CompareTo(y.item.GetHashCode());
         }
     }
