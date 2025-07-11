@@ -48,7 +48,6 @@ unsafe
         .WithVertexShader("Assets/tex.vert.glsl")
         .WithFragmentShader("Assets/tex.frag.glsl")
         .Compile();
-    glUseProgram(shaderProgram.Id);
     
     float[] vertices =
     {
@@ -65,20 +64,20 @@ unsafe
         1, 2, 3  // second triangle
     };
     
-    uint VBO, VAO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
+    uint vbo, vao, ebo;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
 
-    glBindVertexArray(VAO);
+    glBindVertexArray(vao);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
     fixed (void* v = &vertices[0])
     {
         glBufferData(GL_ARRAY_BUFFER, vertices.Length * sizeof(float), v, GL_STATIC_DRAW);
     }
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     fixed (void* i = &indices[0])
     {
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.Length * sizeof(uint), i, GL_STATIC_DRAW);
@@ -101,15 +100,15 @@ unsafe
 
         // Drawing the textured quad.
         glUseProgram(shaderProgram.Id);
-        glBindVertexArray(VAO);
+        glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
             
         Glfw.SwapBuffers(windowHandle);
     }
     
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
+    glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &ebo);
     glDeleteProgram(shaderProgram.Id);
     glDeleteTextures(1, &textureId);
     Glfw.Terminate();
