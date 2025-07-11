@@ -11,6 +11,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Glfw.NET\Glfw.NET.csproj" />
       <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
+      <ProjectReference Include="..\SoftwareRendererModule\SoftwareRendererModule.csproj" />
     </ItemGroup>
 
 </Project>
