@@ -6,7 +6,8 @@ public sealed class Bitmap
 {
     public int Width { get; }
     public int Height { get; }
-    
+    public Span<int> Pixels => _pixels;
+
     private readonly int[] _pixels;
 
     public Bitmap(int width, int height)
@@ -30,7 +31,7 @@ public sealed class Bitmap
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public void SetPixel(int x, int y, int color)
     {
-        var index = GetIndex(x, y);
+        var index = y * Width + x;
         _pixels[index] = color;
     }
     
@@ -43,13 +44,7 @@ public sealed class Bitmap
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public int GetPixel(int x, int y)
     {
-        var index = GetIndex(x, y);
+        var index = y * Width + x;
         return _pixels[index];
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private int GetIndex(int x, int y)
-    {
-        return Width * y + x;
     }
 }
