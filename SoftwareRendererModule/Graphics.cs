@@ -2,7 +2,7 @@
 
 public static class Graphics
 {
-    public static void FillRect(Bitmap bitmap, int x0, int y0, int width, int height, int color)
+    public static void FillRect(Bitmap bitmap, int x0, int y0, int width, int height, uint color)
     {
         var sx = x0;
         if (sx < 0)
@@ -27,7 +27,7 @@ public static class Graphics
         }
     }
     
-    public static void DrawLineH(Bitmap bitmap, int x0, int y1, int width, int color)
+    public static void DrawLineH(Bitmap bitmap, int x0, int y1, int width, uint color)
     {
         var sx = x0;
         if (sx < 0)
@@ -40,7 +40,7 @@ public static class Graphics
         bitmap.FillLine(sx, y1, ex - sx, color);
     }
     
-    public static void DrawLineV(Bitmap bitmap, int x0, int y0, int height, int color)
+    public static void DrawLineV(Bitmap bitmap, int x0, int y0, int height, uint color)
     {
         var sy = y0;
         if (sy < 0)
@@ -56,7 +56,7 @@ public static class Graphics
         }
     }
     
-    public static void DrawLine(Bitmap bitmap, int x0, int y0, int x1, int y1, int color)
+    public static void DrawLine(Bitmap bitmap, int x0, int y0, int x1, int y1, uint color)
     {
         if (y0 == y1)
         {

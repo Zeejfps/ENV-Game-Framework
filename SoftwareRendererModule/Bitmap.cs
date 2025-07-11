@@ -6,43 +6,43 @@ public sealed class Bitmap
 {
     public int Width { get; }
     public int Height { get; }
-    public Span<int> Pixels => _pixels;
+    public Span<uint> Pixels => _pixels;
 
-    private readonly int[] _pixels;
+    private readonly uint[] _pixels;
 
     public Bitmap(int width, int height)
     {
         Width = width;
         Height = height;
-        _pixels = new int[width * height];
+        _pixels = new uint[width * height];
     }
 
-    public void Fill(int color)
+    public void Fill(uint color)
     {
         Array.Fill(_pixels, color);
     }
 
-    public void FillLine(int x, int y, int width, int color)
+    public void FillLine(int x, int y, int width, uint color)
     {
         var index = y * Width + x;
         Array.Fill(_pixels, color, index, width);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public void SetPixel(int x, int y, int color)
+    public void SetPixel(int x, int y, uint color)
     {
         var index = y * Width + x;
         _pixels[index] = color;
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public void SetPixel(int index, int color)
+    public void SetPixel(int index, uint color)
     {
         _pixels[index] = color;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public int GetPixel(int x, int y)
+    public uint GetPixel(int x, int y)
     {
         var index = y * Width + x;
         return _pixels[index];

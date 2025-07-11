@@ -42,6 +42,8 @@ unsafe
     AssertNoGlError();
 
     var colorBuffer = new Bitmap(640, 480);
+    
+    Graphics.FillRect(colorBuffer, 0, 0, 100, 50, 0xFF00FFFF);
 
     fixed (void* ptr = &colorBuffer.Pixels[0])
     {
