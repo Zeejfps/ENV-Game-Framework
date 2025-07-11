@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -20,6 +22,87 @@ public static class OpenGlUtils
             throw new OpenGlException(error, stackTrace);
         }
     }
+
+    public static unsafe void glVertexAttribPointer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TVertex>(
+        uint attribIndex,
+        string fieldName,
+        int stride,
+        bool normalize = false) where TVertex : unmanaged
+    {
+        var vertexType = typeof(TVertex);
+        if (vertexType == null)
+            throw new Exception("Failed to get vertex type");
+        
+        var field =  vertexType.GetField(fieldName);
+        if  (field == null)
+            throw new Exception($"Field {fieldName} not found on type {vertexType}");
+
+        var vertexAttrib = field.GetCustomAttribute<VertexAttribAttribute>();
+        if (vertexAttrib == null)
+            throw new Exception($"Field {fieldName} must have a {nameof(VertexAttribAttribute)} attribute");
+        
+        var offset = FieldOffset<TVertex>(fieldName);
+        var glType = GetGlType(vertexAttrib.Type, out var typeSize);
+        var size = vertexAttrib.Count;
+        var ptrOffset = offset;
+        
+        GL46.glVertexAttribPointer(
+            attribIndex,
+            size,
+            glType,
+            normalize,
+            stride * typeSize,
+            (void*) ptrOffset
+        );
+    }
+
+    private static uint GetGlType(Type type, out int  typeSize)
+    {
+        if (type == typeof(float))
+        {
+            typeSize = sizeof(float);
+            return GL_FLOAT;
+        }
+
+        if (type == typeof(double))
+        {
+            typeSize = sizeof(double);
+            return GL_DOUBLE;
+        }
+
+        if (type == typeof(int))
+        {
+            typeSize = sizeof(int);
+            return GL_INT;
+        }
+
+        if (type == typeof(uint))
+        {
+            typeSize = sizeof(uint);
+            return GL_UNSIGNED_INT;
+        }
+
+        if (type == typeof(byte))
+        {
+            typeSize = sizeof(byte);
+            return GL_BYTE;
+        }
+
+        if (type == typeof(short))
+        {
+            typeSize = sizeof(short);
+            return GL_SHORT;
+        }
+
+        if (type == typeof(ushort))
+        {
+            typeSize = sizeof(ushort);
+            return GL_UNSIGNED_SHORT;
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(type), type.ToString());
+    }
+    
 
     public static ShaderProgramCompiler NewShader()
     {
@@ -73,7 +156,7 @@ public static class OpenGlUtils
     } 
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe void* Offset<T>(string field)
+    public static unsafe void* Offset<T>(string field) where T : unmanaged
     {
         return (void*)Marshal.OffsetOf<T>(field);
     } 
@@ -208,7 +291,7 @@ public static class OpenGlUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int AttribOffset<T>(string field)
+    public static int FieldOffset<T>(string field)
     {
         return Marshal.OffsetOf<T>(field).ToInt32();
     }

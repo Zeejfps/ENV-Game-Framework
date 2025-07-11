@@ -135,7 +135,7 @@ public sealed class VertexArrayObjectManager
                     Index = attribIndex,
                     Size = attribSize,
                     Type = attribType,
-                    Offset = AttribOffset<T>(field.Name)
+                    Offset = FieldOffset<T>(field.Name)
                 };
                 attribs.Add(attrib);
             }

@@ -64,10 +64,10 @@ unsafe
         1, 2, 3  // second triangle
     };
     
-    uint vbo, vao, ebo;
+    uint vbo, vao, ibo;
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
-    glGenBuffers(1, &ebo);
+    glGenBuffers(1, &ibo);
 
     glBindVertexArray(vao);
 
@@ -75,20 +75,19 @@ unsafe
     fixed (void* v = &vertices[0])
     {
         glBufferData(GL_ARRAY_BUFFER, vertices.Length * sizeof(float), v, GL_STATIC_DRAW);
+        AssertNoGlError();
     }
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
     fixed (void* i = &indices[0])
     {
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.Length * sizeof(uint), i, GL_STATIC_DRAW);
     }
-
-    // Position attribute.
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * sizeof(float), (void*)0);
+    
+    glVertexAttribPointer<MyVertex>(0, nameof(MyVertex.Position), 5);
     glEnableVertexAttribArray(0);
 
-    // Texture coord attribute. [9]
-    glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer<MyVertex>(1, nameof(MyVertex.TextureCoords), 5);
     glEnableVertexAttribArray(1);
     
     while (!Glfw.WindowShouldClose(windowHandle))
@@ -108,7 +107,7 @@ unsafe
     
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
-    glDeleteBuffers(1, &ebo);
+    glDeleteBuffers(1, &ibo);
     glDeleteProgram(shaderProgram.Id);
     glDeleteTextures(1, &textureId);
     Glfw.Terminate();
