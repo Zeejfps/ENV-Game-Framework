@@ -44,6 +44,10 @@ unsafe
     var colorBuffer = new Bitmap(640, 480);
     
     Graphics.FillRect(colorBuffer, 0, 0, 100, 150, 0xFF00FF);
+    
+    Graphics.DrawLineH(colorBuffer, 0, 200, 100, 0xFF00FF);
+    Graphics.DrawLineV(colorBuffer, 50, 200, 100, 0xFF00FF);
+    Graphics.DrawLine(colorBuffer, 100, 200, 150, 300, 0xFF00FF);
 
     fixed (void* ptr = &colorBuffer.Pixels[0])
     {
