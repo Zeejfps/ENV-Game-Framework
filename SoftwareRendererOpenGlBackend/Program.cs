@@ -16,7 +16,6 @@ unsafe
     var windowWidth = 640;
     var windowHeight = 480;
     var windowHandle = Glfw.CreateWindow(windowWidth, windowHeight, "Software Renderer", Monitor.None, Window.None);
-
     
     Glfw.MakeContextCurrent(windowHandle);
     Glfw.ShowWindow(windowHandle);
@@ -25,21 +24,10 @@ unsafe
     Import(Glfw.GetProcAddress);
     AssertNoGlError();
 
-    uint textureId;
-    glGenTextures(1, &textureId);
-    AssertNoGlError();
-    
-    glBindTexture(GL_TEXTURE_2D, textureId);
-    AssertNoGlError();
-    
-    glActiveTexture(GL_TEXTURE0);
-    AssertNoGlError();
-    
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (int)GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (int)GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (int)GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)GL_NEAREST);
-    AssertNoGlError();
+    var textureId = new Texture2DBuilder()
+        .WithMinFilter(TextureMinFilter.Nearest)
+        .WithMagFilter(TextureMagFilter.Nearest)
+        .Build();
 
     var colorBuffer = new Bitmap(640, 480);
     
