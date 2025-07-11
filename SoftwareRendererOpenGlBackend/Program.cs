@@ -1,4 +1,5 @@
 ﻿using GLFW;
+using OpenGL.NET;
 using SoftwareRendererModule;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
@@ -51,6 +52,12 @@ unsafe
             colorBuffer.Width, colorBuffer.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, ptr);
         AssertNoGlError();
     }
+
+    var shaderProgram = new ShaderProgramCompiler()
+        .WithVertexShader("Assets/tex.vert.glsl")
+        .WithFragmentShader("Assets/tex.frag.glsl")
+        .Compile();
+    glUseProgram(shaderProgram.Id);
 
     while (!Glfw.WindowShouldClose(windowHandle))
     {
