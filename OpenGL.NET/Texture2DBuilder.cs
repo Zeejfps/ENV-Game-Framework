@@ -39,7 +39,7 @@ public sealed class Texture2DBuilder
         return this;
     }
     
-    public unsafe uint Build()
+    public unsafe Texture BindAndBuild()
     {
         uint textureId;
         
@@ -55,6 +55,6 @@ public sealed class Texture2DBuilder
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)_magFilter);
         AssertNoGlError();
         
-        return 0;
+        return new Texture(GL_TEXTURE_2D, textureId);
     }
 }

@@ -4,6 +4,7 @@ using SoftwareRendererModule;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 using static OpenGL.NET.GLBuffer;
+using static OpenGL.NET.GLTexture;
 using Monitor = GLFW.Monitor;
 
 unsafe
@@ -24,26 +25,21 @@ unsafe
 
     Import(Glfw.GetProcAddress);
     AssertNoGlError();
-
-    var textureId = new Texture2DBuilder()
-        .WithMinFilter(TextureMinFilter.Nearest)
-        .WithMagFilter(TextureMagFilter.Nearest)
-        .Build();
-
+    
     var colorBuffer = new Bitmap(640, 480);
-    
     Graphics.FillRect(colorBuffer, 0, 0, 100, 150, 0xFF00FF);
-    
     Graphics.DrawLineH(colorBuffer, 0, 200, 100, 0xFF00FF);
     Graphics.DrawLineV(colorBuffer, 50, 200, 100, 0xFF00FF);
     Graphics.DrawLine(colorBuffer, 100, 200, 150, 300, 0xFF00FF);
 
-    fixed (void* ptr = &colorBuffer.Pixels[0])
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA8, 
-            colorBuffer.Width, colorBuffer.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, ptr);
-        AssertNoGlError();
-    }
+    var texture = new Texture2DBuilder()
+        .WithMinFilter(TextureMinFilter.Nearest)
+        .WithMagFilter(TextureMagFilter.Nearest)
+        .BindAndBuild();
+    
+    glTexImage2D<uint>(texture, 0,  GL_RGBA8, colorBuffer.Width, colorBuffer.Height, 
+        GL_RGBA, GL_UNSIGNED_BYTE, colorBuffer.Pixels);
+    AssertNoGlError();
 
     var shaderProgram = new ShaderProgramCompiler()
         .WithVertexShader("Assets/tex.vert.glsl")
@@ -117,6 +113,8 @@ unsafe
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ibo);
     glDeleteProgram(shaderProgram.Id);
+
+    var textureId = texture.Id;
     glDeleteTextures(1, &textureId);
     Glfw.Terminate();
 }
