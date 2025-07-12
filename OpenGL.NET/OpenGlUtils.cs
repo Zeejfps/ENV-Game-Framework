@@ -26,7 +26,6 @@ public static class OpenGlUtils
     public static unsafe void glVertexAttribPointer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TVertex>(
         uint attribIndex,
         string fieldName,
-        int stride,
         bool normalize = false) where TVertex : unmanaged
     {
         var vertexType = typeof(TVertex);
@@ -45,13 +44,14 @@ public static class OpenGlUtils
         var glType = GetGlType(vertexAttrib.Type, out var typeSize);
         var size = vertexAttrib.Count;
         var ptrOffset = offset;
+        var strideInBytes = Marshal.SizeOf<TVertex>();
         
         GL46.glVertexAttribPointer(
             attribIndex,
             size,
             glType,
             normalize,
-            stride * typeSize,
+            strideInBytes,
             (void*) ptrOffset
         );
     }

@@ -84,10 +84,10 @@ unsafe
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.Length * sizeof(uint), i, GL_STATIC_DRAW);
     }
     
-    glVertexAttribPointer<MyVertex>(0, nameof(MyVertex.Position), 5);
+    glVertexAttribPointer<MyVertex>(0, nameof(MyVertex.Position));
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer<MyVertex>(1, nameof(MyVertex.TextureCoords), 5);
+    glVertexAttribPointer<MyVertex>(1, nameof(MyVertex.TextureCoords));
     glEnableVertexAttribArray(1);
     
     while (!Glfw.WindowShouldClose(windowHandle))
