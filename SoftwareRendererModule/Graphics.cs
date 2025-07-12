@@ -19,11 +19,14 @@ public static class Graphics
         var ey = y0 + height;
         if (ey > bitmap.Height)
             ey = bitmap.Height;
+        
+        width = ex - sx;
+        height = ey - sy;
 
-        DrawLineH(bitmap, x0, y0, width, color);
-        DrawLineV(bitmap, x0, y0, height, color);
-        DrawLineV(bitmap, x0 + width, y0, height, color);
-        DrawLineH(bitmap, x0, y0+height, width, color);
+        DrawLineH(bitmap, sx, sy, width, color);
+        DrawLineV(bitmap, sx, sy, height, color);
+        DrawLineV(bitmap, sx + width, sy, height, color);
+        DrawLineH(bitmap, sx, sy+height, width, color);
     }
     
     public static void FillRect(Bitmap bitmap, int x0, int y0, int width, int height, uint color)
