@@ -28,11 +28,10 @@ public static class OpenGlUtils
         int count,
         int stride,
         int offset,
-        bool normalize,
-        Buffer<T> buffer) where T : unmanaged
+        bool normalize = false) where T : unmanaged
     {
         var sizeOfT = sizeof(T);
-        var glType = buffer.Type;
+        var glType = GetGlType(typeof(T), out _);
         var strideInBytes = stride * sizeOfT;
         var ptrOffset = (void*)(offset * sizeOfT);
         GL46.glVertexAttribPointer(

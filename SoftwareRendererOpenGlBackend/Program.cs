@@ -76,12 +76,23 @@ unsafe
     glBufferData(vertexDataBuffer, vertices, BufferUsageHint.StaticDraw);
     AssertNoGlError();
 
-    glVertexAttribPointer(0, 3, 5, 0, false, vertexDataBuffer);
+    glVertexAttribPointer<float>(
+        attribIndex: 0,
+        count: 3,
+        stride: 5,
+        offset: 0
+    );
     AssertNoGlError();
-    glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 2, 5, 3, false, vertexDataBuffer);
+    glVertexAttribPointer<float>(
+        attribIndex: 1,
+        count: 2,
+        stride: 5,
+        offset: 3
+    );
     AssertNoGlError();
+
+    glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
 
     var indexDataBuffer = glBindBuffer<uint>(GL_ELEMENT_ARRAY_BUFFER, ibo);
