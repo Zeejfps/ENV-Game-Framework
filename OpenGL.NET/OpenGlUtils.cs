@@ -23,6 +23,29 @@ public static class OpenGlUtils
         }
     }
 
+    public static unsafe void glVertexAttribPointer<T>(
+        uint attribIndex,
+        int count,
+        int stride,
+        int offset,
+        bool normalize,
+        Buffer<T> buffer) where T : unmanaged
+    {
+        var sizeOfT = sizeof(T);
+        var glType = buffer.Type;
+        var strideInBytes = stride * sizeOfT;
+        var ptrOffset = (void*)(offset * sizeOfT);
+        GL46.glVertexAttribPointer(
+            attribIndex,
+            count,
+            glType,
+            normalize,
+            strideInBytes,
+            ptrOffset
+        );
+    }
+
+
     public static unsafe void glVertexAttribPointer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TVertex>(
         uint attribIndex,
         string fieldName,
@@ -56,7 +79,7 @@ public static class OpenGlUtils
         );
     }
 
-    private static uint GetGlType(Type type, out int  typeSize)
+    public static uint GetGlType(Type type, out int  typeSize)
     {
         if (type == typeof(float))
         {

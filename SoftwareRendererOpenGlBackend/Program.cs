@@ -74,15 +74,18 @@ unsafe
 
     var vertexDataBuffer = glBindBuffer<float>(GL_ARRAY_BUFFER, vbo);
     glBufferData(vertexDataBuffer, vertices, BufferUsageHint.StaticDraw);
+    AssertNoGlError();
+
+    glVertexAttribPointer(0, 3, 5, 0, false, vertexDataBuffer);
+    AssertNoGlError();
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, 5, 3, false, vertexDataBuffer);
+    AssertNoGlError();
+    glEnableVertexAttribArray(1);
 
     var indexDataBuffer = glBindBuffer<uint>(GL_ELEMENT_ARRAY_BUFFER, ibo);
     glBufferData(indexDataBuffer, indices, BufferUsageHint.StaticDraw);
-    
-    glVertexAttribPointer<MyVertex>(0, nameof(MyVertex.Position));
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer<MyVertex>(1, nameof(MyVertex.TextureCoords));
-    glEnableVertexAttribArray(1);
     
     while (!Glfw.WindowShouldClose(windowHandle))
     {

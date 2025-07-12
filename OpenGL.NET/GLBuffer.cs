@@ -22,11 +22,13 @@ public readonly struct Buffer<T> : IBuffer<T> where T : unmanaged
 {
     public uint Id { get; }
     public uint Target { get; }
+    public uint Type { get; }
 
-    internal Buffer(uint id, uint target)
+    internal Buffer(uint id, uint target, uint type)
     {
         Id = id;
         Target = target;
+        Type = type;
     }
 }
 
@@ -34,7 +36,8 @@ public static class GLBuffer
 {
     public static Buffer<T> glBindBuffer<T>(uint target, uint bufferId) where T : unmanaged
     {
-        var buffer = new Buffer<T>(bufferId, target);
+        var glType = GetGlType(typeof(T), out var sizeOfT);
+        var buffer = new Buffer<T>(bufferId, target, glType);
         GL46.glBindBuffer(target, bufferId);
         AssertNoGlError();
         return buffer;
