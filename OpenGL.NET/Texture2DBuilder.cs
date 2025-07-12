@@ -55,6 +55,6 @@ public sealed class Texture2DBuilder
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)_magFilter);
         AssertNoGlError();
         
-        return new Texture(GL_TEXTURE_2D, textureId);
+        return new Texture(textureId, GL_TEXTURE_2D);
     }
 }

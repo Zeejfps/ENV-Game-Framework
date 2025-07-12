@@ -36,6 +36,7 @@ unsafe
         .WithMinFilter(TextureMinFilter.Nearest)
         .WithMagFilter(TextureMagFilter.Nearest)
         .BindAndBuild();
+    AssertNoGlError();
     
     glTexImage2D<uint>(texture, 0,  GL_RGBA8, colorBuffer.Width, colorBuffer.Height, 
         GL_RGBA, GL_UNSIGNED_BYTE, colorBuffer.Pixels);
@@ -100,6 +101,9 @@ unsafe
     
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+        
+        fixed(void* pixelDataPtr = &colorBuffer.Pixels[0])
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, colorBuffer.Width, colorBuffer.Height, GL_RGBA, GL_UNSIGNED_BYTE, pixelDataPtr);
 
         // Drawing the textured quad.
         glUseProgram(shaderProgram.Id);
