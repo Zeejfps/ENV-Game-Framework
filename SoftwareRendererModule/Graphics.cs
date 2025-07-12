@@ -2,6 +2,30 @@
 
 public static class Graphics
 {
+    public static void DrawRect(Bitmap bitmap, int x0, int y0, int width, int height, uint color)
+    {
+        var sx = x0;
+        if (sx < 0)
+            sx = 0;
+        
+        var ex = x0 + width;
+        if (ex > bitmap.Width)
+            ex = bitmap.Width;
+
+        var sy = y0;
+        if (sy < 0)
+            sy = 0;
+        
+        var ey = y0 + height;
+        if (ey > bitmap.Height)
+            ey = bitmap.Height;
+
+        DrawLineH(bitmap, x0, y0, width, color);
+        DrawLineV(bitmap, x0, y0, height, color);
+        DrawLineV(bitmap, x0 + width, y0, height, color);
+        DrawLineH(bitmap, x0, y0+height, width, color);
+    }
+    
     public static void FillRect(Bitmap bitmap, int x0, int y0, int width, int height, uint color)
     {
         var sx = x0;
