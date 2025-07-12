@@ -26,7 +26,7 @@ unsafe
     Import(Glfw.GetProcAddress);
     AssertNoGlError();
     
-    var colorBuffer = new Bitmap(640, 480);
+    var colorBuffer = new Bitmap(320, 240);
     Graphics.DrawRect(colorBuffer, 300, 200, 100, 150, 0xFF00FF);
     Graphics.FillRect(colorBuffer, 0, 0, 100, 150, 0xFF00FF);
     Graphics.DrawLineH(colorBuffer, 0, 200, 100, 0xFF00FF);

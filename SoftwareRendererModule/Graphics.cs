@@ -5,24 +5,36 @@ public static class Graphics
     public static void DrawRect(Bitmap bitmap, int x0, int y0, int width, int height, uint color)
     {
         var sx = x0;
+        if (sx >= width)
+            return;
+        
+        var sy = y0;
+        if (sy >= height)
+            return;
+        
+        var ex = x0 + width;
+        if (ex < 0)
+            return;
+        
+        var ey = y0 + height;
+        if (ey < 0)
+            return;
+        
         if (sx < 0)
             sx = 0;
         
-        var ex = x0 + width;
-        if (ex > bitmap.Width)
-            ex = bitmap.Width;
-
-        var sy = y0;
         if (sy < 0)
             sy = 0;
         
-        var ey = y0 + height;
+        if (ex > bitmap.Width)
+            ex = bitmap.Width;
+        
         if (ey > bitmap.Height)
             ey = bitmap.Height;
         
         width = ex - sx;
         height = ey - sy;
-
+        
         DrawLineH(bitmap, sx, sy, width, color);
         DrawLineV(bitmap, sx, sy, height, color);
         DrawLineV(bitmap, sx + width, sy, height, color);
