@@ -3,6 +3,7 @@ using OpenGL.NET;
 using SoftwareRendererModule;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
+using static OpenGL.NET.GLBuffer;
 using Monitor = GLFW.Monitor;
 
 unsafe
@@ -71,18 +72,11 @@ unsafe
 
     glBindVertexArray(vao);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    fixed (void* v = &vertices[0])
-    {
-        glBufferData(GL_ARRAY_BUFFER, vertices.Length * sizeof(float), v, GL_STATIC_DRAW);
-        AssertNoGlError();
-    }
+    var vertexDataBuffer = glBindBuffer<float>(GL_ARRAY_BUFFER, vbo);
+    glBufferData(vertexDataBuffer, vertices, BufferUsageHint.StaticDraw);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    fixed (void* i = &indices[0])
-    {
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.Length * sizeof(uint), i, GL_STATIC_DRAW);
-    }
+    var indexDataBuffer = glBindBuffer<uint>(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    glBufferData(indexDataBuffer, indices, BufferUsageHint.StaticDraw);
     
     glVertexAttribPointer<MyVertex>(0, nameof(MyVertex.Position));
     glEnableVertexAttribArray(0);
