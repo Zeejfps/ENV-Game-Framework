@@ -6,8 +6,8 @@ public static class Graphics
     {
         DrawLineH(bitmap, x0, y0, width, color);
         DrawLineV(bitmap, x0, y0, height, color);
-        DrawLineV(bitmap, x0 + width, y0, height, color);
-        DrawLineH(bitmap, x0, y0+height, width, color);
+        DrawLineV(bitmap, x0 + width-1, y0, height, color);
+        DrawLineH(bitmap, x0, y0 + height-1, width, color);
     }
 
     public static void FillRect(Bitmap bitmap, int x0, int y0, int width, int height, uint color)
@@ -44,8 +44,11 @@ public static class Graphics
         
         var isVisible = ClipLine(bitmap, ref sx, ref sy, ref ex, ref ey);
         if (!isVisible)
+        {
+            // Console.WriteLine($"Clipped: sx: {sx}, ex: {ex}, sy: {sy}, ey: {ey}");
             return;
-        
+        }
+
         bitmap.FillLine(sx, y0, ex - sx, color);
     }
 

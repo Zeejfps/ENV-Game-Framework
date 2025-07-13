@@ -1,11 +1,17 @@
 ﻿using OpenGL.NET;
 using SoftwareRendererModule;
+using ZnvQuadTree;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 using static OpenGL.NET.GLBuffer;
 using static OpenGL.NET.GLTexture;
 
 namespace SoftwareRendererOpenGlBackend;
+
+sealed class Item
+{
+    public PointF Position { get; set; }
+}
 
 public sealed unsafe class Renderer : IDisposable
 {
@@ -15,12 +21,20 @@ public sealed unsafe class Renderer : IDisposable
     private readonly uint _vbo;
     private readonly uint _ibo;
     private readonly Texture _texture;
+    private readonly QuadTreePointF<Item> _quadTree;
 
     private bool _isDisposed;
 
     public Renderer()
     {
         var colorBuffer = new Bitmap(320, 240);
+        _quadTree = new QuadTreePointF<Item>(new RectF
+        {
+            Bottom = 0,
+            Left = 0,
+            Width = 320,
+            Height = 240
+        }, 5);
 
         var texture = new Texture2DBuilder()
             .WithMinFilter(TextureMinFilter.Nearest)
@@ -102,11 +116,20 @@ public sealed unsafe class Renderer : IDisposable
         glClear(GL_COLOR_BUFFER_BIT);
         colorBuffer.Fill(0x000000);
 
-        Graphics.DrawRect(colorBuffer, 300, 200, 100, 150, 0xFF00FF);
-        Graphics.FillRect(colorBuffer, 0, 0, 100, 150, 0xFF00FF);
-        Graphics.DrawLine(colorBuffer, 0, 200, 100, 200, 0xFF00FF);
-        Graphics.DrawLine(colorBuffer, 50, 200, 50, 300, 0xFF00FF);
-        Graphics.DrawLine(colorBuffer, 100, 200, 150, 300, 0xFF00FF);
+        var quadTreeInfo = _quadTree.GetInfo();
+        foreach (var nodeInfo in quadTreeInfo.Nodes)
+        {
+            var bounds = nodeInfo.Bounds;
+            Graphics.DrawRect(colorBuffer,
+                (int)bounds.Left, (int)bounds.Bottom,
+                (int)bounds.Width, (int)bounds.Height, 0x00FF00);
+        }
+
+        // Graphics.DrawRect(colorBuffer, 300, 200, 100, 150, 0xFF00FF);
+        // Graphics.FillRect(colorBuffer, 0, 0, 100, 150, 0xFF00FF);
+        // Graphics.DrawLine(colorBuffer, 0, 200, 100, 200, 0xFF00FF);
+        // Graphics.DrawLine(colorBuffer, 50, 200, 50, 300, 0xFF00FF);
+        // Graphics.DrawLine(colorBuffer, 100, 200, 150, 300, 0xFF00FF);
 
         fixed(void* pixelDataPtr = &colorBuffer.Pixels[0])
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, colorBuffer.Width, colorBuffer.Height, GL_RGBA, GL_UNSIGNED_BYTE, pixelDataPtr);
