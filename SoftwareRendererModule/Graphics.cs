@@ -4,43 +4,12 @@ public static class Graphics
 {
     public static void DrawRect(Bitmap bitmap, int x0, int y0, int width, int height, uint color)
     {
-        var sx = x0;
-        if (sx >= width)
-            return;
-        
-        var sy = y0;
-        if (sy >= height)
-            return;
-        
-        var ex = x0 + width;
-        if (ex < 0)
-            return;
-        
-        var ey = y0 + height;
-        if (ey < 0)
-            return;
-        
-        if (sx < 0)
-            sx = 0;
-        
-        if (sy < 0)
-            sy = 0;
-        
-        if (ex > bitmap.Width)
-            ex = bitmap.Width;
-        
-        if (ey > bitmap.Height)
-            ey = bitmap.Height;
-        
-        width = ex - sx;
-        height = ey - sy;
-        
-        DrawLineH(bitmap, sx, sy, width, color);
-        DrawLineV(bitmap, sx, sy, height, color);
-        DrawLineV(bitmap, sx + width, sy, height, color);
-        DrawLineH(bitmap, sx, sy+height, width, color);
+        DrawLineH(bitmap, x0, y0, width, color);
+        DrawLineV(bitmap, x0, y0, height, color);
+        DrawLineV(bitmap, x0 + width, y0, height, color);
+        DrawLineH(bitmap, x0, y0+height, width, color);
     }
-    
+
     public static void FillRect(Bitmap bitmap, int x0, int y0, int width, int height, uint color)
     {
         var sx = x0;
@@ -65,36 +34,38 @@ public static class Graphics
             bitmap.FillLine(sx, y, lineLength, color);
         }
     }
-    
+
     public static void DrawLineH(Bitmap bitmap, int x0, int y0, int width, uint color)
     {
         var sx = x0;
-        if (sx < 0)
-            sx = 0;
+        var ex = sx + width;
+        var sy = y0;
+        var ey = y0;
         
-        var ex = x0 + width;
-        if (ex > bitmap.Width)
-            ex = bitmap.Width;
-
+        var isVisible = ClipLine(bitmap, ref sx, ref sy, ref ex, ref ey);
+        if (!isVisible)
+            return;
+        
         bitmap.FillLine(sx, y0, ex - sx, color);
     }
-    
+
     public static void DrawLineV(Bitmap bitmap, int x0, int y0, int height, uint color)
     {
+        var sx = x0;
+        var ex = x0;
         var sy = y0;
-        if (sy < 0)
-            sy = 0;
-        
         var ey = y0 + height;
-        if (ey > bitmap.Height)
-            ey = bitmap.Height;
-
+        
+        var isVisible = ClipLine(bitmap, ref sx, ref sy, ref ex, ref ey);
+        if (!isVisible)
+            return;
+        
         for (var y = sy; y < ey; y++)
         {
             bitmap.SetPixel(x0, y, color);
         }
     }
-    
+
     public static void DrawLine(Bitmap bitmap, int x0, int y0, int x1, int y1, uint color)
     {
         if (y0 == y1)
@@ -156,5 +127,34 @@ public static class Graphics
                 y0 += sy;
             }
         }
+    }
+
+    private static bool ClipLine(Bitmap bitmap, ref int sx, ref int sy, ref int ex, ref int ey)
+    {
+        if (sx >= bitmap.Width)
+            return false;
+        
+        if (sy >= bitmap.Height)
+            return false;
+        
+        if (ex < 0)
+            return false;
+        
+        if (ey < 0)
+            return false;
+        
+        if (sx < 0)
+            sx = 0;
+        
+        if (sy < 0)
+            sy = 0;
+        
+        if (ex > bitmap.Width)
+            ex = bitmap.Width;
+        
+        if (ey > bitmap.Height)
+            ey = bitmap.Height;
+
+        return true;
     }
 }
