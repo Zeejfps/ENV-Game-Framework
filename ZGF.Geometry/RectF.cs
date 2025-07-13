@@ -44,4 +44,13 @@ public readonly record struct RectF(float Left, float Bottom, float Width, float
         
         return (dx * dx) + (dy * dy);
     }
+
+    public static RectF Group(RectF r1, RectF r2)
+    {
+        var left = Math.Min(r1.Left, r2.Left);
+        var bottom = Math.Min(r1.Bottom, r2.Bottom);
+        var right = Math.Max(r1.Right, r2.Right);
+        var top = Math.Max(r1.Top, r2.Top);
+        return new RectF(left, bottom, right - top, top - bottom);
+    }
 }
