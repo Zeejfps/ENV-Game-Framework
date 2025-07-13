@@ -35,7 +35,7 @@ public static class Graphics
         }
     }
 
-    public static void DrawLineH(Bitmap bitmap, int x0, int y0, int width, uint color)
+    private static void DrawLineH(Bitmap bitmap, int x0, int y0, int width, uint color)
     {
         var sx = x0;
         var ex = sx + width;
@@ -49,7 +49,7 @@ public static class Graphics
         bitmap.FillLine(sx, y0, ex - sx, color);
     }
 
-    public static void DrawLineV(Bitmap bitmap, int x0, int y0, int height, uint color)
+    private static void DrawLineV(Bitmap bitmap, int x0, int y0, int height, uint color)
     {
         var sx = x0;
         var ex = x0;

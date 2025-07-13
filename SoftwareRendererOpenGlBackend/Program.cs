@@ -27,11 +27,6 @@ unsafe
     AssertNoGlError();
     
     var colorBuffer = new Bitmap(320, 240);
-    Graphics.DrawRect(colorBuffer, 300, 200, 100, 150, 0xFF00FF);
-    Graphics.FillRect(colorBuffer, 0, 0, 100, 150, 0xFF00FF);
-    Graphics.DrawLineH(colorBuffer, 0, 200, 100, 0xFF00FF);
-    Graphics.DrawLineV(colorBuffer, 50, 200, 100, 0xFF00FF);
-    Graphics.DrawLine(colorBuffer, 100, 200, 150, 300, 0xFF00FF);
 
     var texture = new Texture2DBuilder()
         .WithMinFilter(TextureMinFilter.Nearest)
@@ -102,6 +97,14 @@ unsafe
     
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+        
+        colorBuffer.Fill(0x000000);
+        
+        Graphics.DrawRect(colorBuffer, 300, 200, 100, 150, 0xFF00FF);
+        Graphics.FillRect(colorBuffer, 0, 0, 100, 150, 0xFF00FF);
+        Graphics.DrawLine(colorBuffer, 0, 200, 100, 200, 0xFF00FF);
+        Graphics.DrawLine(colorBuffer, 50, 200, 50, 300, 0xFF00FF);
+        Graphics.DrawLine(colorBuffer, 100, 200, 150, 300, 0xFF00FF);
         
         fixed(void* pixelDataPtr = &colorBuffer.Pixels[0])
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, colorBuffer.Width, colorBuffer.Height, GL_RGBA, GL_UNSIGNED_BYTE, pixelDataPtr);
