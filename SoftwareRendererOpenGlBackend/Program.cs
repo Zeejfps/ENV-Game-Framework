@@ -43,7 +43,6 @@ void HandleMouseButtonEvent(Window window, MouseButton button, InputState state,
     var worldX = (int)(windowX * 0.5f);
     var worldY = (int)((windowHeight - windowY) * 0.5f);
 
-    Console.WriteLine($"{worldX}, {worldY}");
     renderer.AddItemAt(worldX, worldY);
 }
 

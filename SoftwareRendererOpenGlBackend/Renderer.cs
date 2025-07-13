@@ -34,7 +34,7 @@ public sealed unsafe class Renderer : IDisposable
             Left = 0,
             Width = 320,
             Height = 240
-        }, 5);
+        }, 6);
 
         var texture = new Texture2DBuilder()
             .WithMinFilter(TextureMinFilter.Nearest)
