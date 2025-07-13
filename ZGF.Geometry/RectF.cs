@@ -8,10 +8,10 @@ public readonly record struct RectF(float Left, float Bottom, float Width, float
 
     public bool Intersects(RectF otherRect)
     {
-        if (Right < otherRect.Left || Left >= otherRect.Right)
+        if (Right <= otherRect.Left || Left >= otherRect.Right)
             return false; 
 
-        if (Top < otherRect.Bottom || Bottom >= otherRect.Top)
+        if (Top <= otherRect.Bottom || Bottom >= otherRect.Top)
             return false;
 
         return true;
