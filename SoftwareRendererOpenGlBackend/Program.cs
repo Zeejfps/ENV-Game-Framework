@@ -12,7 +12,7 @@ Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
 
 var windowWidth = 640;
 var windowHeight = 480;
-var windowHandle = Glfw.CreateWindow(windowWidth, windowHeight, "Software Renderer", Monitor.None, Window.None);
+var windowHandle = Glfw.CreateWindow(windowWidth, windowHeight, "Quad Tree Renderer", Monitor.None, Window.None);
 
 Glfw.MakeContextCurrent(windowHandle);
 Glfw.ShowWindow(windowHandle);
@@ -21,7 +21,7 @@ Glfw.SwapInterval(1);
 Import(Glfw.GetProcAddress);
 AssertNoGlError();
 
-var renderer = new Renderer();
+var renderer = new QuadTreeRenderer();
 
 void HandleFrameBufferSizeEvent(Window window, int width, int height)
 {

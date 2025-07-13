@@ -13,7 +13,7 @@ sealed class Item
     public PointF Position { get; set; }
 }
 
-public sealed unsafe class Renderer : IDisposable
+public sealed unsafe class QuadTreeRenderer : IDisposable
 {
     public int Width { get; }
     public int Height { get; }
@@ -28,7 +28,7 @@ public sealed unsafe class Renderer : IDisposable
 
     private bool _isDisposed;
 
-    public Renderer()
+    public QuadTreeRenderer()
     {
         Width = 160;
         Height = 120;
@@ -115,7 +115,7 @@ public sealed unsafe class Renderer : IDisposable
     public void Render()
     {
         if (_isDisposed)
-            throw new ObjectDisposedException(nameof(Renderer));
+            throw new ObjectDisposedException(nameof(QuadTreeRenderer));
 
         var colorBuffer = _colorBuffer;
 
