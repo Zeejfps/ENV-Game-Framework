@@ -29,14 +29,14 @@ unsafe
 
     var renderer = new Renderer();
 
-    SizeCallback windowSizeCallback = (window, width, height) =>
+    void FrameBufferSizeCallback(Window window, int width, int height)
     {
         glViewport(0, 0, width, height);
         renderer.Render();
         Glfw.SwapBuffers(window);
-    };
-    
-    Glfw.SetWindowSizeCallback(windowHandle, windowSizeCallback);
+    }
+
+    Glfw.SetFramebufferSizeCallback(windowHandle, FrameBufferSizeCallback);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
     while (!Glfw.WindowShouldClose(windowHandle))
