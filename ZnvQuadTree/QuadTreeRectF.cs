@@ -1,4 +1,6 @@
-﻿namespace ZnvQuadTree;
+﻿using ZGF.Geometry;
+
+namespace ZnvQuadTree;
 
 public sealed class QuadTreeRectF<T> where T : notnull
 {

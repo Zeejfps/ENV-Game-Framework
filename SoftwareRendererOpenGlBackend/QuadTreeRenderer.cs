@@ -1,4 +1,5 @@
 ﻿using SoftwareRendererModule;
+using ZGF.Geometry;
 using ZnvQuadTree;
 
 namespace SoftwareRendererOpenGlBackend;

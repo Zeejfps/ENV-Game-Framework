@@ -1,4 +1,4 @@
-﻿namespace ZnvQuadTree;
+﻿namespace ZGF.Geometry;
 
 public readonly record struct PointF(float X, float Y)
 {

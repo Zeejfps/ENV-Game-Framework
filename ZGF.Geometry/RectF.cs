@@ -1,4 +1,4 @@
-﻿namespace ZnvQuadTree;
+﻿namespace ZGF.Geometry;
 
 public readonly record struct RectF(float Left, float Bottom, float Width, float Height)
 {
