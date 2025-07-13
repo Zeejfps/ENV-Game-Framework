@@ -66,7 +66,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MsdfBmpFont", "MsdfBmpFont\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PngSharp", "PngSharp\PngSharp\PngSharp.csproj", "{EE035961-7E6F-44B2-ABCD-A071D822C6C1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZnvQuadTree", "ZnvQuadTree\ZnvQuadTree.csproj", "{FBD80275-C07B-4C38-B7E3-B45C584BFDD4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Spatial", "ZGF.Spatial\ZGF.Spatial.csproj", "{FBD80275-C07B-4C38-B7E3-B45C584BFDD4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoftwareRendererModule", "SoftwareRendererModule\SoftwareRendererModule.csproj", "{32D0F3A9-FEFA-4F50-A73D-E3684F54B494}"
 EndProject
