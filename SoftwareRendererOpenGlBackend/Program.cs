@@ -30,6 +30,15 @@ void HandleFrameBufferSizeEvent(Window window, int width, int height)
     Glfw.SwapBuffers(window);
 }
 
+void WindowToWorldPoint(Window window, double windowX, double windowY, out int worldX, out int worldY)
+{
+    Glfw.GetWindowSize(window, out var windowWidth, out var windowHeight);
+    var wFactor = (float)renderer.Width / windowWidth;
+    var hFactor = (float)renderer.Height / windowHeight;
+    worldX = (int)(windowX * wFactor);
+    worldY = (int)((windowHeight - windowY) * hFactor);
+}
+
 void HandleMouseButtonEvent(Window window, MouseButton button, InputState state, ModifierKeys modifiers)
 {
     if (button != MouseButton.Left)
@@ -38,19 +47,20 @@ void HandleMouseButtonEvent(Window window, MouseButton button, InputState state,
     if (state != InputState.Press)
         return;
 
-    Glfw.GetWindowSize(window, out var windowWidth, out var windowHeight);
     Glfw.GetCursorPosition(window, out var windowX, out var windowY);
-
-    var wFactor = (float)renderer.Width / windowWidth;
-    var hFactor = (float)renderer.Height / windowHeight;
-    var worldX = (int)(windowX * wFactor);
-    var worldY = (int)((windowHeight - windowY) * hFactor);
-
+    WindowToWorldPoint(window, windowX, windowY, out var worldX, out var worldY);
     renderer.AddItemAt(worldX, worldY);
+}
+
+void HandleMouseMoveEvent(Window window, double windowX, double windowY)
+{
+    WindowToWorldPoint(window, windowX, windowY, out var worldX, out var worldY);
+    renderer.SetMousePosition(worldX, worldY);
 }
 
 Glfw.SetFramebufferSizeCallback(windowHandle, HandleFrameBufferSizeEvent);
 Glfw.SetMouseButtonCallback(windowHandle, HandleMouseButtonEvent);
+Glfw.SetCursorPositionCallback(windowHandle, HandleMouseMoveEvent);
 
 glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 

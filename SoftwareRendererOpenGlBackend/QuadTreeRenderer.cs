@@ -18,6 +18,7 @@ public sealed class QuadTreeRenderer : IDisposable
     private readonly QuadTreePointF<Item> _quadTree;
 
     private bool _isDisposed;
+    private PointF _mousePosition;
 
     public QuadTreeRenderer()
     {
@@ -49,9 +50,15 @@ public sealed class QuadTreeRenderer : IDisposable
         foreach (var nodeInfo in quadTreeInfo.Nodes)
         {
             var bounds = nodeInfo.Bounds;
+            uint color = 0x00FF00;
+            if (bounds.Contains(_mousePosition))
+            {
+                color = 0x0000FF;
+            }
+
             Graphics.DrawRect(colorBuffer,
                 (int)bounds.Left, (int)bounds.Bottom,
-                (int)bounds.Width, (int)bounds.Height, 0x00FF00);
+                (int)bounds.Width, (int)bounds.Height, color);
         }
 
         foreach (var item in _quadTree.GetAllItems())
@@ -70,6 +77,11 @@ public sealed class QuadTreeRenderer : IDisposable
 
         _isDisposed = true;
         _bitmapRenderer.Dispose();
+    }
+
+    public void SetMousePosition(int x, int y)
+    {
+        _mousePosition =  new PointF(x, y);
     }
 
     public void AddItemAt(int x, int y)
