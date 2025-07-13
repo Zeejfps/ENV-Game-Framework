@@ -16,6 +16,8 @@ public sealed unsafe class BitmapRenderer : IDisposable
     private readonly uint _ibo;
     private readonly Texture _texture;
 
+    private bool _isDisposed;
+
     public BitmapRenderer(Bitmap bitmap)
     {
         _bitmap = bitmap;
@@ -90,6 +92,9 @@ public sealed unsafe class BitmapRenderer : IDisposable
 
     public void Render()
     {
+        if (_isDisposed)
+            throw new ObjectDisposedException(nameof(BitmapRenderer));
+
         glClear(GL_COLOR_BUFFER_BIT);
 
         fixed (void* pixelDataPtr = &_bitmap.Pixels[0])
@@ -106,6 +111,11 @@ public sealed unsafe class BitmapRenderer : IDisposable
 
     public void Dispose()
     {
+        if (_isDisposed)
+            return;
+
+        _isDisposed = true;
+
         var vao = _vao;
         var vbo = _vbo;
         var ibo = _ibo;
