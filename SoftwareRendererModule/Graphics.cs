@@ -36,7 +36,7 @@ public static class Graphics
         var ey = y0 + height;
         if (ey < 0)
             return;
-        
+
         if (ey > bitmap.Height)
             ey = bitmap.Height;
 

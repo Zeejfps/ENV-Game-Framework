@@ -117,6 +117,13 @@ public sealed unsafe class Renderer : IDisposable
         colorBuffer.Fill(0x000000);
 
         var quadTreeInfo = _quadTree.GetInfo();
+
+        foreach (var item in _quadTree.GetAllItems())
+        {
+            var position = item.Position;
+            _colorBuffer.SetPixel((int)position.X, (int)position.Y, 0xFF00FF);
+        }
+
         foreach (var nodeInfo in quadTreeInfo.Nodes)
         {
             var bounds = nodeInfo.Bounds;
@@ -159,5 +166,18 @@ public sealed unsafe class Renderer : IDisposable
 
         var textureId = _texture.Id;
         glDeleteTextures(1, &textureId);
+    }
+
+    public void AddItemAt(int x, int y)
+    {
+        var item = new Item
+        {
+            Position = new PointF
+            {
+                X = x,
+                Y = y
+            }
+        };
+        _quadTree.Insert(item, item.Position);
     }
 }
