@@ -5,6 +5,8 @@ public readonly record struct RectF(float Left, float Bottom, float Width, float
     public float Top => Bottom + Height;
     public float Right => Left + Width;
     public PointF BottomLeft => new(Left, Bottom);
+    public PointF Center => new(Left + Width * 0.5f, Bottom + Height * 0.5f);
+    public PointF TopRight => new(Right, Top);
 
     public bool Intersects(RectF otherRect)
     {
