@@ -53,7 +53,7 @@ public sealed class QuadTreeRenderer : IDisposable
             uint color = 0x00FF00;
             if (bounds.Contains(_mousePosition))
             {
-                color = 0x0000FF;
+                color = 0xFF0000;
             }
 
             Graphics.DrawRect(colorBuffer,

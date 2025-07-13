@@ -36,4 +36,17 @@ public static class GLTexture
                 width, height, 0, format, channelType, ptr);
         }
     }
+
+    public static unsafe void glTexImage2D(
+        Texture texture,
+        int level,
+        uint internalFormat,
+        int width,
+        int height,
+        uint format,
+        uint channelType)
+    {
+        GL46.glTexImage2D(texture.Target, level, (int)internalFormat,
+            width, height, 0, format, channelType, (void*)0);
+    }
 }

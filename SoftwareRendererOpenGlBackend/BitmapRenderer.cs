@@ -27,8 +27,8 @@ public sealed unsafe class BitmapRenderer : IDisposable
             .BindAndBuild();
         AssertNoGlError();
 
-        glTexImage2D<uint>(texture, 0,  GL_RGBA8, bitmap.Width, bitmap.Height,
-            GL_RGBA, GL_UNSIGNED_BYTE, bitmap.Pixels);
+        glTexImage2D(texture, 0,  GL_RGBA8, bitmap.Width, bitmap.Height,
+            GL_BGRA, GL_UNSIGNED_BYTE);
         AssertNoGlError();
 
         _shaderProgram = new ShaderProgramCompiler()
@@ -100,7 +100,7 @@ public sealed unsafe class BitmapRenderer : IDisposable
         fixed (void* pixelDataPtr = &_bitmap.Pixels[0])
         {
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-                _bitmap.Width, _bitmap.Height, GL_RGBA, GL_UNSIGNED_BYTE, pixelDataPtr);
+                _bitmap.Width, _bitmap.Height, GL_BGRA, GL_UNSIGNED_BYTE, pixelDataPtr);
         }
 
         glUseProgram(_shaderProgram.Id);
