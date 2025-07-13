@@ -45,7 +45,7 @@ public readonly record struct RectF(float Left, float Bottom, float Width, float
         return (dx * dx) + (dy * dy);
     }
 
-    public static RectF Group(RectF r1, RectF r2)
+    public static RectF CreateMinimumBoundingRect(RectF r1, RectF r2)
     {
         var left = Math.Min(r1.Left, r2.Left);
         var bottom = Math.Min(r1.Bottom, r2.Bottom);
