@@ -118,12 +118,6 @@ public sealed unsafe class Renderer : IDisposable
 
         var quadTreeInfo = _quadTree.GetInfo();
 
-        foreach (var item in _quadTree.GetAllItems())
-        {
-            var position = item.Position;
-            _colorBuffer.SetPixel((int)position.X, (int)position.Y, 0xFF00FF);
-        }
-
         foreach (var nodeInfo in quadTreeInfo.Nodes)
         {
             var bounds = nodeInfo.Bounds;
@@ -132,11 +126,11 @@ public sealed unsafe class Renderer : IDisposable
                 (int)bounds.Width, (int)bounds.Height, 0x00FF00);
         }
 
-        // Graphics.DrawRect(colorBuffer, 300, 200, 100, 150, 0xFF00FF);
-        // Graphics.FillRect(colorBuffer, 0, 0, 100, 150, 0xFF00FF);
-        // Graphics.DrawLine(colorBuffer, 0, 200, 100, 200, 0xFF00FF);
-        // Graphics.DrawLine(colorBuffer, 50, 200, 50, 300, 0xFF00FF);
-        // Graphics.DrawLine(colorBuffer, 100, 200, 150, 300, 0xFF00FF);
+        foreach (var item in _quadTree.GetAllItems())
+        {
+            var position = item.Position;
+            _colorBuffer.SetPixel((int)position.X, (int)position.Y, 0xFF00FF);
+        }
 
         fixed(void* pixelDataPtr = &colorBuffer.Pixels[0])
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, colorBuffer.Width, colorBuffer.Height, GL_RGBA, GL_UNSIGNED_BYTE, pixelDataPtr);
