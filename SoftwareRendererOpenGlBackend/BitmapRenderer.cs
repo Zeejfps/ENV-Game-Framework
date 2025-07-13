@@ -103,7 +103,6 @@ public sealed unsafe class BitmapRenderer : IDisposable
                 _bitmap.Width, _bitmap.Height, GL_RGBA, GL_UNSIGNED_BYTE, pixelDataPtr);
         }
 
-        // Drawing the textured quad.
         glUseProgram(_shaderProgram.Id);
         glBindVertexArray(_vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
