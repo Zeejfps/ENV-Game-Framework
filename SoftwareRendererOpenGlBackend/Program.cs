@@ -40,11 +40,11 @@ void HandleMouseButtonEvent(Window window, MouseButton button, InputState state,
 
     Glfw.GetCursorPosition(window, out var windowX, out var windowY);
 
-    var worldX = windowX;
-    var worldY = windowHeight - windowY;
+    var worldX = (int)(windowX * 0.5f);
+    var worldY = (int)((windowHeight - windowY) * 0.5f);
 
     Console.WriteLine($"{worldX}, {worldY}");
-    renderer.AddItemAt((int)worldX, (int)worldY);
+    renderer.AddItemAt(worldX, worldY);
 }
 
 Glfw.SetFramebufferSizeCallback(windowHandle, HandleFrameBufferSizeEvent);
