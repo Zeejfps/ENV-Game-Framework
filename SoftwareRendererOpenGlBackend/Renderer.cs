@@ -15,6 +15,9 @@ sealed class Item
 
 public sealed unsafe class Renderer : IDisposable
 {
+    public int Width { get; }
+    public int Height { get; }
+
     private readonly Bitmap _colorBuffer;
     private readonly ShaderProgramInfo _shaderProgram;
     private readonly uint _vao;
@@ -27,14 +30,17 @@ public sealed unsafe class Renderer : IDisposable
 
     public Renderer()
     {
-        var colorBuffer = new Bitmap(320, 240);
+        Width = 160;
+        Height = 120;
+
+        var colorBuffer = new Bitmap(Width, Height);
         _quadTree = new QuadTreePointF<Item>(new RectF
         {
             Bottom = 0,
             Left = 0,
-            Width = 320,
-            Height = 240
-        }, 6);
+            Width = Width,
+            Height = Height
+        }, 6, maxDepth: 5);
 
         var texture = new Texture2DBuilder()
             .WithMinFilter(TextureMinFilter.Nearest)
