@@ -225,7 +225,7 @@ public sealed class QuadTreePointF<T> where T : notnull
                 foreach (var cell in _cells)
                 {
                     var position = cell.Position;
-                    if (searchArea.Contains(position))
+                    if (searchArea.ContainsPoint(position))
                     {
                         results.Add(cell);
                     }
@@ -255,7 +255,7 @@ public sealed class QuadTreePointF<T> where T : notnull
                 foreach (var cell in _cells)
                 {
                     var position = cell.Position;
-                    if (searchArea.Contains(position))
+                    if (searchArea.ContainsPoint(position))
                     {
                         results.Add(cell.Item);
                     }
@@ -403,7 +403,7 @@ public sealed class QuadTreePointF<T> where T : notnull
                 foreach (var child in _cells)
                 {
                     var itemPoint = child.Position;
-                    if (searchArea.Contains(itemPoint))
+                    if (searchArea.ContainsPoint(itemPoint))
                     {
                         yield return child.Item;
                     }
@@ -449,7 +449,7 @@ public sealed class QuadTreePointF<T> where T : notnull
                 
                 foreach (var boundedItem in node._cells)
                 {
-                    if (searchArea.Contains(boundedItem.Position))
+                    if (searchArea.ContainsPoint(boundedItem.Position))
                     {
                         yield return boundedItem;
                     }
@@ -490,7 +490,7 @@ public sealed class QuadTreePointF<T> where T : notnull
         public bool Remove(Cell item)
         {
             var bounds = _bounds;
-            if (!bounds.Contains(item.Position))
+            if (!bounds.ContainsPoint(item.Position))
                 return false;
 
             if (_quads != null)
@@ -575,7 +575,7 @@ public sealed class QuadTreePointF<T> where T : notnull
             var cellPosition = cell.Position;
             foreach (var quad in quads)
             {
-                if (quad._bounds.Contains(cellPosition))
+                if (quad._bounds.ContainsPoint(cellPosition))
                 {
                     quad.Insert(cell);
                     return true;

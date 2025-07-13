@@ -55,7 +55,7 @@ public sealed class QuadTreeRenderer : IDisposable
         {
             var bounds = nodeInfo.Bounds;
             uint color = 0x00FF00;
-            if (bounds.Contains(_mousePosition))
+            if (bounds.ContainsPoint(_mousePosition))
             {
                 mouseInNode = true;
                 if (nodeInfo.Depth > deepestDepthSoFar)

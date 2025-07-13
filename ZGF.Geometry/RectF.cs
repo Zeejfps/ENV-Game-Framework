@@ -4,7 +4,8 @@ public readonly record struct RectF(float Left, float Bottom, float Width, float
 {
     public float Top => Bottom + Height;
     public float Right => Left + Width;
-    
+    public PointF BottomLeft => new(Left, Bottom);
+
     public bool Intersects(RectF otherRect)
     {
         if (Right < otherRect.Left || Left >= otherRect.Right)
@@ -24,7 +25,7 @@ public readonly record struct RectF(float Left, float Bottom, float Width, float
                otherRect.Top < Top;
     }
     
-    public bool Contains(PointF point)
+    public bool ContainsPoint(PointF point)
     {
         return point.X >= Left && point.X < Right &&
                point.Y >= Bottom && point.Y < Top;
