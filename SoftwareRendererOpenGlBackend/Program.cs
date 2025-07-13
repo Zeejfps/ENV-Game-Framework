@@ -91,29 +91,23 @@ unsafe
     var indexDataBuffer = glBindBuffer<uint>(GL_ELEMENT_ARRAY_BUFFER, ibo);
     glBufferData(indexDataBuffer, indices, BufferUsageHint.StaticDraw);
     
+    SizeCallback windowSizeCallback = (window, width, height) =>
+    {
+        glViewport(0, 0, width, height);
+        glClear(GL_COLOR_BUFFER_BIT);
+        Render();
+        Glfw.SwapBuffers(window);
+    };
+    
+    Glfw.SetWindowSizeCallback(windowHandle, windowSizeCallback);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+
     while (!Glfw.WindowShouldClose(windowHandle))
     {
         Glfw.PollEvents();
-    
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
         
-        colorBuffer.Fill(0x000000);
-        
-        Graphics.DrawRect(colorBuffer, 300, 200, 100, 150, 0xFF00FF);
-        Graphics.FillRect(colorBuffer, 0, 0, 100, 150, 0xFF00FF);
-        Graphics.DrawLine(colorBuffer, 0, 200, 100, 200, 0xFF00FF);
-        Graphics.DrawLine(colorBuffer, 50, 200, 50, 300, 0xFF00FF);
-        Graphics.DrawLine(colorBuffer, 100, 200, 150, 300, 0xFF00FF);
-        
-        fixed(void* pixelDataPtr = &colorBuffer.Pixels[0])
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, colorBuffer.Width, colorBuffer.Height, GL_RGBA, GL_UNSIGNED_BYTE, pixelDataPtr);
+        Render();
 
-        // Drawing the textured quad.
-        glUseProgram(shaderProgram.Id);
-        glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
-            
         Glfw.SwapBuffers(windowHandle);
     }
     
@@ -125,4 +119,26 @@ unsafe
     var textureId = texture.Id;
     glDeleteTextures(1, &textureId);
     Glfw.Terminate();
+
+    var myVao = vao;
+
+    void Render()
+    {
+        glClear(GL_COLOR_BUFFER_BIT);
+        colorBuffer.Fill(0x000000);
+        
+        Graphics.DrawRect(colorBuffer, 300, 200, 100, 150, 0xFF00FF);
+        Graphics.FillRect(colorBuffer, 0, 0, 100, 150, 0xFF00FF);
+        Graphics.DrawLine(colorBuffer, 0, 200, 100, 200, 0xFF00FF);
+        Graphics.DrawLine(colorBuffer, 50, 200, 50, 300, 0xFF00FF);
+        Graphics.DrawLine(colorBuffer, 100, 200, 150, 300, 0xFF00FF);
+        
+        fixed(void* pixelDataPtr = &colorBuffer.Pixels[0])
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, colorBuffer.Width, colorBuffer.Height, GL_RGBA, GL_UNSIGNED_BYTE, pixelDataPtr);
+        
+        // Drawing the textured quad.
+        glUseProgram(shaderProgram.Id);
+        glBindVertexArray(myVao);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
+    }
 }
