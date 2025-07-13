@@ -7,10 +7,10 @@ public readonly record struct RectF(float Left, float Bottom, float Width, float
     
     public bool Intersects(RectF otherRect)
     {
-        if (Right <= otherRect.Left || Left >= otherRect.Right)
+        if (Right < otherRect.Left || Left >= otherRect.Right)
             return false; 
 
-        if (Top <= otherRect.Bottom || Bottom >= otherRect.Top)
+        if (Top < otherRect.Bottom || Bottom >= otherRect.Top)
             return false;
 
         return true;
@@ -19,15 +19,15 @@ public readonly record struct RectF(float Left, float Bottom, float Width, float
     public bool FullyContains(RectF otherRect)
     {
         return otherRect.Left >= Left &&
-               otherRect.Right <= Right &&
+               otherRect.Right < Right &&
                otherRect.Bottom >= Bottom &&
-               otherRect.Top <= Top;
+               otherRect.Top < Top;
     }
     
     public bool Contains(PointF point)
     {
-        return point.X >= Left && point.X <= Right &&
-               point.Y >= Bottom && point.Y <= Top;
+        return point.X >= Left && point.X < Right &&
+               point.Y >= Bottom && point.Y < Top;
     }
     
     public float DistanceSqTo(PointF point)
