@@ -153,7 +153,7 @@ public sealed class QuadTreePointF<T> where T : notnull
         });
     }
 
-    public bool TryFindClosest(PointF center, float radius, [NotNullWhen(true)] out T? closestItem, Predicate<T>? predicate = null)
+    public bool TryFindNearest(PointF center, float radius, [NotNullWhen(true)] out T? closestItem, Predicate<T>? predicate = null)
     {
         if (_root.TryFindNearest(center, radius, out var result, predicate))
         {
