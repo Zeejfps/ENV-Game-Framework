@@ -72,6 +72,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoftwareRendererModule", "S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoftwareRendererOpenGlBackend", "SoftwareRendererOpenGlBackend\SoftwareRendererOpenGlBackend.csproj", "{D59D04E3-91AB-4A41-8376-DE973C7F335F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Geometry", "ZGF.Geometry\ZGF.Geometry.csproj", "{1BBB564D-4A1C-48D8-B189-B1DEB417C06D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -222,5 +224,9 @@ Global
 		{D59D04E3-91AB-4A41-8376-DE973C7F335F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D59D04E3-91AB-4A41-8376-DE973C7F335F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D59D04E3-91AB-4A41-8376-DE973C7F335F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1BBB564D-4A1C-48D8-B189-B1DEB417C06D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1BBB564D-4A1C-48D8-B189-B1DEB417C06D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1BBB564D-4A1C-48D8-B189-B1DEB417C06D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1BBB564D-4A1C-48D8-B189-B1DEB417C06D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
