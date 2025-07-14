@@ -90,6 +90,11 @@ public sealed unsafe class BitmapRenderer : IDisposable
         _texture = texture;
     }
 
+    ~BitmapRenderer()
+    {
+        Dispose(false);
+    }
+
     public void Render()
     {
         if (_isDisposed)
@@ -110,10 +115,20 @@ public sealed unsafe class BitmapRenderer : IDisposable
 
     public void Dispose()
     {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
         if (_isDisposed)
             return;
 
-        _isDisposed = true;
+        if (disposing)
+        {
+            // Dispose any managed resources.
+            // We don't have any
+        }
 
         var vao = _vao;
         var vbo = _vbo;
@@ -127,5 +142,7 @@ public sealed unsafe class BitmapRenderer : IDisposable
 
         var textureId = _texture.Id;
         glDeleteTextures(1, &textureId);
+        
+        _isDisposed = true;
     }
 }

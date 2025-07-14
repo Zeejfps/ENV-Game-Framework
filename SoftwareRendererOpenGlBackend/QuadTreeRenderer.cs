@@ -31,6 +31,11 @@ public sealed class QuadTreeRenderer : IDisposable
         _quadTree = quadTree;
     }
 
+    ~QuadTreeRenderer()
+    {
+        Dispose(false);
+    }
+
     public void Render()
     {
         if (_isDisposed)
@@ -88,11 +93,21 @@ public sealed class QuadTreeRenderer : IDisposable
 
     public void Dispose()
     {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
         if (_isDisposed)
             return;
 
+        if (disposing)
+        {
+            _bitmapRenderer.Dispose();
+        }
+        
         _isDisposed = true;
-        _bitmapRenderer.Dispose();
     }
 
     public void SetMousePosition(int x, int y)
