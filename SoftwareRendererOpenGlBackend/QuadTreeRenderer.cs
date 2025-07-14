@@ -38,9 +38,6 @@ public sealed class QuadTreeRenderer : IDisposable
 
     public void Render()
     {
-        if (_isDisposed)
-            throw new ObjectDisposedException(nameof(QuadTreeRenderer));
-
         var colorBuffer = _colorBuffer;
         colorBuffer.Fill(0x000000);
 
