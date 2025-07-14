@@ -4,15 +4,15 @@ using ZnvQuadTree;
 
 namespace SoftwareRendererOpenGlBackend;
 
-sealed class Item
+public sealed class Item
 {
     public PointF Position { get; set; }
 }
 
 public sealed class QuadTreeRenderer : IDisposable
 {
-    public int Width { get; }
-    public int Height { get; }
+    public int FramebufferWidth { get; }
+    public int FramebufferHeight { get; }
 
     private readonly Bitmap _colorBuffer;
     private readonly BitmapRenderer _bitmapRenderer;
@@ -21,21 +21,14 @@ public sealed class QuadTreeRenderer : IDisposable
     private bool _isDisposed;
     private PointF _mousePosition;
 
-    public QuadTreeRenderer()
+    public QuadTreeRenderer(int framebufferWidth, int framebufferHeight, QuadTreePointF<Item> quadTree)
     {
-        Width = 160;
-        Height = 120;
+        FramebufferWidth = framebufferWidth;
+        FramebufferHeight = framebufferHeight;
 
-        _colorBuffer = new Bitmap(Width, Height);
+        _colorBuffer = new Bitmap(framebufferWidth, framebufferHeight);
         _bitmapRenderer = new BitmapRenderer(_colorBuffer);
-
-        _quadTree = new QuadTreePointF<Item>(new RectF
-        {
-            Bottom = 0,
-            Left = 0,
-            Width = Width,
-            Height = Height
-        }, 6, maxDepth: 4);
+        _quadTree = quadTree;
     }
 
     public void Render()

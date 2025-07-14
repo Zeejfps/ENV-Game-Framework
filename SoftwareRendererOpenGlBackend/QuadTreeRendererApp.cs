@@ -1,6 +1,8 @@
 ﻿using static GL46;
 using GLFW;
+using ZGF.Geometry;
 using ZGF.GlfwUtils;
+using ZnvQuadTree;
 
 namespace SoftwareRendererOpenGlBackend;
 
@@ -10,7 +12,19 @@ public sealed class QuadTreeRendererApp : OpenGlApp
     
     public QuadTreeRendererApp(StartupConfig startupConfig) : base(startupConfig)
     {
-        _renderer = new QuadTreeRenderer();
+        var framebufferWidth = startupConfig.WindowWidth / 2;
+        var framebufferHeight = startupConfig.WindowHeight / 2;
+        _renderer = new QuadTreeRenderer(
+            framebufferWidth,  
+            framebufferHeight,
+            new QuadTreePointF<Item>(new RectF
+            {
+                Bottom = 0,
+                Left = 0,
+                Width = framebufferWidth,
+                Height = framebufferHeight
+            }, 6, maxDepth: 4)
+        );
 
         Glfw.SetFramebufferSizeCallback(WindowHandle, HandleFrameBufferSizeEvent);
         Glfw.SetMouseButtonCallback(WindowHandle, HandleMouseButtonEvent);
@@ -23,8 +37,8 @@ public sealed class QuadTreeRendererApp : OpenGlApp
     {
         var renderer = _renderer;
         Glfw.GetWindowSize(window, out var windowWidth, out var windowHeight);
-        var wFactor = (float)renderer.Width / windowWidth;
-        var hFactor = (float)renderer.Height / windowHeight;
+        var wFactor = (float)renderer.FramebufferWidth / windowWidth;
+        var hFactor = (float)renderer.FramebufferHeight / windowHeight;
         worldX = (int)(windowX * wFactor);
         worldY = (int)((windowHeight - windowY) * hFactor);
     }

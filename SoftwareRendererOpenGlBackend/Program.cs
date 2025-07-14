@@ -1,10 +1,10 @@
 ﻿using SoftwareRendererOpenGlBackend;
 using ZGF.GlfwUtils;
 
-using var app = new QuadTreeRendererApp(new StartupConfig
+var app = new QuadTreeRendererApp(new StartupConfig
 {
-    WindowWidth = 640,
-    WindowHeight = 480,
+    WindowWidth = 1280,
+    WindowHeight = 720,
     WindowTitle = "Quad Tree Renderer"
 });
 
