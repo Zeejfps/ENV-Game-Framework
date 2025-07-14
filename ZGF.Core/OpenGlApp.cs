@@ -3,7 +3,7 @@ using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 using Monitor = GLFW.Monitor;
 
-namespace ZGF.GlfwUtils;
+namespace ZGF.Core;
 
 public readonly struct StartupConfig
 {
@@ -63,7 +63,7 @@ public abstract class OpenGlApp : IDisposable
             OnUpdate();
             Glfw.SwapBuffers(WindowHandle);
         }
-        DisposeManagedResources();
+        Dispose();
         Glfw.Terminate();
     }
 

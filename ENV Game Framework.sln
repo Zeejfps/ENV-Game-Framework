@@ -70,11 +70,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Spatial", "ZGF.Spatial\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoftwareRendererModule", "SoftwareRendererModule\SoftwareRendererModule.csproj", "{32D0F3A9-FEFA-4F50-A73D-E3684F54B494}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoftwareRendererOpenGlBackend", "SoftwareRendererOpenGlBackend\SoftwareRendererOpenGlBackend.csproj", "{D59D04E3-91AB-4A41-8376-DE973C7F335F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuadTreeRendererProgram", "QuadTreeRendererProgram\QuadTreeRendererProgram.csproj", "{D59D04E3-91AB-4A41-8376-DE973C7F335F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Geometry", "ZGF.Geometry\ZGF.Geometry.csproj", "{1BBB564D-4A1C-48D8-B189-B1DEB417C06D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.GlfwUtils", "ZGF.GlfwUtils\ZGF.GlfwUtils.csproj", "{12A03870-B9AE-40B0-83FB-0E3D4E28CC65}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Core", "ZGF.Core\ZGF.Core.csproj", "{12A03870-B9AE-40B0-83FB-0E3D4E28CC65}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
