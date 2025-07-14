@@ -9,6 +9,9 @@ namespace SoftwareRendererOpenGlBackend;
 public sealed class QuadTreeRendererApp : OpenGlApp
 {
     private readonly QuadTreeRenderer _renderer;
+    private readonly SizeCallback _framebufferSizeCallback;
+    private readonly MouseButtonCallback _mouseButtonCallback;
+    private readonly MouseCallback _cursorPositonCallback;
     
     public QuadTreeRendererApp(StartupConfig startupConfig) : base(startupConfig)
     {
@@ -23,12 +26,16 @@ public sealed class QuadTreeRendererApp : OpenGlApp
                 Left = 0,
                 Width = framebufferWidth,
                 Height = framebufferHeight
-            }, 6, maxDepth: 4)
+            }, 6, maxDepth: 5)
         );
 
-        Glfw.SetFramebufferSizeCallback(WindowHandle, HandleFrameBufferSizeEvent);
-        Glfw.SetMouseButtonCallback(WindowHandle, HandleMouseButtonEvent);
-        Glfw.SetCursorPositionCallback(WindowHandle, HandleMouseMoveEvent);
+        _framebufferSizeCallback = HandleFrameBufferSizeEvent;
+        _mouseButtonCallback = HandleMouseButtonEvent;
+        _cursorPositonCallback = HandleMouseMoveEvent;
+        
+        Glfw.SetFramebufferSizeCallback(WindowHandle, _framebufferSizeCallback);
+        Glfw.SetMouseButtonCallback(WindowHandle, _mouseButtonCallback);
+        Glfw.SetCursorPositionCallback(WindowHandle, _cursorPositonCallback);
         
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     }
