@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using ZGF.Geometry;
+﻿using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
@@ -165,32 +164,6 @@ public class Rect : Component
     }
 }
 
-public sealed class StyleSheet
-{
-    public bool TryGetById(string? id, [NotNullWhen(true)] out Style? style)
-    {
-        if (string.IsNullOrEmpty(id))
-        {
-            style = null;
-            return false;
-        }
-        style = null;
-        return false;
-    }
-    
-    public bool TryGetByClass(string? classId, [NotNullWhen(true)] out Style? style)
-    {
-        if (string.IsNullOrEmpty(classId))
-        {
-            style = null;
-            return false;
-        }
-        
-        style = null;
-        return false;
-    }
-}
-
 public sealed class ColumnLayout : Layout
 {
     protected override RectF OnDoLayout(RectF position, IReadOnlyList<Component> components)
@@ -208,15 +181,6 @@ public sealed class ColumnLayout : Layout
             };
         }
         return position;
-    }
-}
-
-public sealed class Style
-{
-    public bool TryGetFloat(string name, out float value)
-    {
-        value = default;
-        return false;
     }
 }
 
@@ -282,81 +246,4 @@ public class Container : Component
 
         Layout.Render(r);
     }
-}
-
-public abstract class Component
-{
-    private RectF _position;
-    public RectF Position
-    {
-        get => _position;
-        set => SetField(ref _position, value);
-    }
-
-    private string? _classId;
-    public string? ClassId
-    {
-        get => _classId;
-        set => SetField(ref _classId, value);
-    }
-    
-    public virtual bool IsDirty { get; private set; }
-
-    public void DoLayout()
-    {
-        OnLayout();
-    }
-
-    public void Render(IRenderer r)
-    {
-        OnRender(r);
-    }
-
-    public void ApplyStyle(StyleSheet styleSheet)
-    {
-        OnApplyStyleSheet(styleSheet);
-    }
-        
-    public void AddMouseListener(IMouseListener mouseListener)
-    {
-        
-    }
-
-    protected bool SetField<T>(ref T field, T value)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value))
-            return false;
-        
-        field = value;
-        SetDirty();
-        return true;
-    }
-
-    public void SetDirty()
-    {
-        IsDirty = true;
-    }
-    
-    protected virtual void OnApplyStyleSheet(StyleSheet styleSheet){}
-    protected virtual void OnLayout(){}
-    protected virtual void OnRender(IRenderer r){}
-}
-
-public interface ILayout
-{
-    RectF DoLayout(RectF position);
-    void ApplyStyleSheet(StyleSheet styleSheet);
-    void Render(IRenderer renderer);
-    bool IsDirty { get; }
-}
-
-public interface IRenderer
-{
-    void DrawRect(RectF position, RectStyle style);
-    void DrawText(RectF position, string text);
-}
-
-public readonly struct RectStyle
-{
-    
 }
