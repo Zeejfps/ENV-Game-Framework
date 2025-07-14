@@ -53,7 +53,7 @@ public sealed class QuadTreeRendererApp : OpenGlApp
     private void HandleFrameBufferSizeEvent(Window window, int width, int height)
     {
         glViewport(0, 0, width, height);
-        _renderer.Render();
+        Render();
         Glfw.SwapBuffers(window);
     }
 
@@ -75,10 +75,16 @@ public sealed class QuadTreeRendererApp : OpenGlApp
         WindowToWorldPoint(window, windowX, windowY, out var worldX, out var worldY);
         _renderer.SetMousePosition(worldX, worldY);
     }
+
+    private void Render()
+    {
+        glClear(GL_COLOR_BUFFER_BIT);
+        _renderer.Render();
+    }
     
     protected override void OnUpdate()
     {
-        _renderer.Render();
+        Render();
     }
 
     protected override void DisposeManagedResources()

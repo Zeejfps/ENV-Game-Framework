@@ -14,7 +14,7 @@ public sealed unsafe class BitmapRenderer : IDisposable
     private readonly uint _vao;
     private readonly uint _vbo;
     private readonly uint _ibo;
-    private readonly Texture _texture;
+    private readonly uint _textureId;
 
     private bool _isDisposed;
 
@@ -87,7 +87,7 @@ public sealed unsafe class BitmapRenderer : IDisposable
         _vao = vao;
         _vbo = vbo;
         _ibo = ibo;
-        _texture = texture;
+        _textureId = texture.Id;
     }
 
     ~BitmapRenderer()
@@ -97,8 +97,7 @@ public sealed unsafe class BitmapRenderer : IDisposable
 
     public void Render()
     {
-        glClear(GL_COLOR_BUFFER_BIT);
-
+        GLTexture.glBindTexture(GL_TEXTURE_2D, _textureId);
         fixed (void* pixelDataPtr = &_bitmap.Pixels[0])
         {
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
@@ -130,14 +129,13 @@ public sealed unsafe class BitmapRenderer : IDisposable
         var vao = _vao;
         var vbo = _vbo;
         var ibo = _ibo;
+        var textureId = _textureId;
         var shaderProgram = _shaderProgram;
 
         glDeleteVertexArrays(1, &vao);
         glDeleteBuffers(1, &vbo);
         glDeleteBuffers(1, &ibo);
         glDeleteProgram(shaderProgram.Id);
-
-        var textureId = _texture.Id;
         glDeleteTextures(1, &textureId);
         
         _isDisposed = true;
