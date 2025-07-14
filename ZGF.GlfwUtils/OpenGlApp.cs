@@ -25,6 +25,7 @@ public abstract class OpenGlApp : IDisposable
         Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
         Glfw.WindowHint(Hint.ContextVersionMajor, 4);
         Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
+        Glfw.WindowHint(Hint.Visible, false);
 
         var windowWidth = startupConfig.WindowWidth;
         var windowHeight = startupConfig.WindowHeight;
@@ -47,6 +48,14 @@ public abstract class OpenGlApp : IDisposable
     
     public void Run()
     {
+        var videoMode = Glfw.GetVideoMode(Glfw.PrimaryMonitor);
+        var resolutionX = videoMode.Width;
+        var resolutionY = videoMode.Height;
+
+        Glfw.GetWindowSize(WindowHandle, out var windowWidth, out var windowHeight);
+        var windowPosX = (int)((resolutionX - windowWidth) * 0.5f);
+        var windowPosY = (int)((resolutionY - windowHeight) * 0.5f);
+        Glfw.SetWindowPosition(WindowHandle, windowPosX, windowPosY);
         Glfw.ShowWindow(WindowHandle);
         while (!Glfw.WindowShouldClose(WindowHandle))
         {
