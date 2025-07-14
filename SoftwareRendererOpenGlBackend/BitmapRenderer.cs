@@ -97,9 +97,6 @@ public sealed unsafe class BitmapRenderer : IDisposable
 
     public void Render()
     {
-        if (_isDisposed)
-            throw new ObjectDisposedException(nameof(BitmapRenderer));
-
         glClear(GL_COLOR_BUFFER_BIT);
 
         fixed (void* pixelDataPtr = &_bitmap.Pixels[0])
