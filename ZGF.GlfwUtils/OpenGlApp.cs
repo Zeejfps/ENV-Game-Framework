@@ -16,7 +16,11 @@ public abstract class OpenGlApp : IDisposable
 {
     protected readonly Window WindowHandle;
     
-    protected bool _isDisposed;
+    private bool _isDisposed;
+
+    private MouseButtonCallback _mouseButtonCallback;
+    private MouseCallback _cursorPositionCallback;
+    private SizeCallback _framebufferSizeCallback;
     
     protected OpenGlApp(StartupConfig startupConfig)
     {
@@ -68,10 +72,9 @@ public abstract class OpenGlApp : IDisposable
     }
 
     protected abstract void OnUpdate();
-
     protected abstract void DisposeManagedResources();
     protected abstract void DisposeUnmanagedResources();
-
+    
     public void Dispose()
     {
         Dispose(true);
@@ -90,5 +93,23 @@ public abstract class OpenGlApp : IDisposable
 
         DisposeUnmanagedResources();
         _isDisposed = true;
+    }
+    
+    protected void SetFramebufferSizeCallback(SizeCallback callback)
+    {
+        _framebufferSizeCallback = callback;
+        Glfw.SetFramebufferSizeCallback(WindowHandle, callback);
+    }
+    
+    protected void SetMouseButtonCallback(MouseButtonCallback callback)
+    {
+        _mouseButtonCallback = callback;
+        Glfw.SetMouseButtonCallback(WindowHandle, _mouseButtonCallback);
+    }
+    
+    protected void SetCursorPositionCallback(MouseCallback callback)
+    {
+        _cursorPositionCallback = callback;
+        Glfw.SetCursorPositionCallback(WindowHandle, _cursorPositionCallback);
     }
 }
