@@ -98,23 +98,16 @@ internal static class KeysExtensions
             case Keys.Y:
                 return KeyboardKey.Y;
             case Keys.Z:
-                break;
             case Keys.LeftBracket:
-                break;
             case Keys.Backslash:
-                break;
             case Keys.RightBracket:
-                break;
             case Keys.GraveAccent:
-                break;
             case Keys.World1:
-                break;
             case Keys.World2:
                 break;
             case Keys.Escape:
                 return KeyboardKey.Escape;
             case Keys.Enter:
-                break;
             case Keys.Tab:
                 break;
             case Keys.Backspace:
@@ -132,73 +125,39 @@ internal static class KeysExtensions
             case Keys.Up:
                 return KeyboardKey.UpArrow;
             case Keys.PageUp:
-                break;
             case Keys.PageDown:
-                break;
             case Keys.Home:
-                break;
             case Keys.End:
-                break;
             case Keys.CapsLock:
-                break;
             case Keys.ScrollLock:
-                break;
             case Keys.NumLock:
-                break;
             case Keys.PrintScreen:
-                break;
             case Keys.Pause:
-                break;
             case Keys.F1:
-                break;
             case Keys.F2:
-                break;
             case Keys.F3:
-                break;
             case Keys.F4:
-                break;
             case Keys.F5:
-                break;
             case Keys.F6:
-                break;
             case Keys.F7:
-                break;
             case Keys.F8:
-                break;
             case Keys.F9:
-                break;
             case Keys.F10:
-                break;
             case Keys.F11:
-                break;
             case Keys.F12:
-                break;
             case Keys.F13:
-                break;
             case Keys.F14:
-                break;
             case Keys.F15:
-                break;
             case Keys.F16:
-                break;
             case Keys.F17:
-                break;
             case Keys.F18:
-                break;
             case Keys.F19:
-                break;
             case Keys.F20:
-                break;
             case Keys.F21:
-                break;
             case Keys.F22:
-                break;
             case Keys.F23:
-                break;
             case Keys.F24:
-                break;
             case Keys.F25:
-                break;
             case Keys.Numpad0:
                 break;
             case Keys.Numpad1:
@@ -210,51 +169,31 @@ internal static class KeysExtensions
             case Keys.Numpad4:
                 return KeyboardKey.Alpha4;
             case Keys.Numpad5:
-                break;
             case Keys.Numpad6:
-                break;
             case Keys.Numpad7:
-                break;
             case Keys.Numpad8:
-                break;
             case Keys.Numpad9:
-                break;
             case Keys.NumpadDecimal:
-                break;
             case Keys.NumpadDivide:
-                break;
             case Keys.NumpadMultiply:
-                break;
             case Keys.NumpadSubtract:
-                break;
             case Keys.NumpadAdd:
-                break;
             case Keys.NumpadEnter:
-                break;
             case Keys.NumpadEqual:
-                break;
             case Keys.LeftShift:
-                break;
             case Keys.LeftControl:
-                break;
             case Keys.LeftAlt:
-                break;
             case Keys.LeftSuper:
-                break;
             case Keys.RightShift:
-                break;
             case Keys.RightControl:
-                break;
             case Keys.RightAlt:
-                break;
             case Keys.RightSuper:
-                break;
             case Keys.Menu:
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(key), key, null);
         }
 
-        return KeyboardKey.D;
+        return KeyboardKey.Unknown;
     }
 }
