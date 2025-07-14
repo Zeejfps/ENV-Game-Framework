@@ -111,17 +111,4 @@ public sealed class QuadTreeRenderer : IDisposable
     {
         _mousePosition =  new PointF(x, y);
     }
-
-    public void AddItemAt(int x, int y)
-    {
-        var item = new Item
-        {
-            Position = new PointF
-            {
-                X = x,
-                Y = y
-            }
-        };
-        _quadTree.Insert(item, item.Position);
-    }
 }

@@ -9,6 +9,8 @@ namespace SoftwareRendererOpenGlBackend;
 public sealed class QuadTreeRendererApp : OpenGlApp
 {
     private readonly QuadTreeRenderer _renderer;
+    private readonly QuadTreePointF<Item> _quadTree;
+    
     private readonly SizeCallback _framebufferSizeCallback;
     private readonly MouseButtonCallback _mouseButtonCallback;
     private readonly MouseCallback _cursorPositonCallback;
@@ -18,16 +20,18 @@ public sealed class QuadTreeRendererApp : OpenGlApp
     {
         var framebufferWidth = startupConfig.WindowWidth / 2;
         var framebufferHeight = startupConfig.WindowHeight / 2;
+        _quadTree = new QuadTreePointF<Item>(new RectF
+        {
+            Bottom = 0,
+            Left = 0,
+            Width = framebufferWidth,
+            Height = framebufferHeight
+        }, 20, maxDepth: 6);
+        
         _renderer = new QuadTreeRenderer(
             framebufferWidth,  
             framebufferHeight,
-            new QuadTreePointF<Item>(new RectF
-            {
-                Bottom = 0,
-                Left = 0,
-                Width = framebufferWidth,
-                Height = framebufferHeight
-            }, 20, maxDepth: 6)
+            _quadTree
         );
 
         _framebufferSizeCallback = HandleFrameBufferSizeEvent;
@@ -55,8 +59,21 @@ public sealed class QuadTreeRendererApp : OpenGlApp
         {
             var x = Random.Shared.Next(0, _renderer.FramebufferWidth);
             var y = Random.Shared.Next(0, _renderer.FramebufferHeight);
-            _renderer.AddItemAt(x, y);
+            AddItemAt(x, y);
         }
+    }
+    
+    private void AddItemAt(int x, int y)
+    {
+        var item = new Item
+        {
+            Position = new PointF
+            {
+                X = x,
+                Y = y
+            }
+        };
+        _quadTree.Insert(item, item.Position);
     }
     
     private void WindowToWorldPoint(Window window, double windowX, double windowY, out int worldX, out int worldY)
@@ -86,7 +103,7 @@ public sealed class QuadTreeRendererApp : OpenGlApp
 
         Glfw.GetCursorPosition(window, out var windowX, out var windowY);
         WindowToWorldPoint(window, windowX, windowY, out var worldX, out var worldY);
-        _renderer.AddItemAt(worldX, worldY);
+        AddItemAt(worldX, worldY);
     }
 
     private void HandleMouseMoveEvent(Window window, double windowX, double windowY)
