@@ -12,6 +12,7 @@
       <ProjectReference Include="..\Glfw.NET\Glfw.NET.csproj" />
       <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
       <ProjectReference Include="..\SoftwareRendererModule\SoftwareRendererModule.csproj" />
+      <ProjectReference Include="..\ZGF.GlfwUtils\ZGF.GlfwUtils.csproj" />
       <ProjectReference Include="..\ZGF.Spatial\ZGF.Spatial.csproj" />
     </ItemGroup>
 

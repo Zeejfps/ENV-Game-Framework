@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 project_path="./NodeGraphApp/NodeGraphApp.csproj"
 output_path="./builds/NodeGraphApp/"
