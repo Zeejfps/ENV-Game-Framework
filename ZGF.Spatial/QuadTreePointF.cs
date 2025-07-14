@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using ZGF.Geometry;
 
 namespace ZnvQuadTree;
@@ -8,6 +7,7 @@ public sealed class QuadTreePointF<T> where T : notnull
 {
     private readonly Node _root;
     private readonly Dictionary<T, PointF> _items = new();
+    private bool _isDirty;
 
     public QuadTreePointF(RectF bounds, int maxItemsPerQuad, int maxDepth = 10, float collapseThreshold = 0.75f)
     {
@@ -47,6 +47,7 @@ public sealed class QuadTreePointF<T> where T : notnull
         if (_items.TryAdd(item, position))
         {
             _root.Insert(new Cell(item, position));
+            _isDirty = true;
         }
     }
 
@@ -65,6 +66,8 @@ public sealed class QuadTreePointF<T> where T : notnull
         {
             Insert(item, position);
         }
+
+        _isDirty = true;
     }
 
     public void Remove(T item)
@@ -73,6 +76,7 @@ public sealed class QuadTreePointF<T> where T : notnull
         {
             var boundedItem = new Cell(item, bounds);
             _root.Remove(boundedItem);
+            _isDirty = true;
         }
     }
 
@@ -170,23 +174,33 @@ public sealed class QuadTreePointF<T> where T : notnull
     {
         _root.Clear();
         _items.Clear();
+        _isDirty = true;
     }
+
+    private Info? _info;
     
     public Info GetInfo()
     {
-        var nodes = new List<NodeInfo>();
-        var maxDepth = 0;
-        _root.CollectNodeInfo(nodes, ref maxDepth);
-        
-        return new Info
+        if (_info == null || _isDirty)
         {
-            MaxDepthReached = maxDepth,
-            TotalNodes = nodes.Count,
-            TotalItems = ItemCount,
-            LeafNodes = nodes.Count(n => !n.IsSplit),
-            InternalNodes = nodes.Count(n => n.IsSplit),
-            Nodes = nodes
-        };
+            var nodes = new List<NodeInfo>();
+            var maxDepth = 0;
+            _root.CollectNodeInfo(nodes, ref maxDepth);
+        
+            _info = new Info
+            {
+                MaxDepthReached = maxDepth,
+                TotalNodes = nodes.Count,
+                TotalItems = ItemCount,
+                LeafNodes = nodes.Count(n => !n.IsSplit),
+                InternalNodes = nodes.Count(n => n.IsSplit),
+                Nodes = nodes
+            };
+
+            _isDirty = false;
+        }
+        
+        return _info;
     }
     
     private sealed class Node
@@ -690,7 +704,7 @@ public sealed class QuadTreePointF<T> where T : notnull
 
     private readonly record struct Cell(T Item, PointF Position);
 
-    public readonly struct Info
+    public sealed class Info
     {
         public required int MaxDepthReached { get; init; }
         public required int TotalNodes { get; init; }
