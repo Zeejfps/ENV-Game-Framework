@@ -63,7 +63,7 @@ public sealed class QuadTreeRendererApp : OpenGlApp
         }
     }
     
-    private void AddItemAt(int x, int y)
+    private void AddItemAt(float x, float y)
     {
         var item = new Item
         {
