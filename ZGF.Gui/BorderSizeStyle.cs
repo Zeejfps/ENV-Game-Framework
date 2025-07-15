@@ -1,11 +1,11 @@
 namespace ZGF.Gui;
 
-public readonly struct BorderSizeStyle
+public struct BorderSizeStyle
 {
-    public StyleValue<float> Left { get; init; }
-    public StyleValue<float> Right { get; init; }
-    public StyleValue<float> Top { get; init; }
-    public StyleValue<float> Bottom { get; init; }
+    public StyleValue<float> Left { get; set; }
+    public StyleValue<float> Right { get; set; }
+    public StyleValue<float> Top { get; set; }
+    public StyleValue<float> Bottom { get; set; }
 
     public static BorderSizeStyle All(float size)
     {
@@ -16,5 +16,20 @@ public readonly struct BorderSizeStyle
             Top = size,
             Bottom = size,
         };
+    }
+
+    public void Apply(ref BorderSizeStyle style)
+    {
+        if (Left.IsSet)
+            style.Left = Left.Value;
+        
+        if (Right.IsSet)
+            style.Right = Right.Value;
+        
+        if (Top.IsSet)
+            style.Top = Top.Value;
+        
+        if (Bottom.IsSet)
+            style.Bottom = Bottom.Value;
     }
 }

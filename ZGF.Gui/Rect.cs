@@ -51,14 +51,17 @@ public class Rect : Component
 
     protected override void OnApplyStyleSheet(StyleSheet styleSheet)
     {
-        if (styleSheet.TryGetById(Id, out var style))
-        {
-            style.Padding.Apply(ref Style.Padding);
-        }
-        
-        if (styleSheet.TryGetByClass(ClassId, out style))
+        if (styleSheet.TryGetByClass(ClassId, out var classStyle))
         {
 
         }
+        
+        if (styleSheet.TryGetById(Id, out var idStyle))
+        {
+            idStyle.Padding.Apply(ref Style.Padding);
+            idStyle.BorderSize.Apply(ref Style.BorderSize);
+        }
+        
+        SetDirty();
     }
 }
