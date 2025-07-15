@@ -60,7 +60,7 @@ public sealed class App : OpenGlApp
                 Bottom = 0xFFFFFF
             },
         });
-        gui.ApplyStyleSheet(ss);
+        gui.ApplyStyleSheetToSelf(ss);
 
         _gui = gui;
 
@@ -99,6 +99,10 @@ public sealed class App : OpenGlApp
         
         if (key != Keys.Space)
             return;
+        
+        var styleSheet = new StyleSheet();
+        
+        _gui.ApplyStyleSheetToSelf(styleSheet);
     }
     
     protected override void OnUpdate()

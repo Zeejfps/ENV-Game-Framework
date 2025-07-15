@@ -51,6 +51,22 @@ public abstract class Component
         private set => _isDirty =  value;
     }
 
+    private StyleSheet? _styleSheet;
+    protected StyleSheet? StyleSheet
+    {
+        get => _styleSheet;
+        set
+        {
+            if (SetField(ref _styleSheet, value))
+            {
+                if (_styleSheet != null)
+                    OnStyleSheetApplied(_styleSheet);
+                else
+                    OnStyleSheetCleared();
+            }
+        }
+    }
+
     private readonly List<Component> _children = new();
 
     public IReadOnlyList<Component> Children => _children;
@@ -90,9 +106,11 @@ public abstract class Component
         OnDrawSelf(r);
     }
 
-    public void ApplyStyleSheet(StyleSheet styleSheet)
+    public void ApplyStyleSheetToSelf(StyleSheet styleSheet)
     {
-        OnApplyStyleSheet(styleSheet);
+        StyleSheet = styleSheet;
+        ApplyStyleSheetToChildren(styleSheet);
+        SetDirty();
     }
         
     public void AddMouseListener(IMouseListener mouseListener)
@@ -125,11 +143,15 @@ public abstract class Component
         }
     }
 
-    protected virtual void OnApplyStyleSheet(StyleSheet styleSheet)
+    protected virtual void OnStyleSheetApplied(StyleSheet styleSheet){}
+    
+    protected virtual void OnStyleSheetCleared(){}
+
+    protected virtual void ApplyStyleSheetToChildren(StyleSheet styleSheet)
     {
         foreach (var child in _children)
         {
-            child.ApplyStyleSheet(styleSheet);
+            child.ApplyStyleSheetToSelf(styleSheet);
         }
     }
 
