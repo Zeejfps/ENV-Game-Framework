@@ -1,4 +1,3 @@
-using System.Numerics;
 using EasyGameFramework.Api;
 using GLFW;
 using SoftwareRendererModule;
@@ -10,7 +9,8 @@ namespace ZGF.Gui.Tests;
 
 public sealed class App : OpenGlApp
 {
-    private readonly BitmapCanvas _canvas;
+    private readonly Canvas _canvas;
+    private readonly Component _gui;
 
     private readonly Clock _clock;
     private Window _window;
@@ -25,7 +25,7 @@ public sealed class App : OpenGlApp
         var framebufferWidth = startupConfig.WindowWidth / 2;
         var framebufferHeight = startupConfig.WindowHeight / 2;
         var bitmap = new Bitmap(framebufferWidth, framebufferHeight);
-        _canvas = new BitmapCanvas(bitmap);
+        _canvas = new Canvas(bitmap);
         glClearColor(0f, 0f, 0f, 0f);
         
         var header = new Header
@@ -47,7 +47,7 @@ public sealed class App : OpenGlApp
         };
         gui.ApplyStyleSheet(new StyleSheet());
 
-        Gui = gui;
+        _gui = gui;
 
         _keyCallback = HandleKeyEvent;
         _mouseButtonCallback = HandleMouseButtonEvent;
@@ -84,13 +84,8 @@ public sealed class App : OpenGlApp
         
         if (key != Keys.Space)
             return;
-        
-        _isMoving = !_isMoving;
     }
-
-    private bool _isMoving;
-    private Component Gui { get; }
-
+    
     protected override void OnUpdate()
     {
         if (_isDragging)
@@ -105,8 +100,8 @@ public sealed class App : OpenGlApp
         
         glClear(GL_COLOR_BUFFER_BIT);
         _canvas.BeginFrame();
-        Gui.LayoutSelf();
-        Gui.DrawSelf(_canvas);
+        _gui.LayoutSelf();
+        _gui.DrawSelf(_canvas);
         _canvas.EndFrame();
         EventSystem.Instance.Update();
     }

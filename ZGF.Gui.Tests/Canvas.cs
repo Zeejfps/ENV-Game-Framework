@@ -4,12 +4,12 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class BitmapCanvas : ICanvas
+public sealed class Canvas : ICanvas
 {
     private readonly Bitmap _colorBuffer;
     private readonly BitmapRenderer _bitmapRenderer;
 
-    public BitmapCanvas(Bitmap colorBuffer)
+    public Canvas(Bitmap colorBuffer)
     {
         _colorBuffer = colorBuffer;
         _bitmapRenderer = new BitmapRenderer(colorBuffer);
