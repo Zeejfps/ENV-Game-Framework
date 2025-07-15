@@ -31,17 +31,24 @@ public sealed class App : OpenGlApp
             Position = new RectF(0f, 0f, 0f, 20f),
         };
 
-        var layout = new BorderLayout();
-        layout.Center = new Rect();
-        layout.North = header;
-        layout.South = footer;
+        var center = new ColumnLayout();
+        center.Add(new TextButton("Hello World!"));
+        center.Add(new TextButton("Hello World!"));
+        center.Add(new TextButton("Hello World!"));
 
-        Gui.Position = new RectF(0, 0, startupConfig.WindowWidth, startupConfig.WindowHeight);
-        Gui.Layout = layout;
-        Gui.ApplyStyle(new StyleSheet());
+        var gui = new BorderLayout
+        {
+            Center = center,
+            North = header,
+            South = footer,
+            Position = new RectF(0, 0, startupConfig.WindowWidth, startupConfig.WindowHeight)
+        };
+        gui.ApplyStyleSheet(new StyleSheet());
+
+        Gui = gui;
     }
 
-    private Container Gui { get; }
+    private Component Gui { get; }
 
     protected override void OnUpdate()
     {

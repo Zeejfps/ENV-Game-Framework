@@ -33,16 +33,16 @@ public abstract class Component
             return;
 
         Console.WriteLine($"Laying out: {GetType()}");
-        OnLayout();
+        OnLayoutSelf();
         IsDirty = false;
     }
 
     public void DrawSelf(ICanvas r)
     {
-        OnDraw(r);
+        OnDrawSelf(r);
     }
 
-    public void ApplyStyle(StyleSheet styleSheet)
+    public void ApplyStyleSheet(StyleSheet styleSheet)
     {
         OnApplyStyleSheet(styleSheet);
     }
@@ -68,6 +68,6 @@ public abstract class Component
     }
     
     protected virtual void OnApplyStyleSheet(StyleSheet styleSheet){}
-    protected virtual void OnLayout(){}
-    protected virtual void OnDraw(ICanvas c){}
+    protected virtual void OnLayoutSelf(){}
+    protected virtual void OnDrawSelf(ICanvas c){}
 }

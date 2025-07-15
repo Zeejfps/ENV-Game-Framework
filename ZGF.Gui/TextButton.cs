@@ -1,6 +1,6 @@
 namespace ZGF.Gui;
 
-public sealed class TextButton : Container, IMouseListener
+public sealed class TextButton : MultiChildComponent, IMouseListener
 {
     private Rect _background;
 
@@ -11,10 +11,8 @@ public sealed class TextButton : Container, IMouseListener
     {
         _background = new Rect();
 
-        var sackLayout = new StackLayout();
-        sackLayout.Add(_background);
-        sackLayout.Add(new Label(text));
-        Layout = sackLayout;
+        Add(_background);
+        Add(new Label(text));
 
         AddMouseListener(this);
     }

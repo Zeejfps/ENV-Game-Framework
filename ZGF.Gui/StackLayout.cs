@@ -1,17 +1,15 @@
-using ZGF.Geometry;
-
 namespace ZGF.Gui;
 
-public class StackLayout : Layout
+public class StackLayout : MultiChildComponent
 {
-    protected override RectF OnDoLayout(RectF position, IReadOnlyList<Component> components)
+    protected override void OnLayoutSelf()
     {
-        Console.WriteLine("Stack layout");
-        foreach (var component in components)
+        base.OnLayoutSelf();
+        var position = Position;
+        foreach (var component in Children)
         {
             component.Position = position;
             component.LayoutSelf();
         }
-        return position;
     }
 }

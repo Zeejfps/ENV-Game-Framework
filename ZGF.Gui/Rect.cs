@@ -9,7 +9,7 @@ public class Rect : Component
         set => SetField(ref _style, value);
     }
 
-    protected override void OnDraw(ICanvas c)
+    protected override void OnDrawSelf(ICanvas c)
     {
         c.DrawRect(Position, Style);
     }

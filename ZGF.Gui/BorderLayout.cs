@@ -2,7 +2,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
-public class BorderLayout : ILayout
+public sealed class BorderLayout : Component
 {
     public Component? North { get; set; }
     public Component? East { get; set; }
@@ -10,8 +10,9 @@ public class BorderLayout : ILayout
     public Component? South { get; set; }
     public Component? Center { get; set; }
 
-    public RectF DoLayout(RectF position)
+    protected override void OnLayoutSelf()
     {
+        var position = Position;
         var centerAreaHeight = position.Height;
         var bottomOffset = 0f;
         if (North != null)
@@ -32,27 +33,20 @@ public class BorderLayout : ILayout
 
         if (Center != null)
         {
-            Console.WriteLine("Wtf");
+            Console.WriteLine($"{centerAreaHeight}");
             Center.Position = new RectF(position.Left, position.Bottom + bottomOffset, position.Width, centerAreaHeight);
             Center.LayoutSelf();
         }
-
-        return position;
     }
 
-    public void ApplyStyleSheet(StyleSheet styleSheet)
+    protected override void OnDrawSelf(ICanvas c)
     {
-
+        North?.DrawSelf(c);
+        Center?.DrawSelf(c);
+        South?.DrawSelf(c);
     }
 
-    public void DrawSelf(ICanvas canvas)
-    {
-        North?.DrawSelf(canvas);
-        Center?.DrawSelf(canvas);
-        South?.DrawSelf(canvas);
-    }
-
-    public bool IsDirty
+    public override bool IsDirty
     {
         get
         {
@@ -65,7 +59,7 @@ public class BorderLayout : ILayout
             if (Center != null && Center.IsDirty)
                 return true;
 
-            return false;
+            return base.IsDirty;
         }
     }
 }

@@ -16,7 +16,7 @@ public sealed class Label : Component
         _text = text;
     }
 
-    protected override void OnDraw(ICanvas c)
+    protected override void OnDrawSelf(ICanvas c)
     {
         c.DrawText(Position, _text, Style);
     }

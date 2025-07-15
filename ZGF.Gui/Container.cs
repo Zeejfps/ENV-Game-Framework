@@ -9,6 +9,8 @@ public class Container : Component
         set => SetField(ref _layout, value);
     }
 
+    public Component? Child { get; set; }
+
     public override bool IsDirty
     {
         get
@@ -22,13 +24,13 @@ public class Container : Component
             return false;
         }
     }
-    
-    protected override void OnLayout()
+
+    protected override void OnLayoutSelf()
     {
         Console.WriteLine("Laying out container...");
         if (Layout == null)
             return;
-        
+
         if (!Layout.IsDirty)
             return;
 
@@ -41,11 +43,11 @@ public class Container : Component
     {
         if (Layout == null)
             return;
-        
+
         Layout.ApplyStyleSheet(styleSheet);
     }
 
-    protected override void OnDraw(ICanvas c)
+    protected override void OnDrawSelf(ICanvas c)
     {
         if (Layout == null)
             return;
