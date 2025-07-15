@@ -2,6 +2,8 @@
 
 public sealed class Center : Component
 {
+    public Window Window { get; }
+    
     public Center()
     {
         var background = new Rect
@@ -14,8 +16,8 @@ public sealed class Center : Component
         
         Add(background);
 
-        var window = new Window();
+        Window = new Window();
         
-        Add(window);
+        Add(Window);
     }
 }

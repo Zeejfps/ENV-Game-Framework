@@ -197,4 +197,9 @@ public sealed class Window : Component
             child.LayoutSelf();
         }
     }
+
+    public void Move(float dx, float dy)
+    {
+        Position = Position with { Left = Position.Left + dx, Bottom = Position.Bottom + dy };
+    }
 }

@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\EasyGameFramework\EasyGameFramework.csproj" />
       <ProjectReference Include="..\QuadTreeRendererProgram\QuadTreeRendererProgram.csproj" />
       <ProjectReference Include="..\SoftwareRendererModule\SoftwareRendererModule.csproj" />
       <ProjectReference Include="..\ZGF.Core\ZGF.Core.csproj" />
