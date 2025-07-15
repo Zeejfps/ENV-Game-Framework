@@ -18,7 +18,7 @@ public sealed class VisualTree
 
     }
 
-    public void AddText(RectF position, TextStyle style)
+    public void AddText(RectF position, string text, TextStyle style)
     {
 
     }

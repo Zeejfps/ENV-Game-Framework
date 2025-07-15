@@ -52,12 +52,12 @@ public sealed class App : IGuiApp
     public void Run()
     {
         var canvas = new FakeCanvas();
-        var visualTree = new VisualTree();
         while (true)
         {
+            canvas.BeginFrame();
             GuiContent.LayoutSelf();
             GuiContent.DrawSelf(canvas);
-            canvas.Render();
+            canvas.EndFrame();
             EventSystem.Instance.Update();
         }
     }
@@ -67,16 +67,24 @@ public sealed class App : IGuiApp
 
 public sealed class FakeCanvas : ICanvas
 {
+    private VisualTree _visualTree = new();
+
+    public void BeginFrame()
+    {
+
+    }
+
     public void DrawRect(RectF position, RectStyle style)
     {
+        _visualTree.AddRect(position, style);
     }
 
     public void DrawText(RectF position, string text, TextStyle style)
     {
-
+        _visualTree.AddText(position, text, style);
     }
 
-    public void Render()
+    public void EndFrame()
     {
 
     }
@@ -142,7 +150,7 @@ public abstract class Layout : ILayout
         }
     }
 
-    public void Render(ICanvas canvas)
+    public void DrawSelf(ICanvas canvas)
     {
         foreach (var component in _components)
         {
@@ -233,6 +241,6 @@ public class Container : Component
         if (Layout == null)
             return;
 
-        Layout.Render(c);
+        Layout.DrawSelf(c);
     }
 }
