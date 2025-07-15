@@ -14,8 +14,13 @@ public sealed class BorderLayout : Component
     {
         Position = Constraints;
         var position = Position;
+        
+        var centerAreaWidth = position.Width;
         var centerAreaHeight = position.Height;
+
+        var leftOffset = 0f;
         var bottomOffset = 0f;
+        
         if (North != null)
         {
             North.Constraints = new RectF(position.Left, position.Top - North.Constraints.Height, position.Width, North.Constraints.Height);
@@ -36,10 +41,39 @@ public sealed class BorderLayout : Component
             bottomOffset += South.Position.Height;
         }
 
+        if (West != null)
+        {
+            West.Constraints = new RectF
+            {
+                Left = position.Left,
+                Bottom = position.Bottom + bottomOffset,
+                Width = West.Constraints.Width,
+                Height = centerAreaHeight,
+            };
+            West.LayoutSelf();
+            centerAreaWidth -= West.Position.Width;
+            leftOffset += West.Position.Width;
+        }
+        
+        if (East != null)
+        {
+            East.Constraints = new RectF
+            {
+                Left = position.Right - East.Constraints.Width,
+                Bottom = position.Bottom + bottomOffset,
+                Width = East.Constraints.Width,
+                Height = centerAreaHeight,
+            };
+            East.LayoutSelf();
+            centerAreaWidth -= East.Position.Width;
+        }
+
         if (Center != null)
         {
-            Center.Constraints = position with
+            Center.Constraints = new RectF
             {
+                Left = position.Left + leftOffset,
+                Width = centerAreaWidth,
                 Bottom = position.Bottom + bottomOffset,
                 Height = centerAreaHeight
             };
@@ -52,6 +86,8 @@ public sealed class BorderLayout : Component
         North?.DrawSelf(c);
         Center?.DrawSelf(c);
         South?.DrawSelf(c);
+        West?.DrawSelf(c);
+        East?.DrawSelf(c);
     }
 
     public override bool IsDirty
@@ -65,6 +101,12 @@ public sealed class BorderLayout : Component
                 return true;
 
             if (Center != null && Center.IsDirty)
+                return true;
+
+            if (West != null && West.IsDirty)
+                return true;
+            
+            if (East != null && East.IsDirty)
                 return true;
 
             return base.IsDirty;

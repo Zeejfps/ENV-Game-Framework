@@ -2,12 +2,10 @@
 
 namespace ZGF.Gui.Tests;
 
-public sealed class Window : Component
+public sealed class WindowFrame : Component
 {
-    public Window()
+    public WindowFrame()
     {
-        Position = new RectF(200f, 200f, 240f, 200f);
-        
         var outline = new Rect
         {
             Style =
@@ -17,7 +15,7 @@ public sealed class Window : Component
                 BorderColor = BorderColorStyle.All(0x000000),
             }
         };
-
+        
         var frame = new Rect
         {
             Style =
@@ -40,7 +38,116 @@ public sealed class Window : Component
                 }
             }
         };
+        
+        outline.Add(frame);
+        Add(outline);
+    }
+}
 
+public sealed class Window : Component
+{
+    public Window()
+    {
+        Position = new RectF(200f, 200f, 240f, 200f);
+        
+        var outline = new Rect
+        {
+            Style =
+            {
+                BackgroundColor = 0x000000,
+                BorderSize = BorderSizeStyle.All(1),
+                BorderColor = BorderColorStyle.All(0x000000),
+            }
+        };
+        
+        var titlePanel = new Rect
+        {
+            Constraints = new RectF
+            {
+                Height = 20f,
+            },
+            Style =
+            {
+                BackgroundColor = 0xCECECE,
+                BorderColor = new BorderColorStyle
+                {
+                    Top = 0xFFFFFF,
+                    Left = 0xFFFFFF,
+                    Right = 0x9C9C9C,
+                },
+                BorderSize = new BorderSizeStyle
+                {
+                    Top = 1,
+                    Left = 1,
+                    Right = 1,
+                }
+            }
+        };
+
+        var leftBorder = new Rect
+        {
+            Constraints = new RectF
+            {
+                Width = 4f,
+            },
+            Style =
+            {
+                BackgroundColor = 0xCECECE,
+                BorderColor = new BorderColorStyle
+                {
+                    Left = 0xFFFFFF,
+                },
+                BorderSize = new BorderSizeStyle
+                {
+                    Left = 1
+                }
+            }
+        };
+        
+        var rightBorder = new Rect
+        {
+            Constraints = new RectF
+            {
+                Width = 4f,
+            },
+            Style =
+            {
+                BackgroundColor = 0xCECECE,
+                BorderColor = new BorderColorStyle
+                {
+                    Right = 0x9C9C9C,
+                },
+                BorderSize = new BorderSizeStyle
+                {
+                    Right = 1
+                }
+            }
+        };
+        
+        var bottomBorder = new Rect
+        {
+            Constraints = new RectF
+            {
+                Height = 4f,
+            },
+            Style =
+            {
+                BackgroundColor = 0xCECECE,
+                BorderColor = new BorderColorStyle
+                {
+                    Bottom = 0x9C9C9C,
+                    Right = 0x9C9C9C,
+                    Left = 0xFFFFFF
+                },
+                BorderSize = new BorderSizeStyle
+                {
+                    Bottom = 1,
+                    Right = 1,
+                    Left = 1,
+                }
+            }
+        };
+        
         var contentOutline = new Rect
         {
             Style =
@@ -66,10 +173,20 @@ public sealed class Window : Component
             }
         };
         
+        var borderLayout = new BorderLayout
+        {
+            North = titlePanel,
+            West = leftBorder,
+            Center = contentOutline,
+            East = rightBorder,
+            South = bottomBorder
+        };
+        
         contentOutline.Add(content);
-        frame.Add(contentOutline);
-        outline.Add(frame);
+        // frame.Add(contentOutline);
+        outline.Add(borderLayout);
         Add(outline);
+        
     }
 
     protected override void OnLayoutSelf()

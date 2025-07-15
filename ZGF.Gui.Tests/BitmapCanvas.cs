@@ -39,7 +39,7 @@ public sealed class BitmapCanvas : ICanvas
         Graphics.FillRect(_colorBuffer, left +  (int)borderSize.Left, bottom + (int)borderSize.Bottom, fillWidth, fillHeight, style.BackgroundColor);
 
         // Left Border
-        DrawBorder(left, bottom, left, top, borderColor.Left, (int)borderSize.Left, 1, 0);
+        DrawBorder(left, bottom, left, top+1, borderColor.Left, (int)borderSize.Left, 1, 0);
         
         // Right Border
         DrawBorder(right, bottom, right, top + 1, borderColor.Right, (int)borderSize.Right, -1, 0);
