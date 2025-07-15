@@ -4,14 +4,14 @@ public sealed class TextButton : Component, IMouseListener, ICaptureMouse
 {
     private Rect _background;
 
-    private static RectStyle BackgroundHoveredStyle { get; } = new();
-    private static RectStyle BackgroundNormalStyle { get; } = new();
+    private static Style BackgroundHoveredStyle { get; } = new();
+    private static Style BackgroundNormalStyle { get; } = new();
 
     public TextButton(string text)
     {
         _background = new Rect
         {
-            Style = new RectStyle
+            Style =
             {
                 BackgroundColor = 0x232345,
                 BorderSize = BorderSizeStyle.All(4),
@@ -27,13 +27,13 @@ public sealed class TextButton : Component, IMouseListener, ICaptureMouse
 
     public void HandleMouseEnterEvent()
     {
-        _background.Style = BackgroundHoveredStyle;
+        _background.Style.Apply(BackgroundHoveredStyle);
         CaptureMouse(this);
     }
 
     public void HandleMouseExitEvent()
     {
-        _background.Style = BackgroundNormalStyle;
+        _background.Style.Apply(BackgroundNormalStyle);
         ReleaseMouse(this);
     }
 

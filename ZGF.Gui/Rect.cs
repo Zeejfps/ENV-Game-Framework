@@ -8,7 +8,7 @@ public class Rect : Component
     public RectStyle Style
     {
         get => _style;
-        set => SetField(ref _style, value);
+        //set => SetField(ref _style, value);
     }
 
     protected override void OnDrawSelf(ICanvas c)
@@ -53,23 +53,13 @@ public class Rect : Component
         {
             if (styleSheet.TryGetByClass(styleClass, out var classStyle))
             {
-                if (classStyle.BackgroundColor.IsSet)
-                    Style.BackgroundColor = classStyle.BackgroundColor.Value;
-            
-                classStyle.Padding.ApplyTo(ref Style.Padding);
-                classStyle.BorderSize.ApplyTo(ref Style.BorderSize);
-                classStyle.BorderColor.ApplyTo(ref Style.BorderColor);
+                Style.Apply(classStyle);
             }
         }
         
         if (styleSheet.TryGetById(Id, out var idStyle))
         {
-            if (idStyle.BackgroundColor.IsSet)
-                Style.BackgroundColor = idStyle.BackgroundColor.Value;
-            
-            idStyle.Padding.ApplyTo(ref Style.Padding);
-            idStyle.BorderSize.ApplyTo(ref Style.BorderSize);
-            idStyle.BorderColor.ApplyTo(ref Style.BorderColor);
+            Style.Apply(idStyle);
         }
         
         base.OnStyleSheetApplied(styleSheet);
