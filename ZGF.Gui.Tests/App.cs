@@ -20,14 +20,20 @@ public sealed class App : OpenGlApp
         // columnLayout.Add(new TextButton("Button two"));
         // columnLayout.Add(new TextButton("Button three"));
 
-        var header = new Rect
+        var header = new Header
         {
-            Constraints = new RectF(0f, 0f, 0f, 50f),
+            Constraints = new RectF
+            {
+                Height = 20f
+            },
         };
 
         var footer = new Rect
         {
-            Constraints = new RectF(0f, 0f, 0f, 20f),
+            Constraints = new RectF
+            {
+                Height = 20f,
+            },
         };
 
         // var center = new ColumnLayout();

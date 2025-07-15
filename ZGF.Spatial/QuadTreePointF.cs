@@ -624,36 +624,36 @@ public sealed class QuadTreePointF<T> where T : notnull
             var quadWidth = bounds.Width * 0.5f;
             var quadHeight = bounds.Height * 0.5f;
             
-            var topLeftBounds = new RectF(
-                Left: bounds.Left,
-                Bottom: bounds.Bottom + quadHeight,
-                Width: quadWidth,
-                Height: quadHeight
-            );
+            var topLeftBounds = new RectF{
+                Left = bounds.Left,
+                Bottom = bounds.Bottom + quadHeight,
+                Width = quadWidth,
+                Height = quadHeight
+            };
             var topLeft = CreateChildNode(topLeftBounds);
 
-            var topRightBounds = new RectF(
-                Left: bounds.Left + quadWidth,
-                Bottom: bounds.Bottom + quadHeight,
-                Width: quadWidth,
-                Height: quadHeight
-            );
+            var topRightBounds = new RectF{
+                Left = bounds.Left + quadWidth,
+                Bottom = bounds.Bottom + quadHeight,
+                Width = quadWidth,
+                Height = quadHeight
+            };
             var topRight = CreateChildNode(topRightBounds);
             
-            var botLeftBounds = new RectF(
-                Left: bounds.Left,
-                Bottom: bounds.Bottom,
-                Width: quadWidth,
-                Height: quadHeight
-            );
+            var botLeftBounds = new RectF{
+                Left = bounds.Left,
+                Bottom = bounds.Bottom,
+                Width = quadWidth,
+                Height = quadHeight
+            };
             var botLeft = CreateChildNode(botLeftBounds);
             
-            var botRightBounds = new RectF(
-                Left: bounds.Left + quadWidth,
-                Bottom: bounds.Bottom,
-                Width: quadWidth,
-                Height: quadHeight
-            );
+            var botRightBounds = new RectF{
+                Left = bounds.Left + quadWidth,
+                Bottom = bounds.Bottom,
+                Width = quadWidth,
+                Height = quadHeight
+            };
             var botRight = CreateChildNode(botRightBounds);
 
             return 

@@ -2,10 +2,31 @@
 
 namespace ZGF.Gui;
 
-public readonly struct RectStyle
+public sealed class RectStyle
 {
-    public uint BackgroundColor { get; init; }
-    public BorderSizeStyle BorderSize { get; init; }
+    public uint BackgroundColor { get; set; }
+    
+    public BorderColorStyle BorderColor { get; set; }
+    public BorderSizeStyle BorderSize { get; set; }
+}
+
+public readonly struct BorderColorStyle
+{
+    public uint Left { get; init; }
+    public uint Right { get; init; }
+    public uint Top { get; init; }
+    public uint Bottom { get; init; }
+
+    public static BorderColorStyle All(uint color)
+    {
+        return new BorderColorStyle
+        {
+            Left = color,
+            Right = color,
+            Top = color,
+            Bottom = color,
+        };
+    }
 }
 
 public readonly struct BorderSizeStyle

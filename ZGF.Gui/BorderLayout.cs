@@ -25,7 +25,12 @@ public sealed class BorderLayout : Component
 
         if (South != null)
         {
-            South.Constraints = new RectF(position.Left, position.Bottom, position.Width, South.Constraints.Height);
+            South.Constraints = new RectF(
+                position.Left,
+                position.Bottom,
+                position.Width,
+                South.Constraints.Height);
+            
             South.LayoutSelf();
             centerAreaHeight -= South.Position.Height;
             bottomOffset += South.Position.Height;
@@ -33,7 +38,11 @@ public sealed class BorderLayout : Component
 
         if (Center != null)
         {
-            Center.Constraints = new RectF(position.Left, position.Bottom + bottomOffset, position.Width, centerAreaHeight);
+            Center.Constraints = position with
+            {
+                Bottom = position.Bottom + bottomOffset,
+                Height = centerAreaHeight
+            };
             Center.LayoutSelf();
         }
     }

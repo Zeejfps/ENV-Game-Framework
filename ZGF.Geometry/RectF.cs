@@ -1,7 +1,11 @@
 ﻿namespace ZGF.Geometry;
 
-public readonly record struct RectF(float Left, float Bottom, float Width, float Height)
+public readonly record struct RectF
 {
+    public float Left { get; init; }
+    public float Bottom { get; init; }
+    public float Height { get; init; }
+    public float Width { get; init; }
     public float Top => Bottom + Height;
     public float Right => Left + Width;
     public PointF BottomLeft => new(Left, Bottom);
@@ -9,6 +13,14 @@ public readonly record struct RectF(float Left, float Bottom, float Width, float
     public PointF TopRight => new(Right, Top);
     public float Area => Width * Height;
 
+    public RectF(float left, float bottom, float width, float height)
+    {
+        Left = left;
+        Bottom = bottom;
+        Width = width;
+        Height = height;
+    }
+    
     public bool Intersects(RectF otherRect)
     {
         if (Right <= otherRect.Left || Left >= otherRect.Right)

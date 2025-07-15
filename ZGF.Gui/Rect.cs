@@ -2,7 +2,7 @@ namespace ZGF.Gui;
 
 public class Rect : Component
 {
-    private RectStyle _style;
+    private RectStyle _style = new();
     public RectStyle Style
     {
         get => _style;
