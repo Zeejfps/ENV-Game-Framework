@@ -86,9 +86,33 @@ public sealed class Window : Component
             }
         };
 
-        var button = new Rect();
+        var row = new FlexRow();
+        titlePanel.Add(row);
+        
+        var button = new Rect
+        {
+            Constraints = new RectF
+            {
+                Width = 15f,
+            },
+            Style =
+            {
+                BackgroundColor = 0xFF00FF
+            }
+        };
         button.AddStyleClass("inset_panel");
-        titlePanel.Add(button);
+        row.Add(button);
+
+        var spacer = new Rect
+        {
+
+        };
+        row.Add(spacer, new FlexStyle
+        {
+            Flex = 1f,
+            Grow = 1f,
+            Shrink = 1f
+        });
 
         var leftBorder = new Rect
         {

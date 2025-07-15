@@ -87,7 +87,7 @@ public abstract class Component
 
         component.Parent = this;
         _children.Add(component);
-        SetDirty();
+        OnComponentAdded(component);
     }
 
     public void Remove(Component component)
@@ -95,6 +95,7 @@ public abstract class Component
         if (_children.Remove(component) && component.Parent == this)
         {
             component.Parent = null;
+            OnComponentRemoved(component);
         }
     }
     
@@ -133,6 +134,16 @@ public abstract class Component
         EventSystem.Instance.AddMouseListener(this, mouseListener);
     }
 
+    protected virtual void OnComponentAdded(Component component)
+    {
+        SetDirty();
+    }
+
+    protected virtual void OnComponentRemoved(Component component)
+    {
+        SetDirty();
+    }
+
     protected bool SetField<T>(ref T field, T value)
     {
         if (EqualityComparer<T>.Default.Equals(field, value))
@@ -143,7 +154,7 @@ public abstract class Component
         return true;
     }
 
-    private void SetDirty()
+    protected void SetDirty()
     {
         IsSelfDirty = true;
     }
