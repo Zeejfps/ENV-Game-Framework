@@ -4,11 +4,59 @@ namespace ZGF.Gui;
 
 public sealed class BorderLayout : Component
 {
-    public Component? North { get; set; }
-    public Component? East { get; set; }
-    public Component? West { get; set; }
-    public Component? South { get; set; }
-    public Component? Center { get; set; }
+    private Component? _north;
+    public Component? North
+    {
+        get => _north;
+        set => SetComponent(ref _north, value);
+    }
+
+    private Component? _east;
+    public Component? East
+    {
+        get => _east;
+        set => SetComponent(ref _east, value);
+    }
+
+    private Component? _west;
+    public Component? West
+    {
+        get => _west;
+        set => SetComponent(ref _west, value);
+    }
+
+    private Component? _south;
+    public Component? South
+    {
+        get => _south;
+        set => SetComponent(ref _south, value);
+    }
+
+    private Component? _center;
+    public Component? Center
+    {
+        get => _center;
+        set => SetComponent(ref _center, value);
+    }
+
+    private void SetComponent(ref Component? component, Component? value)
+    {
+        if (component == value)
+            return;
+            
+        var prevComponent = component;
+        component = value;
+            
+        if (prevComponent != null)
+        {
+            Remove(prevComponent);
+        }
+
+        if (component != null)
+        {
+            Add(component);
+        }
+    }
 
     protected override void OnLayoutSelf()
     {
@@ -78,38 +126,6 @@ public sealed class BorderLayout : Component
                 Height = centerAreaHeight
             };
             Center.LayoutSelf();
-        }
-    }
-
-    protected override void OnDrawSelf(ICanvas c)
-    {
-        North?.DrawSelf(c);
-        Center?.DrawSelf(c);
-        South?.DrawSelf(c);
-        West?.DrawSelf(c);
-        East?.DrawSelf(c);
-    }
-
-    public override bool IsDirty
-    {
-        get
-        {
-            if (North != null && North.IsDirty)
-                return true;
-
-            if (South != null && South.IsDirty)
-                return true;
-
-            if (Center != null && Center.IsDirty)
-                return true;
-
-            if (West != null && West.IsDirty)
-                return true;
-            
-            if (East != null && East.IsDirty)
-                return true;
-
-            return base.IsDirty;
         }
     }
 }
