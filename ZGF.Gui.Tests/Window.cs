@@ -231,15 +231,52 @@ public sealed class Window : Component
 
         var columnLayout = new ColumnLayout();
         columnLayout.Add(content);
-
-        var test = new Rect
+        
+        var scrollBarContainer = new Rect
+        {
+            Constraints = new RectF
+            {
+                Width = 15,
+            },
+            Style =
+            {
+                BackgroundColor = 0x000000,
+                Padding = new PaddingStyle
+                {
+                    Left = 1,
+                    Top = 1,
+                    Bottom = 15
+                }
+            }
+        };
+        var scrollBar = new Rect
         {
             Style =
             {
-                BackgroundColor = 0xCECECE
-            },
+                BackgroundColor = 0xEFEFEF,
+            }
         };
-        columnLayout.Add(test);
+        scrollBarContainer.Add(scrollBar);
+
+        var progress = new Rect
+        {
+            Style =
+            {
+                BackgroundColor = 0xEFEFEF,
+                BorderSize = new BorderSizeStyle
+                {
+                    Top = 1,
+                },
+                BorderColor = BorderColorStyle.All(0x000000)
+            }
+        };
+        
+        var bottomSection = new BorderLayout
+        {
+            East = scrollBarContainer,
+            Center = progress
+        };
+        columnLayout.Add(bottomSection);
         
         var borderLayout = new BorderLayout
         {
@@ -253,7 +290,6 @@ public sealed class Window : Component
         contentOutline.Add(columnLayout);
         outline.Add(borderLayout);
         Add(outline);
-        
     }
 
     protected override void OnLayoutSelf()
