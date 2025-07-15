@@ -2,7 +2,7 @@
 
 namespace ZGF.Gui;
 
-public interface IRenderer
+public interface ICanvas
 {
     void DrawRect(RectF position, RectStyle style);
     void DrawText(RectF position, string text);

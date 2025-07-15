@@ -51,25 +51,33 @@ public sealed class App : IGuiApp
     
     public void Run()
     {
-        var renderer = new FakeRenderer();
+        var canvas = new FakeCanvas();
+        var visualTree = new VisualTree();
         while (true)
         {
             GuiContent.LayoutSelf();
-            GuiContent.RenderSelf(renderer);
+            GuiContent.DrawSelf(canvas);
+            canvas.Render();
+            EventSystem.Instance.Update();
         }
     }
 }
 
-public sealed class FakeRenderer : IRenderer
+
+
+public sealed class FakeCanvas : ICanvas
 {
     public void DrawRect(RectF position, RectStyle style)
     {
-        throw new NotImplementedException();
     }
 
     public void DrawText(RectF position, string text)
     {
-        throw new NotImplementedException();
+    }
+
+    public void Render()
+    {
+
     }
 }
 
@@ -113,7 +121,8 @@ public abstract class Layout : ILayout
     private readonly List<Component> _components = new();
 
     public bool IsDirty => _components.Any(component => component.IsDirty);
-    
+    public int ZIndex { get; set; }
+
     public void Add(Component component)
     {
         _components.Add(component);
@@ -132,11 +141,11 @@ public abstract class Layout : ILayout
         }
     }
 
-    public void Render(IRenderer renderer)
+    public void Render(ICanvas canvas)
     {
         foreach (var component in _components)
         {
-            component.RenderSelf(renderer);
+            component.DrawSelf(canvas);
         }
     }
 
@@ -165,9 +174,9 @@ public class Rect : Component
         set => SetField(ref _style, value);
     }
     
-    protected override void OnRender(IRenderer r)
+    protected override void OnDraw(ICanvas c)
     {
-        r.DrawRect(Position, Style);
+        c.DrawRect(Position, Style);
     }
     
     protected override void OnApplyStyleSheet(StyleSheet styleSheet)
@@ -206,9 +215,9 @@ public class Label : Component
         
     }
 
-    protected override void OnRender(IRenderer r)
+    protected override void OnDraw(ICanvas c)
     {
-        r.DrawText(Position, "Hello World");
+        c.DrawText(Position, "Hello World");
     }
 }
 
@@ -218,13 +227,7 @@ public class Container : Component
     public ILayout? Layout
     {
         get => _layout;
-        set
-        {
-            if (SetField(ref _layout, value) && _layout != null)
-            {
-                _layout.ZIndex = ZIndex;
-            }
-        }
+        set => SetField(ref _layout, value);
     }
 
     public override bool IsDirty
@@ -260,11 +263,11 @@ public class Container : Component
         Layout.ApplyStyleSheet(styleSheet);
     }
 
-    protected override void OnRender(IRenderer r)
+    protected override void OnDraw(ICanvas c)
     {
         if (Layout == null)
             return;
 
-        Layout.Render(r);
+        Layout.Render(c);
     }
 }

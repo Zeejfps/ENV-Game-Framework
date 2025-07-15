@@ -6,6 +6,6 @@ public interface ILayout
 {
     RectF DoLayout(RectF position);
     void ApplyStyleSheet(StyleSheet styleSheet);
-    void Render(IRenderer renderer);
+    void Render(ICanvas canvas);
     bool IsDirty { get; }
 }

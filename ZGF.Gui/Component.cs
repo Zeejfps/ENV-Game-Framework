@@ -32,9 +32,9 @@ public abstract class Component
         OnLayout();
     }
 
-    public void RenderSelf(IRenderer r)
+    public void DrawSelf(ICanvas r)
     {
-        OnRender(r);
+        OnDraw(r);
     }
 
     public void ApplyStyle(StyleSheet styleSheet)
@@ -64,5 +64,5 @@ public abstract class Component
     
     protected virtual void OnApplyStyleSheet(StyleSheet styleSheet){}
     protected virtual void OnLayout(){}
-    protected virtual void OnRender(IRenderer r){}
+    protected virtual void OnDraw(ICanvas c){}
 }
