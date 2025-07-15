@@ -17,7 +17,7 @@ public sealed class BitmapCanvas : ICanvas
 
     public void BeginFrame()
     {
-        _colorBuffer.Fill(0x9C9CCE);
+        _colorBuffer.Fill(0x000000);
     }
 
     public void AddCommand(in DrawRectCommand command)
@@ -25,27 +25,30 @@ public sealed class BitmapCanvas : ICanvas
         var style = command.Style;
         var position = command.Position;
         var left = (int)position.Left;
-        var right = (int)position.Right;
+        var right = (int)position.Right - 1;
         var bottom = (int)position.Bottom;
-        var top = (int)position.Top;
-        var width = (int)position.Width;
-        var height = (int)position.Height;
+        var top = (int)position.Top - 1;
+        
         var borderSize = style.BorderSize;
+        
+        var fillWidth = (int)(position.Width - borderSize.Left - borderSize.Right);
+        var fillHeight = (int)(position.Height - borderSize.Top - borderSize.Bottom);
+        
         var borderColor = style.BorderColor;
         
-        Graphics.FillRect(_colorBuffer, left, bottom, width, height, style.BackgroundColor);
+        Graphics.FillRect(_colorBuffer, left +  (int)borderSize.Left, bottom + (int)borderSize.Bottom, fillWidth, fillHeight, style.BackgroundColor);
 
         // Left Border
-        DrawBorder(left, bottom, left, top-1, borderColor.Left, (int)borderSize.Left, 1, 0);
+        DrawBorder(left, bottom, left, top, borderColor.Left, (int)borderSize.Left, 1, 0);
         
         // Right Border
-        DrawBorder(right-1, bottom, right-1, top-1, borderColor.Right, (int)borderSize.Right, -1, 0);
+        DrawBorder(right, bottom, right, top + 1, borderColor.Right, (int)borderSize.Right, -1, 0);
         
         // Top Border
-        DrawBorder(left, top-1, right-1, top-1, borderColor.Top, (int)borderSize.Top, 0, -1);
+        DrawBorder(left, top, right + 1, top, borderColor.Top, (int)borderSize.Top, 0, -1);
         
         // Bottom Border
-        DrawBorder(left, bottom, right-1, bottom, borderColor.Bottom, (int)borderSize.Bottom, 0, 1);
+        DrawBorder(left, bottom, right, bottom, borderColor.Bottom, (int)borderSize.Bottom, 0, 1);
     }
 
     private void DrawBorder(int x0, int y0, int x1, int y1, uint color, int borderSize, int dx, int dy)

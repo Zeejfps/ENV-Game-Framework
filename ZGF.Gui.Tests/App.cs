@@ -24,10 +24,12 @@ public sealed class App : OpenGlApp
                 Height = 20f
             },
         };
+
+        var center = new Center();
         
         var gui = new BorderLayout
         {
-            // Center = new TextButton("Hello World!"),
+            Center = center,
             North = header,
             Constraints = new RectF(0, 0, framebufferWidth, framebufferHeight)
         };

@@ -26,12 +26,16 @@ public class Rect : Component
         Position = Constraints;
         var position = Position;
         var padding = Style.Padding;
-        var left = position.Left + padding.Left;
-        var right = position.Right - padding.Right;
-        var top = position.Top - padding.Top;
-        var bottom = position.Bottom + padding.Bottom;
+        var border = Style.BorderSize;
+        
+        var left = position.Left + padding.Left + border.Left;
+        var right = position.Right - padding.Right - border.Right;
+        var top = position.Top - padding.Top - border.Top;
+        var bottom = position.Bottom + padding.Bottom + border.Bottom;
+        
         var width = right - left;
         var height = top - bottom;
+        
         foreach (var child in Children)
         {
             child.Constraints = new RectF

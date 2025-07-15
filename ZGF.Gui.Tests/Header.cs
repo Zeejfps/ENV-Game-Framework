@@ -8,14 +8,7 @@ public sealed class Header : Component
         {
             Style =
             {
-                BorderColor = new BorderColorStyle
-                {
-                    Bottom = 0x000000,
-                },
-                BorderSize = new BorderSizeStyle
-                {
-                    Bottom = 1,
-                },
+                BackgroundColor = 0x000000,
                 Padding = new PaddingStyle
                 {
                     Bottom = 1,
