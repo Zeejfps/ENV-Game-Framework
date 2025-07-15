@@ -33,7 +33,6 @@ public sealed class BorderLayout : Component
 
         if (Center != null)
         {
-            Console.WriteLine($"{centerAreaHeight}");
             Center.Constraints = new RectF(position.Left, position.Bottom + bottomOffset, position.Width, centerAreaHeight);
             Center.LayoutSelf();
         }
