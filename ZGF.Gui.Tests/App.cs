@@ -11,15 +11,12 @@ public sealed class App : OpenGlApp
 
     public App(StartupConfig startupConfig) : base(startupConfig)
     {
-        var bitmap = new Bitmap(startupConfig.WindowWidth, startupConfig.WindowHeight);
+        var framebufferWidth = startupConfig.WindowWidth / 2;
+        var framebufferHeight = startupConfig.WindowHeight / 2;
+        var bitmap = new Bitmap(framebufferWidth, framebufferHeight);
         _canvas = new BitmapCanvas(bitmap);
         glClearColor(0f, 0f, 0f, 0f);
-
-        // var columnLayout = new ColumnLayout();
-        // columnLayout.Add(new TextButton("Button one"));
-        // columnLayout.Add(new TextButton("Button two"));
-        // columnLayout.Add(new TextButton("Button three"));
-
+        
         var header = new Header
         {
             Constraints = new RectF
@@ -27,26 +24,12 @@ public sealed class App : OpenGlApp
                 Height = 20f
             },
         };
-
-        var footer = new Rect
-        {
-            Constraints = new RectF
-            {
-                Height = 20f,
-            },
-        };
-
-        // var center = new ColumnLayout();
-        // center.Add(new TextButton("Hello World!"));
-        // center.Add(new TextButton("Hello World!"));
-        // center.Add(new TextButton("Hello World!"));
-
+        
         var gui = new BorderLayout
         {
-            Center = new TextButton("Hello World!"),
+            // Center = new TextButton("Hello World!"),
             North = header,
-            South = footer,
-            Constraints = new RectF(0, 0, startupConfig.WindowWidth, startupConfig.WindowHeight)
+            Constraints = new RectF(0, 0, framebufferWidth, framebufferHeight)
         };
         gui.ApplyStyleSheet(new StyleSheet());
 

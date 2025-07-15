@@ -9,6 +9,7 @@ public sealed class Header : Component
             Style = 
             {
                 BackgroundColor = 0xDEDEDE,
+                BorderSize = BorderSizeStyle.All(1),
                 BorderColor = new BorderColorStyle
                 {
                     Top = 0xFFFFFF,

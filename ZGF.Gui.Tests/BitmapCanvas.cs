@@ -31,20 +31,21 @@ public sealed class BitmapCanvas : ICanvas
         var width = (int)position.Width;
         var height = (int)position.Height;
         var borderSize = style.BorderSize;
+        var borderColor = style.BorderColor;
         
         Graphics.FillRect(_colorBuffer, left, bottom, width, height, style.BackgroundColor);
 
         // Left Border
-        DrawBorder(left, bottom, left, top-1, 0x00FF00, (int)borderSize.Left, 1, 0);
+        DrawBorder(left, bottom, left, top-1, borderColor.Left, (int)borderSize.Left, 1, 0);
         
         // Right Border
-        DrawBorder(right-1, bottom, right-1, top-1, 0x00FF00, (int)borderSize.Right, -1, 0);
+        DrawBorder(right-1, bottom, right-1, top-1, borderColor.Right, (int)borderSize.Right, -1, 0);
         
         // Top Border
-        DrawBorder(left, top-1, right-1, top-1, 0x00FF00, (int)borderSize.Top, 0, -1);
+        DrawBorder(left, top-1, right-1, top-1, borderColor.Top, (int)borderSize.Top, 0, -1);
         
         // Bottom Border
-        DrawBorder(left, bottom, right-1, bottom, 0x00FF00, (int)borderSize.Bottom, 0, 1);
+        DrawBorder(left, bottom, right-1, bottom, borderColor.Bottom, (int)borderSize.Bottom, 0, 1);
     }
 
     private void DrawBorder(int x0, int y0, int x1, int y1, uint color, int borderSize, int dx, int dy)

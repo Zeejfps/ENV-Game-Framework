@@ -14,7 +14,8 @@ public sealed class TextButton : Component, IMouseListener
             Style = new RectStyle
             {
                 BackgroundColor = 0x232345,
-                BorderSize = BorderSizeStyle.All(4)
+                BorderSize = BorderSizeStyle.All(4),
+                //BorderColor = BorderColorStyle.All(0xFF00FF)
             }
         };
 
