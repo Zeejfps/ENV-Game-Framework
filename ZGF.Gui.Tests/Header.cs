@@ -4,6 +4,24 @@ public sealed class Header : Component
 {
     public Header()
     {
+        var container = new Rect
+        {
+            Style =
+            {
+                BorderColor = new BorderColorStyle
+                {
+                    Bottom = 0x000000,
+                },
+                BorderSize = new BorderSizeStyle
+                {
+                    Bottom = 1,
+                },
+                Padding = new PaddingStyle
+                {
+                    Bottom = 1,
+                }
+            }
+        };
         var background = new Rect
         {
             Style = 
@@ -19,7 +37,7 @@ public sealed class Header : Component
                 }
             }
         };
-        
-        Add(background);
+        container.Add(background);
+        Add(container);
     }
 }

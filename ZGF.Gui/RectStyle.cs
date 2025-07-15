@@ -5,9 +5,28 @@ namespace ZGF.Gui;
 public sealed class RectStyle
 {
     public uint BackgroundColor { get; set; }
-    
+    public PaddingStyle Padding { get; set; }
     public BorderColorStyle BorderColor { get; set; }
     public BorderSizeStyle BorderSize { get; set; }
+}
+
+public readonly struct PaddingStyle
+{
+    public int Left { get; init; }
+    public int Right { get; init; }
+    public int Top { get; init; }
+    public int Bottom { get; init; }
+
+    public static PaddingStyle All(int size)
+    {
+        return new PaddingStyle
+        {
+            Left = size,
+            Right = size,
+            Top = size,
+            Bottom = size,
+        };
+    }
 }
 
 public readonly struct BorderColorStyle
