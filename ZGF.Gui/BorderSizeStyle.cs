@@ -18,7 +18,7 @@ public struct BorderSizeStyle
         };
     }
 
-    public void Apply(ref BorderSizeStyle style)
+    public void ApplyTo(ref BorderSizeStyle style)
     {
         if (Left.IsSet)
             style.Left = Left.Value;

@@ -1,11 +1,11 @@
 namespace ZGF.Gui;
 
-public readonly struct BorderColorStyle
+public struct BorderColorStyle
 {
-    public StyleValue<uint> Left { get; init; }
-    public StyleValue<uint> Right { get; init; }
-    public StyleValue<uint> Top { get; init; }
-    public StyleValue<uint> Bottom { get; init; }
+    public StyleValue<uint> Left { get; set; }
+    public StyleValue<uint> Right { get; set; }
+    public StyleValue<uint> Top { get; set; }
+    public StyleValue<uint> Bottom { get; set; }
 
     public static BorderColorStyle All(uint color)
     {
@@ -16,5 +16,20 @@ public readonly struct BorderColorStyle
             Top = color,
             Bottom = color,
         };
+    }
+
+    public void ApplyTo(ref BorderColorStyle style)
+    {
+        if (Left.IsSet)
+            style.Left = Left.Value;
+        
+        if (Right.IsSet)
+            style.Right = Right.Value;
+        
+        if (Top.IsSet)
+            style.Top = Top.Value;
+        
+        if (Bottom.IsSet)
+            style.Bottom = Bottom.Value;
     }
 }

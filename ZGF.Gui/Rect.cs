@@ -53,13 +53,16 @@ public class Rect : Component
     {
         if (styleSheet.TryGetByClass(ClassId, out var classStyle))
         {
-
+            classStyle.Padding.ApplyTo(ref Style.Padding);
+            classStyle.BorderSize.ApplyTo(ref Style.BorderSize);
+            classStyle.BorderColor.ApplyTo(ref Style.BorderColor);
         }
         
         if (styleSheet.TryGetById(Id, out var idStyle))
         {
-            idStyle.Padding.Apply(ref Style.Padding);
-            idStyle.BorderSize.Apply(ref Style.BorderSize);
+            idStyle.Padding.ApplyTo(ref Style.Padding);
+            idStyle.BorderSize.ApplyTo(ref Style.BorderSize);
+            idStyle.BorderColor.ApplyTo(ref Style.BorderColor);
         }
         
         SetDirty();

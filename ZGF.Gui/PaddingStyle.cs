@@ -18,7 +18,7 @@ public struct PaddingStyle
         };
     }
 
-    public void Apply(ref PaddingStyle padding)
+    public void ApplyTo(ref PaddingStyle padding)
     {
         if (Left.IsSet)
             padding.Left = Left.Value;
