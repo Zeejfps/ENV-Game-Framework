@@ -1,9 +1,7 @@
-﻿using ZGF.Geometry;
-
-namespace ZGF.Gui;
+﻿namespace ZGF.Gui;
 
 public interface ICanvas
 {
-    void DrawRect(RectF position, RectStyle style);
-    void DrawText(RectF position, string text, TextStyle style);
+    void AddCommand(in DrawRectCommand command);
+    void AddCommand(in DrawTextCommand command);
 }

@@ -38,6 +38,10 @@ public sealed class ColumnLayout : Component
     protected override void OnDrawSelf(ICanvas c)
     {
         base.OnDrawSelf(c);
-        c.DrawRect(Position, new RectStyle());
+        c.AddCommand(new DrawRectCommand
+        {
+            Position = Position,
+            Style = new RectStyle()
+        });
     }
 }

@@ -18,6 +18,11 @@ public sealed class Label : Component
 
     protected override void OnDrawSelf(ICanvas c)
     {
-        c.DrawText(Position, _text, Style);
+        c.AddCommand(new DrawTextCommand
+        {
+            Position = Position,
+            Text = _text,
+            Style = Style
+        });
     }
 }

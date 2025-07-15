@@ -11,7 +11,11 @@ public class Rect : Component
 
     protected override void OnDrawSelf(ICanvas c)
     {
-        c.DrawRect(Position, Style);
+        c.AddCommand(new DrawRectCommand
+        {
+            Position = Position,
+            Style = Style
+        });
     }
 
     protected override void OnApplyStyleSheet(StyleSheet styleSheet)

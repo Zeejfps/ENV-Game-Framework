@@ -17,11 +17,12 @@ public sealed class BitmapCanvas : ICanvas
 
     public void BeginFrame()
     {
-        _colorBuffer.Fill(0x000000);
+        _colorBuffer.Fill(0x9C9CCE);
     }
 
-    public void DrawRect(RectF position, RectStyle style)
+    public void AddCommand(in DrawRectCommand command)
     {
+        var position = command.Position;
         var x = (int)position.Left;
         var y = (int)position.Bottom;
         var width = (int)position.Width;
@@ -29,7 +30,7 @@ public sealed class BitmapCanvas : ICanvas
         Graphics.DrawRect(_colorBuffer, x, y, width, height, 0xFF00FF);
     }
 
-    public void DrawText(RectF position, string text, TextStyle style)
+    public void AddCommand(in DrawTextCommand command)
     {
     }
 
