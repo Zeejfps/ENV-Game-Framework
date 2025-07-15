@@ -63,21 +63,25 @@ public sealed class MouseInputSystem
     
     private Component? HitTest(int x, int y)
     {
+        // TODO: Fix
         _hitTestCache.Clear();
         var components = _hitTestCache;
         var hitPoint = new PointF(x, y);
+        //Console.WriteLine($"Compoennts: {_listenersByComponentLookup.Count}");
         foreach (var component in _listenersByComponentLookup.Keys)
         {
             if (component.Position.ContainsPoint(hitPoint))
             {
+                //Console.WriteLine($"Hit: {component.GetHashCode()}");
                 components.Add(component);
             }
         }
 
+        //Console.WriteLine($"ComponentsHit: {components.Count}");
         if (components.Count == 0)
             return null;
         
-        return components.First();
+        return components.Min;
     }
 
     public void CaptureMouse(Component component, ICaptureMouse captureMouse)
