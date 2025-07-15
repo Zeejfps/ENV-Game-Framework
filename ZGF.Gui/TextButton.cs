@@ -9,7 +9,14 @@ public sealed class TextButton : Component, IMouseListener
 
     public TextButton(string text)
     {
-        _background = new Rect();
+        _background = new Rect
+        {
+            Style = new RectStyle
+            {
+                BackgroundColor = 0x232345,
+                BorderSize = BorderSizeStyle.All(4)
+            }
+        };
 
         Add(_background);
         Add(new Label(text));

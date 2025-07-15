@@ -4,7 +4,27 @@ namespace ZGF.Gui;
 
 public readonly struct RectStyle
 {
-    
+    public uint BackgroundColor { get; init; }
+    public BorderSizeStyle BorderSize { get; init; }
+}
+
+public readonly struct BorderSizeStyle
+{
+    public float Left { get; init; }
+    public float Right { get; init; }
+    public float Top { get; init; }
+    public float Bottom { get; init; }
+
+    public static BorderSizeStyle All(float size)
+    {
+        return new BorderSizeStyle
+        {
+            Left = size,
+            Right = size,
+            Top = size,
+            Bottom = size,
+        };
+    }
 }
 
 public readonly struct DrawRectCommand

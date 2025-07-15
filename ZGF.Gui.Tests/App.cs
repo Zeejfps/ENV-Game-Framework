@@ -30,14 +30,14 @@ public sealed class App : OpenGlApp
             Constraints = new RectF(0f, 0f, 0f, 20f),
         };
 
-        var center = new ColumnLayout();
-        center.Add(new TextButton("Hello World!"));
-        center.Add(new TextButton("Hello World!"));
-        center.Add(new TextButton("Hello World!"));
+        // var center = new ColumnLayout();
+        // center.Add(new TextButton("Hello World!"));
+        // center.Add(new TextButton("Hello World!"));
+        // center.Add(new TextButton("Hello World!"));
 
         var gui = new BorderLayout
         {
-            Center = center,
+            Center = new TextButton("Hello World!"),
             North = header,
             South = footer,
             Constraints = new RectF(0, 0, startupConfig.WindowWidth, startupConfig.WindowHeight)
