@@ -17,6 +17,8 @@ public abstract class Component
         get => _constraints;
         set => SetField(ref _constraints, value);
     }
+    
+    public Component? Parent { get; private set; }
 
     private string? _classId;
     public string? ClassId
@@ -48,10 +50,24 @@ public abstract class Component
 
     public void Add(Component component)
     {
+        if (component.Parent != null)
+        {
+            component.Parent.Remove(component);
+        }
+
+        component.Parent = this;
         _children.Add(component);
         SetDirty();
     }
 
+    public void Remove(Component component)
+    {
+        if (_children.Remove(component) && component.Parent == this)
+        {
+            component.Parent = null;
+        }
+    }
+    
     public void LayoutSelf()
     {
         if (!IsDirty)
