@@ -76,13 +76,13 @@ public sealed class Window : Component
                     Left = 1,
                     Right = 1,
                 },
-                Padding = PaddingStyle.All(2)
+                Padding = PaddingStyle.All(3)
             }
         };
 
         var row = new FlexRow
         {
-            Gap = 4,
+            Gap = 3,
             CrossAxisAlignment = CrossAxisAlignment.Stretch
         };
         titlePanel.Add(row);
@@ -91,7 +91,7 @@ public sealed class Window : Component
         {
             Constraints = new RectF
             {
-                Width = 15f,
+                Width = 13,
             },
             Style =
             {
@@ -104,7 +104,7 @@ public sealed class Window : Component
         {
             Constraints = new RectF
             {
-                Width = 15f,
+                Width = 13f,
             },
             Style =
             {
@@ -117,7 +117,7 @@ public sealed class Window : Component
         {
             Constraints = new RectF
             {
-                Width = 15f,
+                Width = 13f,
             },
             Style =
             {

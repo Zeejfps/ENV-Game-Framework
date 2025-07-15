@@ -16,8 +16,11 @@ public sealed class Center : Component
         
         Add(background);
 
+        Add(new Window());
+
         Window = new Window();
         
         Add(Window);
+        
     }
 }
