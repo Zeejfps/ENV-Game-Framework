@@ -90,7 +90,10 @@ public sealed class FakeCanvas : ICanvas
 
     public void EndFrame()
     {
+        foreach (var layer in _currVisualTree.Layers)
+        {
 
+        }
     }
 }
 
@@ -126,7 +129,8 @@ public sealed class Button : Container, IMouseListener
 
 public interface IMouseListener
 {
-    
+    void OnMouseEnter();
+    void OnMouseExit();
 }
 
 public abstract class Layout : ILayout

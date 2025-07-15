@@ -4,12 +4,13 @@ namespace ZGF.Gui;
 
 public sealed class VisualTree
 {
+    public IEnumerable<List<VisualTreeNode>> Layers => _layers;
+
     private readonly Dictionary<int, RectStyle> _rectStyleByNodeId = new();
     private readonly Dictionary<int, TextStyle> _textStyleByNodeId = new();
+    private readonly List<List<VisualTreeNode>> _layers = new();
 
     private int _currentId;
-
-    private List<List<VisualTreeNode>> _layers = new();
 
     public VisualTree()
     {
@@ -59,7 +60,16 @@ public sealed class VisualTree
 
     public void AddText(RectF position, string text, TextStyle style)
     {
+        var node = new VisualTreeNode
+        {
+            Id = ++_currentId,
+            Position = position,
+            Kind = VisualTreeNodeKind.Text
+        };
+        _textStyleByNodeId[node.Id] = style;
 
+        var layer = FindLayer(node);
+        layer.Add(node);
     }
 
     public void Clear()
