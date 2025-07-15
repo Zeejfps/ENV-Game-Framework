@@ -148,31 +148,31 @@ public sealed class Window : Component
             }
         };
         
-        var contentOutline = new Rect
-        {
-            Id = "content_outline",
-            // Style =
-            // {
-            //     BackgroundColor = 0x000000,
-            //     BorderSize = BorderSizeStyle.All(1),
-            //     BorderColor = new BorderColorStyle
-            //     {
-            //         Left = 0x9C9C9C,
-            //         Top = 0x9C9C9C,
-            //         Right = 0xFFFFFF,
-            //         Bottom = 0xFFFFFF
-            //     },
-            //     Padding = PaddingStyle.All(1)
-            // }
-        };
+        var contentOutline = new Rect();
+        contentOutline.AddStyleClass("inset_panel");
 
         var content = new Rect
         {
             Style =
             {
-                BackgroundColor = 0xDEDEDE
+                BackgroundColor = 0xFF00FF,
+                BorderSize = BorderSizeStyle.All(1),
+                BorderColor = BorderColorStyle.All(0x00FFFF)
             }
         };
+
+        var columnLayout = new ColumnLayout();
+        columnLayout.Add(content);
+
+        var test = new Rect
+        {
+            Style =
+            {
+                BackgroundColor = 0xCECECE
+            },
+        };
+        test.AddStyleClass("inset_panel");
+        columnLayout.Add(test);
         
         var borderLayout = new BorderLayout
         {
@@ -183,8 +183,7 @@ public sealed class Window : Component
             South = bottomBorder
         };
         
-        contentOutline.Add(content);
-        // frame.Add(contentOutline);
+        contentOutline.Add(columnLayout);
         outline.Add(borderLayout);
         Add(outline);
         

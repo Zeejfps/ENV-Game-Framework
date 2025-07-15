@@ -26,13 +26,7 @@ public abstract class Component
         get => _id;
         set => SetField(ref _id, value);
     }
-    
-    private string? _classId;
-    public string? ClassId
-    {
-        get => _classId;
-        set => SetField(ref _classId, value);
-    }
+
 
     private int _zIndex;
     public int ZIndex
@@ -72,11 +66,25 @@ public abstract class Component
             SetDirty();
         }
     }
+    
+    public IReadOnlyList<Component> Children => _children;
+    public IReadOnlyList<string> StyleClasses => _styleClasses;
 
     private readonly List<Component> _children = new();
+    private readonly List<string> _styleClasses = new();
+    
+    public void AddStyleClass(string classId)
+    {
+        _styleClasses.Add(classId);
+        SetDirty();
+    }
 
-    public IReadOnlyList<Component> Children => _children;
-
+    public void RemoveStyleClass(string classId)
+    {
+        _styleClasses.Remove(classId);
+        SetDirty();
+    }
+    
     public void Add(Component component)
     {
         if (component.Parent != null)

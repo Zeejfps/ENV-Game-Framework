@@ -47,7 +47,7 @@ public sealed class App : OpenGlApp
         };
         
         var ss = new StyleSheet();
-        ss.AddStyleForId("content_outline", new Style
+        ss.AddStyleForClass("inset_panel", new Style
         {
             BackgroundColor = 0x000000,
             Padding = PaddingStyle.All(1),

@@ -24,6 +24,7 @@ public class Rect : Component
     protected override void OnLayoutSelf()
     {
         Position = Constraints;
+        
         var position = Position;
         var padding = Style.Padding;
         var border = Style.BorderSize;
@@ -52,14 +53,18 @@ public class Rect : Component
     protected override void OnStyleSheetApplied(StyleSheet styleSheet)
     {
         Console.WriteLine($"Applying style sheet to {GetType()}");
-        if (styleSheet.TryGetByClass(ClassId, out var classStyle))
+
+        foreach (var styleClass in StyleClasses)
         {
-            if (classStyle.BackgroundColor.IsSet)
-                Style.BackgroundColor = classStyle.BackgroundColor.Value;
+            if (styleSheet.TryGetByClass(styleClass, out var classStyle))
+            {
+                if (classStyle.BackgroundColor.IsSet)
+                    Style.BackgroundColor = classStyle.BackgroundColor.Value;
             
-            classStyle.Padding.ApplyTo(ref Style.Padding);
-            classStyle.BorderSize.ApplyTo(ref Style.BorderSize);
-            classStyle.BorderColor.ApplyTo(ref Style.BorderColor);
+                classStyle.Padding.ApplyTo(ref Style.Padding);
+                classStyle.BorderSize.ApplyTo(ref Style.BorderSize);
+                classStyle.BorderColor.ApplyTo(ref Style.BorderColor);
+            }
         }
         
         if (styleSheet.TryGetById(Id, out var idStyle))
