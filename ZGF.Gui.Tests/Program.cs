@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using ZGF.Gui;
+using ZGF.Gui.Tests;
 
 IGuiApp app = new App();
 var columnLayout = new ColumnLayout();
