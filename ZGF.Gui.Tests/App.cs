@@ -137,7 +137,7 @@ public sealed class App : OpenGlApp
         _gui.LayoutSelf();
         _gui.DrawSelf(_canvas);
         _canvas.EndFrame();
-        EventSystem.Instance.Update();
+        MessageBus.Instance.Update();
     }
 
     protected override void DisposeManagedResources()

@@ -134,10 +134,10 @@ public abstract class Component
     {
         StyleSheet = null;
     }
-        
-    public void AddMouseListener(IMouseListener mouseListener)
+    
+    public void RegisterCallback<T>(Action<T> callback)
     {
-        EventSystem.Instance.AddMouseListener(this, mouseListener);
+        MessageBus.Instance.RegisterCallback<T>(this, callback);
     }
 
     protected virtual void OnComponentAdded(Component component)

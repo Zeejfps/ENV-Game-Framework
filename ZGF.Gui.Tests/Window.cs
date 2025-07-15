@@ -79,6 +79,7 @@ public sealed class Window : Component
                 Padding = PaddingStyle.All(3)
             }
         };
+        titlePanel.RegisterCallback<MouseEnterEvent>(OnMouseEnter);
 
         var row = new FlexRow
         {
@@ -290,6 +291,11 @@ public sealed class Window : Component
         contentOutline.Add(columnLayout);
         outline.Add(borderLayout);
         Add(outline);
+    }
+
+    private void OnMouseEnter(MouseEnterEvent evt)
+    {
+        
     }
 
     protected override void OnLayoutSelf()

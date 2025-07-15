@@ -1,6 +1,6 @@
 namespace ZGF.Gui;
 
-public sealed class TextButton : Component, IMouseListener
+public sealed class TextButton : Component
 {
     private Rect _background;
 
@@ -21,8 +21,6 @@ public sealed class TextButton : Component, IMouseListener
 
         Add(_background);
         Add(new Label(text));
-
-        AddMouseListener(this);
     }
 
     public void OnMouseEnter()
