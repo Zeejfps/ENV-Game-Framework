@@ -67,21 +67,25 @@ public sealed class App : IGuiApp
 
 public sealed class FakeCanvas : ICanvas
 {
-    private VisualTree _visualTree = new();
+    private VisualTree _prevVisualTree = new();
+    private VisualTree _currVisualTree = new();
 
     public void BeginFrame()
     {
-
+        var tree = _prevVisualTree;
+        _currVisualTree = _prevVisualTree;
+        _prevVisualTree = tree;
+        _currVisualTree.Clear();
     }
 
     public void DrawRect(RectF position, RectStyle style)
     {
-        _visualTree.AddRect(position, style);
+        _prevVisualTree.AddRect(position, style);
     }
 
     public void DrawText(RectF position, string text, TextStyle style)
     {
-        _visualTree.AddText(position, text, style);
+        _prevVisualTree.AddText(position, text, style);
     }
 
     public void EndFrame()
