@@ -3,63 +3,18 @@ using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class WindowFrame : Component
+public sealed class Resizer : Component
 {
-    public WindowFrame()
+    public Resizer()
     {
-        var outline = new Rect
+        Constraints = new RectF
         {
-            Style =
-            {
-                BackgroundColor = 0x000000,
-                BorderSize = BorderSizeStyle.All(1),
-                BorderColor = BorderColorStyle.All(0x000000),
-            }
+            Width = 16,
+            Height = 16,
         };
         
-        var frame = new Rect
+        var resizer = new Rect
         {
-            Style =
-            {
-                BackgroundColor = 0xCECECE,
-                BorderSize = BorderSizeStyle.All(1),
-                BorderColor = new BorderColorStyle
-                {
-                    Top = 0xFFFFFF,
-                    Left = 0xFFFFFF,
-                    Right = 0x9C9C9C,
-                    Bottom = 0x9C9C9C
-                },
-                Padding = new PaddingStyle
-                {
-                    Left = 3,
-                    Right = 3,
-                    Bottom = 3,
-                    Top = 20
-                }
-            }
-        };
-        
-        outline.Add(frame);
-        Add(outline);
-    }
-}
-
-public sealed class Window : Component
-{
-    private Rect _resizer;
-    
-    public Window()
-    {
-        Position = new RectF(200f, 200f, 240f, 200f);
-
-        _resizer = new Rect
-        {
-            Constraints = new RectF
-            {
-                Width = 15,
-                Height = 15,
-            },
             Style =
             {
                 BackgroundColor = 0xCECECE,
@@ -76,6 +31,19 @@ public sealed class Window : Component
             }
         };
         
+        Add(resizer);
+    }
+}
+
+public sealed class Window : Component
+{
+    private Resizer _resizer;
+    
+    public Window()
+    {
+        Position = new RectF(200f, 200f, 240f, 200f);
+
+        _resizer = new Resizer();
         
         var outline = new Rect
         {
@@ -114,7 +82,7 @@ public sealed class Window : Component
 
         var row = new FlexRow
         {
-            ItemGap = 10,
+            Gap = 4,
             CrossAxisAlignment = CrossAxisAlignment.Stretch
         };
         titlePanel.Add(row);
@@ -131,7 +99,32 @@ public sealed class Window : Component
             }
         };
         button.AddStyleClass("inset_panel");
-        row.Add(button);
+        
+        var button2 = new Rect
+        {
+            Constraints = new RectF
+            {
+                Width = 15f,
+            },
+            Style =
+            {
+                BackgroundColor = 0xFF00FF
+            }
+        };
+        button2.AddStyleClass("inset_panel");
+        
+        var button3 = new Rect
+        {
+            Constraints = new RectF
+            {
+                Width = 15f,
+            },
+            Style =
+            {
+                BackgroundColor = 0xFF00FF
+            }
+        };
+        button3.AddStyleClass("inset_panel");
 
         var spacer = new Rect
         {
@@ -141,10 +134,14 @@ public sealed class Window : Component
             }
         };
         spacer.AddStyleClass("inset_panel");
+        
+        row.Add(button);
         row.Add(spacer, new FlexStyle
         {
             Grow = 1f,
         });
+        row.Add(button2);
+        row.Add(button3);
 
         var leftBorder = new Rect
         {
@@ -242,7 +239,6 @@ public sealed class Window : Component
                 BackgroundColor = 0xCECECE
             },
         };
-        test.AddStyleClass("inset_panel");
         columnLayout.Add(test);
         
         var borderLayout = new BorderLayout

@@ -27,9 +27,26 @@ public struct FlexStyle
 
 public sealed class FlexRow : Component
 {
-    public float ItemGap { get; set; }
-    public CrossAxisAlignment CrossAxisAlignment { get; set; }
-    public MainAxisAlignment MainAxisAlignment { get; set; }
+    private float _gap;
+    public float Gap
+    {
+        get => _gap;
+        set => SetField(ref _gap, value);
+    }
+    
+    private CrossAxisAlignment _crossAxisAlignment;
+    public CrossAxisAlignment CrossAxisAlignment
+    {
+        get => _crossAxisAlignment;
+        set => SetField(ref _crossAxisAlignment, value);
+    }
+
+    private MainAxisAlignment _mainAxisAlignment;
+    public MainAxisAlignment MainAxisAlignment
+    {
+        get => _mainAxisAlignment;
+        set => SetField(ref _mainAxisAlignment, value);
+    }
     
     private readonly Dictionary<Component, FlexStyle> _flexStyleByComponent = new();
     
@@ -73,13 +90,9 @@ public sealed class FlexRow : Component
             totalFlexGrow += style.Grow;
         }
         
-        Console.WriteLine($"Total children initial width: {totalChildrenInitialWidth}");
-        Console.WriteLine($"Total flex grow: {totalFlexGrow}");
-        
-        var totalGap = ItemGap * (children.Count - 1);
+        var totalGap = Gap * (children.Count - 1);
         var totalContentWidth = totalChildrenInitialWidth + totalGap;
         var remainingSpace = position.Width - totalContentWidth;
-        Console.WriteLine($"Remaining Space: {remainingSpace}");
 
         var leftOffset = 0f;
         var interItemSpacing = 0f;
@@ -109,7 +122,6 @@ public sealed class FlexRow : Component
         }
         
         var currentLeft = position.Left + leftOffset;
-        Console.WriteLine($"Current Left: {currentLeft}");
         
         foreach (var child in children)
         {
@@ -123,17 +135,14 @@ public sealed class FlexRow : Component
             {
                 finalChildWidth += (style.Grow / totalFlexGrow) * remainingSpace;
             }
-
-            Console.WriteLine($"Final child width: {finalChildWidth}");
-
-            // Determine vertical alignment (use AlignSelf if set, otherwise use container's AlignItems)
-            var align = CrossAxisAlignment;
+            
+            var crossxisAlignment = CrossAxisAlignment;
 
             // Calculate final height and vertical position
             float finalChildHeight;
             float childBottom; // Y-coordinate of the child's bottom edge
 
-            switch (align)
+            switch (crossxisAlignment)
             {
                 case CrossAxisAlignment.Stretch:
                     finalChildHeight = position.Height;
@@ -169,7 +178,7 @@ public sealed class FlexRow : Component
             };
 
             child.LayoutSelf();
-            currentLeft += finalChildWidth + ItemGap + interItemSpacing;
+            currentLeft += finalChildWidth + Gap + interItemSpacing;
         }
     }
 }

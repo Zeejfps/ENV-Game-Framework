@@ -61,21 +61,25 @@ public abstract class Component
     }
     
     public IReadOnlyList<Component> Children => _children;
-    public IReadOnlyList<string> StyleClasses => _styleClasses;
+    public IEnumerable<string> StyleClasses => _styleClasses;
 
     private readonly List<Component> _children = new();
-    private readonly List<string> _styleClasses = new();
+    private readonly HashSet<string> _styleClasses = new();
     
     public void AddStyleClass(string classId)
     {
-        _styleClasses.Add(classId);
-        SetDirty();
+        if (_styleClasses.Add(classId))
+        {
+            SetDirty();
+        }
     }
 
     public void RemoveStyleClass(string classId)
     {
-        _styleClasses.Remove(classId);
-        SetDirty();
+        if (_styleClasses.Remove(classId))
+        {
+            SetDirty();
+        }
     }
     
     public void Add(Component component)
@@ -103,7 +107,7 @@ public abstract class Component
     {
         if (IsSelfDirty)
         {
-            Console.WriteLine($"Laying out: {GetType()}");
+            //Console.WriteLine($"Laying out: {GetType()}");
             OnLayoutSelf();
             OnLayoutChildren();
             IsSelfDirty = false;
