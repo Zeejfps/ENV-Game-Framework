@@ -64,7 +64,6 @@ public abstract class Layout : ILayout
     private readonly List<Component> _components = new();
 
     public bool IsDirty => _components.Any(component => component.IsDirty);
-    public int ZIndex { get; set; }
 
     public void Add(Component component)
     {

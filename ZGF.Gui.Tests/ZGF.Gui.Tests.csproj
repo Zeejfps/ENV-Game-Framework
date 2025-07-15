@@ -8,6 +8,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\QuadTreeRendererProgram\QuadTreeRendererProgram.csproj" />
+      <ProjectReference Include="..\SoftwareRendererModule\SoftwareRendererModule.csproj" />
+      <ProjectReference Include="..\ZGF.Core\ZGF.Core.csproj" />
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
     </ItemGroup>
 
