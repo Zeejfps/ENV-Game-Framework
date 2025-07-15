@@ -1,10 +1,11 @@
 using SoftwareRendererModule;
 using ZGF.Core;
+using ZGF.Geometry;
 using static GL46;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class App : OpenGlApp, IGuiApp
+public sealed class App : OpenGlApp
 {
     private readonly BitmapCanvas _canvas;
 
@@ -14,9 +15,18 @@ public sealed class App : OpenGlApp, IGuiApp
         var bitmap = new Bitmap(startupConfig.WindowWidth, startupConfig.WindowHeight);
         _canvas = new BitmapCanvas(bitmap);
         glClearColor(0f, 0f, 0f, 0f);
+
+        var columnLayout = new ColumnLayout();
+        columnLayout.Add(new Button());
+        columnLayout.Add(new Button());
+        columnLayout.Add(new Button());
+
+        GuiContent.Position = new RectF(0, 0, 640, 480);
+        GuiContent.Layout = columnLayout;
+        GuiContent.ApplyStyle(new StyleSheet());
     }
 
-    public Container GuiContent { get; }
+    private Container GuiContent { get; }
 
     protected override void OnUpdate()
     {
