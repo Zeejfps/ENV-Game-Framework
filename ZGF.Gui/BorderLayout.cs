@@ -12,20 +12,20 @@ public sealed class BorderLayout : Component
 
     protected override void OnLayoutSelf()
     {
+        Position = Constraints;
         var position = Position;
         var centerAreaHeight = position.Height;
         var bottomOffset = 0f;
         if (North != null)
         {
-            North.Position = new RectF(position.Left, position.Top - North.Position.Height, position.Width, North.Position.Height);
+            North.Constraints = new RectF(position.Left, position.Top - North.Constraints.Height, position.Width, North.Constraints.Height);
             North.LayoutSelf();
             centerAreaHeight -= North.Position.Height;
         }
 
         if (South != null)
         {
-            South.LayoutSelf();
-            South.Position = new RectF(position.Left, position.Bottom, position.Width, South.Position.Height);
+            South.Constraints = new RectF(position.Left, position.Bottom, position.Width, South.Constraints.Height);
             South.LayoutSelf();
             centerAreaHeight -= South.Position.Height;
             bottomOffset += South.Position.Height;
@@ -34,7 +34,7 @@ public sealed class BorderLayout : Component
         if (Center != null)
         {
             Console.WriteLine($"{centerAreaHeight}");
-            Center.Position = new RectF(position.Left, position.Bottom + bottomOffset, position.Width, centerAreaHeight);
+            Center.Constraints = new RectF(position.Left, position.Bottom + bottomOffset, position.Width, centerAreaHeight);
             Center.LayoutSelf();
         }
     }

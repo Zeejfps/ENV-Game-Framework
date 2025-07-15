@@ -6,6 +6,7 @@ public sealed class ColumnLayout : Component
 {
     protected override void OnLayoutSelf()
     {
+        Position = Constraints;
         var position = Position;
         var components = Children;
         var componentCount = components.Count;
@@ -21,7 +22,7 @@ public sealed class ColumnLayout : Component
         Console.WriteLine($"Top offset: {position.Top}");
         foreach (var component in components)
         {
-            component.Position = new RectF
+            component.Constraints = new RectF
             {
                 Left = position.Left,
                 Bottom = bottom,

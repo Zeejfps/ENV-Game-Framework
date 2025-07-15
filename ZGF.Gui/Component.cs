@@ -8,7 +8,14 @@ public abstract class Component
     public RectF Position
     {
         get => _position;
-        set => SetField(ref _position, value);
+        protected set => SetField(ref _position, value);
+    }
+
+    private RectF _constraints;
+    public RectF Constraints
+    {
+        get => _constraints;
+        set => SetField(ref _constraints, value);
     }
 
     private string? _classId;
@@ -87,9 +94,10 @@ public abstract class Component
 
     protected virtual void OnLayoutSelf()
     {
+        Position = Constraints;
         foreach (var child in _children)
         {
-            child.Position = Position;
+            child.Constraints = Position;
             child.LayoutSelf();
         }
     }

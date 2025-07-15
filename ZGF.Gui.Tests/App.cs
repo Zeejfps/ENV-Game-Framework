@@ -22,12 +22,12 @@ public sealed class App : OpenGlApp
 
         var header = new Rect
         {
-            Position = new RectF(0f, 0f, 0f, 50f),
+            Constraints = new RectF(0f, 0f, 0f, 50f),
         };
 
         var footer = new Rect
         {
-            Position = new RectF(0f, 0f, 0f, 20f),
+            Constraints = new RectF(0f, 0f, 0f, 20f),
         };
 
         var center = new ColumnLayout();
@@ -40,7 +40,7 @@ public sealed class App : OpenGlApp
             Center = center,
             North = header,
             South = footer,
-            Position = new RectF(0, 0, startupConfig.WindowWidth, startupConfig.WindowHeight)
+            Constraints = new RectF(0, 0, startupConfig.WindowWidth, startupConfig.WindowHeight)
         };
         gui.ApplyStyleSheet(new StyleSheet());
 
