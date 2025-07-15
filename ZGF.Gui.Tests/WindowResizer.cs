@@ -2,17 +2,22 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class WindowResizer : Component, IMouseListener
+public sealed class WindowResizer : Component, IMouseListener, ICaptureMouse
 {
-    public WindowResizer()
+    private readonly Window _window;
+
+    private Rect _background;
+    
+    public WindowResizer(Window window)
     {
+        _window = window;
         Constraints = new RectF
         {
             Width = 16,
             Height = 16,
         };
         
-        var resizer = new Rect
+        _background = new Rect
         {
             Style =
             {
@@ -30,7 +35,7 @@ public sealed class WindowResizer : Component, IMouseListener
             }
         };
         
-        Add(resizer);
+        Add(_background);
         
         AddMouseListener(this);
     }
@@ -38,10 +43,30 @@ public sealed class WindowResizer : Component, IMouseListener
     public void HandleMouseEnterEvent()
     {
         Console.WriteLine("Mouse Enter");
+        _background.Style.BackgroundColor = 0x9C9CCE;
+        _background.SetDirty();
+        CaptureMouse(this);
     }
 
     public void HandleMouseExitEvent()
     {
         Console.WriteLine("Mouse Exit");
+        _background.Style.BackgroundColor = 0xCECECE;
+        _background.SetDirty();
+        ReleaseMouse(this);
+    }
+
+    public void HandleMouseButtonEvent()
+    {
+        Console.WriteLine("Mouse Button Event");
+        _window.BringToFront();
+    }
+
+    public void HandleMouseWheelEvent()
+    {
+    }
+
+    public void HandleMouseMoveEvent()
+    {
     }
 }

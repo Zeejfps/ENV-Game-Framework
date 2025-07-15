@@ -66,6 +66,8 @@ public abstract class Component
     private readonly List<Component> _children = new();
     private readonly HashSet<string> _styleClasses = new();
     
+    private MouseInputSystem MouseInputSystem => MouseInputSystem.Instance;
+    
     public void AddStyleClass(string classId)
     {
         if (_styleClasses.Add(classId))
@@ -137,17 +139,17 @@ public abstract class Component
     
     protected void CaptureMouse(ICaptureMouse captureMouse)
     {
-        
+        MouseInputSystem.CaptureMouse(this, captureMouse);
     }
 
     protected void ReleaseMouse(ICaptureMouse captureMouse)
     {
-        
+        MouseInputSystem.ReleaseMouse(this, captureMouse);
     }
 
     public void AddMouseListener(IMouseListener mouseListener)
     {
-        MouseInputSystem.Instance.RegisterListener(this, mouseListener);
+        MouseInputSystem.RegisterListener(this, mouseListener);
     }
 
     protected virtual void OnComponentAdded(Component component)
@@ -170,7 +172,7 @@ public abstract class Component
         return true;
     }
 
-    protected void SetDirty()
+    public void SetDirty()
     {
         IsSelfDirty = true;
     }
@@ -225,6 +227,14 @@ public abstract class Component
         foreach (var component in _children)
         {
             component.DrawSelf(c);
+        }
+    }
+
+    public void BringToFront(Component component)
+    {
+        if (_children.Remove(component))
+        {
+            _children.Add(component);
         }
     }
 }

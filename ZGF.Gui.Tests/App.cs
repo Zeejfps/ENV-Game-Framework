@@ -80,20 +80,22 @@ public sealed class App : OpenGlApp
 
     private void HandleMouseButtonEvent(GLFW.Window window, MouseButton button, InputState state, ModifierKeys modifiers)
     {
-        if (button != MouseButton.Left)
-            return;
-
-        if (state == InputState.Press)
-        {
-            _isDragging = true;
-            Glfw.GetCursorPosition(WindowHandle, out var x, out var y);
-            _x = x;
-            _y = y;
-        }
-        else if (state == InputState.Release)
-        {
-            _isDragging = false;
-        }
+        // if (button != MouseButton.Left)
+        //     return;
+        //
+        // if (state == InputState.Press)
+        // {
+        //     _isDragging = true;
+        //     Glfw.GetCursorPosition(WindowHandle, out var x, out var y);
+        //     _x = x;
+        //     _y = y;
+        // }
+        // else if (state == InputState.Release)
+        // {
+        //     _isDragging = false;
+        // }
+        
+        MouseInputSystem.Instance.HandleMouseButtonEvent();
     }
 
     private void HandleKeyEvent(GLFW.Window window, Keys key, int scanCode, InputState state, ModifierKeys mods)

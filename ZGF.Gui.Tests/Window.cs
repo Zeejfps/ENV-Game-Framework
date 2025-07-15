@@ -11,7 +11,7 @@ public sealed class Window : Component
     {
         Position = new RectF(200f, 200f, 240f, 200f);
 
-        _windowResizer = new WindowResizer();
+        _windowResizer = new WindowResizer(this);
         
         var outline = new Rect
         {
@@ -316,5 +316,10 @@ public sealed class Window : Component
     public void Move(float dx, float dy)
     {
         Position = Position with { Left = Position.Left + dx, Bottom = Position.Bottom + dy };
+    }
+
+    public void BringToFront()
+    {
+        Parent.BringToFront(this);
     }
 }

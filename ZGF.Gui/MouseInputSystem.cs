@@ -22,10 +22,19 @@ public sealed class MouseInputSystem
     private readonly Dictionary<Component, IMouseListener> _listenersByComponentLookup = new();
     
     private Component? _hoveredComponent;
+    private ICaptureMouse? _focusedComponent;
     
     public void RegisterListener(Component component, IMouseListener listener)
     {
         _listenersByComponentLookup[component] = listener;
+    }
+
+    public void HandleMouseButtonEvent()
+    {
+        if (_focusedComponent != null)
+        {
+            _focusedComponent.HandleMouseButtonEvent();
+        }
     }
 
     public void UpdateMousePosition(int x, int y)
@@ -69,6 +78,19 @@ public sealed class MouseInputSystem
             return null;
         
         return components.First();
+    }
+
+    public void CaptureMouse(Component component, ICaptureMouse captureMouse)
+    {
+        _focusedComponent = captureMouse;
+    }
+
+    public void ReleaseMouse(Component component, ICaptureMouse captureMouse)
+    {
+        if (_focusedComponent == captureMouse)
+        {
+            _focusedComponent = null;       
+        }
     }
     
     sealed class ZIndexComparer : IComparer<Component>
