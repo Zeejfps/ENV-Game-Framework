@@ -1,4 +1,5 @@
 ﻿using ZGF.Geometry;
+using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
@@ -80,9 +81,14 @@ public sealed class Window : Component
                     Top = 1,
                     Left = 1,
                     Right = 1,
-                }
+                },
+                Padding = PaddingStyle.All(2)
             }
         };
+
+        var button = new Rect();
+        button.AddStyleClass("inset_panel");
+        titlePanel.Add(button);
 
         var leftBorder = new Rect
         {
