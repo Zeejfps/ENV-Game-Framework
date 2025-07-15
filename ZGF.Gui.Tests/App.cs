@@ -17,9 +17,9 @@ public sealed class App : OpenGlApp
         glClearColor(0f, 0f, 0f, 0f);
 
         var columnLayout = new ColumnLayout();
-        columnLayout.Add(new Button());
-        columnLayout.Add(new Button());
-        columnLayout.Add(new Button());
+        columnLayout.Add(new TextButton("Button one"));
+        columnLayout.Add(new TextButton("Button two"));
+        columnLayout.Add(new TextButton("Button three"));
 
         GuiContent.Position = new RectF(0, 0, 640, 480);
         GuiContent.Layout = columnLayout;
