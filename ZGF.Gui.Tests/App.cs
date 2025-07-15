@@ -11,7 +11,7 @@ public sealed class App : OpenGlApp
 
     public App(StartupConfig startupConfig) : base(startupConfig)
     {
-        GuiContent = new Container();
+        Gui = new Container();
         var bitmap = new Bitmap(startupConfig.WindowWidth, startupConfig.WindowHeight);
         _canvas = new BitmapCanvas(bitmap);
         glClearColor(0f, 0f, 0f, 0f);
@@ -36,19 +36,19 @@ public sealed class App : OpenGlApp
         layout.North = header;
         layout.South = footer;
 
-        GuiContent.Position = new RectF(0, 0, startupConfig.WindowWidth, startupConfig.WindowHeight);
-        GuiContent.Layout = layout;
-        GuiContent.ApplyStyle(new StyleSheet());
+        Gui.Position = new RectF(0, 0, startupConfig.WindowWidth, startupConfig.WindowHeight);
+        Gui.Layout = layout;
+        Gui.ApplyStyle(new StyleSheet());
     }
 
-    private Container GuiContent { get; }
+    private Container Gui { get; }
 
     protected override void OnUpdate()
     {
         glClear(GL_COLOR_BUFFER_BIT);
         _canvas.BeginFrame();
-        GuiContent.LayoutSelf();
-        GuiContent.DrawSelf(_canvas);
+        Gui.LayoutSelf();
+        Gui.DrawSelf(_canvas);
         _canvas.EndFrame();
         EventSystem.Instance.Update();
     }
