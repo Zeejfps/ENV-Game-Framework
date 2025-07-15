@@ -112,7 +112,11 @@ public sealed class Window : Component
             }
         };
 
-        var row = new FlexRow();
+        var row = new FlexRow
+        {
+            ItemGap = 10,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch
+        };
         titlePanel.Add(row);
         
         var button = new Rect
@@ -131,13 +135,15 @@ public sealed class Window : Component
 
         var spacer = new Rect
         {
-
+            Style =
+            {
+                BackgroundColor = 0xFF00FF,
+            }
         };
+        spacer.AddStyleClass("inset_panel");
         row.Add(spacer, new FlexStyle
         {
-            Flex = 1f,
             Grow = 1f,
-            Shrink = 1f
         });
 
         var leftBorder = new Rect
