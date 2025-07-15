@@ -2,6 +2,21 @@
 
 namespace ZGF.Gui;
 
+public sealed class EventSystem
+{
+    public static EventSystem Instance { get; } = new();
+
+    public void AddMouseListener(Component component, IMouseListener mouseListener)
+    {
+        
+    }
+
+    public void Update()
+    {
+        
+    }
+}
+
 public class Tester
 {
     public void Run()
@@ -39,8 +54,8 @@ public sealed class App : IGuiApp
         var renderer = new FakeRenderer();
         while (true)
         {
-            GuiContent.DoLayout();
-            GuiContent.Render(renderer);
+            GuiContent.LayoutSelf();
+            GuiContent.RenderSelf(renderer);
         }
     }
 }
@@ -121,7 +136,7 @@ public abstract class Layout : ILayout
     {
         foreach (var component in _components)
         {
-            component.Render(renderer);
+            component.RenderSelf(renderer);
         }
     }
 
@@ -135,7 +150,7 @@ public class StackLayout : Layout
         foreach (var component in components)
         {
             component.Position = position;
-            component.DoLayout();
+            component.LayoutSelf();
         }
         return position;
     }
@@ -203,7 +218,13 @@ public class Container : Component
     public ILayout? Layout
     {
         get => _layout;
-        set => SetField(ref _layout, value);
+        set
+        {
+            if (SetField(ref _layout, value) && _layout != null)
+            {
+                _layout.ZIndex = ZIndex;
+            }
+        }
     }
 
     public override bool IsDirty

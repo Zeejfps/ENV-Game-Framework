@@ -17,15 +17,22 @@ public abstract class Component
         get => _classId;
         set => SetField(ref _classId, value);
     }
+
+    private int _zIndex;
+    public int ZIndex
+    {
+        get => _zIndex;
+        set => SetField(ref _zIndex, value);
+    }
     
     public virtual bool IsDirty { get; private set; }
 
-    public void DoLayout()
+    public void LayoutSelf()
     {
         OnLayout();
     }
 
-    public void Render(IRenderer r)
+    public void RenderSelf(IRenderer r)
     {
         OnRender(r);
     }
@@ -37,7 +44,7 @@ public abstract class Component
         
     public void AddMouseListener(IMouseListener mouseListener)
     {
-        
+        EventSystem.Instance.AddMouseListener(this, mouseListener);
     }
 
     protected bool SetField<T>(ref T field, T value)
