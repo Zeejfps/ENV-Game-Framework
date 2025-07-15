@@ -24,12 +24,17 @@ public abstract class Component
         get => _zIndex;
         set => SetField(ref _zIndex, value);
     }
-    
-    public virtual bool IsDirty { get; private set; }
+
+    public virtual bool IsDirty { get; private set; } = true;
 
     public void LayoutSelf()
     {
+        if (!IsDirty)
+            return;
+
+        Console.WriteLine($"Laying out: {GetType()}");
         OnLayout();
+        IsDirty = false;
     }
 
     public void DrawSelf(ICanvas r)
