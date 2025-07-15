@@ -20,6 +20,13 @@ public abstract class Component
     
     public Component? Parent { get; private set; }
 
+    private string? _id;
+    public string? Id
+    {
+        get => _id;
+        set => SetField(ref _id, value);
+    }
+    
     private string? _classId;
     public string? ClassId
     {

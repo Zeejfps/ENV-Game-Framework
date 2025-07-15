@@ -4,18 +4,18 @@ namespace ZGF.Gui;
 
 public sealed class RectStyle
 {
-    public uint BackgroundColor { get; set; }
-    public PaddingStyle Padding { get; set; }
-    public BorderColorStyle BorderColor { get; set; }
-    public BorderSizeStyle BorderSize { get; set; }
+    public uint BackgroundColor;
+    public PaddingStyle Padding;
+    public BorderColorStyle BorderColor;
+    public BorderSizeStyle BorderSize;
 }
 
-public readonly struct PaddingStyle
+public struct PaddingStyle
 {
-    public int Left { get; init; }
-    public int Right { get; init; }
-    public int Top { get; init; }
-    public int Bottom { get; init; }
+    public StyleValue<int> Left { get; set; }
+    public StyleValue<int> Right { get; set; }
+    public StyleValue<int> Top { get; set; }
+    public StyleValue<int> Bottom { get; set; }
 
     public static PaddingStyle All(int size)
     {
@@ -26,6 +26,21 @@ public readonly struct PaddingStyle
             Top = size,
             Bottom = size,
         };
+    }
+
+    public void Apply(ref PaddingStyle padding)
+    {
+        if (Left.IsSet)
+            padding.Left = Left.Value;
+        
+        if (Right.IsSet)
+            padding.Right = Right.Value;
+        
+        if (Top.IsSet)
+            padding.Top = Top.Value;
+        
+        if (Bottom.IsSet)
+            padding.Bottom = Bottom.Value;
     }
 }
 
