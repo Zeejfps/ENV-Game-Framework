@@ -137,14 +137,14 @@ public abstract class Component
         StyleSheet = null;
     }
     
-    protected void CaptureMouse(ICaptureMouse captureMouse)
+    protected void Focus(IMouseFocusable focusable)
     {
-        MouseInputSystem.CaptureMouse(this, captureMouse);
+        MouseInputSystem.Focus(this, focusable);
     }
 
-    protected void ReleaseMouse(ICaptureMouse captureMouse)
+    protected void Blur(IMouseFocusable focusable)
     {
-        MouseInputSystem.ReleaseMouse(this, captureMouse);
+        MouseInputSystem.Blur(this, focusable);
     }
 
     public void AddMouseListener(IMouseListener mouseListener)

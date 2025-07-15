@@ -8,7 +8,7 @@ public interface IMouseListener
     void HandleMouseExitEvent();
 }
 
-public interface ICaptureMouse
+public interface IMouseFocusable
 {
     void HandleMouseButtonEvent();
     void HandleMouseWheelEvent();
@@ -22,7 +22,7 @@ public sealed class MouseInputSystem
     private readonly Dictionary<Component, IMouseListener> _listenersByComponentLookup = new();
     
     private Component? _hoveredComponent;
-    private ICaptureMouse? _focusedComponent;
+    private IMouseFocusable? _focusedComponent;
     
     public void RegisterListener(Component component, IMouseListener listener)
     {
@@ -59,37 +59,34 @@ public sealed class MouseInputSystem
         }
     }
 
-    private readonly SortedSet<Component> _hitTestCache = new(new ZIndexComparer());
+    private readonly List<Component> _hitTestCache = new();
     
     private Component? HitTest(int x, int y)
     {
-        // TODO: Fix
         _hitTestCache.Clear();
         var components = _hitTestCache;
         var hitPoint = new PointF(x, y);
-        //Console.WriteLine($"Compoennts: {_listenersByComponentLookup.Count}");
         foreach (var component in _listenersByComponentLookup.Keys)
         {
             if (component.Position.ContainsPoint(hitPoint))
             {
-                //Console.WriteLine($"Hit: {component.GetHashCode()}");
                 components.Add(component);
             }
         }
 
-        //Console.WriteLine($"ComponentsHit: {components.Count}");
         if (components.Count == 0)
             return null;
         
-        return components.Min;
+        _hitTestCache.Sort(ZIndexComparer.Instance);
+        return components.Last();
     }
 
-    public void CaptureMouse(Component component, ICaptureMouse captureMouse)
+    public void Focus(Component component, IMouseFocusable captureMouse)
     {
         _focusedComponent = captureMouse;
     }
 
-    public void ReleaseMouse(Component component, ICaptureMouse captureMouse)
+    public void Blur(Component component, IMouseFocusable captureMouse)
     {
         if (_focusedComponent == captureMouse)
         {
@@ -99,9 +96,16 @@ public sealed class MouseInputSystem
     
     sealed class ZIndexComparer : IComparer<Component>
     {
+        public static ZIndexComparer Instance { get; } = new();
+        
         public int Compare(Component? x, Component? y)
         {
-            return x.ZIndex.CompareTo(y.ZIndex);       
+            var result = x.ZIndex.CompareTo(y.ZIndex);
+            if (result == 0)
+            {
+                //TODO: Sort them based on hierchy?
+            }
+            return result;
         }
     }
 }

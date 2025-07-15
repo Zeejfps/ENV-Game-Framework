@@ -1,6 +1,6 @@
 namespace ZGF.Gui;
 
-public sealed class TextButton : Component, IMouseListener, ICaptureMouse
+public sealed class TextButton : Component, IMouseListener, IMouseFocusable
 {
     private Rect _background;
 
@@ -28,13 +28,13 @@ public sealed class TextButton : Component, IMouseListener, ICaptureMouse
     public void HandleMouseEnterEvent()
     {
         _background.Style.Apply(BackgroundHoveredStyle);
-        CaptureMouse(this);
+        Focus(this);
     }
 
     public void HandleMouseExitEvent()
     {
         _background.Style.Apply(BackgroundNormalStyle);
-        ReleaseMouse(this);
+        Blur(this);
     }
 
     public void HandleMouseButtonEvent()

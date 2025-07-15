@@ -2,7 +2,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class WindowResizer : Component, IMouseListener, ICaptureMouse
+public sealed class WindowResizer : Component, IMouseListener, IMouseFocusable
 {
     private readonly Window _window;
 
@@ -45,7 +45,7 @@ public sealed class WindowResizer : Component, IMouseListener, ICaptureMouse
         Console.WriteLine("Mouse Enter");
         _background.Style.BackgroundColor = 0x9C9CCE;
         _background.SetDirty();
-        CaptureMouse(this);
+        Focus(this);
     }
 
     public void HandleMouseExitEvent()
@@ -53,7 +53,7 @@ public sealed class WindowResizer : Component, IMouseListener, ICaptureMouse
         Console.WriteLine("Mouse Exit");
         _background.Style.BackgroundColor = 0xCECECE;
         _background.SetDirty();
-        ReleaseMouse(this);
+        Blur(this);
     }
 
     public void HandleMouseButtonEvent()
