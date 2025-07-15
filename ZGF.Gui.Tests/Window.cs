@@ -150,19 +150,20 @@ public sealed class Window : Component
         
         var contentOutline = new Rect
         {
-            Style =
-            {
-                BackgroundColor = 0x000000,
-                BorderSize = BorderSizeStyle.All(1),
-                BorderColor = new BorderColorStyle
-                {
-                    Left = 0x9C9C9C,
-                    Top = 0x9C9C9C,
-                    Right = 0xFFFFFF,
-                    Bottom = 0xFFFFFF
-                },
-                Padding = PaddingStyle.All(1)
-            }
+            Id = "content_outline",
+            // Style =
+            // {
+            //     BackgroundColor = 0x000000,
+            //     BorderSize = BorderSizeStyle.All(1),
+            //     BorderColor = new BorderColorStyle
+            //     {
+            //         Left = 0x9C9C9C,
+            //         Top = 0x9C9C9C,
+            //         Right = 0xFFFFFF,
+            //         Bottom = 0xFFFFFF
+            //     },
+            //     Padding = PaddingStyle.All(1)
+            // }
         };
 
         var content = new Rect

@@ -51,6 +51,7 @@ public class Rect : Component
 
     protected override void OnApplyStyleSheet(StyleSheet styleSheet)
     {
+        Console.WriteLine($"Applying style sheet to {GetType()}");
         if (styleSheet.TryGetByClass(ClassId, out var classStyle))
         {
             classStyle.Padding.ApplyTo(ref Style.Padding);
@@ -66,5 +67,7 @@ public class Rect : Component
         }
         
         SetDirty();
+        
+        base.OnApplyStyleSheet(styleSheet);
     }
 }

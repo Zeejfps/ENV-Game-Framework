@@ -45,7 +45,22 @@ public sealed class App : OpenGlApp
             North = header,
             Constraints = new RectF(0, 0, framebufferWidth, framebufferHeight)
         };
-        gui.ApplyStyleSheet(new StyleSheet());
+        
+        var ss = new StyleSheet();
+        ss.AddStyleForId("content_outline", new Style
+        {
+            Padding = PaddingStyle.All(1),
+            BorderSize = BorderSizeStyle.All(1),
+            BorderColor = new BorderColorStyle
+            {
+                Left = 0x9C9C9C,
+                Top = 0x9C9C9C,
+                Right = 0xFFFFFF,
+                Bottom = 0xFFFFFF
+            },
+        });
+        
+        gui.ApplyStyleSheet(ss);
 
         _gui = gui;
 
