@@ -71,8 +71,9 @@ public sealed class FakeCanvas : ICanvas
     {
     }
 
-    public void DrawText(RectF position, string text)
+    public void DrawText(RectF position, string text, TextStyle style)
     {
+
     }
 
     public void Render()
@@ -165,29 +166,6 @@ public class StackLayout : Layout
     }
 }
 
-public class Rect : Component
-{
-    private RectStyle _style;
-    public RectStyle Style
-    {
-        get => _style;
-        set => SetField(ref _style, value);
-    }
-    
-    protected override void OnDraw(ICanvas c)
-    {
-        c.DrawRect(Position, Style);
-    }
-    
-    protected override void OnApplyStyleSheet(StyleSheet styleSheet)
-    {
-        if (styleSheet.TryGetByClass(ClassId, out var style))
-        {
-            
-        }
-    }
-}
-
 public sealed class ColumnLayout : Layout
 {
     protected override RectF OnDoLayout(RectF position, IReadOnlyList<Component> components)
@@ -205,28 +183,6 @@ public sealed class ColumnLayout : Layout
             };
         }
         return position;
-    }
-}
-
-public class Label : Component
-{
-    private TextStyle _style;
-    public TextStyle Style
-    {
-        get => _style;
-        set => SetField(ref _style, value);
-    }
-
-    private string _text;
-
-    public Label(string text)
-    {
-        _text = text;
-    }
-
-    protected override void OnDraw(ICanvas c)
-    {
-        c.DrawText(Position, _text, Style);
     }
 }
 
