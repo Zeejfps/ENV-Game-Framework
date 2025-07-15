@@ -144,8 +144,8 @@ public sealed class App : OpenGlApp
         Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
         Glfw.GetWindowSize(WindowHandle, out var width, out var height);
 
-        var scaleX = _framebufferWidth / width;
-        var scaleY = _framebufferHeight / height;
+        var scaleX = _framebufferWidth / (float)width;
+        var scaleY = _framebufferHeight / (float)height;
         var screenX = mouseX * scaleX;
         var screenY = (height - mouseY) * scaleY;
         

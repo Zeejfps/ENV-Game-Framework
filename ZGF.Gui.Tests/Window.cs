@@ -3,47 +3,15 @@ using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class Resizer : Component
-{
-    public Resizer()
-    {
-        Constraints = new RectF
-        {
-            Width = 16,
-            Height = 16,
-        };
-        
-        var resizer = new Rect
-        {
-            Style =
-            {
-                BackgroundColor = 0xCECECE,
-                BorderSize = new BorderSizeStyle
-                {
-                    Left = 1,
-                    Top = 1,
-                },
-                BorderColor = new BorderColorStyle
-                {
-                    Left = 0xFFFFFF,
-                    Top = 0xFFFFFF,
-                }
-            }
-        };
-        
-        Add(resizer);
-    }
-}
-
 public sealed class Window : Component
 {
-    private Resizer _resizer;
+    private WindowResizer _windowResizer;
     
     public Window()
     {
         Position = new RectF(200f, 200f, 240f, 200f);
 
-        _resizer = new Resizer();
+        _windowResizer = new WindowResizer();
         
         var outline = new Rect
         {
@@ -328,21 +296,21 @@ public sealed class Window : Component
         base.OnLayoutChildren();
 
         var position = Position;
-        var left = position.Right - _resizer.Constraints.Width - 5;
+        var left = position.Right - _windowResizer.Constraints.Width - 5;
         var bottom = position.Bottom + 5;
-        _resizer.Constraints = _resizer.Constraints with
+        _windowResizer.Constraints = _windowResizer.Constraints with
         {
             Left = left, 
             Bottom = bottom
         };
-        _resizer.LayoutSelf();
+        _windowResizer.LayoutSelf();
     }
 
 
     protected override void OnDrawChildren(ICanvas c)
     {
         base.OnDrawChildren(c);
-        _resizer.DrawSelf(c);
+        _windowResizer.DrawSelf(c);
     }
 
     public void Move(float dx, float dy)

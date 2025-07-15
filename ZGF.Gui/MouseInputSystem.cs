@@ -50,20 +50,32 @@ public sealed class MouseInputSystem
         }
     }
 
+    private readonly SortedSet<Component> _hitTestCache = new(new ZIndexComparer());
+    
     private Component? HitTest(int x, int y)
     {
-        var components = new SortedList<int, Component>();
+        _hitTestCache.Clear();
+        var components = _hitTestCache;
+        var hitPoint = new PointF(x, y);
         foreach (var component in _listenersByComponentLookup.Keys)
         {
-            if (component.Position.ContainsPoint(new PointF(x, y)))
+            if (component.Position.ContainsPoint(hitPoint))
             {
-                components.Add(component.ZIndex, component);
+                components.Add(component);
             }
         }
 
         if (components.Count == 0)
             return null;
         
-        return components.Values.First();
+        return components.First();
+    }
+    
+    sealed class ZIndexComparer : IComparer<Component>
+    {
+        public int Compare(Component? x, Component? y)
+        {
+            return x.ZIndex.CompareTo(y.ZIndex);       
+        }
     }
 }
