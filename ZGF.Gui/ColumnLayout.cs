@@ -2,7 +2,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
-public sealed class ColumnLayout : MultiChildComponent
+public sealed class ColumnLayout : Component
 {
     protected override void OnLayoutSelf()
     {

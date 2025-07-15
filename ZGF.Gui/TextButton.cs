@@ -1,6 +1,6 @@
 namespace ZGF.Gui;
 
-public sealed class TextButton : MultiChildComponent, IMouseListener
+public sealed class TextButton : Component, IMouseListener
 {
     private Rect _background;
 

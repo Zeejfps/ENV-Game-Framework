@@ -25,7 +25,25 @@ public abstract class Component
         set => SetField(ref _zIndex, value);
     }
 
-    public virtual bool IsDirty { get; private set; } = true;
+    private bool _isDirty = true;
+    public virtual bool IsDirty
+    {
+        get
+        {
+            return _children.Any(component => component.IsDirty) || _isDirty;
+        }
+        private set => _isDirty =  value;
+    }
+
+    private readonly List<Component> _children = new();
+
+    public IReadOnlyList<Component> Children => _children;
+
+    public void Add(Component component)
+    {
+        _children.Add(component);
+        SetDirty();
+    }
 
     public void LayoutSelf()
     {
@@ -66,8 +84,29 @@ public abstract class Component
     {
         IsDirty = true;
     }
-    
-    protected virtual void OnApplyStyleSheet(StyleSheet styleSheet){}
-    protected virtual void OnLayoutSelf(){}
-    protected virtual void OnDrawSelf(ICanvas c){}
+
+    protected virtual void OnLayoutSelf()
+    {
+        foreach (var child in _children)
+        {
+            child.Position = Position;
+            child.LayoutSelf();
+        }
+    }
+
+    protected virtual void OnApplyStyleSheet(StyleSheet styleSheet)
+    {
+        foreach (var child in _children)
+        {
+            child.ApplyStyleSheet(styleSheet);
+        }
+    }
+
+    protected virtual void OnDrawSelf(ICanvas c)
+    {
+        foreach (var component in _children)
+        {
+            component.DrawSelf(c);
+        }
+    }
 }
