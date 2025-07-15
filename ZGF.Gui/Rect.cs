@@ -49,8 +49,6 @@ public class Rect : Component
 
     protected override void OnStyleSheetApplied(StyleSheet styleSheet)
     {
-        Console.WriteLine($"Applying style sheet to {GetType()}");
-
         foreach (var styleClass in StyleClasses)
         {
             if (styleSheet.TryGetByClass(styleClass, out var classStyle))

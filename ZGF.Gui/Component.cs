@@ -27,12 +27,12 @@ public abstract class Component
         set => SetField(ref _id, value);
     }
 
-    // private int _zIndex;
-    // public int ZIndex
-    // {
-    //     get => _zIndex;
-    //     set => SetField(ref _zIndex, value);
-    // }
+    private int _zIndex;
+    public virtual int ZIndex
+    {
+        get => _zIndex;
+        private set => SetField(ref _zIndex, value);
+    }
 
     private bool IsDirty => IsSelfDirty || IsChildrenDirty;
     private bool IsSelfDirty { get; set; } = true;
@@ -90,6 +90,7 @@ public abstract class Component
         }
 
         component.Parent = this;
+        component.ZIndex = ZIndex + 1;
         _children.Add(component);
         OnComponentAdded(component);
     }
@@ -99,6 +100,7 @@ public abstract class Component
         if (_children.Remove(component) && component.Parent == this)
         {
             component.Parent = null;
+            component.ZIndex = 0;
             OnComponentRemoved(component);
         }
     }
@@ -107,7 +109,6 @@ public abstract class Component
     {
         if (IsSelfDirty)
         {
-            //Console.WriteLine($"Laying out: {GetType()}");
             OnLayoutSelf();
             OnLayoutChildren();
             IsSelfDirty = false;
