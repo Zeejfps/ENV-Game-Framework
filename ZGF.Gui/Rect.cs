@@ -54,6 +54,9 @@ public class Rect : Component
         Console.WriteLine($"Applying style sheet to {GetType()}");
         if (styleSheet.TryGetByClass(ClassId, out var classStyle))
         {
+            if (classStyle.BackgroundColor.IsSet)
+                Style.BackgroundColor = classStyle.BackgroundColor.Value;
+            
             classStyle.Padding.ApplyTo(ref Style.Padding);
             classStyle.BorderSize.ApplyTo(ref Style.BorderSize);
             classStyle.BorderColor.ApplyTo(ref Style.BorderColor);
@@ -61,6 +64,9 @@ public class Rect : Component
         
         if (styleSheet.TryGetById(Id, out var idStyle))
         {
+            if (idStyle.BackgroundColor.IsSet)
+                Style.BackgroundColor = idStyle.BackgroundColor.Value;
+            
             idStyle.Padding.ApplyTo(ref Style.Padding);
             idStyle.BorderSize.ApplyTo(ref Style.BorderSize);
             idStyle.BorderColor.ApplyTo(ref Style.BorderColor);

@@ -49,6 +49,7 @@ public sealed class App : OpenGlApp
         var ss = new StyleSheet();
         ss.AddStyleForId("content_outline", new Style
         {
+            BackgroundColor = 0x000000,
             Padding = PaddingStyle.All(1),
             BorderSize = BorderSizeStyle.All(1),
             BorderColor = new BorderColorStyle
@@ -59,7 +60,6 @@ public sealed class App : OpenGlApp
                 Bottom = 0xFFFFFF
             },
         });
-        
         gui.ApplyStyleSheet(ss);
 
         _gui = gui;
