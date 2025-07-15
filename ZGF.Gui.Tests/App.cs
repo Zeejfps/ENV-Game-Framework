@@ -60,7 +60,7 @@ public sealed class App : OpenGlApp
                 Bottom = 0xFFFFFF
             },
         });
-        gui.ApplyStyleSheetToSelf(ss);
+        gui.ApplyStyleSheet(ss);
 
         _gui = gui;
 
@@ -100,9 +100,22 @@ public sealed class App : OpenGlApp
         if (key != Keys.Space)
             return;
         
-        var styleSheet = new StyleSheet();
+        var ss = new StyleSheet();
+        ss.AddStyleForId("content_outline", new Style
+        {
+            BackgroundColor = 0x000000,
+            Padding = PaddingStyle.All(12),
+            BorderSize = BorderSizeStyle.All(10),
+            BorderColor = new BorderColorStyle
+            {
+                Left = 0xFF00FF,
+                Top = 0xFF00FF,
+                Right = 0xFF00FF,
+                Bottom = 0xFF00FF
+            },
+        });
         
-        _gui.ApplyStyleSheetToSelf(styleSheet);
+        _gui.ClearStyleSheet();
     }
     
     protected override void OnUpdate()

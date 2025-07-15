@@ -57,13 +57,19 @@ public abstract class Component
         get => _styleSheet;
         set
         {
-            if (SetField(ref _styleSheet, value))
-            {
-                if (_styleSheet != null)
-                    OnStyleSheetApplied(_styleSheet);
-                else
-                    OnStyleSheetCleared();
-            }
+            if (_styleSheet == value)
+                return;
+            
+            var prevStyleSheet = _styleSheet;
+            _styleSheet = value;
+            
+            if (prevStyleSheet != null)
+                OnStyleSheetCleared(prevStyleSheet);
+            
+            if (_styleSheet != null)
+                OnStyleSheetApplied(_styleSheet);
+            
+            SetDirty();
         }
     }
 
@@ -106,11 +112,14 @@ public abstract class Component
         OnDrawSelf(r);
     }
 
-    public void ApplyStyleSheetToSelf(StyleSheet styleSheet)
+    public void ApplyStyleSheet(StyleSheet styleSheet)
     {
         StyleSheet = styleSheet;
-        ApplyStyleSheetToChildren(styleSheet);
-        SetDirty();
+    }
+
+    public void ClearStyleSheet()
+    {
+        StyleSheet = null;
     }
         
     public void AddMouseListener(IMouseListener mouseListener)
@@ -143,15 +152,29 @@ public abstract class Component
         }
     }
 
-    protected virtual void OnStyleSheetApplied(StyleSheet styleSheet){}
-    
-    protected virtual void OnStyleSheetCleared(){}
+    protected virtual void OnStyleSheetApplied(StyleSheet styleSheet)
+    {
+        ApplyStyleSheetToChildren(styleSheet);
+    }
+
+    protected virtual void OnStyleSheetCleared(StyleSheet styleSheet)
+    {
+        ClearStyleSheetFromChildren(styleSheet);
+    }
 
     protected virtual void ApplyStyleSheetToChildren(StyleSheet styleSheet)
     {
         foreach (var child in _children)
         {
-            child.ApplyStyleSheetToSelf(styleSheet);
+            child.ApplyStyleSheet(styleSheet);
+        }
+    }
+
+    protected virtual void ClearStyleSheetFromChildren(StyleSheet styleSheet)
+    {
+        foreach (var child in _children)
+        {
+            //child.ApplyStyleSheetToSelf(styleSheet);
         }
     }
 

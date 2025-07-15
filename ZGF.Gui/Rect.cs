@@ -72,8 +72,6 @@ public class Rect : Component
             idStyle.BorderColor.ApplyTo(ref Style.BorderColor);
         }
         
-        SetDirty();
-        
-        base.ApplyStyleSheetToChildren(styleSheet);
+        base.OnStyleSheetApplied(styleSheet);
     }
 }
