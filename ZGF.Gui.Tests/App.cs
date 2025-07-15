@@ -100,22 +100,23 @@ public sealed class App : OpenGlApp
         if (key != Keys.Space)
             return;
         
-        var ss = new StyleSheet();
-        ss.AddStyleForId("content_outline", new Style
-        {
-            BackgroundColor = 0x000000,
-            Padding = PaddingStyle.All(12),
-            BorderSize = BorderSizeStyle.All(10),
-            BorderColor = new BorderColorStyle
-            {
-                Left = 0xFF00FF,
-                Top = 0xFF00FF,
-                Right = 0xFF00FF,
-                Bottom = 0xFF00FF
-            },
-        });
-        
-        _gui.ClearStyleSheet();
+        _window.Move(10, 10);
+        // var ss = new StyleSheet();
+        // ss.AddStyleForId("content_outline", new Style
+        // {
+        //     BackgroundColor = 0x000000,
+        //     Padding = PaddingStyle.All(12),
+        //     BorderSize = BorderSizeStyle.All(10),
+        //     BorderColor = new BorderColorStyle
+        //     {
+        //         Left = 0xFF00FF,
+        //         Top = 0xFF00FF,
+        //         Right = 0xFF00FF,
+        //         Bottom = 0xFF00FF
+        //     },
+        // });
+        //
+        // _gui.ClearStyleSheet();
     }
     
     protected override void OnUpdate()

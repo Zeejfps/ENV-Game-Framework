@@ -203,6 +203,13 @@ public sealed class Window : Component
             bottom = Constraints.Bottom;
         }
 
+        var top = Position.Top;
+        if (top > Constraints.Top)
+        {
+            var delta = top - Constraints.Top;
+            bottom -= delta;
+        }
+        
         var right = Position.Right;
         if (right > Constraints.Right)
         {
