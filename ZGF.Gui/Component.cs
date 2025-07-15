@@ -27,23 +27,16 @@ public abstract class Component
         set => SetField(ref _id, value);
     }
 
+    // private int _zIndex;
+    // public int ZIndex
+    // {
+    //     get => _zIndex;
+    //     set => SetField(ref _zIndex, value);
+    // }
 
-    private int _zIndex;
-    public int ZIndex
-    {
-        get => _zIndex;
-        set => SetField(ref _zIndex, value);
-    }
-
-    private bool _isDirty = true;
-    public virtual bool IsDirty
-    {
-        get
-        {
-            return _children.Any(component => component.IsDirty) || _isDirty;
-        }
-        private set => _isDirty =  value;
-    }
+    private bool IsDirty => IsSelfDirty || IsChildrenDirty;
+    private bool IsSelfDirty { get; set; } = true;
+    private bool IsChildrenDirty => Children.Any(child => child.IsDirty);
 
     private StyleSheet? _styleSheet;
     protected StyleSheet? StyleSheet
@@ -107,13 +100,17 @@ public abstract class Component
     
     public void LayoutSelf()
     {
-        OnLayoutSelf();
-        if (!IsDirty)
-            return;
-
-        Console.WriteLine($"Laying out: {GetType()}");
-        OnLayoutChildren();
-        IsDirty = false;
+        if (IsSelfDirty)
+        {
+            Console.WriteLine($"Laying out: {GetType()}");
+            OnLayoutSelf();
+            OnLayoutChildren();
+            IsSelfDirty = false;
+        }
+        else if (IsChildrenDirty)
+        {
+            OnLayoutChildren();
+        }
     }
 
     public void DrawSelf(ICanvas r)
@@ -146,9 +143,9 @@ public abstract class Component
         return true;
     }
 
-    public void SetDirty()
+    private void SetDirty()
     {
-        IsDirty = true;
+        IsSelfDirty = true;
     }
 
     protected virtual void OnLayoutSelf()
