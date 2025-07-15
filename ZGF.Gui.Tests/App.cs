@@ -11,7 +11,6 @@ public sealed class App : OpenGlApp
 
     public App(StartupConfig startupConfig) : base(startupConfig)
     {
-        Gui = new Container();
         var bitmap = new Bitmap(startupConfig.WindowWidth, startupConfig.WindowHeight);
         _canvas = new BitmapCanvas(bitmap);
         glClearColor(0f, 0f, 0f, 0f);
