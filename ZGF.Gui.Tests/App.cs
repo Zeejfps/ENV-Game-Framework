@@ -16,13 +16,28 @@ public sealed class App : OpenGlApp
         _canvas = new BitmapCanvas(bitmap);
         glClearColor(0f, 0f, 0f, 0f);
 
-        var columnLayout = new ColumnLayout();
-        columnLayout.Add(new TextButton("Button one"));
-        columnLayout.Add(new TextButton("Button two"));
-        columnLayout.Add(new TextButton("Button three"));
+        // var columnLayout = new ColumnLayout();
+        // columnLayout.Add(new TextButton("Button one"));
+        // columnLayout.Add(new TextButton("Button two"));
+        // columnLayout.Add(new TextButton("Button three"));
 
-        GuiContent.Position = new RectF(0, 0, 640, 480);
-        GuiContent.Layout = columnLayout;
+        var header = new Rect
+        {
+            Position = new RectF(0f, 0f, 0f, 50f),
+        };
+
+        var footer = new Rect
+        {
+            Position = new RectF(0f, 0f, 0f, 20f),
+        };
+
+        var layout = new BorderLayout();
+        layout.Center = new Rect();
+        layout.North = header;
+        layout.South = footer;
+
+        GuiContent.Position = new RectF(0, 0, startupConfig.WindowWidth, startupConfig.WindowHeight);
+        GuiContent.Layout = layout;
         GuiContent.ApplyStyle(new StyleSheet());
     }
 
