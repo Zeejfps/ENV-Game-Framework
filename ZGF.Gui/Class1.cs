@@ -17,27 +17,10 @@ public sealed class EventSystem
     }
 }
 
-public class Tester
-{
-    public void Run()
-    {
-        IGuiApp app = new App();
-        var columnLayout = new ColumnLayout();
-        columnLayout.Add(new Button());
-        columnLayout.Add(new Button());
-        columnLayout.Add(new Button());
-        
-        app.GuiContent.Layout = columnLayout;
-        app.GuiContent.ApplyStyle(new StyleSheet());
-
-        app.Run();
-    }
-}
-
 public interface IGuiApp
 {
-    void Run();
     Container GuiContent { get; }
+    void Run();
 }
 
 public sealed class App : IGuiApp

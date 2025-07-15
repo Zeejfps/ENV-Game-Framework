@@ -2,5 +2,13 @@
 
 using ZGF.Gui;
 
-var test = new Tester();
-test.Run();
+IGuiApp app = new App();
+var columnLayout = new ColumnLayout();
+columnLayout.Add(new Button());
+columnLayout.Add(new Button());
+columnLayout.Add(new Button());
+
+app.GuiContent.Layout = columnLayout;
+app.GuiContent.ApplyStyle(new StyleSheet());
+
+app.Run();
