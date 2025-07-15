@@ -8,7 +8,7 @@ public sealed class ColumnLayout : Layout
     {
         var componentCount = components.Count;
         var componentHeight = position.Height / componentCount;
-        var offset = 0f;
+        var offset = position.Top - componentHeight;
         foreach (var component in components)
         {
             component.Position = new RectF
@@ -20,7 +20,7 @@ public sealed class ColumnLayout : Layout
             };
             component.LayoutSelf();
 
-            offset += componentHeight;
+            offset -= componentHeight;
         }
         return position;
     }
