@@ -114,9 +114,10 @@ public abstract class Component
         }
     }
 
-    public void DrawSelf(ICanvas r)
+    public void DrawSelf(ICanvas c)
     {
-        OnDrawSelf(r);
+        OnDrawSelf(c);
+        OnDrawChildren(c);
     }
 
     public void ApplyStyleSheet(StyleSheet styleSheet)
@@ -200,6 +201,11 @@ public abstract class Component
     }
 
     protected virtual void OnDrawSelf(ICanvas c)
+    {
+        
+    }
+
+    protected virtual void OnDrawChildren(ICanvas c)
     {
         foreach (var component in _children)
         {

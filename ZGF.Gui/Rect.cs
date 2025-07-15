@@ -18,7 +18,6 @@ public class Rect : Component
             Position = Position,
             Style = Style
         });
-        base.OnDrawSelf(c);
     }
 
     protected override void OnLayoutChildren()

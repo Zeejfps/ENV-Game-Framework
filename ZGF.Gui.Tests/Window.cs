@@ -47,9 +47,35 @@ public sealed class WindowFrame : Component
 
 public sealed class Window : Component
 {
+    private Rect _resizer;
+    
     public Window()
     {
         Position = new RectF(200f, 200f, 240f, 200f);
+
+        _resizer = new Rect
+        {
+            Constraints = new RectF
+            {
+                Width = 15,
+                Height = 15,
+            },
+            Style =
+            {
+                BackgroundColor = 0xCECECE,
+                BorderSize = new BorderSizeStyle
+                {
+                    Left = 1,
+                    Top = 1,
+                },
+                BorderColor = new BorderColorStyle
+                {
+                    Left = 0xFFFFFF,
+                    Top = 0xFFFFFF,
+                }
+            }
+        };
+        
         
         var outline = new Rect
         {
@@ -178,7 +204,16 @@ public sealed class Window : Component
             }
         };
         
-        var contentOutline = new Rect();
+        var contentOutline = new Rect
+        {
+            Style =
+            {
+                Padding = new PaddingStyle
+                {
+                    Bottom = 5
+                }
+            }
+        };
         contentOutline.AddStyleClass("inset_panel");
 
         var content = new Rect
@@ -248,6 +283,28 @@ public sealed class Window : Component
         }
         
         Position = Position with { Left = left, Bottom = bottom};
+    }
+
+    protected override void OnLayoutChildren()
+    {
+        base.OnLayoutChildren();
+
+        var position = Position;
+        var left = position.Right - _resizer.Constraints.Width - 5;
+        var bottom = position.Bottom + 5;
+        _resizer.Constraints = _resizer.Constraints with
+        {
+            Left = left, 
+            Bottom = bottom
+        };
+        _resizer.LayoutSelf();
+    }
+
+
+    protected override void OnDrawChildren(ICanvas c)
+    {
+        base.OnDrawChildren(c);
+        _resizer.DrawSelf(c);
     }
 
     public void Move(float dx, float dy)
