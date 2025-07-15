@@ -23,9 +23,10 @@ public sealed class App : OpenGlApp
     {
         _clock = new Clock();
         
-        var framebufferWidth = startupConfig.WindowWidth / 2;
-        var framebufferHeight = startupConfig.WindowHeight / 2;
-        var bitmap = new Bitmap(framebufferWidth, framebufferHeight);
+        _framebufferWidth = startupConfig.WindowWidth / 2;
+        _framebufferHeight = startupConfig.WindowHeight / 2;
+        
+        var bitmap = new Bitmap(_framebufferWidth, _framebufferHeight);
         _canvas = new Canvas(bitmap);
         glClearColor(0f, 0f, 0f, 0f);
         
@@ -44,7 +45,7 @@ public sealed class App : OpenGlApp
         {
             Center = center,
             North = header,
-            Constraints = new RectF(0, 0, framebufferWidth, framebufferHeight)
+            Constraints = new RectF(0, 0, _framebufferWidth, _framebufferHeight)
         };
         
         var ss = new StyleSheet();
@@ -74,7 +75,9 @@ public sealed class App : OpenGlApp
     private bool _isDragging;
     private double _x;
     private double _y;
-    
+    private int _framebufferWidth;
+    private int _framebufferHeight;
+
     private void HandleMouseButtonEvent(GLFW.Window window, MouseButton button, InputState state, ModifierKeys modifiers)
     {
         if (button != MouseButton.Left)
@@ -137,7 +140,16 @@ public sealed class App : OpenGlApp
         _gui.LayoutSelf();
         _gui.DrawSelf(_canvas);
         _canvas.EndFrame();
-        MessageBus.Instance.Update();
+        
+        Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
+        Glfw.GetWindowSize(WindowHandle, out var width, out var height);
+
+        var scaleX = _framebufferWidth / width;
+        var scaleY = _framebufferHeight / height;
+        var screenX = mouseX * scaleX;
+        var screenY = (height - mouseY) * scaleY;
+        
+        MouseInputSystem.Instance.UpdateMousePosition((int)screenX, (int)screenY);
     }
 
     protected override void DisposeManagedResources()

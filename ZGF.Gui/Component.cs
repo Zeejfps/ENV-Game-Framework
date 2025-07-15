@@ -135,9 +135,19 @@ public abstract class Component
         StyleSheet = null;
     }
     
-    public void RegisterCallback<T>(Action<T> callback)
+    protected void CaptureMouse(ICaptureMouse captureMouse)
     {
-        MessageBus.Instance.RegisterCallback<T>(this, callback);
+        
+    }
+
+    protected void ReleaseMouse(ICaptureMouse captureMouse)
+    {
+        
+    }
+
+    public void AddMouseListener(IMouseListener mouseListener)
+    {
+        MouseInputSystem.Instance.RegisterListener(this, mouseListener);
     }
 
     protected virtual void OnComponentAdded(Component component)
