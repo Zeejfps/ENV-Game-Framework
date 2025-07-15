@@ -14,7 +14,6 @@ public abstract class MultiChildComponent : Component
 
     protected override void OnLayoutSelf()
     {
-        Console.WriteLine(Position);
         foreach (var child in _children)
         {
             child.Position = Position;
