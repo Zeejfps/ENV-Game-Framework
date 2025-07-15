@@ -191,11 +191,26 @@ public sealed class Window : Component
 
     protected override void OnLayoutSelf()
     {
-        foreach (var child in Children)
+        var left = Position.Left;
+        if (left < Constraints.Left)
         {
-            child.Constraints = Position;
-            child.LayoutSelf();
+            left = Constraints.Left;
         }
+
+        var bottom = Position.Bottom;
+        if (bottom < Constraints.Bottom)
+        {
+            bottom = Constraints.Bottom;
+        }
+
+        var right = Position.Right;
+        if (right > Constraints.Right)
+        {
+            var delta = right - Constraints.Right;
+            left -= delta;
+        }
+        
+        Position = Position with { Left = left, Bottom = bottom};
     }
 
     public void Move(float dx, float dy)

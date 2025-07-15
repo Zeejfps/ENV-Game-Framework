@@ -4,9 +4,8 @@ namespace ZGF.Gui;
 
 public sealed class ColumnLayout : Component
 {
-    protected override void OnLayoutSelf()
+    protected override void OnLayoutChildren()
     {
-        Position = Constraints;
         var position = Position;
         var components = Children;
         var componentCount = components.Count;

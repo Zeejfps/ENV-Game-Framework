@@ -21,10 +21,8 @@ public class Rect : Component
         base.OnDrawSelf(c);
     }
 
-    protected override void OnLayoutSelf()
+    protected override void OnLayoutChildren()
     {
-        Position = Constraints;
-        
         var position = Position;
         var padding = Style.Padding;
         var border = Style.BorderSize;

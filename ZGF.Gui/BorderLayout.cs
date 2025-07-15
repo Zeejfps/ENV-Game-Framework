@@ -58,9 +58,8 @@ public sealed class BorderLayout : Component
         }
     }
 
-    protected override void OnLayoutSelf()
+    protected override void OnLayoutChildren()
     {
-        Position = Constraints;
         var position = Position;
         
         var centerAreaWidth = position.Width;

@@ -107,11 +107,12 @@ public abstract class Component
     
     public void LayoutSelf()
     {
+        OnLayoutSelf();
         if (!IsDirty)
             return;
 
         Console.WriteLine($"Laying out: {GetType()}");
-        OnLayoutSelf();
+        OnLayoutChildren();
         IsDirty = false;
     }
 
@@ -153,6 +154,10 @@ public abstract class Component
     protected virtual void OnLayoutSelf()
     {
         Position = Constraints;
+    }
+
+    protected virtual void OnLayoutChildren()
+    {
         foreach (var child in _children)
         {
             child.Constraints = Position;
