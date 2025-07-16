@@ -139,8 +139,10 @@ public abstract class Component
             component.Parent.Remove(component);
         }
 
-        _children.Add(component);
+        // Order matters here
         var siblingIndex = _children.Count;
+        _children.Add(component);
+
         component.Parent = this;
         component._depth = _depth + 1;
         component._siblingIndex =  siblingIndex;
@@ -280,11 +282,22 @@ public abstract class Component
 
     public void BringToFront(Component component)
     {
-        // TODO: Change to swap
-        if (Remove(component))
-        {
-            Add(component);
-        }
+        // If its already the last child ignore it
+        if (component.SiblingIndex == _children.Count - 1)
+            return;
+
+        if (component.SiblingIndex >= _children.Count)
+            return;
+
+        if (_children[component.SiblingIndex] != component)
+            return;
+
+        var lastChild = _children[^1];
+        lastChild._siblingIndex = component.SiblingIndex;
+        _children[component.SiblingIndex] = lastChild;
+
+        component._siblingIndex = _children.Count - 1;
+        _children[^1] = component;
     }
 
     public bool IsInFrontOf(Component component)

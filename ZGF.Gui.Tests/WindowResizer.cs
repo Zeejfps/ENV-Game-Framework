@@ -6,7 +6,7 @@ public sealed class WindowResizer : Component
 {
     private readonly Window _window;
 
-    private Rect _background;
+    private readonly Rect _background;
     
     public WindowResizer(Window window)
     {
