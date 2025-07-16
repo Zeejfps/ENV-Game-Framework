@@ -2,22 +2,6 @@
 
 namespace ZGF.Gui;
 
-public interface IHoverable
-{
-    RectF Position { get;  }
-    int ZIndex { get; }
-    bool IsInFrontOf(IHoverable hoverable);
-    void HandleMouseEnterEvent();
-    void HandleMouseExitEvent();
-}
-
-public interface IMouseFocusable
-{
-    void HandleMouseButtonEvent(in MouseButtonEvent e);
-    void HandleMouseWheelEvent();
-    void HandleMouseMoveEvent(in MouseMoveEvent e);
-}
-
 public readonly struct MouseButtonEvent
 {
     public required PointF Position { get; init; }
@@ -32,14 +16,19 @@ public readonly struct MouseMoveEvent
 
 public sealed class MouseInputSystem
 {
-    private readonly HashSet<IHoverable> _hoverableComponents = new();
+    private readonly HashSet<Component> _hoverableComponents = new();
     
-    private IHoverable? _hoveredComponent;
-    private IMouseFocusable? _focusedComponent;
+    private Component? _hoveredComponent;
+    private Component? _focusedComponent;
     
-    public void EnableHover(IHoverable hoverable)
+    public void EnableHover(Component hoverable)
     {
         _hoverableComponents.Add(hoverable);
+    }
+
+    public void DisableHover(Component hoverable)
+    {
+        _hoverableComponents.Remove(hoverable);
     }
 
     public void HandleMouseButtonEvent(MouseButtonEvent e)
@@ -80,9 +69,9 @@ public sealed class MouseInputSystem
         }
     }
 
-    private readonly List<IHoverable> _hitTestCache = new();
+    private readonly List<Component> _hitTestCache = new();
     
-    private IHoverable? HitTest(in PointF point)
+    private Component? HitTest(in PointF point)
     {
         _hitTestCache.Clear();
         var components = _hitTestCache;
@@ -101,12 +90,12 @@ public sealed class MouseInputSystem
         return components[0];
     }
 
-    public void Focus(IMouseFocusable focusHandler)
+    public void Focus(Component focusHandler)
     {
         _focusedComponent = focusHandler;
     }
 
-    public bool TryFocus(IMouseFocusable captureMouse)
+    public bool TryFocus(Component captureMouse)
     {
         if (_focusedComponent == null)
         {
@@ -117,25 +106,20 @@ public sealed class MouseInputSystem
         return false;
     }
 
-    public void Blur(IMouseFocusable captureMouse)
+    public void Blur(Component captureMouse)
     {
         if (_focusedComponent == captureMouse)
         {
             _focusedComponent = null;       
         }
     }
-
-    public void DisableHover(IHoverable hoverable)
-    {
-        _hoverableComponents.Remove(hoverable);
-    }
 }
 
-sealed class ZIndexComparer : IComparer<IHoverable>
+sealed class ZIndexComparer : IComparer<Component>
 {
     public static ZIndexComparer Instance { get; } = new();
 
-    public int Compare(IHoverable? x, IHoverable? y)
+    public int Compare(Component? x, Component? y)
     {
         if (x == null && y == null)
             return 0;

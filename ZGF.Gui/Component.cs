@@ -2,7 +2,7 @@
 
 namespace ZGF.Gui;
 
-public abstract class Component : IHoverable, IMouseFocusable
+public abstract class Component
 {
     private Context? _context;
     public Context? Context
@@ -301,15 +301,6 @@ public abstract class Component : IHoverable, IMouseFocusable
 
             x = x.Parent;
             y = y.Parent;
-        }
-        return false;
-    }
-
-    public bool IsInFrontOf(IHoverable hoverable)
-    {
-        if (hoverable is Component component)
-        {
-            return IsInFrontOf(component);
         }
         return false;
     }
