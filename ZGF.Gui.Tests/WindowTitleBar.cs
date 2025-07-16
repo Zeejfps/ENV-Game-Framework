@@ -113,7 +113,7 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
         Console.WriteLine("OnMouseExitEvent");
     }
 
-    public void HandleMouseButtonEvent()
+    public void HandleMouseButtonEvent(MouseButton button)
     {
 
     }
