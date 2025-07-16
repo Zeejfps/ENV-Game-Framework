@@ -11,12 +11,6 @@ public sealed class WindowResizer : Component
     public WindowResizer(Window window)
     {
         _window = window;
-        Constraints = new RectF
-        {
-            Width = 16,
-            Height = 16,
-        };
-        
         _background = new Rect
         {
             Style =
@@ -64,5 +58,21 @@ public sealed class WindowResizer : Component
     {
         Console.WriteLine($"Mouse Button Event: {e.Button}");
         _window.BringToFront();
+    }
+
+    protected override void OnLayoutSelf()
+    {
+        var width = 16f;
+        var height = 16f;
+        var constraints = Constraints;
+        var left = constraints.Right - width - 5;
+        var bottom = constraints.Bottom + 5;
+        Position = new RectF
+        {
+            Left = left,
+            Bottom = bottom,
+            Width = width,
+            Height = height
+        };
     }
 }

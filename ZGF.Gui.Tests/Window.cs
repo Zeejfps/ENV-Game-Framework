@@ -5,13 +5,9 @@ namespace ZGF.Gui.Tests;
 
 public sealed class Window : Component
 {
-    private WindowResizer _windowResizer;
-    
     public Window()
     {
         Position = new RectF(200f, 200f, 240f, 200f);
-
-        _windowResizer = new WindowResizer(this);
         
         var outline = new Rect
         {
@@ -172,6 +168,9 @@ public sealed class Window : Component
         contentOutline.Add(columnLayout);
         outline.Add(borderLayout);
         Add(outline);
+
+        var windowResizer = new WindowResizer(this);
+        Add(windowResizer);
     }
 
     protected override void OnLayoutSelf()
@@ -203,34 +202,6 @@ public sealed class Window : Component
         }
         
         Position = Position with { Left = left, Bottom = bottom};
-    }
-
-    protected override void OnLayoutChildren()
-    {
-        base.OnLayoutChildren();
-
-        var position = Position;
-        var left = position.Right - _windowResizer.Constraints.Width - 5;
-        var bottom = position.Bottom + 5;
-        _windowResizer.Constraints = _windowResizer.Constraints with
-        {
-            Left = left, 
-            Bottom = bottom
-        };
-        _windowResizer.LayoutSelf();
-    }
-
-
-    protected override void OnDrawChildren(ICanvas c)
-    {
-        base.OnDrawChildren(c);
-        _windowResizer.DrawSelf(c);
-    }
-
-    protected override void OnApplyContextToChildren(Context? context)
-    {
-        base.OnApplyContextToChildren(context);
-        _windowResizer.Context = context;
     }
 
     public void Move(float dx, float dy)
