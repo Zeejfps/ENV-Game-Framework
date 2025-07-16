@@ -2,7 +2,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class WindowResizer : Component, IMouseFocusable
+public sealed class WindowResizer : Component
 {
     private readonly Window _window;
 
@@ -60,17 +60,9 @@ public sealed class WindowResizer : Component, IMouseFocusable
         Context?.MouseInputSystem.Blur(this);
     }
 
-    public void HandleMouseButtonEvent(in MouseButtonEvent e)
+    protected override void OnMouseButtonStateChanged(MouseButtonEvent e)
     {
         Console.WriteLine($"Mouse Button Event: {e.Button}");
         _window.BringToFront();
-    }
-
-    public void HandleMouseWheelEvent()
-    {
-    }
-
-    public void HandleMouseMoveEvent(in MouseMoveEvent e)
-    {
     }
 }

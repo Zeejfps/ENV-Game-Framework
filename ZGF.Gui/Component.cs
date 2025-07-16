@@ -2,7 +2,7 @@
 
 namespace ZGF.Gui;
 
-public abstract class Component : IHoverable
+public abstract class Component : IHoverable, IMouseFocusable
 {
     private Context? _context;
     public Context? Context
@@ -326,4 +326,20 @@ public abstract class Component : IHoverable
 
     protected virtual void OnMouseEnter(){}
     protected virtual void OnMouseExit(){}
+    protected virtual void OnMouseButtonStateChanged(MouseButtonEvent e) { }
+    protected virtual void OnMouseMoved(MouseMoveEvent e) { }
+
+    public void HandleMouseButtonEvent(in MouseButtonEvent e)
+    {
+        OnMouseButtonStateChanged(e);
+    }
+
+    public void HandleMouseWheelEvent()
+    {
+    }
+
+    public void HandleMouseMoveEvent(in MouseMoveEvent e)
+    {
+        OnMouseMoved(e);
+    }
 }

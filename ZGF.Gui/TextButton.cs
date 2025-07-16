@@ -1,6 +1,6 @@
 namespace ZGF.Gui;
 
-public sealed class TextButton : Component, IMouseFocusable
+public sealed class TextButton : Component
 {
     private Rect _background;
 
@@ -45,17 +45,5 @@ public sealed class TextButton : Component, IMouseFocusable
     {
         _background.Style.Apply(BackgroundNormalStyle);
         Context?.MouseInputSystem.Blur(this);
-    }
-
-    public void HandleMouseButtonEvent(in MouseButtonEvent e)
-    {
-    }
-
-    public void HandleMouseWheelEvent()
-    {
-    }
-
-    public void HandleMouseMoveEvent(in MouseMoveEvent e)
-    {
     }
 }

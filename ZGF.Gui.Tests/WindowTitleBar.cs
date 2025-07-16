@@ -3,7 +3,7 @@ using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class WindowTitleBar : Component, IMouseFocusable
+public sealed class WindowTitleBar : Component
 {
     private readonly Window _window;
 
@@ -132,7 +132,7 @@ public sealed class WindowTitleBar : Component, IMouseFocusable
         }
     }
 
-    public void HandleMouseButtonEvent(in MouseButtonEvent e)
+    protected override void OnMouseButtonStateChanged(MouseButtonEvent e)
     {
         var button = e.Button;
         var state = e.State;
@@ -158,11 +158,7 @@ public sealed class WindowTitleBar : Component, IMouseFocusable
         }
     }
 
-    public void HandleMouseWheelEvent()
-    {
-    }
-
-    public void HandleMouseMoveEvent(in MouseMoveEvent e)
+    protected override void OnMouseMoved(MouseMoveEvent e)
     {
         if (!_isLeftButtonPressed)
             return;
