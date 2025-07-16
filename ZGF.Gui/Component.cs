@@ -2,7 +2,7 @@
 
 namespace ZGF.Gui;
 
-public abstract class Component
+public abstract class Component : IHoverable
 {
     private Context? _context;
     public Context? Context
@@ -34,6 +34,7 @@ public abstract class Component
 
     protected virtual void OnDetachedFromContext(Context prevContext)
     {
+        prevContext.MouseInputSystem.DisableHover(this);
     }
 
     private RectF _position;
@@ -68,6 +69,8 @@ public abstract class Component
 
     private int _depth;
     private int _siblingIndex;
+
+    public int SiblingIndex => _siblingIndex;
 
     private bool IsDirty => IsSelfDirty || IsChildrenDirty;
     private bool IsSelfDirty { get; set; } = true;
@@ -301,4 +304,26 @@ public abstract class Component
         }
         return false;
     }
+
+    public bool IsInFrontOf(IHoverable hoverable)
+    {
+        if (hoverable is Component component)
+        {
+            return IsInFrontOf(component);
+        }
+        return false;
+    }
+
+    public void HandleMouseEnterEvent()
+    {
+        OnMouseEnter();
+    }
+
+    public void HandleMouseExitEvent()
+    {
+        OnMouseExit();
+    }
+
+    protected virtual void OnMouseEnter(){}
+    protected virtual void OnMouseExit(){}
 }

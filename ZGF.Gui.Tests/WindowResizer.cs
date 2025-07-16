@@ -2,7 +2,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class WindowResizer : Component, IHoverable, IMouseFocusable
+public sealed class WindowResizer : Component, IMouseFocusable
 {
     private readonly Window _window;
 
@@ -41,18 +41,18 @@ public sealed class WindowResizer : Component, IHoverable, IMouseFocusable
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
-        context.MouseInputSystem.EnableHover(this, this);
+        context.MouseInputSystem.EnableHover(this);
     }
 
-    public void HandleMouseEnterEvent()
+    protected override void OnMouseEnter()
     {
         Console.WriteLine("Mouse Enter");
         _background.Style.BackgroundColor = 0x9C9CCE;
         _background.SetDirty();
-        Context?.MouseInputSystem.TryFocus(this, this);
+        Context?.MouseInputSystem.TryFocus(this);
     }
 
-    public void HandleMouseExitEvent()
+    protected override void OnMouseExit()
     {
         Console.WriteLine("Mouse Exit");
         _background.Style.BackgroundColor = 0xCECECE;

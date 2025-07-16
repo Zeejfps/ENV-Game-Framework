@@ -1,10 +1,9 @@
-using System.Numerics;
 using ZGF.Geometry;
 using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
+public sealed class WindowTitleBar : Component, IMouseFocusable
 {
     private readonly Window _window;
 
@@ -112,17 +111,17 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
-        context.MouseInputSystem.EnableHover(this, this);
+        context.MouseInputSystem.EnableHover(this);
     }
 
-    public void HandleMouseEnterEvent()
+    protected override void OnMouseEnter()
     {
         Console.WriteLine("OnMouseEnterEvent");
         _isHovered = true;
-        Context?.MouseInputSystem.TryFocus(this, this);
+        Context?.MouseInputSystem.TryFocus(this);
     }
 
-    public void HandleMouseExitEvent()
+    protected override void OnMouseExit()
     {
         Console.WriteLine("OnMouseExitEvent");
         _isHovered = false;

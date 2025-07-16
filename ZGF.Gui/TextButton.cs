@@ -1,6 +1,6 @@
 namespace ZGF.Gui;
 
-public sealed class TextButton : Component, IHoverable, IMouseFocusable
+public sealed class TextButton : Component, IMouseFocusable
 {
     private Rect _background;
 
@@ -26,7 +26,7 @@ public sealed class TextButton : Component, IHoverable, IMouseFocusable
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
-        context.MouseInputSystem.EnableHover(this, this);
+        context.MouseInputSystem.EnableHover(this);
     }
 
     protected override void OnDetachedFromContext(Context prevContext)
@@ -35,13 +35,13 @@ public sealed class TextButton : Component, IHoverable, IMouseFocusable
         base.OnDetachedFromContext(prevContext);
     }
 
-    public void HandleMouseEnterEvent()
+    protected override void OnMouseEnter()
     {
         _background.Style.Apply(BackgroundHoveredStyle);
-        Context?.MouseInputSystem.TryFocus(this, this);
+        Context?.MouseInputSystem.TryFocus(this);
     }
 
-    public void HandleMouseExitEvent()
+    protected override void OnMouseExit()
     {
         _background.Style.Apply(BackgroundNormalStyle);
         Context?.MouseInputSystem.Blur(this);
