@@ -3,7 +3,7 @@ using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class WindowTitleBar : Component, IHoverable
+public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
 {
     public WindowTitleBar(Window window)
     {
@@ -105,10 +105,24 @@ public sealed class WindowTitleBar : Component, IHoverable
     public void HandleMouseEnterEvent()
     {
         Console.WriteLine("OnMouseEnterEvent");
+        Focus(this);
     }
 
     public void HandleMouseExitEvent()
     {
         Console.WriteLine("OnMouseExitEvent");
+    }
+
+    public void HandleMouseButtonEvent()
+    {
+
+    }
+
+    public void HandleMouseWheelEvent()
+    {
+    }
+
+    public void HandleMouseMoveEvent()
+    {
     }
 }
