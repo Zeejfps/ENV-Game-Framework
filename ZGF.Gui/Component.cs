@@ -27,13 +27,14 @@ public abstract class Component
         set => SetField(ref _id, value);
     }
 
-    private int _depth;
-    public virtual int ZIndex
+    private int _zIndex;
+    public int ZIndex
     {
-        get => _depth;
-        private set => SetField(ref _depth, value);
+        get => _depth + _zIndex;
+        set => SetField(ref _zIndex, value);
     }
 
+    private int _depth;
     private int _siblingIndex;
 
     private bool IsDirty => IsSelfDirty || IsChildrenDirty;
