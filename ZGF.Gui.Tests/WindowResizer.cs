@@ -2,7 +2,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class WindowResizer : Component, IMouseListener, IMouseFocusable
+public sealed class WindowResizer : Component, IHoverable, IMouseFocusable
 {
     private readonly Window _window;
 

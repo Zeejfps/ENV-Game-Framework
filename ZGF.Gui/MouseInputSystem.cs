@@ -2,7 +2,7 @@
 
 namespace ZGF.Gui;
 
-public interface IMouseListener
+public interface IHoverable
 {
     void HandleMouseEnterEvent();
     void HandleMouseExitEvent();
@@ -19,12 +19,12 @@ public sealed class MouseInputSystem
 {
     public static MouseInputSystem Instance { get; } = new();
 
-    private readonly Dictionary<Component, IMouseListener> _listenersByComponentLookup = new();
+    private readonly Dictionary<Component, IHoverable> _listenersByComponentLookup = new();
     
     private Component? _hoveredComponent;
     private IMouseFocusable? _focusedComponent;
     
-    public void RegisterListener(Component component, IMouseListener listener)
+    public void RegisterListener(Component component, IHoverable listener)
     {
         _listenersByComponentLookup[component] = listener;
     }
