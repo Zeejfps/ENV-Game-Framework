@@ -227,6 +227,12 @@ public sealed class Window : Component
         _windowResizer.DrawSelf(c);
     }
 
+    protected override void OnApplyContextToChildren(Context? context)
+    {
+        base.OnApplyContextToChildren(context);
+        _windowResizer.Context = context;
+    }
+
     public void Move(float dx, float dy)
     {
         Position = Position with { Left = Position.Left + dx, Bottom = Position.Bottom + dy };

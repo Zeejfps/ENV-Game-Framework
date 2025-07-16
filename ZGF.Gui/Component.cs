@@ -8,13 +8,32 @@ public abstract class Component
     public Context? Context
     {
         get => _context;
-        protected set
+        set
         {
+            var prevContext = _context;
             if (SetField(ref _context, value))
             {
-                ApplyContextToChildren(_context);
+                if (_context != null)
+                {
+                    OnAttachedToContext(_context);
+                }
+                else if (prevContext != null)
+                {
+                    OnDetachedFromContext(prevContext);
+                }
+
+                OnApplyContextToChildren(_context);
             }
         }
+    }
+
+    protected virtual void OnAttachedToContext(Context context)
+    {
+
+    }
+
+    protected virtual void OnDetachedFromContext(Context prevContext)
+    {
     }
 
     private RectF _position;
@@ -82,8 +101,18 @@ public abstract class Component
     private readonly List<Component> _children = new();
     private readonly HashSet<string> _styleClasses = new();
     
-    private MouseInputSystem MouseInputSystem => MouseInputSystem.Instance;
-    
+    private MouseInputSystem MouseInputSystem => Context?.MouseInputSystem;
+
+    protected Component()
+    {
+
+    }
+
+    protected Component(Context ctx)
+    {
+        Context = ctx;
+    }
+
     public void AddStyleClass(string classId)
     {
         if (_styleClasses.Add(classId))
@@ -107,12 +136,12 @@ public abstract class Component
             component.Parent.Remove(component);
         }
 
+        _children.Add(component);
         var siblingIndex = _children.Count;
         component.Parent = this;
-        component.Context = Context;
         component._depth = _depth + 1;
         component._siblingIndex =  siblingIndex;
-        _children.Add(component);
+        component.Context = Context;
         OnComponentAdded(component);
     }
 
@@ -120,6 +149,7 @@ public abstract class Component
     {
         if (_children.Remove(component))
         {
+            component.Context = null;
             component.Parent = null;
             component._depth = 0;
             component._siblingIndex = 0;
@@ -157,26 +187,6 @@ public abstract class Component
     public void ClearStyleSheet()
     {
         StyleSheet = null;
-    }
-    
-    protected bool TryFocus(IMouseFocusable focusable)
-    {
-        return MouseInputSystem.TryFocus(this, focusable);
-    }
-
-    protected void Blur(IMouseFocusable focusable)
-    {
-        MouseInputSystem.Blur(this, focusable);
-    }
-
-    public void EnableHover(IHoverable hoverable)
-    {
-        MouseInputSystem.EnableHover(this, hoverable);
-    }
-
-    public void DisableHover(IHoverable hoverable)
-    {
-        MouseInputSystem.DisableHover(this);
     }
 
     protected virtual void OnComponentAdded(Component component)
@@ -236,7 +246,7 @@ public abstract class Component
         }
     }
 
-    private void ApplyContextToChildren(Context? context)
+    protected virtual void OnApplyContextToChildren(Context? context)
     {
         foreach (var component in _children)
         {
@@ -267,6 +277,7 @@ public abstract class Component
 
     public void BringToFront(Component component)
     {
+        // TODO: Change to swap
         if (Remove(component))
         {
             Add(component);

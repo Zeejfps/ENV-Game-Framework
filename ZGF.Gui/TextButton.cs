@@ -21,20 +21,30 @@ public sealed class TextButton : Component, IHoverable, IMouseFocusable
 
         Add(_background);
         Add(new Label(text));
+    }
 
-        EnableHover(this);
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        context.MouseInputSystem.EnableHover(this, this);
+    }
+
+    protected override void OnDetachedFromContext(Context prevContext)
+    {
+        prevContext.MouseInputSystem.DisableHover(this);
+        base.OnDetachedFromContext(prevContext);
     }
 
     public void HandleMouseEnterEvent()
     {
         _background.Style.Apply(BackgroundHoveredStyle);
-        TryFocus(this);
+        Context?.MouseInputSystem.TryFocus(this, this);
     }
 
     public void HandleMouseExitEvent()
     {
         _background.Style.Apply(BackgroundNormalStyle);
-        Blur(this);
+        Context?.MouseInputSystem.Blur(this);
     }
 
     public void HandleMouseButtonEvent(in MouseButtonEvent e)

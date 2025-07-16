@@ -15,21 +15,24 @@ public sealed class App : OpenGlApp
 
     private readonly Clock _clock;
     private Window _window;
-    
+
+    private readonly MouseInputSystem _mouseInputSystem;
     private readonly KeyCallback _keyCallback;
     private readonly MouseButtonCallback _mouseButtonCallback;
-    
+
     public App(StartupConfig startupConfig) : base(startupConfig)
     {
         _clock = new Clock();
-        
+
+        _mouseInputSystem = new MouseInputSystem();
+
         _framebufferWidth = startupConfig.WindowWidth / 2;
         _framebufferHeight = startupConfig.WindowHeight / 2;
-        
+
         var bitmap = new Bitmap(_framebufferWidth, _framebufferHeight);
         _canvas = new Canvas(bitmap);
         glClearColor(0f, 0f, 0f, 0f);
-        
+
         var header = new AppBar
         {
             Constraints = new RectF
@@ -40,14 +43,18 @@ public sealed class App : OpenGlApp
 
         var center = new Center();
         _window = center.Window;
-        
+
         var gui = new BorderLayout
         {
             Center = center,
             North = header,
-            Constraints = new RectF(0, 0, _framebufferWidth, _framebufferHeight)
+            Constraints = new RectF(0, 0, _framebufferWidth, _framebufferHeight),
+            Context = new Context
+            {
+                MouseInputSystem = _mouseInputSystem
+            }
         };
-        
+
         var ss = new StyleSheet();
         ss.AddStyleForClass("inset_panel", new Style
         {
@@ -109,7 +116,7 @@ public sealed class App : OpenGlApp
 
         Console.WriteLine($"Mouse button: {s}");
         var guiPoint = WindowToGuiCoords(windowX, windowY);
-        MouseInputSystem.Instance.HandleMouseButtonEvent(new MouseButtonEvent
+        _mouseInputSystem.HandleMouseButtonEvent(new MouseButtonEvent
         {
             Position = guiPoint,
             Button = b,
@@ -164,7 +171,7 @@ public sealed class App : OpenGlApp
         
         Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
         var guiPoint = WindowToGuiCoords(mouseX, mouseY);
-        MouseInputSystem.Instance.UpdateMousePosition(guiPoint);
+        _mouseInputSystem.UpdateMousePosition(guiPoint);
     }
 
     private PointF WindowToGuiCoords(double windowX, double windowY)

@@ -36,8 +36,12 @@ public sealed class WindowResizer : Component, IHoverable, IMouseFocusable
         };
         
         Add(_background);
-        
-        EnableHover(this);
+    }
+
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        context.MouseInputSystem.EnableHover(this, this);
     }
 
     public void HandleMouseEnterEvent()
@@ -45,7 +49,7 @@ public sealed class WindowResizer : Component, IHoverable, IMouseFocusable
         Console.WriteLine("Mouse Enter");
         _background.Style.BackgroundColor = 0x9C9CCE;
         _background.SetDirty();
-        TryFocus(this);
+        Context?.MouseInputSystem.TryFocus(this, this);
     }
 
     public void HandleMouseExitEvent()
@@ -53,7 +57,7 @@ public sealed class WindowResizer : Component, IHoverable, IMouseFocusable
         Console.WriteLine("Mouse Exit");
         _background.Style.BackgroundColor = 0xCECECE;
         _background.SetDirty();
-        Blur(this);
+        Context?.MouseInputSystem.Blur(this);
     }
 
     public void HandleMouseButtonEvent(in MouseButtonEvent e)

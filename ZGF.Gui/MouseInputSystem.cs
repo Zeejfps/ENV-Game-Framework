@@ -29,8 +29,6 @@ public readonly struct MouseMoveEvent
 
 public sealed class MouseInputSystem
 {
-    public static MouseInputSystem Instance { get; } = new();
-
     private readonly Dictionary<Component, IHoverable> _hoverableComponents = new();
     
     private Component? _hoveredComponent;
@@ -116,7 +114,7 @@ public sealed class MouseInputSystem
         return false;
     }
 
-    public void Blur(Component component, IMouseFocusable captureMouse)
+    public void Blur(IMouseFocusable captureMouse)
     {
         if (_focusedComponent == captureMouse)
         {

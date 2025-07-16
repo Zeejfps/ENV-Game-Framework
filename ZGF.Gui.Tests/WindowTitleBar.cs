@@ -102,8 +102,6 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
         row.Add(button3);
 
         Add(background);
-
-        EnableHover(this);
     }
 
     private PointF _prevMousePosition;
@@ -111,11 +109,17 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
     private bool _isDragging;
     private bool _isLeftButtonPressed;
 
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        context.MouseInputSystem.EnableHover(this, this);
+    }
+
     public void HandleMouseEnterEvent()
     {
         Console.WriteLine("OnMouseEnterEvent");
         _isHovered = true;
-        TryFocus(this);
+        Context?.MouseInputSystem.TryFocus(this, this);
     }
 
     public void HandleMouseExitEvent()
@@ -125,7 +129,7 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
         if (!_isDragging)
         {
             _isLeftButtonPressed  = false;
-            Blur(this);
+            Context?.MouseInputSystem.Blur(this);
         }
     }
 
@@ -150,7 +154,7 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
 
             if (!_isHovered)
             {
-                Blur(this);
+                Context?.MouseInputSystem.Blur(this);
             }
         }
     }
