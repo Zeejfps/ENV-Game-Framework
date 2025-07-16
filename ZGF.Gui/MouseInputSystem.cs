@@ -78,7 +78,7 @@ public sealed class MouseInputSystem
             return null;
         
         _hitTestCache.Sort(ZIndexComparer.Instance);
-        return components.Last();
+        return components[0];
     }
 
     public void Focus(Component component, IMouseFocusable captureMouse)
@@ -93,27 +93,32 @@ public sealed class MouseInputSystem
             _focusedComponent = null;       
         }
     }
-    
-    sealed class ZIndexComparer : IComparer<Component>
+}
+
+sealed class ZIndexComparer : IComparer<Component>
+{
+    public static ZIndexComparer Instance { get; } = new();
+
+    public int Compare(Component? x, Component? y)
     {
-        public static ZIndexComparer Instance { get; } = new();
-        
-        public int Compare(Component? x, Component? y)
+        if (x == null && y == null)
+            return 0;
+
+        if (x == null)
+            return 1;
+
+        if (y == null)
+            return -1;
+
+        var result = x.ZIndex.CompareTo(y.ZIndex);
+        if (result == 0)
         {
-            var result = x.ZIndex.CompareTo(y.ZIndex);
-            if (result == 0)
+            if (x.IsInFrontOf(y))
             {
-                if (x.IsInFrontOf(y))
-                {
-                    return -1;
-                }
-                else
-                {
-                    return 1;
-                }
-                //TODO: Sort them based on hierchy?
+                return -1;
             }
-            return result;
+            return 1;
         }
+        return result;
     }
 }

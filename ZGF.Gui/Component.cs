@@ -27,12 +27,14 @@ public abstract class Component
         set => SetField(ref _id, value);
     }
 
-    private int _zIndex;
+    private int _depth;
     public virtual int ZIndex
     {
-        get => _zIndex;
-        private set => SetField(ref _zIndex, value);
+        get => _depth;
+        private set => SetField(ref _depth, value);
     }
+
+    private int _siblingIndex;
 
     private bool IsDirty => IsSelfDirty || IsChildrenDirty;
     private bool IsSelfDirty { get; set; } = true;
@@ -91,8 +93,10 @@ public abstract class Component
             component.Parent.Remove(component);
         }
 
+        var siblingIndex = _children.Count;
         component.Parent = this;
-        component.ZIndex = ZIndex + 1;
+        component._depth = _depth + 1;
+        component._siblingIndex =  siblingIndex;
         _children.Add(component);
         OnComponentAdded(component);
     }
@@ -102,7 +106,8 @@ public abstract class Component
         if (_children.Remove(component) && component.Parent == this)
         {
             component.Parent = null;
-            component.ZIndex = 0;
+            component._depth = 0;
+            component._siblingIndex = 0;
             OnComponentRemoved(component);
         }
     }
@@ -240,6 +245,19 @@ public abstract class Component
 
     public bool IsInFrontOf(Component component)
     {
+        var x = this;
+        var y = component;
+
+        while (x.Parent != null && y.Parent != null)
+        {
+            if (x.Parent == y.Parent)
+            {
+                return x._siblingIndex > y._siblingIndex;
+            }
+
+            x = x.Parent;
+            y = y.Parent;
+        }
         return false;
     }
 }
