@@ -45,7 +45,7 @@ public sealed class WindowResizer : Component, IHoverable, IMouseFocusable
         Console.WriteLine("Mouse Enter");
         _background.Style.BackgroundColor = 0x9C9CCE;
         _background.SetDirty();
-        Focus(this);
+        TryFocus(this);
     }
 
     public void HandleMouseExitEvent()

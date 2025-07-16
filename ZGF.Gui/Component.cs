@@ -145,9 +145,9 @@ public abstract class Component
         StyleSheet = null;
     }
     
-    protected void Focus(IMouseFocusable focusable)
+    protected bool TryFocus(IMouseFocusable focusable)
     {
-        MouseInputSystem.Focus(this, focusable);
+        return MouseInputSystem.TryFocus(this, focusable);
     }
 
     protected void Blur(IMouseFocusable focusable)

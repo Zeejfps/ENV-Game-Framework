@@ -115,7 +115,7 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
     {
         Console.WriteLine("OnMouseEnterEvent");
         _isHovered = true;
-        Focus(this);
+        TryFocus(this);
     }
 
     public void HandleMouseExitEvent()

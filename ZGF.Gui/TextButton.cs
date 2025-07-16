@@ -28,7 +28,7 @@ public sealed class TextButton : Component, IHoverable, IMouseFocusable
     public void HandleMouseEnterEvent()
     {
         _background.Style.Apply(BackgroundHoveredStyle);
-        Focus(this);
+        TryFocus(this);
     }
 
     public void HandleMouseExitEvent()

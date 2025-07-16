@@ -100,9 +100,15 @@ public sealed class MouseInputSystem
         return components[0];
     }
 
-    public void Focus(Component component, IMouseFocusable captureMouse)
+    public bool TryFocus(Component component, IMouseFocusable captureMouse)
     {
-        _focusedComponent = captureMouse;
+        if (_focusedComponent == null)
+        {
+            _focusedComponent = captureMouse;
+            return true;
+        }
+
+        return false;
     }
 
     public void Blur(Component component, IMouseFocusable captureMouse)
