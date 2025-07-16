@@ -100,6 +100,11 @@ public sealed class MouseInputSystem
         return components[0];
     }
 
+    public void Focus(Component component, IMouseFocusable focusHandler)
+    {
+        _focusedComponent = focusHandler;
+    }
+
     public bool TryFocus(Component component, IMouseFocusable captureMouse)
     {
         if (_focusedComponent == null)
