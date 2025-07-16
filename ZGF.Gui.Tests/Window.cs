@@ -234,6 +234,6 @@ public sealed class Window : Component
 
     public void BringToFront()
     {
-        Parent.BringToFront(this);
+        Parent?.BringToFront(this);
     }
 }

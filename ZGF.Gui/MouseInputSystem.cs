@@ -24,7 +24,7 @@ public readonly struct MouseButtonEvent
 
 public readonly struct MouseMoveEvent
 {
-    public required PointF Position { get; init; }
+    public required PointF MousePosition { get; init; }
 }
 
 public sealed class MouseInputSystem
@@ -68,6 +68,14 @@ public sealed class MouseInputSystem
             {
                 listener.HandleMouseEnterEvent();           
             }
+        }
+
+        if (_focusedComponent != null)
+        {
+            _focusedComponent.HandleMouseMoveEvent(new MouseMoveEvent
+            {
+                MousePosition = point
+            });
         }
     }
 

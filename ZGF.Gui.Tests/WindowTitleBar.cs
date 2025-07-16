@@ -6,8 +6,11 @@ namespace ZGF.Gui.Tests;
 
 public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
 {
+    private readonly Window _window;
+
     public WindowTitleBar(Window window)
     {
+        _window = window;
         Constraints = new RectF
         {
             Height = 20f,
@@ -103,19 +106,28 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
         EnableHover(this);
     }
 
+    private PointF _prevMousePosition;
+    private bool _isHovered;
+    private bool _isDragging;
+    private bool _isLeftButtonPressed;
+
     public void HandleMouseEnterEvent()
     {
         Console.WriteLine("OnMouseEnterEvent");
+        _isHovered = true;
         Focus(this);
     }
 
     public void HandleMouseExitEvent()
     {
         Console.WriteLine("OnMouseExitEvent");
+        _isHovered = false;
+        if (!_isDragging)
+        {
+            _isLeftButtonPressed  = false;
+            Blur(this);
+        }
     }
-
-    private PointF _startPoint;
-    private Vector2 _mouseDelta;
 
     public void HandleMouseButtonEvent(in MouseButtonEvent e)
     {
@@ -127,12 +139,22 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
 
         if (state == InputState.Pressed)
         {
-            _startPoint = e.Position;
-            Focus(this);
+            _prevMousePosition = e.Position;
+            _isLeftButtonPressed = true;
+            _window.BringToFront();
         }
         else
         {
-            Blur(this);
+            _isLeftButtonPressed = false;
+            if (_isDragging)
+            {
+                _isDragging = false;
+            }
+
+            if (!_isHovered)
+            {
+                Blur(this);
+            }
         }
     }
 
@@ -142,6 +164,18 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
 
     public void HandleMouseMoveEvent(in MouseMoveEvent e)
     {
-        _mouseDelta += e.Position -  _startPoint;
+        if (!_isLeftButtonPressed)
+            return;
+
+        var delta = e.MousePosition -  _prevMousePosition;
+        if (_isDragging)
+        {
+            _window.Move(delta.X, delta.Y);
+            _prevMousePosition = e.MousePosition;
+        }
+        else if (delta.LengthSquared() > 1f)
+        {
+            _isDragging = true;
+        }
     }
 }
