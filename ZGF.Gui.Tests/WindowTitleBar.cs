@@ -113,9 +113,24 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
         Console.WriteLine("OnMouseExitEvent");
     }
 
-    public void HandleMouseButtonEvent(MouseButton button, InputState state)
-    {
+    private PointF _startPoint;
 
+    public void HandleMouseButtonEvent(in MouseButtonEvent e)
+    {
+        var button = e.Button;
+        var state = e.State;
+
+        if (button != MouseButton.Left)
+            return;
+
+        if (state == InputState.Pressed)
+        {
+            Focus(this);
+        }
+        else
+        {
+            Blur(this);
+        }
     }
 
     public void HandleMouseWheelEvent()

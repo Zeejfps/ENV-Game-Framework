@@ -37,7 +37,7 @@ public sealed class TextButton : Component, IHoverable, IMouseFocusable
         Blur(this);
     }
 
-    public void HandleMouseButtonEvent(MouseButton button, InputState state)
+    public void HandleMouseButtonEvent(in MouseButtonEvent e)
     {
     }
 

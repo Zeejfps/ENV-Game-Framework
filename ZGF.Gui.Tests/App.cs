@@ -86,7 +86,7 @@ public sealed class App : OpenGlApp
         // if (state == InputState.Press)
         // {
         //     _isDragging = true;
-        //     Glfw.GetCursorPosition(WindowHandle, out var x, out var y);
+        Glfw.GetCursorPosition(WindowHandle, out var windowX, out var windowY);
         //     _x = x;
         //     _y = y;
         // }
@@ -106,7 +106,14 @@ public sealed class App : OpenGlApp
             GLFW.InputState.Press => InputState.Pressed,
             GLFW.InputState.Release => InputState.Released,
         };
-        MouseInputSystem.Instance.HandleMouseButtonEvent(b, s);
+
+        var guiPoint = WindowToGuiCoords(windowX, windowY);
+        MouseInputSystem.Instance.HandleMouseButtonEvent(new MouseButtonEvent
+        {
+            Position = guiPoint,
+            Button = b,
+            State = s,
+        });
     }
 
     private void HandleKeyEvent(GLFW.Window window, Keys key, int scanCode, GLFW.InputState state, ModifierKeys mods)
@@ -155,14 +162,18 @@ public sealed class App : OpenGlApp
         _canvas.EndFrame();
         
         Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
-        Glfw.GetWindowSize(WindowHandle, out var width, out var height);
+        var guiPoint = WindowToGuiCoords(mouseX, mouseY);
+        MouseInputSystem.Instance.UpdateMousePosition(guiPoint);
+    }
 
+    private PointF WindowToGuiCoords(double windowX, double windowY)
+    {
+        Glfw.GetWindowSize(WindowHandle, out var width, out var height);
         var scaleX = _framebufferWidth / (float)width;
         var scaleY = _framebufferHeight / (float)height;
-        var screenX = mouseX * scaleX;
-        var screenY = (height - mouseY) * scaleY;
-        
-        MouseInputSystem.Instance.UpdateMousePosition((int)screenX, (int)screenY);
+        var screenX = windowX * scaleX;
+        var screenY = (height - windowY) * scaleY;
+        return new PointF((float)screenX, (float)screenY);
     }
 
     protected override void DisposeManagedResources()

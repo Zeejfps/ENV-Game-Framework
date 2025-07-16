@@ -10,9 +10,16 @@ public interface IHoverable
 
 public interface IMouseFocusable
 {
-    void HandleMouseButtonEvent(MouseButton button, InputState state);
+    void HandleMouseButtonEvent(in MouseButtonEvent e);
     void HandleMouseWheelEvent();
     void HandleMouseMoveEvent();
+}
+
+public readonly struct MouseButtonEvent
+{
+    public required PointF Position { get; init; }
+    public required MouseButton Button { get; init; }
+    public required InputState State { get; init; }
 }
 
 public sealed class MouseInputSystem
@@ -29,17 +36,17 @@ public sealed class MouseInputSystem
         _hoverableComponents[component] = listener;
     }
 
-    public void HandleMouseButtonEvent(MouseButton button, InputState state)
+    public void HandleMouseButtonEvent(MouseButtonEvent e)
     {
         if (_focusedComponent != null)
         {
-            _focusedComponent.HandleMouseButtonEvent(button, state);
+            _focusedComponent.HandleMouseButtonEvent(e);
         }
     }
 
-    public void UpdateMousePosition(int x, int y)
+    public void UpdateMousePosition(in PointF point)
     {
-        var newHoveredComponent = HitTest(x, y);
+        var newHoveredComponent = HitTest(point);
         if (newHoveredComponent != _hoveredComponent)
         {
             var prevHoveredComponent = _hoveredComponent;
@@ -61,14 +68,13 @@ public sealed class MouseInputSystem
 
     private readonly List<Component> _hitTestCache = new();
     
-    private Component? HitTest(int x, int y)
+    private Component? HitTest(in PointF point)
     {
         _hitTestCache.Clear();
         var components = _hitTestCache;
-        var hitPoint = new PointF(x, y);
         foreach (var component in _hoverableComponents.Keys)
         {
-            if (component.Position.ContainsPoint(hitPoint))
+            if (component.Position.ContainsPoint(point))
             {
                 components.Add(component);
             }

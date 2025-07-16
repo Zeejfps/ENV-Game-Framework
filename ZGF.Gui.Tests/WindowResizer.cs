@@ -56,9 +56,9 @@ public sealed class WindowResizer : Component, IHoverable, IMouseFocusable
         Blur(this);
     }
 
-    public void HandleMouseButtonEvent(MouseButton button, InputState state)
+    public void HandleMouseButtonEvent(in MouseButtonEvent e)
     {
-        Console.WriteLine($"Mouse Button Event: {button}");
+        Console.WriteLine($"Mouse Button Event: {e.Button}");
         _window.BringToFront();
     }
 
