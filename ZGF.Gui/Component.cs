@@ -4,6 +4,19 @@ namespace ZGF.Gui;
 
 public abstract class Component
 {
+    private Context? _context;
+    public Context? Context
+    {
+        get => _context;
+        protected set
+        {
+            if (SetField(ref _context, value))
+            {
+                ApplyContextToChildren(_context);
+            }
+        }
+    }
+
     private RectF _position;
     public RectF Position
     {
@@ -96,6 +109,7 @@ public abstract class Component
 
         var siblingIndex = _children.Count;
         component.Parent = this;
+        component.Context = Context;
         component._depth = _depth + 1;
         component._siblingIndex =  siblingIndex;
         _children.Add(component);
@@ -219,6 +233,14 @@ public abstract class Component
         foreach (var child in _children)
         {
             child.ApplyStyleSheet(styleSheet);
+        }
+    }
+
+    private void ApplyContextToChildren(Context? context)
+    {
+        foreach (var component in _children)
+        {
+            component.Context = context;
         }
     }
 
