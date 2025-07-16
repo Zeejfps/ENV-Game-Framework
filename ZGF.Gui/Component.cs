@@ -237,4 +237,9 @@ public abstract class Component
             _children.Add(component);
         }
     }
+
+    public bool IsInFrontOf(Component component)
+    {
+        return false;
+    }
 }

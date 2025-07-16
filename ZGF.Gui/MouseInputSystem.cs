@@ -103,6 +103,14 @@ public sealed class MouseInputSystem
             var result = x.ZIndex.CompareTo(y.ZIndex);
             if (result == 0)
             {
+                if (x.IsInFrontOf(y))
+                {
+                    return -1;
+                }
+                else
+                {
+                    return 1;
+                }
                 //TODO: Sort them based on hierchy?
             }
             return result;
