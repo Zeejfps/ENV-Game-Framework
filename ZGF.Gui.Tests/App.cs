@@ -13,8 +13,10 @@ public sealed class App : OpenGlApp
     private readonly Canvas _canvas;
     private readonly Component _gui;
 
-    private readonly Clock _clock;
-    private Window _window;
+    private readonly Window _window;
+
+    private readonly int _framebufferWidth;
+    private readonly int _framebufferHeight;
 
     private readonly MouseInputSystem _mouseInputSystem;
     private readonly KeyCallback _keyCallback;
@@ -22,8 +24,6 @@ public sealed class App : OpenGlApp
 
     public App(StartupConfig startupConfig) : base(startupConfig)
     {
-        _clock = new Clock();
-
         _mouseInputSystem = new MouseInputSystem();
 
         _framebufferWidth = startupConfig.WindowWidth / 2;
@@ -78,29 +78,10 @@ public sealed class App : OpenGlApp
         Glfw.SetKeyCallback(WindowHandle, _keyCallback);
         Glfw.SetMouseButtonCallback(WindowHandle, _mouseButtonCallback);
     }
-
-    private bool _isDragging;
-    private double _x;
-    private double _y;
-    private int _framebufferWidth;
-    private int _framebufferHeight;
-
+    
     private void HandleMouseButtonEvent(GLFW.Window window, GLFW.MouseButton button, GLFW.InputState state, ModifierKeys modifiers)
     {
-        // if (button != MouseButton.Left)
-        //     return;
-        //
-        // if (state == InputState.Press)
-        // {
-        //     _isDragging = true;
         Glfw.GetCursorPosition(WindowHandle, out var windowX, out var windowY);
-        //     _x = x;
-        //     _y = y;
-        // }
-        // else if (state == InputState.Release)
-        // {
-        //     _isDragging = false;
-        // }
         var b = button switch
         {
             GLFW.MouseButton.Left => MouseButton.Left,
@@ -133,36 +114,10 @@ public sealed class App : OpenGlApp
             return;
         
         _window.Move(10, 10);
-        // var ss = new StyleSheet();
-        // ss.AddStyleForId("content_outline", new Style
-        // {
-        //     BackgroundColor = 0x000000,
-        //     Padding = PaddingStyle.All(12),
-        //     BorderSize = BorderSizeStyle.All(10),
-        //     BorderColor = new BorderColorStyle
-        //     {
-        //         Left = 0xFF00FF,
-        //         Top = 0xFF00FF,
-        //         Right = 0xFF00FF,
-        //         Bottom = 0xFF00FF
-        //     },
-        // });
-        //
-        // _gui.ClearStyleSheet();
     }
     
     protected override void OnUpdate()
     {
-        if (_isDragging)
-        {
-            Glfw.GetCursorPosition(WindowHandle, out var x, out var y);
-            var dx = x - _x;
-            var dy = y - _y;
-            _x = x;
-            _y = y;
-            _window.Move((int)dx*0.5f, (int)-dy * 0.5f);
-        }
-        
         glClear(GL_COLOR_BUFFER_BIT);
         _canvas.BeginFrame();
         _gui.LayoutSelf();
