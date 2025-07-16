@@ -99,7 +99,7 @@ public sealed class WindowTitleBar : Component, IHoverable
 
         Add(background);
 
-        AddMouseListener(this);
+        EnableHover(this);
     }
 
     public void HandleMouseEnterEvent()

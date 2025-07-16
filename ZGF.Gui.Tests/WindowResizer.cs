@@ -37,7 +37,7 @@ public sealed class WindowResizer : Component, IHoverable, IMouseFocusable
         
         Add(_background);
         
-        AddMouseListener(this);
+        EnableHover(this);
     }
 
     public void HandleMouseEnterEvent()

@@ -153,9 +153,14 @@ public abstract class Component
         MouseInputSystem.Blur(this, focusable);
     }
 
-    public void AddMouseListener(IHoverable hoverable)
+    public void EnableHover(IHoverable hoverable)
     {
-        MouseInputSystem.RegisterListener(this, hoverable);
+        MouseInputSystem.EnableHover(this, hoverable);
+    }
+
+    public void DisableHover(IHoverable hoverable)
+    {
+        MouseInputSystem.DisableHover(this);
     }
 
     protected virtual void OnComponentAdded(Component component)

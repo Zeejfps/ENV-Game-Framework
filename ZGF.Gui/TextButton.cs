@@ -22,7 +22,7 @@ public sealed class TextButton : Component, IHoverable, IMouseFocusable
         Add(_background);
         Add(new Label(text));
 
-        AddMouseListener(this);
+        EnableHover(this);
     }
 
     public void HandleMouseEnterEvent()

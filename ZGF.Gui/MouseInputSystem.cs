@@ -19,14 +19,14 @@ public sealed class MouseInputSystem
 {
     public static MouseInputSystem Instance { get; } = new();
 
-    private readonly Dictionary<Component, IHoverable> _listenersByComponentLookup = new();
+    private readonly Dictionary<Component, IHoverable> _hoverableComponents = new();
     
     private Component? _hoveredComponent;
     private IMouseFocusable? _focusedComponent;
     
-    public void RegisterListener(Component component, IHoverable listener)
+    public void EnableHover(Component component, IHoverable listener)
     {
-        _listenersByComponentLookup[component] = listener;
+        _hoverableComponents[component] = listener;
     }
 
     public void HandleMouseButtonEvent()
@@ -46,13 +46,13 @@ public sealed class MouseInputSystem
             _hoveredComponent = newHoveredComponent;
 
             if (prevHoveredComponent != null &&
-                _listenersByComponentLookup.TryGetValue(prevHoveredComponent, out var listener))
+                _hoverableComponents.TryGetValue(prevHoveredComponent, out var listener))
             {
                 listener.HandleMouseExitEvent();
             }
 
             if (_hoveredComponent != null &&
-                _listenersByComponentLookup.TryGetValue(_hoveredComponent, out listener))
+                _hoverableComponents.TryGetValue(_hoveredComponent, out listener))
             {
                 listener.HandleMouseEnterEvent();           
             }
@@ -66,7 +66,7 @@ public sealed class MouseInputSystem
         _hitTestCache.Clear();
         var components = _hitTestCache;
         var hitPoint = new PointF(x, y);
-        foreach (var component in _listenersByComponentLookup.Keys)
+        foreach (var component in _hoverableComponents.Keys)
         {
             if (component.Position.ContainsPoint(hitPoint))
             {
@@ -92,6 +92,11 @@ public sealed class MouseInputSystem
         {
             _focusedComponent = null;       
         }
+    }
+
+    public void DisableHover(Component component)
+    {
+        _hoverableComponents.Remove(component);
     }
 }
 
