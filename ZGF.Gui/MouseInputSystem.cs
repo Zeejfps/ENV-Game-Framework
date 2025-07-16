@@ -10,7 +10,7 @@ public interface IHoverable
 
 public interface IMouseFocusable
 {
-    void HandleMouseButtonEvent(MouseButton button);
+    void HandleMouseButtonEvent(MouseButton button, InputState state);
     void HandleMouseWheelEvent();
     void HandleMouseMoveEvent();
 }
@@ -29,11 +29,11 @@ public sealed class MouseInputSystem
         _hoverableComponents[component] = listener;
     }
 
-    public void HandleMouseButtonEvent(MouseButton button)
+    public void HandleMouseButtonEvent(MouseButton button, InputState state)
     {
         if (_focusedComponent != null)
         {
-            _focusedComponent.HandleMouseButtonEvent(button);
+            _focusedComponent.HandleMouseButtonEvent(button, state);
         }
     }
 

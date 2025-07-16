@@ -78,7 +78,7 @@ public sealed class App : OpenGlApp
     private int _framebufferWidth;
     private int _framebufferHeight;
 
-    private void HandleMouseButtonEvent(GLFW.Window window, GLFW.MouseButton button, InputState state, ModifierKeys modifiers)
+    private void HandleMouseButtonEvent(GLFW.Window window, GLFW.MouseButton button, GLFW.InputState state, ModifierKeys modifiers)
     {
         // if (button != MouseButton.Left)
         //     return;
@@ -101,12 +101,17 @@ public sealed class App : OpenGlApp
             GLFW.MouseButton.Middle => MouseButton.Middle,
             _ => new MouseButton((int)button),
         };
-        MouseInputSystem.Instance.HandleMouseButtonEvent(b);
+        var s = state switch
+        {
+            GLFW.InputState.Press => InputState.Pressed,
+            GLFW.InputState.Release => InputState.Released,
+        };
+        MouseInputSystem.Instance.HandleMouseButtonEvent(b, s);
     }
 
-    private void HandleKeyEvent(GLFW.Window window, Keys key, int scanCode, InputState state, ModifierKeys mods)
+    private void HandleKeyEvent(GLFW.Window window, Keys key, int scanCode, GLFW.InputState state, ModifierKeys mods)
     {
-        if (state != InputState.Press)
+        if (state != GLFW.InputState.Press)
             return;
         
         if (key != Keys.Space)
