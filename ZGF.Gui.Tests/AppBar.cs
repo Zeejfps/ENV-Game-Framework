@@ -1,8 +1,8 @@
 ﻿namespace ZGF.Gui.Tests;
 
-public sealed class Header : Component
+public sealed class AppBar : Component
 {
-    public Header()
+    public AppBar()
     {
         var container = new Rect
         {

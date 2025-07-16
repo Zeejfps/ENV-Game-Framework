@@ -30,7 +30,7 @@ public sealed class App : OpenGlApp
         _canvas = new Canvas(bitmap);
         glClearColor(0f, 0f, 0f, 0f);
         
-        var header = new Header
+        var header = new AppBar
         {
             Constraints = new RectF
             {
