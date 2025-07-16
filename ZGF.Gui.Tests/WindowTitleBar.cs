@@ -146,10 +146,7 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
         else
         {
             _isLeftButtonPressed = false;
-            if (_isDragging)
-            {
-                _isDragging = false;
-            }
+            _isDragging = false;
 
             if (!_isHovered)
             {

@@ -102,15 +102,17 @@ public abstract class Component
         OnComponentAdded(component);
     }
 
-    public void Remove(Component component)
+    public bool Remove(Component component)
     {
-        if (_children.Remove(component) && component.Parent == this)
+        if (_children.Remove(component))
         {
             component.Parent = null;
             component._depth = 0;
             component._siblingIndex = 0;
             OnComponentRemoved(component);
+            return true;
         }
+        return false;
     }
     
     public void LayoutSelf()
@@ -243,9 +245,9 @@ public abstract class Component
 
     public void BringToFront(Component component)
     {
-        if (_children.Remove(component))
+        if (Remove(component))
         {
-            _children.Add(component);
+            Add(component);
         }
     }
 
