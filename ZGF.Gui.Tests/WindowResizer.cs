@@ -66,7 +66,7 @@ public sealed class WindowResizer : Component, IHoverable, IMouseFocusable
     {
     }
 
-    public void HandleMouseMoveEvent()
+    public void HandleMouseMoveEvent(in MouseMoveEvent e)
     {
     }
 }

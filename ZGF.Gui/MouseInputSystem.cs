@@ -12,7 +12,7 @@ public interface IMouseFocusable
 {
     void HandleMouseButtonEvent(in MouseButtonEvent e);
     void HandleMouseWheelEvent();
-    void HandleMouseMoveEvent();
+    void HandleMouseMoveEvent(in MouseMoveEvent e);
 }
 
 public readonly struct MouseButtonEvent
@@ -20,6 +20,11 @@ public readonly struct MouseButtonEvent
     public required PointF Position { get; init; }
     public required MouseButton Button { get; init; }
     public required InputState State { get; init; }
+}
+
+public readonly struct MouseMoveEvent
+{
+    public required PointF Position { get; init; }
 }
 
 public sealed class MouseInputSystem

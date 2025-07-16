@@ -1,3 +1,4 @@
+using System.Numerics;
 using ZGF.Geometry;
 using ZGF.Gui.Layouts;
 
@@ -114,6 +115,7 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
     }
 
     private PointF _startPoint;
+    private Vector2 _mouseDelta;
 
     public void HandleMouseButtonEvent(in MouseButtonEvent e)
     {
@@ -125,6 +127,7 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
 
         if (state == InputState.Pressed)
         {
+            _startPoint = e.Position;
             Focus(this);
         }
         else
@@ -137,7 +140,8 @@ public sealed class WindowTitleBar : Component, IHoverable, IMouseFocusable
     {
     }
 
-    public void HandleMouseMoveEvent()
+    public void HandleMouseMoveEvent(in MouseMoveEvent e)
     {
+        _mouseDelta += e.Position -  _startPoint;
     }
 }
