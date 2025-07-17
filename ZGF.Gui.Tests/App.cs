@@ -54,7 +54,8 @@ public sealed class App : OpenGlApp
             Constraints = new RectF(0, 0, _framebufferWidth, _framebufferHeight),
             Context = new Context
             {
-                MouseInputSystem = _mouseInputSystem
+                MouseInputSystem = _mouseInputSystem,
+                TextMeasurer = new TextMeasurer()
             }
         };
 

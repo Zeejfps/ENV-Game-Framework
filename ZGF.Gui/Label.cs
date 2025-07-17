@@ -28,7 +28,7 @@ public sealed class Label : Component
         if (Context == null)
             return 0f;
         
-        return Context.MeasureTextWidth(_text, _style);
+        return Context.TextMeasurer.MeasureTextWidth(_text, _style);
     }
 
     protected override void OnDrawSelf(ICanvas c)
