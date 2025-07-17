@@ -3,6 +3,28 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
+public readonly record struct BoxConstrains
+{
+    public readonly StyleValue<float> Left;
+    public readonly StyleValue<float> Bottom;
+    public readonly StyleValue<float> Width;
+    public readonly StyleValue<float> Height;
+    
+    public float Top => Bottom + Height;
+    public float Right => Left + Width;
+
+    private BoxConstrains(float left, float bottom, float width, float height)
+    {
+        Left = left;
+        Bottom = bottom;
+        Width = width;
+        Height = height;
+    }
+
+    public static implicit operator RectF(BoxConstrains constraints) => new(constraints.Left, constraints.Bottom, constraints.Width, constraints.Height);
+    public static implicit operator BoxConstrains(RectF rect) => new(rect.Left, rect.Bottom, rect.Width, rect.Height);
+}
+
 public abstract class Component : IEnumerable<Component>
 {
     private Context? _context;
@@ -45,8 +67,8 @@ public abstract class Component : IEnumerable<Component>
         protected set => SetField(ref _position, value);
     }
 
-    private RectF _constraints;
-    public RectF Constraints
+    private BoxConstrains _constraints;
+    public BoxConstrains Constraints
     {
         get => _constraints;
         set => SetField(ref _constraints, value);
@@ -262,10 +284,12 @@ public abstract class Component : IEnumerable<Component>
     protected virtual void OnLayoutSelf()
     {
         var size = MeasureSelf();
-        Position = Constraints with
+        Position = new RectF
         {
+            Left = Constraints.Left,
+            Bottom = Constraints.Bottom,
             Width = size.Width,
-            Height = size.Height
+            Height = size.Height,
         };
     }
 
