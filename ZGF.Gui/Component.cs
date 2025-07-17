@@ -467,6 +467,13 @@ public class Component : IEnumerable<Component>
         OnMouseMoved(e);
     }
 
+    protected T? Get<T>() where T : class
+    {
+        if (Context == null)
+            return default;
+        return Context.Get<T>();
+    }
+
     public IEnumerator<Component> GetEnumerator()
     {
         return _children.GetEnumerator();

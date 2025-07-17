@@ -77,11 +77,11 @@ public sealed class ContextMenu : Component
     
     protected override void OnMouseEnter()
     {
-        Context.Get<ContextMenuManager>().SetKeepOpen(this);
+        Get<ContextMenuManager>()?.SetKeepOpen(this);
     }
 
     protected override void OnMouseExit()
     {
-        Context.Get<ContextMenuManager>().HideContextMenu(this);
+        Get<ContextMenuManager>()?.HideContextMenu(this);
     }
 }

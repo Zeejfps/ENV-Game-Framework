@@ -56,14 +56,16 @@ public sealed class App : OpenGlApp
             Center = center,
         };
 
+        var context = new Context
+        {
+            MouseInputSystem = _mouseInputSystem,
+            TextMeasurer = new TextMeasurer(_bitmapFont),
+        };
+        context.AddService(new ContextMenuManager(contextMenuPane));
+
         var gui = new Component
         {
-            Context = new Context
-            {
-                MouseInputSystem = _mouseInputSystem,
-                TextMeasurer = new TextMeasurer(_bitmapFont),
-                ContextMenuPane = contextMenuPane,
-            }
+            Context = context
         };
         
         gui.Add(contents);

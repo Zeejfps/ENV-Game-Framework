@@ -5,6 +5,8 @@ public sealed class MenuItem : Component
     private readonly Panel _background;
     private readonly Label _label;
 
+    private ContextMenuManager? ContextMenuManager => Get<ContextMenuManager>();
+    
     public MenuItem(string text)
     {
         _background = new Panel
@@ -51,8 +53,7 @@ public sealed class MenuItem : Component
         if (Context == null)
             return;
 
-        _contextMenu = new ContextMenu(Position.BottomLeft);
-        Context.ContextMenuPane.Add(_contextMenu);
+        _contextMenu = ContextMenuManager?.ShowContextMenu(Position.BottomLeft);
     }
 
     private void HideMenu()
@@ -62,7 +63,7 @@ public sealed class MenuItem : Component
         
         if (_contextMenu != null)
         {
-            Context.ContextMenuPane.Remove(_contextMenu);
+            ContextMenuManager?.HideContextMenu(_contextMenu);
         }
     }
     

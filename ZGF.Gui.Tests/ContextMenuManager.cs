@@ -6,7 +6,12 @@ public sealed class ContextMenuManager
 {
     private Dictionary<ContextMenu, int> _keepOpen = new();
     private readonly Component _contextMenuPane;
-    
+
+    public ContextMenuManager(Component contextMenuPane)
+    {
+        _contextMenuPane = contextMenuPane;
+    }
+
     public ContextMenu ShowContextMenu(PointF anchor)
     {
         var contextMenu = new ContextMenu(anchor);
@@ -17,6 +22,7 @@ public sealed class ContextMenuManager
 
     public void SetKeepOpen(ContextMenu contextMenu)
     {
+        _contextMenuPane.Add(contextMenu);
         _keepOpen[contextMenu]++;
     }
     
