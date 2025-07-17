@@ -24,7 +24,6 @@ public sealed class App : OpenGlApp
     private readonly KeyCallback _keyCallback;
     private readonly MouseButtonCallback _mouseButtonCallback;
     private Bitmap _colorBuffer;
-    private Bitmap _fontBmp;
 
     public App(StartupConfig startupConfig) : base(startupConfig)
     {
@@ -36,67 +35,6 @@ public sealed class App : OpenGlApp
         _colorBuffer = new Bitmap(_framebufferWidth, _framebufferHeight);
         _canvas = new Canvas(_colorBuffer);
         glClearColor(0f, 0f, 0f, 0f);
-
-        var fontFile = BMFontFileUtils.DeserializeFromXmlFile("Assets/Fonts/Charcoal/Charcoal.xml");
-        var fontPng = Png.DecodeFromFile("Assets/Fonts/Charcoal/Charcoal.png");
-        _fontBmp = new Bitmap(fontPng.Width, fontPng.Height);
-        var pixels = _fontBmp.Pixels;
-
-            const int bytesPerPixel = 4;
-
-
-    // Loop through each row of the source image from top to bottom (y = 0 to height-1).
-    for (int y = 0; y < fontPng.Height; y++)
-    {
-        // Calculate the starting index for the current source row.
-        int srcRowStartIndex = y * fontPng.Width * bytesPerPixel;
-
-        // Calculate the starting index for the corresponding destination row.
-        // This is the key to flipping the image: source row 'y' maps to destination row 'height - 1 - y'.
-        int destRowStartIndex = (fontPng.Height - 1 - y) * fontPng.Width;
-
-        // Loop through each pixel in the current row.
-        for (int x = 0; x < fontPng.Width; x++)
-        {
-            // Calculate the specific index for the source pixel's bytes.
-            int srcByteIndex = srcRowStartIndex + (x * bytesPerPixel);
-
-            // Read the individual color channels.
-            byte r = fontPng.PixelData[srcByteIndex + 0];
-            byte g = fontPng.PixelData[srcByteIndex + 1];
-            byte b = fontPng.PixelData[srcByteIndex + 2];
-            byte a = fontPng.PixelData[srcByteIndex + 3];
-
-            // Pack the bytes into a 32-bit uint in AARRGGBB format.
-            uint color = ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | b;
-
-            // This is your custom logic to turn any visible pixel into a specific color.
-            // Note: 0xFF00FF is opaque cyan (0x00FF00FF).
-            // If you wanted magenta (hot pink), you would use 0xFFFF00FF.
-            if (a > 0)
-            {
-                color = 0xFFFF00FF; // Using magenta (AARRGGBB) as it's a common debug color.
-            }
-
-            // Calculate the destination index and write the pixel.
-            int destPixelIndex = destRowStartIndex + x;
-            pixels[destPixelIndex] = color;
-        }
-    }
-
-        // var pixelIndex = 0;
-        // for (var i = 0; i < fontPng.PixelData.Length; i+= fontPng.BytesPerPixel, pixelIndex++)
-        // {
-        //     var r = fontPng.PixelData[i + 0];
-        //     var g = fontPng.PixelData[i + 1];
-        //     var b = fontPng.PixelData[i + 2];
-        //     var a = fontPng.PixelData[i + 3];
-        //
-        //     var color = ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | b;
-        //     if (a > 0)
-        //         color = 0xFF00FF;
-        //     pixels[pixelIndex] = color;
-        // }
 
         var header = new AppBar
         {
@@ -187,9 +125,6 @@ public sealed class App : OpenGlApp
         _canvas.BeginFrame();
         _gui.LayoutSelf();
         _gui.DrawSelf(_canvas);
-
-        _colorBuffer.Blit(_fontBmp, 0, 0, 100, 100, 0, 0, 100, 100);
-
         _canvas.EndFrame();
         
         Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);

@@ -1,5 +1,7 @@
+using PngSharp.Api;
 using SoftwareRendererModule;
 using SoftwareRendererOpenGlBackend;
+using ZGF.BMFontModule;
 using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
@@ -8,11 +10,13 @@ public sealed class Canvas : ICanvas
 {
     private readonly Bitmap _colorBuffer;
     private readonly BitmapRenderer _bitmapRenderer;
+    private readonly BitmapFont _charcoalFont;
 
     public Canvas(Bitmap colorBuffer)
     {
         _colorBuffer = colorBuffer;
         _bitmapRenderer = new BitmapRenderer(colorBuffer);
+        _charcoalFont = LoadFontFromFile("Assets/Fonts/Charcoal/Charcoal.xml");
     }
 
     public void BeginFrame()
@@ -68,10 +72,108 @@ public sealed class Canvas : ICanvas
 
     public void AddCommand(in DrawTextCommand command)
     {
+        var text = command.Text;
+        var codePoints = AsCodePoints(text);
+        var cursorX = 0;
+        foreach (var codePoint in codePoints)
+        {
+            if (!_charcoalFont.TryGetGlyphInfo(codePoint, out var glyphInfo))
+                continue;
+
+            _colorBuffer.Blit(_charcoalFont.Bitmap,
+                dstX: 50 + cursorX,
+                dstY: 50,
+                glyphInfo.Width,
+                glyphInfo.Height,
+                glyphInfo.X,
+                glyphInfo.Y,
+                glyphInfo.Width,
+                glyphInfo.Height);
+
+            cursorX += glyphInfo.XAdvance;
+        }
+    }
+
+    private IEnumerable<int> AsCodePoints(string s)
+    {
+        for(int i = 0; i < s.Length; ++i)
+        {
+            yield return char.ConvertToUtf32(s, i);
+            if(char.IsHighSurrogate(s, i))
+                i++;
+        }
     }
 
     public void EndFrame()
     {
         _bitmapRenderer.Render();
+    }
+
+    private BitmapFont LoadFontFromFile(string path)
+    {
+        var fontFile = BMFontFileUtils.DeserializeFromXmlFile(path);
+        var directory = Path.GetDirectoryName(path) ?? string.Empty;
+        var fontPngFilePath = Path.Combine(directory, fontFile.Pages[0].File);
+        var fontPng = Png.DecodeFromFile(fontPngFilePath);
+        var fontBmp = PngToBitmap(fontPng);
+        return new BitmapFont(fontBmp, fontFile);
+    }
+
+    private Bitmap PngToBitmap(IDecodedPng png)
+    {
+        var bmp = new Bitmap(png.Width, png.Height);
+        var bmpPixels = bmp.Pixels;
+
+        const int bytesPerPixel = 4;
+
+        // Loop through each row of the source image from top to bottom (y = 0 to height-1).
+        for (int y = 0; y < png.Height; y++)
+        {
+            // Calculate the starting index for the current source row.
+            int srcRowStartIndex = y * png.Width * bytesPerPixel;
+
+            // Calculate the starting index for the corresponding destination row.
+            // This is the key to flipping the image: source row 'y' maps to destination row 'height - 1 - y'.
+            int destRowStartIndex = (png.Height - 1 - y) * png.Width;
+
+            // Loop through each pixel in the current row.
+            for (int x = 0; x < png.Width; x++)
+            {
+                // Calculate the specific index for the source pixel's bytes.
+                int srcByteIndex = srcRowStartIndex + (x * bytesPerPixel);
+
+                // Read the individual color channels.
+                byte r = png.PixelData[srcByteIndex + 0];
+                byte g = png.PixelData[srcByteIndex + 1];
+                byte b = png.PixelData[srcByteIndex + 2];
+                byte a = png.PixelData[srcByteIndex + 3];
+
+                // Pack the bytes into a 32-bit uint in AARRGGBB format.
+                uint color = ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | b;
+
+                // This is your custom logic to turn any visible pixel into a specific color.
+                // Note: 0xFF00FF is opaque cyan (0x00FF00FF).
+                // If you wanted magenta (hot pink), you would use 0xFFFF00FF.
+                if (a > 0)
+                {
+                    color = 0xFFFF00FF; // Using magenta (AARRGGBB) as it's a common debug color.
+                }
+
+                // Calculate the destination index and write the pixel.
+                int destPixelIndex = destRowStartIndex + x;
+                bmpPixels[destPixelIndex] = color;
+            }
+        }
+        return bmp;
+    }
+}
+
+public sealed class BitmapFont(Bitmap bitmap, BMFontFile file)
+{
+    public Bitmap Bitmap => bitmap;
+
+    public bool TryGetGlyphInfo(int codePoint, out FontChar o)
+    {
+        return file.TryGetFontChar(codePoint, out o);
     }
 }

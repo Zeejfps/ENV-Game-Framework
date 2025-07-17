@@ -30,6 +30,8 @@ public sealed class AppBar : Component
                 }
             }
         };
+        var label = new Label("Test");
+        background.Add(label);
         container.Add(background);
         Add(container);
     }
