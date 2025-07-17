@@ -106,7 +106,7 @@ public sealed class Window : Component
         
         var scrollBarContainer = new Panel
         {
-            PreferredWidth = 15f,
+            PreferredWidth = 14f,
             BackgroundColor = 0x000000,
             Padding = new PaddingStyle
             {

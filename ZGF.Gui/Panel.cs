@@ -1,5 +1,3 @@
-using ZGF.Geometry;
-
 namespace ZGF.Gui;
 
 public class Panel : Component
@@ -28,14 +26,14 @@ public class Panel : Component
         });
     }
 
-    // public override float MeasureWidth()
-    // {
-    //     var padding = Padding;
-    //     var borderSize = Style.BorderSize;
-    //     var width= base.MeasureWidth();
-    //     width += padding.Left + padding.Right + borderSize.Left + borderSize.Right;
-    //     return width;
-    // }
+    public override float MeasureWidth()
+    {
+        var padding = Padding;
+        var borderSize = Style.BorderSize;
+        var width= base.MeasureWidth();
+        width += padding.Left + padding.Right + borderSize.Left + borderSize.Right;
+        return width;
+    }
 
     protected override void OnLayoutChildren()
     {

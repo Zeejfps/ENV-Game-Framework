@@ -43,21 +43,21 @@ public sealed class WindowTitleBar : Component
 
         var button = new Panel
         {
-            PreferredWidth = 13f,
+            PreferredWidth = 10f,
             BackgroundColor = 0xFF00FF,
         };
         button.AddStyleClass("inset_panel");
 
         var button2 = new Panel
         {
-            PreferredWidth = 13f,
+            PreferredWidth = 10f,
             BackgroundColor = 0xFF00FF,
         };
         button2.AddStyleClass("inset_panel");
 
         var button3 = new Panel
         {
-            PreferredWidth = 13f,
+            PreferredWidth = 10f,
             BackgroundColor = 0xFF00FF,
         };
         button3.AddStyleClass("inset_panel");

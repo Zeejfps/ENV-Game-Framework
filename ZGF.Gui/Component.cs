@@ -238,7 +238,16 @@ public abstract class Component : IEnumerable<Component>
             return PreferredHeight;
         }
         
-        return 0f;
+        var height = 0f;
+        foreach (var child in _children)
+        {
+            var childHeight = child.MeasureHeight();
+            if (childHeight > height)
+            {
+                height = childHeight;
+            }
+        }
+        return height;
     }
     
     public void LayoutSelf()

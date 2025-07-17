@@ -13,9 +13,9 @@ public sealed class WindowResizer : Component
         _window = window;
         _background = new Panel
         {
+            BackgroundColor = 0xCECECE,
             Style =
             {
-                BackgroundColor = 0xCECECE,
                 BorderSize = new BorderSizeStyle
                 {
                     Left = 1,
@@ -62,7 +62,7 @@ public sealed class WindowResizer : Component
     {
         var width = 16f;
         var height = 16f;
-        var left = RightConstraint - width - 5;
+        var left = RightConstraint - width - 6;
         var bottom = BottomConstraint + 5;
         Position = new RectF
         {
