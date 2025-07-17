@@ -48,18 +48,12 @@ public class Panel : Component
         var top = position.Top - padding.Top - border.Top;
         var bottom = position.Bottom + padding.Bottom + border.Bottom;
         
-        var width = right - left;
-        var height = top - bottom;
-        
         foreach (var child in Children)
         {
-            child.Constraints = new RectF
-            {
-                Left = left,
-                Bottom = bottom,
-                Width = width,
-                Height = height,
-            };
+            child.LeftConstraint = left;
+            child.BottomConstraint = bottom;
+            child.WidthConstraint = right - left;
+            child.HeightConstraint = top - bottom;
             child.LayoutSelf();
         }
     }

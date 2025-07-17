@@ -180,15 +180,12 @@ public sealed class FlexRow : Component
                     break;
             }
 
-            child.Constraints = new RectF
-            {
-                Left = currentLeft,
-                Bottom = childBottom,
-                Width = finalChildWidth,
-                Height = finalChildHeight,
-            };
-
+            child.LeftConstraint = currentLeft;
+            child.BottomConstraint = childBottom;
+            child.WidthConstraint = finalChildWidth;
+            child.HeightConstraint = finalChildHeight;
             child.LayoutSelf();
+            
             currentLeft += finalChildWidth + Gap + interItemSpacing;
         }
     }

@@ -49,9 +49,10 @@ public sealed class App : OpenGlApp
         
         var gui = new BorderLayout
         {
+            PreferredWidth = _framebufferWidth,
+            PreferredHeight = _framebufferHeight,
             Center = center,
             North = header,
-            Constraints = new RectF(0, 0, _framebufferWidth, _framebufferHeight),
             Context = new Context
             {
                 MouseInputSystem = _mouseInputSystem,

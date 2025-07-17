@@ -3,28 +3,6 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
-public readonly record struct BoxConstrains
-{
-    public readonly StyleValue<float> Left;
-    public readonly StyleValue<float> Bottom;
-    public readonly StyleValue<float> Width;
-    public readonly StyleValue<float> Height;
-    
-    public float Top => Bottom + Height;
-    public float Right => Left + Width;
-
-    private BoxConstrains(float left, float bottom, float width, float height)
-    {
-        Left = left;
-        Bottom = bottom;
-        Width = width;
-        Height = height;
-    }
-
-    public static implicit operator RectF(BoxConstrains constraints) => new(constraints.Left, constraints.Bottom, constraints.Width, constraints.Height);
-    public static implicit operator BoxConstrains(RectF rect) => new(rect.Left, rect.Bottom, rect.Width, rect.Height);
-}
-
 public abstract class Component : IEnumerable<Component>
 {
     private Context? _context;
@@ -67,13 +45,37 @@ public abstract class Component : IEnumerable<Component>
         protected set => SetField(ref _position, value);
     }
 
-    private BoxConstrains _constraints;
-    public BoxConstrains Constraints
+    private StyleValue<float> _leftConstraint;
+    public StyleValue<float> LeftConstraint
     {
-        get => _constraints;
-        set => SetField(ref _constraints, value);
+        get => _leftConstraint;
+        set => SetField(ref _leftConstraint, value);
     }
 
+    private StyleValue<float> _bottomConstraint;
+    public StyleValue<float> BottomConstraint
+    {
+        get => _bottomConstraint;
+        set => SetField(ref _bottomConstraint, value);
+    }
+
+    private StyleValue<float> _widthConstraint;
+    public StyleValue<float> WidthConstraint
+    {
+        get => _widthConstraint;
+        set => SetField(ref _widthConstraint, value);
+    }
+    
+    private StyleValue<float> _heightConstraint;
+    public StyleValue<float> HeightConstraint
+    {
+        get => _heightConstraint;
+        set => SetField(ref _heightConstraint, value);
+    }
+    
+    public StyleValue<float> RightConstraint => LeftConstraint + WidthConstraint;
+    public StyleValue<float> TopConstraint => BottomConstraint + HeightConstraint;
+    
     private StyleValue<float> _preferredWidth;
     public StyleValue<float> PreferredWidth
     {
@@ -215,7 +217,7 @@ public abstract class Component : IEnumerable<Component>
         if (PreferredWidth.IsSet)
             return PreferredWidth;
         
-        return Constraints.Width;
+        return WidthConstraint;
     }
     
     public virtual float MeasureHeight()
@@ -223,7 +225,7 @@ public abstract class Component : IEnumerable<Component>
         if (PreferredHeight.IsSet)
             return PreferredHeight;
         
-        return Constraints.Height;
+        return HeightConstraint;
     }
     
     public void LayoutSelf()
@@ -286,8 +288,8 @@ public abstract class Component : IEnumerable<Component>
         var size = MeasureSelf();
         Position = new RectF
         {
-            Left = Constraints.Left,
-            Bottom = Constraints.Bottom,
+            Left = LeftConstraint,
+            Bottom = BottomConstraint,
             Width = size.Width,
             Height = size.Height,
         };
@@ -297,7 +299,10 @@ public abstract class Component : IEnumerable<Component>
     {
         foreach (var child in _children)
         {
-            child.Constraints = Position;
+            child.LeftConstraint = LeftConstraint;
+            child.BottomConstraint = BottomConstraint;
+            child.WidthConstraint = WidthConstraint;
+            child.HeightConstraint = HeightConstraint;
             child.LayoutSelf();
         }
     }

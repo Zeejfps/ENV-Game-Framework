@@ -1,5 +1,3 @@
-using ZGF.Geometry;
-
 namespace ZGF.Gui.Layouts;
 
 public sealed class BorderLayout : Component
@@ -61,6 +59,7 @@ public sealed class BorderLayout : Component
     protected override void OnLayoutChildren()
     {
         var position = Position;
+        Console.WriteLine(position);
         
         var centerAreaWidth = position.Width;
         var centerAreaHeight = position.Height;
@@ -71,7 +70,9 @@ public sealed class BorderLayout : Component
         if (North != null)
         {
             var height = North.MeasureHeight();
-            North.Constraints = new RectF(position.Left, position.Top - height, position.Width, height);
+            North.LeftConstraint = position.Left;
+            North.BottomConstraint = position.Top - height;
+            North.WidthConstraint = position.Width;
             North.LayoutSelf();
             centerAreaHeight -= height;
         }
@@ -79,12 +80,9 @@ public sealed class BorderLayout : Component
         if (South != null)
         {
             var height = South.MeasureHeight();
-            South.Constraints = new RectF(
-                position.Left,
-                position.Bottom,
-                position.Width,
-                height);
-            
+            South.LeftConstraint = position.Left;
+            South.BottomConstraint = position.Bottom;
+            South.WidthConstraint = position.Width;
             South.LayoutSelf();
             centerAreaHeight -= height;
             bottomOffset += height;
@@ -93,13 +91,9 @@ public sealed class BorderLayout : Component
         if (West != null)
         {
             var width = West.MeasureWidth();
-            West.Constraints = new RectF
-            {
-                Left = position.Left,
-                Bottom = position.Bottom + bottomOffset,
-                Width = width,
-                Height = centerAreaHeight,
-            };
+            West.LeftConstraint = position.Left;
+            West.BottomConstraint = position.Bottom + bottomOffset;
+            West.HeightConstraint = centerAreaHeight;
             West.LayoutSelf();
             centerAreaWidth -= width;
             leftOffset += width;
@@ -108,26 +102,19 @@ public sealed class BorderLayout : Component
         if (East != null)
         {
             var width = East.MeasureWidth();
-            East.Constraints = new RectF
-            {
-                Left = position.Right - width,
-                Bottom = position.Bottom + bottomOffset,
-                Width = width,
-                Height = centerAreaHeight,
-            };
+            East.LeftConstraint = position.Right - width;
+            East.BottomConstraint = position.Bottom + bottomOffset;
+            East.HeightConstraint = centerAreaHeight;
             East.LayoutSelf();
             centerAreaWidth -= width;
         }
 
         if (Center != null)
         {
-            Center.Constraints = new RectF
-            {
-                Left = position.Left + leftOffset,
-                Width = centerAreaWidth,
-                Bottom = position.Bottom + bottomOffset,
-                Height = centerAreaHeight
-            };
+            Center.LeftConstraint = position.Left + leftOffset;
+            Center.BottomConstraint = position.Bottom + bottomOffset;
+            Center.WidthConstraint = centerAreaWidth;
+            Center.HeightConstraint = centerAreaHeight;
             Center.LayoutSelf();
         }
     }

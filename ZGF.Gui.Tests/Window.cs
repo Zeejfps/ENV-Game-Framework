@@ -26,13 +26,10 @@ public sealed class Window : Component
 
         var leftBorder = new Panel
         {
-            Constraints = new RectF
-            {
-                Width = 4f,
-            },
+            PreferredWidth = 4f,
+            BackgroundColor = 0xCECECE,
             Style =
             {
-                BackgroundColor = 0xCECECE,
                 BorderColor = new BorderColorStyle
                 {
                     Left = 0xFFFFFF,
@@ -46,13 +43,10 @@ public sealed class Window : Component
         
         var rightBorder = new Panel
         {
-            Constraints = new RectF
-            {
-                Width = 4f,
-            },
+            PreferredWidth = 4f,
+            BackgroundColor = 0xCECECE,
             Style =
             {
-                BackgroundColor = 0xCECECE,
                 BorderColor = new BorderColorStyle
                 {
                     Right = 0x9C9C9C,
@@ -66,13 +60,10 @@ public sealed class Window : Component
         
         var bottomBorder = new Panel
         {
-            Constraints = new RectF
-            {
-                Height = 4f,
-            },
+            PreferredHeight = 4f,
+            BackgroundColor = 0xCECECE,
             Style =
             {
-                BackgroundColor = 0xCECECE,
                 BorderColor = new BorderColorStyle
                 {
                     Bottom = 0x9C9C9C,
@@ -115,35 +106,26 @@ public sealed class Window : Component
         
         var scrollBarContainer = new Panel
         {
-            Constraints = new RectF
+            PreferredWidth = 15f,
+            BackgroundColor = 0x000000,
+            Padding = new PaddingStyle
             {
-                Width = 15,
+                Left = 1,
+                Top = 1,
+                Bottom = 15
             },
-            Style =
-            {
-                BackgroundColor = 0x000000,
-                Padding = new PaddingStyle
-                {
-                    Left = 1,
-                    Top = 1,
-                    Bottom = 15
-                }
-            }
         };
         var scrollBar = new Panel
         {
-            Style =
-            {
-                BackgroundColor = 0xEFEFEF,
-            }
+            BackgroundColor = 0xEFEFEF,
         };
         scrollBarContainer.Add(scrollBar);
 
         var progress = new Panel
         {
+            BackgroundColor = 0xEFEFEF,
             Style =
             {
-                BackgroundColor = 0xEFEFEF,
                 BorderSize = new BorderSizeStyle
                 {
                     Top = 1,
@@ -179,28 +161,28 @@ public sealed class Window : Component
     protected override void OnLayoutSelf()
     {
         var left = Position.Left;
-        if (left < Constraints.Left)
+        if (left < LeftConstraint)
         {
-            left = Constraints.Left;
+            left = LeftConstraint;
         }
 
         var bottom = Position.Bottom;
-        if (bottom < Constraints.Bottom)
+        if (bottom < BottomConstraint)
         {
-            bottom = Constraints.Bottom;
+            bottom = BottomConstraint;
         }
 
         var top = Position.Top;
-        if (top > Constraints.Top)
+        if (top > TopConstraint)
         {
-            var delta = top - Constraints.Top;
+            var delta = top - TopConstraint;
             bottom -= delta;
         }
         
         var right = Position.Right;
-        if (right > Constraints.Right)
+        if (right > RightConstraint)
         {
-            var delta = right - Constraints.Right;
+            var delta = right - RightConstraint;
             left -= delta;
         }
         

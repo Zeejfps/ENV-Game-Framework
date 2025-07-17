@@ -1,5 +1,3 @@
-using ZGF.Geometry;
-
 namespace ZGF.Gui.Layouts;
 
 public sealed class ColumnLayout : Component
@@ -18,15 +16,9 @@ public sealed class ColumnLayout : Component
         var bottom = position.Top - componentHeight;
         foreach (var component in components)
         {
-            component.Constraints = new RectF
-            {
-                Left = position.Left,
-                Bottom = bottom,
-                Width = position.Width,
-                Height = componentHeight,
-            };
+            component.BottomConstraint = bottom;
+            component.HeightConstraint = componentHeight;
             component.LayoutSelf();
-
             bottom -= componentHeight;
         }
     }
