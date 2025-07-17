@@ -21,4 +21,9 @@ public sealed class TextMeasurer : ITextMeasurer
         }
         return totalWidth;
     }
+
+    public float MeasureTextHeight(string text, TextStyle style)
+    {
+        return _bitmapFont.FontMetrics.Common.LineHeight;
+    }
 }

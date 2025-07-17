@@ -41,7 +41,7 @@ public sealed class App : OpenGlApp
 
         var header = new AppBar
         {
-            PreferredHeight = 20f
+            //PreferredHeight = 20f
         };
 
         var center = new Center();

@@ -31,6 +31,14 @@ public sealed class Label : Component
         return Context.TextMeasurer.MeasureTextWidth(_text, _style);
     }
 
+    public override float MeasureHeight()
+    {
+        if (Context == null)
+            return 0f;
+        
+        return Context.TextMeasurer.MeasureTextHeight(_text, _style);
+    }
+
     protected override void OnDrawSelf(ICanvas c)
     {
         c.AddCommand(new DrawTextCommand

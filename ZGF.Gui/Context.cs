@@ -9,4 +9,5 @@ public sealed class Context
 public interface ITextMeasurer
 {
     float MeasureTextWidth(string text, TextStyle style);
+    float MeasureTextHeight(string text, TextStyle style);
 }

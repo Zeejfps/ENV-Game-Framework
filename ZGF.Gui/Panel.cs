@@ -28,11 +28,20 @@ public class Panel : Component
 
     public override float MeasureWidth()
     {
+        var width= base.MeasureWidth();
         var padding = Padding;
         var borderSize = Style.BorderSize;
-        var width= base.MeasureWidth();
         width += padding.Left + padding.Right + borderSize.Left + borderSize.Right;
         return width;
+    }
+
+    public override float MeasureHeight()
+    {
+        var height = base.MeasureHeight();
+        var padding = Padding;
+        var borderSize = Style.BorderSize;
+        height += padding.Top + padding.Bottom + borderSize.Top + borderSize.Bottom;
+        return height;
     }
 
     protected override void OnLayoutChildren()

@@ -63,7 +63,7 @@ public sealed class WindowResizer : Component
         var width = 16f;
         var height = 16f;
         var left = RightConstraint - width - 6;
-        var bottom = BottomConstraint + 5;
+        var bottom = BottomConstraint + 6;
         Position = new RectF
         {
             Left = left,
