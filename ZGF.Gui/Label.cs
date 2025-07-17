@@ -23,6 +23,11 @@ public sealed class Label : Component
         _text = text;
     }
 
+    public override float MeasureWidth()
+    {
+        return _text.Length * 8f;
+    }
+
     protected override void OnDrawSelf(ICanvas c)
     {
         c.AddCommand(new DrawTextCommand

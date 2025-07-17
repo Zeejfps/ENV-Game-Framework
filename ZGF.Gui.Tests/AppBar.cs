@@ -34,22 +34,13 @@ public sealed class AppBar : Component
             }
         };
 
-        var fileLabel = new Label("File")
-        {
-            PreferredWidth = 20f,
-        };
-        var editLabel = new Label("Edit")
-        {
-            PreferredWidth = 20f,
-        };
-        var viewLabel = new Label("View")
-        {
-            PreferredWidth = 20f,
-        };
+        var fileLabel = new Label("File");
+        var editLabel = new Label("Edit");
+        var viewLabel = new Label("View");
         var specialLabel = new Label("Special");
         var helpLabel = new Label("Help");
         
-        var row = new FlexRow(MainAxisAlignment.Start, CrossAxisAlignment.Stretch, 10)
+        var row = new FlexRow(MainAxisAlignment.Start, CrossAxisAlignment.Stretch, 0)
         {
             fileLabel,
             editLabel,
