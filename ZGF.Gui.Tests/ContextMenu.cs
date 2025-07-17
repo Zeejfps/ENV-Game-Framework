@@ -14,7 +14,20 @@ public sealed class ContextMenu : Component
         var background = new Panel
         {
             BackgroundColor = 0xDEDEDE,
-            Padding = PaddingStyle.All(4)
+            Padding = PaddingStyle.All(4),
+            BorderSize = new BorderSizeStyle
+            {
+                Left = 1,
+                Right = 1,
+                Bottom = 1
+            },
+            BorderColor = new BorderColorStyle
+            {
+                Top = 0xFFFFFF,
+                Left = 0xFFFFFF,
+                Right = 0x9C9C9C,
+                Bottom = 0x9C9C9C
+            }
         };
 
         var option1 = new Label("Option 1");

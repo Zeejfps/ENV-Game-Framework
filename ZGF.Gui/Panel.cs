@@ -17,6 +17,18 @@ public class Panel : Component
         set => SetField(ref _style.Padding, value);
     }
 
+    public BorderColorStyle BorderColor
+    {
+        get => _style.BorderColor;
+        set => SetField(ref _style.BorderColor, value);
+    }
+
+    public BorderSizeStyle BorderSize
+    {
+        get => _style.BorderSize;
+        set => SetField(ref _style.BorderSize, value);
+    }
+
     protected override void OnDrawSelf(ICanvas c)
     {
         c.AddCommand(new DrawRectCommand
