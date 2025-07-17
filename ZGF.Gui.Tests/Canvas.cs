@@ -93,11 +93,16 @@ public sealed class Canvas : ICanvas
     {
         var pixels = _colorBuffer.Pixels;
 
+        var lineHeight = _charcoalFont.FontMetrics.Common.LineHeight;
+        var baseHeight = _charcoalFont.FontMetrics.Common.Base;
+        var yUp = lineHeight - baseHeight;
+        var yDown = baseHeight - (glyphInfo.YOffset + glyphInfo.Height);
+
         var glyphWidth = glyphInfo.Width;
         var glyphHeight = glyphInfo.Height;
         for (var y = 0; y < glyphHeight; y++)
         {
-            var dstY = cursorY + (glyphHeight - y) - glyphInfo.YOffset;
+            var dstY = cursorY + (glyphHeight - y) + yUp + yDown;
             var srcY = glyphInfo.Y + y;
             for (var x = 0; x < glyphWidth; x++)
             {
@@ -105,8 +110,11 @@ public sealed class Canvas : ICanvas
                 var srcX = glyphInfo.X + x;
                 var dstIndex = dstY * _colorBuffer.Width + dstX;
                 var srcIndex = srcY * _charcoalFont.Png.Width + srcX;
+                var r = _charcoalFont.Png.PixelData[srcIndex*4 + 0];
+                var g = _charcoalFont.Png.PixelData[srcIndex*4 + 1];
+                var b = _charcoalFont.Png.PixelData[srcIndex*4 + 2];
                 var a = _charcoalFont.Png.PixelData[srcIndex*4 + 3];
-                if (a > 0)
+                if (a > 0 || r > 0 || g > 0 || b > 0)
                     pixels[dstIndex] = 0x000000;
             }
         }
@@ -189,6 +197,7 @@ public sealed class Canvas : ICanvas
 public sealed class BitmapFont(IDecodedPng png, BMFontFile file)
 {
     public IDecodedPng Png => png;
+    public BMFontFile FontMetrics => file;
 
     public bool TryGetGlyphInfo(int codePoint, out FontChar o)
     {
