@@ -21,16 +21,18 @@ public sealed class Canvas : ICanvas
     private readonly Bitmap _colorBuffer;
     private readonly BitmapRenderer _bitmapRenderer;
     private readonly BitmapFont _font;
-    
+    private readonly ITextMeasurer _textMeasurer;
+
     private List<DrawCommand> _commands = new();
     private Dictionary<int, DrawRectCommand> _rectCommandData = new();
     private Dictionary<int, DrawTextCommand> _textCommandData = new();
 
-    public Canvas(Bitmap colorBuffer, BitmapFont font)
+    public Canvas(Bitmap colorBuffer, BitmapFont font, ITextMeasurer textMeasurer)
     {
         _colorBuffer = colorBuffer;
         _bitmapRenderer = new BitmapRenderer(colorBuffer);
         _font = font;
+        _textMeasurer = textMeasurer;
     }
 
     public void BeginFrame()
@@ -223,6 +225,25 @@ public sealed class Canvas : ICanvas
                     break;
                 case TextAlignment.Center:
                     cursorY = (int)(position.Top - (position.Height + lineHeight) * 0.5f);
+                    break;
+                case TextAlignment.End:
+                    break;
+                case TextAlignment.Justify:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        if (style.HorizontalAlignment.IsSet)
+        {
+            switch (style.HorizontalAlignment.Value)
+            {
+                case TextAlignment.Start:
+                    break;
+                case TextAlignment.Center:
+                    var width = _textMeasurer.MeasureTextWidth(text, style);
+                    cursorX = (int)(position.Left + (position.Width - width) * 0.5f);
                     break;
                 case TextAlignment.End:
                     break;

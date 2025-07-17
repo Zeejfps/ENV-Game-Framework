@@ -36,8 +36,9 @@ public sealed class App : OpenGlApp
 
         _colorBuffer = new Bitmap(_framebufferWidth, _framebufferHeight);
         _bitmapFont = BitmapFont.LoadFromFile("Assets/Fonts/Charcoal/Charcoal_p12.xml");
+        var textMeasurer = new TextMeasurer(_bitmapFont);
 
-        _canvas = new Canvas(_colorBuffer, _bitmapFont);
+        _canvas = new Canvas(_colorBuffer, _bitmapFont, textMeasurer);
         glClearColor(0f, 0f, 0f, 0f);
 
         var header = new AppBar
@@ -61,7 +62,7 @@ public sealed class App : OpenGlApp
         var context = new Context
         {
             MouseInputSystem = _mouseInputSystem,
-            TextMeasurer = new TextMeasurer(_bitmapFont),
+            TextMeasurer = textMeasurer,
         };
         context.AddService(_contextMenuManager);
 

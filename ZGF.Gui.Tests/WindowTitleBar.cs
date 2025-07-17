@@ -55,13 +55,6 @@ public sealed class WindowTitleBar : Component
         };
         button2.AddStyleClass("inset_panel");
 
-        var button3 = new Panel
-        {
-            PreferredWidth = 10f,
-            BackgroundColor = 0xFF00FF,
-        };
-        button3.AddStyleClass("inset_panel");
-
         var titleLabel = new Label(_window.TitleText)
         {
             HorizontalTextAlignment = TextAlignment.Center,
@@ -73,7 +66,6 @@ public sealed class WindowTitleBar : Component
             Grow = 1f,
         });
         row.Add(button2);
-        row.Add(button3);
 
         Add(background);
     }
