@@ -24,6 +24,7 @@ public readonly struct DrawRectCommand
 {
     public required RectF Position { get; init; }
     public required RectStyle Style {get; init; }
+    public required int ZIndex { get; init; }
 }
 
 public readonly struct DrawTextCommand
@@ -31,4 +32,5 @@ public readonly struct DrawTextCommand
     public required RectF Position { get; init; }
     public required string Text { get; init; }
     public required TextStyle Style {get; init; }
+    public required int ZIndex { get; init; }
 }

@@ -1,6 +1,6 @@
 namespace ZGF.Gui.Layouts;
 
-public sealed class ColumnLayout : Component
+public sealed class Column : Component
 {
     protected override void OnLayoutChildren()
     {

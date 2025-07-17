@@ -1,15 +1,30 @@
 using SoftwareRendererModule;
 using SoftwareRendererOpenGlBackend;
 using ZGF.BMFontModule;
+using ZGF.Geometry;
 using static GL46;
 
 namespace ZGF.Gui.Tests;
+
+enum ComandKind
+{
+    Rect,
+    Text,
+}
+
+internal readonly record struct DrawCommand(int Id, ComandKind Kind, int ZIndex)
+{
+}
 
 public sealed class Canvas : ICanvas
 {
     private readonly Bitmap _colorBuffer;
     private readonly BitmapRenderer _bitmapRenderer;
     private readonly BitmapFont _font;
+    
+    private List<DrawCommand> _commands = new();
+    private Dictionary<int, DrawRectCommand> _rectCommandData = new();
+    private Dictionary<int, DrawTextCommand> _textCommandData = new();
 
     public Canvas(Bitmap colorBuffer, BitmapFont font)
     {
@@ -22,37 +37,24 @@ public sealed class Canvas : ICanvas
     {
         _colorBuffer.Fill(0x000000);
         glEnable(GL_BLEND);
+        
+        _commands.Clear();
+        _rectCommandData.Clear();
+        _textCommandData.Clear();
     }
 
     public void AddCommand(in DrawRectCommand command)
     {
-        var style = command.Style;
-        var position = command.Position;
-        var left = (int)position.Left;
-        var right = (int)position.Right - 1;
-        var bottom = (int)position.Bottom;
-        var top = (int)position.Top - 1;
-        
-        var borderSize = style.BorderSize;
-        
-        var fillWidth = (int)(position.Width - borderSize.Left - borderSize.Right);
-        var fillHeight = (int)(position.Height - borderSize.Top - borderSize.Bottom);
-        
-        var borderColor = style.BorderColor;
-        
-        Graphics.FillRect(_colorBuffer, left +  (int)borderSize.Left, bottom + (int)borderSize.Bottom, fillWidth, fillHeight, style.BackgroundColor);
+        var id = _commands.Count;
+        _commands.Add(new DrawCommand(id, ComandKind.Rect, command.ZIndex));
+        _rectCommandData.Add(id, command);
+    }
 
-        // Left Border
-        DrawBorder(left, bottom, left, top+1, borderColor.Left, (int)borderSize.Left, 1, 0);
-        
-        // Right Border
-        DrawBorder(right, bottom, right, top + 1, borderColor.Right, (int)borderSize.Right, -1, 0);
-        
-        // Top Border
-        DrawBorder(left, top, right + 1, top, borderColor.Top, (int)borderSize.Top, 0, -1);
-        
-        // Bottom Border
-        DrawBorder(left, bottom, right, bottom, borderColor.Bottom, (int)borderSize.Bottom, 0, 1);
+    public void AddCommand(in DrawTextCommand command)
+    {
+        var id = _commands.Count;
+        _commands.Add(new DrawCommand(id, ComandKind.Text, command.ZIndex));
+        _textCommandData.Add(id, command);
     }
 
     private void DrawBorder(int x0, int y0, int x1, int y1, uint color, int borderSize, int dx, int dy)
@@ -67,64 +69,6 @@ public sealed class Canvas : ICanvas
             y0 += dy;
             x1 += dx;
             y1 += dy;
-        }
-    }
-
-    public void AddCommand(in DrawTextCommand command)
-    {
-        var text = command.Text;
-        var codePoints = text.AsCodePoints();
-
-        var lineHeight = _font.FontMetrics.Common.LineHeight;
-        var position = command.Position;
-        
-        var lineStart = (int)position.Left;
-        var cursorX = lineStart;
-        var cursorY = (int)(position.Top - lineHeight);
-        
-        var style = command.Style;
-        if (style.VerticalAlignment.IsSet)
-        {
-            switch (style.VerticalAlignment.Value)
-            {
-                case TextAlignment.Start:
-                    break;
-                case TextAlignment.Center:
-                    cursorY = (int)(position.Top - (position.Height + lineHeight) * 0.5f);
-                    break;
-                case TextAlignment.End:
-                    break;
-                case TextAlignment.Justify:
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
-        
-        var prevCodePoint = default(int?);
-        foreach (var codePoint in codePoints)
-        {
-            if (codePoint == '\n')
-            {
-                cursorY -= _font.FontMetrics.Common.LineHeight;
-                cursorX = lineStart;
-            }
-            
-            if (!_font.TryGetGlyphInfo(codePoint, out var glyphInfo))
-                continue;
-            
-            var kerningOffset = 0;
-            if (prevCodePoint.HasValue &&
-                _font.TryGetKerningPair(prevCodePoint.Value, codePoint, out kerningOffset))
-            {
-            }
-            
-            DrawGlyph(
-                cursorX + kerningOffset,
-                cursorY,
-                glyphInfo);
-
-            cursorX += glyphInfo.XAdvance;
         }
     }
 
@@ -189,6 +133,114 @@ public sealed class Canvas : ICanvas
 
     public void EndFrame()
     {
+        //_commands.Sort((x, y) => y.ZIndex.CompareTo(x.ZIndex));
+        
+        foreach (var command in _commands)
+        {
+            switch (command.Kind)
+            {
+                case ComandKind.Rect:
+                    var rectCommand = _rectCommandData[command.Id];
+                    ExecuteCommand(rectCommand);
+                    break;
+                case ComandKind.Text:
+                    var textCommand = _textCommandData[command.Id];
+                    ExecuteCommand(textCommand);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        
         _bitmapRenderer.Render();
+    }
+
+    private void ExecuteCommand(DrawRectCommand command)
+    {
+        var style = command.Style;
+        var position = command.Position;
+        var left = (int)position.Left;
+        var right = (int)position.Right - 1;
+        var bottom = (int)position.Bottom;
+        var top = (int)position.Top - 1;
+        
+        var borderSize = style.BorderSize;
+        
+        var fillWidth = (int)(position.Width - borderSize.Left - borderSize.Right);
+        var fillHeight = (int)(position.Height - borderSize.Top - borderSize.Bottom);
+        
+        var borderColor = style.BorderColor;
+        
+        Graphics.FillRect(_colorBuffer, left +  (int)borderSize.Left, bottom + (int)borderSize.Bottom, fillWidth, fillHeight, style.BackgroundColor);
+
+        // Left Border
+        DrawBorder(left, bottom, left, top+1, borderColor.Left, (int)borderSize.Left, 1, 0);
+        
+        // Right Border
+        DrawBorder(right, bottom, right, top + 1, borderColor.Right, (int)borderSize.Right, -1, 0);
+        
+        // Top Border
+        DrawBorder(left, top, right + 1, top, borderColor.Top, (int)borderSize.Top, 0, -1);
+        
+        // Bottom Border
+        DrawBorder(left, bottom, right, bottom, borderColor.Bottom, (int)borderSize.Bottom, 0, 1);
+    }
+
+    private void ExecuteCommand(DrawTextCommand command)
+    {
+        var text = command.Text;
+        var codePoints = text.AsCodePoints();
+
+        var lineHeight = _font.FontMetrics.Common.LineHeight;
+        var position = command.Position;
+        
+        var lineStart = (int)position.Left;
+        var cursorX = lineStart;
+        var cursorY = (int)(position.Top - lineHeight);
+        
+        var style = command.Style;
+        if (style.VerticalAlignment.IsSet)
+        {
+            switch (style.VerticalAlignment.Value)
+            {
+                case TextAlignment.Start:
+                    break;
+                case TextAlignment.Center:
+                    cursorY = (int)(position.Top - (position.Height + lineHeight) * 0.5f);
+                    break;
+                case TextAlignment.End:
+                    break;
+                case TextAlignment.Justify:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        
+        var prevCodePoint = default(int?);
+        foreach (var codePoint in codePoints)
+        {
+            if (codePoint == '\n')
+            {
+                cursorY -= _font.FontMetrics.Common.LineHeight;
+                cursorX = lineStart;
+            }
+            
+            if (!_font.TryGetGlyphInfo(codePoint, out var glyphInfo))
+                continue;
+            
+            var kerningOffset = 0;
+            if (prevCodePoint.HasValue &&
+                _font.TryGetKerningPair(prevCodePoint.Value, codePoint, out kerningOffset))
+            {
+            }
+            
+            DrawGlyph(
+                cursorX + kerningOffset,
+                cursorY,
+                glyphInfo);
+
+            cursorX += glyphInfo.XAdvance;
+        }
     }
 }

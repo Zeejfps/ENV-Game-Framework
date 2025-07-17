@@ -22,7 +22,8 @@ public class Panel : Component
         c.AddCommand(new DrawRectCommand
         {
             Position = Position,
-            Style = Style
+            Style = Style,
+            ZIndex = ZIndex
         });
     }
 

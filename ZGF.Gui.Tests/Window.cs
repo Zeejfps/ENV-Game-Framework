@@ -101,7 +101,7 @@ public sealed class Window : Component
             }
         };
 
-        var columnLayout = new ColumnLayout();
+        var columnLayout = new Column();
         columnLayout.Add(content);
         
         var scrollBarContainer = new Panel

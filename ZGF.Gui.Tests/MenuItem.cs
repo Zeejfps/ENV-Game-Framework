@@ -37,10 +37,26 @@ public sealed class MenuItem : Component
     protected override void OnMouseEnter()
     {
         _background.BackgroundColor = 0x9C9CCE;
+        ShowMenu();
     }
 
     protected override void OnMouseExit()
     {
         _background.BackgroundColor = 0xDEDEDE;
+        HideMenu();
+    }
+
+    private void ShowMenu()
+    {
+        if (Context == null)
+            return;
+
+        // var menu = new ContextMenu();
+        // Add(menu);
+    }
+
+    private void HideMenu()
+    {
+        
     }
 }

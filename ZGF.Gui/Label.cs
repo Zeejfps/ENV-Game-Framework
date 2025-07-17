@@ -45,7 +45,8 @@ public sealed class Label : Component
         {
             Position = Position,
             Text = _text,
-            Style = _style
+            Style = _style,
+            ZIndex = ZIndex
         });
     }
 }
