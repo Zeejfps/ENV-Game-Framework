@@ -74,14 +74,14 @@ public sealed class ContextMenu : Component
         context.MouseInputSystem.DisableHover(this);
         base.OnDetachedFromContext(context);
     }
-
+    
     protected override void OnMouseEnter()
     {
-        
+        Context.Get<ContextMenuManager>().SetKeepOpen(this);
     }
 
     protected override void OnMouseExit()
     {
-        
+        Context.Get<ContextMenuManager>().HideContextMenu(this);
     }
 }

@@ -1,19 +1,32 @@
-﻿namespace ZGF.Gui.Tests;
+﻿using ZGF.Geometry;
+
+namespace ZGF.Gui.Tests;
 
 public sealed class ContextMenuManager
 {
-    public ContextMenu ShowContextMenu()
+    private Dictionary<ContextMenu, int> _keepOpen = new();
+    private readonly Component _contextMenuPane;
+    
+    public ContextMenu ShowContextMenu(PointF anchor)
     {
-        return null;
+        var contextMenu = new ContextMenu(anchor);
+        _keepOpen.Add(contextMenu, 1);
+        _contextMenuPane.Add(contextMenu);
+        return contextMenu;
     }
 
-    public void SetKeepOpen(ContextMenu contextMenu, bool keepOpen)
+    public void SetKeepOpen(ContextMenu contextMenu)
     {
-        
+        _keepOpen[contextMenu]++;
     }
     
     public void HideContextMenu(ContextMenu contextMenu)
     {
-        
+        _keepOpen[contextMenu]--;
+        if (_keepOpen[contextMenu] == 0)
+        {
+            _keepOpen.Remove(contextMenu);
+            _contextMenuPane.Remove(contextMenu);
+        }
     }
 }
