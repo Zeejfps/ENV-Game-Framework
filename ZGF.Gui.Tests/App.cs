@@ -38,6 +38,17 @@ public sealed class App : OpenGlApp
         var fontFile = BMFontFileUtils.DeserializeFromXmlFile("Assets/Fonts/Charcoal/Charcoal.xml");
         var fontPng = Png.DecodeFromFile("Assets/Fonts/Charcoal/Charcoal.png");
         var fontBmp = new Bitmap(fontPng.Width, fontPng.Height);
+        var pixels = fontBmp.Pixels;
+        var pixelIndex = 0;
+        for (var i = 0; i < fontPng.PixelData.Length; i+= fontPng.BytesPerPixel, pixelIndex++)
+        {
+            var r = fontPng.PixelData[i + 0];
+            var g = fontPng.PixelData[i + 1];
+            var b = fontPng.PixelData[i + 2];
+            var a = fontPng.PixelData[i + 3];
+            var color = ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | b;
+            pixels[pixelIndex] = color;
+        }
 
         var header = new AppBar
         {
