@@ -10,7 +10,7 @@ namespace ZGF.BMFontModule
 {
 	[Serializable]
 	[XmlRoot ( "font" )]
-	public class FontFile
+	public sealed class BMFontFile
 	{
 		[XmlElement ( "info" )]
 		public FontInfo Info

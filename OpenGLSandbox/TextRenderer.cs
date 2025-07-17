@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using System.Text;
-using BmFont;
 using EasyGameFramework.GUI;
 using ZGF.BMFontModule;
 using static GL46;
@@ -16,7 +15,7 @@ public sealed unsafe class TextRenderer
     private uint m_Tex;
     private uint m_PerInstanceBuffer;
     private uint m_ShaderProgram;
-    private FontFile m_Font;
+    private BMFontFile m_Font;
     private Dictionary<int, FontChar> m_IdToGlyphTable = new();
     private float m_ScaleW;
     private float m_ScaleH;
@@ -293,7 +292,7 @@ public sealed unsafe class TextRenderer
         glUniformMatrix4fv(projectionMatrixUniformLocation, 1, false, &projectionMatrix.M11);
         AssertNoGlError();
         
-        var font = FontLoader.Load("Assets/bitmapfonts/Segoe UI.fnt");
+        var font = BMFontFileUtils.DeserializeFromXmlFile("Assets/bitmapfonts/Segoe UI.fnt");
         foreach (var glyph in font.Chars)
             m_IdToGlyphTable.Add(glyph.ID, glyph);
 

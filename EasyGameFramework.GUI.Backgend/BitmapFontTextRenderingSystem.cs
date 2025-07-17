@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using BmFont;
 using EasyGameFramework.Api;
 using EasyGameFramework.GUI;
 using ZGF.BMFontModule;
@@ -111,17 +110,17 @@ public sealed unsafe class BitmapFontTextRenderer : ITextRenderer
 sealed unsafe class BmpFontRenderer : IDisposable
 {
     private readonly uint m_TextureId;
-    private readonly FontFile m_FontFile;
+    private readonly BMFontFile m_FontFile;
     private readonly OpenGlTexturedQuadInstanceRenderer<Glyph> m_TexturedQuadInstanceRenderer;
 
-    private BmpFontRenderer(uint textureId, FontFile fontFile, OpenGlTexturedQuadInstanceRenderer<Glyph> texturedQuadInstanceRenderer)
+    private BmpFontRenderer(uint textureId, BMFontFile fontFile, OpenGlTexturedQuadInstanceRenderer<Glyph> texturedQuadInstanceRenderer)
     {
         m_TextureId = textureId;
         m_FontFile = fontFile;
         m_TexturedQuadInstanceRenderer = texturedQuadInstanceRenderer;
     }
 
-    public FontFile FontFile => m_FontFile;
+    public BMFontFile FontFile => m_FontFile;
 
     public static BmpFontRenderer Init(string pathToFontFile)
     {
@@ -149,7 +148,7 @@ sealed unsafe class BmpFontRenderer : IDisposable
         AssertNoGlError();
 
         var fontFileDirectory = Path.GetDirectoryName(pathToFontFile);
-        var fontFile = FontLoader.Load(pathToFontFile);
+        var fontFile = BMFontFileUtils.DeserializeFromXmlFile(pathToFontFile);
         var pageFileName = fontFile.Pages[0].File;
         var image = new TgaImage(Path.Combine(fontFileDirectory, pageFileName));
         image.UploadToGpu();
