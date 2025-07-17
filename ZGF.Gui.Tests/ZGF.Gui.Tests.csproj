@@ -10,6 +10,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\EasyGameFramework\EasyGameFramework.csproj" />
+      <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
       <ProjectReference Include="..\QuadTreeRendererProgram\QuadTreeRendererProgram.csproj" />
       <ProjectReference Include="..\SoftwareRendererModule\SoftwareRendererModule.csproj" />
       <ProjectReference Include="..\ZGF.BMFontModule\ZGF.BMFontModule.csproj" />

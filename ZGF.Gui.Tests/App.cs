@@ -1,5 +1,6 @@
 using EasyGameFramework.Api;
 using GLFW;
+using PngSharp.Api;
 using SoftwareRendererModule;
 using ZGF.BMFontModule;
 using ZGF.Core;
@@ -35,6 +36,8 @@ public sealed class App : OpenGlApp
         glClearColor(0f, 0f, 0f, 0f);
 
         var fontFile = BMFontFileUtils.DeserializeFromXmlFile("Assets/Fonts/Charcoal/Charcoal.xml");
+        var fontPng = Png.DecodeFromFile("Assets/Fonts/Charcoal/Charcoal.png");
+        var fontBmp = new Bitmap(fontPng.Width, fontPng.Height);
 
         var header = new AppBar
         {
