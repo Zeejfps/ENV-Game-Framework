@@ -30,7 +30,10 @@ public sealed class AppBar : Component
                 }
             }
         };
-        var label = new Label("File    Edit    View    Special    Help");
+        var label = new Label("File    Edit    View    Special    Help")
+        {
+            VerticalTextAlignment = TextAlignment.Center,
+        };
         background.Add(label);
         container.Add(background);
         Add(container);

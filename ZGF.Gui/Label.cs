@@ -2,15 +2,16 @@ namespace ZGF.Gui;
 
 public sealed class Label : Component
 {
-    private TextStyle _style;
-    public TextStyle Style
-    {
-        get => _style;
-        set => SetField(ref _style, value);
-    }
+    private TextStyle _style = new();
 
     private string _text;
 
+    public StyleValue<TextAlignment> VerticalTextAlignment
+    {
+        get => _style.VerticalAlignment;
+        set => SetField(ref _style.VerticalAlignment, value);
+    }
+    
     public Label(string text)
     {
         _text = text;
@@ -22,7 +23,7 @@ public sealed class Label : Component
         {
             Position = Position,
             Text = _text,
-            Style = Style
+            Style = _style
         });
     }
 }

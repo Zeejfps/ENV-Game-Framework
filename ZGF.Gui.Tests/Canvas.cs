@@ -75,9 +75,33 @@ public sealed class Canvas : ICanvas
     {
         var text = command.Text;
         var codePoints = AsCodePoints(text);
-        var lineStart = (int)command.Position.Left;
+
+        var lineHeight = _font.FontMetrics.Common.LineHeight;
+        var position = command.Position;
+        
+        var lineStart = (int)position.Left;
         var cursorX = lineStart;
-        var cursorY = (int)(command.Position.Top - _font.FontMetrics.Common.LineHeight);
+        var cursorY = (int)(position.Top - lineHeight);
+        
+        var style = command.Style;
+        if (style.VerticalAlignment.IsSet)
+        {
+            switch (style.VerticalAlignment.Value)
+            {
+                case TextAlignment.Start:
+                    break;
+                case TextAlignment.Center:
+                    cursorY = (int)(position.Top - (position.Height + lineHeight) * 0.5f);
+                    break;
+                case TextAlignment.End:
+                    break;
+                case TextAlignment.Justify:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        
         var prevCodePoint = default(int?);
         foreach (var codePoint in codePoints)
         {
@@ -119,6 +143,9 @@ public sealed class Canvas : ICanvas
         for (var y = 0; y < glyphHeight; y++)
         {
             var dstY = cursorY + (glyphHeight - y) + yUp + yDown;
+            if (dstY >= _colorBuffer.Height)
+                dstY = _colorBuffer.Height - 1;
+            
             var srcY = glyphInfo.Y + y;
             for (var x = 0; x < glyphWidth; x++)
             {

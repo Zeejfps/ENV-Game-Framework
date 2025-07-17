@@ -1,7 +1,7 @@
 namespace ZGF.Gui;
 
-public readonly struct TextStyle
+public sealed class TextStyle
 {
-    public StyleValue<TextAlignment> HorizontalAlignment { get; init; }
-    public StyleValue<TextAlignment> VerticalAlignment { get; init; }
+    public StyleValue<TextAlignment> HorizontalAlignment;
+    public StyleValue<TextAlignment> VerticalAlignment;
 }
