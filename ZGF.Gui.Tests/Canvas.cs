@@ -129,7 +129,6 @@ public sealed class Canvas : ICanvas
                 var a = _font.Png.PixelData[srcIndex*4 + 3];
                 var rgb = 0x000000;
                 var argb = ((uint)a << 24) | (uint)rgb;
-                
                 pixels[dstIndex] = BlendPixel(pixels[dstIndex], argb);
             }
         }
