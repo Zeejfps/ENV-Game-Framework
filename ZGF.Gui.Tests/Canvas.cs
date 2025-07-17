@@ -1,4 +1,3 @@
-using PngSharp.Api;
 using SoftwareRendererModule;
 using SoftwareRendererOpenGlBackend;
 using ZGF.BMFontModule;
@@ -12,11 +11,11 @@ public sealed class Canvas : ICanvas
     private readonly BitmapRenderer _bitmapRenderer;
     private readonly BitmapFont _font;
 
-    public Canvas(Bitmap colorBuffer)
+    public Canvas(Bitmap colorBuffer, BitmapFont font)
     {
         _colorBuffer = colorBuffer;
         _bitmapRenderer = new BitmapRenderer(colorBuffer);
-        _font = LoadFontFromFile("Assets/Fonts/Charcoal/Charcoal_p12.xml");
+        _font = font;
     }
 
     public void BeginFrame()
@@ -201,98 +200,5 @@ public sealed class Canvas : ICanvas
     public void EndFrame()
     {
         _bitmapRenderer.Render();
-    }
-
-    private BitmapFont LoadFontFromFile(string path)
-    {
-        var fontFile = BMFontFileUtils.DeserializeFromXmlFile(path);
-        var directory = Path.GetDirectoryName(path) ?? string.Empty;
-        var fontPngFilePath = Path.Combine(directory, fontFile.Pages[0].File);
-        var fontPng = Png.DecodeFromFile(fontPngFilePath);
-        return new BitmapFont(fontPng, fontFile);
-    }
-
-    private Bitmap PngToBitmap(IDecodedPng png)
-    {
-        var bmp = new Bitmap(png.Width, png.Height);
-        var bmpPixels = bmp.Pixels;
-
-        const int bytesPerPixel = 4;
-
-        // Loop through each row of the source image from top to bottom (y = 0 to height-1).
-        for (int y = 0; y < png.Height; y++)
-        {
-            // Calculate the starting index for the current source row.
-            int srcRowStartIndex = y * png.Width * bytesPerPixel;
-
-            // Calculate the starting index for the corresponding destination row.
-            // This is the key to flipping the image: source row 'y' maps to destination row 'height - 1 - y'.
-            int destRowStartIndex = (png.Height - 1 - y) * png.Width;
-
-            // Loop through each pixel in the current row.
-            for (int x = 0; x < png.Width; x++)
-            {
-                // Calculate the specific index for the source pixel's bytes.
-                int srcByteIndex = srcRowStartIndex + (x * bytesPerPixel);
-
-                // Read the individual color channels.
-                byte r = png.PixelData[srcByteIndex + 0];
-                byte g = png.PixelData[srcByteIndex + 1];
-                byte b = png.PixelData[srcByteIndex + 2];
-                byte a = png.PixelData[srcByteIndex + 3];
-
-                // Pack the bytes into a 32-bit uint in AARRGGBB format.
-                uint color = ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | b;
-
-                // This is your custom logic to turn any visible pixel into a specific color.
-                // Note: 0xFF00FF is opaque cyan (0x00FF00FF).
-                // If you wanted magenta (hot pink), you would use 0xFFFF00FF.
-                if (a > 0)
-                {
-                    color = 0xFFFF00FF; // Using magenta (AARRGGBB) as it's a common debug color.
-                }
-
-                // Calculate the destination index and write the pixel.
-                int destPixelIndex = destRowStartIndex + x;
-                bmpPixels[destPixelIndex] = color;
-            }
-        }
-        return bmp;
-    }
-}
-
-public sealed class BitmapFont
-{
-    public IDecodedPng Png { get; }
-    public BMFontFile FontMetrics { get; }
-
-    private readonly Dictionary<(int, int), FontKerning> _kerningPairs = new();
-    
-    public BitmapFont(IDecodedPng png, BMFontFile file)
-    {
-        Png = png;
-        FontMetrics = file;
-
-        foreach (var kerning in file.Kernings)
-        {
-            _kerningPairs.Add((kerning.First, kerning.Second), kerning);;
-        }
-    }
-    
-    public bool TryGetGlyphInfo(int codePoint, out FontChar o)
-    {
-        return FontMetrics.TryGetFontChar(codePoint, out o);
-    }
-
-    public bool TryGetKerningPair(int c1, int c2, out int xOffset)
-    {
-        if (_kerningPairs.TryGetValue((c1, c2), out var kerning))
-        {
-            xOffset = kerning.Amount;
-            return true;
-        }
-        
-        xOffset = 0;
-        return false;
     }
 }

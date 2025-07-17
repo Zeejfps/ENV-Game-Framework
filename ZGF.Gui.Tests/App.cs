@@ -24,6 +24,7 @@ public sealed class App : OpenGlApp
     private readonly KeyCallback _keyCallback;
     private readonly MouseButtonCallback _mouseButtonCallback;
     private Bitmap _colorBuffer;
+    private readonly BitmapFont _bitmapFont;
 
     public App(StartupConfig startupConfig) : base(startupConfig)
     {
@@ -33,7 +34,9 @@ public sealed class App : OpenGlApp
         _framebufferHeight = startupConfig.WindowHeight / 2;
 
         _colorBuffer = new Bitmap(_framebufferWidth, _framebufferHeight);
-        _canvas = new Canvas(_colorBuffer);
+        _bitmapFont = BitmapFont.LoadFromFile("Assets/Fonts/Charcoal/Charcoal_p12.xml");
+
+        _canvas = new Canvas(_colorBuffer, _bitmapFont);
         glClearColor(0f, 0f, 0f, 0f);
 
         var header = new AppBar
@@ -46,7 +49,7 @@ public sealed class App : OpenGlApp
 
         var center = new Center();
         _window = center.Window;
-
+        
         var gui = new BorderLayout
         {
             Center = center,
@@ -55,7 +58,7 @@ public sealed class App : OpenGlApp
             Context = new Context
             {
                 MouseInputSystem = _mouseInputSystem,
-                TextMeasurer = new TextMeasurer()
+                TextMeasurer = new TextMeasurer(_bitmapFont)
             }
         };
 
