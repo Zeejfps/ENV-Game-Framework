@@ -355,7 +355,33 @@ public class Component : IEnumerable<Component>
 
     protected virtual void OnStyleSheetApplied(StyleSheet styleSheet)
     {
+        foreach (var styleClass in StyleClasses)
+        {
+            if (styleSheet.TryGetByClass(styleClass, out var classStyle))
+            {
+                OnApplyStyle(classStyle);
+            }
+        }
+        
+        if (styleSheet.TryGetById(Id, out var idStyle))
+        {
+            OnApplyStyle(idStyle);
+        }
+        
         ApplyStyleSheetToChildren(styleSheet);
+    }
+
+    protected virtual void OnApplyStyle(Style style)
+    {
+        if (style.PreferredWidth.IsSet)
+        {
+            PreferredWidth = style.PreferredWidth;
+        }
+
+        if (style.PreferredHeight.IsSet)
+        {
+            PreferredHeight = style.PreferredHeight;
+        }
     }
 
     protected virtual void OnStyleSheetCleared(StyleSheet styleSheet)

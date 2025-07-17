@@ -79,21 +79,9 @@ public class Panel : Component
         }
     }
 
-    protected override void OnStyleSheetApplied(StyleSheet styleSheet)
+    protected override void OnApplyStyle(Style style)
     {
-        foreach (var styleClass in StyleClasses)
-        {
-            if (styleSheet.TryGetByClass(styleClass, out var classStyle))
-            {
-                Style.Apply(classStyle);
-            }
-        }
-        
-        if (styleSheet.TryGetById(Id, out var idStyle))
-        {
-            Style.Apply(idStyle);
-        }
-        
-        base.OnStyleSheetApplied(styleSheet);
+        base.OnApplyStyle(style);
+        Style.Apply(style);
     }
 }

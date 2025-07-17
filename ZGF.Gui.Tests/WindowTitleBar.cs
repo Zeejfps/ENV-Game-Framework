@@ -47,6 +47,7 @@ public sealed class WindowTitleBar : Component
             BackgroundColor = 0xFF00FF,
         };
         button.AddStyleClass("inset_panel");
+        button.AddStyleClass("window_button");
 
         var button2 = new Panel
         {
@@ -54,6 +55,7 @@ public sealed class WindowTitleBar : Component
             BackgroundColor = 0xFF00FF,
         };
         button2.AddStyleClass("inset_panel");
+        button2.AddStyleClass("window_button");
 
         var titleLabel = new Label(_window.TitleText)
         {
