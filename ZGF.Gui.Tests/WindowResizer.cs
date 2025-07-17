@@ -41,16 +41,14 @@ public sealed class WindowResizer : Component
     protected override void OnMouseEnter()
     {
         Console.WriteLine("Mouse Enter");
-        _background.Style.BackgroundColor = 0x9C9CCE;
-        _background.SetDirty();
+        _background.BackgroundColor = 0x9C9CCE;
         Context?.MouseInputSystem.TryFocus(this);
     }
 
     protected override void OnMouseExit()
     {
         Console.WriteLine("Mouse Exit");
-        _background.Style.BackgroundColor = 0xCECECE;
-        _background.SetDirty();
+        _background.BackgroundColor = 0xCECECE;
         Context?.MouseInputSystem.Blur(this);
     }
 

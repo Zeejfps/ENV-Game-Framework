@@ -5,10 +5,12 @@ namespace ZGF.Gui;
 public class Rect : Component
 {
     private RectStyle _style = new();
-    public RectStyle Style
+    public RectStyle Style => _style;
+
+    public StyleValue<uint> BackgroundColor
     {
-        get => _style;
-        //set => SetField(ref _style, value);
+        get => _style.BackgroundColor;
+        set => SetField(ref _style.BackgroundColor, value);
     }
 
     protected override void OnDrawSelf(ICanvas c)
