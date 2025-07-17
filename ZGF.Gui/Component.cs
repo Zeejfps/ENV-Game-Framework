@@ -109,7 +109,7 @@ public abstract class Component : IEnumerable<Component>
     private int _zIndex;
     public int ZIndex
     {
-        get => _depth + _zIndex;
+        get => _zIndex;
         set => SetField(ref _zIndex, value);
     }
 
