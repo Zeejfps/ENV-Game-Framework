@@ -74,24 +74,43 @@ public sealed class Canvas : ICanvas
     {
         var text = command.Text;
         var codePoints = AsCodePoints(text);
-        var cursorX = 0;
+        var cursorX = 50;
         foreach (var codePoint in codePoints)
         {
             if (!_charcoalFont.TryGetGlyphInfo(codePoint, out var glyphInfo))
                 continue;
 
-            _colorBuffer.Blit(_charcoalFont.Bitmap,
-                dstX: 50 + cursorX,
-                dstY: 50,
-                glyphInfo.Width,
-                glyphInfo.Height,
-                glyphInfo.X,
-                glyphInfo.Y,
-                glyphInfo.Width,
-                glyphInfo.Height);
+            DrawGlyph(
+                cursorX,
+                50,
+                glyphInfo);
 
             cursorX += glyphInfo.XAdvance;
         }
+    }
+
+    private void DrawGlyph(int cursorX, int cursorY, FontChar glyphInfo)
+    {
+        var pixels = _colorBuffer.Pixels;
+
+        var glyphWidth = glyphInfo.Width;
+        var glyphHeight = glyphInfo.Height;
+        for (var y = 0; y < glyphHeight; y++)
+        {
+            var dstY = cursorY + (glyphHeight - y) - glyphInfo.YOffset;
+            var srcY = glyphInfo.Y + y;
+            for (var x = 0; x < glyphWidth; x++)
+            {
+                var dstX = cursorX + x + glyphInfo.XOffset;
+                var srcX = glyphInfo.X + x;
+                var dstIndex = dstY * _colorBuffer.Width + dstX;
+                var srcIndex = srcY * _charcoalFont.Png.Width + srcX;
+                var a = _charcoalFont.Png.PixelData[srcIndex*4 + 3];
+                if (a > 0)
+                    pixels[dstIndex] = 0x000000;
+            }
+        }
+
     }
 
     private IEnumerable<int> AsCodePoints(string s)
@@ -115,8 +134,7 @@ public sealed class Canvas : ICanvas
         var directory = Path.GetDirectoryName(path) ?? string.Empty;
         var fontPngFilePath = Path.Combine(directory, fontFile.Pages[0].File);
         var fontPng = Png.DecodeFromFile(fontPngFilePath);
-        var fontBmp = PngToBitmap(fontPng);
-        return new BitmapFont(fontBmp, fontFile);
+        return new BitmapFont(fontPng, fontFile);
     }
 
     private Bitmap PngToBitmap(IDecodedPng png)
@@ -168,9 +186,9 @@ public sealed class Canvas : ICanvas
     }
 }
 
-public sealed class BitmapFont(Bitmap bitmap, BMFontFile file)
+public sealed class BitmapFont(IDecodedPng png, BMFontFile file)
 {
-    public Bitmap Bitmap => bitmap;
+    public IDecodedPng Png => png;
 
     public bool TryGetGlyphInfo(int codePoint, out FontChar o)
     {
