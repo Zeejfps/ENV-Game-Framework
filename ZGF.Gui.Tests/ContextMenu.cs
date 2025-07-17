@@ -30,10 +30,10 @@ public sealed class ContextMenu : Component
             }
         };
 
-        var option1 = new ContextMenuItem("Option 1");
-        var option2 = new ContextMenuItem("Option 2");
-        var option3 = new ContextMenuItem("Option 3");
-        var option4 = new ContextMenuItem("Option 4");
+        var option1 = new ContextMenuItem(this, "Option 1");
+        var option2 = new ContextMenuItem(this, "Option 2");
+        var option3 = new ContextMenuItem(this, "Option 3");
+        var option4 = new ContextMenuItem(this, "Option 4");
 
         var column = new Column
         {
@@ -43,6 +43,8 @@ public sealed class ContextMenu : Component
             option4,
         };
         column.Gap = 4;
+        
+        ZIndex = 1;
         
         background.Add(column);
         Add(background);
@@ -88,15 +90,19 @@ public sealed class ContextMenu : Component
 
 public sealed class ContextMenuItem : Component
 {
+    private readonly ContextMenu _contextMenu;
     private readonly Panel _bg;
 
-    public ContextMenuItem(string name)
+    public ContextMenuItem(ContextMenu contextMenu, string name)
     {
+        _contextMenu = contextMenu;
         _bg = new Panel
         {
             BackgroundColor = 0xDEDEDE,
+            Padding = PaddingStyle.All(4)
         };
         _bg.Add(new Label(name));
+        ZIndex = 2;
         Add(_bg);
     }
 
@@ -115,11 +121,12 @@ public sealed class ContextMenuItem : Component
     protected override void OnMouseEnter()
     {
         _bg.BackgroundColor = 0x9C9CCE;
-        Console.WriteLine("JEre?");
+        Get<ContextMenuManager>()?.SetKeepOpen(_contextMenu);
     }
 
     protected override void OnMouseExit()
     {
         _bg.BackgroundColor = 0xDEDEDE;
+        Get<ContextMenuManager>()?.HideContextMenu(_contextMenu);
     }
 }
