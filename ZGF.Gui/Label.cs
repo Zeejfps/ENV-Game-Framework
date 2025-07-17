@@ -2,7 +2,7 @@ namespace ZGF.Gui;
 
 public sealed class Label : Component
 {
-    private TextStyle _style = new();
+    private readonly TextStyle _style = new();
 
     private string _text;
 
@@ -10,6 +10,12 @@ public sealed class Label : Component
     {
         get => _style.VerticalAlignment;
         set => SetField(ref _style.VerticalAlignment, value);
+    }
+    
+    public StyleValue<TextAlignment> HorizontalTextAlignment
+    {
+        get => _style.HorizontalAlignment;
+        set => SetField(ref _style.HorizontalAlignment, value);
     }
     
     public Label(string text)

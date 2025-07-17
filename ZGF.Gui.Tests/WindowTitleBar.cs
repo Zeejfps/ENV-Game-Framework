@@ -83,10 +83,13 @@ public sealed class WindowTitleBar : Component
         };
         button3.AddStyleClass("inset_panel");
 
-        var spacer = new Label(_window.TitleText);
+        var titleLabel = new Label(_window.TitleText)
+        {
+            HorizontalTextAlignment = TextAlignment.Center,
+        };
 
         row.Add(button);
-        row.Add(spacer, new FlexStyle
+        row.Add(titleLabel, new FlexStyle
         {
             Grow = 1f,
         });
