@@ -30,7 +30,7 @@ public sealed class AppBar : Component
                 }
             }
         };
-        var label = new Label("The quick brown fox jumps");
+        var label = new Label("The quick brown fox jumps over the\nlazy dog");
         background.Add(label);
         container.Add(background);
         Add(container);

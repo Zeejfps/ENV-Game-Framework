@@ -2,7 +2,7 @@ using PngSharp.Api;
 using SoftwareRendererModule;
 using SoftwareRendererOpenGlBackend;
 using ZGF.BMFontModule;
-using ZGF.Geometry;
+using static GL46;
 
 namespace ZGF.Gui.Tests;
 
@@ -10,18 +10,19 @@ public sealed class Canvas : ICanvas
 {
     private readonly Bitmap _colorBuffer;
     private readonly BitmapRenderer _bitmapRenderer;
-    private readonly BitmapFont _charcoalFont;
+    private readonly BitmapFont _font;
 
     public Canvas(Bitmap colorBuffer)
     {
         _colorBuffer = colorBuffer;
         _bitmapRenderer = new BitmapRenderer(colorBuffer);
-        _charcoalFont = LoadFontFromFile("Assets/Fonts/Charcoal/Charcoal.xml");
+        _font = LoadFontFromFile("Assets/Fonts/Chicago/Chicago_p12.xml");
     }
 
     public void BeginFrame()
     {
         _colorBuffer.Fill(0x000000);
+        glEnable(GL_BLEND);
     }
 
     public void AddCommand(in DrawRectCommand command)
@@ -74,15 +75,30 @@ public sealed class Canvas : ICanvas
     {
         var text = command.Text;
         var codePoints = AsCodePoints(text);
-        var cursorX = 50;
+        var lineStart = 10;
+        var cursorX = lineStart;
+        var cursorY = 50;
+        var prevCodePoint = default(int?);
         foreach (var codePoint in codePoints)
         {
-            if (!_charcoalFont.TryGetGlyphInfo(codePoint, out var glyphInfo))
+            if (codePoint == '\n')
+            {
+                cursorY -= _font.FontMetrics.Common.LineHeight;
+                cursorX = lineStart;
+            }
+            
+            if (!_font.TryGetGlyphInfo(codePoint, out var glyphInfo))
                 continue;
-
+            
+            var kerningOffset = 0;
+            if (prevCodePoint.HasValue &&
+                _font.TryGetKerningPair(prevCodePoint.Value, codePoint, out kerningOffset))
+            {
+            }
+            
             DrawGlyph(
-                cursorX,
-                50,
+                cursorX + kerningOffset,
+                cursorY,
                 glyphInfo);
 
             cursorX += glyphInfo.XAdvance;
@@ -93,8 +109,8 @@ public sealed class Canvas : ICanvas
     {
         var pixels = _colorBuffer.Pixels;
 
-        var lineHeight = _charcoalFont.FontMetrics.Common.LineHeight;
-        var baseHeight = _charcoalFont.FontMetrics.Common.Base;
+        var lineHeight = _font.FontMetrics.Common.LineHeight;
+        var baseHeight = _font.FontMetrics.Common.Base;
         var yUp = lineHeight - baseHeight;
         var yDown = baseHeight - (glyphInfo.YOffset + glyphInfo.Height);
 
@@ -109,16 +125,41 @@ public sealed class Canvas : ICanvas
                 var dstX = cursorX + x + glyphInfo.XOffset;
                 var srcX = glyphInfo.X + x;
                 var dstIndex = dstY * _colorBuffer.Width + dstX;
-                var srcIndex = srcY * _charcoalFont.Png.Width + srcX;
-                var r = _charcoalFont.Png.PixelData[srcIndex*4 + 0];
-                var g = _charcoalFont.Png.PixelData[srcIndex*4 + 1];
-                var b = _charcoalFont.Png.PixelData[srcIndex*4 + 2];
-                var a = _charcoalFont.Png.PixelData[srcIndex*4 + 3];
-                if (a > 0 || r > 0 || g > 0 || b > 0)
-                    pixels[dstIndex] = 0x000000;
+                var srcIndex = srcY * _font.Png.Width + srcX;
+                var a = _font.Png.PixelData[srcIndex*4 + 3];
+                var rgb = 0x000000;
+                var argb = ((uint)a << 24) | (uint)rgb;
+                
+                pixels[dstIndex] = BlendPixel(pixels[dstIndex], argb);
             }
         }
 
+    }
+    
+    private uint BlendPixel(uint dstColor, uint srcColor)
+    {
+        // Extract ARGB components from both
+        byte dstA = (byte)(dstColor >> 24);
+        byte dstR = (byte)(dstColor >> 16);
+        byte dstG = (byte)(dstColor >> 8);
+        byte dstB = (byte)(dstColor);
+
+        byte srcA = (byte)(srcColor >> 24);
+        byte srcR = (byte)(srcColor >> 16);
+        byte srcG = (byte)(srcColor >> 8);
+        byte srcB = (byte)(srcColor);
+
+        // Normalize alpha to range [0,1]
+        float alpha = srcA / 255f;
+
+        // Blend each channel
+        byte outR = (byte)(srcR * alpha + dstR * (1 - alpha));
+        byte outG = (byte)(srcG * alpha + dstG * (1 - alpha));
+        byte outB = (byte)(srcB * alpha + dstB * (1 - alpha));
+        byte outA = (byte)Math.Min(255, srcA + dstA * (1 - alpha)); // optional
+
+        // Pack back into ARGB
+        return ((uint)outA << 24) | ((uint)outR << 16) | ((uint)outG << 8) | outB;
     }
 
     private IEnumerable<int> AsCodePoints(string s)
@@ -194,13 +235,38 @@ public sealed class Canvas : ICanvas
     }
 }
 
-public sealed class BitmapFont(IDecodedPng png, BMFontFile file)
+public sealed class BitmapFont
 {
-    public IDecodedPng Png => png;
-    public BMFontFile FontMetrics => file;
+    public IDecodedPng Png { get; }
+    public BMFontFile FontMetrics { get; }
 
+    private readonly Dictionary<(int, int), FontKerning> _kerningPairs = new();
+    
+    public BitmapFont(IDecodedPng png, BMFontFile file)
+    {
+        Png = png;
+        FontMetrics = file;
+
+        foreach (var kerning in file.Kernings)
+        {
+            _kerningPairs.Add((kerning.First, kerning.Second), kerning);;
+        }
+    }
+    
     public bool TryGetGlyphInfo(int codePoint, out FontChar o)
     {
-        return file.TryGetFontChar(codePoint, out o);
+        return FontMetrics.TryGetFontChar(codePoint, out o);
+    }
+
+    public bool TryGetKerningPair(int c1, int c2, out int xOffset)
+    {
+        if (_kerningPairs.TryGetValue((c1, c2), out var kerning))
+        {
+            xOffset = kerning.Amount;
+            return true;
+        }
+        
+        xOffset = 0;
+        return false;
     }
 }
