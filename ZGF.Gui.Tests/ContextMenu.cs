@@ -20,15 +20,9 @@ public sealed class ContextMenu : Component
                 Left = 1,
                 Right = 1,
                 Bottom = 1
-            },
-            BorderColor = new BorderColorStyle
-            {
-                Top = 0xFFFFFF,
-                Left = 0xFFFFFF,
-                Right = 0x9C9C9C,
-                Bottom = 0x9C9C9C
             }
         };
+        background.AddStyleClass("raised_panel");
 
         var option1 = new ContextMenuItem(this, "Option 1");
         var option2 = new ContextMenuItem(this, "Option 2");

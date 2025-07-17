@@ -88,6 +88,22 @@ public sealed class App : OpenGlApp
                 Bottom = 0xFFFFFF
             },
         });
+        ss.AddStyleForClass("raised_panel", new Style
+        {
+            BorderColor = new BorderColorStyle
+            {
+                Top = 0xFFFFFF,
+                Left = 0xFFFFFF,
+                Right = 0x9C9C9C,
+                Bottom = 0x9C9C9C
+            },
+        });
+        ss.AddStyleForClass("window_button", new Style
+        {
+            PreferredWidth = 10f,
+            BackgroundColor = 0x000000,
+        });
+        
         gui.ApplyStyleSheet(ss);
 
         _gui = gui;
