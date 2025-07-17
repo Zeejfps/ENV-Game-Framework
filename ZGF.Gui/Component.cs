@@ -59,22 +59,22 @@ public abstract class Component : IEnumerable<Component>
         set => SetField(ref _bottomConstraint, value);
     }
 
-    private StyleValue<float> _widthConstraint;
-    public StyleValue<float> WidthConstraint
+    private StyleValue<float> _maxWidthConstraint;
+    public StyleValue<float> MaxWidthConstraint
     {
-        get => _widthConstraint;
-        set => SetField(ref _widthConstraint, value);
+        get => _maxWidthConstraint;
+        set => SetField(ref _maxWidthConstraint, value);
     }
     
-    private StyleValue<float> _heightConstraint;
-    public StyleValue<float> HeightConstraint
+    private StyleValue<float> _maxHeightConstraint;
+    public StyleValue<float> MaxHeightConstraint
     {
-        get => _heightConstraint;
-        set => SetField(ref _heightConstraint, value);
+        get => _maxHeightConstraint;
+        set => SetField(ref _maxHeightConstraint, value);
     }
     
-    public StyleValue<float> RightConstraint => LeftConstraint + WidthConstraint;
-    public StyleValue<float> TopConstraint => BottomConstraint + HeightConstraint;
+    public StyleValue<float> RightConstraint => LeftConstraint + MaxWidthConstraint;
+    public StyleValue<float> TopConstraint => BottomConstraint + MaxHeightConstraint;
     
     private StyleValue<float> _preferredWidth;
     public StyleValue<float> PreferredWidth
@@ -227,10 +227,10 @@ public abstract class Component : IEnumerable<Component>
             }
         }
 
-        if (WidthConstraint.IsSet)
+        if (MaxWidthConstraint.IsSet)
         {
-            return WidthConstraint.Value;
-            return MathF.Min(WidthConstraint.Value, maxWidth);
+            return MaxWidthConstraint.Value;
+            return MathF.Min(MaxWidthConstraint.Value, maxWidth);
         }
         
         return maxWidth;
@@ -243,7 +243,7 @@ public abstract class Component : IEnumerable<Component>
             return PreferredHeight;
         }
         
-        return HeightConstraint;
+        return MaxHeightConstraint;
     }
     
     public void LayoutSelf()
@@ -320,8 +320,8 @@ public abstract class Component : IEnumerable<Component>
         {
             child.LeftConstraint = position.Left;
             child.BottomConstraint = position.Bottom;
-            child.WidthConstraint = position.Width;
-            child.HeightConstraint = position.Height;
+            child.MaxWidthConstraint = position.Width;
+            child.MaxHeightConstraint = position.Height;
             child.LayoutSelf();
         }
     }

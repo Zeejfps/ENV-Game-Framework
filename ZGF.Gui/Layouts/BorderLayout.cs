@@ -71,7 +71,7 @@ public sealed class BorderLayout : Component
             var height = North.MeasureHeight();
             North.LeftConstraint = position.Left;
             North.BottomConstraint = position.Top - height;
-            North.WidthConstraint = position.Width;
+            North.MaxWidthConstraint = position.Width;
             North.LayoutSelf();
             centerAreaHeight -= height;
         }
@@ -81,7 +81,7 @@ public sealed class BorderLayout : Component
             var height = South.MeasureHeight();
             South.LeftConstraint = position.Left;
             South.BottomConstraint = position.Bottom;
-            South.WidthConstraint = position.Width;
+            South.MaxWidthConstraint = position.Width;
             South.LayoutSelf();
             centerAreaHeight -= height;
             bottomOffset += height;
@@ -92,7 +92,7 @@ public sealed class BorderLayout : Component
             var width = West.MeasureWidth();
             West.LeftConstraint = position.Left;
             West.BottomConstraint = position.Bottom + bottomOffset;
-            West.HeightConstraint = centerAreaHeight;
+            West.MaxHeightConstraint = centerAreaHeight;
             West.LayoutSelf();
             centerAreaWidth -= width;
             leftOffset += width;
@@ -103,7 +103,7 @@ public sealed class BorderLayout : Component
             var width = East.MeasureWidth();
             East.LeftConstraint = position.Right - width;
             East.BottomConstraint = position.Bottom + bottomOffset;
-            East.HeightConstraint = centerAreaHeight;
+            East.MaxHeightConstraint = centerAreaHeight;
             East.LayoutSelf();
             centerAreaWidth -= width;
         }
@@ -112,8 +112,8 @@ public sealed class BorderLayout : Component
         {
             Center.LeftConstraint = position.Left + leftOffset;
             Center.BottomConstraint = position.Bottom + bottomOffset;
-            Center.WidthConstraint = centerAreaWidth;
-            Center.HeightConstraint = centerAreaHeight;
+            Center.MaxWidthConstraint = centerAreaWidth;
+            Center.MaxHeightConstraint = centerAreaHeight;
             Center.LayoutSelf();
         }
     }

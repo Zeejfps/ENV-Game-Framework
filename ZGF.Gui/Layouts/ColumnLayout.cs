@@ -17,9 +17,9 @@ public sealed class ColumnLayout : Component
         foreach (var component in components)
         {
             component.LeftConstraint = position.Left;
-            component.WidthConstraint = position.Width;
+            component.MaxWidthConstraint = position.Width;
             component.BottomConstraint = bottom;
-            component.HeightConstraint = componentHeight;
+            component.MaxHeightConstraint = componentHeight;
             component.LayoutSelf();
             bottom -= componentHeight;
         }
