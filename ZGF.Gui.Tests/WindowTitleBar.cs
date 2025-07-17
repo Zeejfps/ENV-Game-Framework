@@ -10,10 +10,7 @@ public sealed class WindowTitleBar : Component
     public WindowTitleBar(Window window)
     {
         _window = window;
-        Constraints = new RectF
-        {
-            Height = 20f,
-        };
+        PreferredHeight = 20f;
 
         var background = new Panel
         {
@@ -46,40 +43,22 @@ public sealed class WindowTitleBar : Component
 
         var button = new Panel
         {
-            Constraints = new RectF
-            {
-                Width = 13,
-            },
-            Style =
-            {
-                BackgroundColor = 0xFF00FF
-            }
+            PreferredWidth = 13f,
+            BackgroundColor = 0xFF00FF,
         };
         button.AddStyleClass("inset_panel");
 
         var button2 = new Panel
         {
-            Constraints = new RectF
-            {
-                Width = 13f,
-            },
-            Style =
-            {
-                BackgroundColor = 0xFF00FF
-            }
+            PreferredWidth = 13f,
+            BackgroundColor = 0xFF00FF,
         };
         button2.AddStyleClass("inset_panel");
 
         var button3 = new Panel
         {
-            Constraints = new RectF
-            {
-                Width = 13f,
-            },
-            Style =
-            {
-                BackgroundColor = 0xFF00FF
-            }
+            PreferredWidth = 13f,
+            BackgroundColor = 0xFF00FF,
         };
         button3.AddStyleClass("inset_panel");
 
