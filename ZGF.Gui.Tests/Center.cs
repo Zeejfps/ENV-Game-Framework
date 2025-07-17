@@ -6,7 +6,7 @@ public sealed class Center : Component
     
     public Center()
     {
-        var background = new Rect
+        var background = new Panel
         {
             Style =
             {

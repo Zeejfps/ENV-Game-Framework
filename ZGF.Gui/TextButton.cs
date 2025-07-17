@@ -2,18 +2,18 @@ namespace ZGF.Gui;
 
 public sealed class TextButton : Component
 {
-    private Rect _background;
+    private Panel _background;
 
     private static Style BackgroundHoveredStyle { get; } = new();
     private static Style BackgroundNormalStyle { get; } = new();
 
     public TextButton(string text)
     {
-        _background = new Rect
+        _background = new Panel
         {
+            BackgroundColor = 0x232345,
             Style =
             {
-                BackgroundColor = 0x232345,
                 BorderSize = BorderSizeStyle.All(4),
                 //BorderColor = BorderColorStyle.All(0xFF00FF)
             }

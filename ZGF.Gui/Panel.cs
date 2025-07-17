@@ -2,7 +2,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
-public class Rect : Component
+public class Panel : Component
 {
     private RectStyle _style = new();
     public RectStyle Style => _style;

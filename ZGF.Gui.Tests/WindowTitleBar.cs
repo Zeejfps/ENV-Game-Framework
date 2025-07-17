@@ -15,7 +15,7 @@ public sealed class WindowTitleBar : Component
             Height = 20f,
         };
 
-        var background = new Rect
+        var background = new Panel
         {
             Style =
             {
@@ -44,7 +44,7 @@ public sealed class WindowTitleBar : Component
         background.Add(row);
 
 
-        var button = new Rect
+        var button = new Panel
         {
             Constraints = new RectF
             {
@@ -57,7 +57,7 @@ public sealed class WindowTitleBar : Component
         };
         button.AddStyleClass("inset_panel");
 
-        var button2 = new Rect
+        var button2 = new Panel
         {
             Constraints = new RectF
             {
@@ -70,7 +70,7 @@ public sealed class WindowTitleBar : Component
         };
         button2.AddStyleClass("inset_panel");
 
-        var button3 = new Rect
+        var button3 = new Panel
         {
             Constraints = new RectF
             {

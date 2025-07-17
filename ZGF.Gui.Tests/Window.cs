@@ -12,7 +12,7 @@ public sealed class Window : Component
         TitleText = titleText;
         Position = new RectF(200f, 200f, 240f, 200f);
         
-        var outline = new Rect
+        var outline = new Panel
         {
             Style =
             {
@@ -24,7 +24,7 @@ public sealed class Window : Component
 
         var titlePanel = new WindowTitleBar(this);
 
-        var leftBorder = new Rect
+        var leftBorder = new Panel
         {
             Constraints = new RectF
             {
@@ -44,7 +44,7 @@ public sealed class Window : Component
             }
         };
         
-        var rightBorder = new Rect
+        var rightBorder = new Panel
         {
             Constraints = new RectF
             {
@@ -64,7 +64,7 @@ public sealed class Window : Component
             }
         };
         
-        var bottomBorder = new Rect
+        var bottomBorder = new Panel
         {
             Constraints = new RectF
             {
@@ -88,7 +88,7 @@ public sealed class Window : Component
             }
         };
         
-        var contentOutline = new Rect
+        var contentOutline = new Panel
         {
             Style =
             {
@@ -100,7 +100,7 @@ public sealed class Window : Component
         };
         contentOutline.AddStyleClass("inset_panel");
 
-        var content = new Rect
+        var content = new Panel
         {
             Style =
             {
@@ -113,7 +113,7 @@ public sealed class Window : Component
         var columnLayout = new ColumnLayout();
         columnLayout.Add(content);
         
-        var scrollBarContainer = new Rect
+        var scrollBarContainer = new Panel
         {
             Constraints = new RectF
             {
@@ -130,7 +130,7 @@ public sealed class Window : Component
                 }
             }
         };
-        var scrollBar = new Rect
+        var scrollBar = new Panel
         {
             Style =
             {
@@ -139,7 +139,7 @@ public sealed class Window : Component
         };
         scrollBarContainer.Add(scrollBar);
 
-        var progress = new Rect
+        var progress = new Panel
         {
             Style =
             {

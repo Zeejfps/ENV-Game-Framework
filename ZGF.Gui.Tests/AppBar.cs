@@ -4,7 +4,7 @@ public sealed class AppBar : Component
 {
     public AppBar()
     {
-        var container = new Rect
+        var container = new Panel
         {
             Style =
             {
@@ -15,7 +15,7 @@ public sealed class AppBar : Component
                 }
             }
         };
-        var background = new Rect
+        var background = new Panel
         {
             Style = 
             {

@@ -6,12 +6,12 @@ public sealed class WindowResizer : Component
 {
     private readonly Window _window;
 
-    private readonly Rect _background;
+    private readonly Panel _background;
     
     public WindowResizer(Window window)
     {
         _window = window;
-        _background = new Rect
+        _background = new Panel
         {
             Style =
             {
