@@ -190,6 +190,7 @@ public class Component : IEnumerable<Component>
         component.Parent = this;
         component._depth = _depth + 1;
         component._siblingIndex =  siblingIndex;
+        component.StyleSheet = StyleSheet;
         component.Context = Context;
         OnComponentAdded(component);
     }
@@ -202,6 +203,7 @@ public class Component : IEnumerable<Component>
             component.Parent = null;
             component._depth = 0;
             component._siblingIndex = 0;
+            component.StyleSheet = null;
             OnComponentRemoved(component);
             return true;
         }
