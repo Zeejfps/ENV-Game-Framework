@@ -5,8 +5,11 @@ namespace ZGF.Gui.Tests;
 
 public sealed class Window : Component
 {
-    public Window()
+    public string TitleText { get; }
+    
+    public Window(string titleText)
     {
+        TitleText = titleText;
         Position = new RectF(200f, 200f, 240f, 200f);
         
         var outline = new Rect

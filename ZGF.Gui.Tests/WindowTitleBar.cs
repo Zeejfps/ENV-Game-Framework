@@ -83,14 +83,7 @@ public sealed class WindowTitleBar : Component
         };
         button3.AddStyleClass("inset_panel");
 
-        var spacer = new Rect
-        {
-            Style =
-            {
-                BackgroundColor = 0xFF00FF,
-            }
-        };
-        spacer.AddStyleClass("inset_panel");
+        var spacer = new Label(_window.TitleText);
 
         row.Add(button);
         row.Add(spacer, new FlexStyle

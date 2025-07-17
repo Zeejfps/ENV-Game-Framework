@@ -16,7 +16,7 @@ public sealed class Canvas : ICanvas
     {
         _colorBuffer = colorBuffer;
         _bitmapRenderer = new BitmapRenderer(colorBuffer);
-        _font = LoadFontFromFile("Assets/Fonts/Chicago/Chicago_p12.xml");
+        _font = LoadFontFromFile("Assets/Fonts/Charcoal/Charcoal_p12.xml");
     }
 
     public void BeginFrame()
@@ -75,9 +75,9 @@ public sealed class Canvas : ICanvas
     {
         var text = command.Text;
         var codePoints = AsCodePoints(text);
-        var lineStart = 10;
+        var lineStart = (int)command.Position.Left;
         var cursorX = lineStart;
-        var cursorY = 50;
+        var cursorY = (int)(command.Position.Top - _font.FontMetrics.Common.LineHeight);
         var prevCodePoint = default(int?);
         foreach (var codePoint in codePoints)
         {

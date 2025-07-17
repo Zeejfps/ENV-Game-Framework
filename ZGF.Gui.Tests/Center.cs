@@ -16,9 +16,9 @@ public sealed class Center : Component
         
         Add(background);
 
-        Add(new Window());
+        Add(new Window("About This Computer"));
 
-        Window = new Window();
+        Window = new Window("Window Title Here");
         
         Add(Window);
         
