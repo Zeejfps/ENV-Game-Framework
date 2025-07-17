@@ -71,6 +71,7 @@ public sealed class BorderLayout : Component
             var height = North.MeasureHeight();
             North.LeftConstraint = position.Left;
             North.BottomConstraint = position.Top - height;
+            North.MinWidthConstraint = position.Width;
             North.MaxWidthConstraint = position.Width;
             North.LayoutSelf();
             centerAreaHeight -= height;
@@ -81,6 +82,7 @@ public sealed class BorderLayout : Component
             var height = South.MeasureHeight();
             South.LeftConstraint = position.Left;
             South.BottomConstraint = position.Bottom;
+            South.MinWidthConstraint = position.Width;
             South.MaxWidthConstraint = position.Width;
             South.LayoutSelf();
             centerAreaHeight -= height;
@@ -112,6 +114,7 @@ public sealed class BorderLayout : Component
         {
             Center.LeftConstraint = position.Left + leftOffset;
             Center.BottomConstraint = position.Bottom + bottomOffset;
+            Center.MinWidthConstraint = centerAreaWidth;
             Center.MaxWidthConstraint = centerAreaWidth;
             Center.MaxHeightConstraint = centerAreaHeight;
             Center.LayoutSelf();

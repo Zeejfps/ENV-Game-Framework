@@ -182,6 +182,7 @@ public sealed class FlexRow : Component
 
             child.LeftConstraint = currentLeft;
             child.BottomConstraint = childBottom;
+            child.MinWidthConstraint = finalChildWidth;
             child.MaxWidthConstraint = finalChildWidth;
             child.MaxHeightConstraint = finalChildHeight;
             child.LayoutSelf();

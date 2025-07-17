@@ -59,6 +59,13 @@ public abstract class Component : IEnumerable<Component>
         set => SetField(ref _bottomConstraint, value);
     }
 
+    private StyleValue<float> _minWidthConstraint;
+    public StyleValue<float> MinWidthConstraint
+    {
+        get => _minWidthConstraint;
+        set => SetField(ref _minWidthConstraint, value);
+    }
+    
     private StyleValue<float> _maxWidthConstraint;
     public StyleValue<float> MaxWidthConstraint
     {
@@ -307,10 +314,14 @@ public abstract class Component : IEnumerable<Component>
 
     protected virtual void OnLayoutSelf()
     {
-        var width = MeasureWidth();        
-        if (MaxWidthConstraint.IsSet)
+        var width = MeasureWidth();
+        if (MinWidthConstraint.IsSet && width < MinWidthConstraint)
         {
-            width = MaxWidthConstraint.Value;
+            width = MinWidthConstraint;
+        }
+        else if (MaxWidthConstraint.IsSet && width > MaxWidthConstraint)
+        {
+            width = MaxWidthConstraint;
         }
         
         var height = MeasureHeight();
@@ -335,6 +346,7 @@ public abstract class Component : IEnumerable<Component>
         {
             child.LeftConstraint = position.Left;
             child.BottomConstraint = position.Bottom;
+            child.MinWidthConstraint = position.Width;
             child.MaxWidthConstraint = position.Width;
             child.MaxHeightConstraint = position.Height;
             child.LayoutSelf();

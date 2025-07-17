@@ -59,6 +59,7 @@ public class Panel : Component
         {
             child.LeftConstraint = left;
             child.BottomConstraint = bottom;
+            child.MinWidthConstraint = right - left;
             child.MaxWidthConstraint = right - left;
             child.MaxHeightConstraint = top - bottom;
             child.LayoutSelf();
