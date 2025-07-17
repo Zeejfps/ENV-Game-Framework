@@ -13,6 +13,12 @@ public class Panel : Component
         set => SetField(ref _style.BackgroundColor, value);
     }
 
+    public PaddingStyle Padding
+    {
+        get => _style.Padding;
+        set => SetField(ref _style.Padding, value);
+    }
+
     protected override void OnDrawSelf(ICanvas c)
     {
         c.AddCommand(new DrawRectCommand
@@ -21,6 +27,15 @@ public class Panel : Component
             Style = Style
         });
     }
+
+    // public override float MeasureWidth()
+    // {
+    //     var padding = Padding;
+    //     var borderSize = Style.BorderSize;
+    //     var width= base.MeasureWidth();
+    //     width += padding.Left + padding.Right + borderSize.Left + borderSize.Right;
+    //     return width;
+    // }
 
     protected override void OnLayoutChildren()
     {

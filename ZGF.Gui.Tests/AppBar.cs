@@ -34,26 +34,11 @@ public sealed class AppBar : Component
             }
         };
 
-        var fileLabel = new Label("File")
-        {
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-        var editLabel = new Label("Edit")
-        {
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-        var viewLabel = new Label("View")
-        {
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-        var specialLabel = new Label("Special")
-        {
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-        var helpLabel = new Label("Help")
-        {
-            VerticalTextAlignment = TextAlignment.Center,
-        };
+        var fileLabel = new MenuItem("File");
+        var editLabel = new MenuItem("Edit");
+        var viewLabel = new MenuItem("View");
+        var specialLabel = new MenuItem("Special");
+        var helpLabel = new MenuItem("Help");
         
         var row = new FlexRow(MainAxisAlignment.Start, CrossAxisAlignment.Stretch, 10)
         {

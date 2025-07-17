@@ -29,10 +29,10 @@ public sealed class TextButton : Component
         context.MouseInputSystem.EnableHover(this);
     }
 
-    protected override void OnDetachedFromContext(Context prevContext)
+    protected override void OnDetachedFromContext(Context context)
     {
-        prevContext.MouseInputSystem.DisableHover(this);
-        base.OnDetachedFromContext(prevContext);
+        context.MouseInputSystem.DisableHover(this);
+        base.OnDetachedFromContext(context);
     }
 
     protected override void OnMouseEnter()
