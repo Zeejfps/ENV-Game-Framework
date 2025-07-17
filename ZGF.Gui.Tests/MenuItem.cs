@@ -10,7 +10,7 @@ public sealed class MenuItem : Component
         _background = new Panel
         {
             BackgroundColor = 0xDEDEDE,
-            Padding = PaddingStyle.All(2)
+            Padding = PaddingStyle.All(3)
         };
         
         _label = new Label(text)
