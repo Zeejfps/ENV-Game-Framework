@@ -420,10 +420,25 @@ public class Component : IEnumerable<Component>
         _children[^1] = component;
     }
 
+    public bool IsAncestorOf(Component target)
+    {
+        var current = target;
+        while (current != null)
+        {
+            if (current == this)
+                return true;
+            current = current.Parent;
+        }
+        return false;
+    }
+    
     public bool IsInFrontOf(Component component)
     {
         var x = this;
         var y = component;
+
+        if (y.IsAncestorOf(x))
+            return true;
 
         while (x.Parent != null && y.Parent != null)
         {

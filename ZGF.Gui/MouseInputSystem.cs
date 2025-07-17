@@ -86,6 +86,7 @@ public sealed class MouseInputSystem
         if (components.Count == 0)
             return null;
         
+        Console.WriteLine(components.Count);
         _hitTestCache.Sort(ZIndexComparer.Instance);
         return components[0];
     }
@@ -133,10 +134,12 @@ sealed class ZIndexComparer : IComparer<Component>
         var result = x.ZIndex.CompareTo(y.ZIndex);
         if (result == 0)
         {
+            Console.WriteLine($"Same ZIndex: {x.GetType()}, {y.GetType()}");
             if (x.IsInFrontOf(y))
             {
                 return -1;
             }
+
             return 1;
         }
         return result;
