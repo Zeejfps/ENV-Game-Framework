@@ -74,6 +74,12 @@ public sealed class Canvas : ICanvas
 
     private void DrawGlyph(int cursorX, int cursorY, FontChar glyphInfo)
     {
+        if (cursorX < 0)
+            cursorX = 0;
+        
+        if (cursorY < 0)
+            cursorY = 0;
+        
         var pixels = _colorBuffer.Pixels;
 
         var lineHeight = _font.FontMetrics.Common.LineHeight;
@@ -87,12 +93,15 @@ public sealed class Canvas : ICanvas
         {
             var dstY = cursorY + (glyphHeight - y) + yUp + yDown;
             if (dstY >= _colorBuffer.Height)
-                dstY = _colorBuffer.Height - 1;
-            
+                continue;
+            if (dstY < 0)
+                continue;
+
             var srcY = glyphInfo.Y + y;
             for (var x = 0; x < glyphWidth; x++)
             {
                 var dstX = cursorX + x + glyphInfo.XOffset;
+                if (dstX < 0) continue;
                 var srcX = glyphInfo.X + x;
                 var dstIndex = dstY * _colorBuffer.Width + dstX;
                 var srcIndex = srcY * _font.Png.Width + srcX;
@@ -134,6 +143,13 @@ public sealed class Canvas : ICanvas
     public void EndFrame()
     {
         //_commands.Sort((x, y) => y.ZIndex.CompareTo(x.ZIndex));
+        
+        // var drawCommands = _commands
+        //     .Select((cmd, index) => (cmd, index))
+        //     .OrderBy(x => x.cmd.ZIndex) // Or .OrderByDescending
+        //     .ThenBy(x => x.index)
+        //     .Select(x => x.cmd)
+        //     .ToList();
         
         foreach (var command in _commands)
         {

@@ -5,8 +5,17 @@ namespace ZGF.Gui.Tests;
 
 public sealed class ContextMenu : Component
 {
-    public ContextMenu()
+    private readonly PointF _anchorPoint;
+
+    public ContextMenu(PointF anchorPoint)
     {
+        _anchorPoint = anchorPoint;
+
+        var background = new Panel
+        {
+            BackgroundColor = 0xFF00FF,
+        };
+        
         var option1 = new Label("Option 1");
         var option2 = new Label("Option 1");
         var option3 = new Label("Option 1");
@@ -19,21 +28,21 @@ public sealed class ContextMenu : Component
             option3,
             option4,
         };
-
-        ZIndex = 10;
         
-        Add(column);
+        background.Add(column);
+        Add(background);
     }
 
     protected override void OnLayoutSelf()
     {
         var width = MeasureWidth();
         var height = MeasureHeight();
-        var bottom = BottomConstraint - height;
+        Console.WriteLine($"Measure: {width} {height}");
+        var bottom = _anchorPoint.Y;
 
         Position = new RectF
         {
-            Left = LeftConstraint,
+            Left = _anchorPoint.X,
             Bottom = bottom,
             Width = width,
             Height = height,

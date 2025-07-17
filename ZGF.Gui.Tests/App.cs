@@ -46,20 +46,29 @@ public sealed class App : OpenGlApp
 
         var center = new Center();
         _window = center.Window;
-        
-        var gui = new BorderLayout
+
+        var contextMenuPane = new Component();
+        var contents = new BorderLayout
         {
             PreferredWidth = _framebufferWidth,
             PreferredHeight = _framebufferHeight,
             North = header,
             Center = center,
+        };
+
+        var gui = new Component
+        {
             Context = new Context
             {
                 MouseInputSystem = _mouseInputSystem,
-                TextMeasurer = new TextMeasurer(_bitmapFont)
+                TextMeasurer = new TextMeasurer(_bitmapFont),
+                ContextMenuPane = contextMenuPane,
             }
         };
-
+        
+        gui.Add(contents);
+        gui.Add(contextMenuPane);
+        
         var ss = new StyleSheet();
         ss.AddStyleForClass("inset_panel", new Style
         {

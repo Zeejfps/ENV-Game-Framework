@@ -51,12 +51,20 @@ public sealed class MenuItem : Component
         if (Context == null)
             return;
 
-        // var menu = new ContextMenu();
-        // Add(menu);
+        _contextMenu = new ContextMenu(Position.BottomLeft);
+        Context.ContextMenuPane.Add(_contextMenu);
     }
 
     private void HideMenu()
     {
+        if (Context == null)
+            return;
         
+        if (_contextMenu != null)
+        {
+            Context.ContextMenuPane.Remove(_contextMenu);
+        }
     }
+    
+    private ContextMenu? _contextMenu;
 }

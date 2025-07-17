@@ -4,6 +4,7 @@ public sealed class Context
 {
     public required MouseInputSystem MouseInputSystem { get; init; }
     public required ITextMeasurer TextMeasurer { get; init; }
+    public required Component ContextMenuPane { get; init;}
 }
 
 public interface ITextMeasurer

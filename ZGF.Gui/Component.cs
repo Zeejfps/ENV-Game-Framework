@@ -3,7 +3,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
-public abstract class Component : IEnumerable<Component>
+public class Component : IEnumerable<Component>
 {
     private Context? _context;
     public Context? Context
@@ -150,7 +150,7 @@ public abstract class Component : IEnumerable<Component>
     private readonly List<Component> _children = new();
     private readonly HashSet<string> _styleClasses = new();
     
-    protected Component()
+    public Component()
     {
 
     }
