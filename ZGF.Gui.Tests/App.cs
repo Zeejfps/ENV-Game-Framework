@@ -25,6 +25,7 @@ public sealed class App : OpenGlApp
     private readonly MouseButtonCallback _mouseButtonCallback;
     private Bitmap _colorBuffer;
     private readonly BitmapFont _bitmapFont;
+    private ContextMenuManager _contextMenuManager;
 
     public App(StartupConfig startupConfig) : base(startupConfig)
     {
@@ -56,12 +57,13 @@ public sealed class App : OpenGlApp
             Center = center,
         };
 
+        _contextMenuManager = new ContextMenuManager(contextMenuPane);
         var context = new Context
         {
             MouseInputSystem = _mouseInputSystem,
             TextMeasurer = new TextMeasurer(_bitmapFont),
         };
-        context.AddService(new ContextMenuManager(contextMenuPane));
+        context.AddService(_contextMenuManager);
 
         var gui = new Component
         {
@@ -143,6 +145,7 @@ public sealed class App : OpenGlApp
         Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
         var guiPoint = WindowToGuiCoords(mouseX, mouseY);
         _mouseInputSystem.UpdateMousePosition(guiPoint);
+        _contextMenuManager.Update();
     }
 
     private PointF WindowToGuiCoords(double windowX, double windowY)
