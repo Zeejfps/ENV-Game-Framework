@@ -3,13 +3,10 @@
 // ---- There's no license restrictions, use as you will. ----
 // ---- Credits to http://www.angelcode.com/ -----------------
 
-using System;
-using System.IO;
 using System.Numerics;
 using System.Xml.Serialization;
-using OpenGLSandbox;
 
-namespace BmFont
+namespace ZGF.BMFontModule
 {
 	[Serializable]
 	[XmlRoot ( "font" )]
@@ -133,19 +130,11 @@ namespace BmFont
 			set;
 		}
 
-		private Rect _Padding;
 		[XmlAttribute ( "padding" )]
 		public String Padding
 		{
-			get
-			{
-				return _Padding.X + "," + _Padding.Y + "," + _Padding.Width + "," + _Padding.Height;
-			}
-			set
-			{
-				String[] padding = value.Split ( ',' );
-				_Padding = new Rect ( Convert.ToInt32 ( padding[0] ), Convert.ToInt32 ( padding[1] ), Convert.ToInt32 ( padding[2] ), Convert.ToInt32 ( padding[3] ) );
-			}
+			get;
+			set;
 		}
 
 		private Vector2 _Spacing;
@@ -359,19 +348,6 @@ namespace BmFont
 		{
 			get;
 			set;
-		}
-	}
-
-	public static class FontLoader
-	{
-		public static FontFile Load ( String filename )
-		{
-			XmlSerializer deserializer = new XmlSerializer ( typeof ( FontFile ) );
-			TextReader textReader = new StreamReader ( filename );
-			FontFile file = ( FontFile ) deserializer.Deserialize ( textReader );
-			textReader.Close ( );
-			file.Update();
-			return file;
 		}
 	}
 }

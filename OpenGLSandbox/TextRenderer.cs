@@ -2,6 +2,7 @@
 using System.Text;
 using BmFont;
 using EasyGameFramework.GUI;
+using ZGF.BMFontModule;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 

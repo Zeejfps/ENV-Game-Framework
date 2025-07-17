@@ -13,6 +13,7 @@
       <ProjectReference Include="..\EasyGameFramework.Glfw\EasyGameFramework.Glfw.csproj" />
       <ProjectReference Include="..\EasyGameFramework.GUI.Backgend\EasyGameFramework.GUI.Backgend.csproj" />
       <ProjectReference Include="..\EasyGameFramework.GUI\EasyGameFramework.GUI.csproj" />
+      <ProjectReference Include="..\ZGF.BMFontModule\ZGF.BMFontModule.csproj" />
     </ItemGroup>
 
     <ItemGroup>

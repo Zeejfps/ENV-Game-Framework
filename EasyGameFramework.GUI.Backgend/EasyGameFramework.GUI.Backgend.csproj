@@ -11,6 +11,7 @@
       <ProjectReference Include="..\EasyGameFramework.Common\EasyGameFramework.Common.csproj" />
       <ProjectReference Include="..\EasyGameFramework.GUI\EasyGameFramework.GUI.csproj" />
       <ProjectReference Include="..\EasyGameFramework.OpenGL\EasyGameFramework.OpenGL.csproj" />
+      <ProjectReference Include="..\ZGF.BMFontModule\ZGF.BMFontModule.csproj" />
     </ItemGroup>
     
     <ItemGroup>
