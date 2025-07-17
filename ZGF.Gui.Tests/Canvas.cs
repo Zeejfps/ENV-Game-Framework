@@ -73,7 +73,7 @@ public sealed class Canvas : ICanvas
     public void AddCommand(in DrawTextCommand command)
     {
         var text = command.Text;
-        var codePoints = AsCodePoints(text);
+        var codePoints = text.AsCodePoints();
 
         var lineHeight = _font.FontMetrics.Common.LineHeight;
         var position = command.Position;
@@ -185,16 +185,6 @@ public sealed class Canvas : ICanvas
 
         // Pack back into ARGB
         return ((uint)outA << 24) | ((uint)outR << 16) | ((uint)outG << 8) | outB;
-    }
-
-    private IEnumerable<int> AsCodePoints(string s)
-    {
-        for(int i = 0; i < s.Length; ++i)
-        {
-            yield return char.ConvertToUtf32(s, i);
-            if(char.IsHighSurrogate(s, i))
-                i++;
-        }
     }
 
     public void EndFrame()

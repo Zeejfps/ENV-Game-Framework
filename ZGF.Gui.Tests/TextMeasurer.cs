@@ -11,6 +11,14 @@ public sealed class TextMeasurer : ITextMeasurer
 
     public float MeasureTextWidth(string text, TextStyle style)
     {
-        return text.Length * 7.5f;
+        var totalWidth = 0f;
+        foreach (var codePoint in text.AsCodePoints())
+        {
+            if (!_bitmapFont.TryGetGlyphInfo(codePoint, out var glyphInfo))
+                continue;
+            
+            totalWidth += glyphInfo.XAdvance;
+        }
+        return totalWidth;
     }
 }
