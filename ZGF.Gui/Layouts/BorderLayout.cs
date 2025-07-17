@@ -59,7 +59,6 @@ public sealed class BorderLayout : Component
     protected override void OnLayoutChildren()
     {
         var position = Position;
-        Console.WriteLine(position);
         
         var centerAreaWidth = position.Width;
         var centerAreaHeight = position.Height;

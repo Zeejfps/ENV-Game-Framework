@@ -51,8 +51,8 @@ public sealed class App : OpenGlApp
         {
             PreferredWidth = _framebufferWidth,
             PreferredHeight = _framebufferHeight,
-            Center = center,
             North = header,
+            Center = center,
             Context = new Context
             {
                 MouseInputSystem = _mouseInputSystem,

@@ -1,5 +1,4 @@
-﻿using ZGF.Geometry;
-using ZGF.Gui.Layouts;
+﻿using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
@@ -10,12 +9,9 @@ public sealed class AppBar : Component
         var container = new Panel
         {
             BackgroundColor = 0x000000,
-            Style =
+            Padding = new PaddingStyle
             {
-                Padding = new PaddingStyle
-                {
-                    Bottom = 1,
-                }
+                Bottom = 1,
             }
         };
         var background = new Panel

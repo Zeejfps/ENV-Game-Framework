@@ -223,7 +223,9 @@ public abstract class Component : IEnumerable<Component>
     public virtual float MeasureHeight()
     {
         if (PreferredHeight.IsSet)
+        {
             return PreferredHeight;
+        }
         
         return HeightConstraint;
     }
@@ -297,12 +299,13 @@ public abstract class Component : IEnumerable<Component>
 
     protected virtual void OnLayoutChildren()
     {
+        var position = Position;
         foreach (var child in _children)
         {
-            child.LeftConstraint = LeftConstraint;
-            child.BottomConstraint = BottomConstraint;
-            child.WidthConstraint = WidthConstraint;
-            child.HeightConstraint = HeightConstraint;
+            child.LeftConstraint = position.Left;
+            child.BottomConstraint = position.Bottom;
+            child.WidthConstraint = position.Width;
+            child.HeightConstraint = position.Height;
             child.LayoutSelf();
         }
     }
