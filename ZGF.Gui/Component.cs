@@ -33,9 +33,9 @@ public class Component : IEnumerable<Component>
 
     }
 
-    protected virtual void OnDetachedFromContext(Context prevContext)
+    protected virtual void OnDetachedFromContext(Context context)
     {
-        prevContext.MouseInputSystem.DisableHover(this);
+        context.MouseInputSystem.DisableHover(this);
     }
 
     private RectF _position;

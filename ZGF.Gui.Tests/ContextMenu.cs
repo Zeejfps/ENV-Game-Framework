@@ -52,7 +52,6 @@ public sealed class ContextMenu : Component
     {
         var width = MeasureWidth();
         var height = MeasureHeight();
-        Console.WriteLine($"Measure: {width} {height}");
         var bottom = _anchorPoint.Y - height;
 
         Position = new RectF
@@ -62,5 +61,27 @@ public sealed class ContextMenu : Component
             Width = width,
             Height = height,
         };
+    }
+
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        context.MouseInputSystem.EnableHover(this);
+    }
+
+    protected override void OnDetachedFromContext(Context context)
+    {
+        context.MouseInputSystem.DisableHover(this);
+        base.OnDetachedFromContext(context);
+    }
+
+    protected override void OnMouseEnter()
+    {
+        
+    }
+
+    protected override void OnMouseExit()
+    {
+        
     }
 }
