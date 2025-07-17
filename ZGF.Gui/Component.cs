@@ -181,14 +181,8 @@ public abstract class Component : IEnumerable<Component>
 
     public Size MeasureSelf()
     {
-        var width = PreferredWidth.Value;
-        var height = PreferredHeight.Value;
-        if (!PreferredWidth.IsSet)
-            width = MeasureWidth();
-        
-        if (PreferredHeight.IsSet)
-            height = MeasureHeight();
-
+        var width = MeasureWidth();
+        var height = MeasureHeight();
         return new Size
         {
             Width = width,
@@ -196,13 +190,19 @@ public abstract class Component : IEnumerable<Component>
         };
     }
 
-    protected virtual float MeasureWidth()
+    public virtual float MeasureWidth()
     {
+        if (PreferredWidth.IsSet)
+            return PreferredWidth;
+        
         return Constraints.Width;
     }
     
-    protected virtual float MeasureHeight()
+    public virtual float MeasureHeight()
     {
+        if (PreferredHeight.IsSet)
+            return PreferredHeight;
+        
         return Constraints.Height;
     }
     

@@ -98,7 +98,7 @@ public sealed class FlexRow : Component
         foreach (var child in children)
         {
             var style = _flexStyleByComponent.GetValueOrDefault(child);
-            totalChildrenInitialWidth += child.Constraints.Width;
+            totalChildrenInitialWidth += child.MeasureWidth();
             totalFlexGrow += style.Grow;
         }
         
@@ -138,8 +138,9 @@ public sealed class FlexRow : Component
         foreach (var child in children)
         {
             var style = _flexStyleByComponent.GetValueOrDefault(child);
-            var childInitialWidth = child.Constraints.Width;
-            var childInitialHeight = child.Constraints.Height;
+            var childSize = child.MeasureSelf();
+            var childInitialWidth = childSize.Width;
+            var childInitialHeight = childSize.Height;
 
             // Calculate final width based on FlexGrow
             var finalChildWidth = childInitialWidth;

@@ -36,13 +36,16 @@ public sealed class AppBar : Component
 
         var fileLabel = new Label("File")
         {
-            Constraints = new RectF
-            {
-                Width = 20f
-            }
+            PreferredWidth = 20f,
         };
-        var editLabel = new Label("Edit");
-        var viewLabel = new Label("View");
+        var editLabel = new Label("Edit")
+        {
+            PreferredWidth = 20f,
+        };
+        var viewLabel = new Label("View")
+        {
+            PreferredWidth = 20f,
+        };
         var specialLabel = new Label("Special");
         var helpLabel = new Label("Help");
         
