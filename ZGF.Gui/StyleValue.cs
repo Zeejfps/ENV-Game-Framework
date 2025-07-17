@@ -1,9 +1,20 @@
 namespace ZGF.Gui;
 
-public struct StyleValue<T>(T value)
+public struct StyleValue<T>
 {
+    public StyleValue(T? value)
+    {
+        Value = value;
+    }
+    
+    public StyleValue(T? value, bool isSet)
+    {
+        Value = value;
+        IsSet = isSet;
+    }
+
     public bool IsSet { get; set; } = true;
-    public T Value { get; set; } = value;
+    public T? Value { get; set; }
     
     public void Reset()
     {
@@ -12,5 +23,7 @@ public struct StyleValue<T>(T value)
     }
 
     public static implicit operator StyleValue<T> (T value) => new(value);
-    public static implicit operator T(StyleValue<T> value) => value.Value;
+    public static implicit operator T?(StyleValue<T> value) => value.Value;
+    
+    public static StyleValue<T> Unset => new(default, false);
 }

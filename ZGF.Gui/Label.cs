@@ -25,7 +25,10 @@ public sealed class Label : Component
 
     public override float MeasureWidth()
     {
-        return _text.Length * 8f;
+        if (Context == null)
+            return 0f;
+        
+        return Context.MeasureTextWidth(_text, _style);
     }
 
     protected override void OnDrawSelf(ICanvas c)
