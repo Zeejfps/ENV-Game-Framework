@@ -205,6 +205,7 @@ public abstract class Component : IEnumerable<Component>
     {
         var width = MeasureWidth();
         var height = MeasureHeight();
+        
         return new Size
         {
             Width = width,
@@ -226,12 +227,6 @@ public abstract class Component : IEnumerable<Component>
                 maxWidth = childWith;
             }
         }
-
-        if (MaxWidthConstraint.IsSet)
-        {
-            return MaxWidthConstraint.Value;
-            return MathF.Min(MaxWidthConstraint.Value, maxWidth);
-        }
         
         return maxWidth;
     }
@@ -243,7 +238,7 @@ public abstract class Component : IEnumerable<Component>
             return PreferredHeight;
         }
         
-        return MaxHeightConstraint;
+        return 0f;
     }
     
     public void LayoutSelf()
@@ -303,13 +298,24 @@ public abstract class Component : IEnumerable<Component>
 
     protected virtual void OnLayoutSelf()
     {
-        var size = MeasureSelf();
+        var width = MeasureWidth();        
+        if (MaxWidthConstraint.IsSet)
+        {
+            width = MaxWidthConstraint.Value;
+        }
+        
+        var height = MeasureHeight();
+        if (MaxHeightConstraint.IsSet)
+        {
+            height = MaxHeightConstraint.Value;
+        }
+        
         Position = new RectF
         {
             Left = LeftConstraint,
             Bottom = BottomConstraint,
-            Width = size.Width,
-            Height = size.Height,
+            Width = width,
+            Height = height,
         };
     }
 
