@@ -47,16 +47,14 @@ public sealed class MouseInputSystem
             var prevHoveredComponent = _hoveredComponent;
             _hoveredComponent = newHoveredComponent;
 
-            if (prevHoveredComponent != null &&
-                _hoverableComponents.TryGetValue(prevHoveredComponent, out var listener))
+            if (prevHoveredComponent != null)
             {
-                listener.HandleMouseExitEvent();
+                prevHoveredComponent.HandleMouseExitEvent();
             }
 
-            if (_hoveredComponent != null &&
-                _hoverableComponents.TryGetValue(_hoveredComponent, out listener))
+            if (_hoveredComponent != null)
             {
-                listener.HandleMouseEnterEvent();           
+                _hoveredComponent.HandleMouseEnterEvent();           
             }
         }
 
