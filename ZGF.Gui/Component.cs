@@ -51,6 +51,20 @@ public abstract class Component : IEnumerable<Component>
         get => _constraints;
         set => SetField(ref _constraints, value);
     }
+
+    private StyleValue<float> _preferredWidth;
+    public StyleValue<float> PreferredWidth
+    {
+        get => _preferredWidth;
+        set => SetField(ref _preferredWidth, value);
+    }
+    
+    private StyleValue<float> _preferredHeight;
+    public StyleValue<float> PreferredHeight
+    {
+        get => _preferredHeight;
+        set => SetField(ref _preferredHeight, value);
+    }
     
     public Component? Parent { get; private set; }
 
@@ -163,6 +177,33 @@ public abstract class Component : IEnumerable<Component>
             return true;
         }
         return false;
+    }
+
+    public Size MeasureSelf()
+    {
+        var width = PreferredWidth.Value;
+        var height = PreferredHeight.Value;
+        if (!PreferredWidth.IsSet)
+            width = MeasureWidth();
+        
+        if (PreferredHeight.IsSet)
+            height = MeasureHeight();
+
+        return new Size
+        {
+            Width = width,
+            Height = height
+        };
+    }
+
+    protected virtual float MeasureWidth()
+    {
+        return Constraints.Width;
+    }
+    
+    protected virtual float MeasureHeight()
+    {
+        return Constraints.Height;
     }
     
     public void LayoutSelf()
