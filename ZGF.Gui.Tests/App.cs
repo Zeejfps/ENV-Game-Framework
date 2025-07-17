@@ -113,7 +113,6 @@ public sealed class App : OpenGlApp
             GLFW.InputState.Release => InputState.Released,
         };
 
-        Console.WriteLine($"Mouse button: {s}");
         var guiPoint = WindowToGuiCoords(windowX, windowY);
         _mouseInputSystem.HandleMouseButtonEvent(new MouseButtonEvent
         {

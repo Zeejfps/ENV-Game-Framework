@@ -47,7 +47,6 @@ public sealed class Column : Component
             totalHeight += child.MeasureHeight();
         }
         var spacing = (Children.Count - 1) * Gap;
-        Console.WriteLine(totalHeight+spacing);
 
         return totalHeight + spacing;
     }
