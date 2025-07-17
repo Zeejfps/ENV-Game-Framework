@@ -70,49 +70,53 @@ public sealed class BorderLayout : Component
         
         if (North != null)
         {
-            North.Constraints = new RectF(position.Left, position.Top - North.Constraints.Height, position.Width, North.Constraints.Height);
+            var height = North.MeasureHeight();
+            North.Constraints = new RectF(position.Left, position.Top - height, position.Width, height);
             North.LayoutSelf();
-            centerAreaHeight -= North.Position.Height;
+            centerAreaHeight -= height;
         }
 
         if (South != null)
         {
+            var height = South.MeasureHeight();
             South.Constraints = new RectF(
                 position.Left,
                 position.Bottom,
                 position.Width,
-                South.Constraints.Height);
+                height);
             
             South.LayoutSelf();
-            centerAreaHeight -= South.Position.Height;
-            bottomOffset += South.Position.Height;
+            centerAreaHeight -= height;
+            bottomOffset += height;
         }
 
         if (West != null)
         {
+            var width = West.MeasureWidth();
             West.Constraints = new RectF
             {
                 Left = position.Left,
                 Bottom = position.Bottom + bottomOffset,
-                Width = West.Constraints.Width,
+                Width = width,
                 Height = centerAreaHeight,
             };
             West.LayoutSelf();
-            centerAreaWidth -= West.Position.Width;
-            leftOffset += West.Position.Width;
+            centerAreaWidth -= width;
+            leftOffset += width;
         }
         
         if (East != null)
         {
+            var width = East.MeasureWidth();
             East.Constraints = new RectF
             {
-                Left = position.Right - East.Constraints.Width,
+                Left = position.Right - width,
                 Bottom = position.Bottom + bottomOffset,
-                Width = East.Constraints.Width,
+                Width = width,
                 Height = centerAreaHeight,
             };
             East.LayoutSelf();
-            centerAreaWidth -= East.Position.Width;
+            centerAreaWidth -= width;
         }
 
         if (Center != null)
