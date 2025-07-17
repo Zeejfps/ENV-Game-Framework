@@ -70,7 +70,7 @@ public sealed class FlexRow : Component
         
         Add(component);
     }
-
+    
     public void UpdateStyle(Component component, FlexStyle style)
     {
         _flexStyleByComponent[component] = style;
@@ -164,8 +164,6 @@ public sealed class FlexRow : Component
 
                 case CrossAxisAlignment.Start: // Align to Top
                     finalChildHeight = childInitialHeight;
-                    // Assuming Y-axis grows upwards from the bottom:
-                    // Top of child aligns with top of container
                     childBottom = position.Top - finalChildHeight;
                     break;
 

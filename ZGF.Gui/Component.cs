@@ -119,8 +119,6 @@ public abstract class Component : IEnumerable<Component>
     private readonly List<Component> _children = new();
     private readonly HashSet<string> _styleClasses = new();
     
-    private MouseInputSystem MouseInputSystem => Context?.MouseInputSystem;
-
     protected Component()
     {
 
@@ -263,7 +261,12 @@ public abstract class Component : IEnumerable<Component>
 
     protected virtual void OnLayoutSelf()
     {
-        Position = Constraints;
+        var size = MeasureSelf();
+        Position = Constraints with
+        {
+            Width = size.Width,
+            Height = size.Height
+        };
     }
 
     protected virtual void OnLayoutChildren()

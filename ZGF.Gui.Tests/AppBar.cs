@@ -34,13 +34,28 @@ public sealed class AppBar : Component
             }
         };
 
-        var fileLabel = new Label("File");
-        var editLabel = new Label("Edit");
-        var viewLabel = new Label("View");
-        var specialLabel = new Label("Special");
-        var helpLabel = new Label("Help");
+        var fileLabel = new Label("File")
+        {
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        var editLabel = new Label("Edit")
+        {
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        var viewLabel = new Label("View")
+        {
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        var specialLabel = new Label("Special")
+        {
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        var helpLabel = new Label("Help")
+        {
+            VerticalTextAlignment = TextAlignment.Center,
+        };
         
-        var row = new FlexRow(MainAxisAlignment.Start, CrossAxisAlignment.Stretch, 0)
+        var row = new FlexRow(MainAxisAlignment.Start, CrossAxisAlignment.Stretch, 10)
         {
             fileLabel,
             editLabel,
@@ -49,10 +64,6 @@ public sealed class AppBar : Component
             helpLabel,
         };
         
-        var label = new Label("File    Edit    View    Special    Help")
-        {
-            VerticalTextAlignment = TextAlignment.Center,
-        };
         background.Add(row);
         container.Add(background);
         Add(container);
