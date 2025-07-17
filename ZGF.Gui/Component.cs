@@ -217,7 +217,23 @@ public abstract class Component : IEnumerable<Component>
         if (PreferredWidth.IsSet)
             return PreferredWidth;
         
-        return WidthConstraint;
+        var maxWidth = 0f;
+        foreach (var child in _children)
+        {
+            var childWith = child.MeasureWidth();
+            if (childWith > maxWidth)
+            {
+                maxWidth = childWith;
+            }
+        }
+
+        if (WidthConstraint.IsSet)
+        {
+            return WidthConstraint.Value;
+            return MathF.Min(WidthConstraint.Value, maxWidth);
+        }
+        
+        return maxWidth;
     }
     
     public virtual float MeasureHeight()

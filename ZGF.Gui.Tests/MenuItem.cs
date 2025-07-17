@@ -22,11 +22,6 @@ public sealed class MenuItem : Component
         Add(_background);
     }
 
-    public override float MeasureWidth()
-    {
-        return _background.MeasureWidth();
-    }
-
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
