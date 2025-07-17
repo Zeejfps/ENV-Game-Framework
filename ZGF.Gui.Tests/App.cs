@@ -1,6 +1,7 @@
 using EasyGameFramework.Api;
 using GLFW;
 using SoftwareRendererModule;
+using ZGF.BMFontModule;
 using ZGF.Core;
 using ZGF.Geometry;
 using ZGF.Gui.Layouts;
@@ -32,6 +33,8 @@ public sealed class App : OpenGlApp
         var bitmap = new Bitmap(_framebufferWidth, _framebufferHeight);
         _canvas = new Canvas(bitmap);
         glClearColor(0f, 0f, 0f, 0f);
+
+        var fontFile = BMFontFileUtils.DeserializeFromXmlFile("Assets/Fonts/Charcoal/Charcoal.xml");
 
         var header = new AppBar
         {
