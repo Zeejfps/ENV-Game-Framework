@@ -13,13 +13,14 @@ public sealed class ContextMenu : Component
 
         var background = new Panel
         {
-            BackgroundColor = 0xFF00FF,
+            BackgroundColor = 0xDEDEDE,
+            Padding = PaddingStyle.All(4)
         };
-        
+
         var option1 = new Label("Option 1");
-        var option2 = new Label("Option 1");
-        var option3 = new Label("Option 1");
-        var option4 = new Label("Option 1");
+        var option2 = new Label("Option 2");
+        var option3 = new Label("Option 3");
+        var option4 = new Label("Option 4");
 
         var column = new Column
         {
@@ -28,6 +29,7 @@ public sealed class ContextMenu : Component
             option3,
             option4,
         };
+        column.Gap = 4;
         
         background.Add(column);
         Add(background);
@@ -38,7 +40,7 @@ public sealed class ContextMenu : Component
         var width = MeasureWidth();
         var height = MeasureHeight();
         Console.WriteLine($"Measure: {width} {height}");
-        var bottom = _anchorPoint.Y;
+        var bottom = _anchorPoint.Y - height;
 
         Position = new RectF
         {
