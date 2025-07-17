@@ -49,6 +49,18 @@ public sealed class FlexRow : Component
     }
     
     private readonly Dictionary<Component, FlexStyle> _flexStyleByComponent = new();
+
+    public FlexRow()
+    {
+        
+    }
+
+    public FlexRow(MainAxisAlignment mainAxisAlignment, CrossAxisAlignment crossAxisAlignment, int gap)
+    {
+        MainAxisAlignment = mainAxisAlignment;
+        CrossAxisAlignment = crossAxisAlignment;
+        Gap = gap;
+    }
     
     public void Add(Component component, FlexStyle style)
     {
@@ -153,7 +165,7 @@ public sealed class FlexRow : Component
                     finalChildHeight = childInitialHeight;
                     // Assuming Y-axis grows upwards from the bottom:
                     // Top of child aligns with top of container
-                    childBottom = position.Bottom - position.Height + finalChildHeight;
+                    childBottom = position.Top - finalChildHeight;
                     break;
 
                 case CrossAxisAlignment.End: // Align to Bottom

@@ -1,8 +1,9 @@
-﻿using ZGF.Geometry;
+﻿using System.Collections;
+using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
-public abstract class Component
+public abstract class Component : IEnumerable<Component>
 {
     private Context? _context;
     public Context? Context
@@ -345,5 +346,15 @@ public abstract class Component
     public void HandleMouseMoveEvent(in MouseMoveEvent e)
     {
         OnMouseMoved(e);
+    }
+
+    public IEnumerator<Component> GetEnumerator()
+    {
+        return _children.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
     }
 }

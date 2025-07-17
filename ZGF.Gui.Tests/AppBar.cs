@@ -1,4 +1,7 @@
-﻿namespace ZGF.Gui.Tests;
+﻿using ZGF.Geometry;
+using ZGF.Gui.Layouts;
+
+namespace ZGF.Gui.Tests;
 
 public sealed class AppBar : Component
 {
@@ -6,9 +9,9 @@ public sealed class AppBar : Component
     {
         var container = new Panel
         {
+            BackgroundColor = 0x000000,
             Style =
             {
-                BackgroundColor = 0x000000,
                 Padding = new PaddingStyle
                 {
                     Bottom = 1,
@@ -17,9 +20,9 @@ public sealed class AppBar : Component
         };
         var background = new Panel
         {
+            BackgroundColor = 0xDEDEDE,
             Style = 
             {
-                BackgroundColor = 0xDEDEDE,
                 BorderSize = BorderSizeStyle.All(1),
                 BorderColor = new BorderColorStyle
                 {
@@ -30,11 +33,33 @@ public sealed class AppBar : Component
                 }
             }
         };
+
+        var fileLabel = new Label("File")
+        {
+            Constraints = new RectF
+            {
+                Width = 20f
+            }
+        };
+        var editLabel = new Label("Edit");
+        var viewLabel = new Label("View");
+        var specialLabel = new Label("Special");
+        var helpLabel = new Label("Help");
+        
+        var row = new FlexRow(MainAxisAlignment.Start, CrossAxisAlignment.Stretch, 10)
+        {
+            fileLabel,
+            editLabel,
+            viewLabel,
+            specialLabel,
+            helpLabel,
+        };
+        
         var label = new Label("File    Edit    View    Special    Help")
         {
             VerticalTextAlignment = TextAlignment.Center,
         };
-        background.Add(label);
+        background.Add(row);
         container.Add(background);
         Add(container);
     }
