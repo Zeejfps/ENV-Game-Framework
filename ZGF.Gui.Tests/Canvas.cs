@@ -85,46 +85,80 @@ public sealed class Canvas : ICanvas
         }
     }
 
-    private void DrawGlyph(int cursorX, int cursorY, FontChar glyphInfo)
+    private void DrawGlyph(int cursorX, int cursorY, FontChar glyphInfo, uint color)
     {
-        if (cursorX < 0)
-            cursorX = 0;
-        
-        if (cursorY < 0)
-            cursorY = 0;
-        
-        var pixels = _colorBuffer.Pixels;
+        var bufferPixels = _colorBuffer.Pixels;
+        var bufferWidth = _colorBuffer.Width;
+        var bufferHeight = _colorBuffer.Height;
 
-        var lineHeight = _font.FontMetrics.Common.LineHeight;
-        var baseHeight = _font.FontMetrics.Common.Base;
-        var yUp = lineHeight - baseHeight;
-        var yDown = baseHeight - (glyphInfo.YOffset + glyphInfo.Height);
+        var fontPixels = _font.Png.PixelData;
+        var fontTextureWidth = _font.Png.Width;
 
-        var glyphWidth = glyphInfo.Width;
-        var glyphHeight = glyphInfo.Height;
-        for (var y = 0; y < glyphHeight; y++)
+        // Get the font's baseline metric
+        int fontBase = _font.FontMetrics.Common.Base;
+
+        // --- COORDINATE CALCULATION FOR BOTTOM-LEFT ORIGIN ---
+        // 1. Calculate the glyph's destination rectangle.
+        // destX is the same as before.
+        int destX = cursorX + glyphInfo.XOffset;
+
+        // destY is the bottom-most coordinate of the glyph on the screen.
+        // Start at the baseline (cursorY), go UP by the distance from baseline to the glyph's top (fontBase - yoffset),
+        // then go DOWN by the glyph's height to find the bottom.
+        int destY = cursorY + (fontBase - glyphInfo.YOffset) - glyphInfo.Height;
+
+        int destWidth = glyphInfo.Width;
+        int destHeight = glyphInfo.Height;
+
+        // 2. Clip the destination rectangle against the screen bounds.
+        int loopStartX = Math.Max(0, destX);
+        int loopEndX = Math.Min(bufferWidth, destX + destWidth);
+        int loopStartY = Math.Max(0, destY);
+        int loopEndY = Math.Min(bufferHeight, destY + destHeight);
+
+        if (loopStartX >= loopEndX || loopStartY >= loopEndY)
         {
-            var dstY = cursorY + (glyphHeight - y) + yUp + yDown;
-            if (dstY >= _colorBuffer.Height)
-                continue;
-            if (dstY < 0)
-                continue;
-
-            var srcY = glyphInfo.Y + y;
-            for (var x = 0; x < glyphWidth; x++)
-            {
-                var dstX = cursorX + x + glyphInfo.XOffset;
-                if (dstX < 0) continue;
-                var srcX = glyphInfo.X + x;
-                var dstIndex = dstY * _colorBuffer.Width + dstX;
-                var srcIndex = srcY * _font.Png.Width + srcX;
-                var a = _font.Png.PixelData[srcIndex*4 + 3];
-                var rgb = 0x000000;
-                var argb = ((uint)a << 24) | (uint)rgb;
-                pixels[dstIndex] = BlendPixel(pixels[dstIndex], argb);
-            }
+            return;
         }
 
+        // 3. Calculate starting offsets for the source texture based on clipping.
+        int srcXOffset = loopStartX - destX;
+
+        // The source Y needs to be calculated carefully due to the inverted coordinate systems.
+        // We map the bottom of the clipped screen region to the bottom of the clipped glyph texture region.
+        int y_on_screen_from_glyph_bottom = loopStartY - destY;
+        int y_on_texture_from_glyph_top = (glyphInfo.Height - 1) - y_on_screen_from_glyph_bottom;
+        int initialSrcY = glyphInfo.Y + y_on_texture_from_glyph_top;
+
+        uint rgb = color & 0x00FFFFFF;
+
+        // 4. Loop only over the visible part of the glyph
+        for (int y = 0; y < (loopEndY - loopStartY); y++)
+        {
+            // Destination row is simple to calculate
+            int dstRow = loopStartY + y;
+
+            // Source row is calculated by starting at the initial pre-calculated
+            // source Y and decrementing, because screen Y goes up while texture Y goes down.
+            int srcRow = initialSrcY - y;
+
+            // Pre-calculate row start indices
+            int dstIndex = dstRow * bufferWidth + loopStartX;
+            int srcIndex = (srcRow * fontTextureWidth + glyphInfo.X + srcXOffset) * 4;
+
+            for (int x = 0; x < (loopEndX - loopStartX); x++)
+            {
+                byte alpha = fontPixels[srcIndex + 3];
+                if (alpha > 0)
+                {
+                    uint foregroundPixel = ((uint)alpha << 24) | rgb;
+                    bufferPixels[dstIndex] = BlendPixel(bufferPixels[dstIndex], foregroundPixel);
+                }
+
+                dstIndex++;
+                srcIndex += 4;
+            }
+        }
     }
     
     private uint BlendPixel(uint dstColor, uint srcColor)
@@ -304,7 +338,7 @@ public sealed class Canvas : ICanvas
             DrawGlyph(
                 cursorX + kerningOffset,
                 cursorY,
-                glyphInfo);
+                glyphInfo, 0x0);
 
             cursorX += glyphInfo.XAdvance;
         }
