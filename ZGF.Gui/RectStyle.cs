@@ -1,6 +1,4 @@
-﻿using ZGF.Geometry;
-
-namespace ZGF.Gui;
+﻿namespace ZGF.Gui;
 
 public sealed class RectStyle
 {
@@ -18,19 +16,4 @@ public sealed class RectStyle
         style.BorderSize.ApplyTo(ref BorderSize);
         style.BorderColor.ApplyTo(ref BorderColor);
     }
-}
-
-public readonly struct DrawRectCommand
-{
-    public required RectF Position { get; init; }
-    public required RectStyle Style {get; init; }
-    public required int ZIndex { get; init; }
-}
-
-public readonly struct DrawTextCommand
-{
-    public required RectF Position { get; init; }
-    public required string Text { get; init; }
-    public required TextStyle Style {get; init; }
-    public required int ZIndex { get; init; }
 }
