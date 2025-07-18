@@ -189,4 +189,111 @@ public static class Graphics
 
         return true;
     }
+
+    public static void BlitTransparent(
+        Bitmap dstBmp,
+        int dstX, int dstY,
+        int dstW, int dstH,
+        Bitmap srcBmp,
+        int srcX, int srcY,
+        int srcW, int srcH
+    )
+    {
+        // --- 1. Initial Checks and Variable Hoisting ---
+        if (dstW <= 0 || dstH <= 0 || srcW <= 0 || srcH <= 0)
+        {
+            return; // Nothing to draw.
+        }
+
+        var dstPixels = dstBmp.Pixels;
+        int dstBmpWidth = dstBmp.Width;
+        int dstBmpHeight = dstBmp.Height;
+
+        var srcPixels = srcBmp.Pixels;
+        int srcBmpWidth = srcBmp.Width;
+        int srcBmpHeight = srcBmp.Height;
+
+        // --- 2. Clipping ---
+        // Calculate the final loop boundaries by clipping the destination rectangle
+        // against the destination bitmap's dimensions.
+        int loopStartX = Math.Max(0, dstX);
+        int loopStartY = Math.Max(0, dstY);
+        int loopEndX = Math.Min(dstBmpWidth, dstX + dstW);
+        int loopEndY = Math.Min(dstBmpHeight, dstY + dstH);
+
+        // If the clipped rectangle has no area, there's nothing to draw.
+        if (loopEndX <= loopStartX || loopEndY <= loopStartY)
+        {
+            return;
+        }
+
+        // --- 3. Pre-calculate Scaling Ratios ---
+        // Using floating-point ratios provides more accurate "nearest-neighbor" scaling
+        // and avoids integer division issues.
+        float x_ratio = (float)srcW / dstW;
+        float y_ratio = (float)srcH / dstH;
+
+        // --- 4. Main Loop ---
+        // Iterate over every pixel in the *clipped* destination area.
+        for (int y = loopStartY; y < loopEndY; y++)
+        {
+            // Calculate the 1D index for the start of the destination row.
+            int dstRowIndex = y * dstBmpWidth;
+
+            for (int x = loopStartX; x < loopEndX; x++)
+            {
+                // --- 5. Map Destination Pixel to Source Pixel (Scaling) ---
+                // This maps the destination pixel (x, y) back to a source pixel (sx, sy).
+                int sx = srcX + (int)((x - dstX) * x_ratio);
+                int sy = srcY + (int)((y - dstY) * y_ratio);
+
+                // --- 6. Source Bounds Check ---
+                // Ensure the calculated source pixel is within the source bitmap's bounds.
+                // This is a critical check.
+                if (sx < 0 || sx >= srcBmpWidth || sy < 0 || sy >= srcBmpHeight)
+                {
+                    continue; // This source pixel is outside the source bitmap.
+                }
+
+                // --- 7. Blending ---
+                // Calculate the 1D indices for source and destination pixels.
+                var srcIndex = sy * srcBmpWidth + sx;
+                var dstIndex = dstRowIndex + x;
+
+                var srcColor = srcPixels[srcIndex];
+
+                var dstColor = dstPixels[dstIndex];
+                dstPixels[dstIndex] = BlendPixel(dstColor, srcColor);
+            }
+        }
+    }
+
+    public static uint BlendPixel(uint dstColor, uint srcColor)
+    {
+        var srcA = (byte)((srcColor >> 24) & 0xFF);
+        if (srcA == 0)
+            return dstColor;
+
+        if (srcA == 255)
+            return srcColor;
+
+        var srcR = (byte)((srcColor >> 16) & 0xFF);
+        var srcG = (byte)((srcColor >> 8) & 0xFF);
+        var srcB = (byte)((srcColor) & 0xFF);
+
+        var dstR = (byte)((dstColor >> 16) & 0xFF);
+        var dstG = (byte)((dstColor >> 8) & 0xFF);
+        var dstB = (byte)((dstColor) & 0xFF);
+
+        var outR = (byte)(((srcR * srcA) + (dstR * (255 - srcA)) + 128) / 255);
+        var outG = (byte)(((srcG * srcA) + (dstG * (255 - srcA)) + 128) / 255);
+        var outB = (byte)(((srcB * srcA) + (dstB * (255 - srcA)) + 128) / 255);
+
+        // Combine the alpha channels correctly
+        var dstA = (dstColor >> 24) & 0xFF;
+        var outA = (byte)(((srcA * 255) + (dstA * (255 - srcA)) + 128) / 255);
+
+        // Pack back into an ARGB uint
+        return ((uint)outA << 24) | ((uint)outR << 16) | ((uint)outG << 8) | outB;
+    }
 }

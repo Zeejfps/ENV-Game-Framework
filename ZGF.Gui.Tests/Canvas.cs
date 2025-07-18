@@ -152,42 +152,13 @@ public sealed class Canvas : ICanvas
                 if (alpha > 0)
                 {
                     uint foregroundPixel = ((uint)alpha << 24) | rgb;
-                    bufferPixels[dstIndex] = BlendPixel(bufferPixels[dstIndex], foregroundPixel);
+                    bufferPixels[dstIndex] = Graphics.BlendPixel(bufferPixels[dstIndex], foregroundPixel);
                 }
 
                 dstIndex++;
                 srcIndex += 4;
             }
         }
-    }
-    
-    private uint BlendPixel(uint dstColor, uint srcColor)
-    {
-        var srcA = (byte)((srcColor >> 24) & 0xFF);
-        if (srcA == 0)
-            return dstColor;
-
-        if (srcA == 255)
-            return srcColor;
-
-        var srcR = (byte)((srcColor >> 16) & 0xFF);
-        var srcG = (byte)((srcColor >> 8) & 0xFF);
-        var srcB = (byte)((srcColor) & 0xFF);
-
-        var dstR = (byte)((dstColor >> 16) & 0xFF);
-        var dstG = (byte)((dstColor >> 8) & 0xFF);
-        var dstB = (byte)((dstColor) & 0xFF);
-
-        var outR = (byte)(((srcR * srcA) + (dstR * (255 - srcA)) + 128) / 255);
-        var outG = (byte)(((srcG * srcA) + (dstG * (255 - srcA)) + 128) / 255);
-        var outB = (byte)(((srcB * srcA) + (dstB * (255 - srcA)) + 128) / 255);
-
-        // Combine the alpha channels correctly
-        var dstA = (dstColor >> 24) & 0xFF;
-        var outA = (byte)(((srcA * 255) + (dstA * (255 - srcA)) + 128) / 255);
-
-        // Pack back into an ARGB uint
-        return ((uint)outA << 24) | ((uint)outR << 16) | ((uint)outG << 8) | outB;
     }
 
     public void EndFrame()
@@ -233,7 +204,10 @@ public sealed class Canvas : ICanvas
         var width = (int)position.Width;
         var height = (int)position.Height;
         //Console.WriteLine($"{x},{y},{width},{height}");
-        _colorBuffer.Blit(image, x, y, image.Width, image.Height, 0, 0, image.Width, image.Height);
+        Graphics.BlitTransparent(
+            _colorBuffer, x, y, image.Width, image.Height,
+            image, 0, 0, image.Width, image.Height
+        );
     }
 
     private void ExecuteCommand(DrawRectCommand command)
