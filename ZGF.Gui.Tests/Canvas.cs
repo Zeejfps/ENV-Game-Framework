@@ -1,7 +1,6 @@
 using SoftwareRendererModule;
 using SoftwareRendererOpenGlBackend;
 using ZGF.BMFontModule;
-using ZGF.Geometry;
 using static GL46;
 
 namespace ZGF.Gui.Tests;
@@ -57,6 +56,11 @@ public sealed class Canvas : ICanvas
         var id = _commands.Count;
         _commands.Add(new DrawCommand(id, ComandKind.Text, command.ZIndex));
         _textCommandData.Add(id, command);
+    }
+
+    public void AddCommand(in DrawImageCommand command)
+    {
+        
     }
 
     private void DrawBorder(int x0, int y0, int x1, int y1, uint color, int borderSize, int dx, int dy)
