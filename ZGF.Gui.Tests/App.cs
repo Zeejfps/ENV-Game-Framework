@@ -58,14 +58,15 @@ public sealed class App : OpenGlApp
             Center = center,
         };
 
-        var assetManager = new ImageManager();
+        var imageManager = new ImageManager();
+        imageManager.LoadImage("Assets/Icons/arrow_right.png");
 
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
         var context = new Context
         {
             MouseInputSystem = _mouseInputSystem,
             TextMeasurer = textMeasurer,
-            ImageManager = assetManager,
+            ImageManager = imageManager,
         };
         context.AddService(_contextMenuManager);
 
