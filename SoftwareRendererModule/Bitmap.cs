@@ -17,6 +17,13 @@ public sealed class Bitmap
         _pixels = new uint[width * height];
     }
 
+    public Bitmap(int width, int height, uint[] pixels)
+    {
+        Width = width;
+        Height = height;
+        _pixels = pixels;
+    }
+
     public void Fill(uint color)
     {
         Array.Fill(_pixels, color);
