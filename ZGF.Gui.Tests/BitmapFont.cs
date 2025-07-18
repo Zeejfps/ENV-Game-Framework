@@ -14,10 +14,12 @@ public sealed class BitmapFont
     {
         Png = png;
         FontMetrics = file;
-
-        foreach (var kerning in file.Kernings)
+        if (file.Kernings != null)
         {
-            _kerningPairs.Add((kerning.First, kerning.Second), kerning);;
+            foreach (var kerning in file.Kernings)
+            {
+                _kerningPairs.Add((kerning.First, kerning.Second), kerning);;
+            }
         }
     }
     
