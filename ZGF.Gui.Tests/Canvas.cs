@@ -140,21 +140,19 @@ public sealed class Canvas : ICanvas
         var srcG = (byte)((srcColor >> 8) & 0xFF);
         var srcB = (byte)((srcColor) & 0xFF);
 
-        var dstA = (byte)((dstColor >> 24) & 0xFF);
         var dstR = (byte)((dstColor >> 16) & 0xFF);
         var dstG = (byte)((dstColor >> 8) & 0xFF);
         var dstB = (byte)((dstColor) & 0xFF);
 
-        // Normalize alpha to range [0,1]
-        var alpha = srcA / 255f;
+        var outR = (byte)(((srcR * srcA) + (dstR * (255 - srcA)) + 128) / 255);
+        var outG = (byte)(((srcG * srcA) + (dstG * (255 - srcA)) + 128) / 255);
+        var outB = (byte)(((srcB * srcA) + (dstB * (255 - srcA)) + 128) / 255);
 
-        // Blend each channel
-        var outR = (byte)(srcR * alpha + dstR * (1 - alpha));
-        var outG = (byte)(srcG * alpha + dstG * (1 - alpha));
-        var outB = (byte)(srcB * alpha + dstB * (1 - alpha));
-        var outA = (byte)Math.Min(255, srcA + dstA * (1 - alpha)); // optional
+        // Combine the alpha channels correctly
+        var dstA = (dstColor >> 24) & 0xFF;
+        var outA = (byte)(((srcA * 255) + (dstA * (255 - srcA)) + 128) / 255);
 
-        // Pack back into ARGB
+        // Pack back into an ARGB uint
         return ((uint)outA << 24) | ((uint)outR << 16) | ((uint)outG << 8) | outB;
     }
 
