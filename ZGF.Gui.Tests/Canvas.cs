@@ -22,18 +22,20 @@ public sealed class Canvas : ICanvas
     private readonly BitmapRenderer _bitmapRenderer;
     private readonly BitmapFont _font;
     private readonly ITextMeasurer _textMeasurer;
+    private readonly ImageManager _imageManager;
 
     private readonly List<DrawCommand> _commands = new();
     private readonly Dictionary<int, DrawRectCommand> _rectCommandData = new();
     private readonly Dictionary<int, DrawTextCommand> _textCommandData = new();
     private readonly Dictionary<int, DrawImageCommand> _imageCommandData = new();
 
-    public Canvas(Bitmap colorBuffer, BitmapFont font, ITextMeasurer textMeasurer)
+    public Canvas(Bitmap colorBuffer, BitmapFont font, ITextMeasurer textMeasurer, ImageManager imageManager)
     {
         _colorBuffer = colorBuffer;
         _bitmapRenderer = new BitmapRenderer(colorBuffer);
         _font = font;
         _textMeasurer = textMeasurer;
+        _imageManager = imageManager;
     }
 
     public void BeginFrame()

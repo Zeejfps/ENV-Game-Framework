@@ -34,11 +34,14 @@ public sealed class App : OpenGlApp
         _framebufferWidth = startupConfig.WindowWidth / 2;
         _framebufferHeight = startupConfig.WindowHeight / 2;
 
+        var imageManager = new ImageManager();
+        imageManager.LoadImage("Assets/Icons/arrow_right.png");
+
         _colorBuffer = new Bitmap(_framebufferWidth, _framebufferHeight);
         _bitmapFont = BitmapFont.LoadFromFile("Assets/Fonts/Charcoal/Charcoal_p12.xml");
         var textMeasurer = new TextMeasurer(_bitmapFont);
 
-        _canvas = new Canvas(_colorBuffer, _bitmapFont, textMeasurer);
+        _canvas = new Canvas(_colorBuffer, _bitmapFont, textMeasurer, imageManager);
         glClearColor(0f, 0f, 0f, 0f);
 
         var header = new AppBar
@@ -57,9 +60,6 @@ public sealed class App : OpenGlApp
             North = header,
             Center = center,
         };
-
-        var imageManager = new ImageManager();
-        imageManager.LoadImage("Assets/Icons/arrow_right.png");
 
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
         var context = new Context
