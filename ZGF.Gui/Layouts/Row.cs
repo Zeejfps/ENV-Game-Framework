@@ -19,19 +19,14 @@ public sealed class Row : Component
             return;
         }
 
-        var spacing = (componentCount - 1) * Gap;
-        var totalWidth = position.Width - spacing;
-        var componentWidth = totalWidth / componentCount;
         var left = position.Left;
         foreach (var component in components)
         {
             component.LeftConstraint = left;
-            component.MinWidthConstraint = componentWidth;
-            component.MaxWidthConstraint = componentWidth;
             component.BottomConstraint = position.Bottom;
             component.MaxHeightConstraint = position.Height;
             component.LayoutSelf();
-            left += componentWidth + Gap;
+            left += component.MeasureWidth() + Gap;
         }
     }
 

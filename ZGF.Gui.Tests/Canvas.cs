@@ -190,7 +190,13 @@ public sealed class Canvas : ICanvas
     private void ExecuteCommand(DrawImageCommand command)
     {
         var image = _imageManager.GetImage(command.ImageUri);
-
+        var position = command.Position;
+        var x = (int)position.Left;
+        var y = (int)position.Bottom;
+        var width = (int)position.Width;
+        var height = (int)position.Height;
+        //Console.WriteLine($"{x},{y},{width},{height}");
+        _colorBuffer.Blit(image, x, y, image.Width, image.Height, 0, 0, image.Width, image.Height);
     }
 
     private void ExecuteCommand(DrawRectCommand command)
