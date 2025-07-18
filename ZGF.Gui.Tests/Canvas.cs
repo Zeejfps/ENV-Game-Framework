@@ -129,25 +129,30 @@ public sealed class Canvas : ICanvas
     
     private uint BlendPixel(uint dstColor, uint srcColor)
     {
-        // Extract ARGB components from both
-        byte dstA = (byte)(dstColor >> 24);
-        byte dstR = (byte)(dstColor >> 16);
-        byte dstG = (byte)(dstColor >> 8);
-        byte dstB = (byte)(dstColor);
+        var srcA = (byte)((srcColor >> 24) & 0xFF);
+        if (srcA == 0)
+            return dstColor;
 
-        byte srcA = (byte)(srcColor >> 24);
-        byte srcR = (byte)(srcColor >> 16);
-        byte srcG = (byte)(srcColor >> 8);
-        byte srcB = (byte)(srcColor);
+        if (srcA == 255)
+            return srcColor;
+
+        var srcR = (byte)((srcColor >> 16) & 0xFF);
+        var srcG = (byte)((srcColor >> 8) & 0xFF);
+        var srcB = (byte)((srcColor) & 0xFF);
+
+        var dstA = (byte)((dstColor >> 24) & 0xFF);
+        var dstR = (byte)((dstColor >> 16) & 0xFF);
+        var dstG = (byte)((dstColor >> 8) & 0xFF);
+        var dstB = (byte)((dstColor) & 0xFF);
 
         // Normalize alpha to range [0,1]
-        float alpha = srcA / 255f;
+        var alpha = srcA / 255f;
 
         // Blend each channel
-        byte outR = (byte)(srcR * alpha + dstR * (1 - alpha));
-        byte outG = (byte)(srcG * alpha + dstG * (1 - alpha));
-        byte outB = (byte)(srcB * alpha + dstB * (1 - alpha));
-        byte outA = (byte)Math.Min(255, srcA + dstA * (1 - alpha)); // optional
+        var outR = (byte)(srcR * alpha + dstR * (1 - alpha));
+        var outG = (byte)(srcG * alpha + dstG * (1 - alpha));
+        var outB = (byte)(srcB * alpha + dstB * (1 - alpha));
+        var outA = (byte)Math.Min(255, srcA + dstA * (1 - alpha)); // optional
 
         // Pack back into ARGB
         return ((uint)outA << 24) | ((uint)outR << 16) | ((uint)outG << 8) | outB;
