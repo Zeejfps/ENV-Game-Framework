@@ -7,6 +7,6 @@ var app = new App(new StartupConfig
 {
     WindowWidth = 1280,
     WindowHeight = 960,
-    WindowTitle = "Test"
+    WindowTitle = "Test",
 });
 app.Run();

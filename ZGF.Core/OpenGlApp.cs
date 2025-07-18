@@ -10,6 +10,7 @@ public readonly struct StartupConfig
     public required int WindowWidth { get; init; }
     public required int WindowHeight { get; init; }
     public required string WindowTitle { get; init; }
+    public bool IsUndecorated { get; init; }
 }
 
 public abstract class OpenGlApp : IDisposable
@@ -26,6 +27,9 @@ public abstract class OpenGlApp : IDisposable
         Glfw.WindowHint(Hint.ContextVersionMajor, 4);
         Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
         Glfw.WindowHint(Hint.Visible, false);
+
+        if (startupConfig.IsUndecorated)
+            Glfw.WindowHint(Hint.Decorated, false);
 
         var windowWidth = startupConfig.WindowWidth;
         var windowHeight = startupConfig.WindowHeight;
