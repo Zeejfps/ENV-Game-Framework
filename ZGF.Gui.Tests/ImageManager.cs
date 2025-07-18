@@ -1,6 +1,6 @@
 namespace ZGF.Gui.Tests;
 
-public sealed class AssetManager : IAssetManager
+public sealed class ImageManager : IImageManager
 {
     public int GetImageWidth(string imageUri)
     {

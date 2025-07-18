@@ -4,7 +4,7 @@ public sealed class Context
 {
     public required MouseInputSystem MouseInputSystem { get; init; }
     public required ITextMeasurer TextMeasurer { get; init; }
-    public required IAssetManager AssetManager { get; init; }
+    public required IImageManager ImageManager { get; init; }
 
     private readonly Dictionary<Type, object> _services = new();
 

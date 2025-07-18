@@ -1,6 +1,6 @@
 namespace ZGF.Gui;
 
-public interface IAssetManager
+public interface IImageManager
 {
     int GetImageWidth(string imageUri);
     int GetImageHeight(string imageUri);

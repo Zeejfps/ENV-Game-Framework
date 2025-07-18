@@ -22,7 +22,7 @@ public sealed class Image : Component
             return PreferredWidth.Value;
 
         if (ImageUri != null && Context != null)
-            return Context.AssetManager.GetImageWidth(ImageUri);
+            return Context.ImageManager.GetImageWidth(ImageUri);
 
         return 0;
     }
@@ -33,7 +33,7 @@ public sealed class Image : Component
             return PreferredHeight.Value;
 
         if (ImageUri != null && Context != null)
-            return Context.AssetManager.GetImageHeight(ImageUri);
+            return Context.ImageManager.GetImageHeight(ImageUri);
 
         return 0;
     }
