@@ -27,7 +27,18 @@ public sealed class ContextMenuItem : Component
             Padding = PaddingStyle.All(4)
         };
 
-        _bg.Add(new Label(name));
+        var row = new Row
+        {
+            new Label(name),
+        };
+        row.Gap = 5;
+
+        if (SubOptions.Count > 0)
+        {
+            row.Add(new Label("O"));
+        }
+
+        _bg.Add(row);
         Add(_bg);
     }
 
