@@ -30,6 +30,10 @@ public sealed class ContextMenuItem : Component
         var row = new Row
         {
             new Label(name),
+            new Image
+            {
+                ImageUri = "Assets/Icons/arrow_right.png",
+            }
         };
         row.Gap = 5;
 

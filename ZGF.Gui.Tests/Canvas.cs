@@ -46,6 +46,7 @@ public sealed class Canvas : ICanvas
         _commands.Clear();
         _rectCommandData.Clear();
         _textCommandData.Clear();
+        _imageCommandData.Clear();
     }
 
     public void AddCommand(in DrawRectCommand command)
@@ -188,6 +189,7 @@ public sealed class Canvas : ICanvas
 
     private void ExecuteCommand(DrawImageCommand command)
     {
+        var image = _imageManager.GetImage(command.ImageUri);
 
     }
 
