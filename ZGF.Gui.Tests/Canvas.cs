@@ -203,9 +203,19 @@ public sealed class Canvas : ICanvas
         var y = (int)position.Bottom;
         var width = (int)position.Width;
         var height = (int)position.Height;
-        //Console.WriteLine($"{x},{y},{width},{height}");
+        
+        var aspect = (float)image.Width / image.Height;
+        if (height < width)
+        {
+            width = (int)(height * aspect);
+        }
+        else if (width < height)
+        {
+            height = (int)(width / aspect);
+        }
+        
         Graphics.BlitTransparent(
-            _colorBuffer, x, y, image.Width, image.Height,
+            _colorBuffer, x, y, width, height,
             image, 0, 0, image.Width, image.Height,
             0x000000
         );

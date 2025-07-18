@@ -27,23 +27,21 @@ public sealed class ContextMenuItem : Component
             Padding = PaddingStyle.All(4)
         };
 
+        _arrowIcon = new Image
+        {
+            PreferredWidth = 20,
+            PreferredHeight = 20
+        };
+
         var row = new Row
         {
             new Label(name)
             {
                 VerticalTextAlignment = TextAlignment.Center,
             },
-            new Image
-            {
-                ImageUri = "Assets/Icons/arrow_right.png",
-            }
+            _arrowIcon,
         };
         row.Gap = 5;
-
-        if (SubOptions.Count > 0)
-        {
-            row.Add(new Label("O"));
-        }
 
         _bg.Add(row);
         Add(_bg);
@@ -52,6 +50,10 @@ public sealed class ContextMenuItem : Component
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
+        if (SubOptions.Count > 0)
+        {
+            _arrowIcon.ImageUri = "Assets/Icons/arrow_right.png";
+        }
         context.MouseInputSystem.EnableHover(this);
     }
 
@@ -62,6 +64,7 @@ public sealed class ContextMenuItem : Component
     }
 
     private ContextMenu? _subMenu;
+    private readonly Image _arrowIcon;
 
     protected override void OnMouseEnter()
     {
