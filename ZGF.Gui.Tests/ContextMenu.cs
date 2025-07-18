@@ -30,7 +30,9 @@ public sealed class ContextMenu : Component
         };
         background.AddStyleClass("raised_panel");
 
-        var option1 = new ContextMenuItem(this, "Option 1")
+        var option1 = new ContextMenuItem(this, "Option 1");
+        var option2 = new ContextMenuItem(this, "Option 2");
+        var option3 = new ContextMenuItem(this, "Option 3")
         {
             SubOptions =
             {
@@ -48,8 +50,6 @@ public sealed class ContextMenu : Component
                 },
             }
         };
-        var option2 = new ContextMenuItem(this, "Option 2");
-        var option3 = new ContextMenuItem(this, "Option 3");
         var option4 = new ContextMenuItem(this, "Option 4");
 
         var column = new Column

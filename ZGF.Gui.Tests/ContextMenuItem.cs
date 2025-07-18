@@ -1,3 +1,5 @@
+using ZGF.Gui.Layouts;
+
 namespace ZGF.Gui.Tests;
 
 public sealed class ContextMenuItemData
@@ -16,14 +18,16 @@ public sealed class ContextMenuItem : Component
 
     public ContextMenuItem(ContextMenu contextMenu, string name)
     {
+        ZIndex = 2;
+
         _contextMenu = contextMenu;
         _bg = new Panel
         {
             BackgroundColor = 0xDEDEDE,
             Padding = PaddingStyle.All(4)
         };
+
         _bg.Add(new Label(name));
-        ZIndex = 2;
         Add(_bg);
     }
 
