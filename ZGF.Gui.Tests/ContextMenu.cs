@@ -6,10 +6,16 @@ namespace ZGF.Gui.Tests;
 public sealed class ContextMenu : Component
 {
     private readonly PointF _anchorPoint;
+    private readonly ContextMenu? _parentMenu;
 
-    public ContextMenu(PointF anchorPoint)
+    public ContextMenu? ParentMenu => _parentMenu;
+
+    private ContextMenuManager? ContextMenuManager => Get<ContextMenuManager>();
+
+    public ContextMenu(PointF anchorPoint, ContextMenu? parentMenu = null)
     {
         _anchorPoint = anchorPoint;
+        _parentMenu = parentMenu;
 
         var background = new Panel
         {
@@ -90,11 +96,11 @@ public sealed class ContextMenu : Component
     
     protected override void OnMouseEnter()
     {
-        Get<ContextMenuManager>()?.SetKeepOpen(this);
+        ContextMenuManager?.SetKeepOpen(this);
     }
 
     protected override void OnMouseExit()
     {
-        Get<ContextMenuManager>()?.HideContextMenu(this);
+        ContextMenuManager?.HideContextMenu(this);
     }
 }

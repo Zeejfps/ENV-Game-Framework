@@ -47,7 +47,7 @@ public sealed class ContextMenuItem : Component
         ContextMenuManager?.SetKeepOpen(_contextMenu);
         if (SubOptions.Count > 0)
         {
-            _subMenu = ContextMenuManager?.ShowContextMenu(Position.TopRight);
+            _subMenu = ContextMenuManager?.ShowContextMenu(Position.TopRight, _contextMenu);
         }
     }
 

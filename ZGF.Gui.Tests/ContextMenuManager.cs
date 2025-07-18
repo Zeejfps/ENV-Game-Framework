@@ -13,9 +13,9 @@ public sealed class ContextMenuManager
         _contextMenuPane = contextMenuPane;
     }
 
-    public ContextMenu ShowContextMenu(PointF anchor)
+    public ContextMenu ShowContextMenu(PointF anchor, ContextMenu? parentMenu = null)
     {
-        var contextMenu = new ContextMenu(anchor);
+        var contextMenu = new ContextMenu(anchor, parentMenu);
         _contextMenuPane.Add(contextMenu);
         return contextMenu;
     }
@@ -23,11 +23,23 @@ public sealed class ContextMenuManager
     public void SetKeepOpen(ContextMenu contextMenu)
     {
         _closingContextMenus.Remove(contextMenu);
+        var parentMenu = contextMenu.ParentMenu;
+        while (parentMenu is not null)
+        {
+            _closingContextMenus.Remove(parentMenu);
+            parentMenu = parentMenu.ParentMenu;
+        }
     }
     
     public void HideContextMenu(ContextMenu contextMenu)
     {
         _closingContextMenus.Add(contextMenu);
+        var parentMenu = contextMenu.ParentMenu;
+        while (parentMenu is not null)
+        {
+            _closingContextMenus.Add(parentMenu);
+            parentMenu = parentMenu.ParentMenu;
+        }
     }
 
     public void Update()
