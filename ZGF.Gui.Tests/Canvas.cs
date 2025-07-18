@@ -206,7 +206,8 @@ public sealed class Canvas : ICanvas
         //Console.WriteLine($"{x},{y},{width},{height}");
         Graphics.BlitTransparent(
             _colorBuffer, x, y, image.Width, image.Height,
-            image, 0, 0, image.Width, image.Height
+            image, 0, 0, image.Width, image.Height,
+            0x000000
         );
     }
 

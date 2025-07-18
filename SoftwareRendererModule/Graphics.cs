@@ -196,7 +196,8 @@ public static class Graphics
         int dstW, int dstH,
         Bitmap srcBmp,
         int srcX, int srcY,
-        int srcW, int srcH
+        int srcW, int srcH,
+        uint tintColor = 0xFFFFFFFF // Default to white (no tint)
     )
     {
         // --- 1. Initial Checks and Variable Hoisting ---
@@ -232,6 +233,7 @@ public static class Graphics
         // and avoids integer division issues.
         float x_ratio = (float)srcW / dstW;
         float y_ratio = (float)srcH / dstH;
+        bool applyTint = (tintColor != 0xFFFFFFFF); // Check once before the loop
 
         // --- 4. Main Loop ---
         // Iterate over every pixel in the *clipped* destination area.
@@ -262,10 +264,41 @@ public static class Graphics
 
                 var srcColor = srcPixels[srcIndex];
 
+                if (applyTint)
+                {
+                    srcColor = TintPixel(srcColor, tintColor);
+                }
+
                 var dstColor = dstPixels[dstIndex];
                 dstPixels[dstIndex] = BlendPixel(dstColor, srcColor);
             }
         }
+    }
+
+    public static uint TintPixel(uint source, uint tint)
+    {
+        // Extract alpha from the source, as it determines the final transparency
+        uint src_a = source >> 24;
+
+        // If the source is fully transparent, tinting has no effect.
+        if (src_a == 0) return 0;
+
+        // Extract RGB components from both colors
+        uint src_r = (source >> 16) & 0xFF;
+        uint src_g = (source >> 8) & 0xFF;
+        uint src_b = source & 0xFF;
+
+        uint tint_r = (tint >> 16) & 0xFF;
+        uint tint_g = (tint >> 8) & 0xFF;
+        uint tint_b = tint & 0xFF;
+
+        // Modulate (multiply) the components and scale back to 0-255 range
+        uint final_r = (src_r * tint_r) / 255;
+        uint final_g = (src_g * tint_g) / 255;
+        uint final_b = (src_b * tint_b) / 255;
+
+        // Recombine into the final ARGB color
+        return (src_a << 24) | (final_r << 16) | (final_g << 8) | final_b;
     }
 
     public static uint BlendPixel(uint dstColor, uint srcColor)
