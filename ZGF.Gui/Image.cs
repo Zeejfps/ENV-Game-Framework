@@ -9,11 +9,11 @@ public sealed class ImageInfo
 
 public sealed class Image : Component
 {
-    private ImageInfo? _imageInfo;
-    public ImageInfo? ImageUri
+    private string? _imageUri;
+    public string? ImageUri
     {
-        get => _imageInfo;
-        set => SetField(ref _imageInfo, value);
+        get => _imageUri;
+        set => SetField(ref _imageUri, value);
     }
 
     public override float MeasureWidth()
@@ -21,8 +21,8 @@ public sealed class Image : Component
         if (PreferredWidth.IsSet)
             return PreferredWidth.Value;
 
-        if (ImageUri != null)
-            return ImageUri.Width;
+        if (ImageUri != null && Context != null)
+            return Context.AssetManager.GetImageWidth(ImageUri);
 
         return 0;
     }
@@ -32,21 +32,21 @@ public sealed class Image : Component
         if (PreferredHeight.IsSet)
             return PreferredHeight.Value;
 
-        if (ImageUri != null)
-            return ImageUri.Height;
+        if (ImageUri != null && Context != null)
+            return Context.AssetManager.GetImageHeight(ImageUri);
 
         return 0;
     }
 
     protected override void OnDrawSelf(ICanvas c)
     {
-        if (_imageInfo == null)
+        if (_imageUri == null)
             return;
 
         c.AddCommand(new DrawImageCommand
         {
             Position = Position,
-            ImageInfo = _imageInfo,
+            ImageUri = _imageUri,
             ZIndex = ZIndex,
         });
     }

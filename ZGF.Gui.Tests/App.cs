@@ -58,11 +58,14 @@ public sealed class App : OpenGlApp
             Center = center,
         };
 
+        var assetManager = new AssetManager();
+
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
         var context = new Context
         {
             MouseInputSystem = _mouseInputSystem,
             TextMeasurer = textMeasurer,
+            AssetManager = assetManager,
         };
         context.AddService(_contextMenuManager);
 

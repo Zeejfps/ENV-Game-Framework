@@ -6,5 +6,5 @@ public readonly struct DrawImageCommand
 {
     public required RectF Position { get; init; }
     public required int ZIndex { get; init; }
-    public ImageInfo ImageInfo { get; init; }
+    public string ImageUri { get; init; }
 }
