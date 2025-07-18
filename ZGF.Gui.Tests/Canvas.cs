@@ -9,6 +9,7 @@ enum ComandKind
 {
     Rect,
     Text,
+    Image,
 }
 
 internal readonly record struct DrawCommand(int Id, ComandKind Kind, int ZIndex)
@@ -22,9 +23,10 @@ public sealed class Canvas : ICanvas
     private readonly BitmapFont _font;
     private readonly ITextMeasurer _textMeasurer;
 
-    private List<DrawCommand> _commands = new();
-    private Dictionary<int, DrawRectCommand> _rectCommandData = new();
-    private Dictionary<int, DrawTextCommand> _textCommandData = new();
+    private readonly List<DrawCommand> _commands = new();
+    private readonly Dictionary<int, DrawRectCommand> _rectCommandData = new();
+    private readonly Dictionary<int, DrawTextCommand> _textCommandData = new();
+    private readonly Dictionary<int, DrawImageCommand> _imageCommandData = new();
 
     public Canvas(Bitmap colorBuffer, BitmapFont font, ITextMeasurer textMeasurer)
     {
@@ -60,7 +62,9 @@ public sealed class Canvas : ICanvas
 
     public void AddCommand(in DrawImageCommand command)
     {
-        
+        var id = _commands.Count;
+        _commands.Add(new DrawCommand(id, ComandKind.Image, command.ZIndex));
+        _imageCommandData.Add(id, command);
     }
 
     private void DrawBorder(int x0, int y0, int x1, int y1, uint color, int borderSize, int dx, int dy)
@@ -169,12 +173,20 @@ public sealed class Canvas : ICanvas
                     var textCommand = _textCommandData[command.Id];
                     ExecuteCommand(textCommand);
                     break;
+                case ComandKind.Image:
+                    var imageCommand = _imageCommandData[command.Id];
+                    ExecuteCommand(imageCommand);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
-        
         _bitmapRenderer.Render();
+    }
+
+    private void ExecuteCommand(DrawImageCommand command)
+    {
+
     }
 
     private void ExecuteCommand(DrawRectCommand command)
