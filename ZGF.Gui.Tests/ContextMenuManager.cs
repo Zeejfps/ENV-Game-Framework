@@ -5,8 +5,7 @@ namespace ZGF.Gui.Tests;
 public sealed class ContextMenuManager
 {
     private readonly Component _contextMenuPane;
-
-    private HashSet<Component> _closingContextMenus = new();
+    private readonly Dictionary<Component, long> _closingContextMenus = new();
     
     public ContextMenuManager(Component contextMenuPane)
     {
@@ -33,21 +32,28 @@ public sealed class ContextMenuManager
     
     public void HideContextMenu(ContextMenu contextMenu)
     {
-        _closingContextMenus.Add(contextMenu);
+        var timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+        _closingContextMenus[contextMenu] = timestamp;
         var parentMenu = contextMenu.ParentMenu;
         while (parentMenu is not null)
         {
-            _closingContextMenus.Add(parentMenu);
+            _closingContextMenus[parentMenu] = timestamp;
             parentMenu = parentMenu.ParentMenu;
         }
     }
 
     public void Update()
     {
-        foreach (var contextMenu in _closingContextMenus)
+        var now = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+        foreach (var kvp in _closingContextMenus.ToList())
         {
-            _contextMenuPane.Remove(contextMenu);
+            var contextMenu = kvp.Key;
+            var timestamp = kvp.Value;
+            if (now - timestamp > 100)
+            {
+                _contextMenuPane.Remove(contextMenu);
+                _closingContextMenus.Remove(contextMenu);
+            }
         }
-        _closingContextMenus.Clear();
     }
 }
