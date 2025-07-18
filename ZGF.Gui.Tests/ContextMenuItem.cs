@@ -1,7 +1,14 @@
 namespace ZGF.Gui.Tests;
 
+public sealed class ContextMenuItemData
+{
+    public string Text { get; set; }
+}
+
 public sealed class ContextMenuItem : Component
 {
+    public List<ContextMenuItemData> SubOptions { get; } = new();
+
     private readonly ContextMenu _contextMenu;
     private readonly Panel _bg;
 
@@ -32,15 +39,26 @@ public sealed class ContextMenuItem : Component
         base.OnDetachedFromContext(context);
     }
 
+    private ContextMenu? _subMenu;
+
     protected override void OnMouseEnter()
     {
         _bg.BackgroundColor = 0x9C9CCE;
         ContextMenuManager?.SetKeepOpen(_contextMenu);
+        if (SubOptions.Count > 0)
+        {
+            _subMenu = ContextMenuManager?.ShowContextMenu(Position.TopRight);
+        }
     }
 
     protected override void OnMouseExit()
     {
         _bg.BackgroundColor = 0xDEDEDE;
         ContextMenuManager?.HideContextMenu(_contextMenu);
+
+        if (_subMenu != null)
+        {
+            ContextMenuManager?.HideContextMenu(_subMenu);
+        }
     }
 }

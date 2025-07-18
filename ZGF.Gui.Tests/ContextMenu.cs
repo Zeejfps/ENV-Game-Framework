@@ -24,7 +24,24 @@ public sealed class ContextMenu : Component
         };
         background.AddStyleClass("raised_panel");
 
-        var option1 = new ContextMenuItem(this, "Option 1");
+        var option1 = new ContextMenuItem(this, "Option 1")
+        {
+            SubOptions =
+            {
+                new ContextMenuItemData
+                {
+                    Text = "Test1"
+                },
+                new ContextMenuItemData
+                {
+                    Text = "Test2"
+                },
+                new ContextMenuItemData
+                {
+                    Text = "Test3"
+                },
+            }
+        };
         var option2 = new ContextMenuItem(this, "Option 2");
         var option3 = new ContextMenuItem(this, "Option 3");
         var option4 = new ContextMenuItem(this, "Option 4");
