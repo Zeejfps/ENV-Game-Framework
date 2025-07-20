@@ -14,23 +14,20 @@ public sealed class WindowTitleBar : Component
 
         var background = new Panel
         {
-            Style =
+            BackgroundColor = 0xCECECE,
+            BorderColor = new BorderColorStyle
             {
-                BackgroundColor = 0xCECECE,
-                BorderColor = new BorderColorStyle
-                {
-                    Top = 0xFFFFFF,
-                    Left = 0xFFFFFF,
-                    Right = 0x9C9C9C,
-                },
-                BorderSize = new BorderSizeStyle
-                {
-                    Top = 1,
-                    Left = 1,
-                    Right = 1,
-                },
-                Padding = PaddingStyle.All(3)
-            }
+                Top = 0xFFFFFF,
+                Left = 0xFFFFFF,
+                Right = 0x9C9C9C,
+            },
+            BorderSize = new BorderSizeStyle
+            {
+                Top = 1,
+                Left = 1,
+                Right = 1,
+            },
+            Padding = PaddingStyle.All(3)
         };
 
         var row = new FlexRow

@@ -14,18 +14,15 @@ public sealed class WindowResizer : Component
         _background = new Panel
         {
             BackgroundColor = 0xCECECE,
-            Style =
+            BorderSize = new BorderSizeStyle
             {
-                BorderSize = new BorderSizeStyle
-                {
-                    Left = 1,
-                    Top = 1,
-                },
-                BorderColor = new BorderColorStyle
-                {
-                    Left = 0xFFFFFF,
-                    Top = 0xFFFFFF,
-                }
+                Left = 1,
+                Top = 1,
+            },
+            BorderColor = new BorderColorStyle
+            {
+                Left = 0xFFFFFF,
+                Top = 0xFFFFFF,
             }
         };
         

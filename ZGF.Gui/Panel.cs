@@ -2,8 +2,7 @@ namespace ZGF.Gui;
 
 public class Panel : Component
 {
-    private RectStyle _style = new();
-    public RectStyle Style => _style;
+    private readonly RectStyle _style = new();
 
     public StyleValue<uint> BackgroundColor
     {
@@ -34,7 +33,7 @@ public class Panel : Component
         c.AddCommand(new DrawRectCommand
         {
             Position = Position,
-            Style = Style,
+            Style = _style,
             ZIndex = ZIndex
         });
     }
@@ -43,7 +42,7 @@ public class Panel : Component
     {
         var width= base.MeasureWidth();
         var padding = Padding;
-        var borderSize = Style.BorderSize;
+        var borderSize = _style.BorderSize;
         width += padding.Left + padding.Right + borderSize.Left + borderSize.Right;
         return width;
     }
@@ -52,7 +51,7 @@ public class Panel : Component
     {
         var height = base.MeasureHeight();
         var padding = Padding;
-        var borderSize = Style.BorderSize;
+        var borderSize = _style.BorderSize;
         height += padding.Top + padding.Bottom + borderSize.Top + borderSize.Bottom;
         return height;
     }
@@ -60,8 +59,8 @@ public class Panel : Component
     protected override void OnLayoutChildren()
     {
         var position = Position;
-        var padding = Style.Padding;
-        var border = Style.BorderSize;
+        var padding = _style.Padding;
+        var border = _style.BorderSize;
         
         var left = position.Left + padding.Left + border.Left;
         var right = position.Right - padding.Right - border.Right;
@@ -82,6 +81,6 @@ public class Panel : Component
     protected override void OnApplyStyle(Style style)
     {
         base.OnApplyStyle(style);
-        Style.Apply(style);
+        _style.Apply(style);
     }
 }

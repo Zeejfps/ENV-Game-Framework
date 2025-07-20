@@ -361,6 +361,11 @@ public class Component : IEnumerable<Component>
         }
     }
 
+    public void ApplyStyle(Style style)
+    {
+        OnApplyStyle(style);
+    }
+
     protected virtual void OnStyleSheetApplied(StyleSheet styleSheet)
     {
         foreach (var styleClass in StyleClasses)

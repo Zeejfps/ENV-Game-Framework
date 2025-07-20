@@ -17,16 +17,13 @@ public sealed class AppBar : Component
         var background = new Panel
         {
             BackgroundColor = 0xDEDEDE,
-            Style = 
+            BorderSize = BorderSizeStyle.All(1),
+            BorderColor = new BorderColorStyle
             {
-                BorderSize = BorderSizeStyle.All(1),
-                BorderColor = new BorderColorStyle
-                {
-                    Top = 0xFFFFFF,
-                    Left = 0xFFFFFF,
-                    Right = 0x9C9C9C,
-                    Bottom = 0x9C9C9C
-                }
+                Top = 0xFFFFFF,
+                Left = 0xFFFFFF,
+                Right = 0x9C9C9C,
+                Bottom = 0x9C9C9C
             }
         };
 

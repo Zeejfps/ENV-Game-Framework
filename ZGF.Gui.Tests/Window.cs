@@ -14,12 +14,9 @@ public sealed class Window : Component
         
         var outline = new Panel
         {
-            Style =
-            {
-                BackgroundColor = 0x000000,
-                BorderSize = BorderSizeStyle.All(1),
-                BorderColor = BorderColorStyle.All(0x000000),
-            }
+            BackgroundColor = 0x000000,
+            BorderSize = BorderSizeStyle.All(1),
+            BorderColor = BorderColorStyle.All(0x000000),
         };
 
         var titlePanel = new WindowTitleBar(this);
@@ -28,16 +25,13 @@ public sealed class Window : Component
         {
             PreferredWidth = 4f,
             BackgroundColor = 0xCECECE,
-            Style =
+            BorderColor = new BorderColorStyle
             {
-                BorderColor = new BorderColorStyle
-                {
-                    Left = 0xFFFFFF,
-                },
-                BorderSize = new BorderSizeStyle
-                {
-                    Left = 1
-                }
+                Left = 0xFFFFFF,
+            },
+            BorderSize = new BorderSizeStyle
+            {
+                Left = 1
             }
         };
         
@@ -45,16 +39,13 @@ public sealed class Window : Component
         {
             PreferredWidth = 4f,
             BackgroundColor = 0xCECECE,
-            Style =
+            BorderColor = new BorderColorStyle
             {
-                BorderColor = new BorderColorStyle
-                {
-                    Right = 0x9C9C9C,
-                },
-                BorderSize = new BorderSizeStyle
-                {
-                    Right = 1
-                }
+                Right = 0x9C9C9C,
+            },
+            BorderSize = new BorderSizeStyle
+            {
+                Right = 1
             }
         };
         
@@ -62,43 +53,34 @@ public sealed class Window : Component
         {
             PreferredHeight = 4f,
             BackgroundColor = 0xCECECE,
-            Style =
+            BorderColor = new BorderColorStyle
             {
-                BorderColor = new BorderColorStyle
-                {
-                    Bottom = 0x9C9C9C,
-                    Right = 0x9C9C9C,
-                    Left = 0xFFFFFF
-                },
-                BorderSize = new BorderSizeStyle
-                {
-                    Bottom = 1,
-                    Right = 1,
-                    Left = 1,
-                }
+                Bottom = 0x9C9C9C,
+                Right = 0x9C9C9C,
+                Left = 0xFFFFFF
+            },
+            BorderSize = new BorderSizeStyle
+            {
+                Bottom = 1,
+                Right = 1,
+                Left = 1,
             }
         };
         
         var contentOutline = new Panel
         {
-            Style =
+            Padding = new PaddingStyle
             {
-                Padding = new PaddingStyle
-                {
-                    Bottom = 5
-                }
+                Bottom = 5
             }
         };
         contentOutline.AddStyleClass("inset_panel");
 
         var content = new Panel
         {
-            Style =
-            {
-                BackgroundColor = 0xFF00FF,
-                BorderSize = BorderSizeStyle.All(1),
-                BorderColor = BorderColorStyle.All(0x00FFFF)
-            }
+            BackgroundColor = 0xFF00FF,
+            BorderSize = BorderSizeStyle.All(1),
+            BorderColor = BorderColorStyle.All(0x00FFFF)
         };
 
         var columnLayout = new Column();
@@ -124,14 +106,11 @@ public sealed class Window : Component
         var progress = new Panel
         {
             BackgroundColor = 0xEFEFEF,
-            Style =
+            BorderSize = new BorderSizeStyle
             {
-                BorderSize = new BorderSizeStyle
-                {
-                    Top = 1,
-                },
-                BorderColor = BorderColorStyle.All(0x000000)
-            }
+                Top = 1,
+            },
+            BorderColor = BorderColorStyle.All(0x000000)
         };
         
         var bottomSection = new BorderLayout

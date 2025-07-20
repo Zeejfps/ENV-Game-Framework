@@ -1,4 +1,4 @@
-namespace ZGF.Gui;
+namespace ZGF.Gui.Tests;
 
 public sealed class TextButton : Component
 {
@@ -12,11 +12,7 @@ public sealed class TextButton : Component
         _background = new Panel
         {
             BackgroundColor = 0x232345,
-            Style =
-            {
-                BorderSize = BorderSizeStyle.All(4),
-                //BorderColor = BorderColorStyle.All(0xFF00FF)
-            }
+            BorderSize = BorderSizeStyle.All(4),
         };
 
         Add(_background);
@@ -37,13 +33,13 @@ public sealed class TextButton : Component
 
     protected override void OnMouseEnter()
     {
-        _background.Style.Apply(BackgroundHoveredStyle);
+        _background.ApplyStyle(BackgroundHoveredStyle);
         Context?.MouseInputSystem.TryFocus(this);
     }
 
     protected override void OnMouseExit()
     {
-        _background.Style.Apply(BackgroundNormalStyle);
+        _background.ApplyStyle(BackgroundNormalStyle);
         Context?.MouseInputSystem.Blur(this);
     }
 }

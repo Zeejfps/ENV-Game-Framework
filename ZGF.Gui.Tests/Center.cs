@@ -8,10 +8,7 @@ public sealed class Center : Component
     {
         var background = new Panel
         {
-            Style =
-            {
-                BackgroundColor = 0x9C9CCE,
-            }
+            BackgroundColor = 0x9C9CCE,
         };
         
         Add(background);
