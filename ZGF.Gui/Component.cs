@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics;
 using ZGF.Geometry;
 
 namespace ZGF.Gui;
@@ -36,6 +37,21 @@ public class Component : IEnumerable<Component>
                 return false;
             return Context.MouseInputSystem.IsInteractable(this);
         }
+
+        set
+        {
+            if (Context == null)
+                return;
+
+            if (value == true)
+            {
+                Context.MouseInputSystem.EnableHover(this);
+            }
+            else
+            {
+                Context.MouseInputSystem.DisableHover(this);
+            }
+        }
     }
 
     public bool IsFocused
@@ -45,6 +61,21 @@ public class Component : IEnumerable<Component>
             if (Context == null)
                 return false;
             return Context.MouseInputSystem.IsFocused(this);
+        }
+
+        set
+        {
+            if (Context == null)
+                return;
+
+            if (value == true)
+            {
+                Context.MouseInputSystem.Focus(this);
+            }
+            else
+            {
+                Context.MouseInputSystem.Blur(this);
+            }
         }
     }
 
@@ -303,6 +334,7 @@ public class Component : IEnumerable<Component>
 
     public void DrawSelf()
     {
+        Debug.Assert(Context != null);
         var c = Context.Canvas;
         DrawSelf(c);
     }
