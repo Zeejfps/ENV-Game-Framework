@@ -7,14 +7,33 @@ public sealed class ContextMenuItemData
     public string Text { get; set; }
 }
 
+public interface IContextMenuItem
+{
+
+}
+
+public interface IContextMenuItemController
+{
+    void Dispose();
+}
+
 public sealed class ContextMenuItem : Component
 {
     public List<ContextMenuItemData> SubOptions { get; } = new();
 
     private readonly ContextMenu _contextMenu;
     private readonly Panel _bg;
+    private readonly Image _arrowIcon;
+    private readonly Label _label;
 
     private ContextMenuManager? ContextMenuManager => Get<ContextMenuManager>();
+    private ContextMenu? _subMenu;
+
+    public string? Text
+    {
+        get => _label.Text;
+        set => _label.Text = value;
+    }
 
     public ContextMenuItem(ContextMenu contextMenu, string name)
     {
@@ -33,13 +52,15 @@ public sealed class ContextMenuItem : Component
             PreferredHeight = 20
         };
 
+        _label = new Label
+        {
+            Text = name,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+
         var row = new Row
         {
-            new Label
-            {
-                Text = name,
-                VerticalTextAlignment = TextAlignment.Center,
-            },
+            _label,
             _arrowIcon,
         };
         row.Gap = 5;
@@ -63,9 +84,6 @@ public sealed class ContextMenuItem : Component
         context.MouseInputSystem.DisableHover(this);
         base.OnDetachedFromContext(context);
     }
-
-    private ContextMenu? _subMenu;
-    private readonly Image _arrowIcon;
 
     protected override void OnMouseEnter()
     {
