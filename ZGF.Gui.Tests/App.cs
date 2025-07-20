@@ -40,7 +40,7 @@ public sealed class App : OpenGlApp
         var contextMenuPane = new Component();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
 
-        var header = new AppBar(_contextMenuManager);
+        var header = new AppBar(this, _contextMenuManager);
         var center = new Center();
         _window = center.Window;
 
@@ -190,5 +190,10 @@ public sealed class App : OpenGlApp
 
     protected override void DisposeUnmanagedResources()
     {
+    }
+
+    public void Exit()
+    {
+        Glfw.SetWindowShouldClose(WindowHandle, true);
     }
 }

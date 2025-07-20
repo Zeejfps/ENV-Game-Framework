@@ -4,7 +4,7 @@ namespace ZGF.Gui.Tests;
 
 public sealed class AppBar : Component
 {
-    public AppBar(ContextMenuManager contextMenuManager)
+    public AppBar(App app, ContextMenuManager contextMenuManager)
     {
         var container = new Panel
         {
@@ -28,7 +28,7 @@ public sealed class AppBar : Component
         };
 
         var fileItem = new MenuItem(
-            menuItem => new FileMenuItemController(menuItem, contextMenuManager)
+            menuItem => new FileMenuItemController(menuItem, contextMenuManager, app)
         );
         var editItem = new MenuItem(
             menuItem => new TestMenuItemController(menuItem, "Edit", contextMenuManager)
