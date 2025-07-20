@@ -28,6 +28,26 @@ public class Component : IEnumerable<Component>
         }
     }
 
+    public bool IsInteractable
+    {
+        get
+        {
+            if (Context == null)
+                return false;
+            return Context.MouseInputSystem.IsInteractable(this);
+        }
+    }
+
+    public bool IsFocused
+    {
+        get
+        {
+            if (Context == null)
+                return false;
+            return Context.MouseInputSystem.IsFocused(this);
+        }
+    }
+
     protected virtual void OnAttachedToContext(Context context)
     {
 

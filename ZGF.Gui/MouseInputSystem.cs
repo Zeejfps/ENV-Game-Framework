@@ -28,7 +28,13 @@ public sealed class MouseInputSystem
 
     public void DisableHover(Component hoverable)
     {
-        _hoverableComponents.Remove(hoverable);
+        if (_hoverableComponents.Remove(hoverable))
+        {
+            if (_focusedComponent == hoverable)
+            {
+                _focusedComponent = null;
+            }
+        }
     }
 
     public void HandleMouseButtonEvent(MouseButtonEvent e)
@@ -110,6 +116,16 @@ public sealed class MouseInputSystem
         {
             _focusedComponent = null;       
         }
+    }
+
+    public bool IsInteractable(Component component)
+    {
+        return _hoverableComponents.Contains(component);
+    }
+
+    public bool IsFocused(Component component)
+    {
+        return _focusedComponent == component;
     }
 }
 
