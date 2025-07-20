@@ -2,89 +2,6 @@
 
 namespace ZGF.Gui.Tests;
 
-public sealed class MenuItemController : IMenuItemController
-{
-    private readonly IMenuItem _menuItem;
-    private readonly ContextMenuManager _contextMenuManager;
-
-    private ContextMenu? _contextMenu;
-
-    public MenuItemController(IMenuItem menuItem, string text, ContextMenuManager contextMenuManager)
-    {
-        _menuItem = menuItem;
-        _contextMenuManager = contextMenuManager;
-        menuItem.Text = text;
-    }
-
-    public void Dispose()
-    {
-
-    }
-
-    public void OnMouseEnter()
-    {
-        _menuItem.IsHovered = true;
-        _contextMenu = _contextMenuManager
-            .ShowContextMenu(_menuItem.Position.BottomLeft);
-
-        _contextMenu.AddItem(new ContextMenuItem(_contextMenu, "Option 1"));
-        _contextMenu.AddItem(new ContextMenuItem(_contextMenu, "Option 2"));
-        _contextMenu.AddItem(new ContextMenuItem(_contextMenu, "Option 3")
-        {
-            SubOptions =
-            {
-                new ContextMenuItemData
-                {
-                    Text = "Test1"
-                },
-                new ContextMenuItemData
-                {
-                    Text = "Test2"
-                },
-                new ContextMenuItemData
-                {
-                    Text = "Test3"
-                },
-            }
-        });
-        _contextMenu.AddItem(new ContextMenuItem(_contextMenu, "Option 4"));
-    }
-
-    public void OnMouseExit()
-    {
-        _menuItem.IsHovered = false;
-
-        if (_contextMenu != null)
-        {
-            _contextMenuManager.HideContextMenu(_contextMenu);
-            _contextMenu = null;
-        }
-    }
-}
-
-public sealed class SpecialMenuItemController : IMenuItemController
-{
-    public SpecialMenuItemController(IMenuItem menuItem)
-    {
-        menuItem.Text = "Special";
-        menuItem.IsDisabled = true;
-    }
-
-    public void Dispose()
-    {
-
-    }
-
-    public void OnMouseEnter()
-    {
-
-    }
-
-    public void OnMouseExit()
-    {
-    }
-}
-
 public sealed class AppBar : Component
 {
     public AppBar(ContextMenuManager contextMenuManager)
@@ -111,19 +28,19 @@ public sealed class AppBar : Component
         };
 
         var fileItem = new MenuItem(
-            menuItem => new MenuItemController(menuItem, "File", contextMenuManager)
+            menuItem => new FileMenuItemController(menuItem, contextMenuManager)
         );
         var editItem = new MenuItem(
-            menuItem => new MenuItemController(menuItem, "Edit", contextMenuManager)
+            menuItem => new TestMenuItemController(menuItem, "Edit", contextMenuManager)
         );
         var viewLabel = new MenuItem(
-            menuItem => new MenuItemController(menuItem, "View", contextMenuManager)
+            menuItem => new TestMenuItemController(menuItem, "View", contextMenuManager)
         );
         var specialLabel = new MenuItem(
             menuItem => new SpecialMenuItemController(menuItem)
         );
         var helpLabel = new MenuItem(
-            menuItem => new MenuItemController(menuItem, "Help", contextMenuManager)
+            menuItem => new TestMenuItemController(menuItem, "Help", contextMenuManager)
         );
         
         var row = new FlexRow(MainAxisAlignment.Start, CrossAxisAlignment.Stretch, 10)
