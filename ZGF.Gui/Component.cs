@@ -68,6 +68,14 @@ public class Component : IEnumerable<Component>
         return Context.MouseInputSystem.TryFocus(this);
     }
 
+    public void StealFocus()
+    {
+        if (Context == null)
+            return;
+
+        Context.MouseInputSystem.StealFocus(this);
+    }
+
     public void Blur()
     {
         if (Context == null)
@@ -597,4 +605,17 @@ public class Component : IEnumerable<Component>
     {
         return GetEnumerator();
     }
+
+    public void HandleFocusGained()
+    {
+        OnFocusGained();
+    }
+
+    public void HandleFocusLost()
+    {
+        OnFocusLost();
+    }
+
+    protected virtual void OnFocusGained(){}
+    protected virtual void OnFocusLost(){}
 }

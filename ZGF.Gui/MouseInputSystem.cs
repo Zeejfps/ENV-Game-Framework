@@ -94,9 +94,20 @@ public sealed class MouseInputSystem
         return components[0];
     }
 
-    public void Focus(Component focusHandler)
+    public void StealFocus(Component focusHandler)
     {
+        var prevFocusedComponent = _focusedComponent;
         _focusedComponent = focusHandler;
+
+        if (prevFocusedComponent != null)
+        {
+            prevFocusedComponent.HandleFocusLost();
+        }
+
+        if (_focusedComponent != null)
+        {
+            _focusedComponent.HandleFocusGained();
+        }
     }
 
     public bool TryFocus(Component captureMouse)
@@ -104,6 +115,7 @@ public sealed class MouseInputSystem
         if (_focusedComponent == null)
         {
             _focusedComponent = captureMouse;
+            captureMouse.HandleFocusGained();
             return true;
         }
 
@@ -114,7 +126,8 @@ public sealed class MouseInputSystem
     {
         if (_focusedComponent == captureMouse)
         {
-            _focusedComponent = null;       
+            _focusedComponent = null;
+            captureMouse.HandleFocusLost();
         }
     }
 
