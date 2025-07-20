@@ -8,6 +8,25 @@ public sealed class MenuItemController : IMenuItemController
     {
         menuItem.Text = text;
     }
+
+    public void Dispose()
+    {
+
+    }
+}
+
+public sealed class SpecialMenuItemController : IMenuItemController
+{
+    public SpecialMenuItemController(string text, IMenuItem menuItem)
+    {
+        menuItem.Text = text;
+        menuItem.IsDisabled = true;
+    }
+
+    public void Dispose()
+    {
+
+    }
 }
 
 public sealed class AppBar : Component
@@ -45,7 +64,7 @@ public sealed class AppBar : Component
             menuItem => new MenuItemController("View", menuItem)
         );
         var specialLabel = new MenuItem(
-            menuItem => new MenuItemController("Special", menuItem)
+            menuItem => new SpecialMenuItemController("Special", menuItem)
         );
         var helpLabel = new MenuItem(
             menuItem => new MenuItemController("Help", menuItem)

@@ -1,6 +1,6 @@
 ﻿namespace ZGF.Gui.Tests;
 
-public interface IMenuItemController
+public interface IMenuItemController : IDisposable
 {
 
 }
@@ -8,6 +8,7 @@ public interface IMenuItemController
 public interface IMenuItem
 {
     string Text { get; set; }
+    bool IsDisabled { get; set; }
 }
 
 public sealed class MenuItem : Component, IMenuItem
@@ -23,6 +24,13 @@ public sealed class MenuItem : Component, IMenuItem
     {
         get => _label.Text;
         set => _label.Text = value;
+    }
+
+    private bool _isDisabled;
+    public bool IsDisabled
+    {
+        get => _isDisabled;
+        set => SetField(ref _isDisabled, value);
     }
 
     public MenuItem(Func<IMenuItem, IMenuItemController> controllerFactory)
