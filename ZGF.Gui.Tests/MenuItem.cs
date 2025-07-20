@@ -5,7 +5,7 @@ public sealed class MenuItem : Component
     private readonly Panel _background;
     private readonly Label _label;
 
-    private ContextMenuManager? ContextMenuManager => Get<ContextMenuManager>();
+    private ContextMenuManager? ContextMenuManager { get; set; }
     
     public MenuItem(string text)
     {
@@ -27,11 +27,13 @@ public sealed class MenuItem : Component
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
+        ContextMenuManager = context.Get<ContextMenuManager>();
         context.MouseInputSystem.EnableHover(this);
     }
 
     protected override void OnDetachedFromContext(Context context)
     {
+        ContextMenuManager = null;
         context.MouseInputSystem.DisableHover(this);
         base.OnDetachedFromContext(context);
     }
