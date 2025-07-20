@@ -30,7 +30,20 @@ public sealed class MenuItem : Component, IMenuItem
     public bool IsDisabled
     {
         get => _isDisabled;
-        set => SetField(ref _isDisabled, value);
+        set
+        {
+            if (SetField(ref _isDisabled, value))
+            {
+                if (_isDisabled)
+                {
+                    AddStyleClass("disabled");
+                }
+                else
+                {
+                    RemoveStyleClass("disabled");
+                }
+            }
+        }
     }
 
     public MenuItem(Func<IMenuItem, IMenuItemController> controllerFactory)

@@ -106,6 +106,11 @@ public sealed class App : OpenGlApp
             BackgroundColor = 0x000000,
         });
         
+        ss.AddStyleForClass("disabled", new Style
+        {
+
+        });
+        
         gui.ApplyStyleSheet(ss);
 
         _gui = gui;
