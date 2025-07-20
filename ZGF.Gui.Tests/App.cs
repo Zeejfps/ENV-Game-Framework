@@ -19,6 +19,7 @@ public sealed class App : OpenGlApp
     private readonly MouseInputSystem _mouseInputSystem;
     private readonly KeyCallback _keyCallback;
     private readonly MouseButtonCallback _mouseButtonCallback;
+    private readonly SizeCallback _famebufferSizeCallback;
     private readonly BitmapFont _bitmapFont;
     private ContextMenuManager _contextMenuManager;
 
@@ -33,8 +34,8 @@ public sealed class App : OpenGlApp
         var textMeasurer = new TextMeasurer(_bitmapFont);
 
         _canvas = new Canvas(
-            startupConfig.WindowWidth / 2,
-            startupConfig.WindowHeight / 2,
+            startupConfig.WindowWidth,
+            startupConfig.WindowHeight,
             _bitmapFont,
             textMeasurer, imageManager
         );
@@ -110,10 +111,20 @@ public sealed class App : OpenGlApp
 
         _keyCallback = HandleKeyEvent;
         _mouseButtonCallback = HandleMouseButtonEvent;
+        _famebufferSizeCallback = HandleFramebufferSizeChanged;
         Glfw.SetKeyCallback(WindowHandle, _keyCallback);
         Glfw.SetMouseButtonCallback(WindowHandle, _mouseButtonCallback);
+        Glfw.SetWindowSizeCallback(WindowHandle, _famebufferSizeCallback);
     }
-    
+
+    private void HandleFramebufferSizeChanged(GLFW.Window window, int width, int height)
+    {
+        //glViewport(0, 0, width, height);
+        _gui.PreferredWidth = width;
+        _gui.PreferredHeight = height;
+        _canvas.Resize(width, height);
+    }
+
     private void HandleMouseButtonEvent(GLFW.Window window, GLFW.MouseButton button, GLFW.InputState state, ModifierKeys modifiers)
     {
         Glfw.GetCursorPosition(WindowHandle, out var windowX, out var windowY);
