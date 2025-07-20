@@ -67,6 +67,11 @@ public sealed class ContextMenu : Component
         Add(background);
     }
 
+    public void AddItem()
+    {
+
+    }
+
     protected override void OnLayoutSelf()
     {
         var width = MeasureWidth();

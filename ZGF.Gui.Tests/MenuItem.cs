@@ -14,7 +14,6 @@ public interface IMenuItem
     bool IsDisabled { get; set; }
     bool IsHovered { get; set; }
     RectF Position { get; }
-    Context? Context { get; }
 }
 
 public sealed class MenuItem : Component, IMenuItem
