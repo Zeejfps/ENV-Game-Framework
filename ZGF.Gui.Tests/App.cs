@@ -16,14 +16,9 @@ public sealed class App : OpenGlApp
     private readonly Component _gui;
 
     private readonly Window _window;
-
-    private readonly int _framebufferWidth;
-    private readonly int _framebufferHeight;
-
     private readonly MouseInputSystem _mouseInputSystem;
     private readonly KeyCallback _keyCallback;
     private readonly MouseButtonCallback _mouseButtonCallback;
-    private Bitmap _colorBuffer;
     private readonly BitmapFont _bitmapFont;
     private ContextMenuManager _contextMenuManager;
 
@@ -31,17 +26,18 @@ public sealed class App : OpenGlApp
     {
         _mouseInputSystem = new MouseInputSystem();
 
-        _framebufferWidth = startupConfig.WindowWidth / 2;
-        _framebufferHeight = startupConfig.WindowHeight / 2;
-
         var imageManager = new ImageManager();
         imageManager.LoadImage("Assets/Icons/arrow_right.png");
 
-        _colorBuffer = new Bitmap(_framebufferWidth, _framebufferHeight);
         _bitmapFont = BitmapFont.LoadFromFile("Assets/Fonts/Charcoal/Charcoal_p12.xml");
         var textMeasurer = new TextMeasurer(_bitmapFont);
 
-        _canvas = new Canvas(_colorBuffer, _bitmapFont, textMeasurer, imageManager);
+        _canvas = new Canvas(
+            startupConfig.WindowWidth / 2,
+            startupConfig.WindowHeight / 2,
+            _bitmapFont,
+            textMeasurer, imageManager
+        );
         glClearColor(0f, 0f, 0f, 0f);
 
         var header = new AppBar
@@ -55,8 +51,6 @@ public sealed class App : OpenGlApp
         var contextMenuPane = new Component();
         var contents = new BorderLayout
         {
-            PreferredWidth = _framebufferWidth,
-            PreferredHeight = _framebufferHeight,
             North = header,
             Center = center,
         };
@@ -72,6 +66,8 @@ public sealed class App : OpenGlApp
 
         var gui = new Component
         {
+            PreferredWidth = _canvas.Width,
+            PreferredHeight = _canvas.Height,
             Context = context
         };
         
@@ -171,8 +167,8 @@ public sealed class App : OpenGlApp
     private PointF WindowToGuiCoords(double windowX, double windowY)
     {
         Glfw.GetWindowSize(WindowHandle, out var width, out var height);
-        var scaleX = _colorBuffer.Width / (float)width;
-        var scaleY = _colorBuffer.Height / (float)height;
+        var scaleX = _canvas.Width / (float)width;
+        var scaleY = _canvas.Height / (float)height;
         var screenX = windowX * scaleX;
         var screenY = (height - windowY) * scaleY;
         return new PointF((float)screenX, (float)screenY);

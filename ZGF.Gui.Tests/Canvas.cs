@@ -18,8 +18,6 @@ internal readonly record struct DrawCommand(int Id, ComandKind Kind, int ZIndex)
 
 public sealed class Canvas : ICanvas
 {
-    private readonly Bitmap _colorBuffer;
-    private readonly BitmapRenderer _bitmapRenderer;
     private readonly BitmapFont _font;
     private readonly ITextMeasurer _textMeasurer;
     private readonly ImageManager _imageManager;
@@ -29,13 +27,26 @@ public sealed class Canvas : ICanvas
     private readonly Dictionary<int, DrawTextCommand> _textCommandData = new();
     private readonly Dictionary<int, DrawImageCommand> _imageCommandData = new();
 
-    public Canvas(Bitmap colorBuffer, BitmapFont font, ITextMeasurer textMeasurer, ImageManager imageManager)
+    private Bitmap _colorBuffer;
+    private BitmapRenderer _bitmapRenderer;
+
+    public Canvas(int width, int height, BitmapFont font, ITextMeasurer textMeasurer, ImageManager imageManager)
     {
-        _colorBuffer = colorBuffer;
-        _bitmapRenderer = new BitmapRenderer(colorBuffer);
+        _colorBuffer = new Bitmap(width, height);
+        _bitmapRenderer = new BitmapRenderer(_colorBuffer);
         _font = font;
         _textMeasurer = textMeasurer;
         _imageManager = imageManager;
+    }
+
+    public int Width => _colorBuffer.Width;
+    public int Height => _colorBuffer.Height;
+
+    public void Resize(int width, int height)
+    {
+        _colorBuffer = new Bitmap(width, height);
+        _bitmapRenderer.Dispose();
+        _bitmapRenderer = new BitmapRenderer(_colorBuffer);
     }
 
     public void BeginFrame()
