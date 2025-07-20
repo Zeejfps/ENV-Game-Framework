@@ -74,6 +74,10 @@ public sealed class ContextMenuItem : Component
         if (SubOptions.Count > 0)
         {
             _subMenu = ContextMenuManager?.ShowContextMenu(Position.TopRight, _contextMenu);
+            foreach (var subOption in SubOptions)
+            {
+                _subMenu.AddItem(new ContextMenuItem(_subMenu, subOption.Text));
+            }
         }
     }
 

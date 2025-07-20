@@ -26,6 +26,28 @@ public sealed class MenuItemController : IMenuItemController
         _menuItem.IsHovered = true;
         _contextMenu = _contextMenuManager
             .ShowContextMenu(_menuItem.Position.BottomLeft);
+
+        _contextMenu.AddItem(new ContextMenuItem(_contextMenu, "Option 1"));
+        _contextMenu.AddItem(new ContextMenuItem(_contextMenu, "Option 2"));
+        _contextMenu.AddItem(new ContextMenuItem(_contextMenu, "Option 3")
+        {
+            SubOptions =
+            {
+                new ContextMenuItemData
+                {
+                    Text = "Test1"
+                },
+                new ContextMenuItemData
+                {
+                    Text = "Test2"
+                },
+                new ContextMenuItemData
+                {
+                    Text = "Test3"
+                },
+            }
+        });
+        _contextMenu.AddItem(new ContextMenuItem(_contextMenu, "Option 4"));
     }
 
     public void OnMouseExit()
@@ -35,6 +57,7 @@ public sealed class MenuItemController : IMenuItemController
         if (_contextMenu != null)
         {
             _contextMenuManager.HideContextMenu(_contextMenu);
+            _contextMenu = null;
         }
     }
 }

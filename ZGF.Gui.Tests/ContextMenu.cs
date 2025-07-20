@@ -31,37 +31,10 @@ public sealed class ContextMenu : Component
         };
         background.AddStyleClass("raised_panel");
 
-        var option1 = new ContextMenuItem(this, "Option 1");
-        var option2 = new ContextMenuItem(this, "Option 2");
-        var option3 = new ContextMenuItem(this, "Option 3")
-        {
-            SubOptions =
-            {
-                new ContextMenuItemData
-                {
-                    Text = "Test1"
-                },
-                new ContextMenuItemData
-                {
-                    Text = "Test2"
-                },
-                new ContextMenuItemData
-                {
-                    Text = "Test3"
-                },
-            }
-        };
-        var option4 = new ContextMenuItem(this, "Option 4");
-
         _itemsContainer = new Column
         {
-            option1,
-            option2,
-            option3,
-            option4,
+            Gap = 4
         };
-        _itemsContainer.Gap = 4;
-        
         ZIndex = 1;
         
         background.Add(_itemsContainer);
