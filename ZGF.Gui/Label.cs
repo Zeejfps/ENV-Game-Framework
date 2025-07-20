@@ -4,6 +4,12 @@ public sealed class Label : Component
 {
     private readonly TextStyle _style = new();
 
+    public StyleValue<uint> TextColor
+    {
+        get => _style.TextColor;
+        set => SetField(ref _style.TextColor, value);
+    }
+
     public StyleValue<TextAlignment> VerticalTextAlignment
     {
         get => _style.VerticalAlignment;
@@ -43,6 +49,13 @@ public sealed class Label : Component
             return 0f;
 
         return Context.TextMeasurer.MeasureTextHeight(_text, _style);
+    }
+
+    protected override void OnApplyStyle(Style style)
+    {
+        base.OnApplyStyle(style);
+        if (style.TextColor.IsSet)
+            _style.TextColor = style.TextColor;
     }
 
     protected override void OnDrawSelf(ICanvas c)

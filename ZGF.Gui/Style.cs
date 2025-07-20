@@ -2,6 +2,7 @@
 
 public sealed class Style
 {
+    public StyleValue<uint> TextColor { get; set; }
     public StyleValue<uint> BackgroundColor { get; set; }
     public StyleValue<float> PreferredWidth { get; set; }
     public StyleValue<float> PreferredHeight { get; set; }

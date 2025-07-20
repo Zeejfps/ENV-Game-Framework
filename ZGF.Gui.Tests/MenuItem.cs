@@ -7,7 +7,7 @@ public interface IMenuItemController : IDisposable
 
 public interface IMenuItem
 {
-    string Text { get; set; }
+    string? Text { get; set; }
     bool IsDisabled { get; set; }
 }
 
@@ -20,7 +20,7 @@ public sealed class MenuItem : Component, IMenuItem
     private ContextMenuManager? ContextMenuManager { get; set; }
     private IMenuItemController? Controller { get; set; }
 
-    public string Text
+    public string? Text
     {
         get => _label.Text;
         set => _label.Text = value;

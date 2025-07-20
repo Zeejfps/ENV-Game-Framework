@@ -105,10 +105,10 @@ public sealed class App : OpenGlApp
             PreferredWidth = 10f,
             BackgroundColor = 0x000000,
         });
-        
+
         ss.AddStyleForClass("disabled", new Style
         {
-
+            TextColor = 0xFF00FF
         });
         
         gui.ApplyStyleSheet(ss);

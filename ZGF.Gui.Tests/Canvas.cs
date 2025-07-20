@@ -312,7 +312,8 @@ public sealed class Canvas : ICanvas
                     throw new ArgumentOutOfRangeException();
             }
         }
-        
+
+        var color = style.TextColor;
         var prevCodePoint = default(int?);
         foreach (var codePoint in codePoints)
         {
@@ -334,7 +335,7 @@ public sealed class Canvas : ICanvas
             DrawGlyph(
                 cursorX + kerningOffset,
                 cursorY,
-                glyphInfo, 0x0);
+                glyphInfo, color);
 
             cursorX += glyphInfo.XAdvance;
         }
