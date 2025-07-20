@@ -171,8 +171,8 @@ public sealed class App : OpenGlApp
     private PointF WindowToGuiCoords(double windowX, double windowY)
     {
         Glfw.GetWindowSize(WindowHandle, out var width, out var height);
-        var scaleX = _framebufferWidth / (float)width;
-        var scaleY = _framebufferHeight / (float)height;
+        var scaleX = _colorBuffer.Width / (float)width;
+        var scaleY = _colorBuffer.Height / (float)height;
         var screenX = windowX * scaleX;
         var screenY = (height - windowY) * scaleY;
         return new PointF((float)screenX, (float)screenY);
