@@ -46,8 +46,9 @@ public sealed class WindowTitleBar : Component
         button2.AddStyleClass("inset_panel");
         button2.AddStyleClass("window_button");
 
-        var titleLabel = new Label(_window.TitleText)
+        var titleLabel = new Label
         {
+            Text = _window.TitleText,
             HorizontalTextAlignment = TextAlignment.Center,
         };
 

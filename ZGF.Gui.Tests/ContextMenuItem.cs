@@ -35,8 +35,9 @@ public sealed class ContextMenuItem : Component
 
         var row = new Row
         {
-            new Label(name)
+            new Label
             {
+                Text = name,
                 VerticalTextAlignment = TextAlignment.Center,
             },
             _arrowIcon,

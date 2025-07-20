@@ -16,23 +16,21 @@ public sealed class Label : Component
         set => SetField(ref _style.HorizontalAlignment, value);
     }
 
-    private string _text;
-    public string Text
+    private string? _text;
+    public string? Text
     {
         get => _text;
         set => SetField(ref _text, value);
-    }
-
-    public Label(string text)
-    {
-        _text = text;
     }
 
     public override float MeasureWidth()
     {
         if (Context == null)
             return 0f;
-        
+
+        if (_text == null)
+            return 0f;
+
         return Context.TextMeasurer.MeasureTextWidth(_text, _style);
     }
 
@@ -40,12 +38,18 @@ public sealed class Label : Component
     {
         if (Context == null)
             return 0f;
-        
+
+        if (_text == null)
+            return 0f;
+
         return Context.TextMeasurer.MeasureTextHeight(_text, _style);
     }
 
     protected override void OnDrawSelf(ICanvas c)
     {
+        if (_text == null)
+            return;
+
         c.AddCommand(new DrawTextCommand
         {
             Position = Position,

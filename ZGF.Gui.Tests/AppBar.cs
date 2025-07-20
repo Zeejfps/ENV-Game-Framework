@@ -2,6 +2,14 @@
 
 namespace ZGF.Gui.Tests;
 
+public sealed class MenuItemController : IMenuItemController
+{
+    public MenuItemController(string text, IMenuItem menuItem)
+    {
+        menuItem.Text = text;
+    }
+}
+
 public sealed class AppBar : Component
 {
     public AppBar()
@@ -27,16 +35,26 @@ public sealed class AppBar : Component
             }
         };
 
-        var fileLabel = new MenuItem("File");
-        var editLabel = new MenuItem("Edit");
-        var viewLabel = new MenuItem("View");
-        var specialLabel = new MenuItem("Special");
-        var helpLabel = new MenuItem("Help");
+        var fileItem = new MenuItem(
+            menuItem => new MenuItemController("File", menuItem)
+        );
+        var editItem = new MenuItem(
+            menuItem => new MenuItemController("Edit", menuItem)
+        );
+        var viewLabel = new MenuItem(
+            menuItem => new MenuItemController("View", menuItem)
+        );
+        var specialLabel = new MenuItem(
+            menuItem => new MenuItemController("Special", menuItem)
+        );
+        var helpLabel = new MenuItem(
+            menuItem => new MenuItemController("Help", menuItem)
+        );
         
         var row = new FlexRow(MainAxisAlignment.Start, CrossAxisAlignment.Stretch, 10)
         {
-            fileLabel,
-            editLabel,
+            fileItem,
+            editItem,
             viewLabel,
             specialLabel,
             helpLabel,

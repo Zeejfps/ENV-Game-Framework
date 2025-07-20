@@ -5,12 +5,19 @@ public interface IMenuItemController
 
 }
 
-public sealed class MenuItem : Component
+public interface IMenuItem
+{
+    string Text { get; set; }
+}
+
+public sealed class MenuItem : Component, IMenuItem
 {
     private readonly Panel _background;
     private readonly Label _label;
+    private readonly Func<IMenuItem, IMenuItemController> _controllerFactory;
 
     private ContextMenuManager? ContextMenuManager { get; set; }
+    private IMenuItemController? Controller { get; set; }
 
     public string Text
     {
@@ -18,15 +25,17 @@ public sealed class MenuItem : Component
         set => _label.Text = value;
     }
 
-    public MenuItem(string text)
+    public MenuItem(Func<IMenuItem, IMenuItemController> controllerFactory)
     {
+        _controllerFactory = controllerFactory;
+
         _background = new Panel
         {
             BackgroundColor = 0xDEDEDE,
             Padding = PaddingStyle.All(3)
         };
         
-        _label = new Label(text)
+        _label = new Label
         {
             VerticalTextAlignment = TextAlignment.Center,
         };
@@ -38,6 +47,7 @@ public sealed class MenuItem : Component
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
+        Controller = _controllerFactory.Invoke(this);
         ContextMenuManager = context.Get<ContextMenuManager>();
         context.MouseInputSystem.EnableHover(this);
     }

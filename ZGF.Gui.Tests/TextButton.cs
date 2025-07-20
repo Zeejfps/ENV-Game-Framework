@@ -16,7 +16,10 @@ public sealed class TextButton : Component
         };
 
         Add(_background);
-        Add(new Label(text));
+        Add(new Label
+        {
+            Text = text
+        });
     }
 
     protected override void OnAttachedToContext(Context context)
