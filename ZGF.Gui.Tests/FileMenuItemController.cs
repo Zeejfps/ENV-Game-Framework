@@ -26,7 +26,11 @@ public sealed class FileMenuItemController : IMenuItemController
             .ShowContextMenu(_menuItem.Position.BottomLeft);
         _contextMenu.AddItem(new ContextMenuItem(_contextMenu)
         {
-            Text = "Exit"
+            Text = "Exit",
+            Clicked = () =>
+            {
+                System.Environment.Exit(0);
+            }
         });
     }
 

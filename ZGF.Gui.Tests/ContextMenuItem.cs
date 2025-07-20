@@ -35,6 +35,12 @@ public sealed class ContextMenuItem : Component
         set => _label.Text = value;
     }
 
+    public Action? Clicked
+    {
+        get;
+        set;
+    }
+
     public ContextMenuItem(ContextMenu contextMenu)
     {
         ZIndex = 2;
@@ -99,6 +105,8 @@ public sealed class ContextMenuItem : Component
                 });
             }
         }
+
+        Context?.MouseInputSystem.Focus(this);
     }
 
     protected override void OnMouseExit()
@@ -110,5 +118,13 @@ public sealed class ContextMenuItem : Component
         {
             ContextMenuManager?.HideContextMenu(_subMenu);
         }
+
+        Context?.MouseInputSystem.Blur(this);
+    }
+
+    protected override void OnMouseButtonStateChanged(MouseButtonEvent e)
+    {
+        if (e.State == InputState.Pressed)
+            Clicked?.Invoke();
     }
 }
