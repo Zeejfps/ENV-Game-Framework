@@ -26,6 +26,12 @@ public sealed class FileMenuItemController : IMenuItemController
         _menuItem.IsHovered = true;
         _contextMenu = _contextMenuManager
             .ShowContextMenu(_menuItem.Position.BottomLeft);
+
+        _contextMenu.AddItem(new ContextMenuItem(_contextMenu)
+        {
+            Text = "Open Model",
+        });
+
         _contextMenu.AddItem(new ContextMenuItem(_contextMenu)
         {
             Text = "Exit",

@@ -122,6 +122,8 @@ public sealed class App : OpenGlApp
         _gui.PreferredWidth = width;
         _gui.PreferredHeight = height;
         _canvas.Resize(width, height);
+        Render();
+        Glfw.SwapBuffers(window);
     }
 
     private void HandleMouseButtonEvent(GLFW.Window window, GLFW.MouseButton button, GLFW.InputState state, ModifierKeys modifiers)
@@ -162,16 +164,20 @@ public sealed class App : OpenGlApp
     
     protected override void OnUpdate()
     {
+        Render();
+        Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
+        var guiPoint = WindowToGuiCoords(mouseX, mouseY);
+        _mouseInputSystem.UpdateMousePosition(guiPoint);
+        _contextMenuManager.Update();
+    }
+
+    private void Render()
+    {
         glClear(GL_COLOR_BUFFER_BIT);
         _canvas.BeginFrame();
         _gui.LayoutSelf();
         _gui.DrawSelf();
         _canvas.EndFrame();
-        
-        Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
-        var guiPoint = WindowToGuiCoords(mouseX, mouseY);
-        _mouseInputSystem.UpdateMousePosition(guiPoint);
-        _contextMenuManager.Update();
     }
 
     private PointF WindowToGuiCoords(double windowX, double windowY)

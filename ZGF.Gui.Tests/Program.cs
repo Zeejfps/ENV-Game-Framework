@@ -3,9 +3,9 @@ using ZGF.Gui.Tests;
 
 var app = new App(new StartupConfig
 {
-    WindowWidth = 720,
+    WindowWidth = 1280,
     WindowHeight = 640,
     WindowTitle = "Test",
-    IsUndecorated = true,
+    IsUndecorated = false,
 });
 app.Run();
