@@ -35,7 +35,7 @@ public sealed class ContextMenuItem : Component
         set => _label.Text = value;
     }
 
-    public ContextMenuItem(ContextMenu contextMenu, string name)
+    public ContextMenuItem(ContextMenu contextMenu)
     {
         ZIndex = 2;
 
@@ -54,7 +54,6 @@ public sealed class ContextMenuItem : Component
 
         _label = new Label
         {
-            Text = name,
             VerticalTextAlignment = TextAlignment.Center,
         };
 
@@ -94,7 +93,10 @@ public sealed class ContextMenuItem : Component
             _subMenu = ContextMenuManager?.ShowContextMenu(Position.TopRight, _contextMenu);
             foreach (var subOption in SubOptions)
             {
-                _subMenu.AddItem(new ContextMenuItem(_subMenu, subOption.Text));
+                _subMenu.AddItem(new ContextMenuItem(_subMenu)
+                {
+                    Text = subOption.Text
+                });
             }
         }
     }

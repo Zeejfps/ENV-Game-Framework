@@ -25,10 +25,17 @@ public sealed class TestMenuItemController : IMenuItemController
         _contextMenu = _contextMenuManager
             .ShowContextMenu(_menuItem.Position.BottomLeft);
 
-        _contextMenu.AddItem(new ContextMenuItem(_contextMenu, "Option 1"));
-        _contextMenu.AddItem(new ContextMenuItem(_contextMenu, "Option 2"));
-        _contextMenu.AddItem(new ContextMenuItem(_contextMenu, "Option 3")
+        _contextMenu.AddItem(new ContextMenuItem(_contextMenu)
         {
+            Text = "Option 1"
+        });
+        _contextMenu.AddItem(new ContextMenuItem(_contextMenu)
+        {
+            Text = "Option 2"
+        });
+        _contextMenu.AddItem(new ContextMenuItem(_contextMenu)
+        {
+            Text = "Option 3",
             SubOptions =
             {
                 new ContextMenuItemData
@@ -45,7 +52,10 @@ public sealed class TestMenuItemController : IMenuItemController
                 },
             }
         });
-        _contextMenu.AddItem(new ContextMenuItem(_contextMenu, "Option 4"));
+        _contextMenu.AddItem(new ContextMenuItem(_contextMenu)
+        {
+            Text = "Option 4"
+        });
     }
 
     public void OnMouseExit()
