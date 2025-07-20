@@ -1,12 +1,23 @@
 ﻿namespace ZGF.Gui.Tests;
 
+public interface IMenuItemController
+{
+
+}
+
 public sealed class MenuItem : Component
 {
     private readonly Panel _background;
     private readonly Label _label;
 
     private ContextMenuManager? ContextMenuManager { get; set; }
-    
+
+    public string Text
+    {
+        get => _label.Text;
+        set => _label.Text = value;
+    }
+
     public MenuItem(string text)
     {
         _background = new Panel

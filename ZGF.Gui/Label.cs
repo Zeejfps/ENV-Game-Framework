@@ -4,8 +4,6 @@ public sealed class Label : Component
 {
     private readonly TextStyle _style = new();
 
-    private string _text;
-
     public StyleValue<TextAlignment> VerticalTextAlignment
     {
         get => _style.VerticalAlignment;
@@ -17,7 +15,14 @@ public sealed class Label : Component
         get => _style.HorizontalAlignment;
         set => SetField(ref _style.HorizontalAlignment, value);
     }
-    
+
+    private string _text;
+    public string Text
+    {
+        get => _text;
+        set => SetField(ref _text, value);
+    }
+
     public Label(string text)
     {
         _text = text;
