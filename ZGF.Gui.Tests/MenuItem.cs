@@ -36,11 +36,11 @@ public sealed class MenuItem : Component, IMenuItem
             {
                 if (_isDisabled)
                 {
-                    AddStyleClass("disabled");
+                    _label.AddStyleClass("disabled");
                 }
                 else
                 {
-                    RemoveStyleClass("disabled");
+                    _label.RemoveStyleClass("disabled");
                 }
             }
         }
@@ -76,6 +76,8 @@ public sealed class MenuItem : Component, IMenuItem
     protected override void OnDetachedFromContext(Context context)
     {
         ContextMenuManager = null;
+        Controller?.Dispose();
+        Controller = null;
         context.MouseInputSystem.DisableHover(this);
         base.OnDetachedFromContext(context);
     }

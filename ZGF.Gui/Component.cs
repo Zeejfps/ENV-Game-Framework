@@ -130,7 +130,7 @@ public class Component : IEnumerable<Component>
         {
             if (_styleSheet == value)
                 return;
-            
+
             var prevStyleSheet = _styleSheet;
             _styleSheet = value;
             
@@ -164,7 +164,15 @@ public class Component : IEnumerable<Component>
     {
         if (_styleClasses.Add(classId))
         {
-            SetDirty();
+            var styleSheet = StyleSheet;
+            if (styleSheet == null)
+                return;
+
+            if (styleSheet.TryGetByClass(classId, out var classStyle))
+            {
+                OnApplyStyle(classStyle);
+                SetDirty();
+            }
         }
     }
 
