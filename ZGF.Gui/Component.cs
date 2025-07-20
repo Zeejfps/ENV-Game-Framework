@@ -29,27 +29,23 @@ public class Component : IEnumerable<Component>
         }
     }
 
+    private bool _isInteractable;
     public bool IsInteractable
     {
-        get
-        {
-            if (Context == null)
-                return false;
-            return Context.MouseInputSystem.IsInteractable(this);
-        }
+        get => _isInteractable;
 
         set
         {
-            if (Context == null)
-                return;
-
-            if (value == true)
+            if (SetField(ref _isInteractable, value) && Context != null)
             {
-                Context.MouseInputSystem.EnableHover(this);
-            }
-            else
-            {
-                Context.MouseInputSystem.DisableHover(this);
+                if (_isInteractable)
+                {
+                    Context.MouseInputSystem.AddInteractable(this);
+                }
+                else
+                {
+                    Context.MouseInputSystem.RemoveInteractable(this);
+                }
             }
         }
     }
@@ -81,12 +77,15 @@ public class Component : IEnumerable<Component>
 
     protected virtual void OnAttachedToContext(Context context)
     {
-
+        if (_isInteractable)
+        {
+            context.MouseInputSystem.AddInteractable(this);
+        }
     }
 
     protected virtual void OnDetachedFromContext(Context context)
     {
-        context.MouseInputSystem.DisableHover(this);
+        context.MouseInputSystem.RemoveInteractable(this);
     }
 
     private RectF _position;

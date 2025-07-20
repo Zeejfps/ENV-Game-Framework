@@ -72,6 +72,8 @@ public sealed class ContextMenuItem : Component
 
         _bg.Add(row);
         Add(_bg);
+
+        IsInteractable = true;
     }
 
     protected override void OnAttachedToContext(Context context)
@@ -81,14 +83,8 @@ public sealed class ContextMenuItem : Component
         {
             _arrowIcon.ImageUri = "Assets/Icons/arrow_right.png";
         }
-        context.MouseInputSystem.EnableHover(this);
     }
 
-    protected override void OnDetachedFromContext(Context context)
-    {
-        context.MouseInputSystem.DisableHover(this);
-        base.OnDetachedFromContext(context);
-    }
 
     protected override void OnMouseEnter()
     {

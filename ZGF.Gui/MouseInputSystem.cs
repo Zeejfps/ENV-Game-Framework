@@ -21,12 +21,12 @@ public sealed class MouseInputSystem
     private Component? _hoveredComponent;
     private Component? _focusedComponent;
     
-    public void EnableHover(Component hoverable)
+    public void AddInteractable(Component hoverable)
     {
         _hoverableComponents.Add(hoverable);
     }
 
-    public void DisableHover(Component hoverable)
+    public void RemoveInteractable(Component hoverable)
     {
         if (_hoverableComponents.Remove(hoverable))
         {

@@ -86,7 +86,9 @@ public sealed class MenuItem : Component, IMenuItem
         {
             VerticalTextAlignment = TextAlignment.Center,
         };
-        
+
+        IsInteractable = true;
+
         _background.Add(_label);
         Add(_background);
     }
@@ -96,7 +98,6 @@ public sealed class MenuItem : Component, IMenuItem
         base.OnAttachedToContext(context);
         Controller = _controllerFactory.Invoke(this);
         ContextMenuManager = context.Get<ContextMenuManager>();
-        context.MouseInputSystem.EnableHover(this);
     }
 
     protected override void OnDetachedFromContext(Context context)
@@ -104,7 +105,6 @@ public sealed class MenuItem : Component, IMenuItem
         ContextMenuManager = null;
         Controller?.Dispose();
         Controller = null;
-        context.MouseInputSystem.DisableHover(this);
         base.OnDetachedFromContext(context);
     }
 

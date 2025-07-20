@@ -31,6 +31,8 @@ public sealed class ContextMenu : Component
         };
         background.AddStyleClass("raised_panel");
 
+        IsInteractable = true;
+
         _itemsContainer = new Column
         {
             Gap = 4
@@ -59,18 +61,6 @@ public sealed class ContextMenu : Component
             Width = width,
             Height = height,
         };
-    }
-
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        context.MouseInputSystem.EnableHover(this);
-    }
-
-    protected override void OnDetachedFromContext(Context context)
-    {
-        context.MouseInputSystem.DisableHover(this);
-        base.OnDetachedFromContext(context);
     }
     
     protected override void OnMouseEnter()

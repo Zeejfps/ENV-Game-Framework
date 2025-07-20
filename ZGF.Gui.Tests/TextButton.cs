@@ -20,18 +20,8 @@ public sealed class TextButton : Component
         {
             Text = text
         });
-    }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        context.MouseInputSystem.EnableHover(this);
-    }
-
-    protected override void OnDetachedFromContext(Context context)
-    {
-        context.MouseInputSystem.DisableHover(this);
-        base.OnDetachedFromContext(context);
+        IsInteractable = true;
     }
 
     protected override void OnMouseEnter()

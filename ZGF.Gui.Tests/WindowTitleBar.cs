@@ -60,18 +60,14 @@ public sealed class WindowTitleBar : Component
         row.Add(button2);
 
         Add(background);
+
+        IsInteractable = true;
     }
 
     private PointF _prevMousePosition;
     private bool _isHovered;
     private bool _isDragging;
     private bool _isLeftButtonPressed;
-
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        context.MouseInputSystem.EnableHover(this);
-    }
 
     protected override void OnMouseEnter()
     {

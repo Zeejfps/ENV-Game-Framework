@@ -27,12 +27,8 @@ public sealed class WindowResizer : Component
         };
         
         Add(_background);
-    }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        context.MouseInputSystem.EnableHover(this);
+        IsInteractable = true;
     }
 
     protected override void OnMouseEnter()
