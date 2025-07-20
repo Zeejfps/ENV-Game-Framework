@@ -62,6 +62,7 @@ public sealed class App : OpenGlApp
             MouseInputSystem = _mouseInputSystem,
             TextMeasurer = textMeasurer,
             ImageManager = imageManager,
+            Canvas = _canvas
         };
         context.AddService(_contextMenuManager);
 
@@ -166,7 +167,7 @@ public sealed class App : OpenGlApp
         glClear(GL_COLOR_BUFFER_BIT);
         _canvas.BeginFrame();
         _gui.LayoutSelf();
-        _gui.DrawSelf(_canvas);
+        _gui.DrawSelf();
         _canvas.EndFrame();
         
         Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);

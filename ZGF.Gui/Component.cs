@@ -273,7 +273,13 @@ public class Component : IEnumerable<Component>
         }
     }
 
-    public void DrawSelf(ICanvas c)
+    public void DrawSelf()
+    {
+        var c = Context.Canvas;
+        DrawSelf(c);
+    }
+
+    private void DrawSelf(ICanvas c)
     {
         OnDrawSelf(c);
         OnDrawChildren(c);
