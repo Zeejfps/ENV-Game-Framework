@@ -7,6 +7,7 @@ public sealed class ContextMenu : Component
 {
     private readonly PointF _anchorPoint;
     private readonly ContextMenu? _parentMenu;
+    private readonly Column _itemsContainer;
 
     public ContextMenu? ParentMenu => _parentMenu;
 
@@ -52,24 +53,24 @@ public sealed class ContextMenu : Component
         };
         var option4 = new ContextMenuItem(this, "Option 4");
 
-        var column = new Column
+        _itemsContainer = new Column
         {
             option1,
             option2,
             option3,
             option4,
         };
-        column.Gap = 4;
+        _itemsContainer.Gap = 4;
         
         ZIndex = 1;
         
-        background.Add(column);
+        background.Add(_itemsContainer);
         Add(background);
     }
 
-    public void AddItem()
+    public void AddItem(ContextMenuItem item)
     {
-
+        _itemsContainer.Add(item);
     }
 
     protected override void OnLayoutSelf()
