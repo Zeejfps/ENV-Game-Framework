@@ -102,7 +102,7 @@ public sealed class ContextMenuItem : Component
             }
         }
 
-        Context?.MouseInputSystem.Focus(this);
+        TryFocus();
     }
 
     protected override void OnMouseExit()
@@ -115,7 +115,7 @@ public sealed class ContextMenuItem : Component
             ContextMenuManager?.HideContextMenu(_subMenu);
         }
 
-        Context?.MouseInputSystem.Blur(this);
+        Blur();
     }
 
     protected override void OnMouseButtonStateChanged(MouseButtonEvent e)
