@@ -37,22 +37,19 @@ public sealed class App : OpenGlApp
         );
         glClearColor(0f, 0f, 0f, 0f);
 
-        var header = new AppBar
-        {
-            //PreferredHeight = 20f
-        };
+        var contextMenuPane = new Component();
+        _contextMenuManager = new ContextMenuManager(contextMenuPane);
 
+        var header = new AppBar(_contextMenuManager);
         var center = new Center();
         _window = center.Window;
 
-        var contextMenuPane = new Component();
         var contents = new BorderLayout
         {
             North = header,
             Center = center,
         };
 
-        _contextMenuManager = new ContextMenuManager(contextMenuPane);
         var context = new Context
         {
             MouseInputSystem = _mouseInputSystem,

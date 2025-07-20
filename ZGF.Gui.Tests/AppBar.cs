@@ -9,10 +9,10 @@ public sealed class MenuItemController : IMenuItemController
 
     private ContextMenu? _contextMenu;
 
-    public MenuItemController(IMenuItem menuItem, string text)
+    public MenuItemController(IMenuItem menuItem, string text, ContextMenuManager contextMenuManager)
     {
         _menuItem = menuItem;
-        _contextMenuManager = menuItem.Context.Get<ContextMenuManager>();
+        _contextMenuManager = contextMenuManager;
         menuItem.Text = text;
     }
 
@@ -64,7 +64,7 @@ public sealed class SpecialMenuItemController : IMenuItemController
 
 public sealed class AppBar : Component
 {
-    public AppBar()
+    public AppBar(ContextMenuManager contextMenuManager)
     {
         var container = new Panel
         {
@@ -88,19 +88,19 @@ public sealed class AppBar : Component
         };
 
         var fileItem = new MenuItem(
-            menuItem => new MenuItemController(menuItem, "File")
+            menuItem => new MenuItemController(menuItem, "File", contextMenuManager)
         );
         var editItem = new MenuItem(
-            menuItem => new MenuItemController(menuItem, "Edit")
+            menuItem => new MenuItemController(menuItem, "Edit", contextMenuManager)
         );
         var viewLabel = new MenuItem(
-            menuItem => new MenuItemController(menuItem, "View")
+            menuItem => new MenuItemController(menuItem, "View", contextMenuManager)
         );
         var specialLabel = new MenuItem(
             menuItem => new SpecialMenuItemController(menuItem)
         );
         var helpLabel = new MenuItem(
-            menuItem => new MenuItemController(menuItem, "Help")
+            menuItem => new MenuItemController(menuItem, "Help", contextMenuManager)
         );
         
         var row = new FlexRow(MainAxisAlignment.Start, CrossAxisAlignment.Stretch, 10)
