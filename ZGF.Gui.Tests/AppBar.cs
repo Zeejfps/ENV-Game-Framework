@@ -4,8 +4,15 @@ namespace ZGF.Gui.Tests;
 
 public sealed class MenuItemController : IMenuItemController
 {
-    public MenuItemController(string text, IMenuItem menuItem)
+    private readonly IMenuItem _menuItem;
+    private readonly ContextMenuManager _contextMenuManager;
+
+    private ContextMenu? _contextMenu;
+
+    public MenuItemController(IMenuItem menuItem, string text)
     {
+        _menuItem = menuItem;
+        _contextMenuManager = menuItem.Context.Get<ContextMenuManager>();
         menuItem.Text = text;
     }
 
@@ -13,19 +20,45 @@ public sealed class MenuItemController : IMenuItemController
     {
 
     }
+
+    public void OnMouseEnter()
+    {
+        _menuItem.IsHovered = true;
+        _contextMenu = _contextMenuManager
+            .ShowContextMenu(_menuItem.Position.BottomLeft);
+    }
+
+    public void OnMouseExit()
+    {
+        _menuItem.IsHovered = false;
+
+        if (_contextMenu != null)
+        {
+            _contextMenuManager.HideContextMenu(_contextMenu);
+        }
+    }
 }
 
 public sealed class SpecialMenuItemController : IMenuItemController
 {
-    public SpecialMenuItemController(string text, IMenuItem menuItem)
+    public SpecialMenuItemController(IMenuItem menuItem)
     {
-        menuItem.Text = text;
+        menuItem.Text = "Special";
         menuItem.IsDisabled = true;
     }
 
     public void Dispose()
     {
 
+    }
+
+    public void OnMouseEnter()
+    {
+
+    }
+
+    public void OnMouseExit()
+    {
     }
 }
 
@@ -55,19 +88,19 @@ public sealed class AppBar : Component
         };
 
         var fileItem = new MenuItem(
-            menuItem => new MenuItemController("File", menuItem)
+            menuItem => new MenuItemController(menuItem, "File")
         );
         var editItem = new MenuItem(
-            menuItem => new MenuItemController("Edit", menuItem)
+            menuItem => new MenuItemController(menuItem, "Edit")
         );
         var viewLabel = new MenuItem(
-            menuItem => new MenuItemController("View", menuItem)
+            menuItem => new MenuItemController(menuItem, "View")
         );
         var specialLabel = new MenuItem(
-            menuItem => new SpecialMenuItemController("Special", menuItem)
+            menuItem => new SpecialMenuItemController(menuItem)
         );
         var helpLabel = new MenuItem(
-            menuItem => new MenuItemController("Help", menuItem)
+            menuItem => new MenuItemController(menuItem, "Help")
         );
         
         var row = new FlexRow(MainAxisAlignment.Start, CrossAxisAlignment.Stretch, 10)

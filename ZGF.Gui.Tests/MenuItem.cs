@@ -1,14 +1,20 @@
-﻿namespace ZGF.Gui.Tests;
+﻿using ZGF.Geometry;
+
+namespace ZGF.Gui.Tests;
 
 public interface IMenuItemController : IDisposable
 {
-
+    void OnMouseEnter();
+    void OnMouseExit();
 }
 
 public interface IMenuItem
 {
     string? Text { get; set; }
     bool IsDisabled { get; set; }
+    bool IsHovered { get; set; }
+    RectF Position { get; }
+    Context? Context { get; }
 }
 
 public sealed class MenuItem : Component, IMenuItem
@@ -41,6 +47,27 @@ public sealed class MenuItem : Component, IMenuItem
                 else
                 {
                     _label.RemoveStyleClass("disabled");
+                }
+            }
+        }
+    }
+
+    private bool _isHovered;
+
+    public bool IsHovered
+    {
+        get => _isHovered;
+        set
+        {
+            if (SetField(ref _isHovered, value))
+            {
+                if (_isHovered)
+                {
+                    _background.BackgroundColor = 0x9C9CCE;
+                }
+                else
+                {
+                    _background.BackgroundColor = 0xDEDEDE;
                 }
             }
         }
@@ -84,34 +111,11 @@ public sealed class MenuItem : Component, IMenuItem
 
     protected override void OnMouseEnter()
     {
-        _background.BackgroundColor = 0x9C9CCE;
-        ShowMenu();
+        Controller?.OnMouseEnter();
     }
 
     protected override void OnMouseExit()
     {
-        _background.BackgroundColor = 0xDEDEDE;
-        HideMenu();
+        Controller?.OnMouseExit();
     }
-
-    private void ShowMenu()
-    {
-        if (Context == null)
-            return;
-
-        _contextMenu = ContextMenuManager?.ShowContextMenu(Position.BottomLeft);
-    }
-
-    private void HideMenu()
-    {
-        if (Context == null)
-            return;
-        
-        if (_contextMenu != null)
-        {
-            ContextMenuManager?.HideContextMenu(_contextMenu);
-        }
-    }
-    
-    private ContextMenu? _contextMenu;
 }

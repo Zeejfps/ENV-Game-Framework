@@ -104,7 +104,7 @@ public sealed class App : OpenGlApp
 
         ss.AddStyleForClass("disabled", new Style
         {
-            TextColor = 0xFF00FF
+            TextColor = 0x959595
         });
         
         gui.ApplyStyleSheet(ss);
