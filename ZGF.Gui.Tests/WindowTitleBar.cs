@@ -71,19 +71,17 @@ public sealed class WindowTitleBar : Component
 
     protected override void OnMouseEnter()
     {
-        Console.WriteLine("OnMouseEnterEvent");
         _isHovered = true;
-        Context?.MouseInputSystem.TryFocus(this);
+        TryFocus();
     }
 
     protected override void OnMouseExit()
     {
-        Console.WriteLine("OnMouseExitEvent");
         _isHovered = false;
         if (!_isDragging)
         {
             _isLeftButtonPressed  = false;
-            Context?.MouseInputSystem.Blur(this);
+            Blur();
         }
     }
 

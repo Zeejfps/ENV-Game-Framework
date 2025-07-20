@@ -58,21 +58,22 @@ public class Component : IEnumerable<Component>
                 return false;
             return Context.MouseInputSystem.IsFocused(this);
         }
+    }
 
-        set
-        {
-            if (Context == null)
-                return;
+    public bool TryFocus()
+    {
+        if (Context == null)
+            return false;
 
-            if (value == true)
-            {
-                Context.MouseInputSystem.Focus(this);
-            }
-            else
-            {
-                Context.MouseInputSystem.Blur(this);
-            }
-        }
+        return Context.MouseInputSystem.TryFocus(this);
+    }
+
+    public void Blur()
+    {
+        if (Context == null)
+            return;
+
+        Context.MouseInputSystem.Blur(this);
     }
 
     protected virtual void OnAttachedToContext(Context context)

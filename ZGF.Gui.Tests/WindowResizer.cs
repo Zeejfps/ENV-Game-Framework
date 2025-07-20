@@ -33,21 +33,18 @@ public sealed class WindowResizer : Component
 
     protected override void OnMouseEnter()
     {
-        Console.WriteLine("Mouse Enter");
         _background.BackgroundColor = 0x9C9CCE;
-        Context?.MouseInputSystem.TryFocus(this);
+        TryFocus();
     }
 
     protected override void OnMouseExit()
     {
-        Console.WriteLine("Mouse Exit");
         _background.BackgroundColor = 0xCECECE;
-        Context?.MouseInputSystem.Blur(this);
+        Blur();
     }
 
     protected override void OnMouseButtonStateChanged(MouseButtonEvent e)
     {
-        Console.WriteLine($"Mouse Button Event: {e.Button}");
         _window.BringToFront();
     }
 
