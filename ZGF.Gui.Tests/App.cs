@@ -196,6 +196,7 @@ public sealed class App : OpenGlApp
         Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
         var guiPoint = WindowToGuiCoords(mouseX, mouseY);
         _inputSystem.UpdateMousePosition(guiPoint);
+        _inputSystem.Update();
         _contextMenuManager.Update();
     }
 

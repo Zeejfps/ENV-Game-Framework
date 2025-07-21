@@ -29,11 +29,13 @@ public sealed class TextInput : Component
 
     protected override void OnMouseEnter()
     {
+        Console.WriteLine("OnMouseEnter - TextInput");
         RequestFocus();
     }
 
     protected override void OnMouseExit()
     {
+        Console.WriteLine("OnMouseExit - TextInput");
         if (!_isEditing)
         {
             Blur();
@@ -43,6 +45,11 @@ public sealed class TextInput : Component
     protected override void OnFocusLost()
     {
         _isEditing = false;
+    }
+
+    public override bool CanReleaseFocus()
+    {
+        return !_isEditing;
     }
 
     protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)

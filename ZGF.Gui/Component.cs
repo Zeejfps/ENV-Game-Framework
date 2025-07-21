@@ -698,4 +698,9 @@ public class Component : IEnumerable<Component>
     {
         return base.ToString() + "-" + _depth;
     }
+
+    public virtual bool CanReleaseFocus()
+    {
+        return true;
+    }
 }

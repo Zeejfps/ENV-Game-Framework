@@ -89,6 +89,7 @@ public sealed class WindowTitleBar : Component
 
     protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)
     {
+        Console.WriteLine($"OnMouseButtonStateChanged: TitleBar - {_window.TitleText}");
         var button = e.Button;
         var state = e.State;
 
@@ -99,8 +100,7 @@ public sealed class WindowTitleBar : Component
         {
             _prevMousePosition = e.Position;
             _isLeftButtonPressed = true;
-            _window.BringToFront();
-            return true;
+            return false;
         }
         
         _isLeftButtonPressed = false;
@@ -121,6 +121,11 @@ public sealed class WindowTitleBar : Component
         _isDragging = false;
         _isLeftButtonPressed = false;
         base.OnFocusLost();
+    }
+
+    public override bool CanReleaseFocus()
+    {
+        return !_isDragging;
     }
 
     protected override bool OnMouseMoved(MouseMoveEvent e)

@@ -6,8 +6,7 @@ public sealed class InputSystem
 {
     private readonly HashSet<Component> _hoverableComponents = new();
     
-    private Component? _hoveredComponent;
-
+    private readonly HashSet<Component> _hoveredComponents = new();
     private readonly LinkedList<Component> _focusQueue = new();
     
     public void AddInteractable(Component hoverable)
@@ -20,15 +19,10 @@ public sealed class InputSystem
         _hoverableComponents.Remove(hoverable);
         _focusQueue.Remove(hoverable);
     }
-
-    private readonly List<Component> _focusQueueCache = new();
     
     public void HandleKeyboardKeyEvent(in KeyboardKeyEvent e)
     {
-        _focusQueueCache.Clear();
-        _focusQueueCache.AddRange(_focusQueue);
-
-        foreach (var target in _focusQueueCache)
+        foreach (var target in _focusQueue)
         {
             var handled = target.HandleKeyboardKeyEvent(e);
             if (handled)
@@ -38,10 +32,8 @@ public sealed class InputSystem
 
     public void HandleMouseButtonEvent(MouseButtonEvent e)
     {
-        _focusQueueCache.Clear();
-        _focusQueueCache.AddRange(_focusQueue);
-
-        foreach (var target in _focusQueueCache)
+        Console.WriteLine($"HandleMouseButtonEvent: {_focusQueue.First?.Value}");
+        foreach (var target in _focusQueue)
         {
             var handled = target.HandleMouseButtonEvent(e);
             if (handled)
@@ -49,33 +41,43 @@ public sealed class InputSystem
         }
     }
 
+    private readonly List<Component> _removeCache = new();
+    
     public void UpdateMousePosition(in PointF point)
     {
-        var newHoveredComponent = HitTest(point);
-        if (newHoveredComponent != _hoveredComponent)
+        _removeCache.Clear();
+        _removeCache.AddRange(_hoveredComponents);
+
+        for (var i = _removeCache.Count - 1; i >= 0; i--)
         {
-            var prevHoveredComponent = _hoveredComponent;
-            _hoveredComponent = newHoveredComponent;
-
-            if (prevHoveredComponent != null)
+            var hoveredComponent = _removeCache[i];
+            if (!hoveredComponent.Position.ContainsPoint(point))
             {
-                prevHoveredComponent.HandleMouseExitEvent();
-            }
-
-            if (_hoveredComponent != null)
-            {
-                _hoveredComponent.HandleMouseEnterEvent();           
+                _hoveredComponents.Remove(hoveredComponent);
+                hoveredComponent.HandleMouseExitEvent();
             }
         }
         
-        _focusQueueCache.Clear();
-        _focusQueueCache.AddRange(_focusQueue);
-
+        var allHoveredComponents = HitTest(point);
+        if (allHoveredComponents.Count > 0)
+        {
+            var topComponent = allHoveredComponents[0];
+            for (var i = allHoveredComponents.Count - 1; i >= 0; i--)
+            {
+                var hoveredComponent = allHoveredComponents[i];
+                if (hoveredComponent.IsAncestorOf(topComponent) && _hoveredComponents.Add(hoveredComponent))
+                {
+                    hoveredComponent.HandleMouseEnterEvent();
+                }
+            }
+        }
+        
         var e = new MouseMoveEvent
         {
             MousePosition = point,
         };
-        foreach (var target in _focusQueueCache)
+
+        foreach (var target in _focusQueue)
         {
             var handled = target.HandleMouseMoveEvent(e);
             if (handled)
@@ -85,7 +87,7 @@ public sealed class InputSystem
 
     private readonly List<Component> _hitTestCache = new();
     
-    private Component? HitTest(in PointF point)
+    private List<Component> HitTest(in PointF point)
     {
         _hitTestCache.Clear();
         var components = _hitTestCache;
@@ -98,10 +100,16 @@ public sealed class InputSystem
         }
 
         if (components.Count == 0)
-            return null;
+            return components;
         
         components.Sort(ZIndexComparer.Instance);
-        return components[0];
+        // Console.WriteLine("===================");
+        // foreach (var component in components)
+        // {
+        //     Console.WriteLine(component);
+        // }
+        
+        return components;
     }
 
     public void StealFocus(Component component)
@@ -117,40 +125,92 @@ public sealed class InputSystem
         component.HandleFocusGained();
     }
 
-    public bool RequestFocus(Component component)
+    private readonly List<Component> _componentsToAddToFocusQueue = new();
+    private readonly List<Component> _componentsToRemoveFromFocusQueue = new();
+    
+    public void Update()
     {
         var focusedComponent = _focusQueue.First?.Value;
-        if (focusedComponent == null)
+        var canReleaseFocus = focusedComponent?.CanReleaseFocus() ?? false;
+        foreach (var component in _componentsToRemoveFromFocusQueue)
         {
-            _focusQueue.AddFirst(component);
-            component.HandleFocusGained();
-            return true;
+            _focusQueue.Remove(component);
+            _componentsToAddToFocusQueue.Remove(component);
+            if (component == focusedComponent)
+            {
+                canReleaseFocus = true;
+            }
         }
-
-        if (!_focusQueue.Contains(component))
-            _focusQueue.AddLast(component);
+        _componentsToRemoveFromFocusQueue.Clear();
         
+        foreach (var component in _componentsToAddToFocusQueue)
+        {
+            if (!_focusQueue.Contains(component))
+            {
+                if (canReleaseFocus || _focusQueue.Count == 0)
+                    _focusQueue.AddFirst(component);
+                else
+                    _focusQueue.AddAfter(_focusQueue.First!, component);
+            }
+        }
+        _componentsToAddToFocusQueue.Clear();
+        
+        var newFocusedComponent = _focusQueue.First?.Value;
+        if (focusedComponent != newFocusedComponent)
+        {
+            Console.WriteLine("Focus changed? ");
+            if (focusedComponent != null)
+            {
+                focusedComponent.HandleFocusLost();
+            }
+            
+            if (newFocusedComponent != null)
+            {
+                newFocusedComponent.HandleFocusGained();
+                Console.WriteLine($"Focused: {newFocusedComponent}");
+            }
+        }
+    }
+
+    public bool RequestFocus(Component component)
+    {
+        //Console.WriteLine($"Requeting focus: {component}");
+        _componentsToAddToFocusQueue.Add(component);
+        
+        // var focusedComponent = _focusQueue.First?.Value;
+        // if (focusedComponent == null)
+        // {
+        //     _focusQueue.AddFirst(component);
+        //     component.HandleFocusGained();
+        //     return true;
+        // }
+        //
+        // if (!_focusQueue.Contains(component))
+        //     _focusQueue.AddLast(component);
+        //
         return false;
     }
     
     public void Blur(Component component)
     {
-        var focusedComponent = _focusQueue.First?.Value;
-        if (focusedComponent == component)
-        {
-            _focusQueue.RemoveFirst();
-            component.HandleFocusLost();
-
-            var nextFocus = _focusQueue.First?.Value;
-            if (nextFocus != null)
-            {
-                nextFocus.HandleFocusGained();
-            }
-        }
-        else
-        {
-            _focusQueue.Remove(component);
-        }
+        _componentsToRemoveFromFocusQueue.Add(component);
+        
+        // var focusedComponent = _focusQueue.First?.Value;
+        // if (focusedComponent == component)
+        // {
+        //     _focusQueue.RemoveFirst();
+        //     component.HandleFocusLost();
+        //
+        //     var nextFocus = _focusQueue.First?.Value;
+        //     if (nextFocus != null)
+        //     {
+        //         nextFocus.HandleFocusGained();
+        //     }
+        // }
+        // else
+        // {
+        //     _focusQueue.Remove(component);
+        // }
     }
 
     public bool IsInteractable(Component component)
