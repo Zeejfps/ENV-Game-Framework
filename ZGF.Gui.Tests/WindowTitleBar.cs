@@ -106,18 +106,27 @@ public sealed class WindowTitleBar : Component
 
         if (!_isHovered)
         {
-            Context?.InputSystem.Blur(this);
+            Console.WriteLine("Not hovered");
+            Blur();
         }
         
         return base.OnMouseButtonStateChanged(e);
     }
 
+    protected override void OnFocusLost()
+    {
+        _isDragging = false;
+        _isLeftButtonPressed = false;
+        base.OnFocusLost();
+    }
+
     protected override bool OnMouseMoved(MouseMoveEvent e)
     {
+        Console.WriteLine($"OnMouseMoved: {_isLeftButtonPressed}");
         if (!_isLeftButtonPressed)
             return false;
 
-        var delta = e.MousePosition -  _prevMousePosition;
+        var delta = e.MousePosition - _prevMousePosition;
         if (_isDragging)
         {
             _window.Move(delta.X, delta.Y);

@@ -21,30 +21,31 @@ public sealed class InputSystem
         _focusQueue.Remove(hoverable);
     }
 
+    private readonly List<Component> _focusQueueCache = new();
+    
     public void HandleKeyboardKeyEvent(in KeyboardKeyEvent e)
     {
-        var target = _focusQueue.First;
-        while (target != null)
+        _focusQueueCache.Clear();
+        _focusQueueCache.AddRange(_focusQueue);
+
+        foreach (var target in _focusQueueCache)
         {
-            var handled = target.Value.HandleKeyboardKeyEvent(e);
+            var handled = target.HandleKeyboardKeyEvent(e);
             if (handled)
                 break;
-            
-            target = target.Next;       
         }
     }
 
     public void HandleMouseButtonEvent(MouseButtonEvent e)
     {
-        var target = _focusQueue.First;
-        while (target != null)
+        _focusQueueCache.Clear();
+        _focusQueueCache.AddRange(_focusQueue);
+
+        foreach (var target in _focusQueueCache)
         {
-            Console.WriteLine(target);
-            var handled = target.Value.HandleMouseButtonEvent(e);
+            var handled = target.HandleMouseButtonEvent(e);
             if (handled)
                 break;
-            
-            target = target.Next;       
         }
     }
 
@@ -66,19 +67,19 @@ public sealed class InputSystem
                 _hoveredComponent.HandleMouseEnterEvent();           
             }
         }
+        
+        _focusQueueCache.Clear();
+        _focusQueueCache.AddRange(_focusQueue);
 
-        var target = _focusQueue.First;
         var e = new MouseMoveEvent
         {
             MousePosition = point,
         };
-        while (target != null)
+        foreach (var target in _focusQueueCache)
         {
-            var propagate = target.Value.HandleMouseMoveEvent(e);
-            if (!propagate)
+            var handled = target.HandleMouseMoveEvent(e);
+            if (handled)
                 break;
-            
-            target = target.Next;       
         }
     }
 
@@ -129,16 +130,9 @@ public sealed class InputSystem
         _focusQueue.AddLast(component);
         return false;
     }
-
-    private bool _isHandlingEvent;
     
     public void Blur(Component component)
     {
-        if (_isHandlingEvent)
-        {
-            
-        }
-        
         var focusedComponent = _focusQueue.First?.Value;
         if (focusedComponent == component)
         {
@@ -156,30 +150,6 @@ public sealed class InputSystem
             _focusQueue.Remove(component);
         }
     }
-
-    private readonly List<Action> _handlerQueue = new();
-    
-    private void HandleEvent(Action action)
-    {
-        if (_isHandlingEvent)
-        {
-            _handlerQueue.Add(action);
-        }
-        else
-        {
-            _isHandlingEvent = true;
-            action();
-            _isHandlingEvent = false;
-        }
-        
-        var queuedActions = _handlerQueue.ToArray();
-        _handlerQueue.Clear();
-        foreach (var queuedAction in queuedActions)
-        {
-            HandleEvent(queuedAction);
-        }
-    }
-    
 
     public bool IsInteractable(Component component)
     {
