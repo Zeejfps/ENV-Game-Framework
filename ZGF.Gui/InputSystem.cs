@@ -8,6 +8,8 @@ public sealed class InputSystem
     
     private Component? _hoveredComponent;
     private Component? _focusedComponent;
+
+    private readonly LinkedList<Component> _focusQueue = new();
     
     public void AddInteractable(Component hoverable)
     {
@@ -115,15 +117,28 @@ public sealed class InputSystem
             return true;
         }
 
+        _focusQueue.AddLast(captureMouse);
         return false;
     }
 
-    public void Blur(Component captureMouse)
+    public void Blur(Component component)
     {
-        if (_focusedComponent == captureMouse)
+        if (_focusedComponent == component)
         {
             _focusedComponent = null;
-            captureMouse.HandleFocusLost();
+            component.HandleFocusLost();
+
+            var nextFocus = _focusQueue.First;
+            if (nextFocus != null)
+            {
+                _focusQueue.RemoveFirst();
+                _focusedComponent = nextFocus.Value;
+                _focusedComponent.HandleFocusGained();
+            }
+        }
+        else
+        {
+            _focusQueue.Remove(component);
         }
     }
 
