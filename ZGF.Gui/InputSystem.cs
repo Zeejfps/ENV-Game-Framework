@@ -100,7 +100,19 @@ public sealed class InputSystem
         if (components.Count == 0)
             return null;
         
-        _hitTestCache.Sort(ZIndexComparer.Instance);
+        // Console.WriteLine($"Hit: {components.Count}");
+        foreach (var component in components)
+        {
+            Console.WriteLine(component);
+        }
+        
+        components.Sort(ZIndexComparer.Instance);
+        // Console.WriteLine($"Sorted: {components.Count}");
+        foreach (var component in components)
+        {
+            Console.WriteLine(component);
+        }
+        
         return components[0];
     }
 
@@ -182,6 +194,7 @@ sealed class ZIndexComparer : IComparer<Component>
         if (y == null)
             return -1;
         
+        // NOTE(Zee): Order is swapped here. Greater ZIndex means the value is less - meaning it should be first in list 
         var result = y.ZIndex.CompareTo(x.ZIndex);
         if (result == 0)
         {
@@ -190,7 +203,12 @@ sealed class ZIndexComparer : IComparer<Component>
                 return -1;
             }
 
-            return 1;
+            if (y.IsInFrontOf(x))
+            {
+                return 1;
+            }
+            
+            return 0;
         }
         return result;
     }

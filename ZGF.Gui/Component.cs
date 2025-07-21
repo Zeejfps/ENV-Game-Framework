@@ -173,6 +173,23 @@ public class Component : IEnumerable<Component>
     }
 
     private int _depth;
+
+    private int Depth
+    {
+        get => _depth;
+        set
+        {
+            if (_depth == value)
+                return;
+
+            _depth = value;
+            foreach (var child in Children)
+            {
+                child.Depth = _depth + 1;
+            }
+        }
+    }
+    
     private int _siblingIndex;
 
     public int SiblingIndex => _siblingIndex;
@@ -255,7 +272,7 @@ public class Component : IEnumerable<Component>
         _children.Add(component);
 
         component.Parent = this;
-        component._depth = _depth + 1;
+        component.Depth = Depth + 1;
         component._siblingIndex =  siblingIndex;
         component.StyleSheet = StyleSheet;
         component.Context = Context;
@@ -268,7 +285,7 @@ public class Component : IEnumerable<Component>
         {
             component.Context = null;
             component.Parent = null;
-            component._depth = 0;
+            component.Depth = 0;
             component._siblingIndex = 0;
             component.StyleSheet = null;
             OnComponentRemoved(component);
@@ -529,35 +546,78 @@ public class Component : IEnumerable<Component>
 
     public bool IsAncestorOf(Component target)
     {
-        var current = target;
-        while (current != null)
+        var parent = target;
+        while (parent != null)
         {
-            if (current == this)
+            if (this == parent)
                 return true;
-            current = current.Parent;
+            parent = parent.Parent;
         }
         return false;
     }
     
     public bool IsInFrontOf(Component component)
     {
-        var x = this;
-        var y = component;
+        // Use clearer variable names for readability   
+        var nodeA = this;
+        var nodeB = component;
+        var iNodeA = nodeA;
+        var iNodeB = nodeB;
 
-        if (y.IsAncestorOf(x))
+        // --- Pre-checks for simple cases ---
+
+        // If nodeB is an ancestor of nodeA, then nodeA comes "after" nodeB.
+        if (nodeB.IsAncestorOf(nodeA))
             return true;
 
-        while (x.Parent != null && y.Parent != null)
-        {
-            if (x.Parent == y.Parent)
-            {
-                return x._siblingIndex > y._siblingIndex;
-            }
+        // If nodeA is an ancestor of nodeB, then nodeA comes "before" nodeB.
+        // This case was missing and is important for correctness.
+        if (nodeA.IsAncestorOf(nodeB))
+            return false;
 
-            x = x.Parent;
-            y = y.Parent;
+        // --- Main Logic to find common ancestor ---
+
+        // Step 1: Ascend the deeper node until both are at the same depth.
+        // The key fix here is checking if the node becomes null after assignment.
+        while (nodeA._depth > nodeB._depth)
+        {
+            nodeA = nodeA.Parent;
+            // If we've reached the top of nodeA's tree, they can't be related.
+            if (nodeA == null) return false;
         }
-        return false;
+
+        while (nodeB._depth > nodeA._depth)
+        {
+            nodeB = nodeB.Parent;
+            // If we've reached the top of nodeB's tree, they can't be related.
+            if (nodeB == null) return false;
+        }
+
+        // At this point, nodeA and nodeB are at the same depth.
+        // If they are the same, one was an ancestor of the other, which IsAncestorOf should have caught.
+        // We can return here for safety, though this line might be redundant if IsAncestorOf is perfect.
+        if (nodeA == nodeB) return false;
+
+
+        // Step 2: Ascend both nodes together until we find their common parent.
+        // The loop must terminate if we reach the top of either tree.
+        while (nodeA.Parent != nodeB.Parent)
+        {
+            nodeA = nodeA.Parent;
+            nodeB = nodeB.Parent;
+
+            // CRITICAL FIX: If either node is null, it means we reached the root of
+            // two separate trees. They don't have a common parent, so they are unrelated.
+            if (nodeA == null || nodeB == null)
+            {
+                Console.WriteLine($"No common parent between: {iNodeA} and {iNodeB}");
+                return false;
+            }
+        }
+
+        // At this point, nodeA and nodeB are guaranteed to be siblings with a shared, non-null parent.
+        // We can now safely compare their sibling index to determine their order.
+        return nodeA._siblingIndex > nodeB._siblingIndex;
     }
 
     public void HandleMouseEnterEvent()
@@ -632,5 +692,10 @@ public class Component : IEnumerable<Component>
     protected virtual bool OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
     {
         return false;
+    }
+
+    public override string ToString()
+    {
+        return base.ToString() + "-" + _depth;
     }
 }

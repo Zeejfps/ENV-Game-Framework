@@ -115,6 +115,18 @@ public sealed class App : OpenGlApp
         Glfw.SetKeyCallback(WindowHandle, _keyCallback);
         Glfw.SetMouseButtonCallback(WindowHandle, _mouseButtonCallback);
         Glfw.SetWindowSizeCallback(WindowHandle, _windowSizeCallback);
+
+        PrintTree(gui);
+    }
+
+    private void PrintTree(Component component, int depth = 0)
+    {
+        var indent = new string(' ', depth * 4);
+        Console.WriteLine($"{indent}{component}");
+        foreach (var child in component.Children)
+        {
+            PrintTree(child, depth + 1);
+        }
     }
 
     private void HandleWindowSizeChanged(GLFW.Window window, int width, int height)

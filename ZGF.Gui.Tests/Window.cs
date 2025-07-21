@@ -210,4 +210,9 @@ public sealed class Window : Component
     {
         Parent?.BringToFront(this);
     }
+
+    public override string ToString()
+    {
+        return $"Window - {TitleText} - {ZIndex}";
+    }
 }

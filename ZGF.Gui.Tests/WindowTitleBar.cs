@@ -141,4 +141,9 @@ public sealed class WindowTitleBar : Component
 
         return base.OnMouseMoved(e);
     }
+
+    public override string ToString()
+    {
+        return $"TitleBar - {_window.TitleText} - {ZIndex}";
+    }
 }
