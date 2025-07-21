@@ -141,6 +141,8 @@ public sealed class App : OpenGlApp
         {
             GLFW.InputState.Press => InputState.Pressed,
             GLFW.InputState.Release => InputState.Released,
+            GLFW.InputState.Repeat => InputState.Pressed,
+            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
         };
 
         var guiPoint = WindowToGuiCoords(windowX, windowY);
