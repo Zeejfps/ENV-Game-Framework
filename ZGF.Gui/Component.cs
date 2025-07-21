@@ -572,21 +572,26 @@ public class Component : IEnumerable<Component>
 
     protected virtual void OnMouseEnter(){}
     protected virtual void OnMouseExit(){}
-    protected virtual void OnMouseButtonStateChanged(MouseButtonEvent e) { }
-    protected virtual void OnMouseMoved(MouseMoveEvent e) { }
 
-    public void HandleMouseButtonEvent(in MouseButtonEvent e)
+    protected virtual bool OnMouseButtonStateChanged(MouseButtonEvent e)
     {
-        OnMouseButtonStateChanged(e);
+        return false;
+    }
+
+    protected virtual bool OnMouseMoved(MouseMoveEvent e) { return true; }
+
+    public bool HandleMouseButtonEvent(in MouseButtonEvent e)
+    {
+        return OnMouseButtonStateChanged(e);
     }
 
     public void HandleMouseWheelEvent()
     {
     }
 
-    public void HandleMouseMoveEvent(in MouseMoveEvent e)
+    public bool HandleMouseMoveEvent(in MouseMoveEvent e)
     {
-        OnMouseMoved(e);
+        return OnMouseMoved(e);
     }
 
     protected T? Get<T>() where T : class
@@ -619,10 +624,13 @@ public class Component : IEnumerable<Component>
     protected virtual void OnFocusGained(){}
     protected virtual void OnFocusLost(){}
 
-    public void HandleKeyboardKeyEvent(in KeyboardKeyEvent e)
+    public bool HandleKeyboardKeyEvent(in KeyboardKeyEvent e)
     {
-        OnKeyboardKeyStateChanged(e);
+        return OnKeyboardKeyStateChanged(e);
     }
 
-    protected virtual void OnKeyboardKeyStateChanged(in KeyboardKeyEvent e){}
+    protected virtual bool OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
+    {
+        return false;
+    }
 }

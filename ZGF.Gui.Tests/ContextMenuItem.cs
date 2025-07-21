@@ -118,9 +118,13 @@ public sealed class ContextMenuItem : Component
         Blur();
     }
 
-    protected override void OnMouseButtonStateChanged(MouseButtonEvent e)
+    protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)
     {
         if (e.State == InputState.Pressed)
+        {
             Clicked?.Invoke();
+            return true;
+        }
+        return false;
     }
 }

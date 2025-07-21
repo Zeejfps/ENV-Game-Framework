@@ -85,36 +85,37 @@ public sealed class WindowTitleBar : Component
         }
     }
 
-    protected override void OnMouseButtonStateChanged(MouseButtonEvent e)
+    protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)
     {
         var button = e.Button;
         var state = e.State;
 
         if (button != MouseButton.Left)
-            return;
+            return false;
 
         if (state == InputState.Pressed)
         {
             _prevMousePosition = e.Position;
             _isLeftButtonPressed = true;
             _window.BringToFront();
+            return true;
         }
-        else
-        {
-            _isLeftButtonPressed = false;
-            _isDragging = false;
+        
+        _isLeftButtonPressed = false;
+        _isDragging = false;
 
-            if (!_isHovered)
-            {
-                Context?.InputSystem.Blur(this);
-            }
+        if (!_isHovered)
+        {
+            Context?.InputSystem.Blur(this);
         }
+        
+        return base.OnMouseButtonStateChanged(e);
     }
 
-    protected override void OnMouseMoved(MouseMoveEvent e)
+    protected override bool OnMouseMoved(MouseMoveEvent e)
     {
         if (!_isLeftButtonPressed)
-            return;
+            return false;
 
         var delta = e.MousePosition -  _prevMousePosition;
         if (_isDragging)
@@ -126,5 +127,7 @@ public sealed class WindowTitleBar : Component
         {
             _isDragging = true;
         }
+
+        return base.OnMouseMoved(e);
     }
 }

@@ -43,9 +43,10 @@ public sealed class WindowResizer : Component
         Blur();
     }
 
-    protected override void OnMouseButtonStateChanged(MouseButtonEvent e)
+    protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)
     {
         _window.BringToFront();
+        return base.OnMouseButtonStateChanged(e);
     }
 
     protected override void OnLayoutSelf()

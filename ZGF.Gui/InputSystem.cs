@@ -7,7 +7,6 @@ public sealed class InputSystem
     private readonly HashSet<Component> _hoverableComponents = new();
     
     private Component? _hoveredComponent;
-    private Component? _focusedComponent;
 
     private readonly LinkedList<Component> _focusQueue = new();
     
@@ -18,28 +17,34 @@ public sealed class InputSystem
 
     public void RemoveInteractable(Component hoverable)
     {
-        if (_hoverableComponents.Remove(hoverable))
-        {
-            if (_focusedComponent == hoverable)
-            {
-                _focusedComponent = null;
-            }
-        }
+        _hoverableComponents.Remove(hoverable);
+        _focusQueue.Remove(hoverable);
     }
 
     public void HandleKeyboardKeyEvent(in KeyboardKeyEvent e)
     {
-        if (_focusedComponent != null)
+        var target = _focusQueue.First;
+        while (target != null)
         {
-            _focusedComponent.HandleKeyboardKeyEvent(e);
+            var handled = target.Value.HandleKeyboardKeyEvent(e);
+            if (handled)
+                break;
+            
+            target = target.Next;       
         }
     }
 
     public void HandleMouseButtonEvent(MouseButtonEvent e)
     {
-        if (_focusedComponent != null)
+        var target = _focusQueue.First;
+        while (target != null)
         {
-            _focusedComponent.HandleMouseButtonEvent(e);
+            Console.WriteLine(target);
+            var handled = target.Value.HandleMouseButtonEvent(e);
+            if (handled)
+                break;
+            
+            target = target.Next;       
         }
     }
 
@@ -62,12 +67,18 @@ public sealed class InputSystem
             }
         }
 
-        if (_focusedComponent != null)
+        var target = _focusQueue.First;
+        var e = new MouseMoveEvent
         {
-            _focusedComponent.HandleMouseMoveEvent(new MouseMoveEvent
-            {
-                MousePosition = point
-            });
+            MousePosition = point,
+        };
+        while (target != null)
+        {
+            var propagate = target.Value.HandleMouseMoveEvent(e);
+            if (!propagate)
+                break;
+            
+            target = target.Next;       
         }
     }
 
@@ -92,48 +103,52 @@ public sealed class InputSystem
         return components[0];
     }
 
-    public void StealFocus(Component focusHandler)
+    public void StealFocus(Component component)
     {
-        var prevFocusedComponent = _focusedComponent;
-        _focusedComponent = focusHandler;
-
+        var prevFocusedComponent = _focusQueue.First?.Value;
+        _focusQueue.AddFirst(component);
+        
         if (prevFocusedComponent != null)
         {
             prevFocusedComponent.HandleFocusLost();
         }
-
-        if (_focusedComponent != null)
-        {
-            _focusedComponent.HandleFocusGained();
-        }
+        
+        component.HandleFocusGained();
     }
 
-    public bool TryFocus(Component captureMouse)
+    public bool TryFocus(Component component)
     {
-        if (_focusedComponent == null)
+        var focusedComponent = _focusQueue.First?.Value;
+        if (focusedComponent == null)
         {
-            _focusedComponent = captureMouse;
-            captureMouse.HandleFocusGained();
+            _focusQueue.AddFirst(component);
+            component.HandleFocusGained();
             return true;
         }
 
-        _focusQueue.AddLast(captureMouse);
+        _focusQueue.AddLast(component);
         return false;
     }
 
+    private bool _isHandlingEvent;
+    
     public void Blur(Component component)
     {
-        if (_focusedComponent == component)
+        if (_isHandlingEvent)
         {
-            _focusedComponent = null;
+            
+        }
+        
+        var focusedComponent = _focusQueue.First?.Value;
+        if (focusedComponent == component)
+        {
+            _focusQueue.RemoveFirst();
             component.HandleFocusLost();
 
-            var nextFocus = _focusQueue.First;
+            var nextFocus = _focusQueue.First?.Value;
             if (nextFocus != null)
             {
-                _focusQueue.RemoveFirst();
-                _focusedComponent = nextFocus.Value;
-                _focusedComponent.HandleFocusGained();
+                nextFocus.HandleFocusGained();
             }
         }
         else
@@ -142,6 +157,30 @@ public sealed class InputSystem
         }
     }
 
+    private readonly List<Action> _handlerQueue = new();
+    
+    private void HandleEvent(Action action)
+    {
+        if (_isHandlingEvent)
+        {
+            _handlerQueue.Add(action);
+        }
+        else
+        {
+            _isHandlingEvent = true;
+            action();
+            _isHandlingEvent = false;
+        }
+        
+        var queuedActions = _handlerQueue.ToArray();
+        _handlerQueue.Clear();
+        foreach (var queuedAction in queuedActions)
+        {
+            HandleEvent(queuedAction);
+        }
+    }
+    
+
     public bool IsInteractable(Component component)
     {
         return _hoverableComponents.Contains(component);
@@ -149,7 +188,10 @@ public sealed class InputSystem
 
     public bool IsFocused(Component component)
     {
-        return _focusedComponent == component;
+        var focused = _focusQueue.First;
+        if (focused == null)
+            return false;
+        return focused.Value == component;
     }
 }
 

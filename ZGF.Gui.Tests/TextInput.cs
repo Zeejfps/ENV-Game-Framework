@@ -45,7 +45,7 @@ public sealed class TextInput : Component
         _isEditing = false;
     }
 
-    protected override void OnMouseButtonStateChanged(MouseButtonEvent e)
+    protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)
     {
         if (e.State == InputState.Pressed)
         {
@@ -55,9 +55,9 @@ public sealed class TextInput : Component
             if (_isEditing && !containsPoint)
             {
                 _isEditing = false;
-                Blur();
                 Console.WriteLine("Editing stopped");
-                return;
+                Blur();
+                return false;
             }
 
             if (!_isEditing && containsPoint)
@@ -68,7 +68,7 @@ public sealed class TextInput : Component
             }
 
             if (_strLen == 0)
-                return;
+                return true;
 
             // var mousePoint = e.Position;
             //
@@ -103,12 +103,14 @@ public sealed class TextInput : Component
             //     _caretIndex = _buffer.Length - 1;
             // }
         }
+        
+        return base.OnMouseButtonStateChanged(e);
     }
 
-    protected override void OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
+    protected override bool OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
     {
         if (!_isEditing)
-            return;
+            return false;
 
         if (e.State == InputState.Pressed)
         {
@@ -117,27 +119,36 @@ public sealed class TextInput : Component
                 _caretIndex--;
                 if (_caretIndex < 0)
                     _caretIndex = 0;
+
+                return true;
             }
-            else if (e.Key == KeyboardKey.RightArrow)
+            
+            if (e.Key == KeyboardKey.RightArrow)
             {
                 _caretIndex++;
                 if (_caretIndex > _strLen)
                     _caretIndex = _strLen;
+
+                return true;
             }
-            else if (e.Key == KeyboardKey.Backspace)
+            
+            if (e.Key == KeyboardKey.Backspace)
             {
                 if (_strLen > 0 && _caretIndex > 0)
                 {
                     DeleteChar(_caretIndex - 1);
                     _caretIndex--;
                 }
+
+                return true;
             }
-            else
-            {
-                InsertChar(_caretIndex, e.Key.ToChar());
-                _caretIndex++;
-            }
+            
+            InsertChar(_caretIndex, e.Key.ToChar());
+            _caretIndex++;
+            return true;
         }
+        
+        return base.OnKeyboardKeyStateChanged(e);
     }
 
     private void DeleteChar(int index)
