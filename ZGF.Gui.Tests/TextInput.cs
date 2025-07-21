@@ -13,6 +13,7 @@ public sealed class TextInput : Component
     private int _caretIndex;
     private char[] _buffer;
     private int _strLen;
+    private bool _isEditing;
 
     public TextInput()
     {
@@ -33,18 +34,31 @@ public sealed class TextInput : Component
 
     protected override void OnMouseExit()
     {
-        Blur();
+        if (!_isEditing)
+        {
+            Blur();
+        }
     }
 
     protected override void OnMouseButtonStateChanged(MouseButtonEvent e)
     {
         if (e.State == InputState.Pressed)
         {
+            var position = Position;
+            if (!position.ContainsPoint(e.Position))
+            {
+                _isEditing = false;
+                Blur();
+                return;
+            }
+
+            _isEditing = true;
+
             if (_strLen == 0)
                 return;
 
             // var mousePoint = e.Position;
-            // var position = Position;
+            //
             // var deltaX = mousePoint.X - position.Left;
             // var smallest = float.MaxValue;
             // var found = false;
@@ -154,9 +168,8 @@ public sealed class TextInput : Component
             ZIndex = ZIndex
         });
 
-        if (IsFocused)
+        if (_isEditing)
         {
-
             var textToMeasure = _buffer.AsSpan(0, _caretIndex);
             var cursorPosLeft = Context!.TextMeasurer.MeasureTextWidth(textToMeasure, _textStyle);
 
