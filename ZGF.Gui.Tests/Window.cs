@@ -115,7 +115,7 @@ public sealed class Window : Component
 
         var textInput = new TextInput
         {
-            PreferredHeight = 30f
+            PreferredHeight = 20f
         };
 
         var bottomSection = new BorderLayout
