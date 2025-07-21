@@ -103,7 +103,7 @@ public sealed class TextInput : Component
             }
             else
             {
-                //_buffer[_caretIndex] = e.Key.AsChar();
+                _buffer[_caretIndex] = e.Key.ToChar();
             }
         }
     }
