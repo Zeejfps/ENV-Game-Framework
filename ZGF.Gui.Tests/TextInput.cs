@@ -107,6 +107,9 @@ public sealed class TextInput : Component
 
     protected override void OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
     {
+        if (!_isEditing)
+            return;
+
         if (e.State == InputState.Pressed)
         {
             if (e.Key == KeyboardKey.LeftArrow)
