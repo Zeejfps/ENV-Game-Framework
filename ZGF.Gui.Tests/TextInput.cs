@@ -149,8 +149,9 @@ public sealed class TextInput : Component
 
                 return true;
             }
-            
-            InsertChar(_caretIndex, e.Key.ToChar());
+
+            var isShiftPressed = (e.Modifiers & InputModifiers.Shift) > 0;
+            InsertChar(_caretIndex, e.Key.ToChar(isShiftPressed));
             _caretIndex++;
             return true;
         }

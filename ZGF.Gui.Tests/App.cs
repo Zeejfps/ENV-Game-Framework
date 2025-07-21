@@ -180,6 +180,7 @@ public sealed class App : OpenGlApp
         {
             Key = key.Adapt(),
             State = s,
+            Modifiers = (InputModifiers)mods
         });
     }
     
