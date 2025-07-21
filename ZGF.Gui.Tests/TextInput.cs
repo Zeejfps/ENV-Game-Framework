@@ -151,7 +151,12 @@ public sealed class TextInput : Component
             }
 
             var isShiftPressed = (e.Modifiers & InputModifiers.Shift) > 0;
-            InsertChar(_caretIndex, e.Key.ToChar(isShiftPressed));
+            var c = e.Key.ToChar(isShiftPressed);
+            if (c == '\0')
+            {
+                return true;
+            }
+            InsertChar(_caretIndex, c);
             _caretIndex++;
             return true;
         }
