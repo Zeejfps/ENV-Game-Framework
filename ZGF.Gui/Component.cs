@@ -65,7 +65,7 @@ public class Component : IEnumerable<Component>
         if (Context == null)
             return false;
 
-        return Context.InputSystem.TryFocus(this);
+        return Context.InputSystem.RequestFocus(this);
     }
 
     public void StealFocus()

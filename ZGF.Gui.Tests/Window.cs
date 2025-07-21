@@ -141,6 +141,31 @@ public sealed class Window : Component
 
         var windowResizer = new WindowResizer(this);
         Add(windowResizer);
+
+        //IsInteractable = true;
+    }
+
+    protected override void OnMouseEnter()
+    {
+        base.OnMouseEnter();
+        //RequestFocus();
+    }
+
+    protected override void OnFocusLost()
+    {
+        //Blur();
+        base.OnFocusLost();
+    }
+
+    protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)
+    {
+        if (e.State == InputState.Pressed)
+        {
+            BringToFront();
+            return false;
+        }
+        
+        return base.OnMouseButtonStateChanged(e);
     }
 
     protected override void OnLayoutSelf()

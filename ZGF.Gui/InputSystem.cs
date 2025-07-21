@@ -117,7 +117,7 @@ public sealed class InputSystem
         component.HandleFocusGained();
     }
 
-    public bool TryFocus(Component component)
+    public bool RequestFocus(Component component)
     {
         var focusedComponent = _focusQueue.First?.Value;
         if (focusedComponent == null)
