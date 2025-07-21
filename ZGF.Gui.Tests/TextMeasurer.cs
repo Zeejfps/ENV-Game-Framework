@@ -9,10 +9,11 @@ public sealed class TextMeasurer : ITextMeasurer
         _bitmapFont = bitmapFont;
     }
 
-    public float MeasureTextWidth(string text, TextStyle style)
+    public float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style)
     {
         var totalWidth = 0f;
-        foreach (var codePoint in text.AsCodePoints())
+        var s = new string(text);
+        foreach (var codePoint in s.AsCodePoints())
         {
             if (!_bitmapFont.TryGetGlyphInfo(codePoint, out var glyphInfo))
                 continue;
@@ -22,7 +23,7 @@ public sealed class TextMeasurer : ITextMeasurer
         return totalWidth;
     }
 
-    public float MeasureTextHeight(string text, TextStyle style)
+    public float MeasureTextHeight(ReadOnlySpan<char> text, TextStyle style)
     {
         return _bitmapFont.FontMetrics.Common.LineHeight;
     }

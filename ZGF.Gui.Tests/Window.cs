@@ -112,11 +112,17 @@ public sealed class Window : Component
             },
             BorderColor = BorderColorStyle.All(0x000000)
         };
-        
+
+        var textInput = new TextInput
+        {
+            PreferredHeight = 30f
+        };
+
         var bottomSection = new BorderLayout
         {
             East = scrollBarContainer,
-            Center = progress
+            Center = progress,
+            South = textInput,
         };
         columnLayout.Add(bottomSection);
         
