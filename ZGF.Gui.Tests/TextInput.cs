@@ -52,22 +52,34 @@ public sealed class TextInput : Component
             var mousePoint = e.Position;
             var position = Position;
             var deltaX = mousePoint.X - position.Left;
-            // for (var i = 0; i < _buffer.Length; i++)
-            // {
-            //     var text = _buffer.AsSpan(0, i+1);
-            //     var w = Context.TextMeasurer.MeasureTextWidth(text, _textStyle);
-            //
-            // }
-
-            var text = _buffer.AsSpan(0, _caretIndex+1);
-            var w = Context.TextMeasurer.MeasureTextWidth(text, _textStyle);
-            if (deltaX < w)
+            var smallest = float.MaxValue;
+            var found = false;
+            for (var i = 0; i < _buffer.Length; i++)
             {
-                _caretIndex--;
+                var text = _buffer.AsSpan(0, i+1);
+                var w = Context.TextMeasurer.MeasureTextWidth(text, _textStyle);
+                var dd = MathF.Abs(w - deltaX);
+                if (deltaX < w)
+                {
+                    _caretIndex = i - 1;
+                    found = true;
+                    break;
+                }
+                if (dd < smallest)
+                {
+                    smallest = dd;
+                }
+                else if (dd > smallest)
+                {
+                    _caretIndex = i - 1;
+                    found = true;
+                    break;
+                }
             }
-            else
+
+            if (!found)
             {
-                _caretIndex++;
+                _caretIndex = _buffer.Length - 1;
             }
         }
     }
