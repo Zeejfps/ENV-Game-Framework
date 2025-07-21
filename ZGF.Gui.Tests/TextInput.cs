@@ -154,23 +154,27 @@ public sealed class TextInput : Component
             ZIndex = ZIndex
         });
 
-        var textToMeasure = _buffer.AsSpan(0, _caretIndex);
-        var cursorPosLeft = Context!.TextMeasurer.MeasureTextWidth(textToMeasure, _textStyle);
-
-        var cursorHeight = position.Height - 6f;
-        var cursorPos = new RectF
+        if (IsFocused)
         {
-            Bottom = position.Bottom + 2f,
-            Left = position.Left + cursorPosLeft,
-            Width = 2,
-            Height = cursorHeight
-        };
 
-        c.AddCommand(new DrawRectCommand
-        {
-            Position = cursorPos,
-            Style = _cursorStyle,
-            ZIndex = ZIndex
-        });
+            var textToMeasure = _buffer.AsSpan(0, _caretIndex);
+            var cursorPosLeft = Context!.TextMeasurer.MeasureTextWidth(textToMeasure, _textStyle);
+
+            var cursorHeight = position.Height - 6f;
+            var cursorPos = new RectF
+            {
+                Bottom = position.Bottom + 2f,
+                Left = position.Left + cursorPosLeft,
+                Width = 2,
+                Height = cursorHeight
+            };
+
+            c.AddCommand(new DrawRectCommand
+            {
+                Position = cursorPos,
+                Style = _cursorStyle,
+                ZIndex = ZIndex
+            });
+        }
     }
 }
