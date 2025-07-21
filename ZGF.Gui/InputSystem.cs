@@ -100,19 +100,7 @@ public sealed class InputSystem
         if (components.Count == 0)
             return null;
         
-        // Console.WriteLine($"Hit: {components.Count}");
-        foreach (var component in components)
-        {
-            Console.WriteLine(component);
-        }
-        
         components.Sort(ZIndexComparer.Instance);
-        // Console.WriteLine($"Sorted: {components.Count}");
-        foreach (var component in components)
-        {
-            Console.WriteLine(component);
-        }
-        
         return components[0];
     }
 
