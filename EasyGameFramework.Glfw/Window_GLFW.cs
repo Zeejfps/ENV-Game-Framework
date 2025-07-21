@@ -9,6 +9,7 @@ using EasyGameFramework.Core.InputDevices;
 using EasyGameFramework.OpenGL;
 using GLFW;
 using OpenGL;
+using ZGF.KeyboardModule.GlfwAdapter;
 using static GLFW.Glfw;
 using CursorMode = EasyGameFramework.Api.CursorMode;
 using Monitor = GLFW.Monitor;

@@ -1,10 +1,8 @@
-﻿using EasyGameFramework.Api.InputDevices;
-using GLFW;
-using ZGF.KeyboardModule;
+﻿using GLFW;
 
-namespace EasyGameFramework.Glfw;
+namespace ZGF.KeyboardModule.GlfwAdapter;
 
-internal static class KeysExtensions
+public static class KeysExtensions
 {
     public static KeyboardKey ToKeyboardKey(this Keys key)
     {
@@ -35,7 +33,7 @@ internal static class KeysExtensions
             case Keys.Alpha4:
                 return KeyboardKey.Alpha4;
             case Keys.Alpha5:
-                break;
+                return KeyboardKey.Alpha0;
             case Keys.Alpha6:
                 break;
             case Keys.Alpha7:
@@ -45,7 +43,7 @@ internal static class KeysExtensions
             case Keys.Alpha9:
                 break;
             case Keys.SemiColon:
-                break;
+                return KeyboardKey.SemiColon;
             case Keys.Equal:
                 return KeyboardKey.Equals;
             case Keys.A:
@@ -89,16 +87,17 @@ internal static class KeysExtensions
             case Keys.T:
                 return KeyboardKey.T;
             case Keys.U:
-                break;
+                return KeyboardKey.U;
             case Keys.V:
-                break;
+                return KeyboardKey.V;
             case Keys.W:
                 return KeyboardKey.W;
             case Keys.X:
-                break;
+                return KeyboardKey.X;
             case Keys.Y:
                 return KeyboardKey.Y;
             case Keys.Z:
+                return KeyboardKey.Z;
             case Keys.LeftBracket:
             case Keys.Backslash:
             case Keys.RightBracket:

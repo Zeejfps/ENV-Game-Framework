@@ -30,8 +30,12 @@ public enum KeyboardKey
     R,
     S,
     T,
+    U,
+    V,
     W,
+    X,
     Y,
+    Z,
 
     Space,
     Escape,
@@ -41,6 +45,7 @@ public enum KeyboardKey
     Comma,
     Period,
     Slash,
+    SemiColon,
 
     Equals,
     Minus,

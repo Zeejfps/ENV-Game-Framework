@@ -10,6 +10,7 @@
       <ProjectReference Include="..\EasyGameFramework.OpenGL\EasyGameFramework.OpenGL.csproj" />
       <ProjectReference Include="..\EasyGameFramework\EasyGameFramework.csproj" />
       <ProjectReference Include="..\Glfw.NET\Glfw.NET.csproj" />
+      <ProjectReference Include="..\ZGF.KeyboardModule.GlfwAdapter\ZGF.KeyboardModule.GlfwAdapter.csproj" />
     </ItemGroup>
 
 </Project>
