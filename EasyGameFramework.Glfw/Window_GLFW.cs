@@ -535,7 +535,7 @@ public sealed class Window_GLFW : IWindow, IDisposable
     private void Glfw_KeyCallback(Window window, Keys glfwKey, int scancode, InputState state, ModifierKeys mods)
     {
         var keyboard = Keyboard;
-        var key = glfwKey.ToKeyboardKey();
+        var key = glfwKey.Adapt();
         switch (state)
         {
             case InputState.Release:

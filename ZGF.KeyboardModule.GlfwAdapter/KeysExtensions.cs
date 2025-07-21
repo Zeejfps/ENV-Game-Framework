@@ -4,7 +4,7 @@ namespace ZGF.KeyboardModule.GlfwAdapter;
 
 public static class KeysExtensions
 {
-    public static KeyboardKey ToKeyboardKey(this Keys key)
+    public static KeyboardKey Adapt(this Keys key)
     {
         switch (key)
         {

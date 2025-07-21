@@ -8,6 +8,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\ZGF.Geometry\ZGF.Geometry.csproj" />
+      <ProjectReference Include="..\ZGF.KeyboardModule\ZGF.KeyboardModule.csproj" />
     </ItemGroup>
 
 </Project>

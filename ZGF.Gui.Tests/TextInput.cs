@@ -1,5 +1,6 @@
 using System.Text;
 using ZGF.Geometry;
+using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Tests;
 
@@ -80,6 +81,29 @@ public sealed class TextInput : Component
             if (!found)
             {
                 _caretIndex = _buffer.Length - 1;
+            }
+        }
+    }
+
+    protected override void OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
+    {
+        if (e.State == InputState.Pressed)
+        {
+            if (e.Key == KeyboardKey.LeftArrow)
+            {
+                _caretIndex--;
+                if (_caretIndex < 0)
+                    _caretIndex = 0;
+            }
+            else if (e.Key == KeyboardKey.RightArrow)
+            {
+                _caretIndex++;
+                if (_caretIndex >= _buffer.Length)
+                    _caretIndex = _buffer.Length - 1;
+            }
+            else
+            {
+                //_buffer[_caretIndex] = e.Key.AsChar();
             }
         }
     }

@@ -621,5 +621,8 @@ public class Component : IEnumerable<Component>
 
     public void HandleKeyboardKeyEvent(in KeyboardKeyEvent e)
     {
+        OnKeyboardKeyStateChanged(e);
     }
+
+    protected virtual void OnKeyboardKeyStateChanged(in KeyboardKeyEvent e){}
 }

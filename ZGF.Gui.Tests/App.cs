@@ -2,6 +2,7 @@ using GLFW;
 using ZGF.Core;
 using ZGF.Geometry;
 using ZGF.Gui.Layouts;
+using ZGF.KeyboardModule.GlfwAdapter;
 using static GL46;
 
 namespace ZGF.Gui.Tests;
@@ -164,6 +165,7 @@ public sealed class App : OpenGlApp
 
         _inputSystem.HandleKeyboardKeyEvent(new KeyboardKeyEvent
         {
+            Key = key.Adapt(),
             State = s,
         });
 
