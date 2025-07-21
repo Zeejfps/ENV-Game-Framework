@@ -181,7 +181,7 @@ sealed class ZIndexComparer : IComparer<Component>
 
         if (y == null)
             return -1;
-
+        
         var result = y.ZIndex.CompareTo(x.ZIndex);
         if (result == 0)
         {

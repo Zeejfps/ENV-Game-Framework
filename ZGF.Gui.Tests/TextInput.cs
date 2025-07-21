@@ -68,7 +68,7 @@ public sealed class TextInput : Component
             }
 
             if (_strLen == 0)
-                return true;
+                return false;
 
             // var mousePoint = e.Position;
             //

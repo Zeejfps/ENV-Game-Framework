@@ -71,12 +71,14 @@ public sealed class WindowTitleBar : Component
 
     protected override void OnMouseEnter()
     {
+        Console.WriteLine($"OnMouseEnter: TitleBar - {_window.TitleText}");
         _isHovered = true;
         RequestFocus();
     }
 
     protected override void OnMouseExit()
     {
+        Console.WriteLine($"OnMouseExit: TitleBar - {_window.TitleText}");
         _isHovered = false;
         if (!_isDragging)
         {
@@ -123,7 +125,6 @@ public sealed class WindowTitleBar : Component
 
     protected override bool OnMouseMoved(MouseMoveEvent e)
     {
-        Console.WriteLine($"OnMouseMoved: {_isLeftButtonPressed}");
         if (!_isLeftButtonPressed)
             return false;
 
