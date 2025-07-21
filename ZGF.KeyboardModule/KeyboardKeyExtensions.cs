@@ -2,10 +2,21 @@ namespace ZGF.KeyboardModule;
 
 public static class KeyboardKeyExtensions
 {
-    public static char ToChar(this KeyboardKey key)
+    public static char ToChar(this KeyboardKey key, bool isShiftPressed = false)
     {
         switch (key)
         {
+            case KeyboardKey.Alpha1: return isShiftPressed ?  '!' : '1';
+            case KeyboardKey.Alpha2: return isShiftPressed ?  '@' : '2';
+            case KeyboardKey.Alpha3: return isShiftPressed ?  '#' : '3';
+            case KeyboardKey.Alpha4: return isShiftPressed ?  '$' : '4';
+            case KeyboardKey.Alpha5: return isShiftPressed ?  '%' : '5';
+            case KeyboardKey.Alpha6: return isShiftPressed ?  '^' : '6';
+            case KeyboardKey.Alpha7: return isShiftPressed ?  '&' : '7';
+            case KeyboardKey.Alpha8: return isShiftPressed ?  '*' : '8';
+            case KeyboardKey.Alpha9: return isShiftPressed ?  '(' : '9';
+            case KeyboardKey.Alpha0: return isShiftPressed ?  ')' : '0';
+
             case KeyboardKey.A: return 'a';
             case KeyboardKey.B: return 'b';
             case KeyboardKey.C: return 'c';

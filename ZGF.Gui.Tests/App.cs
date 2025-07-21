@@ -173,6 +173,7 @@ public sealed class App : OpenGlApp
             GLFW.InputState.Press => InputState.Pressed,
             GLFW.InputState.Release => InputState.Released,
             GLFW.InputState.Repeat => InputState.Pressed,
+            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
         };
 
         _inputSystem.HandleKeyboardKeyEvent(new KeyboardKeyEvent
@@ -180,14 +181,6 @@ public sealed class App : OpenGlApp
             Key = key.Adapt(),
             State = s,
         });
-
-        if (state != GLFW.InputState.Press)
-            return;
-        
-        if (key != Keys.Space)
-            return;
-        
-        _window.Move(10, 10);
     }
     
     protected override void OnUpdate()

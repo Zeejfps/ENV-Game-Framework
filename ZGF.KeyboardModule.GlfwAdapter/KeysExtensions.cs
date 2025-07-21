@@ -33,15 +33,15 @@ public static class KeysExtensions
             case Keys.Alpha4:
                 return KeyboardKey.Alpha4;
             case Keys.Alpha5:
-                return KeyboardKey.Alpha0;
+                return KeyboardKey.Alpha5;
             case Keys.Alpha6:
-                break;
+                return KeyboardKey.Alpha6;
             case Keys.Alpha7:
-                break;
+                return KeyboardKey.Alpha7;
             case Keys.Alpha8:
-                break;
+                return KeyboardKey.Alpha8;
             case Keys.Alpha9:
-                break;
+                return KeyboardKey.Alpha9;
             case Keys.SemiColon:
                 return KeyboardKey.SemiColon;
             case Keys.Equal:
