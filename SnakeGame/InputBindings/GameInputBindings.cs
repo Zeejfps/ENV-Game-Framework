@@ -1,5 +1,6 @@
 ﻿using EasyGameFramework.Api;
 using EasyGameFramework.Api.InputDevices;
+using ZGF.KeyboardModule;
 
 namespace SampleGames;
 

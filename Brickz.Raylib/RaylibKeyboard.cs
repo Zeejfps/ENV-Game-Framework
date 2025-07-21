@@ -35,27 +35,27 @@ public sealed class RaylibKeyboard : IKeyboard, EasyGameFramework.Api.InputDevic
     public event KeyboardKeyStateChangedDelegate? KeyReleased;
     public event KeyboardKeyStateChangedDelegate? KeyStateChanged;
     
-    public void RepeatKey(EasyGameFramework.Api.InputDevices.KeyboardKey key)
+    public void RepeatKey(ZGF.KeyboardModule.KeyboardKey key)
     {
         throw new NotImplementedException();
     }
 
-    public void PressKey(EasyGameFramework.Api.InputDevices.KeyboardKey key)
+    public void PressKey(ZGF.KeyboardModule.KeyboardKey key)
     {
         throw new NotImplementedException();
     }
 
-    public void ReleaseKey(EasyGameFramework.Api.InputDevices.KeyboardKey key)
+    public void ReleaseKey(ZGF.KeyboardModule.KeyboardKey key)
     {
         throw new NotImplementedException();
     }
 
-    public bool IsKeyPressed(EasyGameFramework.Api.InputDevices.KeyboardKey key)
+    public bool IsKeyPressed(ZGF.KeyboardModule.KeyboardKey key)
     {
         throw new NotImplementedException();
     }
 
-    public bool IsKeyReleased(EasyGameFramework.Api.InputDevices.KeyboardKey key)
+    public bool IsKeyReleased(ZGF.KeyboardModule.KeyboardKey key)
     {
         throw new NotImplementedException();
     }

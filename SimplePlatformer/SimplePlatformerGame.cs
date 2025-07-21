@@ -5,6 +5,7 @@ using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Physics;
 using EasyGameFramework.Api.Rendering;
 using SampleGames;
+using ZGF.KeyboardModule;
 
 namespace SimplePlatformer;
 

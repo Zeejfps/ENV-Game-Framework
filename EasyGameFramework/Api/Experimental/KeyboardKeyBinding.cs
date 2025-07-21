@@ -1,5 +1,6 @@
 ﻿using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
+using ZGF.KeyboardModule;
 
 namespace EasyGameFramework.Api;
 

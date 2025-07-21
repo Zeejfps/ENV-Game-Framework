@@ -3,6 +3,7 @@ using System.Text;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.GUI;
 using OpenGLSandbox;
+using ZGF.KeyboardModule;
 
 namespace ModelViewer;
 

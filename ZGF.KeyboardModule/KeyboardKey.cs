@@ -1,4 +1,4 @@
-﻿namespace EasyGameFramework.Api.InputDevices;
+﻿namespace ZGF.KeyboardModule;
 
 public enum KeyboardKey
 {

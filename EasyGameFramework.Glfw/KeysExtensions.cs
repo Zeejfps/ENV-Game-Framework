@@ -1,5 +1,6 @@
 ﻿using EasyGameFramework.Api.InputDevices;
 using GLFW;
+using ZGF.KeyboardModule;
 
 namespace EasyGameFramework.Glfw;
 

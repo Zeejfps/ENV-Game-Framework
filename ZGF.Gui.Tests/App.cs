@@ -153,6 +153,20 @@ public sealed class App : OpenGlApp
 
     private void HandleKeyEvent(GLFW.Window window, Keys key, int scanCode, GLFW.InputState state, ModifierKeys mods)
     {
+        if (state == GLFW.InputState.Repeat)
+            return;
+
+        var s = state switch
+        {
+            GLFW.InputState.Press => InputState.Pressed,
+            GLFW.InputState.Release => InputState.Released,
+        };
+
+        _inputSystem.HandleKeyboardKeyEvent(new KeyboardKeyEvent
+        {
+            State = s,
+        });
+
         if (state != GLFW.InputState.Press)
             return;
         

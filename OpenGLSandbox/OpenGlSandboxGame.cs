@@ -2,6 +2,7 @@
 using EasyGameFramework.Api.AssetTypes;
 using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
+using ZGF.KeyboardModule;
 
 namespace OpenGLSandbox;
 

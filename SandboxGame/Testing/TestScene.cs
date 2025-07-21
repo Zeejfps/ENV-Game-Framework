@@ -5,6 +5,7 @@ using EasyGameFramework.Api.Events;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.Api.Rendering;
 using Framework.Materials;
+using ZGF.KeyboardModule;
 
 namespace Framework;
 
