@@ -147,21 +147,21 @@ public sealed class Window : Component
 
     protected override void OnMouseEnter()
     {
-        Console.WriteLine($"OnMouseEnter: {TitleText}");
+        Console.WriteLine($"OnMouseEnter - Window - {TitleText}");
         base.OnMouseEnter();
         RequestFocus();
     }
 
     protected override void OnMouseExit()
     {
-        Console.WriteLine($"OnMouseExit: {TitleText}");
+        Console.WriteLine($"OnMouseExit - Window - {TitleText}");
         Blur();
         base.OnMouseExit();
     }
 
     protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)
     {
-        Console.WriteLine($"OnMouseButtonStateChanged: {TitleText}");
+        Console.WriteLine($"OnMouseButtonStateChanged - Window - {TitleText}");
         if (e.State == InputState.Pressed)
         {
             BringToFront();

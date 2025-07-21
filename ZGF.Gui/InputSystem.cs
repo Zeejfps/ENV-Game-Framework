@@ -131,7 +131,7 @@ public sealed class InputSystem
     public void Update()
     {
         var focusedComponent = _focusQueue.First?.Value;
-        var canReleaseFocus = focusedComponent?.CanReleaseFocus() ?? false;
+        var canReleaseFocus = focusedComponent?.CanReleaseFocus() ?? true;
         foreach (var component in _componentsToRemoveFromFocusQueue)
         {
             _focusQueue.Remove(component);
@@ -147,6 +147,7 @@ public sealed class InputSystem
         {
             if (!_focusQueue.Contains(component))
             {
+                Console.WriteLine($"Handling focus request: {component}");
                 if (canReleaseFocus || _focusQueue.Count == 0)
                     _focusQueue.AddFirst(component);
                 else
@@ -158,7 +159,7 @@ public sealed class InputSystem
         var newFocusedComponent = _focusQueue.First?.Value;
         if (focusedComponent != newFocusedComponent)
         {
-            Console.WriteLine("Focus changed? ");
+            Console.WriteLine($"Focus changing: {focusedComponent} -> {newFocusedComponent}");
             if (focusedComponent != null)
             {
                 focusedComponent.HandleFocusLost();
@@ -174,7 +175,7 @@ public sealed class InputSystem
 
     public bool RequestFocus(Component component)
     {
-        //Console.WriteLine($"Requeting focus: {component}");
+        Console.WriteLine($"Requeting focus: {component}");
         _componentsToAddToFocusQueue.Add(component);
         
         // var focusedComponent = _focusQueue.First?.Value;

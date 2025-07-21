@@ -100,6 +100,7 @@ public sealed class WindowTitleBar : Component
         {
             _prevMousePosition = e.Position;
             _isLeftButtonPressed = true;
+            Console.WriteLine($"OnLeftButtonPressed: TitleBar - {_window.TitleText}");
             return false;
         }
         
