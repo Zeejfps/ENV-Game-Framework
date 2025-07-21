@@ -103,11 +103,12 @@ public sealed class WindowTitleBar : Component
         
         _isLeftButtonPressed = false;
         _isDragging = false;
-
+        
         if (!_isHovered)
         {
             Console.WriteLine("Not hovered");
             Blur();
+            return false;
         }
         
         return base.OnMouseButtonStateChanged(e);

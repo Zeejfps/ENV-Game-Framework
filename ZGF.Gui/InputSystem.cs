@@ -127,7 +127,9 @@ public sealed class InputSystem
             return true;
         }
 
-        _focusQueue.AddLast(component);
+        if (!_focusQueue.Contains(component))
+            _focusQueue.AddLast(component);
+        
         return false;
     }
     
