@@ -40,19 +40,32 @@ public sealed class TextInput : Component
         }
     }
 
+    protected override void OnFocusLost()
+    {
+        _isEditing = false;
+    }
+
     protected override void OnMouseButtonStateChanged(MouseButtonEvent e)
     {
         if (e.State == InputState.Pressed)
         {
             var position = Position;
-            if (!position.ContainsPoint(e.Position))
+            var containsPoint = position.ContainsPoint(e.Position);
+
+            if (_isEditing && !containsPoint)
             {
                 _isEditing = false;
                 Blur();
+                Console.WriteLine("Editing stopped");
                 return;
             }
 
-            _isEditing = true;
+            if (!_isEditing && containsPoint)
+            {
+                _isEditing = true;
+                _caretIndex = _strLen;
+                Console.WriteLine("Editing Started");
+            }
 
             if (_strLen == 0)
                 return;
