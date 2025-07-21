@@ -2,19 +2,7 @@
 
 namespace ZGF.Gui;
 
-public readonly struct MouseButtonEvent
-{
-    public required PointF Position { get; init; }
-    public required MouseButton Button { get; init; }
-    public required InputState State { get; init; }
-}
-
-public readonly struct MouseMoveEvent
-{
-    public required PointF MousePosition { get; init; }
-}
-
-public sealed class MouseInputSystem
+public sealed class InputSystem
 {
     private readonly HashSet<Component> _hoverableComponents = new();
     
@@ -34,6 +22,14 @@ public sealed class MouseInputSystem
             {
                 _focusedComponent = null;
             }
+        }
+    }
+
+    public void HandleKeyboardKeyEvent(in KeyboardKeyEvent e)
+    {
+        if (_focusedComponent != null)
+        {
+            _focusedComponent.HandleKeyboardKeyEvent(e);
         }
     }
 

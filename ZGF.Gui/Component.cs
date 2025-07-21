@@ -40,11 +40,11 @@ public class Component : IEnumerable<Component>
             {
                 if (_isInteractable)
                 {
-                    Context.MouseInputSystem.AddInteractable(this);
+                    Context.InputSystem.AddInteractable(this);
                 }
                 else
                 {
-                    Context.MouseInputSystem.RemoveInteractable(this);
+                    Context.InputSystem.RemoveInteractable(this);
                 }
             }
         }
@@ -56,7 +56,7 @@ public class Component : IEnumerable<Component>
         {
             if (Context == null)
                 return false;
-            return Context.MouseInputSystem.IsFocused(this);
+            return Context.InputSystem.IsFocused(this);
         }
     }
 
@@ -65,7 +65,7 @@ public class Component : IEnumerable<Component>
         if (Context == null)
             return false;
 
-        return Context.MouseInputSystem.TryFocus(this);
+        return Context.InputSystem.TryFocus(this);
     }
 
     public void StealFocus()
@@ -73,7 +73,7 @@ public class Component : IEnumerable<Component>
         if (Context == null)
             return;
 
-        Context.MouseInputSystem.StealFocus(this);
+        Context.InputSystem.StealFocus(this);
     }
 
     public void Blur()
@@ -81,20 +81,20 @@ public class Component : IEnumerable<Component>
         if (Context == null)
             return;
 
-        Context.MouseInputSystem.Blur(this);
+        Context.InputSystem.Blur(this);
     }
 
     protected virtual void OnAttachedToContext(Context context)
     {
         if (_isInteractable)
         {
-            context.MouseInputSystem.AddInteractable(this);
+            context.InputSystem.AddInteractable(this);
         }
     }
 
     protected virtual void OnDetachedFromContext(Context context)
     {
-        context.MouseInputSystem.RemoveInteractable(this);
+        context.InputSystem.RemoveInteractable(this);
     }
 
     private RectF _position;
@@ -618,4 +618,8 @@ public class Component : IEnumerable<Component>
 
     protected virtual void OnFocusGained(){}
     protected virtual void OnFocusLost(){}
+
+    public void HandleKeyboardKeyEvent(in KeyboardKeyEvent e)
+    {
+    }
 }

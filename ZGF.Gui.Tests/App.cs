@@ -12,7 +12,7 @@ public sealed class App : OpenGlApp
     private readonly Component _gui;
 
     private readonly Window _window;
-    private readonly MouseInputSystem _mouseInputSystem;
+    private readonly InputSystem _inputSystem;
     private readonly KeyCallback _keyCallback;
     private readonly MouseButtonCallback _mouseButtonCallback;
     private readonly SizeCallback _windowSizeCallback;
@@ -21,7 +21,7 @@ public sealed class App : OpenGlApp
 
     public App(StartupConfig startupConfig) : base(startupConfig)
     {
-        _mouseInputSystem = new MouseInputSystem();
+        _inputSystem = new InputSystem();
 
         var imageManager = new ImageManager();
         imageManager.LoadImage("Assets/Icons/arrow_right.png");
@@ -52,7 +52,7 @@ public sealed class App : OpenGlApp
 
         var context = new Context
         {
-            MouseInputSystem = _mouseInputSystem,
+            InputSystem = _inputSystem,
             TextMeasurer = textMeasurer,
             ImageManager = imageManager,
             Canvas = _canvas
@@ -143,7 +143,7 @@ public sealed class App : OpenGlApp
         };
 
         var guiPoint = WindowToGuiCoords(windowX, windowY);
-        _mouseInputSystem.HandleMouseButtonEvent(new MouseButtonEvent
+        _inputSystem.HandleMouseButtonEvent(new MouseButtonEvent
         {
             Position = guiPoint,
             Button = b,
@@ -167,7 +167,7 @@ public sealed class App : OpenGlApp
         Render();
         Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
         var guiPoint = WindowToGuiCoords(mouseX, mouseY);
-        _mouseInputSystem.UpdateMousePosition(guiPoint);
+        _inputSystem.UpdateMousePosition(guiPoint);
         _contextMenuManager.Update();
     }
 

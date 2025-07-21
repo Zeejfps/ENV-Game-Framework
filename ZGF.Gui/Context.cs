@@ -2,7 +2,7 @@ namespace ZGF.Gui;
 
 public sealed class Context
 {
-    public required MouseInputSystem MouseInputSystem { get; init; }
+    public required InputSystem InputSystem { get; init; }
     public required ITextMeasurer TextMeasurer { get; init; }
     public required IImageManager ImageManager { get; init; }
     public required ICanvas Canvas { get; init; }

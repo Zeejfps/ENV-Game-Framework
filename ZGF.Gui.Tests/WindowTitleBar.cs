@@ -106,7 +106,7 @@ public sealed class WindowTitleBar : Component
 
             if (!_isHovered)
             {
-                Context?.MouseInputSystem.Blur(this);
+                Context?.InputSystem.Blur(this);
             }
         }
     }
