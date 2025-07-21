@@ -6,27 +6,17 @@ namespace ZGF.Gui.Tests;
 
 public sealed class TextInput : Component
 {
-    private int _caretIndex;
-
     private readonly RectStyle _background = new();
     private readonly TextStyle _textStyle = new();
     private readonly RectStyle _cursorStyle = new();
-    private readonly StringBuilder _stringBuilder;
 
+    private int _caretIndex;
     private char[] _buffer;
+    private int _strLen;
 
     public TextInput()
     {
-        _stringBuilder = new StringBuilder();
-        _buffer =
-        [
-            'a',
-            'b',
-            'c',
-            'd',
-            'e'
-        ];
-        _caretIndex = 2;
+        _buffer = new char[256];
 
         _background.BackgroundColor = 0xEFEFEF;
         _background.BorderSize = BorderSizeStyle.All(1);
@@ -50,38 +40,41 @@ public sealed class TextInput : Component
     {
         if (e.State == InputState.Pressed)
         {
-            var mousePoint = e.Position;
-            var position = Position;
-            var deltaX = mousePoint.X - position.Left;
-            var smallest = float.MaxValue;
-            var found = false;
-            for (var i = 0; i < _buffer.Length; i++)
-            {
-                var text = _buffer.AsSpan(0, i+1);
-                var w = Context.TextMeasurer.MeasureTextWidth(text, _textStyle);
-                var dd = MathF.Abs(w - deltaX);
-                if (deltaX < w)
-                {
-                    _caretIndex = i - 1;
-                    found = true;
-                    break;
-                }
-                if (dd < smallest)
-                {
-                    smallest = dd;
-                }
-                else if (dd > smallest)
-                {
-                    _caretIndex = i - 1;
-                    found = true;
-                    break;
-                }
-            }
+            if (_strLen == 0)
+                return;
 
-            if (!found)
-            {
-                _caretIndex = _buffer.Length - 1;
-            }
+            // var mousePoint = e.Position;
+            // var position = Position;
+            // var deltaX = mousePoint.X - position.Left;
+            // var smallest = float.MaxValue;
+            // var found = false;
+            // for (var i = 0; i < _buffer.Length; i++)
+            // {
+            //     var text = _buffer.AsSpan(0, i+1);
+            //     var w = Context.TextMeasurer.MeasureTextWidth(text, _textStyle);
+            //     var dd = MathF.Abs(w - deltaX);
+            //     if (deltaX < w)
+            //     {
+            //         _caretIndex = i - 1;
+            //         found = true;
+            //         break;
+            //     }
+            //     if (dd < smallest)
+            //     {
+            //         smallest = dd;
+            //     }
+            //     else if (dd > smallest)
+            //     {
+            //         _caretIndex = i - 1;
+            //         found = true;
+            //         break;
+            //     }
+            // }
+            //
+            // if (!found)
+            // {
+            //     _caretIndex = _buffer.Length - 1;
+            // }
         }
     }
 
@@ -98,14 +91,48 @@ public sealed class TextInput : Component
             else if (e.Key == KeyboardKey.RightArrow)
             {
                 _caretIndex++;
-                if (_caretIndex >= _buffer.Length)
-                    _caretIndex = _buffer.Length - 1;
+                if (_caretIndex > _strLen)
+                    _caretIndex = _strLen;
+            }
+            else if (e.Key == KeyboardKey.Backspace)
+            {
+                if (_strLen > 0 && _caretIndex > 0)
+                {
+                    DeleteChar(_caretIndex - 1);
+                    _caretIndex--;
+                }
             }
             else
             {
-                _buffer[_caretIndex] = e.Key.ToChar();
+                InsertChar(_caretIndex, e.Key.ToChar());
+                _caretIndex++;
             }
         }
+    }
+
+    private void DeleteChar(int index)
+    {
+        if (index == _strLen)
+        {
+        }
+        _strLen--;
+    }
+
+    private void InsertChar(int index, char c)
+    {
+        if (index == _strLen)
+        {
+            _buffer[index] = c;
+        }
+        else
+        {
+            for (var i = index; i <= _strLen; i++)
+            {
+                _buffer[i + 1] = _buffer[i];
+            }
+            _buffer[index] = c;
+        }
+        _strLen++;
     }
 
     protected override void OnDrawSelf(ICanvas c)
@@ -122,12 +149,12 @@ public sealed class TextInput : Component
         c.AddCommand(new DrawTextCommand
         {
             Position = position,
-            Text = new string(_buffer),
+            Text = new string(_buffer, 0, _strLen),
             Style = _textStyle,
             ZIndex = ZIndex
         });
 
-        var textToMeasure = _buffer.AsSpan(0, _caretIndex+1);
+        var textToMeasure = _buffer.AsSpan(0, _caretIndex);
         var cursorPosLeft = Context!.TextMeasurer.MeasureTextWidth(textToMeasure, _textStyle);
 
         var cursorHeight = position.Height - 6f;
