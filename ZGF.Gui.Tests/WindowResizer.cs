@@ -34,7 +34,7 @@ public sealed class WindowResizer : Component
     protected override void OnMouseEnter()
     {
         _background.BackgroundColor = 0x9C9CCE;
-        TryFocus();
+        RequestFocus();
     }
 
     protected override void OnMouseExit()

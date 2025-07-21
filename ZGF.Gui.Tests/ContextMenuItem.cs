@@ -102,7 +102,7 @@ public sealed class ContextMenuItem : Component
             }
         }
 
-        TryFocus();
+        RequestFocus();
     }
 
     protected override void OnMouseExit()

@@ -72,7 +72,7 @@ public sealed class WindowTitleBar : Component
     protected override void OnMouseEnter()
     {
         _isHovered = true;
-        TryFocus();
+        RequestFocus();
     }
 
     protected override void OnMouseExit()

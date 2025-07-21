@@ -60,7 +60,7 @@ public class Component : IEnumerable<Component>
         }
     }
 
-    public bool TryFocus()
+    public bool RequestFocus()
     {
         if (Context == null)
             return false;

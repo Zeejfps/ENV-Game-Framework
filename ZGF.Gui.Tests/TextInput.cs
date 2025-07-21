@@ -29,7 +29,7 @@ public sealed class TextInput : Component
 
     protected override void OnMouseEnter()
     {
-        TryFocus();
+        RequestFocus();
     }
 
     protected override void OnMouseExit()
