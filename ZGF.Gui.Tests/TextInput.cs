@@ -142,8 +142,12 @@ public sealed class TextInput : Component
 
     private void DeleteChar(int index)
     {
-        if (index == _strLen)
+        if (index < _strLen)
         {
+            for (var i = index; i < _strLen; i++)
+            {
+                _buffer[i] = _buffer[i + 1];
+            }
         }
         _strLen--;
     }
