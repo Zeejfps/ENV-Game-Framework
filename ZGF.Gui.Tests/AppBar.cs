@@ -35,16 +35,16 @@ public sealed class AppBar : Component
         fileItem.AddController(new FileMenuItemController(fileItem, contextMenuManager, app));
         
         var editItem = new MenuItem();
-        editItem.AddController(new TestMenuItemController(editItem, "Edit", contextMenuManager));
+        editItem.AddController(new TestMenuItemController(editItem, contextMenuManager, "Edit"));
 
         var viewLabel = new MenuItem();
-        viewLabel.AddController(new TestMenuItemController(viewLabel, "View", contextMenuManager));
+        viewLabel.AddController(new TestMenuItemController(viewLabel, contextMenuManager, "View"));
         
         var specialMenuItem = new MenuItem();
         specialMenuItem.AddController(new SpecialMenuItemController(specialMenuItem));
 
         var helpLabel = new MenuItem();
-        helpLabel.AddController(new TestMenuItemController(helpLabel, "Help", contextMenuManager));
+        helpLabel.AddController(new TestMenuItemController(helpLabel, contextMenuManager, "Help"));
         
         var row = new FlexRow(MainAxisAlignment.Start, CrossAxisAlignment.Stretch, 10)
         {

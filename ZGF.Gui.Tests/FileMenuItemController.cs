@@ -1,76 +1,30 @@
 namespace ZGF.Gui.Tests;
 
-public sealed class FileMenuItemController : IKeyboardMouseController
+public sealed class FileMenuItemController : BaseMenuItemController 
 {
-    public Component Component => _menuItem;
-    
     private readonly App _app;
-    private readonly MenuItem _menuItem;
-    private readonly ContextMenuManager _contextMenuManager;
 
-    private ContextMenu? _contextMenu;
-
-    public FileMenuItemController(MenuItem menuItem, ContextMenuManager contextMenuManager, App app)
+    public FileMenuItemController(MenuItem menuItem, ContextMenuManager contextMenuManager, App app) : base(menuItem, contextMenuManager)
     {
-        _menuItem = menuItem;
-        _contextMenuManager = contextMenuManager;
         _app = app;
     }
-    
-    public void OnMouseEnter()
-    {
-        Console.WriteLine("OnMouseEnter");
 
-        _menuItem.IsHovered = true;
-        _contextMenu = _contextMenuManager
-            .ShowContextMenu(_menuItem.Position.BottomLeft);
-        _contextMenu.AddController(new ContextMenuDefaultKbmController(_menuItem, _contextMenu));
-        
+    protected override void BuildMenu(ContextMenu contextMenu)
+    {
         var openModelItem = new ContextMenuItem
         {
             Text = "Open Model",
         };
-        _contextMenu.AddItem(openModelItem);
+        contextMenu.AddItem(openModelItem);
 
         var exitItem = new ContextMenuItem
         {
             Text = "Exit",
         };
-        exitItem.AddController(new ContextMenuItemDefaultKbmController(_contextMenu, exitItem, () =>
+        exitItem.AddController(new ContextMenuItemDefaultKbmController(contextMenu, exitItem, () =>
         {
             _app.Exit();
         }));
-        _contextMenu.AddItem(exitItem);
-    }
-
-    public void OnMouseExit()
-    {
-        _menuItem.IsHovered = false;
-        SubmitMenuCloseRequest();
-    }
-
-    public void OnFocusLost()
-    {
-        _menuItem.IsHovered = false;
-        SubmitMenuCloseRequest();
-    }
-
-    private void SubmitMenuCloseRequest()
-    {
-        if (_contextMenu != null)
-        {
-            _contextMenuManager.HideContextMenu(_contextMenu);
-            _contextMenu = null;
-        }
-    }
-
-    public void OnEnabled(Context context)
-    {
-        this.RegisterController(context);
-    }
-
-    public void OnDisabled(Context context)
-    {
-        this.UnregisterController(context);
+        contextMenu.AddItem(exitItem);
     }
 }

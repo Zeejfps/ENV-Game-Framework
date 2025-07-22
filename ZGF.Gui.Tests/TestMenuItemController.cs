@@ -1,32 +1,19 @@
 namespace ZGF.Gui.Tests;
 
-public sealed class TestMenuItemController : IKeyboardMouseController
+public sealed class TestMenuItemController : BaseMenuItemController
 {
-    private readonly MenuItem _menuItem;
-    private readonly ContextMenuManager _contextMenuManager;
-
-    private ContextMenu? _contextMenu;
-
-    public TestMenuItemController(MenuItem menuItem, string text, ContextMenuManager contextMenuManager)
+    public TestMenuItemController(MenuItem menuItem, ContextMenuManager contextMenuManager, string text) : base(menuItem, contextMenuManager)
     {
-        _menuItem = menuItem;
-        _contextMenuManager = contextMenuManager;
         menuItem.Text = text;
     }
 
-    public Component Component => _menuItem;
-
-    public void OnMouseEnter()
+    protected override void BuildMenu(ContextMenu contextMenu)
     {
-        _menuItem.IsHovered = true;
-        _contextMenu = _contextMenuManager
-            .ShowContextMenu(_menuItem.Position.BottomLeft);
-
-        _contextMenu.AddItem(new ContextMenuItem
+        contextMenu.AddItem(new ContextMenuItem
         {
             Text = "Option 1"
         });
-        _contextMenu.AddItem(new ContextMenuItem
+        contextMenu.AddItem(new ContextMenuItem
         {
             Text = "Option 2"
         });
@@ -35,7 +22,7 @@ public sealed class TestMenuItemController : IKeyboardMouseController
         {
             Text = "Option 3"
         };
-        option3Menu.AddController(new ContextMenuItemDefaultKbmController(_contextMenu, option3Menu)
+        option3Menu.AddController(new ContextMenuItemDefaultKbmController(contextMenu, option3Menu)
         {
             SubOptions =
             {
@@ -54,31 +41,10 @@ public sealed class TestMenuItemController : IKeyboardMouseController
             }
         });
         
-        _contextMenu.AddItem(option3Menu);
-        _contextMenu.AddItem(new ContextMenuItem
+        contextMenu.AddItem(option3Menu);
+        contextMenu.AddItem(new ContextMenuItem
         {
             Text = "Option 4"
         });
-    }
-
-    public void OnMouseExit()
-    {
-        _menuItem.IsHovered = false;
-
-        if (_contextMenu != null)
-        {
-            _contextMenuManager.HideContextMenu(_contextMenu);
-            _contextMenu = null;
-        }
-    }
-
-    public void OnEnabled(Context context)
-    {
-        this.RegisterController(context);
-    }
-
-    public void OnDisabled(Context context)
-    {
-        this.UnregisterController(context);
     }
 }
