@@ -10,7 +10,7 @@ public sealed class WindowTitleBar : Component
     public WindowTitleBar(Window window)
     {
         _window = window;
-        PreferredHeight = 20f;
+        PreferredHeight = 30f;
 
         var background = new Panel
         {
@@ -50,6 +50,7 @@ public sealed class WindowTitleBar : Component
         {
             Text = _window.TitleText,
             HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center
         };
 
         row.Add(button);

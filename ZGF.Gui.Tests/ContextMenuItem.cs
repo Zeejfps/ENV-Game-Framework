@@ -49,7 +49,7 @@ public sealed class ContextMenuItem : Component
         _bg = new Panel
         {
             BackgroundColor = 0xDEDEDE,
-            Padding = PaddingStyle.All(4)
+            Padding = PaddingStyle.All(6)
         };
 
         _arrowIcon = new Image

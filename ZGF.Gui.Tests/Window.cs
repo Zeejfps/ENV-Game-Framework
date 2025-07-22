@@ -10,7 +10,7 @@ public sealed class Window : Component
     public Window(string titleText)
     {
         TitleText = titleText;
-        Position = new RectF(200f, 200f, 240f, 200f);
+        Position = new RectF(200f, 200f, 340f, 300f);
         
         var outline = new Panel
         {
@@ -115,7 +115,7 @@ public sealed class Window : Component
 
         var textInput = new TextInput
         {
-            PreferredHeight = 20f
+            PreferredHeight = 30f
         };
 
         var textField = new Panel

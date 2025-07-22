@@ -27,12 +27,12 @@ public sealed class App : OpenGlApp
         var imageManager = new ImageManager();
         imageManager.LoadImage("Assets/Icons/arrow_right.png");
 
-        _bitmapFont = BitmapFont.LoadFromFile("Assets/Fonts/Charcoal/Charcoal_p12.xml");
+        _bitmapFont = BitmapFont.LoadFromFile("Assets/Fonts/Charcoal/Charcoal_p20.xml");
         var textMeasurer = new TextMeasurer(_bitmapFont);
 
         _canvas = new Canvas(
-            startupConfig.WindowWidth / 2,
-            startupConfig.WindowHeight / 2,
+            startupConfig.WindowWidth,
+            startupConfig.WindowHeight,
             _bitmapFont,
             textMeasurer, imageManager
         );
@@ -134,9 +134,9 @@ public sealed class App : OpenGlApp
     private void HandleWindowSizeChanged(GLFW.Window window, int width, int height)
     {
         glViewport(0, 0, width, height);
-        _gui.PreferredWidth = width / 2;
-        _gui.PreferredHeight = height / 2;
-        _canvas.Resize(width / 2, height / 2);
+        _gui.PreferredWidth = width;
+        _gui.PreferredHeight = height;
+        _canvas.Resize(width, height);
         Render();
         Glfw.SwapBuffers(window);
     }

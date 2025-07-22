@@ -17,6 +17,7 @@ public sealed class AppBar : Component
         var background = new Panel
         {
             BackgroundColor = 0xDEDEDE,
+            Padding = PaddingStyle.All(6),
             BorderSize = BorderSizeStyle.All(1),
             BorderColor = new BorderColorStyle
             {
