@@ -16,6 +16,7 @@ public sealed class TextInput : Component
     private int _strLen;
     private bool _isEditing;
     private int _selectionStartIndex;
+    private bool _isMouseLeftMousePressed;
 
     public TextInput()
     {
@@ -47,6 +48,7 @@ public sealed class TextInput : Component
     protected override void OnFocusLost()
     {
         _isEditing = false;
+        _isMouseLeftMousePressed = false;
     }
 
     public override bool CanReleaseFocus()
@@ -54,10 +56,25 @@ public sealed class TextInput : Component
         return !_isEditing;
     }
 
+    protected override bool OnMouseMoved(MouseMoveEvent e)
+    {
+        if (!_isMouseLeftMousePressed)
+            return false;
+        
+        
+        
+        return base.OnMouseMoved(e);
+    }
+
     protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)
     {
         if (e.State == InputState.Pressed)
         {
+            if (e.Button == MouseButton.Left)
+            {
+                _isMouseLeftMousePressed = true;
+            }
+            
             var position = Position;
             var containsPoint = position.ContainsPoint(e.Position);
 
@@ -81,33 +98,38 @@ public sealed class TextInput : Component
                 return false;
 
             var mousePoint = e.Position;
-            
-            var deltaX = mousePoint.X - position.Left;
-            var textMeasurer = Context!.TextMeasurer;
-            var found = false;
-            for (var i = 0; i < _strLen; i++)
+            _caretIndex = GetCaretIndexFromPoint(mousePoint);
+            _selectionStartIndex = _caretIndex;
+        }
+        else if (e.State == InputState.Released)
+        {
+            if (e.Button == MouseButton.Left)
             {
-                var firstPart = _buffer.AsSpan(0, i);
-                var secondPart = _buffer.AsSpan(i, 1);
-                var w = textMeasurer.MeasureTextWidth(firstPart, _textStyle) +
-                        textMeasurer.MeasureTextWidth(secondPart, _textStyle) * 0.5f;
-                if (w > deltaX)
-                {
-                    _caretIndex = i;
-                    _selectionStartIndex = _caretIndex;
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found)
-            {
-                _caretIndex = _strLen;
-                _selectionStartIndex = _caretIndex;
+                _isMouseLeftMousePressed = false;
             }
         }
         
         return base.OnMouseButtonStateChanged(e);
+    }
+
+    private int GetCaretIndexFromPoint(in PointF point)
+    {
+        var deltaX = point.X - Position.Left;
+        var textMeasurer = Context!.TextMeasurer;
+        for (var i = 0; i < _strLen; i++)
+        {
+            var firstPart = _buffer.AsSpan(0, i);
+            var secondPart = _buffer.AsSpan(i, 1);
+            var w = textMeasurer.MeasureTextWidth(firstPart, _textStyle) +
+                    textMeasurer.MeasureTextWidth(secondPart, _textStyle) * 0.5f;
+            
+            if (w > deltaX)
+            {
+                return i;
+            }
+        }
+        
+        return _strLen;
     }
 
     protected override bool OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
