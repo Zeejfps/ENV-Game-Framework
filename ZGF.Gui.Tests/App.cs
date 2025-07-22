@@ -36,21 +36,10 @@ public sealed class App : OpenGlApp
             _bitmapFont,
             textMeasurer, imageManager
         );
-        glClearColor(0f, 0f, 0f, 0f);
-
+        
         var contextMenuPane = new Component();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
-
-        var header = new AppBar(this, _contextMenuManager);
-        var center = new Center();
-        _window = center.Window;
-
-        var contents = new BorderLayout
-        {
-            North = header,
-            Center = center,
-        };
-
+        
         var context = new Context
         {
             InputSystem = _inputSystem,
@@ -59,6 +48,18 @@ public sealed class App : OpenGlApp
             Canvas = _canvas
         };
         context.AddService(_contextMenuManager);
+        
+        glClearColor(0f, 0f, 0f, 0f);
+        
+        var appBar = new AppBar(this, _contextMenuManager);
+        var center = new Center();
+        _window = center.Window;
+
+        var contents = new BorderLayout
+        {
+            North = appBar,
+            Center = center,
+        };
 
         var gui = new Component
         {
