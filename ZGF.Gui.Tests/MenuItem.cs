@@ -1,29 +1,9 @@
-﻿using ZGF.Geometry;
+﻿namespace ZGF.Gui.Tests;
 
-namespace ZGF.Gui.Tests;
-
-public interface IMenuItemController : IDisposable
-{
-    void OnMouseEnter();
-    void OnMouseExit();
-}
-
-public interface IMenuItem
-{
-    string? Text { get; set; }
-    bool IsDisabled { get; set; }
-    bool IsHovered { get; set; }
-    RectF Position { get; }
-}
-
-public sealed class MenuItem : Component, IMenuItem
+public sealed class MenuItem : Component
 {
     private readonly Panel _background;
     private readonly Label _label;
-    private readonly Func<IMenuItem, IMenuItemController> _controllerFactory;
-
-    private ContextMenuManager? ContextMenuManager { get; set; }
-    private IMenuItemController? Controller { get; set; }
 
     public string? Text
     {
@@ -72,10 +52,8 @@ public sealed class MenuItem : Component, IMenuItem
         }
     }
 
-    public MenuItem(Func<IMenuItem, IMenuItemController> controllerFactory)
+    public MenuItem()
     {
-        _controllerFactory = controllerFactory;
-
         _background = new Panel
         {
             BackgroundColor = 0xDEDEDE,
@@ -86,35 +64,8 @@ public sealed class MenuItem : Component, IMenuItem
         {
             VerticalTextAlignment = TextAlignment.Center,
         };
-
-        IsInteractable = true;
-
+        
         _background.Add(_label);
         Add(_background);
-    }
-
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        Controller = _controllerFactory.Invoke(this);
-        ContextMenuManager = context.Get<ContextMenuManager>();
-    }
-
-    protected override void OnDetachedFromContext(Context context)
-    {
-        ContextMenuManager = null;
-        Controller?.Dispose();
-        Controller = null;
-        base.OnDetachedFromContext(context);
-    }
-
-    protected override void OnMouseEnter()
-    {
-        Controller?.OnMouseEnter();
-    }
-
-    protected override void OnMouseExit()
-    {
-        Controller?.OnMouseExit();
     }
 }

@@ -1,24 +1,23 @@
 namespace ZGF.Gui.Tests;
 
-public sealed class SpecialMenuItemController : IMenuItemController
+public sealed class SpecialMenuItemController : IKeyboardMouseController
 {
-    public SpecialMenuItemController(IMenuItem menuItem)
+    private readonly MenuItem _menuItem;
+
+    public SpecialMenuItemController(MenuItem menuItem)
     {
+        _menuItem = menuItem;
         menuItem.Text = "Special";
         menuItem.IsDisabled = true;
     }
-
-    public void Dispose()
+    
+    public Component Component => _menuItem;
+    
+    public void OnEnabled(Context context)
     {
-
     }
 
-    public void OnMouseEnter()
-    {
-
-    }
-
-    public void OnMouseExit()
+    public void OnDisabled(Context context)
     {
     }
 }

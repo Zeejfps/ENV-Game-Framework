@@ -37,9 +37,10 @@ public sealed class AppBar : Component
         var viewLabel = new MenuItem(
             menuItem => new TestMenuItemController(menuItem, "View", contextMenuManager)
         );
-        var specialLabel = new MenuItem(
-            menuItem => new SpecialMenuItemController(menuItem)
-        );
+        
+        var specialMenuItem = new MenuItem();
+        specialMenuItem.AddController(new SpecialMenuItemController(specialMenuItem));
+        
         var helpLabel = new MenuItem(
             menuItem => new TestMenuItemController(menuItem, "Help", contextMenuManager)
         );
@@ -49,7 +50,7 @@ public sealed class AppBar : Component
             fileItem,
             editItem,
             viewLabel,
-            specialLabel,
+            specialMenuItem,
             helpLabel,
         };
         
