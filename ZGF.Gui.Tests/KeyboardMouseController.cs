@@ -1,17 +1,29 @@
 ﻿namespace ZGF.Gui.Tests;
 
-public abstract class KeyboardMouseController<T> : IController where T : Component
+public abstract class KeyboardMouseController<T> : IKeyboardMouseController where T : Component
 {
-    private T _component;
+    private readonly T _component;
+    private Context? _context;
     
     public void OnEnabled(Context context)
     {
+        _context = context;
         // context.InputSystem.AddInteractable(_component, this);
     }
 
     public void OnDisabled(Context context)
     {
         context.InputSystem.RemoveInteractable(_component);
+    }
+
+    protected void RequestFocus()
+    {
+        _context?.InputSystem.RequestFocus(_component);
+    }
+
+    protected void Blur()
+    {
+        _context?.InputSystem.Blur(_component);
     }
     
     public void HandleMouseEnterEvent()
