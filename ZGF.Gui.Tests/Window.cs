@@ -151,32 +151,7 @@ public sealed class Window : Component
         var windowResizer = new WindowResizer(this);
         Add(windowResizer);
 
-        IsInteractable = true;
-    }
-
-    protected override void OnMouseEnter()
-    {
-        Console.WriteLine($"OnMouseEnter - Window - {TitleText}");
-        base.OnMouseEnter();
-        RequestFocus();
-    }
-
-    protected override void OnMouseExit()
-    {
-        Console.WriteLine($"OnMouseExit - Window - {TitleText}");
-        Blur();
-        base.OnMouseExit();
-    }
-
-    protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)
-    {
-        Console.WriteLine($"OnMouseButtonStateChanged - Window - {TitleText}");
-        if (e.State == InputState.Pressed)
-        {
-            BringToFront();
-        }
-        
-        return true;
+        AddController(new WindowDefaultKbmController(this));
     }
 
     protected override void OnLayoutSelf()
