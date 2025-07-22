@@ -147,6 +147,29 @@ public sealed class TextInput : Component
         return _strLen;
     }
 
+    private void Copy()
+    {
+        var clipboard = Context?.Get<IClipboard>();
+        if (clipboard != null)
+        {
+            clipboard.SetText(new string(_buffer, 0, _strLen));
+        }
+    }
+
+    private void Paste()
+    {
+        var clipboard = Context?.Get<IClipboard>();
+        if (clipboard != null)
+        {
+            var text = clipboard.GetText();
+            if (text != null)
+            {
+                text.CopyTo(_buffer);
+                _strLen = text.Length;
+            }
+        }
+    }
+
     protected override bool OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
     {
         if (!_isEditing)
@@ -163,11 +186,13 @@ public sealed class TextInput : Component
 
             if (e.Key == KeyboardKey.C && e.Modifiers.HasFlag(InputModifiers.Control))
             {
+                Copy();
                 return true;
             }
             
             if (e.Key == KeyboardKey.V && e.Modifiers.HasFlag(InputModifiers.Control))
             {
+                Paste();
                 return true;
             }
             
