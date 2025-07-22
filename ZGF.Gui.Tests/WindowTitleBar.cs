@@ -1,15 +1,19 @@
-using ZGF.Geometry;
 using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
 public sealed class WindowTitleBar : Component
 {
-    private readonly Window _window;
+    private readonly Label _titleLabel;
 
-    public WindowTitleBar(Window window)
+    public string? TitleText
     {
-        _window = window;
+        get => _titleLabel.Text;
+        set => _titleLabel.Text = value;
+    }
+
+    public WindowTitleBar(string title)
+    {
         PreferredHeight = 30f;
 
         var background = new Panel
@@ -46,111 +50,25 @@ public sealed class WindowTitleBar : Component
         button2.AddStyleClass("inset_panel");
         button2.AddStyleClass("window_button");
 
-        var titleLabel = new Label
+        _titleLabel = new Label
         {
-            Text = _window.TitleText,
+            Text = title,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center
         };
 
         row.Add(button);
-        row.Add(titleLabel, new FlexStyle
+        row.Add(_titleLabel, new FlexStyle
         {
             Grow = 1f,
         });
         row.Add(button2);
 
         Add(background);
-
-        IsInteractable = true;
-    }
-
-    private PointF _prevMousePosition;
-    private bool _isHovered;
-    private bool _isDragging;
-    private bool _isLeftButtonPressed;
-
-    protected override void OnMouseEnter()
-    {
-        Console.WriteLine($"OnMouseEnter: TitleBar - {_window.TitleText}");
-        _isHovered = true;
-        RequestFocus();
-    }
-
-    protected override void OnMouseExit()
-    {
-        Console.WriteLine($"OnMouseExit: TitleBar - {_window.TitleText}");
-        _isHovered = false;
-        if (!_isDragging)
-        {
-            _isLeftButtonPressed  = false;
-            Blur();
-        }
-    }
-
-    protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)
-    {
-        Console.WriteLine($"OnMouseButtonStateChanged: TitleBar - {_window.TitleText}");
-        var button = e.Button;
-        var state = e.State;
-
-        if (button != MouseButton.Left)
-            return false;
-
-        if (state == InputState.Pressed)
-        {
-            _prevMousePosition = e.MousePoint;
-            _isLeftButtonPressed = true;
-            Console.WriteLine($"OnLeftButtonPressed: TitleBar - {_window.TitleText}");
-            return false;
-        }
-        
-        _isLeftButtonPressed = false;
-        _isDragging = false;
-        
-        if (!_isHovered)
-        {
-            Console.WriteLine("Not hovered");
-            Blur();
-            return false;
-        }
-        
-        return base.OnMouseButtonStateChanged(e);
-    }
-
-    protected override void OnFocusLost()
-    {
-        _isDragging = false;
-        _isLeftButtonPressed = false;
-        base.OnFocusLost();
-    }
-
-    public override bool CanReleaseFocus()
-    {
-        return !_isDragging;
-    }
-
-    protected override bool OnMouseMoved(MouseMoveEvent e)
-    {
-        if (!_isLeftButtonPressed)
-            return false;
-
-        var delta = e.MousePoint - _prevMousePosition;
-        if (_isDragging)
-        {
-            _window.Move(delta.X, delta.Y);
-            _prevMousePosition = e.MousePoint;
-        }
-        else if (delta.LengthSquared() > 1f)
-        {
-            _isDragging = true;
-        }
-
-        return base.OnMouseMoved(e);
     }
 
     public override string ToString()
     {
-        return $"TitleBar - {_window.TitleText} - {ZIndex}";
+        return $"TitleBar - {TitleText} - {ZIndex}";
     }
 }

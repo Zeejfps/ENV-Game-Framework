@@ -19,7 +19,8 @@ public sealed class Window : Component
             BorderColor = BorderColorStyle.All(0x000000),
         };
 
-        var titlePanel = new WindowTitleBar(this);
+        var titlePanel = new WindowTitleBar(titleText);
+        titlePanel.AddController(new WindowTitleBarDefaultKbmController(this, titlePanel));
 
         var leftBorder = new Panel
         {
