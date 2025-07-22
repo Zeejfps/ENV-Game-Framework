@@ -164,8 +164,20 @@ public sealed class TextInput : Component
             var text = clipboard.GetText();
             if (text != null)
             {
-                text.CopyTo(_buffer);
-                _strLen = text.Length;
+                if (_caretIndex != _selectionStartIndex)
+                {
+                    DeleteSelection();
+                }
+                
+                var end = _caretIndex + text.Length;
+                var dst = _buffer.AsSpan(_caretIndex, text.Length);
+                text.CopyTo(dst);
+                
+                if (_strLen < end)
+                    _strLen = end;
+                
+                _caretIndex += text.Length;
+                _selectionStartIndex = _caretIndex;
             }
         }
     }
