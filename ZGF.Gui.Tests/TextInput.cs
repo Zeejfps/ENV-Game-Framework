@@ -272,78 +272,94 @@ public sealed class TextInput : Component
     protected override void OnDrawSelf(ICanvas c)
     {
         var position = Position;
+        
+        DrawBackground(position, c);
+        
+        if (_isEditing && _selectionStartIndex != _caretIndex)
+        {
+            DrawSelectionBox(position, c);
+        }
 
+        DrawText(position, c);
+        
+        if (_isEditing)
+        {
+            DrawCaret(position, c);
+        }
+    }
+
+    private void DrawBackground(in RectF position, ICanvas c)
+    {
         c.AddCommand(new DrawRectCommand
         {
             Position = position,
             Style = _background,
             ZIndex = ZIndex
         });
-        
-        if (_isEditing)
+    }
+
+    private void DrawSelectionBox(in RectF position, ICanvas c)
+    {
+        var min = _selectionStartIndex;
+        var max = _caretIndex;
+        if (_selectionStartIndex > _caretIndex)
         {
-            if (_selectionStartIndex != _caretIndex)
-            {
-                var min = _selectionStartIndex;
-                var max = _caretIndex;
-                if (_selectionStartIndex > _caretIndex)
-                {
-                    min = _caretIndex;
-                    max = _selectionStartIndex;
-                }
-                
-                var minText = _buffer.AsSpan(0, min);
-                var startPos = Context!.TextMeasurer.MeasureTextWidth(minText, _textStyle);
-                
-                var maxText = _buffer.AsSpan(0, max);
-                var endPos = Context!.TextMeasurer.MeasureTextWidth(maxText, _textStyle);
-                
-                var selectionRect = new RectF
-                {
-                    Left = position.Left + startPos,
-                    Bottom = position.Bottom,
-                    Width = endPos - startPos,
-                    Height = position.Height
-                };  
-                
-                c.AddCommand(new DrawRectCommand
-                {
-                    Position = selectionRect,
-                    Style = _selectionRectStyle,
-                    ZIndex = ZIndex
-                });
-            }
-
+            min = _caretIndex;
+            max = _selectionStartIndex;
         }
+            
+        var minText = _buffer.AsSpan(0, min);
+        var startPos = Context!.TextMeasurer.MeasureTextWidth(minText, _textStyle);
+            
+        var maxText = _buffer.AsSpan(0, max);
+        var endPos = Context!.TextMeasurer.MeasureTextWidth(maxText, _textStyle);
+            
+        var selectionRect = new RectF
+        {
+            Left = position.Left + startPos,
+            Bottom = position.Bottom,
+            Width = endPos - startPos,
+            Height = position.Height
+        };  
+            
+        c.AddCommand(new DrawRectCommand
+        {
+            Position = selectionRect,
+            Style = _selectionRectStyle,
+            ZIndex = ZIndex
+        });
+    }
 
+    private void DrawText(in RectF position, ICanvas c)
+    {
         c.AddCommand(new DrawTextCommand
         {
             Position = position,
             Text = new string(_buffer, 0, _strLen),
             Style = _textStyle,
             ZIndex = ZIndex
-        });
+        });   
+    }
 
-        if (_isEditing)
+    private void DrawCaret(in RectF position, ICanvas c)
+    {
+        var textToMeasure = _buffer.AsSpan(0, _caretIndex);
+        var cursorPosLeft = Context!.TextMeasurer.MeasureTextWidth(textToMeasure, _textStyle);
+
+        var cursorHeight = position.Height - 6f;
+        var cursorPos = new RectF
         {
-            var textToMeasure = _buffer.AsSpan(0, _caretIndex);
-            var cursorPosLeft = Context!.TextMeasurer.MeasureTextWidth(textToMeasure, _textStyle);
-
-            var cursorHeight = position.Height - 6f;
-            var cursorPos = new RectF
-            {
-                Bottom = position.Bottom + 2f,
-                Left = position.Left + cursorPosLeft,
-                Width = 2,
-                Height = cursorHeight
-            };
+            Bottom = position.Bottom + 2f,
+            Left = position.Left + cursorPosLeft,
+            Width = 2,
+            Height = cursorHeight
+        };
             
-            c.AddCommand(new DrawRectCommand
-            {
-                Position = cursorPos,
-                Style = _cursorStyle,
-                ZIndex = ZIndex
-            });
-        }
+        c.AddCommand(new DrawRectCommand
+        {
+            Position = cursorPos,
+            Style = _cursorStyle,
+            ZIndex = ZIndex
+        });
     }
 }
