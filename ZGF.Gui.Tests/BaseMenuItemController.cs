@@ -28,11 +28,11 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         SubmitMenuCloseRequest();
     }
 
-    public void OnFocusLost()
-    {
-        MenuItem.IsHovered = false;
-        SubmitMenuCloseRequest();
-    }
+    // public void OnFocusLost()
+    // {
+    //     MenuItem.IsHovered = false;
+    //     SubmitMenuCloseRequest();
+    // }
 
     private void SubmitMenuCloseRequest()
     {

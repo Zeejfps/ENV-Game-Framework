@@ -1,55 +1,5 @@
 ﻿namespace ZGF.Gui.Tests;
 
-public sealed class SubContextMenuKbmController : IKeyboardMouseController
-{
-    private readonly ContextMenuItem _contextMenuItem;
-    private readonly ContextMenu _parentContextMenu;
-    private readonly ContextMenu _contextMenu;
-    private readonly ContextMenuManager _contextMenuManager;
-
-    public SubContextMenuKbmController(
-        ContextMenuItem contextMenuItem,
-        ContextMenu contextMenu,
-        ContextMenu parentContextMenu,
-        ContextMenuManager contextMenuManager)
-    {
-        _contextMenuItem = contextMenuItem;
-        _parentContextMenu = parentContextMenu;
-        _contextMenuManager = contextMenuManager;
-        _contextMenu = contextMenu;
-    }
-
-    public void OnEnabled(Context context)
-    {
-        Console.WriteLine("OnEnabled");
-        this.RegisterController(context);
-    }
-
-    public void OnDisabled(Context context)
-    {
-        Console.WriteLine("OnDisabled");
-        this.UnregisterController(context);
-    }
-
-    public void OnMouseEnter()
-    {
-        Console.WriteLine("OnMouseEnter");
-        _contextMenuItem.IsSelected = true;
-        _contextMenuManager.SetKeepOpen(_parentContextMenu);
-        _contextMenuManager.SetKeepOpen(_contextMenu);
-    }
-
-    public void OnMouseExit()
-    { 
-        Console.WriteLine("OnMouseExit");
-        _contextMenuItem.IsSelected = false;
-        _contextMenuManager.HideContextMenu(_parentContextMenu);
-        _contextMenuManager.HideContextMenu(_contextMenu);
-    }
-
-    public Component Component => _contextMenu;
-}
-
 public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseController
 {
     private readonly ContextMenu _contextMenu;
@@ -97,7 +47,12 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         if (SubOptions.Count > 0)
         {
             _subMenu = _contextMenuManager.ShowContextMenu(_contextMenuItem.Position.TopRight, _contextMenu);
-            _subMenu.AddController(new SubContextMenuKbmController(_contextMenuItem, _contextMenu, _subMenu, _contextMenuManager));
+            _subMenu.AddController(new SubContextMenuKbmController(
+                _contextMenuItem,
+                _subMenu,
+                _contextMenu, 
+                _contextMenuManager
+            ));
             foreach (var subOption in SubOptions)
             {
                 _subMenu.AddItem(new ContextMenuItem
@@ -115,7 +70,7 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         _contextMenuItem.IsSelected = false;
         if (_subMenu != null)
         {
-            _contextMenuManager?.HideContextMenu(_subMenu);
+            _contextMenuManager.HideContextMenu(_subMenu);
         }
         this.Blur();
     }
