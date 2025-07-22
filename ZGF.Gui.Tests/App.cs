@@ -48,6 +48,7 @@ public sealed class App : OpenGlApp
             Canvas = _canvas
         };
         context.AddService(_contextMenuManager);
+        context.AddService<IClipboard>(new AppClipboard());
         
         glClearColor(0f, 0f, 0f, 0f);
         
