@@ -149,11 +149,28 @@ public sealed class TextInput : Component
 
     private void Copy()
     {
+        if (_caretIndex == _selectionStartIndex)
+            return;
+        
         var clipboard = Context?.Get<IClipboard>();
         if (clipboard != null)
         {
-            clipboard.SetText(new string(_buffer, 0, _strLen));
+            var min = _selectionStartIndex;
+            var max = _caretIndex;
+            if (min > max)
+            {
+                (min, max) = (max, min);
+            }
+
+            var length = max - min;
+            clipboard.SetText(new string(_buffer, min, length));
         }
+    }
+
+    private void Cut()
+    {
+        Copy();
+        DeleteSelection();
     }
 
     private void Paste()
@@ -169,13 +186,13 @@ public sealed class TextInput : Component
                     DeleteSelection();
                 }
                 
-                var end = _caretIndex + text.Length;
+                var textEnd = _buffer.AsSpan(_caretIndex, _strLen - _caretIndex);
+                textEnd.CopyTo(_buffer.AsSpan(_caretIndex + text.Length));
+                
                 var dst = _buffer.AsSpan(_caretIndex, text.Length);
                 text.CopyTo(dst);
                 
-                if (_strLen < end)
-                    _strLen = end;
-                
+                _strLen += text.Length;
                 _caretIndex += text.Length;
                 _selectionStartIndex = _caretIndex;
             }
@@ -205,6 +222,12 @@ public sealed class TextInput : Component
             if (e.Key == KeyboardKey.V && e.Modifiers.HasFlag(InputModifiers.Control))
             {
                 Paste();
+                return true;
+            }
+            
+            if (e.Key == KeyboardKey.X && e.Modifiers.HasFlag(InputModifiers.Control))
+            {
+                Cut();
                 return true;
             }
             
