@@ -124,6 +124,13 @@ public sealed class TextInput : Component
 
         if (e.State == InputState.Pressed)
         {
+            if (e.Key == KeyboardKey.A && e.Modifiers.HasFlag(InputModifiers.Control))
+            {
+                _selectionStartIndex = 0;
+                _caretIndex = _strLen;
+                return true;
+            }
+            
             var isShiftPressed = (e.Modifiers & InputModifiers.Shift) > 0;
             var isSelecting = _caretIndex != _selectionStartIndex;
             if (e.Key == KeyboardKey.LeftArrow)
@@ -176,13 +183,19 @@ public sealed class TextInput : Component
             
             if (e.Key == KeyboardKey.Backspace)
             {
-                if (_strLen > 0 && _caretIndex > 0)
+                if (_strLen > 0)
                 {
-                    DeleteChar(_caretIndex - 1);
-                    _caretIndex--;
-                    _selectionStartIndex = _caretIndex;
+                    if (_caretIndex != _selectionStartIndex)
+                    {
+                        DeleteSelection();
+                    }
+                    else if (_caretIndex > 0)
+                    {
+                        DeleteChar(_caretIndex - 1);
+                        _caretIndex--;
+                        _selectionStartIndex = _caretIndex;
+                    }
                 }
-
                 return true;
             }
 
@@ -191,6 +204,12 @@ public sealed class TextInput : Component
             {
                 return true;
             }
+
+            if (_caretIndex != _selectionStartIndex)
+            {
+                DeleteSelection();
+            }
+            
             InsertChar(_caretIndex, c);
             _caretIndex++;
             _selectionStartIndex = _caretIndex;
@@ -198,6 +217,34 @@ public sealed class TextInput : Component
         }
         
         return base.OnKeyboardKeyStateChanged(e);
+    }
+
+    private void DeleteSelection()
+    {
+        var min = _selectionStartIndex;
+        var max = _caretIndex;
+        if (min > max)
+        {
+            min = _caretIndex;
+            max = _selectionStartIndex;
+        }
+        DeleteRange(min, max);
+        _caretIndex = min;
+        _selectionStartIndex = _caretIndex;
+    }
+
+    private void DeleteRange(int min, int max)
+    {
+        var delta = max - min;
+        for (var i = max; i < _strLen; i++)
+        {
+            _buffer[i - delta] = _buffer[i];
+        }
+        _strLen -= delta;
+        if (_caretIndex > _strLen)
+        {
+            _caretIndex = _strLen;
+        }
     }
 
     private void DeleteChar(int index)
@@ -214,19 +261,12 @@ public sealed class TextInput : Component
 
     private void InsertChar(int index, char c)
     {
-        if (index == _strLen)
-        {
-            _buffer[index] = c;
-        }
-        else
-        {
-            for (var i = index; i <= _strLen; i++)
-            {
-                _buffer[i + 1] = _buffer[i];
-            }
-            _buffer[index] = c;
-        }
         _strLen++;
+        for (var i = _strLen - 1; i > index; i--)
+        {
+            _buffer[i] = _buffer[i-1];
+        }
+        _buffer[index] = c;
     }
 
     protected override void OnDrawSelf(ICanvas c)
