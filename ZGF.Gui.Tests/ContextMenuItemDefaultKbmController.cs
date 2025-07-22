@@ -46,13 +46,8 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         _contextMenuItem.IsSelected = true;
         if (SubOptions.Count > 0)
         {
-            _subMenu = _contextMenuManager.ShowContextMenu(_contextMenuItem.Position.TopRight, _contextMenu);
-            _subMenu.AddController(new SubContextMenuKbmController(
-                _contextMenuItem,
-                _subMenu,
-                _contextMenu, 
-                _contextMenuManager
-            ));
+            _subMenu = new ContextMenu(_contextMenuItem.Position.TopRight);
+            _subMenu.AddController(new ContextMenuDefaultKbmController(_contextMenu));
             foreach (var subOption in SubOptions)
             {
                 _subMenu.AddItem(new ContextMenuItem
@@ -60,6 +55,7 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
                     Text = subOption.Text
                 });
             }
+            _contextMenuManager.ShowContextMenu(_subMenu, _contextMenu);
         }
 
         this.RequestFocus();

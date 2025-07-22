@@ -13,44 +13,36 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         _contextMenuManager = contextMenuManager;
     }
     
-    public void OnMouseEnter()
-    {
-        MenuItem.IsSelected = true;
-        _contextMenu = _contextMenuManager
-            .ShowContextMenu(MenuItem.Position.BottomLeft);
-        _contextMenu.AddController(new ContextMenuDefaultKbmController(MenuItem, _contextMenu));
-        BuildMenu(_contextMenu);
-    }
-
-    public void OnMouseExit()
-    {
-        MenuItem.IsSelected = false;
-        SubmitMenuCloseRequest();
-    }
-
-    // public void OnFocusLost()
-    // {
-    //     MenuItem.IsHovered = false;
-    //     SubmitMenuCloseRequest();
-    // }
-
-    private void SubmitMenuCloseRequest()
-    {
-        if (_contextMenu != null)
-        {
-            _contextMenuManager.HideContextMenu(_contextMenu);
-            _contextMenu = null;
-        }
-    }
-
     public void OnEnabled(Context context)
     {
         this.RegisterController(context);
+        
+        _contextMenu = new ContextMenu(MenuItem.Position.BottomLeft);
+        _contextMenu.AddController(new ContextMenuDefaultKbmController(_contextMenu));
+        BuildMenu(_contextMenu);
     }
 
     public void OnDisabled(Context context)
     {
         this.UnregisterController(context);
+    }
+    
+    public void OnMouseEnter()
+    {
+        MenuItem.IsSelected = true;
+        if (_contextMenu != null)
+        {
+            _contextMenuManager.ShowContextMenu(_contextMenu);
+        }
+    }
+
+    public void OnMouseExit()
+    {
+        MenuItem.IsSelected = false;
+        if (_contextMenu != null)
+        {
+            _contextMenuManager.HideContextMenu(_contextMenu);
+        }
     }
     
     public Component Component => MenuItem;
