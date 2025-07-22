@@ -3,7 +3,7 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class TextInput : Component
+public sealed class TextInput : Component, IController
 {
     public StyleValue<uint> BackgroundColor
     {
@@ -461,5 +461,14 @@ public sealed class TextInput : Component
             Style = _cursorStyle,
             ZIndex = ZIndex
         });
+    }
+
+    public void OnEnabled(Context context)
+    {
+        
+    }
+
+    public void OnDisabled(Context context)
+    {
     }
 }

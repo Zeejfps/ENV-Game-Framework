@@ -4,12 +4,12 @@ public abstract class KeyboardMouseController<T> : IController where T : Compone
 {
     private T _component;
     
-    public void OnAttachedToContext(Context context)
+    public void OnEnabled(Context context)
     {
         // context.InputSystem.AddInteractable(_component, this);
     }
 
-    public void OnDetachedFromContext(Context context)
+    public void OnDisabled(Context context)
     {
         context.InputSystem.RemoveInteractable(_component);
     }

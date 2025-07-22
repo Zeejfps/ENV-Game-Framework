@@ -20,7 +20,7 @@ public class Component : IEnumerable<Component>
                     OnDetachedFromContext(prevContext);
                     foreach (var controller in _controllers)
                     {
-                        controller.OnDetachedFromContext(prevContext);
+                        controller.OnDisabled(prevContext);
                     }
                 }
                 
@@ -29,7 +29,7 @@ public class Component : IEnumerable<Component>
                     OnAttachedToContext(_context);
                     foreach (var controller in _controllers)
                     {
-                        controller.OnAttachedToContext(_context);
+                        controller.OnEnabled(_context);
                     }
                 }
                 
@@ -250,7 +250,7 @@ public class Component : IEnumerable<Component>
         _controllers.Add(controller);
         if (Context != null)
         {
-            controller.OnAttachedToContext(Context);
+            controller.OnEnabled(Context);
         }
     }
 
@@ -258,7 +258,7 @@ public class Component : IEnumerable<Component>
     {
         if (Context != null)
         {
-            controller.OnDetachedFromContext(Context);
+            controller.OnDisabled(Context);
         }
         _controllers.Remove(controller);
     }
