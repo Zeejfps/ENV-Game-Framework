@@ -93,8 +93,7 @@ public sealed class TextInput : Component
     {
         if (e.State == InputState.Pressed && e.Button == MouseButton.Left)
         {
-            var position = Position;
-            var containsPoint = position.ContainsPoint(e.MousePoint);
+            var containsPoint = Position.ContainsPoint(e.MousePoint);
 
             if (_isEditing && !containsPoint)
             {
@@ -216,7 +215,7 @@ public sealed class TextInput : Component
             {
                 if (_strLen > 0)
                 {
-                    if (_caretIndex != _selectionStartIndex)
+                    if (isSelecting)
                     {
                         DeleteSelection();
                     }
@@ -236,7 +235,7 @@ public sealed class TextInput : Component
                 return true;
             }
 
-            if (_caretIndex != _selectionStartIndex)
+            if (isSelecting)
             {
                 DeleteSelection();
             }
