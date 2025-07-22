@@ -160,6 +160,16 @@ public sealed class TextInput : Component
                 _caretIndex = _strLen;
                 return true;
             }
+
+            if (e.Key == KeyboardKey.C && e.Modifiers.HasFlag(InputModifiers.Control))
+            {
+                return true;
+            }
+            
+            if (e.Key == KeyboardKey.V && e.Modifiers.HasFlag(InputModifiers.Control))
+            {
+                return true;
+            }
             
             var isShiftPressed = (e.Modifiers & InputModifiers.Shift) > 0;
             var isSelecting = _caretIndex != _selectionStartIndex;
