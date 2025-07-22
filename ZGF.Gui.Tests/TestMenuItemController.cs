@@ -14,10 +14,7 @@ public sealed class TestMenuItemController : IKeyboardMouseController
         menuItem.Text = text;
     }
 
-    public void Dispose()
-    {
-
-    }
+    public Component Component => _menuItem;
 
     public void OnMouseEnter()
     {
@@ -25,17 +22,21 @@ public sealed class TestMenuItemController : IKeyboardMouseController
         _contextMenu = _contextMenuManager
             .ShowContextMenu(_menuItem.Position.BottomLeft);
 
-        _contextMenu.AddItem(new ContextMenuItem(_contextMenu)
+        _contextMenu.AddItem(new ContextMenuItem
         {
             Text = "Option 1"
         });
-        _contextMenu.AddItem(new ContextMenuItem(_contextMenu)
+        _contextMenu.AddItem(new ContextMenuItem
         {
             Text = "Option 2"
         });
-        _contextMenu.AddItem(new ContextMenuItem(_contextMenu)
+
+        var option3Menu = new ContextMenuItem
         {
-            Text = "Option 3",
+            Text = "Option 3"
+        };
+        option3Menu.AddController(new ContextMenuItemDefaultKbmController(_contextMenu, option3Menu)
+        {
             SubOptions =
             {
                 new ContextMenuItemData
@@ -52,7 +53,9 @@ public sealed class TestMenuItemController : IKeyboardMouseController
                 },
             }
         });
-        _contextMenu.AddItem(new ContextMenuItem(_contextMenu)
+        
+        _contextMenu.AddItem(option3Menu);
+        _contextMenu.AddItem(new ContextMenuItem
         {
             Text = "Option 4"
         });
@@ -67,5 +70,15 @@ public sealed class TestMenuItemController : IKeyboardMouseController
             _contextMenuManager.HideContextMenu(_contextMenu);
             _contextMenu = null;
         }
+    }
+
+    public void OnEnabled(Context context)
+    {
+        this.RegisterController(context);
+    }
+
+    public void OnDisabled(Context context)
+    {
+        this.UnregisterController(context);
     }
 }

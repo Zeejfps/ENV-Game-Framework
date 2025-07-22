@@ -47,7 +47,7 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         _contextMenuManager?.SetKeepOpen(_contextMenu);
         if (SubOptions.Count > 0)
         {
-            _subMenu = _contextMenuManager?.ShowContextMenu(_contextMenu.Position.TopRight, _contextMenu);
+            _subMenu = _contextMenuManager?.ShowContextMenu(_contextMenuItem.Position.TopRight, _contextMenu);
             if (_subMenu == null)
                 return;
             

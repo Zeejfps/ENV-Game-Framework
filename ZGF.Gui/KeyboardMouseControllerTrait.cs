@@ -12,15 +12,13 @@ public static class KeyboardMouseControllerTrait
         controller.Component.Context?.InputSystem.Blur(controller);
     }
     
-    public static void RegisterController(this IKeyboardMouseController controller)
+    public static void RegisterController(this IKeyboardMouseController controller, Context context)
     {
-        var context = controller.Component.Context;
-        context?.InputSystem.AddInteractable(controller);
+        context.InputSystem.AddInteractable(controller);
     }
     
-    public static void UnregisterController(this IKeyboardMouseController controller)
+    public static void UnregisterController(this IKeyboardMouseController controller, Context context)
     {
-        var context = controller.Component.Context;
-        context?.InputSystem.RemoveInteractable(controller);
+        context.InputSystem.RemoveInteractable(controller);
     }
 }

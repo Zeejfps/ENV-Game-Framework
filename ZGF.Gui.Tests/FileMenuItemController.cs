@@ -53,11 +53,11 @@ public sealed class FileMenuItemController : IKeyboardMouseController
 
     public void OnEnabled(Context context)
     {
-        this.RegisterController();
+        this.RegisterController(context);
     }
 
     public void OnDisabled(Context context)
     {
-        this.UnregisterController();
+        this.UnregisterController(context);
     }
 }
