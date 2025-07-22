@@ -24,10 +24,9 @@ public sealed class ContextMenuManager
     {
         _closingContextMenus.Remove(contextMenu);
         var parentMenu = contextMenu.ParentMenu;
-        while (parentMenu is not null)
+        if (parentMenu is not null)
         {
-            _closingContextMenus.Remove(parentMenu);
-            parentMenu = parentMenu.ParentMenu;
+            SetKeepOpen(parentMenu);   
         }
     }
     
@@ -35,12 +34,6 @@ public sealed class ContextMenuManager
     {
         var timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds();
         _closingContextMenus[contextMenu] = timestamp;
-        var parentMenu = contextMenu.ParentMenu;
-        while (parentMenu is not null)
-        {
-            _closingContextMenus[parentMenu] = timestamp;
-            parentMenu = parentMenu.ParentMenu;
-        }
     }
 
     public void Update()

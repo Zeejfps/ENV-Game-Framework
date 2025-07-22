@@ -44,7 +44,6 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
     public void OnMouseEnter()
     {
         _contextMenuItem.BackgroundColor = 0x9C9CCE;
-        _contextMenuManager?.SetKeepOpen(_contextMenu);
         if (SubOptions.Count > 0)
         {
             _subMenu = _contextMenuManager?.ShowContextMenu(_contextMenuItem.Position.TopRight, _contextMenu);
@@ -66,13 +65,10 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
     public void OnMouseExit()
     {
         _contextMenuItem.BackgroundColor = 0xDEDEDE;
-        _contextMenuManager?.HideContextMenu(_contextMenu);
-
         if (_subMenu != null)
         {
             _contextMenuManager?.HideContextMenu(_subMenu);
         }
-
         this.Blur();
     }
 
