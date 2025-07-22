@@ -21,7 +21,7 @@ public sealed class FileMenuItemController : BaseMenuItemController
         {
             Text = "Exit",
         };
-        exitItem.AddController(new ContextMenuItemDefaultKbmController(contextMenu, exitItem, () =>
+        exitItem.AddController(new ContextMenuItemDefaultKbmController(contextMenu, exitItem, _contextMenuManager, () =>
         {
             _app.Exit();
         }));

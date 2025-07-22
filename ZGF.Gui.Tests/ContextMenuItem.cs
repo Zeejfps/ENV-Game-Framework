@@ -24,6 +24,26 @@ public sealed class ContextMenuItem : Component
         get => _label.Text;
         set => _label.Text = value;
     }
+
+    private bool _isSelected;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (SetField(ref _isSelected, value))
+            {
+                if (_isSelected)
+                {
+                    BackgroundColor = 0x9C9CCE;
+                }
+                else
+                {
+                    BackgroundColor = 0xDEDEDE;
+                }
+            }
+        }
+    }
     
     private bool _isArrowVisible;
     public bool IsArrowVisible
@@ -44,7 +64,7 @@ public sealed class ContextMenuItem : Component
             }
         }
     }
-
+    
     public ContextMenuItem()
     {
         ZIndex = 2;

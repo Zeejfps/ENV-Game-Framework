@@ -15,7 +15,6 @@ public sealed class ContextMenuManager
     public ContextMenu ShowContextMenu(PointF anchor, ContextMenu? parentMenu = null)
     {
         var contextMenu = new ContextMenu(anchor, parentMenu);
-        // contextMenu.AddController(new ContextMenuDefaultKbmController(contextMenu));
         _contextMenuPane.Add(contextMenu);
         return contextMenu;
     }
@@ -23,11 +22,6 @@ public sealed class ContextMenuManager
     public void SetKeepOpen(ContextMenu contextMenu)
     {
         _closingContextMenus.Remove(contextMenu);
-        var parentMenu = contextMenu.ParentMenu;
-        if (parentMenu is not null)
-        {
-            SetKeepOpen(parentMenu);   
-        }
     }
     
     public void HideContextMenu(ContextMenu contextMenu)

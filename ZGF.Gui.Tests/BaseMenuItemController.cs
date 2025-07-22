@@ -3,7 +3,7 @@
 public abstract class BaseMenuItemController : IKeyboardMouseController
 {
     protected MenuItem MenuItem { get; }
-    private readonly ContextMenuManager _contextMenuManager;
+    protected readonly ContextMenuManager _contextMenuManager;
     
     private ContextMenu? _contextMenu;
 
@@ -15,7 +15,6 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
     
     public void OnMouseEnter()
     {
-        Console.WriteLine("OnMouseEnter");
         MenuItem.IsHovered = true;
         _contextMenu = _contextMenuManager
             .ShowContextMenu(MenuItem.Position.BottomLeft);
