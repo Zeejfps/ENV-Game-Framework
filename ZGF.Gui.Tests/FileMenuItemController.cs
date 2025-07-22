@@ -16,13 +16,16 @@ public sealed class FileMenuItemController : IKeyboardMouseController
         _contextMenuManager = contextMenuManager;
         _app = app;
     }
-
+    
     public void OnMouseEnter()
     {
+        Console.WriteLine("OnMouseEnter");
+
         _menuItem.IsHovered = true;
         _contextMenu = _contextMenuManager
             .ShowContextMenu(_menuItem.Position.BottomLeft);
-
+        _contextMenu.AddController(new ContextMenuDefaultKbmController(_menuItem, _contextMenu));
+        
         var openModelItem = new ContextMenuItem
         {
             Text = "Open Model",
@@ -43,7 +46,17 @@ public sealed class FileMenuItemController : IKeyboardMouseController
     public void OnMouseExit()
     {
         _menuItem.IsHovered = false;
+        SubmitMenuCloseRequest();
+    }
 
+    public void OnFocusLost()
+    {
+        _menuItem.IsHovered = false;
+        SubmitMenuCloseRequest();
+    }
+
+    private void SubmitMenuCloseRequest()
+    {
         if (_contextMenu != null)
         {
             _contextMenuManager.HideContextMenu(_contextMenu);

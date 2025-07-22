@@ -15,7 +15,7 @@ public sealed class ContextMenuManager
     public ContextMenu ShowContextMenu(PointF anchor, ContextMenu? parentMenu = null)
     {
         var contextMenu = new ContextMenu(anchor, parentMenu);
-        contextMenu.AddController(new ContextMenuDefaultKbmController(contextMenu));
+        // contextMenu.AddController(new ContextMenuDefaultKbmController(contextMenu));
         _contextMenuPane.Add(contextMenu);
         return contextMenu;
     }

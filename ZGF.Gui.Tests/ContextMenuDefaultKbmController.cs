@@ -2,11 +2,13 @@
 
 public sealed class ContextMenuDefaultKbmController : IKeyboardMouseController
 {
+    private readonly MenuItem _menuItem;
     private readonly ContextMenu _contextMenu;
     private ContextMenuManager? _contextMenuManager;
     
-    public ContextMenuDefaultKbmController(ContextMenu contextMenu)
+    public ContextMenuDefaultKbmController(MenuItem menuItem, ContextMenu contextMenu)
     {
+        _menuItem = menuItem;
         _contextMenu = contextMenu;
     }
 
@@ -25,12 +27,14 @@ public sealed class ContextMenuDefaultKbmController : IKeyboardMouseController
     public void OnMouseEnter()
     {
         Console.WriteLine("OnMouseEnter");
+        _menuItem.IsHovered = true;
         _contextMenuManager?.SetKeepOpen(_contextMenu);
     }
 
     public void OnMouseExit()
     {
         Console.WriteLine("OnMouseExit");
+        _menuItem.IsHovered = false;
         _contextMenuManager?.HideContextMenu(_contextMenu);
     }
 
