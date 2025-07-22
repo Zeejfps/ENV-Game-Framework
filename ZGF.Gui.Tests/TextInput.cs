@@ -80,38 +80,31 @@ public sealed class TextInput : Component
             if (_strLen == 0)
                 return false;
 
-            // var mousePoint = e.Position;
-            //
-            // var deltaX = mousePoint.X - position.Left;
-            // var smallest = float.MaxValue;
-            // var found = false;
-            // for (var i = 0; i < _buffer.Length; i++)
-            // {
-            //     var text = _buffer.AsSpan(0, i+1);
-            //     var w = Context.TextMeasurer.MeasureTextWidth(text, _textStyle);
-            //     var dd = MathF.Abs(w - deltaX);
-            //     if (deltaX < w)
-            //     {
-            //         _caretIndex = i - 1;
-            //         found = true;
-            //         break;
-            //     }
-            //     if (dd < smallest)
-            //     {
-            //         smallest = dd;
-            //     }
-            //     else if (dd > smallest)
-            //     {
-            //         _caretIndex = i - 1;
-            //         found = true;
-            //         break;
-            //     }
-            // }
-            //
-            // if (!found)
-            // {
-            //     _caretIndex = _buffer.Length - 1;
-            // }
+            var mousePoint = e.Position;
+            
+            var deltaX = mousePoint.X - position.Left;
+            var textMeasurer = Context!.TextMeasurer;
+            var found = false;
+            for (var i = 0; i < _strLen; i++)
+            {
+                var firstPart = _buffer.AsSpan(0, i);
+                var secondPart = _buffer.AsSpan(i, 1);
+                var w = textMeasurer.MeasureTextWidth(firstPart, _textStyle) +
+                        textMeasurer.MeasureTextWidth(secondPart, _textStyle) * 0.5f;
+                if (w > deltaX)
+                {
+                    _caretIndex = i;
+                    _selectionStartIndex = _caretIndex;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                _caretIndex = _strLen;
+                _selectionStartIndex = _caretIndex;
+            }
         }
         
         return base.OnMouseButtonStateChanged(e);
