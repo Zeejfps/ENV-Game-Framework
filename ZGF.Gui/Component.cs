@@ -15,15 +15,24 @@ public class Component : IEnumerable<Component>
             var prevContext = _context;
             if (SetField(ref _context, value))
             {
+                if (prevContext != null)
+                {
+                    OnDetachedFromContext(prevContext);
+                    foreach (var controller in _controllers)
+                    {
+                        controller.OnDetachedFromContext(prevContext);
+                    }
+                }
+                
                 if (_context != null)
                 {
                     OnAttachedToContext(_context);
+                    foreach (var controller in _controllers)
+                    {
+                        controller.OnAttachedToContext(_context);
+                    }
                 }
-                else if (prevContext != null)
-                {
-                    OnDetachedFromContext(prevContext);
-                }
-
+                
                 OnApplyContextToChildren(_context);
             }
         }
@@ -191,7 +200,6 @@ public class Component : IEnumerable<Component>
     }
     
     private int _siblingIndex;
-
     public int SiblingIndex => _siblingIndex;
 
     private bool IsDirty => IsSelfDirty || IsChildrenDirty;
@@ -225,6 +233,7 @@ public class Component : IEnumerable<Component>
 
     private readonly List<Component> _children = new();
     private readonly HashSet<string> _styleClasses = new();
+    private readonly HashSet<IController> _controllers = new();
     
     public Component()
     {
@@ -234,6 +243,24 @@ public class Component : IEnumerable<Component>
     protected Component(Context ctx)
     {
         Context = ctx;
+    }
+
+    public void AddController(IController controller)
+    {
+        _controllers.Add(controller);
+        if (Context != null)
+        {
+            controller.OnAttachedToContext(Context);
+        }
+    }
+
+    public void RemoveController(IController controller)
+    {
+        if (Context != null)
+        {
+            controller.OnDetachedFromContext(Context);
+        }
+        _controllers.Remove(controller);
     }
 
     public void AddStyleClass(string classId)
