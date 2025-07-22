@@ -55,33 +55,6 @@ public sealed class InputSystem : IMouse
     {
         Point = point;
         
-        _removeCache.Clear();
-        _removeCache.AddRange(_hoveredComponents);
-
-        for (var i = _removeCache.Count - 1; i >= 0; i--)
-        {
-            var hoveredComponent = _removeCache[i];
-            if (!hoveredComponent.Component.Position.ContainsPoint(point))
-            {
-                _hoveredComponents.Remove(hoveredComponent);
-                hoveredComponent.OnMouseExit();
-            }
-        }
-        
-        var allHoveredComponents = HitTest(point);
-        if (allHoveredComponents.Count > 0)
-        {
-            var topComponent = allHoveredComponents[0];
-            for (var i = allHoveredComponents.Count - 1; i >= 0; i--)
-            {
-                var hoveredComponent = allHoveredComponents[i];
-                if (hoveredComponent.Component.IsAncestorOf(topComponent.Component) && _hoveredComponents.Add(hoveredComponent))
-                {
-                    hoveredComponent.OnMouseEnter();
-                }
-            }
-        }
-        
         var e = new MouseMoveEvent
         {
             Mouse = this,
@@ -134,6 +107,33 @@ public sealed class InputSystem : IMouse
     
     public void Update()
     {
+        _removeCache.Clear();
+        _removeCache.AddRange(_hoveredComponents);
+
+        for (var i = _removeCache.Count - 1; i >= 0; i--)
+        {
+            var hoveredComponent = _removeCache[i];
+            if (!hoveredComponent.Component.Position.ContainsPoint(Point))
+            {
+                _hoveredComponents.Remove(hoveredComponent);
+                hoveredComponent.OnMouseExit();
+            }
+        }
+        
+        var allHoveredComponents = HitTest(Point);
+        if (allHoveredComponents.Count > 0)
+        {
+            var topComponent = allHoveredComponents[0];
+            for (var i = allHoveredComponents.Count - 1; i >= 0; i--)
+            {
+                var hoveredComponent = allHoveredComponents[i];
+                if (hoveredComponent.Component.IsAncestorOf(topComponent.Component) && _hoveredComponents.Add(hoveredComponent))
+                {
+                    hoveredComponent.OnMouseEnter();
+                }
+            }
+        }
+        
         var focusedComponent = _focusQueue.First?.Value;
         var canReleaseFocus = focusedComponent?.CanReleaseFocus() ?? true;
         foreach (var component in _componentsToRemoveFromFocusQueue)
