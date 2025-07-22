@@ -25,11 +25,19 @@ public sealed class ContextMenuDefaultKbmController : IKeyboardMouseController
     public void OnMouseEnter()
     {
         _contextMenuManager?.SetKeepOpen(_contextMenu);
+        if (_contextMenu.ParentMenu != null)
+        {
+            _contextMenuManager?.SetKeepOpen(_contextMenu.ParentMenu);
+        }
     }
 
     public void OnMouseExit()
     {
-        _contextMenuManager?.SetKeepOpen(_contextMenu);
+        _contextMenuManager?.HideContextMenu(_contextMenu);
+        if (_contextMenu.ParentMenu != null)
+        {
+            _contextMenuManager?.HideContextMenu(_contextMenu.ParentMenu);
+        }
     }
 
     public Component Component => _contextMenu;
