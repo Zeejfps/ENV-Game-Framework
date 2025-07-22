@@ -149,7 +149,8 @@ public sealed class Window : Component
         outline.Add(borderLayout);
         Add(outline);
 
-        var windowResizer = new WindowResizer(this);
+        var windowResizer = new WindowResizer();
+        windowResizer.AddController(new WindowResizerDefaultKbmController(this, windowResizer));
         Add(windowResizer);
 
         AddController(new WindowDefaultKbmController(this));

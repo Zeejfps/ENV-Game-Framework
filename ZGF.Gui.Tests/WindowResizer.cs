@@ -4,13 +4,16 @@ namespace ZGF.Gui.Tests;
 
 public sealed class WindowResizer : Component
 {
-    private readonly Window _window;
-
+    public StyleValue<uint> BackgroundColor
+    {
+        get => _background.BackgroundColor;
+        set => _background.BackgroundColor = value;
+    }
+    
     private readonly Panel _background;
     
-    public WindowResizer(Window window)
+    public WindowResizer()
     {
-        _window = window;
         _background = new Panel
         {
             BackgroundColor = 0xCECECE,
@@ -27,26 +30,6 @@ public sealed class WindowResizer : Component
         };
         
         Add(_background);
-
-        IsInteractable = true;
-    }
-
-    protected override void OnMouseEnter()
-    {
-        _background.BackgroundColor = 0x9C9CCE;
-        RequestFocus();
-    }
-
-    protected override void OnMouseExit()
-    {
-        _background.BackgroundColor = 0xCECECE;
-        Blur();
-    }
-
-    protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)
-    {
-        _window.BringToFront();
-        return base.OnMouseButtonStateChanged(e);
     }
 
     protected override void OnLayoutSelf()
