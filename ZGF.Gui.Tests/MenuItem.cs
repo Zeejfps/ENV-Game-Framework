@@ -31,16 +31,15 @@ public sealed class MenuItem : Component
         }
     }
 
-    private bool _isHovered;
-
-    public bool IsHovered
+    private bool _isSelected;
+    public bool IsSelected
     {
-        get => _isHovered;
+        get => _isSelected;
         set
         {
-            if (SetField(ref _isHovered, value))
+            if (SetField(ref _isSelected, value))
             {
-                if (_isHovered)
+                if (_isSelected)
                 {
                     _background.BackgroundColor = 0x9C9CCE;
                 }

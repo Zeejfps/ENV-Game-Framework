@@ -15,7 +15,7 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
     
     public void OnMouseEnter()
     {
-        MenuItem.IsHovered = true;
+        MenuItem.IsSelected = true;
         _contextMenu = _contextMenuManager
             .ShowContextMenu(MenuItem.Position.BottomLeft);
         _contextMenu.AddController(new ContextMenuDefaultKbmController(MenuItem, _contextMenu));
@@ -24,7 +24,7 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
 
     public void OnMouseExit()
     {
-        MenuItem.IsHovered = false;
+        MenuItem.IsSelected = false;
         SubmitMenuCloseRequest();
     }
 
