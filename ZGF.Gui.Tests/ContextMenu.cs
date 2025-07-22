@@ -6,15 +6,11 @@ namespace ZGF.Gui.Tests;
 public sealed class ContextMenu : Component
 {
     private readonly PointF _anchorPoint;
-    private readonly ContextMenu? _parentMenu;
     private readonly Column _itemsContainer;
-
-    public ContextMenu? ParentMenu => _parentMenu;
-
-    public ContextMenu(PointF anchorPoint, ContextMenu? parentMenu = null)
+    
+    public ContextMenu(PointF anchorPoint)
     {
         _anchorPoint = anchorPoint;
-        _parentMenu = parentMenu;
 
         var background = new Panel
         {

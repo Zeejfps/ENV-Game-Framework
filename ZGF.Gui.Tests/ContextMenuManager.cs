@@ -14,7 +14,7 @@ public sealed class ContextMenuManager
 
     public ContextMenu ShowContextMenu(PointF anchor, ContextMenu? parentMenu = null)
     {
-        var contextMenu = new ContextMenu(anchor, parentMenu);
+        var contextMenu = new ContextMenu(anchor);
         _contextMenuPane.Add(contextMenu);
         return contextMenu;
     }
