@@ -25,7 +25,7 @@ public sealed class TextInput : Component
         _background.BackgroundColor = 0xEFEFEF;
         _textStyle.VerticalAlignment = TextAlignment.Center;
 
-        _selectionRectStyle.BackgroundColor = 0x5797ff;
+        _selectionRectStyle.BackgroundColor = 0x8aadff;
         
         IsInteractable = true;
     }
@@ -61,9 +61,8 @@ public sealed class TextInput : Component
         if (!_isMouseLeftMousePressed)
             return false;
 
-        var caretIndex = GetCaretIndexFromPoint(e.MousePoint);
-        
-        return base.OnMouseMoved(e);
+        _caretIndex = GetCaretIndexFromPoint(e.MousePoint);
+        return true;
     }
 
     protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)
