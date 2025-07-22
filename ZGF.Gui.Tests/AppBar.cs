@@ -28,22 +28,23 @@ public sealed class AppBar : Component
             }
         };
 
-        var fileItem = new MenuItem(
-            menuItem => new FileMenuItemController(menuItem, contextMenuManager, app)
-        );
-        var editItem = new MenuItem(
-            menuItem => new TestMenuItemController(menuItem, "Edit", contextMenuManager)
-        );
-        var viewLabel = new MenuItem(
-            menuItem => new TestMenuItemController(menuItem, "View", contextMenuManager)
-        );
+        var fileItem = new MenuItem
+        {
+            Text = "File"
+        };
+        fileItem.AddController(new FileMenuItemController(fileItem, contextMenuManager, app));
+        
+        var editItem = new MenuItem();
+        editItem.AddController(new TestMenuItemController(editItem, "Edit", contextMenuManager));
+
+        var viewLabel = new MenuItem();
+        viewLabel.AddController(new TestMenuItemController(viewLabel, "View", contextMenuManager));
         
         var specialMenuItem = new MenuItem();
         specialMenuItem.AddController(new SpecialMenuItemController(specialMenuItem));
-        
-        var helpLabel = new MenuItem(
-            menuItem => new TestMenuItemController(menuItem, "Help", contextMenuManager)
-        );
+
+        var helpLabel = new MenuItem();
+        helpLabel.AddController(new TestMenuItemController(helpLabel, "Help", contextMenuManager));
         
         var row = new FlexRow(MainAxisAlignment.Start, CrossAxisAlignment.Stretch, 10)
         {

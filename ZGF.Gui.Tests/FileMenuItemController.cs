@@ -1,24 +1,20 @@
 namespace ZGF.Gui.Tests;
 
-public sealed class FileMenuItemController : IMenuItemController
+public sealed class FileMenuItemController : IKeyboardMouseController
 {
+    public Component Component => _menuItem;
+    
     private readonly App _app;
-    private readonly IMenuItem _menuItem;
+    private readonly MenuItem _menuItem;
     private readonly ContextMenuManager _contextMenuManager;
 
     private ContextMenu? _contextMenu;
 
-    public FileMenuItemController(IMenuItem menuItem, ContextMenuManager contextMenuManager, App app)
+    public FileMenuItemController(MenuItem menuItem, ContextMenuManager contextMenuManager, App app)
     {
         _menuItem = menuItem;
         _contextMenuManager = contextMenuManager;
         _app = app;
-        menuItem.Text = "File";
-    }
-
-    public void Dispose()
-    {
-
     }
 
     public void OnMouseEnter()
@@ -53,5 +49,15 @@ public sealed class FileMenuItemController : IMenuItemController
             _contextMenuManager.HideContextMenu(_contextMenu);
             _contextMenu = null;
         }
+    }
+
+    public void OnEnabled(Context context)
+    {
+        this.RegisterController();
+    }
+
+    public void OnDisabled(Context context)
+    {
+        this.UnregisterController();
     }
 }

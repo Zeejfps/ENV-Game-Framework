@@ -1,13 +1,13 @@
 namespace ZGF.Gui.Tests;
 
-public sealed class TestMenuItemController : IMenuItemController
+public sealed class TestMenuItemController : IKeyboardMouseController
 {
-    private readonly IMenuItem _menuItem;
+    private readonly MenuItem _menuItem;
     private readonly ContextMenuManager _contextMenuManager;
 
     private ContextMenu? _contextMenu;
 
-    public TestMenuItemController(IMenuItem menuItem, string text, ContextMenuManager contextMenuManager)
+    public TestMenuItemController(MenuItem menuItem, string text, ContextMenuManager contextMenuManager)
     {
         _menuItem = menuItem;
         _contextMenuManager = contextMenuManager;
