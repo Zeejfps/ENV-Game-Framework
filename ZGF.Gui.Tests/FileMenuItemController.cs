@@ -27,19 +27,21 @@ public sealed class FileMenuItemController : IMenuItemController
         _contextMenu = _contextMenuManager
             .ShowContextMenu(_menuItem.Position.BottomLeft);
 
-        _contextMenu.AddItem(new ContextMenuItem(_contextMenu)
+        var openModelItem = new ContextMenuItem
         {
             Text = "Open Model",
-        });
+        };
+        _contextMenu.AddItem(openModelItem);
 
-        _contextMenu.AddItem(new ContextMenuItem(_contextMenu)
+        var exitItem = new ContextMenuItem
         {
             Text = "Exit",
-            Clicked = () =>
-            {
-                _app.Exit();
-            }
-        });
+        };
+        exitItem.AddController(new ContextMenuItemDefaultKbmController(_contextMenu, exitItem, () =>
+        {
+            _app.Exit();
+        }));
+        _contextMenu.AddItem(exitItem);
     }
 
     public void OnMouseExit()

@@ -10,7 +10,7 @@ public sealed class ContextMenu : Component
     private readonly Column _itemsContainer;
 
     public ContextMenu? ParentMenu => _parentMenu;
-    
+
     public ContextMenu(PointF anchorPoint, ContextMenu? parentMenu = null)
     {
         _anchorPoint = anchorPoint;
