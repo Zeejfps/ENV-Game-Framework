@@ -74,7 +74,7 @@ public sealed class InputSystem
         
         var e = new MouseMoveEvent
         {
-            MousePosition = point,
+            MousePoint = point,
         };
 
         foreach (var target in _focusQueue)

@@ -161,7 +161,7 @@ public sealed class App : OpenGlApp
         var guiPoint = WindowToGuiCoords(windowX, windowY);
         _inputSystem.HandleMouseButtonEvent(new MouseButtonEvent
         {
-            Position = guiPoint,
+            MousePoint = guiPoint,
             Button = b,
             State = s,
         });

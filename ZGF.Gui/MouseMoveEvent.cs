@@ -4,5 +4,5 @@ namespace ZGF.Gui;
 
 public readonly struct MouseMoveEvent
 {
-    public required PointF MousePosition { get; init; }
+    public required PointF MousePoint { get; init; }
 }

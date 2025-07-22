@@ -60,8 +60,8 @@ public sealed class TextInput : Component
     {
         if (!_isMouseLeftMousePressed)
             return false;
-        
-        
+
+        var caretIndex = GetCaretIndexFromPoint(e.MousePoint);
         
         return base.OnMouseMoved(e);
     }
@@ -76,7 +76,7 @@ public sealed class TextInput : Component
             }
             
             var position = Position;
-            var containsPoint = position.ContainsPoint(e.Position);
+            var containsPoint = position.ContainsPoint(e.MousePoint);
 
             if (_isEditing && !containsPoint)
             {
@@ -97,7 +97,7 @@ public sealed class TextInput : Component
             if (_strLen == 0)
                 return false;
 
-            var mousePoint = e.Position;
+            var mousePoint = e.MousePoint;
             _caretIndex = GetCaretIndexFromPoint(mousePoint);
             _selectionStartIndex = _caretIndex;
         }

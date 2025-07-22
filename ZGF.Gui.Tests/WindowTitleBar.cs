@@ -98,7 +98,7 @@ public sealed class WindowTitleBar : Component
 
         if (state == InputState.Pressed)
         {
-            _prevMousePosition = e.Position;
+            _prevMousePosition = e.MousePoint;
             _isLeftButtonPressed = true;
             Console.WriteLine($"OnLeftButtonPressed: TitleBar - {_window.TitleText}");
             return false;
@@ -134,11 +134,11 @@ public sealed class WindowTitleBar : Component
         if (!_isLeftButtonPressed)
             return false;
 
-        var delta = e.MousePosition - _prevMousePosition;
+        var delta = e.MousePoint - _prevMousePosition;
         if (_isDragging)
         {
             _window.Move(delta.X, delta.Y);
-            _prevMousePosition = e.MousePosition;
+            _prevMousePosition = e.MousePoint;
         }
         else if (delta.LengthSquared() > 1f)
         {
