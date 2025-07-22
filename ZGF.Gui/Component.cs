@@ -38,72 +38,13 @@ public class Component : IEnumerable<Component>
         }
     }
 
-    private bool _isInteractable;
-    public bool IsInteractable
-    {
-        get => _isInteractable;
-
-        set
-        {
-            if (SetField(ref _isInteractable, value) && Context != null)
-            {
-                if (_isInteractable)
-                {
-                    Context.InputSystem.AddInteractable(this);
-                }
-                else
-                {
-                    Context.InputSystem.RemoveInteractable(this);
-                }
-            }
-        }
-    }
-
-    public bool IsFocused
-    {
-        get
-        {
-            if (Context == null)
-                return false;
-            return Context.InputSystem.IsFocused(this);
-        }
-    }
-
-    public bool RequestFocus()
-    {
-        if (Context == null)
-            return false;
-
-        return Context.InputSystem.RequestFocus(this);
-    }
-
-    public void StealFocus()
-    {
-        if (Context == null)
-            return;
-
-        Context.InputSystem.StealFocus(this);
-    }
-
-    public void Blur()
-    {
-        if (Context == null)
-            return;
-
-        Context.InputSystem.Blur(this);
-    }
-
     protected virtual void OnAttachedToContext(Context context)
     {
-        if (_isInteractable)
-        {
-            context.InputSystem.AddInteractable(this);
-        }
+   
     }
 
     protected virtual void OnDetachedFromContext(Context context)
     {
-        context.InputSystem.RemoveInteractable(this);
     }
 
     private RectF _position;
@@ -647,40 +588,6 @@ public class Component : IEnumerable<Component>
         return nodeA._siblingIndex > nodeB._siblingIndex;
     }
 
-    public void HandleMouseEnterEvent()
-    {
-        OnMouseEnter();
-    }
-
-    public void HandleMouseExitEvent()
-    {
-        OnMouseExit();
-    }
-
-    protected virtual void OnMouseEnter(){}
-    protected virtual void OnMouseExit(){}
-
-    protected virtual bool OnMouseButtonStateChanged(MouseButtonEvent e)
-    {
-        return false;
-    }
-
-    protected virtual bool OnMouseMoved(MouseMoveEvent e) { return true; }
-
-    public bool HandleMouseButtonEvent(in MouseButtonEvent e)
-    {
-        return OnMouseButtonStateChanged(e);
-    }
-
-    public void HandleMouseWheelEvent()
-    {
-    }
-
-    public bool HandleMouseMoveEvent(in MouseMoveEvent e)
-    {
-        return OnMouseMoved(e);
-    }
-
     protected T? Get<T>() where T : class
     {
         if (Context == null)
@@ -697,37 +604,9 @@ public class Component : IEnumerable<Component>
     {
         return GetEnumerator();
     }
-
-    public void HandleFocusGained()
-    {
-        OnFocusGained();
-    }
-
-    public void HandleFocusLost()
-    {
-        OnFocusLost();
-    }
-
-    protected virtual void OnFocusGained(){}
-    protected virtual void OnFocusLost(){}
-
-    public bool HandleKeyboardKeyEvent(in KeyboardKeyEvent e)
-    {
-        return OnKeyboardKeyStateChanged(e);
-    }
-
-    protected virtual bool OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
-    {
-        return false;
-    }
-
+    
     public override string ToString()
     {
         return base.ToString() + "-" + _depth;
-    }
-
-    public virtual bool CanReleaseFocus()
-    {
-        return true;
     }
 }

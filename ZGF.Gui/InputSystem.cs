@@ -4,20 +4,20 @@ namespace ZGF.Gui;
 
 public sealed class InputSystem
 {
-    private readonly HashSet<Component> _hoverableComponents = new();
-    private readonly HashSet<Component> _hoveredComponents = new();
-    private readonly LinkedList<Component> _focusQueue = new();
+    private readonly HashSet<IKeyboardMouseController> _hoverableComponents = new();
+    private readonly HashSet<IKeyboardMouseController> _hoveredComponents = new();
+    private readonly LinkedList<IKeyboardMouseController> _focusQueue = new();
     private readonly HashSet<MouseButton> _pressedMouseButtons = new();
     
-    public void AddInteractable(Component hoverable)
+    public void AddInteractable(IKeyboardMouseController controller)
     {
-        _hoverableComponents.Add(hoverable);
+        _hoverableComponents.Add(controller);
     }
 
-    public void RemoveInteractable(Component hoverable)
+    public void RemoveInteractable(IKeyboardMouseController controller)
     {
-        _hoverableComponents.Remove(hoverable);
-        _focusQueue.Remove(hoverable);
+        _hoverableComponents.Remove(controller);
+        _focusQueue.Remove(controller);
     }
     
     public void HandleKeyboardKeyEvent(in KeyboardKeyEvent e)
@@ -43,13 +43,13 @@ public sealed class InputSystem
         
         foreach (var target in _focusQueue)
         {
-            var handled = target.HandleMouseButtonEvent(e);
+            var handled = target.OnMouseButtonStateChanged(e);
             if (handled)
                 break;
         }
     }
 
-    private readonly List<Component> _removeCache = new();
+    private readonly List<IKeyboardMouseController> _removeCache = new();
     
     public void UpdateMousePosition(in PointF point)
     {
@@ -59,10 +59,10 @@ public sealed class InputSystem
         for (var i = _removeCache.Count - 1; i >= 0; i--)
         {
             var hoveredComponent = _removeCache[i];
-            if (!hoveredComponent.Position.ContainsPoint(point))
+            if (!hoveredComponent.Component.Position.ContainsPoint(point))
             {
                 _hoveredComponents.Remove(hoveredComponent);
-                hoveredComponent.HandleMouseExitEvent();
+                hoveredComponent.OnMouseExit();
             }
         }
         
@@ -73,9 +73,9 @@ public sealed class InputSystem
             for (var i = allHoveredComponents.Count - 1; i >= 0; i--)
             {
                 var hoveredComponent = allHoveredComponents[i];
-                if (hoveredComponent.IsAncestorOf(topComponent) && _hoveredComponents.Add(hoveredComponent))
+                if (hoveredComponent.Component.IsAncestorOf(topComponent.Component) && _hoveredComponents.Add(hoveredComponent))
                 {
-                    hoveredComponent.HandleMouseEnterEvent();
+                    hoveredComponent.OnMouseEnter();
                 }
             }
         }
@@ -87,23 +87,23 @@ public sealed class InputSystem
 
         foreach (var target in _focusQueue)
         {
-            var handled = target.HandleMouseMoveEvent(e);
+            var handled = target.OnMouseMoved(e);
             if (handled)
                 break;
         }
     }
 
-    private readonly List<Component> _hitTestCache = new();
+    private readonly List<IKeyboardMouseController> _hitTestCache = new();
     
-    private List<Component> HitTest(in PointF point)
+    private List<IKeyboardMouseController> HitTest(in PointF point)
     {
         _hitTestCache.Clear();
         var components = _hitTestCache;
-        foreach (var component in _hoverableComponents)
+        foreach (var controller in _hoverableComponents)
         {
-            if (component.Position.ContainsPoint(point))
+            if (controller.Component.Position.ContainsPoint(point))
             {
-                components.Add(component);
+                components.Add(controller);
             }
         }
 
@@ -114,21 +114,21 @@ public sealed class InputSystem
         return components;
     }
 
-    public void StealFocus(Component component)
+    public void StealFocus(IKeyboardMouseController component)
     {
         var prevFocusedComponent = _focusQueue.First?.Value;
         _focusQueue.AddFirst(component);
         
         if (prevFocusedComponent != null)
         {
-            prevFocusedComponent.HandleFocusLost();
+            prevFocusedComponent.OnFocusLost();
         }
         
-        component.HandleFocusGained();
+        component.OnFocusGained();
     }
 
-    private readonly List<Component> _componentsToAddToFocusQueue = new();
-    private readonly List<Component> _componentsToRemoveFromFocusQueue = new();
+    private readonly List<IKeyboardMouseController> _componentsToAddToFocusQueue = new();
+    private readonly List<IKeyboardMouseController> _componentsToRemoveFromFocusQueue = new();
     
     public void Update()
     {
@@ -164,35 +164,35 @@ public sealed class InputSystem
             Console.WriteLine($"Focus changing: {focusedComponent} -> {newFocusedComponent}");
             if (focusedComponent != null)
             {
-                focusedComponent.HandleFocusLost();
+                focusedComponent.OnFocusLost();
             }
             
             if (newFocusedComponent != null)
             {
-                newFocusedComponent.HandleFocusGained();
+                newFocusedComponent.OnFocusGained();
                 Console.WriteLine($"Focused: {newFocusedComponent}");
             }
         }
     }
 
-    public bool RequestFocus(Component component)
+    public bool RequestFocus(IKeyboardMouseController component)
     {
         Console.WriteLine($"Requesting focus: {component}");
         _componentsToAddToFocusQueue.Add(component);
         return false;
     }
     
-    public void Blur(Component component)
+    public void Blur(IKeyboardMouseController component)
     {
         _componentsToRemoveFromFocusQueue.Add(component);
     }
 
-    public bool IsInteractable(Component component)
+    public bool IsInteractable(IKeyboardMouseController component)
     {
         return _hoverableComponents.Contains(component);
     }
 
-    public bool IsFocused(Component component)
+    public bool IsFocused(IKeyboardMouseController component)
     {
         var focused = _focusQueue.First;
         if (focused == null)
@@ -206,11 +206,11 @@ public sealed class InputSystem
     }
 }
 
-sealed class ZIndexComparer : IComparer<Component>
+sealed class ZIndexComparer : IComparer<IKeyboardMouseController>
 {
     public static ZIndexComparer Instance { get; } = new();
 
-    public int Compare(Component? x, Component? y)
+    public int Compare(IKeyboardMouseController? x, IKeyboardMouseController? y)
     {
         if (x == null && y == null)
             return 0;
@@ -222,15 +222,15 @@ sealed class ZIndexComparer : IComparer<Component>
             return -1;
         
         // NOTE(Zee): Order is swapped here. Greater ZIndex means the value is less - meaning it should be first in list 
-        var result = y.ZIndex.CompareTo(x.ZIndex);
+        var result = y.Component.ZIndex.CompareTo(x.Component.ZIndex);
         if (result == 0)
         {
-            if (x.IsInFrontOf(y))
+            if (x.Component.IsInFrontOf(y.Component))
             {
                 return -1;
             }
 
-            if (y.IsInFrontOf(x))
+            if (y.Component.IsInFrontOf(x.Component))
             {
                 return 1;
             }

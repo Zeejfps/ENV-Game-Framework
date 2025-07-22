@@ -3,7 +3,7 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class TextInput : Component, IController
+public sealed class TextInput : Component
 {
     public StyleValue<uint> BackgroundColor
     {
@@ -34,6 +34,8 @@ public sealed class TextInput : Component, IController
         get => _cursorStyle.BackgroundColor;
         set => SetField(ref _cursorStyle.BackgroundColor, value);
     }
+
+    public bool IsSelecting => _caretIndex != _selectionStartIndex;
     
     private readonly RectStyle _background = new();
     private readonly TextStyle _textStyle = new();
@@ -45,6 +47,8 @@ public sealed class TextInput : Component, IController
     private bool _isEditing;
     private int _selectionStartIndex;
     private char[] _buffer;
+    
+    public bool IsEditing => _isEditing;
 
     public TextInput()
     {
@@ -55,73 +59,17 @@ public sealed class TextInput : Component, IController
         _textStyle.VerticalAlignment = TextAlignment.Center;
         _selectionRectStyle.BackgroundColor = 0x8aadff;
         
-        IsInteractable = true;
+        AddController(new TextInputDefaultController(this));
     }
 
-    protected override void OnMouseEnter()
-    {
-        RequestFocus();
-    }
-
-    protected override void OnMouseExit()
-    {
-        if (!_isEditing)
-            Blur();
-    }
-
-    protected override void OnFocusLost()
-    {
-        _isEditing = false;
-    }
-
-    public override bool CanReleaseFocus()
-    {
-        return !_isEditing;
-    }
-
-    protected override bool OnMouseMoved(MouseMoveEvent e)
-    {
-        var isLeftMouseButtonPressed = Context!.InputSystem.IsMouseButtonPressed(MouseButton.Left);
-        if (!isLeftMouseButtonPressed)
-            return false;
-
-        _caretIndex = GetCaretIndexFromPoint(e.MousePoint);
-        return true;
-    }
-
-    protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)
-    {
-        if (e.State == InputState.Pressed && e.Button == MouseButton.Left)
-        {
-            var containsPoint = Position.ContainsPoint(e.MousePoint);
-
-            if (_isEditing && !containsPoint)
-            {
-                FinishEditing();
-                return false;
-            }
-
-            if (!_isEditing && containsPoint)
-            {
-                StartEditing();
-            }
-            
-            var mousePoint = e.MousePoint;
-            _caretIndex = GetCaretIndexFromPoint(mousePoint);
-            _selectionStartIndex = _caretIndex;
-        }
-        return base.OnMouseButtonStateChanged(e);
-    }
-
-    private void StartEditing()
+    public void StartEditing()
     {
         _isEditing = true;
     }
     
-    private void FinishEditing()
+    public void StopEditing()
     {
         _isEditing = false;
-        Blur();
     }
 
     private int GetCaretIndexFromPoint(in PointF point)
@@ -165,158 +113,6 @@ public sealed class TextInput : Component, IController
             var length = max - min;
             clipboard.SetText(new string(_buffer, min, length));
         }
-    }
-
-    private void Cut()
-    {
-        Copy();
-        DeleteSelection();
-    }
-
-    private void Paste()
-    {
-        var clipboard = Context?.Get<IClipboard>();
-        if (clipboard != null)
-        {
-            var text = clipboard.GetText();
-            if (text != null)
-            {
-                if (_caretIndex != _selectionStartIndex)
-                {
-                    DeleteSelection();
-                }
-                
-                var textEnd = _buffer.AsSpan(_caretIndex, _strLen - _caretIndex);
-                textEnd.CopyTo(_buffer.AsSpan(_caretIndex + text.Length));
-                
-                var dst = _buffer.AsSpan(_caretIndex, text.Length);
-                text.CopyTo(dst);
-                
-                _strLen += text.Length;
-                _caretIndex += text.Length;
-                _selectionStartIndex = _caretIndex;
-            }
-        }
-    }
-
-    protected override bool OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
-    {
-        if (!_isEditing)
-            return false;
-
-        if (e.State == InputState.Pressed)
-        {
-            if (e.Key == KeyboardKey.A && e.Modifiers.HasFlag(InputModifiers.Control))
-            {
-                _selectionStartIndex = 0;
-                _caretIndex = _strLen;
-                return true;
-            }
-
-            if (e.Key == KeyboardKey.C && e.Modifiers.HasFlag(InputModifiers.Control))
-            {
-                Copy();
-                return true;
-            }
-            
-            if (e.Key == KeyboardKey.V && e.Modifiers.HasFlag(InputModifiers.Control))
-            {
-                Paste();
-                return true;
-            }
-            
-            if (e.Key == KeyboardKey.X && e.Modifiers.HasFlag(InputModifiers.Control))
-            {
-                Cut();
-                return true;
-            }
-            
-            var isShiftPressed = (e.Modifiers & InputModifiers.Shift) > 0;
-            var isSelecting = _caretIndex != _selectionStartIndex;
-            if (e.Key == KeyboardKey.LeftArrow)
-            {
-                if (!isSelecting || isShiftPressed)
-                {
-                    _caretIndex--;
-                    if (_caretIndex < 0)
-                        _caretIndex = 0;
-                }
-                
-                if (!isShiftPressed)
-                {
-                    if (_selectionStartIndex < _caretIndex)
-                    {
-                        _caretIndex = _selectionStartIndex;
-                    }
-                    else if (_selectionStartIndex > _caretIndex)
-                    {
-                        _selectionStartIndex = _caretIndex;
-                    }
-                }
-                
-                return true;
-            }
-            
-            if (e.Key == KeyboardKey.RightArrow)
-            {
-                if (!isSelecting || isShiftPressed)
-                {
-                    _caretIndex++;
-                    if (_caretIndex > _strLen)
-                        _caretIndex = _strLen;
-                }
-                
-                if (!isShiftPressed)
-                {
-                    if (_selectionStartIndex < _caretIndex)
-                    {
-                        _selectionStartIndex = _caretIndex;
-                    }
-                    else if (_selectionStartIndex > _caretIndex)
-                    {
-                        _caretIndex = _selectionStartIndex;
-                    }
-                }
-                
-                return true;
-            }
-            
-            if (e.Key == KeyboardKey.Backspace)
-            {
-                if (_strLen > 0)
-                {
-                    if (isSelecting)
-                    {
-                        DeleteSelection();
-                    }
-                    else if (_caretIndex > 0)
-                    {
-                        DeleteChar(_caretIndex - 1);
-                        _caretIndex--;
-                        _selectionStartIndex = _caretIndex;
-                    }
-                }
-                return true;
-            }
-
-            var c = e.Key.ToChar(isShiftPressed);
-            if (c == '\0')
-            {
-                return true;
-            }
-
-            if (isSelecting)
-            {
-                DeleteSelection();
-            }
-            
-            InsertChar(_caretIndex, c);
-            _caretIndex++;
-            _selectionStartIndex = _caretIndex;
-            return true;
-        }
-        
-        return base.OnKeyboardKeyStateChanged(e);
     }
 
     private void DeleteSelection()
@@ -462,13 +258,112 @@ public sealed class TextInput : Component, IController
             ZIndex = ZIndex
         });
     }
-
-    public void OnEnabled(Context context)
+    
+    public void MoveCaretTo(PointF point, bool isSelecting = false)
     {
-        
+        _caretIndex = GetCaretIndexFromPoint(point);
+        if (!isSelecting)
+        {
+            _selectionStartIndex = _caretIndex;
+        }
     }
 
-    public void OnDisabled(Context context)
+    public void SelectAll()
     {
+        _selectionStartIndex = 0;
+        _caretIndex = _strLen;
+    }
+
+    public void MoveCaretLeft(bool select = false)
+    {
+        var isSelecting = IsSelecting;
+        if (!isSelecting || select)
+        {
+            _caretIndex--;
+            if (_caretIndex < 0)
+                _caretIndex = 0;
+        }
+                
+        if (!select)
+        {
+            if (_selectionStartIndex < _caretIndex)
+            {
+                _caretIndex = _selectionStartIndex;
+            }
+            else if (_selectionStartIndex > _caretIndex)
+            {
+                _selectionStartIndex = _caretIndex;
+            }
+        }
+    }
+
+    public void MoveCaretRight(bool select = false)
+    {
+        var isSelecting = IsSelecting;
+        if (!isSelecting || select)
+        {
+            _caretIndex++;
+            if (_caretIndex > _strLen)
+                _caretIndex = _strLen;
+        }
+                
+        if (!select)
+        {
+            if (_selectionStartIndex < _caretIndex)
+            {
+                _selectionStartIndex = _caretIndex;
+            }
+            else if (_selectionStartIndex > _caretIndex)
+            {
+                _caretIndex = _selectionStartIndex;
+            }
+        }
+    }
+
+    public void Delete()
+    {
+        if (_strLen > 0)
+        {
+            if (IsSelecting)
+            {
+                DeleteSelection();
+            }
+            else if (_caretIndex > 0)
+            {
+                DeleteChar(_caretIndex - 1);
+                _caretIndex--;
+                _selectionStartIndex = _caretIndex;
+            }
+        }
+    }
+
+    public void Enter(char c)
+    {
+        if (IsSelecting)
+        {
+            DeleteSelection();
+        }
+            
+        InsertChar(_caretIndex, c);
+        _caretIndex++;
+        _selectionStartIndex = _caretIndex;
+    }
+    
+    public void Enter(ReadOnlySpan<char> text)
+    {
+        if (_caretIndex != _selectionStartIndex)
+        {
+            DeleteSelection();
+        }
+            
+        var textEnd = _buffer.AsSpan(_caretIndex, _strLen - _caretIndex);
+        textEnd.CopyTo(_buffer.AsSpan(_caretIndex + text.Length));
+            
+        var dst = _buffer.AsSpan(_caretIndex, text.Length);
+        text.CopyTo(dst);
+            
+        _strLen += text.Length;
+        _caretIndex += text.Length;
+        _selectionStartIndex = _caretIndex;
     }
 }
