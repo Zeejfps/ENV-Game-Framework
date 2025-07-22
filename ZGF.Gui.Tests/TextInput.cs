@@ -6,6 +6,36 @@ namespace ZGF.Gui.Tests;
 
 public sealed class TextInput : Component
 {
+    public StyleValue<uint> BackgroundColor
+    {
+        get => _background.BackgroundColor;
+        set => SetField(ref _background.BackgroundColor, value);
+    }
+
+    public StyleValue<uint> TextColor
+    {
+        get => _textStyle.TextColor;
+        set => SetField(ref _textStyle.TextColor, value);
+    }
+
+    public StyleValue<TextAlignment> TextVerticalAlignment
+    {
+        get => _textStyle.VerticalAlignment;
+        set => SetField(ref _textStyle.VerticalAlignment, value);
+    }
+
+    public StyleValue<uint> SelectionRectColor
+    {
+        get => _selectionRectStyle.BackgroundColor;
+        set => SetField(ref _selectionRectStyle.BackgroundColor, value);
+    }
+
+    public StyleValue<uint> CaretColor
+    {
+        get => _cursorStyle.BackgroundColor;
+        set => SetField(ref _cursorStyle.BackgroundColor, value);
+    }
+    
     private readonly RectStyle _background = new();
     private readonly TextStyle _textStyle = new();
     private readonly RectStyle _cursorStyle = new();
@@ -22,9 +52,9 @@ public sealed class TextInput : Component
     {
         _buffer = new char[256];
 
+        // Default Styles
         _background.BackgroundColor = 0xEFEFEF;
         _textStyle.VerticalAlignment = TextAlignment.Center;
-
         _selectionRectStyle.BackgroundColor = 0x8aadff;
         
         IsInteractable = true;
@@ -32,13 +62,11 @@ public sealed class TextInput : Component
 
     protected override void OnMouseEnter()
     {
-        Console.WriteLine("OnMouseEnter - TextInput");
         RequestFocus();
     }
 
     protected override void OnMouseExit()
     {
-        Console.WriteLine("OnMouseExit - TextInput");
         if (!_isEditing)
         {
             Blur();
@@ -67,45 +95,44 @@ public sealed class TextInput : Component
 
     protected override bool OnMouseButtonStateChanged(MouseButtonEvent e)
     {
-        if (e.State == InputState.Pressed)
+        if (e.State == InputState.Pressed && e.Button == MouseButton.Left)
         {
-            if (e.Button == MouseButton.Left)
-            {
-                _isMouseLeftMousePressed = true;
-            }
-            
+            _isMouseLeftMousePressed = true;
             var position = Position;
             var containsPoint = position.ContainsPoint(e.MousePoint);
 
             if (_isEditing && !containsPoint)
             {
-                _isEditing = false;
-                Console.WriteLine("Editing stopped");
-                Blur();
+                FinishEditing();
                 return false;
             }
 
             if (!_isEditing && containsPoint)
             {
-                _isEditing = true;
-                _caretIndex = _strLen;
-                _selectionStartIndex = _caretIndex;
-                Console.WriteLine("Editing Started");
+                StartEditing();
             }
             
             var mousePoint = e.MousePoint;
             _caretIndex = GetCaretIndexFromPoint(mousePoint);
             _selectionStartIndex = _caretIndex;
         }
-        else if (e.State == InputState.Released)
+        else if (e.State == InputState.Released && e.Button == MouseButton.Left)
         {
-            if (e.Button == MouseButton.Left)
-            {
-                _isMouseLeftMousePressed = false;
-            }
+            _isMouseLeftMousePressed = false;
         }
-        
         return base.OnMouseButtonStateChanged(e);
+    }
+
+    private void StartEditing()
+    {
+        _isEditing = true;
+    }
+    
+    private void FinishEditing()
+    {
+        _isEditing = false;
+        _isMouseLeftMousePressed = false;
+        Blur();
     }
 
     private int GetCaretIndexFromPoint(in PointF point)
