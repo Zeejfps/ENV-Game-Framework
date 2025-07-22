@@ -43,13 +43,13 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
 
     public void OnMouseEnter()
     {
+        if (_contextMenuManager == null)
+            return;
+        
         _contextMenuItem.BackgroundColor = 0x9C9CCE;
         if (SubOptions.Count > 0)
         {
-            _subMenu = _contextMenuManager?.ShowContextMenu(_contextMenuItem.Position.TopRight, _contextMenu);
-            if (_subMenu == null)
-                return;
-            
+            _subMenu = _contextMenuManager.ShowContextMenu(_contextMenuItem.Position.TopRight, _contextMenu);
             foreach (var subOption in SubOptions)
             {
                 _subMenu.AddItem(new ContextMenuItem
