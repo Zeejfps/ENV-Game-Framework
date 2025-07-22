@@ -31,8 +31,8 @@ public sealed class App : OpenGlApp
         var textMeasurer = new TextMeasurer(_bitmapFont);
 
         _canvas = new Canvas(
-            startupConfig.WindowWidth,
-            startupConfig.WindowHeight,
+            startupConfig.WindowWidth / 2,
+            startupConfig.WindowHeight / 2,
             _bitmapFont,
             textMeasurer, imageManager
         );
@@ -131,10 +131,10 @@ public sealed class App : OpenGlApp
 
     private void HandleWindowSizeChanged(GLFW.Window window, int width, int height)
     {
-        //glViewport(0, 0, width, height);
-        _gui.PreferredWidth = width;
-        _gui.PreferredHeight = height;
-        _canvas.Resize(width, height);
+        glViewport(0, 0, width, height);
+        _gui.PreferredWidth = width / 2;
+        _gui.PreferredHeight = height / 2;
+        _canvas.Resize(width / 2, height / 2);
         Render();
         Glfw.SwapBuffers(window);
     }
