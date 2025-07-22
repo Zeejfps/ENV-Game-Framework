@@ -2,11 +2,11 @@
 
 namespace ZGF.Gui.Tests;
 
-public sealed class TextInputDefaultController : IKeyboardMouseController
+public sealed class TextInputDefaultKbmController : IKeyboardMouseController
 {
     private readonly TextInput _textInput;
     
-    public TextInputDefaultController(TextInput textInput)
+    public TextInputDefaultKbmController(TextInput textInput)
     {
         _textInput = textInput;
     }
@@ -41,13 +41,13 @@ public sealed class TextInputDefaultController : IKeyboardMouseController
         return !_textInput.IsEditing;
     }
 
-    public bool OnMouseMoved(InputSystem inputSystem, in MouseMoveEvent e)
+    public bool OnMouseMoved(in MouseMoveEvent e)
     {
-        var isLeftMouseButtonPressed = inputSystem.IsMouseButtonPressed(MouseButton.Left);
+        var isLeftMouseButtonPressed = e.Mouse.IsButtonPressed(MouseButton.Left);
         if (!isLeftMouseButtonPressed)
             return false;
 
-        _textInput.MoveCaretTo(e.MousePoint, true);
+        _textInput.MoveCaretTo(e.Mouse.Point, true);
         return true;
     }
 
@@ -56,7 +56,7 @@ public sealed class TextInputDefaultController : IKeyboardMouseController
         if (e.State == InputState.Pressed && e.Button == MouseButton.Left)
         {
             var isEditing = _textInput.IsEditing;
-            var containsPoint = _textInput.Position.ContainsPoint(e.MousePoint);
+            var containsPoint = _textInput.Position.ContainsPoint(e.Mouse.Point);
 
             if (isEditing && !containsPoint)
             {
@@ -69,7 +69,7 @@ public sealed class TextInputDefaultController : IKeyboardMouseController
                 _textInput.StartEditing();
             }
             
-            var mousePoint = e.MousePoint;
+            var mousePoint = e.Mouse.Point;
             _textInput.MoveCaretTo(mousePoint);
 
             return true;
@@ -158,7 +158,15 @@ public sealed class TextInputDefaultController : IKeyboardMouseController
 
     private void Copy()
     {
+        var selectedText = _textInput.GetSelectedText();
+        if (string.IsNullOrEmpty(selectedText))
+            return;
         
+        var clipboard = _textInput.Context?.Get<IClipboard>();
+        if (clipboard == null)
+            return;
+   
+        clipboard.SetText(selectedText);
     }
 
     public Component Component => _textInput;

@@ -2,7 +2,7 @@
 
 namespace ZGF.Gui;
 
-public sealed class InputSystem
+public sealed class InputSystem : IMouse
 {
     private readonly HashSet<IKeyboardMouseController> _hoverableComponents = new();
     private readonly HashSet<IKeyboardMouseController> _hoveredComponents = new();
@@ -53,6 +53,8 @@ public sealed class InputSystem
     
     public void UpdateMousePosition(in PointF point)
     {
+        Point = point;
+        
         _removeCache.Clear();
         _removeCache.AddRange(_hoveredComponents);
 
@@ -82,7 +84,7 @@ public sealed class InputSystem
         
         var e = new MouseMoveEvent
         {
-            MousePoint = point,
+            Mouse = this,
         };
 
         foreach (var target in _focusQueue)
@@ -200,10 +202,17 @@ public sealed class InputSystem
         return focused.Value == component;
     }
 
-    public bool IsMouseButtonPressed(in MouseButton button)
+
+    #region IMouse
+    
+    public PointF Point { get; private set; }
+    
+    public bool IsButtonPressed(MouseButton button)
     {
         return _pressedMouseButtons.Contains(button);
     }
+    
+    #endregion
 }
 
 sealed class ZIndexComparer : IComparer<IKeyboardMouseController>

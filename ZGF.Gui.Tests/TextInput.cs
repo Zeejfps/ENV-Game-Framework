@@ -59,7 +59,7 @@ public sealed class TextInput : Component
         _textStyle.VerticalAlignment = TextAlignment.Center;
         _selectionRectStyle.BackgroundColor = 0x8aadff;
         
-        AddController(new TextInputDefaultController(this));
+        AddController(new TextInputDefaultKbmController(this));
     }
 
     public void StartEditing()
@@ -97,22 +97,7 @@ public sealed class TextInput : Component
 
     private void Copy()
     {
-        if (_caretIndex == _selectionStartIndex)
-            return;
         
-        var clipboard = Context?.Get<IClipboard>();
-        if (clipboard != null)
-        {
-            var min = _selectionStartIndex;
-            var max = _caretIndex;
-            if (min > max)
-            {
-                (min, max) = (max, min);
-            }
-
-            var length = max - min;
-            clipboard.SetText(new string(_buffer, min, length));
-        }
     }
 
     private void DeleteSelection()
@@ -365,5 +350,21 @@ public sealed class TextInput : Component
         _strLen += text.Length;
         _caretIndex += text.Length;
         _selectionStartIndex = _caretIndex;
+    }
+
+    public string? GetSelectedText()
+    {
+        if (_caretIndex == _selectionStartIndex)
+            return null;
+        
+        var min = _selectionStartIndex;
+        var max = _caretIndex;
+        if (min > max)
+        {
+            (min, max) = (max, min);
+        }
+
+        var length = max - min;
+        return new string(_buffer, min, length);
     }
 }

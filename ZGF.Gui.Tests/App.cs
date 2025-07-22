@@ -159,10 +159,10 @@ public sealed class App : OpenGlApp
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
         };
 
-        var guiPoint = WindowToGuiCoords(windowX, windowY);
+        //var guiPoint = WindowToGuiCoords(windowX, windowY);
         _inputSystem.HandleMouseButtonEvent(new MouseButtonEvent
         {
-            MousePoint = guiPoint,
+            Mouse = _inputSystem,
             Button = b,
             State = s,
         });

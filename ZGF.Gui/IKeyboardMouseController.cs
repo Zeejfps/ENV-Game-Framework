@@ -21,7 +21,7 @@ public interface IKeyboardMouseController : IController
     {
     }
 
-    bool OnMouseMoved(InputSystem inputSystem, in MouseMoveEvent e)
+    bool OnMouseMoved(in MouseMoveEvent e)
     {
         return false;
     }
