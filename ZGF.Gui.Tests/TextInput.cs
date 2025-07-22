@@ -92,10 +92,7 @@ public sealed class TextInput : Component
                 _selectionStartIndex = _caretIndex;
                 Console.WriteLine("Editing Started");
             }
-
-            if (_strLen == 0)
-                return false;
-
+            
             var mousePoint = e.MousePoint;
             _caretIndex = GetCaretIndexFromPoint(mousePoint);
             _selectionStartIndex = _caretIndex;
@@ -113,6 +110,9 @@ public sealed class TextInput : Component
 
     private int GetCaretIndexFromPoint(in PointF point)
     {
+        if (_strLen == 0)
+            return 0;
+        
         var deltaX = point.X - Position.Left;
         var textMeasurer = Context!.TextMeasurer;
         for (var i = 0; i < _strLen; i++)
