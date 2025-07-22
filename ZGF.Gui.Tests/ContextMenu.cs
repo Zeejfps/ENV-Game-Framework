@@ -10,9 +10,7 @@ public sealed class ContextMenu : Component
     private readonly Column _itemsContainer;
 
     public ContextMenu? ParentMenu => _parentMenu;
-
-    private ContextMenuManager? ContextMenuManager => Get<ContextMenuManager>();
-
+    
     public ContextMenu(PointF anchorPoint, ContextMenu? parentMenu = null)
     {
         _anchorPoint = anchorPoint;
@@ -30,9 +28,7 @@ public sealed class ContextMenu : Component
             }
         };
         background.AddStyleClass("raised_panel");
-
-        IsInteractable = true;
-
+        
         _itemsContainer = new Column
         {
             Gap = 4
@@ -61,15 +57,5 @@ public sealed class ContextMenu : Component
             Width = width,
             Height = height,
         };
-    }
-    
-    protected override void OnMouseEnter()
-    {
-        ContextMenuManager?.SetKeepOpen(this);
-    }
-
-    protected override void OnMouseExit()
-    {
-        ContextMenuManager?.HideContextMenu(this);
     }
 }
