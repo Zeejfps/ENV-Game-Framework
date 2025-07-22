@@ -5,9 +5,9 @@ namespace ZGF.Gui;
 public sealed class InputSystem
 {
     private readonly HashSet<Component> _hoverableComponents = new();
-    
     private readonly HashSet<Component> _hoveredComponents = new();
     private readonly LinkedList<Component> _focusQueue = new();
+    private readonly HashSet<MouseButton> _pressedMouseButtons = new();
     
     public void AddInteractable(Component hoverable)
     {
@@ -32,7 +32,15 @@ public sealed class InputSystem
 
     public void HandleMouseButtonEvent(MouseButtonEvent e)
     {
-        Console.WriteLine($"HandleMouseButtonEvent: {_focusQueue.First?.Value}");
+        if (e.State == InputState.Pressed)
+        {
+            _pressedMouseButtons.Add(e.Button);
+        }
+        else
+        {
+            _pressedMouseButtons.Remove(e.Button);
+        }
+        
         foreach (var target in _focusQueue)
         {
             var handled = target.HandleMouseButtonEvent(e);
@@ -103,12 +111,6 @@ public sealed class InputSystem
             return components;
         
         components.Sort(ZIndexComparer.Instance);
-        // Console.WriteLine("===================");
-        // foreach (var component in components)
-        // {
-        //     Console.WriteLine(component);
-        // }
-        
         return components;
     }
 
@@ -175,43 +177,14 @@ public sealed class InputSystem
 
     public bool RequestFocus(Component component)
     {
-        Console.WriteLine($"Requeting focus: {component}");
+        Console.WriteLine($"Requesting focus: {component}");
         _componentsToAddToFocusQueue.Add(component);
-        
-        // var focusedComponent = _focusQueue.First?.Value;
-        // if (focusedComponent == null)
-        // {
-        //     _focusQueue.AddFirst(component);
-        //     component.HandleFocusGained();
-        //     return true;
-        // }
-        //
-        // if (!_focusQueue.Contains(component))
-        //     _focusQueue.AddLast(component);
-        //
         return false;
     }
     
     public void Blur(Component component)
     {
         _componentsToRemoveFromFocusQueue.Add(component);
-        
-        // var focusedComponent = _focusQueue.First?.Value;
-        // if (focusedComponent == component)
-        // {
-        //     _focusQueue.RemoveFirst();
-        //     component.HandleFocusLost();
-        //
-        //     var nextFocus = _focusQueue.First?.Value;
-        //     if (nextFocus != null)
-        //     {
-        //         nextFocus.HandleFocusGained();
-        //     }
-        // }
-        // else
-        // {
-        //     _focusQueue.Remove(component);
-        // }
     }
 
     public bool IsInteractable(Component component)
@@ -225,6 +198,11 @@ public sealed class InputSystem
         if (focused == null)
             return false;
         return focused.Value == component;
+    }
+
+    public bool IsMouseButtonPressed(in MouseButton button)
+    {
+        return _pressedMouseButtons.Contains(button);
     }
 }
 

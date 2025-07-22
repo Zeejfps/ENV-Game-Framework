@@ -1,4 +1,3 @@
-using System.Text;
 using ZGF.Geometry;
 using ZGF.KeyboardModule;
 
@@ -42,11 +41,10 @@ public sealed class TextInput : Component
     private readonly RectStyle _selectionRectStyle = new();
 
     private int _caretIndex;
-    private char[] _buffer;
     private int _strLen;
     private bool _isEditing;
     private int _selectionStartIndex;
-    private bool _isMouseLeftMousePressed;
+    private char[] _buffer;
 
     public TextInput()
     {
@@ -68,15 +66,12 @@ public sealed class TextInput : Component
     protected override void OnMouseExit()
     {
         if (!_isEditing)
-        {
             Blur();
-        }
     }
 
     protected override void OnFocusLost()
     {
         _isEditing = false;
-        _isMouseLeftMousePressed = false;
     }
 
     public override bool CanReleaseFocus()
@@ -86,7 +81,8 @@ public sealed class TextInput : Component
 
     protected override bool OnMouseMoved(MouseMoveEvent e)
     {
-        if (!_isMouseLeftMousePressed)
+        var isLeftMouseButtonPressed = Context!.InputSystem.IsMouseButtonPressed(MouseButton.Left);
+        if (!isLeftMouseButtonPressed)
             return false;
 
         _caretIndex = GetCaretIndexFromPoint(e.MousePoint);
@@ -97,7 +93,6 @@ public sealed class TextInput : Component
     {
         if (e.State == InputState.Pressed && e.Button == MouseButton.Left)
         {
-            _isMouseLeftMousePressed = true;
             var position = Position;
             var containsPoint = position.ContainsPoint(e.MousePoint);
 
@@ -116,10 +111,6 @@ public sealed class TextInput : Component
             _caretIndex = GetCaretIndexFromPoint(mousePoint);
             _selectionStartIndex = _caretIndex;
         }
-        else if (e.State == InputState.Released && e.Button == MouseButton.Left)
-        {
-            _isMouseLeftMousePressed = false;
-        }
         return base.OnMouseButtonStateChanged(e);
     }
 
@@ -131,7 +122,6 @@ public sealed class TextInput : Component
     private void FinishEditing()
     {
         _isEditing = false;
-        _isMouseLeftMousePressed = false;
         Blur();
     }
 
