@@ -118,11 +118,20 @@ public sealed class Window : Component
             PreferredHeight = 20f
         };
 
+        var textField = new Panel
+        {
+            BackgroundColor = 0xEFEFEF,
+            BorderColor = BorderColorStyle.All(0x252525),
+            BorderSize = BorderSizeStyle.All(1),
+            Padding = PaddingStyle.All(4)
+        };
+        textField.Add(textInput);
+
         var bottomSection = new BorderLayout
         {
             East = scrollBarContainer,
             Center = progress,
-            South = textInput,
+            South = textField,
         };
         columnLayout.Add(bottomSection);
         

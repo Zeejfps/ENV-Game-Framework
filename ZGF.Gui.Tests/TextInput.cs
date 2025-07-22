@@ -9,21 +9,23 @@ public sealed class TextInput : Component
     private readonly RectStyle _background = new();
     private readonly TextStyle _textStyle = new();
     private readonly RectStyle _cursorStyle = new();
+    private readonly RectStyle _selectionRectStyle = new();
 
     private int _caretIndex;
     private char[] _buffer;
     private int _strLen;
     private bool _isEditing;
+    private int _selectionStartIndex;
 
     public TextInput()
     {
         _buffer = new char[256];
 
         _background.BackgroundColor = 0xEFEFEF;
-        _background.BorderSize = BorderSizeStyle.All(1);
-        _background.BorderColor = BorderColorStyle.All(0xff00ff);
         _textStyle.VerticalAlignment = TextAlignment.Center;
 
+        _selectionRectStyle.BackgroundColor = 0x5797ff;
+        
         IsInteractable = true;
     }
 
@@ -71,6 +73,7 @@ public sealed class TextInput : Component
             {
                 _isEditing = true;
                 _caretIndex = _strLen;
+                _selectionStartIndex = _caretIndex;
                 Console.WriteLine("Editing Started");
             }
 
@@ -121,21 +124,53 @@ public sealed class TextInput : Component
 
         if (e.State == InputState.Pressed)
         {
+            var isShiftPressed = (e.Modifiers & InputModifiers.Shift) > 0;
+            var isSelecting = _caretIndex != _selectionStartIndex;
             if (e.Key == KeyboardKey.LeftArrow)
             {
-                _caretIndex--;
-                if (_caretIndex < 0)
-                    _caretIndex = 0;
-
+                if (!isSelecting || isShiftPressed)
+                {
+                    _caretIndex--;
+                    if (_caretIndex < 0)
+                        _caretIndex = 0;
+                }
+                
+                if (!isShiftPressed)
+                {
+                    if (_selectionStartIndex < _caretIndex)
+                    {
+                        _caretIndex = _selectionStartIndex;
+                    }
+                    else if (_selectionStartIndex > _caretIndex)
+                    {
+                        _selectionStartIndex = _caretIndex;
+                    }
+                }
+                
                 return true;
             }
             
             if (e.Key == KeyboardKey.RightArrow)
             {
-                _caretIndex++;
-                if (_caretIndex > _strLen)
-                    _caretIndex = _strLen;
-
+                if (!isSelecting || isShiftPressed)
+                {
+                    _caretIndex++;
+                    if (_caretIndex > _strLen)
+                        _caretIndex = _strLen;
+                }
+                
+                if (!isShiftPressed)
+                {
+                    if (_selectionStartIndex < _caretIndex)
+                    {
+                        _selectionStartIndex = _caretIndex;
+                    }
+                    else if (_selectionStartIndex > _caretIndex)
+                    {
+                        _caretIndex = _selectionStartIndex;
+                    }
+                }
+                
                 return true;
             }
             
@@ -145,12 +180,12 @@ public sealed class TextInput : Component
                 {
                     DeleteChar(_caretIndex - 1);
                     _caretIndex--;
+                    _selectionStartIndex = _caretIndex;
                 }
 
                 return true;
             }
 
-            var isShiftPressed = (e.Modifiers & InputModifiers.Shift) > 0;
             var c = e.Key.ToChar(isShiftPressed);
             if (c == '\0')
             {
@@ -158,6 +193,7 @@ public sealed class TextInput : Component
             }
             InsertChar(_caretIndex, c);
             _caretIndex++;
+            _selectionStartIndex = _caretIndex;
             return true;
         }
         
@@ -203,6 +239,42 @@ public sealed class TextInput : Component
             Style = _background,
             ZIndex = ZIndex
         });
+        
+        if (_isEditing)
+        {
+            if (_selectionStartIndex != _caretIndex)
+            {
+                var min = _selectionStartIndex;
+                var max = _caretIndex;
+                if (_selectionStartIndex > _caretIndex)
+                {
+                    min = _caretIndex;
+                    max = _selectionStartIndex;
+                }
+                
+                var minText = _buffer.AsSpan(0, min);
+                var startPos = Context!.TextMeasurer.MeasureTextWidth(minText, _textStyle);
+                
+                var maxText = _buffer.AsSpan(0, max);
+                var endPos = Context!.TextMeasurer.MeasureTextWidth(maxText, _textStyle);
+                
+                var selectionRect = new RectF
+                {
+                    Left = position.Left + startPos,
+                    Bottom = position.Bottom,
+                    Width = endPos - startPos,
+                    Height = position.Height
+                };  
+                
+                c.AddCommand(new DrawRectCommand
+                {
+                    Position = selectionRect,
+                    Style = _selectionRectStyle,
+                    ZIndex = ZIndex
+                });
+            }
+
+        }
 
         c.AddCommand(new DrawTextCommand
         {
@@ -225,7 +297,7 @@ public sealed class TextInput : Component
                 Width = 2,
                 Height = cursorHeight
             };
-
+            
             c.AddCommand(new DrawRectCommand
             {
                 Position = cursorPos,
