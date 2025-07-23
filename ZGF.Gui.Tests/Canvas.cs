@@ -109,14 +109,19 @@ public sealed class Canvas : ICanvas
         _clipStack.Pop();
     }
 
-    private void DrawBorder(int x0, int y0, int x1, int y1, uint color, int borderSize, int dx, int dy)
+    private void DrawBorder(
+        int x0, int y0,
+        int x1, int y1, 
+        uint color, int borderSize,
+        int dx, int dy,
+        RectF clip)
     {
         if (borderSize <= 0)
             return;
 
         for (var i = 0; i < borderSize; i++)
         {
-            Graphics.DrawLine(_colorBuffer, x0, y0, x1, y1, color);
+            Graphics.DrawLine(_colorBuffer, x0, y0, x1, y1, color, clip);
             x0 += dx;
             y0 += dy;
             x1 += dx;
@@ -262,24 +267,24 @@ public sealed class Canvas : ICanvas
         var fillHeight = (int)(position.Height - borderSize.Top - borderSize.Bottom);
         
         var borderColor = style.BorderColor;
-        
+        var clipRect = command.Clip;
         Graphics.FillRect(_colorBuffer, 
             left +  (int)borderSize.Left, bottom + (int)borderSize.Bottom, 
             fillWidth, fillHeight,
             style.BackgroundColor,
-            command.Clip);
+            clipRect);
 
         // Left Border
-        DrawBorder(left, bottom, left, top+1, borderColor.Left, (int)borderSize.Left, 1, 0);
+        DrawBorder(left, bottom, left, top+1, borderColor.Left, (int)borderSize.Left, 1, 0, clipRect);
         
         // Right Border
-        DrawBorder(right, bottom, right, top + 1, borderColor.Right, (int)borderSize.Right, -1, 0);
+        DrawBorder(right, bottom, right, top + 1, borderColor.Right, (int)borderSize.Right, -1, 0, clipRect);
         
         // Top Border
-        DrawBorder(left, top, right + 1, top, borderColor.Top, (int)borderSize.Top, 0, -1);
+        DrawBorder(left, top, right + 1, top, borderColor.Top, (int)borderSize.Top, 0, -1, clipRect);
         
         // Bottom Border
-        DrawBorder(left, bottom, right, bottom, borderColor.Bottom, (int)borderSize.Bottom, 0, 1);
+        DrawBorder(left, bottom, right, bottom, borderColor.Bottom, (int)borderSize.Bottom, 0, 1, clipRect);
     }
 
     private void ExecuteCommand(in DrawCommand cmd, in DrawTextCommand data)

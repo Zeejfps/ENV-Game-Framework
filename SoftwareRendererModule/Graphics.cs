@@ -12,10 +12,11 @@ public static class Graphics
         if (width == 0 || height == 0)
             return;
         
-        DrawLineH(bitmap, x0, y0, width, color);
-        DrawLineV(bitmap, x0, y0, height, color);
-        DrawLineV(bitmap, x0 + width-1, y0, height, color);
-        DrawLineH(bitmap, x0, y0 + height-1, width, color);
+        var clip = new RectF(0, 0, bitmap.Width, bitmap.Height);;
+        DrawLineH(bitmap, x0, y0, width, color, clip);
+        DrawLineV(bitmap, x0, y0, height, color, clip);
+        DrawLineV(bitmap, x0 + width-1, y0, height, color, clip);
+        DrawLineH(bitmap, x0, y0 + height-1, width, color, clip);
     }
 
     public static void FillRect(Bitmap bitmap, int x0, int y0, int width, int height, uint color, in RectF clip)
@@ -114,14 +115,14 @@ public static class Graphics
         }
     }
 
-    private static void DrawLineH(Bitmap bitmap, int x0, int y0, int width, uint color)
+    private static void DrawLineH(Bitmap bitmap, int x0, int y0, int width, uint color, RectF clip)
     {
         var sx = x0;
         var ex = sx + width;
         var sy = y0;
         var ey = y0;
         
-        var isVisible = ClipLine(bitmap, ref sx, ref sy, ref ex, ref ey);
+        var isVisible = ClipLine(clip, ref sx, ref sy, ref ex, ref ey);
         if (!isVisible)
         {
             // Console.WriteLine($"Clipped: sx: {sx}, ex: {ex}, sy: {sy}, ey: {ey}");
@@ -131,14 +132,14 @@ public static class Graphics
         bitmap.FillLine(sx, y0, ex - sx, color);
     }
 
-    private static void DrawLineV(Bitmap bitmap, int x0, int y0, int height, uint color)
+    private static void DrawLineV(Bitmap bitmap, int x0, int y0, int height, uint color, RectF clip)
     {
         var sx = x0;
         var ex = x0;
         var sy = y0;
         var ey = y0 + height;
         
-        var isVisible = ClipLine(bitmap, ref sx, ref sy, ref ex, ref ey);
+        var isVisible = ClipLine(clip, ref sx, ref sy, ref ex, ref ey);
         if (!isVisible)
             return;
         
@@ -148,7 +149,7 @@ public static class Graphics
         }
     }
 
-    public static void DrawLine(Bitmap bitmap, int x0, int y0, int x1, int y1, uint color)
+    public static void DrawLine(Bitmap bitmap, int x0, int y0, int x1, int y1, uint color, RectF clip)
     {
         if (y0 == y1)
         {
@@ -160,7 +161,7 @@ public static class Graphics
                 width = x0 - x1;
             }
             
-            DrawLineH(bitmap, x, y0, width, color);
+            DrawLineH(bitmap, x, y0, width, color, clip);
             return;
         }
 
@@ -174,7 +175,7 @@ public static class Graphics
                 height = -height;
             }
             
-            DrawLineV(bitmap, x0, y, height, color);
+            DrawLineV(bitmap, x0, y, height, color, clip);
             return;
         }
         
@@ -211,12 +212,12 @@ public static class Graphics
         }
     }
 
-    private static bool ClipLine(Bitmap bitmap, ref int sx, ref int sy, ref int ex, ref int ey)
+    private static bool ClipLine(RectF clip, ref int sx, ref int sy, ref int ex, ref int ey)
     {
-        if (sx >= bitmap.Width)
+        if (sx >= clip.Right)
             return false;
         
-        if (sy >= bitmap.Height)
+        if (sy >= clip.Top)
             return false;
         
         if (ex < 0)
@@ -231,11 +232,11 @@ public static class Graphics
         if (sy < 0)
             sy = 0;
         
-        if (ex > bitmap.Width)
-            ex = bitmap.Width;
+        if (ex > clip.Right)
+            ex = (int)clip.Right;
         
-        if (ey > bitmap.Height)
-            ey = bitmap.Height;
+        if (ey > clip.Top)
+            ey = (int)clip.Top;
 
         return true;
     }
