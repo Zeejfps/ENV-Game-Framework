@@ -45,11 +45,19 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
         {
             if (e.Key == KeyboardKey.UpArrow)
             {
-                _view.Scroll(10f);
+                _view.ScrollUp(10f);
             }
             else if (e.Key == KeyboardKey.DownArrow)
             {
-                _view.Scroll(-10f);
+                _view.ScrollDown(10f);
+            }
+            else if (e.Key == KeyboardKey.Space)
+            {
+                _view.ScrollToBottom();
+            }
+            else if (e.Key == KeyboardKey.W)
+            {
+                _view.ScrollToTop();
             }
         }
         return true;
