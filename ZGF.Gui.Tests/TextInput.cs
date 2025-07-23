@@ -154,7 +154,9 @@ public sealed class TextInput : Component
             DrawSelectionBox(position, c);
         }
 
+        c.PushClip(position);
         DrawText(position, c);
+        c.PopClip();
         
         if (_isEditing)
         {

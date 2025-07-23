@@ -217,11 +217,11 @@ public sealed class Canvas : ICanvas
             {
                 case ComandKind.Rect:
                     var rectCommand = _rectCommandData[command.Id];
-                    ExecuteCommand(rectCommand);
+                    ExecuteCommand(command, rectCommand);
                     break;
                 case ComandKind.Text:
                     var textCommand = _textCommandData[command.Id];
-                    ExecuteCommand(textCommand);
+                    ExecuteCommand(command, textCommand);
                     break;
                 case ComandKind.Image:
                     var imageCommand = _imageCommandData[command.Id];
@@ -260,10 +260,10 @@ public sealed class Canvas : ICanvas
         );
     }
 
-    private void ExecuteCommand(DrawRectCommand command)
+    private void ExecuteCommand(in DrawCommand command, in DrawRectCommand data)
     {
-        var style = command.Style;
-        var position = command.Position;
+        var style = data.Style;
+        var position = data.Position;
         var left = (int)position.Left;
         var right = (int)position.Right - 1;
         var bottom = (int)position.Bottom;
@@ -291,18 +291,18 @@ public sealed class Canvas : ICanvas
         DrawBorder(left, bottom, right, bottom, borderColor.Bottom, (int)borderSize.Bottom, 0, 1);
     }
 
-    private void ExecuteCommand(DrawTextCommand command)
+    private void ExecuteCommand(in DrawCommand cmd, in DrawTextCommand data)
     {
-        var text = command.Text;
+        var text = data.Text;
 
         var lineHeight = _font.FontMetrics.Common.LineHeight;
-        var position = command.Position;
+        var position = data.Position;
         
         var lineStart = (int)position.Left;
         var cursorX = lineStart;
         var cursorY = (int)(position.Top - lineHeight);
         
-        var style = command.Style;
+        var style = data.Style;
         if (style.VerticalAlignment.IsSet)
         {
             switch (style.VerticalAlignment.Value)
@@ -340,6 +340,7 @@ public sealed class Canvas : ICanvas
             }
         }
 
+        var fontBase = _font.FontMetrics.Common.Base;
         var color = style.TextColor;
         var prevCodePoint = default(int?);
         foreach (var codePoint in text.EnumerateCodePoints())
@@ -359,12 +360,39 @@ public sealed class Canvas : ICanvas
             {
             }
             
-            DrawGlyph(
-                cursorX + kerningOffset,
-                cursorY,
-                glyphInfo, color);
+            var shouldDraw = true;
+            var isClippingEnabled = true;
+            if (isClippingEnabled)
+            {
+                var clipRect = cmd.Clip;
+                
+                var glyphRectX = cursorX + kerningOffset + glyphInfo.XOffset;
+                var glyphRectY = cursorY + (fontBase - glyphInfo.YOffset) - glyphInfo.Height;
+                var glyphRectWidth = glyphInfo.Width;
+                var glyphRectHeight = glyphInfo.Height;
+                
+                // Perform an AABB (Axis-Aligned Bounding Box) intersection test.
+                // We cull the glyph if it's completely outside the clip rectangle.
+                if (glyphRectX + glyphRectWidth <= clipRect.Left ||     // Completely to the left
+                    glyphRectX >= clipRect.Right ||                     // Completely to the right
+                    glyphRectY >= clipRect.Top ||                       // Completely above
+                    glyphRectY + glyphRectHeight <= clipRect.Bottom)    // Completely below
+                {
+                    shouldDraw = false;
+                }
+            }
+
+            if (shouldDraw)
+            {
+                DrawGlyph(
+                    cursorX + kerningOffset,
+                    cursorY,
+                    glyphInfo,
+                    color);
+            }
 
             cursorX += glyphInfo.XAdvance;
+            prevCodePoint = codePoint;
         }
     }
 }
