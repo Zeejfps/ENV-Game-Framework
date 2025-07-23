@@ -24,7 +24,7 @@ public sealed class InputSystem : IMouse
     {
         foreach (var target in _focusQueue)
         {
-            var handled = target.HandleKeyboardKeyEvent(e);
+            var handled = target.OnKeyboardKeyStateChanged(e);
             if (handled)
                 break;
         }

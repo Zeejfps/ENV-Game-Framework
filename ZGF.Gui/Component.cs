@@ -337,7 +337,7 @@ public class Component : IEnumerable<Component>
         DrawSelf(c);
     }
 
-    private void DrawSelf(ICanvas c)
+    protected void DrawSelf(ICanvas c)
     {
         if (c.TryGetClip(out var clipRect))
         {
@@ -492,6 +492,11 @@ public class Component : IEnumerable<Component>
     protected virtual void OnDrawSelf(ICanvas c)
     {
         
+    }
+
+    protected void DrawChild(Component child, ICanvas c)
+    {
+        child.DrawSelf(c);
     }
 
     protected virtual void OnDrawChildren(ICanvas c)

@@ -48,6 +48,7 @@ public sealed class Column : Component
         }
         var spacing = (Children.Count - 1) * Gap;
 
-        return totalHeight + spacing;
+        var height = totalHeight + spacing;
+        return height;
     }
 }

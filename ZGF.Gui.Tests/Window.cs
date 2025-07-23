@@ -79,6 +79,7 @@ public sealed class Window : Component
 
         var content = new Panel
         {
+            PreferredHeight = 200f,
             BackgroundColor = 0xFF00FF,
             BorderSize = BorderSizeStyle.All(1),
             BorderColor = BorderColorStyle.All(0x00FFFF)
@@ -136,6 +137,11 @@ public sealed class Window : Component
             South = textField,
         };
         columnLayout.Add(bottomSection);
+
+        var test = new VerticalScrollPane
+        {
+            columnLayout
+        };
         
         var borderLayout = new BorderLayout
         {
@@ -146,7 +152,7 @@ public sealed class Window : Component
             South = bottomBorder
         };
         
-        contentOutline.Add(columnLayout);
+        contentOutline.Add(test);
         outline.Add(borderLayout);
         Add(outline);
 

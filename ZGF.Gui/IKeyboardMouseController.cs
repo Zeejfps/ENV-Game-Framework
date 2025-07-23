@@ -22,7 +22,7 @@ public interface IKeyboardMouseController : IController
         return false;
     }
 
-    bool HandleKeyboardKeyEvent(in KeyboardKeyEvent e)
+    bool OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
     {
         return false;
     }

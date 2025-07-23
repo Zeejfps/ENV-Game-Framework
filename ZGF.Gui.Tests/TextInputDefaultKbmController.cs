@@ -78,7 +78,7 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
         return false;
     }
 
-    public bool HandleKeyboardKeyEvent(in KeyboardKeyEvent e)
+    public bool OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
     {
         if (!_textInput.IsEditing)
             return false;
