@@ -47,6 +47,7 @@ public sealed class App : OpenGlApp
             ImageManager = imageManager,
             Canvas = _canvas
         };
+
         context.AddService(_contextMenuManager);
 #if OSX
         context.AddService<IClipboard>(new OsxClipboard());

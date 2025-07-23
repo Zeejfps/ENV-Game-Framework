@@ -93,11 +93,6 @@ public sealed class TextInput : Component
         return _strLen;
     }
 
-    private void Copy()
-    {
-        
-    }
-
     private void DeleteSelection()
     {
         var min = _selectionStartIndex;
