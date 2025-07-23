@@ -118,6 +118,7 @@ public sealed class Window : Component
         {
             PreferredHeight = 30f
         };
+        textInput.Controller = new TextInputDefaultKbmController(textInput);
 
         var textField = new Panel
         {
@@ -152,8 +153,6 @@ public sealed class Window : Component
         var windowResizer = new WindowResizer();
         windowResizer.Controller = new WindowResizerDefaultKbmController(this, windowResizer);
         Add(windowResizer);
-
-        Controller = new WindowDefaultKbmController(this);
     }
 
     protected override void OnLayoutSelf()

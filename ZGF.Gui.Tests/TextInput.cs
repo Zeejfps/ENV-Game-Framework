@@ -58,8 +58,6 @@ public sealed class TextInput : Component
         _background.BackgroundColor = 0xEFEFEF;
         _textStyle.VerticalAlignment = TextAlignment.Center;
         _selectionRectStyle.BackgroundColor = 0x8aadff;
-        
-        Controller = new TextInputDefaultKbmController(this);
     }
 
     public void StartEditing()

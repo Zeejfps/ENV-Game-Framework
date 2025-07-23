@@ -13,10 +13,12 @@ public sealed class Center : Component
         
         Add(background);
 
-        Add(new Window("About This Computer"));
+        var w = new Window("About This Computer");
+        w.Controller = new WindowDefaultKbmController(w);
+        Add(w);
 
         Window = new Window("Window Title Here");
-        
+        Window.Controller = new WindowDefaultKbmController(Window);
         Add(Window);
         
     }
