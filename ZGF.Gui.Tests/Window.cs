@@ -20,7 +20,7 @@ public sealed class Window : Component
         };
 
         var titlePanel = new WindowTitleBar(titleText);
-        titlePanel.AddController(new WindowTitleBarDefaultKbmController(this, titlePanel));
+        titlePanel.Controller = new WindowTitleBarDefaultKbmController(this, titlePanel);
 
         var leftBorder = new Panel
         {
@@ -150,10 +150,10 @@ public sealed class Window : Component
         Add(outline);
 
         var windowResizer = new WindowResizer();
-        windowResizer.AddController(new WindowResizerDefaultKbmController(this, windowResizer));
+        windowResizer.Controller = new WindowResizerDefaultKbmController(this, windowResizer);
         Add(windowResizer);
 
-        AddController(new WindowDefaultKbmController(this));
+        Controller = new WindowDefaultKbmController(this);
     }
 
     protected override void OnLayoutSelf()

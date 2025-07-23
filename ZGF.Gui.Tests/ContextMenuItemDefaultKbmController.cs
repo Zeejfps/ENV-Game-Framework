@@ -63,7 +63,7 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
 
         _openedContextMenu = _contextMenuManager.ShowContextMenu(subMenu, _contextMenu);
         _openedContextMenu.Closed += OnOpenedContextMenuClosed;
-        subMenu.AddController(new ContextMenuKbmController(_openedContextMenu));
+        subMenu.Controller = new ContextMenuKbmController(_openedContextMenu);
         _contextMenuItem.IsSelected = true;
 
         this.RequestFocus();

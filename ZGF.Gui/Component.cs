@@ -18,18 +18,18 @@ public class Component : IEnumerable<Component>
                 if (prevContext != null)
                 {
                     OnDetachedFromContext(prevContext);
-                    foreach (var controller in _controllers)
+                    if (Controller != null)
                     {
-                        controller.OnDisabled(prevContext);
+                        Controller.OnDisabled(prevContext);
                     }
                 }
                 
                 if (_context != null)
                 {
                     OnAttachedToContext(_context);
-                    foreach (var controller in _controllers)
+                    if (Controller != null)
                     {
-                        controller.OnEnabled(_context);
+                        Controller.OnEnabled(_context);
                     }
                 }
                 
@@ -174,8 +174,31 @@ public class Component : IEnumerable<Component>
 
     private readonly List<Component> _children = new();
     private readonly HashSet<string> _styleClasses = new();
-    private readonly HashSet<IController> _controllers = new();
-    
+
+    private IController? _controller;
+    public IController? Controller
+    {
+        get => _controller;
+        set
+        {
+            var prevController = _controller;
+            _controller = value;
+
+            if (Context != null)
+            {
+                if (prevController != null)
+                {
+                    prevController.OnDisabled(Context);
+                }
+
+                if (_controller != null)
+                {
+                    _controller.OnEnabled(Context);
+                }
+            }
+        }
+    }
+
     public Component()
     {
 
@@ -184,24 +207,6 @@ public class Component : IEnumerable<Component>
     protected Component(Context ctx)
     {
         Context = ctx;
-    }
-
-    public void AddController(IController controller)
-    {
-        _controllers.Add(controller);
-        if (Context != null)
-        {
-            controller.OnEnabled(Context);
-        }
-    }
-
-    public void RemoveController(IController controller)
-    {
-        if (Context != null)
-        {
-            controller.OnDisabled(Context);
-        }
-        _controllers.Remove(controller);
     }
 
     public void AddStyleClass(string classId)
