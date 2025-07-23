@@ -13,7 +13,7 @@ public interface IKeyboardMouseController : IController
         return false;
     }
 
-    void HandleMouseWheelEvent()
+    void OnMouseWheelScrolled(in MouseWheelScrolledEvent e)
     {
     }
 

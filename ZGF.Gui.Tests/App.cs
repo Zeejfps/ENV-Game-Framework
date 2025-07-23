@@ -17,6 +17,7 @@ public sealed class App : OpenGlApp
     private readonly KeyCallback _keyCallback;
     private readonly MouseButtonCallback _mouseButtonCallback;
     private readonly SizeCallback _windowSizeCallback;
+    private readonly MouseCallback _scrollCallback;
     private readonly BitmapFont _bitmapFont;
     private readonly ContextMenuManager _contextMenuManager;
 
@@ -123,11 +124,23 @@ public sealed class App : OpenGlApp
         _keyCallback = HandleKeyEvent;
         _mouseButtonCallback = HandleMouseButtonEvent;
         _windowSizeCallback = HandleWindowSizeChanged;
+        _scrollCallback = HandleScrollEvent;
         Glfw.SetKeyCallback(WindowHandle, _keyCallback);
         Glfw.SetMouseButtonCallback(WindowHandle, _mouseButtonCallback);
         Glfw.SetWindowSizeCallback(WindowHandle, _windowSizeCallback);
+        Glfw.SetScrollCallback(WindowHandle, _scrollCallback);
 
         //PrintTree(gui);
+    }
+
+    private void HandleScrollEvent(GLFW.Window window, double x, double y)
+    {
+        _inputSystem.HandleMouseScrollEvent(new MouseWheelScrolledEvent
+        {
+            Mouse = _inputSystem,
+            DeltaX = x,
+            DeltaY = y
+        });
     }
 
     private void PrintTree(Component component, int depth = 0)

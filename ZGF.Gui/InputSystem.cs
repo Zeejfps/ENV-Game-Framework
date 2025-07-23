@@ -48,6 +48,11 @@ public sealed class InputSystem : IMouse
                 break;
         }
     }
+    
+    public void HandleMouseScrollEvent(in MouseWheelScrolledEvent e)
+    {
+        _focusQueue.First?.Value.OnMouseWheelScrolled(e);
+    }
 
     private readonly List<IKeyboardMouseController> _removeCache = new();
     
