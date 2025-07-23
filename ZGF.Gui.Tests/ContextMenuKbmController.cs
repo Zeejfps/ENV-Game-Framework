@@ -19,12 +19,12 @@ public sealed class ContextMenuKbmController : IKeyboardMouseController
         context.InputSystem.RemoveInteractable(this);
     }
     
-    public void OnMouseEnter()
+    public void OnMouseEnter(in MouseEnterEvent e)
     {
         _contextMenu.CancelCloseRequest();
     }
 
-    public void OnMouseExit()
+    public void OnMouseExit(in MouseExitEvent e)
     {
         _contextMenu.CloseRequest();
     }

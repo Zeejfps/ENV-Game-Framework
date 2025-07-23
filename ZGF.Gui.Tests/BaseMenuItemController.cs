@@ -29,7 +29,7 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         this.UnregisterController(context);
     }
     
-    public void OnMouseEnter()
+    public void OnMouseEnter(in MouseEnterEvent e)
     {
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
@@ -59,7 +59,7 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         }
     }
 
-    public void OnMouseExit()
+    public void OnMouseExit(in MouseExitEvent e)
     {
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {

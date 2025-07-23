@@ -4,13 +4,9 @@ public interface IKeyboardMouseController : IController
 {
     Component Component { get; }
 
-    void OnMouseEnter()
-    {
-    }
+    void OnMouseEnter(in MouseEnterEvent e);
 
-    void OnMouseExit()
-    {
-    }
+    void OnMouseExit(in MouseExitEvent e);
 
     bool OnMouseButtonStateChanged(in MouseButtonEvent e)
     {

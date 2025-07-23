@@ -21,12 +21,12 @@ public sealed class WindowResizerDefaultKbmController : IKeyboardMouseController
         context.InputSystem.RemoveInteractable(this);
     }
 
-    public void OnMouseEnter()
+    public void OnMouseEnter(in MouseEnterEvent e)
     {
         _resizer.BackgroundColor = 0x9C9CCE;
     }
 
-    public void OnMouseExit()
+    public void OnMouseExit(in MouseExitEvent e)
     {
         _resizer.BackgroundColor = 0xCECECE;
     }

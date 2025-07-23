@@ -116,7 +116,10 @@ public sealed class InputSystem : IMouse
             if (!hoveredComponent.Component.Position.ContainsPoint(Point))
             {
                 _hoveredComponents.Remove(hoveredComponent);
-                hoveredComponent.OnMouseExit();
+                hoveredComponent.OnMouseExit(new MouseExitEvent
+                {
+                    Mouse = this
+                });
             }
         }
         
@@ -129,7 +132,10 @@ public sealed class InputSystem : IMouse
                 var hoveredComponent = allHoveredComponents[i];
                 if (hoveredComponent.Component.IsAncestorOf(topComponent.Component) && _hoveredComponents.Add(hoveredComponent))
                 {
-                    hoveredComponent.OnMouseEnter();
+                    hoveredComponent.OnMouseEnter(new MouseEnterEvent
+                    {
+                        Mouse = this
+                    });
                 }
             }
         }

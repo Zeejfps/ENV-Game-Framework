@@ -41,7 +41,7 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         context.InputSystem.RemoveInteractable(this);
     }
 
-    public void OnMouseEnter()
+    public void OnMouseEnter(in MouseEnterEvent e)
     {
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
@@ -79,7 +79,7 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         }
     }
 
-    public void OnMouseExit()
+    public void OnMouseExit(in MouseExitEvent e)
     {
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {

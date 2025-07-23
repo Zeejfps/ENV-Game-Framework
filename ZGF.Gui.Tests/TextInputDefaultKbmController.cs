@@ -21,12 +21,12 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
         context.InputSystem.RemoveInteractable(this);
     }
 
-    public void OnMouseEnter()
+    public void OnMouseEnter(in MouseEnterEvent e)
     {
         this.RequestFocus();
     }
 
-    public void OnMouseExit()
+    public void OnMouseExit(in MouseExitEvent e)
     {
         if (!_textInput.IsEditing)
             this.Blur();

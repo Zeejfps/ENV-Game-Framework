@@ -26,14 +26,14 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         context.InputSystem.RemoveInteractable(this);
     }
 
-    public void OnMouseEnter()
+    public void OnMouseEnter(in MouseEnterEvent e)
     {
         Console.WriteLine($"OnMouseEnter: TitleBar - {_window.TitleText}");
         _isHovered = true;
         this.RequestFocus();
     }
 
-    public void OnMouseExit()
+    public void OnMouseExit(in MouseExitEvent e)
     {
         Console.WriteLine($"OnMouseExit: TitleBar - {_window.TitleText}");
         _isHovered = false;

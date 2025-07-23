@@ -12,7 +12,15 @@ public sealed class SpecialMenuItemController : IKeyboardMouseController
     }
     
     public Component Component => _menuItem;
-    
+    public void OnMouseEnter(in MouseEnterEvent e)
+    {
+
+    }
+
+    public void OnMouseExit(in MouseExitEvent e)
+    {
+    }
+
     public void OnEnabled(Context context)
     {
     }
