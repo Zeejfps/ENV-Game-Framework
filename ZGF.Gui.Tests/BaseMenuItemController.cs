@@ -29,7 +29,7 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         MenuItem.IsSelected = true;
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
-            _openedContextMenu.KeepOpen();
+            _openedContextMenu.CancelCloseRequest();
             return;
         }
 
@@ -37,10 +37,10 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         {
             AnchorPoint = MenuItem.Position.BottomLeft
         };
-        _contextMenu.AddController(new ContextMenuDefaultKbmController(_contextMenu));
         BuildMenu(_contextMenu);
         
         _openedContextMenu = _contextMenuManager.ShowContextMenu(_contextMenu);
+        _contextMenu.AddController(new ContextMenuKbmController(_openedContextMenu));
     }
 
     public void OnMouseExit()
@@ -48,6 +48,7 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         MenuItem.IsSelected = false;
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
+            Console.WriteLine("Close context menu");
             _openedContextMenu.Close();
         }
     }
