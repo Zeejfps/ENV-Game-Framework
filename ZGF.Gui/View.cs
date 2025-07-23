@@ -611,7 +611,6 @@ public class View
     {
         return base.ToString() + "-" + _depth;
     }
-    
 
     private sealed class ComponentCollection : IComponentCollection
     {
@@ -642,6 +641,11 @@ public class View
         public bool Remove(View view)
         {
             return _view.RemoveChildFromSelf(view);
+        }
+
+        public bool Contains(View view)
+        {
+            return _view._children.Contains(view);
         }
     }
     

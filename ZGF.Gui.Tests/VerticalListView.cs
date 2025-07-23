@@ -27,6 +27,19 @@ public sealed class VerticalListView : View
         Scroll(delta);
     }
 
+    public void ScrollTo(View view)
+    {
+        if (!Children.Contains(view))
+            return;
+
+        var viewportPosition = Position;
+        var viewPosition = view.Position;
+        if (viewPosition.FullyContains(viewPosition))
+            return;
+        
+        // TODO: Finish
+    }
+
     public void Scroll(float delta)
     {
         _yOffset += delta;
