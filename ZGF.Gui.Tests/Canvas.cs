@@ -1,6 +1,7 @@
 using SoftwareRendererModule;
 using SoftwareRendererOpenGlBackend;
 using ZGF.BMFontModule;
+using ZGF.Geometry;
 using static GL46;
 
 namespace ZGF.Gui.Tests;
@@ -79,6 +80,21 @@ public sealed class Canvas : ICanvas
         var id = _commands.Count;
         _commands.Add(new DrawCommand(id, ComandKind.Image, command.ZIndex));
         _imageCommandData.Add(id, command);
+    }
+
+    public bool TryPeekClip(out RectF rect)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void PushClip(RectF rect)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void PopClip()
+    {
+        throw new NotImplementedException();
     }
 
     private void DrawBorder(int x0, int y0, int x1, int y1, uint color, int borderSize, int dx, int dy)
