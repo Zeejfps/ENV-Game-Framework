@@ -42,7 +42,7 @@ public sealed class ScrollView : Component, IKeyboardMouseController
 
     public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
     {
-        _viewPort.YOffset += (int)e.DeltaY * -3;
+        _viewPort.YOffset += (int)e.DeltaY * -6;
         e.Consume();
     }
 

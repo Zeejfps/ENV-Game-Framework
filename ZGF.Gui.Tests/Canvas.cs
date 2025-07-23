@@ -174,7 +174,7 @@ public sealed class Canvas : ICanvas
         var loopStartY = Math.Max((int)clip.Bottom, destY);
         var loopEndY = Math.Min((int)clip.Top, destY + destHeight);
         
-        // Graphics.DrawRect(_colorBuffer, loopStartX, loopStartY, loopEndX - loopStartX, loopEndY - loopStartY, 0x00FF00);
+        Graphics.DrawRect(_colorBuffer, loopStartX, loopStartY, loopEndX - loopStartX, loopEndY - loopStartY, 0x00FF00);
 
         if (loopStartX >= loopEndX || loopStartY >= loopEndY)
         {
@@ -318,14 +318,18 @@ public sealed class Canvas : ICanvas
 
     private void ExecuteCommand(in DrawCommand cmd, in DrawTextCommand data)
     {
+        
         var text = data.Text;
 
         var lineHeight = _font.FontMetrics.Common.LineHeight;
         var position = data.Position;
         
+        Graphics.DrawRect(_colorBuffer, (int)position.Left, (int)position.Bottom, (int)position.Width, (int)position.Height, 0x00ff00);
+        
+        var fontBase = _font.FontMetrics.Common.Base;
         var lineStart = (int)position.Left;
         var cursorX = lineStart;
-        var cursorY = (int)(position.Top - lineHeight);
+        var cursorY = (int)(position.Top - fontBase);
         
         var style = data.Style;
         if (style.VerticalAlignment.IsSet)
@@ -335,11 +339,10 @@ public sealed class Canvas : ICanvas
                 case TextAlignment.Start:
                     break;
                 case TextAlignment.Center:
-                    cursorY = (int)(position.Top - (position.Height + lineHeight) * 0.5f);
+                    //var textYOffset = (lineHeight - fontBase) / 2;
+                    cursorY = (int)((position.Top - position.Height * 0.5f) - (fontBase * 0.5f));
                     break;
                 case TextAlignment.End:
-                    break;
-                case TextAlignment.Justify:
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -358,14 +361,13 @@ public sealed class Canvas : ICanvas
                     break;
                 case TextAlignment.End:
                     break;
-                case TextAlignment.Justify:
-                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
-
-        var fontBase = _font.FontMetrics.Common.Base;
+        
+        Graphics.DrawLine(_colorBuffer, cursorX, cursorY, cursorX + (int)position.Width, cursorY, 0xFF0000, cmd.Clip);
+        
         var color = style.TextColor;
         var prevCodePoint = default(int?);
         foreach (var codePoint in text.EnumerateCodePoints())

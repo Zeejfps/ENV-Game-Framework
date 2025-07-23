@@ -2,5 +2,5 @@
 
 public enum TextAlignment
 {
-    Start, Center, End, Justify
+    Start, Center, End
 }
