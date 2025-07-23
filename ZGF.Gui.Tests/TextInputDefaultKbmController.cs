@@ -1,4 +1,5 @@
-﻿using ZGF.KeyboardModule;
+﻿using System.Runtime.InteropServices;
+using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Tests;
 
@@ -86,26 +87,32 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
 
         if (e.State != InputState.Pressed) 
             return false;
+
+        var ctrlModifier = InputModifiers.Control;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            ctrlModifier = InputModifiers.Super;
+        }
         
-        if (e.Key == KeyboardKey.A && e.Modifiers.HasFlag(InputModifiers.Control))
+        if (e.Key == KeyboardKey.A && e.Modifiers.HasFlag(ctrlModifier))
         {
             _textInput.SelectAll();
             return true;
         }
 
-        if (e.Key == KeyboardKey.C && e.Modifiers.HasFlag(InputModifiers.Control))
+        if (e.Key == KeyboardKey.C && e.Modifiers.HasFlag(ctrlModifier))
         {
             Copy();
             return true;
         }
             
-        if (e.Key == KeyboardKey.V && e.Modifiers.HasFlag(InputModifiers.Control))
+        if (e.Key == KeyboardKey.V && e.Modifiers.HasFlag(ctrlModifier))
         {
             Paste();
             return true;
         }
             
-        if (e.Key == KeyboardKey.X && e.Modifiers.HasFlag(InputModifiers.Control))
+        if (e.Key == KeyboardKey.X && e.Modifiers.HasFlag(ctrlModifier))
         {
             Cut();
             return true;
