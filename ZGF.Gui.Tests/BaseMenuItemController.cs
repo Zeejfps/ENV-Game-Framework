@@ -44,9 +44,12 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         BuildMenu(_contextMenu);
         
         _openedContextMenu = _contextMenuManager.ShowContextMenu(_contextMenu);
-        _openedContextMenu.Closed += OnOpenedContextMenuClosed;
-        _contextMenu.Controller = new ContextMenuKbmController(_openedContextMenu);
-        MenuItem.IsSelected = true;
+        if (_openedContextMenu != null)
+        {
+            _openedContextMenu.Closed += OnOpenedContextMenuClosed;
+            _contextMenu.Controller = new ContextMenuKbmController(_openedContextMenu);
+            MenuItem.IsSelected = true;
+        }
     }
 
     private void OnOpenedContextMenuClosed()

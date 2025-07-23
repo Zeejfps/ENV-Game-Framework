@@ -339,6 +339,11 @@ public class Component : IEnumerable<Component>
 
     private void DrawSelf(ICanvas c)
     {
+        if (c.TryGetClip(out var clipRect))
+        {
+            if (!clipRect.Intersects(Position))
+                return;
+        }
         OnDrawSelf(c);
         OnDrawChildren(c);
     }

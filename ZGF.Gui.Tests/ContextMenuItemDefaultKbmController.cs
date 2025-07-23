@@ -49,23 +49,29 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
             return;
         }
 
-        var subMenu = new ContextMenu
+        if (SubOptions.Count > 0)
         {
-            AnchorPoint = _contextMenuItem.Position.TopRight
-        };
-        foreach (var subOption in SubOptions)
-        {
-            subMenu.AddItem(new ContextMenuItem
+            var subMenu = new ContextMenu
             {
-                Text = subOption.Text
-            });
+                AnchorPoint = _contextMenuItem.Position.TopRight
+            };
+            foreach (var subOption in SubOptions)
+            {
+                subMenu.AddItem(new ContextMenuItem
+                {
+                    Text = subOption.Text
+                });
+            }
+
+            _openedContextMenu = _contextMenuManager.ShowContextMenu(subMenu, _contextMenu);
+            if (_openedContextMenu != null)
+            {
+                _openedContextMenu.Closed += OnOpenedContextMenuClosed;
+                subMenu.Controller = new ContextMenuKbmController(_openedContextMenu);
+            }
         }
-
-        _openedContextMenu = _contextMenuManager.ShowContextMenu(subMenu, _contextMenu);
-        _openedContextMenu.Closed += OnOpenedContextMenuClosed;
-        subMenu.Controller = new ContextMenuKbmController(_openedContextMenu);
+        
         _contextMenuItem.IsSelected = true;
-
         this.RequestFocus();
     }
 

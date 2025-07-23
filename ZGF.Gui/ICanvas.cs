@@ -8,7 +8,7 @@ public interface ICanvas
     void AddCommand(in DrawTextCommand command);
     void AddCommand(in DrawImageCommand command);
     
-    bool TryPeekClip(out RectF rect);
+    bool TryGetClip(out RectF rect);
     void PushClip(RectF rect);
     void PopClip();
 }

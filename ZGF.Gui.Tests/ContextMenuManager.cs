@@ -57,7 +57,7 @@ public sealed class ContextMenuManager
         _contextMenuPane = contextMenuPane;
     }
 
-    public IOpenedContextMenu ShowContextMenu(ContextMenu contextMenu, ContextMenu? parentMenu = null)
+    public IOpenedContextMenu? ShowContextMenu(ContextMenu contextMenu, ContextMenu? parentMenu = null)
     {
         if (_openedMenus.TryGetValue(contextMenu, out var openedMenu))
         {
@@ -73,7 +73,7 @@ public sealed class ContextMenuManager
         {
             if (!_openedMenus.TryGetValue(parentMenu, out var openedParentMenu))
             {
-                throw new Exception("Parent menu not opened");
+                return null;
             }
             openedParentMenu.Child = openedMenu;
             openedMenu.Parent = openedParentMenu;

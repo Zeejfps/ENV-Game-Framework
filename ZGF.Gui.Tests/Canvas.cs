@@ -30,6 +30,7 @@ public sealed class Canvas : ICanvas
 
     private Bitmap _colorBuffer;
     private BitmapRenderer _bitmapRenderer;
+    private readonly Stack<RectF> _clipStack = new();
 
     public Canvas(int width, int height, BitmapFont font, ITextMeasurer textMeasurer, ImageManager imageManager)
     {
@@ -82,19 +83,19 @@ public sealed class Canvas : ICanvas
         _imageCommandData.Add(id, command);
     }
 
-    public bool TryPeekClip(out RectF rect)
+    public bool TryGetClip(out RectF rect)
     {
-        throw new NotImplementedException();
+        return _clipStack.TryPeek(out rect);
     }
 
     public void PushClip(RectF rect)
     {
-        throw new NotImplementedException();
+        _clipStack.Push(rect);
     }
 
     public void PopClip()
     {
-        throw new NotImplementedException();
+        _clipStack.Pop();
     }
 
     private void DrawBorder(int x0, int y0, int x1, int y1, uint color, int borderSize, int dx, int dy)
