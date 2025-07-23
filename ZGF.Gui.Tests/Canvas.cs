@@ -13,7 +13,7 @@ enum ComandKind
     Image,
 }
 
-internal readonly record struct DrawCommand(int Id, ComandKind Kind, int ZIndex)
+internal readonly record struct DrawCommand(int Id, ComandKind Kind, int ZIndex, RectF Clip)
 {
 }
 
@@ -65,22 +65,33 @@ public sealed class Canvas : ICanvas
     public void AddCommand(in DrawRectCommand command)
     {
         var id = _commands.Count;
-        _commands.Add(new DrawCommand(id, ComandKind.Rect, command.ZIndex));
+        var clip = GetClip();
+        _commands.Add(new DrawCommand(id, ComandKind.Rect, command.ZIndex, clip));
         _rectCommandData.Add(id, command);
     }
 
     public void AddCommand(in DrawTextCommand command)
     {
         var id = _commands.Count;
-        _commands.Add(new DrawCommand(id, ComandKind.Text, command.ZIndex));
+        var clip = GetClip();
+        _commands.Add(new DrawCommand(id, ComandKind.Text, command.ZIndex, clip));
         _textCommandData.Add(id, command);
     }
 
     public void AddCommand(in DrawImageCommand command)
     {
         var id = _commands.Count;
-        _commands.Add(new DrawCommand(id, ComandKind.Image, command.ZIndex));
+        var clip = GetClip();
+        _commands.Add(new DrawCommand(id, ComandKind.Image, command.ZIndex, clip));
         _imageCommandData.Add(id, command);
+    }
+
+    private RectF GetClip()
+    {
+        if (_clipStack.Count == 0)
+            return new RectF(0, 0, Width, Height);
+        
+        return _clipStack.Peek();
     }
 
     public bool TryGetClip(out RectF rect)
@@ -283,7 +294,6 @@ public sealed class Canvas : ICanvas
     private void ExecuteCommand(DrawTextCommand command)
     {
         var text = command.Text;
-        var codePoints = text.AsCodePoints();
 
         var lineHeight = _font.FontMetrics.Common.LineHeight;
         var position = command.Position;
@@ -332,7 +342,7 @@ public sealed class Canvas : ICanvas
 
         var color = style.TextColor;
         var prevCodePoint = default(int?);
-        foreach (var codePoint in codePoints)
+        foreach (var codePoint in text.EnumerateCodePoints())
         {
             if (codePoint == '\n')
             {
