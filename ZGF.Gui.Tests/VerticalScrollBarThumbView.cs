@@ -4,7 +4,22 @@ namespace ZGF.Gui.Tests;
 
 public sealed class VerticalScrollBarThumbView : View
 {
-    public float YOffset { get; set; }
+    private float _scrollNormalized;
+
+    public float ScrollNormalized
+    {
+        get => _scrollNormalized;
+        set
+        {
+            if (value < 0)
+                value = 0f;
+            else if (value > 1f)
+                value = 1f;
+            
+            _scrollNormalized = value;
+            SetDirty();
+        }
+    }
 
     private float _scale = 0.5f;
     public float Scale
@@ -36,10 +51,15 @@ public sealed class VerticalScrollBarThumbView : View
     protected override void OnLayoutSelf()
     {
         var height = MaxHeightConstraint * Scale;
+
+        var unclampedBottom = TopConstraint - height;
+        var clampedScroll = ScrollNormalized;
+        var bottom = unclampedBottom * (1f - clampedScroll) + BottomConstraint * clampedScroll;
+
         Position = new RectF
         {
             Left = LeftConstraint,
-            Bottom = TopConstraint - height - YOffset,
+            Bottom = bottom,
             Width = MinWidthConstraint,
             Height = height,
         };
