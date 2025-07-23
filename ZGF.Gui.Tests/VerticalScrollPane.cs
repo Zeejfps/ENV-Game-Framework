@@ -9,6 +9,7 @@ public sealed class VerticalScrollPane : View
     private float _yMax;
     private readonly ColumnView _columnView;
 
+    public float ScrollNormalized { get; private set; }
     public float Scale { get; private set; }
     public override IComponentCollection Children => _columnView.Children;
     
@@ -94,17 +95,25 @@ public sealed class VerticalScrollPane : View
     {
         base.OnLayoutChildren();
         
+        var viewportRect = Position;
+        var contentRect = _columnView.Position;
+        
         var viewportHeight = Position.Height;
         var contentHeight = _columnView.MeasureHeight();
+        
         if (contentHeight <= viewportHeight)
         {
             _yMax = 0;
             Scale = 1f;
+            ScrollNormalized = 0f;
         }
         else
         {
             _yMax = contentHeight - viewportHeight;
-            Scale = viewportHeight / contentHeight;           
+            Scale = viewportHeight / contentHeight;
+
+            var scrollOffset = (viewportRect.Bottom - contentRect.Bottom);
+            ScrollNormalized = 1f - Math.Clamp(scrollOffset / _yMax, 0f, 1f);
         }
     }
 }

@@ -57,6 +57,7 @@ public sealed class VerticalListView : View
     protected override void OnLayoutChildren()
     {
         base.OnLayoutChildren();
-        _scrollBarView.Scale = _scrollPane.Scale;       
+        _scrollBarView.Scale = _scrollPane.Scale;
+        _scrollBarView.ScrollNormalized = _scrollPane.ScrollNormalized;       
     }
 }

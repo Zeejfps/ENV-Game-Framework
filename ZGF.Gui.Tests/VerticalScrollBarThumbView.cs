@@ -5,7 +5,6 @@ namespace ZGF.Gui.Tests;
 public sealed class VerticalScrollBarThumbView : View
 {
     private float _scrollNormalized;
-
     public float ScrollNormalized
     {
         get => _scrollNormalized;

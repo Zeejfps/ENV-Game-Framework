@@ -80,4 +80,10 @@ public sealed class VerticalScrollBarView : View
         get => _thumbView.Scale;
         set => _thumbView.Scale = value;
     }
+
+    public float ScrollNormalized
+    {
+        get => _thumbView.ScrollNormalized;
+        set => _thumbView.ScrollNormalized = value;
+    }
 }
