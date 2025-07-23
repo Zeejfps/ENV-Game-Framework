@@ -69,6 +69,11 @@ public sealed class Window : View
             BorderColor = BorderColorStyle.All(0x0000FF)
         };
         
+        var scrollBar = new RectView
+        {
+            BackgroundColor = 0xEFEFEF,
+        };
+        
         var scrollBarContainer = new RectView
         {
             PreferredWidth = 14f,
@@ -79,12 +84,11 @@ public sealed class Window : View
                 Top = 1,
                 Bottom = 15
             },
+            Children =
+            {
+                scrollBar
+            }
         };
-        var scrollBar = new RectView
-        {
-            BackgroundColor = 0xEFEFEF,
-        };
-        scrollBarContainer.Children.Add(scrollBar);
 
         var progress = new RectView
         {
@@ -107,9 +111,12 @@ public sealed class Window : View
             BackgroundColor = 0xEFEFEF,
             BorderColor = BorderColorStyle.All(0x252525),
             BorderSize = BorderSizeStyle.All(1),
-            Padding = PaddingStyle.All(4)
+            Padding = PaddingStyle.All(4),
+            Children =
+            {
+                textInput
+            }
         };
-        textField.Children.Add(textInput);
 
         var bottomSection = new BorderLayoutView
         {
