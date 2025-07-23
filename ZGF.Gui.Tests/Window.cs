@@ -146,7 +146,7 @@ public sealed class Window : View
         //     }
         // };
 
-        var test = new VerticalListView
+        var listView = new VerticalListView
         {
             Children =
             {
@@ -154,7 +154,7 @@ public sealed class Window : View
                 bottomSection
             }
         };
-        test.Controller = new DefaultVerticalListViewKbmController(test);
+        listView.Controller = new DefaultVerticalListViewKbmController(listView);
         
         var borderLayout = new BorderLayoutView
         {
@@ -165,7 +165,7 @@ public sealed class Window : View
             South = bottomBorder
         };
         
-        contentOutline.Children.Add(test);
+        contentOutline.Children.Add(listView);
         outline.Children.Add(borderLayout);
         AddChildToSelf(outline);
 

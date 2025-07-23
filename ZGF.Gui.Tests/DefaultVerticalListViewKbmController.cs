@@ -15,7 +15,7 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
 
     public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
     {
-        _view.Scroll(e.DeltaY * -6);
+        _view.Scroll(e.DeltaY * -10);
         e.Consume();
     }
 
