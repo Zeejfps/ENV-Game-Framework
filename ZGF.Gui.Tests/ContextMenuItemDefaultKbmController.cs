@@ -5,7 +5,7 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
     private readonly ContextMenu _contextMenu;
     private readonly ContextMenuItem _contextMenuItem;
     private readonly ContextMenuManager _contextMenuManager;
-    private ContextMenu? _subMenu;
+    private IOpenedContextMenu? _openedContextMenu;
 
     public List<ContextMenuItemData> SubOptions { get; } = new();
 
@@ -33,19 +33,6 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         if (SubOptions.Count > 0)
         {
             _contextMenuItem.IsArrowVisible = true;
-            
-            _subMenu = new ContextMenu
-            {
-                AnchorPoint = _contextMenuItem.Position.TopRight
-            };
-            _subMenu.AddController(new ContextMenuDefaultKbmController(_subMenu));
-            foreach (var subOption in SubOptions)
-            {
-                _subMenu.AddItem(new ContextMenuItem
-                {
-                    Text = subOption.Text
-                });
-            }
         }
     }
 
@@ -57,10 +44,27 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
     public void OnMouseEnter()
     {
         _contextMenuItem.IsSelected = true;
-        if (_subMenu != null)
+
+        if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
-            _contextMenuManager.ShowContextMenu(_subMenu, _contextMenu);
+            _openedContextMenu.KeepOpen();
+            return;
         }
+
+        var subMenu = new ContextMenu
+        {
+            AnchorPoint = _contextMenuItem.Position.TopRight
+        };
+        subMenu.AddController(new ContextMenuDefaultKbmController(subMenu));
+        foreach (var subOption in SubOptions)
+        {
+            subMenu.AddItem(new ContextMenuItem
+            {
+                Text = subOption.Text
+            });
+        }
+
+        _openedContextMenu = _contextMenuManager.ShowContextMenu(subMenu);
 
         this.RequestFocus();
     }
@@ -68,9 +72,9 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
     public void OnMouseExit()
     {
         _contextMenuItem.IsSelected = false;
-        if (_subMenu != null)
+        if (_openedContextMenu != null)
         {
-            _contextMenuManager.HideContextMenu(_subMenu);
+            _openedContextMenu.Close();
         }
         this.Blur();
     }

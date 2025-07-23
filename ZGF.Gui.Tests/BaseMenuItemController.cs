@@ -5,16 +5,13 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
     protected MenuItem MenuItem { get; }
     protected readonly ContextMenuManager _contextMenuManager;
     
-    private ContextMenu _contextMenu;
-    private bool _isBuilt;
-    
+    private ContextMenu? _contextMenu;
+    private IOpenedContextMenu? _openedContextMenu;
+
     protected BaseMenuItemController(MenuItem menuItem, ContextMenuManager contextMenuManager)
     {
         MenuItem = menuItem;
         _contextMenuManager = contextMenuManager;
-        
-        _contextMenu = new ContextMenu();
-        _contextMenu.AddController(new ContextMenuDefaultKbmController(_contextMenu));
     }
     
     public void OnEnabled(Context context)
@@ -29,26 +26,29 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
     
     public void OnMouseEnter()
     {
-        if (!_isBuilt)
-        {
-            BuildMenu(_contextMenu);
-            _isBuilt = true;
-        }
-        
-        _contextMenu.AnchorPoint = MenuItem.Position.BottomLeft;
         MenuItem.IsSelected = true;
-        if (_contextMenu != null)
+        if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
-            _contextMenuManager.ShowContextMenu(_contextMenu);
+            _openedContextMenu.KeepOpen();
+            return;
         }
+
+        _contextMenu = new ContextMenu
+        {
+            AnchorPoint = MenuItem.Position.BottomLeft
+        };
+        _contextMenu.AddController(new ContextMenuDefaultKbmController(_contextMenu));
+        BuildMenu(_contextMenu);
+        
+        _openedContextMenu = _contextMenuManager.ShowContextMenu(_contextMenu);
     }
 
     public void OnMouseExit()
     {
         MenuItem.IsSelected = false;
-        if (_contextMenu != null)
+        if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
-            _contextMenuManager.HideContextMenu(_contextMenu);
+            _openedContextMenu.Close();
         }
     }
     

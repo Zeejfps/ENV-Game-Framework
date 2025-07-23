@@ -151,7 +151,7 @@ public sealed class InputSystem : IMouse
         {
             if (!_focusQueue.Contains(component))
             {
-                Console.WriteLine($"Handling focus request: {component}");
+                //Console.WriteLine($"Handling focus request: {component}");
                 if (canReleaseFocus || _focusQueue.Count == 0)
                     _focusQueue.AddFirst(component);
                 else
@@ -163,7 +163,7 @@ public sealed class InputSystem : IMouse
         var newFocusedComponent = _focusQueue.First?.Value;
         if (focusedComponent != newFocusedComponent)
         {
-            Console.WriteLine($"Focus changing: {focusedComponent} -> {newFocusedComponent}");
+            //Console.WriteLine($"Focus changing: {focusedComponent} -> {newFocusedComponent}");
             if (focusedComponent != null)
             {
                 focusedComponent.OnFocusLost();
@@ -172,14 +172,14 @@ public sealed class InputSystem : IMouse
             if (newFocusedComponent != null)
             {
                 newFocusedComponent.OnFocusGained();
-                Console.WriteLine($"Focused: {newFocusedComponent}");
+                //Console.WriteLine($"Focused: {newFocusedComponent}");
             }
         }
     }
 
     public bool RequestFocus(IKeyboardMouseController component)
     {
-        Console.WriteLine($"Requesting focus: {component}");
+        //Console.WriteLine($"Requesting focus: {component}");
         _componentsToAddToFocusQueue.Add(component);
         return false;
     }
