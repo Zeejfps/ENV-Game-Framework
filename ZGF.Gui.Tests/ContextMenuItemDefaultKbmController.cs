@@ -43,8 +43,6 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
 
     public void OnMouseEnter()
     {
-        _contextMenuItem.IsSelected = true;
-
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
             _openedContextMenu.CancelCloseRequest();
@@ -64,14 +62,25 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         }
 
         _openedContextMenu = _contextMenuManager.ShowContextMenu(subMenu, _contextMenu);
+        _openedContextMenu.Closed += OnOpenedContextMenuClosed;
         subMenu.AddController(new ContextMenuKbmController(_openedContextMenu));
+        _contextMenuItem.IsSelected = true;
 
         this.RequestFocus();
     }
 
-    public void OnMouseExit()
+    private void OnOpenedContextMenuClosed()
     {
         _contextMenuItem.IsSelected = false;
+        if (_openedContextMenu != null)
+        {
+            _openedContextMenu.Closed -=  OnOpenedContextMenuClosed;
+            _openedContextMenu = null;
+        }
+    }
+
+    public void OnMouseExit()
+    {
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
             _openedContextMenu.CloseRequest();

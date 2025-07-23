@@ -24,6 +24,7 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed -= OnOpenedContextMenuClosed;
+            _openedContextMenu = null;
         }
         this.UnregisterController(context);
     }
@@ -54,6 +55,7 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed -= OnOpenedContextMenuClosed;
+            _openedContextMenu = null;
         }
     }
 
