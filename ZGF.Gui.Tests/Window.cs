@@ -137,7 +137,16 @@ public sealed class Window : View
             South = textField,
         };
         
-        var columnLayout = new ColumnView
+        // var columnLayout = new ColumnView
+        // {
+        //     Children =
+        //     {
+        //         content,
+        //         bottomSection
+        //     }
+        // };
+
+        var test = new VerticalListView
         {
             Children =
             {
@@ -145,11 +154,7 @@ public sealed class Window : View
                 bottomSection
             }
         };
-
-        var test = new ScrollView
-        {
-            Content = columnLayout,
-        };
+        test.Controller = new DefaultVerticalListViewKbmController(test);
         
         var borderLayout = new BorderLayoutView
         {

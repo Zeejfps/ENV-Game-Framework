@@ -2,42 +2,20 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class ScrollView : View, IKeyboardMouseController
+public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseController
 {
-    private readonly VerticalScrollPane _viewPort;
+    public View View => _view;
     
-    private View? _content;
-    public View? Content
-    {
-        get => _content;
-        set
-        {
-            var prevContent = _content;
-            _content = value;
+    private readonly VerticalListView _view;
 
-            if (prevContent != null)
-            {
-                _viewPort.Children.Remove(prevContent);
-            }
-            
-            if (_content != null)
-            {
-                _viewPort.Children.Add(_content);
-            }
-        }
-    }
-    
-    public ScrollView()
+    public DefaultVerticalListViewKbmController(VerticalListView view)
     {
-        _viewPort = new VerticalScrollPane();
-        AddChildToSelf(_viewPort);
-        
-        Controller = this;
+        _view = view;
     }
 
     public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
     {
-        _viewPort.YOffset += (int)e.DeltaY * -6;
+        _view.YOffset += (int)e.DeltaY * -6;
         e.Consume();
     }
 
@@ -51,7 +29,6 @@ public sealed class ScrollView : View, IKeyboardMouseController
         context.InputSystem.RemoveInteractable(this);
     }
 
-    public View View => this;
     public void OnMouseEnter(in MouseEnterEvent e)
     {
         this.RequestFocus();
@@ -68,11 +45,11 @@ public sealed class ScrollView : View, IKeyboardMouseController
         {
             if (e.Key == KeyboardKey.UpArrow)
             {
-                _viewPort.YOffset += 10f;
+                _view.YOffset += 10f;
             }
             else if (e.Key == KeyboardKey.DownArrow)
             {
-                _viewPort.YOffset -= 10f;
+                _view.YOffset -= 10f;
             }
         }
         return true;

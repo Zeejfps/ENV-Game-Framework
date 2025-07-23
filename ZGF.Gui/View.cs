@@ -169,7 +169,7 @@ public class View
         }
     }
     
-    public IComponentCollection Children { get; }
+    public virtual IComponentCollection Children { get; }
     public IStyleClassCollection StyleClasses { get; } 
 
     private readonly List<View> _children = new();
@@ -414,13 +414,18 @@ public class View
         var position = Position;
         foreach (var child in _children)
         {
-            child.LeftConstraint = position.Left;
-            child.BottomConstraint = position.Bottom;
-            child.MinWidthConstraint = position.Width;
-            child.MaxWidthConstraint = position.Width;
-            child.MaxHeightConstraint = position.Height;
-            child.LayoutSelf();
+            OnLayoutChild(position, child);
         }
+    }
+
+    protected virtual void OnLayoutChild(in RectF position, View child)
+    {
+        child.LeftConstraint = position.Left;
+        child.BottomConstraint = position.Bottom;
+        child.MinWidthConstraint = position.Width;
+        child.MaxWidthConstraint = position.Width;
+        child.MaxHeightConstraint = position.Height;
+        child.LayoutSelf();
     }
 
     public void ApplyStyle(Style style)
