@@ -4,9 +4,17 @@ namespace ZGF.Gui.Tests;
 
 public sealed class VerticalScrollBarView : View
 {
+    private readonly VerticalScrollBarThumbView _thumbView;
+    
     public VerticalScrollBarView()
     {
         PreferredWidth = 25;
+
+        _thumbView = new VerticalScrollBarThumbView
+        {
+            PreferredHeight = 100
+        };
+        
         var slideArea = new RectView
         {
             BackgroundColor = 0xCECECE,
@@ -18,6 +26,10 @@ public sealed class VerticalScrollBarView : View
                 Right = 0xFFFFFF,
                 Bottom = 0xFFFFFF
             },
+            Children =
+            {
+                _thumbView
+            }
         };
 
         var scrollUpButton = new RectView
