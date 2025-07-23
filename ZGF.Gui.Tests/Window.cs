@@ -10,7 +10,7 @@ public sealed class Window : View
     public Window(string titleText)
     {
         TitleText = titleText;
-        Position = new RectF(200f, 200f, 340f, 300f);
+        Position = new RectF(200f, 200f, 440f, 400f);
 
         var titlePanel = new WindowTitleBarView(titleText);
         titlePanel.Controller = new WindowTitleBarDefaultKbmController(this, titlePanel);
@@ -172,9 +172,9 @@ public sealed class Window : View
         };
         AddChildToSelf(outline);
 
-        var windowResizer = new WindowResizer();
-        windowResizer.Controller = new WindowResizerDefaultKbmController(this, windowResizer);
-        AddChildToSelf(windowResizer);
+        // var windowResizer = new WindowResizer();
+        // windowResizer.Controller = new WindowResizerDefaultKbmController(this, windowResizer);
+        // AddChildToSelf(windowResizer);
     }
 
     protected override void OnLayoutSelf()

@@ -2,22 +2,6 @@
 
 namespace ZGF.Gui.Tests;
 
-public sealed class VerticalScrollBarView : View
-{
-    private readonly RectView _background;
-
-    public VerticalScrollBarView()
-    {
-        PreferredWidth = 20;
-        _background = new RectView
-        {
-            BackgroundColor = 0xCECECE,
-        };
-
-    AddChildToSelf(_background);
-    }
-}
-
 public sealed class VerticalListView : View
 {
     public override IComponentCollection Children => _scrollPane.Children;

@@ -1,0 +1,72 @@
+using ZGF.Gui.Layouts;
+
+namespace ZGF.Gui.Tests;
+
+public sealed class VerticalScrollBarView : View
+{
+    public VerticalScrollBarView()
+    {
+        PreferredWidth = 25;
+        var slideArea = new RectView
+        {
+            BackgroundColor = 0xCECECE,
+            BorderSize = BorderSizeStyle.All(1),
+            BorderColor = new BorderColorStyle
+            {
+                Left = 0x9C9C9C,
+                Top = 0x9C9C9C,
+                Right = 0xFFFFFF,
+                Bottom = 0xFFFFFF
+            },
+        };
+
+        var scrollUpButton = new RectView
+        {
+            Padding = PaddingStyle.All(1),
+            BackgroundColor = 0xDEDEDE,
+            PreferredHeight = 20,
+            BorderSize = BorderSizeStyle.All(1),
+            StyleClasses =
+            {
+                "raised_panel"
+            },
+            Children =
+            {
+                new Image
+                {
+                    PreferredWidth = 20,
+                    PreferredHeight = 20,
+                    ImageUri = "Assets/Icons/arrow_up.png"
+                }
+            }
+        };
+        
+        var scrollDownButton = new RectView
+        {
+            Padding = PaddingStyle.All(1),
+            BackgroundColor = 0xDEDEDE,
+            PreferredHeight = 20,
+            BorderSize = BorderSizeStyle.All(1),
+            StyleClasses =
+            {
+                "raised_panel"
+            },
+            Children =
+            {
+                new Image
+                {
+                    PreferredWidth = 20,
+                    PreferredHeight = 20,
+                    ImageUri = "Assets/Icons/arrow_down.png"
+                }
+            }
+        };
+        
+        AddChildToSelf(new BorderLayoutView
+        {
+            North = scrollUpButton,
+            Center = slideArea,
+            South = scrollDownButton
+        });
+    }
+}
