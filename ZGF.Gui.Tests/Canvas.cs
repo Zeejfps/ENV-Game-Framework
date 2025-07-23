@@ -124,7 +124,7 @@ public sealed class Canvas : ICanvas
         }
     }
 
-    private void DrawGlyph(int cursorX, int cursorY, FontChar glyphInfo, uint color)
+    private void DrawGlyph(int destX, int destY, FontChar glyphInfo, uint color)
     {
         var bufferPixels = _colorBuffer.Pixels;
         var bufferWidth = _colorBuffer.Width;
@@ -132,20 +132,7 @@ public sealed class Canvas : ICanvas
 
         var fontPixels = _font.Png.PixelData;
         var fontTextureWidth = _font.Png.Width;
-
-        // Get the font's baseline metric
-        int fontBase = _font.FontMetrics.Common.Base;
-
-        // --- COORDINATE CALCULATION FOR BOTTOM-LEFT ORIGIN ---
-        // 1. Calculate the glyph's destination rectangle.
-        // destX is the same as before.
-        int destX = cursorX + glyphInfo.XOffset;
-
-        // destY is the bottom-most coordinate of the glyph on the screen.
-        // Start at the baseline (cursorY), go UP by the distance from baseline to the glyph's top (fontBase - yoffset),
-        // then go DOWN by the glyph's height to find the bottom.
-        int destY = cursorY + (fontBase - glyphInfo.YOffset) - glyphInfo.Height;
-
+        
         int destWidth = glyphInfo.Width;
         int destHeight = glyphInfo.Height;
 
@@ -360,23 +347,24 @@ public sealed class Canvas : ICanvas
             {
             }
             
+            var glyphX = cursorX + kerningOffset + glyphInfo.XOffset;
+            var glyphY = cursorY + (fontBase - glyphInfo.YOffset) - glyphInfo.Height;
+
             var shouldDraw = true;
             var isClippingEnabled = true;
             if (isClippingEnabled)
             {
                 var clipRect = cmd.Clip;
-                
-                var glyphRectX = cursorX + kerningOffset + glyphInfo.XOffset;
-                var glyphRectY = cursorY + (fontBase - glyphInfo.YOffset) - glyphInfo.Height;
-                var glyphRectWidth = glyphInfo.Width;
-                var glyphRectHeight = glyphInfo.Height;
-                
+
+                var glyphWidth = glyphInfo.Width;
+                var glyphHeight = glyphInfo.Height;
+
                 // Perform an AABB (Axis-Aligned Bounding Box) intersection test.
                 // We cull the glyph if it's completely outside the clip rectangle.
-                if (glyphRectX + glyphRectWidth <= clipRect.Left ||     // Completely to the left
-                    glyphRectX >= clipRect.Right ||                     // Completely to the right
-                    glyphRectY >= clipRect.Top ||                       // Completely above
-                    glyphRectY + glyphRectHeight <= clipRect.Bottom)    // Completely below
+                if (glyphX + glyphWidth <= clipRect.Left ||     // Completely to the left
+                    glyphX >= clipRect.Right ||                     // Completely to the right
+                    glyphY >= clipRect.Top ||                       // Completely above
+                    glyphY + glyphHeight <= clipRect.Bottom)    // Completely below
                 {
                     shouldDraw = false;
                 }
@@ -385,8 +373,8 @@ public sealed class Canvas : ICanvas
             if (shouldDraw)
             {
                 DrawGlyph(
-                    cursorX + kerningOffset,
-                    cursorY,
+                    glyphX,
+                    glyphY,
                     glyphInfo,
                     color);
             }
