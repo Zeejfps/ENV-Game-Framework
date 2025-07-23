@@ -226,11 +226,11 @@ public static class Graphics
         if (ey < clip.Bottom)
             return false;
         
-        if (sx < 0)
-            sx = 0;
+        if (sx < clip.Left)
+            sx = (int)clip.Left;
         
-        if (sy < 0)
-            sy = 0;
+        if (sy < clip.Bottom)
+            sy = (int)clip.Bottom;
         
         if (ex > clip.Right)
             ex = (int)clip.Right;
