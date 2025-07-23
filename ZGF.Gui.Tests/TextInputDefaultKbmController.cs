@@ -73,8 +73,6 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
             
             var mousePoint = e.Mouse.Point;
             _textInput.MoveCaretTo(mousePoint);
-
-            return true;
         }
 
         return false;

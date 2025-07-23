@@ -28,14 +28,12 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
 
     public void OnMouseEnter(in MouseEnterEvent e)
     {
-        Console.WriteLine($"OnMouseEnter: TitleBar - {_window.TitleText}");
         _isHovered = true;
         this.RequestFocus();
     }
 
     public void OnMouseExit(in MouseExitEvent e)
     {
-        Console.WriteLine($"OnMouseExit: TitleBar - {_window.TitleText}");
         _isHovered = false;
         if (!_isDragging)
         {
@@ -45,7 +43,6 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
 
     public bool OnMouseButtonStateChanged(in MouseButtonEvent e)
     {
-        Console.WriteLine($"OnMouseButtonStateChanged: TitleBar - {_window.TitleText}");
         var button = e.Button;
         var state = e.State;
 
@@ -55,7 +52,6 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         if (state == InputState.Pressed)
         {
             _prevMousePosition = e.Mouse.Point;
-            Console.WriteLine($"OnLeftButtonPressed: TitleBar - {_window.TitleText}");
             return false;
         }
         
@@ -63,7 +59,6 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         
         if (!_isHovered)
         {
-            Console.WriteLine("Not hovered");
             this.Blur();
         }
 
@@ -82,7 +77,6 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
 
     public bool OnMouseMoved(in MouseMoveEvent e)
     {
-        Console.WriteLine($"OnMouseMoved: TitleBar - {_window.TitleText}");
         var isLeftButtonPressed = e.Mouse.IsButtonPressed(MouseButton.Left);
         if (!isLeftButtonPressed)
             return false;
@@ -98,7 +92,6 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         if (delta.LengthSquared() > 1f)
         {
             _isDragging = true;
-            Console.WriteLine("Draggins started");
             return true;
         }
 
