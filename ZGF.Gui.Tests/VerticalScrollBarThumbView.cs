@@ -4,7 +4,14 @@ namespace ZGF.Gui.Tests;
 
 public sealed class VerticalScrollBarThumbView : View
 {
-    public float YOffset { get; set; } = 20;
+    public float YOffset { get; set; }
+
+    private float _scale = 0.5f;
+    public float Scale
+    {
+        get => _scale;
+        set => SetField(ref _scale, value);
+    } 
     
     public VerticalScrollBarThumbView()
     {
@@ -28,12 +35,13 @@ public sealed class VerticalScrollBarThumbView : View
 
     protected override void OnLayoutSelf()
     {
+        var height = MaxHeightConstraint * Scale;
         Position = new RectF
         {
             Left = LeftConstraint,
-            Bottom = TopConstraint - PreferredHeight - YOffset,
+            Bottom = TopConstraint - height - YOffset,
             Width = MinWidthConstraint,
-            Height = PreferredHeight,
+            Height = height,
         };
     }
 }

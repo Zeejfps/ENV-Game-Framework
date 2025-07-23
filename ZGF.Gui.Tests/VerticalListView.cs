@@ -53,4 +53,10 @@ public sealed class VerticalListView : View
     {
         _scrollPane.ScrollToTop();
     }
+    
+    protected override void OnLayoutChildren()
+    {
+        base.OnLayoutChildren();
+        _scrollBarView.Scale = _scrollPane.Scale;       
+    }
 }

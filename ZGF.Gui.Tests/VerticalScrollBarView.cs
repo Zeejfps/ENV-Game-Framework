@@ -10,10 +10,7 @@ public sealed class VerticalScrollBarView : View
     {
         PreferredWidth = 25;
 
-        _thumbView = new VerticalScrollBarThumbView
-        {
-            PreferredHeight = 100
-        };
+        _thumbView = new VerticalScrollBarThumbView();
         
         var slideArea = new RectView
         {
@@ -76,5 +73,11 @@ public sealed class VerticalScrollBarView : View
             Center = slideArea,
             South = scrollDownButton
         });
+    }
+
+    public float Scale
+    {
+        get => _thumbView.Scale;
+        set => _thumbView.Scale = value;
     }
 }
