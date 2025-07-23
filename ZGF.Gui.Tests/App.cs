@@ -135,12 +135,13 @@ public sealed class App : OpenGlApp
 
     private void HandleScrollEvent(GLFW.Window window, double x, double y)
     {
-        _inputSystem.HandleMouseScrollEvent(new MouseWheelScrolledEvent
+        var e = new MouseWheelScrolledEvent
         {
             Mouse = _inputSystem,
             DeltaX = x,
             DeltaY = y
-        });
+        };
+        _inputSystem.HandleMouseScrollEvent(ref e);
     }
 
     private void PrintTree(Component component, int depth = 0)

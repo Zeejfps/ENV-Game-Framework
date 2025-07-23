@@ -49,9 +49,14 @@ public sealed class InputSystem : IMouse
         }
     }
     
-    public void HandleMouseScrollEvent(in MouseWheelScrolledEvent e)
+    public void HandleMouseScrollEvent(ref MouseWheelScrolledEvent e)
     {
-        _focusQueue.First?.Value.OnMouseWheelScrolled(e);
+        foreach (var target in _focusQueue)
+        {
+            target.OnMouseWheelScrolled(ref e);
+            if (e.IsConsumed)
+                break;
+        }
     }
 
     private readonly List<IKeyboardMouseController> _removeCache = new();
