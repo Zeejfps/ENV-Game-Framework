@@ -5,12 +5,12 @@ namespace ZGF.Gui.Tests;
 public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseController
 {
     private readonly Window _window;
-    private readonly WindowTitleBar _titleBar;
+    private readonly WindowTitleBarView _titleBar;
     private PointF _prevMousePosition;
     private bool _isHovered;
     private bool _isDragging;
     
-    public WindowTitleBarDefaultKbmController(Window window, WindowTitleBar titleBar)
+    public WindowTitleBarDefaultKbmController(Window window, WindowTitleBarView titleBar)
     {
         _window = window;
         _titleBar = titleBar;
@@ -98,5 +98,5 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         return false;
     }
     
-    public Component Component => _titleBar;
+    public View View => _titleBar;
 }

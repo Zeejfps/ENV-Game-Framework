@@ -7,7 +7,7 @@ public sealed class ImageInfo
     public required string ImageUri { get; init; }
 }
 
-public sealed class Image : Component
+public sealed class Image : View
 {
     private string? _imageUri;
     public string? ImageUri

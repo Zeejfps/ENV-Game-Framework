@@ -3,7 +3,7 @@
 public interface IOpenedContextMenu
 {
     event Action Closed;
-    Component Component { get; }
+    View View { get; }
     bool IsOpened { get; }
 
     void CancelCloseRequest();
@@ -19,7 +19,7 @@ sealed class OpenedContextMenu : IOpenedContextMenu
     public OpenedContextMenu? Parent { get; set; }
     public OpenedContextMenu? Child { get; set; }
     public long CloseTimestamp { get; set; }
-    public Component Component => ContextMenu;
+    public View View => ContextMenu;
 
     public bool IsCloseRequested { get; private set; }
 
@@ -47,12 +47,12 @@ sealed class OpenedContextMenu : IOpenedContextMenu
 
 public sealed class ContextMenuManager
 {
-    private readonly Component _contextMenuPane;
+    private readonly View _contextMenuPane;
     
     private readonly HashSet<OpenedContextMenu> _closingMenus = new();
     private readonly Dictionary<ContextMenu, OpenedContextMenu> _openedMenus = new();
     
-    public ContextMenuManager(Component contextMenuPane)
+    public ContextMenuManager(View contextMenuPane)
     {
         _contextMenuPane = contextMenuPane;
     }

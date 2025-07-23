@@ -104,5 +104,5 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         return false;
     }
 
-    public Component Component => _contextMenuItem;
+    public View View => _contextMenuItem;
 }

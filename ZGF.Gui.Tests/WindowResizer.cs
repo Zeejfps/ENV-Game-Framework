@@ -2,7 +2,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class WindowResizer : Component
+public sealed class WindowResizer : View
 {
     public StyleValue<uint> BackgroundColor
     {
@@ -10,11 +10,11 @@ public sealed class WindowResizer : Component
         set => _background.BackgroundColor = value;
     }
     
-    private readonly Panel _background;
+    private readonly RectView _background;
     
     public WindowResizer()
     {
-        _background = new Panel
+        _background = new RectView
         {
             BackgroundColor = 0xCECECE,
             BorderSize = new BorderSizeStyle
@@ -29,7 +29,7 @@ public sealed class WindowResizer : Component
             }
         };
         
-        Add(_background);
+        AddChildToSelf(_background);
     }
 
     protected override void OnLayoutSelf()

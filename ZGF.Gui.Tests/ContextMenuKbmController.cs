@@ -29,5 +29,5 @@ public sealed class ContextMenuKbmController : IKeyboardMouseController
         _contextMenu.CloseRequest();
     }
 
-    public Component Component => _contextMenu.Component;
+    public View View => _contextMenu.View;
 }

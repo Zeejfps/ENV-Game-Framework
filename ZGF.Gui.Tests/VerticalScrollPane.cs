@@ -1,6 +1,6 @@
 ﻿namespace ZGF.Gui.Tests;
 
-public sealed class VerticalScrollPane : Component
+public sealed class VerticalScrollPane : View
 {
     private float _yOffset;
     public float YOffset

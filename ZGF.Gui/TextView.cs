@@ -1,6 +1,6 @@
 namespace ZGF.Gui;
 
-public sealed class Label : Component
+public sealed class TextView : View
 {
     private readonly TextStyle _style = new();
 

@@ -2,21 +2,21 @@ using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class WindowTitleBar : Component
+public sealed class WindowTitleBarView : View
 {
-    private readonly Label _titleLabel;
+    private readonly TextView _titleTextView;
 
     public string? TitleText
     {
-        get => _titleLabel.Text;
-        set => _titleLabel.Text = value;
+        get => _titleTextView.Text;
+        set => _titleTextView.Text = value;
     }
 
-    public WindowTitleBar(string title)
+    public WindowTitleBarView(string title)
     {
         PreferredHeight = 30f;
         
-        var button = new Panel
+        var button = new RectView
         {
             StyleClasses =
             {
@@ -25,7 +25,7 @@ public sealed class WindowTitleBar : Component
             }
         };
 
-        var button2 = new Panel
+        var button2 = new RectView
         {
             StyleClasses =
             {
@@ -34,31 +34,31 @@ public sealed class WindowTitleBar : Component
             }
         };
 
-        _titleLabel = new Label
+        _titleTextView = new TextView
         {
             Text = title,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center
         };
 
-        var row = new FlexRow
+        var row = new FlexRowView
         {
             Gap = 3,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
                 button,
-                _titleLabel,
+                _titleTextView,
                 button2
             }
         };
         
-        row.UpdateStyle(_titleLabel, new FlexStyle
+        row.UpdateStyle(_titleTextView, new FlexStyle
         {
             Grow = 1f,
         });
         
-        var background = new Panel
+        var background = new RectView
         {
             BackgroundColor = 0xCECECE,
             BorderColor = new BorderColorStyle
@@ -80,7 +80,7 @@ public sealed class WindowTitleBar : Component
             }
         };
         
-        Add(background);
+        AddChildToSelf(background);
     }
 
     public override string ToString()

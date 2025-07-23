@@ -10,7 +10,7 @@ namespace ZGF.Gui.Tests;
 public sealed class App : OpenGlApp
 {
     private readonly Canvas _canvas;
-    private readonly Component _gui;
+    private readonly View _gui;
 
     private readonly Window _window;
     private readonly InputSystem _inputSystem;
@@ -38,7 +38,7 @@ public sealed class App : OpenGlApp
             textMeasurer, imageManager
         );
         
-        var contextMenuPane = new Component();
+        var contextMenuPane = new View();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
         
         var context = new Context
@@ -64,13 +64,13 @@ public sealed class App : OpenGlApp
         var center = new Center();
         _window = center.Window;
 
-        var contents = new BorderLayout
+        var contents = new BorderLayoutView
         {
             North = appBar,
             Center = center,
         };
 
-        var gui = new Component
+        var gui = new View
         {
             PreferredWidth = _canvas.Width,
             PreferredHeight = _canvas.Height,
@@ -144,11 +144,11 @@ public sealed class App : OpenGlApp
         _inputSystem.HandleMouseScrollEvent(ref e);
     }
 
-    private void PrintTree(Component component, int depth = 0)
+    private void PrintTree(View view, int depth = 0)
     {
         var indent = new string(' ', depth * 4);
-        Console.WriteLine($"{indent}{component}");
-        foreach (var child in component.Children)
+        Console.WriteLine($"{indent}{view}");
+        foreach (var child in view.Children)
         {
             PrintTree(child, depth + 1);
         }

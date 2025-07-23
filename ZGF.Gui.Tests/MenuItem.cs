@@ -1,14 +1,14 @@
 ﻿namespace ZGF.Gui.Tests;
 
-public sealed class MenuItem : Component
+public sealed class MenuItem : View
 {
-    private readonly Panel _background;
-    private readonly Label _label;
+    private readonly RectView _background;
+    private readonly TextView _textView;
 
     public string? Text
     {
-        get => _label.Text;
-        set => _label.Text = value;
+        get => _textView.Text;
+        set => _textView.Text = value;
     }
 
     private bool _isDisabled;
@@ -21,11 +21,11 @@ public sealed class MenuItem : Component
             {
                 if (_isDisabled)
                 {
-                    _label.StyleClasses.Add("disabled");
+                    _textView.StyleClasses.Add("disabled");
                 }
                 else
                 {
-                    _label.StyleClasses.Remove("disabled");
+                    _textView.StyleClasses.Remove("disabled");
                 }
             }
         }
@@ -53,21 +53,21 @@ public sealed class MenuItem : Component
 
     public MenuItem()
     {
-        _label = new Label
+        _textView = new TextView
         {
             VerticalTextAlignment = TextAlignment.Center,
         };
         
-        _background = new Panel
+        _background = new RectView
         {
             BackgroundColor = 0xDEDEDE,
             Padding = PaddingStyle.All(3),
             Children =
             {
-                _label,
+                _textView,
             }
         };
         
-        Add(_background);
+        AddChildToSelf(_background);
     }
 }

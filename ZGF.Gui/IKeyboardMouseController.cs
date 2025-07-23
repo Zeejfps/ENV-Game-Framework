@@ -2,7 +2,7 @@
 
 public interface IKeyboardMouseController : IController
 {
-    Component Component { get; }
+    View View { get; }
 
     void OnMouseEnter(in MouseEnterEvent e);
 

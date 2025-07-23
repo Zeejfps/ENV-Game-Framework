@@ -25,7 +25,7 @@ public struct FlexStyle
     public StyleValue<float> Grow { get; set; }
 }
 
-public sealed class FlexRow : Component
+public sealed class FlexRowView : View
 {
     private float _gap;
     public float Gap
@@ -48,19 +48,19 @@ public sealed class FlexRow : Component
         set => SetField(ref _mainAxisAlignment, value);
     }
     
-    private readonly Dictionary<Component, FlexStyle> _flexStyleByComponent = new();
+    private readonly Dictionary<View, FlexStyle> _flexStyleByComponent = new();
     
     
-    public void UpdateStyle(Component component, FlexStyle style)
+    public void UpdateStyle(View view, FlexStyle style)
     {
-        _flexStyleByComponent[component] = style;
+        _flexStyleByComponent[view] = style;
         SetDirty();
     }
 
-    protected override void OnComponentRemoved(Component component)
+    protected override void OnComponentRemoved(View view)
     {
-        _flexStyleByComponent.Remove(component);
-        base.OnComponentRemoved(component);
+        _flexStyleByComponent.Remove(view);
+        base.OnComponentRemoved(view);
     }
 
     protected override void OnLayoutChildren()

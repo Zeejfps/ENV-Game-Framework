@@ -38,5 +38,5 @@ public sealed class WindowDefaultKbmController : IKeyboardMouseController
         return true;
     }
     
-    public Component Component => _window;
+    public View View => _window;
 }

@@ -1,6 +1,6 @@
 namespace ZGF.Gui;
 
-public class Panel : Component
+public class RectView : View
 {
     private readonly RectStyle _style = new();
 

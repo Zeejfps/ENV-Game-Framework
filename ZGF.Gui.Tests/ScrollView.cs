@@ -2,12 +2,12 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class ScrollView : Component, IKeyboardMouseController
+public sealed class ScrollView : View, IKeyboardMouseController
 {
     private readonly VerticalScrollPane _viewPort;
     
-    private Component? _content;
-    public Component? Content
+    private View? _content;
+    public View? Content
     {
         get => _content;
         set
@@ -30,7 +30,7 @@ public sealed class ScrollView : Component, IKeyboardMouseController
     public ScrollView()
     {
         _viewPort = new VerticalScrollPane();
-        Add(_viewPort);
+        AddChildToSelf(_viewPort);
         
         Controller = this;
     }
@@ -56,7 +56,7 @@ public sealed class ScrollView : Component, IKeyboardMouseController
         context.InputSystem.RemoveInteractable(this);
     }
 
-    public Component Component => this;
+    public View View => this;
     public void OnMouseEnter(in MouseEnterEvent e)
     {
         this.RequestFocus();

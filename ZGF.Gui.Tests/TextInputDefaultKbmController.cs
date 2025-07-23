@@ -175,5 +175,5 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
         clipboard.SetText(selectedText);
     }
 
-    public Component Component => _textInput;
+    public View View => _textInput;
 }

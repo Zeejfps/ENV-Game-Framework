@@ -1,25 +1,25 @@
 ﻿namespace ZGF.Gui.Tests;
 
-public sealed class Center : Component
+public sealed class Center : View
 {
     public Window Window { get; }
     
     public Center()
     {
-        var background = new Panel
+        var background = new RectView
         {
             BackgroundColor = 0x9C9CCE,
         };
         
-        Add(background);
+        AddChildToSelf(background);
 
         var w = new Window("About This Computer");
         w.Controller = new WindowDefaultKbmController(w);
-        Add(w);
+        AddChildToSelf(w);
 
         Window = new Window("Window Title Here");
         Window.Controller = new WindowDefaultKbmController(Window);
-        Add(Window);
+        AddChildToSelf(Window);
         
     }
 }

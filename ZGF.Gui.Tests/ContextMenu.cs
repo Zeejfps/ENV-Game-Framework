@@ -3,9 +3,9 @@ using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class ContextMenu : Component
+public sealed class ContextMenu : View
 {
-    private readonly Column _itemsContainer;
+    private readonly ColumnView _itemsContainer;
     
     private PointF _anchorPoint;
     public PointF AnchorPoint
@@ -16,13 +16,13 @@ public sealed class ContextMenu : Component
 
     public ContextMenu()
     {
-        _itemsContainer = new Column
+        _itemsContainer = new ColumnView
         {
             Gap = 4
         };
         ZIndex = 1;
         
-        var background = new Panel
+        var background = new RectView
         {
             BackgroundColor = 0xDEDEDE,
             Padding = PaddingStyle.All(4),
@@ -42,7 +42,7 @@ public sealed class ContextMenu : Component
             }
         };
         
-        Add(background);
+        AddChildToSelf(background);
     }
 
     public void AddItem(ContextMenuItem item)

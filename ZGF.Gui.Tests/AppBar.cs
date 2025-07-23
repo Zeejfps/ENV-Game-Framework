@@ -2,7 +2,7 @@
 
 namespace ZGF.Gui.Tests;
 
-public sealed class AppBar : Component
+public sealed class AppBar : View
 {
     public AppBar(App app, ContextMenuManager contextMenuManager)
     {
@@ -36,7 +36,7 @@ public sealed class AppBar : Component
         };
         helpLabel.Controller = new TestMenuItemController(helpLabel, contextMenuManager);
         
-        var row = new FlexRow
+        var row = new FlexRowView
         {
             MainAxisAlignment = MainAxisAlignment.Start,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
@@ -51,7 +51,7 @@ public sealed class AppBar : Component
             }
         };
         
-        var background = new Panel
+        var background = new RectView
         {
             BackgroundColor = 0xDEDEDE,
             Padding = PaddingStyle.All(6),
@@ -69,7 +69,7 @@ public sealed class AppBar : Component
             }
         };
         
-        var container = new Panel
+        var container = new RectView
         {
             BackgroundColor = 0x000000,
             Padding = new PaddingStyle
@@ -82,6 +82,6 @@ public sealed class AppBar : Component
             }
         };
 
-        Add(container);
+        AddChildToSelf(container);
     }
 }

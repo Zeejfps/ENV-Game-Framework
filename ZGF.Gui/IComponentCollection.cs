@@ -1,8 +1,8 @@
 namespace ZGF.Gui;
 
-public interface IComponentCollection : IEnumerable<Component>
+public interface IComponentCollection : IEnumerable<View>
 {
     int Count { get; }
-    void Add(Component component);
-    bool Remove(Component component);
+    void Add(View view);
+    bool Remove(View view);
 }

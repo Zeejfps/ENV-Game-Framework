@@ -1,6 +1,6 @@
 namespace ZGF.Gui.Layouts;
 
-public sealed class Column : Component
+public sealed class ColumnView : View
 {
     private int _gap;
     public int Gap

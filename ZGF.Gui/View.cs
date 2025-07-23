@@ -4,7 +4,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
-public class Component
+public class View
 {
     private Context? _context;
     public Context? Context
@@ -106,7 +106,7 @@ public class Component
         set => SetField(ref _preferredHeight, value);
     }
     
-    public Component? Parent { get; private set; }
+    public View? Parent { get; private set; }
 
     private string? _id;
     public string? Id
@@ -172,7 +172,7 @@ public class Component
     public IComponentCollection Children { get; }
     public IStyleClassCollection StyleClasses { get; } 
 
-    private readonly List<Component> _children = new();
+    private readonly List<View> _children = new();
     private readonly HashSet<string> _styleClasses = new();
 
     private IController? _controller;
@@ -199,7 +199,7 @@ public class Component
         }
     }
 
-    public Component()
+    public View()
     {
         Children = new ComponentCollection(this);
         StyleClasses = new StyleClassCollection(this);
@@ -232,35 +232,35 @@ public class Component
         return false;
     }
     
-    protected void Add(Component component)
+    protected void AddChildToSelf(View view)
     {
-        if (component.Parent != null)
+        if (view.Parent != null)
         {
-            component.Parent.Remove(component);
+            view.Parent.RemoveChildFromSelf(view);
         }
 
         // Order matters here
         var siblingIndex = _children.Count;
-        _children.Add(component);
+        _children.Add(view);
 
-        component.Parent = this;
-        component.Depth = Depth + 1;
-        component._siblingIndex =  siblingIndex;
-        component.StyleSheet = StyleSheet;
-        component.Context = Context;
-        OnComponentAdded(component);
+        view.Parent = this;
+        view.Depth = Depth + 1;
+        view._siblingIndex =  siblingIndex;
+        view.StyleSheet = StyleSheet;
+        view.Context = Context;
+        OnComponentAdded(view);
     }
     
-    protected bool Remove(Component component)
+    protected bool RemoveChildFromSelf(View view)
     {
-        if (_children.Remove(component))
+        if (_children.Remove(view))
         {
-            component.Context = null;
-            component.Parent = null;
-            component.Depth = 0;
-            component._siblingIndex = 0;
-            component.StyleSheet = null;
-            OnComponentRemoved(component);
+            view.Context = null;
+            view.Parent = null;
+            view.Depth = 0;
+            view._siblingIndex = 0;
+            view.StyleSheet = null;
+            OnComponentRemoved(view);
             return true;
         }
         return false;
@@ -357,12 +357,12 @@ public class Component
         StyleSheet = null;
     }
 
-    protected virtual void OnComponentAdded(Component component)
+    protected virtual void OnComponentAdded(View view)
     {
         SetDirty();
     }
 
-    protected virtual void OnComponentRemoved(Component component)
+    protected virtual void OnComponentRemoved(View view)
     {
         SetDirty();
     }
@@ -377,7 +377,7 @@ public class Component
         return true;
     }
 
-    public void SetDirty()
+    protected void SetDirty()
     {
         IsSelfDirty = true;
     }
@@ -493,7 +493,7 @@ public class Component
         
     }
 
-    protected void DrawChild(Component child, ICanvas c)
+    protected void DrawChild(View child, ICanvas c)
     {
         child.DrawSelf(c);
     }
@@ -506,27 +506,27 @@ public class Component
         }
     }
 
-    public void BringToFront(Component component)
+    public void BringToFront(View view)
     {
         // If its already the last child ignore it
-        if (component.SiblingIndex == _children.Count - 1)
+        if (view.SiblingIndex == _children.Count - 1)
             return;
 
-        if (component.SiblingIndex >= _children.Count)
+        if (view.SiblingIndex >= _children.Count)
             return;
 
-        if (_children[component.SiblingIndex] != component)
+        if (_children[view.SiblingIndex] != view)
             return;
 
         var lastChild = _children[^1];
-        lastChild._siblingIndex = component.SiblingIndex;
-        _children[component.SiblingIndex] = lastChild;
+        lastChild._siblingIndex = view.SiblingIndex;
+        _children[view.SiblingIndex] = lastChild;
 
-        component._siblingIndex = _children.Count - 1;
-        _children[^1] = component;
+        view._siblingIndex = _children.Count - 1;
+        _children[^1] = view;
     }
 
-    public bool IsAncestorOf(Component target)
+    public bool IsAncestorOf(View target)
     {
         var parent = target;
         while (parent != null)
@@ -538,11 +538,11 @@ public class Component
         return false;
     }
     
-    public bool IsInFrontOf(Component component)
+    public bool IsInFrontOf(View view)
     {
         // Use clearer variable names for readability   
         var nodeA = this;
-        var nodeB = component;
+        var nodeB = view;
         var iNodeA = nodeA;
         var iNodeB = nodeB;
 
@@ -610,16 +610,16 @@ public class Component
 
     private sealed class ComponentCollection : IComponentCollection
     {
-        private readonly Component _component;
+        private readonly View _view;
 
-        public ComponentCollection(Component component)
+        public ComponentCollection(View view)
         {
-            _component = component;
+            _view = view;
         }
 
-        public IEnumerator<Component> GetEnumerator()
+        public IEnumerator<View> GetEnumerator()
         {
-            return _component._children.GetEnumerator();
+            return _view._children.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -627,30 +627,30 @@ public class Component
             return GetEnumerator();
         }
 
-        public int Count => _component._children.Count;
+        public int Count => _view._children.Count;
         
-        public void Add(Component component)
+        public void Add(View view)
         {
-            _component.Add(component);
+            _view.AddChildToSelf(view);
         }
 
-        public bool Remove(Component component)
+        public bool Remove(View view)
         {
-            return _component.Remove(component);
+            return _view.RemoveChildFromSelf(view);
         }
     }
     
     private sealed class StyleClassCollection : IStyleClassCollection
     {
-        private readonly Component _component;
-        public StyleClassCollection(Component component)
+        private readonly View _view;
+        public StyleClassCollection(View view)
         {
-            _component = component;
+            _view = view;
         }
 
         public IEnumerator<string> GetEnumerator()
         {
-            return _component._styleClasses.GetEnumerator();
+            return _view._styleClasses.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -658,16 +658,16 @@ public class Component
             return GetEnumerator();
         }
 
-        public int Count => _component._styleClasses.Count;
+        public int Count => _view._styleClasses.Count;
         
         public void Add(string styleClass)
         {
-            _component.AddStyleClass(styleClass);
+            _view.AddStyleClass(styleClass);
         }
 
         public bool Remove(string styleClass)
         {
-            return _component.RemoveStyleClass(styleClass);
+            return _view.RemoveStyleClass(styleClass);
         }
     }
 }

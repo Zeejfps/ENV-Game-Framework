@@ -86,7 +86,7 @@ public sealed class InputSystem : IMouse
         var components = _hitTestCache;
         foreach (var controller in _hoverableComponents)
         {
-            if (controller.Component.Position.ContainsPoint(point))
+            if (controller.View.Position.ContainsPoint(point))
             {
                 components.Add(controller);
             }
@@ -123,7 +123,7 @@ public sealed class InputSystem : IMouse
         for (var i = _removeCache.Count - 1; i >= 0; i--)
         {
             var hoveredComponent = _removeCache[i];
-            if (!hoveredComponent.Component.Position.ContainsPoint(Point))
+            if (!hoveredComponent.View.Position.ContainsPoint(Point))
             {
                 _hoveredComponents.Remove(hoveredComponent);
                 hoveredComponent.OnMouseExit(new MouseExitEvent
@@ -140,7 +140,7 @@ public sealed class InputSystem : IMouse
             for (var i = allHoveredComponents.Count - 1; i >= 0; i--)
             {
                 var hoveredComponent = allHoveredComponents[i];
-                if (hoveredComponent.Component.IsAncestorOf(topComponent.Component) && _hoveredComponents.Add(hoveredComponent))
+                if (hoveredComponent.View.IsAncestorOf(topComponent.View) && _hoveredComponents.Add(hoveredComponent))
                 {
                     hoveredComponent.OnMouseEnter(new MouseEnterEvent
                     {
@@ -246,15 +246,15 @@ sealed class ZIndexComparer : IComparer<IKeyboardMouseController>
             return -1;
         
         // NOTE(Zee): Order is swapped here. Greater ZIndex means the value is less - meaning it should be first in list 
-        var result = y.Component.ZIndex.CompareTo(x.Component.ZIndex);
+        var result = y.View.ZIndex.CompareTo(x.View.ZIndex);
         if (result == 0)
         {
-            if (x.Component.IsInFrontOf(y.Component))
+            if (x.View.IsInFrontOf(y.View))
             {
                 return -1;
             }
 
-            if (y.Component.IsInFrontOf(x.Component))
+            if (y.View.IsInFrontOf(x.View))
             {
                 return 1;
             }

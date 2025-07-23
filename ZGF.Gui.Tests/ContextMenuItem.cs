@@ -7,7 +7,7 @@ public sealed class ContextMenuItemData
     public string Text { get; set; }
 }
 
-public sealed class ContextMenuItem : Component
+public sealed class ContextMenuItem : View
 {
     public StyleValue<uint> BackgroundColor
     {
@@ -15,14 +15,14 @@ public sealed class ContextMenuItem : Component
         set => _bg.BackgroundColor = value;
     }
     
-    private readonly Panel _bg;
+    private readonly RectView _bg;
     private readonly Image _arrowIcon;
-    private readonly Label _label;
+    private readonly TextView _textView;
     
     public string? Text
     {
-        get => _label.Text;
-        set => _label.Text = value;
+        get => _textView.Text;
+        set => _textView.Text = value;
     }
 
     private bool _isSelected;
@@ -75,22 +75,22 @@ public sealed class ContextMenuItem : Component
             PreferredHeight = 20
         };
 
-        _label = new Label
+        _textView = new TextView
         {
             VerticalTextAlignment = TextAlignment.Center,
         };
 
-        var row = new Row
+        var row = new RowView
         {
             Gap = 5,
             Children =
             {
-                _label,
+                _textView,
                 _arrowIcon,
             }
         };
         
-        _bg = new Panel
+        _bg = new RectView
         {
             BackgroundColor = 0xDEDEDE,
             Padding = PaddingStyle.All(6),
@@ -100,6 +100,6 @@ public sealed class ContextMenuItem : Component
             }
         };
 
-        Add(_bg);
+        AddChildToSelf(_bg);
     }
 }

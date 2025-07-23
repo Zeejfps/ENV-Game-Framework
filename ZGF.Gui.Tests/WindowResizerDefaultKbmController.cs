@@ -31,5 +31,5 @@ public sealed class WindowResizerDefaultKbmController : IKeyboardMouseController
         _resizer.BackgroundColor = 0xCECECE;
     }
     
-    public Component Component => _resizer;
+    public View View => _resizer;
 }

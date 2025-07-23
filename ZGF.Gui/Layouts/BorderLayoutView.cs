@@ -1,43 +1,43 @@
 namespace ZGF.Gui.Layouts;
 
-public sealed class BorderLayout : Component
+public sealed class BorderLayoutView : View
 {
-    private Component? _north;
-    public Component? North
+    private View? _north;
+    public View? North
     {
         get => _north;
         set => SetComponent(ref _north, value);
     }
 
-    private Component? _east;
-    public Component? East
+    private View? _east;
+    public View? East
     {
         get => _east;
         set => SetComponent(ref _east, value);
     }
 
-    private Component? _west;
-    public Component? West
+    private View? _west;
+    public View? West
     {
         get => _west;
         set => SetComponent(ref _west, value);
     }
 
-    private Component? _south;
-    public Component? South
+    private View? _south;
+    public View? South
     {
         get => _south;
         set => SetComponent(ref _south, value);
     }
 
-    private Component? _center;
-    public Component? Center
+    private View? _center;
+    public View? Center
     {
         get => _center;
         set => SetComponent(ref _center, value);
     }
 
-    private void SetComponent(ref Component? component, Component? value)
+    private void SetComponent(ref View? component, View? value)
     {
         if (component == value)
             return;
@@ -47,12 +47,12 @@ public sealed class BorderLayout : Component
             
         if (prevComponent != null)
         {
-            Remove(prevComponent);
+            RemoveChildFromSelf(prevComponent);
         }
 
         if (component != null)
         {
-            Add(component);
+            AddChildToSelf(component);
         }
     }
 

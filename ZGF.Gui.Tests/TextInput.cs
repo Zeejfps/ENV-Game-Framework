@@ -3,7 +3,7 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class TextInput : Component
+public sealed class TextInput : View
 {
     public StyleValue<uint> BackgroundColor
     {

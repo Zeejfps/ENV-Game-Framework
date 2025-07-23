@@ -3,7 +3,7 @@ using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class Window : Component
+public sealed class Window : View
 {
     public string TitleText { get; }
     
@@ -12,17 +12,17 @@ public sealed class Window : Component
         TitleText = titleText;
         Position = new RectF(200f, 200f, 340f, 300f);
         
-        var outline = new Panel
+        var outline = new RectView
         {
             BackgroundColor = 0x000000,
             BorderSize = BorderSizeStyle.All(1),
             BorderColor = BorderColorStyle.All(0x000000),
         };
 
-        var titlePanel = new WindowTitleBar(titleText);
+        var titlePanel = new WindowTitleBarView(titleText);
         titlePanel.Controller = new WindowTitleBarDefaultKbmController(this, titlePanel);
 
-        var leftBorder = new Panel
+        var leftBorder = new RectView
         {
             PreferredWidth = 4f,
             BackgroundColor = 0xCECECE,
@@ -36,7 +36,7 @@ public sealed class Window : Component
             }
         };
         
-        var rightBorder = new Panel
+        var rightBorder = new RectView
         {
             PreferredWidth = 4f,
             BackgroundColor = 0xCECECE,
@@ -50,7 +50,7 @@ public sealed class Window : Component
             }
         };
         
-        var bottomBorder = new Panel
+        var bottomBorder = new RectView
         {
             PreferredHeight = 4f,
             BackgroundColor = 0xCECECE,
@@ -68,7 +68,7 @@ public sealed class Window : Component
             }
         };
         
-        var contentOutline = new Panel
+        var contentOutline = new RectView
         {
             Padding = new PaddingStyle
             {
@@ -80,7 +80,7 @@ public sealed class Window : Component
             }
         };
 
-        var content = new Panel
+        var content = new RectView
         {
             PreferredHeight = 400f,
             BackgroundColor = 0xFF44FF,
@@ -88,7 +88,7 @@ public sealed class Window : Component
             BorderColor = BorderColorStyle.All(0x0000FF)
         };
         
-        var scrollBarContainer = new Panel
+        var scrollBarContainer = new RectView
         {
             PreferredWidth = 14f,
             BackgroundColor = 0x000000,
@@ -99,13 +99,13 @@ public sealed class Window : Component
                 Bottom = 15
             },
         };
-        var scrollBar = new Panel
+        var scrollBar = new RectView
         {
             BackgroundColor = 0xEFEFEF,
         };
         scrollBarContainer.Children.Add(scrollBar);
 
-        var progress = new Panel
+        var progress = new RectView
         {
             BackgroundColor = 0xEFEFEF,
             BorderSize = new BorderSizeStyle
@@ -121,7 +121,7 @@ public sealed class Window : Component
         };
         textInput.Controller = new TextInputDefaultKbmController(textInput);
 
-        var textField = new Panel
+        var textField = new RectView
         {
             BackgroundColor = 0xEFEFEF,
             BorderColor = BorderColorStyle.All(0x252525),
@@ -130,14 +130,14 @@ public sealed class Window : Component
         };
         textField.Children.Add(textInput);
 
-        var bottomSection = new BorderLayout
+        var bottomSection = new BorderLayoutView
         {
             East = scrollBarContainer,
             Center = progress,
             South = textField,
         };
         
-        var columnLayout = new Column
+        var columnLayout = new ColumnView
         {
             Children =
             {
@@ -151,7 +151,7 @@ public sealed class Window : Component
             Content = columnLayout,
         };
         
-        var borderLayout = new BorderLayout
+        var borderLayout = new BorderLayoutView
         {
             North = titlePanel,
             West = leftBorder,
@@ -162,11 +162,11 @@ public sealed class Window : Component
         
         contentOutline.Children.Add(test);
         outline.Children.Add(borderLayout);
-        Add(outline);
+        AddChildToSelf(outline);
 
         var windowResizer = new WindowResizer();
         windowResizer.Controller = new WindowResizerDefaultKbmController(this, windowResizer);
-        Add(windowResizer);
+        AddChildToSelf(windowResizer);
     }
 
     protected override void OnLayoutSelf()

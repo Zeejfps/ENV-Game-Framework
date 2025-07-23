@@ -70,7 +70,7 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         }
     }
     
-    public Component Component => MenuItem;
+    public View View => MenuItem;
 
     protected abstract void BuildMenu(ContextMenu contextMenu);
 }
