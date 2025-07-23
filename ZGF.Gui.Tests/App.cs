@@ -48,8 +48,12 @@ public sealed class App : OpenGlApp
             Canvas = _canvas
         };
         context.AddService(_contextMenuManager);
+#if OSX
+        context.AddService<IClipboard>(new OsxClipboard());
+#else
         context.AddService<IClipboard>(new AppClipboard());
-        
+#endif
+
         glClearColor(0f, 0f, 0f, 0f);
         
         var appBar = new AppBar(this, _contextMenuManager);
@@ -118,7 +122,7 @@ public sealed class App : OpenGlApp
         Glfw.SetMouseButtonCallback(WindowHandle, _mouseButtonCallback);
         Glfw.SetWindowSizeCallback(WindowHandle, _windowSizeCallback);
 
-        PrintTree(gui);
+        //PrintTree(gui);
     }
 
     private void PrintTree(Component component, int depth = 0)

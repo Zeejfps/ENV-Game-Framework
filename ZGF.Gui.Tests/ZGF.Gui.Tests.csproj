@@ -25,4 +25,8 @@
         </Content>
     </ItemGroup>
 
+    <PropertyGroup Condition="$([System.OperatingSystem]::IsMacOS())">
+        <DefineConstants>OSX</DefineConstants>
+    </PropertyGroup>
+
 </Project>
