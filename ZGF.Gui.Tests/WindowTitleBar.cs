@@ -15,7 +15,49 @@ public sealed class WindowTitleBar : Component
     public WindowTitleBar(string title)
     {
         PreferredHeight = 30f;
+        
+        var button = new Panel
+        {
+            StyleClasses =
+            {
+                "inset_panel",
+                "window_button"
+            }
+        };
 
+        var button2 = new Panel
+        {
+            StyleClasses =
+            {
+                "inset_panel",
+                "window_button"
+            }
+        };
+
+        _titleLabel = new Label
+        {
+            Text = title,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center
+        };
+
+        var row = new FlexRow
+        {
+            Gap = 3,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
+            Children =
+            {
+                button,
+                _titleLabel,
+                button2
+            }
+        };
+        
+        row.UpdateStyle(_titleLabel, new FlexStyle
+        {
+            Grow = 1f,
+        });
+        
         var background = new Panel
         {
             BackgroundColor = 0xCECECE,
@@ -31,39 +73,13 @@ public sealed class WindowTitleBar : Component
                 Left = 1,
                 Right = 1,
             },
-            Padding = PaddingStyle.All(3)
+            Padding = PaddingStyle.All(3),
+            Children =
+            {
+                row
+            }
         };
-
-        var row = new FlexRow
-        {
-            Gap = 3,
-            CrossAxisAlignment = CrossAxisAlignment.Stretch
-        };
-        background.Add(row);
-
-
-        var button = new Panel();
-        button.AddStyleClass("inset_panel");
-        button.AddStyleClass("window_button");
-
-        var button2 = new Panel();
-        button2.AddStyleClass("inset_panel");
-        button2.AddStyleClass("window_button");
-
-        _titleLabel = new Label
-        {
-            Text = title,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center
-        };
-
-        row.Add(button);
-        row.Add(_titleLabel, new FlexStyle
-        {
-            Grow = 1f,
-        });
-        row.Add(button2);
-
+        
         Add(background);
     }
 

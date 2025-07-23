@@ -21,11 +21,11 @@ public sealed class MenuItem : Component
             {
                 if (_isDisabled)
                 {
-                    _label.AddStyleClass("disabled");
+                    _label.StyleClasses.Add("disabled");
                 }
                 else
                 {
-                    _label.RemoveStyleClass("disabled");
+                    _label.StyleClasses.Remove("disabled");
                 }
             }
         }
@@ -53,18 +53,21 @@ public sealed class MenuItem : Component
 
     public MenuItem()
     {
-        _background = new Panel
-        {
-            BackgroundColor = 0xDEDEDE,
-            Padding = PaddingStyle.All(3)
-        };
-        
         _label = new Label
         {
             VerticalTextAlignment = TextAlignment.Center,
         };
         
-        _background.Add(_label);
+        _background = new Panel
+        {
+            BackgroundColor = 0xDEDEDE,
+            Padding = PaddingStyle.All(3),
+            Children =
+            {
+                _label,
+            }
+        };
+        
         Add(_background);
     }
 }

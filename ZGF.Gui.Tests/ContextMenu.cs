@@ -16,6 +16,12 @@ public sealed class ContextMenu : Component
 
     public ContextMenu()
     {
+        _itemsContainer = new Column
+        {
+            Gap = 4
+        };
+        ZIndex = 1;
+        
         var background = new Panel
         {
             BackgroundColor = 0xDEDEDE,
@@ -25,23 +31,23 @@ public sealed class ContextMenu : Component
                 Left = 1,
                 Right = 1,
                 Bottom = 1
+            },
+            Children =
+            {
+                _itemsContainer
+            },
+            StyleClasses =
+            {
+                "raised_panel"
             }
         };
-        background.AddStyleClass("raised_panel");
         
-        _itemsContainer = new Column
-        {
-            Gap = 4
-        };
-        ZIndex = 1;
-        
-        background.Add(_itemsContainer);
         Add(background);
     }
 
     public void AddItem(ContextMenuItem item)
     {
-        _itemsContainer.Add(item);
+        _itemsContainer.Children.Add(item);
     }
 
     protected override void OnLayoutSelf()

@@ -4,7 +4,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
-public class Component : IEnumerable<Component>
+public class Component
 {
     private Context? _context;
     public Context? Context
@@ -133,7 +133,7 @@ public class Component : IEnumerable<Component>
                 return;
 
             _depth = value;
-            foreach (var child in Children)
+            foreach (var child in _children)
             {
                 child.Depth = _depth + 1;
             }
@@ -145,7 +145,7 @@ public class Component : IEnumerable<Component>
 
     private bool IsDirty => IsSelfDirty || IsChildrenDirty;
     private bool IsSelfDirty { get; set; } = true;
-    private bool IsChildrenDirty => Children.Any(child => child.IsDirty);
+    private bool IsChildrenDirty => _children.Any(child => child.IsDirty);
 
     private StyleSheet? _styleSheet;
     protected StyleSheet? StyleSheet
@@ -169,8 +169,8 @@ public class Component : IEnumerable<Component>
         }
     }
     
-    public IReadOnlyList<Component> Children => _children;
-    public IEnumerable<string> StyleClasses => _styleClasses;
+    public IComponentCollection Children { get; }
+    public IStyleClassCollection StyleClasses { get; } 
 
     private readonly List<Component> _children = new();
     private readonly HashSet<string> _styleClasses = new();
@@ -201,15 +201,11 @@ public class Component : IEnumerable<Component>
 
     public Component()
     {
-
+        Children = new ComponentCollection(this);
+        StyleClasses = new StyleClassCollection(this);
     }
 
-    protected Component(Context ctx)
-    {
-        Context = ctx;
-    }
-
-    public void AddStyleClass(string classId)
+    protected void AddStyleClass(string classId)
     {
         if (_styleClasses.Add(classId))
         {
@@ -225,15 +221,18 @@ public class Component : IEnumerable<Component>
         }
     }
 
-    public void RemoveStyleClass(string classId)
+    protected bool RemoveStyleClass(string classId)
     {
         if (_styleClasses.Remove(classId))
         {
             SetDirty();
+            return true;
         }
+
+        return false;
     }
     
-    public void Add(Component component)
+    protected void Add(Component component)
     {
         if (component.Parent != null)
         {
@@ -251,8 +250,8 @@ public class Component : IEnumerable<Component>
         component.Context = Context;
         OnComponentAdded(component);
     }
-
-    public bool Remove(Component component)
+    
+    protected bool Remove(Component component)
     {
         if (_children.Remove(component))
         {
@@ -266,7 +265,7 @@ public class Component : IEnumerable<Component>
         }
         return false;
     }
-
+    
     public Size MeasureSelf()
     {
         var width = MeasureWidth();
@@ -431,7 +430,7 @@ public class Component : IEnumerable<Component>
 
     protected virtual void OnStyleSheetApplied(StyleSheet styleSheet)
     {
-        foreach (var styleClass in StyleClasses)
+        foreach (var styleClass in _styleClasses)
         {
             if (styleSheet.TryGetByClass(styleClass, out var classStyle))
             {
@@ -603,25 +602,72 @@ public class Component : IEnumerable<Component>
         return nodeA._siblingIndex > nodeB._siblingIndex;
     }
 
-    protected T? Get<T>() where T : class
-    {
-        if (Context == null)
-            return default;
-        return Context.Get<T>();
-    }
-
-    public IEnumerator<Component> GetEnumerator()
-    {
-        return _children.GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-    
     public override string ToString()
     {
         return base.ToString() + "-" + _depth;
+    }
+    
+
+    private sealed class ComponentCollection : IComponentCollection
+    {
+        private readonly Component _component;
+
+        public ComponentCollection(Component component)
+        {
+            _component = component;
+        }
+
+        public IEnumerator<Component> GetEnumerator()
+        {
+            return _component._children.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public int Count => _component._children.Count;
+        
+        public void Add(Component component)
+        {
+            _component.Add(component);
+        }
+
+        public bool Remove(Component component)
+        {
+            return _component.Remove(component);
+        }
+    }
+    
+    private sealed class StyleClassCollection : IStyleClassCollection
+    {
+        private readonly Component _component;
+        public StyleClassCollection(Component component)
+        {
+            _component = component;
+        }
+
+        public IEnumerator<string> GetEnumerator()
+        {
+            return _component._styleClasses.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public int Count => _component._styleClasses.Count;
+        
+        public void Add(string styleClass)
+        {
+            _component.AddStyleClass(styleClass);
+        }
+
+        public bool Remove(string styleClass)
+        {
+            return _component.RemoveStyleClass(styleClass);
+        }
     }
 }

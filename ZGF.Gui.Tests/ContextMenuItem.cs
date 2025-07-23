@@ -69,12 +69,6 @@ public sealed class ContextMenuItem : Component
     {
         ZIndex = 2;
 
-        _bg = new Panel
-        {
-            BackgroundColor = 0xDEDEDE,
-            Padding = PaddingStyle.All(6)
-        };
-
         _arrowIcon = new Image
         {
             PreferredWidth = 20,
@@ -88,12 +82,24 @@ public sealed class ContextMenuItem : Component
 
         var row = new Row
         {
-            _label,
-            _arrowIcon,
+            Gap = 5,
+            Children =
+            {
+                _label,
+                _arrowIcon,
+            }
         };
-        row.Gap = 5;
+        
+        _bg = new Panel
+        {
+            BackgroundColor = 0xDEDEDE,
+            Padding = PaddingStyle.All(6),
+            Children =
+            {
+                row
+            }
+        };
 
-        _bg.Add(row);
         Add(_bg);
     }
 }

@@ -73,11 +73,13 @@ public sealed class App : OpenGlApp
         {
             PreferredWidth = _canvas.Width,
             PreferredHeight = _canvas.Height,
-            Context = context
+            Context = context,
+            Children =
+            {
+                contents,
+                contextMenuPane,
+            }
         };
-        
-        gui.Add(contents);
-        gui.Add(contextMenuPane);
         
         var ss = new StyleSheet();
         ss.AddStyleForClass("inset_panel", new Style

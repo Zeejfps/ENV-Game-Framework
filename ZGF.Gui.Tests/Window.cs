@@ -73,9 +73,12 @@ public sealed class Window : Component
             Padding = new PaddingStyle
             {
                 Bottom = 5
+            },
+            StyleClasses =
+            {
+                "inset_panel"
             }
         };
-        contentOutline.AddStyleClass("inset_panel");
 
         var content = new Panel
         {
@@ -84,9 +87,6 @@ public sealed class Window : Component
             BorderSize = BorderSizeStyle.All(1),
             BorderColor = BorderColorStyle.All(0x0000FF)
         };
-
-        var columnLayout = new Column();
-        columnLayout.Add(content);
         
         var scrollBarContainer = new Panel
         {
@@ -103,7 +103,7 @@ public sealed class Window : Component
         {
             BackgroundColor = 0xEFEFEF,
         };
-        scrollBarContainer.Add(scrollBar);
+        scrollBarContainer.Children.Add(scrollBar);
 
         var progress = new Panel
         {
@@ -128,7 +128,7 @@ public sealed class Window : Component
             BorderSize = BorderSizeStyle.All(1),
             Padding = PaddingStyle.All(4)
         };
-        textField.Add(textInput);
+        textField.Children.Add(textInput);
 
         var bottomSection = new BorderLayout
         {
@@ -136,7 +136,15 @@ public sealed class Window : Component
             Center = progress,
             South = textField,
         };
-        columnLayout.Add(bottomSection);
+        
+        var columnLayout = new Column
+        {
+            Children =
+            {
+                content,
+                bottomSection
+            }
+        };
 
         var test = new ScrollView
         {
@@ -152,8 +160,8 @@ public sealed class Window : Component
             South = bottomBorder
         };
         
-        contentOutline.Add(test);
-        outline.Add(borderLayout);
+        contentOutline.Children.Add(test);
+        outline.Children.Add(borderLayout);
         Add(outline);
 
         var windowResizer = new WindowResizer();

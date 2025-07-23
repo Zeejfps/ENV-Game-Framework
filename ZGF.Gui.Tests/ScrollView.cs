@@ -17,12 +17,12 @@ public sealed class ScrollView : Component, IKeyboardMouseController
 
             if (prevContent != null)
             {
-                _viewPort.Remove(prevContent);
+                _viewPort.Children.Remove(prevContent);
             }
             
             if (_content != null)
             {
-                _viewPort.Add(_content);
+                _viewPort.Children.Add(_content);
             }
         }
     }

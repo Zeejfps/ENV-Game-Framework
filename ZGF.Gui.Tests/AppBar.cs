@@ -46,17 +46,23 @@ public sealed class AppBar : Component
         var helpLabel = new MenuItem();
         helpLabel.Controller = new TestMenuItemController(helpLabel, contextMenuManager, "Help");
         
-        var row = new FlexRow(MainAxisAlignment.Start, CrossAxisAlignment.Stretch, 10)
+        var row = new FlexRow
         {
-            fileItem,
-            editItem,
-            viewLabel,
-            specialMenuItem,
-            helpLabel,
+            MainAxisAlignment = MainAxisAlignment.Start,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
+            Gap = 10,
+            Children =
+            {
+                fileItem,
+                editItem,
+                viewLabel,
+                specialMenuItem,
+                helpLabel,
+            }
         };
         
-        background.Add(row);
-        container.Add(background);
+        background.Children.Add(row);
+        container.Children.Add(background);
         Add(container);
     }
 }

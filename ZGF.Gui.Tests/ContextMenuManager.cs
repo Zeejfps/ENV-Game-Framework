@@ -80,7 +80,7 @@ public sealed class ContextMenuManager
         }
 
         _openedMenus[contextMenu] = openedMenu;
-        _contextMenuPane.Add(contextMenu);
+        _contextMenuPane.Children.Add(contextMenu);
         return openedMenu;
     }
 
@@ -94,7 +94,7 @@ public sealed class ContextMenuManager
             if (now - timestamp > 100)
             {
                 Console.WriteLine($"Closing: {menu.GetHashCode()}");
-                _contextMenuPane.Remove(component);
+                _contextMenuPane.Children.Remove(component);
                 _closingMenus.Remove(menu);
                 _openedMenus.Remove(component);
             }
