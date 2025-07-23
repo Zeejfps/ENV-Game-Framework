@@ -17,6 +17,7 @@
 	<s:String x:Key="/Default/Environment/AssemblyExplorer/XmlDocument/@EntryValue">&lt;AssemblyExplorer&gt;&#xD;
   &lt;Assembly Path="C:\Users\zeejf\.nuget\packages\raylib-cslo\4.2.0.9\lib\netstandard2.1\Raylib-CsLo.dll" /&gt;&#xD;
 &lt;/AssemblyExplorer&gt;</s:String>
+	<s:String x:Key="/Default/Environment/Highlighting/HighlightingSourceSnapshotLocation/@EntryValue">C:\Users\zeejf\AppData\Local\JetBrains\Rider2025.1\resharper-host\temp\Rider\vAny\CoverageData\_ENV Game Framework.-1116597666\Snapshot\snapshot.utdcvr</s:String>
 	
 	
 	

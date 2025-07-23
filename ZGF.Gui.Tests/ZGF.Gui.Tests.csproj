@@ -29,4 +29,8 @@
         <DefineConstants>OSX</DefineConstants>
     </PropertyGroup>
 
+    <PropertyGroup Condition="$([System.OperatingSystem]::IsWindows())">
+        <DefineConstants>WIN</DefineConstants>
+    </PropertyGroup>
+
 </Project>

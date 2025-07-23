@@ -51,6 +51,8 @@ public sealed class App : OpenGlApp
         context.AddService(_contextMenuManager);
 #if OSX
         context.AddService<IClipboard>(new OsxClipboard());
+#elif WIN
+        context.AddService<IClipboard>(new Win32Clipboard());
 #else
         context.AddService<IClipboard>(new AppClipboard());
 #endif
