@@ -61,6 +61,7 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
             if (isEditing && !containsPoint)
             {
                 _textInput.StopEditing();
+                this.Blur();
                 return false;
             }
 

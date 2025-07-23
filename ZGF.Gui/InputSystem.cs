@@ -172,16 +172,15 @@ public sealed class InputSystem : IMouse
             if (newFocusedComponent != null)
             {
                 newFocusedComponent.OnFocusGained();
-                //Console.WriteLine($"Focused: {newFocusedComponent}");
+                Console.WriteLine($"Focused: {newFocusedComponent}");
             }
         }
     }
 
-    public bool RequestFocus(IKeyboardMouseController component)
+    public void RequestFocus(IKeyboardMouseController component)
     {
-        //Console.WriteLine($"Requesting focus: {component}");
+        Console.WriteLine($"Requesting focus: {component}");
         _componentsToAddToFocusQueue.Add(component);
-        return false;
     }
     
     public void Blur(IKeyboardMouseController component)

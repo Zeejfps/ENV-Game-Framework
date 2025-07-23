@@ -82,6 +82,7 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
 
     public bool OnMouseMoved(in MouseMoveEvent e)
     {
+        Console.WriteLine($"OnMouseMoved: TitleBar - {_window.TitleText}");
         var isLeftButtonPressed = e.Mouse.IsButtonPressed(MouseButton.Left);
         if (!isLeftButtonPressed)
             return false;
@@ -97,6 +98,7 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         if (delta.LengthSquared() > 1f)
         {
             _isDragging = true;
+            Console.WriteLine("Draggins started");
             return true;
         }
 
