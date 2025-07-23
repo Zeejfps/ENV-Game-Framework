@@ -1,8 +1,6 @@
-﻿using ZGF.KeyboardModule;
+﻿namespace ZGF.Gui.Tests;
 
-namespace ZGF.Gui.Tests;
-
-public sealed class VerticalScrollPane : Component, IKeyboardMouseController
+public sealed class VerticalScrollPane : Component
 {
     private float _yOffset;
     public float YOffset
@@ -10,12 +8,7 @@ public sealed class VerticalScrollPane : Component, IKeyboardMouseController
         get => _yOffset;
         set => SetField(ref _yOffset, value);
     }
-
-    public VerticalScrollPane()
-    {
-        Controller = this;
-    }
-
+    
     protected override void OnLayoutChildren()
     {
         var position = Position;
@@ -48,55 +41,5 @@ public sealed class VerticalScrollPane : Component, IKeyboardMouseController
             },
             ZIndex = 1
         });
-    }
-
-    public void OnEnabled(Context context)
-    {
-        context.InputSystem.AddInteractable(this);
-    }
-
-    public void OnDisabled(Context context)
-    {
-        context.InputSystem.RemoveInteractable(this);
-    }
-
-    public Component Component => this;
-    public void OnMouseEnter(in MouseEnterEvent e)
-    {
-        this.RequestFocus();
-    }
-
-    public void OnMouseExit(in MouseExitEvent e)
-    {
-        this.Blur();
-    }
-
-    public bool OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
-    {
-        if (e.State == InputState.Pressed)
-        {
-            if (e.Key == KeyboardKey.UpArrow)
-            {
-                YOffset += 10f;
-            }
-            else if (e.Key == KeyboardKey.DownArrow)
-            {
-                YOffset -= 10f;
-            }
-        }
-        return true;
-    }
-}
-
-public sealed class ScrollView : Component
-{
-    private readonly VerticalScrollPane _viewPort;
-    
-    public Component? Content { get; set; }
-    
-    public ScrollView()
-    {
-        _viewPort = new VerticalScrollPane();
-        Add(_viewPort);
     }
 }

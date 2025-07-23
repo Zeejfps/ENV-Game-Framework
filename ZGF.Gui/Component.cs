@@ -337,7 +337,7 @@ public class Component : IEnumerable<Component>
         DrawSelf(c);
     }
 
-    protected void DrawSelf(ICanvas c)
+    private void DrawSelf(ICanvas c)
     {
         if (c.TryGetClip(out var clipRect))
         {

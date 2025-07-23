@@ -79,10 +79,10 @@ public sealed class Window : Component
 
         var content = new Panel
         {
-            PreferredHeight = 200f,
-            BackgroundColor = 0xFF00FF,
+            PreferredHeight = 400f,
+            BackgroundColor = 0xFF44FF,
             BorderSize = BorderSizeStyle.All(1),
-            BorderColor = BorderColorStyle.All(0x00FFFF)
+            BorderColor = BorderColorStyle.All(0x0000FF)
         };
 
         var columnLayout = new Column();
@@ -138,9 +138,9 @@ public sealed class Window : Component
         };
         columnLayout.Add(bottomSection);
 
-        var test = new VerticalScrollPane
+        var test = new ScrollView
         {
-            columnLayout
+            Content = columnLayout,
         };
         
         var borderLayout = new BorderLayout
