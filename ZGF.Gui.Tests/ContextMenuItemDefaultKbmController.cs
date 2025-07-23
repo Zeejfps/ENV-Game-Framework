@@ -64,7 +64,7 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
             });
         }
 
-        _openedContextMenu = _contextMenuManager.ShowContextMenu(subMenu);
+        _openedContextMenu = _contextMenuManager.ShowContextMenu(subMenu, _contextMenu);
 
         this.RequestFocus();
     }

@@ -33,13 +33,13 @@ sealed class OpenedContextMenu : IOpenedContextMenu
     {
         if (CanBeClosed())
         {
-            Console.WriteLine("Can be closed");
             _contextMenuManager.HideContextMenu(ContextMenu);
         }
     }
 
     public bool CanBeClosed()
     {
+        Console.WriteLine("Can be closed?");
         if (IsHovered)
             return false;
 
@@ -145,6 +145,7 @@ public sealed class ContextMenuManager
 
     private void CloseMenu(OpenedContextMenu openedMenu)
     {
+        Console.WriteLine($"Close menu: {openedMenu.GetHashCode()}");
         openedMenu.CloseTimestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds();
         _closingMenus.Add(openedMenu);
     }
