@@ -265,17 +265,24 @@ public sealed class Canvas : ICanvas
         var height = (int)position.Height;
         
         var aspect = (float)image.Width / image.Height;
-        if (height < width)
+        float scaledWidth, scaledHeight;
+
+        if (aspect > (float)width / height) // Image is wider than the area
         {
-            width = (int)(height * aspect);
+            scaledWidth = width;
+            scaledHeight = width / aspect;
         }
-        else if (width < height)
+        else 
         {
-            height = (int)(width / aspect);
+            scaledHeight = height;
+            scaledWidth = height * aspect;
         }
+
+        var offsetX = (int)(x + (width - scaledWidth) / 2);
+        var offsetY = (int)(y + (height - scaledHeight) / 2);
         
         Graphics.BlitTransparent(
-            _colorBuffer, x, y, width, height,
+            _colorBuffer, offsetX, offsetY, (int)scaledWidth, (int)scaledHeight,
             image, 0, 0, image.Width, image.Height,
             0x000000
         );

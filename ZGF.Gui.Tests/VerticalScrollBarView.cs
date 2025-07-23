@@ -22,7 +22,7 @@ public sealed class VerticalScrollBarView : View
 
         var scrollUpButton = new RectView
         {
-            Padding = PaddingStyle.All(1),
+            Padding = PaddingStyle.All(4),
             BackgroundColor = 0xDEDEDE,
             PreferredHeight = 20,
             BorderSize = BorderSizeStyle.All(1),
@@ -34,8 +34,6 @@ public sealed class VerticalScrollBarView : View
             {
                 new Image
                 {
-                    PreferredWidth = 20,
-                    PreferredHeight = 20,
                     ImageUri = "Assets/Icons/arrow_up.png"
                 }
             }
@@ -43,7 +41,7 @@ public sealed class VerticalScrollBarView : View
         
         var scrollDownButton = new RectView
         {
-            Padding = PaddingStyle.All(1),
+            Padding = PaddingStyle.All(4),
             BackgroundColor = 0xDEDEDE,
             PreferredHeight = 20,
             BorderSize = BorderSizeStyle.All(1),
@@ -55,8 +53,6 @@ public sealed class VerticalScrollBarView : View
             {
                 new Image
                 {
-                    PreferredWidth = 20,
-                    PreferredHeight = 20,
                     ImageUri = "Assets/Icons/arrow_down.png"
                 }
             }
