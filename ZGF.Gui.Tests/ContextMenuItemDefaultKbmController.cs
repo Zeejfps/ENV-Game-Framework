@@ -91,6 +91,10 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         {
             _openedContextMenu.CloseRequest();
         }
+        else
+        {
+            _contextMenuItem.IsSelected = false;       
+        }
         this.Blur();
     }
 
