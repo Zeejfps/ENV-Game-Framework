@@ -50,14 +50,6 @@ public sealed class FlexRow : Component
     
     private readonly Dictionary<Component, FlexStyle> _flexStyleByComponent = new();
     
-    public void Add(Component component, FlexStyle style)
-    {
-        var added = _flexStyleByComponent.TryAdd(component, style);
-        if (!added)
-            throw new Exception("Component already added");
-        
-        Add(component);
-    }
     
     public void UpdateStyle(Component component, FlexStyle style)
     {

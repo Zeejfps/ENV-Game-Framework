@@ -2,9 +2,10 @@ namespace ZGF.Gui.Tests;
 
 public sealed class TestMenuItemController : BaseMenuItemController
 {
-    public TestMenuItemController(MenuItem menuItem, ContextMenuManager contextMenuManager, string text) : base(menuItem, contextMenuManager)
+    public TestMenuItemController(MenuItem menuItem, ContextMenuManager contextMenuManager) : base(menuItem,
+        contextMenuManager)
     {
-        menuItem.Text = text;
+        
     }
 
     protected override void BuildMenu(ContextMenu contextMenu)
