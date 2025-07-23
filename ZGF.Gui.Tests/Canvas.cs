@@ -129,23 +129,22 @@ public sealed class Canvas : ICanvas
         }
     }
 
-    private void DrawGlyph(int destX, int destY, FontChar glyphInfo, uint color)
+    private void DrawGlyph(int destX, int destY, FontChar glyphInfo, uint color, RectF clip)
     {
         var bufferPixels = _colorBuffer.Pixels;
         var bufferWidth = _colorBuffer.Width;
-        var bufferHeight = _colorBuffer.Height;
 
         var fontPixels = _font.Png.PixelData;
         var fontTextureWidth = _font.Png.Width;
         
-        int destWidth = glyphInfo.Width;
-        int destHeight = glyphInfo.Height;
+        var destWidth = glyphInfo.Width;
+        var destHeight = glyphInfo.Height;
 
         // 2. Clip the destination rectangle against the screen bounds.
-        int loopStartX = Math.Max(0, destX);
-        int loopEndX = Math.Min(bufferWidth, destX + destWidth);
-        int loopStartY = Math.Max(0, destY);
-        int loopEndY = Math.Min(bufferHeight, destY + destHeight);
+        var loopStartX = Math.Max((int)clip.Left, destX);
+        var loopEndX = Math.Min((int)clip.Right, destX + destWidth);
+        var loopStartY = Math.Max((int)clip.Bottom, destY);
+        var loopEndY = Math.Min((int)clip.Top, destY + destHeight);
 
         if (loopStartX >= loopEndX || loopStartY >= loopEndY)
         {
@@ -356,6 +355,7 @@ public sealed class Canvas : ICanvas
             {
             }
             
+            var clipRect = cmd.Clip;
             var glyphX = cursorX + kerningOffset + glyphInfo.XOffset;
             var glyphY = cursorY + (fontBase - glyphInfo.YOffset) - glyphInfo.Height;
 
@@ -363,7 +363,6 @@ public sealed class Canvas : ICanvas
             var isClippingEnabled = true;
             if (isClippingEnabled)
             {
-                var clipRect = cmd.Clip;
 
                 var glyphWidth = glyphInfo.Width;
                 var glyphHeight = glyphInfo.Height;
@@ -385,7 +384,8 @@ public sealed class Canvas : ICanvas
                     glyphX,
                     glyphY,
                     glyphInfo,
-                    color);
+                    color,
+                    clipRect);
             }
 
             cursorX += glyphInfo.XAdvance;
