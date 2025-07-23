@@ -74,7 +74,7 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         _contextMenuItem.IsSelected = false;
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
-            _openedContextMenu.Close();
+            _openedContextMenu.CloseRequest();
         }
         this.Blur();
     }

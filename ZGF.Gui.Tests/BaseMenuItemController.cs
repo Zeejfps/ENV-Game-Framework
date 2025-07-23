@@ -21,12 +21,15 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
 
     public void OnDisabled(Context context)
     {
+        if (_openedContextMenu != null)
+        {
+            _openedContextMenu.Closed -= OnOpenedContextMenuClosed;
+        }
         this.UnregisterController(context);
     }
     
     public void OnMouseEnter()
     {
-        MenuItem.IsSelected = true;
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
             _openedContextMenu.CancelCloseRequest();
@@ -40,16 +43,25 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         BuildMenu(_contextMenu);
         
         _openedContextMenu = _contextMenuManager.ShowContextMenu(_contextMenu);
+        _openedContextMenu.Closed += OnOpenedContextMenuClosed;
         _contextMenu.AddController(new ContextMenuKbmController(_openedContextMenu));
+        MenuItem.IsSelected = true;
+    }
+
+    private void OnOpenedContextMenuClosed()
+    {
+        MenuItem.IsSelected = false;
+        if (_openedContextMenu != null)
+        {
+            _openedContextMenu.Closed -= OnOpenedContextMenuClosed;
+        }
     }
 
     public void OnMouseExit()
     {
-        MenuItem.IsSelected = false;
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
-            Console.WriteLine("Close context menu");
-            _openedContextMenu.Close();
+            _openedContextMenu.CloseRequest();
         }
     }
     

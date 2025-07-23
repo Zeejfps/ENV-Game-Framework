@@ -2,42 +2,46 @@
 
 public interface IOpenedContextMenu
 {
+    event Action Closed;
     Component Component { get; }
     bool IsOpened { get; }
 
     void CancelCloseRequest();
-    void Close();
+    void CloseRequest();
 }
 
 sealed class OpenedContextMenu : IOpenedContextMenu
 {
+    public event Action Closed;
+
+    public bool IsOpened { get; private set; } = true;
     public required ContextMenu ContextMenu { get; init; }
     public OpenedContextMenu? Parent { get; set; }
     public OpenedContextMenu? Child { get; set; }
     public long CloseTimestamp { get; set; }
-    public bool IsOpened { get; set; }
     public Component Component => ContextMenu;
 
     public bool IsCloseRequested { get; private set; }
 
-    private readonly ContextMenuManager _contextMenuManager;
-
-    public OpenedContextMenu(ContextMenuManager contextMenuManager)
-    {
-        _contextMenuManager = contextMenuManager;
-    }
-
     public void CancelCloseRequest()
     {
+        if (!IsOpened)
+            return;
+
         Console.WriteLine($"CancelCloseRequest: {GetHashCode()}");
         IsCloseRequested = false;
-        _contextMenuManager.KeepOpen(this);
+    }
+
+    public void CloseRequest()
+    {
+        Console.WriteLine($"Close requested: {GetHashCode()}");
+        IsCloseRequested = true;
     }
 
     public void Close()
     {
-        Console.WriteLine($"Close requested: {GetHashCode()}");
-        IsCloseRequested = true;
+        IsOpened = false;
+        Closed?.Invoke();
     }
 }
 
@@ -60,10 +64,9 @@ public sealed class ContextMenuManager
             throw new Exception("Menu already opened");
         }
 
-        openedMenu = new OpenedContextMenu(this)
+        openedMenu = new OpenedContextMenu
         {
             ContextMenu = contextMenu,
-            IsOpened = true,
         };
         
         if (parentMenu != null)
@@ -94,7 +97,6 @@ public sealed class ContextMenuManager
                 _contextMenuPane.Remove(component);
                 _closingMenus.Remove(menu);
                 _openedMenus.Remove(component);
-                menu.IsOpened = false;
             }
         }
 
@@ -105,29 +107,14 @@ public sealed class ContextMenuManager
                 contextMenu.CloseTimestamp = now;
                 _closingMenus.Add(contextMenu);
                 _openedMenus.Remove(contextMenu.ContextMenu);
+                contextMenu.Close();
 
                 var parent = contextMenu.Parent;
-                while (parent != null)
+                if (parent != null)
                 {
-                    if (parent.IsCloseRequested)
-                    {
-                        parent.CloseTimestamp = now;
-                        _closingMenus.Add(parent);
-                    }
-                    parent = parent.Parent;
+                    parent.Child = null;
                 }
             }
-        }
-    }
-
-    internal void KeepOpen(OpenedContextMenu openedContextMenu)
-    {
-        _closingMenus.Remove(openedContextMenu);
-        var parent =  openedContextMenu.Parent;
-        while (parent != null)
-        {
-            _closingMenus.Remove(parent);
-            parent = parent.Parent;
         }
     }
 }

@@ -26,7 +26,7 @@ public sealed class ContextMenuKbmController : IKeyboardMouseController
 
     public void OnMouseExit()
     {
-        _contextMenu.Close();
+        _contextMenu.CloseRequest();
     }
 
     public Component Component => _contextMenu.Component;
