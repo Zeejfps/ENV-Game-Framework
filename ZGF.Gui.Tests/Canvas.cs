@@ -101,7 +101,35 @@ public sealed class Canvas : ICanvas
 
     public void PushClip(RectF rect)
     {
-        _clipStack.Push(rect);
+        var currentClip = GetClip();
+        
+        var left = rect.Left;
+        if (left < currentClip.Left)
+        {
+            left = currentClip.Left;
+        }
+        
+        var bottom = rect.Bottom;
+        if (bottom < currentClip.Bottom)
+        {
+            bottom = currentClip.Bottom;
+        }
+        
+        var right = rect.Right;
+        if (right > currentClip.Right)
+            right = currentClip.Right;
+        
+        var top = rect.Top;
+        if (top > currentClip.Top)
+            top = currentClip.Top;
+        
+        _clipStack.Push(new RectF
+        {
+            Left = left,
+            Bottom = bottom,
+            Width = right - left,
+            Height = top - bottom,
+        });
     }
 
     public void PopClip()
@@ -145,6 +173,8 @@ public sealed class Canvas : ICanvas
         var loopEndX = Math.Min((int)clip.Right, destX + destWidth);
         var loopStartY = Math.Max((int)clip.Bottom, destY);
         var loopEndY = Math.Min((int)clip.Top, destY + destHeight);
+        
+        // Graphics.DrawRect(_colorBuffer, loopStartX, loopStartY, loopEndX - loopStartX, loopEndY - loopStartY, 0x00FF00);
 
         if (loopStartX >= loopEndX || loopStartY >= loopEndY)
         {

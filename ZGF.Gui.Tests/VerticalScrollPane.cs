@@ -36,6 +36,20 @@ public sealed class VerticalScrollPane : Component, IKeyboardMouseController
         c.PopClip();
     }
 
+    protected override void OnDrawSelf(ICanvas c)
+    {
+        base.OnDrawSelf(c);
+        c.AddCommand(new DrawRectCommand
+        {
+            Position = Position,
+            Style = new RectStyle
+            {
+                BackgroundColor = 0x00FF00,
+            },
+            ZIndex = 1
+        });
+    }
+
     public void OnEnabled(Context context)
     {
         context.InputSystem.AddInteractable(this);
