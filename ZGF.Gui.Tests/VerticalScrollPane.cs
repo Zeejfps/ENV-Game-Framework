@@ -61,7 +61,6 @@ public sealed class VerticalScrollPane : Component, IKeyboardMouseController
     {
         if (e.State == InputState.Pressed)
         {
-
             if (e.Key == KeyboardKey.UpArrow)
             {
                 YOffset += 10f;

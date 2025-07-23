@@ -220,10 +220,10 @@ public static class Graphics
         if (sy >= clip.Top)
             return false;
         
-        if (ex < 0)
+        if (ex < clip.Left)
             return false;
         
-        if (ey < 0)
+        if (ey < clip.Bottom)
             return false;
         
         if (sx < 0)
