@@ -6,12 +6,7 @@ namespace ZGF.Gui.Tests;
 public sealed class VerticalListView : View
 {
     private float _yOffset;
-    public float YOffset
-    {
-        get => _yOffset;
-        set => SetField(ref _yOffset, value);
-    }
-    
+
     public override IComponentCollection Children => _columnView.Children;
     
     private readonly ColumnView _columnView;
@@ -22,6 +17,12 @@ public sealed class VerticalListView : View
         AddChildToSelf(_columnView);
     }
 
+    public void Scroll(float delta)
+    {
+        _yOffset += delta;
+        SetDirty();
+    }
+    
     protected override void OnLayoutChild(in RectF position, View child)
     {
         var height = MeasureHeight();

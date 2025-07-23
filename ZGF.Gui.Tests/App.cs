@@ -138,8 +138,8 @@ public sealed class App : OpenGlApp
         var e = new MouseWheelScrolledEvent
         {
             Mouse = _inputSystem,
-            DeltaX = x,
-            DeltaY = y
+            DeltaX = (float)x,
+            DeltaY = (float)y
         };
         _inputSystem.HandleMouseScrollEvent(ref e);
     }

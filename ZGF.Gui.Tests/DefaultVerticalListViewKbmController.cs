@@ -15,7 +15,7 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
 
     public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
     {
-        _view.YOffset += (int)e.DeltaY * -6;
+        _view.Scroll(e.DeltaY * -6);
         e.Consume();
     }
 
@@ -45,11 +45,11 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
         {
             if (e.Key == KeyboardKey.UpArrow)
             {
-                _view.YOffset += 10f;
+                _view.Scroll(10f);
             }
             else if (e.Key == KeyboardKey.DownArrow)
             {
-                _view.YOffset -= 10f;
+                _view.Scroll(-10f);
             }
         }
         return true;
