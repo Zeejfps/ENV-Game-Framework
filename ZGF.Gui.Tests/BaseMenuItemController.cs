@@ -5,21 +5,21 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
     protected MenuItem MenuItem { get; }
     protected readonly ContextMenuManager _contextMenuManager;
     
-    private ContextMenu? _contextMenu;
-
+    private ContextMenu _contextMenu;
+    private bool _isBuilt;
+    
     protected BaseMenuItemController(MenuItem menuItem, ContextMenuManager contextMenuManager)
     {
         MenuItem = menuItem;
         _contextMenuManager = contextMenuManager;
+        
+        _contextMenu = new ContextMenu();
+        _contextMenu.AddController(new ContextMenuDefaultKbmController(_contextMenu));
     }
     
     public void OnEnabled(Context context)
     {
         this.RegisterController(context);
-        
-        _contextMenu = new ContextMenu(MenuItem.Position.BottomLeft);
-        _contextMenu.AddController(new ContextMenuDefaultKbmController(_contextMenu));
-        BuildMenu(_contextMenu);
     }
 
     public void OnDisabled(Context context)
@@ -29,6 +29,13 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
     
     public void OnMouseEnter()
     {
+        if (!_isBuilt)
+        {
+            BuildMenu(_contextMenu);
+            _isBuilt = true;
+        }
+        
+        _contextMenu.AnchorPoint = MenuItem.Position.BottomLeft;
         MenuItem.IsSelected = true;
         if (_contextMenu != null)
         {

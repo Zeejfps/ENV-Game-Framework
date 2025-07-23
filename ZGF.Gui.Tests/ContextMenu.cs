@@ -5,13 +5,17 @@ namespace ZGF.Gui.Tests;
 
 public sealed class ContextMenu : Component
 {
-    private readonly PointF _anchorPoint;
     private readonly Column _itemsContainer;
     
-    public ContextMenu(PointF anchorPoint)
+    private PointF _anchorPoint;
+    public PointF AnchorPoint
     {
-        _anchorPoint = anchorPoint;
+        get => _anchorPoint;
+        set => SetField(ref _anchorPoint, value);
+    }
 
+    public ContextMenu()
+    {
         var background = new Panel
         {
             BackgroundColor = 0xDEDEDE,

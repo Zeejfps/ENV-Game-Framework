@@ -23,13 +23,15 @@ public sealed class ContextMenuManager
 
     public void ShowContextMenu(ContextMenu contextMenu, ContextMenu? parentMenu = null)
     {
-        if (_openedMenus.ContainsKey(contextMenu))
+        if (_openedMenus.TryGetValue(contextMenu, out var openedMenu))
+        {
+            KeepOpen(openedMenu);
             return;
+        }
 
-        var openedMenu = new OpenedContextMenu
+        openedMenu = new OpenedContextMenu
         {
             ContextMenu = contextMenu,
-            Child = null
         };
         
         if (parentMenu != null)
@@ -39,7 +41,8 @@ public sealed class ContextMenuManager
                 throw new Exception("Parent menu not opened");
             }
             
-            if (openedParentMenu.Child != null)
+            KeepOpen(openedParentMenu);
+            if (openedParentMenu.Child != null && openedParentMenu.Child != openedMenu)
             {
                 CloseMenu(openedParentMenu.Child);
             }
@@ -50,33 +53,21 @@ public sealed class ContextMenuManager
         
         _openedMenus[contextMenu] = openedMenu;
         _contextMenuPane.Add(contextMenu);
-        Console.WriteLine("Wtf");
     }
     
     public void OnMouseEnter(ContextMenu contextMenu)
     {
+        Console.WriteLine($"MOuse enter: {contextMenu.GetHashCode()}");
         if (_openedMenus.TryGetValue(contextMenu, out var openedMenu))
         {
             openedMenu.IsHovered = true;
-            
-            var parent = openedMenu.Parent;
-            while (parent != null)
-            {
-                _closingMenus.Remove(parent);
-                parent = parent.Parent;
-            }
-            
-            var child = openedMenu.Child;
-            while (child != null)
-            {
-                _closingMenus.Remove(child);
-                child = child.Child;
-            }
+            KeepOpen(openedMenu);
         }
     }
 
     public void OnMouseExit(ContextMenu contextMenu)
     {
+        Console.WriteLine($"MOuse exit: {contextMenu.GetHashCode()}");
         if (_openedMenus.TryGetValue(contextMenu, out var openedMenu))
         {
             openedMenu.IsHovered = false;
@@ -99,6 +90,25 @@ public sealed class ContextMenuManager
     {
         openedMenu.CloseTimestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds();
         _closingMenus.Add(openedMenu);
+    }
+
+    private void KeepOpen(OpenedContextMenu openedMenu)
+    {
+        _closingMenus.Remove(openedMenu);
+            
+        var parent = openedMenu.Parent;
+        while (parent != null)
+        {
+            _closingMenus.Remove(parent);
+            parent = parent.Parent;
+        }
+            
+        var child = openedMenu.Child;
+        while (child != null)
+        {
+            _closingMenus.Remove(child);
+            child = child.Child;
+        }
     }
 
     private bool CanBeClosed(OpenedContextMenu openedMenu)

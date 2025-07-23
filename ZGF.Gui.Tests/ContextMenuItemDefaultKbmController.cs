@@ -33,6 +33,19 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         if (SubOptions.Count > 0)
         {
             _contextMenuItem.IsArrowVisible = true;
+            
+            _subMenu = new ContextMenu
+            {
+                AnchorPoint = _contextMenuItem.Position.TopRight
+            };
+            _subMenu.AddController(new ContextMenuDefaultKbmController(_subMenu));
+            foreach (var subOption in SubOptions)
+            {
+                _subMenu.AddItem(new ContextMenuItem
+                {
+                    Text = subOption.Text
+                });
+            }
         }
     }
 
@@ -44,17 +57,8 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
     public void OnMouseEnter()
     {
         _contextMenuItem.IsSelected = true;
-        if (SubOptions.Count > 0)
+        if (_subMenu != null)
         {
-            _subMenu = new ContextMenu(_contextMenuItem.Position.TopRight);
-            _subMenu.AddController(new ContextMenuDefaultKbmController(_contextMenu));
-            foreach (var subOption in SubOptions)
-            {
-                _subMenu.AddItem(new ContextMenuItem
-                {
-                    Text = subOption.Text
-                });
-            }
             _contextMenuManager.ShowContextMenu(_subMenu, _contextMenu);
         }
 
