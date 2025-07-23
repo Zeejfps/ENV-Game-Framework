@@ -149,19 +149,21 @@ public sealed class TextInput : Component
         
         DrawBackground(position, c);
         
+        c.PushClip(position);
+
         if (_isEditing && _selectionStartIndex != _caretIndex)
         {
             DrawSelectionBox(position, c);
         }
 
-        c.PushClip(position);
         DrawText(position, c);
-        c.PopClip();
         
         if (_isEditing)
         {
             DrawCaret(position, c);
         }
+        
+        c.PopClip();
     }
 
     private void DrawBackground(in RectF position, ICanvas c)

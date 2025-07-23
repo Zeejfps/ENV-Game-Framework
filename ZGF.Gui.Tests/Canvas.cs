@@ -263,7 +263,11 @@ public sealed class Canvas : ICanvas
         
         var borderColor = style.BorderColor;
         
-        Graphics.FillRect(_colorBuffer, left +  (int)borderSize.Left, bottom + (int)borderSize.Bottom, fillWidth, fillHeight, style.BackgroundColor);
+        Graphics.FillRect(_colorBuffer, 
+            left +  (int)borderSize.Left, bottom + (int)borderSize.Bottom, 
+            fillWidth, fillHeight,
+            style.BackgroundColor,
+            command.Clip);
 
         // Left Border
         DrawBorder(left, bottom, left, top+1, borderColor.Left, (int)borderSize.Left, 1, 0);
