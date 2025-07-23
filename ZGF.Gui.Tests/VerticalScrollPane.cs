@@ -1,25 +1,30 @@
-﻿namespace ZGF.Gui.Tests;
+﻿using ZGF.Geometry;
+using ZGF.Gui.Layouts;
+
+namespace ZGF.Gui.Tests;
 
 public sealed class VerticalScrollPane : View
 {
     private float _yOffset;
-    public float YOffset
-    {
-        get => _yOffset;
-        set => SetField(ref _yOffset, value);
-    }
+    private float _yMax;
+    private readonly ColumnView _columnView;
+
+    public override IComponentCollection Children => _columnView.Children;
     
-    protected override void OnLayoutChildren()
+    public VerticalScrollPane()
     {
-        var position = Position;
-        foreach (var child in Children)
-        {
-            child.BottomConstraint = position.Bottom + _yOffset;
-            child.LeftConstraint = position.Left;            
-            child.MinWidthConstraint = position.Width;
-            child.MaxWidthConstraint = position.Width;
-            child.LayoutSelf();
-        }
+        _columnView = new ColumnView();
+        AddChildToSelf(_columnView);
+    }
+
+    protected override void OnLayoutChild(in RectF position, View child)
+    {
+        var childHeight = child.MeasureHeight();
+        child.BottomConstraint = position.Top + _yOffset - childHeight;
+        child.LeftConstraint = position.Left;            
+        child.MinWidthConstraint = position.Width;
+        child.MaxWidthConstraint = position.Width;
+        child.LayoutSelf();
     }
 
     protected override void OnDrawChildren(ICanvas c)
@@ -28,18 +33,71 @@ public sealed class VerticalScrollPane : View
         base.OnDrawChildren(c);
         c.PopClip();
     }
-
-    protected override void OnDrawSelf(ICanvas c)
+    
+    public void ScrollUp(float delta)
     {
-        base.OnDrawSelf(c);
-        c.AddCommand(new DrawRectCommand
+        Scroll(-delta);
+    }
+    
+    public void ScrollDown(float delta)
+    {
+        Scroll(delta);
+    }
+
+    public void ScrollTo(View view)
+    {
+        if (!Children.Contains(view))
+            return;
+
+        var viewportPosition = Position;
+        var viewPosition = view.Position;
+        if (viewPosition.FullyContains(viewPosition))
+            return;
+        
+        // TODO: Finish
+    }
+
+    public void Scroll(float delta)
+    {
+        _yOffset += delta;
+        if (_yOffset < 0)
         {
-            Position = Position,
-            Style = new RectStyle
-            {
-                BackgroundColor = 0x00FF00,
-            },
-            ZIndex = 1
-        });
+            _yOffset = 0;           
+        }
+        else if (_yOffset > _yMax)
+        {
+            _yOffset = _yMax;
+        }
+        SetDirty();
+    }
+
+    public void ScrollToTop()
+    {
+        _yOffset = 0;
+        SetDirty();
+    }
+    
+    public void ScrollToBottom()
+    {
+        var viewportHeight = Position.Height;
+        var contentHeight = _columnView.MeasureHeight();
+        
+        if (contentHeight <= viewportHeight)
+            return;
+        
+        var delta = _yOffset + contentHeight - viewportHeight;
+        Scroll(delta);
+    }
+    
+    protected override void OnLayoutChildren()
+    {
+        base.OnLayoutChildren();
+        
+        var viewportHeight = Position.Height;
+        var contentHeight = _columnView.MeasureHeight();
+        if (contentHeight <= viewportHeight)
+            _yMax = 0;
+        else
+            _yMax = contentHeight - viewportHeight;
     }
 }
