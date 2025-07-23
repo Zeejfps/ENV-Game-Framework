@@ -11,13 +11,6 @@ public sealed class Window : View
     {
         TitleText = titleText;
         Position = new RectF(200f, 200f, 340f, 300f);
-        
-        var outline = new RectView
-        {
-            BackgroundColor = 0x000000,
-            BorderSize = BorderSizeStyle.All(1),
-            BorderColor = BorderColorStyle.All(0x000000),
-        };
 
         var titlePanel = new WindowTitleBarView(titleText);
         titlePanel.Controller = new WindowTitleBarDefaultKbmController(this, titlePanel);
@@ -68,18 +61,6 @@ public sealed class Window : View
             }
         };
         
-        var contentOutline = new RectView
-        {
-            Padding = new PaddingStyle
-            {
-                Bottom = 5
-            },
-            StyleClasses =
-            {
-                "inset_panel"
-            }
-        };
-
         var content = new RectView
         {
             PreferredHeight = 400f,
@@ -136,15 +117,6 @@ public sealed class Window : View
             Center = progress,
             South = textField,
         };
-        
-        // var columnLayout = new ColumnView
-        // {
-        //     Children =
-        //     {
-        //         content,
-        //         bottomSection
-        //     }
-        // };
 
         var listView = new VerticalListView
         {
@@ -156,6 +128,22 @@ public sealed class Window : View
         };
         listView.Controller = new DefaultVerticalListViewKbmController(listView);
         
+        var contentOutline = new RectView
+        {
+            Padding = new PaddingStyle
+            {
+                Bottom = 5
+            },
+            StyleClasses =
+            {
+                "inset_panel"
+            },
+            Children =
+            {
+                listView
+            }
+        };
+        
         var borderLayout = new BorderLayoutView
         {
             North = titlePanel,
@@ -165,8 +153,16 @@ public sealed class Window : View
             South = bottomBorder
         };
         
-        contentOutline.Children.Add(listView);
-        outline.Children.Add(borderLayout);
+        var outline = new RectView
+        {
+            BackgroundColor = 0x000000,
+            BorderSize = BorderSizeStyle.All(1),
+            BorderColor = BorderColorStyle.All(0x000000),
+            Children =
+            {
+                borderLayout
+            }
+        };
         AddChildToSelf(outline);
 
         var windowResizer = new WindowResizer();
