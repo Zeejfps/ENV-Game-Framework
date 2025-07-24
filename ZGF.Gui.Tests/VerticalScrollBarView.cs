@@ -34,51 +34,53 @@ public sealed class VerticalScrollBarView : View
                 _thumbView
             }
         };
+        
+        AddChildToSelf(slideArea);
 
-        var scrollUpButton = new RectView
-        {
-            Padding = PaddingStyle.All(4),
-            BackgroundColor = 0xDEDEDE,
-            PreferredHeight = 20,
-            BorderSize = BorderSizeStyle.All(1),
-            StyleClasses =
-            {
-                "raised_panel"
-            },
-            Children =
-            {
-                new Image
-                {
-                    ImageUri = "Assets/Icons/arrow_up.png"
-                }
-            }
-        };
-        
-        var scrollDownButton = new RectView
-        {
-            Padding = PaddingStyle.All(4),
-            BackgroundColor = 0xDEDEDE,
-            PreferredHeight = 20,
-            BorderSize = BorderSizeStyle.All(1),
-            StyleClasses =
-            {
-                "raised_panel"
-            },
-            Children =
-            {
-                new Image
-                {
-                    ImageUri = "Assets/Icons/arrow_down.png"
-                }
-            }
-        };
-        
-        AddChildToSelf(new BorderLayoutView
-        {
-            North = scrollUpButton,
-            Center = slideArea,
-            South = scrollDownButton
-        });
+        // var scrollUpButton = new RectView
+        // {
+        //     Padding = PaddingStyle.All(4),
+        //     BackgroundColor = 0xDEDEDE,
+        //     PreferredHeight = 20,
+        //     BorderSize = BorderSizeStyle.All(1),
+        //     StyleClasses =
+        //     {
+        //         "raised_panel"
+        //     },
+        //     Children =
+        //     {
+        //         new Image
+        //         {
+        //             ImageUri = "Assets/Icons/arrow_up.png"
+        //         }
+        //     }
+        // };
+        //
+        // var scrollDownButton = new RectView
+        // {
+        //     Padding = PaddingStyle.All(4),
+        //     BackgroundColor = 0xDEDEDE,
+        //     PreferredHeight = 20,
+        //     BorderSize = BorderSizeStyle.All(1),
+        //     StyleClasses =
+        //     {
+        //         "raised_panel"
+        //     },
+        //     Children =
+        //     {
+        //         new Image
+        //         {
+        //             ImageUri = "Assets/Icons/arrow_down.png"
+        //         }
+        //     }
+        // };
+        //
+        // AddChildToSelf(new BorderLayoutView
+        // {
+        //     North = scrollUpButton,
+        //     Center = slideArea,
+        //     South = scrollDownButton
+        // });
     }
 
     public float Scale
