@@ -170,7 +170,15 @@ public sealed class Window : View
             },
             Children =
             {
-                listView
+                new RectView
+                {
+                    Padding = PaddingStyle.All(10),
+                    BackgroundColor = 0xFF00FF,
+                    Children =
+                    {
+                        listView
+                    }
+                }
             }
         };
         
