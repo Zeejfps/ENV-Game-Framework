@@ -108,9 +108,6 @@ public sealed class InputSystem : IMouse
 
         SendMouseMovedEvent();
         
-        if (_focusedComponent != null)
-            return;
-        
         var hitComponent = HitTest(Point);
         if (_hoveredComponent != hitComponent)
         {
@@ -121,12 +118,22 @@ public sealed class InputSystem : IMouse
             {
                 SendMouseExitEvent();
             }
-            
-            _focusQueue.Clear();
-            if (_hoveredComponent != null)
+
+            if (_focusedComponent == null)
             {
-                BuildPath(_hoveredComponent);
-                SendMouseEnterEvent();
+                _focusQueue.Clear();
+                if (_hoveredComponent != null)
+                {
+                    BuildPath(_hoveredComponent);
+                    SendMouseEnterEvent();
+                }
+            }
+            else
+            {
+                if (_hoveredComponent != null)
+                {
+                    SendMouseEnterEvent();
+                }
             }
         }
     }

@@ -23,13 +23,12 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
 
     public void OnMouseEnter(ref MouseEnterEvent e)
     {
-        this.RequestFocus();
+        
     }
 
     public void OnMouseExit(ref MouseExitEvent e)
     {
-        if (!_textInput.IsEditing)
-            this.Blur();
+        
     }
     
     public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
@@ -38,7 +37,7 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
 
     public void OnFocusLost()
     {
-        _textInput.StopEditing();
+        
     }
 
     public void OnFocusGained()
@@ -52,15 +51,24 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
 
     public void OnMouseMoved(ref MouseMoveEvent e)
     {
+        if (e.Phase != EventPhase.Bubbling)
+            return;
+        
         var isLeftMouseButtonPressed = e.Mouse.IsButtonPressed(MouseButton.Left);
         if (!isLeftMouseButtonPressed)
             return;
 
+        if (_textInput.IsEditing)
+            return;
+        
         _textInput.MoveCaretTo(e.Mouse.Point, true);
     }
 
     public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
+        if (e.Phase != EventPhase.Bubbling)
+            return;
+        
         if (e.State == InputState.Pressed && e.Button == MouseButton.Left)
         {
             var isEditing = _textInput.IsEditing;
@@ -76,15 +84,20 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
             if (!isEditing && containsPoint)
             {
                 _textInput.StartEditing();
+                this.RequestFocus();
             }
             
             var mousePoint = e.Mouse.Point;
             _textInput.MoveCaretTo(mousePoint);
+            e.Consume();
         }
     }
 
     public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
     {
+        if (e.Phase != EventPhase.Bubbling)
+            return;
+        
         if (!_textInput.IsEditing)
             return;
 
@@ -100,24 +113,28 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
         if (e.Key == KeyboardKey.A && e.Modifiers.HasFlag(ctrlModifier))
         {
             _textInput.SelectAll();
+            e.Consume();
             return;
         }
 
         if (e.Key == KeyboardKey.C && e.Modifiers.HasFlag(ctrlModifier))
         {
             Copy();
+            e.Consume();
             return;
         }
             
         if (e.Key == KeyboardKey.V && e.Modifiers.HasFlag(ctrlModifier))
         {
             Paste();
+            e.Consume();
             return;
         }
             
         if (e.Key == KeyboardKey.X && e.Modifiers.HasFlag(ctrlModifier))
         {
             Cut();
+            e.Consume();
             return;
         }
             
@@ -125,21 +142,23 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
         if (e.Key == KeyboardKey.LeftArrow)
         {
             _textInput.MoveCaretLeft(isShiftPressed);
+            e.Consume();
             return;
         }
             
         if (e.Key == KeyboardKey.RightArrow)
         {
             _textInput.MoveCaretRight(isShiftPressed);
+            e.Consume();
             return;
         }
             
         if (e.Key == KeyboardKey.Backspace)
         {
             _textInput.Delete();
+            e.Consume();
             return;
         }
-        
 
         var c = e.Key.ToChar(isShiftPressed);
         if (c == '\0')
@@ -148,6 +167,7 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
         }
 
         _textInput.Enter(c);
+        e.Consume();
     }
 
     private void Cut()

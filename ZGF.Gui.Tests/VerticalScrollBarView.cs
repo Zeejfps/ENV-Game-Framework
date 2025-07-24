@@ -1,4 +1,3 @@
-using System.Data.SqlTypes;
 using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
