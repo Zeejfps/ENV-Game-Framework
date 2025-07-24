@@ -4,6 +4,12 @@ namespace ZGF.Gui.Tests;
 
 public sealed class VerticalListView : View
 {
+    public StyleValue<int> Gap
+    {
+        get => _scrollPane.Gap;
+        set => _scrollPane.Gap = value;
+    }
+    
     public override IComponentCollection Children => _scrollPane.Children;
 
     private readonly VerticalScrollPane _scrollPane;

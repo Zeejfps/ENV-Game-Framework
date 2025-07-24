@@ -41,6 +41,15 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
         }
     }
 
+    public void OnFocusLost()
+    {
+        if (_isDragging)
+        {
+            _isDragging = false;
+            _view.IsSelected = false;
+        }
+    }
+
     public bool OnMouseButtonStateChanged(in MouseButtonEvent e)
     {
         if (!_isDragging &&
@@ -58,6 +67,7 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
         {
             _isDragging = false;
             _view.IsSelected = false;
+            this.Blur();
             return true;
         }
 

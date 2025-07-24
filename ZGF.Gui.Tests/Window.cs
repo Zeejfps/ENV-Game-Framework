@@ -61,14 +61,6 @@ public sealed class Window : View
             }
         };
         
-        var content = new RectView
-        {
-            PreferredHeight = 400f,
-            BackgroundColor = 0xFF44FF,
-            BorderSize = BorderSizeStyle.All(1),
-            BorderColor = BorderColorStyle.All(0x0000FF)
-        };
-        
         var scrollBar = new RectView
         {
             BackgroundColor = 0xEFEFEF,
@@ -123,16 +115,44 @@ public sealed class Window : View
             East = scrollBarContainer,
             Center = progress,
             South = textField,
+            PreferredHeight = 200
         };
+        
+        // var content = new RectView
+        // {
+        //     PreferredHeight = 400f,
+        //     BackgroundColor = 0xFF44FF,
+        //     BorderSize = BorderSizeStyle.All(1),
+        //     BorderColor = BorderColorStyle.All(0x0000FF)
+        // };
+
+        var content = new ColumnView
+        {
+            Id = "Test",
+            Gap = 5
+        };
+
 
         var listView = new VerticalListView
         {
-            Children =
-            {
-                content,
-                bottomSection
-            }
+            Gap = 5
         };
+        for (var i = 0; i < 100; i++)
+        {
+            listView.Children.Add(new RectView
+            {
+                Padding = PaddingStyle.All(4),
+                BackgroundColor = 0x9C9C9C,
+                Children =
+                {
+                    new TextView
+                    {
+                        Text = $"Element: {i+1}"
+                    }
+                }
+            });
+        }
+        // listView.Children.Add(bottomSection);
 
         var contentOutline = new RectView
         {

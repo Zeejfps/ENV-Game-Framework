@@ -5,7 +5,7 @@ namespace ZGF.Gui.Tests;
 
 public sealed class VerticalScrollPane : View
 {
-    public event Action<float> ScrollPositionChanged;
+    public event Action<float>? ScrollPositionChanged;
 
     private float _yOffset;
     private float _yMax;
@@ -14,7 +14,13 @@ public sealed class VerticalScrollPane : View
     public float ScrollNormalized { get; private set; }
     public float Scale { get; private set; }
     public override IComponentCollection Children => _columnView.Children;
-    
+
+    public StyleValue<int> Gap
+    {
+        get => _columnView.Gap;
+        set => _columnView.Gap = value;       
+    }
+
     public VerticalScrollPane()
     {
         _columnView = new ColumnView();
