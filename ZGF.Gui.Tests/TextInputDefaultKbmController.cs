@@ -21,15 +21,19 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
         context.InputSystem.RemoveInteractable(this);
     }
 
-    public void OnMouseEnter(in MouseEnterEvent e)
+    public void OnMouseEnter(ref MouseEnterEvent e)
     {
         this.RequestFocus();
     }
 
-    public void OnMouseExit(in MouseExitEvent e)
+    public void OnMouseExit(ref MouseExitEvent e)
     {
         if (!_textInput.IsEditing)
             this.Blur();
+    }
+    
+    public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
+    {
     }
 
     public void OnFocusLost()
@@ -37,22 +41,25 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
         _textInput.StopEditing();
     }
 
+    public void OnFocusGained()
+    {
+    }
+
     public bool CanReleaseFocus()
     {
         return !_textInput.IsEditing;
     }
 
-    public bool OnMouseMoved(in MouseMoveEvent e)
+    public void OnMouseMoved(ref MouseMoveEvent e)
     {
         var isLeftMouseButtonPressed = e.Mouse.IsButtonPressed(MouseButton.Left);
         if (!isLeftMouseButtonPressed)
-            return false;
+            return;
 
         _textInput.MoveCaretTo(e.Mouse.Point, true);
-        return true;
     }
 
-    public bool OnMouseButtonStateChanged(in MouseButtonEvent e)
+    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
         if (e.State == InputState.Pressed && e.Button == MouseButton.Left)
         {
@@ -63,7 +70,7 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
             {
                 _textInput.StopEditing();
                 this.Blur();
-                return false;
+                return;
             }
 
             if (!isEditing && containsPoint)
@@ -74,17 +81,15 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
             var mousePoint = e.Mouse.Point;
             _textInput.MoveCaretTo(mousePoint);
         }
-
-        return false;
     }
 
-    public bool OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
+    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
     {
         if (!_textInput.IsEditing)
-            return false;
+            return;
 
         if (e.State != InputState.Pressed) 
-            return false;
+            return;
 
         var ctrlModifier = InputModifiers.Control;
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -95,55 +100,54 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
         if (e.Key == KeyboardKey.A && e.Modifiers.HasFlag(ctrlModifier))
         {
             _textInput.SelectAll();
-            return true;
+            return;
         }
 
         if (e.Key == KeyboardKey.C && e.Modifiers.HasFlag(ctrlModifier))
         {
             Copy();
-            return true;
+            return;
         }
             
         if (e.Key == KeyboardKey.V && e.Modifiers.HasFlag(ctrlModifier))
         {
             Paste();
-            return true;
+            return;
         }
             
         if (e.Key == KeyboardKey.X && e.Modifiers.HasFlag(ctrlModifier))
         {
             Cut();
-            return true;
+            return;
         }
             
         var isShiftPressed = (e.Modifiers & InputModifiers.Shift) > 0;
         if (e.Key == KeyboardKey.LeftArrow)
         {
             _textInput.MoveCaretLeft(isShiftPressed);
-            return true;
+            return;
         }
             
         if (e.Key == KeyboardKey.RightArrow)
         {
             _textInput.MoveCaretRight(isShiftPressed);
-            return true;
+            return;
         }
             
         if (e.Key == KeyboardKey.Backspace)
         {
             _textInput.Delete();
-            return true;
+            return;
         }
         
 
         var c = e.Key.ToChar(isShiftPressed);
         if (c == '\0')
         {
-            return true;
+            return;
         }
 
         _textInput.Enter(c);
-        return true;
     }
 
     private void Cut()

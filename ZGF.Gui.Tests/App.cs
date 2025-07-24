@@ -141,7 +141,8 @@ public sealed class App : OpenGlApp
         {
             Mouse = _inputSystem,
             DeltaX = (float)x,
-            DeltaY = (float)y
+            DeltaY = (float)y,
+            Phase = EventPhase.Capturing
         };
         _inputSystem.SendMouseScrollEvent(ref e);
     }
@@ -185,12 +186,14 @@ public sealed class App : OpenGlApp
         };
 
         //var guiPoint = WindowToGuiCoords(windowX, windowY);
-        _inputSystem.SendMouseButtonEvent(new MouseButtonEvent
+        var e = new MouseButtonEvent
         {
             Mouse = _inputSystem,
             Button = b,
             State = s,
-        });
+            Phase = EventPhase.Capturing,
+        };
+        _inputSystem.SendMouseButtonEvent(ref e);
     }
 
     private void HandleKeyEvent(GLFW.Window window, Keys key, int scanCode, GLFW.InputState state, ModifierKeys mods)
@@ -203,12 +206,14 @@ public sealed class App : OpenGlApp
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
         };
 
-        _inputSystem.SendKeyboardKeyEvent(new KeyboardKeyEvent
+        var e = new KeyboardKeyEvent
         {
             Key = key.Adapt(),
             State = s,
-            Modifiers = (InputModifiers)mods
-        });
+            Modifiers = (InputModifiers)mods,
+            Phase = EventPhase.Capturing
+        };
+        _inputSystem.SendKeyboardKeyEvent(ref e);
     }
     
     protected override void OnUpdate()

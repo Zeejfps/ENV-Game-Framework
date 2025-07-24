@@ -17,10 +17,19 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
         _scrollBarView = view.ScrollBarView;
     }
 
+    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    {
+        
+    }
+
     public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
     {
         _view.Scroll(e.DeltaY * -10);
         e.Consume();
+    }
+
+    public void OnMouseMoved(ref MouseMoveEvent e)
+    {
     }
 
     public void OnEnabled(Context context)
@@ -50,17 +59,17 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
         _viewPortView.SetNormalizedScrollPosition(normalizedScrollPosition);
     }
 
-    public void OnMouseEnter(in MouseEnterEvent e)
+    public void OnMouseEnter(ref MouseEnterEvent e)
     {
         this.RequestFocus();
     }
 
-    public void OnMouseExit(in MouseExitEvent e)
+    public void OnMouseExit(ref MouseExitEvent e)
     {
         this.Blur();
     }
 
-    public bool OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
+    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
     {
         if (e.State == InputState.Pressed)
         {
@@ -81,6 +90,13 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
                 _view.ScrollToTop();
             }
         }
-        return true;
+    }
+
+    public void OnFocusLost()
+    {
+    }
+
+    public void OnFocusGained()
+    {
     }
 }

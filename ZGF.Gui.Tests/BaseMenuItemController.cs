@@ -29,7 +29,7 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         this.UnregisterController(context);
     }
     
-    public void OnMouseEnter(in MouseEnterEvent e)
+    public void OnMouseEnter(ref MouseEnterEvent e)
     {
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
@@ -62,14 +62,39 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         }
     }
 
-    public void OnMouseExit(in MouseExitEvent e)
+    public void OnMouseExit(ref MouseExitEvent e)
     {
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
             _openedContextMenu.CloseRequest();
         }
     }
-    
+
+    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    {
+        
+    }
+
+    public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
+    {
+    }
+
+    public void OnMouseMoved(ref MouseMoveEvent e)
+    {
+    }
+
+    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
+    {
+    }
+
+    public void OnFocusLost()
+    {
+    }
+
+    public void OnFocusGained()
+    {
+    }
+
     public View View => MenuItem;
 
     protected abstract void BuildMenu(ContextMenu contextMenu);

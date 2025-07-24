@@ -19,14 +19,39 @@ public sealed class ContextMenuKbmController : IKeyboardMouseController
         context.InputSystem.RemoveInteractable(this);
     }
     
-    public void OnMouseEnter(in MouseEnterEvent e)
+    public void OnMouseEnter(ref MouseEnterEvent e)
     {
         _contextMenu.CancelCloseRequest();
     }
 
-    public void OnMouseExit(in MouseExitEvent e)
+    public void OnMouseExit(ref MouseExitEvent e)
     {
         _contextMenu.CloseRequest();
+    }
+
+    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    {
+        
+    }
+
+    public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
+    {
+    }
+
+    public void OnMouseMoved(ref MouseMoveEvent e)
+    {
+    }
+
+    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
+    {
+    }
+
+    public void OnFocusLost()
+    {
+    }
+
+    public void OnFocusGained()
+    {
     }
 
     public View View => _contextMenu.View;
