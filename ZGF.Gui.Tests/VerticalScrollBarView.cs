@@ -3,49 +3,6 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class VerticalScrollBarViewController : IKeyboardMouseController
-{
-    private readonly VerticalScrollBarView _view;
-
-    public VerticalScrollBarViewController(VerticalScrollBarView view)
-    {
-        _view = view;
-    }
-
-    public void OnEnabled(Context context)
-    {
-        context.InputSystem.AddInteractable(this);
-    }
-
-    public void OnDisabled(Context context)
-    {
-        context.InputSystem.RemoveInteractable(this);
-    }
-
-    public View View => _view;
-    
-    public void OnMouseEnter(in MouseEnterEvent e)
-    {
-        this.RequestFocus();
-    }
-
-    public void OnMouseExit(in MouseExitEvent e)
-    {
-        this.Blur();
-    }
-
-    public bool OnMouseButtonStateChanged(in MouseButtonEvent e)
-    {
-        if (e.Button == MouseButton.Left && e.State == InputState.Pressed)
-        {
-            Console.WriteLine("Clicked");
-            _view.ScrollToPoint(e.Mouse.Point);
-            return false;
-        }
-        return false;
-    }
-}
-
 public sealed class VerticalScrollBarView : View
 {
     private readonly VerticalScrollBarThumbView _thumbView;

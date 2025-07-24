@@ -27,14 +27,14 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
         context.InputSystem.RemoveInteractable(this);
     }
 
-    public void OnMouseEnter(in MouseEnterEvent e)
+    public void OnMouseEnter(ref MouseEnterEvent e)
     {
         _isHovered = true;
         _view.IsSelected = true;
         this.RequestFocus();
     }
 
-    public void OnMouseExit(in MouseExitEvent e)
+    public void OnMouseExit(ref MouseExitEvent e)
     {
         _isHovered = false;
         if (!_isDragging)
@@ -42,6 +42,10 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
             _view.IsSelected = false;
             this.Blur();
         }
+    }
+
+    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
+    {
     }
 
     public void OnFocusLost()
@@ -53,7 +57,11 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
         }
     }
 
-    public bool OnMouseButtonStateChanged(in MouseButtonEvent e)
+    public void OnFocusGained()
+    {
+    }
+
+    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
         if (!_isDragging &&
             e.Button == MouseButton.Left &&
@@ -61,7 +69,7 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
         {
             _isDragging = true;
             _startPoint = e.Mouse.Point;
-            return true;
+            return;
         }
 
         if (_isDragging &&
@@ -74,17 +82,20 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
                 _view.IsSelected = false;
                 this.Blur();
             }
-            return true;
+            return;
         }
-
-        return false;
     }
 
-    public bool OnMouseMoved(in MouseMoveEvent e)
+    public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
+    {
+        
+    }
+
+    public void OnMouseMoved(ref MouseMoveEvent e)
     {
         if (!_isDragging)
         {
-            return false;
+            return;
         }
 
         var delta = e.Mouse.Point - _startPoint;
@@ -92,8 +103,6 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
         _startPoint =  e.Mouse.Point;
 
         _view.Move(deltaY);
-
-        return true;
     }
 
     public bool CanReleaseFocus()

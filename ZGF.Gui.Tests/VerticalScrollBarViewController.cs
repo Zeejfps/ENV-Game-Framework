@@ -1,12 +1,12 @@
-﻿namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.Tests;
 
-public sealed class WindowDefaultKbmController : IKeyboardMouseController
+public sealed class VerticalScrollBarViewController : IKeyboardMouseController
 {
-    private readonly Window _window;
+    private readonly VerticalScrollBarView _view;
 
-    public WindowDefaultKbmController(Window window)
+    public VerticalScrollBarViewController(VerticalScrollBarView view)
     {
-        _window = window;
+        _view = view;
     }
 
     public void OnEnabled(Context context)
@@ -18,6 +18,8 @@ public sealed class WindowDefaultKbmController : IKeyboardMouseController
     {
         context.InputSystem.RemoveInteractable(this);
     }
+
+    public View View => _view;
     
     public void OnMouseEnter(ref MouseEnterEvent e)
     {
@@ -28,17 +30,20 @@ public sealed class WindowDefaultKbmController : IKeyboardMouseController
     {
         this.Blur();
     }
-    
+
     public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
-        if (e.State == InputState.Pressed)
+        if (e.Button == MouseButton.Left && e.State == InputState.Pressed)
         {
-            _window.BringToFront();
+            Console.WriteLine("Clicked");
+            _view.ScrollToPoint(e.Mouse.Point);
+            return;
         }
     }
 
     public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
     {
+        
     }
 
     public void OnMouseMoved(ref MouseMoveEvent e)
@@ -56,6 +61,4 @@ public sealed class WindowDefaultKbmController : IKeyboardMouseController
     public void OnFocusGained()
     {
     }
-
-    public View View => _window;
 }
