@@ -111,4 +111,11 @@ public sealed class VerticalScrollBarThumbView : View
     {
         DistanceToTop = 0;
     }
+
+    public void ScrollToPoint(PointF point)
+    {
+        var height = MaxHeightConstraint * Scale;
+        var halfHeight = height * 0.5f;
+        DistanceToTop = TopConstraint - point.Y - halfHeight;
+    }
 }

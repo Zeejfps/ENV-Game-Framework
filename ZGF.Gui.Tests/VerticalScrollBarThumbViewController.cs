@@ -61,7 +61,7 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
         {
             _isDragging = true;
             _startPoint = e.Mouse.Point;
-            return false;
+            return true;
         }
 
         if (_isDragging &&

@@ -1,6 +1,50 @@
-using ZGF.Gui.Layouts;
+using System.Data.SqlTypes;
+using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
+
+public sealed class VerticalScrollBarViewController : IKeyboardMouseController
+{
+    private readonly VerticalScrollBarView _view;
+
+    public VerticalScrollBarViewController(VerticalScrollBarView view)
+    {
+        _view = view;
+    }
+
+    public void OnEnabled(Context context)
+    {
+        context.InputSystem.AddInteractable(this);
+    }
+
+    public void OnDisabled(Context context)
+    {
+        context.InputSystem.RemoveInteractable(this);
+    }
+
+    public View View => _view;
+    
+    public void OnMouseEnter(in MouseEnterEvent e)
+    {
+        this.RequestFocus();
+    }
+
+    public void OnMouseExit(in MouseExitEvent e)
+    {
+        this.Blur();
+    }
+
+    public bool OnMouseButtonStateChanged(in MouseButtonEvent e)
+    {
+        if (e.Button == MouseButton.Left && e.State == InputState.Pressed)
+        {
+            Console.WriteLine("Clicked");
+            _view.ScrollToPoint(e.Mouse.Point);
+            return false;
+        }
+        return false;
+    }
+}
 
 public sealed class VerticalScrollBarView : View
 {
@@ -37,50 +81,7 @@ public sealed class VerticalScrollBarView : View
         
         AddChildToSelf(slideArea);
 
-        // var scrollUpButton = new RectView
-        // {
-        //     Padding = PaddingStyle.All(4),
-        //     BackgroundColor = 0xDEDEDE,
-        //     PreferredHeight = 20,
-        //     BorderSize = BorderSizeStyle.All(1),
-        //     StyleClasses =
-        //     {
-        //         "raised_panel"
-        //     },
-        //     Children =
-        //     {
-        //         new Image
-        //         {
-        //             ImageUri = "Assets/Icons/arrow_up.png"
-        //         }
-        //     }
-        // };
-        //
-        // var scrollDownButton = new RectView
-        // {
-        //     Padding = PaddingStyle.All(4),
-        //     BackgroundColor = 0xDEDEDE,
-        //     PreferredHeight = 20,
-        //     BorderSize = BorderSizeStyle.All(1),
-        //     StyleClasses =
-        //     {
-        //         "raised_panel"
-        //     },
-        //     Children =
-        //     {
-        //         new Image
-        //         {
-        //             ImageUri = "Assets/Icons/arrow_down.png"
-        //         }
-        //     }
-        // };
-        //
-        // AddChildToSelf(new BorderLayoutView
-        // {
-        //     North = scrollUpButton,
-        //     Center = slideArea,
-        //     South = scrollDownButton
-        // });
+        Controller = new VerticalScrollBarViewController(this);
     }
 
     public float Scale
@@ -102,5 +103,10 @@ public sealed class VerticalScrollBarView : View
     public void ScrollToTop()
     {
         _thumbView.ScrollToTop();
+    }
+
+    public void ScrollToPoint(PointF point)
+    {
+        _thumbView.ScrollToPoint(point);
     }
 }
