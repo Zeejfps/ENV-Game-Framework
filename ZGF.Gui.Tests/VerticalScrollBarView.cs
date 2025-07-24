@@ -83,7 +83,7 @@ public sealed class VerticalScrollBarView : View
 
     public float ScrollNormalized
     {
-        get => _thumbView.ScrollNormalized;
-        set => _thumbView.ScrollNormalized = value;
+        get => _thumbView.ScrollPositionNormalized;
+        set => _thumbView.ScrollPositionNormalized = value;
     }
 }

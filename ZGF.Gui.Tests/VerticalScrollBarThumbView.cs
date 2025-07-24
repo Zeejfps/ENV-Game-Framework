@@ -4,18 +4,18 @@ namespace ZGF.Gui.Tests;
 
 public sealed class VerticalScrollBarThumbView : View
 {
-    private float _scrollNormalized;
-    public float ScrollNormalized
+    private float _scrollPositionNormalized;
+    public float ScrollPositionNormalized
     {
-        get => _scrollNormalized;
+        get => _scrollPositionNormalized;
         set
         {
             if (value < 0)
                 value = 0f;
             else if (value > 1f)
                 value = 1f;
-            
-            _scrollNormalized = value;
+
+            _scrollPositionNormalized = value;
             SetDirty();
         }
     }
@@ -25,8 +25,29 @@ public sealed class VerticalScrollBarThumbView : View
     {
         get => _scale;
         set => SetField(ref _scale, value);
-    } 
-    
+    }
+
+    private bool _isSelected;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected == value)
+                return;
+
+            _isSelected = value;
+            if (_isSelected)
+            {
+
+            }
+            else
+            {
+
+            }
+        }
+    }
+
     public VerticalScrollBarThumbView()
     {
         AddChildToSelf(new RectView
@@ -45,6 +66,8 @@ public sealed class VerticalScrollBarThumbView : View
                 "raised_panel"
             }
         });
+
+        Controller = new VerticalScrollBarThumbViewController(this);
     }
 
     protected override void OnLayoutSelf()
@@ -52,7 +75,7 @@ public sealed class VerticalScrollBarThumbView : View
         var height = MaxHeightConstraint * Scale;
 
         var unclampedBottom = TopConstraint - height;
-        var clampedScroll = ScrollNormalized;
+        var clampedScroll = ScrollPositionNormalized;
         var bottom = unclampedBottom * (1f - clampedScroll) + BottomConstraint * clampedScroll;
 
         Position = new RectF
