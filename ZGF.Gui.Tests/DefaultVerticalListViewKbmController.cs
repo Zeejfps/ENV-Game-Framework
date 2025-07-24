@@ -7,14 +7,14 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
     public View View => _view;
     
     private readonly VerticalListView _view;
-    private readonly VerticalScrollPane _scrollPaneView;
+    private readonly VerticalScrollPane _viewPortView;
     private readonly VerticalScrollBarView _scrollBarView;
 
-    public DefaultVerticalListViewKbmController(VerticalListView view, VerticalScrollBarView scrollBarView, VerticalScrollPane scrollPaneView)
+    public DefaultVerticalListViewKbmController(VerticalListView view)
     {
         _view = view;
-        _scrollBarView = scrollBarView;
-        _scrollPaneView = scrollPaneView;
+        _viewPortView = view.ScrollPaneView;
+        _scrollBarView = view.ScrollBarView;
     }
 
     public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
@@ -26,18 +26,18 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
     public void OnEnabled(Context context)
     {
         context.InputSystem.AddInteractable(this);
-        _scrollPaneView.ScrollToTop();
+        _viewPortView.ScrollToTop();
         _scrollBarView.ScrollToTop();
 
         _scrollBarView.ScrollPositionChanged += OnScrollBarScrollPositionChanged;
-        _scrollPaneView.ScrollPositionChanged += OnScrollPaneScrollPositionChanged;
+        _viewPortView.ScrollPositionChanged += OnScrollPaneScrollPositionChanged;
     }
 
     public void OnDisabled(Context context)
     {
         context.InputSystem.RemoveInteractable(this);
         _scrollBarView.ScrollPositionChanged -= OnScrollBarScrollPositionChanged;
-        _scrollPaneView.ScrollPositionChanged -= OnScrollPaneScrollPositionChanged;
+        _viewPortView.ScrollPositionChanged -= OnScrollPaneScrollPositionChanged;
     }
 
     private void OnScrollPaneScrollPositionChanged(float normalizedScrollPosition)
@@ -47,9 +47,8 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
 
     private void OnScrollBarScrollPositionChanged(float normalizedScrollPosition)
     {
-        _scrollPaneView.SetNormalizedScrollPosition(normalizedScrollPosition);
+        _viewPortView.SetNormalizedScrollPosition(normalizedScrollPosition);
     }
-
 
     public void OnMouseEnter(in MouseEnterEvent e)
     {

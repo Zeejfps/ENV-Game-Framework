@@ -131,15 +131,10 @@ public sealed class Window : View
             Id = "Test",
             Gap = 5
         };
-
-
-        var listView = new VerticalListView
+        
+        for (var i = 0; i < 100; i++)
         {
-            Gap = 5
-        };
-        for (var i = 0; i < 10; i++)
-        {
-            listView.Children.Add(new RectView
+            content.Children.Add(new RectView
             {
                 Padding = PaddingStyle.All(4),
                 BackgroundColor = 0x9C9C9C,
@@ -152,8 +147,17 @@ public sealed class Window : View
                 }
             });
         }
-        listView.Children.Add(bottomSection);
 
+        var listView = new VerticalListView
+        {
+            Gap = 5,
+            Children =
+            {
+                content,
+                bottomSection
+            }
+        };
+        
         var contentOutline = new RectView
         {
             Padding = new PaddingStyle

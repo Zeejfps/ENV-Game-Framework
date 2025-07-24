@@ -6,42 +6,42 @@ public sealed class VerticalListView : View
 {
     public StyleValue<int> Gap
     {
-        get => _scrollPane.Gap;
-        set => _scrollPane.Gap = value;
+        get => ScrollPaneView.Gap;
+        set => ScrollPaneView.Gap = value;
     }
     
-    public override IComponentCollection Children => _scrollPane.Children;
+    public override IComponentCollection Children => ScrollPaneView.Children;
 
-    private readonly VerticalScrollPane _scrollPane;
-    private readonly VerticalScrollBarView _scrollBarView;
+    public VerticalScrollPane ScrollPaneView { get; }
+    public VerticalScrollBarView ScrollBarView { get; }
 
     public VerticalListView()
     {
-        _scrollPane = new VerticalScrollPane();
-        _scrollBarView = new VerticalScrollBarView();
+        ScrollPaneView = new VerticalScrollPane();
+        ScrollBarView = new VerticalScrollBarView();
 
         AddChildToSelf(new BorderLayoutView
         {
-            Center = _scrollPane,
-            East = _scrollBarView,
+            Center = ScrollPaneView,
+            East = ScrollBarView,
         });
 
-        Controller = new DefaultVerticalListViewKbmController(this, _scrollBarView, _scrollPane);
+        Controller = new DefaultVerticalListViewKbmController(this);
     }
 
     public void Scroll(float delta)
     {
-        _scrollPane.Scroll(delta);
+        ScrollPaneView.Scroll(delta);
     }
 
     public void ScrollUp(float delta)
     {
-        _scrollPane.ScrollUp(delta);
+        ScrollPaneView.ScrollUp(delta);
     }
     
     public void ScrollDown(float delta)
     {
-        _scrollPane.ScrollDown(delta);
+        ScrollPaneView.ScrollDown(delta);
     }
 
     public void ScrollTo(View view)
@@ -51,17 +51,17 @@ public sealed class VerticalListView : View
 
     public void ScrollToBottom()
     {
-        _scrollPane.ScrollToBottom();
+        ScrollPaneView.ScrollToBottom();
     }
     
     public void ScrollToTop()
     {
-        _scrollPane.ScrollToTop();
+        ScrollPaneView.ScrollToTop();
     }
     
     protected override void OnLayoutChildren()
     {
         base.OnLayoutChildren();
-        _scrollBarView.Scale = _scrollPane.Scale;
+        ScrollBarView.Scale = ScrollPaneView.Scale;
     }
 }
