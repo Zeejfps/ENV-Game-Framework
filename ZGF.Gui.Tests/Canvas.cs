@@ -174,7 +174,7 @@ public sealed class Canvas : ICanvas
         var loopStartY = Math.Max((int)clip.Bottom, destY);
         var loopEndY = Math.Min((int)clip.Top, destY + destHeight);
         
-        Graphics.DrawRect(_colorBuffer, loopStartX, loopStartY, loopEndX - loopStartX, loopEndY - loopStartY, 0x00FF00);
+        //Graphics.DrawRect(_colorBuffer, loopStartX, loopStartY, loopEndX - loopStartX, loopEndY - loopStartY, 0x00FF00);
 
         if (loopStartX >= loopEndX || loopStartY >= loopEndY)
         {
@@ -331,7 +331,7 @@ public sealed class Canvas : ICanvas
         var lineHeight = _font.FontMetrics.Common.LineHeight;
         var position = data.Position;
         
-        Graphics.DrawRect(_colorBuffer, (int)position.Left, (int)position.Bottom, (int)position.Width, (int)position.Height, 0x00ff00);
+        //Graphics.DrawRect(_colorBuffer, (int)position.Left, (int)position.Bottom, (int)position.Width, (int)position.Height, 0x00ff00);
         
         var fontBase = _font.FontMetrics.Common.Base;
         var lineStart = (int)position.Left;
@@ -373,7 +373,7 @@ public sealed class Canvas : ICanvas
             }
         }
         
-        Graphics.DrawLine(_colorBuffer, cursorX, cursorY, cursorX + (int)position.Width, cursorY, 0xFF0000, cmd.Clip);
+        //Graphics.DrawLine(_colorBuffer, cursorX, cursorY, cursorX + (int)position.Width, cursorY, 0xFF0000, cmd.Clip);
         
         var color = style.TextColor;
         var prevCodePoint = default(int?);
@@ -381,7 +381,7 @@ public sealed class Canvas : ICanvas
         {
             if (codePoint == '\n')
             {
-                cursorY -= _font.FontMetrics.Common.LineHeight;
+                cursorY -= lineHeight;
                 cursorX = lineStart;
             }
             

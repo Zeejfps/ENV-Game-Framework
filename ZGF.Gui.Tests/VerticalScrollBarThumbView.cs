@@ -39,18 +39,20 @@ public sealed class VerticalScrollBarThumbView : View
             _isSelected = value;
             if (_isSelected)
             {
-
+                _background.BackgroundColor = 0xE2E2E2;
             }
             else
             {
-
+                _background.BackgroundColor = 0xCECECE;
             }
         }
     }
 
+    private readonly RectView _background;
+
     public VerticalScrollBarThumbView()
     {
-        AddChildToSelf(new RectView
+        _background = new RectView
         {
             BackgroundColor = 0xCECECE,
             BorderSize = BorderSizeStyle.All(1),
@@ -65,7 +67,9 @@ public sealed class VerticalScrollBarThumbView : View
             {
                 "raised_panel"
             }
-        });
+        };
+
+        AddChildToSelf(_background);
 
         Controller = new VerticalScrollBarThumbViewController(this);
     }
