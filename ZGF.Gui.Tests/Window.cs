@@ -10,7 +10,7 @@ public sealed class Window : View
     public Window(string titleText)
     {
         TitleText = titleText;
-        Position = new RectF(200f, 200f, 440f, 400f);
+        Position = new RectF(200f, 200f, 640f, 500f);
 
         var titlePanel = new WindowTitleBarView(titleText);
         titlePanel.Controller = new WindowTitleBarDefaultKbmController(this, titlePanel);
@@ -118,14 +118,6 @@ public sealed class Window : View
             PreferredHeight = 200
         };
         
-        // var content = new RectView
-        // {
-        //     PreferredHeight = 400f,
-        //     BackgroundColor = 0xFF44FF,
-        //     BorderSize = BorderSizeStyle.All(1),
-        //     BorderColor = BorderColorStyle.All(0x0000FF)
-        // };
-
         var content = new ColumnView
         {
             Id = "Test",
@@ -173,7 +165,7 @@ public sealed class Window : View
                 new RectView
                 {
                     Padding = PaddingStyle.All(10),
-                    BackgroundColor = 0xFF00FF,
+                    BackgroundColor = 0xCECECE,
                     Children =
                     {
                         listView
