@@ -58,7 +58,7 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
         if (!isLeftMouseButtonPressed)
             return;
 
-        if (_textInput.IsEditing)
+        if (!_textInput.IsEditing)
             return;
         
         _textInput.MoveCaretTo(e.Mouse.Point, true);
