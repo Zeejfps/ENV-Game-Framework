@@ -26,13 +26,13 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         context.InputSystem.RemoveInteractable(this);
     }
 
-    public void OnMouseEnter(in MouseEnterEvent e)
+    public void OnMouseEnter(ref MouseEnterEvent e)
     {
         _isHovered = true;
         this.RequestFocus();
     }
 
-    public void OnMouseExit(in MouseExitEvent e)
+    public void OnMouseExit(ref MouseExitEvent e)
     {
         _isHovered = false;
         if (!_isDragging)
@@ -41,18 +41,18 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         }
     }
 
-    public bool OnMouseButtonStateChanged(in MouseButtonEvent e)
+    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
         var button = e.Button;
         var state = e.State;
 
         if (button != MouseButton.Left)
-            return false;
+            return;
 
         if (state == InputState.Pressed)
         {
             _prevMousePosition = e.Mouse.Point;
-            return false;
+            return;
         }
         
         _isDragging = false;
@@ -61,8 +61,15 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         {
             this.Blur();
         }
+    }
 
-        return false;
+    public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
+    {
+        
+    }
+
+    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
+    {
     }
 
     public void OnFocusLost()
@@ -70,32 +77,34 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         _isDragging = false;
     }
 
+    public void OnFocusGained()
+    {
+    }
+
     public bool CanReleaseFocus()
     {
         return !_isDragging;
     }
 
-    public bool OnMouseMoved(in MouseMoveEvent e)
+    public void OnMouseMoved(ref MouseMoveEvent e)
     {
         var isLeftButtonPressed = e.Mouse.IsButtonPressed(MouseButton.Left);
         if (!isLeftButtonPressed)
-            return false;
+            return;
 
         var delta = e.Mouse.Point - _prevMousePosition;
         if (_isDragging)
         {
             _window.Move(delta.X, delta.Y);
             _prevMousePosition = e.Mouse.Point;
-            return true;
+            return;
         }
         
         if (delta.LengthSquared() > 1f)
         {
             _isDragging = true;
-            return true;
+            return;
         }
-
-        return false;
     }
     
     public View View => _titleBar;
