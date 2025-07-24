@@ -102,4 +102,10 @@ public sealed class VerticalScrollBarThumbView : View
     {
         Bottom += deltaY;
     }
+
+    public void ScrollToTop()
+    {
+        var height = MaxHeightConstraint * Scale;
+        Bottom = TopConstraint - height;
+    }
 }

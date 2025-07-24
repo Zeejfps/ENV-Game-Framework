@@ -5,6 +5,8 @@ namespace ZGF.Gui.Tests;
 
 public sealed class VerticalScrollPane : View
 {
+    public event Action<float> ScrollPositionChanged;
+
     private float _yOffset;
     private float _yMax;
     private readonly ColumnView _columnView;
@@ -64,7 +66,7 @@ public sealed class VerticalScrollPane : View
         _yOffset += delta;
         if (_yOffset < 0)
         {
-            _yOffset = 0;           
+            _yOffset = 0;
         }
         else if (_yOffset > _yMax)
         {
@@ -115,10 +117,17 @@ public sealed class VerticalScrollPane : View
             var scrollOffset = (viewportRect.Bottom - contentRect.Bottom);
             ScrollNormalized = 1f - Math.Clamp(scrollOffset / _yMax, 0f, 1f);
         }
+
+        ScrollPositionChanged?.Invoke(ScrollNormalized);
     }
 
     public void SetNormalizedScrollPosition(float normalizedPosition, bool notify = true)
     {
+        var viewportHeight = Position.Height;
+        var contentHeight = _columnView.MeasureHeight();
 
+        var delta = contentHeight - viewportHeight;
+        _yOffset = delta * normalizedPosition;
+        SetDirty();
     }
 }

@@ -87,7 +87,7 @@ public sealed class VerticalScrollBarView : View
         set => _thumbView.Scale = value;
     }
 
-    public void SetNormalizedScrollPosition(float normalizedPosition, bool notify = true)
+    public void SetNormalizedScrollPosition(float normalizedPosition)
     {
         _thumbView.SetScrollPositionNormalized(normalizedPosition);
     }
@@ -95,5 +95,10 @@ public sealed class VerticalScrollBarView : View
     public void Scroll(float deltaY)
     {
         _thumbView.Move(deltaY);
+    }
+
+    public void ScrollToTop()
+    {
+        _thumbView.ScrollToTop();
     }
 }
