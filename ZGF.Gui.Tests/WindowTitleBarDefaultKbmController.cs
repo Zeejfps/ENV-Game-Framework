@@ -28,21 +28,25 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
 
     public void OnMouseEnter(ref MouseEnterEvent e)
     {
+        if (e.Phase != EventPhase.Bubbling)
+            return;
+        
         _isHovered = true;
-        this.RequestFocus();
     }
 
     public void OnMouseExit(ref MouseExitEvent e)
     {
+        if (e.Phase != EventPhase.Bubbling)
+            return;
+        
         _isHovered = false;
-        if (!_isDragging)
-        {
-            this.Blur();
-        }
     }
 
     public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
+        if (e.Phase != EventPhase.Bubbling)
+            return;
+        
         var button = e.Button;
         var state = e.State;
 
@@ -56,11 +60,6 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         }
         
         _isDragging = false;
-        
-        if (!_isHovered)
-        {
-            this.Blur();
-        }
     }
 
     public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
@@ -74,7 +73,6 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
 
     public void OnFocusLost()
     {
-        _isDragging = false;
     }
 
     public void OnFocusGained()
@@ -88,6 +86,9 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
 
     public void OnMouseMoved(ref MouseMoveEvent e)
     {
+        if (e.Phase != EventPhase.Bubbling)
+            return;
+        
         var isLeftButtonPressed = e.Mouse.IsButtonPressed(MouseButton.Left);
         if (!isLeftButtonPressed)
             return;
@@ -97,12 +98,14 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         {
             _window.Move(delta.X, delta.Y);
             _prevMousePosition = e.Mouse.Point;
+            e.Consume();
             return;
         }
         
         if (delta.LengthSquared() > 1f)
         {
             _isDragging = true;
+            e.Consume();
             return;
         }
     }

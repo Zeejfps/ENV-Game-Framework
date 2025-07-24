@@ -19,18 +19,14 @@ public sealed class WindowDefaultKbmController : IKeyboardMouseController
         context.InputSystem.RemoveInteractable(this);
     }
     
-    public void OnMouseEnter(ref MouseEnterEvent e)
-    {
-        this.RequestFocus();
-    }
-
-    public void OnMouseExit(ref MouseExitEvent e)
-    {
-        this.Blur();
-    }
+    public void OnMouseEnter(ref MouseEnterEvent e) { }
+    public void OnMouseExit(ref MouseExitEvent e) { }
     
     public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
+        if (e.Phase != EventPhase.Capturing)
+            return;
+        
         if (e.State == InputState.Pressed)
         {
             _window.BringToFront();
