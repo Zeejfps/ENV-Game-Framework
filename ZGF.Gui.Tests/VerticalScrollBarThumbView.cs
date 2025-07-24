@@ -34,12 +34,14 @@ public sealed class VerticalScrollBarThumbView : View
         }
     }
 
-    private float _bottom;
-    private float Bottom
+    private float _distanceToTop;
+    private float DistanceToTop
     {
-        get => _bottom;
-        set => SetField(ref _bottom, value);
+        get => _distanceToTop;
+        set => SetField(ref _distanceToTop, value);
     }
+
+    private int _maxDistanceToTop;
 
     private readonly RectView _background;
 
@@ -70,42 +72,43 @@ public sealed class VerticalScrollBarThumbView : View
     protected override void OnLayoutSelf()
     {
         var height = MaxHeightConstraint * Scale;
+        
+        _maxDistanceToTop = (int)(TopConstraint - height - BottomConstraint);
 
-        if (_bottom + height > TopConstraint)
-            _bottom = TopConstraint - height;
-
-        if (_bottom < BottomConstraint)
-            _bottom = BottomConstraint;
-
-        var unclampedTop = TopConstraint - height;
-        var scrollPositionNormalized = (unclampedTop - _bottom) / (unclampedTop - BottomConstraint);
+        if (_distanceToTop < 0)
+        {
+            _distanceToTop = 0;
+        }
+        else if (_distanceToTop > _maxDistanceToTop)
+        {
+            _distanceToTop = _maxDistanceToTop;
+        }
+        
+        var bottom = TopConstraint - _distanceToTop - height;
         Position = new RectF
         {
             Left = LeftConstraint,
-            Bottom = _bottom,
+            Bottom = bottom,
             Width = MinWidthConstraint,
             Height = height,
         };
 
+        var scrollPositionNormalized = _distanceToTop / _maxDistanceToTop;
         ScrollPositionChanged?.Invoke(scrollPositionNormalized);
     }
 
     public void SetScrollPositionNormalized(float normalizedPosition)
     {
-        var height = MaxHeightConstraint * Scale;
-        var unclampedBottom = TopConstraint - height;
-        var clampedScroll = normalizedPosition;
-        Bottom = unclampedBottom * (1f - clampedScroll) + BottomConstraint * clampedScroll;
+        DistanceToTop = normalizedPosition * _maxDistanceToTop;
     }
 
     public void Move(float deltaY)
     {
-        Bottom += deltaY;
+        DistanceToTop -= deltaY;
     }
 
     public void ScrollToTop()
     {
-        var height = MaxHeightConstraint * Scale;
-        Bottom = TopConstraint - height;
+        DistanceToTop = 0;
     }
 }

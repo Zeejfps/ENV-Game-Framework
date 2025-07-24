@@ -10,6 +10,7 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
 
     private PointF _startPoint;
     private bool _isDragging;
+    private bool _isHovered;
 
     public VerticalScrollBarThumbViewController(VerticalScrollBarThumbView view)
     {
@@ -28,12 +29,14 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
 
     public void OnMouseEnter(in MouseEnterEvent e)
     {
+        _isHovered = true;
         _view.IsSelected = true;
         this.RequestFocus();
     }
 
     public void OnMouseExit(in MouseExitEvent e)
     {
+        _isHovered = false;
         if (!_isDragging)
         {
             _view.IsSelected = false;
@@ -58,7 +61,7 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
         {
             _isDragging = true;
             _startPoint = e.Mouse.Point;
-            return true;
+            return false;
         }
 
         if (_isDragging &&
@@ -66,8 +69,11 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
             e.State == InputState.Released)
         {
             _isDragging = false;
-            _view.IsSelected = false;
-            this.Blur();
+            if (!_isHovered)
+            {
+                _view.IsSelected = false;
+                this.Blur();
+            }
             return true;
         }
 

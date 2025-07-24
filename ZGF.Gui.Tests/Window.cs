@@ -137,7 +137,7 @@ public sealed class Window : View
         {
             Gap = 5
         };
-        for (var i = 0; i < 100; i++)
+        for (var i = 0; i < 10; i++)
         {
             listView.Children.Add(new RectView
             {

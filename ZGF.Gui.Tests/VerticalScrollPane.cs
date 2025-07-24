@@ -7,8 +7,8 @@ public sealed class VerticalScrollPane : View
 {
     public event Action<float>? ScrollPositionChanged;
 
-    private float _yOffset;
-    private float _yMax;
+    private float _distanceFromTop;
+    private float _maxDistanceFromTop;
     private readonly ColumnView _columnView;
 
     public float ScrollNormalized { get; private set; }
@@ -30,7 +30,7 @@ public sealed class VerticalScrollPane : View
     protected override void OnLayoutChild(in RectF position, View child)
     {
         var childHeight = child.MeasureHeight();
-        child.BottomConstraint = position.Top + _yOffset - childHeight;
+        child.BottomConstraint = position.Top + _distanceFromTop - childHeight;
         child.LeftConstraint = position.Left;            
         child.MinWidthConstraint = position.Width;
         child.MaxWidthConstraint = position.Width;
@@ -69,21 +69,21 @@ public sealed class VerticalScrollPane : View
 
     public void Scroll(float delta)
     {
-        _yOffset += delta;
-        if (_yOffset < 0)
+        _distanceFromTop += delta;
+        if (_distanceFromTop < 0)
         {
-            _yOffset = 0;
+            _distanceFromTop = 0;
         }
-        else if (_yOffset > _yMax)
+        else if (_distanceFromTop > _maxDistanceFromTop)
         {
-            _yOffset = _yMax;
+            _distanceFromTop = _maxDistanceFromTop;
         }
         SetDirty();
     }
 
     public void ScrollToTop()
     {
-        _yOffset = 0;
+        _distanceFromTop = 0;
         SetDirty();
     }
     
@@ -95,7 +95,7 @@ public sealed class VerticalScrollPane : View
         if (contentHeight <= viewportHeight)
             return;
         
-        var delta = _yOffset + contentHeight - viewportHeight;
+        var delta = _distanceFromTop + contentHeight - viewportHeight;
         Scroll(delta);
     }
     
@@ -111,17 +111,17 @@ public sealed class VerticalScrollPane : View
         
         if (contentHeight <= viewportHeight)
         {
-            _yMax = 0;
+            _maxDistanceFromTop = 0;
             Scale = 1f;
             ScrollNormalized = 0f;
         }
         else
         {
-            _yMax = contentHeight - viewportHeight;
+            _maxDistanceFromTop = contentHeight - viewportHeight;
             Scale = viewportHeight / contentHeight;
 
             var scrollOffset = (viewportRect.Bottom - contentRect.Bottom);
-            ScrollNormalized = 1f - Math.Clamp(scrollOffset / _yMax, 0f, 1f);
+            ScrollNormalized = 1f - Math.Clamp(scrollOffset / _maxDistanceFromTop, 0f, 1f);
         }
 
         ScrollPositionChanged?.Invoke(ScrollNormalized);
@@ -133,7 +133,7 @@ public sealed class VerticalScrollPane : View
         var contentHeight = _columnView.MeasureHeight();
 
         var delta = contentHeight - viewportHeight;
-        _yOffset = delta * normalizedPosition;
+        _distanceFromTop = delta * normalizedPosition;
         SetDirty();
     }
 }

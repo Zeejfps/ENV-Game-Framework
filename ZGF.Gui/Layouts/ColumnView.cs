@@ -47,7 +47,6 @@ public sealed class ColumnView : View
         var spacing = (Children.Count - 1) * Gap;
 
         var height = totalHeight + spacing;
-        Console.WriteLine($"{Id} Height: {height}");
         return height;
     }
 }

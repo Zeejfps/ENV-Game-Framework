@@ -10,7 +10,6 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
     private readonly VerticalScrollPane _scrollPaneView;
     private readonly VerticalScrollBarView _scrollBarView;
 
-
     public DefaultVerticalListViewKbmController(VerticalListView view, VerticalScrollBarView scrollBarView, VerticalScrollPane scrollPaneView)
     {
         _view = view;
@@ -27,8 +26,8 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
     public void OnEnabled(Context context)
     {
         context.InputSystem.AddInteractable(this);
-        _scrollBarView.ScrollToTop();
         _scrollPaneView.ScrollToTop();
+        _scrollBarView.ScrollToTop();
 
         _scrollBarView.ScrollPositionChanged += OnScrollBarScrollPositionChanged;
         _scrollPaneView.ScrollPositionChanged += OnScrollPaneScrollPositionChanged;
