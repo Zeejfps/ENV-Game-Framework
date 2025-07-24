@@ -26,6 +26,17 @@ public sealed class InputSystem : IMouse
     
     public void SendKeyboardKeyEvent(ref KeyboardKeyEvent e)
     {
+        e.Phase = EventPhase.Bubbling;
+        if (_focusedComponent != null)
+        {
+            _focusedComponent.OnKeyboardKeyStateChanged(ref e);
+            if (e.IsConsumed)
+            {
+                return;
+            }
+        }
+
+        e.Phase = EventPhase.Capturing;
         foreach (var ctrl in _focusQueue)
         {
             ctrl.OnKeyboardKeyStateChanged(ref e);
@@ -36,7 +47,6 @@ public sealed class InputSystem : IMouse
         }
         
         e.Phase = EventPhase.Bubbling;
-        
         foreach (var ctrl in _focusQueue.Reverse())
         {
             ctrl.OnKeyboardKeyStateChanged(ref e);
@@ -57,7 +67,18 @@ public sealed class InputSystem : IMouse
         {
             _pressedMouseButtons.Remove(e.Button);
         }
+        
+        e.Phase = EventPhase.Bubbling;
+        if (_focusedComponent != null)
+        {
+            _focusedComponent.OnMouseButtonStateChanged(ref e);
+            if (e.IsConsumed)
+            {
+                return;
+            }
+        }
 
+        e.Phase = EventPhase.Capturing;
         foreach (var ctrl in _focusQueue)
         {
             ctrl.OnMouseButtonStateChanged(ref e);
@@ -81,6 +102,17 @@ public sealed class InputSystem : IMouse
     
     public void SendMouseScrollEvent(ref MouseWheelScrolledEvent e)
     {
+        e.Phase = EventPhase.Bubbling;
+        if (_focusedComponent != null)
+        {
+            _focusedComponent.OnMouseWheelScrolled(ref e);
+            if (e.IsConsumed)
+            {
+                return;
+            }
+        }
+        
+        e.Phase = EventPhase.Capturing;
         foreach (var ctrl in _focusQueue)
         {
             ctrl.OnMouseWheelScrolled(ref e);
@@ -91,7 +123,6 @@ public sealed class InputSystem : IMouse
         }
         
         e.Phase = EventPhase.Bubbling;
-        
         foreach (var ctrl in _focusQueue.Reverse())
         {
             ctrl.OnMouseWheelScrolled(ref e);
@@ -119,21 +150,11 @@ public sealed class InputSystem : IMouse
                 SendMouseExitEvent();
             }
 
-            if (_focusedComponent == null)
+            _focusQueue.Clear();
+            if (_hoveredComponent != null)
             {
-                _focusQueue.Clear();
-                if (_hoveredComponent != null)
-                {
-                    BuildPath(_hoveredComponent);
-                    SendMouseEnterEvent();
-                }
-            }
-            else
-            {
-                if (_hoveredComponent != null)
-                {
-                    SendMouseEnterEvent();
-                }
+                BuildPath(_hoveredComponent);
+                SendMouseEnterEvent();
             }
         }
     }
@@ -143,9 +164,19 @@ public sealed class InputSystem : IMouse
         var e = new MouseMoveEvent
         {
             Mouse = this,
-            Phase = EventPhase.Capturing
+            Phase = EventPhase.Bubbling
         };
-                
+
+        if (_focusedComponent != null)
+        {
+            _focusedComponent.OnMouseMoved(ref e);
+            if (e.IsConsumed)
+            {
+                return;
+            }
+        }
+        
+        e.Phase = EventPhase.Capturing;
         foreach (var ctrl in _focusQueue)
         {
             ctrl.OnMouseMoved(ref e);
@@ -168,7 +199,7 @@ public sealed class InputSystem : IMouse
 
     private void SendMouseExitEvent()
     {
-        var mouseExitEvent = new MouseExitEvent
+        var e = new MouseExitEvent
         {
             Mouse = this,
             Phase = EventPhase.Capturing
@@ -176,18 +207,18 @@ public sealed class InputSystem : IMouse
                 
         foreach (var ctrl in _focusQueue)
         {
-            ctrl.OnMouseExit(ref mouseExitEvent);
-            if (mouseExitEvent.IsConsumed)
+            ctrl.OnMouseExit(ref e);
+            if (e.IsConsumed)
             {
                 return;
             }
         }
         
-        mouseExitEvent.Phase = EventPhase.Bubbling;
+        e.Phase = EventPhase.Bubbling;
         foreach (var ctrl in _focusQueue.Reverse())
         {
-            ctrl.OnMouseExit(ref mouseExitEvent);
-            if (mouseExitEvent.IsConsumed)
+            ctrl.OnMouseExit(ref e);
+            if (e.IsConsumed)
             {
                 return;
             }
