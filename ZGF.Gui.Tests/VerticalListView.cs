@@ -6,7 +6,6 @@ public sealed class VerticalListView : View
 {
     public override IComponentCollection Children => _scrollPane.Children;
 
-    private readonly BorderLayoutView _borderLayoutView;
     private readonly VerticalScrollPane _scrollPane;
     private readonly VerticalScrollBarView _scrollBarView;
 
@@ -15,13 +14,13 @@ public sealed class VerticalListView : View
         _scrollPane = new VerticalScrollPane();
         _scrollBarView = new VerticalScrollBarView();
 
-        _borderLayoutView = new BorderLayoutView
+        AddChildToSelf(new BorderLayoutView
         {
             Center = _scrollPane,
             East = _scrollBarView,
-        };
-        
-        AddChildToSelf(_borderLayoutView);
+        });
+
+        Controller = new DefaultVerticalListViewKbmController(this, _scrollBarView, _scrollPane);
     }
 
     public void Scroll(float delta)
@@ -58,6 +57,5 @@ public sealed class VerticalListView : View
     {
         base.OnLayoutChildren();
         _scrollBarView.Scale = _scrollPane.Scale;
-        _scrollBarView.ScrollNormalized = _scrollPane.ScrollNormalized;       
     }
 }

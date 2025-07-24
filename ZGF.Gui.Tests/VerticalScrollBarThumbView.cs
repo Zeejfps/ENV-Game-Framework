@@ -4,21 +4,7 @@ namespace ZGF.Gui.Tests;
 
 public sealed class VerticalScrollBarThumbView : View
 {
-    private float _scrollPositionNormalized;
-    public float ScrollPositionNormalized
-    {
-        get => _scrollPositionNormalized;
-        set
-        {
-            if (value < 0)
-                value = 0f;
-            else if (value > 1f)
-                value = 1f;
-
-            _scrollPositionNormalized = value;
-            SetDirty();
-        }
-    }
+    public event Action<float>? ScrollPositionChanged;
 
     private float _scale = 0.5f;
     public float Scale
@@ -52,18 +38,9 @@ public sealed class VerticalScrollBarThumbView : View
     private float Bottom
     {
         get => _bottom;
-        set
-        {
-            // if (value < 0)
-            //     value = 0f;
-            // else if (value > _yMax)
-            //     value = _yMax;
-
-            SetField(ref _bottom, value);
-        }
+        set => SetField(ref _bottom, value);
     }
 
-    private float _yMax;
     private readonly RectView _background;
 
     public VerticalScrollBarThumbView()
@@ -94,16 +71,14 @@ public sealed class VerticalScrollBarThumbView : View
     {
         var height = MaxHeightConstraint * Scale;
 
-        // var unclampedBottom = TopConstraint - height;
-        // var clampedScroll = ScrollPositionNormalized;
-        // var bottom = unclampedBottom * (1f - clampedScroll) + BottomConstraint * clampedScroll;
-
         if (_bottom + height > TopConstraint)
             _bottom = TopConstraint - height;
 
         if (_bottom < BottomConstraint)
             _bottom = BottomConstraint;
 
+        var unclampedTop = TopConstraint - height;
+        var scrollPositionNormalized = (unclampedTop - _bottom) / (unclampedTop - BottomConstraint);
         Position = new RectF
         {
             Left = LeftConstraint,
@@ -111,6 +86,16 @@ public sealed class VerticalScrollBarThumbView : View
             Width = MinWidthConstraint,
             Height = height,
         };
+
+        ScrollPositionChanged?.Invoke(scrollPositionNormalized);
+    }
+
+    public void SetScrollPositionNormalized(float normalizedPosition)
+    {
+        var height = MaxHeightConstraint * Scale;
+        var unclampedBottom = TopConstraint - height;
+        var clampedScroll = normalizedPosition;
+        Bottom = unclampedBottom * (1f - clampedScroll) + BottomConstraint * clampedScroll;
     }
 
     public void Move(float deltaY)

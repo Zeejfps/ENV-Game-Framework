@@ -116,4 +116,9 @@ public sealed class VerticalScrollPane : View
             ScrollNormalized = 1f - Math.Clamp(scrollOffset / _yMax, 0f, 1f);
         }
     }
+
+    public void SetNormalizedScrollPosition(float normalizedPosition, bool notify = true)
+    {
+
+    }
 }

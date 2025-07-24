@@ -5,7 +5,13 @@ namespace ZGF.Gui.Tests;
 public sealed class VerticalScrollBarView : View
 {
     private readonly VerticalScrollBarThumbView _thumbView;
-    
+
+    public event Action<float> ScrollPositionChanged
+    {
+        add => _thumbView.ScrollPositionChanged += value;
+        remove => _thumbView.ScrollPositionChanged -= value;
+    }
+
     public VerticalScrollBarView()
     {
         PreferredWidth = 25;
@@ -81,9 +87,13 @@ public sealed class VerticalScrollBarView : View
         set => _thumbView.Scale = value;
     }
 
-    public float ScrollNormalized
+    public void SetNormalizedScrollPosition(float normalizedPosition, bool notify = true)
     {
-        get => _thumbView.ScrollPositionNormalized;
-        set => _thumbView.ScrollPositionNormalized = value;
+        _thumbView.SetScrollPositionNormalized(normalizedPosition);
+    }
+
+    public void Scroll(float deltaY)
+    {
+        _thumbView.Move(deltaY);
     }
 }

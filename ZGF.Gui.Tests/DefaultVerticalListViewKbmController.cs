@@ -7,10 +7,15 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
     public View View => _view;
     
     private readonly VerticalListView _view;
+    private readonly VerticalScrollPane _scrollPaneView;
+    private readonly VerticalScrollBarView _scrollBarView;
 
-    public DefaultVerticalListViewKbmController(VerticalListView view)
+
+    public DefaultVerticalListViewKbmController(VerticalListView view, VerticalScrollBarView scrollBarView, VerticalScrollPane scrollPaneView)
     {
         _view = view;
+        _scrollBarView = scrollBarView;
+        _scrollPaneView = scrollPaneView;
     }
 
     public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
@@ -22,11 +27,23 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
     public void OnEnabled(Context context)
     {
         context.InputSystem.AddInteractable(this);
+        _scrollBarView.SetNormalizedScrollPosition(0, false);
+        _scrollPaneView.SetNormalizedScrollPosition(0, false);
+
+        _scrollBarView.ScrollPositionChanged += OnScrollBarScrollPositionChanged;
+        // _scrollPaneView.ScrollPositionChanged += OnScrollPaneScrollPositionChanged;
+    }
+
+    private void OnScrollBarScrollPositionChanged(float normalizedScrollPosition)
+    {
+        _scrollPaneView.SetNormalizedScrollPosition(normalizedScrollPosition);
     }
 
     public void OnDisabled(Context context)
     {
         context.InputSystem.RemoveInteractable(this);
+        // _scrollBarView.ScrollPositionChanged -= OnScrollBarScrollPositionChanged;
+        // _scrollPaneView.ScrollPositionChanged -= OnScrollPaneScrollPositionChanged;
     }
 
     public void OnMouseEnter(in MouseEnterEvent e)

@@ -133,8 +133,7 @@ public sealed class Window : View
                 bottomSection
             }
         };
-        listView.Controller = new DefaultVerticalListViewKbmController(listView);
-        
+
         var contentOutline = new RectView
         {
             Padding = new PaddingStyle
