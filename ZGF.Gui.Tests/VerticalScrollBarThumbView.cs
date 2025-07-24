@@ -48,6 +48,22 @@ public sealed class VerticalScrollBarThumbView : View
         }
     }
 
+    private float _bottom;
+    private float Bottom
+    {
+        get => _bottom;
+        set
+        {
+            // if (value < 0)
+            //     value = 0f;
+            // else if (value > _yMax)
+            //     value = _yMax;
+
+            SetField(ref _bottom, value);
+        }
+    }
+
+    private float _yMax;
     private readonly RectView _background;
 
     public VerticalScrollBarThumbView()
@@ -78,16 +94,27 @@ public sealed class VerticalScrollBarThumbView : View
     {
         var height = MaxHeightConstraint * Scale;
 
-        var unclampedBottom = TopConstraint - height;
-        var clampedScroll = ScrollPositionNormalized;
-        var bottom = unclampedBottom * (1f - clampedScroll) + BottomConstraint * clampedScroll;
+        // var unclampedBottom = TopConstraint - height;
+        // var clampedScroll = ScrollPositionNormalized;
+        // var bottom = unclampedBottom * (1f - clampedScroll) + BottomConstraint * clampedScroll;
+
+        if (_bottom + height > TopConstraint)
+            _bottom = TopConstraint - height;
+
+        if (_bottom < BottomConstraint)
+            _bottom = BottomConstraint;
 
         Position = new RectF
         {
             Left = LeftConstraint,
-            Bottom = bottom,
+            Bottom = _bottom,
             Width = MinWidthConstraint,
             Height = height,
         };
+    }
+
+    public void Move(float deltaY)
+    {
+        Bottom += deltaY;
     }
 }
