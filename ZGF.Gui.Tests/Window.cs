@@ -152,7 +152,7 @@ public sealed class Window : View
                 }
             });
         }
-        // listView.Children.Add(bottomSection);
+        listView.Children.Add(bottomSection);
 
         var contentOutline = new RectView
         {

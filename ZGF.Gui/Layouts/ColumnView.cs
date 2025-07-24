@@ -19,12 +19,10 @@ public sealed class ColumnView : View
             return;
         }
 
-        var spacing = (componentCount - 1) * Gap;
-        var totalHeight = position.Height - spacing;
-        var componentHeight = totalHeight / componentCount;
         var bottom = position.Top;
         foreach (var component in components)
         {
+            var componentHeight = component.MeasureHeight();
             bottom -= componentHeight;
             component.LeftConstraint = position.Left;
             component.MinWidthConstraint = position.Width;

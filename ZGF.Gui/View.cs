@@ -341,7 +341,9 @@ public class View
         if (c.TryGetClip(out var clipRect))
         {
             if (!clipRect.Intersects(Position))
+            {
                 return;
+            }
         }
         OnDrawSelf(c);
         OnDrawChildren(c);
