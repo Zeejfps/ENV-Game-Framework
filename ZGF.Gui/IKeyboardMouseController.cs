@@ -4,37 +4,15 @@ public interface IKeyboardMouseController : IController
 {
     View View { get; }
 
-    void OnMouseEnter(in MouseEnterEvent e);
-
-    void OnMouseExit(in MouseExitEvent e);
-
-    bool OnMouseButtonStateChanged(in MouseButtonEvent e)
-    {
-        return false;
-    }
-
-    void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
-    {
-    }
-
-    bool OnMouseMoved(in MouseMoveEvent e)
-    {
-        return false;
-    }
-
-    bool OnKeyboardKeyStateChanged(in KeyboardKeyEvent e)
-    {
-        return false;
-    }
-
-    void OnFocusLost()
-    {
-    }
-
-    void OnFocusGained()
-    {
-    }
-
+    void OnMouseEnter(ref MouseEnterEvent e);
+    void OnMouseExit(ref MouseExitEvent e);
+    void OnMouseButtonStateChanged(ref MouseButtonEvent e);
+    void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e);
+    void OnMouseMoved(ref MouseMoveEvent e);
+    void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e);
+    void OnFocusLost();
+    void OnFocusGained();
+    
     bool CanReleaseFocus()
     {
         return true;

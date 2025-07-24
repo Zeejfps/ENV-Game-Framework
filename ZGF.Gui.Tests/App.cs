@@ -143,7 +143,7 @@ public sealed class App : OpenGlApp
             DeltaX = (float)x,
             DeltaY = (float)y
         };
-        _inputSystem.HandleMouseScrollEvent(ref e);
+        _inputSystem.SendMouseScrollEvent(ref e);
     }
 
     private void PrintTree(View view, int depth = 0)
@@ -185,7 +185,7 @@ public sealed class App : OpenGlApp
         };
 
         //var guiPoint = WindowToGuiCoords(windowX, windowY);
-        _inputSystem.HandleMouseButtonEvent(new MouseButtonEvent
+        _inputSystem.SendMouseButtonEvent(new MouseButtonEvent
         {
             Mouse = _inputSystem,
             Button = b,
@@ -203,7 +203,7 @@ public sealed class App : OpenGlApp
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
         };
 
-        _inputSystem.HandleKeyboardKeyEvent(new KeyboardKeyEvent
+        _inputSystem.SendKeyboardKeyEvent(new KeyboardKeyEvent
         {
             Key = key.Adapt(),
             State = s,

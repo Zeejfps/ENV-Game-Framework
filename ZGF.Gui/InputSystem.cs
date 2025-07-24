@@ -6,8 +6,11 @@ public sealed class InputSystem : IMouse
 {
     private readonly HashSet<IKeyboardMouseController> _hoverableComponents = new();
     private readonly HashSet<IKeyboardMouseController> _hoveredComponents = new();
+    
     private readonly LinkedList<IKeyboardMouseController> _focusQueue = new();
     private readonly HashSet<MouseButton> _pressedMouseButtons = new();
+    
+    private IKeyboardMouseController? _hoveredComponent;
     
     public void AddInteractable(IKeyboardMouseController controller)
     {
@@ -20,17 +23,30 @@ public sealed class InputSystem : IMouse
         _focusQueue.Remove(controller);
     }
     
-    public void HandleKeyboardKeyEvent(in KeyboardKeyEvent e)
+    public void SendKeyboardKeyEvent(ref KeyboardKeyEvent e)
     {
-        foreach (var target in _focusQueue)
+        foreach (var ctrl in _focusQueue)
         {
-            var handled = target.OnKeyboardKeyStateChanged(e);
-            if (handled)
-                break;
+            ctrl.OnKeyboardKeyStateChanged(ref e);
+            if (e.IsConsumed)
+            {
+                return;
+            }
+        }
+        
+        e.Phase = EventPhase.Bubbling;
+        
+        foreach (var ctrl in _focusQueue.Reverse())
+        {
+            ctrl.OnKeyboardKeyStateChanged(ref e);
+            if (e.IsConsumed)
+            {
+                return;
+            }
         }
     }
 
-    public void HandleMouseButtonEvent(MouseButtonEvent e)
+    public void SendMouseButtonEvent(ref MouseButtonEvent e)
     {
         if (e.State == InputState.Pressed)
         {
@@ -40,47 +56,164 @@ public sealed class InputSystem : IMouse
         {
             _pressedMouseButtons.Remove(e.Button);
         }
-        
-        foreach (var target in _focusQueue)
+
+        foreach (var ctrl in _focusQueue)
         {
-            var handled = target.OnMouseButtonStateChanged(e);
-            if (handled)
-                break;
+            ctrl.OnMouseButtonStateChanged(ref e);
+            if (e.IsConsumed)
+            {
+                return;
+            }
+        }
+        
+        e.Phase = EventPhase.Bubbling;
+        
+        foreach (var ctrl in _focusQueue.Reverse())
+        {
+            ctrl.OnMouseButtonStateChanged(ref e);
+            if (e.IsConsumed)
+            {
+                return;
+            }
         }
     }
     
-    public void HandleMouseScrollEvent(ref MouseWheelScrolledEvent e)
+    public void SendMouseScrollEvent(ref MouseWheelScrolledEvent e)
     {
-        foreach (var target in _focusQueue)
+        foreach (var ctrl in _focusQueue)
         {
-            target.OnMouseWheelScrolled(ref e);
+            ctrl.OnMouseWheelScrolled(ref e);
             if (e.IsConsumed)
-                break;
+            {
+                return;
+            }
+        }
+        
+        e.Phase = EventPhase.Bubbling;
+        
+        foreach (var ctrl in _focusQueue.Reverse())
+        {
+            ctrl.OnMouseWheelScrolled(ref e);
+            if (e.IsConsumed)
+            {
+                return;
+            }
         }
     }
-
-    private readonly List<IKeyboardMouseController> _removeCache = new();
     
     public void UpdateMousePosition(in PointF point)
     {
         Point = point;
+
+        SendMouseMovedEvent();
         
+        var hitComponent = HitTest(Point);
+        if (_hoveredComponent != hitComponent)
+        {
+            var prevHoveredComponent = _hoveredComponent;
+            _hoveredComponent = hitComponent;
+
+            if (prevHoveredComponent != null)
+            {
+                SendMouseExitEvent();
+            }
+            
+            _focusQueue.Clear();
+            if (_hoveredComponent != null)
+            {
+                BuildPath(_hoveredComponent);
+                SendMouseEnterEvent();
+            }
+        }
+    }
+
+    private void SendMouseMovedEvent()
+    {
         var e = new MouseMoveEvent
         {
             Mouse = this,
+            Phase = EventPhase.Capturing
         };
-
-        foreach (var target in _focusQueue)
+                
+        foreach (var ctrl in _focusQueue)
         {
-            var handled = target.OnMouseMoved(e);
-            if (handled)
-                break;
+            ctrl.OnMouseMoved(ref e);
+            if (e.IsConsumed)
+            {
+                return;
+            }
+        }
+        
+        e.Phase = EventPhase.Bubbling;
+        foreach (var ctrl in _focusQueue.Reverse())
+        {
+            ctrl.OnMouseMoved(ref e);
+            if (e.IsConsumed)
+            {
+                return;
+            }
+        }
+    }
+
+    private void SendMouseExitEvent()
+    {
+        var mouseExitEvent = new MouseExitEvent
+        {
+            Mouse = this,
+            Phase = EventPhase.Capturing
+        };
+                
+        foreach (var ctrl in _focusQueue)
+        {
+            ctrl.OnMouseExit(ref mouseExitEvent);
+            if (mouseExitEvent.IsConsumed)
+            {
+                return;
+            }
+        }
+        
+        mouseExitEvent.Phase = EventPhase.Bubbling;
+        foreach (var ctrl in _focusQueue.Reverse())
+        {
+            ctrl.OnMouseExit(ref mouseExitEvent);
+            if (mouseExitEvent.IsConsumed)
+            {
+                return;
+            }
+        }
+    }
+
+    private void SendMouseEnterEvent()
+    {
+        var e = new MouseEnterEvent
+        {
+            Mouse = this,
+            Phase = EventPhase.Capturing
+        };
+                
+        foreach (var ctrl in _focusQueue)
+        {
+            ctrl.OnMouseEnter(ref e);
+            if (e.IsConsumed)
+            {
+                return;
+            }
+        }
+        
+        e.Phase = EventPhase.Bubbling;
+        foreach (var ctrl in _focusQueue.Reverse())
+        {
+            ctrl.OnMouseEnter(ref e);
+            if (e.IsConsumed)
+            {
+                return;
+            }
         }
     }
 
     private readonly List<IKeyboardMouseController> _hitTestCache = new();
     
-    private List<IKeyboardMouseController> HitTest(in PointF point)
+    private IKeyboardMouseController? HitTest(in PointF point)
     {
         _hitTestCache.Clear();
         var components = _hitTestCache;
@@ -93,10 +226,10 @@ public sealed class InputSystem : IMouse
         }
 
         if (components.Count == 0)
-            return components;
+            return null;
         
         components.Sort(ZIndexComparer.Instance);
-        return components;
+        return components[0];
     }
 
     public void StealFocus(IKeyboardMouseController component)
@@ -111,97 +244,36 @@ public sealed class InputSystem : IMouse
         
         component.OnFocusGained();
     }
-
-    private readonly List<IKeyboardMouseController> _componentsToAddToFocusQueue = new();
-    private readonly List<IKeyboardMouseController> _componentsToRemoveFromFocusQueue = new();
     
     public void Update()
     {
-        _removeCache.Clear();
-        _removeCache.AddRange(_hoveredComponents);
+  
+    }
 
-        for (var i = _removeCache.Count - 1; i >= 0; i--)
+    private void BuildPath(IKeyboardMouseController current)
+    {
+        _focusQueue.AddFirst(current);
+        var parent = current.View.Parent;
+        while (parent != null)
         {
-            var hoveredComponent = _removeCache[i];
-            if (!hoveredComponent.View.Position.ContainsPoint(Point))
+            var controller = parent.Controller as IKeyboardMouseController;
+            if (controller != null && _hoverableComponents.Contains(controller))
             {
-                _hoveredComponents.Remove(hoveredComponent);
-                hoveredComponent.OnMouseExit(new MouseExitEvent
-                {
-                    Mouse = this
-                });
+                _focusQueue.AddFirst(controller);
             }
-        }
-        
-        var allHoveredComponents = HitTest(Point);
-        if (allHoveredComponents.Count > 0)
-        {
-            var topComponent = allHoveredComponents[0];
-            for (var i = allHoveredComponents.Count - 1; i >= 0; i--)
-            {
-                var hoveredComponent = allHoveredComponents[i];
-                if (hoveredComponent.View.IsAncestorOf(topComponent.View) && _hoveredComponents.Add(hoveredComponent))
-                {
-                    hoveredComponent.OnMouseEnter(new MouseEnterEvent
-                    {
-                        Mouse = this
-                    });
-                }
-            }
-        }
-        
-        var focusedComponent = _focusQueue.First?.Value;
-        var canReleaseFocus = focusedComponent?.CanReleaseFocus() ?? true;
-        foreach (var component in _componentsToRemoveFromFocusQueue)
-        {
-            _focusQueue.Remove(component);
-            _componentsToAddToFocusQueue.Remove(component);
-            if (component == focusedComponent)
-            {
-                canReleaseFocus = true;
-            }
-        }
-        _componentsToRemoveFromFocusQueue.Clear();
-        
-        foreach (var component in _componentsToAddToFocusQueue)
-        {
-            if (!_focusQueue.Contains(component))
-            {
-                //Console.WriteLine($"Handling focus request: {component}");
-                if (canReleaseFocus || _focusQueue.Count == 0)
-                    _focusQueue.AddFirst(component);
-                else
-                    _focusQueue.AddAfter(_focusQueue.First!, component);
-            }
-        }
-        _componentsToAddToFocusQueue.Clear();
-        
-        var newFocusedComponent = _focusQueue.First?.Value;
-        if (focusedComponent != newFocusedComponent)
-        {
-            //Console.WriteLine($"Focus changing: {focusedComponent} -> {newFocusedComponent}");
-            if (focusedComponent != null)
-            {
-                focusedComponent.OnFocusLost();
-            }
-            
-            if (newFocusedComponent != null)
-            {
-                newFocusedComponent.OnFocusGained();
-                Console.WriteLine($"Focused: {newFocusedComponent}");
-            }
+            parent = parent.Parent;
         }
     }
 
     public void RequestFocus(IKeyboardMouseController component)
     {
         Console.WriteLine($"Requesting focus: {component}");
-        _componentsToAddToFocusQueue.Add(component);
+        //_componentsToAddToFocusQueue.Add(component);
     }
     
     public void Blur(IKeyboardMouseController component)
     {
-        _componentsToRemoveFromFocusQueue.Add(component);
+        //_componentsToRemoveFromFocusQueue.Add(component);
     }
 
     public bool IsInteractable(IKeyboardMouseController component)
