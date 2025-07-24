@@ -11,6 +11,7 @@ public sealed class InputSystem : IMouse
     private readonly HashSet<MouseButton> _pressedMouseButtons = new();
     
     private IKeyboardMouseController? _hoveredComponent;
+    private IKeyboardMouseController? _focusedComponent;
     
     public void AddInteractable(IKeyboardMouseController controller)
     {
@@ -106,6 +107,9 @@ public sealed class InputSystem : IMouse
         Point = point;
 
         SendMouseMovedEvent();
+        
+        if (_focusedComponent != null)
+            return;
         
         var hitComponent = HitTest(Point);
         if (_hoveredComponent != hitComponent)
@@ -268,12 +272,21 @@ public sealed class InputSystem : IMouse
     public void RequestFocus(IKeyboardMouseController component)
     {
         Console.WriteLine($"Requesting focus: {component}");
-        //_componentsToAddToFocusQueue.Add(component);
+        if (_focusedComponent == null)
+        {
+            _focusedComponent = component;
+            _focusedComponent.OnFocusGained();
+            Console.WriteLine($"Focused: {component}");
+        }
     }
     
     public void Blur(IKeyboardMouseController component)
     {
-        //_componentsToRemoveFromFocusQueue.Add(component);
+        if (_focusedComponent == component)
+        {
+            _focusedComponent?.OnFocusLost();
+            _focusedComponent = null;
+        }
     }
 
     public bool IsInteractable(IKeyboardMouseController component)

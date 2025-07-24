@@ -24,6 +24,9 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
 
     public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
     {
+        if (e.Phase != EventPhase.Bubbling)
+            return;
+        
         _view.Scroll(e.DeltaY * -10);
         e.Consume();
     }
@@ -61,16 +64,17 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
 
     public void OnMouseEnter(ref MouseEnterEvent e)
     {
-        this.RequestFocus();
     }
 
     public void OnMouseExit(ref MouseExitEvent e)
     {
-        this.Blur();
     }
 
     public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
     {
+        if (e.Phase != EventPhase.Bubbling)
+            return;
+        
         if (e.State == InputState.Pressed)
         {
             if (e.Key == KeyboardKey.UpArrow)

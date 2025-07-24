@@ -60,6 +60,7 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         }
         
         _isDragging = false;
+        this.Blur();
     }
 
     public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
@@ -106,6 +107,7 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         {
             _isDragging = true;
             e.Consume();
+            this.RequestFocus();
             return;
         }
     }

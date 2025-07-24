@@ -23,21 +23,21 @@ public sealed class VerticalScrollBarViewController : IKeyboardMouseController
     
     public void OnMouseEnter(ref MouseEnterEvent e)
     {
-        this.RequestFocus();
     }
 
     public void OnMouseExit(ref MouseExitEvent e)
     {
-        this.Blur();
     }
 
     public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
+        if (e.Phase != EventPhase.Bubbling)
+            return;
+        
         if (e.Button == MouseButton.Left && e.State == InputState.Pressed)
         {
-            Console.WriteLine("Clicked");
             _view.ScrollToPoint(e.Mouse.Point);
-            return;
+            e.Consume();
         }
     }
 
