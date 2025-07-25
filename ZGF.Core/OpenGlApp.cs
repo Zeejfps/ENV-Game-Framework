@@ -38,7 +38,7 @@ public abstract class OpenGlApp : IDisposable
         WindowHandle = windowHandle;
         
         Glfw.MakeContextCurrent(windowHandle);
-        Glfw.SwapInterval(1);
+        Glfw.SwapInterval(0);
         
         Import(Glfw.GetProcAddress);
         AssertNoGlError();

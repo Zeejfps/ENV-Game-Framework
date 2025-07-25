@@ -3,6 +3,7 @@ using ZGF.Core;
 using ZGF.Geometry;
 using ZGF.Gui.Layouts;
 using ZGF.KeyboardModule.GlfwAdapter;
+using ZGF.WavefrontObjModule;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 
@@ -45,6 +46,8 @@ public sealed class App : OpenGlApp
             _bitmapFont,
             textMeasurer, _imageManager
         );
+        
+        WavefrontObj.ReadFromFile("Assets/Models/Suzan_tri.obj"); 
         
         var contextMenuPane = new View();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
@@ -243,11 +246,8 @@ public sealed class App : OpenGlApp
 
     private void Render()
     {
-        // TODO: Render stuff into the window
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _frameBufferHandle.FrameBufferId);
-        glClearColor(0, 0, 1, 1);
-        glClear(GL_COLOR_BUFFER_BIT);
-
+        RenderMesh();
+        
         // TODO: Main UI rendering
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glClearColor(0, 0, 0, 0);
@@ -257,6 +257,19 @@ public sealed class App : OpenGlApp
         _gui.LayoutSelf();
         _gui.DrawSelf();
         _canvas.EndFrame();
+    }
+
+    private Mesh _mesh;
+    
+    private void RenderMesh()
+    {
+        // TODO: Render stuff into the window
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _frameBufferHandle.FrameBufferId);
+        glClearColor(0, 0, 1, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        
+        // glBindVertexArray(0);
+        // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
     }
 
     private void BlitFrameBufferTest()
