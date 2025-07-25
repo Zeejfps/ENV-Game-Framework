@@ -5,6 +5,8 @@ namespace ZGF.Gui.Tests;
 
 public sealed unsafe class ModelView : View
 {
+    public uint FrameBufferId => _frameBufferId;
+
     private uint _frameBufferId;
 
     protected override void OnAttachedToContext(Context context)
@@ -53,18 +55,23 @@ public sealed unsafe class ModelView : View
 
     protected override void OnDrawSelf(ICanvas c)
     {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, _frameBufferId);
-        AssertNoGlError();
-
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        AssertNoGlError();
-
-        var position = Position;
-        glBlitFramebuffer(
-            0, 0, (int)position.Width, (int)position.Height,
-            (int)position.Left, (int)position.Bottom, (int)position.Right, (int)position.Top,
-            GL_COLOR_BUFFER_BIT,
-            GL_LINEAR
-        );
+        Console.WriteLine("Rendering Model View");
+        // glBindFramebuffer(GL_READ_FRAMEBUFFER, _frameBufferId);
+        // AssertNoGlError();
+        //
+        // glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        // AssertNoGlError();
+        //
+        // var position = Position;
+        // glBlitFramebuffer(
+        //     0, 0, 640, 480,
+        //     (int)position.Left, (int)position.Bottom, (int)position.Right, (int)position.Top,
+        //     GL_COLOR_BUFFER_BIT,
+        //     GL_LINEAR
+        // );
+        // AssertNoGlError();
+        //
+        // glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        // AssertNoGlError();
     }
 }

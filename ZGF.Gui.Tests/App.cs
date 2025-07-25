@@ -4,6 +4,7 @@ using ZGF.Geometry;
 using ZGF.Gui.Layouts;
 using ZGF.KeyboardModule.GlfwAdapter;
 using static GL46;
+using static OpenGLSandbox.OpenGlUtils;
 
 namespace ZGF.Gui.Tests;
 
@@ -20,6 +21,8 @@ public sealed class App : OpenGlApp
     private readonly MouseCallback _scrollCallback;
     private readonly BitmapFont _bitmapFont;
     private readonly ContextMenuManager _contextMenuManager;
+
+    private ModelView _modelView;
 
     public App(StartupConfig startupConfig) : base(startupConfig)
     {
@@ -64,6 +67,8 @@ public sealed class App : OpenGlApp
         
         var appBar = new AppBar(this, _contextMenuManager);
         var center = new Center();
+
+        _modelView = center.ModelView;
 
         var contents = new BorderLayoutView
         {
@@ -233,11 +238,38 @@ public sealed class App : OpenGlApp
 
     private void Render()
     {
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _modelView.FrameBufferId);
+        glClearColor(0, 0, 1, 1);
         glClear(GL_COLOR_BUFFER_BIT);
+        // TODO: Render stuff into the window
+
+        // TODO: Main UI rendering
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glClearColor(0, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
+
         _canvas.BeginFrame();
         _gui.LayoutSelf();
         _gui.DrawSelf();
         _canvas.EndFrame();
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, _modelView.FrameBufferId);
+        AssertNoGlError();
+
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        AssertNoGlError();
+
+        var position = _modelView.Position;
+        glBlitFramebuffer(
+            0, 0, 640, 480,
+            (int)position.Left*2, (int)position.Bottom*2, (int)position.Right*2, (int)position.Top*2,
+            GL_COLOR_BUFFER_BIT,
+            GL_LINEAR
+        );
+        AssertNoGlError();
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        AssertNoGlError();
     }
 
     private PointF WindowToGuiCoords(double windowX, double windowY)

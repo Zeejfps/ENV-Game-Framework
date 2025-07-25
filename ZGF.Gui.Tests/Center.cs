@@ -4,6 +4,7 @@ namespace ZGF.Gui.Tests;
 
 public sealed class Center : View
 {
+    public ModelView ModelView { get; }
 
     public Center()
     {
@@ -19,12 +20,12 @@ public sealed class Center : View
         w1.Controller = new WindowDefaultKbmController(w1);
         AddChildToSelf(w1);
 
-        var modelView = new ModelView();
+        ModelView = new ModelView();
         var w3 = new Window("3D View")
         {
             Children =
             {
-                modelView
+                ModelView
             }
         };
         w3.Controller = new WindowDefaultKbmController(w3);
