@@ -238,10 +238,10 @@ public sealed class App : OpenGlApp
 
     private void Render()
     {
+        // TODO: Render stuff into the window
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _modelView.FrameBufferId);
         glClearColor(0, 0, 1, 1);
         glClear(GL_COLOR_BUFFER_BIT);
-        // TODO: Render stuff into the window
 
         // TODO: Main UI rendering
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -252,7 +252,10 @@ public sealed class App : OpenGlApp
         _gui.LayoutSelf();
         _gui.DrawSelf();
         _canvas.EndFrame();
+    }
 
+    private void BlitFrameBufferTest()
+    {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, _modelView.FrameBufferId);
         AssertNoGlError();
 
