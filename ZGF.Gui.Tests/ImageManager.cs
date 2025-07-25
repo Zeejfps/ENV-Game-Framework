@@ -64,8 +64,7 @@ public sealed unsafe class ImageManager : IImageManager
             Bitmap = bitmap
         };
 
-        bitmap.Fill(0xFF0000FF);
-        // _framebufferHandles.Add(handle);
+        _framebufferHandles.Add(handle);
         _imageByIdLookup.Add(imageId, bitmap);
         return handle;
     }
