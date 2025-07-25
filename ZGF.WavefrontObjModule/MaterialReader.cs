@@ -17,6 +17,7 @@ internal sealed class MaterialReader
         var len = 0;
         while ((charAsInt = textReader.Read()) > 0)
         {
+            if (charAsInt == '\r') continue;
             if (charAsInt == '\n')
             {
                 return buffer[..len];

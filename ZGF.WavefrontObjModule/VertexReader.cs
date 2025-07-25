@@ -21,6 +21,24 @@ internal sealed class VertexReader
             W = w
         };
     }
+
+    private Span<char> ReadToSpace(StreamReader textReader)
+    {
+        var buffer = _buffer;
+        int charAsInt;
+        var len = 0;
+        while ((charAsInt = textReader.Read()) > 0)
+        {
+            if (charAsInt == ' ') break;
+            if (charAsInt == '\r') continue;
+            if (charAsInt == '\n') break;
+            
+            buffer[len] = (char)charAsInt;
+            len++;
+        }
+
+        return _buffer;
+    }
     
     public VertexNormal ReadNormal(StreamReader textReader)
     {

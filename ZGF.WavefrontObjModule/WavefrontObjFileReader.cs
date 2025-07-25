@@ -1,4 +1,6 @@
-﻿namespace ZGF.WavefrontObjModule;
+﻿using System.Diagnostics;
+
+namespace ZGF.WavefrontObjModule;
 
 public readonly struct VertexPosition
 {
@@ -27,6 +29,7 @@ internal sealed class WavefrontObjFileReader
     private readonly MaterialReader _materialReader = new();
     private readonly VertexReader _vertexReader = new();
     private readonly ObjectNameReader _objectNameReader = new();
+    private readonly SmoothGroupReader _smoothGroupReader = new();
     private readonly List<NamedObject> _objects = new();
     
     private List<VertexPosition>? _vertexPositions;
@@ -56,7 +59,7 @@ internal sealed class WavefrontObjFileReader
                     ReadVertexData(textReader);
                     break;
                 case 's':
-                    ReadSmoothShadingData(textReader);
+                    ReadSmoothGroupData(textReader);
                     break;
                 case 'f':
                     ReadFaceData(textReader);
@@ -74,9 +77,10 @@ internal sealed class WavefrontObjFileReader
         
     }
 
-    private void ReadSmoothShadingData(StreamReader textReader)
+    private void ReadSmoothGroupData(StreamReader textReader)
     {
-        
+        _smoothGroupReader.Read(textReader);
+        Console.WriteLine("Read smoothing group");
     }
 
     private void ReadMaterialData(StreamReader textReader)
@@ -98,16 +102,22 @@ internal sealed class WavefrontObjFileReader
         _vertexNormals = namedObject.VertexNormals;
         _vertexTextureCoords = namedObject.VertexTextureCoords;
         _objects.Add(namedObject);
+        Console.WriteLine($"Reading object: {objName}");
     }
 
     private void ReadVertexData(StreamReader textReader)
     {
+        Console.WriteLine("Reading vertex...");
         var v = textReader.Read();
+        Debug.Assert(v == 'v', $"Expected 'v', found '{(char)v}'");
+        
         var nextChar = textReader.Read();
+        Console.WriteLine($"Next char: {(char)nextChar}");
         switch (nextChar)
         {
             case ' ':
                 var vertexPosition = _vertexReader.ReadPosition(textReader);
+                Console.WriteLine($"{vertexPosition.X}, {vertexPosition.Y}, {vertexPosition.Z}, {vertexPosition.W}");
                 _vertexPositions.Add(vertexPosition);
                 break;
             case 'n':
