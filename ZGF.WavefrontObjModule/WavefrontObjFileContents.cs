@@ -9,8 +9,3 @@ public sealed class WavefrontObjFileContents : IWavefrontObjFileContents
                
     }
 }
-
-public sealed class NamedObject
-{
-    public string Name { get; set; }
-}

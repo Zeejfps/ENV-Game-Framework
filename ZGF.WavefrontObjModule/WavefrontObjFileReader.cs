@@ -1,66 +1,125 @@
 ﻿namespace ZGF.WavefrontObjModule;
 
+public readonly struct VertexPosition
+{
+    public required float X { get; init; }
+    public required float Y { get; init; }
+    public required float Z { get; init; }
+    public required float W { get; init; }
+}
+
+public readonly struct VertexNormal
+{
+    public required float X { get; init; }
+    public required float Y { get; init; }
+    public required float Z { get; init; }
+}
+
+public readonly struct VertexTextureCoord
+{
+    public required float U { get; init; }
+    public required float V { get; init; }
+}
+
 internal sealed class WavefrontObjFileReader
 {
+    private readonly CommentReader _commentReader = new();
+    private readonly MaterialReader _materialReader = new();
+    private readonly VertexReader _vertexReader = new();
+    private readonly ObjectNameReader _objectNameReader = new();
+    private readonly List<NamedObject> _objects = new();
     
+    private List<VertexPosition>? _vertexPositions;
+    private List<VertexNormal>? _vertexNormals;
+    private List<VertexTextureCoord>? _vertexTextureCoords;
     
     public IWavefrontObjFileContents ReadFromFile(string pathToFile)
     {
-        var buffer = new char[256];
         using var fileStream = File.OpenRead(pathToFile);
         using var textReader = new StreamReader(fileStream);
 
         int chasAsInt;
-        while ((chasAsInt = textReader.Read()) > 0)
+        while ((chasAsInt = textReader.Peek()) > 0)
         {
             switch (chasAsInt)
             {
                 case '#':
-                    // Comment, skip read to end of line
-                    ReadToEndOfLine(textReader);
+                    _commentReader.Read(textReader);
                     break;
                 case 'm':
-                    var materialFile = ReadMaterial(textReader, buffer);
-                    Console.WriteLine($"mat: {materialFile}");
+                    ReadMaterialData(textReader);
                     break;
-            
+                case 'o':
+                    ReadObjectData(textReader);
+                    break;
+                case 'v':
+                    ReadVertexData(textReader);
+                    break;
+                case 's':
+                    ReadSmoothShadingData(textReader);
+                    break;
+                case 'f':
+                    ReadFaceData(textReader);
+                    break;
+                default:
+                    throw new Exception($"Unexpected character '{(char)chasAsInt}' encountered while reading obj file");
             }
         }
 
         return null;
     }
-    
-    private void ReadToEndOfLine(StreamReader textReader)
+
+    private void ReadFaceData(StreamReader textReader)
     {
-        int chasAsInt;
-        while ((chasAsInt = textReader.Read()) > 0)
-        {
-            if (chasAsInt == '\n')
-            {
-                return;
-            }
-        }
+        
     }
 
-    private Span<char> ReadMaterial(StreamReader textReader, Span<char> buffer)
+    private void ReadSmoothShadingData(StreamReader textReader)
     {
-        //m - [tllib ]
-        var charsRead = textReader.Read(buffer[..6]);
-        if (charsRead != 6)
-            throw new Exception("Malformed Obj file");
         
-        int chasAsInt;
-        var len = 0;
-        while ((chasAsInt = textReader.Read()) > 0)
+    }
+
+    private void ReadMaterialData(StreamReader textReader)
+    {
+        var materialFileName = _materialReader.Read(textReader);
+        Console.WriteLine($"Material file: {materialFileName}");
+    }
+    
+    private void ReadObjectData(StreamReader textReader)
+    {
+        var objName = _objectNameReader.Read(textReader);
+        var namedObject = new NamedObject
         {
-            if (chasAsInt == '\n')
-            {
-                return buffer[..len];
-            }
-            
-            buffer[len] = (char)chasAsInt;
-            len++;
+            Name = new string(objName),
+            VertexPositions = [],
+            VertexNormals = []
+        };
+        _vertexPositions = namedObject.VertexPositions;
+        _vertexNormals = namedObject.VertexNormals;
+        _vertexTextureCoords = namedObject.VertexTextureCoords;
+        _objects.Add(namedObject);
+    }
+
+    private void ReadVertexData(StreamReader textReader)
+    {
+        var v = textReader.Read();
+        var nextChar = textReader.Read();
+        switch (nextChar)
+        {
+            case ' ':
+                var vertexPosition = _vertexReader.ReadPosition(textReader);
+                _vertexPositions.Add(vertexPosition);
+                break;
+            case 'n':
+                var vertexNormal = _vertexReader.ReadNormal(textReader);
+                _vertexNormals.Add(vertexNormal);
+                break;
+            case 't':
+                var vertexTexture = _vertexReader.ReadTextureCoords(textReader);
+                _vertexTextureCoords.Add(vertexTexture);
+                break;
+            default:
+                throw new Exception($"Unexpected character '{(char)nextChar}' encountered while reading obj file");   
         }
-        return buffer[..len];
     }
 }
