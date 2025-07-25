@@ -6,7 +6,7 @@ public interface IWavefrontObjFileContents
     IEnumerable<IGroup> Groups { get; }
     IEnumerable<ISmoothingGroup> SmoothingGroups { get; }
     
-    IEnumerable<VertexPosition> AllVertexPositions { get; }
+    IReadOnlyList<VertexPosition> AllVertexPositions { get; }
     IEnumerable<VertexNormal> AllVertexNormals { get; }
     IEnumerable<VertexTextureCoord> AllVertexTextureCoords { get; }
 }
