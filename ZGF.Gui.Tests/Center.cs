@@ -1,5 +1,4 @@
-﻿using ZGF.Geometry;
-using ZGF.Gui.Layouts;
+﻿using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
@@ -20,14 +19,12 @@ public sealed class Center : View
         w1.Controller = new WindowDefaultKbmController(w1);
         AddChildToSelf(w1);
 
+        var modelView = new ModelView();
         var w3 = new Window("3D View")
         {
             Children =
             {
-                new RectView
-                {
-
-                }
+                modelView
             }
         };
         w3.Controller = new WindowDefaultKbmController(w3);
