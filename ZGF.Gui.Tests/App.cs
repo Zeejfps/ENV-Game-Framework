@@ -21,17 +21,20 @@ public sealed class App : OpenGlApp
     private readonly MouseCallback _scrollCallback;
     private readonly BitmapFont _bitmapFont;
     private readonly ContextMenuManager _contextMenuManager;
+    private readonly ImageManager _imageManager;
 
+    private FrameBufferHandle _frameBufferHandle;
     private ModelView _modelView;
 
     public App(StartupConfig startupConfig) : base(startupConfig)
     {
         _inputSystem = new InputSystem();
 
-        var imageManager = new ImageManager();
-        imageManager.LoadImageFromFile("Assets/Icons/arrow_right.png");
-        imageManager.LoadImageFromFile("Assets/Icons/arrow_up.png");
-        imageManager.LoadImageFromFile("Assets/Icons/arrow_down.png");
+        _imageManager = new ImageManager();
+        _imageManager.LoadImageFromFile("Assets/Icons/arrow_right.png");
+        _imageManager.LoadImageFromFile("Assets/Icons/arrow_up.png");
+        _imageManager.LoadImageFromFile("Assets/Icons/arrow_down.png");
+        _frameBufferHandle = _imageManager.CreateFrameBufferImage(640, 480);
 
         _bitmapFont = BitmapFont.LoadFromFile("Assets/Fonts/Charcoal/Charcoal_p20.xml");
         var textMeasurer = new TextMeasurer(_bitmapFont);
@@ -40,7 +43,7 @@ public sealed class App : OpenGlApp
             startupConfig.WindowWidth,
             startupConfig.WindowHeight,
             _bitmapFont,
-            textMeasurer, imageManager
+            textMeasurer, _imageManager
         );
         
         var contextMenuPane = new View();
@@ -50,7 +53,7 @@ public sealed class App : OpenGlApp
         {
             InputSystem = _inputSystem,
             TextMeasurer = textMeasurer,
-            ImageManager = imageManager,
+            ImageManager = _imageManager,
             Canvas = _canvas
         };
 
@@ -69,6 +72,7 @@ public sealed class App : OpenGlApp
         var center = new Center();
 
         _modelView = center.ModelView;
+        _modelView.ImageId = _frameBufferHandle.ImageId;
 
         var contents = new BorderLayoutView
         {
@@ -228,6 +232,7 @@ public sealed class App : OpenGlApp
     
     protected override void OnUpdate()
     {
+        _imageManager.RenderFrameBuffersToBitmaps();
         Render();
         Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
         var guiPoint = WindowToGuiCoords(mouseX, mouseY);
@@ -239,7 +244,7 @@ public sealed class App : OpenGlApp
     private void Render()
     {
         // TODO: Render stuff into the window
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _modelView.FrameBufferId);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _frameBufferHandle.FrameBufferId);
         glClearColor(0, 0, 1, 1);
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -256,7 +261,7 @@ public sealed class App : OpenGlApp
 
     private void BlitFrameBufferTest()
     {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, _modelView.FrameBufferId);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, _frameBufferHandle.FrameBufferId);
         AssertNoGlError();
 
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);

@@ -257,7 +257,7 @@ public sealed class Canvas : ICanvas
 
     private void ExecuteCommand(in DrawCommand cmd, DrawImageCommand data)
     {
-        var image = _imageManager.GetImage(data.ImageId);
+        var image = _imageManager.GetImageId(data.ImageId);
         var position = data.Position;
         var x = (int)position.Left;
         var y = (int)position.Bottom;

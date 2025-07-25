@@ -1,20 +1,100 @@
 using PngSharp.Api;
 using PngSharp.Spec.Chunks.IHDR;
 using SoftwareRendererModule;
+using static GL46;
+using static OpenGLSandbox.OpenGlUtils;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class ImageManager : IImageManager
+public readonly struct FrameBufferHandle
 {
-    private readonly Dictionary<string, Bitmap> _imageByUriLookup = new();
+    public required uint FrameBufferId { get; init; }
+    public required string ImageId { get; init; }
+    public required Bitmap Bitmap { get; init; }
+} 
 
+public sealed unsafe class ImageManager : IImageManager
+{
+    private readonly Dictionary<string, Bitmap> _imageByIdLookup = new();
+    private readonly List<FrameBufferHandle> _framebufferHandles = new();
+    
     public void LoadImageFromFile(string pathToImageFile)
     {
         var png = Png.DecodeFromFile(pathToImageFile);
         var bitmap = PngToBitmap(png);
-        _imageByUriLookup.Add(pathToImageFile, bitmap);
+        _imageByIdLookup.Add(pathToImageFile, bitmap);
     }
 
+    public FrameBufferHandle CreateFrameBufferImage(int width, int height)
+    {
+        uint frameBufferId;
+
+        glGenFramebuffers(1, &frameBufferId);
+        AssertNoGlError();
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, frameBufferId);
+        AssertNoGlError();
+
+        uint colorTextureId;
+        glGenTextures(1, &colorTextureId);
+        glBindTexture(GL_TEXTURE_2D, colorTextureId);
+        glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (void*)0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (int)GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTextureId, 0);
+        AssertNoGlError();
+
+        var attachment = GL_COLOR_ATTACHMENT0;
+        glDrawBuffers(1, &attachment);
+        AssertNoGlError();
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            throw new Exception("Framebuffer not complete");
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        AssertNoGlError();
+        
+        var imageId = $"framebuffer_{frameBufferId}";
+        var bitmap = new Bitmap(width, height);
+        var handle = new FrameBufferHandle
+        {
+            ImageId = imageId,
+            FrameBufferId = frameBufferId,
+            Bitmap = bitmap
+        };
+
+        _framebufferHandles.Add(handle);
+        _imageByIdLookup.Add(imageId, bitmap);
+        return handle;
+    }
+    
+    public void RenderFrameBuffersToBitmaps()
+    {
+        foreach (var framebufferHandle in _framebufferHandles)
+        {
+            var bmp = framebufferHandle.Bitmap;
+            var bmpWidth = bmp.Width;
+            var bmpHeight = bmp.Height;
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, framebufferHandle.FrameBufferId);
+            glPixelStorei(GL_PACK_ALIGNMENT, 1);
+            fixed (uint* ptr = &bmp.Pixels[0])
+                glReadPixels(0, 0, bmpWidth, bmpHeight, GL_BGRA, GL_UNSIGNED_BYTE, ptr);
+        }
+    }
+
+    public void UnloadFrameBufferImages()
+    {
+        foreach (var framebufferHandle in _framebufferHandles)
+        {
+            var frameBufferId = framebufferHandle.FrameBufferId;
+            if (frameBufferId != 0)
+            {
+                glDeleteFramebuffers(1, &frameBufferId);
+            }
+        }
+    }
+    
     private Bitmap PngToBitmap(IDecodedPng png)
     {
         var width = png.Width;
@@ -75,16 +155,16 @@ public sealed class ImageManager : IImageManager
 
     public int GetImageWidth(string imageUri)
     {
-        return _imageByUriLookup[imageUri].Width;
+        return _imageByIdLookup[imageUri].Width;
     }
 
     public int GetImageHeight(string imageUri)
     {
-        return _imageByUriLookup[imageUri].Height;
+        return _imageByIdLookup[imageUri].Height;
     }
 
-    public Bitmap GetImage(string imageUri)
+    public Bitmap GetImageId(string imageId)
     {
-        return _imageByUriLookup[imageUri];
+        return _imageByIdLookup[imageId];
     }
 }
