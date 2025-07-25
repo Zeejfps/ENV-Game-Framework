@@ -96,7 +96,8 @@ internal sealed class WavefrontObjFileReader
         {
             Name = new string(objName),
             VertexPositions = [],
-            VertexNormals = []
+            VertexNormals = [],
+            VertexTextureCoords = []
         };
         _vertexPositions = namedObject.VertexPositions;
         _vertexNormals = namedObject.VertexNormals;
@@ -119,10 +120,15 @@ internal sealed class WavefrontObjFileReader
                 _vertexPositions.Add(vertexPosition);
                 break;
             case 'n':
+                var space = textReader.Read();
+                Debug.Assert(space == ' ', $"Expected ' ', found '{(char)space}'");
                 var vertexNormal = _vertexReader.ReadNormal(textReader);
+                //Console.WriteLine($"vn {vertexNormal.X}, {vertexNormal.Y}, {vertexNormal.Z}");
                 _vertexNormals.Add(vertexNormal);
                 break;
             case 't':
+                space = textReader.Read();
+                Debug.Assert(space == ' ', $"Expected ' ', found '{(char)space}'");
                 var vertexTexture = _vertexReader.ReadTextureCoords(textReader);
                 _vertexTextureCoords.Add(vertexTexture);
                 break;
