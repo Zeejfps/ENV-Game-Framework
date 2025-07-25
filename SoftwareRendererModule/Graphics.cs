@@ -363,30 +363,43 @@ public static class Graphics
 
     public static uint BlendPixel(uint dstColor, uint srcColor)
     {
-        var srcA = (byte)((srcColor >> 24) & 0xFF);
-        if (srcA == 0)
-            return dstColor;
+        var src_a = (srcColor >> 24);
 
-        if (srcA == 255)
-            return srcColor;
+        // Fast path for common cases
+        if (src_a == 0) return dstColor;
+        if (src_a == 255) return srcColor;
 
-        var srcR = (byte)((srcColor >> 16) & 0xFF);
-        var srcG = (byte)((srcColor >> 8) & 0xFF);
-        var srcB = (byte)((srcColor) & 0xFF);
+        var dst_a = (dstColor >> 24);
 
-        var dstR = (byte)((dstColor >> 16) & 0xFF);
-        var dstG = (byte)((dstColor >> 8) & 0xFF);
-        var dstB = (byte)((dstColor) & 0xFF);
+        // Pre-calculate the inverse alpha
+        var inv_a = 255 - src_a;
 
-        var outR = (byte)(((srcR * srcA) + (dstR * (255 - srcA)) + 128) / 255);
-        var outG = (byte)(((srcG * srcA) + (dstG * (255 - srcA)) + 128) / 255);
-        var outB = (byte)(((srcB * srcA) + (dstB * (255 - srcA)) + 128) / 255);
+        // This is the core of the fast division trick.
+        // We calculate `(a * b + 128)` in the original, so we just need to add the rest.
+        // `out = (t + (t >> 8)) >> 8` is equivalent to `(t + 128) / 255` for `t=a*b`.
+        // The `+128` is already in your formula for rounding, so we use `(val + (val >> 8)) >> 8`.
+        var src_r = (srcColor >> 16) & 0xFF;
+        var src_g = (srcColor >> 8) & 0xFF;
+        var src_b = srcColor & 0xFF;
 
-        // Combine the alpha channels correctly
-        var dstA = (dstColor >> 24) & 0xFF;
-        var outA = (byte)(((srcA * 255) + (dstA * (255 - srcA)) + 128) / 255);
+        var dst_r = (dstColor >> 16) & 0xFF;
+        var dst_g = (dstColor >> 8) & 0xFF;
+        var dst_b = dstColor & 0xFF;
 
-        // Pack back into an ARGB uint
-        return ((uint)outA << 24) | ((uint)outR << 16) | ((uint)outG << 8) | outB;
+        // Blend R, G, B channels
+        var t = (src_r * src_a) + (dst_r * inv_a);
+        var out_r = (t + (t >> 8)) >> 8;
+
+        t = (src_g * src_a) + (dst_g * inv_a);
+        var out_g = (t + (t >> 8)) >> 8;
+        
+        t = (src_b * src_a) + (dst_b * inv_a);
+        var out_b = (t + (t >> 8)) >> 8;
+
+        // Blend Alpha channel
+        t = (src_a * 255) + (dst_a * inv_a);
+        var out_a = (t + (t >> 8)) >> 8;
+        
+        return (out_a << 24) | (out_r << 16) | (out_g << 8) | out_b;
     }
 }
