@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace ZGF.WavefrontObjModule;
+﻿namespace ZGF.WavefrontObjModule;
 
 public readonly struct VertexPosition
 {
@@ -23,6 +21,18 @@ public readonly struct VertexTextureCoord
     public required float V { get; init; }
 }
 
+public readonly struct Triangle
+{
+    public required int V0 { get; init; }
+    public required int V1 { get; init; }
+    public required int V2 { get; init; }
+}
+
+public readonly struct Face
+{
+    public required Triangle[] Triangles { get; init; }
+}
+
 internal sealed class WavefrontObjFileReader
 {
     private readonly CommentReader _commentReader = new();
@@ -35,6 +45,7 @@ internal sealed class WavefrontObjFileReader
     private List<VertexPosition>? _vertexPositions;
     private List<VertexNormal>? _vertexNormals;
     private List<VertexTextureCoord>? _vertexTextureCoords;
+    private List<Face>? _faces;
     
     public IWavefrontObjFileContents ReadFromFile(string pathToFile)
     {
@@ -79,6 +90,7 @@ internal sealed class WavefrontObjFileReader
                         _smoothGroupReader.Read(textReader);
                         break;
                     case "f":
+                        ReadFaceData(textReader);
                         break;
                     default:
                         throw new Exception($"Unexpected header '{header}' encountered while reading obj file");
@@ -92,9 +104,62 @@ internal sealed class WavefrontObjFileReader
             len++;
         }
 
-        return null;
+        return new WavefrontObjFileContents();
     }
-    
+
+    private void ReadFaceData(StreamReader textReader)
+    {
+        var buffer = new char[64];
+        int charAsInt;
+        var len = 0;
+        
+        Span<int> indices = stackalloc int[3];
+        Span<Triangle> trianglesBuffer = stackalloc Triangle[4];
+        var triangleCount = 0;
+        var indexCount = 0;
+        while ((charAsInt = textReader.Read()) > 0)
+        {
+            if (charAsInt == '/')
+            {
+                indices[indexCount] = int.Parse(buffer.AsSpan(0, len));
+                indexCount++;
+                len = 0;
+                continue;
+            }
+            
+            if (charAsInt == ' ')
+            {
+                indices[indexCount] = int.Parse(buffer.AsSpan(0, len));
+                trianglesBuffer[triangleCount] = new Triangle
+                {
+                    V0 = indices[0],
+                    V1 = indices[1],
+                    V2 = indices[2]
+                };
+                triangleCount++;
+                
+                len = 0;
+                indexCount = 0;
+
+                continue;
+            }
+            if (charAsInt == '\r') continue;
+            if (charAsInt == '\n') break;
+            
+            buffer[len] = (char)charAsInt;
+            len++;
+        }
+
+        var face = new Face
+        {
+            Triangles = trianglesBuffer
+                .Slice(0, triangleCount)
+                .ToArray()
+        };
+        
+        _faces.Add(face);
+    }
+
     private void ReadObjectData(StreamReader textReader)
     {
         var objName = _objectNameReader.Read(textReader);
@@ -103,11 +168,13 @@ internal sealed class WavefrontObjFileReader
             Name = new string(objName),
             VertexPositions = [],
             VertexNormals = [],
-            VertexTextureCoords = []
+            VertexTextureCoords = [],
+            Faces = [],
         };
         _vertexPositions = namedObject.VertexPositions;
         _vertexNormals = namedObject.VertexNormals;
         _vertexTextureCoords = namedObject.VertexTextureCoords;
+        _faces = namedObject.Faces;
         _objects.Add(namedObject);
         Console.WriteLine($"Reading object: {objName}");
     }

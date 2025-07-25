@@ -1,7 +1,6 @@
 ﻿namespace ZGF.WavefrontObjModule;
 
-public interface INamedObject
-{
+public interface IGroup {
     ReadOnlySpan<VertexPosition> VertexPositions { get; }
     ReadOnlySpan<VertexNormal> VertexNormals { get; }
     ReadOnlySpan<VertexTextureCoord> VertexTextureCoords { get; }
