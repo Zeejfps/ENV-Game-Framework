@@ -242,7 +242,7 @@ public static class Graphics
         return true;
     }
 
-    public static void BlitTransparent(
+    public static unsafe void BlitTransparent(
         Bitmap dstBmp,
         int dstX, int dstY,
         int dstW, int dstH,
@@ -253,76 +253,87 @@ public static class Graphics
     )
     {
         // --- 1. Initial Checks and Variable Hoisting ---
-        if (dstW <= 0 || dstH <= 0 || srcW <= 0 || srcH <= 0)
-        {
-            return; // Nothing to draw.
-        }
+        if (dstW <= 0 || dstH <= 0 || srcW <= 0 || srcH <= 0) return;
 
-        var dstPixels = dstBmp.Pixels;
         int dstBmpWidth = dstBmp.Width;
         int dstBmpHeight = dstBmp.Height;
-
-        var srcPixels = srcBmp.Pixels;
         int srcBmpWidth = srcBmp.Width;
         int srcBmpHeight = srcBmp.Height;
 
         // --- 2. Clipping ---
-        // Calculate the final loop boundaries by clipping the destination rectangle
-        // against the destination bitmap's dimensions.
         int loopStartX = Math.Max(0, dstX);
         int loopStartY = Math.Max(0, dstY);
         int loopEndX = Math.Min(dstBmpWidth, dstX + dstW);
         int loopEndY = Math.Min(dstBmpHeight, dstY + dstH);
 
-        // If the clipped rectangle has no area, there's nothing to draw.
-        if (loopEndX <= loopStartX || loopEndY <= loopStartY)
-        {
-            return;
-        }
-
-        // --- 3. Pre-calculate Scaling Ratios ---
-        // Using floating-point ratios provides more accurate "nearest-neighbor" scaling
-        // and avoids integer division issues.
+        if (loopEndX <= loopStartX || loopEndY <= loopStartY) return;
+        
+        // --- 3. Pre-calculate Ratios and Tint Flag ---
         float x_ratio = (float)srcW / dstW;
         float y_ratio = (float)srcH / dstH;
-        var applyTint = (tintColor != 0xFFFFFFFF); // Check once before the loop
+        var applyTint = (tintColor != 0xFFFFFFFF);
 
-        // --- 4. Main Loop ---
-        // Iterate over every pixel in the *clipped* destination area.
-        for (int y = loopStartY; y < loopEndY; y++)
+        // --- 4. Pin Memory and Get Pointers ---
+        // The 'fixed' keyword "pins" the arrays in memory, preventing the Garbage Collector
+        // from moving them. This gives us a stable memory address (pointer) to work with.
+        // This is the core of the 'unsafe' optimization.
+        fixed (uint* srcStartPtr = srcBmp.Pixels)
+        fixed (uint* dstStartPtr = dstBmp.Pixels)
         {
-            // Calculate the 1D index for the start of the destination row.
-            int dstRowIndex = y * dstBmpWidth;
-
-            for (int x = loopStartX; x < loopEndX; x++)
+            // --- 5. Main Loop (Optimized) ---
+            for (int y = loopStartY; y < loopEndY; y++)
             {
-                // --- 5. Map Destination Pixel to Source Pixel (Scaling) ---
-                // This maps the destination pixel (x, y) back to a source pixel (sx, sy).
-                int sx = srcX + (int)((x - dstX) * x_ratio);
+                // --- 6. Pre-calculate Source Y and Destination Row Start ---
+                // Calculate the source 'sy' coordinate once per row.
                 int sy = srcY + (int)((y - dstY) * y_ratio);
 
-                // --- 6. Source Bounds Check ---
-                // Ensure the calculated source pixel is within the source bitmap's bounds.
-                // This is a critical check.
-                if (sx < 0 || sx >= srcBmpWidth || sy < 0 || sy >= srcBmpHeight)
+                // OPTIMIZATION: Get a pointer to the start of the current destination row.
+                // This avoids a 'y * width' multiplication in the inner loop.
+                uint* dstRowPtr = dstStartPtr + (y * dstBmpWidth) + loopStartX;
+
+                // CRITICAL: Source bounds check for the entire row.
+                // If the calculated 'sy' is outside the source bitmap, we can skip the whole row.
+                if (sy < 0 || sy >= srcBmpHeight)
                 {
-                    continue; // This source pixel is outside the source bitmap.
+                    continue;
                 }
+                
+                // Get a pointer to the start of the source row.
+                uint* srcRowPtr = srcStartPtr + sy * srcBmpWidth;
 
-                // --- 7. Blending ---
-                // Calculate the 1D indices for source and destination pixels.
-                var srcIndex = sy * srcBmpWidth + sx;
-                var dstIndex = dstRowIndex + x;
-
-                var srcColor = srcPixels[srcIndex];
-
-                if (applyTint)
+                // --- 7. Inner Loop (Optimized with Pointers) ---
+                for (int x = loopStartX; x < loopEndX; x++)
                 {
-                    srcColor = TintPixel(srcColor, tintColor);
-                }
+                    // Map destination x to source x
+                    int sx = srcX + (int)((x - dstX) * x_ratio);
 
-                var dstColor = dstPixels[dstIndex];
-                dstPixels[dstIndex] = BlendPixel(dstColor, srcColor);
+                    // We still need to check the source 'sx' bound inside the inner loop,
+                    // as 'x_ratio' can cause 'sx' to be out of bounds even if 'x' is valid.
+                    if (sx >= 0 && sx < srcBmpWidth)
+                    {
+                        // Read source pixel using pointer arithmetic (no bounds check).
+                        uint srcColor = *(srcRowPtr + sx);
+
+                        // Skip fully transparent pixels (common optimization).
+                        if ((srcColor >> 24) == 0)
+                        {
+                            dstRowPtr++; // Still need to advance the destination pointer
+                            continue;
+                        }
+                        
+                        if (applyTint)
+                        {
+                            srcColor = TintPixel(srcColor, tintColor);
+                        }
+
+                        // Read destination pixel, blend, and write back using pointers.
+                        uint dstColor = *dstRowPtr;
+                        *dstRowPtr = BlendPixel(dstColor, srcColor);
+                    }
+                    
+                    // Advance the destination pointer to the next pixel in the row.
+                    dstRowPtr++;
+                }
             }
         }
     }
