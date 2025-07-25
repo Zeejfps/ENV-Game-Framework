@@ -16,7 +16,7 @@ public sealed class ContextMenuItem : View
     }
     
     private readonly RectView _bg;
-    private readonly Image _arrowIcon;
+    private readonly ImageView _arrowIcon;
     private readonly TextView _textView;
     
     public string? Text
@@ -55,11 +55,11 @@ public sealed class ContextMenuItem : View
             {
                 if (_isArrowVisible)
                 {
-                    _arrowIcon.ImageUri = "Assets/Icons/arrow_right.png";
+                    _arrowIcon.ImageId = "Assets/Icons/arrow_right.png";
                 }
                 else
                 {
-                    _arrowIcon.ImageUri = null;
+                    _arrowIcon.ImageId = null;
                 }
             }
         }
@@ -69,7 +69,7 @@ public sealed class ContextMenuItem : View
     {
         ZIndex = 2;
 
-        _arrowIcon = new Image
+        _arrowIcon = new ImageView
         {
             PreferredWidth = 20,
             PreferredHeight = 20
