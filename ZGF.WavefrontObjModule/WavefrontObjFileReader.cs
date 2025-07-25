@@ -41,52 +41,58 @@ internal sealed class WavefrontObjFileReader
         using var fileStream = File.OpenRead(pathToFile);
         using var textReader = new StreamReader(fileStream);
 
+        Span<char> buff = stackalloc char[7];
+        var len = 0;
         int chasAsInt;
-        while ((chasAsInt = textReader.Peek()) > 0)
+        while ((chasAsInt = textReader.Read()) > 0)
         {
-            switch (chasAsInt)
+            if (chasAsInt == ' ')
             {
-                case '#':
-                    _commentReader.Read(textReader);
-                    break;
-                case 'm':
-                    ReadMaterialData(textReader);
-                    break;
-                case 'o':
-                    ReadObjectData(textReader);
-                    break;
-                case 'v':
-                    ReadVertexData(textReader);
-                    break;
-                case 's':
-                    ReadSmoothGroupData(textReader);
-                    break;
-                case 'f':
-                    ReadFaceData(textReader);
-                    break;
-                default:
-                    throw new Exception($"Unexpected character '{(char)chasAsInt}' encountered while reading obj file");
+                var header = buff[..len];
+                switch (header)
+                {
+                    case "#":
+                        _commentReader.Read(textReader);
+                        break;
+                    case "mtllib":
+                        var materialFileName = _materialReader.Read(textReader);
+                        Console.WriteLine($"Material file: {materialFileName}");
+                        break;
+                    case "o":
+                        ReadObjectData(textReader);
+                        break;
+                    case "v":
+                        var vertexPosition = _vertexReader.ReadPosition(textReader);
+                        //Console.WriteLine($"v {vertexPosition.X}, {vertexPosition.Y}, {vertexPosition.Z}, {vertexPosition.W}");
+                        _vertexPositions.Add(vertexPosition);
+                        break;
+                    case "vn":
+                        var vertexNormal = _vertexReader.ReadNormal(textReader);
+                        //Console.WriteLine($"vn {vertexNormal.X}, {vertexNormal.Y}, {vertexNormal.Z}");
+                        _vertexNormals.Add(vertexNormal);
+                        break;
+                    case "vt":
+                        var vertexTexture = _vertexReader.ReadTextureCoords(textReader);
+                        _vertexTextureCoords.Add(vertexTexture);
+                        break;
+                    case "s":
+                        _smoothGroupReader.Read(textReader);
+                        break;
+                    case "f":
+                        break;
+                    default:
+                        throw new Exception($"Unexpected header '{header}' encountered while reading obj file");
+                }
+
+                len = 0;
+                continue;
             }
+            
+            buff[len] = (char)chasAsInt;
+            len++;
         }
 
         return null;
-    }
-
-    private void ReadFaceData(StreamReader textReader)
-    {
-        
-    }
-
-    private void ReadSmoothGroupData(StreamReader textReader)
-    {
-        _smoothGroupReader.Read(textReader);
-        Console.WriteLine("Read smoothing group");
-    }
-
-    private void ReadMaterialData(StreamReader textReader)
-    {
-        var materialFileName = _materialReader.Read(textReader);
-        Console.WriteLine($"Material file: {materialFileName}");
     }
     
     private void ReadObjectData(StreamReader textReader)
@@ -104,36 +110,5 @@ internal sealed class WavefrontObjFileReader
         _vertexTextureCoords = namedObject.VertexTextureCoords;
         _objects.Add(namedObject);
         Console.WriteLine($"Reading object: {objName}");
-    }
-
-    private void ReadVertexData(StreamReader textReader)
-    {
-        var v = textReader.Read();
-        Debug.Assert(v == 'v', $"Expected 'v', found '{(char)v}'");
-        
-        var nextChar = textReader.Read();
-        switch (nextChar)
-        {
-            case ' ':
-                var vertexPosition = _vertexReader.ReadPosition(textReader);
-                //Console.WriteLine($"v {vertexPosition.X}, {vertexPosition.Y}, {vertexPosition.Z}, {vertexPosition.W}");
-                _vertexPositions.Add(vertexPosition);
-                break;
-            case 'n':
-                var space = textReader.Read();
-                Debug.Assert(space == ' ', $"Expected ' ', found '{(char)space}'");
-                var vertexNormal = _vertexReader.ReadNormal(textReader);
-                //Console.WriteLine($"vn {vertexNormal.X}, {vertexNormal.Y}, {vertexNormal.Z}");
-                _vertexNormals.Add(vertexNormal);
-                break;
-            case 't':
-                space = textReader.Read();
-                Debug.Assert(space == ' ', $"Expected ' ', found '{(char)space}'");
-                var vertexTexture = _vertexReader.ReadTextureCoords(textReader);
-                _vertexTextureCoords.Add(vertexTexture);
-                break;
-            default:
-                throw new Exception($"Unexpected character '{(char)nextChar}' encountered while reading obj file");   
-        }
     }
 }

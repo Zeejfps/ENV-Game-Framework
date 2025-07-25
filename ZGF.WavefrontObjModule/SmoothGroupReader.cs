@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace ZGF.WavefrontObjModule;
+﻿namespace ZGF.WavefrontObjModule;
 
 internal sealed class SmoothGroupReader
 {
@@ -8,12 +6,6 @@ internal sealed class SmoothGroupReader
     
     public void Read(StreamReader textReader)
     {
-        var s = textReader.Read();
-        Debug.Assert(s == 's', $"Expected 's', found '{(char)s}'");
-
-        var space = textReader.Read();
-        Debug.Assert(space == ' ', $"Expected ' ', found '{(char)space}'");
-
         var buffer = _buffer;
         int charAsInt;
         var len = 0;
@@ -25,7 +17,5 @@ internal sealed class SmoothGroupReader
                 break;
             }
         }
-        
-        
     }
 }

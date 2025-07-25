@@ -7,15 +7,6 @@ internal sealed class ObjectNameReader
     public ReadOnlySpan<char> Read(StreamReader textReader)
     {
         var buffer = _buffer;
-        
-        var o = textReader.Read();
-        if (o != 'o')
-            throw new Exception($"Expected 'o', found '{o}'");
-        
-        var space = textReader.Read();
-        if (space != ' ')
-            throw new Exception($"Expected ' ', found '{space}'");
-        
         int charAsInt;
         var len = 0;
         while ((charAsInt = textReader.Read()) > 0)
