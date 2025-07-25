@@ -2,7 +2,7 @@
 
 public sealed class ImageStyle
 {
-    public StyleValue<uint> TintColor = new(0xFFFFFF, false);
+    public StyleValue<uint> TintColor = new(0xFFFFFFFF, false);
 
     public void Apply(Style style)
     {

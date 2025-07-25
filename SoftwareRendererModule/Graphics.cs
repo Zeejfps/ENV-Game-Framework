@@ -1,4 +1,5 @@
-﻿using ZGF.Geometry;
+﻿using System.Runtime.CompilerServices;
+using ZGF.Geometry;
 
 namespace SoftwareRendererModule;
 
@@ -284,7 +285,7 @@ public static class Graphics
         // and avoids integer division issues.
         float x_ratio = (float)srcW / dstW;
         float y_ratio = (float)srcH / dstH;
-        bool applyTint = (tintColor != 0xFFFFFFFF); // Check once before the loop
+        var applyTint = (tintColor != 0xFFFFFFFF); // Check once before the loop
 
         // --- 4. Main Loop ---
         // Iterate over every pixel in the *clipped* destination area.
@@ -326,30 +327,38 @@ public static class Graphics
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint TintPixel(uint source, uint tint)
     {
-        // Extract alpha from the source, as it determines the final transparency
-        uint src_a = source >> 24;
-
-        // If the source is fully transparent, tinting has no effect.
+        // Source alpha is preserved. If fully transparent, the result is black transparent.
+        var src_a = source >> 24;
         if (src_a == 0) return 0;
 
-        // Extract RGB components from both colors
-        uint src_r = (source >> 16) & 0xFF;
-        uint src_g = (source >> 8) & 0xFF;
-        uint src_b = source & 0xFF;
+        // Extract tint components once
+        var tint_r = (tint >> 16) & 0xFF;
+        var tint_g = (tint >> 8) & 0xFF;
+        var tint_b = tint & 0xFF;
 
-        uint tint_r = (tint >> 16) & 0xFF;
-        uint tint_g = (tint >> 8) & 0xFF;
-        uint tint_b = tint & 0xFF;
+        // Extract source components
+        var src_r = (source >> 16) & 0xFF;
+        var src_g = (source >> 8) & 0xFF;
+        var src_b = source & 0xFF;
+        
+        // This is the optimized multiplication/division part
+        // It's an exact and fast replacement for (x * y) / 255
+        var final_r = FastMultiply(src_r, tint_r);
+        var final_g = FastMultiply(src_g, tint_g);
+        var final_b = FastMultiply(src_b, tint_b);
 
-        // Modulate (multiply) the components and scale back to 0-255 range
-        uint final_r = (src_r * tint_r) / 255;
-        uint final_g = (src_g * tint_g) / 255;
-        uint final_b = (src_b * tint_b) / 255;
-
-        // Recombine into the final ARGB color
         return (src_a << 24) | (final_r << 16) | (final_g << 8) | final_b;
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static uint FastMultiply(uint c1, uint c2)
+    {
+        // This is a common and highly efficient way to compute (c1 * c2) / 255
+        uint temp = c1 * c2 + 128;
+        return (temp + (temp >> 8)) >> 8;
     }
 
     public static uint BlendPixel(uint dstColor, uint srcColor)
