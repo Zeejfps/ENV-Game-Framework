@@ -6,11 +6,15 @@ namespace ZGF.Gui.Tests;
 public sealed class Window : View
 {
     public string TitleText { get; }
-    
+
+    private readonly View _contents;
+    public override IComponentCollection Children => _contents.Children;
+
     public Window(string titleText)
     {
         TitleText = titleText;
         Position = new RectF(200f, 200f, 640f, 500f);
+        _contents = new View();
 
         var titlePanel = new WindowTitleBarView(titleText);
         titlePanel.Controller = new WindowTitleBarDefaultKbmController(this, titlePanel);
@@ -61,95 +65,6 @@ public sealed class Window : View
             }
         };
         
-        var scrollBar = new RectView
-        {
-            BackgroundColor = 0xEFEFEF,
-        };
-        
-        var scrollBarContainer = new RectView
-        {
-            PreferredWidth = 14f,
-            BackgroundColor = 0x000000,
-            Padding = new PaddingStyle
-            {
-                Left = 1,
-                Top = 1,
-                Bottom = 15
-            },
-            Children =
-            {
-                scrollBar
-            }
-        };
-
-        var progress = new RectView
-        {
-            BackgroundColor = 0xEFEFEF,
-            BorderSize = new BorderSizeStyle
-            {
-                Top = 1,
-            },
-            BorderColor = BorderColorStyle.All(0x000000)
-        };
-
-        var textInput = new TextInput
-        {
-            PreferredHeight = 30f
-        };
-        textInput.Controller = new TextInputDefaultKbmController(textInput);
-
-        var textField = new RectView
-        {
-            BackgroundColor = 0xEFEFEF,
-            BorderColor = BorderColorStyle.All(0x252525),
-            BorderSize = BorderSizeStyle.All(1),
-            Padding = PaddingStyle.All(4),
-            Children =
-            {
-                textInput
-            }
-        };
-
-        var bottomSection = new BorderLayoutView
-        {
-            East = scrollBarContainer,
-            Center = progress,
-            South = textField,
-            PreferredHeight = 200
-        };
-        
-        var content = new ColumnView
-        {
-            Id = "Test",
-            Gap = 5
-        };
-        
-        for (var i = 0; i < 100; i++)
-        {
-            content.Children.Add(new RectView
-            {
-                Padding = PaddingStyle.All(4),
-                BackgroundColor = 0x9C9C9C,
-                Children =
-                {
-                    new TextView
-                    {
-                        Text = $"Element: {i+1}"
-                    }
-                }
-            });
-        }
-
-        var listView = new VerticalListView
-        {
-            Gap = 5,
-            Children =
-            {
-                content,
-                bottomSection
-            }
-        };
-        
         var contentOutline = new RectView
         {
             Padding = new PaddingStyle
@@ -162,15 +77,7 @@ public sealed class Window : View
             },
             Children =
             {
-                new RectView
-                {
-                    Padding = PaddingStyle.All(10),
-                    BackgroundColor = 0xCECECE,
-                    Children =
-                    {
-                        listView
-                    }
-                }
+                _contents
             }
         };
         
@@ -194,10 +101,6 @@ public sealed class Window : View
             }
         };
         AddChildToSelf(outline);
-
-        // var windowResizer = new WindowResizer();
-        // windowResizer.Controller = new WindowResizerDefaultKbmController(this, windowResizer);
-        // AddChildToSelf(windowResizer);
     }
 
     protected override void OnLayoutSelf()

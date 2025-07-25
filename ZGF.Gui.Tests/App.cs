@@ -12,7 +12,6 @@ public sealed class App : OpenGlApp
     private readonly Canvas _canvas;
     private readonly View _gui;
 
-    private readonly Window _window;
     private readonly InputSystem _inputSystem;
     private readonly KeyCallback _keyCallback;
     private readonly MouseButtonCallback _mouseButtonCallback;
@@ -65,7 +64,6 @@ public sealed class App : OpenGlApp
         
         var appBar = new AppBar(this, _contextMenuManager);
         var center = new Center();
-        _window = center.Window;
 
         var contents = new BorderLayoutView
         {

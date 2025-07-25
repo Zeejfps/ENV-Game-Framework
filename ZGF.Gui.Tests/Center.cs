@@ -1,9 +1,11 @@
-﻿namespace ZGF.Gui.Tests;
+﻿using ZGF.Geometry;
+using ZGF.Gui.Layouts;
+
+namespace ZGF.Gui.Tests;
 
 public sealed class Center : View
 {
-    public Window Window { get; }
-    
+
     public Center()
     {
         var background = new RectView
@@ -13,13 +15,116 @@ public sealed class Center : View
         
         AddChildToSelf(background);
 
-        var w = new Window("About This Computer");
-        w.Controller = new WindowDefaultKbmController(w);
-        AddChildToSelf(w);
+        var w1 = new Window("About This Computer");
+        BuildWindow(w1);
+        w1.Controller = new WindowDefaultKbmController(w1);
+        AddChildToSelf(w1);
 
-        Window = new Window("Window Title Here");
-        Window.Controller = new WindowDefaultKbmController(Window);
-        AddChildToSelf(Window);
-        
+        var w3 = new Window("3D View")
+        {
+            Children =
+            {
+                new RectView
+                {
+
+                }
+            }
+        };
+        w3.Controller = new WindowDefaultKbmController(w3);
+        AddChildToSelf(w3);
+    }
+
+    private void BuildWindow(Window window)
+    {
+        var scrollBar = new RectView
+        {
+            BackgroundColor = 0xEFEFEF,
+        };
+
+        var scrollBarContainer = new RectView
+        {
+            PreferredWidth = 14f,
+            BackgroundColor = 0x000000,
+            Padding = new PaddingStyle
+            {
+                Left = 1,
+                Top = 1,
+                Bottom = 15
+            },
+            Children =
+            {
+                scrollBar
+            }
+        };
+
+        var progress = new RectView
+        {
+            BackgroundColor = 0xEFEFEF,
+            BorderSize = new BorderSizeStyle
+            {
+                Top = 1,
+            },
+            BorderColor = BorderColorStyle.All(0x000000)
+        };
+
+        var textInput = new TextInput
+        {
+            PreferredHeight = 30f
+        };
+        textInput.Controller = new TextInputDefaultKbmController(textInput);
+
+        var textField = new RectView
+        {
+            BackgroundColor = 0xEFEFEF,
+            BorderColor = BorderColorStyle.All(0x252525),
+            BorderSize = BorderSizeStyle.All(1),
+            Padding = PaddingStyle.All(4),
+            Children =
+            {
+                textInput
+            }
+        };
+
+        var bottomSection = new BorderLayoutView
+        {
+            East = scrollBarContainer,
+            Center = progress,
+            South = textField,
+            PreferredHeight = 200
+        };
+
+        var content = new ColumnView
+        {
+            Id = "Test",
+            Gap = 5
+        };
+
+        for (var i = 0; i < 100; i++)
+        {
+            content.Children.Add(new RectView
+            {
+                Padding = PaddingStyle.All(4),
+                BackgroundColor = 0x9C9C9C,
+                Children =
+                {
+                    new TextView
+                    {
+                        Text = $"Element: {i+1}"
+                    }
+                }
+            });
+        }
+
+        var listView = new VerticalListView
+        {
+            Gap = 5,
+            Children =
+            {
+                content,
+                bottomSection
+            }
+        };
+
+        window.Children.Add(listView);
     }
 }
