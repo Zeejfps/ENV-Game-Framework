@@ -72,7 +72,8 @@ public sealed class ContextMenuItem : View
         _arrowIcon = new ImageView
         {
             PreferredWidth = 20,
-            PreferredHeight = 20
+            PreferredHeight = 20,
+            TintColor = 0x0
         };
 
         _textView = new TextView

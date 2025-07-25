@@ -2,6 +2,14 @@ namespace ZGF.Gui;
 
 public sealed class ImageView : View
 {
+    private readonly ImageStyle _style = new();
+
+    public StyleValue<uint> TintColor
+    {
+        get => _style.TintColor;
+        set => SetField(ref _style.TintColor, value);
+    }
+    
     private string? _imageId;
     public string? ImageId
     {
@@ -41,6 +49,7 @@ public sealed class ImageView : View
             Position = Position,
             ImageId = _imageId,
             ZIndex = ZIndex,
+            Style = _style
         });
     }
 }

@@ -284,7 +284,7 @@ public sealed class Canvas : ICanvas
         Graphics.BlitTransparent(
             _colorBuffer, offsetX, offsetY, (int)scaledWidth, (int)scaledHeight,
             image, 0, 0, image.Width, image.Height,
-            0x000000
+            data.Style.TintColor
         );
     }
 
