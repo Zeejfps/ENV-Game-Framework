@@ -8,11 +8,11 @@ public sealed class ImageManager : IImageManager
 {
     private readonly Dictionary<string, Bitmap> _imageByUriLookup = new();
 
-    public void LoadImage(string imageUri)
+    public void LoadImageFromFile(string pathToImageFile)
     {
-        var png = Png.DecodeFromFile(imageUri);
+        var png = Png.DecodeFromFile(pathToImageFile);
         var bitmap = PngToBitmap(png);
-        _imageByUriLookup.Add(imageUri, bitmap);
+        _imageByUriLookup.Add(pathToImageFile, bitmap);
     }
 
     private Bitmap PngToBitmap(IDecodedPng png)

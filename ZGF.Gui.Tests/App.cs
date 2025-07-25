@@ -29,9 +29,9 @@ public sealed class App : OpenGlApp
         _inputSystem = new InputSystem();
 
         var imageManager = new ImageManager();
-        imageManager.LoadImage("Assets/Icons/arrow_right.png");
-        imageManager.LoadImage("Assets/Icons/arrow_up.png");
-        imageManager.LoadImage("Assets/Icons/arrow_down.png");
+        imageManager.LoadImageFromFile("Assets/Icons/arrow_right.png");
+        imageManager.LoadImageFromFile("Assets/Icons/arrow_up.png");
+        imageManager.LoadImageFromFile("Assets/Icons/arrow_down.png");
 
         _bitmapFont = BitmapFont.LoadFromFile("Assets/Fonts/Charcoal/Charcoal_p20.xml");
         var textMeasurer = new TextMeasurer(_bitmapFont);

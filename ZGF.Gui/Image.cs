@@ -46,7 +46,7 @@ public sealed class Image : View
         c.AddCommand(new DrawImageCommand
         {
             Position = Position,
-            ImageUri = _imageUri,
+            ImageId = _imageUri,
             ZIndex = ZIndex,
         });
     }
