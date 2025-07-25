@@ -107,17 +107,15 @@ internal sealed class WavefrontObjFileReader
 
     private void ReadVertexData(StreamReader textReader)
     {
-        Console.WriteLine("Reading vertex...");
         var v = textReader.Read();
         Debug.Assert(v == 'v', $"Expected 'v', found '{(char)v}'");
         
         var nextChar = textReader.Read();
-        Console.WriteLine($"Next char: {(char)nextChar}");
         switch (nextChar)
         {
             case ' ':
                 var vertexPosition = _vertexReader.ReadPosition(textReader);
-                Console.WriteLine($"{vertexPosition.X}, {vertexPosition.Y}, {vertexPosition.Z}, {vertexPosition.W}");
+                //Console.WriteLine($"v {vertexPosition.X}, {vertexPosition.Y}, {vertexPosition.Z}, {vertexPosition.W}");
                 _vertexPositions.Add(vertexPosition);
                 break;
             case 'n':

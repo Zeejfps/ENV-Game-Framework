@@ -6,30 +6,22 @@ internal sealed class VertexReader
     
     public VertexPosition ReadPosition(StreamReader textReader)
     {
-        var x = ReadFloat(textReader);
-        var y = ReadFloat(textReader);
-        var z = ReadFloat(textReader);
-
-        if (!TryReadFloat(textReader, out var w))
-            w = 1f;
-        
-        return new VertexPosition
-        {
-            X = x,
-            Y = y,
-            Z = z,
-            W = w
-        };
-    }
-
-    private Span<char> ReadToSpace(StreamReader textReader)
-    {
         var buffer = _buffer;
         int charAsInt;
         var len = 0;
+        
+        Span<float> values = stackalloc float[4];
+        var currValueIndex = 0;
         while ((charAsInt = textReader.Read()) > 0)
         {
-            if (charAsInt == ' ') break;
+            if (charAsInt == ' ')
+            {
+                var floatValue = float.Parse(_buffer.AsSpan(0, len));
+                values[currValueIndex] = floatValue;
+                ++currValueIndex;
+                len = 0;
+                continue;
+            }
             if (charAsInt == '\r') continue;
             if (charAsInt == '\n') break;
             
@@ -37,7 +29,16 @@ internal sealed class VertexReader
             len++;
         }
 
-        return _buffer;
+        if (currValueIndex < 3)
+            values[3] = 1.0f;
+
+        return new VertexPosition
+        {
+            X = values[0],
+            Y = values[1],
+            Z = values[2],
+            W = values[3]
+        };
     }
     
     public VertexNormal ReadNormal(StreamReader textReader)
