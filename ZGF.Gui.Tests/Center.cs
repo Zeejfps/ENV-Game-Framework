@@ -1,10 +1,11 @@
-﻿using ZGF.Gui.Layouts;
+﻿using GLFW;
+using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
 public sealed class Center : View
 {
-    public ModelView ModelView { get; }
+    public ImageView ModelView { get; }
 
     public Center()
     {
@@ -20,7 +21,7 @@ public sealed class Center : View
         w1.Controller = new WindowDefaultKbmController(w1);
         AddChildToSelf(w1);
 
-        ModelView = new ModelView();
+        ModelView = new ImageView();
         var w3 = new Window("3D View")
         {
             Children =

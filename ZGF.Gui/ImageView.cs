@@ -17,7 +17,7 @@ public sealed class ImageView : View
         if (ImageId != null && Context != null)
             return Context.ImageManager.GetImageWidth(ImageId);
 
-        return 0;
+        return MinWidthConstraint;
     }
 
     public override float MeasureHeight()
@@ -28,7 +28,7 @@ public sealed class ImageView : View
         if (ImageId != null && Context != null)
             return Context.ImageManager.GetImageHeight(ImageId);
 
-        return 0;
+        return MaxHeightConstraint;
     }
 
     protected override void OnDrawSelf(ICanvas c)

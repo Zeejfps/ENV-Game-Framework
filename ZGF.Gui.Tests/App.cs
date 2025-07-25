@@ -24,7 +24,7 @@ public sealed class App : OpenGlApp
     private readonly ImageManager _imageManager;
 
     private FrameBufferHandle _frameBufferHandle;
-    private ModelView _modelView;
+    private ImageView _modelView;
 
     public App(StartupConfig startupConfig) : base(startupConfig)
     {
