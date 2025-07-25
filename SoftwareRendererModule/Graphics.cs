@@ -372,6 +372,7 @@ public static class Graphics
         return (temp + (temp >> 8)) >> 8;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint BlendPixel(uint dstColor, uint srcColor)
     {
         var src_a = (srcColor >> 24);
