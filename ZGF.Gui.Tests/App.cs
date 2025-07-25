@@ -17,6 +17,7 @@ public sealed class App : OpenGlApp
     private readonly KeyCallback _keyCallback;
     private readonly MouseButtonCallback _mouseButtonCallback;
     private readonly SizeCallback _windowSizeCallback;
+    private readonly SizeCallback _framebufferSizeCallback;
     private readonly MouseCallback _scrollCallback;
     private readonly BitmapFont _bitmapFont;
     private readonly ContextMenuManager _contextMenuManager;
@@ -126,10 +127,12 @@ public sealed class App : OpenGlApp
         _keyCallback = HandleKeyEvent;
         _mouseButtonCallback = HandleMouseButtonEvent;
         _windowSizeCallback = HandleWindowSizeChanged;
+        _framebufferSizeCallback = HandleFramebufferSizeChanged;
         _scrollCallback = HandleScrollEvent;
         Glfw.SetKeyCallback(WindowHandle, _keyCallback);
         Glfw.SetMouseButtonCallback(WindowHandle, _mouseButtonCallback);
         Glfw.SetWindowSizeCallback(WindowHandle, _windowSizeCallback);
+        Glfw.SetFramebufferSizeCallback(WindowHandle, _framebufferSizeCallback);
         Glfw.SetScrollCallback(WindowHandle, _scrollCallback);
 
         //PrintTree(gui);
@@ -159,12 +162,16 @@ public sealed class App : OpenGlApp
 
     private void HandleWindowSizeChanged(GLFW.Window window, int width, int height)
     {
-        glViewport(0, 0, width, height);
         _gui.PreferredWidth = width;
         _gui.PreferredHeight = height;
         _canvas.Resize(width, height);
         Render();
         Glfw.SwapBuffers(window);
+    }
+
+    private void HandleFramebufferSizeChanged(GLFW.Window window, int width, int height)
+    {
+        glViewport(0, 0, width, height);
     }
 
     private void HandleMouseButtonEvent(GLFW.Window window, GLFW.MouseButton button, GLFW.InputState state, ModifierKeys modifiers)
