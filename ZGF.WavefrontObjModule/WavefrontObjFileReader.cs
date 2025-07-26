@@ -7,17 +7,26 @@ internal sealed class WavefrontObjFileReader
     private readonly VertexReader _vertexReader = new();
     private readonly ObjectNameReader _objectNameReader = new();
     private readonly SmoothGroupReader _smoothGroupReader = new();
-    private readonly List<NamedObject> _objects = new();
+    private readonly List<SomethingObject> _objects = new();
     
     private readonly List<VertexPosition> _vertexPositions = new();
     private readonly List<VertexNormal> _vertexNormals = new();
     private readonly List<VertexTextureCoord> _vertexTextureCoords = new();
     private readonly List<Face> _faces = new();
 
-    private WavefrontObjFileContents _contents = new();
-    
+    private SomethingObject? _currentObject;
+    private int _vertexPositionIndex = 0;
+    private int _vertexNormalsIndex = 0;
+    private int _vertexTextureCoordsIndex = 0;
+    private int _facesIndex = 0;
+
     public IWavefrontObjFileContents ReadFromFile(string pathToFile)
     {
+        _vertexPositions.Clear();
+        _vertexNormals.Clear();
+        _vertexTextureCoords.Clear();
+        _faces.Clear();
+
         using var fileStream = File.OpenRead(pathToFile);
         using var textReader = new StreamReader(fileStream);
 
@@ -73,12 +82,46 @@ internal sealed class WavefrontObjFileReader
             len++;
         }
 
-        _contents.vertexPositions = _vertexPositions.ToArray();
-        _contents.vertexNormals = _vertexNormals.ToArray();
-        _contents.vertexTextureCoords = _vertexTextureCoords.ToArray();
-        _contents.faces = _faces.ToArray();
         SetObjectData();
-        return _contents;
+
+        var vertexPositions = _vertexPositions.ToArray();
+        var vertexNormals = _vertexNormals.ToArray();
+        var vertexTextureCoords = _vertexTextureCoords.ToArray();
+        var faces = _faces.ToArray();
+
+        var namedObjects = _objects
+            .Select(t => new NamedObject
+            {
+                Name = t.Name,
+                VertexPositions = vertexPositions.AsMemory(t.VertexPositions),
+                VertexNormals = new ReadOnlyMemory<VertexNormal>(
+                    vertexNormals,
+                    t.VertexNormalsIndex,
+                    t.VertexNormalsCount
+                ),
+                VertexTextureCoords = new ReadOnlyMemory<VertexTextureCoord>(
+                    vertexTextureCoords,
+                    t.VertexTextureCoordsIndex,
+                    t.VertexTextureCoordsCount
+                ),
+                Faces = new ReadOnlyMemory<Face>(
+                    faces,
+                    t.FacesIndex,
+                    t.FacesCount
+                ),
+            })
+            .ToArray();
+
+
+        var data = new SomethingContent
+        {
+            VertexPositions = _vertexPositions.ToArray(),
+            VertexNormals = _vertexNormals.ToArray(),
+            VertexTextureCoords = _vertexTextureCoords.ToArray(),
+            Faces = _faces.ToArray()
+        };
+        
+        return new WavefrontObjFileContents(data);;
     }
 
     private void ReadFaceData(StreamReader textReader)
@@ -134,17 +177,11 @@ internal sealed class WavefrontObjFileReader
         _faces.Add(face);
     }
 
-    private NamedObject? _currentObject;
-    private int _vertexPositionIndex = 0;
-    private int _vertexNormalsIndex = 0;
-    private int _vertexTextureCoordsIndex = 0;
-    private int _facesIndex = 0;
-
     private void SetObjectData()
     {
         if (_currentObject != null)
         {
-            _currentObject.SetVertexPositionRange(_vertexPositionIndex, _vertexPositions.Count - _vertexPositionIndex);
+            _currentObject.VertexPositions = new Range(_vertexPositionIndex, _vertexPositions.Count);
             _vertexPositionIndex += _vertexPositions.Count;
 
             _currentObject.SetVertexTextureCoordsRange(_vertexTextureCoordsIndex, _vertexTextureCoords.Count - _vertexTextureCoordsIndex);
@@ -163,14 +200,10 @@ internal sealed class WavefrontObjFileReader
         SetObjectData();
         
         var objName = _objectNameReader.Read(textReader);
-        var namedObject = new NamedObject
+        var namedObject = new SomethingObject()
         {
-            Context = _contents,
             Name = new string(objName),
         };
         _objects.Add(namedObject);
-        _currentObject = namedObject;
-        
-        Console.WriteLine($"Reading object: {objName}");
     }
 }

@@ -2,8 +2,8 @@
 
 public interface INamedObject
 {
-    ReadOnlySpan<VertexPosition> VertexPositions { get; }
-    ReadOnlySpan<VertexNormal> VertexNormals { get; }
-    ReadOnlySpan<VertexTextureCoord> VertexTextureCoords { get; }
-    ReadOnlySpan<Face> Faces { get; }
+    ReadOnlyMemory<VertexPosition> VertexPositions { get; }
+    ReadOnlyMemory<VertexNormal> VertexNormals { get; }
+    ReadOnlyMemory<VertexTextureCoord> VertexTextureCoords { get; }
+    ReadOnlyMemory<Face> Faces { get; }
 }
