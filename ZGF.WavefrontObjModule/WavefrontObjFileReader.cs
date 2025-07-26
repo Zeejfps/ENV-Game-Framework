@@ -92,6 +92,7 @@ internal sealed class WavefrontObjFileReader
         }
 
         PushCurrentObject();
+        PushCurrentSmoothingGroup();
 
         var vertexPositions = _vertexPositions.ToArray();
         var vertexNormals = _vertexNormals.ToArray();
