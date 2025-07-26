@@ -2,8 +2,6 @@
 
 internal sealed class WavefrontObjFileReader
 {
-    private readonly VertexReader _vertexReader = new();
-
     private readonly List<VertexPosition> _vertexPositions = new();
     private readonly List<VertexNormal> _vertexNormals = new();
     private readonly List<VertexTextureCoord> _vertexTextureCoords = new();
@@ -58,12 +56,10 @@ internal sealed class WavefrontObjFileReader
                         ReadVertexPosition(textReader);
                         break;
                     case "vn":
-                        var vertexNormal = _vertexReader.ReadNormal(textReader);
-                        _vertexNormals.Add(vertexNormal);
+                        ReadVertexNormal(textReader);
                         break;
                     case "vt":
-                        var vertexTexture = _vertexReader.ReadTextureCoords(textReader);
-                        _vertexTextureCoords.Add(vertexTexture);
+                        ReadTextureCoord(textReader);
                         break;
                     case "s":
                         ReadSmoothingGroup(textReader);
@@ -111,6 +107,73 @@ internal sealed class WavefrontObjFileReader
         };
 
         return new WavefrontObjFileContents(data);
+    }
+
+    private void ReadVertexNormal(StreamReader textReader)
+    {
+        var buffer = _buffer;
+        int charAsInt;
+        var len = 0;
+
+        Span<float> values = stackalloc float[3];
+        var currValueIndex = 0;
+        while ((charAsInt = textReader.Read()) > 0)
+        {
+            if (charAsInt == ' ')
+            {
+                var floatValue = float.Parse(_buffer.AsSpan(0, len));
+                values[currValueIndex] = floatValue;
+                ++currValueIndex;
+                len = 0;
+                continue;
+            }
+            if (charAsInt == '\r') continue;
+            if (charAsInt == '\n') break;
+
+            buffer[len] = (char)charAsInt;
+            len++;
+        }
+
+        var normal = new VertexNormal
+        {
+            X = values[0],
+            Y = values[1],
+            Z = values[2],
+        };
+        _vertexNormals.Add(normal);
+    }
+
+    private void ReadTextureCoord(StreamReader textReader)
+    {
+        var buffer = _buffer;
+        int charAsInt;
+        var len = 0;
+
+        Span<float> values = stackalloc float[2];
+        var currValueIndex = 0;
+        while ((charAsInt = textReader.Read()) > 0)
+        {
+            if (charAsInt == ' ')
+            {
+                var floatValue = float.Parse(_buffer.AsSpan(0, len));
+                values[currValueIndex] = floatValue;
+                ++currValueIndex;
+                len = 0;
+                continue;
+            }
+            if (charAsInt == '\r') continue;
+            if (charAsInt == '\n') break;
+
+            buffer[len] = (char)charAsInt;
+            len++;
+        }
+
+        var normal = new VertexTextureCoord
+        {
+            U = values[0],
+            V = values[1],
+        };
+        _vertexTextureCoords.Add(normal);
     }
 
     private void ReadComment(StreamReader textReader)
