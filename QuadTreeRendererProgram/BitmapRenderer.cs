@@ -64,7 +64,7 @@ public sealed unsafe class BitmapRenderer : IDisposable
 
         glVertexAttribPointer<float>(
             attribIndex: 0,
-            count: 3,
+            componentCount: 3,
             stride: 5,
             offset: 0
         );
@@ -72,7 +72,7 @@ public sealed unsafe class BitmapRenderer : IDisposable
 
         glVertexAttribPointer<float>(
             attribIndex: 1,
-            count: 2,
+            componentCount: 2,
             stride: 5,
             offset: 3
         );

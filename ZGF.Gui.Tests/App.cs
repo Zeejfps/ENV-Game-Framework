@@ -47,11 +47,7 @@ public sealed class App : OpenGlApp
             textMeasurer, _imageManager
         );
         
-        var objFileContents = WavefrontObj.ReadFromFile("Assets/Models/Suzan_tri.obj");
-        var v = objFileContents.VertexPositions[0];
-        Console.WriteLine(v);
-        var f = objFileContents.Faces[0];
-        Console.WriteLine(f);
+        var mesh = Mesh.LoadFromFile("Assets/Models/Suzan_tri.obj");
 
         var contextMenuPane = new View();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);

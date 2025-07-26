@@ -51,7 +51,6 @@ public static class GLBuffer
         fixed (void* dataPtr = &data[0])
         {
             GL46.glBufferData(target, data.Length * sizeOfType, dataPtr, (uint)usageHint);
-            AssertNoGlError();
         }
     }
 }

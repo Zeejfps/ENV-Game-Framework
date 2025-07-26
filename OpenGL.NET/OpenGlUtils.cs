@@ -25,9 +25,9 @@ public static class OpenGlUtils
 
     public static unsafe void glVertexAttribPointer<T>(
         uint attribIndex,
-        int count,
-        int stride,
-        int offset,
+        int componentCount = 4,
+        int stride = 0,
+        int offset = 0,
         bool normalize = false) where T : unmanaged
     {
         var sizeOfT = sizeof(T);
@@ -36,7 +36,7 @@ public static class OpenGlUtils
         var ptrOffset = (void*)(offset * sizeOfT);
         GL46.glVertexAttribPointer(
             attribIndex,
-            count,
+            componentCount,
             glType,
             normalize,
             strideInBytes,

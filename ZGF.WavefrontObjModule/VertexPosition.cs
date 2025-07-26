@@ -1,7 +1,9 @@
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace ZGF.WavefrontObjModule;
 
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct VertexPosition
 {
     public required float X { get; init; }
