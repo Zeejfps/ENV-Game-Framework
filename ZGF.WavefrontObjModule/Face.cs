@@ -15,11 +15,14 @@ public readonly struct Face
         foreach (var v in Vertices)
         {
             sb.Append(' ');
-            sb.Append(v.PositionIndex);
+            if (v.PositionIndex != 0)
+                sb.Append(v.PositionIndex);
             sb.Append('/');
-            sb.Append(v.TextureCoordIndex);
+            if (v.TextureCoordIndex != 0)
+                sb.Append(v.TextureCoordIndex);
             sb.Append('/');
-            sb.Append(v.NormalIndex);
+            if (v.NormalIndex != 0)
+                sb.Append(v.NormalIndex);
         }
 
         return sb.ToString();
