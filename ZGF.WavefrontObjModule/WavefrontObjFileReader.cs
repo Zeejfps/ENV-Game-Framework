@@ -3,7 +3,6 @@
 internal sealed class WavefrontObjFileReader
 {
     private readonly CommentReader _commentReader = new();
-    private readonly MaterialReader _materialReader = new();
     private readonly VertexReader _vertexReader = new();
     private readonly ObjectNameReader _objectNameReader = new();
     private readonly SmoothGroupReader _smoothGroupReader = new();
@@ -53,14 +52,13 @@ internal sealed class WavefrontObjFileReader
                         _commentReader.Read(textReader);
                         break;
                     case "mtllib":
-                        var materialFileName = _materialReader.Read(textReader);
+                        ReadMaterial(textReader);
                         break;
                     case "o":
-                        ReadNamedObjectData(textReader);
+                        ReadObject(textReader);
                         break;
                     case "v":
-                        var vertexPosition = _vertexReader.ReadPosition(textReader);
-                        _vertexPositions.Add(vertexPosition);
+                        ReadVertexPosition(textReader);
                         break;
                     case "vn":
                         var vertexNormal = _vertexReader.ReadNormal(textReader);
@@ -116,6 +114,64 @@ internal sealed class WavefrontObjFileReader
         };
 
         return new WavefrontObjFileContents(data);
+    }
+
+    private void ReadVertexPosition(StreamReader textReader)
+    {
+        var buffer = _buffer;
+        int charAsInt;
+        var len = 0;
+
+        Span<float> values = stackalloc float[4];
+        var currValueIndex = 0;
+        while ((charAsInt = textReader.Read()) > 0)
+        {
+            if (charAsInt == ' ')
+            {
+                var floatValue = float.Parse(_buffer.AsSpan(0, len));
+                values[currValueIndex] = floatValue;
+                ++currValueIndex;
+                len = 0;
+                continue;
+            }
+            if (charAsInt == '\r') continue;
+            if (charAsInt == '\n') break;
+
+            buffer[len] = (char)charAsInt;
+            len++;
+        }
+
+        if (currValueIndex < 3)
+            values[3] = 1.0f;
+
+        var position = new VertexPosition
+        {
+            X = values[0],
+            Y = values[1],
+            Z = values[2],
+            W = values[3]
+        };
+        _vertexPositions.Add(position);
+    }
+
+    private void ReadMaterial(StreamReader textReader)
+    {
+        var buffer = _buffer;
+        int charAsInt;
+        var len = 0;
+        while ((charAsInt = textReader.Read()) > 0)
+        {
+            if (charAsInt == '\r') continue;
+            if (charAsInt == '\n')
+            {
+                break;
+            }
+
+            buffer[len] = (char)charAsInt;
+            len++;
+        }
+
+        var materialName = buffer.AsSpan(0, len);
     }
 
     private void ReadFace(StreamReader textReader)
@@ -190,7 +246,7 @@ internal sealed class WavefrontObjFileReader
         }
     }
     
-    private void ReadNamedObjectData(StreamReader textReader)
+    private void ReadObject(StreamReader textReader)
     {
         SetObjectData();
         
