@@ -45,7 +45,7 @@ internal sealed class WavefrontObjFileReader
         using var fileStream = File.OpenRead(pathToFile);
         using var textReader = new StreamReader(fileStream);
 
-        Span<char> buff = stackalloc char[7];
+        Span<char> buffer = _buffer;
         int charAsInt, len = 0;
         while ((charAsInt = textReader.Read()) != -1)
         {
@@ -60,7 +60,7 @@ internal sealed class WavefrontObjFileReader
             {
                 if (len > 0)
                 {
-                    var header = buff[..len];
+                    var header = buffer[..len];
                     switch (header)
                     {
                         case "mtllib":
@@ -94,7 +94,7 @@ internal sealed class WavefrontObjFileReader
                 continue;
             }
             
-            buff[len++] = (char)charAsInt;
+            buffer[len++] = (char)charAsInt;
         }
 
         PushCurrentObject();
