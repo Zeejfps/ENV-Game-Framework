@@ -12,7 +12,7 @@ public sealed class WavefrontObjFileContents : IWavefrontObjFileContents
 
     private readonly SomethingContent _data;
 
-    public WavefrontObjFileContents(SomethingContent data)
+    internal WavefrontObjFileContents(SomethingContent data)
     {
         _data = data;
     }
