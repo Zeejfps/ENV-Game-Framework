@@ -47,8 +47,8 @@ public sealed class App : OpenGlApp
             textMeasurer, _imageManager
         );
         
-        WavefrontObj.ReadFromFile("Assets/Models/Suzan_tri.obj"); 
-        
+        var objFileContents = WavefrontObj.ReadFromFile("Assets/Models/Suzan_tri.obj");
+
         var contextMenuPane = new View();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
         

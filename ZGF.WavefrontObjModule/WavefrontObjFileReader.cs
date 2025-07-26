@@ -106,7 +106,8 @@ internal sealed class WavefrontObjFileReader
             len++;
         }
 
-        return new WavefrontObjFileContents();
+        SetObjectData();
+        return _contents;
     }
 
     private void ReadFaceData(StreamReader textReader)
@@ -167,16 +168,28 @@ internal sealed class WavefrontObjFileReader
     private int _vertexNormalsIndex = 0;
     private int _vertexTextureCoordsIndex = 0;
     private int _facesIndex = 0;
-    
-    private void ReadNamedObjectData(StreamReader textReader)
+
+    private void SetObjectData()
     {
         if (_currentObject != null)
         {
-            _currentObject.SetVertexPositionRange(_vertexPositionIndex, _vertexPositions.Count);
+            _currentObject.SetVertexPositionRange(_vertexPositionIndex, _vertexPositions.Count - _vertexPositionIndex);
             _vertexPositionIndex += _vertexPositions.Count;
 
-            _currentObject.SetVertexTextureCoordsRange(_vertexTextureCoordsIndex, _vertexTextureCoords.Count);
+            _currentObject.SetVertexTextureCoordsRange(_vertexTextureCoordsIndex, _vertexTextureCoords.Count - _vertexTextureCoordsIndex);
+            _vertexTextureCoordsIndex += _vertexTextureCoords.Count;
+
+            _currentObject.SetVertexNormalsRange(_vertexNormalsIndex, _vertexNormals.Count - _vertexNormalsIndex);
+            _vertexNormalsIndex += _vertexNormals.Count;
+
+            _currentObject.SetFacesRange(_facesIndex, _faces.Count - _facesIndex);
+            _facesIndex += _faces.Count;
         }
+    }
+    
+    private void ReadNamedObjectData(StreamReader textReader)
+    {
+        SetObjectData();
         
         var objName = _objectNameReader.Read(textReader);
         var namedObject = new NamedObject

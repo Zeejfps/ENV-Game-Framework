@@ -39,9 +39,21 @@ internal sealed class NamedObject : INamedObject
         _vertexPositionsCount = length;
     }
 
+    public void SetVertexNormalsRange(int startIndex, int count)
+    {
+        _vertexNormalsIndex = startIndex;
+        _vertexNormalsCount = count;
+    }
+
     public void SetVertexTextureCoordsRange(int startIndex, int count)
     {
         _vertexTextureCoordsIndex = startIndex;
         _vertexTextureCoordsCount = count;
+    }
+
+    public void SetFacesRange(int startIndex, int count)
+    {
+        _facesIndex = startIndex;
+        _facesCount = count;
     }
 }
