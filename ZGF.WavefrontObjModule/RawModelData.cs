@@ -1,8 +1,8 @@
 namespace ZGF.WavefrontObjModule;
 
-internal sealed class SomethingContent
+internal sealed class RawModelData
 {
-    public required NamedObject[] NamedObjects { get; init; }
+    public required Object[] NamedObjects { get; init; }
     public required VertexPosition[] VertexPositions { get; init; }
     public required VertexNormal[] VertexNormals { get; init; }
     public required VertexTextureCoord[] VertexTextureCoords { get; init; }

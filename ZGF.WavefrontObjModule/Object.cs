@@ -1,6 +1,6 @@
 ﻿namespace ZGF.WavefrontObjModule;
 
-internal sealed class NamedObject : INamedObject
+internal sealed class Object : IObject
 {
     public required string Name { get; init; }
 

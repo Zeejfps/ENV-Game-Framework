@@ -2,7 +2,7 @@
 
 public sealed class WavefrontObjFileContents : IWavefrontObjFileContents
 {
-    public IEnumerable<INamedObject> NamedObjects { get; }
+    public IEnumerable<IObject> NamedObjects { get; }
     public IEnumerable<IGroup> Groups { get; }
     public IEnumerable<ISmoothingGroup> SmoothingGroups { get; }
     public IReadOnlyList<VertexPosition> AllVertexPositions => _data.VertexPositions;
@@ -10,9 +10,9 @@ public sealed class WavefrontObjFileContents : IWavefrontObjFileContents
     public IEnumerable<VertexTextureCoord> AllVertexTextureCoords => _data.VertexTextureCoords;
     public IEnumerable<Face> AllFaces => _data.Faces;
 
-    private readonly SomethingContent _data;
+    private readonly RawModelData _data;
 
-    internal WavefrontObjFileContents(SomethingContent data)
+    internal WavefrontObjFileContents(RawModelData data)
     {
         _data = data;
     }

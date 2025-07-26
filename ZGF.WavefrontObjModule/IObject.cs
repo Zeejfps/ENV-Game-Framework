@@ -1,6 +1,6 @@
 ﻿namespace ZGF.WavefrontObjModule;
 
-public interface INamedObject
+public interface IObject
 {
     ReadOnlyMemory<VertexPosition> VertexPositions { get; }
     ReadOnlyMemory<VertexNormal> VertexNormals { get; }

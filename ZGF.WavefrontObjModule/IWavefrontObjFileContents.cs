@@ -2,7 +2,7 @@
 
 public interface IWavefrontObjFileContents
 {
-    IEnumerable<INamedObject> NamedObjects { get; }
+    IEnumerable<IObject> NamedObjects { get; }
     IEnumerable<IGroup> Groups { get; }
     IEnumerable<ISmoothingGroup> SmoothingGroups { get; }
     

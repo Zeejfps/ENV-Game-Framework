@@ -87,7 +87,7 @@ internal sealed class WavefrontObjFileReader
         var faces = _faces.ToArray();
 
         var namedObjects = _namedObjects
-            .Select(t => new NamedObject
+            .Select(t => new Object
             {
                 Name = t.Name,
                 VertexPositions = vertexPositions.AsMemory(t.VertexPositionsRange),
@@ -97,7 +97,7 @@ internal sealed class WavefrontObjFileReader
             })
             .ToArray();
 
-        var data = new SomethingContent
+        var data = new RawModelData
         {
             VertexPositions = vertexPositions,
             VertexNormals = vertexNormals,
