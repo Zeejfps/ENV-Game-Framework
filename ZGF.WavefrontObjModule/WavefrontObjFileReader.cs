@@ -120,6 +120,7 @@ internal sealed class WavefrontObjFileReader
 
         var data = new RawModelData
         {
+            MtlFiles = [.._mtlFileNames],
             VertexPositions = vertexPositions,
             VertexNormals = vertexNormals,
             VertexTextureCoords = vertexTextureCoords,

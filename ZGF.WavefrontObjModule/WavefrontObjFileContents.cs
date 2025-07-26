@@ -2,6 +2,7 @@
 
 internal sealed class WavefrontObjFileContents : IWavefrontObjFileContents
 {
+    public IReadOnlySet<string> MtlFiles => _data.MtlFiles;
     public IReadOnlyList<IObject> Objects => _data.Objects;
     public IReadOnlyList<IGroup> Groups { get; }
     public IReadOnlyList<ISmoothingGroup> SmoothingGroups => _data.SmoothingGroups;

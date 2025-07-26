@@ -2,6 +2,7 @@
 
 public interface IWavefrontObjFileContents
 {
+    IReadOnlySet<string> MtlFiles { get; }
     IReadOnlyList<IObject> Objects { get; }
     IReadOnlyList<IGroup> Groups { get; }
     IReadOnlyList<ISmoothingGroup> SmoothingGroups { get; }
