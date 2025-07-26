@@ -293,7 +293,7 @@ internal sealed class WavefrontObjFileReader
 
     private void ReadVertexPosition(StreamReader textReader)
     {
-        var buffer = _buffer;
+        Span<char> buffer = _buffer;
         int charAsInt;
         var len = 0;
 
@@ -306,11 +306,10 @@ internal sealed class WavefrontObjFileReader
                 if (len > 0)
                 {
                     var floatValue = float.Parse(
-                        buffer.AsSpan(0, len),
+                        buffer[..len],
                         CultureInfo.InvariantCulture
                     );
-                    values[currValueIndex] = floatValue;
-                    ++currValueIndex;
+                    values[currValueIndex++] = floatValue;
                     len = 0;
                 }
                 continue;
@@ -318,18 +317,16 @@ internal sealed class WavefrontObjFileReader
             if (charAsInt == '\r') continue;
             if (charAsInt == '\n') break;
 
-            buffer[len] = (char)charAsInt;
-            len++;
+            buffer[len++] = (char)charAsInt;
         }
 
         if (len > 0)
         {
             var floatValue = float.Parse(
-                buffer.AsSpan(0, len),
+                buffer[..len],
                 CultureInfo.InvariantCulture
             );
-            values[currValueIndex] = floatValue;
-            ++currValueIndex;
+            values[currValueIndex++] = floatValue;
         }
 
         if (currValueIndex == 3)
