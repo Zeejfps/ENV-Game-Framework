@@ -12,6 +12,7 @@ internal sealed class WavefrontObjFileReader
     private readonly List<Face> _faces = new();
     private readonly List<NamedObjectDefinition> _namedObjects = new();
     private readonly List<SmoothingGroupDefinition> _smoothingGroups = new();
+    private readonly HashSet<string> _mtlFileNames = new();
 
     private NamedObjectDefinition? _currentObject;
     private SmoothingGroupDefinition? _currentSmoothingGroup;
@@ -358,6 +359,7 @@ internal sealed class WavefrontObjFileReader
         }
 
         var materialName = buffer.AsSpan(0, len);
+        _mtlFileNames.Add(materialName.ToString());
     }
 
     private void ReadFace(StreamReader textReader)
