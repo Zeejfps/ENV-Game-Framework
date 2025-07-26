@@ -46,10 +46,10 @@ internal sealed class WavefrontObjFileReader
         using var textReader = new StreamReader(fileStream);
 
         Span<char> buff = stackalloc char[7];
-        int chasAsInt, len = 0;
-        while ((chasAsInt = textReader.Read()) != -1)
+        int charAsInt, len = 0;
+        while ((charAsInt = textReader.Read()) != -1)
         {
-            if (chasAsInt == ' ')
+            if (charAsInt == ' ')
             {
                 if (len > 0)
                 {
@@ -90,7 +90,7 @@ internal sealed class WavefrontObjFileReader
                 continue;
             }
             
-            buff[len++] = (char)chasAsInt;
+            buff[len++] = (char)charAsInt;
         }
 
         PushCurrentObject();
@@ -163,7 +163,7 @@ internal sealed class WavefrontObjFileReader
         if (len > 0)
         {
             var floatValue = float.Parse(
-                _buffer.AsSpan(0, len),
+                buffer.AsSpan(0, len),
                 CultureInfo.InvariantCulture
             );
             values[currValueIndex] = floatValue;
@@ -190,7 +190,7 @@ internal sealed class WavefrontObjFileReader
                 if (len > 0)
                 {
                     var floatValue = float.Parse(
-                        _buffer.AsSpan(0, len),
+                        buffer.AsSpan(0, len),
                         CultureInfo.InvariantCulture
                     );
                     values[currValueIndex++] = floatValue;
@@ -206,7 +206,7 @@ internal sealed class WavefrontObjFileReader
         if (len > 0)
         {
             var floatValue = float.Parse(
-                _buffer.AsSpan(0, len),
+                buffer.AsSpan(0, len),
                 CultureInfo.InvariantCulture
             );
             values[currValueIndex] = floatValue;
@@ -222,12 +222,12 @@ internal sealed class WavefrontObjFileReader
     private void ReadComment(StreamReader textReader)
     {
         var buffer = _buffer;
-        int chasAsInt, len = 0;
-        while ((chasAsInt = textReader.Read()) != -1)
+        int charAsInt, len = 0;
+        while ((charAsInt = textReader.Read()) != -1)
         {
-            if (chasAsInt == '\r') continue;
-            if (chasAsInt == '\n') break;
-            buffer[len++] = (char)chasAsInt;
+            if (charAsInt == '\r') continue;
+            if (charAsInt == '\n') break;
+            buffer[len++] = (char)charAsInt;
         }
 
         if (len > 0)
@@ -300,7 +300,7 @@ internal sealed class WavefrontObjFileReader
                 if (len > 0)
                 {
                     var floatValue = float.Parse(
-                        _buffer.AsSpan(0, len),
+                        buffer.AsSpan(0, len),
                         CultureInfo.InvariantCulture
                     );
                     values[currValueIndex] = floatValue;
@@ -319,7 +319,7 @@ internal sealed class WavefrontObjFileReader
         if (len > 0)
         {
             var floatValue = float.Parse(
-                _buffer.AsSpan(0, len),
+                buffer.AsSpan(0, len),
                 CultureInfo.InvariantCulture
             );
             values[currValueIndex] = floatValue;
