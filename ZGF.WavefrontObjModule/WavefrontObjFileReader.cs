@@ -79,7 +79,6 @@ internal sealed class WavefrontObjFileReader
                     default:
                         throw new Exception($"Unexpected header '{header}' encountered while reading obj file");
                 }
-
                 len = 0;
                 continue;
             }
@@ -139,12 +138,15 @@ internal sealed class WavefrontObjFileReader
         {
             if (charAsInt == ' ')
             {
-                var floatValue = float.Parse(
-                    _buffer.AsSpan(0, len),
-                    CultureInfo.InvariantCulture
-                );
-                values[currValueIndex] = floatValue;
-                ++currValueIndex;
+                if (len > 0)
+                {
+                    var floatValue = float.Parse(
+                        _buffer.AsSpan(0, len),
+                        CultureInfo.InvariantCulture
+                    );
+                    values[currValueIndex] = floatValue;
+                    ++currValueIndex;
+                }
                 len = 0;
                 continue;
             }
@@ -153,6 +155,16 @@ internal sealed class WavefrontObjFileReader
 
             buffer[len] = (char)charAsInt;
             len++;
+        }
+
+        if (len > 0)
+        {
+            var floatValue = float.Parse(
+                _buffer.AsSpan(0, len),
+                CultureInfo.InvariantCulture
+            );
+            values[currValueIndex] = floatValue;
+            ++currValueIndex;
         }
 
         var normal = new VertexNormal
@@ -362,7 +374,12 @@ internal sealed class WavefrontObjFileReader
         {
             if (charAsInt == '/')
             {
-                indices[indexCount] = int.Parse(buffer.AsSpan(0, len));
+                if (len > 0)
+                {
+                    indices[indexCount] = int.Parse(
+                        buffer.AsSpan(0, len)
+                    );
+                }
                 indexCount++;
                 len = 0;
                 continue;
