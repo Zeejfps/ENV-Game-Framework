@@ -2,11 +2,11 @@
 
 public interface IWavefrontObjFileContents
 {
-    IEnumerable<IObject> NamedObjects { get; }
-    IEnumerable<IGroup> Groups { get; }
-    IEnumerable<ISmoothingGroup> SmoothingGroups { get; }
-    
+    IReadOnlyList<IObject> Objects { get; }
+    IReadOnlyList<IGroup> Groups { get; }
+    IReadOnlyList<ISmoothingGroup> SmoothingGroups { get; }
     IReadOnlyList<VertexPosition> AllVertexPositions { get; }
-    IEnumerable<VertexNormal> AllVertexNormals { get; }
-    IEnumerable<VertexTextureCoord> AllVertexTextureCoords { get; }
+    IReadOnlyList<VertexNormal> AllVertexNormals { get; }
+    IReadOnlyList<VertexTextureCoord> AllVertexTextureCoords { get; }
+    IReadOnlyList<Face> AllFaces { get; }
 }

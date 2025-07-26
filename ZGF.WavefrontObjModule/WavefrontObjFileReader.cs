@@ -123,7 +123,7 @@ internal sealed class WavefrontObjFileReader
             VertexNormals = vertexNormals,
             VertexTextureCoords = vertexTextureCoords,
             Faces = faces,
-            NamedObjects = namedObjects,
+            Objects = namedObjects,
             SmoothingGroups = smoothingGroups,
         };
 
@@ -429,7 +429,7 @@ internal sealed class WavefrontObjFileReader
 
         var face = new Face
         {
-            Triangles = vertexBuffer
+            Vertices = vertexBuffer
                 .Slice(0, vertexCount)
                 .ToArray()
         };

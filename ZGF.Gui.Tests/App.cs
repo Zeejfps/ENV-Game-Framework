@@ -48,7 +48,8 @@ public sealed class App : OpenGlApp
         );
         
         var objFileContents = WavefrontObj.ReadFromFile("Assets/Models/Suzan_tri.obj");
-
+        var f = objFileContents.AllFaces[0];
+        Console.WriteLine(f);
 
         var contextMenuPane = new View();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
