@@ -48,39 +48,42 @@ internal sealed class WavefrontObjFileReader
         {
             if (chasAsInt == ' ')
             {
-                var header = buff[..len];
-                switch (header)
+                if (len > 0)
                 {
-                    case "#":
-                        ReadComment(textReader);
-                        break;
-                    case "mtllib":
-                        ReadMaterial(textReader);
-                        break;
-                    case "o":
-                        PushCurrentObject();
-                        ReadObject(textReader);
-                        break;
-                    case "v":
-                        ReadVertexPosition(textReader);
-                        break;
-                    case "vn":
-                        ReadVertexNormal(textReader);
-                        break;
-                    case "vt":
-                        ReadTextureCoord(textReader);
-                        break;
-                    case "s":
-                        PushCurrentSmoothingGroup();
-                        ReadSmoothingGroup(textReader);
-                        break;
-                    case "f":
-                        ReadFace(textReader);
-                        break;
-                    default:
-                        throw new Exception($"Unexpected header '{header}' encountered while reading obj file");
+                    var header = buff[..len];
+                    switch (header)
+                    {
+                        case "#":
+                            ReadComment(textReader);
+                            break;
+                        case "mtllib":
+                            ReadMaterial(textReader);
+                            break;
+                        case "o":
+                            PushCurrentObject();
+                            ReadObject(textReader);
+                            break;
+                        case "v":
+                            ReadVertexPosition(textReader);
+                            break;
+                        case "vn":
+                            ReadVertexNormal(textReader);
+                            break;
+                        case "vt":
+                            ReadTextureCoord(textReader);
+                            break;
+                        case "s":
+                            PushCurrentSmoothingGroup();
+                            ReadSmoothingGroup(textReader);
+                            break;
+                        case "f":
+                            ReadFace(textReader);
+                            break;
+                        default:
+                            throw new Exception($"Unexpected header '{header}' encountered while reading obj file");
+                    }
+                    len = 0;
                 }
-                len = 0;
                 continue;
             }
             
