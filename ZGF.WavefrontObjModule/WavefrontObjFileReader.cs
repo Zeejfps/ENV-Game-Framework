@@ -49,6 +49,13 @@ internal sealed class WavefrontObjFileReader
         int charAsInt, len = 0;
         while ((charAsInt = textReader.Read()) != -1)
         {
+            if (charAsInt == '#')
+            {
+                ReadComment(textReader);
+                len = 0;
+                continue;
+            }
+
             if (charAsInt == ' ')
             {
                 if (len > 0)
@@ -56,9 +63,6 @@ internal sealed class WavefrontObjFileReader
                     var header = buff[..len];
                     switch (header)
                     {
-                        case "#":
-                            ReadComment(textReader);
-                            break;
                         case "mtllib":
                             ReadMaterial(textReader);
                             break;
@@ -221,6 +225,8 @@ internal sealed class WavefrontObjFileReader
 
     private void ReadComment(StreamReader textReader)
     {
+        while (textReader.Peek() == ' ') textReader.Read();
+
         var buffer = _buffer;
         int charAsInt, len = 0;
         while ((charAsInt = textReader.Read()) != -1)
