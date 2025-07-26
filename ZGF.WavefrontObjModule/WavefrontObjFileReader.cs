@@ -2,9 +2,7 @@
 
 internal sealed class WavefrontObjFileReader
 {
-    private readonly CommentReader _commentReader = new();
     private readonly VertexReader _vertexReader = new();
-    private readonly ObjectNameReader _objectNameReader = new();
 
     private readonly List<VertexPosition> _vertexPositions = new();
     private readonly List<VertexNormal> _vertexNormals = new();
@@ -48,7 +46,7 @@ internal sealed class WavefrontObjFileReader
                 switch (header)
                 {
                     case "#":
-                        _commentReader.Read(textReader);
+                        ReadComment(textReader);
                         break;
                     case "mtllib":
                         ReadMaterial(textReader);
@@ -113,6 +111,19 @@ internal sealed class WavefrontObjFileReader
         };
 
         return new WavefrontObjFileContents(data);
+    }
+
+    private void ReadComment(StreamReader textReader)
+    {
+        int chasAsInt;
+        while ((chasAsInt = textReader.Read()) > 0)
+        {
+            if (chasAsInt == '\r') continue;
+            if (chasAsInt == '\n')
+            {
+                return;
+            }
+        }
     }
 
     private void ReadSmoothingGroup(StreamReader textReader)
@@ -273,8 +284,20 @@ internal sealed class WavefrontObjFileReader
     private void ReadObject(StreamReader textReader)
     {
         SetObjectData();
-        
-        var objName = _objectNameReader.Read(textReader);
+
+        var buffer = _buffer;
+        int charAsInt;
+        var len = 0;
+        while ((charAsInt = textReader.Read()) > 0)
+        {
+            if (charAsInt == '\r') continue;
+            if (charAsInt == '\n') break;
+
+            buffer[len] = (char)charAsInt;
+            len++;
+        }
+
+        var objName = buffer.AsSpan(0, len);
         var namedObject = new NamedObjectDefinition()
         {
             Name = new string(objName),

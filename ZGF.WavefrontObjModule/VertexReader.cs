@@ -4,43 +4,6 @@ internal sealed class VertexReader
 {
     private readonly char[] _buffer = new char[64];
     
-    public VertexPosition ReadPosition(StreamReader textReader)
-    {
-        var buffer = _buffer;
-        int charAsInt;
-        var len = 0;
-        
-        Span<float> values = stackalloc float[4];
-        var currValueIndex = 0;
-        while ((charAsInt = textReader.Read()) > 0)
-        {
-            if (charAsInt == ' ')
-            {
-                var floatValue = float.Parse(_buffer.AsSpan(0, len));
-                values[currValueIndex] = floatValue;
-                ++currValueIndex;
-                len = 0;
-                continue;
-            }
-            if (charAsInt == '\r') continue;
-            if (charAsInt == '\n') break;
-            
-            buffer[len] = (char)charAsInt;
-            len++;
-        }
-
-        if (currValueIndex < 3)
-            values[3] = 1.0f;
-
-        return new VertexPosition
-        {
-            X = values[0],
-            Y = values[1],
-            Z = values[2],
-            W = values[3]
-        };
-    }
-    
     public VertexNormal ReadNormal(StreamReader textReader)
     {
         var buffer = _buffer;
