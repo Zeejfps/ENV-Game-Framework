@@ -1,38 +1,5 @@
 ﻿namespace ZGF.WavefrontObjModule;
 
-public readonly struct VertexPosition
-{
-    public required float X { get; init; }
-    public required float Y { get; init; }
-    public required float Z { get; init; }
-    public required float W { get; init; }
-}
-
-public readonly struct VertexNormal
-{
-    public required float X { get; init; }
-    public required float Y { get; init; }
-    public required float Z { get; init; }
-}
-
-public readonly struct VertexTextureCoord
-{
-    public required float U { get; init; }
-    public required float V { get; init; }
-}
-
-public readonly struct Triangle
-{
-    public required int V0 { get; init; }
-    public required int V1 { get; init; }
-    public required int V2 { get; init; }
-}
-
-public readonly struct Face
-{
-    public required Triangle[] Triangles { get; init; }
-}
-
 internal sealed class WavefrontObjFileReader
 {
     private readonly CommentReader _commentReader = new();
@@ -106,11 +73,11 @@ internal sealed class WavefrontObjFileReader
             len++;
         }
 
-        SetObjectData();
         _contents.vertexPositions = _vertexPositions.ToArray();
         _contents.vertexNormals = _vertexNormals.ToArray();
         _contents.vertexTextureCoords = _vertexTextureCoords.ToArray();
         _contents.faces = _faces.ToArray();
+        SetObjectData();
         return _contents;
     }
 
