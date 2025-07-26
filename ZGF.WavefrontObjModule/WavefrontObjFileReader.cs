@@ -1,4 +1,6 @@
-﻿namespace ZGF.WavefrontObjModule;
+﻿using System.Globalization;
+
+namespace ZGF.WavefrontObjModule;
 
 internal sealed class WavefrontObjFileReader
 {
@@ -128,7 +130,10 @@ internal sealed class WavefrontObjFileReader
         {
             if (charAsInt == ' ')
             {
-                var floatValue = float.Parse(_buffer.AsSpan(0, len));
+                var floatValue = float.Parse(
+                    _buffer.AsSpan(0, len),
+                    CultureInfo.InvariantCulture
+                );
                 values[currValueIndex] = floatValue;
                 ++currValueIndex;
                 len = 0;
@@ -164,7 +169,10 @@ internal sealed class WavefrontObjFileReader
             {
                 if (len > 0)
                 {
-                    var floatValue = float.Parse(_buffer.AsSpan(0, len));
+                    var floatValue = float.Parse(
+                        _buffer.AsSpan(0, len),
+                        CultureInfo.InvariantCulture
+                    );
                     values[currValueIndex] = floatValue;
                     ++currValueIndex;
                     len = 0;
@@ -180,7 +188,10 @@ internal sealed class WavefrontObjFileReader
 
         if (len > 0)
         {
-            var floatValue = float.Parse(_buffer.AsSpan(0, len));
+            var floatValue = float.Parse(
+                _buffer.AsSpan(0, len),
+                CultureInfo.InvariantCulture
+            );
             values[currValueIndex] = floatValue;
             ++currValueIndex;
         }
@@ -261,7 +272,10 @@ internal sealed class WavefrontObjFileReader
             {
                 if (len > 0)
                 {
-                    var floatValue = float.Parse(_buffer.AsSpan(0, len));
+                    var floatValue = float.Parse(
+                        _buffer.AsSpan(0, len),
+                        CultureInfo.InvariantCulture
+                    );
                     values[currValueIndex] = floatValue;
                     ++currValueIndex;
                     len = 0;
@@ -277,7 +291,10 @@ internal sealed class WavefrontObjFileReader
 
         if (len > 0)
         {
-            var floatValue = float.Parse(_buffer.AsSpan(0, len));
+            var floatValue = float.Parse(
+                _buffer.AsSpan(0, len),
+                CultureInfo.InvariantCulture
+            );
             values[currValueIndex] = floatValue;
             ++currValueIndex;
         }
