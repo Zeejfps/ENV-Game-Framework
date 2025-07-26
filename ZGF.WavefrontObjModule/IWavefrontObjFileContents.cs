@@ -6,8 +6,8 @@ public interface IWavefrontObjFileContents
     IReadOnlyList<IObject> Objects { get; }
     IReadOnlyList<IGroup> Groups { get; }
     IReadOnlyList<ISmoothingGroup> SmoothingGroups { get; }
-    IReadOnlyList<VertexPosition> AllVertexPositions { get; }
-    IReadOnlyList<VertexNormal> AllVertexNormals { get; }
-    IReadOnlyList<VertexTextureCoord> AllVertexTextureCoords { get; }
-    IReadOnlyList<Face> AllFaces { get; }
+    IReadOnlyList<VertexPosition> VertexPositions { get; }
+    IReadOnlyList<VertexNormal> VertexNormals { get; }
+    IReadOnlyList<VertexTextureCoord> VertexTextureCoords { get; }
+    IReadOnlyList<Face> Faces { get; }
 }

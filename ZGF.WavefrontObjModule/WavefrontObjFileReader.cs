@@ -333,7 +333,7 @@ internal sealed class WavefrontObjFileReader
             ++currValueIndex;
         }
 
-        if (currValueIndex < 3)
+        if (currValueIndex == 3)
             values[3] = 1.0f;
 
         var position = new VertexPosition
