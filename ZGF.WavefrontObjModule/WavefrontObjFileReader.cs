@@ -12,9 +12,11 @@ internal sealed class WavefrontObjFileReader
     private readonly List<VertexNormal> _vertexNormals = new();
     private readonly List<VertexTextureCoord> _vertexTextureCoords = new();
     private readonly List<Face> _faces = new();
-    private readonly List<SomethingObject> _namedObjects = new();
+    private readonly List<NamedObjectDefinition> _namedObjects = new();
 
-    private SomethingObject? _currentObject;
+    private readonly char[] _buffer = new char[256];
+
+    private NamedObjectDefinition? _currentObject;
     private int _vertexPositionIndex = 0;
     private int _vertexNormalsIndex = 0;
     private int _vertexTextureCoordsIndex = 0;
@@ -72,7 +74,7 @@ internal sealed class WavefrontObjFileReader
                         _smoothGroupReader.Read(textReader);
                         break;
                     case "f":
-                        ReadFaceData(textReader);
+                        ReadFace(textReader);
                         break;
                     default:
                         throw new Exception($"Unexpected header '{header}' encountered while reading obj file");
@@ -113,12 +115,12 @@ internal sealed class WavefrontObjFileReader
             NamedObjects = namedObjects,
         };
 
-        return new WavefrontObjFileContents(data);;
+        return new WavefrontObjFileContents(data);
     }
 
-    private void ReadFaceData(StreamReader textReader)
+    private void ReadFace(StreamReader textReader)
     {
-        var buffer = new char[64];
+        var buffer = _buffer;
         int charAsInt;
         var len = 0;
         
@@ -193,7 +195,7 @@ internal sealed class WavefrontObjFileReader
         SetObjectData();
         
         var objName = _objectNameReader.Read(textReader);
-        var namedObject = new SomethingObject()
+        var namedObject = new NamedObjectDefinition()
         {
             Name = new string(objName),
         };
