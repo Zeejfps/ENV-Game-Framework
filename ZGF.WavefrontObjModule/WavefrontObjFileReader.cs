@@ -107,6 +107,10 @@ internal sealed class WavefrontObjFileReader
         }
 
         SetObjectData();
+        _contents.vertexPositions = _vertexPositions.ToArray();
+        _contents.vertexNormals = _vertexNormals.ToArray();
+        _contents.vertexTextureCoords = _vertexTextureCoords.ToArray();
+        _contents.faces = _faces.ToArray();
         return _contents;
     }
 
