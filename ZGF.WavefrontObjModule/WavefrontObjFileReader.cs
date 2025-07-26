@@ -162,10 +162,13 @@ internal sealed class WavefrontObjFileReader
         {
             if (charAsInt == ' ')
             {
-                var floatValue = float.Parse(_buffer.AsSpan(0, len));
-                values[currValueIndex] = floatValue;
-                ++currValueIndex;
-                len = 0;
+                if (len > 0)
+                {
+                    var floatValue = float.Parse(_buffer.AsSpan(0, len));
+                    values[currValueIndex] = floatValue;
+                    ++currValueIndex;
+                    len = 0;
+                }
                 continue;
             }
             if (charAsInt == '\r') continue;
@@ -173,6 +176,13 @@ internal sealed class WavefrontObjFileReader
 
             buffer[len] = (char)charAsInt;
             len++;
+        }
+
+        if (len > 0)
+        {
+            var floatValue = float.Parse(_buffer.AsSpan(0, len));
+            values[currValueIndex] = floatValue;
+            ++currValueIndex;
         }
 
         var normal = new VertexTextureCoord
@@ -208,6 +218,8 @@ internal sealed class WavefrontObjFileReader
             {
                 break;
             }
+            buffer[len] = (char)charAsInt;
+            len++;
         }
 
         var value = buffer.AsSpan(0, len);
@@ -231,7 +243,7 @@ internal sealed class WavefrontObjFileReader
             return;
 
         _currentSmoothingGroup.FacesRange = new Range(_smoothingGroupIndex, _faces.Count);
-        _smoothingGroupIndex += _faces.Count;
+        _smoothingGroupIndex = _faces.Count;
         _smoothingGroups.Add(_currentSmoothingGroup);
     }
 
@@ -247,10 +259,13 @@ internal sealed class WavefrontObjFileReader
         {
             if (charAsInt == ' ')
             {
-                var floatValue = float.Parse(_buffer.AsSpan(0, len));
-                values[currValueIndex] = floatValue;
-                ++currValueIndex;
-                len = 0;
+                if (len > 0)
+                {
+                    var floatValue = float.Parse(_buffer.AsSpan(0, len));
+                    values[currValueIndex] = floatValue;
+                    ++currValueIndex;
+                    len = 0;
+                }
                 continue;
             }
             if (charAsInt == '\r') continue;
@@ -258,6 +273,13 @@ internal sealed class WavefrontObjFileReader
 
             buffer[len] = (char)charAsInt;
             len++;
+        }
+
+        if (len > 0)
+        {
+            var floatValue = float.Parse(_buffer.AsSpan(0, len));
+            values[currValueIndex] = floatValue;
+            ++currValueIndex;
         }
 
         if (currValueIndex < 3)
@@ -353,16 +375,14 @@ internal sealed class WavefrontObjFileReader
             return;
 
         obj.VertexPositionsRange = new Range(_vertexPositionIndex, _vertexPositions.Count);
-        _vertexPositionIndex += _vertexPositions.Count;
-
-        obj.VertexPositionsRange = new Range(_vertexNormalsIndex, _vertexPositions.Count);
-        _vertexNormalsIndex += _vertexNormals.Count;
-
+        obj.VertexPositionsRange = new Range(_vertexNormalsIndex, _vertexNormals.Count);
         obj.VertexTextureCoordsRange = new Range(_vertexTextureCoordsIndex, _vertexTextureCoords.Count);
-        _vertexTextureCoordsIndex += _vertexTextureCoords.Count;
-
         obj.FacesRange = new Range(_facesIndex, _faces.Count);
-        _facesIndex += _faces.Count;
+
+        _vertexPositionIndex = _vertexPositions.Count;
+        _vertexNormalsIndex = _vertexNormals.Count;
+        _vertexTextureCoordsIndex = _vertexTextureCoords.Count;
+        _facesIndex = _faces.Count;
 
         _namedObjects.Add(obj);
     }
@@ -382,7 +402,7 @@ internal sealed class WavefrontObjFileReader
         }
 
         var objName = buffer.AsSpan(0, len);
-        var namedObject = new NamedObjectDefinition()
+        var namedObject = new NamedObjectDefinition
         {
             Name = new string(objName),
         };
