@@ -1,6 +1,6 @@
 ﻿namespace ZGF.WavefrontObjModule;
 
-public sealed class WavefrontObjFileContents : IWavefrontObjFileContents
+internal sealed class WavefrontObjFileContents : IWavefrontObjFileContents
 {
     public IEnumerable<IObject> NamedObjects { get; }
     public IEnumerable<IGroup> Groups { get; }
@@ -12,7 +12,7 @@ public sealed class WavefrontObjFileContents : IWavefrontObjFileContents
 
     private readonly RawModelData _data;
 
-    internal WavefrontObjFileContents(RawModelData data)
+    public WavefrontObjFileContents(RawModelData data)
     {
         _data = data;
     }

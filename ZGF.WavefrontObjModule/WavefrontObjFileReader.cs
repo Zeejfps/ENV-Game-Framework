@@ -2,19 +2,23 @@
 
 internal sealed class WavefrontObjFileReader
 {
+    private readonly char[] _buffer = new char[256];
+
     private readonly List<VertexPosition> _vertexPositions = new();
     private readonly List<VertexNormal> _vertexNormals = new();
     private readonly List<VertexTextureCoord> _vertexTextureCoords = new();
     private readonly List<Face> _faces = new();
     private readonly List<NamedObjectDefinition> _namedObjects = new();
-
-    private readonly char[] _buffer = new char[256];
+    private readonly List<SmoothingGroupDefinition> _smoothingGroups = new();
 
     private NamedObjectDefinition? _currentObject;
-    private int _vertexPositionIndex = 0;
-    private int _vertexNormalsIndex = 0;
-    private int _vertexTextureCoordsIndex = 0;
-    private int _facesIndex = 0;
+    private SmoothingGroupDefinition? _currentSmoothingGroup;
+
+    private int _smoothingGroupIndex;
+    private int _vertexPositionIndex;
+    private int _vertexNormalsIndex;
+    private int _vertexTextureCoordsIndex;
+    private int _facesIndex;
 
     public IWavefrontObjFileContents ReadFromFile(string pathToFile)
     {
@@ -22,6 +26,7 @@ internal sealed class WavefrontObjFileReader
         _vertexPositionIndex = 0;
         _vertexNormalsIndex = 0;
         _vertexTextureCoordsIndex = 0;
+        _smoothingGroupIndex = 0;
         _facesIndex = 0;
 
         _namedObjects.Clear();
@@ -50,6 +55,7 @@ internal sealed class WavefrontObjFileReader
                         ReadMaterial(textReader);
                         break;
                     case "o":
+                        PushCurrentObject();
                         ReadObject(textReader);
                         break;
                     case "v":
@@ -62,6 +68,7 @@ internal sealed class WavefrontObjFileReader
                         ReadTextureCoord(textReader);
                         break;
                     case "s":
+                        PushCurrentSmoothingGroup();
                         ReadSmoothingGroup(textReader);
                         break;
                     case "f":
@@ -79,7 +86,7 @@ internal sealed class WavefrontObjFileReader
             len++;
         }
 
-        SetObjectData();
+        PushCurrentObject();
 
         var vertexPositions = _vertexPositions.ToArray();
         var vertexNormals = _vertexNormals.ToArray();
@@ -204,14 +211,28 @@ internal sealed class WavefrontObjFileReader
         }
 
         var value = buffer.AsSpan(0, len);
-        if (value is "off" or "0")
+        var isOff = false;
+        if (int.TryParse(value, out var groupId))
         {
-
+            isOff = groupId == 0;
         }
-        else if (int.TryParse(value, out var groupId))
+
+        var newSmoothingGroup = new SmoothingGroupDefinition
         {
+            Id = groupId,
+            IsOff = isOff,
+        };
+        _currentSmoothingGroup = newSmoothingGroup;
+    }
 
-        }
+    private void PushCurrentSmoothingGroup()
+    {
+        if (_currentSmoothingGroup == null)
+            return;
+
+        _currentSmoothingGroup.FacesRange = new Range(_smoothingGroupIndex, _faces.Count);
+        _smoothingGroupIndex += _faces.Count;
+        _smoothingGroups.Add(_currentSmoothingGroup);
     }
 
     private void ReadVertexPosition(StreamReader textReader)
@@ -325,29 +346,29 @@ internal sealed class WavefrontObjFileReader
         _faces.Add(face);
     }
 
-    private void SetObjectData()
+    private void PushCurrentObject()
     {
         var obj = _currentObject;
-        if (obj != null)
-        {
-            obj.VertexPositionsRange = new Range(_vertexPositionIndex, _vertexPositions.Count);
-            _vertexPositionIndex += _vertexPositions.Count;
+        if (obj == null)
+            return;
 
-            obj.VertexPositionsRange = new Range(_vertexNormalsIndex, _vertexPositions.Count);
-            _vertexNormalsIndex += _vertexNormals.Count;
+        obj.VertexPositionsRange = new Range(_vertexPositionIndex, _vertexPositions.Count);
+        _vertexPositionIndex += _vertexPositions.Count;
 
-            obj.VertexTextureCoordsRange = new Range(_vertexTextureCoordsIndex, _vertexTextureCoords.Count);
-            _vertexTextureCoordsIndex += _vertexTextureCoords.Count;
+        obj.VertexPositionsRange = new Range(_vertexNormalsIndex, _vertexPositions.Count);
+        _vertexNormalsIndex += _vertexNormals.Count;
 
-            obj.FacesRange = new Range(_facesIndex, _faces.Count);
-            _facesIndex += _faces.Count;
-        }
+        obj.VertexTextureCoordsRange = new Range(_vertexTextureCoordsIndex, _vertexTextureCoords.Count);
+        _vertexTextureCoordsIndex += _vertexTextureCoords.Count;
+
+        obj.FacesRange = new Range(_facesIndex, _faces.Count);
+        _facesIndex += _faces.Count;
+
+        _namedObjects.Add(obj);
     }
     
     private void ReadObject(StreamReader textReader)
     {
-        SetObjectData();
-
         var buffer = _buffer;
         int charAsInt;
         var len = 0;
@@ -365,6 +386,6 @@ internal sealed class WavefrontObjFileReader
         {
             Name = new string(objName),
         };
-        _namedObjects.Add(namedObject);
+        _currentObject = namedObject;
     }
 }
