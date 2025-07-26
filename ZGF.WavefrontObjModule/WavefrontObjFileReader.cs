@@ -355,8 +355,8 @@ internal sealed class WavefrontObjFileReader
         var len = 0;
         
         Span<int> indices = stackalloc int[3];
-        Span<Triangle> trianglesBuffer = stackalloc Triangle[4];
-        var triangleCount = 0;
+        Span<Vertex> vertexBuffer = stackalloc Vertex[4];
+        var vertexCount = 0;
         var indexCount = 0;
         while ((charAsInt = textReader.Read()) > 0)
         {
@@ -371,13 +371,13 @@ internal sealed class WavefrontObjFileReader
             if (charAsInt == ' ')
             {
                 indices[indexCount] = int.Parse(buffer.AsSpan(0, len));
-                trianglesBuffer[triangleCount] = new Triangle
+                vertexBuffer[vertexCount] = new Vertex
                 {
-                    V0 = indices[0],
-                    V1 = indices[1],
-                    V2 = indices[2]
+                    PositionIndex = indices[0],
+                    TextureCoordIndex = indices[1],
+                    NormalIndex = indices[2]
                 };
-                triangleCount++;
+                vertexCount++;
                 
                 len = 0;
                 indexCount = 0;
@@ -391,10 +391,24 @@ internal sealed class WavefrontObjFileReader
             len++;
         }
 
+        if (len > 0)
+        {
+            indices[indexCount] = int.Parse(
+                buffer.AsSpan(0, len)
+            );
+            vertexBuffer[vertexCount] = new Vertex
+            {
+                PositionIndex = indices[0],
+                TextureCoordIndex = indices[1],
+                NormalIndex = indices[2]
+            };
+            vertexCount++;
+        }
+
         var face = new Face
         {
-            Triangles = trianglesBuffer
-                .Slice(0, triangleCount)
+            Triangles = vertexBuffer
+                .Slice(0, vertexCount)
                 .ToArray()
         };
         
