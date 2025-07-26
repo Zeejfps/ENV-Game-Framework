@@ -256,7 +256,7 @@ internal sealed class WavefrontObjFileReader
         }
 
         var value = buffer.AsSpan(0, len);
-        var isOff = false;
+        var isOff = true;
         if (int.TryParse(value, out var groupId))
         {
             isOff = groupId == 0;
@@ -441,7 +441,7 @@ internal sealed class WavefrontObjFileReader
             return;
 
         obj.VertexPositionsRange = new Range(_vertexPositionIndex, _vertexPositions.Count);
-        obj.VertexPositionsRange = new Range(_vertexNormalsIndex, _vertexNormals.Count);
+        obj.VertexNormalsRange = new Range(_vertexNormalsIndex, _vertexNormals.Count);
         obj.VertexTextureCoordsRange = new Range(_vertexTextureCoordsIndex, _vertexTextureCoords.Count);
         obj.FacesRange = new Range(_facesIndex, _faces.Count);
         _namedObjects.Add(obj);
