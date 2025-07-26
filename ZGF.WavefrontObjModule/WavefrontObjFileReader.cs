@@ -5,7 +5,6 @@ internal sealed class WavefrontObjFileReader
     private readonly CommentReader _commentReader = new();
     private readonly VertexReader _vertexReader = new();
     private readonly ObjectNameReader _objectNameReader = new();
-    private readonly SmoothGroupReader _smoothGroupReader = new();
 
     private readonly List<VertexPosition> _vertexPositions = new();
     private readonly List<VertexNormal> _vertexNormals = new();
@@ -69,7 +68,7 @@ internal sealed class WavefrontObjFileReader
                         _vertexTextureCoords.Add(vertexTexture);
                         break;
                     case "s":
-                        _smoothGroupReader.Read(textReader);
+                        ReadSmoothingGroup(textReader);
                         break;
                     case "f":
                         ReadFace(textReader);
@@ -114,6 +113,31 @@ internal sealed class WavefrontObjFileReader
         };
 
         return new WavefrontObjFileContents(data);
+    }
+
+    private void ReadSmoothingGroup(StreamReader textReader)
+    {
+        var buffer = _buffer;
+        int charAsInt;
+        var len = 0;
+        while ((charAsInt = textReader.Read()) > 0)
+        {
+            if (charAsInt == '\r') continue;
+            if (charAsInt == '\n')
+            {
+                break;
+            }
+        }
+
+        var value = buffer.AsSpan(0, len);
+        if (value is "off" or "0")
+        {
+
+        }
+        else if (int.TryParse(value, out var groupId))
+        {
+
+        }
     }
 
     private void ReadVertexPosition(StreamReader textReader)
