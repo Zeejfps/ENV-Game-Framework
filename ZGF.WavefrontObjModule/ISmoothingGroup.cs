@@ -3,6 +3,5 @@
 public interface ISmoothingGroup
 {
     int Id { get; }
-    bool IsOff { get; }
-    ReadOnlySpan<Face> Faces { get; }
+    ReadOnlyMemory<Face> Faces { get; }
 }

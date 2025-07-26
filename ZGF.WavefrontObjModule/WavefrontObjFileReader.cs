@@ -106,6 +106,14 @@ internal sealed class WavefrontObjFileReader
             })
             .ToArray();
 
+        var smoothingGroups = _smoothingGroups
+            .Select(t => new SmoothingGroup
+            {
+                Id = t.Id,
+                Faces = faces.AsMemory(t.FacesRange),
+            })
+            .ToArray();
+
         var data = new RawModelData
         {
             VertexPositions = vertexPositions,
@@ -113,6 +121,7 @@ internal sealed class WavefrontObjFileReader
             VertexTextureCoords = vertexTextureCoords,
             Faces = faces,
             NamedObjects = namedObjects,
+            SmoothingGroups = smoothingGroups,
         };
 
         return new WavefrontObjFileContents(data);
