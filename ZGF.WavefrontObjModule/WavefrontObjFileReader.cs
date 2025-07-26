@@ -44,7 +44,7 @@ internal sealed class WavefrontObjFileReader
         Span<char> buff = stackalloc char[7];
         var len = 0;
         int chasAsInt;
-        while ((chasAsInt = textReader.Read()) > 0)
+        while ((chasAsInt = textReader.Read()) != -1)
         {
             if (chasAsInt == ' ')
             {
@@ -135,7 +135,7 @@ internal sealed class WavefrontObjFileReader
 
         Span<float> values = stackalloc float[3];
         var currValueIndex = 0;
-        while ((charAsInt = textReader.Read()) > 0)
+        while ((charAsInt = textReader.Read()) != -1)
         {
             if (charAsInt == ' ')
             {
@@ -185,7 +185,7 @@ internal sealed class WavefrontObjFileReader
 
         Span<float> values = stackalloc float[2];
         var currValueIndex = 0;
-        while ((charAsInt = textReader.Read()) > 0)
+        while ((charAsInt = textReader.Read()) != -1)
         {
             if (charAsInt == ' ')
             {
@@ -229,7 +229,7 @@ internal sealed class WavefrontObjFileReader
     private void ReadComment(StreamReader textReader)
     {
         int chasAsInt;
-        while ((chasAsInt = textReader.Read()) > 0)
+        while ((chasAsInt = textReader.Read()) != -1)
         {
             if (chasAsInt == '\r') continue;
             if (chasAsInt == '\n')
@@ -244,7 +244,7 @@ internal sealed class WavefrontObjFileReader
         var buffer = _buffer;
         int charAsInt;
         var len = 0;
-        while ((charAsInt = textReader.Read()) > 0)
+        while ((charAsInt = textReader.Read()) != -1)
         {
             if (charAsInt == '\r') continue;
             if (charAsInt == '\n')
@@ -295,7 +295,7 @@ internal sealed class WavefrontObjFileReader
 
         Span<float> values = stackalloc float[4];
         var currValueIndex = 0;
-        while ((charAsInt = textReader.Read()) > 0)
+        while ((charAsInt = textReader.Read()) != -1)
         {
             if (charAsInt == ' ')
             {
@@ -346,7 +346,7 @@ internal sealed class WavefrontObjFileReader
         var buffer = _buffer;
         int charAsInt;
         var len = 0;
-        while ((charAsInt = textReader.Read()) > 0)
+        while ((charAsInt = textReader.Read()) != -1)
         {
             if (charAsInt == '\r') continue;
             if (charAsInt == '\n')
@@ -372,7 +372,7 @@ internal sealed class WavefrontObjFileReader
         Span<Vertex> vertexBuffer = stackalloc Vertex[4];
         var vertexCount = 0;
         var indexCount = 0;
-        while ((charAsInt = textReader.Read()) > 0)
+        while ((charAsInt = textReader.Read()) != -1)
         {
             if (charAsInt == '/')
             {
@@ -457,7 +457,7 @@ internal sealed class WavefrontObjFileReader
         var buffer = _buffer;
         int charAsInt;
         var len = 0;
-        while ((charAsInt = textReader.Read()) > 0)
+        while ((charAsInt = textReader.Read()) != -1)
         {
             if (charAsInt == '\r') continue;
             if (charAsInt == '\n') break;
