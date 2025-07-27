@@ -38,7 +38,7 @@ public sealed class Mesh
     public uint VboId { get; }
     public uint IboId { get; }
 
-    public static unsafe Mesh Upload(MeshDefinition meshDefinition)
+    public static unsafe Mesh Upload(MeshDefinition mesh)
     {
         uint vao;
         glGenVertexArrays(1, &vao);
@@ -51,10 +51,10 @@ public sealed class Mesh
         glGenBuffers(1, &vertexPositionBufferId);
         AssertNoGlError();
 
-        var vertexPositionBuffer = glBindBuffer<VertexDefinition>(GL_ARRAY_BUFFER, vertexPositionBufferId);
+        var vertexBuffer = glBindBuffer<VertexDefinition>(GL_ARRAY_BUFFER, vertexPositionBufferId);
         AssertNoGlError();
 
-        glBufferData(vertexPositionBuffer, meshDefinition.Vertices.AsSpan(), BufferUsageHint.StaticDraw);
+        glBufferData(vertexBuffer, mesh.Vertices.AsSpan(), BufferUsageHint.StaticDraw);
         AssertNoGlError();
 
         glVertexAttribPointer<VertexDefinition>(0, nameof(VertexDefinition.Position));
@@ -72,7 +72,7 @@ public sealed class Mesh
         var indexBuffer = glBindBuffer<TriangleDefinition>(GL_ELEMENT_ARRAY_BUFFER, indexBufferId);
         AssertNoGlError();
 
-        glBufferData(indexBuffer, meshDefinition.Triangles.AsSpan(), BufferUsageHint.StaticDraw);
+        glBufferData(indexBuffer, mesh.Triangles.AsSpan(), BufferUsageHint.StaticDraw);
         AssertNoGlError();
 
         glBindVertexArray(0);
