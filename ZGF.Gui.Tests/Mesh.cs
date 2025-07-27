@@ -21,9 +21,9 @@ public record struct VertexDefinition
 [StructLayout(LayoutKind.Sequential)]
 public record struct TriangleDefinition
 {
-    public int V0;
-    public int V1;
-    public int V2;
+    public uint V0;
+    public uint V1;
+    public uint V2;
 }
 
 public sealed class MeshDefinition
@@ -37,6 +37,7 @@ public sealed class Mesh
     public uint VaoId { get; init; }
     public uint VboId { get; }
     public uint IboId { get; }
+    public int TriangleCount { get; init; }
 
     public static unsafe Mesh Upload(MeshDefinition mesh)
     {
@@ -81,6 +82,7 @@ public sealed class Mesh
         return new Mesh
         {
             VaoId = vao,
+            TriangleCount = mesh.Triangles.Length,
         };
     }
 

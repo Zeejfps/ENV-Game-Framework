@@ -47,7 +47,7 @@ public sealed class App : OpenGlApp
             textMeasurer, _imageManager
         );
         
-        var mesh = Mesh.LoadFromFile("Assets/Models/Suzan_tri.obj");
+        _mesh = Mesh.LoadFromFile("Assets/Models/Suzan_tri.obj");
 
         var contextMenuPane = new View();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
@@ -261,36 +261,18 @@ public sealed class App : OpenGlApp
 
     private Mesh _mesh;
     
-    private void RenderMesh()
+    private unsafe void RenderMesh()
     {
         // TODO: Render stuff into the window
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _frameBufferHandle.FrameBufferId);
         glClearColor(0, 0, 1, 1);
         glClear(GL_COLOR_BUFFER_BIT);
-        
-        // glBindVertexArray(0);
-        // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
-    }
 
-    private void BlitFrameBufferTest()
-    {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, _frameBufferHandle.FrameBufferId);
-        AssertNoGlError();
-
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        AssertNoGlError();
-
-        var position = _modelView.Position;
-        glBlitFramebuffer(
-            0, 0, 640, 480,
-            (int)position.Left*2, (int)position.Bottom*2, (int)position.Right*2, (int)position.Top*2,
-            GL_COLOR_BUFFER_BIT,
-            GL_LINEAR
-        );
-        AssertNoGlError();
-
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-        AssertNoGlError();
+        // glBindVertexArray(_mesh.VaoId);
+        // AssertNoGlError();
+        //
+        // glDrawElements(GL_TRIANGLES, _mesh.TriangleCount, GL_UNSIGNED_INT, (void*)0);
+        // AssertNoGlError();
     }
 
     private PointF WindowToGuiCoords(double windowX, double windowY)
