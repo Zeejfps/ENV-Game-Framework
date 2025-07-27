@@ -1,4 +1,5 @@
 using GLFW;
+using OpenGL.NET;
 using ZGF.Core;
 using ZGF.Geometry;
 using ZGF.Gui.Layouts;
@@ -48,6 +49,10 @@ public sealed class App : OpenGlApp
         );
         
         _mesh = Mesh.LoadFromFile("Assets/Models/Suzan_tri.obj");
+        _shaderProgram = new ShaderProgramCompiler()
+            .WithVertexShader("Assets/Shaders/color_vert.glsl")
+            .WithFragmentShader("Assets/Shaders/color_frag.glsl")
+            .Compile();
 
         var contextMenuPane = new View();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
@@ -260,6 +265,7 @@ public sealed class App : OpenGlApp
     }
 
     private Mesh _mesh;
+    private ShaderProgramInfo _shaderProgram;
     
     private unsafe void RenderMesh()
     {
@@ -268,11 +274,14 @@ public sealed class App : OpenGlApp
         glClearColor(0, 0, 1, 1);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // glBindVertexArray(_mesh.VaoId);
-        // AssertNoGlError();
-        //
-        // glDrawElements(GL_TRIANGLES, _mesh.TriangleCount, GL_UNSIGNED_INT, (void*)0);
-        // AssertNoGlError();
+        //TODO: Add perspective camera or sometihng?
+        glUseProgram(_shaderProgram.Id);
+
+        glBindVertexArray(_mesh.VaoId);
+        AssertNoGlError();
+
+        glDrawElements(GL_TRIANGLES, _mesh.TriangleCount*3, GL_UNSIGNED_INT, (void*)0);
+        AssertNoGlError();
     }
 
     private PointF WindowToGuiCoords(double windowX, double windowY)

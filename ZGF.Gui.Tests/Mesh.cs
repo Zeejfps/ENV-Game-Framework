@@ -77,7 +77,6 @@ public sealed class Mesh
         AssertNoGlError();
 
         glBindVertexArray(0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
         return new Mesh
         {
