@@ -84,55 +84,76 @@ public sealed class Mesh
         };
     }
 
+    private static Vector3 ToVector(in VertexPosition vertexPosition)
+    {
+        return new Vector3(vertexPosition.X, vertexPosition.Y, vertexPosition.Z);
+    }
+
+    private static Vector2 ToVector(in VertexTextureCoord textureCoord)
+    {
+        return new Vector2(textureCoord.U, textureCoord.V);
+    }
+
     public static Mesh LoadFromFile(string pathToMeshFile)
     {
         var objFileContents = WavefrontObj.ReadFromFile(pathToMeshFile);
 
-        var remap = new Dictionary<Vertex, int>();
-
-        var vertexPositions = objFileContents.VertexPositions.Span;
-        var vertices = new VertexDefinition[vertexPositions.Length];
-        for (var i = 0; i < vertices.Length; i++)
+        var vertices = new Dictionary<VertexDefinition, int>();
+        var triangles = new List<TriangleDefinition>();
+        var positions = objFileContents.VertexPositions.Span;
+        var textureCoords = objFileContents.VertexTextureCoords.Span;
+        foreach (var face in objFileContents.Faces.Span)
         {
-            var position = vertexPositions[i];
-            var uv = objFileContents.VertexTextureCoords.Span[i];
-            vertices[i] = new VertexDefinition
+            var v0 = new VertexDefinition
             {
-                Position = new Vector3(position.X, position.Y, position.Z),
-                UVs = new Vector2(uv.U, uv.V)
+                Position = ToVector(positions[face.Vertices[0].PositionIndex-1]),
+                UVs = ToVector(textureCoords[face.Vertices[0].TextureCoordIndex-1]),
             };
-        }
 
-        var triangles = new TriangleDefinition[objFileContents.Faces.Length];
-        for (var i = 0; i < triangles.Length; i++)
-        {
-            var face = objFileContents.Faces.Span[i];
-            var v0 = face.Vertices[0];
-            if (!remap.TryGetValue(v0, out var v0Index))
+            var v1 = new VertexDefinition
             {
-                var pos = vertexPositions[v0.PositionIndex - 1];
-                var v = new VertexDefinition
-                {
-                    Position = new Vector3(pos.X, pos.Y, pos.Z),
-                };
-                v0Index = vertices.Length;
-                remap[v0] = v0Index;
+                Position = ToVector(positions[face.Vertices[1].PositionIndex-1]),
+                UVs = ToVector(textureCoords[face.Vertices[1].TextureCoordIndex-1]),
+            };
+
+            var v2 = new VertexDefinition
+            {
+                Position = ToVector(positions[face.Vertices[2].PositionIndex-1]),
+                UVs = ToVector(textureCoords[face.Vertices[2].TextureCoordIndex-1]),
+            };
+
+            if (!vertices.TryGetValue(v0, out var v0Index))
+            {
+                v0Index = vertices.Count;
+                vertices[v0] = v0Index;
             }
 
-            var v1 = face.Vertices[1];
-            var v2 = face.Vertices[2];
-            triangles[i] = new TriangleDefinition
+            if (!vertices.TryGetValue(v1, out var v1Index))
             {
-                V0 = v0.PositionIndex-1,
-                V1 = v1.PositionIndex-1,
-                V2 = v2.PositionIndex-1
+                v1Index = vertices.Count;
+                vertices[v1] = v1Index;
+            }
+
+            if (!vertices.TryGetValue(v2, out var v2Index))
+            {
+                v2Index = vertices.Count;
+                vertices[v2] = v2Index;
+            }
+
+            var triangle = new TriangleDefinition
+            {
+                V0 = v0Index,
+                V1 = v1Index,
+                V2 = v2Index,
             };
+
+            triangles.Add(triangle);
         }
 
         var meshDefinition = new MeshDefinition
         {
-            Triangles = triangles,
-            Vertices = vertices,
+            Triangles = triangles.ToArray(),
+            Vertices = vertices.Keys.ToArray(),
         };
 
         return Upload(meshDefinition);
