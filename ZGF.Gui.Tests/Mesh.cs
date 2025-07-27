@@ -94,6 +94,18 @@ public sealed class Mesh
         return new Vector2(textureCoord.U, textureCoord.V);
     }
 
+    private static VertexDefinition ToVertexDefinition(
+        in Vertex v,
+        ReadOnlySpan<VertexPosition> positions,
+        ReadOnlySpan<VertexTextureCoord> textureCoords)
+    {
+        return new VertexDefinition
+        {
+            Position = ToVector(positions[v.PositionIndex-1]),
+            UVs = ToVector(textureCoords[v.TextureCoordIndex-1]),
+        };
+    }
+
     public static Mesh LoadFromFile(string pathToMeshFile)
     {
         var objFileContents = WavefrontObj.ReadFromFile(pathToMeshFile);
@@ -104,23 +116,9 @@ public sealed class Mesh
         var textureCoords = objFileContents.VertexTextureCoords.Span;
         foreach (var face in objFileContents.Faces.Span)
         {
-            var v0 = new VertexDefinition
-            {
-                Position = ToVector(positions[face.Vertices[0].PositionIndex-1]),
-                UVs = ToVector(textureCoords[face.Vertices[0].TextureCoordIndex-1]),
-            };
-
-            var v1 = new VertexDefinition
-            {
-                Position = ToVector(positions[face.Vertices[1].PositionIndex-1]),
-                UVs = ToVector(textureCoords[face.Vertices[1].TextureCoordIndex-1]),
-            };
-
-            var v2 = new VertexDefinition
-            {
-                Position = ToVector(positions[face.Vertices[2].PositionIndex-1]),
-                UVs = ToVector(textureCoords[face.Vertices[2].TextureCoordIndex-1]),
-            };
+            var v0 = ToVertexDefinition(face.Vertices[0], positions, textureCoords);
+            var v1 = ToVertexDefinition(face.Vertices[1], positions, textureCoords);
+            var v2 = ToVertexDefinition(face.Vertices[2], positions, textureCoords);
 
             if (!vertices.TryGetValue(v0, out var v0Index))
             {
@@ -139,15 +137,13 @@ public sealed class Mesh
                 v2Index = vertices.Count;
                 vertices[v2] = v2Index;
             }
-
-            var triangle = new TriangleDefinition
+            
+            triangles.Add(new TriangleDefinition
             {
                 V0 = v0Index,
                 V1 = v1Index,
                 V2 = v2Index,
-            };
-
-            triangles.Add(triangle);
+            });
         }
 
         var meshDefinition = new MeshDefinition
