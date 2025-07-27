@@ -6,5 +6,5 @@ layout(location = 1) in vec2 uvs;
 uniform mat4 view_projection_matrix;
 
 void main() {
-    gl_Position = position * view_projection_matrix;
+    gl_Position = view_projection_matrix * position;
 }

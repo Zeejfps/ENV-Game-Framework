@@ -156,7 +156,12 @@ public sealed class App : OpenGlApp
         Glfw.SetFramebufferSizeCallback(WindowHandle, _framebufferSizeCallback);
         Glfw.SetScrollCallback(WindowHandle, _scrollCallback);
 
-        _viewProjectionMatrix = Matrix4x4.CreatePerspective(640, 480, 0.1f, 100f);
+        var fov = 60f * (MathF.PI / 180f);
+        var aspectRatio = 640f / 480f;
+        var projectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(fov, aspectRatio, 0.01f, 1000f);
+
+        var viewMatrix = Matrix4x4.CreateLookAt(new Vector3(0f, 0f, -100f), Vector3.Zero, Vector3.UnitY);
+        _viewProjectionMatrix = projectionMatrix * viewMatrix;
         //PrintTree(gui);
     }
 
