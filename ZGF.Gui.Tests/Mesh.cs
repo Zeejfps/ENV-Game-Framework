@@ -114,9 +114,9 @@ public sealed class Mesh
         var triangles = new List<TriangleDefinition>();
         foreach (var face in objFileContents.Faces.Span)
         {
-            var v0Index = helper.GetIndex(face.Vertices[1]);
-            var v1Index = helper.GetIndex(face.Vertices[2]);
-            var v2Index = helper.GetIndex(face.Vertices[3]);
+            var v0Index = helper.GetIndex(face.Vertices[0]);
+            var v1Index = helper.GetIndex(face.Vertices[1]);
+            var v2Index = helper.GetIndex(face.Vertices[2]);
             triangles.Add(new TriangleDefinition
             {
                 V0 = v0Index,

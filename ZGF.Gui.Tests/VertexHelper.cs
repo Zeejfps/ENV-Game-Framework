@@ -5,7 +5,8 @@ namespace ZGF.Gui.Tests;
 
 public ref struct VertexHelper
 {
-    private readonly Dictionary<VertexDefinition, int> _vertices = new();
+    private readonly Dictionary<VertexDefinition, int> _verticesIndexByDefinitionLookup = new();
+    private readonly List<VertexDefinition> _vertices = new();
     private readonly ReadOnlySpan<VertexPosition> _vertexPositions;
     private readonly ReadOnlySpan<VertexTextureCoord> _vertexTextureCoords;
 
@@ -36,12 +37,11 @@ public ref struct VertexHelper
 
     private int GetIndex(in VertexDefinition vertex)
     {
-        if (!_vertices.TryGetValue(vertex, out var index))
+        if (!_verticesIndexByDefinitionLookup.TryGetValue(vertex, out var index))
         {
             index = _vertices.Count;
-            _vertices[vertex] = index;
+            _vertices.Add(vertex);
         }
-
         return index;
     }
 
@@ -53,6 +53,6 @@ public ref struct VertexHelper
 
     public VertexDefinition[] GetVertices()
     {
-        return _vertices.Keys.ToArray();
+        return _vertices.ToArray();
     }
 }
