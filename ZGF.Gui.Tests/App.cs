@@ -1,3 +1,4 @@
+using System.Numerics;
 using GLFW;
 using OpenGL.NET;
 using ZGF.Core;
@@ -155,6 +156,7 @@ public sealed class App : OpenGlApp
         Glfw.SetFramebufferSizeCallback(WindowHandle, _framebufferSizeCallback);
         Glfw.SetScrollCallback(WindowHandle, _scrollCallback);
 
+        _viewProjectionMatrix = Matrix4x4.CreatePerspective(640, 480, 0.1f, 100f);
         //PrintTree(gui);
     }
 
@@ -271,6 +273,7 @@ public sealed class App : OpenGlApp
 
     private Mesh _mesh;
     private ShaderProgramInfo _shaderProgram;
+    private Matrix4x4 _viewProjectionMatrix;
     
     private unsafe void RenderMesh()
     {
@@ -279,8 +282,10 @@ public sealed class App : OpenGlApp
         glClearColor(0, 0, 1, 1);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        //TODO: Add perspective camera or sometihng?
         glUseProgram(_shaderProgram.Id);
+
+        fixed (float* ptr = &_viewProjectionMatrix.M11)
+            glUniformMatrix4fv(0, 1, false, ptr);
 
         glBindVertexArray(_mesh.VaoId);
         AssertNoGlError();
