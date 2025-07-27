@@ -110,34 +110,13 @@ public sealed class Mesh
     {
         var objFileContents = WavefrontObj.ReadFromFile(pathToMeshFile);
 
-        var vertices = new Dictionary<VertexDefinition, int>();
+        var helper = new VertexHelper(objFileContents);
         var triangles = new List<TriangleDefinition>();
-        var positions = objFileContents.VertexPositions.Span;
-        var textureCoords = objFileContents.VertexTextureCoords.Span;
         foreach (var face in objFileContents.Faces.Span)
         {
-            var v0 = ToVertexDefinition(face.Vertices[0], positions, textureCoords);
-            var v1 = ToVertexDefinition(face.Vertices[1], positions, textureCoords);
-            var v2 = ToVertexDefinition(face.Vertices[2], positions, textureCoords);
-
-            if (!vertices.TryGetValue(v0, out var v0Index))
-            {
-                v0Index = vertices.Count;
-                vertices[v0] = v0Index;
-            }
-
-            if (!vertices.TryGetValue(v1, out var v1Index))
-            {
-                v1Index = vertices.Count;
-                vertices[v1] = v1Index;
-            }
-
-            if (!vertices.TryGetValue(v2, out var v2Index))
-            {
-                v2Index = vertices.Count;
-                vertices[v2] = v2Index;
-            }
-            
+            var v0Index = helper.GetIndex(face.Vertices[1]);
+            var v1Index = helper.GetIndex(face.Vertices[2]);
+            var v2Index = helper.GetIndex(face.Vertices[3]);
             triangles.Add(new TriangleDefinition
             {
                 V0 = v0Index,
@@ -149,7 +128,7 @@ public sealed class Mesh
         var meshDefinition = new MeshDefinition
         {
             Triangles = triangles.ToArray(),
-            Vertices = vertices.Keys.ToArray(),
+            Vertices = helper.GetVertices(),
         };
 
         return Upload(meshDefinition);
