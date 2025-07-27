@@ -54,6 +54,11 @@ public sealed class App : OpenGlApp
             .WithFragmentShader("Assets/Shaders/color_frag.glsl")
             .Compile();
 
+        glUseProgram(_shaderProgram.Id);
+        var id = glGetUniformLocation(_shaderProgram.Id, "view_projection_matrix");
+        AssertNoGlError();
+        Console.WriteLine($"view_projection_matrix locaiton: {id}");
+
         var contextMenuPane = new View();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
         

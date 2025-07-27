@@ -44,6 +44,25 @@ public static class OpenGlUtils
         );
     }
 
+    public static unsafe int glGetUniformLocation(uint program, string uniformName)
+    {
+        var encoding = Encoding.UTF8;
+
+        var maxByteCount = encoding.GetMaxByteCount(uniformName.Length);
+
+        Span<byte> bytes = stackalloc byte[maxByteCount];
+
+        // Encode the string into the stack-allocated buffer.
+        var actualByteCount = encoding.GetBytes(uniformName, bytes);
+
+        // Add the null terminator required by C-style strings.
+        bytes[actualByteCount] = 0;
+
+        fixed (byte* ptr = &bytes[0])
+        {
+            return GL46.glGetUniformLocation(program, ptr);
+        }
+    }
 
     public static unsafe void glVertexAttribPointer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TVertex>(
         uint attribIndex,
@@ -290,7 +309,7 @@ public static class OpenGlUtils
         var uniformNameAsAsciiBytes = Encoding.ASCII.GetBytes(uniformName);
         int uniformLocation;
         fixed(byte* ptr = &uniformNameAsAsciiBytes[0])
-            uniformLocation = glGetUniformLocation(shaderProgram, ptr); AssertNoGlError();
+            uniformLocation = GL46.glGetUniformLocation(shaderProgram, ptr); AssertNoGlError();
         return uniformLocation;
     }
 

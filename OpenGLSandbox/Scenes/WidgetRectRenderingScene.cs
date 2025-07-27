@@ -97,7 +97,7 @@ public sealed unsafe class WidgetRectRenderingScene : IScene
             .WithFragmentShader("Assets/uirect.frag.glsl")
             .Build();
 
-        var projectionMatrixUniformLocation = glGetUniformLocation(m_ShaderProgram, "projection_matrix");
+        var projectionMatrixUniformLocation = OpenGlUtils.glGetUniformLocation(m_ShaderProgram, "projection_matrix");
         AssertNoGlError();
         
         glUseProgram(m_ShaderProgram);
