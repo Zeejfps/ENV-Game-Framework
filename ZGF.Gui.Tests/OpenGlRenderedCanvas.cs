@@ -78,7 +78,7 @@ public sealed class OpenGlRenderedCanvas : ICanvas
     
     public void DrawRect(in DrawRectInputs inputs)
     {
-        var cmd = new DrawCommand2()
+        var cmd = new DrawCommand2();
     }
 
     public void DrawText(in DrawTextInputs inputs)
