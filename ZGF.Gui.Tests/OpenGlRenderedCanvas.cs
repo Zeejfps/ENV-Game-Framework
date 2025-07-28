@@ -2,8 +2,16 @@
 
 namespace ZGF.Gui.Tests;
 
+readonly record struct DrawCommand2(int Sequence, int ZIndex, RectF ClippingRect, CommandKind Kind);
+
 public sealed class OpenGlRenderedCanvas : ICanvas
 {
+    private readonly SortedSet<DrawCommand> _commands = new();
+    private readonly Dictionary<int, DrawRectInputs> _rectCommandData = new();
+    private readonly Dictionary<int, DrawTextInputs> _textCommandData = new();
+    private readonly Dictionary<int, DrawImageInputs> _imageCommandData = new();
+
+    
     public void BeginFrame()
     {
         

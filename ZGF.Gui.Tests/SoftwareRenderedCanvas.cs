@@ -6,14 +6,7 @@ using static GL46;
 
 namespace ZGF.Gui.Tests;
 
-enum ComandKind
-{
-    Rect,
-    Text,
-    Image,
-}
-
-internal readonly record struct DrawCommand(int Id, ComandKind Kind, int ZIndex, RectF Clip);
+internal readonly record struct DrawCommand(int Id, CommandKind Kind, int ZIndex, RectF Clip);
 
 public sealed class SoftwareRenderedCanvas : ICanvas
 {
@@ -62,7 +55,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
     {
         var id = _commands.Count;
         var clip = GetClip();
-        _commands.Add(new DrawCommand(id, ComandKind.Rect, inputs.ZIndex, clip));
+        _commands.Add(new DrawCommand(id, CommandKind.DrawRect, inputs.ZIndex, clip));
         _rectCommandData.Add(id, inputs);
     }
 
@@ -70,7 +63,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
     {
         var id = _commands.Count;
         var clip = GetClip();
-        _commands.Add(new DrawCommand(id, ComandKind.Text, inputs.ZIndex, clip));
+        _commands.Add(new DrawCommand(id, CommandKind.DrawText, inputs.ZIndex, clip));
         _textCommandData.Add(id, inputs);
     }
 
@@ -78,7 +71,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
     {
         var id = _commands.Count;
         var clip = GetClip();
-        _commands.Add(new DrawCommand(id, ComandKind.Image, inputs.ZIndex, clip));
+        _commands.Add(new DrawCommand(id, CommandKind.DrawImage, inputs.ZIndex, clip));
         _imageCommandData.Add(id, inputs);
     }
 
@@ -265,15 +258,15 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         {
             switch (command.Kind)
             {
-                case ComandKind.Rect:
+                case CommandKind.DrawRect:
                     var rectCommand = _rectCommandData[command.Id];
                     ExecuteCommand(command, rectCommand);
                     break;
-                case ComandKind.Text:
+                case CommandKind.DrawText:
                     var textCommand = _textCommandData[command.Id];
                     ExecuteCommand(command, textCommand);
                     break;
-                case ComandKind.Image:
+                case CommandKind.DrawImage:
                     var imageCommand = _imageCommandData[command.Id];
                     ExecuteCommand(command, imageCommand);
                     break;
