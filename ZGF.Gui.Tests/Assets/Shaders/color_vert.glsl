@@ -18,8 +18,7 @@ void main() {
     // Basic material and light properties
     vec3 objectColor = vec3(1.0, 0.5, 0.2); // An orange-ish color
     vec3 lightColor = vec3(1.0, 1.0, 1.0);  // A standard white light
-    float ambientStrength = 1;            // A little bit of ambient light
-
+    float ambientStrength = 0.2;            // A little bit of ambient light
 
     // --- 2. Perform Calculations in World Space ---
     // Transform vertex position to world space
@@ -29,7 +28,6 @@ void main() {
     // We use mat3(model_matrix) to correctly handle rotation.
     // Note: This can be skewed by non-uniform scaling. For that, you'd need transpose(inverse(model_matrix)).
     vec3 normal_world = normalize(mat3(model_matrix) * a_normal);
-
 
     // --- 3. Calculate Gouraud Shading ---
     // Ambient component
@@ -43,7 +41,6 @@ void main() {
     // Final color for THIS VERTEX is the combination of ambient and diffuse
     // light, multiplied by the object's own color.
     v_color = (ambient + diffuse) * objectColor;
-
 
     // --- 4. Final Vertex Position ---
     // The gl_Position calculation remains, but we can reuse our world position.

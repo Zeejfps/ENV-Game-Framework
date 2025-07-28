@@ -8,7 +8,7 @@ using static OpenGL.NET.GLBuffer;
 
 namespace ZGF.Gui.Tests;
 
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 public record struct VertexDefinition
 {
     [VertexAttrib(3, typeof(float))]
@@ -63,8 +63,11 @@ public sealed class Mesh
 
         glVertexAttribPointer<VertexDefinition>(1, nameof(VertexDefinition.Normal));
         AssertNoGlError();
-
+        
         glEnableVertexAttribArray(0);
+        AssertNoGlError();
+        
+        glEnableVertexAttribArray(1);
         AssertNoGlError();
 
         glGenBuffers(1, &indexBufferId);

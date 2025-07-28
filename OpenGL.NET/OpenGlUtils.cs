@@ -83,17 +83,21 @@ public static class OpenGlUtils
         
         var offset = FieldOffset<TVertex>(fieldName);
         var glType = GetGlType(vertexAttrib.Type, out var typeSize);
-        var size = vertexAttrib.Count;
-        var ptrOffset = offset;
+        var componentCount = vertexAttrib.Count;
+        var ptrOffset = new IntPtr(offset);
         var strideInBytes = Marshal.SizeOf<TVertex>();
+        Console.WriteLine($"Field: {fieldName}");
+        Console.WriteLine($"Component Count: {componentCount}");
+        Console.WriteLine($"Offset: {offset}");
+        Console.WriteLine($"Stride in bytes: {strideInBytes}");
         
         GL46.glVertexAttribPointer(
             attribIndex,
-            size,
+            componentCount,
             glType,
             normalize,
             strideInBytes,
-            (void*) ptrOffset
+            ptrOffset.ToPointer()
         );
     }
 

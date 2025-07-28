@@ -261,7 +261,7 @@ public sealed class App : OpenGlApp
 
     protected override void OnUpdate()
     {
-        rr += 0.01f;
+        rr += 0.005f;
         var t = Matrix4x4.CreateTranslation(0f, 0f, -20);
         var r = Matrix4x4.CreateRotationY(rr);
         var s = Matrix4x4.CreateScale(5f, 5f, 5f);
@@ -304,7 +304,6 @@ public sealed class App : OpenGlApp
         glViewport(0, 0, _frameBufferHandle.Bitmap.Width, _frameBufferHandle.Bitmap.Height);
         glClearColor(0, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_BLEND);
 
         glUseProgram(_shaderProgram.Id);
 
