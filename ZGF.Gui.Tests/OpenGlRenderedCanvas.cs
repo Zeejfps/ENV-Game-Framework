@@ -4,6 +4,16 @@ namespace ZGF.Gui.Tests;
 
 public sealed class OpenGlRenderedCanvas : ICanvas
 {
+    public void BeginFrame()
+    {
+        
+    }
+
+    public void EndFrame()
+    {
+        
+    }
+    
     public void DrawRect(in DrawRectInputs inputs)
     {
         throw new NotImplementedException();
