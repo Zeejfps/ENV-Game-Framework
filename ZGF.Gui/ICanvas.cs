@@ -4,9 +4,9 @@ namespace ZGF.Gui;
 
 public interface ICanvas
 {
-    void DrawRect(in DrawRectCommand command);
-    void DrawText(in DrawTextCommand command);
-    void DrawImage(in DrawImageCommand command);
+    void DrawRect(in DrawRectInputs inputs);
+    void DrawText(in DrawTextInputs inputs);
+    void DrawImage(in DrawImageInputs inputs);
     
     bool TryGetClip(out RectF rect);
     void PushClip(RectF rect);

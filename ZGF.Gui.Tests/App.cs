@@ -14,7 +14,7 @@ namespace ZGF.Gui.Tests;
 
 public sealed class App : OpenGlApp
 {
-    private readonly Canvas _canvas;
+    private readonly SoftwareRenderedCanvas _canvas;
     private readonly View _gui;
 
     private readonly InputSystem _inputSystem;
@@ -44,7 +44,7 @@ public sealed class App : OpenGlApp
 
         _bitmapFont = BitmapFont.LoadFromFile("Assets/Fonts/Charcoal/Charcoal_p20.xml");
 
-        _canvas = new Canvas(
+        _canvas = new SoftwareRenderedCanvas(
             startupConfig.WindowWidth,
             startupConfig.WindowHeight,
             _bitmapFont,

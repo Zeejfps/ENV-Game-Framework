@@ -13,25 +13,23 @@ enum ComandKind
     Image,
 }
 
-internal readonly record struct DrawCommand(int Id, ComandKind Kind, int ZIndex, RectF Clip)
-{
-}
+internal readonly record struct DrawCommand(int Id, ComandKind Kind, int ZIndex, RectF Clip);
 
-public sealed class Canvas : ICanvas
+public sealed class SoftwareRenderedCanvas : ICanvas
 {
     private readonly BitmapFont _font;
     private readonly ImageManager _imageManager;
 
     private readonly List<DrawCommand> _commands = new();
-    private readonly Dictionary<int, DrawRectCommand> _rectCommandData = new();
-    private readonly Dictionary<int, DrawTextCommand> _textCommandData = new();
-    private readonly Dictionary<int, DrawImageCommand> _imageCommandData = new();
+    private readonly Dictionary<int, DrawRectInputs> _rectCommandData = new();
+    private readonly Dictionary<int, DrawTextInputs> _textCommandData = new();
+    private readonly Dictionary<int, DrawImageInputs> _imageCommandData = new();
 
     private Bitmap _colorBuffer;
     private BitmapRenderer _bitmapRenderer;
     private readonly Stack<RectF> _clipStack = new();
 
-    public Canvas(int width, int height, BitmapFont font, ImageManager imageManager)
+    public SoftwareRenderedCanvas(int width, int height, BitmapFont font, ImageManager imageManager)
     {
         _colorBuffer = new Bitmap(width, height);
         _bitmapRenderer = new BitmapRenderer(_colorBuffer);
@@ -60,28 +58,28 @@ public sealed class Canvas : ICanvas
         _imageCommandData.Clear();
     }
 
-    public void DrawRect(in DrawRectCommand command)
+    public void DrawRect(in DrawRectInputs inputs)
     {
         var id = _commands.Count;
         var clip = GetClip();
-        _commands.Add(new DrawCommand(id, ComandKind.Rect, command.ZIndex, clip));
-        _rectCommandData.Add(id, command);
+        _commands.Add(new DrawCommand(id, ComandKind.Rect, inputs.ZIndex, clip));
+        _rectCommandData.Add(id, inputs);
     }
 
-    public void DrawText(in DrawTextCommand command)
+    public void DrawText(in DrawTextInputs inputs)
     {
         var id = _commands.Count;
         var clip = GetClip();
-        _commands.Add(new DrawCommand(id, ComandKind.Text, command.ZIndex, clip));
-        _textCommandData.Add(id, command);
+        _commands.Add(new DrawCommand(id, ComandKind.Text, inputs.ZIndex, clip));
+        _textCommandData.Add(id, inputs);
     }
 
-    public void DrawImage(in DrawImageCommand command)
+    public void DrawImage(in DrawImageInputs inputs)
     {
         var id = _commands.Count;
         var clip = GetClip();
-        _commands.Add(new DrawCommand(id, ComandKind.Image, command.ZIndex, clip));
-        _imageCommandData.Add(id, command);
+        _commands.Add(new DrawCommand(id, ComandKind.Image, inputs.ZIndex, clip));
+        _imageCommandData.Add(id, inputs);
     }
 
     private RectF GetClip()
@@ -286,7 +284,7 @@ public sealed class Canvas : ICanvas
         _bitmapRenderer.Render();
     }
 
-    private void ExecuteCommand(in DrawCommand cmd, DrawImageCommand data)
+    private void ExecuteCommand(in DrawCommand cmd, DrawImageInputs data)
     {
         var image = _imageManager.GetImageId(data.ImageId);
         var position = data.Position;
@@ -319,7 +317,7 @@ public sealed class Canvas : ICanvas
         );
     }
 
-    private void ExecuteCommand(in DrawCommand command, in DrawRectCommand data)
+    private void ExecuteCommand(in DrawCommand command, in DrawRectInputs data)
     {
         var style = data.Style;
         var position = data.Position;
@@ -354,7 +352,7 @@ public sealed class Canvas : ICanvas
         DrawBorder(left, bottom, right, bottom, borderColor.Bottom, (int)borderSize.Bottom, 0, 1, clipRect);
     }
 
-    private void ExecuteCommand(in DrawCommand cmd, in DrawTextCommand data)
+    private void ExecuteCommand(in DrawCommand cmd, in DrawTextInputs data)
     {
         
         var text = data.Text;

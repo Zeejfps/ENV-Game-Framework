@@ -30,7 +30,7 @@ public class RectView : View
 
     protected override void OnDrawSelf(ICanvas c)
     {
-        c.DrawRect(new DrawRectCommand
+        c.DrawRect(new DrawRectInputs
         {
             Position = Position,
             Style = _style,
