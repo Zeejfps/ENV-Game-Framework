@@ -5,8 +5,6 @@ namespace ZGF.Gui;
 public sealed class InputSystem : IMouse
 {
     private readonly HashSet<IKeyboardMouseController> _hoverableComponents = new();
-    private readonly HashSet<IKeyboardMouseController> _hoveredComponents = new();
-    
     private readonly LinkedList<IKeyboardMouseController> _focusQueue = new();
     private readonly HashSet<MouseButton> _pressedMouseButtons = new();
     
