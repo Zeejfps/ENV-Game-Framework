@@ -54,9 +54,9 @@ sealed class DrawCommandComparer : IComparer<DrawCommand2>
 public sealed class OpenGlRenderedCanvas : ICanvas
 {
     private readonly SortedSet<DrawCommand2> _commands = new(new DrawCommandComparer());
-    private readonly Dictionary<int, DrawRectInputs> _rectCommandData = new();
-    private readonly Dictionary<int, DrawTextInputs> _textCommandData = new();
-    private readonly Dictionary<int, DrawImageInputs> _imageCommandData = new();
+    private readonly Dictionary<int, DrawRectInputs> _drawRectInputs = new();
+    private readonly Dictionary<int, DrawTextInputs> _drawTextInputs = new();
+    private readonly Dictionary<int, DrawImageInputs> _drawImageInputs = new();
     private readonly List<RectF> _clipRects = new();
     
     private readonly Stack<RectF> _clipStack = new();
@@ -64,9 +64,9 @@ public sealed class OpenGlRenderedCanvas : ICanvas
     public void BeginFrame()
     {
         _commands.Clear();
-        _rectCommandData.Clear();
-        _textCommandData.Clear();
-        _imageCommandData.Clear();
+        _drawRectInputs.Clear();
+        _drawTextInputs.Clear();
+        _drawImageInputs.Clear();
         _clipRects.Clear();
         _clipStack.Clear();
     }
@@ -78,15 +78,41 @@ public sealed class OpenGlRenderedCanvas : ICanvas
     
     public void DrawRect(in DrawRectInputs inputs)
     {
-        var cmd = new DrawCommand2();
+        var cmd = new DrawCommand2
+        {
+            ZIndex = inputs.ZIndex,
+            Sequence = _commands.Count,
+            ClipIndex = _clipRects.Count - 1,
+            Kind = CommandKind.DrawRect,
+        };
+        _commands.Add(cmd);
+        _drawRectInputs.Add(cmd.Sequence, inputs);
     }
 
     public void DrawText(in DrawTextInputs inputs)
     {
+        var cmd = new DrawCommand2
+        {
+            ZIndex = inputs.ZIndex,
+            Sequence = _commands.Count,
+            ClipIndex = _clipRects.Count - 1,
+            Kind = CommandKind.DrawText,
+        };
+        _commands.Add(cmd);
+        _drawTextInputs.Add(cmd.Sequence, inputs);
     }
 
     public void DrawImage(in DrawImageInputs inputs)
     {
+        var cmd = new DrawCommand2
+        {
+            ZIndex = inputs.ZIndex,
+            Sequence = _commands.Count,
+            ClipIndex = _clipRects.Count - 1,
+            Kind = CommandKind.DrawImage,
+        };
+        _commands.Add(cmd);
+        _drawImageInputs.Add(cmd.Sequence, inputs);
     }
 
     public bool TryGetClip(out RectF rect)
