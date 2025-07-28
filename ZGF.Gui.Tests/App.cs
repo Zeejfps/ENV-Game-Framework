@@ -258,9 +258,9 @@ public sealed class App : OpenGlApp
 
     protected override void OnUpdate()
     {
-        rr -= 0.01f;
-        var t = Matrix4x4.CreateTranslation(0f, 0f, rr);
-        var r = Matrix4x4.CreateRotationY(0f);
+        rr += 0.01f;
+        var t = Matrix4x4.CreateTranslation(0f, 0f, -20);
+        var r = Matrix4x4.CreateRotationY(rr);
         var s = Matrix4x4.CreateScale(5f, 5f, 5f);
         _modelMatrix = s * r * t;
 
