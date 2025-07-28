@@ -38,7 +38,7 @@ public ref struct VertexHelper
         return new VertexDefinition
         {
             Position = ToVector(_vertexPositions[v.PositionIndex-1]),
-            Normals = ToVector(_vertexNormals[v.NormalIndex-1]),
+            Normal = ToVector(_vertexNormals[v.NormalIndex-1]),
         };
     }
 

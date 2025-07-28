@@ -300,12 +300,11 @@ public sealed class App : OpenGlApp
 
     private unsafe void RenderMesh()
     {
-        glDisable(GL_CULL_FACE);
-        // TODO: Render stuff into the window
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _frameBufferHandle.FrameBufferId);
         glViewport(0, 0, _frameBufferHandle.Bitmap.Width, _frameBufferHandle.Bitmap.Height);
-        glClearColor(0, 0, 1, 1);
+        glClearColor(0, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_BLEND);
 
         glUseProgram(_shaderProgram.Id);
 

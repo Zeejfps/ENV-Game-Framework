@@ -1,7 +1,13 @@
 #version 400
 
-out vec4 color;
+// Input from the vertex shader. The GPU automatically interpolates
+// the v_color values from the triangle's three vertices.
+in vec3 v_color;
+
+// The final output color of the fragment (pixel)
+out vec4 FragColor;
 
 void main() {
-    color = vec4(0.6f, 0.1f, 1.0f, 1.0);
+    // Just apply the interpolated color.
+    FragColor = vec4(v_color, 1.0);
 }

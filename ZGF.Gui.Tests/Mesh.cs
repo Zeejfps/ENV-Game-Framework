@@ -15,7 +15,7 @@ public record struct VertexDefinition
     public Vector3 Position;
 
     [VertexAttrib(3, typeof(float))]
-    public Vector3 Normals;
+    public Vector3 Normal;
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -61,7 +61,7 @@ public sealed class Mesh
         glVertexAttribPointer<VertexDefinition>(0, nameof(VertexDefinition.Position));
         AssertNoGlError();
 
-        glVertexAttribPointer<VertexDefinition>(1, nameof(VertexDefinition.Normals));
+        glVertexAttribPointer<VertexDefinition>(1, nameof(VertexDefinition.Normal));
         AssertNoGlError();
 
         glEnableVertexAttribArray(0);
