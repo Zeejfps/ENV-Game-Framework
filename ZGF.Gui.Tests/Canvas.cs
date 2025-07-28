@@ -60,7 +60,7 @@ public sealed class Canvas : ICanvas
         _imageCommandData.Clear();
     }
 
-    public void AddCommand(in DrawRectCommand command)
+    public void DrawRect(in DrawRectCommand command)
     {
         var id = _commands.Count;
         var clip = GetClip();
@@ -68,7 +68,7 @@ public sealed class Canvas : ICanvas
         _rectCommandData.Add(id, command);
     }
 
-    public void AddCommand(in DrawTextCommand command)
+    public void DrawText(in DrawTextCommand command)
     {
         var id = _commands.Count;
         var clip = GetClip();
@@ -76,7 +76,7 @@ public sealed class Canvas : ICanvas
         _textCommandData.Add(id, command);
     }
 
-    public void AddCommand(in DrawImageCommand command)
+    public void DrawImage(in DrawImageCommand command)
     {
         var id = _commands.Count;
         var clip = GetClip();

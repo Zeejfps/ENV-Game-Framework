@@ -63,7 +63,7 @@ public sealed class TextView : View
         if (_text == null)
             return;
 
-        c.AddCommand(new DrawTextCommand
+        c.DrawText(new DrawTextCommand
         {
             Position = Position,
             Text = _text,

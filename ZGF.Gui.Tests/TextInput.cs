@@ -168,7 +168,7 @@ public sealed class TextInput : View
 
     private void DrawBackground(in RectF position, ICanvas c)
     {
-        c.AddCommand(new DrawRectCommand
+        c.DrawRect(new DrawRectCommand
         {
             Position = position,
             Style = _background,
@@ -200,7 +200,7 @@ public sealed class TextInput : View
             Height = position.Height
         };  
             
-        c.AddCommand(new DrawRectCommand
+        c.DrawRect(new DrawRectCommand
         {
             Position = selectionRect,
             Style = _selectionRectStyle,
@@ -210,7 +210,7 @@ public sealed class TextInput : View
 
     private void DrawText(in RectF position, ICanvas c)
     {
-        c.AddCommand(new DrawTextCommand
+        c.DrawText(new DrawTextCommand
         {
             Position = position,
             Text = new string(_buffer, 0, _strLen),
@@ -233,7 +233,7 @@ public sealed class TextInput : View
             Height = cursorHeight
         };
             
-        c.AddCommand(new DrawRectCommand
+        c.DrawRect(new DrawRectCommand
         {
             Position = cursorPos,
             Style = _cursorStyle,

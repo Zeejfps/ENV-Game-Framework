@@ -44,7 +44,7 @@ public sealed class ImageView : View
         if (_imageId == null)
             return;
 
-        c.AddCommand(new DrawImageCommand
+        c.DrawImage(new DrawImageCommand
         {
             Position = Position,
             ImageId = _imageId,
