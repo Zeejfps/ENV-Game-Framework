@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using GLFW;
 using OpenGL.NET;
@@ -164,6 +165,7 @@ public sealed class App : OpenGlApp
 
         glEnable(GL_DEPTH_TEST);
 
+        _stopwatch.Start();
         //PrintTree(gui);
     }
 
@@ -254,6 +256,8 @@ public sealed class App : OpenGlApp
 
     private float rr = 0f;
     private Vector3 _cameraPos = new Vector3();
+    private Stopwatch _stopwatch = new();
+    private int _frames = 0;
 
     protected override void OnUpdate()
     {
@@ -270,6 +274,14 @@ public sealed class App : OpenGlApp
         _inputSystem.UpdateMousePosition(guiPoint);
         _inputSystem.Update();
         _contextMenuManager.Update();
+        
+        ++_frames;
+        if (_stopwatch.ElapsedMilliseconds >= 1000)
+        {
+            Console.WriteLine($"FPS: {_frames}");
+            _frames = 0;
+            _stopwatch.Restart();
+        }
     }
 
     private void Render()
