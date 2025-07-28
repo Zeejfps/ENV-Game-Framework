@@ -60,7 +60,6 @@ public sealed class App : OpenGlApp
         _modelMatrixUniformLocation = glGetUniformLocation(_shaderProgram.Id, "model_matrix");
         _viewProjectionMatrixUniformLocation = glGetUniformLocation(_shaderProgram.Id, "view_projection_matrix");
         AssertNoGlError();
-        Console.WriteLine($"view_projection_matrix locaiton: {_viewProjectionMatrixUniformLocation}");
 
         var contextMenuPane = new View();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
@@ -277,7 +276,6 @@ public sealed class App : OpenGlApp
     {
         RenderMesh();
         
-        // TODO: Main UI rendering
         Glfw.GetFramebufferSize(WindowHandle, out var width, out var height);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glViewport(0, 0, width, height);
