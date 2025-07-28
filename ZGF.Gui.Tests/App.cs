@@ -28,6 +28,8 @@ public sealed class App : OpenGlApp
 
     private FrameBufferHandle _frameBufferHandle;
     private ImageView _modelView;
+    private int _modelMatrixUniformLocation;
+    private int _viewProjectionMatrixUniformLocation;
 
     public App(StartupConfig startupConfig) : base(startupConfig)
     {
@@ -56,9 +58,10 @@ public sealed class App : OpenGlApp
             .Compile();
 
         glUseProgram(_shaderProgram.Id);
-        var id = glGetUniformLocation(_shaderProgram.Id, "view_projection_matrix");
+        _modelMatrixUniformLocation = glGetUniformLocation(_shaderProgram.Id, "model_matrix");
+        _viewProjectionMatrixUniformLocation = glGetUniformLocation(_shaderProgram.Id, "view_projection_matrix");
         AssertNoGlError();
-        Console.WriteLine($"view_projection_matrix locaiton: {id}");
+        Console.WriteLine($"view_projection_matrix locaiton: {_viewProjectionMatrixUniformLocation}");
 
         var contextMenuPane = new View();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
@@ -307,10 +310,10 @@ public sealed class App : OpenGlApp
         glUseProgram(_shaderProgram.Id);
 
         fixed (float* ptr = &_modelMatrix.M11)
-            glUniformMatrix4fv(0, 1, false, ptr);
+            glUniformMatrix4fv(_modelMatrixUniformLocation, 1, false, ptr);
 
         fixed (float* ptr = &_viewProjectionMatrix.M11)
-            glUniformMatrix4fv(4, 1, false, ptr);
+            glUniformMatrix4fv(_viewProjectionMatrixUniformLocation, 1, false, ptr);
 
         glBindVertexArray(_mesh.VaoId);
         AssertNoGlError();
