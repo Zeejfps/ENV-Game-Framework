@@ -280,7 +280,7 @@ public sealed class Canvas : ICanvas
 
         var offsetX = (int)(x + (width - scaledWidth) / 2);
         var offsetY = (int)(y + (height - scaledHeight) / 2);
-        
+
         Graphics.BlitTransparent(
             _colorBuffer, offsetX, offsetY, (int)scaledWidth, (int)scaledHeight,
             image, 0, 0, image.Width, image.Height,

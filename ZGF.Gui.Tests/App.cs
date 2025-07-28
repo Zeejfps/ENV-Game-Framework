@@ -156,12 +156,15 @@ public sealed class App : OpenGlApp
         Glfw.SetFramebufferSizeCallback(WindowHandle, _framebufferSizeCallback);
         Glfw.SetScrollCallback(WindowHandle, _scrollCallback);
 
-        var fov = 60f * (MathF.PI / 180f);
+        var fov = 45f * (MathF.PI / 180f);
         var aspectRatio = 640f / 480f;
-        var projectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(fov, aspectRatio, 0.01f, 1000f);
+        var projectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(fov, aspectRatio, 0.001f, 1000f);
+        _viewProjectionMatrix = projectionMatrix;
 
-        var viewMatrix = Matrix4x4.CreateLookAt(new Vector3(0f, 0f, -100f), Vector3.Zero, Vector3.UnitY);
-        _viewProjectionMatrix = projectionMatrix * viewMatrix;
+        _modelMatrix = Matrix4x4.Identity;
+
+        glEnable(GL_DEPTH_TEST);
+
         //PrintTree(gui);
     }
 
@@ -249,9 +252,18 @@ public sealed class App : OpenGlApp
         };
         _inputSystem.SendKeyboardKeyEvent(ref e);
     }
-    
+
+    private float rr = 0f;
+    private Vector3 _cameraPos = new Vector3();
+
     protected override void OnUpdate()
     {
+        rr -= 0.01f;
+        var t = Matrix4x4.CreateTranslation(0f, 0f, rr);
+        var r = Matrix4x4.CreateRotationY(0f);
+        var s = Matrix4x4.CreateScale(5f, 5f, 5f);
+        _modelMatrix = s * r * t;
+
         _imageManager.RenderFrameBuffersToBitmaps();
         Render();
         Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
@@ -266,9 +278,11 @@ public sealed class App : OpenGlApp
         RenderMesh();
         
         // TODO: Main UI rendering
+        Glfw.GetFramebufferSize(WindowHandle, out var width, out var height);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glViewport(0, 0, width, height);
         glClearColor(0, 0, 0, 0);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         _canvas.BeginFrame();
         _gui.LayoutSelf();
@@ -278,19 +292,25 @@ public sealed class App : OpenGlApp
 
     private Mesh _mesh;
     private ShaderProgramInfo _shaderProgram;
+    private Matrix4x4 _modelMatrix;
     private Matrix4x4 _viewProjectionMatrix;
-    
+
     private unsafe void RenderMesh()
     {
+        glDisable(GL_CULL_FACE);
         // TODO: Render stuff into the window
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _frameBufferHandle.FrameBufferId);
+        glViewport(0, 0, _frameBufferHandle.Bitmap.Width, _frameBufferHandle.Bitmap.Height);
         glClearColor(0, 0, 1, 1);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(_shaderProgram.Id);
 
-        fixed (float* ptr = &_viewProjectionMatrix.M11)
+        fixed (float* ptr = &_modelMatrix.M11)
             glUniformMatrix4fv(0, 1, false, ptr);
+
+        fixed (float* ptr = &_viewProjectionMatrix.M11)
+            glUniformMatrix4fv(4, 1, false, ptr);
 
         glBindVertexArray(_mesh.VaoId);
         AssertNoGlError();
