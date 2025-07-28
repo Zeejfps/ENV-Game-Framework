@@ -23,7 +23,7 @@ public sealed class ImageView : View
             return PreferredWidth.Value;
 
         if (ImageId != null && Context != null)
-            return Context.ImageManager.GetImageWidth(ImageId);
+            return Context.Canvas.GetImageWidth(ImageId);
 
         return MinWidthConstraint;
     }
@@ -34,7 +34,7 @@ public sealed class ImageView : View
             return PreferredHeight.Value;
 
         if (ImageId != null && Context != null)
-            return Context.ImageManager.GetImageHeight(ImageId);
+            return Context.Canvas.GetImageHeight(ImageId);
 
         return MaxHeightConstraint;
     }

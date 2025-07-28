@@ -153,6 +153,21 @@ public sealed class Canvas : ICanvas
         return _font.FontMetrics.Common.LineHeight;
     }
 
+    public Size GetImageSize(string imageId)
+    {
+        return _imageManager.GetImageSize(imageId);
+    }
+
+    public int GetImageWidth(string imageId)
+    {
+        return _imageManager.GetImageWidth(imageId);
+    }
+
+    public int GetImageHeight(string imageId)
+    {
+        return _imageManager.GetImageHeight(imageId);
+    }
+
     private void DrawBorder(
         int x0, int y0,
         int x1, int y1, 

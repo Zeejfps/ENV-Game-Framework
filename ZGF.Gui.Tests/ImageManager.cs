@@ -13,7 +13,7 @@ public readonly struct FrameBufferHandle
     public required Bitmap Bitmap { get; init; }
 } 
 
-public sealed unsafe class ImageManager : IImageManager
+public sealed unsafe class ImageManager
 {
     private readonly Dictionary<string, Bitmap> _imageByIdLookup = new();
     private readonly List<FrameBufferHandle> _framebufferHandles = new();
@@ -177,5 +177,15 @@ public sealed unsafe class ImageManager : IImageManager
     public Bitmap GetImageId(string imageId)
     {
         return _imageByIdLookup[imageId];
+    }
+
+    public Size GetImageSize(string imageId)
+    {
+        var bitmap = _imageByIdLookup[imageId];
+        return new Size
+        {
+            Width = bitmap.Width,
+            Height = bitmap.Height,
+        };
     }
 }

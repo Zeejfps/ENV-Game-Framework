@@ -68,7 +68,6 @@ public sealed class App : OpenGlApp
         var context = new Context
         {
             InputSystem = _inputSystem,
-            ImageManager = _imageManager,
             Canvas = _canvas
         };
 
