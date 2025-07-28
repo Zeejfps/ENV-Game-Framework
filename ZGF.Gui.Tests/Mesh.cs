@@ -14,8 +14,8 @@ public record struct VertexDefinition
     [VertexAttrib(3, typeof(float))]
     public Vector3 Position;
 
-    [VertexAttrib(2, typeof(float))]
-    public Vector2 UVs;
+    [VertexAttrib(3, typeof(float))]
+    public Vector3 Normals;
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -61,7 +61,7 @@ public sealed class Mesh
         glVertexAttribPointer<VertexDefinition>(0, nameof(VertexDefinition.Position));
         AssertNoGlError();
 
-        glVertexAttribPointer<VertexDefinition>(1, nameof(VertexDefinition.UVs));
+        glVertexAttribPointer<VertexDefinition>(1, nameof(VertexDefinition.Normals));
         AssertNoGlError();
 
         glEnableVertexAttribArray(0);
@@ -82,28 +82,6 @@ public sealed class Mesh
         {
             VaoId = vao,
             TriangleCount = mesh.Triangles.Length,
-        };
-    }
-
-    private static Vector3 ToVector(in VertexPosition vertexPosition)
-    {
-        return new Vector3(vertexPosition.X, vertexPosition.Y, vertexPosition.Z);
-    }
-
-    private static Vector2 ToVector(in VertexTextureCoord textureCoord)
-    {
-        return new Vector2(textureCoord.U, textureCoord.V);
-    }
-
-    private static VertexDefinition ToVertexDefinition(
-        in Vertex v,
-        ReadOnlySpan<VertexPosition> positions,
-        ReadOnlySpan<VertexTextureCoord> textureCoords)
-    {
-        return new VertexDefinition
-        {
-            Position = ToVector(positions[v.PositionIndex-1]),
-            UVs = ToVector(textureCoords[v.TextureCoordIndex-1]),
         };
     }
 
