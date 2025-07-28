@@ -44,11 +44,6 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
     {
     }
 
-    public bool CanReleaseFocus()
-    {
-        return !_textInput.IsEditing;
-    }
-
     public void OnMouseMoved(ref MouseMoveEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
@@ -62,6 +57,7 @@ public sealed class TextInputDefaultKbmController : IKeyboardMouseController
             return;
         
         _textInput.MoveCaretTo(e.Mouse.Point, true);
+        e.Consume();
     }
 
     public void OnMouseButtonStateChanged(ref MouseButtonEvent e)

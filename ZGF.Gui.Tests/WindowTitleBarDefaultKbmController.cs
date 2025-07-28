@@ -30,16 +30,18 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
-        
-        _isHovered = true;
+
+        if (_isDragging)
+            e.Consume();
     }
 
     public void OnMouseExit(ref MouseExitEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
-        
-        _isHovered = false;
+       
+        if (_isDragging)
+            e.Consume();
     }
 
     public void OnMouseButtonStateChanged(ref MouseButtonEvent e)

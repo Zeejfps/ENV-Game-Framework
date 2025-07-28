@@ -135,7 +135,9 @@ public sealed class InputSystem : IMouse
     {
         Point = point;
 
-        SendMouseMovedEvent();
+        var consumed = SendMouseMovedEvent();
+        if (consumed)
+            return;
         
         var hitComponent = HitTest(Point);
         if (_hoveredComponent != hitComponent)
@@ -157,7 +159,7 @@ public sealed class InputSystem : IMouse
         }
     }
 
-    private void SendMouseMovedEvent()
+    private bool SendMouseMovedEvent()
     {
         var e = new MouseMoveEvent
         {
@@ -170,7 +172,7 @@ public sealed class InputSystem : IMouse
             _focusedComponent.OnMouseMoved(ref e);
             if (e.IsConsumed)
             {
-                return;
+                return true;
             }
         }
         
@@ -180,7 +182,7 @@ public sealed class InputSystem : IMouse
             ctrl.OnMouseMoved(ref e);
             if (e.IsConsumed)
             {
-                return;
+                return true;
             }
         }
         
@@ -190,9 +192,11 @@ public sealed class InputSystem : IMouse
             ctrl.OnMouseMoved(ref e);
             if (e.IsConsumed)
             {
-                return;
+                return true;
             }
         }
+
+        return false;
     }
 
     private void SendMouseExitEvent()
