@@ -37,7 +37,7 @@ public sealed class TextView : View
         if (_text == null)
             return 0f;
 
-        return Context.TextMeasurer.MeasureTextWidth(_text, _style);
+        return Context.Canvas.MeasureTextWidth(_text, _style);
     }
 
     public override float MeasureHeight()
@@ -48,7 +48,7 @@ public sealed class TextView : View
         if (_text == null)
             return 0f;
 
-        return Context.TextMeasurer.MeasureTextHeight(_text, _style);
+        return Context.Canvas.MeasureTextHeight(_text, _style);
     }
 
     protected override void OnApplyStyle(Style style)

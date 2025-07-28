@@ -20,7 +20,6 @@ internal readonly record struct DrawCommand(int Id, ComandKind Kind, int ZIndex,
 public sealed class Canvas : ICanvas
 {
     private readonly BitmapFont _font;
-    private readonly ITextMeasurer _textMeasurer;
     private readonly ImageManager _imageManager;
 
     private readonly List<DrawCommand> _commands = new();
@@ -32,12 +31,11 @@ public sealed class Canvas : ICanvas
     private BitmapRenderer _bitmapRenderer;
     private readonly Stack<RectF> _clipStack = new();
 
-    public Canvas(int width, int height, BitmapFont font, ITextMeasurer textMeasurer, ImageManager imageManager)
+    public Canvas(int width, int height, BitmapFont font, ImageManager imageManager)
     {
         _colorBuffer = new Bitmap(width, height);
         _bitmapRenderer = new BitmapRenderer(_colorBuffer);
         _font = font;
-        _textMeasurer = textMeasurer;
         _imageManager = imageManager;
     }
 
@@ -135,6 +133,24 @@ public sealed class Canvas : ICanvas
     public void PopClip()
     {
         _clipStack.Pop();
+    }
+
+    public float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style)
+    {
+        var totalWidth = 0f;
+        foreach (var codePoint in text.EnumerateCodePoints())
+        {
+            if (!_font.TryGetGlyphInfo(codePoint, out var glyphInfo))
+                continue;
+            
+            totalWidth += glyphInfo.XAdvance;
+        }
+        return totalWidth;
+    }
+
+    public float MeasureTextHeight(ReadOnlySpan<char> text, TextStyle style)
+    {
+        return _font.FontMetrics.Common.LineHeight;
     }
 
     private void DrawBorder(
@@ -363,7 +379,7 @@ public sealed class Canvas : ICanvas
                 case TextAlignment.Start:
                     break;
                 case TextAlignment.Center:
-                    var width = _textMeasurer.MeasureTextWidth(text, style);
+                    var width = MeasureTextWidth(text, style);
                     cursorX = (int)(position.Left + (position.Width - width) * 0.5f);
                     break;
                 case TextAlignment.End:

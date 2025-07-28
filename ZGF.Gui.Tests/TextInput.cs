@@ -76,13 +76,13 @@ public sealed class TextInput : View
             return 0;
         
         var deltaX = point.X - Position.Left;
-        var textMeasurer = Context!.TextMeasurer;
+        var canvas = Context!.Canvas;
         for (var i = 0; i < _strLen; i++)
         {
             var firstPart = _buffer.AsSpan(0, i);
             var secondPart = _buffer.AsSpan(i, 1);
-            var w = textMeasurer.MeasureTextWidth(firstPart, _textStyle) +
-                    textMeasurer.MeasureTextWidth(secondPart, _textStyle) * 0.5f;
+            var w = canvas.MeasureTextWidth(firstPart, _textStyle) +
+                    canvas.MeasureTextWidth(secondPart, _textStyle) * 0.5f;
             
             if (w > deltaX)
             {
@@ -187,10 +187,10 @@ public sealed class TextInput : View
         }
             
         var minText = _buffer.AsSpan(0, min);
-        var startPos = Context!.TextMeasurer.MeasureTextWidth(minText, _textStyle);
+        var startPos = c.MeasureTextWidth(minText, _textStyle);
             
         var maxText = _buffer.AsSpan(0, max);
-        var endPos = Context!.TextMeasurer.MeasureTextWidth(maxText, _textStyle);
+        var endPos = c.MeasureTextWidth(maxText, _textStyle);
             
         var selectionRect = new RectF
         {
@@ -222,7 +222,7 @@ public sealed class TextInput : View
     private void DrawCaret(in RectF position, ICanvas c)
     {
         var textToMeasure = _buffer.AsSpan(0, _caretIndex);
-        var cursorPosLeft = Context!.TextMeasurer.MeasureTextWidth(textToMeasure, _textStyle);
+        var cursorPosLeft = c.MeasureTextWidth(textToMeasure, _textStyle);
 
         var cursorHeight = position.Height - 6f;
         var cursorPos = new RectF

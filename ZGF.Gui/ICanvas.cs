@@ -11,4 +11,7 @@ public interface ICanvas
     bool TryGetClip(out RectF rect);
     void PushClip(RectF rect);
     void PopClip();
+    
+    float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style);
+    float MeasureTextHeight(ReadOnlySpan<char> text, TextStyle style);
 }

@@ -42,13 +42,12 @@ public sealed class App : OpenGlApp
         _frameBufferHandle = _imageManager.CreateFrameBufferImage(640, 480);
 
         _bitmapFont = BitmapFont.LoadFromFile("Assets/Fonts/Charcoal/Charcoal_p20.xml");
-        var textMeasurer = new TextMeasurer(_bitmapFont);
 
         _canvas = new Canvas(
             startupConfig.WindowWidth,
             startupConfig.WindowHeight,
             _bitmapFont,
-            textMeasurer, _imageManager
+            _imageManager
         );
         
         _mesh = Mesh.LoadFromFile("Assets/Models/Suzan_tri.obj");
@@ -69,7 +68,6 @@ public sealed class App : OpenGlApp
         var context = new Context
         {
             InputSystem = _inputSystem,
-            TextMeasurer = textMeasurer,
             ImageManager = _imageManager,
             Canvas = _canvas
         };
