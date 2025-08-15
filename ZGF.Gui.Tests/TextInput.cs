@@ -1,10 +1,15 @@
 using ZGF.Geometry;
-using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Tests;
 
 public sealed class TextInput : View
 {
+    public StyleValue<bool> IsMultiLine
+    {
+        get => _textStyle.IsMultiLine;
+        set => SetField(ref _textStyle.IsMultiLine, value);
+    }
+    
     public StyleValue<uint> BackgroundColor
     {
         get => _background.BackgroundColor;

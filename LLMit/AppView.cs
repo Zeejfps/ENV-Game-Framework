@@ -39,6 +39,7 @@ public sealed class StartNewChatView : View
         var textInput = new TextInput
         {
             PreferredHeight = 40,
+            IsMultiLine = true
         };
         var layout = new CenterView
         {

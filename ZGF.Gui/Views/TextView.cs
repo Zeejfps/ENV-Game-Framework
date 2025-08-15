@@ -4,6 +4,12 @@ public sealed class TextView : View
 {
     private readonly TextStyle _style = new();
 
+    public StyleValue<bool> IsMultiLine
+    {
+        get => _style.IsMultiLine;
+        set => SetField(ref _style.IsMultiLine, value);
+    }
+    
     public StyleValue<uint> TextColor
     {
         get => _style.TextColor;
