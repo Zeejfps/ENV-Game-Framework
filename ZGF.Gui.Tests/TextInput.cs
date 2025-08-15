@@ -421,6 +421,16 @@ public sealed class TextInput : View
         }
     }
 
+    public void MoveCaretDown(bool select = false)
+    {
+        
+    }
+    
+    public void MoveCaretUp(bool select = false)
+    {
+        
+    }
+
     public void Delete()
     {
         if (_strLen > 0)

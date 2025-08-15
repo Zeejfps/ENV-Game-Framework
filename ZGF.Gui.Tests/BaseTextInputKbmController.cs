@@ -140,6 +140,20 @@ public abstract class BaseTextInputKbmController : IKeyboardMouseController
         }
             
         var isShiftPressed = (e.Modifiers & InputModifiers.Shift) > 0;
+        if (e.Key == KeyboardKey.UpArrow)
+        {
+            _textInput.MoveCaretUp(isShiftPressed);
+            e.Consume();
+            return;
+        }
+        
+        if (e.Key == KeyboardKey.DownArrow)
+        {
+            _textInput.MoveCaretDown(isShiftPressed);
+            e.Consume();
+            return;
+        }
+        
         if (e.Key == KeyboardKey.LeftArrow)
         {
             _textInput.MoveCaretLeft(isShiftPressed);
