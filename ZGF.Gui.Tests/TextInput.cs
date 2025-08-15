@@ -241,19 +241,20 @@ public sealed class TextInput : View
         {
             if (_buffer[i] == '\n')
             {
-                startIndex = i - 1;
+                startIndex = i;
                 linesCount++;
             } 
         }
         
+        var lineHeight = canvas.MeasureTextSingleLineHeight(_textStyle);
+        var cursorHeight = lineHeight;
         var lineText = _buffer.AsSpan(startIndex, _caretIndex - startIndex);
         var cursorPosLeft = canvas.MeasureTextWidth(lineText, _textStyle);
-        var cursorPosBottom = linesCount * canvas.MeasureTextSingleLineHeight(_textStyle);
+        var cursorPosBottom = position.Top - linesCount * lineHeight - cursorHeight;
         
-        var cursorHeight = position.Height - 6f;
         var cursorPos = new RectF
         {
-            Bottom = position.Bottom + cursorPosBottom,
+            Bottom = cursorPosBottom,
             Left = position.Left + cursorPosLeft,
             Width = 2,
             Height = cursorHeight
