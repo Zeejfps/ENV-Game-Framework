@@ -364,9 +364,10 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         var lineHeight = _font.FontMetrics.Common.LineHeight;
         var position = data.Position;
         
-        Graphics.DrawRect(_colorBuffer, (int)position.Left, (int)position.Bottom, (int)position.Width, (int)position.Height, 0x00ff00);
+        //Graphics.DrawRect(_colorBuffer, (int)position.Left, (int)position.Bottom, (int)position.Width, (int)position.Height, 0x00ff00);
         
         var fontBase = _font.FontMetrics.Common.Base;
+        
         var lineStart = (int)position.Left;
         var cursorX = lineStart;
         var cursorY = (int)(position.Top - fontBase);
@@ -379,7 +380,6 @@ public sealed class SoftwareRenderedCanvas : ICanvas
                 case TextAlignment.Start:
                     break;
                 case TextAlignment.Center:
-                    //var textYOffset = (lineHeight - fontBase) / 2;
                     cursorY = (int)((position.Top - position.Height * 0.5f) - (fontBase * 0.5f));
                     break;
                 case TextAlignment.End:
@@ -406,7 +406,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
             }
         }
         
-        Graphics.DrawLine(_colorBuffer, cursorX, cursorY, cursorX + (int)position.Width, cursorY, 0xFF0000, cmd.Clip);
+        //Graphics.DrawLine(_colorBuffer, cursorX, cursorY, cursorX + (int)position.Width, cursorY, 0xFF0000, cmd.Clip);
         
         var color = style.TextColor;
         var prevCodePoint = default(int?);
