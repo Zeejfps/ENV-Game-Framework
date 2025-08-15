@@ -199,11 +199,18 @@ public sealed class TextInputView : View
         if (canvas == null)
             return 0f;
         
-        var width = MeasureWidth();
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
-        var lines = GetLines(width, canvas).Count();
-        if (lines == 0) lines = 1;
-        var height = lines * lineHeight;
+        if (_strLen == 0)
+            return lineHeight;
+        
+        var width = MeasureWidth();
+        var lines = GetLines(width, canvas);
+        var height = 0f;
+        foreach (var line in lines)
+        {
+            height += lineHeight;
+          
+        }
         
         if (PreferredHeight.IsSet && height < PreferredHeight)
             return PreferredHeight;
@@ -214,7 +221,7 @@ public sealed class TextInputView : View
     private IEnumerable<Memory<char>> GetLines(float width, ICanvas canvas)
     {
         var startIndex = 0;
-        for (var i = 0; i <= _strLen; i++)
+        for (var i = 0; i < _strLen; i++)
         {
             var line = new Memory<char>(_buffer, startIndex, i - startIndex);
 
@@ -229,12 +236,12 @@ public sealed class TextInputView : View
                 else if (_buffer[i] == '\n')
                 {
                     yield return line;
-                    startIndex = i;
+                    startIndex = i+1;
                 }
             }
         }
 
-        if (startIndex < _strLen)
+        if (startIndex <= _strLen)
         {
             yield return new Memory<char>(_buffer, startIndex, _strLen - startIndex);
         }
@@ -352,37 +359,12 @@ public sealed class TextInputView : View
 
     private void DrawText(in RectF position, ICanvas c)
     {
-        var startIndex = 0;
         var lineHeight = c.MeasureTextLineHeight(_textStyle);
         var left = position.Left;
         var bottom = position.Top - lineHeight;
-        for (var i = 0; i < _strLen; i++)
+        var lines = GetLines(position.Width, c);
+        foreach (var line in lines)
         {
-            var line =  _buffer.AsSpan(startIndex, i - startIndex);
-            var lineWidth =  c.MeasureTextWidth(line, _textStyle);
-            if (_buffer[i] == '\n' || lineWidth > position.Width)
-            {
-                c.DrawText(new DrawTextInputs
-                {
-                    Position = new RectF
-                    {
-                        Left = left,
-                        Bottom = bottom,
-                        Width = position.Width,
-                        Height = lineHeight,
-                    },
-                    Text = line.ToString(),
-                    Style = _textStyle,
-                    ZIndex = ZIndex
-                });
-                startIndex = i + 1;
-                bottom -= lineHeight;
-            }
-        }
-        
-        if (startIndex < _strLen)
-        {
-            var line =  _buffer.AsSpan(startIndex, _strLen - startIndex);
             c.DrawText(new DrawTextInputs
             {
                 Position = new RectF
@@ -396,6 +378,7 @@ public sealed class TextInputView : View
                 Style = _textStyle,
                 ZIndex = ZIndex
             });
+            bottom -= lineHeight;
         }
     }
 
