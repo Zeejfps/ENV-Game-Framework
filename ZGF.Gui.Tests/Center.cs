@@ -11,7 +11,7 @@ public sealed class Center : View
     {
         var background = new RectView
         {
-            BackgroundColor = 0x9C9CCE,
+            BackgroundColor = 0xFF9C9CCE,
         };
         
         AddChildToSelf(background);
@@ -37,13 +37,13 @@ public sealed class Center : View
     {
         var scrollBar = new RectView
         {
-            BackgroundColor = 0xEFEFEF,
+            BackgroundColor = 0xFFEFEFEF,
         };
 
         var scrollBarContainer = new RectView
         {
             PreferredWidth = 14f,
-            BackgroundColor = 0x000000,
+            BackgroundColor = 0xFF000000,
             Padding = new PaddingStyle
             {
                 Left = 1,
@@ -58,7 +58,7 @@ public sealed class Center : View
 
         var progress = new RectView
         {
-            BackgroundColor = 0xEFEFEF,
+            BackgroundColor = 0xFFEFEFEF,
             BorderSize = new BorderSizeStyle
             {
                 Top = 1,
@@ -74,8 +74,8 @@ public sealed class Center : View
 
         var textField = new RectView
         {
-            BackgroundColor = 0xEFEFEF,
-            BorderColor = BorderColorStyle.All(0x252525),
+            BackgroundColor = 0xFFEFEFEF,
+            BorderColor = BorderColorStyle.All(0xFF252525),
             BorderSize = BorderSizeStyle.All(1),
             Padding = PaddingStyle.All(4),
             Children =
@@ -103,7 +103,7 @@ public sealed class Center : View
             content.Children.Add(new RectView
             {
                 Padding = PaddingStyle.All(4),
-                BackgroundColor = 0x9C9C9C,
+                BackgroundColor = 0xFF9C9C9C,
                 Children =
                 {
                     new TextView
