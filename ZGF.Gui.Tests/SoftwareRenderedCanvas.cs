@@ -277,7 +277,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
             {
                 case CommandKind.DrawRect:
                     var rectCommand = _rectCommandData[command.Id];
-                    ExecuteCommand(command, rectCommand);
+                    ExecuteDrawRectCommand(command, rectCommand);
                     break;
                 case CommandKind.DrawText:
                     var textCommand = _textCommandData[command.Id];
@@ -327,7 +327,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         );
     }
 
-    private void ExecuteCommand(in DrawCommand command, in DrawRectInputs data)
+    private void ExecuteDrawRectCommand(in DrawCommand command, in DrawRectInputs data)
     {
         var style = data.Style;
         var position = data.Position;
@@ -343,7 +343,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         
         var borderColor = style.BorderColor;
         var clipRect = command.Clip;
-        Graphics.FillRect(_colorBuffer, 
+        Graphics.FillRectWithBlending(_colorBuffer, 
             left +  (int)borderSize.Left, bottom + (int)borderSize.Bottom, 
             fillWidth, fillHeight,
             style.BackgroundColor,

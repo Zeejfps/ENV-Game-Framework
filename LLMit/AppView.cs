@@ -24,7 +24,7 @@ public sealed class CenterArea : View
     {
         var background = new RectView
         {
-            BackgroundColor = 0x212121
+            BackgroundColor = 0xFF212121
         };
         
         AddChildToSelf(background);
@@ -40,7 +40,6 @@ public sealed class StartNewChatView : View
         {
             PreferredWidth = 500,
             IsMultiLine = true,
-            BackgroundColor = 0xFFFFFF
         };
         var layout = new CenterView
         {
@@ -60,7 +59,7 @@ public sealed class StartNewChatView : View
                         new RectView
                         {
                             Padding = PaddingStyle.All(10),
-                            BackgroundColor = 0xFFFFFF,
+                            BackgroundColor = 0xFFFFFFFF,
                             Children =
                             {
                                 textInput
@@ -86,7 +85,7 @@ public sealed class LeftSideBar : View
         
         var background = new RectView
         {
-            BackgroundColor = 0x181818,
+            BackgroundColor = 0xFF181818,
         };
         
         AddChildToSelf(background);

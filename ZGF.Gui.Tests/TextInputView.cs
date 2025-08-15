@@ -60,9 +60,8 @@ public sealed class TextInputView : View
     {
         _buffer = new char[256];
 
-        // Default Styles
-        //_background.BackgroundColor = 0xEFEFEF;
-        _selectionRectStyle.BackgroundColor = 0x8aadff;
+        _cursorStyle.BackgroundColor = 0xFF000000;
+        _selectionRectStyle.BackgroundColor = 0xFF8aadff;
     }
 
     public void StartEditing()

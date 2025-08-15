@@ -68,6 +68,58 @@ public static class Graphics
         }
     }
     
+    public static void FillRectWithBlending(Bitmap bitmap, int x0, int y0, int width, int height, uint color, in RectF clip)
+    {
+        if (bitmap.Width == 0 || bitmap.Height == 0)
+            return;
+        
+        if (width == 0 || height == 0)
+            return;
+            
+        var sx = x0;
+        if (sx >= clip.Right)
+            return;
+
+        if (sx < clip.Left)
+            sx = (int)clip.Left;
+        
+        var ex = x0 + width;
+        if (ex < clip.Left)
+            return;
+
+        if (ex > clip.Right)
+            ex = (int)clip.Right;
+
+        var sy = y0;
+        if (sy >= clip.Top)
+            return;
+
+        if (sy < clip.Bottom)
+            sy = (int)clip.Bottom;
+        
+        var ey = y0 + height;
+        if (ey < clip.Bottom)
+            return;
+
+        if (ey > clip.Top)
+            ey = (int)clip.Top;
+
+        var lineLength = ex - sx;
+        if (lineLength <= 0)
+        {
+            return;
+        }
+        
+        for (var y = sy; y < ey; y++)
+        {
+            for (var x = sx; x < ex; x++)
+            {
+                var pixel = BlendPixel(bitmap.GetPixel(x, y), color);
+                bitmap.SetPixel(x, y, pixel);
+            }
+        }
+    }
+    
     public static void FillRect(Bitmap bitmap, int x0, int y0, int width, int height, uint color)
     {
         if (bitmap.Width == 0 || bitmap.Height == 0)
