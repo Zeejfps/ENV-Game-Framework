@@ -211,22 +211,23 @@ public sealed class TextInputView : View
         return height;
     }
 
-    private IEnumerable<Memory<char>> GetLines(float width, ICanvas canvas)
+    private IEnumerable<Range> GetLines(float width, ICanvas canvas)
     {
         var startIndex = 0;
         for (var i = 0; i < _strLen; i++)
         {
-            var line = new Memory<char>(_buffer, startIndex, i - startIndex);
+            var range = new Range(startIndex, i);
+            var line = _buffer.AsSpan(range);
             if (TextWrap == Gui.TextWrap.Wrap)
             {
-                if (ShouldWrap(line.Span, canvas, width))
+                if (ShouldWrap(line, canvas, width))
                 {
-                    yield return line;
+                    yield return range;
                     startIndex = i;
                 }
                 else if (_buffer[i] == '\n')
                 {
-                    yield return line;
+                    yield return range;
                     startIndex = i+1;
                 }
             }
@@ -234,7 +235,7 @@ public sealed class TextInputView : View
 
         if (startIndex <= _strLen)
         {
-            yield return new Memory<char>(_buffer, startIndex, _strLen - startIndex);
+            yield return new Range(startIndex, _strLen);
         }
     }
 
@@ -373,7 +374,7 @@ public sealed class TextInputView : View
                     Width = position.Width,
                     Height = lineHeight,
                 },
-                Text = line.ToString(),
+                Text = _buffer.AsSpan(line).ToString(),
                 Style = _textStyle,
                 ZIndex = ZIndex
             });
