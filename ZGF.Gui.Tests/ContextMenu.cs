@@ -24,7 +24,7 @@ public sealed class ContextMenu : View
         
         var background = new RectView
         {
-            BackgroundColor = 0xDEDEDE,
+            BackgroundColor = 0xFFDEDEDE,
             Padding = PaddingStyle.All(4),
             BorderSize = new BorderSizeStyle
             {

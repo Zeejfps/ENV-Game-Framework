@@ -114,31 +114,31 @@ public sealed class App : OpenGlApp
             BorderSize = BorderSizeStyle.All(1),
             BorderColor = new BorderColorStyle
             {
-                Left = 0x9C9C9C,
-                Top = 0x9C9C9C,
-                Right = 0xFFFFFF,
-                Bottom = 0xFFFFFF
+                Left = 0xFF9C9C9C,
+                Top = 0xFF9C9C9C,
+                Right = 0xFFFFFFFF,
+                Bottom = 0xFFFFFFFF
             },
         });
         ss.AddStyleForClass("raised_panel", new Style
         {
             BorderColor = new BorderColorStyle
             {
-                Top = 0xFFFFFF,
-                Left = 0xFFFFFF,
-                Right = 0x9C9C9C,
-                Bottom = 0x9C9C9C
+                Top = 0xFFFFFFFF,
+                Left = 0xFFFFFFFF,
+                Right = 0xFF9C9C9C,
+                Bottom = 0xFF9C9C9C
             },
         });
         ss.AddStyleForClass("window_button", new Style
         {
             PreferredWidth = 10f,
-            BackgroundColor = 0x000000,
+            BackgroundColor = 0xFF000000,
         });
 
         ss.AddStyleForClass("disabled", new Style
         {
-            TextColor = 0x959595
+            TextColor = 0xFF959595
         });
         
         gui.ApplyStyleSheet(ss);

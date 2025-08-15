@@ -35,11 +35,11 @@ public sealed class ContextMenuItem : View
             {
                 if (_isSelected)
                 {
-                    BackgroundColor = 0x9C9CCE;
+                    BackgroundColor = 0xFF9C9CCE;
                 }
                 else
                 {
-                    BackgroundColor = 0xDEDEDE;
+                    BackgroundColor = 0xFFDEDEDE;
                 }
             }
         }
@@ -93,7 +93,7 @@ public sealed class ContextMenuItem : View
         
         _bg = new RectView
         {
-            BackgroundColor = 0xDEDEDE,
+            BackgroundColor = 0xFFDEDEDE,
             Padding = PaddingStyle.All(6),
             Children =
             {

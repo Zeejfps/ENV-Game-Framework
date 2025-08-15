@@ -25,11 +25,11 @@ public sealed class VerticalScrollBarThumbView : View
             _isSelected = value;
             if (_isSelected)
             {
-                _background.BackgroundColor = 0xE2E2E2;
+                _background.BackgroundColor = 0xFFE2E2E2;
             }
             else
             {
-                _background.BackgroundColor = 0xCECECE;
+                _background.BackgroundColor = 0xFFCECECE;
             }
         }
     }
@@ -49,14 +49,14 @@ public sealed class VerticalScrollBarThumbView : View
     {
         _background = new RectView
         {
-            BackgroundColor = 0xCECECE,
+            BackgroundColor = 0xFFCECECE,
             BorderSize = BorderSizeStyle.All(1),
             BorderColor = new BorderColorStyle
             {
-                Left = 0x9C9C9C,
-                Top = 0x9C9C9C,
-                Right = 0xFFFFFF,
-                Bottom = 0xFFFFFF
+                Left = 0xFF9C9C9C,
+                Top = 0xFF9C9C9C,
+                Right = 0xFFFFFFFF,
+                Bottom = 0xFFFFFFFF
             },
             StyleClasses =
             {

@@ -45,7 +45,7 @@ public sealed class MenuItem : View
                 }
                 else
                 {
-                    _background.BackgroundColor = 0xDEDEDE;
+                    _background.BackgroundColor = 0xFFDEDEDE;
                 }
             }
         }
@@ -60,7 +60,7 @@ public sealed class MenuItem : View
         
         _background = new RectView
         {
-            BackgroundColor = 0xDEDEDE,
+            BackgroundColor = 0xFFDEDEDE,
             Padding = PaddingStyle.All(3),
             Children =
             {

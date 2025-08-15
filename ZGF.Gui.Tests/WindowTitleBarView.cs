@@ -60,12 +60,12 @@ public sealed class WindowTitleBarView : View
         
         var background = new RectView
         {
-            BackgroundColor = 0xCECECE,
+            BackgroundColor = 0xFFCECECE,
             BorderColor = new BorderColorStyle
             {
-                Top = 0xFFFFFF,
-                Left = 0xFFFFFF,
-                Right = 0x9C9C9C,
+                Top = 0xFFFFFFFF,
+                Left = 0xFFFFFFFF,
+                Right = 0xFF9C9C9C,
             },
             BorderSize = new BorderSizeStyle
             {

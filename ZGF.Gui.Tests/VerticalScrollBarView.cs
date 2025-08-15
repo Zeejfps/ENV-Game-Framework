@@ -20,14 +20,14 @@ public sealed class VerticalScrollBarView : View
         
         var slideArea = new RectView
         {
-            BackgroundColor = 0xCECECE,
+            BackgroundColor = 0xFFCECECE,
             BorderSize = BorderSizeStyle.All(1),
             BorderColor = new BorderColorStyle
             {
-                Left = 0x9C9C9C,
-                Top = 0x9C9C9C,
-                Right = 0xFFFFFF,
-                Bottom = 0xFFFFFF
+                Left = 0xFF9C9C9C,
+                Top = 0xFF9C9C9C,
+                Right = 0xFFFFFFFF,
+                Bottom = 0xFFFFFFFF
             },
             Children =
             {

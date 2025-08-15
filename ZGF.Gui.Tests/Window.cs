@@ -22,10 +22,10 @@ public sealed class Window : View
         var leftBorder = new RectView
         {
             PreferredWidth = 4f,
-            BackgroundColor = 0xCECECE,
+            BackgroundColor = 0xFFCECECE,
             BorderColor = new BorderColorStyle
             {
-                Left = 0xFFFFFF,
+                Left = 0xFFFFFFFF,
             },
             BorderSize = new BorderSizeStyle
             {
@@ -36,10 +36,10 @@ public sealed class Window : View
         var rightBorder = new RectView
         {
             PreferredWidth = 4f,
-            BackgroundColor = 0xCECECE,
+            BackgroundColor = 0xFFCECECE,
             BorderColor = new BorderColorStyle
             {
-                Right = 0x9C9C9C,
+                Right = 0xFF9C9C9C,
             },
             BorderSize = new BorderSizeStyle
             {
@@ -50,12 +50,12 @@ public sealed class Window : View
         var bottomBorder = new RectView
         {
             PreferredHeight = 4f,
-            BackgroundColor = 0xCECECE,
+            BackgroundColor = 0xFFCECECE,
             BorderColor = new BorderColorStyle
             {
-                Bottom = 0x9C9C9C,
-                Right = 0x9C9C9C,
-                Left = 0xFFFFFF
+                Bottom = 0xFF9C9C9C,
+                Right = 0xFF9C9C9C,
+                Left = 0xFFFFFFFF
             },
             BorderSize = new BorderSizeStyle
             {
@@ -92,9 +92,9 @@ public sealed class Window : View
         
         var outline = new RectView
         {
-            BackgroundColor = 0x000000,
+            BackgroundColor = 0xFF000000,
             BorderSize = BorderSizeStyle.All(1),
-            BorderColor = BorderColorStyle.All(0x000000),
+            BorderColor = BorderColorStyle.All(0xFF000000),
             Children =
             {
                 borderLayout

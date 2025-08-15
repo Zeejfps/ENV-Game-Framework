@@ -53,15 +53,15 @@ public sealed class AppBar : View
         
         var background = new RectView
         {
-            BackgroundColor = 0xDEDEDE,
+            BackgroundColor = 0xFFDEDEDE,
             Padding = PaddingStyle.All(6),
             BorderSize = BorderSizeStyle.All(1),
             BorderColor = new BorderColorStyle
             {
-                Top = 0xFFFFFF,
-                Left = 0xFFFFFF,
-                Right = 0x9C9C9C,
-                Bottom = 0x9C9C9C
+                Top = 0xFFFFFFFF,
+                Left = 0xFFFFFFFF,
+                Right = 0xFF9C9C9C,
+                Bottom = 0xFF9C9C9C
             },
             Children =
             {
@@ -71,7 +71,7 @@ public sealed class AppBar : View
         
         var container = new RectView
         {
-            BackgroundColor = 0x000000,
+            BackgroundColor = 0xFF000000,
             Padding = new PaddingStyle
             {
                 Bottom = 1,
