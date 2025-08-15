@@ -82,7 +82,6 @@ public sealed class TextInput : View
         
         var xOffset = point.X - Position.Left;
         var canvas = Context!.Canvas;
-        var startIndex = 0;
         var lineCount = 1;
         var lineHeight = canvas.MeasureTextSingleLineHeight(_textStyle);
         // TODO: This can be improved. Currently this is a brute force linear search
@@ -90,23 +89,34 @@ public sealed class TextInput : View
         {
             if (_buffer[i] == '\n')
             {
-                startIndex = i;
                 lineCount++;
             }
             
             var lineBottom = Position.Top - lineCount * lineHeight;
             var lineTop = lineBottom + lineHeight;
-            if (point.Y < lineTop && point.Y > lineBottom)
+            if (point.Y < lineTop && point.Y >= lineBottom)
             {
-                var leftPart = _buffer.AsSpan(startIndex, i - startIndex);
-                var rightPart = _buffer.AsSpan(i, 1);
-                var lineWidth = canvas.MeasureTextWidth(leftPart, _textStyle) +
-                                canvas.MeasureTextWidth(rightPart, _textStyle) * 0.5f;
-            
-                if (lineWidth > xOffset)
+                var x = i+1;
+                for (; x < _strLen; x++)
                 {
-                    return i;
+                    if (_buffer[x] == '\n')
+                    {
+                        break;
+                    }
+                    
+                    var leftPart = _buffer.AsSpan(i, x-i);
+                    var leftPartWidth = canvas.MeasureTextWidth(leftPart, _textStyle);
+                    var c = _buffer.AsSpan(x-1, 1);
+                    var charWidth = canvas.MeasureTextWidth(c, _textStyle);
+                    var selectionWidth = leftPartWidth - charWidth * 0.5f;
+                                 
+                    if (selectionWidth > xOffset)
+                    {
+                        return x - 1;
+                    }
                 }
+
+                return x;
             }
         }
         
