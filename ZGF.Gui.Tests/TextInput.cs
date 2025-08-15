@@ -214,21 +214,21 @@ public sealed class TextInput : View
 
         var lineHeight = c.MeasureTextSingleLineHeight(_textStyle);
         var minText = _buffer.AsSpan(startIndex, min - startIndex);
-        var startPointLeft = position.Left + c.MeasureTextWidth(minText, _textStyle);
+        var minTextWidth = c.MeasureTextWidth(minText, _textStyle);
+        var startPointLeft = position.Left + minTextWidth;
         var startPointBottom = position.Top - linesCount * lineHeight;
+        var width = position.Width - minTextWidth;
 
         startIndex = min;
         for (var i = min; i < max; i++)
         {
             if (_buffer[i] == '\n')
             {
-                var text = _buffer.AsSpan(startIndex, i - startIndex);
-                var textWidth = c.MeasureTextWidth(text, _textStyle);
                 var selectionRect = new RectF
                 {
                     Left = startPointLeft,
                     Bottom = startPointBottom,
-                    Width = textWidth,
+                    Width = width,
                     Height = lineHeight
                 };  
             
@@ -242,6 +242,7 @@ public sealed class TextInput : View
                 startIndex = i;
                 startPointLeft = position.Left;
                 startPointBottom -= lineHeight;
+                width = position.Width;
             } 
         }
         
