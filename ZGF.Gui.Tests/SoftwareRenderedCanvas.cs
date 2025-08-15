@@ -156,6 +156,11 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         return totalHeight;
     }
 
+    public float MeasureTextSingleLineHeight(TextStyle textStyle)
+    {
+        return _font.FontMetrics.Common.LineHeight;
+    }
+
     public Size GetImageSize(string imageId)
     {
         return _imageManager.GetImageSize(imageId);

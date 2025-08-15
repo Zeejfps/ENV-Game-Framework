@@ -14,7 +14,8 @@ public interface ICanvas
     
     float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style);
     float MeasureTextHeight(ReadOnlySpan<char> text, TextStyle style);
-    
+    float MeasureTextSingleLineHeight(TextStyle textStyle);
+
     Size GetImageSize(string imageId);
     int GetImageWidth(string imageId);
     int GetImageHeight(string imageId);

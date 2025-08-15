@@ -233,21 +233,33 @@ public sealed class TextInput : View
         });   
     }
 
-    private void DrawCaret(in RectF position, ICanvas c)
+    private void DrawCaret(in RectF position, ICanvas canvas)
     {
-        var textToMeasure = _buffer.AsSpan(0, _caretIndex);
-        var cursorPosLeft = c.MeasureTextWidth(textToMeasure, _textStyle);
-
+        var startIndex = 0;
+        var linesCount = 0;
+        for (var i = 0; i < _caretIndex; i++)
+        {
+            if (_buffer[i] == '\n')
+            {
+                startIndex = i - 1;
+                linesCount++;
+            } 
+        }
+        
+        var lineText = _buffer.AsSpan(startIndex, _caretIndex - startIndex);
+        var cursorPosLeft = canvas.MeasureTextWidth(lineText, _textStyle);
+        var cursorPosBottom = linesCount * canvas.MeasureTextSingleLineHeight(_textStyle);
+        
         var cursorHeight = position.Height - 6f;
         var cursorPos = new RectF
         {
-            Bottom = position.Bottom + 2f,
+            Bottom = position.Bottom + cursorPosBottom,
             Left = position.Left + cursorPosLeft,
             Width = 2,
             Height = cursorHeight
         };
             
-        c.DrawRect(new DrawRectInputs
+        canvas.DrawRect(new DrawRectInputs
         {
             Position = cursorPos,
             Style = _cursorStyle,

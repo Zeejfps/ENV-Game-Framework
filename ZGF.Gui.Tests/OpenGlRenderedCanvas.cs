@@ -141,6 +141,11 @@ public sealed class OpenGlRenderedCanvas : ICanvas
         throw new NotImplementedException();
     }
 
+    public float MeasureTextSingleLineHeight(TextStyle textStyle)
+    {
+        throw new NotImplementedException();
+    }
+
     public Size GetImageSize(string imageId)
     {
         throw new NotImplementedException();
