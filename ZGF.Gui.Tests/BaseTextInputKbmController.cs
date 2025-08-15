@@ -100,6 +100,11 @@ public abstract class BaseTextInputKbmController : IKeyboardMouseController
         if (e.State != InputState.Pressed) 
             return;
 
+        OnKeyboardKeyPressed(ref e);   
+    }
+
+    protected virtual void OnKeyboardKeyPressed(ref KeyboardKeyEvent e)
+    {
         var ctrlModifier = InputModifiers.Control;
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
@@ -162,8 +167,13 @@ public abstract class BaseTextInputKbmController : IKeyboardMouseController
             return;
         }
 
-        _textInput.Enter(c);
+        Enter(c);
         e.Consume();
+    }
+
+    protected virtual void Enter(char c)
+    {
+        _textInput.Enter(c);
     }
 
     private void Cut()

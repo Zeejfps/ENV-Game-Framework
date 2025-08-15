@@ -60,7 +60,7 @@ public sealed class StartNewChatView : View
             }
         };
         
-        var textInputController = new TextInputDefaultKbmController(textInput);
+        var textInputController = new ChatInputViewController(textInput);
         textInput.Controller = textInputController;
         
         AddChildToSelf(layout);

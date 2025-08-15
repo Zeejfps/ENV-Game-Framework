@@ -59,4 +59,7 @@ public enum KeyboardKey
     LeftArrow,
     RightArrow,
     DownArrow,
+    
+    Enter,
+    Tab,
 }

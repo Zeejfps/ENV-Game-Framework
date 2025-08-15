@@ -108,8 +108,9 @@ public static class KeysExtensions
             case Keys.Escape:
                 return KeyboardKey.Escape;
             case Keys.Enter:
+                return KeyboardKey.Enter;
             case Keys.Tab:
-                break;
+                return KeyboardKey.Tab;
             case Keys.Backspace:
                 return KeyboardKey.Backspace;
             case Keys.Insert:
