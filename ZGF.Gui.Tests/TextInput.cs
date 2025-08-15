@@ -423,12 +423,71 @@ public sealed class TextInput : View
 
     public void MoveCaretDown(bool select = false)
     {
+        var currIndex = _caretIndex;
+        var nextLineStartIndex = FindNextLineStartIndex(currIndex);
+        if (nextLineStartIndex >= _strLen)
+        {
+            _caretIndex = _strLen;
+            _selectionStartIndex = _caretIndex;
+            return;
+        }
+
+        var currentLineStartIndex = FindLineStartIndex(currIndex);
+        var xOffset = currIndex - currentLineStartIndex;
+
+        var nextLineEndIndex = FindLineEndIndex(nextLineStartIndex);
+        var nextLineLength =  nextLineEndIndex - nextLineStartIndex;
         
+        if (xOffset > nextLineLength)
+        {
+            _caretIndex = nextLineEndIndex;
+            _selectionStartIndex = _caretIndex;
+            return;
+        }
+        
+        _caretIndex = nextLineStartIndex + xOffset;
+        _selectionStartIndex = _caretIndex;
     }
     
     public void MoveCaretUp(bool select = false)
     {
         
+    }
+
+    private int FindLineEndIndex(int currIndex)
+    {
+        for (var i = currIndex; i < _strLen; i++)
+        {
+            if (_buffer[i] == '\n')
+            {
+                return i;
+            }
+        }
+        return _strLen - 1;
+    }
+
+    private int FindLineStartIndex(int currIndex)
+    {
+        for (var i = currIndex - 1; i > 0; i--)
+        {
+            if (_buffer[i] == '\n')
+            {
+                return i + 1;
+            }
+        }
+        return 0;
+    }
+
+    private int FindNextLineStartIndex(int currIndex)
+    {
+        for (var i = currIndex; i < _strLen; i++)
+        {
+            if (_buffer[i] == '\n')
+            {
+                return i + 1;
+            }
+        }
+        return _strLen;
     }
 
     public void Delete()
