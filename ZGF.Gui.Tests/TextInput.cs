@@ -79,7 +79,17 @@ public sealed class TextInput : View
     {
         if (_strLen == 0)
             return 0;
-        
+
+        if (point.Y >= Position.Top)
+        {
+            return 0;
+        }
+
+        if (point.Y <= Position.Bottom)
+        {
+            return _strLen;
+        }
+
         var xOffset = point.X - Position.Left;
         var canvas = Context!.Canvas;
         var lineCount = 1;
@@ -97,26 +107,31 @@ public sealed class TextInput : View
             if (point.Y < lineTop && point.Y >= lineBottom)
             {
                 var x = i+1;
-                for (; x < _strLen; x++)
+                for (; x <= _strLen; x++)
                 {
-                    if (_buffer[x] == '\n')
-                    {
-                        break;
-                    }
-                    
-                    var leftPart = _buffer.AsSpan(i, x-i);
-                    var leftPartWidth = canvas.MeasureTextWidth(leftPart, _textStyle);
                     var c = _buffer.AsSpan(x-1, 1);
                     var charWidth = canvas.MeasureTextWidth(c, _textStyle);
+                    var leftPart = _buffer.AsSpan(i, x-i);
+                    var leftPartWidth = canvas.MeasureTextWidth(leftPart, _textStyle);
                     var selectionWidth = leftPartWidth - charWidth * 0.5f;
-                                 
+                    
+                    if (_buffer[x] == '\n')
+                    {
+                        if (xOffset > selectionWidth)
+                        {
+                            return x;
+                        }
+                        
+                        return x - 1;
+                    }
+    
                     if (selectionWidth > xOffset)
                     {
                         return x - 1;
                     }
                 }
 
-                return x;
+                return x - 1;
             }
         }
         
