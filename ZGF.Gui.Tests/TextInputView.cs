@@ -204,14 +204,7 @@ public sealed class TextInputView : View
             return lineHeight;
         
         var width = MeasureWidth();
-        var lines = GetLines(width, canvas);
-        var height = 0f;
-        foreach (var line in lines)
-        {
-            height += lineHeight;
-          
-        }
-        
+        var height = GetLines(width, canvas).Count() * lineHeight;
         if (PreferredHeight.IsSet && height < PreferredHeight)
             return PreferredHeight;
         
