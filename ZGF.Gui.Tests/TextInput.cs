@@ -53,6 +53,7 @@ public sealed class TextInput : View
     private int _selectionStartIndex;
     private char[] _buffer;
     
+    public ReadOnlySpan<char> Text => _buffer.AsSpan(0, _strLen);
     public bool IsEditing => _isEditing;
 
     public TextInput()
@@ -146,6 +147,15 @@ public sealed class TextInput : View
             _buffer[i] = _buffer[i-1];
         }
         _buffer[index] = c;
+    }
+
+    public override float MeasureHeight()
+    {
+        var canvas = Context?.Canvas;
+        if (canvas == null)
+            return 0f;
+        
+        return canvas.MeasureTextHeight(Text, _textStyle);
     }
 
     protected override void OnDrawSelf(ICanvas c)
@@ -322,6 +332,7 @@ public sealed class TextInput : View
                 _selectionStartIndex = _caretIndex;
             }
         }
+        SetDirty();
     }
 
     public void Enter(char c)
@@ -334,6 +345,7 @@ public sealed class TextInput : View
         InsertChar(_caretIndex, c);
         _caretIndex++;
         _selectionStartIndex = _caretIndex;
+        SetDirty();
     }
     
     public void Enter(ReadOnlySpan<char> text)

@@ -141,7 +141,19 @@ public sealed class SoftwareRenderedCanvas : ICanvas
 
     public float MeasureTextHeight(ReadOnlySpan<char> text, TextStyle style)
     {
-        return _font.FontMetrics.Common.LineHeight;
+        var singleLineHeight = _font.FontMetrics.Common.LineHeight;
+        if (!style.IsMultiLine)
+            return singleLineHeight;
+        
+        var totalHeight = singleLineHeight;
+        foreach (var c in text)
+        {
+            if (c == '\n')
+            {
+                totalHeight += singleLineHeight;
+            }
+        }
+        return totalHeight;
     }
 
     public Size GetImageSize(string imageId)
