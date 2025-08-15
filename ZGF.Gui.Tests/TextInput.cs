@@ -199,27 +199,71 @@ public sealed class TextInput : View
             min = _caretIndex;
             max = _selectionStartIndex;
         }
-            
-        var minText = _buffer.AsSpan(0, min);
-        var startPos = c.MeasureTextWidth(minText, _textStyle);
-            
-        var maxText = _buffer.AsSpan(0, max);
-        var endPos = c.MeasureTextWidth(maxText, _textStyle);
-            
-        var selectionRect = new RectF
+        
+        var startIndex = 0;
+        var linesCount = 1;
+        for (var i = 0; i < min; i++)
         {
-            Left = position.Left + startPos,
-            Bottom = position.Bottom,
-            Width = endPos - startPos,
-            Height = position.Height
-        };  
-            
-        c.DrawRect(new DrawRectInputs
+            if (_buffer[i] == '\n')
+            {
+                startIndex = i;
+                linesCount++;
+            } 
+        }
+
+
+        var lineHeight = c.MeasureTextSingleLineHeight(_textStyle);
+        var minText = _buffer.AsSpan(startIndex, min - startIndex);
+        var startPointLeft = position.Left + c.MeasureTextWidth(minText, _textStyle);
+        var startPointBottom = position.Top - linesCount * lineHeight;
+
+        startIndex = min;
+        for (var i = min; i < max; i++)
         {
-            Position = selectionRect,
-            Style = _selectionRectStyle,
-            ZIndex = ZIndex
-        });
+            if (_buffer[i] == '\n')
+            {
+                var text = _buffer.AsSpan(startIndex, i - startIndex);
+                var textWidth = c.MeasureTextWidth(text, _textStyle);
+                var selectionRect = new RectF
+                {
+                    Left = startPointLeft,
+                    Bottom = startPointBottom,
+                    Width = textWidth,
+                    Height = lineHeight
+                };  
+            
+                c.DrawRect(new DrawRectInputs
+                {
+                    Position = selectionRect,
+                    Style = _selectionRectStyle,
+                    ZIndex = ZIndex
+                });
+                
+                startIndex = i;
+                startPointLeft = position.Left;
+                startPointBottom -= lineHeight;
+            } 
+        }
+        
+        if (startIndex < max)
+        {
+            var text = _buffer.AsSpan(startIndex, max - startIndex);
+            var textWidth = c.MeasureTextWidth(text, _textStyle);
+            var selectionRect = new RectF
+            {
+                Left = startPointLeft,
+                Bottom = startPointBottom,
+                Width = textWidth,
+                Height = lineHeight
+            };  
+            
+            c.DrawRect(new DrawRectInputs
+            {
+                Position = selectionRect,
+                Style = _selectionRectStyle,
+                ZIndex = ZIndex
+            });
+        } 
     }
 
     private void DrawText(in RectF position, ICanvas c)
@@ -231,6 +275,29 @@ public sealed class TextInput : View
             Style = _textStyle,
             ZIndex = ZIndex
         });   
+    }
+
+    private RectF ComputeBounds(in RectF position, int endIndex, ICanvas canvas)
+    {
+        var startIndex = 0;
+        var linesCount = 0;
+        for (var i = 0; i < endIndex; i++)
+        {
+            if (_buffer[i] == '\n')
+            {
+                startIndex = i;
+                linesCount++;
+            } 
+        }
+        
+        var lineHeight = canvas.MeasureTextSingleLineHeight(_textStyle);
+        var lineText = _buffer.AsSpan(startIndex, endIndex - startIndex);
+        var width = canvas.MeasureTextWidth(lineText, _textStyle);
+        var height = lineHeight;
+        var left = position.Left + width;
+        var bottom = position.Top - linesCount * lineHeight - height;
+
+        return new RectF(left, bottom, width, height);
     }
 
     private void DrawCaret(in RectF position, ICanvas canvas)
