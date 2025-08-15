@@ -80,18 +80,33 @@ public sealed class TextInput : View
         if (_strLen == 0)
             return 0;
         
-        var deltaX = point.X - Position.Left;
+        var xOffset = point.X - Position.Left;
         var canvas = Context!.Canvas;
+        var startIndex = 0;
+        var lineCount = 1;
+        var lineHeight = canvas.MeasureTextSingleLineHeight(_textStyle);
+        // TODO: This can be improved. Currently this is a brute force linear search
         for (var i = 0; i < _strLen; i++)
         {
-            var firstPart = _buffer.AsSpan(0, i);
-            var secondPart = _buffer.AsSpan(i, 1);
-            var w = canvas.MeasureTextWidth(firstPart, _textStyle) +
-                    canvas.MeasureTextWidth(secondPart, _textStyle) * 0.5f;
-            
-            if (w > deltaX)
+            if (_buffer[i] == '\n')
             {
-                return i;
+                startIndex = i;
+                lineCount++;
+            }
+            
+            var lineBottom = Position.Top - lineCount * lineHeight;
+            var lineTop = lineBottom + lineHeight;
+            if (point.Y < lineTop && point.Y > lineBottom)
+            {
+                var leftPart = _buffer.AsSpan(startIndex, i - startIndex);
+                var rightPart = _buffer.AsSpan(i, 1);
+                var lineWidth = canvas.MeasureTextWidth(leftPart, _textStyle) +
+                                canvas.MeasureTextWidth(rightPart, _textStyle) * 0.5f;
+            
+                if (lineWidth > xOffset)
+                {
+                    return i;
+                }
             }
         }
         
@@ -300,7 +315,6 @@ public sealed class TextInput : View
 
         return new RectF(left, bottom, width, height);
     }
-
     private void DrawCaret(in RectF position, ICanvas canvas)
     {
         var startIndex = 0;
