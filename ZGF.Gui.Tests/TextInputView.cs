@@ -61,7 +61,7 @@ public sealed class TextInputView : View
         _buffer = new char[256];
 
         // Default Styles
-        _background.BackgroundColor = 0xEFEFEF;
+        //_background.BackgroundColor = 0xEFEFEF;
         _selectionRectStyle.BackgroundColor = 0x8aadff;
     }
 

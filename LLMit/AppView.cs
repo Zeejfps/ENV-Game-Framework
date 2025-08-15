@@ -39,7 +39,8 @@ public sealed class StartNewChatView : View
         var textInput = new TextInputView
         {
             PreferredWidth = 500,
-            IsMultiLine = true
+            IsMultiLine = true,
+            BackgroundColor = 0xFFFFFF
         };
         var layout = new CenterView
         {
@@ -56,7 +57,15 @@ public sealed class StartNewChatView : View
                             TextColor = 0xFFFFFF,
                             HorizontalTextAlignment = TextAlignment.Center,
                         },
-                        textInput
+                        new RectView
+                        {
+                            Padding = PaddingStyle.All(10),
+                            BackgroundColor = 0xFFFFFF,
+                            Children =
+                            {
+                                textInput
+                            }
+                        }
                     }
                 }
             }
