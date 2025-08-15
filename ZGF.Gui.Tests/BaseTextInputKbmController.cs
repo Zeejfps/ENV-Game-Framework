@@ -5,9 +5,9 @@ namespace ZGF.Gui.Tests;
 
 public abstract class BaseTextInputKbmController : IKeyboardMouseController
 {
-    private readonly TextInput _textInput;
+    private readonly TextInputView _textInput;
     
-    public BaseTextInputKbmController(TextInput textInput)
+    public BaseTextInputKbmController(TextInputView textInput)
     {
         _textInput = textInput;
     }

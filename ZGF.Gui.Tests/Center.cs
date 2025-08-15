@@ -66,7 +66,7 @@ public sealed class Center : View
             BorderColor = BorderColorStyle.All(0x000000)
         };
 
-        var textInput = new TextInput
+        var textInput = new TextInputView
         {
             PreferredHeight = 30f
         };

@@ -6,7 +6,7 @@ namespace LLMit;
 
 public sealed class ChatInputViewController : BaseTextInputKbmController
 {
-    public ChatInputViewController(TextInput textInput) : base(textInput)
+    public ChatInputViewController(TextInputView textInput) : base(textInput)
     {
     }
 

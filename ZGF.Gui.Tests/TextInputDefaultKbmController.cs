@@ -2,7 +2,7 @@
 
 public sealed class TextInputDefaultKbmController : BaseTextInputKbmController
 {
-    public TextInputDefaultKbmController(TextInput textInput) : base(textInput)
+    public TextInputDefaultKbmController(TextInputView textInput) : base(textInput)
     {
     }
 }

@@ -36,9 +36,9 @@ public sealed class StartNewChatView : View
 {
     public StartNewChatView()
     {
-        var textInput = new TextInput
+        var textInput = new TextInputView
         {
-            PreferredHeight = 40,
+            PreferredWidth = 500,
             IsMultiLine = true
         };
         var layout = new CenterView
@@ -53,7 +53,8 @@ public sealed class StartNewChatView : View
                         new TextView
                         {
                             Text = "What would you like to ask?",
-                            TextColor = 0xFFFFFF
+                            TextColor = 0xFFFFFF,
+                            HorizontalTextAlignment = TextAlignment.Center,
                         },
                         textInput
                     }

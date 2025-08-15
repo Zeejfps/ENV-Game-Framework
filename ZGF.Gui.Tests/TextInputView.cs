@@ -2,7 +2,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class TextInput : View
+public sealed class TextInputView : View
 {
     public StyleValue<bool> IsMultiLine
     {
@@ -56,7 +56,7 @@ public sealed class TextInput : View
     public ReadOnlySpan<char> Text => _buffer.AsSpan(0, _strLen);
     public bool IsEditing => _isEditing;
 
-    public TextInput()
+    public TextInputView()
     {
         _buffer = new char[256];
 
@@ -194,7 +194,11 @@ public sealed class TextInput : View
         if (canvas == null)
             return 0f;
         
-        return canvas.MeasureTextHeight(Text, _textStyle);
+        var textHeight = canvas.MeasureTextHeight(Text, _textStyle);
+        if (PreferredHeight.IsSet && textHeight < PreferredHeight)
+            return PreferredHeight;
+        
+        return textHeight;
     }
 
     protected override void OnDrawSelf(ICanvas c)
