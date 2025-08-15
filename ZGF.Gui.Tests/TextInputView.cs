@@ -212,6 +212,29 @@ public sealed class TextInputView : View
                 }
             }
         }
+
+        var width = MeasureWidth();
+        if (TextWrap == Gui.TextWrap.Wrap)
+        {
+            var startIndex = 0;
+            for (var i = 1; i <= _strLen; i++)
+            {
+                if (_buffer[i] == '\n')
+                {
+                    startIndex = i + 1;
+                    continue;
+                }
+                
+                var line = _buffer.AsSpan(startIndex, i - startIndex);
+                var lineWidth = canvas.MeasureTextWidth(line, _textStyle);
+                if (lineWidth > width)
+                {
+                    // Wrap
+                    startIndex = i + 1;
+                    height += lineHeight;
+                }
+            }
+        }
         
         if (PreferredHeight.IsSet && height < PreferredHeight)
             return PreferredHeight;
@@ -337,9 +360,10 @@ public sealed class TextInputView : View
         var bottom = position.Top - lineHeight;
         for (var i = 0; i < _strLen; i++)
         {
-            if (_buffer[i] == '\n')
+            var line =  _buffer.AsSpan(startIndex, i - startIndex);
+            var lineWidth =  c.MeasureTextWidth(line, _textStyle);
+            if (_buffer[i] == '\n' || lineWidth > position.Width)
             {
-                var line =  _buffer.AsSpan(startIndex, i - startIndex);
                 c.DrawText(new DrawTextInputs
                 {
                     Position = new RectF
@@ -360,7 +384,7 @@ public sealed class TextInputView : View
         
         if (startIndex < _strLen)
         {
-            var line =  _buffer.AsSpan(startIndex, _strLen);
+            var line =  _buffer.AsSpan(startIndex, _strLen - startIndex);
             c.DrawText(new DrawTextInputs
             {
                 Position = new RectF
