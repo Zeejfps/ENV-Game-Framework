@@ -64,7 +64,7 @@ public sealed class TextInputView : View
 
     public TextInputView()
     {
-        _buffer = new char[256];
+        _buffer = new char[512];
 
         _cursorStyle.BackgroundColor = 0xFF000000;
         _selectionRectStyle.BackgroundColor = 0xFF8aadff;
@@ -224,11 +224,9 @@ public sealed class TextInputView : View
         for (var i = 0; i < _strLen; i++)
         {
             var line = new Memory<char>(_buffer, startIndex, i - startIndex);
-
             if (TextWrap == Gui.TextWrap.Wrap)
             {
-                var lineWidth = canvas.MeasureTextWidth(line.Span, _textStyle);
-                if (lineWidth > width)
+                if (ShouldWrap(line.Span, canvas, width))
                 {
                     yield return line;
                     startIndex = i;
@@ -382,27 +380,16 @@ public sealed class TextInputView : View
         }
     }
 
-    private RectF ComputeBounds(in RectF position, int endIndex, ICanvas canvas)
+    private bool ShouldWrap(int startIndex, int endIndex, ICanvas canvas, float maxWidth)
     {
-        var startIndex = 0;
-        var linesCount = 0;
-        for (var i = 0; i < endIndex; i++)
-        {
-            if (_buffer[i] == '\n')
-            {
-                startIndex = i;
-                linesCount++;
-            } 
-        }
-        
-        var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
-        var lineText = _buffer.AsSpan(startIndex, endIndex - startIndex);
-        var width = canvas.MeasureTextWidth(lineText, _textStyle);
-        var height = lineHeight;
-        var left = position.Left + width;
-        var bottom = position.Top - linesCount * lineHeight - height;
+        var line = _buffer.AsSpan(startIndex, endIndex - startIndex);
+        return ShouldWrap(line, canvas, maxWidth);
+    }
 
-        return new RectF(left, bottom, width, height);
+    private bool ShouldWrap(ReadOnlySpan<char> line, ICanvas canvas, float maxWidth)
+    {
+        var lineWidth = canvas.MeasureTextWidth(line, _textStyle);
+        return lineWidth >= maxWidth;
     }
     
     private void DrawCaret(in RectF position, ICanvas canvas)
@@ -411,11 +398,19 @@ public sealed class TextInputView : View
         var linesCount = 0;
         for (var i = 0; i < _caretIndex; i++)
         {
-            if (_buffer[i] == '\n')
+            if (TextWrap == Gui.TextWrap.Wrap)
             {
-                startIndex = i;
-                linesCount++;
-            } 
+                if (ShouldWrap(startIndex, i, canvas, position.Width))
+                {
+                    startIndex = i;
+                    linesCount++;
+                }
+                else if (_buffer[i] == '\n')
+                {
+                    startIndex = i;
+                    linesCount++;
+                } 
+            }
         }
         
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
