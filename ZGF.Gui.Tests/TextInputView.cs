@@ -199,47 +199,45 @@ public sealed class TextInputView : View
         if (canvas == null)
             return 0f;
         
-        var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
-        var height = lineHeight;
-
-        if (IsMultiLine)
-        {
-            for (var i = 0; i < _strLen; i++)
-            {
-                if (_buffer[i] == '\n')
-                {
-                    height += lineHeight;
-                }
-            }
-        }
-
         var width = MeasureWidth();
-        if (TextWrap == Gui.TextWrap.Wrap)
-        {
-            var startIndex = 0;
-            for (var i = 1; i <= _strLen; i++)
-            {
-                if (_buffer[i] == '\n')
-                {
-                    startIndex = i + 1;
-                    continue;
-                }
-                
-                var line = _buffer.AsSpan(startIndex, i - startIndex);
-                var lineWidth = canvas.MeasureTextWidth(line, _textStyle);
-                if (lineWidth > width)
-                {
-                    // Wrap
-                    startIndex = i + 1;
-                    height += lineHeight;
-                }
-            }
-        }
+        var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
+        var lines = GetLines(width, canvas).Count();
+        if (lines == 0) lines = 1;
+        var height = lines * lineHeight;
         
         if (PreferredHeight.IsSet && height < PreferredHeight)
             return PreferredHeight;
         
         return height;
+    }
+
+    private IEnumerable<Memory<char>> GetLines(float width, ICanvas canvas)
+    {
+        var startIndex = 0;
+        for (var i = 0; i <= _strLen; i++)
+        {
+            var line = new Memory<char>(_buffer, startIndex, i - startIndex);
+
+            if (TextWrap == Gui.TextWrap.Wrap)
+            {
+                var lineWidth = canvas.MeasureTextWidth(line.Span, _textStyle);
+                if (lineWidth > width)
+                {
+                    yield return line;
+                    startIndex = i;
+                }
+                else if (_buffer[i] == '\n')
+                {
+                    yield return line;
+                    startIndex = i;
+                }
+            }
+        }
+
+        if (startIndex < _strLen)
+        {
+            yield return new Memory<char>(_buffer, startIndex, _strLen - startIndex);
+        }
     }
 
     protected override void OnDrawSelf(ICanvas c)
@@ -636,6 +634,7 @@ public sealed class TextInputView : View
         _strLen += text.Length;
         _caretIndex += text.Length;
         _selectionStartIndex = _caretIndex;
+        SetDirty();
     }
 
     public string? GetSelectedText()
