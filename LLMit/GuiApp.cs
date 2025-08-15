@@ -1,8 +1,10 @@
 ﻿using GLFW;
 using ZGF.Core;
+using ZGF.Geometry;
 using ZGF.Gui;
 using ZGF.Gui.Tests;
 using ZGF.KeyboardModule.GlfwAdapter;
+using static GL46;
 using InputState = ZGF.Gui.InputState;
 using MouseButton = ZGF.Gui.MouseButton;
 
@@ -25,13 +27,14 @@ public sealed class GuiApp : OpenGlApp
     private readonly SizeCallback _framebufferSizeCallback;
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly MouseCallback _scrollCallback;
+    private readonly ContextMenuManager _contextMenuManager;
 
     public GuiApp(StartupConfig startupConfig, View content) : base(startupConfig)
     {
         _inputSystem = new InputSystem();
         _imageManager = new ImageManager();
         var contextMenuPane = new View();
-        var contextMenuManager = new ContextMenuManager(contextMenuPane);
+        _contextMenuManager = new ContextMenuManager(contextMenuPane);
         var bitmapFont = BitmapFont.LoadFromFile("Assets/Fonts/Charcoal/Charcoal_p20.xml");
         _canvas = new SoftwareRenderedCanvas(
             startupConfig.WindowWidth,
@@ -46,7 +49,7 @@ public sealed class GuiApp : OpenGlApp
             Canvas = _canvas
         };
 
-        context.AddService(contextMenuManager);
+        context.AddService(_contextMenuManager);
 #if OSX
         context.AddService<IClipboard>(new OsxClipboard());
 #elif WIN
@@ -78,11 +81,17 @@ public sealed class GuiApp : OpenGlApp
         Glfw.SetFramebufferSizeCallback(WindowHandle, _framebufferSizeCallback);
         Glfw.SetScrollCallback(WindowHandle, _scrollCallback);
 
+        glClearColor(0, 0, 0, 0);
     }
 
     protected override void OnUpdate()
     {
-        
+        Render();
+        Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
+        var guiPoint = WindowToGuiCoords(mouseX, mouseY);
+        _inputSystem.UpdateMousePosition(guiPoint);
+        _inputSystem.Update();
+        _contextMenuManager.Update();
     }
 
     protected override void DisposeManagedResources()
@@ -116,12 +125,11 @@ public sealed class GuiApp : OpenGlApp
 
     private void HandleFramebufferSizeChanged(GLFW.Window window, int width, int height)
     {
-        GL46.glViewport(0, 0, width, height);
+        glViewport(0, 0, width, height);
     }
 
     private void HandleMouseButtonEvent(GLFW.Window window, GLFW.MouseButton button, GLFW.InputState state, ModifierKeys modifiers)
     {
-        Glfw.GetCursorPosition(WindowHandle, out var windowX, out var windowY);
         var b = button switch
         {
             GLFW.MouseButton.Left => MouseButton.Left,
@@ -137,7 +145,6 @@ public sealed class GuiApp : OpenGlApp
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
         };
 
-        //var guiPoint = WindowToGuiCoords(windowX, windowY);
         var e = new MouseButtonEvent
         {
             Mouse = _inputSystem,
@@ -170,9 +177,21 @@ public sealed class GuiApp : OpenGlApp
 
     private void Render()
     {
+        glClear(GL_COLOR_BUFFER_BIT);
+        
         _canvas.BeginFrame();
         _gui.LayoutSelf();
         _gui.DrawSelf();
         _canvas.EndFrame();
+    }
+    
+    private PointF WindowToGuiCoords(double windowX, double windowY)
+    {
+        Glfw.GetWindowSize(WindowHandle, out var width, out var height);
+        var scaleX = _canvas.Width / (float)width;
+        var scaleY = _canvas.Height / (float)height;
+        var screenX = windowX * scaleX;
+        var screenY = (height - windowY) * scaleY;
+        return new PointF((float)screenX, (float)screenY);
     }
 }
