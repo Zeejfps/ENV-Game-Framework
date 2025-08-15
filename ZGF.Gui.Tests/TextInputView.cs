@@ -99,45 +99,40 @@ public sealed class TextInputView : View
         var canvas = Context!.Canvas;
         var lineCount = 1;
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
-        // TODO: This can be improved. Currently this is a brute force linear search
-        for (var i = 0; i < _strLen; i++)
+
+        var lines = GetLines(Position.Width, canvas);
+        foreach (var line in lines)
         {
-            if (_buffer[i] == '\n')
-            {
-                lineCount++;
-            }
-            
             var lineBottom = Position.Top - lineCount * lineHeight;
             var lineTop = lineBottom + lineHeight;
+
             if (point.Y < lineTop && point.Y >= lineBottom)
             {
-                var x = i+1;
-                for (; x <= _strLen; x++)
+                var lineStartIndex = line.Start.Value;
+                var lineEndIndex = line.End.Value;
+                var selectionWidth = 0f;
+                for (var i = lineStartIndex+1; i <= line.End.Value; i++)
                 {
-                    var c = _buffer.AsSpan(x-1, 1);
+                    var c = _buffer.AsSpan(i-1, 1);
                     var charWidth = canvas.MeasureTextWidth(c, _textStyle);
-                    var leftPart = _buffer.AsSpan(i, x-i);
+                    var leftPart = _buffer.AsSpan(lineStartIndex, i - lineStartIndex);
                     var leftPartWidth = canvas.MeasureTextWidth(leftPart, _textStyle);
-                    var selectionWidth = leftPartWidth - charWidth * 0.5f;
-                    
-                    if (_buffer[x] == '\n')
-                    {
-                        if (xOffset > selectionWidth)
-                        {
-                            return x;
-                        }
-                        
-                        return x - 1;
-                    }
-    
+                    selectionWidth = leftPartWidth - charWidth * 0.5f;
                     if (selectionWidth > xOffset)
                     {
-                        return x - 1;
+                        return i - 1;
                     }
                 }
-
-                return x - 1;
+                
+                if (xOffset > selectionWidth)
+                {
+                    return lineEndIndex;
+                }
+                        
+                return lineEndIndex - 1;
             }
+            
+            lineCount++;
         }
         
         return _strLen;
