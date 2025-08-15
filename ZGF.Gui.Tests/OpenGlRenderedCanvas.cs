@@ -136,7 +136,7 @@ public sealed class OpenGlRenderedCanvas : ICanvas
         throw new NotImplementedException();
     }
 
-    public float MeasureTextHeight(ReadOnlySpan<char> text, TextStyle style)
+    public float MeasureTextLineHeight(TextStyle style)
     {
         throw new NotImplementedException();
     }

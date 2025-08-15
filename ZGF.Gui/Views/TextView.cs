@@ -54,7 +54,7 @@ public sealed class TextView : View
         if (_text == null)
             return 0f;
 
-        return Context.Canvas.MeasureTextHeight(_text, _style);
+        return Context.Canvas.MeasureTextLineHeight(_style);
     }
 
     protected override void OnApplyStyle(Style style)

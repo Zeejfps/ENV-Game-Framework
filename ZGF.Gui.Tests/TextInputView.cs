@@ -98,7 +98,7 @@ public sealed class TextInputView : View
         var xOffset = point.X - Position.Left;
         var canvas = Context!.Canvas;
         var lineCount = 1;
-        var lineHeight = canvas.MeasureTextSingleLineHeight(_textStyle);
+        var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
         // TODO: This can be improved. Currently this is a brute force linear search
         for (var i = 0; i < _strLen; i++)
         {
@@ -199,11 +199,24 @@ public sealed class TextInputView : View
         if (canvas == null)
             return 0f;
         
-        var textHeight = canvas.MeasureTextHeight(Text, _textStyle);
-        if (PreferredHeight.IsSet && textHeight < PreferredHeight)
+        var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
+        var height = lineHeight;
+
+        if (IsMultiLine)
+        {
+            for (var i = 0; i < _strLen; i++)
+            {
+                if (_buffer[i] == '\n')
+                {
+                    height += lineHeight;
+                }
+            }
+        }
+        
+        if (PreferredHeight.IsSet && height < PreferredHeight)
             return PreferredHeight;
         
-        return textHeight;
+        return height;
     }
 
     protected override void OnDrawSelf(ICanvas c)
@@ -261,7 +274,7 @@ public sealed class TextInputView : View
         }
 
 
-        var lineHeight = c.MeasureTextSingleLineHeight(_textStyle);
+        var lineHeight = c.MeasureTextLineHeight(_textStyle);
         var minText = _buffer.AsSpan(startIndex, min - startIndex);
         var minTextWidth = c.MeasureTextWidth(minText, _textStyle);
         var startPointLeft = position.Left + minTextWidth;
@@ -318,13 +331,50 @@ public sealed class TextInputView : View
 
     private void DrawText(in RectF position, ICanvas c)
     {
-        c.DrawText(new DrawTextInputs
+        var startIndex = 0;
+        var lineHeight = c.MeasureTextLineHeight(_textStyle);
+        var left = position.Left;
+        var bottom = position.Top - lineHeight;
+        for (var i = 0; i < _strLen; i++)
         {
-            Position = position,
-            Text = new string(_buffer, 0, _strLen),
-            Style = _textStyle,
-            ZIndex = ZIndex
-        });   
+            if (_buffer[i] == '\n')
+            {
+                var line =  _buffer.AsSpan(startIndex, i - startIndex);
+                c.DrawText(new DrawTextInputs
+                {
+                    Position = new RectF
+                    {
+                        Left = left,
+                        Bottom = bottom,
+                        Width = position.Width,
+                        Height = lineHeight,
+                    },
+                    Text = line.ToString(),
+                    Style = _textStyle,
+                    ZIndex = ZIndex
+                });
+                startIndex = i + 1;
+                bottom -= lineHeight;
+            }
+        }
+        
+        if (startIndex < _strLen)
+        {
+            var line =  _buffer.AsSpan(startIndex, _strLen);
+            c.DrawText(new DrawTextInputs
+            {
+                Position = new RectF
+                {
+                    Left = left,
+                    Bottom = bottom,
+                    Width = position.Width,
+                    Height = lineHeight,
+                },
+                Text = line.ToString(),
+                Style = _textStyle,
+                ZIndex = ZIndex
+            });
+        }
     }
 
     private RectF ComputeBounds(in RectF position, int endIndex, ICanvas canvas)
@@ -340,7 +390,7 @@ public sealed class TextInputView : View
             } 
         }
         
-        var lineHeight = canvas.MeasureTextSingleLineHeight(_textStyle);
+        var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
         var lineText = _buffer.AsSpan(startIndex, endIndex - startIndex);
         var width = canvas.MeasureTextWidth(lineText, _textStyle);
         var height = lineHeight;
@@ -349,6 +399,7 @@ public sealed class TextInputView : View
 
         return new RectF(left, bottom, width, height);
     }
+    
     private void DrawCaret(in RectF position, ICanvas canvas)
     {
         var startIndex = 0;
@@ -362,7 +413,7 @@ public sealed class TextInputView : View
             } 
         }
         
-        var lineHeight = canvas.MeasureTextSingleLineHeight(_textStyle);
+        var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
         var cursorHeight = lineHeight;
         var lineText = _buffer.AsSpan(startIndex, _caretIndex - startIndex);
         var cursorPosLeft = canvas.MeasureTextWidth(lineText, _textStyle);

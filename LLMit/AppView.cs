@@ -42,7 +42,8 @@ public sealed class StartNewChatView : View
             IsMultiLine = true,
             TextWrap = TextWrap.Wrap,
             TextColor = 0xFFA6A6A6,
-            CaretColor = 0xFFA6A6A6
+            CaretColor = 0xFFA6A6A6,
+            SelectionRectColor = 0xAA466583,
         };
         var layout = new CenterView
         {

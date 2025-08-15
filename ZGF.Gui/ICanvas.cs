@@ -13,8 +13,7 @@ public interface ICanvas
     void PopClip();
     
     float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style);
-    float MeasureTextHeight(ReadOnlySpan<char> text, TextStyle style);
-    float MeasureTextSingleLineHeight(TextStyle textStyle);
+    float MeasureTextLineHeight(TextStyle style);
 
     Size GetImageSize(string imageId);
     int GetImageWidth(string imageId);
