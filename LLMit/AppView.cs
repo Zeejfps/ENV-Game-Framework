@@ -39,7 +39,6 @@ public sealed class StartNewChatView : View
         var textInput = new TextInputView
         {
             PreferredWidth = 500,
-            IsMultiLine = true,
             TextWrap = TextWrap.Wrap,
             TextColor = 0xFFA6A6A6,
             CaretColor = 0xFFA6A6A6,

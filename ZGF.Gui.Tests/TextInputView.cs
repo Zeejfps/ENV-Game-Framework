@@ -4,16 +4,11 @@ namespace ZGF.Gui.Tests;
 
 public sealed class TextInputView : View
 {
+    private StyleValue<TextWrap> _textWrap;
     public StyleValue<TextWrap> TextWrap
     {
-        get => _textStyle.TextWrap;
-        set => SetField(ref _textStyle.TextWrap, value);
-    }
-    
-    public StyleValue<bool> IsMultiLine
-    {
-        get => _textStyle.IsMultiLine;
-        set => SetField(ref _textStyle.IsMultiLine, value);
+        get => _textWrap;
+        set => SetField(ref _textWrap, value);
     }
     
     public StyleValue<uint> BackgroundColor
