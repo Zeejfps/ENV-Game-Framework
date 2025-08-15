@@ -40,6 +40,8 @@ public sealed class StartNewChatView : View
         {
             PreferredWidth = 500,
             IsMultiLine = true,
+            TextColor = 0xFFA6A6A6,
+            CaretColor = 0xFFA6A6A6
         };
         var layout = new CenterView
         {
@@ -53,13 +55,13 @@ public sealed class StartNewChatView : View
                         new TextView
                         {
                             Text = "What would you like to ask?",
-                            TextColor = 0xFFFFFF,
+                            TextColor = 0xFFFFFFFF,
                             HorizontalTextAlignment = TextAlignment.Center,
                         },
                         new RectView
                         {
                             Padding = PaddingStyle.All(10),
-                            BackgroundColor = 0xFFFFFFFF,
+                            BackgroundColor = 0xFF303030,
                             Children =
                             {
                                 textInput
