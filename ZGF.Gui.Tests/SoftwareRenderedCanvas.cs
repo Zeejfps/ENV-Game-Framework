@@ -276,7 +276,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
                     break;
                 case CommandKind.DrawText:
                     var textCommand = _textCommandData[command.Id];
-                    ExecuteCommand(command, textCommand);
+                    ExecuteDrawTextCommand(command, textCommand);
                     break;
                 case CommandKind.DrawImage:
                     var imageCommand = _imageCommandData[command.Id];
@@ -357,15 +357,14 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         DrawBorder(left, bottom, right, bottom, borderColor.Bottom, (int)borderSize.Bottom, 0, 1, clipRect);
     }
 
-    private void ExecuteCommand(in DrawCommand cmd, in DrawTextInputs data)
+    private void ExecuteDrawTextCommand(in DrawCommand cmd, in DrawTextInputs data)
     {
-        
         var text = data.Text;
 
         var lineHeight = _font.FontMetrics.Common.LineHeight;
         var position = data.Position;
         
-        //Graphics.DrawRect(_colorBuffer, (int)position.Left, (int)position.Bottom, (int)position.Width, (int)position.Height, 0x00ff00);
+        Graphics.DrawRect(_colorBuffer, (int)position.Left, (int)position.Bottom, (int)position.Width, (int)position.Height, 0x00ff00);
         
         var fontBase = _font.FontMetrics.Common.Base;
         var lineStart = (int)position.Left;
@@ -407,7 +406,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
             }
         }
         
-        //Graphics.DrawLine(_colorBuffer, cursorX, cursorY, cursorX + (int)position.Width, cursorY, 0xFF0000, cmd.Clip);
+        Graphics.DrawLine(_colorBuffer, cursorX, cursorY, cursorX + (int)position.Width, cursorY, 0xFF0000, cmd.Clip);
         
         var color = style.TextColor;
         var prevCodePoint = default(int?);

@@ -62,7 +62,6 @@ public sealed class TextInput : View
 
         // Default Styles
         _background.BackgroundColor = 0xEFEFEF;
-        _textStyle.VerticalAlignment = TextAlignment.Center;
         _selectionRectStyle.BackgroundColor = 0x8aadff;
     }
 
