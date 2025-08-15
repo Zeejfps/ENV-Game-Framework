@@ -40,6 +40,7 @@ public sealed class StartNewChatView : View
         {
             PreferredWidth = 500,
             IsMultiLine = true,
+            TextWrap = TextWrap.Wrap,
             TextColor = 0xFFA6A6A6,
             CaretColor = 0xFFA6A6A6
         };
