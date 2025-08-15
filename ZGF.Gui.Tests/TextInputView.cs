@@ -290,15 +290,23 @@ public sealed class TextInputView : View
         
         var startIndex = 0;
         var linesCount = 1;
-        for (var i = 0; i < min; i++)
-        {
-            if (_buffer[i] == '\n')
-            {
-                startIndex = i;
-                linesCount++;
-            } 
-        }
 
+        if (TextWrap == Gui.TextWrap.Wrap)
+        {
+            for (var i = 0; i < min; i++)
+            {
+                if (_buffer[i] == '\n')
+                {
+                    startIndex = i;
+                    linesCount++;
+                } 
+                else if (ShouldWrap(startIndex, i, c, position.Width))
+                {
+                    startIndex = i;
+                    linesCount++;
+                }
+            }
+        }
 
         var lineHeight = c.MeasureTextLineHeight(_textStyle);
         var minText = _buffer.AsSpan(startIndex, min - startIndex);
@@ -310,7 +318,7 @@ public sealed class TextInputView : View
         startIndex = min;
         for (var i = min; i < max; i++)
         {
-            if (_buffer[i] == '\n')
+            if (_buffer[i] == '\n' || ShouldWrap(startIndex, i, c, width))
             {
                 var selectionRect = new RectF
                 {
@@ -334,7 +342,7 @@ public sealed class TextInputView : View
             } 
         }
         
-        if (startIndex < max)
+        if (startIndex <= max)
         {
             var text = _buffer.AsSpan(startIndex, max - startIndex);
             var textWidth = c.MeasureTextWidth(text, _textStyle);
