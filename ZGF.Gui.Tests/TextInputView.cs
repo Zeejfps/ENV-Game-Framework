@@ -65,7 +65,6 @@ public sealed class TextInputView : View
     public TextInputView()
     {
         _buffer = new char[512];
-
         _cursorStyle.BackgroundColor = 0xFF000000;
         _selectionRectStyle.BackgroundColor = 0xFF8aadff;
     }
@@ -215,7 +214,7 @@ public sealed class TextInputView : View
             var line = _buffer.AsSpan(range);
             if (TextWrap == Gui.TextWrap.Wrap)
             {
-                if (ShouldWrap(line, canvas, width))
+                if (ShouldWrap(_buffer.AsSpan(startIndex, i-startIndex + 1), canvas, width))
                 {
                     yield return range;
                     startIndex = i;
@@ -289,7 +288,7 @@ public sealed class TextInputView : View
                     startIndex = i;
                     linesCount++;
                 } 
-                else if (ShouldWrap(startIndex, i, c, position.Width))
+                else if (ShouldWrap(startIndex, i+1, c, position.Width))
                 {
                     startIndex = i;
                     linesCount++;
@@ -307,7 +306,7 @@ public sealed class TextInputView : View
         startIndex = min;
         for (var i = min; i < max; i++)
         {
-            if (_buffer[i] == '\n' || ShouldWrap(startIndex, i, c, width))
+            if (_buffer[i] == '\n' || ShouldWrap(startIndex, i+1, c, width))
             {
                 var selectionRect = new RectF
                 {
@@ -397,7 +396,7 @@ public sealed class TextInputView : View
         {
             if (TextWrap == Gui.TextWrap.Wrap)
             {
-                if (ShouldWrap(startIndex, i, canvas, position.Width))
+                if (ShouldWrap(startIndex, i+1, canvas, position.Width))
                 {
                     startIndex = i;
                     linesCount++;
