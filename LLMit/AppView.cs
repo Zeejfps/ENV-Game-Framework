@@ -1,4 +1,5 @@
-﻿using ZGF.Gui;
+﻿using System.Diagnostics;
+using ZGF.Gui;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 
@@ -125,40 +126,33 @@ public sealed class ModelSelector : View
         };
         
         AddChildToSelf(background);
+    }
 
-        Controller = new ModelSelectorController(this);
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        var contextMenuManager = context.Get<ContextMenuManager>();
+        Debug.Assert(contextMenuManager != null);
+        Controller = new ModelSelectorController(this, contextMenuManager);
     }
 }
 
-public sealed class ModelSelectorController : IKeyboardMouseController
+public sealed class ModelSelectorController : KeyboardMouseController
 {
     private readonly ModelSelector _modelSelector;
+    private readonly ContextMenuManager _contextMenuManager;
     
-    private ContextMenuManager? _contextMenuManager;
     private IOpenedContextMenu? _openedContextMenu;
     
-    public ModelSelectorController(ModelSelector modelSelector)
+    public ModelSelectorController(ModelSelector modelSelector, ContextMenuManager contextMenuManager)
     {
         _modelSelector = modelSelector;
+        _contextMenuManager = contextMenuManager;
     }
+
+    public override View View => _modelSelector;
     
-    public void OnEnabled(Context context)
-    {
-        _contextMenuManager = context.Get<ContextMenuManager>();
-        context.InputSystem.AddInteractable(this);
-    }
-
-    public void OnDisabled(Context context)
-    {
-        context.InputSystem.RemoveInteractable(this);
-    }
-
-    public View View => _modelSelector;
-    public void OnMouseEnter(ref MouseEnterEvent e)
-    {
-    }
-
-    public void OnMouseExit(ref MouseExitEvent e)
+    public override void OnMouseExit(ref MouseExitEvent e)
     {
         if (_openedContextMenu != null)
         {
@@ -166,7 +160,7 @@ public sealed class ModelSelectorController : IKeyboardMouseController
         }
     }
 
-    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
@@ -202,26 +196,6 @@ public sealed class ModelSelectorController : IKeyboardMouseController
     {
         _openedContextMenu.Closed -= OnContextMenuClosed;
         _openedContextMenu = null;
-    }
-
-    public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
-    {
-    }
-
-    public void OnMouseMoved(ref MouseMoveEvent e)
-    {
-    }
-
-    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
-    {
-    }
-
-    public void OnFocusLost()
-    {
-    }
-
-    public void OnFocusGained()
-    {
     }
 }
 
