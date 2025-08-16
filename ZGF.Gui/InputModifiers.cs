@@ -3,6 +3,8 @@
 [Flags]
 public enum InputModifiers
 {
+    None = 0,
+
     /// <summary>
     ///     Either of the Shift keys.
     /// </summary>

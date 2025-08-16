@@ -1,13 +1,18 @@
 using ZGF.Gui;
 using ZGF.Gui.Tests;
+using ZGF.KeyboardModule;
 
 namespace LLMit.Views;
 
 public sealed class ChatTextInputView : View
 {
+    public Action<ReadOnlySpan<char>>? Submit { get; set; }
+
+    private readonly TextInputView _textInput;
+
     public ChatTextInputView()
     {
-        var textInput = new TextInputView
+        _textInput = new TextInputView
         {
             PreferredWidth = 500,
             TextWrap = TextWrap.Wrap,
@@ -22,16 +27,55 @@ public sealed class ChatTextInputView : View
             BackgroundColor = 0xFF303030,
             Children =
             {
-                textInput
+                _textInput
             }
         };
 
-        var textInputController = new TextInputViewKbmController(textInput)
-        {
-            IsMultiLine = true
-        };
-        textInput.Controller = textInputController;
-
         AddChildToSelf(bg);
+    }
+
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        _textInput.Controller = new ChatTextInputViewController(_textInput)
+        {
+            IsMultiLine = true,
+            Submit = OnSubmit
+        };
+    }
+
+    private void OnSubmit(ReadOnlySpan<char> text)
+    {
+        Submit?.Invoke(text);
+    }
+}
+
+public sealed class ChatTextInputViewController : BaseTextInputKbmController
+{
+    public Action<ReadOnlySpan<char>>? Submit { get; set; }
+
+    private readonly TextInputView _textInput;
+
+    public ChatTextInputViewController(TextInputView textInput) : base(textInput)
+    {
+        _textInput = textInput;
+    }
+
+    public override void OnDisabled(Context context)
+    {
+        Submit = null;
+        base.OnDisabled(context);
+    }
+
+    protected override void OnKeyboardKeyPressed(ref KeyboardKeyEvent e)
+    {
+        if (e.Modifiers == InputModifiers.None && e.Key == KeyboardKey.Enter)
+        {
+            e.Consume();
+            Submit?.Invoke(_textInput.Text);
+            return;
+        }
+
+        base.OnKeyboardKeyPressed(ref e);
     }
 }

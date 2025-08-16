@@ -44,12 +44,20 @@ public sealed class StartNewChatView : View
                                 }
                             }
                         },
-                        new ChatTextInputView(),
+                        new ChatTextInputView
+                        {
+                            Submit = OnSubmit
+                        },
                     }
                 }
             }
         };
 
         AddChildToSelf(layout);
+    }
+
+    private void OnSubmit(ReadOnlySpan<char> text)
+    {
+        Console.WriteLine("Start new chat");
     }
 }
