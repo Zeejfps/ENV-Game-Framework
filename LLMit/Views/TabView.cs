@@ -5,6 +5,14 @@ namespace LLMit.Views;
 public sealed class TabView : View
 {
     private bool _isHighlighted;
+    private readonly TextView _text;
+
+    public string? Text
+    {
+        get => _text.Text;
+        set => _text.Text = value;
+    }
+
     public bool IsHighlighted
     {
         get => _isHighlighted;
@@ -15,7 +23,7 @@ public sealed class TabView : View
     {
         PreferredWidth = 150;
 
-        var text = new TextView
+        _text = new TextView
         {
             Text = "New Chat",
             VerticalTextAlignment = TextAlignment.Center,
@@ -36,7 +44,7 @@ public sealed class TabView : View
             BorderColor = BorderColorStyle.All(0xFF4f4f4f),
             Children =
             {
-                text
+                _text
             }
         };
 

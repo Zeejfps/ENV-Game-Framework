@@ -57,6 +57,9 @@ public sealed class CenterArea : View
 
     private void StartNewChat(string? model, ReadOnlySpan<char> text)
     {
-        _tabBarView.Children.Add(new TabView());
+        _tabBarView.Children.Add(new TabView
+        {
+            Text = model
+        });
     }
 }
