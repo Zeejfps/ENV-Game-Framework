@@ -5,6 +5,7 @@
       <list>
         <option value="$PROJECT_DIR$/Bricks/bin/Release/net7.0/win-x64/publish" />
         <option value="$PROJECT_DIR$/NodeGraphApp/bin/Release/net9.0/osx-arm64/publish" />
+        <option value="$PROJECT_DIR$/LLMit/bin/Release/net9.0/osx-arm64/publish" />
       </list>
     </option>
   </component>

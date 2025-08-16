@@ -13,11 +13,11 @@
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-        <Content Include="Assets\**\*">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-    </ItemGroup>
+<!--    <ItemGroup>-->
+<!--        <Content Include="Assets\**\*">-->
+<!--            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>-->
+<!--        </Content>-->
+<!--    </ItemGroup>-->
 
     <PropertyGroup Condition="$([System.OperatingSystem]::IsMacOS())">
         <DefineConstants>OSX</DefineConstants>

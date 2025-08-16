@@ -2,6 +2,7 @@
 using GLFW;
 using MsdfBmpFont;
 using NodeGraphApp;
+using ZGF.AppUtils;
 using Monitor = GLFW.Monitor;
 using Window = NodeGraphApp.Window;
 
@@ -67,7 +68,7 @@ var viewport = new Viewport(window, camera)
 };
 var mousePicker = new MousePicker(viewport, mouse, nodeGraph);
 var fontLoader = new MsdfBmpFontFileLoader();
-var interFontData = fontLoader.LoadFromFilePath(App.ResolvePath("Assets/Fonts/Inter/Inter_28pt-Regular-msdf.json"));
+var interFontData = fontLoader.LoadFromFilePath(PathUtils.ResolveLocalPath("Assets/Fonts/Inter/Inter_28pt-Regular-msdf.json"));
 var renderer = new OpenGlNodeGraphRenderer(nodeGraph, camera, interFontData);
 var cameraDragInputLayer = new CameraDragFlow(viewport, mouse, keyboard);
 var nodeFactory = new NodeFactory(nodeGraph);

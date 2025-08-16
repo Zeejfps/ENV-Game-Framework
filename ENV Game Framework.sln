@@ -90,6 +90,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.WavefrontObjModule", "Z
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LLMit", "LLMit\LLMit.csproj", "{C29DF656-69FE-4935-8AE5-4F1B5B2A5A91}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.AppUtils", "ZGF.AppUtils\ZGF.AppUtils.csproj", "{31DBFB6E-5BCF-4149-BD6F-75CAA73B3954}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -276,5 +278,9 @@ Global
 		{C29DF656-69FE-4935-8AE5-4F1B5B2A5A91}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C29DF656-69FE-4935-8AE5-4F1B5B2A5A91}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C29DF656-69FE-4935-8AE5-4F1B5B2A5A91}.Release|Any CPU.Build.0 = Release|Any CPU
+		{31DBFB6E-5BCF-4149-BD6F-75CAA73B3954}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31DBFB6E-5BCF-4149-BD6F-75CAA73B3954}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31DBFB6E-5BCF-4149-BD6F-75CAA73B3954}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31DBFB6E-5BCF-4149-BD6F-75CAA73B3954}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -1,5 +1,6 @@
 using OpenGL.NET;
 using SoftwareRendererModule;
+using ZGF.AppUtils;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 using static OpenGL.NET.GLBuffer;
@@ -31,9 +32,10 @@ public sealed unsafe class BitmapRenderer : IDisposable
             GL_BGRA, GL_UNSIGNED_BYTE);
         AssertNoGlError();
 
+
         _shaderProgram = new ShaderProgramCompiler()
-            .WithVertexShader("Assets/tex.vert.glsl")
-            .WithFragmentShader("Assets/tex.frag.glsl")
+            .WithVertexShader(PathUtils.ResolveLocalPath("Assets/tex.vert.glsl"))
+            .WithFragmentShader(PathUtils.ResolveLocalPath("Assets/tex.frag.glsl"))
             .Compile();
 
         float[] vertices =

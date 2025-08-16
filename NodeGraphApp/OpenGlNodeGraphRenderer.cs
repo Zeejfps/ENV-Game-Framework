@@ -3,6 +3,7 @@ using MsdfBmpFont;
 using NodeGraphApp;
 using OpenGL.NET;
 using PngSharp.Api;
+using ZGF.AppUtils;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 using TextAlignment = NodeGraphApp.TextAlignment;
@@ -104,9 +105,9 @@ public sealed class OpenGlNodeGraphRenderer
         glVertexAttribPointer(0, 1, GL_FLOAT, false, sizeof(float), (void*)0);
 
         _curveShader = NewShader()
-            .WithVertexShader(App.ResolvePath("Assets/Shaders/curve_vert.glsl"))
-            .WithFragmentShader(App.ResolvePath("Assets/Shaders/curve_frag.glsl"))
-            .WithGeometryShader(App.ResolvePath("Assets/Shaders/curve_geom.glsl"))
+            .WithVertexShader(PathUtils.ResolveLocalPath("Assets/Shaders/curve_vert.glsl"))
+            .WithFragmentShader(PathUtils.ResolveLocalPath("Assets/Shaders/curve_frag.glsl"))
+            .WithGeometryShader(PathUtils.ResolveLocalPath("Assets/Shaders/curve_geom.glsl"))
             .Compile();
 
         _curveP0UniformLoc = GetUniformLocation(_curveShader.Id, "u_p0");
@@ -121,8 +122,8 @@ public sealed class OpenGlNodeGraphRenderer
     private unsafe void LoadGlyphData()
     {
         _glyphShader = NewShader()
-            .WithVertexShader(App.ResolvePath("Assets/Shaders/glyph_vert.glsl"))
-            .WithFragmentShader(App.ResolvePath("Assets/Shaders/glyph_frag.glsl"))
+            .WithVertexShader(PathUtils.ResolveLocalPath("Assets/Shaders/glyph_vert.glsl"))
+            .WithFragmentShader(PathUtils.ResolveLocalPath("Assets/Shaders/glyph_frag.glsl"))
             .Compile();
         
         _glyphRectUniformLoc = GetUniformLocation(_glyphShader.Id, "u_rect");
@@ -143,7 +144,7 @@ public sealed class OpenGlNodeGraphRenderer
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (int)GL_CLAMP_TO_EDGE);
 
         var pageName = _interFontData.Pages[0];
-        var fullPath = App.ResolvePath($"Assets/Fonts/Inter/{pageName}");
+        var fullPath = PathUtils.ResolveLocalPath($"Assets/Fonts/Inter/{pageName}");
         var decodedPng = Png.DecodeFromFile(fullPath);
         
         var width = decodedPng.Width;
@@ -176,8 +177,8 @@ public sealed class OpenGlNodeGraphRenderer
     private void LoadPanelData()
     {
         _panelShader = NewShader()
-            .WithVertexShader(App.ResolvePath("Assets/Shaders/panel_vert.glsl"))
-            .WithFragmentShader(App.ResolvePath("Assets/Shaders/panel_frag.glsl"))
+            .WithVertexShader(PathUtils.ResolveLocalPath("Assets/Shaders/panel_vert.glsl"))
+            .WithFragmentShader(PathUtils.ResolveLocalPath("Assets/Shaders/panel_frag.glsl"))
             .Compile();
 
         _rectUniformLoc = GetUniformLocation(_panelShader.Id, "u_rect");

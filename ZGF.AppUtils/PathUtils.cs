@@ -1,8 +1,8 @@
-namespace NodeGraphApp;
+﻿namespace ZGF.AppUtils;
 
-public static class App
+public static class PathUtils
 {
-    public static string ResolvePath(string path)
+    public static string ResolveLocalPath(string path)
     {
         var appPath = AppContext.BaseDirectory;
         var fullFilePath = Path.Combine(appPath, path);

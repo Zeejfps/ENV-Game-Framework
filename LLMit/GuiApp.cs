@@ -1,4 +1,5 @@
 ﻿using GLFW;
+using ZGF.AppUtils;
 using ZGF.Core;
 using ZGF.Geometry;
 using ZGF.Gui;
@@ -35,7 +36,8 @@ public sealed class GuiApp : OpenGlApp
         _imageManager = new ImageManager();
         var contextMenuPane = new View();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
-        var bitmapFont = BitmapFont.LoadFromFile("Assets/Fonts/Charcoal/Charcoal_p20.xml");
+        var fontFilePath = PathUtils.ResolveLocalPath("Assets/Fonts/Charcoal/Charcoal_p20.xml");
+        var bitmapFont = BitmapFont.LoadFromFile(fontFilePath);
         _canvas = new SoftwareRenderedCanvas(
             startupConfig.WindowWidth,
             startupConfig.WindowHeight,
