@@ -20,15 +20,42 @@ public sealed class AppView : View
 
 public sealed class CenterArea : View
 {
+    private readonly TabView _newChatTabView;
     private readonly TabBarView _tabBarView;
+    private readonly View _tabContentsView;
 
     public CenterArea()
     {
-        _tabBarView = new TabBarView();
+        _newChatTabView = new TabView
+        {
+            Text = "New Chat",
+            IsActive = true,
+        };
+
+        _newChatTabView.Controller = new TabViewController(_newChatTabView);
+
+        _tabBarView = new TabBarView
+        {
+            Children =
+            {
+                _newChatTabView
+            }
+        };
 
         var background = new RectView
         {
             BackgroundColor = 0xFF212121
+        };
+
+        _tabContentsView = new View
+        {
+            Children =
+            {
+                new StartNewChatView
+                {
+                    StartNewChatCallback = StartNewChat,
+                },
+            }
         };
 
         var layout = new BorderLayoutView
@@ -44,10 +71,7 @@ public sealed class CenterArea : View
                 BorderColor = BorderColorStyle.All(0xFF4f4f4f),
                 Children =
                 {
-                    new StartNewChatView
-                    {
-                        StartNewChatCallback = StartNewChat,
-                    },
+                    _tabContentsView
                 }
             }
         };
@@ -58,13 +82,15 @@ public sealed class CenterArea : View
 
     private void StartNewChat(string? model, ReadOnlySpan<char> text)
     {
+        _newChatTabView.IsActive = false;
         var tabView = new TabView
         {
             Text = model,
-            IsActive = false,
+            IsActive = true,
         };
         tabView.Controller = new TabViewController(tabView);
         _tabBarView.Children.Add(tabView);
+        _tabContentsView.Children.Clear();
     }
 }
 

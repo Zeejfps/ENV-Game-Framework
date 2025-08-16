@@ -6,4 +6,5 @@ public interface IComponentCollection : IEnumerable<View>
     void Add(View view);
     bool Remove(View view);
     bool Contains(View view);
+    void Clear();
 }

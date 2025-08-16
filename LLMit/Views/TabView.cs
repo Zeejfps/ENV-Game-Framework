@@ -90,7 +90,7 @@ public sealed class TabView : View
             {
                 Top = 1,
                 Right = 1,
-                Left = 0
+                Left = 1
             };
             _bg.BorderColor = BorderColorStyle.All(0xFF4f4f4f);
             Position = Position with { Bottom = Position.Bottom, Height = Position.Height - 2 };

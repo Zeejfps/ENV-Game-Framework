@@ -670,6 +670,14 @@ public class View
         {
             return _view._children.Contains(view);
         }
+
+        public void Clear()
+        {
+            foreach (var child in _view._children.ToArray())
+            {
+                Remove(child);
+            }
+        }
     }
     
     private sealed class StyleClassCollection : IStyleClassCollection
