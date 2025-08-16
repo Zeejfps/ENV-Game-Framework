@@ -107,8 +107,22 @@ public sealed class StartNewChatView : View
 
 public sealed class ModelSelector : View
 {
+    private readonly TextView _textView;
+
+    public string? Model
+    {
+        get => _textView.Text;
+        set => _textView.Text = value;
+    }
+    
     public ModelSelector()
     {
+        _textView = new TextView
+        {
+            Text = "Gemini",
+            TextColor = 0xFF0493BF,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
         var background = new RectView
         {
             BorderColor = BorderColorStyle.All(0xFF0493BF),
@@ -116,17 +130,13 @@ public sealed class ModelSelector : View
             Padding = PaddingStyle.All(4),
             Children =
             {
-                new TextView
-                {
-                    Text = "Gemini",
-                    TextColor = 0xFF0493BF,
-                    VerticalTextAlignment = TextAlignment.Center,
-                }
+                _textView
             }
         };
         
         AddChildToSelf(background);
     }
+
 
     protected override void OnAttachedToContext(Context context)
     {
@@ -181,9 +191,18 @@ public sealed class ModelSelectorController : KeyboardMouseController
             AnchorPoint = View.Position.BottomLeft,
             Children =
             {
-                new ModelContextMenuItem("Gemini"),
-                new ModelContextMenuItem("GPT 5"),
-                new ModelContextMenuItem("Claude Opus"),
+                new ModelContextMenuItem("Gemini")
+                {
+                    Chosen = item => _modelSelector.Model = item.Model
+                },
+                new ModelContextMenuItem("GPT 5")
+                {
+                    Chosen = item => _modelSelector.Model = item.Model
+                },
+                new ModelContextMenuItem("Claude Opus")
+                {
+                    Chosen = item => _modelSelector.Model = item.Model
+                },
             }
         };
 
@@ -194,6 +213,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
 
     private void OnContextMenuClosed()
     {
+        Console.WriteLine("CloseD?");
         _openedContextMenu.Closed -= OnContextMenuClosed;
         _openedContextMenu = null;
     }
@@ -203,8 +223,12 @@ public sealed class ModelContextMenuItem : View
 {
     private readonly ContextMenuItem _contextMenuItem;
     
+    public Action<ModelContextMenuItem>? Chosen { get; set; }
+    public string Model { get; }
+
     public ModelContextMenuItem(string model)
     {
+        Model = model;
         _contextMenuItem = new ContextMenuItem
         {
             Text = model,
@@ -218,7 +242,13 @@ public sealed class ModelContextMenuItem : View
         base.OnAttachedToContext(context);
         var contextMenuManager = context.Get<ContextMenuManager>();
         Debug.Assert(contextMenuManager != null);
-        Controller = new ContextMenuItemDefaultKbmController(_contextMenuItem, contextMenuManager);
+        Controller = new ContextMenuItemDefaultKbmController(_contextMenuItem, contextMenuManager, () =>
+        {
+            var contextMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
+            Debug.Assert(contextMenu != null);
+            contextMenuManager.RequestCloseMenu(contextMenu);
+            Chosen?.Invoke(this);
+        });
     }
 }
 

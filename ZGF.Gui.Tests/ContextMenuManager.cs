@@ -12,7 +12,7 @@ public interface IOpenedContextMenu
 
 sealed class OpenedContextMenu : IOpenedContextMenu
 {
-    public event Action Closed;
+    public event Action? Closed;
 
     public bool IsOpened { get; private set; } = true;
     public required ContextMenu ContextMenu { get; init; }
@@ -28,13 +28,11 @@ sealed class OpenedContextMenu : IOpenedContextMenu
         if (!IsOpened)
             return;
 
-        Console.WriteLine($"CancelCloseRequest: {GetHashCode()}");
         IsCloseRequested = false;
     }
 
     public void CloseRequest()
     {
-        Console.WriteLine($"Close requested: {GetHashCode()}");
         IsCloseRequested = true;
     }
 
@@ -97,6 +95,7 @@ public sealed class ContextMenuManager
                 _contextMenuPane.Children.Remove(component);
                 _closingMenus.Remove(menu);
                 _openedMenus.Remove(component);
+                menu.Close();
             }
         }
 
@@ -107,7 +106,6 @@ public sealed class ContextMenuManager
                 contextMenu.CloseTimestamp = now;
                 _closingMenus.Add(contextMenu);
                 _openedMenus.Remove(contextMenu.ContextMenu);
-                contextMenu.Close();
 
                 var parent = contextMenu.Parent;
                 if (parent != null)
@@ -115,6 +113,14 @@ public sealed class ContextMenuManager
                     parent.Child = null;
                 }
             }
+        }
+    }
+
+    public void RequestCloseMenu(ContextMenu contextMenu)
+    {
+        if (_openedMenus.TryGetValue(contextMenu, out var openedMenu))
+        {
+            openedMenu.CloseRequest();
         }
     }
 }

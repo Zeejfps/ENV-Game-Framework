@@ -20,6 +20,16 @@ public sealed class InputSystem : IMouse
     {
         _hoverableComponents.Remove(controller);
         _focusQueue.Remove(controller);
+
+        if (_hoveredComponent == controller)
+        {
+            _hoveredComponent = null;
+        }
+
+        if (_focusedComponent == controller)
+        {
+            _focusedComponent = null;
+        }
     }
     
     public void SendKeyboardKeyEvent(ref KeyboardKeyEvent e)
@@ -311,12 +321,12 @@ public sealed class InputSystem : IMouse
 
     public void RequestFocus(IKeyboardMouseController component)
     {
-        Console.WriteLine($"Requesting focus: {component}");
+        //Console.WriteLine($"Requesting focus: {component}");
         if (_focusedComponent == null)
         {
             _focusedComponent = component;
             _focusedComponent.OnFocusGained();
-            Console.WriteLine($"Focused: {component}");
+            //Console.WriteLine($"Focused: {component}");
         }
     }
     

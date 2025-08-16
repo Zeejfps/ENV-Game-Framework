@@ -32,7 +32,6 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             _contextMenuItem.IsArrowVisible = true;
         }
     }
-    
 
     public override void OnMouseEnter(ref MouseEnterEvent e)
     {
@@ -77,6 +76,7 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             _openedContextMenu.Closed -=  OnOpenedContextMenuClosed;
             _openedContextMenu = null;
         }
+        this.Blur();
     }
 
     public override void OnMouseExit(ref MouseExitEvent e)
