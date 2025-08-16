@@ -122,6 +122,119 @@ public sealed class ModelSelector : View
         };
         
         AddChildToSelf(background);
+
+        Controller = new ModelSelectorController(this);
+    }
+}
+
+public sealed class ModelSelectorController : IKeyboardMouseController
+{
+    private readonly ModelSelector _modelSelector;
+    
+    private ContextMenuManager? _contextMenuManager;
+    private IOpenedContextMenu? _openedContextMenu;
+    
+    public ModelSelectorController(ModelSelector modelSelector)
+    {
+        _modelSelector = modelSelector;
+    }
+    
+    public void OnEnabled(Context context)
+    {
+        _contextMenuManager = context.Get<ContextMenuManager>();
+        context.InputSystem.AddInteractable(this);
+    }
+
+    public void OnDisabled(Context context)
+    {
+        context.InputSystem.RemoveInteractable(this);
+    }
+
+    public View View => _modelSelector;
+    public void OnMouseEnter(ref MouseEnterEvent e)
+    {
+    }
+
+    public void OnMouseExit(ref MouseExitEvent e)
+    {
+        if (_openedContextMenu != null)
+        {
+            _openedContextMenu.CloseRequest();
+        }
+    }
+
+    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    {
+        if (e.Phase != EventPhase.Bubbling)
+            return;
+        
+        if (e.Button != MouseButton.Left)
+            return;
+        
+        if (e.State != InputState.Pressed)
+            return;
+
+        if (_openedContextMenu != null && _openedContextMenu.IsOpened)
+        {
+            return;
+        }
+        
+        var contextMenu = new ContextMenu
+        {
+            AnchorPoint = View.Position.BottomLeft
+        };
+        var geminiOption = new ContextMenuItem
+        {
+            Text = "Gemini",
+            IsSelected = true
+        };
+        geminiOption.Controller =
+            new ContextMenuItemDefaultKbmController(contextMenu, geminiOption, _contextMenuManager);
+        contextMenu.AddItem(geminiOption);
+
+        var gpt5Option = new ContextMenuItem
+        {
+            Text = "GPT 5"
+        };
+        gpt5Option.Controller = new ContextMenuItemDefaultKbmController(contextMenu, gpt5Option, _contextMenuManager);
+        contextMenu.AddItem(gpt5Option);
+
+        var claudOption = new ContextMenuItem
+        {
+            Text = "Claude Opus"
+        };
+        claudOption.Controller = new ContextMenuItemDefaultKbmController(contextMenu, claudOption, _contextMenuManager);
+        contextMenu.AddItem(claudOption);
+
+        _openedContextMenu = _contextMenuManager?.ShowContextMenu(contextMenu);
+        _openedContextMenu.Closed += OnContextMenuClosed;
+        contextMenu.Controller = new ContextMenuKbmController(_openedContextMenu);
+    }
+
+    private void OnContextMenuClosed()
+    {
+        _openedContextMenu.Closed -= OnContextMenuClosed;
+        _openedContextMenu = null;
+    }
+
+    public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
+    {
+    }
+
+    public void OnMouseMoved(ref MouseMoveEvent e)
+    {
+    }
+
+    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
+    {
+    }
+
+    public void OnFocusLost()
+    {
+    }
+
+    public void OnFocusGained()
+    {
     }
 }
 
