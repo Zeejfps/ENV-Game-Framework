@@ -40,8 +40,7 @@ public class FontCommon
         set;
     }
 
-    [XmlAttribute ( "packed" )]
-    public Int32 Packed
+    public bool Packed
     {
         get;
         set;

@@ -1,13 +1,14 @@
 using System.Xml;
-using System.Xml.Serialization;
 
 namespace ZGF.BMFontModule;
 
 public static class BMFontFileUtils
 {
-    private static FontInfo ParseFontInfo(XmlElement element)
+    private static FontInfo ParseFontInfo(XmlElement? element)
     {
         var info = new FontInfo();
+        if (element == null)
+            return info;
 
         info.Face = element.GetAttribute("face");
         info.Size = int.TryParse(element.GetAttribute("size"), out var size) ? size : 0;
@@ -53,18 +54,42 @@ public static class BMFontFileUtils
         return info;
     }
 
+    private static FontCommon ParseFontCommon(XmlElement? element)
+    {
+        var common = new FontCommon();
+        if (element == null)
+            return common;
+
+        common.LineHeight = int.TryParse(element.GetAttribute("lineHeight"), out var lineHeight) ? lineHeight : 0;
+        common.Base = int.TryParse(element.GetAttribute("base"), out var baseVal) ? baseVal : 0;
+        common.ScaleW = int.TryParse(element.GetAttribute("scaleW"), out var scaleW) ? scaleW : 0;
+        common.ScaleH = int.TryParse(element.GetAttribute("scaleH"), out var scaleH) ? scaleH : 0;
+        common.Pages = int.TryParse(element.GetAttribute("pages"), out var pages) ? pages : 0;
+        common.Packed = element.GetAttribute("packed") == "1";
+
+        return common;
+    }
+
     public static BMFontFile DeserializeFromXmlFile(string filename)
     {
         using var textReader = new StreamReader(filename);
         var doc = new XmlDocument();
         doc.Load(textReader);
 
-        var infoElement = doc.GetElementsByTagName("info").OfType<XmlElement>().First();
+        var infoElement = doc.GetElementsByTagName("info")
+            .OfType<XmlElement>()
+            .FirstOrDefault();
         var fontInfo = ParseFontInfo(infoElement);
+
+        var commonElement = doc.GetElementsByTagName("common")
+            .OfType<XmlElement>()
+            .FirstOrDefault();
+        var fontCommon = ParseFontCommon(commonElement);
 
         var bmFontFile = new BMFontFile
         {
             Info = fontInfo,
+            Common = fontCommon
         };
         bmFontFile.Update();
         return bmFontFile;
