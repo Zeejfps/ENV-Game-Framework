@@ -48,6 +48,11 @@ public sealed class ChatTextInputView : View
     {
         Submit?.Invoke(text);
     }
+
+    public void Clear()
+    {
+        _textInput.Clear();
+    }
 }
 
 public sealed class ChatTextInputViewController : BaseTextInputKbmController

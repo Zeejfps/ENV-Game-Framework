@@ -621,4 +621,12 @@ public sealed class TextInputView : View
         var length = max - min;
         return new string(_buffer, min, length);
     }
+
+    public void Clear()
+    {
+        _strLen = 0;
+        _caretIndex = 0;
+        _selectionStartIndex = 0;
+        SetDirty();
+    }
 }

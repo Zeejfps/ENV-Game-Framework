@@ -6,8 +6,15 @@ namespace LLMit.Views;
 
 public sealed class StartNewChatView : View
 {
+    private readonly ChatTextInputView _chatTextInput;
+
     public StartNewChatView()
     {
+        _chatTextInput = new ChatTextInputView
+        {
+            Submit = OnSubmit
+        };
+
         var layout = new CenterView
         {
             Children =
@@ -31,7 +38,6 @@ public sealed class StartNewChatView : View
                                             Text = "What would you like to ask",
                                             TextColor = 0xFFFFFFFF,
                                             VerticalTextAlignment = TextAlignment.Center,
-                                            //HorizontalTextAlignment = TextAlignment.Center,
                                         },
                                         new ModelSelector(),
                                         new TextView
@@ -44,10 +50,7 @@ public sealed class StartNewChatView : View
                                 }
                             }
                         },
-                        new ChatTextInputView
-                        {
-                            Submit = OnSubmit
-                        },
+                        _chatTextInput,
                     }
                 }
             }
@@ -58,6 +61,7 @@ public sealed class StartNewChatView : View
 
     private void OnSubmit(ReadOnlySpan<char> text)
     {
+        _chatTextInput.Clear();
         Console.WriteLine("Start new chat");
     }
 }
