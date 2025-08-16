@@ -190,21 +190,21 @@ public sealed class ModelSelectorController : IKeyboardMouseController
         };
         geminiOption.Controller =
             new ContextMenuItemDefaultKbmController(contextMenu, geminiOption, _contextMenuManager);
-        contextMenu.AddItem(geminiOption);
+        contextMenu.Children.Add(geminiOption);
 
         var gpt5Option = new ContextMenuItem
         {
             Text = "GPT 5"
         };
         gpt5Option.Controller = new ContextMenuItemDefaultKbmController(contextMenu, gpt5Option, _contextMenuManager);
-        contextMenu.AddItem(gpt5Option);
+        contextMenu.Children.Add(gpt5Option);
 
         var claudOption = new ContextMenuItem
         {
             Text = "Claude Opus"
         };
         claudOption.Controller = new ContextMenuItemDefaultKbmController(contextMenu, claudOption, _contextMenuManager);
-        contextMenu.AddItem(claudOption);
+        contextMenu.Children.Add(claudOption);
 
         _openedContextMenu = _contextMenuManager?.ShowContextMenu(contextMenu);
         _openedContextMenu.Closed += OnContextMenuClosed;

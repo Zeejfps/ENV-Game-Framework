@@ -10,11 +10,11 @@ public sealed class TestMenuItemController : BaseMenuItemController
 
     protected override void BuildMenu(ContextMenu contextMenu)
     {
-        contextMenu.AddItem(new ContextMenuItem
+        contextMenu.Children.Add(new ContextMenuItem
         {
             Text = "Option 1"
         });
-        contextMenu.AddItem(new ContextMenuItem
+        contextMenu.Children.Add(new ContextMenuItem
         {
             Text = "Option 2"
         });
@@ -42,8 +42,8 @@ public sealed class TestMenuItemController : BaseMenuItemController
             }
         };
         
-        contextMenu.AddItem(option3Menu);
-        contextMenu.AddItem(new ContextMenuItem
+        contextMenu.Children.Add(option3Menu);
+        contextMenu.Children.Add(new ContextMenuItem
         {
             Text = "Option 4"
         });

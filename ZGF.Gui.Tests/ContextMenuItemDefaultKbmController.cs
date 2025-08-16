@@ -57,7 +57,7 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
             };
             foreach (var subOption in SubOptions)
             {
-                subMenu.AddItem(new ContextMenuItem
+                subMenu.Children.Add(new ContextMenuItem
                 {
                     Text = subOption.Text
                 });

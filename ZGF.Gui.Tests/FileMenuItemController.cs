@@ -15,7 +15,7 @@ public sealed class FileMenuItemController : BaseMenuItemController
         {
             Text = "Open Model",
         };
-        contextMenu.AddItem(openModelItem);
+        contextMenu.Children.Add(openModelItem);
 
         var exitItem = new ContextMenuItem
         {
@@ -25,6 +25,6 @@ public sealed class FileMenuItemController : BaseMenuItemController
         {
             _app.Exit();
         });
-        contextMenu.AddItem(exitItem);
+        contextMenu.Children.Add(exitItem);
     }
 }

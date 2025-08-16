@@ -6,7 +6,9 @@ namespace ZGF.Gui.Tests;
 public sealed class ContextMenu : View
 {
     private readonly ColumnView _itemsContainer;
-    
+
+    public override IComponentCollection Children => _itemsContainer.Children;
+
     private PointF _anchorPoint;
     public PointF AnchorPoint
     {
@@ -43,11 +45,6 @@ public sealed class ContextMenu : View
         };
         
         AddChildToSelf(background);
-    }
-
-    public void AddItem(ContextMenuItem item)
-    {
-        _itemsContainer.Children.Add(item);
     }
 
     protected override void OnLayoutSelf()
