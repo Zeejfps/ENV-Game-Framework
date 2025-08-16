@@ -4,6 +4,7 @@ namespace LLMit.Views;
 
 public sealed class TabView : View
 {
+    private bool _isActive;
     private bool _isHighlighted;
     private readonly TextView _text;
     private readonly RectView _bg;
@@ -17,34 +18,17 @@ public sealed class TabView : View
     public bool IsHighlighted
     {
         get => _isHighlighted;
+        set => SetField(ref _isHighlighted, value);
+    }
+
+    public bool IsActive
+    {
+        get => _isActive;
         set
         {
-            if (SetField(ref _isHighlighted, value))
+            if (SetField(ref _isActive, value))
             {
-                if (_isHighlighted)
-                {
-                    ZIndex = 10;
-                    _bg.BackgroundColor = 0xFF212121;
-                    _bg.BorderSize = new BorderSizeStyle
-                    {
-                        Top = 1,
-                        Right = 1,
-                        Left = 1
-                    };
-                    _bg.BorderColor = BorderColorStyle.All(0xFF4f4f4f);
-                }
-                else
-                {
-                    ZIndex = 0;
-                    _bg.BackgroundColor = 0xFF111111;
-                    _bg.BorderSize = new BorderSizeStyle
-                    {
-                        Top = 1,
-                        Right = 1,
-                        Left = 0
-                    };
-                    _bg.BorderColor = BorderColorStyle.All(0xFF4f4f4f);
-                }
+
             }
         }
     }
@@ -84,13 +68,37 @@ public sealed class TabView : View
     protected override void OnLayoutSelf()
     {
         base.OnLayoutSelf();
-        if (IsHighlighted)
+
+        if (_isActive)
         {
+            ZIndex = 10;
+            _bg.BackgroundColor = 0xFF212121;
+            _bg.BorderSize = new BorderSizeStyle
+            {
+                Top = 1,
+                Right = 1,
+                Left = 1
+            };
+            _bg.BorderColor = BorderColorStyle.All(0xFF4f4f4f);
             Position = Position with { Bottom = Position.Bottom - 1, Height = Position.Height + 1 };
         }
         else
         {
-            Position = Position with { Bottom = Position.Bottom + 1, Height = Position.Height - 2 };
+            ZIndex = 0;
+            _bg.BackgroundColor = 0xFF111111;
+            _bg.BorderSize = new BorderSizeStyle
+            {
+                Top = 1,
+                Right = 1,
+                Left = 0
+            };
+            _bg.BorderColor = BorderColorStyle.All(0xFF4f4f4f);
+            Position = Position with { Bottom = Position.Bottom, Height = Position.Height - 2 };
+        }
+
+        if (_isHighlighted)
+        {
+            _bg.BackgroundColor = 0xFF4F4F4F;
         }
     }
 }

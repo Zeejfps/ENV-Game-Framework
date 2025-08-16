@@ -24,7 +24,7 @@ public sealed class TabBarView : View
             {
                 new TabView
                 {
-                    IsHighlighted = true,
+                    IsActive = true,
                 }
             }
         };

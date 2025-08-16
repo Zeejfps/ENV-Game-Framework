@@ -1,5 +1,6 @@
 ﻿using ZGF.Gui;
 using ZGF.Gui.Layouts;
+using ZGF.Gui.Tests;
 
 namespace LLMit.Views;
 
@@ -57,10 +58,34 @@ public sealed class CenterArea : View
 
     private void StartNewChat(string? model, ReadOnlySpan<char> text)
     {
-        _tabBarView.Children.Add(new TabView
+        var tabView = new TabView
         {
             Text = model,
-            IsHighlighted = false,
-        });
+            IsActive = false,
+        };
+        tabView.Controller = new TabViewController(tabView);
+        _tabBarView.Children.Add(tabView);
+    }
+}
+
+public sealed class TabViewController : KeyboardMouseController
+{
+    private readonly TabView _tabView;
+
+    public TabViewController(TabView tabView)
+    {
+        _tabView = tabView;
+    }
+
+    public override View View => _tabView;
+
+    public override void OnMouseEnter(ref MouseEnterEvent e)
+    {
+        _tabView.IsHighlighted = true;
+    }
+
+    public override void OnMouseExit(ref MouseExitEvent e)
+    {
+        _tabView.IsHighlighted = false;
     }
 }
