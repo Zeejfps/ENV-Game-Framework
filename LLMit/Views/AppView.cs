@@ -59,7 +59,8 @@ public sealed class CenterArea : View
     {
         _tabBarView.Children.Add(new TabView
         {
-            Text = model
+            Text = model,
+            IsHighlighted = false,
         });
     }
 }

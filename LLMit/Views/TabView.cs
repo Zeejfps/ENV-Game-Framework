@@ -6,6 +6,7 @@ public sealed class TabView : View
 {
     private bool _isHighlighted;
     private readonly TextView _text;
+    private readonly RectView _bg;
 
     public string? Text
     {
@@ -16,7 +17,36 @@ public sealed class TabView : View
     public bool IsHighlighted
     {
         get => _isHighlighted;
-        set => SetField(ref _isHighlighted, value);
+        set
+        {
+            if (SetField(ref _isHighlighted, value))
+            {
+                if (_isHighlighted)
+                {
+                    ZIndex = 10;
+                    _bg.BackgroundColor = 0xFF212121;
+                    _bg.BorderSize = new BorderSizeStyle
+                    {
+                        Top = 1,
+                        Right = 1,
+                        Left = 1
+                    };
+                    _bg.BorderColor = BorderColorStyle.All(0xFF4f4f4f);
+                }
+                else
+                {
+                    ZIndex = 0;
+                    _bg.BackgroundColor = 0xFF111111;
+                    _bg.BorderSize = new BorderSizeStyle
+                    {
+                        Top = 1,
+                        Right = 1,
+                        Left = 0
+                    };
+                    _bg.BorderColor = BorderColorStyle.All(0xFF4f4f4f);
+                }
+            }
+        }
     }
 
     public TabView()
@@ -31,9 +61,9 @@ public sealed class TabView : View
             TextColor = 0xFFFFFFFF
         };
 
-        var bg = new RectView
+        _bg = new RectView
         {
-            BackgroundColor = 0xFF212121,
+            BackgroundColor = 0xFF111111,
             Padding = PaddingStyle.All(6),
             BorderSize = new BorderSizeStyle
             {
@@ -48,13 +78,19 @@ public sealed class TabView : View
             }
         };
 
-        AddChildToSelf(bg);
-        ZIndex = 10;
+        AddChildToSelf(_bg);
     }
 
     protected override void OnLayoutSelf()
     {
         base.OnLayoutSelf();
-        Position = Position with { Bottom = Position.Bottom - 1, Height = Position.Height + 1 };
+        if (IsHighlighted)
+        {
+            Position = Position with { Bottom = Position.Bottom - 1, Height = Position.Height + 1 };
+        }
+        else
+        {
+            Position = Position with { Bottom = Position.Bottom + 1, Height = Position.Height - 2 };
+        }
     }
 }
