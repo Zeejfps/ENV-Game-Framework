@@ -293,7 +293,7 @@ public sealed unsafe class TextRenderer
         
         var font = BMFontFileUtils.DeserializeFromXmlFile("Assets/bitmapfonts/Segoe UI.fnt");
         foreach (var glyph in font.Chars)
-            m_IdToGlyphTable.Add(glyph.ID, glyph);
+            m_IdToGlyphTable.Add(glyph.Id, glyph);
 
         m_ScaleW = font.Common.ScaleW;
         m_ScaleH = font.Common.ScaleH;
