@@ -189,6 +189,8 @@ public sealed class ModelSelectorController : KeyboardMouseController
         var contextMenu = new ContextMenu
         {
             AnchorPoint = View.Position.BottomLeft,
+            BackgroundColor = 0xFF353535,
+            BorderColor = BorderColorStyle.All(0xFF3C3C3C),
             Children =
             {
                 new ModelContextMenuItem("Gemini")
@@ -232,6 +234,9 @@ public sealed class ModelContextMenuItem : View
         _contextMenuItem = new ContextMenuItem
         {
             Text = model,
+            NormalBackgroundColor = 0x00000000,
+            SelectedBackgroundColor = 0xFF4A4A4A,
+            TextColor = 0xFFFFFFFF,
         };
         
         AddChildToSelf(_contextMenuItem);
