@@ -4,15 +4,25 @@ using ZGF.Gui.Tests;
 
 namespace LLMit.Views;
 
+public delegate void StartNewChatCallback(string? model, ReadOnlySpan<char> text);
+
 public sealed class StartNewChatView : View
 {
+    public StartNewChatCallback? StartNewChatCallback { get; set; }
+
     private readonly ChatTextInputView _chatTextInput;
+    private readonly ModelSelector _modelSelector;
 
     public StartNewChatView()
     {
         _chatTextInput = new ChatTextInputView
         {
             Submit = OnSubmit
+        };
+
+        _modelSelector = new ModelSelector
+        {
+
         };
 
         var layout = new CenterView
@@ -39,7 +49,7 @@ public sealed class StartNewChatView : View
                                             TextColor = 0xFFFFFFFF,
                                             VerticalTextAlignment = TextAlignment.Center,
                                         },
-                                        new ModelSelector(),
+                                        _modelSelector,
                                         new TextView
                                         {
                                             Text = "?",
@@ -62,6 +72,6 @@ public sealed class StartNewChatView : View
     private void OnSubmit(ReadOnlySpan<char> text)
     {
         _chatTextInput.Clear();
-        Console.WriteLine("Start new chat");
+        StartNewChatCallback?.Invoke(_modelSelector.Model, text);
     }
 }

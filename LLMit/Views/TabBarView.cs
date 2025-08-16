@@ -5,6 +5,10 @@ namespace LLMit.Views;
 
 public sealed class TabBarView : View
 {
+    private readonly RowView _layout;
+
+    public override IComponentCollection Children => _layout.Children;
+
     public TabBarView()
     {
         PreferredHeight = 40;
@@ -14,7 +18,7 @@ public sealed class TabBarView : View
             BackgroundColor = 0xFF1C1C1C
         };
 
-        var layout = new RowView
+        _layout = new RowView
         {
             Children =
             {
@@ -26,6 +30,6 @@ public sealed class TabBarView : View
         };
 
         AddChildToSelf(bg);
-        AddChildToSelf(layout);
+        AddChildToSelf(_layout);
     }
 }

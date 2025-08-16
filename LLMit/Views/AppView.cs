@@ -19,8 +19,12 @@ public sealed class AppView : View
 
 public sealed class CenterArea : View
 {
+    private readonly TabBarView _tabBarView;
+
     public CenterArea()
     {
+        _tabBarView = new TabBarView();
+
         var background = new RectView
         {
             BackgroundColor = 0xFF212121
@@ -28,7 +32,7 @@ public sealed class CenterArea : View
 
         var layout = new BorderLayoutView
         {
-            North = new TabBarView(),
+            North = _tabBarView,
             Center = new RectView
             {
                 BorderSize = new BorderSizeStyle
@@ -39,12 +43,20 @@ public sealed class CenterArea : View
                 BorderColor = BorderColorStyle.All(0xFF4f4f4f),
                 Children =
                 {
-                    new StartNewChatView(),
+                    new StartNewChatView
+                    {
+                        StartNewChatCallback = StartNewChat,
+                    },
                 }
             }
         };
 
         AddChildToSelf(background);
         AddChildToSelf(layout);
+    }
+
+    private void StartNewChat(string? model, ReadOnlySpan<char> text)
+    {
+        _tabBarView.Children.Add(new TabView());
     }
 }
