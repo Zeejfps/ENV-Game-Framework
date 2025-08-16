@@ -27,9 +27,83 @@ public sealed class CenterArea : View
         {
             BackgroundColor = 0xFF212121
         };
-        
+
+        var layout = new BorderLayoutView
+        {
+            North = new TabBarView(),
+            Center = new StartNewChatView(),
+        };
+
         AddChildToSelf(background);
-        AddChildToSelf(new StartNewChatView());
+        AddChildToSelf(layout);
+    }
+}
+
+public sealed class TabBarView : View
+{
+    public TabBarView()
+    {
+        PreferredHeight = 40;
+
+        var bg = new RectView
+        {
+            BackgroundColor = 0xFF1C1C1C
+        };
+
+        var layout = new RowView
+        {
+            Children =
+            {
+                new TabView
+                {
+                    IsHighlighted = true,
+                }
+            }
+        };
+
+        AddChildToSelf(bg);
+        AddChildToSelf(layout);
+    }
+}
+
+public sealed class TabView : View
+{
+    private bool _isHighlighted;
+    public bool IsHighlighted
+    {
+        get => _isHighlighted;
+        set => SetField(ref _isHighlighted, value);
+    }
+
+    public TabView()
+    {
+        PreferredWidth = 150;
+
+        var text = new TextView
+        {
+            Text = "New Chat",
+            VerticalTextAlignment = TextAlignment.Center,
+            HorizontalTextAlignment = TextAlignment.Center,
+            TextColor = 0xFFFFFFFF
+        };
+
+        var bg = new RectView
+        {
+            BackgroundColor = 0xFF212121,
+            Padding = PaddingStyle.All(6),
+            BorderSize = new BorderSizeStyle
+            {
+                Top = 1,
+                Right = 1,
+            },
+            BorderColor = BorderColorStyle.All(0xFF4f4f4f),
+            Children =
+            {
+                text
+            }
+        };
+
+        AddChildToSelf(bg);
     }
 }
 
