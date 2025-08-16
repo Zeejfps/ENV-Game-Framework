@@ -2,12 +2,11 @@
 
 namespace ZGF.Gui.Tests;
 
-public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseController
+public sealed class WindowTitleBarDefaultKbmController : KeyboardMouseController
 {
     private readonly Window _window;
     private readonly WindowTitleBarView _titleBar;
     private PointF _prevMousePosition;
-    private bool _isHovered;
     private bool _isDragging;
     
     public WindowTitleBarDefaultKbmController(Window window, WindowTitleBarView titleBar)
@@ -16,17 +15,7 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         _titleBar = titleBar;
     }
 
-    public void OnEnabled(Context context)
-    {
-        context.InputSystem.AddInteractable(this);
-    }
-
-    public void OnDisabled(Context context)
-    {
-        context.InputSystem.RemoveInteractable(this);
-    }
-
-    public void OnMouseEnter(ref MouseEnterEvent e)
+    public override void OnMouseEnter(ref MouseEnterEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
@@ -35,7 +24,7 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
             e.Consume();
     }
 
-    public void OnMouseExit(ref MouseExitEvent e)
+    public override void OnMouseExit(ref MouseExitEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
@@ -44,7 +33,7 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
             e.Consume();
     }
 
-    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
@@ -65,29 +54,12 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         this.Blur();
     }
 
-    public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
-    {
-        
-    }
-
-    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
-    {
-    }
-
-    public void OnFocusLost()
-    {
-    }
-
-    public void OnFocusGained()
-    {
-    }
-
     public bool CanReleaseFocus()
     {
         return !_isDragging;
     }
 
-    public void OnMouseMoved(ref MouseMoveEvent e)
+    public override void OnMouseMoved(ref MouseMoveEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
@@ -114,5 +86,5 @@ public sealed class WindowTitleBarDefaultKbmController : IKeyboardMouseControlle
         }
     }
     
-    public View View => _titleBar;
+    public override View View => _titleBar;
 }

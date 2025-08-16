@@ -2,9 +2,9 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseController
+public sealed class VerticalScrollBarThumbViewController : KeyboardMouseController
 {
-    public View View => _view;
+    public override View View => _view;
 
     private readonly VerticalScrollBarThumbView _view;
 
@@ -17,17 +17,7 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
         _view = view;
     }
 
-    public void OnEnabled(Context context)
-    {
-        context.InputSystem.AddInteractable(this);
-    }
-
-    public void OnDisabled(Context context)
-    {
-        context.InputSystem.RemoveInteractable(this);
-    }
-
-    public void OnMouseEnter(ref MouseEnterEvent e)
+    public override void OnMouseEnter(ref MouseEnterEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
@@ -37,7 +27,7 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
         e.Consume();
     }
 
-    public void OnMouseExit(ref MouseExitEvent e)
+    public override void OnMouseExit(ref MouseExitEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
@@ -50,17 +40,7 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
         e.Consume();
     }
 
-    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e) { }
-
-    public void OnFocusLost()
-    {
-    }
-
-    public void OnFocusGained()
-    {
-    }
-
-    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
@@ -89,13 +69,8 @@ public sealed class VerticalScrollBarThumbViewController : IKeyboardMouseControl
             return;
         }
     }
-
-    public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
-    {
-        
-    }
-
-    public void OnMouseMoved(ref MouseMoveEvent e)
+    
+    public override void OnMouseMoved(ref MouseMoveEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
             return;

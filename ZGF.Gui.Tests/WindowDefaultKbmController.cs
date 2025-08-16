@@ -1,6 +1,6 @@
 ﻿namespace ZGF.Gui.Tests;
 
-public sealed class WindowDefaultKbmController : IKeyboardMouseController
+public sealed class WindowDefaultKbmController : KeyboardMouseController
 {
     private readonly Window _window;
 
@@ -8,21 +8,8 @@ public sealed class WindowDefaultKbmController : IKeyboardMouseController
     {
         _window = window;
     }
-
-    public void OnEnabled(Context context)
-    {
-        context.InputSystem.AddInteractable(this);
-    }
-
-    public void OnDisabled(Context context)
-    {
-        context.InputSystem.RemoveInteractable(this);
-    }
     
-    public void OnMouseEnter(ref MouseEnterEvent e) { }
-    public void OnMouseExit(ref MouseExitEvent e) { }
-    
-    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
         if (e.Phase != EventPhase.Capturing)
             return;
@@ -32,26 +19,6 @@ public sealed class WindowDefaultKbmController : IKeyboardMouseController
             _window.BringToFront();
         }
     }
-
-    public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
-    {
-    }
-
-    public void OnMouseMoved(ref MouseMoveEvent e)
-    {
-    }
-
-    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
-    {
-    }
-
-    public void OnFocusLost()
-    {
-    }
-
-    public void OnFocusGained()
-    {
-    }
-
-    public View View => _window;
+    
+    public override View View => _window;
 }
