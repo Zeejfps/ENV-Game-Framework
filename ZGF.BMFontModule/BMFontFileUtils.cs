@@ -70,6 +70,26 @@ public static class BMFontFileUtils
         return common;
     }
 
+    private static List<FontPage> ParseFontPages(XmlElement? element)
+    {
+        var pages = new List<FontPage>();
+        if (element == null)
+            return pages;
+
+        foreach (XmlElement pageElement in element.GetElementsByTagName("page"))
+        {
+            var page = new FontPage
+            {
+                Id = int.TryParse(pageElement.GetAttribute("id"), out var id) ? id : 0,
+                File = pageElement.GetAttribute("file")
+            };
+
+            pages.Add(page);
+        }
+
+        return pages;
+    }
+
     public static BMFontFile DeserializeFromXmlFile(string filename)
     {
         using var textReader = new StreamReader(filename);
@@ -86,10 +106,16 @@ public static class BMFontFileUtils
             .FirstOrDefault();
         var fontCommon = ParseFontCommon(commonElement);
 
+        var pagesElement = doc.GetElementsByTagName("pages")
+            .OfType<XmlElement>()
+            .FirstOrDefault();
+        var pages = ParseFontPages(pagesElement);
+
         var bmFontFile = new BMFontFile
         {
             Info = fontInfo,
-            Common = fontCommon
+            Common = fontCommon,
+            Pages = pages,
         };
         bmFontFile.Update();
         return bmFontFile;

@@ -7,26 +7,20 @@ using System.Xml.Serialization;
 
 namespace ZGF.BMFontModule
 {
-	[Serializable]
-	[XmlRoot ( "font" )]
 	public sealed class BMFontFile
 	{
-		[XmlElement ( "info" )]
 		public FontInfo Info
 		{
 			get;
 			set;
 		}
 
-		[XmlElement ( "common" )]
 		public FontCommon Common
 		{
 			get;
 			set;
 		}
 
-		[XmlArray ( "pages" )]
-		[XmlArrayItem ( "page" )]
 		public List<FontPage> Pages
 		{
 			get;

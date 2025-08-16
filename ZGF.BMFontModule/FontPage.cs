@@ -5,8 +5,7 @@ namespace ZGF.BMFontModule;
 [Serializable]
 public class FontPage
 {
-    [XmlAttribute ( "id" )]
-    public Int32 ID
+    public int Id
     {
         get;
         set;
