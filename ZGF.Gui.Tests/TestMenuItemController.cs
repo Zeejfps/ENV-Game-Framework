@@ -23,7 +23,7 @@ public sealed class TestMenuItemController : BaseMenuItemController
         {
             Text = "Option 3"
         };
-        option3Menu.Controller = new ContextMenuItemDefaultKbmController(contextMenu, option3Menu, _contextMenuManager)
+        option3Menu.Controller = new ContextMenuItemDefaultKbmController(option3Menu, _contextMenuManager)
         {
             SubOptions =
             {

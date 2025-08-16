@@ -187,7 +187,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
             }
         };
 
-        _openedContextMenu = _contextMenuManager?.ShowContextMenu(contextMenu);
+        _openedContextMenu = _contextMenuManager.ShowContextMenu(contextMenu);
         _openedContextMenu.Closed += OnContextMenuClosed;
         contextMenu.Controller = new ContextMenuKbmController(_openedContextMenu);
     }
@@ -216,12 +216,9 @@ public sealed class ModelContextMenuItem : View
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
-        var contextMenu = GetParentOfType<ContextMenu>();
         var contextMenuManager = context.Get<ContextMenuManager>();
-        if (contextMenu == null || contextMenuManager == null)
-            return;
-        
-        Controller = new ContextMenuItemDefaultKbmController(contextMenu, _contextMenuItem, contextMenuManager);
+        Debug.Assert(contextMenuManager != null);
+        Controller = new ContextMenuItemDefaultKbmController(_contextMenuItem, contextMenuManager);
     }
 }
 
