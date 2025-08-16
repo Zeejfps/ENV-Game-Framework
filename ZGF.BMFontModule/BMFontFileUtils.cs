@@ -120,6 +120,29 @@ public static class BMFontFileUtils
         return chars;
     }
 
+    private static List<FontKerning> ParseFontKernings(XmlElement? element)
+    {
+        if (element == null)
+            return new List<FontKerning>();
+
+        var count = int.TryParse(element.GetAttribute("count"), out var c) ? c : 0;
+        var kernings = new List<FontKerning>(count);
+
+        foreach (XmlElement kerningElement in element.GetElementsByTagName("kerning"))
+        {
+            var kerning = new FontKerning
+            {
+                First  = int.TryParse(kerningElement.GetAttribute("first"), out var first) ? first : 0,
+                Second = int.TryParse(kerningElement.GetAttribute("second"), out var second) ? second : 0,
+                Amount = int.TryParse(kerningElement.GetAttribute("amount"), out var amount) ? amount : 0
+            };
+
+            kernings.Add(kerning);
+        }
+
+        return kernings;
+    }
+
     public static BMFontFile DeserializeFromXmlFile(string filename)
     {
         using var textReader = new StreamReader(filename);
@@ -146,12 +169,18 @@ public static class BMFontFileUtils
             .FirstOrDefault();
         var chars = ParseFontChars(charsElement);
 
+        var kerningsElement = doc.GetElementsByTagName("kernings")
+            .OfType<XmlElement>()
+            .FirstOrDefault();
+        var kernings = ParseFontKernings(kerningsElement);
+
         var bmFontFile = new BMFontFile
         {
             Info = fontInfo,
             Common = fontCommon,
             Pages = pages,
             Chars = chars,
+            Kernings = kernings,
         };
         bmFontFile.Update();
         return bmFontFile;
