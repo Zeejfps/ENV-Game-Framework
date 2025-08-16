@@ -2,9 +2,9 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseController
+public sealed class DefaultVerticalListViewKbmController : KeyboardMouseController
 {
-    public View View => _view;
+    public override View View => _view;
     
     private readonly VerticalListView _view;
     private readonly VerticalScrollPane _viewPortView;
@@ -17,27 +17,11 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
         _scrollBarView = view.ScrollBarView;
     }
 
-    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+
+    public override void OnEnabled(Context context)
     {
+        base.OnEnabled(context);
         
-    }
-
-    public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
-    {
-        if (e.Phase != EventPhase.Bubbling)
-            return;
-        
-        _view.Scroll(e.DeltaY * -10);
-        e.Consume();
-    }
-
-    public void OnMouseMoved(ref MouseMoveEvent e)
-    {
-    }
-
-    public void OnEnabled(Context context)
-    {
-        context.InputSystem.AddInteractable(this);
         _viewPortView.ScrollToTop();
         _scrollBarView.ScrollToTop();
 
@@ -45,11 +29,20 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
         _viewPortView.ScrollPositionChanged += OnScrollPaneScrollPositionChanged;
     }
 
-    public void OnDisabled(Context context)
+    public override void OnDisabled(Context context)
     {
-        context.InputSystem.RemoveInteractable(this);
+        base.OnDisabled(context);
         _scrollBarView.ScrollPositionChanged -= OnScrollBarScrollPositionChanged;
         _viewPortView.ScrollPositionChanged -= OnScrollPaneScrollPositionChanged;
+    }
+
+    public override void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
+    {
+        if (e.Phase != EventPhase.Bubbling)
+            return;
+        
+        _view.Scroll(e.DeltaY * -10);
+        e.Consume();
     }
 
     private void OnScrollPaneScrollPositionChanged(float normalizedScrollPosition)
@@ -62,15 +55,7 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
         _viewPortView.SetNormalizedScrollPosition(normalizedScrollPosition);
     }
 
-    public void OnMouseEnter(ref MouseEnterEvent e)
-    {
-    }
-
-    public void OnMouseExit(ref MouseExitEvent e)
-    {
-    }
-
-    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
+    public override void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
@@ -94,13 +79,5 @@ public sealed class DefaultVerticalListViewKbmController : IKeyboardMouseControl
                 _view.ScrollToTop();
             }
         }
-    }
-
-    public void OnFocusLost()
-    {
-    }
-
-    public void OnFocusGained()
-    {
     }
 }

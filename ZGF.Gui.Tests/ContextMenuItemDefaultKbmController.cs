@@ -1,6 +1,6 @@
 ﻿namespace ZGF.Gui.Tests;
 
-public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseController
+public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseController
 {
     private readonly ContextMenu _contextMenu;
     private readonly ContextMenuItem _contextMenuItem;
@@ -27,21 +27,17 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         Clicked = clicked;
     }
 
-    public void OnEnabled(Context context)
+    public override void OnEnabled(Context context)
     {
-        context.InputSystem.AddInteractable(this);
+        base.OnEnabled(context);
         if (SubOptions.Count > 0)
         {
             _contextMenuItem.IsArrowVisible = true;
         }
     }
+    
 
-    public void OnDisabled(Context context)
-    {
-        context.InputSystem.RemoveInteractable(this);
-    }
-
-    public void OnMouseEnter(ref MouseEnterEvent e)
+    public override void OnMouseEnter(ref MouseEnterEvent e)
     {
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
@@ -85,7 +81,7 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         }
     }
 
-    public void OnMouseExit(ref MouseExitEvent e)
+    public override void OnMouseExit(ref MouseExitEvent e)
     {
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
@@ -98,7 +94,7 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
         this.Blur();
     }
 
-    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
         if (e.State == InputState.Pressed)
         {
@@ -106,26 +102,6 @@ public sealed class ContextMenuItemDefaultKbmController : IKeyboardMouseControll
             e.Consume();
         }
     }
-
-    public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
-    {
-    }
-
-    public void OnMouseMoved(ref MouseMoveEvent e)
-    {
-    }
-
-    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
-    {
-    }
-
-    public void OnFocusLost()
-    {
-    }
-
-    public void OnFocusGained()
-    {
-    }
-
-    public View View => _contextMenuItem;
+    
+    public override View View => _contextMenuItem;
 }

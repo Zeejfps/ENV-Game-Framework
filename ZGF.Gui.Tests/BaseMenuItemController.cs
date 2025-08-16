@@ -1,6 +1,6 @@
 ﻿namespace ZGF.Gui.Tests;
 
-public abstract class BaseMenuItemController : IKeyboardMouseController
+public abstract class BaseMenuItemController : KeyboardMouseController
 {
     protected MenuItem MenuItem { get; }
     protected readonly ContextMenuManager _contextMenuManager;
@@ -13,23 +13,18 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         MenuItem = menuItem;
         _contextMenuManager = contextMenuManager;
     }
-    
-    public void OnEnabled(Context context)
-    {
-        this.RegisterController(context);
-    }
 
-    public void OnDisabled(Context context)
+    public override void OnDisabled(Context context)
     {
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed -= OnOpenedContextMenuClosed;
             _openedContextMenu = null;
         }
-        this.UnregisterController(context);
+        base.OnDisabled(context);
     }
     
-    public void OnMouseEnter(ref MouseEnterEvent e)
+    public override void OnMouseEnter(ref MouseEnterEvent e)
     {
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
@@ -62,7 +57,7 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         }
     }
 
-    public void OnMouseExit(ref MouseExitEvent e)
+    public override void OnMouseExit(ref MouseExitEvent e)
     {
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
@@ -70,32 +65,7 @@ public abstract class BaseMenuItemController : IKeyboardMouseController
         }
     }
 
-    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
-    {
-        
-    }
-
-    public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
-    {
-    }
-
-    public void OnMouseMoved(ref MouseMoveEvent e)
-    {
-    }
-
-    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
-    {
-    }
-
-    public void OnFocusLost()
-    {
-    }
-
-    public void OnFocusGained()
-    {
-    }
-
-    public View View => MenuItem;
+    public override View View => MenuItem;
 
     protected abstract void BuildMenu(ContextMenu contextMenu);
 }

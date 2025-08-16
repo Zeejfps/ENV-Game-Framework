@@ -1,6 +1,6 @@
 ﻿namespace ZGF.Gui.Tests;
 
-public sealed class ContextMenuKbmController : IKeyboardMouseController
+public sealed class ContextMenuKbmController : KeyboardMouseController
 {
     private readonly IOpenedContextMenu _contextMenu;
 
@@ -8,51 +8,17 @@ public sealed class ContextMenuKbmController : IKeyboardMouseController
     {
         _contextMenu = contextMenu;
     }
-
-    public void OnEnabled(Context context)
-    {
-        context.InputSystem.AddInteractable(this);
-    }
-
-    public void OnDisabled(Context context)
-    {
-        context.InputSystem.RemoveInteractable(this);
-    }
     
-    public void OnMouseEnter(ref MouseEnterEvent e)
+    
+    public override void OnMouseEnter(ref MouseEnterEvent e)
     {
         _contextMenu.CancelCloseRequest();
     }
 
-    public void OnMouseExit(ref MouseExitEvent e)
+    public override void OnMouseExit(ref MouseExitEvent e)
     {
         _contextMenu.CloseRequest();
     }
 
-    public void OnMouseButtonStateChanged(ref MouseButtonEvent e)
-    {
-        
-    }
-
-    public void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
-    {
-    }
-
-    public void OnMouseMoved(ref MouseMoveEvent e)
-    {
-    }
-
-    public void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
-    {
-    }
-
-    public void OnFocusLost()
-    {
-    }
-
-    public void OnFocusGained()
-    {
-    }
-
-    public View View => _contextMenu.View;
+    public override View View => _contextMenu.View;
 }
