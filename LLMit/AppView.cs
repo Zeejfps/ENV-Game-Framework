@@ -53,11 +53,32 @@ public sealed class StartNewChatView : View
                     Gap = 10,
                     Children =
                     {
-                        new TextView
+                        new CenterView
                         {
-                            Text = "What would you like to ask?",
-                            TextColor = 0xFFFFFFFF,
-                            HorizontalTextAlignment = TextAlignment.Center,
+                            Children =
+                            {
+                                new RowView
+                                {
+                                    Gap = 5,
+                                    Children =
+                                    {
+                                        new TextView
+                                        {
+                                            Text = "What would you like to ask",
+                                            TextColor = 0xFFFFFFFF,
+                                            VerticalTextAlignment = TextAlignment.Center,
+                                            //HorizontalTextAlignment = TextAlignment.Center,
+                                        },
+                                        new ModelSelector(),
+                                        new TextView
+                                        {
+                                            Text = "?",
+                                            TextColor = 0xFFFFFFFF,
+                                            VerticalTextAlignment = TextAlignment.Center,
+                                        }
+                                    }
+                                }
+                            }
                         },
                         new RectView
                         {
@@ -77,6 +98,30 @@ public sealed class StartNewChatView : View
         textInput.Controller = textInputController;
         
         AddChildToSelf(layout);
+    }
+}
+
+public sealed class ModelSelector : View
+{
+    public ModelSelector()
+    {
+        var background = new RectView
+        {
+            BorderColor = BorderColorStyle.All(0xFF0493BF),
+            BorderSize = BorderSizeStyle.All(1),
+            Padding = PaddingStyle.All(4),
+            Children =
+            {
+                new TextView
+                {
+                    Text = "Gemini",
+                    TextColor = 0xFF0493BF,
+                    VerticalTextAlignment = TextAlignment.Center,
+                }
+            }
+        };
+        
+        AddChildToSelf(background);
     }
 }
 
