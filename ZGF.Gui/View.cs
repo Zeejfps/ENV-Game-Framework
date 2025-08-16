@@ -614,6 +614,21 @@ public class View
         return base.ToString() + "-" + _depth;
     }
 
+    public T? GetParentOfType<T>() where T : View
+    {
+        var parent = Parent;
+        while (parent != null)
+        {
+            if (parent is T t)
+            {
+                return t;
+            }
+            parent = parent.Parent;
+        }
+
+        return null;
+    }
+
     private sealed class ComponentCollection : IComponentCollection
     {
         private readonly View _view;

@@ -181,30 +181,14 @@ public sealed class ModelSelectorController : IKeyboardMouseController
         
         var contextMenu = new ContextMenu
         {
-            AnchorPoint = View.Position.BottomLeft
+            AnchorPoint = View.Position.BottomLeft,
+            Children =
+            {
+                new ModelContextMenuItem("Gemini"),
+                new ModelContextMenuItem("GPT 5"),
+                new ModelContextMenuItem("Claude Opus"),
+            }
         };
-        var geminiOption = new ContextMenuItem
-        {
-            Text = "Gemini",
-            IsSelected = true
-        };
-        geminiOption.Controller =
-            new ContextMenuItemDefaultKbmController(contextMenu, geminiOption, _contextMenuManager);
-        contextMenu.Children.Add(geminiOption);
-
-        var gpt5Option = new ContextMenuItem
-        {
-            Text = "GPT 5"
-        };
-        gpt5Option.Controller = new ContextMenuItemDefaultKbmController(contextMenu, gpt5Option, _contextMenuManager);
-        contextMenu.Children.Add(gpt5Option);
-
-        var claudOption = new ContextMenuItem
-        {
-            Text = "Claude Opus"
-        };
-        claudOption.Controller = new ContextMenuItemDefaultKbmController(contextMenu, claudOption, _contextMenuManager);
-        contextMenu.Children.Add(claudOption);
 
         _openedContextMenu = _contextMenuManager?.ShowContextMenu(contextMenu);
         _openedContextMenu.Closed += OnContextMenuClosed;
@@ -235,6 +219,32 @@ public sealed class ModelSelectorController : IKeyboardMouseController
 
     public void OnFocusGained()
     {
+    }
+}
+
+public sealed class ModelContextMenuItem : View
+{
+    private readonly ContextMenuItem _contextMenuItem;
+    
+    public ModelContextMenuItem(string model)
+    {
+        _contextMenuItem = new ContextMenuItem
+        {
+            Text = model,
+        };
+        
+        AddChildToSelf(_contextMenuItem);
+    }
+
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        var contextMenu = GetParentOfType<ContextMenu>();
+        var contextMenuManager = context.Get<ContextMenuManager>();
+        if (contextMenu == null || contextMenuManager == null)
+            return;
+        
+        Controller = new ContextMenuItemDefaultKbmController(contextMenu, _contextMenuItem, contextMenuManager);
     }
 }
 
