@@ -3,48 +3,20 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Tests;
 
-public abstract class BaseTextInputKbmController : IKeyboardMouseController
+public abstract class BaseTextInputKbmController : KeyboardMouseController
 {
     private readonly TextInputView _textInput;
+
+    public override View View => _textInput;
+
+    public bool IsMultiLine { get; set; }
     
     public BaseTextInputKbmController(TextInputView textInput)
     {
         _textInput = textInput;
     }
-    public virtual void OnEnabled(Context context)
-    {
-        context.InputSystem.AddInteractable(this);
-    }
-
-    public virtual void OnDisabled(Context context)
-    {
-        context.InputSystem.RemoveInteractable(this);
-    }
-
-    public virtual void OnMouseEnter(ref MouseEnterEvent e)
-    {
-        
-    }
-
-    public virtual void OnMouseExit(ref MouseExitEvent e)
-    {
-        
-    }
     
-    public virtual void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
-    {
-    }
-
-    public virtual void OnFocusLost()
-    {
-        
-    }
-
-    public virtual void OnFocusGained()
-    {
-    }
-
-    public virtual void OnMouseMoved(ref MouseMoveEvent e)
+    public override void OnMouseMoved(ref MouseMoveEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
@@ -60,7 +32,7 @@ public abstract class BaseTextInputKbmController : IKeyboardMouseController
         e.Consume();
     }
 
-    public virtual void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
@@ -89,7 +61,7 @@ public abstract class BaseTextInputKbmController : IKeyboardMouseController
         }
     }
 
-    public virtual void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
+    public override void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
@@ -138,7 +110,14 @@ public abstract class BaseTextInputKbmController : IKeyboardMouseController
             e.Consume();
             return;
         }
-            
+        
+        if (e.Modifiers == InputModifiers.Shift && e.Key == KeyboardKey.Enter && IsMultiLine)
+        {
+            Enter('\n');
+            e.Consume();
+            return;
+        }
+        
         var isShiftPressed = (e.Modifiers & InputModifiers.Shift) > 0;
         if (e.Key == KeyboardKey.UpArrow)
         {
@@ -218,6 +197,4 @@ public abstract class BaseTextInputKbmController : IKeyboardMouseController
    
         clipboard.SetText(selectedText);
     }
-
-    public View View => _textInput;
 }

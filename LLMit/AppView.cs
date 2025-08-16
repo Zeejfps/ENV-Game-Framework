@@ -94,7 +94,10 @@ public sealed class StartNewChatView : View
             }
         };
         
-        var textInputController = new ChatInputViewController(textInput);
+        var textInputController = new TextInputViewKbmController(textInput)
+        {
+            IsMultiLine = true
+        };
         textInput.Controller = textInputController;
         
         AddChildToSelf(layout);

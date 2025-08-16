@@ -70,7 +70,7 @@ public sealed class Center : View
         {
             PreferredHeight = 30f
         };
-        textInput.Controller = new TextInputDefaultKbmController(textInput);
+        textInput.Controller = new TextInputViewKbmController(textInput);
 
         var textField = new RectView
         {
