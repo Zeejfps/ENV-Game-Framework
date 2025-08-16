@@ -35,12 +35,10 @@ public sealed class CenterArea : View
             {
                 BorderSize = new BorderSizeStyle
                 {
-                    Top = 1
+                    Top = 1,
+                    Left = 1,
                 },
-                BorderColor = new BorderColorStyle
-                {
-                    Top = 0xFF4f4f4f
-                },
+                BorderColor = BorderColorStyle.All(0xFF4f4f4f),
                 Children =
                 {
                     new StartNewChatView(),
@@ -109,6 +107,7 @@ public sealed class TabView : View
             {
                 Top = 1,
                 Right = 1,
+                Left = 1
             },
             BorderColor = BorderColorStyle.All(0xFF4f4f4f),
             Children =
