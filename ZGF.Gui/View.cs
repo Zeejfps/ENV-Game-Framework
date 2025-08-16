@@ -629,6 +629,12 @@ public class View
         return null;
     }
 
+    public int GetDrawZIndex()
+    {
+        var parentZIndex = Parent?.GetDrawZIndex() ?? 0;
+        return parentZIndex + ZIndex;
+    }
+
     private sealed class ComponentCollection : IComponentCollection
     {
         private readonly View _view;

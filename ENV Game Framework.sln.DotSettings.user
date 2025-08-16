@@ -29,14 +29,14 @@
   &lt;Assembly Path="C:\Users\zeejf\.nuget\packages\raylib-cslo\4.2.0.9\lib\netstandard2.1\Raylib-CsLo.dll" /&gt;&#xD;
   &lt;Assembly Path="C:\Users\zeejf\.nuget\packages\nativefiledialogs.net\1.0.0\lib\net6.0\NativeFileDialogs.Net.dll" /&gt;&#xD;
 &lt;/AssemblyExplorer&gt;</s:String>
-	<s:String x:Key="/Default/Environment/Highlighting/HighlightingSourceSnapshotLocation/@EntryValue">C:\Users\zeejf\AppData\Local\JetBrains\Rider2025.1\resharper-host\temp\Rider\vAny\CoverageData\_ENV Game Framework.-1116597666\Snapshot\snapshot.utdcvr</s:String>
 	
 	
 	
 	
 	
 	
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=cbd3c11c_002Da7b9_002D4721_002Da691_002D1303fbbd898a/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from Solution" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;Solution /&gt;&#xD;
+	
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=cbd3c11c_002Da7b9_002D4721_002Da691_002D1303fbbd898a/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from Solution" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;Solution /&gt;
 &lt;/SessionState&gt;</s:String>
 	</wpf:ResourceDictionary>

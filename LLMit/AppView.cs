@@ -31,7 +31,21 @@ public sealed class CenterArea : View
         var layout = new BorderLayoutView
         {
             North = new TabBarView(),
-            Center = new StartNewChatView(),
+            Center = new RectView
+            {
+                BorderSize = new BorderSizeStyle
+                {
+                    Top = 1
+                },
+                BorderColor = new BorderColorStyle
+                {
+                    Top = 0xFF4f4f4f
+                },
+                Children =
+                {
+                    new StartNewChatView(),
+                }
+            }
         };
 
         AddChildToSelf(background);
@@ -104,6 +118,13 @@ public sealed class TabView : View
         };
 
         AddChildToSelf(bg);
+        ZIndex = 10;
+    }
+
+    protected override void OnLayoutSelf()
+    {
+        base.OnLayoutSelf();
+        Position = Position with { Bottom = Position.Bottom - 1, Height = Position.Height + 1 };
     }
 }
 

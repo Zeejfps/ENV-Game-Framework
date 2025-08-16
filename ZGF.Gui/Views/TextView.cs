@@ -68,7 +68,7 @@ public sealed class TextView : View
             Position = Position,
             Text = _text,
             Style = _style,
-            ZIndex = ZIndex
+            ZIndex = GetDrawZIndex()
         });
     }
 }

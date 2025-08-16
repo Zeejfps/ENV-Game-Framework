@@ -245,16 +245,16 @@ public sealed class SoftwareRenderedCanvas : ICanvas
 
     public void EndFrame()
     {
-        //_commands.Sort((x, y) => y.ZIndex.CompareTo(x.ZIndex));
+        // _commands.Sort((x, y) => x.ZIndex.CompareTo(y.ZIndex));
         
-        // var drawCommands = _commands
-        //     .Select((cmd, index) => (cmd, index))
-        //     .OrderBy(x => x.cmd.ZIndex) // Or .OrderByDescending
-        //     .ThenBy(x => x.index)
-        //     .Select(x => x.cmd)
-        //     .ToList();
+        var drawCommands = _commands
+            .Select((cmd, index) => (cmd, index))
+            .OrderBy(x => x.cmd.ZIndex) // Or .OrderByDescending
+            .ThenBy(x => x.index)
+            .Select(x => x.cmd)
+            .ToList();
         
-        foreach (var command in _commands)
+        foreach (var command in drawCommands)
         {
             switch (command.Kind)
             {

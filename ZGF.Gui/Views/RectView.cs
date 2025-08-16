@@ -34,7 +34,7 @@ public class RectView : View
         {
             Position = Position,
             Style = _style,
-            ZIndex = ZIndex
+            ZIndex = GetDrawZIndex()
         });
     }
 
