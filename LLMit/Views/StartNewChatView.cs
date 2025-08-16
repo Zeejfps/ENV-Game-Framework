@@ -8,14 +8,6 @@ public sealed class StartNewChatView : View
 {
     public StartNewChatView()
     {
-        var textInput = new TextInputView
-        {
-            PreferredWidth = 500,
-            TextWrap = TextWrap.Wrap,
-            TextColor = 0xFFA6A6A6,
-            CaretColor = 0xFFA6A6A6,
-            SelectionRectColor = 0xAA466583,
-        };
         var layout = new CenterView
         {
             Children =
@@ -52,25 +44,11 @@ public sealed class StartNewChatView : View
                                 }
                             }
                         },
-                        new RectView
-                        {
-                            Padding = PaddingStyle.All(10),
-                            BackgroundColor = 0xFF303030,
-                            Children =
-                            {
-                                textInput
-                            }
-                        }
+                        new ChatTextInputView(),
                     }
                 }
             }
         };
-
-        var textInputController = new TextInputViewKbmController(textInput)
-        {
-            IsMultiLine = true
-        };
-        textInput.Controller = textInputController;
 
         AddChildToSelf(layout);
     }
