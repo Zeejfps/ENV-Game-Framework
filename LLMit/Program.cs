@@ -1,4 +1,5 @@
 ﻿using LLMit;
+using LLMit.Views;
 using ZGF.Core;
 
 var appView = new AppView();
