@@ -27,8 +27,6 @@ namespace ZGF.BMFontModule
 			set;
 		}
 
-		[XmlArray ( "chars" )]
-		[XmlArrayItem ( "char" )]
 		public List<FontChar> Chars
 		{
 			get;
@@ -48,7 +46,7 @@ namespace ZGF.BMFontModule
 		public void Update()
 		{
 			foreach (var c in Chars)
-				m_IdToCharTable.Add(c.ID, c);
+				m_IdToCharTable.Add(c.Id, c);
 		}
 
 		public bool TryGetFontChar(int codePoint, out FontChar c)

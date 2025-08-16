@@ -90,6 +90,36 @@ public static class BMFontFileUtils
         return pages;
     }
 
+    private static List<FontChar> ParseFontChars(XmlElement? element)
+    {
+        if (element == null)
+            return new List<FontChar>();
+
+        var count = int.TryParse(element.GetAttribute("count"), out var c) ? c : 0;
+        var chars = new List<FontChar>(count);
+
+        foreach (XmlElement charElement in element.GetElementsByTagName("char"))
+        {
+            var fontChar = new FontChar
+            {
+                Id       = int.TryParse(charElement.GetAttribute("id"), out var id) ? id : 0,
+                X        = int.TryParse(charElement.GetAttribute("x"), out var x) ? x : 0,
+                Y        = int.TryParse(charElement.GetAttribute("y"), out var y) ? y : 0,
+                Width    = int.TryParse(charElement.GetAttribute("width"), out var width) ? width : 0,
+                Height   = int.TryParse(charElement.GetAttribute("height"), out var height) ? height : 0,
+                XOffset  = int.TryParse(charElement.GetAttribute("xoffset"), out var xoff) ? xoff : 0,
+                YOffset  = int.TryParse(charElement.GetAttribute("yoffset"), out var yoff) ? yoff : 0,
+                XAdvance = int.TryParse(charElement.GetAttribute("xadvance"), out var xadv) ? xadv : 0,
+                Page     = int.TryParse(charElement.GetAttribute("page"), out var page) ? page : 0,
+                Channel  = int.TryParse(charElement.GetAttribute("chnl"), out var chnl) ? chnl : 0,
+            };
+
+            chars.Add(fontChar);
+        }
+
+        return chars;
+    }
+
     public static BMFontFile DeserializeFromXmlFile(string filename)
     {
         using var textReader = new StreamReader(filename);
@@ -111,11 +141,17 @@ public static class BMFontFileUtils
             .FirstOrDefault();
         var pages = ParseFontPages(pagesElement);
 
+        var charsElement = doc.GetElementsByTagName("chars")
+            .OfType<XmlElement>()
+            .FirstOrDefault();
+        var chars = ParseFontChars(charsElement);
+
         var bmFontFile = new BMFontFile
         {
             Info = fontInfo,
             Common = fontCommon,
             Pages = pages,
+            Chars = chars,
         };
         bmFontFile.Update();
         return bmFontFile;
