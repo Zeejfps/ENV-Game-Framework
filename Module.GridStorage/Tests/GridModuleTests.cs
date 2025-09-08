@@ -2,7 +2,7 @@ namespace Module.GridStorage.Tests;
 
 public class GridModuleTests
 {
-    sealed class TestItem
+    private sealed class TestItem
     {
         
     }
@@ -20,5 +20,7 @@ public class GridModuleTests
         gridStorage.TryInsert(0, 0, 2, 3, testItem);
         
         gridStorage.TryGetSlot(testItem, out var slot2);
+        
+        gridStorage.Remove(testItem);
     }
 }

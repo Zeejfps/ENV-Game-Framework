@@ -1,4 +1,7 @@
-﻿namespace Module.GridStorage;
+﻿using System.Diagnostics.CodeAnalysis;
+using Module.GridStorage.Tests;
+
+namespace Module.GridStorage;
 
 public readonly record struct GridPoint
 {
@@ -19,10 +22,26 @@ public readonly record struct Slot<TItem>
     public required TItem Item { get; init; }
 }
 
-public sealed class GridStorage<TItem>(int width, int height)
+public sealed class GridStorage<TItem>(int width, int height) where TItem : notnull
 {
     private readonly Dictionary<GridPoint, Slot<TItem>> _slotsByPointLookup = new();
     private readonly Dictionary<TItem, Slot<TItem>> _slotsByItemLookup = new();
+
+    public bool TryGetItem(uint x, uint y, out TItem item)
+    {
+        return TryGetItem(new GridPoint { X = x, Y = y }, out item);
+    }
+    
+    public bool TryGetItem(GridPoint point, [MaybeNullWhen(false)] out TItem item)
+    {
+        if (!TryGetSlot(point, out var slot))
+        {
+            item = default;
+            return false;
+        }
+        item = slot.Item;
+        return true;
+    }
     
     public bool TryGetSlot(uint x, uint y, out Slot<TItem> slot)
     {
@@ -59,15 +78,59 @@ public sealed class GridStorage<TItem>(int width, int height)
             Size = size,
             Item = item
         };
-        for (var i = origin.Y; i < size.Height; i++)
+        _slotsByItemLookup.Add(item, slot);
+        FillSlot(slot);
+        return true;
+    }
+
+    public bool Remove(TItem item)
+    {
+        return Remove(item, out _);
+    }
+
+    public bool Remove(TItem item, out Slot<TItem> slot)
+    {
+        if (!_slotsByItemLookup.Remove(item, out slot))
         {
-            for (var j = origin.X; j < size.Width; j++)
+            return false;
+        }
+        ClearSlot(slot);
+        return true;
+    }
+
+    private void FillSlot(in Slot<TItem> slot)
+    {
+        var origin = slot.Origin;
+        var size = slot.Size;
+        var sy = origin.Y;
+        var ey = origin.Y + size.Height;
+        var sx = origin.X;
+        var ex = origin.X + size.Width;
+        for (var y = sy; y < ey; y++)
+        {
+            for (var x = sx; x < ex; x++)
             {
-                var insertionPoint = new GridPoint{X = j, Y = i};
-                _slotsByPointLookup[insertionPoint] = slot;
+                var point = new GridPoint{X = x, Y = y};
+                _slotsByPointLookup[point] = slot;
             }
         }
-        _slotsByItemLookup.Add(item, slot);
-        return true;
+    }
+
+    private void ClearSlot(in Slot<TItem> slot)
+    {
+        var origin = slot.Origin;
+        var size = slot.Size;
+        var sy = origin.Y;
+        var ey = origin.Y + size.Height;
+        var sx = origin.X;
+        var ex = origin.X + size.Width;
+        for (var y = sy; y < ey; y++)
+        {
+            for (var x = sx; x < ex; x++)
+            {
+                var point = new GridPoint{X = x, Y = y};
+                _slotsByPointLookup.Remove(point);
+            }
+        }
     }
 }
