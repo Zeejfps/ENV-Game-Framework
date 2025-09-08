@@ -1,6 +1,6 @@
 using System;
 
-namespace Module.GridStorage
+namespace GridStorageModule
 {
     public struct Size : IEquatable<Size>
     {

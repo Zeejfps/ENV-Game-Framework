@@ -1,4 +1,4 @@
-namespace Module.GridStorage.Tests
+namespace GridStorageModule.Tests
 {
     public class GridModuleTests
     {

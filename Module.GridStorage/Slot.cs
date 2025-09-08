@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Module.GridStorage
+namespace GridStorageModule
 {
     public struct Slot<TItem> : IEquatable<Slot<TItem>>
     {
