@@ -18,6 +18,7 @@ public class GridModuleTests
         }
 
         gridStorage.TryInsert(0, 0, 2, 3, testItem);
-
+        
+        gridStorage.TryGetSlot(testItem, out var slot2);
     }
 }
