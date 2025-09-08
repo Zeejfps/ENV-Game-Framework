@@ -15,7 +15,17 @@ namespace GridStorageModule
             Width = width;
             Height = height;
         }
-    
+
+        public IEnumerable<Slot<TItem>> GetAllOccupiedSlots()
+        {
+            return _slotsByItemLookup.Values;
+        }
+
+        public IEnumerable<TItem> GetAllItems()
+        {
+            return _slotsByItemLookup.Keys;
+        }
+        
         public bool TryGetItem(uint x, uint y, out TItem item)
         {
             return TryGetItem(Point.Of(x, y), out item);
