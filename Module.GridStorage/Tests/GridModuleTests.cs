@@ -12,7 +12,7 @@ namespace GridStorageModule.Tests
             var gridStorage = new GridStorage<TestItem>(10, 10);
 
             var testItem = new TestItem();
-            if (gridStorage.TryGetSlot(0, 0, out var slot))
+            if (gridStorage.TryGetOccupiedSlot(0, 0, out var slot))
             {
             
             }
@@ -21,7 +21,7 @@ namespace GridStorageModule.Tests
 
             gridStorage.TryInsert(testItem, 0, 0, 2, 3);
         
-            gridStorage.TryGetSlot(testItem, out var slot2);
+            gridStorage.TryGetOccupiedSlot(testItem, out var slot2);
         
             gridStorage.Remove(testItem);
         }

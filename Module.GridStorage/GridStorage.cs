@@ -4,8 +4,8 @@ namespace GridStorageModule
 {
     public sealed class GridStorage<TItem>
     {
-        private readonly Dictionary<Point, Slot<TItem>> _slotsByPointLookup = new();
-        private readonly Dictionary<TItem, Slot<TItem>> _slotsByItemLookup = new();
+        private readonly Dictionary<Point, OccupiedSlot<TItem>> _slotsByPointLookup = new();
+        private readonly Dictionary<TItem, OccupiedSlot<TItem>> _slotsByItemLookup = new();
 
         public uint Width { get; }
         public uint Height { get; }
@@ -16,7 +16,7 @@ namespace GridStorageModule
             Height = height;
         }
 
-        public IEnumerable<Slot<TItem>> GetAllOccupiedSlots()
+        public IEnumerable<OccupiedSlot<TItem>> GetAllOccupiedSlots()
         {
             return _slotsByItemLookup.Values;
         }
@@ -33,7 +33,7 @@ namespace GridStorageModule
     
         public bool TryGetItem(in Point point, out TItem item)
         {
-            if (!TryGetSlot(point, out var slot))
+            if (!TryGetOccupiedSlot(point, out var slot))
             {
                 item = default;
                 return false;
@@ -42,17 +42,17 @@ namespace GridStorageModule
             return true;
         }
     
-        public bool TryGetSlot(uint x, uint y, out Slot<TItem> slot)
+        public bool TryGetOccupiedSlot(uint x, uint y, out OccupiedSlot<TItem> slot)
         {
-            return TryGetSlot(new Point{X = x, Y = y}, out slot);
+            return TryGetOccupiedSlot(new Point{X = x, Y = y}, out slot);
         }
     
-        public bool TryGetSlot(Point point, out Slot<TItem> slot)
+        public bool TryGetOccupiedSlot(Point point, out OccupiedSlot<TItem> slot)
         {
             return _slotsByPointLookup.TryGetValue(point, out slot);
         }
 
-        public bool TryGetSlot(TItem item, out Slot<TItem> slot)
+        public bool TryGetOccupiedSlot(TItem item, out OccupiedSlot<TItem> slot)
         {
             return _slotsByItemLookup.TryGetValue(item, out slot);
         }
@@ -62,7 +62,7 @@ namespace GridStorageModule
             return _slotsByItemLookup.ContainsKey(item);
         }
 
-        public bool TryAdd(TItem item, uint itemWidth, uint itemHeight, out Slot<TItem> slot)
+        public bool TryAdd(TItem item, uint itemWidth, uint itemHeight, out OccupiedSlot<TItem> slot)
         {
             return TryAdd(item, Size.Of(itemWidth, itemHeight), out slot);
         }
@@ -77,14 +77,39 @@ namespace GridStorageModule
             return TryAdd(item, size, out _);
         }
     
-        public bool TryAdd(TItem item, in Size size, out Slot<TItem> slot)
+        public bool TryAdd(TItem item, in Size size, out OccupiedSlot<TItem> slot)
         {
             slot = default;
             if (Contains(item))
             {
                 return false;
             }
+
+            if (!TryFindEmptySlotOfSize(size, out var emptySlot))
+            {
+                return false;
+            }
+            
+            slot = new OccupiedSlot<TItem>
+            {
+                Origin = emptySlot.Origin,
+                Size = emptySlot.Size,
+                Item = item
+            };
+                    
+            FillSlot(slot);
+            _slotsByItemLookup[item] = slot;
+            return true;
+
+        }
+
+        public bool TryFindEmptySlotOfSize(uint itemWidth, uint itemHeight, out EmptySlot slot)
+        {
+            return TryFindEmptySlotOfSize(Size.Of(itemWidth, itemHeight), out slot);
+        }
         
+        public bool TryFindEmptySlotOfSize(Size size, out EmptySlot slot)
+        {
             for (uint y = 0; y <= Height - size.Height; y++)
             {
                 for (uint x = 0; x <= Width - size.Width; x++)
@@ -96,19 +121,16 @@ namespace GridStorageModule
                         continue;
                     }
                 
-                    slot = new Slot<TItem>
+                    slot = new EmptySlot
                     {
                         Origin = origin,
                         Size = size,
-                        Item = item
                     };
-                    
-                    FillSlot(slot);
-                    _slotsByItemLookup[item] = slot;
                     return true;
                 }
             }
-    
+
+            slot = default;
             return false;
         }
     
@@ -157,7 +179,7 @@ namespace GridStorageModule
                 return false;
             }
         
-            var slot = new Slot<TItem>
+            var slot = new OccupiedSlot<TItem>
             {
                 Origin = origin,
                 Size = size,
@@ -173,7 +195,7 @@ namespace GridStorageModule
             return Remove(item, out _);
         }
 
-        public bool Remove(TItem item, out Slot<TItem> slot)
+        public bool Remove(TItem item, out OccupiedSlot<TItem> slot)
         {
             if (!_slotsByItemLookup.TryGetValue(item, out slot))
             {
@@ -184,7 +206,7 @@ namespace GridStorageModule
             return true;
         }
 
-        private void FillSlot(in Slot<TItem> slot)
+        private void FillSlot(in OccupiedSlot<TItem> slot)
         {
             var origin = slot.Origin;
             var size = slot.Size;
@@ -202,7 +224,7 @@ namespace GridStorageModule
             }
         }
 
-        private void ClearSlot(in Slot<TItem> slot)
+        private void ClearSlot(in OccupiedSlot<TItem> slot)
         {
             var origin = slot.Origin;
             var size = slot.Size;

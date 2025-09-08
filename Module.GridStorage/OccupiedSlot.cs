@@ -3,20 +3,20 @@ using System.Collections.Generic;
 
 namespace GridStorageModule
 {
-    public struct Slot<TItem> : IEquatable<Slot<TItem>>
+    public struct OccupiedSlot<TItem> : IEquatable<OccupiedSlot<TItem>>
     {
         public Point Origin { get; set; }
         public Size Size { get; set; }
         public TItem Item { get; set; }
 
-        public bool Equals(Slot<TItem> other)
+        public bool Equals(OccupiedSlot<TItem> other)
         {
             return Origin.Equals(other.Origin) && Size.Equals(other.Size) && EqualityComparer<TItem>.Default.Equals(Item, other.Item);
         }
 
         public override bool Equals(object obj)
         {
-            return obj is Slot<TItem> other && Equals(other);
+            return obj is OccupiedSlot<TItem> other && Equals(other);
         }
 
         public override int GetHashCode()
@@ -30,12 +30,12 @@ namespace GridStorageModule
             }
         }
 
-        public static bool operator ==(Slot<TItem> left, Slot<TItem> right)
+        public static bool operator ==(OccupiedSlot<TItem> left, OccupiedSlot<TItem> right)
         {
             return left.Equals(right);
         }
 
-        public static bool operator !=(Slot<TItem> left, Slot<TItem> right)
+        public static bool operator !=(OccupiedSlot<TItem> left, OccupiedSlot<TItem> right)
         {
             return !left.Equals(right);
         }
