@@ -17,6 +17,11 @@ public readonly record struct Size
 {
     public required uint Width { get; init; }
     public required uint Height { get; init; }
+
+    public static Size Of(uint width, uint height)
+    {
+        return new Size { Width = width, Height = height };
+    }
 }
 
 public readonly record struct Slot<TItem>
@@ -34,12 +39,12 @@ public sealed class GridStorage<TItem>(uint width, uint height) where TItem : no
     public uint Width => width;
     public uint Height => height;
     
-    public bool TryGetItem(uint x, uint y, out TItem item)
+    public bool TryGetItem(uint x, uint y, [MaybeNullWhen(false)] out TItem item)
     {
-        return TryGetItem(new GridPoint { X = x, Y = y }, out item);
+        return TryGetItem(GridPoint.Of(x, y), out item);
     }
     
-    public bool TryGetItem(GridPoint point, [MaybeNullWhen(false)] out TItem item)
+    public bool TryGetItem(in GridPoint point, [MaybeNullWhen(false)] out TItem item)
     {
         if (!TryGetSlot(point, out var slot))
         {
@@ -70,11 +75,28 @@ public sealed class GridStorage<TItem>(uint width, uint height) where TItem : no
         return _slotsByItemLookup.ContainsKey(item);
     }
 
-    public bool TryAdd(TItem item, Size size, out Slot<TItem> slot)
+    public bool TryAdd(TItem item, uint itemWidth, uint itemHeight, out Slot<TItem> slot)
+    {
+        return TryAdd(item, Size.Of(itemWidth, itemHeight), out slot);
+    }
+    
+    public bool TryAdd(TItem item, uint itemWidth, uint itemHeight)
+    {
+        return TryAdd(item, itemWidth, itemHeight, out _);
+    }
+
+    public bool TryAdd(TItem item, in Size size)
+    {
+        return TryAdd(item, size, out _);
+    }
+    
+    public bool TryAdd(TItem item, in Size size, out Slot<TItem> slot)
     {
         slot = default;
-        if (_slotsByItemLookup.ContainsKey(item))
+        if (Contains(item))
+        {
             return false;
+        }
         
         for (uint y = 0; y <= Height - size.Height; y++)
         {
@@ -103,7 +125,7 @@ public sealed class GridStorage<TItem>(uint width, uint height) where TItem : no
         return false;
     }
     
-    public bool CanInsertItemAt(GridPoint origin, Size size)
+    public bool CanInsertItemAt(in GridPoint origin, in Size size)
     {
         var ey = origin.Y + size.Height;
         if (ey >= Height)
@@ -129,15 +151,20 @@ public sealed class GridStorage<TItem>(uint width, uint height) where TItem : no
         return true;
     }
     
-    public bool TryInsert(TItem item, uint x, uint y, uint width, uint height)
+    public bool TryInsert(TItem item, uint x, uint y, uint itemWidth, uint itemHeight)
     {
         var origin = new GridPoint { X = x, Y = y };
-        var size = new Size { Width = width, Height = height };
+        var size = new Size { Width = itemWidth, Height = itemHeight };
         return TryInsert(item, origin, size);
     }
     
-    public bool TryInsert(TItem item, GridPoint origin, Size size)
+    public bool TryInsert(TItem item, in GridPoint origin, Size size)
     {
+        if (Contains(item))
+        {
+            return false;
+        }
+        
         if (!CanInsertItemAt(origin, size))
         {
             return false;
@@ -181,7 +208,7 @@ public sealed class GridStorage<TItem>(uint width, uint height) where TItem : no
         {
             for (var x = sx; x < ex; x++)
             {
-                var point = new GridPoint{X = x, Y = y};
+                var point = GridPoint.Of(x, y);
                 _slotsByPointLookup[point] = slot;
             }
         }
