@@ -115,13 +115,13 @@ namespace GridStorageModule
         public bool CanInsertItemAt(in Point origin, in Size size)
         {
             var ey = origin.Y + size.Height;
-            if (ey >= Height)
+            if (ey > Height)
             {
                 return false;
             }
         
             var ex = origin.X + size.Width;
-            if (ex >= Width)
+            if (ex > Width)
             {
                 return false;
             }
