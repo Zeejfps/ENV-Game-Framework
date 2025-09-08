@@ -4,16 +4,14 @@ namespace Module.GridStorage
 {
     public sealed class GridStorage<TItem>
     {
-        private readonly Dictionary<Point, Slot<TItem>> _slotsByPointLookup;
-        private readonly Dictionary<TItem, Slot<TItem>> _slotsByItemLookup;
+        private readonly Dictionary<Point, Slot<TItem>> _slotsByPointLookup = new();
+        private readonly Dictionary<TItem, Slot<TItem>> _slotsByItemLookup = new();
 
         public uint Width { get; }
         public uint Height { get; }
 
         public GridStorage(uint width, uint height)
         {
-            _slotsByPointLookup = new Dictionary<Point, Slot<TItem>>();
-            _slotsByItemLookup = new Dictionary<TItem, Slot<TItem>>();
             Width = width;
             Height = height;
         }
