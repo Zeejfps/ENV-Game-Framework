@@ -1,28 +1,29 @@
-namespace Module.GridStorage.Tests;
-
-public class GridModuleTests
+namespace Module.GridStorage.Tests
 {
-    private sealed class TestItem
+    public class GridModuleTests
     {
-        
-    }
-    
-    public void GridStorageTests()
-    {
-        var gridStorage = new GridStorage<TestItem>(10, 10);
-
-        var testItem = new TestItem();
-        if (gridStorage.TryGetSlot(0, 0, out var slot))
+        private sealed class TestItem
         {
-            
+        
         }
-        
-        gridStorage.TryAdd(testItem, 2, 3, out var slot1);
+    
+        public void GridStorageTests()
+        {
+            var gridStorage = new GridStorage<TestItem>(10, 10);
 
-        gridStorage.TryInsert(testItem, 0, 0, 2, 3);
+            var testItem = new TestItem();
+            if (gridStorage.TryGetSlot(0, 0, out var slot))
+            {
+            
+            }
         
-        gridStorage.TryGetSlot(testItem, out var slot2);
+            gridStorage.TryAdd(testItem, 2, 3, out var slot1);
+
+            gridStorage.TryInsert(testItem, 0, 0, 2, 3);
         
-        gridStorage.Remove(testItem);
+            gridStorage.TryGetSlot(testItem, out var slot2);
+        
+            gridStorage.Remove(testItem);
+        }
     }
 }
