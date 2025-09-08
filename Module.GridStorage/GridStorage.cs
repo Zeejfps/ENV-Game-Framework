@@ -1,8 +1,4 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using Module.GridStorage.Tests;
-
-namespace Module.GridStorage;
+﻿namespace Module.GridStorage;
 
 public readonly record struct GridPoint
 {
@@ -16,57 +12,48 @@ public readonly record struct ItemSize
     public required uint Height { get; init; }
 }
 
-public readonly record struct ItemPosition
+public readonly record struct Slot<TItem>
 {
     public required GridPoint Origin { get; init; }
     public required ItemSize Size { get; init; }
+    public required TItem Item { get; init; }
 }
 
 public sealed class GridStorage<TItem>(int width, int height)
 {
-    private readonly Dictionary<GridPoint, OccupiedSlot<TItem>> _occupiedSlotsByPoint = new();
-    private readonly HashSet<TItem> _items = new();
+    private readonly Dictionary<GridPoint, Slot<TItem>> _slotsByPointLookup = new();
+    private readonly Dictionary<TItem, Slot<TItem>> _slotsByItemLookup = new();
     
-    public bool TryGet(uint x, uint y, [NotNullWhen(true)] out TItem? item, out ItemPosition itemPosition)
+    public bool TryGetSlot(uint x, uint y, out Slot<TItem> slot)
     {
-        return TryGet(new GridPoint{X = x, Y = y}, out item, out itemPosition);
+        return TryGetSlot(new GridPoint{X = x, Y = y}, out slot);
     }
     
-    public bool TryGet(GridPoint point, [NotNullWhen(true)] out TItem? item, out ItemPosition itemPosition)
+    public bool TryGetSlot(GridPoint point, out Slot<TItem> slot)
     {
-        if (!_occupiedSlotsByPoint.TryGetValue(point, out var occupiedSlot))
-        {
-            item = default;
-            itemPosition = default;
-            return false;
-        }
-        
-        item = occupiedSlot.Item;
-        Debug.Assert(item != null);
-        itemPosition = new ItemPosition
-        {
-            Origin = occupiedSlot.Origin,
-            Size = occupiedSlot.Size
-        };
-        return true;
+        return _slotsByPointLookup.TryGetValue(point, out slot);
     }
 
+    public bool TryGetSlot(TItem item, out Slot<TItem> slot)
+    {
+        return _slotsByItemLookup.TryGetValue(item, out slot);
+    }
+    
     public bool Contains(TItem item)
     {
-        return _items.Contains(item);
+        return _slotsByItemLookup.ContainsKey(item);
     }
     
-    public bool TryInsert(int x, int y, int width, int height, TItem item)
+    public bool TryInsert(uint x, uint y, uint width, uint height, TItem item)
     {
-        throw new NotImplementedException();
+        var origin = new GridPoint { X = x, Y = y };
+        var size = new ItemSize { Width = width, Height = height };
+        return TryInsert(origin, size, item);
     }
     
-    public bool TryInsert(ItemPosition position, TItem item)
+    public bool TryInsert(GridPoint origin, ItemSize size, TItem item)
     {
-        var origin = position.Origin;
-        var size = position.Size;
-
-        var slot = new OccupiedSlot<TItem>
+        var slot = new Slot<TItem>
         {
             Origin = origin,
             Size = size,
@@ -77,18 +64,10 @@ public sealed class GridStorage<TItem>(int width, int height)
             for (var j = origin.X; j < size.Width; j++)
             {
                 var insertionPoint = new GridPoint{X = j, Y = i};
-                _occupiedSlotsByPoint[insertionPoint] = slot;
+                _slotsByPointLookup[insertionPoint] = slot;
             }
         }
-        _items.Add(item);
-        
-        return false;
+        _slotsByItemLookup.Add(item, slot);
+        return true;
     }
-}
-
-internal sealed class OccupiedSlot<TItem>
-{
-    public required GridPoint Origin { get; set; }
-    public required ItemSize Size { get; set; }
-    public required TItem Item { get; set; }
 }

@@ -12,7 +12,7 @@ public class GridModuleTests
         var gridStorage = new GridStorage<TestItem>(10, 10);
 
         var testItem = new TestItem();
-        if (gridStorage.TryGet(0, 0, out var item, out var position))
+        if (gridStorage.TryGetSlot(0, 0, out var slot))
         {
             
         }
