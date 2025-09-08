@@ -2,13 +2,19 @@
 
 namespace Module.GridStorage;
 
-public sealed class GridStorage<TItem>(uint width, uint height) where TItem : notnull
+public sealed class GridStorage<TItem> where TItem : notnull
 {
     private readonly Dictionary<Point, Slot<TItem>> _slotsByPointLookup = new();
     private readonly Dictionary<TItem, Slot<TItem>> _slotsByItemLookup = new();
 
-    public uint Width => width;
-    public uint Height => height;
+    public uint Width { get; }
+    public uint Height { get; }
+
+    public GridStorage(uint width, uint height)
+    {
+        Width = width;
+        Height = height;
+    }
     
     public bool TryGetItem(uint x, uint y, [MaybeNullWhen(false)] out TItem item)
     {
