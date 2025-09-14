@@ -40,6 +40,11 @@ public sealed class ComponentSystem<TEntity, TComponent> : System
         }
         _componentsToUpdate.Clear();
     }
+
+    public bool TryGetComponent(TEntity entity, out TComponent component)
+    {
+        return _componentsByEntityLookup.TryGetValue(entity, out component);
+    }
     
     public void AddComponent(TEntity entity, TComponent component)
     {
