@@ -96,6 +96,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Module.GridStorage", "Modul
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.ECSModule", "ZGF.ECSModule\ZGF.ECSModule.csproj", "{3FA064AA-7FD0-4627-9D6D-38EFD06CC1A8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bricks.ECS", "Bricks.ECS\Bricks.ECS.csproj", "{5F7CE415-B41C-42C4-8136-856C1DD4E104}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -294,5 +296,9 @@ Global
 		{3FA064AA-7FD0-4627-9D6D-38EFD06CC1A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3FA064AA-7FD0-4627-9D6D-38EFD06CC1A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3FA064AA-7FD0-4627-9D6D-38EFD06CC1A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F7CE415-B41C-42C4-8136-856C1DD4E104}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F7CE415-B41C-42C4-8136-856C1DD4E104}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F7CE415-B41C-42C4-8136-856C1DD4E104}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F7CE415-B41C-42C4-8136-856C1DD4E104}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
