@@ -7,33 +7,34 @@ public sealed class BricksGame
 {
     public WorldSystem<Entity> World { get; }
     public ComponentSystem<Entity, Rigidbody> Rigidbodies { get; }
-    public ComponentSystem<Entity, CircleCollider> Colliders { get; }
-
-    private readonly ISystem[] _systems;
+    public ComponentSystem<Entity, CircleCollider> CircleColliders { get; }
+    public List<ISystem> Systems { get; }
     
     public BricksGame()
     {
-        Colliders = new ComponentSystem<Entity, CircleCollider>();
+        CircleColliders = new ComponentSystem<Entity, CircleCollider>();
         Rigidbodies = new ComponentSystem<Entity, Rigidbody>();
         World = new WorldSystem<Entity>();
 
-        SpawnBall(World, Colliders, Rigidbodies);
+        SpawnBall(World, CircleColliders, Rigidbodies);
         
-        _systems =
+        Systems =
         [
-            World
+            World,
+            CircleColliders,
+            Rigidbodies
         ];
     }
 
     private void SpawnBall(
         WorldSystem<Entity> world,
-        ComponentSystem<Entity, CircleCollider> colliders,
+        ComponentSystem<Entity, CircleCollider> circleColliders,
         ComponentSystem<Entity, Rigidbody> transforms)
     {
         var ballEntity = Entity.New();
         ballEntity.Tags = Tags.Ball;
         
-        colliders.AddComponent(ballEntity, new CircleCollider
+        circleColliders.AddComponent(ballEntity, new CircleCollider
         {
             Radius = 1
         });
@@ -41,7 +42,7 @@ public sealed class BricksGame
         transforms.AddComponent(ballEntity, new Rigidbody
         {
             Position = new Vector2(0, 0),
-            Velocity = Vector2.Zero
+            Velocity = new Vector2(2, 2)
         });
         
         world.Spawn(ballEntity);
@@ -59,17 +60,17 @@ public sealed class BricksGame
 
     public void Update(float dt)
     {
-        foreach (var system in _systems)
+        foreach (var system in Systems)
         {
             system.PreUpdate();
         }
         
-        foreach (var system in _systems)
+        foreach (var system in Systems)
         {
             system.Update();
         }
 
-        foreach (var system in _systems)
+        foreach (var system in Systems)
         {
             system.PostUpdate();
         }

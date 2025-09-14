@@ -1,6 +1,6 @@
 namespace ZGF.ECSModule;
 
-public abstract class System : ISystem
+public abstract class SystemBase : ISystem
 {
     public void PreUpdate()
     {

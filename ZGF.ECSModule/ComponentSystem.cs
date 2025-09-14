@@ -7,7 +7,7 @@ public readonly struct UpdatedComponent<TEntity, TComponent>
     public required TComponent NewValue { get; init; }
 }
 
-public sealed class ComponentSystem<TEntity, TComponent> : System 
+public sealed class ComponentSystem<TEntity, TComponent> : SystemBase 
     where TEntity : notnull
     where TComponent : struct
 {

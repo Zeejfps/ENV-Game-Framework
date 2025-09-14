@@ -1,6 +1,6 @@
 namespace ZGF.ECSModule;
 
-public sealed class WorldSystem<TEntity> : System
+public sealed class WorldSystem<TEntity> : SystemBase
 {
     private readonly HashSet<TEntity> _entities = new();
     private readonly HashSet<TEntity> _entitiesToSpawn = new();
