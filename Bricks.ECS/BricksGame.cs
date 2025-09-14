@@ -5,26 +5,30 @@ namespace Bricks.ECS;
 
 public sealed class BricksGame
 {
-    private readonly ISystem[] _systems;
+    public WorldSystem<Entity> World { get; }
+    public ComponentSystem<Entity, Rigidbody> Rigidbodies { get; }
+    public ComponentSystem<Entity, CircleCollider> Colliders { get; }
 
+    private readonly ISystem[] _systems;
+    
     public BricksGame()
     {
-        var colliders = new ComponentSystem<Entity, CircleCollider>();
-        var transforms = new ComponentSystem<Entity, Transform>();
-        var world = new WorldSystem<Entity>();
+        Colliders = new ComponentSystem<Entity, CircleCollider>();
+        Rigidbodies = new ComponentSystem<Entity, Rigidbody>();
+        World = new WorldSystem<Entity>();
 
-        SpawnBall(world, colliders, transforms);
+        SpawnBall(World, Colliders, Rigidbodies);
         
         _systems =
         [
-            world
+            World
         ];
     }
 
     private void SpawnBall(
         WorldSystem<Entity> world,
         ComponentSystem<Entity, CircleCollider> colliders,
-        ComponentSystem<Entity, Transform> transforms)
+        ComponentSystem<Entity, Rigidbody> transforms)
     {
         var ballEntity = Entity.New();
         ballEntity.Tags = Tags.Ball;
@@ -34,9 +38,10 @@ public sealed class BricksGame
             Radius = 1
         });
         
-        transforms.AddComponent(ballEntity, new Transform
+        transforms.AddComponent(ballEntity, new Rigidbody
         {
-            Position = new Vector2(0, 0)
+            Position = new Vector2(0, 0),
+            Velocity = Vector2.Zero
         });
         
         world.Spawn(ballEntity);
