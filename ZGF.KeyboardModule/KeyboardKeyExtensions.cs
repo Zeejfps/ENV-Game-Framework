@@ -4,65 +4,53 @@ public static class KeyboardKeyExtensions
 {
     public static char ToChar(this KeyboardKey key, bool isShiftPressed = false)
     {
-        switch (key)
+        return key switch
         {
-            case KeyboardKey.Alpha1: return isShiftPressed ?  '!' : '1';
-            case KeyboardKey.Alpha2: return isShiftPressed ?  '@' : '2';
-            case KeyboardKey.Alpha3: return isShiftPressed ?  '#' : '3';
-            case KeyboardKey.Alpha4: return isShiftPressed ?  '$' : '4';
-            case KeyboardKey.Alpha5: return isShiftPressed ?  '%' : '5';
-            case KeyboardKey.Alpha6: return isShiftPressed ?  '^' : '6';
-            case KeyboardKey.Alpha7: return isShiftPressed ?  '&' : '7';
-            case KeyboardKey.Alpha8: return isShiftPressed ?  '*' : '8';
-            case KeyboardKey.Alpha9: return isShiftPressed ?  '(' : '9';
-            case KeyboardKey.Alpha0: return isShiftPressed ?  ')' : '0';
-
-            case KeyboardKey.A: return isShiftPressed ? 'A' : 'a';
-            case KeyboardKey.B: return isShiftPressed ? 'B' : 'b';
-            case KeyboardKey.C: return isShiftPressed ? 'C' : 'c';
-            case KeyboardKey.D: return isShiftPressed ? 'D' : 'd';
-            case KeyboardKey.E: return isShiftPressed ? 'E' : 'e';
-            case KeyboardKey.F: return isShiftPressed ? 'F' : 'f';
-            case KeyboardKey.G: return isShiftPressed ? 'G' : 'g';
-            case KeyboardKey.H: return isShiftPressed ? 'H' : 'h';
-            case KeyboardKey.I: return isShiftPressed ? 'I' : 'i';
-            case KeyboardKey.J: return isShiftPressed ? 'J' : 'j';
-            case KeyboardKey.K: return isShiftPressed ? 'K' : 'k';
-            case KeyboardKey.L: return isShiftPressed ? 'L' : 'l';
-            case KeyboardKey.M: return isShiftPressed ? 'M' : 'm';
-            case KeyboardKey.N: return isShiftPressed ? 'N' : 'n';
-            case KeyboardKey.O: return isShiftPressed ? 'O' : 'o';
-            case KeyboardKey.P: return isShiftPressed ? 'P' : 'p';
-            case KeyboardKey.Q: return isShiftPressed ? 'Q' : 'q';
-            case KeyboardKey.R: return isShiftPressed ? 'R' : 'r';
-            case KeyboardKey.S: return isShiftPressed ? 'S' : 's';
-            case KeyboardKey.T: return isShiftPressed ? 'T' : 't';
-            case KeyboardKey.U: return isShiftPressed ? 'U' : 'u';
-            case KeyboardKey.V: return isShiftPressed ? 'V' : 'v';
-            case KeyboardKey.W: return isShiftPressed ? 'W' : 'w';
-            case KeyboardKey.X: return isShiftPressed ? 'X' : 'x';
-            case KeyboardKey.Y: return isShiftPressed ? 'Y' : 'y';
-            case KeyboardKey.Z: return isShiftPressed ? 'Z' : 'z';
-
-            case KeyboardKey.Space: return ' ';
-            case KeyboardKey.Apostrophe: return isShiftPressed ? '"' : '\'';
-            case KeyboardKey.Comma: return isShiftPressed ? '<' : ',';
-            case KeyboardKey.Period: return isShiftPressed ? '>' : '.';
-            case KeyboardKey.Slash: return isShiftPressed ? '?' : '/';
-            case KeyboardKey.SemiColon: return isShiftPressed ? ':' : ';';
-            case KeyboardKey.Equals: return isShiftPressed ? '+' : '=';
-            case KeyboardKey.Minus: return isShiftPressed ? '_' : '-';
-
-            case KeyboardKey.Escape:
-            case KeyboardKey.Backspace:
-            case KeyboardKey.UpArrow:
-            case KeyboardKey.DownArrow:
-            case KeyboardKey.LeftArrow:
-            case KeyboardKey.RightArrow:
-                return '\0'; // Not a printable character
-
-            default:
-                return '\0'; // Unhandled key
-        }
+            KeyboardKey.Alpha1 => isShiftPressed ? '!' : '1',
+            KeyboardKey.Alpha2 => isShiftPressed ? '@' : '2',
+            KeyboardKey.Alpha3 => isShiftPressed ? '#' : '3',
+            KeyboardKey.Alpha4 => isShiftPressed ? '$' : '4',
+            KeyboardKey.Alpha5 => isShiftPressed ? '%' : '5',
+            KeyboardKey.Alpha6 => isShiftPressed ? '^' : '6',
+            KeyboardKey.Alpha7 => isShiftPressed ? '&' : '7',
+            KeyboardKey.Alpha8 => isShiftPressed ? '*' : '8',
+            KeyboardKey.Alpha9 => isShiftPressed ? '(' : '9',
+            KeyboardKey.Alpha0 => isShiftPressed ? ')' : '0',
+            KeyboardKey.A => isShiftPressed ? 'A' : 'a',
+            KeyboardKey.B => isShiftPressed ? 'B' : 'b',
+            KeyboardKey.C => isShiftPressed ? 'C' : 'c',
+            KeyboardKey.D => isShiftPressed ? 'D' : 'd',
+            KeyboardKey.E => isShiftPressed ? 'E' : 'e',
+            KeyboardKey.F => isShiftPressed ? 'F' : 'f',
+            KeyboardKey.G => isShiftPressed ? 'G' : 'g',
+            KeyboardKey.H => isShiftPressed ? 'H' : 'h',
+            KeyboardKey.I => isShiftPressed ? 'I' : 'i',
+            KeyboardKey.J => isShiftPressed ? 'J' : 'j',
+            KeyboardKey.K => isShiftPressed ? 'K' : 'k',
+            KeyboardKey.L => isShiftPressed ? 'L' : 'l',
+            KeyboardKey.M => isShiftPressed ? 'M' : 'm',
+            KeyboardKey.N => isShiftPressed ? 'N' : 'n',
+            KeyboardKey.O => isShiftPressed ? 'O' : 'o',
+            KeyboardKey.P => isShiftPressed ? 'P' : 'p',
+            KeyboardKey.Q => isShiftPressed ? 'Q' : 'q',
+            KeyboardKey.R => isShiftPressed ? 'R' : 'r',
+            KeyboardKey.S => isShiftPressed ? 'S' : 's',
+            KeyboardKey.T => isShiftPressed ? 'T' : 't',
+            KeyboardKey.U => isShiftPressed ? 'U' : 'u',
+            KeyboardKey.V => isShiftPressed ? 'V' : 'v',
+            KeyboardKey.W => isShiftPressed ? 'W' : 'w',
+            KeyboardKey.X => isShiftPressed ? 'X' : 'x',
+            KeyboardKey.Y => isShiftPressed ? 'Y' : 'y',
+            KeyboardKey.Z => isShiftPressed ? 'Z' : 'z',
+            KeyboardKey.Space => ' ',
+            KeyboardKey.Apostrophe => isShiftPressed ? '"' : '\'',
+            KeyboardKey.Comma => isShiftPressed ? '<' : ',',
+            KeyboardKey.Period => isShiftPressed ? '>' : '.',
+            KeyboardKey.Slash => isShiftPressed ? '?' : '/',
+            KeyboardKey.SemiColon => isShiftPressed ? ':' : ';',
+            KeyboardKey.Equals => isShiftPressed ? '+' : '=',
+            KeyboardKey.Minus => isShiftPressed ? '_' : '-',
+            _ => '\0'
+        };
     }
 }
