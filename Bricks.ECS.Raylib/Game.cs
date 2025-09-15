@@ -14,21 +14,31 @@ public sealed class Game
     public Game()
     {
         _sim = new BricksSim();
-        Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT);
+        //Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT);
         Raylib.InitWindow(640, 480, "Bricks ECS");
         _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");
     }
+    
+    const float fixedDelta = 1f / 60f;
+    float accumulator = 0f;
     
     public void Run()
     {
         while (!Raylib.WindowShouldClose())
         {
             var frameTime = Raylib.GetFrameTime();
-            _sim.Update(frameTime);
-
+            accumulator += frameTime;
+            
+            while (accumulator >= fixedDelta)
+            {
+                _sim.Update(fixedDelta);
+                accumulator -= fixedDelta;
+            }
+            
             Raylib.BeginDrawing();
             Raylib.ClearBackground(new Color(80, 80, 80, 255));
 
+            var lerp = accumulator / fixedDelta;
             foreach (var entity in _sim.World.Entities)
             {
                 if (!_sim.Sprites.TryGetComponent(entity, out var sprite))
@@ -36,11 +46,17 @@ public sealed class Game
                 
                 if (!_sim.Aabbs.TryGetComponent(entity, out var aabb))
                     continue;
+
+                var pos = aabb.Center;
+                if (_sim.Rigidbodies.TryGetComponent(entity, out var rb))
+                {
+                    pos = Vector2.Lerp(rb.PrevPosition, rb.Position, lerp);
+                }
                 
                 if (sprite.Kind == SpriteKind.Ball)
                 {
-                    var left = aabb.Left;
-                    var top = aabb.Top;
+                    var left = pos.X - aabb.Width * 0.5f;
+                    var top = pos.Y + aabb.Height * 0.5f;
                     DrawBallSprite(AABB.FromLeftTopWidthHeight(left, top, aabb.Width, aabb.Height));
                 }
             }

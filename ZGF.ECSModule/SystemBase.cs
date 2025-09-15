@@ -7,11 +7,6 @@ public abstract class SystemBase : ISystem
         OnPostUpdate();
     }
 
-    public void FixedUpdate()
-    {
-        OnFixedUpdate();
-    }
-
     public void Update()
     {
         OnUpdate();
@@ -25,8 +20,6 @@ public abstract class SystemBase : ISystem
     protected virtual void OnPreUpdate() { }
 
     protected virtual void OnUpdate() { }
-    
-    protected virtual void OnFixedUpdate() { }
     
     protected virtual void OnPostUpdate() { }
 }

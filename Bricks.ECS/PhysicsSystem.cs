@@ -18,7 +18,7 @@ public sealed class PhysicsSystem : SystemBase
         _rigidbodies = rigidbodies;
     }
 
-    protected override void OnFixedUpdate()
+    protected override void OnUpdate()
     {
         foreach (var entity in _world.Entities)
         {
@@ -26,7 +26,7 @@ public sealed class PhysicsSystem : SystemBase
                 continue;
 
             rigidbody.PrevPosition = rigidbody.Position;
-            rigidbody.Position += rigidbody.Velocity * _clock.FixedDeltaTime;
+            rigidbody.Position += rigidbody.Velocity * _clock.ScaledDeltaTime;
             _rigidbodies.UpdateComponent(entity, rigidbody);
         }
     }

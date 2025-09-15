@@ -34,9 +34,9 @@ public sealed class SpriteUpdaterSystem : SystemBase
             if (!_rigidbodies.TryGetComponent(entity, out var rigidbody))
                 continue;
 
-            var position = Vector2.Lerp(rigidbody.PrevPosition, rigidbody.Position, _clock.LerpFactor);
-            sprite.Position = position;
-            _sprites.UpdateComponent(entity, sprite);
+            // var position = Vector2.Lerp(rigidbody.PrevPosition, rigidbody.Position, _clock.LerpFactor);
+            // sprite.Position = position;
+            // _sprites.UpdateComponent(entity, sprite);
         }
     }
 }

@@ -6,8 +6,6 @@ public abstract class Sim<TEntity>
     public Clock Clock { get; } = new();
     public WorldSystem<TEntity> World { get; } = new();
     public List<ISystem> Systems { get; } = new();
-
-    private float _accumulator;
     
     public Sim()
     {
@@ -23,21 +21,12 @@ public abstract class Sim<TEntity>
 
     public void Update(float dt)
     {
+        Clock.Tick(dt);
+        
         foreach (var system in Systems)
         {
             system.PreUpdate();
         }
-        
-        _accumulator += dt;
-        while (_accumulator >= Clock.ScaledFixedDeltaTime)
-        {
-            foreach (var system in Systems)
-            {
-                system.FixedUpdate();
-            }
-            _accumulator -= Clock.ScaledFixedDeltaTime;
-        }
-        Clock.Tick(dt, _accumulator / Clock.ScaledFixedDeltaTime);
         
         foreach (var system in Systems)
         {
