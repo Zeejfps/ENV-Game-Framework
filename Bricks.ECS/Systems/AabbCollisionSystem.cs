@@ -11,20 +11,23 @@ public sealed class AabbCollisionSystem : SystemBase
     private readonly WorldSystem<Entity> _world;
     private readonly ComponentSystem<Entity, Rigidbody> _rigidbodies;
     private readonly ComponentSystem<Entity, Collision> _collisions;
-    private readonly ComponentSystem<Entity, AABB> _aabbs;
+    private readonly ComponentSystem<Entity, BoxCollider> _boxColliders;
+    private readonly ComponentSystem<Entity, CircleCollider> _circleColliders;
 
     public AabbCollisionSystem(
         Clock clock,
         WorldSystem<Entity> world,
         ComponentSystem<Entity, Rigidbody> rigidbodies,
-        ComponentSystem<Entity, Collision> collisions, 
-        ComponentSystem<Entity, AABB> aabbs)
+        ComponentSystem<Entity, Collision> collisions,
+        ComponentSystem<Entity, BoxCollider> boxColliders,
+        ComponentSystem<Entity, CircleCollider> circleColliders)
     {
         _clock = clock;
         _world = world;
         _rigidbodies = rigidbodies;
         _collisions = collisions;
-        _aabbs = aabbs;
+        _boxColliders = boxColliders;
+        _circleColliders = circleColliders;
     }
 
     protected override void OnUpdate()
@@ -44,7 +47,7 @@ public sealed class AabbCollisionSystem : SystemBase
             if (rb.IsKinematic)
                 continue;
             
-            if (!_aabbs.TryGetComponent(entity, out var aabb))
+            if (!TryGetAabb(entity, rb.Position, out var aabb))
                 continue;
             
             var dir = rb.Velocity * _clock.ScaledDeltaTime;
@@ -53,12 +56,13 @@ public sealed class AabbCollisionSystem : SystemBase
                 if (otherEntity == entity)
                     continue;
                 
-                if (!_aabbs.TryGetComponent(otherEntity, out var otherAabb))
+                if (!TryGetAabb(otherEntity, rb.Position, out var otherAabb))
                     continue;
 
                 if (!aabb.TryCast(dir, otherAabb, out var hit))
                     continue;
 
+                Console.WriteLine($"Collision: {entity} {otherEntity}");
                 var collisionEntity = Entity.New();
                 _collisions.AddComponent(collisionEntity, new Collision
                 {
@@ -161,5 +165,36 @@ public sealed class AabbCollisionSystem : SystemBase
             Normal = Vector2.UnitX,
         });
         _world.Spawn(collisionEntity);
+    }
+
+    private bool TryGetAabb(Entity entity, Vector2 pos, out AABB aabb)
+    {
+        if (_circleColliders.TryGetComponent(entity, out var circleCollider))
+        {
+            var radius = circleCollider.Radius;
+            aabb = AABB.FromLeftTopWidthHeight(
+                pos.X - radius * 0.5f,
+                pos.Y + radius * 0.5f,
+                radius,
+                radius
+            );
+            return true;
+        }
+            
+        if (_boxColliders.TryGetComponent(entity, out var boxCollider))
+        {
+            var w = boxCollider.Width;
+            var h = boxCollider.Height;
+            aabb = AABB.FromLeftTopWidthHeight(
+                pos.X - w*0.5f,
+                pos.Y - h * 0.5f,
+                w,
+                h
+            );
+            return true;
+        }
+
+        aabb = default;
+        return false;
     }
 }

@@ -13,7 +13,6 @@ public sealed class BricksSim : Sim<Entity>
     public ComponentSystem<Entity, BoxCollider> BoxColliders { get; }
     public ComponentSystem<Entity, Brick> Bricks { get; }
     public ComponentSystem<Entity, Sprite> Sprites { get; }
-    public ComponentSystem<Entity, AABB> Aabbs { get; }
     public ComponentSystem<Entity, Collision> Collisions { get; }
     public AABB Bounds { get; }
     
@@ -25,18 +24,16 @@ public sealed class BricksSim : Sim<Entity>
         Rigidbodies = AddComponentSystem<Rigidbody>();
         Sprites = AddComponentSystem<Sprite>();
         Bricks = AddComponentSystem<Brick>();
-        Aabbs = AddComponentSystem<AABB>();
         Collisions = AddComponentSystem<Collision>();
         
         Systems.Add(new BrickSystem(World, Bricks));
         Systems.Add(new PhysicsSystem(Clock, World, Rigidbodies));
-        Systems.Add(new AabbUpdaterSystem(World, Aabbs, Rigidbodies, CircleColliders, BoxColliders));
-        Systems.Add(new AabbCollisionSystem(Clock, World, Rigidbodies, Collisions, Aabbs));
+        Systems.Add(new AabbCollisionSystem(Clock, World, Rigidbodies, Collisions, BoxColliders, CircleColliders));
         Systems.Add(new BallBrickCollisionSystem(World, Bricks, Collisions));
         
         SpawnBall();
+        SpawnPaddle();
         SpawnBricks();
-        //SpawnPaddle();
     }
 
     public void SpawnBall()
@@ -55,7 +52,7 @@ public sealed class BricksSim : Sim<Entity>
         
         rigidbodies.AddComponent(ballEntity, new Rigidbody
         {
-            Position = new Vector2(320, 400),
+            Position = new Vector2(320, 340),
             Velocity = new Vector2((Random.Shared.NextSingle() * 2 - 1) * 500, Random.Shared.NextSingle() * -500),
             // Velocity = new Vector2(0f, -400f),
             IsKinematic = false
@@ -109,7 +106,7 @@ public sealed class BricksSim : Sim<Entity>
         });
         Rigidbodies.AddComponent(entity, new Rigidbody
         {
-            IsKinematic = true,
+            IsKinematic = false,
             Position = new Vector2(x, y),
             Velocity = Vector2.Zero
         });
