@@ -24,7 +24,6 @@ public sealed class WorldSystem<TEntity> : SystemBase
 
     protected override void OnUpdate()
     {
-        base.OnUpdate();
         foreach (var entity in _entitiesToSpawn)
         {
             _entities.Add(entity);

@@ -2,9 +2,12 @@ namespace ZGF.ECSModule;
 
 public abstract class SystemBase : ISystem
 {
+    protected bool IsUpdating { get; private set; }
+    
     public void PreUpdate()
     {
-        OnPostUpdate();
+        IsUpdating = true;
+        OnPreUpdate();
     }
 
     public void Update()
@@ -15,6 +18,7 @@ public abstract class SystemBase : ISystem
     public void PostUpdate()
     {
         OnPostUpdate();
+        IsUpdating = false;
     }
     
     protected virtual void OnPreUpdate() { }

@@ -15,9 +15,8 @@ public sealed class BrickSystem : SystemBase
         _bricks = bricks;
     }
 
-    protected override void OnPreUpdate()
+    protected override void OnPostUpdate()
     {
-        base.OnPreUpdate();
         foreach (var (entity, updatedComponent) in _bricks.UpdatedComponents)
         {
             var component = updatedComponent.NewValue;

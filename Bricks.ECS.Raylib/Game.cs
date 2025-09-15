@@ -39,8 +39,11 @@ public sealed class Game
             
             while (accumulator >= fixedDelta)
             {
-                foreach (var (entity, spriteComp) in _sim.Sprites.AddedComponents)
+                foreach (var entity in _sim.World.SpawningEntities)
                 {
+                    if (!_sim.Sprites.TryGetComponent(entity, out var spriteComp))
+                        continue;
+                    
                     if (spriteComp.Kind == SpriteKind.Ball)
                     {
                         var ballSprite = new BallSprite(_spriteSheet, spriteComp.Width, spriteComp.Height);
@@ -52,8 +55,11 @@ public sealed class Game
                         _brickSprites.Add(entity, brickSprite);
                     }
                 }
-                foreach (var (entity, spriteComp) in _sim.Sprites.RemovedComponents)
+                foreach (var entity in _sim.World.DespawningEntities)
                 {
+                    if (!_sim.Sprites.TryGetComponent(entity, out var spriteComp))
+                        continue;
+                    
                     if (spriteComp.Kind == SpriteKind.Ball)
                     {
                         _ballSprites.Remove(entity);

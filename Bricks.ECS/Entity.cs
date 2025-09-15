@@ -15,4 +15,9 @@ public record struct Entity
     {
         return new Entity(s_Id++);
     }
+
+    public override string ToString()
+    {
+        return $"{_id}";
+    }
 }
