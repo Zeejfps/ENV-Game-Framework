@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using Bricks.PhysicsModule;
 
@@ -9,6 +10,8 @@ public sealed class Game
     private readonly Texture _spriteSheet;
     private readonly BricksSim _sim;
     private readonly Color _white = new(255, 255, 255, 255);
+
+    private Stopwatch _stopwatch = new();
 
     public Game()
     {
@@ -22,19 +25,24 @@ public sealed class Game
     {
         while (!Raylib.WindowShouldClose())
         {
+            var dt = _stopwatch.ElapsedMilliseconds;
+            _stopwatch.Restart();
             Raylib.BeginDrawing();
             Raylib.ClearBackground(new Color(80, 80, 80, 255));
             
-            _sim.Update(0.1f);
+            _sim.Update(dt / 1000f);
 
             foreach (var entity in _sim.World.Entities)
             {
                 if (!_sim.Renderables.TryGetComponent(entity, out var renderable))
                     continue;
+                
+                if (!_sim.Aabbs.TryGetComponent(entity, out var aabb))
+                    continue;
 
                 if (renderable.Kind == RenderableKind.Ball)
                 {
-                    
+                    DrawBallSprite(aabb);
                 }
             }
 

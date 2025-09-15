@@ -2,13 +2,13 @@ using ZGF.ECSModule;
 
 namespace Bricks.ECS;
 
-public sealed class BallCollisionSystem : SystemBase
+public sealed class BallBrickCollisionSystem : SystemBase
 {
     private readonly WorldSystem<Entity> _world;
     private readonly ComponentSystem<Entity, Brick> _bricks;
     private readonly ComponentSystem<Entity, Collision> _collisions;
 
-    public BallCollisionSystem(
+    public BallBrickCollisionSystem(
         WorldSystem<Entity> world,
         ComponentSystem<Entity, Brick>  bricks, 
         ComponentSystem<Entity, Collision> collisions)
