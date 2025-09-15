@@ -3,38 +3,28 @@ using ZGF.ECSModule;
 
 namespace Bricks.ECS;
 
-public sealed class BricksSim
+public sealed class BricksSim : Sim<Entity>
 {
     private readonly BallCollisionSystem _ballCollisionSystem;
+    private readonly BrickSystem _brickSystem;
 
-    public Clock Clock { get; } = new();
-    public WorldSystem<Entity> World { get; }
     public ComponentSystem<Entity, Rigidbody> Rigidbodies { get; }
     public ComponentSystem<Entity, CircleCollider> CircleColliders { get; }
     public ComponentSystem<Entity, Brick> Bricks { get; }
     public ComponentSystem<Entity, Renderable> Renderables { get; }
-    public List<ISystem> Systems { get; }
     
     public BricksSim()
     {
-        CircleColliders = new ComponentSystem<Entity, CircleCollider>();
-        Rigidbodies = new ComponentSystem<Entity, Rigidbody>();
-        Bricks = new ComponentSystem<Entity, Brick>();
-        Renderables = new ComponentSystem<Entity, Renderable>();
-        World = new WorldSystem<Entity>();
+        CircleColliders = AddComponentSystem<CircleCollider>();
+        Rigidbodies = AddComponentSystem<Rigidbody>();
+        Renderables = AddComponentSystem<Renderable>();
+        Bricks = AddComponentSystem<Brick>();
         
         _ballCollisionSystem = new BallCollisionSystem(World, Bricks);
-        
-        Systems =
-        [
-            World,
-            CircleColliders,
-            Rigidbodies,
-            Bricks,
-            Renderables,
-            _ballCollisionSystem,
-            new BrickSystem(World, Bricks)
-        ];
+        _brickSystem = new BrickSystem(World, Bricks);
+
+        Systems.Add(_ballCollisionSystem);
+        Systems.Add(_brickSystem);
         
         SpawnBall();
     }
@@ -70,23 +60,5 @@ public sealed class BricksSim
     public void AddBallCollision(BallCollision ballCollision)
     {
         _ballCollisionSystem.AddCollision(ballCollision);
-    }
-    
-    public void Update(float dt)
-    {
-        foreach (var system in Systems)
-        {
-            system.PreUpdate();
-        }
-        
-        foreach (var system in Systems)
-        {
-            system.Update();
-        }
-
-        foreach (var system in Systems)
-        {
-            system.PostUpdate();
-        }
     }
 }
