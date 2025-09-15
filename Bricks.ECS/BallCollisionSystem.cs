@@ -6,7 +6,7 @@ public sealed class BallCollisionSystem : SystemBase
 {
     private readonly WorldSystem<Entity> _world;
     private readonly ComponentSystem<Entity, Brick> _bricks;
-    private readonly List<BallCollision> _collisions = new();
+    private readonly List<Collision> _collisions = new();
 
     public BallCollisionSystem(
         WorldSystem<Entity> world,
@@ -16,7 +16,7 @@ public sealed class BallCollisionSystem : SystemBase
         _bricks = bricks;
     }
 
-    public void AddCollision(BallCollision collision)
+    public void AddCollision(Collision collision)
     {
         _collisions.Add(collision);
     }
@@ -27,7 +27,7 @@ public sealed class BallCollisionSystem : SystemBase
 
         foreach (var collision in _collisions)
         {
-            var other = collision.OtherEntity;
+            var other = collision.SecondEntity;
             if (_bricks.TryGetComponent(other, out var brick))
             {
                 brick.Health--;

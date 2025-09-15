@@ -25,6 +25,7 @@ public sealed class BricksSim : Sim<Entity>
 
         Systems.Add(_ballCollisionSystem);
         Systems.Add(_brickSystem);
+        Systems.Add(new PhysicsSystem(Clock, World, Rigidbodies));
         
         SpawnBall();
     }
@@ -57,8 +58,8 @@ public sealed class BricksSim : Sim<Entity>
         world.Spawn(ballEntity);
     }
 
-    public void AddBallCollision(BallCollision ballCollision)
+    public void AddBallCollision(Collision collision)
     {
-        _ballCollisionSystem.AddCollision(ballCollision);
+        _ballCollisionSystem.AddCollision(collision);
     }
 }
