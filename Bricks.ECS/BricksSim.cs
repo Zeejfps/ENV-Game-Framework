@@ -36,6 +36,7 @@ public sealed class BricksSim : Sim<Entity>
         
         SpawnBall();
         SpawnBricks();
+        SpawnPaddle();
     }
 
     public void SpawnBall()
@@ -124,5 +125,10 @@ public sealed class BricksSim : Sim<Entity>
         });
         
         World.Spawn(entity);
+    }
+    
+    private void SpawnPaddle()
+    {
+        
     }
 }

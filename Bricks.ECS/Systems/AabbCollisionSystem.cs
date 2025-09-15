@@ -92,35 +92,26 @@ public sealed class AabbCollisionSystem : SystemBase
             }
             
             CheckLeftWallCollision(entity, aabb, rb, dir);
-
-            if (aabb.Right + dir.X >= 640)
-            {
-                var delta = aabb.Right + dir.X - 640;
-                var pos = rb.Position;
-                pos.X -= delta;
-                rb.Position = pos;
-                var vel = rb.Velocity;
-                vel.X *= -1;
-                rb.Velocity = vel;
-                _rigidbodies.UpdateComponent(entity, rb);
-                SpawnCollisionEntity(entity);
-                continue;
-            }
-
-            if (aabb.Top + dir.Y < 0)
-            {
-                var delta = aabb.Top + dir.Y;
-                var pos = rb.Position;
-                pos.Y -= delta;
-                rb.Position = pos;
-                var vel = rb.Velocity;
-                vel.Y *= -1;
-                rb.Velocity = vel;
-                _rigidbodies.UpdateComponent(entity, rb);
-                SpawnCollisionEntity(entity);
-                continue;
-            } 
+            CheckRightWallCollision(entity, aabb, rb, dir);
+            CheckTopWallCollision(entity, aabb, rb, dir);
         }
+    }
+
+    private bool CheckTopWallCollision(Entity entity, AABB aabb, Rigidbody rb, Vector2 dir)
+    {
+        if (aabb.Top + dir.Y >= 0)
+            return false;
+        
+        var delta = aabb.Top + dir.Y;
+        var pos = rb.Position;
+        pos.Y -= delta;
+        rb.Position = pos;
+        var vel = rb.Velocity;
+        vel.Y *= -1;
+        rb.Velocity = vel;
+        _rigidbodies.UpdateComponent(entity, rb);
+        SpawnCollisionEntity(entity);
+        return true;
     }
 
     private bool CheckLeftWallCollision(Entity entity, AABB aabb, Rigidbody rb, Vector2 dir)
@@ -141,6 +132,23 @@ public sealed class AabbCollisionSystem : SystemBase
             return true;
         }
         return false;
+    }
+
+    private bool CheckRightWallCollision(Entity entity, AABB aabb, Rigidbody rb, Vector2 dir)
+    {
+        if (aabb.Right + dir.X < 640)
+            return false;
+        
+        var delta = aabb.Right + dir.X - 640;
+        var pos = rb.Position;
+        pos.X -= delta;
+        rb.Position = pos;
+        var vel = rb.Velocity;
+        vel.X *= -1;
+        rb.Velocity = vel;
+        _rigidbodies.UpdateComponent(entity, rb);
+        SpawnCollisionEntity(entity);
+        return true;
     }
     
     private void SpawnCollisionEntity(Entity entity)
