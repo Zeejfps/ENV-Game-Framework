@@ -40,6 +40,9 @@ public sealed class AabbCollisionSystem : SystemBase
             if (!_rigidbodies.TryGetComponent(entity, out var rb))
                 continue;
             
+            if (rb.IsKinematic)
+                continue;
+            
             if (!_aabbs.TryGetComponent(entity, out var aabb))
                 continue;
             

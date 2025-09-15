@@ -9,17 +9,20 @@ public sealed class AabbUpdaterSystem : SystemBase
     private readonly ComponentSystem<Entity, Rigidbody> _rigidbodies;
     private readonly ComponentSystem<Entity, AABB> _aabbs;
     private readonly ComponentSystem<Entity, CircleCollider> _circleColliders; 
+    private readonly ComponentSystem<Entity, BoxCollider> _boxColliders; 
 
     public AabbUpdaterSystem(
         WorldSystem<Entity> world,
         ComponentSystem<Entity, AABB> aabbs, 
         ComponentSystem<Entity, Rigidbody> rigidbodies,
-        ComponentSystem<Entity, CircleCollider> circleColliders)
+        ComponentSystem<Entity, CircleCollider> circleColliders,
+        ComponentSystem<Entity, BoxCollider> boxColliders)
     {
         _world = world;
         _aabbs = aabbs;
         _rigidbodies = rigidbodies;
         _circleColliders = circleColliders;
+        _boxColliders = boxColliders;
     }
 
     protected override void OnUpdate()
@@ -35,10 +38,25 @@ public sealed class AabbUpdaterSystem : SystemBase
             {
                 var radius = circleCollider.Radius;
                 var aabb = AABB.FromLeftTopWidthHeight(
-                    pos.X - radius,
-                    pos.Y + radius,
-                    radius * 2,
-                    radius * 2
+                    pos.X - radius * 0.5f,
+                    pos.Y + radius * 0.5f,
+                    radius,
+                    radius
+                );
+                
+                _aabbs.UpdateComponent(entity, aabb);
+                continue;
+            }
+            
+            if (_boxColliders.TryGetComponent(entity, out var boxCollider))
+            {
+                var w = boxCollider.Width;
+                var h = boxCollider.Height;
+                var aabb = AABB.FromLeftTopWidthHeight(
+                    pos.X - w*0.5f,
+                    pos.Y + h * 0.5f,
+                    w,
+                    h
                 );
                 
                 _aabbs.UpdateComponent(entity, aabb);

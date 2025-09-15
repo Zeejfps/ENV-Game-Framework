@@ -8,6 +8,7 @@ public sealed class BricksSim : Sim<Entity>
 {
     public ComponentSystem<Entity, Rigidbody> Rigidbodies { get; }
     public ComponentSystem<Entity, CircleCollider> CircleColliders { get; }
+    public ComponentSystem<Entity, BoxCollider> BoxColliders { get; }
     public ComponentSystem<Entity, Brick> Bricks { get; }
     public ComponentSystem<Entity, Sprite> Sprites { get; }
     public ComponentSystem<Entity, AABB> Aabbs { get; }
@@ -18,6 +19,7 @@ public sealed class BricksSim : Sim<Entity>
     {
         Bounds = bounds;
         CircleColliders = AddComponentSystem<CircleCollider>();
+        BoxColliders = AddComponentSystem<BoxCollider>();
         Rigidbodies = AddComponentSystem<Rigidbody>();
         Sprites = AddComponentSystem<Sprite>();
         Bricks = AddComponentSystem<Brick>();
@@ -26,7 +28,7 @@ public sealed class BricksSim : Sim<Entity>
         
         Systems.Add(new BrickSystem(World, Bricks));
         Systems.Add(new PhysicsSystem(Clock, World, Rigidbodies));
-        Systems.Add(new AabbUpdaterSystem(World, Aabbs, Rigidbodies, CircleColliders));
+        Systems.Add(new AabbUpdaterSystem(World, Aabbs, Rigidbodies, CircleColliders, BoxColliders));
         Systems.Add(new AabbCollisionSystem(Clock, World, Rigidbodies, Collisions, Aabbs));
         Systems.Add(new BallBrickCollisionSystem(World, Bricks, Collisions));
         
@@ -45,7 +47,7 @@ public sealed class BricksSim : Sim<Entity>
         
         circleColliders.AddComponent(ballEntity, new CircleCollider
         {
-            Radius = 10
+            Radius = 20
         });
         
         rigidbodies.AddComponent(ballEntity, new Rigidbody
@@ -58,6 +60,8 @@ public sealed class BricksSim : Sim<Entity>
         sprites.AddComponent(ballEntity, new Sprite
         {
             Kind = SpriteKind.Ball,
+            Width = 20,
+            Height = 20
         });
         
         world.Spawn(ballEntity);
@@ -95,13 +99,20 @@ public sealed class BricksSim : Sim<Entity>
         var entity = Entity.New();
         Sprites.AddComponent(entity, new Sprite
         {
-            Kind = SpriteKind.Brick
+            Kind = SpriteKind.Brick,
+            Width = width,
+            Height = height
         });
         Rigidbodies.AddComponent(entity, new Rigidbody
         {
             IsKinematic = true,
             Position = new Vector2(x, y),
             Velocity = Vector2.Zero
+        });
+        BoxColliders.AddComponent(entity, new BoxCollider
+        {
+            Width = width,
+            Height = height
         });
     }
 }
