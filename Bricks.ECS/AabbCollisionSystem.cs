@@ -66,6 +66,19 @@ public sealed class AabbCollisionSystem : SystemBase
                 _world.Spawn(collisionEntity);
                 continue;
             }
+
+            if (aabb.Right >= 640)
+            {
+                var delta = aabb.Right - 640;
+                var pos = rb.Position;
+                pos.X -= delta;
+                rb.Position = pos;
+                var vel = rb.Velocity;
+                vel.X *= -1;
+                rb.Velocity = vel;
+                _rigidbodies.UpdateComponent(entity, rb);
+                continue;
+            }
             
             var dir = rb.Velocity * _clock.ScaledDeltaTime;
             foreach (var otherEntity in _world.Entities)
@@ -89,14 +102,5 @@ public sealed class AabbCollisionSystem : SystemBase
                 _world.Spawn(collisionEntity);
             }
         }
-    }
-
-    private void ReflectVelocityY(Entity entity)
-    {
-        if (!_rigidbodies.TryGetComponent(entity, out var rb))
-            return;
-        
-        rb.Velocity = rb.Velocity with { Y = rb.Velocity.Y * -1f };
-        _rigidbodies.UpdateComponent(entity, rb);
     }
 }

@@ -10,9 +10,7 @@ public sealed class Game
     private readonly Texture _spriteSheet;
     private readonly BricksSim _sim;
     private readonly Color _white = new(255, 255, 255, 255);
-
-    private Stopwatch _stopwatch = new();
-
+    
     public Game()
     {
         _sim = new BricksSim();
@@ -21,16 +19,24 @@ public sealed class Game
         _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");
     }
     
+    const float fixedDelta = 1f / 60f;
+    float accumulator = 0f;
+    
     public void Run()
     {
         while (!Raylib.WindowShouldClose())
         {
-            var dt = _stopwatch.ElapsedMilliseconds / 1000f;
-            _stopwatch.Restart();
+            var frameTime = Raylib.GetFrameTime();
+            accumulator += frameTime;
+            
+            while (accumulator >= fixedDelta)
+            {
+                _sim.Update(fixedDelta);
+                accumulator -= fixedDelta;
+            }
+            
             Raylib.BeginDrawing();
             Raylib.ClearBackground(new Color(80, 80, 80, 255));
-            
-            _sim.Update(dt);
 
             foreach (var entity in _sim.World.Entities)
             {
@@ -39,10 +45,13 @@ public sealed class Game
                 
                 if (!_sim.Aabbs.TryGetComponent(entity, out var aabb))
                     continue;
-
+                
+                var lerp = accumulator / fixedDelta;
                 if (renderable.Kind == RenderableKind.Ball)
                 {
-                    DrawBallSprite(aabb);
+                    var left = aabb.Left;
+                    var top = aabb.Top;
+                    DrawBallSprite(AABB.FromLeftTopWidthHeight(left, top, aabb.Width, aabb.Height));
                 }
             }
 
