@@ -25,7 +25,9 @@ public sealed class PhysicsSystem : SystemBase
             if (!_rigidbodies.TryGetComponent(entity, out var rigidbody))
                 continue;
 
-            rigidbody.PrevPosition = rigidbody.Position;
+            if (rigidbody.IsKinematic)
+                continue;
+            
             rigidbody.Position += rigidbody.Velocity * _clock.ScaledDeltaTime;
             _rigidbodies.UpdateComponent(entity, rigidbody);
         }

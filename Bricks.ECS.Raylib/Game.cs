@@ -15,7 +15,7 @@ public sealed class Game
     
     public Game()
     {
-        _sim = new BricksSim();
+        _sim = new BricksSim(AABB.FromLeftTopWidthHeight(0, 0, 640, 480));
         //Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT);
         Raylib.InitWindow(640, 480, "Bricks ECS");
         _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");
