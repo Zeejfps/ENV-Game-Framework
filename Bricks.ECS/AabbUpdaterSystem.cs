@@ -54,7 +54,7 @@ public sealed class AabbUpdaterSystem : SystemBase
                 var h = boxCollider.Height;
                 var aabb = AABB.FromLeftTopWidthHeight(
                     pos.X - w*0.5f,
-                    pos.Y + h * 0.5f,
+                    pos.Y - h * 0.5f,
                     w,
                     h
                 );

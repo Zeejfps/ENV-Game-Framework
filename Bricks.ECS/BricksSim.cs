@@ -115,6 +115,11 @@ public sealed class BricksSim : Sim<Entity>
             Height = height
         });
         
+        Bricks.AddComponent(entity, new Brick
+        {
+            Health = 1
+        });
+        
         World.Spawn(entity);
     }
 }

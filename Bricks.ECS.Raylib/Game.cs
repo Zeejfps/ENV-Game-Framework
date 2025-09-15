@@ -58,6 +58,10 @@ public sealed class Game
                     {
                         _ballSprites.Remove(entity);
                     }
+                    else if (spriteComp.Kind == SpriteKind.Brick)
+                    {
+                        _brickSprites.Remove(entity);
+                    }
                 }
                 _sim.Update(fixedDelta);
                 accumulator -= fixedDelta;
@@ -67,14 +71,23 @@ public sealed class Game
             Raylib.ClearBackground(new Color(80, 80, 80, 255));
             
             var lerp = accumulator / fixedDelta;
-            foreach (var updatedComponent in _sim.Rigidbodies.UpdatedComponents)
+            foreach (var entity in _sim.World.Entities)
             {
-                var entity =  updatedComponent.Entity;
-                var prevPos = updatedComponent.PrevValue.Position;
-                var currPos = updatedComponent.NewValue.Position;
-                if (_ballSprites.TryGetValue(entity, out var sprite))
+                if (_sim.Rigidbodies.WasUpdated(entity, out var updatedComponent))
                 {
-                    sprite.Pos = Vector2.Lerp(prevPos, currPos, lerp);
+                    var prevPos = updatedComponent.PrevValue.Position;
+                    var currPos = updatedComponent.NewValue.Position;
+                    if (_ballSprites.TryGetValue(entity, out var sprite))
+                    {
+                        sprite.Pos = Vector2.Lerp(prevPos, currPos, lerp);
+                    }
+                }
+                else if (_sim.Rigidbodies.TryGetComponent(entity, out var rb))
+                {
+                    if (_brickSprites.TryGetValue(entity, out var sprite))
+                    {
+                        sprite.Pos = rb.Position;
+                    }
                 }
             }
 
@@ -129,7 +142,7 @@ class BrickSprite
     {
         Raylib.DrawTexturePro(_spriteSheet,
             new Rectangle(0, 20, 60, 20),
-            new Rectangle(Pos.X, Pos.Y, _width, _height),
+            new Rectangle(Pos.X- _width * 0.5f, Pos.Y - _height * 0.5f, _width, _height),
             new Vector2(0, 0),
             0, 
             _tint);

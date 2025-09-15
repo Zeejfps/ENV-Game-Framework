@@ -1,8 +1,7 @@
 ﻿namespace ZGF.ECSModule;
 
-public readonly struct UpdatedComponent<TEntity, TComponent>
+public readonly struct UpdatedComponent<TComponent>
 {
-    public required TEntity Entity { get; init; }
     public required TComponent PrevValue { get; init; }
     public required TComponent NewValue { get; init; }
 }
@@ -14,10 +13,10 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
     private readonly Dictionary<TEntity, TComponent> _componentsByEntityLookup = new();
     private readonly Dictionary<TEntity, TComponent> _componentsToRemove = new();
     private readonly Dictionary<TEntity, TComponent> _componentsToAdd = new();
-    private readonly List<UpdatedComponent<TEntity, TComponent>> _componentsToUpdate = new();
+    private readonly Dictionary<TEntity, UpdatedComponent<TComponent>> _componentsToUpdate = new();
 
     public IEnumerable<KeyValuePair<TEntity, TComponent>> AddedComponents => _componentsToAdd;
-    public IEnumerable<UpdatedComponent<TEntity, TComponent>> UpdatedComponents => _componentsToUpdate;
+    public IEnumerable<KeyValuePair<TEntity, UpdatedComponent<TComponent>>> UpdatedComponents => _componentsToUpdate;
     public IEnumerable<KeyValuePair<TEntity, TComponent>> RemovedComponents => _componentsToRemove;
 
     protected override void OnUpdate()
@@ -34,9 +33,9 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
         }
         _componentsToAdd.Clear();
         
-        foreach (var updatedComponent in _componentsToUpdate)
+        foreach (var (entity, updatedComponent) in _componentsToUpdate)
         {
-            _componentsByEntityLookup[updatedComponent.Entity] = updatedComponent.NewValue;
+            _componentsByEntityLookup[entity] = updatedComponent.NewValue;
         }
         _componentsToUpdate.Clear();
     }
@@ -68,17 +67,21 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
     {
         if (_componentsByEntityLookup.TryGetValue(entity, out var prevValue))
         {
-            _componentsToUpdate.Add(new UpdatedComponent<TEntity, TComponent>
+            _componentsToUpdate[entity] = new UpdatedComponent<TComponent>
             {
-                Entity = entity,
                 PrevValue = prevValue,
                 NewValue = component
-            });
+            };
         }
         else
         {
             _componentsToAdd.Add(entity, component);
             _componentsToRemove.Remove(entity);
         }
+    }
+
+    public bool WasUpdated(TEntity entity, out UpdatedComponent<TComponent> updatedComponent)
+    {
+        return _componentsToUpdate.TryGetValue(entity, out updatedComponent);
     }
 }

@@ -18,10 +18,9 @@ public sealed class BrickSystem : SystemBase
     protected override void OnPreUpdate()
     {
         base.OnPreUpdate();
-        foreach (var kvp in _bricks.UpdatedComponents)
+        foreach (var (entity, updatedComponent) in _bricks.UpdatedComponents)
         {
-            var entity = kvp.Entity;
-            var component = kvp.NewValue;
+            var component = updatedComponent.NewValue;
             if (component.Health <= 0)
             {
                 _world.Despawn(entity);
