@@ -6,19 +6,21 @@ namespace Bricks.ECS;
 public sealed class BricksGame
 {
     private readonly BallCollisionSystem _ballCollisionSystem;
+    
     public WorldSystem<Entity> World { get; }
     public ComponentSystem<Entity, Rigidbody> Rigidbodies { get; }
     public ComponentSystem<Entity, CircleCollider> CircleColliders { get; }
+    public ComponentSystem<Entity, Brick> Bricks { get; }
     public List<ISystem> Systems { get; }
     
     public BricksGame()
     {
         CircleColliders = new ComponentSystem<Entity, CircleCollider>();
         Rigidbodies = new ComponentSystem<Entity, Rigidbody>();
+        Bricks = new ComponentSystem<Entity, Brick>();
         World = new WorldSystem<Entity>();
-        var bricks = new ComponentSystem<Entity, Brick>();
         
-        _ballCollisionSystem = new BallCollisionSystem(World, bricks);
+        _ballCollisionSystem = new BallCollisionSystem(World, Bricks);
         
         Systems =
         [
@@ -26,7 +28,7 @@ public sealed class BricksGame
             CircleColliders,
             Rigidbodies,
             _ballCollisionSystem,
-            new BrickSystem(World, bricks)
+            new BrickSystem(World, Bricks)
         ];
         
         SpawnBall();
@@ -39,7 +41,6 @@ public sealed class BricksGame
         var world = World;
         
         var ballEntity = Entity.New();
-        ballEntity.Tags = Tags.Ball;
         
         circleColliders.AddComponent(ballEntity, new CircleCollider
         {

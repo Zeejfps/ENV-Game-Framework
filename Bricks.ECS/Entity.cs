@@ -1,13 +1,6 @@
 namespace Bricks.ECS;
 
-[Flags]
-public enum Tags
-{
-    None = 0,
-    Ball = 1 << 0
-}
-
-public sealed record Entity
+public record struct Entity
 {
     private static ulong s_Id = 1;
 
@@ -17,9 +10,7 @@ public sealed record Entity
     {
         _id = id;
     }
-
-    public Tags Tags { get; set; }
-
+    
     public static Entity New()
     {
         return new Entity(s_Id++);
