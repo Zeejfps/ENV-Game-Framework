@@ -3,7 +3,7 @@ using ZGF.ECSModule;
 
 namespace Bricks.ECS;
 
-public sealed class BricksGame
+public sealed class BricksSim
 {
     private readonly BallCollisionSystem _ballCollisionSystem;
     
@@ -11,13 +11,15 @@ public sealed class BricksGame
     public ComponentSystem<Entity, Rigidbody> Rigidbodies { get; }
     public ComponentSystem<Entity, CircleCollider> CircleColliders { get; }
     public ComponentSystem<Entity, Brick> Bricks { get; }
+    public ComponentSystem<Entity, Renderable> Renderables { get; }
     public List<ISystem> Systems { get; }
     
-    public BricksGame()
+    public BricksSim()
     {
         CircleColliders = new ComponentSystem<Entity, CircleCollider>();
         Rigidbodies = new ComponentSystem<Entity, Rigidbody>();
         Bricks = new ComponentSystem<Entity, Brick>();
+        Renderables = new ComponentSystem<Entity, Renderable>();
         World = new WorldSystem<Entity>();
         
         _ballCollisionSystem = new BallCollisionSystem(World, Bricks);
@@ -27,6 +29,8 @@ public sealed class BricksGame
             World,
             CircleColliders,
             Rigidbodies,
+            Bricks,
+            Renderables,
             _ballCollisionSystem,
             new BrickSystem(World, Bricks)
         ];
@@ -38,6 +42,7 @@ public sealed class BricksGame
     {
         var circleColliders = CircleColliders;
         var rigidbodies = Rigidbodies;
+        var renderables = Renderables;
         var world = World;
         
         var ballEntity = Entity.New();
@@ -51,6 +56,11 @@ public sealed class BricksGame
         {
             Position = new Vector2(0, 0),
             Velocity = new Vector2(2, 2)
+        });
+        
+        renderables.AddComponent(ballEntity, new Renderable
+        {
+            Kind = RenderableKind.Ball,
         });
         
         world.Spawn(ballEntity);
