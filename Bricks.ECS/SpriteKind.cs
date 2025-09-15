@@ -1,7 +1,7 @@
 namespace Bricks.ECS;
 
 [Flags]
-public enum RenderableKind
+public enum SpriteKind
 {
     Ball = 1 << 0,
     Brick = 1 << 1,

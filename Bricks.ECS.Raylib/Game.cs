@@ -40,14 +40,14 @@ public sealed class Game
 
             foreach (var entity in _sim.World.Entities)
             {
-                if (!_sim.Renderables.TryGetComponent(entity, out var renderable))
+                if (!_sim.Sprites.TryGetComponent(entity, out var renderable))
                     continue;
                 
                 if (!_sim.Aabbs.TryGetComponent(entity, out var aabb))
                     continue;
                 
                 var lerp = accumulator / fixedDelta;
-                if (renderable.Kind == RenderableKind.Ball)
+                if (renderable.Kind == SpriteKind.Ball)
                 {
                     var left = aabb.Left;
                     var top = aabb.Top;

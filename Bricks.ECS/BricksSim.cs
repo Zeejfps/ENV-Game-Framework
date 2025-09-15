@@ -9,7 +9,7 @@ public sealed class BricksSim : Sim<Entity>
     public ComponentSystem<Entity, Rigidbody> Rigidbodies { get; }
     public ComponentSystem<Entity, CircleCollider> CircleColliders { get; }
     public ComponentSystem<Entity, Brick> Bricks { get; }
-    public ComponentSystem<Entity, Renderable> Renderables { get; }
+    public ComponentSystem<Entity, Sprite> Sprites { get; }
     public ComponentSystem<Entity, AABB> Aabbs { get; }
     public ComponentSystem<Entity, Collision> Collisions { get; }
     
@@ -17,7 +17,7 @@ public sealed class BricksSim : Sim<Entity>
     {
         CircleColliders = AddComponentSystem<CircleCollider>();
         Rigidbodies = AddComponentSystem<Rigidbody>();
-        Renderables = AddComponentSystem<Renderable>();
+        Sprites = AddComponentSystem<Sprite>();
         Bricks = AddComponentSystem<Brick>();
         Aabbs = AddComponentSystem<AABB>();
         Collisions = AddComponentSystem<Collision>();
@@ -35,7 +35,7 @@ public sealed class BricksSim : Sim<Entity>
     {
         var circleColliders = CircleColliders;
         var rigidbodies = Rigidbodies;
-        var renderables = Renderables;
+        var sprites = Sprites;
         var world = World;
         
         var ballEntity = Entity.New();
@@ -51,9 +51,10 @@ public sealed class BricksSim : Sim<Entity>
             Velocity = new Vector2(-200, 20)
         });
         
-        renderables.AddComponent(ballEntity, new Renderable
+        sprites.AddComponent(ballEntity, new Sprite
         {
-            Kind = RenderableKind.Ball,
+            Position = new Vector2(200, 100),
+            Kind = SpriteKind.Ball,
         });
         
         world.Spawn(ballEntity);
