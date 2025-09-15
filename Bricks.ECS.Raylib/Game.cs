@@ -25,12 +25,12 @@ public sealed class Game
     {
         while (!Raylib.WindowShouldClose())
         {
-            var dt = _stopwatch.ElapsedMilliseconds;
+            var dt = _stopwatch.ElapsedMilliseconds / 1000f;
             _stopwatch.Restart();
             Raylib.BeginDrawing();
             Raylib.ClearBackground(new Color(80, 80, 80, 255));
             
-            _sim.Update(dt / 1000f);
+            _sim.Update(dt);
 
             foreach (var entity in _sim.World.Entities)
             {

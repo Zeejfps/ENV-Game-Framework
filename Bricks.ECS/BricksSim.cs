@@ -47,8 +47,8 @@ public sealed class BricksSim : Sim<Entity>
         
         rigidbodies.AddComponent(ballEntity, new Rigidbody
         {
-            Position = new Vector2(0, 0),
-            Velocity = new Vector2(50, 50)
+            Position = new Vector2(200, 100),
+            Velocity = new Vector2(-500, 20)
         });
         
         renderables.AddComponent(ballEntity, new Renderable

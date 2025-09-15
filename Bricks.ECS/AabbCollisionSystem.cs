@@ -33,7 +33,6 @@ public sealed class AabbCollisionSystem : SystemBase
         {
             if (_collisions.TryGetComponent(entity, out var collision))
             {
-                ResolveCollision(collision);
                 _collisions.RemoveComponent(entity);
                 _world.Despawn(entity);
                 continue;
@@ -44,7 +43,30 @@ public sealed class AabbCollisionSystem : SystemBase
             
             if (!_aabbs.TryGetComponent(entity, out var aabb))
                 continue;
+            
+            if (aabb.Left < 0)
+            {
+                var delta = aabb.Left;
 
+                var pos = rb.Position;
+                pos.X -= delta;
+                rb.Position = pos;
+                var vel = rb.Velocity;
+                vel.X *= -1;
+                rb.Velocity = vel;
+                _rigidbodies.UpdateComponent(entity, rb);
+
+                var collisionEntity = Entity.New();
+                _collisions.AddComponent(collisionEntity, new Collision
+                {
+                    FirstEntity = entity,
+                    SecondEntity = Entity.New(),
+                    Normal = Vector2.UnitX,
+                });
+                _world.Spawn(collisionEntity);
+                continue;
+            }
+            
             var dir = rb.Velocity * _clock.ScaledDeltaTime;
             foreach (var otherEntity in _world.Entities)
             {
@@ -67,25 +89,6 @@ public sealed class AabbCollisionSystem : SystemBase
                 _world.Spawn(collisionEntity);
             }
         }
-    }
-
-    private void ResolveCollision(Collision collision)
-    {
-        var ballEntity = collision.FirstEntity;
-        
-        if (collision.Normal == Vector2.UnitX || collision.Normal == -Vector2.UnitX)
-            ReflectVelocityX(ballEntity);
-        
-        ReflectVelocityY(ballEntity);
-    }
-    
-    private void ReflectVelocityX(Entity entity)
-    {
-        if (!_rigidbodies.TryGetComponent(entity, out var rigidbody))
-            return;
-        
-        rigidbody.Velocity = rigidbody.Velocity with { X = rigidbody.Velocity.X * -1f };
-        _rigidbodies.UpdateComponent(entity, rigidbody);
     }
 
     private void ReflectVelocityY(Entity entity)
