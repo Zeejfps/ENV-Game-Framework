@@ -26,9 +26,8 @@ public sealed class AabbCollisionSystem : SystemBase
         _aabbs = aabbs;
     }
 
-    protected override void OnUpdate()
+    protected override void OnFixedUpdate()
     {
-        base.OnUpdate();
         foreach (var entity in _world.Entities)
         {
             if (_collisions.TryGetComponent(entity, out var collision))
@@ -80,7 +79,7 @@ public sealed class AabbCollisionSystem : SystemBase
                 continue;
             }
             
-            var dir = rb.Velocity * _clock.ScaledDeltaTime;
+            var dir = rb.Velocity * _clock.FixedDeltaTime;
             foreach (var otherEntity in _world.Entities)
             {
                 if (otherEntity == entity)

@@ -19,35 +19,25 @@ public sealed class Game
         _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");
     }
     
-    const float fixedDelta = 1f / 60f;
-    float accumulator = 0f;
-    
     public void Run()
     {
         while (!Raylib.WindowShouldClose())
         {
             var frameTime = Raylib.GetFrameTime();
-            accumulator += frameTime;
-            
-            while (accumulator >= fixedDelta)
-            {
-                _sim.Update(fixedDelta);
-                accumulator -= fixedDelta;
-            }
-            
+            _sim.Update(frameTime);
+
             Raylib.BeginDrawing();
             Raylib.ClearBackground(new Color(80, 80, 80, 255));
 
             foreach (var entity in _sim.World.Entities)
             {
-                if (!_sim.Sprites.TryGetComponent(entity, out var renderable))
+                if (!_sim.Sprites.TryGetComponent(entity, out var sprite))
                     continue;
                 
                 if (!_sim.Aabbs.TryGetComponent(entity, out var aabb))
                     continue;
                 
-                var lerp = accumulator / fixedDelta;
-                if (renderable.Kind == SpriteKind.Ball)
+                if (sprite.Kind == SpriteKind.Ball)
                 {
                     var left = aabb.Left;
                     var top = aabb.Top;
