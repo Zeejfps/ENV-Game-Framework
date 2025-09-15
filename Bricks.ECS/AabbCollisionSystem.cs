@@ -74,10 +74,17 @@ public sealed class AabbCollisionSystem : SystemBase
                     rb.Velocity = vel;
                     _rigidbodies.UpdateComponent(entity, rb);
                 }
-                else if (hit.Normal == Vector2.UnitY || hit.Normal == -Vector2.UnitY)
+                else if (hit.Normal == Vector2.UnitY)
                 {
                     var vel = rb.Velocity;
-                    vel.Y *= -1;
+                    vel.Y = MathF.Abs(vel.Y);
+                    rb.Velocity = vel;
+                    _rigidbodies.UpdateComponent(entity, rb);
+                }
+                else if (hit.Normal == -Vector2.UnitY)
+                {
+                    var vel = rb.Velocity;
+                    vel.Y = MathF.Abs(vel.Y) * -1;
                     rb.Velocity = vel;
                     _rigidbodies.UpdateComponent(entity, rb);
                 }
