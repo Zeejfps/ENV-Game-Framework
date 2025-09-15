@@ -79,6 +79,19 @@ public sealed class AabbCollisionSystem : SystemBase
                 _rigidbodies.UpdateComponent(entity, rb);
                 continue;
             }
+
+            if (aabb.Top + dir.Y < 0)
+            {
+                var delta = aabb.Top + dir.Y;
+                var pos = rb.Position;
+                pos.Y -= delta;
+                rb.Position = pos;
+                var vel = rb.Velocity;
+                vel.Y *= -1;
+                rb.Velocity = vel;
+                _rigidbodies.UpdateComponent(entity, rb);
+                continue;
+            } 
             
             foreach (var otherEntity in _world.Entities)
             {
@@ -99,6 +112,21 @@ public sealed class AabbCollisionSystem : SystemBase
                     Normal = hit.Normal,
                 });
                 _world.Spawn(collisionEntity);
+
+                if (hit.Normal == Vector2.UnitX || hit.Normal == -Vector2.UnitX)
+                {
+                    var vel = rb.Velocity;
+                    vel.X *= -1;
+                    rb.Velocity = vel;
+                    _rigidbodies.UpdateComponent(entity, rb);
+                }
+                else if (hit.Normal == Vector2.UnitY || hit.Normal == -Vector2.UnitY)
+                {
+                    var vel = rb.Velocity;
+                    vel.Y *= -1;
+                    rb.Velocity = vel;
+                    _rigidbodies.UpdateComponent(entity, rb);
+                }
             }
         }
     }

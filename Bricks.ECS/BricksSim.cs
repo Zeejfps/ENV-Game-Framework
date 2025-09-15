@@ -49,7 +49,7 @@ public sealed class BricksSim : Sim<Entity>
         {
             PrevPosition = new Vector2(200, 100),
             Position = new Vector2(200, 100),
-            Velocity = new Vector2(-800, 20)
+            Velocity = new Vector2(-500, -50)
         });
         
         sprites.AddComponent(ballEntity, new Sprite
