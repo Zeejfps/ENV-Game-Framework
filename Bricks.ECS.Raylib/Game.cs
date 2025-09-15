@@ -28,6 +28,11 @@ public sealed class Game
     {
         while (!Raylib.WindowShouldClose())
         {
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_A))
+            {
+                _sim.SpawnBall();
+            }
+            
             var frameTime = Raylib.GetFrameTime();
             accumulator += frameTime;
             
@@ -54,7 +59,7 @@ public sealed class Game
             
             Raylib.BeginDrawing();
             Raylib.ClearBackground(new Color(80, 80, 80, 255));
-
+            
             var lerp = accumulator / fixedDelta;
             foreach (var updatedComponent in _sim.Rigidbodies.UpdatedComponents)
             {
@@ -74,16 +79,6 @@ public sealed class Game
 
             Raylib.EndDrawing();
         }
-    }
-    
-    private void DrawBallSprite(AABB ballRect)
-    {
-        Raylib.DrawTexturePro(_spriteSheet,
-            new Rectangle(120, 0, 20, 20),
-            new Rectangle(ballRect.Left, ballRect.Top, ballRect.Width, ballRect.Height),
-            new Vector2(0, 0),
-            0, 
-            _white);
     }
 }
 

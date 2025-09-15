@@ -27,7 +27,6 @@ public sealed class BricksSim : Sim<Entity>
         Systems.Add(new AabbUpdaterSystem(World, Aabbs, Rigidbodies, CircleColliders));
         Systems.Add(new AabbCollisionSystem(Clock, World, Rigidbodies, Collisions, Aabbs));
         Systems.Add(new BallBrickCollisionSystem(World, Bricks, Collisions));
-        Systems.Add(new SpriteUpdaterSystem(Clock, World, Sprites, Rigidbodies));
         
         SpawnBall();
     }
@@ -50,7 +49,7 @@ public sealed class BricksSim : Sim<Entity>
         {
             PrevPosition = new Vector2(200, 100),
             Position = new Vector2(200, 100),
-            Velocity = new Vector2(-500, 20)
+            Velocity = new Vector2(-800, 20)
         });
         
         sprites.AddComponent(ballEntity, new Sprite
