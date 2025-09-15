@@ -5,6 +5,7 @@ namespace Bricks.ECS;
 
 public sealed class BricksGame
 {
+    private readonly BallCollisionSystem _ballCollisionSystem;
     public WorldSystem<Entity> World { get; }
     public ComponentSystem<Entity, Rigidbody> Rigidbodies { get; }
     public ComponentSystem<Entity, CircleCollider> CircleColliders { get; }
@@ -15,22 +16,28 @@ public sealed class BricksGame
         CircleColliders = new ComponentSystem<Entity, CircleCollider>();
         Rigidbodies = new ComponentSystem<Entity, Rigidbody>();
         World = new WorldSystem<Entity>();
-
-        SpawnBall(World, CircleColliders, Rigidbodies);
+        var bricks = new ComponentSystem<Entity, Brick>();
+        
+        _ballCollisionSystem = new BallCollisionSystem(World, bricks);
         
         Systems =
         [
             World,
             CircleColliders,
-            Rigidbodies
+            Rigidbodies,
+            _ballCollisionSystem,
+            new BrickSystem(World, bricks)
         ];
+        
+        SpawnBall();
     }
 
-    private void SpawnBall(
-        WorldSystem<Entity> world,
-        ComponentSystem<Entity, CircleCollider> circleColliders,
-        ComponentSystem<Entity, Rigidbody> transforms)
+    public void SpawnBall()
     {
+        var circleColliders = CircleColliders;
+        var rigidbodies = Rigidbodies;
+        var world = World;
+        
         var ballEntity = Entity.New();
         ballEntity.Tags = Tags.Ball;
         
@@ -39,7 +46,7 @@ public sealed class BricksGame
             Radius = 1
         });
         
-        transforms.AddComponent(ballEntity, new Rigidbody
+        rigidbodies.AddComponent(ballEntity, new Rigidbody
         {
             Position = new Vector2(0, 0),
             Velocity = new Vector2(2, 2)
@@ -48,16 +55,11 @@ public sealed class BricksGame
         world.Spawn(ballEntity);
     }
 
-    public void Resume()
+    public void AddBallCollision(BallCollision ballCollision)
     {
-        
+        _ballCollisionSystem.AddCollision(ballCollision);
     }
-
-    public void Pause()
-    {
-        
-    }
-
+    
     public void Update(float dt)
     {
         foreach (var system in Systems)
