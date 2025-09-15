@@ -36,6 +36,7 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
         foreach (var (entity, updatedComponent) in _componentsToUpdate)
         {
             _componentsByEntityLookup[entity] = updatedComponent.NewValue;
+            Console.WriteLine($"Updated {entity} {updatedComponent.NewValue}");
         }
         _componentsToUpdate.Clear();
     }
@@ -75,11 +76,11 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
         }
     }
 
-    public void UpdateComponent(TEntity entity, TComponent component)
+    public void UpdateComponent(TEntity entity, TComponent newValue)
     {
         if (!IsUpdating)
         {
-            _componentsByEntityLookup[entity] = component;
+            _componentsByEntityLookup[entity] = newValue;
             return;
         }
         
@@ -88,12 +89,12 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
             _componentsToUpdate[entity] = new UpdatedComponent<TComponent>
             {
                 PrevValue = prevValue,
-                NewValue = component
+                NewValue = newValue
             };
         }
         else
         {
-            _componentsToAdd.Add(entity, component);
+            _componentsToAdd.Add(entity, newValue);
             _componentsToRemove.Remove(entity);
         }
     }

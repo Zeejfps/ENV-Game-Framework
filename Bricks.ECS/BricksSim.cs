@@ -16,6 +16,10 @@ public sealed class BricksSim : Sim<Entity>
     public ComponentSystem<Entity, Collision> Collisions { get; }
     public AABB Bounds { get; }
     
+    private Entity Paddle { get; set; }
+    private bool _movePaddleLeft;
+    private bool _movePaddleRight;
+    
     public BricksSim(AABB bounds)
     {
         Bounds = bounds;
@@ -34,6 +38,47 @@ public sealed class BricksSim : Sim<Entity>
         SpawnBall();
         SpawnPaddle();
         SpawnBricks();
+    }
+
+    public void StartMovingPaddleLeft()
+    {
+        _movePaddleLeft = true;
+    }
+    
+    public void StopMovingPaddleLeft()
+    {
+        _movePaddleLeft = false;
+    }
+
+    protected override void OnUpdate(float dt)
+    {
+        if (_movePaddleLeft || _movePaddleRight)
+        {
+            if (Rigidbodies.TryGetComponent(Paddle, out var rigidbody))
+            {
+                var left = _movePaddleLeft ? -100f : 0f;
+                var right = _movePaddleRight ? 100f : 0f;
+                rigidbody.Velocity = new Vector2(left + right, 0);
+                Rigidbodies.UpdateComponent(Paddle, rigidbody);
+            }
+        }
+        else
+        {
+            if (Rigidbodies.TryGetComponent(Paddle, out var rigidbody))
+            {
+                rigidbody.Velocity = Vector2.Zero;
+                Rigidbodies.UpdateComponent(Paddle, rigidbody);
+            }
+        }
+    }
+
+    public void MovePaddleRight()
+    {
+        if (Rigidbodies.TryGetComponent(Paddle, out var rigidbody))
+        {
+            rigidbody.Velocity = new Vector2(100, 0);
+            Rigidbodies.UpdateComponent(Paddle, rigidbody);
+        }
     }
 
     public void SpawnBall()
@@ -106,7 +151,7 @@ public sealed class BricksSim : Sim<Entity>
         });
         Rigidbodies.AddComponent(entity, new Rigidbody
         {
-            IsKinematic = false,
+            IsKinematic = true,
             Position = new Vector2(x, y),
             Velocity = Vector2.Zero
         });
@@ -127,6 +172,7 @@ public sealed class BricksSim : Sim<Entity>
     private void SpawnPaddle()
     {
         var entity = Entity.New();
+        Paddle = entity;
         
         Sprites.AddComponent(entity, new Sprite
         {

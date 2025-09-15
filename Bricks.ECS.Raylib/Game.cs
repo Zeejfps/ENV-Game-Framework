@@ -29,9 +29,18 @@ public sealed class Game
     {
         while (!Raylib.WindowShouldClose())
         {
-            if (Raylib.IsKeyPressed(KeyboardKey.KEY_A))
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_SPACE))
             {
                 _sim.SpawnBall();
+            }
+            
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_A))
+            {
+                _sim.StartMovingPaddleLeft();
+            }
+            else if (Raylib.IsKeyReleased(KeyboardKey.KEY_A))
+            {
+                _sim.StopMovingPaddleLeft();
             }
             
             var frameTime = Raylib.GetFrameTime();

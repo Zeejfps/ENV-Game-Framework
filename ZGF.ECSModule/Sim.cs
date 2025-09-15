@@ -28,6 +28,7 @@ public abstract class Sim<TEntity>
             system.PreUpdate();
         }
         
+        OnUpdate(dt);
         foreach (var system in Systems)
         {
             system.Update();
@@ -37,5 +38,10 @@ public abstract class Sim<TEntity>
         {
             system.PostUpdate();
         }
+    }
+
+    protected virtual void OnUpdate(float dt)
+    {
+        
     }
 }
