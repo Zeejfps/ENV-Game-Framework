@@ -15,12 +15,14 @@ public sealed class BrickSystem : SystemBase
         _bricks = bricks;
     }
 
-    protected override void OnPostUpdate()
+    protected override void OnUpdate()
     {
-        foreach (var (entity, updatedComponent) in _bricks.UpdatedComponents)
+        foreach (var entity in _world.Entities)
         {
-            var component = updatedComponent.NewValue;
-            if (component.Health <= 0)
+            if (!_bricks.TryGetComponent(entity, out var brick))
+                continue;
+            
+            if (brick.Health <= 0)
             {
                 _world.Despawn(entity);
             }
