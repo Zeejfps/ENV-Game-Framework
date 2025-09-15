@@ -55,7 +55,6 @@ public sealed class BricksSim : Sim<Entity>
         
         sprites.AddComponent(ballEntity, new Sprite
         {
-            Position = new Vector2(200, 100),
             Kind = SpriteKind.Ball,
         });
         
