@@ -14,6 +14,7 @@ public sealed class BricksSim : Sim<Entity>
     public ComponentSystem<Entity, Brick> Bricks { get; }
     public ComponentSystem<Entity, Sprite> Sprites { get; }
     public ComponentSystem<Entity, Collision> Collisions { get; }
+    public ComponentSystem<Entity, Transform> Transforms { get; }
     public AABB Bounds { get; }
     
     private Entity Paddle { get; set; }
@@ -29,10 +30,11 @@ public sealed class BricksSim : Sim<Entity>
         Sprites = AddComponentSystem<Sprite>();
         Bricks = AddComponentSystem<Brick>();
         Collisions = AddComponentSystem<Collision>();
+        Transforms = AddComponentSystem<Transform>();
         
         Systems.Add(new BrickSystem(World, Bricks));
-        Systems.Add(new PhysicsSystem(Clock, World, Rigidbodies));
-        Systems.Add(new AabbCollisionSystem(Clock, World, Rigidbodies, Collisions, BoxColliders, CircleColliders));
+        Systems.Add(new PhysicsSystem(Clock, World, Rigidbodies, Transforms));
+        Systems.Add(new AabbCollisionSystem(Clock, World, Rigidbodies, Collisions, BoxColliders, CircleColliders, Transforms));
         Systems.Add(new BallBrickCollisionSystem(World, Bricks, Collisions));
         
         SpawnBall();
@@ -95,9 +97,13 @@ public sealed class BricksSim : Sim<Entity>
             Radius = 20
         });
         
+        Transforms.AddComponent(ballEntity, new Transform
+        {
+            Position = new Vector2(320, 340)
+        });
+        
         rigidbodies.AddComponent(ballEntity, new Rigidbody
         {
-            Position = new Vector2(320, 340),
             Velocity = new Vector2((Random.Shared.NextSingle() * 2 - 1) * 500, Random.Shared.NextSingle() * -500),
             // Velocity = new Vector2(0f, -400f),
             IsKinematic = false
@@ -149,10 +155,15 @@ public sealed class BricksSim : Sim<Entity>
             Width = width,
             Height = height
         });
+        
+        Transforms.AddComponent(entity, new Transform
+        {
+            Position = new Vector2(x, y)
+        });
+        
         Rigidbodies.AddComponent(entity, new Rigidbody
         {
             IsKinematic = true,
-            Position = new Vector2(x, y),
             Velocity = Vector2.Zero
         });
         BoxColliders.AddComponent(entity, new BoxCollider
@@ -181,10 +192,14 @@ public sealed class BricksSim : Sim<Entity>
             Height = 25
         });
         
+        Transforms.AddComponent(entity, new Transform
+        {
+            Position = new Vector2(320, 400)
+        });
+        
         Rigidbodies.AddComponent(entity, new Rigidbody
         {
             IsKinematic = false,
-            Position = new Vector2(320, 400),
             Velocity = Vector2.Zero
         });
         

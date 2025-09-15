@@ -11,6 +11,7 @@ public sealed class AabbCollisionSystem : SystemBase
     private readonly WorldSystem<Entity> _world;
     private readonly ComponentSystem<Entity, Rigidbody> _rigidbodies;
     private readonly ComponentSystem<Entity, Collision> _collisions;
+    private readonly ComponentSystem<Entity, Transform> _transforms;
     private readonly ComponentSystem<Entity, BoxCollider> _boxColliders;
     private readonly ComponentSystem<Entity, CircleCollider> _circleColliders;
 
@@ -20,7 +21,8 @@ public sealed class AabbCollisionSystem : SystemBase
         ComponentSystem<Entity, Rigidbody> rigidbodies,
         ComponentSystem<Entity, Collision> collisions,
         ComponentSystem<Entity, BoxCollider> boxColliders,
-        ComponentSystem<Entity, CircleCollider> circleColliders)
+        ComponentSystem<Entity, CircleCollider> circleColliders,
+        ComponentSystem<Entity, Transform> transforms)
     {
         _clock = clock;
         _world = world;
@@ -28,6 +30,7 @@ public sealed class AabbCollisionSystem : SystemBase
         _collisions = collisions;
         _boxColliders = boxColliders;
         _circleColliders = circleColliders;
+        _transforms = transforms;
     }
 
     protected override void OnUpdate()
@@ -41,13 +44,16 @@ public sealed class AabbCollisionSystem : SystemBase
                 continue;
             }
             
+            if (!_transforms.TryGetComponent(entity, out var transform))
+                continue;
+            
             if (!_rigidbodies.TryGetComponent(entity, out var rb))
                 continue;
             
             if (rb.IsKinematic)
                 continue;
             
-            if (!TryGetAabb(entity, rb.Position, out var aabb))
+            if (!TryGetAabb(entity, transform.Position, out var aabb))
                 continue;
             
             var dir = rb.Velocity * _clock.ScaledDeltaTime;
@@ -56,10 +62,10 @@ public sealed class AabbCollisionSystem : SystemBase
                 if (otherEntity == entity)
                     continue;
                 
-                if (!_rigidbodies.TryGetComponent(otherEntity, out var otherRb))
+                if (!_transforms.TryGetComponent(otherEntity, out var otherTransform))
                     continue;
                 
-                if (!TryGetAabb(otherEntity, otherRb.Position, out var otherAabb))
+                if (!TryGetAabb(otherEntity, otherTransform.Position, out var otherAabb))
                     continue;
 
                 if (!aabb.TryCast(dir, otherAabb, out var hit))
@@ -97,21 +103,21 @@ public sealed class AabbCollisionSystem : SystemBase
                 }
             }
             
-            CheckLeftWallCollision(entity, aabb, rb, dir);
-            CheckRightWallCollision(entity, aabb, rb, dir);
-            CheckTopWallCollision(entity, aabb, rb, dir);
+            CheckLeftWallCollision(entity, aabb, transform, rb, dir);
+            CheckRightWallCollision(entity, aabb, transform, rb, dir);
+            CheckTopWallCollision(entity, aabb, transform, rb, dir);
         }
     }
 
-    private bool CheckTopWallCollision(Entity entity, AABB aabb, Rigidbody rb, Vector2 dir)
+    private bool CheckTopWallCollision(Entity entity, AABB aabb, Transform transform, Rigidbody rb, Vector2 dir)
     {
         if (aabb.Top + dir.Y >= 0)
             return false;
         
         var delta = aabb.Top + dir.Y;
-        var pos = rb.Position;
+        var pos = transform.Position;
         pos.Y -= delta;
-        rb.Position = pos;
+        transform.Position = pos;
         var vel = rb.Velocity;
         vel.Y *= -1;
         rb.Velocity = vel;
@@ -120,15 +126,15 @@ public sealed class AabbCollisionSystem : SystemBase
         return true;
     }
 
-    private bool CheckLeftWallCollision(Entity entity, AABB aabb, Rigidbody rb, Vector2 dir)
+    private bool CheckLeftWallCollision(Entity entity, AABB aabb, Transform transform, Rigidbody rb, Vector2 dir)
     {
         if (aabb.Left + dir.X < 0)
         {
             var delta = aabb.Left + dir.X;
 
-            var pos = rb.Position;
+            var pos = transform.Position;
             pos.X -= delta;
-            rb.Position = pos;
+            transform.Position = pos;
             var vel = rb.Velocity;
             vel.X *= -1;
             rb.Velocity = vel;
@@ -140,15 +146,15 @@ public sealed class AabbCollisionSystem : SystemBase
         return false;
     }
 
-    private bool CheckRightWallCollision(Entity entity, AABB aabb, Rigidbody rb, Vector2 dir)
+    private bool CheckRightWallCollision(Entity entity, AABB aabb, Transform transform, Rigidbody rb, Vector2 dir)
     {
         if (aabb.Right + dir.X < 640)
             return false;
         
         var delta = aabb.Right + dir.X - 640;
-        var pos = rb.Position;
+        var pos = transform.Position;
         pos.X -= delta;
-        rb.Position = pos;
+        transform.Position = pos;
         var vel = rb.Velocity;
         vel.X *= -1;
         rb.Velocity = vel;
