@@ -53,7 +53,7 @@ public sealed class BricksSim : Sim<Entity>
         rigidbodies.AddComponent(ballEntity, new Rigidbody
         {
             Position = new Vector2(320, 400),
-            Velocity = new Vector2(Random.Shared.NextSingle() * 1200 - 600, Random.Shared.NextSingle() * -500),
+            Velocity = new Vector2((Random.Shared.NextSingle() * 2 - 1) * 500, Random.Shared.NextSingle() * -500),
             // Velocity = new Vector2(0f, -400f),
             IsKinematic = false
         });
