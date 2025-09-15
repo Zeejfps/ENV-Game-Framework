@@ -52,7 +52,7 @@ public sealed class BricksSim : Sim<Entity>
         
         rigidbodies.AddComponent(ballEntity, new Rigidbody
         {
-            Position = new Vector2(200, 100),
+            Position = new Vector2(200, 400),
             Velocity = new Vector2(-500, -50),
             IsKinematic = false
         });
@@ -114,5 +114,7 @@ public sealed class BricksSim : Sim<Entity>
             Width = width,
             Height = height
         });
+        
+        World.Spawn(entity);
     }
 }
