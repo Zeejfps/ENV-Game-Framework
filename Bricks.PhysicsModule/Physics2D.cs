@@ -26,6 +26,12 @@ public static class Physics2D
     {
         var rayDirection = Vector2.Normalize(ray.Direction);
         var maxLength = ray.Direction.Length();
+        if (maxLength == 0)
+        {
+            hit = default;
+            return false;
+        }
+        
         var nearHitPoint = (aabb.BottomLeft - ray.Origin) / rayDirection;
         var farHitPoint = (aabb.TopRight - ray.Origin) / rayDirection;
 

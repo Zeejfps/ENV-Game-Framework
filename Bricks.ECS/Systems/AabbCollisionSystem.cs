@@ -56,13 +56,15 @@ public sealed class AabbCollisionSystem : SystemBase
                 if (otherEntity == entity)
                     continue;
                 
-                if (!TryGetAabb(otherEntity, rb.Position, out var otherAabb))
+                if (!_rigidbodies.TryGetComponent(otherEntity, out var otherRb))
+                    continue;
+                
+                if (!TryGetAabb(otherEntity, otherRb.Position, out var otherAabb))
                     continue;
 
                 if (!aabb.TryCast(dir, otherAabb, out var hit))
                     continue;
 
-                Console.WriteLine($"Collision: {entity} {otherEntity}");
                 var collisionEntity = Entity.New();
                 _collisions.AddComponent(collisionEntity, new Collision
                 {
