@@ -6,35 +6,33 @@ public sealed class BallCollisionSystem : SystemBase
 {
     private readonly WorldSystem<Entity> _world;
     private readonly ComponentSystem<Entity, Brick> _bricks;
-    private readonly List<Collision> _collisions = new();
+    private readonly ComponentSystem<Entity, Collision> _collisions;
 
     public BallCollisionSystem(
         WorldSystem<Entity> world,
-        ComponentSystem<Entity, Brick>  bricks)
+        ComponentSystem<Entity, Brick>  bricks, 
+        ComponentSystem<Entity, Collision> collisions)
     {
         _world = world;
         _bricks = bricks;
-    }
-
-    public void AddCollision(Collision collision)
-    {
-        _collisions.Add(collision);
+        _collisions = collisions;
     }
 
     protected override void OnUpdate()
     {
         base.OnUpdate();
 
-        foreach (var collision in _collisions)
+        foreach (var entity in _world.Entities)
         {
-            var other = collision.SecondEntity;
-            if (_bricks.TryGetComponent(other, out var brick))
+            if (!_collisions.TryGetComponent(entity, out var collision))
+                continue;
+
+            var brickEntity = collision.SecondEntity;
+            if (_bricks.TryGetComponent(brickEntity, out var brick))
             {
                 brick.Health--;
-                _bricks.UpdateComponent(other, brick);
+                _bricks.UpdateComponent(brickEntity, brick);
             }
         }
-        
-        _collisions.Clear();
     }
 }

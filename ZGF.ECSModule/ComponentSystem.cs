@@ -75,5 +75,10 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
                 NewValue = component
             });
         }
+        else
+        {
+            _componentsToAdd.Add(entity, component);
+            _componentsToRemove.Remove(entity);
+        }
     }
 }

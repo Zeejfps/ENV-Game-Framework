@@ -100,6 +100,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bricks.ECS", "Bricks.ECS\Br
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bricks.PhysicsModule", "Bricks.PhysicsModule\Bricks.PhysicsModule.csproj", "{A2FE173E-A97A-4FDB-8BF7-76C48A4B2A1A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bricks.ECS.Raylib", "Bricks.ECS.Raylib\Bricks.ECS.Raylib.csproj", "{49A52128-2CD4-470D-9269-B52256924C48}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -306,5 +308,9 @@ Global
 		{A2FE173E-A97A-4FDB-8BF7-76C48A4B2A1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A2FE173E-A97A-4FDB-8BF7-76C48A4B2A1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A2FE173E-A97A-4FDB-8BF7-76C48A4B2A1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{49A52128-2CD4-470D-9269-B52256924C48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49A52128-2CD4-470D-9269-B52256924C48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49A52128-2CD4-470D-9269-B52256924C48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49A52128-2CD4-470D-9269-B52256924C48}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

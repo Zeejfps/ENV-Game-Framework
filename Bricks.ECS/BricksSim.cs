@@ -1,17 +1,17 @@
 ﻿using System.Numerics;
+using Bricks.PhysicsModule;
 using ZGF.ECSModule;
 
 namespace Bricks.ECS;
 
 public sealed class BricksSim : Sim<Entity>
 {
-    private readonly BallCollisionSystem _ballCollisionSystem;
-    private readonly BrickSystem _brickSystem;
-
     public ComponentSystem<Entity, Rigidbody> Rigidbodies { get; }
     public ComponentSystem<Entity, CircleCollider> CircleColliders { get; }
     public ComponentSystem<Entity, Brick> Bricks { get; }
     public ComponentSystem<Entity, Renderable> Renderables { get; }
+    public ComponentSystem<Entity, AABB> Aabbs { get; }
+    public ComponentSystem<Entity, Collision> Collisions { get; }
     
     public BricksSim()
     {
@@ -19,13 +19,14 @@ public sealed class BricksSim : Sim<Entity>
         Rigidbodies = AddComponentSystem<Rigidbody>();
         Renderables = AddComponentSystem<Renderable>();
         Bricks = AddComponentSystem<Brick>();
+        Aabbs = AddComponentSystem<AABB>();
+        Collisions = AddComponentSystem<Collision>();
         
-        _ballCollisionSystem = new BallCollisionSystem(World, Bricks);
-        _brickSystem = new BrickSystem(World, Bricks);
-
-        Systems.Add(_ballCollisionSystem);
-        Systems.Add(_brickSystem);
+        Systems.Add(new BrickSystem(World, Bricks));
         Systems.Add(new PhysicsSystem(Clock, World, Rigidbodies));
+        Systems.Add(new AabbUpdaterSystem(World, Aabbs, Rigidbodies, CircleColliders));
+        Systems.Add(new AabbCollisionSystem(Clock, World, Rigidbodies, Collisions, Aabbs));
+        Systems.Add(new BallCollisionSystem(World, Bricks, Collisions));
         
         SpawnBall();
     }
@@ -56,10 +57,5 @@ public sealed class BricksSim : Sim<Entity>
         });
         
         world.Spawn(ballEntity);
-    }
-
-    public void AddBallCollision(Collision collision)
-    {
-        _ballCollisionSystem.AddCollision(collision);
     }
 }
