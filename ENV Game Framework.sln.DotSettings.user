@@ -28,6 +28,7 @@
 	<s:String x:Key="/Default/Environment/AssemblyExplorer/XmlDocument/@EntryValue">&lt;AssemblyExplorer&gt;&#xD;
   &lt;Assembly Path="C:\Users\zeejf\.nuget\packages\raylib-cslo\4.2.0.9\lib\netstandard2.1\Raylib-CsLo.dll" /&gt;&#xD;
   &lt;Assembly Path="C:\Users\zeejf\.nuget\packages\nativefiledialogs.net\1.0.0\lib\net6.0\NativeFileDialogs.Net.dll" /&gt;&#xD;
+  &lt;Assembly Path="C:\Users\zeejf\.nuget\packages\bcnencoder.net\2.1.0\lib\netstandard2.1\BCnEncoder.dll" /&gt;&#xD;
 &lt;/AssemblyExplorer&gt;</s:String>
 	
 	

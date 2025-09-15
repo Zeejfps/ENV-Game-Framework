@@ -121,6 +121,7 @@ public sealed class AabbCollisionSystem : SystemBase
         var vel = rb.Velocity;
         vel.Y *= -1;
         rb.Velocity = vel;
+        _transforms.UpdateComponent(entity, transform);
         _rigidbodies.UpdateComponent(entity, rb);
         SpawnCollisionEntity(entity);
         return true;
@@ -138,6 +139,7 @@ public sealed class AabbCollisionSystem : SystemBase
             var vel = rb.Velocity;
             vel.X *= -1;
             rb.Velocity = vel;
+            _transforms.UpdateComponent(entity, transform);
             _rigidbodies.UpdateComponent(entity, rb);
 
             SpawnCollisionEntity(entity);
@@ -158,6 +160,7 @@ public sealed class AabbCollisionSystem : SystemBase
         var vel = rb.Velocity;
         vel.X *= -1;
         rb.Velocity = vel;
+        _transforms.UpdateComponent(entity, transform);
         _rigidbodies.UpdateComponent(entity, rb);
         SpawnCollisionEntity(entity);
         return true;
