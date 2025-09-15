@@ -43,9 +43,10 @@ public sealed class AabbCollisionSystem : SystemBase
             if (!_aabbs.TryGetComponent(entity, out var aabb))
                 continue;
             
-            if (aabb.Left < 0)
+            var dir = rb.Velocity * _clock.ScaledDeltaTime;
+            if (aabb.Left + dir.X < 0)
             {
-                var delta = aabb.Left;
+                var delta = aabb.Left + dir.X;
 
                 var pos = rb.Position;
                 pos.X -= delta;
@@ -66,9 +67,9 @@ public sealed class AabbCollisionSystem : SystemBase
                 continue;
             }
 
-            if (aabb.Right >= 640)
+            if (aabb.Right + dir.X >= 640)
             {
-                var delta = aabb.Right - 640;
+                var delta = aabb.Right + dir.X - 640;
                 var pos = rb.Position;
                 pos.X -= delta;
                 rb.Position = pos;
@@ -79,7 +80,6 @@ public sealed class AabbCollisionSystem : SystemBase
                 continue;
             }
             
-            var dir = rb.Velocity * _clock.ScaledDeltaTime;
             foreach (var otherEntity in _world.Entities)
             {
                 if (otherEntity == entity)
