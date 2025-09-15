@@ -36,7 +36,6 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
         foreach (var (entity, updatedComponent) in _componentsToUpdate)
         {
             _componentsByEntityLookup[entity] = updatedComponent.NewValue;
-            Console.WriteLine($"Updated {entity} {updatedComponent.NewValue}");
         }
         _componentsToUpdate.Clear();
     }

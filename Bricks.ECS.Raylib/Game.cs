@@ -1,11 +1,10 @@
 using System.Numerics;
 using Bricks.ECS.Components;
 using Bricks.PhysicsModule;
-using Raylib_CsLo;
 
 namespace Bricks.ECS.Raylib;
-
-using Color = Color;
+using Raylib_CsLo;
+using Color = Raylib_CsLo.Color;
 public sealed class Game
 {
     private readonly Texture _spriteSheet;
@@ -16,8 +15,8 @@ public sealed class Game
     {
         _sim = new BricksSim(AABB.FromLeftTopWidthHeight(0, 0, 640, 480));
         //Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT);
-        Raylib_CsLo.Raylib.InitWindow(640, 480, "Bricks ECS");
-        _spriteSheet = Raylib_CsLo.Raylib.LoadTexture("Assets/sprite_atlas.png");
+        Raylib.InitWindow(640, 480, "Bricks ECS");
+        _spriteSheet = Raylib.LoadTexture("Assets/sprite_atlas.png");
     }
     
     const float fixedDelta = 1f / 60f;
@@ -25,23 +24,17 @@ public sealed class Game
     
     public void Run()
     {
-        while (!Raylib_CsLo.Raylib.WindowShouldClose())
+        while (!Raylib.WindowShouldClose())
         {
-            if (Raylib_CsLo.Raylib.IsKeyPressed(KeyboardKey.KEY_SPACE))
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_SPACE))
             {
                 _sim.SpawnBall();
             }
             
-            if (Raylib_CsLo.Raylib.IsKeyPressed(KeyboardKey.KEY_A))
-            {
-                _sim.StartMovingPaddleLeft();
-            }
-            else if (Raylib_CsLo.Raylib.IsKeyReleased(KeyboardKey.KEY_A))
-            {
-                _sim.StopMovingPaddleLeft();
-            }
+            _sim.MovePaddleLeft = Raylib.IsKeyDown(KeyboardKey.KEY_A);
+            _sim.MovePaddleRight = Raylib.IsKeyDown(KeyboardKey.KEY_D);
             
-            var frameTime = Raylib_CsLo.Raylib.GetFrameTime();
+            var frameTime = Raylib.GetFrameTime();
             accumulator += frameTime;
             
             while (accumulator >= fixedDelta)
@@ -78,8 +71,8 @@ public sealed class Game
                 accumulator -= fixedDelta;
             }
             
-            Raylib_CsLo.Raylib.BeginDrawing();
-            Raylib_CsLo.Raylib.ClearBackground(new Color(80, 80, 80, 255));
+            Raylib.BeginDrawing();
+            Raylib.ClearBackground(new Color(80, 80, 80, 255));
             
             var lerp = accumulator / fixedDelta;
             foreach (var entity in _sim.World.Entities)
@@ -107,7 +100,7 @@ public sealed class Game
                 sprite.DrawSelf();
             }
 
-            Raylib_CsLo.Raylib.EndDrawing();
+            Raylib.EndDrawing();
         }
     }
 }
@@ -128,7 +121,7 @@ class PaddleSprite : ISprite
 
     public void DrawSelf()
     {
-        Raylib_CsLo.Raylib.DrawTexturePro(_spriteSheet,
+        Raylib.DrawTexturePro(_spriteSheet,
             new Rectangle(0, 0, 120, 19),
             new Rectangle(Pos.X - _width * 0.5f, Pos.Y - _height * 0.5f, _width, _height),
             new Vector2(0, 0),
@@ -173,7 +166,7 @@ class BrickSprite : ISprite
     
     private void DrawNormalBrickSprite()
     {
-        Raylib_CsLo.Raylib.DrawTexturePro(_spriteSheet,
+        Raylib.DrawTexturePro(_spriteSheet,
             new Rectangle(0, 20, 60, 20),
             new Rectangle(Pos.X- _width * 0.5f, Pos.Y - _height * 0.5f, _width, _height),
             new Vector2(0, 0),
@@ -214,7 +207,7 @@ class BallSprite : ISprite
     {
         var left = Pos.X - _halfWidth;
         var top = Pos.Y + _halfHeight;
-        Raylib_CsLo.Raylib.DrawTexturePro(_spriteSheet,
+        Raylib.DrawTexturePro(_spriteSheet,
             new Rectangle(120, 0, 20, 20),
             new Rectangle(left, top, _width, _height),
             new Vector2(0, 0),

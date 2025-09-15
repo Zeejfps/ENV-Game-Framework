@@ -18,8 +18,8 @@ public sealed class BricksSim : Sim<Entity>
     public AABB Bounds { get; }
     
     private Entity Paddle { get; set; }
-    private bool _movePaddleLeft;
-    private bool _movePaddleRight;
+    public bool MovePaddleLeft { get; set; }
+    public bool MovePaddleRight { get; set; }
     
     public BricksSim(AABB bounds)
     {
@@ -42,24 +42,14 @@ public sealed class BricksSim : Sim<Entity>
         SpawnBricks();
     }
 
-    public void StartMovingPaddleLeft()
-    {
-        _movePaddleLeft = true;
-    }
-    
-    public void StopMovingPaddleLeft()
-    {
-        _movePaddleLeft = false;
-    }
-
     protected override void OnUpdate(float dt)
     {
-        if (_movePaddleLeft || _movePaddleRight)
+        if (MovePaddleLeft || MovePaddleRight)
         {
             if (Rigidbodies.TryGetComponent(Paddle, out var rigidbody))
             {
-                var left = _movePaddleLeft ? -100f : 0f;
-                var right = _movePaddleRight ? 100f : 0f;
+                var left = MovePaddleLeft ? -500f : 0f;
+                var right = MovePaddleRight ? 500f : 0f;
                 rigidbody.Velocity = new Vector2(left + right, 0);
                 Rigidbodies.UpdateComponent(Paddle, rigidbody);
             }
@@ -71,15 +61,6 @@ public sealed class BricksSim : Sim<Entity>
                 rigidbody.Velocity = Vector2.Zero;
                 Rigidbodies.UpdateComponent(Paddle, rigidbody);
             }
-        }
-    }
-
-    public void MovePaddleRight()
-    {
-        if (Rigidbodies.TryGetComponent(Paddle, out var rigidbody))
-        {
-            rigidbody.Velocity = new Vector2(100, 0);
-            Rigidbodies.UpdateComponent(Paddle, rigidbody);
         }
     }
 
