@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Bricks.Archetypes;
+using Bricks.PhysicsModule;
 using Bricks.Repos;
 
 namespace Bricks.Entities;

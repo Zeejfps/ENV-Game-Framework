@@ -1,19 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Bricks;
-
-public readonly struct RaycastHit2D
-{
-    public Vector2 Normal { get; init; }
-    public Vector2 Point { get; init; }
-    public float Distance { get; init; }
-}
-
-public readonly struct Ray2D
-{
-    public Vector2 Origin { get; init; }
-    public Vector2 Direction { get; init; }
-}
+namespace Bricks.PhysicsModule;
 
 public static class Physics2D
 {

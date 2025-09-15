@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Bricks.Archetypes;
 using Bricks.Entities;
+using Bricks.PhysicsModule;
 using EasyGameFramework.Api.InputDevices;
 using EasyGameFramework.GUI;
 using Raylib_CsLo;

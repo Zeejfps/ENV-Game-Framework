@@ -1,4 +1,6 @@
-﻿namespace Bricks.Archetypes;
+﻿using Bricks.PhysicsModule;
+
+namespace Bricks.Archetypes;
 
 public interface IBrick : IEntity
 {

@@ -98,6 +98,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.ECSModule", "ZGF.ECSMod
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bricks.ECS", "Bricks.ECS\Bricks.ECS.csproj", "{5F7CE415-B41C-42C4-8136-856C1DD4E104}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bricks.PhysicsModule", "Bricks.PhysicsModule\Bricks.PhysicsModule.csproj", "{A2FE173E-A97A-4FDB-8BF7-76C48A4B2A1A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -300,5 +302,9 @@ Global
 		{5F7CE415-B41C-42C4-8136-856C1DD4E104}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5F7CE415-B41C-42C4-8136-856C1DD4E104}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5F7CE415-B41C-42C4-8136-856C1DD4E104}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2FE173E-A97A-4FDB-8BF7-76C48A4B2A1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2FE173E-A97A-4FDB-8BF7-76C48A4B2A1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2FE173E-A97A-4FDB-8BF7-76C48A4B2A1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2FE173E-A97A-4FDB-8BF7-76C48A4B2A1A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
