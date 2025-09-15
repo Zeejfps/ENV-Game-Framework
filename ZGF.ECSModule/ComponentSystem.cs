@@ -77,6 +77,12 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
 
     public void UpdateComponent(TEntity entity, TComponent component)
     {
+        if (!IsUpdating)
+        {
+            _componentsByEntityLookup[entity] = component;
+            return;
+        }
+        
         if (_componentsByEntityLookup.TryGetValue(entity, out var prevValue))
         {
             _componentsToUpdate[entity] = new UpdatedComponent<TComponent>
