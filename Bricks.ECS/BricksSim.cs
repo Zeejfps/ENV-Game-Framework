@@ -6,7 +6,8 @@ namespace Bricks.ECS;
 public sealed class BricksSim
 {
     private readonly BallCollisionSystem _ballCollisionSystem;
-    
+
+    public Clock Clock { get; } = new();
     public WorldSystem<Entity> World { get; }
     public ComponentSystem<Entity, Rigidbody> Rigidbodies { get; }
     public ComponentSystem<Entity, CircleCollider> CircleColliders { get; }
