@@ -12,8 +12,7 @@ public sealed class Game
     private readonly BricksSim _sim;
     private readonly Color _white = new(255, 255, 255, 255);
     
-    private readonly Dictionary<Entity, BallSprite> _ballSprites = new();
-    private readonly Dictionary<Entity, BrickSprite> _brickSprites = new();
+    private readonly Dictionary<Entity, ISprite> _sprites = new();
     
     public Game()
     {
@@ -48,12 +47,17 @@ public sealed class Game
                     if (spriteComp.Kind == SpriteKind.Ball)
                     {
                         var ballSprite = new BallSprite(_spriteSheet, spriteComp.Width, spriteComp.Height);
-                        _ballSprites.Add(entity, ballSprite);
+                        _sprites.Add(entity, ballSprite);
                     }
                     else if (spriteComp.Kind == SpriteKind.Brick)
                     {
                         var brickSprite = new BrickSprite(_spriteSheet, spriteComp.Width, spriteComp.Height);
-                        _brickSprites.Add(entity, brickSprite);
+                        _sprites.Add(entity, brickSprite);
+                    }
+                    else if (spriteComp.Kind == SpriteKind.Paddle)
+                    {
+                        var paddleSprite = new PaddleSprite(_spriteSheet, spriteComp.Width, spriteComp.Height);
+                        _sprites.Add(entity, paddleSprite);   
                     }
                 }
                 foreach (var entity in _sim.World.DespawningEntities)
@@ -61,14 +65,7 @@ public sealed class Game
                     if (!_sim.Sprites.TryGetComponent(entity, out var spriteComp))
                         continue;
                     
-                    if (spriteComp.Kind == SpriteKind.Ball)
-                    {
-                        _ballSprites.Remove(entity);
-                    }
-                    else if (spriteComp.Kind == SpriteKind.Brick)
-                    {
-                        _brickSprites.Remove(entity);
-                    }
+                    _sprites.Remove(entity);
                 }
                 _sim.Update(fixedDelta);
                 accumulator -= fixedDelta;
@@ -84,28 +81,23 @@ public sealed class Game
                 {
                     var prevPos = updatedComponent.PrevValue.Position;
                     var currPos = updatedComponent.NewValue.Position;
-                    if (_ballSprites.TryGetValue(entity, out var sprite))
+                    if (_sprites.TryGetValue(entity, out var sprite))
                     {
                         sprite.Pos = Vector2.Lerp(prevPos, currPos, lerp);
                     }
                 }
                 else if (_sim.Rigidbodies.TryGetComponent(entity, out var rb))
                 {
-                    if (_brickSprites.TryGetValue(entity, out var sprite))
+                    if (_sprites.TryGetValue(entity, out var sprite))
                     {
                         sprite.Pos = rb.Position;
                     }
                 }
             }
 
-            foreach (var sprite in _ballSprites.Values)
+            foreach (var sprite in _sprites.Values)
             {
                 sprite.DrawSelf();
-            }
-
-            foreach (var brickSprite in _brickSprites.Values)
-            {
-                brickSprite.DrawSelf();
             }
 
             Raylib.EndDrawing();
@@ -113,7 +105,34 @@ public sealed class Game
     }
 }
 
-class BrickSprite
+class PaddleSprite : ISprite
+{
+    private readonly Texture _spriteSheet;
+    private readonly float _width;
+    private readonly float _height;
+    private readonly Color _tint = new(255, 255, 255, 255);
+
+    public PaddleSprite(Texture spriteSheet, float width, float height)
+    {
+        _spriteSheet = spriteSheet;
+        _width = width;
+        _height = height;
+    }
+
+    public void DrawSelf()
+    {
+        Raylib.DrawTexturePro(_spriteSheet,
+            new Rectangle(0, 0, 120, 19),
+            new Rectangle(Pos.X - _width * 0.5f, Pos.Y - _height * 0.5f, _width, _height),
+            new Vector2(0, 0),
+            0, 
+            _tint);
+    }
+
+    public Vector2 Pos { get; set; }
+}
+
+class BrickSprite : ISprite
 {
     public Vector2 Pos { get; set; }
     
@@ -156,7 +175,13 @@ class BrickSprite
     }
 }
 
-class BallSprite
+interface ISprite
+{
+    void DrawSelf();
+    Vector2 Pos { get; set; }
+}
+
+class BallSprite : ISprite
 {
     public Vector2 Pos { get; set; }
     

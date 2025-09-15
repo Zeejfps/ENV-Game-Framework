@@ -36,7 +36,7 @@ public sealed class BricksSim : Sim<Entity>
         
         SpawnBall();
         SpawnBricks();
-        SpawnPaddle();
+        //SpawnPaddle();
     }
 
     public void SpawnBall()
@@ -129,6 +129,28 @@ public sealed class BricksSim : Sim<Entity>
     
     private void SpawnPaddle()
     {
+        var entity = Entity.New();
         
+        Sprites.AddComponent(entity, new Sprite
+        {
+            Kind = SpriteKind.Paddle,
+            Width = 120,
+            Height = 25
+        });
+        
+        Rigidbodies.AddComponent(entity, new Rigidbody
+        {
+            IsKinematic = false,
+            Position = new Vector2(320, 400),
+            Velocity = Vector2.Zero
+        });
+        
+        BoxColliders.AddComponent(entity, new BoxCollider
+        {
+            Width = 120,
+            Height = 25
+        });
+        
+        World.Spawn(entity);
     }
 }
