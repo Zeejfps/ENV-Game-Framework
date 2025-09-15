@@ -1,4 +1,6 @@
 ﻿using System.Numerics;
+using Bricks.ECS.Components;
+using Bricks.ECS.Systems;
 using Bricks.PhysicsModule;
 using ZGF.ECSModule;
 

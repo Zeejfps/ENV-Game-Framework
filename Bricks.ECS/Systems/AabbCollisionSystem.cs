@@ -1,8 +1,9 @@
 using System.Numerics;
+using Bricks.ECS.Components;
 using Bricks.PhysicsModule;
 using ZGF.ECSModule;
 
-namespace Bricks.ECS;
+namespace Bricks.ECS.Systems;
 
 public sealed class AabbCollisionSystem : SystemBase
 {

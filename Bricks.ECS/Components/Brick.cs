@@ -1,4 +1,4 @@
-namespace Bricks.ECS;
+namespace Bricks.ECS.Components;
 
 public record struct Brick
 {

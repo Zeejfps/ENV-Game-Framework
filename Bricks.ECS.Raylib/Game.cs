@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
+using Bricks.ECS.Components;
 using Bricks.PhysicsModule;
 
 namespace Bricks.ECS.Raylib;

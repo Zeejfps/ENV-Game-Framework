@@ -1,6 +1,7 @@
+using Bricks.ECS.Components;
 using ZGF.ECSModule;
 
-namespace Bricks.ECS;
+namespace Bricks.ECS.Systems;
 
 public sealed class BrickSystem : SystemBase
 {
