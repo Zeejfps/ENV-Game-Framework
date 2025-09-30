@@ -9,8 +9,10 @@ public sealed class WorldSystem<TEntity> : SystemBase
     private readonly HashSet<TEntity> _despawnedEntities = new();
 
     public IEnumerable<TEntity> Entities => _entities;
-    public IEnumerable<TEntity> SpawningEntities => _spawnedEntities;
+    public IEnumerable<TEntity> SpawningEntities => _entitiesToSpawn;
     public IEnumerable<TEntity> DespawningEntities => _despawnedEntities;
+    public IEnumerable<TEntity> SpawnedEntities => _spawnedEntities;
+    public IEnumerable<TEntity> DespawnedEntities => _despawnedEntities;
     
     public void Spawn(TEntity entity)
     {

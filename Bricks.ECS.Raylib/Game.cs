@@ -39,7 +39,7 @@ public sealed class Game
             
             while (accumulator >= fixedDelta)
             {
-                foreach (var entity in _sim.World.SpawningEntities)
+                foreach (var entity in _sim.World.SpawnedEntities)
                 {
                     if (!_sim.Sprites.TryGetComponent(entity, out var spriteComp))
                         continue;
@@ -60,7 +60,7 @@ public sealed class Game
                         _sprites.Add(entity, paddleSprite);   
                     }
                 }
-                foreach (var entity in _sim.World.DespawningEntities)
+                foreach (var entity in _sim.World.DespawnedEntities)
                 {
                     if (!_sim.Sprites.TryGetComponent(entity, out var spriteComp))
                         continue;
