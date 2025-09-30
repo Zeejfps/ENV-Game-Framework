@@ -77,7 +77,7 @@ public sealed class Game
             var lerp = accumulator / fixedDelta;
             foreach (var entity in _sim.World.Entities)
             {
-                if (_sim.Transforms.WasUpdated(entity, out var updatedComponent))
+                if (_sim.Transforms.WillUpdate(entity, out var updatedComponent))
                 {
                     var prevPos = updatedComponent.PrevValue.Position;
                     var currPos = updatedComponent.NewValue.Position;

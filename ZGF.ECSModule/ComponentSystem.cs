@@ -81,7 +81,7 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
         }
     }
 
-    public bool WasUpdated(TEntity entity, out UpdatedComponent<TComponent> updatedComponent)
+    public bool WillUpdate(TEntity entity, out UpdatedComponent<TComponent> updatedComponent)
     {
         return _componentsToUpdate.TryGetValue(entity, out updatedComponent);
     }
