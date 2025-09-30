@@ -47,11 +47,6 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
     
     public void AddComponent(TEntity entity, TComponent component)
     {
-        if (!IsUpdating)
-        {
-            _componentsByEntityLookup.Add(entity, component);
-            return;
-        }
         
         if (!_componentsByEntityLookup.ContainsKey(entity))
         {
@@ -62,12 +57,6 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
 
     public void RemoveComponent(TEntity entity)
     {
-        if (!IsUpdating)
-        {
-            _componentsByEntityLookup.Remove(entity);
-            return;
-        }
-        
         if (_componentsByEntityLookup.TryGetValue(entity, out var component))
         {
             _componentsToRemove.Add(entity, component);
@@ -77,12 +66,6 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
 
     public void UpdateComponent(TEntity entity, TComponent newValue)
     {
-        if (!IsUpdating)
-        {
-            _componentsByEntityLookup[entity] = newValue;
-            return;
-        }
-        
         if (_componentsByEntityLookup.TryGetValue(entity, out var prevValue))
         {
             _componentsToUpdate[entity] = new UpdatedComponent<TComponent>

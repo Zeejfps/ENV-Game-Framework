@@ -67,6 +67,7 @@ public sealed class BricksSim : Sim<Entity>
     public void SpawnBall()
     {
         var circleColliders = CircleColliders;
+        var transforms = Transforms;
         var rigidbodies = Rigidbodies;
         var sprites = Sprites;
         var world = World;
@@ -78,7 +79,7 @@ public sealed class BricksSim : Sim<Entity>
             Radius = 20
         });
         
-        Transforms.AddComponent(ballEntity, new Transform
+        transforms.AddComponent(ballEntity, new Transform
         {
             Position = new Vector2(320, 340)
         });

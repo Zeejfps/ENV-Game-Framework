@@ -5,10 +5,12 @@ public sealed class WorldSystem<TEntity> : SystemBase
     private readonly HashSet<TEntity> _entities = new();
     private readonly HashSet<TEntity> _entitiesToSpawn = new();
     private readonly HashSet<TEntity> _entitiesToDespawn = new();
-    
+    private readonly HashSet<TEntity> _spawnedEntities = new();
+    private readonly HashSet<TEntity> _despawnedEntities = new();
+
     public IEnumerable<TEntity> Entities => _entities;
-    public IEnumerable<TEntity> SpawningEntities => _entitiesToSpawn;
-    public IEnumerable<TEntity> DespawningEntities => _entitiesToDespawn;
+    public IEnumerable<TEntity> SpawningEntities => _spawnedEntities;
+    public IEnumerable<TEntity> DespawningEntities => _despawnedEntities;
     
     public void Spawn(TEntity entity)
     {
@@ -24,15 +26,19 @@ public sealed class WorldSystem<TEntity> : SystemBase
 
     protected override void OnUpdate()
     {
+        _spawnedEntities.Clear();
         foreach (var entity in _entitiesToSpawn)
         {
             _entities.Add(entity);
+            _spawnedEntities.Add(entity);
         }
         _entitiesToSpawn.Clear();
         
+        _despawnedEntities.Clear();
         foreach (var entity in _entitiesToDespawn)
         {
             _entities.Remove(entity);
+            _despawnedEntities.Add(entity);
         }
         _entitiesToDespawn.Clear();
     }

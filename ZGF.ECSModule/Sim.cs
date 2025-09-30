@@ -9,7 +9,6 @@ public abstract class Sim<TEntity>
     
     public Sim()
     {
-        Systems.Add(World);
     }
 
     public ComponentSystem<TEntity, TComponent> AddComponentSystem<TComponent>() where TComponent : struct
@@ -27,17 +26,20 @@ public abstract class Sim<TEntity>
         {
             system.PreUpdate();
         }
+        World.PreUpdate();
         
         OnUpdate(dt);
         foreach (var system in Systems)
         {
             system.Update();
         }
+        World.Update();
 
         foreach (var system in Systems)
         {
             system.PostUpdate();
         }
+        World.PostUpdate();
     }
 
     protected virtual void OnUpdate(float dt)
