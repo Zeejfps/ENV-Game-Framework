@@ -6,10 +6,6 @@ public abstract class Sim<TEntity>
     public Clock Clock { get; } = new();
     public WorldSystem<TEntity> World { get; } = new();
     public List<ISystem> Systems { get; } = new();
-    
-    public Sim()
-    {
-    }
 
     public ComponentSystem<TEntity, TComponent> AddComponentSystem<TComponent>() where TComponent : struct
     {
@@ -27,23 +23,30 @@ public abstract class Sim<TEntity>
             system.PreUpdate();
         }
         World.PreUpdate();
+        OnPreUpdate();
         
-        OnUpdate(dt);
         foreach (var system in Systems)
         {
             system.Update();
         }
         World.Update();
+        OnUpdate();
 
         foreach (var system in Systems)
         {
             system.PostUpdate();
         }
         World.PostUpdate();
+        OnPostUpdate();
     }
 
-    protected virtual void OnUpdate(float dt)
+    protected virtual void OnPreUpdate()
     {
-        
     }
+
+    protected virtual void OnUpdate()
+    {
+    }
+    
+    protected virtual void OnPostUpdate(){}
 }

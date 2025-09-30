@@ -42,7 +42,7 @@ public sealed class BricksSim : Sim<Entity>
         SpawnBricks();
     }
 
-    protected override void OnUpdate(float dt)
+    protected override void OnUpdate()
     {
         if (MovePaddleLeft || MovePaddleRight)
         {
