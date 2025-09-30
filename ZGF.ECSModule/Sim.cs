@@ -12,7 +12,12 @@ public abstract class Sim<TEntity>
         var system = new ComponentSystem<TEntity, TComponent>();
         Systems.Add(system);
         return system;
-    } 
+    }
+
+    public void AddSystem(ISystem system)
+    {
+        Systems.Add(system);   
+    }
 
     public void Update(float dt)
     {
