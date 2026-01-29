@@ -1,15 +1,14 @@
 namespace ZGF.ECSModule;
 
-public abstract class Sim<TEntity>
-    where TEntity : notnull
+public abstract class Sim
 {
     public Clock Clock { get; } = new();
-    public WorldSystem<TEntity> World { get; } = new();
+    public WorldSystem World { get; } = new();
     public List<ISystem> Systems { get; } = new();
 
-    public ComponentSystem<TEntity, TComponent> AddComponentSystem<TComponent>() where TComponent : struct
+    public ComponentSystem<TComponent> AddComponentSystem<TComponent>() where TComponent : struct
     {
-        var system = new ComponentSystem<TEntity, TComponent>();
+        var system = new ComponentSystem<TComponent>();
         Systems.Add(system);
         return system;
     }

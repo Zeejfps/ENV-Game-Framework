@@ -6,16 +6,16 @@ using ZGF.ECSModule;
 
 namespace Bricks.ECS;
 
-public sealed class BricksSim : Sim<Entity>
+public sealed class BricksSim : Sim
 {
     public EntityManager EntityManager { get; }
-    public ComponentSystem<Entity, Rigidbody> Rigidbodies { get; }
-    public ComponentSystem<Entity, CircleCollider> CircleColliders { get; }
-    public ComponentSystem<Entity, BoxCollider> BoxColliders { get; }
-    public ComponentSystem<Entity, Brick> Bricks { get; }
-    public ComponentSystem<Entity, Sprite> Sprites { get; }
-    public ComponentSystem<Entity, Collision> Collisions { get; }
-    public ComponentSystem<Entity, Transform> Transforms { get; }
+    public ComponentSystem<Rigidbody> Rigidbodies { get; }
+    public ComponentSystem<CircleCollider> CircleColliders { get; }
+    public ComponentSystem<BoxCollider> BoxColliders { get; }
+    public ComponentSystem<Brick> Bricks { get; }
+    public ComponentSystem<Sprite> Sprites { get; }
+    public ComponentSystem<Collision> Collisions { get; }
+    public ComponentSystem<Transform> Transforms { get; }
     public AABB Bounds { get; }
     
     private Entity Paddle { get; set; }

@@ -1,4 +1,4 @@
-namespace Bricks.ECS;
+namespace ZGF.ECSModule;
 
 public readonly record struct Entity(uint Index, uint Generation)
 {

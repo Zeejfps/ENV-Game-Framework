@@ -5,12 +5,12 @@ namespace Bricks.ECS.Systems;
 
 public sealed class BrickSystem : SystemBase
 {
-    private readonly WorldSystem<Entity> _world;
-    private readonly ComponentSystem<Entity, Brick> _bricks;
+    private readonly WorldSystem _world;
+    private readonly ComponentSystem<Brick> _bricks;
 
     public BrickSystem(
-        WorldSystem<Entity> world,
-        ComponentSystem<Entity, Brick> bricks)
+        WorldSystem world,
+        ComponentSystem<Brick> bricks)
     {
         _world = world;
         _bricks = bricks;

@@ -1,26 +1,26 @@
 namespace ZGF.ECSModule;
 
-public sealed class WorldSystem<TEntity> : SystemBase
+public sealed class WorldSystem : SystemBase
 {
-    private readonly HashSet<TEntity> _entities = new();
-    private readonly HashSet<TEntity> _entitiesToSpawn = new();
-    private readonly HashSet<TEntity> _entitiesToDespawn = new();
-    private readonly HashSet<TEntity> _spawnedEntities = new();
-    private readonly HashSet<TEntity> _despawnedEntities = new();
+    private readonly HashSet<Entity> _entities = new();
+    private readonly HashSet<Entity> _entitiesToSpawn = new();
+    private readonly HashSet<Entity> _entitiesToDespawn = new();
+    private readonly HashSet<Entity> _spawnedEntities = new();
+    private readonly HashSet<Entity> _despawnedEntities = new();
 
-    public IEnumerable<TEntity> Entities => _entities;
-    public IEnumerable<TEntity> SpawningEntities => _entitiesToSpawn;
-    public IEnumerable<TEntity> DespawningEntities => _despawnedEntities;
-    public IEnumerable<TEntity> SpawnedEntities => _spawnedEntities;
-    public IEnumerable<TEntity> DespawnedEntities => _despawnedEntities;
+    public IEnumerable<Entity> Entities => _entities;
+    public IEnumerable<Entity> SpawningEntities => _entitiesToSpawn;
+    public IEnumerable<Entity> DespawningEntities => _despawnedEntities;
+    public IEnumerable<Entity> SpawnedEntities => _spawnedEntities;
+    public IEnumerable<Entity> DespawnedEntities => _despawnedEntities;
     
-    public void Spawn(TEntity entity)
+    public void Spawn(Entity entity)
     {
         _entitiesToSpawn.Add(entity);
         _entitiesToDespawn.Remove(entity);
     }
 
-    public void Despawn(TEntity entity)
+    public void Despawn(Entity entity)
     {
         _entitiesToDespawn.Add(entity);
         _entitiesToSpawn.Remove(entity);

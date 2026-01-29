@@ -8,23 +8,23 @@ namespace Bricks.ECS.Systems;
 public sealed class AabbCollisionSystem : SystemBase
 {
     private readonly Clock _clock;
-    private readonly WorldSystem<Entity> _world;
+    private readonly WorldSystem _world;
     private readonly EntityManager _entityManager;
-    private readonly ComponentSystem<Entity, Rigidbody> _rigidbodies;
-    private readonly ComponentSystem<Entity, Collision> _collisions;
-    private readonly ComponentSystem<Entity, Transform> _transforms;
-    private readonly ComponentSystem<Entity, BoxCollider> _boxColliders;
-    private readonly ComponentSystem<Entity, CircleCollider> _circleColliders;
+    private readonly ComponentSystem<Rigidbody> _rigidbodies;
+    private readonly ComponentSystem<Collision> _collisions;
+    private readonly ComponentSystem<Transform> _transforms;
+    private readonly ComponentSystem<BoxCollider> _boxColliders;
+    private readonly ComponentSystem<CircleCollider> _circleColliders;
 
     public AabbCollisionSystem(
         Clock clock,
-        WorldSystem<Entity> world,
+        WorldSystem world,
         EntityManager entityManager,
-        ComponentSystem<Entity, Rigidbody> rigidbodies,
-        ComponentSystem<Entity, Collision> collisions,
-        ComponentSystem<Entity, BoxCollider> boxColliders,
-        ComponentSystem<Entity, CircleCollider> circleColliders,
-        ComponentSystem<Entity, Transform> transforms)
+        ComponentSystem<Rigidbody> rigidbodies,
+        ComponentSystem<Collision> collisions,
+        ComponentSystem<BoxCollider> boxColliders,
+        ComponentSystem<CircleCollider> circleColliders,
+        ComponentSystem<Transform> transforms)
     {
         _clock = clock;
         _world = world;

@@ -5,10 +5,11 @@ namespace Bricks.ECS.Systems;
 
 public sealed class NetworkingSystem : SystemBase
 {
-    private readonly ComponentSystem<Entity, Sprite> _sprites;
-    private readonly ComponentSystem<Entity, Transform> _transforms;
+    private readonly WorldSystem _world;
+    private readonly ComponentSystem<Sprite> _sprites;
+    private readonly ComponentSystem<Transform> _transforms;
 
-    public NetworkingSystem(ComponentSystem<Entity, Sprite> sprites, ComponentSystem<Entity, Transform> transforms)
+    public NetworkingSystem(ComponentSystem<Sprite> sprites, ComponentSystem<Transform> transforms)
     {
         _sprites = sprites;
         _transforms = transforms;
@@ -16,6 +17,11 @@ public sealed class NetworkingSystem : SystemBase
 
     protected override void OnUpdate()
     {
+        foreach (var spawningEntity in _world.SpawningEntities)
+        {
+            
+        }
+        
         foreach (var (entity, component) in _sprites.AddedComponents)
         {
             var message = new Message<Sprite>

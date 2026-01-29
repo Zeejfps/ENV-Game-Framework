@@ -1,4 +1,5 @@
 using System.Numerics;
+using ZGF.ECSModule;
 
 namespace Bricks.ECS.Components;
 

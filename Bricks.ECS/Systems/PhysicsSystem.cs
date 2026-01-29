@@ -6,15 +6,15 @@ namespace Bricks.ECS.Systems;
 public sealed class PhysicsSystem : SystemBase
 {
     private readonly Clock _clock;
-    private readonly WorldSystem<Entity> _world;
-    private readonly ComponentSystem<Entity, Rigidbody> _rigidbodies;
-    private readonly ComponentSystem<Entity, Transform> _transforms;
+    private readonly WorldSystem _world;
+    private readonly ComponentSystem<Rigidbody> _rigidbodies;
+    private readonly ComponentSystem<Transform> _transforms;
 
     public PhysicsSystem(
         Clock clock,
-        WorldSystem<Entity> world,
-        ComponentSystem<Entity, Rigidbody> rigidbodies, 
-        ComponentSystem<Entity, Transform> transforms)
+        WorldSystem world,
+        ComponentSystem<Rigidbody> rigidbodies, 
+        ComponentSystem<Transform> transforms)
     {
         _clock = clock;
         _world = world;

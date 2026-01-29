@@ -6,19 +6,18 @@ public readonly struct UpdatedComponent<TComponent>
     public required TComponent NewValue { get; init; }
 }
 
-public sealed class ComponentSystem<TEntity, TComponent> : SystemBase 
-    where TEntity : notnull
+public sealed class ComponentSystem<TComponent> : SystemBase 
     where TComponent : struct
 {
-    private readonly Dictionary<TEntity, TComponent> _componentsByEntityLookup = new();
-    private readonly Dictionary<TEntity, TComponent> _componentsToRemove = new();
-    private readonly Dictionary<TEntity, TComponent> _componentsToAdd = new();
-    private readonly Dictionary<TEntity, UpdatedComponent<TComponent>> _componentsToUpdate = new();
+    private readonly Dictionary<Entity, TComponent> _componentsByEntityLookup = new();
+    private readonly Dictionary<Entity, TComponent> _componentsToRemove = new();
+    private readonly Dictionary<Entity, TComponent> _componentsToAdd = new();
+    private readonly Dictionary<Entity, UpdatedComponent<TComponent>> _componentsToUpdate = new();
 
-    public IEnumerable<TEntity> Entities => _componentsByEntityLookup.Keys;
-    public IEnumerable<KeyValuePair<TEntity, TComponent>> AddedComponents => _componentsToAdd;
-    public IEnumerable<KeyValuePair<TEntity, UpdatedComponent<TComponent>>> UpdatedComponents => _componentsToUpdate;
-    public IEnumerable<KeyValuePair<TEntity, TComponent>> RemovedComponents => _componentsToRemove;
+    public IEnumerable<Entity> Entities => _componentsByEntityLookup.Keys;
+    public IEnumerable<KeyValuePair<Entity, TComponent>> AddedComponents => _componentsToAdd;
+    public IEnumerable<KeyValuePair<Entity, UpdatedComponent<TComponent>>> UpdatedComponents => _componentsToUpdate;
+    public IEnumerable<KeyValuePair<Entity, TComponent>> RemovedComponents => _componentsToRemove;
 
     protected override void OnUpdate()
     {
@@ -41,12 +40,12 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
         _componentsToUpdate.Clear();
     }
 
-    public bool TryGetComponent(TEntity entity, out TComponent component)
+    public bool TryGetComponent(Entity entity, out TComponent component)
     {
         return _componentsByEntityLookup.TryGetValue(entity, out component);
     }
     
-    public void AddComponent(TEntity entity, TComponent component)
+    public void AddComponent(Entity entity, TComponent component)
     {
         
         if (!_componentsByEntityLookup.ContainsKey(entity))
@@ -56,7 +55,7 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
         }
     }
 
-    public void RemoveComponent(TEntity entity)
+    public void RemoveComponent(Entity entity)
     {
         if (_componentsByEntityLookup.TryGetValue(entity, out var component))
         {
@@ -65,7 +64,7 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
         }
     }
 
-    public void UpdateComponent(TEntity entity, TComponent newValue)
+    public void UpdateComponent(Entity entity, TComponent newValue)
     {
         if (_componentsByEntityLookup.TryGetValue(entity, out var prevValue))
         {
@@ -82,7 +81,7 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
         }
     }
 
-    public bool WillUpdate(TEntity entity, out UpdatedComponent<TComponent> updatedComponent)
+    public bool WillUpdate(Entity entity, out UpdatedComponent<TComponent> updatedComponent)
     {
         return _componentsToUpdate.TryGetValue(entity, out updatedComponent);
     }

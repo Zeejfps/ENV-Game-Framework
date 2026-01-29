@@ -5,14 +5,14 @@ namespace Bricks.ECS.Systems;
 
 public sealed class BallBrickCollisionSystem : SystemBase
 {
-    private readonly WorldSystem<Entity> _world;
-    private readonly ComponentSystem<Entity, Brick> _bricks;
-    private readonly ComponentSystem<Entity, Collision> _collisions;
+    private readonly WorldSystem _world;
+    private readonly ComponentSystem<Brick> _bricks;
+    private readonly ComponentSystem<Collision> _collisions;
 
     public BallBrickCollisionSystem(
-        WorldSystem<Entity> world,
-        ComponentSystem<Entity, Brick>  bricks, 
-        ComponentSystem<Entity, Collision> collisions)
+        WorldSystem world,
+        ComponentSystem<Brick>  bricks, 
+        ComponentSystem<Collision> collisions)
     {
         _world = world;
         _bricks = bricks;

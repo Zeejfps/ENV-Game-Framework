@@ -1,4 +1,4 @@
-﻿namespace Bricks.ECS;
+﻿namespace ZGF.ECSModule;
 
 public sealed class EntityManager
 {
