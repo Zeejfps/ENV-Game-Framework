@@ -64,14 +64,14 @@ public sealed class Game
             var lerp = accumulator / fixedDelta;
             foreach (var entity in _sim.World.Entities)
             {
-                if (_sim.Transforms.WillUpdate(entity, out var updatedComponent))
+                if (!_sim.Transforms.WillUpdate(entity, out var updatedComponent)) 
+                    continue;
+                
+                var prevPos = updatedComponent.PrevValue.Position;
+                var currPos = updatedComponent.NewValue.Position;
+                if (_sprites.TryGetValue(entity, out var sprite))
                 {
-                    var prevPos = updatedComponent.PrevValue.Position;
-                    var currPos = updatedComponent.NewValue.Position;
-                    if (_sprites.TryGetValue(entity, out var sprite))
-                    {
-                        sprite.Pos = Vector2.Lerp(prevPos, currPos, lerp);
-                    }
+                    sprite.Pos = Vector2.Lerp(prevPos, currPos, lerp);
                 }
             }
 
