@@ -43,28 +43,9 @@ public sealed class Game
                 {
                     if (!_sim.Sprites.TryGetComponent(entity, out var spriteComp))
                         continue;
-                    
-                    if (spriteComp.Kind == SpriteKind.Ball)
-                    {
-                        var ballSprite = new BallSprite(_spriteSheet, spriteComp.Width, spriteComp.Height);
-                        _sprites.Add(entity, ballSprite);
-                        if (_sim.Transforms.TryGetComponent(entity, out var t))
-                            ballSprite.Pos = t.Position;
-                    }
-                    else if (spriteComp.Kind == SpriteKind.Brick)
-                    {
-                        var brickSprite = new BrickSprite(_spriteSheet, spriteComp.Width, spriteComp.Height);
-                        _sprites.Add(entity, brickSprite);
-                        if (_sim.Transforms.TryGetComponent(entity, out var t))
-                            brickSprite.Pos = t.Position;
-                    }
-                    else if (spriteComp.Kind == SpriteKind.Paddle)
-                    {
-                        var paddleSprite = new PaddleSprite(_spriteSheet, spriteComp.Width, spriteComp.Height);
-                        _sprites.Add(entity, paddleSprite);   
-                        if (_sim.Transforms.TryGetComponent(entity, out var t))
-                            paddleSprite.Pos = t.Position;
-                    }
+
+                    var spriteView = CreateSpriteView(spriteComp);
+                    AddSpriteView(spriteView, entity);
                 }
                 foreach (var entity in _sim.World.DespawnedEntities)
                 {
@@ -101,5 +82,23 @@ public sealed class Game
 
             Raylib.EndDrawing();
         }
+    }
+
+    private ISprite CreateSpriteView(Sprite sprite)
+    {
+        return sprite.Kind switch
+        {
+            SpriteKind.Ball => new BallSprite(_spriteSheet, sprite.Width, sprite.Height),
+            SpriteKind.Brick => new BrickSprite(_spriteSheet, sprite.Width, sprite.Height),
+            SpriteKind.Paddle => new PaddleSprite(_spriteSheet, sprite.Width, sprite.Height),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+    
+    private void AddSpriteView(ISprite sprite, Entity entity)
+    {
+        _sprites.Add(entity, sprite);   
+        if (_sim.Transforms.TryGetComponent(entity, out var t))
+            sprite.Pos = t.Position;
     }
 }
