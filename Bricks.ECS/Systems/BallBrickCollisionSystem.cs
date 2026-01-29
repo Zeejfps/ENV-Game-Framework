@@ -21,19 +21,17 @@ public sealed class BallBrickCollisionSystem : SystemBase
 
     protected override void OnUpdate()
     {
-        base.OnUpdate();
-
         foreach (var entity in _world.Entities)
         {
             if (!_collisions.TryGetComponent(entity, out var collision))
                 continue;
 
             var brickEntity = collision.SecondEntity;
-            if (_bricks.TryGetComponent(brickEntity, out var brick))
-            {
-                brick.Health--;
-                _bricks.UpdateComponent(brickEntity, brick);
-            }
+            if (!_bricks.TryGetComponent(brickEntity, out var brick)) 
+                continue;
+            
+            brick.Health--;
+            _bricks.UpdateComponent(brickEntity, brick);
         }
     }
 }

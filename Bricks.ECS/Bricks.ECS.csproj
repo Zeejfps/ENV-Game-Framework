@@ -11,8 +11,4 @@
       <ProjectReference Include="..\ZGF.ECSModule\ZGF.ECSModule.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Networking\" />
-    </ItemGroup>
-
 </Project>
