@@ -1,23 +1,6 @@
 namespace Bricks.ECS;
 
-public record struct Entity
+public readonly record struct Entity(uint Index, uint Generation)
 {
-    private static ulong s_Id = 1;
-
-    private readonly ulong _id;
-    
-    public Entity(ulong id)
-    {
-        _id = id;
-    }
-    
-    public static Entity New()
-    {
-        return new Entity(s_Id++);
-    }
-
-    public override string ToString()
-    {
-        return $"{_id}";
-    }
+    public ulong Id => ((ulong)Generation << 32) | Index;
 }

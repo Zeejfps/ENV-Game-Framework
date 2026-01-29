@@ -9,6 +9,7 @@ public sealed class AabbCollisionSystem : SystemBase
 {
     private readonly Clock _clock;
     private readonly WorldSystem<Entity> _world;
+    private readonly EntityManager _entityManager;
     private readonly ComponentSystem<Entity, Rigidbody> _rigidbodies;
     private readonly ComponentSystem<Entity, Collision> _collisions;
     private readonly ComponentSystem<Entity, Transform> _transforms;
@@ -18,6 +19,7 @@ public sealed class AabbCollisionSystem : SystemBase
     public AabbCollisionSystem(
         Clock clock,
         WorldSystem<Entity> world,
+        EntityManager entityManager,
         ComponentSystem<Entity, Rigidbody> rigidbodies,
         ComponentSystem<Entity, Collision> collisions,
         ComponentSystem<Entity, BoxCollider> boxColliders,
@@ -26,11 +28,13 @@ public sealed class AabbCollisionSystem : SystemBase
     {
         _clock = clock;
         _world = world;
+        _entityManager = entityManager;
         _rigidbodies = rigidbodies;
         _collisions = collisions;
         _boxColliders = boxColliders;
         _circleColliders = circleColliders;
         _transforms = transforms;
+        _entityManager = entityManager;
     }
 
     protected override void OnUpdate()
@@ -39,6 +43,7 @@ public sealed class AabbCollisionSystem : SystemBase
         {
             if (_collisions.TryGetComponent(entity, out var collision))
             {
+                _entityManager.DestroyEntity(entity);
                 _collisions.RemoveComponent(entity);
                 _world.Despawn(entity);
                 continue;
@@ -71,7 +76,7 @@ public sealed class AabbCollisionSystem : SystemBase
                 if (!aabb.TryCast(dir, otherAabb, out var hit))
                     continue;
 
-                var collisionEntity = Entity.New();
+                var collisionEntity = _entityManager.CreateEntity();
                 _collisions.AddComponent(collisionEntity, new Collision
                 {
                     FirstEntity = entity,
@@ -166,11 +171,11 @@ public sealed class AabbCollisionSystem : SystemBase
     
     private void SpawnCollisionEntity(Entity entity)
     {
-        var collisionEntity = Entity.New();
+        var collisionEntity = _entityManager.CreateEntity();
         _collisions.AddComponent(collisionEntity, new Collision
         {
             FirstEntity = entity,
-            SecondEntity = Entity.New(),
+            SecondEntity = _entityManager.CreateEntity(),
             Normal = Vector2.UnitX,
         });
         _world.Spawn(collisionEntity);

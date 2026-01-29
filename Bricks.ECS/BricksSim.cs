@@ -8,6 +8,7 @@ namespace Bricks.ECS;
 
 public sealed class BricksSim : Sim<Entity>
 {
+    public EntityManager EntityManager { get; }
     public ComponentSystem<Entity, Rigidbody> Rigidbodies { get; }
     public ComponentSystem<Entity, CircleCollider> CircleColliders { get; }
     public ComponentSystem<Entity, BoxCollider> BoxColliders { get; }
@@ -24,6 +25,7 @@ public sealed class BricksSim : Sim<Entity>
     public BricksSim(AABB bounds)
     {
         Bounds = bounds;
+        EntityManager = new EntityManager();
         CircleColliders = AddComponentSystem<CircleCollider>();
         BoxColliders = AddComponentSystem<BoxCollider>();
         Rigidbodies = AddComponentSystem<Rigidbody>();
@@ -34,7 +36,7 @@ public sealed class BricksSim : Sim<Entity>
         
         Systems.Add(new BrickSystem(World, Bricks));
         Systems.Add(new PhysicsSystem(Clock, World, Rigidbodies, Transforms));
-        Systems.Add(new AabbCollisionSystem(Clock, World, Rigidbodies, Collisions, BoxColliders, CircleColliders, Transforms));
+        Systems.Add(new AabbCollisionSystem(Clock, World, EntityManager, Rigidbodies, Collisions, BoxColliders, CircleColliders, Transforms));
         Systems.Add(new BallBrickCollisionSystem(World, Bricks, Collisions));
         
         SpawnBall();
@@ -71,8 +73,8 @@ public sealed class BricksSim : Sim<Entity>
         var rigidbodies = Rigidbodies;
         var sprites = Sprites;
         var world = World;
-        
-        var ballEntity = Entity.New();
+
+        var ballEntity = EntityManager.CreateEntity();
         
         circleColliders.AddComponent(ballEntity, new CircleCollider
         {
@@ -130,7 +132,7 @@ public sealed class BricksSim : Sim<Entity>
 
     private void SpawnBrick(float x, float y, float width, float height)
     {
-        var entity = Entity.New();
+        var entity = EntityManager.CreateEntity();
         Sprites.AddComponent(entity, new Sprite
         {
             Kind = SpriteKind.Brick,
@@ -164,7 +166,7 @@ public sealed class BricksSim : Sim<Entity>
     
     private void SpawnPaddle()
     {
-        var entity = Entity.New();
+        var entity = EntityManager.CreateEntity();
         Paddle = entity;
         
         Sprites.AddComponent(entity, new Sprite
