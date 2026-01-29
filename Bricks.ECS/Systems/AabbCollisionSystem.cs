@@ -129,23 +129,21 @@ public sealed class AabbCollisionSystem : SystemBase
 
     private bool CheckLeftWallCollision(Entity entity, AABB aabb, Transform transform, Rigidbody rb, Vector2 dir)
     {
-        if (aabb.Left + dir.X < 0)
-        {
-            var delta = aabb.Left + dir.X;
+        if (!(aabb.Left + dir.X < 0))
+            return false;
+        
+        var delta = aabb.Left + dir.X;
+        var pos = transform.Position;
+        pos.X -= delta;
+        transform.Position = pos;
+        var vel = rb.Velocity;
+        vel.X *= -1;
+        rb.Velocity = vel;
+        _transforms.UpdateComponent(entity, transform);
+        _rigidbodies.UpdateComponent(entity, rb);
 
-            var pos = transform.Position;
-            pos.X -= delta;
-            transform.Position = pos;
-            var vel = rb.Velocity;
-            vel.X *= -1;
-            rb.Velocity = vel;
-            _transforms.UpdateComponent(entity, transform);
-            _rigidbodies.UpdateComponent(entity, rb);
-
-            SpawnCollisionEntity(entity);
-            return true;
-        }
-        return false;
+        SpawnCollisionEntity(entity);
+        return true;
     }
 
     private bool CheckRightWallCollision(Entity entity, AABB aabb, Transform transform, Rigidbody rb, Vector2 dir)
