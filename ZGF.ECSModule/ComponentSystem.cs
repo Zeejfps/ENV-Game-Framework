@@ -15,6 +15,7 @@ public sealed class ComponentSystem<TEntity, TComponent> : SystemBase
     private readonly Dictionary<TEntity, TComponent> _componentsToAdd = new();
     private readonly Dictionary<TEntity, UpdatedComponent<TComponent>> _componentsToUpdate = new();
 
+    public IEnumerable<TEntity> Entities => _componentsByEntityLookup.Keys;
     public IEnumerable<KeyValuePair<TEntity, TComponent>> AddedComponents => _componentsToAdd;
     public IEnumerable<KeyValuePair<TEntity, UpdatedComponent<TComponent>>> UpdatedComponents => _componentsToUpdate;
     public IEnumerable<KeyValuePair<TEntity, TComponent>> RemovedComponents => _componentsToRemove;
