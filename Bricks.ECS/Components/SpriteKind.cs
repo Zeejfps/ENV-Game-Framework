@@ -1,9 +1,8 @@
 namespace Bricks.ECS.Components;
 
-[Flags]
 public enum SpriteKind
 {
-    Ball = 1 << 0,
-    Brick = 1 << 1,
-    Paddle = 1 << 2,
+    Ball,
+    Brick,
+    Paddle,
 }
