@@ -34,10 +34,10 @@ public sealed class BricksSim : Sim
         Collisions = AddComponentSystem<Collision>();
         Transforms = AddComponentSystem<Transform>();
         
-        Systems.Add(new BrickSystem(World, Bricks));
-        Systems.Add(new PhysicsSystem(Clock, World, Rigidbodies, Transforms));
-        Systems.Add(new AabbCollisionSystem(Clock, World, EntityManager, Rigidbodies, Collisions, BoxColliders, CircleColliders, Transforms));
-        Systems.Add(new BallBrickCollisionSystem(World, Bricks, Collisions));
+        AddSystem(new BrickSystem(World, Bricks));
+        AddSystem(new PhysicsSystem(Clock, World, Rigidbodies, Transforms));
+        AddSystem(new AabbCollisionSystem(Clock, World, EntityManager, Rigidbodies, Collisions, BoxColliders, CircleColliders, Transforms));
+        AddSystem(new BallBrickCollisionSystem(this));
         
         SpawnBall();
         SpawnPaddle();
