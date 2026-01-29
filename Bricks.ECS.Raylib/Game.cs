@@ -48,16 +48,22 @@ public sealed class Game
                     {
                         var ballSprite = new BallSprite(_spriteSheet, spriteComp.Width, spriteComp.Height);
                         _sprites.Add(entity, ballSprite);
+                        if (_sim.Transforms.TryGetComponent(entity, out var t))
+                            ballSprite.Pos = t.Position;
                     }
                     else if (spriteComp.Kind == SpriteKind.Brick)
                     {
                         var brickSprite = new BrickSprite(_spriteSheet, spriteComp.Width, spriteComp.Height);
                         _sprites.Add(entity, brickSprite);
+                        if (_sim.Transforms.TryGetComponent(entity, out var t))
+                            brickSprite.Pos = t.Position;
                     }
                     else if (spriteComp.Kind == SpriteKind.Paddle)
                     {
                         var paddleSprite = new PaddleSprite(_spriteSheet, spriteComp.Width, spriteComp.Height);
                         _sprites.Add(entity, paddleSprite);   
+                        if (_sim.Transforms.TryGetComponent(entity, out var t))
+                            paddleSprite.Pos = t.Position;
                     }
                 }
                 foreach (var entity in _sim.World.DespawnedEntities)
@@ -86,13 +92,6 @@ public sealed class Game
                         sprite.Pos = Vector2.Lerp(prevPos, currPos, lerp);
                     }
                 }
-                else if (_sim.Transforms.TryGetComponent(entity, out var rb))
-                {
-                    if (_sprites.TryGetValue(entity, out var sprite))
-                    {
-                        sprite.Pos = rb.Position;
-                    }
-                }
             }
 
             foreach (var sprite in _sprites.Values)
@@ -102,116 +101,5 @@ public sealed class Game
 
             Raylib.EndDrawing();
         }
-    }
-}
-
-class PaddleSprite : ISprite
-{
-    private readonly Texture _spriteSheet;
-    private readonly float _width;
-    private readonly float _height;
-    private readonly Color _tint = new(255, 255, 255, 255);
-
-    public PaddleSprite(Texture spriteSheet, float width, float height)
-    {
-        _spriteSheet = spriteSheet;
-        _width = width;
-        _height = height;
-    }
-
-    public void DrawSelf()
-    {
-        Raylib.DrawTexturePro(_spriteSheet,
-            new Rectangle(0, 0, 120, 19),
-            new Rectangle(Pos.X - _width * 0.5f, Pos.Y - _height * 0.5f, _width, _height),
-            new Vector2(0, 0),
-            0, 
-            _tint);
-    }
-
-    public Vector2 Pos { get; set; }
-}
-
-class BrickSprite : ISprite
-{
-    public Vector2 Pos { get; set; }
-    
-    private readonly Texture _spriteSheet;
-
-    private readonly float _width;
-    private readonly float _height;
-    private readonly Color _tint = new(255, 255, 255, 255);
-
-    public BrickSprite(Texture spriteSheet, float width, float height)
-    {
-        _spriteSheet = spriteSheet;
-        _width = width;
-        _height = height;
-    }
-
-    public void DrawSelf()
-    {
-        DrawNormalBrickSprite();
-
-        // var brickRect = brick.GetAABB();
-        // if (brick.IsDamaged)
-        // {
-        //     DrawDamagedBrickSprite(brickRect, _brickColor);
-        // }
-        // else
-        // {
-        //     DrawNormalBrickSprite(brickRect, _brickColor);
-        // }
-    }
-    
-    private void DrawNormalBrickSprite()
-    {
-        Raylib.DrawTexturePro(_spriteSheet,
-            new Rectangle(0, 20, 60, 20),
-            new Rectangle(Pos.X- _width * 0.5f, Pos.Y - _height * 0.5f, _width, _height),
-            new Vector2(0, 0),
-            0, 
-            _tint);
-    }
-}
-
-interface ISprite
-{
-    void DrawSelf();
-    Vector2 Pos { get; set; }
-}
-
-class BallSprite : ISprite
-{
-    public Vector2 Pos { get; set; }
-    
-    private Texture _spriteSheet;
-
-    private float _width;
-    private float _height;
-    private float _halfWidth;
-    private float _halfHeight;
-    private readonly Color _tint = new(255, 255, 255, 255);
-
-
-    public BallSprite(Texture spriteSheet, float width, float height)
-    {
-        _spriteSheet = spriteSheet;
-        _width = width;
-        _height = height;
-        _halfWidth = width * 0.5f;
-        _halfHeight = height * 0.5f;
-    }
-    
-    public void DrawSelf()
-    {
-        var left = Pos.X - _halfWidth;
-        var top = Pos.Y + _halfHeight;
-        Raylib.DrawTexturePro(_spriteSheet,
-            new Rectangle(120, 0, 20, 20),
-            new Rectangle(left, top, _width, _height),
-            new Vector2(0, 0),
-            0, 
-            _tint);
     }
 }
