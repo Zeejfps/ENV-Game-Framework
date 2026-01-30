@@ -2,19 +2,13 @@
 
 public abstract class KeyboardMouseController : IKeyboardMouseController
 {
-    
-    public virtual void OnEnabled(Context context)
+    public virtual void OnAttached()
     {
-        context.InputSystem.AddInteractable(this);
     }
 
-    public virtual void OnDisabled(Context context)
+    public virtual void OnDetached()
     {
-        context.InputSystem.RemoveInteractable(this);
     }
-
-    public abstract View View { get; }
-    
 
     public virtual void OnMouseEnter(ref MouseEnterEvent e)
     {

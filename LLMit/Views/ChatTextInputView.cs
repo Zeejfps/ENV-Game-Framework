@@ -37,11 +37,11 @@ public sealed class ChatTextInputView : View
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
-        _textInput.Controller = new ChatTextInputViewController(_textInput)
+        context.InputSystem.RegisterController(_textInput, new ChatTextInputViewController(_textInput)
         {
             IsMultiLine = true,
             Submit = OnSubmit
-        };
+        });
     }
 
     private void OnSubmit(ReadOnlySpan<char> text)
@@ -66,10 +66,10 @@ public sealed class ChatTextInputViewController : BaseTextInputKbmController
         _textInput = textInput;
     }
 
-    public override void OnDisabled(Context context)
+    public override void OnDetached()
     {
         Submit = null;
-        base.OnDisabled(context);
+        base.OnDetached();
     }
 
     protected override void OnKeyboardKeyPressed(ref KeyboardKeyEvent e)

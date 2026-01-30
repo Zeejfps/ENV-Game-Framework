@@ -8,6 +8,7 @@ public sealed class Window : View
     public string TitleText { get; }
 
     private readonly View _contents;
+    private readonly WindowTitleBarView _titlePanel;
     public override IComponentCollection Children => _contents.Children;
 
     public Window(string titleText)
@@ -16,8 +17,7 @@ public sealed class Window : View
         Position = new RectF(200f, 200f, 640f, 500f);
         _contents = new View();
 
-        var titlePanel = new WindowTitleBarView(titleText);
-        titlePanel.Controller = new WindowTitleBarDefaultKbmController(this, titlePanel);
+        _titlePanel = new WindowTitleBarView(titleText);
 
         var leftBorder = new RectView
         {
@@ -83,7 +83,7 @@ public sealed class Window : View
         
         var borderLayout = new BorderLayoutView
         {
-            North = titlePanel,
+            North = _titlePanel,
             West = leftBorder,
             Center = contentOutline,
             East = rightBorder,
@@ -101,6 +101,12 @@ public sealed class Window : View
             }
         };
         AddChildToSelf(outline);
+    }
+
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        context.InputSystem.RegisterController(_titlePanel, new WindowTitleBarDefaultKbmController(this, _titlePanel));
     }
 
     protected override void OnLayoutSelf()

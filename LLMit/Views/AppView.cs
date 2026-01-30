@@ -32,8 +32,6 @@ public sealed class CenterArea : View
             IsActive = true,
         };
 
-        _newChatTabView.Controller = new TabViewController(_newChatTabView);
-
         _tabBarView = new TabBarView
         {
             Children =
@@ -80,6 +78,12 @@ public sealed class CenterArea : View
         AddChildToSelf(layout);
     }
 
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        context.InputSystem.RegisterController(_newChatTabView, new TabViewController(_newChatTabView));
+    }
+
     private void StartNewChat(string? model, ReadOnlySpan<char> text)
     {
         _newChatTabView.IsActive = false;
@@ -88,8 +92,8 @@ public sealed class CenterArea : View
             Text = model,
             IsActive = true,
         };
-        tabView.Controller = new TabViewController(tabView);
         _tabBarView.Children.Add(tabView);
+        Context?.InputSystem.RegisterController(tabView, new TabViewController(tabView));
         _tabContentsView.Children.Clear();
     }
 }
@@ -102,8 +106,6 @@ public sealed class TabViewController : KeyboardMouseController
     {
         _tabView = tabView;
     }
-
-    public override View View => _tabView;
 
     public override void OnMouseEnter(ref MouseEnterEvent e)
     {

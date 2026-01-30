@@ -19,6 +19,4 @@ public sealed class ContextMenuKbmController : KeyboardMouseController
     {
         _contextMenu.CloseRequest();
     }
-
-    public override View View => _contextMenu.View;
 }

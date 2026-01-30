@@ -37,13 +37,6 @@ public sealed class ModelSelector : View
     }
 
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        var contextMenuManager = context.Get<ContextMenuManager>();
-        Debug.Assert(contextMenuManager != null);
-        Controller = new ModelSelectorController(this, contextMenuManager);
-    }
 }
 
 public sealed class ModelSelectorController : KeyboardMouseController
@@ -58,8 +51,6 @@ public sealed class ModelSelectorController : KeyboardMouseController
         _modelSelector = modelSelector;
         _contextMenuManager = contextMenuManager;
     }
-
-    public override View View => _modelSelector;
 
     public override void OnMouseExit(ref MouseExitEvent e)
     {
@@ -87,7 +78,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
 
         var contextMenu = new ContextMenu
         {
-            AnchorPoint = View.Position.BottomLeft,
+            AnchorPoint = _modelSelector.Position.BottomLeft,
             BackgroundColor = 0xFF353535,
             BorderColor = BorderColorStyle.All(0xFF3C3C3C),
             Children =
@@ -109,7 +100,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
 
         _openedContextMenu = _contextMenuManager.ShowContextMenu(contextMenu);
         _openedContextMenu.Closed += OnContextMenuClosed;
-        contextMenu.Controller = new ContextMenuKbmController(_openedContextMenu);
+        _modelSelector.Context?.InputSystem.RegisterController(contextMenu, new ContextMenuKbmController(_openedContextMenu));
     }
 
     private void OnContextMenuClosed()

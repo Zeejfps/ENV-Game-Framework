@@ -7,33 +7,45 @@ public sealed class Center : View
 {
     public ImageView ModelView { get; }
 
+    private readonly Window _w1;
+    private readonly Window _w3;
+    private readonly TextInputView _textInput;
+    private readonly VerticalListView _listView;
+
     public Center()
     {
         var background = new RectView
         {
             BackgroundColor = 0xFF9C9CCE,
         };
-        
+
         AddChildToSelf(background);
 
-        var w1 = new Window("About This Computer");
-        BuildWindow(w1);
-        w1.Controller = new WindowDefaultKbmController(w1);
-        AddChildToSelf(w1);
+        _w1 = new Window("About This Computer");
+        (_textInput, _listView) = BuildWindow(_w1);
+        AddChildToSelf(_w1);
 
         ModelView = new ImageView();
-        var w3 = new Window("3D View")
+        _w3 = new Window("3D View")
         {
             Children =
             {
                 ModelView
             }
         };
-        w3.Controller = new WindowDefaultKbmController(w3);
-        AddChildToSelf(w3);
+        AddChildToSelf(_w3);
     }
 
-    private void BuildWindow(Window window)
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        context.InputSystem.RegisterController(_w1, new WindowDefaultKbmController(_w1));
+        context.InputSystem.RegisterController(_w3, new WindowDefaultKbmController(_w3));
+        context.InputSystem.RegisterController(_textInput, new TextInputViewKbmController(_textInput));
+        context.InputSystem.RegisterController(_listView, new DefaultVerticalListViewKbmController(_listView));
+    }
+
+    private (TextInputView, VerticalListView) BuildWindow(Window window)
     {
         var scrollBar = new RectView
         {
@@ -70,7 +82,6 @@ public sealed class Center : View
         {
             PreferredHeight = 30f
         };
-        textInput.Controller = new TextInputViewKbmController(textInput);
 
         var textField = new RectView
         {
@@ -125,5 +136,7 @@ public sealed class Center : View
         };
 
         window.Children.Add(listView);
+
+        return (textInput, listView);
     }
 }

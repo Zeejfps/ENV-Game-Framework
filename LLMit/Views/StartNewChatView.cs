@@ -69,6 +69,14 @@ public sealed class StartNewChatView : View
         AddChildToSelf(layout);
     }
 
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        var contextMenuManager = context.Get<ContextMenuManager>();
+        System.Diagnostics.Debug.Assert(contextMenuManager != null);
+        context.InputSystem.RegisterController(_modelSelector, new ModelSelectorController(_modelSelector, contextMenuManager));
+    }
+
     private void OnSubmit(ReadOnlySpan<char> text)
     {
         _chatTextInput.Clear();

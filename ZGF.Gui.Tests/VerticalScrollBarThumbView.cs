@@ -65,8 +65,6 @@ public sealed class VerticalScrollBarThumbView : View
         };
 
         AddChildToSelf(_background);
-
-        Controller = new VerticalScrollBarThumbViewController(this);
     }
 
     protected override void OnLayoutSelf()

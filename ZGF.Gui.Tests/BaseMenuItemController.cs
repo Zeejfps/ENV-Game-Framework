@@ -14,14 +14,14 @@ public abstract class BaseMenuItemController : KeyboardMouseController
         _contextMenuManager = contextMenuManager;
     }
 
-    public override void OnDisabled(Context context)
+    public override void OnDetached()
     {
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed -= OnOpenedContextMenuClosed;
             _openedContextMenu = null;
         }
-        base.OnDisabled(context);
+        base.OnDetached();
     }
     
     public override void OnMouseEnter(ref MouseEnterEvent e)
@@ -42,7 +42,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed += OnOpenedContextMenuClosed;
-            _contextMenu.Controller = new ContextMenuKbmController(_openedContextMenu);
+            MenuItem.Context?.InputSystem.RegisterController(_contextMenu, new ContextMenuKbmController(_openedContextMenu));
             MenuItem.IsSelected = true;
         }
     }
@@ -64,8 +64,6 @@ public abstract class BaseMenuItemController : KeyboardMouseController
             _openedContextMenu.CloseRequest();
         }
     }
-
-    public override View View => MenuItem;
 
     protected abstract void BuildMenu(ContextMenu contextMenu);
 }

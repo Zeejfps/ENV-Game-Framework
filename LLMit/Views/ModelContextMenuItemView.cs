@@ -30,12 +30,12 @@ public sealed class ModelContextMenuItemView : View
         base.OnAttachedToContext(context);
         var contextMenuManager = context.Get<ContextMenuManager>();
         Debug.Assert(contextMenuManager != null);
-        Controller = new ContextMenuItemDefaultKbmController(_contextMenuItem, contextMenuManager, () =>
+        context.InputSystem.RegisterController(_contextMenuItem, new ContextMenuItemDefaultKbmController(_contextMenuItem, contextMenuManager, () =>
         {
             var contextMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
             Debug.Assert(contextMenu != null);
             contextMenuManager.RequestCloseMenu(contextMenu);
             Chosen?.Invoke(this);
-        });
+        }));
     }
 }

@@ -24,9 +24,9 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
         Clicked = clicked;
     }
 
-    public override void OnEnabled(Context context)
+    public override void OnAttached()
     {
-        base.OnEnabled(context);
+        base.OnAttached();
         if (SubOptions.Count > 0)
         {
             _contextMenuItem.IsArrowVisible = true;
@@ -60,12 +60,12 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             if (_openedContextMenu != null)
             {
                 _openedContextMenu.Closed += OnOpenedContextMenuClosed;
-                subMenu.Controller = new ContextMenuKbmController(_openedContextMenu);
+                _contextMenuItem.Context?.InputSystem.RegisterController(subMenu, new ContextMenuKbmController(_openedContextMenu));
             }
         }
         
         _contextMenuItem.IsSelected = true;
-        this.RequestFocus();
+        _contextMenuItem.Context?.InputSystem.RequestFocus(this);
     }
 
     private void OnOpenedContextMenuClosed()
@@ -76,7 +76,7 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             _openedContextMenu.Closed -=  OnOpenedContextMenuClosed;
             _openedContextMenu = null;
         }
-        this.Blur();
+        _contextMenuItem.Context?.InputSystem.Blur(this);
     }
 
     public override void OnMouseExit(ref MouseExitEvent e)
@@ -87,9 +87,9 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
         }
         else
         {
-            _contextMenuItem.IsSelected = false;       
+            _contextMenuItem.IsSelected = false;
         }
-        this.Blur();
+        _contextMenuItem.Context?.InputSystem.Blur(this);
     }
 
     public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
@@ -100,6 +100,4 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             e.Consume();
         }
     }
-    
-    public override View View => _contextMenuItem;
 }

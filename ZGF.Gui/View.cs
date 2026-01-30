@@ -18,21 +18,14 @@ public class View
                 if (prevContext != null)
                 {
                     OnDetachedFromContext(prevContext);
-                    if (Controller != null)
-                    {
-                        Controller.OnDisabled(prevContext);
-                    }
+                    prevContext.InputSystem.UnregisterController(this);
                 }
-                
+
                 if (_context != null)
                 {
                     OnAttachedToContext(_context);
-                    if (Controller != null)
-                    {
-                        Controller.OnEnabled(_context);
-                    }
                 }
-                
+
                 OnApplyContextToChildren(_context);
             }
         }
@@ -174,30 +167,6 @@ public class View
 
     private readonly List<View> _children = new();
     private readonly HashSet<string> _styleClasses = new();
-
-    private IController? _controller;
-    public IController? Controller
-    {
-        get => _controller;
-        set
-        {
-            var prevController = _controller;
-            _controller = value;
-
-            if (Context != null)
-            {
-                if (prevController != null)
-                {
-                    prevController.OnDisabled(Context);
-                }
-
-                if (_controller != null)
-                {
-                    _controller.OnEnabled(Context);
-                }
-            }
-        }
-    }
 
     public View()
     {

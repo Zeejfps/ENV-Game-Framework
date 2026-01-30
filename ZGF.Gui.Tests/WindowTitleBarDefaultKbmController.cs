@@ -51,7 +51,7 @@ public sealed class WindowTitleBarDefaultKbmController : KeyboardMouseController
         }
         
         _isDragging = false;
-        this.Blur();
+        _titleBar.Context?.InputSystem.Blur(this);
     }
 
     public bool CanReleaseFocus()
@@ -81,10 +81,8 @@ public sealed class WindowTitleBarDefaultKbmController : KeyboardMouseController
         {
             _isDragging = true;
             e.Consume();
-            this.RequestFocus();
+            _titleBar.Context?.InputSystem.RequestFocus(this);
             return;
         }
     }
-    
-    public override View View => _titleBar;
 }
