@@ -65,7 +65,5 @@ public abstract class BaseMenuItemController : KeyboardMouseController
         }
     }
 
-    public override View View => MenuItem;
-
     protected abstract void BuildMenu(ContextMenu contextMenu);
 }

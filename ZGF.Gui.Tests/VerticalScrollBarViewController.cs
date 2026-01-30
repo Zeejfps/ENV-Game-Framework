@@ -9,8 +9,6 @@ public sealed class VerticalScrollBarViewController : KeyboardMouseController
         _view = view;
     }
     
-    public override View View => _view;
-    
     public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
         if (e.Phase != EventPhase.Bubbling)

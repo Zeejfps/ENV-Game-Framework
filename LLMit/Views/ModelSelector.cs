@@ -52,8 +52,6 @@ public sealed class ModelSelectorController : KeyboardMouseController
         _contextMenuManager = contextMenuManager;
     }
 
-    public override View View => _modelSelector;
-
     public override void OnMouseExit(ref MouseExitEvent e)
     {
         if (_openedContextMenu != null)
@@ -80,7 +78,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
 
         var contextMenu = new ContextMenu
         {
-            AnchorPoint = View.Position.BottomLeft,
+            AnchorPoint = _modelSelector.Position.BottomLeft,
             BackgroundColor = 0xFF353535,
             BorderColor = BorderColorStyle.All(0xFF3C3C3C),
             Children =

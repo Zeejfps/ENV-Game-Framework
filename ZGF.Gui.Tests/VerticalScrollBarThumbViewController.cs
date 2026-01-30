@@ -4,8 +4,6 @@ namespace ZGF.Gui.Tests;
 
 public sealed class VerticalScrollBarThumbViewController : KeyboardMouseController
 {
-    public override View View => _view;
-
     private readonly VerticalScrollBarThumbView _view;
 
     private PointF _startPoint;
@@ -51,7 +49,7 @@ public sealed class VerticalScrollBarThumbViewController : KeyboardMouseControll
         {
             _isDragging = true;
             _startPoint = e.Mouse.Point;
-            this.RequestFocus();
+            _view.Context?.InputSystem.RequestFocus(this);
             e.Consume();
             return;
         }
@@ -65,7 +63,7 @@ public sealed class VerticalScrollBarThumbViewController : KeyboardMouseControll
             {
                 _view.IsSelected = false;
             }
-            this.Blur();
+            _view.Context?.InputSystem.Blur(this);
             return;
         }
     }

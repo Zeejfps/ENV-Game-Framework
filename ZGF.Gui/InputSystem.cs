@@ -13,6 +13,7 @@ public sealed class InputSystem : IMouse
     private readonly LinkedList<IKeyboardMouseController> _focusQueue = new();
     private readonly HashSet<MouseButton> _pressedMouseButtons = new();
     private readonly Dictionary<View, ControllerRegistration> _viewToController = new();
+    private readonly Dictionary<IKeyboardMouseController, View> _controllerToView = new();
 
     private IKeyboardMouseController? _hoveredComponent;
     private IKeyboardMouseController? _focusedComponent;
@@ -24,6 +25,7 @@ public sealed class InputSystem : IMouse
             UnregisterController(view);
         }
         _viewToController[view] = new ControllerRegistration(controller, phaseFilter);
+        _controllerToView[controller] = view;
         AddInteractable(controller);
         controller.OnAttached();
     }
@@ -32,6 +34,7 @@ public sealed class InputSystem : IMouse
     {
         if (_viewToController.Remove(view, out var registration))
         {
+            _controllerToView.Remove(registration.Controller);
             registration.Controller.OnDetached();
             RemoveInteractable(registration.Controller);
         }
@@ -40,6 +43,11 @@ public sealed class InputSystem : IMouse
     public IKeyboardMouseController? GetController(View view)
     {
         return _viewToController.TryGetValue(view, out var reg) ? reg.Controller : null;
+    }
+
+    public View? GetView(IKeyboardMouseController controller)
+    {
+        return _controllerToView.TryGetValue(controller, out var view) ? view : null;
     }
 
     public EventPhaseFilter GetPhaseFilter(IKeyboardMouseController controller)
@@ -377,7 +385,8 @@ public sealed class InputSystem : IMouse
         var components = _hitTestCache;
         foreach (var controller in _hoverableComponents)
         {
-            if (controller.View.Position.ContainsPoint(point))
+            var view = GetView(controller);
+            if (view != null && view.Position.ContainsPoint(point))
             {
                 components.Add(controller);
             }
@@ -385,9 +394,41 @@ public sealed class InputSystem : IMouse
 
         if (components.Count == 0)
             return null;
-        
-        components.Sort(ZIndexComparer.Instance);
+
+        components.Sort((x, y) => CompareByZIndex(x, y));
         return components[0];
+    }
+
+    private int CompareByZIndex(IKeyboardMouseController? x, IKeyboardMouseController? y)
+    {
+        if (x == null && y == null)
+            return 0;
+        if (x == null)
+            return 1;
+        if (y == null)
+            return -1;
+
+        var viewX = GetView(x);
+        var viewY = GetView(y);
+
+        if (viewX == null && viewY == null)
+            return 0;
+        if (viewX == null)
+            return 1;
+        if (viewY == null)
+            return -1;
+
+        // NOTE: Order is swapped here. Greater ZIndex means the value is less - meaning it should be first in list
+        var result = viewY.ZIndex.CompareTo(viewX.ZIndex);
+        if (result == 0)
+        {
+            if (viewX.IsInFrontOf(viewY))
+                return -1;
+            if (viewY.IsInFrontOf(viewX))
+                return 1;
+            return 0;
+        }
+        return result;
     }
 
     public void StealFocus(IKeyboardMouseController component)
@@ -411,7 +452,8 @@ public sealed class InputSystem : IMouse
     private void BuildPath(IKeyboardMouseController current)
     {
         _focusQueue.AddFirst(current);
-        var parent = current.View.Parent;
+        var view = GetView(current);
+        var parent = view?.Parent;
         while (parent != null)
         {
             var controller = GetController(parent);
@@ -467,39 +509,4 @@ public sealed class InputSystem : IMouse
     }
     
     #endregion
-}
-
-sealed class ZIndexComparer : IComparer<IKeyboardMouseController>
-{
-    public static ZIndexComparer Instance { get; } = new();
-
-    public int Compare(IKeyboardMouseController? x, IKeyboardMouseController? y)
-    {
-        if (x == null && y == null)
-            return 0;
-
-        if (x == null)
-            return 1;
-
-        if (y == null)
-            return -1;
-        
-        // NOTE(Zee): Order is swapped here. Greater ZIndex means the value is less - meaning it should be first in list 
-        var result = y.View.ZIndex.CompareTo(x.View.ZIndex);
-        if (result == 0)
-        {
-            if (x.View.IsInFrontOf(y.View))
-            {
-                return -1;
-            }
-
-            if (y.View.IsInFrontOf(x.View))
-            {
-                return 1;
-            }
-            
-            return 0;
-        }
-        return result;
-    }
 }

@@ -52,6 +52,4 @@ public sealed class WindowResizerDefaultKbmController : IKeyboardMouseController
     public void OnFocusGained()
     {
     }
-
-    public View View => _resizer;
 }

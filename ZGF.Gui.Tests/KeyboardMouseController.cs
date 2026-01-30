@@ -10,9 +10,6 @@ public abstract class KeyboardMouseController : IKeyboardMouseController
     {
     }
 
-    public abstract View View { get; }
-    
-
     public virtual void OnMouseEnter(ref MouseEnterEvent e)
     {
     }

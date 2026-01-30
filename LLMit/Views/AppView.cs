@@ -107,8 +107,6 @@ public sealed class TabViewController : KeyboardMouseController
         _tabView = tabView;
     }
 
-    public override View View => _tabView;
-
     public override void OnMouseEnter(ref MouseEnterEvent e)
     {
         _tabView.IsHighlighted = true;

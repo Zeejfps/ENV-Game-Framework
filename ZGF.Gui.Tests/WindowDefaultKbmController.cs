@@ -19,6 +19,4 @@ public sealed class WindowDefaultKbmController : KeyboardMouseController
             _window.BringToFront();
         }
     }
-    
-    public override View View => _window;
 }

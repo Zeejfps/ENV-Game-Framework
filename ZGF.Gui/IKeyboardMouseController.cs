@@ -2,7 +2,6 @@
 
 public interface IKeyboardMouseController : IController
 {
-    View View { get; }
     void OnMouseEnter(ref MouseEnterEvent e);
     void OnMouseExit(ref MouseExitEvent e);
     void OnMouseButtonStateChanged(ref MouseButtonEvent e);

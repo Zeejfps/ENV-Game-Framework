@@ -7,8 +7,6 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
 {
     private readonly TextInputView _textInput;
 
-    public override View View => _textInput;
-
     public bool IsMultiLine { get; set; }
     
     public BaseTextInputKbmController(TextInputView textInput)
@@ -45,14 +43,14 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
             if (isEditing && !containsPoint)
             {
                 _textInput.StopEditing();
-                this.Blur();
+                _textInput.Context?.InputSystem.Blur(this);
                 return;
             }
 
             if (!isEditing && containsPoint)
             {
                 _textInput.StartEditing();
-                this.RequestFocus();
+                _textInput.Context?.InputSystem.RequestFocus(this);
             }
             
             var mousePoint = e.Mouse.Point;

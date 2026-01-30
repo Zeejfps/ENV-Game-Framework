@@ -4,8 +4,6 @@ namespace ZGF.Gui.Tests;
 
 public sealed class DefaultVerticalListViewKbmController : KeyboardMouseController
 {
-    public override View View => _view;
-    
     private readonly VerticalListView _view;
     private readonly VerticalScrollPane _viewPortView;
     private readonly VerticalScrollBarView _scrollBarView;
