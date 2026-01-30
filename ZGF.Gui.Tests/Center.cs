@@ -10,6 +10,7 @@ public sealed class Center : View
     private readonly Window _w1;
     private readonly Window _w3;
     private readonly TextInputView _textInput;
+    private readonly VerticalListView _listView;
 
     public Center()
     {
@@ -21,7 +22,7 @@ public sealed class Center : View
         AddChildToSelf(background);
 
         _w1 = new Window("About This Computer");
-        _textInput = BuildWindow(_w1);
+        (_textInput, _listView) = BuildWindow(_w1);
         AddChildToSelf(_w1);
 
         ModelView = new ImageView();
@@ -41,9 +42,10 @@ public sealed class Center : View
         context.InputSystem.RegisterController(_w1, new WindowDefaultKbmController(_w1));
         context.InputSystem.RegisterController(_w3, new WindowDefaultKbmController(_w3));
         context.InputSystem.RegisterController(_textInput, new TextInputViewKbmController(_textInput));
+        context.InputSystem.RegisterController(_listView, new DefaultVerticalListViewKbmController(_listView));
     }
 
-    private TextInputView BuildWindow(Window window)
+    private (TextInputView, VerticalListView) BuildWindow(Window window)
     {
         var scrollBar = new RectView
         {
@@ -135,6 +137,6 @@ public sealed class Center : View
 
         window.Children.Add(listView);
 
-        return textInput;
+        return (textInput, listView);
     }
 }

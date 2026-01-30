@@ -31,7 +31,7 @@ public sealed class VerticalListView : View
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
-        context.InputSystem.RegisterController(this, new DefaultVerticalListViewKbmController(this));
+        context.InputSystem.RegisterController(ScrollBarView, new VerticalScrollBarViewController(ScrollBarView));
     }
 
     public void Scroll(float delta)

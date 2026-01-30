@@ -41,7 +41,7 @@ public sealed class VerticalScrollBarView : View
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
-        context.InputSystem.RegisterController(this, new VerticalScrollBarViewController(this));
+        context.InputSystem.RegisterController(_thumbView, new VerticalScrollBarThumbViewController(_thumbView));
     }
 
     public float Scale

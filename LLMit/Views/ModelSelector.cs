@@ -37,13 +37,6 @@ public sealed class ModelSelector : View
     }
 
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        var contextMenuManager = context.Get<ContextMenuManager>();
-        Debug.Assert(contextMenuManager != null);
-        context.InputSystem.RegisterController(this, new ModelSelectorController(this, contextMenuManager));
-    }
 }
 
 public sealed class ModelSelectorController : KeyboardMouseController

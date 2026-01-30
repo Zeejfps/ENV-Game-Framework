@@ -67,12 +67,6 @@ public sealed class VerticalScrollBarThumbView : View
         AddChildToSelf(_background);
     }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        context.InputSystem.RegisterController(this, new VerticalScrollBarThumbViewController(this));
-    }
-
     protected override void OnLayoutSelf()
     {
         var height = MaxHeightConstraint * Scale;
