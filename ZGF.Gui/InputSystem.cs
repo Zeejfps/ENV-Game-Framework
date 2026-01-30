@@ -25,12 +25,14 @@ public sealed class InputSystem : IMouse
         }
         _viewToController[view] = new ControllerRegistration(controller, phaseFilter);
         AddInteractable(controller);
+        controller.OnAttached();
     }
 
     public void UnregisterController(View view)
     {
         if (_viewToController.Remove(view, out var registration))
         {
+            registration.Controller.OnDetached();
             RemoveInteractable(registration.Controller);
         }
     }
@@ -50,12 +52,12 @@ public sealed class InputSystem : IMouse
         return EventPhaseFilter.Both;
     }
 
-    public void AddInteractable(IKeyboardMouseController controller)
+    private void AddInteractable(IKeyboardMouseController controller)
     {
         _hoverableComponents.Add(controller);
     }
 
-    public void RemoveInteractable(IKeyboardMouseController controller)
+    private void RemoveInteractable(IKeyboardMouseController controller)
     {
         _hoverableComponents.Remove(controller);
         _focusQueue.Remove(controller);

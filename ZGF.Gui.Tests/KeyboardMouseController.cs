@@ -2,11 +2,11 @@
 
 public abstract class KeyboardMouseController : IKeyboardMouseController
 {
-    public virtual void OnEnabled(Context context)
+    public virtual void OnAttached()
     {
     }
 
-    public virtual void OnDisabled(Context context)
+    public virtual void OnDetached()
     {
     }
 

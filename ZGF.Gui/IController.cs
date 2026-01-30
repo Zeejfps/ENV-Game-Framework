@@ -2,6 +2,6 @@
 
 public interface IController
 {
-    void OnEnabled(Context context);
-    void OnDisabled(Context context);
+    void OnAttached();
+    void OnDetached();
 }

@@ -11,14 +11,12 @@ public sealed class WindowResizerDefaultKbmController : IKeyboardMouseController
         _resizer = resizer;
     }
 
-    public void OnEnabled(Context context)
+    public void OnAttached()
     {
-        context.InputSystem.AddInteractable(this);
     }
 
-    public void OnDisabled(Context context)
+    public void OnDetached()
     {
-        context.InputSystem.RemoveInteractable(this);
     }
 
     public void OnMouseEnter(ref MouseEnterEvent e)

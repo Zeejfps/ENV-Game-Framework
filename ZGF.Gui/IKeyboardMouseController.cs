@@ -3,7 +3,6 @@
 public interface IKeyboardMouseController : IController
 {
     View View { get; }
-
     void OnMouseEnter(ref MouseEnterEvent e);
     void OnMouseExit(ref MouseExitEvent e);
     void OnMouseButtonStateChanged(ref MouseButtonEvent e);
@@ -12,9 +11,4 @@ public interface IKeyboardMouseController : IController
     void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e);
     void OnFocusLost();
     void OnFocusGained();
-    
-    bool CanReleaseFocus()
-    {
-        return true;
-    }
 }

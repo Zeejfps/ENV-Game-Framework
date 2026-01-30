@@ -14,14 +14,14 @@ public abstract class BaseMenuItemController : KeyboardMouseController
         _contextMenuManager = contextMenuManager;
     }
 
-    public override void OnDisabled(Context context)
+    public override void OnDetached()
     {
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed -= OnOpenedContextMenuClosed;
             _openedContextMenu = null;
         }
-        base.OnDisabled(context);
+        base.OnDetached();
     }
     
     public override void OnMouseEnter(ref MouseEnterEvent e)

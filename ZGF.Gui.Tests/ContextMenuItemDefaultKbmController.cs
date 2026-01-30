@@ -24,9 +24,9 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
         Clicked = clicked;
     }
 
-    public override void OnEnabled(Context context)
+    public override void OnAttached()
     {
-        base.OnEnabled(context);
+        base.OnAttached();
         if (SubOptions.Count > 0)
         {
             _contextMenuItem.IsArrowVisible = true;

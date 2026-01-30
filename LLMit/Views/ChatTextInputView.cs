@@ -66,10 +66,10 @@ public sealed class ChatTextInputViewController : BaseTextInputKbmController
         _textInput = textInput;
     }
 
-    public override void OnDisabled(Context context)
+    public override void OnDetached()
     {
         Submit = null;
-        base.OnDisabled(context);
+        base.OnDetached();
     }
 
     protected override void OnKeyboardKeyPressed(ref KeyboardKeyEvent e)
