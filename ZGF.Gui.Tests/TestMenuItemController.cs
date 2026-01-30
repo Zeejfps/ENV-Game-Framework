@@ -23,7 +23,8 @@ public sealed class TestMenuItemController : BaseMenuItemController
         {
             Text = "Option 3"
         };
-        option3Menu.Controller = new ContextMenuItemDefaultKbmController(option3Menu, _contextMenuManager)
+        contextMenu.Children.Add(option3Menu);
+        MenuItem.Context?.InputSystem.RegisterController(option3Menu, new ContextMenuItemDefaultKbmController(option3Menu, _contextMenuManager)
         {
             SubOptions =
             {
@@ -40,9 +41,7 @@ public sealed class TestMenuItemController : BaseMenuItemController
                     Text = "Test3"
                 },
             }
-        };
-        
-        contextMenu.Children.Add(option3Menu);
+        });
         contextMenu.Children.Add(new ContextMenuItem
         {
             Text = "Option 4"

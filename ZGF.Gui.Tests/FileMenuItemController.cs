@@ -21,10 +21,10 @@ public sealed class FileMenuItemController : BaseMenuItemController
         {
             Text = "Exit",
         };
-        exitItem.Controller = new ContextMenuItemDefaultKbmController(exitItem, _contextMenuManager, () =>
+        contextMenu.Children.Add(exitItem);
+        MenuItem.Context?.InputSystem.RegisterController(exitItem, new ContextMenuItemDefaultKbmController(exitItem, _contextMenuManager, () =>
         {
             _app.Exit();
-        });
-        contextMenu.Children.Add(exitItem);
+        }));
     }
 }

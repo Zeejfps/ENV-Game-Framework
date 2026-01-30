@@ -42,7 +42,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed += OnOpenedContextMenuClosed;
-            _contextMenu.Controller = new ContextMenuKbmController(_openedContextMenu);
+            MenuItem.Context?.InputSystem.RegisterController(_contextMenu, new ContextMenuKbmController(_openedContextMenu));
             MenuItem.IsSelected = true;
         }
     }

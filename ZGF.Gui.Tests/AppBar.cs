@@ -4,37 +4,43 @@ namespace ZGF.Gui.Tests;
 
 public sealed class AppBar : View
 {
+    private readonly App _app;
+    private readonly ContextMenuManager _contextMenuManager;
+    private readonly MenuItem _fileItem;
+    private readonly MenuItem _editItem;
+    private readonly MenuItem _viewLabel;
+    private readonly MenuItem _helpLabel;
+
     public AppBar(App app, ContextMenuManager contextMenuManager)
     {
-        var fileItem = new MenuItem
+        _app = app;
+        _contextMenuManager = contextMenuManager;
+
+        _fileItem = new MenuItem
         {
             Text = "File"
         };
-        fileItem.Controller = new FileMenuItemController(fileItem, contextMenuManager, app);
-        
-        var editItem = new MenuItem
+
+        _editItem = new MenuItem
         {
             Text = "Edit"
         };
-        editItem.Controller = new TestMenuItemController(editItem, contextMenuManager);
 
-        var viewLabel = new MenuItem
+        _viewLabel = new MenuItem
         {
             Text = "View"
         };
-        viewLabel.Controller = new TestMenuItemController(viewLabel, contextMenuManager);
-        
+
         var specialMenuItem = new MenuItem
         {
             Text = "Special",
             IsDisabled = true
         };
 
-        var helpLabel = new MenuItem
+        _helpLabel = new MenuItem
         {
             Text = "Help"
         };
-        helpLabel.Controller = new TestMenuItemController(helpLabel, contextMenuManager);
         
         var row = new FlexRowView
         {
@@ -43,11 +49,11 @@ public sealed class AppBar : View
             Gap = 10,
             Children =
             {
-                fileItem,
-                editItem,
-                viewLabel,
+                _fileItem,
+                _editItem,
+                _viewLabel,
                 specialMenuItem,
-                helpLabel,
+                _helpLabel,
             }
         };
         
@@ -83,5 +89,14 @@ public sealed class AppBar : View
         };
 
         AddChildToSelf(container);
+    }
+
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        context.InputSystem.RegisterController(_fileItem, new FileMenuItemController(_fileItem, _contextMenuManager, _app));
+        context.InputSystem.RegisterController(_editItem, new TestMenuItemController(_editItem, _contextMenuManager));
+        context.InputSystem.RegisterController(_viewLabel, new TestMenuItemController(_viewLabel, _contextMenuManager));
+        context.InputSystem.RegisterController(_helpLabel, new TestMenuItemController(_helpLabel, _contextMenuManager));
     }
 }

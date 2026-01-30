@@ -1,4 +1,5 @@
-﻿using ZGF.Gui.Layouts;
+﻿using ZGF.Gui;
+using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
@@ -25,8 +26,12 @@ public sealed class VerticalListView : View
             Center = ScrollPaneView,
             East = ScrollBarView,
         });
+    }
 
-        Controller = new DefaultVerticalListViewKbmController(this);
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        context.InputSystem.RegisterController(this, new DefaultVerticalListViewKbmController(this));
     }
 
     public void Scroll(float delta)

@@ -36,8 +36,12 @@ public sealed class VerticalScrollBarView : View
         };
         
         AddChildToSelf(slideArea);
+    }
 
-        Controller = new VerticalScrollBarViewController(this);
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        context.InputSystem.RegisterController(this, new VerticalScrollBarViewController(this));
     }
 
     public float Scale

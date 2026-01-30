@@ -42,7 +42,7 @@ public sealed class ModelSelector : View
         base.OnAttachedToContext(context);
         var contextMenuManager = context.Get<ContextMenuManager>();
         Debug.Assert(contextMenuManager != null);
-        Controller = new ModelSelectorController(this, contextMenuManager);
+        context.InputSystem.RegisterController(this, new ModelSelectorController(this, contextMenuManager));
     }
 }
 
@@ -109,7 +109,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
 
         _openedContextMenu = _contextMenuManager.ShowContextMenu(contextMenu);
         _openedContextMenu.Closed += OnContextMenuClosed;
-        contextMenu.Controller = new ContextMenuKbmController(_openedContextMenu);
+        _modelSelector.Context?.InputSystem.RegisterController(contextMenu, new ContextMenuKbmController(_openedContextMenu));
     }
 
     private void OnContextMenuClosed()

@@ -60,7 +60,7 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             if (_openedContextMenu != null)
             {
                 _openedContextMenu.Closed += OnOpenedContextMenuClosed;
-                subMenu.Controller = new ContextMenuKbmController(_openedContextMenu);
+                _contextMenuItem.Context?.InputSystem.RegisterController(subMenu, new ContextMenuKbmController(_openedContextMenu));
             }
         }
         

@@ -4,13 +4,52 @@ namespace ZGF.Gui;
 
 public sealed class InputSystem : IMouse
 {
+    private readonly record struct ControllerRegistration(
+        IKeyboardMouseController Controller,
+        EventPhaseFilter PhaseFilter
+    );
+
     private readonly HashSet<IKeyboardMouseController> _hoverableComponents = new();
     private readonly LinkedList<IKeyboardMouseController> _focusQueue = new();
     private readonly HashSet<MouseButton> _pressedMouseButtons = new();
-    
+    private readonly Dictionary<View, ControllerRegistration> _viewToController = new();
+
     private IKeyboardMouseController? _hoveredComponent;
     private IKeyboardMouseController? _focusedComponent;
-    
+
+    public void RegisterController(View view, IKeyboardMouseController controller, EventPhaseFilter phaseFilter = EventPhaseFilter.Both)
+    {
+        if (_viewToController.ContainsKey(view))
+        {
+            UnregisterController(view);
+        }
+        _viewToController[view] = new ControllerRegistration(controller, phaseFilter);
+        AddInteractable(controller);
+    }
+
+    public void UnregisterController(View view)
+    {
+        if (_viewToController.Remove(view, out var registration))
+        {
+            RemoveInteractable(registration.Controller);
+        }
+    }
+
+    public IKeyboardMouseController? GetController(View view)
+    {
+        return _viewToController.TryGetValue(view, out var reg) ? reg.Controller : null;
+    }
+
+    public EventPhaseFilter GetPhaseFilter(IKeyboardMouseController controller)
+    {
+        foreach (var kvp in _viewToController.Values)
+        {
+            if (kvp.Controller == controller)
+                return kvp.PhaseFilter;
+        }
+        return EventPhaseFilter.Both;
+    }
+
     public void AddInteractable(IKeyboardMouseController controller)
     {
         _hoverableComponents.Add(controller);
@@ -37,30 +76,42 @@ public sealed class InputSystem : IMouse
         e.Phase = EventPhase.Bubbling;
         if (_focusedComponent != null)
         {
-            _focusedComponent.OnKeyboardKeyStateChanged(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(_focusedComponent);
+            if (filter.HasFlag(EventPhaseFilter.Bubble))
             {
-                return;
+                _focusedComponent.OnKeyboardKeyStateChanged(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
             }
         }
 
         e.Phase = EventPhase.Capturing;
         foreach (var ctrl in _focusQueue)
         {
-            ctrl.OnKeyboardKeyStateChanged(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Capture))
             {
-                return;
+                ctrl.OnKeyboardKeyStateChanged(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
             }
         }
-        
+
         e.Phase = EventPhase.Bubbling;
         foreach (var ctrl in _focusQueue.Reverse())
         {
-            ctrl.OnKeyboardKeyStateChanged(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Bubble))
             {
-                return;
+                ctrl.OnKeyboardKeyStateChanged(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
             }
         }
     }
@@ -75,35 +126,46 @@ public sealed class InputSystem : IMouse
         {
             _pressedMouseButtons.Remove(e.Button);
         }
-        
+
         e.Phase = EventPhase.Bubbling;
         if (_focusedComponent != null)
         {
-            _focusedComponent.OnMouseButtonStateChanged(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(_focusedComponent);
+            if (filter.HasFlag(EventPhaseFilter.Bubble))
             {
-                return;
+                _focusedComponent.OnMouseButtonStateChanged(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
             }
         }
 
         e.Phase = EventPhase.Capturing;
         foreach (var ctrl in _focusQueue)
         {
-            ctrl.OnMouseButtonStateChanged(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Capture))
             {
-                return;
+                ctrl.OnMouseButtonStateChanged(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
             }
         }
-        
+
         e.Phase = EventPhase.Bubbling;
-        
         foreach (var ctrl in _focusQueue.Reverse())
         {
-            ctrl.OnMouseButtonStateChanged(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Bubble))
             {
-                return;
+                ctrl.OnMouseButtonStateChanged(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
             }
         }
     }
@@ -113,30 +175,42 @@ public sealed class InputSystem : IMouse
         e.Phase = EventPhase.Bubbling;
         if (_focusedComponent != null)
         {
-            _focusedComponent.OnMouseWheelScrolled(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(_focusedComponent);
+            if (filter.HasFlag(EventPhaseFilter.Bubble))
             {
-                return;
+                _focusedComponent.OnMouseWheelScrolled(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
             }
         }
-        
+
         e.Phase = EventPhase.Capturing;
         foreach (var ctrl in _focusQueue)
         {
-            ctrl.OnMouseWheelScrolled(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Capture))
             {
-                return;
+                ctrl.OnMouseWheelScrolled(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
             }
         }
-        
+
         e.Phase = EventPhase.Bubbling;
         foreach (var ctrl in _focusQueue.Reverse())
         {
-            ctrl.OnMouseWheelScrolled(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Bubble))
             {
-                return;
+                ctrl.OnMouseWheelScrolled(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
             }
         }
     }
@@ -179,30 +253,42 @@ public sealed class InputSystem : IMouse
 
         if (_focusedComponent != null)
         {
-            _focusedComponent.OnMouseMoved(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(_focusedComponent);
+            if (filter.HasFlag(EventPhaseFilter.Bubble))
             {
-                return true;
+                _focusedComponent.OnMouseMoved(ref e);
+                if (e.IsConsumed)
+                {
+                    return true;
+                }
             }
         }
-        
+
         e.Phase = EventPhase.Capturing;
         foreach (var ctrl in _focusQueue)
         {
-            ctrl.OnMouseMoved(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Capture))
             {
-                return true;
+                ctrl.OnMouseMoved(ref e);
+                if (e.IsConsumed)
+                {
+                    return true;
+                }
             }
         }
-        
+
         e.Phase = EventPhase.Bubbling;
         foreach (var ctrl in _focusQueue.Reverse())
         {
-            ctrl.OnMouseMoved(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Bubble))
             {
-                return true;
+                ctrl.OnMouseMoved(ref e);
+                if (e.IsConsumed)
+                {
+                    return true;
+                }
             }
         }
 
@@ -216,23 +302,31 @@ public sealed class InputSystem : IMouse
             Mouse = this,
             Phase = EventPhase.Capturing
         };
-                
+
         foreach (var ctrl in _focusQueue)
         {
-            ctrl.OnMouseExit(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Capture))
             {
-                return;
+                ctrl.OnMouseExit(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
             }
         }
-        
+
         e.Phase = EventPhase.Bubbling;
         foreach (var ctrl in _focusQueue.Reverse())
         {
-            ctrl.OnMouseExit(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Bubble))
             {
-                return;
+                ctrl.OnMouseExit(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
             }
         }
     }
@@ -244,23 +338,31 @@ public sealed class InputSystem : IMouse
             Mouse = this,
             Phase = EventPhase.Capturing
         };
-                
+
         foreach (var ctrl in _focusQueue)
         {
-            ctrl.OnMouseEnter(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Capture))
             {
-                return;
+                ctrl.OnMouseEnter(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
             }
         }
-        
+
         e.Phase = EventPhase.Bubbling;
         foreach (var ctrl in _focusQueue.Reverse())
         {
-            ctrl.OnMouseEnter(ref e);
-            if (e.IsConsumed)
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Bubble))
             {
-                return;
+                ctrl.OnMouseEnter(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
             }
         }
     }
@@ -310,7 +412,7 @@ public sealed class InputSystem : IMouse
         var parent = current.View.Parent;
         while (parent != null)
         {
-            var controller = parent.Controller as IKeyboardMouseController;
+            var controller = GetController(parent);
             if (controller != null && _hoverableComponents.Contains(controller))
             {
                 _focusQueue.AddFirst(controller);
