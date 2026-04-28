@@ -7,52 +7,31 @@ namespace SlangIntegrationTest;
 [Guid("5bc42be8-5c50-4929-9e5e-d15e7c24015f")]
 public partial interface IComponentType
 {
-    IntPtr GetSession();
+    [PreserveSig] IntPtr GetSession();
 
-    IntPtr GetLayout(int targetIndex, out IntPtr outDiagnostics);
+    [PreserveSig] IntPtr GetLayout(long targetIndex, out IntPtr outDiagnostics);
 
-    int GetSpecializationParamCount();
+    [PreserveSig] long GetSpecializationParamCount();
 
-    int GetEntryPointCode(
-        int entryPointIndex,
-        int targetIndex,
-        out IntPtr outCode,
-        out IntPtr outDiagnostics);
+    [PreserveSig] int GetEntryPointCode(long entryPointIndex, long targetIndex, out IntPtr outCode, out IntPtr outDiagnostics);
 
-    int GetResultAsFileSystem(
-        int entryPointIndex,
-        int targetIndex,
-        out IntPtr outFileSystem);
+    [PreserveSig] int GetResultAsFileSystem(long entryPointIndex, long targetIndex, out IntPtr outFileSystem);
 
-    void GetEntryPointHash(
-        int entryPointIndex,
-        int targetIndex,
-        out IntPtr outHash);
+    [PreserveSig] void GetEntryPointHash(long entryPointIndex, long targetIndex, out IntPtr outHash);
 
-    int Specialize(
-        IntPtr specializationArgs,
-        int specializationArgCount,
-        out IntPtr outSpecializedComponentType,
-        out IntPtr outDiagnostics);
+    [PreserveSig] int Specialize(IntPtr specializationArgs, long specializationArgCount, out IntPtr outSpecializedComponentType, out IntPtr outDiagnostics);
 
-    int Link(out IntPtr outLinkedComponentType, out IntPtr outDiagnostics);
+    [PreserveSig] int Link(out IntPtr outLinkedComponentType, out IntPtr outDiagnostics);
 
-    int GetEntryPointHostCallable(
-        int entryPointIndex,
-        int targetIndex,
-        out IntPtr outSharedLibrary,
-        out IntPtr outDiagnostics);
+    [PreserveSig] int GetEntryPointHostCallable(int entryPointIndex, int targetIndex, out IntPtr outSharedLibrary, out IntPtr outDiagnostics);
 
-    int RenameEntryPoint(string newName, out IntPtr outEntryPoint);
+    [PreserveSig] int RenameEntryPoint(string newName, out IntPtr outEntryPoint);
 
-    int LinkWithOptions(
-        out IntPtr outLinkedComponentType,
-        uint compilerOptionEntryCount,
-        IntPtr compilerOptionEntries,
-        out IntPtr outDiagnostics);
+    [PreserveSig] int LinkWithOptions(out IntPtr outLinkedComponentType, uint compilerOptionEntryCount, IntPtr compilerOptionEntries, out IntPtr outDiagnostics);
 
-    int GetTargetCode(
-        int targetIndex,
-        out IntPtr outCode,
-        out IntPtr outDiagnostics);
+    [PreserveSig] int GetTargetCode(long targetIndex, out IntPtr outCode, out IntPtr outDiagnostics);
+
+    [PreserveSig] int GetTargetMetadata(long targetIndex, out IntPtr outMetadata, out IntPtr outDiagnostics);
+
+    [PreserveSig] int GetEntryPointMetadata(long entryPointIndex, long targetIndex, out IntPtr outMetadata, out IntPtr outDiagnostics);
 }

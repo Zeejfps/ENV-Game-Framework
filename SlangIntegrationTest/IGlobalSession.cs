@@ -7,85 +7,61 @@ namespace SlangIntegrationTest;
 [Guid("c140b5fd-0c78-452e-ba7c-1a1e70c7f71c")]
 public partial interface IGlobalSession
 {
-    int CreateSession(
-        ref SessionDesc desc,
-        ref IntPtr outSession);
+    [PreserveSig] int CreateSession(ref SessionDesc desc, ref IntPtr outSession);
 
-    int FindProfile(string name);
+    [PreserveSig] int FindProfile(string name);
 
-    void SetDownstreamCompilerPath(
-        SlangPassThrough passThrough,
-        string path);
+    [PreserveSig] void SetDownstreamCompilerPath(SlangPassThrough passThrough, string path);
 
-    void SetDownstreamCompilerPrelude(
-        SlangPassThrough passThrough,
-        string preludeText);
+    [PreserveSig] void SetDownstreamCompilerPrelude(SlangPassThrough passThrough, string preludeText);
 
-    void GetDownstreamCompilerPrelude(
-        SlangPassThrough passThrough,
-        out IntPtr outPrelude);
+    [PreserveSig] void GetDownstreamCompilerPrelude(SlangPassThrough passThrough, out IntPtr outPrelude);
 
-    IntPtr GetBuildTagString();
+    [PreserveSig] IntPtr GetBuildTagString();
 
-    int SetDefaultDownstreamCompiler(
-        SlangSourceLanguage sourceLanguage,
-        SlangPassThrough defaultCompiler);
+    [PreserveSig] int SetDefaultDownstreamCompiler(SlangSourceLanguage sourceLanguage, SlangPassThrough defaultCompiler);
 
-    SlangPassThrough GetDefaultDownstreamCompiler(
-        SlangSourceLanguage sourceLanguage);
+    [PreserveSig] SlangPassThrough GetDefaultDownstreamCompiler(SlangSourceLanguage sourceLanguage);
 
-    void SetLanguagePrelude(
-        SlangSourceLanguage sourceLanguage,
-        string preludeText);
+    [PreserveSig] void SetLanguagePrelude(SlangSourceLanguage sourceLanguage, string preludeText);
 
-    void GetLanguagePrelude(
-        SlangSourceLanguage sourceLanguage,
-        out IntPtr outPrelude);
+    [PreserveSig] void GetLanguagePrelude(SlangSourceLanguage sourceLanguage, out IntPtr outPrelude);
 
-    int CreateCompileRequest(out IntPtr outCompileRequest);
+    [PreserveSig] int CreateCompileRequest(out IntPtr outCompileRequest);
 
-    void AddBuiltins(
-        string sourcePath,
-        string sourceString);
+    [PreserveSig] void AddBuiltins(string sourcePath, string sourceString);
 
-    void SetSharedLibraryLoader(IntPtr loader);
+    [PreserveSig] void SetSharedLibraryLoader(IntPtr loader);
 
-    IntPtr GetSharedLibraryLoader();
+    [PreserveSig] IntPtr GetSharedLibraryLoader();
 
-    int CheckCompileTargetSupport(SlangCompileTarget target);
+    [PreserveSig] int CheckCompileTargetSupport(SlangCompileTarget target);
 
-    int CheckPassThroughSupport(SlangPassThrough passThrough);
+    [PreserveSig] int CheckPassThroughSupport(SlangPassThrough passThrough);
 
-    int CompileStdLib(CompileStdLibFlags flags);
+    [PreserveSig] int CompileStdLib(CompileStdLibFlags flags);
 
-    int LoadStdLib(IntPtr stdLib, IntPtr stdLibSizeInBytes);
+    [PreserveSig] int LoadStdLib(IntPtr stdLib, IntPtr stdLibSizeInBytes);
 
-    int SaveStdLib(SlangArchiveType archiveType, out IntPtr outBlob);
+    [PreserveSig] int SaveStdLib(SlangArchiveType archiveType, out IntPtr outBlob);
 
-    int FindCapability(string name);
+    [PreserveSig] int FindCapability(string name);
 
-    void SetDownstreamCompilerForTransition(
-        SlangCompileTarget source,
-        SlangCompileTarget target,
-        SlangPassThrough compiler);
+    [PreserveSig] void SetDownstreamCompilerForTransition(SlangCompileTarget source, SlangCompileTarget target, SlangPassThrough compiler);
 
-    SlangPassThrough GetDownstreamCompilerForTransition(
-        SlangCompileTarget source,
-        SlangCompileTarget target);
+    [PreserveSig] SlangPassThrough GetDownstreamCompilerForTransition(SlangCompileTarget source, SlangCompileTarget target);
 
-    void GetCompilerElapsedTime(
-        out double outTotalTime,
-        out double outDownstreamTime);
+    [PreserveSig] void GetCompilerElapsedTime(out double outTotalTime, out double outDownstreamTime);
 
-    int SetSPIRVCoreGrammar(string jsonPath);
+    [PreserveSig] int SetSPIRVCoreGrammar(string jsonPath);
 
-    int ParseCommandLineArguments(
-        int argc,
-        IntPtr argv,
-        ref SessionDesc outSessionDesc,
-        out IntPtr outAuxAllocation);
+    [PreserveSig] int ParseCommandLineArguments(int argc, IntPtr argv, ref SessionDesc outSessionDesc, out IntPtr outAuxAllocation);
 
-    int GetSessionDescDigest(
-        ref SessionDesc sessionDesc,
-        out IntPtr outBlob);
+    [PreserveSig] int GetSessionDescDigest(ref SessionDesc sessionDesc, out IntPtr outBlob);
+
+    [PreserveSig] int CompileBuiltinModule(int module, CompileStdLibFlags flags);
+
+    [PreserveSig] int LoadBuiltinModule(int module, IntPtr moduleData, IntPtr sizeInBytes);
+
+    [PreserveSig] int SaveBuiltinModule(int module, SlangArchiveType archiveType, out IntPtr outBlob);
 }

@@ -6,20 +6,20 @@ namespace SlangIntegrationTest;
 [StructLayout(LayoutKind.Sequential)]
 public struct SessionDesc
 {
-    public IntPtr StructureSize;
+    public nuint StructureSize;
 
     public IntPtr Targets;
-    public int TargetCount;
+    public nint TargetCount;
 
     public SessionFlags Flags;
 
     public SlangMatrixLayoutMode DefaultMatrixLayoutMode;
 
     public IntPtr SearchPaths;
-    public int SearchPathCount;
+    public nint SearchPathCount;
 
     public IntPtr PreprocessorMacros;
-    public int PreprocessorMacroCount;
+    public nint PreprocessorMacroCount;
 
     public IntPtr FileSystem;
 
@@ -32,7 +32,7 @@ public struct SessionDesc
 
     public SessionDesc()
     {
-        StructureSize = Unsafe.SizeOf<SessionDesc>();
+        StructureSize = (nuint)Unsafe.SizeOf<SessionDesc>();
         Targets = IntPtr.Zero;
         TargetCount = 0;
         Flags = SessionFlags.None;
@@ -59,7 +59,7 @@ public struct SessionDesc
         Marshal.Copy(pointerArray, 0, result, pointerArray.Length);
 
         SearchPaths = result;
-        SearchPathCount = paths.Length;
+        SearchPathCount = (nint)paths.Length;
     }
 
     public unsafe void SetTargets(params TargetDesc[] targetDescriptions)
@@ -72,6 +72,6 @@ public struct SessionDesc
             basePtr[i] = targetDescriptions[i];
 
         Targets = ptrToArrayOfStructs;
-        TargetCount = targetDescriptions.Length;
+        TargetCount = (nint)targetDescriptions.Length;
     }
 }

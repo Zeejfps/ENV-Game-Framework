@@ -6,7 +6,7 @@ namespace SlangIntegrationTest;
 [StructLayout(LayoutKind.Sequential)]
 public struct TargetDesc
 {
-    public IntPtr StructureSize;
+    public nuint StructureSize;
 
     public SlangCompileTarget Format;
 
@@ -26,7 +26,7 @@ public struct TargetDesc
 
     public TargetDesc()
     {
-        StructureSize = Unsafe.SizeOf<TargetDesc>();
+        StructureSize = (nuint)Unsafe.SizeOf<TargetDesc>();
         Format = SlangCompileTarget.SLANG_TARGET_UNKNOWN;
         Profile = SlangProfileID.Unknown;
         Flags = SlangTargetFlags.SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY;

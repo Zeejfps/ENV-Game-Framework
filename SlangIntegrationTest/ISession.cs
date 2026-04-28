@@ -7,82 +7,47 @@ namespace SlangIntegrationTest;
 [Guid("67618701-d116-468f-ab3b-474bedce0e3d")]
 public partial interface ISession
 {
-    IGlobalSession GetGlobalSession();
+    [PreserveSig] IGlobalSession GetGlobalSession();
 
-    IntPtr LoadModule(
-        string moduleName,
-        out ISlangBlob outDiagnostics);
+    [PreserveSig] IntPtr LoadModule(string moduleName, out ISlangBlob outDiagnostics);
 
-    IntPtr LoadModuleFromSource(
-        string moduleName,
-        string path,
-        IntPtr source,
-        out IntPtr outDiagnostics);
+    [PreserveSig] IntPtr LoadModuleFromSource(string moduleName, string path, IntPtr source, out IntPtr outDiagnostics);
 
-    int CreateCompositeComponentType(
-        IntPtr componentTypes,
-        int componentTypeCount,
-        out IntPtr outCompositeComponentType,
-        out IntPtr outDiagnostics);
+    [PreserveSig] int CreateCompositeComponentType(IntPtr componentTypes, long componentTypeCount, out IntPtr outCompositeComponentType, out IntPtr outDiagnostics);
 
-    IntPtr SpecializeType(
-        IntPtr type,
-        IntPtr specializationArgs,
-        int specializationArgCount,
-        out IntPtr outDiagnostics);
+    [PreserveSig] IntPtr SpecializeType(IntPtr type, IntPtr specializationArgs, long specializationArgCount, out IntPtr outDiagnostics);
 
-    IntPtr GetTypeLayout(
-        IntPtr type,
-        int targetIndex,
-        LayoutRules rules,
-        out IntPtr outDiagnostics);
+    [PreserveSig] IntPtr GetTypeLayout(IntPtr type, long targetIndex, LayoutRules rules, out IntPtr outDiagnostics);
 
-    IntPtr GetContainerType(
-        IntPtr elementType,
-        ContainerType containerType,
-        out IntPtr outDiagnostics);
+    [PreserveSig] IntPtr GetContainerType(IntPtr elementType, ContainerType containerType, out IntPtr outDiagnostics);
 
-    IntPtr GetDynamicType();
+    [PreserveSig] IntPtr GetDynamicType();
 
-    int GetTypeRTTIMangledName(IntPtr type, out IntPtr outNameBlob);
+    [PreserveSig] int GetTypeRTTIMangledName(IntPtr type, out IntPtr outNameBlob);
 
-    int GetTypeConformanceWitnessMangledName(
-        IntPtr type,
-        IntPtr interfaceType,
-        out IntPtr outNameBlob);
+    [PreserveSig] int GetTypeConformanceWitnessMangledName(IntPtr type, IntPtr interfaceType, out IntPtr outNameBlob);
 
-    int GetTypeConformanceWitnessSequentialID(
-        IntPtr type,
-        IntPtr interfaceType,
-        out uint outId);
+    [PreserveSig] int GetTypeConformanceWitnessSequentialID(IntPtr type, IntPtr interfaceType, out uint outId);
 
-    int CreateCompileRequest(out IntPtr outCompileRequest);
+    [PreserveSig] int CreateCompileRequest(out IntPtr outCompileRequest);
 
-    int CreateTypeConformanceComponentType(
-        IntPtr type,
-        IntPtr interfaceType,
-        out IntPtr outConformance,
-        int conformanceIdOverride,
-        out IntPtr outDiagnostics);
+    [PreserveSig] int CreateTypeConformanceComponentType(IntPtr type, IntPtr interfaceType, out IntPtr outConformance, long conformanceIdOverride, out IntPtr outDiagnostics);
 
-    IntPtr LoadModuleFromIRBlob(
-        string moduleName,
-        string path,
-        IntPtr source,
-        out IntPtr outDiagnostics);
+    [PreserveSig] IntPtr LoadModuleFromIRBlob(string moduleName, string path, IntPtr source, out IntPtr outDiagnostics);
 
-    int GetLoadedModuleCount();
+    [PreserveSig] long GetLoadedModuleCount();
 
-    IntPtr GetLoadedModule(int index);
+    [PreserveSig] IntPtr GetLoadedModule(long index);
 
+    [PreserveSig]
     [return: MarshalAs(UnmanagedType.U1)]
-    bool IsBinaryModuleUpToDate(
-        string modulePath,
-        IntPtr binaryModuleBlob);
+    bool IsBinaryModuleUpToDate(string modulePath, IntPtr binaryModuleBlob);
 
-    IntPtr LoadModuleFromSourceString(
-        string moduleName,
-        string path,
-        string source,
-        out IntPtr outDiagnostics);
+    [PreserveSig] IntPtr LoadModuleFromSourceString(string moduleName, string path, string source, out IntPtr outDiagnostics);
+
+    [PreserveSig] int GetDynamicObjectRTTIBytes(IntPtr type, IntPtr interfaceType, out uint outRTTIDataBuffer, uint bufferSizeInBytes);
+
+    [PreserveSig] int LoadModuleInfoFromIRBlob(IntPtr source, out long outModuleVersion, out IntPtr outModuleCompilerVersion, out IntPtr outModuleName);
+
+    [PreserveSig] int GetDeclSourceLocation(IntPtr decl, out IntPtr outLocation);
 }

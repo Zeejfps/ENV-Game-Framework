@@ -84,10 +84,7 @@ unsafe
         if (findEntryPointByNameResult < 0)
             throw new Exception($"Failed to find entry point with name: {findEntryPointByNameResult}");
         
-        var componentInterfaceGuid = new Guid("5bc42be8-5c50-4929-9e5e-d15e7c24015f");
-        Marshal.QueryInterface(modulePtr, in componentInterfaceGuid, out var ptr);
-        Console.WriteLine($"M: {modulePtr} , O {ptr}");
-        var component = (IComponentType)SlangCompilerAPI.ComWrappers.GetOrCreateObjectForComInstance(ptr, CreateObjectFlags.None);
+        IComponentType component = module;
         var layoutPtr = component.GetLayout(0, out var blobPtr);
         Console.WriteLine($"Laout Ptr: {layoutPtr}");
 

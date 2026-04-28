@@ -5,33 +5,31 @@ namespace SlangIntegrationTest;
 
 [GeneratedComInterface(StringMarshalling = StringMarshalling.Utf8)]
 [Guid("0c720e64-8722-4d31-8990-638a98b1c279")]
-public partial interface IModule
+public partial interface IModule : IComponentType
 {
-    int FindEntryPointByName(string name, out IntPtr outEntryPoint);
+    [PreserveSig] int FindEntryPointByName(string name, out IntPtr outEntryPoint);
 
-    int GetDefinedEntryPointCount();
+    [PreserveSig] int GetDefinedEntryPointCount();
 
-    int GetDefinedEntryPoint(int index, out IntPtr outEntryPoint);
+    [PreserveSig] int GetDefinedEntryPoint(int index, out IntPtr outEntryPoint);
 
-    int Serialize(out IntPtr outSerializedBlob);
+    [PreserveSig] int Serialize(out IntPtr outSerializedBlob);
 
-    int WriteToFile(string fileName);
+    [PreserveSig] int WriteToFile(string fileName);
 
-    IntPtr GetName();
+    [PreserveSig] IntPtr GetName();
 
-    IntPtr GetFilePath();
+    [PreserveSig] IntPtr GetFilePath();
 
-    IntPtr GetUniqueIdentity();
+    [PreserveSig] IntPtr GetUniqueIdentity();
 
-    int FindAndCheckEntryPoint(
-        string name,
-        int stage,
-        out IntPtr outEntryPoint,
-        out IntPtr outDiagnostics);
+    [PreserveSig] int FindAndCheckEntryPoint(string name, int stage, out IntPtr outEntryPoint, out IntPtr outDiagnostics);
 
-    int GetDependencyFileCount();
+    [PreserveSig] int GetDependencyFileCount();
 
-    IntPtr GetDependencyFilePath(int index);
+    [PreserveSig] IntPtr GetDependencyFilePath(int index);
 
-    IntPtr GetModuleReflection();
+    [PreserveSig] IntPtr GetModuleReflection();
+
+    [PreserveSig] int Disassemble(out IntPtr outDisassembledBlob);
 }
