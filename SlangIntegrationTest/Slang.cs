@@ -6,6 +6,8 @@ namespace SlangIntegrationTest;
 
 public static class SlangCompilerAPI
 {
+    public const string LibraryName = "slang";
+
     // [Guid("c140b5fd-0c78-452e-ba7c-1a1e70c7f71c")]
     // [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     // public interface IGlobalSession : ISlangUnknown
@@ -44,10 +46,10 @@ public static class SlangCompilerAPI
     //     
     // }
     
-    [DllImport("slang.dll")]
+    [DllImport(LibraryName)]
     public static extern SlangResult slang_createGlobalSession(SlangInt apiVersion, ref IntPtr outGlobalSessionPtr);
-    
-    [DllImport("slang.dll", EntryPoint = "shutdown", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, ExactSpelling = true, PreserveSig = true)]
+
+    [DllImport(LibraryName, EntryPoint = "shutdown", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, ExactSpelling = true, PreserveSig = true)]
     public static extern void slang_shutdown();
 
 }
