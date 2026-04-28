@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
@@ -14,25 +13,6 @@ public static partial class SlangCompilerAPI
     public const string LibraryName = "slang";
 
     public static StrategyBasedComWrappers ComWrappers { get; } = new();
-
-    [ModuleInitializer]
-    internal static void RegisterResolver()
-    {
-        NativeLibrary.SetDllImportResolver(typeof(SlangCompilerAPI).Assembly, Resolve);
-    }
-
-    private static IntPtr Resolve(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
-    {
-        if (libraryName != LibraryName)
-            return IntPtr.Zero;
-
-        // On macOS, slang_createGlobalSession lives in libslang-compiler.dylib,
-        // not libslang.dylib (which is only a small runtime helper).
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            return NativeLibrary.Load("slang-compiler", assembly, searchPath);
-
-        return IntPtr.Zero;
-    }
 
     [LibraryImport(LibraryName)]
     public static partial SlangResult slang_createGlobalSession(SlangInt apiVersion, ref IntPtr outGlobalSessionPtr);
