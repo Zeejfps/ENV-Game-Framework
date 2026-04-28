@@ -1,0 +1,13 @@
+namespace SlangIntegrationTest;
+
+public enum SlangDeclKind : uint
+{
+    UnsupportedForReflection = 0,
+    Struct = 1,
+    Func = 2,
+    Module = 3,
+    Generic = 4,
+    Variable = 5,
+    Namespace = 6,
+    Enum = 7,
+}

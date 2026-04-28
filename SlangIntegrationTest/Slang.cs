@@ -76,6 +76,7 @@ public enum SlangStage
     Domain = 3,
     Geometry = 4,
     Fragment = 5,
+    Pixel = Fragment, // declared after Fragment so Fragment wins ToString().
     Compute = 6,
     RayGeneration = 7,
     Intersection = 8,
@@ -86,7 +87,6 @@ public enum SlangStage
     Mesh = 13,
     Amplification = 14,
     Dispatch = 15,
-    Pixel = Fragment,
 }
 
 public enum CompileStdLibFlags { }

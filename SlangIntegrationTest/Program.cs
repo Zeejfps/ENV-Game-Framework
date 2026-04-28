@@ -75,6 +75,44 @@ unsafe
         hr = linked.GetTargetCode(0, out var programCode, out var programCodeDiagnostics);
         if (hr < 0 || programCode is null) throw new Exception($"GetTargetCode failed: 0x{hr:X8} {ReadBlob(programCodeDiagnostics)}");
         Console.WriteLine($"Whole-program SPIR-V: {ReadBlobBytes(programCode).Length} bytes");
+
+        // Reflection — must run before Marshal.Release(linkedRaw) below since reflection
+        // handles are non-owning views into the linked program's memory.
+        var layoutPtr = linked.GetLayout(0, out _);
+        if (layoutPtr == IntPtr.Zero) throw new Exception("GetLayout returned null");
+        var layout = new ProgramLayout(layoutPtr);
+
+        Console.WriteLine();
+        Console.WriteLine($"=== Reflection: {layout.ParameterCount} global parameter(s), {layout.EntryPointCount} entry point(s) ===");
+
+        for (uint i = 0; i < layout.ParameterCount; i++)
+        {
+            var p = layout.GetParameter(i);
+            var v = p.Variable;
+            var t = v.Type;
+            var category = p.TypeLayout.ParameterCategory;
+            var space = p.GetSpace(category);
+            var index = p.GetOffset(category);
+            var extra = t.Kind switch
+            {
+                SlangTypeKind.Resource => $" shape={t.ResourceShape.BaseShape()} access={t.ResourceAccess}",
+                SlangTypeKind.ConstantBuffer or SlangTypeKind.ParameterBlock => $" element={t.ElementType.Kind}",
+                _ => "",
+            };
+            Console.WriteLine($"  [{i}] {v.Name} : {t.Kind}{extra} [category={category} space={space} index={index}]");
+        }
+
+        for (ulong i = 0; i < layout.EntryPointCount; i++)
+        {
+            var ep = layout.GetEntryPointByIndex(i);
+            var line = $"  entry: {ep.Name} stage={ep.Stage}";
+            if (ep.Stage == SlangStage.Compute)
+            {
+                var (gx, gy, gz) = ep.GetComputeThreadGroupSize();
+                line += $" threadGroup={gx}x{gy}x{gz}";
+            }
+            Console.WriteLine(line);
+        }
     }
     finally
     {
