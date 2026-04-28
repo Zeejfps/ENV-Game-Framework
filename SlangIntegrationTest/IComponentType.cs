@@ -9,29 +9,29 @@ public partial interface IComponentType
 {
     [PreserveSig] IntPtr GetSession();
 
-    [PreserveSig] IntPtr GetLayout(long targetIndex, out IntPtr outDiagnostics);
+    [PreserveSig] IntPtr GetLayout(long targetIndex, out ISlangBlob? outDiagnostics);
 
     [PreserveSig] long GetSpecializationParamCount();
 
-    [PreserveSig] int GetEntryPointCode(long entryPointIndex, long targetIndex, out IntPtr outCode, out IntPtr outDiagnostics);
+    [PreserveSig] int GetEntryPointCode(long entryPointIndex, long targetIndex, out ISlangBlob? outCode, out ISlangBlob? outDiagnostics);
 
     [PreserveSig] int GetResultAsFileSystem(long entryPointIndex, long targetIndex, out IntPtr outFileSystem);
 
-    [PreserveSig] void GetEntryPointHash(long entryPointIndex, long targetIndex, out IntPtr outHash);
+    [PreserveSig] void GetEntryPointHash(long entryPointIndex, long targetIndex, out ISlangBlob? outHash);
 
-    [PreserveSig] int Specialize(IntPtr specializationArgs, long specializationArgCount, out IntPtr outSpecializedComponentType, out IntPtr outDiagnostics);
+    [PreserveSig] int Specialize(IntPtr specializationArgs, long specializationArgCount, out IntPtr outSpecializedComponentType, out ISlangBlob? outDiagnostics);
 
-    [PreserveSig] int Link(out IntPtr outLinkedComponentType, out IntPtr outDiagnostics);
+    [PreserveSig] int Link(out IntPtr outLinkedComponentType, out ISlangBlob? outDiagnostics);
 
-    [PreserveSig] int GetEntryPointHostCallable(int entryPointIndex, int targetIndex, out IntPtr outSharedLibrary, out IntPtr outDiagnostics);
+    [PreserveSig] int GetEntryPointHostCallable(int entryPointIndex, int targetIndex, out IntPtr outSharedLibrary, out ISlangBlob? outDiagnostics);
 
     [PreserveSig] int RenameEntryPoint(string newName, out IntPtr outEntryPoint);
 
-    [PreserveSig] int LinkWithOptions(out IntPtr outLinkedComponentType, uint compilerOptionEntryCount, IntPtr compilerOptionEntries, out IntPtr outDiagnostics);
+    [PreserveSig] int LinkWithOptions(out IntPtr outLinkedComponentType, uint compilerOptionEntryCount, IntPtr compilerOptionEntries, out ISlangBlob? outDiagnostics);
 
-    [PreserveSig] int GetTargetCode(long targetIndex, out IntPtr outCode, out IntPtr outDiagnostics);
+    [PreserveSig] int GetTargetCode(long targetIndex, out ISlangBlob? outCode, out ISlangBlob? outDiagnostics);
 
-    [PreserveSig] int GetTargetMetadata(long targetIndex, out IntPtr outMetadata, out IntPtr outDiagnostics);
+    [PreserveSig] int GetTargetMetadata(long targetIndex, out IntPtr outMetadata, out ISlangBlob? outDiagnostics);
 
-    [PreserveSig] int GetEntryPointMetadata(long entryPointIndex, long targetIndex, out IntPtr outMetadata, out IntPtr outDiagnostics);
+    [PreserveSig] int GetEntryPointMetadata(long entryPointIndex, long targetIndex, out IntPtr outMetadata, out ISlangBlob? outDiagnostics);
 }

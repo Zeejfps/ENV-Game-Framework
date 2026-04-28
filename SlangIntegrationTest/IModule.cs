@@ -13,7 +13,7 @@ public partial interface IModule : IComponentType
 
     [PreserveSig] int GetDefinedEntryPoint(int index, out IntPtr outEntryPoint);
 
-    [PreserveSig] int Serialize(out IntPtr outSerializedBlob);
+    [PreserveSig] int Serialize(out ISlangBlob? outSerializedBlob);
 
     [PreserveSig] int WriteToFile(string fileName);
 
@@ -23,7 +23,7 @@ public partial interface IModule : IComponentType
 
     [PreserveSig] IntPtr GetUniqueIdentity();
 
-    [PreserveSig] int FindAndCheckEntryPoint(string name, int stage, out IntPtr outEntryPoint, out IntPtr outDiagnostics);
+    [PreserveSig] int FindAndCheckEntryPoint(string name, SlangStage stage, out IntPtr outEntryPoint, out ISlangBlob? outDiagnostics);
 
     [PreserveSig] int GetDependencyFileCount();
 
@@ -31,5 +31,5 @@ public partial interface IModule : IComponentType
 
     [PreserveSig] IntPtr GetModuleReflection();
 
-    [PreserveSig] int Disassemble(out IntPtr outDisassembledBlob);
+    [PreserveSig] int Disassemble(out ISlangBlob? outDisassembledBlob);
 }

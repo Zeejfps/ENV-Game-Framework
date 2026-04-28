@@ -54,8 +54,61 @@ public partial interface IEntryPoint : IComponentType
     [PreserveSig] IntPtr GetFunctionReflection();
 }
 
-public enum SlangPassThrough { }
-public enum SlangSourceLanguage { }
+public enum SlangPassThrough
+{
+    None = 0,
+    Fxc = 1,
+    Dxc = 2,
+    Glslang = 3,
+    SpirvDis = 4,
+    Clang = 5,
+    VisualStudio = 6,
+    Gcc = 7,
+    GenericCCpp = 8,
+    Nvrtc = 9,
+    Llvm = 10,
+    SpirvOpt = 11,
+    Metal = 12,
+    Tint = 13,
+    SpirvLink = 14,
+}
+
+public enum SlangSourceLanguage
+{
+    Unknown = 0,
+    Slang = 1,
+    Hlsl = 2,
+    Glsl = 3,
+    C = 4,
+    Cpp = 5,
+    Cuda = 6,
+    Spirv = 7,
+    Metal = 8,
+    Wgsl = 9,
+    Llvm = 10,
+}
+
+public enum SlangStage
+{
+    None = 0,
+    Vertex = 1,
+    Hull = 2,
+    Domain = 3,
+    Geometry = 4,
+    Fragment = 5,
+    Compute = 6,
+    RayGeneration = 7,
+    Intersection = 8,
+    AnyHit = 9,
+    ClosestHit = 10,
+    Miss = 11,
+    Callable = 12,
+    Mesh = 13,
+    Amplification = 14,
+    Dispatch = 15,
+    Pixel = Fragment,
+}
+
 public enum CompileStdLibFlags { }
 public enum SlangArchiveType { }
 public enum SlangCapabilityID { }

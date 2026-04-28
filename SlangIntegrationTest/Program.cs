@@ -1,98 +1,106 @@
-﻿// See https://aka.ms/new-console-template for more information
-
 using System.Runtime.InteropServices;
 using System.Text;
 using SlangIntegrationTest;
 
 unsafe
 {
-    var entryPointInterfaceGuid = new Guid(
-        0x8f241361, 0xf5bd, 0x4ca0, 0xa3, 0xac, 0x2, 0xf7, 0xfa, 0x24, 0x2, 0xb8 
-    );
-    Console.WriteLine($"Module Guid: {entryPointInterfaceGuid}");
-
-    var sessionInterfaceGuid = new Guid("67618701-d116-468f-ab3b-474bedce0e3d");
-    
     ComPtr<IGlobalSession> globalSessionPtr = new();
-    var createGlobalSessionResult = SlangCompilerAPI.slang_createGlobalSession(0, ref globalSessionPtr.WriteRef());
-    Console.WriteLine($"Result: {createGlobalSessionResult}");
-    if (createGlobalSessionResult < 0 )
-        throw new Exception("Failed to create global session");
-
+    var hr = SlangCompilerAPI.slang_createGlobalSession(0, ref globalSessionPtr.WriteRef());
+    if (hr < 0) throw new Exception($"slang_createGlobalSession failed: 0x{hr:X8}");
     var globalSession = globalSessionPtr.Get();
+
+    var moduleRaw = IntPtr.Zero;
+    var vertexEpRaw = IntPtr.Zero;
+    var fragmentEpRaw = IntPtr.Zero;
+    var compositeRaw = IntPtr.Zero;
+    var linkedRaw = IntPtr.Zero;
+
     try
     {
         var profileId = globalSession.FindProfile("glsl_450");
-        Console.WriteLine($"Profile Id: {profileId}");
-        
-        var targetDesc = new TargetDesc();
-        targetDesc.Format = SlangCompileTarget.SLANG_SPIRV;
-        targetDesc.Profile = (SlangProfileID)profileId;
-        
+        Console.WriteLine($"Profile: glsl_450 -> {profileId}");
+
+        var targetDesc = new TargetDesc
+        {
+            Format = SlangCompileTarget.SLANG_SPIRV,
+            Profile = (SlangProfileID)profileId,
+        };
+
         var sessionDesc = new SessionDesc();
         sessionDesc.SetTargets(targetDesc);
         sessionDesc.SetSearchPaths("./Shaders");
 
         var sessionPtr = new ComPtr<ISession>();
-        var createSessionResult = globalSession.CreateSession(ref sessionDesc, ref sessionPtr.WriteRef());
-        Console.WriteLine($"Create Session Result: {createSessionResult}");
-        if (createSessionResult < 0)
-            throw new Exception($"Failed to create session: {createSessionResult}");
-
-        Marshal.QueryInterface(sessionPtr.Ptr, in sessionInterfaceGuid, out var test);
-        var count = Marshal.AddRef(sessionPtr.Ptr);
-        Console.WriteLine($"Session Ptr: {sessionPtr} and Test: {test}, Count: {count}");
-        
+        hr = globalSession.CreateSession(ref sessionDesc, ref sessionPtr.WriteRef());
+        if (hr < 0) throw new Exception($"CreateSession failed: 0x{hr:X8}");
         var session = sessionPtr.Get();
-        var globalSessionPtrNew = session.GetGlobalSession();
-        Console.WriteLine(globalSessionPtrNew + $", {globalSessionPtr}");
-        Console.WriteLine(session.GetGlobalSession() == globalSession);
-        
-        var loadedModuleCount = session.GetLoadedModuleCount();
-        Console.WriteLine($"Loaded Module Count: {loadedModuleCount}");
-        
-        var modulePtr = session.LoadModule("hello-world", out var blob);
-        Console.WriteLine(modulePtr);
-        
-        var refCount = Marshal.AddRef(modulePtr);
-        Console.WriteLine($"Module Ref Count {refCount}");
-        
-        var module = (IModule)SlangCompilerAPI.ComWrappers.GetOrCreateObjectForComInstance(modulePtr, CreateObjectFlags.None);
 
-        if (module == null)
-        {
-            var error = "Unknown Error";
-            if (blob != null)
-            {
-                var data = new Span<byte>((void*)blob.GetBufferPointer(), blob.GetBufferSize().ToInt32());
-                error = Encoding.ASCII.GetString(data);
-            }
-            
-            throw new Exception($"Error loading module: {error}");
-        }
-        
-        loadedModuleCount = session.GetLoadedModuleCount();
-        Console.WriteLine($"Loaded Module Count: {loadedModuleCount}");
-        
-        var findEntryPointByNameResult = module.FindEntryPointByName("vertexMain", out var vertexShaderEntryPoint);
-        Console.WriteLine($"Find Entry Point Result: {findEntryPointByNameResult}");
-        if (findEntryPointByNameResult < 0)
-            throw new Exception($"Failed to find entry point with name: {findEntryPointByNameResult}");
-        
-        findEntryPointByNameResult = module.FindEntryPointByName("fragmentMain", out var fragmentShaderEntryPoint);
-        Console.WriteLine($"Find Entry Point Result: {findEntryPointByNameResult}");
-        if (findEntryPointByNameResult < 0)
-            throw new Exception($"Failed to find entry point with name: {findEntryPointByNameResult}");
-        
-        IComponentType component = module;
-        var layoutPtr = component.GetLayout(0, out var blobPtr);
-        Console.WriteLine($"Laout Ptr: {layoutPtr}");
+        moduleRaw = session.LoadModule("hello-world", out var loadDiagnostics);
+        if (moduleRaw == IntPtr.Zero) throw new Exception($"LoadModule failed: {ReadBlob(loadDiagnostics)}");
+        Console.WriteLine($"Loaded module, total loaded: {session.GetLoadedModuleCount()}");
 
-        Marshal.Release(modulePtr);
+        var module = (IModule)SlangCompilerAPI.ComWrappers.GetOrCreateObjectForComInstance(moduleRaw, CreateObjectFlags.None);
+
+        hr = module.FindEntryPointByName("vertexMain", out vertexEpRaw);
+        if (hr < 0 || vertexEpRaw == IntPtr.Zero) throw new Exception($"FindEntryPointByName(vertexMain) failed: 0x{hr:X8}");
+
+        hr = module.FindEntryPointByName("fragmentMain", out fragmentEpRaw);
+        if (hr < 0 || fragmentEpRaw == IntPtr.Zero) throw new Exception($"FindEntryPointByName(fragmentMain) failed: 0x{hr:X8}");
+
+        // Composite [module, vertexEP, fragmentEP] so we can link as one program.
+        var components = stackalloc IntPtr[3] { moduleRaw, vertexEpRaw, fragmentEpRaw };
+        hr = session.CreateCompositeComponentType((IntPtr)components, 3, out compositeRaw, out var compositeDiagnostics);
+        if (hr < 0 || compositeRaw == IntPtr.Zero)
+            throw new Exception($"CreateCompositeComponentType failed: 0x{hr:X8} {ReadBlob(compositeDiagnostics)}");
+
+        var composite = (IComponentType)SlangCompilerAPI.ComWrappers.GetOrCreateObjectForComInstance(compositeRaw, CreateObjectFlags.None);
+
+        hr = composite.Link(out linkedRaw, out var linkDiagnostics);
+        if (hr < 0 || linkedRaw == IntPtr.Zero) throw new Exception($"Link failed: 0x{hr:X8} {ReadBlob(linkDiagnostics)}");
+
+        var linked = (IComponentType)SlangCompilerAPI.ComWrappers.GetOrCreateObjectForComInstance(linkedRaw, CreateObjectFlags.None);
+
+        hr = linked.GetEntryPointCode(0, 0, out var vertexCode, out var vertexCodeDiagnostics);
+        if (hr < 0 || vertexCode is null) throw new Exception($"GetEntryPointCode(vertex) failed: 0x{hr:X8} {ReadBlob(vertexCodeDiagnostics)}");
+
+        hr = linked.GetEntryPointCode(1, 0, out var fragmentCode, out var fragmentCodeDiagnostics);
+        if (hr < 0 || fragmentCode is null) throw new Exception($"GetEntryPointCode(fragment) failed: 0x{hr:X8} {ReadBlob(fragmentCodeDiagnostics)}");
+
+        var vertexBytes = ReadBlobBytes(vertexCode);
+        var fragmentBytes = ReadBlobBytes(fragmentCode);
+        Console.WriteLine($"vertexMain SPIR-V: {vertexBytes.Length} bytes, magic 0x{BitConverter.ToUInt32(vertexBytes, 0):X8}");
+        Console.WriteLine($"fragmentMain SPIR-V: {fragmentBytes.Length} bytes, magic 0x{BitConverter.ToUInt32(fragmentBytes, 0):X8}");
+
+        // Whole-program target code blob.
+        hr = linked.GetTargetCode(0, out var programCode, out var programCodeDiagnostics);
+        if (hr < 0 || programCode is null) throw new Exception($"GetTargetCode failed: 0x{hr:X8} {ReadBlob(programCodeDiagnostics)}");
+        Console.WriteLine($"Whole-program SPIR-V: {ReadBlobBytes(programCode).Length} bytes");
     }
     finally
     {
+        if (linkedRaw != IntPtr.Zero) Marshal.Release(linkedRaw);
+        if (compositeRaw != IntPtr.Zero) Marshal.Release(compositeRaw);
+        if (fragmentEpRaw != IntPtr.Zero) Marshal.Release(fragmentEpRaw);
+        if (vertexEpRaw != IntPtr.Zero) Marshal.Release(vertexEpRaw);
+        if (moduleRaw != IntPtr.Zero) Marshal.Release(moduleRaw);
         Marshal.Release(globalSessionPtr.Ptr);
         SlangCompilerAPI.slang_shutdown();
     }
+}
+
+static unsafe byte[] ReadBlobBytes(ISlangBlob blob)
+{
+    var ptr = blob.GetBufferPointer();
+    var size = (int)blob.GetBufferSize();
+    var bytes = new byte[size];
+    new Span<byte>((void*)ptr, size).CopyTo(bytes);
+    return bytes;
+}
+
+static unsafe string ReadBlob(ISlangBlob? blob)
+{
+    if (blob is null) return "(no diagnostics)";
+    var ptr = blob.GetBufferPointer();
+    var size = (int)blob.GetBufferSize();
+    return Encoding.UTF8.GetString(new ReadOnlySpan<byte>((void*)ptr, size));
 }
