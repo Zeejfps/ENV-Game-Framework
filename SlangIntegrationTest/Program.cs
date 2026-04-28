@@ -140,6 +140,34 @@ unsafe
             Console.WriteLine($"  bindingRange #{b}: type={t} set={setIdx} firstRange={firstRange} rangeCount={rangeCnt}");
         }
 
+        // Module declaration tree.
+        var moduleDecl = new DeclReflection(module.GetModuleReflection());
+        Console.WriteLine();
+        Console.WriteLine($"=== Module: {moduleDecl.Name ?? "<unnamed>"} ({moduleDecl.Kind}), {moduleDecl.ChildrenCount} children ===");
+        for (uint i = 0; i < moduleDecl.ChildrenCount; i++)
+        {
+            var child = moduleDecl.GetChild(i);
+            if (child.IsNull) continue;
+            var line = $"  {child.Kind} {child.Name ?? "<unnamed>"}";
+            var asFunc = child.AsFunction();
+            if (!asFunc.IsNull)
+                line += $" (params={asFunc.ParameterCount} result={asFunc.ResultType.Kind})";
+            else if (!child.AsGeneric().IsNull)
+                line += " <generic>";
+            Console.WriteLine(line);
+        }
+
+        // Cross-check: each entry point's reflected function should match its name.
+        for (ulong i = 0; i < layout.EntryPointCount; i++)
+        {
+            var ep = layout.GetEntryPointByIndex(i);
+            var fn = ep.Function;
+            if (!fn.IsNull)
+                Console.WriteLine($"  entry {ep.Name}.Function: name={fn.Name} resultKind={fn.ResultType.Kind} params={fn.ParameterCount}");
+        }
+
+        Console.WriteLine($"Hashed strings: {layout.HashedStringCount}, bindless space: {layout.BindlessSpaceIndex}");
+
         // Modifiers and user attributes on each global parameter (likely empty for hello-world).
         for (uint i = 0; i < layout.ParameterCount; i++)
         {

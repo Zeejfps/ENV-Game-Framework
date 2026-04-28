@@ -1,12 +1,17 @@
 // Slang reflection wrappers — non-owning views into IComponentType-owned memory.
 //
 // LIFETIME: Every handle below (ProgramLayout, EntryPointReflection, TypeReflection,
-// TypeLayoutReflection, VariableReflection, VariableLayoutReflection) is owned by the
-// IComponentType that produced the ProgramLayout. Releasing that component (Marshal.Release
-// on the linked program pointer, or letting it go out of scope and being collected)
-// invalidates EVERY derived handle. Finish all reflection traversal before releasing the
-// component. These wrappers intentionally do not implement IDisposable — they are views,
-// not owners.
+// TypeLayoutReflection, VariableReflection, VariableLayoutReflection, DeclReflection,
+// FunctionReflection, GenericReflection, TypeParameterReflection,
+// UserAttributeReflection, ModifierReflection) is owned by the IComponentType that
+// produced the ProgramLayout. Releasing that component (Marshal.Release on the linked
+// program pointer, or letting it go out of scope and being collected) invalidates EVERY
+// derived handle. Finish all reflection traversal before releasing the component.
+// These wrappers intentionally do not implement IDisposable — they are views, not owners.
+//
+// DELIBERATE GAPS: array-marshalling methods (TryResolveOverloadedFunction, specializeType,
+// specializeGeneric, applySpecializations family, specializeWithArgTypes) and ToJson are
+// not bound. Add when a concrete need arises.
 
 using System.Runtime.InteropServices;
 using System.Text;
@@ -50,6 +55,52 @@ public readonly record struct ProgramLayout(IntPtr Handle)
 
     public TypeLayoutReflection GetTypeLayout(TypeReflection type, SlangLayoutRules rules) =>
         new(SlangNative.spReflection_GetTypeLayout(Handle, type.Handle, rules));
+
+    public uint TypeParameterCount => SlangNative.spReflection_GetTypeParameterCount(Handle);
+
+    public TypeParameterReflection GetTypeParameterByIndex(uint index) =>
+        new(SlangNative.spReflection_GetTypeParameterByIndex(Handle, index));
+
+    public TypeParameterReflection FindTypeParameter(string name) =>
+        new(SlangNative.spReflection_FindTypeParameter(Handle, name));
+
+    public FunctionReflection FindFunctionByName(string name) =>
+        new(SlangNative.spReflection_FindFunctionByName(Handle, name));
+
+    public FunctionReflection FindFunctionByNameInType(TypeReflection type, string name) =>
+        new(SlangNative.spReflection_FindFunctionByNameInType(Handle, type.Handle, name));
+
+    public VariableReflection FindVarByNameInType(TypeReflection type, string name) =>
+        new(SlangNative.spReflection_FindVarByNameInType(Handle, type.Handle, name));
+
+    public bool IsSubType(TypeReflection subType, TypeReflection superType) =>
+        SlangNative.spReflection_isSubType(Handle, subType.Handle, superType.Handle) != 0;
+
+    public ulong HashedStringCount => SlangNative.spReflection_getHashedStringCount(Handle);
+
+    public unsafe string? GetHashedString(ulong index)
+    {
+        nuint count = 0;
+        var ptr = SlangNative.spReflection_getHashedString(Handle, index, &count);
+        if (ptr == IntPtr.Zero) return null;
+        return Encoding.UTF8.GetString(new ReadOnlySpan<byte>((void*)ptr, (int)count));
+    }
+
+    public long BindlessSpaceIndex =>
+        SlangNative.spReflection_getBindlessSpaceIndex(Handle);
+}
+
+public static class Slang
+{
+    /// <summary>Compute the same hash Slang uses for hashed-string lookup.</summary>
+    public static unsafe uint ComputeStringHash(string text)
+    {
+        var byteCount = Encoding.UTF8.GetByteCount(text);
+        Span<byte> buf = stackalloc byte[byteCount];
+        Encoding.UTF8.GetBytes(text, buf);
+        fixed (byte* p = buf)
+            return SlangNative.spComputeStringHash(p, (nuint)byteCount);
+    }
 }
 
 public readonly record struct EntryPointReflection(IntPtr Handle)
@@ -94,6 +145,9 @@ public readonly record struct EntryPointReflection(IntPtr Handle)
         SlangNative.spReflectionEntryPoint_getComputeWaveSize(Handle, &waveSize);
         return waveSize;
     }
+
+    public FunctionReflection Function =>
+        new(SlangNative.spReflectionEntryPoint_getFunction(Handle));
 }
 
 public readonly record struct TypeReflection(IntPtr Handle)
@@ -135,6 +189,33 @@ public readonly record struct TypeReflection(IntPtr Handle)
 
     public UserAttributeReflection FindUserAttributeByName(string name) =>
         new(SlangNative.spReflectionType_FindUserAttributeByName(Handle, name));
+
+    /// <summary>Returns the fully-qualified name (e.g. <c>Slang.MyStruct</c>) by reading
+    /// from a Slang-allocated blob. Returns null if Slang reports failure.</summary>
+    public unsafe string? GetFullName()
+    {
+        var hr = SlangNative.spReflectionType_GetFullName(Handle, out var blobPtr);
+        if (hr < 0 || blobPtr == IntPtr.Zero) return null;
+        var blob = (ISlangBlob)SlangCompilerAPI.ComWrappers
+            .GetOrCreateObjectForComInstance(blobPtr, CreateObjectFlags.None);
+        var bufPtr = blob.GetBufferPointer();
+        var size = (int)blob.GetBufferSize();
+        var name = Encoding.UTF8.GetString(new ReadOnlySpan<byte>((void*)bufPtr, size));
+        Marshal.Release(blobPtr);
+        return name;
+    }
+
+    public nuint GetSpecializedElementCount(ProgramLayout layout) =>
+        SlangNative.spReflectionType_GetSpecializedElementCount(Handle, layout.Handle);
+
+    public GenericReflection GenericContainer =>
+        new(SlangNative.spReflectionType_GetGenericContainer(Handle));
+
+    public long SpecializedTypeArgCount =>
+        SlangNative.spReflectionType_getSpecializedTypeArgCount(Handle);
+
+    public TypeReflection GetSpecializedTypeArg(long index) =>
+        new(SlangNative.spReflectionType_getSpecializedTypeArgType(Handle, index));
 }
 
 public readonly record struct TypeLayoutReflection(IntPtr Handle)
@@ -272,6 +353,15 @@ public readonly record struct TypeLayoutReflection(IntPtr Handle)
 
     public VariableLayoutReflection GetSubObjectRangeOffset(long subObjectRangeIndex) =>
         new(SlangNative.spReflectionTypeLayout_getSubObjectRangeOffset(Handle, subObjectRangeIndex));
+
+    public int GenericParamIndex =>
+        SlangNative.spReflectionTypeLayout_getGenericParamIndex(Handle);
+
+    public TypeLayoutReflection PendingDataTypeLayout =>
+        new(SlangNative.spReflectionTypeLayout_getPendingDataTypeLayout(Handle));
+
+    public VariableLayoutReflection SpecializedTypePendingDataVarLayout =>
+        new(SlangNative.spReflectionTypeLayout_getSpecializedTypePendingDataVarLayout(Handle));
 }
 
 public readonly record struct VariableReflection(IntPtr Handle)
@@ -297,6 +387,28 @@ public readonly record struct VariableReflection(IntPtr Handle)
         new(SlangNative.spReflectionVariable_FindModifier(Handle, id));
 
     public bool HasModifier(SlangModifierID id) => !FindModifier(id).IsNull;
+
+    public bool HasDefaultValue =>
+        SlangNative.spReflectionVariable_HasDefaultValue(Handle) != 0;
+
+    public unsafe bool TryGetDefaultValueInt(out long value)
+    {
+        long v;
+        var hr = SlangNative.spReflectionVariable_GetDefaultValueInt(Handle, &v);
+        value = v;
+        return hr >= 0;
+    }
+
+    public unsafe bool TryGetDefaultValueFloat(out float value)
+    {
+        float v;
+        var hr = SlangNative.spReflectionVariable_GetDefaultValueFloat(Handle, &v);
+        value = v;
+        return hr >= 0;
+    }
+
+    public GenericReflection GenericContainer =>
+        new(SlangNative.spReflectionVariable_GetGenericContainer(Handle));
 }
 
 public readonly record struct UserAttributeReflection(IntPtr Handle)
@@ -369,4 +481,143 @@ public readonly record struct VariableLayoutReflection(IntPtr Handle)
 
     public nuint GetSpace(SlangParameterCategory category) =>
         SlangNative.spReflectionVariableLayout_GetSpace(Handle, category);
+
+    public VariableLayoutReflection PendingDataLayout =>
+        new(SlangNative.spReflectionVariableLayout_getPendingDataLayout(Handle));
+}
+
+public readonly record struct DeclReflection(IntPtr Handle)
+{
+    public bool IsNull => Handle == IntPtr.Zero;
+
+    public string? Name => Marshal.PtrToStringUTF8(SlangNative.spReflectionDecl_getName(Handle));
+
+    public SlangDeclKind Kind => SlangNative.spReflectionDecl_getKind(Handle);
+
+    public uint ChildrenCount => SlangNative.spReflectionDecl_getChildrenCount(Handle);
+
+    public DeclReflection GetChild(uint index) =>
+        new(SlangNative.spReflectionDecl_getChild(Handle, index));
+
+    public DeclReflection Parent => new(SlangNative.spReflectionDecl_getParent(Handle));
+
+    /// <summary>Cast to <see cref="FunctionReflection"/>. Returns null wrapper if this decl
+    /// is not a function. Slang's castTo* functions assume the caller has already verified
+    /// the kind, so we Kind-guard here to avoid native-side asserts/crashes.</summary>
+    public FunctionReflection AsFunction() => Kind == SlangDeclKind.Func
+        ? new(SlangNative.spReflectionDecl_castToFunction(Handle))
+        : default;
+
+    /// <summary>Cast to <see cref="VariableReflection"/>. Returns null wrapper if this decl
+    /// is not a variable.</summary>
+    public VariableReflection AsVariable() => Kind == SlangDeclKind.Variable
+        ? new(SlangNative.spReflectionDecl_castToVariable(Handle))
+        : default;
+
+    /// <summary>Cast to <see cref="GenericReflection"/>. Returns null wrapper if this decl
+    /// is not a generic.</summary>
+    public GenericReflection AsGeneric() => Kind == SlangDeclKind.Generic
+        ? new(SlangNative.spReflectionDecl_castToGeneric(Handle))
+        : default;
+
+    public ModifierReflection FindModifier(SlangModifierID id) =>
+        new(SlangNative.spReflectionDecl_findModifier(Handle, id));
+
+    public TypeReflection AsType() => new(SlangNative.spReflection_getTypeFromDecl(Handle));
+}
+
+public readonly record struct FunctionReflection(IntPtr Handle)
+{
+    public bool IsNull => Handle == IntPtr.Zero;
+
+    public string? Name => Marshal.PtrToStringUTF8(SlangNative.spReflectionFunction_GetName(Handle));
+
+    public DeclReflection AsDecl() => new(SlangNative.spReflectionFunction_asDecl(Handle));
+
+    public TypeReflection ResultType => new(SlangNative.spReflectionFunction_GetResultType(Handle));
+
+    public uint ParameterCount => SlangNative.spReflectionFunction_GetParameterCount(Handle);
+
+    public VariableReflection GetParameter(uint index) =>
+        new(SlangNative.spReflectionFunction_GetParameter(Handle, index));
+
+    public uint UserAttributeCount => SlangNative.spReflectionFunction_GetUserAttributeCount(Handle);
+
+    public UserAttributeReflection GetUserAttribute(uint index) =>
+        new(SlangNative.spReflectionFunction_GetUserAttribute(Handle, index));
+
+    public UserAttributeReflection FindUserAttributeByName(IntPtr globalSession, string name) =>
+        new(SlangNative.spReflectionFunction_FindUserAttributeByName(Handle, globalSession, name));
+
+    public ModifierReflection FindModifier(SlangModifierID id) =>
+        new(SlangNative.spReflectionFunction_FindModifier(Handle, id));
+
+    public bool HasModifier(SlangModifierID id) => !FindModifier(id).IsNull;
+
+    public GenericReflection GenericContainer =>
+        new(SlangNative.spReflectionFunction_GetGenericContainer(Handle));
+
+    public bool IsOverloaded => SlangNative.spReflectionFunction_isOverloaded(Handle) != 0;
+
+    public uint OverloadCount => SlangNative.spReflectionFunction_getOverloadCount(Handle);
+
+    public FunctionReflection GetOverload(uint index) =>
+        new(SlangNative.spReflectionFunction_getOverload(Handle, index));
+}
+
+public readonly record struct GenericReflection(IntPtr Handle)
+{
+    public bool IsNull => Handle == IntPtr.Zero;
+
+    public string? Name => Marshal.PtrToStringUTF8(SlangNative.spReflectionGeneric_GetName(Handle));
+
+    public DeclReflection AsDecl() => new(SlangNative.spReflectionGeneric_asDecl(Handle));
+
+    public uint TypeParameterCount =>
+        SlangNative.spReflectionGeneric_GetTypeParameterCount(Handle);
+
+    public VariableReflection GetTypeParameter(uint index) =>
+        new(SlangNative.spReflectionGeneric_GetTypeParameter(Handle, index));
+
+    public uint ValueParameterCount =>
+        SlangNative.spReflectionGeneric_GetValueParameterCount(Handle);
+
+    public VariableReflection GetValueParameter(uint index) =>
+        new(SlangNative.spReflectionGeneric_GetValueParameter(Handle, index));
+
+    public uint GetTypeParameterConstraintCount(VariableReflection typeParam) =>
+        SlangNative.spReflectionGeneric_GetTypeParameterConstraintCount(Handle, typeParam.Handle);
+
+    public TypeReflection GetTypeParameterConstraintType(VariableReflection typeParam, uint index) =>
+        new(SlangNative.spReflectionGeneric_GetTypeParameterConstraintType(Handle, typeParam.Handle, index));
+
+    public SlangDeclKind InnerKind => SlangNative.spReflectionGeneric_GetInnerKind(Handle);
+
+    public DeclReflection InnerDecl =>
+        new(SlangNative.spReflectionGeneric_GetInnerDecl(Handle));
+
+    public GenericReflection OuterGenericContainer =>
+        new(SlangNative.spReflectionGeneric_GetOuterGenericContainer(Handle));
+
+    public TypeReflection GetConcreteType(VariableReflection typeParam) =>
+        new(SlangNative.spReflectionGeneric_GetConcreteType(Handle, typeParam.Handle));
+
+    public long GetConcreteIntVal(VariableReflection valueParam) =>
+        SlangNative.spReflectionGeneric_GetConcreteIntVal(Handle, valueParam.Handle);
+}
+
+public readonly record struct TypeParameterReflection(IntPtr Handle)
+{
+    public bool IsNull => Handle == IntPtr.Zero;
+
+    public string? Name =>
+        Marshal.PtrToStringUTF8(SlangNative.spReflectionTypeParameter_GetName(Handle));
+
+    public uint Index => SlangNative.spReflectionTypeParameter_GetIndex(Handle);
+
+    public uint ConstraintCount =>
+        SlangNative.spReflectionTypeParameter_GetConstraintCount(Handle);
+
+    public TypeReflection GetConstraintByIndex(uint index) =>
+        new(SlangNative.spReflectionTypeParameter_GetConstraintByIndex(Handle, index));
 }

@@ -27,13 +27,6 @@ public struct SpecializationArg { }
 public enum LayoutRules { Default }
 public enum ContainerType { }
 
-[GeneratedComInterface(StringMarshalling = StringMarshalling.Utf8)]
-[Guid("8f241361-f5bd-4ca0-a3ac-02f7fa2402b8")]
-public partial interface IEntryPoint : IComponentType
-{
-    [PreserveSig] IntPtr GetFunctionReflection();
-}
-
 public enum SlangPassThrough
 {
     None = 0,
