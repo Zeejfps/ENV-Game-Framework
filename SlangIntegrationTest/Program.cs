@@ -39,7 +39,7 @@ unsafe
         if (createSessionResult < 0)
             throw new Exception($"Failed to create session: {createSessionResult}");
 
-        Marshal.QueryInterface(sessionPtr.Ptr, ref sessionInterfaceGuid, out var test);
+        Marshal.QueryInterface(sessionPtr.Ptr, in sessionInterfaceGuid, out var test);
         var count = Marshal.AddRef(sessionPtr.Ptr);
         Console.WriteLine($"Session Ptr: {sessionPtr} and Test: {test}, Count: {count}");
         
@@ -57,7 +57,7 @@ unsafe
         var refCount = Marshal.AddRef(modulePtr);
         Console.WriteLine($"Module Ref Count {refCount}");
         
-        var module = (IModule)Marshal.GetObjectForIUnknown(modulePtr);
+        var module = (IModule)SlangCompilerAPI.ComWrappers.GetOrCreateObjectForComInstance(modulePtr, CreateObjectFlags.None);
 
         if (module == null)
         {
@@ -84,9 +84,10 @@ unsafe
         if (findEntryPointByNameResult < 0)
             throw new Exception($"Failed to find entry point with name: {findEntryPointByNameResult}");
         
-        var ptr = Marshal.GetComInterfaceForObject<IModule, IComponentType>(module);
+        var componentInterfaceGuid = new Guid("5bc42be8-5c50-4929-9e5e-d15e7c24015f");
+        Marshal.QueryInterface(modulePtr, in componentInterfaceGuid, out var ptr);
         Console.WriteLine($"M: {modulePtr} , O {ptr}");
-        var component = (IComponentType)Marshal.GetObjectForIUnknown(ptr);
+        var component = (IComponentType)SlangCompilerAPI.ComWrappers.GetOrCreateObjectForComInstance(ptr, CreateObjectFlags.None);
         var layoutPtr = component.GetLayout(0, out var blobPtr);
         Console.WriteLine($"Laout Ptr: {layoutPtr}");
 

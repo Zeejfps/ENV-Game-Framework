@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SlangIntegrationTest;
 
@@ -17,8 +18,7 @@ public struct TargetDesc
 
     public SlangLineDirectiveMode LineDirectiveMode;
 
-    [MarshalAs(UnmanagedType.U1)]
-    public bool ForceGLSLScalarBufferLayout;
+    public byte ForceGLSLScalarBufferLayout;
 
     public IntPtr CompilerOptionEntries;
 
@@ -26,13 +26,13 @@ public struct TargetDesc
 
     public TargetDesc()
     {
-        StructureSize = Marshal.SizeOf<TargetDesc>();
+        StructureSize = Unsafe.SizeOf<TargetDesc>();
         Format = SlangCompileTarget.SLANG_TARGET_UNKNOWN;
         Profile = SlangProfileID.Unknown;
         Flags = SlangTargetFlags.SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY;
         FloatingPointMode = SlangFloatingPointMode.SLANG_FLOATING_POINT_MODE_DEFAULT;
         LineDirectiveMode = SlangLineDirectiveMode.SLANG_LINE_DIRECTIVE_MODE_DEFAULT;
-        ForceGLSLScalarBufferLayout = false;
+        ForceGLSLScalarBufferLayout = 0;
         CompilerOptionEntries = IntPtr.Zero;
         CompilerOptionEntryCount = 0;
     }

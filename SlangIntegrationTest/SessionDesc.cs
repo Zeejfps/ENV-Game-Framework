@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SlangIntegrationTest;
 
@@ -22,18 +23,16 @@ public struct SessionDesc
 
     public IntPtr FileSystem;
 
-    [MarshalAs(UnmanagedType.U1)]
-    public bool EnableEffectAnnotations;
+    public byte EnableEffectAnnotations;
 
-    [MarshalAs(UnmanagedType.U1)]
-    public bool AllowGLSLSyntax;
+    public byte AllowGLSLSyntax;
 
     public IntPtr CompilerOptionEntries;
     public uint CompilerOptionEntryCount;
 
     public SessionDesc()
     {
-        StructureSize = Marshal.SizeOf<SessionDesc>();
+        StructureSize = Unsafe.SizeOf<SessionDesc>();
         Targets = IntPtr.Zero;
         TargetCount = 0;
         Flags = SessionFlags.None;
@@ -43,22 +42,19 @@ public struct SessionDesc
         PreprocessorMacros = IntPtr.Zero;
         PreprocessorMacroCount = 0;
         FileSystem = IntPtr.Zero;
-        EnableEffectAnnotations = false;
-        AllowGLSLSyntax = false;
+        EnableEffectAnnotations = 0;
+        AllowGLSLSyntax = 0;
         CompilerOptionEntries = IntPtr.Zero;
         CompilerOptionEntryCount = 0;
     }
 
     public void SetSearchPaths(params string[] paths)
     {
-        // Allocate an array of pointers
         var pointerArray = new IntPtr[paths.Length];
-        
-        // Allocate and marshal each string
+
         for (int i = 0; i < paths.Length; i++)
             pointerArray[i] = Marshal.StringToHGlobalAnsi(paths[i]);
-        
-        // Allocate memory for the array of pointers
+
         var result = Marshal.AllocHGlobal(IntPtr.Size * pointerArray.Length);
         Marshal.Copy(pointerArray, 0, result, pointerArray.Length);
 
@@ -66,18 +62,15 @@ public struct SessionDesc
         SearchPathCount = paths.Length;
     }
 
-    public void SetTargets(params TargetDesc[] targetDescriptions)
+    public unsafe void SetTargets(params TargetDesc[] targetDescriptions)
     {
-        var structSize = StructureSize;
+        var structSize = Unsafe.SizeOf<TargetDesc>();
         var ptrToArrayOfStructs = Marshal.AllocHGlobal(structSize * targetDescriptions.Length);
-        
+
+        var basePtr = (TargetDesc*)ptrToArrayOfStructs;
         for (var i = 0; i < targetDescriptions.Length; i++)
-        {
-            var targetDesc = targetDescriptions[i];
-            var ptrToElement = new IntPtr(ptrToArrayOfStructs.ToInt64() + i * structSize);
-            Marshal.StructureToPtr(targetDesc, ptrToElement, false);
-        }
-        
+            basePtr[i] = targetDescriptions[i];
+
         Targets = ptrToArrayOfStructs;
         TargetCount = targetDescriptions.Length;
     }

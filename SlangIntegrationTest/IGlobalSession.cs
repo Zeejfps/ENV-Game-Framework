@@ -1,38 +1,32 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
 
 namespace SlangIntegrationTest;
 
+[GeneratedComInterface(StringMarshalling = StringMarshalling.Utf8)]
 [Guid("c140b5fd-0c78-452e-ba7c-1a1e70c7f71c")]
-[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-public interface IGlobalSession : ISlangUnknown
+public partial interface IGlobalSession
 {
-    [PreserveSig]
     int CreateSession(
         ref SessionDesc desc,
         ref IntPtr outSession);
 
-    [PreserveSig]
-    int FindProfile(
-        [MarshalAs(UnmanagedType.LPStr)] string name);
+    int FindProfile(string name);
 
     void SetDownstreamCompilerPath(
         SlangPassThrough passThrough,
-        [MarshalAs(UnmanagedType.LPStr)] string path);
+        string path);
 
-    [Obsolete("Use SetLanguagePrelude instead")]
     void SetDownstreamCompilerPrelude(
         SlangPassThrough passThrough,
-        [MarshalAs(UnmanagedType.LPStr)] string preludeText);
+        string preludeText);
 
-    [Obsolete("Use GetLanguagePrelude instead")]
     void GetDownstreamCompilerPrelude(
         SlangPassThrough passThrough,
-        [Out] out ISlangBlob outPrelude);
+        out IntPtr outPrelude);
 
-    [return: MarshalAs(UnmanagedType.LPStr)]
-    string GetBuildTagString();
+    IntPtr GetBuildTagString();
 
-    [PreserveSig]
     int SetDefaultDownstreamCompiler(
         SlangSourceLanguage sourceLanguage,
         SlangPassThrough defaultCompiler);
@@ -42,49 +36,33 @@ public interface IGlobalSession : ISlangUnknown
 
     void SetLanguagePrelude(
         SlangSourceLanguage sourceLanguage,
-        [MarshalAs(UnmanagedType.LPStr)] string preludeText);
+        string preludeText);
 
     void GetLanguagePrelude(
         SlangSourceLanguage sourceLanguage,
-        [Out] out ISlangBlob outPrelude);
+        out IntPtr outPrelude);
 
-    [PreserveSig]
-    int CreateCompileRequest(
-        [Out] out ICompileRequest outCompileRequest);
+    int CreateCompileRequest(out IntPtr outCompileRequest);
 
     void AddBuiltins(
-        [MarshalAs(UnmanagedType.LPStr)] string sourcePath,
-        [MarshalAs(UnmanagedType.LPStr)] string sourceString);
+        string sourcePath,
+        string sourceString);
 
-    void SetSharedLibraryLoader(
-        ISlangSharedLibraryLoader loader);
+    void SetSharedLibraryLoader(IntPtr loader);
 
-    ISlangSharedLibraryLoader GetSharedLibraryLoader();
+    IntPtr GetSharedLibraryLoader();
 
-    [PreserveSig]
-    int CheckCompileTargetSupport(
-        SlangCompileTarget target);
+    int CheckCompileTargetSupport(SlangCompileTarget target);
 
-    [PreserveSig]
-    int CheckPassThroughSupport(
-        SlangPassThrough passThrough);
+    int CheckPassThroughSupport(SlangPassThrough passThrough);
 
-    [PreserveSig]
     int CompileStdLib(CompileStdLibFlags flags);
 
-    [PreserveSig]
-    int LoadStdLib(
-        IntPtr stdLib,
-        IntPtr stdLibSizeInBytes);
+    int LoadStdLib(IntPtr stdLib, IntPtr stdLibSizeInBytes);
 
-    [PreserveSig]
-    int SaveStdLib(
-        SlangArchiveType archiveType,
-        [Out] out ISlangBlob outBlob);
+    int SaveStdLib(SlangArchiveType archiveType, out IntPtr outBlob);
 
-    [PreserveSig]
-    int FindCapability(
-        [MarshalAs(UnmanagedType.LPStr)] string name);
+    int FindCapability(string name);
 
     void SetDownstreamCompilerForTransition(
         SlangCompileTarget source,
@@ -99,19 +77,15 @@ public interface IGlobalSession : ISlangUnknown
         out double outTotalTime,
         out double outDownstreamTime);
 
-    [PreserveSig]
-    int SetSPIRVCoreGrammar(
-        [MarshalAs(UnmanagedType.LPStr)] string jsonPath);
+    int SetSPIRVCoreGrammar(string jsonPath);
 
-    [PreserveSig]
     int ParseCommandLineArguments(
         int argc,
-        [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPStr, SizeParamIndex = 0)] string[] argv,
+        IntPtr argv,
         ref SessionDesc outSessionDesc,
-        [Out] out ISlangUnknown outAuxAllocation);
+        out IntPtr outAuxAllocation);
 
-    [PreserveSig]
     int GetSessionDescDigest(
         ref SessionDesc sessionDesc,
-        [Out] out ISlangBlob outBlob);
+        out IntPtr outBlob);
 }

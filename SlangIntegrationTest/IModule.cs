@@ -1,54 +1,37 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
 
 namespace SlangIntegrationTest;
 
+[GeneratedComInterface(StringMarshalling = StringMarshalling.Utf8)]
 [Guid("0c720e64-8722-4d31-8990-638a98b1c279")]
-[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-public interface IModule
+public partial interface IModule
 {
-    [PreserveSig]
-    int FindEntryPointByName(
-        [MarshalAs(UnmanagedType.LPStr)] string name,
-        out IntPtr outEntryPoint);
+    int FindEntryPointByName(string name, out IntPtr outEntryPoint);
 
-    [PreserveSig]
     int GetDefinedEntryPointCount();
 
-    [PreserveSig]
     int GetDefinedEntryPoint(int index, out IntPtr outEntryPoint);
 
-    [PreserveSig]
     int Serialize(out IntPtr outSerializedBlob);
 
-    [PreserveSig]
-    int WriteToFile([MarshalAs(UnmanagedType.LPStr)] string fileName);
+    int WriteToFile(string fileName);
 
-    [PreserveSig]
-    [return: MarshalAs(UnmanagedType.LPStr)]
-    string GetName();
+    IntPtr GetName();
 
-    [PreserveSig]
-    [return: MarshalAs(UnmanagedType.LPStr)]
-    string GetFilePath();
+    IntPtr GetFilePath();
 
-    [PreserveSig]
-    [return: MarshalAs(UnmanagedType.LPStr)]
-    string GetUniqueIdentity();
+    IntPtr GetUniqueIdentity();
 
-    [PreserveSig]
     int FindAndCheckEntryPoint(
-        [MarshalAs(UnmanagedType.LPStr)] string name,
+        string name,
         int stage,
         out IntPtr outEntryPoint,
         out IntPtr outDiagnostics);
 
-    [PreserveSig]
     int GetDependencyFileCount();
 
-    [PreserveSig]
-    [return: MarshalAs(UnmanagedType.LPStr)]
-    string GetDependencyFilePath(int index);
+    IntPtr GetDependencyFilePath(int index);
 
-    [PreserveSig]
     IntPtr GetModuleReflection();
 }

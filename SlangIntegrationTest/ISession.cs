@@ -1,101 +1,88 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
 
 namespace SlangIntegrationTest;
 
+[GeneratedComInterface(StringMarshalling = StringMarshalling.Utf8)]
 [Guid("67618701-d116-468f-ab3b-474bedce0e3d")]
-[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-public interface ISession
+public partial interface ISession
 {
-    [PreserveSig]
     IGlobalSession GetGlobalSession();
 
-    [PreserveSig]
     IntPtr LoadModule(
-        [MarshalAs(UnmanagedType.LPStr)] string moduleName,
-        [Out] out ISlangBlob? outDiagnostics);
+        string moduleName,
+        out ISlangBlob outDiagnostics);
 
-    [PreserveSig]
-    IModule LoadModuleFromSource(
-        [MarshalAs(UnmanagedType.LPStr)] string moduleName,
-        [MarshalAs(UnmanagedType.LPStr)] string path,
-        ISlangBlob source,
-        [Out] out ISlangBlob outDiagnostics);
+    IntPtr LoadModuleFromSource(
+        string moduleName,
+        string path,
+        IntPtr source,
+        out IntPtr outDiagnostics);
 
-    [PreserveSig]
     int CreateCompositeComponentType(
-        [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] IComponentType[] componentTypes,
+        IntPtr componentTypes,
         int componentTypeCount,
-        out IComponentType outCompositeComponentType,
-        [Out] out ISlangBlob outDiagnostics);
+        out IntPtr outCompositeComponentType,
+        out IntPtr outDiagnostics);
 
-    TypeReflection SpecializeType(
-        TypeReflection type,
-        [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] SpecializationArg[] specializationArgs,
+    IntPtr SpecializeType(
+        IntPtr type,
+        IntPtr specializationArgs,
         int specializationArgCount,
-        [Out] out ISlangBlob outDiagnostics);
+        out IntPtr outDiagnostics);
 
-    TypeLayoutReflection GetTypeLayout(
-        TypeReflection type,
+    IntPtr GetTypeLayout(
+        IntPtr type,
         int targetIndex,
         LayoutRules rules,
-        [Out] out ISlangBlob outDiagnostics);
+        out IntPtr outDiagnostics);
 
-    TypeReflection GetContainerType(
-        TypeReflection elementType,
+    IntPtr GetContainerType(
+        IntPtr elementType,
         ContainerType containerType,
-        [Out] out ISlangBlob outDiagnostics);
+        out IntPtr outDiagnostics);
 
-    TypeReflection GetDynamicType();
+    IntPtr GetDynamicType();
 
-    [PreserveSig]
-    int GetTypeRTTIMangledName(
-        TypeReflection type,
-        [Out] out ISlangBlob outNameBlob);
+    int GetTypeRTTIMangledName(IntPtr type, out IntPtr outNameBlob);
 
-    [PreserveSig]
     int GetTypeConformanceWitnessMangledName(
-        TypeReflection type,
-        TypeReflection interfaceType,
-        [Out] out ISlangBlob outNameBlob);
+        IntPtr type,
+        IntPtr interfaceType,
+        out IntPtr outNameBlob);
 
-    [PreserveSig]
     int GetTypeConformanceWitnessSequentialID(
-        TypeReflection type,
-        TypeReflection interfaceType,
+        IntPtr type,
+        IntPtr interfaceType,
         out uint outId);
 
-    [PreserveSig]
-    int CreateCompileRequest(
-        out SlangCompileRequest outCompileRequest);
+    int CreateCompileRequest(out IntPtr outCompileRequest);
 
-    [PreserveSig]
     int CreateTypeConformanceComponentType(
-        TypeReflection type,
-        TypeReflection interfaceType,
-        out ITypeConformance outConformance,
+        IntPtr type,
+        IntPtr interfaceType,
+        out IntPtr outConformance,
         int conformanceIdOverride,
-        [Out] out ISlangBlob outDiagnostics);
+        out IntPtr outDiagnostics);
 
-    IModule LoadModuleFromIRBlob(
-        [MarshalAs(UnmanagedType.LPStr)] string moduleName,
-        [MarshalAs(UnmanagedType.LPStr)] string path,
-        ISlangBlob source,
-        [Out] out ISlangBlob outDiagnostics);
+    IntPtr LoadModuleFromIRBlob(
+        string moduleName,
+        string path,
+        IntPtr source,
+        out IntPtr outDiagnostics);
 
-    [PreserveSig]
     int GetLoadedModuleCount();
 
-    [PreserveSig]
-    IModule GetLoadedModule(int index);
+    IntPtr GetLoadedModule(int index);
 
-    [return: MarshalAs(UnmanagedType.Bool)]
+    [return: MarshalAs(UnmanagedType.U1)]
     bool IsBinaryModuleUpToDate(
-        [MarshalAs(UnmanagedType.LPStr)] string modulePath,
-        ISlangBlob binaryModuleBlob);
+        string modulePath,
+        IntPtr binaryModuleBlob);
 
-    IModule LoadModuleFromSourceString(
-        [MarshalAs(UnmanagedType.LPStr)] string moduleName,
-        [MarshalAs(UnmanagedType.LPStr)] string path,
-        [MarshalAs(UnmanagedType.LPStr)] string source,
-        out ISlangBlob outDiagnostics);
+    IntPtr LoadModuleFromSourceString(
+        string moduleName,
+        string path,
+        string source,
+        out IntPtr outDiagnostics);
 }
