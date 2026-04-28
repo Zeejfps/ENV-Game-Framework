@@ -113,6 +113,48 @@ unsafe
             }
             Console.WriteLine(line);
         }
+
+        // Descriptor-set introspection on the global params type layout.
+        var globals = layout.GlobalParamsTypeLayout;
+        Console.WriteLine();
+        Console.WriteLine($"=== Descriptor sets: {globals.DescriptorSetCount}, binding ranges: {globals.BindingRangeCount}, sub-object ranges: {globals.SubObjectRangeCount} ===");
+        for (long s = 0; s < globals.DescriptorSetCount; s++)
+        {
+            var rangeCount = globals.GetDescriptorSetDescriptorRangeCount(s);
+            Console.WriteLine($"  set #{s}: spaceOffset={globals.GetDescriptorSetSpaceOffset(s)}, ranges={rangeCount}");
+            for (long r = 0; r < rangeCount; r++)
+            {
+                var t = globals.GetDescriptorSetDescriptorRangeType(s, r);
+                var c = globals.GetDescriptorSetDescriptorRangeCategory(s, r);
+                var idx = globals.GetDescriptorSetDescriptorRangeIndexOffset(s, r);
+                var cnt = globals.GetDescriptorSetDescriptorRangeDescriptorCount(s, r);
+                Console.WriteLine($"    range #{r}: type={t} category={c} index={idx} count={cnt}");
+            }
+        }
+        for (long b = 0; b < globals.BindingRangeCount; b++)
+        {
+            var t = globals.GetBindingRangeType(b);
+            var setIdx = globals.GetBindingRangeDescriptorSetIndex(b);
+            var firstRange = globals.GetBindingRangeFirstDescriptorRangeIndex(b);
+            var rangeCnt = globals.GetBindingRangeDescriptorRangeCount(b);
+            Console.WriteLine($"  bindingRange #{b}: type={t} set={setIdx} firstRange={firstRange} rangeCount={rangeCnt}");
+        }
+
+        // Modifiers and user attributes on each global parameter (likely empty for hello-world).
+        for (uint i = 0; i < layout.ParameterCount; i++)
+        {
+            var v = layout.GetParameter(i).Variable;
+            var modifierFlags = new List<string>();
+            foreach (var id in (SlangModifierID[])Enum.GetValues(typeof(SlangModifierID)))
+                if (v.HasModifier(id)) modifierFlags.Add(id.ToString());
+            var attrCount = v.UserAttributeCount;
+            if (modifierFlags.Count > 0 || attrCount > 0)
+            {
+                var attrs = string.Join(", ", Enumerable.Range(0, (int)attrCount)
+                    .Select(j => v.GetUserAttribute((uint)j).Name ?? "<unnamed>"));
+                Console.WriteLine($"  param {v.Name}: modifiers=[{string.Join(",", modifierFlags)}] attrs=[{attrs}]");
+            }
+        }
     }
     finally
     {

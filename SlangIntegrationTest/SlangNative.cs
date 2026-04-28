@@ -119,6 +119,15 @@ internal static partial class SlangNative
     [LibraryImport(Lib)]
     public static partial IntPtr spReflectionType_GetName(IntPtr type);
 
+    [LibraryImport(Lib)]
+    public static partial uint spReflectionType_GetUserAttributeCount(IntPtr type);
+
+    [LibraryImport(Lib)]
+    public static partial IntPtr spReflectionType_GetUserAttribute(IntPtr type, uint index);
+
+    [LibraryImport(Lib, StringMarshalling = StringMarshalling.Utf8)]
+    public static partial IntPtr spReflectionType_FindUserAttributeByName(IntPtr type, string name);
+
     // ---- TypeLayout (SlangReflectionTypeLayout*) ------------------------------------------
 
     [LibraryImport(Lib)]
@@ -166,6 +175,90 @@ internal static partial class SlangNative
     [LibraryImport(Lib)]
     public static partial SlangMatrixLayoutMode spReflectionTypeLayout_GetMatrixLayoutMode(IntPtr typeLayout);
 
+    [LibraryImport(Lib)]
+    public static unsafe partial long spReflectionTypeLayout_findFieldIndexByName(IntPtr typeLayout, byte* nameBegin, byte* nameEnd);
+
+    [LibraryImport(Lib)]
+    public static partial IntPtr spReflectionTypeLayout_GetExplicitCounter(IntPtr typeLayout);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getFieldBindingRangeOffset(IntPtr typeLayout, long fieldIndex);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getExplicitCounterBindingRangeOffset(IntPtr typeLayout);
+
+    // Binding ranges
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getBindingRangeCount(IntPtr typeLayout);
+
+    [LibraryImport(Lib)]
+    public static partial SlangBindingType spReflectionTypeLayout_getBindingRangeType(IntPtr typeLayout, long index);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_isBindingRangeSpecializable(IntPtr typeLayout, long index);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getBindingRangeBindingCount(IntPtr typeLayout, long index);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getBindingRangeIndexOffset(IntPtr typeLayout, long index);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getBindingRangeSpaceOffset(IntPtr typeLayout, long index);
+
+    [LibraryImport(Lib)]
+    public static partial SlangImageFormat spReflectionTypeLayout_getBindingRangeImageFormat(IntPtr typeLayout, long index);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getBindingRangeDescriptorSetIndex(IntPtr typeLayout, long index);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getBindingRangeFirstDescriptorRangeIndex(IntPtr typeLayout, long index);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getBindingRangeDescriptorRangeCount(IntPtr typeLayout, long index);
+
+    [LibraryImport(Lib)]
+    public static partial IntPtr spReflectionTypeLayout_getBindingRangeLeafTypeLayout(IntPtr typeLayout, long index);
+
+    [LibraryImport(Lib)]
+    public static partial IntPtr spReflectionTypeLayout_getBindingRangeLeafVariable(IntPtr typeLayout, long index);
+
+    // Descriptor sets
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getDescriptorSetCount(IntPtr typeLayout);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getDescriptorSetSpaceOffset(IntPtr typeLayout, long setIndex);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getDescriptorSetDescriptorRangeCount(IntPtr typeLayout, long setIndex);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getDescriptorSetDescriptorRangeIndexOffset(IntPtr typeLayout, long setIndex, long rangeIndex);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getDescriptorSetDescriptorRangeDescriptorCount(IntPtr typeLayout, long setIndex, long rangeIndex);
+
+    [LibraryImport(Lib)]
+    public static partial SlangBindingType spReflectionTypeLayout_getDescriptorSetDescriptorRangeType(IntPtr typeLayout, long setIndex, long rangeIndex);
+
+    [LibraryImport(Lib)]
+    public static partial SlangParameterCategory spReflectionTypeLayout_getDescriptorSetDescriptorRangeCategory(IntPtr typeLayout, long setIndex, long rangeIndex);
+
+    // Sub-object ranges
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getSubObjectRangeCount(IntPtr typeLayout);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getSubObjectRangeBindingRangeIndex(IntPtr typeLayout, long subObjectRangeIndex);
+
+    [LibraryImport(Lib)]
+    public static partial long spReflectionTypeLayout_getSubObjectRangeSpaceOffset(IntPtr typeLayout, long subObjectRangeIndex);
+
+    [LibraryImport(Lib)]
+    public static partial IntPtr spReflectionTypeLayout_getSubObjectRangeOffset(IntPtr typeLayout, long subObjectRangeIndex);
+
     // ---- Variable (SlangReflectionVariable*) ----------------------------------------------
 
     [LibraryImport(Lib)]
@@ -173,6 +266,38 @@ internal static partial class SlangNative
 
     [LibraryImport(Lib)]
     public static partial IntPtr spReflectionVariable_GetType(IntPtr variable);
+
+    [LibraryImport(Lib)]
+    public static partial uint spReflectionVariable_GetUserAttributeCount(IntPtr variable);
+
+    [LibraryImport(Lib)]
+    public static partial IntPtr spReflectionVariable_GetUserAttribute(IntPtr variable, uint index);
+
+    [LibraryImport(Lib, StringMarshalling = StringMarshalling.Utf8)]
+    public static partial IntPtr spReflectionVariable_FindUserAttributeByName(IntPtr variable, IntPtr globalSession, string name);
+
+    [LibraryImport(Lib)]
+    public static partial IntPtr spReflectionVariable_FindModifier(IntPtr variable, SlangModifierID modifierID);
+
+    // ---- UserAttribute (SlangReflectionUserAttribute*) ------------------------------------
+
+    [LibraryImport(Lib)]
+    public static partial IntPtr spReflectionUserAttribute_GetName(IntPtr attrib);
+
+    [LibraryImport(Lib)]
+    public static partial uint spReflectionUserAttribute_GetArgumentCount(IntPtr attrib);
+
+    [LibraryImport(Lib)]
+    public static partial IntPtr spReflectionUserAttribute_GetArgumentType(IntPtr attrib, uint index);
+
+    [LibraryImport(Lib)]
+    public static unsafe partial int spReflectionUserAttribute_GetArgumentValueInt(IntPtr attrib, uint index, int* outValue);
+
+    [LibraryImport(Lib)]
+    public static unsafe partial int spReflectionUserAttribute_GetArgumentValueFloat(IntPtr attrib, uint index, float* outValue);
+
+    [LibraryImport(Lib)]
+    public static unsafe partial IntPtr spReflectionUserAttribute_GetArgumentValueString(IntPtr attrib, uint index, nuint* outSize);
 
     // ---- VariableLayout (SlangReflectionVariableLayout*) ----------------------------------
 

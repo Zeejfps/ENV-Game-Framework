@@ -9,6 +9,7 @@
 // not owners.
 
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace SlangIntegrationTest;
 
@@ -126,6 +127,14 @@ public readonly record struct TypeReflection(IntPtr Handle)
 
     public VariableReflection GetFieldByIndex(uint index) =>
         new(SlangNative.spReflectionType_GetFieldByIndex(Handle, index));
+
+    public uint UserAttributeCount => SlangNative.spReflectionType_GetUserAttributeCount(Handle);
+
+    public UserAttributeReflection GetUserAttribute(uint index) =>
+        new(SlangNative.spReflectionType_GetUserAttribute(Handle, index));
+
+    public UserAttributeReflection FindUserAttributeByName(string name) =>
+        new(SlangNative.spReflectionType_FindUserAttributeByName(Handle, name));
 }
 
 public readonly record struct TypeLayoutReflection(IntPtr Handle)
@@ -172,6 +181,97 @@ public readonly record struct TypeLayoutReflection(IntPtr Handle)
 
     public SlangParameterCategory GetCategoryByIndex(uint index) =>
         SlangNative.spReflectionTypeLayout_GetCategoryByIndex(Handle, index);
+
+    public unsafe long FindFieldIndexByName(string name)
+    {
+        var byteCount = Encoding.UTF8.GetByteCount(name);
+        Span<byte> buf = stackalloc byte[byteCount];
+        Encoding.UTF8.GetBytes(name, buf);
+        fixed (byte* p = buf)
+            return SlangNative.spReflectionTypeLayout_findFieldIndexByName(Handle, p, p + byteCount);
+    }
+
+    public VariableLayoutReflection ExplicitCounter =>
+        new(SlangNative.spReflectionTypeLayout_GetExplicitCounter(Handle));
+
+    public long GetFieldBindingRangeOffset(long fieldIndex) =>
+        SlangNative.spReflectionTypeLayout_getFieldBindingRangeOffset(Handle, fieldIndex);
+
+    public long ExplicitCounterBindingRangeOffset =>
+        SlangNative.spReflectionTypeLayout_getExplicitCounterBindingRangeOffset(Handle);
+
+    // Binding ranges
+    public long BindingRangeCount =>
+        SlangNative.spReflectionTypeLayout_getBindingRangeCount(Handle);
+
+    public SlangBindingType GetBindingRangeType(long index) =>
+        SlangNative.spReflectionTypeLayout_getBindingRangeType(Handle, index);
+
+    public bool IsBindingRangeSpecializable(long index) =>
+        SlangNative.spReflectionTypeLayout_isBindingRangeSpecializable(Handle, index) != 0;
+
+    /// <summary>Number of bindings; -1 indicates unbounded array.</summary>
+    public long GetBindingRangeBindingCount(long index) =>
+        SlangNative.spReflectionTypeLayout_getBindingRangeBindingCount(Handle, index);
+
+    public long GetBindingRangeIndexOffset(long index) =>
+        SlangNative.spReflectionTypeLayout_getBindingRangeIndexOffset(Handle, index);
+
+    public long GetBindingRangeSpaceOffset(long index) =>
+        SlangNative.spReflectionTypeLayout_getBindingRangeSpaceOffset(Handle, index);
+
+    public SlangImageFormat GetBindingRangeImageFormat(long index) =>
+        SlangNative.spReflectionTypeLayout_getBindingRangeImageFormat(Handle, index);
+
+    public long GetBindingRangeDescriptorSetIndex(long index) =>
+        SlangNative.spReflectionTypeLayout_getBindingRangeDescriptorSetIndex(Handle, index);
+
+    public long GetBindingRangeFirstDescriptorRangeIndex(long index) =>
+        SlangNative.spReflectionTypeLayout_getBindingRangeFirstDescriptorRangeIndex(Handle, index);
+
+    public long GetBindingRangeDescriptorRangeCount(long index) =>
+        SlangNative.spReflectionTypeLayout_getBindingRangeDescriptorRangeCount(Handle, index);
+
+    public TypeLayoutReflection GetBindingRangeLeafTypeLayout(long index) =>
+        new(SlangNative.spReflectionTypeLayout_getBindingRangeLeafTypeLayout(Handle, index));
+
+    public VariableReflection GetBindingRangeLeafVariable(long index) =>
+        new(SlangNative.spReflectionTypeLayout_getBindingRangeLeafVariable(Handle, index));
+
+    // Descriptor sets (Vulkan-style descriptor set introspection)
+    public long DescriptorSetCount =>
+        SlangNative.spReflectionTypeLayout_getDescriptorSetCount(Handle);
+
+    public long GetDescriptorSetSpaceOffset(long setIndex) =>
+        SlangNative.spReflectionTypeLayout_getDescriptorSetSpaceOffset(Handle, setIndex);
+
+    public long GetDescriptorSetDescriptorRangeCount(long setIndex) =>
+        SlangNative.spReflectionTypeLayout_getDescriptorSetDescriptorRangeCount(Handle, setIndex);
+
+    public long GetDescriptorSetDescriptorRangeIndexOffset(long setIndex, long rangeIndex) =>
+        SlangNative.spReflectionTypeLayout_getDescriptorSetDescriptorRangeIndexOffset(Handle, setIndex, rangeIndex);
+
+    public long GetDescriptorSetDescriptorRangeDescriptorCount(long setIndex, long rangeIndex) =>
+        SlangNative.spReflectionTypeLayout_getDescriptorSetDescriptorRangeDescriptorCount(Handle, setIndex, rangeIndex);
+
+    public SlangBindingType GetDescriptorSetDescriptorRangeType(long setIndex, long rangeIndex) =>
+        SlangNative.spReflectionTypeLayout_getDescriptorSetDescriptorRangeType(Handle, setIndex, rangeIndex);
+
+    public SlangParameterCategory GetDescriptorSetDescriptorRangeCategory(long setIndex, long rangeIndex) =>
+        SlangNative.spReflectionTypeLayout_getDescriptorSetDescriptorRangeCategory(Handle, setIndex, rangeIndex);
+
+    // Sub-object ranges (for parameter blocks / structured buffers of objects)
+    public long SubObjectRangeCount =>
+        SlangNative.spReflectionTypeLayout_getSubObjectRangeCount(Handle);
+
+    public long GetSubObjectRangeBindingRangeIndex(long subObjectRangeIndex) =>
+        SlangNative.spReflectionTypeLayout_getSubObjectRangeBindingRangeIndex(Handle, subObjectRangeIndex);
+
+    public long GetSubObjectRangeSpaceOffset(long subObjectRangeIndex) =>
+        SlangNative.spReflectionTypeLayout_getSubObjectRangeSpaceOffset(Handle, subObjectRangeIndex);
+
+    public VariableLayoutReflection GetSubObjectRangeOffset(long subObjectRangeIndex) =>
+        new(SlangNative.spReflectionTypeLayout_getSubObjectRangeOffset(Handle, subObjectRangeIndex));
 }
 
 public readonly record struct VariableReflection(IntPtr Handle)
@@ -182,6 +282,65 @@ public readonly record struct VariableReflection(IntPtr Handle)
         Marshal.PtrToStringUTF8(SlangNative.spReflectionVariable_GetName(Handle));
 
     public TypeReflection Type => new(SlangNative.spReflectionVariable_GetType(Handle));
+
+    public uint UserAttributeCount => SlangNative.spReflectionVariable_GetUserAttributeCount(Handle);
+
+    public UserAttributeReflection GetUserAttribute(uint index) =>
+        new(SlangNative.spReflectionVariable_GetUserAttribute(Handle, index));
+
+    /// <summary>Look up a user attribute by name. Requires the IGlobalSession pointer
+    /// because Slang resolves attribute names through the session's name table.</summary>
+    public UserAttributeReflection FindUserAttributeByName(IntPtr globalSession, string name) =>
+        new(SlangNative.spReflectionVariable_FindUserAttributeByName(Handle, globalSession, name));
+
+    public ModifierReflection FindModifier(SlangModifierID id) =>
+        new(SlangNative.spReflectionVariable_FindModifier(Handle, id));
+
+    public bool HasModifier(SlangModifierID id) => !FindModifier(id).IsNull;
+}
+
+public readonly record struct UserAttributeReflection(IntPtr Handle)
+{
+    public bool IsNull => Handle == IntPtr.Zero;
+
+    public string? Name =>
+        Marshal.PtrToStringUTF8(SlangNative.spReflectionUserAttribute_GetName(Handle));
+
+    public uint ArgumentCount => SlangNative.spReflectionUserAttribute_GetArgumentCount(Handle);
+
+    public TypeReflection GetArgumentType(uint index) =>
+        new(SlangNative.spReflectionUserAttribute_GetArgumentType(Handle, index));
+
+    public unsafe bool TryGetIntArgument(uint index, out int value)
+    {
+        int v;
+        var hr = SlangNative.spReflectionUserAttribute_GetArgumentValueInt(Handle, index, &v);
+        value = v;
+        return hr >= 0;
+    }
+
+    public unsafe bool TryGetFloatArgument(uint index, out float value)
+    {
+        float v;
+        var hr = SlangNative.spReflectionUserAttribute_GetArgumentValueFloat(Handle, index, &v);
+        value = v;
+        return hr >= 0;
+    }
+
+    public unsafe string? GetStringArgument(uint index)
+    {
+        nuint size = 0;
+        var ptr = SlangNative.spReflectionUserAttribute_GetArgumentValueString(Handle, index, &size);
+        if (ptr == IntPtr.Zero) return null;
+        return Encoding.UTF8.GetString(new ReadOnlySpan<byte>((void*)ptr, (int)size));
+    }
+}
+
+/// <summary>Opaque modifier handle. The mere existence (non-null) indicates the modifier
+/// is set on the variable; there are no further queries.</summary>
+public readonly record struct ModifierReflection(IntPtr Handle)
+{
+    public bool IsNull => Handle == IntPtr.Zero;
 }
 
 public readonly record struct VariableLayoutReflection(IntPtr Handle)
