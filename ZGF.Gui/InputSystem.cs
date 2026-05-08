@@ -47,7 +47,7 @@ public sealed class InputSystem : IMouse
 
     public View? GetView(IKeyboardMouseController controller)
     {
-        return _controllerToView.TryGetValue(controller, out var view) ? view : null;
+        return _controllerToView.GetValueOrDefault(controller);
     }
 
     public EventPhaseFilter GetPhaseFilter(IKeyboardMouseController controller)

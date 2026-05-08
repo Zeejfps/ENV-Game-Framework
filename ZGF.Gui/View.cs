@@ -21,12 +21,12 @@ public class View
                     prevContext.InputSystem.UnregisterController(this);
                 }
 
+                OnApplyContextToChildren(_context);
+                
                 if (_context != null)
                 {
                     OnAttachedToContext(_context);
                 }
-
-                OnApplyContextToChildren(_context);
             }
         }
     }
