@@ -477,7 +477,9 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
             return;
 
         var style = inputs.Style;
-        var color = GetUint(style.TextColor);
+        // Match the software canvas: an unset TextColor renders as opaque black,
+        // not as 0 (which would be fully-transparent black and thus invisible).
+        var color = style.TextColor.IsSet ? style.TextColor.Value : 0xFF000000u;
         var clip = (uint)_clipStack.Peek();
         var seq = _sequence++;
         var key = MakeKey(inputs.ZIndex, seq);
