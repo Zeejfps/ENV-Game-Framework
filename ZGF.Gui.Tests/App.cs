@@ -277,7 +277,7 @@ public sealed class App : OpenGlApp
         ++_frames;
         if (_stopwatch.ElapsedMilliseconds >= 1000)
         {
-            Console.WriteLine($"FPS: {_frames}");
+            //Console.WriteLine($"FPS: {_frames}");
             _frames = 0;
             _stopwatch.Restart();
         }
@@ -308,6 +308,10 @@ public sealed class App : OpenGlApp
     {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _frameBufferHandle.FrameBufferId);
         glViewport(0, 0, _frameBufferHandle.Width, _frameBufferHandle.Height);
+        // The canvas turns depth-test off and blending on each frame; restore the
+        // 3D pass's expected state explicitly instead of relying on init-time setup.
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
         glClearColor(0, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

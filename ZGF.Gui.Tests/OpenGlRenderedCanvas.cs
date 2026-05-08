@@ -456,15 +456,15 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
                 Rect = new Vector4(pos.Left, pos.Bottom, pos.Width, pos.Height),
                 BorderRadius = Vector4.Zero,
                 BorderSize = new Vector4(
-                    GetFloat(style.BorderSize.Top),
-                    GetFloat(style.BorderSize.Right),
-                    GetFloat(style.BorderSize.Bottom),
-                    GetFloat(style.BorderSize.Left)),
-                BgColor = GetUint(style.BackgroundColor),
-                BorderColorTop = GetUint(style.BorderColor.Top),
-                BorderColorRight = GetUint(style.BorderColor.Right),
-                BorderColorBottom = GetUint(style.BorderColor.Bottom),
-                BorderColorLeft = GetUint(style.BorderColor.Left),
+                    style.BorderSize.Top.Value,
+                    style.BorderSize.Right.Value,
+                    style.BorderSize.Bottom.Value,
+                    style.BorderSize.Left.Value),
+                BgColor = style.BackgroundColor.Value,
+                BorderColorTop = style.BorderColor.Top.Value,
+                BorderColorRight = style.BorderColor.Right.Value,
+                BorderColorBottom = style.BorderColor.Bottom.Value,
+                BorderColorLeft = style.BorderColor.Left.Value,
                 ClipIndex = (uint)_clipStack.Peek(),
             }
         });
@@ -477,9 +477,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
             return;
 
         var style = inputs.Style;
-        // Match the software canvas: an unset TextColor renders as opaque black,
-        // not as 0 (which would be fully-transparent black and thus invisible).
-        var color = style.TextColor.IsSet ? style.TextColor.Value : 0xFF000000u;
+        var color = style.TextColor.Value;
         var clip = (uint)_clipStack.Peek();
         var seq = _sequence++;
         var key = MakeKey(inputs.ZIndex, seq);
@@ -602,7 +600,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
             {
                 Rect = new Vector4(offsetX, offsetY, scaledWidth, scaledHeight),
                 SrcUV = new Vector4(0f, 0f, 1f, 1f),
-                Tint = GetUint(inputs.Style.TintColor),
+                Tint = inputs.Style.TintColor.Value,
                 ClipIndex = (uint)_clipStack.Peek(),
                 TextureId = _imageManager.GetTextureId(imageId),
             }
@@ -941,12 +939,6 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         var zUnsigned = (uint)(z - int.MinValue);
         return ((long)zUnsigned << 32) | (uint)seq;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint GetUint(StyleValue<uint> v) => v.IsSet ? v.Value : 0u;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float GetFloat(StyleValue<float> v) => v.IsSet ? v.Value : 0f;
 
     public void Dispose()
     {
