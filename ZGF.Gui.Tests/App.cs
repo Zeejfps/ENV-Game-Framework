@@ -14,7 +14,7 @@ namespace ZGF.Gui.Tests;
 
 public sealed class App : OpenGlApp
 {
-    private readonly SoftwareRenderedCanvas _canvas;
+    private readonly OpenGlRenderedCanvas _canvas;
     private readonly View _gui;
 
     private readonly InputSystem _inputSystem;
@@ -25,9 +25,9 @@ public sealed class App : OpenGlApp
     private readonly MouseCallback _scrollCallback;
     private readonly BitmapFont _bitmapFont;
     private readonly ContextMenuManager _contextMenuManager;
-    private readonly ImageManager _imageManager;
+    private readonly GlImageManager _imageManager;
 
-    private FrameBufferHandle _frameBufferHandle;
+    private GlFrameBufferHandle _frameBufferHandle;
     private ImageView _modelView;
     private int _modelMatrixUniformLocation;
     private int _viewProjectionMatrixUniformLocation;
@@ -36,15 +36,15 @@ public sealed class App : OpenGlApp
     {
         _inputSystem = new InputSystem();
 
-        _imageManager = new ImageManager();
+        _imageManager = new GlImageManager();
         _imageManager.LoadImageFromFile("Assets/Icons/arrow_right.png");
         _imageManager.LoadImageFromFile("Assets/Icons/arrow_up.png");
         _imageManager.LoadImageFromFile("Assets/Icons/arrow_down.png");
-        _frameBufferHandle = _imageManager.CreateFrameBufferImage(640, 480);
+        _frameBufferHandle = _imageManager.CreateFrameBuffer(640, 480);
 
         _bitmapFont = BitmapFont.LoadFromFile("Assets/Fonts/Charcoal/Charcoal_p20.xml");
 
-        _canvas = new SoftwareRenderedCanvas(
+        _canvas = new OpenGlRenderedCanvas(
             startupConfig.WindowWidth,
             startupConfig.WindowHeight,
             _bitmapFont,
@@ -267,7 +267,6 @@ public sealed class App : OpenGlApp
         var s = Matrix4x4.CreateScale(5f, 5f, 5f);
         _modelMatrix = s * r * t;
 
-        _imageManager.RenderFrameBuffersToBitmaps();
         Render();
         Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
         var guiPoint = WindowToGuiCoords(mouseX, mouseY);
@@ -308,7 +307,7 @@ public sealed class App : OpenGlApp
     private unsafe void RenderMesh()
     {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _frameBufferHandle.FrameBufferId);
-        glViewport(0, 0, _frameBufferHandle.Bitmap.Width, _frameBufferHandle.Bitmap.Height);
+        glViewport(0, 0, _frameBufferHandle.Width, _frameBufferHandle.Height);
         glClearColor(0, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
