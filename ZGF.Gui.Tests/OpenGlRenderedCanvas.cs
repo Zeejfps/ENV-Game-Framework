@@ -448,18 +448,26 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
     {
         var style = inputs.Style;
         var pos = inputs.Position;
+
+        // Snap each edge independently so adjacent rects share the same boundary
+        // and never leave 1px gaps from independent width rounding.
+        var left = MathF.Round(pos.Left);
+        var bottom = MathF.Round(pos.Bottom);
+        var right = MathF.Round(pos.Left + pos.Width);
+        var top = MathF.Round(pos.Bottom + pos.Height);
+
         _stagedRects.Add(new StagedRect
         {
             Key = MakeKey(inputs.ZIndex, _sequence++),
             Inst = new RectInstance
             {
-                Rect = new Vector4(pos.Left, pos.Bottom, pos.Width, pos.Height),
+                Rect = new Vector4(left, bottom, right - left, top - bottom),
                 BorderRadius = Vector4.Zero,
                 BorderSize = new Vector4(
-                    style.BorderSize.Top.Value,
-                    style.BorderSize.Right.Value,
-                    style.BorderSize.Bottom.Value,
-                    style.BorderSize.Left.Value),
+                    MathF.Round(style.BorderSize.Top.Value),
+                    MathF.Round(style.BorderSize.Right.Value),
+                    MathF.Round(style.BorderSize.Bottom.Value),
+                    MathF.Round(style.BorderSize.Left.Value)),
                 BgColor = style.BackgroundColor.Value,
                 BorderColorTop = style.BorderColor.Top.Value,
                 BorderColorRight = style.BorderColor.Right.Value,
@@ -593,12 +601,17 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         var offsetX = pos.Left + (rectW - scaledWidth) * 0.5f;
         var offsetY = pos.Bottom + (rectH - scaledHeight) * 0.5f;
 
+        var snappedLeft = MathF.Round(offsetX);
+        var snappedBottom = MathF.Round(offsetY);
+        var snappedRight = MathF.Round(offsetX + scaledWidth);
+        var snappedTop = MathF.Round(offsetY + scaledHeight);
+
         _stagedImages.Add(new StagedImage
         {
             Key = MakeKey(inputs.ZIndex, _sequence++),
             Inst = new ImageInstance
             {
-                Rect = new Vector4(offsetX, offsetY, scaledWidth, scaledHeight),
+                Rect = new Vector4(snappedLeft, snappedBottom, snappedRight - snappedLeft, snappedTop - snappedBottom),
                 SrcUV = new Vector4(0f, 0f, 1f, 1f),
                 Tint = inputs.Style.TintColor.Value,
                 ClipIndex = (uint)_clipStack.Peek(),
