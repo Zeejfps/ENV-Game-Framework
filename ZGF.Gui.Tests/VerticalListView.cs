@@ -34,6 +34,12 @@ public sealed class VerticalListView : View
         context.Get<InputSystem>()!.RegisterController(ScrollBarView, new VerticalScrollBarViewController(ScrollBarView));
     }
 
+    protected override void OnDetachedFromContext(Context context)
+    {
+        context.Get<InputSystem>()?.UnregisterController(ScrollBarView);
+        base.OnDetachedFromContext(context);
+    }
+
     public void Scroll(float delta)
     {
         ScrollPaneView.Scroll(delta);

@@ -46,6 +46,16 @@ public sealed class Center : View
         inputSystem.RegisterController(_listView, new DefaultVerticalListViewKbmController(_listView));
     }
 
+    protected override void OnDetachedFromContext(Context context)
+    {
+        var inputSystem = context.Get<InputSystem>();
+        inputSystem?.UnregisterController(_w1);
+        inputSystem?.UnregisterController(_w3);
+        inputSystem?.UnregisterController(_textInput);
+        inputSystem?.UnregisterController(_listView);
+        base.OnDetachedFromContext(context);
+    }
+
     private (TextInputView, VerticalListView) BuildWindow(Window window)
     {
         var scrollBar = new RectView

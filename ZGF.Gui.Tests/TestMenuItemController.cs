@@ -24,7 +24,7 @@ public sealed class TestMenuItemController : BaseMenuItemController
             Text = "Option 3",
         };
         contextMenu.Children.Add(option3Menu);
-        MenuItem.Context?.Get<InputSystem>()!.RegisterController(option3Menu, new ContextMenuItemDefaultKbmController(option3Menu, _contextMenuManager)
+        RegisterMenuController(option3Menu, new ContextMenuItemDefaultKbmController(option3Menu, _contextMenuManager)
         {
             SubOptions =
             {

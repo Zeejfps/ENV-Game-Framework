@@ -44,6 +44,12 @@ public sealed class VerticalScrollBarView : View
         context.Get<InputSystem>()!.RegisterController(_thumbView, new VerticalScrollBarThumbViewController(_thumbView));
     }
 
+    protected override void OnDetachedFromContext(Context context)
+    {
+        context.Get<InputSystem>()?.UnregisterController(_thumbView);
+        base.OnDetachedFromContext(context);
+    }
+
     public float Scale
     {
         get => _thumbView.Scale;

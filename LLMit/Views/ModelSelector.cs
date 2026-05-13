@@ -45,6 +45,8 @@ public sealed class ModelSelectorController : KeyboardMouseController
     private readonly ContextMenuManager _contextMenuManager;
 
     private IOpenedContextMenu? _openedContextMenu;
+    private InputSystem? _inputSystem;
+    private ContextMenu? _registeredContextMenu;
 
     public ModelSelectorController(ModelSelector modelSelector, ContextMenuManager contextMenuManager)
     {
@@ -100,7 +102,9 @@ public sealed class ModelSelectorController : KeyboardMouseController
 
         _openedContextMenu = _contextMenuManager.ShowContextMenu(contextMenu);
         _openedContextMenu.Closed += OnContextMenuClosed;
-        _modelSelector.Context?.Get<InputSystem>()!.RegisterController(contextMenu, new ContextMenuKbmController(_openedContextMenu));
+        _inputSystem = _modelSelector.Context?.Get<InputSystem>();
+        _inputSystem?.RegisterController(contextMenu, new ContextMenuKbmController(_openedContextMenu));
+        _registeredContextMenu = contextMenu;
     }
 
     private void OnContextMenuClosed()
@@ -108,5 +112,11 @@ public sealed class ModelSelectorController : KeyboardMouseController
         Console.WriteLine("CloseD?");
         _openedContextMenu.Closed -= OnContextMenuClosed;
         _openedContextMenu = null;
+        if (_registeredContextMenu != null)
+        {
+            _inputSystem?.UnregisterController(_registeredContextMenu);
+            _registeredContextMenu = null;
+        }
+        _inputSystem = null;
     }
 }

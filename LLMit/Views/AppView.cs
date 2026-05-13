@@ -23,6 +23,7 @@ public sealed class CenterArea : View
     private readonly TabView _newChatTabView;
     private readonly TabBarView _tabBarView;
     private readonly View _tabContentsView;
+    private readonly List<TabView> _registeredTabs = new();
 
     public CenterArea()
     {
@@ -84,6 +85,18 @@ public sealed class CenterArea : View
         context.Get<InputSystem>()!.RegisterController(_newChatTabView, new TabViewController(_newChatTabView));
     }
 
+    protected override void OnDetachedFromContext(Context context)
+    {
+        var inputSystem = context.Get<InputSystem>();
+        inputSystem?.UnregisterController(_newChatTabView);
+        foreach (var tab in _registeredTabs)
+        {
+            inputSystem?.UnregisterController(tab);
+        }
+        _registeredTabs.Clear();
+        base.OnDetachedFromContext(context);
+    }
+
     private void StartNewChat(string? model, ReadOnlySpan<char> text)
     {
         _newChatTabView.IsActive = false;
@@ -94,6 +107,7 @@ public sealed class CenterArea : View
         };
         _tabBarView.Children.Add(tabView);
         Context?.Get<InputSystem>()!.RegisterController(tabView, new TabViewController(tabView));
+        _registeredTabs.Add(tabView);
         _tabContentsView.Children.Clear();
     }
 }

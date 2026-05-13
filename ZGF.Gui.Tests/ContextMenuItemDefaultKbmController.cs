@@ -5,6 +5,8 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
     private readonly ContextMenuItem _contextMenuItem;
     private readonly ContextMenuManager _contextMenuManager;
     private IOpenedContextMenu? _openedContextMenu;
+    private InputSystem? _subMenuInputSystem;
+    private ContextMenu? _registeredSubMenu;
 
     public List<ContextMenuItemData> SubOptions { get; } = new();
 
@@ -63,6 +65,8 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             {
                 _openedContextMenu.Closed += OnOpenedContextMenuClosed;
                 inputSystem?.RegisterController(subMenu, new ContextMenuKbmController(_openedContextMenu));
+                _subMenuInputSystem = inputSystem;
+                _registeredSubMenu = subMenu;
             }
         }
 
@@ -78,6 +82,12 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             _openedContextMenu.Closed -=  OnOpenedContextMenuClosed;
             _openedContextMenu = null;
         }
+        if (_registeredSubMenu != null)
+        {
+            _subMenuInputSystem?.UnregisterController(_registeredSubMenu);
+            _registeredSubMenu = null;
+        }
+        _subMenuInputSystem = null;
         _contextMenuItem.Context?.Get<InputSystem>()!.Blur(this);
     }
 

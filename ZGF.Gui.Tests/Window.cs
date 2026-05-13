@@ -109,6 +109,12 @@ public sealed class Window : View
         context.Get<InputSystem>()!.RegisterController(_titlePanel, new WindowTitleBarDefaultKbmController(this, _titlePanel));
     }
 
+    protected override void OnDetachedFromContext(Context context)
+    {
+        context.Get<InputSystem>()?.UnregisterController(_titlePanel);
+        base.OnDetachedFromContext(context);
+    }
+
     protected override void OnLayoutSelf()
     {
         var left = Position.Left;

@@ -44,6 +44,12 @@ public sealed class ChatTextInputView : View
         });
     }
 
+    protected override void OnDetachedFromContext(Context context)
+    {
+        context.Get<InputSystem>()?.UnregisterController(_textInput);
+        base.OnDetachedFromContext(context);
+    }
+
     private void OnSubmit(ReadOnlySpan<char> text)
     {
         Submit?.Invoke(text);

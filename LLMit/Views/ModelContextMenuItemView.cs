@@ -38,4 +38,10 @@ public sealed class ModelContextMenuItemView : View
             Chosen?.Invoke(this);
         }));
     }
+
+    protected override void OnDetachedFromContext(Context context)
+    {
+        context.Get<InputSystem>()?.UnregisterController(_contextMenuItem);
+        base.OnDetachedFromContext(context);
+    }
 }

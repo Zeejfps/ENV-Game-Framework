@@ -100,4 +100,14 @@ public sealed class AppBar : View
         inputSystem.RegisterController(_viewLabel, new TestMenuItemController(_viewLabel, _contextMenuManager));
         inputSystem.RegisterController(_helpLabel, new TestMenuItemController(_helpLabel, _contextMenuManager));
     }
+
+    protected override void OnDetachedFromContext(Context context)
+    {
+        var inputSystem = context.Get<InputSystem>();
+        inputSystem?.UnregisterController(_fileItem);
+        inputSystem?.UnregisterController(_editItem);
+        inputSystem?.UnregisterController(_viewLabel);
+        inputSystem?.UnregisterController(_helpLabel);
+        base.OnDetachedFromContext(context);
+    }
 }

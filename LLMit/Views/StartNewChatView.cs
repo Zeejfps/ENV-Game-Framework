@@ -77,6 +77,12 @@ public sealed class StartNewChatView : View
         context.Get<InputSystem>()!.RegisterController(_modelSelector, new ModelSelectorController(_modelSelector, contextMenuManager));
     }
 
+    protected override void OnDetachedFromContext(Context context)
+    {
+        context.Get<InputSystem>()?.UnregisterController(_modelSelector);
+        base.OnDetachedFromContext(context);
+    }
+
     private void OnSubmit(ReadOnlySpan<char> text)
     {
         _chatTextInput.Clear();

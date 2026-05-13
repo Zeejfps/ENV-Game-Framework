@@ -18,7 +18,6 @@ public class View
                 if (prevContext != null)
                 {
                     OnDetachedFromContext(prevContext);
-                    prevContext.Get<InputSystem>()?.UnregisterController(this);
                 }
 
                 OnApplyContextToChildren(_context);
