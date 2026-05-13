@@ -34,26 +34,11 @@ public sealed class Center : View
             }
         };
         AddChildToSelf(_w3);
-    }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        var inputSystem = context.Get<InputSystem>()!;
-        inputSystem.RegisterController(_w1, new WindowDefaultKbmController(_w1));
-        inputSystem.RegisterController(_w3, new WindowDefaultKbmController(_w3));
-        inputSystem.RegisterController(_textInput, new TextInputViewKbmController(_textInput));
-        inputSystem.RegisterController(_listView, new DefaultVerticalListViewKbmController(_listView));
-    }
-
-    protected override void OnDetachedFromContext(Context context)
-    {
-        var inputSystem = context.Get<InputSystem>();
-        inputSystem?.UnregisterController(_w1);
-        inputSystem?.UnregisterController(_w3);
-        inputSystem?.UnregisterController(_textInput);
-        inputSystem?.UnregisterController(_listView);
-        base.OnDetachedFromContext(context);
+        _w1.Behaviors.Add(new InputControllerBehavior(new WindowDefaultKbmController(_w1)));
+        _w3.Behaviors.Add(new InputControllerBehavior(new WindowDefaultKbmController(_w3)));
+        _textInput.Behaviors.Add(new InputControllerBehavior(new TextInputViewKbmController(_textInput)));
+        _listView.Behaviors.Add(new InputControllerBehavior(new DefaultVerticalListViewKbmController(_listView)));
     }
 
     private (TextInputView, VerticalListView) BuildWindow(Window window)

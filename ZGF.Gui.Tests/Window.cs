@@ -101,18 +101,8 @@ public sealed class Window : View
             }
         };
         AddChildToSelf(outline);
-    }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        context.Get<InputSystem>()!.RegisterController(_titlePanel, new WindowTitleBarDefaultKbmController(this, _titlePanel));
-    }
-
-    protected override void OnDetachedFromContext(Context context)
-    {
-        context.Get<InputSystem>()?.UnregisterController(_titlePanel);
-        base.OnDetachedFromContext(context);
+        _titlePanel.Behaviors.Add(new InputControllerBehavior(new WindowTitleBarDefaultKbmController(this, _titlePanel)));
     }
 
     protected override void OnLayoutSelf()

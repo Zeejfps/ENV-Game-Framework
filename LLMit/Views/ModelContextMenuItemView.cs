@@ -23,25 +23,18 @@ public sealed class ModelContextMenuItemView : View
         };
 
         AddChildToSelf(_contextMenuItem);
-    }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        var contextMenuManager = context.Get<ContextMenuManager>();
-        Debug.Assert(contextMenuManager != null);
-        context.Get<InputSystem>()!.RegisterController(_contextMenuItem, new ContextMenuItemDefaultKbmController(_contextMenuItem, contextMenuManager, () =>
+        _contextMenuItem.Behaviors.Add(new InputControllerBehavior((view, context) =>
         {
-            var contextMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
-            Debug.Assert(contextMenu != null);
-            contextMenuManager.RequestCloseMenu(contextMenu);
-            Chosen?.Invoke(this);
+            var contextMenuManager = context.Get<ContextMenuManager>();
+            Debug.Assert(contextMenuManager != null);
+            return new ContextMenuItemDefaultKbmController(_contextMenuItem, contextMenuManager, () =>
+            {
+                var contextMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
+                Debug.Assert(contextMenu != null);
+                contextMenuManager.RequestCloseMenu(contextMenu);
+                Chosen?.Invoke(this);
+            });
         }));
-    }
-
-    protected override void OnDetachedFromContext(Context context)
-    {
-        context.Get<InputSystem>()?.UnregisterController(_contextMenuItem);
-        base.OnDetachedFromContext(context);
     }
 }

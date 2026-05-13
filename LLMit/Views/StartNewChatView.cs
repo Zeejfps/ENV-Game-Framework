@@ -67,20 +67,13 @@ public sealed class StartNewChatView : View
         };
 
         AddChildToSelf(layout);
-    }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        var contextMenuManager = context.Get<ContextMenuManager>();
-        System.Diagnostics.Debug.Assert(contextMenuManager != null);
-        context.Get<InputSystem>()!.RegisterController(_modelSelector, new ModelSelectorController(_modelSelector, contextMenuManager));
-    }
-
-    protected override void OnDetachedFromContext(Context context)
-    {
-        context.Get<InputSystem>()?.UnregisterController(_modelSelector);
-        base.OnDetachedFromContext(context);
+        _modelSelector.Behaviors.Add(new InputControllerBehavior((view, context) =>
+        {
+            var contextMenuManager = context.Get<ContextMenuManager>();
+            System.Diagnostics.Debug.Assert(contextMenuManager != null);
+            return new ModelSelectorController(_modelSelector, contextMenuManager);
+        }));
     }
 
     private void OnSubmit(ReadOnlySpan<char> text)

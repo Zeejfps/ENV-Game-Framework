@@ -89,25 +89,10 @@ public sealed class AppBar : View
         };
 
         AddChildToSelf(container);
-    }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        var inputSystem = context.Get<InputSystem>()!;
-        inputSystem.RegisterController(_fileItem, new FileMenuItemController(_fileItem, _contextMenuManager, _app));
-        inputSystem.RegisterController(_editItem, new TestMenuItemController(_editItem, _contextMenuManager));
-        inputSystem.RegisterController(_viewLabel, new TestMenuItemController(_viewLabel, _contextMenuManager));
-        inputSystem.RegisterController(_helpLabel, new TestMenuItemController(_helpLabel, _contextMenuManager));
-    }
-
-    protected override void OnDetachedFromContext(Context context)
-    {
-        var inputSystem = context.Get<InputSystem>();
-        inputSystem?.UnregisterController(_fileItem);
-        inputSystem?.UnregisterController(_editItem);
-        inputSystem?.UnregisterController(_viewLabel);
-        inputSystem?.UnregisterController(_helpLabel);
-        base.OnDetachedFromContext(context);
+        _fileItem.Behaviors.Add(new InputControllerBehavior(new FileMenuItemController(_fileItem, _contextMenuManager, _app)));
+        _editItem.Behaviors.Add(new InputControllerBehavior(new TestMenuItemController(_editItem, _contextMenuManager)));
+        _viewLabel.Behaviors.Add(new InputControllerBehavior(new TestMenuItemController(_viewLabel, _contextMenuManager)));
+        _helpLabel.Behaviors.Add(new InputControllerBehavior(new TestMenuItemController(_helpLabel, _contextMenuManager)));
     }
 }

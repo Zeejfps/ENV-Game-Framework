@@ -26,18 +26,8 @@ public sealed class VerticalListView : View
             Center = ScrollPaneView,
             East = ScrollBarView,
         });
-    }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        context.Get<InputSystem>()!.RegisterController(ScrollBarView, new VerticalScrollBarViewController(ScrollBarView));
-    }
-
-    protected override void OnDetachedFromContext(Context context)
-    {
-        context.Get<InputSystem>()?.UnregisterController(ScrollBarView);
-        base.OnDetachedFromContext(context);
+        ScrollBarView.Behaviors.Add(new InputControllerBehavior(new VerticalScrollBarViewController(ScrollBarView)));
     }
 
     public void Scroll(float delta)

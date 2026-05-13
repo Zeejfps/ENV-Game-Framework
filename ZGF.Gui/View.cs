@@ -17,14 +17,22 @@ public class View
             {
                 if (prevContext != null)
                 {
+                    foreach (var behavior in _behaviors)
+                    {
+                        behavior.OnDetachedFromContext(this, prevContext);
+                    }
                     OnDetachedFromContext(prevContext);
                 }
 
                 OnApplyContextToChildren(_context);
-                
+
                 if (_context != null)
                 {
                     OnAttachedToContext(_context);
+                    foreach (var behavior in _behaviors)
+                    {
+                        behavior.OnAttachedToContext(this, _context);
+                    }
                 }
             }
         }
@@ -32,7 +40,7 @@ public class View
 
     protected virtual void OnAttachedToContext(Context context)
     {
-   
+
     }
 
     protected virtual void OnDetachedFromContext(Context context)
@@ -162,15 +170,39 @@ public class View
     }
     
     public virtual IComponentCollection Children { get; }
-    public IStyleClassCollection StyleClasses { get; } 
+    public IStyleClassCollection StyleClasses { get; }
+    public IBehaviorCollection Behaviors { get; }
 
     private readonly List<View> _children = new();
     private readonly HashSet<string> _styleClasses = new();
+    private readonly List<IViewBehavior> _behaviors = new();
 
     public View()
     {
         Children = new ComponentCollection(this);
         StyleClasses = new StyleClassCollection(this);
+        Behaviors = new BehaviorCollection(this);
+    }
+
+    private void AddBehaviorToSelf(IViewBehavior behavior)
+    {
+        _behaviors.Add(behavior);
+        if (_context != null)
+        {
+            behavior.OnAttachedToContext(this, _context);
+        }
+    }
+
+    private bool RemoveBehaviorFromSelf(IViewBehavior behavior)
+    {
+        if (!_behaviors.Remove(behavior))
+            return false;
+
+        if (_context != null)
+        {
+            behavior.OnDetachedFromContext(this, _context);
+        }
+        return true;
     }
 
     protected void AddStyleClass(string classId)
@@ -648,6 +680,38 @@ public class View
         }
     }
     
+    private sealed class BehaviorCollection : IBehaviorCollection
+    {
+        private readonly View _view;
+
+        public BehaviorCollection(View view)
+        {
+            _view = view;
+        }
+
+        public IEnumerator<IViewBehavior> GetEnumerator()
+        {
+            return _view._behaviors.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public int Count => _view._behaviors.Count;
+
+        public void Add(IViewBehavior behavior)
+        {
+            _view.AddBehaviorToSelf(behavior);
+        }
+
+        public bool Remove(IViewBehavior behavior)
+        {
+            return _view.RemoveBehaviorFromSelf(behavior);
+        }
+    }
+
     private sealed class StyleClassCollection : IStyleClassCollection
     {
         private readonly View _view;

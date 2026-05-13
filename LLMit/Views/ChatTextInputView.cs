@@ -32,22 +32,12 @@ public sealed class ChatTextInputView : View
         };
 
         AddChildToSelf(bg);
-    }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        context.Get<InputSystem>()!.RegisterController(_textInput, new ChatTextInputViewController(_textInput)
+        _textInput.Behaviors.Add(new InputControllerBehavior(new ChatTextInputViewController(_textInput)
         {
             IsMultiLine = true,
             Submit = OnSubmit
-        });
-    }
-
-    protected override void OnDetachedFromContext(Context context)
-    {
-        context.Get<InputSystem>()?.UnregisterController(_textInput);
-        base.OnDetachedFromContext(context);
+        }));
     }
 
     private void OnSubmit(ReadOnlySpan<char> text)
