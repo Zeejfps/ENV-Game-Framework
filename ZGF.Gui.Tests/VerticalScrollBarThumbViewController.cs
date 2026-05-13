@@ -42,14 +42,16 @@ public sealed class VerticalScrollBarThumbViewController : KeyboardMouseControll
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
-        
+
+        var inputSystem = _view.Context?.Get<InputSystem>();
+
         if (!_isDragging &&
             e.Button == MouseButton.Left &&
             e.State == InputState.Pressed)
         {
             _isDragging = true;
             _startPoint = e.Mouse.Point;
-            _view.Context?.InputSystem.RequestFocus(this);
+            inputSystem?.RequestFocus(this);
             e.Consume();
             return;
         }
@@ -63,7 +65,7 @@ public sealed class VerticalScrollBarThumbViewController : KeyboardMouseControll
             {
                 _view.IsSelected = false;
             }
-            _view.Context?.InputSystem.Blur(this);
+            inputSystem?.Blur(this);
             return;
         }
     }

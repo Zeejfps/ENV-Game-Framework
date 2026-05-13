@@ -100,7 +100,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
 
         _openedContextMenu = _contextMenuManager.ShowContextMenu(contextMenu);
         _openedContextMenu.Closed += OnContextMenuClosed;
-        _modelSelector.Context?.InputSystem.RegisterController(contextMenu, new ContextMenuKbmController(_openedContextMenu));
+        _modelSelector.Context?.Get<InputSystem>()!.RegisterController(contextMenu, new ContextMenuKbmController(_openedContextMenu));
     }
 
     private void OnContextMenuClosed()

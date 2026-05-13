@@ -1,6 +1,6 @@
 namespace ZGF.Gui;
 
-public struct StyleValue<T>
+public record struct StyleValue<T>
 {
     public StyleValue(T? value)
     {

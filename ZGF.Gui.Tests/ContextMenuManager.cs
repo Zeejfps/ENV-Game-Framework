@@ -91,7 +91,7 @@ public sealed class ContextMenuManager
             var timestamp = menu.CloseTimestamp;
             if (now - timestamp > 100)
             {
-                Console.WriteLine($"Closing: {menu.GetHashCode()}");
+                //Console.WriteLine($"Closing: {menu.GetHashCode()}");
                 _contextMenuPane.Children.Remove(component);
                 _closingMenus.Remove(menu);
                 _openedMenus.Remove(component);

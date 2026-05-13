@@ -41,6 +41,8 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             return;
         }
 
+        var inputSystem = _contextMenuItem.Context?.Get<InputSystem>();
+
         if (SubOptions.Count > 0)
         {
             var subMenu = new ContextMenu
@@ -60,12 +62,12 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             if (_openedContextMenu != null)
             {
                 _openedContextMenu.Closed += OnOpenedContextMenuClosed;
-                _contextMenuItem.Context?.InputSystem.RegisterController(subMenu, new ContextMenuKbmController(_openedContextMenu));
+                inputSystem?.RegisterController(subMenu, new ContextMenuKbmController(_openedContextMenu));
             }
         }
-        
+
         _contextMenuItem.IsSelected = true;
-        _contextMenuItem.Context?.InputSystem.RequestFocus(this);
+        inputSystem?.RequestFocus(this);
     }
 
     private void OnOpenedContextMenuClosed()
@@ -76,7 +78,7 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             _openedContextMenu.Closed -=  OnOpenedContextMenuClosed;
             _openedContextMenu = null;
         }
-        _contextMenuItem.Context?.InputSystem.Blur(this);
+        _contextMenuItem.Context?.Get<InputSystem>()!.Blur(this);
     }
 
     public override void OnMouseExit(ref MouseExitEvent e)
@@ -89,7 +91,7 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
         {
             _contextMenuItem.IsSelected = false;
         }
-        _contextMenuItem.Context?.InputSystem.Blur(this);
+        _contextMenuItem.Context?.Get<InputSystem>()!.Blur(this);
     }
 
     public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)

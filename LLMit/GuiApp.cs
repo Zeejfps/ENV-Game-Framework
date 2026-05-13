@@ -47,10 +47,10 @@ public sealed class GuiApp : OpenGlApp
         
         var context = new Context
         {
-            InputSystem = _inputSystem,
             Canvas = _canvas
         };
 
+        context.AddService(_inputSystem);
         context.AddService(_contextMenuManager);
 #if OSX
         context.AddService<IClipboard>(new OsxClipboard());

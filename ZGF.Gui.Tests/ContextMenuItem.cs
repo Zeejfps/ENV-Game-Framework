@@ -29,11 +29,8 @@ public sealed class ContextMenuItem : View
         get => _selectedBackgroundColor;
         set
         {
-            _selectedBackgroundColor = value;
-            if (_isSelected)
-            {
-                _bg.BackgroundColor = _selectedBackgroundColor;
-            }
+            Console.WriteLine("SelectedBackgroundColor");
+            SetField(ref _selectedBackgroundColor, value);
         }
     }
 
@@ -69,6 +66,7 @@ public sealed class ContextMenuItem : View
             {
                 if (_isSelected)
                 {
+                    Console.Write(SelectedBackgroundColor);
                     _bg.BackgroundColor = SelectedBackgroundColor;
                 }
                 else
@@ -102,6 +100,7 @@ public sealed class ContextMenuItem : View
     public ContextMenuItem()
     {
         ZIndex = 2;
+        _selectedBackgroundColor= 0xFFE6E6E6;
 
         _arrowIcon = new ImageView
         {

@@ -37,7 +37,7 @@ public sealed class ChatTextInputView : View
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
-        context.InputSystem.RegisterController(_textInput, new ChatTextInputViewController(_textInput)
+        context.Get<InputSystem>()!.RegisterController(_textInput, new ChatTextInputViewController(_textInput)
         {
             IsMultiLine = true,
             Submit = OnSubmit

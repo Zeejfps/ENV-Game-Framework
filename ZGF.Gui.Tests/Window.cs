@@ -106,7 +106,7 @@ public sealed class Window : View
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
-        context.InputSystem.RegisterController(_titlePanel, new WindowTitleBarDefaultKbmController(this, _titlePanel));
+        context.Get<InputSystem>()!.RegisterController(_titlePanel, new WindowTitleBarDefaultKbmController(this, _titlePanel));
     }
 
     protected override void OnLayoutSelf()

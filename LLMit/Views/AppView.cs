@@ -81,7 +81,7 @@ public sealed class CenterArea : View
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
-        context.InputSystem.RegisterController(_newChatTabView, new TabViewController(_newChatTabView));
+        context.Get<InputSystem>()!.RegisterController(_newChatTabView, new TabViewController(_newChatTabView));
     }
 
     private void StartNewChat(string? model, ReadOnlySpan<char> text)
@@ -93,7 +93,7 @@ public sealed class CenterArea : View
             IsActive = true,
         };
         _tabBarView.Children.Add(tabView);
-        Context?.InputSystem.RegisterController(tabView, new TabViewController(tabView));
+        Context?.Get<InputSystem>()!.RegisterController(tabView, new TabViewController(tabView));
         _tabContentsView.Children.Clear();
     }
 }

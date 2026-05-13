@@ -39,10 +39,11 @@ public sealed class Center : View
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
-        context.InputSystem.RegisterController(_w1, new WindowDefaultKbmController(_w1));
-        context.InputSystem.RegisterController(_w3, new WindowDefaultKbmController(_w3));
-        context.InputSystem.RegisterController(_textInput, new TextInputViewKbmController(_textInput));
-        context.InputSystem.RegisterController(_listView, new DefaultVerticalListViewKbmController(_listView));
+        var inputSystem = context.Get<InputSystem>()!;
+        inputSystem.RegisterController(_w1, new WindowDefaultKbmController(_w1));
+        inputSystem.RegisterController(_w3, new WindowDefaultKbmController(_w3));
+        inputSystem.RegisterController(_textInput, new TextInputViewKbmController(_textInput));
+        inputSystem.RegisterController(_listView, new DefaultVerticalListViewKbmController(_listView));
     }
 
     private (TextInputView, VerticalListView) BuildWindow(Window window)

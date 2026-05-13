@@ -12,19 +12,19 @@ public sealed class TestMenuItemController : BaseMenuItemController
     {
         contextMenu.Children.Add(new ContextMenuItem
         {
-            Text = "Option 1"
+            Text = "Option 1",
         });
         contextMenu.Children.Add(new ContextMenuItem
         {
-            Text = "Option 2"
+            Text = "Option 2",
         });
 
         var option3Menu = new ContextMenuItem
         {
-            Text = "Option 3"
+            Text = "Option 3",
         };
         contextMenu.Children.Add(option3Menu);
-        MenuItem.Context?.InputSystem.RegisterController(option3Menu, new ContextMenuItemDefaultKbmController(option3Menu, _contextMenuManager)
+        MenuItem.Context?.Get<InputSystem>()!.RegisterController(option3Menu, new ContextMenuItemDefaultKbmController(option3Menu, _contextMenuManager)
         {
             SubOptions =
             {
@@ -44,7 +44,8 @@ public sealed class TestMenuItemController : BaseMenuItemController
         });
         contextMenu.Children.Add(new ContextMenuItem
         {
-            Text = "Option 4"
+            SelectedBackgroundColor = 0xFFF0F0F0,
+            Text = "Option 4",
         });
     }
 }

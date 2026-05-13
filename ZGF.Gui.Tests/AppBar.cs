@@ -94,9 +94,10 @@ public sealed class AppBar : View
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
-        context.InputSystem.RegisterController(_fileItem, new FileMenuItemController(_fileItem, _contextMenuManager, _app));
-        context.InputSystem.RegisterController(_editItem, new TestMenuItemController(_editItem, _contextMenuManager));
-        context.InputSystem.RegisterController(_viewLabel, new TestMenuItemController(_viewLabel, _contextMenuManager));
-        context.InputSystem.RegisterController(_helpLabel, new TestMenuItemController(_helpLabel, _contextMenuManager));
+        var inputSystem = context.Get<InputSystem>()!;
+        inputSystem.RegisterController(_fileItem, new FileMenuItemController(_fileItem, _contextMenuManager, _app));
+        inputSystem.RegisterController(_editItem, new TestMenuItemController(_editItem, _contextMenuManager));
+        inputSystem.RegisterController(_viewLabel, new TestMenuItemController(_viewLabel, _contextMenuManager));
+        inputSystem.RegisterController(_helpLabel, new TestMenuItemController(_helpLabel, _contextMenuManager));
     }
 }

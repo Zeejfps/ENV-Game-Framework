@@ -74,7 +74,7 @@ public sealed class StartNewChatView : View
         base.OnAttachedToContext(context);
         var contextMenuManager = context.Get<ContextMenuManager>();
         System.Diagnostics.Debug.Assert(contextMenuManager != null);
-        context.InputSystem.RegisterController(_modelSelector, new ModelSelectorController(_modelSelector, contextMenuManager));
+        context.Get<InputSystem>()!.RegisterController(_modelSelector, new ModelSelectorController(_modelSelector, contextMenuManager));
     }
 
     private void OnSubmit(ReadOnlySpan<char> text)
