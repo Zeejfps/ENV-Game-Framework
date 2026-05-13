@@ -6,9 +6,9 @@ using ZGF.Core;
 using ZGF.Geometry;
 using ZGF.Gui.Layouts;
 using ZGF.KeyboardModule.GlfwAdapter;
-using ZGF.WavefrontObjModule;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
+using MouseButton = ZGF.Inputs.Mouse.MouseButton;
 
 namespace ZGF.Gui.Tests;
 

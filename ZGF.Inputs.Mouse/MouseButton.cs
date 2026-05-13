@@ -1,4 +1,4 @@
-namespace ZGF.Gui;
+namespace ZGF.Inputs.Mouse;
 
 
 public readonly record struct MouseButton
@@ -17,11 +17,11 @@ public readonly record struct MouseButton
     public override string ToString()
     {
         if (ButtonId == Left.ButtonId)
-            return $"Button[{ButtonId}] - Left";
+            return $"[{ButtonId}] - Left";
         if (ButtonId == Right.ButtonId)
-            return $"Button[{ButtonId}] - Right";
+            return $"[{ButtonId}] - Right";
         if (ButtonId == Middle.ButtonId)
-            return $"Button[{ButtonId}] - Middle";
+            return $"[{ButtonId}] - Middle";
 
         return $"[{ButtonId}]";
     }

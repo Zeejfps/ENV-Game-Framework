@@ -1,6 +1,6 @@
 ﻿using ZGF.Geometry;
 
-namespace ZGF.Gui;
+namespace ZGF.Inputs.Mouse;
 
 public interface IMouse
 {

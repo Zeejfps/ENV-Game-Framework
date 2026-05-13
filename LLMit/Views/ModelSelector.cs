@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using ZGF.Gui;
 using ZGF.Gui.Tests;
+using ZGF.Inputs.Mouse;
 
 namespace LLMit.Views;
 

@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using ZGF.Inputs.Mouse;
 using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Tests;

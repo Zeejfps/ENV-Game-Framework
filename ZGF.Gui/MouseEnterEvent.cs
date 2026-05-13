@@ -1,3 +1,5 @@
+using ZGF.Inputs.Mouse;
+
 namespace ZGF.Gui;
 
 public struct MouseEnterEvent : IEvent
