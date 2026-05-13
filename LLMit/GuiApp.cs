@@ -1,40 +1,27 @@
-﻿using GLFW;
+using GLFW;
 using ZGF.AppUtils;
 using ZGF.Core;
-using ZGF.Geometry;
 using ZGF.Gui;
 using ZGF.Gui.Tests;
-using ZGF.KeyboardModule.GlfwAdapter;
 using static GL46;
-using InputState = ZGF.Gui.InputState;
-using MouseButton = ZGF.Gui.MouseButton;
 
 namespace LLMit;
 
 public sealed class GuiApp : OpenGlApp
 {
-    private readonly InputSystem _inputSystem;
-    private readonly GlImageManager _imageManager;
+    private readonly GlfwInputSystem _inputSystem;
     private readonly OpenGlRenderedCanvas _canvas;
     private readonly View _gui;
-    private readonly Mouse _mouse = new();
-    
-    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
-    private readonly KeyCallback _keyCallback;
-    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
-    private readonly MouseButtonCallback _mouseButtonCallback;
+
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly SizeCallback _windowSizeCallback;
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly SizeCallback _framebufferSizeCallback;
-    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
-    private readonly MouseCallback _scrollCallback;
     private readonly ContextMenuManager _contextMenuManager;
 
     public GuiApp(StartupConfig startupConfig, View content) : base(startupConfig)
     {
-        _inputSystem = new InputSystem();
-        _imageManager = new GlImageManager();
+        var imageManager = new GlImageManager();
         var contextMenuPane = new View();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
         var fontFilePath = PathUtils.ResolveLocalPath("Assets/Fonts/Charcoal/Charcoal_p20.xml");
@@ -43,15 +30,17 @@ public sealed class GuiApp : OpenGlApp
             startupConfig.WindowWidth,
             startupConfig.WindowHeight,
             bitmapFont,
-            _imageManager
+            imageManager
         );
-        
+
+        _inputSystem = new GlfwInputSystem(WindowHandle, _canvas);
+
         var context = new Context
         {
             Canvas = _canvas
         };
 
-        context.AddService(_inputSystem);
+        context.AddService(_inputSystem.InputSystem);
         context.AddService(_contextMenuManager);
 #if OSX
         context.AddService<IClipboard>(new OsxClipboard());
@@ -60,7 +49,7 @@ public sealed class GuiApp : OpenGlApp
 #else
         context.AddService<IClipboard>(new AppClipboard());
 #endif
-        
+
         _gui = new View
         {
             PreferredWidth = _canvas.Width,
@@ -72,17 +61,11 @@ public sealed class GuiApp : OpenGlApp
                 contextMenuPane,
             }
         };
-        
-        _keyCallback = HandleKeyEvent;
-        _mouseButtonCallback = HandleMouseButtonEvent;
+
         _windowSizeCallback = HandleWindowSizeChanged;
         _framebufferSizeCallback = HandleFramebufferSizeChanged;
-        _scrollCallback = HandleScrollEvent;
-        Glfw.SetKeyCallback(WindowHandle, _keyCallback);
-        Glfw.SetMouseButtonCallback(WindowHandle, _mouseButtonCallback);
         Glfw.SetWindowSizeCallback(WindowHandle, _windowSizeCallback);
         Glfw.SetFramebufferSizeCallback(WindowHandle, _framebufferSizeCallback);
-        Glfw.SetScrollCallback(WindowHandle, _scrollCallback);
 
         glClearColor(0, 0, 0, 0);
     }
@@ -90,19 +73,7 @@ public sealed class GuiApp : OpenGlApp
     protected override void OnUpdate()
     {
         Render();
-        Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
-        var guiPoint = WindowToGuiCoords(mouseX, mouseY);
-        var prevPoint = _mouse.Point;
-        _mouse.Point = guiPoint;
-        if (prevPoint != guiPoint)
-        {
-            var mouseMovedEvent = new MouseMoveEvent
-            {
-                Mouse = _mouse,
-                Phase = EventPhase.Capturing,
-            };
-            _inputSystem.SendMouseMovedEvent(ref mouseMovedEvent);
-        }
+        _inputSystem.Update();
         _contextMenuManager.Update();
     }
 
@@ -112,18 +83,6 @@ public sealed class GuiApp : OpenGlApp
 
     protected override void DisposeUnmanagedResources()
     {
-    }
-    
-    private void HandleScrollEvent(GLFW.Window window, double x, double y)
-    {
-        var e = new MouseWheelScrolledEvent
-        {
-            Mouse = _mouse,
-            DeltaX = (float)x,
-            DeltaY = (float)y,
-            Phase = EventPhase.Capturing
-        };
-        _inputSystem.SendMouseScrollEvent(ref e);
     }
 
     private void HandleWindowSizeChanged(GLFW.Window window, int width, int height)
@@ -140,79 +99,13 @@ public sealed class GuiApp : OpenGlApp
         glViewport(0, 0, width, height);
     }
 
-    private void HandleMouseButtonEvent(GLFW.Window window, GLFW.MouseButton button, GLFW.InputState state, ModifierKeys modifiers)
-    {
-        var b = button switch
-        {
-            GLFW.MouseButton.Left => MouseButton.Left,
-            GLFW.MouseButton.Right => MouseButton.Right,
-            GLFW.MouseButton.Middle => MouseButton.Middle,
-            _ => new MouseButton((int)button),
-        };
-        var s = state switch
-        {
-            GLFW.InputState.Press => InputState.Pressed,
-            GLFW.InputState.Release => InputState.Released,
-            GLFW.InputState.Repeat => InputState.Pressed,
-            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
-        };
-
-        if (s == InputState.Pressed)
-        {
-            _mouse.Press(b);
-        }
-        else
-        {
-            _mouse.Release(b);
-        }
-        
-        var e = new MouseButtonEvent
-        {
-            Mouse = _mouse,
-            Button = b,
-            State = s,
-            Phase = EventPhase.Capturing,
-        };
-        _inputSystem.SendMouseButtonEvent(ref e);
-    }
-
-    private void HandleKeyEvent(GLFW.Window window, Keys key, int scanCode, GLFW.InputState state, ModifierKeys mods)
-    {
-        var s = state switch
-        {
-            GLFW.InputState.Press => InputState.Pressed,
-            GLFW.InputState.Release => InputState.Released,
-            GLFW.InputState.Repeat => InputState.Pressed,
-            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
-        };
-
-        var e = new KeyboardKeyEvent
-        {
-            Key = key.Adapt(),
-            State = s,
-            Modifiers = (InputModifiers)mods,
-            Phase = EventPhase.Capturing
-        };
-        _inputSystem.SendKeyboardKeyEvent(ref e);
-    }
-
     private void Render()
     {
         glClear(GL_COLOR_BUFFER_BIT);
-        
+
         _canvas.BeginFrame();
         _gui.LayoutSelf();
         _gui.DrawSelf();
         _canvas.EndFrame();
-    }
-    
-    private PointF WindowToGuiCoords(double windowX, double windowY)
-    {
-        Glfw.GetWindowSize(WindowHandle, out var width, out var height);
-        var scaleX = _canvas.Width / (float)width;
-        var scaleY = _canvas.Height / (float)height;
-        var screenX = windowX * scaleX;
-        var screenY = (height - windowY) * scaleY;
-        return new PointF((float)screenX, (float)screenY);
     }
 }
