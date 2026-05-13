@@ -17,6 +17,7 @@ public sealed class GuiApp : OpenGlApp
     private readonly GlImageManager _imageManager;
     private readonly OpenGlRenderedCanvas _canvas;
     private readonly View _gui;
+    private readonly Mouse _mouse = new();
     
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly KeyCallback _keyCallback;
@@ -91,8 +92,17 @@ public sealed class GuiApp : OpenGlApp
         Render();
         Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
         var guiPoint = WindowToGuiCoords(mouseX, mouseY);
-        _inputSystem.UpdateMousePosition(guiPoint);
-        _inputSystem.Update();
+        var prevPoint = _mouse.Point;
+        _mouse.Point = guiPoint;
+        if (prevPoint != guiPoint)
+        {
+            var mouseMovedEvent = new MouseMoveEvent
+            {
+                Mouse = _mouse,
+                Phase = EventPhase.Capturing,
+            };
+            _inputSystem.SendMouseMovedEvent(ref mouseMovedEvent);
+        }
         _contextMenuManager.Update();
     }
 
@@ -108,7 +118,7 @@ public sealed class GuiApp : OpenGlApp
     {
         var e = new MouseWheelScrolledEvent
         {
-            Mouse = _inputSystem,
+            Mouse = _mouse,
             DeltaX = (float)x,
             DeltaY = (float)y,
             Phase = EventPhase.Capturing
@@ -147,9 +157,18 @@ public sealed class GuiApp : OpenGlApp
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
         };
 
+        if (s == InputState.Pressed)
+        {
+            _mouse.Press(b);
+        }
+        else
+        {
+            _mouse.Release(b);
+        }
+        
         var e = new MouseButtonEvent
         {
-            Mouse = _inputSystem,
+            Mouse = _mouse,
             Button = b,
             State = s,
             Phase = EventPhase.Capturing,

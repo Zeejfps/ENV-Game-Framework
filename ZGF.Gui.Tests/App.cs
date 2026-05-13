@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
+using EasyGameFramework.Api.Events;
 using GLFW;
 using OpenGL.NET;
 using ZGF.Core;
@@ -26,6 +27,7 @@ public sealed class App : OpenGlApp
     private readonly BitmapFont _bitmapFont;
     private readonly ContextMenuManager _contextMenuManager;
     private readonly GlImageManager _imageManager;
+    private readonly Mouse _mouse = new();
 
     private GlFrameBufferHandle _frameBufferHandle;
     private ImageView _modelView;
@@ -173,7 +175,7 @@ public sealed class App : OpenGlApp
     {
         var e = new MouseWheelScrolledEvent
         {
-            Mouse = _inputSystem,
+            Mouse = _mouse,
             DeltaX = (float)x,
             DeltaY = (float)y,
             Phase = EventPhase.Capturing
@@ -224,9 +226,17 @@ public sealed class App : OpenGlApp
         };
 
         //var guiPoint = WindowToGuiCoords(windowX, windowY);
+        if (s == InputState.Pressed)
+        {
+            _mouse.Press(b);
+        }
+        else
+        {
+            _mouse.Release(b);
+        }
         var e = new MouseButtonEvent
         {
-            Mouse = _inputSystem,
+            Mouse = _mouse,
             Button = b,
             State = s,
             Phase = EventPhase.Capturing,
@@ -270,8 +280,13 @@ public sealed class App : OpenGlApp
         Render();
         Glfw.GetCursorPosition(WindowHandle, out var mouseX, out var mouseY);
         var guiPoint = WindowToGuiCoords(mouseX, mouseY);
-        _inputSystem.UpdateMousePosition(guiPoint);
-        _inputSystem.Update();
+        _mouse.Point = guiPoint;
+        var mouseMoveEvent = new MouseMoveEvent
+        {
+            Mouse = _mouse,
+            Phase = EventPhase.Capturing,
+        };
+        _inputSystem.SendMouseMovedEvent(ref mouseMoveEvent);
         _contextMenuManager.Update();
         
         ++_frames;

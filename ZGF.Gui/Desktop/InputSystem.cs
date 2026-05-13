@@ -2,7 +2,7 @@
 
 namespace ZGF.Gui;
 
-public sealed class InputSystem : IMouse
+public sealed class InputSystem
 {
     private readonly record struct ControllerRegistration(
         IKeyboardMouseController Controller,
@@ -11,7 +11,6 @@ public sealed class InputSystem : IMouse
 
     private readonly HashSet<IKeyboardMouseController> _hoverableComponents = new();
     private readonly LinkedList<IKeyboardMouseController> _focusQueue = new();
-    private readonly HashSet<MouseButton> _pressedMouseButtons = new();
     private readonly Dictionary<View, ControllerRegistration> _viewToController = new();
     private readonly Dictionary<IKeyboardMouseController, View> _controllerToView = new();
 
@@ -126,15 +125,6 @@ public sealed class InputSystem : IMouse
 
     public void SendMouseButtonEvent(ref MouseButtonEvent e)
     {
-        if (e.State == InputState.Pressed)
-        {
-            _pressedMouseButtons.Add(e.Button);
-        }
-        else
-        {
-            _pressedMouseButtons.Remove(e.Button);
-        }
-
         e.Phase = EventPhase.Bubbling;
         if (_focusedComponent != null)
         {
@@ -222,43 +212,9 @@ public sealed class InputSystem : IMouse
             }
         }
     }
-    
-    public void UpdateMousePosition(in PointF point)
+
+    public void SendMouseMovedEvent(ref MouseMoveEvent e)
     {
-        Point = point;
-
-        var consumed = SendMouseMovedEvent();
-        if (consumed)
-            return;
-        
-        var hitComponent = HitTest(Point);
-        if (_hoveredComponent != hitComponent)
-        {
-            var prevHoveredComponent = _hoveredComponent;
-            _hoveredComponent = hitComponent;
-
-            if (prevHoveredComponent != null)
-            {
-                SendMouseExitEvent();
-            }
-
-            _focusQueue.Clear();
-            if (_hoveredComponent != null)
-            {
-                BuildPath(_hoveredComponent);
-                SendMouseEnterEvent();
-            }
-        }
-    }
-
-    private bool SendMouseMovedEvent()
-    {
-        var e = new MouseMoveEvent
-        {
-            Mouse = this,
-            Phase = EventPhase.Bubbling
-        };
-
         if (_focusedComponent != null)
         {
             var filter = GetPhaseFilter(_focusedComponent);
@@ -267,7 +223,7 @@ public sealed class InputSystem : IMouse
                 _focusedComponent.OnMouseMoved(ref e);
                 if (e.IsConsumed)
                 {
-                    return true;
+                    return;
                 }
             }
         }
@@ -281,7 +237,7 @@ public sealed class InputSystem : IMouse
                 ctrl.OnMouseMoved(ref e);
                 if (e.IsConsumed)
                 {
-                    return true;
+                    return;
                 }
             }
         }
@@ -295,22 +251,43 @@ public sealed class InputSystem : IMouse
                 ctrl.OnMouseMoved(ref e);
                 if (e.IsConsumed)
                 {
-                    return true;
+                    return;
                 }
             }
         }
 
-        return false;
+        var hitComponent = HitTest(e.Mouse.Point);
+        if (_hoveredComponent != hitComponent)
+        {
+            var prevHoveredComponent = _hoveredComponent;
+            _hoveredComponent = hitComponent;
+
+            if (prevHoveredComponent != null)
+            {
+                var mouseExitEvent = new MouseExitEvent
+                {
+                    Mouse = e.Mouse,
+                    Phase = EventPhase.Capturing,
+                };
+                SendMouseExitEvent(ref mouseExitEvent);
+            }
+
+            _focusQueue.Clear();
+            if (_hoveredComponent != null)
+            {
+                BuildPath(_hoveredComponent);
+                var mouseEnterEvent = new MouseEnterEvent
+                {
+                    Mouse = e.Mouse,
+                    Phase = EventPhase.Capturing,
+                };
+                SendMouseEnterEvent(ref mouseEnterEvent);
+            }
+        }
     }
 
-    private void SendMouseExitEvent()
+    private void SendMouseExitEvent(ref MouseExitEvent e)
     {
-        var e = new MouseExitEvent
-        {
-            Mouse = this,
-            Phase = EventPhase.Capturing
-        };
-
         foreach (var ctrl in _focusQueue)
         {
             var filter = GetPhaseFilter(ctrl);
@@ -339,14 +316,8 @@ public sealed class InputSystem : IMouse
         }
     }
 
-    private void SendMouseEnterEvent()
+    private void SendMouseEnterEvent(ref MouseEnterEvent e)
     {
-        var e = new MouseEnterEvent
-        {
-            Mouse = this,
-            Phase = EventPhase.Capturing
-        };
-
         foreach (var ctrl in _focusQueue)
         {
             var filter = GetPhaseFilter(ctrl);
@@ -393,7 +364,7 @@ public sealed class InputSystem : IMouse
         if (components.Count == 0)
             return null;
 
-        components.Sort((x, y) => CompareByZIndex(x, y));
+        components.Sort(CompareByZIndex);
         return components[0];
     }
 
@@ -440,11 +411,6 @@ public sealed class InputSystem : IMouse
         }
         
         component.OnFocusGained();
-    }
-    
-    public void Update()
-    {
-  
     }
 
     private void BuildPath(IKeyboardMouseController current)
@@ -495,16 +461,4 @@ public sealed class InputSystem : IMouse
             return false;
         return focused.Value == component;
     }
-
-
-    #region IMouse
-    
-    public PointF Point { get; private set; }
-    
-    public bool IsButtonPressed(MouseButton button)
-    {
-        return _pressedMouseButtons.Contains(button);
-    }
-    
-    #endregion
 }
