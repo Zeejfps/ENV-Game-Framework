@@ -15,10 +15,9 @@ public abstract class BaseMenuItemController : KeyboardMouseController
         MenuItem = menuItem;
     }
 
-    public override void OnAttachedToContext(View view, Context context)
+    protected override void OnAttachedToContext(View view, Context context)
     {
         _contextMenuManager = context.Get<ContextMenuManager>();
-        base.OnAttachedToContext(view, context);
     }
 
     public override void OnDetached()

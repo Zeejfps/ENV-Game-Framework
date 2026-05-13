@@ -4,14 +4,24 @@ public abstract class KeyboardMouseController : IKeyboardMouseController, IViewB
 {
     protected virtual EventPhaseFilter PhaseFilter => EventPhaseFilter.Both;
 
-    public virtual void OnAttachedToContext(View view, Context context)
+    public void AttachToContext(View view, Context context)
     {
         context.Get<InputSystem>()!.RegisterController(view, this, PhaseFilter);
+        OnAttachedToContext(view, context);
     }
 
-    public virtual void OnDetachedFromContext(View view, Context context)
+    public void DetachFromContext(View view, Context context)
     {
+        OnDetachedFromContext(view, context);
         context.Get<InputSystem>()?.UnregisterController(view);
+    }
+
+    protected virtual void OnAttachedToContext(View view, Context context)
+    {
+    }
+
+    protected virtual void OnDetachedFromContext(View view, Context context)
+    {
     }
 
     public virtual void OnAttached()

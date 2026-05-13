@@ -19,7 +19,7 @@ public class View
                 {
                     foreach (var behavior in _behaviors)
                     {
-                        behavior.OnDetachedFromContext(this, prevContext);
+                        behavior.DetachFromContext(this, prevContext);
                     }
                     OnDetachedFromContext(prevContext);
                 }
@@ -31,7 +31,7 @@ public class View
                     OnAttachedToContext(_context);
                     foreach (var behavior in _behaviors)
                     {
-                        behavior.OnAttachedToContext(this, _context);
+                        behavior.AttachToContext(this, _context);
                     }
                 }
             }
@@ -189,7 +189,7 @@ public class View
         _behaviors.Add(behavior);
         if (_context != null)
         {
-            behavior.OnAttachedToContext(this, _context);
+            behavior.AttachToContext(this, _context);
         }
     }
 
@@ -200,7 +200,7 @@ public class View
 
         if (_context != null)
         {
-            behavior.OnDetachedFromContext(this, _context);
+            behavior.DetachFromContext(this, _context);
         }
         return true;
     }

@@ -53,11 +53,10 @@ public sealed class ModelSelectorController : KeyboardMouseController
         _modelSelector = modelSelector;
     }
 
-    public override void OnAttachedToContext(View view, Context context)
+    protected override void OnAttachedToContext(View view, Context context)
     {
         _contextMenuManager = context.Get<ContextMenuManager>();
         Debug.Assert(_contextMenuManager != null);
-        base.OnAttachedToContext(view, context);
     }
 
     public override void OnMouseExit(ref MouseExitEvent e)
