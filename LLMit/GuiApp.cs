@@ -14,8 +14,8 @@ namespace LLMit;
 public sealed class GuiApp : OpenGlApp
 {
     private readonly InputSystem _inputSystem;
-    private readonly ImageManager _imageManager;
-    private readonly SoftwareRenderedCanvas _canvas;
+    private readonly GlImageManager _imageManager;
+    private readonly OpenGlRenderedCanvas _canvas;
     private readonly View _gui;
     
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
@@ -33,12 +33,12 @@ public sealed class GuiApp : OpenGlApp
     public GuiApp(StartupConfig startupConfig, View content) : base(startupConfig)
     {
         _inputSystem = new InputSystem();
-        _imageManager = new ImageManager();
+        _imageManager = new GlImageManager();
         var contextMenuPane = new View();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
         var fontFilePath = PathUtils.ResolveLocalPath("Assets/Fonts/Charcoal/Charcoal_p20.xml");
         var bitmapFont = BitmapFont.LoadFromFile(fontFilePath);
-        _canvas = new SoftwareRenderedCanvas(
+        _canvas = new OpenGlRenderedCanvas(
             startupConfig.WindowWidth,
             startupConfig.WindowHeight,
             bitmapFont,
