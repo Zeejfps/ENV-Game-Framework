@@ -1,6 +1,6 @@
 ﻿namespace ZGF.Gui;
 
-public interface IKeyboardMouseController : IController
+public interface IKeyboardMouseController
 {
     void OnMouseEnter(ref MouseEnterEvent e);
     void OnMouseExit(ref MouseExitEvent e);

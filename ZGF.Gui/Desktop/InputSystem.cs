@@ -27,7 +27,6 @@ public sealed class InputSystem : IMouse
         _viewToController[view] = new ControllerRegistration(controller, phaseFilter);
         _controllerToView[controller] = view;
         AddInteractable(controller);
-        controller.OnAttached();
     }
 
     public void UnregisterController(View view)
@@ -35,7 +34,6 @@ public sealed class InputSystem : IMouse
         if (_viewToController.Remove(view, out var registration))
         {
             _controllerToView.Remove(registration.Controller);
-            registration.Controller.OnDetached();
             RemoveInteractable(registration.Controller);
         }
     }

@@ -11,14 +11,6 @@ public sealed class WindowResizerDefaultKbmController : IKeyboardMouseController
         _resizer = resizer;
     }
 
-    public void OnAttached()
-    {
-    }
-
-    public void OnDetached()
-    {
-    }
-
     public void OnMouseEnter(ref MouseEnterEvent e)
     {
         _resizer.BackgroundColor = 0x9C9CCE;

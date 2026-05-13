@@ -16,10 +16,8 @@ public sealed class DefaultVerticalListViewKbmController : KeyboardMouseControll
     }
 
 
-    public override void OnAttached()
+    protected override void OnAttachedToContext(View view, Context context)
     {
-        base.OnAttached();
-
         _viewPortView.ScrollToTop();
         _scrollBarView.ScrollToTop();
 
@@ -27,9 +25,8 @@ public sealed class DefaultVerticalListViewKbmController : KeyboardMouseControll
         _viewPortView.ScrollPositionChanged += OnScrollPaneScrollPositionChanged;
     }
 
-    public override void OnDetached()
+    protected override void OnDetachedFromContext(View view, Context context)
     {
-        base.OnDetached();
         _scrollBarView.ScrollPositionChanged -= OnScrollBarScrollPositionChanged;
         _viewPortView.ScrollPositionChanged -= OnScrollPaneScrollPositionChanged;
     }

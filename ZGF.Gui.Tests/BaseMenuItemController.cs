@@ -7,8 +7,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController
 
     private ContextMenu? _contextMenu;
     private IOpenedContextMenu? _openedContextMenu;
-    private InputSystem? _menuInputSystem;
-    private readonly List<View> _menuRegistrations = new();
+    private readonly List<(View View, KeyboardMouseController Controller)> _menuRegistrations = new();
 
     protected BaseMenuItemController(MenuItem menuItem)
     {
@@ -20,7 +19,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController
         _contextMenuManager = context.Get<ContextMenuManager>();
     }
 
-    public override void OnDetached()
+    protected override void OnDetachedFromContext(View view, Context context)
     {
         if (_openedContextMenu != null)
         {
@@ -28,7 +27,6 @@ public abstract class BaseMenuItemController : KeyboardMouseController
             _openedContextMenu = null;
         }
         UnregisterMenuControllers();
-        base.OnDetached();
     }
 
     public override void OnMouseEnter(ref MouseEnterEvent e)
@@ -43,7 +41,6 @@ public abstract class BaseMenuItemController : KeyboardMouseController
         {
             AnchorPoint = MenuItem.Position.BottomLeft
         };
-        _menuInputSystem = MenuItem.Context?.Get<InputSystem>();
         BuildMenu(_contextMenu);
 
         _openedContextMenu = _contextMenuManager!.ShowContextMenu(_contextMenu);
@@ -55,23 +52,19 @@ public abstract class BaseMenuItemController : KeyboardMouseController
         }
     }
 
-    protected void RegisterMenuController(View view, IKeyboardMouseController controller)
+    protected void RegisterMenuController(View view, KeyboardMouseController controller)
     {
-        _menuInputSystem?.RegisterController(view, controller);
-        _menuRegistrations.Add(view);
+        view.Behaviors.Add(controller);
+        _menuRegistrations.Add((view, controller));
     }
 
     private void UnregisterMenuControllers()
     {
-        if (_menuInputSystem != null)
+        foreach (var (view, controller) in _menuRegistrations)
         {
-            foreach (var view in _menuRegistrations)
-            {
-                _menuInputSystem.UnregisterController(view);
-            }
+            view.Behaviors.Remove(controller);
         }
         _menuRegistrations.Clear();
-        _menuInputSystem = null;
     }
 
     private void OnOpenedContextMenuClosed()

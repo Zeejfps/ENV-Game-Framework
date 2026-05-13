@@ -24,14 +24,6 @@ public abstract class KeyboardMouseController : IKeyboardMouseController, IViewB
     {
     }
 
-    public virtual void OnAttached()
-    {
-    }
-
-    public virtual void OnDetached()
-    {
-    }
-
     public virtual void OnMouseEnter(ref MouseEnterEvent e)
     {
     }
