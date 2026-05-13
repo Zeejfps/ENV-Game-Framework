@@ -1,5 +1,3 @@
-using ZGF.Inputs.Mouse;
-
 namespace ZGF.Gui.Tests;
 
 public sealed class VerticalScrollBarViewController : KeyboardMouseController

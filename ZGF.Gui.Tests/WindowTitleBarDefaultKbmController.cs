@@ -1,5 +1,4 @@
 ﻿using ZGF.Geometry;
-using ZGF.Inputs.Mouse;
 
 namespace ZGF.Gui.Tests;
 

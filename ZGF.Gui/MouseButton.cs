@@ -1,4 +1,4 @@
-namespace ZGF.Inputs.Mouse;
+namespace ZGF.Gui;
 
 
 public readonly record struct MouseButton

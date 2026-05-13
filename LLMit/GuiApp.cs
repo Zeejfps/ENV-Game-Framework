@@ -7,7 +7,7 @@ using ZGF.Gui.Tests;
 using ZGF.KeyboardModule.GlfwAdapter;
 using static GL46;
 using InputState = ZGF.Gui.InputState;
-using MouseButton = ZGF.Inputs.Mouse.MouseButton;
+using MouseButton = ZGF.Gui.MouseButton;
 
 namespace LLMit;
 

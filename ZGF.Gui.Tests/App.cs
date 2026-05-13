@@ -8,7 +8,7 @@ using ZGF.Gui.Layouts;
 using ZGF.KeyboardModule.GlfwAdapter;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
-using MouseButton = ZGF.Inputs.Mouse.MouseButton;
+using MouseButton = ZGF.Gui.MouseButton;
 
 namespace ZGF.Gui.Tests;
 
