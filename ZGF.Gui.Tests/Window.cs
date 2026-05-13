@@ -102,7 +102,7 @@ public sealed class Window : View
         };
         AddChildToSelf(outline);
 
-        _titlePanel.Behaviors.Add(new InputControllerBehavior(new WindowTitleBarDefaultKbmController(this, _titlePanel)));
+        _titlePanel.Behaviors.Add(new WindowTitleBarDefaultKbmController(this, _titlePanel));
     }
 
     protected override void OnLayoutSelf()

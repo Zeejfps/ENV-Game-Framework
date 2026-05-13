@@ -27,7 +27,7 @@ public sealed class VerticalListView : View
             East = ScrollBarView,
         });
 
-        ScrollBarView.Behaviors.Add(new InputControllerBehavior(new VerticalScrollBarViewController(ScrollBarView)));
+        ScrollBarView.Behaviors.Add(new VerticalScrollBarViewController(ScrollBarView));
     }
 
     public void Scroll(float delta)

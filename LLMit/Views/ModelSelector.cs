@@ -42,16 +42,22 @@ public sealed class ModelSelector : View
 public sealed class ModelSelectorController : KeyboardMouseController
 {
     private readonly ModelSelector _modelSelector;
-    private readonly ContextMenuManager _contextMenuManager;
+    private ContextMenuManager? _contextMenuManager;
 
     private IOpenedContextMenu? _openedContextMenu;
     private InputSystem? _inputSystem;
     private ContextMenu? _registeredContextMenu;
 
-    public ModelSelectorController(ModelSelector modelSelector, ContextMenuManager contextMenuManager)
+    public ModelSelectorController(ModelSelector modelSelector)
     {
         _modelSelector = modelSelector;
-        _contextMenuManager = contextMenuManager;
+    }
+
+    public override void OnAttachedToContext(View view, Context context)
+    {
+        _contextMenuManager = context.Get<ContextMenuManager>();
+        Debug.Assert(_contextMenuManager != null);
+        base.OnAttachedToContext(view, context);
     }
 
     public override void OnMouseExit(ref MouseExitEvent e)
@@ -100,7 +106,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
             }
         };
 
-        _openedContextMenu = _contextMenuManager.ShowContextMenu(contextMenu);
+        _openedContextMenu = _contextMenuManager!.ShowContextMenu(contextMenu);
         _openedContextMenu.Closed += OnContextMenuClosed;
         _inputSystem = _modelSelector.Context?.Get<InputSystem>();
         _inputSystem?.RegisterController(contextMenu, new ContextMenuKbmController(_openedContextMenu));

@@ -1,7 +1,19 @@
 ﻿namespace ZGF.Gui.Tests;
 
-public abstract class KeyboardMouseController : IKeyboardMouseController
+public abstract class KeyboardMouseController : IKeyboardMouseController, IViewBehavior
 {
+    protected virtual EventPhaseFilter PhaseFilter => EventPhaseFilter.Both;
+
+    public virtual void OnAttachedToContext(View view, Context context)
+    {
+        context.Get<InputSystem>()!.RegisterController(view, this, PhaseFilter);
+    }
+
+    public virtual void OnDetachedFromContext(View view, Context context)
+    {
+        context.Get<InputSystem>()?.UnregisterController(view);
+    }
+
     public virtual void OnAttached()
     {
     }

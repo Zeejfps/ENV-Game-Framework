@@ -24,17 +24,13 @@ public sealed class ModelContextMenuItemView : View
 
         AddChildToSelf(_contextMenuItem);
 
-        _contextMenuItem.Behaviors.Add(new InputControllerBehavior((view, context) =>
+        _contextMenuItem.Behaviors.Add(new ContextMenuItemDefaultKbmController(_contextMenuItem, () =>
         {
-            var contextMenuManager = context.Get<ContextMenuManager>();
-            Debug.Assert(contextMenuManager != null);
-            return new ContextMenuItemDefaultKbmController(_contextMenuItem, contextMenuManager, () =>
-            {
-                var contextMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
-                Debug.Assert(contextMenu != null);
-                contextMenuManager.RequestCloseMenu(contextMenu);
-                Chosen?.Invoke(this);
-            });
+            var contextMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
+            Debug.Assert(contextMenu != null);
+            var contextMenuManager = _contextMenuItem.Context?.Get<ContextMenuManager>();
+            contextMenuManager?.RequestCloseMenu(contextMenu);
+            Chosen?.Invoke(this);
         }));
     }
 }

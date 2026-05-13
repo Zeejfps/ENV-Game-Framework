@@ -35,10 +35,10 @@ public sealed class Center : View
         };
         AddChildToSelf(_w3);
 
-        _w1.Behaviors.Add(new InputControllerBehavior(new WindowDefaultKbmController(_w1)));
-        _w3.Behaviors.Add(new InputControllerBehavior(new WindowDefaultKbmController(_w3)));
-        _textInput.Behaviors.Add(new InputControllerBehavior(new TextInputViewKbmController(_textInput)));
-        _listView.Behaviors.Add(new InputControllerBehavior(new DefaultVerticalListViewKbmController(_listView)));
+        _w1.Behaviors.Add(new WindowDefaultKbmController(_w1));
+        _w3.Behaviors.Add(new WindowDefaultKbmController(_w3));
+        _textInput.Behaviors.Add(new TextInputViewKbmController(_textInput));
+        _listView.Behaviors.Add(new DefaultVerticalListViewKbmController(_listView));
     }
 
     private (TextInputView, VerticalListView) BuildWindow(Window window)

@@ -3,17 +3,22 @@
 public abstract class BaseMenuItemController : KeyboardMouseController
 {
     protected MenuItem MenuItem { get; }
-    protected readonly ContextMenuManager _contextMenuManager;
+    protected ContextMenuManager? _contextMenuManager;
 
     private ContextMenu? _contextMenu;
     private IOpenedContextMenu? _openedContextMenu;
     private InputSystem? _menuInputSystem;
     private readonly List<View> _menuRegistrations = new();
 
-    protected BaseMenuItemController(MenuItem menuItem, ContextMenuManager contextMenuManager)
+    protected BaseMenuItemController(MenuItem menuItem)
     {
         MenuItem = menuItem;
-        _contextMenuManager = contextMenuManager;
+    }
+
+    public override void OnAttachedToContext(View view, Context context)
+    {
+        _contextMenuManager = context.Get<ContextMenuManager>();
+        base.OnAttachedToContext(view, context);
     }
 
     public override void OnDetached()
@@ -42,7 +47,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController
         _menuInputSystem = MenuItem.Context?.Get<InputSystem>();
         BuildMenu(_contextMenu);
 
-        _openedContextMenu = _contextMenuManager.ShowContextMenu(_contextMenu);
+        _openedContextMenu = _contextMenuManager!.ShowContextMenu(_contextMenu);
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed += OnOpenedContextMenuClosed;

@@ -4,7 +4,7 @@ public sealed class FileMenuItemController : BaseMenuItemController
 {
     private readonly App _app;
 
-    public FileMenuItemController(MenuItem menuItem, ContextMenuManager contextMenuManager, App app) : base(menuItem, contextMenuManager)
+    public FileMenuItemController(MenuItem menuItem, App app) : base(menuItem)
     {
         _app = app;
     }
@@ -22,7 +22,7 @@ public sealed class FileMenuItemController : BaseMenuItemController
             Text = "Exit",
         };
         contextMenu.Children.Add(exitItem);
-        RegisterMenuController(exitItem, new ContextMenuItemDefaultKbmController(exitItem, _contextMenuManager, () =>
+        RegisterMenuController(exitItem, new ContextMenuItemDefaultKbmController(exitItem, () =>
         {
             _app.Exit();
         }));

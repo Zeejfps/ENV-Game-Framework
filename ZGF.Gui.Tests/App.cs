@@ -82,7 +82,7 @@ public sealed class App : OpenGlApp
 
         glClearColor(0f, 0f, 0f, 0f);
         
-        var appBar = new AppBar(this, _contextMenuManager);
+        var appBar = new AppBar(this);
         var center = new Center();
 
         _modelView = center.ModelView;

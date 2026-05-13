@@ -68,12 +68,7 @@ public sealed class StartNewChatView : View
 
         AddChildToSelf(layout);
 
-        _modelSelector.Behaviors.Add(new InputControllerBehavior((view, context) =>
-        {
-            var contextMenuManager = context.Get<ContextMenuManager>();
-            System.Diagnostics.Debug.Assert(contextMenuManager != null);
-            return new ModelSelectorController(_modelSelector, contextMenuManager);
-        }));
+        _modelSelector.Behaviors.Add(new ModelSelectorController(_modelSelector));
     }
 
     private void OnSubmit(ReadOnlySpan<char> text)

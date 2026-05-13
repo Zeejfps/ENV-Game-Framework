@@ -33,11 +33,11 @@ public sealed class ChatTextInputView : View
 
         AddChildToSelf(bg);
 
-        _textInput.Behaviors.Add(new InputControllerBehavior(new ChatTextInputViewController(_textInput)
+        _textInput.Behaviors.Add(new ChatTextInputViewController(_textInput)
         {
             IsMultiLine = true,
             Submit = OnSubmit
-        }));
+        });
     }
 
     private void OnSubmit(ReadOnlySpan<char> text)

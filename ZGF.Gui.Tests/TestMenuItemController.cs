@@ -2,10 +2,9 @@ namespace ZGF.Gui.Tests;
 
 public sealed class TestMenuItemController : BaseMenuItemController
 {
-    public TestMenuItemController(MenuItem menuItem, ContextMenuManager contextMenuManager) : base(menuItem,
-        contextMenuManager)
+    public TestMenuItemController(MenuItem menuItem) : base(menuItem)
     {
-        
+
     }
 
     protected override void BuildMenu(ContextMenu contextMenu)
@@ -24,7 +23,7 @@ public sealed class TestMenuItemController : BaseMenuItemController
             Text = "Option 3",
         };
         contextMenu.Children.Add(option3Menu);
-        RegisterMenuController(option3Menu, new ContextMenuItemDefaultKbmController(option3Menu, _contextMenuManager)
+        RegisterMenuController(option3Menu, new ContextMenuItemDefaultKbmController(option3Menu)
         {
             SubOptions =
             {

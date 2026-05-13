@@ -3,7 +3,7 @@
 public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseController
 {
     private readonly ContextMenuItem _contextMenuItem;
-    private readonly ContextMenuManager _contextMenuManager;
+    private ContextMenuManager? _contextMenuManager;
     private IOpenedContextMenu? _openedContextMenu;
     private InputSystem? _subMenuInputSystem;
     private ContextMenu? _registeredSubMenu;
@@ -15,15 +15,19 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
         get;
         set;
     }
-    
+
     public ContextMenuItemDefaultKbmController(
         ContextMenuItem contextMenuItem,
-        ContextMenuManager contextMenuManager,
         Action? clicked = null)
     {
         _contextMenuItem = contextMenuItem;
-        _contextMenuManager = contextMenuManager;
         Clicked = clicked;
+    }
+
+    public override void OnAttachedToContext(View view, Context context)
+    {
+        _contextMenuManager = context.Get<ContextMenuManager>();
+        base.OnAttachedToContext(view, context);
     }
 
     public override void OnAttached()
@@ -60,7 +64,7 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             }
 
             var parentMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
-            _openedContextMenu = _contextMenuManager.ShowContextMenu(subMenu, parentMenu);
+            _openedContextMenu = _contextMenuManager!.ShowContextMenu(subMenu, parentMenu);
             if (_openedContextMenu != null)
             {
                 _openedContextMenu.Closed += OnOpenedContextMenuClosed;

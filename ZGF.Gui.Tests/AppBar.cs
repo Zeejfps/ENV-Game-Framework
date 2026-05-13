@@ -4,18 +4,13 @@ namespace ZGF.Gui.Tests;
 
 public sealed class AppBar : View
 {
-    private readonly App _app;
-    private readonly ContextMenuManager _contextMenuManager;
     private readonly MenuItem _fileItem;
     private readonly MenuItem _editItem;
     private readonly MenuItem _viewLabel;
     private readonly MenuItem _helpLabel;
 
-    public AppBar(App app, ContextMenuManager contextMenuManager)
+    public AppBar(App app)
     {
-        _app = app;
-        _contextMenuManager = contextMenuManager;
-
         _fileItem = new MenuItem
         {
             Text = "File"
@@ -90,9 +85,9 @@ public sealed class AppBar : View
 
         AddChildToSelf(container);
 
-        _fileItem.Behaviors.Add(new InputControllerBehavior(new FileMenuItemController(_fileItem, _contextMenuManager, _app)));
-        _editItem.Behaviors.Add(new InputControllerBehavior(new TestMenuItemController(_editItem, _contextMenuManager)));
-        _viewLabel.Behaviors.Add(new InputControllerBehavior(new TestMenuItemController(_viewLabel, _contextMenuManager)));
-        _helpLabel.Behaviors.Add(new InputControllerBehavior(new TestMenuItemController(_helpLabel, _contextMenuManager)));
+        _fileItem.Behaviors.Add(new FileMenuItemController(_fileItem, app));
+        _editItem.Behaviors.Add(new TestMenuItemController(_editItem));
+        _viewLabel.Behaviors.Add(new TestMenuItemController(_viewLabel));
+        _helpLabel.Behaviors.Add(new TestMenuItemController(_helpLabel));
     }
 }
