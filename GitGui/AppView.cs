@@ -93,22 +93,40 @@ public sealed class OverlayView : View
     }
 }
 
+internal static class DialogPalette
+{
+    public const uint Background = 0xFF1E1F22;
+    public const uint Border = 0xFF313338;
+    public const uint TitleText = 0xFFE6E6E6;
+    public const uint BodyText = 0xFFDCDDDE;
+
+    public const uint ButtonNormal = 0xFF2B2D31;
+    public const uint ButtonHover = 0xFF3A3D43;
+    public const uint ButtonBorder = 0xFF3E4047;
+    public const uint ButtonBorderHover = 0xFF5865F2;
+
+    public const uint CloseNormal = 0x00000000;
+    public const uint CloseHover = 0xFF3A3D43;
+    public const uint CloseTextNormal = 0xFFB5B9C0;
+    public const uint CloseTextHover = 0xFFFFFFFF;
+}
+
 public sealed class AddRepoDialog : View
 {
     public AddRepoDialog(Action onClose)
     {
         AddChildToSelf(new RectView
         {
-            BackgroundColor = 0xFF2A2D31,
-            BorderColor = BorderColorStyle.All(0xFF3D4147),
+            BackgroundColor = DialogPalette.Background,
+            BorderColor = BorderColorStyle.All(DialogPalette.Border),
             BorderSize = BorderSizeStyle.All(1),
-            Padding = PaddingStyle.All(16),
+            BorderRadius = BorderRadiusStyle.All(10),
+            Padding = PaddingStyle.All(20),
             Children =
             {
                 new FlexColumnView
                 {
-                    Gap = 12,
-                    MainAxisAlignment = MainAxisAlignment.SpaceEvenly,
+                    Gap = 20,
                     CrossAxisAlignment = CrossAxisAlignment.Stretch,
                     Children =
                     {
@@ -116,29 +134,37 @@ public sealed class AddRepoDialog : View
                         {
                             MainAxisAlignment = MainAxisAlignment.SpaceBetween,
                             CrossAxisAlignment = CrossAxisAlignment.Center,
-                            PreferredHeight = 24,
+                            PreferredHeight = 28,
                             Children =
                             {
                                 new TextView
                                 {
                                     Text = "Add Repository",
-                                    TextColor = 0xFFFFFFFF,
+                                    TextColor = DialogPalette.TitleText,
                                     VerticalTextAlignment = TextAlignment.Center,
                                 },
                                 new DialogCloseButton(onClose),
                             }
                         },
-                        new DialogButton("Init New", () => { /* TODO */ })
+                        new FlexColumnView
                         {
-                            PreferredHeight = 36,
-                        },
-                        new DialogButton("Clone", () => { /* TODO */ })
-                        {
-                            PreferredHeight = 36,
-                        },
-                        new DialogButton("Open", () => { /* TODO */ })
-                        {
-                            PreferredHeight = 36,
+                            Gap = 8,
+                            CrossAxisAlignment = CrossAxisAlignment.Stretch,
+                            Children =
+                            {
+                                new DialogButton("Init New", () => { /* TODO */ })
+                                {
+                                    PreferredHeight = 40,
+                                },
+                                new DialogButton("Clone", () => { /* TODO */ })
+                                {
+                                    PreferredHeight = 40,
+                                },
+                                new DialogButton("Open", () => { /* TODO */ })
+                                {
+                                    PreferredHeight = 40,
+                                },
+                            }
                         },
                     }
                 }
@@ -151,23 +177,31 @@ public sealed class DialogCloseButton : View
 {
     public DialogCloseButton(Action onClick)
     {
-        PreferredWidth = 24;
-        PreferredHeight = 24;
-        AddChildToSelf(new RectView
+        PreferredWidth = 28;
+        PreferredHeight = 28;
+
+        var label = new TextView
         {
-            BackgroundColor = 0,
-            Children =
+            Text = "X",
+            TextColor = DialogPalette.CloseTextNormal,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        var background = new RectView
+        {
+            BackgroundColor = DialogPalette.CloseNormal,
+            BorderRadius = BorderRadiusStyle.All(4),
+            Children = { label }
+        };
+
+        AddChildToSelf(background);
+        Behaviors.Add(new HoverableButtonController(
+            onClick,
+            isHovered =>
             {
-                new TextView
-                {
-                    Text = "X",
-                    TextColor = 0xFFB5B9C0,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    VerticalTextAlignment = TextAlignment.Center,
-                }
-            }
-        });
-        Behaviors.Add(new DialogButtonController(onClick));
+                background.BackgroundColor = isHovered ? DialogPalette.CloseHover : DialogPalette.CloseNormal;
+                label.TextColor = isHovered ? DialogPalette.CloseTextHover : DialogPalette.CloseTextNormal;
+            }));
     }
 }
 
@@ -175,9 +209,12 @@ public sealed class DialogButton : View
 {
     public DialogButton(string label, Action onClick)
     {
-        AddChildToSelf(new RectView
+        var background = new RectView
         {
-            BackgroundColor = 0xFF3D4147,
+            BackgroundColor = DialogPalette.ButtonNormal,
+            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(6),
             Children =
             {
                 new TextView
@@ -188,13 +225,31 @@ public sealed class DialogButton : View
                     VerticalTextAlignment = TextAlignment.Center,
                 }
             }
-        });
-        Behaviors.Add(new DialogButtonController(onClick));
+        };
+        AddChildToSelf(background);
+        Behaviors.Add(new HoverableButtonController(
+            onClick,
+            isHovered =>
+            {
+                background.BackgroundColor = isHovered ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal;
+                background.BorderColor = BorderColorStyle.All(
+                    isHovered ? DialogPalette.ButtonBorderHover : DialogPalette.ButtonBorder);
+            }));
     }
 }
 
-public sealed class DialogButtonController(Action onClick) : KeyboardMouseController
+public sealed class HoverableButtonController(Action onClick, Action<bool> onHoverChanged) : KeyboardMouseController
 {
+    public override void OnMouseEnter(ref MouseEnterEvent e)
+    {
+        onHoverChanged(true);
+    }
+
+    public override void OnMouseExit(ref MouseExitEvent e)
+    {
+        onHoverChanged(false);
+    }
+
     public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
         if (e.Button == MouseButton.Left && e.State == InputState.Pressed)

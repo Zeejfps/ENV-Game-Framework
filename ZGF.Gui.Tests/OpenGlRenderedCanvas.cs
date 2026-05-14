@@ -462,7 +462,11 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
             Inst = new RectInstance
             {
                 Rect = new Vector4(left, bottom, right - left, top - bottom),
-                BorderRadius = Vector4.Zero,
+                BorderRadius = new Vector4(
+                    style.BorderRadius.TopLeft.Value,
+                    style.BorderRadius.TopRight.Value,
+                    style.BorderRadius.BottomRight.Value,
+                    style.BorderRadius.BottomLeft.Value),
                 BorderSize = new Vector4(
                     MathF.Round(style.BorderSize.Top.Value),
                     MathF.Round(style.BorderSize.Right.Value),

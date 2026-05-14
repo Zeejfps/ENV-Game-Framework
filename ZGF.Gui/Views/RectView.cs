@@ -28,6 +28,12 @@ public class RectView : View
         set => SetField(ref _style.BorderSize, value);
     }
 
+    public BorderRadiusStyle BorderRadius
+    {
+        get => _style.BorderRadius;
+        set => SetField(ref _style.BorderRadius, value);
+    }
+
     protected override void OnDrawSelf(ICanvas c)
     {
         c.DrawRect(new DrawRectInputs
