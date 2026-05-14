@@ -1,200 +1,147 @@
-﻿using GLFW;
+using GLFW;
 
 namespace ZGF.KeyboardModule.GlfwAdapter;
 
 public static class KeysExtensions
 {
-    public static KeyboardKey Adapt(this Keys key)
+    public static KeyboardKey Adapt(this Keys key) => key switch
     {
-        switch (key)
-        {
-            case Keys.Unknown:
-                return KeyboardKey.Unknown;
-            case Keys.Space:
-                return KeyboardKey.Space;
-            case Keys.Apostrophe:
-                return KeyboardKey.Apostrophe;
-            case Keys.Comma:
-                return KeyboardKey.Comma;
-            case Keys.Minus:
-                return KeyboardKey.Minus;
-            case Keys.Period:
-                return KeyboardKey.Period;
-            case Keys.Slash:
-                return KeyboardKey.Slash;
-            case Keys.Alpha0:
-                return KeyboardKey.Alpha0;
-            case Keys.Alpha1:
-                return KeyboardKey.Alpha1;
-            case Keys.Alpha2:
-                return KeyboardKey.Alpha2;
-            case Keys.Alpha3:
-                return KeyboardKey.Alpha3;
-            case Keys.Alpha4:
-                return KeyboardKey.Alpha4;
-            case Keys.Alpha5:
-                return KeyboardKey.Alpha5;
-            case Keys.Alpha6:
-                return KeyboardKey.Alpha6;
-            case Keys.Alpha7:
-                return KeyboardKey.Alpha7;
-            case Keys.Alpha8:
-                return KeyboardKey.Alpha8;
-            case Keys.Alpha9:
-                return KeyboardKey.Alpha9;
-            case Keys.SemiColon:
-                return KeyboardKey.SemiColon;
-            case Keys.Equal:
-                return KeyboardKey.Equals;
-            case Keys.A:
-                return KeyboardKey.A;
-            case Keys.B:
-                return KeyboardKey.B;
-            case Keys.C:
-                return KeyboardKey.C;
-            case Keys.D:
-                return KeyboardKey.D;
-            case Keys.E:
-                return KeyboardKey.E;
-            case Keys.F:
-                return KeyboardKey.F;
-            case Keys.G:
-                return KeyboardKey.G;
-            case Keys.H:
-                return KeyboardKey.H;
-            case Keys.I:
-                return KeyboardKey.I;
-            case Keys.J:
-                return KeyboardKey.J;
-            case Keys.K:
-                return KeyboardKey.K;
-            case Keys.L:
-                return KeyboardKey.L;
-            case Keys.M:
-                return KeyboardKey.M;
-            case Keys.N:
-                return KeyboardKey.N;
-            case Keys.O:
-                return KeyboardKey.O;
-            case Keys.P:
-                return KeyboardKey.P;
-            case Keys.Q:
-                return KeyboardKey.Q;
-            case Keys.R:
-                return KeyboardKey.R;
-            case Keys.S:
-                return KeyboardKey.S;
-            case Keys.T:
-                return KeyboardKey.T;
-            case Keys.U:
-                return KeyboardKey.U;
-            case Keys.V:
-                return KeyboardKey.V;
-            case Keys.W:
-                return KeyboardKey.W;
-            case Keys.X:
-                return KeyboardKey.X;
-            case Keys.Y:
-                return KeyboardKey.Y;
-            case Keys.Z:
-                return KeyboardKey.Z;
-            case Keys.LeftBracket:
-            case Keys.Backslash:
-            case Keys.RightBracket:
-            case Keys.GraveAccent:
-            case Keys.World1:
-            case Keys.World2:
-                break;
-            case Keys.Escape:
-                return KeyboardKey.Escape;
-            case Keys.Enter:
-                return KeyboardKey.Enter;
-            case Keys.Tab:
-                return KeyboardKey.Tab;
-            case Keys.Backspace:
-                return KeyboardKey.Backspace;
-            case Keys.Insert:
-                break;
-            case Keys.Delete:
-                break;
-            case Keys.Right:
-                return KeyboardKey.RightArrow;
-            case Keys.Left:
-                return KeyboardKey.LeftArrow;
-            case Keys.Down:
-                return KeyboardKey.DownArrow;
-            case Keys.Up:
-                return KeyboardKey.UpArrow;
-            case Keys.PageUp:
-            case Keys.PageDown:
-            case Keys.Home:
-            case Keys.End:
-            case Keys.CapsLock:
-            case Keys.ScrollLock:
-            case Keys.NumLock:
-            case Keys.PrintScreen:
-            case Keys.Pause:
-            case Keys.F1:
-            case Keys.F2:
-            case Keys.F3:
-            case Keys.F4:
-            case Keys.F5:
-            case Keys.F6:
-            case Keys.F7:
-            case Keys.F8:
-            case Keys.F9:
-            case Keys.F10:
-            case Keys.F11:
-            case Keys.F12:
-            case Keys.F13:
-            case Keys.F14:
-            case Keys.F15:
-            case Keys.F16:
-            case Keys.F17:
-            case Keys.F18:
-            case Keys.F19:
-            case Keys.F20:
-            case Keys.F21:
-            case Keys.F22:
-            case Keys.F23:
-            case Keys.F24:
-            case Keys.F25:
-            case Keys.Numpad0:
-                break;
-            case Keys.Numpad1:
-                return KeyboardKey.Alpha1;
-            case Keys.Numpad2:
-                return KeyboardKey.Alpha2;
-            case Keys.Numpad3:
-                return KeyboardKey.Alpha3;
-            case Keys.Numpad4:
-                return KeyboardKey.Alpha4;
-            case Keys.Numpad5:
-            case Keys.Numpad6:
-            case Keys.Numpad7:
-            case Keys.Numpad8:
-            case Keys.Numpad9:
-            case Keys.NumpadDecimal:
-            case Keys.NumpadDivide:
-            case Keys.NumpadMultiply:
-            case Keys.NumpadSubtract:
-            case Keys.NumpadAdd:
-            case Keys.NumpadEnter:
-            case Keys.NumpadEqual:
-            case Keys.LeftShift:
-            case Keys.LeftControl:
-            case Keys.LeftAlt:
-            case Keys.LeftSuper:
-            case Keys.RightShift:
-            case Keys.RightControl:
-            case Keys.RightAlt:
-            case Keys.RightSuper:
-            case Keys.Menu:
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(key), key, null);
-        }
+        Keys.Unknown => KeyboardKey.Unknown,
 
-        return KeyboardKey.Unknown;
-    }
+        Keys.Space => KeyboardKey.Space,
+        Keys.Apostrophe => KeyboardKey.Apostrophe,
+        Keys.Comma => KeyboardKey.Comma,
+        Keys.Minus => KeyboardKey.Minus,
+        Keys.Period => KeyboardKey.Period,
+        Keys.Slash => KeyboardKey.Slash,
+
+        Keys.Alpha0 => KeyboardKey.Alpha0,
+        Keys.Alpha1 => KeyboardKey.Alpha1,
+        Keys.Alpha2 => KeyboardKey.Alpha2,
+        Keys.Alpha3 => KeyboardKey.Alpha3,
+        Keys.Alpha4 => KeyboardKey.Alpha4,
+        Keys.Alpha5 => KeyboardKey.Alpha5,
+        Keys.Alpha6 => KeyboardKey.Alpha6,
+        Keys.Alpha7 => KeyboardKey.Alpha7,
+        Keys.Alpha8 => KeyboardKey.Alpha8,
+        Keys.Alpha9 => KeyboardKey.Alpha9,
+
+        Keys.SemiColon => KeyboardKey.SemiColon,
+        Keys.Equal => KeyboardKey.Equals,
+
+        Keys.A => KeyboardKey.A,
+        Keys.B => KeyboardKey.B,
+        Keys.C => KeyboardKey.C,
+        Keys.D => KeyboardKey.D,
+        Keys.E => KeyboardKey.E,
+        Keys.F => KeyboardKey.F,
+        Keys.G => KeyboardKey.G,
+        Keys.H => KeyboardKey.H,
+        Keys.I => KeyboardKey.I,
+        Keys.J => KeyboardKey.J,
+        Keys.K => KeyboardKey.K,
+        Keys.L => KeyboardKey.L,
+        Keys.M => KeyboardKey.M,
+        Keys.N => KeyboardKey.N,
+        Keys.O => KeyboardKey.O,
+        Keys.P => KeyboardKey.P,
+        Keys.Q => KeyboardKey.Q,
+        Keys.R => KeyboardKey.R,
+        Keys.S => KeyboardKey.S,
+        Keys.T => KeyboardKey.T,
+        Keys.U => KeyboardKey.U,
+        Keys.V => KeyboardKey.V,
+        Keys.W => KeyboardKey.W,
+        Keys.X => KeyboardKey.X,
+        Keys.Y => KeyboardKey.Y,
+        Keys.Z => KeyboardKey.Z,
+
+        Keys.LeftBracket => KeyboardKey.LeftBracket,
+        Keys.Backslash => KeyboardKey.Backslash,
+        Keys.RightBracket => KeyboardKey.RightBracket,
+        Keys.GraveAccent => KeyboardKey.GraveAccent,
+
+        // World1/World2 are non-US keys with no portable mapping.
+        Keys.World1 => KeyboardKey.Unknown,
+        Keys.World2 => KeyboardKey.Unknown,
+
+        Keys.Escape => KeyboardKey.Escape,
+        Keys.Enter => KeyboardKey.Enter,
+        Keys.Tab => KeyboardKey.Tab,
+        Keys.Backspace => KeyboardKey.Backspace,
+        Keys.Insert => KeyboardKey.Insert,
+        Keys.Delete => KeyboardKey.Delete,
+
+        Keys.Right => KeyboardKey.RightArrow,
+        Keys.Left => KeyboardKey.LeftArrow,
+        Keys.Down => KeyboardKey.DownArrow,
+        Keys.Up => KeyboardKey.UpArrow,
+
+        Keys.PageUp => KeyboardKey.PageUp,
+        Keys.PageDown => KeyboardKey.PageDown,
+        Keys.Home => KeyboardKey.Home,
+        Keys.End => KeyboardKey.End,
+
+        Keys.CapsLock => KeyboardKey.CapsLock,
+        Keys.ScrollLock => KeyboardKey.ScrollLock,
+        Keys.NumLock => KeyboardKey.NumLock,
+        Keys.PrintScreen => KeyboardKey.PrintScreen,
+        Keys.Pause => KeyboardKey.Pause,
+
+        Keys.F1 => KeyboardKey.F1,
+        Keys.F2 => KeyboardKey.F2,
+        Keys.F3 => KeyboardKey.F3,
+        Keys.F4 => KeyboardKey.F4,
+        Keys.F5 => KeyboardKey.F5,
+        Keys.F6 => KeyboardKey.F6,
+        Keys.F7 => KeyboardKey.F7,
+        Keys.F8 => KeyboardKey.F8,
+        Keys.F9 => KeyboardKey.F9,
+        Keys.F10 => KeyboardKey.F10,
+        Keys.F11 => KeyboardKey.F11,
+        Keys.F12 => KeyboardKey.F12,
+        Keys.F13 => KeyboardKey.F13,
+        Keys.F14 => KeyboardKey.F14,
+        Keys.F15 => KeyboardKey.F15,
+        Keys.F16 => KeyboardKey.F16,
+        Keys.F17 => KeyboardKey.F17,
+        Keys.F18 => KeyboardKey.F18,
+        Keys.F19 => KeyboardKey.F19,
+        Keys.F20 => KeyboardKey.F20,
+        Keys.F21 => KeyboardKey.F21,
+        Keys.F22 => KeyboardKey.F22,
+        Keys.F23 => KeyboardKey.F23,
+        Keys.F24 => KeyboardKey.F24,
+        Keys.F25 => KeyboardKey.F25,
+
+        Keys.Numpad0 => KeyboardKey.Numpad0,
+        Keys.Numpad1 => KeyboardKey.Numpad1,
+        Keys.Numpad2 => KeyboardKey.Numpad2,
+        Keys.Numpad3 => KeyboardKey.Numpad3,
+        Keys.Numpad4 => KeyboardKey.Numpad4,
+        Keys.Numpad5 => KeyboardKey.Numpad5,
+        Keys.Numpad6 => KeyboardKey.Numpad6,
+        Keys.Numpad7 => KeyboardKey.Numpad7,
+        Keys.Numpad8 => KeyboardKey.Numpad8,
+        Keys.Numpad9 => KeyboardKey.Numpad9,
+        Keys.NumpadDecimal => KeyboardKey.NumpadDecimal,
+        Keys.NumpadDivide => KeyboardKey.NumpadDivide,
+        Keys.NumpadMultiply => KeyboardKey.NumpadMultiply,
+        Keys.NumpadSubtract => KeyboardKey.NumpadSubtract,
+        Keys.NumpadAdd => KeyboardKey.NumpadAdd,
+        Keys.NumpadEnter => KeyboardKey.NumpadEnter,
+        Keys.NumpadEqual => KeyboardKey.NumpadEquals,
+
+        Keys.LeftShift => KeyboardKey.LeftShift,
+        Keys.LeftControl => KeyboardKey.LeftControl,
+        Keys.LeftAlt => KeyboardKey.LeftAlt,
+        Keys.LeftSuper => KeyboardKey.LeftSuper,
+        Keys.RightShift => KeyboardKey.RightShift,
+        Keys.RightControl => KeyboardKey.RightControl,
+        Keys.RightAlt => KeyboardKey.RightAlt,
+        Keys.RightSuper => KeyboardKey.RightSuper,
+        Keys.Menu => KeyboardKey.Menu,
+
+        _ => KeyboardKey.Unknown,
+    };
 }

@@ -1,4 +1,4 @@
-﻿namespace ZGF.KeyboardModule;
+namespace ZGF.KeyboardModule;
 
 public enum KeyboardKey
 {
@@ -14,7 +14,7 @@ public enum KeyboardKey
     Alpha7,
     Alpha8,
     Alpha9,
-    
+
     A,
     B,
     C,
@@ -59,7 +59,79 @@ public enum KeyboardKey
     LeftArrow,
     RightArrow,
     DownArrow,
-    
+
     Enter,
     Tab,
+
+    LeftBracket,
+    RightBracket,
+    Backslash,
+    GraveAccent,
+
+    Insert,
+    Delete,
+    Home,
+    End,
+    PageUp,
+    PageDown,
+
+    CapsLock,
+    ScrollLock,
+    NumLock,
+    PrintScreen,
+    Pause,
+    Menu,
+
+    F1,
+    F2,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    F10,
+    F11,
+    F12,
+    F13,
+    F14,
+    F15,
+    F16,
+    F17,
+    F18,
+    F19,
+    F20,
+    F21,
+    F22,
+    F23,
+    F24,
+    F25,
+
+    Numpad0,
+    Numpad1,
+    Numpad2,
+    Numpad3,
+    Numpad4,
+    Numpad5,
+    Numpad6,
+    Numpad7,
+    Numpad8,
+    Numpad9,
+    NumpadDecimal,
+    NumpadDivide,
+    NumpadMultiply,
+    NumpadSubtract,
+    NumpadAdd,
+    NumpadEnter,
+    NumpadEquals,
+
+    LeftShift,
+    LeftControl,
+    LeftAlt,
+    LeftSuper,
+    RightShift,
+    RightControl,
+    RightAlt,
+    RightSuper,
 }
