@@ -1,6 +1,7 @@
 using GLFW;
 using ZGF.AppUtils;
 using ZGF.Core;
+using ZGF.Fonts;
 using ZGF.Gui;
 using ZGF.Gui.Tests;
 using static GL46;
@@ -11,6 +12,7 @@ public sealed class GuiApp : OpenGlApp
 {
     private readonly GlfwInputSystem _inputSystem;
     private readonly OpenGlRenderedCanvas _canvas;
+    private readonly FreeTypeFontBackend _fontBackend;
     private readonly View _gui;
 
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
@@ -24,12 +26,14 @@ public sealed class GuiApp : OpenGlApp
         var imageManager = new GlImageManager();
         var contextMenuPane = new View();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
-        var fontFilePath = PathUtils.ResolveLocalPath("Assets/Fonts/Charcoal/Charcoal_p20.xml");
-        var bitmapFont = BitmapFont.LoadFromFile(fontFilePath);
+        var fontFilePath = PathUtils.ResolveLocalPath("Assets/Fonts/Inter/Inter-Regular.ttf");
+        _fontBackend = new FreeTypeFontBackend();
+        var defaultFont = _fontBackend.LoadFontFromFile(fontFilePath, 16);
         _canvas = new OpenGlRenderedCanvas(
             startupConfig.WindowWidth,
             startupConfig.WindowHeight,
-            bitmapFont,
+            _fontBackend,
+            defaultFont,
             imageManager
         );
 

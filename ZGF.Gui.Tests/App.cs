@@ -3,6 +3,7 @@ using System.Numerics;
 using GLFW;
 using OpenGL.NET;
 using ZGF.Core;
+using ZGF.Fonts;
 using ZGF.Gui.Layouts;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
@@ -17,7 +18,8 @@ public sealed class App : OpenGlApp
     private readonly GlfwInputSystem _inputSystem;
     private readonly SizeCallback _windowSizeCallback;
     private readonly SizeCallback _framebufferSizeCallback;
-    private readonly BitmapFont _bitmapFont;
+    private readonly FreeTypeFontBackend _fontBackend;
+    private readonly FontHandle _defaultFont;
     private readonly ContextMenuManager _contextMenuManager;
     private readonly GlImageManager _imageManager;
 
@@ -34,12 +36,14 @@ public sealed class App : OpenGlApp
         _imageManager.LoadImageFromFile("Assets/Icons/arrow_down.png");
         _frameBufferHandle = _imageManager.CreateFrameBuffer(640, 480);
 
-        _bitmapFont = BitmapFont.LoadFromFile("Assets/Fonts/Charcoal/Charcoal_p20.xml");
+        _fontBackend = new FreeTypeFontBackend();
+        _defaultFont = _fontBackend.LoadFontFromFile("Assets/Fonts/Inter/Inter-Regular.ttf", 16);
 
         _canvas = new OpenGlRenderedCanvas(
             startupConfig.WindowWidth,
             startupConfig.WindowHeight,
-            _bitmapFont,
+            _fontBackend,
+            _defaultFont,
             _imageManager
         );
 

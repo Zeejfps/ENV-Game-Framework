@@ -28,7 +28,7 @@ void main() {
         discard;
     }
 
-    float alpha = texture(u_atlas, v_atlasUV).a;
+    float alpha = texture(u_atlas, v_atlasUV).r;
     if (alpha <= 0.0) discard;
 
     vec4 color = unpackARGB(v_color);
