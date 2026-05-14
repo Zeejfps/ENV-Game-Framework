@@ -2,7 +2,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using OpenGL.NET;
-using ZGF.BMFontModule;
+using ZGF.Fonts;
 using ZGF.Geometry;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
@@ -130,7 +130,8 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
 
     // ---------- Externals ----------
 
-    private readonly BitmapFont _font;
+    private readonly IFontBackend _fonts;
+    private readonly FontHandle _defaultFont;
     private readonly GlImageManager _imageManager;
     private int _width, _height;
     private Matrix4x4 _projection;
@@ -138,11 +139,12 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
     // Optional debug counters
     public int LastFrameUploadCount { get; private set; }
 
-    public OpenGlRenderedCanvas(int width, int height, BitmapFont font, GlImageManager imageManager)
+    public OpenGlRenderedCanvas(int width, int height, IFontBackend fonts, FontHandle defaultFont, GlImageManager imageManager)
     {
         _width = width;
         _height = height;
-        _font = font;
+        _fonts = fonts;
+        _defaultFont = defaultFont;
         _imageManager = imageManager;
 
         _projection = Matrix4x4.CreateOrthographicOffCenter(0, width, 0, height, -1f, 1f);
@@ -355,17 +357,16 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
 
     private void SetupFontAtlas()
     {
-        var png = _font.Png;
-        var width = png.Width;
-        var height = png.Height;
-        var rgba = DecodePngToRgba(png);
+        var width = _fonts.AtlasWidth;
+        var height = _fonts.AtlasHeight;
+        var pixels = _fonts.AtlasPixels;
 
         uint tex;
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        fixed (byte* ptr = &rgba[0])
-            glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, ptr);
+        fixed (byte* ptr = &MemoryMarshal.GetReference(pixels))
+            glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, ptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (int)GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (int)GL_CLAMP_TO_EDGE);
@@ -375,57 +376,36 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         _fontAtlasTextureId = tex;
         _fontAtlasWidth = width;
         _fontAtlasHeight = height;
+        _fonts.ClearDirty();
     }
 
-    private static byte[] DecodePngToRgba(PngSharp.Api.IDecodedPng png)
+    private void UploadDirtyAtlasRegions()
     {
-        var width = png.Width;
-        var height = png.Height;
-        var src = png.PixelData;
-        var bpp = png.BytesPerPixel;
-        var output = new byte[width * height * 4];
+        if (!_fonts.AtlasDirty)
+            return;
 
-        for (var y = 0; y < height; y++)
+        var rect = _fonts.DirtyRect;
+        if (rect.IsEmpty)
         {
-            for (var x = 0; x < width; x++)
-            {
-                var srcIndex = (y * width + x) * bpp;
-                // Flip Y so the texture's V-axis matches OpenGL Y-up.
-                var dstY = height - 1 - y;
-                var dstIndex = (dstY * width + x) * 4;
-
-                byte r = 0, g = 0, b = 0, a = 255;
-                switch (png.ColorType)
-                {
-                    case PngSharp.Spec.Chunks.IHDR.ColorType.TrueColorWithAlpha:
-                        r = src[srcIndex];
-                        g = src[srcIndex + 1];
-                        b = src[srcIndex + 2];
-                        a = src[srcIndex + 3];
-                        break;
-                    case PngSharp.Spec.Chunks.IHDR.ColorType.TrueColor:
-                        r = src[srcIndex];
-                        g = src[srcIndex + 1];
-                        b = src[srcIndex + 2];
-                        break;
-                    case PngSharp.Spec.Chunks.IHDR.ColorType.GrayscaleWithAlpha:
-                        r = g = b = src[srcIndex];
-                        a = src[srcIndex + 1];
-                        break;
-                    case PngSharp.Spec.Chunks.IHDR.ColorType.Grayscale:
-                        r = g = b = src[srcIndex];
-                        break;
-                    default:
-                        throw new NotSupportedException($"PNG ColorType '{png.ColorType}' is not supported.");
-                }
-
-                output[dstIndex] = r;
-                output[dstIndex + 1] = g;
-                output[dstIndex + 2] = b;
-                output[dstIndex + 3] = a;
-            }
+            _fonts.ClearDirty();
+            return;
         }
-        return output;
+
+        var pixels = _fonts.AtlasPixels;
+        glBindTexture(GL_TEXTURE_2D, _fontAtlasTextureId);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, _fonts.AtlasWidth);
+
+        var offset = rect.Y * _fonts.AtlasWidth + rect.X;
+        fixed (byte* ptr = &MemoryMarshal.GetReference(pixels))
+            glTexSubImage2D(GL_TEXTURE_2D, 0, rect.X, rect.Y, rect.Width, rect.Height,
+                GL_RED, GL_UNSIGNED_BYTE, ptr + offset);
+
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+        AssertNoGlError();
+
+        _fonts.ClearDirty();
+        LastFrameUploadCount++;
     }
 
     // ---------- ICanvas ----------
@@ -495,21 +475,22 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         var key = MakeKey(inputs.ZIndex, seq);
 
         var pos = inputs.Position;
-        var lineHeight = _font.FontMetrics.Common.LineHeight;
-        var fontBase = _font.FontMetrics.Common.Base;
+        var metrics = _fonts.GetMetrics(_defaultFont);
+        var ascender = metrics.Ascender;
+        var descender = metrics.Descender;
+        var lineHeight = metrics.LineHeight;
 
         var lineStart = (int)pos.Left;
-        var cursorX = lineStart;
-        var cursorY = (int)(pos.Top - fontBase);
+        var cursorX = (float)lineStart;
+        var baselineY = pos.Top - ascender;
 
         if (style.VerticalAlignment.IsSet)
         {
             switch (style.VerticalAlignment.Value)
             {
                 case TextAlignment.Center:
-                    // Center the visible glyph extent [baseline-descent, baseline+fontBase], not just the ascender box.
-                    var descent = lineHeight - fontBase;
-                    cursorY = (int)MathF.Round((pos.Top - pos.Height * 0.5f) - (fontBase * 0.5f) + (descent * 0.5f));
+                    var midline = pos.Top - pos.Height * 0.5f;
+                    baselineY = midline - (ascender + descender) * 0.5f;
                     break;
                 case TextAlignment.Start:
                 case TextAlignment.End:
@@ -523,7 +504,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
             {
                 case TextAlignment.Center:
                     var width = MeasureTextWidth(text.AsSpan(), style);
-                    cursorX = (int)(pos.Left + (pos.Width - width) * 0.5f);
+                    cursorX = pos.Left + (pos.Width - width) * 0.5f;
                     break;
                 case TextAlignment.Start:
                 case TextAlignment.End:
@@ -531,34 +512,40 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
             }
         }
 
-        int? prevCodePoint = null;
+        uint prevGlyph = 0;
         foreach (var codePoint in text.EnumerateCodePoints())
         {
             if (codePoint == '\n')
             {
-                cursorY -= lineHeight;
+                baselineY -= lineHeight;
                 cursorX = lineStart;
-                prevCodePoint = null;
+                prevGlyph = 0;
                 continue;
             }
 
-            if (!_font.TryGetGlyphInfo(codePoint, out var glyph))
-                continue;
-
-            var kerning = 0;
-            if (prevCodePoint.HasValue)
-                _font.TryGetKerningPair(prevCodePoint.Value, codePoint, out kerning);
-
-            var glyphX = cursorX + kerning + glyph.XOffset;
-            var glyphY = cursorY + (fontBase - glyph.YOffset) - glyph.Height;
-            var glyphW = glyph.Width;
-            var glyphH = glyph.Height;
-
-            if (glyphW > 0 && glyphH > 0)
+            var glyphIndex = _fonts.GetGlyphIndex(_defaultFont, codePoint);
+            if (glyphIndex == 0)
             {
-                // Atlas was uploaded with Y flipped, so V coordinate is bottom-up.
-                var atlasU = glyph.X / _fontAtlasWidth;
-                var atlasV = (_fontAtlasHeight - glyph.Y - glyph.Height) / _fontAtlasHeight;
+                prevGlyph = 0;
+                continue;
+            }
+
+            var kerning = _fonts.GetKerning(_defaultFont, prevGlyph, glyphIndex);
+            cursorX += kerning;
+
+            if (!_fonts.TryGetGlyph(_defaultFont, glyphIndex, out var glyph))
+            {
+                prevGlyph = glyphIndex;
+                continue;
+            }
+
+            if (glyph.Width > 0 && glyph.Height > 0)
+            {
+                var glyphX = MathF.Round(cursorX) + glyph.BitmapLeft;
+                var glyphY = MathF.Round(baselineY) + glyph.BitmapTop - glyph.Height;
+
+                var atlasU = glyph.AtlasX / _fontAtlasWidth;
+                var atlasV = glyph.AtlasY / _fontAtlasHeight;
                 var atlasW = glyph.Width / _fontAtlasWidth;
                 var atlasH = glyph.Height / _fontAtlasHeight;
 
@@ -567,7 +554,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
                     Key = key,
                     Inst = new GlyphInstance
                     {
-                        Rect = new Vector4(glyphX, glyphY, glyphW, glyphH),
+                        Rect = new Vector4(glyphX, glyphY, glyph.Width, glyph.Height),
                         AtlasUV = new Vector4(atlasU, atlasV, atlasW, atlasH),
                         Color = color,
                         ClipIndex = clip,
@@ -576,7 +563,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
             }
 
             cursorX += glyph.XAdvance;
-            prevCodePoint = codePoint;
+            prevGlyph = glyphIndex;
         }
     }
 
@@ -680,16 +667,24 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
     public float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style)
     {
         var totalWidth = 0f;
+        uint prevGlyph = 0;
         foreach (var codePoint in text.EnumerateCodePoints())
         {
-            if (!_font.TryGetGlyphInfo(codePoint, out var glyphInfo))
+            var glyphIndex = _fonts.GetGlyphIndex(_defaultFont, codePoint);
+            if (glyphIndex == 0)
+            {
+                prevGlyph = 0;
                 continue;
-            totalWidth += glyphInfo.XAdvance;
+            }
+            totalWidth += _fonts.GetKerning(_defaultFont, prevGlyph, glyphIndex);
+            if (_fonts.TryGetGlyph(_defaultFont, glyphIndex, out var glyph))
+                totalWidth += glyph.XAdvance;
+            prevGlyph = glyphIndex;
         }
         return totalWidth;
     }
 
-    public float MeasureTextLineHeight(TextStyle style) => _font.FontMetrics.Common.LineHeight;
+    public float MeasureTextLineHeight(TextStyle style) => _fonts.GetMetrics(_defaultFont).LineHeight;
 
     public Size GetImageSize(string imageId) => _imageManager.GetImageSize(imageId);
     public int GetImageWidth(string imageId) => _imageManager.GetImageWidth(imageId);
@@ -702,6 +697,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         SortAndMaterialize();
         BuildDrawCalls();
         UploadIfChanged();
+        UploadDirtyAtlasRegions();
         IssueDraws();
     }
 
