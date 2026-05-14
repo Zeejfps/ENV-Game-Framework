@@ -1,8 +1,9 @@
 using System.Runtime.InteropServices;
-using System.Text;
 using FreeTypeSharp;
+using HarfBuzzSharp;
 using static FreeTypeSharp.FT;
 using static FreeTypeSharp.FT_LOAD;
+using HbBuffer = HarfBuzzSharp.Buffer;
 
 namespace ZGF.Fonts;
 
@@ -58,12 +59,23 @@ public sealed unsafe class FreeTypeFontBackend : IFontBackend
             throw new FreeTypeException(err);
         }
 
+        var hbBlob = new Blob(handle.AddrOfPinnedObject(), data.Length, MemoryMode.ReadOnly);
+        var hbFace = new Face(hbBlob, 0);
+        hbBlob.Dispose();
+        var hbFont = new Font(hbFace);
+        hbFont.SetFunctionsOpenType();
+        hbFont.SetScale(pixelSize * 64, pixelSize * 64);
+        var hbBuffer = new HbBuffer();
+
         var entry = new FontEntry
         {
             Face = face,
             PinnedData = handle,
             PixelSize = pixelSize,
             HasKerning = (face->face_flags.ToInt64() & 0x02) != 0,
+            HbFace = hbFace,
+            HbFont = hbFont,
+            HbBuffer = hbBuffer,
         };
         _fonts.Add(entry);
         return new FontHandle(_fonts.Count);
@@ -177,64 +189,35 @@ public sealed unsafe class FreeTypeFontBackend : IFontBackend
 
     public int ShapeText(FontHandle font, ReadOnlySpan<char> text, Span<ShapedGlyph> output)
     {
-        // Phase 1 shaper: 1:1 codepoint -> glyph with FreeType kerning.
-        // Phase 2 will replace this with HarfBuzz.
         ThrowIfDisposed();
+        if (text.Length == 0)
+            return 0;
+
         var entry = GetEntry(font);
-        ActivateSize(entry);
+        var buf = entry.HbBuffer!;
+        var hbFont = entry.HbFont!;
 
-        var count = 0;
-        var i = 0;
-        uint prevGlyph = 0;
+        buf.ClearContents();
+        buf.AddUtf16(text);
+        buf.GuessSegmentProperties();
+        hbFont.Shape(buf, Array.Empty<Feature>());
 
-        while (i < text.Length)
+        var infos = buf.GetGlyphInfoSpan();
+        var positions = buf.GetGlyphPositionSpan();
+        var n = Math.Min(infos.Length, output.Length);
+
+        for (var i = 0; i < n; i++)
         {
-            int codePoint;
-            var clusterStart = i;
-            var c = text[i];
-            if (char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
-            {
-                codePoint = char.ConvertToUtf32(c, text[i + 1]);
-                i += 2;
-            }
-            else
-            {
-                codePoint = c;
-                i++;
-            }
-
-            if (count >= output.Length)
-                break;
-
-            var glyphIndex = FT_Get_Char_Index(entry.Face, (UIntPtr)(uint)codePoint);
-            var kerning = 0f;
-            if (prevGlyph != 0 && glyphIndex != 0 && entry.HasKerning)
-            {
-                FT_Vector_ delta;
-                if (FT_Get_Kerning(entry.Face, prevGlyph, glyphIndex, FT_Kerning_Mode_.FT_KERNING_DEFAULT, &delta) == FT_Error.FT_Err_Ok)
-                    kerning = delta.x.ToInt64() / 64f;
-            }
-
-            float advance;
-            if (glyphIndex != 0)
-            {
-                IntPtr adv;
-                if (FT_Get_Advance(entry.Face, glyphIndex, FT_LOAD_DEFAULT, &adv) == FT_Error.FT_Err_Ok)
-                    advance = adv.ToInt64() / 65536f;
-                else
-                    advance = 0f;
-            }
-            else
-            {
-                advance = 0f;
-            }
-
-            output[count] = new ShapedGlyph(glyphIndex, kerning, 0f, advance, 0f, clusterStart);
-            count++;
-            prevGlyph = glyphIndex;
+            var pos = positions[i];
+            output[i] = new ShapedGlyph(
+                infos[i].Codepoint,
+                pos.XOffset / 64f,
+                pos.YOffset / 64f,
+                pos.XAdvance / 64f,
+                pos.YAdvance / 64f,
+                (int)infos[i].Cluster);
         }
-
-        return count;
+        return n;
     }
 
     private FontEntry GetEntry(FontHandle handle)
@@ -271,6 +254,9 @@ public sealed unsafe class FreeTypeFontBackend : IFontBackend
 
         foreach (var entry in _fonts)
         {
+            entry.HbBuffer?.Dispose();
+            entry.HbFont?.Dispose();
+            entry.HbFace?.Dispose();
             FT_Done_Face(entry.Face);
             if (entry.PinnedData.IsAllocated)
                 entry.PinnedData.Free();
@@ -285,5 +271,8 @@ public sealed unsafe class FreeTypeFontBackend : IFontBackend
         public GCHandle PinnedData;
         public int PixelSize;
         public bool HasKerning;
+        public Face? HbFace;
+        public Font? HbFont;
+        public HbBuffer? HbBuffer;
     }
 }

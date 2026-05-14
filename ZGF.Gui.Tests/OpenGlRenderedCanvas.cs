@@ -480,69 +480,79 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         var descender = metrics.Descender;
         var lineHeight = metrics.LineHeight;
 
-        var lineStart = (int)pos.Left;
-        var cursorX = (float)lineStart;
+        var lineStart = pos.Left;
         var baselineY = pos.Top - ascender;
 
-        if (style.VerticalAlignment.IsSet)
+        if (style.VerticalAlignment.IsSet && style.VerticalAlignment.Value == TextAlignment.Center)
         {
-            switch (style.VerticalAlignment.Value)
-            {
-                case TextAlignment.Center:
-                    var midline = pos.Top - pos.Height * 0.5f;
-                    baselineY = midline - (ascender + descender) * 0.5f;
-                    break;
-                case TextAlignment.Start:
-                case TextAlignment.End:
-                    break;
-            }
+            var midline = pos.Top - pos.Height * 0.5f;
+            baselineY = midline - (ascender + descender) * 0.5f;
         }
 
-        if (style.HorizontalAlignment.IsSet)
+        var hCenter = style.HorizontalAlignment.IsSet && style.HorizontalAlignment.Value == TextAlignment.Center;
+        var textSpan = text.AsSpan();
+
+        var lineSlice = textSpan;
+        var sliceStart = 0;
+        while (sliceStart <= textSpan.Length)
         {
-            switch (style.HorizontalAlignment.Value)
+            var nl = textSpan[sliceStart..].IndexOf('\n');
+            int lineEnd;
+            if (nl < 0)
             {
-                case TextAlignment.Center:
-                    var width = MeasureTextWidth(text.AsSpan(), style);
-                    cursorX = pos.Left + (pos.Width - width) * 0.5f;
-                    break;
-                case TextAlignment.Start:
-                case TextAlignment.End:
-                    break;
+                lineEnd = textSpan.Length;
             }
+            else
+            {
+                lineEnd = sliceStart + nl;
+            }
+
+            lineSlice = textSpan[sliceStart..lineEnd];
+
+            var cursorX = lineStart;
+            if (hCenter)
+            {
+                var width = MeasureLineWidth(lineSlice);
+                cursorX = pos.Left + (pos.Width - width) * 0.5f;
+            }
+
+            DrawShapedLine(lineSlice, cursorX, baselineY, color, clip, key);
+
+            if (nl < 0)
+                break;
+
+            baselineY -= lineHeight;
+            sliceStart = lineEnd + 1;
         }
+    }
 
-        uint prevGlyph = 0;
-        foreach (var codePoint in text.EnumerateCodePoints())
+    private void DrawShapedLine(ReadOnlySpan<char> line, float startX, float baselineY,
+        uint color, uint clip, long key)
+    {
+        if (line.Length == 0)
+            return;
+
+        const int StackCap = 256;
+        Span<ZGF.Fonts.ShapedGlyph> shaped = line.Length <= StackCap
+            ? stackalloc ZGF.Fonts.ShapedGlyph[StackCap]
+            : new ZGF.Fonts.ShapedGlyph[line.Length * 2];
+
+        var n = _fonts.ShapeText(_defaultFont, line, shaped);
+        var cursorX = startX;
+
+        for (var i = 0; i < n; i++)
         {
-            if (codePoint == '\n')
+            var sg = shaped[i];
+            if (!_fonts.TryGetGlyph(_defaultFont, sg.GlyphIndex, out var glyph))
             {
-                baselineY -= lineHeight;
-                cursorX = lineStart;
-                prevGlyph = 0;
-                continue;
-            }
-
-            var glyphIndex = _fonts.GetGlyphIndex(_defaultFont, codePoint);
-            if (glyphIndex == 0)
-            {
-                prevGlyph = 0;
-                continue;
-            }
-
-            var kerning = _fonts.GetKerning(_defaultFont, prevGlyph, glyphIndex);
-            cursorX += kerning;
-
-            if (!_fonts.TryGetGlyph(_defaultFont, glyphIndex, out var glyph))
-            {
-                prevGlyph = glyphIndex;
+                cursorX += sg.XAdvance;
                 continue;
             }
 
             if (glyph.Width > 0 && glyph.Height > 0)
             {
-                var glyphX = MathF.Round(cursorX) + glyph.BitmapLeft;
-                var glyphY = MathF.Round(baselineY) + glyph.BitmapTop - glyph.Height;
+                var glyphX = MathF.Round(cursorX + sg.XOffset) + glyph.BitmapLeft;
+                var glyphY = MathF.Round(baselineY + sg.YOffset) + glyph.BitmapTop - glyph.Height;
 
                 var atlasU = glyph.AtlasX / _fontAtlasWidth;
                 var atlasV = glyph.AtlasY / _fontAtlasHeight;
@@ -562,9 +572,24 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
                 });
             }
 
-            cursorX += glyph.XAdvance;
-            prevGlyph = glyphIndex;
+            cursorX += sg.XAdvance;
         }
+    }
+
+    private float MeasureLineWidth(ReadOnlySpan<char> line)
+    {
+        if (line.Length == 0)
+            return 0f;
+
+        const int StackCap = 256;
+        Span<ZGF.Fonts.ShapedGlyph> shaped = line.Length <= StackCap
+            ? stackalloc ZGF.Fonts.ShapedGlyph[StackCap]
+            : new ZGF.Fonts.ShapedGlyph[line.Length * 2];
+        var n = _fonts.ShapeText(_defaultFont, line, shaped);
+        var total = 0f;
+        for (var i = 0; i < n; i++)
+            total += shaped[i].XAdvance;
+        return total;
     }
 
     public void DrawImage(in DrawImageInputs inputs)
@@ -666,22 +691,19 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
 
     public float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style)
     {
-        var totalWidth = 0f;
-        uint prevGlyph = 0;
-        foreach (var codePoint in text.EnumerateCodePoints())
+        // Multi-line text: width is the widest line's shaped advance.
+        var max = 0f;
+        var i = 0;
+        while (i <= text.Length)
         {
-            var glyphIndex = _fonts.GetGlyphIndex(_defaultFont, codePoint);
-            if (glyphIndex == 0)
-            {
-                prevGlyph = 0;
-                continue;
-            }
-            totalWidth += _fonts.GetKerning(_defaultFont, prevGlyph, glyphIndex);
-            if (_fonts.TryGetGlyph(_defaultFont, glyphIndex, out var glyph))
-                totalWidth += glyph.XAdvance;
-            prevGlyph = glyphIndex;
+            var nl = text[i..].IndexOf('\n');
+            var lineEnd = nl < 0 ? text.Length : i + nl;
+            var w = MeasureLineWidth(text[i..lineEnd]);
+            if (w > max) max = w;
+            if (nl < 0) break;
+            i = lineEnd + 1;
         }
-        return totalWidth;
+        return max;
     }
 
     public float MeasureTextLineHeight(TextStyle style) => _fonts.GetMetrics(_defaultFont).LineHeight;
