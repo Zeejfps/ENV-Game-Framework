@@ -130,7 +130,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
 
     // ---------- Externals ----------
 
-    private readonly IFontBackend _fonts;
+    private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
     private readonly GlImageManager _imageManager;
     private int _width, _height;
@@ -139,7 +139,11 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
     // Optional debug counters
     public int LastFrameUploadCount { get; private set; }
 
-    public OpenGlRenderedCanvas(int width, int height, IFontBackend fonts, FontHandle defaultFont, GlImageManager imageManager)
+    public OpenGlRenderedCanvas(
+        int width, int height, 
+        FreeTypeFontBackend fonts, 
+        FontHandle defaultFont, 
+        GlImageManager imageManager)
     {
         _width = width;
         _height = height;

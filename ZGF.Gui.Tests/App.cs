@@ -18,7 +18,7 @@ public sealed class App : OpenGlApp
     private readonly GlfwInputSystem _inputSystem;
     private readonly SizeCallback _windowSizeCallback;
     private readonly SizeCallback _framebufferSizeCallback;
-    private readonly IFontBackend _fontBackend;
+    private readonly FreeTypeFontBackend _fontBackend;
     private readonly FontHandle _defaultFont;
     private readonly ContextMenuManager _contextMenuManager;
     private readonly GlImageManager _imageManager;

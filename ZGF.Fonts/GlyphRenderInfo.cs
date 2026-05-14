@@ -1,6 +1,6 @@
 namespace ZGF.Fonts;
 
-public readonly struct GlyphRenderInfo
+public readonly record struct GlyphRenderInfo
 {
     public readonly int BitmapLeft;
     public readonly int BitmapTop;

@@ -1,6 +1,6 @@
 namespace ZGF.Fonts;
 
-public readonly struct ShapedGlyph
+public readonly record struct ShapedGlyph
 {
     public readonly uint GlyphIndex;
     public readonly float XOffset;

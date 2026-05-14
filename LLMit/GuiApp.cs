@@ -12,7 +12,7 @@ public sealed class GuiApp : OpenGlApp
 {
     private readonly GlfwInputSystem _inputSystem;
     private readonly OpenGlRenderedCanvas _canvas;
-    private readonly IFontBackend _fontBackend;
+    private readonly FreeTypeFontBackend _fontBackend;
     private readonly View _gui;
 
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable

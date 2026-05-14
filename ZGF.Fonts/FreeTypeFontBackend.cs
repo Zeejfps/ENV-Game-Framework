@@ -7,7 +7,7 @@ using HbBuffer = HarfBuzzSharp.Buffer;
 
 namespace ZGF.Fonts;
 
-public sealed unsafe class FreeTypeFontBackend : IFontBackend
+public sealed unsafe class FreeTypeFontBackend
 {
     private readonly FreeTypeLibrary _library;
     private readonly GlyphAtlas _atlas;
