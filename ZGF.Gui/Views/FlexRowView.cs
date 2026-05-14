@@ -156,7 +156,7 @@ public sealed class FlexRowView : View
                 default:
                     finalChildHeight = childInitialHeight;
                     var verticalPadding = (position.Height - finalChildHeight) / 2f;
-                    childBottom = position.Bottom - verticalPadding;
+                    childBottom = position.Bottom + verticalPadding;
                     break;
             }
 
