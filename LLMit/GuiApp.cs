@@ -19,7 +19,7 @@ public sealed class GuiApp : OpenGlApp
     private readonly SizeCallback _framebufferSizeCallback;
     private readonly ContextMenuManager _contextMenuManager;
 
-    public GuiApp(StartupConfig startupConfig, View content) : base(startupConfig)
+    public GuiApp(StartupConfig startupConfig, Context context, View content) : base(startupConfig)
     {
         var imageManager = new GlImageManager();
         var contextMenuPane = new View();
@@ -35,10 +35,7 @@ public sealed class GuiApp : OpenGlApp
 
         _inputSystem = new GlfwInputSystem(WindowHandle, _canvas);
 
-        var context = new Context
-        {
-            Canvas = _canvas
-        };
+        context.Canvas = _canvas;
 
         context.AddService(_inputSystem.InputSystem);
         context.AddService(_contextMenuManager);

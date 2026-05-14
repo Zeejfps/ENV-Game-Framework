@@ -1,13 +1,15 @@
 ﻿using LLMit;
 using LLMit.Views;
 using ZGF.Core;
+using ZGF.Gui;
 
+var context = new Context();
 var appView = new AppView();
 var guiApp = new GuiApp(new StartupConfig
 {
     WindowTitle = "LLMit",
     WindowWidth = 1280,
     WindowHeight = 720,
-}, appView);
+}, context, appView);
 
 guiApp.Run();

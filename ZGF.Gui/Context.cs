@@ -2,7 +2,7 @@ namespace ZGF.Gui;
 
 public sealed class Context
 {
-    public required ICanvas Canvas { get; init; }
+    public ICanvas Canvas { get; set; }
 
     private readonly Dictionary<Type, object> _services = new();
 
