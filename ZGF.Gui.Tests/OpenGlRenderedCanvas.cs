@@ -433,19 +433,20 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         var style = inputs.Style;
         var pos = inputs.Position;
 
-        // Snap each edge independently so adjacent rects share the same boundary
-        // and never leave 1px gaps from independent width rounding.
-        var left = MathF.Round(pos.Left);
-        var bottom = MathF.Round(pos.Bottom);
-        var right = MathF.Round(pos.Left + pos.Width);
-        var top = MathF.Round(pos.Bottom + pos.Height);
+        // Snap origin with Ceiling and size separately so drawn dimensions don't depend
+        // on the fractional part of the origin (which would otherwise wobble +/- 1px
+        // across frames as subpixel layout drift flips Round's banker's-rounding tie).
+        var left = MathF.Ceiling(pos.Left);
+        var bottom = MathF.Ceiling(pos.Bottom);
+        var width = MathF.Ceiling(pos.Width);
+        var height = MathF.Ceiling(pos.Height);
 
         _stagedRects.Add(new StagedRect
         {
             Key = MakeKey(inputs.ZIndex, _sequence++),
             Inst = new RectInstance
             {
-                Rect = new Vector4(left, bottom, right - left, top - bottom),
+                Rect = new Vector4(left, bottom, width, height),
                 BorderRadius = new Vector4(
                     style.BorderRadius.TopLeft.Value,
                     style.BorderRadius.TopRight.Value,
@@ -659,10 +660,10 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
     public void PushClip(RectF rect)
     {
         var current = _stagedClips[_clipStack.Peek()];
-        var left = MathF.Max(rect.Left, current.X);
-        var bottom = MathF.Max(rect.Bottom, current.Y);
-        var right = MathF.Min(rect.Right, current.Z);
-        var top = MathF.Min(rect.Top, current.W);
+        var left = MathF.Ceiling(MathF.Max(rect.Left, current.X));
+        var bottom = MathF.Ceiling(MathF.Max(rect.Bottom, current.Y));
+        var right = MathF.Floor(MathF.Min(rect.Right, current.Z));
+        var top = MathF.Floor(MathF.Min(rect.Top, current.W));
         if (right < left) right = left;
         if (top < bottom) top = bottom;
 
