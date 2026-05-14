@@ -635,18 +635,11 @@ public class View
         return parentZIndex + ZIndex;
     }
 
-    private sealed class ComponentCollection : IComponentCollection
+    private sealed class ComponentCollection(View view) : IComponentCollection
     {
-        private readonly View _view;
-
-        public ComponentCollection(View view)
-        {
-            _view = view;
-        }
-
         public IEnumerator<View> GetEnumerator()
         {
-            return _view._children.GetEnumerator();
+            return view._children.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -654,44 +647,37 @@ public class View
             return GetEnumerator();
         }
 
-        public int Count => _view._children.Count;
+        public int Count => view._children.Count;
         
-        public void Add(View view)
+        public void Add(View view1)
         {
-            _view.AddChildToSelf(view);
+            view.AddChildToSelf(view1);
         }
 
-        public bool Remove(View view)
+        public bool Remove(View view1)
         {
-            return _view.RemoveChildFromSelf(view);
+            return view.RemoveChildFromSelf(view1);
         }
 
-        public bool Contains(View view)
+        public bool Contains(View view1)
         {
-            return _view._children.Contains(view);
+            return view._children.Contains(view1);
         }
 
         public void Clear()
         {
-            foreach (var child in _view._children.ToArray())
+            foreach (var child in view._children.ToArray())
             {
                 Remove(child);
             }
         }
     }
     
-    private sealed class BehaviorCollection : IBehaviorCollection
+    private sealed class BehaviorCollection(View view) : IBehaviorCollection
     {
-        private readonly View _view;
-
-        public BehaviorCollection(View view)
-        {
-            _view = view;
-        }
-
         public IEnumerator<IViewBehavior> GetEnumerator()
         {
-            return _view._behaviors.GetEnumerator();
+            return view._behaviors.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -699,30 +685,24 @@ public class View
             return GetEnumerator();
         }
 
-        public int Count => _view._behaviors.Count;
+        public int Count => view._behaviors.Count;
 
         public void Add(IViewBehavior behavior)
         {
-            _view.AddBehaviorToSelf(behavior);
+            view.AddBehaviorToSelf(behavior);
         }
 
         public bool Remove(IViewBehavior behavior)
         {
-            return _view.RemoveBehaviorFromSelf(behavior);
+            return view.RemoveBehaviorFromSelf(behavior);
         }
     }
 
-    private sealed class StyleClassCollection : IStyleClassCollection
+    private sealed class StyleClassCollection(View view) : IStyleClassCollection
     {
-        private readonly View _view;
-        public StyleClassCollection(View view)
-        {
-            _view = view;
-        }
-
         public IEnumerator<string> GetEnumerator()
         {
-            return _view._styleClasses.GetEnumerator();
+            return view._styleClasses.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -730,16 +710,16 @@ public class View
             return GetEnumerator();
         }
 
-        public int Count => _view._styleClasses.Count;
+        public int Count => view._styleClasses.Count;
         
         public void Add(string styleClass)
         {
-            _view.AddStyleClass(styleClass);
+            view.AddStyleClass(styleClass);
         }
 
         public bool Remove(string styleClass)
         {
-            return _view.RemoveStyleClass(styleClass);
+            return view.RemoveStyleClass(styleClass);
         }
     }
 }
