@@ -166,15 +166,15 @@ public sealed class AddRepoDialog : View
                             CrossAxisAlignment = CrossAxisAlignment.Stretch,
                             Children =
                             {
-                                new DialogButton("Init New", () => { /* TODO */ })
-                                {
-                                    PreferredHeight = 40,
-                                },
                                 new DialogButton("Clone", () => { /* TODO */ })
                                 {
                                     PreferredHeight = 40,
                                 },
                                 new DialogButton("Open", () => { /* TODO */ })
+                                {
+                                    PreferredHeight = 40,
+                                },
+                                new DialogButton("New", () => { /* TODO */ })
                                 {
                                     PreferredHeight = 40,
                                 },
