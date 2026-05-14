@@ -14,7 +14,6 @@
       <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
       <ProjectReference Include="..\QuadTreeRendererProgram\QuadTreeRendererProgram.csproj" />
       <ProjectReference Include="..\SoftwareRendererModule\SoftwareRendererModule.csproj" />
-      <ProjectReference Include="..\ZGF.BMFontModule\ZGF.BMFontModule.csproj" />
       <ProjectReference Include="..\ZGF.Core\ZGF.Core.csproj" />
       <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />

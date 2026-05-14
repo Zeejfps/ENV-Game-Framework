@@ -602,7 +602,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         var rectW = (int)pos.Width;
         var rectH = (int)pos.Height;
 
-        // Aspect-fit: same math as SoftwareRenderedCanvas.ExecuteCommand.
+        // Aspect-fit: scale to longest matching extent, then center.
         var aspect = (float)imageW / imageH;
         float scaledWidth, scaledHeight;
         if (aspect > (float)rectW / rectH)
