@@ -196,7 +196,7 @@ public sealed class DialogCloseButton : View
 
         var label = new TextView
         {
-            Text = "X",
+            Text = "×",
             TextColor = DialogPalette.CloseTextNormal,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
