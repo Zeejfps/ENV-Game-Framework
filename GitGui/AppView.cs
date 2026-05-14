@@ -97,6 +97,7 @@ internal static class DialogPalette
 {
     public const uint Background = 0xFF1E1F22;
     public const uint Border = 0xFF313338;
+    public const uint Separator = 0xFF2A2C30;
     public const uint TitleText = 0xFFE6E6E6;
     public const uint BodyText = 0xFFDCDDDE;
 
@@ -113,8 +114,31 @@ internal static class DialogPalette
 
 public sealed class AddRepoDialog : View
 {
+    private const float CloseButtonSize = 28f;
+
     public AddRepoDialog(Action onClose)
     {
+        var title = new TextView
+        {
+            Text = "Add Repository",
+            TextColor = DialogPalette.TitleText,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+
+        var headerRow = new FlexRowView
+        {
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            PreferredHeight = 28,
+            Children =
+            {
+                new View { PreferredWidth = CloseButtonSize },
+                title,
+                new DialogCloseButton(onClose),
+            }
+        };
+        headerRow.UpdateStyle(title, new FlexStyle { Grow = 1 });
+
         AddChildToSelf(new RectView
         {
             BackgroundColor = DialogPalette.Background,
@@ -126,25 +150,15 @@ public sealed class AddRepoDialog : View
             {
                 new FlexColumnView
                 {
-                    Gap = 20,
+                    Gap = 14,
                     CrossAxisAlignment = CrossAxisAlignment.Stretch,
                     Children =
                     {
-                        new FlexRowView
+                        headerRow,
+                        new RectView
                         {
-                            MainAxisAlignment = MainAxisAlignment.SpaceBetween,
-                            CrossAxisAlignment = CrossAxisAlignment.Center,
-                            PreferredHeight = 28,
-                            Children =
-                            {
-                                new TextView
-                                {
-                                    Text = "Add Repository",
-                                    TextColor = DialogPalette.TitleText,
-                                    VerticalTextAlignment = TextAlignment.Center,
-                                },
-                                new DialogCloseButton(onClose),
-                            }
+                            BackgroundColor = DialogPalette.Separator,
+                            PreferredHeight = 1,
                         },
                         new FlexColumnView
                         {

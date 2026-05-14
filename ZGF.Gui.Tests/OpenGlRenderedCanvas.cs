@@ -507,7 +507,9 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
             switch (style.VerticalAlignment.Value)
             {
                 case TextAlignment.Center:
-                    cursorY = (int)((pos.Top - pos.Height * 0.5f) - (fontBase * 0.5f));
+                    // Center the visible glyph extent [baseline-descent, baseline+fontBase], not just the ascender box.
+                    var descent = lineHeight - fontBase;
+                    cursorY = (int)MathF.Round((pos.Top - pos.Height * 0.5f) - (fontBase * 0.5f) + (descent * 0.5f));
                     break;
                 case TextAlignment.Start:
                 case TextAlignment.End:
