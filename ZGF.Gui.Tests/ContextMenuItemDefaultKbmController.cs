@@ -24,7 +24,7 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
         Clicked = clicked;
     }
 
-    protected override void OnAttachedToContext(MultiChildView view, Context context)
+    protected override void OnAttachedToContext(View view, Context context)
     {
         _contextMenuManager = context.Get<ContextMenuManager>();
         if (SubOptions.Count > 0)

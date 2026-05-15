@@ -14,12 +14,12 @@ public abstract class BaseMenuItemController : KeyboardMouseController
         MenuItem = menuItem;
     }
 
-    protected override void OnAttachedToContext(MultiChildView view, Context context)
+    protected override void OnAttachedToContext(View view, Context context)
     {
         _contextMenuManager = context.Get<ContextMenuManager>();
     }
 
-    protected override void OnDetachedFromContext(MultiChildView view, Context context)
+    protected override void OnDetachedFromContext(View view, Context context)
     {
         if (_openedContextMenu != null)
         {

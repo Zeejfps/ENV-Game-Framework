@@ -27,7 +27,7 @@ public sealed class VerticalScrollPane : MultiChildView
         AddChildToSelf(_columnView);
     }
 
-    protected override void OnLayoutChild(in RectF position, MultiChildView child)
+    protected override void OnLayoutChild(in RectF position, View child)
     {
         var childHeight = child.MeasureHeight();
         child.BottomConstraint = position.Top + _distanceFromTop - childHeight;

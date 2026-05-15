@@ -11,13 +11,13 @@ public sealed class InputSystem
 
     private readonly HashSet<IKeyboardMouseController> _hoverableComponents = new();
     private readonly LinkedList<IKeyboardMouseController> _focusQueue = new();
-    private readonly Dictionary<MultiChildView, ControllerRegistration> _viewToController = new();
-    private readonly Dictionary<IKeyboardMouseController, MultiChildView> _controllerToView = new();
+    private readonly Dictionary<View, ControllerRegistration> _viewToController = new();
+    private readonly Dictionary<IKeyboardMouseController, View> _controllerToView = new();
 
     private IKeyboardMouseController? _hoveredComponent;
     private IKeyboardMouseController? _focusedComponent;
 
-    public void RegisterController(MultiChildView view, IKeyboardMouseController controller, EventPhaseFilter phaseFilter = EventPhaseFilter.Both)
+    public void RegisterController(View view, IKeyboardMouseController controller, EventPhaseFilter phaseFilter = EventPhaseFilter.Both)
     {
         if (_viewToController.ContainsKey(view))
         {
@@ -28,7 +28,7 @@ public sealed class InputSystem
         AddInteractable(controller);
     }
 
-    public void UnregisterController(MultiChildView view)
+    public void UnregisterController(View view)
     {
         if (_viewToController.Remove(view, out var registration))
         {
@@ -37,12 +37,12 @@ public sealed class InputSystem
         }
     }
 
-    public IKeyboardMouseController? GetController(MultiChildView view)
+    public IKeyboardMouseController? GetController(View view)
     {
         return _viewToController.TryGetValue(view, out var reg) ? reg.Controller : null;
     }
 
-    public MultiChildView? GetView(IKeyboardMouseController controller)
+    public View? GetView(IKeyboardMouseController controller)
     {
         return _controllerToView.GetValueOrDefault(controller);
     }

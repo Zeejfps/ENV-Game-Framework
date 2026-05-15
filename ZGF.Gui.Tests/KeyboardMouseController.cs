@@ -6,25 +6,25 @@ public abstract class KeyboardMouseController : IKeyboardMouseController, IViewB
 
     protected Context? Context { get; private set; }
     
-    public void AttachToContext(MultiChildView view, Context context)
+    public void AttachToContext(View view, Context context)
     {
         Context = context;
         context.Get<InputSystem>()!.RegisterController(view, this, PhaseFilter);
         OnAttachedToContext(view, context);
     }
 
-    public void DetachFromContext(MultiChildView view, Context context)
+    public void DetachFromContext(View view, Context context)
     {
         OnDetachedFromContext(view, context);
         context.Get<InputSystem>()?.UnregisterController(view);
         Context = null;
     }
 
-    protected virtual void OnAttachedToContext(MultiChildView view, Context context)
+    protected virtual void OnAttachedToContext(View view, Context context)
     {
     }
 
-    protected virtual void OnDetachedFromContext(MultiChildView view, Context context)
+    protected virtual void OnDetachedFromContext(View view, Context context)
     {
     }
 

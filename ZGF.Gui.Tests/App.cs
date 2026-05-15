@@ -167,7 +167,8 @@ public sealed class App : OpenGlApp
         Console.WriteLine($"{indent}{view}");
         foreach (var child in view.Children)
         {
-            PrintTree(child, depth + 1);
+            if (child is MultiChildView multiChildView)
+                PrintTree(multiChildView, depth + 1);
         }
     }
 
