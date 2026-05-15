@@ -1,6 +1,5 @@
 ﻿using ZGF.Gui;
 using ZGF.Gui.Layouts;
-using ZGF.Gui.Tests;
 
 namespace GitGui;
 
@@ -199,93 +198,6 @@ public sealed class AddRepoDialog : View
                 }
             }
         });
-    }
-}
-
-public sealed class DialogCloseButton : View
-{
-    public DialogCloseButton(Action onClick)
-    {
-        PreferredWidth = 28;
-        PreferredHeight = 28;
-
-        var label = new TextView
-        {
-            Text = "×",
-            TextColor = DialogPalette.CloseTextNormal,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-        var background = new RectView
-        {
-            BackgroundColor = DialogPalette.CloseNormal,
-            BorderRadius = BorderRadiusStyle.All(4),
-            Children = { label }
-        };
-
-        AddChildToSelf(background);
-        Behaviors.Add(new HoverableButtonController(
-            onClick,
-            isHovered =>
-            {
-                background.BackgroundColor = isHovered ? DialogPalette.CloseHover : DialogPalette.CloseNormal;
-                label.TextColor = isHovered ? DialogPalette.CloseTextHover : DialogPalette.CloseTextNormal;
-            }));
-    }
-}
-
-public sealed class DialogButton : View
-{
-    public DialogButton(string label, Action onClick)
-    {
-        var background = new RectView
-        {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(6),
-            Children =
-            {
-                new TextView
-                {
-                    Text = label,
-                    TextColor = 0xFFFFFFFF,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    VerticalTextAlignment = TextAlignment.Center,
-                }
-            }
-        };
-        AddChildToSelf(background);
-        Behaviors.Add(new HoverableButtonController(
-            onClick,
-            isHovered =>
-            {
-                background.BackgroundColor = isHovered ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal;
-                background.BorderColor = BorderColorStyle.All(
-                    isHovered ? DialogPalette.ButtonBorderHover : DialogPalette.ButtonBorder);
-            }));
-    }
-}
-
-public sealed class HoverableButtonController(Action onClick, Action<bool> onHoverChanged) : KeyboardMouseController
-{
-    public override void OnMouseEnter(ref MouseEnterEvent e)
-    {
-        onHoverChanged(true);
-    }
-
-    public override void OnMouseExit(ref MouseExitEvent e)
-    {
-        onHoverChanged(false);
-    }
-
-    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
-    {
-        if (e.Button == MouseButton.Left && e.State == InputState.Pressed)
-        {
-            onClick();
-            e.Consume();
-        }
     }
 }
 
