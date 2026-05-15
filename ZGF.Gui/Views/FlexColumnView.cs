@@ -1,28 +1,23 @@
-using ZGF.Geometry;
-
 namespace ZGF.Gui.Layouts;
 
 public sealed class FlexColumnView : MultiChildView
 {
-    private float _gap;
     public float Gap
     {
-        get => _gap;
-        set => SetField(ref _gap, value);
+        get;
+        set => SetField(ref field, value);
     }
 
-    private CrossAxisAlignment _crossAxisAlignment;
     public CrossAxisAlignment CrossAxisAlignment
     {
-        get => _crossAxisAlignment;
-        set => SetField(ref _crossAxisAlignment, value);
+        get;
+        set => SetField(ref field, value);
     }
 
-    private MainAxisAlignment _mainAxisAlignment;
     public MainAxisAlignment MainAxisAlignment
     {
-        get => _mainAxisAlignment;
-        set => SetField(ref _mainAxisAlignment, value);
+        get;
+        set => SetField(ref field, value);
     }
 
     public override float MeasureHeight()
