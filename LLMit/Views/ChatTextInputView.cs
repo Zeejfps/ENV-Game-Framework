@@ -62,7 +62,7 @@ public sealed class ChatTextInputViewController : BaseTextInputKbmController
         _textInput = textInput;
     }
 
-    protected override void OnDetachedFromContext(MultiChildView view, Context context)
+    protected override void OnDetachedFromContext(View view, Context context)
     {
         Submit = null;
     }
