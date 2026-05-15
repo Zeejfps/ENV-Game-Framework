@@ -1,10 +1,10 @@
 namespace ZGF.Gui;
 
-public interface IComponentCollection : IEnumerable<MultiChildView>
+public interface IComponentCollection : IEnumerable<View>
 {
     int Count { get; }
-    void Add(MultiChildView view);
-    bool Remove(MultiChildView view);
-    bool Contains(MultiChildView view);
+    void Add(View view);
+    bool Remove(View view);
+    bool Contains(View view);
     void Clear();
 }
