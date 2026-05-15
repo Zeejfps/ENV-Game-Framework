@@ -301,6 +301,7 @@ public sealed class RepoBar : View
 
     private readonly FlexColumnView _content;
     private readonly AddRepoButton _addButton = new();
+    private readonly Dictionary<Guid, GroupSection> _sections = new();
     private IMessageBus? _bus;
     private IRepoRegistry? _registry;
 
@@ -357,21 +358,62 @@ public sealed class RepoBar : View
 
     private void Rebuild()
     {
-        _content.Children.Clear();
         if (_registry is null) return;
         var activeId = _registry.Active?.Id;
         var reposById = _registry.Repos.ToDictionary(r => r.Id);
 
+        var liveGroupIds = _registry.Groups.Select(g => g.Id).ToHashSet();
+        foreach (var id in _sections.Keys.ToList())
+        {
+            if (liveGroupIds.Contains(id)) continue;
+            _content.Children.Remove(_sections[id]);
+            _sections.Remove(id);
+        }
+
         foreach (var group in _registry.Groups)
         {
-            _content.Children.Add(new GroupHeaderRow(group));
-            foreach (var repoId in group.RepoIds)
+            if (!_sections.TryGetValue(group.Id, out var section))
             {
-                if (!reposById.TryGetValue(repoId, out var repo)) continue;
-                var isActive = repo.Id == activeId;
-                if (group.IsCollapsed && !isActive) continue;
-                _content.Children.Add(new RepoRow(repo, isActive));
+                section = new GroupSection(group);
+                _sections[group.Id] = section;
+                _content.Children.Add(section);
             }
+            section.Update(group, activeId, reposById);
+        }
+    }
+}
+
+public sealed class GroupSection : View
+{
+    private readonly GroupHeaderRow _header;
+    private readonly FlexColumnView _rows;
+
+    public GroupSection(Group group)
+    {
+        _header = new GroupHeaderRow(group);
+        _rows = new FlexColumnView
+        {
+            Gap = 2,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
+        };
+        AddChildToSelf(new FlexColumnView
+        {
+            Gap = 2,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
+            Children = { _header, _rows }
+        });
+    }
+
+    public void Update(Group group, Guid? activeId, Dictionary<Guid, Repo> reposById)
+    {
+        _header.Update(group);
+        _rows.Children.Clear();
+        foreach (var repoId in group.RepoIds)
+        {
+            if (!reposById.TryGetValue(repoId, out var repo)) continue;
+            var isActive = repo.Id == activeId;
+            if (group.IsCollapsed && !isActive) continue;
+            _rows.Children.Add(new RepoRow(repo, isActive));
         }
     }
 }
@@ -413,19 +455,22 @@ public sealed class AddRepoButton : View
 
 public sealed class GroupHeaderRow : View
 {
+    private readonly TextView _chevron;
+    private readonly TextView _name;
+
     public GroupHeaderRow(Group group)
     {
         PreferredHeight = 26;
 
-        var chevron = new TextView
+        _chevron = new TextView
         {
-            Text = group.IsCollapsed ? "▶" : "▼",
+            Text = ChevronFor(group.IsCollapsed),
             TextColor = DialogPalette.SectionHeaderText,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
         };
-        var name = new TextView
+        _name = new TextView
         {
             Text = group.Name,
             TextColor = DialogPalette.SectionHeaderText,
@@ -436,7 +481,7 @@ public sealed class GroupHeaderRow : View
         {
             CrossAxisAlignment = CrossAxisAlignment.Center,
             Gap = 4,
-            Children = { chevron, name }
+            Children = { _chevron, _name }
         };
         var background = new RectView
         {
@@ -454,6 +499,14 @@ public sealed class GroupHeaderRow : View
                 background.BackgroundColor = isHovered ? DialogPalette.RowHover : DialogPalette.RowTransparent;
             }));
     }
+
+    public void Update(Group group)
+    {
+        _chevron.Text = ChevronFor(group.IsCollapsed);
+        _name.Text = group.Name;
+    }
+
+    private static string ChevronFor(bool isCollapsed) => isCollapsed ? "▶" : "▼";
 }
 
 public sealed class RepoRow : View
