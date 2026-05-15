@@ -5,7 +5,7 @@ namespace GitGui;
 
 public sealed class RepoBar : View
 {
-    public const int BarWidth = 220;
+    private const int BarWidth = 220;
     private const int HorizontalPadding = 8;
     private const int RowTextIndent = 24;
     private const int RowTextRightPadding = 12;

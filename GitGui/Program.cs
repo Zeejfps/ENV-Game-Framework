@@ -18,6 +18,7 @@ var statePath = Path.Combine(
     "state.json");
 var initialState = RepoStateStore.Load(statePath);
 context.AddService<IRepoRegistry>(new RepoRegistry(initialState, statePath, messageBus));
+context.AddService<IGitService>(new GitService());
 
 var appView = new AppView();
 var appHost = new GuiApp(new StartupConfig
