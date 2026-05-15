@@ -76,7 +76,10 @@ public sealed class CommitsView : MultiChildView
     private Guid _loadingRepoId;
 
     private float _scrollY;
+    private float _lastNormalizedScroll;
     private string? _selectedSha;
+
+    public event Action<float>? ScrollPositionChanged;
 
     private readonly TextStyle _rowTextStyle = new()
     {
@@ -190,7 +193,51 @@ public sealed class CommitsView : MultiChildView
         _snapshot = pending;
         _state = pending.ErrorMessage != null ? CommitsLoadState.Error : CommitsLoadState.Loaded;
         _scrollY = 0f;
+        NotifyScrollChanged();
         _bus?.Broadcast(new CommitsLoadedMessage(pending.RepoId));
+    }
+
+    public float Scale
+    {
+        get
+        {
+            var snap = _snapshot;
+            if (snap == null || snap.Commits.Count == 0) return 1f;
+            var bodyHeight = Position.Height - HeaderHeight;
+            if (bodyHeight <= 0) return 1f;
+            var contentHeight = snap.Commits.Count * RowHeight;
+            if (contentHeight <= bodyHeight) return 1f;
+            return bodyHeight / contentHeight;
+        }
+    }
+
+    public void SetNormalizedScrollPosition(float normalized)
+    {
+        var snap = _snapshot;
+        if (snap == null) return;
+        var bodyHeight = Position.Height - HeaderHeight;
+        var contentHeight = snap.Commits.Count * RowHeight;
+        var maxScroll = Math.Max(0f, contentHeight - bodyHeight);
+        var newScroll = maxScroll * Math.Clamp(normalized, 0f, 1f);
+        if (Math.Abs(newScroll - _scrollY) < 0.0001f) return;
+        _scrollY = newScroll;
+        NotifyScrollChanged();
+    }
+
+    private void NotifyScrollChanged()
+    {
+        var snap = _snapshot;
+        float normalized = 0f;
+        if (snap != null && snap.Commits.Count > 0)
+        {
+            var bodyHeight = Position.Height - HeaderHeight;
+            var contentHeight = snap.Commits.Count * RowHeight;
+            var maxScroll = Math.Max(0f, contentHeight - bodyHeight);
+            normalized = maxScroll > 0f ? Math.Clamp(_scrollY / maxScroll, 0f, 1f) : 0f;
+        }
+        if (Math.Abs(normalized - _lastNormalizedScroll) < 0.0001f) return;
+        _lastNormalizedScroll = normalized;
+        ScrollPositionChanged?.Invoke(normalized);
     }
 
     protected override void OnDrawSelf(ICanvas c)
@@ -500,8 +547,8 @@ public sealed class CommitsView : MultiChildView
     {
         var contentHeight = commitCount * RowHeight;
         var maxScroll = Math.Max(0f, contentHeight - body.Height);
-        if (_scrollY < 0f) _scrollY = 0f;
-        if (_scrollY > maxScroll) _scrollY = maxScroll;
+        _scrollY = Math.Clamp(_scrollY, 0f, maxScroll);
+        NotifyScrollChanged();
     }
 
     internal void OnWheel(float deltaY)
@@ -517,6 +564,7 @@ public sealed class CommitsView : MultiChildView
             if (_scrollY < 0f) _scrollY = 0f;
             if (_scrollY > maxScroll) _scrollY = maxScroll;
         }
+        NotifyScrollChanged();
     }
 
     internal void OnClickAt(PointF point)
