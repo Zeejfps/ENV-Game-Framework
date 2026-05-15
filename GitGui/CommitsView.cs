@@ -246,13 +246,10 @@ public sealed class CommitsView : View
         });
 
         var graphWidth = ComputeGraphColumnWidth();
-        var summaryX = pos.Left + graphWidth + ColumnGap;
         var dateX = pos.Right - DateColumnWidth - ColumnGap;
         var authorX = dateX - AuthorColumnWidth - ColumnGap;
-        var summaryW = authorX - summaryX - ColumnGap;
 
         DrawHeaderText(c, "Graph", pos.Left + GraphColumnPaddingLeft, pos.Top - HeaderHeight, graphWidth, z + 1);
-        DrawHeaderText(c, "Summary", summaryX, pos.Top - HeaderHeight, Math.Max(0, summaryW), z + 1);
         DrawHeaderText(c, "Author", authorX, pos.Top - HeaderHeight, AuthorColumnWidth, z + 1);
         DrawHeaderText(c, "Date", dateX, pos.Top - HeaderHeight, DateColumnWidth, z + 1);
     }
@@ -304,12 +301,9 @@ public sealed class CommitsView : View
         var contentTop = body.Top;
         var bodyHeight = body.Height;
         var scrollY = _scrollY;
-        var graphWidth = ComputeGraphColumnWidth();
         var graphStartX = body.Left + GraphColumnPaddingLeft;
-        var summaryX = body.Left + graphWidth + ColumnGap;
         var dateX = body.Right - DateColumnWidth - ColumnGap;
         var authorX = dateX - AuthorColumnWidth - ColumnGap;
-        var summaryW = Math.Max(0, authorX - summaryX - ColumnGap);
 
         var firstVisible = Math.Max(0, (int)(scrollY / RowHeight) - 1);
         var lastVisible = Math.Min(snap.Commits.Count - 1, (int)((scrollY + bodyHeight) / RowHeight) + 1);
@@ -325,8 +319,14 @@ public sealed class CommitsView : View
             DrawGraphCell(c, node, graphStartX, rowBottom, z + 1);
 
             var textTop = rowBottom;
-            var refsEndX = DrawBadges(c, node, summaryX, textTop, z + 2);
-            var summaryDraw = Math.Max(0, summaryX + summaryW - refsEndX);
+            var maxLaneAtRow = node.Lane;
+            foreach (var l in node.PassThroughLanes) if (l > maxLaneAtRow) maxLaneAtRow = l;
+            foreach (var l in node.IncomingLanes) if (l > maxLaneAtRow) maxLaneAtRow = l;
+            foreach (var p in node.InWalkParentLanes) if (p.Lane > maxLaneAtRow) maxLaneAtRow = p.Lane;
+            var summaryStartX = LaneCenterX(graphStartX, maxLaneAtRow) + DotRadius + GraphColumnPaddingRight;
+            var summaryLimitX = authorX - ColumnGap;
+            var refsEndX = DrawBadges(c, node, summaryStartX, textTop, z + 2);
+            var summaryDraw = Math.Max(0, summaryLimitX - refsEndX);
             DrawText(c, node.Summary, refsEndX, textTop, summaryDraw, node.Sha == _selectedSha, z + 2);
             DrawText(c, node.Author, authorX, textTop, AuthorColumnWidth, node.Sha == _selectedSha, z + 2);
             DrawText(c, FormatRelative(node.When), dateX, textTop, DateColumnWidth, node.Sha == _selectedSha, z + 2);
@@ -364,7 +364,6 @@ public sealed class CommitsView : View
 
     private void DrawGraphCell(ICanvas c, CommitNode node, float graphStartX, float rowBottom, int z)
     {
-        var rowTop = rowBottom + RowHeight;
         var rowCenterY = rowBottom + RowHeight * 0.5f;
         var commitColor = CommitsPalette.LaneColor(node.Lane);
         var commitCx = LaneCenterX(graphStartX, node.Lane);
