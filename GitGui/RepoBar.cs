@@ -33,7 +33,11 @@ public sealed class RepoBar : MultiChildView
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexItem { Grow = 1, Child = _content },
+                new FlexItem
+                {
+                    Grow = 1, 
+                    Child = _content,
+                },
                 _addButton,
             }
         };

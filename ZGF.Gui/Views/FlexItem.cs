@@ -1,6 +1,6 @@
 namespace ZGF.Gui.Layouts;
 
-public sealed class FlexItem : MultiChildView
+public sealed class FlexItem : View
 {
     public StyleValue<float> Grow { get; init; }
 
