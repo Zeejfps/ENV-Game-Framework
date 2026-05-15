@@ -173,7 +173,7 @@ public abstract class View
     }
     
     
-    public void BringToFront(MultiChildView view)
+    public void BringToFront(View view)
     {
         // If its already the last child ignore it
         if (view.SiblingIndex == _children.Count - 1)
@@ -274,7 +274,7 @@ public abstract class View
         return base.ToString() + "-" + _depth;
     }
 
-    public T? GetParentOfType<T>() where T : MultiChildView
+    public T? GetParentOfType<T>() where T : View
     {
         var parent = Parent;
         while (parent != null)
@@ -336,11 +336,11 @@ public abstract class View
         
     }
 
-    protected void DrawChild(MultiChildView child, ICanvas c)
+    protected void DrawChild(View child, ICanvas c)
     {
         child.DrawSelf(c);
     }
-    
+
     protected virtual void OnChildRemoved(View view)
     {
         SetDirty();
@@ -397,40 +397,6 @@ public abstract class View
         }
     }
 
-        protected void AddChildToSelf(MultiChildView view)
-    {
-        if (view.Parent != null)
-        {
-            view.Parent.RemoveChildFromSelf(view);
-        }
-
-        // Order matters here
-        var siblingIndex = _children.Count;
-        _children.Add(view);
-
-        view.Parent = this;
-        view.Depth = Depth + 1;
-        view._siblingIndex =  siblingIndex;
-        view.StyleSheet = StyleSheet;
-        view.Context = Context;
-        OnChildAdded(view);
-    }
-    
-    protected bool RemoveChildFromSelf(MultiChildView view)
-    {
-        if (_children.Remove(view))
-        {
-            view.Context = null;
-            view.Parent = null;
-            view.Depth = 0;
-            view._siblingIndex = 0;
-            view.StyleSheet = null;
-            OnChildRemoved(view);
-            return true;
-        }
-        return false;
-    }
-    
     public Size MeasureSelf()
     {
         var width = MeasureWidth();
@@ -563,12 +529,6 @@ public abstract class View
         StyleSheet = null;
     }
 
-    protected virtual void OnChildAdded(MultiChildView view)
-    {
-        SetDirty();
-    }
-    
-    
     private void AddBehaviorToSelf(IViewBehavior behavior)
     {
         _behaviors.Add(behavior);
