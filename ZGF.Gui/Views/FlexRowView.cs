@@ -20,11 +20,6 @@ public enum CrossAxisAlignment
     Stretch    // Stretch to fill the container's height
 }
 
-public struct FlexStyle
-{
-    public StyleValue<float> Grow { get; set; }
-}
-
 public sealed class FlexRowView : View
 {
     private float _gap;
@@ -48,21 +43,6 @@ public sealed class FlexRowView : View
         set => SetField(ref _mainAxisAlignment, value);
     }
     
-    private readonly Dictionary<View, FlexStyle> _flexStyleByComponent = new();
-    
-    
-    public void UpdateStyle(View view, FlexStyle style)
-    {
-        _flexStyleByComponent[view] = style;
-        SetDirty();
-    }
-
-    protected override void OnComponentRemoved(View view)
-    {
-        _flexStyleByComponent.Remove(view);
-        base.OnComponentRemoved(view);
-    }
-
     protected override void OnLayoutChildren()
     {
         var position = Position;
@@ -77,9 +57,9 @@ public sealed class FlexRowView : View
         
         foreach (var child in children)
         {
-            var style = _flexStyleByComponent.GetValueOrDefault(child);
+            var grow = child is FlexItem item ? (float)item.Grow : 0f;
             totalChildrenInitialWidth += child.MeasureWidth();
-            totalFlexGrow += style.Grow;
+            totalFlexGrow += grow;
         }
         
         var totalGap = Gap * (children.Count - 1);
@@ -117,16 +97,16 @@ public sealed class FlexRowView : View
         
         foreach (var child in children)
         {
-            var style = _flexStyleByComponent.GetValueOrDefault(child);
+            var grow = child is FlexItem item ? (float)item.Grow : 0f;
             var childSize = child.MeasureSelf();
             var childInitialWidth = childSize.Width;
             var childInitialHeight = childSize.Height;
 
             // Calculate final width based on FlexGrow
             var finalChildWidth = childInitialWidth;
-            if (remainingSpace > 0 && style.Grow > 0 && totalFlexGrow > 0)
+            if (remainingSpace > 0 && grow > 0 && totalFlexGrow > 0)
             {
-                finalChildWidth += (style.Grow / totalFlexGrow) * remainingSpace;
+                finalChildWidth += (grow / totalFlexGrow) * remainingSpace;
             }
             
             var crossxisAlignment = CrossAxisAlignment;

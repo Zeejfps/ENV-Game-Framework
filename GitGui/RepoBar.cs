@@ -31,9 +31,12 @@ public sealed class RepoBar : View
         {
             Gap = 6,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
-            Children = { _content, _addButton }
+            Children =
+            {
+                new FlexItem { Grow = 1, Child = _content },
+                _addButton,
+            }
         };
-        root.UpdateStyle(_content, new FlexStyle { Grow = 1 });
         AddChildToSelf(new RectView
         {
             BackgroundColor = DialogPalette.Background,

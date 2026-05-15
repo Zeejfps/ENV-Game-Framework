@@ -48,15 +48,10 @@ public sealed class WindowTitleBarView : View
             Children =
             {
                 button,
-                _titleTextView,
-                button2
+                new FlexItem { Grow = 1f, Child = _titleTextView },
+                button2,
             }
         };
-        
-        row.UpdateStyle(_titleTextView, new FlexStyle
-        {
-            Grow = 1f,
-        });
         
         var background = new RectView
         {

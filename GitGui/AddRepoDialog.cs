@@ -24,11 +24,10 @@ public sealed class AddRepoDialog : View
             Children =
             {
                 new View { PreferredWidth = CloseButtonSize },
-                title,
+                new FlexItem { Grow = 1, Child = title },
                 new DialogCloseButton(onClose),
             }
         };
-        headerRow.UpdateStyle(title, new FlexStyle { Grow = 1 });
 
         AddChildToSelf(new RectView
         {

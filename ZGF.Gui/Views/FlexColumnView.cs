@@ -25,20 +25,6 @@ public sealed class FlexColumnView : View
         set => SetField(ref _mainAxisAlignment, value);
     }
 
-    private readonly Dictionary<View, FlexStyle> _flexStyleByComponent = new();
-
-    public void UpdateStyle(View view, FlexStyle style)
-    {
-        _flexStyleByComponent[view] = style;
-        SetDirty();
-    }
-
-    protected override void OnComponentRemoved(View view)
-    {
-        _flexStyleByComponent.Remove(view);
-        base.OnComponentRemoved(view);
-    }
-
     public override float MeasureHeight()
     {
         if (PreferredHeight.IsSet)
@@ -67,9 +53,9 @@ public sealed class FlexColumnView : View
 
         foreach (var child in children)
         {
-            var style = _flexStyleByComponent.GetValueOrDefault(child);
+            var grow = child is FlexItem item ? (float)item.Grow : 0f;
             totalChildrenInitialHeight += child.MeasureHeight();
-            totalFlexGrow += style.Grow;
+            totalFlexGrow += grow;
         }
 
         var totalGap = Gap * (children.Count - 1);
@@ -107,15 +93,15 @@ public sealed class FlexColumnView : View
 
         foreach (var child in children)
         {
-            var style = _flexStyleByComponent.GetValueOrDefault(child);
+            var grow = child is FlexItem item ? (float)item.Grow : 0f;
             var childSize = child.MeasureSelf();
             var childInitialWidth = childSize.Width;
             var childInitialHeight = childSize.Height;
 
             var finalChildHeight = childInitialHeight;
-            if (remainingSpace > 0 && style.Grow > 0 && totalFlexGrow > 0)
+            if (remainingSpace > 0 && grow > 0 && totalFlexGrow > 0)
             {
-                finalChildHeight += (style.Grow / totalFlexGrow) * remainingSpace;
+                finalChildHeight += (grow / totalFlexGrow) * remainingSpace;
             }
 
             float finalChildWidth;
