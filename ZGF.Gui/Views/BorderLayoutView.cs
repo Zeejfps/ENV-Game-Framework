@@ -1,71 +1,67 @@
 namespace ZGF.Gui.Layouts;
 
-public sealed class BorderLayoutView : MultiChildView
+public sealed class BorderLayoutView : View
 {
-    private MultiChildView? _north;
-    public MultiChildView? North
+    public View? North
     {
-        get => _north;
-        set => SetComponent(ref _north, value);
+        get;
+        set => SetView(ref field, value);
     }
 
-    private MultiChildView? _east;
-    public MultiChildView? East
+    public View? East
     {
-        get => _east;
-        set => SetComponent(ref _east, value);
+        get;
+        set => SetView(ref field, value);
     }
 
-    private MultiChildView? _west;
-    public MultiChildView? West
+    public View? West
     {
-        get => _west;
-        set => SetComponent(ref _west, value);
+        get;
+        set => SetView(ref field, value);
     }
 
-    private MultiChildView? _south;
-    public MultiChildView? South
+    private View? _south;
+    public View? South
     {
         get => _south;
-        set => SetComponent(ref _south, value);
+        set => SetView(ref _south, value);
     }
 
-    private MultiChildView? _center;
-    public MultiChildView? Center
+    public View? Center
     {
-        get => _center;
-        set => SetComponent(ref _center, value);
+        get;
+        set => SetView(ref field, value);
     }
 
-    private void SetComponent(ref MultiChildView? component, MultiChildView? value)
+    private void SetView(ref View? view, View? value)
     {
-        if (component == value)
+        if (view == value)
             return;
-            
-        var prevComponent = component;
-        component = value;
-            
+
+        var prevComponent = view;
+        view = value;
+
         if (prevComponent != null)
         {
             RemoveChildFromSelf(prevComponent);
         }
 
-        if (component != null)
+        if (view != null)
         {
-            AddChildToSelf(component);
+            AddChildToSelf(view);
         }
     }
 
     protected override void OnLayoutChildren()
     {
         var position = Position;
-        
+
         var centerAreaWidth = position.Width;
         var centerAreaHeight = position.Height;
 
         var leftOffset = 0f;
         var bottomOffset = 0f;
-        
+
         if (North != null)
         {
             var height = North.MeasureHeight();
@@ -99,7 +95,7 @@ public sealed class BorderLayoutView : MultiChildView
             centerAreaWidth -= width;
             leftOffset += width;
         }
-        
+
         if (East != null)
         {
             var width = East.MeasureWidth();
