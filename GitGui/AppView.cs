@@ -170,7 +170,14 @@ public sealed class AddRepoDialog : View
                                 {
                                     PreferredHeight = 40,
                                 },
-                                new DialogButton("Open", () => { /* TODO */ })
+                                new DialogButton("Open", () =>
+                                {
+                                    var picker = Context?.Get<IFolderPicker>();
+                                    var path = picker?.PickFolder("Open Repository");
+                                    if (string.IsNullOrEmpty(path)) return;
+                                    Console.WriteLine("Opening repo: " + path);
+                                    onClose();
+                                })
                                 {
                                     PreferredHeight = 40,
                                 },
