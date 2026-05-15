@@ -175,7 +175,7 @@ public sealed class AddRepoDialog : View
                                     var picker = Context?.Get<IFolderPicker>();
                                     var path = picker?.PickFolder("Open Repository");
                                     if (string.IsNullOrEmpty(path)) return;
-                                    Console.WriteLine("Opening repo: " + path);
+                                    Context?.Get<IRepoRegistry>()?.Open(path);
                                     onClose();
                                 })
                                 {
@@ -283,24 +283,59 @@ public sealed class HoverableButtonController(Action onClick, Action<bool> onHov
 
 public sealed class RepoBar : View
 {
+    private readonly FlexColumnView _column;
+    private readonly AddRepoButton _addButton = new();
+    private IMessageBus? _bus;
+    private IRepoRegistry? _registry;
+
     public RepoBar()
     {
-        PreferredWidth = 80;
+        PreferredWidth = 72;
+        _column = new FlexColumnView
+        {
+            Gap = 8,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
+        };
         AddChildToSelf(new RectView
         {
-            BackgroundColor = 0xFF0000FF,
-            Padding = PaddingStyle.All(5),
-            Children =
-            {
-                new ColumnView
-                {
-                    Children =
-                    {
-                        new AddRepoButton(),
-                    }
-                }
-            }
+            BackgroundColor = DialogPalette.Background,
+            BorderColor = new BorderColorStyle { Right = DialogPalette.Border },
+            BorderSize = new BorderSizeStyle { Right = 1 },
+            Padding = PaddingStyle.All(10),
+            Children = { _column }
         });
+    }
+
+    protected override void OnAttachedToContext(Context context)
+    {
+        _bus = context.Get<IMessageBus>();
+        _registry = context.Get<IRepoRegistry>();
+        _bus?.Subscribe<ReposChangedMessage>(OnReposChanged);
+        _bus?.Subscribe<ActiveRepoChangedMessage>(OnActiveRepoChanged);
+        Rebuild();
+    }
+
+    protected override void OnDetachedFromContext(Context context)
+    {
+        _bus?.Unsubscribe<ReposChangedMessage>(OnReposChanged);
+        _bus?.Unsubscribe<ActiveRepoChangedMessage>(OnActiveRepoChanged);
+        _bus = null;
+        _registry = null;
+    }
+
+    private void OnReposChanged(ReposChangedMessage _) => Rebuild();
+    private void OnActiveRepoChanged(ActiveRepoChangedMessage _) => Rebuild();
+
+    private void Rebuild()
+    {
+        _column.Children.Clear();
+        _column.Children.Add(_addButton);
+        if (_registry is null) return;
+        var activeId = _registry.Active?.Id;
+        foreach (var repo in _registry.Repos)
+        {
+            _column.Children.Add(new RepoButton(repo, isActive: repo.Id == activeId));
+        }
     }
 }
 
@@ -308,23 +343,96 @@ public sealed class AddRepoButton : View
 {
     public AddRepoButton()
     {
-        PreferredHeight = 70;
-        Children.Add(new RectView
+        PreferredHeight = 52;
+
+        var background = new RectView
         {
-            BackgroundColor = 0xFFFF22FF,
-        });
-        Behaviors.Add(new AddRepoButtonController());
+            BackgroundColor = DialogPalette.ButtonNormal,
+            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(6),
+            Children =
+            {
+                new TextView
+                {
+                    Text = "+",
+                    TextColor = DialogPalette.TitleText,
+                    HorizontalTextAlignment = TextAlignment.Center,
+                    VerticalTextAlignment = TextAlignment.Center,
+                }
+            }
+        };
+        AddChildToSelf(background);
+        Behaviors.Add(new HoverableButtonController(
+            () => Context?.Get<IMessageBus>()?.Broadcast<AddRepoMessage>(),
+            isHovered =>
+            {
+                background.BackgroundColor = isHovered ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal;
+                background.BorderColor = BorderColorStyle.All(
+                    isHovered ? DialogPalette.ButtonBorderHover : DialogPalette.ButtonBorder);
+            }));
     }
 }
 
-public sealed class AddRepoButtonController : KeyboardMouseController
+public sealed class RepoButton : View
 {
-    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    public RepoButton(Repo repo, bool isActive)
     {
-        if (e.Button == MouseButton.Left && e.State == InputState.Pressed)
+        PreferredHeight = 52;
+
+        var letter = string.IsNullOrEmpty(repo.DisplayName)
+            ? "?"
+            : char.ToUpperInvariant(repo.DisplayName[0]).ToString();
+
+        var normalBorder = repo.IsMissing ? 0x80313338u : DialogPalette.ButtonBorder;
+        var activeBorder = DialogPalette.ButtonBorderHover;
+        var textColor = repo.IsMissing ? 0x80E6E6E6u : DialogPalette.TitleText;
+
+        var background = new RectView
         {
-            Context?.Get<IMessageBus>()?.Broadcast<AddRepoMessage>();
-            e.Consume();
+            BackgroundColor = DialogPalette.ButtonNormal,
+            BorderRadius = BorderRadiusStyle.All(6),
+            Children =
+            {
+                new TextView
+                {
+                    Text = letter,
+                    TextColor = textColor,
+                    HorizontalTextAlignment = TextAlignment.Center,
+                    VerticalTextAlignment = TextAlignment.Center,
+                }
+            }
+        };
+        ApplyBorder(background, isActive ? activeBorder : normalBorder, isActive);
+        AddChildToSelf(background);
+
+        Behaviors.Add(new HoverableButtonController(
+            () => Context?.Get<IRepoRegistry>()?.SetActive(repo.Id),
+            isHovered =>
+            {
+                background.BackgroundColor = isHovered ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal;
+                if (!isActive)
+                    ApplyBorder(background, isHovered ? activeBorder : normalBorder, isActive: false);
+            }));
+    }
+
+    private static void ApplyBorder(RectView rect, uint color, bool isActive)
+    {
+        if (isActive)
+        {
+            rect.BorderColor = new BorderColorStyle
+            {
+                Left = DialogPalette.ButtonBorderHover,
+                Right = DialogPalette.ButtonBorder,
+                Top = DialogPalette.ButtonBorder,
+                Bottom = DialogPalette.ButtonBorder,
+            };
+            rect.BorderSize = new BorderSizeStyle { Left = 3, Right = 1, Top = 1, Bottom = 1 };
+        }
+        else
+        {
+            rect.BorderColor = BorderColorStyle.All(color);
+            rect.BorderSize = BorderSizeStyle.All(1);
         }
     }
 }
