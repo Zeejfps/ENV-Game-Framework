@@ -14,6 +14,7 @@
     <ItemGroup>
       <ProjectReference Include="..\LLMit\LLMit.csproj" />
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+      <ProjectReference Include="..\ZGF.Observable\ZGF.Observable.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-﻿using ZGF.Gui;
+using ZGF.Gui;
 
 namespace GitGui;
 
@@ -7,7 +7,7 @@ public sealed class RepoRow : MultiChildView
     private readonly Repo _repo;
     private readonly TextView _label;
 
-    public RepoRow(Repo repo, bool isActive)
+    public RepoRow(Repo repo, bool isActive, IRepoRegistry registry)
     {
         _repo = repo;
         PreferredHeight = 28;
@@ -35,7 +35,7 @@ public sealed class RepoRow : MultiChildView
         AddChildToSelf(background);
 
         Behaviors.Add(new HoverableButtonController(
-            () => Context?.Get<IRepoRegistry>()?.SetActive(repo.Id),
+            () => registry.SetActive(repo.Id),
             isHovered =>
             {
                 background.BackgroundColor = isHovered ? hoverBg : baseBg;

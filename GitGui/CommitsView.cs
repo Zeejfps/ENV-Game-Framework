@@ -67,6 +67,7 @@ public sealed class CommitsView : MultiChildView
     private IMessageBus? _bus;
     private IRepoRegistry? _registry;
     private IGitService? _gitService;
+    private IDisposable? _activeSubscription;
 
     private CommitsLoadState _state = CommitsLoadState.NoRepo;
     private CommitSnapshot? _snapshot;
@@ -124,24 +125,25 @@ public sealed class CommitsView : MultiChildView
         _bus = context.Get<IMessageBus>();
         _registry = context.Get<IRepoRegistry>();
         _gitService = context.Get<IGitService>();
-        _bus?.Subscribe<ActiveRepoChangedMessage>(OnActiveRepoChanged);
-        StartLoadForActiveRepo();
+        if (_registry != null)
+        {
+            _activeSubscription = _registry.Active.Subscribe(_ => StartLoadForActiveRepo());
+        }
     }
 
     protected override void OnDetachedFromContext(Context context)
     {
-        _bus?.Unsubscribe<ActiveRepoChangedMessage>(OnActiveRepoChanged);
+        _activeSubscription?.Dispose();
+        _activeSubscription = null;
         _bus = null;
         _registry = null;
         _gitService = null;
     }
 
-    private void OnActiveRepoChanged(ActiveRepoChangedMessage _) => StartLoadForActiveRepo();
-
     private void StartLoadForActiveRepo()
     {
         if (_registry == null || _gitService == null) return;
-        var active = _registry.Active;
+        var active = _registry.Active.Value;
 
         _loadGeneration++;
         var gen = _loadGeneration;

@@ -1,3 +1,5 @@
+using ZGF.Observable;
+
 namespace GitGui;
 
 public sealed class RepoRegistry : IRepoRegistry
@@ -5,25 +7,27 @@ public sealed class RepoRegistry : IRepoRegistry
     private static readonly StringComparison PathComparison =
         OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
-    private readonly List<Repo> _repos;
-    private readonly List<Group> _groups;
     private readonly string _statePath;
-    private readonly IMessageBus _bus;
-    private Repo? _active;
 
-    public RepoRegistry(RepoStateStore.State initial, string statePath, IMessageBus bus)
+    public RepoRegistry(RepoStateStore.State initial, string statePath)
     {
-        _repos = new List<Repo>(initial.Repos);
-        _groups = new List<Group>(initial.Groups);
         _statePath = statePath;
-        _bus = bus;
-        if (initial.ActiveRepoId is { } id)
-            _active = _repos.FirstOrDefault(r => r.Id == id);
+
+        Repos = new ObservableList<Repo>();
+        foreach (var r in initial.Repos) Repos.Add(r);
+
+        Groups = new ObservableList<Group>();
+        foreach (var g in initial.Groups) Groups.Add(g);
+
+        Active = new State<Repo?>(
+            initial.ActiveRepoId is { } id
+                ? Repos.FirstOrDefault(r => r.Id == id)
+                : null);
     }
 
-    public IReadOnlyList<Repo> Repos => _repos;
-    public IReadOnlyList<Group> Groups => _groups;
-    public Repo? Active => _active;
+    public ObservableList<Repo> Repos { get; }
+    public ObservableList<Group> Groups { get; }
+    public State<Repo?> Active { get; }
 
     public void Open(string path)
     {
@@ -34,7 +38,7 @@ public sealed class RepoRegistry : IRepoRegistry
         if (!RepoStateStore.IsGitRepo(normalized))
             return;
 
-        var existing = _repos.FirstOrDefault(r => string.Equals(r.Path, normalized, PathComparison));
+        var existing = Repos.FirstOrDefault(r => string.Equals(r.Path, normalized, PathComparison));
         if (existing is not null)
         {
             SetActive(existing.Id);
@@ -42,35 +46,35 @@ public sealed class RepoRegistry : IRepoRegistry
         }
 
         var repo = new Repo(Guid.NewGuid(), normalized, Path.GetFileName(normalized));
-        _repos.Add(repo);
-        var first = _groups[0];
-        _groups[0] = first with { RepoIds = first.RepoIds.Append(repo.Id).ToList() };
-        _active = repo;
+        Repos.Add(repo);
+
+        var first = Groups[0];
+        Groups.Replace(0, first with { RepoIds = first.RepoIds.Append(repo.Id).ToList() });
+
+        Active.Value = repo;
         Save();
-        _bus.Broadcast<ReposChangedMessage>();
-        _bus.Broadcast(new ActiveRepoChangedMessage(repo.Id));
     }
 
     public void SetActive(Guid id)
     {
-        var target = _repos.FirstOrDefault(r => r.Id == id);
+        var target = Repos.FirstOrDefault(r => r.Id == id);
         if (target is null) return;
-        if (ReferenceEquals(_active, target)) return;
-        _active = target;
+        if (ReferenceEquals(Active.Value, target)) return;
+        Active.Value = target;
         Save();
-        _bus.Broadcast(new ActiveRepoChangedMessage(target.Id));
     }
 
     public void ToggleGroupCollapsed(Guid groupId)
     {
-        var index = _groups.FindIndex(g => g.Id == groupId);
-        if (index < 0) return;
-        var g = _groups[index];
-        _groups[index] = g with { IsCollapsed = !g.IsCollapsed };
-        Save();
-        _bus.Broadcast<ReposChangedMessage>();
+        for (var i = 0; i < Groups.Count; i++)
+        {
+            if (Groups[i].Id != groupId) continue;
+            Groups.Replace(i, Groups[i] with { IsCollapsed = !Groups[i].IsCollapsed });
+            Save();
+            return;
+        }
     }
 
     private void Save() =>
-        RepoStateStore.Save(_statePath, _repos, _groups, _active?.Id);
+        RepoStateStore.Save(_statePath, Repos, Groups, Active.Value?.Id);
 }

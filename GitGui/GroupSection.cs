@@ -1,39 +1,43 @@
-﻿using ZGF.Gui;
+using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 
 namespace GitGui;
 
 public sealed class GroupSection : MultiChildView
 {
-    private readonly GroupHeaderRow _header;
-    private readonly FlexColumnView _rows;
-
-    public GroupSection(Group group)
+    public GroupSection(Group group, IRepoRegistry registry)
     {
-        _header = new GroupHeaderRow(group);
-        _rows = new FlexColumnView
+        var rows = new FlexColumnView
         {
             Gap = 2,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
         };
+        rows.BindChildren(
+            compute: () => VisibleRepos(group, registry),
+            create: repo => new RepoRow(repo, repo.Id == registry.Active.Value?.Id, registry));
+
         AddChildToSelf(new FlexColumnView
         {
             Gap = 2,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
-            Children = { _header, _rows }
+            Children =
+            {
+                new GroupHeaderRow(group, registry),
+                rows,
+            }
         });
     }
 
-    public void Update(Group group, Guid? activeId, Dictionary<Guid, Repo> reposById)
+    private static IEnumerable<Repo> VisibleRepos(Group group, IRepoRegistry registry)
     {
-        _header.Update(group);
-        _rows.Children.Clear();
+        var activeId = registry.Active.Value?.Id;
+        var reposById = registry.Repos.ToDictionary(r => r.Id);
         foreach (var repoId in group.RepoIds)
         {
             if (!reposById.TryGetValue(repoId, out var repo)) continue;
-            var isActive = repo.Id == activeId;
-            if (group.IsCollapsed && !isActive) continue;
-            _rows.Children.Add(new RepoRow(repo, isActive));
+            if (group.IsCollapsed && repo.Id != activeId) continue;
+            yield return repo;
         }
     }
 }

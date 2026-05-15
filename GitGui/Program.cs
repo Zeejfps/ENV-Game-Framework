@@ -17,10 +17,11 @@ var statePath = Path.Combine(
     "GitGui",
     "state.json");
 var initialState = RepoStateStore.Load(statePath);
-context.AddService<IRepoRegistry>(new RepoRegistry(initialState, statePath, messageBus));
+var registry = new RepoRegistry(initialState, statePath);
+context.AddService<IRepoRegistry>(registry);
 context.AddService<IGitService>(new GitService());
 
-var appView = new AppView();
+var appView = new AppView(registry);
 var appHost = new GuiApp(new StartupConfig
 {
     WindowTitle = "GitGui",
