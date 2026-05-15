@@ -6,6 +6,7 @@ public sealed class RepoRegistry : IRepoRegistry
         OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
     private readonly List<Repo> _repos;
+    private readonly List<Group> _groups;
     private readonly string _statePath;
     private readonly IMessageBus _bus;
     private Repo? _active;
@@ -13,6 +14,7 @@ public sealed class RepoRegistry : IRepoRegistry
     public RepoRegistry(RepoStateStore.State initial, string statePath, IMessageBus bus)
     {
         _repos = new List<Repo>(initial.Repos);
+        _groups = new List<Group>(initial.Groups);
         _statePath = statePath;
         _bus = bus;
         if (initial.ActiveRepoId is { } id)
@@ -20,6 +22,7 @@ public sealed class RepoRegistry : IRepoRegistry
     }
 
     public IReadOnlyList<Repo> Repos => _repos;
+    public IReadOnlyList<Group> Groups => _groups;
     public Repo? Active => _active;
 
     public void Open(string path)
@@ -40,6 +43,8 @@ public sealed class RepoRegistry : IRepoRegistry
 
         var repo = new Repo(Guid.NewGuid(), normalized, Path.GetFileName(normalized));
         _repos.Add(repo);
+        var first = _groups[0];
+        _groups[0] = first with { RepoIds = first.RepoIds.Append(repo.Id).ToList() };
         _active = repo;
         Save();
         _bus.Broadcast<ReposChangedMessage>();
@@ -56,6 +61,16 @@ public sealed class RepoRegistry : IRepoRegistry
         _bus.Broadcast(new ActiveRepoChangedMessage(target.Id));
     }
 
+    public void ToggleGroupCollapsed(Guid groupId)
+    {
+        var index = _groups.FindIndex(g => g.Id == groupId);
+        if (index < 0) return;
+        var g = _groups[index];
+        _groups[index] = g with { IsCollapsed = !g.IsCollapsed };
+        Save();
+        _bus.Broadcast<ReposChangedMessage>();
+    }
+
     private void Save() =>
-        RepoStateStore.Save(_statePath, _repos, _active?.Id);
+        RepoStateStore.Save(_statePath, _repos, _groups, _active?.Id);
 }

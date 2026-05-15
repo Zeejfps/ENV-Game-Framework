@@ -110,6 +110,14 @@ internal static class DialogPalette
     public const uint CloseHover = 0xFF3A3D43;
     public const uint CloseTextNormal = 0xFFB5B9C0;
     public const uint CloseTextHover = 0xFFFFFFFF;
+
+    public const uint RowTransparent = 0x00000000;
+    public const uint RowHover = 0xFF2B2D31;
+    public const uint RowActive = 0xFF404C8C;
+    public const uint RowText = 0xFFB5B9C0;
+    public const uint RowTextActive = 0xFFFFFFFF;
+    public const uint RowTextMissing = 0x80B5B9C0;
+    public const uint SectionHeaderText = 0xFF96989D;
 }
 
 public sealed class AddRepoDialog : View
@@ -283,26 +291,47 @@ public sealed class HoverableButtonController(Action onClick, Action<bool> onHov
 
 public sealed class RepoBar : View
 {
-    private readonly FlexColumnView _column;
+    public const int BarWidth = 220;
+    private const int HorizontalPadding = 8;
+    private const int RowTextIndent = 24;
+    private const int RowTextRightPadding = 12;
+
+    public static int RowTextAvailableWidth =>
+        BarWidth - 2 * HorizontalPadding - RowTextIndent - RowTextRightPadding;
+
+    private readonly FlexColumnView _content;
     private readonly AddRepoButton _addButton = new();
     private IMessageBus? _bus;
     private IRepoRegistry? _registry;
 
     public RepoBar()
     {
-        PreferredWidth = 180;
-        _column = new FlexColumnView
+        PreferredWidth = BarWidth;
+        _content = new FlexColumnView
         {
-            Gap = 4,
+            Gap = 2,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
         };
+        var root = new FlexColumnView
+        {
+            Gap = 6,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
+            Children = { _content, _addButton }
+        };
+        root.UpdateStyle(_content, new FlexStyle { Grow = 1 });
         AddChildToSelf(new RectView
         {
             BackgroundColor = DialogPalette.Background,
             BorderColor = new BorderColorStyle { Right = DialogPalette.Border },
             BorderSize = new BorderSizeStyle { Right = 1 },
-            Padding = PaddingStyle.All(8),
-            Children = { _column }
+            Padding = new PaddingStyle
+            {
+                Left = HorizontalPadding,
+                Right = HorizontalPadding,
+                Top = HorizontalPadding,
+                Bottom = HorizontalPadding,
+            },
+            Children = { root }
         });
     }
 
@@ -328,13 +357,21 @@ public sealed class RepoBar : View
 
     private void Rebuild()
     {
-        _column.Children.Clear();
-        _column.Children.Add(_addButton);
+        _content.Children.Clear();
         if (_registry is null) return;
         var activeId = _registry.Active?.Id;
-        foreach (var repo in _registry.Repos)
+        var reposById = _registry.Repos.ToDictionary(r => r.Id);
+
+        foreach (var group in _registry.Groups)
         {
-            _column.Children.Add(new RepoButton(repo, isActive: repo.Id == activeId));
+            _content.Children.Add(new GroupHeaderRow(group));
+            foreach (var repoId in group.RepoIds)
+            {
+                if (!reposById.TryGetValue(repoId, out var repo)) continue;
+                var isActive = repo.Id == activeId;
+                if (group.IsCollapsed && !isActive) continue;
+                _content.Children.Add(new RepoRow(repo, isActive));
+            }
         }
     }
 }
@@ -343,7 +380,7 @@ public sealed class AddRepoButton : View
 {
     public AddRepoButton()
     {
-        PreferredHeight = 32;
+        PreferredHeight = 30;
 
         var background = new RectView
         {
@@ -355,8 +392,8 @@ public sealed class AddRepoButton : View
             {
                 new TextView
                 {
-                    Text = "+",
-                    TextColor = DialogPalette.TitleText,
+                    Text = "+  Add Repository",
+                    TextColor = DialogPalette.RowText,
                     HorizontalTextAlignment = TextAlignment.Center,
                     VerticalTextAlignment = TextAlignment.Center,
                 }
@@ -374,21 +411,66 @@ public sealed class AddRepoButton : View
     }
 }
 
-public sealed class RepoButton : View
+public sealed class GroupHeaderRow : View
 {
-    private const int HorizontalTextPadding = 10;
+    public GroupHeaderRow(Group group)
+    {
+        PreferredHeight = 26;
+
+        var chevron = new TextView
+        {
+            Text = group.IsCollapsed ? "▸" : "▾",
+            TextColor = DialogPalette.SectionHeaderText,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+            PreferredWidth = 16,
+        };
+        var name = new TextView
+        {
+            Text = group.Name.ToUpperInvariant(),
+            TextColor = DialogPalette.SectionHeaderText,
+            HorizontalTextAlignment = TextAlignment.Start,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        var row = new FlexRowView
+        {
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            Gap = 4,
+            Children = { chevron, name }
+        };
+        var background = new RectView
+        {
+            BackgroundColor = DialogPalette.RowTransparent,
+            BorderRadius = BorderRadiusStyle.All(4),
+            Padding = new PaddingStyle { Left = 2, Right = 8 },
+            Children = { row }
+        };
+        AddChildToSelf(background);
+
+        Behaviors.Add(new HoverableButtonController(
+            () => Context?.Get<IRepoRegistry>()?.ToggleGroupCollapsed(group.Id),
+            isHovered =>
+            {
+                background.BackgroundColor = isHovered ? DialogPalette.RowHover : DialogPalette.RowTransparent;
+            }));
+    }
+}
+
+public sealed class RepoRow : View
+{
     private readonly Repo _repo;
     private readonly TextView _label;
-    private readonly RectView _background;
 
-    public RepoButton(Repo repo, bool isActive)
+    public RepoRow(Repo repo, bool isActive)
     {
         _repo = repo;
-        PreferredHeight = 32;
+        PreferredHeight = 28;
 
-        var normalBorder = repo.IsMissing ? 0x80313338u : DialogPalette.ButtonBorder;
-        var activeBorder = DialogPalette.ButtonBorderHover;
-        var textColor = repo.IsMissing ? 0x80E6E6E6u : DialogPalette.TitleText;
+        var baseBg = isActive ? DialogPalette.RowActive : DialogPalette.RowTransparent;
+        var hoverBg = isActive ? DialogPalette.RowActive : DialogPalette.RowHover;
+        var textColor = repo.IsMissing
+            ? DialogPalette.RowTextMissing
+            : (isActive ? DialogPalette.RowTextActive : DialogPalette.RowText);
 
         _label = new TextView
         {
@@ -397,28 +479,20 @@ public sealed class RepoButton : View
             HorizontalTextAlignment = TextAlignment.Start,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        _background = new RectView
+        var background = new RectView
         {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            BorderColor = BorderColorStyle.All(isActive ? activeBorder : normalBorder),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(6),
-            Padding = new PaddingStyle
-            {
-                Left = HorizontalTextPadding,
-                Right = HorizontalTextPadding,
-            },
+            BackgroundColor = baseBg,
+            BorderRadius = BorderRadiusStyle.All(4),
+            Padding = new PaddingStyle { Left = 24, Right = 12 },
             Children = { _label }
         };
-        AddChildToSelf(_background);
+        AddChildToSelf(background);
 
         Behaviors.Add(new HoverableButtonController(
             () => Context?.Get<IRepoRegistry>()?.SetActive(repo.Id),
             isHovered =>
             {
-                _background.BackgroundColor = isHovered ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal;
-                if (!isActive)
-                    _background.BorderColor = BorderColorStyle.All(isHovered ? activeBorder : normalBorder);
+                background.BackgroundColor = isHovered ? hoverBg : baseBg;
             }));
     }
 
@@ -428,14 +502,12 @@ public sealed class RepoButton : View
         _label.Text = TruncateToFit(_repo.DisplayName, context);
     }
 
-    private string TruncateToFit(string text, Context context)
+    private static string TruncateToFit(string text, Context context)
     {
         if (string.IsNullOrEmpty(text))
             return text;
 
-        var available = PreferredWidth.Value
-                        - 2 * (_background.BorderSize.Left.Value)
-                        - 2 * HorizontalTextPadding;
+        var available = RepoBar.RowTextAvailableWidth;
         if (available <= 0)
             return text;
 
@@ -460,7 +532,7 @@ public sealed class RepoButton : View
         return text[..lo] + ellipsis;
     }
 
-    private float Measure(string s, Context context)
+    private static float Measure(string s, Context context)
     {
         var probe = new TextView { Text = s, Context = context };
         return probe.MeasureWidth();
