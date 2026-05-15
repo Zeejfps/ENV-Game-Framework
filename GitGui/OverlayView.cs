@@ -12,6 +12,7 @@ public sealed class OverlayView : View
 
     public OverlayView()
     {
+        ZIndex = 1000;
         _background = new RectView
         {
             BackgroundColor = 0,
