@@ -42,11 +42,12 @@ public static class RepoStateStore
             var groups = file.Groups;
             if (groups is null || groups.Count == 0)
             {
-                groups = new List<Group>
-                {
-                    new(Guid.NewGuid(), DefaultGroupName, IsCollapsed: false,
-                        RepoIds: repos.Select(r => r.Id).ToList()),
-                };
+                groups =
+                [
+                    new Group(Guid.NewGuid(), DefaultGroupName, IsCollapsed: false,
+                        RepoIds: repos.Select(r => r.Id).ToList())
+
+                ];
             }
             else
             {

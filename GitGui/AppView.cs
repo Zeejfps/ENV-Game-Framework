@@ -419,7 +419,7 @@ public sealed class GroupHeaderRow : View
 
         var chevron = new TextView
         {
-            Text = group.IsCollapsed ? "▸" : "▾",
+            Text = group.IsCollapsed ? "▶" : "▼",
             TextColor = DialogPalette.SectionHeaderText,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
@@ -427,7 +427,7 @@ public sealed class GroupHeaderRow : View
         };
         var name = new TextView
         {
-            Text = group.Name.ToUpperInvariant(),
+            Text = group.Name,
             TextColor = DialogPalette.SectionHeaderText,
             HorizontalTextAlignment = TextAlignment.Start,
             VerticalTextAlignment = TextAlignment.Center,
