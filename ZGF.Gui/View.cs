@@ -268,6 +268,61 @@ public abstract class View
         // We can now safely compare their sibling index to determine their order.
         return nodeA._siblingIndex > nodeB._siblingIndex;
     }
+    
+    protected void InsertChildToSelf(int index, View view)
+    {
+        if (index < 0 || index > _children.Count)
+            throw new ArgumentOutOfRangeException(nameof(index));
+
+        if (view.Parent == this)
+        {
+            MoveChildToSelf(view, index);
+            return;
+        }
+
+        if (view.Parent != null)
+        {
+            view.Parent.RemoveChildFromSelf(view);
+        }
+
+        _children.Insert(index, view);
+
+        for (var i = index; i < _children.Count; i++)
+        {
+            _children[i]._siblingIndex = i;
+        }
+
+        view.Parent = this;
+        view.Depth = Depth + 1;
+        view.StyleSheet = StyleSheet;
+        view.Context = Context;
+        OnChildAdded(view);
+    }
+
+    protected void MoveChildToSelf(View view, int newIndex)
+    {
+        var currentIndex = _children.IndexOf(view);
+        if (currentIndex < 0)
+            throw new ArgumentException("View is not a child of this view.", nameof(view));
+
+        if (newIndex < 0 || newIndex >= _children.Count)
+            throw new ArgumentOutOfRangeException(nameof(newIndex));
+
+        if (currentIndex == newIndex)
+            return;
+
+        _children.RemoveAt(currentIndex);
+        _children.Insert(newIndex, view);
+
+        var lo = Math.Min(currentIndex, newIndex);
+        var hi = Math.Max(currentIndex, newIndex);
+        for (var i = lo; i <= hi; i++)
+        {
+            _children[i]._siblingIndex = i;
+        }
+
+        SetDirty();
+    }
 
     public override string ToString()
     {

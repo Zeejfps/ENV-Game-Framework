@@ -24,10 +24,22 @@ public class MultiChildView : View
         }
 
         public int Count => view._children.Count;
-        
+
+        public View this[int index] => view._children[index];
+
         public void Add(View view1)
         {
             view.AddChildToSelf(view1);
+        }
+
+        public void Insert(int index, View view1)
+        {
+            view.InsertChildToSelf(index, view1);
+        }
+
+        public void Move(View view1, int newIndex)
+        {
+            view.MoveChildToSelf(view1, newIndex);
         }
 
         public bool Remove(View view1)
