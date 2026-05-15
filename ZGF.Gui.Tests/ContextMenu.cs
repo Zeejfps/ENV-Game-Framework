@@ -3,7 +3,7 @@ using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class ContextMenu : View
+public sealed class ContextMenu : MultiChildView
 {
     public override IComponentCollection Children => _itemsContainer.Children;
 

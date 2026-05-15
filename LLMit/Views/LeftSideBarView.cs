@@ -3,7 +3,7 @@ using ZGF.Gui.Layouts;
 
 namespace LLMit.Views;
 
-public sealed class LeftSideBarView : View
+public sealed class LeftSideBarView : MultiChildView
 {
     public LeftSideBarView()
     {

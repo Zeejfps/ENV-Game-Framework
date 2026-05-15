@@ -1,6 +1,6 @@
 namespace ZGF.Gui;
 
-public sealed class TextView : View
+public sealed class TextView : MultiChildView
 {
     private readonly TextStyle _style = new();
     

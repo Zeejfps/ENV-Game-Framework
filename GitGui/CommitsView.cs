@@ -44,7 +44,7 @@ internal enum CommitsLoadState
     Error,
 }
 
-public sealed class CommitsView : View
+public sealed class CommitsView : MultiChildView
 {
     private const float HeaderHeight = 28f;
     private const float RowHeight = 26f;

@@ -20,7 +20,7 @@ public enum CrossAxisAlignment
     Stretch    // Stretch to fill the container's height
 }
 
-public sealed class FlexRowView : View
+public sealed class FlexRowView : MultiChildView
 {
     private float _gap;
     public float Gap

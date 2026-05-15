@@ -3,11 +3,11 @@ using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class Window : View
+public sealed class Window : MultiChildView
 {
     public string TitleText { get; }
 
-    private readonly View _contents;
+    private readonly MultiChildView _contents;
     private readonly WindowTitleBarView _titlePanel;
     public override IComponentCollection Children => _contents.Children;
 
@@ -15,7 +15,7 @@ public sealed class Window : View
     {
         TitleText = titleText;
         Position = new RectF(200f, 200f, 640f, 500f);
-        _contents = new View();
+        _contents = new MultiChildView();
 
         _titlePanel = new WindowTitleBarView(titleText);
 

@@ -4,7 +4,7 @@ using ZGF.Gui.Tests;
 
 namespace LLMit.Views;
 
-public sealed class ModelContextMenuItemView : View
+public sealed class ModelContextMenuItemView : MultiChildView
 {
     private readonly ContextMenuItem _contextMenuItem;
 

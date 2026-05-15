@@ -1,6 +1,6 @@
 ﻿namespace ZGF.Gui.Tests;
 
-public sealed class MenuItem : View
+public sealed class MenuItem : MultiChildView
 {
     private readonly RectView _background;
     private readonly TextView _textView;

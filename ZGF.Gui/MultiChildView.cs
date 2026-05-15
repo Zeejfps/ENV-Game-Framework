@@ -4,7 +4,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
-public class View
+public class MultiChildView
 {
     private Context? _context;
     public Context? Context
@@ -106,7 +106,7 @@ public class View
         set => SetField(ref _preferredHeight, value);
     }
     
-    public View? Parent { get; private set; }
+    public MultiChildView? Parent { get; private set; }
 
     private string? _id;
     public string? Id
@@ -173,11 +173,11 @@ public class View
     public IStyleClassCollection StyleClasses { get; }
     public IBehaviorCollection Behaviors { get; }
 
-    private readonly List<View> _children = new();
+    private readonly List<MultiChildView> _children = new();
     private readonly HashSet<string> _styleClasses = new();
     private readonly List<IViewBehavior> _behaviors = new();
 
-    public View()
+    public MultiChildView()
     {
         Children = new ComponentCollection(this);
         StyleClasses = new StyleClassCollection(this);
@@ -232,7 +232,7 @@ public class View
         return false;
     }
     
-    protected void AddChildToSelf(View view)
+    protected void AddChildToSelf(MultiChildView view)
     {
         if (view.Parent != null)
         {
@@ -251,7 +251,7 @@ public class View
         OnComponentAdded(view);
     }
     
-    protected bool RemoveChildFromSelf(View view)
+    protected bool RemoveChildFromSelf(MultiChildView view)
     {
         if (_children.Remove(view))
         {
@@ -359,12 +359,12 @@ public class View
         StyleSheet = null;
     }
 
-    protected virtual void OnComponentAdded(View view)
+    protected virtual void OnComponentAdded(MultiChildView view)
     {
         SetDirty();
     }
 
-    protected virtual void OnComponentRemoved(View view)
+    protected virtual void OnComponentRemoved(MultiChildView view)
     {
         SetDirty();
     }
@@ -420,7 +420,7 @@ public class View
         }
     }
 
-    protected virtual void OnLayoutChild(in RectF position, View child)
+    protected virtual void OnLayoutChild(in RectF position, MultiChildView child)
     {
         child.LeftConstraint = position.Left;
         child.BottomConstraint = position.Bottom;
@@ -500,7 +500,7 @@ public class View
         
     }
 
-    protected void DrawChild(View child, ICanvas c)
+    protected void DrawChild(MultiChildView child, ICanvas c)
     {
         child.DrawSelf(c);
     }
@@ -513,7 +513,7 @@ public class View
         }
     }
 
-    public void BringToFront(View view)
+    public void BringToFront(MultiChildView view)
     {
         // If its already the last child ignore it
         if (view.SiblingIndex == _children.Count - 1)
@@ -533,7 +533,7 @@ public class View
         _children[^1] = view;
     }
 
-    public bool IsAncestorOf(View target)
+    public bool IsAncestorOf(MultiChildView target)
     {
         var parent = target;
         while (parent != null)
@@ -545,7 +545,7 @@ public class View
         return false;
     }
     
-    public bool IsInFrontOf(View view)
+    public bool IsInFrontOf(MultiChildView view)
     {
         // Use clearer variable names for readability   
         var nodeA = this;
@@ -614,7 +614,7 @@ public class View
         return base.ToString() + "-" + _depth;
     }
 
-    public T? GetParentOfType<T>() where T : View
+    public T? GetParentOfType<T>() where T : MultiChildView
     {
         var parent = Parent;
         while (parent != null)
@@ -635,9 +635,9 @@ public class View
         return parentZIndex + ZIndex;
     }
 
-    private sealed class ComponentCollection(View view) : IComponentCollection
+    private sealed class ComponentCollection(MultiChildView view) : IComponentCollection
     {
-        public IEnumerator<View> GetEnumerator()
+        public IEnumerator<MultiChildView> GetEnumerator()
         {
             return view._children.GetEnumerator();
         }
@@ -649,17 +649,17 @@ public class View
 
         public int Count => view._children.Count;
         
-        public void Add(View view1)
+        public void Add(MultiChildView view1)
         {
             view.AddChildToSelf(view1);
         }
 
-        public bool Remove(View view1)
+        public bool Remove(MultiChildView view1)
         {
             return view.RemoveChildFromSelf(view1);
         }
 
-        public bool Contains(View view1)
+        public bool Contains(MultiChildView view1)
         {
             return view._children.Contains(view1);
         }
@@ -673,7 +673,7 @@ public class View
         }
     }
     
-    private sealed class BehaviorCollection(View view) : IBehaviorCollection
+    private sealed class BehaviorCollection(MultiChildView view) : IBehaviorCollection
     {
         public IEnumerator<IViewBehavior> GetEnumerator()
         {
@@ -698,7 +698,7 @@ public class View
         }
     }
 
-    private sealed class StyleClassCollection(View view) : IStyleClassCollection
+    private sealed class StyleClassCollection(MultiChildView view) : IStyleClassCollection
     {
         public IEnumerator<string> GetEnumerator()
         {

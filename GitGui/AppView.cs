@@ -3,7 +3,7 @@ using ZGF.Gui.Layouts;
 
 namespace GitGui;
 
-public sealed class AppView : View
+public sealed class AppView : MultiChildView
 {
     public AppView()
     {

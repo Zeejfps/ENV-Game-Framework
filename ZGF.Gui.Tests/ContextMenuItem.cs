@@ -7,7 +7,7 @@ public sealed class ContextMenuItemData
     public string Text { get; set; }
 }
 
-public sealed class ContextMenuItem : View
+public sealed class ContextMenuItem : MultiChildView
 {
     private StyleValue<uint> _normalBackgroundColor;
     public StyleValue<uint> NormalBackgroundColor

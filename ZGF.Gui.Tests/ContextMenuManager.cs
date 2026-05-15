@@ -3,7 +3,7 @@
 public interface IOpenedContextMenu
 {
     event Action Closed;
-    View View { get; }
+    MultiChildView View { get; }
     bool IsOpened { get; }
 
     void CancelCloseRequest();
@@ -19,7 +19,7 @@ sealed class OpenedContextMenu : IOpenedContextMenu
     public OpenedContextMenu? Parent { get; set; }
     public OpenedContextMenu? Child { get; set; }
     public long CloseTimestamp { get; set; }
-    public View View => ContextMenu;
+    public MultiChildView View => ContextMenu;
 
     public bool IsCloseRequested { get; private set; }
 
@@ -45,12 +45,12 @@ sealed class OpenedContextMenu : IOpenedContextMenu
 
 public sealed class ContextMenuManager
 {
-    private readonly View _contextMenuPane;
+    private readonly MultiChildView _contextMenuPane;
     
     private readonly HashSet<OpenedContextMenu> _closingMenus = new();
     private readonly Dictionary<ContextMenu, OpenedContextMenu> _openedMenus = new();
     
-    public ContextMenuManager(View contextMenuPane)
+    public ContextMenuManager(MultiChildView contextMenuPane)
     {
         _contextMenuPane = contextMenuPane;
     }

@@ -3,7 +3,7 @@ using ZGF.Gui.Layouts;
 
 namespace LLMit.Views;
 
-public sealed class TabBarView : View
+public sealed class TabBarView : MultiChildView
 {
     private readonly RowView _layout;
 

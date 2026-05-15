@@ -2,7 +2,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Layouts;
 
-public sealed class FlexColumnView : View
+public sealed class FlexColumnView : MultiChildView
 {
     private float _gap;
     public float Gap

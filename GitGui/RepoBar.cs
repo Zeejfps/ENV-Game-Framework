@@ -3,7 +3,7 @@ using ZGF.Gui.Layouts;
 
 namespace GitGui;
 
-public sealed class RepoBar : View
+public sealed class RepoBar : MultiChildView
 {
     private const int BarWidth = 220;
     private const int HorizontalPadding = 8;

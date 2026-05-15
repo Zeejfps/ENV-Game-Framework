@@ -1,6 +1,6 @@
 ﻿namespace ZGF.Gui.Tests;
 
-public sealed class OptionsView : View
+public sealed class OptionsView : MultiChildView
 {
     public OptionsView()
     {

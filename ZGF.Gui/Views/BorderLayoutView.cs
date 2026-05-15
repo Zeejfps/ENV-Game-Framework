@@ -1,43 +1,43 @@
 namespace ZGF.Gui.Layouts;
 
-public sealed class BorderLayoutView : View
+public sealed class BorderLayoutView : MultiChildView
 {
-    private View? _north;
-    public View? North
+    private MultiChildView? _north;
+    public MultiChildView? North
     {
         get => _north;
         set => SetComponent(ref _north, value);
     }
 
-    private View? _east;
-    public View? East
+    private MultiChildView? _east;
+    public MultiChildView? East
     {
         get => _east;
         set => SetComponent(ref _east, value);
     }
 
-    private View? _west;
-    public View? West
+    private MultiChildView? _west;
+    public MultiChildView? West
     {
         get => _west;
         set => SetComponent(ref _west, value);
     }
 
-    private View? _south;
-    public View? South
+    private MultiChildView? _south;
+    public MultiChildView? South
     {
         get => _south;
         set => SetComponent(ref _south, value);
     }
 
-    private View? _center;
-    public View? Center
+    private MultiChildView? _center;
+    public MultiChildView? Center
     {
         get => _center;
         set => SetComponent(ref _center, value);
     }
 
-    private void SetComponent(ref View? component, View? value)
+    private void SetComponent(ref MultiChildView? component, MultiChildView? value)
     {
         if (component == value)
             return;

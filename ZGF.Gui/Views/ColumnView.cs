@@ -1,6 +1,6 @@
 namespace ZGF.Gui.Layouts;
 
-public sealed class ColumnView : View
+public sealed class ColumnView : MultiChildView
 {
     private int _gap;
     public int Gap

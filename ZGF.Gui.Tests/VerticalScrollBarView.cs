@@ -2,7 +2,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class VerticalScrollBarView : View
+public sealed class VerticalScrollBarView : MultiChildView
 {
     private readonly VerticalScrollBarThumbView _thumbView;
 

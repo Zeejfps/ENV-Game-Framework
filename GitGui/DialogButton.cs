@@ -2,7 +2,7 @@
 
 namespace GitGui;
 
-public sealed class DialogButton : View
+public sealed class DialogButton : MultiChildView
 {
     public DialogButton(string label, Action onClick)
     {

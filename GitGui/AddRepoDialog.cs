@@ -3,7 +3,7 @@ using ZGF.Gui.Layouts;
 
 namespace GitGui;
 
-public sealed class AddRepoDialog : View
+public sealed class AddRepoDialog : MultiChildView
 {
     private const float CloseButtonSize = 28f;
 
@@ -23,7 +23,7 @@ public sealed class AddRepoDialog : View
             PreferredHeight = 28,
             Children =
             {
-                new View { PreferredWidth = CloseButtonSize },
+                new MultiChildView { PreferredWidth = CloseButtonSize },
                 new FlexItem { Grow = 1, Child = title },
                 new DialogCloseButton(onClose),
             }

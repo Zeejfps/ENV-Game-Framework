@@ -4,7 +4,7 @@ using ZGF.Gui.Tests;
 
 namespace LLMit.Views;
 
-public sealed class ModelSelector : View
+public sealed class ModelSelector : MultiChildView
 {
     private readonly TextView _textView;
 
@@ -53,7 +53,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
         _modelSelector = modelSelector;
     }
 
-    protected override void OnAttachedToContext(View view, Context context)
+    protected override void OnAttachedToContext(MultiChildView view, Context context)
     {
         _contextMenuManager = context.Get<ContextMenuManager>();
         Debug.Assert(_contextMenuManager != null);

@@ -1,6 +1,6 @@
 namespace ZGF.Gui;
 
-public class RectView : View
+public class RectView : MultiChildView
 {
     private readonly RectStyle _style = new();
 

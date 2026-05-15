@@ -2,7 +2,7 @@
 
 namespace GitGui;
 
-public sealed class DialogCloseButton : View
+public sealed class DialogCloseButton : MultiChildView
 {
     public DialogCloseButton(Action onClick)
     {

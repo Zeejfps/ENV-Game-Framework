@@ -4,7 +4,7 @@ using ZGF.KeyboardModule;
 
 namespace LLMit.Views;
 
-public sealed class ChatTextInputView : View
+public sealed class ChatTextInputView : MultiChildView
 {
     public Action<ReadOnlySpan<char>>? Submit { get; set; }
 
@@ -62,7 +62,7 @@ public sealed class ChatTextInputViewController : BaseTextInputKbmController
         _textInput = textInput;
     }
 
-    protected override void OnDetachedFromContext(View view, Context context)
+    protected override void OnDetachedFromContext(MultiChildView view, Context context)
     {
         Submit = null;
     }

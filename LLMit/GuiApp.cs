@@ -13,7 +13,7 @@ public sealed class GuiApp : OpenGlApp
     private readonly GlfwInputSystem _inputSystem;
     private readonly OpenGlRenderedCanvas _canvas;
     private readonly FreeTypeFontBackend _fontBackend;
-    private readonly View _gui;
+    private readonly MultiChildView _gui;
 
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly SizeCallback _windowSizeCallback;
@@ -21,10 +21,10 @@ public sealed class GuiApp : OpenGlApp
     private readonly SizeCallback _framebufferSizeCallback;
     private readonly ContextMenuManager _contextMenuManager;
 
-    public GuiApp(StartupConfig startupConfig, Context context, View content) : base(startupConfig)
+    public GuiApp(StartupConfig startupConfig, Context context, MultiChildView content) : base(startupConfig)
     {
         var imageManager = new GlImageManager();
-        var contextMenuPane = new View();
+        var contextMenuPane = new MultiChildView();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
         var fontFilePath = PathUtils.ResolveLocalPath("Assets/Fonts/Inter/Inter-Regular.ttf");
         _fontBackend = new FreeTypeFontBackend();
@@ -51,7 +51,7 @@ public sealed class GuiApp : OpenGlApp
         context.AddService<IClipboard>(new AppClipboard());
 #endif
 
-        _gui = new View
+        _gui = new MultiChildView
         {
             PreferredWidth = _canvas.Width,
             PreferredHeight = _canvas.Height,

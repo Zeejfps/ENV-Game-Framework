@@ -3,7 +3,7 @@ using ZGF.Gui.Layouts;
 
 namespace GitGui;
 
-public sealed class GroupSection : View
+public sealed class GroupSection : MultiChildView
 {
     private readonly GroupHeaderRow _header;
     private readonly FlexColumnView _rows;

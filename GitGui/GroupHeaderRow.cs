@@ -3,7 +3,7 @@ using ZGF.Gui.Layouts;
 
 namespace GitGui;
 
-public sealed class GroupHeaderRow : View
+public sealed class GroupHeaderRow : MultiChildView
 {
     private readonly TextView _chevron;
     private readonly TextView _name;

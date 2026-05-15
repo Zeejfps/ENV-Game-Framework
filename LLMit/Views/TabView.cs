@@ -2,7 +2,7 @@ using ZGF.Gui;
 
 namespace LLMit.Views;
 
-public sealed class TabView : View
+public sealed class TabView : MultiChildView
 {
     private bool _isActive;
     private bool _isHighlighted;

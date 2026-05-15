@@ -3,7 +3,7 @@ using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class VerticalScrollPane : View
+public sealed class VerticalScrollPane : MultiChildView
 {
     public event Action<float>? ScrollPositionChanged;
 
@@ -27,7 +27,7 @@ public sealed class VerticalScrollPane : View
         AddChildToSelf(_columnView);
     }
 
-    protected override void OnLayoutChild(in RectF position, View child)
+    protected override void OnLayoutChild(in RectF position, MultiChildView child)
     {
         var childHeight = child.MeasureHeight();
         child.BottomConstraint = position.Top + _distanceFromTop - childHeight;
@@ -54,7 +54,7 @@ public sealed class VerticalScrollPane : View
         Scroll(delta);
     }
 
-    public void ScrollTo(View view)
+    public void ScrollTo(MultiChildView view)
     {
         if (!Children.Contains(view))
             return;

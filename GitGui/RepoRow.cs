@@ -2,7 +2,7 @@
 
 namespace GitGui;
 
-public sealed class RepoRow : View
+public sealed class RepoRow : MultiChildView
 {
     private readonly Repo _repo;
     private readonly TextView _label;

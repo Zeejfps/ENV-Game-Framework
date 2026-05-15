@@ -2,7 +2,7 @@
 
 namespace GitGui;
 
-public sealed class AddRepoButton : View
+public sealed class AddRepoButton : MultiChildView
 {
     public AddRepoButton()
     {

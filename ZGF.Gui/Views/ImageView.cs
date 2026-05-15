@@ -1,6 +1,6 @@
 namespace ZGF.Gui;
 
-public sealed class ImageView : View
+public sealed class ImageView : MultiChildView
 {
     private readonly ImageStyle _style = new();
 

@@ -2,7 +2,7 @@
 
 namespace ZGF.Gui.Tests;
 
-public sealed class AppBar : View
+public sealed class AppBar : MultiChildView
 {
     private readonly MenuItem _fileItem;
     private readonly MenuItem _editItem;

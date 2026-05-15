@@ -2,7 +2,7 @@ using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class WindowTitleBarView : View
+public sealed class WindowTitleBarView : MultiChildView
 {
     private readonly TextView _titleTextView;
 

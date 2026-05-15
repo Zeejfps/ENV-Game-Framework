@@ -2,7 +2,7 @@
 
 namespace ZGF.Gui.Tests;
 
-public sealed class VerticalScrollBarThumbView : View
+public sealed class VerticalScrollBarThumbView : MultiChildView
 {
     public event Action<float>? ScrollPositionChanged;
 

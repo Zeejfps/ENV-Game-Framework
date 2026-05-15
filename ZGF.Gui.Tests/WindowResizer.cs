@@ -2,7 +2,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class WindowResizer : View
+public sealed class WindowResizer : MultiChildView
 {
     public StyleValue<uint> BackgroundColor
     {

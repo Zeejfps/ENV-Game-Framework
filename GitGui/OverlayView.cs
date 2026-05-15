@@ -2,7 +2,7 @@
 
 namespace GitGui;
 
-public sealed class OverlayView : View
+public sealed class OverlayView : MultiChildView
 {
     private IMessageBus? _messageBus;
 

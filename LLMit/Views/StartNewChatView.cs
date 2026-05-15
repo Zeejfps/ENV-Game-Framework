@@ -6,7 +6,7 @@ namespace LLMit.Views;
 
 public delegate void StartNewChatCallback(string? model, ReadOnlySpan<char> text);
 
-public sealed class StartNewChatView : View
+public sealed class StartNewChatView : MultiChildView
 {
     public StartNewChatCallback? StartNewChatCallback { get; set; }
 

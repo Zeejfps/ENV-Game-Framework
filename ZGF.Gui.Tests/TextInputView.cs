@@ -2,7 +2,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class TextInputView : View
+public sealed class TextInputView : MultiChildView
 {
     private StyleValue<TextWrap> _textWrap;
     public StyleValue<TextWrap> TextWrap

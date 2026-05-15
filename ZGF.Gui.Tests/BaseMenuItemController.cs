@@ -7,19 +7,19 @@ public abstract class BaseMenuItemController : KeyboardMouseController
 
     private ContextMenu? _contextMenu;
     private IOpenedContextMenu? _openedContextMenu;
-    private readonly List<(View View, KeyboardMouseController Controller)> _menuRegistrations = new();
+    private readonly List<(MultiChildView View, KeyboardMouseController Controller)> _menuRegistrations = new();
 
     protected BaseMenuItemController(MenuItem menuItem)
     {
         MenuItem = menuItem;
     }
 
-    protected override void OnAttachedToContext(View view, Context context)
+    protected override void OnAttachedToContext(MultiChildView view, Context context)
     {
         _contextMenuManager = context.Get<ContextMenuManager>();
     }
 
-    protected override void OnDetachedFromContext(View view, Context context)
+    protected override void OnDetachedFromContext(MultiChildView view, Context context)
     {
         if (_openedContextMenu != null)
         {
@@ -52,7 +52,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController
         }
     }
 
-    protected void RegisterMenuController(View view, KeyboardMouseController controller)
+    protected void RegisterMenuController(MultiChildView view, KeyboardMouseController controller)
     {
         view.Behaviors.Add(controller);
         _menuRegistrations.Add((view, controller));

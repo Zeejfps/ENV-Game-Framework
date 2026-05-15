@@ -2,9 +2,9 @@
 
 namespace ZGF.Gui.Tests;
 
-public sealed class CenterView : View
+public sealed class CenterView : MultiChildView
 {
-    protected override void OnLayoutChild(in RectF position, View child)
+    protected override void OnLayoutChild(in RectF position, MultiChildView child)
     {
         var childSize = child.MeasureSelf();
         var xOffset = (position.Width - childSize.Width) * 0.5f;

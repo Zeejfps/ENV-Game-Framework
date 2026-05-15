@@ -3,7 +3,7 @@ using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class Center : View
+public sealed class Center : MultiChildView
 {
     public ImageView ModelView { get; }
 

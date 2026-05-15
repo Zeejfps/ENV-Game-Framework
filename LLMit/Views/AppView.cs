@@ -4,7 +4,7 @@ using ZGF.Gui.Tests;
 
 namespace LLMit.Views;
 
-public sealed class AppView : View
+public sealed class AppView : MultiChildView
 {
     public AppView()
     {
@@ -18,11 +18,11 @@ public sealed class AppView : View
     }
 }
 
-public sealed class CenterArea : View
+public sealed class CenterArea : MultiChildView
 {
     private readonly TabView _newChatTabView;
     private readonly TabBarView _tabBarView;
-    private readonly View _tabContentsView;
+    private readonly MultiChildView _tabContentsView;
 
     public CenterArea()
     {
@@ -46,7 +46,7 @@ public sealed class CenterArea : View
             BackgroundColor = 0xFF212121
         };
 
-        _tabContentsView = new View
+        _tabContentsView = new MultiChildView
         {
             Children =
             {
