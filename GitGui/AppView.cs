@@ -290,10 +290,10 @@ public sealed class RepoBar : View
 
     public RepoBar()
     {
-        PreferredWidth = 72;
+        PreferredWidth = 180;
         _column = new FlexColumnView
         {
-            Gap = 8,
+            Gap = 4,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
         };
         AddChildToSelf(new RectView
@@ -301,7 +301,7 @@ public sealed class RepoBar : View
             BackgroundColor = DialogPalette.Background,
             BorderColor = new BorderColorStyle { Right = DialogPalette.Border },
             BorderSize = new BorderSizeStyle { Right = 1 },
-            Padding = PaddingStyle.All(10),
+            Padding = PaddingStyle.All(8),
             Children = { _column }
         });
     }
@@ -343,7 +343,7 @@ public sealed class AddRepoButton : View
 {
     public AddRepoButton()
     {
-        PreferredHeight = 52;
+        PreferredHeight = 32;
 
         var background = new RectView
         {
@@ -376,64 +376,94 @@ public sealed class AddRepoButton : View
 
 public sealed class RepoButton : View
 {
+    private const int HorizontalTextPadding = 10;
+    private readonly Repo _repo;
+    private readonly TextView _label;
+    private readonly RectView _background;
+
     public RepoButton(Repo repo, bool isActive)
     {
-        PreferredHeight = 52;
-
-        var letter = string.IsNullOrEmpty(repo.DisplayName)
-            ? "?"
-            : char.ToUpperInvariant(repo.DisplayName[0]).ToString();
+        _repo = repo;
+        PreferredHeight = 32;
 
         var normalBorder = repo.IsMissing ? 0x80313338u : DialogPalette.ButtonBorder;
         var activeBorder = DialogPalette.ButtonBorderHover;
         var textColor = repo.IsMissing ? 0x80E6E6E6u : DialogPalette.TitleText;
 
-        var background = new RectView
+        _label = new TextView
+        {
+            Text = repo.DisplayName,
+            TextColor = textColor,
+            HorizontalTextAlignment = TextAlignment.Start,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        _background = new RectView
         {
             BackgroundColor = DialogPalette.ButtonNormal,
+            BorderColor = BorderColorStyle.All(isActive ? activeBorder : normalBorder),
+            BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(6),
-            Children =
+            Padding = new PaddingStyle
             {
-                new TextView
-                {
-                    Text = letter,
-                    TextColor = textColor,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    VerticalTextAlignment = TextAlignment.Center,
-                }
-            }
+                Left = HorizontalTextPadding,
+                Right = HorizontalTextPadding,
+            },
+            Children = { _label }
         };
-        ApplyBorder(background, isActive ? activeBorder : normalBorder, isActive);
-        AddChildToSelf(background);
+        AddChildToSelf(_background);
 
         Behaviors.Add(new HoverableButtonController(
             () => Context?.Get<IRepoRegistry>()?.SetActive(repo.Id),
             isHovered =>
             {
-                background.BackgroundColor = isHovered ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal;
+                _background.BackgroundColor = isHovered ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal;
                 if (!isActive)
-                    ApplyBorder(background, isHovered ? activeBorder : normalBorder, isActive: false);
+                    _background.BorderColor = BorderColorStyle.All(isHovered ? activeBorder : normalBorder);
             }));
     }
 
-    private static void ApplyBorder(RectView rect, uint color, bool isActive)
+    protected override void OnAttachedToContext(Context context)
     {
-        if (isActive)
+        base.OnAttachedToContext(context);
+        _label.Text = TruncateToFit(_repo.DisplayName, context);
+    }
+
+    private string TruncateToFit(string text, Context context)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        var available = PreferredWidth.Value
+                        - 2 * (_background.BorderSize.Left.Value)
+                        - 2 * HorizontalTextPadding;
+        if (available <= 0)
+            return text;
+
+        if (Measure(text, context) <= available)
+            return text;
+
+        const string ellipsis = "…";
+        var ellipsisWidth = Measure(ellipsis, context);
+        if (ellipsisWidth > available)
+            return ellipsis;
+
+        var lo = 0;
+        var hi = text.Length;
+        while (lo < hi)
         {
-            rect.BorderColor = new BorderColorStyle
-            {
-                Left = DialogPalette.ButtonBorderHover,
-                Right = DialogPalette.ButtonBorder,
-                Top = DialogPalette.ButtonBorder,
-                Bottom = DialogPalette.ButtonBorder,
-            };
-            rect.BorderSize = new BorderSizeStyle { Left = 3, Right = 1, Top = 1, Bottom = 1 };
+            var mid = (lo + hi + 1) / 2;
+            if (Measure(text[..mid], context) + ellipsisWidth <= available)
+                lo = mid;
+            else
+                hi = mid - 1;
         }
-        else
-        {
-            rect.BorderColor = BorderColorStyle.All(color);
-            rect.BorderSize = BorderSizeStyle.All(1);
-        }
+        return text[..lo] + ellipsis;
+    }
+
+    private float Measure(string s, Context context)
+    {
+        var probe = new TextView { Text = s, Context = context };
+        return probe.MeasureWidth();
     }
 }
 
