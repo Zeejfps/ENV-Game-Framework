@@ -1,6 +1,7 @@
 using ZGF.Geometry;
 using ZGF.Gui;
 using ZGF.Gui.Tests;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -90,11 +91,11 @@ public sealed class CommitsView : MultiChildView
     private IMessageBus? _bus;
     private IRepoRegistry? _registry;
     private IGitService? _gitService;
+    private IUiDispatcher? _dispatcher;
     private IDisposable? _activeSubscription;
 
     private CommitsLoadState _state = CommitsLoadState.NoRepo;
     private CommitSnapshot? _snapshot;
-    private CommitSnapshot? _pendingSnapshot;
     private int _loadGeneration;
     private Guid _loadingRepoId;
 
@@ -159,6 +160,7 @@ public sealed class CommitsView : MultiChildView
         _bus = context.Get<IMessageBus>();
         _registry = context.Get<IRepoRegistry>();
         _gitService = context.Get<IGitService>();
+        _dispatcher = context.Get<IUiDispatcher>();
         if (_registry != null)
         {
             _activeSubscription = _registry.Active.Subscribe(_ => StartLoadForActiveRepo());
@@ -167,11 +169,13 @@ public sealed class CommitsView : MultiChildView
 
     protected override void OnDetachedFromContext(Context context)
     {
+        _loadGeneration++;
         _activeSubscription?.Dispose();
         _activeSubscription = null;
         _bus = null;
         _registry = null;
         _gitService = null;
+        _dispatcher = null;
     }
 
     private void StartLoadForActiveRepo()
@@ -211,39 +215,41 @@ public sealed class CommitsView : MultiChildView
 
         var repo = active;
         var service = _gitService;
+        var dispatcher = _dispatcher;
         Task.Run(() =>
         {
+            CommitSnapshot snap;
             try
             {
-                var snap = service.Load(repo, 3000);
-                if (gen != Volatile.Read(ref _loadGeneration)) return;
-                Volatile.Write(ref _pendingSnapshot, snap);
+                snap = service.Load(repo, 3000);
             }
             catch (Exception ex)
             {
-                if (gen != Volatile.Read(ref _loadGeneration)) return;
-                Volatile.Write(ref _pendingSnapshot,
-                    new CommitSnapshot(repo.Id, repo.Path, Array.Empty<CommitNode>(), 0, false, ex.Message));
+                snap = new CommitSnapshot(repo.Id, repo.Path, Array.Empty<CommitNode>(), 0, false, ex.Message);
             }
+
+            dispatcher?.Post(() =>
+            {
+                if (gen != _loadGeneration) return;
+                ApplyLoadedSnapshot(snap);
+            });
         });
     }
 
     public bool Truncated => _snapshot?.Truncated == true;
     public event Action<bool>? TruncatedChanged;
 
-    private void PollPending()
+    private void ApplyLoadedSnapshot(CommitSnapshot snap)
     {
-        var pending = Interlocked.Exchange(ref _pendingSnapshot, null);
-        if (pending == null) return;
-        if (pending.RepoId != _loadingRepoId) return;
+        if (snap.RepoId != _loadingRepoId) return;
         var wasTruncated = Truncated;
-        _snapshot = pending;
-        _state = pending.ErrorMessage != null ? CommitsLoadState.Error : CommitsLoadState.Loaded;
+        _snapshot = snap;
+        _state = snap.ErrorMessage != null ? CommitsLoadState.Error : CommitsLoadState.Loaded;
         _scrollY = 0f;
         NotifyScrollChanged();
         if (wasTruncated != Truncated)
             TruncatedChanged?.Invoke(Truncated);
-        _bus?.Broadcast(new CommitsLoadedMessage(pending.RepoId));
+        _bus?.Broadcast(new CommitsLoadedMessage(snap.RepoId));
     }
 
     public float Scale
@@ -305,8 +311,6 @@ public sealed class CommitsView : MultiChildView
 
     protected override void OnDrawSelf(ICanvas c)
     {
-        PollPending();
-
         var pos = Position;
         var z = GetDrawZIndex();
 

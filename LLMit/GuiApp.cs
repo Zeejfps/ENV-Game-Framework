@@ -4,6 +4,7 @@ using ZGF.Core;
 using ZGF.Fonts;
 using ZGF.Gui;
 using ZGF.Gui.Tests;
+using ZGF.Observable;
 using static GL46;
 
 namespace LLMit;
@@ -14,6 +15,7 @@ public sealed class GuiApp : OpenGlApp
     private readonly OpenGlRenderedCanvas _canvas;
     private readonly FreeTypeFontBackend _fontBackend;
     private readonly MultiChildView _gui;
+    private readonly QueuedUiDispatcher _dispatcher;
 
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly SizeCallback _windowSizeCallback;
@@ -39,10 +41,13 @@ public sealed class GuiApp : OpenGlApp
 
         _inputSystem = new GlfwInputSystem(WindowHandle, _canvas);
 
+        _dispatcher = new QueuedUiDispatcher();
+
         context.Canvas = _canvas;
 
         context.AddService(_inputSystem.InputSystem);
         context.AddService(_contextMenuManager);
+        context.AddService<IUiDispatcher>(_dispatcher);
 #if OSX
         context.AddService<IClipboard>(new OsxClipboard());
 #elif WIN
@@ -79,6 +84,7 @@ public sealed class GuiApp : OpenGlApp
 
     protected override void OnUpdate()
     {
+        _dispatcher.Drain();
         Render();
         _inputSystem.Update();
         _contextMenuManager.Update();

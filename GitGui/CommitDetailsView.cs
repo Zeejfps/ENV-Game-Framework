@@ -1,6 +1,7 @@
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -35,12 +36,10 @@ internal static class CommitDetailsPalette
     }
 }
 
-internal enum CommitDetailsState
+internal abstract record CommitDetailsViewModel
 {
-    Empty,
-    Loading,
-    Loaded,
-    Error,
+    public sealed record Placeholder(string Text) : CommitDetailsViewModel;
+    public sealed record Loaded(CommitDetails Details) : CommitDetailsViewModel;
 }
 
 public sealed class CommitDetailsView : MultiChildView
@@ -51,15 +50,14 @@ public sealed class CommitDetailsView : MultiChildView
     private IMessageBus? _bus;
     private IGitService? _gitService;
     private IRepoRegistry? _registry;
+    private IUiDispatcher? _dispatcher;
     private Action<CommitSelectedMessage>? _selectedHandler;
+    private IDisposable? _vmSubscription;
 
-    private CommitDetailsState _state = CommitDetailsState.Empty;
-    private CommitDetails? _details;
-    private CommitDetails? _pendingDetails;
-    private string? _pendingErrorMessage;
+    private readonly State<CommitDetailsViewModel> _viewModel = new(
+        new CommitDetailsViewModel.Placeholder("Select a commit to view details."));
+
     private int _loadGeneration;
-    private string? _requestedSha;
-    private Guid _requestedRepoId;
 
     private readonly ColumnView _content;
     private readonly ScrollPane _scrollPane;
@@ -126,8 +124,6 @@ public sealed class CommitDetailsView : MultiChildView
         });
 
         Behaviors.Add(new CommitDetailsScrollSyncController(_scrollPane, _vScrollBar, _hScrollBar));
-
-        ShowPlaceholder("Select a commit to view details.");
     }
 
     private static void StyleScrollBarThumb(VerticalScrollBarThumbView thumb)
@@ -163,6 +159,8 @@ public sealed class CommitDetailsView : MultiChildView
         _bus = context.Get<IMessageBus>();
         _gitService = context.Get<IGitService>();
         _registry = context.Get<IRepoRegistry>();
+        _dispatcher = context.Get<IUiDispatcher>();
+        _vmSubscription = _viewModel.Subscribe(Render);
         if (_bus != null)
         {
             _selectedHandler = OnCommitSelected;
@@ -172,14 +170,18 @@ public sealed class CommitDetailsView : MultiChildView
 
     protected override void OnDetachedFromContext(Context context)
     {
+        _loadGeneration++;
         if (_bus != null && _selectedHandler != null)
         {
             _bus.Unsubscribe(_selectedHandler);
         }
+        _vmSubscription?.Dispose();
+        _vmSubscription = null;
         _selectedHandler = null;
         _bus = null;
         _gitService = null;
         _registry = null;
+        _dispatcher = null;
     }
 
     private void OnCommitSelected(CommitSelectedMessage msg)
@@ -187,10 +189,7 @@ public sealed class CommitDetailsView : MultiChildView
         if (string.IsNullOrEmpty(msg.Sha))
         {
             _loadGeneration++;
-            _requestedSha = null;
-            _state = CommitDetailsState.Empty;
-            _details = null;
-            ShowPlaceholder("Select a commit to view details.");
+            _viewModel.Value = new CommitDetailsViewModel.Placeholder("Select a commit to view details.");
             return;
         }
         StartLoad(msg.RepoId, msg.Sha);
@@ -204,53 +203,44 @@ public sealed class CommitDetailsView : MultiChildView
 
         _loadGeneration++;
         var gen = _loadGeneration;
-        _requestedSha = sha;
-        _requestedRepoId = repoId;
-        _state = CommitDetailsState.Loading;
-        _details = null;
-        ShowPlaceholder("Loading…");
+        _viewModel.Value = new CommitDetailsViewModel.Placeholder("Loading…");
 
         var service = _gitService;
+        var dispatcher = _dispatcher;
         Task.Run(() =>
         {
+            CommitDetailsViewModel result;
             try
             {
                 var details = service.LoadDetails(repo, sha);
-                if (gen != Volatile.Read(ref _loadGeneration)) return;
-                Volatile.Write(ref _pendingDetails, details);
+                result = details.ErrorMessage != null
+                    ? new CommitDetailsViewModel.Placeholder(details.ErrorMessage)
+                    : new CommitDetailsViewModel.Loaded(details);
             }
             catch (Exception ex)
             {
-                if (gen != Volatile.Read(ref _loadGeneration)) return;
-                Volatile.Write(ref _pendingErrorMessage, ex.Message);
+                result = new CommitDetailsViewModel.Placeholder(ex.Message);
             }
+
+            dispatcher?.Post(() =>
+            {
+                if (gen != _loadGeneration) return;
+                _viewModel.Value = result;
+            });
         });
     }
 
-    protected override void OnDrawSelf(ICanvas c)
+    private void Render(CommitDetailsViewModel vm)
     {
-        PollPending();
-    }
-
-    private void PollPending()
-    {
-        var err = Interlocked.Exchange(ref _pendingErrorMessage, null);
-        if (err != null)
+        switch (vm)
         {
-            _details = null;
-            _state = CommitDetailsState.Error;
-            ShowPlaceholder(err);
+            case CommitDetailsViewModel.Placeholder p:
+                ShowPlaceholder(p.Text);
+                break;
+            case CommitDetailsViewModel.Loaded l:
+                ShowDetails(l.Details);
+                break;
         }
-
-        var pending = Interlocked.Exchange(ref _pendingDetails, null);
-        if (pending == null) return;
-        if (pending.Sha != _requestedSha || pending.RepoId != _requestedRepoId) return;
-        _details = pending;
-        _state = pending.ErrorMessage != null ? CommitDetailsState.Error : CommitDetailsState.Loaded;
-        if (_state == CommitDetailsState.Error)
-            ShowPlaceholder(pending.ErrorMessage ?? "Error.");
-        else
-            ShowDetails(pending);
     }
 
     private void ShowPlaceholder(string text)

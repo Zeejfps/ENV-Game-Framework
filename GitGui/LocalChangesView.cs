@@ -1,15 +1,14 @@
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
+using ZGF.Observable;
 
 namespace GitGui;
 
-internal enum LocalChangesState
+internal abstract record LocalChangesViewModel
 {
-    NoRepo,
-    Loading,
-    Loaded,
-    Error,
+    public sealed record Placeholder(string Text) : LocalChangesViewModel;
+    public sealed record Loaded(LocalChangesSnapshot Snapshot) : LocalChangesViewModel;
 }
 
 public sealed class LocalChangesView : MultiChildView
@@ -18,13 +17,14 @@ public sealed class LocalChangesView : MultiChildView
 
     private IRepoRegistry? _registry;
     private IGitService? _gitService;
+    private IUiDispatcher? _dispatcher;
     private IDisposable? _activeSubscription;
+    private IDisposable? _vmSubscription;
 
-    private LocalChangesState _state = LocalChangesState.NoRepo;
-    private LocalChangesSnapshot? _pendingSnapshot;
-    private string? _pendingErrorMessage;
+    private readonly State<LocalChangesViewModel> _viewModel = new(
+        new LocalChangesViewModel.Placeholder("Open a repository to see local changes."));
+
     private int _loadGeneration;
-    private Guid _loadingRepoId;
 
     private readonly ColumnView _content;
     private readonly ScrollPane _scrollPane;
@@ -92,26 +92,29 @@ public sealed class LocalChangesView : MultiChildView
         });
 
         Behaviors.Add(new LocalChangesScrollSyncController(_scrollPane, _vScrollBar));
-
-        ShowPlaceholder("Open a repository to see local changes.");
     }
 
     protected override void OnAttachedToContext(Context context)
     {
         _registry = context.Get<IRepoRegistry>();
         _gitService = context.Get<IGitService>();
+        _dispatcher = context.Get<IUiDispatcher>();
+        _vmSubscription = _viewModel.Subscribe(Render);
         if (_registry != null)
-        {
             _activeSubscription = _registry.Active.Subscribe(_ => StartLoadForActiveRepo());
-        }
     }
 
     protected override void OnDetachedFromContext(Context context)
     {
+        // Bump the generation so any in-flight worker's dispatcher.Post becomes a no-op.
+        _loadGeneration++;
         _activeSubscription?.Dispose();
         _activeSubscription = null;
+        _vmSubscription?.Dispose();
+        _vmSubscription = null;
         _registry = null;
         _gitService = null;
+        _dispatcher = null;
     }
 
     private void StartLoadForActiveRepo()
@@ -124,60 +127,49 @@ public sealed class LocalChangesView : MultiChildView
 
         if (active == null)
         {
-            _state = LocalChangesState.NoRepo;
-            ShowPlaceholder("Open a repository to see local changes.");
+            _viewModel.Value = new LocalChangesViewModel.Placeholder("Open a repository to see local changes.");
             return;
         }
 
-        _state = LocalChangesState.Loading;
-        _loadingRepoId = active.Id;
-        ShowPlaceholder("Loading…");
+        _viewModel.Value = new LocalChangesViewModel.Placeholder("Loading…");
 
         var repo = active;
         var service = _gitService;
+        var dispatcher = _dispatcher;
         Task.Run(() =>
         {
+            LocalChangesViewModel result;
             try
             {
                 var snap = service.GetLocalChanges(repo);
-                if (gen != Volatile.Read(ref _loadGeneration)) return;
-                Volatile.Write(ref _pendingSnapshot, snap);
+                result = snap.ErrorMessage != null
+                    ? new LocalChangesViewModel.Placeholder(snap.ErrorMessage)
+                    : new LocalChangesViewModel.Loaded(snap);
             }
             catch (Exception ex)
             {
-                if (gen != Volatile.Read(ref _loadGeneration)) return;
-                Volatile.Write(ref _pendingErrorMessage, ex.Message);
+                result = new LocalChangesViewModel.Placeholder(ex.Message);
             }
+
+            dispatcher?.Post(() =>
+            {
+                if (gen != _loadGeneration) return;
+                _viewModel.Value = result;
+            });
         });
     }
 
-    protected override void OnDrawSelf(ICanvas c)
+    private void Render(LocalChangesViewModel vm)
     {
-        PollPending();
-    }
-
-    private void PollPending()
-    {
-        var err = Interlocked.Exchange(ref _pendingErrorMessage, null);
-        if (err != null)
+        switch (vm)
         {
-            _state = LocalChangesState.Error;
-            ShowPlaceholder(err);
+            case LocalChangesViewModel.Placeholder p:
+                ShowPlaceholder(p.Text);
+                break;
+            case LocalChangesViewModel.Loaded l:
+                ShowSnapshot(l.Snapshot);
+                break;
         }
-
-        var pending = Interlocked.Exchange(ref _pendingSnapshot, null);
-        if (pending == null) return;
-        if (pending.RepoId != _loadingRepoId) return;
-
-        if (pending.ErrorMessage != null)
-        {
-            _state = LocalChangesState.Error;
-            ShowPlaceholder(pending.ErrorMessage);
-            return;
-        }
-
-        _state = LocalChangesState.Loaded;
-        ShowSnapshot(pending);
     }
 
     private void ShowPlaceholder(string text)
