@@ -17,6 +17,7 @@ public sealed class GroupHeaderRow : MultiChildView
         {
             Text = ChevronFor(group.IsCollapsed),
             TextColor = DialogPalette.SectionHeaderText,
+            FontSize = 10f,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,

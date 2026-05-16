@@ -10,6 +10,12 @@ public sealed class TextView : MultiChildView
         set => SetField(ref _style.TextColor, value);
     }
 
+    public StyleValue<float> FontSize
+    {
+        get => _style.FontSize;
+        set => SetField(ref _style.FontSize, value);
+    }
+
     public StyleValue<TextAlignment> VerticalTextAlignment
     {
         get => _style.VerticalAlignment;
@@ -56,6 +62,8 @@ public sealed class TextView : MultiChildView
         base.OnApplyStyle(style);
         if (style.TextColor.IsSet)
             _style.TextColor = style.TextColor;
+        if (style.FontSize.IsSet)
+            _style.FontSize = style.FontSize;
     }
 
     protected override void OnDrawSelf(ICanvas c)

@@ -71,6 +71,7 @@ public sealed unsafe class FreeTypeFontBackend
         {
             Face = face,
             PinnedData = handle,
+            SourceData = data,
             PixelSize = pixelSize,
             HasKerning = (face->face_flags.ToInt64() & 0x02) != 0,
             HbFace = hbFace,
@@ -79,6 +80,25 @@ public sealed unsafe class FreeTypeFontBackend
         };
         _fonts.Add(entry);
         return new FontHandle(_fonts.Count);
+    }
+
+    /// Returns a handle to the same font at <paramref name="pixelSize"/>, reusing the
+    /// source byte buffer of <paramref name="baseFont"/>. Sized variants are cached on
+    /// the source entry, so repeated calls for the same size return the same handle.
+    public FontHandle GetSizedVariant(FontHandle baseFont, int pixelSize)
+    {
+        ThrowIfDisposed();
+        var entry = GetEntry(baseFont);
+        if (entry.PixelSize == pixelSize)
+            return baseFont;
+
+        entry.SizeVariants ??= new Dictionary<int, FontHandle>();
+        if (entry.SizeVariants.TryGetValue(pixelSize, out var cached))
+            return cached;
+
+        var variant = LoadFontFromMemory(entry.SourceData, pixelSize);
+        entry.SizeVariants[pixelSize] = variant;
+        return variant;
     }
 
     public FontMetrics GetMetrics(FontHandle font)
@@ -269,10 +289,12 @@ public sealed unsafe class FreeTypeFontBackend
     {
         public FT_FaceRec_* Face;
         public GCHandle PinnedData;
+        public byte[] SourceData = Array.Empty<byte>();
         public int PixelSize;
         public bool HasKerning;
         public Face? HbFace;
         public Font? HbFont;
         public HbBuffer? HbBuffer;
+        public Dictionary<int, FontHandle>? SizeVariants;
     }
 }

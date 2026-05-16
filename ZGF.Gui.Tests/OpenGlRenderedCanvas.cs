@@ -474,13 +474,14 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
             return;
 
         var style = inputs.Style;
+        var font = ResolveFont(style);
         var color = style.TextColor.Value;
         var clip = (uint)_clipStack.Peek();
         var seq = _sequence++;
         var key = MakeKey(inputs.ZIndex, seq);
 
         var pos = inputs.Position;
-        var metrics = _fonts.GetMetrics(_defaultFont);
+        var metrics = _fonts.GetMetrics(font);
         var ascender = metrics.Ascender;
         var descender = metrics.Descender;
         var lineHeight = metrics.LineHeight;
@@ -517,11 +518,11 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
             var cursorX = lineStart;
             if (hCenter)
             {
-                var width = MeasureLineWidth(lineSlice);
+                var width = MeasureLineWidth(font, lineSlice);
                 cursorX = pos.Left + (pos.Width - width) * 0.5f;
             }
 
-            DrawShapedLine(lineSlice, cursorX, baselineY, color, clip, key);
+            DrawShapedLine(font, lineSlice, cursorX, baselineY, color, clip, key);
 
             if (nl < 0)
                 break;
@@ -531,7 +532,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         }
     }
 
-    private void DrawShapedLine(ReadOnlySpan<char> line, float startX, float baselineY,
+    private void DrawShapedLine(FontHandle font, ReadOnlySpan<char> line, float startX, float baselineY,
         uint color, uint clip, long key)
     {
         if (line.Length == 0)
@@ -542,13 +543,13 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
             ? stackalloc ZGF.Fonts.ShapedGlyph[StackCap]
             : new ZGF.Fonts.ShapedGlyph[line.Length * 2];
 
-        var n = _fonts.ShapeText(_defaultFont, line, shaped);
+        var n = _fonts.ShapeText(font, line, shaped);
         var cursorX = startX;
 
         for (var i = 0; i < n; i++)
         {
             var sg = shaped[i];
-            if (!_fonts.TryGetGlyph(_defaultFont, sg.GlyphIndex, out var glyph))
+            if (!_fonts.TryGetGlyph(font, sg.GlyphIndex, out var glyph))
             {
                 cursorX += sg.XAdvance;
                 continue;
@@ -581,7 +582,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         }
     }
 
-    private float MeasureLineWidth(ReadOnlySpan<char> line)
+    private float MeasureLineWidth(FontHandle font, ReadOnlySpan<char> line)
     {
         if (line.Length == 0)
             return 0f;
@@ -590,11 +591,21 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         Span<ZGF.Fonts.ShapedGlyph> shaped = line.Length <= StackCap
             ? stackalloc ZGF.Fonts.ShapedGlyph[StackCap]
             : new ZGF.Fonts.ShapedGlyph[line.Length * 2];
-        var n = _fonts.ShapeText(_defaultFont, line, shaped);
+        var n = _fonts.ShapeText(font, line, shaped);
         var total = 0f;
         for (var i = 0; i < n; i++)
             total += shaped[i].XAdvance;
         return total;
+    }
+
+    private FontHandle ResolveFont(TextStyle style)
+    {
+        if (!style.FontSize.IsSet)
+            return _defaultFont;
+        var pixelSize = (int)MathF.Round(style.FontSize.Value);
+        if (pixelSize <= 0)
+            return _defaultFont;
+        return _fonts.GetSizedVariant(_defaultFont, pixelSize);
     }
 
     public void DrawImage(in DrawImageInputs inputs)
@@ -696,6 +707,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
 
     public float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style)
     {
+        var font = ResolveFont(style);
         // Multi-line text: width is the widest line's shaped advance.
         var max = 0f;
         var i = 0;
@@ -703,7 +715,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         {
             var nl = text[i..].IndexOf('\n');
             var lineEnd = nl < 0 ? text.Length : i + nl;
-            var w = MeasureLineWidth(text[i..lineEnd]);
+            var w = MeasureLineWidth(font, text[i..lineEnd]);
             if (w > max) max = w;
             if (nl < 0) break;
             i = lineEnd + 1;
@@ -711,7 +723,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         return max;
     }
 
-    public float MeasureTextLineHeight(TextStyle style) => _fonts.GetMetrics(_defaultFont).LineHeight;
+    public float MeasureTextLineHeight(TextStyle style) => _fonts.GetMetrics(ResolveFont(style)).LineHeight;
 
     public Size GetImageSize(string imageId) => _imageManager.GetImageSize(imageId);
     public int GetImageWidth(string imageId) => _imageManager.GetImageWidth(imageId);
