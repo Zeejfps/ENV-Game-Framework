@@ -4,24 +4,30 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class DropTarget
-{
-    public required Guid GroupId { get; init; }
-    public required int InsertIndex { get; init; }
-    public required RectF IndicatorBounds { get; init; }
-}
+public enum DragKind { Repo, Group }
 
 public sealed class DragSession
 {
-    public required Repo Source { get; init; }
+    public required DragKind Kind { get; init; }
+    public Repo? Repo { get; init; }
+    public Group? Group { get; init; }
     public PointF MousePosition { get; set; }
+}
+
+public sealed class DropTarget
+{
+    public required DragKind Kind { get; init; }
+    public Guid? GroupId { get; init; }
+    public required int InsertIndex { get; init; }
+    public required RectF IndicatorBounds { get; init; }
 }
 
 public interface IDragController
 {
     State<DragSession?> Session { get; }
     State<DropTarget?> Target { get; }
-    void StartDrag(Repo source, PointF mouse);
+    void StartRepoDrag(Repo source, PointF mouse);
+    void StartGroupDrag(Group source, PointF mouse);
     void UpdateDrag(PointF mouse);
     void CompleteDrag();
     void CancelDrag();
@@ -48,9 +54,15 @@ public sealed class DragController : IDragController
     public State<DragSession?> Session { get; } = new(null);
     public State<DropTarget?> Target { get; } = new(null);
 
-    public void StartDrag(Repo source, PointF mouse)
+    public void StartRepoDrag(Repo source, PointF mouse)
     {
-        Session.Value = new DragSession { Source = source, MousePosition = mouse };
+        Session.Value = new DragSession { Kind = DragKind.Repo, Repo = source, MousePosition = mouse };
+        Target.Value = null;
+    }
+
+    public void StartGroupDrag(Group source, PointF mouse)
+    {
+        Session.Value = new DragSession { Kind = DragKind.Group, Group = source, MousePosition = mouse };
         Target.Value = null;
     }
 
@@ -59,7 +71,12 @@ public sealed class DragController : IDragController
         var session = Session.Value;
         if (session is null) return;
         session.MousePosition = mouse;
-        Target.Value = ResolveTarget(mouse, session.Source.Id);
+        Target.Value = session.Kind switch
+        {
+            DragKind.Repo => ResolveRepoTarget(mouse, session.Repo!.Id),
+            DragKind.Group => ResolveGroupTarget(mouse, session.Group!.Id),
+            _ => null,
+        };
     }
 
     public void CompleteDrag()
@@ -69,7 +86,15 @@ public sealed class DragController : IDragController
         Session.Value = null;
         Target.Value = null;
         if (session is null || target is null) return;
-        _registry.MoveRepo(session.Source.Id, target.GroupId, target.InsertIndex);
+        switch (session.Kind)
+        {
+            case DragKind.Repo when target.GroupId is { } gid:
+                _registry.MoveRepo(session.Repo!.Id, gid, target.InsertIndex);
+                break;
+            case DragKind.Group:
+                _registry.MoveGroup(session.Group!.Id, target.InsertIndex);
+                break;
+        }
     }
 
     public void CancelDrag()
@@ -79,71 +104,49 @@ public sealed class DragController : IDragController
     }
 
     public void RegisterRepoRow(View view, Guid groupId, Guid repoId)
-    {
-        _registrations[view] = new Registration(TargetKind.Repo, groupId, repoId);
-    }
+        => _registrations[view] = new Registration(TargetKind.Repo, groupId, repoId);
 
     public void RegisterGroupHeader(View view, Guid groupId)
-    {
-        _registrations[view] = new Registration(TargetKind.Header, groupId, Guid.Empty);
-    }
+        => _registrations[view] = new Registration(TargetKind.Header, groupId, Guid.Empty);
 
     public void RegisterGroupSection(View view, Guid groupId)
-    {
-        _registrations[view] = new Registration(TargetKind.Section, groupId, Guid.Empty);
-    }
+        => _registrations[view] = new Registration(TargetKind.Section, groupId, Guid.Empty);
 
     public void Unregister(View view) => _registrations.Remove(view);
 
-    private DropTarget? ResolveTarget(PointF mouse, Guid sourceRepoId)
+    private DropTarget? ResolveRepoTarget(PointF mouse, Guid sourceRepoId)
     {
-        View? hitRepoView = null;
-        Registration? hitRepoReg = null;
         foreach (var (view, reg) in _registrations)
         {
             if (reg.Kind != TargetKind.Repo) continue;
             if (!view.Position.ContainsPoint(mouse)) continue;
-            hitRepoView = view;
-            hitRepoReg = reg;
-            break;
-        }
-
-        if (hitRepoView is not null && hitRepoReg is not null)
-        {
-            var pos = hitRepoView.Position;
+            var pos = view.Position;
             var midY = pos.Bottom + pos.Height * 0.5f;
             var insertAbove = mouse.Y > midY;
-            var group = FindGroup(hitRepoReg.GroupId);
+            var group = FindGroup(reg.GroupId);
             if (group is null) return null;
-            var currentIndex = group.RepoIds.IndexOf(hitRepoReg.RepoId);
+            var currentIndex = group.RepoIds.IndexOf(reg.RepoId);
             if (currentIndex < 0) return null;
             var insertIndex = insertAbove ? currentIndex : currentIndex + 1;
             var indicatorY = insertAbove ? pos.Top : pos.Bottom;
             return new DropTarget
             {
-                GroupId = hitRepoReg.GroupId,
+                Kind = DragKind.Repo,
+                GroupId = reg.GroupId,
                 InsertIndex = insertIndex,
                 IndicatorBounds = new RectF(pos.Left, indicatorY - 1, pos.Width, 2),
             };
         }
 
-        View? hitHeaderView = null;
-        Registration? hitHeaderReg = null;
         foreach (var (view, reg) in _registrations)
         {
             if (reg.Kind != TargetKind.Header) continue;
             if (!view.Position.ContainsPoint(mouse)) continue;
-            hitHeaderView = view;
-            hitHeaderReg = reg;
-            break;
-        }
-
-        if (hitHeaderView is not null && hitHeaderReg is not null)
-        {
-            var pos = hitHeaderView.Position;
+            var pos = view.Position;
             return new DropTarget
             {
-                GroupId = hitHeaderReg.GroupId,
+                Kind = DragKind.Repo,
+                GroupId = reg.GroupId,
                 InsertIndex = 0,
                 IndicatorBounds = new RectF(pos.Left, pos.Bottom - 1, pos.Width, 2),
             };
@@ -158,6 +161,7 @@ public sealed class DragController : IDragController
             var pos = view.Position;
             return new DropTarget
             {
+                Kind = DragKind.Repo,
                 GroupId = reg.GroupId,
                 InsertIndex = group.RepoIds.Count,
                 IndicatorBounds = new RectF(pos.Left, pos.Bottom - 1, pos.Width, 2),
@@ -165,6 +169,79 @@ public sealed class DragController : IDragController
         }
 
         return null;
+    }
+
+    private DropTarget? ResolveGroupTarget(PointF mouse, Guid sourceGroupId)
+    {
+        var ordered = new List<(int index, View view)>();
+        for (var i = 0; i < _registry.Groups.Count; i++)
+        {
+            var groupId = _registry.Groups[i].Id;
+            View? sectionView = null;
+            foreach (var (view, reg) in _registrations)
+            {
+                if (reg.Kind != TargetKind.Section) continue;
+                if (reg.GroupId != groupId) continue;
+                sectionView = view;
+                break;
+            }
+            if (sectionView is null) continue;
+            ordered.Add((i, sectionView));
+        }
+        if (ordered.Count == 0) return null;
+
+        var sourceIndex = -1;
+        for (var i = 0; i < _registry.Groups.Count; i++)
+        {
+            if (_registry.Groups[i].Id != sourceGroupId) continue;
+            sourceIndex = i;
+            break;
+        }
+        if (sourceIndex < 0) return null;
+
+        int? insertIndex = null;
+        RectF indicator = default;
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            var (groupIdx, sectionView) = ordered[i];
+            var pos = sectionView.Position;
+            if (mouse.Y > pos.Top) continue;
+            if (mouse.Y < pos.Bottom) continue;
+
+            var midY = pos.Bottom + pos.Height * 0.5f;
+            if (mouse.Y > midY)
+            {
+                insertIndex = groupIdx;
+                indicator = new RectF(pos.Left, pos.Top - 1, pos.Width, 2);
+            }
+            else
+            {
+                insertIndex = groupIdx + 1;
+                indicator = new RectF(pos.Left, pos.Bottom - 1, pos.Width, 2);
+            }
+            break;
+        }
+
+        if (insertIndex is null)
+        {
+            var last = ordered[^1];
+            var lastBottom = last.view.Position.Bottom;
+            if (mouse.Y < lastBottom)
+            {
+                insertIndex = _registry.Groups.Count;
+                indicator = new RectF(last.view.Position.Left, lastBottom - 1, last.view.Position.Width, 2);
+            }
+        }
+
+        if (insertIndex is null) return null;
+        if (insertIndex == sourceIndex || insertIndex == sourceIndex + 1) return null;
+
+        return new DropTarget
+        {
+            Kind = DragKind.Group,
+            InsertIndex = insertIndex.Value,
+            IndicatorBounds = indicator,
+        };
     }
 
     private Group? FindGroup(Guid groupId)

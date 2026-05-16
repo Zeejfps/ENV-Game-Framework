@@ -176,6 +176,25 @@ public sealed class RepoRegistry : IRepoRegistry
         Save();
     }
 
+    public void MoveGroup(Guid groupId, int insertIndex)
+    {
+        var sourceIndex = -1;
+        for (var i = 0; i < Groups.Count; i++)
+        {
+            if (Groups[i].Id != groupId) continue;
+            sourceIndex = i;
+            break;
+        }
+        if (sourceIndex < 0) return;
+
+        var adjusted = insertIndex > sourceIndex ? insertIndex - 1 : insertIndex;
+        adjusted = Math.Clamp(adjusted, 0, Groups.Count - 1);
+        if (adjusted == sourceIndex) return;
+
+        Groups.Move(sourceIndex, adjusted);
+        Save();
+    }
+
     public void RemoveRepo(Guid repoId)
     {
         var repoIndex = -1;

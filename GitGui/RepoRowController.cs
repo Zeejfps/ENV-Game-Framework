@@ -84,7 +84,7 @@ public sealed class RepoRowController : KeyboardMouseController
 
             _dragging = true;
             _onHoverChanged(false);
-            _dragController?.StartDrag(_repo, e.Mouse.Point);
+            _dragController?.StartRepoDrag(_repo, e.Mouse.Point);
             e.Consume();
             return;
         }
@@ -116,7 +116,7 @@ public sealed class RepoRowController : KeyboardMouseController
             _pressed = true;
             _dragging = false;
             _pressPoint = e.Mouse.Point;
-            _inputSystem?.RequestFocus(this);
+            _inputSystem?.StealFocus(this);
             e.Consume();
             return;
         }

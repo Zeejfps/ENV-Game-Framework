@@ -15,6 +15,7 @@ public interface IRepoRegistry
     void RenameGroup(Guid id, string newName);
     void DeleteGroup(Guid id);
     void MoveRepo(Guid repoId, Guid targetGroupId, int insertIndex);
+    void MoveGroup(Guid groupId, int insertIndex);
     void RemoveRepo(Guid repoId);
     void BeginRenameGroup(Guid id);
     void EndRenameGroup();
