@@ -8,18 +8,10 @@ internal static class CommitDetailsPalette
 {
     public const uint Background = 0xFF1A1B1E;
     public const uint Border = 0xFF313338;
-    public const uint SectionBg = 0xFF222326;
-    public const uint Heading = 0xFF96989D;
     public const uint Primary = 0xFFE6E6E6;
     public const uint Secondary = 0xFFB5B9C0;
     public const uint Muted = 0xFF7A7C81;
     public const uint Placeholder = 0xFF96989D;
-
-    public const uint StatusAdded = 0xFF57F287;
-    public const uint StatusModified = 0xFFE9C77A;
-    public const uint StatusDeleted = 0xFFED4245;
-    public const uint StatusRenamed = 0xFF5DADE2;
-    public const uint StatusOther = 0xFF9B59B6;
 
     private static readonly uint[] AvatarPalette =
     {
@@ -55,7 +47,6 @@ public sealed class CommitDetailsView : MultiChildView
 {
     private const int Padding = 14;
     private const float AvatarSize = 36f;
-    private const float StatusBadgeSize = 16f;
 
     private IMessageBus? _bus;
     private IGitService? _gitService;
@@ -315,14 +306,10 @@ public sealed class CommitDetailsView : MultiChildView
             TextColor = CommitDetailsPalette.Muted,
         });
 
-        // Files header bar
-        _content.Children.Add(BuildFilesHeader(d.Files.Count));
-
-        // File rows
-        foreach (var file in d.Files)
-        {
-            _content.Children.Add(BuildFileRow(file));
-        }
+        // Changed files
+        var section = new FileChangesSection("Changes");
+        section.SetFiles(d.Files);
+        _content.Children.Add(section);
 
         _scrollPane.ScrollToOrigin();
     }
@@ -379,77 +366,6 @@ public sealed class CommitDetailsView : MultiChildView
         };
     }
 
-    private static View BuildFilesHeader(int count)
-    {
-        return new RectView
-        {
-            BackgroundColor = CommitDetailsPalette.SectionBg,
-            BorderColor = new BorderColorStyle
-            {
-                Top = CommitDetailsPalette.Border,
-                Bottom = CommitDetailsPalette.Border,
-            },
-            BorderSize = new BorderSizeStyle { Top = 1, Bottom = 1 },
-            Padding = new PaddingStyle { Left = 4, Right = 4, Top = 4, Bottom = 4 },
-            Children =
-            {
-                new TextView
-                {
-                    Text = $"Changes ({count})",
-                    TextColor = CommitDetailsPalette.Heading,
-                },
-            },
-        };
-    }
-
-    private static View BuildFileRow(FileChange file)
-    {
-        var color = file.Status switch
-        {
-            FileChangeStatus.Added => CommitDetailsPalette.StatusAdded,
-            FileChangeStatus.Modified => CommitDetailsPalette.StatusModified,
-            FileChangeStatus.Deleted => CommitDetailsPalette.StatusDeleted,
-            FileChangeStatus.Renamed => CommitDetailsPalette.StatusRenamed,
-            _ => CommitDetailsPalette.StatusOther,
-        };
-
-        var badge = new RectView
-        {
-            PreferredWidth = StatusBadgeSize,
-            PreferredHeight = StatusBadgeSize,
-            BackgroundColor = color,
-            BorderRadius = BorderRadiusStyle.All(3),
-            Children =
-            {
-                new TextView
-                {
-                    Text = StatusGlyph(file.Status),
-                    TextColor = 0xFF1A1B1E,
-                    FontSize = 11f,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    VerticalTextAlignment = TextAlignment.Center,
-                },
-            },
-        };
-
-        var path = new TextView
-        {
-            Text = FormatPath(file),
-            TextColor = CommitDetailsPalette.Secondary,
-        };
-
-        return new FlexRowView
-        {
-            Gap = 8f,
-            CrossAxisAlignment = CrossAxisAlignment.Start,
-            Children =
-            {
-                badge,
-                new FlexItem { Grow = 1, Child = path },
-            },
-        };
-    }
-
     private static string Initials(string name, string email)
     {
         var source = !string.IsNullOrWhiteSpace(name) ? name : email;
@@ -475,24 +391,6 @@ public sealed class CommitDetailsView : MultiChildView
 
     private static string ShortSha(string sha)
         => string.IsNullOrEmpty(sha) ? string.Empty : (sha.Length >= 7 ? sha[..7] : sha);
-
-    private static string StatusGlyph(FileChangeStatus status) => status switch
-    {
-        FileChangeStatus.Added => "A",
-        FileChangeStatus.Modified => "M",
-        FileChangeStatus.Deleted => "D",
-        FileChangeStatus.Renamed => "R",
-        FileChangeStatus.Copied => "C",
-        FileChangeStatus.TypeChanged => "T",
-        _ => "·",
-    };
-
-    private static string FormatPath(FileChange file)
-    {
-        if (file.Status == FileChangeStatus.Renamed && !string.IsNullOrEmpty(file.OldPath))
-            return $"{file.OldPath} → {file.Path}";
-        return file.Path;
-    }
 
     /// <summary>
     /// libgit2's Message includes the subject line. Extract the body (everything after the

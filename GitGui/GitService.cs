@@ -169,6 +169,81 @@ public sealed class GitService : IGitService
         _ => FileChangeStatus.Unmodified,
     };
 
+    public LocalChangesSnapshot GetLocalChanges(Repo repo)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return LocalChangesError(repo, "Not a git repository.");
+
+            using var lg = new Repository(repo.Path);
+            var status = lg.RetrieveStatus(new StatusOptions
+            {
+                IncludeUntracked = true,
+                RecurseUntrackedDirs = true,
+                DetectRenamesInIndex = true,
+                DetectRenamesInWorkDir = true,
+            });
+
+            var staged = new List<FileChange>();
+            var unstaged = new List<FileChange>();
+
+            foreach (var entry in status)
+            {
+                if (entry.State == FileStatus.Ignored || entry.State == FileStatus.Unaltered)
+                    continue;
+
+                var indexStatus = MapIndexStatus(entry.State);
+                if (indexStatus != null)
+                {
+                    var oldPath = entry.HeadToIndexRenameDetails?.OldFilePath;
+                    if (oldPath == entry.FilePath) oldPath = null;
+                    staged.Add(new FileChange(entry.FilePath, oldPath, indexStatus.Value));
+                }
+
+                var workStatus = MapWorkDirStatus(entry.State);
+                if (workStatus != null)
+                {
+                    var oldPath = entry.IndexToWorkDirRenameDetails?.OldFilePath;
+                    if (oldPath == entry.FilePath) oldPath = null;
+                    unstaged.Add(new FileChange(entry.FilePath, oldPath, workStatus.Value));
+                }
+            }
+
+            staged.Sort(static (a, b) => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase));
+            unstaged.Sort(static (a, b) => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase));
+
+            return new LocalChangesSnapshot(repo.Id, staged, unstaged, null);
+        }
+        catch (Exception ex)
+        {
+            return LocalChangesError(repo, ex.Message);
+        }
+    }
+
+    private static FileChangeStatus? MapIndexStatus(FileStatus state)
+    {
+        if ((state & FileStatus.NewInIndex) != 0) return FileChangeStatus.Added;
+        if ((state & FileStatus.ModifiedInIndex) != 0) return FileChangeStatus.Modified;
+        if ((state & FileStatus.DeletedFromIndex) != 0) return FileChangeStatus.Deleted;
+        if ((state & FileStatus.RenamedInIndex) != 0) return FileChangeStatus.Renamed;
+        if ((state & FileStatus.TypeChangeInIndex) != 0) return FileChangeStatus.TypeChanged;
+        return null;
+    }
+
+    private static FileChangeStatus? MapWorkDirStatus(FileStatus state)
+    {
+        if ((state & FileStatus.NewInWorkdir) != 0) return FileChangeStatus.Added;
+        if ((state & FileStatus.ModifiedInWorkdir) != 0) return FileChangeStatus.Modified;
+        if ((state & FileStatus.DeletedFromWorkdir) != 0) return FileChangeStatus.Deleted;
+        if ((state & FileStatus.RenamedInWorkdir) != 0) return FileChangeStatus.Renamed;
+        if ((state & FileStatus.TypeChangeInWorkdir) != 0) return FileChangeStatus.TypeChanged;
+        return null;
+    }
+
+    private static LocalChangesSnapshot LocalChangesError(Repo repo, string message)
+        => new(repo.Id, Array.Empty<FileChange>(), Array.Empty<FileChange>(), message);
+
     private static CommitDetails DetailsError(Repo repo, string sha, string message)
         => new(
             RepoId: repo.Id,
