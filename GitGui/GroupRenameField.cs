@@ -14,6 +14,7 @@ public sealed class GroupRenameField : MultiChildView
         {
             BackgroundColor = DialogPalette.ButtonNormal,
             TextColor = DialogPalette.TitleText,
+            FontSize = 18f,
             CaretColor = DialogPalette.TitleText,
             SelectionRectColor = DialogPalette.RowActive,
             TextVerticalAlignment = TextAlignment.Center,

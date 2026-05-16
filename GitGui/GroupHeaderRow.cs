@@ -17,7 +17,7 @@ public sealed class GroupHeaderRow : MultiChildView
         {
             Text = ChevronFor(group.IsCollapsed),
             TextColor = DialogPalette.SectionHeaderText,
-            FontSize = 10f,
+            FontSize = 8f,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
@@ -32,6 +32,7 @@ public sealed class GroupHeaderRow : MultiChildView
                 {
                     Text = group.Name,
                     TextColor = DialogPalette.SectionHeaderText,
+                    FontSize = 18f,
                     HorizontalTextAlignment = TextAlignment.Start,
                     VerticalTextAlignment = TextAlignment.Center,
                 });
@@ -45,7 +46,7 @@ public sealed class GroupHeaderRow : MultiChildView
                 new FlexRowView
                 {
                     CrossAxisAlignment = CrossAxisAlignment.Center,
-                    Gap = 4,
+                    Gap = 8,
                     Children =
                     {
                         chevron,

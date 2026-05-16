@@ -23,6 +23,12 @@ public sealed class TextInputView : MultiChildView
         set => SetField(ref _textStyle.TextColor, value);
     }
 
+    public StyleValue<float> FontSize
+    {
+        get => _textStyle.FontSize;
+        set => SetField(ref _textStyle.FontSize, value);
+    }
+
     public StyleValue<TextAlignment> TextVerticalAlignment
     {
         get => _textStyle.VerticalAlignment;
