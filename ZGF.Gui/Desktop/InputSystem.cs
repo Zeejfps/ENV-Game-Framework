@@ -256,33 +256,46 @@ public sealed class InputSystem
             }
         }
 
-        var hitComponent = HitTest(e.Mouse.Point);
-        if (_hoveredComponent != hitComponent)
+        RefreshHover(e.Mouse);
+    }
+
+    /// <summary>
+    /// Re-runs hit-testing from the cursor's current position and fires
+    /// MouseEnter / MouseExit events if the hovered controller changed.
+    /// Call this when the view tree changes between mouse-move events
+    /// (e.g. a collapsed group is replaced) so hover state catches up
+    /// without the user having to wiggle the mouse.
+    /// </summary>
+    public void RefreshHover(IMouse mouse)
+    {
+        if (_focusedComponent != null) return;
+
+        var hitComponent = HitTest(mouse.Point);
+        if (_hoveredComponent == hitComponent) return;
+
+        var prevHoveredComponent = _hoveredComponent;
+        _hoveredComponent = hitComponent;
+
+        if (prevHoveredComponent != null)
         {
-            var prevHoveredComponent = _hoveredComponent;
-            _hoveredComponent = hitComponent;
-
-            if (prevHoveredComponent != null)
+            var mouseExitEvent = new MouseExitEvent
             {
-                var mouseExitEvent = new MouseExitEvent
-                {
-                    Mouse = e.Mouse,
-                    Phase = EventPhase.Capturing,
-                };
-                SendMouseExitEvent(ref mouseExitEvent);
-            }
+                Mouse = mouse,
+                Phase = EventPhase.Capturing,
+            };
+            SendMouseExitEvent(ref mouseExitEvent);
+        }
 
-            _focusQueue.Clear();
-            if (_hoveredComponent != null)
+        _focusQueue.Clear();
+        if (_hoveredComponent != null)
+        {
+            BuildPath(_hoveredComponent);
+            var mouseEnterEvent = new MouseEnterEvent
             {
-                BuildPath(_hoveredComponent);
-                var mouseEnterEvent = new MouseEnterEvent
-                {
-                    Mouse = e.Mouse,
-                    Phase = EventPhase.Capturing,
-                };
-                SendMouseEnterEvent(ref mouseEnterEvent);
-            }
+                Mouse = mouse,
+                Phase = EventPhase.Capturing,
+            };
+            SendMouseEnterEvent(ref mouseEnterEvent);
         }
     }
 

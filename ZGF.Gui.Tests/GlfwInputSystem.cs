@@ -40,7 +40,10 @@ public sealed class GlfwInputSystem
         var prevPoint = Mouse.Point;
         Mouse.Point = guiPoint;
         if (prevPoint == guiPoint)
+        {
+            InputSystem.RefreshHover(Mouse);
             return;
+        }
 
         var e = new MouseMoveEvent
         {
