@@ -67,8 +67,8 @@ public sealed class CommitsView : MultiChildView
     private const float ScrollWheelStep = 60f;
 
     private const float SummaryColumnWidth = 0f;
-    private const float DefaultAuthorColumnWidth = 160f;
-    private const float DefaultHashColumnWidth = 70f;
+    private const float DefaultAuthorColumnWidth = 140f;
+    private const float DefaultHashColumnWidth = 80f;
     private const float DefaultDateColumnWidth = 110f;
     private const float MinColumnWidth = 40f;
     private const float MaxColumnWidth = 600f;
@@ -312,13 +312,13 @@ public sealed class CommitsView : MultiChildView
         switch (_state)
         {
             case CommitsLoadState.NoRepo:
-                DrawPlaceholder(c, bodyRect, "Select a repository to view its history.", z + 2);
+                DrawPlaceholder(c, ComputeCommitsColumnRect(bodyRect), "Select a repository to view its history.", z + 2);
                 break;
             case CommitsLoadState.Loading:
-                DrawPlaceholder(c, bodyRect, "Loading…", z + 2);
+                DrawPlaceholder(c, ComputeCommitsColumnRect(bodyRect), "Loading…", z + 2);
                 break;
             case CommitsLoadState.Error:
-                DrawPlaceholder(c, bodyRect, _snapshot?.ErrorMessage ?? "Error.", z + 2);
+                DrawPlaceholder(c, ComputeCommitsColumnRect(bodyRect), _snapshot?.ErrorMessage ?? "Error.", z + 2);
                 break;
             case CommitsLoadState.Loaded:
                 DrawCommits(c, bodyRect, z + 2);
@@ -423,12 +423,22 @@ public sealed class CommitsView : MultiChildView
         return GraphColumnPaddingLeft + lanes * LaneWidth + GraphColumnPaddingRight;
     }
 
+    private RectF ComputeCommitsColumnRect(RectF body)
+    {
+        var dateX = body.Right - _dateColumnWidth - ColumnGap;
+        var hashX = dateX - _hashColumnWidth - ColumnGap;
+        var authorX = hashX - _authorColumnWidth - ColumnGap;
+        var rightEdge = authorX - ColumnGap;
+        var width = Math.Max(0f, rightEdge - body.Left);
+        return new RectF(body.Left, body.Bottom, width, body.Height);
+    }
+
     private void DrawCommits(ICanvas c, RectF body, int z)
     {
         var snap = _snapshot;
         if (snap == null || snap.Commits.Count == 0)
         {
-            DrawPlaceholder(c, body, "No commits.", z);
+            DrawPlaceholder(c, ComputeCommitsColumnRect(body), "No commits.", z);
             return;
         }
 
