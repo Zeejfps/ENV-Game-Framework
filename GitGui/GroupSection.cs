@@ -15,7 +15,7 @@ public sealed class GroupSection : MultiChildView
         };
         rows.BindChildren(
             compute: () => VisibleRepos(group, registry),
-            create: repo => new RepoRow(repo, repo.Id == registry.Active.Value?.Id, registry));
+            create: repo => new RepoRow(repo, registry));
 
         AddChildToSelf(new FlexColumnView
         {
@@ -31,13 +31,28 @@ public sealed class GroupSection : MultiChildView
 
     private static IEnumerable<Repo> VisibleRepos(Group group, IRepoRegistry registry)
     {
-        var activeId = registry.Active.Value?.Id;
         var reposById = registry.Repos.ToDictionary(r => r.Id);
+
+        if (group.IsCollapsed)
+        {
+            // Only show the active repo when collapsed. Reading Active here registers it
+            // as a dep so the list re-seeds when the active selection changes.
+            var activeId = registry.Active.Value?.Id;
+            foreach (var repoId in group.RepoIds)
+            {
+                if (reposById.TryGetValue(repoId, out var repo) && repo.Id == activeId)
+                    yield return repo;
+            }
+            yield break;
+        }
+
+        // Not collapsed: list contents are independent of Active. Don't read Active —
+        // that way Active changes don't trigger a list re-seed; each RepoRow's own
+        // BindBackgroundColor / BindTextColor handles the highlight update reactively.
         foreach (var repoId in group.RepoIds)
         {
-            if (!reposById.TryGetValue(repoId, out var repo)) continue;
-            if (group.IsCollapsed && repo.Id != activeId) continue;
-            yield return repo;
+            if (reposById.TryGetValue(repoId, out var repo))
+                yield return repo;
         }
     }
 }

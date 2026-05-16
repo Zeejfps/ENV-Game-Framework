@@ -1,4 +1,6 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -7,39 +9,48 @@ public sealed class RepoRow : MultiChildView
     private readonly Repo _repo;
     private readonly TextView _label;
 
-    public RepoRow(Repo repo, bool isActive, IRepoRegistry registry)
+    public RepoRow(Repo repo, IRepoRegistry registry)
     {
         _repo = repo;
         PreferredHeight = 28;
 
-        var baseBg = isActive ? DialogPalette.RowActive : DialogPalette.RowTransparent;
-        var hoverBg = isActive ? DialogPalette.RowActive : DialogPalette.RowHover;
-        var textColor = repo.IsMissing
-            ? DialogPalette.RowTextMissing
-            : (isActive ? DialogPalette.RowTextActive : DialogPalette.RowText);
+        var isHovered = new State<bool>(false);
 
         _label = new TextView
         {
             Text = repo.DisplayName,
-            TextColor = textColor,
             HorizontalTextAlignment = TextAlignment.Start,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        _label.BindTextColor(() =>
+        {
+            if (repo.IsMissing) return DialogPalette.RowTextMissing;
+            return registry.Active.Value?.Id == repo.Id
+                ? DialogPalette.RowTextActive
+                : DialogPalette.RowText;
+        });
+
         var background = new RectView
         {
-            BackgroundColor = baseBg,
             BorderRadius = BorderRadiusStyle.All(4),
             Padding = new PaddingStyle { Left = 24, Right = 12 },
             Children = { _label }
         };
+        background.BindBackgroundColor(() =>
+        {
+            var active = registry.Active.Value?.Id == repo.Id;
+            return (isHovered.Value, active) switch
+            {
+                (_, true) => DialogPalette.RowActive,
+                (true, false) => DialogPalette.RowHover,
+                _ => DialogPalette.RowTransparent,
+            };
+        });
         AddChildToSelf(background);
 
         Behaviors.Add(new HoverableButtonController(
             () => registry.SetActive(repo.Id),
-            isHovered =>
-            {
-                background.BackgroundColor = isHovered ? hoverBg : baseBg;
-            }));
+            h => isHovered.Value = h));
     }
 
     protected override void OnAttachedToContext(Context context)

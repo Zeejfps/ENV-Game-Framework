@@ -1,5 +1,7 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -8,6 +10,8 @@ public sealed class GroupHeaderRow : MultiChildView
     public GroupHeaderRow(Group group, IRepoRegistry registry)
     {
         PreferredHeight = 26;
+
+        var isHovered = new State<bool>(false);
 
         var chevron = new TextView
         {
@@ -26,7 +30,6 @@ public sealed class GroupHeaderRow : MultiChildView
         };
         var background = new RectView
         {
-            BackgroundColor = DialogPalette.RowTransparent,
             BorderRadius = BorderRadiusStyle.All(4),
             Padding = new PaddingStyle { Left = 2, Right = 8 },
             Children =
@@ -39,14 +42,13 @@ public sealed class GroupHeaderRow : MultiChildView
                 }
             }
         };
+        background.BindBackgroundColor(isHovered,
+            h => h ? DialogPalette.RowHover : DialogPalette.RowTransparent);
         AddChildToSelf(background);
 
         Behaviors.Add(new HoverableButtonController(
             () => registry.ToggleGroupCollapsed(group.Id),
-            isHovered =>
-            {
-                background.BackgroundColor = isHovered ? DialogPalette.RowHover : DialogPalette.RowTransparent;
-            }));
+            h => isHovered.Value = h));
     }
 
     private static string ChevronFor(bool isCollapsed) => isCollapsed ? "▶" : "▼";

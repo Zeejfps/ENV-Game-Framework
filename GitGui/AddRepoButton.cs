@@ -1,4 +1,6 @@
-﻿using ZGF.Gui;
+using ZGF.Gui;
+using ZGF.Gui.Bindings;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -8,10 +10,10 @@ public sealed class AddRepoButton : MultiChildView
     {
         PreferredHeight = 30;
 
+        var isHovered = new State<bool>(false);
+
         var background = new RectView
         {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(6),
             Children =
@@ -25,14 +27,14 @@ public sealed class AddRepoButton : MultiChildView
                 }
             }
         };
+        background.BindBackgroundColor(isHovered,
+            h => h ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal);
+        background.BindBorderColor(isHovered,
+            h => BorderColorStyle.All(h ? DialogPalette.ButtonBorderHover : DialogPalette.ButtonBorder));
         AddChildToSelf(background);
+
         Behaviors.Add(new HoverableButtonController(
             () => Context?.Get<IMessageBus>()?.Broadcast<AddRepoMessage>(),
-            isHovered =>
-            {
-                background.BackgroundColor = isHovered ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal;
-                background.BorderColor = BorderColorStyle.All(
-                    isHovered ? DialogPalette.ButtonBorderHover : DialogPalette.ButtonBorder);
-            }));
+            h => isHovered.Value = h));
     }
 }

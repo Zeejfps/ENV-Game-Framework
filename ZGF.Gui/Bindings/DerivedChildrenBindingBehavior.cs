@@ -7,18 +7,18 @@ namespace ZGF.Gui.Bindings;
 /// The compute function's observable reads are auto-tracked; when any dependency
 /// invalidates, the function re-runs and the parent's children are reseeded.
 /// </summary>
-internal sealed class ComputedChildrenBindingBehavior<TItem, TChild> : IViewBehavior
+internal sealed class DerivedChildrenBindingBehavior<TItem, TChild> : IViewBehavior
     where TChild : View
 {
     private readonly MultiChildView _parent;
     private readonly Func<IEnumerable<TItem>> _compute;
     private readonly Func<TItem, TChild> _create;
 
-    private Derived<TItem[]>? _computed;
+    private Derived<TItem[]>? _derived;
     private IDisposable? _subscription;
     private readonly List<TChild> _tracked = new();
 
-    public ComputedChildrenBindingBehavior(
+    public DerivedChildrenBindingBehavior(
         MultiChildView parent,
         Func<IEnumerable<TItem>> compute,
         Func<TItem, TChild> create)
@@ -30,15 +30,15 @@ internal sealed class ComputedChildrenBindingBehavior<TItem, TChild> : IViewBeha
 
     public void AttachToContext(View view, Context context)
     {
-        _computed = new Derived<TItem[]>(() => _compute().ToArray());
-        _subscription = _computed.Subscribe(Reseed);
+        _derived = new Derived<TItem[]>(() => _compute().ToArray());
+        _subscription = _derived.Subscribe(Reseed);
     }
 
     public void DetachFromContext(View view, Context context)
     {
         _subscription?.Dispose();
         _subscription = null;
-        _computed = null;
+        _derived = null;
         Clear();
     }
 

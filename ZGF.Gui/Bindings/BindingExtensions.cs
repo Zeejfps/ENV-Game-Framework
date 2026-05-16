@@ -13,12 +13,84 @@ public static class BindingExtensions
         /// </summary>
         public void BindText(IReadable<string?> source)
         {
-            view.Behaviors.Add(new TextBindingBehavior<string?>(source, s => s));
+            view.Behaviors.Add(new PropertyBindingBehavior<TextView, string?, string?>(
+                view, source, s => s, (v, s) => v.Text = s));
         }
 
         public void BindText<T>(IReadable<T> source, Func<T, string?> format)
         {
-            view.Behaviors.Add(new TextBindingBehavior<T>(source, format));
+            view.Behaviors.Add(new PropertyBindingBehavior<TextView, T, string?>(
+                view, source, format, (v, s) => v.Text = s));
+        }
+
+        /// <summary>
+        /// Binds <see cref="TextView.Text"/> to a derived value defined by a compute
+        /// function. The function's observable reads are auto-tracked.
+        /// </summary>
+        public void BindText(Func<string?> compute)
+        {
+            view.Behaviors.Add(new DerivedPropertyBindingBehavior<TextView, string?>(
+                view, compute, (v, s) => v.Text = s));
+        }
+
+        /// <summary>
+        /// Binds <see cref="TextView.TextColor"/> to the source observable.
+        /// </summary>
+        public void BindTextColor<T>(IReadable<T> source, Func<T, uint> project)
+        {
+            view.Behaviors.Add(new PropertyBindingBehavior<TextView, T, uint>(
+                view, source, project, (v, c) => v.TextColor = c));
+        }
+
+        /// <summary>
+        /// Binds <see cref="TextView.TextColor"/> to a derived value. The function's
+        /// observable reads are auto-tracked.
+        /// </summary>
+        public void BindTextColor(Func<uint> compute)
+        {
+            view.Behaviors.Add(new DerivedPropertyBindingBehavior<TextView, uint>(
+                view, compute, (v, c) => v.TextColor = c));
+        }
+    }
+
+    extension(RectView view)
+    {
+        /// <summary>
+        /// Binds <see cref="RectView.BackgroundColor"/> to the source observable.
+        /// </summary>
+        public void BindBackgroundColor<T>(IReadable<T> source, Func<T, uint> project)
+        {
+            view.Behaviors.Add(new PropertyBindingBehavior<RectView, T, uint>(
+                view, source, project, (v, c) => v.BackgroundColor = c));
+        }
+
+        /// <summary>
+        /// Binds <see cref="RectView.BackgroundColor"/> to a derived value. The function's
+        /// observable reads are auto-tracked.
+        /// </summary>
+        public void BindBackgroundColor(Func<uint> compute)
+        {
+            view.Behaviors.Add(new DerivedPropertyBindingBehavior<RectView, uint>(
+                view, compute, (v, c) => v.BackgroundColor = c));
+        }
+
+        /// <summary>
+        /// Binds <see cref="RectView.BorderColor"/> to the source observable.
+        /// </summary>
+        public void BindBorderColor<T>(IReadable<T> source, Func<T, BorderColorStyle> project)
+        {
+            view.Behaviors.Add(new PropertyBindingBehavior<RectView, T, BorderColorStyle>(
+                view, source, project, (v, c) => v.BorderColor = c));
+        }
+
+        /// <summary>
+        /// Binds <see cref="RectView.BorderColor"/> to a derived value. The function's
+        /// observable reads are auto-tracked.
+        /// </summary>
+        public void BindBorderColor(Func<BorderColorStyle> compute)
+        {
+            view.Behaviors.Add(new DerivedPropertyBindingBehavior<RectView, BorderColorStyle>(
+                view, compute, (v, c) => v.BorderColor = c));
         }
     }
 
@@ -30,11 +102,6 @@ public static class BindingExtensions
         /// on the parent's children — no full diff. Subscription is tied to the parent's
         /// context lifecycle.
         /// </summary>
-        /// <param name="onCreated">Optional callback invoked after each child is created and
-        /// inserted. Use for per-child setup that depends on the parent (e.g. setting flex
-        /// styles on a flex parent).</param>
-        /// <param name="onRemoved">Optional callback invoked when a child is removed. Use for
-        /// per-child teardown (disposing per-item resources tied to the child View).</param>
         public void BindChildren<TItem, TChild>(ObservableList<TItem> source,
             Func<TItem, TChild> create,
             Action<TChild, TItem>? onCreated = null,
@@ -48,15 +115,13 @@ public static class BindingExtensions
         /// <summary>
         /// Binds the parent's <see cref="MultiChildView.Children"/> to a derived list. The
         /// compute function's observable reads are auto-tracked; when any dependency
-        /// invalidates, the function re-runs and the children are reseeded. Use this for
-        /// filtered/projected views where the source isn't directly an
-        /// <see cref="ObservableList{T}"/>.
+        /// invalidates, the function re-runs and the children are reseeded.
         /// </summary>
         public void BindChildren<TItem, TChild>(Func<IEnumerable<TItem>> compute,
             Func<TItem, TChild> create)
             where TChild : View
         {
-            parent.Behaviors.Add(new ComputedChildrenBindingBehavior<TItem, TChild>(
+            parent.Behaviors.Add(new DerivedChildrenBindingBehavior<TItem, TChild>(
                 parent, compute, create));
         }
     }

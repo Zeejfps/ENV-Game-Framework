@@ -6,7 +6,7 @@ namespace ZGF.Observable;
 /// <see cref="State{T}"/> / <see cref="ObservableList{T}"/> inside the compute function
 /// register as dependencies, no manual subscription required.
 /// </summary>
-public sealed class Derived<T> : IReadable<T>, IInvalidatable, IDependencyCollector
+public sealed class Derived<T> : IReadable<T>, IInvalidatable, IDependencyCollector, IDisposable
 {
     private readonly Func<T> _compute;
     private readonly HashSet<IInvalidatable> _dependencies = new();
@@ -60,6 +60,17 @@ public sealed class Derived<T> : IReadable<T>, IInvalidatable, IDependencyCollec
             source.Invalidated += handler;
             _depUnsubscribes.Add(() => source.Invalidated -= handler);
         }
+    }
+
+    /// <summary>
+    /// Unsubscribes from all tracked dependencies. After Dispose, the derived value is
+    /// frozen at its last computed value and will not recompute. Idempotent.
+    /// </summary>
+    public void Dispose()
+    {
+        foreach (var unsub in _depUnsubscribes) unsub();
+        _depUnsubscribes.Clear();
+        _dependencies.Clear();
     }
 
     private void Recompute()
