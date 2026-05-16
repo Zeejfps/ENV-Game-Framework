@@ -10,7 +10,7 @@ public sealed class AppView : MultiChildView
         Children.Add(new BorderLayoutView
         {
             West = new RepoBar(registry),
-            Center = new CommitsPanelView(),
+            Center = new MainContentView(),
         });
         Children.Add(new DragOverlay());
         Children.Add(new OverlayView());

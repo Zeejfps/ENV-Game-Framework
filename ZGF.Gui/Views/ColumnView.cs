@@ -22,11 +22,14 @@ public sealed class ColumnView : MultiChildView
         var bottom = position.Top;
         foreach (var component in components)
         {
-            var componentHeight = component.MeasureHeight();
-            bottom -= componentHeight;
+            // Set cross-axis width before measuring height so height-for-width children
+            // (e.g. wrapping text) can return the correct height.
             component.LeftConstraint = position.Left;
             component.MinWidthConstraint = position.Width;
             component.MaxWidthConstraint = position.Width;
+
+            var componentHeight = component.MeasureHeight();
+            bottom -= componentHeight;
             component.BottomConstraint = bottom;
             component.MaxHeightConstraint = componentHeight;
             component.LayoutSelf();
@@ -39,9 +42,19 @@ public sealed class ColumnView : MultiChildView
         if (PreferredHeight.IsSet)
             return PreferredHeight;
 
+        // Propagate the width we'll lay out at to height-for-width children.
+        var width = MaxWidthConstraint.IsSet ? MaxWidthConstraint.Value
+                  : PreferredWidth.IsSet ? PreferredWidth.Value
+                  : 0f;
+
         var totalHeight = 0f;
         foreach (var child in Children)
         {
+            if (width > 0f)
+            {
+                child.MinWidthConstraint = width;
+                child.MaxWidthConstraint = width;
+            }
             totalHeight += child.MeasureHeight();
         }
         var spacing = (Children.Count - 1) * Gap;

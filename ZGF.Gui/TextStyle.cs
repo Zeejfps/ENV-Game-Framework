@@ -7,4 +7,5 @@ public sealed class TextStyle
     public StyleValue<float> FontSize;
     public StyleValue<TextAlignment> HorizontalAlignment;
     public StyleValue<TextAlignment> VerticalAlignment;
+    public StyleValue<TextWrap> TextWrap;
 }

@@ -111,4 +111,77 @@ public sealed class GitService : IGitService
         }
         list.Add(badge);
     }
+
+    public CommitDetails LoadDetails(Repo repo, string sha)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return DetailsError(repo, sha, "Not a git repository.");
+
+            using var lg = new Repository(repo.Path);
+            var commit = lg.Lookup<Commit>(sha);
+            if (commit == null)
+                return DetailsError(repo, sha, "Commit not found.");
+
+            var parentTree = commit.Parents.FirstOrDefault()?.Tree;
+            var changes = lg.Diff.Compare<TreeChanges>(parentTree, commit.Tree);
+
+            var files = new List<FileChange>(changes.Count());
+            foreach (var entry in changes)
+            {
+                files.Add(new FileChange(
+                    entry.Path,
+                    entry.OldPath != entry.Path ? entry.OldPath : null,
+                    MapStatus(entry.Status)));
+            }
+            files.Sort(static (a, b) => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase));
+
+            return new CommitDetails(
+                RepoId: repo.Id,
+                Sha: commit.Sha,
+                AuthorName: commit.Author?.Name ?? string.Empty,
+                AuthorEmail: commit.Author?.Email ?? string.Empty,
+                AuthorWhen: commit.Author?.When ?? DateTimeOffset.MinValue,
+                CommitterName: commit.Committer?.Name ?? string.Empty,
+                CommitterEmail: commit.Committer?.Email ?? string.Empty,
+                CommitterWhen: commit.Committer?.When ?? DateTimeOffset.MinValue,
+                Message: commit.Message ?? string.Empty,
+                MessageShort: commit.MessageShort ?? string.Empty,
+                ParentShas: commit.Parents.Select(p => p.Sha).ToArray(),
+                Files: files,
+                ErrorMessage: null);
+        }
+        catch (Exception ex)
+        {
+            return DetailsError(repo, sha, ex.Message);
+        }
+    }
+
+    private static FileChangeStatus MapStatus(ChangeKind kind) => kind switch
+    {
+        ChangeKind.Added => FileChangeStatus.Added,
+        ChangeKind.Deleted => FileChangeStatus.Deleted,
+        ChangeKind.Modified => FileChangeStatus.Modified,
+        ChangeKind.Renamed => FileChangeStatus.Renamed,
+        ChangeKind.Copied => FileChangeStatus.Copied,
+        ChangeKind.TypeChanged => FileChangeStatus.TypeChanged,
+        _ => FileChangeStatus.Unmodified,
+    };
+
+    private static CommitDetails DetailsError(Repo repo, string sha, string message)
+        => new(
+            RepoId: repo.Id,
+            Sha: sha,
+            AuthorName: string.Empty,
+            AuthorEmail: string.Empty,
+            AuthorWhen: DateTimeOffset.MinValue,
+            CommitterName: string.Empty,
+            CommitterEmail: string.Empty,
+            CommitterWhen: DateTimeOffset.MinValue,
+            Message: string.Empty,
+            MessageShort: string.Empty,
+            ParentShas: Array.Empty<string>(),
+            Files: Array.Empty<FileChange>(),
+            ErrorMessage: message);
 }
