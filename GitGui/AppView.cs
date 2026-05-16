@@ -12,6 +12,7 @@ public sealed class AppView : MultiChildView
             West = new RepoBar(registry),
             Center = new CommitsPanelView(),
         });
+        Children.Add(new DragOverlay());
         Children.Add(new OverlayView());
     }
 }

@@ -27,6 +27,8 @@ public sealed class GroupSection : MultiChildView
                 rows,
             }
         });
+
+        Behaviors.Add(new GroupSectionController(group.Id));
     }
 
     private static IEnumerable<Repo> VisibleRepos(Group group, IRepoRegistry registry)
@@ -35,8 +37,6 @@ public sealed class GroupSection : MultiChildView
 
         if (group.IsCollapsed)
         {
-            // Only show the active repo when collapsed. Reading Active here registers it
-            // as a dep so the list re-seeds when the active selection changes.
             var activeId = registry.Active.Value?.Id;
             foreach (var repoId in group.RepoIds)
             {
@@ -46,9 +46,6 @@ public sealed class GroupSection : MultiChildView
             yield break;
         }
 
-        // Not collapsed: list contents are independent of Active. Don't read Active —
-        // that way Active changes don't trigger a list re-seed; each RepoRow's own
-        // BindBackgroundColor / BindTextColor handles the highlight update reactively.
         foreach (var repoId in group.RepoIds)
         {
             if (reposById.TryGetValue(repoId, out var repo))

@@ -51,5 +51,19 @@ public sealed class RepoBar : MultiChildView
                 }
             }
         });
+
+        Behaviors.Add(new RepoBarContextMenuController(_ => BuildBackgroundMenuItems(registry)));
+    }
+
+    private static IReadOnlyList<RepoBarContextMenu.Item> BuildBackgroundMenuItems(IRepoRegistry registry)
+    {
+        return new[]
+        {
+            new RepoBarContextMenu.Item("New group", () =>
+            {
+                var id = registry.CreateGroup("New Group");
+                registry.BeginRenameGroup(id);
+            }),
+        };
     }
 }

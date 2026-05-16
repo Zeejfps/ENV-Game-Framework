@@ -48,9 +48,49 @@ public sealed class RepoRow : MultiChildView
         });
         AddChildToSelf(background);
 
-        Behaviors.Add(new HoverableButtonController(
-            () => registry.SetActive(repo.Id),
-            h => isHovered.Value = h));
+        Behaviors.Add(new RepoRowController(
+            repo,
+            registry,
+            h => isHovered.Value = h,
+            _ => BuildMenuItems(repo, registry)));
+    }
+
+    private static IReadOnlyList<RepoBarContextMenu.Item> BuildMenuItems(Repo repo, IRepoRegistry registry)
+    {
+        var sourceGroup = FindGroupContaining(registry, repo.Id);
+        var items = new List<RepoBarContextMenu.Item>();
+
+        foreach (var group in registry.Groups)
+        {
+            if (sourceGroup != null && group.Id == sourceGroup.Id) continue;
+            var captured = group;
+            items.Add(new RepoBarContextMenu.Item(
+                $"Move to: {captured.Name}",
+                () => registry.MoveRepo(repo.Id, captured.Id, captured.RepoIds.Count)));
+        }
+
+        items.Add(new RepoBarContextMenu.Item(
+            "Remove repo",
+            () => registry.RemoveRepo(repo.Id)));
+
+        items.Add(new RepoBarContextMenu.Item(
+            "New group",
+            () =>
+            {
+                var id = registry.CreateGroup("New Group");
+                registry.BeginRenameGroup(id);
+            }));
+
+        return items;
+    }
+
+    private static Group? FindGroupContaining(IRepoRegistry registry, Guid repoId)
+    {
+        foreach (var group in registry.Groups)
+        {
+            if (group.RepoIds.Contains(repoId)) return group;
+        }
+        return null;
     }
 
     protected override void OnAttachedToContext(Context context)

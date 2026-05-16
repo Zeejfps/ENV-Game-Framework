@@ -21,13 +21,20 @@ public sealed class GroupHeaderRow : MultiChildView
             VerticalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
         };
-        var name = new TextView
-        {
-            Text = group.Name,
-            TextColor = DialogPalette.SectionHeaderText,
-            HorizontalTextAlignment = TextAlignment.Start,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
+
+        var nameSlot = new MultiChildView();
+        nameSlot.BindChildren<bool, View>(
+            () => new[] { registry.RenamingGroupId.Value == group.Id },
+            isRenaming => isRenaming
+                ? new GroupRenameField(group, registry)
+                : new TextView
+                {
+                    Text = group.Name,
+                    TextColor = DialogPalette.SectionHeaderText,
+                    HorizontalTextAlignment = TextAlignment.Start,
+                    VerticalTextAlignment = TextAlignment.Center,
+                });
+
         var background = new RectView
         {
             BorderRadius = BorderRadiusStyle.All(4),
@@ -38,7 +45,11 @@ public sealed class GroupHeaderRow : MultiChildView
                 {
                     CrossAxisAlignment = CrossAxisAlignment.Center,
                     Gap = 4,
-                    Children = { chevron, name }
+                    Children =
+                    {
+                        chevron,
+                        new FlexItem { Grow = 1, Child = nameSlot },
+                    }
                 }
             }
         };
@@ -46,9 +57,32 @@ public sealed class GroupHeaderRow : MultiChildView
             h => h ? DialogPalette.RowHover : DialogPalette.RowTransparent);
         AddChildToSelf(background);
 
-        Behaviors.Add(new HoverableButtonController(
-            () => registry.ToggleGroupCollapsed(group.Id),
-            h => isHovered.Value = h));
+        Behaviors.Add(new GroupHeaderController(
+            group,
+            registry,
+            h => isHovered.Value = h,
+            _ => BuildMenuItems(group, registry)));
+    }
+
+    private static IReadOnlyList<RepoBarContextMenu.Item> BuildMenuItems(Group group, IRepoRegistry registry)
+    {
+        var items = new List<RepoBarContextMenu.Item>
+        {
+            new("Rename group", () => registry.BeginRenameGroup(group.Id)),
+        };
+
+        if (registry.Groups.Count > 1)
+        {
+            items.Add(new RepoBarContextMenu.Item("Delete group", () => registry.DeleteGroup(group.Id)));
+        }
+
+        items.Add(new RepoBarContextMenu.Item("New group", () =>
+        {
+            var id = registry.CreateGroup("New Group");
+            registry.BeginRenameGroup(id);
+        }));
+
+        return items;
     }
 
     private static string ChevronFor(bool isCollapsed) => isCollapsed ? "▶" : "▼";

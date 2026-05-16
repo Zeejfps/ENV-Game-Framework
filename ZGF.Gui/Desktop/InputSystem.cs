@@ -400,19 +400,6 @@ public sealed class InputSystem
         return result;
     }
 
-    public void StealFocus(IKeyboardMouseController component)
-    {
-        var prevFocusedComponent = _focusQueue.First?.Value;
-        _focusQueue.AddFirst(component);
-        
-        if (prevFocusedComponent != null)
-        {
-            prevFocusedComponent.OnFocusLost();
-        }
-        
-        component.OnFocusGained();
-    }
-
     private void BuildPath(IKeyboardMouseController current)
     {
         _focusQueue.AddFirst(current);
@@ -438,6 +425,20 @@ public sealed class InputSystem
             _focusedComponent.OnFocusGained();
             //Console.WriteLine($"Focused: {component}");
         }
+    }
+
+    /// <summary>
+    /// Take focus unconditionally, blurring whoever currently holds it. Use when
+    /// a UI flow needs to seize focus from a still-active component (e.g. a context
+    /// menu item that pops up a text field on the same click).
+    /// </summary>
+    public void StealFocus(IKeyboardMouseController component)
+    {
+        if (_focusedComponent == component) return;
+        var prev = _focusedComponent;
+        _focusedComponent = component;
+        prev?.OnFocusLost();
+        component.OnFocusGained();
     }
     
     public void Blur(IKeyboardMouseController component)

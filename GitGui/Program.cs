@@ -20,6 +20,7 @@ var initialState = RepoStateStore.Load(statePath);
 var registry = new RepoRegistry(initialState, statePath);
 context.AddService<IRepoRegistry>(registry);
 context.AddService<IGitService>(new GitService());
+context.AddService<IDragController>(new DragController(registry));
 
 var appView = new AppView(registry);
 var appHost = new GuiApp(new StartupConfig

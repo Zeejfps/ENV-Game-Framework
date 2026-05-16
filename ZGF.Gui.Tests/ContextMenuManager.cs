@@ -123,4 +123,28 @@ public sealed class ContextMenuManager
             openedMenu.CloseRequest();
         }
     }
+
+    /// <summary>
+    /// Closes every open or closing menu right now, skipping the standard 100 ms
+    /// linger window. Use when a fresh menu interaction needs to wipe whatever was
+    /// previously on screen (e.g. right-clicking again before the old menu fades).
+    /// </summary>
+    public void CloseAllImmediately()
+    {
+        foreach (var menu in _closingMenus.ToList())
+        {
+            _contextMenuPane.Children.Remove(menu.ContextMenu);
+            menu.Close();
+        }
+        _closingMenus.Clear();
+
+        foreach (var opened in _openedMenus.Values.ToList())
+        {
+            _contextMenuPane.Children.Remove(opened.ContextMenu);
+            var parent = opened.Parent;
+            if (parent != null) parent.Child = null;
+            opened.Close();
+        }
+        _openedMenus.Clear();
+    }
 }

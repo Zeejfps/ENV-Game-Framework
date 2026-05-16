@@ -25,6 +25,10 @@ internal static class CommitsPalette
     public const uint DividerHoverBg = 0xFF4A5680;
     public const uint DividerHoverLine = 0xFF7A8DC8;
 
+    public const uint WarningBg = 0xFF3D2E14;
+    public const uint WarningBorder = 0xFFB89050;
+    public const uint WarningText = 0xFFE9C77A;
+
     public const uint BadgeLocalBg = 0xFF2F4A6B;
     public const uint BadgeRemoteBg = 0xFF4A2F6B;
     public const uint BadgeHeadBg = 0xFF6B4A2F;
@@ -74,6 +78,7 @@ public sealed class CommitsView : MultiChildView
     private const float MaxColumnWidth = 600f;
     private const float DividerThickness = 1f;
     private const float DividerHitWidth = 6f;
+    private const float TruncatedWarningHeight = 24f;
     private const float BadgePaddingX = 6f;
     private const float BadgeHeight = 16f;
     private const float BadgeGap = 4f;
@@ -150,6 +155,12 @@ public sealed class CommitsView : MultiChildView
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
+    private readonly TextStyle _warningTextStyle = new()
+    {
+        TextColor = CommitsPalette.WarningText,
+        VerticalAlignment = TextAlignment.Center,
+        HorizontalAlignment = TextAlignment.Center,
+    };
 
     public CommitsView()
     {
@@ -207,7 +218,7 @@ public sealed class CommitsView : MultiChildView
         {
             try
             {
-                var snap = service.Load(repo, 5000);
+                var snap = service.Load(repo, 3000);
                 if (gen != Volatile.Read(ref _loadGeneration)) return;
                 Volatile.Write(ref _pendingSnapshot, snap);
             }
@@ -492,17 +503,34 @@ public sealed class CommitsView : MultiChildView
 
         if (snap.Truncated)
         {
-            var msg = new RectF(body.Left, body.Bottom, body.Width, 18);
-            c.DrawText(new DrawTextInputs
-            {
-                Position = msg,
-                Text = $"History truncated at {snap.Commits.Count} commits.",
-                Style = _rowTextDimStyle,
-                ZIndex = z + 5,
-            });
+            DrawTruncatedWarning(c, body, snap.Commits.Count, z + 200);
         }
 
         c.PopClip();
+    }
+
+    private void DrawTruncatedWarning(ICanvas c, RectF body, int commitCount, int z)
+    {
+        const float barHeight = 24f;
+        var rect = new RectF(body.Left, body.Bottom, body.Width, barHeight);
+        c.DrawRect(new DrawRectInputs
+        {
+            Position = rect,
+            Style = new RectStyle
+            {
+                BackgroundColor = CommitsPalette.WarningBg,
+                BorderColor = new BorderColorStyle { Top = CommitsPalette.WarningBorder },
+                BorderSize = new BorderSizeStyle { Top = 1 },
+            },
+            ZIndex = z,
+        });
+        c.DrawText(new DrawTextInputs
+        {
+            Position = rect,
+            Text = $"History truncated at {commitCount} commits.",
+            Style = _warningTextStyle,
+            ZIndex = z + 1,
+        });
     }
 
     private void DrawRowBackground(ICanvas c, RectF body, CommitNode node, float rowBottom, int z)
