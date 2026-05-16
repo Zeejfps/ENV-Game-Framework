@@ -44,7 +44,7 @@ public sealed class LocalChangesView : MultiChildView
         _unstagedSection = new FileChangesSection("Unstaged", emptyText: "No unstaged changes.");
 
         _content = new ColumnView { Gap = 12 };
-        var paddedContent = new RectView
+        var paddedContent = new PaddingView
         {
             Padding = new PaddingStyle { Left = Padding, Right = Padding, Top = Padding, Bottom = Padding },
             Children = { _content },

@@ -67,7 +67,7 @@ public sealed class CommitDetailsView : MultiChildView
     public CommitDetailsView()
     {
         _content = new ColumnView { Gap = 8 };
-        var paddedContent = new RectView
+        var paddedContent = new PaddingView
         {
             Padding = new PaddingStyle { Left = Padding, Right = Padding, Top = Padding, Bottom = Padding },
             Children = { _content },
