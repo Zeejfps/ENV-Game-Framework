@@ -16,6 +16,12 @@ public sealed class TextView : MultiChildView
         set => SetField(ref _style.FontSize, value);
     }
 
+    public StyleValue<string> FontFamily
+    {
+        get => _style.FontFamily;
+        set => SetField(ref _style.FontFamily, value);
+    }
+
     public StyleValue<TextAlignment> VerticalTextAlignment
     {
         get => _style.VerticalAlignment;

@@ -71,6 +71,12 @@ public sealed class GuiApp : OpenGlApp
         glClearColor(0, 0, 0, 0);
     }
 
+    public void RegisterFont(string family, string path, int pixelSize)
+    {
+        var handle = _fontBackend.LoadFontFromFile(PathUtils.ResolveLocalPath(path), pixelSize);
+        _canvas.RegisterFont(family, handle);
+    }
+
     protected override void OnUpdate()
     {
         Render();

@@ -27,8 +27,10 @@ var appHost = new GuiApp(new StartupConfig
 {
     WindowTitle = "GitGui",
     WindowWidth = 1280,
-    WindowHeight = 720,   
+    WindowHeight = 720,
     IsUndecorated = false
 }, context, appView);
+
+appHost.RegisterFont(LucideIcons.FontFamily, "Assets/Fonts/Lucide/Lucide.ttf", 16);
 
 appHost.Run();

@@ -42,7 +42,21 @@ public sealed class FlexRowView : MultiChildView
         get => _mainAxisAlignment;
         set => SetField(ref _mainAxisAlignment, value);
     }
-    
+
+    public override float MeasureWidth()
+    {
+        if (PreferredWidth.IsSet)
+            return PreferredWidth;
+
+        var totalWidth = 0f;
+        foreach (var child in Children)
+        {
+            totalWidth += child.MeasureWidth();
+        }
+        var spacing = (Children.Count - 1) * Gap;
+        return totalWidth + spacing;
+    }
+
     protected override void OnLayoutChildren()
     {
         var position = Position;

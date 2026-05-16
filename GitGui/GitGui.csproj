@@ -12,6 +12,12 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Update="Assets\Fonts\Lucide\Lucide.ttf">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\LLMit\LLMit.csproj" />
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
       <ProjectReference Include="..\ZGF.Observable\ZGF.Observable.csproj" />

@@ -132,6 +132,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
 
     private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
+    private readonly Dictionary<string, FontHandle> _fontsByFamily = new();
     private readonly GlImageManager _imageManager;
     private int _width, _height;
     private Matrix4x4 _projection;
@@ -598,14 +599,26 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         return total;
     }
 
+    public void RegisterFont(string family, FontHandle handle)
+    {
+        _fontsByFamily[family] = handle;
+    }
+
     private FontHandle ResolveFont(TextStyle style)
     {
+        var baseFont = _defaultFont;
+        if (style.FontFamily.IsSet && style.FontFamily.Value is { } family &&
+            _fontsByFamily.TryGetValue(family, out var resolved))
+        {
+            baseFont = resolved;
+        }
+
         if (!style.FontSize.IsSet)
-            return _defaultFont;
+            return baseFont;
         var pixelSize = (int)MathF.Round(style.FontSize.Value);
         if (pixelSize <= 0)
-            return _defaultFont;
-        return _fonts.GetSizedVariant(_defaultFont, pixelSize);
+            return baseFont;
+        return _fonts.GetSizedVariant(baseFont, pixelSize);
     }
 
     public void DrawImage(in DrawImageInputs inputs)
