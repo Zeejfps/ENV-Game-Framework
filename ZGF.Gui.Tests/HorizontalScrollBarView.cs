@@ -2,9 +2,9 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class VerticalScrollBarView : MultiChildView
+public sealed class HorizontalScrollBarView : MultiChildView
 {
-    private readonly VerticalScrollBarThumbView _thumbView;
+    private readonly HorizontalScrollBarThumbView _thumbView;
     private readonly RectView _slideArea;
 
     public event Action<float> ScrollPositionChanged
@@ -13,7 +13,7 @@ public sealed class VerticalScrollBarView : MultiChildView
         remove => _thumbView.ScrollPositionChanged -= value;
     }
 
-    public VerticalScrollBarThumbView Thumb => _thumbView;
+    public HorizontalScrollBarThumbView Thumb => _thumbView;
 
     public StyleValue<uint> TrackBackgroundColor
     {
@@ -33,11 +33,11 @@ public sealed class VerticalScrollBarView : MultiChildView
         set => _slideArea.BorderSize = value;
     }
 
-    public VerticalScrollBarView()
+    public HorizontalScrollBarView()
     {
-        PreferredWidth = 12;
+        PreferredHeight = 12;
 
-        _thumbView = new VerticalScrollBarThumbView();
+        _thumbView = new HorizontalScrollBarThumbView();
 
         _slideArea = new RectView
         {
@@ -58,7 +58,7 @@ public sealed class VerticalScrollBarView : MultiChildView
 
         AddChildToSelf(_slideArea);
 
-        _thumbView.Behaviors.Add(new VerticalScrollBarThumbViewController(_thumbView));
+        _thumbView.Behaviors.Add(new HorizontalScrollBarThumbViewController(_thumbView));
     }
 
     public float Scale
@@ -72,14 +72,14 @@ public sealed class VerticalScrollBarView : MultiChildView
         _thumbView.SetScrollPositionNormalized(normalizedPosition);
     }
 
-    public void Scroll(float deltaY)
+    public void Scroll(float deltaX)
     {
-        _thumbView.Move(deltaY);
+        _thumbView.Move(deltaX);
     }
 
-    public void ScrollToTop()
+    public void ScrollToStart()
     {
-        _thumbView.ScrollToTop();
+        _thumbView.ScrollToStart();
     }
 
     public void ScrollToPoint(PointF point)

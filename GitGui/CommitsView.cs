@@ -187,7 +187,7 @@ public sealed class CommitsView : MultiChildView
             _state = CommitsLoadState.NoRepo;
             _snapshot = null;
             _scrollY = 0f;
-            _selectedSha = null;
+            ClearSelection();
             NotifyScrollChanged();
             return;
         }
@@ -195,7 +195,7 @@ public sealed class CommitsView : MultiChildView
         _state = CommitsLoadState.Loading;
         _snapshot = null;
         _scrollY = 0f;
-        _selectedSha = null;
+        ClearSelection();
         _loadingRepoId = active.Id;
         NotifyScrollChanged();
 
@@ -755,7 +755,21 @@ public sealed class CommitsView : MultiChildView
         var distFromTop = bodyTop - point.Y;
         var row = (int)((distFromTop + _scrollY) / RowHeight);
         if (row < 0 || row >= snap.Commits.Count) return;
-        _selectedSha = snap.Commits[row].Sha;
+        SetSelectedSha(snap.RepoId, snap.Commits[row].Sha);
+    }
+
+    private void SetSelectedSha(Guid repoId, string? sha)
+    {
+        if (_selectedSha == sha) return;
+        _selectedSha = sha;
+        _bus?.Broadcast(new CommitSelectedMessage(repoId, sha));
+    }
+
+    private void ClearSelection()
+    {
+        if (_selectedSha == null) return;
+        _selectedSha = null;
+        _bus?.Broadcast(new CommitSelectedMessage(_loadingRepoId, null));
     }
 
     private static string FormatRelative(DateTimeOffset when)

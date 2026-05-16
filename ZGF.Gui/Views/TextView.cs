@@ -1,9 +1,11 @@
+using ZGF.Geometry;
+
 namespace ZGF.Gui;
 
 public sealed class TextView : MultiChildView
 {
     private readonly TextStyle _style = new();
-    
+
     public StyleValue<uint> TextColor
     {
         get => _style.TextColor;
@@ -27,40 +29,108 @@ public sealed class TextView : MultiChildView
         get => _style.VerticalAlignment;
         set => SetField(ref _style.VerticalAlignment, value);
     }
-    
+
     public StyleValue<TextAlignment> HorizontalTextAlignment
     {
         get => _style.HorizontalAlignment;
         set => SetField(ref _style.HorizontalAlignment, value);
     }
 
+    public StyleValue<TextWrap> TextWrap
+    {
+        get => _style.TextWrap;
+        set
+        {
+            if (SetField(ref _style.TextWrap, value))
+                InvalidateWrap();
+        }
+    }
+
     private string? _text;
     public string? Text
     {
         get => _text;
-        set => SetField(ref _text, value);
+        set
+        {
+            if (SetField(ref _text, value))
+                InvalidateWrap();
+        }
     }
+
+    private readonly List<string> _wrappedLines = new();
+    private float _wrappedForWidth = -1f;
+    private string? _wrappedFromText;
+
+    private bool IsWrapping => _style.TextWrap.IsSet && _style.TextWrap.Value == ZGF.Gui.TextWrap.Wrap;
 
     public override float MeasureWidth()
     {
-        if (Context == null)
+        if (Context == null || _text == null)
             return 0f;
 
-        if (_text == null)
-            return 0f;
+        if (!HasNewlines(_text))
+            return Context.Canvas.MeasureTextWidth(_text, _style);
 
-        return Context.Canvas.MeasureTextWidth(_text, _style);
+        var max = 0f;
+        foreach (var line in SplitLines(_text))
+        {
+            var w = Context.Canvas.MeasureTextWidth(line, _style);
+            if (w > max) max = w;
+        }
+        return max;
     }
 
     public override float MeasureHeight()
     {
-        if (Context == null)
+        if (Context == null || _text == null)
             return 0f;
 
-        if (_text == null)
-            return 0f;
+        var lineHeight = Context.Canvas.MeasureTextLineHeight(_style);
 
-        return Context.Canvas.MeasureTextLineHeight(_style);
+        if (IsWrapping)
+        {
+            var width = ResolveWrapWidth();
+            EnsureWrapped(width);
+            var lines = Math.Max(1, _wrappedLines.Count);
+            return lines * lineHeight;
+        }
+
+        var lineCount = HasNewlines(_text) ? SplitLines(_text).Length : 1;
+        return lineCount * lineHeight;
+    }
+
+    private static bool HasNewlines(string s) => s.IndexOf('\n') >= 0 || s.IndexOf('\r') >= 0;
+
+    private static string[] SplitLines(string s) => s.Replace("\r\n", "\n").Split('\n');
+
+    private float ResolveWrapWidth()
+    {
+        if (MaxWidthConstraint.IsSet) return MaxWidthConstraint.Value;
+        if (PreferredWidth.IsSet) return PreferredWidth.Value;
+        return 0f;
+    }
+
+    private void EnsureWrapped(float width)
+    {
+        if (Context == null || _text == null)
+        {
+            _wrappedLines.Clear();
+            _wrappedFromText = null;
+            _wrappedForWidth = -1f;
+            return;
+        }
+        if (Math.Abs(width - _wrappedForWidth) < 0.5f && ReferenceEquals(_wrappedFromText, _text))
+            return;
+        _wrappedLines.Clear();
+        TextWrapper.Wrap(Context.Canvas, _text, _style, width, _wrappedLines);
+        _wrappedForWidth = width;
+        _wrappedFromText = _text;
+    }
+
+    private void InvalidateWrap()
+    {
+        _wrappedForWidth = -1f;
+        _wrappedFromText = null;
     }
 
     protected override void OnApplyStyle(Style style)
@@ -77,12 +147,45 @@ public sealed class TextView : MultiChildView
         if (_text == null)
             return;
 
-        c.DrawText(new DrawTextInputs
+        var z = GetDrawZIndex();
+
+        if (IsWrapping)
         {
-            Position = Position,
-            Text = _text,
-            Style = _style,
-            ZIndex = GetDrawZIndex()
-        });
+            EnsureWrapped(Position.Width);
+            DrawLines(c, _wrappedLines, z);
+            return;
+        }
+
+        if (!HasNewlines(_text))
+        {
+            c.DrawText(new DrawTextInputs
+            {
+                Position = Position,
+                Text = _text,
+                Style = _style,
+                ZIndex = z,
+            });
+            return;
+        }
+
+        DrawLines(c, SplitLines(_text), z);
+    }
+
+    private void DrawLines(ICanvas c, IReadOnlyList<string> lines, int z)
+    {
+        var lineHeight = c.MeasureTextLineHeight(_style);
+        var top = Position.Top;
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var lineRect = new RectF(Position.Left, top - lineHeight, Position.Width, lineHeight);
+            c.DrawText(new DrawTextInputs
+            {
+                Position = lineRect,
+                Text = lines[i],
+                Style = _style,
+                ZIndex = z,
+            });
+            top -= lineHeight;
+        }
     }
 }
