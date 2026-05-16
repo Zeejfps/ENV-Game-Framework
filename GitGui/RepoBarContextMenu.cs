@@ -52,7 +52,6 @@ public static class RepoBarContextMenu
 
         var controller = new RepoBarContextMenuKbmController(menu, opened);
         inputSystem.RegisterController(menu, controller);
-        inputSystem.StealFocus(controller);
         opened.Closed += () => inputSystem.UnregisterController(menu);
     }
 }

@@ -78,7 +78,6 @@ public sealed class CommitsView : MultiChildView
     private const float MaxColumnWidth = 600f;
     private const float DividerThickness = 1f;
     private const float DividerHitWidth = 6f;
-    private const float TruncatedWarningHeight = 24f;
     private const float BadgePaddingX = 6f;
     private const float BadgeHeight = 16f;
     private const float BadgeGap = 4f;
@@ -119,12 +118,6 @@ public sealed class CommitsView : MultiChildView
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
-    private readonly TextStyle _rowTextDimStyle = new()
-    {
-        TextColor = CommitsPalette.RowTextDim,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
     private readonly TextStyle _headerTextStyle = new()
     {
         TextColor = CommitsPalette.HeaderText,
@@ -154,12 +147,6 @@ public sealed class CommitsView : MultiChildView
         TextColor = CommitsPalette.RowTextActive,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
-    };
-    private readonly TextStyle _warningTextStyle = new()
-    {
-        TextColor = CommitsPalette.WarningText,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Center,
     };
 
     public CommitsView()
@@ -231,15 +218,21 @@ public sealed class CommitsView : MultiChildView
         });
     }
 
+    public bool Truncated => _snapshot?.Truncated == true;
+    public event Action<bool>? TruncatedChanged;
+
     private void PollPending()
     {
         var pending = Interlocked.Exchange(ref _pendingSnapshot, null);
         if (pending == null) return;
         if (pending.RepoId != _loadingRepoId) return;
+        var wasTruncated = Truncated;
         _snapshot = pending;
         _state = pending.ErrorMessage != null ? CommitsLoadState.Error : CommitsLoadState.Loaded;
         _scrollY = 0f;
         NotifyScrollChanged();
+        if (wasTruncated != Truncated)
+            TruncatedChanged?.Invoke(Truncated);
         _bus?.Broadcast(new CommitsLoadedMessage(pending.RepoId));
     }
 
@@ -501,36 +494,7 @@ public sealed class CommitsView : MultiChildView
             DrawText(c, FormatRelative(node.When), dateX, textTop, _dateColumnWidth, isSelected, z + 8);
         }
 
-        if (snap.Truncated)
-        {
-            DrawTruncatedWarning(c, body, snap.Commits.Count, z + 200);
-        }
-
         c.PopClip();
-    }
-
-    private void DrawTruncatedWarning(ICanvas c, RectF body, int commitCount, int z)
-    {
-        const float barHeight = 24f;
-        var rect = new RectF(body.Left, body.Bottom, body.Width, barHeight);
-        c.DrawRect(new DrawRectInputs
-        {
-            Position = rect,
-            Style = new RectStyle
-            {
-                BackgroundColor = CommitsPalette.WarningBg,
-                BorderColor = new BorderColorStyle { Top = CommitsPalette.WarningBorder },
-                BorderSize = new BorderSizeStyle { Top = 1 },
-            },
-            ZIndex = z,
-        });
-        c.DrawText(new DrawTextInputs
-        {
-            Position = rect,
-            Text = $"History truncated at {commitCount} commits.",
-            Style = _warningTextStyle,
-            ZIndex = z + 1,
-        });
     }
 
     private void DrawRowBackground(ICanvas c, RectF body, CommitNode node, float rowBottom, int z)

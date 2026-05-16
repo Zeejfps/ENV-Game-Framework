@@ -24,6 +24,4 @@ public sealed class RepoBarContextMenuKbmController : KeyboardMouseController
         if (_menu.Position.ContainsPoint(e.Mouse.Point)) return;
         _opened.CloseRequest();
     }
-
-    public override void OnFocusLost() => _opened.CloseRequest();
 }
