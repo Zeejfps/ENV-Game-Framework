@@ -85,5 +85,5 @@ public sealed class GroupHeaderRow : MultiChildView
         return items;
     }
 
-    private static string ChevronFor(bool isCollapsed) => isCollapsed ? "▸" : "▾";
+    private static string ChevronFor(bool isCollapsed) => isCollapsed ? "▶" : "▼";
 }
