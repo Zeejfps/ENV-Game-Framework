@@ -71,8 +71,9 @@ public sealed class CommitDetailsView : MultiChildView
     private Guid _requestedRepoId;
 
     private readonly ColumnView _content;
-    private readonly VerticalScrollPane _scrollPane;
-    private readonly VerticalScrollBarView _scrollBar;
+    private readonly ScrollPane _scrollPane;
+    private readonly VerticalScrollBarView _vScrollBar;
+    private readonly HorizontalScrollBarView _hScrollBar;
 
     public CommitDetailsView()
     {
@@ -83,11 +84,11 @@ public sealed class CommitDetailsView : MultiChildView
             Children = { _content },
         };
 
-        _scrollPane = new VerticalScrollPane();
+        _scrollPane = new ScrollPane();
         _scrollPane.Children.Add(paddedContent);
         _scrollPane.Behaviors.Add(new ScrollPaneWheelController(_scrollPane));
 
-        _scrollBar = new VerticalScrollBarView
+        _vScrollBar = new VerticalScrollBarView
         {
             TrackBackgroundColor = CommitsPalette.ScrollTrackBg,
             TrackBorderColor = new BorderColorStyle
@@ -99,17 +100,23 @@ public sealed class CommitDetailsView : MultiChildView
             },
             TrackBorderSize = new BorderSizeStyle { Left = 1 },
         };
-        _scrollBar.Thumb.IdleBackgroundColor = CommitsPalette.ScrollThumbBg;
-        _scrollBar.Thumb.HoveredBackgroundColor = CommitsPalette.ScrollThumbHoverBg;
-        _scrollBar.Thumb.BorderColor = new BorderColorStyle
+        StyleScrollBarThumb(_vScrollBar.Thumb);
+        _vScrollBar.Behaviors.Add(new VerticalScrollBarViewController(_vScrollBar));
+
+        _hScrollBar = new HorizontalScrollBarView
         {
-            Left = CommitsPalette.ScrollThumbBorder,
-            Top = CommitsPalette.ScrollThumbBorder,
-            Right = CommitsPalette.ScrollThumbBorder,
-            Bottom = CommitsPalette.ScrollThumbBorder,
+            TrackBackgroundColor = CommitsPalette.ScrollTrackBg,
+            TrackBorderColor = new BorderColorStyle
+            {
+                Left = CommitsPalette.ScrollTrackBorder,
+                Top = CommitsPalette.ScrollTrackBorder,
+                Right = CommitsPalette.ScrollTrackBorder,
+                Bottom = CommitsPalette.ScrollTrackBorder,
+            },
+            TrackBorderSize = new BorderSizeStyle { Top = 1 },
         };
-        _scrollBar.Thumb.BorderSize = BorderSizeStyle.All(1);
-        _scrollBar.Behaviors.Add(new VerticalScrollBarViewController(_scrollBar));
+        StyleHorizontalScrollBarThumb(_hScrollBar.Thumb);
+        _hScrollBar.Behaviors.Add(new HorizontalScrollBarViewController(_hScrollBar));
 
         AddChildToSelf(new RectView
         {
@@ -121,14 +128,43 @@ public sealed class CommitDetailsView : MultiChildView
                 new BorderLayoutView
                 {
                     Center = _scrollPane,
-                    East = _scrollBar,
+                    East = _vScrollBar,
+                    South = _hScrollBar,
                 },
             },
         });
 
-        Behaviors.Add(new CommitDetailsScrollSyncController(_scrollPane, _scrollBar));
+        Behaviors.Add(new CommitDetailsScrollSyncController(_scrollPane, _vScrollBar, _hScrollBar));
 
         ShowPlaceholder("Select a commit to view details.");
+    }
+
+    private static void StyleScrollBarThumb(VerticalScrollBarThumbView thumb)
+    {
+        thumb.IdleBackgroundColor = CommitsPalette.ScrollThumbBg;
+        thumb.HoveredBackgroundColor = CommitsPalette.ScrollThumbHoverBg;
+        thumb.BorderColor = new BorderColorStyle
+        {
+            Left = CommitsPalette.ScrollThumbBorder,
+            Top = CommitsPalette.ScrollThumbBorder,
+            Right = CommitsPalette.ScrollThumbBorder,
+            Bottom = CommitsPalette.ScrollThumbBorder,
+        };
+        thumb.BorderSize = BorderSizeStyle.All(1);
+    }
+
+    private static void StyleHorizontalScrollBarThumb(HorizontalScrollBarThumbView thumb)
+    {
+        thumb.IdleBackgroundColor = CommitsPalette.ScrollThumbBg;
+        thumb.HoveredBackgroundColor = CommitsPalette.ScrollThumbHoverBg;
+        thumb.BorderColor = new BorderColorStyle
+        {
+            Left = CommitsPalette.ScrollThumbBorder,
+            Top = CommitsPalette.ScrollThumbBorder,
+            Right = CommitsPalette.ScrollThumbBorder,
+            Bottom = CommitsPalette.ScrollThumbBorder,
+        };
+        thumb.BorderSize = BorderSizeStyle.All(1);
     }
 
     protected override void OnAttachedToContext(Context context)
@@ -234,9 +270,8 @@ public sealed class CommitDetailsView : MultiChildView
             Text = text,
             TextColor = CommitDetailsPalette.Placeholder,
             HorizontalTextAlignment = TextAlignment.Center,
-            TextWrap = TextWrap.Wrap,
         });
-        _scrollPane.ScrollToTop();
+        _scrollPane.ScrollToOrigin();
     }
 
     private void ShowDetails(CommitDetails d)
@@ -253,8 +288,7 @@ public sealed class CommitDetailsView : MultiChildView
             {
                 Text = d.MessageShort,
                 TextColor = CommitDetailsPalette.Primary,
-                TextWrap = TextWrap.Wrap,
-            });
+                });
         }
 
         var body = ExtractBody(d.Message, d.MessageShort);
@@ -264,7 +298,6 @@ public sealed class CommitDetailsView : MultiChildView
             {
                 Text = body,
                 TextColor = CommitDetailsPalette.Secondary,
-                TextWrap = TextWrap.Wrap,
             });
         }
 
@@ -273,7 +306,6 @@ public sealed class CommitDetailsView : MultiChildView
         {
             Text = $"Commit:  {d.Sha}",
             TextColor = CommitDetailsPalette.Muted,
-            TextWrap = TextWrap.Wrap,
         });
         _content.Children.Add(new TextView
         {
@@ -281,7 +313,6 @@ public sealed class CommitDetailsView : MultiChildView
                 ? "Parents: (none)"
                 : "Parents: " + string.Join(", ", d.ParentShas.Select(ShortSha)),
             TextColor = CommitDetailsPalette.Muted,
-            TextWrap = TextWrap.Wrap,
         });
 
         // Files header bar
@@ -293,7 +324,7 @@ public sealed class CommitDetailsView : MultiChildView
             _content.Children.Add(BuildFileRow(file));
         }
 
-        _scrollPane.ScrollToTop();
+        _scrollPane.ScrollToOrigin();
     }
 
     private static View BuildAuthorHeader(CommitDetails d)
@@ -327,14 +358,12 @@ public sealed class CommitDetailsView : MultiChildView
                 {
                     Text = FormatAuthor(d.AuthorName, d.AuthorEmail),
                     TextColor = CommitDetailsPalette.Primary,
-                    TextWrap = TextWrap.Wrap,
-                },
+                        },
                 new TextView
                 {
                     Text = FormatFullDate(d.AuthorWhen),
                     TextColor = CommitDetailsPalette.Muted,
-                    TextWrap = TextWrap.Wrap,
-                },
+                        },
             },
         };
 
@@ -407,7 +436,6 @@ public sealed class CommitDetailsView : MultiChildView
         {
             Text = FormatPath(file),
             TextColor = CommitDetailsPalette.Secondary,
-            TextWrap = TextWrap.Wrap,
         };
 
         return new FlexRowView
@@ -486,51 +514,69 @@ public sealed class CommitDetailsView : MultiChildView
 internal sealed class ScrollPaneWheelController : KeyboardMouseController
 {
     private const float Step = 60f;
-    private readonly VerticalScrollPane _pane;
+    private readonly ScrollPane _pane;
 
-    public ScrollPaneWheelController(VerticalScrollPane pane)
+    public ScrollPaneWheelController(ScrollPane pane)
     {
         _pane = pane;
     }
 
     public override void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
     {
-        _pane.Scroll(-e.DeltaY * Step);
+        // Wheel scrolls vertically. Shift+wheel scrolls horizontally would be a future addition.
+        _pane.ScrollVertical(-e.DeltaY * Step);
         e.Consume();
     }
 }
 
 internal sealed class CommitDetailsScrollSyncController : KeyboardMouseController
 {
-    private readonly VerticalScrollPane _pane;
-    private readonly VerticalScrollBarView _scrollBar;
+    private readonly ScrollPane _pane;
+    private readonly VerticalScrollBarView _vScrollBar;
+    private readonly HorizontalScrollBarView _hScrollBar;
 
-    public CommitDetailsScrollSyncController(VerticalScrollPane pane, VerticalScrollBarView scrollBar)
+    public CommitDetailsScrollSyncController(ScrollPane pane, VerticalScrollBarView vScrollBar, HorizontalScrollBarView hScrollBar)
     {
         _pane = pane;
-        _scrollBar = scrollBar;
+        _vScrollBar = vScrollBar;
+        _hScrollBar = hScrollBar;
     }
 
     protected override void OnAttachedToContext(View view, Context context)
     {
-        _pane.ScrollPositionChanged += OnPaneScroll;
-        _scrollBar.ScrollPositionChanged += OnScrollBarScroll;
+        _pane.VerticalScrollPositionChanged += OnPaneVerticalScroll;
+        _pane.HorizontalScrollPositionChanged += OnPaneHorizontalScroll;
+        _vScrollBar.ScrollPositionChanged += OnVScrollBarScroll;
+        _hScrollBar.ScrollPositionChanged += OnHScrollBarScroll;
     }
 
     protected override void OnDetachedFromContext(View view, Context context)
     {
-        _pane.ScrollPositionChanged -= OnPaneScroll;
-        _scrollBar.ScrollPositionChanged -= OnScrollBarScroll;
+        _pane.VerticalScrollPositionChanged -= OnPaneVerticalScroll;
+        _pane.HorizontalScrollPositionChanged -= OnPaneHorizontalScroll;
+        _vScrollBar.ScrollPositionChanged -= OnVScrollBarScroll;
+        _hScrollBar.ScrollPositionChanged -= OnHScrollBarScroll;
     }
 
-    private void OnPaneScroll(float normalized)
+    private void OnPaneVerticalScroll(float normalized)
     {
-        _scrollBar.Scale = _pane.Scale;
-        _scrollBar.SetNormalizedScrollPosition(normalized);
+        _vScrollBar.Scale = _pane.VerticalScale;
+        _vScrollBar.SetNormalizedScrollPosition(normalized);
     }
 
-    private void OnScrollBarScroll(float normalized)
+    private void OnPaneHorizontalScroll(float normalized)
     {
-        _pane.SetNormalizedScrollPosition(normalized);
+        _hScrollBar.Scale = _pane.HorizontalScale;
+        _hScrollBar.SetNormalizedScrollPosition(normalized);
+    }
+
+    private void OnVScrollBarScroll(float normalized)
+    {
+        _pane.SetVerticalNormalizedScrollPosition(normalized);
+    }
+
+    private void OnHScrollBarScroll(float normalized)
+    {
+        _pane.SetHorizontalNormalizedScrollPosition(normalized);
     }
 }
