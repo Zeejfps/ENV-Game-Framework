@@ -5,7 +5,7 @@ namespace GitGui;
 
 public sealed class ActionsToolbar : MultiChildView
 {
-    private const float ToolbarHeight = 40f;
+    private const float ToolbarHeight = 44f;
     private const int HorizontalPadding = 8;
     private const float GroupGap = 4f;
     private const float SeparatorBreathingRoom = 8f;

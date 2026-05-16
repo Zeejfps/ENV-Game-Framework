@@ -31,8 +31,6 @@ public sealed class ActionButton : MultiChildView
 
         var background = new RectView
         {
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(6),
             Padding = new PaddingStyle { Left = 8, Right = 8 },
             Children =
             {
@@ -44,9 +42,7 @@ public sealed class ActionButton : MultiChildView
             }
         };
         background.BindBackgroundColor(isHovered,
-            h => h ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal);
-        background.BindBorderColor(isHovered,
-            h => BorderColorStyle.All(h ? DialogPalette.ButtonBorderHover : DialogPalette.ButtonBorder));
+            h => h ? DialogPalette.ButtonHover : 0x00000000u);
         AddChildToSelf(background);
 
         Behaviors.Add(new HoverableButtonController(onClick, h => isHovered.Value = h));
