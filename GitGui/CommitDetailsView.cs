@@ -531,6 +531,8 @@ internal sealed class ScrollPaneWheelController : KeyboardMouseController
 
 internal sealed class CommitDetailsScrollSyncController : KeyboardMouseController
 {
+    private const float ScrollBarThickness = 12f;
+
     private readonly ScrollPane _pane;
     private readonly VerticalScrollBarView _vScrollBar;
     private readonly HorizontalScrollBarView _hScrollBar;
@@ -560,12 +562,17 @@ internal sealed class CommitDetailsScrollSyncController : KeyboardMouseControlle
 
     private void OnPaneVerticalScroll(float normalized)
     {
+        // Collapse the bar to zero width when content fits, so BorderLayout gives the saved
+        // space to the center pane. Stable: removing a bar can only enlarge the viewport,
+        // which can only keep scale at <=1 — never re-introduces overflow on this axis.
+        _vScrollBar.PreferredWidth = _pane.VerticalScale < 1f ? ScrollBarThickness : 0f;
         _vScrollBar.Scale = _pane.VerticalScale;
         _vScrollBar.SetNormalizedScrollPosition(normalized);
     }
 
     private void OnPaneHorizontalScroll(float normalized)
     {
+        _hScrollBar.PreferredHeight = _pane.HorizontalScale < 1f ? ScrollBarThickness : 0f;
         _hScrollBar.Scale = _pane.HorizontalScale;
         _hScrollBar.SetNormalizedScrollPosition(normalized);
     }
