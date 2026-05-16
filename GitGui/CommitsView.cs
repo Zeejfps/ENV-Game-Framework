@@ -22,6 +22,9 @@ internal static class CommitsPalette
     public const uint ScrollThumbHoverBg = 0xFF6A6D72;
     public const uint ScrollThumbBorder = 0xFF2A2C30;
 
+    public const uint DividerHoverBg = 0xFF4A5680;
+    public const uint DividerHoverLine = 0xFF7A8DC8;
+
     public const uint BadgeLocalBg = 0xFF2F4A6B;
     public const uint BadgeRemoteBg = 0xFF4A2F6B;
     public const uint BadgeHeadBg = 0xFF6B4A2F;
@@ -64,11 +67,19 @@ public sealed class CommitsView : MultiChildView
     private const float ScrollWheelStep = 60f;
 
     private const float SummaryColumnWidth = 0f;
-    private const float AuthorColumnWidth = 160f;
-    private const float DateColumnWidth = 110f;
+    private const float DefaultAuthorColumnWidth = 160f;
+    private const float DefaultDateColumnWidth = 110f;
+    private const float MinColumnWidth = 40f;
+    private const float MaxColumnWidth = 600f;
+    private const float DividerThickness = 1f;
+    private const float DividerHitWidth = 6f;
     private const float BadgePaddingX = 6f;
     private const float BadgeHeight = 16f;
     private const float BadgeGap = 4f;
+
+    private float _authorColumnWidth = DefaultAuthorColumnWidth;
+    private float _dateColumnWidth = DefaultDateColumnWidth;
+    private DividerKind _hoveredDivider = DividerKind.None;
 
     private IMessageBus? _bus;
     private IRepoRegistry? _registry;
@@ -300,6 +311,11 @@ public sealed class CommitsView : MultiChildView
                 break;
         }
 
+        var dateXAll = pos.Right - _dateColumnWidth - ColumnGap;
+        var authorXAll = dateXAll - _authorColumnWidth - ColumnGap;
+        DrawColumnDivider(c, authorXAll - ColumnGap, pos.Bottom, pos.Height, DividerKind.Author, z + 100);
+        DrawColumnDivider(c, dateXAll - ColumnGap, pos.Bottom, pos.Height, DividerKind.Date, z + 100);
+
         c.PopClip();
     }
 
@@ -319,12 +335,43 @@ public sealed class CommitsView : MultiChildView
         });
 
         var graphWidth = ComputeGraphColumnWidth();
-        var dateX = pos.Right - DateColumnWidth - ColumnGap;
-        var authorX = dateX - AuthorColumnWidth - ColumnGap;
+        var dateX = pos.Right - _dateColumnWidth - ColumnGap;
+        var authorX = dateX - _authorColumnWidth - ColumnGap;
 
-        DrawHeaderText(c, "Graph", pos.Left + GraphColumnPaddingLeft, pos.Top - HeaderHeight, graphWidth, z + 1);
-        DrawHeaderText(c, "Author", authorX, pos.Top - HeaderHeight, AuthorColumnWidth, z + 1);
-        DrawHeaderText(c, "Date", dateX, pos.Top - HeaderHeight, DateColumnWidth, z + 1);
+        DrawHeaderText(c, "Commit", pos.Left + GraphColumnPaddingLeft, pos.Top - HeaderHeight, graphWidth, z + 1);
+        DrawHeaderText(c, "Author", authorX, pos.Top - HeaderHeight, _authorColumnWidth, z + 1);
+        DrawHeaderText(c, "Date", dateX, pos.Top - HeaderHeight, _dateColumnWidth, z + 1);
+    }
+
+    private static void DrawColumnOverlay(ICanvas c, float left, float bottom, float width, uint color, int z)
+    {
+        if (width <= 0) return;
+        c.DrawRect(new DrawRectInputs
+        {
+            Position = new RectF(left, bottom, width, RowHeight),
+            Style = new RectStyle { BackgroundColor = color },
+            ZIndex = z,
+        });
+    }
+
+    private void DrawColumnDivider(ICanvas c, float centerX, float bottom, float height, DividerKind kind, int z)
+    {
+        var hovered = _hoveredDivider == kind;
+        if (hovered)
+        {
+            c.DrawRect(new DrawRectInputs
+            {
+                Position = new RectF(centerX - DividerHitWidth * 0.5f, bottom, DividerHitWidth, height),
+                Style = new RectStyle { BackgroundColor = CommitsPalette.DividerHoverBg },
+                ZIndex = z,
+            });
+        }
+        c.DrawRect(new DrawRectInputs
+        {
+            Position = new RectF(centerX - DividerThickness * 0.5f, bottom, DividerThickness, height),
+            Style = new RectStyle { BackgroundColor = hovered ? CommitsPalette.DividerHoverLine : CommitsPalette.Border },
+            ZIndex = z + 1,
+        });
     }
 
     private void DrawHeaderText(ICanvas c, string text, float left, float bottom, float width, int z)
@@ -375,8 +422,10 @@ public sealed class CommitsView : MultiChildView
         var bodyHeight = body.Height;
         var scrollY = _scrollY;
         var graphStartX = body.Left + GraphColumnPaddingLeft;
-        var dateX = body.Right - DateColumnWidth - ColumnGap;
-        var authorX = dateX - AuthorColumnWidth - ColumnGap;
+        var dateX = body.Right - _dateColumnWidth - ColumnGap;
+        var authorX = dateX - _authorColumnWidth - ColumnGap;
+        var authorPanelLeft = authorX - ColumnGap;
+        var datePanelLeft = dateX - ColumnGap;
 
         var firstVisible = Math.Max(0, (int)(scrollY / RowHeight) - 1);
         var lastVisible = Math.Min(snap.Commits.Count - 1, (int)((scrollY + bodyHeight) / RowHeight) + 1);
@@ -397,12 +446,15 @@ public sealed class CommitsView : MultiChildView
             foreach (var l in node.IncomingLanes) if (l > maxLaneAtRow) maxLaneAtRow = l;
             foreach (var p in node.InWalkParentLanes) if (p.Lane > maxLaneAtRow) maxLaneAtRow = p.Lane;
             var summaryStartX = LaneCenterX(graphStartX, maxLaneAtRow) + DotRadius + GraphColumnPaddingRight;
-            var summaryLimitX = authorX - ColumnGap;
             var refsEndX = DrawBadges(c, node, summaryStartX, textTop, z + 2);
-            var summaryDraw = Math.Max(0, summaryLimitX - refsEndX);
+            var summaryDraw = Math.Max(0, body.Right - refsEndX);
             DrawText(c, node.Summary, refsEndX, textTop, summaryDraw, node.Sha == _selectedSha, z + 2);
-            DrawText(c, node.Author, authorX, textTop, AuthorColumnWidth, node.Sha == _selectedSha, z + 2);
-            DrawText(c, FormatRelative(node.When), dateX, textTop, DateColumnWidth, node.Sha == _selectedSha, z + 2);
+
+            var rowOverlayColor = node.Sha == _selectedSha ? CommitsPalette.RowHighlight : CommitsPalette.Background;
+            DrawColumnOverlay(c, authorPanelLeft, rowBottom, datePanelLeft - authorPanelLeft, rowOverlayColor, z + 3);
+            DrawText(c, node.Author, authorX, textTop, _authorColumnWidth, node.Sha == _selectedSha, z + 4);
+            DrawColumnOverlay(c, datePanelLeft, rowBottom, body.Right - datePanelLeft, rowOverlayColor, z + 5);
+            DrawText(c, FormatRelative(node.When), dateX, textTop, _dateColumnWidth, node.Sha == _selectedSha, z + 6);
         }
 
         if (snap.Truncated)
@@ -591,6 +643,54 @@ public sealed class CommitsView : MultiChildView
         NotifyScrollChanged();
     }
 
+    internal enum DividerKind
+    {
+        None,
+        Author,
+        Date,
+    }
+
+    internal DividerKind HitTestDivider(PointF point)
+    {
+        var pos = Position;
+        if (point.X < pos.Left || point.X > pos.Right) return DividerKind.None;
+        if (point.Y < pos.Bottom || point.Y > pos.Top) return DividerKind.None;
+
+        var dateX = pos.Right - _dateColumnWidth - ColumnGap;
+        var authorX = dateX - _authorColumnWidth - ColumnGap;
+        var authorDividerX = authorX - ColumnGap;
+        var dateDividerX = dateX - ColumnGap;
+
+        if (Math.Abs(point.X - dateDividerX) <= DividerHitWidth * 0.5f) return DividerKind.Date;
+        if (Math.Abs(point.X - authorDividerX) <= DividerHitWidth * 0.5f) return DividerKind.Author;
+        return DividerKind.None;
+    }
+
+    internal void ResizeAuthorColumn(float mouseDeltaX)
+    {
+        _authorColumnWidth = Math.Clamp(_authorColumnWidth - mouseDeltaX, MinColumnWidth, MaxColumnWidth);
+    }
+
+    internal void ResizeDateColumn(float mouseDeltaX)
+    {
+        // Keep the Author divider fixed: when Date grows, Author shrinks (and vice versa).
+        // mouseDeltaX > 0 (drag right) shrinks Date and grows Author.
+        var dateShrink = mouseDeltaX;
+        var maxDateShrink = _dateColumnWidth - MinColumnWidth;
+        var maxDateGrow = MaxColumnWidth - _dateColumnWidth;
+        dateShrink = Math.Clamp(dateShrink, -maxDateGrow, maxDateShrink);
+        var maxAuthorGrow = MaxColumnWidth - _authorColumnWidth;
+        var maxAuthorShrink = _authorColumnWidth - MinColumnWidth;
+        dateShrink = Math.Clamp(dateShrink, -maxAuthorShrink, maxAuthorGrow);
+        _dateColumnWidth -= dateShrink;
+        _authorColumnWidth += dateShrink;
+    }
+
+    internal void SetHoveredDivider(DividerKind kind)
+    {
+        _hoveredDivider = kind;
+    }
+
     internal void OnClickAt(PointF point)
     {
         if (_state != CommitsLoadState.Loaded) return;
@@ -626,6 +726,8 @@ public sealed class CommitsView : MultiChildView
 internal sealed class CommitsViewController : KeyboardMouseController
 {
     private readonly CommitsView _view;
+    private CommitsView.DividerKind _activeDivider = CommitsView.DividerKind.None;
+    private float _lastDragX;
 
     public CommitsViewController(CommitsView view)
     {
@@ -640,8 +742,58 @@ internal sealed class CommitsViewController : KeyboardMouseController
 
     public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
-        if (e.Button != MouseButton.Left || e.State != InputState.Pressed) return;
-        _view.OnClickAt(e.Mouse.Point);
-        e.Consume();
+        if (e.Button != MouseButton.Left) return;
+
+        if (e.State == InputState.Pressed)
+        {
+            var divider = _view.HitTestDivider(e.Mouse.Point);
+            if (divider != CommitsView.DividerKind.None)
+            {
+                _activeDivider = divider;
+                _lastDragX = e.Mouse.Point.X;
+                _view.Context?.Get<InputSystem>()?.RequestFocus(this);
+                e.Consume();
+                return;
+            }
+            _view.OnClickAt(e.Mouse.Point);
+            e.Consume();
+            return;
+        }
+
+        if (e.State == InputState.Released && _activeDivider != CommitsView.DividerKind.None)
+        {
+            _activeDivider = CommitsView.DividerKind.None;
+            _view.Context?.Get<InputSystem>()?.Blur(this);
+            e.Consume();
+        }
+    }
+
+    public override void OnMouseMoved(ref MouseMoveEvent e)
+    {
+        if (_activeDivider != CommitsView.DividerKind.None)
+        {
+            var dx = e.Mouse.Point.X - _lastDragX;
+            _lastDragX = e.Mouse.Point.X;
+            switch (_activeDivider)
+            {
+                case CommitsView.DividerKind.Author:
+                    _view.ResizeAuthorColumn(dx);
+                    break;
+                case CommitsView.DividerKind.Date:
+                    _view.ResizeDateColumn(dx);
+                    break;
+            }
+            e.Consume();
+            return;
+        }
+        _view.SetHoveredDivider(_view.HitTestDivider(e.Mouse.Point));
+    }
+
+    public override void OnMouseExit(ref MouseExitEvent e)
+    {
+        if (_activeDivider == CommitsView.DividerKind.None)
+        {
+            _view.SetHoveredDivider(CommitsView.DividerKind.None);
+        }
     }
 }
