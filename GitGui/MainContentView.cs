@@ -1,161 +1,61 @@
-using ZGF.Geometry;
 using ZGF.Gui;
-using ZGF.Gui.Tests;
+using ZGF.Observable;
 
 namespace GitGui;
 
 /// <summary>
-/// Lays out the commits panel on the left and a resizable commit details panel on the right,
-/// with a draggable divider between them.
+/// Shell for the main content area. Mounts one of two mode-specific views (history or local
+/// changes) based on the observed <see cref="MainViewMode"/>. Both view instances are
+/// constructed once and survive mode toggles — the active one is attached as a child;
+/// the inactive one is fully detached so it stops receiving context-driven work.
 /// </summary>
 public sealed class MainContentView : MultiChildView
 {
-    private const float MinDetailsWidth = 240f;
-    private const float MaxDetailsWidth = 800f;
-    private const float MinCenterWidth = 320f;
-    private const float DefaultDetailsWidth = 380f;
-    private const float DividerHitWidth = 6f;
-    private const float DividerThickness = 1f;
+    private readonly HistoryView _history = new();
+    private readonly LocalChangesView _localChanges = new();
+    private View? _active;
+    private IDisposable? _modeSubscription;
 
-    private readonly CommitsPanelView _commits;
-    private readonly CommitDetailsView _details;
-    private float _detailsWidth = DefaultDetailsWidth;
-    private bool _dividerHovered;
-
-    public MainContentView()
+    protected override void OnAttachedToContext(Context context)
     {
-        _commits = new CommitsPanelView();
-        _details = new CommitDetailsView();
-        AddChildToSelf(_commits);
-        AddChildToSelf(_details);
-        Behaviors.Add(new MainContentViewController(this));
+        var mode = context.Get<State<MainViewMode>>();
+        if (mode != null)
+            _modeSubscription = mode.Subscribe(SetActive);
+    }
+
+    protected override void OnDetachedFromContext(Context context)
+    {
+        _modeSubscription?.Dispose();
+        _modeSubscription = null;
+    }
+
+    private void SetActive(MainViewMode mode)
+    {
+        var next = mode switch
+        {
+            MainViewMode.History => (View)_history,
+            MainViewMode.LocalChanges => _localChanges,
+            _ => _history,
+        };
+
+        if (ReferenceEquals(_active, next)) return;
+
+        if (_active != null)
+            RemoveChildFromSelf(_active);
+
+        _active = next;
+        AddChildToSelf(next);
     }
 
     protected override void OnLayoutChildren()
     {
+        if (_active == null) return;
         var pos = Position;
-        var detailsWidth = Math.Clamp(_detailsWidth, MinDetailsWidth, MaxDetailsWidth);
-        var centerWidth = Math.Max(MinCenterWidth, pos.Width - detailsWidth);
-        if (centerWidth + detailsWidth > pos.Width)
-        {
-            detailsWidth = Math.Max(MinDetailsWidth, pos.Width - centerWidth);
-        }
-        _detailsWidth = detailsWidth;
-
-        _commits.LeftConstraint = pos.Left;
-        _commits.BottomConstraint = pos.Bottom;
-        _commits.MinWidthConstraint = centerWidth;
-        _commits.MaxWidthConstraint = centerWidth;
-        _commits.MaxHeightConstraint = pos.Height;
-        _commits.LayoutSelf();
-
-        _details.LeftConstraint = pos.Right - detailsWidth;
-        _details.BottomConstraint = pos.Bottom;
-        _details.PreferredWidth = detailsWidth;
-        _details.MinWidthConstraint = detailsWidth;
-        _details.MaxWidthConstraint = detailsWidth;
-        _details.MaxHeightConstraint = pos.Height;
-        _details.LayoutSelf();
-    }
-
-    protected override void OnDrawSelf(ICanvas c)
-    {
-        if (!_dividerHovered) return;
-        var pos = Position;
-        var dividerX = pos.Right - Math.Clamp(_detailsWidth, MinDetailsWidth, MaxDetailsWidth);
-        var z = GetDrawZIndex();
-        c.DrawRect(new DrawRectInputs
-        {
-            Position = new RectF(dividerX - DividerHitWidth * 0.5f, pos.Bottom, DividerHitWidth, pos.Height),
-            Style = new RectStyle { BackgroundColor = CommitsPalette.DividerHoverBg },
-            ZIndex = z + 999,
-        });
-        c.DrawRect(new DrawRectInputs
-        {
-            Position = new RectF(dividerX - DividerThickness * 0.5f, pos.Bottom, DividerThickness, pos.Height),
-            Style = new RectStyle { BackgroundColor = CommitsPalette.DividerHoverLine },
-            ZIndex = z + 1000,
-        });
-    }
-
-    internal bool HitTestDivider(PointF point)
-    {
-        var pos = Position;
-        if (point.Y < pos.Bottom || point.Y > pos.Top) return false;
-        var dividerX = pos.Right - Math.Clamp(_detailsWidth, MinDetailsWidth, MaxDetailsWidth);
-        return Math.Abs(point.X - dividerX) <= DividerHitWidth * 0.5f;
-    }
-
-    internal void SetDividerHovered(bool hovered)
-    {
-        if (_dividerHovered == hovered) return;
-        _dividerHovered = hovered;
-        SetDirty();
-    }
-
-    internal void ResizeDetails(float mouseDeltaX)
-    {
-        // Dragging right (positive delta) shrinks the right panel and grows the center.
-        var pos = Position;
-        var maxByCenter = pos.Width - MinCenterWidth;
-        var newWidth = Math.Clamp(_detailsWidth - mouseDeltaX, MinDetailsWidth, Math.Min(MaxDetailsWidth, maxByCenter));
-        if (Math.Abs(newWidth - _detailsWidth) < 0.0001f) return;
-        _detailsWidth = newWidth;
-        SetDirty();
-    }
-}
-
-internal sealed class MainContentViewController : KeyboardMouseController
-{
-    private readonly MainContentView _view;
-    private bool _dragging;
-    private float _lastDragX;
-
-    public MainContentViewController(MainContentView view)
-    {
-        _view = view;
-    }
-
-    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
-    {
-        if (e.Button != MouseButton.Left) return;
-
-        if (e.State == InputState.Pressed)
-        {
-            if (_view.HitTestDivider(e.Mouse.Point))
-            {
-                _dragging = true;
-                _lastDragX = e.Mouse.Point.X;
-                _view.Context?.Get<InputSystem>()?.RequestFocus(this);
-                e.Consume();
-            }
-            return;
-        }
-
-        if (e.State == InputState.Released && _dragging)
-        {
-            _dragging = false;
-            _view.Context?.Get<InputSystem>()?.Blur(this);
-            e.Consume();
-        }
-    }
-
-    public override void OnMouseMoved(ref MouseMoveEvent e)
-    {
-        if (_dragging)
-        {
-            var dx = e.Mouse.Point.X - _lastDragX;
-            _lastDragX = e.Mouse.Point.X;
-            _view.ResizeDetails(dx);
-            e.Consume();
-            return;
-        }
-        _view.SetDividerHovered(_view.HitTestDivider(e.Mouse.Point));
-    }
-
-    public override void OnMouseExit(ref MouseExitEvent e)
-    {
-        if (!_dragging)
-            _view.SetDividerHovered(false);
+        _active.LeftConstraint = pos.Left;
+        _active.BottomConstraint = pos.Bottom;
+        _active.MinWidthConstraint = pos.Width;
+        _active.MaxWidthConstraint = pos.Width;
+        _active.MaxHeightConstraint = pos.Height;
+        _active.LayoutSelf();
     }
 }

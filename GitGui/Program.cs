@@ -3,10 +3,12 @@ using GitGui;
 using LLMit;
 using ZGF.Core;
 using ZGF.Gui;
+using ZGF.Observable;
 
 var context = new Context();
 var messageBus = new MessageBus();
 context.AddService<IMessageBus>(messageBus);
+context.AddService(new State<MainViewMode>(MainViewMode.LocalChanges));
 context.AddService<IFolderPicker>(
     RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
         ? new WindowsFolderPicker()

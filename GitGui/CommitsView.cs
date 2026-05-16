@@ -179,6 +179,16 @@ public sealed class CommitsView : MultiChildView
         if (_registry == null || _gitService == null) return;
         var active = _registry.Active.Value;
 
+        // Preserve scroll/selection across detach/reattach (tab round-trip): if the snapshot
+        // we already have matches the active repo and loaded cleanly, skip the reload.
+        if (active != null
+            && _state == CommitsLoadState.Loaded
+            && _snapshot?.RepoId == active.Id)
+        {
+            _loadingRepoId = active.Id;
+            return;
+        }
+
         _loadGeneration++;
         var gen = _loadGeneration;
 

@@ -16,13 +16,6 @@ public sealed class ActionsToolbar : MultiChildView
     {
         PreferredHeight = ToolbarHeight;
 
-        var separator = new RectView
-        {
-            BackgroundColor = DialogPalette.Border,
-            PreferredWidth = SeparatorWidth,
-            PreferredHeight = SeparatorHeight,
-        };
-
         AddChildToSelf(new RectView
         {
             BackgroundColor = DialogPalette.Background,
@@ -44,9 +37,11 @@ public sealed class ActionsToolbar : MultiChildView
                         new ActionButton(LucideIcons.Fetch, "Fetch", () => { }),
                         new ActionButton(LucideIcons.Pull, "Pull", () => { }),
                         new ActionButton(LucideIcons.Push, "Push", () => { }),
-                        new SeparatorSpacer(separator),
+                        new SeparatorSpacer(),
                         new ActionButton(LucideIcons.Stash, "Stash", () => { }),
                         new ActionButton(LucideIcons.Branch, "Branch", () => { }),
+                        new FlexItem { Grow = 1, Child = new RectView() },
+                        new ModeSwitcherView(),
                     }
                 }
             }
@@ -55,14 +50,22 @@ public sealed class ActionsToolbar : MultiChildView
 
     private sealed class SeparatorSpacer : MultiChildView
     {
-        public SeparatorSpacer(RectView separator)
+        public SeparatorSpacer()
         {
             PreferredWidth = SeparatorWidth + SeparatorBreathingRoom * 2;
             AddChildToSelf(new FlexRowView
             {
                 CrossAxisAlignment = CrossAxisAlignment.Center,
                 MainAxisAlignment = MainAxisAlignment.Center,
-                Children = { separator },
+                Children =
+                {
+                    new RectView
+                    {
+                        BackgroundColor = DialogPalette.Border,
+                        PreferredWidth = SeparatorWidth,
+                        PreferredHeight = SeparatorHeight,
+                    },
+                },
             });
         }
     }
