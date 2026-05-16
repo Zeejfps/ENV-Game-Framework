@@ -16,6 +16,12 @@ internal static class CommitsPalette
     public const uint RowTextActive = 0xFFFFFFFF;
     public const uint Placeholder = 0xFF96989D;
 
+    public const uint ScrollTrackBg = 0xFF26272B;
+    public const uint ScrollTrackBorder = 0xFF313338;
+    public const uint ScrollThumbBg = 0xFF4A4D52;
+    public const uint ScrollThumbHoverBg = 0xFF6A6D72;
+    public const uint ScrollThumbBorder = 0xFF2A2C30;
+
     public const uint BadgeLocalBg = 0xFF2F4A6B;
     public const uint BadgeRemoteBg = 0xFF4A2F6B;
     public const uint BadgeHeadBg = 0xFF6B4A2F;
@@ -77,9 +83,11 @@ public sealed class CommitsView : MultiChildView
 
     private float _scrollY;
     private float _lastNormalizedScroll;
+    private float _lastScale = 1f;
     private string? _selectedSha;
 
     public event Action<float>? ScrollPositionChanged;
+    public event Action<float>? ScaleChanged;
 
     private readonly TextStyle _rowTextStyle = new()
     {
@@ -157,6 +165,7 @@ public sealed class CommitsView : MultiChildView
             _snapshot = null;
             _scrollY = 0f;
             _selectedSha = null;
+            NotifyScrollChanged();
             return;
         }
 
@@ -165,6 +174,7 @@ public sealed class CommitsView : MultiChildView
         _scrollY = 0f;
         _selectedSha = null;
         _loadingRepoId = active.Id;
+        NotifyScrollChanged();
 
         var repo = active;
         var service = _gitService;
@@ -228,16 +238,30 @@ public sealed class CommitsView : MultiChildView
     {
         var snap = _snapshot;
         float normalized = 0f;
+        float scale = 1f;
         if (snap != null && snap.Commits.Count > 0)
         {
             var bodyHeight = Position.Height - HeaderHeight;
             var contentHeight = snap.Commits.Count * RowHeight;
-            var maxScroll = Math.Max(0f, contentHeight - bodyHeight);
-            normalized = maxScroll > 0f ? Math.Clamp(_scrollY / maxScroll, 0f, 1f) : 0f;
+            if (bodyHeight > 0 && contentHeight > bodyHeight)
+            {
+                scale = bodyHeight / contentHeight;
+                var maxScroll = contentHeight - bodyHeight;
+                normalized = Math.Clamp(_scrollY / maxScroll, 0f, 1f);
+            }
         }
-        if (Math.Abs(normalized - _lastNormalizedScroll) < 0.0001f) return;
-        _lastNormalizedScroll = normalized;
-        ScrollPositionChanged?.Invoke(normalized);
+
+        if (Math.Abs(scale - _lastScale) > 0.0001f)
+        {
+            _lastScale = scale;
+            ScaleChanged?.Invoke(scale);
+        }
+
+        if (Math.Abs(normalized - _lastNormalizedScroll) > 0.0001f)
+        {
+            _lastNormalizedScroll = normalized;
+            ScrollPositionChanged?.Invoke(normalized);
+        }
     }
 
     protected override void OnDrawSelf(ICanvas c)

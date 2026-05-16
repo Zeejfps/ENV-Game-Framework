@@ -13,6 +13,42 @@ public sealed class VerticalScrollBarThumbView : MultiChildView
         set => SetField(ref _scale, value);
     }
 
+    private uint _idleBackgroundColor = 0xFFCECECE;
+    public uint IdleBackgroundColor
+    {
+        get => _idleBackgroundColor;
+        set
+        {
+            _idleBackgroundColor = value;
+            if (!_isSelected)
+                _background.BackgroundColor = value;
+        }
+    }
+
+    private uint _hoveredBackgroundColor = 0xFFE2E2E2;
+    public uint HoveredBackgroundColor
+    {
+        get => _hoveredBackgroundColor;
+        set
+        {
+            _hoveredBackgroundColor = value;
+            if (_isSelected)
+                _background.BackgroundColor = value;
+        }
+    }
+
+    public BorderColorStyle BorderColor
+    {
+        get => _background.BorderColor;
+        set => _background.BorderColor = value;
+    }
+
+    public BorderSizeStyle BorderSize
+    {
+        get => _background.BorderSize;
+        set => _background.BorderSize = value;
+    }
+
     private bool _isSelected;
     public bool IsSelected
     {
@@ -23,14 +59,7 @@ public sealed class VerticalScrollBarThumbView : MultiChildView
                 return;
 
             _isSelected = value;
-            if (_isSelected)
-            {
-                _background.BackgroundColor = 0xFFE2E2E2;
-            }
-            else
-            {
-                _background.BackgroundColor = 0xFFCECECE;
-            }
+            _background.BackgroundColor = _isSelected ? _hoveredBackgroundColor : _idleBackgroundColor;
         }
     }
 

@@ -5,6 +5,7 @@ namespace ZGF.Gui.Tests;
 public sealed class VerticalScrollBarView : MultiChildView
 {
     private readonly VerticalScrollBarThumbView _thumbView;
+    private readonly RectView _slideArea;
 
     public event Action<float> ScrollPositionChanged
     {
@@ -12,13 +13,33 @@ public sealed class VerticalScrollBarView : MultiChildView
         remove => _thumbView.ScrollPositionChanged -= value;
     }
 
+    public VerticalScrollBarThumbView Thumb => _thumbView;
+
+    public StyleValue<uint> TrackBackgroundColor
+    {
+        get => _slideArea.BackgroundColor;
+        set => _slideArea.BackgroundColor = value;
+    }
+
+    public BorderColorStyle TrackBorderColor
+    {
+        get => _slideArea.BorderColor;
+        set => _slideArea.BorderColor = value;
+    }
+
+    public BorderSizeStyle TrackBorderSize
+    {
+        get => _slideArea.BorderSize;
+        set => _slideArea.BorderSize = value;
+    }
+
     public VerticalScrollBarView()
     {
         PreferredWidth = 25;
 
         _thumbView = new VerticalScrollBarThumbView();
-        
-        var slideArea = new RectView
+
+        _slideArea = new RectView
         {
             BackgroundColor = 0xFFCECECE,
             BorderSize = BorderSizeStyle.All(1),
@@ -34,8 +55,8 @@ public sealed class VerticalScrollBarView : MultiChildView
                 _thumbView
             }
         };
-        
-        AddChildToSelf(slideArea);
+
+        AddChildToSelf(_slideArea);
 
         _thumbView.Behaviors.Add(new VerticalScrollBarThumbViewController(_thumbView));
     }
