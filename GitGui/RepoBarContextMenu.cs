@@ -12,8 +12,7 @@ public static class RepoBarContextMenu
     {
         if (items.Count == 0) return;
         var manager = context.Get<ContextMenuManager>();
-        var inputSystem = context.Get<InputSystem>();
-        if (manager == null || inputSystem == null) return;
+        if (manager == null) return;
 
         manager.CloseAllImmediately();
 
@@ -50,8 +49,6 @@ public static class RepoBarContextMenu
         var opened = manager.ShowContextMenu(menu);
         if (opened == null) return;
 
-        var controller = new RepoBarContextMenuKbmController(menu, opened);
-        inputSystem.RegisterController(menu, controller);
-        opened.Closed += () => inputSystem.UnregisterController(menu);
+        menu.Behaviors.Add(new ContextMenuKbmController(opened));
     }
 }
