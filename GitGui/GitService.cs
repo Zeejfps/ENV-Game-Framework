@@ -410,14 +410,7 @@ public sealed class GitService : IGitService
                 }
             }
 
-            var psi = new ProcessStartInfo("git", "push")
-            {
-                WorkingDirectory = repo.Path,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
+            var psi = BuildGitProcessStartInfo("push", repo.Path);
             using var proc = Process.Start(psi);
             if (proc == null) return new PushOutcome(false, "Failed to start git.");
 
@@ -438,6 +431,44 @@ public sealed class GitService : IGitService
         {
             return new PushOutcome(false, ex.Message);
         }
+    }
+
+    // On macOS, GUI apps launched outside a terminal (Finder, IDE, Launch Services)
+    // don't inherit the user's interactive-shell environment. Anything set up in
+    // .zshrc / .bashrc — 1Password's SSH_AUTH_SOCK, manually-started ssh-agent, the
+    // Homebrew PATH, GIT_SSH_COMMAND overrides — is invisible to the child process,
+    // and `git push` over SSH dies with "Could not read from remote repository".
+    //
+    // Running git through the user's shell with `-i -c` sources their rc files first
+    // so ssh and git see the same environment they do in Terminal.
+    private static ProcessStartInfo BuildGitProcessStartInfo(string gitArgs, string workingDir)
+    {
+        var psi = new ProcessStartInfo
+        {
+            WorkingDirectory = workingDir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        if (OperatingSystem.IsMacOS())
+        {
+            var shell = Environment.GetEnvironmentVariable("SHELL");
+            if (string.IsNullOrEmpty(shell)) shell = "/bin/zsh";
+            psi.FileName = shell;
+            psi.ArgumentList.Add("-i");
+            psi.ArgumentList.Add("-c");
+            psi.ArgumentList.Add($"git {gitArgs}");
+        }
+        else
+        {
+            psi.FileName = "git";
+            foreach (var part in gitArgs.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                psi.ArgumentList.Add(part);
+        }
+
+        return psi;
     }
 
     // Pulls the most relevant single line out of a git error blob — typically the
