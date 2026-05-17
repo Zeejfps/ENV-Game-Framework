@@ -17,14 +17,14 @@ public sealed class ActionButton : HoverableButton
             FontSize = 14,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        iconView.BindTextColor(IsHovered, h => h ? 0xFFFFFFFF : DialogPalette.RowText);
+        iconView.BindTextColor(ComputeForeground);
 
         var labelView = new TextView
         {
             Text = label,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        labelView.BindTextColor(IsHovered, h => h ? 0xFFFFFFFF : DialogPalette.RowText);
+        labelView.BindTextColor(ComputeForeground);
 
         var background = new RectView
         {
@@ -38,8 +38,14 @@ public sealed class ActionButton : HoverableButton
                 }
             }
         };
-        background.BindBackgroundColor(IsHovered,
-            h => h ? DialogPalette.ButtonHover : 0x00000000u);
+        background.BindBackgroundColor(() =>
+            IsEnabled.Value && IsHovered.Value ? DialogPalette.ButtonHover : 0x00000000u);
         SetBackground(background);
+    }
+
+    private uint ComputeForeground()
+    {
+        if (!IsEnabled.Value) return DialogPalette.RowTextMissing;
+        return IsHovered.Value ? 0xFFFFFFFFu : DialogPalette.RowText;
     }
 }

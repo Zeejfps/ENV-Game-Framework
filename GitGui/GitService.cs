@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using LibGit2Sharp;
 
 namespace GitGui;
@@ -356,6 +357,108 @@ public sealed class GitService : IGitService
         {
             return ex.Message;
         }
+    }
+
+    public PushStatus GetPushStatus(Repo repo)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new PushStatus(null, HasUpstream: false, Ahead: 0, Behind: 0, IsDetached: false);
+
+            using var lg = new Repository(repo.Path);
+            if (lg.Info.IsHeadDetached)
+                return new PushStatus(null, HasUpstream: false, Ahead: 0, Behind: 0, IsDetached: true);
+
+            var head = lg.Head;
+            var tracked = head?.TrackedBranch;
+            var tracking = head?.TrackingDetails;
+            return new PushStatus(
+                CurrentBranchName: head?.FriendlyName,
+                HasUpstream: tracked != null,
+                Ahead: tracking?.AheadBy ?? 0,
+                Behind: tracking?.BehindBy ?? 0,
+                IsDetached: false);
+        }
+        catch
+        {
+            return new PushStatus(null, HasUpstream: false, Ahead: 0, Behind: 0, IsDetached: false);
+        }
+    }
+
+    // Shells out to the `git` CLI so we inherit the user's credential helpers
+    // (ssh-agent, osxkeychain, GitHub CLI, …) — libgit2's macOS SSH path is too brittle.
+    public PushOutcome Push(Repo repo)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new PushOutcome(false, "Not a git repository.");
+
+            // Pre-flight: refuse to push from detached HEAD or a branch with no upstream,
+            // because the resulting `git push` error is less actionable than these messages.
+            using (var lg = new Repository(repo.Path))
+            {
+                if (lg.Info.IsHeadDetached)
+                    return new PushOutcome(false, "HEAD is detached. Check out a branch first.");
+                var head = lg.Head;
+                if (head?.TrackedBranch == null)
+                {
+                    var name = head?.FriendlyName ?? "(unknown)";
+                    return new PushOutcome(false,
+                        $"Branch '{name}' has no upstream. Set one with: git push -u <remote> {name}");
+                }
+            }
+
+            var psi = new ProcessStartInfo("git", "push")
+            {
+                WorkingDirectory = repo.Path,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            using var proc = Process.Start(psi);
+            if (proc == null) return new PushOutcome(false, "Failed to start git.");
+
+            // Read both streams concurrently so a full pipe buffer on either side can't deadlock.
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+            var stderrTask = proc.StandardError.ReadToEndAsync();
+            proc.WaitForExit();
+            var stderr = stderrTask.GetAwaiter().GetResult();
+            var stdout = stdoutTask.GetAwaiter().GetResult();
+
+            if (proc.ExitCode == 0) return new PushOutcome(true, null);
+            var combined = stderr.Length > 0 ? stderr : stdout;
+            var msg = FirstMeaningfulLine(combined);
+            if (string.IsNullOrEmpty(msg)) msg = $"git push exited with code {proc.ExitCode}.";
+            return new PushOutcome(false, msg);
+        }
+        catch (Exception ex)
+        {
+            return new PushOutcome(false, ex.Message);
+        }
+    }
+
+    // Pulls the most relevant single line out of a git error blob — typically the
+    // "fatal: …" / "error: …" / "hint: …" line near the end.
+    private static string FirstMeaningfulLine(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var lines = text.Split('\n');
+        for (var i = lines.Length - 1; i >= 0; i--)
+        {
+            var line = lines[i].Trim();
+            if (line.StartsWith("fatal:", StringComparison.OrdinalIgnoreCase)
+                || line.StartsWith("error:", StringComparison.OrdinalIgnoreCase))
+                return line;
+        }
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length > 0) return trimmed;
+        }
+        return text.Trim();
     }
 
     private static CommitDetails DetailsError(Repo repo, string sha, string message)

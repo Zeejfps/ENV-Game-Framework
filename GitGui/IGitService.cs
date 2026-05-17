@@ -9,4 +9,15 @@ public interface IGitService
     void Stage(Repo repo, IReadOnlyList<string> paths);
     void Unstage(Repo repo, IReadOnlyList<string> paths);
     string? Commit(Repo repo, string message);
+    PushStatus GetPushStatus(Repo repo);
+    PushOutcome Push(Repo repo);
 }
+
+public sealed record PushStatus(
+    string? CurrentBranchName,
+    bool HasUpstream,
+    int Ahead,
+    int Behind,
+    bool IsDetached);
+
+public sealed record PushOutcome(bool Success, string? ErrorMessage);

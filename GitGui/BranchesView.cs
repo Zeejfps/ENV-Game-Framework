@@ -37,6 +37,7 @@ public sealed class BranchesView : MultiChildView
     private IDisposable? _activeSubscription;
     private IDisposable? _commitCreatedSubscription;
     private IDisposable? _commitSelectedSubscription;
+    private IDisposable? _refsChangedSubscription;
 
     private Guid _activeRepoId;
     private int _loadGeneration;
@@ -163,6 +164,7 @@ public sealed class BranchesView : MultiChildView
 
         _commitCreatedSubscription = _bus?.SubscribeScoped<CommitCreatedMessage>(OnCommitCreated);
         _commitSelectedSubscription = _bus?.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected);
+        _refsChangedSubscription = _bus?.SubscribeScoped<RefsChangedMessage>(OnRefsChanged);
     }
 
     protected override void OnDetachedFromContext(Context context)
@@ -174,6 +176,8 @@ public sealed class BranchesView : MultiChildView
         _commitCreatedSubscription = null;
         _commitSelectedSubscription?.Dispose();
         _commitSelectedSubscription = null;
+        _refsChangedSubscription?.Dispose();
+        _refsChangedSubscription = null;
         _bus = null;
         _registry = null;
         _gitService = null;
@@ -203,6 +207,13 @@ public sealed class BranchesView : MultiChildView
     }
 
     private void OnCommitCreated(CommitCreatedMessage msg)
+    {
+        var active = _registry?.Active.Value;
+        if (active == null || active.Id != msg.RepoId) return;
+        StartLoad(active);
+    }
+
+    private void OnRefsChanged(RefsChangedMessage msg)
     {
         var active = _registry?.Active.Value;
         if (active == null || active.Id != msg.RepoId) return;
