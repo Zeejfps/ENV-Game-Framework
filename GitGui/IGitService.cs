@@ -7,4 +7,5 @@ public interface IGitService
     LocalChangesSnapshot GetLocalChanges(Repo repo);
     void Stage(Repo repo, IReadOnlyList<string> paths);
     void Unstage(Repo repo, IReadOnlyList<string> paths);
+    string? Commit(Repo repo, string message);
 }

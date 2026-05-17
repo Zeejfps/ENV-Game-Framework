@@ -258,6 +258,30 @@ public sealed class GitService : IGitService
         Commands.Unstage(lg, paths);
     }
 
+    public string? Commit(Repo repo, string message)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return "Not a git repository.";
+
+            using var lg = new Repository(repo.Path);
+            // BuildSignature returns null when user.name / user.email are missing — turn
+            // that into a friendly message rather than the ArgumentNullException libgit2
+            // would throw if we passed null straight through.
+            var sig = lg.Config.BuildSignature(DateTimeOffset.Now);
+            if (sig == null)
+                return "Set git user.name and user.email before committing.";
+
+            lg.Commit(message, sig, sig);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
+    }
+
     private static CommitDetails DetailsError(Repo repo, string sha, string message)
         => new(
             RepoId: repo.Id,

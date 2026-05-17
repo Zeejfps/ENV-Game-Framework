@@ -32,7 +32,7 @@ public sealed class ModeSwitcherView : MultiChildView
         PreferredHeight = PillHeight;
 
         _history = new Segment("History", () => SetMode(MainViewMode.History));
-        _localChanges = new Segment("Local Changes", () => SetMode(MainViewMode.LocalChanges));
+        _localChanges = new Segment("Changes", () => SetMode(MainViewMode.LocalChanges));
 
         var separator = new RectView
         {

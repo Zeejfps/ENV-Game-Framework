@@ -23,6 +23,7 @@ public sealed class LocalChangesView : MultiChildView
     private IRepoRegistry? _registry;
     private IGitService? _gitService;
     private IUiDispatcher? _dispatcher;
+    private IMessageBus? _bus;
     private IDisposable? _activeSubscription;
     private IDisposable? _vmSubscription;
     private IDisposable? _unstagedSelectionSub;
@@ -43,6 +44,8 @@ public sealed class LocalChangesView : MultiChildView
     private ColumnView _commitBarColumn = null!;
     private RectView _opErrorBar = null!;
     private TextView _opErrorText = null!;
+    private TextInputView _titleInput = null!;
+    private GrowingDescriptionField _descriptionField = null!;
 
     public LocalChangesView()
     {
@@ -188,7 +191,7 @@ public sealed class LocalChangesView : MultiChildView
 
     private View BuildCommitBar()
     {
-        var titleInput = new TextInputView
+        _titleInput = new TextInputView
         {
             BackgroundColor = DialogPalette.ButtonNormal,
             TextColor = DialogPalette.TitleText,
@@ -198,7 +201,7 @@ public sealed class LocalChangesView : MultiChildView
             PlaceholderText = "Commit title",
             PlaceholderTextColor = DialogPalette.RowTextMissing,
         };
-        titleInput.Behaviors.Add(new TextInputViewKbmController(titleInput));
+        _titleInput.Behaviors.Add(new TextInputViewKbmController(_titleInput));
 
         // No PreferredHeight — let the box size to one line of text plus padding/border.
         // The input itself reports MeasureHeight = lineHeight (single line, NoWrap), and the
@@ -210,10 +213,10 @@ public sealed class LocalChangesView : MultiChildView
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(3),
             Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
-            Children = { titleInput },
+            Children = { _titleInput },
         };
 
-        var descriptionField = new GrowingDescriptionField(DescriptionMinHeight, DescriptionMaxHeight)
+        _descriptionField = new GrowingDescriptionField(DescriptionMinHeight, DescriptionMaxHeight)
         {
             PlaceholderText = "Commit description",
         };
@@ -251,7 +254,7 @@ public sealed class LocalChangesView : MultiChildView
         _commitBarColumn = new ColumnView
         {
             Gap = 8,
-            Children = { titleBox, descriptionField, buttonRow },
+            Children = { titleBox, _descriptionField, buttonRow },
         };
 
         return new RectView
@@ -272,7 +275,60 @@ public sealed class LocalChangesView : MultiChildView
 
     private void OnCommitClicked()
     {
-        // UI-only for now.
+        if (_registry == null || _gitService == null) return;
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+
+        var title = _titleInput.Text.ToString().Trim();
+        if (title.Length == 0)
+        {
+            ShowOpError("Commit title is required.");
+            return;
+        }
+
+        var description = _descriptionField.Text.ToString().Trim();
+        // Standard git format: subject, blank line, body. Skip the blank line when there's
+        // no body so the message is just the subject.
+        var message = description.Length > 0 ? $"{title}\n\n{description}" : title;
+
+        _loadGeneration++;
+        var gen = _loadGeneration;
+        var service = _gitService;
+        var dispatcher = _dispatcher;
+        var bus = _bus;
+
+        Task.Run(() =>
+        {
+            string? errorMsg = null;
+            LocalChangesSnapshot? newSnap = null;
+            try
+            {
+                errorMsg = service.Commit(repo, message);
+                if (errorMsg == null)
+                {
+                    var snap = service.GetLocalChanges(repo);
+                    if (snap.ErrorMessage != null) errorMsg = snap.ErrorMessage;
+                    else newSnap = snap;
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMsg = ex.Message;
+            }
+
+            dispatcher?.Post(() =>
+            {
+                if (gen != _loadGeneration) return;
+                ShowOpError(errorMsg);
+                if (errorMsg != null) return;
+
+                _titleInput.Clear();
+                _descriptionField.Clear();
+                if (newSnap != null)
+                    _viewModel.Value = new LocalChangesViewModel.Loaded(newSnap);
+                bus?.Broadcast(new CommitCreatedMessage(repo.Id));
+            });
+        });
     }
 
     protected override void OnAttachedToContext(Context context)
@@ -280,6 +336,7 @@ public sealed class LocalChangesView : MultiChildView
         _registry = context.Get<IRepoRegistry>();
         _gitService = context.Get<IGitService>();
         _dispatcher = context.Get<IUiDispatcher>();
+        _bus = context.Get<IMessageBus>();
         _vmSubscription = _viewModel.Subscribe(Render);
         if (_registry != null)
             _activeSubscription = _registry.Active.Subscribe(_ => StartLoadForActiveRepo());
@@ -315,6 +372,7 @@ public sealed class LocalChangesView : MultiChildView
         _registry = null;
         _gitService = null;
         _dispatcher = null;
+        _bus = null;
     }
 
     private void StartLoadForActiveRepo()
@@ -1004,6 +1062,10 @@ internal sealed class GrowingDescriptionField : MultiChildView
         get => _input.PlaceholderText;
         set => _input.PlaceholderText = value;
     }
+
+    public ReadOnlySpan<char> Text => _input.Text;
+
+    public void Clear() => _input.Clear();
 
     public GrowingDescriptionField(float minHeight, float maxHeight)
     {

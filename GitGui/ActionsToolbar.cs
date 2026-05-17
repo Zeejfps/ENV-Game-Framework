@@ -34,14 +34,14 @@ public sealed class ActionsToolbar : MultiChildView
                     CrossAxisAlignment = CrossAxisAlignment.Center,
                     Children =
                     {
+                        new ModeSwitcherView(),
+                        //new FlexItem { Grow = 1, Child = new RectView() },
                         new ActionButton(LucideIcons.Fetch, "Fetch", () => { }),
                         new ActionButton(LucideIcons.Pull, "Pull", () => { }),
                         new ActionButton(LucideIcons.Push, "Push", () => { }),
                         new SeparatorSpacer(),
                         new ActionButton(LucideIcons.Stash, "Stash", () => { }),
                         new ActionButton(LucideIcons.Branch, "Branch", () => { }),
-                        new FlexItem { Grow = 1, Child = new RectView() },
-                        new ModeSwitcherView(),
                     }
                 }
             }

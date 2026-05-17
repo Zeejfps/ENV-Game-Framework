@@ -93,6 +93,7 @@ public sealed class CommitsView : MultiChildView
     private IGitService? _gitService;
     private IUiDispatcher? _dispatcher;
     private IDisposable? _activeSubscription;
+    private Action<CommitCreatedMessage>? _commitCreatedHandler;
 
     private CommitsLoadState _state = CommitsLoadState.NoRepo;
     private CommitSnapshot? _snapshot;
@@ -165,6 +166,11 @@ public sealed class CommitsView : MultiChildView
         {
             _activeSubscription = _registry.Active.Subscribe(_ => StartLoadForActiveRepo());
         }
+        if (_bus != null)
+        {
+            _commitCreatedHandler = OnCommitCreated;
+            _bus.Subscribe(_commitCreatedHandler);
+        }
     }
 
     protected override void OnDetachedFromContext(Context context)
@@ -172,10 +178,22 @@ public sealed class CommitsView : MultiChildView
         _loadGeneration++;
         _activeSubscription?.Dispose();
         _activeSubscription = null;
+        if (_bus != null && _commitCreatedHandler != null)
+            _bus.Unsubscribe(_commitCreatedHandler);
+        _commitCreatedHandler = null;
         _bus = null;
         _registry = null;
         _gitService = null;
         _dispatcher = null;
+    }
+
+    private void OnCommitCreated(CommitCreatedMessage msg)
+    {
+        var active = _registry?.Active.Value;
+        if (active == null || active.Id != msg.RepoId) return;
+        // Drop the cached snapshot so StartLoadForActiveRepo doesn't short-circuit.
+        _snapshot = null;
+        StartLoadForActiveRepo();
     }
 
     private void StartLoadForActiveRepo()
