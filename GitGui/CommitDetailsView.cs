@@ -1,6 +1,7 @@
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -8,18 +9,10 @@ internal static class CommitDetailsPalette
 {
     public const uint Background = 0xFF1A1B1E;
     public const uint Border = 0xFF313338;
-    public const uint SectionBg = 0xFF222326;
-    public const uint Heading = 0xFF96989D;
     public const uint Primary = 0xFFE6E6E6;
     public const uint Secondary = 0xFFB5B9C0;
     public const uint Muted = 0xFF7A7C81;
     public const uint Placeholder = 0xFF96989D;
-
-    public const uint StatusAdded = 0xFF57F287;
-    public const uint StatusModified = 0xFFE9C77A;
-    public const uint StatusDeleted = 0xFFED4245;
-    public const uint StatusRenamed = 0xFF5DADE2;
-    public const uint StatusOther = 0xFF9B59B6;
 
     private static readonly uint[] AvatarPalette =
     {
@@ -43,32 +36,28 @@ internal static class CommitDetailsPalette
     }
 }
 
-internal enum CommitDetailsState
+internal abstract record CommitDetailsViewModel
 {
-    Empty,
-    Loading,
-    Loaded,
-    Error,
+    public sealed record Placeholder(string Text) : CommitDetailsViewModel;
+    public sealed record Loaded(CommitDetails Details) : CommitDetailsViewModel;
 }
 
 public sealed class CommitDetailsView : MultiChildView
 {
     private const int Padding = 14;
     private const float AvatarSize = 36f;
-    private const float StatusBadgeSize = 16f;
 
     private IMessageBus? _bus;
     private IGitService? _gitService;
     private IRepoRegistry? _registry;
+    private IUiDispatcher? _dispatcher;
     private Action<CommitSelectedMessage>? _selectedHandler;
+    private IDisposable? _vmSubscription;
 
-    private CommitDetailsState _state = CommitDetailsState.Empty;
-    private CommitDetails? _details;
-    private CommitDetails? _pendingDetails;
-    private string? _pendingErrorMessage;
+    private readonly State<CommitDetailsViewModel> _viewModel = new(
+        new CommitDetailsViewModel.Placeholder("Select a commit to view details."));
+
     private int _loadGeneration;
-    private string? _requestedSha;
-    private Guid _requestedRepoId;
 
     private readonly ColumnView _content;
     private readonly ScrollPane _scrollPane;
@@ -78,7 +67,7 @@ public sealed class CommitDetailsView : MultiChildView
     public CommitDetailsView()
     {
         _content = new ColumnView { Gap = 8 };
-        var paddedContent = new RectView
+        var paddedContent = new PaddingView
         {
             Padding = new PaddingStyle { Left = Padding, Right = Padding, Top = Padding, Bottom = Padding },
             Children = { _content },
@@ -135,8 +124,6 @@ public sealed class CommitDetailsView : MultiChildView
         });
 
         Behaviors.Add(new CommitDetailsScrollSyncController(_scrollPane, _vScrollBar, _hScrollBar));
-
-        ShowPlaceholder("Select a commit to view details.");
     }
 
     private static void StyleScrollBarThumb(VerticalScrollBarThumbView thumb)
@@ -172,6 +159,8 @@ public sealed class CommitDetailsView : MultiChildView
         _bus = context.Get<IMessageBus>();
         _gitService = context.Get<IGitService>();
         _registry = context.Get<IRepoRegistry>();
+        _dispatcher = context.Get<IUiDispatcher>();
+        _vmSubscription = _viewModel.Subscribe(Render);
         if (_bus != null)
         {
             _selectedHandler = OnCommitSelected;
@@ -181,14 +170,18 @@ public sealed class CommitDetailsView : MultiChildView
 
     protected override void OnDetachedFromContext(Context context)
     {
+        _loadGeneration++;
         if (_bus != null && _selectedHandler != null)
         {
             _bus.Unsubscribe(_selectedHandler);
         }
+        _vmSubscription?.Dispose();
+        _vmSubscription = null;
         _selectedHandler = null;
         _bus = null;
         _gitService = null;
         _registry = null;
+        _dispatcher = null;
     }
 
     private void OnCommitSelected(CommitSelectedMessage msg)
@@ -196,10 +189,7 @@ public sealed class CommitDetailsView : MultiChildView
         if (string.IsNullOrEmpty(msg.Sha))
         {
             _loadGeneration++;
-            _requestedSha = null;
-            _state = CommitDetailsState.Empty;
-            _details = null;
-            ShowPlaceholder("Select a commit to view details.");
+            _viewModel.Value = new CommitDetailsViewModel.Placeholder("Select a commit to view details.");
             return;
         }
         StartLoad(msg.RepoId, msg.Sha);
@@ -213,53 +203,44 @@ public sealed class CommitDetailsView : MultiChildView
 
         _loadGeneration++;
         var gen = _loadGeneration;
-        _requestedSha = sha;
-        _requestedRepoId = repoId;
-        _state = CommitDetailsState.Loading;
-        _details = null;
-        ShowPlaceholder("Loading…");
+        _viewModel.Value = new CommitDetailsViewModel.Placeholder("Loading…");
 
         var service = _gitService;
+        var dispatcher = _dispatcher;
         Task.Run(() =>
         {
+            CommitDetailsViewModel result;
             try
             {
                 var details = service.LoadDetails(repo, sha);
-                if (gen != Volatile.Read(ref _loadGeneration)) return;
-                Volatile.Write(ref _pendingDetails, details);
+                result = details.ErrorMessage != null
+                    ? new CommitDetailsViewModel.Placeholder(details.ErrorMessage)
+                    : new CommitDetailsViewModel.Loaded(details);
             }
             catch (Exception ex)
             {
-                if (gen != Volatile.Read(ref _loadGeneration)) return;
-                Volatile.Write(ref _pendingErrorMessage, ex.Message);
+                result = new CommitDetailsViewModel.Placeholder(ex.Message);
             }
+
+            dispatcher?.Post(() =>
+            {
+                if (gen != _loadGeneration) return;
+                _viewModel.Value = result;
+            });
         });
     }
 
-    protected override void OnDrawSelf(ICanvas c)
+    private void Render(CommitDetailsViewModel vm)
     {
-        PollPending();
-    }
-
-    private void PollPending()
-    {
-        var err = Interlocked.Exchange(ref _pendingErrorMessage, null);
-        if (err != null)
+        switch (vm)
         {
-            _details = null;
-            _state = CommitDetailsState.Error;
-            ShowPlaceholder(err);
+            case CommitDetailsViewModel.Placeholder p:
+                ShowPlaceholder(p.Text);
+                break;
+            case CommitDetailsViewModel.Loaded l:
+                ShowDetails(l.Details);
+                break;
         }
-
-        var pending = Interlocked.Exchange(ref _pendingDetails, null);
-        if (pending == null) return;
-        if (pending.Sha != _requestedSha || pending.RepoId != _requestedRepoId) return;
-        _details = pending;
-        _state = pending.ErrorMessage != null ? CommitDetailsState.Error : CommitDetailsState.Loaded;
-        if (_state == CommitDetailsState.Error)
-            ShowPlaceholder(pending.ErrorMessage ?? "Error.");
-        else
-            ShowDetails(pending);
     }
 
     private void ShowPlaceholder(string text)
@@ -315,14 +296,10 @@ public sealed class CommitDetailsView : MultiChildView
             TextColor = CommitDetailsPalette.Muted,
         });
 
-        // Files header bar
-        _content.Children.Add(BuildFilesHeader(d.Files.Count));
-
-        // File rows
-        foreach (var file in d.Files)
-        {
-            _content.Children.Add(BuildFileRow(file));
-        }
+        // Changed files
+        var section = new FileChangesSection("Changes");
+        section.SetFiles(d.Files);
+        _content.Children.Add(section);
 
         _scrollPane.ScrollToOrigin();
     }
@@ -379,77 +356,6 @@ public sealed class CommitDetailsView : MultiChildView
         };
     }
 
-    private static View BuildFilesHeader(int count)
-    {
-        return new RectView
-        {
-            BackgroundColor = CommitDetailsPalette.SectionBg,
-            BorderColor = new BorderColorStyle
-            {
-                Top = CommitDetailsPalette.Border,
-                Bottom = CommitDetailsPalette.Border,
-            },
-            BorderSize = new BorderSizeStyle { Top = 1, Bottom = 1 },
-            Padding = new PaddingStyle { Left = 4, Right = 4, Top = 4, Bottom = 4 },
-            Children =
-            {
-                new TextView
-                {
-                    Text = $"Changes ({count})",
-                    TextColor = CommitDetailsPalette.Heading,
-                },
-            },
-        };
-    }
-
-    private static View BuildFileRow(FileChange file)
-    {
-        var color = file.Status switch
-        {
-            FileChangeStatus.Added => CommitDetailsPalette.StatusAdded,
-            FileChangeStatus.Modified => CommitDetailsPalette.StatusModified,
-            FileChangeStatus.Deleted => CommitDetailsPalette.StatusDeleted,
-            FileChangeStatus.Renamed => CommitDetailsPalette.StatusRenamed,
-            _ => CommitDetailsPalette.StatusOther,
-        };
-
-        var badge = new RectView
-        {
-            PreferredWidth = StatusBadgeSize,
-            PreferredHeight = StatusBadgeSize,
-            BackgroundColor = color,
-            BorderRadius = BorderRadiusStyle.All(3),
-            Children =
-            {
-                new TextView
-                {
-                    Text = StatusGlyph(file.Status),
-                    TextColor = 0xFF1A1B1E,
-                    FontSize = 11f,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    VerticalTextAlignment = TextAlignment.Center,
-                },
-            },
-        };
-
-        var path = new TextView
-        {
-            Text = FormatPath(file),
-            TextColor = CommitDetailsPalette.Secondary,
-        };
-
-        return new FlexRowView
-        {
-            Gap = 8f,
-            CrossAxisAlignment = CrossAxisAlignment.Start,
-            Children =
-            {
-                badge,
-                new FlexItem { Grow = 1, Child = path },
-            },
-        };
-    }
-
     private static string Initials(string name, string email)
     {
         var source = !string.IsNullOrWhiteSpace(name) ? name : email;
@@ -475,24 +381,6 @@ public sealed class CommitDetailsView : MultiChildView
 
     private static string ShortSha(string sha)
         => string.IsNullOrEmpty(sha) ? string.Empty : (sha.Length >= 7 ? sha[..7] : sha);
-
-    private static string StatusGlyph(FileChangeStatus status) => status switch
-    {
-        FileChangeStatus.Added => "A",
-        FileChangeStatus.Modified => "M",
-        FileChangeStatus.Deleted => "D",
-        FileChangeStatus.Renamed => "R",
-        FileChangeStatus.Copied => "C",
-        FileChangeStatus.TypeChanged => "T",
-        _ => "·",
-    };
-
-    private static string FormatPath(FileChange file)
-    {
-        if (file.Status == FileChangeStatus.Renamed && !string.IsNullOrEmpty(file.OldPath))
-            return $"{file.OldPath} → {file.Path}";
-        return file.Path;
-    }
 
     /// <summary>
     /// libgit2's Message includes the subject line. Extract the body (everything after the
