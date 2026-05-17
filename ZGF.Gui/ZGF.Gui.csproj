@@ -7,6 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
       <ProjectReference Include="..\ZGF.Geometry\ZGF.Geometry.csproj" />
       <ProjectReference Include="..\ZGF.Inputs.Mouse\ZGF.Inputs.Mouse.csproj" />
       <ProjectReference Include="..\ZGF.KeyboardModule\ZGF.KeyboardModule.csproj" />
