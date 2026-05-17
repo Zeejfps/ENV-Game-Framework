@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace GitGui;
 
@@ -13,7 +14,7 @@ public static class RepoStateStore
         Guid? ActiveRepoId,
         Dictionary<Guid, BranchesUiState> BranchesUi);
 
-    private sealed class FileShape
+    internal sealed class FileShape
     {
         public int SchemaVersion { get; set; }
         public List<Repo> Repos { get; set; } = new();
@@ -21,12 +22,6 @@ public static class RepoStateStore
         public Guid? ActiveRepoId { get; set; }
         public Dictionary<Guid, BranchesUiState>? BranchesUi { get; set; }
     }
-
-    private static readonly JsonSerializerOptions Options = new()
-    {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
 
     public static State Load(string path)
     {
@@ -36,7 +31,7 @@ public static class RepoStateStore
         try
         {
             using var stream = File.OpenRead(path);
-            var file = JsonSerializer.Deserialize<FileShape>(stream, Options);
+            var file = JsonSerializer.Deserialize(stream, RepoStateJsonContext.Default.FileShape);
             if (file is null)
                 return EmptyState();
 
@@ -87,7 +82,7 @@ public static class RepoStateStore
             ActiveRepoId = activeId,
             BranchesUi = branchesUi.ToDictionary(kv => kv.Key, kv => kv.Value),
         };
-        var json = JsonSerializer.Serialize(file, Options);
+        var json = JsonSerializer.Serialize(file, RepoStateJsonContext.Default.FileShape);
         File.WriteAllText(path, json);
     }
 
@@ -123,3 +118,9 @@ public static class RepoStateStore
         return cleaned;
     }
 }
+
+[JsonSourceGenerationOptions(
+    WriteIndented = true,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+[JsonSerializable(typeof(RepoStateStore.FileShape))]
+internal partial class RepoStateJsonContext : JsonSerializerContext;
