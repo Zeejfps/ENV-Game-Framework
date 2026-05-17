@@ -46,6 +46,12 @@ public sealed class TextView : MultiChildView
         }
     }
 
+    public StyleValue<float> Rotation
+    {
+        get => _style.Rotation;
+        set => SetField(ref _style.Rotation, value);
+    }
+
     private string? _text;
     public string? Text
     {
@@ -140,6 +146,8 @@ public sealed class TextView : MultiChildView
             _style.TextColor = style.TextColor;
         if (style.FontSize.IsSet)
             _style.FontSize = style.FontSize;
+        if (style.Rotation.IsSet)
+            _style.Rotation = style.Rotation;
     }
 
     protected override void OnDrawSelf(ICanvas c)

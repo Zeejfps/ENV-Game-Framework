@@ -42,12 +42,14 @@ public abstract class RenderedCanvasBase : ICanvas
         public Vector4 AtlasUV;
         public uint Color;
         public uint ClipIndex;
+        public float Rotation; // radians, rotation about the glyph rect's center
 
         public bool Equals(GlyphInstance other) =>
             Rect.Equals(other.Rect) &&
             AtlasUV.Equals(other.AtlasUV) &&
             Color == other.Color &&
-            ClipIndex == other.ClipIndex;
+            ClipIndex == other.ClipIndex &&
+            Rotation == other.Rotation;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -210,6 +212,7 @@ public abstract class RenderedCanvasBase : ICanvas
         var font = ResolveFont(style);
         var color = style.TextColor.Value;
         var clip = (uint)_clipStack.Peek();
+        var rotation = style.Rotation.Value;
         var seq = _sequence++;
         var key = MakeKey(inputs.ZIndex, seq);
 
@@ -254,7 +257,7 @@ public abstract class RenderedCanvasBase : ICanvas
                 cursorX = pos.Left + (pos.Width - width) * 0.5f;
             }
 
-            DrawShapedLine(font, lineSlice, cursorX, baselineY, color, clip, key);
+            DrawShapedLine(font, lineSlice, cursorX, baselineY, color, clip, rotation, key);
 
             if (nl < 0)
                 break;
@@ -265,7 +268,7 @@ public abstract class RenderedCanvasBase : ICanvas
     }
 
     private void DrawShapedLine(FontHandle font, ReadOnlySpan<char> line, float startX, float baselineY,
-        uint color, uint clip, long key)
+        uint color, uint clip, float rotation, long key)
     {
         if (line.Length == 0)
             return;
@@ -308,6 +311,7 @@ public abstract class RenderedCanvasBase : ICanvas
                         AtlasUV = new Vector4(atlasU, atlasV, atlasW, atlasH),
                         Color = color,
                         ClipIndex = clip,
+                        Rotation = rotation,
                     }
                 });
             }

@@ -325,6 +325,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         AddFloatInstanceAttrib(2, 4, stride, OffsetOf<GlyphInstance>(nameof(GlyphInstance.AtlasUV)));
         AddUintInstanceAttrib(3, stride, OffsetOf<GlyphInstance>(nameof(GlyphInstance.Color)));
         AddUintInstanceAttrib(4, stride, OffsetOf<GlyphInstance>(nameof(GlyphInstance.ClipIndex)));
+        AddFloatInstanceAttrib(5, 1, stride, OffsetOf<GlyphInstance>(nameof(GlyphInstance.Rotation)));
 
         glBindVertexArray(0);
         AssertNoGlError();
@@ -411,6 +412,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         SetFloatInstancePointer(2, 4, stride, baseBytes + OffsetOf<GlyphInstance>(nameof(GlyphInstance.AtlasUV)));
         SetUintInstancePointer(3, stride, baseBytes + OffsetOf<GlyphInstance>(nameof(GlyphInstance.Color)));
         SetUintInstancePointer(4, stride, baseBytes + OffsetOf<GlyphInstance>(nameof(GlyphInstance.ClipIndex)));
+        SetFloatInstancePointer(5, 1, stride, baseBytes + OffsetOf<GlyphInstance>(nameof(GlyphInstance.Rotation)));
     }
 
     private void RebindImageInstancePointers(int firstInstance)

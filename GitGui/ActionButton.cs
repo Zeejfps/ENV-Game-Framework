@@ -21,6 +21,12 @@ public sealed class ActionButton : HoverableButton
         set => _labelView.Text = value;
     }
 
+    public float IconRotation
+    {
+        get => _iconView.Rotation.Value;
+        set => _iconView.Rotation = value;
+    }
+
     public ActionButton(string icon, string label, Action onClick) : base(onClick)
     {
         PreferredHeight = 28;

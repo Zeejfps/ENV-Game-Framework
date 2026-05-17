@@ -9,4 +9,5 @@ public sealed class TextStyle
     public StyleValue<TextAlignment> HorizontalAlignment;
     public StyleValue<TextAlignment> VerticalAlignment;
     public StyleValue<TextWrap> TextWrap;
+    public StyleValue<float> Rotation = new(0f, false);
 }
