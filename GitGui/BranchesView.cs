@@ -274,9 +274,10 @@ public sealed class BranchesView : MultiChildView
             EmitTreeRows(localTree, isRemote: false, remoteName: null, IndentLocalTreeBase, depth: 0);
         }
 
-        _rows.Add(new Row(RowKind.RemotesHeader, "Remotes", IndentSection, _ui.RemotesOpen));
+        _rows.Add(new Row(RowKind.RemotesHeader, "Remote", IndentSection, _ui.RemotesOpen));
         if (_ui.RemotesOpen)
         {
+            //
             foreach (var rg in listing.Remotes)
             {
                 var isOpen = _ui.RemoteOpen.TryGetValue(rg.Name, out var v) ? v : true;
