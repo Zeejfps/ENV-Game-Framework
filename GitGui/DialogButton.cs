@@ -1,15 +1,11 @@
 using ZGF.Gui;
-using ZGF.Gui.Bindings;
-using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class DialogButton : MultiChildView
+public sealed class DialogButton : HoverableButton
 {
-    public DialogButton(string label, Action onClick)
+    public DialogButton(string label, Action onClick) : base(onClick)
     {
-        var isHovered = new State<bool>(false);
-
         var background = new RectView
         {
             BorderSize = BorderSizeStyle.All(1),
@@ -25,14 +21,7 @@ public sealed class DialogButton : MultiChildView
                 }
             }
         };
-        background.BindBackgroundColor(isHovered,
-            h => h ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal);
-        background.BindBorderColor(isHovered,
-            h => BorderColorStyle.All(h ? DialogPalette.ButtonBorderHover : DialogPalette.ButtonBorder));
-        AddChildToSelf(background);
-
-        Behaviors.Add(new HoverableButtonController(
-            onClick,
-            h => isHovered.Value = h));
+        DialogPalette.BindBorderedButtonChrome(background, IsHovered);
+        SetBackground(background);
     }
 }

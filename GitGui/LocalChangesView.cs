@@ -616,19 +616,17 @@ internal sealed class TransferListRow : MultiChildView
     }
 }
 
-internal sealed class LocalChangesHeaderActionButton : MultiChildView
+internal sealed class LocalChangesHeaderActionButton : HoverableButton
 {
     private const float ButtonSize = 22f;
     private const float IconSize = 13f;
     private const uint IconIdleColor = 0xFFB5B9C0;
     private const uint TransparentBg = 0x00000000u;
 
-    public LocalChangesHeaderActionButton(string icon, Action onClick)
+    public LocalChangesHeaderActionButton(string icon, Action onClick) : base(onClick)
     {
         PreferredWidth = ButtonSize;
         PreferredHeight = ButtonSize;
-
-        var isHovered = new State<bool>(false);
 
         var iconView = new TextView
         {
@@ -638,18 +636,16 @@ internal sealed class LocalChangesHeaderActionButton : MultiChildView
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        iconView.BindTextColor(isHovered, h => h ? 0xFFFFFFFFu : IconIdleColor);
+        iconView.BindTextColor(IsHovered, h => h ? 0xFFFFFFFFu : IconIdleColor);
 
         var background = new RectView
         {
             BorderRadius = BorderRadiusStyle.All(3),
             Children = { iconView },
         };
-        background.BindBackgroundColor(isHovered,
+        background.BindBackgroundColor(IsHovered,
             h => h ? DialogPalette.ButtonHover : TransparentBg);
-        AddChildToSelf(background);
-
-        Behaviors.Add(new HoverableButtonController(onClick, h => isHovered.Value = h));
+        SetBackground(background);
     }
 }
 
@@ -758,29 +754,7 @@ internal sealed class LocalChangesPanel : MultiChildView
         _scrollPane.Children.Add(paddedRows);
         _scrollPane.Behaviors.Add(new ScrollPaneWheelController(_scrollPane));
 
-        _scrollBar = new VerticalScrollBarView
-        {
-            TrackBackgroundColor = CommitsPalette.ScrollTrackBg,
-            TrackBorderColor = new BorderColorStyle
-            {
-                Left = CommitsPalette.ScrollTrackBorder,
-                Top = CommitsPalette.ScrollTrackBorder,
-                Right = CommitsPalette.ScrollTrackBorder,
-                Bottom = CommitsPalette.ScrollTrackBorder,
-            },
-            TrackBorderSize = new BorderSizeStyle { Left = 1 },
-        };
-        _scrollBar.Thumb.IdleBackgroundColor = CommitsPalette.ScrollThumbBg;
-        _scrollBar.Thumb.HoveredBackgroundColor = CommitsPalette.ScrollThumbHoverBg;
-        _scrollBar.Thumb.BorderColor = new BorderColorStyle
-        {
-            Left = CommitsPalette.ScrollThumbBorder,
-            Top = CommitsPalette.ScrollThumbBorder,
-            Right = CommitsPalette.ScrollThumbBorder,
-            Bottom = CommitsPalette.ScrollThumbBorder,
-        };
-        _scrollBar.Thumb.BorderSize = BorderSizeStyle.All(1);
-        _scrollBar.Behaviors.Add(new VerticalScrollBarViewController(_scrollBar));
+        _scrollBar = ScrollBarStyles.CreateVertical();
 
         // _scrollPane already carries ScrollPaneWheelController, and the InputSystem
         // only allows one controller per view — so the deselect-on-empty-click handler
@@ -1130,29 +1104,7 @@ internal sealed class GrowingDescriptionField : MultiChildView
         _scrollPane.Children.Add(_input);
         _scrollPane.Behaviors.Add(new ScrollPaneWheelController(_scrollPane));
 
-        _scrollBar = new VerticalScrollBarView
-        {
-            TrackBackgroundColor = CommitsPalette.ScrollTrackBg,
-            TrackBorderColor = new BorderColorStyle
-            {
-                Left = CommitsPalette.ScrollTrackBorder,
-                Top = CommitsPalette.ScrollTrackBorder,
-                Right = CommitsPalette.ScrollTrackBorder,
-                Bottom = CommitsPalette.ScrollTrackBorder,
-            },
-            TrackBorderSize = new BorderSizeStyle { Left = 1 },
-        };
-        _scrollBar.Thumb.IdleBackgroundColor = CommitsPalette.ScrollThumbBg;
-        _scrollBar.Thumb.HoveredBackgroundColor = CommitsPalette.ScrollThumbHoverBg;
-        _scrollBar.Thumb.BorderColor = new BorderColorStyle
-        {
-            Left = CommitsPalette.ScrollThumbBorder,
-            Top = CommitsPalette.ScrollThumbBorder,
-            Right = CommitsPalette.ScrollThumbBorder,
-            Bottom = CommitsPalette.ScrollThumbBorder,
-        };
-        _scrollBar.Thumb.BorderSize = BorderSizeStyle.All(1);
-        _scrollBar.Behaviors.Add(new VerticalScrollBarViewController(_scrollBar));
+        _scrollBar = ScrollBarStyles.CreateVertical();
 
         AddChildToSelf(new RectView
         {

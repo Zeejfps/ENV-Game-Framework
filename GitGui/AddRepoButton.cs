@@ -1,16 +1,12 @@
 using ZGF.Gui;
-using ZGF.Gui.Bindings;
-using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class AddRepoButton : MultiChildView
+public sealed class AddRepoButton : HoverableButton
 {
     public AddRepoButton()
     {
         PreferredHeight = 30;
-
-        var isHovered = new State<bool>(false);
 
         var background = new RectView
         {
@@ -27,14 +23,10 @@ public sealed class AddRepoButton : MultiChildView
                 }
             }
         };
-        background.BindBackgroundColor(isHovered,
-            h => h ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal);
-        background.BindBorderColor(isHovered,
-            h => BorderColorStyle.All(h ? DialogPalette.ButtonBorderHover : DialogPalette.ButtonBorder));
-        AddChildToSelf(background);
-
-        Behaviors.Add(new HoverableButtonController(
-            () => Context?.Get<IMessageBus>()?.Broadcast<AddRepoMessage>(),
-            h => isHovered.Value = h));
+        DialogPalette.BindBorderedButtonChrome(background, IsHovered);
+        SetBackground(background);
     }
+
+    protected override void OnClicked()
+        => Context?.Get<IMessageBus>()?.Broadcast<AddRepoMessage>();
 }

@@ -1,17 +1,14 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
-using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class ActionButton : MultiChildView
+public sealed class ActionButton : HoverableButton
 {
-    public ActionButton(string icon, string label, Action onClick)
+    public ActionButton(string icon, string label, Action onClick) : base(onClick)
     {
         PreferredHeight = 28;
-
-        var isHovered = new State<bool>(false);
 
         var iconView = new TextView
         {
@@ -20,14 +17,14 @@ public sealed class ActionButton : MultiChildView
             FontSize = 14,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        iconView.BindTextColor(isHovered, h => h ? 0xFFFFFFFF : DialogPalette.RowText);
+        iconView.BindTextColor(IsHovered, h => h ? 0xFFFFFFFF : DialogPalette.RowText);
 
         var labelView = new TextView
         {
             Text = label,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        labelView.BindTextColor(isHovered, h => h ? 0xFFFFFFFF : DialogPalette.RowText);
+        labelView.BindTextColor(IsHovered, h => h ? 0xFFFFFFFF : DialogPalette.RowText);
 
         var background = new RectView
         {
@@ -41,10 +38,8 @@ public sealed class ActionButton : MultiChildView
                 }
             }
         };
-        background.BindBackgroundColor(isHovered,
+        background.BindBackgroundColor(IsHovered,
             h => h ? DialogPalette.ButtonHover : 0x00000000u);
-        AddChildToSelf(background);
-
-        Behaviors.Add(new HoverableButtonController(onClick, h => isHovered.Value = h));
+        SetBackground(background);
     }
 }

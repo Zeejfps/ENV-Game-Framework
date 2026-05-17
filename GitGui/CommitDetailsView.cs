@@ -51,7 +51,7 @@ public sealed class CommitDetailsView : MultiChildView
     private IGitService? _gitService;
     private IRepoRegistry? _registry;
     private IUiDispatcher? _dispatcher;
-    private Action<CommitSelectedMessage>? _selectedHandler;
+    private IDisposable? _selectedSubscription;
     private IDisposable? _vmSubscription;
 
     private readonly State<CommitDetailsViewModel> _viewModel = new(
@@ -77,35 +77,8 @@ public sealed class CommitDetailsView : MultiChildView
         _scrollPane.Children.Add(paddedContent);
         _scrollPane.Behaviors.Add(new ScrollPaneWheelController(_scrollPane));
 
-        _vScrollBar = new VerticalScrollBarView
-        {
-            TrackBackgroundColor = CommitsPalette.ScrollTrackBg,
-            TrackBorderColor = new BorderColorStyle
-            {
-                Left = CommitsPalette.ScrollTrackBorder,
-                Top = CommitsPalette.ScrollTrackBorder,
-                Right = CommitsPalette.ScrollTrackBorder,
-                Bottom = CommitsPalette.ScrollTrackBorder,
-            },
-            TrackBorderSize = new BorderSizeStyle { Left = 1 },
-        };
-        StyleScrollBarThumb(_vScrollBar.Thumb);
-        _vScrollBar.Behaviors.Add(new VerticalScrollBarViewController(_vScrollBar));
-
-        _hScrollBar = new HorizontalScrollBarView
-        {
-            TrackBackgroundColor = CommitsPalette.ScrollTrackBg,
-            TrackBorderColor = new BorderColorStyle
-            {
-                Left = CommitsPalette.ScrollTrackBorder,
-                Top = CommitsPalette.ScrollTrackBorder,
-                Right = CommitsPalette.ScrollTrackBorder,
-                Bottom = CommitsPalette.ScrollTrackBorder,
-            },
-            TrackBorderSize = new BorderSizeStyle { Top = 1 },
-        };
-        StyleHorizontalScrollBarThumb(_hScrollBar.Thumb);
-        _hScrollBar.Behaviors.Add(new HorizontalScrollBarViewController(_hScrollBar));
+        _vScrollBar = ScrollBarStyles.CreateVertical();
+        _hScrollBar = ScrollBarStyles.CreateHorizontal();
 
         AddChildToSelf(new RectView
         {
@@ -126,34 +99,6 @@ public sealed class CommitDetailsView : MultiChildView
         Behaviors.Add(new CommitDetailsScrollSyncController(_scrollPane, _vScrollBar, _hScrollBar));
     }
 
-    private static void StyleScrollBarThumb(VerticalScrollBarThumbView thumb)
-    {
-        thumb.IdleBackgroundColor = CommitsPalette.ScrollThumbBg;
-        thumb.HoveredBackgroundColor = CommitsPalette.ScrollThumbHoverBg;
-        thumb.BorderColor = new BorderColorStyle
-        {
-            Left = CommitsPalette.ScrollThumbBorder,
-            Top = CommitsPalette.ScrollThumbBorder,
-            Right = CommitsPalette.ScrollThumbBorder,
-            Bottom = CommitsPalette.ScrollThumbBorder,
-        };
-        thumb.BorderSize = BorderSizeStyle.All(1);
-    }
-
-    private static void StyleHorizontalScrollBarThumb(HorizontalScrollBarThumbView thumb)
-    {
-        thumb.IdleBackgroundColor = CommitsPalette.ScrollThumbBg;
-        thumb.HoveredBackgroundColor = CommitsPalette.ScrollThumbHoverBg;
-        thumb.BorderColor = new BorderColorStyle
-        {
-            Left = CommitsPalette.ScrollThumbBorder,
-            Top = CommitsPalette.ScrollThumbBorder,
-            Right = CommitsPalette.ScrollThumbBorder,
-            Bottom = CommitsPalette.ScrollThumbBorder,
-        };
-        thumb.BorderSize = BorderSizeStyle.All(1);
-    }
-
     protected override void OnAttachedToContext(Context context)
     {
         _bus = context.Get<IMessageBus>();
@@ -161,23 +106,16 @@ public sealed class CommitDetailsView : MultiChildView
         _registry = context.Get<IRepoRegistry>();
         _dispatcher = context.Get<IUiDispatcher>();
         _vmSubscription = _viewModel.Subscribe(Render);
-        if (_bus != null)
-        {
-            _selectedHandler = OnCommitSelected;
-            _bus.Subscribe(_selectedHandler);
-        }
+        _selectedSubscription = _bus?.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected);
     }
 
     protected override void OnDetachedFromContext(Context context)
     {
         _loadGeneration++;
-        if (_bus != null && _selectedHandler != null)
-        {
-            _bus.Unsubscribe(_selectedHandler);
-        }
+        _selectedSubscription?.Dispose();
+        _selectedSubscription = null;
         _vmSubscription?.Dispose();
         _vmSubscription = null;
-        _selectedHandler = null;
         _bus = null;
         _gitService = null;
         _registry = null;

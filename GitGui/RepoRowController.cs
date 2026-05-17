@@ -40,7 +40,7 @@ public sealed class RepoRowController : KeyboardMouseController
         _dragController = context.Get<IDragController>();
         _inputSystem = context.Get<InputSystem>();
 
-        var group = FindGroupContaining(_registry, _repo.Id);
+        var group = _registry.FindGroupContaining(_repo.Id);
         if (group is not null)
         {
             _dragController?.RegisterRepoRow(view, group.Id, _repo.Id);
@@ -159,14 +159,5 @@ public sealed class RepoRowController : KeyboardMouseController
             _dragging = false;
         }
         _pressed = false;
-    }
-
-    private static Group? FindGroupContaining(IRepoRegistry registry, Guid repoId)
-    {
-        foreach (var group in registry.Groups)
-        {
-            if (group.RepoIds.Contains(repoId)) return group;
-        }
-        return null;
     }
 }

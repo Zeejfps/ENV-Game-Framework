@@ -57,7 +57,7 @@ public sealed class RepoRow : MultiChildView
 
     private static IReadOnlyList<RepoBarContextMenu.Item> BuildMenuItems(Repo repo, IRepoRegistry registry)
     {
-        var sourceGroup = FindGroupContaining(registry, repo.Id);
+        var sourceGroup = registry.FindGroupContaining(repo.Id);
         var items = new List<RepoBarContextMenu.Item>();
 
         foreach (var group in registry.Groups)
@@ -82,15 +82,6 @@ public sealed class RepoRow : MultiChildView
             }));
 
         return items;
-    }
-
-    private static Group? FindGroupContaining(IRepoRegistry registry, Guid repoId)
-    {
-        foreach (var group in registry.Groups)
-        {
-            if (group.RepoIds.Contains(repoId)) return group;
-        }
-        return null;
     }
 
     protected override void OnAttachedToContext(Context context)

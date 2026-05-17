@@ -1,4 +1,8 @@
-﻿namespace GitGui;
+﻿using ZGF.Gui;
+using ZGF.Gui.Bindings;
+using ZGF.Observable;
+
+namespace GitGui;
 
 internal static class DialogPalette
 {
@@ -25,4 +29,10 @@ internal static class DialogPalette
     public const uint RowTextActive = 0xFFFFFFFF;
     public const uint RowTextMissing = 0x80B5B9C0;
     public const uint SectionHeaderText = 0xFF96989D;
+
+    public static void BindBorderedButtonChrome(RectView background, IReadable<bool> isHovered)
+    {
+        background.BindBackgroundColor(isHovered, h => h ? ButtonHover : ButtonNormal);
+        background.BindBorderColor(isHovered, h => BorderColorStyle.All(h ? ButtonBorderHover : ButtonBorder));
+    }
 }
