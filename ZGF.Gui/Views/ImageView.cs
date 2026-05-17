@@ -9,7 +9,13 @@ public sealed class ImageView : MultiChildView
         get => _style.TintColor;
         set => SetField(ref _style.TintColor, value);
     }
-    
+
+    public StyleValue<float> Rotation
+    {
+        get => _style.Rotation;
+        set => SetField(ref _style.Rotation, value);
+    }
+
     private string? _imageId;
     public string? ImageId
     {

@@ -54,6 +54,7 @@ public enum MTLResourceOptions : ulong
 public enum MTLVertexFormat : uint
 {
     Invalid = 0,
+    Float = 28,
     Float2 = 29,
     Float4 = 31,
     UInt = 36,

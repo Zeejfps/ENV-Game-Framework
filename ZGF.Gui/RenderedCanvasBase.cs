@@ -57,6 +57,7 @@ public abstract class RenderedCanvasBase : ICanvas
         public Vector4 SrcUV;
         public uint Tint;
         public uint ClipIndex;
+        public float Rotation; // radians, rotation about the rect's center
         public uint TextureId; // not uploaded to GPU; used only for batching
 
         public bool Equals(ImageInstance other) =>
@@ -64,6 +65,7 @@ public abstract class RenderedCanvasBase : ICanvas
             SrcUV.Equals(other.SrcUV) &&
             Tint == other.Tint &&
             ClipIndex == other.ClipIndex &&
+            Rotation == other.Rotation &&
             TextureId == other.TextureId;
     }
 
@@ -398,6 +400,7 @@ public abstract class RenderedCanvasBase : ICanvas
                 SrcUV = new Vector4(0f, 0f, 1f, 1f),
                 Tint = inputs.Style.TintColor.Value,
                 ClipIndex = (uint)_clipStack.Peek(),
+                Rotation = inputs.Style.Rotation.Value,
                 TextureId = GetImageTextureId(imageId),
             }
         });

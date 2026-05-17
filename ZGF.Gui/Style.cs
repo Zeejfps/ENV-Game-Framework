@@ -3,6 +3,7 @@
 public sealed class Style
 {
     public StyleValue<uint> TintColor { get; set; }
+    public StyleValue<float> Rotation { get; set; }
     public StyleValue<uint> TextColor { get; set; }
     public StyleValue<float> FontSize { get; set; }
     public StyleValue<uint> BackgroundColor { get; set; }

@@ -447,6 +447,7 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         SetAttribute(desc, 2, MTLVertexFormat.Float4, off, 3); off += 16;
         SetAttribute(desc, 3, MTLVertexFormat.UInt, off, 3); off += 4;
         SetAttribute(desc, 4, MTLVertexFormat.UInt, off, 3); off += 4;
+        SetAttribute(desc, 5, MTLVertexFormat.Float, off, 3); off += 4;
         SetLayout(desc, 2, 8, MTLVertexStepFunction.PerVertex);
         SetLayout(desc, 3, sizeof(ImageInstance), MTLVertexStepFunction.PerInstance);
         return desc;

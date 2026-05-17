@@ -348,6 +348,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         AddFloatInstanceAttrib(2, 4, stride, OffsetOf<ImageInstance>(nameof(ImageInstance.SrcUV)));
         AddUintInstanceAttrib(3, stride, OffsetOf<ImageInstance>(nameof(ImageInstance.Tint)));
         AddUintInstanceAttrib(4, stride, OffsetOf<ImageInstance>(nameof(ImageInstance.ClipIndex)));
+        AddFloatInstanceAttrib(5, 1, stride, OffsetOf<ImageInstance>(nameof(ImageInstance.Rotation)));
 
         glBindVertexArray(0);
         AssertNoGlError();
@@ -421,6 +422,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         SetFloatInstancePointer(2, 4, stride, baseBytes + OffsetOf<ImageInstance>(nameof(ImageInstance.SrcUV)));
         SetUintInstancePointer(3, stride, baseBytes + OffsetOf<ImageInstance>(nameof(ImageInstance.Tint)));
         SetUintInstancePointer(4, stride, baseBytes + OffsetOf<ImageInstance>(nameof(ImageInstance.ClipIndex)));
+        SetFloatInstancePointer(5, 1, stride, baseBytes + OffsetOf<ImageInstance>(nameof(ImageInstance.Rotation)));
     }
 
     private static void BindClipBlockToZero(uint shader)

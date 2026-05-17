@@ -8,6 +8,7 @@ struct VertexInput
     [[vk::location(2)]] float4 srcUV      : TEXCOORD1;
     [[vk::location(3)]] uint   tint       : COLOR0;
     [[vk::location(4)]] uint   clipIndex  : COLOR1;
+    [[vk::location(5)]] float  rotation   : TEXCOORD2; // radians, rotation about the rect's center
 };
 
 struct Varyings
@@ -35,7 +36,12 @@ Sampler2D u_texture;
 Varyings vertexMain(VertexInput input)
 {
     Varyings o;
-    float2 pixelPos = input.rect.xy + input.unitPos * input.rect.zw;
+    float2 center = input.rect.xy + input.rect.zw * 0.5;
+    float2 local = (input.unitPos - float2(0.5, 0.5)) * input.rect.zw;
+    float cs = cos(input.rotation);
+    float sn = sin(input.rotation);
+    float2 rotated = float2(cs * local.x - sn * local.y, sn * local.x + cs * local.y);
+    float2 pixelPos = center + rotated;
     o.position = mul(u_projection, float4(pixelPos, 0.0, 1.0));
     o.pixelPos = pixelPos;
     o.uv = float2(

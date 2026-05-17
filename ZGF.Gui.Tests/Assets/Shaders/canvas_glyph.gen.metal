@@ -3,7 +3,7 @@
 #include <metal_texture>
 using namespace metal;
 
-#line 49 "/Users/zee-seriesai/src/cs/ENV-Game-Framework/.claude/worktrees/metal-canvas-backend/ZGF.Gui.Tests/Assets/Shaders/canvas_glyph.slang"
+#line 49 "/Users/zee-seriesai/src/cs/ENV-Game-Framework/ZGF.Gui.Tests/Assets/Shaders/canvas_glyph.slang"
 float4 unpackARGB_0(uint c_0)
 {
 
@@ -29,7 +29,7 @@ struct pixelInput_0
 };
 
 
-#line 22 "/Users/zee-seriesai/src/cs/ENV-Game-Framework/.claude/worktrees/metal-canvas-backend/ZGF.Gui.Tests/Assets/Shaders/canvas_glyph.slang"
+#line 22 "/Users/zee-seriesai/src/cs/ENV-Game-Framework/ZGF.Gui.Tests/Assets/Shaders/canvas_glyph.slang"
 struct SLANG_ParameterGroup_Globals_0
 {
     matrix<float,int(4),int(4)>  u_projection_0;
