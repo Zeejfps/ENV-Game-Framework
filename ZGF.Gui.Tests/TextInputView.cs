@@ -47,8 +47,22 @@ public sealed class TextInputView : MultiChildView
         set => SetField(ref _cursorStyle.BackgroundColor, value);
     }
 
+    private string? _placeholderText;
+    public string? PlaceholderText
+    {
+        get => _placeholderText;
+        set => SetField(ref _placeholderText, value);
+    }
+
+    private StyleValue<uint> _placeholderColor;
+    public StyleValue<uint> PlaceholderTextColor
+    {
+        get => _placeholderColor;
+        set => SetField(ref _placeholderColor, value);
+    }
+
     public bool IsSelecting => _caretIndex != _selectionStartIndex;
-    
+
     private readonly RectStyle _background = new();
     private readonly TextStyle _textStyle = new();
     private readonly RectStyle _cursorStyle = new();
@@ -254,14 +268,51 @@ public sealed class TextInputView : MultiChildView
             DrawSelectionBox(position, c);
         }
 
-        DrawText(position, c);
-        
+        if (_strLen == 0)
+        {
+            DrawPlaceholder(position, c);
+        }
+        else
+        {
+            DrawText(position, c);
+        }
+
         if (_isEditing)
         {
             DrawCaret(position, c);
         }
-        
+
         c.PopClip();
+    }
+
+    private void DrawPlaceholder(in RectF position, ICanvas c)
+    {
+        if (string.IsNullOrEmpty(_placeholderText))
+            return;
+
+        // Swap the text color for the placeholder color while reusing the rest of
+        // _textStyle (font, alignment, wrap). Restored before returning so subsequent
+        // draws — once the user types — pick up the original color again.
+        var originalColor = _textStyle.TextColor;
+        if (_placeholderColor.IsSet)
+            _textStyle.TextColor = _placeholderColor;
+
+        var lineHeight = c.MeasureTextLineHeight(_textStyle);
+        c.DrawText(new DrawTextInputs
+        {
+            Position = new RectF
+            {
+                Left = position.Left,
+                Bottom = position.Top - lineHeight,
+                Width = position.Width,
+                Height = lineHeight,
+            },
+            Text = _placeholderText!,
+            Style = _textStyle,
+            ZIndex = ZIndex,
+        });
+
+        _textStyle.TextColor = originalColor;
     }
 
     private void DrawBackground(in RectF position, ICanvas c)

@@ -195,6 +195,8 @@ public sealed class LocalChangesView : MultiChildView
             CaretColor = DialogPalette.TitleText,
             SelectionRectColor = DialogPalette.RowActive,
             TextWrap = TextWrap.NoWrap,
+            PlaceholderText = "Commit subject",
+            PlaceholderTextColor = DialogPalette.RowTextMissing,
         };
         titleInput.Behaviors.Add(new TextInputViewKbmController(titleInput));
 
@@ -211,7 +213,10 @@ public sealed class LocalChangesView : MultiChildView
             Children = { titleInput },
         };
 
-        var descriptionField = new GrowingDescriptionField(DescriptionMinHeight, DescriptionMaxHeight);
+        var descriptionField = new GrowingDescriptionField(DescriptionMinHeight, DescriptionMaxHeight)
+        {
+            PlaceholderText = "Commit description",
+        };
 
         var commitButton = new DialogButton("Commit", OnCommitClicked)
         {
@@ -994,6 +999,12 @@ internal sealed class GrowingDescriptionField : MultiChildView
     private readonly ScrollPane _scrollPane;
     private readonly VerticalScrollBarView _scrollBar;
 
+    public string? PlaceholderText
+    {
+        get => _input.PlaceholderText;
+        set => _input.PlaceholderText = value;
+    }
+
     public GrowingDescriptionField(float minHeight, float maxHeight)
     {
         _minHeight = minHeight;
@@ -1007,6 +1018,7 @@ internal sealed class GrowingDescriptionField : MultiChildView
             SelectionRectColor = DialogPalette.RowActive,
             TextVerticalAlignment = TextAlignment.Start,
             TextWrap = TextWrap.Wrap,
+            PlaceholderTextColor = DialogPalette.RowTextMissing,
         };
         _input.Behaviors.Add(new TextInputViewKbmController(_input) { IsMultiLine = true });
 
