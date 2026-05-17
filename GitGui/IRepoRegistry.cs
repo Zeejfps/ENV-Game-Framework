@@ -19,4 +19,6 @@ public interface IRepoRegistry
     void RemoveRepo(Guid repoId);
     void BeginRenameGroup(Guid id);
     void EndRenameGroup();
+    BranchesUiState GetBranchesUi(Guid repoId);
+    void SetBranchesUi(Guid repoId, BranchesUiState state);
 }

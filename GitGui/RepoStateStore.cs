@@ -7,7 +7,11 @@ public static class RepoStateStore
     private const int CurrentSchemaVersion = 2;
     private const string DefaultGroupName = "Repositories";
 
-    public sealed record State(List<Repo> Repos, List<Group> Groups, Guid? ActiveRepoId);
+    public sealed record State(
+        List<Repo> Repos,
+        List<Group> Groups,
+        Guid? ActiveRepoId,
+        Dictionary<Guid, BranchesUiState> BranchesUi);
 
     private sealed class FileShape
     {
@@ -15,6 +19,7 @@ public static class RepoStateStore
         public List<Repo> Repos { get; set; } = new();
         public List<Group>? Groups { get; set; }
         public Guid? ActiveRepoId { get; set; }
+        public Dictionary<Guid, BranchesUiState>? BranchesUi { get; set; }
     }
 
     private static readonly JsonSerializerOptions Options = new()
@@ -54,7 +59,7 @@ public static class RepoStateStore
                 groups = ReconcileGroups(groups, repos);
             }
 
-            return new State(repos, groups, file.ActiveRepoId);
+            return new State(repos, groups, file.ActiveRepoId, file.BranchesUi ?? new Dictionary<Guid, BranchesUiState>());
         }
         catch (Exception ex)
         {
@@ -63,7 +68,12 @@ public static class RepoStateStore
         }
     }
 
-    public static void Save(string path, IReadOnlyList<Repo> repos, IReadOnlyList<Group> groups, Guid? activeId)
+    public static void Save(
+        string path,
+        IReadOnlyList<Repo> repos,
+        IReadOnlyList<Group> groups,
+        Guid? activeId,
+        IReadOnlyDictionary<Guid, BranchesUiState> branchesUi)
     {
         var dir = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(dir))
@@ -75,6 +85,7 @@ public static class RepoStateStore
             Repos = repos.ToList(),
             Groups = groups.ToList(),
             ActiveRepoId = activeId,
+            BranchesUi = branchesUi.ToDictionary(kv => kv.Key, kv => kv.Value),
         };
         var json = JsonSerializer.Serialize(file, Options);
         File.WriteAllText(path, json);
@@ -87,7 +98,11 @@ public static class RepoStateStore
     private static State EmptyState()
     {
         var defaultGroup = new Group(Guid.NewGuid(), DefaultGroupName, IsCollapsed: false, RepoIds: new List<Guid>());
-        return new State(new List<Repo>(), new List<Group> { defaultGroup }, null);
+        return new State(
+            new List<Repo>(),
+            new List<Group> { defaultGroup },
+            null,
+            new Dictionary<Guid, BranchesUiState>());
     }
 
     private static List<Group> ReconcileGroups(List<Group> groups, List<Repo> repos)

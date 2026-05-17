@@ -169,6 +169,76 @@ public sealed class GitService : IGitService
         _ => FileChangeStatus.Unmodified,
     };
 
+    public BranchListing GetBranches(Repo repo)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), "Not a git repository.");
+
+            using var lg = new Repository(repo.Path);
+
+            var headCanonical = lg.Head?.CanonicalName;
+
+            var locals = new List<BranchEntry>();
+            var remotesByName = new Dictionary<string, List<BranchEntry>>(StringComparer.Ordinal);
+            foreach (var remote in lg.Network.Remotes)
+                remotesByName[remote.Name] = new List<BranchEntry>();
+
+            foreach (var branch in lg.Branches)
+            {
+                var tip = branch.Tip;
+                if (tip == null) continue;
+
+                if (branch.IsRemote)
+                {
+                    var remoteName = branch.RemoteName;
+                    if (string.IsNullOrEmpty(remoteName)) continue;
+
+                    // FriendlyName is e.g. "origin/main" — strip the remote prefix for display.
+                    var display = branch.FriendlyName;
+                    var prefix = remoteName + "/";
+                    if (display.StartsWith(prefix, StringComparison.Ordinal))
+                        display = display[prefix.Length..];
+
+                    // Skip the symbolic origin/HEAD ref; it just mirrors another branch.
+                    if (display == "HEAD") continue;
+
+                    if (!remotesByName.TryGetValue(remoteName, out var list))
+                    {
+                        list = new List<BranchEntry>();
+                        remotesByName[remoteName] = list;
+                    }
+                    list.Add(new BranchEntry(display, tip.Sha, IsHead: false));
+                }
+                else
+                {
+                    var isHead = headCanonical != null && branch.CanonicalName == headCanonical;
+                    locals.Add(new BranchEntry(branch.FriendlyName, tip.Sha, isHead));
+                }
+            }
+
+            locals.Sort((a, b) =>
+            {
+                if (a.IsHead != b.IsHead) return a.IsHead ? -1 : 1;
+                return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+            });
+
+            var remoteGroups = new List<RemoteGroup>(remotesByName.Count);
+            foreach (var kv in remotesByName.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase))
+            {
+                kv.Value.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+                remoteGroups.Add(new RemoteGroup(kv.Key, kv.Value));
+            }
+
+            return new BranchListing(repo.Id, locals, remoteGroups, null);
+        }
+        catch (Exception ex)
+        {
+            return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), ex.Message);
+        }
+    }
+
     public LocalChangesSnapshot GetLocalChanges(Repo repo)
     {
         try

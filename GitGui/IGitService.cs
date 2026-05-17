@@ -5,6 +5,7 @@ public interface IGitService
     CommitSnapshot Load(Repo repo, int cap);
     CommitDetails LoadDetails(Repo repo, string sha);
     LocalChangesSnapshot GetLocalChanges(Repo repo);
+    BranchListing GetBranches(Repo repo);
     void Stage(Repo repo, IReadOnlyList<string> paths);
     void Unstage(Repo repo, IReadOnlyList<string> paths);
     string? Commit(Repo repo, string message);

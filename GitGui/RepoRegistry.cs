@@ -10,10 +10,12 @@ public sealed class RepoRegistry : IRepoRegistry
         OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
     private readonly string _statePath;
+    private readonly Dictionary<Guid, BranchesUiState> _branchesUi;
 
     public RepoRegistry(RepoStateStore.State initial, string statePath)
     {
         _statePath = statePath;
+        _branchesUi = new Dictionary<Guid, BranchesUiState>(initial.BranchesUi);
 
         Repos = new ObservableList<Repo>();
         foreach (var r in initial.Repos) Repos.Add(r);
@@ -236,6 +238,19 @@ public sealed class RepoRegistry : IRepoRegistry
         RenamingGroupId.Value = null;
     }
 
+    public BranchesUiState GetBranchesUi(Guid repoId)
+    {
+        if (_branchesUi.TryGetValue(repoId, out var state))
+            return state.Clone();
+        return new BranchesUiState();
+    }
+
+    public void SetBranchesUi(Guid repoId, BranchesUiState state)
+    {
+        _branchesUi[repoId] = state.Clone();
+        Save();
+    }
+
     private void Save() =>
-        RepoStateStore.Save(_statePath, Repos, Groups, Active.Value?.Id);
+        RepoStateStore.Save(_statePath, Repos, Groups, Active.Value?.Id, _branchesUi);
 }

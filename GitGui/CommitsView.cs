@@ -94,6 +94,7 @@ public sealed class CommitsView : MultiChildView
     private IUiDispatcher? _dispatcher;
     private IDisposable? _activeSubscription;
     private IDisposable? _commitCreatedSubscription;
+    private IDisposable? _commitSelectedSubscription;
 
     private CommitsLoadState _state = CommitsLoadState.NoRepo;
     private CommitSnapshot? _snapshot;
@@ -167,6 +168,7 @@ public sealed class CommitsView : MultiChildView
             _activeSubscription = _registry.Active.Subscribe(_ => StartLoadForActiveRepo());
         }
         _commitCreatedSubscription = _bus?.SubscribeScoped<CommitCreatedMessage>(OnCommitCreated);
+        _commitSelectedSubscription = _bus?.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected);
     }
 
     protected override void OnDetachedFromContext(Context context)
@@ -176,6 +178,8 @@ public sealed class CommitsView : MultiChildView
         _activeSubscription = null;
         _commitCreatedSubscription?.Dispose();
         _commitCreatedSubscription = null;
+        _commitSelectedSubscription?.Dispose();
+        _commitSelectedSubscription = null;
         _bus = null;
         _registry = null;
         _gitService = null;
@@ -189,6 +193,48 @@ public sealed class CommitsView : MultiChildView
         // Drop the cached snapshot so StartLoadForActiveRepo doesn't short-circuit.
         _snapshot = null;
         StartLoadForActiveRepo();
+    }
+
+    // External selection requests (e.g. BranchesView clicks): mirror the SHA into our
+    // own state and scroll the row into view. Self-broadcasts short-circuit because
+    // _selectedSha already matches.
+    private void OnCommitSelected(CommitSelectedMessage msg)
+    {
+        var snap = _snapshot;
+        if (snap == null || snap.RepoId != msg.RepoId) return;
+
+        _selectedSha = msg.Sha;
+        ScrollShaIntoView(msg.Sha);
+    }
+
+    private void ScrollShaIntoView(string? sha)
+    {
+        if (string.IsNullOrEmpty(sha)) return;
+        var snap = _snapshot;
+        if (snap == null) return;
+
+        var idx = -1;
+        for (var i = 0; i < snap.Commits.Count; i++)
+        {
+            if (snap.Commits[i].Sha == sha) { idx = i; break; }
+        }
+        if (idx < 0) return;
+
+        var bodyHeight = Position.Height - HeaderHeight;
+        if (bodyHeight <= 0) return;
+
+        var rowStart = idx * RowHeight;
+        var rowEnd = rowStart + RowHeight;
+
+        if (rowStart < _scrollY)
+            _scrollY = rowStart;
+        else if (rowEnd > _scrollY + bodyHeight)
+            _scrollY = rowEnd - bodyHeight;
+
+        var contentHeight = snap.Commits.Count * RowHeight;
+        var maxScroll = Math.Max(0f, contentHeight - bodyHeight);
+        _scrollY = Math.Clamp(_scrollY, 0f, maxScroll);
+        NotifyScrollChanged();
     }
 
     private void StartLoadForActiveRepo()
