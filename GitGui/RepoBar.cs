@@ -16,8 +16,6 @@ public sealed class RepoBar : MultiChildView
 
     public RepoBar(IRepoRegistry registry)
     {
-        PreferredWidth = BarWidth;
-
         var sections = new FlexColumnView
         {
             Gap = 2,

@@ -38,17 +38,19 @@ public sealed class BranchesView : MultiChildView
 internal sealed class ResizableLeftSidebar : MultiChildView
 {
     private const float SplitterThickness = 5f;
-    private const float MinWidth = 140f;
-    private const float MaxWidth = 600f;
 
     private readonly View _content;
     private readonly View _splitter;
+    private readonly float _minWidth;
+    private readonly float _maxWidth;
 
-    public ResizableLeftSidebar(View content, View splitter, float initialWidth)
+    public ResizableLeftSidebar(View content, View splitter, float initialWidth, float minWidth, float maxWidth)
     {
         _content = content;
         _splitter = splitter;
-        PreferredWidth = Math.Clamp(initialWidth, MinWidth, MaxWidth);
+        _minWidth = minWidth;
+        _maxWidth = maxWidth;
+        PreferredWidth = Math.Clamp(initialWidth, _minWidth, _maxWidth);
         AddChildToSelf(_content);
         AddChildToSelf(_splitter);
     }
@@ -57,7 +59,7 @@ internal sealed class ResizableLeftSidebar : MultiChildView
     // the sidebar usable at both extremes (it can't disappear or eat the main view).
     public void AdjustWidthByPixels(float dx)
     {
-        var newWidth = Math.Clamp((float)PreferredWidth + dx, MinWidth, MaxWidth);
+        var newWidth = Math.Clamp((float)PreferredWidth + dx, _minWidth, _maxWidth);
         if (Math.Abs(newWidth - (float)PreferredWidth) < 0.5f) return;
         PreferredWidth = newWidth;
     }
@@ -88,14 +90,18 @@ internal sealed class ResizableLeftSidebar : MultiChildView
     /// Convenience factory: builds the sidebar wrapper, the splitter rect (with hover
     /// styling), and wires the splitter controller in one place. Returns the wrapper.
     /// </summary>
-    public static ResizableLeftSidebar Build(View content, float initialWidth)
+    public static ResizableLeftSidebar Build(
+        View content,
+        float initialWidth,
+        float minWidth = 140f,
+        float maxWidth = 600f)
     {
         var splitterHovered = new State<bool>(false);
         var splitter = new RectView();
         splitter.BindBackgroundColor(splitterHovered,
             h => h ? CommitsPalette.DividerHoverBg : CommitsPalette.Border);
 
-        var sidebar = new ResizableLeftSidebar(content, splitter, initialWidth);
+        var sidebar = new ResizableLeftSidebar(content, splitter, initialWidth, minWidth, maxWidth);
 
         splitter.Behaviors.Add(new SplitterController(
             DragAxis.X,
