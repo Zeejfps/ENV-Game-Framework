@@ -137,6 +137,16 @@ public sealed class InputSystem
                     return;
                 }
             }
+
+            // If the focused component released focus during dispatch (e.g. a
+            // text input blurring on outside-click) without consuming, the
+            // _focusQueue is still the stale path to it. Rebuild from the
+            // cursor so capture/bubble reaches the actual click target instead
+            // of vanishing — otherwise the user has to click a second time.
+            if (_focusedComponent == null)
+            {
+                RefreshHover(e.Mouse);
+            }
         }
 
         e.Phase = EventPhase.Capturing;
