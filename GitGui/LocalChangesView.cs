@@ -17,7 +17,7 @@ public sealed class LocalChangesView : MultiChildView
 {
     private const int CommitBarPadding = 10;
     private const float CommitButtonWidth = 120f;
-    private const float DescriptionMinHeight = 60f;
+    private const float DescriptionMinHeight = 0f;
     private const float DescriptionMaxHeight = 240f;
 
     private IRepoRegistry? _registry;
@@ -195,7 +195,7 @@ public sealed class LocalChangesView : MultiChildView
             CaretColor = DialogPalette.TitleText,
             SelectionRectColor = DialogPalette.RowActive,
             TextWrap = TextWrap.NoWrap,
-            PlaceholderText = "Commit subject",
+            PlaceholderText = "Commit title",
             PlaceholderTextColor = DialogPalette.RowTextMissing,
         };
         titleInput.Behaviors.Add(new TextInputViewKbmController(titleInput));
