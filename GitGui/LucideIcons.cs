@@ -16,4 +16,6 @@ internal static class LucideIcons
     public const string ChevronRight = ""; // chevron-right
     public const string ChevronsLeft = ""; // chevrons-left
     public const string ChevronsRight = "";// chevrons-right
+    public const string Square = "";        // square (checkbox unchecked)
+    public const string CheckSquare = "";   // check-square (checkbox checked)
 }

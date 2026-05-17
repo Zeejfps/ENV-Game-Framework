@@ -335,7 +335,7 @@ public sealed class GitService : IGitService
         Commands.Unstage(lg, paths);
     }
 
-    public string? Commit(Repo repo, string message)
+    public string? Commit(Repo repo, string message, bool amend)
     {
         try
         {
@@ -350,12 +350,47 @@ public sealed class GitService : IGitService
             if (sig == null)
                 return "Set git user.name and user.email before committing.";
 
-            lg.Commit(message, sig, sig);
+            if (amend)
+            {
+                var tip = lg.Head?.Tip;
+                if (tip == null) return "Nothing to amend — HEAD has no commits.";
+                // Keep the original author (matches `git commit --amend` default); update
+                // the committer + time to the current user.
+                lg.Commit(message, tip.Author, sig, new CommitOptions { AmendPreviousCommit = true });
+            }
+            else
+            {
+                lg.Commit(message, sig, sig);
+            }
             return null;
         }
         catch (Exception ex)
         {
             return ex.Message;
+        }
+    }
+
+    public HeadCommitMessage? GetHeadCommitMessage(Repo repo)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path)) return null;
+            using var lg = new Repository(repo.Path);
+            var tip = lg.Head?.Tip;
+            if (tip == null) return null;
+
+            var title = (tip.MessageShort ?? string.Empty).Trim();
+            var full = (tip.Message ?? string.Empty).Replace("\r\n", "\n");
+            // Body is everything after the first blank line (git's subject/body split).
+            var body = string.Empty;
+            var sepIdx = full.IndexOf("\n\n", StringComparison.Ordinal);
+            if (sepIdx >= 0)
+                body = full[(sepIdx + 2)..].TrimEnd();
+            return new HeadCommitMessage(title, body);
+        }
+        catch
+        {
+            return null;
         }
     }
 

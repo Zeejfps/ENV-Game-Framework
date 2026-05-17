@@ -47,6 +47,9 @@ public sealed class LocalChangesView : MultiChildView
     private TextInputView _titleInput = null!;
     private GrowingDescriptionField _descriptionField = null!;
     private DialogButton _commitButton = null!;
+    private CheckboxView _amendCheckbox = null!;
+    private string _preAmendTitle = string.Empty;
+    private string _preAmendDescription = string.Empty;
 
     public LocalChangesView()
     {
@@ -238,11 +241,14 @@ public sealed class LocalChangesView : MultiChildView
         };
         _commitButton.IsEnabled.Value = false;
 
+        _amendCheckbox = new CheckboxView("Amend");
+        _amendCheckbox.IsChecked.Changed += OnAmendToggled;
+
         var buttonRow = new FlexRowView
         {
-            MainAxisAlignment = MainAxisAlignment.End,
+            MainAxisAlignment = MainAxisAlignment.SpaceBetween,
             CrossAxisAlignment = CrossAxisAlignment.Center,
-            Children = { _commitButton },
+            Children = { _amendCheckbox, _commitButton },
         };
 
         _opErrorText = new TextView
@@ -290,13 +296,15 @@ public sealed class LocalChangesView : MultiChildView
         var repo = _registry.Active.Value;
         if (repo == null) return;
 
-        // UpdateCommitButtonEnabled gates the button on a non-empty title and staged
-        // files, so reaching this point implies both are satisfied.
+        // UpdateCommitButtonEnabled gates the button on a non-empty title (and, unless
+        // amending, at least one staged file), so reaching this point implies the
+        // inputs are valid for the current mode.
         var title = _titleInput.Text.ToString().Trim();
         var description = _descriptionField.Text.ToString().Trim();
         // Standard git format: subject, blank line, body. Skip the blank line when there's
         // no body so the message is just the subject.
         var message = description.Length > 0 ? $"{title}\n\n{description}" : title;
+        var amend = _amendCheckbox.IsChecked.Value;
 
         _loadGeneration++;
         var gen = _loadGeneration;
@@ -310,7 +318,7 @@ public sealed class LocalChangesView : MultiChildView
             LocalChangesSnapshot? newSnap = null;
             try
             {
-                errorMsg = service.Commit(repo, message);
+                errorMsg = service.Commit(repo, message, amend);
                 if (errorMsg == null)
                 {
                     var snap = service.GetLocalChanges(repo);
@@ -329,13 +337,74 @@ public sealed class LocalChangesView : MultiChildView
                 ShowOpError(errorMsg);
                 if (errorMsg != null) return;
 
-                _titleInput.Clear();
-                _descriptionField.Clear();
+                // Reset the pre-amend snapshot so toggling amend back off after the commit
+                // doesn't restore stale text from a different commit's session.
+                _preAmendTitle = string.Empty;
+                _preAmendDescription = string.Empty;
+                if (_amendCheckbox.IsChecked.Value)
+                {
+                    // Flipping IsChecked fires OnAmendToggled which clears the inputs
+                    // (saved state was just emptied above).
+                    _amendCheckbox.IsChecked.Value = false;
+                }
+                else
+                {
+                    _titleInput.Clear();
+                    _descriptionField.Clear();
+                }
                 if (newSnap != null)
                     _viewModel.Value = new LocalChangesViewModel.Loaded(newSnap);
                 bus?.Broadcast(new CommitCreatedMessage(repo.Id));
             });
         });
+    }
+
+    private void OnAmendToggled(bool checkedNow)
+    {
+        if (checkedNow)
+        {
+            _preAmendTitle = _titleInput.Text.ToString();
+            _preAmendDescription = _descriptionField.Text.ToString();
+
+            string title = string.Empty;
+            string description = string.Empty;
+            if (_registry != null && _gitService != null)
+            {
+                var repo = _registry.Active.Value;
+                if (repo != null)
+                {
+                    var head = _gitService.GetHeadCommitMessage(repo);
+                    if (head != null)
+                    {
+                        title = head.Title;
+                        description = head.Description;
+                    }
+                }
+            }
+
+            SetTitleText(title);
+            SetDescriptionText(description);
+        }
+        else
+        {
+            SetTitleText(_preAmendTitle);
+            SetDescriptionText(_preAmendDescription);
+            _preAmendTitle = string.Empty;
+            _preAmendDescription = string.Empty;
+        }
+
+        UpdateCommitButtonEnabled();
+    }
+
+    private void SetTitleText(string text)
+    {
+        _titleInput.Clear();
+        if (text.Length > 0) _titleInput.Enter(text.AsSpan());
+    }
+
+    private void SetDescriptionText(string text)
+    {
+        _descriptionField.SetText(text.AsSpan());
     }
 
     protected override void OnAttachedToContext(Context context)
@@ -467,7 +536,10 @@ public sealed class LocalChangesView : MultiChildView
         {
             if (!char.IsWhiteSpace(ch)) { hasTitle = true; break; }
         }
-        _commitButton.IsEnabled.Value = hasTitle && _stagedPanel.Files.Count > 0;
+        // Amend can be a message-only edit of the previous commit, so it doesn't need
+        // anything staged; a regular commit does.
+        var amend = _amendCheckbox.IsChecked.Value;
+        _commitButton.IsEnabled.Value = hasTitle && (amend || _stagedPanel.Files.Count > 0);
     }
 
     private void UpdateDiffVisibility()
@@ -1099,6 +1171,12 @@ internal sealed class GrowingDescriptionField : MultiChildView
     public ReadOnlySpan<char> Text => _input.Text;
 
     public void Clear() => _input.Clear();
+
+    public void SetText(ReadOnlySpan<char> text)
+    {
+        _input.Clear();
+        if (text.Length > 0) _input.Enter(text);
+    }
 
     public GrowingDescriptionField(float minHeight, float maxHeight)
     {
