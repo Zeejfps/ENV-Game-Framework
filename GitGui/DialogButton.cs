@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 
 namespace GitGui;
 
@@ -6,22 +7,25 @@ public sealed class DialogButton : HoverableButton
 {
     public DialogButton(string label, Action onClick) : base(onClick)
     {
+        var labelView = new TextView
+        {
+            Text = label,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        labelView.BindTextColor(IsEnabled, e => e ? 0xFFFFFFFFu : DialogPalette.RowTextMissing);
+
         var background = new RectView
         {
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(6),
-            Children =
-            {
-                new TextView
-                {
-                    Text = label,
-                    TextColor = 0xFFFFFFFF,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    VerticalTextAlignment = TextAlignment.Center,
-                }
-            }
+            Children = { labelView },
         };
-        DialogPalette.BindBorderedButtonChrome(background, IsHovered);
+        // Hover styling only when enabled — a disabled button shouldn't react to the pointer.
+        background.BindBackgroundColor(() =>
+            IsEnabled.Value && IsHovered.Value ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal);
+        background.BindBorderColor(() => BorderColorStyle.All(
+            IsEnabled.Value && IsHovered.Value ? DialogPalette.ButtonBorderHover : DialogPalette.ButtonBorder));
         SetBackground(background);
     }
 }

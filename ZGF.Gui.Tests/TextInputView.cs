@@ -77,6 +77,8 @@ public sealed class TextInputView : MultiChildView
     public ReadOnlySpan<char> Text => _buffer.AsSpan(0, _strLen);
     public bool IsEditing => _isEditing;
 
+    public event Action? TextChanged;
+
     public TextInputView()
     {
         _buffer = new char[512];
@@ -622,6 +624,7 @@ public sealed class TextInputView : MultiChildView
 
     public void Delete()
     {
+        var before = _strLen;
         if (_strLen > 0)
         {
             if (IsSelecting)
@@ -636,6 +639,7 @@ public sealed class TextInputView : MultiChildView
             }
         }
         SetDirty();
+        if (_strLen != before) TextChanged?.Invoke();
     }
 
     public void Enter(char c)
@@ -644,30 +648,33 @@ public sealed class TextInputView : MultiChildView
         {
             DeleteSelection();
         }
-            
+
         InsertChar(_caretIndex, c);
         _caretIndex++;
         _selectionStartIndex = _caretIndex;
         SetDirty();
+        TextChanged?.Invoke();
     }
-    
+
     public void Enter(ReadOnlySpan<char> text)
     {
+        var before = _strLen;
         if (_caretIndex != _selectionStartIndex)
         {
             DeleteSelection();
         }
-            
+
         var textEnd = _buffer.AsSpan(_caretIndex, _strLen - _caretIndex);
         textEnd.CopyTo(_buffer.AsSpan(_caretIndex + text.Length));
-            
+
         var dst = _buffer.AsSpan(_caretIndex, text.Length);
         text.CopyTo(dst);
-            
+
         _strLen += text.Length;
         _caretIndex += text.Length;
         _selectionStartIndex = _caretIndex;
         SetDirty();
+        if (_strLen != before) TextChanged?.Invoke();
     }
 
     public string? GetSelectedText()
@@ -688,9 +695,11 @@ public sealed class TextInputView : MultiChildView
 
     public void Clear()
     {
+        var before = _strLen;
         _strLen = 0;
         _caretIndex = 0;
         _selectionStartIndex = 0;
         SetDirty();
+        if (before != 0) TextChanged?.Invoke();
     }
 }

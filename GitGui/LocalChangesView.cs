@@ -46,6 +46,7 @@ public sealed class LocalChangesView : MultiChildView
     private TextView _opErrorText = null!;
     private TextInputView _titleInput = null!;
     private GrowingDescriptionField _descriptionField = null!;
+    private DialogButton _commitButton = null!;
 
     public LocalChangesView()
     {
@@ -210,6 +211,7 @@ public sealed class LocalChangesView : MultiChildView
             PlaceholderTextColor = DialogPalette.RowTextMissing,
         };
         _titleInput.Behaviors.Add(new TextInputViewKbmController(_titleInput));
+        _titleInput.TextChanged += UpdateCommitButtonEnabled;
 
         // No PreferredHeight — let the box size to one line of text plus padding/border.
         // The input itself reports MeasureHeight = lineHeight (single line, NoWrap), and the
@@ -229,17 +231,18 @@ public sealed class LocalChangesView : MultiChildView
             PlaceholderText = "Commit description",
         };
 
-        var commitButton = new DialogButton("Commit", OnCommitClicked)
+        _commitButton = new DialogButton("Commit", OnCommitClicked)
         {
             PreferredWidth = CommitButtonWidth,
             PreferredHeight = 28,
         };
+        _commitButton.IsEnabled.Value = false;
 
         var buttonRow = new FlexRowView
         {
             MainAxisAlignment = MainAxisAlignment.End,
             CrossAxisAlignment = CrossAxisAlignment.Center,
-            Children = { commitButton },
+            Children = { _commitButton },
         };
 
         _opErrorText = new TextView
@@ -287,13 +290,9 @@ public sealed class LocalChangesView : MultiChildView
         var repo = _registry.Active.Value;
         if (repo == null) return;
 
+        // UpdateCommitButtonEnabled gates the button on a non-empty title and staged
+        // files, so reaching this point implies both are satisfied.
         var title = _titleInput.Text.ToString().Trim();
-        if (title.Length == 0)
-        {
-            ShowOpError("Commit title is required.");
-            return;
-        }
-
         var description = _descriptionField.Text.ToString().Trim();
         // Standard git format: subject, blank line, body. Skip the blank line when there's
         // no body so the message is just the subject.
@@ -445,6 +444,9 @@ public sealed class LocalChangesView : MultiChildView
         _placeholder.Text = text;
         _centerContainer.Children.Clear();
         _centerContainer.Children.Add(_placeholder);
+        // No loaded snapshot → nothing committable. Stale _stagedPanel.Files from a prior
+        // repo would otherwise leak through UpdateCommitButtonEnabled.
+        _commitButton.IsEnabled.Value = false;
     }
 
     private void ShowSnapshot(LocalChangesSnapshot snap)
@@ -455,6 +457,17 @@ public sealed class LocalChangesView : MultiChildView
         // and drives UpdateDiffVisibility — so the diff item collapses on its own here.
         _centerContainer.Children.Clear();
         _centerContainer.Children.Add(_snapshotContainer);
+        UpdateCommitButtonEnabled();
+    }
+
+    private void UpdateCommitButtonEnabled()
+    {
+        var hasTitle = false;
+        foreach (var ch in _titleInput.Text)
+        {
+            if (!char.IsWhiteSpace(ch)) { hasTitle = true; break; }
+        }
+        _commitButton.IsEnabled.Value = hasTitle && _stagedPanel.Files.Count > 0;
     }
 
     private void UpdateDiffVisibility()
