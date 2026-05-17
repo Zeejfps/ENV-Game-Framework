@@ -1,11 +1,11 @@
-#version 460
+#version 410
 
 in vec2 v_pixelPos;
 in vec2 v_uv;
 flat in uint v_tint;
 flat in uint v_clipIndex;
 
-layout(std140, binding = 0) uniform ClipRects {
+layout(std140) uniform ClipRects {
     vec4 u_clipRects[256];
 };
 

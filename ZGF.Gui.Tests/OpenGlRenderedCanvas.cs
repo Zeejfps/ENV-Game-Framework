@@ -154,7 +154,7 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
 
         _projection = Matrix4x4.CreateOrthographicOffCenter(0, width, 0, height, -1f, 1f);
 
-        var shadersDir = Path.Combine("Assets", "Shaders");
+        var shadersDir = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
         _rectShader = new ShaderProgramCompiler()
             .WithVertexShader(Path.Combine(shadersDir, "canvas_rect.vert.glsl"))
             .WithFragmentShader(Path.Combine(shadersDir, "canvas_rect.frag.glsl"))
@@ -173,6 +173,12 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         _imageProjLoc = glGetUniformLocation(_imageShader, "u_projection");
         _glyphAtlasLoc = glGetUniformLocation(_glyphShader, "u_atlas");
         _imageTexLoc = glGetUniformLocation(_imageShader, "u_texture");
+
+        // The ClipRects UBO uses binding point 0, but the shaders can't declare
+        // `binding = 0` on GLSL 410 (macOS), so bind it explicitly per-program.
+        BindClipBlockToZero(_rectShader);
+        BindClipBlockToZero(_glyphShader);
+        BindClipBlockToZero(_imageShader);
 
         UploadProjection();
 
@@ -347,7 +353,73 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
         glVertexAttribDivisor(index, 1);
     }
 
+    private static void SetFloatInstancePointer(uint index, int components, int stride, int offset)
+    {
+        glVertexAttribPointer(index, components, GL_FLOAT, false, stride, (void*)offset);
+    }
+
+    private static void SetUintInstancePointer(uint index, int stride, int offset)
+    {
+        glVertexAttribIPointer(index, 1, GL_UNSIGNED_INT, stride, (void*)offset);
+    }
+
     private static int OffsetOf<T>(string field) => (int)Marshal.OffsetOf<T>(field);
+
+    // macOS / GL 4.1 has no ARB_base_instance, so we cannot use
+    // glDrawArraysInstancedBaseInstance. Instead, before each draw call we
+    // re-point the per-instance attributes at (firstInstance * stride) bytes
+    // into the instance VBO. The VAO must already be bound; the instance VBO
+    // for the kind is bound here.
+    private void RebindRectInstancePointers(int firstInstance)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, _rectInstanceVbo);
+        var stride = sizeof(RectInstance);
+        var baseBytes = firstInstance * stride;
+        SetFloatInstancePointer(1, 4, stride, baseBytes + OffsetOf<RectInstance>(nameof(RectInstance.Rect)));
+        SetFloatInstancePointer(2, 4, stride, baseBytes + OffsetOf<RectInstance>(nameof(RectInstance.BorderRadius)));
+        SetFloatInstancePointer(3, 4, stride, baseBytes + OffsetOf<RectInstance>(nameof(RectInstance.BorderSize)));
+        SetUintInstancePointer(4, stride, baseBytes + OffsetOf<RectInstance>(nameof(RectInstance.BgColor)));
+        SetUintInstancePointer(5, stride, baseBytes + OffsetOf<RectInstance>(nameof(RectInstance.BorderColorTop)));
+        SetUintInstancePointer(6, stride, baseBytes + OffsetOf<RectInstance>(nameof(RectInstance.BorderColorRight)));
+        SetUintInstancePointer(7, stride, baseBytes + OffsetOf<RectInstance>(nameof(RectInstance.BorderColorBottom)));
+        SetUintInstancePointer(8, stride, baseBytes + OffsetOf<RectInstance>(nameof(RectInstance.BorderColorLeft)));
+        SetUintInstancePointer(9, stride, baseBytes + OffsetOf<RectInstance>(nameof(RectInstance.ClipIndex)));
+    }
+
+    private void RebindGlyphInstancePointers(int firstInstance)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, _glyphInstanceVbo);
+        var stride = sizeof(GlyphInstance);
+        var baseBytes = firstInstance * stride;
+        SetFloatInstancePointer(1, 4, stride, baseBytes + OffsetOf<GlyphInstance>(nameof(GlyphInstance.Rect)));
+        SetFloatInstancePointer(2, 4, stride, baseBytes + OffsetOf<GlyphInstance>(nameof(GlyphInstance.AtlasUV)));
+        SetUintInstancePointer(3, stride, baseBytes + OffsetOf<GlyphInstance>(nameof(GlyphInstance.Color)));
+        SetUintInstancePointer(4, stride, baseBytes + OffsetOf<GlyphInstance>(nameof(GlyphInstance.ClipIndex)));
+    }
+
+    private void RebindImageInstancePointers(int firstInstance)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, _imageInstanceVbo);
+        var stride = sizeof(ImageInstance);
+        var baseBytes = firstInstance * stride;
+        SetFloatInstancePointer(1, 4, stride, baseBytes + OffsetOf<ImageInstance>(nameof(ImageInstance.Rect)));
+        SetFloatInstancePointer(2, 4, stride, baseBytes + OffsetOf<ImageInstance>(nameof(ImageInstance.SrcUV)));
+        SetUintInstancePointer(3, stride, baseBytes + OffsetOf<ImageInstance>(nameof(ImageInstance.Tint)));
+        SetUintInstancePointer(4, stride, baseBytes + OffsetOf<ImageInstance>(nameof(ImageInstance.ClipIndex)));
+    }
+
+    private static void BindClipBlockToZero(uint shader)
+    {
+        Span<byte> name = stackalloc byte[10]; // "ClipRects\0"
+        name[0] = (byte)'C'; name[1] = (byte)'l'; name[2] = (byte)'i'; name[3] = (byte)'p';
+        name[4] = (byte)'R'; name[5] = (byte)'e'; name[6] = (byte)'c'; name[7] = (byte)'t';
+        name[8] = (byte)'s'; name[9] = 0;
+        uint blockIndex;
+        fixed (byte* p = name)
+            blockIndex = glGetUniformBlockIndex(shader, p);
+        if (blockIndex != GL_INVALID_INDEX)
+            glUniformBlockBinding(shader, blockIndex, 0);
+    }
 
     private void SetupClipUbo()
     {
@@ -991,7 +1063,14 @@ public sealed unsafe class OpenGlRenderedCanvas : ICanvas, IDisposable
                 boundTexture = call.TextureId;
             }
 
-            glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, call.InstanceCount, (uint)call.InstanceStart);
+            switch (call.Kind)
+            {
+                case DrawKind.Rect: RebindRectInstancePointers(call.InstanceStart); break;
+                case DrawKind.Glyph: RebindGlyphInstancePointers(call.InstanceStart); break;
+                case DrawKind.Image: RebindImageInstancePointers(call.InstanceStart); break;
+            }
+
+            glDrawArraysInstanced(GL_TRIANGLES, 0, 6, call.InstanceCount);
         }
 
         glBindVertexArray(0);

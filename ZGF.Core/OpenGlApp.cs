@@ -24,8 +24,13 @@ public abstract class OpenGlApp : IDisposable
         Glfw.Init();
 
         Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
+        // 4.1 is the highest GL version Apple ships, and macOS only honors a Core
+        // context if OpenglForwardCompatible is true. Targeting 4.1+forward-compat
+        // on every platform keeps a single code path that works on macOS too.
         Glfw.WindowHint(Hint.ContextVersionMajor, 4);
+        Glfw.WindowHint(Hint.ContextVersionMinor, 1);
         Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
+        Glfw.WindowHint(Hint.OpenglForwardCompatible, true);
         Glfw.WindowHint(Hint.Visible, false);
 
         if (startupConfig.IsUndecorated)

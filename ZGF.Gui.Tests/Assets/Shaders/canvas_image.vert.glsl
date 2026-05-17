@@ -1,4 +1,4 @@
-#version 460
+#version 410
 
 // Per-vertex
 layout(location = 0) in vec2 a_unitPos;     // [0,1] x [0,1]

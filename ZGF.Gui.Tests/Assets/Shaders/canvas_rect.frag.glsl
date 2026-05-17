@@ -1,4 +1,4 @@
-#version 460
+#version 410
 
 in vec2 v_pixelPos;
 in vec2 v_localPos;
@@ -12,7 +12,10 @@ flat in uint v_borderColorBottom;
 flat in uint v_borderColorLeft;
 flat in uint v_clipIndex;
 
-layout(std140, binding = 0) uniform ClipRects {
+// Binding point is assigned from C# via glUniformBlockBinding because the
+// `binding = N` layout qualifier requires GLSL 420 / ARB_shading_language_420pack,
+// which is not available on macOS (capped at 4.1 / GLSL 410).
+layout(std140) uniform ClipRects {
     vec4 u_clipRects[256]; // (left, bottom, right, top)
 };
 
