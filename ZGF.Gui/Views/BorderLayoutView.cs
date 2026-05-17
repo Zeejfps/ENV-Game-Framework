@@ -69,6 +69,13 @@ public sealed class BorderLayoutView : View
             North.BottomConstraint = position.Top - height;
             North.MinWidthConstraint = position.Width;
             North.MaxWidthConstraint = position.Width;
+            // Also publish the measured height as a constraint. A descendant's content
+            // change marks only IsChildrenDirty up the tree; without this set-and-compare,
+            // North.IsSelfDirty stays false and OnLayoutSelf never runs to pick up the new
+            // height — leaving North.Position.Height stale even though centerAreaHeight
+            // (computed below) reflects the new height. The desync manifests as the Center
+            // resizing correctly while the North region keeps drawing at its old size.
+            North.MaxHeightConstraint = height;
             North.LayoutSelf();
             centerAreaHeight -= height;
         }
@@ -80,6 +87,8 @@ public sealed class BorderLayoutView : View
             South.BottomConstraint = position.Bottom;
             South.MinWidthConstraint = position.Width;
             South.MaxWidthConstraint = position.Width;
+            // See note on North above — same problem, same fix.
+            South.MaxHeightConstraint = height;
             South.LayoutSelf();
             centerAreaHeight -= height;
             bottomOffset += height;
@@ -90,6 +99,9 @@ public sealed class BorderLayoutView : View
             var width = West.MeasureWidth();
             West.LeftConstraint = position.Left;
             West.BottomConstraint = position.Bottom + bottomOffset;
+            // Symmetric to North/South height-publish above.
+            West.MinWidthConstraint = width;
+            West.MaxWidthConstraint = width;
             West.MaxHeightConstraint = centerAreaHeight;
             West.LayoutSelf();
             centerAreaWidth -= width;
@@ -101,6 +113,9 @@ public sealed class BorderLayoutView : View
             var width = East.MeasureWidth();
             East.LeftConstraint = position.Right - width;
             East.BottomConstraint = position.Bottom + bottomOffset;
+            // Symmetric to North/South height-publish above.
+            East.MinWidthConstraint = width;
+            East.MaxWidthConstraint = width;
             East.MaxHeightConstraint = centerAreaHeight;
             East.LayoutSelf();
             centerAreaWidth -= width;

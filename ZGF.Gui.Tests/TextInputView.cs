@@ -193,17 +193,24 @@ public sealed class TextInputView : MultiChildView
         var canvas = Context?.Canvas;
         if (canvas == null)
             return 0f;
-        
+
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
         if (_strLen == 0)
             return lineHeight;
-        
-        var width = MeasureWidth();
+
+        var width = ResolveWrapWidth();
         var height = GetLines(width, canvas).Count() * lineHeight;
         if (PreferredHeight.IsSet && height < PreferredHeight)
             return PreferredHeight;
-        
+
         return height;
+    }
+
+    private float ResolveWrapWidth()
+    {
+        if (MaxWidthConstraint.IsSet) return MaxWidthConstraint.Value;
+        if (PreferredWidth.IsSet) return PreferredWidth.Value;
+        return MeasureWidth();
     }
 
     private IEnumerable<Range> GetLines(float width, ICanvas canvas)
