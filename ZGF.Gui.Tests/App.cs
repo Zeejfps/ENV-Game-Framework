@@ -10,14 +10,13 @@ using static OpenGLSandbox.OpenGlUtils;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class App : OpenGlApp
+public sealed class App : IDisposable
 {
+    private readonly OpenGlApp _windowApp;
     private readonly OpenGlRenderedCanvas _canvas;
     private readonly MultiChildView _gui;
 
     private readonly GlfwInputSystem _inputSystem;
-    private readonly SizeCallback _windowSizeCallback;
-    private readonly SizeCallback _framebufferSizeCallback;
     private readonly FreeTypeFontBackend _fontBackend;
     private readonly FontHandle _defaultFont;
     private readonly ContextMenuManager _contextMenuManager;
@@ -28,8 +27,9 @@ public sealed class App : OpenGlApp
     private int _modelMatrixUniformLocation;
     private int _viewProjectionMatrixUniformLocation;
 
-    public App(StartupConfig startupConfig) : base(startupConfig)
+    public App(StartupConfig startupConfig)
     {
+        _windowApp = new OpenGlApp(startupConfig);
         _imageManager = new GlImageManager();
         _imageManager.LoadImageFromFile("Assets/Icons/arrow_right.png");
         _imageManager.LoadImageFromFile("Assets/Icons/arrow_up.png");
@@ -47,8 +47,8 @@ public sealed class App : OpenGlApp
             _imageManager
         );
 
-        _inputSystem = new GlfwInputSystem(WindowHandle, _canvas);
-        
+        _inputSystem = new GlfwInputSystem(_windowApp.WindowHandle, _canvas);
+
         _mesh = Mesh.LoadFromFile("Assets/Models/Suzan_tri.obj");
         _shaderProgram = new ShaderProgramCompiler()
             .WithVertexShader("Assets/Shaders/color_vert.glsl")
@@ -62,7 +62,7 @@ public sealed class App : OpenGlApp
 
         var contextMenuPane = new MultiChildView();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
-        
+
         var context = new Context
         {
             Canvas = _canvas
@@ -79,7 +79,7 @@ public sealed class App : OpenGlApp
 #endif
 
         glClearColor(0f, 0f, 0f, 0f);
-        
+
         var appBar = new AppBar(this);
         var center = new Center();
 
@@ -103,7 +103,7 @@ public sealed class App : OpenGlApp
                 contextMenuPane,
             }
         };
-        
+
         var ss = new StyleSheet();
         ss.AddStyleForClass("inset_panel", new Style
         {
@@ -138,15 +138,14 @@ public sealed class App : OpenGlApp
         {
             TextColor = 0xFF959595
         });
-        
+
         gui.ApplyStyleSheet(ss);
 
         _gui = gui;
 
-        _windowSizeCallback = HandleWindowSizeChanged;
-        _framebufferSizeCallback = HandleFramebufferSizeChanged;
-        Glfw.SetWindowSizeCallback(WindowHandle, _windowSizeCallback);
-        Glfw.SetFramebufferSizeCallback(WindowHandle, _framebufferSizeCallback);
+        _windowApp.OnUpdate += HandleUpdate;
+        _windowApp.OnResize += HandleResize;
+        _windowApp.OnFramebufferResize += HandleFramebufferResize;
 
         var fov = 45f * (MathF.PI / 180f);
         var aspectRatio = 640f / 480f;
@@ -158,7 +157,16 @@ public sealed class App : OpenGlApp
         glEnable(GL_DEPTH_TEST);
 
         _stopwatch.Start();
-        //PrintTree(gui);
+    }
+
+    public void Run() => _windowApp.Run();
+
+    public void Dispose()
+    {
+        _windowApp.OnUpdate -= HandleUpdate;
+        _windowApp.OnResize -= HandleResize;
+        _windowApp.OnFramebufferResize -= HandleFramebufferResize;
+        _windowApp.Dispose();
     }
 
     private void PrintTree(MultiChildView view, int depth = 0)
@@ -172,16 +180,16 @@ public sealed class App : OpenGlApp
         }
     }
 
-    private void HandleWindowSizeChanged(GLFW.Window window, int width, int height)
+    private void HandleResize(int width, int height)
     {
         _gui.PreferredWidth = width;
         _gui.PreferredHeight = height;
         _canvas.Resize(width, height);
         Render();
-        Glfw.SwapBuffers(window);
+        _windowApp.SwapBuffers();
     }
 
-    private void HandleFramebufferSizeChanged(GLFW.Window window, int width, int height)
+    private void HandleFramebufferResize(int width, int height)
     {
         glViewport(0, 0, width, height);
     }
@@ -191,7 +199,7 @@ public sealed class App : OpenGlApp
     private Stopwatch _stopwatch = new();
     private int _frames = 0;
 
-    protected override void OnUpdate()
+    private void HandleUpdate()
     {
         rr += 0.005f;
         var t = Matrix4x4.CreateTranslation(0f, 0f, -20);
@@ -202,11 +210,10 @@ public sealed class App : OpenGlApp
         Render();
         _inputSystem.Update();
         _contextMenuManager.Update();
-        
+
         ++_frames;
         if (_stopwatch.ElapsedMilliseconds >= 1000)
         {
-            //Console.WriteLine($"FPS: {_frames}");
             _frames = 0;
             _stopwatch.Restart();
         }
@@ -215,8 +222,8 @@ public sealed class App : OpenGlApp
     private void Render()
     {
         RenderMesh();
-        
-        Glfw.GetFramebufferSize(WindowHandle, out var width, out var height);
+
+        Glfw.GetFramebufferSize(_windowApp.GlfwWindow, out var width, out var height);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glViewport(0, 0, width, height);
         glClearColor(0, 0, 0, 0);
@@ -259,16 +266,8 @@ public sealed class App : OpenGlApp
         AssertNoGlError();
     }
 
-    protected override void DisposeManagedResources()
-    {
-    }
-
-    protected override void DisposeUnmanagedResources()
-    {
-    }
-
     public void Exit()
     {
-        Glfw.SetWindowShouldClose(WindowHandle, true);
+        Glfw.SetWindowShouldClose(_windowApp.GlfwWindow, true);
     }
 }

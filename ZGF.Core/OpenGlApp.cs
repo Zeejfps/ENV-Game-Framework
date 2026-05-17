@@ -1,4 +1,4 @@
-﻿using GLFW;
+using GLFW;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 using Monitor = GLFW.Monitor;
@@ -13,13 +13,17 @@ public readonly struct StartupConfig
     public bool IsUndecorated { get; init; }
 }
 
-public abstract class OpenGlApp : IDisposable
+public sealed class OpenGlApp : IWindowApp
 {
-    protected readonly Window WindowHandle;
-    
+    private readonly Window _window;
+    private readonly SizeCallback _windowSizeCallback;
+    private readonly SizeCallback _framebufferSizeCallback;
+
+    private int _width;
+    private int _height;
     private bool _isDisposed;
-    
-    protected OpenGlApp(StartupConfig startupConfig)
+
+    public OpenGlApp(StartupConfig startupConfig)
     {
         Glfw.Init();
 
@@ -36,49 +40,72 @@ public abstract class OpenGlApp : IDisposable
         if (startupConfig.IsUndecorated)
             Glfw.WindowHint(Hint.Decorated, false);
 
-        var windowWidth = startupConfig.WindowWidth;
-        var windowHeight = startupConfig.WindowHeight;
-        var windowTitle =  startupConfig.WindowTitle;
-        var windowHandle = Glfw.CreateWindow(windowWidth, windowHeight, windowTitle, Monitor.None, Window.None);
-        WindowHandle = windowHandle;
-        
-        Glfw.MakeContextCurrent(windowHandle);
+        _width = startupConfig.WindowWidth;
+        _height = startupConfig.WindowHeight;
+        _window = Glfw.CreateWindow(_width, _height, startupConfig.WindowTitle, Monitor.None, Window.None);
+
+        Glfw.MakeContextCurrent(_window);
         Glfw.SwapInterval(1);
-        
+
         Import(Glfw.GetProcAddress);
         AssertNoGlError();
+
+        _windowSizeCallback = HandleWindowSizeChanged;
+        _framebufferSizeCallback = HandleFramebufferSizeChanged;
+        Glfw.SetWindowSizeCallback(_window, _windowSizeCallback);
+        Glfw.SetFramebufferSizeCallback(_window, _framebufferSizeCallback);
     }
 
     ~OpenGlApp()
     {
         Dispose(false);
     }
-    
+
+    public IntPtr WindowHandle => _window;
+    public Window GlfwWindow => _window;
+    public int Width => _width;
+    public int Height => _height;
+
+    public event Action? OnUpdate;
+    public event Action<int, int>? OnResize;
+    public event Action<int, int>? OnFramebufferResize;
+
+    public void SwapBuffers() => Glfw.SwapBuffers(_window);
+
     public void Run()
     {
         var videoMode = Glfw.GetVideoMode(Glfw.PrimaryMonitor);
         var resolutionX = videoMode.Width;
         var resolutionY = videoMode.Height;
 
-        Glfw.GetWindowSize(WindowHandle, out var windowWidth, out var windowHeight);
+        Glfw.GetWindowSize(_window, out var windowWidth, out var windowHeight);
         var windowPosX = (int)((resolutionX - windowWidth) * 0.5f);
         var windowPosY = (int)((resolutionY - windowHeight) * 0.5f);
-        Glfw.SetWindowPosition(WindowHandle, windowPosX, windowPosY);
-        Glfw.ShowWindow(WindowHandle);
-        while (!Glfw.WindowShouldClose(WindowHandle))
+        Glfw.SetWindowPosition(_window, windowPosX, windowPosY);
+        Glfw.ShowWindow(_window);
+
+        while (!Glfw.WindowShouldClose(_window))
         {
             Glfw.PollEvents();
-            OnUpdate();
-            Glfw.SwapBuffers(WindowHandle);
+            OnUpdate?.Invoke();
+            Glfw.SwapBuffers(_window);
         }
         Dispose();
         Glfw.Terminate();
     }
 
-    protected abstract void OnUpdate();
-    protected abstract void DisposeManagedResources();
-    protected abstract void DisposeUnmanagedResources();
-    
+    private void HandleWindowSizeChanged(Window window, int width, int height)
+    {
+        _width = width;
+        _height = height;
+        OnResize?.Invoke(width, height);
+    }
+
+    private void HandleFramebufferSizeChanged(Window window, int width, int height)
+    {
+        OnFramebufferResize?.Invoke(width, height);
+    }
+
     public void Dispose()
     {
         Dispose(true);
@@ -89,13 +116,6 @@ public abstract class OpenGlApp : IDisposable
     {
         if (_isDisposed)
             return;
-        
-        if (disposing)
-        {
-            DisposeManagedResources();
-        }
-
-        DisposeUnmanagedResources();
         _isDisposed = true;
     }
 }

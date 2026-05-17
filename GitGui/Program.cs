@@ -25,7 +25,7 @@ context.AddService<IGitService>(new GitService());
 context.AddService<IDragController>(new DragController(registry));
 
 var appView = new AppView(registry);
-var appHost = new GuiApp(new StartupConfig
+var appHost = GuiApp.CreateDefault(new StartupConfig
 {
     WindowTitle = "GitGui",
     WindowWidth = 1280,

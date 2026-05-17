@@ -1,4 +1,4 @@
-﻿using static GL46;
+using static GL46;
 using GLFW;
 using ZGF.Core;
 using ZGF.Geometry;
@@ -6,18 +6,20 @@ using ZnvQuadTree;
 
 namespace SoftwareRendererOpenGlBackend;
 
-public sealed class QuadTreeRendererApp : OpenGlApp
+public sealed class QuadTreeRendererApp : IDisposable
 {
+    private readonly OpenGlApp _windowApp;
     private readonly QuadTreeRenderer _renderer;
     private readonly QuadTreePointF<Item> _quadTree;
-    
-    private readonly SizeCallback _framebufferSizeCallback;
+
     private readonly MouseButtonCallback _mouseButtonCallback;
     private readonly MouseCallback _cursorPositonCallback;
     private readonly KeyCallback _keyCallback;
-    
-    public QuadTreeRendererApp(StartupConfig startupConfig) : base(startupConfig)
+
+    public QuadTreeRendererApp(StartupConfig startupConfig)
     {
+        _windowApp = new OpenGlApp(startupConfig);
+
         var framebufferWidth = startupConfig.WindowWidth / 2;
         var framebufferHeight = startupConfig.WindowHeight / 2;
         _quadTree = new QuadTreePointF<Item>(new RectF
@@ -27,31 +29,42 @@ public sealed class QuadTreeRendererApp : OpenGlApp
             Width = framebufferWidth,
             Height = framebufferHeight
         }, 20, maxDepth: 6);
-        
+
         _renderer = new QuadTreeRenderer(
-            framebufferWidth,  
+            framebufferWidth,
             framebufferHeight,
             _quadTree
         );
 
-        _framebufferSizeCallback = HandleFrameBufferSizeEvent;
         _mouseButtonCallback = HandleMouseButtonEvent;
         _cursorPositonCallback = HandleMouseMoveEvent;
         _keyCallback = HandleKeyEvent;
 
-        Glfw.SetFramebufferSizeCallback(WindowHandle, _framebufferSizeCallback);
-        Glfw.SetMouseButtonCallback(WindowHandle, _mouseButtonCallback);
-        Glfw.SetCursorPositionCallback(WindowHandle, _cursorPositonCallback);
-        Glfw.SetKeyCallback(WindowHandle, _keyCallback);
-        
+        Glfw.SetMouseButtonCallback(_windowApp.GlfwWindow, _mouseButtonCallback);
+        Glfw.SetCursorPositionCallback(_windowApp.GlfwWindow, _cursorPositonCallback);
+        Glfw.SetKeyCallback(_windowApp.GlfwWindow, _keyCallback);
+
+        _windowApp.OnUpdate += HandleUpdate;
+        _windowApp.OnFramebufferResize += HandleFramebufferResize;
+
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    }
+
+    public void Run() => _windowApp.Run();
+
+    public void Dispose()
+    {
+        _windowApp.OnUpdate -= HandleUpdate;
+        _windowApp.OnFramebufferResize -= HandleFramebufferResize;
+        _renderer.Dispose();
+        _windowApp.Dispose();
     }
 
     private void HandleKeyEvent(Window window, Keys key, int scanCode, InputState state, ModifierKeys mods)
     {
         if (key != Keys.Space)
             return;
-            
+
         if (state != InputState.Press)
             return;
 
@@ -62,7 +75,7 @@ public sealed class QuadTreeRendererApp : OpenGlApp
             AddItemAt(x, y);
         }
     }
-    
+
     private void AddItemAt(float x, float y)
     {
         var item = new Item
@@ -75,7 +88,7 @@ public sealed class QuadTreeRendererApp : OpenGlApp
         };
         _quadTree.Insert(item, item.Position);
     }
-    
+
     private void WindowToWorldPoint(Window window, double windowX, double windowY, out int worldX, out int worldY)
     {
         var renderer = _renderer;
@@ -86,11 +99,11 @@ public sealed class QuadTreeRendererApp : OpenGlApp
         worldY = (int)((windowHeight - windowY) * hFactor);
     }
 
-    private void HandleFrameBufferSizeEvent(Window window, int width, int height)
+    private void HandleFramebufferResize(int width, int height)
     {
         glViewport(0, 0, width, height);
         Render();
-        Glfw.SwapBuffers(window);
+        _windowApp.SwapBuffers();
     }
 
     private void HandleMouseButtonEvent(Window window, MouseButton button, InputState state, ModifierKeys modifiers)
@@ -117,19 +130,9 @@ public sealed class QuadTreeRendererApp : OpenGlApp
         glClear(GL_COLOR_BUFFER_BIT);
         _renderer.Render();
     }
-    
-    protected override void OnUpdate()
+
+    private void HandleUpdate()
     {
         Render();
-    }
-
-    protected override void DisposeManagedResources()
-    {
-        _renderer.Dispose();
-    }
-
-    protected override void DisposeUnmanagedResources()
-    {
-        
     }
 }

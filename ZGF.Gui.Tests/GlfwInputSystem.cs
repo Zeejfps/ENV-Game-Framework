@@ -10,7 +10,7 @@ namespace ZGF.Gui.Tests;
 public sealed class GlfwInputSystem
 {
     private readonly GlfwWindow _windowHandle;
-    private readonly OpenGlRenderedCanvas _canvas;
+    private readonly RenderedCanvasBase _canvas;
 
     // Held so the delegates aren't GC'd while GLFW holds native pointers to them.
     private readonly KeyCallback _keyCallback;
@@ -20,7 +20,10 @@ public sealed class GlfwInputSystem
     public InputSystem InputSystem { get; } = new();
     public Mouse Mouse { get; } = new();
 
-    public GlfwInputSystem(GlfwWindow windowHandle, OpenGlRenderedCanvas canvas)
+    public GlfwInputSystem(IntPtr windowHandle, RenderedCanvasBase canvas)
+        : this((GlfwWindow)windowHandle, canvas) { }
+
+    public GlfwInputSystem(GlfwWindow windowHandle, RenderedCanvasBase canvas)
     {
         _windowHandle = windowHandle;
         _canvas = canvas;

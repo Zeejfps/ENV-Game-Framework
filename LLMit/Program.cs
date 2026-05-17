@@ -5,7 +5,7 @@ using ZGF.Gui;
 
 var context = new Context();
 var appView = new AppView();
-var guiApp = new GuiApp(new StartupConfig
+var guiApp = GuiApp.CreateDefault(new StartupConfig
 {
     WindowTitle = "LLMit",
     WindowWidth = 1280,

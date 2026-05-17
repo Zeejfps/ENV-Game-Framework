@@ -1,50 +1,43 @@
-using GLFW;
 using ZGF.AppUtils;
 using ZGF.Core;
 using ZGF.Fonts;
 using ZGF.Gui;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
-using static GL46;
 
 namespace LLMit;
 
-public sealed class GuiApp : OpenGlApp
+public sealed class GuiApp : IDisposable
 {
-    private readonly GlfwInputSystem _inputSystem;
-    private readonly OpenGlRenderedCanvas _canvas;
+    private readonly IWindowApp _window;
+    private readonly RenderedCanvasBase _canvas;
     private readonly FreeTypeFontBackend _fontBackend;
+    private readonly Action<Action> _renderFrame;
+    private readonly GlfwInputSystem _inputSystem;
     private readonly MultiChildView _gui;
     private readonly QueuedUiDispatcher _dispatcher;
-
-    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
-    private readonly SizeCallback _windowSizeCallback;
-    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
-    private readonly SizeCallback _framebufferSizeCallback;
     private readonly ContextMenuManager _contextMenuManager;
 
-    public GuiApp(StartupConfig startupConfig, Context context, MultiChildView content) : base(startupConfig)
+    private GuiApp(
+        IWindowApp window,
+        RenderedCanvasBase canvas,
+        FreeTypeFontBackend fontBackend,
+        Action<Action> renderFrame,
+        Context context,
+        MultiChildView content)
     {
-        var imageManager = new GlImageManager();
+        _window = window;
+        _canvas = canvas;
+        _fontBackend = fontBackend;
+        _renderFrame = renderFrame;
+
         var contextMenuPane = new MultiChildView();
         _contextMenuManager = new ContextMenuManager(contextMenuPane);
-        var fontFilePath = PathUtils.ResolveLocalPath("Assets/Fonts/Inter/Inter-Regular.ttf");
-        _fontBackend = new FreeTypeFontBackend();
-        var defaultFont = _fontBackend.LoadFontFromFile(fontFilePath, 16);
-        _canvas = new OpenGlRenderedCanvas(
-            startupConfig.WindowWidth,
-            startupConfig.WindowHeight,
-            _fontBackend,
-            defaultFont,
-            imageManager
-        );
 
-        _inputSystem = new GlfwInputSystem(WindowHandle, _canvas);
-
+        _inputSystem = new GlfwInputSystem(window.WindowHandle, canvas);
         _dispatcher = new QueuedUiDispatcher();
 
-        context.Canvas = _canvas;
-
+        context.Canvas = canvas;
         context.AddService(_inputSystem.InputSystem);
         context.AddService(_contextMenuManager);
         context.AddService<IUiDispatcher>(_dispatcher);
@@ -58,8 +51,8 @@ public sealed class GuiApp : OpenGlApp
 
         _gui = new MultiChildView
         {
-            PreferredWidth = _canvas.Width,
-            PreferredHeight = _canvas.Height,
+            PreferredWidth = canvas.Width,
+            PreferredHeight = canvas.Height,
             Context = context,
             Children =
             {
@@ -68,12 +61,15 @@ public sealed class GuiApp : OpenGlApp
             }
         };
 
-        _windowSizeCallback = HandleWindowSizeChanged;
-        _framebufferSizeCallback = HandleFramebufferSizeChanged;
-        Glfw.SetWindowSizeCallback(WindowHandle, _windowSizeCallback);
-        Glfw.SetFramebufferSizeCallback(WindowHandle, _framebufferSizeCallback);
+        window.OnUpdate += HandleUpdate;
+        window.OnResize += HandleResize;
+        window.OnFramebufferResize += HandleFramebufferResize;
+    }
 
-        glClearColor(0, 0, 0, 0);
+    public static GuiApp CreateDefault(StartupConfig config, Context context, MultiChildView content)
+    {
+        var backend = PlatformBackend.Resolve(config);
+        return new GuiApp(backend.Window, backend.Canvas, backend.FontBackend, backend.RenderFrame, context, content);
     }
 
     public void RegisterFont(string family, string path, int pixelSize)
@@ -82,7 +78,9 @@ public sealed class GuiApp : OpenGlApp
         _canvas.RegisterFont(family, handle);
     }
 
-    protected override void OnUpdate()
+    public void Run() => _window.Run();
+
+    private void HandleUpdate()
     {
         _dispatcher.Drain();
         Render();
@@ -90,35 +88,39 @@ public sealed class GuiApp : OpenGlApp
         _contextMenuManager.Update();
     }
 
-    protected override void DisposeManagedResources()
-    {
-    }
-
-    protected override void DisposeUnmanagedResources()
-    {
-    }
-
-    private void HandleWindowSizeChanged(GLFW.Window window, int width, int height)
+    private void HandleResize(int width, int height)
     {
         _gui.PreferredWidth = width;
         _gui.PreferredHeight = height;
         _canvas.Resize(width, height);
         Render();
-        Glfw.SwapBuffers(window);
+        if (_window is OpenGlApp gl)
+            gl.SwapBuffers();
     }
 
-    private void HandleFramebufferSizeChanged(GLFW.Window window, int width, int height)
+    private void HandleFramebufferResize(int width, int height)
     {
-        glViewport(0, 0, width, height);
+        // GL needs viewport adjusted; Metal's drawable size is updated by MetalApp.
+        if (_window is OpenGlApp)
+            GL46.glViewport(0, 0, width, height);
     }
 
     private void Render()
     {
-        glClear(GL_COLOR_BUFFER_BIT);
+        _renderFrame(PopulateGui);
+    }
 
-        _canvas.BeginFrame();
+    private void PopulateGui()
+    {
         _gui.LayoutSelf();
         _gui.DrawSelf();
-        _canvas.EndFrame();
+    }
+
+    public void Dispose()
+    {
+        _window.OnUpdate -= HandleUpdate;
+        _window.OnResize -= HandleResize;
+        _window.OnFramebufferResize -= HandleFramebufferResize;
+        _window.Dispose();
     }
 }
