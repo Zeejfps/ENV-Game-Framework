@@ -24,6 +24,8 @@ public sealed class LocalChangesView : MultiChildView
     private IUiDispatcher? _dispatcher;
     private IDisposable? _activeSubscription;
     private IDisposable? _vmSubscription;
+    private IDisposable? _unstagedSelectionSub;
+    private IDisposable? _stagedSelectionSub;
 
     private readonly State<LocalChangesViewModel> _viewModel = new(
         new LocalChangesViewModel.Placeholder("Open a repository to see local changes."));
@@ -257,6 +259,19 @@ public sealed class LocalChangesView : MultiChildView
         _vmSubscription = _viewModel.Subscribe(Render);
         if (_registry != null)
             _activeSubscription = _registry.Active.Subscribe(_ => StartLoadForActiveRepo());
+
+        // Selection is exclusive across the two panels: once a row in one side is selected,
+        // any selection on the other side is cleared. The "only clear when *becoming*
+        // non-empty" guard means the cleared panel's own empty-transition doesn't bounce
+        // back and wipe the panel that just took focus.
+        _unstagedSelectionSub = _unstagedPanel.Selection.Subscribe(sel =>
+        {
+            if (sel.Count > 0) _stagedPanel.ClearSelection();
+        });
+        _stagedSelectionSub = _stagedPanel.Selection.Subscribe(sel =>
+        {
+            if (sel.Count > 0) _unstagedPanel.ClearSelection();
+        });
     }
 
     protected override void OnDetachedFromContext(Context context)
@@ -267,6 +282,10 @@ public sealed class LocalChangesView : MultiChildView
         _activeSubscription = null;
         _vmSubscription?.Dispose();
         _vmSubscription = null;
+        _unstagedSelectionSub?.Dispose();
+        _unstagedSelectionSub = null;
+        _stagedSelectionSub?.Dispose();
+        _stagedSelectionSub = null;
         _registry = null;
         _gitService = null;
         _dispatcher = null;
