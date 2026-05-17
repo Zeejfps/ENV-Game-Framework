@@ -46,7 +46,10 @@ public sealed class MetalApp : IWindowApp
         CommandQueue = msg_IntPtr(Device, Sel("newCommandQueue"));
         if (CommandQueue == IntPtr.Zero) throw new System.Exception("newCommandQueue returned null.");
 
-        Layer = AttachMetalLayer(_window, Device, _width, _height);
+        // CAMetalLayer drawableSize must be in framebuffer pixels — twice the
+        // window's point size on Retina.
+        Glfw.GetFramebufferSize(_window, out var fbW, out var fbH);
+        Layer = AttachMetalLayer(_window, Device, fbW, fbH);
 
         _windowSizeCallback = HandleWindowSizeChanged;
         _framebufferSizeCallback = HandleFramebufferSizeChanged;
@@ -106,7 +109,7 @@ public sealed class MetalApp : IWindowApp
         OnFramebufferResize?.Invoke(width, height);
     }
 
-    private static IntPtr AttachMetalLayer(Window glfwWindow, IntPtr device, int width, int height)
+    private static IntPtr AttachMetalLayer(Window glfwWindow, IntPtr device, int fbWidth, int fbHeight)
     {
         var nsWindow = Native.GetCocoaWindow(glfwWindow);
         if (nsWindow == IntPtr.Zero) throw new System.Exception("glfwGetCocoaWindow returned null.");
@@ -120,18 +123,23 @@ public sealed class MetalApp : IWindowApp
         var layer = msg_IntPtr(caMetalLayerClass, Sel("layer"));
         if (layer == IntPtr.Zero) throw new System.Exception("CAMetalLayer layer factory returned null.");
 
-        // device
         msg_Void_IntPtr(layer, Sel("setDevice:"), device);
-        // pixelFormat = BGRA8Unorm
         msg_Void_UInt(layer, Sel("setPixelFormat:"), (uint)MTLPixelFormat.BGRA8Unorm);
-        // framebufferOnly = YES (default)
         msg_Void_Bool(layer, Sel("setFramebufferOnly:"), true);
 
-        SetDrawableSize(layer, width, height);
+        // contentsScale = window.backingScaleFactor so CAMetalLayer's point-vs-pixel
+        // math lines up with our drawableSize (which is in pixels).
+        var backingScale = msg_Double(nsWindow, Sel("backingScaleFactor"));
+        msg_Void_Double(layer, Sel("setContentsScale:"), backingScale);
 
-        // contentView: setWantsLayer: YES, setLayer:
-        msg_Void_Bool(contentView, Sel("setWantsLayer:"), true);
+        SetDrawableSize(layer, fbWidth, fbHeight);
+
+        // setLayer: BEFORE setWantsLayer: so the view adopts our layer as its
+        // backing layer (and AppKit then keeps the layer's frame in sync with
+        // the view's bounds). Reversed order replaces the auto-created backing
+        // layer and may leave us with frame (0,0,0,0).
         msg_Void_IntPtr(contentView, Sel("setLayer:"), layer);
+        msg_Void_Bool(contentView, Sel("setWantsLayer:"), true);
 
         return layer;
     }

@@ -309,7 +309,10 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
     {
         if (_globalsBuffer == IntPtr.Zero) return;
         var dst = (Matrix4x4*)msg_IntPtr(_globalsBuffer, Sel("contents"));
-        *dst = _projection;
+        // Slang emits `v * M` in MSL for HLSL's `mul(M, v)`, which treats v as a
+        // row vector and reads M column-major. System.Numerics.Matrix4x4 is laid
+        // out row-vec/row-major; upload the transpose so v · M reproduces M · v.
+        *dst = Matrix4x4.Transpose(_projection);
     }
 
     // ---------- Metal setup helpers ----------

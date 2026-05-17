@@ -78,6 +78,13 @@ public static unsafe class Objc
     [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
     public static extern void msg_Void_NUInt_NUInt(IntPtr receiver, IntPtr selector, nuint a, nuint b);
 
+    [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
+    public static extern void msg_Void_Double(IntPtr receiver, IntPtr selector, double value);
+
+    // On ARM64, plain objc_msgSend returns floats/doubles directly (no fpret variant).
+    [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
+    public static extern double msg_Double(IntPtr receiver, IntPtr selector);
+
     public static IntPtr Sel(string name) => sel_registerName(name);
     public static IntPtr Class(string name) => objc_getClass(name);
 
