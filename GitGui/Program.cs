@@ -10,9 +10,9 @@ var messageBus = new MessageBus();
 context.AddService<IMessageBus>(messageBus);
 context.AddService(new State<MainViewMode>(MainViewMode.LocalChanges));
 context.AddService<IFolderPicker>(
-    RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-        ? new WindowsFolderPicker()
-        : new NoopFolderPicker());
+    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new WindowsFolderPicker()
+    : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? new MacOSFolderPicker()
+    : new NoopFolderPicker());
 
 var statePath = Path.Combine(
     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
