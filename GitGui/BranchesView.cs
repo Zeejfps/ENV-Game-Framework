@@ -6,10 +6,12 @@ using ZGF.Observable;
 namespace GitGui;
 
 /// <summary>
-/// Sidebar listing local branches and remote branches (grouped per remote). Click a branch
-/// row to scroll/select its tip commit in the history view; click a section/remote header
-/// to toggle collapse. Collapse state is persisted per-repo via IRepoRegistry. Currently
-/// read-only — no checkout, rename, delete, push, pull from this view.
+/// Sidebar listing local branches and remote branches (grouped per remote) as a tree —
+/// branch names containing "/" are split into folder nodes (e.g. "feature/login" lives
+/// inside a "feature" folder). Click a branch row to scroll/select its tip commit in the
+/// history view; click a section/remote/folder row to toggle collapse. Collapse state is
+/// persisted per-repo via IRepoRegistry. Currently read-only — no checkout, rename,
+/// delete, push, pull from this view.
 /// </summary>
 public sealed class BranchesView : MultiChildView
 {
@@ -17,12 +19,15 @@ public sealed class BranchesView : MultiChildView
     private const float BaseIndent = 8f;
     private const float ChevronWidth = 14f;
     private const float ChevronGap = 2f;
+    private const float ChevronColumn = ChevronWidth + ChevronGap;
+    private const float IconGap = 4f;
     private const float ScrollWheelStep = 60f;
 
-    private const float IndentSection = 0f;       // LOCAL / REMOTES
-    private const float IndentRemoteHeader = 12f; // origin (under REMOTES)
-    private const float IndentLocalBranch = 16f;  // branch row under LOCAL
-    private const float IndentRemoteBranch = 28f; // branch row under origin
+    private const float IndentSection = 0f;          // LOCAL / REMOTES
+    private const float IndentRemoteHeader = 12f;    // origin (under REMOTES)
+    private const float IndentLocalTreeBase = 16f;   // depth-0 row under LOCAL
+    private const float IndentRemoteTreeBase = 28f;  // depth-0 row under a remote header
+    private const float IndentLevel = 16f;           // per-depth step within the tree
 
     private IMessageBus? _bus;
     private IRepoRegistry? _registry;
@@ -110,6 +115,30 @@ public sealed class BranchesView : MultiChildView
     private readonly TextStyle _behindIconStyle = new()
     {
         TextColor = BehindColor,
+        FontFamily = LucideIcons.FontFamily,
+        FontSize = 14f,
+        VerticalAlignment = TextAlignment.Center,
+        HorizontalAlignment = TextAlignment.Start,
+    };
+    private readonly TextStyle _folderIconStyle = new()
+    {
+        TextColor = DialogPalette.SectionHeaderText,
+        FontFamily = LucideIcons.FontFamily,
+        FontSize = 14f,
+        VerticalAlignment = TextAlignment.Center,
+        HorizontalAlignment = TextAlignment.Start,
+    };
+    private readonly TextStyle _branchIconStyle = new()
+    {
+        TextColor = CommitsPalette.RowText,
+        FontFamily = LucideIcons.FontFamily,
+        FontSize = 14f,
+        VerticalAlignment = TextAlignment.Center,
+        HorizontalAlignment = TextAlignment.Start,
+    };
+    private readonly TextStyle _branchIconActiveStyle = new()
+    {
+        TextColor = CommitsPalette.RowTextActive,
         FontFamily = LucideIcons.FontFamily,
         FontSize = 14f,
         VerticalAlignment = TextAlignment.Center,
@@ -230,16 +259,8 @@ public sealed class BranchesView : MultiChildView
         _rows.Add(new Row(RowKind.LocalHeader, "Local", IndentSection, _ui.LocalOpen));
         if (_ui.LocalOpen)
         {
-            foreach (var b in listing.LocalBranches)
-            {
-                _rows.Add(new Row(RowKind.LocalBranch, b.Name, IndentLocalBranch, IsOpen: false)
-                {
-                    TipSha = b.TipSha,
-                    IsHead = b.IsHead,
-                    AheadBy = b.AheadBy,
-                    BehindBy = b.BehindBy,
-                });
-            }
+            var localTree = BuildTree(listing.LocalBranches);
+            EmitTreeRows(localTree, isRemote: false, remoteName: null, IndentLocalTreeBase, depth: 0);
         }
 
         _rows.Add(new Row(RowKind.RemotesHeader, "Remotes", IndentSection, _ui.RemotesOpen));
@@ -253,18 +274,88 @@ public sealed class BranchesView : MultiChildView
                     RemoteName = rg.Name,
                 });
                 if (!isOpen) continue;
-                foreach (var b in rg.Branches)
-                {
-                    _rows.Add(new Row(RowKind.RemoteBranch, b.Name, IndentRemoteBranch, IsOpen: false)
-                    {
-                        TipSha = b.TipSha,
-                        RemoteName = rg.Name,
-                    });
-                }
+                var remoteTree = BuildTree(rg.Branches);
+                EmitTreeRows(remoteTree, isRemote: true, rg.Name, IndentRemoteTreeBase, depth: 0);
             }
         }
 
         ClampScroll();
+    }
+
+    private void EmitTreeRows(IReadOnlyList<TreeNode> nodes, bool isRemote, string? remoteName, float treeBase, int depth)
+    {
+        var indent = treeBase + depth * IndentLevel;
+        foreach (var node in nodes)
+        {
+            if (node.Entry is { } entry)
+            {
+                _rows.Add(new Row(isRemote ? RowKind.RemoteBranch : RowKind.LocalBranch, node.Segment, indent, IsOpen: false)
+                {
+                    TipSha = entry.TipSha,
+                    IsHead = entry.IsHead,
+                    RemoteName = remoteName,
+                    FullPath = entry.Name,
+                    AheadBy = entry.AheadBy,
+                    BehindBy = entry.BehindBy,
+                });
+            }
+            else
+            {
+                var key = MakeFolderKey(isRemote, remoteName, node.FullPath);
+                var open = _ui.FolderOpen.TryGetValue(key, out var v) ? v : true;
+                _rows.Add(new Row(RowKind.Folder, node.Segment, indent, open)
+                {
+                    RemoteName = remoteName,
+                    FullPath = node.FullPath,
+                    FolderKey = key,
+                });
+                if (open) EmitTreeRows(node.Children, isRemote, remoteName, treeBase, depth + 1);
+            }
+        }
+    }
+
+    private static string MakeFolderKey(bool isRemote, string? remoteName, string path) =>
+        isRemote ? $"remote:{remoteName}:{path}" : $"local:{path}";
+
+    private static IReadOnlyList<TreeNode> BuildTree(IReadOnlyList<BranchEntry> branches)
+    {
+        var root = new TreeNode("", "");
+        foreach (var b in branches)
+        {
+            var segments = b.Name.Split('/');
+            var current = root;
+            for (var i = 0; i < segments.Length; i++)
+            {
+                var seg = segments[i];
+                var isLeaf = i == segments.Length - 1;
+                if (!current.ChildIndex.TryGetValue(seg, out var child))
+                {
+                    var path = i == 0 ? seg : current.FullPath + "/" + seg;
+                    child = new TreeNode(seg, path);
+                    current.ChildIndex[seg] = child;
+                    current.Children.Add(child);
+                }
+                if (isLeaf) child.Entry = b;
+                current = child;
+            }
+        }
+        SortNode(root);
+        return root.Children;
+    }
+
+    // Folders first, then leaves; alphabetical within each group. The leaf-of-the-same-path
+    // case (a branch named "feature" alongside "feature/login") cannot occur in git, so we
+    // don't try to handle a node that's simultaneously a folder and a branch.
+    private static void SortNode(TreeNode node)
+    {
+        node.Children.Sort((a, b) =>
+        {
+            var aFolder = a.Entry == null;
+            var bFolder = b.Entry == null;
+            if (aFolder != bFolder) return aFolder ? -1 : 1;
+            return string.Compare(a.Segment, b.Segment, StringComparison.OrdinalIgnoreCase);
+        });
+        foreach (var c in node.Children) SortNode(c);
     }
 
     private void ClampScroll()
@@ -351,7 +442,12 @@ public sealed class BranchesView : MultiChildView
 
         var hasChevron = row.Kind == RowKind.LocalHeader
             || row.Kind == RowKind.RemotesHeader
-            || row.Kind == RowKind.RemoteHeader;
+            || row.Kind == RowKind.RemoteHeader
+            || row.Kind == RowKind.Folder;
+        var isTreeRow = row.Kind == RowKind.Folder
+            || row.Kind == RowKind.LocalBranch
+            || row.Kind == RowKind.RemoteBranch;
+
         if (hasChevron)
         {
             c.DrawText(new DrawTextInputs
@@ -361,12 +457,21 @@ public sealed class BranchesView : MultiChildView
                 Style = _chevronStyle,
                 ZIndex = z + 1,
             });
-            contentLeft += ChevronWidth + ChevronGap;
+            contentLeft += ChevronColumn;
+        }
+        else if (isTreeRow)
+        {
+            // Branch rows reserve the chevron column so their icons sit in the same x
+            // position as a sibling folder's icon.
+            contentLeft += ChevronColumn;
         }
 
         // Ahead/behind badge eats from the right edge before the branch name is truncated.
         if (row.Kind == RowKind.LocalBranch && Context != null)
             rightEdge = DrawAheadBehindBadge(c, row, rowBottom, rightEdge, z + 1);
+
+        if (isTreeRow && Context != null)
+            contentLeft = DrawRowIcon(c, row, isSelected, contentLeft, rowBottom, z + 1);
 
         var textWidth = Math.Max(0f, rightEdge - contentLeft);
         if (textWidth <= 0f) return;
@@ -386,6 +491,32 @@ public sealed class BranchesView : MultiChildView
             Style = style,
             ZIndex = z + 1,
         });
+    }
+
+    private float DrawRowIcon(ICanvas c, Row row, bool isSelected, float left, float rowBottom, int z)
+    {
+        string glyph;
+        TextStyle style;
+        if (row.Kind == RowKind.Folder)
+        {
+            glyph = row.IsOpen ? LucideIcons.FolderOpen : LucideIcons.Folder;
+            style = _folderIconStyle;
+        }
+        else
+        {
+            glyph = LucideIcons.Branch;
+            style = (row.IsHead || isSelected) ? _branchIconActiveStyle : _branchIconStyle;
+        }
+
+        var width = Context!.Canvas.MeasureTextWidth(glyph, style);
+        c.DrawText(new DrawTextInputs
+        {
+            Position = new RectF(left, rowBottom, width, RowHeight),
+            Text = glyph,
+            Style = style,
+            ZIndex = z,
+        });
+        return left + width + IconGap;
     }
 
     // Returns the new right-edge after drawing the badge so the name's truncation knows
@@ -514,18 +645,27 @@ public sealed class BranchesView : MultiChildView
                     RebuildRows();
                 }
                 return;
-            case RowKind.LocalBranch:
-                if (row.TipSha != null)
+            case RowKind.Folder:
+                if (row.FolderKey != null)
                 {
-                    _selection = new BranchSelection(IsRemote: false, RemoteName: null, Name: row.DisplayName, TipSha: row.TipSha);
+                    var current = _ui.FolderOpen.TryGetValue(row.FolderKey, out var v) ? v : true;
+                    _ui.FolderOpen[row.FolderKey] = !current;
+                    PersistUi();
+                    RebuildRows();
+                }
+                return;
+            case RowKind.LocalBranch:
+                if (row.TipSha != null && row.FullPath != null)
+                {
+                    _selection = new BranchSelection(IsRemote: false, RemoteName: null, FullPath: row.FullPath, TipSha: row.TipSha);
                     SwitchToHistory();
                     _bus?.Broadcast(new CommitSelectedMessage(_activeRepoId, row.TipSha));
                 }
                 return;
             case RowKind.RemoteBranch:
-                if (row.TipSha != null && row.RemoteName != null)
+                if (row.TipSha != null && row.RemoteName != null && row.FullPath != null)
                 {
-                    _selection = new BranchSelection(IsRemote: true, RemoteName: row.RemoteName, Name: row.DisplayName, TipSha: row.TipSha);
+                    _selection = new BranchSelection(IsRemote: true, RemoteName: row.RemoteName, FullPath: row.FullPath, TipSha: row.TipSha);
                     SwitchToHistory();
                     _bus?.Broadcast(new CommitSelectedMessage(_activeRepoId, row.TipSha));
                 }
@@ -573,17 +713,17 @@ public sealed class BranchesView : MultiChildView
         return idx;
     }
 
-    private readonly record struct BranchSelection(bool IsRemote, string? RemoteName, string Name, string TipSha)
+    private readonly record struct BranchSelection(bool IsRemote, string? RemoteName, string FullPath, string TipSha)
     {
         public bool Matches(Row row) => row.Kind switch
         {
-            RowKind.LocalBranch => !IsRemote && row.DisplayName == Name,
-            RowKind.RemoteBranch => IsRemote && row.RemoteName == RemoteName && row.DisplayName == Name,
+            RowKind.LocalBranch => !IsRemote && row.FullPath == FullPath,
+            RowKind.RemoteBranch => IsRemote && row.RemoteName == RemoteName && row.FullPath == FullPath,
             _ => false,
         };
     }
 
-    private enum RowKind { LocalHeader, RemotesHeader, RemoteHeader, LocalBranch, RemoteBranch }
+    private enum RowKind { LocalHeader, RemotesHeader, RemoteHeader, Folder, LocalBranch, RemoteBranch }
 
     private sealed class Row
     {
@@ -601,8 +741,24 @@ public sealed class BranchesView : MultiChildView
         public string? TipSha { get; init; }
         public bool IsHead { get; init; }
         public string? RemoteName { get; init; }
+        public string? FullPath { get; init; }
+        public string? FolderKey { get; init; }
         public int? AheadBy { get; init; }
         public int? BehindBy { get; init; }
+    }
+
+    private sealed class TreeNode
+    {
+        public TreeNode(string segment, string fullPath)
+        {
+            Segment = segment;
+            FullPath = fullPath;
+        }
+        public string Segment { get; }
+        public string FullPath { get; }
+        public BranchEntry? Entry { get; set; }
+        public Dictionary<string, TreeNode> ChildIndex { get; } = new();
+        public List<TreeNode> Children { get; } = new();
     }
 }
 
