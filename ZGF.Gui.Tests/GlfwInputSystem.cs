@@ -96,6 +96,7 @@ public sealed class GlfwInputSystem
             Mouse = Mouse,
             Button = b,
             State = s,
+            Modifiers = (InputModifiers)modifiers,
             Phase = EventPhase.Capturing,
         };
         InputSystem.SendMouseButtonEvent(ref e);

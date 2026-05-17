@@ -1,5 +1,5 @@
-using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -18,6 +18,9 @@ public sealed class LocalChangesView : MultiChildView
     private const float CommitButtonWidth = 120f;
     private const float DescriptionMinHeight = 60f;
     private const float DescriptionMaxHeight = 240f;
+    private const float ActionsColumnWidth = 56f;
+    private const int ActionsColumnPadding = 10;
+    private const float ActionsColumnGap = 4f;
 
     private IRepoRegistry? _registry;
     private IGitService? _gitService;
@@ -34,7 +37,7 @@ public sealed class LocalChangesView : MultiChildView
     private readonly LocalChangesPanel _stagedPanel;
     private readonly TextView _placeholder;
     private readonly RectView _centerContainer;
-    private readonly LocalChangesSplitView _splitView;
+    private readonly View _contentRow;
 
     public LocalChangesView()
     {
@@ -48,12 +51,12 @@ public sealed class LocalChangesView : MultiChildView
             VerticalTextAlignment = TextAlignment.Center,
         };
 
-        _splitView = new LocalChangesSplitView(_unstagedPanel, _stagedPanel);
+        _contentRow = BuildContentRow();
 
         _centerContainer = new RectView
         {
             BackgroundColor = CommitsPalette.Background,
-            Children = { _splitView },
+            Children = { _contentRow },
         };
 
         AddChildToSelf(new RectView
@@ -68,6 +71,77 @@ public sealed class LocalChangesView : MultiChildView
                 },
             },
         });
+    }
+
+    private View BuildContentRow()
+    {
+        var actionsColumn = new RectView
+        {
+            PreferredWidth = ActionsColumnWidth,
+            BorderColor = new BorderColorStyle
+            {
+                Left = CommitsPalette.Border,
+                Right = CommitsPalette.Border,
+            },
+            BorderSize = new BorderSizeStyle { Left = 1, Right = 1 },
+            Padding = new PaddingStyle
+            {
+                Left = ActionsColumnPadding,
+                Right = ActionsColumnPadding,
+                Top = ActionsColumnPadding,
+                Bottom = ActionsColumnPadding,
+            },
+            Children =
+            {
+                new FlexColumnView
+                {
+                    Gap = ActionsColumnGap,
+                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
+                    MainAxisAlignment = MainAxisAlignment.Center,
+                    Children =
+                    {
+                        new LocalChangesActionButton(LucideIcons.ChevronsRight, OnStageAll),
+                        new LocalChangesActionButton(LucideIcons.ChevronRight, OnStageSelected),
+                        new LocalChangesActionButton(LucideIcons.ChevronLeft, OnUnstageSelected),
+                        new LocalChangesActionButton(LucideIcons.ChevronsLeft, OnUnstageAll),
+                    },
+                },
+            },
+        };
+
+        return new FlexRowView
+        {
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
+            Children =
+            {
+                // PreferredWidth = 0 stops each flex slot from contributing its content's
+                // natural width to the distribution — the two panels then split the remaining
+                // space evenly via Grow regardless of how long the file paths inside are.
+                new FlexItem { Grow = 1, PreferredWidth = 0f, Child = _unstagedPanel },
+                actionsColumn,
+                new FlexItem { Grow = 1, PreferredWidth = 0f, Child = _stagedPanel },
+            },
+        };
+    }
+
+    private void OnStageAll()
+    {
+        // UI-only for now.
+    }
+
+    private void OnStageSelected()
+    {
+        // UI-only for now.
+    }
+
+    private void OnUnstageSelected()
+    {
+        // UI-only for now.
+    }
+
+    private void OnUnstageAll()
+    {
+        // UI-only for now.
     }
 
     private View BuildCommitBar()
@@ -228,180 +302,45 @@ public sealed class LocalChangesView : MultiChildView
         _unstagedPanel.SetFiles(snap.Unstaged);
         _stagedPanel.SetFiles(snap.Staged);
         _centerContainer.Children.Clear();
-        _centerContainer.Children.Add(_splitView);
+        _centerContainer.Children.Add(_contentRow);
     }
 }
 
-internal sealed class LocalChangesSplitView : MultiChildView
+internal sealed class LocalChangesActionButton : MultiChildView
 {
-    private const float DividerThickness = 1f;
-    private const float DividerHitWidth = 6f;
-    private const float MinPanelWidth = 200f;
+    private const float ButtonHeight = 32f;
+    private const float IconSize = 14f;
+    private const uint IconIdleColor = 0xFFCDD1D6;
 
-    private readonly LocalChangesPanel _left;
-    private readonly LocalChangesPanel _right;
-    private float _leftRatio = 0.5f;
-    private bool _dividerHovered;
-
-    public LocalChangesSplitView(LocalChangesPanel left, LocalChangesPanel right)
+    public LocalChangesActionButton(string icon, Action onClick)
     {
-        _left = left;
-        _right = right;
-        AddChildToSelf(_left);
-        AddChildToSelf(_right);
-        Behaviors.Add(new LocalChangesSplitViewController(this));
-    }
+        PreferredHeight = ButtonHeight;
 
-    protected override void OnLayoutChildren()
-    {
-        var pos = Position;
-        if (pos.Width <= 0f) return;
+        var isHovered = new State<bool>(false);
 
-        var leftWidth = ClampLeftWidth(pos.Width * _leftRatio, pos.Width);
-        // Persist the clamped ratio so subsequent layouts stay consistent.
-        _leftRatio = leftWidth / pos.Width;
-        var rightWidth = pos.Width - leftWidth;
-
-        _left.LeftConstraint = pos.Left;
-        _left.BottomConstraint = pos.Bottom;
-        _left.MinWidthConstraint = leftWidth;
-        _left.MaxWidthConstraint = leftWidth;
-        _left.MaxHeightConstraint = pos.Height;
-        _left.LayoutSelf();
-
-        _right.LeftConstraint = pos.Left + leftWidth;
-        _right.BottomConstraint = pos.Bottom;
-        _right.MinWidthConstraint = rightWidth;
-        _right.MaxWidthConstraint = rightWidth;
-        _right.MaxHeightConstraint = pos.Height;
-        _right.LayoutSelf();
-    }
-
-    protected override void OnDrawSelf(ICanvas c)
-    {
-        var pos = Position;
-        if (pos.Width <= 0f) return;
-
-        var leftWidth = ClampLeftWidth(pos.Width * _leftRatio, pos.Width);
-        var dividerX = pos.Left + leftWidth;
-        var z = GetDrawZIndex();
-
-        // Always paint the thin static line so the panels look separated.
-        c.DrawRect(new DrawRectInputs
+        var iconView = new TextView
         {
-            Position = new RectF(dividerX - DividerThickness * 0.5f, pos.Bottom, DividerThickness, pos.Height),
-            Style = new RectStyle
-            {
-                BackgroundColor = _dividerHovered ? CommitsPalette.DividerHoverLine : CommitsPalette.Border,
-            },
-            ZIndex = z + 1000,
-        });
+            Text = icon,
+            FontFamily = LucideIcons.FontFamily,
+            FontSize = IconSize,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        iconView.BindTextColor(isHovered, h => h ? 0xFFFFFFFFu : IconIdleColor);
 
-        if (_dividerHovered)
+        var background = new RectView
         {
-            c.DrawRect(new DrawRectInputs
-            {
-                Position = new RectF(dividerX - DividerHitWidth * 0.5f, pos.Bottom, DividerHitWidth, pos.Height),
-                Style = new RectStyle { BackgroundColor = CommitsPalette.DividerHoverBg },
-                ZIndex = z + 999,
-            });
-        }
-    }
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(5),
+            Children = { iconView },
+        };
+        background.BindBackgroundColor(isHovered,
+            h => h ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal);
+        background.BindBorderColor(isHovered,
+            h => BorderColorStyle.All(h ? DialogPalette.ButtonBorderHover : DialogPalette.ButtonBorder));
+        AddChildToSelf(background);
 
-    internal bool HitTestDivider(PointF point)
-    {
-        var pos = Position;
-        if (pos.Width <= 0f) return false;
-        if (point.Y < pos.Bottom || point.Y > pos.Top) return false;
-        var leftWidth = ClampLeftWidth(pos.Width * _leftRatio, pos.Width);
-        var dividerX = pos.Left + leftWidth;
-        return Math.Abs(point.X - dividerX) <= DividerHitWidth * 0.5f;
-    }
-
-    internal void SetDividerHovered(bool hovered)
-    {
-        if (_dividerHovered == hovered) return;
-        _dividerHovered = hovered;
-        SetDirty();
-    }
-
-    internal void DragDivider(float mouseDeltaX)
-    {
-        var pos = Position;
-        if (pos.Width <= 0f) return;
-        var leftWidth = ClampLeftWidth(pos.Width * _leftRatio, pos.Width);
-        var newLeftWidth = ClampLeftWidth(leftWidth + mouseDeltaX, pos.Width);
-        var newRatio = newLeftWidth / pos.Width;
-        if (Math.Abs(newRatio - _leftRatio) < 0.0001f) return;
-        _leftRatio = newRatio;
-        SetDirty();
-    }
-
-    private static float ClampLeftWidth(float desired, float total)
-    {
-        var minLeft = MinPanelWidth;
-        var maxLeft = total - MinPanelWidth;
-        if (maxLeft < minLeft)
-        {
-            // Not enough room for both minimums; just split evenly.
-            return total * 0.5f;
-        }
-        return Math.Clamp(desired, minLeft, maxLeft);
-    }
-}
-
-internal sealed class LocalChangesSplitViewController : KeyboardMouseController
-{
-    private readonly LocalChangesSplitView _view;
-    private bool _dragging;
-    private float _lastDragX;
-
-    public LocalChangesSplitViewController(LocalChangesSplitView view)
-    {
-        _view = view;
-    }
-
-    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
-    {
-        if (e.Button != MouseButton.Left) return;
-
-        if (e.State == InputState.Pressed)
-        {
-            if (_view.HitTestDivider(e.Mouse.Point))
-            {
-                _dragging = true;
-                _lastDragX = e.Mouse.Point.X;
-                _view.Context?.Get<InputSystem>()?.RequestFocus(this);
-                e.Consume();
-            }
-            return;
-        }
-
-        if (e.State == InputState.Released && _dragging)
-        {
-            _dragging = false;
-            _view.Context?.Get<InputSystem>()?.Blur(this);
-            e.Consume();
-        }
-    }
-
-    public override void OnMouseMoved(ref MouseMoveEvent e)
-    {
-        if (_dragging)
-        {
-            var dx = e.Mouse.Point.X - _lastDragX;
-            _lastDragX = e.Mouse.Point.X;
-            _view.DragDivider(dx);
-            e.Consume();
-            return;
-        }
-        _view.SetDividerHovered(_view.HitTestDivider(e.Mouse.Point));
-    }
-
-    public override void OnMouseExit(ref MouseExitEvent e)
-    {
-        if (!_dragging)
-            _view.SetDividerHovered(false);
+        Behaviors.Add(new HoverableButtonController(onClick, h => isHovered.Value = h));
     }
 }
 
@@ -417,6 +356,12 @@ internal sealed class LocalChangesPanel : MultiChildView
     private readonly TextView _emptyPlaceholder;
     private readonly ScrollPane _scrollPane;
     private readonly VerticalScrollBarView _scrollBar;
+    private readonly State<HashSet<string>> _selection = new(new HashSet<string>());
+    private IReadOnlyList<FileChange> _files = Array.Empty<FileChange>();
+    private string? _anchorPath;
+
+    public IReadable<HashSet<string>> Selection => _selection;
+    public IReadOnlyCollection<string> SelectedPaths => _selection.Value;
 
     public LocalChangesPanel(string title, string emptyText)
     {
@@ -506,7 +451,12 @@ internal sealed class LocalChangesPanel : MultiChildView
 
     public void SetFiles(IReadOnlyList<FileChange> files)
     {
+        _files = files;
+        _anchorPath = null;
         _headerText.Text = FormatHeader(files.Count);
+        // The path set changed; drop any selection that no longer points at a real row.
+        if (_selection.Value.Count > 0)
+            _selection.Value = new HashSet<string>();
         _rows.Children.Clear();
         if (files.Count == 0)
         {
@@ -515,12 +465,166 @@ internal sealed class LocalChangesPanel : MultiChildView
         else
         {
             foreach (var file in files)
-                _rows.Children.Add(new FileChangeRowView(file));
+                _rows.Children.Add(new SelectableFileRowView(file, _selection, HandleRowClick));
         }
         _scrollPane.ScrollToOrigin();
     }
 
+    public void ClearSelection()
+    {
+        _anchorPath = null;
+        if (_selection.Value.Count == 0) return;
+        _selection.Value = new HashSet<string>();
+    }
+
+    private void HandleRowClick(string path, InputModifiers modifiers)
+    {
+        var shift = (modifiers & InputModifiers.Shift) != 0;
+        // Cmd on macOS reports as Super; Ctrl on Windows/Linux as Control. Treat both
+        // as the toggle-modifier so the panel feels right on every host.
+        var toggle = (modifiers & (InputModifiers.Control | InputModifiers.Super)) != 0;
+
+        if (shift && _anchorPath != null)
+        {
+            var anchorIdx = IndexOfPath(_anchorPath);
+            var clickIdx = IndexOfPath(path);
+            if (anchorIdx >= 0 && clickIdx >= 0)
+            {
+                var lo = Math.Min(anchorIdx, clickIdx);
+                var hi = Math.Max(anchorIdx, clickIdx);
+                var next = new HashSet<string>();
+                for (var i = lo; i <= hi; i++)
+                    next.Add(_files[i].Path);
+                _selection.Value = next;
+                // Anchor intentionally stays — extending the shift-range pivots around it.
+                return;
+            }
+        }
+
+        if (toggle)
+        {
+            var next = new HashSet<string>(_selection.Value);
+            if (!next.Add(path)) next.Remove(path);
+            _selection.Value = next;
+            _anchorPath = path;
+            return;
+        }
+
+        _selection.Value = new HashSet<string> { path };
+        _anchorPath = path;
+    }
+
+    private int IndexOfPath(string path)
+    {
+        for (var i = 0; i < _files.Count; i++)
+        {
+            if (_files[i].Path == path) return i;
+        }
+        return -1;
+    }
+
     private string FormatHeader(int count) => $"{_title} ({count})";
+}
+
+/// <summary>
+/// Row in the local-changes lists. Same badge+path content as FileChangeRowView, but
+/// clickable with reactive selection and hover backgrounds. The panel above handles
+/// the modifier semantics (plain = single-select, Shift = range, Ctrl/Cmd = toggle);
+/// this row just forwards the click + modifier state and renders the resulting state.
+/// </summary>
+internal sealed class SelectableFileRowView : MultiChildView
+{
+    private const float BadgeSize = 16f;
+    private const int RowVerticalPadding = 2;
+    private const int RowHorizontalPadding = 4;
+
+    public SelectableFileRowView(FileChange file, IReadable<HashSet<string>> selection, Action<string, InputModifiers> onClick)
+    {
+        var isHovered = new State<bool>(false);
+        var path = file.Path;
+
+        var badge = new RectView
+        {
+            PreferredWidth = BadgeSize,
+            PreferredHeight = BadgeSize,
+            BackgroundColor = FileChangesPalette.StatusColor(file.Status),
+            BorderRadius = BorderRadiusStyle.All(3),
+            Children =
+            {
+                new TextView
+                {
+                    Text = FileChangesPalette.StatusGlyph(file.Status),
+                    TextColor = FileChangesPalette.BadgeText,
+                    FontSize = 11f,
+                    HorizontalTextAlignment = TextAlignment.Center,
+                    VerticalTextAlignment = TextAlignment.Center,
+                },
+            },
+        };
+
+        var pathText = new TextView { Text = FileChangesPalette.FormatPath(file) };
+        pathText.BindTextColor(() => selection.Value.Contains(path)
+            ? DialogPalette.RowTextActive
+            : DialogPalette.RowText);
+
+        var content = new FlexRowView
+        {
+            Gap = 8f,
+            CrossAxisAlignment = CrossAxisAlignment.Start,
+            Children =
+            {
+                badge,
+                new FlexItem { Grow = 1, Child = pathText },
+            },
+        };
+
+        var background = new RectView
+        {
+            BorderRadius = BorderRadiusStyle.All(3),
+            Padding = new PaddingStyle
+            {
+                Left = RowHorizontalPadding,
+                Right = RowHorizontalPadding,
+                Top = RowVerticalPadding,
+                Bottom = RowVerticalPadding,
+            },
+            Children = { content },
+        };
+        background.BindBackgroundColor(() =>
+            selection.Value.Contains(path) ? DialogPalette.RowActive
+            : isHovered.Value ? DialogPalette.RowHover
+            : DialogPalette.RowTransparent);
+
+        AddChildToSelf(background);
+
+        Behaviors.Add(new SelectableRowController(
+            mods => onClick(path, mods),
+            h => isHovered.Value = h));
+    }
+}
+
+internal sealed class SelectableRowController : KeyboardMouseController
+{
+    private readonly Action<InputModifiers> _onClick;
+    private readonly Action<bool> _onHoverChanged;
+
+    public SelectableRowController(Action<InputModifiers> onClick, Action<bool> onHoverChanged)
+    {
+        _onClick = onClick;
+        _onHoverChanged = onHoverChanged;
+    }
+
+    public override void OnMouseEnter(ref MouseEnterEvent e) => _onHoverChanged(true);
+    public override void OnMouseExit(ref MouseExitEvent e) => _onHoverChanged(false);
+
+    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    {
+        if (e.Button == MouseButton.Left && e.State == InputState.Pressed)
+        {
+            _onClick(e.Modifiers);
+            e.Consume();
+        }
+    }
 }
 
 internal sealed class LocalChangesScrollSyncController : KeyboardMouseController
