@@ -39,6 +39,7 @@ unsafe
         if (moduleRaw == IntPtr.Zero) throw new Exception($"LoadModule failed: {ReadBlob(loadDiagnostics)}");
         Console.WriteLine($"Loaded module, total loaded: {session.GetLoadedModuleCount()}");
 
+        //Test
         var module = (IModule)SlangCompilerAPI.ComWrappers.GetOrCreateObjectForComInstance(moduleRaw, CreateObjectFlags.None);
 
         hr = module.FindEntryPointByName("vertexMain", out vertexEpRaw);

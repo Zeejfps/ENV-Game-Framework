@@ -1,3 +1,4 @@
+using ZGF.Geometry;
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
@@ -13,7 +14,9 @@ internal abstract record LocalChangesViewModel
 
 public sealed class LocalChangesView : MultiChildView
 {
-    private const int Padding = 14;
+    private const int CommitBarPadding = 10;
+    private const float CommitMessageHeight = 72f;
+    private const float CommitButtonWidth = 120f;
 
     private IRepoRegistry? _registry;
     private IGitService? _gitService;
@@ -26,57 +29,31 @@ public sealed class LocalChangesView : MultiChildView
 
     private int _loadGeneration;
 
-    private readonly ColumnView _content;
-    private readonly ScrollPane _scrollPane;
-    private readonly VerticalScrollBarView _vScrollBar;
+    private readonly LocalChangesPanel _unstagedPanel;
+    private readonly LocalChangesPanel _stagedPanel;
     private readonly TextView _placeholder;
-    private readonly FileChangesSection _stagedSection;
-    private readonly FileChangesSection _unstagedSection;
+    private readonly RectView _centerContainer;
+    private readonly LocalChangesSplitView _splitView;
 
     public LocalChangesView()
     {
+        _unstagedPanel = new LocalChangesPanel("Unstaged", "No unstaged changes.");
+        _stagedPanel = new LocalChangesPanel("Staged", "No staged changes.");
+
         _placeholder = new TextView
         {
             TextColor = CommitsPalette.Placeholder,
             HorizontalTextAlignment = TextAlignment.Center,
-        };
-        _stagedSection = new FileChangesSection("Staged", emptyText: "No staged changes.");
-        _unstagedSection = new FileChangesSection("Unstaged", emptyText: "No unstaged changes.");
-
-        _content = new ColumnView { Gap = 12 };
-        var paddedContent = new PaddingView
-        {
-            Padding = new PaddingStyle { Left = Padding, Right = Padding, Top = Padding, Bottom = Padding },
-            Children = { _content },
+            VerticalTextAlignment = TextAlignment.Center,
         };
 
-        _scrollPane = new ScrollPane();
-        _scrollPane.Children.Add(paddedContent);
-        _scrollPane.Behaviors.Add(new ScrollPaneWheelController(_scrollPane));
+        _splitView = new LocalChangesSplitView(_unstagedPanel, _stagedPanel);
 
-        _vScrollBar = new VerticalScrollBarView
+        _centerContainer = new RectView
         {
-            TrackBackgroundColor = CommitsPalette.ScrollTrackBg,
-            TrackBorderColor = new BorderColorStyle
-            {
-                Left = CommitsPalette.ScrollTrackBorder,
-                Top = CommitsPalette.ScrollTrackBorder,
-                Right = CommitsPalette.ScrollTrackBorder,
-                Bottom = CommitsPalette.ScrollTrackBorder,
-            },
-            TrackBorderSize = new BorderSizeStyle { Left = 1 },
+            BackgroundColor = CommitsPalette.Background,
+            Children = { _splitView },
         };
-        _vScrollBar.Thumb.IdleBackgroundColor = CommitsPalette.ScrollThumbBg;
-        _vScrollBar.Thumb.HoveredBackgroundColor = CommitsPalette.ScrollThumbHoverBg;
-        _vScrollBar.Thumb.BorderColor = new BorderColorStyle
-        {
-            Left = CommitsPalette.ScrollThumbBorder,
-            Top = CommitsPalette.ScrollThumbBorder,
-            Right = CommitsPalette.ScrollThumbBorder,
-            Bottom = CommitsPalette.ScrollThumbBorder,
-        };
-        _vScrollBar.Thumb.BorderSize = BorderSizeStyle.All(1);
-        _vScrollBar.Behaviors.Add(new VerticalScrollBarViewController(_vScrollBar));
 
         AddChildToSelf(new RectView
         {
@@ -85,13 +62,76 @@ public sealed class LocalChangesView : MultiChildView
             {
                 new BorderLayoutView
                 {
-                    Center = _scrollPane,
-                    East = _vScrollBar,
+                    Center = _centerContainer,
+                    South = BuildCommitBar(),
                 },
             },
         });
+    }
 
-        Behaviors.Add(new LocalChangesScrollSyncController(_scrollPane, _vScrollBar));
+    private View BuildCommitBar()
+    {
+        var messageInput = new TextInputView
+        {
+            BackgroundColor = DialogPalette.ButtonNormal,
+            TextColor = DialogPalette.TitleText,
+            CaretColor = DialogPalette.TitleText,
+            SelectionRectColor = DialogPalette.RowActive,
+            TextVerticalAlignment = TextAlignment.Start,
+            TextWrap = TextWrap.Wrap,
+            PreferredHeight = CommitMessageHeight,
+        };
+        messageInput.Behaviors.Add(new TextInputViewKbmController(messageInput) { IsMultiLine = true });
+
+        var messageBox = new RectView
+        {
+            BackgroundColor = DialogPalette.ButtonNormal,
+            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(3),
+            Padding = new PaddingStyle { Left = 6, Right = 6, Top = 6, Bottom = 6 },
+            Children = { messageInput },
+        };
+
+        var commitButton = new DialogButton("Commit", OnCommitClicked)
+        {
+            PreferredWidth = CommitButtonWidth,
+            PreferredHeight = 28,
+        };
+
+        var buttonRow = new FlexRowView
+        {
+            MainAxisAlignment = MainAxisAlignment.End,
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            Children = { commitButton },
+        };
+
+        return new RectView
+        {
+            BackgroundColor = CommitsPalette.HeaderBg,
+            BorderColor = new BorderColorStyle { Top = CommitsPalette.Border },
+            BorderSize = new BorderSizeStyle { Top = 1 },
+            Padding = new PaddingStyle
+            {
+                Left = CommitBarPadding,
+                Right = CommitBarPadding,
+                Top = CommitBarPadding,
+                Bottom = CommitBarPadding,
+            },
+            Children =
+            {
+                new ColumnView
+                {
+                    Gap = 8,
+                    Children = { messageBox, buttonRow },
+                },
+            },
+        };
+    }
+
+    private void OnCommitClicked()
+    {
+        // UI-only for now.
     }
 
     protected override void OnAttachedToContext(Context context)
@@ -175,20 +215,308 @@ public sealed class LocalChangesView : MultiChildView
     private void ShowPlaceholder(string text)
     {
         _placeholder.Text = text;
-        _content.Children.Clear();
-        _content.Children.Add(_placeholder);
-        _scrollPane.ScrollToOrigin();
+        _centerContainer.Children.Clear();
+        _centerContainer.Children.Add(_placeholder);
     }
 
     private void ShowSnapshot(LocalChangesSnapshot snap)
     {
-        _stagedSection.SetFiles(snap.Staged);
-        _unstagedSection.SetFiles(snap.Unstaged);
-        _content.Children.Clear();
-        _content.Children.Add(_stagedSection);
-        _content.Children.Add(_unstagedSection);
+        _unstagedPanel.SetFiles(snap.Unstaged);
+        _stagedPanel.SetFiles(snap.Staged);
+        _centerContainer.Children.Clear();
+        _centerContainer.Children.Add(_splitView);
+    }
+}
+
+internal sealed class LocalChangesSplitView : MultiChildView
+{
+    private const float DividerThickness = 1f;
+    private const float DividerHitWidth = 6f;
+    private const float MinPanelWidth = 200f;
+
+    private readonly LocalChangesPanel _left;
+    private readonly LocalChangesPanel _right;
+    private float _leftRatio = 0.5f;
+    private bool _dividerHovered;
+
+    public LocalChangesSplitView(LocalChangesPanel left, LocalChangesPanel right)
+    {
+        _left = left;
+        _right = right;
+        AddChildToSelf(_left);
+        AddChildToSelf(_right);
+        Behaviors.Add(new LocalChangesSplitViewController(this));
+    }
+
+    protected override void OnLayoutChildren()
+    {
+        var pos = Position;
+        if (pos.Width <= 0f) return;
+
+        var leftWidth = ClampLeftWidth(pos.Width * _leftRatio, pos.Width);
+        // Persist the clamped ratio so subsequent layouts stay consistent.
+        _leftRatio = leftWidth / pos.Width;
+        var rightWidth = pos.Width - leftWidth;
+
+        _left.LeftConstraint = pos.Left;
+        _left.BottomConstraint = pos.Bottom;
+        _left.MinWidthConstraint = leftWidth;
+        _left.MaxWidthConstraint = leftWidth;
+        _left.MaxHeightConstraint = pos.Height;
+        _left.LayoutSelf();
+
+        _right.LeftConstraint = pos.Left + leftWidth;
+        _right.BottomConstraint = pos.Bottom;
+        _right.MinWidthConstraint = rightWidth;
+        _right.MaxWidthConstraint = rightWidth;
+        _right.MaxHeightConstraint = pos.Height;
+        _right.LayoutSelf();
+    }
+
+    protected override void OnDrawSelf(ICanvas c)
+    {
+        var pos = Position;
+        if (pos.Width <= 0f) return;
+
+        var leftWidth = ClampLeftWidth(pos.Width * _leftRatio, pos.Width);
+        var dividerX = pos.Left + leftWidth;
+        var z = GetDrawZIndex();
+
+        // Always paint the thin static line so the panels look separated.
+        c.DrawRect(new DrawRectInputs
+        {
+            Position = new RectF(dividerX - DividerThickness * 0.5f, pos.Bottom, DividerThickness, pos.Height),
+            Style = new RectStyle
+            {
+                BackgroundColor = _dividerHovered ? CommitsPalette.DividerHoverLine : CommitsPalette.Border,
+            },
+            ZIndex = z + 1000,
+        });
+
+        if (_dividerHovered)
+        {
+            c.DrawRect(new DrawRectInputs
+            {
+                Position = new RectF(dividerX - DividerHitWidth * 0.5f, pos.Bottom, DividerHitWidth, pos.Height),
+                Style = new RectStyle { BackgroundColor = CommitsPalette.DividerHoverBg },
+                ZIndex = z + 999,
+            });
+        }
+    }
+
+    internal bool HitTestDivider(PointF point)
+    {
+        var pos = Position;
+        if (pos.Width <= 0f) return false;
+        if (point.Y < pos.Bottom || point.Y > pos.Top) return false;
+        var leftWidth = ClampLeftWidth(pos.Width * _leftRatio, pos.Width);
+        var dividerX = pos.Left + leftWidth;
+        return Math.Abs(point.X - dividerX) <= DividerHitWidth * 0.5f;
+    }
+
+    internal void SetDividerHovered(bool hovered)
+    {
+        if (_dividerHovered == hovered) return;
+        _dividerHovered = hovered;
+        SetDirty();
+    }
+
+    internal void DragDivider(float mouseDeltaX)
+    {
+        var pos = Position;
+        if (pos.Width <= 0f) return;
+        var leftWidth = ClampLeftWidth(pos.Width * _leftRatio, pos.Width);
+        var newLeftWidth = ClampLeftWidth(leftWidth + mouseDeltaX, pos.Width);
+        var newRatio = newLeftWidth / pos.Width;
+        if (Math.Abs(newRatio - _leftRatio) < 0.0001f) return;
+        _leftRatio = newRatio;
+        SetDirty();
+    }
+
+    private static float ClampLeftWidth(float desired, float total)
+    {
+        var minLeft = MinPanelWidth;
+        var maxLeft = total - MinPanelWidth;
+        if (maxLeft < minLeft)
+        {
+            // Not enough room for both minimums; just split evenly.
+            return total * 0.5f;
+        }
+        return Math.Clamp(desired, minLeft, maxLeft);
+    }
+}
+
+internal sealed class LocalChangesSplitViewController : KeyboardMouseController
+{
+    private readonly LocalChangesSplitView _view;
+    private bool _dragging;
+    private float _lastDragX;
+
+    public LocalChangesSplitViewController(LocalChangesSplitView view)
+    {
+        _view = view;
+    }
+
+    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    {
+        if (e.Button != MouseButton.Left) return;
+
+        if (e.State == InputState.Pressed)
+        {
+            if (_view.HitTestDivider(e.Mouse.Point))
+            {
+                _dragging = true;
+                _lastDragX = e.Mouse.Point.X;
+                _view.Context?.Get<InputSystem>()?.RequestFocus(this);
+                e.Consume();
+            }
+            return;
+        }
+
+        if (e.State == InputState.Released && _dragging)
+        {
+            _dragging = false;
+            _view.Context?.Get<InputSystem>()?.Blur(this);
+            e.Consume();
+        }
+    }
+
+    public override void OnMouseMoved(ref MouseMoveEvent e)
+    {
+        if (_dragging)
+        {
+            var dx = e.Mouse.Point.X - _lastDragX;
+            _lastDragX = e.Mouse.Point.X;
+            _view.DragDivider(dx);
+            e.Consume();
+            return;
+        }
+        _view.SetDividerHovered(_view.HitTestDivider(e.Mouse.Point));
+    }
+
+    public override void OnMouseExit(ref MouseExitEvent e)
+    {
+        if (!_dragging)
+            _view.SetDividerHovered(false);
+    }
+}
+
+internal sealed class LocalChangesPanel : MultiChildView
+{
+    private const int ContentPadding = 10;
+    private const int HeaderPadding = 4;
+    private const int RowGap = 2;
+
+    private readonly string _title;
+    private readonly TextView _headerText;
+    private readonly ColumnView _rows;
+    private readonly TextView _emptyPlaceholder;
+    private readonly ScrollPane _scrollPane;
+    private readonly VerticalScrollBarView _scrollBar;
+
+    public LocalChangesPanel(string title, string emptyText)
+    {
+        _title = title;
+
+        _headerText = new TextView
+        {
+            Text = FormatHeader(0),
+            TextColor = FileChangesPalette.HeaderText,
+        };
+        _rows = new ColumnView { Gap = RowGap };
+        _emptyPlaceholder = new TextView
+        {
+            Text = emptyText,
+            TextColor = FileChangesPalette.HeaderText,
+        };
+        _rows.Children.Add(_emptyPlaceholder);
+
+        var headerBar = new RectView
+        {
+            BackgroundColor = FileChangesPalette.HeaderBg,
+            BorderColor = new BorderColorStyle
+            {
+                Top = FileChangesPalette.HeaderBorder,
+                Bottom = FileChangesPalette.HeaderBorder,
+            },
+            BorderSize = new BorderSizeStyle { Top = 1, Bottom = 1 },
+            Padding = new PaddingStyle
+            {
+                Left = HeaderPadding,
+                Right = HeaderPadding,
+                Top = HeaderPadding,
+                Bottom = HeaderPadding,
+            },
+            Children = { _headerText },
+        };
+
+        var paddedRows = new PaddingView
+        {
+            Padding = new PaddingStyle
+            {
+                Left = ContentPadding,
+                Right = ContentPadding,
+                Top = ContentPadding,
+                Bottom = ContentPadding,
+            },
+            Children = { _rows },
+        };
+
+        _scrollPane = new ScrollPane();
+        _scrollPane.Children.Add(paddedRows);
+        _scrollPane.Behaviors.Add(new ScrollPaneWheelController(_scrollPane));
+
+        _scrollBar = new VerticalScrollBarView
+        {
+            TrackBackgroundColor = CommitsPalette.ScrollTrackBg,
+            TrackBorderColor = new BorderColorStyle
+            {
+                Left = CommitsPalette.ScrollTrackBorder,
+                Top = CommitsPalette.ScrollTrackBorder,
+                Right = CommitsPalette.ScrollTrackBorder,
+                Bottom = CommitsPalette.ScrollTrackBorder,
+            },
+            TrackBorderSize = new BorderSizeStyle { Left = 1 },
+        };
+        _scrollBar.Thumb.IdleBackgroundColor = CommitsPalette.ScrollThumbBg;
+        _scrollBar.Thumb.HoveredBackgroundColor = CommitsPalette.ScrollThumbHoverBg;
+        _scrollBar.Thumb.BorderColor = new BorderColorStyle
+        {
+            Left = CommitsPalette.ScrollThumbBorder,
+            Top = CommitsPalette.ScrollThumbBorder,
+            Right = CommitsPalette.ScrollThumbBorder,
+            Bottom = CommitsPalette.ScrollThumbBorder,
+        };
+        _scrollBar.Thumb.BorderSize = BorderSizeStyle.All(1);
+        _scrollBar.Behaviors.Add(new VerticalScrollBarViewController(_scrollBar));
+
+        AddChildToSelf(new BorderLayoutView
+        {
+            North = headerBar,
+            Center = _scrollPane,
+            East = _scrollBar,
+        });
+
+        Behaviors.Add(new LocalChangesScrollSyncController(_scrollPane, _scrollBar));
+    }
+
+    public void SetFiles(IReadOnlyList<FileChange> files)
+    {
+        _headerText.Text = FormatHeader(files.Count);
+        _rows.Children.Clear();
+        if (files.Count == 0)
+        {
+            _rows.Children.Add(_emptyPlaceholder);
+        }
+        else
+        {
+            foreach (var file in files)
+                _rows.Children.Add(new FileChangeRowView(file));
+        }
         _scrollPane.ScrollToOrigin();
     }
+
+    private string FormatHeader(int count) => $"{_title} ({count})";
 }
 
 internal sealed class LocalChangesScrollSyncController : KeyboardMouseController
