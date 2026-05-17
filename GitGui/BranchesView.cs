@@ -28,6 +28,7 @@ public sealed class BranchesView : MultiChildView
     private IRepoRegistry? _registry;
     private IGitService? _gitService;
     private IUiDispatcher? _dispatcher;
+    private State<MainViewMode>? _mode;
     private IDisposable? _activeSubscription;
     private IDisposable? _commitCreatedSubscription;
     private IDisposable? _commitSelectedSubscription;
@@ -93,6 +94,7 @@ public sealed class BranchesView : MultiChildView
         _registry = context.Get<IRepoRegistry>();
         _gitService = context.Get<IGitService>();
         _dispatcher = context.Get<IUiDispatcher>();
+        _mode = context.Get<State<MainViewMode>>();
 
         if (_registry != null)
             _activeSubscription = _registry.Active.Subscribe(_ => OnActiveRepoChanged());
@@ -114,6 +116,7 @@ public sealed class BranchesView : MultiChildView
         _registry = null;
         _gitService = null;
         _dispatcher = null;
+        _mode = null;
     }
 
     private void OnActiveRepoChanged()
@@ -426,6 +429,7 @@ public sealed class BranchesView : MultiChildView
                 if (row.TipSha != null)
                 {
                     _selection = new BranchSelection(IsRemote: false, RemoteName: null, Name: row.DisplayName, TipSha: row.TipSha);
+                    SwitchToHistory();
                     _bus?.Broadcast(new CommitSelectedMessage(_activeRepoId, row.TipSha));
                 }
                 return;
@@ -433,10 +437,18 @@ public sealed class BranchesView : MultiChildView
                 if (row.TipSha != null && row.RemoteName != null)
                 {
                     _selection = new BranchSelection(IsRemote: true, RemoteName: row.RemoteName, Name: row.DisplayName, TipSha: row.TipSha);
+                    SwitchToHistory();
                     _bus?.Broadcast(new CommitSelectedMessage(_activeRepoId, row.TipSha));
                 }
                 return;
         }
+    }
+
+    private void SwitchToHistory()
+    {
+        if (_mode == null) return;
+        if (_mode.Value == MainViewMode.History) return;
+        _mode.Value = MainViewMode.History;
     }
 
     private void ClearSelectionAndBroadcast()
