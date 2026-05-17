@@ -109,39 +109,58 @@ public sealed class LocalChangesView : MultiChildView
             },
         };
 
-        return new FlexRowView
+        // Custom layout instead of FlexRowView: with flex, each panel's content's natural
+        // width (long file paths in unstaged, short placeholder in staged) leaks into the
+        // distribution and the panels end up unequal. Here we measure only the center
+        // column and split the remainder strictly in half.
+        return new TransferListRow(_unstagedPanel, actionsColumn, _stagedPanel);
+    }
+
+    private void OnStageAll() => Stage(_unstagedPanel.Files.Select(f => f.Path).ToList());
+    private void OnStageSelected() => Stage(_unstagedPanel.SelectedPaths.ToList());
+    private void OnUnstageSelected() => Unstage(_stagedPanel.SelectedPaths.ToList());
+    private void OnUnstageAll() => Unstage(_stagedPanel.Files.Select(f => f.Path).ToList());
+
+    private void Stage(IReadOnlyList<string> paths) => RunIndexOp(paths, isStage: true);
+    private void Unstage(IReadOnlyList<string> paths) => RunIndexOp(paths, isStage: false);
+
+    private void RunIndexOp(IReadOnlyList<string> paths, bool isStage)
+    {
+        if (paths.Count == 0) return;
+        if (_registry == null || _gitService == null) return;
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+
+        // Same generation guard as load: bump and capture so any in-flight worker that
+        // resolves after a repo switch or another op doesn't clobber a fresher state.
+        _loadGeneration++;
+        var gen = _loadGeneration;
+        var service = _gitService;
+        var dispatcher = _dispatcher;
+
+        Task.Run(() =>
         {
-            CrossAxisAlignment = CrossAxisAlignment.Stretch,
-            Children =
+            LocalChangesViewModel result;
+            try
             {
-                // PreferredWidth = 0 stops each flex slot from contributing its content's
-                // natural width to the distribution — the two panels then split the remaining
-                // space evenly via Grow regardless of how long the file paths inside are.
-                new FlexItem { Grow = 1, PreferredWidth = 0f, Child = _unstagedPanel },
-                actionsColumn,
-                new FlexItem { Grow = 1, PreferredWidth = 0f, Child = _stagedPanel },
-            },
-        };
-    }
+                if (isStage) service.Stage(repo, paths);
+                else service.Unstage(repo, paths);
+                var snap = service.GetLocalChanges(repo);
+                result = snap.ErrorMessage != null
+                    ? new LocalChangesViewModel.Placeholder(snap.ErrorMessage)
+                    : new LocalChangesViewModel.Loaded(snap);
+            }
+            catch (Exception ex)
+            {
+                result = new LocalChangesViewModel.Placeholder(ex.Message);
+            }
 
-    private void OnStageAll()
-    {
-        // UI-only for now.
-    }
-
-    private void OnStageSelected()
-    {
-        // UI-only for now.
-    }
-
-    private void OnUnstageSelected()
-    {
-        // UI-only for now.
-    }
-
-    private void OnUnstageAll()
-    {
-        // UI-only for now.
+            dispatcher?.Post(() =>
+            {
+                if (gen != _loadGeneration) return;
+                _viewModel.Value = result;
+            });
+        });
     }
 
     private View BuildCommitBar()
@@ -306,6 +325,53 @@ public sealed class LocalChangesView : MultiChildView
     }
 }
 
+/// <summary>
+/// Three-column row for the local-changes layout: left panel | fixed-width center |
+/// right panel. The two side panels are guaranteed equal width — the center's measured
+/// width is subtracted from the row's width and the remainder is split exactly in half.
+/// </summary>
+internal sealed class TransferListRow : MultiChildView
+{
+    private readonly View _left;
+    private readonly View _center;
+    private readonly View _right;
+
+    public TransferListRow(View left, View center, View right)
+    {
+        _left = left;
+        _center = center;
+        _right = right;
+        AddChildToSelf(left);
+        AddChildToSelf(center);
+        AddChildToSelf(right);
+    }
+
+    protected override void OnLayoutChildren()
+    {
+        var pos = Position;
+        if (pos.Width <= 0f) return;
+
+        var centerWidth = Math.Min(_center.MeasureWidth(), pos.Width);
+        var sideWidth = Math.Max(0f, (pos.Width - centerWidth) / 2f);
+        // Re-derive in case rounding pushed sideWidth lopsided.
+        centerWidth = pos.Width - sideWidth * 2f;
+
+        LayoutChild(_left, pos.Left, sideWidth, pos);
+        LayoutChild(_center, pos.Left + sideWidth, centerWidth, pos);
+        LayoutChild(_right, pos.Left + sideWidth + centerWidth, sideWidth, pos);
+    }
+
+    private static void LayoutChild(View child, float left, float width, in ZGF.Geometry.RectF parent)
+    {
+        child.LeftConstraint = left;
+        child.BottomConstraint = parent.Bottom;
+        child.MinWidthConstraint = width;
+        child.MaxWidthConstraint = width;
+        child.MaxHeightConstraint = parent.Height;
+        child.LayoutSelf();
+    }
+}
+
 internal sealed class LocalChangesActionButton : MultiChildView
 {
     private const float ButtonHeight = 32f;
@@ -362,6 +428,7 @@ internal sealed class LocalChangesPanel : MultiChildView
 
     public IReadable<HashSet<string>> Selection => _selection;
     public IReadOnlyCollection<string> SelectedPaths => _selection.Value;
+    public IReadOnlyList<FileChange> Files => _files;
 
     public LocalChangesPanel(string title, string emptyText)
     {

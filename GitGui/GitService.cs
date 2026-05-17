@@ -244,6 +244,20 @@ public sealed class GitService : IGitService
     private static LocalChangesSnapshot LocalChangesError(Repo repo, string message)
         => new(repo.Id, Array.Empty<FileChange>(), Array.Empty<FileChange>(), message);
 
+    public void Stage(Repo repo, IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+        using var lg = new Repository(repo.Path);
+        Commands.Stage(lg, paths);
+    }
+
+    public void Unstage(Repo repo, IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+        using var lg = new Repository(repo.Path);
+        Commands.Unstage(lg, paths);
+    }
+
     private static CommitDetails DetailsError(Repo repo, string sha, string message)
         => new(
             RepoId: repo.Id,
