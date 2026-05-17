@@ -57,7 +57,8 @@ public sealed class LocalChangesView : MultiChildView
                 (LucideIcons.ChevronRight, OnStageSelected),
                 (LucideIcons.ChevronsRight, OnStageAll),
             },
-            path => Stage(new[] { path }));
+            path => Stage(new[] { path }),
+            onEmptyAreaClicked: ClearAllSelections);
         _stagedPanel = new LocalChangesPanel(
             "Staged",
             "No staged changes.",
@@ -66,7 +67,8 @@ public sealed class LocalChangesView : MultiChildView
                 (LucideIcons.ChevronsLeft, OnUnstageAll),
                 (LucideIcons.ChevronLeft, OnUnstageSelected),
             },
-            path => Unstage(new[] { path }));
+            path => Unstage(new[] { path }),
+            onEmptyAreaClicked: ClearAllSelections);
 
         _placeholder = new TextView
         {
@@ -122,6 +124,12 @@ public sealed class LocalChangesView : MultiChildView
         // distribution and the panels end up unequal. Here we measure only the center
         // divider and split the remainder strictly in half.
         return new TransferListRow(_unstagedPanel, divider, _stagedPanel);
+    }
+
+    private void ClearAllSelections()
+    {
+        _unstagedPanel.ClearSelection();
+        _stagedPanel.ClearSelection();
     }
 
     private void OnStageAll() => Stage(_unstagedPanel.Files.Select(f => f.Path).ToList());
@@ -670,7 +678,8 @@ internal sealed class LocalChangesPanel : MultiChildView
         string title,
         string emptyText,
         IReadOnlyList<(string Icon, Action OnClick)>? headerActions = null,
-        Action<string>? onRowActivated = null)
+        Action<string>? onRowActivated = null,
+        Action? onEmptyAreaClicked = null)
     {
         _title = title;
         _onRowActivated = onRowActivated;
@@ -773,10 +782,23 @@ internal sealed class LocalChangesPanel : MultiChildView
         _scrollBar.Thumb.BorderSize = BorderSizeStyle.All(1);
         _scrollBar.Behaviors.Add(new VerticalScrollBarViewController(_scrollBar));
 
+        // _scrollPane already carries ScrollPaneWheelController, and the InputSystem
+        // only allows one controller per view — so the deselect-on-empty-click handler
+        // lives on a thin wrapper that covers the same body area. Row clicks consume
+        // the press before bubbling reaches the wrapper, so only clicks that hit empty
+        // space inside the scroll viewport trigger the callback.
+        View center = _scrollPane;
+        if (onEmptyAreaClicked != null)
+        {
+            var bodyWrapper = new RectView { Children = { _scrollPane } };
+            bodyWrapper.Behaviors.Add(new EmptyAreaClickController(onEmptyAreaClicked));
+            center = bodyWrapper;
+        }
+
         AddChildToSelf(new BorderLayoutView
         {
             North = headerBar,
-            Center = _scrollPane,
+            Center = center,
             East = _scrollBar,
         });
 
@@ -939,6 +961,26 @@ internal sealed class SelectableFileRowView : MultiChildView
             mods => onClick(path, mods),
             h => isHovered.Value = h,
             onActivate != null ? () => onActivate(path) : null));
+    }
+}
+
+internal sealed class EmptyAreaClickController : KeyboardMouseController
+{
+    private readonly Action _onClick;
+
+    public EmptyAreaClickController(Action onClick)
+    {
+        _onClick = onClick;
+    }
+
+    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    {
+        // Bubble-only: row controllers consume the left-press in the capture pass,
+        // so a click that reaches us here must have landed on empty space.
+        if (e.Phase != EventPhase.Bubbling) return;
+        if (e.Button != MouseButton.Left || e.State != InputState.Pressed) return;
+        _onClick();
+        e.Consume();
     }
 }
 
