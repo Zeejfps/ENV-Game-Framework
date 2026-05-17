@@ -13,9 +13,6 @@ namespace ZGF.Core;
 
 public sealed class MetalApp : IWindowApp
 {
-    [DllImport("glfw", EntryPoint = "glfwGetCocoaWindow")]
-    private static extern IntPtr glfwGetCocoaWindow(IntPtr window);
-
     private readonly Window _window;
     private readonly SizeCallback _windowSizeCallback;
     private readonly SizeCallback _framebufferSizeCallback;
@@ -49,7 +46,7 @@ public sealed class MetalApp : IWindowApp
         CommandQueue = msg_IntPtr(Device, Sel("newCommandQueue"));
         if (CommandQueue == IntPtr.Zero) throw new System.Exception("newCommandQueue returned null.");
 
-        Layer = AttachMetalLayer((IntPtr)_window, Device, _width, _height);
+        Layer = AttachMetalLayer(_window, Device, _width, _height);
 
         _windowSizeCallback = HandleWindowSizeChanged;
         _framebufferSizeCallback = HandleFramebufferSizeChanged;
@@ -109,9 +106,9 @@ public sealed class MetalApp : IWindowApp
         OnFramebufferResize?.Invoke(width, height);
     }
 
-    private static IntPtr AttachMetalLayer(IntPtr glfwWindowPtr, IntPtr device, int width, int height)
+    private static IntPtr AttachMetalLayer(Window glfwWindow, IntPtr device, int width, int height)
     {
-        var nsWindow = glfwGetCocoaWindow(glfwWindowPtr);
+        var nsWindow = Native.GetCocoaWindow(glfwWindow);
         if (nsWindow == IntPtr.Zero) throw new System.Exception("glfwGetCocoaWindow returned null.");
 
         var contentView = msg_IntPtr(nsWindow, Sel("contentView"));
