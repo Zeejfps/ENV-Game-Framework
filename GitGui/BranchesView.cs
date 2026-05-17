@@ -83,15 +83,35 @@ public sealed class BranchesView : MultiChildView
         HorizontalAlignment = TextAlignment.Center,
     };
     // Ahead = "need to push", behind = "need to pull". Greenish + amber for at-a-glance.
-    private readonly TextStyle _aheadStyle = new()
+    // Number uses the default font; icon uses the Lucide glyphs the toolbar push/pull
+    // buttons use so the visual vocabulary stays consistent.
+    private const uint AheadColor = 0xFF9DD17B;
+    private const uint BehindColor = 0xFFE6A85C;
+    private readonly TextStyle _aheadNumStyle = new()
     {
-        TextColor = 0xFF9DD17B,
+        TextColor = AheadColor,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
-    private readonly TextStyle _behindStyle = new()
+    private readonly TextStyle _behindNumStyle = new()
     {
-        TextColor = 0xFFE6A85C,
+        TextColor = BehindColor,
+        VerticalAlignment = TextAlignment.Center,
+        HorizontalAlignment = TextAlignment.Start,
+    };
+    private readonly TextStyle _aheadIconStyle = new()
+    {
+        TextColor = AheadColor,
+        FontFamily = LucideIcons.FontFamily,
+        FontSize = 14f,
+        VerticalAlignment = TextAlignment.Center,
+        HorizontalAlignment = TextAlignment.Start,
+    };
+    private readonly TextStyle _behindIconStyle = new()
+    {
+        TextColor = BehindColor,
+        FontFamily = LucideIcons.FontFamily,
+        FontSize = 14f,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
@@ -327,7 +347,7 @@ public sealed class BranchesView : MultiChildView
         }
 
         var contentLeft = pos.Left + BaseIndent + row.Indent;
-        var rightEdge = pos.Right - 6f;
+        var rightEdge = pos.Right - 14f;
 
         var hasChevron = row.Kind == RowKind.LocalHeader
             || row.Kind == RowKind.RemotesHeader
@@ -376,36 +396,46 @@ public sealed class BranchesView : MultiChildView
         var behind = row.BehindBy.GetValueOrDefault();
         if (ahead == 0 && behind == 0) return rightEdge;
 
-        const float badgeGap = 6f;
+        const float badgeGap = 8f;
+        const float numIconGap = 3f;
         var cursor = rightEdge;
 
         if (behind > 0)
-        {
-            var text = behind + "↓";
-            var w = Context!.Canvas.MeasureTextWidth(text, _behindStyle);
-            c.DrawText(new DrawTextInputs
-            {
-                Position = new RectF(cursor - w, rowBottom, w, RowHeight),
-                Text = text,
-                Style = _behindStyle,
-                ZIndex = z,
-            });
-            cursor -= w + badgeGap;
-        }
+            cursor = DrawCountAndIcon(c, behind.ToString(), LucideIcons.Pull, _behindNumStyle, _behindIconStyle, cursor, rowBottom, numIconGap, z) - badgeGap;
         if (ahead > 0)
-        {
-            var text = ahead + "↑";
-            var w = Context!.Canvas.MeasureTextWidth(text, _aheadStyle);
-            c.DrawText(new DrawTextInputs
-            {
-                Position = new RectF(cursor - w, rowBottom, w, RowHeight),
-                Text = text,
-                Style = _aheadStyle,
-                ZIndex = z,
-            });
-            cursor -= w + badgeGap;
-        }
+            cursor = DrawCountAndIcon(c, ahead.ToString(), LucideIcons.Push, _aheadNumStyle, _aheadIconStyle, cursor, rowBottom, numIconGap, z) - badgeGap;
+
         return cursor;
+    }
+
+    // Draws "<count><gap><icon>" right-aligned to <rightX>. Returns the left edge of the
+    // drawn pair so callers can chain badges leftward.
+    private float DrawCountAndIcon(
+        ICanvas c, string count, string icon,
+        TextStyle countStyle, TextStyle iconStyle,
+        float rightX, float rowBottom, float gap, int z)
+    {
+        var canvas = Context!.Canvas;
+        var iconWidth = canvas.MeasureTextWidth(icon, iconStyle);
+        var countWidth = canvas.MeasureTextWidth(count, countStyle);
+        var iconLeft = rightX - iconWidth;
+        var countLeft = iconLeft - gap - countWidth;
+
+        c.DrawText(new DrawTextInputs
+        {
+            Position = new RectF(countLeft, rowBottom, countWidth, RowHeight),
+            Text = count,
+            Style = countStyle,
+            ZIndex = z,
+        });
+        c.DrawText(new DrawTextInputs
+        {
+            Position = new RectF(iconLeft, rowBottom, iconWidth, RowHeight),
+            Text = icon,
+            Style = iconStyle,
+            ZIndex = z,
+        });
+        return countLeft;
     }
 
     private string TruncateToFit(string text, TextStyle style, float available)
