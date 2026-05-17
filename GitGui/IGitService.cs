@@ -11,6 +11,7 @@ public interface IGitService
     string? Commit(Repo repo, string message);
     PushStatus GetPushStatus(Repo repo);
     PushOutcome Push(Repo repo);
+    DiffResult GetDiff(Repo repo, string path, DiffSide side);
 }
 
 public sealed record PushStatus(
