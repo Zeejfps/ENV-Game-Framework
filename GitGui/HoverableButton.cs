@@ -14,8 +14,8 @@ public abstract class HoverableButton : MultiChildView
     {
         _onClick = onClick;
         Behaviors.Add(new HoverableButtonController(
-            () => { if (IsEnabled.Value) OnClicked(); },
-            h => IsHovered.Value = h));
+            () => { if (IsEnabled) OnClicked(); },
+            h => IsHovered.Set(h)));
     }
 
     protected virtual void OnClicked() => _onClick?.Invoke();
