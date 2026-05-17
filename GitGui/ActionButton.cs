@@ -49,24 +49,30 @@ public sealed class ActionButton : HoverableButton
 
         var background = new RectView
         {
-            Padding = new PaddingStyle { Left = 8, Right = 8 },
             Children =
             {
-                new RowView
+                new PaddingView
                 {
-                    Gap = 6,
-                    Children = { _iconView, _labelView },
+                    Padding = new PaddingStyle { Left = 8, Right = 8 },
+                    Children =
+                    {
+                        new RowView
+                        {
+                            Gap = 6,
+                            Children = { _iconView, _labelView },
+                        }
+                    }
                 }
             }
         };
         background.BindBackgroundColor(() =>
-            IsEnabled.Value && IsHovered.Value ? DialogPalette.ButtonHover : 0x00000000u);
+            IsEnabled && IsHovered ? DialogPalette.ButtonHover : 0x00000000u);
         SetBackground(background);
     }
 
     private uint ComputeForeground()
     {
-        if (!IsEnabled.Value) return DialogPalette.RowTextMissing;
-        return IsHovered.Value ? 0xFFFFFFFFu : DialogPalette.RowText;
+        if (!IsEnabled) return DialogPalette.RowTextMissing;
+        return IsHovered ? 0xFFFFFFFFu : DialogPalette.RowText;
     }
 }

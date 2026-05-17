@@ -56,4 +56,8 @@ public sealed class State<T> : IReadable<T>, IInvalidatable
         _changed += handler;
         return new Subscription(() => _changed -= handler);
     }
+    
+    public static implicit operator State<T> (T value) => new(value);
+    public static implicit operator T(State<T> value) => value.Value;
+
 }
