@@ -1,3 +1,4 @@
+using ZGF.Geometry;
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
@@ -38,8 +39,7 @@ public sealed class LocalChangesView : MultiChildView
     private readonly RectView _centerContainer;
     private readonly MultiChildView _contentRow;
     private readonly DiffView _diffView;
-    private readonly FlexColumnView _snapshotContainer;
-    private readonly FlexItem _diffItem;
+    private readonly VerticalSplitContainer _snapshotContainer;
     private ColumnView _commitBarColumn = null!;
     private RectView _opErrorBar = null!;
     private TextView _opErrorText = null!;
@@ -74,16 +74,20 @@ public sealed class LocalChangesView : MultiChildView
 
         _contentRow = BuildContentRow();
         _diffView = new DiffView();
-        _diffItem = new FlexItem { Grow = 1, Child = _diffView };
 
-        // Always-present column for the snapshot view. The diff item is inserted/removed
-        // as the selection count crosses 1, rather than swapping the whole container, so
-        // the file panels' parent chain stays stable.
-        _snapshotContainer = new FlexColumnView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Stretch,
-            Children = { new FlexItem { Grow = 1, Child = _contentRow } },
-        };
+        // Initial 1:2 split (files : diff). The container tracks the split as a fraction
+        // of available height so window resizes scale both halves; the user can drag the
+        // splitter to pick a different ratio, which then stays fractional across resizes.
+        var splitterHovered = new State<bool>(false);
+        var splitter = new RectView();
+        splitter.BindBackgroundColor(splitterHovered,
+            h => h ? CommitsPalette.DividerHoverBg : CommitsPalette.Border);
+
+        _snapshotContainer = new VerticalSplitContainer(_contentRow, _diffView, splitter, bottomFraction: 2f / 3f);
+
+        splitter.Behaviors.Add(new HorizontalSplitterController(
+            _snapshotContainer,
+            h => splitterHovered.Value = h));
 
         _centerContainer = new RectView
         {
@@ -393,14 +397,187 @@ public sealed class LocalChangesView : MultiChildView
         {
             var path = unstaged.Count == 1 ? unstaged.First() : staged.First();
             _diffView.SetSelectedPath(path);
-            if (!_snapshotContainer.Children.Contains(_diffItem))
-                _snapshotContainer.Children.Add(_diffItem);
+            _snapshotContainer.BottomVisible = true;
         }
         else
         {
             _diffView.SetSelectedPath(null);
-            if (_snapshotContainer.Children.Contains(_diffItem))
-                _snapshotContainer.Children.Remove(_diffItem);
+            _snapshotContainer.BottomVisible = false;
+        }
+    }
+}
+
+/// <summary>
+/// Stacks a top view and (optionally) a bottom view separated by a draggable horizontal
+/// splitter. The split is tracked as a fraction of the available height so window resizes
+/// scale both halves; the splitter controller calls <see cref="AdjustBottomFractionByPixels"/>
+/// to nudge the fraction during a drag.
+/// </summary>
+internal sealed class VerticalSplitContainer : MultiChildView
+{
+    private const float SplitterThickness = 5f;
+    private const float MinFraction = 0.1f;
+    private const float MaxFraction = 0.9f;
+
+    private readonly View _top;
+    private readonly View _bottom;
+    private readonly View _splitter;
+    private bool _bottomVisible;
+    private float _bottomFraction;
+
+    public VerticalSplitContainer(View top, View bottom, View splitter, float bottomFraction)
+    {
+        _top = top;
+        _bottom = bottom;
+        _splitter = splitter;
+        _bottomFraction = Math.Clamp(bottomFraction, MinFraction, MaxFraction);
+        AddChildToSelf(_top);
+    }
+
+    public bool BottomVisible
+    {
+        get => _bottomVisible;
+        set
+        {
+            if (_bottomVisible == value) return;
+            _bottomVisible = value;
+            if (_bottomVisible)
+            {
+                AddChildToSelf(_splitter);
+                AddChildToSelf(_bottom);
+            }
+            else
+            {
+                RemoveChildFromSelf(_splitter);
+                RemoveChildFromSelf(_bottom);
+            }
+            SetDirty();
+        }
+    }
+
+    // Positive dy = mouse moved up (Y-up coords). Up = bigger bottom (diff grows), down =
+    // smaller bottom. Clamped so neither side can collapse to zero.
+    public void AdjustBottomFractionByPixels(float dy)
+    {
+        if (!_bottomVisible) return;
+        var available = Position.Height - SplitterThickness;
+        if (available <= 0f) return;
+        _bottomFraction = Math.Clamp(_bottomFraction + dy / available, MinFraction, MaxFraction);
+        SetDirty();
+    }
+
+    protected override void OnLayoutChildren()
+    {
+        var pos = Position;
+        if (pos.Width <= 0f || pos.Height <= 0f) return;
+
+        if (!_bottomVisible)
+        {
+            LayoutSlice(_top, pos.Left, pos.Bottom, pos.Width, pos.Height);
+            return;
+        }
+
+        var available = Math.Max(0f, pos.Height - SplitterThickness);
+        var bottomH = available * _bottomFraction;
+        var topH = available - bottomH;
+
+        LayoutSlice(_top, pos.Left, pos.Bottom + bottomH + SplitterThickness, pos.Width, topH);
+        LayoutSlice(_splitter, pos.Left, pos.Bottom + bottomH, pos.Width, SplitterThickness);
+        LayoutSlice(_bottom, pos.Left, pos.Bottom, pos.Width, bottomH);
+    }
+
+    private static void LayoutSlice(View child, float left, float bottom, float width, float height)
+    {
+        child.LeftConstraint = left;
+        child.BottomConstraint = bottom;
+        child.MinWidthConstraint = width;
+        child.MaxWidthConstraint = width;
+        child.MaxHeightConstraint = height;
+        child.LayoutSelf();
+    }
+}
+
+internal sealed class HorizontalSplitterController : KeyboardMouseController
+{
+    private readonly VerticalSplitContainer _container;
+    private readonly Action<bool> _onHoverChanged;
+
+    private InputSystem? _inputSystem;
+    private bool _dragging;
+    private bool _hovered;
+    private PointF _lastPoint;
+
+    public HorizontalSplitterController(VerticalSplitContainer container, Action<bool> onHoverChanged)
+    {
+        _container = container;
+        _onHoverChanged = onHoverChanged;
+    }
+
+    protected override void OnAttachedToContext(View view, Context context)
+    {
+        _inputSystem = context.Get<InputSystem>();
+    }
+
+    protected override void OnDetachedFromContext(View view, Context context)
+    {
+        if (_dragging)
+        {
+            _inputSystem?.Blur(this);
+            _dragging = false;
+        }
+        _inputSystem = null;
+    }
+
+    public override void OnMouseEnter(ref MouseEnterEvent e)
+    {
+        _hovered = true;
+        _onHoverChanged(true);
+    }
+
+    public override void OnMouseExit(ref MouseExitEvent e)
+    {
+        _hovered = false;
+        // Stay highlighted while a drag is in progress even if the cursor briefly leaves.
+        if (!_dragging) _onHoverChanged(false);
+    }
+
+    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    {
+        if (e.Button != MouseButton.Left) return;
+
+        if (e.State == InputState.Pressed)
+        {
+            _dragging = true;
+            _lastPoint = e.Mouse.Point;
+            _inputSystem?.RequestFocus(this);
+            e.Consume();
+            return;
+        }
+
+        if (e.State == InputState.Released && _dragging)
+        {
+            _dragging = false;
+            _inputSystem?.Blur(this);
+            if (!_hovered) _onHoverChanged(false);
+            e.Consume();
+        }
+    }
+
+    public override void OnMouseMoved(ref MouseMoveEvent e)
+    {
+        if (!_dragging) return;
+        var dy = e.Mouse.Point.Y - _lastPoint.Y;
+        _lastPoint = e.Mouse.Point;
+        if (dy != 0f) _container.AdjustBottomFractionByPixels(dy);
+        e.Consume();
+    }
+
+    public override void OnFocusLost()
+    {
+        if (_dragging)
+        {
+            _dragging = false;
+            if (!_hovered) _onHoverChanged(false);
         }
     }
 }
