@@ -36,7 +36,10 @@ public sealed class LocalChangesView : MultiChildView
     private readonly LocalChangesPanel _stagedPanel;
     private readonly TextView _placeholder;
     private readonly RectView _centerContainer;
-    private readonly View _contentRow;
+    private readonly MultiChildView _contentRow;
+    private readonly DiffView _diffView;
+    private readonly FlexColumnView _snapshotContainer;
+    private readonly FlexItem _diffItem;
     private ColumnView _commitBarColumn = null!;
     private RectView _opErrorBar = null!;
     private TextView _opErrorText = null!;
@@ -70,11 +73,22 @@ public sealed class LocalChangesView : MultiChildView
         };
 
         _contentRow = BuildContentRow();
+        _diffView = new DiffView();
+        _diffItem = new FlexItem { Grow = 1, Child = _diffView };
+
+        // Always-present column for the snapshot view. The diff item is inserted/removed
+        // as the selection count crosses 1, rather than swapping the whole container, so
+        // the file panels' parent chain stays stable.
+        _snapshotContainer = new FlexColumnView
+        {
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
+            Children = { new FlexItem { Grow = 1, Child = _contentRow } },
+        };
 
         _centerContainer = new RectView
         {
             BackgroundColor = CommitsPalette.Background,
-            Children = { _contentRow },
+            Children = { _snapshotContainer },
         };
 
         AddChildToSelf(new RectView
@@ -91,7 +105,7 @@ public sealed class LocalChangesView : MultiChildView
         });
     }
 
-    private View BuildContentRow()
+    private MultiChildView BuildContentRow()
     {
         var divider = new RectView { PreferredWidth = 1, BackgroundColor = CommitsPalette.Border };
 
@@ -267,10 +281,12 @@ public sealed class LocalChangesView : MultiChildView
         _unstagedSelectionSub = _unstagedPanel.Selection.Subscribe(sel =>
         {
             if (sel.Count > 0) _stagedPanel.ClearSelection();
+            UpdateDiffVisibility();
         });
         _stagedSelectionSub = _stagedPanel.Selection.Subscribe(sel =>
         {
             if (sel.Count > 0) _unstagedPanel.ClearSelection();
+            UpdateDiffVisibility();
         });
     }
 
@@ -359,8 +375,33 @@ public sealed class LocalChangesView : MultiChildView
     {
         _unstagedPanel.SetFiles(snap.Unstaged);
         _stagedPanel.SetFiles(snap.Staged);
+        // SetFiles clears both panels' selections, which fires the selection subscriptions
+        // and drives UpdateDiffVisibility — so the diff item collapses on its own here.
         _centerContainer.Children.Clear();
-        _centerContainer.Children.Add(_contentRow);
+        _centerContainer.Children.Add(_snapshotContainer);
+    }
+
+    private void UpdateDiffVisibility()
+    {
+        // Selections are mutually exclusive across the two panels (see OnAttachedToContext),
+        // so the combined count is whichever panel currently holds anything.
+        var unstaged = _unstagedPanel.SelectedPaths;
+        var staged = _stagedPanel.SelectedPaths;
+        var total = unstaged.Count + staged.Count;
+
+        if (total == 1)
+        {
+            var path = unstaged.Count == 1 ? unstaged.First() : staged.First();
+            _diffView.SetSelectedPath(path);
+            if (!_snapshotContainer.Children.Contains(_diffItem))
+                _snapshotContainer.Children.Add(_diffItem);
+        }
+        else
+        {
+            _diffView.SetSelectedPath(null);
+            if (_snapshotContainer.Children.Contains(_diffItem))
+                _snapshotContainer.Children.Remove(_diffItem);
+        }
     }
 }
 

@@ -13,7 +13,11 @@ public sealed class AppView : MultiChildView
             Center = new BorderLayoutView
             {
                 North = new ActionsToolbar(),
-                Center = new MainContentView(),
+                Center = new BorderLayoutView
+                {
+                    West = new BranchesView(),
+                    Center = new MainContentView(),
+                },
             },
         });
         Children.Add(new DragOverlay());
