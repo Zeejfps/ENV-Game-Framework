@@ -30,6 +30,7 @@ public sealed class ActionsToolbar : MultiChildView
     private int _statusGen;
     private bool _isPushing;
     private PushStatus _pushStatus = new(null, HasUpstream: false, Ahead: 0, Behind: 0, IsDetached: false);
+    private CancellationTokenSource? _pushAnimCts;
 
     public ActionsToolbar()
     {
@@ -99,6 +100,9 @@ public sealed class ActionsToolbar : MultiChildView
     protected override void OnDetachedFromContext(Context context)
     {
         _statusGen++;
+        _pushAnimCts?.Cancel();
+        _pushAnimCts?.Dispose();
+        _pushAnimCts = null;
         _activeSub?.Dispose(); _activeSub = null;
         _commitSub?.Dispose(); _commitSub = null;
         _refsSub?.Dispose(); _refsSub = null;
@@ -162,6 +166,7 @@ public sealed class ActionsToolbar : MultiChildView
         _isPushing = true;
         UpdatePushButton();
         ShowError(null);
+        StartPushingAnimation();
 
         Task.Run(() =>
         {
@@ -172,6 +177,7 @@ public sealed class ActionsToolbar : MultiChildView
             dispatcher?.Post(() =>
             {
                 _isPushing = false;
+                StopPushingAnimation();
                 if (!outcome.Success)
                 {
                     ShowError(outcome.ErrorMessage ?? "Push failed.");
@@ -184,6 +190,48 @@ public sealed class ActionsToolbar : MultiChildView
                 // don't call it directly here.
             });
         });
+    }
+
+    // Swaps the button into a "working" state and starts cycling the trailing ellipsis
+    // ("Pushing." → "Pushing.." → "Pushing…") so a slow push still feels alive.
+    private void StartPushingAnimation()
+    {
+        _pushAnimCts?.Cancel();
+        _pushAnimCts = new CancellationTokenSource();
+        var ct = _pushAnimCts.Token;
+        var dispatcher = _dispatcher;
+
+        _pushButton.Icon = LucideIcons.Loader;
+        _pushButton.Label = "Pushing.";
+
+        Task.Run(async () =>
+        {
+            var dots = 1;
+            try
+            {
+                while (!ct.IsCancellationRequested)
+                {
+                    await Task.Delay(400, ct).ConfigureAwait(false);
+                    dots = dots % 3 + 1;
+                    var label = "Pushing" + new string('.', dots);
+                    dispatcher?.Post(() =>
+                    {
+                        if (ct.IsCancellationRequested) return;
+                        _pushButton.Label = label;
+                    });
+                }
+            }
+            catch (OperationCanceledException) { /* expected */ }
+        }, ct);
+    }
+
+    private void StopPushingAnimation()
+    {
+        _pushAnimCts?.Cancel();
+        _pushAnimCts?.Dispose();
+        _pushAnimCts = null;
+        _pushButton.Icon = LucideIcons.Push;
+        _pushButton.Label = "Push";
     }
 
     private void ShowError(string? msg)

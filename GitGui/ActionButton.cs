@@ -6,25 +6,40 @@ namespace GitGui;
 
 public sealed class ActionButton : HoverableButton
 {
+    private readonly TextView _iconView;
+    private readonly TextView _labelView;
+
+    public string Icon
+    {
+        get => _iconView.Text ?? string.Empty;
+        set => _iconView.Text = value;
+    }
+
+    public string Label
+    {
+        get => _labelView.Text ?? string.Empty;
+        set => _labelView.Text = value;
+    }
+
     public ActionButton(string icon, string label, Action onClick) : base(onClick)
     {
         PreferredHeight = 28;
 
-        var iconView = new TextView
+        _iconView = new TextView
         {
             Text = icon,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 14,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        iconView.BindTextColor(ComputeForeground);
+        _iconView.BindTextColor(ComputeForeground);
 
-        var labelView = new TextView
+        _labelView = new TextView
         {
             Text = label,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        labelView.BindTextColor(ComputeForeground);
+        _labelView.BindTextColor(ComputeForeground);
 
         var background = new RectView
         {
@@ -34,7 +49,7 @@ public sealed class ActionButton : HoverableButton
                 new RowView
                 {
                     Gap = 6,
-                    Children = { iconView, labelView },
+                    Children = { _iconView, _labelView },
                 }
             }
         };

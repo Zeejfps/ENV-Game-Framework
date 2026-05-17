@@ -11,6 +11,7 @@ internal static class LucideIcons
     public const string Branch = "";       // git-branch
     public const string Folder = "";       // folder
     public const string FolderOpen = "";   // folder-open
+    public const string Loader = "";       // loader-2
     public const string ChevronLeft = "";  // chevron-left
     public const string ChevronRight = ""; // chevron-right
     public const string ChevronsLeft = ""; // chevrons-left
