@@ -192,9 +192,7 @@ public sealed class ActionsToolbar : MultiChildView
         });
     }
 
-    // Swaps the button into a "working" state, spins the loader glyph, and cycles
-    // the trailing ellipsis ("Pushing." → "Pushing.." → "Pushing…") so a slow push
-    // still feels alive even if the spinner is paused by some frame backpressure.
+    // Swaps the button into a "working" state and spins the loader glyph.
     private void StartPushingAnimation()
     {
         _pushAnimCts?.Cancel();
@@ -203,38 +201,24 @@ public sealed class ActionsToolbar : MultiChildView
         var dispatcher = _dispatcher;
 
         _pushButton.Icon = LucideIcons.Loader;
-        _pushButton.Label = "Pushing.";
+        _pushButton.Label = "Pushing";
         _pushButton.IconRotation = 0f;
 
-        // ~16ms tick drives both the spin and a 400ms dots cadence.
         const int TickMs = 16;
-        const int DotsEveryTicks = 400 / TickMs;
         // Clockwise on screen: negative angle delta (orthographic projection has Y up).
         const float RotationPerTick = -MathF.Tau * (TickMs / 1000f);
 
         Task.Run(async () =>
         {
-            var dots = 1;
-            var dotsTick = 0;
             try
             {
                 while (!ct.IsCancellationRequested)
                 {
                     await Task.Delay(TickMs, ct).ConfigureAwait(false);
-
-                    string? newLabel = null;
-                    if (++dotsTick >= DotsEveryTicks)
-                    {
-                        dotsTick = 0;
-                        dots = dots % 3 + 1;
-                        newLabel = "Pushing" + new string('.', dots);
-                    }
-
                     dispatcher?.Post(() =>
                     {
                         if (ct.IsCancellationRequested) return;
                         _pushButton.IconRotation += RotationPerTick;
-                        if (newLabel != null) _pushButton.Label = newLabel;
                     });
                 }
             }
