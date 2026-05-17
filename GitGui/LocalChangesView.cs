@@ -16,7 +16,6 @@ public sealed class LocalChangesView : MultiChildView
 {
     private const int CommitBarPadding = 10;
     private const float CommitButtonWidth = 120f;
-    private const float TitleFieldHeight = 28f;
     private const float DescriptionMinHeight = 60f;
     private const float DescriptionMaxHeight = 240f;
 
@@ -79,14 +78,15 @@ public sealed class LocalChangesView : MultiChildView
             TextColor = DialogPalette.TitleText,
             CaretColor = DialogPalette.TitleText,
             SelectionRectColor = DialogPalette.RowActive,
-            TextVerticalAlignment = TextAlignment.Center,
             TextWrap = TextWrap.NoWrap,
         };
         titleInput.Behaviors.Add(new TextInputViewKbmController(titleInput));
 
+        // No PreferredHeight — let the box size to one line of text plus padding/border.
+        // The input itself reports MeasureHeight = lineHeight (single line, NoWrap), and the
+        // RectView adds its own padding+border on top.
         var titleBox = new RectView
         {
-            PreferredHeight = TitleFieldHeight,
             BackgroundColor = DialogPalette.ButtonNormal,
             BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
             BorderSize = BorderSizeStyle.All(1),
