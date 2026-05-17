@@ -95,6 +95,7 @@ public sealed class CommitsView : MultiChildView
     private IDisposable? _activeSubscription;
     private IDisposable? _commitCreatedSubscription;
     private IDisposable? _commitSelectedSubscription;
+    private IDisposable? _refsChangedSubscription;
 
     private CommitsLoadState _state = CommitsLoadState.NoRepo;
     private CommitSnapshot? _snapshot;
@@ -169,6 +170,7 @@ public sealed class CommitsView : MultiChildView
         }
         _commitCreatedSubscription = _bus?.SubscribeScoped<CommitCreatedMessage>(OnCommitCreated);
         _commitSelectedSubscription = _bus?.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected);
+        _refsChangedSubscription = _bus?.SubscribeScoped<RefsChangedMessage>(OnRefsChanged);
     }
 
     protected override void OnDetachedFromContext(Context context)
@@ -180,6 +182,8 @@ public sealed class CommitsView : MultiChildView
         _commitCreatedSubscription = null;
         _commitSelectedSubscription?.Dispose();
         _commitSelectedSubscription = null;
+        _refsChangedSubscription?.Dispose();
+        _refsChangedSubscription = null;
         _bus = null;
         _registry = null;
         _gitService = null;
@@ -190,8 +194,13 @@ public sealed class CommitsView : MultiChildView
     {
         var active = _registry?.Active.Value;
         if (active == null || active.Id != msg.RepoId) return;
-        // Drop the cached snapshot so StartLoadForActiveRepo doesn't short-circuit.
-        _snapshot = null;
+        StartLoadForActiveRepo();
+    }
+
+    private void OnRefsChanged(RefsChangedMessage msg)
+    {
+        var active = _registry?.Active.Value;
+        if (active == null || active.Id != msg.RepoId) return;
         StartLoadForActiveRepo();
     }
 
@@ -242,16 +251,6 @@ public sealed class CommitsView : MultiChildView
         if (_registry == null || _gitService == null) return;
         var active = _registry.Active.Value;
 
-        // Preserve scroll/selection across detach/reattach (tab round-trip): if the snapshot
-        // we already have matches the active repo and loaded cleanly, skip the reload.
-        if (active != null
-            && _state == CommitsLoadState.Loaded
-            && _snapshot?.RepoId == active.Id)
-        {
-            _loadingRepoId = active.Id;
-            return;
-        }
-
         _loadGeneration++;
         var gen = _loadGeneration;
 
@@ -265,12 +264,19 @@ public sealed class CommitsView : MultiChildView
             return;
         }
 
-        _state = CommitsLoadState.Loading;
-        _snapshot = null;
-        _scrollY = 0f;
-        ClearSelection();
+        // Soft refresh: when we already have a snapshot for this repo (e.g. after a tab
+        // round-trip, or after a commit/push), keep it visible while a fresh one loads in
+        // the background. Avoids a "Loading…" flash and preserves scroll/selection.
+        var isSoftRefresh = _state == CommitsLoadState.Loaded && _snapshot?.RepoId == active.Id;
+        if (!isSoftRefresh)
+        {
+            _state = CommitsLoadState.Loading;
+            _snapshot = null;
+            _scrollY = 0f;
+            ClearSelection();
+            NotifyScrollChanged();
+        }
         _loadingRepoId = active.Id;
-        NotifyScrollChanged();
 
         var repo = active;
         var service = _gitService;
@@ -290,7 +296,7 @@ public sealed class CommitsView : MultiChildView
             dispatcher?.Post(() =>
             {
                 if (gen != _loadGeneration) return;
-                ApplyLoadedSnapshot(snap);
+                ApplyLoadedSnapshot(snap, isSoftRefresh);
             });
         });
     }
@@ -298,17 +304,46 @@ public sealed class CommitsView : MultiChildView
     public bool Truncated => _snapshot?.Truncated == true;
     public event Action<bool>? TruncatedChanged;
 
-    private void ApplyLoadedSnapshot(CommitSnapshot snap)
+    private void ApplyLoadedSnapshot(CommitSnapshot snap, bool preserveViewState)
     {
         if (snap.RepoId != _loadingRepoId) return;
         var wasTruncated = Truncated;
         _snapshot = snap;
         _state = snap.ErrorMessage != null ? CommitsLoadState.Error : CommitsLoadState.Loaded;
-        _scrollY = 0f;
+
+        if (preserveViewState)
+        {
+            // Selection survives only if the commit still exists in the new snapshot
+            // (e.g. it may have been pruned by a rebase or reset).
+            if (_selectedSha != null && !SnapshotContainsSha(snap, _selectedSha))
+            {
+                _selectedSha = null;
+                _bus?.Broadcast(new CommitSelectedMessage(snap.RepoId, null));
+            }
+            // Clamp scroll in case the new snapshot is shorter.
+            var bodyHeight = Position.Height - HeaderHeight;
+            var contentHeight = snap.Commits.Count * RowHeight;
+            var maxScroll = Math.Max(0f, contentHeight - bodyHeight);
+            _scrollY = Math.Clamp(_scrollY, 0f, maxScroll);
+        }
+        else
+        {
+            _scrollY = 0f;
+        }
+
         NotifyScrollChanged();
         if (wasTruncated != Truncated)
             TruncatedChanged?.Invoke(Truncated);
         _bus?.Broadcast(new CommitsLoadedMessage(snap.RepoId));
+    }
+
+    private static bool SnapshotContainsSha(CommitSnapshot snap, string sha)
+    {
+        for (var i = 0; i < snap.Commits.Count; i++)
+        {
+            if (snap.Commits[i].Sha == sha) return true;
+        }
+        return false;
     }
 
     public float Scale
