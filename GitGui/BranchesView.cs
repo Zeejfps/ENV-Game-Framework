@@ -57,8 +57,8 @@ public sealed class BranchesView : MultiChildView
     };
     private readonly TextStyle _headTextStyle = new()
     {
-        // Accent color stands in for bold; ZGF.Gui has no font-weight support yet.
-        TextColor = CommitsPalette.BadgeHeadBg,
+        TextColor = CommitsPalette.RowTextActive,
+        FontWeight = FontWeight.Bold,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };

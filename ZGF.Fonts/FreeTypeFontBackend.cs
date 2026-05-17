@@ -98,6 +98,28 @@ public sealed unsafe class FreeTypeFontBackend
 
         var variant = LoadFontFromMemory(entry.SourceData, pixelSize);
         entry.SizeVariants[pixelSize] = variant;
+        // Preserve the embolden flag across sized variants so e.g. a bold 18px variant of
+        // a bold 16px font is still bold.
+        if (entry.IsEmboldened)
+            GetEntry(variant).IsEmboldened = true;
+        return variant;
+    }
+
+    /// Returns a sibling handle that renders the same font with synthesized bold via
+    /// FT_GlyphSlot_Embolden. Cached per source entry. If <paramref name="baseFont"/> is
+    /// already emboldened the same handle is returned.
+    public FontHandle GetEmboldenedVariant(FontHandle baseFont)
+    {
+        ThrowIfDisposed();
+        var entry = GetEntry(baseFont);
+        if (entry.IsEmboldened)
+            return baseFont;
+        if (entry.EmboldenedVariant.HasValue)
+            return entry.EmboldenedVariant.Value;
+
+        var variant = LoadFontFromMemory(entry.SourceData, entry.PixelSize);
+        GetEntry(variant).IsEmboldened = true;
+        entry.EmboldenedVariant = variant;
         return variant;
     }
 
@@ -136,9 +158,25 @@ public sealed unsafe class FreeTypeFontBackend
 
         ActivateSize(entry);
 
-        var err = FT_Load_Glyph(entry.Face, glyphIndex, FT_LOAD_RENDER | FT_LOAD_TARGET_NORMAL);
-        if (err != FT_Error.FT_Err_Ok)
-            return false;
+        FT_Error err;
+        if (entry.IsEmboldened)
+        {
+            // Load the outline first, embolden it, then render. Bitmap-emboldening (calling
+            // embolden after FT_LOAD_RENDER) also works but produces a blurrier result.
+            err = FT_Load_Glyph(entry.Face, glyphIndex, FT_LOAD_TARGET_NORMAL);
+            if (err != FT_Error.FT_Err_Ok)
+                return false;
+            FT_GlyphSlot_Embolden(entry.Face->glyph);
+            err = FT_Render_Glyph(entry.Face->glyph, FT_Render_Mode_.FT_RENDER_MODE_NORMAL);
+            if (err != FT_Error.FT_Err_Ok)
+                return false;
+        }
+        else
+        {
+            err = FT_Load_Glyph(entry.Face, glyphIndex, FT_LOAD_RENDER | FT_LOAD_TARGET_NORMAL);
+            if (err != FT_Error.FT_Err_Ok)
+                return false;
+        }
 
         var slot = entry.Face->glyph;
         var bm = slot->bitmap;
@@ -292,9 +330,11 @@ public sealed unsafe class FreeTypeFontBackend
         public byte[] SourceData = Array.Empty<byte>();
         public int PixelSize;
         public bool HasKerning;
+        public bool IsEmboldened;
         public Face? HbFace;
         public Font? HbFont;
         public HbBuffer? HbBuffer;
         public Dictionary<int, FontHandle>? SizeVariants;
+        public FontHandle? EmboldenedVariant;
     }
 }

@@ -344,12 +344,17 @@ public abstract class RenderedCanvasBase : ICanvas
             baseFont = resolved;
         }
 
-        if (!style.FontSize.IsSet)
-            return baseFont;
-        var pixelSize = (int)MathF.Round(style.FontSize.Value);
-        if (pixelSize <= 0)
-            return baseFont;
-        return _fonts.GetSizedVariant(baseFont, pixelSize);
+        if (style.FontSize.IsSet)
+        {
+            var pixelSize = (int)MathF.Round(style.FontSize.Value);
+            if (pixelSize > 0)
+                baseFont = _fonts.GetSizedVariant(baseFont, pixelSize);
+        }
+
+        if (style.FontWeight.IsSet && style.FontWeight.Value == FontWeight.Bold)
+            baseFont = _fonts.GetEmboldenedVariant(baseFont);
+
+        return baseFont;
     }
 
     public void DrawImage(in DrawImageInputs inputs)
