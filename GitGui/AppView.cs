@@ -15,7 +15,7 @@ public sealed class AppView : MultiChildView
                 North = new ActionsToolbar(),
                 Center = new BorderLayoutView
                 {
-                    West = new BranchesView(),
+                    West = ResizableLeftSidebar.Build(new BranchesView(), initialWidth: 220f),
                     Center = new MainContentView(),
                 },
             },

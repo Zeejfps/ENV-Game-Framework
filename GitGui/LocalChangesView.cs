@@ -85,8 +85,9 @@ public sealed class LocalChangesView : MultiChildView
 
         _snapshotContainer = new VerticalSplitContainer(_contentRow, _diffView, splitter, bottomFraction: 2f / 3f);
 
-        splitter.Behaviors.Add(new HorizontalSplitterController(
-            _snapshotContainer,
+        splitter.Behaviors.Add(new SplitterController(
+            DragAxis.Y,
+            _snapshotContainer.AdjustBottomFractionByPixels,
             h => splitterHovered.Value = h));
 
         _centerContainer = new RectView
@@ -494,91 +495,6 @@ internal sealed class VerticalSplitContainer : MultiChildView
         child.MaxWidthConstraint = width;
         child.MaxHeightConstraint = height;
         child.LayoutSelf();
-    }
-}
-
-internal sealed class HorizontalSplitterController : KeyboardMouseController
-{
-    private readonly VerticalSplitContainer _container;
-    private readonly Action<bool> _onHoverChanged;
-
-    private InputSystem? _inputSystem;
-    private bool _dragging;
-    private bool _hovered;
-    private PointF _lastPoint;
-
-    public HorizontalSplitterController(VerticalSplitContainer container, Action<bool> onHoverChanged)
-    {
-        _container = container;
-        _onHoverChanged = onHoverChanged;
-    }
-
-    protected override void OnAttachedToContext(View view, Context context)
-    {
-        _inputSystem = context.Get<InputSystem>();
-    }
-
-    protected override void OnDetachedFromContext(View view, Context context)
-    {
-        if (_dragging)
-        {
-            _inputSystem?.Blur(this);
-            _dragging = false;
-        }
-        _inputSystem = null;
-    }
-
-    public override void OnMouseEnter(ref MouseEnterEvent e)
-    {
-        _hovered = true;
-        _onHoverChanged(true);
-    }
-
-    public override void OnMouseExit(ref MouseExitEvent e)
-    {
-        _hovered = false;
-        // Stay highlighted while a drag is in progress even if the cursor briefly leaves.
-        if (!_dragging) _onHoverChanged(false);
-    }
-
-    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
-    {
-        if (e.Button != MouseButton.Left) return;
-
-        if (e.State == InputState.Pressed)
-        {
-            _dragging = true;
-            _lastPoint = e.Mouse.Point;
-            _inputSystem?.RequestFocus(this);
-            e.Consume();
-            return;
-        }
-
-        if (e.State == InputState.Released && _dragging)
-        {
-            _dragging = false;
-            _inputSystem?.Blur(this);
-            if (!_hovered) _onHoverChanged(false);
-            e.Consume();
-        }
-    }
-
-    public override void OnMouseMoved(ref MouseMoveEvent e)
-    {
-        if (!_dragging) return;
-        var dy = e.Mouse.Point.Y - _lastPoint.Y;
-        _lastPoint = e.Mouse.Point;
-        if (dy != 0f) _container.AdjustBottomFractionByPixels(dy);
-        e.Consume();
-    }
-
-    public override void OnFocusLost()
-    {
-        if (_dragging)
-        {
-            _dragging = false;
-            if (!_hovered) _onHoverChanged(false);
-        }
     }
 }
 
