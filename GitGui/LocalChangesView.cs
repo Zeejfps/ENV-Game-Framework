@@ -554,11 +554,8 @@ public sealed class LocalChangesView : MultiChildView
         {
             var side = unstaged.Count == 1 ? DiffSide.Unstaged : DiffSide.Staged;
             var path = unstaged.Count == 1 ? unstaged.First() : staged.First();
-            // BottomVisible = true is what attaches DiffView to the context — services
-            // are null until then, so the SetTarget below must come after, or its
-            // null-check fast-path silently swallows the request.
-            _snapshotContainer.BottomVisible = true;
             _diffView.SetTarget(path, side);
+            _snapshotContainer.BottomVisible = true;
         }
         else
         {

@@ -53,6 +53,8 @@ public sealed class DiffView : MultiChildView
     private readonly State<DiffViewModel> _viewModel = new(
         new DiffViewModel.Placeholder("Select a file to view diff."));
 
+    private string? _targetPath;
+    private DiffSide _targetSide;
     private int _loadGeneration;
 
     private readonly ColumnView _content;
@@ -95,11 +97,13 @@ public sealed class DiffView : MultiChildView
         _registry = context.Get<IRepoRegistry>();
         _dispatcher = context.Get<IUiDispatcher>();
         _vmSubscription = _viewModel.Subscribe(Render);
+        // Services were unavailable on prior SetTarget calls (e.g. before first attach);
+        // now that they're here, kick off the load for whatever the current target is.
+        StartLoad();
     }
 
     protected override void OnDetachedFromContext(Context context)
     {
-        _loadGeneration++;
         _vmSubscription?.Dispose();
         _vmSubscription = null;
         _gitService = null;
@@ -109,9 +113,19 @@ public sealed class DiffView : MultiChildView
 
     public void SetTarget(string? path, DiffSide side)
     {
-        if (path == null)
+        _targetPath = path;
+        _targetSide = side;
+        StartLoad();
+    }
+
+    private void StartLoad()
+    {
+        // Bumping unconditionally invalidates any in-flight load — whether we replace it
+        // with a new one or fall back to a placeholder, the old result must not win.
+        _loadGeneration++;
+
+        if (_targetPath == null)
         {
-            _loadGeneration++;
             _viewModel.Value = new DiffViewModel.Placeholder("Select a file to view diff.");
             return;
         }
@@ -120,8 +134,9 @@ public sealed class DiffView : MultiChildView
         var repo = _registry.Active.Value;
         if (repo == null) return;
 
-        _loadGeneration++;
         var gen = _loadGeneration;
+        var path = _targetPath;
+        var side = _targetSide;
         _viewModel.Value = new DiffViewModel.Placeholder("Loading…");
 
         var service = _gitService;
