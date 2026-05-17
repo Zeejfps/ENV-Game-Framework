@@ -15,6 +15,9 @@
       <None Update="Assets\Fonts\Lucide\Lucide.ttf">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <None Update="Assets\Fonts\JetBrainsMono\JetBrainsMono-Regular.ttf">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
     <ItemGroup>

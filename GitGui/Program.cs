@@ -34,5 +34,6 @@ var appHost = GuiApp.CreateDefault(new StartupConfig
 }, context, appView);
 
 appHost.RegisterFont(LucideIcons.FontFamily, "Assets/Fonts/Lucide/Lucide.ttf", 16);
+appHost.RegisterFont(DiffOptions.MonoFontFamily, "Assets/Fonts/JetBrainsMono/JetBrainsMono-Regular.ttf", 13);
 
 appHost.Run();

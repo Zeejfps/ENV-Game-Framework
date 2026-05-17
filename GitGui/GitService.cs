@@ -492,6 +492,183 @@ public sealed class GitService : IGitService
         return text.Trim();
     }
 
+    public DiffResult GetDiff(Repo repo, string path, DiffSide side)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return DiffError(repo, path, side, "Not a git repository.");
+
+            using var lg = new Repository(repo.Path);
+
+            var compareOpts = new CompareOptions { ContextLines = DiffOptions.ContextLines };
+            var paths = new[] { path };
+            var explicit_ = new ExplicitPathsOptions();
+
+            Patch patch = side switch
+            {
+                DiffSide.Unstaged => lg.Diff.Compare<Patch>(paths, includeUntracked: true, explicit_, compareOpts),
+                DiffSide.Staged => lg.Diff.Compare<Patch>(lg.Head?.Tip?.Tree, DiffTargets.Index, paths, explicit_, compareOpts),
+                _ => lg.Diff.Compare<Patch>(paths, includeUntracked: true, explicit_, compareOpts),
+            };
+
+            PatchEntryChanges? entry = null;
+            foreach (var e in patch)
+            {
+                entry = e;
+                break;
+            }
+
+            if (entry == null)
+                return new DiffResult(repo.Id, path, null, side, false, false, null, null, Array.Empty<DiffHunk>(), false, null);
+
+            var oldPath = entry.OldPath != null && entry.OldPath != entry.Path ? entry.OldPath : null;
+            var oldMode = (int)entry.OldMode;
+            var newMode = (int)entry.Mode;
+            var modesDiffer = oldMode != newMode;
+            var isModeOnly = modesDiffer && entry.LinesAdded + entry.LinesDeleted == 0;
+
+            var (hunks, truncated) = ParsePatch(entry.Patch ?? string.Empty);
+
+            return new DiffResult(
+                RepoId: repo.Id,
+                Path: entry.Path,
+                OldPath: oldPath,
+                Side: side,
+                IsBinary: entry.IsBinaryComparison,
+                IsModeOnly: isModeOnly,
+                OldMode: modesDiffer ? oldMode : null,
+                NewMode: modesDiffer ? newMode : null,
+                Hunks: hunks,
+                Truncated: truncated,
+                ErrorMessage: null);
+        }
+        catch (Exception ex)
+        {
+            return DiffError(repo, path, side, ex.Message);
+        }
+    }
+
+    private static DiffResult DiffError(Repo repo, string path, DiffSide side, string message)
+        => new(repo.Id, path, null, side, false, false, null, null, Array.Empty<DiffHunk>(), false, message);
+
+    private static (IReadOnlyList<DiffHunk> Hunks, bool Truncated) ParsePatch(string patchText)
+    {
+        var hunks = new List<DiffHunk>();
+        if (string.IsNullOrEmpty(patchText))
+            return (hunks, false);
+
+        var totalLines = 0;
+        var truncated = false;
+
+        // Build the current hunk incrementally as we walk the patch text.
+        int curOldStart = 0, curOldLines = 0, curNewStart = 0, curNewLines = 0;
+        string? curHeader = null;
+        List<DiffLine>? curLines = null;
+        int oldLineCursor = 0, newLineCursor = 0;
+        bool inHunk = false;
+
+        void Flush(List<DiffHunk> dst)
+        {
+            if (!inHunk || curLines == null) return;
+            dst.Add(new DiffHunk(curOldStart, curOldLines, curNewStart, curNewLines, curHeader, curLines));
+        }
+
+        foreach (var raw in patchText.Replace("\r\n", "\n").Split('\n'))
+        {
+            if (raw.StartsWith("@@"))
+            {
+                Flush(hunks);
+                if (!TryParseHunkHeader(raw, out curOldStart, out curOldLines, out curNewStart, out curNewLines, out curHeader))
+                {
+                    inHunk = false;
+                    continue;
+                }
+                curLines = new List<DiffLine>();
+                oldLineCursor = curOldStart;
+                newLineCursor = curNewStart;
+                inHunk = true;
+                continue;
+            }
+
+            if (!inHunk || curLines == null) continue;
+            if (raw.Length == 0) continue;
+            if (raw[0] == '\\') continue;
+
+            DiffLine? line = null;
+            switch (raw[0])
+            {
+                case ' ':
+                    line = new DiffLine(DiffLineKind.Context, oldLineCursor, newLineCursor, raw.Length > 1 ? raw[1..] : string.Empty);
+                    oldLineCursor++;
+                    newLineCursor++;
+                    break;
+                case '+':
+                    line = new DiffLine(DiffLineKind.Added, null, newLineCursor, raw.Length > 1 ? raw[1..] : string.Empty);
+                    newLineCursor++;
+                    break;
+                case '-':
+                    line = new DiffLine(DiffLineKind.Removed, oldLineCursor, null, raw.Length > 1 ? raw[1..] : string.Empty);
+                    oldLineCursor++;
+                    break;
+            }
+
+            if (line == null) continue;
+            if (totalLines >= DiffOptions.TruncationLineCap)
+            {
+                truncated = true;
+                continue;
+            }
+            curLines.Add(line);
+            totalLines++;
+        }
+
+        Flush(hunks);
+        return (hunks, truncated);
+    }
+
+    // Parses "@@ -<oldStart>[,<oldLines>] +<newStart>[,<newLines>] @@ <header?>".
+    private static bool TryParseHunkHeader(
+        string raw,
+        out int oldStart, out int oldLines,
+        out int newStart, out int newLines,
+        out string? header)
+    {
+        oldStart = oldLines = newStart = newLines = 0;
+        header = null;
+
+        var close = raw.IndexOf("@@", 2, StringComparison.Ordinal);
+        if (close < 0) return false;
+        var ranges = raw.Substring(2, close - 2).Trim();
+        var parts = ranges.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2) return false;
+        if (parts[0].Length < 2 || parts[0][0] != '-') return false;
+        if (parts[1].Length < 2 || parts[1][0] != '+') return false;
+
+        if (!TryParseRange(parts[0].AsSpan(1), out oldStart, out oldLines)) return false;
+        if (!TryParseRange(parts[1].AsSpan(1), out newStart, out newLines)) return false;
+
+        var afterClose = close + 2;
+        if (afterClose < raw.Length)
+        {
+            var trail = raw[afterClose..].TrimStart();
+            if (trail.Length > 0) header = trail;
+        }
+        return true;
+    }
+
+    private static bool TryParseRange(ReadOnlySpan<char> s, out int start, out int count)
+    {
+        start = 0;
+        count = 1;
+        var comma = s.IndexOf(',');
+        if (comma < 0)
+            return int.TryParse(s, out start);
+        if (!int.TryParse(s[..comma], out start)) return false;
+        if (!int.TryParse(s[(comma + 1)..], out count)) return false;
+        return true;
+    }
+
     private static CommitDetails DetailsError(Repo repo, string sha, string message)
         => new(
             RepoId: repo.Id,
