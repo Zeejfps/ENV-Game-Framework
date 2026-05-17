@@ -37,7 +37,7 @@ public sealed class BranchesView : MultiChildView
     private BranchListing? _listing;
     private string? _loadError;
     private BranchesUiState _ui = new();
-    private string? _selectedTipSha;
+    private BranchSelection? _selection;
 
     private readonly List<Row> _rows = new();
     private float _scrollY;
@@ -120,7 +120,7 @@ public sealed class BranchesView : MultiChildView
     {
         var active = _registry?.Active.Value;
         _activeRepoId = active?.Id ?? Guid.Empty;
-        _selectedTipSha = null;
+        _selection = null;
         _scrollY = 0f;
         _hoveredRowIndex = -1;
 
@@ -149,8 +149,8 @@ public sealed class BranchesView : MultiChildView
     private void OnCommitSelected(CommitSelectedMessage msg)
     {
         if (msg.RepoId != _activeRepoId) return;
-        if (msg.Sha == _selectedTipSha) return;
-        _selectedTipSha = null;
+        if (_selection.HasValue && msg.Sha == _selection.Value.TipSha) return;
+        _selection = null;
     }
 
     private void StartLoad(Repo repo)
@@ -292,9 +292,7 @@ public sealed class BranchesView : MultiChildView
 
     private void DrawRow(ICanvas c, RectF pos, Row row, int rowIndex, float rowBottom, int z)
     {
-        var isSelected = row.Kind == RowKind.LocalBranch || row.Kind == RowKind.RemoteBranch
-            ? row.TipSha != null && row.TipSha == _selectedTipSha
-            : false;
+        var isSelected = _selection.HasValue && _selection.Value.Matches(row);
         var isHovered = rowIndex == _hoveredRowIndex;
 
         var bg = isSelected
@@ -393,10 +391,16 @@ public sealed class BranchesView : MultiChildView
 
     internal void OnClickAt(PointF point)
     {
+        // Click in the panel but outside any row → deselect (and clear CommitsView too).
+        if (!IsPointInside(point)) return;
         var idx = HitTestRow(point);
-        if (idx < 0 || idx >= _rows.Count) return;
-        var row = _rows[idx];
+        if (idx < 0 || idx >= _rows.Count)
+        {
+            ClearSelectionAndBroadcast();
+            return;
+        }
 
+        var row = _rows[idx];
         switch (row.Kind)
         {
             case RowKind.LocalHeader:
@@ -419,14 +423,34 @@ public sealed class BranchesView : MultiChildView
                 }
                 return;
             case RowKind.LocalBranch:
-            case RowKind.RemoteBranch:
                 if (row.TipSha != null)
                 {
-                    _selectedTipSha = row.TipSha;
+                    _selection = new BranchSelection(IsRemote: false, RemoteName: null, Name: row.DisplayName, TipSha: row.TipSha);
+                    _bus?.Broadcast(new CommitSelectedMessage(_activeRepoId, row.TipSha));
+                }
+                return;
+            case RowKind.RemoteBranch:
+                if (row.TipSha != null && row.RemoteName != null)
+                {
+                    _selection = new BranchSelection(IsRemote: true, RemoteName: row.RemoteName, Name: row.DisplayName, TipSha: row.TipSha);
                     _bus?.Broadcast(new CommitSelectedMessage(_activeRepoId, row.TipSha));
                 }
                 return;
         }
+    }
+
+    private void ClearSelectionAndBroadcast()
+    {
+        if (_selection == null) return;
+        _selection = null;
+        _bus?.Broadcast(new CommitSelectedMessage(_activeRepoId, null));
+    }
+
+    private bool IsPointInside(PointF point)
+    {
+        var pos = Position;
+        return point.X >= pos.Left && point.X <= pos.Right
+            && point.Y >= pos.Bottom && point.Y <= pos.Top;
     }
 
     private void PersistUi()
@@ -446,6 +470,16 @@ public sealed class BranchesView : MultiChildView
         var idx = (int)((distFromTop + _scrollY) / RowHeight);
         if (idx < 0 || idx >= _rows.Count) return -1;
         return idx;
+    }
+
+    private readonly record struct BranchSelection(bool IsRemote, string? RemoteName, string Name, string TipSha)
+    {
+        public bool Matches(Row row) => row.Kind switch
+        {
+            RowKind.LocalBranch => !IsRemote && row.DisplayName == Name,
+            RowKind.RemoteBranch => IsRemote && row.RemoteName == RemoteName && row.DisplayName == Name,
+            _ => false,
+        };
     }
 
     private enum RowKind { LocalHeader, RemotesHeader, RemoteHeader, LocalBranch, RemoteBranch }
