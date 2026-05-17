@@ -18,9 +18,6 @@ public sealed class LocalChangesView : MultiChildView
     private const float CommitButtonWidth = 120f;
     private const float DescriptionMinHeight = 60f;
     private const float DescriptionMaxHeight = 240f;
-    private const float ActionsColumnWidth = 56f;
-    private const int ActionsColumnPadding = 10;
-    private const float ActionsColumnGap = 4f;
 
     private IRepoRegistry? _registry;
     private IGitService? _gitService;
@@ -38,11 +35,30 @@ public sealed class LocalChangesView : MultiChildView
     private readonly TextView _placeholder;
     private readonly RectView _centerContainer;
     private readonly View _contentRow;
+    private ColumnView _commitBarColumn = null!;
+    private RectView _opErrorBar = null!;
+    private TextView _opErrorText = null!;
 
     public LocalChangesView()
     {
-        _unstagedPanel = new LocalChangesPanel("Unstaged", "No unstaged changes.");
-        _stagedPanel = new LocalChangesPanel("Staged", "No staged changes.");
+        _unstagedPanel = new LocalChangesPanel(
+            "Unstaged",
+            "No unstaged changes.",
+            new (string, Action)[]
+            {
+                (LucideIcons.ChevronRight, OnStageSelected),
+                (LucideIcons.ChevronsRight, OnStageAll),
+            },
+            path => Stage(new[] { path }));
+        _stagedPanel = new LocalChangesPanel(
+            "Staged",
+            "No staged changes.",
+            new (string, Action)[]
+            {
+                (LucideIcons.ChevronsLeft, OnUnstageAll),
+                (LucideIcons.ChevronLeft, OnUnstageSelected),
+            },
+            path => Unstage(new[] { path }));
 
         _placeholder = new TextView
         {
@@ -75,45 +91,13 @@ public sealed class LocalChangesView : MultiChildView
 
     private View BuildContentRow()
     {
-        var actionsColumn = new RectView
-        {
-            PreferredWidth = ActionsColumnWidth,
-            BorderColor = new BorderColorStyle
-            {
-                Left = CommitsPalette.Border,
-                Right = CommitsPalette.Border,
-            },
-            BorderSize = new BorderSizeStyle { Left = 1, Right = 1 },
-            Padding = new PaddingStyle
-            {
-                Left = ActionsColumnPadding,
-                Right = ActionsColumnPadding,
-                Top = ActionsColumnPadding,
-                Bottom = ActionsColumnPadding,
-            },
-            Children =
-            {
-                new FlexColumnView
-                {
-                    Gap = ActionsColumnGap,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    MainAxisAlignment = MainAxisAlignment.Center,
-                    Children =
-                    {
-                        new LocalChangesActionButton(LucideIcons.ChevronsRight, OnStageAll),
-                        new LocalChangesActionButton(LucideIcons.ChevronRight, OnStageSelected),
-                        new LocalChangesActionButton(LucideIcons.ChevronLeft, OnUnstageSelected),
-                        new LocalChangesActionButton(LucideIcons.ChevronsLeft, OnUnstageAll),
-                    },
-                },
-            },
-        };
+        var divider = new RectView { PreferredWidth = 1, BackgroundColor = CommitsPalette.Border };
 
         // Custom layout instead of FlexRowView: with flex, each panel's content's natural
         // width (long file paths in unstaged, short placeholder in staged) leaks into the
         // distribution and the panels end up unequal. Here we measure only the center
-        // column and split the remainder strictly in half.
-        return new TransferListRow(_unstagedPanel, actionsColumn, _stagedPanel);
+        // divider and split the remainder strictly in half.
+        return new TransferListRow(_unstagedPanel, divider, _stagedPanel);
     }
 
     private void OnStageAll() => Stage(_unstagedPanel.Files.Select(f => f.Path).ToList());
@@ -140,27 +124,45 @@ public sealed class LocalChangesView : MultiChildView
 
         Task.Run(() =>
         {
-            LocalChangesViewModel result;
+            LocalChangesSnapshot? newSnap = null;
+            string? errorMsg = null;
             try
             {
                 if (isStage) service.Stage(repo, paths);
                 else service.Unstage(repo, paths);
                 var snap = service.GetLocalChanges(repo);
-                result = snap.ErrorMessage != null
-                    ? new LocalChangesViewModel.Placeholder(snap.ErrorMessage)
-                    : new LocalChangesViewModel.Loaded(snap);
+                if (snap.ErrorMessage != null) errorMsg = snap.ErrorMessage;
+                else newSnap = snap;
             }
             catch (Exception ex)
             {
-                result = new LocalChangesViewModel.Placeholder(ex.Message);
+                errorMsg = ex.Message;
             }
 
             dispatcher?.Post(() =>
             {
                 if (gen != _loadGeneration) return;
-                _viewModel.Value = result;
+                ShowOpError(errorMsg);
+                // Keep the prior snapshot rendered on failure — losing the list on every
+                // transient error would erase the user's selection and context.
+                if (newSnap != null)
+                    _viewModel.Value = new LocalChangesViewModel.Loaded(newSnap);
             });
         });
+    }
+
+    private void ShowOpError(string? msg)
+    {
+        if (msg == null)
+        {
+            if (_commitBarColumn.Children.Contains(_opErrorBar))
+                _commitBarColumn.Children.Remove(_opErrorBar);
+            return;
+        }
+
+        _opErrorText.Text = msg;
+        if (!_commitBarColumn.Children.Contains(_opErrorBar))
+            _commitBarColumn.Children.Insert(0, _opErrorBar);
     }
 
     private View BuildCommitBar()
@@ -203,6 +205,29 @@ public sealed class LocalChangesView : MultiChildView
             Children = { commitButton },
         };
 
+        _opErrorText = new TextView
+        {
+            TextColor = CommitsPalette.WarningText,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        _opErrorBar = new RectView
+        {
+            BackgroundColor = CommitsPalette.WarningBg,
+            BorderColor = BorderColorStyle.All(CommitsPalette.WarningBorder),
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(3),
+            Padding = new PaddingStyle { Left = 8, Right = 8, Top = 4, Bottom = 4 },
+            Children = { _opErrorText },
+        };
+
+        // Error bar is left out of the column until ShowOpError adds it — that way the
+        // column gap doesn't reserve space for an absent banner.
+        _commitBarColumn = new ColumnView
+        {
+            Gap = 8,
+            Children = { titleBox, descriptionField, buttonRow },
+        };
+
         return new RectView
         {
             BackgroundColor = CommitsPalette.HeaderBg,
@@ -215,14 +240,7 @@ public sealed class LocalChangesView : MultiChildView
                 Top = CommitBarPadding,
                 Bottom = CommitBarPadding,
             },
-            Children =
-            {
-                new ColumnView
-                {
-                    Gap = 8,
-                    Children = { titleBox, descriptionField, buttonRow },
-                },
-            },
+            Children = { _commitBarColumn },
         };
     }
 
@@ -261,6 +279,8 @@ public sealed class LocalChangesView : MultiChildView
 
         _loadGeneration++;
         var gen = _loadGeneration;
+        // Any error from a previous repo's op no longer applies once we switch/reload.
+        ShowOpError(null);
 
         if (active == null)
         {
@@ -372,15 +392,17 @@ internal sealed class TransferListRow : MultiChildView
     }
 }
 
-internal sealed class LocalChangesActionButton : MultiChildView
+internal sealed class LocalChangesHeaderActionButton : MultiChildView
 {
-    private const float ButtonHeight = 32f;
-    private const float IconSize = 14f;
-    private const uint IconIdleColor = 0xFFCDD1D6;
+    private const float ButtonSize = 22f;
+    private const float IconSize = 13f;
+    private const uint IconIdleColor = 0xFFB5B9C0;
+    private const uint TransparentBg = 0x00000000u;
 
-    public LocalChangesActionButton(string icon, Action onClick)
+    public LocalChangesHeaderActionButton(string icon, Action onClick)
     {
-        PreferredHeight = ButtonHeight;
+        PreferredWidth = ButtonSize;
+        PreferredHeight = ButtonSize;
 
         var isHovered = new State<bool>(false);
 
@@ -396,14 +418,11 @@ internal sealed class LocalChangesActionButton : MultiChildView
 
         var background = new RectView
         {
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(5),
+            BorderRadius = BorderRadiusStyle.All(3),
             Children = { iconView },
         };
         background.BindBackgroundColor(isHovered,
-            h => h ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal);
-        background.BindBorderColor(isHovered,
-            h => BorderColorStyle.All(h ? DialogPalette.ButtonBorderHover : DialogPalette.ButtonBorder));
+            h => h ? DialogPalette.ButtonHover : TransparentBg);
         AddChildToSelf(background);
 
         Behaviors.Add(new HoverableButtonController(onClick, h => isHovered.Value = h));
@@ -425,14 +444,20 @@ internal sealed class LocalChangesPanel : MultiChildView
     private readonly State<HashSet<string>> _selection = new(new HashSet<string>());
     private IReadOnlyList<FileChange> _files = Array.Empty<FileChange>();
     private string? _anchorPath;
+    private Action<string>? _onRowActivated;
 
     public IReadable<HashSet<string>> Selection => _selection;
     public IReadOnlyCollection<string> SelectedPaths => _selection.Value;
     public IReadOnlyList<FileChange> Files => _files;
 
-    public LocalChangesPanel(string title, string emptyText)
+    public LocalChangesPanel(
+        string title,
+        string emptyText,
+        IReadOnlyList<(string Icon, Action OnClick)>? headerActions = null,
+        Action<string>? onRowActivated = null)
     {
         _title = title;
+        _onRowActivated = onRowActivated;
 
         _headerText = new TextView
         {
@@ -446,6 +471,32 @@ internal sealed class LocalChangesPanel : MultiChildView
             TextColor = FileChangesPalette.HeaderText,
         };
         _rows.Children.Add(_emptyPlaceholder);
+
+        View headerContent;
+        if (headerActions is { Count: > 0 })
+        {
+            var actionRow = new FlexRowView
+            {
+                Gap = 2f,
+                CrossAxisAlignment = CrossAxisAlignment.Center,
+            };
+            foreach (var (icon, onClick) in headerActions)
+                actionRow.Children.Add(new LocalChangesHeaderActionButton(icon, onClick));
+
+            headerContent = new FlexRowView
+            {
+                CrossAxisAlignment = CrossAxisAlignment.Center,
+                Children =
+                {
+                    new FlexItem { Grow = 1, Child = _headerText },
+                    actionRow,
+                },
+            };
+        }
+        else
+        {
+            headerContent = _headerText;
+        }
 
         var headerBar = new RectView
         {
@@ -463,7 +514,7 @@ internal sealed class LocalChangesPanel : MultiChildView
                 Top = HeaderPadding,
                 Bottom = HeaderPadding,
             },
-            Children = { _headerText },
+            Children = { headerContent },
         };
 
         var paddedRows = new PaddingView
@@ -532,7 +583,7 @@ internal sealed class LocalChangesPanel : MultiChildView
         else
         {
             foreach (var file in files)
-                _rows.Children.Add(new SelectableFileRowView(file, _selection, HandleRowClick));
+                _rows.Children.Add(new SelectableFileRowView(file, _selection, HandleRowClick, _onRowActivated));
         }
         _scrollPane.ScrollToOrigin();
     }
@@ -605,7 +656,11 @@ internal sealed class SelectableFileRowView : MultiChildView
     private const int RowVerticalPadding = 2;
     private const int RowHorizontalPadding = 4;
 
-    public SelectableFileRowView(FileChange file, IReadable<HashSet<string>> selection, Action<string, InputModifiers> onClick)
+    public SelectableFileRowView(
+        FileChange file,
+        IReadable<HashSet<string>> selection,
+        Action<string, InputModifiers> onClick,
+        Action<string>? onActivate = null)
     {
         var isHovered = new State<bool>(false);
         var path = file.Path;
@@ -666,18 +721,29 @@ internal sealed class SelectableFileRowView : MultiChildView
 
         Behaviors.Add(new SelectableRowController(
             mods => onClick(path, mods),
-            h => isHovered.Value = h));
+            h => isHovered.Value = h,
+            onActivate != null ? () => onActivate(path) : null));
     }
 }
 
 internal sealed class SelectableRowController : KeyboardMouseController
 {
+    private const int DoubleClickThresholdMs = 400;
+
     private readonly Action<InputModifiers> _onClick;
+    private readonly Action? _onActivate;
     private readonly Action<bool> _onHoverChanged;
 
-    public SelectableRowController(Action<InputModifiers> onClick, Action<bool> onHoverChanged)
+    private bool _hasLastClick;
+    private int _lastClickTickMs;
+
+    public SelectableRowController(
+        Action<InputModifiers> onClick,
+        Action<bool> onHoverChanged,
+        Action? onActivate = null)
     {
         _onClick = onClick;
+        _onActivate = onActivate;
         _onHoverChanged = onHoverChanged;
     }
 
@@ -689,6 +755,25 @@ internal sealed class SelectableRowController : KeyboardMouseController
         if (e.Button == MouseButton.Left && e.State == InputState.Pressed)
         {
             _onClick(e.Modifiers);
+
+            if (_onActivate != null)
+            {
+                var now = Environment.TickCount;
+                var isDouble = _hasLastClick
+                    && unchecked(now - _lastClickTickMs) <= DoubleClickThresholdMs;
+                if (isDouble)
+                {
+                    _onActivate();
+                    // Reset so a third click in quick succession isn't also an activation.
+                    _hasLastClick = false;
+                }
+                else
+                {
+                    _lastClickTickMs = now;
+                    _hasLastClick = true;
+                }
+            }
+
             e.Consume();
         }
     }
