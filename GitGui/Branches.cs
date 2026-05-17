@@ -1,6 +1,11 @@
 namespace GitGui;
 
-public sealed record BranchEntry(string Name, string TipSha, bool IsHead);
+public sealed record BranchEntry(
+    string Name,
+    string TipSha,
+    bool IsHead,
+    int? AheadBy = null,
+    int? BehindBy = null);
 
 public sealed record RemoteGroup(string Name, IReadOnlyList<BranchEntry> Branches);
 

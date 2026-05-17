@@ -82,6 +82,19 @@ public sealed class BranchesView : MultiChildView
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Center,
     };
+    // Ahead = "need to push", behind = "need to pull". Greenish + amber for at-a-glance.
+    private readonly TextStyle _aheadStyle = new()
+    {
+        TextColor = 0xFF9DD17B,
+        VerticalAlignment = TextAlignment.Center,
+        HorizontalAlignment = TextAlignment.Start,
+    };
+    private readonly TextStyle _behindStyle = new()
+    {
+        TextColor = 0xFFE6A85C,
+        VerticalAlignment = TextAlignment.Center,
+        HorizontalAlignment = TextAlignment.Start,
+    };
 
     public BranchesView()
     {
@@ -203,6 +216,8 @@ public sealed class BranchesView : MultiChildView
                 {
                     TipSha = b.TipSha,
                     IsHead = b.IsHead,
+                    AheadBy = b.AheadBy,
+                    BehindBy = b.BehindBy,
                 });
             }
         }
@@ -329,6 +344,10 @@ public sealed class BranchesView : MultiChildView
             contentLeft += ChevronWidth + ChevronGap;
         }
 
+        // Ahead/behind badge eats from the right edge before the branch name is truncated.
+        if (row.Kind == RowKind.LocalBranch && Context != null)
+            rightEdge = DrawAheadBehindBadge(c, row, rowBottom, rightEdge, z + 1);
+
         var textWidth = Math.Max(0f, rightEdge - contentLeft);
         if (textWidth <= 0f) return;
 
@@ -347,6 +366,46 @@ public sealed class BranchesView : MultiChildView
             Style = style,
             ZIndex = z + 1,
         });
+    }
+
+    // Returns the new right-edge after drawing the badge so the name's truncation knows
+    // how much room is left.
+    private float DrawAheadBehindBadge(ICanvas c, Row row, float rowBottom, float rightEdge, int z)
+    {
+        var ahead = row.AheadBy.GetValueOrDefault();
+        var behind = row.BehindBy.GetValueOrDefault();
+        if (ahead == 0 && behind == 0) return rightEdge;
+
+        const float badgeGap = 6f;
+        var cursor = rightEdge;
+
+        if (behind > 0)
+        {
+            var text = behind + "↓";
+            var w = Context!.Canvas.MeasureTextWidth(text, _behindStyle);
+            c.DrawText(new DrawTextInputs
+            {
+                Position = new RectF(cursor - w, rowBottom, w, RowHeight),
+                Text = text,
+                Style = _behindStyle,
+                ZIndex = z,
+            });
+            cursor -= w + badgeGap;
+        }
+        if (ahead > 0)
+        {
+            var text = ahead + "↑";
+            var w = Context!.Canvas.MeasureTextWidth(text, _aheadStyle);
+            c.DrawText(new DrawTextInputs
+            {
+                Position = new RectF(cursor - w, rowBottom, w, RowHeight),
+                Text = text,
+                Style = _aheadStyle,
+                ZIndex = z,
+            });
+            cursor -= w + badgeGap;
+        }
+        return cursor;
     }
 
     private string TruncateToFit(string text, TextStyle style, float available)
@@ -512,6 +571,8 @@ public sealed class BranchesView : MultiChildView
         public string? TipSha { get; init; }
         public bool IsHead { get; init; }
         public string? RemoteName { get; init; }
+        public int? AheadBy { get; init; }
+        public int? BehindBy { get; init; }
     }
 }
 

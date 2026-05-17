@@ -214,7 +214,13 @@ public sealed class GitService : IGitService
                 else
                 {
                     var isHead = headCanonical != null && branch.CanonicalName == headCanonical;
-                    locals.Add(new BranchEntry(branch.FriendlyName, tip.Sha, isHead));
+                    var tracking = branch.TrackingDetails;
+                    locals.Add(new BranchEntry(
+                        branch.FriendlyName,
+                        tip.Sha,
+                        isHead,
+                        AheadBy: tracking?.AheadBy,
+                        BehindBy: tracking?.BehindBy));
                 }
             }
 
