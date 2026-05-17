@@ -27,4 +27,63 @@
       <ProjectReference Include="..\ZGF.Observable\ZGF.Observable.csproj" />
     </ItemGroup>
 
+    <Target Name="CreateMacAppBundle" AfterTargets="Publish"
+            Condition="'$(RuntimeIdentifier)' != '' AND $(RuntimeIdentifier.StartsWith('osx'))">
+      <PropertyGroup>
+        <MacBundleId>com.gitgui.app</MacBundleId>
+        <MacBundleDisplayName>GitGui</MacBundleDisplayName>
+        <MacBundleVersion>1.0.0</MacBundleVersion>
+        <MacAppBundleDir>$([System.IO.Path]::GetFullPath('$(PublishDir)../$(AssemblyName).app'))</MacAppBundleDir>
+        <MacAppBundleContents>$(MacAppBundleDir)/Contents</MacAppBundleContents>
+        <MacAppBundleMacOS>$(MacAppBundleContents)/MacOS</MacAppBundleMacOS>
+        <MacAppBundleResources>$(MacAppBundleContents)/Resources</MacAppBundleResources>
+        <MacInfoPlist><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleExecutable</key>
+  <string>$(AssemblyName)</string>
+  <key>CFBundleIdentifier</key>
+  <string>$(MacBundleId)</string>
+  <key>CFBundleName</key>
+  <string>$(MacBundleDisplayName)</string>
+  <key>CFBundleDisplayName</key>
+  <string>$(MacBundleDisplayName)</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>$(MacBundleVersion)</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>11.0</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>NSPrincipalClass</key>
+  <string>NSApplication</string>
+</dict>
+</plist>
+]]></MacInfoPlist>
+      </PropertyGroup>
+
+      <RemoveDir Directories="$(MacAppBundleDir)" Condition="Exists('$(MacAppBundleDir)')" />
+      <MakeDir Directories="$(MacAppBundleMacOS);$(MacAppBundleResources)" />
+
+      <ItemGroup>
+        <_MacBundleFiles Include="$(PublishDir)**\*"
+                         Exclude="$(PublishDir)**\*.pdb;$(PublishDir)**\*.runtimeconfig.json;$(PublishDir)**\*.dSYM\**;$(PublishDir)**\.DS_Store" />
+      </ItemGroup>
+
+      <Copy SourceFiles="@(_MacBundleFiles)"
+            DestinationFiles="@(_MacBundleFiles->'$(MacAppBundleMacOS)/%(RecursiveDir)%(Filename)%(Extension)')" />
+
+      <WriteLinesToFile File="$(MacAppBundleContents)/Info.plist"
+                        Lines="$(MacInfoPlist)"
+                        Overwrite="true" />
+
+      <Exec Command="chmod +x &quot;$(MacAppBundleMacOS)/$(AssemblyName)&quot;" />
+
+      <Message Text="Created macOS app bundle: $(MacAppBundleDir)" Importance="high" />
+    </Target>
+
 </Project>

@@ -51,6 +51,12 @@ public sealed class LocalChangesView : MultiChildView
     private string _preAmendTitle = string.Empty;
     private string _preAmendDescription = string.Empty;
 
+    // Cached so OnAmendToggled can re-derive the displayed staged list without
+    // touching git. _stagedFromIndex is whatever GetLocalChanges last returned;
+    // _headFiles is the diff of HEAD vs HEAD~1, populated only while amending.
+    private IReadOnlyList<FileChange> _stagedFromIndex = Array.Empty<FileChange>();
+    private IReadOnlyList<FileChange>? _headFiles;
+
     public LocalChangesView()
     {
         _unstagedPanel = new LocalChangesPanel(
@@ -142,7 +148,36 @@ public sealed class LocalChangesView : MultiChildView
     private void OnUnstageAll() => Unstage(_stagedPanel.Files.Select(f => f.Path).ToList());
 
     private void Stage(IReadOnlyList<string> paths) => RunIndexOp(paths, isStage: true);
-    private void Unstage(IReadOnlyList<string> paths) => RunIndexOp(paths, isStage: false);
+
+    private void Unstage(IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+
+        // While amending, the staged panel may include HEAD-only files (not in the
+        // index) that the user wants to drop from the amended commit. Those need a
+        // reset against HEAD~1; truly-staged files take the normal unstage path.
+        if (_headFiles != null && _headFiles.Count > 0)
+        {
+            var stagedPaths = new HashSet<string>(_stagedFromIndex.Select(f => f.Path));
+            List<string>? toUnstage = null;
+            List<string>? toResetToParent = null;
+            foreach (var p in paths)
+            {
+                if (stagedPaths.Contains(p))
+                    (toUnstage ??= new List<string>()).Add(p);
+                else
+                    (toResetToParent ??= new List<string>()).Add(p);
+            }
+
+            if (toResetToParent != null)
+            {
+                RunUnstageWithReset(toUnstage ?? (IReadOnlyList<string>)Array.Empty<string>(), toResetToParent);
+                return;
+            }
+        }
+
+        RunIndexOp(paths, isStage: false);
+    }
 
     private void RunIndexOp(IReadOnlyList<string> paths, bool isStage)
     {
@@ -181,6 +216,44 @@ public sealed class LocalChangesView : MultiChildView
                 ShowOpError(errorMsg);
                 // Keep the prior snapshot rendered on failure — losing the list on every
                 // transient error would erase the user's selection and context.
+                if (newSnap != null)
+                    _viewModel.Value = new LocalChangesViewModel.Loaded(newSnap);
+            });
+        });
+    }
+
+    private void RunUnstageWithReset(IReadOnlyList<string> toUnstage, IReadOnlyList<string> toResetToParent)
+    {
+        if (_registry == null || _gitService == null) return;
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+
+        _loadGeneration++;
+        var gen = _loadGeneration;
+        var service = _gitService;
+        var dispatcher = _dispatcher;
+
+        Task.Run(() =>
+        {
+            LocalChangesSnapshot? newSnap = null;
+            string? errorMsg = null;
+            try
+            {
+                if (toUnstage.Count > 0) service.Unstage(repo, toUnstage);
+                if (toResetToParent.Count > 0) service.ResetToParent(repo, toResetToParent);
+                var snap = service.GetLocalChanges(repo);
+                if (snap.ErrorMessage != null) errorMsg = snap.ErrorMessage;
+                else newSnap = snap;
+            }
+            catch (Exception ex)
+            {
+                errorMsg = ex.Message;
+            }
+
+            dispatcher?.Post(() =>
+            {
+                if (gen != _loadGeneration) return;
+                ShowOpError(errorMsg);
                 if (newSnap != null)
                     _viewModel.Value = new LocalChangesViewModel.Loaded(newSnap);
             });
@@ -368,6 +441,7 @@ public sealed class LocalChangesView : MultiChildView
 
             string title = string.Empty;
             string description = string.Empty;
+            IReadOnlyList<FileChange> headFiles = Array.Empty<FileChange>();
             if (_registry != null && _gitService != null)
             {
                 var repo = _registry.Active.Value;
@@ -379,9 +453,11 @@ public sealed class LocalChangesView : MultiChildView
                         title = head.Title;
                         description = head.Description;
                     }
+                    headFiles = _gitService.GetHeadCommitFiles(repo);
                 }
             }
 
+            _headFiles = headFiles;
             SetTitleText(title);
             SetDescriptionText(description);
         }
@@ -391,8 +467,12 @@ public sealed class LocalChangesView : MultiChildView
             SetDescriptionText(_preAmendDescription);
             _preAmendTitle = string.Empty;
             _preAmendDescription = string.Empty;
+            _headFiles = null;
         }
 
+        // Amend visibility flipped — re-render the staged panel so HEAD files appear
+        // or disappear without waiting for the next snapshot reload.
+        _stagedPanel.SetFiles(ComputeDisplayedStaged());
         UpdateCommitButtonEnabled();
     }
 
@@ -520,13 +600,36 @@ public sealed class LocalChangesView : MultiChildView
 
     private void ShowSnapshot(LocalChangesSnapshot snap)
     {
+        _stagedFromIndex = snap.Staged;
         _unstagedPanel.SetFiles(snap.Unstaged);
-        _stagedPanel.SetFiles(snap.Staged);
+        _stagedPanel.SetFiles(ComputeDisplayedStaged());
         // SetFiles clears both panels' selections, which fires the selection subscriptions
         // and drives UpdateDiffVisibility — so the diff item collapses on its own here.
         _centerContainer.Children.Clear();
         _centerContainer.Children.Add(_snapshotContainer);
         UpdateCommitButtonEnabled();
+    }
+
+    // Outside amend mode the displayed staged list is just whatever the index says.
+    // While amending we also surface HEAD's files (so the user can see — and optionally
+    // remove — files that will otherwise carry over into the amended commit). For files
+    // that appear in both lists, the index entry wins so the badge reflects the *current*
+    // change rather than the previous-commit change.
+    private IReadOnlyList<FileChange> ComputeDisplayedStaged()
+    {
+        if (_headFiles == null || _headFiles.Count == 0)
+            return _stagedFromIndex;
+
+        var seen = new HashSet<string>(_stagedFromIndex.Select(f => f.Path));
+        var merged = new List<FileChange>(_stagedFromIndex.Count + _headFiles.Count);
+        merged.AddRange(_stagedFromIndex);
+        foreach (var h in _headFiles)
+        {
+            if (seen.Add(h.Path))
+                merged.Add(h);
+        }
+        merged.Sort(static (a, b) => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase));
+        return merged;
     }
 
     private void UpdateCommitButtonEnabled()

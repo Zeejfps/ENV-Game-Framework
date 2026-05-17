@@ -335,6 +335,27 @@ public sealed class GitService : IGitService
         Commands.Unstage(lg, paths);
     }
 
+    public void ResetToParent(Repo repo, IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+        using var lg = new Repository(repo.Path);
+        var tip = lg.Head?.Tip;
+        if (tip == null) return;
+        var parent = tip.Parents.FirstOrDefault();
+        // Mirrors `git reset <parent|root> -- <paths>` by rewriting index entries directly:
+        // each path's index entry is replaced with the parent's blob (or removed if the
+        // path isn't in the parent / there is no parent). Working tree is untouched.
+        foreach (var p in paths)
+        {
+            var entry = parent?[p];
+            if (entry?.Target is Blob blob)
+                lg.Index.Add(blob, p, entry.Mode);
+            else
+                lg.Index.Remove(p);
+        }
+        lg.Index.Write();
+    }
+
     public string? Commit(Repo repo, string message, bool amend)
     {
         try
@@ -391,6 +412,34 @@ public sealed class GitService : IGitService
         catch
         {
             return null;
+        }
+    }
+
+    public IReadOnlyList<FileChange> GetHeadCommitFiles(Repo repo)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path)) return Array.Empty<FileChange>();
+            using var lg = new Repository(repo.Path);
+            var tip = lg.Head?.Tip;
+            if (tip == null) return Array.Empty<FileChange>();
+
+            var parentTree = tip.Parents.FirstOrDefault()?.Tree;
+            var changes = lg.Diff.Compare<TreeChanges>(parentTree, tip.Tree);
+            var files = new List<FileChange>();
+            foreach (var entry in changes)
+            {
+                files.Add(new FileChange(
+                    entry.Path,
+                    entry.OldPath != entry.Path ? entry.OldPath : null,
+                    MapStatus(entry.Status)));
+            }
+            files.Sort(static (a, b) => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase));
+            return files;
+        }
+        catch
+        {
+            return Array.Empty<FileChange>();
         }
     }
 
@@ -527,6 +576,10 @@ public sealed class GitService : IGitService
         return text.Trim();
     }
 
+    // LibGit2Sharp's Patch API drives diff output through native→managed callbacks (per
+    // hunk and per line), which the NativeAOT-generated marshalling stubs for GitDiffHunk
+    // NRE on. Everything else in libgit2 we use is fine; only diff goes through this
+    // callback path. Shell out to `git diff` for diffs to sidestep it entirely.
     public DiffResult GetDiff(Repo repo, string path, DiffSide side)
     {
         try
@@ -534,54 +587,143 @@ public sealed class GitService : IGitService
             if (!Repository.IsValid(repo.Path))
                 return DiffError(repo, path, side, "Not a git repository.");
 
-            using var lg = new Repository(repo.Path);
+            var contextArg = $"--unified={DiffOptions.ContextLines}";
+            string? patchText;
+            string? error;
 
-            var compareOpts = new CompareOptions { ContextLines = DiffOptions.ContextLines };
-            var paths = new[] { path };
-            var explicit_ = new ExplicitPathsOptions();
-
-            Patch patch = side switch
+            if (side == DiffSide.Staged)
             {
-                DiffSide.Unstaged => lg.Diff.Compare<Patch>(paths, includeUntracked: true, explicit_, compareOpts),
-                DiffSide.Staged => lg.Diff.Compare<Patch>(lg.Head?.Tip?.Tree, DiffTargets.Index, paths, explicit_, compareOpts),
-                _ => lg.Diff.Compare<Patch>(paths, includeUntracked: true, explicit_, compareOpts),
-            };
-
-            PatchEntryChanges? entry = null;
-            foreach (var e in patch)
+                patchText = RunGitDiff(repo.Path, out error,
+                    "diff", "--cached", "--no-color", "-M", contextArg, "--", path);
+            }
+            else if (IsTracked(repo.Path, path))
             {
-                entry = e;
-                break;
+                patchText = RunGitDiff(repo.Path, out error,
+                    "diff", "--no-color", "-M", contextArg, "--", path);
+            }
+            else
+            {
+                // Untracked file: `git diff` ignores it, so render it as an addition by
+                // diffing against the platform null device.
+                var nullPath = OperatingSystem.IsWindows() ? "NUL" : "/dev/null";
+                var absPath = Path.IsPathRooted(path) ? path : Path.Combine(repo.Path, path);
+                patchText = RunGitDiff(repo.Path, out error,
+                    "diff", "--no-color", "--no-index", contextArg, "--", nullPath, absPath);
             }
 
-            if (entry == null)
-                return new DiffResult(repo.Id, path, null, side, false, false, null, null, Array.Empty<DiffHunk>(), false, null);
+            if (patchText == null)
+                return DiffError(repo, path, side, error ?? "git diff failed.");
 
-            var oldPath = entry.OldPath != null && entry.OldPath != entry.Path ? entry.OldPath : null;
-            var oldMode = (int)entry.OldMode;
-            var newMode = (int)entry.Mode;
-            var modesDiffer = oldMode != newMode;
-            var isModeOnly = modesDiffer && entry.LinesAdded + entry.LinesDeleted == 0;
-
-            var (hunks, truncated) = ParsePatch(entry.Patch ?? string.Empty);
-
-            return new DiffResult(
-                RepoId: repo.Id,
-                Path: entry.Path,
-                OldPath: oldPath,
-                Side: side,
-                IsBinary: entry.IsBinaryComparison,
-                IsModeOnly: isModeOnly,
-                OldMode: modesDiffer ? oldMode : null,
-                NewMode: modesDiffer ? newMode : null,
-                Hunks: hunks,
-                Truncated: truncated,
-                ErrorMessage: null);
+            return ParseGitDiff(repo.Id, path, side, patchText);
         }
         catch (Exception ex)
         {
             return DiffError(repo, path, side, ex.Message);
         }
+    }
+
+    // `git diff --no-index` exits 1 when the two inputs differ — treat that as success.
+    private static string? RunGitDiff(string workingDir, out string? error, params string[] args)
+    {
+        error = null;
+        var psi = new ProcessStartInfo
+        {
+            FileName = "git",
+            WorkingDirectory = workingDir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        foreach (var a in args) psi.ArgumentList.Add(a);
+
+        using var proc = Process.Start(psi);
+        if (proc == null) { error = "Failed to start git."; return null; }
+
+        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+        var stderrTask = proc.StandardError.ReadToEndAsync();
+        proc.WaitForExit();
+        var stdout = stdoutTask.GetAwaiter().GetResult();
+        var stderr = stderrTask.GetAwaiter().GetResult();
+
+        if (proc.ExitCode == 0 || proc.ExitCode == 1) return stdout;
+
+        var msg = FirstMeaningfulLine(stderr);
+        error = string.IsNullOrEmpty(msg) ? $"git exited with code {proc.ExitCode}." : msg;
+        return null;
+    }
+
+    private static bool IsTracked(string workingDir, string path)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = "git",
+            WorkingDirectory = workingDir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        psi.ArgumentList.Add("ls-files");
+        psi.ArgumentList.Add("--error-unmatch");
+        psi.ArgumentList.Add("--");
+        psi.ArgumentList.Add(path);
+
+        using var proc = Process.Start(psi);
+        if (proc == null) return false;
+        proc.StandardOutput.ReadToEnd();
+        proc.StandardError.ReadToEnd();
+        proc.WaitForExit();
+        return proc.ExitCode == 0;
+    }
+
+    private static DiffResult ParseGitDiff(Guid repoId, string path, DiffSide side, string patchText)
+    {
+        if (string.IsNullOrEmpty(patchText))
+            return new DiffResult(repoId, path, null, side, false, false, null, null, Array.Empty<DiffHunk>(), false, null);
+
+        string? oldPath = null;
+        int? oldMode = null, newMode = null;
+        bool isBinary = false;
+
+        foreach (var rawLine in patchText.Replace("\r\n", "\n").Split('\n'))
+        {
+            if (rawLine.StartsWith("@@")) break;
+            if (rawLine.StartsWith("rename from "))
+                oldPath = rawLine.Substring("rename from ".Length).Trim();
+            else if (rawLine.StartsWith("old mode "))
+                oldMode = TryParseOctal(rawLine.Substring("old mode ".Length).Trim());
+            else if (rawLine.StartsWith("new mode "))
+                newMode = TryParseOctal(rawLine.Substring("new mode ".Length).Trim());
+            else if (rawLine.StartsWith("Binary files ") || rawLine.StartsWith("GIT binary patch"))
+                isBinary = true;
+        }
+
+        if (isBinary)
+            return new DiffResult(repoId, path, oldPath, side, true, false, oldMode, newMode, Array.Empty<DiffHunk>(), false, null);
+
+        var (hunks, truncated) = ParsePatch(patchText);
+        var modesDiffer = oldMode.HasValue && newMode.HasValue && oldMode != newMode;
+        var isModeOnly = modesDiffer && hunks.Count == 0;
+
+        return new DiffResult(
+            RepoId: repoId,
+            Path: path,
+            OldPath: oldPath,
+            Side: side,
+            IsBinary: false,
+            IsModeOnly: isModeOnly,
+            OldMode: modesDiffer ? oldMode : null,
+            NewMode: modesDiffer ? newMode : null,
+            Hunks: hunks,
+            Truncated: truncated,
+            ErrorMessage: null);
+    }
+
+    private static int? TryParseOctal(string s)
+    {
+        try { return Convert.ToInt32(s, 8); }
+        catch { return null; }
     }
 
     private static DiffResult DiffError(Repo repo, string path, DiffSide side, string message)
