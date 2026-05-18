@@ -544,6 +544,48 @@ public sealed class GitService : IGitService
         }
     }
 
+    public PullOutcome Pull(Repo repo)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new PullOutcome(false, "Not a git repository.");
+
+            using (var lg = new Repository(repo.Path))
+            {
+                if (lg.Info.IsHeadDetached)
+                    return new PullOutcome(false, "HEAD is detached. Check out a branch first.");
+                var head = lg.Head;
+                if (head?.TrackedBranch == null)
+                {
+                    var name = head?.FriendlyName ?? "(unknown)";
+                    return new PullOutcome(false,
+                        $"Branch '{name}' has no upstream. Set one with: git branch --set-upstream-to=<remote>/<branch>");
+                }
+            }
+
+            var psi = BuildGitProcessStartInfo("pull", repo.Path);
+            using var proc = Process.Start(psi);
+            if (proc == null) return new PullOutcome(false, "Failed to start git.");
+
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+            var stderrTask = proc.StandardError.ReadToEndAsync();
+            proc.WaitForExit();
+            var stderr = stderrTask.GetAwaiter().GetResult();
+            var stdout = stdoutTask.GetAwaiter().GetResult();
+
+            if (proc.ExitCode == 0) return new PullOutcome(true, null);
+            var combined = stderr.Length > 0 ? stderr : stdout;
+            var msg = FirstMeaningfulLine(combined);
+            if (string.IsNullOrEmpty(msg)) msg = $"git pull exited with code {proc.ExitCode}.";
+            return new PullOutcome(false, msg);
+        }
+        catch (Exception ex)
+        {
+            return new PullOutcome(false, ex.Message);
+        }
+    }
+
     // Shells out so post-checkout hooks, LFS, and sparse-checkout filters all run; also
     // surfaces the same error wording the user would see in Terminal.
     public CheckoutOutcome CheckoutLocalBranch(Repo repo, string branchName)
