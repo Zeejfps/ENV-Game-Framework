@@ -72,7 +72,7 @@ public sealed class TextInputView : MultiChildView
     private int _strLen;
     private bool _isEditing;
     private int _selectionStartIndex;
-    private char[] _buffer;
+    private readonly char[] _buffer;
     
     public ReadOnlySpan<char> Text => _buffer.AsSpan(0, _strLen);
     public bool IsEditing => _isEditing;
@@ -311,7 +311,7 @@ public sealed class TextInputView : MultiChildView
             },
             Text = _placeholderText!,
             Style = _textStyle,
-            ZIndex = ZIndex,
+            ZIndex = GetDrawZIndex(),
         });
 
         _textStyle.TextColor = originalColor;
@@ -323,7 +323,7 @@ public sealed class TextInputView : MultiChildView
         {
             Position = position,
             Style = _background,
-            ZIndex = ZIndex
+            ZIndex = GetDrawZIndex()
         });
     }
 
@@ -381,9 +381,9 @@ public sealed class TextInputView : MultiChildView
                 {
                     Position = selectionRect,
                     Style = _selectionRectStyle,
-                    ZIndex = ZIndex
+                    ZIndex = GetDrawZIndex()
                 });
-                
+
                 startIndex = i;
                 startPointLeft = position.Left;
                 startPointBottom -= lineHeight;
@@ -407,9 +407,9 @@ public sealed class TextInputView : MultiChildView
             {
                 Position = selectionRect,
                 Style = _selectionRectStyle,
-                ZIndex = ZIndex
+                ZIndex = GetDrawZIndex()
             });
-        } 
+        }
     }
 
     private void DrawText(in RectF position, ICanvas c)
@@ -431,7 +431,7 @@ public sealed class TextInputView : MultiChildView
                 },
                 Text = _buffer.AsSpan(line).ToString(),
                 Style = _textStyle,
-                ZIndex = ZIndex
+                ZIndex = GetDrawZIndex()
             });
             bottom -= lineHeight;
         }
@@ -488,7 +488,7 @@ public sealed class TextInputView : MultiChildView
         {
             Position = cursorPos,
             Style = _cursorStyle,
-            ZIndex = ZIndex
+            ZIndex = GetDrawZIndex()
         });
     }
     

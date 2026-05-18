@@ -177,7 +177,7 @@ public sealed class CheckoutBranchDialog : MultiChildView
         _bus = context.Get<IMessageBus>();
 
         if (_suggestedLocalName.Length > 0)
-            _nameInput.Enter(_suggestedLocalName.AsSpan());
+            _nameInput.Enter(_suggestedLocalName);
         _nameInput.SelectAll();
         _nameInput.StartEditing();
     }

@@ -1,6 +1,6 @@
 namespace ZGF.Gui;
 
-public sealed class TextStyle
+public sealed record TextStyle
 {
     public StyleValue<uint> TextColor = new(0xFF000000, false);
     public StyleValue<string> FontFamily;
