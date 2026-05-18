@@ -170,6 +170,9 @@ public sealed class GitService : IGitService
         _ => FileChangeStatus.Unmodified,
     };
 
+    // Same AOT-marshalling story as GetDiff: libgit2 callbacks for branch enumeration trip
+    // NativeAOT's reverse-pinvoke stubs, so remote branches don't show in published builds.
+    // `git for-each-ref` returns the same data in one shot.
     public BranchListing GetBranches(Repo repo)
     {
         try
@@ -177,51 +180,60 @@ public sealed class GitService : IGitService
             if (!Repository.IsValid(repo.Path))
                 return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), "Not a git repository.");
 
-            using var lg = new Repository(repo.Path);
+            // Seed with all configured remotes so groups still show even when a remote has
+            // no branches yet (matches the prior LibGit2Sharp behavior).
+            var remotesByName = new Dictionary<string, List<BranchEntry>>(StringComparer.Ordinal);
+            var remotesOut = RunGit(repo.Path, out var remErr, "remote");
+            if (remotesOut == null)
+                return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), remErr ?? "git remote failed.");
+            foreach (var rawLine in remotesOut.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var name = rawLine.Trim();
+                if (name.Length > 0) remotesByName[name] = new List<BranchEntry>();
+            }
 
-            var headCanonical = lg.Head?.CanonicalName;
+            // Empty if HEAD is detached; we just compare for equality below, so null is fine.
+            var headRef = RunGit(repo.Path, out _, "symbolic-ref", "-q", "HEAD")?.Trim();
+
+            const char Sep = '\x1F';
+            var fmt = $"%(objectname){Sep}%(refname){Sep}%(upstream:track,nobracket)";
+            var branchesOut = RunGit(repo.Path, out var brErr,
+                "for-each-ref", $"--format={fmt}", "refs/heads", "refs/remotes");
+            if (branchesOut == null)
+                return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), brErr ?? "git for-each-ref failed.");
 
             var locals = new List<BranchEntry>();
-            var remotesByName = new Dictionary<string, List<BranchEntry>>(StringComparer.Ordinal);
-            foreach (var remote in lg.Network.Remotes)
-                remotesByName[remote.Name] = new List<BranchEntry>();
-
-            foreach (var branch in lg.Branches)
+            foreach (var line in branchesOut.Split('\n'))
             {
-                var tip = branch.Tip;
-                if (tip == null) continue;
+                if (line.Length == 0) continue;
+                var parts = line.Split(Sep);
+                if (parts.Length < 2) continue;
+                var sha = parts[0];
+                var refname = parts[1];
+                var track = parts.Length > 2 ? parts[2] : string.Empty;
 
-                if (branch.IsRemote)
+                if (refname.StartsWith("refs/heads/", StringComparison.Ordinal))
                 {
-                    var remoteName = branch.RemoteName;
-                    if (string.IsNullOrEmpty(remoteName)) continue;
-
-                    // FriendlyName is e.g. "origin/main" — strip the remote prefix for display.
-                    var display = branch.FriendlyName;
-                    var prefix = remoteName + "/";
-                    if (display.StartsWith(prefix, StringComparison.Ordinal))
-                        display = display[prefix.Length..];
-
+                    var name = refname["refs/heads/".Length..];
+                    var isHead = headRef == refname;
+                    var (ahead, behind) = ParseTrack(track);
+                    locals.Add(new BranchEntry(name, sha, isHead, AheadBy: ahead, BehindBy: behind));
+                }
+                else if (refname.StartsWith("refs/remotes/", StringComparison.Ordinal))
+                {
+                    var rest = refname["refs/remotes/".Length..];
+                    var slash = rest.IndexOf('/');
+                    if (slash <= 0) continue;
+                    var remoteName = rest[..slash];
+                    var display = rest[(slash + 1)..];
                     // Skip the symbolic origin/HEAD ref; it just mirrors another branch.
                     if (display == "HEAD") continue;
-
                     if (!remotesByName.TryGetValue(remoteName, out var list))
                     {
                         list = new List<BranchEntry>();
                         remotesByName[remoteName] = list;
                     }
-                    list.Add(new BranchEntry(display, tip.Sha, IsHead: false));
-                }
-                else
-                {
-                    var isHead = headCanonical != null && branch.CanonicalName == headCanonical;
-                    var tracking = branch.TrackingDetails;
-                    locals.Add(new BranchEntry(
-                        branch.FriendlyName,
-                        tip.Sha,
-                        isHead,
-                        AheadBy: tracking?.AheadBy,
-                        BehindBy: tracking?.BehindBy));
+                    list.Add(new BranchEntry(display, sha, IsHead: false));
                 }
             }
 
@@ -244,6 +256,21 @@ public sealed class GitService : IGitService
         {
             return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), ex.Message);
         }
+    }
+
+    // `git for-each-ref %(upstream:track,nobracket)` returns "", "gone", "ahead N",
+    // "behind N", or "ahead N, behind M".
+    private static (int? ahead, int? behind) ParseTrack(string track)
+    {
+        if (string.IsNullOrEmpty(track) || track == "gone") return (null, null);
+        int? a = null, b = null;
+        foreach (var part in track.Split(',', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var p = part.Trim();
+            if (p.StartsWith("ahead ", StringComparison.Ordinal) && int.TryParse(p[6..], out var av)) a = av;
+            else if (p.StartsWith("behind ", StringComparison.Ordinal) && int.TryParse(p[7..], out var bv)) b = bv;
+        }
+        return (a, b);
     }
 
     public LocalChangesSnapshot GetLocalChanges(Repo repo)
@@ -622,13 +649,19 @@ public sealed class GitService : IGitService
         }
     }
 
-    // `git diff --no-index` exits 1 when the two inputs differ — treat that as success.
+    private static string RunGit(string workingDir, out string? error, params string[] args)
+        => RunGitInternal(workingDir, allowExitCode1: false, out error, args)!;
+
+    // `git diff --no-index` exits 1 when the two inputs differ — that's normal output, not failure.
     private static string? RunGitDiff(string workingDir, out string? error, params string[] args)
+        => RunGitInternal(workingDir, allowExitCode1: true, out error, args);
+
+    private static string? RunGitInternal(string workingDir, bool allowExitCode1, out string? error, string[] args)
     {
         error = null;
         var psi = new ProcessStartInfo
         {
-            FileName = "git",
+            FileName = GitExecutable(),
             WorkingDirectory = workingDir,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -646,7 +679,7 @@ public sealed class GitService : IGitService
         var stdout = stdoutTask.GetAwaiter().GetResult();
         var stderr = stderrTask.GetAwaiter().GetResult();
 
-        if (proc.ExitCode == 0 || proc.ExitCode == 1) return stdout;
+        if (proc.ExitCode == 0 || (allowExitCode1 && proc.ExitCode == 1)) return stdout;
 
         var msg = FirstMeaningfulLine(stderr);
         error = string.IsNullOrEmpty(msg) ? $"git exited with code {proc.ExitCode}." : msg;
@@ -657,7 +690,7 @@ public sealed class GitService : IGitService
     {
         var psi = new ProcessStartInfo
         {
-            FileName = "git",
+            FileName = GitExecutable(),
             WorkingDirectory = workingDir,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -675,6 +708,58 @@ public sealed class GitService : IGitService
         proc.StandardError.ReadToEnd();
         proc.WaitForExit();
         return proc.ExitCode == 0;
+    }
+
+    // macOS GUI apps launched outside a terminal don't inherit the user's shell PATH, so
+    // Homebrew git (/opt/homebrew/bin/git, /usr/local/bin/git) is invisible to a bare
+    // Process.Start("git"). Ask the login shell where git lives, once, and reuse the
+    // absolute path everywhere.
+    private static string? _gitExecutable;
+    private static readonly object _gitExecutableLock = new();
+
+    private static string GitExecutable()
+    {
+        if (_gitExecutable != null) return _gitExecutable;
+        lock (_gitExecutableLock)
+        {
+            _gitExecutable ??= ResolveGitExecutable();
+            return _gitExecutable;
+        }
+    }
+
+    private static string ResolveGitExecutable()
+    {
+        if (!OperatingSystem.IsMacOS()) return "git";
+
+        try
+        {
+            var shell = Environment.GetEnvironmentVariable("SHELL");
+            if (string.IsNullOrEmpty(shell)) shell = "/bin/zsh";
+            var psi = new ProcessStartInfo
+            {
+                FileName = shell,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            psi.ArgumentList.Add("-l");
+            psi.ArgumentList.Add("-c");
+            psi.ArgumentList.Add("command -v git");
+            using var proc = Process.Start(psi);
+            if (proc != null)
+            {
+                var path = proc.StandardOutput.ReadToEnd().Trim();
+                proc.WaitForExit();
+                if (path.Length > 0 && File.Exists(path)) return path;
+            }
+        }
+        catch { /* fall through to defaults */ }
+
+        foreach (var p in new[] { "/opt/homebrew/bin/git", "/usr/local/bin/git", "/usr/bin/git" })
+            if (File.Exists(p)) return p;
+
+        return "git";
     }
 
     private static DiffResult ParseGitDiff(Guid repoId, string path, DiffSide side, string patchText)
