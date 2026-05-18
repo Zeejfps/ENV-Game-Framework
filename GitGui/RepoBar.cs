@@ -8,7 +8,10 @@ public sealed class RepoBar : MultiChildView
 {
     private const int BarWidth = 220;
     private const int HorizontalPadding = 8;
-    private const int RowTextIndent = 24;
+    internal const int RowPaddingLeft = 24;
+    internal const int RowIconWidth = 16;
+    internal const int RowIconGap = 6;
+    private const int RowTextIndent = RowPaddingLeft + RowIconWidth + RowIconGap;
     private const int RowTextRightPadding = 12;
 
     public static int RowTextAvailableWidth =>

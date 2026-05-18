@@ -1,5 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
+using ZGF.Gui.Layouts;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -16,25 +17,50 @@ public sealed class RepoRow : MultiChildView
 
         var isHovered = new State<bool>(false);
 
+        uint RowTextColor()
+        {
+            if (repo.IsMissing) return DialogPalette.RowTextMissing;
+            return registry.Active.Value?.Id == repo.Id
+                ? DialogPalette.RowTextActive
+                : DialogPalette.RowText;
+        }
+
+        var icon = new TextView
+        {
+            Text = LucideIcons.FolderGit2,
+            FontFamily = LucideIcons.FontFamily,
+            FontSize = 14,
+            PreferredWidth = RepoBar.RowIconWidth,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        icon.BindTextColor(RowTextColor);
+
         _label = new TextView
         {
             Text = repo.DisplayName,
             HorizontalTextAlignment = TextAlignment.Start,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        _label.BindTextColor(() =>
-        {
-            if (repo.IsMissing) return DialogPalette.RowTextMissing;
-            return registry.Active.Value?.Id == repo.Id
-                ? DialogPalette.RowTextActive
-                : DialogPalette.RowText;
-        });
+        _label.BindTextColor(RowTextColor);
 
         var background = new RectView
         {
             BorderRadius = BorderRadiusStyle.All(4),
-            Padding = new PaddingStyle { Left = 24, Right = 12 },
-            Children = { _label }
+            Padding = new PaddingStyle { Left = RepoBar.RowPaddingLeft, Right = 12 },
+            Children =
+            {
+                new FlexRowView
+                {
+                    Gap = RepoBar.RowIconGap,
+                    CrossAxisAlignment = CrossAxisAlignment.Center,
+                    Children =
+                    {
+                        icon,
+                        new FlexItem { Grow = 1, Child = _label },
+                    }
+                }
+            }
         };
         background.BindBackgroundColor(() =>
         {
