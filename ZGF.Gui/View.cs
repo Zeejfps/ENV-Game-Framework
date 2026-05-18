@@ -74,6 +74,12 @@ public abstract class View
         get;
         set => SetField(ref field, value);
     }
+    
+    public StyleValue<float> MinHeightConstraint
+    {
+        get;
+        set => SetField(ref field, value);
+    }
 
     public StyleValue<float> RightConstraint => LeftConstraint + MaxWidthConstraint;
     public StyleValue<float> TopConstraint => BottomConstraint + MaxHeightConstraint;
@@ -89,7 +95,7 @@ public abstract class View
         get;
         set => SetField(ref field, value);
     }
-    
+
     public View? Parent { get; private set; }
 
     public string? Id
@@ -419,6 +425,10 @@ public abstract class View
     protected virtual void OnLayoutSelf()
     {
         var width = MeasureWidth();
+        if (!PreferredWidth.IsSet && MaxWidthConstraint.IsSet)
+        {
+            width = MaxWidthConstraint;
+        }
         if (MinWidthConstraint.IsSet && width < MinWidthConstraint)
         {
             width = MinWidthConstraint;
@@ -427,11 +437,19 @@ public abstract class View
         {
             width = MaxWidthConstraint;
         }
-        
+
         var height = MeasureHeight();
-        if (MaxHeightConstraint.IsSet)
+        if (!PreferredHeight.IsSet && MaxHeightConstraint.IsSet)
         {
-            height = MaxHeightConstraint.Value;
+            height = MaxHeightConstraint;
+        }
+        if (MinHeightConstraint.IsSet && height < MinHeightConstraint)
+        {
+            height = MinHeightConstraint;
+        }
+        else if (MaxHeightConstraint.IsSet && height > MaxHeightConstraint)
+        {
+            height = MaxHeightConstraint;
         }
         
         Position = new RectF
@@ -467,8 +485,15 @@ public abstract class View
     public virtual float MeasureWidth()
     {
         if (PreferredWidth.IsSet)
+        {
             return PreferredWidth;
+        }
         
+        return MeasureChildrenWidth();
+    }
+
+    protected float MeasureChildrenWidth()
+    {
         var maxWidth = 0f;
         foreach (var child in _children)
         {
@@ -488,7 +513,12 @@ public abstract class View
         {
             return PreferredHeight;
         }
-        
+
+        return MeasureChildrenHeight();
+    }
+
+    protected float MeasureChildrenHeight()
+    {
         var height = 0f;
         foreach (var child in _children)
         {
@@ -640,6 +670,7 @@ public abstract class View
         child.BottomConstraint = position.Bottom;
         child.MinWidthConstraint = position.Width;
         child.MaxWidthConstraint = position.Width;
+        child.MinHeightConstraint = position.Height;
         child.MaxHeightConstraint = position.Height;
         child.LayoutSelf();
     }
