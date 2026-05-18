@@ -8,9 +8,10 @@ namespace GitGui;
 /// Sidebar listing local branches and remote branches (grouped per remote) as a tree —
 /// branch names containing "/" are split into folder nodes (e.g. "feature/login" lives
 /// inside a "feature" folder). Click a branch row to scroll/select its tip commit in the
-/// history view; click a section/remote/folder row to toggle collapse. Collapse state is
-/// persisted per-repo via IRepoRegistry. Currently read-only — no checkout, rename,
-/// delete, push, pull from this view.
+/// history view; click a section/remote/folder row to toggle collapse. Double-click a
+/// branch to check it out: local branches check out directly; remote branches that have
+/// a matching local check that local out; remote branches with no matching local pop the
+/// CheckoutBranchDialog. Collapse state is persisted per-repo via IRepoRegistry.
 /// </summary>
 public sealed class BranchesView : MultiChildView
 {
@@ -21,6 +22,7 @@ public sealed class BranchesView : MultiChildView
     private const float ChevronColumn = ChevronWidth + ChevronGap;
     private const float IconGap = 4f;
     private const float ScrollWheelStep = 60f;
+    private const int DoubleClickThresholdMs = 400;
 
     private const float IndentSection = 0f;          // LOCAL / REMOTES
     private const float IndentRemoteHeader = 12f;    // origin (under REMOTES)
@@ -45,6 +47,10 @@ public sealed class BranchesView : MultiChildView
     private readonly List<Row> _rows = new();
     private float _scrollY;
     private int _hoveredRowIndex = -1;
+
+    private bool _hasLastClick;
+    private int _lastClickTickMs;
+    private int _lastClickRowIndex = -1;
 
     // Ahead = "need to push", behind = "need to pull". Greenish + amber for at-a-glance.
     // Number uses the default font; icon uses the Lucide glyphs the toolbar push/pull
@@ -530,6 +536,37 @@ public sealed class BranchesView : MultiChildView
         // Click in the panel but outside any row → deselect (and clear CommitsView too).
         if (!IsPointInside(point)) return;
         var idx = HitTestRow(point);
+
+        HandleSingleClick(idx);
+
+        // Double-click detection sits on top of single-click: the first click of a
+        // double-click still selects and jumps to history (matches Fork), the second
+        // adds the activate (checkout) on top.
+        if (idx < 0 || idx >= _rows.Count)
+        {
+            _hasLastClick = false;
+            return;
+        }
+
+        var now = Environment.TickCount;
+        var isDouble = _hasLastClick
+            && _lastClickRowIndex == idx
+            && unchecked(now - _lastClickTickMs) <= DoubleClickThresholdMs;
+        if (isDouble)
+        {
+            HandleActivate(_rows[idx]);
+            _hasLastClick = false;
+        }
+        else
+        {
+            _lastClickTickMs = now;
+            _lastClickRowIndex = idx;
+            _hasLastClick = true;
+        }
+    }
+
+    private void HandleSingleClick(int idx)
+    {
         if (idx < 0 || idx >= _rows.Count)
         {
             ClearSelectionAndBroadcast();
@@ -584,6 +621,66 @@ public sealed class BranchesView : MultiChildView
                 }
                 return;
         }
+    }
+
+    private void HandleActivate(Row row)
+    {
+        switch (row.Kind)
+        {
+            case RowKind.LocalBranch:
+                if (row.IsHead) return; // already checked out
+                if (row.FullPath == null) return;
+                StartCheckoutLocal(row.FullPath);
+                return;
+            case RowKind.RemoteBranch:
+                if (row.RemoteName == null || row.FullPath == null) return;
+                // entry.Name for remote branches is already stripped of the remote prefix
+                // (see GitService.GetBranches), so it's the suggested local name as-is.
+                if (LocalBranchExists(row.FullPath))
+                    StartCheckoutLocal(row.FullPath);
+                else
+                {
+                    var repo = _registry?.Active.Value;
+                    if (repo == null) return;
+                    _bus?.Broadcast(new ShowCheckoutDialogMessage(
+                        repo, row.RemoteName, row.FullPath, row.FullPath));
+                }
+                return;
+        }
+    }
+
+    private bool LocalBranchExists(string name)
+    {
+        var listing = _listing;
+        if (listing == null) return false;
+        foreach (var b in listing.LocalBranches)
+            if (string.Equals(b.Name, name, StringComparison.Ordinal)) return true;
+        return false;
+    }
+
+    private void StartCheckoutLocal(string branchName)
+    {
+        var service = _gitService;
+        var dispatcher = _dispatcher;
+        var bus = _bus;
+        var repo = _registry?.Active.Value;
+        if (service == null || dispatcher == null || bus == null || repo == null) return;
+
+        Task.Run(() =>
+        {
+            CheckoutOutcome outcome;
+            try { outcome = service.CheckoutLocalBranch(repo, branchName); }
+            catch (Exception ex) { outcome = new CheckoutOutcome(false, ex.Message); }
+
+            dispatcher.Post(() =>
+            {
+                if (outcome.Success)
+                    bus.Broadcast(new RefsChangedMessage(repo.Id));
+                else
+                    bus.Broadcast(new ShowCheckoutErrorMessage(
+                        outcome.ErrorMessage ?? "Checkout failed."));
+            });
+        });
     }
 
     private void SwitchToHistory()

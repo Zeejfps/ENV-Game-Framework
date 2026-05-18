@@ -466,6 +466,7 @@ public sealed class LocalChangesView : MultiChildView
         _bus = context.Get<IMessageBus>();
         _subscriptions.Add(_viewModel.Subscribe(Render));
         _subscriptions.Add(_registry?.Active.Subscribe(_ => StartLoadForActiveRepo()));
+        _subscriptions.Add(_bus?.SubscribeScoped<RefsChangedMessage>(OnRefsChanged));
 
         // Selection is exclusive across the two panels: once a row in one side is selected,
         // any selection on the other side is cleared. The "only clear when *becoming*
@@ -492,6 +493,15 @@ public sealed class LocalChangesView : MultiChildView
         _gitService = null;
         _dispatcher = null;
         _bus = null;
+    }
+
+    // After checkout, the working tree may differ (index reset, untracked-vs-tracked
+    // status flips), so reload from disk for the current repo.
+    private void OnRefsChanged(RefsChangedMessage msg)
+    {
+        var active = _registry?.Active.Value;
+        if (active == null || active.Id != msg.RepoId) return;
+        StartLoadForActiveRepo();
     }
 
     private void StartLoadForActiveRepo()

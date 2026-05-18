@@ -14,6 +14,8 @@ public interface IGitService
     IReadOnlyList<FileChange> GetHeadCommitFiles(Repo repo);
     PushStatus GetPushStatus(Repo repo);
     PushOutcome Push(Repo repo);
+    CheckoutOutcome CheckoutLocalBranch(Repo repo, string branchName);
+    CheckoutOutcome CheckoutRemoteBranch(Repo repo, string localName, string remoteName, string remoteBranchName, bool track);
     DiffResult GetDiff(Repo repo, string path, DiffSide side);
 }
 
@@ -27,3 +29,5 @@ public sealed record PushStatus(
     bool IsDetached);
 
 public sealed record PushOutcome(bool Success, string? ErrorMessage);
+
+public sealed record CheckoutOutcome(bool Success, string? ErrorMessage);

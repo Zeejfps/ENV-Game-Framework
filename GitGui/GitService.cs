@@ -544,6 +544,63 @@ public sealed class GitService : IGitService
         }
     }
 
+    // Shells out so post-checkout hooks, LFS, and sparse-checkout filters all run; also
+    // surfaces the same error wording the user would see in Terminal.
+    public CheckoutOutcome CheckoutLocalBranch(Repo repo, string branchName)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new CheckoutOutcome(false, "Not a git repository.");
+
+            return RunGitCheckout(repo.Path, new[] { "checkout", branchName });
+        }
+        catch (Exception ex)
+        {
+            return new CheckoutOutcome(false, ex.Message);
+        }
+    }
+
+    public CheckoutOutcome CheckoutRemoteBranch(Repo repo, string localName, string remoteName, string remoteBranchName, bool track)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new CheckoutOutcome(false, "Not a git repository.");
+
+            var args = new List<string>
+            {
+                "checkout", "-b", localName,
+                track ? "--track" : "--no-track",
+                $"{remoteName}/{remoteBranchName}",
+            };
+            return RunGitCheckout(repo.Path, args);
+        }
+        catch (Exception ex)
+        {
+            return new CheckoutOutcome(false, ex.Message);
+        }
+    }
+
+    private static CheckoutOutcome RunGitCheckout(string repoPath, IReadOnlyList<string> gitArgs)
+    {
+        var psi = BuildGitProcessStartInfo(gitArgs, repoPath);
+        using var proc = Process.Start(psi);
+        if (proc == null) return new CheckoutOutcome(false, "Failed to start git.");
+
+        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+        var stderrTask = proc.StandardError.ReadToEndAsync();
+        proc.WaitForExit();
+        var stderr = stderrTask.GetAwaiter().GetResult();
+        var stdout = stdoutTask.GetAwaiter().GetResult();
+
+        if (proc.ExitCode == 0) return new CheckoutOutcome(true, null);
+        var combined = stderr.Length > 0 ? stderr : stdout;
+        var msg = FirstMeaningfulLine(combined);
+        if (string.IsNullOrEmpty(msg)) msg = $"git checkout exited with code {proc.ExitCode}.";
+        return new CheckoutOutcome(false, msg);
+    }
+
     // On macOS, GUI apps launched outside a terminal (Finder, IDE, Launch Services)
     // don't inherit the user's interactive-shell environment. Anything set up in
     // .zshrc / .bashrc — 1Password's SSH_AUTH_SOCK, manually-started ssh-agent, the
@@ -581,6 +638,47 @@ public sealed class GitService : IGitService
 
         return psi;
     }
+
+    // Args-list variant for callers passing user-typed strings (e.g. a branch name from a
+    // dialog): each arg is shell-quoted on the macOS `sh -c` path so spaces or metacharacters
+    // can't break the command or inject extra ones.
+    private static ProcessStartInfo BuildGitProcessStartInfo(IReadOnlyList<string> gitArgs, string workingDir)
+    {
+        var psi = new ProcessStartInfo
+        {
+            WorkingDirectory = workingDir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        if (OperatingSystem.IsMacOS())
+        {
+            var shell = Environment.GetEnvironmentVariable("SHELL");
+            if (string.IsNullOrEmpty(shell)) shell = "/bin/zsh";
+            psi.FileName = shell;
+            psi.ArgumentList.Add("-i");
+            psi.ArgumentList.Add("-c");
+            var sb = new System.Text.StringBuilder("git");
+            foreach (var a in gitArgs)
+            {
+                sb.Append(' ');
+                sb.Append(SingleQuoteShellArg(a));
+            }
+            psi.ArgumentList.Add(sb.ToString());
+        }
+        else
+        {
+            psi.FileName = "git";
+            foreach (var a in gitArgs) psi.ArgumentList.Add(a);
+        }
+
+        return psi;
+    }
+
+    private static string SingleQuoteShellArg(string s)
+        => "'" + s.Replace("'", "'\\''") + "'";
 
     // Pulls the most relevant single line out of a git error blob — typically the
     // "fatal: …" / "error: …" / "hint: …" line near the end.
