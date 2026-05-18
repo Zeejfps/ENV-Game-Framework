@@ -1,7 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
-using ZGF.KeyboardModule;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -11,7 +10,7 @@ namespace GitGui;
 /// branch. Lets them pick the local branch name and whether to set up tracking, then
 /// runs `git checkout -b <local> [--track|--no-track] <remote>/<branch>`.
 /// </summary>
-public sealed class CheckoutBranchDialog : MultiChildView
+public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
 {
     private const float CloseButtonSize = 28f;
 
@@ -23,12 +22,8 @@ public sealed class CheckoutBranchDialog : MultiChildView
     private readonly TextInputView _nameInput;
     private readonly CheckboxView _trackCheckbox;
     private readonly DialogButton _checkoutButton;
-    private readonly CheckoutDialogKbmController _inputController;
 
-    private IGitService? _gitService;
-    private IUiDispatcher? _dispatcher;
-    private IMessageBus? _bus;
-    private bool _isCheckingOut;
+    private CheckoutBranchPresenter? _presenter;
 
     public CheckoutBranchDialog(
         Repo repo,
@@ -86,10 +81,6 @@ public sealed class CheckoutBranchDialog : MultiChildView
             SelectionRectColor = DialogPalette.RowActive,
             TextWrap = TextWrap.NoWrap,
         };
-        // Pre-fill + select-all is deferred to OnAttachedToContext: doing it in the
-        // constructor before the input is attached to a context produced an empty-looking
-        // field (the buffer wrote OK, but StartEditing/StealFocus hadn't run yet so the
-        // caret/selection visuals were stale and typing didn't engage).
 
         var nameBox = new RectView
         {
@@ -105,19 +96,20 @@ public sealed class CheckoutBranchDialog : MultiChildView
         _trackCheckbox = new CheckboxView("Track this remote branch")
         {
             PreferredHeight = 22,
+            IsChecked =
+            {
+                Value = true
+            }
         };
-        _trackCheckbox.IsChecked.Value = true;
 
         var cancelButton = new DialogButton("Cancel", onClose)
         {
             PreferredHeight = 32,
         };
-        _checkoutButton = new DialogButton("Checkout", TryCheckout)
+        _checkoutButton = new DialogButton("Checkout", OnCheckoutClicked)
         {
             PreferredHeight = 32,
         };
-        _checkoutButton.IsEnabled.Value = suggestedLocalName.Length > 0;
-        _nameInput.TextChanged += UpdateCheckoutEnabled;
 
         var buttonsRow = new FlexRowView
         {
@@ -166,108 +158,55 @@ public sealed class CheckoutBranchDialog : MultiChildView
         // BaseTextInputKbmController.OnMouseButtonStateChanged consumes left-press events
         // anywhere inside the view it's attached to, so putting it on the dialog would
         // swallow clicks meant for the Cancel/Checkout buttons.
-        _inputController = new CheckoutDialogKbmController(_nameInput, TryCheckout, onClose);
-        _nameInput.Behaviors.Add(_inputController);
+        var inputController = new CheckoutDialogKbmController(_nameInput, OnCheckoutClicked, onClose);
+        _nameInput.Behaviors.Add(inputController);
     }
 
     protected override void OnAttachedToContext(Context context)
     {
-        _gitService = context.Get<IGitService>();
-        _dispatcher = context.Get<IUiDispatcher>();
-        _bus = context.Get<IMessageBus>();
+        var gitService = context.Get<IGitService>()
+            ?? throw new InvalidOperationException("IGitService not registered in Context.");
+        var dispatcher = context.Get<IUiDispatcher>()
+            ?? throw new InvalidOperationException("IUiDispatcher not registered in Context.");
+        var bus = context.Get<IMessageBus>()
+            ?? throw new InvalidOperationException("IMessageBus not registered in Context.");
 
-        if (_suggestedLocalName.Length > 0)
-            _nameInput.Enter(_suggestedLocalName);
-        _nameInput.SelectAll();
-        _nameInput.StartEditing();
+        _presenter = new CheckoutBranchPresenter(
+            this,
+            new CheckoutRequest(_repo, _remoteName, _remoteBranchName, _suggestedLocalName),
+            gitService,
+            dispatcher,
+            bus);
     }
 
     protected override void OnDetachedFromContext(Context context)
     {
-        _gitService = null;
-        _dispatcher = null;
-        _bus = null;
+        _presenter?.Dispose();
+        _presenter = null;
     }
 
-    private void UpdateCheckoutEnabled()
+    private void OnCheckoutClicked() => _presenter?.TryCheckout();
+
+    string ICheckoutBranchView.Name => new string(_nameInput.Text);
+    bool ICheckoutBranchView.Track => _trackCheckbox.IsChecked.Value;
+    bool ICheckoutBranchView.CheckoutEnabled
     {
-        if (_isCheckingOut) return;
-        _checkoutButton.IsEnabled.Value = _nameInput.Text.Length > 0;
+        set => _checkoutButton.IsEnabled.Value = value;
     }
-
-    private void TryCheckout()
+    event Action ICheckoutBranchView.NameChanged
     {
-        if (_isCheckingOut) return;
-        var localName = new string(_nameInput.Text);
-        if (localName.Length == 0) return;
-
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        if (service == null || dispatcher == null || bus == null) return;
-
-        _isCheckingOut = true;
-        _checkoutButton.IsEnabled.Value = false;
-
-        var repo = _repo;
-        var remoteName = _remoteName;
-        var remoteBranchName = _remoteBranchName;
-        var track = _trackCheckbox.IsChecked.Value;
-
-        Task.Run(() =>
-        {
-            CheckoutOutcome outcome;
-            try
-            {
-                outcome = service.CheckoutRemoteBranch(repo, localName, remoteName, remoteBranchName, track);
-            }
-            catch (Exception ex)
-            {
-                outcome = new CheckoutOutcome(false, ex.Message);
-            }
-
-            dispatcher.Post(() =>
-            {
-                _isCheckingOut = false;
-                // Close before broadcasting: the error broadcast triggers OverlayView to
-                // swap in CheckoutErrorDialog, and a stale _onClose() afterwards would
-                // remove the brand-new error dialog instead of this one.
-                _onClose();
-                if (outcome.Success)
-                    bus.Broadcast(new RefsChangedMessage(repo.Id));
-                else
-                    bus.Broadcast(new ShowCheckoutErrorMessage(
-                        outcome.ErrorMessage ?? "Checkout failed."));
-            });
-        });
+        add => _nameInput.TextChanged += value;
+        remove => _nameInput.TextChanged -= value;
     }
-}
-
-internal sealed class CheckoutDialogKbmController : BaseTextInputKbmController
-{
-    private readonly Action _onSubmit;
-    private readonly Action _onCancel;
-
-    public CheckoutDialogKbmController(TextInputView input, Action onSubmit, Action onCancel) : base(input)
+    void ICheckoutBranchView.FocusName(string initialText)
     {
-        _onSubmit = onSubmit;
-        _onCancel = onCancel;
+        // Must run after the input is attached to a context — doing it earlier produced an
+        // empty-looking field (buffer wrote OK, but StartEditing/StealFocus hadn't run yet
+        // so caret/selection visuals were stale and typing didn't engage).
+        if (initialText.Length > 0)
+            _nameInput.Enter(initialText);
+        _nameInput.SelectAll();
+        _nameInput.StartEditing();
     }
-
-    protected override void OnKeyboardKeyPressed(ref KeyboardKeyEvent e)
-    {
-        if (e.Key == KeyboardKey.Enter || e.Key == KeyboardKey.NumpadEnter)
-        {
-            e.Consume();
-            _onSubmit();
-            return;
-        }
-        if (e.Key == KeyboardKey.Escape)
-        {
-            e.Consume();
-            _onCancel();
-            return;
-        }
-        base.OnKeyboardKeyPressed(ref e);
-    }
+    void ICheckoutBranchView.Close() => _onClose();
 }

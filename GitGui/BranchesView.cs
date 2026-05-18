@@ -654,7 +654,9 @@ public sealed class BranchesView : MultiChildView
                 // entry.Name for remote branches is already stripped of the remote prefix
                 // (see GitService.GetBranches), so it's the suggested local name as-is.
                 if (LocalBranchExists(row.FullPath))
+                {
                     StartCheckoutLocal(row.FullPath);
+                }
                 else
                 {
                     var repo = _registry?.Active.Value;
