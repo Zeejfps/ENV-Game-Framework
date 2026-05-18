@@ -58,13 +58,13 @@ public sealed class RepoBar : MultiChildView
 
     private static IReadOnlyList<RepoBarContextMenu.Item> BuildBackgroundMenuItems(IRepoRegistry registry)
     {
-        return new[]
-        {
+        return
+        [
             new RepoBarContextMenu.Item("New group", () =>
             {
                 var id = registry.CreateGroup("New Group");
                 registry.BeginRenameGroup(id);
-            }),
-        };
+            })
+        ];
     }
 }

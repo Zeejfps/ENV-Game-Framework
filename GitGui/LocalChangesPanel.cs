@@ -15,6 +15,7 @@ internal sealed class LocalChangesPanel : MultiChildView
     private readonly TextView _emptyPlaceholder;
     private readonly ScrollPane _scrollPane;
     private readonly VerticalScrollBarView _scrollBar;
+    private readonly HorizontalScrollBarView _hScrollBar;
     private readonly State<HashSet<string>> _selection = new(new HashSet<string>());
     private IReadOnlyList<FileChange> _files = Array.Empty<FileChange>();
     private string? _anchorPath;
@@ -84,6 +85,7 @@ internal sealed class LocalChangesPanel : MultiChildView
         _scrollPane.Behaviors.Add(new ScrollPaneWheelController(_scrollPane));
 
         _scrollBar = ScrollBarStyles.CreateVertical();
+        _hScrollBar = ScrollBarStyles.CreateHorizontal();
 
         // _scrollPane already carries ScrollPaneWheelController, and the InputSystem
         // only allows one controller per view — so the deselect-on-empty-click handler
@@ -103,9 +105,10 @@ internal sealed class LocalChangesPanel : MultiChildView
             North = headerBar,
             Center = center,
             East = _scrollBar,
+            South = _hScrollBar,
         });
 
-        Behaviors.Add(new LocalChangesScrollSyncController(_scrollPane, _scrollBar));
+        Behaviors.Add(new LocalChangesScrollSyncController(_scrollPane, _scrollBar, _hScrollBar));
     }
 
     public void SetFiles(IReadOnlyList<FileChange> files)
