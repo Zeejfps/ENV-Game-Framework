@@ -6,8 +6,6 @@ public sealed class MessageBus : IMessageBus
 
     public void Broadcast<T>(T message = default) where T : struct
     {
-        Console.WriteLine($"Broadcasting {typeof(T)}");
-
         if (!_handlers.TryGetValue(typeof(T), out var list)) return;
 
         var snapshot = list.ToArray();
