@@ -36,27 +36,10 @@ internal static class CommitDetailsPalette
     }
 }
 
-internal abstract record CommitDetailsViewModel
-{
-    public sealed record Placeholder(string Text) : CommitDetailsViewModel;
-    public sealed record Loaded(CommitDetails Details) : CommitDetailsViewModel;
-}
-
-public sealed class CommitDetailsView : MultiChildView
+public sealed class CommitDetailsView : MultiChildView, ICommitDetailsView
 {
     private const int Padding = 14;
     private const float AvatarSize = 36f;
-
-    private IMessageBus? _bus;
-    private IGitService? _gitService;
-    private IRepoRegistry? _registry;
-    private IUiDispatcher? _dispatcher;
-    private readonly SubscriptionGroup _subscriptions = new();
-
-    private readonly State<CommitDetailsViewModel> _viewModel = new(
-        new CommitDetailsViewModel.Placeholder("Select a commit to view details."));
-
-    private readonly GenerationGuard _loadGen = new();
 
     private readonly ColumnView _content;
     private readonly ScrollPane _scrollPane;
@@ -96,87 +79,16 @@ public sealed class CommitDetailsView : MultiChildView
         });
 
         Behaviors.Add(new CommitDetailsScrollSyncController(_scrollPane, _vScrollBar, _hScrollBar));
+
+        this.UsePresenter(ctx => new CommitDetailsPresenter(
+            this,
+            ctx.Require<IGitService>(),
+            ctx.Require<IRepoRegistry>(),
+            ctx.Require<IUiDispatcher>(),
+            ctx.Require<IMessageBus>()));
     }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        _bus = context.Get<IMessageBus>();
-        _gitService = context.Get<IGitService>();
-        _registry = context.Get<IRepoRegistry>();
-        _dispatcher = context.Get<IUiDispatcher>();
-        _subscriptions.Add(_viewModel.Subscribe(Render));
-        _subscriptions.Add(_bus?.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected));
-    }
-
-    protected override void OnDetachedFromContext(Context context)
-    {
-        _loadGen.Bump();
-        _subscriptions.Dispose();
-        _bus = null;
-        _gitService = null;
-        _registry = null;
-        _dispatcher = null;
-    }
-
-    private void OnCommitSelected(CommitSelectedMessage msg)
-    {
-        if (string.IsNullOrEmpty(msg.Sha))
-        {
-            _loadGen.Bump();
-            _viewModel.Value = new CommitDetailsViewModel.Placeholder("Select a commit to view details.");
-            return;
-        }
-        StartLoad(msg.RepoId, msg.Sha);
-    }
-
-    private void StartLoad(Guid repoId, string sha)
-    {
-        if (_gitService == null || _registry == null) return;
-        var repo = _registry.Active.Value;
-        if (repo == null || repo.Id != repoId) return;
-
-        var gen = _loadGen.Bump();
-        _viewModel.Value = new CommitDetailsViewModel.Placeholder("Loading…");
-
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        Task.Run(() =>
-        {
-            CommitDetailsViewModel result;
-            try
-            {
-                var details = service.LoadDetails(repo, sha);
-                result = details.ErrorMessage != null
-                    ? new CommitDetailsViewModel.Placeholder(details.ErrorMessage)
-                    : new CommitDetailsViewModel.Loaded(details);
-            }
-            catch (Exception ex)
-            {
-                result = new CommitDetailsViewModel.Placeholder(ex.Message);
-            }
-
-            dispatcher?.Post(() =>
-            {
-                if (_loadGen.IsStale(gen)) return;
-                _viewModel.Value = result;
-            });
-        });
-    }
-
-    private void Render(CommitDetailsViewModel vm)
-    {
-        switch (vm)
-        {
-            case CommitDetailsViewModel.Placeholder p:
-                ShowPlaceholder(p.Text);
-                break;
-            case CommitDetailsViewModel.Loaded l:
-                ShowDetails(l.Details);
-                break;
-        }
-    }
-
-    private void ShowPlaceholder(string text)
+    public void ShowPlaceholder(string text)
     {
         _content.Children.Clear();
         _content.Children.Add(new TextView
@@ -188,7 +100,7 @@ public sealed class CommitDetailsView : MultiChildView
         _scrollPane.ScrollToOrigin();
     }
 
-    private void ShowDetails(CommitDetails d)
+    public void ShowDetails(CommitDetails d)
     {
         _content.Children.Clear();
 
