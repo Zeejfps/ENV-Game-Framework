@@ -16,6 +16,9 @@ public sealed class CheckoutErrorDialog : MultiChildView
 
     public CheckoutErrorDialog(string message, Action onClose)
     {
+        PreferredWidth = 460;
+        PreferredHeight = 220;
+        
         var title = new TextView
         {
             Text = "Checkout failed",
@@ -97,11 +100,6 @@ internal sealed class ErrorDialogKbmController : KeyboardMouseController
     public ErrorDialogKbmController(Action onClose)
     {
         _onClose = onClose;
-    }
-
-    protected override void OnAttachedToContext(View view, Context context)
-    {
-        context.StealFocus(this);
     }
 
     public override void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)

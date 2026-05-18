@@ -37,6 +37,9 @@ public sealed class CheckoutBranchDialog : MultiChildView
         string suggestedLocalName,
         Action onClose)
     {
+        PreferredWidth = 420f;
+        PreferredHeight = 280f;
+        
         _repo = repo;
         _remoteName = remoteName;
         _remoteBranchName = remoteBranchName;
@@ -173,13 +176,10 @@ public sealed class CheckoutBranchDialog : MultiChildView
         _dispatcher = context.Get<IUiDispatcher>();
         _bus = context.Get<IMessageBus>();
 
-        // Auto-focus and pre-fill happen here (not in the constructor) so the input is
-        // fully attached when we wire up its editing state.
         if (_suggestedLocalName.Length > 0)
             _nameInput.Enter(_suggestedLocalName.AsSpan());
         _nameInput.SelectAll();
         _nameInput.StartEditing();
-        context.StealFocus(_inputController);
     }
 
     protected override void OnDetachedFromContext(Context context)

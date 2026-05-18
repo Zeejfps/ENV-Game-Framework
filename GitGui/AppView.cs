@@ -1,5 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
+using ZGF.Gui.Tests;
 
 namespace GitGui;
 
@@ -25,6 +26,6 @@ public sealed class AppView : MultiChildView
             },
         });
         Children.Add(new DragOverlay());
-        Children.Add(new OverlayView());
+        Behaviors.Add(new DialogPresenter(this));
     }
 }

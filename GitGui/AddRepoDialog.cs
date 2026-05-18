@@ -9,6 +9,9 @@ public sealed class AddRepoDialog : MultiChildView
 
     public AddRepoDialog(Action onClose)
     {
+        PreferredWidth = 360;
+        PreferredHeight = 230;
+        
         var title = new TextView
         {
             Text = "Add Repository",
