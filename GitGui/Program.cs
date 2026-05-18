@@ -29,7 +29,7 @@ var appHost = GuiApp.CreateDefault(new StartupConfig
 {
     WindowTitle = "GitGui",
     WindowWidth = 1400,
-    WindowHeight = 720,
+    WindowHeight = 1280,
     IsUndecorated = false
 }, context, appView);
 
