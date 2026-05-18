@@ -53,9 +53,8 @@ public sealed class MainContentView : MultiChildView
         var pos = Position;
         _active.LeftConstraint = pos.Left;
         _active.BottomConstraint = pos.Bottom;
-        _active.MinWidthConstraint = pos.Width;
-        _active.MaxWidthConstraint = pos.Width;
-        _active.MaxHeightConstraint = pos.Height;
+        _active.WidthConstraint = pos.Width;
+        _active.HeightConstraint = pos.Height;
         _active.LayoutSelf();
     }
 }

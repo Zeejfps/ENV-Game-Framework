@@ -48,16 +48,14 @@ internal sealed class ResizableLeftSidebar : MultiChildView
 
         _content.LeftConstraint = pos.Left;
         _content.BottomConstraint = pos.Bottom;
-        _content.MinWidthConstraint = contentWidth;
-        _content.MaxWidthConstraint = contentWidth;
-        _content.MaxHeightConstraint = pos.Height;
+        _content.WidthConstraint = contentWidth;
+        _content.HeightConstraint = pos.Height;
         _content.LayoutSelf();
 
         _splitter.LeftConstraint = pos.Left + contentWidth;
         _splitter.BottomConstraint = pos.Bottom;
-        _splitter.MinWidthConstraint = SplitterThickness;
-        _splitter.MaxWidthConstraint = SplitterThickness;
-        _splitter.MaxHeightConstraint = pos.Height;
+        _splitter.WidthConstraint = SplitterThickness;
+        _splitter.HeightConstraint = pos.Height;
         _splitter.LayoutSelf();
     }
 

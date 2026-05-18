@@ -85,9 +85,8 @@ internal sealed class VerticalSplitContainer : MultiChildView
     {
         child.LeftConstraint = left;
         child.BottomConstraint = bottom;
-        child.MinWidthConstraint = width;
-        child.MaxWidthConstraint = width;
-        child.MaxHeightConstraint = height;
+        child.WidthConstraint = width;
+        child.HeightConstraint = height;
         child.LayoutSelf();
     }
 }

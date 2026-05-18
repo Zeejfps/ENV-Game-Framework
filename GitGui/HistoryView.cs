@@ -44,17 +44,15 @@ public sealed class HistoryView : MultiChildView
 
         _commits.LeftConstraint = pos.Left;
         _commits.BottomConstraint = pos.Bottom;
-        _commits.MinWidthConstraint = centerWidth;
-        _commits.MaxWidthConstraint = centerWidth;
-        _commits.MaxHeightConstraint = pos.Height;
+        _commits.WidthConstraint = centerWidth;
+        _commits.HeightConstraint = pos.Height;
         _commits.LayoutSelf();
 
         _details.LeftConstraint = pos.Right - detailsWidth;
         _details.BottomConstraint = pos.Bottom;
         _details.PreferredWidth = detailsWidth;
-        _details.MinWidthConstraint = detailsWidth;
-        _details.MaxWidthConstraint = detailsWidth;
-        _details.MaxHeightConstraint = pos.Height;
+        _details.WidthConstraint = detailsWidth;
+        _details.HeightConstraint = pos.Height;
         _details.LayoutSelf();
     }
 

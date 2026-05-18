@@ -42,9 +42,8 @@ internal sealed class TransferListRow : MultiChildView
     {
         child.LeftConstraint = left;
         child.BottomConstraint = parent.Bottom;
-        child.MinWidthConstraint = width;
-        child.MaxWidthConstraint = width;
-        child.MaxHeightConstraint = parent.Height;
+        child.WidthConstraint = width;
+        child.HeightConstraint = parent.Height;
         child.LayoutSelf();
     }
 }

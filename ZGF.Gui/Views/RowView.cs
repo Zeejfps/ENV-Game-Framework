@@ -24,7 +24,7 @@ public sealed class RowView : MultiChildView
         {
             component.LeftConstraint = left;
             component.BottomConstraint = position.Bottom;
-            component.MaxHeightConstraint = position.Height;
+            component.HeightConstraint = position.Height;
             component.LayoutSelf();
             left += component.MeasureWidth() + Gap;
         }

@@ -17,8 +17,8 @@ public sealed class CenterView : MultiChildView
 
             child.LeftConstraint = position.Left + (position.Width - childWidth) / 2f;
             child.BottomConstraint = position.Bottom + (position.Height - childHeight) / 2f;
-            child.MaxWidthConstraint = childWidth;
-            child.MaxHeightConstraint = childHeight;
+            child.WidthConstraint = childWidth;
+            child.HeightConstraint = childHeight;
             child.LayoutSelf();
         }
     }

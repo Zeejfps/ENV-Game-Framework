@@ -54,9 +54,8 @@ public sealed class DragOverlay : MultiChildView
         var bounds = target.IndicatorBounds;
         _indicator.LeftConstraint = bounds.Left;
         _indicator.BottomConstraint = bounds.Bottom;
-        _indicator.MinWidthConstraint = bounds.Width;
-        _indicator.MaxWidthConstraint = bounds.Width;
-        _indicator.MaxHeightConstraint = bounds.Height;
+        _indicator.WidthConstraint = bounds.Width;
+        _indicator.HeightConstraint = bounds.Height;
         _indicator.LayoutSelf();
     }
 }

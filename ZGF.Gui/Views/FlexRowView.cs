@@ -156,9 +156,8 @@ public sealed class FlexRowView : MultiChildView
 
             child.LeftConstraint = currentLeft;
             child.BottomConstraint = childBottom;
-            child.MinWidthConstraint = finalChildWidth;
-            child.MaxWidthConstraint = finalChildWidth;
-            child.MaxHeightConstraint = finalChildHeight;
+            child.WidthConstraint = finalChildWidth;
+            child.HeightConstraint = finalChildHeight;
             child.LayoutSelf();
             
             currentLeft += finalChildWidth + Gap + interItemSpacing;

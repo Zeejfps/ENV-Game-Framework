@@ -98,7 +98,7 @@ public sealed class VerticalScrollBarThumbView : MultiChildView
 
     protected override void OnLayoutSelf()
     {
-        var height = MaxHeightConstraint * Scale;
+        var height = HeightConstraint * Scale;
         
         _maxDistanceToTop = (int)(TopConstraint - height - BottomConstraint);
 
@@ -116,7 +116,7 @@ public sealed class VerticalScrollBarThumbView : MultiChildView
         {
             Left = LeftConstraint,
             Bottom = bottom,
-            Width = MinWidthConstraint,
+            Width = WidthConstraint,
             Height = height,
         };
 
@@ -141,7 +141,7 @@ public sealed class VerticalScrollBarThumbView : MultiChildView
 
     public void ScrollToPoint(PointF point)
     {
-        var height = MaxHeightConstraint * Scale;
+        var height = HeightConstraint * Scale;
         var halfHeight = height * 0.5f;
         DistanceToTop = TopConstraint - point.Y - halfHeight;
     }

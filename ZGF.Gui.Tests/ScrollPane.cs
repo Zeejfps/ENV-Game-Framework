@@ -50,8 +50,7 @@ public sealed class ScrollPane : MultiChildView
         // Set width before measuring height so height-for-width children behave (irrelevant
         // for non-wrapping text but cheap to do correctly).
         child.LeftConstraint = position.Left - _distanceFromLeft;
-        child.MinWidthConstraint = contentWidth;
-        child.MaxWidthConstraint = contentWidth;
+        child.WidthConstraint = contentWidth;
 
         var naturalHeight = child.MeasureHeight();
         var contentHeight = Math.Max(position.Height, naturalHeight);
@@ -59,7 +58,7 @@ public sealed class ScrollPane : MultiChildView
         // Bottom: positioned so the top edge of content sits at viewport.Top + distanceFromTop.
         // Increasing distanceFromTop pushes content up out of the viewport, revealing what's below.
         child.BottomConstraint = position.Top + _distanceFromTop - contentHeight;
-        child.MaxHeightConstraint = contentHeight;
+        child.HeightConstraint = contentHeight;
         child.LayoutSelf();
     }
 

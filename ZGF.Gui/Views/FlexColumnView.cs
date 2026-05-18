@@ -56,8 +56,7 @@ public sealed class FlexColumnView : MultiChildView
             var grow = child is FlexItem item ? (float)item.Grow : 0f;
             if (stretchWidth > 0f)
             {
-                child.MinWidthConstraint = stretchWidth;
-                child.MaxWidthConstraint = stretchWidth;
+                child.WidthConstraint = stretchWidth;
             }
             totalChildrenInitialHeight += child.MeasureHeight();
             totalFlexGrow += grow;
@@ -139,9 +138,8 @@ public sealed class FlexColumnView : MultiChildView
 
             child.LeftConstraint = childLeft;
             child.BottomConstraint = currentTop - finalChildHeight;
-            child.MinWidthConstraint = finalChildWidth;
-            child.MaxWidthConstraint = finalChildWidth;
-            child.MaxHeightConstraint = finalChildHeight;
+            child.WidthConstraint = finalChildWidth;
+            child.HeightConstraint = finalChildHeight;
             child.LayoutSelf();
 
             currentTop -= finalChildHeight + Gap + interItemSpacing;

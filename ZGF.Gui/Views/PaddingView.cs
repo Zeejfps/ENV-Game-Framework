@@ -41,9 +41,8 @@ public sealed class PaddingView : MultiChildView
         {
             child.LeftConstraint = left;
             child.BottomConstraint = bottom;
-            child.MinWidthConstraint = right - left;
-            child.MaxWidthConstraint = right - left;
-            child.MaxHeightConstraint = top - bottom;
+            child.WidthConstraint = right - left;
+            child.HeightConstraint = top - bottom;
             child.LayoutSelf();
         }
     }

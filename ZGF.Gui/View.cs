@@ -56,33 +56,21 @@ public abstract class View
         get;
         set => SetField(ref field, value);
     }
-
-    public StyleValue<float> MinWidthConstraint
-    {
-        get;
-        set => SetField(ref field, value);
-    }
-
-    public StyleValue<float> MaxWidthConstraint
-    {
-        get;
-        set => SetField(ref field, value);
-    }
-
-    public StyleValue<float> MaxHeightConstraint
-    {
-        get;
-        set => SetField(ref field, value);
-    }
     
-    public StyleValue<float> MinHeightConstraint
+    public StyleValue<float> WidthConstraint
     {
         get;
         set => SetField(ref field, value);
     }
 
-    public StyleValue<float> RightConstraint => LeftConstraint + MaxWidthConstraint;
-    public StyleValue<float> TopConstraint => BottomConstraint + MaxHeightConstraint;
+    public StyleValue<float> HeightConstraint
+    {
+        get;
+        set => SetField(ref field, value);
+    }
+
+    public StyleValue<float> RightConstraint => LeftConstraint + WidthConstraint;
+    public StyleValue<float> TopConstraint => BottomConstraint + HeightConstraint;
 
     public StyleValue<float> PreferredWidth
     {
@@ -424,32 +412,32 @@ public abstract class View
 
     protected virtual void OnLayoutSelf()
     {
-        var width = MeasureWidth();
-        if (!PreferredWidth.IsSet && MaxWidthConstraint.IsSet)
+        float width;
+        if (PreferredWidth.IsSet)
         {
-            width = MaxWidthConstraint;
+            width = PreferredWidth;
         }
-        if (MinWidthConstraint.IsSet && width < MinWidthConstraint)
+        else if (WidthConstraint.IsSet)
         {
-            width = MinWidthConstraint;
+            width = WidthConstraint;
         }
-        else if (MaxWidthConstraint.IsSet && width > MaxWidthConstraint)
+        else
         {
-            width = MaxWidthConstraint;
+            width = MeasureWidth();
         }
 
-        var height = MeasureHeight();
-        if (!PreferredHeight.IsSet && MaxHeightConstraint.IsSet)
+        float height;
+        if (PreferredHeight.IsSet)
         {
-            height = MaxHeightConstraint;
+            height = PreferredHeight;
         }
-        if (MinHeightConstraint.IsSet && height < MinHeightConstraint)
+        else if (HeightConstraint.IsSet)
         {
-            height = MinHeightConstraint;
+            height = HeightConstraint;
         }
-        else if (MaxHeightConstraint.IsSet && height > MaxHeightConstraint)
+        else
         {
-            height = MaxHeightConstraint;
+            height = MeasureHeight();
         }
         
         Position = new RectF
@@ -668,10 +656,8 @@ public abstract class View
     {
         child.LeftConstraint = position.Left;
         child.BottomConstraint = position.Bottom;
-        child.MinWidthConstraint = position.Width;
-        child.MaxWidthConstraint = position.Width;
-        child.MinHeightConstraint = position.Height;
-        child.MaxHeightConstraint = position.Height;
+        child.WidthConstraint = position.Width;
+        child.HeightConstraint = position.Height;
         child.LayoutSelf();
     }
 

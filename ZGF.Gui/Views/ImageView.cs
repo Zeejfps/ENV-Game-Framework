@@ -31,7 +31,7 @@ public sealed class ImageView : MultiChildView
         if (ImageId != null && Context != null)
             return Context.Canvas.GetImageWidth(ImageId);
 
-        return MinWidthConstraint;
+        return WidthConstraint;
     }
 
     public override float MeasureHeight()
@@ -42,7 +42,7 @@ public sealed class ImageView : MultiChildView
         if (ImageId != null && Context != null)
             return Context.Canvas.GetImageHeight(ImageId);
 
-        return MaxHeightConstraint;
+        return HeightConstraint;
     }
 
     protected override void OnDrawSelf(ICanvas c)

@@ -32,8 +32,7 @@ public sealed class VerticalScrollPane : MultiChildView
         var childHeight = child.MeasureHeight();
         child.BottomConstraint = position.Top + _distanceFromTop - childHeight;
         child.LeftConstraint = position.Left;            
-        child.MinWidthConstraint = position.Width;
-        child.MaxWidthConstraint = position.Width;
+        child.WidthConstraint = position.Width;
         child.LayoutSelf();
     }
 

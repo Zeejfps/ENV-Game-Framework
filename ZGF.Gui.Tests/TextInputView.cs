@@ -224,7 +224,7 @@ public sealed class TextInputView : MultiChildView
 
     private float ResolveWrapWidth()
     {
-        if (MaxWidthConstraint.IsSet) return MaxWidthConstraint.Value;
+        if (WidthConstraint.IsSet) return WidthConstraint.Value;
         if (PreferredWidth.IsSet) return PreferredWidth.Value;
         return MeasureWidth();
     }

@@ -98,9 +98,9 @@ public sealed class HorizontalScrollBarThumbView : MultiChildView
 
     protected override void OnLayoutSelf()
     {
-        var width = MaxWidthConstraint * Scale;
+        var width = WidthConstraint * Scale;
 
-        _maxDistanceToLeft = (int)(MaxWidthConstraint - width);
+        _maxDistanceToLeft = (int)(WidthConstraint - width);
 
         if (_distanceToLeft < 0)
         {
@@ -117,7 +117,7 @@ public sealed class HorizontalScrollBarThumbView : MultiChildView
             Left = left,
             Bottom = BottomConstraint,
             Width = width,
-            Height = MaxHeightConstraint,
+            Height = HeightConstraint,
         };
 
         var scrollPositionNormalized = _maxDistanceToLeft > 0 ? _distanceToLeft / _maxDistanceToLeft : 0f;
@@ -141,7 +141,7 @@ public sealed class HorizontalScrollBarThumbView : MultiChildView
 
     public void ScrollToPoint(PointF point)
     {
-        var width = MaxWidthConstraint * Scale;
+        var width = WidthConstraint * Scale;
         var halfWidth = width * 0.5f;
         DistanceToLeft = point.X - LeftConstraint - halfWidth;
     }
