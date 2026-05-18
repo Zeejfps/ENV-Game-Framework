@@ -26,6 +26,7 @@ internal sealed class CheckoutBranchPresenter : IDisposable
         _bus = bus;
 
         _view.NameChanged += OnNameChanged;
+        _view.CheckoutRequested += TryCheckout;
         _view.CheckoutEnabled = request.SuggestedLocalName.Length > 0;
         _view.FocusName(request.SuggestedLocalName);
     }
@@ -33,6 +34,7 @@ internal sealed class CheckoutBranchPresenter : IDisposable
     public void Dispose()
     {
         _view.NameChanged -= OnNameChanged;
+        _view.CheckoutRequested -= TryCheckout;
     }
 
     private void OnNameChanged()
@@ -41,7 +43,7 @@ internal sealed class CheckoutBranchPresenter : IDisposable
         _view.CheckoutEnabled = _view.Name.Length > 0;
     }
 
-    public void TryCheckout()
+    private void TryCheckout()
     {
         if (_isCheckingOut) return;
         var localName = _view.Name;

@@ -17,4 +17,8 @@ public sealed class Context
             return service as T;
         return null;
     }
+
+    public T Require<T>() where T : class =>
+        Get<T>() ?? throw new InvalidOperationException(
+            $"{typeof(T).Name} not registered in Context.");
 }

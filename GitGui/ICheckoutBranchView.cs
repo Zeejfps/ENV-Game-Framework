@@ -6,6 +6,7 @@ public interface ICheckoutBranchView
     bool Track { get; }
     bool CheckoutEnabled { set; }
     event Action NameChanged;
+    event Action CheckoutRequested;
     void FocusName(string initialText);
     void Close();
 }

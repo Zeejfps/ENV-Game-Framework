@@ -14,16 +14,12 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
 {
     private const float CloseButtonSize = 28f;
 
-    private readonly Repo _repo;
-    private readonly string _remoteName;
-    private readonly string _remoteBranchName;
-    private readonly string _suggestedLocalName;
     private readonly Action _onClose;
     private readonly TextInputView _nameInput;
     private readonly CheckboxView _trackCheckbox;
     private readonly DialogButton _checkoutButton;
 
-    private CheckoutBranchPresenter? _presenter;
+    public event Action? CheckoutRequested;
 
     public CheckoutBranchDialog(
         Repo repo,
@@ -34,11 +30,7 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
     {
         PreferredWidth = 420f;
         PreferredHeight = 280f;
-        
-        _repo = repo;
-        _remoteName = remoteName;
-        _remoteBranchName = remoteBranchName;
-        _suggestedLocalName = suggestedLocalName;
+
         _onClose = onClose;
 
         var title = new TextView
@@ -106,7 +98,7 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
         {
             PreferredHeight = 32,
         };
-        _checkoutButton = new DialogButton("Checkout", OnCheckoutClicked)
+        _checkoutButton = new DialogButton("Checkout", RaiseCheckoutRequested)
         {
             PreferredHeight = 32,
         };
@@ -158,47 +150,31 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
         // BaseTextInputKbmController.OnMouseButtonStateChanged consumes left-press events
         // anywhere inside the view it's attached to, so putting it on the dialog would
         // swallow clicks meant for the Cancel/Checkout buttons.
-        var inputController = new CheckoutDialogKbmController(_nameInput, OnCheckoutClicked, onClose);
+        var inputController = new CheckoutDialogKbmController(_nameInput, RaiseCheckoutRequested, onClose);
         _nameInput.Behaviors.Add(inputController);
+
+        var request = new CheckoutRequest(repo, remoteName, remoteBranchName, suggestedLocalName);
+        this.UsePresenter(ctx => new CheckoutBranchPresenter(
+            this, request,
+            ctx.Require<IGitService>(),
+            ctx.Require<IUiDispatcher>(),
+            ctx.Require<IMessageBus>()));
     }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        var gitService = context.Get<IGitService>()
-            ?? throw new InvalidOperationException("IGitService not registered in Context.");
-        var dispatcher = context.Get<IUiDispatcher>()
-            ?? throw new InvalidOperationException("IUiDispatcher not registered in Context.");
-        var bus = context.Get<IMessageBus>()
-            ?? throw new InvalidOperationException("IMessageBus not registered in Context.");
+    private void RaiseCheckoutRequested() => CheckoutRequested?.Invoke();
 
-        _presenter = new CheckoutBranchPresenter(
-            this,
-            new CheckoutRequest(_repo, _remoteName, _remoteBranchName, _suggestedLocalName),
-            gitService,
-            dispatcher,
-            bus);
-    }
-
-    protected override void OnDetachedFromContext(Context context)
-    {
-        _presenter?.Dispose();
-        _presenter = null;
-    }
-
-    private void OnCheckoutClicked() => _presenter?.TryCheckout();
-
-    string ICheckoutBranchView.Name => new string(_nameInput.Text);
-    bool ICheckoutBranchView.Track => _trackCheckbox.IsChecked.Value;
-    bool ICheckoutBranchView.CheckoutEnabled
+    public string Name => new(_nameInput.Text);
+    public bool Track => _trackCheckbox.IsChecked.Value;
+    public bool CheckoutEnabled
     {
         set => _checkoutButton.IsEnabled.Value = value;
     }
-    event Action ICheckoutBranchView.NameChanged
+    public event Action NameChanged
     {
         add => _nameInput.TextChanged += value;
         remove => _nameInput.TextChanged -= value;
     }
-    void ICheckoutBranchView.FocusName(string initialText)
+    public void FocusName(string initialText)
     {
         // Must run after the input is attached to a context — doing it earlier produced an
         // empty-looking field (buffer wrote OK, but StartEditing/StealFocus hadn't run yet
@@ -208,5 +184,5 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
         _nameInput.SelectAll();
         _nameInput.StartEditing();
     }
-    void ICheckoutBranchView.Close() => _onClose();
+    public void Close() => _onClose();
 }
