@@ -217,7 +217,13 @@ public sealed class LocalChangesView : MultiChildView
                 // Keep the prior snapshot rendered on failure — losing the list on every
                 // transient error would erase the user's selection and context.
                 if (newSnap != null)
+                {
                     _viewModel.Value = new LocalChangesViewModel.Loaded(newSnap);
+                    // The operated-on rows just moved sides; re-select them on the
+                    // destination so the user keeps their place across a stage/unstage.
+                    var destPanel = isStage ? _stagedPanel : _unstagedPanel;
+                    destPanel.SetSelection(paths);
+                }
             });
         });
     }
@@ -255,7 +261,14 @@ public sealed class LocalChangesView : MultiChildView
                 if (gen != _loadGeneration) return;
                 ShowOpError(errorMsg);
                 if (newSnap != null)
+                {
                     _viewModel.Value = new LocalChangesViewModel.Loaded(newSnap);
+                    // Both batches land in unstaged after the reset/unstage.
+                    var combined = new List<string>(toUnstage.Count + toResetToParent.Count);
+                    combined.AddRange(toUnstage);
+                    combined.AddRange(toResetToParent);
+                    _unstagedPanel.SetSelection(combined);
+                }
             });
         });
     }
@@ -994,6 +1007,26 @@ internal sealed class LocalChangesPanel : MultiChildView
         _anchorPath = null;
         if (_selection.Value.Count == 0) return;
         _selection.Value = new HashSet<string>();
+    }
+
+    public void SetSelection(IReadOnlyCollection<string> paths)
+    {
+        if (paths.Count == 0) return;
+        var available = new HashSet<string>(_files.Count);
+        foreach (var f in _files) available.Add(f.Path);
+
+        HashSet<string>? next = null;
+        string? anchor = null;
+        foreach (var p in paths)
+        {
+            if (!available.Contains(p)) continue;
+            (next ??= new HashSet<string>()).Add(p);
+            anchor ??= p;
+        }
+        if (next == null) return;
+
+        _anchorPath = anchor;
+        _selection.Value = next;
     }
 
     private void HandleRowClick(string path, InputModifiers modifiers)
