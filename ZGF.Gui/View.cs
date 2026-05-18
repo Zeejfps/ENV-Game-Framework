@@ -693,8 +693,7 @@ public abstract class View
     }
 
 
-
-    public int GetDrawZIndex()
+    protected int GetDrawZIndex()
     {
         var parentZIndex = Parent?.GetDrawZIndex() ?? 0;
         return parentZIndex + ZIndex;
