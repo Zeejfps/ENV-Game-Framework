@@ -1,22 +1,14 @@
 ﻿using ZGF.Gui;
-using ZGF.Gui.Views;
 
 namespace GitGui;
 
 public sealed class DialogPresenter : IViewBehavior
 {
-    private readonly AppView _view;
-    private readonly MultiChildView _overlay;
+    private readonly DialogSurfaceView _dialogSurfaceView;
 
-    public DialogPresenter(AppView view)
+    public DialogPresenter(DialogSurfaceView dialogSurfaceView)
     {
-        _view = view;
-        
-        _overlay = new RectView
-        {
-            BackgroundColor = 0xB0000000,
-            ZIndex = 1000,
-        };
+        _dialogSurfaceView = dialogSurfaceView;
     }
 
     public void AttachToContext(View view, Context context)
@@ -43,19 +35,11 @@ public sealed class DialogPresenter : IViewBehavior
 
     private void ShowDialog(View dialog)
     {
-        _view.Children.Add(_overlay);
-        _overlay.Children.Add(new CenterView
-        {
-            Children =
-            {
-                dialog,
-            }
-        });
+        _dialogSurfaceView.ShowDialog(dialog);
     }
 
     private void OnDialogClosed()
     {
-        _overlay.Children.Clear();
-        _view.Children.Remove(_overlay);
+        _dialogSurfaceView.HideDialog();
     }
 }

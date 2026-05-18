@@ -26,6 +26,10 @@ public sealed class AppView : MultiChildView
             },
         });
         Children.Add(new DragOverlay());
-        Behaviors.Add(new DialogPresenter(this));
+
+        var dialogSurfaceView = new DialogSurfaceView();
+        Children.Add(dialogSurfaceView);
+        
+        Behaviors.Add(new DialogPresenter(dialogSurfaceView));
     }
 }
