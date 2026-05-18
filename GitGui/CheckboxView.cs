@@ -5,13 +5,11 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class CheckboxView : MultiChildView
+public sealed class CheckboxView : HoverableButton
 {
     private const float IconSize = 14f;
 
     public State<bool> IsChecked { get; } = new(false);
-    public State<bool> IsEnabled { get; } = new(true);
-    private State<bool> IsHovered { get; } = new(false);
 
     public CheckboxView(string label)
     {
@@ -31,17 +29,15 @@ public sealed class CheckboxView : MultiChildView
         };
         labelView.BindTextColor(ComputeForeground);
 
-        AddChildToSelf(new FlexRowView
+        SetBackground(new FlexRowView
         {
             Gap = 6f,
             CrossAxisAlignment = CrossAxisAlignment.Center,
             Children = { iconView, labelView },
         });
-
-        Behaviors.Add(new HoverableButtonController(
-            () => { if (IsEnabled.Value) IsChecked.Value = !IsChecked.Value; },
-            h => IsHovered.Value = h));
     }
+
+    protected override void OnClicked() => IsChecked.Value = !IsChecked.Value;
 
     private uint ComputeForeground()
     {

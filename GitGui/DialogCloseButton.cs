@@ -1,17 +1,14 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
-using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class DialogCloseButton : MultiChildView
+public sealed class DialogCloseButton : HoverableButton
 {
-    public DialogCloseButton(Action onClick)
+    public DialogCloseButton(Action onClick) : base(onClick)
     {
         PreferredWidth = 28;
         PreferredHeight = 28;
-
-        var isHovered = new State<bool>(false);
 
         var label = new TextView
         {
@@ -19,7 +16,7 @@ public sealed class DialogCloseButton : MultiChildView
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        label.BindTextColor(isHovered,
+        label.BindTextColor(IsHovered,
             h => h ? DialogPalette.CloseTextHover : DialogPalette.CloseTextNormal);
 
         var background = new RectView
@@ -27,13 +24,9 @@ public sealed class DialogCloseButton : MultiChildView
             BorderRadius = BorderRadiusStyle.All(4),
             Children = { label }
         };
-        background.BindBackgroundColor(isHovered,
+        background.BindBackgroundColor(IsHovered,
             h => h ? DialogPalette.CloseHover : DialogPalette.CloseNormal);
 
-        AddChildToSelf(background);
-
-        Behaviors.Add(new HoverableButtonController(
-            onClick,
-            h => isHovered.Value = h));
+        SetBackground(background);
     }
 }

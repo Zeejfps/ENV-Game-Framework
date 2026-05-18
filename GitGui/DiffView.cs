@@ -54,14 +54,14 @@ public sealed class DiffView : MultiChildView
     private IGitService? _gitService;
     private IRepoRegistry? _registry;
     private IUiDispatcher? _dispatcher;
-    private IDisposable? _vmSubscription;
+    private readonly SubscriptionGroup _subscriptions = new();
 
     private readonly State<DiffViewModel> _viewModel = new(
         new DiffViewModel.Placeholder("Select a file to view diff."));
 
     private string? _targetPath;
     private DiffSide _targetSide;
-    private int _loadGeneration;
+    private readonly GenerationGuard _loadGen = new();
 
     private readonly DiffContentView _content;
     private readonly VerticalScrollBarView _vScrollBar;
@@ -97,7 +97,7 @@ public sealed class DiffView : MultiChildView
         _gitService = context.Get<IGitService>();
         _registry = context.Get<IRepoRegistry>();
         _dispatcher = context.Get<IUiDispatcher>();
-        _vmSubscription = _viewModel.Subscribe(_content.SetViewModel);
+        _subscriptions.Add(_viewModel.Subscribe(_content.SetViewModel));
         // Services were unavailable on prior SetTarget calls (e.g. before first attach);
         // now that they're here, kick off the load for whatever the current target is.
         StartLoad();
@@ -105,8 +105,7 @@ public sealed class DiffView : MultiChildView
 
     protected override void OnDetachedFromContext(Context context)
     {
-        _vmSubscription?.Dispose();
-        _vmSubscription = null;
+        _subscriptions.Dispose();
         _gitService = null;
         _registry = null;
         _dispatcher = null;
@@ -123,7 +122,7 @@ public sealed class DiffView : MultiChildView
     {
         // Bumping unconditionally invalidates any in-flight load — whether we replace it
         // with a new one or fall back to a placeholder, the old result must not win.
-        _loadGeneration++;
+        var gen = _loadGen.Bump();
 
         if (_targetPath == null)
         {
@@ -135,7 +134,6 @@ public sealed class DiffView : MultiChildView
         var repo = _registry.Active.Value;
         if (repo == null) return;
 
-        var gen = _loadGeneration;
         var path = _targetPath;
         var side = _targetSide;
         _viewModel.Value = new DiffViewModel.Placeholder("Loading…");
@@ -157,7 +155,7 @@ public sealed class DiffView : MultiChildView
 
             dispatcher?.Post(() =>
             {
-                if (gen != _loadGeneration) return;
+                if (_loadGen.IsStale(gen)) return;
                 _viewModel.Value = result;
             });
         });
@@ -393,10 +391,8 @@ internal sealed class DiffContentView : View
 
     private void ClampScroll()
     {
-        var maxY = Math.Max(0f, ContentHeight() - Position.Height);
-        var maxX = Math.Max(0f, ContentWidth() - Position.Width);
-        if (_scrollY < 0) _scrollY = 0; else if (_scrollY > maxY) _scrollY = maxY;
-        if (_scrollX < 0) _scrollX = 0; else if (_scrollX > maxX) _scrollX = maxX;
+        _scrollY = ScrollMath.ClampScroll(_scrollY, ContentHeight(), Position.Height);
+        _scrollX = ScrollMath.ClampScroll(_scrollX, ContentWidth(), Position.Width);
     }
 
     private void EnsureMetrics(ICanvas c)
@@ -708,8 +704,6 @@ internal sealed class DiffContentViewController : KeyboardMouseController
 
 internal sealed class DiffContentScrollSyncController : KeyboardMouseController
 {
-    private const float ScrollBarThickness = 12f;
-
     private readonly DiffContentView _content;
     private readonly VerticalScrollBarView _vScrollBar;
     private readonly HorizontalScrollBarView _hScrollBar;
@@ -728,42 +722,21 @@ internal sealed class DiffContentScrollSyncController : KeyboardMouseController
     {
         _content.VerticalScrollPositionChanged += OnContentVerticalScroll;
         _content.HorizontalScrollPositionChanged += OnContentHorizontalScroll;
-        _vScrollBar.ScrollPositionChanged += OnVScrollBarScroll;
-        _hScrollBar.ScrollPositionChanged += OnHScrollBarScroll;
+        _vScrollBar.ScrollPositionChanged += _content.SetVerticalNormalizedScrollPosition;
+        _hScrollBar.ScrollPositionChanged += _content.SetHorizontalNormalizedScrollPosition;
     }
 
     protected override void OnDetachedFromContext(View view, Context context)
     {
         _content.VerticalScrollPositionChanged -= OnContentVerticalScroll;
         _content.HorizontalScrollPositionChanged -= OnContentHorizontalScroll;
-        _vScrollBar.ScrollPositionChanged -= OnVScrollBarScroll;
-        _hScrollBar.ScrollPositionChanged -= OnHScrollBarScroll;
+        _vScrollBar.ScrollPositionChanged -= _content.SetVerticalNormalizedScrollPosition;
+        _hScrollBar.ScrollPositionChanged -= _content.SetHorizontalNormalizedScrollPosition;
     }
 
     private void OnContentVerticalScroll(float normalized)
-    {
-        // Collapse the bar to zero width when content fits, so BorderLayout gives the saved
-        // space to the center pane. Stable: removing a bar can only enlarge the viewport,
-        // which can only keep scale at <=1 — never re-introduces overflow on this axis.
-        _vScrollBar.PreferredWidth = _content.VerticalScale < 1f ? ScrollBarThickness : 0f;
-        _vScrollBar.Scale = _content.VerticalScale;
-        _vScrollBar.SetNormalizedScrollPosition(normalized);
-    }
+        => ScrollBarSync.ApplyVertical(_vScrollBar, _content.VerticalScale, normalized);
 
     private void OnContentHorizontalScroll(float normalized)
-    {
-        _hScrollBar.PreferredHeight = _content.HorizontalScale < 1f ? ScrollBarThickness : 0f;
-        _hScrollBar.Scale = _content.HorizontalScale;
-        _hScrollBar.SetNormalizedScrollPosition(normalized);
-    }
-
-    private void OnVScrollBarScroll(float normalized)
-    {
-        _content.SetVerticalNormalizedScrollPosition(normalized);
-    }
-
-    private void OnHScrollBarScroll(float normalized)
-    {
-        _content.SetHorizontalNormalizedScrollPosition(normalized);
-    }
+        => ScrollBarSync.ApplyHorizontal(_hScrollBar, _content.HorizontalScale, normalized);
 }

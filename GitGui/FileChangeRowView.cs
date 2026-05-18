@@ -11,12 +11,12 @@ internal static class FileChangesPalette
     public const uint StatusRenamed = 0xFF5DADE2;
     public const uint StatusOther = 0xFF9B59B6;
 
-    public const uint BadgeText = 0xFF1A1B1E;
-    public const uint RowText = 0xFFB5B9C0;
+    public const uint BadgeText = Theme.BgDeep;
+    public const uint RowText = Theme.TextRow;
 
     public const uint HeaderBg = 0xFF222326;
-    public const uint HeaderBorder = 0xFF313338;
-    public const uint HeaderText = 0xFF96989D;
+    public const uint HeaderBorder = Theme.Border;
+    public const uint HeaderText = Theme.TextHeader;
 
     public static uint StatusColor(FileChangeStatus status) => status switch
     {
@@ -53,29 +53,8 @@ internal static class FileChangesPalette
 /// </summary>
 public sealed class FileChangeRowView : MultiChildView
 {
-    private const float BadgeSize = 16f;
-
     public FileChangeRowView(FileChange file)
     {
-        var badge = new RectView
-        {
-            PreferredWidth = BadgeSize,
-            PreferredHeight = BadgeSize,
-            BackgroundColor = FileChangesPalette.StatusColor(file.Status),
-            BorderRadius = BorderRadiusStyle.All(3),
-            Children =
-            {
-                new TextView
-                {
-                    Text = FileChangesPalette.StatusGlyph(file.Status),
-                    TextColor = FileChangesPalette.BadgeText,
-                    FontSize = 11f,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    VerticalTextAlignment = TextAlignment.Center,
-                },
-            },
-        };
-
         var path = new TextView
         {
             Text = FileChangesPalette.FormatPath(file),
@@ -88,7 +67,7 @@ public sealed class FileChangeRowView : MultiChildView
             CrossAxisAlignment = CrossAxisAlignment.Start,
             Children =
             {
-                badge,
+                FileChangesUI.CreateStatusBadge(file),
                 new FlexItem { Grow = 1, Child = path },
             },
         });

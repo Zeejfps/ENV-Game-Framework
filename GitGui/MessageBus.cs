@@ -13,7 +13,6 @@ public sealed class MessageBus : IMessageBus
         var snapshot = list.ToArray();
         foreach (var handler in snapshot)
         {
-            Console.WriteLine($"Invoking {handler}");
             ((Action<T>)handler)(message);
         }
     }

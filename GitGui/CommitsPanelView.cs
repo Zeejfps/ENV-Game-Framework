@@ -66,7 +66,7 @@ public sealed class CommitsPanelView : MultiChildView
     {
         base.OnLayoutChildren();
         var scale = _commits.Scale;
-        _scrollBar.PreferredWidth = scale < 1f ? 12f : 0f;
+        _scrollBar.PreferredWidth = scale < 1f ? ScrollBarSync.Thickness : 0f;
         _scrollBar.Scale = scale;
     }
 
@@ -112,7 +112,7 @@ internal sealed class CommitsPanelController : KeyboardMouseController
 
     private void OnCommitsScaleChanged(float scale)
     {
-        _scrollBar.PreferredWidth = scale < 1f ? 12f : 0f;
+        _scrollBar.PreferredWidth = scale < 1f ? ScrollBarSync.Thickness : 0f;
         _scrollBar.Scale = scale;
     }
 

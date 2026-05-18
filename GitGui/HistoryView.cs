@@ -126,7 +126,7 @@ internal sealed class HistoryViewController : KeyboardMouseController
             {
                 _dragging = true;
                 _lastDragX = e.Mouse.Point.X;
-                _view.Context?.Get<InputSystem>()?.RequestFocus(this);
+                _view.Context.RequestFocus(this);
                 e.Consume();
             }
             return;
@@ -135,7 +135,7 @@ internal sealed class HistoryViewController : KeyboardMouseController
         if (e.State == InputState.Released && _dragging)
         {
             _dragging = false;
-            _view.Context?.Get<InputSystem>()?.Blur(this);
+            _view.Context.Blur(this);
             e.Consume();
         }
     }

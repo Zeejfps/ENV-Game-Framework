@@ -24,15 +24,12 @@ public sealed class LocalChangesView : MultiChildView
     private IGitService? _gitService;
     private IUiDispatcher? _dispatcher;
     private IMessageBus? _bus;
-    private IDisposable? _activeSubscription;
-    private IDisposable? _vmSubscription;
-    private IDisposable? _unstagedSelectionSub;
-    private IDisposable? _stagedSelectionSub;
+    private readonly SubscriptionGroup _subscriptions = new();
 
     private readonly State<LocalChangesViewModel> _viewModel = new(
         new LocalChangesViewModel.Placeholder("Open a repository to see local changes."));
 
-    private int _loadGeneration;
+    private readonly GenerationGuard _loadGen = new();
 
     private readonly LocalChangesPanel _unstagedPanel;
     private readonly LocalChangesPanel _stagedPanel;
@@ -42,8 +39,7 @@ public sealed class LocalChangesView : MultiChildView
     private readonly DiffView _diffView;
     private readonly VerticalSplitContainer _snapshotContainer;
     private ColumnView _commitBarColumn = null!;
-    private RectView _opErrorBar = null!;
-    private TextView _opErrorText = null!;
+    private ErrorBar _opErrorBar = null!;
     private TextInputView _titleInput = null!;
     private GrowingDescriptionField _descriptionField = null!;
     private DialogButton _commitButton = null!;
@@ -188,8 +184,7 @@ public sealed class LocalChangesView : MultiChildView
 
         // Same generation guard as load: bump and capture so any in-flight worker that
         // resolves after a repo switch or another op doesn't clobber a fresher state.
-        _loadGeneration++;
-        var gen = _loadGeneration;
+        var gen = _loadGen.Bump();
         var service = _gitService;
         var dispatcher = _dispatcher;
 
@@ -212,7 +207,7 @@ public sealed class LocalChangesView : MultiChildView
 
             dispatcher?.Post(() =>
             {
-                if (gen != _loadGeneration) return;
+                if (_loadGen.IsStale(gen)) return;
                 ShowOpError(errorMsg);
                 // Keep the prior snapshot rendered on failure — losing the list on every
                 // transient error would erase the user's selection and context.
@@ -234,8 +229,7 @@ public sealed class LocalChangesView : MultiChildView
         var repo = _registry.Active.Value;
         if (repo == null) return;
 
-        _loadGeneration++;
-        var gen = _loadGeneration;
+        var gen = _loadGen.Bump();
         var service = _gitService;
         var dispatcher = _dispatcher;
 
@@ -258,7 +252,7 @@ public sealed class LocalChangesView : MultiChildView
 
             dispatcher?.Post(() =>
             {
-                if (gen != _loadGeneration) return;
+                if (_loadGen.IsStale(gen)) return;
                 ShowOpError(errorMsg);
                 if (newSnap != null)
                 {
@@ -273,19 +267,7 @@ public sealed class LocalChangesView : MultiChildView
         });
     }
 
-    private void ShowOpError(string? msg)
-    {
-        if (msg == null)
-        {
-            if (_commitBarColumn.Children.Contains(_opErrorBar))
-                _commitBarColumn.Children.Remove(_opErrorBar);
-            return;
-        }
-
-        _opErrorText.Text = msg;
-        if (!_commitBarColumn.Children.Contains(_opErrorBar))
-            _commitBarColumn.Children.Insert(0, _opErrorBar);
-    }
+    private void ShowOpError(string? msg) => _opErrorBar.Message = msg;
 
     private View BuildCommitBar()
     {
@@ -337,21 +319,6 @@ public sealed class LocalChangesView : MultiChildView
             Children = { _amendCheckbox, _commitButton },
         };
 
-        _opErrorText = new TextView
-        {
-            TextColor = CommitsPalette.WarningText,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-        _opErrorBar = new RectView
-        {
-            BackgroundColor = CommitsPalette.WarningBg,
-            BorderColor = BorderColorStyle.All(CommitsPalette.WarningBorder),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(3),
-            Padding = new PaddingStyle { Left = 8, Right = 8, Top = 4, Bottom = 4 },
-            Children = { _opErrorText },
-        };
-
         // Error bar is left out of the column until ShowOpError adds it — that way the
         // column gap doesn't reserve space for an absent banner.
         _commitBarColumn = new ColumnView
@@ -359,6 +326,7 @@ public sealed class LocalChangesView : MultiChildView
             Gap = 8,
             Children = { titleBox, _descriptionField, buttonRow },
         };
+        _opErrorBar = new ErrorBar(_commitBarColumn, insertAt: 0);
 
         return new RectView
         {
@@ -392,8 +360,7 @@ public sealed class LocalChangesView : MultiChildView
         var message = description.Length > 0 ? $"{title}\n\n{description}" : title;
         var amend = _amendCheckbox.IsChecked.Value;
 
-        _loadGeneration++;
-        var gen = _loadGeneration;
+        var gen = _loadGen.Bump();
         var service = _gitService;
         var dispatcher = _dispatcher;
         var bus = _bus;
@@ -419,7 +386,7 @@ public sealed class LocalChangesView : MultiChildView
 
             dispatcher?.Post(() =>
             {
-                if (gen != _loadGeneration) return;
+                if (_loadGen.IsStale(gen)) return;
                 ShowOpError(errorMsg);
                 if (errorMsg != null) return;
 
@@ -506,38 +473,30 @@ public sealed class LocalChangesView : MultiChildView
         _gitService = context.Get<IGitService>();
         _dispatcher = context.Get<IUiDispatcher>();
         _bus = context.Get<IMessageBus>();
-        _vmSubscription = _viewModel.Subscribe(Render);
-        if (_registry != null)
-            _activeSubscription = _registry.Active.Subscribe(_ => StartLoadForActiveRepo());
+        _subscriptions.Add(_viewModel.Subscribe(Render));
+        _subscriptions.Add(_registry?.Active.Subscribe(_ => StartLoadForActiveRepo()));
 
         // Selection is exclusive across the two panels: once a row in one side is selected,
         // any selection on the other side is cleared. The "only clear when *becoming*
         // non-empty" guard means the cleared panel's own empty-transition doesn't bounce
         // back and wipe the panel that just took focus.
-        _unstagedSelectionSub = _unstagedPanel.Selection.Subscribe(sel =>
+        _subscriptions.Add(_unstagedPanel.Selection.Subscribe(sel =>
         {
             if (sel.Count > 0) _stagedPanel.ClearSelection();
             UpdateDiffVisibility();
-        });
-        _stagedSelectionSub = _stagedPanel.Selection.Subscribe(sel =>
+        }));
+        _subscriptions.Add(_stagedPanel.Selection.Subscribe(sel =>
         {
             if (sel.Count > 0) _unstagedPanel.ClearSelection();
             UpdateDiffVisibility();
-        });
+        }));
     }
 
     protected override void OnDetachedFromContext(Context context)
     {
         // Bump the generation so any in-flight worker's dispatcher.Post becomes a no-op.
-        _loadGeneration++;
-        _activeSubscription?.Dispose();
-        _activeSubscription = null;
-        _vmSubscription?.Dispose();
-        _vmSubscription = null;
-        _unstagedSelectionSub?.Dispose();
-        _unstagedSelectionSub = null;
-        _stagedSelectionSub?.Dispose();
-        _stagedSelectionSub = null;
+        _loadGen.Bump();
+        _subscriptions.Dispose();
         _registry = null;
         _gitService = null;
         _dispatcher = null;
@@ -549,8 +508,7 @@ public sealed class LocalChangesView : MultiChildView
         if (_registry == null || _gitService == null) return;
         var active = _registry.Active.Value;
 
-        _loadGeneration++;
-        var gen = _loadGeneration;
+        var gen = _loadGen.Bump();
         // Any error from a previous repo's op no longer applies once we switch/reload.
         ShowOpError(null);
 
@@ -582,7 +540,7 @@ public sealed class LocalChangesView : MultiChildView
 
             dispatcher?.Post(() =>
             {
-                if (gen != _loadGeneration) return;
+                if (_loadGen.IsStale(gen)) return;
                 _viewModel.Value = result;
             });
         });
@@ -854,8 +812,6 @@ internal sealed class LocalChangesHeaderActionButton : HoverableButton
 internal sealed class LocalChangesPanel : MultiChildView
 {
     private const int ContentPadding = 10;
-    private const int HeaderPadding = 4;
-    private const int RowGap = 2;
 
     private readonly string _title;
     private readonly TextView _headerText;
@@ -882,17 +838,9 @@ internal sealed class LocalChangesPanel : MultiChildView
         _title = title;
         _onRowActivated = onRowActivated;
 
-        _headerText = new TextView
-        {
-            Text = FormatHeader(0),
-            TextColor = FileChangesPalette.HeaderText,
-        };
-        _rows = new ColumnView { Gap = RowGap };
-        _emptyPlaceholder = new TextView
-        {
-            Text = emptyText,
-            TextColor = FileChangesPalette.HeaderText,
-        };
+        _headerText = FileChangesUI.CreateHeaderText(title);
+        _rows = new ColumnView { Gap = FileChangesUI.RowGap };
+        _emptyPlaceholder = FileChangesUI.CreateEmptyPlaceholder(emptyText);
         _rows.Children.Add(_emptyPlaceholder);
 
         View headerContent;
@@ -921,24 +869,7 @@ internal sealed class LocalChangesPanel : MultiChildView
             headerContent = _headerText;
         }
 
-        var headerBar = new RectView
-        {
-            BackgroundColor = FileChangesPalette.HeaderBg,
-            BorderColor = new BorderColorStyle
-            {
-                Top = FileChangesPalette.HeaderBorder,
-                Bottom = FileChangesPalette.HeaderBorder,
-            },
-            BorderSize = new BorderSizeStyle { Top = 1, Bottom = 1 },
-            Padding = new PaddingStyle
-            {
-                Left = HeaderPadding,
-                Right = HeaderPadding,
-                Top = HeaderPadding,
-                Bottom = HeaderPadding,
-            },
-            Children = { headerContent },
-        };
+        var headerBar = FileChangesUI.CreateHeaderBar(headerContent);
 
         var paddedRows = new PaddingView
         {
@@ -985,7 +916,7 @@ internal sealed class LocalChangesPanel : MultiChildView
     {
         _files = files;
         _anchorPath = null;
-        _headerText.Text = FormatHeader(files.Count);
+        _headerText.Text = FileChangesUI.FormatHeader(_title, files.Count);
         // The path set changed; drop any selection that no longer points at a real row.
         if (_selection.Value.Count > 0)
             _selection.Value = new HashSet<string>();
@@ -1074,8 +1005,6 @@ internal sealed class LocalChangesPanel : MultiChildView
         }
         return -1;
     }
-
-    private string FormatHeader(int count) => $"{_title} ({count})";
 }
 
 /// <summary>
@@ -1086,7 +1015,6 @@ internal sealed class LocalChangesPanel : MultiChildView
 /// </summary>
 internal sealed class SelectableFileRowView : MultiChildView
 {
-    private const float BadgeSize = 16f;
     private const int RowVerticalPadding = 2;
     private const int RowHorizontalPadding = 4;
 
@@ -1099,25 +1027,6 @@ internal sealed class SelectableFileRowView : MultiChildView
         var isHovered = new State<bool>(false);
         var path = file.Path;
 
-        var badge = new RectView
-        {
-            PreferredWidth = BadgeSize,
-            PreferredHeight = BadgeSize,
-            BackgroundColor = FileChangesPalette.StatusColor(file.Status),
-            BorderRadius = BorderRadiusStyle.All(3),
-            Children =
-            {
-                new TextView
-                {
-                    Text = FileChangesPalette.StatusGlyph(file.Status),
-                    TextColor = FileChangesPalette.BadgeText,
-                    FontSize = 11f,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    VerticalTextAlignment = TextAlignment.Center,
-                },
-            },
-        };
-
         var pathText = new TextView { Text = FileChangesPalette.FormatPath(file) };
         pathText.BindTextColor(() => selection.Value.Contains(path)
             ? DialogPalette.RowTextActive
@@ -1129,7 +1038,7 @@ internal sealed class SelectableFileRowView : MultiChildView
             CrossAxisAlignment = CrossAxisAlignment.Start,
             Children =
             {
-                badge,
+                FileChangesUI.CreateStatusBadge(file),
                 new FlexItem { Grow = 1, Child = pathText },
             },
         };
@@ -1235,8 +1144,6 @@ internal sealed class SelectableRowController : KeyboardMouseController
 
 internal sealed class LocalChangesScrollSyncController : KeyboardMouseController
 {
-    private const float ScrollBarThickness = 12f;
-
     private readonly ScrollPane _pane;
     private readonly VerticalScrollBarView _vScrollBar;
 
@@ -1249,26 +1156,17 @@ internal sealed class LocalChangesScrollSyncController : KeyboardMouseController
     protected override void OnAttachedToContext(View view, Context context)
     {
         _pane.VerticalScrollPositionChanged += OnPaneVerticalScroll;
-        _vScrollBar.ScrollPositionChanged += OnVScrollBarScroll;
+        _vScrollBar.ScrollPositionChanged += _pane.SetVerticalNormalizedScrollPosition;
     }
 
     protected override void OnDetachedFromContext(View view, Context context)
     {
         _pane.VerticalScrollPositionChanged -= OnPaneVerticalScroll;
-        _vScrollBar.ScrollPositionChanged -= OnVScrollBarScroll;
+        _vScrollBar.ScrollPositionChanged -= _pane.SetVerticalNormalizedScrollPosition;
     }
 
     private void OnPaneVerticalScroll(float normalized)
-    {
-        _vScrollBar.PreferredWidth = _pane.VerticalScale < 1f ? ScrollBarThickness : 0f;
-        _vScrollBar.Scale = _pane.VerticalScale;
-        _vScrollBar.SetNormalizedScrollPosition(normalized);
-    }
-
-    private void OnVScrollBarScroll(float normalized)
-    {
-        _pane.SetVerticalNormalizedScrollPosition(normalized);
-    }
+        => ScrollBarSync.ApplyVertical(_vScrollBar, _pane.VerticalScale, normalized);
 }
 
 /// <summary>

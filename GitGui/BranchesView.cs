@@ -33,13 +33,10 @@ public sealed class BranchesView : MultiChildView
     private IGitService? _gitService;
     private IUiDispatcher? _dispatcher;
     private State<MainViewMode>? _mode;
-    private IDisposable? _activeSubscription;
-    private IDisposable? _commitCreatedSubscription;
-    private IDisposable? _commitSelectedSubscription;
-    private IDisposable? _refsChangedSubscription;
+    private readonly SubscriptionGroup _subscriptions = new();
 
     private Guid _activeRepoId;
-    private int _loadGeneration;
+    private readonly GenerationGuard _loadGen = new();
     private BranchListing? _listing;
     private string? _loadError;
     private BranchesUiState _ui = new();
@@ -49,18 +46,14 @@ public sealed class BranchesView : MultiChildView
     private float _scrollY;
     private int _hoveredRowIndex = -1;
 
-    private readonly TextStyle _branchTextStyle = new()
-    {
-        TextColor = CommitsPalette.RowText,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
-    private readonly TextStyle _branchTextSelectedStyle = new()
-    {
-        TextColor = CommitsPalette.RowTextActive,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
+    // Ahead = "need to push", behind = "need to pull". Greenish + amber for at-a-glance.
+    // Number uses the default font; icon uses the Lucide glyphs the toolbar push/pull
+    // buttons use so the visual vocabulary stays consistent.
+    private const uint AheadColor = 0xFF9DD17B;
+    private const uint BehindColor = 0xFFE6A85C;
+
+    private readonly TextStyle _branchTextStyle = TextStyles.Row(CommitsPalette.RowText);
+    private readonly TextStyle _branchTextSelectedStyle = TextStyles.Row(CommitsPalette.RowTextActive);
     private readonly TextStyle _headTextStyle = new()
     {
         TextColor = CommitsPalette.RowTextActive,
@@ -68,12 +61,7 @@ public sealed class BranchesView : MultiChildView
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
-    private readonly TextStyle _headerTextStyle = new()
-    {
-        TextColor = DialogPalette.SectionHeaderText,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
+    private readonly TextStyle _headerTextStyle = TextStyles.Row(DialogPalette.SectionHeaderText);
     private readonly TextStyle _chevronStyle = new()
     {
         TextColor = DialogPalette.SectionHeaderText,
@@ -81,69 +69,14 @@ public sealed class BranchesView : MultiChildView
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Center,
     };
-    private readonly TextStyle _placeholderStyle = new()
-    {
-        TextColor = CommitsPalette.Placeholder,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Center,
-    };
-    // Ahead = "need to push", behind = "need to pull". Greenish + amber for at-a-glance.
-    // Number uses the default font; icon uses the Lucide glyphs the toolbar push/pull
-    // buttons use so the visual vocabulary stays consistent.
-    private const uint AheadColor = 0xFF9DD17B;
-    private const uint BehindColor = 0xFFE6A85C;
-    private readonly TextStyle _aheadNumStyle = new()
-    {
-        TextColor = AheadColor,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
-    private readonly TextStyle _behindNumStyle = new()
-    {
-        TextColor = BehindColor,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
-    private readonly TextStyle _aheadIconStyle = new()
-    {
-        TextColor = AheadColor,
-        FontFamily = LucideIcons.FontFamily,
-        FontSize = 14f,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
-    private readonly TextStyle _behindIconStyle = new()
-    {
-        TextColor = BehindColor,
-        FontFamily = LucideIcons.FontFamily,
-        FontSize = 14f,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
-    private readonly TextStyle _folderIconStyle = new()
-    {
-        TextColor = DialogPalette.SectionHeaderText,
-        FontFamily = LucideIcons.FontFamily,
-        FontSize = 14f,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
-    private readonly TextStyle _branchIconStyle = new()
-    {
-        TextColor = CommitsPalette.RowText,
-        FontFamily = LucideIcons.FontFamily,
-        FontSize = 14f,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
-    private readonly TextStyle _branchIconActiveStyle = new()
-    {
-        TextColor = CommitsPalette.RowTextActive,
-        FontFamily = LucideIcons.FontFamily,
-        FontSize = 14f,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
+    private readonly TextStyle _placeholderStyle = TextStyles.Centered(CommitsPalette.Placeholder);
+    private readonly TextStyle _aheadNumStyle = TextStyles.Row(AheadColor);
+    private readonly TextStyle _behindNumStyle = TextStyles.Row(BehindColor);
+    private readonly TextStyle _aheadIconStyle = TextStyles.Icon(AheadColor);
+    private readonly TextStyle _behindIconStyle = TextStyles.Icon(BehindColor);
+    private readonly TextStyle _folderIconStyle = TextStyles.Icon(DialogPalette.SectionHeaderText);
+    private readonly TextStyle _branchIconStyle = TextStyles.Icon(CommitsPalette.RowText);
+    private readonly TextStyle _branchIconActiveStyle = TextStyles.Icon(CommitsPalette.RowTextActive);
 
     public BranchesView()
     {
@@ -158,25 +91,16 @@ public sealed class BranchesView : MultiChildView
         _dispatcher = context.Get<IUiDispatcher>();
         _mode = context.Get<State<MainViewMode>>();
 
-        if (_registry != null)
-            _activeSubscription = _registry.Active.Subscribe(_ => OnActiveRepoChanged());
-
-        _commitCreatedSubscription = _bus?.SubscribeScoped<CommitCreatedMessage>(OnCommitCreated);
-        _commitSelectedSubscription = _bus?.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected);
-        _refsChangedSubscription = _bus?.SubscribeScoped<RefsChangedMessage>(OnRefsChanged);
+        _subscriptions.Add(_registry?.Active.Subscribe(_ => OnActiveRepoChanged()));
+        _subscriptions.Add(_bus?.SubscribeScoped<CommitCreatedMessage>(OnCommitCreated));
+        _subscriptions.Add(_bus?.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected));
+        _subscriptions.Add(_bus?.SubscribeScoped<RefsChangedMessage>(OnRefsChanged));
     }
 
     protected override void OnDetachedFromContext(Context context)
     {
-        _loadGeneration++;
-        _activeSubscription?.Dispose();
-        _activeSubscription = null;
-        _commitCreatedSubscription?.Dispose();
-        _commitCreatedSubscription = null;
-        _commitSelectedSubscription?.Dispose();
-        _commitSelectedSubscription = null;
-        _refsChangedSubscription?.Dispose();
-        _refsChangedSubscription = null;
+        _loadGen.Bump();
+        _subscriptions.Dispose();
         _bus = null;
         _registry = null;
         _gitService = null;
@@ -234,8 +158,7 @@ public sealed class BranchesView : MultiChildView
         var dispatcher = _dispatcher;
         if (gitService == null) return;
 
-        _loadGeneration++;
-        var gen = _loadGeneration;
+        var gen = _loadGen.Bump();
 
         Task.Run(() =>
         {
@@ -251,7 +174,7 @@ public sealed class BranchesView : MultiChildView
 
             dispatcher?.Post(() =>
             {
-                if (gen != _loadGeneration) return;
+                if (_loadGen.IsStale(gen)) return;
                 if (repo.Id != _activeRepoId) return;
                 _listing = listing.ErrorMessage == null ? listing : null;
                 _loadError = listing.ErrorMessage;
@@ -370,11 +293,8 @@ public sealed class BranchesView : MultiChildView
 
     private void ClampScroll()
     {
-        var bodyHeight = Position.Height;
-        if (bodyHeight <= 0) return;
-        var contentHeight = _rows.Count * RowHeight;
-        var maxScroll = Math.Max(0f, contentHeight - bodyHeight);
-        _scrollY = Math.Clamp(_scrollY, 0f, maxScroll);
+        if (Position.Height <= 0) return;
+        _scrollY = ScrollMath.ClampScroll(_scrollY, _rows.Count * RowHeight, Position.Height);
     }
 
     protected override void OnDrawSelf(ICanvas c)
@@ -581,25 +501,8 @@ public sealed class BranchesView : MultiChildView
 
     private string TruncateToFit(string text, TextStyle style, float available)
     {
-        if (Context == null || string.IsNullOrEmpty(text)) return text;
-        var full = Context.Canvas.MeasureTextWidth(text, style);
-        if (full <= available) return text;
-
-        const string ellipsis = "…";
-        var ellipsisWidth = Context.Canvas.MeasureTextWidth(ellipsis, style);
-        if (ellipsisWidth > available) return ellipsis;
-
-        var lo = 0;
-        var hi = text.Length;
-        while (lo < hi)
-        {
-            var mid = (lo + hi + 1) / 2;
-            if (Context.Canvas.MeasureTextWidth(text.AsSpan(0, mid), style) + ellipsisWidth <= available)
-                lo = mid;
-            else
-                hi = mid - 1;
-        }
-        return text[..lo] + ellipsis;
+        if (Context == null) return text;
+        return TextMeasure.TruncateToFit(text, style, available, Context.Canvas);
     }
 
     internal void OnWheel(float deltaY)

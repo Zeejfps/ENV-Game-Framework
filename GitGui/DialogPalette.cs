@@ -6,10 +6,10 @@ namespace GitGui;
 
 internal static class DialogPalette
 {
-    public const uint Background = 0xFF1E1F22;
-    public const uint Border = 0xFF313338;
-    public const uint Separator = 0xFF2A2C30;
-    public const uint TitleText = 0xFFE6E6E6;
+    public const uint Background = Theme.BgPanel;
+    public const uint Border = Theme.Border;
+    public const uint Separator = Theme.BgHeader;
+    public const uint TitleText = Theme.TextPrimary;
     public const uint BodyText = 0xFFDCDDDE;
 
     public const uint ButtonNormal = 0xFF2B2D31;
@@ -19,20 +19,31 @@ internal static class DialogPalette
 
     public const uint CloseNormal = 0x00000000;
     public const uint CloseHover = 0xFF3A3D43;
-    public const uint CloseTextNormal = 0xFFB5B9C0;
-    public const uint CloseTextHover = 0xFFFFFFFF;
+    public const uint CloseTextNormal = Theme.TextRow;
+    public const uint CloseTextHover = Theme.TextStrong;
 
     public const uint RowTransparent = 0x00000000;
     public const uint RowHover = 0xFF2B2D31;
     public const uint RowActive = 0xFF404C8C;
-    public const uint RowText = 0xFFB5B9C0;
-    public const uint RowTextActive = 0xFFFFFFFF;
+    public const uint RowText = Theme.TextRow;
+    public const uint RowTextActive = Theme.TextStrong;
     public const uint RowTextMissing = 0x80B5B9C0;
-    public const uint SectionHeaderText = 0xFF96989D;
+    public const uint SectionHeaderText = Theme.TextHeader;
 
     public static void BindBorderedButtonChrome(RectView background, IReadable<bool> isHovered)
     {
         background.BindBackgroundColor(isHovered, h => h ? ButtonHover : ButtonNormal);
         background.BindBorderColor(isHovered, h => BorderColorStyle.All(h ? ButtonBorderHover : ButtonBorder));
+    }
+
+    /// <summary>
+    /// Same chrome bindings as the IReadable&lt;bool&gt; overload but driven by a derived
+    /// predicate — useful when "is hovered" needs to be combined with another state (e.g.
+    /// disabled buttons that shouldn't react to the pointer).
+    /// </summary>
+    public static void BindBorderedButtonChrome(RectView background, Func<bool> isEffectivelyHovered)
+    {
+        background.BindBackgroundColor(() => isEffectivelyHovered() ? ButtonHover : ButtonNormal);
+        background.BindBorderColor(() => BorderColorStyle.All(isEffectivelyHovered() ? ButtonBorderHover : ButtonBorder));
     }
 }

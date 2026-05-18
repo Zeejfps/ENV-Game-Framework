@@ -14,8 +14,7 @@ public sealed class ActionsToolbar : MultiChildView
     private const float SeparatorHeight = 16f;
 
     private readonly ActionButton _pushButton;
-    private readonly TextView _errorText;
-    private readonly RectView _errorBar;
+    private readonly ErrorBar _errorBar;
     private readonly FlexRowView _contentRow;
 
     private IRepoRegistry? _registry;
@@ -23,11 +22,9 @@ public sealed class ActionsToolbar : MultiChildView
     private IMessageBus? _bus;
     private IUiDispatcher? _dispatcher;
 
-    private IDisposable? _activeSub;
-    private IDisposable? _commitSub;
-    private IDisposable? _refsSub;
+    private readonly SubscriptionGroup _subscriptions = new();
 
-    private int _statusGen;
+    private readonly GenerationGuard _statusGen = new();
     private bool _isPushing;
     private PushStatus _pushStatus = new(null, HasUpstream: false, Ahead: 0, Behind: 0, IsDetached: false);
     private CancellationTokenSource? _pushAnimCts;
@@ -38,21 +35,6 @@ public sealed class ActionsToolbar : MultiChildView
 
         _pushButton = new ActionButton(LucideIcons.Push, "Push", OnPushClicked);
         _pushButton.IsEnabled.Value = false;
-
-        _errorText = new TextView
-        {
-            TextColor = CommitsPalette.WarningText,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-        _errorBar = new RectView
-        {
-            BackgroundColor = CommitsPalette.WarningBg,
-            BorderColor = BorderColorStyle.All(CommitsPalette.WarningBorder),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(3),
-            Padding = new PaddingStyle { Left = 8, Right = 8, Top = 2, Bottom = 2 },
-            Children = { _errorText },
-        };
 
         _contentRow = new FlexRowView
         {
@@ -69,6 +51,7 @@ public sealed class ActionsToolbar : MultiChildView
                 new ActionButton(LucideIcons.Branch, "Branch", () => { }),
             }
         };
+        _errorBar = new ErrorBar(_contentRow, verticalPadding: 2);
 
         AddChildToSelf(new RectView
         {
@@ -91,21 +74,18 @@ public sealed class ActionsToolbar : MultiChildView
         _bus = context.Get<IMessageBus>();
         _dispatcher = context.Get<IUiDispatcher>();
 
-        if (_registry != null)
-            _activeSub = _registry.Active.Subscribe(_ => OnRepoOrRefsChanged());
-        _commitSub = _bus?.SubscribeScoped<CommitCreatedMessage>(_ => OnRepoOrRefsChanged());
-        _refsSub = _bus?.SubscribeScoped<RefsChangedMessage>(_ => OnRepoOrRefsChanged());
+        _subscriptions.Add(_registry?.Active.Subscribe(_ => OnRepoOrRefsChanged()));
+        _subscriptions.Add(_bus?.SubscribeScoped<CommitCreatedMessage>(_ => OnRepoOrRefsChanged()));
+        _subscriptions.Add(_bus?.SubscribeScoped<RefsChangedMessage>(_ => OnRepoOrRefsChanged()));
     }
 
     protected override void OnDetachedFromContext(Context context)
     {
-        _statusGen++;
+        _statusGen.Bump();
         _pushAnimCts?.Cancel();
         _pushAnimCts?.Dispose();
         _pushAnimCts = null;
-        _activeSub?.Dispose(); _activeSub = null;
-        _commitSub?.Dispose(); _commitSub = null;
-        _refsSub?.Dispose(); _refsSub = null;
+        _subscriptions.Dispose();
         _registry = null;
         _gitService = null;
         _bus = null;
@@ -130,14 +110,13 @@ public sealed class ActionsToolbar : MultiChildView
             return;
         }
 
-        _statusGen++;
-        var gen = _statusGen;
+        var gen = _statusGen.Bump();
         Task.Run(() =>
         {
             var status = service.GetPushStatus(repo);
             dispatcher?.Post(() =>
             {
-                if (gen != _statusGen) return;
+                if (_statusGen.IsStale(gen)) return;
                 if (_registry?.Active.Value?.Id != repo.Id) return;
                 _pushStatus = status;
                 UpdatePushButton();
@@ -236,18 +215,7 @@ public sealed class ActionsToolbar : MultiChildView
         _pushButton.IconRotation = 0f;
     }
 
-    private void ShowError(string? msg)
-    {
-        if (msg == null)
-        {
-            if (_contentRow.Children.Contains(_errorBar))
-                _contentRow.Children.Remove(_errorBar);
-            return;
-        }
-        _errorText.Text = msg;
-        if (!_contentRow.Children.Contains(_errorBar))
-            _contentRow.Children.Add(_errorBar);
-    }
+    private void ShowError(string? msg) => _errorBar.Message = msg;
 
     private sealed class SeparatorSpacer : MultiChildView
     {

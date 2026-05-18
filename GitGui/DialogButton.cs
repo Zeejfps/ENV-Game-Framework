@@ -22,10 +22,8 @@ public sealed class DialogButton : HoverableButton
             Children = { labelView },
         };
         // Hover styling only when enabled — a disabled button shouldn't react to the pointer.
-        background.BindBackgroundColor(() =>
-            IsEnabled.Value && IsHovered.Value ? DialogPalette.ButtonHover : DialogPalette.ButtonNormal);
-        background.BindBorderColor(() => BorderColorStyle.All(
-            IsEnabled.Value && IsHovered.Value ? DialogPalette.ButtonBorderHover : DialogPalette.ButtonBorder));
+        DialogPalette.BindBorderedButtonChrome(background,
+            () => IsEnabled.Value && IsHovered.Value);
         SetBackground(background);
     }
 }

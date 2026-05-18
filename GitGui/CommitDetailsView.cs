@@ -7,12 +7,12 @@ namespace GitGui;
 
 internal static class CommitDetailsPalette
 {
-    public const uint Background = 0xFF1A1B1E;
-    public const uint Border = 0xFF313338;
-    public const uint Primary = 0xFFE6E6E6;
-    public const uint Secondary = 0xFFB5B9C0;
-    public const uint Muted = 0xFF7A7C81;
-    public const uint Placeholder = 0xFF96989D;
+    public const uint Background = Theme.BgDeep;
+    public const uint Border = Theme.Border;
+    public const uint Primary = Theme.TextPrimary;
+    public const uint Secondary = Theme.TextRow;
+    public const uint Muted = Theme.TextDim;
+    public const uint Placeholder = Theme.TextHeader;
 
     private static readonly uint[] AvatarPalette =
     {
@@ -51,13 +51,12 @@ public sealed class CommitDetailsView : MultiChildView
     private IGitService? _gitService;
     private IRepoRegistry? _registry;
     private IUiDispatcher? _dispatcher;
-    private IDisposable? _selectedSubscription;
-    private IDisposable? _vmSubscription;
+    private readonly SubscriptionGroup _subscriptions = new();
 
     private readonly State<CommitDetailsViewModel> _viewModel = new(
         new CommitDetailsViewModel.Placeholder("Select a commit to view details."));
 
-    private int _loadGeneration;
+    private readonly GenerationGuard _loadGen = new();
 
     private readonly ColumnView _content;
     private readonly ScrollPane _scrollPane;
@@ -105,17 +104,14 @@ public sealed class CommitDetailsView : MultiChildView
         _gitService = context.Get<IGitService>();
         _registry = context.Get<IRepoRegistry>();
         _dispatcher = context.Get<IUiDispatcher>();
-        _vmSubscription = _viewModel.Subscribe(Render);
-        _selectedSubscription = _bus?.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected);
+        _subscriptions.Add(_viewModel.Subscribe(Render));
+        _subscriptions.Add(_bus?.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected));
     }
 
     protected override void OnDetachedFromContext(Context context)
     {
-        _loadGeneration++;
-        _selectedSubscription?.Dispose();
-        _selectedSubscription = null;
-        _vmSubscription?.Dispose();
-        _vmSubscription = null;
+        _loadGen.Bump();
+        _subscriptions.Dispose();
         _bus = null;
         _gitService = null;
         _registry = null;
@@ -126,7 +122,7 @@ public sealed class CommitDetailsView : MultiChildView
     {
         if (string.IsNullOrEmpty(msg.Sha))
         {
-            _loadGeneration++;
+            _loadGen.Bump();
             _viewModel.Value = new CommitDetailsViewModel.Placeholder("Select a commit to view details.");
             return;
         }
@@ -139,8 +135,7 @@ public sealed class CommitDetailsView : MultiChildView
         var repo = _registry.Active.Value;
         if (repo == null || repo.Id != repoId) return;
 
-        _loadGeneration++;
-        var gen = _loadGeneration;
+        var gen = _loadGen.Bump();
         _viewModel.Value = new CommitDetailsViewModel.Placeholder("Loading…");
 
         var service = _gitService;
@@ -162,7 +157,7 @@ public sealed class CommitDetailsView : MultiChildView
 
             dispatcher?.Post(() =>
             {
-                if (gen != _loadGeneration) return;
+                if (_loadGen.IsStale(gen)) return;
                 _viewModel.Value = result;
             });
         });
@@ -357,8 +352,6 @@ internal sealed class ScrollPaneWheelController : KeyboardMouseController
 
 internal sealed class CommitDetailsScrollSyncController : KeyboardMouseController
 {
-    private const float ScrollBarThickness = 12f;
-
     private readonly ScrollPane _pane;
     private readonly VerticalScrollBarView _vScrollBar;
     private readonly HorizontalScrollBarView _hScrollBar;
@@ -374,42 +367,21 @@ internal sealed class CommitDetailsScrollSyncController : KeyboardMouseControlle
     {
         _pane.VerticalScrollPositionChanged += OnPaneVerticalScroll;
         _pane.HorizontalScrollPositionChanged += OnPaneHorizontalScroll;
-        _vScrollBar.ScrollPositionChanged += OnVScrollBarScroll;
-        _hScrollBar.ScrollPositionChanged += OnHScrollBarScroll;
+        _vScrollBar.ScrollPositionChanged += _pane.SetVerticalNormalizedScrollPosition;
+        _hScrollBar.ScrollPositionChanged += _pane.SetHorizontalNormalizedScrollPosition;
     }
 
     protected override void OnDetachedFromContext(View view, Context context)
     {
         _pane.VerticalScrollPositionChanged -= OnPaneVerticalScroll;
         _pane.HorizontalScrollPositionChanged -= OnPaneHorizontalScroll;
-        _vScrollBar.ScrollPositionChanged -= OnVScrollBarScroll;
-        _hScrollBar.ScrollPositionChanged -= OnHScrollBarScroll;
+        _vScrollBar.ScrollPositionChanged -= _pane.SetVerticalNormalizedScrollPosition;
+        _hScrollBar.ScrollPositionChanged -= _pane.SetHorizontalNormalizedScrollPosition;
     }
 
     private void OnPaneVerticalScroll(float normalized)
-    {
-        // Collapse the bar to zero width when content fits, so BorderLayout gives the saved
-        // space to the center pane. Stable: removing a bar can only enlarge the viewport,
-        // which can only keep scale at <=1 — never re-introduces overflow on this axis.
-        _vScrollBar.PreferredWidth = _pane.VerticalScale < 1f ? ScrollBarThickness : 0f;
-        _vScrollBar.Scale = _pane.VerticalScale;
-        _vScrollBar.SetNormalizedScrollPosition(normalized);
-    }
+        => ScrollBarSync.ApplyVertical(_vScrollBar, _pane.VerticalScale, normalized);
 
     private void OnPaneHorizontalScroll(float normalized)
-    {
-        _hScrollBar.PreferredHeight = _pane.HorizontalScale < 1f ? ScrollBarThickness : 0f;
-        _hScrollBar.Scale = _pane.HorizontalScale;
-        _hScrollBar.SetNormalizedScrollPosition(normalized);
-    }
-
-    private void OnVScrollBarScroll(float normalized)
-    {
-        _pane.SetVerticalNormalizedScrollPosition(normalized);
-    }
-
-    private void OnHScrollBarScroll(float normalized)
-    {
-        _pane.SetHorizontalNormalizedScrollPosition(normalized);
-    }
+        => ScrollBarSync.ApplyHorizontal(_hScrollBar, _pane.HorizontalScale, normalized);
 }

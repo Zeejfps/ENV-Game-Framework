@@ -7,15 +7,15 @@ namespace GitGui;
 
 internal static class CommitsPalette
 {
-    public const uint Background = 0xFF1E1F22;
-    public const uint Border = 0xFF313338;
-    public const uint HeaderBg = 0xFF2A2C30;
-    public const uint HeaderText = 0xFF96989D;
-    public const uint RowText = 0xFFB5B9C0;
-    public const uint RowTextDim = 0xFF7A7C81;
+    public const uint Background = Theme.BgPanel;
+    public const uint Border = Theme.Border;
+    public const uint HeaderBg = Theme.BgHeader;
+    public const uint HeaderText = Theme.TextHeader;
+    public const uint RowText = Theme.TextRow;
+    public const uint RowTextDim = Theme.TextDim;
     public const uint RowHighlight = 0xFF404C8C;
-    public const uint RowTextActive = 0xFFFFFFFF;
-    public const uint Placeholder = 0xFF96989D;
+    public const uint RowTextActive = Theme.TextStrong;
+    public const uint Placeholder = Theme.TextHeader;
 
     public const uint ScrollTrackBg = 0xFF26272B;
     public const uint ScrollTrackBorder = 0xFF313338;
@@ -92,14 +92,11 @@ public sealed class CommitsView : MultiChildView
     private IRepoRegistry? _registry;
     private IGitService? _gitService;
     private IUiDispatcher? _dispatcher;
-    private IDisposable? _activeSubscription;
-    private IDisposable? _commitCreatedSubscription;
-    private IDisposable? _commitSelectedSubscription;
-    private IDisposable? _refsChangedSubscription;
+    private readonly SubscriptionGroup _subscriptions = new();
 
     private CommitsLoadState _state = CommitsLoadState.NoRepo;
     private CommitSnapshot? _snapshot;
-    private int _loadGeneration;
+    private readonly GenerationGuard _loadGen = new();
     private Guid _loadingRepoId;
 
     private float _scrollY;
@@ -110,48 +107,13 @@ public sealed class CommitsView : MultiChildView
     public event Action<float>? ScrollPositionChanged;
     public event Action<float>? ScaleChanged;
 
-    private readonly TextStyle _rowTextStyle = new()
-    {
-        TextColor = CommitsPalette.RowText,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
-    private readonly TextStyle _rowTextActiveStyle = new()
-    {
-        TextColor = CommitsPalette.RowTextActive,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
-    private readonly TextStyle _headerTextStyle = new()
-    {
-        TextColor = CommitsPalette.HeaderText,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
-    private readonly TextStyle _placeholderStyle = new()
-    {
-        TextColor = CommitsPalette.Placeholder,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Center,
-    };
-    private readonly TextStyle _badgeTextStyle = new()
-    {
-        TextColor = CommitsPalette.BadgeText,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
-    private readonly TextStyle _hashTextStyle = new()
-    {
-        TextColor = CommitsPalette.RowTextDim,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
-    private readonly TextStyle _hashTextActiveStyle = new()
-    {
-        TextColor = CommitsPalette.RowTextActive,
-        VerticalAlignment = TextAlignment.Center,
-        HorizontalAlignment = TextAlignment.Start,
-    };
+    private readonly TextStyle _rowTextStyle = TextStyles.Row(CommitsPalette.RowText);
+    private readonly TextStyle _rowTextActiveStyle = TextStyles.Row(CommitsPalette.RowTextActive);
+    private readonly TextStyle _headerTextStyle = TextStyles.Row(CommitsPalette.HeaderText);
+    private readonly TextStyle _placeholderStyle = TextStyles.Centered(CommitsPalette.Placeholder);
+    private readonly TextStyle _badgeTextStyle = TextStyles.Row(CommitsPalette.BadgeText);
+    private readonly TextStyle _hashTextStyle = TextStyles.Row(CommitsPalette.RowTextDim);
+    private readonly TextStyle _hashTextActiveStyle = TextStyles.Row(CommitsPalette.RowTextActive);
 
     public CommitsView()
     {
@@ -164,26 +126,16 @@ public sealed class CommitsView : MultiChildView
         _registry = context.Get<IRepoRegistry>();
         _gitService = context.Get<IGitService>();
         _dispatcher = context.Get<IUiDispatcher>();
-        if (_registry != null)
-        {
-            _activeSubscription = _registry.Active.Subscribe(_ => StartLoadForActiveRepo());
-        }
-        _commitCreatedSubscription = _bus?.SubscribeScoped<CommitCreatedMessage>(OnCommitCreated);
-        _commitSelectedSubscription = _bus?.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected);
-        _refsChangedSubscription = _bus?.SubscribeScoped<RefsChangedMessage>(OnRefsChanged);
+        _subscriptions.Add(_registry?.Active.Subscribe(_ => StartLoadForActiveRepo()));
+        _subscriptions.Add(_bus?.SubscribeScoped<CommitCreatedMessage>(OnCommitCreated));
+        _subscriptions.Add(_bus?.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected));
+        _subscriptions.Add(_bus?.SubscribeScoped<RefsChangedMessage>(OnRefsChanged));
     }
 
     protected override void OnDetachedFromContext(Context context)
     {
-        _loadGeneration++;
-        _activeSubscription?.Dispose();
-        _activeSubscription = null;
-        _commitCreatedSubscription?.Dispose();
-        _commitCreatedSubscription = null;
-        _commitSelectedSubscription?.Dispose();
-        _commitSelectedSubscription = null;
-        _refsChangedSubscription?.Dispose();
-        _refsChangedSubscription = null;
+        _loadGen.Bump();
+        _subscriptions.Dispose();
         _bus = null;
         _registry = null;
         _gitService = null;
@@ -240,9 +192,7 @@ public sealed class CommitsView : MultiChildView
         else if (rowEnd > _scrollY + bodyHeight)
             _scrollY = rowEnd - bodyHeight;
 
-        var contentHeight = snap.Commits.Count * RowHeight;
-        var maxScroll = Math.Max(0f, contentHeight - bodyHeight);
-        _scrollY = Math.Clamp(_scrollY, 0f, maxScroll);
+        _scrollY = ScrollMath.ClampScroll(_scrollY, snap.Commits.Count * RowHeight, bodyHeight);
         NotifyScrollChanged();
     }
 
@@ -251,8 +201,7 @@ public sealed class CommitsView : MultiChildView
         if (_registry == null || _gitService == null) return;
         var active = _registry.Active.Value;
 
-        _loadGeneration++;
-        var gen = _loadGeneration;
+        var gen = _loadGen.Bump();
 
         if (active == null)
         {
@@ -295,7 +244,7 @@ public sealed class CommitsView : MultiChildView
 
             dispatcher?.Post(() =>
             {
-                if (gen != _loadGeneration) return;
+                if (_loadGen.IsStale(gen)) return;
                 ApplyLoadedSnapshot(snap, isSoftRefresh);
             });
         });
@@ -321,10 +270,8 @@ public sealed class CommitsView : MultiChildView
                 _bus?.Broadcast(new CommitSelectedMessage(snap.RepoId, null));
             }
             // Clamp scroll in case the new snapshot is shorter.
-            var bodyHeight = Position.Height - HeaderHeight;
-            var contentHeight = snap.Commits.Count * RowHeight;
-            var maxScroll = Math.Max(0f, contentHeight - bodyHeight);
-            _scrollY = Math.Clamp(_scrollY, 0f, maxScroll);
+            _scrollY = ScrollMath.ClampScroll(_scrollY,
+                snap.Commits.Count * RowHeight, Position.Height - HeaderHeight);
         }
         else
         {
@@ -364,9 +311,7 @@ public sealed class CommitsView : MultiChildView
     {
         var snap = _snapshot;
         if (snap == null) return;
-        var bodyHeight = Position.Height - HeaderHeight;
-        var contentHeight = snap.Commits.Count * RowHeight;
-        var maxScroll = Math.Max(0f, contentHeight - bodyHeight);
+        var maxScroll = ScrollMath.MaxScroll(snap.Commits.Count * RowHeight, Position.Height - HeaderHeight);
         var newScroll = maxScroll * Math.Clamp(normalized, 0f, 1f);
         if (Math.Abs(newScroll - _scrollY) < 0.0001f) return;
         _scrollY = newScroll;
@@ -382,10 +327,10 @@ public sealed class CommitsView : MultiChildView
         {
             var bodyHeight = Position.Height - HeaderHeight;
             var contentHeight = snap.Commits.Count * RowHeight;
-            if (bodyHeight > 0 && contentHeight > bodyHeight)
+            var maxScroll = ScrollMath.MaxScroll(contentHeight, bodyHeight);
+            if (bodyHeight > 0 && maxScroll > 0)
             {
                 scale = bodyHeight / contentHeight;
-                var maxScroll = contentHeight - bodyHeight;
                 normalized = Math.Clamp(_scrollY / maxScroll, 0f, 1f);
             }
         }
@@ -769,9 +714,7 @@ public sealed class CommitsView : MultiChildView
 
     private void ClampScroll(RectF body, int commitCount)
     {
-        var contentHeight = commitCount * RowHeight;
-        var maxScroll = Math.Max(0f, contentHeight - body.Height);
-        _scrollY = Math.Clamp(_scrollY, 0f, maxScroll);
+        _scrollY = ScrollMath.ClampScroll(_scrollY, commitCount * RowHeight, body.Height);
         NotifyScrollChanged();
     }
 
@@ -781,13 +724,8 @@ public sealed class CommitsView : MultiChildView
         _scrollY -= deltaY * ScrollWheelStep;
         var snap = _snapshot;
         if (snap != null)
-        {
-            var bodyHeight = Position.Height - HeaderHeight;
-            var contentHeight = snap.Commits.Count * RowHeight;
-            var maxScroll = Math.Max(0f, contentHeight - bodyHeight);
-            if (_scrollY < 0f) _scrollY = 0f;
-            if (_scrollY > maxScroll) _scrollY = maxScroll;
-        }
+            _scrollY = ScrollMath.ClampScroll(_scrollY,
+                snap.Commits.Count * RowHeight, Position.Height - HeaderHeight);
         NotifyScrollChanged();
     }
 
@@ -923,7 +861,7 @@ internal sealed class CommitsViewController : KeyboardMouseController
             {
                 _activeDivider = divider;
                 _lastDragX = e.Mouse.Point.X;
-                _view.Context?.Get<InputSystem>()?.RequestFocus(this);
+                _view.Context.RequestFocus(this);
                 e.Consume();
                 return;
             }
@@ -935,7 +873,7 @@ internal sealed class CommitsViewController : KeyboardMouseController
         if (e.State == InputState.Released && _activeDivider != CommitsView.DividerKind.None)
         {
             _activeDivider = CommitsView.DividerKind.None;
-            _view.Context?.Get<InputSystem>()?.Blur(this);
+            _view.Context.Blur(this);
             e.Consume();
         }
     }

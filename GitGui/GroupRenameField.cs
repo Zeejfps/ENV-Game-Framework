@@ -53,7 +53,7 @@ internal sealed class GroupRenameKbmController : BaseTextInputKbmController
     protected override void OnAttachedToContext(View view, Context context)
     {
         _input.StartEditing();
-        context.Get<InputSystem>()?.StealFocus(this);
+        context.StealFocus(this);
     }
 
     protected override void OnKeyboardKeyPressed(ref KeyboardKeyEvent e)

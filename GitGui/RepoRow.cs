@@ -87,42 +87,10 @@ public sealed class RepoRow : MultiChildView
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
-        _label.Text = TruncateToFit(_repo.DisplayName, context);
+        _label.Text = TextMeasure.TruncateToFit(
+            _repo.DisplayName, _labelStyle, RepoBar.RowTextAvailableWidth, context.Canvas);
     }
 
-    private static string TruncateToFit(string text, Context context)
-    {
-        if (string.IsNullOrEmpty(text))
-            return text;
-
-        var available = RepoBar.RowTextAvailableWidth;
-        if (available <= 0)
-            return text;
-
-        if (Measure(text, context) <= available)
-            return text;
-
-        const string ellipsis = "…";
-        var ellipsisWidth = Measure(ellipsis, context);
-        if (ellipsisWidth > available)
-            return ellipsis;
-
-        var lo = 0;
-        var hi = text.Length;
-        while (lo < hi)
-        {
-            var mid = (lo + hi + 1) / 2;
-            if (Measure(text[..mid], context) + ellipsisWidth <= available)
-                lo = mid;
-            else
-                hi = mid - 1;
-        }
-        return text[..lo] + ellipsis;
-    }
-
-    private static float Measure(string s, Context context)
-    {
-        var probe = new TextView { Text = s, Context = context };
-        return probe.MeasureWidth();
-    }
+    // Same defaults TextView would apply to _label; reused for measurement-only purposes.
+    private static readonly TextStyle _labelStyle = new();
 }
