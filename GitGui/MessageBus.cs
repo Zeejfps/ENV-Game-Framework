@@ -24,7 +24,6 @@ public sealed class MessageBus : IMessageBus
             list = [];
             _handlers[typeof(T)] = list;
         }
-        Console.WriteLine($"Subscribing {handler}");
         list.Add(handler);
     }
 
