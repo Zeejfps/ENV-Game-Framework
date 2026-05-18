@@ -573,12 +573,20 @@ public sealed class LocalChangesView : MultiChildView
     private void ShowSnapshot(LocalChangesSnapshot snap)
     {
         _stagedFromIndex = snap.Staged;
+        // Re-attach the snapshot container BEFORE populating panels. After a checkout the
+        // load transitions via Placeholder("Loading…"), which swaps `_placeholder` into
+        // `_centerContainer` and leaves `_snapshotContainer` (and the panels inside it) as
+        // a detached subtree. Appending new row views to a detached parent leaves them
+        // un-attached, and the rows render blank when the container later returns — even
+        // though the header text (a string mutation on a still-live TextView) updates fine.
+        // Attaching first means every SelectableFileRowView SetFiles adds is born into an
+        // attached parent.
+        _centerContainer.Children.Clear();
+        _centerContainer.Children.Add(_snapshotContainer);
         _unstagedPanel.SetFiles(snap.Unstaged);
         _stagedPanel.SetFiles(ComputeDisplayedStaged());
         // SetFiles clears both panels' selections, which fires the selection subscriptions
         // and drives UpdateDiffVisibility — so the diff item collapses on its own here.
-        _centerContainer.Children.Clear();
-        _centerContainer.Children.Add(_snapshotContainer);
         UpdateCommitButtonEnabled();
     }
 

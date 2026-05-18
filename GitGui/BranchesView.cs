@@ -52,6 +52,13 @@ public sealed class BranchesView : MultiChildView
     private int _lastClickTickMs;
     private int _lastClickRowIndex = -1;
 
+    // Set while a `git checkout` we triggered is in flight. We ignore further activations
+    // (the GitService per-repo lock would queue them anyway, but blocking at the UI is less
+    // surprising than silently queueing) and dim the target row so the user has something
+    // to look at while the CLI works.
+    private bool _isCheckingOut;
+    private string? _checkingOutBranchName;
+
     // Ahead = "need to push", behind = "need to pull". Greenish + amber for at-a-glance.
     // Number uses the default font; icon uses the Lucide glyphs the toolbar push/pull
     // buttons use so the visual vocabulary stays consistent.
@@ -60,6 +67,8 @@ public sealed class BranchesView : MultiChildView
 
     private readonly TextStyle _branchTextStyle = TextStyles.Row(CommitsPalette.RowText);
     private readonly TextStyle _branchTextSelectedStyle = TextStyles.Row(CommitsPalette.RowTextActive);
+    private readonly TextStyle _branchTextBusyStyle = TextStyles.Row(DialogPalette.RowTextMissing);
+    private readonly TextStyle _branchIconBusyStyle = TextStyles.Icon(DialogPalette.RowTextMissing);
     private readonly TextStyle _headTextStyle = new()
     {
         TextColor = CommitsPalette.RowTextActive,
@@ -412,9 +421,11 @@ public sealed class BranchesView : MultiChildView
         var textWidth = Math.Max(0f, rightEdge - contentLeft);
         if (textWidth <= 0f) return;
 
+        var isBusy = IsBusyRow(row);
         var (text, style) = row.Kind switch
         {
             RowKind.LocalHeader or RowKind.RemotesHeader or RowKind.RemoteHeader => (row.DisplayName, _headerTextStyle),
+            RowKind.LocalBranch when isBusy => (row.DisplayName, _branchTextBusyStyle),
             RowKind.LocalBranch when row.IsHead => (row.DisplayName, _headTextStyle),
             _ => (row.DisplayName, isSelected ? _branchTextSelectedStyle : _branchTextStyle),
         };
@@ -441,7 +452,9 @@ public sealed class BranchesView : MultiChildView
         else
         {
             glyph = LucideIcons.Branch;
-            style = (row.IsHead || isSelected) ? _branchIconActiveStyle : _branchIconStyle;
+            style = IsBusyRow(row)
+                ? _branchIconBusyStyle
+                : ((row.IsHead || isSelected) ? _branchIconActiveStyle : _branchIconStyle);
         }
 
         var width = Context!.Canvas.MeasureTextWidth(glyph, style);
@@ -625,6 +638,10 @@ public sealed class BranchesView : MultiChildView
 
     private void HandleActivate(Row row)
     {
+        // Block double-click activations while a checkout we own is in flight; the GitService
+        // lock would queue the next one safely but the user would see no feedback and might
+        // queue several more before the first completes.
+        if (_isCheckingOut) return;
         switch (row.Kind)
         {
             case RowKind.LocalBranch:
@@ -649,6 +666,12 @@ public sealed class BranchesView : MultiChildView
         }
     }
 
+    private bool IsBusyRow(Row row) =>
+        _isCheckingOut
+        && row.Kind == RowKind.LocalBranch
+        && row.FullPath != null
+        && row.FullPath == _checkingOutBranchName;
+
     private bool LocalBranchExists(string name)
     {
         var listing = _listing;
@@ -665,6 +688,10 @@ public sealed class BranchesView : MultiChildView
         var bus = _bus;
         var repo = _registry?.Active.Value;
         if (service == null || dispatcher == null || bus == null || repo == null) return;
+        if (_isCheckingOut) return;
+
+        _isCheckingOut = true;
+        _checkingOutBranchName = branchName;
 
         Task.Run(() =>
         {
@@ -674,6 +701,8 @@ public sealed class BranchesView : MultiChildView
 
             dispatcher.Post(() =>
             {
+                _isCheckingOut = false;
+                _checkingOutBranchName = null;
                 if (outcome.Success)
                     bus.Broadcast(new RefsChangedMessage(repo.Id));
                 else

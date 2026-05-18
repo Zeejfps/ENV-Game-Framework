@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using LibGit2Sharp;
 
@@ -5,6 +6,25 @@ namespace GitGui;
 
 public sealed class GitService : IGitService
 {
+    // Every git write touches .git/index.lock; two writes against the same repo at the same
+    // time (e.g. a checkout from the sidebar racing a stage from the local-changes panel, or
+    // an impatient user double-clicking branches) collide with "Unable to create
+    // '.git/index.lock': File exists". Serialize all mutating ops per repo so the call sites
+    // can't race each other — their own UI-busy flags become cosmetic, not correctness guards.
+    // Reads stay unguarded; libgit2/git CLI tolerate concurrent reads, and the next
+    // RefsChangedMessage refresh corrects any brief inconsistency.
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _repoLocks =
+        new(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+
+    private static SemaphoreSlim GetRepoLock(string repoPath)
+    {
+        string key;
+        try { key = Path.GetFullPath(repoPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar); }
+        catch { key = repoPath; }
+        return _repoLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+    }
+
+
     public CommitSnapshot Load(Repo repo, int cap)
     {
         try
@@ -351,36 +371,54 @@ public sealed class GitService : IGitService
     public void Stage(Repo repo, IReadOnlyList<string> paths)
     {
         if (paths.Count == 0) return;
-        using var lg = new Repository(repo.Path);
-        Commands.Stage(lg, paths);
+        var sem = GetRepoLock(repo.Path);
+        sem.Wait();
+        try
+        {
+            using var lg = new Repository(repo.Path);
+            Commands.Stage(lg, paths);
+        }
+        finally { sem.Release(); }
     }
 
     public void Unstage(Repo repo, IReadOnlyList<string> paths)
     {
         if (paths.Count == 0) return;
-        using var lg = new Repository(repo.Path);
-        Commands.Unstage(lg, paths);
+        var sem = GetRepoLock(repo.Path);
+        sem.Wait();
+        try
+        {
+            using var lg = new Repository(repo.Path);
+            Commands.Unstage(lg, paths);
+        }
+        finally { sem.Release(); }
     }
 
     public void ResetToParent(Repo repo, IReadOnlyList<string> paths)
     {
         if (paths.Count == 0) return;
-        using var lg = new Repository(repo.Path);
-        var tip = lg.Head?.Tip;
-        if (tip == null) return;
-        var parent = tip.Parents.FirstOrDefault();
-        // Mirrors `git reset <parent|root> -- <paths>` by rewriting index entries directly:
-        // each path's index entry is replaced with the parent's blob (or removed if the
-        // path isn't in the parent / there is no parent). Working tree is untouched.
-        foreach (var p in paths)
+        var sem = GetRepoLock(repo.Path);
+        sem.Wait();
+        try
         {
-            var entry = parent?[p];
-            if (entry?.Target is Blob blob)
-                lg.Index.Add(blob, p, entry.Mode);
-            else
-                lg.Index.Remove(p);
+            using var lg = new Repository(repo.Path);
+            var tip = lg.Head?.Tip;
+            if (tip == null) return;
+            var parent = tip.Parents.FirstOrDefault();
+            // Mirrors `git reset <parent|root> -- <paths>` by rewriting index entries directly:
+            // each path's index entry is replaced with the parent's blob (or removed if the
+            // path isn't in the parent / there is no parent). Working tree is untouched.
+            foreach (var p in paths)
+            {
+                var entry = parent?[p];
+                if (entry?.Target is Blob blob)
+                    lg.Index.Add(blob, p, entry.Mode);
+                else
+                    lg.Index.Remove(p);
+            }
+            lg.Index.Write();
         }
-        lg.Index.Write();
+        finally { sem.Release(); }
     }
 
     public string? Commit(Repo repo, string message, bool amend)
@@ -390,27 +428,33 @@ public sealed class GitService : IGitService
             if (!Repository.IsValid(repo.Path))
                 return "Not a git repository.";
 
-            using var lg = new Repository(repo.Path);
-            // BuildSignature returns null when user.name / user.email are missing — turn
-            // that into a friendly message rather than the ArgumentNullException libgit2
-            // would throw if we passed null straight through.
-            var sig = lg.Config.BuildSignature(DateTimeOffset.Now);
-            if (sig == null)
-                return "Set git user.name and user.email before committing.";
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                using var lg = new Repository(repo.Path);
+                // BuildSignature returns null when user.name / user.email are missing — turn
+                // that into a friendly message rather than the ArgumentNullException libgit2
+                // would throw if we passed null straight through.
+                var sig = lg.Config.BuildSignature(DateTimeOffset.Now);
+                if (sig == null)
+                    return "Set git user.name and user.email before committing.";
 
-            if (amend)
-            {
-                var tip = lg.Head?.Tip;
-                if (tip == null) return "Nothing to amend — HEAD has no commits.";
-                // Keep the original author (matches `git commit --amend` default); update
-                // the committer + time to the current user.
-                lg.Commit(message, tip.Author, sig, new CommitOptions { AmendPreviousCommit = true });
+                if (amend)
+                {
+                    var tip = lg.Head?.Tip;
+                    if (tip == null) return "Nothing to amend — HEAD has no commits.";
+                    // Keep the original author (matches `git commit --amend` default); update
+                    // the committer + time to the current user.
+                    lg.Commit(message, tip.Author, sig, new CommitOptions { AmendPreviousCommit = true });
+                }
+                else
+                {
+                    lg.Commit(message, sig, sig);
+                }
+                return null;
             }
-            else
-            {
-                lg.Commit(message, sig, sig);
-            }
-            return null;
+            finally { sem.Release(); }
         }
         catch (Exception ex)
         {
@@ -506,37 +550,43 @@ public sealed class GitService : IGitService
             if (!Repository.IsValid(repo.Path))
                 return new PushOutcome(false, "Not a git repository.");
 
-            // Pre-flight: refuse to push from detached HEAD or a branch with no upstream,
-            // because the resulting `git push` error is less actionable than these messages.
-            using (var lg = new Repository(repo.Path))
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
             {
-                if (lg.Info.IsHeadDetached)
-                    return new PushOutcome(false, "HEAD is detached. Check out a branch first.");
-                var head = lg.Head;
-                if (head?.TrackedBranch == null)
+                // Pre-flight: refuse to push from detached HEAD or a branch with no upstream,
+                // because the resulting `git push` error is less actionable than these messages.
+                using (var lg = new Repository(repo.Path))
                 {
-                    var name = head?.FriendlyName ?? "(unknown)";
-                    return new PushOutcome(false,
-                        $"Branch '{name}' has no upstream. Set one with: git push -u <remote> {name}");
+                    if (lg.Info.IsHeadDetached)
+                        return new PushOutcome(false, "HEAD is detached. Check out a branch first.");
+                    var head = lg.Head;
+                    if (head?.TrackedBranch == null)
+                    {
+                        var name = head?.FriendlyName ?? "(unknown)";
+                        return new PushOutcome(false,
+                            $"Branch '{name}' has no upstream. Set one with: git push -u <remote> {name}");
+                    }
                 }
+
+                var psi = BuildGitProcessStartInfo("push", repo.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new PushOutcome(false, "Failed to start git.");
+
+                // Read both streams concurrently so a full pipe buffer on either side can't deadlock.
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+
+                if (proc.ExitCode == 0) return new PushOutcome(true, null);
+                var combined = stderr.Length > 0 ? stderr : stdout;
+                var msg = FirstMeaningfulLine(combined);
+                if (string.IsNullOrEmpty(msg)) msg = $"git push exited with code {proc.ExitCode}.";
+                return new PushOutcome(false, msg);
             }
-
-            var psi = BuildGitProcessStartInfo("push", repo.Path);
-            using var proc = Process.Start(psi);
-            if (proc == null) return new PushOutcome(false, "Failed to start git.");
-
-            // Read both streams concurrently so a full pipe buffer on either side can't deadlock.
-            var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-            var stderrTask = proc.StandardError.ReadToEndAsync();
-            proc.WaitForExit();
-            var stderr = stderrTask.GetAwaiter().GetResult();
-            var stdout = stdoutTask.GetAwaiter().GetResult();
-
-            if (proc.ExitCode == 0) return new PushOutcome(true, null);
-            var combined = stderr.Length > 0 ? stderr : stdout;
-            var msg = FirstMeaningfulLine(combined);
-            if (string.IsNullOrEmpty(msg)) msg = $"git push exited with code {proc.ExitCode}.";
-            return new PushOutcome(false, msg);
+            finally { sem.Release(); }
         }
         catch (Exception ex)
         {
@@ -551,34 +601,40 @@ public sealed class GitService : IGitService
             if (!Repository.IsValid(repo.Path))
                 return new PullOutcome(false, "Not a git repository.");
 
-            using (var lg = new Repository(repo.Path))
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
             {
-                if (lg.Info.IsHeadDetached)
-                    return new PullOutcome(false, "HEAD is detached. Check out a branch first.");
-                var head = lg.Head;
-                if (head?.TrackedBranch == null)
+                using (var lg = new Repository(repo.Path))
                 {
-                    var name = head?.FriendlyName ?? "(unknown)";
-                    return new PullOutcome(false,
-                        $"Branch '{name}' has no upstream. Set one with: git branch --set-upstream-to=<remote>/<branch>");
+                    if (lg.Info.IsHeadDetached)
+                        return new PullOutcome(false, "HEAD is detached. Check out a branch first.");
+                    var head = lg.Head;
+                    if (head?.TrackedBranch == null)
+                    {
+                        var name = head?.FriendlyName ?? "(unknown)";
+                        return new PullOutcome(false,
+                            $"Branch '{name}' has no upstream. Set one with: git branch --set-upstream-to=<remote>/<branch>");
+                    }
                 }
+
+                var psi = BuildGitProcessStartInfo("pull", repo.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new PullOutcome(false, "Failed to start git.");
+
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+
+                if (proc.ExitCode == 0) return new PullOutcome(true, null);
+                var combined = stderr.Length > 0 ? stderr : stdout;
+                var msg = FirstMeaningfulLine(combined);
+                if (string.IsNullOrEmpty(msg)) msg = $"git pull exited with code {proc.ExitCode}.";
+                return new PullOutcome(false, msg);
             }
-
-            var psi = BuildGitProcessStartInfo("pull", repo.Path);
-            using var proc = Process.Start(psi);
-            if (proc == null) return new PullOutcome(false, "Failed to start git.");
-
-            var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-            var stderrTask = proc.StandardError.ReadToEndAsync();
-            proc.WaitForExit();
-            var stderr = stderrTask.GetAwaiter().GetResult();
-            var stdout = stdoutTask.GetAwaiter().GetResult();
-
-            if (proc.ExitCode == 0) return new PullOutcome(true, null);
-            var combined = stderr.Length > 0 ? stderr : stdout;
-            var msg = FirstMeaningfulLine(combined);
-            if (string.IsNullOrEmpty(msg)) msg = $"git pull exited with code {proc.ExitCode}.";
-            return new PullOutcome(false, msg);
+            finally { sem.Release(); }
         }
         catch (Exception ex)
         {
@@ -595,7 +651,10 @@ public sealed class GitService : IGitService
             if (!Repository.IsValid(repo.Path))
                 return new CheckoutOutcome(false, "Not a git repository.");
 
-            return RunGitCheckout(repo.Path, new[] { "checkout", branchName });
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try { return RunGitCheckout(repo.Path, new[] { "checkout", branchName }); }
+            finally { sem.Release(); }
         }
         catch (Exception ex)
         {
@@ -616,7 +675,10 @@ public sealed class GitService : IGitService
                 track ? "--track" : "--no-track",
                 $"{remoteName}/{remoteBranchName}",
             };
-            return RunGitCheckout(repo.Path, args);
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try { return RunGitCheckout(repo.Path, args); }
+            finally { sem.Release(); }
         }
         catch (Exception ex)
         {
