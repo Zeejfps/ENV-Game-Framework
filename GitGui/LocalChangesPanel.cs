@@ -16,14 +16,55 @@ internal sealed class LocalChangesPanel : MultiChildView
     private readonly ScrollPane _scrollPane;
     private readonly VerticalScrollBarView _scrollBar;
     private readonly HorizontalScrollBarView _hScrollBar;
-    private readonly State<HashSet<string>> _selection = new(new HashSet<string>());
-    private IReadOnlyList<FileChange> _files = Array.Empty<FileChange>();
-    private string? _anchorPath;
+    private readonly State<PanelSnapshot> _state = new(PanelSnapshot.Empty);
+    private readonly Derived<HashSet<string>> _selection;
     private Action<string>? _onRowActivated;
 
     public IReadable<HashSet<string>> Selection => _selection;
-    public IReadOnlyCollection<string> SelectedPaths => _selection.Value;
-    public IReadOnlyList<FileChange> Files => _files;
+    public IReadOnlyCollection<string> SelectedPaths => _state.Value.Selection;
+    public IReadOnlyList<FileChange> Files => _state.Value.Files;
+
+    /// <summary>
+    /// Immutable bundle of the panel's three coupled fields: the file list, the
+    /// selection set, and the shift-anchor. The constructor is private; the only way
+    /// to obtain a snapshot is via <see cref="Create"/>, which prunes <paramref name="selection"/>
+    /// and <paramref name="anchor"/> against <paramref name="files"/>. That guarantees the
+    /// invariant <c>Selection ⊆ Files.Paths ∧ (Anchor is null ∨ Anchor ∈ Files.Paths)</c>
+    /// at the type level — a state where selection references a path no longer in the
+    /// list is unrepresentable, so a list refresh cannot silently desync the selection.
+    /// </summary>
+    private sealed record PanelSnapshot
+    {
+        public IReadOnlyList<FileChange> Files { get; }
+        public HashSet<string> Selection { get; }
+        public string? Anchor { get; }
+
+        public static readonly PanelSnapshot Empty = new(
+            Array.Empty<FileChange>(), new HashSet<string>(), null);
+
+        private PanelSnapshot(IReadOnlyList<FileChange> files, HashSet<string> selection, string? anchor)
+        {
+            Files = files;
+            Selection = selection;
+            Anchor = anchor;
+        }
+
+        public static PanelSnapshot Create(
+            IReadOnlyList<FileChange> files,
+            IEnumerable<string> selection,
+            string? anchor)
+        {
+            var paths = new HashSet<string>(files.Count);
+            foreach (var f in files) paths.Add(f.Path);
+
+            var nextSelection = new HashSet<string>();
+            foreach (var p in selection)
+                if (paths.Contains(p)) nextSelection.Add(p);
+
+            var nextAnchor = anchor != null && paths.Contains(anchor) ? anchor : null;
+            return new PanelSnapshot(files, nextSelection, nextAnchor);
+        }
+    }
 
     public LocalChangesPanel(
         string title,
@@ -34,6 +75,7 @@ internal sealed class LocalChangesPanel : MultiChildView
     {
         _title = title;
         _onRowActivated = onRowActivated;
+        _selection = new Derived<HashSet<string>>(() => _state.Value.Selection);
 
         _headerText = FileChangesUI.CreateHeaderText(title);
         _rows = new ColumnView { Gap = FileChangesUI.RowGap };
@@ -113,12 +155,14 @@ internal sealed class LocalChangesPanel : MultiChildView
 
     public void SetFiles(IReadOnlyList<FileChange> files)
     {
-        _files = files;
-        _anchorPath = null;
+        var prev = _state.Value;
+        // Create normalizes selection/anchor against the new file set — paths still
+        // present survive, paths that vanished are pruned. The same SetFiles call that
+        // refreshes the list also delivers the post-refresh selection state, so an
+        // unrelated reload (working-tree watcher, refs change) can never wipe a still-
+        // valid selection out from under the diff view.
+        _state.Value = PanelSnapshot.Create(files, prev.Selection, prev.Anchor);
         _headerText.Text = FileChangesUI.FormatHeader(_title, files.Count);
-        // The path set changed; drop any selection that no longer points at a real row.
-        if (_selection.Value.Count > 0)
-            _selection.Value = new HashSet<string>();
         _rows.Children.Clear();
         if (files.Count == 0)
         {
@@ -134,73 +178,63 @@ internal sealed class LocalChangesPanel : MultiChildView
 
     public void ClearSelection()
     {
-        _anchorPath = null;
-        if (_selection.Value.Count == 0) return;
-        _selection.Value = new HashSet<string>();
+        var prev = _state.Value;
+        if (prev.Selection.Count == 0 && prev.Anchor == null) return;
+        _state.Value = PanelSnapshot.Create(prev.Files, Array.Empty<string>(), null);
     }
 
     public void SetSelection(IReadOnlyCollection<string> paths)
     {
         if (paths.Count == 0) return;
-        var available = new HashSet<string>(_files.Count);
-        foreach (var f in _files) available.Add(f.Path);
-
-        HashSet<string>? next = null;
+        var prev = _state.Value;
         string? anchor = null;
-        foreach (var p in paths)
-        {
-            if (!available.Contains(p)) continue;
-            (next ??= new HashSet<string>()).Add(p);
-            anchor ??= p;
-        }
-        if (next == null) return;
-
-        _anchorPath = anchor;
-        _selection.Value = next;
+        foreach (var p in paths) { anchor = p; break; }
+        var next = PanelSnapshot.Create(prev.Files, paths, anchor);
+        if (next.Selection.Count == 0) return;
+        _state.Value = next;
     }
 
     private void HandleRowClick(string path, InputModifiers modifiers)
     {
+        var prev = _state.Value;
         var shift = (modifiers & InputModifiers.Shift) != 0;
         // Cmd on macOS reports as Super; Ctrl on Windows/Linux as Control. Treat both
         // as the toggle-modifier so the panel feels right on every host.
         var toggle = (modifiers & (InputModifiers.Control | InputModifiers.Super)) != 0;
 
-        if (shift && _anchorPath != null)
+        if (shift && prev.Anchor != null)
         {
-            var anchorIdx = IndexOfPath(_anchorPath);
-            var clickIdx = IndexOfPath(path);
+            var anchorIdx = IndexOfPath(prev.Files, prev.Anchor);
+            var clickIdx = IndexOfPath(prev.Files, path);
             if (anchorIdx >= 0 && clickIdx >= 0)
             {
                 var lo = Math.Min(anchorIdx, clickIdx);
                 var hi = Math.Max(anchorIdx, clickIdx);
-                var next = new HashSet<string>();
+                var range = new List<string>(hi - lo + 1);
                 for (var i = lo; i <= hi; i++)
-                    next.Add(_files[i].Path);
-                _selection.Value = next;
+                    range.Add(prev.Files[i].Path);
                 // Anchor intentionally stays — extending the shift-range pivots around it.
+                _state.Value = PanelSnapshot.Create(prev.Files, range, prev.Anchor);
                 return;
             }
         }
 
         if (toggle)
         {
-            var next = new HashSet<string>(_selection.Value);
+            var next = new HashSet<string>(prev.Selection);
             if (!next.Add(path)) next.Remove(path);
-            _selection.Value = next;
-            _anchorPath = path;
+            _state.Value = PanelSnapshot.Create(prev.Files, next, path);
             return;
         }
 
-        _selection.Value = new HashSet<string> { path };
-        _anchorPath = path;
+        _state.Value = PanelSnapshot.Create(prev.Files, [path], path);
     }
 
-    private int IndexOfPath(string path)
+    private static int IndexOfPath(IReadOnlyList<FileChange> files, string path)
     {
-        for (var i = 0; i < _files.Count; i++)
+        for (var i = 0; i < files.Count; i++)
         {
-            if (_files[i].Path == path) return i;
+            if (files[i].Path == path) return i;
         }
         return -1;
     }
