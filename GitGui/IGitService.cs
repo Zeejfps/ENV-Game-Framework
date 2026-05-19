@@ -36,6 +36,11 @@ public enum RepoOperationState
     Revert,
     Bisect,
     ApplyMailbox,
+    // Index has unmerged entries but no in-progress op sentinel exists. Happens after
+    // `git stash apply` / `git checkout -m` / `git read-tree -m` conflict — git leaves
+    // unmerged paths but doesn't write MERGE_HEAD, so the user has to resolve and stage
+    // with no specific op to abort or continue.
+    UnmergedPaths,
 }
 
 public sealed record HeadCommitMessage(string Title, string Description);

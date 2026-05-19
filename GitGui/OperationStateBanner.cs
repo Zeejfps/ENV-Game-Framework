@@ -73,6 +73,8 @@ internal sealed class OperationStateBanner
             "Patch apply in progress — working directory contains unmerged files. Resolve conflicts and continue, or use the terminal to abort.",
         RepoOperationState.Bisect =>
             "Bisect in progress. Use the terminal to mark commits good/bad or to reset.",
+        RepoOperationState.UnmergedPaths =>
+            "Working directory contains unresolved conflicts. Resolve them and stage the files to clear this state.",
         _ => string.Empty,
     };
 }

@@ -1479,8 +1479,15 @@ public sealed class GitService : IGitService
         {
             if (!Repository.IsValid(repo.Path)) return RepoOperationState.None;
             string gitDir;
+            bool hasConflicts;
             using (var lg = new Repository(repo.Path))
+            {
                 gitDir = lg.Info.Path;
+                // IsFullyMerged is the cheapest probe — single read of the index header's
+                // unmerged-entries count. Captured here so we don't have to re-open the
+                // repo if the sentinel-file checks come back empty.
+                hasConflicts = !lg.Index.IsFullyMerged;
+            }
 
             // Order matters only for AM-vs-Rebase: `git am` uses rebase-apply/ too, but adds
             // an `applying` marker. Check the marker before falling through to plain rebase.
@@ -1495,7 +1502,12 @@ public sealed class GitService : IGitService
             if (File.Exists(Path.Combine(gitDir, "REVERT_HEAD"))) return RepoOperationState.Revert;
             if (File.Exists(Path.Combine(gitDir, "MERGE_HEAD"))) return RepoOperationState.Merge;
             if (File.Exists(Path.Combine(gitDir, "BISECT_LOG"))) return RepoOperationState.Bisect;
-            return RepoOperationState.None;
+
+            // No in-progress op, but the index still has unmerged entries — typically a
+            // `git stash apply` that conflicted, or a `checkout -m` / `read-tree -m` left
+            // partway. Fall back to a generic banner so the user isn't left wondering
+            // why their working tree is full of conflict markers.
+            return hasConflicts ? RepoOperationState.UnmergedPaths : RepoOperationState.None;
         }
         catch
         {
