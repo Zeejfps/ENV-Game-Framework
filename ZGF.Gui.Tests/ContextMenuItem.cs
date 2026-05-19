@@ -27,11 +27,7 @@ public sealed class ContextMenuItem : MultiChildView
     public StyleValue<uint> SelectedBackgroundColor
     {
         get => _selectedBackgroundColor;
-        set
-        {
-            Console.WriteLine("SelectedBackgroundColor");
-            SetField(ref _selectedBackgroundColor, value);
-        }
+        set => SetField(ref _selectedBackgroundColor, value);
     }
 
     private readonly RectView _bg;
@@ -83,7 +79,6 @@ public sealed class ContextMenuItem : MultiChildView
             {
                 if (_isSelected)
                 {
-                    Console.Write(SelectedBackgroundColor);
                     _bg.BackgroundColor = SelectedBackgroundColor;
                 }
                 else
