@@ -78,7 +78,7 @@ public sealed class CommitDetailsView : MultiChildView, ICommitDetailsView
             },
         });
 
-        this.UseController(_ => new CommitDetailsScrollSyncController(_scrollPane, _vScrollBar, _hScrollBar));
+        this.UseController(_ => new ScrollSyncController(_scrollPane, _vScrollBar, _hScrollBar));
 
         this.UsePresenter(ctx => new CommitDetailsPresenter(
             this,
@@ -262,35 +262,3 @@ internal sealed class ScrollPaneWheelController : KeyboardMouseController
     }
 }
 
-internal sealed class CommitDetailsScrollSyncController : KeyboardMouseController, IDisposable
-{
-    private readonly ScrollPane _pane;
-    private readonly VerticalScrollBarView _vScrollBar;
-    private readonly HorizontalScrollBarView _hScrollBar;
-
-    public CommitDetailsScrollSyncController(ScrollPane pane, VerticalScrollBarView vScrollBar, HorizontalScrollBarView hScrollBar)
-    {
-        _pane = pane;
-        _vScrollBar = vScrollBar;
-        _hScrollBar = hScrollBar;
-
-        _pane.VerticalScrollPositionChanged += OnPaneVerticalScroll;
-        _pane.HorizontalScrollPositionChanged += OnPaneHorizontalScroll;
-        _vScrollBar.ScrollPositionChanged += _pane.SetVerticalNormalizedScrollPosition;
-        _hScrollBar.ScrollPositionChanged += _pane.SetHorizontalNormalizedScrollPosition;
-    }
-
-    public void Dispose()
-    {
-        _pane.VerticalScrollPositionChanged -= OnPaneVerticalScroll;
-        _pane.HorizontalScrollPositionChanged -= OnPaneHorizontalScroll;
-        _vScrollBar.ScrollPositionChanged -= _pane.SetVerticalNormalizedScrollPosition;
-        _hScrollBar.ScrollPositionChanged -= _pane.SetHorizontalNormalizedScrollPosition;
-    }
-
-    private void OnPaneVerticalScroll(float normalized)
-        => ScrollBarSync.ApplyVertical(_vScrollBar, _pane.VerticalScale, normalized);
-
-    private void OnPaneHorizontalScroll(float normalized)
-        => ScrollBarSync.ApplyHorizontal(_hScrollBar, _pane.HorizontalScale, normalized);
-}

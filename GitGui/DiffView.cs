@@ -50,7 +50,7 @@ public sealed class DiffView : MultiChildView, IDiffView
             },
         });
 
-        this.UseController(_ => new DiffContentScrollSyncController(_content, vScrollBar, hScrollBar));
+        this.UseController(_ => new ScrollSyncController(_content, vScrollBar, hScrollBar));
         this.UsePresenter(ctx => new DiffPresenter(
             this,
             ctx.Require<IRepoRegistry>(),

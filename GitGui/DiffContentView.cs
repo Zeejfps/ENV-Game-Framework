@@ -1,5 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Gui.Tests;
 
 namespace GitGui;
 
@@ -8,7 +9,7 @@ namespace GitGui;
 /// the viewport in <see cref="OnDrawSelf"/>. Emits normalized scroll-position and scale
 /// updates so an external scrollbar sync controller can drive the scrollbars.
 /// </summary>
-internal sealed class DiffContentView : View
+internal sealed class DiffContentView : View, IScrollableContent
 {
     private const float GlyphColumnWidth = 18f;
     private const float BannerPaddingX = 8f;

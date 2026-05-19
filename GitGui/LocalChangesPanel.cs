@@ -108,7 +108,7 @@ internal sealed class LocalChangesPanel : MultiChildView
             South = _hScrollBar,
         });
 
-        this.UseController(_ => new LocalChangesScrollSyncController(_scrollPane, _scrollBar, _hScrollBar));
+        this.UseController(_ => new ScrollSyncController(_scrollPane, _scrollBar, _hScrollBar));
     }
 
     public void SetFiles(IReadOnlyList<FileChange> files)

@@ -90,7 +90,7 @@ internal sealed class GrowingDescriptionField : MultiChildView
             },
         });
 
-        this.UseController(_ => new LocalChangesScrollSyncController(_scrollPane, _scrollBar));
+        this.UseController(_ => new ScrollSyncController(_scrollPane, _scrollBar));
 
         // Start at the min size; the first OnLayoutChildren pass will refine this.
         PreferredHeight = _minHeight;
