@@ -9,6 +9,7 @@ internal readonly record struct LocalChangesState(
     string? LoadError,
     IReadOnlyList<FileChange> Unstaged,
     IReadOnlyList<FileChange> Staged,
+    Selection Selection,
     string? OpError)
 {
     public const string OpenRepoPlaceholder = "Open a repository to see local changes.";
@@ -23,6 +24,7 @@ internal readonly record struct LocalChangesState(
         LoadError: null,
         Unstaged: [],
         Staged: [],
+        Selection: Selection.Empty,
         OpError: null);
 
     // Placeholder is derived, not settable. Loading never tears the panels down when

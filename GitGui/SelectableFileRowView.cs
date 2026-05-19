@@ -7,9 +7,11 @@ namespace GitGui;
 
 /// <summary>
 /// Row in the local-changes lists. Same badge+path content as FileChangeRowView, but
-/// clickable with reactive selection and hover backgrounds. The panel above handles
-/// the modifier semantics (plain = single-select, Shift = range, Ctrl/Cmd = toggle);
-/// this row just forwards the click + modifier state and renders the resulting state.
+/// clickable with reactive selection and hover backgrounds. Selection lives on the
+/// view model (one <see cref="Selection"/> for both sides), not on the panel, so the
+/// row's highlight binding just asks "is my (path, side) in the current selection?".
+/// Modifier semantics (plain = single-select, Shift = range, Ctrl/Cmd = toggle) live
+/// on the VM's <c>SelectRow</c> — the row forwards the modifiers and its identity.
 /// </summary>
 internal sealed class SelectableFileRowView : MultiChildView
 {
@@ -18,15 +20,17 @@ internal sealed class SelectableFileRowView : MultiChildView
 
     public SelectableFileRowView(
         FileChange file,
-        IReadable<HashSet<string>> selection,
-        Action<string, InputModifiers> onClick,
-        Action<string>? onActivate = null)
+        DiffSide side,
+        IReadable<Selection> selection,
+        Action<DiffTarget, InputModifiers> onClick,
+        Action<DiffTarget>? onActivate = null)
     {
         var isHovered = new State<bool>(false);
         var path = file.Path;
+        var target = new DiffTarget(path, side);
 
         var pathText = new TextView { Text = FileChangesPalette.FormatPath(file) };
-        pathText.BindTextColor(() => selection.Value.Contains(path)
+        pathText.BindTextColor(() => selection.Value.Contains(path, side)
             ? DialogPalette.RowTextActive
             : DialogPalette.RowText);
 
@@ -54,15 +58,15 @@ internal sealed class SelectableFileRowView : MultiChildView
             Children = { content },
         };
         background.BindBackgroundColor(() =>
-            selection.Value.Contains(path) ? DialogPalette.RowActive
+            selection.Value.Contains(path, side) ? DialogPalette.RowActive
             : isHovered.Value ? DialogPalette.RowHover
             : DialogPalette.RowTransparent);
 
         AddChildToSelf(background);
 
         this.UseController(_ => new SelectableRowController(
-            mods => onClick(path, mods),
+            mods => onClick(target, mods),
             h => isHovered.Value = h,
-            onActivate != null ? () => onActivate(path) : null));
+            onActivate != null ? () => onActivate(target) : null));
     }
 }

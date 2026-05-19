@@ -1,3 +1,4 @@
+using ZGF.Gui;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -6,7 +7,13 @@ namespace GitGui;
 /// View model for the Local Changes feature. State lives in a single immutable
 /// <see cref="LocalChangesState"/> record; <see cref="ViewModelBase{TState}.Update"/> is
 /// the only mutation primitive. Views subscribe to per-field slices (auto-deduped by
-/// equality) and call the command methods to drive git ops. The VM holds no view references.
+/// equality) and call the command methods to drive git ops and row interactions.
+///
+/// Selection state lives here too — not in the panels — so the lists and the selection
+/// always change in lockstep through a single <see cref="Update"/> call. That makes
+/// invalid combinations (a selected path no longer in any list, the diff view targeting
+/// a path that just moved sides) unrepresentable, and removes the cross-panel
+/// coordination that used to be needed to keep the two sides mutually exclusive.
 /// </summary>
 internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
 {
@@ -15,27 +22,18 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     private readonly IRepoRegistry _registry;
     private readonly IGitService _gitService;
     private readonly IMessageBus _bus;
-    
+
     public IReadable<string> Title { get; }
     public IReadable<string> Description { get; }
     public IReadable<bool> Amend { get; }
     public IReadable<string?> Placeholder { get; }
     public IReadable<IReadOnlyList<FileChange>> Unstaged { get; }
     public IReadable<IReadOnlyList<FileChange>> Staged { get; }
+    public IReadable<Selection> Selection { get; }
+    public IReadable<DiffTarget?> SelectedTarget { get; }
+    public IReadable<bool> DiscardEnabled { get; }
     public IReadable<string?> OpError { get; }
     public IReadable<bool> CommitEnabled { get; }
-
-    /// <summary>
-    /// Fired during a successful stage/unstage to hand the destination panel its new
-    /// file list together with the paths to select — atomically, before the snapshot
-    /// <c>Update</c> that follows pushes the source side's new file list through the
-    /// slice subscribers. Carrying the destination's file list here (rather than letting
-    /// the slice subscription deliver it later) lets the view place the diff view's
-    /// target on the destination row before the source-side update can transiently
-    /// blank the selection, which would otherwise cause the diff to flicker off.
-    /// Selection state is owned by the view, not the VM.
-    /// </summary>
-    public event Action<DiffSide, IReadOnlyList<FileChange>, IReadOnlyList<string>>? SelectionRequested;
 
     // _stagedFromIndex is whatever GetLocalChanges last returned; the amend-only
     // bookkeeping (HEAD files, pre-amend editor backups) lives on _amend, which is
@@ -65,6 +63,10 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         Placeholder = Slice(s => s.Placeholder);
         Unstaged = Slice(s => s.Unstaged);
         Staged = Slice(s => s.Staged);
+        Selection = Slice(s => s.Selection);
+        SelectedTarget = Slice(s => s.Selection.Single);
+        DiscardEnabled = Slice(s =>
+            s.Selection.Count > 0 && s.Selection.Items[0].Side == DiffSide.Unstaged);
         OpError = Slice(s => s.OpError);
         CommitEnabled = Slice(s => s.CommitEnabled);
 
@@ -81,6 +83,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
 
     public void SetAmend(bool on)
     {
+        string title, description;
         if (on)
         {
             _amend = AmendSession.Begin(
@@ -88,30 +91,94 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 _registry.Active.Value,
                 State.Value.Title,
                 State.Value.Description);
-
-            Update(s => s with
-            {
-                Amend = true,
-                Title = _amend.Title,
-                Description = _amend.Description,
-                Staged = ComputeDisplayedStaged(),
-            });
+            title = _amend.Title;
+            description = _amend.Description;
         }
         else
         {
-            var title = _amend?.PreAmendTitle ?? string.Empty;
-            var description = _amend?.PreAmendDescription ?? string.Empty;
+            title = _amend?.PreAmendTitle ?? string.Empty;
+            description = _amend?.PreAmendDescription ?? string.Empty;
             _amend = null;
+        }
 
-            Update(s => s with
+        Update(s =>
+        {
+            var staged = ComputeDisplayedStaged();
+            return s with
             {
-                Amend = false,
+                Amend = on,
                 Title = title,
                 Description = description,
-                Staged = ComputeDisplayedStaged(),
-            });
-        }
+                Staged = staged,
+                Selection = GitGui.Selection.Create(s.Selection.Items, s.Selection.Anchor, s.Unstaged, staged),
+            };
+        });
     }
+
+    // ------- row interactions (called by the view in response to row clicks) -------
+
+    /// <summary>
+    /// Updates selection for a row click. Plain click replaces the selection with the
+    /// clicked target; Ctrl/Cmd toggles it; Shift extends the range from the anchor
+    /// (same side only). The anchor moves on plain/toggle clicks and stays put on
+    /// shift-extends so subsequent shift-clicks pivot around it.
+    /// </summary>
+    public void SelectRow(string path, DiffSide side, InputModifiers modifiers)
+    {
+        var shift = (modifiers & InputModifiers.Shift) != 0;
+        // Cmd on macOS reports as Super; Ctrl on Windows/Linux as Control. Treat both
+        // as the toggle-modifier so the panel feels right on every host.
+        var toggle = (modifiers & (InputModifiers.Control | InputModifiers.Super)) != 0;
+        var clicked = new DiffTarget(path, side);
+
+        Update(s =>
+        {
+            var sel = s.Selection;
+            var sideFiles = side == DiffSide.Unstaged ? s.Unstaged : s.Staged;
+
+            if (shift && sel.Anchor != null && sel.Anchor.Side == side)
+            {
+                var anchorIdx = IndexOfPath(sideFiles, sel.Anchor.Path);
+                var clickIdx = IndexOfPath(sideFiles, path);
+                if (anchorIdx >= 0 && clickIdx >= 0)
+                {
+                    var lo = Math.Min(anchorIdx, clickIdx);
+                    var hi = Math.Max(anchorIdx, clickIdx);
+                    var range = new List<DiffTarget>(hi - lo + 1);
+                    for (var i = lo; i <= hi; i++)
+                        range.Add(new DiffTarget(sideFiles[i].Path, side));
+                    return s with
+                    {
+                        Selection = GitGui.Selection.Create(range, sel.Anchor, s.Unstaged, s.Staged),
+                    };
+                }
+            }
+
+            if (toggle && sel.Count > 0 && sel.Items[0].Side == side)
+            {
+                var alreadySelected = sel.Contains(path, side);
+                var next = sel.Items.Where(t => !t.Equals(clicked)).ToList();
+                if (!alreadySelected) next.Add(clicked);
+                return s with
+                {
+                    Selection = GitGui.Selection.Create(next, clicked, s.Unstaged, s.Staged),
+                };
+            }
+
+            return s with
+            {
+                Selection = GitGui.Selection.Create(new[] { clicked }, clicked, s.Unstaged, s.Staged),
+            };
+        });
+    }
+
+    public void ClearSelection()
+    {
+        if (State.Value.Selection.Count == 0 && State.Value.Selection.Anchor == null) return;
+        Update(s => s with { Selection = GitGui.Selection.Empty });
+    }
+
+    // ------- git ops -------
 
     public void Stage(IReadOnlyList<string> paths) => RunIndexOp(paths, isStage: true);
 
@@ -216,7 +283,6 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
             Gen.Bump();
             _stagedFromIndex = Empty;
             _lastLoadedRepoId = null;
-            // Any error from a previous repo's op no longer applies once we switch.
             Update(s => s with
             {
                 HasRepo = false,
@@ -225,14 +291,15 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 OpError = null,
                 Staged = Empty,
                 Unstaged = Empty,
+                Selection = GitGui.Selection.Empty,
             });
             return;
         }
 
-        // Cross-repo switches blank the panels so the "Loading…" placeholder is
-        // shown rather than a stale snapshot from the previous repo. Same-repo
-        // reloads (RefsChangedMessage, WorkingTreeChangedMessage) keep the lists
-        // visible so the panels don't tear down for an incremental refresh.
+        // Cross-repo switches blank the panels (and the selection) so the "Loading…"
+        // placeholder is shown rather than a stale snapshot from the previous repo.
+        // Same-repo reloads (RefsChangedMessage, WorkingTreeChangedMessage) keep the
+        // lists visible so the panels don't tear down for an incremental refresh.
         var isCrossRepoSwitch = _lastLoadedRepoId != active.Id;
         _lastLoadedRepoId = active.Id;
 
@@ -244,6 +311,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
             OpError = null,
             Staged = isCrossRepoSwitch ? Empty : s.Staged,
             Unstaged = isCrossRepoSwitch ? Empty : s.Unstaged,
+            Selection = isCrossRepoSwitch ? GitGui.Selection.Empty : s.Selection,
         });
 
         var repo = active;
@@ -270,6 +338,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                         LoadError = errorMsg,
                         Staged = Empty,
                         Unstaged = Empty,
+                        Selection = GitGui.Selection.Empty,
                     });
                     return;
                 }
@@ -282,17 +351,36 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
 
     private sealed record LoadResult(LocalChangesSnapshot Snap, IReadOnlyList<FileChange>? HeadFiles);
 
-    private void ApplySnapshot(LocalChangesSnapshot snap)
+    // Writes a fresh snapshot — new lists plus whatever selection the caller computes
+    // from them — through a single atomic Update. The selection callback receives the
+    // pre-update state (so reload-style callers can carry the prior selection through
+    // Selection.Create normalization) and the newly-computed displayed staged (so all
+    // callers see the same amend-aware view of the staged side the state is about to
+    // hold).
+    private void ApplySnapshot(LocalChangesSnapshot snap, Func<LocalChangesState, IReadOnlyList<FileChange>, Selection> selectionFor)
     {
         _stagedFromIndex = snap.Staged;
-        Update(s => s with
+        Update(s =>
         {
-            IsLoading = false,
-            LoadError = null,
-            Unstaged = snap.Unstaged,
-            Staged = ComputeDisplayedStaged(),
+            var staged = ComputeDisplayedStaged();
+            return s with
+            {
+                IsLoading = false,
+                LoadError = null,
+                Unstaged = snap.Unstaged,
+                Staged = staged,
+                Selection = selectionFor(s, staged),
+            };
         });
     }
+
+    // Reload-style apply: keep the existing selection (paths still in the lists survive,
+    // gone paths are pruned by Selection.Create). Used for cross-repo reloads, watcher
+    // ticks, refs changes, and post-commit snapshots — anywhere the lists change but the
+    // selection isn't being explicitly steered to a new place.
+    private void ApplySnapshot(LocalChangesSnapshot snap)
+        => ApplySnapshot(snap, (s, staged) =>
+            GitGui.Selection.Create(s.Selection.Items, s.Selection.Anchor, snap.Unstaged, staged));
 
     private void RunIndexOp(IReadOnlyList<string> paths, bool isStage)
     {
@@ -315,25 +403,11 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 // transient error would erase the user's selection and context.
                 if (snap == null) return;
 
-                // Hand the destination side its new files + selection BEFORE the
-                // state Update fires, so the diff view's target moves to the
-                // destination row in the same frame the source row goes away. If we
-                // ran the Update first, the source slice subscriber would call
-                // SetFiles which prunes the moved path from selection — yielding a
-                // zero-selection mid-frame and a visible diff-view flicker.
-                _stagedFromIndex = snap.Staged;
-                var displayedStaged = ComputeDisplayedStaged();
+                // Selection lands on the destination side at the just-moved paths.
+                // FromPaths drops anything libgit2 didn't materialize in the new list.
                 var destSide = isStage ? DiffSide.Staged : DiffSide.Unstaged;
-                var destFiles = isStage ? displayedStaged : snap.Unstaged;
-                SelectionRequested?.Invoke(destSide, destFiles, paths);
-
-                Update(s => s with
-                {
-                    IsLoading = false,
-                    LoadError = null,
-                    Unstaged = snap.Unstaged,
-                    Staged = displayedStaged,
-                });
+                ApplySnapshot(snap, (_, staged) =>
+                    GitGui.Selection.FromPaths(paths, destSide, snap.Unstaged, staged));
             });
     }
 
@@ -355,25 +429,20 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 Update(s => s with { OpError = errorMsg });
                 if (snap == null) return;
 
-                // Same destination-first ordering as RunIndexOp (see comment there):
-                // the unstaged panel receives its new files + selection together,
-                // before the Update fires and the staged slice subscriber prunes the
-                // moved paths from the staged side.
-                _stagedFromIndex = snap.Staged;
-                var displayedStaged = ComputeDisplayedStaged();
-                var combined = new List<string>(toUnstage.Count + toResetToParent.Count);
-                combined.AddRange(toUnstage);
-                combined.AddRange(toResetToParent);
-                SelectionRequested?.Invoke(DiffSide.Unstaged, snap.Unstaged, combined);
-
-                Update(s => s with
-                {
-                    IsLoading = false,
-                    LoadError = null,
-                    Unstaged = snap.Unstaged,
-                    Staged = displayedStaged,
-                });
+                // Both batches land on the unstaged side after the reset/unstage.
+                var movedToUnstaged = new List<string>(toUnstage.Count + toResetToParent.Count);
+                movedToUnstaged.AddRange(toUnstage);
+                movedToUnstaged.AddRange(toResetToParent);
+                ApplySnapshot(snap, (_, staged) =>
+                    GitGui.Selection.FromPaths(movedToUnstaged, DiffSide.Unstaged, snap.Unstaged, staged));
             });
+    }
+
+    private static int IndexOfPath(IReadOnlyList<FileChange> files, string path)
+    {
+        for (var i = 0; i < files.Count; i++)
+            if (files[i].Path == path) return i;
+        return -1;
     }
 
     private IReadOnlyList<FileChange> ComputeDisplayedStaged()

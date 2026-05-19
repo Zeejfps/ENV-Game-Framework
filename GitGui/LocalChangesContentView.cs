@@ -1,5 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
+using ZGF.Gui.Tests;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -8,9 +9,10 @@ namespace GitGui;
 /// The body of the Local Changes view: two file-list panels (unstaged / staged) above a
 /// diff pane, with a draggable splitter between them. <see cref="Bind"/> wires the
 /// panels to a <see cref="LocalChangesViewModel"/>'s observable state and forwards stage
-/// / unstage clicks to its commands. Selection is mutually exclusive across the two
-/// panels and lives in the view — the diff pane only appears when exactly one row is
-/// selected.
+/// / unstage clicks and row selection back to the VM. Selection is owned by the VM
+/// (one <see cref="GitGui.Selection"/> for both sides), so the panels are stateless
+/// w.r.t. selection — rows highlight reactively against the shared selection, and the
+/// diff view's target tracks <c>SelectedTarget</c> directly.
 /// </summary>
 internal sealed class LocalChangesContentView : MultiChildView
 {
@@ -21,6 +23,11 @@ internal sealed class LocalChangesContentView : MultiChildView
     private readonly DiffView _diffView;
     private readonly VerticalSplitContainer _snapshotContainer;
     private readonly LocalChangesHeaderActionButton _discardButton;
+
+    // View-side mirror of the VM's Selection, wired in Bind. Lives here so the panels
+    // and their rows can be constructed before Bind() — at construction we hand them
+    // this State; in Bind we subscribe vm.Selection so updates flow through.
+    private readonly State<Selection> _selection = new(Selection.Empty);
     private LocalChangesViewModel? _vm;
 
     public LocalChangesContentView()
@@ -30,23 +37,29 @@ internal sealed class LocalChangesContentView : MultiChildView
 
         _unstagedPanel = new LocalChangesPanel(
             "Unstaged",
+            DiffSide.Unstaged,
             "No unstaged changes.",
+            _selection,
+            OnRowClick,
             [
                 _discardButton,
                 new LocalChangesHeaderActionButton(LucideIcons.ChevronRight, OnStageSelected),
                 new LocalChangesHeaderActionButton(LucideIcons.ChevronsRight, OnStageAll),
             ],
-            path => _vm?.Stage([path]),
-            onEmptyAreaClicked: ClearAllSelections);
+            onRowActivated: t => _vm?.Stage([t.Path]),
+            onEmptyAreaClicked: () => _vm?.ClearSelection());
         _stagedPanel = new LocalChangesPanel(
             "Staged",
+            DiffSide.Staged,
             "No staged changes.",
+            _selection,
+            OnRowClick,
             [
                 new LocalChangesHeaderActionButton(LucideIcons.ChevronsLeft, OnUnstageAll),
                 new LocalChangesHeaderActionButton(LucideIcons.ChevronLeft, OnUnstageSelected),
             ],
-            path => _vm?.Unstage([path]),
-            onEmptyAreaClicked: ClearAllSelections);
+            onRowActivated: t => _vm?.Unstage([t.Path]),
+            onEmptyAreaClicked: () => _vm?.ClearSelection());
 
         _placeholder = new TextView
         {
@@ -80,22 +93,6 @@ internal sealed class LocalChangesContentView : MultiChildView
         };
 
         AddChildToSelf(_centerContainer);
-
-        // Selection is exclusive across the two panels: once a row in one side is selected,
-        // any selection on the other side is cleared. The "only clear when *becoming*
-        // non-empty" guard means the cleared panel's own empty-transition doesn't bounce
-        // back and wipe the panel that just took focus.
-        _unstagedPanel.Selection.Subscribe(sel =>
-        {
-            if (sel.Count > 0) _stagedPanel.ClearSelection();
-            _discardButton.IsEnabled.Value = sel.Count > 0;
-            UpdateDiffVisibility();
-        });
-        _stagedPanel.Selection.Subscribe(sel =>
-        {
-            if (sel.Count > 0) _unstagedPanel.ClearSelection();
-            UpdateDiffVisibility();
-        });
     }
 
     public void Bind(LocalChangesViewModel vm)
@@ -115,17 +112,20 @@ internal sealed class LocalChangesContentView : MultiChildView
         vm.Unstaged.Subscribe(list => _unstagedPanel.SetFiles(list));
         vm.Staged.Subscribe(list => _stagedPanel.SetFiles(list));
 
-        // Atomic destination-side update: the panel that's gaining the selection
-        // receives its new file list and the selected paths in a single snapshot
-        // transition. The slice subscribers above will fire SetFiles on both panels
-        // immediately after (via the VM's Update), but by then the diff view has
-        // already been retargeted onto the destination row, so the source-side prune
-        // is invisible to the user. See LocalChangesViewModel.SelectionRequested.
-        vm.SelectionRequested += (side, files, paths) =>
+        // Mirror the VM's selection into the view's State so the rows (already bound at
+        // construction time) re-render reactively. Same Selection instance, just routed
+        // through a State so we don't have to construct the panels lazily.
+        vm.Selection.Subscribe(sel => _selection.Value = sel);
+
+        // Diff view target follows the single-selection slice. Multi-select and empty
+        // selection both yield null, which hides the diff pane below.
+        vm.SelectedTarget.Subscribe(target =>
         {
-            if (side == DiffSide.Unstaged) _unstagedPanel.SetFilesWithSelection(files, paths);
-            else _stagedPanel.SetFilesWithSelection(files, paths);
-        };
+            _diffView.SetTarget(target?.Path, target?.Side ?? DiffSide.Unstaged);
+            _snapshotContainer.BottomVisible = target != null;
+        });
+
+        vm.DiscardEnabled.Subscribe(enabled => _discardButton.IsEnabled.Value = enabled);
     }
 
     private void ShowPlaceholder(string text)
@@ -154,43 +154,25 @@ internal sealed class LocalChangesContentView : MultiChildView
         return new TransferListRow(_unstagedPanel, divider, _stagedPanel);
     }
 
-    private void ClearAllSelections()
-    {
-        _unstagedPanel.ClearSelection();
-        _stagedPanel.ClearSelection();
-    }
+    private void OnRowClick(DiffTarget target, InputModifiers modifiers)
+        => _vm?.SelectRow(target.Path, target.Side, modifiers);
 
-    private void OnStageAll() => _vm?.Stage(_unstagedPanel.Files.Select(f => f.Path).ToList());
-    private void OnStageSelected() => _vm?.Stage(_unstagedPanel.SelectedPaths.ToList());
-    private void OnUnstageSelected() => _vm?.Unstage(_stagedPanel.SelectedPaths.ToList());
-    private void OnUnstageAll() => _vm?.Unstage(_stagedPanel.Files.Select(f => f.Path).ToList());
+    private void OnStageAll()
+        => _vm?.Stage(_unstagedPanel.Files.Select(f => f.Path).ToList());
+
+    private void OnUnstageAll()
+        => _vm?.Unstage(_stagedPanel.Files.Select(f => f.Path).ToList());
+
+    private void OnStageSelected()
+        => _vm?.Stage(_selection.Value.PathsOn(DiffSide.Unstaged));
+
+    private void OnUnstageSelected()
+        => _vm?.Unstage(_selection.Value.PathsOn(DiffSide.Staged));
 
     private void OnDiscardSelected()
     {
-        var paths = _unstagedPanel.SelectedPaths.ToList();
+        var paths = _selection.Value.PathsOn(DiffSide.Unstaged);
         if (paths.Count == 0) return;
         _vm?.RequestDiscard(paths);
-    }
-
-    private void UpdateDiffVisibility()
-    {
-        // Selections are mutually exclusive across the two panels (see constructor),
-        // so the combined count is whichever panel currently holds anything.
-        var unstaged = _unstagedPanel.SelectedPaths;
-        var staged = _stagedPanel.SelectedPaths;
-        var total = unstaged.Count + staged.Count;
-
-        if (total == 1)
-        {
-            var side = unstaged.Count == 1 ? DiffSide.Unstaged : DiffSide.Staged;
-            var path = unstaged.Count == 1 ? unstaged.First() : staged.First();
-            _diffView.SetTarget(path, side);
-            _snapshotContainer.BottomVisible = true;
-        }
-        else
-        {
-            _diffView.SetTarget(null, DiffSide.Unstaged);
-            _snapshotContainer.BottomVisible = false;
-        }
     }
 }
