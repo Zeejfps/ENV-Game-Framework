@@ -19,6 +19,8 @@ public sealed class DialogPresenter : IViewBehavior
         _messageBus?.Subscribe<ShowCheckoutErrorMessage>(OnShowCheckoutError);
         _messageBus?.Subscribe<ShowDiscardChangesDialogMessage>(OnShowDiscardChangesDialog);
         _messageBus?.Subscribe<ShowCreateBranchDialogMessage>(OnShowCreateBranchDialog);
+        _messageBus?.Subscribe<ShowStashDialogMessage>(OnShowStashDialog);
+        _messageBus?.Subscribe<ShowDropStashDialogMessage>(OnShowDropStashDialog);
     }
 
     public void DetachFromContext(View view, Context context)
@@ -40,6 +42,12 @@ public sealed class DialogPresenter : IViewBehavior
 
     private void OnShowCreateBranchDialog(ShowCreateBranchDialogMessage m)
         => ShowDialog(new CreateBranchDialog(m.Repo, m.SuggestedStartPoint, OnDialogClosed));
+
+    private void OnShowStashDialog(ShowStashDialogMessage m)
+        => ShowDialog(new StashDialog(m.Repo, OnDialogClosed));
+
+    private void OnShowDropStashDialog(ShowDropStashDialogMessage m)
+        => ShowDialog(new DropStashDialog(m.Repo, m.Index, m.Label, m.Subject, OnDialogClosed));
 
     private void ShowDialog(View dialog)
     {

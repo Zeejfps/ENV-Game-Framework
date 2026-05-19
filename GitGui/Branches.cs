@@ -9,14 +9,19 @@ public sealed record BranchEntry(
 
 public sealed record RemoteGroup(string Name, IReadOnlyList<BranchEntry> Branches);
 
+// Index is the position in `git stash list` (0 = most recent), matching how stashes
+// are referenced as `stash@{N}` on the git CLI.
+public sealed record StashEntry(int Index, string Sha, string Subject);
+
 public sealed record BranchListing(
     Guid RepoId,
     IReadOnlyList<BranchEntry> LocalBranches,
     IReadOnlyList<RemoteGroup> Remotes,
+    IReadOnlyList<StashEntry> Stashes,
     string? ErrorMessage)
 {
     public static BranchListing Empty(Guid repoId)
-        => new(repoId, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), null);
+        => new(repoId, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), Array.Empty<StashEntry>(), null);
 }
 
 /// Persisted per-repo state for the branches sidebar. Missing keys default to all-open.
@@ -26,6 +31,7 @@ public sealed class BranchesUiState
 {
     public bool LocalOpen { get; set; } = true;
     public bool RemotesOpen { get; set; } = true;
+    public bool StashesOpen { get; set; } = true;
     public Dictionary<string, bool> RemoteOpen { get; set; } = new();
     public Dictionary<string, bool> FolderOpen { get; set; } = new();
 
@@ -33,6 +39,7 @@ public sealed class BranchesUiState
     {
         LocalOpen = LocalOpen,
         RemotesOpen = RemotesOpen,
+        StashesOpen = StashesOpen,
         RemoteOpen = new Dictionary<string, bool>(RemoteOpen),
         FolderOpen = new Dictionary<string, bool>(FolderOpen),
     };

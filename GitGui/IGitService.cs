@@ -20,6 +20,9 @@ public interface IGitService
     CheckoutOutcome CheckoutLocalBranch(Repo repo, string branchName);
     CheckoutOutcome CheckoutRemoteBranch(Repo repo, string localName, string remoteName, string remoteBranchName, bool track);
     CreateBranchOutcome CreateBranch(Repo repo, string name, string startPoint, bool checkout);
+    StashOutcome CreateStash(Repo repo, string message, bool includeUntracked, bool keepIndex);
+    StashOutcome ApplyStash(Repo repo, int index);
+    StashOutcome DropStash(Repo repo, int index);
     DiffResult GetDiff(Repo repo, string path, DiffSide side);
 }
 
@@ -41,3 +44,5 @@ public sealed record FetchOutcome(bool Success, string? ErrorMessage);
 public sealed record CheckoutOutcome(bool Success, string? ErrorMessage);
 
 public sealed record CreateBranchOutcome(bool Success, string? ErrorMessage);
+
+public sealed record StashOutcome(bool Success, string? ErrorMessage);

@@ -1,6 +1,6 @@
 namespace GitGui;
 
-public enum BranchRowKind { LocalHeader, RemotesHeader, RemoteHeader, Folder, LocalBranch, RemoteBranch }
+public enum BranchRowKind { LocalHeader, RemotesHeader, RemoteHeader, Folder, LocalBranch, RemoteBranch, StashesHeader, Stash }
 
 public sealed class BranchRow
 {
@@ -22,14 +22,18 @@ public sealed class BranchRow
     public string? FolderKey { get; init; }
     public int? AheadBy { get; init; }
     public int? BehindBy { get; init; }
+    public int? StashIndex { get; init; }
 }
 
-public readonly record struct BranchSelection(bool IsRemote, string? RemoteName, string FullPath, string TipSha)
+// IsStash flags the selection as pointing at a stash entry; FullPath is then the
+// stash ref label ("stash@{N}") rather than a branch name.
+public readonly record struct BranchSelection(bool IsRemote, bool IsStash, string? RemoteName, string FullPath, string TipSha)
 {
     public bool Matches(BranchRow row) => row.Kind switch
     {
-        BranchRowKind.LocalBranch => !IsRemote && row.FullPath == FullPath,
-        BranchRowKind.RemoteBranch => IsRemote && row.RemoteName == RemoteName && row.FullPath == FullPath,
+        BranchRowKind.LocalBranch => !IsRemote && !IsStash && row.FullPath == FullPath,
+        BranchRowKind.RemoteBranch => IsRemote && !IsStash && row.RemoteName == RemoteName && row.FullPath == FullPath,
+        BranchRowKind.Stash => IsStash && row.FullPath == FullPath,
         _ => false,
     };
 }

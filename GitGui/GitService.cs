@@ -52,6 +52,19 @@ public sealed class GitService : IGitService
             if (headSha != null)
                 AddBadge(refsBySha, headSha, new RefBadge("HEAD", RefKind.Head));
 
+            // Walk stash tips too so stash commits show in the graph. Stash entries are
+            // merge commits whose parents include the index/untracked snapshots — those get
+            // pulled in automatically via the topological walk.
+            var stashIndex = 0;
+            foreach (var stash in lg.Stashes)
+            {
+                var tip = stash.WorkTree;
+                if (tip == null) { stashIndex++; continue; }
+                refTips.Add(tip);
+                AddBadge(refsBySha, tip.Sha, new RefBadge($"stash@{{{stashIndex}}}", RefKind.Stash));
+                stashIndex++;
+            }
+
             if (refTips.Count == 0 && headTip != null)
                 refTips.Add(headTip);
 
@@ -198,14 +211,14 @@ public sealed class GitService : IGitService
         try
         {
             if (!Repository.IsValid(repo.Path))
-                return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), "Not a git repository.");
+                return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), Array.Empty<StashEntry>(), "Not a git repository.");
 
             // Seed with all configured remotes so groups still show even when a remote has
             // no branches yet (matches the prior LibGit2Sharp behavior).
             var remotesByName = new Dictionary<string, List<BranchEntry>>(StringComparer.Ordinal);
             var remotesOut = RunGit(repo.Path, out var remErr, "remote");
             if (remotesOut == null)
-                return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), remErr ?? "git remote failed.");
+                return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), Array.Empty<StashEntry>(), remErr ?? "git remote failed.");
             foreach (var rawLine in remotesOut.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
                 var name = rawLine.Trim();
@@ -220,7 +233,7 @@ public sealed class GitService : IGitService
             var branchesOut = RunGit(repo.Path, out var brErr,
                 "for-each-ref", $"--format={fmt}", "refs/heads", "refs/remotes");
             if (branchesOut == null)
-                return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), brErr ?? "git for-each-ref failed.");
+                return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), Array.Empty<StashEntry>(), brErr ?? "git for-each-ref failed.");
 
             var locals = new List<BranchEntry>();
             foreach (var line in branchesOut.Split('\n'))
@@ -270,12 +283,34 @@ public sealed class GitService : IGitService
                 remoteGroups.Add(new RemoteGroup(kv.Key, kv.Value));
             }
 
-            return new BranchListing(repo.Id, locals, remoteGroups, null);
+            var stashes = LoadStashes(repo.Path);
+            return new BranchListing(repo.Id, locals, remoteGroups, stashes, null);
         }
         catch (Exception ex)
         {
-            return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), ex.Message);
+            return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), Array.Empty<StashEntry>(), ex.Message);
         }
+    }
+
+    // `git stash list` is the source of truth for stash@{N} indexing; refs/stash only
+    // points at the most recent entry. Format pulls SHA and subject in one shot.
+    private static IReadOnlyList<StashEntry> LoadStashes(string repoPath)
+    {
+        const char Sep = '\x1F';
+        var fmt = $"%(objectname){Sep}%(subject)";
+        var output = RunGit(repoPath, out _, "stash", "list", $"--format={fmt}");
+        if (string.IsNullOrEmpty(output)) return Array.Empty<StashEntry>();
+
+        var list = new List<StashEntry>();
+        var idx = 0;
+        foreach (var line in output.Split('\n'))
+        {
+            if (line.Length == 0) continue;
+            var parts = line.Split(Sep, 2);
+            if (parts.Length < 2) continue;
+            list.Add(new StashEntry(idx++, parts[0], parts[1]));
+        }
+        return list;
     }
 
     // `git for-each-ref %(upstream:track,nobracket)` returns "", "gone", "ahead N",
@@ -839,6 +874,90 @@ public sealed class GitService : IGitService
         {
             return new CreateBranchOutcome(false, ex.Message);
         }
+    }
+
+    public StashOutcome CreateStash(Repo repo, string message, bool includeUntracked, bool keepIndex)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new StashOutcome(false, "Not a git repository.");
+
+            var args = new List<string> { "stash", "push" };
+            if (includeUntracked) args.Add("--include-untracked");
+            if (keepIndex) args.Add("--keep-index");
+            if (!string.IsNullOrEmpty(message))
+            {
+                args.Add("-m");
+                args.Add(message);
+            }
+
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try { return RunGitStash(repo.Path, args, "git stash push"); }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new StashOutcome(false, ex.Message);
+        }
+    }
+
+    public StashOutcome ApplyStash(Repo repo, int index)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new StashOutcome(false, "Not a git repository.");
+
+            var args = new List<string> { "stash", "apply", $"stash@{{{index}}}" };
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try { return RunGitStash(repo.Path, args, "git stash apply"); }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new StashOutcome(false, ex.Message);
+        }
+    }
+
+    public StashOutcome DropStash(Repo repo, int index)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new StashOutcome(false, "Not a git repository.");
+
+            var args = new List<string> { "stash", "drop", $"stash@{{{index}}}" };
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try { return RunGitStash(repo.Path, args, "git stash drop"); }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new StashOutcome(false, ex.Message);
+        }
+    }
+
+    private static StashOutcome RunGitStash(string repoPath, IReadOnlyList<string> gitArgs, string label)
+    {
+        var psi = BuildGitProcessStartInfo(gitArgs, repoPath);
+        using var proc = Process.Start(psi);
+        if (proc == null) return new StashOutcome(false, "Failed to start git.");
+
+        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+        var stderrTask = proc.StandardError.ReadToEndAsync();
+        proc.WaitForExit();
+        var stderr = stderrTask.GetAwaiter().GetResult();
+        var stdout = stdoutTask.GetAwaiter().GetResult();
+
+        if (proc.ExitCode == 0) return new StashOutcome(true, null);
+        var combined = stderr.Length > 0 ? stderr : stdout;
+        var msg = FirstMeaningfulLine(combined);
+        if (string.IsNullOrEmpty(msg)) msg = $"{label} exited with code {proc.ExitCode}.";
+        return new StashOutcome(false, msg);
     }
 
     private static CheckoutOutcome RunGitCheckout(string repoPath, IReadOnlyList<string> gitArgs)

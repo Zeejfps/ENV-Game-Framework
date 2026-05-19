@@ -180,10 +180,12 @@ public sealed class BranchesView : MultiChildView, IBranchesView
         var hasChevron = row.Kind == BranchRowKind.LocalHeader
             || row.Kind == BranchRowKind.RemotesHeader
             || row.Kind == BranchRowKind.RemoteHeader
+            || row.Kind == BranchRowKind.StashesHeader
             || row.Kind == BranchRowKind.Folder;
         var isTreeRow = row.Kind == BranchRowKind.Folder
             || row.Kind == BranchRowKind.LocalBranch
-            || row.Kind == BranchRowKind.RemoteBranch;
+            || row.Kind == BranchRowKind.RemoteBranch
+            || row.Kind == BranchRowKind.Stash;
 
         if (hasChevron)
         {
@@ -216,7 +218,7 @@ public sealed class BranchesView : MultiChildView, IBranchesView
         var isBusy = IsBusyRow(row);
         var (text, style) = row.Kind switch
         {
-            BranchRowKind.LocalHeader or BranchRowKind.RemotesHeader or BranchRowKind.RemoteHeader => (row.DisplayName, _headerTextStyle),
+            BranchRowKind.LocalHeader or BranchRowKind.RemotesHeader or BranchRowKind.RemoteHeader or BranchRowKind.StashesHeader => (row.DisplayName, _headerTextStyle),
             BranchRowKind.LocalBranch when isBusy => (row.DisplayName, _branchTextBusyStyle),
             BranchRowKind.LocalBranch when row.IsHead => (row.DisplayName, _headTextStyle),
             _ => (row.DisplayName, isSelected ? _branchTextSelectedStyle : _branchTextStyle),
@@ -246,6 +248,11 @@ public sealed class BranchesView : MultiChildView, IBranchesView
         {
             glyph = row.IsOpen ? LucideIcons.FolderOpen : LucideIcons.Folder;
             style = _folderIconStyle;
+        }
+        else if (row.Kind == BranchRowKind.Stash)
+        {
+            glyph = LucideIcons.Stash;
+            style = isSelected ? _branchIconActiveStyle : _branchIconStyle;
         }
         else
         {

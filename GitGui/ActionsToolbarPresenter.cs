@@ -54,6 +54,7 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         _view.OpenInFolderRequested += OnOpenInFolderRequested;
         _view.OpenInTerminalRequested += OnOpenInTerminalRequested;
         _view.BranchRequested += OnBranchRequested;
+        _view.StashRequested += OnStashRequested;
 
         UpdateSyncButtons();
         UpdateRepoActionButtons();
@@ -76,6 +77,7 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         _view.OpenInFolderRequested -= OnOpenInFolderRequested;
         _view.OpenInTerminalRequested -= OnOpenInTerminalRequested;
         _view.BranchRequested -= OnBranchRequested;
+        _view.StashRequested -= OnStashRequested;
     }
 
     private void OnRepoOrRefsChanged()
@@ -116,6 +118,13 @@ internal sealed class ActionsToolbarPresenter : IDisposable
             ? "HEAD"
             : _pushStatus.CurrentBranchName;
         _bus.Broadcast(new ShowCreateBranchDialogMessage(repo, suggested));
+    }
+
+    private void OnStashRequested()
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+        _bus.Broadcast(new ShowStashDialogMessage(repo));
     }
 
     private void ReloadPushStatus()

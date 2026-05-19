@@ -5,6 +5,7 @@ public enum RefKind
     LocalBranch,
     RemoteBranch,
     Head,
+    Stash,
 }
 
 public readonly record struct RefBadge(string Name, RefKind Kind);

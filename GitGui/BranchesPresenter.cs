@@ -4,10 +4,11 @@ namespace GitGui;
 
 internal sealed class BranchesPresenter : IDisposable
 {
-    private const float IndentSection = 0f;          // LOCAL / REMOTES
+    private const float IndentSection = 0f;          // LOCAL / REMOTES / STASHES
     private const float IndentRemoteHeader = 12f;    // origin (under REMOTES)
     private const float IndentLocalTreeBase = 16f;   // depth-0 row under LOCAL
     private const float IndentRemoteTreeBase = 28f;  // depth-0 row under a remote header
+    private const float IndentStashBase = 16f;       // stash row under STASHES
     private const float IndentLevel = 16f;           // per-depth step within the tree
 
     private readonly IBranchesView _view;
@@ -122,7 +123,7 @@ internal sealed class BranchesPresenter : IDisposable
             }
             catch (Exception ex)
             {
-                listing = new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), ex.Message);
+                listing = new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), Array.Empty<StashEntry>(), ex.Message);
             }
 
             dispatcher.Post(() =>
@@ -162,6 +163,24 @@ internal sealed class BranchesPresenter : IDisposable
                     if (!isOpen) continue;
                     var remoteTree = BuildTree(rg.Branches);
                     EmitTreeRows(rows, remoteTree, isRemote: true, rg.Name, IndentRemoteTreeBase, depth: 0);
+                }
+            }
+
+            if (listing.Stashes.Count > 0)
+            {
+                rows.Add(new BranchRow(BranchRowKind.StashesHeader, "Stashes", IndentSection, _ui.StashesOpen));
+                if (_ui.StashesOpen)
+                {
+                    foreach (var s in listing.Stashes)
+                    {
+                        var label = $"stash@{{{s.Index}}}";
+                        rows.Add(new BranchRow(BranchRowKind.Stash, s.Subject, IndentStashBase, isOpen: false)
+                        {
+                            TipSha = s.Sha,
+                            FullPath = label,
+                            StashIndex = s.Index,
+                        });
+                    }
                 }
             }
         }
@@ -265,6 +284,11 @@ internal sealed class BranchesPresenter : IDisposable
                 PersistUi();
                 PushRows();
                 return;
+            case BranchRowKind.StashesHeader:
+                _ui.StashesOpen = !_ui.StashesOpen;
+                PersistUi();
+                PushRows();
+                return;
             case BranchRowKind.RemoteHeader:
                 if (row.RemoteName != null)
                 {
@@ -286,7 +310,7 @@ internal sealed class BranchesPresenter : IDisposable
             case BranchRowKind.LocalBranch:
                 if (row.TipSha != null && row.FullPath != null)
                 {
-                    _selection = new BranchSelection(IsRemote: false, RemoteName: null, FullPath: row.FullPath, TipSha: row.TipSha);
+                    _selection = new BranchSelection(IsRemote: false, IsStash: false, RemoteName: null, FullPath: row.FullPath, TipSha: row.TipSha);
                     _view.SetSelection(_selection);
                     SwitchToHistory();
                     _bus.Broadcast(new CommitSelectedMessage(_activeRepoId, row.TipSha));
@@ -295,7 +319,16 @@ internal sealed class BranchesPresenter : IDisposable
             case BranchRowKind.RemoteBranch:
                 if (row.TipSha != null && row.RemoteName != null && row.FullPath != null)
                 {
-                    _selection = new BranchSelection(IsRemote: true, RemoteName: row.RemoteName, FullPath: row.FullPath, TipSha: row.TipSha);
+                    _selection = new BranchSelection(IsRemote: true, IsStash: false, RemoteName: row.RemoteName, FullPath: row.FullPath, TipSha: row.TipSha);
+                    _view.SetSelection(_selection);
+                    SwitchToHistory();
+                    _bus.Broadcast(new CommitSelectedMessage(_activeRepoId, row.TipSha));
+                }
+                return;
+            case BranchRowKind.Stash:
+                if (row.TipSha != null && row.FullPath != null)
+                {
+                    _selection = new BranchSelection(IsRemote: false, IsStash: true, RemoteName: null, FullPath: row.FullPath, TipSha: row.TipSha);
                     _view.SetSelection(_selection);
                     SwitchToHistory();
                     _bus.Broadcast(new CommitSelectedMessage(_activeRepoId, row.TipSha));
@@ -333,7 +366,49 @@ internal sealed class BranchesPresenter : IDisposable
                         repo, row.RemoteName, row.FullPath, row.FullPath));
                 }
                 return;
+            case BranchRowKind.Stash:
+                if (row.StashIndex is int idx)
+                    StartStashApply(idx, row.FullPath ?? $"stash@{{{idx}}}", row.DisplayName);
+                return;
         }
+    }
+
+    // Apply the stash; on success, prompt the user whether to drop it. We don't run
+    // `git stash pop` directly because that drops the stash even on a partial-apply
+    // conflict, which the user can't undo without rummaging in the reflog.
+    private bool _isStashApplying;
+    private void StartStashApply(int index, string label, string subject)
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+        if (_isStashApplying) return;
+
+        _isStashApplying = true;
+
+        var service = _gitService;
+        var dispatcher = _dispatcher;
+        var bus = _bus;
+
+        Task.Run(() =>
+        {
+            StashOutcome outcome;
+            try { outcome = service.ApplyStash(repo, index); }
+            catch (Exception ex) { outcome = new StashOutcome(false, ex.Message); }
+
+            dispatcher.Post(() =>
+            {
+                _isStashApplying = false;
+                if (!outcome.Success)
+                {
+                    bus.Broadcast(new ShowCheckoutErrorMessage(
+                        outcome.ErrorMessage ?? "Stash apply failed."));
+                    return;
+                }
+                bus.Broadcast(new RefsChangedMessage(repo.Id));
+                bus.Broadcast(new WorkingTreeChangedMessage(repo.Id));
+                bus.Broadcast(new ShowDropStashDialogMessage(repo, index, label, subject));
+            });
+        });
     }
 
     private bool LocalBranchExists(string name)
