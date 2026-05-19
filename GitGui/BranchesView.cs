@@ -332,7 +332,6 @@ public sealed class BranchesView : MultiChildView, IBranchesView
     internal void SetHover(PointF point)
     {
         var idx = HitTestRow(point);
-        if (idx == _hoveredRowIndex) return;
         _hoveredRowIndex = idx;
     }
 
@@ -345,7 +344,7 @@ public sealed class BranchesView : MultiChildView, IBranchesView
     internal void OnClickAt(PointF point)
     {
         // Click in the panel but outside any row → deselect (and clear CommitsView too).
-        if (!IsPointInside(point)) return;
+        if (!Position.ContainsPoint(point)) return;
         var idx = HitTestRow(point);
         var row = (idx >= 0 && idx < _rows.Count) ? _rows[idx] : null;
 
@@ -375,13 +374,6 @@ public sealed class BranchesView : MultiChildView, IBranchesView
             _lastClickRowIndex = idx;
             _hasLastClick = true;
         }
-    }
-
-    private bool IsPointInside(PointF point)
-    {
-        var pos = Position;
-        return point.X >= pos.Left && point.X <= pos.Right
-            && point.Y >= pos.Bottom && point.Y <= pos.Top;
     }
 
     private int HitTestRow(PointF point)
