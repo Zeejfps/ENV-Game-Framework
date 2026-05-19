@@ -203,15 +203,15 @@ public sealed class BranchesView : MultiChildView, IBranchesView
             contentLeft += ChevronColumn;
         }
 
-        // Ahead/behind badge eats from the right edge before the branch name is truncated.
-        if (row.Kind == BranchRowKind.LocalBranch && Context != null)
-            rightEdge = DrawAheadBehindBadge(c, row, rowBottom, rightEdge, z + 1);
-
         if (isTreeRow && Context != null)
             contentLeft = DrawRowIcon(c, row, isSelected, contentLeft, rowBottom, z + 1);
 
-        var textWidth = Math.Max(0f, rightEdge - contentLeft);
-        if (textWidth <= 0f) return;
+        const float nameBadgeGap = 8f;
+        var badgeWidth = (row.Kind == BranchRowKind.LocalBranch && Context != null)
+            ? MeasureAheadBehindBadge(row)
+            : 0f;
+        var nameBudget = Math.Max(0f, rightEdge - contentLeft - (badgeWidth > 0 ? badgeWidth + nameBadgeGap : 0f));
+        if (nameBudget <= 0f) return;
 
         var isBusy = IsBusyRow(row);
         var (text, style) = row.Kind switch
@@ -222,14 +222,20 @@ public sealed class BranchesView : MultiChildView, IBranchesView
             _ => (row.DisplayName, isSelected ? _branchTextSelectedStyle : _branchTextStyle),
         };
 
-        var rendered = TruncateToFit(text, style, textWidth);
+        var rendered = TruncateToFit(text, style, nameBudget);
         c.DrawText(new DrawTextInputs
         {
-            Position = new RectF(contentLeft, rowBottom, textWidth, RowHeight),
+            Position = new RectF(contentLeft, rowBottom, nameBudget, RowHeight),
             Text = rendered,
             Style = style,
             ZIndex = z + 1,
         });
+
+        if (badgeWidth > 0)
+        {
+            var nameWidth = Context!.Canvas.MeasureTextWidth(rendered, style);
+            DrawAheadBehindBadgeAt(c, row, contentLeft + nameWidth + nameBadgeGap, rowBottom, z + 1);
+        }
     }
 
     private float DrawRowIcon(ICanvas c, BranchRow row, bool isSelected, float left, float rowBottom, int z)
@@ -260,42 +266,61 @@ public sealed class BranchesView : MultiChildView, IBranchesView
         return left + width + IconGap;
     }
 
-    // Returns the new right-edge after drawing the badge so the name's truncation knows
-    // how much room is left.
-    private float DrawAheadBehindBadge(ICanvas c, BranchRow row, float rowBottom, float rightEdge, int z)
+    private const float BadgeGap = 8f;
+    private const float BadgeNumIconGap = 0f;
+
+    private float MeasureAheadBehindBadge(BranchRow row)
     {
         var ahead = row.AheadBy.GetValueOrDefault();
         var behind = row.BehindBy.GetValueOrDefault();
-        if (ahead == 0 && behind == 0) return rightEdge;
+        if (ahead == 0 && behind == 0) return 0f;
 
-        const float badgeGap = 8f;
-        const float numIconGap = 3f;
-        var cursor = rightEdge;
-
-        if (behind > 0)
-            cursor = DrawCountAndIcon(c, behind.ToString(), LucideIcons.Pull, _behindNumStyle, _behindIconStyle, cursor, rowBottom, numIconGap, z) - badgeGap;
+        var canvas = Context!.Canvas;
+        var width = 0f;
         if (ahead > 0)
-            cursor = DrawCountAndIcon(c, ahead.ToString(), LucideIcons.Push, _aheadNumStyle, _aheadIconStyle, cursor, rowBottom, numIconGap, z) - badgeGap;
-
-        return cursor;
+        {
+            width += canvas.MeasureTextWidth(LucideIcons.Push, _aheadIconStyle)
+                   + BadgeNumIconGap
+                   + canvas.MeasureTextWidth(ahead.ToString(), _aheadNumStyle);
+        }
+        if (behind > 0)
+        {
+            if (width > 0) width += BadgeGap;
+            width += canvas.MeasureTextWidth(LucideIcons.Pull, _behindIconStyle)
+                   + BadgeNumIconGap
+                   + canvas.MeasureTextWidth(behind.ToString(), _behindNumStyle);
+        }
+        return width;
     }
 
-    // Draws "<icon><gap><count>" right-aligned to <rightX>. Returns the left edge of the
-    // drawn pair so callers can chain badges leftward.
-    private float DrawCountAndIcon(
+    private void DrawAheadBehindBadgeAt(ICanvas c, BranchRow row, float leftX, float rowBottom, int z)
+    {
+        var ahead = row.AheadBy.GetValueOrDefault();
+        var behind = row.BehindBy.GetValueOrDefault();
+        if (ahead == 0 && behind == 0) return;
+
+        var cursor = leftX;
+        if (ahead > 0)
+            cursor = DrawIconAndCount(c, ahead.ToString(), LucideIcons.Push, _aheadNumStyle, _aheadIconStyle, cursor, rowBottom, BadgeNumIconGap, z) + BadgeGap;
+        if (behind > 0)
+            DrawIconAndCount(c, behind.ToString(), LucideIcons.Pull, _behindNumStyle, _behindIconStyle, cursor, rowBottom, BadgeNumIconGap, z);
+    }
+
+    // Draws "<icon><gap><count>" left-aligned at <leftX>. Returns the right edge of the
+    // drawn pair so callers can chain badges rightward.
+    private float DrawIconAndCount(
         ICanvas c, string count, string icon,
         TextStyle countStyle, TextStyle iconStyle,
-        float rightX, float rowBottom, float gap, int z)
+        float leftX, float rowBottom, float gap, int z)
     {
         var canvas = Context!.Canvas;
         var iconWidth = canvas.MeasureTextWidth(icon, iconStyle);
         var countWidth = canvas.MeasureTextWidth(count, countStyle);
-        var countLeft = rightX - countWidth;
-        var iconLeft = countLeft - gap - iconWidth;
+        var countLeft = leftX + iconWidth + gap;
 
         c.DrawText(new DrawTextInputs
         {
-            Position = new RectF(iconLeft, rowBottom, iconWidth, RowHeight),
+            Position = new RectF(leftX, rowBottom, iconWidth, RowHeight),
             Text = icon,
             Style = iconStyle,
             ZIndex = z,
@@ -307,7 +332,7 @@ public sealed class BranchesView : MultiChildView, IBranchesView
             Style = countStyle,
             ZIndex = z,
         });
-        return iconLeft;
+        return countLeft + countWidth;
     }
 
     private bool IsBusyRow(BranchRow row) =>
