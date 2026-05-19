@@ -32,6 +32,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     public IReadable<Selection> Selection { get; }
     public IReadable<DiffTarget?> SelectedTarget { get; }
     public IReadable<bool> DiscardEnabled { get; }
+    public IReadable<bool> StageSelectedEnabled { get; }
     public IReadable<string?> OpError { get; }
     public IReadable<bool> CommitEnabled { get; }
     public IReadable<bool> CommitBusy { get; }
@@ -70,6 +71,8 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         Selection = Slice(s => s.Selection);
         SelectedTarget = Slice(s => s.Selection.Single);
         DiscardEnabled = Slice(s =>
+            s.Selection.Count > 0 && s.Selection.Items[0].Side == DiffSide.Unstaged);
+        StageSelectedEnabled = Slice(s =>
             s.Selection.Count > 0 && s.Selection.Items[0].Side == DiffSide.Unstaged);
         OpError = Slice(s => s.OpError);
         CommitEnabled = Slice(s => s.CommitEnabled);

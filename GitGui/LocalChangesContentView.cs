@@ -23,6 +23,7 @@ internal sealed class LocalChangesContentView : MultiChildView
     private readonly DiffView _diffView;
     private readonly VerticalSplitContainer _snapshotContainer;
     private readonly LocalChangesHeaderActionButton _discardButton;
+    private readonly LocalChangesHeaderActionButton _stageSelectedButton;
 
     // View-side mirror of the VM's Selection, wired in Bind. Lives here so the panels
     // and their rows can be constructed before Bind() — at construction we hand them
@@ -35,6 +36,9 @@ internal sealed class LocalChangesContentView : MultiChildView
         _discardButton = new LocalChangesHeaderActionButton(
             LucideIcons.Trash, OnDiscardSelected, "Discard selected changes");
         _discardButton.IsEnabled.Value = false;
+        _stageSelectedButton = new LocalChangesHeaderActionButton(
+            LucideIcons.ChevronRight, OnStageSelected, "Stage selected");
+        _stageSelectedButton.IsEnabled.Value = false;
 
         _unstagedPanel = new LocalChangesPanel(
             "Unstaged",
@@ -44,7 +48,7 @@ internal sealed class LocalChangesContentView : MultiChildView
             OnRowClick,
             [
                 _discardButton,
-                new LocalChangesHeaderActionButton(LucideIcons.ChevronRight, OnStageSelected, "Stage selected"),
+                _stageSelectedButton,
                 new LocalChangesHeaderActionButton(LucideIcons.ChevronsRight, OnStageAll, "Stage all"),
             ],
             onRowActivated: t => _vm?.Stage([t.Path]),
@@ -127,6 +131,7 @@ internal sealed class LocalChangesContentView : MultiChildView
         });
 
         vm.DiscardEnabled.Subscribe(enabled => _discardButton.IsEnabled.Value = enabled);
+        vm.StageSelectedEnabled.Subscribe(enabled => _stageSelectedButton.IsEnabled.Value = enabled);
     }
 
     private void ShowPlaceholder(string text)
