@@ -540,7 +540,7 @@ public sealed class GitService : IGitService
                     {
                         var stderr = stderrTask.GetAwaiter().GetResult();
                         var stdout = stdoutTask.GetAwaiter().GetResult();
-                        var combined = stderr.Length > 0 ? stderr : stdout;
+                        var combined = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
                         var msg = FirstMeaningfulLine(combined);
                         return string.IsNullOrEmpty(msg)
                             ? $"git checkout exited with code {proc.ExitCode}."
@@ -717,7 +717,7 @@ public sealed class GitService : IGitService
                 var stdout = stdoutTask.GetAwaiter().GetResult();
 
                 if (proc.ExitCode == 0) return new PushOutcome(true, null);
-                var combined = stderr.Length > 0 ? stderr : stdout;
+                var combined = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
                 var msg = FirstMeaningfulLine(combined);
                 if (string.IsNullOrEmpty(msg)) msg = $"git push exited with code {proc.ExitCode}.";
                 return new PushOutcome(false, msg);
@@ -765,7 +765,7 @@ public sealed class GitService : IGitService
                 var stdout = stdoutTask.GetAwaiter().GetResult();
 
                 if (proc.ExitCode == 0) return new PullOutcome(true, null);
-                var combined = stderr.Length > 0 ? stderr : stdout;
+                var combined = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
                 var msg = FirstMeaningfulLine(combined);
                 if (string.IsNullOrEmpty(msg)) msg = $"git pull exited with code {proc.ExitCode}.";
                 return new PullOutcome(false, msg);
@@ -800,7 +800,7 @@ public sealed class GitService : IGitService
                 var stdout = stdoutTask.GetAwaiter().GetResult();
 
                 if (proc.ExitCode == 0) return new FetchOutcome(true, null);
-                var combined = stderr.Length > 0 ? stderr : stdout;
+                var combined = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
                 var msg = FirstMeaningfulLine(combined);
                 if (string.IsNullOrEmpty(msg)) msg = $"git fetch exited with code {proc.ExitCode}.";
                 return new FetchOutcome(false, msg);
@@ -885,7 +885,7 @@ public sealed class GitService : IGitService
                 var stdout = stdoutTask.GetAwaiter().GetResult();
 
                 if (proc.ExitCode == 0) return new CreateBranchOutcome(true, null);
-                var combined = stderr.Length > 0 ? stderr : stdout;
+                var combined = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
                 var msg = FirstMeaningfulLine(combined);
                 if (string.IsNullOrEmpty(msg))
                     msg = $"git {(checkout ? "checkout" : "branch")} exited with code {proc.ExitCode}.";
@@ -936,7 +936,22 @@ public sealed class GitService : IGitService
             var args = new List<string> { "stash", "apply", $"stash@{{{index}}}" };
             var sem = GetRepoLock(repo.Path);
             sem.Wait();
-            try { return RunGitStash(repo.Path, args, "git stash apply"); }
+            try
+            {
+                var outcome = RunGitStash(repo.Path, args, "git stash apply");
+                if (outcome.Success) return outcome;
+
+                // `git stash apply` exits 1 when the apply itself worked but produced
+                // merge conflicts — the user's stash is on disk, the conflicts are visible
+                // in the index, and there's nothing to "fix" about the apply itself. Treat
+                // that as success-with-conflicts so the caller can refresh and show the
+                // banner instead of an error dialog (which would just say "exited with code
+                // 1" once the conflict markers had stolen stderr).
+                using var lg = new Repository(repo.Path);
+                if (!lg.Index.IsFullyMerged)
+                    return new StashOutcome(true, null, HasConflicts: true);
+                return outcome;
+            }
             finally { sem.Release(); }
         }
         catch (Exception ex)
@@ -977,10 +992,29 @@ public sealed class GitService : IGitService
         var stdout = stdoutTask.GetAwaiter().GetResult();
 
         if (proc.ExitCode == 0) return new StashOutcome(true, null);
-        var combined = stderr.Length > 0 ? stderr : stdout;
-        var msg = ExtractGitErrorBlock(combined);
+        var msg = CombineGitOutput(stderr, stdout);
         if (string.IsNullOrEmpty(msg)) msg = $"{label} exited with code {proc.ExitCode}.";
         return new StashOutcome(false, msg);
+    }
+
+    // Picks the meaningful block out of git's two streams. The old "stderr if non-empty,
+    // else stdout" rule lost stdout content whenever stderr had even a trailing newline —
+    // notably `git stash apply` with conflicts, where the actual CONFLICT lines go to
+    // stdout and stderr is often just "\n". Now: try stderr first, fall back to stdout if
+    // stderr extracts to nothing useful, then concat both when neither side dominates.
+    private static string CombineGitOutput(string stderr, string stdout)
+    {
+        var fromErr = ExtractGitErrorBlock(stderr);
+        var fromOut = ExtractGitErrorBlock(stdout);
+        if (!string.IsNullOrWhiteSpace(fromErr) && !string.IsNullOrWhiteSpace(fromOut)
+            && !fromErr.Contains(fromOut, StringComparison.Ordinal)
+            && !fromOut.Contains(fromErr, StringComparison.Ordinal))
+        {
+            return fromOut + "\n" + fromErr;
+        }
+        if (!string.IsNullOrWhiteSpace(fromErr)) return fromErr;
+        if (!string.IsNullOrWhiteSpace(fromOut)) return fromOut;
+        return string.Empty;
     }
 
     private static CheckoutOutcome RunGitCheckout(string repoPath, IReadOnlyList<string> gitArgs)
@@ -996,8 +1030,7 @@ public sealed class GitService : IGitService
         var stdout = stdoutTask.GetAwaiter().GetResult();
 
         if (proc.ExitCode == 0) return new CheckoutOutcome(true, null);
-        var combined = stderr.Length > 0 ? stderr : stdout;
-        var msg = ExtractGitErrorBlock(combined);
+        var msg = CombineGitOutput(stderr, stdout);
         if (string.IsNullOrEmpty(msg)) msg = $"git checkout exited with code {proc.ExitCode}.";
         return new CheckoutOutcome(false, msg);
     }
@@ -1555,8 +1588,7 @@ public sealed class GitService : IGitService
                 var stdout = stdoutTask.GetAwaiter().GetResult();
 
                 if (proc.ExitCode == 0) return new AbortOperationOutcome(true, null);
-                var combined = stderr.Length > 0 ? stderr : stdout;
-                var msg = ExtractGitErrorBlock(combined);
+                var msg = CombineGitOutput(stderr, stdout);
                 if (string.IsNullOrEmpty(msg))
                     msg = $"git {string.Join(' ', args)} exited with code {proc.ExitCode}.";
                 return new AbortOperationOutcome(false, msg);

@@ -407,6 +407,11 @@ internal sealed class BranchesPresenter : IDisposable
                 }
                 bus.Broadcast(new RefsChangedMessage(repo.Id));
                 bus.Broadcast(new WorkingTreeChangedMessage(repo.Id));
+                // With conflicts present, the user needs to resolve before doing anything
+                // else with the stash — don't offer to drop it, and let the operation-state
+                // banner (which fires off WorkingTreeChangedMessage above) tell them what
+                // happened. The stash stays around for reference / re-apply.
+                if (outcome.HasConflicts) return;
                 bus.Broadcast(new ShowDropStashDialogMessage(repo, index, label, subject));
             });
         });

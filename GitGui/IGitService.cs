@@ -65,4 +65,4 @@ public sealed record CheckoutOutcome(bool Success, string? ErrorMessage);
 
 public sealed record CreateBranchOutcome(bool Success, string? ErrorMessage);
 
-public sealed record StashOutcome(bool Success, string? ErrorMessage);
+public sealed record StashOutcome(bool Success, string? ErrorMessage, bool HasConflicts = false);

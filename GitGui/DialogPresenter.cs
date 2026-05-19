@@ -36,7 +36,14 @@ public sealed class DialogPresenter : IViewBehavior
             new CheckoutBranchDialog(m.Repo, m.RemoteName, m.RemoteBranchName, m.SuggestedLocalName, OnDialogClosed));
 
     private void OnShowOperationError(ShowOperationErrorMessage m)
-        => ShowDialog(new OperationErrorDialog(m.Title, m.Message, OnDialogClosed));
+    {
+        // Defensive: a blank body means no actionable info — showing the chrome alone is
+        // worse than dropping the message. Callers should produce a real message (the
+        // git CLI almost always writes *something* on failure); this guard is a backstop
+        // for the few paths where we couldn't extract any meaningful text.
+        if (string.IsNullOrWhiteSpace(m.Message)) return;
+        ShowDialog(new OperationErrorDialog(m.Title, m.Message, OnDialogClosed));
+    }
 
     private void OnShowDiscardChangesDialog(ShowDiscardChangesDialogMessage m)
         => ShowDialog(new DiscardChangesDialog(m.Repo, m.Paths, OnDialogClosed));
