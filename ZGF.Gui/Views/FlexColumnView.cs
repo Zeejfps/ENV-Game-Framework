@@ -103,9 +103,14 @@ public sealed class FlexColumnView : MultiChildView
             var childInitialHeight = childSize.Height;
 
             var finalChildHeight = childInitialHeight;
-            if (remainingSpace > 0 && grow > 0 && totalFlexGrow > 0)
+            // Grow items absorb remaining space; when remainingSpace is negative (children
+            // overflow the parent) they shrink proportionally so the layout stays bounded.
+            // Without this, a Grow-1 child like a scroll pane with tall content keeps its
+            // natural height and overflows its container instead of being clipped+scrolled.
+            if (grow > 0 && totalFlexGrow > 0)
             {
                 finalChildHeight += (grow / totalFlexGrow) * remainingSpace;
+                if (finalChildHeight < 0) finalChildHeight = 0;
             }
 
             float finalChildWidth;

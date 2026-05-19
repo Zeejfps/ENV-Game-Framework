@@ -116,11 +116,14 @@ public sealed class FlexRowView : MultiChildView
             var childInitialWidth = childSize.Width;
             var childInitialHeight = childSize.Height;
 
-            // Calculate final width based on FlexGrow
+            // Calculate final width based on FlexGrow. Negative remainingSpace (children
+            // overflow the parent) shrinks Grow items proportionally so the layout stays
+            // bounded — see the matching comment in FlexColumnView for the rationale.
             var finalChildWidth = childInitialWidth;
-            if (remainingSpace > 0 && grow > 0 && totalFlexGrow > 0)
+            if (grow > 0 && totalFlexGrow > 0)
             {
                 finalChildWidth += (grow / totalFlexGrow) * remainingSpace;
+                if (finalChildWidth < 0) finalChildWidth = 0;
             }
             
             var crossxisAlignment = CrossAxisAlignment;
