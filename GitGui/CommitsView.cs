@@ -97,6 +97,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     private readonly TextStyle _headerTextStyle = TextStyles.Row(CommitsPalette.HeaderText);
     private readonly TextStyle _placeholderStyle = TextStyles.Centered(CommitsPalette.Placeholder);
     private readonly TextStyle _badgeTextStyle = TextStyles.Row(CommitsPalette.BadgeText);
+    private readonly TextStyle _badgeIconStyle = TextStyles.Icon(CommitsPalette.BadgeText, 12f);
     private readonly TextStyle _hashTextStyle = TextStyles.Row(CommitsPalette.RowTextDim);
     private readonly TextStyle _hashTextActiveStyle = TextStyles.Row(CommitsPalette.RowTextActive);
 
@@ -541,12 +542,23 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         if (node.Refs.Count == 0) return left;
         if (Context == null) return left;
 
+        const float IconGap = 4f;
+
         var x = left;
         var badgeY = rowBottom + (RowHeight - BadgeHeight) * 0.5f;
         foreach (var badge in node.Refs)
         {
+            var icon = badge.Kind switch
+            {
+                RefKind.Stash => LucideIcons.Stash,
+                RefKind.LocalBranch => LucideIcons.Branch,
+                RefKind.RemoteBranch => LucideIcons.Branch,
+                _ => null,
+            };
+            var iconWidth = icon != null ? Context.Canvas.MeasureTextWidth(icon, _badgeIconStyle) : 0f;
             var textWidth = Context.Canvas.MeasureTextWidth(badge.Name, _badgeTextStyle);
-            var badgeW = textWidth + BadgePaddingX * 2;
+            var badgeW = BadgePaddingX * 2 + textWidth
+                       + (icon != null ? iconWidth + IconGap : 0f);
             var bg = badge.Kind switch
             {
                 RefKind.LocalBranch => CommitsPalette.BadgeLocalBg,
@@ -564,9 +576,21 @@ public sealed class CommitsView : MultiChildView, ICommitsView
                 },
                 ZIndex = z,
             });
+            var contentX = x + BadgePaddingX;
+            if (icon != null)
+            {
+                c.DrawText(new DrawTextInputs
+                {
+                    Position = new RectF(contentX, badgeY, iconWidth, BadgeHeight),
+                    Text = icon,
+                    Style = _badgeIconStyle,
+                    ZIndex = z + 1,
+                });
+                contentX += iconWidth + IconGap;
+            }
             c.DrawText(new DrawTextInputs
             {
-                Position = new RectF(x + BadgePaddingX, badgeY, textWidth, BadgeHeight),
+                Position = new RectF(contentX, badgeY, textWidth, BadgeHeight),
                 Text = badge.Name,
                 Style = _badgeTextStyle,
                 ZIndex = z + 1,
