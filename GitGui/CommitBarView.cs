@@ -21,7 +21,6 @@ internal sealed class CommitBarView : MultiChildView
     private readonly GrowingDescriptionField _descriptionField;
     private readonly CheckboxView _amendCheckbox;
     private readonly DialogButton _commitButton;
-    private readonly ColumnView _column;
     private readonly ErrorBar _errorBar;
 
     public CommitBarView()
@@ -73,12 +72,12 @@ internal sealed class CommitBarView : MultiChildView
 
         // Error bar is left out of the column until OpError adds it — that way the
         // column gap doesn't reserve space for an absent banner.
-        _column = new ColumnView
+        var column = new ColumnView
         {
             Gap = 8,
             Children = { titleBox, _descriptionField, buttonRow },
         };
-        _errorBar = new ErrorBar(_column, insertAt: 0);
+        _errorBar = new ErrorBar(column, insertAt: 0);
 
         AddChildToSelf(new RectView
         {
@@ -92,7 +91,7 @@ internal sealed class CommitBarView : MultiChildView
                 Top = Padding,
                 Bottom = Padding,
             },
-            Children = { _column },
+            Children = { column },
         });
     }
 
@@ -102,27 +101,27 @@ internal sealed class CommitBarView : MultiChildView
     {
         _vm = vm;
 
-        // Title: VM → input (with feedback guard) and input → VM. The State<string>
-        // equality check stops the feedback loop on its own — writing the same string
-        // back is a no-op — but checking the span first skips the input Clear+Enter churn.
+        // Title: VM → input (with feedback guard) and input → VM. The state's record
+        // equality stops the feedback loop on its own — writing the same string back is a
+        // no-op — but checking the span first skips the input Clear+Enter churn.
         vm.Title.Subscribe(s =>
         {
             if (_titleInput.Text.SequenceEqual(s.AsSpan())) return;
             _titleInput.Clear();
             if (s.Length > 0) _titleInput.Enter(s.AsSpan());
         });
-        _titleInput.TextChanged += () => vm.Title.Value = _titleInput.Text.ToString();
+        _titleInput.TextChanged += () => vm.SetTitle(_titleInput.Text.ToString());
 
         vm.Description.Subscribe(s =>
         {
             if (_descriptionField.Text.SequenceEqual(s.AsSpan())) return;
             _descriptionField.SetText(s.AsSpan());
         });
-        _descriptionField.TextChanged += () => vm.Description.Value = _descriptionField.Text.ToString();
+        _descriptionField.TextChanged += () => vm.SetDescription(_descriptionField.Text.ToString());
 
-        // Amend checkbox is two-way against vm.Amend; State.Value equality stops the loop.
+        // Amend checkbox is two-way against vm.Amend; record equality stops the loop.
         vm.Amend.Subscribe(b => _amendCheckbox.IsChecked.Value = b);
-        _amendCheckbox.IsChecked.Changed += b => vm.Amend.Value = b;
+        _amendCheckbox.IsChecked.Changed += b => vm.SetAmend(b);
 
         vm.CommitEnabled.Subscribe(b => _commitButton.IsEnabled.Value = b);
         vm.OpError.Subscribe(msg => _errorBar.Message = msg);
