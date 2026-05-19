@@ -280,7 +280,7 @@ public sealed class BranchesView : MultiChildView, IBranchesView
         return cursor;
     }
 
-    // Draws "<count><gap><icon>" right-aligned to <rightX>. Returns the left edge of the
+    // Draws "<icon><gap><count>" right-aligned to <rightX>. Returns the left edge of the
     // drawn pair so callers can chain badges leftward.
     private float DrawCountAndIcon(
         ICanvas c, string count, string icon,
@@ -290,16 +290,9 @@ public sealed class BranchesView : MultiChildView, IBranchesView
         var canvas = Context!.Canvas;
         var iconWidth = canvas.MeasureTextWidth(icon, iconStyle);
         var countWidth = canvas.MeasureTextWidth(count, countStyle);
-        var iconLeft = rightX - iconWidth;
-        var countLeft = iconLeft - gap - countWidth;
+        var countLeft = rightX - countWidth;
+        var iconLeft = countLeft - gap - iconWidth;
 
-        c.DrawText(new DrawTextInputs
-        {
-            Position = new RectF(countLeft, rowBottom, countWidth, RowHeight),
-            Text = count,
-            Style = countStyle,
-            ZIndex = z,
-        });
         c.DrawText(new DrawTextInputs
         {
             Position = new RectF(iconLeft, rowBottom, iconWidth, RowHeight),
@@ -307,7 +300,14 @@ public sealed class BranchesView : MultiChildView, IBranchesView
             Style = iconStyle,
             ZIndex = z,
         });
-        return countLeft;
+        c.DrawText(new DrawTextInputs
+        {
+            Position = new RectF(countLeft, rowBottom, countWidth, RowHeight),
+            Text = count,
+            Style = countStyle,
+            ZIndex = z,
+        });
+        return iconLeft;
     }
 
     private bool IsBusyRow(BranchRow row) =>
