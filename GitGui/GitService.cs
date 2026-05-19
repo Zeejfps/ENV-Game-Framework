@@ -969,7 +969,7 @@ public sealed class GitService : IGitService
 
         if (proc.ExitCode == 0) return new StashOutcome(true, null);
         var combined = stderr.Length > 0 ? stderr : stdout;
-        var msg = FirstMeaningfulLine(combined);
+        var msg = ExtractGitErrorBlock(combined);
         if (string.IsNullOrEmpty(msg)) msg = $"{label} exited with code {proc.ExitCode}.";
         return new StashOutcome(false, msg);
     }
@@ -988,7 +988,7 @@ public sealed class GitService : IGitService
 
         if (proc.ExitCode == 0) return new CheckoutOutcome(true, null);
         var combined = stderr.Length > 0 ? stderr : stdout;
-        var msg = FirstMeaningfulLine(combined);
+        var msg = ExtractGitErrorBlock(combined);
         if (string.IsNullOrEmpty(msg)) msg = $"git checkout exited with code {proc.ExitCode}.";
         return new CheckoutOutcome(false, msg);
     }
@@ -1073,7 +1073,8 @@ public sealed class GitService : IGitService
         => "'" + s.Replace("'", "'\\''") + "'";
 
     // Pulls the most relevant single line out of a git error blob — typically the
-    // "fatal: …" / "error: …" / "hint: …" line near the end.
+    // "fatal: …" / "error: …" / "hint: …" line near the end. Used by callers that show
+    // the error in a single-line banner (ErrorBar) where multi-line text would overflow.
     private static string FirstMeaningfulLine(string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;
@@ -1091,6 +1092,43 @@ public sealed class GitService : IGitService
             if (trimmed.Length > 0) return trimmed;
         }
         return text.Trim();
+    }
+
+    // Returns the full meaningful error block from a git error blob — starting at the
+    // first "error:" / "fatal:" / "hint:" line and including everything after it (the
+    // indented file list under "would be overwritten by merge:", the "Please commit your
+    // changes or stash them" hint, etc.). Used by callers that surface the error in a
+    // scrollable dialog where the full context is useful.
+    private static string ExtractGitErrorBlock(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var lines = text.Split('\n');
+        var startIdx = -1;
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var trimmed = lines[i].TrimStart();
+            if (trimmed.StartsWith("error:", StringComparison.OrdinalIgnoreCase)
+                || trimmed.StartsWith("fatal:", StringComparison.OrdinalIgnoreCase)
+                || trimmed.StartsWith("hint:", StringComparison.OrdinalIgnoreCase))
+            {
+                startIdx = i;
+                break;
+            }
+        }
+
+        IEnumerable<string> kept;
+        if (startIdx < 0)
+        {
+            // No git-prefixed line — fall back to all non-empty lines, trimmed.
+            kept = lines.Select(l => l.TrimEnd()).Where(l => l.Length > 0);
+        }
+        else
+        {
+            kept = lines.Skip(startIdx).Select(l => l.TrimEnd());
+        }
+
+        var result = string.Join("\n", kept).TrimEnd();
+        return result.Length > 0 ? result : text.Trim();
     }
 
     // LibGit2Sharp's Patch API drives diff output through native→managed callbacks (per

@@ -400,7 +400,8 @@ internal sealed class BranchesPresenter : IDisposable
                 _isStashApplying = false;
                 if (!outcome.Success)
                 {
-                    bus.Broadcast(new ShowCheckoutErrorMessage(
+                    bus.Broadcast(new ShowOperationErrorMessage(
+                        "Stash apply failed",
                         outcome.ErrorMessage ?? "Stash apply failed."));
                     return;
                 }
@@ -448,7 +449,8 @@ internal sealed class BranchesPresenter : IDisposable
                 if (outcome.Success)
                     bus.Broadcast(new RefsChangedMessage(repo.Id));
                 else
-                    bus.Broadcast(new ShowCheckoutErrorMessage(
+                    bus.Broadcast(new ShowOperationErrorMessage(
+                        "Checkout failed",
                         outcome.ErrorMessage ?? "Checkout failed."));
             });
         });

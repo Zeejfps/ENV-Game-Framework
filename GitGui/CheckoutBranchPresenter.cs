@@ -82,7 +82,8 @@ internal sealed class CheckoutBranchPresenter : IDisposable
                 if (outcome.Success)
                     bus.Broadcast(new RefsChangedMessage(request.Repo.Id));
                 else
-                    bus.Broadcast(new ShowCheckoutErrorMessage(
+                    bus.Broadcast(new ShowOperationErrorMessage(
+                        "Checkout failed",
                         outcome.ErrorMessage ?? "Checkout failed."));
             });
         });

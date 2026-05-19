@@ -16,7 +16,7 @@ public sealed class DialogPresenter : IViewBehavior
         var _messageBus = context.Get<IMessageBus>();
         _messageBus?.Subscribe<AddRepoMessage>(OnAddRepoMessageReceived);
         _messageBus?.Subscribe<ShowCheckoutDialogMessage>(OnShowCheckoutDialog);
-        _messageBus?.Subscribe<ShowCheckoutErrorMessage>(OnShowCheckoutError);
+        _messageBus?.Subscribe<ShowOperationErrorMessage>(OnShowOperationError);
         _messageBus?.Subscribe<ShowDiscardChangesDialogMessage>(OnShowDiscardChangesDialog);
         _messageBus?.Subscribe<ShowCreateBranchDialogMessage>(OnShowCreateBranchDialog);
         _messageBus?.Subscribe<ShowStashDialogMessage>(OnShowStashDialog);
@@ -34,8 +34,8 @@ public sealed class DialogPresenter : IViewBehavior
         => ShowDialog(
             new CheckoutBranchDialog(m.Repo, m.RemoteName, m.RemoteBranchName, m.SuggestedLocalName, OnDialogClosed));
 
-    private void OnShowCheckoutError(ShowCheckoutErrorMessage m)
-        => ShowDialog(new CheckoutErrorDialog(m.Message, OnDialogClosed));
+    private void OnShowOperationError(ShowOperationErrorMessage m)
+        => ShowDialog(new OperationErrorDialog(m.Title, m.Message, OnDialogClosed));
 
     private void OnShowDiscardChangesDialog(ShowDiscardChangesDialogMessage m)
         => ShowDialog(new DiscardChangesDialog(m.Repo, m.Paths, OnDialogClosed));

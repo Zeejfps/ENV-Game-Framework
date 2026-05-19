@@ -1,0 +1,197 @@
+using ZGF.Gui;
+using ZGF.Gui.Layouts;
+using ZGF.Gui.Tests;
+using ZGF.KeyboardModule;
+
+namespace GitGui;
+
+/// <summary>
+/// Modal shown when a git operation fails. Surfaces git's stderr block verbatim (so it
+/// matches what the user would see running the command in a terminal) inside a vertically
+/// scrollable monospace body — long blocks like "your local changes to the following
+/// files would be overwritten by merge" plus a file list stay fully readable instead of
+/// being clipped to the first line.
+///
+/// The body wraps at the dialog's content width and only scrolls vertically; that keeps
+/// long lines visible without letting wide content stretch the dialog horizontally.
+/// </summary>
+public sealed class OperationErrorDialog : MultiChildView
+{
+    private const float CloseButtonSize = 28f;
+
+    public OperationErrorDialog(string title, string message, Action onClose)
+    {
+        PreferredWidth = 560;
+        PreferredHeight = 360;
+
+        var titleView = new TextView
+        {
+            Text = title,
+            TextColor = DialogPalette.TitleText,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+
+        var headerRow = new FlexRowView
+        {
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            PreferredHeight = 28,
+            Children =
+            {
+                new MultiChildView { PreferredWidth = CloseButtonSize },
+                new FlexItem { Grow = 1, Child = titleView },
+                new DialogCloseButton(onClose),
+            },
+        };
+
+        var messageView = new TextView
+        {
+            Text = message,
+            TextColor = DialogPalette.BodyText,
+            FontFamily = DiffOptions.MonoFontFamily,
+            TextWrap = TextWrap.Wrap,
+        };
+
+        // VerticalScrollPane forces its child to viewport width — that gives the wrapping
+        // TextView the bound it needs to wrap instead of measuring its own one-line natural
+        // width and stretching the layout horizontally. ScrollPane (two-axis) lets the
+        // child grow to its natural width, which would let one long line balloon past the
+        // dialog edges.
+        var scrollPane = new VerticalScrollPane();
+        scrollPane.Children.Add(new PaddingView
+        {
+            Padding = new PaddingStyle { Left = 8, Right = 8, Top = 6, Bottom = 6 },
+            Children = { messageView },
+        });
+        scrollPane.UseController(_ => new VerticalScrollPaneWheelController(scrollPane));
+
+        var vScrollBar = ScrollBarStyles.CreateVertical();
+
+        var scrollHost = new RectView
+        {
+            BackgroundColor = Theme.BgDeep,
+            BorderColor = BorderColorStyle.All(DialogPalette.Border),
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(4),
+            Children =
+            {
+                new BorderLayoutView
+                {
+                    Center = scrollPane,
+                    East = vScrollBar,
+                },
+            },
+        };
+        scrollHost.UsePresenter(_ => new VerticalScrollBarSyncController(scrollPane, vScrollBar));
+
+        var okButton = new DialogButton("OK", onClose)
+        {
+            PreferredHeight = 32,
+        };
+
+        var buttonsRow = new FlexRowView
+        {
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
+            Children =
+            {
+                new FlexItem { Grow = 1, Child = new MultiChildView() },
+                new FlexItem { Grow = 1, Child = okButton },
+            },
+        };
+
+        AddChildToSelf(new RectView
+        {
+            BackgroundColor = DialogPalette.Background,
+            BorderColor = BorderColorStyle.All(DialogPalette.Border),
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(10),
+            Padding = PaddingStyle.All(20),
+            Children =
+            {
+                new FlexColumnView
+                {
+                    Gap = 12,
+                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
+                    Children =
+                    {
+                        headerRow,
+                        new RectView
+                        {
+                            BackgroundColor = DialogPalette.Separator,
+                            PreferredHeight = 1,
+                        },
+                        new FlexItem { Grow = 1, Child = scrollHost },
+                        buttonsRow,
+                    },
+                },
+            },
+        });
+
+        this.UseController(_ => new OperationErrorDialogKbmController(onClose));
+    }
+}
+
+internal sealed class OperationErrorDialogKbmController : KeyboardMouseController
+{
+    private readonly Action _onClose;
+
+    public OperationErrorDialogKbmController(Action onClose)
+    {
+        _onClose = onClose;
+    }
+
+    public override void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
+    {
+        if (e.State != InputState.Pressed) return;
+        if (e.Key == KeyboardKey.Escape
+            || e.Key == KeyboardKey.Enter
+            || e.Key == KeyboardKey.NumpadEnter)
+        {
+            e.Consume();
+            _onClose();
+        }
+    }
+}
+
+internal sealed class VerticalScrollPaneWheelController : KeyboardMouseController
+{
+    private const float Step = 60f;
+    private readonly VerticalScrollPane _pane;
+
+    public VerticalScrollPaneWheelController(VerticalScrollPane pane)
+    {
+        _pane = pane;
+    }
+
+    public override void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
+    {
+        _pane.Scroll(-e.DeltaY * Step);
+        e.Consume();
+    }
+}
+
+internal sealed class VerticalScrollBarSyncController : IDisposable
+{
+    private readonly VerticalScrollPane _pane;
+    private readonly VerticalScrollBarView _bar;
+
+    public VerticalScrollBarSyncController(VerticalScrollPane pane, VerticalScrollBarView bar)
+    {
+        _pane = pane;
+        _bar = bar;
+        _pane.ScrollPositionChanged += OnPaneScrolled;
+        _bar.ScrollPositionChanged += OnBarMoved;
+    }
+
+    public void Dispose()
+    {
+        _pane.ScrollPositionChanged -= OnPaneScrolled;
+        _bar.ScrollPositionChanged -= OnBarMoved;
+    }
+
+    private void OnPaneScrolled(float normalized)
+        => ScrollBarSync.ApplyVertical(_bar, _pane.Scale, normalized);
+
+    private void OnBarMoved(float normalized)
+        => _pane.SetNormalizedScrollPosition(normalized, notify: false);
+}
