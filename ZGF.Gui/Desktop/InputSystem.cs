@@ -378,10 +378,14 @@ public sealed class InputSystem
         foreach (var controller in _hoverableComponents)
         {
             var view = GetView(controller);
-            if (view != null && view.Position.ContainsPoint(point))
-            {
-                components.Add(controller);
-            }
+            if (view == null) continue;
+            if (!view.Position.ContainsPoint(point)) continue;
+            // Reject descendants of any clipping ancestor (e.g. ScrollPane) when the
+            // cursor falls outside that ancestor's viewport — scrolled-off rows still
+            // report their full positions, so without this check a row that has
+            // scrolled into the header band would steal hover from header buttons.
+            if (!IsPointInsideClippingAncestors(view, point)) continue;
+            components.Add(controller);
         }
 
         if (components.Count == 0)
@@ -389,6 +393,18 @@ public sealed class InputSystem
 
         components.Sort(CompareByZIndex);
         return components[0];
+    }
+
+    private static bool IsPointInsideClippingAncestors(View view, in PointF point)
+    {
+        var parent = view.Parent;
+        while (parent != null)
+        {
+            if (parent.ClipsContent && !parent.Position.ContainsPoint(point))
+                return false;
+            parent = parent.Parent;
+        }
+        return true;
     }
 
     private int CompareByZIndex(IKeyboardMouseController? x, IKeyboardMouseController? y)

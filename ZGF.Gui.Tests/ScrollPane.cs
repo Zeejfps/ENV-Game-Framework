@@ -27,6 +27,8 @@ public sealed class ScrollPane : MultiChildView, IScrollableContent
 
     public override IComponentCollection Children => _columnView.Children;
 
+    public override bool ClipsContent => true;
+
     public StyleValue<int> Gap
     {
         get => _columnView.Gap;

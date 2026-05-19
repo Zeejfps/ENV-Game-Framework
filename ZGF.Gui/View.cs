@@ -98,6 +98,16 @@ public abstract class View
         set => SetField(ref field, value);
     }
 
+    /// <summary>
+    /// When true, this view clips its descendants — both visually (containers that
+    /// override this should also <c>PushClip</c> in <c>OnDrawChildren</c>) and for
+    /// hit-testing. The input system rejects descendant hits whose cursor point
+    /// falls outside this view's <see cref="Position"/>. Used by scrollable
+    /// containers so rows positioned outside the viewport don't receive mouse
+    /// events through the area where they're not actually visible.
+    /// </summary>
+    public virtual bool ClipsContent => false;
+
     private int _depth;
 
     private int Depth
