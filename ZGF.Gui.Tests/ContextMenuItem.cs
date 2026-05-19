@@ -36,18 +36,35 @@ public sealed class ContextMenuItem : MultiChildView
 
     private readonly RectView _bg;
     private readonly ImageView _arrowIcon;
+    private readonly TextView _iconView;
     private readonly TextView _textView;
-    
+
     public string? Text
     {
         get => _textView.Text;
         set => _textView.Text = value;
     }
 
+    public string? Icon
+    {
+        get => _iconView.Text;
+        set => _iconView.Text = value;
+    }
+
+    public StyleValue<string> IconFontFamily
+    {
+        get => _iconView.FontFamily;
+        set => _iconView.FontFamily = value;
+    }
+
     public StyleValue<uint> TextColor
     {
         get => _textView.TextColor;
-        set => _textView.TextColor = value;
+        set
+        {
+            _textView.TextColor = value;
+            _iconView.TextColor = value;
+        }
     }
 
     public StyleValue<BorderColorStyle> BorderColor
@@ -109,6 +126,14 @@ public sealed class ContextMenuItem : MultiChildView
             TintColor = 0x0
         };
 
+        _iconView = new TextView
+        {
+            FontSize = 14,
+            PreferredWidth = 16,
+            VerticalTextAlignment = TextAlignment.Center,
+            HorizontalTextAlignment = TextAlignment.Center,
+        };
+
         _textView = new TextView
         {
             VerticalTextAlignment = TextAlignment.Center,
@@ -116,9 +141,10 @@ public sealed class ContextMenuItem : MultiChildView
 
         var row = new RowView
         {
-            Gap = 5,
+            Gap = 6,
             Children =
             {
+                _iconView,
                 _textView,
                 _arrowIcon,
             }

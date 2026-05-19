@@ -45,19 +45,25 @@ internal sealed class GroupHeaderRowPresenter : IDisposable
     {
         var items = new List<RepoBarContextMenu.Item>
         {
-            new("Rename group", () => _registry.BeginRenameGroup(_group.Id)),
+            new("Rename group", () => _registry.BeginRenameGroup(_group.Id), LucideIcons.PencilLine),
         };
 
         if (_registry.Groups.Count > 1)
         {
-            items.Add(new RepoBarContextMenu.Item("Delete group", () => _registry.DeleteGroup(_group.Id)));
+            items.Add(new RepoBarContextMenu.Item(
+                "Delete group",
+                () => _registry.DeleteGroup(_group.Id),
+                LucideIcons.Trash));
         }
 
-        items.Add(new RepoBarContextMenu.Item("New group", () =>
-        {
-            var id = _registry.CreateGroup("New Group");
-            _registry.BeginRenameGroup(id);
-        }));
+        items.Add(new RepoBarContextMenu.Item(
+            "New group",
+            () =>
+            {
+                var id = _registry.CreateGroup("New Group");
+                _registry.BeginRenameGroup(id);
+            },
+            LucideIcons.FolderPlus));
 
         return items;
     }

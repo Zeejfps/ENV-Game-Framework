@@ -70,7 +70,7 @@ public sealed class RepoBar : MultiChildView, IRepoBarView
     {
         return
         [
-            new RepoBarContextMenu.Item("New group", () => NewGroupRequested?.Invoke()),
+            new RepoBarContextMenu.Item("New group", () => NewGroupRequested?.Invoke(), LucideIcons.FolderPlus),
         ];
     }
 }

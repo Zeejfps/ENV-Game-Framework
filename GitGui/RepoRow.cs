@@ -93,12 +93,14 @@ public sealed class RepoRow : MultiChildView
             var captured = group;
             items.Add(new RepoBarContextMenu.Item(
                 $"Move to: {captured.Name}",
-                () => registry.MoveRepo(repo.Id, captured.Id, captured.RepoIds.Count)));
+                () => registry.MoveRepo(repo.Id, captured.Id, captured.RepoIds.Count),
+                LucideIcons.FolderInput));
         }
 
         items.Add(new RepoBarContextMenu.Item(
             "Remove repo",
-            () => registry.RemoveRepo(repo.Id)));
+            () => registry.RemoveRepo(repo.Id),
+            LucideIcons.Trash));
 
         items.Add(new RepoBarContextMenu.Item(
             "New group",
@@ -106,7 +108,8 @@ public sealed class RepoRow : MultiChildView
             {
                 var id = registry.CreateGroup("New Group");
                 registry.BeginRenameGroup(id);
-            }));
+            },
+            LucideIcons.FolderPlus));
 
         return items;
     }

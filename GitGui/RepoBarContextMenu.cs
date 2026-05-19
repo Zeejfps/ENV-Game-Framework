@@ -6,7 +6,7 @@ namespace GitGui;
 
 public static class RepoBarContextMenu
 {
-    public sealed record Item(string Label, Action OnSelected);
+    public sealed record Item(string Label, Action OnSelected, string? Icon = null);
 
     public static void Show(Context context, PointF anchor, IReadOnlyList<Item> items)
     {
@@ -31,6 +31,8 @@ public static class RepoBarContextMenu
             var menuItem = new ContextMenuItem
             {
                 Text = item.Label,
+                Icon = item.Icon,
+                IconFontFamily = LucideIcons.FontFamily,
                 NormalBackgroundColor = 0x00000000,
                 SelectedBackgroundColor = DialogPalette.RowHover,
                 TextColor = DialogPalette.RowText,
