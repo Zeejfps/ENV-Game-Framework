@@ -37,8 +37,10 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
         _pullButton = new ActionButton(LucideIcons.Pull, "Pull", () => PullRequested?.Invoke());
         _fetchButton = new ActionButton(LucideIcons.Fetch, "Fetch", () => FetchRequested?.Invoke());
         _branchButton = new ActionButton(LucideIcons.Branch, "Branch", () => BranchRequested?.Invoke());
-        _openFolderButton = new ActionButton(LucideIcons.FolderOpen, () => OpenInFolderRequested?.Invoke());
-        _openTerminalButton = new ActionButton(LucideIcons.SquareTerminal, () => OpenInTerminalRequested?.Invoke());
+        _openFolderButton = new ActionButton(LucideIcons.FolderOpen, () => OpenInFolderRequested?.Invoke(),
+            tooltip: "Open in file explorer");
+        _openTerminalButton = new ActionButton(LucideIcons.SquareTerminal, () => OpenInTerminalRequested?.Invoke(),
+            tooltip: "Open in terminal");
 
         _contentRow = new FlexRowView
         {

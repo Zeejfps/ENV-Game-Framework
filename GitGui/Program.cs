@@ -24,7 +24,10 @@ context.AddService<IRepoRegistry>(registry);
 context.AddService<IGitService>(new GitService());
 context.AddService<IDragController>(new DragController(registry));
 
-var appView = new AppView();
+var tooltipSurfaceView = new TooltipSurfaceView();
+context.AddService<ITooltipService>(tooltipSurfaceView);
+
+var appView = new AppView(tooltipSurfaceView);
 var appHost = GuiApp.CreateDefault(new StartupConfig
 {
     WindowTitle = "GitGui",

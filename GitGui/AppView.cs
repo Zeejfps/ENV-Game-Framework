@@ -5,7 +5,7 @@ namespace GitGui;
 
 public sealed class AppView : MultiChildView
 {
-    public AppView()
+    public AppView(TooltipSurfaceView tooltipSurfaceView)
     {
         Children.Add(new BorderLayoutView
         {
@@ -24,7 +24,9 @@ public sealed class AppView : MultiChildView
 
         var dialogSurfaceView = new DialogSurfaceView();
         Children.Add(dialogSurfaceView);
-        
+
+        Children.Add(tooltipSurfaceView);
+
         Behaviors.Add(new DialogPresenter(dialogSurfaceView));
     }
 }
