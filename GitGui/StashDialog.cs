@@ -77,6 +77,7 @@ public sealed class StashDialog : MultiChildView, IStashView
         {
             PreferredHeight = 22,
         };
+        _includeUntrackedCheckbox.IsChecked.Value = true;
         _keepStagedCheckbox = new CheckboxView("Keep staged changes in index")
         {
             PreferredHeight = 22,

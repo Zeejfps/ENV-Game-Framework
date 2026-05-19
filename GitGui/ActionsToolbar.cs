@@ -108,9 +108,10 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
             _openFolderButton.IsEnabled.Value = value;
             _openTerminalButton.IsEnabled.Value = value;
             _branchButton.IsEnabled.Value = value;
-            _stashButton.IsEnabled.Value = value;
         }
     }
+
+    public bool StashEnabled { set => _stashButton.IsEnabled.Value = value; }
 
     public bool PushBusy
     {

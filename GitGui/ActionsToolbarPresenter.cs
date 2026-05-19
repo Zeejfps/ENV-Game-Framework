@@ -12,12 +12,14 @@ internal sealed class ActionsToolbarPresenter : IDisposable
     private readonly IMessageBus _bus;
     private readonly SubscriptionGroup _subscriptions = new();
     private readonly GenerationGuard _statusGen = new();
+    private readonly GenerationGuard _localChangesGen = new();
 
     private readonly SpinnerAnimation _pushSpinner;
     private readonly SpinnerAnimation _pullSpinner;
     private readonly SpinnerAnimation _fetchSpinner;
 
     private PushStatus _pushStatus = new(null, HasUpstream: false, Ahead: 0, Behind: 0, IsDetached: false);
+    private bool _hasLocalChanges;
     private bool _isPushing;
     private bool _isPulling;
     private bool _isFetching;
@@ -58,15 +60,18 @@ internal sealed class ActionsToolbarPresenter : IDisposable
 
         UpdateSyncButtons();
         UpdateRepoActionButtons();
+        UpdateStashButton();
 
         _subscriptions.Add(_registry.Active.Subscribe(_ => OnRepoOrRefsChanged()));
         _subscriptions.Add(_bus.SubscribeScoped<CommitCreatedMessage>(_ => OnRepoOrRefsChanged()));
         _subscriptions.Add(_bus.SubscribeScoped<RefsChangedMessage>(_ => OnRepoOrRefsChanged()));
+        _subscriptions.Add(_bus.SubscribeScoped<WorkingTreeChangedMessage>(_ => ReloadLocalChanges()));
     }
 
     public void Dispose()
     {
         _statusGen.Bump();
+        _localChangesGen.Bump();
         _pushSpinner.Dispose();
         _pullSpinner.Dispose();
         _fetchSpinner.Dispose();
@@ -85,11 +90,45 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         _view.Error = null;
         UpdateRepoActionButtons();
         ReloadPushStatus();
+        ReloadLocalChanges();
     }
 
     private void UpdateRepoActionButtons()
     {
         _view.RepoActionsEnabled = _registry.Active.Value != null;
+    }
+
+    private void UpdateStashButton()
+    {
+        _view.StashEnabled = _registry.Active.Value != null && _hasLocalChanges;
+    }
+
+    private void ReloadLocalChanges()
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null)
+        {
+            _localChangesGen.Bump();
+            _hasLocalChanges = false;
+            UpdateStashButton();
+            return;
+        }
+
+        var gen = _localChangesGen.Bump();
+        var service = _gitService;
+        var dispatcher = _dispatcher;
+
+        Task.Run(() =>
+        {
+            var snap = service.GetLocalChanges(repo);
+            dispatcher.Post(() =>
+            {
+                if (_localChangesGen.IsStale(gen)) return;
+                if (_registry.Active.Value?.Id != repo.Id) return;
+                _hasLocalChanges = snap.Staged.Count + snap.Unstaged.Count > 0;
+                UpdateStashButton();
+            });
+        });
     }
 
     private void OnOpenInFolderRequested()

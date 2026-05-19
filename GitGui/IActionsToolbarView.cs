@@ -12,6 +12,7 @@ public interface IActionsToolbarView
     float PullRotation { set; }
     float FetchRotation { set; }
     bool RepoActionsEnabled { set; }
+    bool StashEnabled { set; }
     string? Error { set; }
     event Action PushRequested;
     event Action PullRequested;
