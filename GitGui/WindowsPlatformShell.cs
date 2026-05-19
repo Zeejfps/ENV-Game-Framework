@@ -12,36 +12,89 @@ public sealed class WindowsPlatformShell : IPlatformShell
     private const uint FOS_FORCEFILESYSTEM = 0x00000040;
     private const uint SIGDN_FILESYSPATH = 0x80058000;
     private const int ERROR_CANCELLED_HRESULT = unchecked((int)0x800704C7);
+    private const uint CLSCTX_INPROC_SERVER = 0x1;
 
-    public string? PickFolder(string title)
+    // CLSID_FileOpenDialog
+    private static readonly Guid ClsidFileOpenDialog = new("DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7");
+    // IID_IFileOpenDialog
+    private static readonly Guid IidFileOpenDialog = new("d57c7288-d4ad-4768-be02-9d969532d960");
+
+    // Calls IFileDialog/IShellItem methods directly through the COM vtable. This avoids
+    // the [ComImport] RCW pattern, which depends on runtime IL generation and is disabled
+    // when PublishAot is set.
+    public unsafe string? PickFolder(string title)
     {
-        var dialog = (IFileOpenDialog)new FileOpenDialogRCW();
+        CoCreateInstance(in ClsidFileOpenDialog, IntPtr.Zero, CLSCTX_INPROC_SERVER, in IidFileOpenDialog, out var pDialog);
         try
         {
-            dialog.GetOptions(out var options);
-            dialog.SetOptions(options | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM);
-            dialog.SetTitle(title);
+            var vtbl = *(IntPtr**)pDialog;
 
-            var hr = dialog.Show(IntPtr.Zero);
+            // IFileDialog vtable (after IUnknown 0..2):
+            //   3 Show, 9 SetOptions, 10 GetOptions, 17 SetTitle, 20 GetResult
+            var show       = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, int>)vtbl[3];
+            var setOptions = (delegate* unmanaged[Stdcall]<IntPtr, uint, int>)vtbl[9];
+            var getOptions = (delegate* unmanaged[Stdcall]<IntPtr, uint*, int>)vtbl[10];
+            var setTitle   = (delegate* unmanaged[Stdcall]<IntPtr, char*, int>)vtbl[17];
+            var getResult  = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, int>)vtbl[20];
+
+            uint options;
+            Marshal.ThrowExceptionForHR(getOptions(pDialog, &options));
+            Marshal.ThrowExceptionForHR(setOptions(pDialog, options | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM));
+
+            fixed (char* pTitle = title)
+            {
+                Marshal.ThrowExceptionForHR(setTitle(pDialog, pTitle));
+            }
+
+            var hr = show(pDialog, IntPtr.Zero);
             if (hr == ERROR_CANCELLED_HRESULT) return null;
             Marshal.ThrowExceptionForHR(hr);
 
-            dialog.GetResult(out var item);
+            IntPtr pItem;
+            Marshal.ThrowExceptionForHR(getResult(pDialog, &pItem));
             try
             {
-                item.GetDisplayName(SIGDN_FILESYSPATH, out var path);
-                return path;
+                var itemVtbl = *(IntPtr**)pItem;
+                // IShellItem vtable: 5 = GetDisplayName
+                var getDisplayName = (delegate* unmanaged[Stdcall]<IntPtr, uint, IntPtr*, int>)itemVtbl[5];
+
+                IntPtr pPath;
+                Marshal.ThrowExceptionForHR(getDisplayName(pItem, SIGDN_FILESYSPATH, &pPath));
+                try
+                {
+                    return Marshal.PtrToStringUni(pPath);
+                }
+                finally
+                {
+                    Marshal.FreeCoTaskMem(pPath);
+                }
             }
             finally
             {
-                Marshal.ReleaseComObject(item);
+                Release(pItem);
             }
         }
         finally
         {
-            Marshal.ReleaseComObject(dialog);
+            Release(pDialog);
         }
     }
+
+    private static unsafe void Release(IntPtr p)
+    {
+        if (p == IntPtr.Zero) return;
+        var vtbl = *(IntPtr**)p;
+        var release = (delegate* unmanaged[Stdcall]<IntPtr, uint>)vtbl[2];
+        release(p);
+    }
+
+    [DllImport("ole32.dll", PreserveSig = false)]
+    private static extern void CoCreateInstance(
+        in Guid rclsid,
+        IntPtr pUnkOuter,
+        uint dwClsContext,
+        in Guid riid,
+        out IntPtr ppv);
 
     public void OpenFolder(string path)
     {
@@ -69,55 +122,5 @@ public sealed class WindowsPlatformShell : IPlatformShell
             UseShellExecute = true,
         };
         using var __ = Process.Start(cmd);
-    }
-
-    [ComImport]
-    [Guid("DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7")]
-    [ClassInterface(ClassInterfaceType.None)]
-    private class FileOpenDialogRCW { }
-
-    [ComImport]
-    [Guid("d57c7288-d4ad-4768-be02-9d969532d960")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IFileOpenDialog
-    {
-        [PreserveSig] int Show([In, Optional] IntPtr hwndOwner);
-        void SetFileTypes(uint cFileTypes, IntPtr rgFilterSpec);
-        void SetFileTypeIndex(uint iFileType);
-        void GetFileTypeIndex(out uint piFileType);
-        void Advise([MarshalAs(UnmanagedType.IUnknown)] object pfde, out uint pdwCookie);
-        void Unadvise(uint dwCookie);
-        void SetOptions(uint fos);
-        void GetOptions(out uint fos);
-        void SetDefaultFolder(IShellItem psi);
-        void SetFolder(IShellItem psi);
-        void GetFolder(out IShellItem ppsi);
-        void GetCurrentSelection(out IShellItem ppsi);
-        void SetFileName([MarshalAs(UnmanagedType.LPWStr)] string pszName);
-        void GetFileName([MarshalAs(UnmanagedType.LPWStr)] out string pszName);
-        void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string pszTitle);
-        void SetOkButtonLabel([MarshalAs(UnmanagedType.LPWStr)] string pszText);
-        void SetFileNameLabel([MarshalAs(UnmanagedType.LPWStr)] string pszLabel);
-        void GetResult(out IShellItem ppsi);
-        void AddPlace(IShellItem psi, uint fdap);
-        void SetDefaultExtension([MarshalAs(UnmanagedType.LPWStr)] string pszDefaultExtension);
-        void Close([MarshalAs(UnmanagedType.Error)] int hr);
-        void SetClientGuid(ref Guid guid);
-        void ClearClientData();
-        void SetFilter(IntPtr pFilter);
-        void GetResults(out IntPtr ppenum);
-        void GetSelectedItems(out IntPtr ppsai);
-    }
-
-    [ComImport]
-    [Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IShellItem
-    {
-        void BindToHandler(IntPtr pbc, ref Guid bhid, ref Guid riid, out IntPtr ppv);
-        void GetParent(out IShellItem ppsi);
-        void GetDisplayName(uint sigdnName, [MarshalAs(UnmanagedType.LPWStr)] out string ppszName);
-        void GetAttributes(uint sfgaoMask, out uint psfgaoAttribs);
-        void Compare(IShellItem psi, uint hint, out int piOrder);
     }
 }
