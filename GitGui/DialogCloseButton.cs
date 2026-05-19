@@ -13,7 +13,9 @@ public sealed class DialogCloseButton : HoverableButton
 
         var label = new TextView
         {
-            Text = "×",
+            Text = LucideIcons.X,
+            FontFamily = LucideIcons.FontFamily,
+            FontSize = 14,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
