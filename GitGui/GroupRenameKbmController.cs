@@ -11,13 +11,13 @@ internal sealed class GroupRenameKbmController : BaseTextInputKbmController
     private readonly IRepoRegistry _registry;
     private bool _finished;
 
-    public GroupRenameKbmController(TextInputView input, Context context, Guid groupId, IRepoRegistry registry) : base(input)
+    public GroupRenameKbmController(TextInputView input, InputSystem inputSystem, Guid groupId, IRepoRegistry registry) : base(input)
     {
         _input = input;
         _groupId = groupId;
         _registry = registry;
         _input.StartEditing();
-        context.StealFocus(this);
+        inputSystem.StealFocus(this);
     }
 
     protected override void OnKeyboardKeyPressed(ref KeyboardKeyEvent e)

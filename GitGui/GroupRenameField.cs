@@ -31,6 +31,10 @@ public sealed class GroupRenameField : MultiChildView
             Children = { input }
         });
 
-        this.UseController(_ => new GroupRenameKbmController(input, group.Id, registry));
+        this.UseController(ctx =>
+        {
+            var inputSystem = ctx.Require<InputSystem>();
+            return new GroupRenameKbmController(input, inputSystem, group.Id, registry);
+        });
     }
 }
