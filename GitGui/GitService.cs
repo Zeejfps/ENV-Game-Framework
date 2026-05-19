@@ -997,24 +997,36 @@ public sealed class GitService : IGitService
         return new StashOutcome(false, msg);
     }
 
-    // Picks the meaningful block out of git's two streams. The old "stderr if non-empty,
-    // else stdout" rule lost stdout content whenever stderr had even a trailing newline —
-    // notably `git stash apply` with conflicts, where the actual CONFLICT lines go to
-    // stdout and stderr is often just "\n". Now: try stderr first, fall back to stdout if
-    // stderr extracts to nothing useful, then concat both when neither side dominates.
+    // Picks the meaningful block out of git's two streams. Rules, in priority order:
+    //   1. If either stream carries an `error:` / `fatal:` / `hint:` prefix, that stream is
+    //      authoritative — use just its extracted block. Don't dilute it with the other
+    //      stream's content, which is typically the noisy `git status` recap a stash/merge
+    //      op runs after the failure ("On branch …", "Changes not staged for commit", etc.).
+    //   2. Otherwise prefer stdout — operations like `git stash apply` with conflicts emit
+    //      the actual signal (CONFLICT lines, "Auto-merging X") on stdout while stderr is
+    //      empty or a stray `\n`.
+    //   3. Fall back to stderr if stdout is whitespace-only.
     private static string CombineGitOutput(string stderr, string stdout)
     {
-        var fromErr = ExtractGitErrorBlock(stderr);
-        var fromOut = ExtractGitErrorBlock(stdout);
-        if (!string.IsNullOrWhiteSpace(fromErr) && !string.IsNullOrWhiteSpace(fromOut)
-            && !fromErr.Contains(fromOut, StringComparison.Ordinal)
-            && !fromOut.Contains(fromErr, StringComparison.Ordinal))
-        {
-            return fromOut + "\n" + fromErr;
-        }
-        if (!string.IsNullOrWhiteSpace(fromErr)) return fromErr;
-        if (!string.IsNullOrWhiteSpace(fromOut)) return fromOut;
+        if (HasGitPrefix(stderr)) return ExtractGitErrorBlock(stderr);
+        if (HasGitPrefix(stdout)) return ExtractGitErrorBlock(stdout);
+        if (!string.IsNullOrWhiteSpace(stdout)) return ExtractGitErrorBlock(stdout);
+        if (!string.IsNullOrWhiteSpace(stderr)) return ExtractGitErrorBlock(stderr);
         return string.Empty;
+    }
+
+    private static bool HasGitPrefix(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        foreach (var line in text.Split('\n'))
+        {
+            var t = line.TrimStart();
+            if (t.StartsWith("error:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("fatal:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("hint:", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
     }
 
     private static CheckoutOutcome RunGitCheckout(string repoPath, IReadOnlyList<string> gitArgs)
