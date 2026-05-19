@@ -720,6 +720,41 @@ public sealed class GitService : IGitService
         }
     }
 
+    public FetchOutcome Fetch(Repo repo)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new FetchOutcome(false, "Not a git repository.");
+
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                var psi = BuildGitProcessStartInfo("fetch --all --prune", repo.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new FetchOutcome(false, "Failed to start git.");
+
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+
+                if (proc.ExitCode == 0) return new FetchOutcome(true, null);
+                var combined = stderr.Length > 0 ? stderr : stdout;
+                var msg = FirstMeaningfulLine(combined);
+                if (string.IsNullOrEmpty(msg)) msg = $"git fetch exited with code {proc.ExitCode}.";
+                return new FetchOutcome(false, msg);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new FetchOutcome(false, ex.Message);
+        }
+    }
+
     // Shells out so post-checkout hooks, LFS, and sparse-checkout filters all run; also
     // surfaces the same error wording the user would see in Terminal.
     public CheckoutOutcome CheckoutLocalBranch(Repo repo, string branchName)

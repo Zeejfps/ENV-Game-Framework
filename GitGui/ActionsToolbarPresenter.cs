@@ -21,10 +21,13 @@ internal sealed class ActionsToolbarPresenter : IDisposable
     private PushStatus _pushStatus = new(null, HasUpstream: false, Ahead: 0, Behind: 0, IsDetached: false);
     private bool _isPushing;
     private bool _isPulling;
+    private bool _isFetching;
     private CancellationTokenSource? _pushAnimCts;
     private CancellationTokenSource? _pullAnimCts;
+    private CancellationTokenSource? _fetchAnimCts;
     private float _pushRotation;
     private float _pullRotation;
+    private float _fetchRotation;
 
     public ActionsToolbarPresenter(
         IActionsToolbarView view,
@@ -43,6 +46,7 @@ internal sealed class ActionsToolbarPresenter : IDisposable
 
         _view.PushRequested += OnPushRequested;
         _view.PullRequested += OnPullRequested;
+        _view.FetchRequested += OnFetchRequested;
         _view.OpenInFolderRequested += OnOpenInFolderRequested;
         _view.OpenInTerminalRequested += OnOpenInTerminalRequested;
 
@@ -59,9 +63,11 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         _statusGen.Bump();
         StopPushAnim();
         StopPullAnim();
+        StopFetchAnim();
         _subscriptions.Dispose();
         _view.PushRequested -= OnPushRequested;
         _view.PullRequested -= OnPullRequested;
+        _view.FetchRequested -= OnFetchRequested;
         _view.OpenInFolderRequested -= OnOpenInFolderRequested;
         _view.OpenInTerminalRequested -= OnOpenInTerminalRequested;
     }
@@ -126,6 +132,7 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         var hasBranchUpstream = !_pushStatus.IsDetached && _pushStatus.HasUpstream;
         _view.PushEnabled = !_isPushing && hasBranchUpstream && _pushStatus.Ahead > 0;
         _view.PullEnabled = !_isPulling && hasBranchUpstream && _pushStatus.Behind > 0;
+        _view.FetchEnabled = !_isFetching && _registry.Active.Value != null;
     }
 
     private void OnPushRequested()
@@ -204,13 +211,50 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         });
     }
 
+    private void OnFetchRequested()
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+        if (_isFetching) return;
+
+        _isFetching = true;
+        UpdateSyncButtons();
+        _view.Error = null;
+        StartFetchAnim();
+
+        var service = _gitService;
+        var dispatcher = _dispatcher;
+        var bus = _bus;
+
+        Task.Run(() =>
+        {
+            FetchOutcome outcome;
+            try { outcome = service.Fetch(repo); }
+            catch (Exception ex) { outcome = new FetchOutcome(false, ex.Message); }
+
+            dispatcher.Post(() =>
+            {
+                _isFetching = false;
+                StopFetchAnim();
+                if (!outcome.Success)
+                {
+                    _view.Error = outcome.ErrorMessage ?? "Fetch failed.";
+                    UpdateSyncButtons();
+                    return;
+                }
+
+                bus.Broadcast(new RefsChangedMessage(repo.Id));
+            });
+        });
+    }
+
     private void StartPushAnim()
     {
         _pushAnimCts?.Cancel();
         _pushAnimCts = new CancellationTokenSource();
         _pushRotation = 0f;
         _view.PushBusy = true;
-        RunSpinLoop(_pushAnimCts.Token, isPush: true);
+        RunSpinLoop(_pushAnimCts.Token, SpinTarget.Push);
     }
 
     private void StopPushAnim()
@@ -228,7 +272,7 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         _pullAnimCts = new CancellationTokenSource();
         _pullRotation = 0f;
         _view.PullBusy = true;
-        RunSpinLoop(_pullAnimCts.Token, isPush: false);
+        RunSpinLoop(_pullAnimCts.Token, SpinTarget.Pull);
     }
 
     private void StopPullAnim()
@@ -240,7 +284,27 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         _view.PullBusy = false;
     }
 
-    private void RunSpinLoop(CancellationToken ct, bool isPush)
+    private void StartFetchAnim()
+    {
+        _fetchAnimCts?.Cancel();
+        _fetchAnimCts = new CancellationTokenSource();
+        _fetchRotation = 0f;
+        _view.FetchBusy = true;
+        RunSpinLoop(_fetchAnimCts.Token, SpinTarget.Fetch);
+    }
+
+    private void StopFetchAnim()
+    {
+        _fetchAnimCts?.Cancel();
+        _fetchAnimCts?.Dispose();
+        _fetchAnimCts = null;
+        _fetchRotation = 0f;
+        _view.FetchBusy = false;
+    }
+
+    private enum SpinTarget { Push, Pull, Fetch }
+
+    private void RunSpinLoop(CancellationToken ct, SpinTarget target)
     {
         var dispatcher = _dispatcher;
         Task.Run(async () =>
@@ -253,15 +317,20 @@ internal sealed class ActionsToolbarPresenter : IDisposable
                     dispatcher.Post(() =>
                     {
                         if (ct.IsCancellationRequested) return;
-                        if (isPush)
+                        switch (target)
                         {
-                            _pushRotation += RotationPerTick;
-                            _view.PushRotation = _pushRotation;
-                        }
-                        else
-                        {
-                            _pullRotation += RotationPerTick;
-                            _view.PullRotation = _pullRotation;
+                            case SpinTarget.Push:
+                                _pushRotation += RotationPerTick;
+                                _view.PushRotation = _pushRotation;
+                                break;
+                            case SpinTarget.Pull:
+                                _pullRotation += RotationPerTick;
+                                _view.PullRotation = _pullRotation;
+                                break;
+                            case SpinTarget.Fetch:
+                                _fetchRotation += RotationPerTick;
+                                _view.FetchRotation = _fetchRotation;
+                                break;
                         }
                     });
                 }

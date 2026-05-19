@@ -15,6 +15,7 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
 
     private readonly ActionButton _pushButton;
     private readonly ActionButton _pullButton;
+    private readonly ActionButton _fetchButton;
     private readonly ActionButton _openFolderButton;
     private readonly ActionButton _openTerminalButton;
     private readonly ErrorBar _errorBar;
@@ -22,6 +23,7 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
 
     public event Action? PushRequested;
     public event Action? PullRequested;
+    public event Action? FetchRequested;
     public event Action? OpenInFolderRequested;
     public event Action? OpenInTerminalRequested;
 
@@ -31,6 +33,7 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
 
         _pushButton = new ActionButton(LucideIcons.Push, "Push", () => PushRequested?.Invoke());
         _pullButton = new ActionButton(LucideIcons.Pull, "Pull", () => PullRequested?.Invoke());
+        _fetchButton = new ActionButton(LucideIcons.Fetch, "Fetch", () => FetchRequested?.Invoke());
         _openFolderButton = new ActionButton(LucideIcons.FolderOpen, () => OpenInFolderRequested?.Invoke());
         _openTerminalButton = new ActionButton(LucideIcons.SquareTerminal, () => OpenInTerminalRequested?.Invoke());
 
@@ -41,7 +44,7 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
             Children =
             {
                 new ModeSwitcherView(),
-                new ActionButton(LucideIcons.Fetch, "Fetch", () => { }),
+                _fetchButton,
                 _pullButton,
                 _pushButton,
                 new SeparatorSpacer(),
@@ -84,8 +87,10 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
 
     public bool PushEnabled { set => _pushButton.IsEnabled.Value = value; }
     public bool PullEnabled { set => _pullButton.IsEnabled.Value = value; }
+    public bool FetchEnabled { set => _fetchButton.IsEnabled.Value = value; }
     public float PushRotation { set => _pushButton.IconRotation = value; }
     public float PullRotation { set => _pullButton.IconRotation = value; }
+    public float FetchRotation { set => _fetchButton.IconRotation = value; }
     public string? Error { set => _errorBar.Message = value; }
 
     public bool RepoActionsEnabled
@@ -114,6 +119,16 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
             _pullButton.Icon = value ? LucideIcons.Loader : LucideIcons.Pull;
             _pullButton.Label = value ? "Pulling" : "Pull";
             _pullButton.IconRotation = 0f;
+        }
+    }
+
+    public bool FetchBusy
+    {
+        set
+        {
+            _fetchButton.Icon = value ? LucideIcons.Loader : LucideIcons.Fetch;
+            _fetchButton.Label = value ? "Fetching" : "Fetch";
+            _fetchButton.IconRotation = 0f;
         }
     }
 

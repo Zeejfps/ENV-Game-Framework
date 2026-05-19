@@ -16,6 +16,7 @@ public interface IGitService
     PushStatus GetPushStatus(Repo repo);
     PushOutcome Push(Repo repo);
     PullOutcome Pull(Repo repo);
+    FetchOutcome Fetch(Repo repo);
     CheckoutOutcome CheckoutLocalBranch(Repo repo, string branchName);
     CheckoutOutcome CheckoutRemoteBranch(Repo repo, string localName, string remoteName, string remoteBranchName, bool track);
     DiffResult GetDiff(Repo repo, string path, DiffSide side);
@@ -33,5 +34,7 @@ public sealed record PushStatus(
 public sealed record PushOutcome(bool Success, string? ErrorMessage);
 
 public sealed record PullOutcome(bool Success, string? ErrorMessage);
+
+public sealed record FetchOutcome(bool Success, string? ErrorMessage);
 
 public sealed record CheckoutOutcome(bool Success, string? ErrorMessage);
