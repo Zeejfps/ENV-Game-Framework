@@ -20,16 +20,7 @@ internal readonly record struct LocalChangesState(
         Unstaged: [],
         Staged: [],
         OpError: null);
-
-    // Amend can be a message-only edit of the previous commit, so it doesn't need
-    // anything staged; a regular commit does.
+    
     public bool CommitEnabled =>
-        HasNonWhitespace(Title) && (Amend || Staged.Count > 0);
-
-    private static bool HasNonWhitespace(string s)
-    {
-        foreach (var ch in s)
-            if (!char.IsWhiteSpace(ch)) return true;
-        return false;
-    }
+        !string.IsNullOrWhiteSpace(Title) && (Amend || Staged.Count > 0);
 }
