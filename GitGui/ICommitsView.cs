@@ -1,0 +1,21 @@
+namespace GitGui;
+
+public abstract record CommitsViewModel
+{
+    public sealed record NoRepo : CommitsViewModel;
+    public sealed record Loading : CommitsViewModel;
+    public sealed record Error(string Message) : CommitsViewModel;
+    public sealed record Loaded(CommitSnapshot Snapshot) : CommitsViewModel;
+}
+
+public interface ICommitsView
+{
+    /// <summary>Push the load/render state.</summary>
+    void SetViewModel(CommitsViewModel vm);
+
+    /// <summary>Push the current selection; <c>null</c> clears it.</summary>
+    void SetSelectedSha(string? sha);
+
+    /// <summary>Raised when the user clicks a row. Payload is the row's commit SHA.</summary>
+    event Action<string> CommitClicked;
+}

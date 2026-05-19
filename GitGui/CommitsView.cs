@@ -49,15 +49,7 @@ internal static class CommitsPalette
     public static uint LaneColor(int lane) => LanePalette[((lane % LanePalette.Length) + LanePalette.Length) % LanePalette.Length];
 }
 
-internal enum CommitsLoadState
-{
-    NoRepo,
-    Loading,
-    Loaded,
-    Error,
-}
-
-public sealed class CommitsView : MultiChildView
+public sealed class CommitsView : MultiChildView, ICommitsView
 {
     private const float HeaderHeight = 28f;
     private const float RowHeight = 26f;
@@ -87,24 +79,18 @@ public sealed class CommitsView : MultiChildView
     private float _dateColumnWidth = DefaultDateColumnWidth;
     private DividerKind _hoveredDivider = DividerKind.None;
 
-    private IMessageBus? _bus;
-    private IRepoRegistry? _registry;
-    private IGitService? _gitService;
-    private IUiDispatcher? _dispatcher;
-    private readonly SubscriptionGroup _subscriptions = new();
-
-    private CommitsLoadState _state = CommitsLoadState.NoRepo;
+    private CommitsViewModel _state = new CommitsViewModel.NoRepo();
     private CommitSnapshot? _snapshot;
-    private readonly GenerationGuard _loadGen = new();
-    private Guid _loadingRepoId;
 
     private float _scrollY;
     private float _lastNormalizedScroll;
     private float _lastScale = 1f;
     private string? _selectedSha;
+    private bool _truncated;
 
     public event Action<float>? ScrollPositionChanged;
     public event Action<float>? ScaleChanged;
+    public event Action<string>? CommitClicked;
 
     private readonly TextStyle _rowTextStyle = TextStyles.Row(CommitsPalette.RowText);
     private readonly TextStyle _rowTextActiveStyle = TextStyles.Row(CommitsPalette.RowTextActive);
@@ -117,54 +103,54 @@ public sealed class CommitsView : MultiChildView
     public CommitsView()
     {
         this.UseController(_ => new CommitsViewController(this));
+        this.UsePresenter(ctx => new CommitsPresenter(
+            this,
+            ctx.Require<IRepoRegistry>(),
+            ctx.Require<IGitService>(),
+            ctx.Require<IUiDispatcher>(),
+            ctx.Require<IMessageBus>()));
     }
 
-    protected override void OnAttachedToContext(Context context)
+    public void SetViewModel(CommitsViewModel vm)
     {
-        _bus = context.Get<IMessageBus>();
-        _registry = context.Get<IRepoRegistry>();
-        _gitService = context.Get<IGitService>();
-        _dispatcher = context.Get<IUiDispatcher>();
-        _subscriptions.Add(_registry?.Active.Subscribe(_ => StartLoadForActiveRepo()));
-        _subscriptions.Add(_bus?.SubscribeScoped<CommitCreatedMessage>(OnCommitCreated));
-        _subscriptions.Add(_bus?.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected));
-        _subscriptions.Add(_bus?.SubscribeScoped<RefsChangedMessage>(OnRefsChanged));
+        var newSnap = (vm as CommitsViewModel.Loaded)?.Snapshot;
+        var prevSnap = _snapshot;
+        // Preserve scroll only across snapshot-for-same-repo transitions (soft refresh).
+        // Any other transition — first load, repo switch, loading/error placeholders —
+        // resets to the top.
+        var preserveScroll = newSnap != null && prevSnap != null && newSnap.RepoId == prevSnap.RepoId;
+
+        _state = vm;
+        _snapshot = newSnap;
+
+        if (preserveScroll)
+        {
+            _scrollY = ScrollMath.ClampScroll(_scrollY,
+                newSnap!.Commits.Count * RowHeight, Position.Height - HeaderHeight);
+        }
+        else
+        {
+            _scrollY = 0f;
+        }
+
+        NotifyScrollChanged();
+
+        var newTruncated = newSnap?.Truncated == true;
+        if (newTruncated != _truncated)
+        {
+            _truncated = newTruncated;
+            TruncatedChanged?.Invoke(newTruncated);
+        }
+
+        SetDirty();
     }
 
-    protected override void OnDetachedFromContext(Context context)
+    public void SetSelectedSha(string? sha)
     {
-        _loadGen.Bump();
-        _subscriptions.Dispose();
-        _bus = null;
-        _registry = null;
-        _gitService = null;
-        _dispatcher = null;
-    }
-
-    private void OnCommitCreated(CommitCreatedMessage msg)
-    {
-        var active = _registry?.Active.Value;
-        if (active == null || active.Id != msg.RepoId) return;
-        StartLoadForActiveRepo();
-    }
-
-    private void OnRefsChanged(RefsChangedMessage msg)
-    {
-        var active = _registry?.Active.Value;
-        if (active == null || active.Id != msg.RepoId) return;
-        StartLoadForActiveRepo();
-    }
-
-    // External selection requests (e.g. BranchesView clicks): mirror the SHA into our
-    // own state and scroll the row into view. Self-broadcasts short-circuit because
-    // _selectedSha already matches.
-    private void OnCommitSelected(CommitSelectedMessage msg)
-    {
-        var snap = _snapshot;
-        if (snap == null || snap.RepoId != msg.RepoId) return;
-
-        _selectedSha = msg.Sha;
-        ScrollShaIntoView(msg.Sha);
+        if (_selectedSha == sha) return;
+        _selectedSha = sha;
+        ScrollShaIntoView(sha);
+        SetDirty();
     }
 
     private void ScrollShaIntoView(string? sha)
@@ -195,102 +181,8 @@ public sealed class CommitsView : MultiChildView
         NotifyScrollChanged();
     }
 
-    private void StartLoadForActiveRepo()
-    {
-        if (_registry == null || _gitService == null) return;
-        var active = _registry.Active.Value;
-
-        var gen = _loadGen.Bump();
-
-        if (active == null)
-        {
-            _state = CommitsLoadState.NoRepo;
-            _snapshot = null;
-            _scrollY = 0f;
-            ClearSelection();
-            NotifyScrollChanged();
-            return;
-        }
-
-        // Soft refresh: when we already have a snapshot for this repo (e.g. after a tab
-        // round-trip, or after a commit/push), keep it visible while a fresh one loads in
-        // the background. Avoids a "Loading…" flash and preserves scroll/selection.
-        var isSoftRefresh = _state == CommitsLoadState.Loaded && _snapshot?.RepoId == active.Id;
-        if (!isSoftRefresh)
-        {
-            _state = CommitsLoadState.Loading;
-            _snapshot = null;
-            _scrollY = 0f;
-            ClearSelection();
-            NotifyScrollChanged();
-        }
-        _loadingRepoId = active.Id;
-
-        var repo = active;
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        Task.Run(() =>
-        {
-            CommitSnapshot snap;
-            try
-            {
-                snap = service.Load(repo, 3000);
-            }
-            catch (Exception ex)
-            {
-                snap = new CommitSnapshot(repo.Id, repo.Path, Array.Empty<CommitNode>(), 0, false, ex.Message);
-            }
-
-            dispatcher?.Post(() =>
-            {
-                if (_loadGen.IsStale(gen)) return;
-                ApplyLoadedSnapshot(snap, isSoftRefresh);
-            });
-        });
-    }
-
-    public bool Truncated => _snapshot?.Truncated == true;
+    public bool Truncated => _truncated;
     public event Action<bool>? TruncatedChanged;
-
-    private void ApplyLoadedSnapshot(CommitSnapshot snap, bool preserveViewState)
-    {
-        if (snap.RepoId != _loadingRepoId) return;
-        var wasTruncated = Truncated;
-        _snapshot = snap;
-        _state = snap.ErrorMessage != null ? CommitsLoadState.Error : CommitsLoadState.Loaded;
-
-        if (preserveViewState)
-        {
-            // Selection survives only if the commit still exists in the new snapshot
-            // (e.g. it may have been pruned by a rebase or reset).
-            if (_selectedSha != null && !SnapshotContainsSha(snap, _selectedSha))
-            {
-                _selectedSha = null;
-                _bus?.Broadcast(new CommitSelectedMessage(snap.RepoId, null));
-            }
-            // Clamp scroll in case the new snapshot is shorter.
-            _scrollY = ScrollMath.ClampScroll(_scrollY,
-                snap.Commits.Count * RowHeight, Position.Height - HeaderHeight);
-        }
-        else
-        {
-            _scrollY = 0f;
-        }
-
-        NotifyScrollChanged();
-        if (wasTruncated != Truncated)
-            TruncatedChanged?.Invoke(Truncated);
-        _bus?.Broadcast(new CommitsLoadedMessage(snap.RepoId));
-    }
-
-    private static bool SnapshotContainsSha(CommitSnapshot snap, string sha)
-    {
-        for (var i = 0; i < snap.Commits.Count; i++)
-        {
-            if (snap.Commits[i].Sha == sha) return true;
-        }
-        return false;
-    }
 
     public float Scale
     {
@@ -367,16 +259,16 @@ public sealed class CommitsView : MultiChildView
 
         switch (_state)
         {
-            case CommitsLoadState.NoRepo:
+            case CommitsViewModel.NoRepo:
                 DrawPlaceholder(c, ComputeCommitsColumnRect(bodyRect), "Select a repository to view its history.", z + 2);
                 break;
-            case CommitsLoadState.Loading:
+            case CommitsViewModel.Loading:
                 DrawPlaceholder(c, ComputeCommitsColumnRect(bodyRect), "Loading…", z + 2);
                 break;
-            case CommitsLoadState.Error:
-                DrawPlaceholder(c, ComputeCommitsColumnRect(bodyRect), _snapshot?.ErrorMessage ?? "Error.", z + 2);
+            case CommitsViewModel.Error err:
+                DrawPlaceholder(c, ComputeCommitsColumnRect(bodyRect), err.Message, z + 2);
                 break;
-            case CommitsLoadState.Loaded:
+            case CommitsViewModel.Loaded:
                 DrawCommits(c, bodyRect, z + 2);
                 break;
         }
@@ -719,7 +611,7 @@ public sealed class CommitsView : MultiChildView
 
     internal void OnWheel(float deltaY)
     {
-        if (_state != CommitsLoadState.Loaded) return;
+        if (_state is not CommitsViewModel.Loaded) return;
         _scrollY -= deltaY * ScrollWheelStep;
         var snap = _snapshot;
         if (snap != null)
@@ -788,7 +680,7 @@ public sealed class CommitsView : MultiChildView
 
     internal void OnClickAt(PointF point)
     {
-        if (_state != CommitsLoadState.Loaded) return;
+        if (_state is not CommitsViewModel.Loaded) return;
         var snap = _snapshot;
         if (snap == null) return;
 
@@ -800,21 +692,7 @@ public sealed class CommitsView : MultiChildView
         var distFromTop = bodyTop - point.Y;
         var row = (int)((distFromTop + _scrollY) / RowHeight);
         if (row < 0 || row >= snap.Commits.Count) return;
-        SetSelectedSha(snap.RepoId, snap.Commits[row].Sha);
-    }
-
-    private void SetSelectedSha(Guid repoId, string? sha)
-    {
-        if (_selectedSha == sha) return;
-        _selectedSha = sha;
-        _bus?.Broadcast(new CommitSelectedMessage(repoId, sha));
-    }
-
-    private void ClearSelection()
-    {
-        if (_selectedSha == null) return;
-        _selectedSha = null;
-        _bus?.Broadcast(new CommitSelectedMessage(_loadingRepoId, null));
+        CommitClicked?.Invoke(snap.Commits[row].Sha);
     }
 
     private static string FormatRelative(DateTimeOffset when)

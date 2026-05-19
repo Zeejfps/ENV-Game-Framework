@@ -1,0 +1,173 @@
+using ZGF.Observable;
+
+namespace GitGui;
+
+internal sealed class CommitsPresenter : IDisposable
+{
+    private const int MaxCommits = 3000;
+
+    private readonly ICommitsView _view;
+    private readonly IRepoRegistry _registry;
+    private readonly IGitService _gitService;
+    private readonly IUiDispatcher _dispatcher;
+    private readonly IMessageBus _bus;
+    private readonly SubscriptionGroup _subscriptions = new();
+    private readonly GenerationGuard _loadGen = new();
+
+    private CommitSnapshot? _snapshot;
+    private Guid _loadingRepoId;
+    private string? _selectedSha;
+
+    public CommitsPresenter(
+        ICommitsView view,
+        IRepoRegistry registry,
+        IGitService gitService,
+        IUiDispatcher dispatcher,
+        IMessageBus bus)
+    {
+        _view = view;
+        _registry = registry;
+        _gitService = gitService;
+        _dispatcher = dispatcher;
+        _bus = bus;
+
+        _view.CommitClicked += OnCommitClicked;
+
+        _subscriptions.Add(_registry.Active.Subscribe(_ => StartLoadForActiveRepo()));
+        _subscriptions.Add(_bus.SubscribeScoped<CommitCreatedMessage>(OnCommitCreated));
+        _subscriptions.Add(_bus.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected));
+        _subscriptions.Add(_bus.SubscribeScoped<RefsChangedMessage>(OnRefsChanged));
+    }
+
+    public void Dispose()
+    {
+        _loadGen.Bump();
+        _subscriptions.Dispose();
+        _view.CommitClicked -= OnCommitClicked;
+    }
+
+    private void OnCommitCreated(CommitCreatedMessage msg)
+    {
+        var active = _registry.Active.Value;
+        if (active == null || active.Id != msg.RepoId) return;
+        StartLoadForActiveRepo();
+    }
+
+    private void OnRefsChanged(RefsChangedMessage msg)
+    {
+        var active = _registry.Active.Value;
+        if (active == null || active.Id != msg.RepoId) return;
+        StartLoadForActiveRepo();
+    }
+
+    // External selection requests (e.g. BranchesView tip clicks). Self-broadcasts come
+    // back through here too; we dedupe against _selectedSha so the round trip is harmless.
+    private void OnCommitSelected(CommitSelectedMessage msg)
+    {
+        if (_snapshot == null || _snapshot.RepoId != msg.RepoId) return;
+        if (_selectedSha == msg.Sha) return;
+        _selectedSha = msg.Sha;
+        _view.SetSelectedSha(msg.Sha);
+    }
+
+    private void OnCommitClicked(string sha)
+    {
+        if (_snapshot == null) return;
+        if (_selectedSha == sha) return;
+        _selectedSha = sha;
+        _view.SetSelectedSha(sha);
+        _bus.Broadcast(new CommitSelectedMessage(_snapshot.RepoId, sha));
+    }
+
+    private void StartLoadForActiveRepo()
+    {
+        var active = _registry.Active.Value;
+        var gen = _loadGen.Bump();
+
+        if (active == null)
+        {
+            _snapshot = null;
+            ClearSelectionAndBroadcast();
+            _view.SetViewModel(new CommitsViewModel.NoRepo());
+            return;
+        }
+
+        // Soft refresh: when we already have a snapshot for this repo (e.g. after a tab
+        // round-trip, or after a commit/push), keep it visible while a fresh one loads in
+        // the background. Avoids a "Loading…" flash and preserves scroll/selection.
+        var isSoftRefresh = _snapshot != null && _snapshot.RepoId == active.Id;
+        if (!isSoftRefresh)
+        {
+            _snapshot = null;
+            ClearSelectionAndBroadcast();
+            _view.SetViewModel(new CommitsViewModel.Loading());
+        }
+        _loadingRepoId = active.Id;
+
+        var repo = active;
+        var service = _gitService;
+        var dispatcher = _dispatcher;
+        Task.Run(() =>
+        {
+            CommitSnapshot snap;
+            try
+            {
+                snap = service.Load(repo, MaxCommits);
+            }
+            catch (Exception ex)
+            {
+                snap = new CommitSnapshot(repo.Id, repo.Path, Array.Empty<CommitNode>(), 0, false, ex.Message);
+            }
+
+            dispatcher.Post(() =>
+            {
+                if (_loadGen.IsStale(gen)) return;
+                ApplyLoadedSnapshot(snap);
+            });
+        });
+    }
+
+    private void ApplyLoadedSnapshot(CommitSnapshot snap)
+    {
+        if (snap.RepoId != _loadingRepoId) return;
+        _snapshot = snap;
+
+        if (snap.ErrorMessage != null)
+        {
+            _view.SetViewModel(new CommitsViewModel.Error(snap.ErrorMessage));
+        }
+        else
+        {
+            _view.SetViewModel(new CommitsViewModel.Loaded(snap));
+            // Selection survives only if the commit still exists in the new snapshot
+            // (e.g. it may have been pruned by a rebase or reset).
+            if (_selectedSha != null && !SnapshotContainsSha(snap, _selectedSha))
+            {
+                _selectedSha = null;
+                _view.SetSelectedSha(null);
+                _bus.Broadcast(new CommitSelectedMessage(snap.RepoId, null));
+            }
+        }
+
+        _bus.Broadcast(new CommitsLoadedMessage(snap.RepoId));
+    }
+
+    // Broadcasts against _loadingRepoId — that's the *previous* repo at the moment we
+    // clear, which is what subscribers expect ("the prev repo's selection is now gone").
+    private void ClearSelectionAndBroadcast()
+    {
+        if (_selectedSha == null) return;
+        _selectedSha = null;
+        _view.SetSelectedSha(null);
+        _bus.Broadcast(new CommitSelectedMessage(_loadingRepoId, null));
+    }
+
+    private static bool SnapshotContainsSha(CommitSnapshot snap, string sha)
+    {
+        for (var i = 0; i < snap.Commits.Count; i++)
+        {
+            if (snap.Commits[i].Sha == sha) return true;
+        }
+        return false;
+    }
+}
