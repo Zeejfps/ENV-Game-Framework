@@ -61,7 +61,9 @@ public sealed class GitService : IGitService
                 var tip = stash.WorkTree;
                 if (tip == null) { stashIndex++; continue; }
                 refTips.Add(tip);
-                AddBadge(refsBySha, tip.Sha, new RefBadge($"stash@{{{stashIndex}}}", RefKind.Stash));
+                var label = StripStashPrefix(stash.Message ?? string.Empty);
+                if (string.IsNullOrEmpty(label)) label = $"stash@{{{stashIndex}}}";
+                AddBadge(refsBySha, tip.Sha, new RefBadge(label, RefKind.Stash));
                 stashIndex++;
             }
 
