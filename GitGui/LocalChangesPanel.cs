@@ -155,13 +155,30 @@ internal sealed class LocalChangesPanel : MultiChildView
 
     public void SetFiles(IReadOnlyList<FileChange> files)
     {
+        // Carry the existing selection/anchor through — Create normalizes them against
+        // the new file set, so a reload from an unrelated trigger (watcher tick, refs
+        // change) can't wipe a still-valid selection out from under the diff view.
         var prev = _state.Value;
-        // Create normalizes selection/anchor against the new file set — paths still
-        // present survive, paths that vanished are pruned. The same SetFiles call that
-        // refreshes the list also delivers the post-refresh selection state, so an
-        // unrelated reload (working-tree watcher, refs change) can never wipe a still-
-        // valid selection out from under the diff view.
-        _state.Value = PanelSnapshot.Create(files, prev.Selection, prev.Anchor);
+        ApplyState(files, prev.Selection, prev.Anchor);
+    }
+
+    /// <summary>
+    /// Atomic equivalent of <see cref="SetFiles"/> + <see cref="SetSelection"/>: assigns
+    /// the new file list AND the new selection in a single snapshot transition. Used by
+    /// stage/unstage to land both the destination panel's new rows and the selection on
+    /// those rows in one shot, so the diff view never observes the brief zero-selection
+    /// gap that arises when files and selection arrive as separate updates.
+    /// </summary>
+    public void SetFilesWithSelection(IReadOnlyList<FileChange> files, IReadOnlyCollection<string> selection)
+    {
+        string? anchor = null;
+        foreach (var p in selection) { anchor = p; break; }
+        ApplyState(files, selection, anchor);
+    }
+
+    private void ApplyState(IReadOnlyList<FileChange> files, IEnumerable<string> selection, string? anchor)
+    {
+        _state.Value = PanelSnapshot.Create(files, selection, anchor);
         _headerText.Text = FileChangesUI.FormatHeader(_title, files.Count);
         _rows.Children.Clear();
         if (files.Count == 0)

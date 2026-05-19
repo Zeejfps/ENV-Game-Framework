@@ -25,10 +25,17 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     public IReadable<string?> OpError { get; }
     public IReadable<bool> CommitEnabled { get; }
 
-    /// <summary>Fired after a successful stage/unstage so the view can re-select the
-    /// affected rows on the destination side — the panel-internal selection state is
-    /// owned by the view, not the VM.</summary>
-    public event Action<DiffSide, IReadOnlyList<string>>? SelectionRequested;
+    /// <summary>
+    /// Fired during a successful stage/unstage to hand the destination panel its new
+    /// file list together with the paths to select — atomically, before the snapshot
+    /// <c>Update</c> that follows pushes the source side's new file list through the
+    /// slice subscribers. Carrying the destination's file list here (rather than letting
+    /// the slice subscription deliver it later) lets the view place the diff view's
+    /// target on the destination row before the source-side update can transiently
+    /// blank the selection, which would otherwise cause the diff to flicker off.
+    /// Selection state is owned by the view, not the VM.
+    /// </summary>
+    public event Action<DiffSide, IReadOnlyList<FileChange>, IReadOnlyList<string>>? SelectionRequested;
 
     // _stagedFromIndex is whatever GetLocalChanges last returned; the amend-only
     // bookkeeping (HEAD files, pre-amend editor backups) lives on _amend, which is
@@ -306,13 +313,27 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 Update(s => s with { OpError = errorMsg });
                 // Keep the prior snapshot rendered on failure — losing the list on every
                 // transient error would erase the user's selection and context.
-                if (snap != null)
+                if (snap == null) return;
+
+                // Hand the destination side its new files + selection BEFORE the
+                // state Update fires, so the diff view's target moves to the
+                // destination row in the same frame the source row goes away. If we
+                // ran the Update first, the source slice subscriber would call
+                // SetFiles which prunes the moved path from selection — yielding a
+                // zero-selection mid-frame and a visible diff-view flicker.
+                _stagedFromIndex = snap.Staged;
+                var displayedStaged = ComputeDisplayedStaged();
+                var destSide = isStage ? DiffSide.Staged : DiffSide.Unstaged;
+                var destFiles = isStage ? displayedStaged : snap.Unstaged;
+                SelectionRequested?.Invoke(destSide, destFiles, paths);
+
+                Update(s => s with
                 {
-                    ApplySnapshot(snap);
-                    // The operated-on rows just moved sides; re-select them on the
-                    // destination so the user keeps their place across a stage/unstage.
-                    SelectionRequested?.Invoke(isStage ? DiffSide.Staged : DiffSide.Unstaged, paths);
-                }
+                    IsLoading = false,
+                    LoadError = null,
+                    Unstaged = snap.Unstaged,
+                    Staged = displayedStaged,
+                });
             });
     }
 
@@ -333,12 +354,25 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
             {
                 Update(s => s with { OpError = errorMsg });
                 if (snap == null) return;
-                ApplySnapshot(snap);
-                // Both batches land in unstaged after the reset/unstage.
+
+                // Same destination-first ordering as RunIndexOp (see comment there):
+                // the unstaged panel receives its new files + selection together,
+                // before the Update fires and the staged slice subscriber prunes the
+                // moved paths from the staged side.
+                _stagedFromIndex = snap.Staged;
+                var displayedStaged = ComputeDisplayedStaged();
                 var combined = new List<string>(toUnstage.Count + toResetToParent.Count);
                 combined.AddRange(toUnstage);
                 combined.AddRange(toResetToParent);
-                SelectionRequested?.Invoke(DiffSide.Unstaged, combined);
+                SelectionRequested?.Invoke(DiffSide.Unstaged, snap.Unstaged, combined);
+
+                Update(s => s with
+                {
+                    IsLoading = false,
+                    LoadError = null,
+                    Unstaged = snap.Unstaged,
+                    Staged = displayedStaged,
+                });
             });
     }
 

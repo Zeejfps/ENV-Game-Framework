@@ -115,10 +115,16 @@ internal sealed class LocalChangesContentView : MultiChildView
         vm.Unstaged.Subscribe(list => _unstagedPanel.SetFiles(list));
         vm.Staged.Subscribe(list => _stagedPanel.SetFiles(list));
 
-        vm.SelectionRequested += (side, paths) =>
+        // Atomic destination-side update: the panel that's gaining the selection
+        // receives its new file list and the selected paths in a single snapshot
+        // transition. The slice subscribers above will fire SetFiles on both panels
+        // immediately after (via the VM's Update), but by then the diff view has
+        // already been retargeted onto the destination row, so the source-side prune
+        // is invisible to the user. See LocalChangesViewModel.SelectionRequested.
+        vm.SelectionRequested += (side, files, paths) =>
         {
-            if (side == DiffSide.Unstaged) _unstagedPanel.SetSelection(paths);
-            else _stagedPanel.SetSelection(paths);
+            if (side == DiffSide.Unstaged) _unstagedPanel.SetFilesWithSelection(files, paths);
+            else _stagedPanel.SetFilesWithSelection(files, paths);
         };
     }
 
