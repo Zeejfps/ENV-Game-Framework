@@ -31,7 +31,7 @@ internal static class DiffPalette
     public const uint TruncatedFooterText = HunkSeparatorRangeText;
 }
 
-internal abstract record DiffViewModel
+public abstract record DiffViewModel
 {
     public sealed record Placeholder(string Text) : DiffViewModel;
     public sealed record Loaded(DiffResult Result) : DiffViewModel;
@@ -49,19 +49,9 @@ internal abstract record DiffViewModel
 /// inside a <c>ScrollPane</c>, which forced O(N) text measurement on every layout pass for
 /// diffs of 5000 lines.
 /// </remarks>
-public sealed class DiffView : MultiChildView
+public sealed class DiffView : MultiChildView, IDiffView
 {
-    private IGitService? _gitService;
-    private IRepoRegistry? _registry;
-    private IUiDispatcher? _dispatcher;
-    private readonly SubscriptionGroup _subscriptions = new();
-
-    private readonly State<DiffViewModel> _viewModel = new(
-        new DiffViewModel.Placeholder("Select a file to view diff."));
-
-    private string? _targetPath;
-    private DiffSide _targetSide;
-    private readonly GenerationGuard _loadGen = new();
+    private readonly State<DiffTarget?> _target = new(null);
 
     private readonly DiffContentView _content;
     private readonly VerticalScrollBarView _vScrollBar;
@@ -90,75 +80,20 @@ public sealed class DiffView : MultiChildView
         });
 
         this.UseController(_ => new DiffContentScrollSyncController(_content, _vScrollBar, _hScrollBar));
+        this.UsePresenter(ctx => new DiffPresenter(
+            this,
+            ctx.Require<IRepoRegistry>(),
+            ctx.Require<IGitService>(),
+            ctx.Require<IUiDispatcher>()));
     }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        _gitService = context.Get<IGitService>();
-        _registry = context.Get<IRepoRegistry>();
-        _dispatcher = context.Get<IUiDispatcher>();
-        _subscriptions.Add(_viewModel.Subscribe(_content.SetViewModel));
-        // Services were unavailable on prior SetTarget calls (e.g. before first attach);
-        // now that they're here, kick off the load for whatever the current target is.
-        StartLoad();
-    }
+    public IReadable<DiffTarget?> Target => _target;
 
-    protected override void OnDetachedFromContext(Context context)
-    {
-        _subscriptions.Dispose();
-        _gitService = null;
-        _registry = null;
-        _dispatcher = null;
-    }
+    public void SetViewModel(DiffViewModel vm) => _content.SetViewModel(vm);
 
     public void SetTarget(string? path, DiffSide side)
     {
-        _targetPath = path;
-        _targetSide = side;
-        StartLoad();
-    }
-
-    private void StartLoad()
-    {
-        // Bumping unconditionally invalidates any in-flight load — whether we replace it
-        // with a new one or fall back to a placeholder, the old result must not win.
-        var gen = _loadGen.Bump();
-
-        if (_targetPath == null)
-        {
-            _viewModel.Value = new DiffViewModel.Placeholder("Select a file to view diff.");
-            return;
-        }
-
-        if (_gitService == null || _registry == null) return;
-        var repo = _registry.Active.Value;
-        if (repo == null) return;
-
-        var path = _targetPath;
-        var side = _targetSide;
-        _viewModel.Value = new DiffViewModel.Placeholder("Loading…");
-
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        Task.Run(() =>
-        {
-            DiffViewModel result;
-            try
-            {
-                var diff = service.GetDiff(repo, path, side);
-                result = new DiffViewModel.Loaded(diff);
-            }
-            catch (Exception ex)
-            {
-                result = new DiffViewModel.Placeholder(ex.Message);
-            }
-
-            dispatcher?.Post(() =>
-            {
-                if (_loadGen.IsStale(gen)) return;
-                _viewModel.Value = result;
-            });
-        });
+        _target.Value = path == null ? null : new DiffTarget(path, side);
     }
 }
 
