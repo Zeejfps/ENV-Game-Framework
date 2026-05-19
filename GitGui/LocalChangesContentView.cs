@@ -32,7 +32,8 @@ internal sealed class LocalChangesContentView : MultiChildView
 
     public LocalChangesContentView()
     {
-        _discardButton = new LocalChangesHeaderActionButton(LucideIcons.Trash, OnDiscardSelected);
+        _discardButton = new LocalChangesHeaderActionButton(
+            LucideIcons.Trash, OnDiscardSelected, "Discard selected changes");
         _discardButton.IsEnabled.Value = false;
 
         _unstagedPanel = new LocalChangesPanel(
@@ -43,8 +44,8 @@ internal sealed class LocalChangesContentView : MultiChildView
             OnRowClick,
             [
                 _discardButton,
-                new LocalChangesHeaderActionButton(LucideIcons.ChevronRight, OnStageSelected),
-                new LocalChangesHeaderActionButton(LucideIcons.ChevronsRight, OnStageAll),
+                new LocalChangesHeaderActionButton(LucideIcons.ChevronRight, OnStageSelected, "Stage selected"),
+                new LocalChangesHeaderActionButton(LucideIcons.ChevronsRight, OnStageAll, "Stage all"),
             ],
             onRowActivated: t => _vm?.Stage([t.Path]),
             onEmptyAreaClicked: () => _vm?.ClearSelection());
@@ -55,8 +56,8 @@ internal sealed class LocalChangesContentView : MultiChildView
             _selection,
             OnRowClick,
             [
-                new LocalChangesHeaderActionButton(LucideIcons.ChevronsLeft, OnUnstageAll),
-                new LocalChangesHeaderActionButton(LucideIcons.ChevronLeft, OnUnstageSelected),
+                new LocalChangesHeaderActionButton(LucideIcons.ChevronsLeft, OnUnstageAll, "Unstage all"),
+                new LocalChangesHeaderActionButton(LucideIcons.ChevronLeft, OnUnstageSelected, "Unstage selected"),
             ],
             onRowActivated: t => _vm?.Unstage([t.Path]),
             onEmptyAreaClicked: () => _vm?.ClearSelection());

@@ -11,7 +11,8 @@ internal sealed class LocalChangesHeaderActionButton : HoverableButton
     private const uint IconDisabledColor = 0x66B5B9C0;
     private const uint TransparentBg = 0x00000000u;
 
-    public LocalChangesHeaderActionButton(string icon, Action onClick) : base(onClick)
+    public LocalChangesHeaderActionButton(string icon, Action onClick, string? tooltip = null)
+        : base(onClick, tooltip)
     {
         PreferredWidth = ButtonSize;
         PreferredHeight = ButtonSize;

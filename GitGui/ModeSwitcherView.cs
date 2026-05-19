@@ -31,8 +31,15 @@ public sealed class ModeSwitcherView : MultiChildView
     {
         PreferredHeight = PillHeight;
 
-        _history = new Segment("History", () => SetMode(MainViewMode.History));
-        _localChanges = new Segment("Changes", () => SetMode(MainViewMode.LocalChanges));
+        const float innerRadius = SegmentCornerRadius - 1f;
+        _history = new Segment(
+            "History",
+            () => SetMode(MainViewMode.History),
+            new BorderRadiusStyle { TopRight = innerRadius, BottomRight = innerRadius });
+        _localChanges = new Segment(
+            "Changes",
+            () => SetMode(MainViewMode.LocalChanges),
+            new BorderRadiusStyle { TopLeft = innerRadius, BottomLeft = innerRadius });
 
         var separator = new RectView
         {
@@ -89,7 +96,7 @@ public sealed class ModeSwitcherView : MultiChildView
         private bool _isActive;
         private bool _isHovered;
 
-        public Segment(string label, Action onClick)
+        public Segment(string label, Action onClick, BorderRadiusStyle cornerRadius)
         {
             PreferredHeight = PillHeight;
 
@@ -104,6 +111,7 @@ public sealed class ModeSwitcherView : MultiChildView
             _bg = new RectView
             {
                 BackgroundColor = SegmentIdleBg,
+                BorderRadius = cornerRadius,
                 Padding = new PaddingStyle { Left = 12, Right = 12 },
                 Children = { _label },
             };

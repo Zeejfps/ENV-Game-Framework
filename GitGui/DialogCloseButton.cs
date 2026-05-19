@@ -5,7 +5,8 @@ namespace GitGui;
 
 public sealed class DialogCloseButton : HoverableButton
 {
-    public DialogCloseButton(Action onClick) : base(onClick)
+    public DialogCloseButton(Action onClick, string? tooltip = "Close")
+        : base(onClick, tooltip)
     {
         PreferredWidth = 28;
         PreferredHeight = 28;

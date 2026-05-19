@@ -27,7 +27,8 @@ public sealed class ActionButton : HoverableButton
         set => _iconView.Rotation = value;
     }
 
-    public ActionButton(string icon, string? label, Action onClick, string? tooltip = null) : base(onClick)
+    public ActionButton(string icon, string? label, Action onClick, string? tooltip = null)
+        : base(onClick, tooltip)
     {
         PreferredHeight = 28;
 
@@ -69,11 +70,6 @@ public sealed class ActionButton : HoverableButton
         background.BindBackgroundColor(() =>
             IsEnabled && IsHovered ? DialogPalette.ButtonHover : 0x00000000u);
         SetBackground(background);
-
-        if (!string.IsNullOrEmpty(tooltip))
-        {
-            this.UsePresenter(ctx => new Tooltip(this, ctx, tooltip, IsHovered, IsEnabled));
-        }
     }
 
     public ActionButton(string icon, Action onClick, string? tooltip = null)
