@@ -12,9 +12,10 @@ public sealed class GroupHeaderController : KeyboardMouseController, IDisposable
     private readonly View _view;
     private readonly Context _context;
     private readonly Group _group;
-    private readonly IRepoRegistry _registry;
     private readonly Action<bool> _onHoverChanged;
     private readonly Func<PointF, IReadOnlyList<RepoBarContextMenu.Item>> _buildMenuItems;
+    private readonly Func<bool> _isRenaming;
+    private readonly Action _onToggleCollapsed;
 
     private readonly IDragController? _dragController;
     private readonly InputSystem _inputSystem;
@@ -27,16 +28,18 @@ public sealed class GroupHeaderController : KeyboardMouseController, IDisposable
         View view,
         Context context,
         Group group,
-        IRepoRegistry registry,
         Action<bool> onHoverChanged,
-        Func<PointF, IReadOnlyList<RepoBarContextMenu.Item>> buildMenuItems)
+        Func<PointF, IReadOnlyList<RepoBarContextMenu.Item>> buildMenuItems,
+        Func<bool> isRenaming,
+        Action onToggleCollapsed)
     {
         _view = view;
         _context = context;
         _group = group;
-        _registry = registry;
         _onHoverChanged = onHoverChanged;
         _buildMenuItems = buildMenuItems;
+        _isRenaming = isRenaming;
+        _onToggleCollapsed = onToggleCollapsed;
 
         _dragController = context.Get<IDragController>();
         _inputSystem = context.Get<InputSystem>()!;
@@ -102,7 +105,7 @@ public sealed class GroupHeaderController : KeyboardMouseController, IDisposable
 
         if (e.State == InputState.Pressed)
         {
-            if (_registry.RenamingGroupId.Value == _group.Id) return;
+            if (_isRenaming()) return;
             _pressed = true;
             _dragging = false;
             _pressPoint = e.Mouse.Point;
@@ -122,7 +125,7 @@ public sealed class GroupHeaderController : KeyboardMouseController, IDisposable
             }
             else
             {
-                _registry.ToggleGroupCollapsed(_group.Id);
+                _onToggleCollapsed();
             }
             _inputSystem.Blur(this);
             e.Consume();

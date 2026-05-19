@@ -12,7 +12,7 @@ internal sealed class GroupSectionPresenter : IDisposable
         _group = group;
         _registry = registry;
 
-        _view.SetHeader(new GroupHeaderRow(_group, _registry));
+        _view.SetHeader(new GroupHeaderRow(_group));
         _view.BindRows(
             () => VisibleRepos(_group, _registry),
             repo => new RepoRow(repo, _registry));
