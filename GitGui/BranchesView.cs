@@ -13,7 +13,7 @@ namespace GitGui;
 /// a matching local check that local out; remote branches with no matching local pop the
 /// CheckoutBranchDialog. Collapse state is persisted per-repo via IRepoRegistry.
 /// </summary>
-public sealed class BranchesView : MultiChildView
+public sealed class BranchesView : MultiChildView, IBranchesView
 {
     private const float RowHeight = 22f;
     private const float BaseIndent = 8f;
@@ -23,41 +23,6 @@ public sealed class BranchesView : MultiChildView
     private const float IconGap = 4f;
     private const float ScrollWheelStep = 60f;
     private const int DoubleClickThresholdMs = 400;
-
-    private const float IndentSection = 0f;          // LOCAL / REMOTES
-    private const float IndentRemoteHeader = 12f;    // origin (under REMOTES)
-    private const float IndentLocalTreeBase = 16f;   // depth-0 row under LOCAL
-    private const float IndentRemoteTreeBase = 28f;  // depth-0 row under a remote header
-    private const float IndentLevel = 16f;           // per-depth step within the tree
-
-    private IMessageBus? _bus;
-    private IRepoRegistry? _registry;
-    private IGitService? _gitService;
-    private IUiDispatcher? _dispatcher;
-    private State<MainViewMode>? _mode;
-    private readonly SubscriptionGroup _subscriptions = new();
-
-    private Guid _activeRepoId;
-    private readonly GenerationGuard _loadGen = new();
-    private BranchListing? _listing;
-    private string? _loadError;
-    private BranchesUiState _ui = new();
-    private BranchSelection? _selection;
-
-    private readonly List<Row> _rows = new();
-    private float _scrollY;
-    private int _hoveredRowIndex = -1;
-
-    private bool _hasLastClick;
-    private int _lastClickTickMs;
-    private int _lastClickRowIndex = -1;
-
-    // Set while a `git checkout` we triggered is in flight. We ignore further activations
-    // (the GitService per-repo lock would queue them anyway, but blocking at the UI is less
-    // surprising than silently queueing) and dim the target row so the user has something
-    // to look at while the CLI works.
-    private bool _isCheckingOut;
-    private string? _checkingOutBranchName;
 
     // Ahead = "need to push", behind = "need to pull". Greenish + amber for at-a-glance.
     // Number uses the default font; icon uses the Lucide glyphs the toolbar push/pull
@@ -93,218 +58,45 @@ public sealed class BranchesView : MultiChildView
     private readonly TextStyle _branchIconStyle = TextStyles.Icon(CommitsPalette.RowText);
     private readonly TextStyle _branchIconActiveStyle = TextStyles.Icon(CommitsPalette.RowTextActive);
 
+    private IReadOnlyList<BranchRow> _rows = Array.Empty<BranchRow>();
+    private BranchSelection? _selection;
+    private string? _busyBranch;
+    private string? _loadError;
+
+    private float _scrollY;
+    private int _hoveredRowIndex = -1;
+
+    private bool _hasLastClick;
+    private int _lastClickTickMs;
+    private int _lastClickRowIndex = -1;
+
+    public event Action<BranchRow?>? RowClicked;
+    public event Action<BranchRow>? RowActivated;
+
     public BranchesView()
     {
         this.UseController(_ => new BranchesViewController(this));
+
+        this.UsePresenter(ctx => new BranchesPresenter(
+            this,
+            ctx.Require<IRepoRegistry>(),
+            ctx.Require<IGitService>(),
+            ctx.Require<IUiDispatcher>(),
+            ctx.Require<IMessageBus>(),
+            ctx.Require<State<MainViewMode>>()));
     }
 
-    protected override void OnAttachedToContext(Context context)
+    public void SetRows(IReadOnlyList<BranchRow> rows)
     {
-        _bus = context.Get<IMessageBus>();
-        _registry = context.Get<IRepoRegistry>();
-        _gitService = context.Get<IGitService>();
-        _dispatcher = context.Get<IUiDispatcher>();
-        _mode = context.Get<State<MainViewMode>>();
-
-        _subscriptions.Add(_registry?.Active.Subscribe(_ => OnActiveRepoChanged()));
-        _subscriptions.Add(_bus?.SubscribeScoped<CommitCreatedMessage>(OnCommitCreated));
-        _subscriptions.Add(_bus?.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected));
-        _subscriptions.Add(_bus?.SubscribeScoped<RefsChangedMessage>(OnRefsChanged));
-    }
-
-    protected override void OnDetachedFromContext(Context context)
-    {
-        _loadGen.Bump();
-        _subscriptions.Dispose();
-        _bus = null;
-        _registry = null;
-        _gitService = null;
-        _dispatcher = null;
-        _mode = null;
-    }
-
-    private void OnActiveRepoChanged()
-    {
-        var active = _registry?.Active.Value;
-        _activeRepoId = active?.Id ?? Guid.Empty;
-        _selection = null;
-        _scrollY = 0f;
+        _rows = rows;
         _hoveredRowIndex = -1;
-
-        if (active == null)
-        {
-            _listing = null;
-            _loadError = null;
-            _ui = new BranchesUiState();
-            RebuildRows();
-            return;
-        }
-
-        _ui = _registry?.GetBranchesUi(active.Id) ?? new BranchesUiState();
-        StartLoad(active);
-    }
-
-    private void OnCommitCreated(CommitCreatedMessage msg)
-    {
-        var active = _registry?.Active.Value;
-        if (active == null || active.Id != msg.RepoId) return;
-        StartLoad(active);
-    }
-
-    private void OnRefsChanged(RefsChangedMessage msg)
-    {
-        var active = _registry?.Active.Value;
-        if (active == null || active.Id != msg.RepoId) return;
-        StartLoad(active);
-    }
-
-    // Clear the sidebar selection when commit selection moves to anything other than the
-    // currently-selected branch's tip. Self-broadcasts (same SHA) short-circuit.
-    private void OnCommitSelected(CommitSelectedMessage msg)
-    {
-        if (msg.RepoId != _activeRepoId) return;
-        if (_selection.HasValue && msg.Sha == _selection.Value.TipSha) return;
-        _selection = null;
-    }
-
-    private void StartLoad(Repo repo)
-    {
-        var gitService = _gitService;
-        var dispatcher = _dispatcher;
-        if (gitService == null) return;
-
-        var gen = _loadGen.Bump();
-
-        Task.Run(() =>
-        {
-            BranchListing listing;
-            try
-            {
-                listing = gitService.GetBranches(repo);
-            }
-            catch (Exception ex)
-            {
-                listing = new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), ex.Message);
-            }
-
-            dispatcher?.Post(() =>
-            {
-                if (_loadGen.IsStale(gen)) return;
-                if (repo.Id != _activeRepoId) return;
-                _listing = listing.ErrorMessage == null ? listing : null;
-                _loadError = listing.ErrorMessage;
-                RebuildRows();
-            });
-        });
-    }
-
-    private void RebuildRows()
-    {
-        _rows.Clear();
-        var listing = _listing;
-        if (listing == null) return;
-
-        _rows.Add(new Row(RowKind.LocalHeader, "Local", IndentSection, _ui.LocalOpen));
-        if (_ui.LocalOpen)
-        {
-            var localTree = BuildTree(listing.LocalBranches);
-            EmitTreeRows(localTree, isRemote: false, remoteName: null, IndentLocalTreeBase, depth: 0);
-        }
-
-        _rows.Add(new Row(RowKind.RemotesHeader, "Remote", IndentSection, _ui.RemotesOpen));
-        if (_ui.RemotesOpen)
-        {
-            foreach (var rg in listing.Remotes)
-            {
-                var isOpen = _ui.RemoteOpen.TryGetValue(rg.Name, out var v) ? v : true;
-                _rows.Add(new Row(RowKind.RemoteHeader, rg.Name, IndentRemoteHeader, isOpen)
-                {
-                    RemoteName = rg.Name,
-                });
-                if (!isOpen) continue;
-                var remoteTree = BuildTree(rg.Branches);
-                EmitTreeRows(remoteTree, isRemote: true, rg.Name, IndentRemoteTreeBase, depth: 0);
-            }
-        }
-
+        if (_rows.Count == 0) _scrollY = 0f;
         ClampScroll();
     }
 
-    private void EmitTreeRows(IReadOnlyList<TreeNode> nodes, bool isRemote, string? remoteName, float treeBase, int depth)
-    {
-        var indent = treeBase + depth * IndentLevel;
-        foreach (var node in nodes)
-        {
-            if (node.Entry is { } entry)
-            {
-                _rows.Add(new Row(isRemote ? RowKind.RemoteBranch : RowKind.LocalBranch, node.Segment, indent, IsOpen: false)
-                {
-                    TipSha = entry.TipSha,
-                    IsHead = entry.IsHead,
-                    RemoteName = remoteName,
-                    FullPath = entry.Name,
-                    AheadBy = entry.AheadBy,
-                    BehindBy = entry.BehindBy,
-                });
-            }
-            else
-            {
-                var key = MakeFolderKey(isRemote, remoteName, node.FullPath);
-                var open = _ui.FolderOpen.TryGetValue(key, out var v) ? v : true;
-                _rows.Add(new Row(RowKind.Folder, node.Segment, indent, open)
-                {
-                    RemoteName = remoteName,
-                    FullPath = node.FullPath,
-                    FolderKey = key,
-                });
-                if (open) EmitTreeRows(node.Children, isRemote, remoteName, treeBase, depth + 1);
-            }
-        }
-    }
-
-    private static string MakeFolderKey(bool isRemote, string? remoteName, string path) =>
-        isRemote ? $"remote:{remoteName}:{path}" : $"local:{path}";
-
-    private static IReadOnlyList<TreeNode> BuildTree(IReadOnlyList<BranchEntry> branches)
-    {
-        var root = new TreeNode("", "");
-        foreach (var b in branches)
-        {
-            var segments = b.Name.Split('/');
-            var current = root;
-            for (var i = 0; i < segments.Length; i++)
-            {
-                var seg = segments[i];
-                var isLeaf = i == segments.Length - 1;
-                if (!current.ChildIndex.TryGetValue(seg, out var child))
-                {
-                    var path = i == 0 ? seg : current.FullPath + "/" + seg;
-                    child = new TreeNode(seg, path);
-                    current.ChildIndex[seg] = child;
-                    current.Children.Add(child);
-                }
-                if (isLeaf) child.Entry = b;
-                current = child;
-            }
-        }
-        SortNode(root);
-        return root.Children;
-    }
-
-    // Folders first, then leaves; alphabetical within each group. The leaf-of-the-same-path
-    // case (a branch named "feature" alongside "feature/login") cannot occur in git, so we
-    // don't try to handle a node that's simultaneously a folder and a branch.
-    private static void SortNode(TreeNode node)
-    {
-        node.Children.Sort((a, b) =>
-        {
-            var aFolder = a.Entry == null;
-            var bFolder = b.Entry == null;
-            if (aFolder != bFolder) return aFolder ? -1 : 1;
-            return string.Compare(a.Segment, b.Segment, StringComparison.OrdinalIgnoreCase);
-        });
-        foreach (var c in node.Children) SortNode(c);
-    }
+    public void SetSelection(BranchSelection? selection) => _selection = selection;
+    public void SetBusyBranch(string? fullPath) => _busyBranch = fullPath;
+    public void SetLoadError(string? error) => _loadError = error;
 
     private void ClampScroll()
     {
@@ -338,7 +130,7 @@ public sealed class BranchesView : MultiChildView
             return;
         }
 
-        if (_listing == null || _rows.Count == 0)
+        if (_rows.Count == 0)
         {
             c.PopClip();
             return;
@@ -364,7 +156,7 @@ public sealed class BranchesView : MultiChildView
         c.PopClip();
     }
 
-    private void DrawRow(ICanvas c, RectF pos, Row row, int rowIndex, float rowBottom, int z)
+    private void DrawRow(ICanvas c, RectF pos, BranchRow row, int rowIndex, float rowBottom, int z)
     {
         var isSelected = _selection.HasValue && _selection.Value.Matches(row);
         var isHovered = rowIndex == _hoveredRowIndex;
@@ -385,13 +177,13 @@ public sealed class BranchesView : MultiChildView
         var contentLeft = pos.Left + BaseIndent + row.Indent;
         var rightEdge = pos.Right - 14f;
 
-        var hasChevron = row.Kind == RowKind.LocalHeader
-            || row.Kind == RowKind.RemotesHeader
-            || row.Kind == RowKind.RemoteHeader
-            || row.Kind == RowKind.Folder;
-        var isTreeRow = row.Kind == RowKind.Folder
-            || row.Kind == RowKind.LocalBranch
-            || row.Kind == RowKind.RemoteBranch;
+        var hasChevron = row.Kind == BranchRowKind.LocalHeader
+            || row.Kind == BranchRowKind.RemotesHeader
+            || row.Kind == BranchRowKind.RemoteHeader
+            || row.Kind == BranchRowKind.Folder;
+        var isTreeRow = row.Kind == BranchRowKind.Folder
+            || row.Kind == BranchRowKind.LocalBranch
+            || row.Kind == BranchRowKind.RemoteBranch;
 
         if (hasChevron)
         {
@@ -412,7 +204,7 @@ public sealed class BranchesView : MultiChildView
         }
 
         // Ahead/behind badge eats from the right edge before the branch name is truncated.
-        if (row.Kind == RowKind.LocalBranch && Context != null)
+        if (row.Kind == BranchRowKind.LocalBranch && Context != null)
             rightEdge = DrawAheadBehindBadge(c, row, rowBottom, rightEdge, z + 1);
 
         if (isTreeRow && Context != null)
@@ -424,9 +216,9 @@ public sealed class BranchesView : MultiChildView
         var isBusy = IsBusyRow(row);
         var (text, style) = row.Kind switch
         {
-            RowKind.LocalHeader or RowKind.RemotesHeader or RowKind.RemoteHeader => (row.DisplayName, _headerTextStyle),
-            RowKind.LocalBranch when isBusy => (row.DisplayName, _branchTextBusyStyle),
-            RowKind.LocalBranch when row.IsHead => (row.DisplayName, _headTextStyle),
+            BranchRowKind.LocalHeader or BranchRowKind.RemotesHeader or BranchRowKind.RemoteHeader => (row.DisplayName, _headerTextStyle),
+            BranchRowKind.LocalBranch when isBusy => (row.DisplayName, _branchTextBusyStyle),
+            BranchRowKind.LocalBranch when row.IsHead => (row.DisplayName, _headTextStyle),
             _ => (row.DisplayName, isSelected ? _branchTextSelectedStyle : _branchTextStyle),
         };
 
@@ -440,11 +232,11 @@ public sealed class BranchesView : MultiChildView
         });
     }
 
-    private float DrawRowIcon(ICanvas c, Row row, bool isSelected, float left, float rowBottom, int z)
+    private float DrawRowIcon(ICanvas c, BranchRow row, bool isSelected, float left, float rowBottom, int z)
     {
         string glyph;
         TextStyle style;
-        if (row.Kind == RowKind.Folder)
+        if (row.Kind == BranchRowKind.Folder)
         {
             glyph = row.IsOpen ? LucideIcons.FolderOpen : LucideIcons.Folder;
             style = _folderIconStyle;
@@ -470,7 +262,7 @@ public sealed class BranchesView : MultiChildView
 
     // Returns the new right-edge after drawing the badge so the name's truncation knows
     // how much room is left.
-    private float DrawAheadBehindBadge(ICanvas c, Row row, float rowBottom, float rightEdge, int z)
+    private float DrawAheadBehindBadge(ICanvas c, BranchRow row, float rowBottom, float rightEdge, int z)
     {
         var ahead = row.AheadBy.GetValueOrDefault();
         var behind = row.BehindBy.GetValueOrDefault();
@@ -518,6 +310,12 @@ public sealed class BranchesView : MultiChildView
         return countLeft;
     }
 
+    private bool IsBusyRow(BranchRow row) =>
+        _busyBranch != null
+        && row.Kind == BranchRowKind.LocalBranch
+        && row.FullPath != null
+        && row.FullPath == _busyBranch;
+
     private string TruncateToFit(string text, TextStyle style, float available)
     {
         if (Context == null) return text;
@@ -549,13 +347,14 @@ public sealed class BranchesView : MultiChildView
         // Click in the panel but outside any row → deselect (and clear CommitsView too).
         if (!IsPointInside(point)) return;
         var idx = HitTestRow(point);
+        var row = (idx >= 0 && idx < _rows.Count) ? _rows[idx] : null;
 
-        HandleSingleClick(idx);
+        RowClicked?.Invoke(row);
 
         // Double-click detection sits on top of single-click: the first click of a
         // double-click still selects and jumps to history (matches Fork), the second
         // adds the activate (checkout) on top.
-        if (idx < 0 || idx >= _rows.Count)
+        if (row == null)
         {
             _hasLastClick = false;
             return;
@@ -567,7 +366,7 @@ public sealed class BranchesView : MultiChildView
             && unchecked(now - _lastClickTickMs) <= DoubleClickThresholdMs;
         if (isDouble)
         {
-            HandleActivate(_rows[idx]);
+            RowActivated?.Invoke(row);
             _hasLastClick = false;
         }
         else
@@ -578,167 +377,11 @@ public sealed class BranchesView : MultiChildView
         }
     }
 
-    private void HandleSingleClick(int idx)
-    {
-        if (idx < 0 || idx >= _rows.Count)
-        {
-            ClearSelectionAndBroadcast();
-            return;
-        }
-
-        var row = _rows[idx];
-        switch (row.Kind)
-        {
-            case RowKind.LocalHeader:
-                _ui.LocalOpen = !_ui.LocalOpen;
-                PersistUi();
-                RebuildRows();
-                return;
-            case RowKind.RemotesHeader:
-                _ui.RemotesOpen = !_ui.RemotesOpen;
-                PersistUi();
-                RebuildRows();
-                return;
-            case RowKind.RemoteHeader:
-                if (row.RemoteName != null)
-                {
-                    var current = _ui.RemoteOpen.TryGetValue(row.RemoteName, out var v) ? v : true;
-                    _ui.RemoteOpen[row.RemoteName] = !current;
-                    PersistUi();
-                    RebuildRows();
-                }
-                return;
-            case RowKind.Folder:
-                if (row.FolderKey != null)
-                {
-                    var current = _ui.FolderOpen.TryGetValue(row.FolderKey, out var v) ? v : true;
-                    _ui.FolderOpen[row.FolderKey] = !current;
-                    PersistUi();
-                    RebuildRows();
-                }
-                return;
-            case RowKind.LocalBranch:
-                if (row.TipSha != null && row.FullPath != null)
-                {
-                    _selection = new BranchSelection(IsRemote: false, RemoteName: null, FullPath: row.FullPath, TipSha: row.TipSha);
-                    SwitchToHistory();
-                    _bus?.Broadcast(new CommitSelectedMessage(_activeRepoId, row.TipSha));
-                }
-                return;
-            case RowKind.RemoteBranch:
-                if (row.TipSha != null && row.RemoteName != null && row.FullPath != null)
-                {
-                    _selection = new BranchSelection(IsRemote: true, RemoteName: row.RemoteName, FullPath: row.FullPath, TipSha: row.TipSha);
-                    SwitchToHistory();
-                    _bus?.Broadcast(new CommitSelectedMessage(_activeRepoId, row.TipSha));
-                }
-                return;
-        }
-    }
-
-    private void HandleActivate(Row row)
-    {
-        // Block double-click activations while a checkout we own is in flight; the GitService
-        // lock would queue the next one safely but the user would see no feedback and might
-        // queue several more before the first completes.
-        if (_isCheckingOut) return;
-        switch (row.Kind)
-        {
-            case RowKind.LocalBranch:
-                if (row.IsHead) return; // already checked out
-                if (row.FullPath == null) return;
-                StartCheckoutLocal(row.FullPath);
-                return;
-            case RowKind.RemoteBranch:
-                if (row.RemoteName == null || row.FullPath == null) return;
-                // entry.Name for remote branches is already stripped of the remote prefix
-                // (see GitService.GetBranches), so it's the suggested local name as-is.
-                if (LocalBranchExists(row.FullPath))
-                {
-                    StartCheckoutLocal(row.FullPath);
-                }
-                else
-                {
-                    var repo = _registry?.Active.Value;
-                    if (repo == null) return;
-                    _bus?.Broadcast(new ShowCheckoutDialogMessage(
-                        repo, row.RemoteName, row.FullPath, row.FullPath));
-                }
-                return;
-        }
-    }
-
-    private bool IsBusyRow(Row row) =>
-        _isCheckingOut
-        && row.Kind == RowKind.LocalBranch
-        && row.FullPath != null
-        && row.FullPath == _checkingOutBranchName;
-
-    private bool LocalBranchExists(string name)
-    {
-        var listing = _listing;
-        if (listing == null) return false;
-        foreach (var b in listing.LocalBranches)
-            if (string.Equals(b.Name, name, StringComparison.Ordinal)) return true;
-        return false;
-    }
-
-    private void StartCheckoutLocal(string branchName)
-    {
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        var repo = _registry?.Active.Value;
-        if (service == null || dispatcher == null || bus == null || repo == null) return;
-        if (_isCheckingOut) return;
-
-        _isCheckingOut = true;
-        _checkingOutBranchName = branchName;
-
-        Task.Run(() =>
-        {
-            CheckoutOutcome outcome;
-            try { outcome = service.CheckoutLocalBranch(repo, branchName); }
-            catch (Exception ex) { outcome = new CheckoutOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
-            {
-                _isCheckingOut = false;
-                _checkingOutBranchName = null;
-                if (outcome.Success)
-                    bus.Broadcast(new RefsChangedMessage(repo.Id));
-                else
-                    bus.Broadcast(new ShowCheckoutErrorMessage(
-                        outcome.ErrorMessage ?? "Checkout failed."));
-            });
-        });
-    }
-
-    private void SwitchToHistory()
-    {
-        if (_mode == null) return;
-        if (_mode.Value == MainViewMode.History) return;
-        _mode.Value = MainViewMode.History;
-    }
-
-    private void ClearSelectionAndBroadcast()
-    {
-        if (_selection == null) return;
-        _selection = null;
-        _bus?.Broadcast(new CommitSelectedMessage(_activeRepoId, null));
-    }
-
     private bool IsPointInside(PointF point)
     {
         var pos = Position;
         return point.X >= pos.Left && point.X <= pos.Right
             && point.Y >= pos.Bottom && point.Y <= pos.Top;
-    }
-
-    private void PersistUi()
-    {
-        if (_registry == null || _activeRepoId == Guid.Empty) return;
-        _registry.SetBranchesUi(_activeRepoId, _ui);
     }
 
     private int HitTestRow(PointF point)
@@ -752,53 +395,5 @@ public sealed class BranchesView : MultiChildView
         var idx = (int)((distFromTop + _scrollY) / RowHeight);
         if (idx < 0 || idx >= _rows.Count) return -1;
         return idx;
-    }
-
-    private readonly record struct BranchSelection(bool IsRemote, string? RemoteName, string FullPath, string TipSha)
-    {
-        public bool Matches(Row row) => row.Kind switch
-        {
-            RowKind.LocalBranch => !IsRemote && row.FullPath == FullPath,
-            RowKind.RemoteBranch => IsRemote && row.RemoteName == RemoteName && row.FullPath == FullPath,
-            _ => false,
-        };
-    }
-
-    private enum RowKind { LocalHeader, RemotesHeader, RemoteHeader, Folder, LocalBranch, RemoteBranch }
-
-    private sealed class Row
-    {
-        public Row(RowKind kind, string displayName, float indent, bool IsOpen)
-        {
-            Kind = kind;
-            DisplayName = displayName;
-            Indent = indent;
-            this.IsOpen = IsOpen;
-        }
-        public RowKind Kind { get; }
-        public string DisplayName { get; }
-        public float Indent { get; }
-        public bool IsOpen { get; }
-        public string? TipSha { get; init; }
-        public bool IsHead { get; init; }
-        public string? RemoteName { get; init; }
-        public string? FullPath { get; init; }
-        public string? FolderKey { get; init; }
-        public int? AheadBy { get; init; }
-        public int? BehindBy { get; init; }
-    }
-
-    private sealed class TreeNode
-    {
-        public TreeNode(string segment, string fullPath)
-        {
-            Segment = segment;
-            FullPath = fullPath;
-        }
-        public string Segment { get; }
-        public string FullPath { get; }
-        public BranchEntry? Entry { get; set; }
-        public Dictionary<string, TreeNode> ChildIndex { get; } = new();
-        public List<TreeNode> Children { get; } = new();
     }
 }
