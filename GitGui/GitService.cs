@@ -371,6 +371,15 @@ public sealed class GitService : IGitService
                 if ((entry.State & FileStatus.Ignored) != 0) continue;
                 if (entry.State == FileStatus.Unaltered) continue;
 
+                // Unmerged paths surface in unstaged only — splitting them into both panels
+                // would double-list and let the user "stage" half of an unresolved file.
+                // The user has to fix the conflict markers and explicitly stage to clear it.
+                if ((entry.State & FileStatus.Conflicted) != 0)
+                {
+                    unstaged.Add(new FileChange(entry.FilePath, null, FileChangeStatus.Conflicted));
+                    continue;
+                }
+
                 var indexStatus = MapIndexStatus(entry.State);
                 if (indexStatus != null)
                 {
@@ -1457,6 +1466,41 @@ public sealed class GitService : IGitService
         if (!int.TryParse(s[..comma], out start)) return false;
         if (!int.TryParse(s[(comma + 1)..], out count)) return false;
         return true;
+    }
+
+    // Detects whether the repo is mid-operation (merge, rebase, cherry-pick, …) by looking
+    // for the well-known sentinel files git drops into .git/ for each. Mirrors what `git
+    // status` itself checks; covers worktrees too via libgit2's Info.Path (which points at
+    // the per-worktree gitdir, not the main one). Returns None when nothing is in progress
+    // or when the repo path is invalid — banner callers treat None as "hide".
+    public RepoOperationState GetOperationState(Repo repo)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path)) return RepoOperationState.None;
+            string gitDir;
+            using (var lg = new Repository(repo.Path))
+                gitDir = lg.Info.Path;
+
+            // Order matters only for AM-vs-Rebase: `git am` uses rebase-apply/ too, but adds
+            // an `applying` marker. Check the marker before falling through to plain rebase.
+            if (Directory.Exists(Path.Combine(gitDir, "rebase-apply")))
+            {
+                if (File.Exists(Path.Combine(gitDir, "rebase-apply", "applying")))
+                    return RepoOperationState.ApplyMailbox;
+                return RepoOperationState.Rebase;
+            }
+            if (Directory.Exists(Path.Combine(gitDir, "rebase-merge"))) return RepoOperationState.Rebase;
+            if (File.Exists(Path.Combine(gitDir, "CHERRY_PICK_HEAD"))) return RepoOperationState.CherryPick;
+            if (File.Exists(Path.Combine(gitDir, "REVERT_HEAD"))) return RepoOperationState.Revert;
+            if (File.Exists(Path.Combine(gitDir, "MERGE_HEAD"))) return RepoOperationState.Merge;
+            if (File.Exists(Path.Combine(gitDir, "BISECT_LOG"))) return RepoOperationState.Bisect;
+            return RepoOperationState.None;
+        }
+        catch
+        {
+            return RepoOperationState.None;
+        }
     }
 
     private static CommitDetails DetailsError(Repo repo, string sha, string message)

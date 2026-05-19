@@ -9,6 +9,7 @@ public enum FileChangeStatus
     Copied,
     TypeChanged,
     Unmodified,
+    Conflicted,
 }
 
 public sealed record FileChange(

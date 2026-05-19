@@ -24,6 +24,18 @@ public interface IGitService
     StashOutcome ApplyStash(Repo repo, int index);
     StashOutcome DropStash(Repo repo, int index);
     DiffResult GetDiff(Repo repo, string path, DiffSide side);
+    RepoOperationState GetOperationState(Repo repo);
+}
+
+public enum RepoOperationState
+{
+    None,
+    Merge,
+    Rebase,
+    CherryPick,
+    Revert,
+    Bisect,
+    ApplyMailbox,
 }
 
 public sealed record HeadCommitMessage(string Title, string Description);

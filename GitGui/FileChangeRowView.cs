@@ -9,6 +9,7 @@ internal static class FileChangesPalette
     public const uint StatusModified = 0xFFE9C77A;
     public const uint StatusDeleted = 0xFFED4245;
     public const uint StatusRenamed = 0xFF5DADE2;
+    public const uint StatusConflicted = 0xFFED4245;
     public const uint StatusOther = 0xFF9B59B6;
 
     public const uint BadgeText = Theme.BgDeep;
@@ -24,6 +25,7 @@ internal static class FileChangesPalette
         FileChangeStatus.Modified => StatusModified,
         FileChangeStatus.Deleted => StatusDeleted,
         FileChangeStatus.Renamed => StatusRenamed,
+        FileChangeStatus.Conflicted => StatusConflicted,
         _ => StatusOther,
     };
 
@@ -35,6 +37,7 @@ internal static class FileChangesPalette
         FileChangeStatus.Renamed => "R",
         FileChangeStatus.Copied => "C",
         FileChangeStatus.TypeChanged => "T",
+        FileChangeStatus.Conflicted => "!",
         _ => "·",
     };
 
