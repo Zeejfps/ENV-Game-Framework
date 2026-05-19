@@ -938,6 +938,17 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
+                // Snapshot the pre-apply index state. The "apply succeeded with conflicts"
+                // heuristic below relies on the transition from clean → unmerged to decide
+                // whether the non-zero exit is benign — if the index was already unmerged
+                // (e.g. from an earlier failed apply the user hasn't cleared), the post-
+                // apply check can't distinguish "this apply produced conflicts" from
+                // "those leftover conflicts are still there" and we'd silently swallow
+                // the real failure ("untracked file would be overwritten", etc).
+                bool wasFullyMerged;
+                using (var lgBefore = new Repository(repo.Path))
+                    wasFullyMerged = lgBefore.Index.IsFullyMerged;
+
                 var outcome = RunGitStash(repo.Path, args, "git stash apply");
                 if (outcome.Success) return outcome;
 
@@ -945,11 +956,14 @@ public sealed class GitService : IGitService
                 // merge conflicts — the user's stash is on disk, the conflicts are visible
                 // in the index, and there's nothing to "fix" about the apply itself. Treat
                 // that as success-with-conflicts so the caller can refresh and show the
-                // banner instead of an error dialog (which would just say "exited with code
-                // 1" once the conflict markers had stolen stderr).
-                using var lg = new Repository(repo.Path);
-                if (!lg.Index.IsFullyMerged)
-                    return new StashOutcome(true, null, HasConflicts: true);
+                // banner instead of an error dialog. Gate on wasFullyMerged so a real
+                // failure on a repo that already had conflicts still surfaces its error.
+                if (wasFullyMerged)
+                {
+                    using var lgAfter = new Repository(repo.Path);
+                    if (!lgAfter.Index.IsFullyMerged)
+                        return new StashOutcome(true, null, HasConflicts: true);
+                }
                 return outcome;
             }
             finally { sem.Release(); }
