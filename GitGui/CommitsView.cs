@@ -79,7 +79,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     private float _dateColumnWidth = DefaultDateColumnWidth;
     private DividerKind _hoveredDivider = DividerKind.None;
 
-    private CommitsViewModel _state = new CommitsViewModel.NoRepo();
+    private CommitsViewModel _viewModel = new CommitsViewModel.NoRepo();
     private CommitSnapshot? _snapshot;
 
     private float _scrollY;
@@ -120,7 +120,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         // resets to the top.
         var preserveScroll = newSnap != null && prevSnap != null && newSnap.RepoId == prevSnap.RepoId;
 
-        _state = vm;
+        _viewModel = vm;
         _snapshot = newSnap;
 
         if (preserveScroll)
@@ -257,7 +257,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         var bodyTop = pos.Top - HeaderHeight;
         var bodyRect = new RectF(pos.Left, pos.Bottom, pos.Width, bodyTop - pos.Bottom);
 
-        switch (_state)
+        switch (_viewModel)
         {
             case CommitsViewModel.NoRepo:
                 DrawPlaceholder(c, ComputeCommitsColumnRect(bodyRect), "Select a repository to view its history.", z + 2);
@@ -611,7 +611,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
 
     internal void OnWheel(float deltaY)
     {
-        if (_state is not CommitsViewModel.Loaded) return;
+        if (_viewModel is not CommitsViewModel.Loaded) return;
         _scrollY -= deltaY * ScrollWheelStep;
         var snap = _snapshot;
         if (snap != null)
@@ -680,7 +680,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
 
     internal void OnClickAt(PointF point)
     {
-        if (_state is not CommitsViewModel.Loaded) return;
+        if (_viewModel is not CommitsViewModel.Loaded) return;
         var snap = _snapshot;
         if (snap == null) return;
 

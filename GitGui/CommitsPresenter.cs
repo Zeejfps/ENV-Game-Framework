@@ -14,6 +14,10 @@ internal sealed class CommitsPresenter : IDisposable
     private readonly SubscriptionGroup _subscriptions = new();
     private readonly GenerationGuard _loadGen = new();
 
+    // Holds the most recent *successfully* loaded snapshot, or null if we have no good
+    // data for the active repo (no repo, in-flight first load, or last load errored).
+    // Soft-refresh and SHA-existence checks both rely on this invariant — never assign
+    // an error snapshot here.
     private CommitSnapshot? _snapshot;
     private Guid _loadingRepoId;
     private string? _selectedSha;
@@ -34,9 +38,9 @@ internal sealed class CommitsPresenter : IDisposable
         _view.CommitClicked += OnCommitClicked;
 
         _subscriptions.Add(_registry.Active.Subscribe(_ => StartLoadForActiveRepo()));
-        _subscriptions.Add(_bus.SubscribeScoped<CommitCreatedMessage>(OnCommitCreated));
+        _subscriptions.Add(_bus.SubscribeScoped<CommitCreatedMessage>(m => ReloadIfActiveRepo(m.RepoId)));
         _subscriptions.Add(_bus.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected));
-        _subscriptions.Add(_bus.SubscribeScoped<RefsChangedMessage>(OnRefsChanged));
+        _subscriptions.Add(_bus.SubscribeScoped<RefsChangedMessage>(m => ReloadIfActiveRepo(m.RepoId)));
     }
 
     public void Dispose()
@@ -46,17 +50,10 @@ internal sealed class CommitsPresenter : IDisposable
         _view.CommitClicked -= OnCommitClicked;
     }
 
-    private void OnCommitCreated(CommitCreatedMessage msg)
+    private void ReloadIfActiveRepo(Guid repoId)
     {
         var active = _registry.Active.Value;
-        if (active == null || active.Id != msg.RepoId) return;
-        StartLoadForActiveRepo();
-    }
-
-    private void OnRefsChanged(RefsChangedMessage msg)
-    {
-        var active = _registry.Active.Value;
-        if (active == null || active.Id != msg.RepoId) return;
+        if (active == null || active.Id != repoId) return;
         StartLoadForActiveRepo();
     }
 
@@ -130,23 +127,22 @@ internal sealed class CommitsPresenter : IDisposable
     private void ApplyLoadedSnapshot(CommitSnapshot snap)
     {
         if (snap.RepoId != _loadingRepoId) return;
-        _snapshot = snap;
 
         if (snap.ErrorMessage != null)
         {
+            // Drop any prior successful snapshot so the next reload shows "Loading…"
+            // rather than silently soft-refreshing on top of an Error placeholder.
+            _snapshot = null;
             _view.SetViewModel(new CommitsViewModel.Error(snap.ErrorMessage));
         }
         else
         {
+            _snapshot = snap;
             _view.SetViewModel(new CommitsViewModel.Loaded(snap));
             // Selection survives only if the commit still exists in the new snapshot
             // (e.g. it may have been pruned by a rebase or reset).
             if (_selectedSha != null && !SnapshotContainsSha(snap, _selectedSha))
-            {
-                _selectedSha = null;
-                _view.SetSelectedSha(null);
-                _bus.Broadcast(new CommitSelectedMessage(snap.RepoId, null));
-            }
+                ClearSelectionAndBroadcast();
         }
 
         _bus.Broadcast(new CommitsLoadedMessage(snap.RepoId));
