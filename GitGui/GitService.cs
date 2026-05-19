@@ -293,11 +293,13 @@ public sealed class GitService : IGitService
     }
 
     // `git stash list` is the source of truth for stash@{N} indexing; refs/stash only
-    // points at the most recent entry. Format pulls SHA and subject in one shot.
+    // points at the most recent entry. Stash list runs through `git log`, so the format
+    // codes are the log ones (%H, %s) — NOT the for-each-ref ones (%(objectname)) which
+    // get printed literally here.
     private static IReadOnlyList<StashEntry> LoadStashes(string repoPath)
     {
         const char Sep = '\x1F';
-        var fmt = $"%(objectname){Sep}%(subject)";
+        var fmt = $"%H{Sep}%gs";
         var output = RunGit(repoPath, out _, "stash", "list", $"--format={fmt}");
         if (string.IsNullOrEmpty(output)) return Array.Empty<StashEntry>();
 
@@ -308,9 +310,19 @@ public sealed class GitService : IGitService
             if (line.Length == 0) continue;
             var parts = line.Split(Sep, 2);
             if (parts.Length < 2) continue;
-            list.Add(new StashEntry(idx++, parts[0], parts[1]));
+            list.Add(new StashEntry(idx++, parts[0], StripStashPrefix(parts[1])));
         }
         return list;
+    }
+
+    // The reflog subject is "On <branch>: <msg>" (with -m) or
+    // "WIP on <branch>: <sha> <commit-subject>" (without). Both are noise — the user
+    // cares about the part after the first ": ".
+    private static string StripStashPrefix(string reflogSubject)
+    {
+        var colon = reflogSubject.IndexOf(": ", StringComparison.Ordinal);
+        if (colon < 0) return reflogSubject;
+        return reflogSubject[(colon + 2)..];
     }
 
     // `git for-each-ref %(upstream:track,nobracket)` returns "", "gone", "ahead N",
