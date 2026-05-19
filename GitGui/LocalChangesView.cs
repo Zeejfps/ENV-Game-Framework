@@ -267,7 +267,7 @@ public sealed class LocalChangesView : MultiChildView, ILocalChangesView
         set => _amendCheckbox.IsChecked.Value = value;
     }
 
-    public bool CommitEnabled { set => _commitButton.IsEnabled.Value = value; }
+    public bool CommitEnabled { set => _commitButton.IsEnabled = value; }
     public string? OpError { set => _opErrorBar.Message = value; }
 
     public void SelectUnstaged(IReadOnlyList<string> paths) => _unstagedPanel.SetSelection(paths);

@@ -23,15 +23,15 @@ internal sealed class LocalChangesHeaderActionButton : HoverableButton
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        iconView.BindTextColor(IsHovered, h => h ? 0xFFFFFFFFu : IconIdleColor);
+        iconView.BindTextColor(() => IsHovered ? 0xFFFFFFFFu : IconIdleColor);
 
         var background = new RectView
         {
             BorderRadius = BorderRadiusStyle.All(3),
             Children = { iconView },
         };
-        background.BindBackgroundColor(IsHovered,
-            h => h ? DialogPalette.ButtonHover : TransparentBg);
+        background.BindBackgroundColor(() =>
+            IsHovered ? DialogPalette.ButtonHover : TransparentBg);
         SetBackground(background);
     }
 }

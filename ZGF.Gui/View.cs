@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using ZGF.Geometry;
+using ZGF.Observable;
 
 namespace ZGF.Gui;
 
@@ -399,10 +400,23 @@ public abstract class View
     {
         if (EqualityComparer<T>.Default.Equals(field, value))
             return false;
-        
+
         field = value;
         SetDirty();
         return true;
+    }
+
+    /// <summary>
+    /// Creates a <see cref="State{T}"/> whose changes automatically dirty this view's
+    /// layout. Use as the backing cell for properties that should participate in the
+    /// observable graph (so <see cref="Derived{T}"/> can track reads of the exposed
+    /// property) while still triggering re-layout on write.
+    /// </summary>
+    protected State<T> Property<T>(T initial = default!)
+    {
+        var state = new State<T>(initial);
+        state.Invalidated += SetDirty;
+        return state;
     }
 
     protected void SetDirty()

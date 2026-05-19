@@ -13,7 +13,7 @@ public sealed class DialogButton : HoverableButton
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        labelView.BindTextColor(IsEnabled, e => e ? 0xFFFFFFFFu : DialogPalette.RowTextMissing);
+        labelView.BindTextColor(() => IsEnabled ? 0xFFFFFFFFu : DialogPalette.RowTextMissing);
 
         var background = new RectView
         {
@@ -23,7 +23,7 @@ public sealed class DialogButton : HoverableButton
         };
         // Hover styling only when enabled — a disabled button shouldn't react to the pointer.
         DialogPalette.BindBorderedButtonChrome(background,
-            () => IsEnabled.Value && IsHovered.Value);
+            () => IsEnabled && IsHovered);
         SetBackground(background);
     }
 }

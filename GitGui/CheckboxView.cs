@@ -41,7 +41,7 @@ public sealed class CheckboxView : HoverableButton
 
     private uint ComputeForeground()
     {
-        if (!IsEnabled.Value) return DialogPalette.RowTextMissing;
-        return IsHovered.Value ? DialogPalette.RowTextActive : DialogPalette.RowText;
+        if (!IsEnabled) return DialogPalette.RowTextMissing;
+        return IsHovered ? DialogPalette.RowTextActive : DialogPalette.RowText;
     }
 }

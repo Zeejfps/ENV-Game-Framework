@@ -166,7 +166,7 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
     public bool Track => _trackCheckbox.IsChecked.Value;
     public bool CheckoutEnabled
     {
-        set => _checkoutButton.IsEnabled.Value = value;
+        set => _checkoutButton.IsEnabled = value;
     }
     public event Action NameChanged
     {

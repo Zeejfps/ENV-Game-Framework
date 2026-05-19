@@ -23,7 +23,7 @@ public sealed class AddRepoButton : HoverableButton
                 }
             }
         };
-        DialogPalette.BindBorderedButtonChrome(background, IsHovered);
+        DialogPalette.BindBorderedButtonChrome(background, () => IsHovered);
         SetBackground(background);
     }
 

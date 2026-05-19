@@ -66,8 +66,8 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
             ctx.Require<IMessageBus>()));
     }
 
-    public bool PushEnabled { set => _pushButton.IsEnabled.Value = value; }
-    public bool PullEnabled { set => _pullButton.IsEnabled.Value = value; }
+    public bool PushEnabled { set => _pushButton.IsEnabled = value; }
+    public bool PullEnabled { set => _pullButton.IsEnabled = value; }
     public float PushRotation { set => _pushButton.IconRotation = value; }
     public float PullRotation { set => _pullButton.IconRotation = value; }
     public string? Error { set => _errorBar.Message = value; }
