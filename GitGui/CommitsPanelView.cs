@@ -58,8 +58,8 @@ public sealed class CommitsPanelView : MultiChildView
             South = _warningBar,
         });
 
-        _scrollBar.Behaviors.Add(new VerticalScrollBarViewController(_scrollBar));
-        Behaviors.Add(new CommitsPanelController(_commits, _scrollBar, _warningBar, _warningText));
+        _scrollBar.UseController(_ => new VerticalScrollBarViewController(_scrollBar));
+        this.UseController(_ => new CommitsPanelController(_commits, _scrollBar, _warningBar, _warningText));
     }
 
     protected override void OnLayoutChildren()
@@ -73,7 +73,7 @@ public sealed class CommitsPanelView : MultiChildView
     internal static float WarningBarShownHeight => WarningBarHeight;
 }
 
-internal sealed class CommitsPanelController : KeyboardMouseController
+internal sealed class CommitsPanelController : KeyboardMouseController, IDisposable
 {
     private readonly CommitsView _commits;
     private readonly VerticalScrollBarView _scrollBar;
@@ -86,10 +86,7 @@ internal sealed class CommitsPanelController : KeyboardMouseController
         _scrollBar = scrollBar;
         _warningBar = warningBar;
         _warningText = warningText;
-    }
 
-    protected override void OnAttachedToContext(View view, Context context)
-    {
         _commits.ScrollPositionChanged += OnCommitsScrollChanged;
         _commits.ScaleChanged += OnCommitsScaleChanged;
         _commits.TruncatedChanged += OnTruncatedChanged;
@@ -97,7 +94,7 @@ internal sealed class CommitsPanelController : KeyboardMouseController
         OnTruncatedChanged(_commits.Truncated);
     }
 
-    protected override void OnDetachedFromContext(View view, Context context)
+    public void Dispose()
     {
         _commits.ScrollPositionChanged -= OnCommitsScrollChanged;
         _commits.ScaleChanged -= OnCommitsScaleChanged;

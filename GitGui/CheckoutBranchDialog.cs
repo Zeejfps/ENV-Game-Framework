@@ -150,8 +150,7 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
         // BaseTextInputKbmController.OnMouseButtonStateChanged consumes left-press events
         // anywhere inside the view it's attached to, so putting it on the dialog would
         // swallow clicks meant for the Cancel/Checkout buttons.
-        var inputController = new CheckoutDialogKbmController(_nameInput, RaiseCheckoutRequested, onClose);
-        _nameInput.Behaviors.Add(inputController);
+        _nameInput.UseController(_ => new CheckoutDialogKbmController(_nameInput, RaiseCheckoutRequested, onClose));
 
         var request = new CheckoutRequest(repo, remoteName, remoteBranchName, suggestedLocalName);
         this.UsePresenter(ctx => new CheckoutBranchPresenter(

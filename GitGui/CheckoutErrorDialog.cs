@@ -89,7 +89,7 @@ public sealed class CheckoutErrorDialog : MultiChildView
             },
         });
 
-        Behaviors.Add(new ErrorDialogKbmController(onClose));
+        this.UseController(_ => new ErrorDialogKbmController(onClose));
     }
 }
 

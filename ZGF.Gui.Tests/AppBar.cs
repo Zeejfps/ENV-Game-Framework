@@ -85,9 +85,9 @@ public sealed class AppBar : MultiChildView
 
         AddChildToSelf(container);
 
-        _fileItem.Behaviors.Add(new FileMenuItemController(_fileItem, app));
-        _editItem.Behaviors.Add(new TestMenuItemController(_editItem));
-        _viewLabel.Behaviors.Add(new TestMenuItemController(_viewLabel));
-        _helpLabel.Behaviors.Add(new TestMenuItemController(_helpLabel));
+        _fileItem.UseController(ctx => new FileMenuItemController(_fileItem, app, ctx));
+        _editItem.UseController(ctx => new TestMenuItemController(_editItem, ctx));
+        _viewLabel.UseController(ctx => new TestMenuItemController(_viewLabel, ctx));
+        _helpLabel.UseController(ctx => new TestMenuItemController(_helpLabel, ctx));
     }
 }

@@ -69,7 +69,7 @@ public sealed class StartNewChatView : MultiChildView
 
         AddChildToSelf(layout);
 
-        _modelSelector.Behaviors.Add(new ModelSelectorController(_modelSelector));
+        _modelSelector.UseController(ctx => new ModelSelectorController(_modelSelector, ctx));
     }
 
     private void OnSubmit(ReadOnlySpan<char> text)

@@ -58,7 +58,7 @@ public sealed class VerticalScrollBarView : MultiChildView
 
         AddChildToSelf(_slideArea);
 
-        _thumbView.Behaviors.Add(new VerticalScrollBarThumbViewController(_thumbView));
+        _thumbView.UseController(_ => new VerticalScrollBarThumbViewController(_thumbView));
     }
 
     public float Scale

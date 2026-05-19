@@ -59,11 +59,11 @@ internal sealed class GrowingDescriptionField : MultiChildView
             TextWrap = TextWrap.Wrap,
             PlaceholderTextColor = DialogPalette.RowTextMissing,
         };
-        _input.Behaviors.Add(new TextInputViewKbmController(_input) { IsMultiLine = true });
+        _input.UseController(_ => new TextInputViewKbmController(_input) { IsMultiLine = true });
 
         _scrollPane = new ScrollPane();
         _scrollPane.Children.Add(_input);
-        _scrollPane.Behaviors.Add(new ScrollPaneWheelController(_scrollPane));
+        _scrollPane.UseController(_ => new ScrollPaneWheelController(_scrollPane));
 
         _scrollBar = ScrollBarStyles.CreateVertical();
 
@@ -90,7 +90,7 @@ internal sealed class GrowingDescriptionField : MultiChildView
             },
         });
 
-        Behaviors.Add(new LocalChangesScrollSyncController(_scrollPane, _scrollBar));
+        this.UseController(_ => new LocalChangesScrollSyncController(_scrollPane, _scrollBar));
 
         // Start at the min size; the first OnLayoutChildren pass will refine this.
         PreferredHeight = _minHeight;

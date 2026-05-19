@@ -28,7 +28,7 @@ public sealed class GroupSection : MultiChildView
             }
         });
 
-        Behaviors.Add(new GroupSectionController(group.Id));
+        this.UseController(ctx => new GroupSectionController(this, ctx, group.Id));
     }
 
     private static IEnumerable<Repo> VisibleRepos(Group group, IRepoRegistry registry)

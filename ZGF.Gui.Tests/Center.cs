@@ -35,10 +35,10 @@ public sealed class Center : MultiChildView
         };
         AddChildToSelf(_w3);
 
-        _w1.Behaviors.Add(new WindowDefaultKbmController(_w1));
-        _w3.Behaviors.Add(new WindowDefaultKbmController(_w3));
-        _textInput.Behaviors.Add(new TextInputViewKbmController(_textInput));
-        _listView.Behaviors.Add(new DefaultVerticalListViewKbmController(_listView));
+        _w1.UseController(_ => new WindowDefaultKbmController(_w1));
+        _w3.UseController(_ => new WindowDefaultKbmController(_w3));
+        _textInput.UseController(_ => new TextInputViewKbmController(_textInput));
+        _listView.UseController(_ => new DefaultVerticalListViewKbmController(_listView));
     }
 
     private (TextInputView, VerticalListView) BuildWindow(Window window)

@@ -12,37 +12,32 @@ internal enum DragAxis { X, Y }
 /// <paramref name="onDelta"/>. The container handles the meaning of that delta (resize a
 /// fraction, change a width, etc.).
 /// </summary>
-internal sealed class SplitterController : KeyboardMouseController
+internal sealed class SplitterController : KeyboardMouseController, IDisposable
 {
     private readonly DragAxis _axis;
     private readonly Action<float> _onDelta;
     private readonly Action<bool> _onHoverChanged;
+    private readonly InputSystem _inputSystem;
 
-    private InputSystem? _inputSystem;
     private bool _dragging;
     private bool _hovered;
     private PointF _lastPoint;
 
-    public SplitterController(DragAxis axis, Action<float> onDelta, Action<bool> onHoverChanged)
+    public SplitterController(Context context, DragAxis axis, Action<float> onDelta, Action<bool> onHoverChanged)
     {
         _axis = axis;
         _onDelta = onDelta;
         _onHoverChanged = onHoverChanged;
+        _inputSystem = context.Get<InputSystem>()!;
     }
 
-    protected override void OnAttachedToContext(View view, Context context)
-    {
-        _inputSystem = context.Get<InputSystem>();
-    }
-
-    protected override void OnDetachedFromContext(View view, Context context)
+    public void Dispose()
     {
         if (_dragging)
         {
-            _inputSystem?.Blur(this);
+            _inputSystem.Blur(this);
             _dragging = false;
         }
-        _inputSystem = null;
     }
 
     public override void OnMouseEnter(ref MouseEnterEvent e)
@@ -67,7 +62,7 @@ internal sealed class SplitterController : KeyboardMouseController
         {
             _dragging = true;
             _lastPoint = e.Mouse.Point;
-            _inputSystem?.RequestFocus(this);
+            _inputSystem.RequestFocus(this);
             e.Consume();
             return;
         }
@@ -75,7 +70,7 @@ internal sealed class SplitterController : KeyboardMouseController
         if (e.State == InputState.Released && _dragging)
         {
             _dragging = false;
-            _inputSystem?.Blur(this);
+            _inputSystem.Blur(this);
             if (!_hovered) _onHoverChanged(false);
             e.Consume();
         }

@@ -57,7 +57,7 @@ public sealed class CommitDetailsView : MultiChildView, ICommitDetailsView
 
         _scrollPane = new ScrollPane();
         _scrollPane.Children.Add(paddedContent);
-        _scrollPane.Behaviors.Add(new ScrollPaneWheelController(_scrollPane));
+        _scrollPane.UseController(_ => new ScrollPaneWheelController(_scrollPane));
 
         _vScrollBar = ScrollBarStyles.CreateVertical();
         _hScrollBar = ScrollBarStyles.CreateHorizontal();
@@ -78,7 +78,7 @@ public sealed class CommitDetailsView : MultiChildView, ICommitDetailsView
             },
         });
 
-        Behaviors.Add(new CommitDetailsScrollSyncController(_scrollPane, _vScrollBar, _hScrollBar));
+        this.UseController(_ => new CommitDetailsScrollSyncController(_scrollPane, _vScrollBar, _hScrollBar));
 
         this.UsePresenter(ctx => new CommitDetailsPresenter(
             this,
@@ -262,7 +262,7 @@ internal sealed class ScrollPaneWheelController : KeyboardMouseController
     }
 }
 
-internal sealed class CommitDetailsScrollSyncController : KeyboardMouseController
+internal sealed class CommitDetailsScrollSyncController : KeyboardMouseController, IDisposable
 {
     private readonly ScrollPane _pane;
     private readonly VerticalScrollBarView _vScrollBar;
@@ -273,17 +273,14 @@ internal sealed class CommitDetailsScrollSyncController : KeyboardMouseControlle
         _pane = pane;
         _vScrollBar = vScrollBar;
         _hScrollBar = hScrollBar;
-    }
 
-    protected override void OnAttachedToContext(View view, Context context)
-    {
         _pane.VerticalScrollPositionChanged += OnPaneVerticalScroll;
         _pane.HorizontalScrollPositionChanged += OnPaneHorizontalScroll;
         _vScrollBar.ScrollPositionChanged += _pane.SetVerticalNormalizedScrollPosition;
         _hScrollBar.ScrollPositionChanged += _pane.SetHorizontalNormalizedScrollPosition;
     }
 
-    protected override void OnDetachedFromContext(View view, Context context)
+    public void Dispose()
     {
         _pane.VerticalScrollPositionChanged -= OnPaneVerticalScroll;
         _pane.HorizontalScrollPositionChanged -= OnPaneHorizontalScroll;

@@ -82,7 +82,7 @@ internal sealed class LocalChangesPanel : MultiChildView
 
         _scrollPane = new ScrollPane();
         _scrollPane.Children.Add(paddedRows);
-        _scrollPane.Behaviors.Add(new ScrollPaneWheelController(_scrollPane));
+        _scrollPane.UseController(_ => new ScrollPaneWheelController(_scrollPane));
 
         _scrollBar = ScrollBarStyles.CreateVertical();
         _hScrollBar = ScrollBarStyles.CreateHorizontal();
@@ -96,7 +96,7 @@ internal sealed class LocalChangesPanel : MultiChildView
         if (onEmptyAreaClicked != null)
         {
             var bodyWrapper = new RectView { Children = { _scrollPane } };
-            bodyWrapper.Behaviors.Add(new EmptyAreaClickController(onEmptyAreaClicked));
+            bodyWrapper.UseController(_ => new EmptyAreaClickController(onEmptyAreaClicked));
             center = bodyWrapper;
         }
 
@@ -108,7 +108,7 @@ internal sealed class LocalChangesPanel : MultiChildView
             South = _hScrollBar,
         });
 
-        Behaviors.Add(new LocalChangesScrollSyncController(_scrollPane, _scrollBar, _hScrollBar));
+        this.UseController(_ => new LocalChangesScrollSyncController(_scrollPane, _scrollBar, _hScrollBar));
     }
 
     public void SetFiles(IReadOnlyList<FileChange> files)

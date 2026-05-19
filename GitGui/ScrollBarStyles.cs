@@ -20,7 +20,7 @@ internal static class ScrollBarStyles
             TrackBorderSize = new BorderSizeStyle { Left = 1 },
         };
         StyleThumb(bar.Thumb);
-        bar.Behaviors.Add(new VerticalScrollBarViewController(bar));
+        bar.UseController(_ => new VerticalScrollBarViewController(bar));
         return bar;
     }
 
@@ -39,7 +39,7 @@ internal static class ScrollBarStyles
             TrackBorderSize = new BorderSizeStyle { Top = 1 },
         };
         StyleThumb(bar.Thumb);
-        bar.Behaviors.Add(new HorizontalScrollBarViewController(bar));
+        bar.UseController(_ => new HorizontalScrollBarViewController(bar));
         return bar;
     }
 

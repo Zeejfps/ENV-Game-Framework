@@ -2,7 +2,7 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Tests;
 
-public sealed class DefaultVerticalListViewKbmController : KeyboardMouseController
+public sealed class DefaultVerticalListViewKbmController : KeyboardMouseController, IDisposable
 {
     private readonly VerticalListView _view;
     private readonly VerticalScrollPane _viewPortView;
@@ -13,11 +13,7 @@ public sealed class DefaultVerticalListViewKbmController : KeyboardMouseControll
         _view = view;
         _viewPortView = view.ScrollPaneView;
         _scrollBarView = view.ScrollBarView;
-    }
 
-
-    protected override void OnAttachedToContext(View view, Context context)
-    {
         _viewPortView.ScrollToTop();
         _scrollBarView.ScrollToTop();
 
@@ -25,7 +21,7 @@ public sealed class DefaultVerticalListViewKbmController : KeyboardMouseControll
         _viewPortView.ScrollPositionChanged += OnScrollPaneScrollPositionChanged;
     }
 
-    protected override void OnDetachedFromContext(View view, Context context)
+    public void Dispose()
     {
         _scrollBarView.ScrollPositionChanged -= OnScrollBarScrollPositionChanged;
         _viewPortView.ScrollPositionChanged -= OnScrollPaneScrollPositionChanged;
@@ -35,7 +31,7 @@ public sealed class DefaultVerticalListViewKbmController : KeyboardMouseControll
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
-        
+
         _view.Scroll(e.DeltaY * -10);
         e.Consume();
     }
@@ -54,7 +50,7 @@ public sealed class DefaultVerticalListViewKbmController : KeyboardMouseControll
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
-        
+
         if (e.State == InputState.Pressed)
         {
             if (e.Key == KeyboardKey.UpArrow)

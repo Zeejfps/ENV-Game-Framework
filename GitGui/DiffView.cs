@@ -89,7 +89,7 @@ public sealed class DiffView : MultiChildView
             },
         });
 
-        Behaviors.Add(new DiffContentScrollSyncController(_content, _vScrollBar, _hScrollBar));
+        this.UseController(_ => new DiffContentScrollSyncController(_content, _vScrollBar, _hScrollBar));
     }
 
     protected override void OnAttachedToContext(Context context)
@@ -255,7 +255,7 @@ internal sealed class DiffContentView : View
 
     public DiffContentView()
     {
-        Behaviors.Add(new DiffContentViewController(this));
+        this.UseController(_ => new DiffContentViewController(this));
     }
 
     public void SetViewModel(DiffViewModel vm)
@@ -702,7 +702,7 @@ internal sealed class DiffContentViewController : KeyboardMouseController
     }
 }
 
-internal sealed class DiffContentScrollSyncController : KeyboardMouseController
+internal sealed class DiffContentScrollSyncController : KeyboardMouseController, IDisposable
 {
     private readonly DiffContentView _content;
     private readonly VerticalScrollBarView _vScrollBar;
@@ -716,17 +716,14 @@ internal sealed class DiffContentScrollSyncController : KeyboardMouseController
         _content = content;
         _vScrollBar = vScrollBar;
         _hScrollBar = hScrollBar;
-    }
 
-    protected override void OnAttachedToContext(View view, Context context)
-    {
         _content.VerticalScrollPositionChanged += OnContentVerticalScroll;
         _content.HorizontalScrollPositionChanged += OnContentHorizontalScroll;
         _vScrollBar.ScrollPositionChanged += _content.SetVerticalNormalizedScrollPosition;
         _hScrollBar.ScrollPositionChanged += _content.SetHorizontalNormalizedScrollPosition;
     }
 
-    protected override void OnDetachedFromContext(View view, Context context)
+    public void Dispose()
     {
         _content.VerticalScrollPositionChanged -= OnContentVerticalScroll;
         _content.HorizontalScrollPositionChanged -= OnContentHorizontalScroll;

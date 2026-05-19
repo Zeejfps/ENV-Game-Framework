@@ -60,7 +60,7 @@ internal sealed class SelectableFileRowView : MultiChildView
 
         AddChildToSelf(background);
 
-        Behaviors.Add(new SelectableRowController(
+        this.UseController(_ => new SelectableRowController(
             mods => onClick(path, mods),
             h => isHovered.Value = h,
             onActivate != null ? () => onActivate(path) : null));

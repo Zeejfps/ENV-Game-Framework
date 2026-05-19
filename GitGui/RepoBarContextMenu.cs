@@ -38,7 +38,7 @@ public static class RepoBarContextMenu
             };
 
             var captured = item;
-            menuItem.Behaviors.Add(new ContextMenuItemDefaultKbmController(menuItem, () =>
+            menuItem.UseController(ctx => new ContextMenuItemDefaultKbmController(menuItem, ctx, () =>
             {
                 manager.RequestCloseMenu(menu);
                 captured.OnSelected();
@@ -49,6 +49,6 @@ public static class RepoBarContextMenu
         var opened = manager.ShowContextMenu(menu);
         if (opened == null) return;
 
-        menu.Behaviors.Add(new ContextMenuKbmController(opened));
+        menu.UseController(_ => new ContextMenuKbmController(opened));
     }
 }

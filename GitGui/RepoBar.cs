@@ -53,7 +53,7 @@ public sealed class RepoBar : MultiChildView
             }
         });
 
-        Behaviors.Add(new RepoBarContextMenuController(_ => BuildBackgroundMenuItems(registry)));
+        this.UseController(ctx => new RepoBarContextMenuController(ctx, _ => BuildBackgroundMenuItems(registry)));
     }
 
     private static IReadOnlyList<RepoBarContextMenu.Item> BuildBackgroundMenuItems(IRepoRegistry registry)

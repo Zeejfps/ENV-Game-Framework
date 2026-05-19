@@ -58,7 +58,7 @@ public sealed class HorizontalScrollBarView : MultiChildView
 
         AddChildToSelf(_slideArea);
 
-        _thumbView.Behaviors.Add(new HorizontalScrollBarThumbViewController(_thumbView));
+        _thumbView.UseController(_ => new HorizontalScrollBarThumbViewController(_thumbView));
     }
 
     public float Scale

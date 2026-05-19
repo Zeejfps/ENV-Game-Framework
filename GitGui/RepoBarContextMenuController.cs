@@ -6,10 +6,12 @@ namespace GitGui;
 
 public sealed class RepoBarContextMenuController : KeyboardMouseController
 {
+    private readonly Context _context;
     private readonly Func<PointF, IReadOnlyList<RepoBarContextMenu.Item>> _buildItems;
 
-    public RepoBarContextMenuController(Func<PointF, IReadOnlyList<RepoBarContextMenu.Item>> buildItems)
+    public RepoBarContextMenuController(Context context, Func<PointF, IReadOnlyList<RepoBarContextMenu.Item>> buildItems)
     {
+        _context = context;
         _buildItems = buildItems;
     }
 
@@ -19,14 +21,11 @@ public sealed class RepoBarContextMenuController : KeyboardMouseController
         if (e.Button != MouseButton.Right) return;
         if (e.State != InputState.Pressed) return;
 
-        var ctx = Context;
-        if (ctx == null) return;
-
         var anchor = e.Mouse.Point;
         var items = _buildItems(anchor);
         if (items.Count == 0) return;
 
-        RepoBarContextMenu.Show(ctx, anchor, items);
+        RepoBarContextMenu.Show(_context, anchor, items);
         e.Consume();
     }
 }

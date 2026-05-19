@@ -1,36 +1,44 @@
-﻿namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.Tests;
 
-public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseController
+public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseController, IDisposable
 {
     private readonly ContextMenuItem _contextMenuItem;
-    private ContextMenuManager? _contextMenuManager;
+    private readonly ContextMenuManager _contextMenuManager;
     private IOpenedContextMenu? _openedContextMenu;
     private InputSystem? _subMenuInputSystem;
     private ContextMenu? _registeredSubMenu;
 
-    public List<ContextMenuItemData> SubOptions { get; } = new();
+    public List<ContextMenuItemData> SubOptions { get; }
 
-    public Action? Clicked
-    {
-        get;
-        set;
-    }
+    public Action? Clicked { get; set; }
 
     public ContextMenuItemDefaultKbmController(
         ContextMenuItem contextMenuItem,
-        Action? clicked = null)
+        Context context,
+        Action? clicked = null,
+        IEnumerable<ContextMenuItemData>? subOptions = null)
     {
         _contextMenuItem = contextMenuItem;
+        _contextMenuManager = context.Get<ContextMenuManager>()!;
         Clicked = clicked;
+        SubOptions = subOptions == null ? new List<ContextMenuItemData>() : new List<ContextMenuItemData>(subOptions);
+        if (SubOptions.Count > 0)
+            _contextMenuItem.IsArrowVisible = true;
     }
 
-    protected override void OnAttachedToContext(View view, Context context)
+    public void Dispose()
     {
-        _contextMenuManager = context.Get<ContextMenuManager>();
-        if (SubOptions.Count > 0)
+        if (_openedContextMenu != null)
         {
-            _contextMenuItem.IsArrowVisible = true;
+            _openedContextMenu.Closed -= OnOpenedContextMenuClosed;
+            _openedContextMenu = null;
         }
+        if (_registeredSubMenu != null)
+        {
+            _subMenuInputSystem?.UnregisterController(_registeredSubMenu);
+            _registeredSubMenu = null;
+        }
+        _subMenuInputSystem = null;
     }
 
     public override void OnMouseEnter(ref MouseEnterEvent e)
@@ -58,7 +66,7 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             }
 
             var parentMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
-            _openedContextMenu = _contextMenuManager!.ShowContextMenu(subMenu, parentMenu);
+            _openedContextMenu = _contextMenuManager.ShowContextMenu(subMenu, parentMenu);
             if (_openedContextMenu != null)
             {
                 _openedContextMenu.Closed += OnOpenedContextMenuClosed;

@@ -95,7 +95,7 @@ public sealed class BranchesView : MultiChildView
 
     public BranchesView()
     {
-        Behaviors.Add(new BranchesViewController(this));
+        this.UseController(_ => new BranchesViewController(this));
     }
 
     protected override void OnAttachedToContext(Context context)

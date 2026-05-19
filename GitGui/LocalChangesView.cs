@@ -74,7 +74,8 @@ public sealed class LocalChangesView : MultiChildView, ILocalChangesView
 
         _snapshotContainer = new VerticalSplitContainer(_contentRow, _diffView, splitter, bottomFraction: 2f / 3f);
 
-        splitter.Behaviors.Add(new SplitterController(
+        splitter.UseController(ctx => new SplitterController(
+            ctx,
             DragAxis.Y,
             _snapshotContainer.AdjustBottomFractionByPixels,
             h => splitterHovered.Value = h));
@@ -155,7 +156,7 @@ public sealed class LocalChangesView : MultiChildView, ILocalChangesView
             PlaceholderText = "Commit title",
             PlaceholderTextColor = DialogPalette.RowTextMissing,
         };
-        _titleInput.Behaviors.Add(new TextInputViewKbmController(_titleInput));
+        _titleInput.UseController(_ => new TextInputViewKbmController(_titleInput));
         _titleInput.TextChanged += () => TitleChanged?.Invoke();
 
         // No PreferredHeight — let the box size to one line of text plus padding/border.

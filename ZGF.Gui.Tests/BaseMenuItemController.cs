@@ -1,25 +1,25 @@
-﻿namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.Tests;
 
-public abstract class BaseMenuItemController : KeyboardMouseController
+public abstract class BaseMenuItemController : KeyboardMouseController, IDisposable
 {
     protected MenuItem MenuItem { get; }
-    protected ContextMenuManager? _contextMenuManager;
+    protected Context Context { get; }
+    private readonly ContextMenuManager _contextMenuManager;
+    private readonly InputSystem _inputSystem;
 
     private ContextMenu? _contextMenu;
     private IOpenedContextMenu? _openedContextMenu;
-    private readonly List<(MultiChildView View, KeyboardMouseController Controller)> _menuRegistrations = new();
+    private readonly List<MultiChildView> _menuRegistrations = new();
 
-    protected BaseMenuItemController(MenuItem menuItem)
+    protected BaseMenuItemController(MenuItem menuItem, Context context)
     {
         MenuItem = menuItem;
+        Context = context;
+        _contextMenuManager = context.Get<ContextMenuManager>()!;
+        _inputSystem = context.Get<InputSystem>()!;
     }
 
-    protected override void OnAttachedToContext(View view, Context context)
-    {
-        _contextMenuManager = context.Get<ContextMenuManager>();
-    }
-
-    protected override void OnDetachedFromContext(View view, Context context)
+    public void Dispose()
     {
         if (_openedContextMenu != null)
         {
@@ -43,7 +43,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController
         };
         BuildMenu(_contextMenu);
 
-        _openedContextMenu = _contextMenuManager!.ShowContextMenu(_contextMenu);
+        _openedContextMenu = _contextMenuManager.ShowContextMenu(_contextMenu);
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed += OnOpenedContextMenuClosed;
@@ -52,17 +52,17 @@ public abstract class BaseMenuItemController : KeyboardMouseController
         }
     }
 
-    protected void RegisterMenuController(MultiChildView view, KeyboardMouseController controller)
+    protected void RegisterMenuController(MultiChildView view, IKeyboardMouseController controller)
     {
-        view.Behaviors.Add(controller);
-        _menuRegistrations.Add((view, controller));
+        _inputSystem.RegisterController(view, controller);
+        _menuRegistrations.Add(view);
     }
 
     private void UnregisterMenuControllers()
     {
-        foreach (var (view, controller) in _menuRegistrations)
+        foreach (var view in _menuRegistrations)
         {
-            view.Behaviors.Remove(controller);
+            _inputSystem.UnregisterController(view);
         }
         _menuRegistrations.Clear();
     }

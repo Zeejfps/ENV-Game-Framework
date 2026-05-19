@@ -59,7 +59,8 @@ public sealed class GroupHeaderRow : MultiChildView
             h => h ? DialogPalette.RowHover : DialogPalette.RowTransparent);
         AddChildToSelf(background);
 
-        Behaviors.Add(new GroupHeaderController(
+        this.UseController(ctx => new GroupHeaderController(
+            this, ctx,
             group,
             registry,
             h => isHovered.Value = h,

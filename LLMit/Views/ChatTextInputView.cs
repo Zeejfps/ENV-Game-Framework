@@ -33,7 +33,7 @@ public sealed class ChatTextInputView : MultiChildView
 
         AddChildToSelf(bg);
 
-        _textInput.Behaviors.Add(new ChatTextInputViewController(_textInput)
+        _textInput.UseController(_ => new ChatTextInputViewController(_textInput)
         {
             IsMultiLine = true,
             Submit = OnSubmit
@@ -51,7 +51,7 @@ public sealed class ChatTextInputView : MultiChildView
     }
 }
 
-public sealed class ChatTextInputViewController : BaseTextInputKbmController
+public sealed class ChatTextInputViewController : BaseTextInputKbmController, IDisposable
 {
     public Action<ReadOnlySpan<char>>? Submit { get; set; }
 
@@ -62,7 +62,7 @@ public sealed class ChatTextInputViewController : BaseTextInputKbmController
         _textInput = textInput;
     }
 
-    protected override void OnDetachedFromContext(View view, Context context)
+    public void Dispose()
     {
         Submit = null;
     }

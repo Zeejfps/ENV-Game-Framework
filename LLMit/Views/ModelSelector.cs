@@ -42,20 +42,16 @@ public sealed class ModelSelector : MultiChildView
 public sealed class ModelSelectorController : KeyboardMouseController
 {
     private readonly ModelSelector _modelSelector;
-    private ContextMenuManager? _contextMenuManager;
+    private readonly ContextMenuManager _contextMenuManager;
 
     private IOpenedContextMenu? _openedContextMenu;
     private InputSystem? _inputSystem;
     private ContextMenu? _registeredContextMenu;
 
-    public ModelSelectorController(ModelSelector modelSelector)
+    public ModelSelectorController(ModelSelector modelSelector, Context context)
     {
         _modelSelector = modelSelector;
-    }
-
-    protected override void OnAttachedToContext(View view, Context context)
-    {
-        _contextMenuManager = context.Get<ContextMenuManager>();
+        _contextMenuManager = context.Get<ContextMenuManager>()!;
         Debug.Assert(_contextMenuManager != null);
     }
 
@@ -105,7 +101,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
             }
         };
 
-        _openedContextMenu = _contextMenuManager!.ShowContextMenu(contextMenu);
+        _openedContextMenu = _contextMenuManager.ShowContextMenu(contextMenu);
         _openedContextMenu.Closed += OnContextMenuClosed;
         _inputSystem = _modelSelector.Context?.Get<InputSystem>();
         _inputSystem?.RegisterController(contextMenu, new ContextMenuKbmController(_openedContextMenu));

@@ -3,7 +3,7 @@ using ZGF.Gui.Tests;
 
 namespace GitGui;
 
-internal sealed class LocalChangesScrollSyncController : KeyboardMouseController
+internal sealed class LocalChangesScrollSyncController : KeyboardMouseController, IDisposable
 {
     private readonly ScrollPane _pane;
     private readonly VerticalScrollBarView _vScrollBar;
@@ -17,10 +17,7 @@ internal sealed class LocalChangesScrollSyncController : KeyboardMouseController
         _pane = pane;
         _vScrollBar = vScrollBar;
         _hScrollBar = hScrollBar;
-    }
 
-    protected override void OnAttachedToContext(View view, Context context)
-    {
         _pane.VerticalScrollPositionChanged += OnPaneVerticalScroll;
         _vScrollBar.ScrollPositionChanged += _pane.SetVerticalNormalizedScrollPosition;
         if (_hScrollBar != null)
@@ -30,7 +27,7 @@ internal sealed class LocalChangesScrollSyncController : KeyboardMouseController
         }
     }
 
-    protected override void OnDetachedFromContext(View view, Context context)
+    public void Dispose()
     {
         _pane.VerticalScrollPositionChanged -= OnPaneVerticalScroll;
         _vScrollBar.ScrollPositionChanged -= _pane.SetVerticalNormalizedScrollPosition;

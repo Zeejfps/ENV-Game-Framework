@@ -76,7 +76,8 @@ internal sealed class ResizableLeftSidebar : MultiChildView
 
         var sidebar = new ResizableLeftSidebar(content, splitter, initialWidth, minWidth, maxWidth);
 
-        splitter.Behaviors.Add(new SplitterController(
+        splitter.UseController(ctx => new SplitterController(
+            ctx,
             DragAxis.X,
             sidebar.AdjustWidthByPixels,
             h => splitterHovered.Value = h));

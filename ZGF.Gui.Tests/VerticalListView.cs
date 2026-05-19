@@ -27,7 +27,7 @@ public sealed class VerticalListView : MultiChildView
             East = ScrollBarView,
         });
 
-        ScrollBarView.Behaviors.Add(new VerticalScrollBarViewController(ScrollBarView));
+        ScrollBarView.UseController(_ => new VerticalScrollBarViewController(ScrollBarView));
     }
 
     public void Scroll(float delta)

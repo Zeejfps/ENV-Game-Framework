@@ -1,10 +1,10 @@
 namespace ZGF.Gui.Tests;
 
-public sealed class FileMenuItemController : BaseMenuItemController 
+public sealed class FileMenuItemController : BaseMenuItemController
 {
     private readonly App _app;
 
-    public FileMenuItemController(MenuItem menuItem, App app) : base(menuItem)
+    public FileMenuItemController(MenuItem menuItem, App app, Context context) : base(menuItem, context)
     {
         _app = app;
     }
@@ -22,7 +22,7 @@ public sealed class FileMenuItemController : BaseMenuItemController
             Text = "Exit",
         };
         contextMenu.Children.Add(exitItem);
-        RegisterMenuController(exitItem, new ContextMenuItemDefaultKbmController(exitItem, () =>
+        RegisterMenuController(exitItem, new ContextMenuItemDefaultKbmController(exitItem, Context, () =>
         {
             _app.Exit();
         }));

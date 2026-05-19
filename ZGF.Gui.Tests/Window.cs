@@ -102,7 +102,7 @@ public sealed class Window : MultiChildView
         };
         AddChildToSelf(outline);
 
-        _titlePanel.Behaviors.Add(new WindowTitleBarDefaultKbmController(this, _titlePanel));
+        _titlePanel.UseController(_ => new WindowTitleBarDefaultKbmController(this, _titlePanel));
     }
 
     protected override void OnLayoutSelf()

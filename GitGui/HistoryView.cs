@@ -28,7 +28,7 @@ public sealed class HistoryView : MultiChildView
         _details = new CommitDetailsView();
         AddChildToSelf(_commits);
         AddChildToSelf(_details);
-        Behaviors.Add(new HistoryViewController(this));
+        this.UseController(_ => new HistoryViewController(this));
     }
 
     protected override void OnLayoutChildren()

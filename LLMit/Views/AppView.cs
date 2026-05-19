@@ -31,7 +31,7 @@ public sealed class CenterArea : MultiChildView
             Text = "New Chat",
             IsActive = true,
         };
-        _newChatTabView.Behaviors.Add(new TabViewController(_newChatTabView));
+        _newChatTabView.UseController(_ => new TabViewController(_newChatTabView));
 
         _tabBarView = new TabBarView
         {
@@ -87,7 +87,7 @@ public sealed class CenterArea : MultiChildView
             Text = model,
             IsActive = true,
         };
-        tabView.Behaviors.Add(new TabViewController(tabView));
+        tabView.UseController(_ => new TabViewController(tabView));
         _tabBarView.Children.Add(tabView);
         _tabContentsView.Children.Clear();
     }

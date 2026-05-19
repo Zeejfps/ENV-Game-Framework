@@ -24,7 +24,7 @@ public sealed class ModelContextMenuItemView : MultiChildView
 
         AddChildToSelf(_contextMenuItem);
 
-        _contextMenuItem.Behaviors.Add(new ContextMenuItemDefaultKbmController(_contextMenuItem, () =>
+        _contextMenuItem.UseController(ctx => new ContextMenuItemDefaultKbmController(_contextMenuItem, ctx, () =>
         {
             var contextMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
             Debug.Assert(contextMenu != null);

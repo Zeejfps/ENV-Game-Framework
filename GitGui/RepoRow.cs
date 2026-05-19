@@ -74,7 +74,8 @@ public sealed class RepoRow : MultiChildView
         });
         AddChildToSelf(background);
 
-        Behaviors.Add(new RepoRowController(
+        this.UseController(ctx => new RepoRowController(
+            this, ctx,
             repo,
             registry,
             h => isHovered.Value = h,

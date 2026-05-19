@@ -109,7 +109,7 @@ public sealed class ModeSwitcherView : MultiChildView
             };
             AddChildToSelf(_bg);
 
-            Behaviors.Add(new HoverableButtonController(onClick, OnHoverChanged));
+            this.UseController(_ => new HoverableButtonController(onClick, OnHoverChanged));
         }
 
         public void SetActive(bool active)

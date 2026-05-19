@@ -3,25 +3,20 @@ using ZGF.Gui.Tests;
 
 namespace GitGui;
 
-public sealed class GroupSectionController : KeyboardMouseController
+public sealed class GroupSectionController : KeyboardMouseController, IDisposable
 {
-    private readonly Guid _groupId;
-    private IDragController? _dragController;
+    private readonly View _view;
+    private readonly IDragController? _dragController;
 
-    public GroupSectionController(Guid groupId)
+    public GroupSectionController(View view, Context context, Guid groupId)
     {
-        _groupId = groupId;
-    }
-
-    protected override void OnAttachedToContext(View view, Context context)
-    {
+        _view = view;
         _dragController = context.Get<IDragController>();
-        _dragController?.RegisterGroupSection(view, _groupId);
+        _dragController?.RegisterGroupSection(view, groupId);
     }
 
-    protected override void OnDetachedFromContext(View view, Context context)
+    public void Dispose()
     {
-        _dragController?.Unregister(view);
-        _dragController = null;
+        _dragController?.Unregister(_view);
     }
 }

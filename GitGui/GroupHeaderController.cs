@@ -5,47 +5,48 @@ using ZGF.KeyboardModule;
 
 namespace GitGui;
 
-public sealed class GroupHeaderController : KeyboardMouseController
+public sealed class GroupHeaderController : KeyboardMouseController, IDisposable
 {
     private const float DragThresholdSq = 6f * 6f;
 
+    private readonly View _view;
+    private readonly Context _context;
     private readonly Group _group;
     private readonly IRepoRegistry _registry;
     private readonly Action<bool> _onHoverChanged;
     private readonly Func<PointF, IReadOnlyList<RepoBarContextMenu.Item>> _buildMenuItems;
 
-    private IDragController? _dragController;
-    private InputSystem? _inputSystem;
+    private readonly IDragController? _dragController;
+    private readonly InputSystem _inputSystem;
 
     private bool _pressed;
     private bool _dragging;
     private PointF _pressPoint;
 
     public GroupHeaderController(
+        View view,
+        Context context,
         Group group,
         IRepoRegistry registry,
         Action<bool> onHoverChanged,
         Func<PointF, IReadOnlyList<RepoBarContextMenu.Item>> buildMenuItems)
     {
+        _view = view;
+        _context = context;
         _group = group;
         _registry = registry;
         _onHoverChanged = onHoverChanged;
         _buildMenuItems = buildMenuItems;
-    }
 
-    protected override void OnAttachedToContext(View view, Context context)
-    {
         _dragController = context.Get<IDragController>();
-        _inputSystem = context.Get<InputSystem>();
+        _inputSystem = context.Get<InputSystem>()!;
         _dragController?.RegisterGroupHeader(view, _group.Id);
     }
 
-    protected override void OnDetachedFromContext(View view, Context context)
+    public void Dispose()
     {
-        _dragController?.Unregister(view);
+        _dragController?.Unregister(_view);
         if (_pressed || _dragging) _dragController?.CancelDrag();
-        _dragController = null;
-        _inputSystem = null;
     }
 
     public override void OnMouseEnter(ref MouseEnterEvent e)
@@ -89,9 +90,9 @@ public sealed class GroupHeaderController : KeyboardMouseController
         {
             if (_dragging) return;
             var items = _buildMenuItems(e.Mouse.Point);
-            if (items.Count > 0 && Context is not null)
+            if (items.Count > 0)
             {
-                RepoBarContextMenu.Show(Context, e.Mouse.Point, items);
+                RepoBarContextMenu.Show(_context, e.Mouse.Point, items);
                 e.Consume();
             }
             return;
@@ -105,7 +106,7 @@ public sealed class GroupHeaderController : KeyboardMouseController
             _pressed = true;
             _dragging = false;
             _pressPoint = e.Mouse.Point;
-            _inputSystem?.StealFocus(this);
+            _inputSystem.StealFocus(this);
             e.Consume();
             return;
         }
@@ -123,7 +124,7 @@ public sealed class GroupHeaderController : KeyboardMouseController
             {
                 _registry.ToggleGroupCollapsed(_group.Id);
             }
-            _inputSystem?.Blur(this);
+            _inputSystem.Blur(this);
             e.Consume();
         }
     }
@@ -136,7 +137,7 @@ public sealed class GroupHeaderController : KeyboardMouseController
         _dragging = false;
         _pressed = false;
         _dragController?.CancelDrag();
-        _inputSystem?.Blur(this);
+        _inputSystem.Blur(this);
         e.Consume();
     }
 
