@@ -7,6 +7,7 @@ public interface ICanvas
     void DrawRect(in DrawRectInputs inputs);
     void DrawText(in DrawTextInputs inputs);
     void DrawImage(in DrawImageInputs inputs);
+    void DrawBoxShadow(in DrawBoxShadowInputs inputs);
     
     bool TryGetClip(out RectF rect);
     void PushClip(RectF rect);

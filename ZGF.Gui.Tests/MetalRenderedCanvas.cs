@@ -35,11 +35,13 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
     private IntPtr _rectPipeline;
     private IntPtr _glyphPipeline;
     private IntPtr _imagePipeline;
+    private IntPtr _shadowPipeline;
 
     private IntPtr _unitQuadBuffer;          // 12 floats, 6 vertices, per-vertex
     private IntPtr _rectInstanceBuffer;
     private IntPtr _glyphInstanceBuffer;
     private IntPtr _imageInstanceBuffer;
+    private IntPtr _shadowInstanceBuffer;
     private IntPtr _globalsBuffer;           // projection matrix (mat4)
     private IntPtr _clipBuffer;              // 256 * vec4
     private IntPtr _samplerState;
@@ -75,10 +77,16 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         _imagePipeline = BuildPipeline(device, library, MakeImageVertexDescriptor());
         Release(library);
 
+        library = LoadLibrary(device,
+            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "canvas_shadow.gen.metal")));
+        _shadowPipeline = BuildPipeline(device, library, MakeShadowVertexDescriptor());
+        Release(library);
+
         _unitQuadBuffer = MakeUnitQuadBuffer(device);
         _rectInstanceBuffer = NewSharedBuffer(device, MaxRects * sizeof(RectInstance));
         _glyphInstanceBuffer = NewSharedBuffer(device, MaxGlyphs * sizeof(GlyphInstance));
         _imageInstanceBuffer = NewSharedBuffer(device, MaxImages * sizeof(ImageInstance));
+        _shadowInstanceBuffer = NewSharedBuffer(device, MaxShadows * sizeof(ShadowInstance));
         _globalsBuffer = NewSharedBuffer(device, sizeof(Matrix4x4));
         _clipBuffer = NewSharedBuffer(device, MaxClips * sizeof(Vector4));
 
@@ -155,6 +163,14 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
             Buffer.MemoryCopy(src, dst, MaxImages * sizeof(ImageInstance), count * sizeof(ImageInstance));
     }
 
+    protected override void UploadShadowInstances(ShadowInstance[] data, int count)
+    {
+        if (count == 0) return;
+        var dst = (ShadowInstance*)msg_IntPtr(_shadowInstanceBuffer, Sel("contents"));
+        fixed (ShadowInstance* src = &data[0])
+            Buffer.MemoryCopy(src, dst, MaxShadows * sizeof(ShadowInstance), count * sizeof(ShadowInstance));
+    }
+
     protected override void UploadClips(List<Vector4> clips)
     {
         if (clips.Count == 0) return;
@@ -224,6 +240,7 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
                     DrawKind.Rect => _rectPipeline,
                     DrawKind.Glyph => _glyphPipeline,
                     DrawKind.Image => _imagePipeline,
+                    DrawKind.Shadow => _shadowPipeline,
                     _ => IntPtr.Zero,
                 };
                 msg_Void_IntPtr(enc, setPipelineSel, pipeline);
@@ -254,6 +271,9 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
                         msg_Void_IntPtr_NUInt(enc, setFragmentSamplerSel, _samplerState, 0);
                         boundTexture = IntPtr.Zero;
                         break;
+                    case DrawKind.Shadow:
+                        msg_Void_IntPtr_NUInt_NUInt(enc, setVertexBufferSel, _shadowInstanceBuffer, 0, 3);
+                        break;
                 }
 
                 boundKind = call.Kind;
@@ -280,6 +300,7 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
                     DrawKind.Rect => (_rectInstanceBuffer, sizeof(RectInstance)),
                     DrawKind.Glyph => (_glyphInstanceBuffer, sizeof(GlyphInstance)),
                     DrawKind.Image => (_imageInstanceBuffer, sizeof(ImageInstance)),
+                    DrawKind.Shadow => (_shadowInstanceBuffer, sizeof(ShadowInstance)),
                     _ => (IntPtr.Zero, 0),
                 };
                 msg_Void_IntPtr_NUInt_NUInt(enc, setVertexBufferSel, buf, (nuint)(call.InstanceStart * stride), 3);
@@ -298,6 +319,7 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
                     DrawKind.Rect => _rectInstanceBuffer,
                     DrawKind.Glyph => _glyphInstanceBuffer,
                     DrawKind.Image => _imageInstanceBuffer,
+                    DrawKind.Shadow => _shadowInstanceBuffer,
                     _ => IntPtr.Zero,
                 };
                 msg_Void_IntPtr_NUInt_NUInt(enc, setVertexBufferSel, buf, 0, 3);
@@ -454,6 +476,22 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         return desc;
     }
 
+    private static IntPtr MakeShadowVertexDescriptor()
+    {
+        var desc = MakeVertexDescriptorBase();
+        SetAttribute(desc, 0, MTLVertexFormat.Float2, 0, 2);
+        var off = 0;
+        SetAttribute(desc, 1, MTLVertexFormat.Float4, off, 3); off += 16;
+        SetAttribute(desc, 2, MTLVertexFormat.Float4, off, 3); off += 16;
+        SetAttribute(desc, 3, MTLVertexFormat.Float4, off, 3); off += 16;
+        SetAttribute(desc, 4, MTLVertexFormat.Float, off, 3); off += 4;
+        SetAttribute(desc, 5, MTLVertexFormat.UInt, off, 3); off += 4;
+        SetAttribute(desc, 6, MTLVertexFormat.UInt, off, 3); off += 4;
+        SetLayout(desc, 2, 8, MTLVertexStepFunction.PerVertex);
+        SetLayout(desc, 3, sizeof(ShadowInstance), MTLVertexStepFunction.PerInstance);
+        return desc;
+    }
+
     private static IntPtr MakeVertexDescriptorBase() => New(Class("MTLVertexDescriptor"));
 
     private static void SetAttribute(IntPtr desc, uint index, MTLVertexFormat format, int offset, int bufferIndex)
@@ -557,10 +595,12 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         Release(_samplerState);
         Release(_clipBuffer);
         Release(_globalsBuffer);
+        Release(_shadowInstanceBuffer);
         Release(_imageInstanceBuffer);
         Release(_glyphInstanceBuffer);
         Release(_rectInstanceBuffer);
         Release(_unitQuadBuffer);
+        Release(_shadowPipeline);
         Release(_imagePipeline);
         Release(_glyphPipeline);
         Release(_rectPipeline);

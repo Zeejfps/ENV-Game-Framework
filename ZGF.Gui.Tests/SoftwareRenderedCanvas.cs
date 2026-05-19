@@ -452,4 +452,9 @@ public sealed class SoftwareRenderedCanvas : ICanvas
             prevCodePoint = codePoint;
         }
     }
+
+    public void DrawBoxShadow(in DrawBoxShadowInputs inputs)
+    {
+        // Box shadows not implemented in the software canvas yet.
+    }
 }

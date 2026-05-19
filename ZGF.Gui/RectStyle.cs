@@ -7,6 +7,7 @@ public sealed class RectStyle
     public BorderColorStyle BorderColor;
     public BorderSizeStyle BorderSize;
     public BorderRadiusStyle BorderRadius;
+    public BoxShadowStyle BoxShadow;
 
     public void Apply(Style style)
     {
@@ -17,5 +18,6 @@ public sealed class RectStyle
         style.BorderSize.ApplyTo(ref BorderSize);
         style.BorderColor.ApplyTo(ref BorderColor);
         style.BorderRadius.ApplyTo(ref BorderRadius);
+        style.BoxShadow.ApplyTo(ref BoxShadow);
     }
 }

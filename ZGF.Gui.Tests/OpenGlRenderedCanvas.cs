@@ -13,12 +13,12 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
 {
     // ---------- GL resources ----------
 
-    private uint _rectShader, _glyphShader, _imageShader;
-    private int _rectProjLoc, _glyphProjLoc, _imageProjLoc;
+    private uint _rectShader, _glyphShader, _imageShader, _shadowShader;
+    private int _rectProjLoc, _glyphProjLoc, _imageProjLoc, _shadowProjLoc;
     private int _glyphAtlasLoc, _imageTexLoc;
-    private uint _rectVao, _glyphVao, _imageVao;
+    private uint _rectVao, _glyphVao, _imageVao, _shadowVao;
     private uint _unitQuadVbo;
-    private uint _rectInstanceVbo, _glyphInstanceVbo, _imageInstanceVbo;
+    private uint _rectInstanceVbo, _glyphInstanceVbo, _imageInstanceVbo, _shadowInstanceVbo;
     private uint _clipUbo;
     private uint _fontAtlasTextureId;
 
@@ -50,10 +50,15 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
             .WithVertexShader(Path.Combine(shadersDir, "canvas_image.vert.glsl"))
             .WithFragmentShader(Path.Combine(shadersDir, "canvas_image.frag.glsl"))
             .Compile().Id;
+        _shadowShader = new ShaderProgramCompiler()
+            .WithVertexShader(Path.Combine(shadersDir, "canvas_shadow.vert.glsl"))
+            .WithFragmentShader(Path.Combine(shadersDir, "canvas_shadow.frag.glsl"))
+            .Compile().Id;
 
         _rectProjLoc = glGetUniformLocation(_rectShader, "u_projection");
         _glyphProjLoc = glGetUniformLocation(_glyphShader, "u_projection");
         _imageProjLoc = glGetUniformLocation(_imageShader, "u_projection");
+        _shadowProjLoc = glGetUniformLocation(_shadowShader, "u_projection");
         _glyphAtlasLoc = glGetUniformLocation(_glyphShader, "u_atlas");
         _imageTexLoc = glGetUniformLocation(_imageShader, "u_texture");
 
@@ -62,6 +67,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         BindClipBlockToZero(_rectShader);
         BindClipBlockToZero(_glyphShader);
         BindClipBlockToZero(_imageShader);
+        BindClipBlockToZero(_shadowShader);
 
         UploadProjection();
 
@@ -110,6 +116,14 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         glBindBuffer(GL_ARRAY_BUFFER, _imageInstanceVbo);
         fixed (ImageInstance* ptr = &data[0])
             glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(ImageInstance), ptr);
+    }
+
+    protected override void UploadShadowInstances(ShadowInstance[] data, int count)
+    {
+        if (count == 0) return;
+        glBindBuffer(GL_ARRAY_BUFFER, _shadowInstanceVbo);
+        fixed (ShadowInstance* ptr = &data[0])
+            glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(ShadowInstance), ptr);
     }
 
     protected override void UploadClips(List<Vector4> clips)
@@ -200,6 +214,10 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
                         glBindVertexArray(_imageVao);
                         boundTexture = 0;
                         break;
+                    case DrawKind.Shadow:
+                        glUseProgram(_shadowShader);
+                        glBindVertexArray(_shadowVao);
+                        break;
                 }
                 boundKind = call.Kind;
             }
@@ -215,6 +233,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
                 case DrawKind.Rect: RebindRectInstancePointers(call.InstanceStart); break;
                 case DrawKind.Glyph: RebindGlyphInstancePointers(call.InstanceStart); break;
                 case DrawKind.Image: RebindImageInstancePointers(call.InstanceStart); break;
+                case DrawKind.Shadow: RebindShadowInstancePointers(call.InstanceStart); break;
             }
 
             glDrawArraysInstanced(GL_TRIANGLES, 0, 6, call.InstanceCount);
@@ -235,6 +254,8 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         glUniformMatrix4fv(_glyphProjLoc, 1, false, ptr);
         glUseProgram(_imageShader);
         glUniformMatrix4fv(_imageProjLoc, 1, false, ptr);
+        glUseProgram(_shadowShader);
+        glUniformMatrix4fv(_shadowProjLoc, 1, false, ptr);
         AssertNoGlError();
     }
 
@@ -264,10 +285,12 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         _rectInstanceVbo = AllocInstanceVbo(MaxRects * sizeof(RectInstance));
         _glyphInstanceVbo = AllocInstanceVbo(MaxGlyphs * sizeof(GlyphInstance));
         _imageInstanceVbo = AllocInstanceVbo(MaxImages * sizeof(ImageInstance));
+        _shadowInstanceVbo = AllocInstanceVbo(MaxShadows * sizeof(ShadowInstance));
 
         _rectVao = CreateRectVao();
         _glyphVao = CreateGlyphVao();
         _imageVao = CreateImageVao();
+        _shadowVao = CreateShadowVao();
     }
 
     private uint AllocInstanceVbo(int sizeBytes)
@@ -356,6 +379,31 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         return vao;
     }
 
+    private uint CreateShadowVao()
+    {
+        uint vao;
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+
+        glBindBuffer(GL_ARRAY_BUFFER, _unitQuadVbo);
+        glVertexAttribPointer(0, 2, GL_FLOAT, false, 2 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, _shadowInstanceVbo);
+        var stride = sizeof(ShadowInstance);
+
+        AddFloatInstanceAttrib(1, 4, stride, OffsetOf<ShadowInstance>(nameof(ShadowInstance.OuterRect)));
+        AddFloatInstanceAttrib(2, 4, stride, OffsetOf<ShadowInstance>(nameof(ShadowInstance.ShadowRect)));
+        AddFloatInstanceAttrib(3, 4, stride, OffsetOf<ShadowInstance>(nameof(ShadowInstance.BorderRadius)));
+        AddFloatInstanceAttrib(4, 1, stride, OffsetOf<ShadowInstance>(nameof(ShadowInstance.Sigma)));
+        AddUintInstanceAttrib(5, stride, OffsetOf<ShadowInstance>(nameof(ShadowInstance.Color)));
+        AddUintInstanceAttrib(6, stride, OffsetOf<ShadowInstance>(nameof(ShadowInstance.ClipIndex)));
+
+        glBindVertexArray(0);
+        AssertNoGlError();
+        return vao;
+    }
+
     private static void AddFloatInstanceAttrib(uint index, int components, int stride, int offset)
     {
         glVertexAttribPointer(index, components, GL_FLOAT, false, stride, (void*)offset);
@@ -427,6 +475,19 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         SetFloatInstancePointer(5, 1, stride, baseBytes + OffsetOf<ImageInstance>(nameof(ImageInstance.Rotation)));
     }
 
+    private void RebindShadowInstancePointers(int firstInstance)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, _shadowInstanceVbo);
+        var stride = sizeof(ShadowInstance);
+        var baseBytes = firstInstance * stride;
+        SetFloatInstancePointer(1, 4, stride, baseBytes + OffsetOf<ShadowInstance>(nameof(ShadowInstance.OuterRect)));
+        SetFloatInstancePointer(2, 4, stride, baseBytes + OffsetOf<ShadowInstance>(nameof(ShadowInstance.ShadowRect)));
+        SetFloatInstancePointer(3, 4, stride, baseBytes + OffsetOf<ShadowInstance>(nameof(ShadowInstance.BorderRadius)));
+        SetFloatInstancePointer(4, 1, stride, baseBytes + OffsetOf<ShadowInstance>(nameof(ShadowInstance.Sigma)));
+        SetUintInstancePointer(5, stride, baseBytes + OffsetOf<ShadowInstance>(nameof(ShadowInstance.Color)));
+        SetUintInstancePointer(6, stride, baseBytes + OffsetOf<ShadowInstance>(nameof(ShadowInstance.ClipIndex)));
+    }
+
     private static void BindClipBlockToZero(uint shader)
     {
         Span<byte> name = stackalloc byte[10]; // "ClipRects\0"
@@ -479,11 +540,13 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         DeleteBuffer(ref _rectInstanceVbo);
         DeleteBuffer(ref _glyphInstanceVbo);
         DeleteBuffer(ref _imageInstanceVbo);
+        DeleteBuffer(ref _shadowInstanceVbo);
         DeleteBuffer(ref _unitQuadVbo);
         DeleteBuffer(ref _clipUbo);
         DeleteVao(ref _rectVao);
         DeleteVao(ref _glyphVao);
         DeleteVao(ref _imageVao);
+        DeleteVao(ref _shadowVao);
         if (_fontAtlasTextureId != 0)
         {
             var id = _fontAtlasTextureId;
@@ -493,6 +556,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         if (_rectShader != 0) { glDeleteProgram(_rectShader); _rectShader = 0; }
         if (_glyphShader != 0) { glDeleteProgram(_glyphShader); _glyphShader = 0; }
         if (_imageShader != 0) { glDeleteProgram(_imageShader); _imageShader = 0; }
+        if (_shadowShader != 0) { glDeleteProgram(_shadowShader); _shadowShader = 0; }
     }
 
     private static void DeleteBuffer(ref uint buf)

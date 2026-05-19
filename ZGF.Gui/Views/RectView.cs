@@ -34,13 +34,32 @@ public class RectView : MultiChildView
         set => SetField(ref _style.BorderRadius, value);
     }
 
+    public BoxShadowStyle BoxShadow
+    {
+        get => _style.BoxShadow;
+        set => SetField(ref _style.BoxShadow, value);
+    }
+
     protected override void OnDrawSelf(ICanvas c)
     {
+        var z = GetDrawZIndex();
+
+        if (_style.BoxShadow.IsActive)
+        {
+            c.DrawBoxShadow(new DrawBoxShadowInputs
+            {
+                Position = Position,
+                BorderRadius = _style.BorderRadius,
+                Shadow = _style.BoxShadow,
+                ZIndex = z,
+            });
+        }
+
         c.DrawRect(new DrawRectInputs
         {
             Position = Position,
             Style = _style,
-            ZIndex = GetDrawZIndex()
+            ZIndex = z,
         });
     }
 

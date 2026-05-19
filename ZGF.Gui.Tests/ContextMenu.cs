@@ -59,6 +59,14 @@ public sealed class ContextMenu : MultiChildView
                 Right = 1,
                 Bottom = 1
             },
+            BoxShadow = new BoxShadowStyle
+            {
+                OffsetX = 0f,
+                OffsetY = -4f,
+                Blur = 16f,
+                Spread = 0f,
+                Color = 0x60000000,
+            },
             Children =
             {
                 _itemsContainer

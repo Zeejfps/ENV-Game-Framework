@@ -13,4 +13,5 @@ public sealed class Style
     public BorderSizeStyle BorderSize { get; set; }
     public BorderColorStyle BorderColor { get; set; }
     public BorderRadiusStyle BorderRadius { get; set; }
+    public BoxShadowStyle BoxShadow { get; set; }
 }
