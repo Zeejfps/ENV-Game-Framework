@@ -4,11 +4,6 @@ namespace GitGui;
 
 internal sealed class ActionsToolbarPresenter : IDisposable
 {
-    // Per-frame angle delta for the loader spinner. Clockwise on screen = negative angle
-    // because the orthographic projection has Y up.
-    private const int AnimTickMs = 16;
-    private const float RotationPerTick = -MathF.Tau * (AnimTickMs / 1000f);
-
     private readonly IActionsToolbarView _view;
     private readonly IRepoRegistry _registry;
     private readonly IGitService _gitService;
@@ -18,16 +13,14 @@ internal sealed class ActionsToolbarPresenter : IDisposable
     private readonly SubscriptionGroup _subscriptions = new();
     private readonly GenerationGuard _statusGen = new();
 
+    private readonly SpinnerAnimation _pushSpinner;
+    private readonly SpinnerAnimation _pullSpinner;
+    private readonly SpinnerAnimation _fetchSpinner;
+
     private PushStatus _pushStatus = new(null, HasUpstream: false, Ahead: 0, Behind: 0, IsDetached: false);
     private bool _isPushing;
     private bool _isPulling;
     private bool _isFetching;
-    private CancellationTokenSource? _pushAnimCts;
-    private CancellationTokenSource? _pullAnimCts;
-    private CancellationTokenSource? _fetchAnimCts;
-    private float _pushRotation;
-    private float _pullRotation;
-    private float _fetchRotation;
 
     public ActionsToolbarPresenter(
         IActionsToolbarView view,
@@ -43,6 +36,17 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         _shell = shell;
         _dispatcher = dispatcher;
         _bus = bus;
+
+        _pushSpinner = new SpinnerAnimation(dispatcher);
+        _pullSpinner = new SpinnerAnimation(dispatcher);
+        _fetchSpinner = new SpinnerAnimation(dispatcher);
+
+        _pushSpinner.IsActive.Subscribe(b => _view.PushBusy = b);
+        _pushSpinner.Rotation.Subscribe(r => _view.PushRotation = r);
+        _pullSpinner.IsActive.Subscribe(b => _view.PullBusy = b);
+        _pullSpinner.Rotation.Subscribe(r => _view.PullRotation = r);
+        _fetchSpinner.IsActive.Subscribe(b => _view.FetchBusy = b);
+        _fetchSpinner.Rotation.Subscribe(r => _view.FetchRotation = r);
 
         _view.PushRequested += OnPushRequested;
         _view.PullRequested += OnPullRequested;
@@ -61,9 +65,9 @@ internal sealed class ActionsToolbarPresenter : IDisposable
     public void Dispose()
     {
         _statusGen.Bump();
-        StopPushAnim();
-        StopPullAnim();
-        StopFetchAnim();
+        _pushSpinner.Dispose();
+        _pullSpinner.Dispose();
+        _fetchSpinner.Dispose();
         _subscriptions.Dispose();
         _view.PushRequested -= OnPushRequested;
         _view.PullRequested -= OnPullRequested;
@@ -144,7 +148,7 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         _isPushing = true;
         UpdateSyncButtons();
         _view.Error = null;
-        StartPushAnim();
+        _pushSpinner.Start();
 
         var service = _gitService;
         var dispatcher = _dispatcher;
@@ -159,7 +163,7 @@ internal sealed class ActionsToolbarPresenter : IDisposable
             dispatcher.Post(() =>
             {
                 _isPushing = false;
-                StopPushAnim();
+                _pushSpinner.Stop();
                 if (!outcome.Success)
                 {
                     _view.Error = outcome.ErrorMessage ?? "Push failed.";
@@ -183,7 +187,7 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         _isPulling = true;
         UpdateSyncButtons();
         _view.Error = null;
-        StartPullAnim();
+        _pullSpinner.Start();
 
         var service = _gitService;
         var dispatcher = _dispatcher;
@@ -198,7 +202,7 @@ internal sealed class ActionsToolbarPresenter : IDisposable
             dispatcher.Post(() =>
             {
                 _isPulling = false;
-                StopPullAnim();
+                _pullSpinner.Stop();
                 if (!outcome.Success)
                 {
                     _view.Error = outcome.ErrorMessage ?? "Pull failed.";
@@ -220,7 +224,7 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         _isFetching = true;
         UpdateSyncButtons();
         _view.Error = null;
-        StartFetchAnim();
+        _fetchSpinner.Start();
 
         var service = _gitService;
         var dispatcher = _dispatcher;
@@ -235,7 +239,7 @@ internal sealed class ActionsToolbarPresenter : IDisposable
             dispatcher.Post(() =>
             {
                 _isFetching = false;
-                StopFetchAnim();
+                _fetchSpinner.Stop();
                 if (!outcome.Success)
                 {
                     _view.Error = outcome.ErrorMessage ?? "Fetch failed.";
@@ -246,96 +250,5 @@ internal sealed class ActionsToolbarPresenter : IDisposable
                 bus.Broadcast(new RefsChangedMessage(repo.Id));
             });
         });
-    }
-
-    private void StartPushAnim()
-    {
-        _pushAnimCts?.Cancel();
-        _pushAnimCts = new CancellationTokenSource();
-        _pushRotation = 0f;
-        _view.PushBusy = true;
-        RunSpinLoop(_pushAnimCts.Token, SpinTarget.Push);
-    }
-
-    private void StopPushAnim()
-    {
-        _pushAnimCts?.Cancel();
-        _pushAnimCts?.Dispose();
-        _pushAnimCts = null;
-        _pushRotation = 0f;
-        _view.PushBusy = false;
-    }
-
-    private void StartPullAnim()
-    {
-        _pullAnimCts?.Cancel();
-        _pullAnimCts = new CancellationTokenSource();
-        _pullRotation = 0f;
-        _view.PullBusy = true;
-        RunSpinLoop(_pullAnimCts.Token, SpinTarget.Pull);
-    }
-
-    private void StopPullAnim()
-    {
-        _pullAnimCts?.Cancel();
-        _pullAnimCts?.Dispose();
-        _pullAnimCts = null;
-        _pullRotation = 0f;
-        _view.PullBusy = false;
-    }
-
-    private void StartFetchAnim()
-    {
-        _fetchAnimCts?.Cancel();
-        _fetchAnimCts = new CancellationTokenSource();
-        _fetchRotation = 0f;
-        _view.FetchBusy = true;
-        RunSpinLoop(_fetchAnimCts.Token, SpinTarget.Fetch);
-    }
-
-    private void StopFetchAnim()
-    {
-        _fetchAnimCts?.Cancel();
-        _fetchAnimCts?.Dispose();
-        _fetchAnimCts = null;
-        _fetchRotation = 0f;
-        _view.FetchBusy = false;
-    }
-
-    private enum SpinTarget { Push, Pull, Fetch }
-
-    private void RunSpinLoop(CancellationToken ct, SpinTarget target)
-    {
-        var dispatcher = _dispatcher;
-        Task.Run(async () =>
-        {
-            try
-            {
-                while (!ct.IsCancellationRequested)
-                {
-                    await Task.Delay(AnimTickMs, ct).ConfigureAwait(false);
-                    dispatcher.Post(() =>
-                    {
-                        if (ct.IsCancellationRequested) return;
-                        switch (target)
-                        {
-                            case SpinTarget.Push:
-                                _pushRotation += RotationPerTick;
-                                _view.PushRotation = _pushRotation;
-                                break;
-                            case SpinTarget.Pull:
-                                _pullRotation += RotationPerTick;
-                                _view.PullRotation = _pullRotation;
-                                break;
-                            case SpinTarget.Fetch:
-                                _fetchRotation += RotationPerTick;
-                                _view.FetchRotation = _fetchRotation;
-                                break;
-                        }
-                    });
-                }
-            }
-            catch (OperationCanceledException) { /* expected */ }
-        }, ct);
     }
 }

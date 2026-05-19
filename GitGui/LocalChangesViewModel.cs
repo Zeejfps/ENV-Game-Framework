@@ -34,6 +34,10 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     public IReadable<bool> DiscardEnabled { get; }
     public IReadable<string?> OpError { get; }
     public IReadable<bool> CommitEnabled { get; }
+    public IReadable<bool> CommitBusy { get; }
+    public IReadable<float> CommitRotation => _commitSpinner.Rotation;
+
+    private readonly SpinnerAnimation _commitSpinner;
 
     // _stagedFromIndex is whatever GetLocalChanges last returned; the amend-only
     // bookkeeping (HEAD files, pre-amend editor backups) lives on _amend, which is
@@ -69,10 +73,19 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
             s.Selection.Count > 0 && s.Selection.Items[0].Side == DiffSide.Unstaged);
         OpError = Slice(s => s.OpError);
         CommitEnabled = Slice(s => s.CommitEnabled);
+        CommitBusy = Slice(s => s.CommitBusy);
+
+        _commitSpinner = new SpinnerAnimation(dispatcher);
 
         Subscriptions.Add(_registry.Active.Subscribe(_ => StartLoadForActiveRepo()));
         Subscriptions.Add(_bus.SubscribeScoped<RefsChangedMessage>(OnRefsChanged));
         Subscriptions.Add(_bus.SubscribeScoped<WorkingTreeChangedMessage>(OnWorkingTreeChanged));
+    }
+
+    public override void Dispose()
+    {
+        _commitSpinner.Dispose();
+        base.Dispose();
     }
 
     public void SetTitle(string value)
@@ -216,6 +229,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     {
         var repo = _registry.Active.Value;
         if (repo == null) return;
+        if (State.Value.CommitBusy) return;
 
         // CommitEnabled gates the button on a non-empty title (and, unless amending, at
         // least one staged file), so reaching this point implies the inputs are valid.
@@ -227,6 +241,9 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         var message = description.Length > 0 ? $"{title}\n\n{description}" : title;
         var amend = snapshot.Amend;
 
+        Update(s => s with { CommitBusy = true, OpError = null });
+        _commitSpinner.Start();
+
         RunBackground<LocalChangesSnapshot>(
             work: () =>
             {
@@ -237,7 +254,8 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
             },
             onResult: (snap, errorMsg) =>
             {
-                Update(s => s with { OpError = errorMsg });
+                _commitSpinner.Stop();
+                Update(s => s with { CommitBusy = false, OpError = errorMsg });
                 if (errorMsg != null) return;
 
                 // After a successful commit the editor is cleared regardless of mode.

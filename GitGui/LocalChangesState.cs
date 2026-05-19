@@ -10,7 +10,8 @@ internal readonly record struct LocalChangesState(
     IReadOnlyList<FileChange> Unstaged,
     IReadOnlyList<FileChange> Staged,
     Selection Selection,
-    string? OpError)
+    string? OpError,
+    bool CommitBusy)
 {
     public const string OpenRepoPlaceholder = "Open a repository to see local changes.";
     public const string LoadingPlaceholder = "Loading…";
@@ -25,7 +26,8 @@ internal readonly record struct LocalChangesState(
         Unstaged: [],
         Staged: [],
         Selection: Selection.Empty,
-        OpError: null);
+        OpError: null,
+        CommitBusy: false);
 
     // Placeholder is derived, not settable. Loading never tears the panels down when
     // there is data on screen — that's reserved for "nothing to render at all"
@@ -39,5 +41,5 @@ internal readonly record struct LocalChangesState(
         null;
 
     public bool CommitEnabled =>
-        !string.IsNullOrWhiteSpace(Title) && (Amend || Staged.Count > 0);
+        !CommitBusy && !string.IsNullOrWhiteSpace(Title) && (Amend || Staged.Count > 0);
 }

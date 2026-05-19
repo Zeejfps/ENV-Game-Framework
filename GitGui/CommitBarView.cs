@@ -125,6 +125,14 @@ internal sealed class CommitBarView : MultiChildView
 
         vm.CommitEnabled.Subscribe(b => _commitButton.IsEnabled.Value = b);
         vm.OpError.Subscribe(msg => _errorBar.Message = msg);
+
+        vm.CommitBusy.Subscribe(b =>
+        {
+            _commitButton.Icon = b ? LucideIcons.Loader : string.Empty;
+            _commitButton.Label = b ? "Committing" : "Commit";
+            if (!b) _commitButton.IconRotation = 0f;
+        });
+        vm.CommitRotation.Subscribe(r => _commitButton.IconRotation = r);
     }
 
     private void OnCommitClicked() => _vm?.Commit();
