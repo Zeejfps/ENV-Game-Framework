@@ -36,6 +36,11 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     private IReadOnlyList<FileChange> _stagedFromIndex = Empty;
     private AmendSession? _amend;
 
+    // Tracks which repo we last loaded so cross-repo switches can clear stale lists,
+    // while same-repo reloads (watcher tick, refs change) keep the panels visible
+    // during the refetch.
+    private Guid? _lastLoadedRepoId;
+
     public LocalChangesViewModel(
         IRepoRegistry registry,
         IGitService gitService,
@@ -58,6 +63,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
 
         Subscriptions.Add(_registry.Active.Subscribe(_ => StartLoadForActiveRepo()));
         Subscriptions.Add(_bus.SubscribeScoped<RefsChangedMessage>(OnRefsChanged));
+        Subscriptions.Add(_bus.SubscribeScoped<WorkingTreeChangedMessage>(OnWorkingTreeChanged));
     }
 
     public void SetTitle(string value)
@@ -186,6 +192,13 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         StartLoadForActiveRepo();
     }
 
+    private void OnWorkingTreeChanged(WorkingTreeChangedMessage msg)
+    {
+        var active = _registry.Active.Value;
+        if (active == null || active.Id != msg.RepoId) return;
+        StartLoadForActiveRepo();
+    }
+
     private void StartLoadForActiveRepo()
     {
         var active = _registry.Active.Value;
@@ -195,20 +208,35 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
             // Bump to invalidate any in-flight load from the previous repo.
             Gen.Bump();
             _stagedFromIndex = Empty;
+            _lastLoadedRepoId = null;
             // Any error from a previous repo's op no longer applies once we switch.
             Update(s => s with
             {
-                Placeholder = LocalChangesState.OpenRepoPlaceholder,
+                HasRepo = false,
+                IsLoading = false,
+                LoadError = null,
                 OpError = null,
                 Staged = Empty,
+                Unstaged = Empty,
             });
             return;
         }
 
+        // Cross-repo switches blank the panels so the "Loading…" placeholder is
+        // shown rather than a stale snapshot from the previous repo. Same-repo
+        // reloads (RefsChangedMessage, WorkingTreeChangedMessage) keep the lists
+        // visible so the panels don't tear down for an incremental refresh.
+        var isCrossRepoSwitch = _lastLoadedRepoId != active.Id;
+        _lastLoadedRepoId = active.Id;
+
         Update(s => s with
         {
-            Placeholder = LocalChangesState.LoadingPlaceholder,
+            HasRepo = true,
+            IsLoading = true,
+            LoadError = null,
             OpError = null,
+            Staged = isCrossRepoSwitch ? Empty : s.Staged,
+            Unstaged = isCrossRepoSwitch ? Empty : s.Unstaged,
         });
 
         var repo = active;
@@ -229,7 +257,13 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 if (errorMsg != null)
                 {
                     _stagedFromIndex = Empty;
-                    Update(s => s with { Placeholder = errorMsg, Staged = Empty });
+                    Update(s => s with
+                    {
+                        IsLoading = false,
+                        LoadError = errorMsg,
+                        Staged = Empty,
+                        Unstaged = Empty,
+                    });
                     return;
                 }
                 if (result == null) return;
@@ -246,7 +280,8 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         _stagedFromIndex = snap.Staged;
         Update(s => s with
         {
-            Placeholder = null,
+            IsLoading = false,
+            LoadError = null,
             Unstaged = snap.Unstaged,
             Staged = ComputeDisplayedStaged(),
         });

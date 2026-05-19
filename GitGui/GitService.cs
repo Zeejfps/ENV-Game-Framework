@@ -303,6 +303,7 @@ public sealed class GitService : IGitService
             using var lg = new Repository(repo.Path);
             var status = lg.RetrieveStatus(new StatusOptions
             {
+                IncludeIgnored = false,
                 IncludeUntracked = true,
                 RecurseUntrackedDirs = true,
                 DetectRenamesInIndex = true,
@@ -314,8 +315,12 @@ public sealed class GitService : IGitService
 
             foreach (var entry in status)
             {
-                if (entry.State == FileStatus.Ignored || entry.State == FileStatus.Unaltered)
-                    continue;
+                // Bitwise check: FileStatus is a [Flags] enum, and libgit2 can return an
+                // entry with Ignored combined with other bits (e.g., NewInWorkdir on first
+                // sight of a file matching a newly-added ignore rule). The previous `==`
+                // check let those slip through and they rendered as Added in unstaged.
+                if ((entry.State & FileStatus.Ignored) != 0) continue;
+                if (entry.State == FileStatus.Unaltered) continue;
 
                 var indexStatus = MapIndexStatus(entry.State);
                 if (indexStatus != null)

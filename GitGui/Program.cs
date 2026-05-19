@@ -9,10 +9,10 @@ var context = new Context();
 var messageBus = new MessageBus();
 context.AddService<IMessageBus>(messageBus);
 context.AddService(new State<MainViewMode>(MainViewMode.LocalChanges));
-context.AddService<IFolderPicker>(
-    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new WindowsFolderPicker()
-    : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? new MacOSFolderPicker()
-    : new NoopFolderPicker());
+context.AddService<IPlatformShell>(
+    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new WindowsPlatformShell()
+    : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? new MacOSPlatformShell()
+    : new NoopPlatformShell());
 
 var statePath = Path.Combine(
     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -35,5 +35,12 @@ var appHost = GuiApp.CreateDefault(new StartupConfig
 
 appHost.RegisterFont(LucideIcons.FontFamily, "Assets/Fonts/Lucide/Lucide.ttf", 16);
 appHost.RegisterFont(DiffOptions.MonoFontFamily, "Assets/Fonts/JetBrainsMono/JetBrainsMono-Regular.ttf", 13);
+
+// IUiDispatcher is registered by GuiApp.CreateDefault, so the watcher service can
+// only be constructed after appHost is built.
+using var repoWatchers = new RepoWatcherService(
+    registry,
+    context.Require<IUiDispatcher>(),
+    messageBus);
 
 appHost.Run();
