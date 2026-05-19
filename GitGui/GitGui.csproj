@@ -25,6 +25,9 @@
       <ProjectReference Include="..\LLMit\LLMit.csproj" />
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
       <ProjectReference Include="..\ZGF.Observable\ZGF.Observable.csproj" />
+      <ProjectReference Include="..\ZGF.Observable.Generators\ZGF.Observable.Generators.csproj"
+                        OutputItemType="Analyzer"
+                        ReferenceOutputAssembly="false" />
     </ItemGroup>
 
     <Target Name="CreateMacAppBundle" AfterTargets="Publish"

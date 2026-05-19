@@ -3,28 +3,18 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-public abstract class HoverableButton : MultiChildView
+public abstract partial class HoverableButton : MultiChildView
 {
     private readonly Action? _onClick;
-    private readonly State<bool> _isHovered;
-    private readonly State<bool> _isEnabled;
 
-    protected bool IsHovered
-    {
-        get => _isHovered.Value;
-        private set => _isHovered.Value = value;
-    }
+    [Observable]
+    protected partial bool IsHovered { get; private set; }
 
-    public bool IsEnabled
-    {
-        get => _isEnabled.Value;
-        set => _isEnabled.Value = value;
-    }
+    [Observable(true)]
+    public partial bool IsEnabled { get; set; }
 
     protected HoverableButton(Action? onClick = null)
     {
-        _isHovered = Property(false);
-        _isEnabled = Property(true);
         _onClick = onClick;
         this.UseController(_ => new HoverableButtonController(
             () => { if (IsEnabled) OnClicked(); },

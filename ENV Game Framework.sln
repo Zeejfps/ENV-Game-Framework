@@ -110,6 +110,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Fonts", "ZGF.Fonts\ZGF.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Observable", "ZGF.Observable\ZGF.Observable.csproj", "{9DEE414C-2DBD-42B2-8AC1-0B88E25AF8E5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Observable.Generators", "ZGF.Observable.Generators\ZGF.Observable.Generators.csproj", "{1F20BD82-0FD4-4984-A4AF-7A6A141FBFCF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -780,6 +782,18 @@ Global
 		{9DEE414C-2DBD-42B2-8AC1-0B88E25AF8E5}.Release|x64.Build.0 = Release|Any CPU
 		{9DEE414C-2DBD-42B2-8AC1-0B88E25AF8E5}.Release|x86.ActiveCfg = Release|Any CPU
 		{9DEE414C-2DBD-42B2-8AC1-0B88E25AF8E5}.Release|x86.Build.0 = Release|Any CPU
+		{1F20BD82-0FD4-4984-A4AF-7A6A141FBFCF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F20BD82-0FD4-4984-A4AF-7A6A141FBFCF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F20BD82-0FD4-4984-A4AF-7A6A141FBFCF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1F20BD82-0FD4-4984-A4AF-7A6A141FBFCF}.Debug|x64.Build.0 = Debug|Any CPU
+		{1F20BD82-0FD4-4984-A4AF-7A6A141FBFCF}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1F20BD82-0FD4-4984-A4AF-7A6A141FBFCF}.Debug|x86.Build.0 = Debug|Any CPU
+		{1F20BD82-0FD4-4984-A4AF-7A6A141FBFCF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F20BD82-0FD4-4984-A4AF-7A6A141FBFCF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F20BD82-0FD4-4984-A4AF-7A6A141FBFCF}.Release|x64.ActiveCfg = Release|Any CPU
+		{1F20BD82-0FD4-4984-A4AF-7A6A141FBFCF}.Release|x64.Build.0 = Release|Any CPU
+		{1F20BD82-0FD4-4984-A4AF-7A6A141FBFCF}.Release|x86.ActiveCfg = Release|Any CPU
+		{1F20BD82-0FD4-4984-A4AF-7A6A141FBFCF}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

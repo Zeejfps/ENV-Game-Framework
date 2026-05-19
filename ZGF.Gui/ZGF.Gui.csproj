@@ -12,6 +12,9 @@
       <ProjectReference Include="..\ZGF.Inputs.Mouse\ZGF.Inputs.Mouse.csproj" />
       <ProjectReference Include="..\ZGF.KeyboardModule\ZGF.KeyboardModule.csproj" />
       <ProjectReference Include="..\ZGF.Observable\ZGF.Observable.csproj" />
+      <ProjectReference Include="..\ZGF.Observable.Generators\ZGF.Observable.Generators.csproj"
+                        OutputItemType="Analyzer"
+                        ReferenceOutputAssembly="false" />
     </ItemGroup>
 
 </Project>
