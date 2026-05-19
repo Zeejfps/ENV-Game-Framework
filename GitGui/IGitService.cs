@@ -9,6 +9,7 @@ public interface IGitService
     void Stage(Repo repo, IReadOnlyList<string> paths);
     void Unstage(Repo repo, IReadOnlyList<string> paths);
     void ResetToParent(Repo repo, IReadOnlyList<string> paths);
+    string? DiscardChanges(Repo repo, IReadOnlyList<string> paths);
     string? Commit(Repo repo, string message, bool amend);
     HeadCommitMessage? GetHeadCommitMessage(Repo repo);
     IReadOnlyList<FileChange> GetHeadCommitFiles(Repo repo);

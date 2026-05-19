@@ -109,6 +109,17 @@ internal sealed class LocalChangesViewModel : IDisposable
         RunIndexOp(paths, isStage: false);
     }
 
+    // Routes through the bus so DialogPresenter owns the modal lifecycle; the dialog's
+    // own presenter runs the git op and broadcasts RefsChangedMessage on success, which
+    // brings us back through OnRefsChanged to reload the snapshot.
+    public void RequestDiscard(IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+        _bus.Broadcast(new ShowDiscardChangesDialogMessage(repo, paths));
+    }
+
     public void Commit()
     {
         var repo = _registry.Active.Value;

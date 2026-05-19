@@ -28,7 +28,7 @@ internal sealed class LocalChangesPanel : MultiChildView
     public LocalChangesPanel(
         string title,
         string emptyText,
-        IReadOnlyList<(string Icon, Action OnClick)>? headerActions = null,
+        IReadOnlyList<View>? headerActions = null,
         Action<string>? onRowActivated = null,
         Action? onEmptyAreaClicked = null)
     {
@@ -48,8 +48,8 @@ internal sealed class LocalChangesPanel : MultiChildView
                 Gap = 2f,
                 CrossAxisAlignment = CrossAxisAlignment.Center,
             };
-            foreach (var (icon, onClick) in headerActions)
-                actionRow.Children.Add(new LocalChangesHeaderActionButton(icon, onClick));
+            foreach (var action in headerActions)
+                actionRow.Children.Add(action);
 
             headerContent = new FlexRowView
             {

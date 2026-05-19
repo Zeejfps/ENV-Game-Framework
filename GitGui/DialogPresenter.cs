@@ -17,12 +17,13 @@ public sealed class DialogPresenter : IViewBehavior
         _messageBus?.Subscribe<AddRepoMessage>(OnAddRepoMessageReceived);
         _messageBus?.Subscribe<ShowCheckoutDialogMessage>(OnShowCheckoutDialog);
         _messageBus?.Subscribe<ShowCheckoutErrorMessage>(OnShowCheckoutError);
+        _messageBus?.Subscribe<ShowDiscardChangesDialogMessage>(OnShowDiscardChangesDialog);
     }
 
     public void DetachFromContext(View view, Context context)
     {
     }
-    
+
     private void OnAddRepoMessageReceived(AddRepoMessage _)
         => ShowDialog(new AddRepoDialog(OnDialogClosed));
 
@@ -32,6 +33,9 @@ public sealed class DialogPresenter : IViewBehavior
 
     private void OnShowCheckoutError(ShowCheckoutErrorMessage m)
         => ShowDialog(new CheckoutErrorDialog(m.Message, OnDialogClosed));
+
+    private void OnShowDiscardChangesDialog(ShowDiscardChangesDialogMessage m)
+        => ShowDialog(new DiscardChangesDialog(m.Repo, m.Paths, OnDialogClosed));
 
     private void ShowDialog(View dialog)
     {

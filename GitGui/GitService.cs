@@ -421,6 +421,79 @@ public sealed class GitService : IGitService
         finally { sem.Release(); }
     }
 
+    // Throws away unstaged workdir changes for the given paths. Tracked files are restored
+    // from the index via `git checkout -- <paths>` (the user's staged hunks are preserved);
+    // untracked files (not in the index) are deleted from disk. Returns null on success or
+    // a human-readable error string on failure.
+    public string? DiscardChanges(Repo repo, IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return null;
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return "Not a git repository.";
+
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                var trackedPaths = new List<string>();
+                using (var lg = new Repository(repo.Path))
+                {
+                    foreach (var p in paths)
+                    {
+                        // Index presence is the tracked/untracked signal: anything in the
+                        // index has had at least one commit or stage and can be restored
+                        // from there; anything else exists only on disk.
+                        if (lg.Index[p] != null)
+                        {
+                            trackedPaths.Add(p);
+                            continue;
+                        }
+                        var fullPath = Path.Combine(repo.Path, p);
+                        try
+                        {
+                            if (File.Exists(fullPath)) File.Delete(fullPath);
+                            else if (Directory.Exists(fullPath)) Directory.Delete(fullPath, recursive: true);
+                        }
+                        catch (Exception ex)
+                        {
+                            return ex.Message;
+                        }
+                    }
+                }
+
+                if (trackedPaths.Count > 0)
+                {
+                    var args = new List<string> { "checkout", "--" };
+                    args.AddRange(trackedPaths);
+                    var psi = BuildGitProcessStartInfo(args, repo.Path);
+                    using var proc = Process.Start(psi);
+                    if (proc == null) return "Failed to start git.";
+                    var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                    var stderrTask = proc.StandardError.ReadToEndAsync();
+                    proc.WaitForExit();
+                    if (proc.ExitCode != 0)
+                    {
+                        var stderr = stderrTask.GetAwaiter().GetResult();
+                        var stdout = stdoutTask.GetAwaiter().GetResult();
+                        var combined = stderr.Length > 0 ? stderr : stdout;
+                        var msg = FirstMeaningfulLine(combined);
+                        return string.IsNullOrEmpty(msg)
+                            ? $"git checkout exited with code {proc.ExitCode}."
+                            : msg;
+                    }
+                }
+                return null;
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
+    }
+
     public string? Commit(Repo repo, string message, bool amend)
     {
         try

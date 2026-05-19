@@ -20,16 +20,21 @@ internal sealed class LocalChangesContentView : MultiChildView
     private readonly RectView _centerContainer;
     private readonly DiffView _diffView;
     private readonly VerticalSplitContainer _snapshotContainer;
+    private readonly LocalChangesHeaderActionButton _discardButton;
     private LocalChangesViewModel? _vm;
 
     public LocalChangesContentView()
     {
+        _discardButton = new LocalChangesHeaderActionButton(LucideIcons.Trash, OnDiscardSelected);
+        _discardButton.IsEnabled.Value = false;
+
         _unstagedPanel = new LocalChangesPanel(
             "Unstaged",
             "No unstaged changes.",
             [
-                (LucideIcons.ChevronRight, OnStageSelected),
-                (LucideIcons.ChevronsRight, OnStageAll)
+                _discardButton,
+                new LocalChangesHeaderActionButton(LucideIcons.ChevronRight, OnStageSelected),
+                new LocalChangesHeaderActionButton(LucideIcons.ChevronsRight, OnStageAll),
             ],
             path => _vm?.Stage([path]),
             onEmptyAreaClicked: ClearAllSelections);
@@ -37,8 +42,8 @@ internal sealed class LocalChangesContentView : MultiChildView
             "Staged",
             "No staged changes.",
             [
-                (LucideIcons.ChevronsLeft, OnUnstageAll),
-                (LucideIcons.ChevronLeft, OnUnstageSelected)
+                new LocalChangesHeaderActionButton(LucideIcons.ChevronsLeft, OnUnstageAll),
+                new LocalChangesHeaderActionButton(LucideIcons.ChevronLeft, OnUnstageSelected),
             ],
             path => _vm?.Unstage([path]),
             onEmptyAreaClicked: ClearAllSelections);
@@ -83,6 +88,7 @@ internal sealed class LocalChangesContentView : MultiChildView
         _unstagedPanel.Selection.Subscribe(sel =>
         {
             if (sel.Count > 0) _stagedPanel.ClearSelection();
+            _discardButton.IsEnabled.Value = sel.Count > 0;
             UpdateDiffVisibility();
         });
         _stagedPanel.Selection.Subscribe(sel =>
@@ -152,6 +158,13 @@ internal sealed class LocalChangesContentView : MultiChildView
     private void OnStageSelected() => _vm?.Stage(_unstagedPanel.SelectedPaths.ToList());
     private void OnUnstageSelected() => _vm?.Unstage(_stagedPanel.SelectedPaths.ToList());
     private void OnUnstageAll() => _vm?.Unstage(_stagedPanel.Files.Select(f => f.Path).ToList());
+
+    private void OnDiscardSelected()
+    {
+        var paths = _unstagedPanel.SelectedPaths.ToList();
+        if (paths.Count == 0) return;
+        _vm?.RequestDiscard(paths);
+    }
 
     private void UpdateDiffVisibility()
     {
