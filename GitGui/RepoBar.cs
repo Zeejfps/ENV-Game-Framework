@@ -1,10 +1,11 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
+using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class RepoBar : MultiChildView
+public sealed class RepoBar : MultiChildView, IRepoBarView
 {
     private const int BarWidth = 220;
     private const int HorizontalPadding = 8;
@@ -17,14 +18,17 @@ public sealed class RepoBar : MultiChildView
     public static int RowTextAvailableWidth =>
         BarWidth - 2 * HorizontalPadding - RowTextIndent - RowTextRightPadding;
 
-    public RepoBar(IRepoRegistry registry)
+    private readonly FlexColumnView _sections;
+
+    public event Action? NewGroupRequested;
+
+    public RepoBar()
     {
-        var sections = new FlexColumnView
+        _sections = new FlexColumnView
         {
             Gap = 2,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
         };
-        sections.BindChildren(registry.Groups, group => new GroupSection(group, registry));
 
         AddChildToSelf(new RectView
         {
@@ -46,25 +50,27 @@ public sealed class RepoBar : MultiChildView
                     CrossAxisAlignment = CrossAxisAlignment.Stretch,
                     Children =
                     {
-                        new FlexItem { Grow = 1, Child = sections },
+                        new FlexItem { Grow = 1, Child = _sections },
                         new AddRepoButton(),
                     }
                 }
             }
         });
 
-        this.UseController(ctx => new RepoBarContextMenuController(ctx, _ => BuildBackgroundMenuItems(registry)));
+        this.UseController(ctx => new RepoBarContextMenuController(ctx, _ => BuildBackgroundMenuItems()));
+        this.UsePresenter(ctx => new RepoBarPresenter(this, ctx.Require<IRepoRegistry>()));
     }
 
-    private static IReadOnlyList<RepoBarContextMenu.Item> BuildBackgroundMenuItems(IRepoRegistry registry)
+    public void BindGroups(ObservableList<Group> groups, Func<Group, View> sectionFactory)
+    {
+        _sections.BindChildren(groups, sectionFactory);
+    }
+
+    private IReadOnlyList<RepoBarContextMenu.Item> BuildBackgroundMenuItems()
     {
         return
         [
-            new RepoBarContextMenu.Item("New group", () =>
-            {
-                var id = registry.CreateGroup("New Group");
-                registry.BeginRenameGroup(id);
-            })
+            new RepoBarContextMenu.Item("New group", () => NewGroupRequested?.Invoke()),
         ];
     }
 }

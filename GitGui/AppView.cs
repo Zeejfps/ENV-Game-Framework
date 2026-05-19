@@ -5,11 +5,11 @@ namespace GitGui;
 
 public sealed class AppView : MultiChildView
 {
-    public AppView(IRepoRegistry registry)
+    public AppView()
     {
         Children.Add(new BorderLayoutView
         {
-            West = ResizableLeftSidebar.Build(new RepoBar(registry), initialWidth: 220f, minWidth: 220f),
+            West = ResizableLeftSidebar.Build(new RepoBar(), initialWidth: 220f, minWidth: 220f),
             Center = new BorderLayoutView
             {
                 North = new ActionsToolbar(),
