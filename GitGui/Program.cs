@@ -3,6 +3,7 @@ using GitGui;
 using LLMit;
 using ZGF.Core;
 using ZGF.Gui;
+using ZGF.Gui.Tests;
 using ZGF.Observable;
 
 var context = new Context();
@@ -13,6 +14,12 @@ context.AddService<IPlatformShell>(
     RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new WindowsPlatformShell()
     : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? new MacOSPlatformShell()
     : new NoopPlatformShell());
+// AppClipboard is a process-local fallback — fine for Linux dev, not what we want on
+// Win/macOS where IClipboard needs to reach the OS pasteboard.
+context.AddService<IClipboard>(
+    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new Win32Clipboard()
+    : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? new OsxClipboard()
+    : new AppClipboard());
 
 var statePath = Path.Combine(
     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),

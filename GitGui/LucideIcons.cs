@@ -24,4 +24,5 @@ internal static class LucideIcons
     public const string PencilLine = "";    // pencil-line
     public const string FolderPlus = "";    // folder-plus
     public const string FolderInput = "";  // folder-input
+    public const string Copy = "";          // copy
 }

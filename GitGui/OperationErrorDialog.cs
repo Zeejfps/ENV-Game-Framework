@@ -2,6 +2,7 @@ using ZGF.Gui;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.KeyboardModule;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -32,14 +33,24 @@ public sealed class OperationErrorDialog : MultiChildView
             VerticalTextAlignment = TextAlignment.Center,
         };
 
+        // Pull IClipboard lazily off the context — the dialog is constructed before it's
+        // attached, so capturing it in a closure that runs on click is the simplest path.
+        var copyButton = new DialogCopyButton(
+            () => Context?.Get<IClipboard>()?.SetText(message),
+            tooltip: "Copy error to clipboard");
+
+        // Symmetric left spacer keeps the title centered: matches the combined width of the
+        // two right-side buttons plus the row's gap (28 + 28 + Gap). With Gap=0 here, the
+        // spacer width = sum of buttons.
         var headerRow = new FlexRowView
         {
             CrossAxisAlignment = CrossAxisAlignment.Center,
             PreferredHeight = 28,
             Children =
             {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
+                new MultiChildView { PreferredWidth = CloseButtonSize * 2 },
                 new FlexItem { Grow = 1, Child = titleView },
+                copyButton,
                 new DialogCloseButton(onClose),
             },
         };
