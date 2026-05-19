@@ -1515,6 +1515,60 @@ public sealed class GitService : IGitService
         }
     }
 
+    // Maps each in-progress state to the canonical `git <op> --abort` (or equivalent) and
+    // shells out. For UnmergedPaths — a stash-apply / checkout -m conflict left with no
+    // op sentinel — `reset --merge` is the documented recovery: it discards the conflicting
+    // worktree changes and clears the unmerged index entries, but keeps clean local mods.
+    public AbortOperationOutcome AbortOperation(Repo repo, RepoOperationState state)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new AbortOperationOutcome(false, "Not a git repository.");
+
+            var args = state switch
+            {
+                RepoOperationState.Merge => new[] { "merge", "--abort" },
+                RepoOperationState.Rebase => new[] { "rebase", "--abort" },
+                RepoOperationState.CherryPick => new[] { "cherry-pick", "--abort" },
+                RepoOperationState.Revert => new[] { "revert", "--abort" },
+                RepoOperationState.ApplyMailbox => new[] { "am", "--abort" },
+                RepoOperationState.Bisect => new[] { "bisect", "reset" },
+                RepoOperationState.UnmergedPaths => new[] { "reset", "--merge" },
+                _ => null,
+            };
+            if (args == null)
+                return new AbortOperationOutcome(false, "Nothing to abort.");
+
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                var psi = BuildGitProcessStartInfo(args, repo.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new AbortOperationOutcome(false, "Failed to start git.");
+
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+
+                if (proc.ExitCode == 0) return new AbortOperationOutcome(true, null);
+                var combined = stderr.Length > 0 ? stderr : stdout;
+                var msg = ExtractGitErrorBlock(combined);
+                if (string.IsNullOrEmpty(msg))
+                    msg = $"git {string.Join(' ', args)} exited with code {proc.ExitCode}.";
+                return new AbortOperationOutcome(false, msg);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new AbortOperationOutcome(false, ex.Message);
+        }
+    }
+
     private static CommitDetails DetailsError(Repo repo, string sha, string message)
         => new(
             RepoId: repo.Id,

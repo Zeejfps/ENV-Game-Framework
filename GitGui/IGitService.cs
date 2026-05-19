@@ -25,7 +25,10 @@ public interface IGitService
     StashOutcome DropStash(Repo repo, int index);
     DiffResult GetDiff(Repo repo, string path, DiffSide side);
     RepoOperationState GetOperationState(Repo repo);
+    AbortOperationOutcome AbortOperation(Repo repo, RepoOperationState state);
 }
+
+public sealed record AbortOperationOutcome(bool Success, string? ErrorMessage);
 
 public enum RepoOperationState
 {

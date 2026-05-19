@@ -18,10 +18,12 @@ internal sealed class OperationStateBannerPresenter : IViewBehavior, IDisposable
     private IRepoRegistry? _registry;
     private IGitService? _gitService;
     private IUiDispatcher? _dispatcher;
+    private IMessageBus? _bus;
 
     public OperationStateBannerPresenter(OperationStateBanner banner)
     {
         _banner = banner;
+        _banner.AbortRequested += OnAbortRequested;
     }
 
     public void AttachToContext(View view, Context context)
@@ -29,18 +31,26 @@ internal sealed class OperationStateBannerPresenter : IViewBehavior, IDisposable
         _registry = context.Get<IRepoRegistry>();
         _gitService = context.Get<IGitService>();
         _dispatcher = context.Get<IUiDispatcher>();
-        var bus = context.Get<IMessageBus>();
-        if (_registry == null || _gitService == null || _dispatcher == null || bus == null) return;
+        _bus = context.Get<IMessageBus>();
+        if (_registry == null || _gitService == null || _dispatcher == null || _bus == null) return;
 
         _subscriptions.Add(_registry.Active.Subscribe(_ => Reload()));
-        _subscriptions.Add(bus.SubscribeScoped<RefsChangedMessage>(_ => Reload()));
-        _subscriptions.Add(bus.SubscribeScoped<WorkingTreeChangedMessage>(_ => Reload()));
-        _subscriptions.Add(bus.SubscribeScoped<CommitCreatedMessage>(_ => Reload()));
+        _subscriptions.Add(_bus.SubscribeScoped<RefsChangedMessage>(_ => Reload()));
+        _subscriptions.Add(_bus.SubscribeScoped<WorkingTreeChangedMessage>(_ => Reload()));
+        _subscriptions.Add(_bus.SubscribeScoped<CommitCreatedMessage>(_ => Reload()));
     }
 
     public void DetachFromContext(View view, Context context)
     {
         Dispose();
+    }
+
+    private void OnAbortRequested()
+    {
+        var repo = _registry?.Active.Value;
+        var state = _banner.CurrentState;
+        if (repo == null || state == RepoOperationState.None) return;
+        _bus?.Broadcast(new ShowAbortOperationDialogMessage(repo, state));
     }
 
     private void Reload()
@@ -78,6 +88,7 @@ internal sealed class OperationStateBannerPresenter : IViewBehavior, IDisposable
     public void Dispose()
     {
         _gen.Bump();
+        _banner.AbortRequested -= OnAbortRequested;
         _subscriptions.Dispose();
     }
 }
