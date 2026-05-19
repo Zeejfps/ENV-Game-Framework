@@ -16,6 +16,7 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
     private readonly ActionButton _pushButton;
     private readonly ActionButton _pullButton;
     private readonly ActionButton _fetchButton;
+    private readonly ActionButton _branchButton;
     private readonly ActionButton _openFolderButton;
     private readonly ActionButton _openTerminalButton;
     private readonly ErrorBar _errorBar;
@@ -26,6 +27,7 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
     public event Action? FetchRequested;
     public event Action? OpenInFolderRequested;
     public event Action? OpenInTerminalRequested;
+    public event Action? BranchRequested;
 
     public ActionsToolbar()
     {
@@ -34,6 +36,7 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
         _pushButton = new ActionButton(LucideIcons.Push, "Push", () => PushRequested?.Invoke());
         _pullButton = new ActionButton(LucideIcons.Pull, "Pull", () => PullRequested?.Invoke());
         _fetchButton = new ActionButton(LucideIcons.Fetch, "Fetch", () => FetchRequested?.Invoke());
+        _branchButton = new ActionButton(LucideIcons.Branch, "Branch", () => BranchRequested?.Invoke());
         _openFolderButton = new ActionButton(LucideIcons.FolderOpen, () => OpenInFolderRequested?.Invoke());
         _openTerminalButton = new ActionButton(LucideIcons.SquareTerminal, () => OpenInTerminalRequested?.Invoke());
 
@@ -49,7 +52,7 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
                 _pushButton,
                 new SeparatorSpacer(),
                 new ActionButton(LucideIcons.Stash, "Stash", () => { }),
-                new ActionButton(LucideIcons.Branch, "Branch", () => { }),
+                _branchButton,
                 new FlexItem { Grow = 1, Child = new MultiChildView() },
                 _openFolderButton,
                 _openTerminalButton,
@@ -99,6 +102,7 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
         {
             _openFolderButton.IsEnabled.Value = value;
             _openTerminalButton.IsEnabled.Value = value;
+            _branchButton.IsEnabled.Value = value;
         }
     }
 

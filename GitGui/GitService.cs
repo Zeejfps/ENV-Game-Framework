@@ -799,6 +799,48 @@ public sealed class GitService : IGitService
         }
     }
 
+    // Shells out so post-checkout hooks run when `checkout` is true, and the error wording
+    // matches the user's terminal experience (e.g. "fatal: A branch named 'x' already exists.").
+    public CreateBranchOutcome CreateBranch(Repo repo, string name, string startPoint, bool checkout)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new CreateBranchOutcome(false, "Not a git repository.");
+
+            var args = checkout
+                ? new List<string> { "checkout", "-b", name, startPoint }
+                : new List<string> { "branch", name, startPoint };
+
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                var psi = BuildGitProcessStartInfo(args, repo.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new CreateBranchOutcome(false, "Failed to start git.");
+
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+
+                if (proc.ExitCode == 0) return new CreateBranchOutcome(true, null);
+                var combined = stderr.Length > 0 ? stderr : stdout;
+                var msg = FirstMeaningfulLine(combined);
+                if (string.IsNullOrEmpty(msg))
+                    msg = $"git {(checkout ? "checkout" : "branch")} exited with code {proc.ExitCode}.";
+                return new CreateBranchOutcome(false, msg);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new CreateBranchOutcome(false, ex.Message);
+        }
+    }
+
     private static CheckoutOutcome RunGitCheckout(string repoPath, IReadOnlyList<string> gitArgs)
     {
         var psi = BuildGitProcessStartInfo(gitArgs, repoPath);

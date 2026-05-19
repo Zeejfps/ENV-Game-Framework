@@ -18,4 +18,5 @@ public interface IActionsToolbarView
     event Action FetchRequested;
     event Action OpenInFolderRequested;
     event Action OpenInTerminalRequested;
+    event Action BranchRequested;
 }

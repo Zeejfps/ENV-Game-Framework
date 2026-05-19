@@ -19,6 +19,7 @@ public interface IGitService
     FetchOutcome Fetch(Repo repo);
     CheckoutOutcome CheckoutLocalBranch(Repo repo, string branchName);
     CheckoutOutcome CheckoutRemoteBranch(Repo repo, string localName, string remoteName, string remoteBranchName, bool track);
+    CreateBranchOutcome CreateBranch(Repo repo, string name, string startPoint, bool checkout);
     DiffResult GetDiff(Repo repo, string path, DiffSide side);
 }
 
@@ -38,3 +39,5 @@ public sealed record PullOutcome(bool Success, string? ErrorMessage);
 public sealed record FetchOutcome(bool Success, string? ErrorMessage);
 
 public sealed record CheckoutOutcome(bool Success, string? ErrorMessage);
+
+public sealed record CreateBranchOutcome(bool Success, string? ErrorMessage);

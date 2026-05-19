@@ -53,6 +53,7 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         _view.FetchRequested += OnFetchRequested;
         _view.OpenInFolderRequested += OnOpenInFolderRequested;
         _view.OpenInTerminalRequested += OnOpenInTerminalRequested;
+        _view.BranchRequested += OnBranchRequested;
 
         UpdateSyncButtons();
         UpdateRepoActionButtons();
@@ -74,6 +75,7 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         _view.FetchRequested -= OnFetchRequested;
         _view.OpenInFolderRequested -= OnOpenInFolderRequested;
         _view.OpenInTerminalRequested -= OnOpenInTerminalRequested;
+        _view.BranchRequested -= OnBranchRequested;
     }
 
     private void OnRepoOrRefsChanged()
@@ -102,6 +104,18 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         if (repo == null) return;
         try { _shell.OpenTerminal(repo.Path); }
         catch (Exception ex) { _view.Error = $"Open terminal failed: {ex.Message}"; }
+    }
+
+    private void OnBranchRequested()
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+        // Suggest the current branch as the starting point (matches Fork's default). When HEAD
+        // is detached, fall back to "HEAD" so the dialog still has a meaningful prefill.
+        var suggested = _pushStatus.IsDetached || string.IsNullOrEmpty(_pushStatus.CurrentBranchName)
+            ? "HEAD"
+            : _pushStatus.CurrentBranchName;
+        _bus.Broadcast(new ShowCreateBranchDialogMessage(repo, suggested));
     }
 
     private void ReloadPushStatus()
