@@ -36,6 +36,12 @@ internal sealed class GrowingDescriptionField : MultiChildView
 
     public ReadOnlySpan<char> Text => _input.Text;
 
+    public event Action? TextChanged
+    {
+        add => _input.TextChanged += value;
+        remove => _input.TextChanged -= value;
+    }
+
     public void Clear() => _input.Clear();
 
     public void SetText(ReadOnlySpan<char> text)

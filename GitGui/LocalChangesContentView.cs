@@ -6,9 +6,11 @@ namespace GitGui;
 
 /// <summary>
 /// The body of the Local Changes view: two file-list panels (unstaged / staged) above a
-/// diff pane, with a draggable splitter between them. Selection is mutually exclusive
-/// across the two panels, and the diff pane only appears when exactly one row is selected.
-/// Swaps in a placeholder text when there is no snapshot to show.
+/// diff pane, with a draggable splitter between them. <see cref="Bind"/> wires the
+/// panels to a <see cref="LocalChangesViewModel"/>'s observable state and forwards stage
+/// / unstage clicks to its commands. Selection is mutually exclusive across the two
+/// panels and lives in the view — the diff pane only appears when exactly one row is
+/// selected.
 /// </summary>
 internal sealed class LocalChangesContentView : MultiChildView
 {
@@ -18,9 +20,7 @@ internal sealed class LocalChangesContentView : MultiChildView
     private readonly RectView _centerContainer;
     private readonly DiffView _diffView;
     private readonly VerticalSplitContainer _snapshotContainer;
-
-    public event Action<IReadOnlyList<string>>? StageRequested;
-    public event Action<IReadOnlyList<string>>? UnstageRequested;
+    private LocalChangesViewModel? _vm;
 
     public LocalChangesContentView()
     {
@@ -31,7 +31,7 @@ internal sealed class LocalChangesContentView : MultiChildView
                 (LucideIcons.ChevronRight, OnStageSelected),
                 (LucideIcons.ChevronsRight, OnStageAll)
             ],
-            path => StageRequested?.Invoke([path]),
+            path => _vm?.Stage([path]),
             onEmptyAreaClicked: ClearAllSelections);
         _stagedPanel = new LocalChangesPanel(
             "Staged",
@@ -40,7 +40,7 @@ internal sealed class LocalChangesContentView : MultiChildView
                 (LucideIcons.ChevronsLeft, OnUnstageAll),
                 (LucideIcons.ChevronLeft, OnUnstageSelected)
             ],
-            path => UnstageRequested?.Invoke([path]),
+            path => _vm?.Unstage([path]),
             onEmptyAreaClicked: ClearAllSelections);
 
         _placeholder = new TextView
@@ -92,35 +92,44 @@ internal sealed class LocalChangesContentView : MultiChildView
         });
     }
 
-    public void ShowPlaceholder(string text)
+    public void Bind(LocalChangesViewModel vm)
+    {
+        _vm = vm;
+
+        // Placeholder fires before the list states (the VM mutates them in that order on
+        // a snapshot transition), so the snapshot container is re-attached before the
+        // panels receive their new files — important because SelectableFileRowView
+        // construction inside a detached parent leaves the rows un-attached and they
+        // render blank when the container later returns.
+        vm.Placeholder.Subscribe(text =>
+        {
+            if (text != null) ShowPlaceholder(text);
+            else AttachSnapshot();
+        });
+        vm.Unstaged.Subscribe(list => _unstagedPanel.SetFiles(list));
+        vm.Staged.Subscribe(list => _stagedPanel.SetFiles(list));
+
+        vm.SelectionRequested += (side, paths) =>
+        {
+            if (side == DiffSide.Unstaged) _unstagedPanel.SetSelection(paths);
+            else _stagedPanel.SetSelection(paths);
+        };
+    }
+
+    private void ShowPlaceholder(string text)
     {
         _placeholder.Text = text;
         _centerContainer.Children.Clear();
         _centerContainer.Children.Add(_placeholder);
     }
 
-    public void ShowSnapshot(IReadOnlyList<FileChange> unstaged, IReadOnlyList<FileChange> staged)
+    private void AttachSnapshot()
     {
-        // Re-attach the snapshot container BEFORE populating panels. After a checkout the
-        // load transitions via Placeholder("Loading…"), which swaps `_placeholder` into
-        // `_centerContainer` and leaves `_snapshotContainer` (and the panels inside it) as
-        // a detached subtree. Appending new row views to a detached parent leaves them
-        // un-attached, and the rows render blank when the container later returns — even
-        // though the header text (a string mutation on a still-live TextView) updates fine.
-        // Attaching first means every SelectableFileRowView SetFiles adds is born into an
-        // attached parent.
+        // Re-attach the snapshot container BEFORE the panel SetFiles calls fire (see
+        // Bind's ordering comment).
         _centerContainer.Children.Clear();
         _centerContainer.Children.Add(_snapshotContainer);
-        _unstagedPanel.SetFiles(unstaged);
-        _stagedPanel.SetFiles(staged);
-        // SetFiles clears both panels' selections, which fires the selection subscriptions
-        // and drives UpdateDiffVisibility — so the diff item collapses on its own here.
     }
-
-    public void SetStagedFiles(IReadOnlyList<FileChange> files) => _stagedPanel.SetFiles(files);
-
-    public void SelectUnstaged(IReadOnlyList<string> paths) => _unstagedPanel.SetSelection(paths);
-    public void SelectStaged(IReadOnlyList<string> paths) => _stagedPanel.SetSelection(paths);
 
     private View BuildContentRow()
     {
@@ -139,10 +148,10 @@ internal sealed class LocalChangesContentView : MultiChildView
         _stagedPanel.ClearSelection();
     }
 
-    private void OnStageAll() => StageRequested?.Invoke(_unstagedPanel.Files.Select(f => f.Path).ToList());
-    private void OnStageSelected() => StageRequested?.Invoke(_unstagedPanel.SelectedPaths.ToList());
-    private void OnUnstageSelected() => UnstageRequested?.Invoke(_stagedPanel.SelectedPaths.ToList());
-    private void OnUnstageAll() => UnstageRequested?.Invoke(_stagedPanel.Files.Select(f => f.Path).ToList());
+    private void OnStageAll() => _vm?.Stage(_unstagedPanel.Files.Select(f => f.Path).ToList());
+    private void OnStageSelected() => _vm?.Stage(_unstagedPanel.SelectedPaths.ToList());
+    private void OnUnstageSelected() => _vm?.Unstage(_stagedPanel.SelectedPaths.ToList());
+    private void OnUnstageAll() => _vm?.Unstage(_stagedPanel.Files.Select(f => f.Path).ToList());
 
     private void UpdateDiffVisibility()
     {

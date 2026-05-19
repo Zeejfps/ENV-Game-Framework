@@ -6,8 +6,9 @@ namespace GitGui;
 
 /// <summary>
 /// The bottom strip of the Local Changes view: commit title input, growing description
-/// field, amend checkbox, commit button, and an inline error banner. Exposes the inputs
-/// as simple properties and surfaces user actions as events; the presenter does the work.
+/// field, amend checkbox, commit button, and an inline error banner. <see cref="Bind"/>
+/// wires the controls two-way to a <see cref="LocalChangesViewModel"/>; there are no
+/// pass-through properties or events.
 /// </summary>
 internal sealed class CommitBarView : MultiChildView
 {
@@ -23,10 +24,6 @@ internal sealed class CommitBarView : MultiChildView
     private readonly ColumnView _column;
     private readonly ErrorBar _errorBar;
 
-    public event Action? TitleChanged;
-    public event Action? AmendToggled;
-    public event Action? CommitClicked;
-
     public CommitBarView()
     {
         _titleInput = new TextInputView
@@ -40,7 +37,6 @@ internal sealed class CommitBarView : MultiChildView
             PlaceholderTextColor = DialogPalette.RowTextMissing,
         };
         _titleInput.UseController(_ => new TextInputViewKbmController(_titleInput));
-        _titleInput.TextChanged += () => TitleChanged?.Invoke();
 
         // No PreferredHeight — let the box size to one line of text plus padding/border.
         // The input itself reports MeasureHeight = lineHeight (single line, NoWrap), and the
@@ -60,14 +56,13 @@ internal sealed class CommitBarView : MultiChildView
             PlaceholderText = "Commit description",
         };
 
-        _commitButton = new DialogButton("Commit", () => CommitClicked?.Invoke())
+        _commitButton = new DialogButton("Commit", OnCommitClicked)
         {
             PreferredWidth = CommitButtonWidth,
             PreferredHeight = 28,
         };
 
         _amendCheckbox = new CheckboxView("Amend");
-        _amendCheckbox.IsChecked.Changed += _ => AmendToggled?.Invoke();
 
         var buttonRow = new FlexRowView
         {
@@ -101,28 +96,37 @@ internal sealed class CommitBarView : MultiChildView
         });
     }
 
-    public string TitleText
+    private LocalChangesViewModel? _vm;
+
+    public void Bind(LocalChangesViewModel vm)
     {
-        get => _titleInput.Text.ToString();
-        set
+        _vm = vm;
+
+        // Title: VM → input (with feedback guard) and input → VM. The State<string>
+        // equality check stops the feedback loop on its own — writing the same string
+        // back is a no-op — but checking the span first skips the input Clear+Enter churn.
+        vm.Title.Subscribe(s =>
         {
+            if (_titleInput.Text.SequenceEqual(s.AsSpan())) return;
             _titleInput.Clear();
-            if (value.Length > 0) _titleInput.Enter(value.AsSpan());
-        }
+            if (s.Length > 0) _titleInput.Enter(s.AsSpan());
+        });
+        _titleInput.TextChanged += () => vm.Title.Value = _titleInput.Text.ToString();
+
+        vm.Description.Subscribe(s =>
+        {
+            if (_descriptionField.Text.SequenceEqual(s.AsSpan())) return;
+            _descriptionField.SetText(s.AsSpan());
+        });
+        _descriptionField.TextChanged += () => vm.Description.Value = _descriptionField.Text.ToString();
+
+        // Amend checkbox is two-way against vm.Amend; State.Value equality stops the loop.
+        vm.Amend.Subscribe(b => _amendCheckbox.IsChecked.Value = b);
+        _amendCheckbox.IsChecked.Changed += b => vm.Amend.Value = b;
+
+        vm.CommitEnabled.Subscribe(b => _commitButton.IsEnabled.Value = b);
+        vm.OpError.Subscribe(msg => _errorBar.Message = msg);
     }
 
-    public string DescriptionText
-    {
-        get => _descriptionField.Text.ToString();
-        set => _descriptionField.SetText(value.AsSpan());
-    }
-
-    public bool AmendChecked
-    {
-        get => _amendCheckbox.IsChecked.Value;
-        set => _amendCheckbox.IsChecked.Value = value;
-    }
-
-    public bool CommitEnabled { set => _commitButton.IsEnabled.Value = value; }
-    public string? OpError { set => _errorBar.Message = value; }
+    private void OnCommitClicked() => _vm?.Commit();
 }

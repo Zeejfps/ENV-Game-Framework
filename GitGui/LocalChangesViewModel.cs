@@ -2,12 +2,20 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-internal sealed class LocalChangesPresenter : IDisposable
+/// <summary>
+/// View model for the Local Changes feature. Owns observable state for the commit bar
+/// (title / description / amend / error / commit-enabled) and for the snapshot
+/// (placeholder / unstaged list / staged list), plus the commands that drive git ops.
+/// Views bind to the observables and call the commands — there is no view interface and
+/// the VM holds no reference to a view.
+/// </summary>
+internal sealed class LocalChangesViewModel : IDisposable
 {
     private const string OpenRepoPlaceholder = "Open a repository to see local changes.";
     private const string LoadingPlaceholder = "Loading…";
 
-    private readonly ILocalChangesView _view;
+    private static readonly IReadOnlyList<FileChange> Empty = Array.Empty<FileChange>();
+
     private readonly IRepoRegistry _registry;
     private readonly IGitService _gitService;
     private readonly IUiDispatcher _dispatcher;
@@ -15,37 +23,51 @@ internal sealed class LocalChangesPresenter : IDisposable
     private readonly SubscriptionGroup _subscriptions = new();
     private readonly GenerationGuard _loadGen = new();
 
+    private readonly State<string?> _placeholder = new(OpenRepoPlaceholder);
+    private readonly State<IReadOnlyList<FileChange>> _unstaged = new(Empty);
+    private readonly State<IReadOnlyList<FileChange>> _staged = new(Empty);
+    private readonly State<string?> _opError = new(null);
+
+    public State<string> Title { get; } = new(string.Empty);
+    public State<string> Description { get; } = new(string.Empty);
+    public State<bool> Amend { get; } = new(false);
+
+    public IReadable<string?> Placeholder => _placeholder;
+    public IReadable<IReadOnlyList<FileChange>> Unstaged => _unstaged;
+    public IReadable<IReadOnlyList<FileChange>> Staged => _staged;
+    public IReadable<string?> OpError => _opError;
+    public IReadable<bool> CommitEnabled { get; }
+
+    /// <summary>Fired after a successful stage/unstage so the view can re-select the
+    /// affected rows on the destination side — the panel-internal selection state is
+    /// owned by the view, not the VM.</summary>
+    public event Action<DiffSide, IReadOnlyList<string>>? SelectionRequested;
+
     // Cached so OnAmendToggled can re-derive the displayed staged list without
     // touching git. _stagedFromIndex is whatever GetLocalChanges last returned;
     // _headFiles is the diff of HEAD vs HEAD~1, populated only while amending.
-    private IReadOnlyList<FileChange> _stagedFromIndex = Array.Empty<FileChange>();
+    private IReadOnlyList<FileChange> _stagedFromIndex = Empty;
     private IReadOnlyList<FileChange>? _headFiles;
     private string _preAmendTitle = string.Empty;
     private string _preAmendDescription = string.Empty;
-    private int _displayedStagedCount;
 
-    public LocalChangesPresenter(
-        ILocalChangesView view,
+    public LocalChangesViewModel(
         IRepoRegistry registry,
         IGitService gitService,
         IUiDispatcher dispatcher,
         IMessageBus bus)
     {
-        _view = view;
         _registry = registry;
         _gitService = gitService;
         _dispatcher = dispatcher;
         _bus = bus;
 
-        _view.StageRequested += OnStageRequested;
-        _view.UnstageRequested += OnUnstageRequested;
-        _view.TitleChanged += OnTitleChanged;
-        _view.AmendToggled += OnAmendToggled;
-        _view.CommitClicked += OnCommitClicked;
+        // Amend can be a message-only edit of the previous commit, so it doesn't need
+        // anything staged; a regular commit does.
+        CommitEnabled = new Derived<bool>(() =>
+            HasNonWhitespace(Title.Value) && (Amend.Value || _staged.Value.Count > 0));
 
-        _view.ShowPlaceholder(OpenRepoPlaceholder);
-        _view.CommitEnabled = false;
-
+        _subscriptions.Add(Amend.Subscribe(_ => OnAmendToggled()));
         _subscriptions.Add(_registry.Active.Subscribe(_ => StartLoadForActiveRepo()));
         _subscriptions.Add(_bus.SubscribeScoped<RefsChangedMessage>(OnRefsChanged));
     }
@@ -54,82 +76,12 @@ internal sealed class LocalChangesPresenter : IDisposable
     {
         _loadGen.Bump();
         _subscriptions.Dispose();
-        _view.StageRequested -= OnStageRequested;
-        _view.UnstageRequested -= OnUnstageRequested;
-        _view.TitleChanged -= OnTitleChanged;
-        _view.AmendToggled -= OnAmendToggled;
-        _view.CommitClicked -= OnCommitClicked;
+        (CommitEnabled as IDisposable)?.Dispose();
     }
 
-    // After checkout, the working tree may differ (index reset, untracked-vs-tracked
-    // status flips), so reload from disk for the current repo.
-    private void OnRefsChanged(RefsChangedMessage msg)
-    {
-        var active = _registry.Active.Value;
-        if (active == null || active.Id != msg.RepoId) return;
-        StartLoadForActiveRepo();
-    }
+    public void Stage(IReadOnlyList<string> paths) => RunIndexOp(paths, isStage: true);
 
-    private void StartLoadForActiveRepo()
-    {
-        var active = _registry.Active.Value;
-        var gen = _loadGen.Bump();
-        // Any error from a previous repo's op no longer applies once we switch/reload.
-        _view.OpError = null;
-
-        if (active == null)
-        {
-            _view.ShowPlaceholder(OpenRepoPlaceholder);
-            _displayedStagedCount = 0;
-            _view.CommitEnabled = false;
-            return;
-        }
-
-        _view.ShowPlaceholder(LoadingPlaceholder);
-        _view.CommitEnabled = false;
-
-        var repo = active;
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        Task.Run(() =>
-        {
-            LocalChangesSnapshot? snap = null;
-            string? errorMsg = null;
-            try
-            {
-                var result = service.GetLocalChanges(repo);
-                if (result.ErrorMessage != null) errorMsg = result.ErrorMessage;
-                else snap = result;
-            }
-            catch (Exception ex) { errorMsg = ex.Message; }
-
-            dispatcher.Post(() =>
-            {
-                if (_loadGen.IsStale(gen)) return;
-                if (errorMsg != null)
-                {
-                    _view.ShowPlaceholder(errorMsg);
-                    _displayedStagedCount = 0;
-                    _view.CommitEnabled = false;
-                    return;
-                }
-                if (snap != null) ApplySnapshot(snap);
-            });
-        });
-    }
-
-    private void ApplySnapshot(LocalChangesSnapshot snap)
-    {
-        _stagedFromIndex = snap.Staged;
-        var displayed = ComputeDisplayedStaged();
-        _displayedStagedCount = displayed.Count;
-        _view.ShowSnapshot(snap.Unstaged, displayed);
-        UpdateCommitEnabled();
-    }
-
-    private void OnStageRequested(IReadOnlyList<string> paths) => RunIndexOp(paths, isStage: true);
-
-    private void OnUnstageRequested(IReadOnlyList<string> paths)
+    public void Unstage(IReadOnlyList<string> paths)
     {
         if (paths.Count == 0) return;
 
@@ -155,6 +107,135 @@ internal sealed class LocalChangesPresenter : IDisposable
             }
         }
         RunIndexOp(paths, isStage: false);
+    }
+
+    public void Commit()
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+
+        // CommitEnabled gates the button on a non-empty title (and, unless amending, at
+        // least one staged file), so reaching this point implies the inputs are valid.
+        var title = Title.Value.Trim();
+        var description = Description.Value.Trim();
+        // Standard git format: subject, blank line, body. Skip the blank line when there's
+        // no body so the message is just the subject.
+        var message = description.Length > 0 ? $"{title}\n\n{description}" : title;
+        var amend = Amend.Value;
+
+        var gen = _loadGen.Bump();
+        var service = _gitService;
+        var dispatcher = _dispatcher;
+        var bus = _bus;
+
+        Task.Run(() =>
+        {
+            string? errorMsg = null;
+            LocalChangesSnapshot? newSnap = null;
+            try
+            {
+                errorMsg = service.Commit(repo, message, amend);
+                if (errorMsg == null)
+                {
+                    var snap = service.GetLocalChanges(repo);
+                    if (snap.ErrorMessage != null) errorMsg = snap.ErrorMessage;
+                    else newSnap = snap;
+                }
+            }
+            catch (Exception ex) { errorMsg = ex.Message; }
+
+            dispatcher.Post(() =>
+            {
+                if (_loadGen.IsStale(gen)) return;
+                _opError.Value = errorMsg;
+                if (errorMsg != null) return;
+
+                // Reset the pre-amend snapshot so toggling amend back off after the commit
+                // doesn't restore stale text from a different commit's session.
+                _preAmendTitle = string.Empty;
+                _preAmendDescription = string.Empty;
+                if (Amend.Value)
+                {
+                    // Flipping fires the Amend handler which clears the inputs (saved
+                    // state was just emptied above).
+                    Amend.Value = false;
+                }
+                else
+                {
+                    Title.Value = string.Empty;
+                    Description.Value = string.Empty;
+                }
+                if (newSnap != null) ApplySnapshot(newSnap);
+                bus.Broadcast(new CommitCreatedMessage(repo.Id));
+            });
+        });
+    }
+
+    // After checkout, the working tree may differ (index reset, untracked-vs-tracked
+    // status flips), so reload from disk for the current repo.
+    private void OnRefsChanged(RefsChangedMessage msg)
+    {
+        var active = _registry.Active.Value;
+        if (active == null || active.Id != msg.RepoId) return;
+        StartLoadForActiveRepo();
+    }
+
+    private void StartLoadForActiveRepo()
+    {
+        var active = _registry.Active.Value;
+        var gen = _loadGen.Bump();
+        // Any error from a previous repo's op no longer applies once we switch/reload.
+        _opError.Value = null;
+
+        if (active == null)
+        {
+            _placeholder.Value = OpenRepoPlaceholder;
+            _stagedFromIndex = Empty;
+            _staged.Value = Empty;
+            return;
+        }
+
+        _placeholder.Value = LoadingPlaceholder;
+
+        var repo = active;
+        var service = _gitService;
+        var dispatcher = _dispatcher;
+        Task.Run(() =>
+        {
+            LocalChangesSnapshot? snap = null;
+            string? errorMsg = null;
+            try
+            {
+                var result = service.GetLocalChanges(repo);
+                if (result.ErrorMessage != null) errorMsg = result.ErrorMessage;
+                else snap = result;
+            }
+            catch (Exception ex) { errorMsg = ex.Message; }
+
+            dispatcher.Post(() =>
+            {
+                if (_loadGen.IsStale(gen)) return;
+                if (errorMsg != null)
+                {
+                    _placeholder.Value = errorMsg;
+                    _stagedFromIndex = Empty;
+                    _staged.Value = Empty;
+                    return;
+                }
+                if (snap != null) ApplySnapshot(snap);
+            });
+        });
+    }
+
+    private void ApplySnapshot(LocalChangesSnapshot snap)
+    {
+        _stagedFromIndex = snap.Staged;
+        // Placeholder→null first so the view re-attaches the snapshot container before
+        // the panels receive their files — otherwise SelectableFileRowViews added to a
+        // detached parent render blank.
+        _placeholder.Value = null;
+        _unstaged.Value = snap.Unstaged;
+        _staged.Value = ComputeDisplayedStaged();
     }
 
     private void RunIndexOp(IReadOnlyList<string> paths, bool isStage)
@@ -186,7 +267,7 @@ internal sealed class LocalChangesPresenter : IDisposable
             dispatcher.Post(() =>
             {
                 if (_loadGen.IsStale(gen)) return;
-                _view.OpError = errorMsg;
+                _opError.Value = errorMsg;
                 // Keep the prior snapshot rendered on failure — losing the list on every
                 // transient error would erase the user's selection and context.
                 if (newSnap != null)
@@ -194,8 +275,7 @@ internal sealed class LocalChangesPresenter : IDisposable
                     ApplySnapshot(newSnap);
                     // The operated-on rows just moved sides; re-select them on the
                     // destination so the user keeps their place across a stage/unstage.
-                    if (isStage) _view.SelectStaged(paths);
-                    else _view.SelectUnstaged(paths);
+                    SelectionRequested?.Invoke(isStage ? DiffSide.Staged : DiffSide.Unstaged, paths);
                 }
             });
         });
@@ -227,7 +307,7 @@ internal sealed class LocalChangesPresenter : IDisposable
             dispatcher.Post(() =>
             {
                 if (_loadGen.IsStale(gen)) return;
-                _view.OpError = errorMsg;
+                _opError.Value = errorMsg;
                 if (newSnap != null)
                 {
                     ApplySnapshot(newSnap);
@@ -235,85 +315,22 @@ internal sealed class LocalChangesPresenter : IDisposable
                     var combined = new List<string>(toUnstage.Count + toResetToParent.Count);
                     combined.AddRange(toUnstage);
                     combined.AddRange(toResetToParent);
-                    _view.SelectUnstaged(combined);
+                    SelectionRequested?.Invoke(DiffSide.Unstaged, combined);
                 }
-            });
-        });
-    }
-
-    private void OnCommitClicked()
-    {
-        var repo = _registry.Active.Value;
-        if (repo == null) return;
-
-        // UpdateCommitEnabled gates the button on a non-empty title (and, unless
-        // amending, at least one staged file), so reaching this point implies the
-        // inputs are valid for the current mode.
-        var title = _view.TitleText.Trim();
-        var description = _view.DescriptionText.Trim();
-        // Standard git format: subject, blank line, body. Skip the blank line when there's
-        // no body so the message is just the subject.
-        var message = description.Length > 0 ? $"{title}\n\n{description}" : title;
-        var amend = _view.AmendChecked;
-
-        var gen = _loadGen.Bump();
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-
-        Task.Run(() =>
-        {
-            string? errorMsg = null;
-            LocalChangesSnapshot? newSnap = null;
-            try
-            {
-                errorMsg = service.Commit(repo, message, amend);
-                if (errorMsg == null)
-                {
-                    var snap = service.GetLocalChanges(repo);
-                    if (snap.ErrorMessage != null) errorMsg = snap.ErrorMessage;
-                    else newSnap = snap;
-                }
-            }
-            catch (Exception ex) { errorMsg = ex.Message; }
-
-            dispatcher.Post(() =>
-            {
-                if (_loadGen.IsStale(gen)) return;
-                _view.OpError = errorMsg;
-                if (errorMsg != null) return;
-
-                // Reset the pre-amend snapshot so toggling amend back off after the commit
-                // doesn't restore stale text from a different commit's session.
-                _preAmendTitle = string.Empty;
-                _preAmendDescription = string.Empty;
-                if (_view.AmendChecked)
-                {
-                    // Flipping fires AmendToggled which clears the inputs (saved state
-                    // was just emptied above).
-                    _view.AmendChecked = false;
-                }
-                else
-                {
-                    _view.TitleText = string.Empty;
-                    _view.DescriptionText = string.Empty;
-                }
-                if (newSnap != null) ApplySnapshot(newSnap);
-                bus.Broadcast(new CommitCreatedMessage(repo.Id));
             });
         });
     }
 
     private void OnAmendToggled()
     {
-        if (_view.AmendChecked)
+        if (Amend.Value)
         {
-            _preAmendTitle = _view.TitleText;
-            _preAmendDescription = _view.DescriptionText;
+            _preAmendTitle = Title.Value;
+            _preAmendDescription = Description.Value;
 
             string title = string.Empty;
             string description = string.Empty;
-            IReadOnlyList<FileChange> headFiles = Array.Empty<FileChange>();
+            IReadOnlyList<FileChange> headFiles = Empty;
             var repo = _registry.Active.Value;
             if (repo != null)
             {
@@ -327,13 +344,13 @@ internal sealed class LocalChangesPresenter : IDisposable
             }
 
             _headFiles = headFiles;
-            _view.TitleText = title;
-            _view.DescriptionText = description;
+            Title.Value = title;
+            Description.Value = description;
         }
         else
         {
-            _view.TitleText = _preAmendTitle;
-            _view.DescriptionText = _preAmendDescription;
+            Title.Value = _preAmendTitle;
+            Description.Value = _preAmendDescription;
             _preAmendTitle = string.Empty;
             _preAmendDescription = string.Empty;
             _headFiles = null;
@@ -341,21 +358,7 @@ internal sealed class LocalChangesPresenter : IDisposable
 
         // Amend visibility flipped — re-render the staged panel so HEAD files appear
         // or disappear without waiting for the next snapshot reload.
-        var displayed = ComputeDisplayedStaged();
-        _displayedStagedCount = displayed.Count;
-        _view.SetStagedFiles(displayed);
-        UpdateCommitEnabled();
-    }
-
-    private void OnTitleChanged() => UpdateCommitEnabled();
-
-    private void UpdateCommitEnabled()
-    {
-        var hasTitle = HasNonWhitespace(_view.TitleText);
-        // Amend can be a message-only edit of the previous commit, so it doesn't need
-        // anything staged; a regular commit does.
-        var amend = _view.AmendChecked;
-        _view.CommitEnabled = hasTitle && (amend || _displayedStagedCount > 0);
+        _staged.Value = ComputeDisplayedStaged();
     }
 
     private static bool HasNonWhitespace(string s)

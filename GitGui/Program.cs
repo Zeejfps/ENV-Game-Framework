@@ -24,12 +24,12 @@ context.AddService<IRepoRegistry>(registry);
 context.AddService<IGitService>(new GitService());
 context.AddService<IDragController>(new DragController(registry));
 
-var appView = new AppView(registry);
+var appView = new AppView();
 var appHost = GuiApp.CreateDefault(new StartupConfig
 {
     WindowTitle = "GitGui",
     WindowWidth = 1400,
-    WindowHeight = 1280,
+    WindowHeight = 900,
     IsUndecorated = false
 }, context, appView);
 
