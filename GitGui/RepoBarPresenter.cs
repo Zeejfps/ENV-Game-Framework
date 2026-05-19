@@ -11,7 +11,7 @@ internal sealed class RepoBarPresenter : IDisposable
         _registry = registry;
 
         _view.NewGroupRequested += OnNewGroupRequested;
-        _view.BindGroups(_registry.Groups, group => new GroupSection(group, _registry));
+        _view.BindGroups(_registry.Groups, group => new GroupSection(group));
     }
 
     public void Dispose()

@@ -4,18 +4,19 @@ using ZGF.Gui.Layouts;
 
 namespace GitGui;
 
-public sealed class GroupSection : MultiChildView
+public sealed class GroupSection : MultiChildView, IGroupSectionView
 {
-    public GroupSection(Group group, IRepoRegistry registry)
+    private readonly MultiChildView _headerSlot;
+    private readonly FlexColumnView _rows;
+
+    public GroupSection(Group group)
     {
-        var rows = new FlexColumnView
+        _headerSlot = new MultiChildView();
+        _rows = new FlexColumnView
         {
             Gap = 2,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
         };
-        rows.BindChildren(
-            compute: () => VisibleRepos(group, registry),
-            create: repo => new RepoRow(repo, registry));
 
         AddChildToSelf(new FlexColumnView
         {
@@ -23,33 +24,23 @@ public sealed class GroupSection : MultiChildView
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new GroupHeaderRow(group, registry),
-                rows,
+                _headerSlot,
+                _rows,
             }
         });
 
         this.UseController(ctx => new GroupSectionController(this, ctx, group.Id));
+        this.UsePresenter(ctx => new GroupSectionPresenter(this, group, ctx.Require<IRepoRegistry>()));
     }
 
-    private static IEnumerable<Repo> VisibleRepos(Group group, IRepoRegistry registry)
+    public void SetHeader(View header)
     {
-        var reposById = registry.Repos.ToDictionary(r => r.Id);
+        _headerSlot.Children.Clear();
+        _headerSlot.Children.Add(header);
+    }
 
-        if (group.IsCollapsed)
-        {
-            var activeId = registry.Active.Value?.Id;
-            foreach (var repoId in group.RepoIds)
-            {
-                if (reposById.TryGetValue(repoId, out var repo) && repo.Id == activeId)
-                    yield return repo;
-            }
-            yield break;
-        }
-
-        foreach (var repoId in group.RepoIds)
-        {
-            if (reposById.TryGetValue(repoId, out var repo))
-                yield return repo;
-        }
+    public void BindRows(Func<IEnumerable<Repo>> compute, Func<Repo, View> rowFactory)
+    {
+        _rows.BindChildren(compute, rowFactory);
     }
 }
