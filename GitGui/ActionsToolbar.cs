@@ -15,11 +15,15 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
 
     private readonly ActionButton _pushButton;
     private readonly ActionButton _pullButton;
+    private readonly ActionButton _openFolderButton;
+    private readonly ActionButton _openTerminalButton;
     private readonly ErrorBar _errorBar;
     private readonly FlexRowView _contentRow;
 
     public event Action? PushRequested;
     public event Action? PullRequested;
+    public event Action? OpenInFolderRequested;
+    public event Action? OpenInTerminalRequested;
 
     public ActionsToolbar()
     {
@@ -27,6 +31,8 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
 
         _pushButton = new ActionButton(LucideIcons.Push, "Push", () => PushRequested?.Invoke());
         _pullButton = new ActionButton(LucideIcons.Pull, "Pull", () => PullRequested?.Invoke());
+        _openFolderButton = new ActionButton(LucideIcons.FolderOpen, () => OpenInFolderRequested?.Invoke());
+        _openTerminalButton = new ActionButton(LucideIcons.SquareTerminal, () => OpenInTerminalRequested?.Invoke());
 
         _contentRow = new FlexRowView
         {
@@ -41,6 +47,9 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
                 new SeparatorSpacer(),
                 new ActionButton(LucideIcons.Stash, "Stash", () => { }),
                 new ActionButton(LucideIcons.Branch, "Branch", () => { }),
+                new FlexItem { Grow = 1, Child = new MultiChildView() },
+                _openFolderButton,
+                _openTerminalButton,
             }
         };
         _errorBar = new ErrorBar(_contentRow, verticalPadding: 2);
@@ -48,8 +57,14 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
         AddChildToSelf(new RectView
         {
             BackgroundColor = DialogPalette.Background,
-            BorderColor = new BorderColorStyle { Bottom = DialogPalette.Border },
-            BorderSize = new BorderSizeStyle { Bottom = 1 },
+            BorderColor = new BorderColorStyle
+            {
+                Bottom = DialogPalette.Border
+            },
+            BorderSize = new BorderSizeStyle
+            {
+                Bottom = 1
+            },
             Padding = new PaddingStyle
             {
                 Left = HorizontalPadding,
@@ -62,6 +77,7 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
             this,
             ctx.Require<IRepoRegistry>(),
             ctx.Require<IGitService>(),
+            ctx.Require<IPlatformShell>(),
             ctx.Require<IUiDispatcher>(),
             ctx.Require<IMessageBus>()));
     }
@@ -71,6 +87,15 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
     public float PushRotation { set => _pushButton.IconRotation = value; }
     public float PullRotation { set => _pullButton.IconRotation = value; }
     public string? Error { set => _errorBar.Message = value; }
+
+    public bool RepoActionsEnabled
+    {
+        set
+        {
+            _openFolderButton.IsEnabled.Value = value;
+            _openTerminalButton.IsEnabled.Value = value;
+        }
+    }
 
     public bool PushBusy
     {

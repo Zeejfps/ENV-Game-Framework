@@ -12,6 +12,7 @@ internal sealed class ActionsToolbarPresenter : IDisposable
     private readonly IActionsToolbarView _view;
     private readonly IRepoRegistry _registry;
     private readonly IGitService _gitService;
+    private readonly IPlatformShell _shell;
     private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
     private readonly SubscriptionGroup _subscriptions = new();
@@ -29,19 +30,24 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         IActionsToolbarView view,
         IRepoRegistry registry,
         IGitService gitService,
+        IPlatformShell shell,
         IUiDispatcher dispatcher,
         IMessageBus bus)
     {
         _view = view;
         _registry = registry;
         _gitService = gitService;
+        _shell = shell;
         _dispatcher = dispatcher;
         _bus = bus;
 
         _view.PushRequested += OnPushRequested;
         _view.PullRequested += OnPullRequested;
+        _view.OpenInFolderRequested += OnOpenInFolderRequested;
+        _view.OpenInTerminalRequested += OnOpenInTerminalRequested;
 
         UpdateSyncButtons();
+        UpdateRepoActionButtons();
 
         _subscriptions.Add(_registry.Active.Subscribe(_ => OnRepoOrRefsChanged()));
         _subscriptions.Add(_bus.SubscribeScoped<CommitCreatedMessage>(_ => OnRepoOrRefsChanged()));
@@ -56,12 +62,36 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         _subscriptions.Dispose();
         _view.PushRequested -= OnPushRequested;
         _view.PullRequested -= OnPullRequested;
+        _view.OpenInFolderRequested -= OnOpenInFolderRequested;
+        _view.OpenInTerminalRequested -= OnOpenInTerminalRequested;
     }
 
     private void OnRepoOrRefsChanged()
     {
         _view.Error = null;
+        UpdateRepoActionButtons();
         ReloadPushStatus();
+    }
+
+    private void UpdateRepoActionButtons()
+    {
+        _view.RepoActionsEnabled = _registry.Active.Value != null;
+    }
+
+    private void OnOpenInFolderRequested()
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+        try { _shell.OpenFolder(repo.Path); }
+        catch (Exception ex) { _view.Error = $"Open folder failed: {ex.Message}"; }
+    }
+
+    private void OnOpenInTerminalRequested()
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+        try { _shell.OpenTerminal(repo.Path); }
+        catch (Exception ex) { _view.Error = $"Open terminal failed: {ex.Message}"; }
     }
 
     private void ReloadPushStatus()

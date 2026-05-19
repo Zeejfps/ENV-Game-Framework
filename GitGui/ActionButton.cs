@@ -7,7 +7,7 @@ namespace GitGui;
 public sealed class ActionButton : HoverableButton
 {
     private readonly TextView _iconView;
-    private readonly TextView _labelView;
+    private readonly TextView? _labelView;
 
     public string Icon
     {
@@ -17,8 +17,8 @@ public sealed class ActionButton : HoverableButton
 
     public string Label
     {
-        get => _labelView.Text ?? string.Empty;
-        set => _labelView.Text = value;
+        get => _labelView?.Text ?? string.Empty;
+        set { if (_labelView != null) _labelView.Text = value; }
     }
 
     public float IconRotation
@@ -27,7 +27,7 @@ public sealed class ActionButton : HoverableButton
         set => _iconView.Rotation = value;
     }
 
-    public ActionButton(string icon, string label, Action onClick) : base(onClick)
+    public ActionButton(string icon, string? label, Action onClick) : base(onClick)
     {
         PreferredHeight = 28;
 
@@ -40,28 +40,29 @@ public sealed class ActionButton : HoverableButton
         };
         _iconView.BindTextColor(ComputeForeground);
 
-        _labelView = new TextView
-        {
-            Text = label,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-        _labelView.BindTextColor(ComputeForeground);
+        var row = new RowView { Gap = 6 };
+        row.Children.Add(_iconView);
 
+        if (!string.IsNullOrEmpty(label))
+        {
+            _labelView = new TextView
+            {
+                Text = label,
+                VerticalTextAlignment = TextAlignment.Center,
+            };
+            _labelView.BindTextColor(ComputeForeground);
+            row.Children.Add(_labelView);
+        }
+
+        var horizontalPadding = _labelView != null ? 8 : 6;
         var background = new RectView
         {
             Children =
             {
                 new PaddingView
                 {
-                    Padding = new PaddingStyle { Left = 8, Right = 8 },
-                    Children =
-                    {
-                        new RowView
-                        {
-                            Gap = 6,
-                            Children = { _iconView, _labelView },
-                        }
-                    }
+                    Padding = new PaddingStyle { Left = horizontalPadding, Right = horizontalPadding },
+                    Children = { row },
                 }
             }
         };
@@ -69,6 +70,8 @@ public sealed class ActionButton : HoverableButton
             IsEnabled && IsHovered ? DialogPalette.ButtonHover : 0x00000000u);
         SetBackground(background);
     }
+
+    public ActionButton(string icon, Action onClick) : this(icon, null, onClick) { }
 
     private uint ComputeForeground()
     {

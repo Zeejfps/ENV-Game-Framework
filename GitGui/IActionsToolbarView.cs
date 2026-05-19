@@ -8,7 +8,10 @@ public interface IActionsToolbarView
     bool PullBusy { set; }
     float PushRotation { set; }
     float PullRotation { set; }
+    bool RepoActionsEnabled { set; }
     string? Error { set; }
     event Action PushRequested;
     event Action PullRequested;
+    event Action OpenInFolderRequested;
+    event Action OpenInTerminalRequested;
 }

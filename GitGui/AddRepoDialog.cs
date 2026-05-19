@@ -65,8 +65,8 @@ public sealed class AddRepoDialog : MultiChildView
                                 },
                                 new DialogButton("Open", () =>
                                 {
-                                    var picker = Context?.Get<IFolderPicker>();
-                                    var path = picker?.PickFolder("Open Repository");
+                                    var shell = Context?.Get<IPlatformShell>();
+                                    var path = shell?.PickFolder("Open Repository");
                                     if (string.IsNullOrEmpty(path)) return;
                                     Context?.Get<IRepoRegistry>()?.Open(path);
                                     onClose();
