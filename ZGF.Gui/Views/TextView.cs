@@ -52,6 +52,12 @@ public sealed class TextView : MultiChildView
         set => SetField(ref _style.Rotation, value);
     }
 
+    public StyleValue<FontWeight> FontWeight
+    {
+        get => _style.FontWeight;
+        set => SetField(ref _style.FontWeight, value);
+    }
+
     private string? _text;
     public string? Text
     {

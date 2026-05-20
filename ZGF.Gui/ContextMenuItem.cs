@@ -34,6 +34,8 @@ public sealed class ContextMenuItem : MultiChildView
     private readonly ImageView _arrowIcon;
     private readonly TextView _iconView;
     private readonly TextView _textView;
+    private RowView _row = null!;
+    private MultiChildView _labelView = null!;
 
     public string? Text
     {
@@ -128,6 +130,19 @@ public sealed class ContextMenuItem : MultiChildView
         _textView.TextColor = color;
         _iconView.TextColor = color;
     }
+
+    public void SetLabelView(MultiChildView labelView)
+    {
+        var idx = -1;
+        for (var i = 0; i < _row.Children.Count; i++)
+        {
+            if (ReferenceEquals(_row.Children[i], _labelView)) { idx = i; break; }
+        }
+        if (idx < 0) return;
+        _row.Children.Remove(_labelView);
+        _row.Children.Insert(idx, labelView);
+        _labelView = labelView;
+    }
     
     private bool _isArrowVisible;
     public bool IsArrowVisible
@@ -174,24 +189,25 @@ public sealed class ContextMenuItem : MultiChildView
             VerticalTextAlignment = TextAlignment.Center,
         };
 
-        var row = new RowView
+        _labelView = _textView;
+        _row = new RowView
         {
             Gap = 6,
             Children =
             {
                 _iconView,
-                _textView,
+                _labelView,
                 _arrowIcon,
             }
         };
-        
+
         _bg = new RectView
         {
             BackgroundColor = 0xFFDEDEDE,
             Padding = PaddingStyle.All(6),
             Children =
             {
-                row
+                _row
             }
         };
 

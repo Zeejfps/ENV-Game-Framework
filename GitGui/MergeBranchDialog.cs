@@ -20,7 +20,7 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
 
     public MergeBranchDialog(MergeBranchRequest request, Action onClose)
     {
-        PreferredWidth = 520f;
+        //PreferredWidth = 680f;
         _onClose = onClose;
 
         var title = new TextView
@@ -43,12 +43,8 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
             },
         };
 
-        var mergeRow = BuildLabeledRow(
-            "Merge:",
-            BuildBranchChip(request.SourceDisplay));
-        var intoRow = BuildLabeledRow(
-            "Into:",
-            BuildBranchChip(request.TargetBranch));
+        var mergeRow = BuildLabeledRow("Merge:", BuildBranchChip(request.SourceDisplay));
+        var intoRow = BuildLabeledRow("Into:", BuildBranchChip(request.TargetBranch));
 
         _optionDropdown = new MergeOptionDropdown();
         var optionRow = BuildLabeledRow("Merge Option:", _optionDropdown);
@@ -138,22 +134,27 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
 
     private static FlexRowView BuildLabeledRow(string label, MultiChildView value)
     {
-        var labelView = new TextView
+        var labelText = new TextView
         {
             Text = label,
             TextColor = DialogPalette.SectionHeaderText,
             VerticalTextAlignment = TextAlignment.Center,
-            HorizontalTextAlignment = TextAlignment.End,
-            PreferredWidth = 96,
+        };
+        var labelColumn = new FlexRowView
+        {
+            PreferredWidth = 110,
+            MainAxisAlignment = MainAxisAlignment.End,
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            Children = { labelText },
         };
         return new FlexRowView
         {
-            Gap = 12,
+            Gap = 10,
             CrossAxisAlignment = CrossAxisAlignment.Center,
             PreferredHeight = 28,
             Children =
             {
-                labelView,
+                labelColumn,
                 new FlexItem { Grow = 1, Child = value },
             },
         };

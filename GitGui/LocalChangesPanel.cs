@@ -27,6 +27,8 @@ internal sealed class LocalChangesPanel : MultiChildView
     private readonly ColumnView _rows;
     private readonly TextView _emptyPlaceholder;
     private readonly ScrollPane _scrollPane;
+    private readonly VerticalScrollBarView _scrollBar;
+    private readonly HorizontalScrollBarView _hScrollBar;
 
     private IReadOnlyList<FileChange> _files = Array.Empty<FileChange>();
 
@@ -97,8 +99,8 @@ internal sealed class LocalChangesPanel : MultiChildView
         _scrollPane.Children.Add(paddedRows);
         _scrollPane.UseController(_ => new ScrollPaneWheelController(_scrollPane));
 
-        var scrollBar = ScrollBarStyles.CreateVertical();
-        var hScrollBar = ScrollBarStyles.CreateHorizontal();
+        _scrollBar = ScrollBarStyles.CreateVertical();
+        _hScrollBar = ScrollBarStyles.CreateHorizontal();
 
         // _scrollPane already carries ScrollPaneWheelController, and the InputSystem
         // only allows one controller per view — so the deselect-on-empty-click handler
@@ -117,11 +119,18 @@ internal sealed class LocalChangesPanel : MultiChildView
         {
             North = headerBar,
             Center = center,
-            East = scrollBar,
-            South = hScrollBar,
+            East = _scrollBar,
+            South = _hScrollBar,
         });
 
-        this.UseController(_ => new ScrollSyncController(_scrollPane, scrollBar, hScrollBar));
+        this.UseController(_ => new ScrollSyncController(_scrollPane, _scrollBar, _hScrollBar));
+    }
+
+    protected override void OnLayoutChildren()
+    {
+        base.OnLayoutChildren();
+        _scrollBar.PreferredWidth = _scrollPane.VerticalScale < 1f ? ScrollBarSync.Thickness : 0f;
+        _hScrollBar.PreferredHeight = _scrollPane.HorizontalScale < 1f ? ScrollBarSync.Thickness : 0f;
     }
 
     public void SetFiles(IReadOnlyList<FileChange> files)
