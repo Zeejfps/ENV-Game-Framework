@@ -13,6 +13,16 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
     {
         _textInput = textInput;
     }
+
+    // Use this from outside the controller (e.g. dialog auto-focus) to enter an edit
+    // session. Pairing StartEditing with StealFocus is what makes the input the actual
+    // _focusedComponent — without it, keys only flow while the cursor happens to hover
+    // the input and silently stop the moment the mouse moves elsewhere.
+    public void BeginEditing()
+    {
+        _textInput.StartEditing();
+        _textInput.Context?.Get<InputSystem>()?.StealFocus(this);
+    }
     
     public override void OnMouseMoved(ref MouseMoveEvent e)
     {

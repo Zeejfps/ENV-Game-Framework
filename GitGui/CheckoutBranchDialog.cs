@@ -16,6 +16,7 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
 
     private readonly Action _onClose;
     private readonly TextInputView _nameInput;
+    private readonly CheckoutDialogKbmController _nameController;
     private readonly CheckboxView _trackCheckbox;
     private readonly DialogButton _checkoutButton;
 
@@ -150,7 +151,8 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
         // BaseTextInputKbmController.OnMouseButtonStateChanged consumes left-press events
         // anywhere inside the view it's attached to, so putting it on the dialog would
         // swallow clicks meant for the Cancel/Checkout buttons.
-        _nameInput.UseController(_ => new CheckoutDialogKbmController(_nameInput, RaiseCheckoutRequested, onClose));
+        _nameController = new CheckoutDialogKbmController(_nameInput, RaiseCheckoutRequested, onClose);
+        _nameInput.UseController(_ => _nameController);
 
         var request = new CheckoutRequest(repo, remoteName, remoteBranchName, suggestedLocalName);
         this.UsePresenter(ctx => new CheckoutBranchPresenter(
@@ -181,7 +183,7 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
         if (initialText.Length > 0)
             _nameInput.Enter(initialText);
         _nameInput.SelectAll();
-        _nameInput.StartEditing();
+        _nameController.BeginEditing();
     }
     public void Close() => _onClose();
 }

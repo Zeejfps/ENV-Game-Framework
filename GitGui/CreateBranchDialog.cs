@@ -17,6 +17,7 @@ public sealed class CreateBranchDialog : MultiChildView, ICreateBranchView
 
     private readonly Action _onClose;
     private readonly TextInputView _nameInput;
+    private readonly CheckoutDialogKbmController _nameController;
     private readonly TextInputView _startPointInput;
     private readonly CheckboxView _checkoutCheckbox;
     private readonly DialogButton _createButton;
@@ -182,7 +183,8 @@ public sealed class CreateBranchDialog : MultiChildView, ICreateBranchView
         // Controllers go on the inputs (not the dialog) — see CheckoutBranchDialog for why:
         // BaseTextInputKbmController consumes left-press anywhere inside the view it's on,
         // so attaching to the outer dialog would swallow clicks meant for Cancel/Create.
-        _nameInput.UseController(_ => new CheckoutDialogKbmController(_nameInput, RaiseCreateRequested, onClose));
+        _nameController = new CheckoutDialogKbmController(_nameInput, RaiseCreateRequested, onClose);
+        _nameInput.UseController(_ => _nameController);
         _startPointInput.UseController(_ => new CheckoutDialogKbmController(_startPointInput, RaiseCreateRequested, onClose));
 
         var request = new CreateBranchRequest(repo, suggestedStartPoint);
@@ -213,7 +215,7 @@ public sealed class CreateBranchDialog : MultiChildView, ICreateBranchView
     }
     public void FocusName()
     {
-        _nameInput.StartEditing();
+        _nameController.BeginEditing();
     }
     public void Close() => _onClose();
 }

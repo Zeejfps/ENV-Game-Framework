@@ -16,6 +16,7 @@ public sealed class StashDialog : MultiChildView, IStashView
 
     private readonly Action _onClose;
     private readonly TextInputView _messageInput;
+    private readonly CheckoutDialogKbmController _messageController;
     private readonly CheckboxView _includeUntrackedCheckbox;
     private readonly CheckboxView _keepStagedCheckbox;
     private readonly DialogButton _stashButton;
@@ -145,7 +146,8 @@ public sealed class StashDialog : MultiChildView, IStashView
 
         // Same reason as CreateBranchDialog: text-input controllers consume clicks across
         // the view they're on, so attach to the input itself, not the outer dialog.
-        _messageInput.UseController(_ => new CheckoutDialogKbmController(_messageInput, RaiseStashRequested, onClose));
+        _messageController = new CheckoutDialogKbmController(_messageInput, RaiseStashRequested, onClose);
+        _messageInput.UseController(_ => _messageController);
 
         var request = new StashRequest(repo);
         this.UsePresenter(ctx => new StashPresenter(
@@ -175,7 +177,7 @@ public sealed class StashDialog : MultiChildView, IStashView
     }
     public void FocusMessage()
     {
-        _messageInput.StartEditing();
+        _messageController.BeginEditing();
     }
     public void Close() => _onClose();
 }
