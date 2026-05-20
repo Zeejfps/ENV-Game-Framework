@@ -917,6 +917,118 @@ public sealed class GitService : IGitService
         }
     }
 
+    // `git branch -m` (or -M with force) renames a local branch in-place. Allowed on the
+    // currently-checked-out branch — git updates HEAD's symbolic ref to point at the new name.
+    public RenameBranchOutcome RenameBranch(Repo repo, string oldName, string newName, bool force)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new RenameBranchOutcome(false, "Not a git repository.");
+
+            var args = new List<string> { "branch", force ? "-M" : "-m", oldName, newName };
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                var psi = BuildGitProcessStartInfo(args, repo.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new RenameBranchOutcome(false, "Failed to start git.");
+
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+
+                if (proc.ExitCode == 0) return new RenameBranchOutcome(true, null);
+                var msg = CombineGitOutput(stderr, stdout);
+                if (string.IsNullOrEmpty(msg)) msg = $"git branch exited with code {proc.ExitCode}.";
+                return new RenameBranchOutcome(false, msg);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new RenameBranchOutcome(false, ex.Message);
+        }
+    }
+
+    // `git branch -d` refuses to delete a branch not fully merged into its upstream/HEAD;
+    // `-D` force-deletes regardless. Also refuses to delete the currently-checked-out branch
+    // — callers should gate that in the UI rather than relying on the error.
+    public DeleteBranchOutcome DeleteBranch(Repo repo, string name, bool force)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new DeleteBranchOutcome(false, "Not a git repository.");
+
+            var args = new List<string> { "branch", force ? "-D" : "-d", name };
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                var psi = BuildGitProcessStartInfo(args, repo.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new DeleteBranchOutcome(false, "Failed to start git.");
+
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+
+                if (proc.ExitCode == 0) return new DeleteBranchOutcome(true, null);
+                var msg = CombineGitOutput(stderr, stdout);
+                if (string.IsNullOrEmpty(msg)) msg = $"git branch exited with code {proc.ExitCode}.";
+                return new DeleteBranchOutcome(false, msg);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new DeleteBranchOutcome(false, ex.Message);
+        }
+    }
+
+    // Shells out to `git push <remote> --delete <branch>`. The local copy is unaffected.
+    // Server may refuse for protected refs — we surface whatever git reports.
+    public DeleteRemoteBranchOutcome DeleteRemoteBranch(Repo repo, string remoteName, string branchName)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new DeleteRemoteBranchOutcome(false, "Not a git repository.");
+
+            var args = new List<string> { "push", remoteName, "--delete", branchName };
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                var psi = BuildGitProcessStartInfo(args, repo.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new DeleteRemoteBranchOutcome(false, "Failed to start git.");
+
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+
+                if (proc.ExitCode == 0) return new DeleteRemoteBranchOutcome(true, null);
+                var msg = CombineGitOutput(stderr, stdout);
+                if (string.IsNullOrEmpty(msg)) msg = $"git push exited with code {proc.ExitCode}.";
+                return new DeleteRemoteBranchOutcome(false, msg);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new DeleteRemoteBranchOutcome(false, ex.Message);
+        }
+    }
+
     public StashOutcome CreateStash(Repo repo, string message, bool includeUntracked, bool keepIndex)
     {
         try

@@ -53,13 +53,25 @@ public sealed class ContextMenuItem : MultiChildView
         set => _iconView.FontFamily = value;
     }
 
+    private StyleValue<uint> _textColor;
     public StyleValue<uint> TextColor
     {
-        get => _textView.TextColor;
+        get => _textColor;
         set
         {
-            _textView.TextColor = value;
-            _iconView.TextColor = value;
+            _textColor = value;
+            ApplyForegroundColor();
+        }
+    }
+
+    private StyleValue<uint> _disabledTextColor = 0x80B5B9C0;
+    public StyleValue<uint> DisabledTextColor
+    {
+        get => _disabledTextColor;
+        set
+        {
+            _disabledTextColor = value;
+            ApplyForegroundColor();
         }
     }
 
@@ -69,12 +81,33 @@ public sealed class ContextMenuItem : MultiChildView
         set => _bg.BorderColor = value;
     }
 
+    private bool _isEnabled = true;
+    // Disabled items render with DisabledTextColor and skip hover/click handling
+    // (see ContextMenuItemDefaultKbmController). Background stays at NormalBackgroundColor.
+    public bool IsEnabled
+    {
+        get => _isEnabled;
+        set
+        {
+            if (SetField(ref _isEnabled, value))
+            {
+                ApplyForegroundColor();
+                if (!_isEnabled && _isSelected)
+                {
+                    _isSelected = false;
+                    _bg.BackgroundColor = NormalBackgroundColor;
+                }
+            }
+        }
+    }
+
     private bool _isSelected;
     public bool IsSelected
     {
         get => _isSelected;
         set
         {
+            if (!_isEnabled) value = false;
             if (SetField(ref _isSelected, value))
             {
                 if (_isSelected)
@@ -87,6 +120,13 @@ public sealed class ContextMenuItem : MultiChildView
                 }
             }
         }
+    }
+
+    private void ApplyForegroundColor()
+    {
+        var color = _isEnabled ? _textColor : _disabledTextColor;
+        _textView.TextColor = color;
+        _iconView.TextColor = color;
     }
     
     private bool _isArrowVisible;

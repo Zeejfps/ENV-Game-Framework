@@ -6,10 +6,12 @@ namespace GitGui;
 internal sealed class BranchesViewController : KeyboardMouseController
 {
     private readonly BranchesView _view;
+    private readonly Context _context;
 
-    public BranchesViewController(BranchesView view)
+    public BranchesViewController(BranchesView view, Context context)
     {
         _view = view;
+        _context = context;
     }
 
     public override void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
@@ -30,9 +32,17 @@ internal sealed class BranchesViewController : KeyboardMouseController
 
     public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
-        if (e.Button != MouseButton.Left) return;
         if (e.State != InputState.Pressed) return;
-        _view.OnClickAt(e.Mouse.Point);
-        e.Consume();
+        if (e.Button == MouseButton.Left)
+        {
+            _view.OnClickAt(e.Mouse.Point);
+            e.Consume();
+            return;
+        }
+        if (e.Button == MouseButton.Right)
+        {
+            _view.OnRightClickAt(e.Mouse.Point, _context);
+            e.Consume();
+        }
     }
 }

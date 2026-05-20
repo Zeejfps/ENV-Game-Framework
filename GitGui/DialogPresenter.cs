@@ -19,6 +19,9 @@ public sealed class DialogPresenter : IViewBehavior
         _messageBus?.Subscribe<ShowOperationErrorMessage>(OnShowOperationError);
         _messageBus?.Subscribe<ShowDiscardChangesDialogMessage>(OnShowDiscardChangesDialog);
         _messageBus?.Subscribe<ShowCreateBranchDialogMessage>(OnShowCreateBranchDialog);
+        _messageBus?.Subscribe<ShowRenameBranchDialogMessage>(OnShowRenameBranchDialog);
+        _messageBus?.Subscribe<ShowDeleteLocalBranchDialogMessage>(OnShowDeleteLocalBranchDialog);
+        _messageBus?.Subscribe<ShowDeleteRemoteBranchDialogMessage>(OnShowDeleteRemoteBranchDialog);
         _messageBus?.Subscribe<ShowStashDialogMessage>(OnShowStashDialog);
         _messageBus?.Subscribe<ShowDropStashDialogMessage>(OnShowDropStashDialog);
         _messageBus?.Subscribe<ShowAbortOperationDialogMessage>(OnShowAbortOperationDialog);
@@ -50,6 +53,15 @@ public sealed class DialogPresenter : IViewBehavior
 
     private void OnShowCreateBranchDialog(ShowCreateBranchDialogMessage m)
         => ShowDialog(new CreateBranchDialog(m.Repo, m.SuggestedStartPoint, OnDialogClosed));
+
+    private void OnShowRenameBranchDialog(ShowRenameBranchDialogMessage m)
+        => ShowDialog(new RenameBranchDialog(m.Repo, m.CurrentName, OnDialogClosed));
+
+    private void OnShowDeleteLocalBranchDialog(ShowDeleteLocalBranchDialogMessage m)
+        => ShowDialog(new DeleteLocalBranchDialog(m.Repo, m.BranchName, OnDialogClosed));
+
+    private void OnShowDeleteRemoteBranchDialog(ShowDeleteRemoteBranchDialogMessage m)
+        => ShowDialog(new DeleteRemoteBranchDialog(m.Repo, m.RemoteName, m.BranchName, OnDialogClosed));
 
     private void OnShowStashDialog(ShowStashDialogMessage m)
         => ShowDialog(new StashDialog(m.Repo, OnDialogClosed));

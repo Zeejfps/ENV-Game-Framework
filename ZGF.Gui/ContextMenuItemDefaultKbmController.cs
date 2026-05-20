@@ -43,6 +43,7 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
 
     public override void OnMouseEnter(ref MouseEnterEvent e)
     {
+        if (!_contextMenuItem.IsEnabled) return;
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
         {
             _openedContextMenu.CancelCloseRequest();
@@ -111,6 +112,13 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
     {
         if (e.State == InputState.Pressed)
         {
+            if (!_contextMenuItem.IsEnabled)
+            {
+                // Consume so the press doesn't fall through to dismiss the menu — the user
+                // clicked an item (just a disabled one), not outside the menu.
+                e.Consume();
+                return;
+            }
             Clicked?.Invoke();
             e.Consume();
         }

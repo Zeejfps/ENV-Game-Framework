@@ -6,13 +6,13 @@ namespace GitGui;
 
 public static class RepoBarContextMenu
 {
-    public sealed record Item(string Label, Action OnSelected, string? Icon = null);
+    public sealed record Item(string Label, Action OnSelected, string? Icon = null, bool Enabled = true);
 
-    public static void Show(Context context, PointF anchor, IReadOnlyList<Item> items)
+    public static IOpenedContextMenu? Show(Context context, PointF anchor, IReadOnlyList<Item> items)
     {
-        if (items.Count == 0) return;
+        if (items.Count == 0) return null;
         var manager = context.Get<ContextMenuManager>();
-        if (manager == null) return;
+        if (manager == null) return null;
 
         manager.CloseAllImmediately();
 
@@ -36,6 +36,8 @@ public static class RepoBarContextMenu
                 NormalBackgroundColor = 0x00000000,
                 SelectedBackgroundColor = DialogPalette.RowHover,
                 TextColor = DialogPalette.RowText,
+                DisabledTextColor = DialogPalette.RowTextMissing,
+                IsEnabled = item.Enabled,
                 ZIndex = 2001,
             };
 
@@ -49,8 +51,9 @@ public static class RepoBarContextMenu
         }
 
         var opened = manager.ShowContextMenu(menu);
-        if (opened == null) return;
+        if (opened == null) return null;
 
         menu.UseController(_ => new ContextMenuKbmController(opened));
+        return opened;
     }
 }

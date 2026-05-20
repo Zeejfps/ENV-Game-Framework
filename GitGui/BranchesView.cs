@@ -1,5 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Gui.Tests;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -11,9 +12,10 @@ namespace GitGui;
 /// history view; click a section/remote/folder row to toggle collapse. Double-click a
 /// branch to check it out: local branches check out directly; remote branches that have
 /// a matching local check that local out; remote branches with no matching local pop the
-/// CheckoutBranchDialog. Collapse state is persisted per-repo via IRepoRegistry.
+/// CheckoutBranchDialog. Right-click a local/remote branch row to open a context menu
+/// (Checkout / Rename / Delete). Collapse state is persisted per-repo via IRepoRegistry.
 /// </summary>
-public sealed class BranchesView : MultiChildView, IBranchesView
+public sealed class BranchesView : MultiChildView
 {
     private const float RowHeight = 22f;
     private const float BaseIndent = 8f;
@@ -62,41 +64,61 @@ public sealed class BranchesView : MultiChildView, IBranchesView
     private BranchSelection? _selection;
     private string? _busyBranch;
     private string? _loadError;
+    private bool _isLoading;
 
     private float _scrollY;
     private int _hoveredRowIndex = -1;
+    // Tracks which row currently has an open right-click context menu, drawn with the
+    // same hover background. Distinct from _hoveredRowIndex because the pointer often
+    // leaves the row while the menu is open.
+    private int _contextHighlightRowIndex = -1;
 
     private bool _hasLastClick;
     private int _lastClickTickMs;
     private int _lastClickRowIndex = -1;
 
-    public event Action<BranchRow?>? RowClicked;
-    public event Action<BranchRow>? RowActivated;
+    private BranchesViewModel? _vm;
 
     public BranchesView()
     {
-        this.UseController(_ => new BranchesViewController(this));
+        this.UseController(ctx => new BranchesViewController(this, ctx));
 
-        this.UsePresenter(ctx => new BranchesPresenter(
-            this,
-            ctx.Require<IRepoRegistry>(),
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>(),
-            ctx.Require<State<MainViewMode>>()));
+        this.UsePresenter(ctx =>
+        {
+            var vm = new BranchesViewModel(
+                ctx.Require<IRepoRegistry>(),
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>(),
+                ctx.Require<State<MainViewMode>>());
+            Bind(vm);
+            return vm;
+        });
     }
 
-    public void SetRows(IReadOnlyList<BranchRow> rows)
+    private void Bind(BranchesViewModel vm)
+    {
+        _vm = vm;
+        vm.Rows.Subscribe(SetRows);
+        vm.Selection.Subscribe(SetSelection);
+        vm.BusyBranch.Subscribe(SetBusyBranch);
+        vm.LoadError.Subscribe(SetLoadError);
+        vm.IsLoading.Subscribe(SetIsLoading);
+    }
+
+    private void SetRows(IReadOnlyList<BranchRow> rows)
     {
         _rows = rows;
         _hoveredRowIndex = -1;
+        _contextHighlightRowIndex = -1;
         if (_rows.Count == 0) _scrollY = 0f;
         ClampScroll();
     }
 
-    public void SetSelection(BranchSelection? selection) => _selection = selection;
-    public void SetBusyBranch(string? fullPath) => _busyBranch = fullPath;
-    public void SetLoadError(string? error) => _loadError = error;
+    private void SetSelection(BranchSelection? selection) => _selection = selection;
+    private void SetBusyBranch(string? fullPath) => _busyBranch = fullPath;
+    private void SetLoadError(string? error) => _loadError = error;
+    private void SetIsLoading(bool isLoading) => _isLoading = isLoading;
 
     private void ClampScroll()
     {
@@ -132,6 +154,16 @@ public sealed class BranchesView : MultiChildView, IBranchesView
 
         if (_rows.Count == 0)
         {
+            if (_isLoading)
+            {
+                c.DrawText(new DrawTextInputs
+                {
+                    Position = pos,
+                    Text = "Loading…",
+                    Style = _placeholderStyle,
+                    ZIndex = z + 1,
+                });
+            }
             c.PopClip();
             return;
         }
@@ -160,10 +192,11 @@ public sealed class BranchesView : MultiChildView, IBranchesView
     {
         var isSelected = _selection.HasValue && _selection.Value.Matches(row);
         var isHovered = rowIndex == _hoveredRowIndex;
+        var isContextHighlighted = rowIndex == _contextHighlightRowIndex;
 
         var bg = isSelected
             ? CommitsPalette.RowHighlight
-            : (isHovered ? DialogPalette.RowHover : (uint?)null);
+            : ((isHovered || isContextHighlighted) ? DialogPalette.RowHover : (uint?)null);
         if (bg != null)
         {
             c.DrawRect(new DrawRectInputs
@@ -375,16 +408,12 @@ public sealed class BranchesView : MultiChildView, IBranchesView
 
     internal void OnClickAt(PointF point)
     {
-        // Click in the panel but outside any row → deselect (and clear CommitsView too).
         if (!Position.ContainsPoint(point)) return;
         var idx = HitTestRow(point);
         var row = (idx >= 0 && idx < _rows.Count) ? _rows[idx] : null;
 
-        RowClicked?.Invoke(row);
+        _vm?.OnRowClicked(row);
 
-        // Double-click detection sits on top of single-click: the first click of a
-        // double-click still selects and jumps to history (matches Fork), the second
-        // adds the activate (checkout) on top.
         if (row == null)
         {
             _hasLastClick = false;
@@ -397,7 +426,7 @@ public sealed class BranchesView : MultiChildView, IBranchesView
             && unchecked(now - _lastClickTickMs) <= DoubleClickThresholdMs;
         if (isDouble)
         {
-            RowActivated?.Invoke(row);
+            _vm?.OnRowActivated(row);
             _hasLastClick = false;
         }
         else
@@ -406,6 +435,31 @@ public sealed class BranchesView : MultiChildView, IBranchesView
             _lastClickRowIndex = idx;
             _hasLastClick = true;
         }
+    }
+
+    // Opens the context menu for the row under <point>, if any. Highlights that row for
+    // the duration of the menu (so the user knows what the menu acts on even though the
+    // pointer floats away from the row). Does not change selection or broadcast — pure
+    // visual hint that clears when the menu closes.
+    internal void OnRightClickAt(PointF point, Context context)
+    {
+        if (_vm == null) return;
+        if (!Position.ContainsPoint(point)) return;
+        var idx = HitTestRow(point);
+        if (idx < 0 || idx >= _rows.Count) return;
+        var row = _rows[idx];
+
+        var items = _vm.BuildContextMenuItems(row);
+        if (items.Count == 0) return;
+
+        _contextHighlightRowIndex = idx;
+        var opened = RepoBarContextMenu.Show(context, point, items);
+        if (opened == null)
+        {
+            _contextHighlightRowIndex = -1;
+            return;
+        }
+        opened.Closed += () => _contextHighlightRowIndex = -1;
     }
 
     private int HitTestRow(PointF point)
