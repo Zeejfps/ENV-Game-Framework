@@ -56,9 +56,20 @@ public sealed class BranchesView : MultiChildView
     private readonly TextStyle _behindNumStyle = TextStyles.Row(BehindColor);
     private readonly TextStyle _aheadIconStyle = TextStyles.Icon(AheadColor);
     private readonly TextStyle _behindIconStyle = TextStyles.Icon(BehindColor);
+    // "Tracked" = green tick (this branch is connected to a remote — drawn for the
+    // minority case since most local feature branches never get an upstream and we don't
+    // want to noise up every row). Reuses the same green as the ahead badge so the
+    // sidebar's "git is good" vocabulary stays consistent. "Upstream gone" = amber
+    // warning (was tracking, remote ref has been deleted).
+    private readonly TextStyle _upstreamLinkedIconStyle = TextStyles.Icon(AheadColor);
+    private readonly TextStyle _upstreamGoneIconStyle = TextStyles.Icon(BehindColor);
     private readonly TextStyle _folderIconStyle = TextStyles.Icon(DialogPalette.SectionHeaderText);
     private readonly TextStyle _branchIconStyle = TextStyles.Icon(CommitsPalette.RowText);
     private readonly TextStyle _branchIconActiveStyle = TextStyles.Icon(CommitsPalette.RowTextActive);
+    // Dim variant for local-only branches (no upstream configured). The muted tone makes
+    // it visually obvious that the branch hasn't been published anywhere, distinguishing
+    // it from tracked branches without spending extra horizontal space on a second glyph.
+    private readonly TextStyle _branchIconLocalOnlyStyle = TextStyles.Icon(DialogPalette.RowTextMissing);
 
     private IReadOnlyList<BranchRow> _rows = Array.Empty<BranchRow>();
     private BranchSelection? _selection;
@@ -296,10 +307,37 @@ public sealed class BranchesView : MultiChildView
         }
         else
         {
-            glyph = LucideIcons.Branch;
-            style = IsBusyRow(row)
-                ? _branchIconBusyStyle
-                : ((row.IsHead || isSelected) ? _branchIconActiveStyle : _branchIconStyle);
+            // The branch slot doubles as the upstream-state indicator for local branches.
+            // We swap the glyph (not just the colour) so the icon itself communicates the
+            // tracking state — cloud-check for connected, cloud-off for broken, plain
+            // branch glyph for the common "never pushed" default. Busy still wins so an
+            // in-flight checkout reads consistently regardless of upstream state.
+            if (IsBusyRow(row))
+            {
+                glyph = LucideIcons.Branch;
+                style = _branchIconBusyStyle;
+            }
+            else if (row.Kind == BranchRowKind.LocalBranch && row.UpstreamState == BranchUpstreamState.Tracked)
+            {
+                glyph = LucideIcons.CloudCheck;
+                style = _upstreamLinkedIconStyle;
+            }
+            else if (row.Kind == BranchRowKind.LocalBranch && row.UpstreamState == BranchUpstreamState.Gone)
+            {
+                glyph = LucideIcons.CloudOff;
+                style = _upstreamGoneIconStyle;
+            }
+            else
+            {
+                // NeverLinked — dim the icon so a local-only branch reads as such even at
+                // a glance. HEAD/selected still get their highlights in the *name* style,
+                // which keeps the row distinguishable without overriding the local-only
+                // signal at the icon level.
+                glyph = LucideIcons.Branch;
+                style = row.Kind == BranchRowKind.LocalBranch
+                    ? _branchIconLocalOnlyStyle
+                    : ((row.IsHead || isSelected) ? _branchIconActiveStyle : _branchIconStyle);
+            }
         }
 
         var width = Context!.Canvas.MeasureTextWidth(glyph, style);
@@ -632,6 +670,7 @@ public sealed class BranchesView : MultiChildView
                     FullPath = entry.Name,
                     AheadBy = entry.AheadBy,
                     BehindBy = entry.BehindBy,
+                    UpstreamState = entry.UpstreamState,
                 });
             }
             else

@@ -231,7 +231,10 @@ public sealed class GitService : IGitService
             var headRef = RunGit(repo.Path, out _, "symbolic-ref", "-q", "HEAD")?.Trim();
 
             const char Sep = '\x1F';
-            var fmt = $"%(objectname){Sep}%(refname){Sep}%(upstream:track,nobracket)";
+            // %(upstream:track) collapses two distinct cases to "": (a) no upstream
+            // configured at all, (b) upstream is set and we are exactly in sync. So we
+            // also pull %(upstream) (the upstream ref name) to tell them apart.
+            var fmt = $"%(objectname){Sep}%(refname){Sep}%(upstream:track,nobracket){Sep}%(upstream)";
             var branchesOut = RunGit(repo.Path, out var brErr,
                 "for-each-ref", $"--format={fmt}", "refs/heads", "refs/remotes");
             if (branchesOut == null)
@@ -246,13 +249,14 @@ public sealed class GitService : IGitService
                 var sha = parts[0];
                 var refname = parts[1];
                 var track = parts.Length > 2 ? parts[2] : string.Empty;
+                var upstream = parts.Length > 3 ? parts[3] : string.Empty;
 
                 if (refname.StartsWith("refs/heads/", StringComparison.Ordinal))
                 {
                     var name = refname["refs/heads/".Length..];
                     var isHead = headRef == refname;
-                    var (ahead, behind) = ParseTrack(track);
-                    locals.Add(new BranchEntry(name, sha, isHead, AheadBy: ahead, BehindBy: behind));
+                    var (ahead, behind, upstreamState) = ParseUpstream(track, upstream);
+                    locals.Add(new BranchEntry(name, sha, isHead, AheadBy: ahead, BehindBy: behind, UpstreamState: upstreamState));
                 }
                 else if (refname.StartsWith("refs/remotes/", StringComparison.Ordinal))
                 {
@@ -327,11 +331,15 @@ public sealed class GitService : IGitService
         return reflogSubject[(colon + 2)..];
     }
 
-    // `git for-each-ref %(upstream:track,nobracket)` returns "", "gone", "ahead N",
-    // "behind N", or "ahead N, behind M".
-    private static (int? ahead, int? behind) ParseTrack(string track)
+    // %(upstream:track,nobracket) returns "", "gone", "ahead N", "behind N", or
+    // "ahead N, behind M". Empty is overloaded: it means EITHER no upstream configured
+    // OR in sync with upstream — so we also key on %(upstream) (the upstream ref name,
+    // empty when none is set) to disambiguate. "gone" = upstream was set but the remote
+    // ref has since been deleted. The UI surfaces those as distinct states.
+    private static (int? ahead, int? behind, BranchUpstreamState state) ParseUpstream(string track, string upstream)
     {
-        if (string.IsNullOrEmpty(track) || track == "gone") return (null, null);
+        if (string.IsNullOrEmpty(upstream)) return (null, null, BranchUpstreamState.NeverLinked);
+        if (track == "gone") return (null, null, BranchUpstreamState.Gone);
         int? a = null, b = null;
         foreach (var part in track.Split(',', StringSplitOptions.RemoveEmptyEntries))
         {
@@ -339,7 +347,7 @@ public sealed class GitService : IGitService
             if (p.StartsWith("ahead ", StringComparison.Ordinal) && int.TryParse(p[6..], out var av)) a = av;
             else if (p.StartsWith("behind ", StringComparison.Ordinal) && int.TryParse(p[7..], out var bv)) b = bv;
         }
-        return (a, b);
+        return (a, b, BranchUpstreamState.Tracked);
     }
 
     public LocalChangesSnapshot GetLocalChanges(Repo repo)

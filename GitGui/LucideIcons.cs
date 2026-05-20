@@ -26,4 +26,6 @@ internal static class LucideIcons
     public const string FolderInput = "";  // folder-input
     public const string X = "";             // x
     public const string Copy = "";          // copy
+    public const string CloudCheck = "";     // cloud-check (branch tracking a live upstream)
+    public const string CloudOff = "";      // cloud-off (upstream configured but remote ref is gone)
 }

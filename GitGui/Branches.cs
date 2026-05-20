@@ -1,11 +1,21 @@
 namespace GitGui;
 
+// Tracks whether a local branch has an upstream and whether that upstream still exists.
+// Remote-branch entries always carry Tracked (the field is meaningless for them).
+public enum BranchUpstreamState
+{
+    Tracked,      // upstream is set and the remote ref still exists
+    NeverLinked,  // no upstream configured (e.g. a freshly created local branch)
+    Gone,         // upstream was configured but the remote ref has since been deleted
+}
+
 public sealed record BranchEntry(
     string Name,
     string TipSha,
     bool IsHead,
     int? AheadBy = null,
-    int? BehindBy = null);
+    int? BehindBy = null,
+    BranchUpstreamState UpstreamState = BranchUpstreamState.Tracked);
 
 public sealed record RemoteGroup(string Name, IReadOnlyList<BranchEntry> Branches);
 

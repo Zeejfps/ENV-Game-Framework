@@ -23,6 +23,7 @@ public sealed class BranchRow
     public int? AheadBy { get; init; }
     public int? BehindBy { get; init; }
     public int? StashIndex { get; init; }
+    public BranchUpstreamState UpstreamState { get; init; } = BranchUpstreamState.Tracked;
 }
 
 // IsStash flags the selection as pointing at a stash entry; FullPath is then the
