@@ -225,6 +225,7 @@ public sealed class InputSystem
 
     public void SendMouseMovedEvent(ref MouseMoveEvent e)
     {
+        e.Phase = EventPhase.Bubbling;
         if (_focusedComponent != null)
         {
             var filter = GetPhaseFilter(_focusedComponent);
@@ -278,8 +279,6 @@ public sealed class InputSystem
     /// </summary>
     public void RefreshHover(IMouse mouse)
     {
-        if (_focusedComponent != null) return;
-
         var hitComponent = HitTest(mouse.Point);
         if (_hoveredComponent == hitComponent) return;
 
