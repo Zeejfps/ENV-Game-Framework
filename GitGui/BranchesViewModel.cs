@@ -428,7 +428,7 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
             items.Add(new RepoBarContextMenu.Item(
                 $"Merge {capturedName} into {capturedHead}…",
                 () => _bus.Broadcast(new ShowMergeBranchDialogMessage(capturedRepo, capturedName, capturedName, capturedHead)),
-                LucideIcons.Branch,
+                LucideIcons.Merge,
                 Enabled: canMerge,
                 LabelSegments: BuildMergeSegments(capturedName, capturedHead)));
         }
@@ -475,7 +475,7 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
             items.Add(new RepoBarContextMenu.Item(
                 $"Merge {display} into {capturedHead}…",
                 () => _bus.Broadcast(new ShowMergeBranchDialogMessage(capturedRepo, sourceRef, display, capturedHead)),
-                LucideIcons.Branch,
+                LucideIcons.Merge,
                 Enabled: !state.IsBranchOpInFlight,
                 LabelSegments: BuildMergeSegments(display, capturedHead)));
         }
@@ -496,7 +496,7 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         return null;
     }
 
-    private const uint MergeMenuBranchAccent = 0xFF7AB7E0;
+    private const uint MergeMenuBranchAccent = 0xFFFFFFFF;
 
     private static IReadOnlyList<MenuLabelSegment> BuildMergeSegments(string source, string target) =>
     [
