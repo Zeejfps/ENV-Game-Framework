@@ -76,6 +76,7 @@ public sealed class BranchesView : MultiChildView
     private string? _busyBranch;
     private string? _loadError;
     private bool _isLoading;
+    private IReadOnlySet<string> _worktreeBranches = new HashSet<string>();
 
     // Latest values from the VM, used to recompute _rows whenever either changes.
     // Stored as fields rather than rebuilding from inside each subscription so a paired
@@ -122,6 +123,7 @@ public sealed class BranchesView : MultiChildView
         vm.BusyBranch.Subscribe(SetBusyBranch);
         vm.LoadError.Subscribe(SetLoadError);
         vm.IsLoading.Subscribe(SetIsLoading);
+        vm.WorktreeBranches.Subscribe(set => _worktreeBranches = set);
     }
 
     private void RebuildRows()
@@ -263,7 +265,16 @@ public sealed class BranchesView : MultiChildView
         var badgeWidth = (row.Kind == BranchRowKind.LocalBranch && Context != null)
             ? MeasureAheadBehindBadge(row)
             : 0f;
-        var nameBudget = Math.Max(0f, rightEdge - contentLeft - (badgeWidth > 0 ? badgeWidth + nameBadgeGap : 0f));
+
+        // Branches checked out in a sibling worktree get muted ("busy") text below — the
+        // visual style alone communicates "you can't take this here", no extra glyph.
+        var isCheckedOutElsewhere = row.Kind == BranchRowKind.LocalBranch
+            && row.FullPath != null
+            && _worktreeBranches.Contains(row.FullPath);
+
+        var nameBudget = Math.Max(0f,
+            rightEdge - contentLeft
+            - (badgeWidth > 0 ? badgeWidth + nameBadgeGap : 0f));
         if (nameBudget <= 0f) return;
 
         var isBusy = IsBusyRow(row);
@@ -271,6 +282,7 @@ public sealed class BranchesView : MultiChildView
         {
             BranchRowKind.LocalHeader or BranchRowKind.RemotesHeader or BranchRowKind.RemoteHeader or BranchRowKind.StashesHeader => (row.DisplayName, _headerTextStyle),
             BranchRowKind.LocalBranch when isBusy => (row.DisplayName, _branchTextBusyStyle),
+            BranchRowKind.LocalBranch when isCheckedOutElsewhere => (row.DisplayName, _branchTextBusyStyle),
             BranchRowKind.LocalBranch when row.IsHead => (row.DisplayName, _headTextStyle),
             _ => (row.DisplayName, isSelected ? _branchTextSelectedStyle : _branchTextStyle),
         };

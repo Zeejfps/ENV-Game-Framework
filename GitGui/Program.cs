@@ -53,4 +53,10 @@ using var repoWatchers = new RepoWatcherService(
     context.Require<IUiDispatcher>(),
     messageBus);
 
+using var worktreeSync = new WorktreeSyncService(
+    registry,
+    context.Require<IGitService>(),
+    context.Require<IUiDispatcher>(),
+    messageBus);
+
 appHost.Run();

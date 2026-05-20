@@ -25,6 +25,8 @@ public sealed class DialogPresenter : IViewBehavior
         _messageBus?.Subscribe<ShowStashDialogMessage>(OnShowStashDialog);
         _messageBus?.Subscribe<ShowDropStashDialogMessage>(OnShowDropStashDialog);
         _messageBus?.Subscribe<ShowAbortOperationDialogMessage>(OnShowAbortOperationDialog);
+        _messageBus?.Subscribe<ShowCreateWorktreeDialogMessage>(OnShowCreateWorktreeDialog);
+        _messageBus?.Subscribe<ShowRemoveWorktreeDialogMessage>(OnShowRemoveWorktreeDialog);
     }
 
     public void DetachFromContext(View view, Context context)
@@ -71,6 +73,12 @@ public sealed class DialogPresenter : IViewBehavior
 
     private void OnShowAbortOperationDialog(ShowAbortOperationDialogMessage m)
         => ShowDialog(new AbortOperationDialog(m.Repo, m.State, OnDialogClosed));
+
+    private void OnShowCreateWorktreeDialog(ShowCreateWorktreeDialogMessage m)
+        => ShowDialog(new CreateWorktreeDialog(m.Primary, OnDialogClosed));
+
+    private void OnShowRemoveWorktreeDialog(ShowRemoveWorktreeDialogMessage m)
+        => ShowDialog(new RemoveWorktreeDialog(m.Primary, m.Worktree, OnDialogClosed));
 
     private void ShowDialog(View dialog)
     {

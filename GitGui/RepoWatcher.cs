@@ -43,6 +43,7 @@ internal sealed class RepoWatcher : IDisposable
     private readonly FileSystemWatcher? _gitWatcher;
     private readonly Timer _workingTreeDebounce;
     private readonly Timer _refsDebounce;
+    private readonly Timer _worktreesDebounce;
 
     private readonly string _gitDirPrefix;
 
@@ -57,6 +58,7 @@ internal sealed class RepoWatcher : IDisposable
 
         _workingTreeDebounce = new Timer(_ => OnWorkingTreeDebounce(), null, Timeout.Infinite, Timeout.Infinite);
         _refsDebounce = new Timer(_ => OnRefsDebounce(), null, Timeout.Infinite, Timeout.Infinite);
+        _worktreesDebounce = new Timer(_ => OnWorktreesDebounce(), null, Timeout.Infinite, Timeout.Infinite);
 
         _treeWatcher = TryCreateWatcher(repo.Path);
         if (_treeWatcher != null)
@@ -148,6 +150,18 @@ internal sealed class RepoWatcher : IDisposable
             || gitRelativePath.StartsWith("refs/", StringComparison.Ordinal))
         {
             ScheduleRefs();
+            return;
+        }
+
+        // .git/worktrees/<name>/ holds per-worktree HEAD/ORIG_HEAD/REBASE_HEAD plus the
+        // directory itself is created/deleted on `git worktree add`/`remove`. Any change
+        // here invalidates the worktree set or a worktree's HEAD; the sync service will
+        // re-run discovery and fan refs out to children.
+        if (gitRelativePath.StartsWith("worktrees/", StringComparison.Ordinal)
+            || gitRelativePath.Equals("worktrees", StringComparison.Ordinal))
+        {
+            ScheduleWorktrees();
+            return;
         }
         // .git/objects/**, .git/logs/**, .git/lfs/**, .git/hooks/**, .git/index — ignored.
     }
@@ -173,6 +187,12 @@ internal sealed class RepoWatcher : IDisposable
         _refsDebounce.Change(DebounceMs, Timeout.Infinite);
     }
 
+    private void ScheduleWorktrees()
+    {
+        if (Volatile.Read(ref _disposed) != 0) return;
+        _worktreesDebounce.Change(DebounceMs, Timeout.Infinite);
+    }
+
     private void OnWorkingTreeDebounce()
     {
         if (Volatile.Read(ref _disposed) != 0) return;
@@ -195,13 +215,25 @@ internal sealed class RepoWatcher : IDisposable
         });
     }
 
+    private void OnWorktreesDebounce()
+    {
+        if (Volatile.Read(ref _disposed) != 0) return;
+        var repoId = _repo.Id;
+        _dispatcher.Post(() =>
+        {
+            if (Volatile.Read(ref _disposed) != 0) return;
+            _bus.Broadcast(new WorktreesChangedMessage(repoId));
+        });
+    }
+
     private void OnError(object sender, ErrorEventArgs e)
     {
         // Internal buffer overflowed and events were dropped (huge churn — typically a
-        // build or a checkout touching thousands of files). Schedule both channels so
+        // build or a checkout touching thousands of files). Schedule every channel so
         // the UI reconciles via a full reload rather than staying stale.
         ScheduleWorkingTree();
         ScheduleRefs();
+        ScheduleWorktrees();
     }
 
     public void Dispose()
@@ -230,5 +262,6 @@ internal sealed class RepoWatcher : IDisposable
         }
         _workingTreeDebounce.Dispose();
         _refsDebounce.Dispose();
+        _worktreesDebounce.Dispose();
     }
 }

@@ -9,14 +9,21 @@ public sealed class RepoBar : MultiChildView, IRepoBarView
 {
     private const int BarWidth = 220;
     private const int HorizontalPadding = 8;
-    internal const int RowPaddingLeft = 24;
+    internal const int RowPaddingLeft = 12;
+    internal const int RowChevronWidth = 12;
     internal const int RowIconWidth = 16;
     internal const int RowIconGap = 6;
-    private const int RowTextIndent = RowPaddingLeft + RowIconWidth + RowIconGap;
+    // Extra indent that pushes worktree (child) rows past the primary's chevron+icon
+    // so nesting is visually obvious.
+    internal const int WorktreeRowExtraIndent = 16;
+    private const int RowTextIndent = RowPaddingLeft + RowChevronWidth + RowIconGap + RowIconWidth + RowIconGap;
     private const int RowTextRightPadding = 12;
 
     public static int RowTextAvailableWidth =>
         BarWidth - 2 * HorizontalPadding - RowTextIndent - RowTextRightPadding;
+
+    public static int WorktreeRowTextAvailableWidth =>
+        RowTextAvailableWidth - WorktreeRowExtraIndent;
 
     private readonly FlexColumnView _sections;
 
