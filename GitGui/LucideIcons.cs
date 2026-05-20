@@ -28,4 +28,6 @@ internal static class LucideIcons
     public const string Copy = "";          // copy
     public const string CloudCheck = "";     // cloud-check (branch tracking a live upstream)
     public const string CloudOff = "";      // cloud-off (upstream configured but remote ref is gone)
+    public const string ChevronUp = "";    // chevron-up
+    public const string ChevronDown = "";  // chevron-down
 }

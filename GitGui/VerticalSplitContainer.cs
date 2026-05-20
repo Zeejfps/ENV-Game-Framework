@@ -18,6 +18,8 @@ internal sealed class VerticalSplitContainer : MultiChildView
     private readonly View _bottom;
     private readonly View _splitter;
     private bool _bottomVisible;
+    private bool _bottomCollapsed;
+    private float _collapsedBottomHeight;
     private float _bottomFraction;
 
     public VerticalSplitContainer(View top, View bottom, View splitter, float bottomFraction)
@@ -36,29 +38,48 @@ internal sealed class VerticalSplitContainer : MultiChildView
         {
             if (_bottomVisible == value) return;
             _bottomVisible = value;
-            if (_bottomVisible)
-            {
-                AddChildToSelf(_splitter);
-                AddChildToSelf(_bottom);
-            }
-            else
-            {
-                RemoveChildFromSelf(_splitter);
-                RemoveChildFromSelf(_bottom);
-            }
+            SyncBottomChildren();
             SetDirty();
         }
+    }
+
+    // When true, the bottom panel shows at a fixed pixel height (CollapsedBottomHeight)
+    // with no splitter — used by callers that want to keep a thin "header" of the bottom
+    // panel visible while hiding its body. Has no effect while BottomVisible is false.
+    public void SetBottomCollapsed(bool collapsed, float collapsedHeight)
+    {
+        var heightChanged = Math.Abs(_collapsedBottomHeight - collapsedHeight) > 0.01f;
+        if (_bottomCollapsed == collapsed && !heightChanged) return;
+        _bottomCollapsed = collapsed;
+        _collapsedBottomHeight = collapsedHeight;
+        SyncBottomChildren();
+        SetDirty();
     }
 
     // Positive dy = mouse moved up (Y-up coords). Up = bigger bottom (diff grows), down =
     // smaller bottom. Clamped so neither side can collapse to zero.
     public void AdjustBottomFractionByPixels(float dy)
     {
-        if (!_bottomVisible) return;
+        if (!_bottomVisible || _bottomCollapsed) return;
         var available = Position.Height - SplitterThickness;
         if (available <= 0f) return;
         _bottomFraction = Math.Clamp(_bottomFraction + dy / available, MinFraction, MaxFraction);
         SetDirty();
+    }
+
+    private void SyncBottomChildren()
+    {
+        var wantSplitter = _bottomVisible && !_bottomCollapsed;
+        var wantBottom = _bottomVisible;
+
+        var hasSplitter = ReferenceEquals(_splitter.Parent, this);
+        var hasBottom = ReferenceEquals(_bottom.Parent, this);
+
+        if (wantSplitter && !hasSplitter) AddChildToSelf(_splitter);
+        else if (!wantSplitter && hasSplitter) RemoveChildFromSelf(_splitter);
+
+        if (wantBottom && !hasBottom) AddChildToSelf(_bottom);
+        else if (!wantBottom && hasBottom) RemoveChildFromSelf(_bottom);
     }
 
     protected override void OnLayoutChildren()
@@ -72,13 +93,22 @@ internal sealed class VerticalSplitContainer : MultiChildView
             return;
         }
 
-        var available = Math.Max(0f, pos.Height - SplitterThickness);
-        var bottomH = available * _bottomFraction;
-        var topH = available - bottomH;
+        if (_bottomCollapsed)
+        {
+            var bottomH = Math.Min(_collapsedBottomHeight, pos.Height);
+            var topH = Math.Max(0f, pos.Height - bottomH);
+            LayoutSlice(_top, pos.Left, pos.Bottom + bottomH, pos.Width, topH);
+            LayoutSlice(_bottom, pos.Left, pos.Bottom, pos.Width, bottomH);
+            return;
+        }
 
-        LayoutSlice(_top, pos.Left, pos.Bottom + bottomH + SplitterThickness, pos.Width, topH);
-        LayoutSlice(_splitter, pos.Left, pos.Bottom + bottomH, pos.Width, SplitterThickness);
-        LayoutSlice(_bottom, pos.Left, pos.Bottom, pos.Width, bottomH);
+        var available = Math.Max(0f, pos.Height - SplitterThickness);
+        var bottomH2 = available * _bottomFraction;
+        var topH2 = available - bottomH2;
+
+        LayoutSlice(_top, pos.Left, pos.Bottom + bottomH2 + SplitterThickness, pos.Width, topH2);
+        LayoutSlice(_splitter, pos.Left, pos.Bottom + bottomH2, pos.Width, SplitterThickness);
+        LayoutSlice(_bottom, pos.Left, pos.Bottom, pos.Width, bottomH2);
     }
 
     private static void LayoutSlice(View child, float left, float bottom, float width, float height)

@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Observable;
 
@@ -24,7 +25,13 @@ public abstract record DiffViewModel
 /// </remarks>
 public sealed class DiffView : MultiChildView, IDiffView
 {
+    // Height of the always-visible header strip. Exposed so the parent split container
+    // can pin the bottom panel to exactly this height when the diff is collapsed, so the
+    // chevron stays clickable even when the body is hidden.
+    public const float HeaderHeight = 24f;
+
     private readonly State<DiffTarget?> _target = new(null);
+    private readonly State<bool> _isCollapsed = new(false);
 
     private readonly DiffContentView _content;
 
@@ -34,20 +41,28 @@ public sealed class DiffView : MultiChildView, IDiffView
         var vScrollBar = ScrollBarStyles.CreateVertical();
         var hScrollBar = ScrollBarStyles.CreateHorizontal();
 
+        var body = new BorderLayoutView
+        {
+            Center = _content,
+            East = vScrollBar,
+            South = hScrollBar,
+        };
+
+        // Outer layout: header always on top, body in the center. When collapsed, we
+        // null out Center so the body's hScrollBar isn't laid out — otherwise its
+        // South=hScrollBar measures at its natural height and draws over the header
+        // (body draws after header in z-order, since it's added second).
+        var outerLayout = new BorderLayoutView
+        {
+            North = BuildHeaderBar(),
+            Center = body,
+        };
+        _isCollapsed.Subscribe(c => outerLayout.Center = c ? null : body);
+
         AddChildToSelf(new RectView
         {
             BackgroundColor = CommitsPalette.Background,
-            BorderColor = new BorderColorStyle { Top = CommitsPalette.Border },
-            BorderSize = new BorderSizeStyle { Top = 1 },
-            Children =
-            {
-                new BorderLayoutView
-                {
-                    Center = _content,
-                    East = vScrollBar,
-                    South = hScrollBar,
-                },
-            },
+            Children = { outerLayout },
         });
 
         this.UseController(_ => new ScrollSyncController(_content, vScrollBar, hScrollBar));
@@ -59,11 +74,72 @@ public sealed class DiffView : MultiChildView, IDiffView
     }
 
     public IReadable<DiffTarget?> Target => _target;
+    public IReadable<bool> IsCollapsed => _isCollapsed;
 
     public void SetViewModel(DiffViewModel vm) => _content.SetViewModel(vm);
 
     public void SetTarget(string? path, DiffSide side)
     {
         _target.Value = path == null ? null : new DiffTarget(path, side);
+    }
+
+    private View BuildHeaderBar()
+    {
+        const uint titleIdle = 0xFFB5B9C0;
+        const uint titleHover = 0xFFFFFFFFu;
+        var hovered = new State<bool>(false);
+
+        var title = new TextView
+        {
+            Text = "Diff View",
+            FontSize = 12f,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        title.BindTextColor(() => hovered.Value ? titleHover : titleIdle);
+
+        var chevron = new TextView
+        {
+            FontFamily = LucideIcons.FontFamily,
+            FontSize = 12f,
+            VerticalTextAlignment = TextAlignment.Center,
+            HorizontalTextAlignment = TextAlignment.Center,
+            PreferredWidth = 16f,
+        };
+        chevron.BindText(_isCollapsed, c => c ? LucideIcons.ChevronUp : LucideIcons.ChevronDown);
+        chevron.BindTextColor(() => hovered.Value ? titleHover : titleIdle);
+
+        var bar = new RectView
+        {
+            PreferredHeight = HeaderHeight,
+            BorderColor = new BorderColorStyle
+            {
+                Top = CommitsPalette.Border,
+                Bottom = FileChangesPalette.HeaderBorder,
+            },
+            BorderSize = new BorderSizeStyle { Top = 1, Bottom = 1 },
+            Padding = new PaddingStyle { Left = 8, Right = 6 },
+            Children =
+            {
+                new FlexRowView
+                {
+                    Gap = 4f,
+                    CrossAxisAlignment = CrossAxisAlignment.Center,
+                    Children =
+                    {
+                        new FlexItem { Grow = 1, Child = title },
+                        chevron,
+                    },
+                },
+            },
+        };
+        bar.BindBackgroundColor(() => hovered.Value
+            ? DialogPalette.ButtonHover
+            : FileChangesPalette.HeaderBg);
+
+        bar.UseController(_ => new HoverableButtonController(
+            () => _isCollapsed.Value = !_isCollapsed.Value,
+            h => hovered.Value = h));
+
+        return bar;
     }
 }

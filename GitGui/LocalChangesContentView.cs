@@ -123,15 +123,26 @@ internal sealed class LocalChangesContentView : MultiChildView
         vm.Selection.Subscribe(sel => _selection.Value = sel);
 
         // Diff view target follows the single-selection slice. Multi-select and empty
-        // selection both yield null, which hides the diff pane below.
+        // selection both yield null, which hides the diff pane below. A user toggle on
+        // the diff header (DiffView.IsCollapsed) overlays this: when collapsed, the diff
+        // panel stays mounted at its header height across selection changes so the
+        // chevron stays clickable — the bottom is "visible" but pinned to header height.
         vm.SelectedTarget.Subscribe(target =>
         {
             _diffView.SetTarget(target?.Path, target?.Side ?? DiffSide.Unstaged);
-            _snapshotContainer.BottomVisible = target != null;
+            ApplyDiffVisibility(target != null, _diffView.IsCollapsed.Value);
         });
+        _diffView.IsCollapsed.Subscribe(collapsed =>
+            ApplyDiffVisibility(vm.SelectedTarget.Value != null, collapsed));
 
         vm.DiscardEnabled.Subscribe(enabled => _discardButton.IsEnabled.Value = enabled);
         vm.StageSelectedEnabled.Subscribe(enabled => _stageSelectedButton.IsEnabled.Value = enabled);
+    }
+
+    private void ApplyDiffVisibility(bool hasTarget, bool collapsed)
+    {
+        _snapshotContainer.BottomVisible = hasTarget;
+        _snapshotContainer.SetBottomCollapsed(hasTarget && collapsed, DiffView.HeaderHeight);
     }
 
     private void ShowPlaceholder(string text)

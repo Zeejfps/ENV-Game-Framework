@@ -319,11 +319,9 @@ public sealed class BranchesView : MultiChildView
         }
         else
         {
-            // The branch slot doubles as the upstream-state indicator for local branches.
-            // We swap the glyph (not just the colour) so the icon itself communicates the
-            // tracking state — cloud-check for connected, cloud-off for broken, plain
-            // branch glyph for the common "never pushed" default. Busy still wins so an
-            // in-flight checkout reads consistently regardless of upstream state.
+            // Local-branch icon colour encodes upstream state: green branch = tracked,
+            // amber cloud-off = upstream gone, muted branch = never linked. Busy wins
+            // so an in-flight checkout reads consistently regardless of upstream state.
             if (IsBusyRow(row))
             {
                 glyph = LucideIcons.Branch;
@@ -331,7 +329,7 @@ public sealed class BranchesView : MultiChildView
             }
             else if (row.Kind == BranchRowKind.LocalBranch && row.UpstreamState == BranchUpstreamState.Tracked)
             {
-                glyph = LucideIcons.CloudCheck;
+                glyph = LucideIcons.Branch;
                 style = _upstreamLinkedIconStyle;
             }
             else if (row.Kind == BranchRowKind.LocalBranch && row.UpstreamState == BranchUpstreamState.Gone)
@@ -341,10 +339,6 @@ public sealed class BranchesView : MultiChildView
             }
             else
             {
-                // NeverLinked — dim the icon so a local-only branch reads as such even at
-                // a glance. HEAD/selected still get their highlights in the *name* style,
-                // which keeps the row distinguishable without overriding the local-only
-                // signal at the icon level.
                 glyph = LucideIcons.Branch;
                 style = row.Kind == BranchRowKind.LocalBranch
                     ? _branchIconLocalOnlyStyle
