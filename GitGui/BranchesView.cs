@@ -70,10 +70,6 @@ public sealed class BranchesView : MultiChildView
     // it visually obvious that the branch hasn't been published anywhere, distinguishing
     // it from tracked branches without spending extra horizontal space on a second glyph.
     private readonly TextStyle _branchIconLocalOnlyStyle = TextStyles.Icon(DialogPalette.RowTextMissing);
-    // Distinct muted tone for the sibling-worktree marker so it reads as informational
-    // (not an action button) — same role as the local-only icon but rendered as a
-    // small secondary glyph next to the branch name.
-    private readonly TextStyle _worktreeMarkerStyle = TextStyles.Icon(DialogPalette.RowTextMissing);
 
     private IReadOnlyList<BranchRow> _rows = Array.Empty<BranchRow>();
     private BranchSelection? _selection;
@@ -270,21 +266,15 @@ public sealed class BranchesView : MultiChildView
             ? MeasureAheadBehindBadge(row)
             : 0f;
 
-        // Worktree marker: when this local branch is checked out in a sibling worktree,
-        // paint a small Branch glyph after the name so the user knows checkout would
-        // conflict. The marker sits between the name and the ahead/behind badge.
-        var hasWorktreeMarker = row.Kind == BranchRowKind.LocalBranch
+        // Branches checked out in a sibling worktree get muted ("busy") text below — the
+        // visual style alone communicates "you can't take this here", no extra glyph.
+        var isCheckedOutElsewhere = row.Kind == BranchRowKind.LocalBranch
             && row.FullPath != null
-            && _worktreeBranches.Contains(row.FullPath)
-            && Context != null;
-        var worktreeMarkerWidth = hasWorktreeMarker
-            ? Context!.Canvas.MeasureTextWidth(LucideIcons.Branch, _worktreeMarkerStyle) + nameBadgeGap
-            : 0f;
+            && _worktreeBranches.Contains(row.FullPath);
 
         var nameBudget = Math.Max(0f,
             rightEdge - contentLeft
-            - (badgeWidth > 0 ? badgeWidth + nameBadgeGap : 0f)
-            - worktreeMarkerWidth);
+            - (badgeWidth > 0 ? badgeWidth + nameBadgeGap : 0f));
         if (nameBudget <= 0f) return;
 
         var isBusy = IsBusyRow(row);
@@ -292,7 +282,7 @@ public sealed class BranchesView : MultiChildView
         {
             BranchRowKind.LocalHeader or BranchRowKind.RemotesHeader or BranchRowKind.RemoteHeader or BranchRowKind.StashesHeader => (row.DisplayName, _headerTextStyle),
             BranchRowKind.LocalBranch when isBusy => (row.DisplayName, _branchTextBusyStyle),
-            BranchRowKind.LocalBranch when hasWorktreeMarker => (row.DisplayName, _branchTextBusyStyle),
+            BranchRowKind.LocalBranch when isCheckedOutElsewhere => (row.DisplayName, _branchTextBusyStyle),
             BranchRowKind.LocalBranch when row.IsHead => (row.DisplayName, _headTextStyle),
             _ => (row.DisplayName, isSelected ? _branchTextSelectedStyle : _branchTextStyle),
         };
@@ -306,25 +296,10 @@ public sealed class BranchesView : MultiChildView
             ZIndex = z + 1,
         });
 
-        var nameWidth = Context?.Canvas.MeasureTextWidth(rendered, style) ?? 0f;
-        var markerLeft = contentLeft + nameWidth + nameBadgeGap;
-
-        if (hasWorktreeMarker)
-        {
-            var glyphWidth = Context!.Canvas.MeasureTextWidth(LucideIcons.Branch, _worktreeMarkerStyle);
-            c.DrawText(new DrawTextInputs
-            {
-                Position = new RectF(markerLeft, rowBottom, glyphWidth, RowHeight),
-                Text = LucideIcons.Branch,
-                Style = _worktreeMarkerStyle,
-                ZIndex = z + 1,
-            });
-            markerLeft += glyphWidth + nameBadgeGap;
-        }
-
         if (badgeWidth > 0)
         {
-            DrawAheadBehindBadgeAt(c, row, markerLeft, rowBottom, z + 1);
+            var nameWidth = Context!.Canvas.MeasureTextWidth(rendered, style);
+            DrawAheadBehindBadgeAt(c, row, contentLeft + nameWidth + nameBadgeGap, rowBottom, z + 1);
         }
     }
 
