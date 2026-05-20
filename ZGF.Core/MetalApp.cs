@@ -23,6 +23,7 @@ public sealed class MetalApp : IWindowApp
 
     private int _width;
     private int _height;
+    private float _dpiScale = 1f;
     private bool _isDisposed;
 
     public MetalApp(StartupConfig startupConfig)
@@ -49,6 +50,7 @@ public sealed class MetalApp : IWindowApp
         // CAMetalLayer drawableSize must be in framebuffer pixels — twice the
         // window's point size on Retina.
         Glfw.GetFramebufferSize(_window, out var fbW, out var fbH);
+        _dpiScale = ComputeDpiScale(_window, fbW, fbH);
         Layer = AttachMetalLayer(_window, Device, fbW, fbH);
 
         _windowSizeCallback = HandleWindowSizeChanged;
@@ -65,6 +67,7 @@ public sealed class MetalApp : IWindowApp
     public IntPtr WindowHandle => _window;
     public int Width => _width;
     public int Height => _height;
+    public float DpiScale => _dpiScale;
 
     public event Action? OnUpdate;
     public event Action<int, int>? OnResize;
@@ -106,7 +109,22 @@ public sealed class MetalApp : IWindowApp
     private void HandleFramebufferSizeChanged(Window window, int width, int height)
     {
         SetDrawableSize(Layer, width, height);
+        _dpiScale = ComputeDpiScale(_window, width, height);
         OnFramebufferResize?.Invoke(width, height);
+    }
+
+    private static float ComputeDpiScale(Window window, int fbWidth, int fbHeight)
+    {
+        var nsWindow = Native.GetCocoaWindow(window);
+        if (nsWindow != IntPtr.Zero)
+        {
+            var s = (float)msg_Double(nsWindow, Sel("backingScaleFactor"));
+            if (s > 0f) return s;
+        }
+        Glfw.GetWindowSize(window, out var winW, out var winH);
+        if (winW > 0 && winH > 0)
+            return MathF.Max((float)fbWidth / winW, (float)fbHeight / winH);
+        return 1f;
     }
 
     private static IntPtr AttachMetalLayer(Window glfwWindow, IntPtr device, int fbWidth, int fbHeight)

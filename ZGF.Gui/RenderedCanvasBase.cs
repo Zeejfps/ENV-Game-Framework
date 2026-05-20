@@ -147,22 +147,29 @@ public abstract class RenderedCanvasBase : ICanvas
     private readonly FontHandle _defaultFont;
     private readonly Dictionary<string, FontHandle> _fontsByFamily = new();
     private int _width, _height;
+    private readonly float _dpiScale;
 
     public int LastFrameUploadCount { get; protected set; }
 
     protected RenderedCanvasBase(
         int width, int height,
         FreeTypeFontBackend fonts,
-        FontHandle defaultFont)
+        FontHandle defaultFont,
+        float dpiScale = 1f)
     {
         _width = width;
         _height = height;
         _fonts = fonts;
         _defaultFont = defaultFont;
+        _dpiScale = dpiScale > 0f ? dpiScale : 1f;
     }
 
     public int Width => _width;
     public int Height => _height;
+    // Canvas coordinates are in logical points. Glyphs are baked into the atlas
+    // at device pixels (logical * DpiScale) and then drawn onto logical-sized
+    // rects so the GPU downsamples instead of upscaling on HiDPI displays.
+    public float DpiScale => _dpiScale;
     protected FreeTypeFontBackend FontBackend => _fonts;
 
     public void Resize(int width, int height)
@@ -292,10 +299,13 @@ public abstract class RenderedCanvasBase : ICanvas
         var key = MakeKey(inputs.ZIndex, seq);
 
         var pos = inputs.Position;
+        // Metrics come back in device pixels (FT is set at logical * DpiScale);
+        // convert to logical points for layout math.
+        var invScale = 1f / _dpiScale;
         var metrics = _fonts.GetMetrics(font);
-        var ascender = metrics.Ascender;
-        var descender = metrics.Descender;
-        var lineHeight = metrics.LineHeight;
+        var ascender = metrics.Ascender * invScale;
+        var descender = metrics.Descender * invScale;
+        var lineHeight = metrics.LineHeight * invScale;
 
         var lineStart = pos.Left;
         var baselineY = pos.Top - ascender;
@@ -357,20 +367,25 @@ public abstract class RenderedCanvasBase : ICanvas
         var cursorX = startX;
         var atlasWidth = (float)_fonts.AtlasWidth;
         var atlasHeight = (float)_fonts.AtlasHeight;
+        // Shaped positions and glyph bitmap dims come back in device pixels;
+        // convert to logical points for layout, but keep atlas-pixel dims for UV.
+        var invScale = 1f / _dpiScale;
 
         for (var i = 0; i < n; i++)
         {
             var sg = shaped[i];
             if (!_fonts.TryGetGlyph(font, sg.GlyphIndex, out var glyph))
             {
-                cursorX += sg.XAdvance;
+                cursorX += sg.XAdvance * invScale;
                 continue;
             }
 
             if (glyph.Width > 0 && glyph.Height > 0)
             {
-                var glyphX = MathF.Round(cursorX + sg.XOffset) + glyph.BitmapLeft;
-                var glyphY = MathF.Round(baselineY + sg.YOffset) + glyph.BitmapTop - glyph.Height;
+                var glyphW = glyph.Width * invScale;
+                var glyphH = glyph.Height * invScale;
+                var glyphX = MathF.Round(cursorX + sg.XOffset * invScale) + glyph.BitmapLeft * invScale;
+                var glyphY = MathF.Round(baselineY + sg.YOffset * invScale) + glyph.BitmapTop * invScale - glyphH;
 
                 var atlasU = glyph.AtlasX / atlasWidth;
                 var atlasV = glyph.AtlasY / atlasHeight;
@@ -382,7 +397,7 @@ public abstract class RenderedCanvasBase : ICanvas
                     Key = key,
                     Inst = new GlyphInstance
                     {
-                        Rect = new Vector4(glyphX, glyphY, glyph.Width, glyph.Height),
+                        Rect = new Vector4(glyphX, glyphY, glyphW, glyphH),
                         AtlasUV = new Vector4(atlasU, atlasV, atlasW, atlasH),
                         Color = color,
                         ClipIndex = clip,
@@ -391,7 +406,7 @@ public abstract class RenderedCanvasBase : ICanvas
                 });
             }
 
-            cursorX += sg.XAdvance;
+            cursorX += sg.XAdvance * invScale;
         }
     }
 
@@ -408,7 +423,7 @@ public abstract class RenderedCanvasBase : ICanvas
         var total = 0f;
         for (var i = 0; i < n; i++)
             total += shaped[i].XAdvance;
-        return total;
+        return total / _dpiScale;
     }
 
     public void RegisterFont(string family, FontHandle handle)
@@ -427,7 +442,9 @@ public abstract class RenderedCanvasBase : ICanvas
 
         if (style.FontSize.IsSet)
         {
-            var pixelSize = (int)MathF.Round(style.FontSize.Value);
+            // Caller's FontSize is in logical points; bake at device pixels so the
+            // atlas glyph is rendered 1:1 by the linear sampler on Retina.
+            var pixelSize = (int)MathF.Round(style.FontSize.Value * _dpiScale);
             if (pixelSize > 0)
                 baseFont = _fonts.GetSizedVariant(baseFont, pixelSize);
         }
@@ -554,7 +571,7 @@ public abstract class RenderedCanvasBase : ICanvas
         return max;
     }
 
-    public float MeasureTextLineHeight(TextStyle style) => _fonts.GetMetrics(ResolveFont(style)).LineHeight;
+    public float MeasureTextLineHeight(TextStyle style) => _fonts.GetMetrics(ResolveFont(style)).LineHeight / _dpiScale;
 
     public Size GetImageSize(string imageId) => GetImageSizeImpl(imageId);
     public int GetImageWidth(string imageId) => (int)GetImageSize(imageId).Width;

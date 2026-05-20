@@ -30,8 +30,9 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         int width, int height,
         FreeTypeFontBackend fonts,
         FontHandle defaultFont,
-        GlImageManager imageManager)
-        : base(width, height, fonts, defaultFont)
+        GlImageManager imageManager,
+        float dpiScale = 1f)
+        : base(width, height, fonts, defaultFont, dpiScale)
     {
         _imageManager = imageManager;
 

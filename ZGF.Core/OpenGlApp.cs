@@ -13,6 +13,7 @@ public sealed class OpenGlApp : IWindowApp
 
     private int _width;
     private int _height;
+    private float _dpiScale = 1f;
     private bool _isDisposed;
 
     public OpenGlApp(StartupConfig startupConfig)
@@ -42,6 +43,8 @@ public sealed class OpenGlApp : IWindowApp
         Import(Glfw.GetProcAddress);
         AssertNoGlError();
 
+        _dpiScale = ComputeDpiScale(_window);
+
         _windowSizeCallback = HandleWindowSizeChanged;
         _framebufferSizeCallback = HandleFramebufferSizeChanged;
         Glfw.SetWindowSizeCallback(_window, _windowSizeCallback);
@@ -57,6 +60,7 @@ public sealed class OpenGlApp : IWindowApp
     public Window GlfwWindow => _window;
     public int Width => _width;
     public int Height => _height;
+    public float DpiScale => _dpiScale;
 
     public event Action? OnUpdate;
     public event Action<int, int>? OnResize;
@@ -95,7 +99,17 @@ public sealed class OpenGlApp : IWindowApp
 
     private void HandleFramebufferSizeChanged(Window window, int width, int height)
     {
+        _dpiScale = ComputeDpiScale(_window);
         OnFramebufferResize?.Invoke(width, height);
+    }
+
+    private static float ComputeDpiScale(Window window)
+    {
+        Glfw.GetFramebufferSize(window, out var fbW, out var fbH);
+        Glfw.GetWindowSize(window, out var winW, out var winH);
+        if (winW > 0 && winH > 0)
+            return MathF.Max((float)fbW / winW, (float)fbH / winH);
+        return 1f;
     }
 
     public void Dispose()

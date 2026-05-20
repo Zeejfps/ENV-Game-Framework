@@ -54,8 +54,9 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         int width, int height,
         FreeTypeFontBackend fonts, FontHandle defaultFont,
         MetalImageManager imageManager,
-        IntPtr device)
-        : base(width, height, fonts, defaultFont)
+        IntPtr device,
+        float dpiScale = 1f)
+        : base(width, height, fonts, defaultFont, dpiScale)
     {
         _device = device;
         _imageManager = imageManager;

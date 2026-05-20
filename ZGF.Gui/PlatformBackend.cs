@@ -30,16 +30,22 @@ internal static class PlatformBackend
     {
         var window = new OpenGlApp(config);
 
+        // Canvas runs in logical points; the canvas itself bakes glyphs at
+        // device pixels using DpiScale, so layout/styles stay in logical units
+        // but text renders crisply on HiDPI displays.
+        var dpiScale = window.DpiScale;
+
         var fontFilePath = PathUtils.ResolveLocalPath("Assets/Fonts/Inter/Inter-Regular.ttf");
         var fonts = new FreeTypeFontBackend();
-        var defaultFont = fonts.LoadFontFromFile(fontFilePath, 16);
+        var defaultFont = fonts.LoadFontFromFile(fontFilePath, (int)MathF.Round(16 * dpiScale));
         var imageManager = new GlImageManager();
         var canvas = new OpenGlRenderedCanvas(
             config.WindowWidth,
             config.WindowHeight,
             fonts,
             defaultFont,
-            imageManager);
+            imageManager,
+            dpiScale);
 
         glClearColor(0, 0, 0, 0);
 
@@ -64,9 +70,14 @@ internal static class PlatformBackend
     {
         var window = new MetalApp(config);
 
+        // Canvas runs in logical points; the canvas itself bakes glyphs at
+        // device pixels using DpiScale, so layout/styles stay in logical units
+        // but text renders crisply on Retina.
+        var dpiScale = window.DpiScale;
+
         var fontFilePath = PathUtils.ResolveLocalPath("Assets/Fonts/Inter/Inter-Regular.ttf");
         var fonts = new FreeTypeFontBackend();
-        var defaultFont = fonts.LoadFontFromFile(fontFilePath, 16);
+        var defaultFont = fonts.LoadFontFromFile(fontFilePath, (int)MathF.Round(16 * dpiScale));
         var imageManager = new MetalImageManager(window.Device);
         var canvas = new MetalRenderedCanvas(
             config.WindowWidth,
@@ -74,7 +85,8 @@ internal static class PlatformBackend
             fonts,
             defaultFont,
             imageManager,
-            window.Device);
+            window.Device,
+            dpiScale);
 
         var layer = window.Layer;
         var queue = window.CommandQueue;

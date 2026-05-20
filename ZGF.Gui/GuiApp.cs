@@ -74,7 +74,11 @@ public sealed class GuiApp : IDisposable
 
     public void RegisterFont(string family, string path, int pixelSize)
     {
-        var handle = _fontBackend.LoadFontFromFile(PathUtils.ResolveLocalPath(path), pixelSize);
+        // pixelSize is in logical points; bake at device pixels so the atlas
+        // glyph is high-res on HiDPI (the canvas downscales it when drawing).
+        var scaled = (int)MathF.Round(pixelSize * _canvas.DpiScale);
+        if (scaled <= 0) scaled = pixelSize;
+        var handle = _fontBackend.LoadFontFromFile(PathUtils.ResolveLocalPath(path), scaled);
         _canvas.RegisterFont(family, handle);
     }
 
@@ -100,7 +104,7 @@ public sealed class GuiApp : IDisposable
 
     private void HandleFramebufferResize(int width, int height)
     {
-        // GL needs viewport adjusted; Metal's drawable size is updated by MetalApp.
+        // GL viewport is in framebuffer pixels; Metal's drawable is sized by MetalApp.
         if (_window is OpenGlApp)
             GL46.glViewport(0, 0, width, height);
     }
