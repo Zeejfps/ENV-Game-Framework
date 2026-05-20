@@ -28,5 +28,9 @@ public sealed class AddRepoButton : HoverableButton
     }
 
     protected override void OnClicked()
-        => Context?.Get<IMessageBus>()?.Broadcast<AddRepoMessage>();
+    {
+        var path = Context?.Get<IPlatformShell>()?.PickFolder("Open Repository");
+        if (string.IsNullOrEmpty(path)) return;
+        Context?.Get<IRepoRegistry>()?.Open(path);
+    }
 }
