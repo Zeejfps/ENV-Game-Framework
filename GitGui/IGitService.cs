@@ -33,7 +33,28 @@ public interface IGitService
     WorktreeAddOutcome AddWorktree(Repo primary, WorktreeAddRequest request);
     WorktreeRemoveOutcome RemoveWorktree(Repo primary, string worktreePath, bool force);
     WorktreePruneOutcome PruneWorktrees(Repo primary);
+    MergePreviewResult PreviewMerge(Repo repo, string sourceRef);
+    MergeOutcome Merge(Repo repo, string sourceRef, MergeStrategy strategy);
 }
+
+public enum MergeStrategy
+{
+    Default,
+    NoFastForward,
+    FastForwardOnly,
+    Squash,
+}
+
+public enum MergePreviewState
+{
+    Clean,
+    Conflicts,
+    Unknown,
+}
+
+public sealed record MergePreviewResult(MergePreviewState State, string? ErrorMessage);
+
+public sealed record MergeOutcome(bool Success, string? ErrorMessage, bool HasConflicts = false);
 
 public sealed record AbortOperationOutcome(bool Success, string? ErrorMessage);
 

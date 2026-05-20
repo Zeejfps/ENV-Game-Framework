@@ -962,6 +962,112 @@ public sealed class GitService : IGitService
         }
     }
 
+    public MergePreviewResult PreviewMerge(Repo repo, string sourceRef)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new MergePreviewResult(MergePreviewState.Unknown, "Not a git repository.");
+
+            // git 2.38+: real-merge mode. Exit 0 = clean, 1 = conflicts, >1 = error
+            // (old git, missing ref, no merge base, etc). Treat errors as Unknown so the
+            // dialog quietly skips the preview rather than blocking the user from merging.
+            var psi = new ProcessStartInfo
+            {
+                FileName = GitExecutable(),
+                WorkingDirectory = repo.Path,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            psi.ArgumentList.Add("merge-tree");
+            psi.ArgumentList.Add("--write-tree");
+            psi.ArgumentList.Add("--no-messages");
+            psi.ArgumentList.Add("HEAD");
+            psi.ArgumentList.Add(sourceRef);
+
+            using var proc = Process.Start(psi);
+            if (proc == null) return new MergePreviewResult(MergePreviewState.Unknown, "Failed to start git.");
+            proc.StandardOutput.ReadToEnd();
+            var stderr = proc.StandardError.ReadToEnd();
+            proc.WaitForExit();
+
+            return proc.ExitCode switch
+            {
+                0 => new MergePreviewResult(MergePreviewState.Clean, null),
+                1 => new MergePreviewResult(MergePreviewState.Conflicts, null),
+                _ => new MergePreviewResult(MergePreviewState.Unknown, FirstMeaningfulLine(stderr)),
+            };
+        }
+        catch (Exception ex)
+        {
+            return new MergePreviewResult(MergePreviewState.Unknown, ex.Message);
+        }
+    }
+
+    // `git merge <ref>` against HEAD. Conflicts produce a non-zero exit but git still
+    // writes MERGE_HEAD and stages the resolvable hunks — surface that as "success with
+    // conflicts" so the caller can refresh and let the operation banner take over.
+    public MergeOutcome Merge(Repo repo, string sourceRef, MergeStrategy strategy)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new MergeOutcome(false, "Not a git repository.");
+
+            var args = new List<string> { "merge" };
+            switch (strategy)
+            {
+                case MergeStrategy.NoFastForward: args.Add("--no-ff"); break;
+                case MergeStrategy.FastForwardOnly: args.Add("--ff-only"); break;
+                case MergeStrategy.Squash: args.Add("--squash"); break;
+            }
+            args.Add(sourceRef);
+
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                var psi = BuildGitProcessStartInfo(args, repo.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new MergeOutcome(false, "Failed to start git.");
+
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+
+                if (proc.ExitCode == 0) return new MergeOutcome(true, null);
+
+                // Conflict path: MERGE_HEAD exists in the per-worktree gitdir. Use libgit2
+                // for the gitdir lookup since it already handles worktree-vs-primary.
+                // --squash and --ff-only never create MERGE_HEAD, so failures there are
+                // always real errors.
+                if (strategy != MergeStrategy.Squash && strategy != MergeStrategy.FastForwardOnly)
+                {
+                    try
+                    {
+                        using var lg = new Repository(repo.Path);
+                        if (File.Exists(Path.Combine(lg.Info.Path, "MERGE_HEAD")))
+                            return new MergeOutcome(true, null, HasConflicts: true);
+                    }
+                    catch { /* fall through to error */ }
+                }
+
+                var msg = CombineGitOutput(stderr, stdout);
+                if (string.IsNullOrEmpty(msg)) msg = $"git merge exited with code {proc.ExitCode}.";
+                return new MergeOutcome(false, msg);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new MergeOutcome(false, ex.Message);
+        }
+    }
+
     // `git branch -d` refuses to delete a branch not fully merged into its upstream/HEAD;
     // `-D` force-deletes regardless. Also refuses to delete the currently-checked-out branch
     // — callers should gate that in the UI rather than relying on the error.

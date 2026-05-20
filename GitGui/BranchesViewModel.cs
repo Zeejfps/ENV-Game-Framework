@@ -402,6 +402,8 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         var checkoutDisabled = isHead || state.IsBranchOpInFlight || checkedOutElsewhere;
         var renameDisabled = thisRowBusy;
         var deleteDisabled = isHead || thisRowBusy || checkedOutElsewhere;
+        var headBranch = GetHeadBranchName();
+        var canMerge = !isHead && headBranch != null && !state.IsBranchOpInFlight;
 
         var capturedRepo = repo;
         var capturedName = fullPath;
@@ -420,6 +422,15 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
             () => StartCheckoutLocal(capturedName),
             LucideIcons.Branch,
             Enabled: !checkoutDisabled));
+        if (headBranch != null && !isHead)
+        {
+            var capturedHead = headBranch;
+            items.Add(new RepoBarContextMenu.Item(
+                $"Merge {capturedName} into {capturedHead}…",
+                () => _bus.Broadcast(new ShowMergeBranchDialogMessage(capturedRepo, capturedName, capturedName, capturedHead)),
+                LucideIcons.Branch,
+                Enabled: canMerge));
+        }
         items.Add(new RepoBarContextMenu.Item(
             "Rename…",
             () => _bus.Broadcast(new ShowRenameBranchDialogMessage(capturedRepo, capturedName)),
@@ -441,22 +452,46 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
 
         var state = State.Value;
         var checkoutDisabled = state.IsBranchOpInFlight;
+        var headBranch = GetHeadBranchName();
 
         var capturedRepo = repo;
         var capturedRemote = remoteName;
         var capturedName = fullPath;
-        return
-        [
+        var items = new List<RepoBarContextMenu.Item>
+        {
             new RepoBarContextMenu.Item(
                 "Checkout",
                 () => ActivateRemoteBranch(capturedRemote, capturedName),
                 LucideIcons.Branch,
                 Enabled: !checkoutDisabled),
-            new RepoBarContextMenu.Item(
-                "Delete remote branch…",
-                () => _bus.Broadcast(new ShowDeleteRemoteBranchDialogMessage(capturedRepo, capturedRemote, capturedName)),
-                LucideIcons.Trash)
-        ];
+        };
+
+        if (headBranch != null)
+        {
+            var capturedHead = headBranch;
+            var display = $"{capturedRemote}/{capturedName}";
+            var sourceRef = display;
+            items.Add(new RepoBarContextMenu.Item(
+                $"Merge {display} into {capturedHead}…",
+                () => _bus.Broadcast(new ShowMergeBranchDialogMessage(capturedRepo, sourceRef, display, capturedHead)),
+                LucideIcons.Branch,
+                Enabled: !state.IsBranchOpInFlight));
+        }
+
+        items.Add(new RepoBarContextMenu.Item(
+            "Delete remote branch…",
+            () => _bus.Broadcast(new ShowDeleteRemoteBranchDialogMessage(capturedRepo, capturedRemote, capturedName)),
+            LucideIcons.Trash));
+        return items;
+    }
+
+    private string? GetHeadBranchName()
+    {
+        var listing = State.Value.Listing;
+        if (listing == null) return null;
+        foreach (var b in listing.LocalBranches)
+            if (b.IsHead) return b.Name;
+        return null;
     }
 }
 

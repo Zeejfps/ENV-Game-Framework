@@ -27,6 +27,7 @@ public sealed class DialogPresenter : IViewBehavior
         _messageBus?.Subscribe<ShowAbortOperationDialogMessage>(OnShowAbortOperationDialog);
         _messageBus?.Subscribe<ShowCreateWorktreeDialogMessage>(OnShowCreateWorktreeDialog);
         _messageBus?.Subscribe<ShowRemoveWorktreeDialogMessage>(OnShowRemoveWorktreeDialog);
+        _messageBus?.Subscribe<ShowMergeBranchDialogMessage>(OnShowMergeBranchDialog);
     }
 
     public void DetachFromContext(View view, Context context)
@@ -79,6 +80,11 @@ public sealed class DialogPresenter : IViewBehavior
 
     private void OnShowRemoveWorktreeDialog(ShowRemoveWorktreeDialogMessage m)
         => ShowDialog(new RemoveWorktreeDialog(m.Primary, m.Worktree, OnDialogClosed));
+
+    private void OnShowMergeBranchDialog(ShowMergeBranchDialogMessage m)
+        => ShowDialog(new MergeBranchDialog(
+            new MergeBranchRequest(m.Repo, m.SourceRef, m.SourceDisplay, m.TargetBranch),
+            OnDialogClosed));
 
     private void ShowDialog(View dialog)
     {
