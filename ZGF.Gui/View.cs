@@ -517,9 +517,15 @@ public abstract class View
 
     protected float MeasureChildrenHeight()
     {
+        var ownWidth = 0f;
+        if (WidthConstraint.IsSet) ownWidth = WidthConstraint.Value;
+        else if (PreferredWidth.IsSet) ownWidth = PreferredWidth.Value;
+
         var height = 0f;
         foreach (var child in _children)
         {
+            if (ownWidth > 0f)
+                child.WidthConstraint = ownWidth;
             var childHeight = child.MeasureHeight();
             if (childHeight > height)
             {

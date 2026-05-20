@@ -25,9 +25,18 @@ public sealed class FlexColumnView : MultiChildView
         if (PreferredHeight.IsSet)
             return PreferredHeight;
 
+        var stretchWidth = 0f;
+        if (CrossAxisAlignment == CrossAxisAlignment.Stretch)
+        {
+            if (WidthConstraint.IsSet) stretchWidth = WidthConstraint.Value;
+            else if (PreferredWidth.IsSet) stretchWidth = PreferredWidth.Value;
+        }
+
         var totalHeight = 0f;
         foreach (var child in Children)
         {
+            if (stretchWidth > 0f)
+                child.WidthConstraint = stretchWidth;
             totalHeight += child.MeasureHeight();
         }
         var spacing = (Children.Count - 1) * Gap;

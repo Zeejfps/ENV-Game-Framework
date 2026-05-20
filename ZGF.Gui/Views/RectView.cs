@@ -74,11 +74,28 @@ public class RectView : MultiChildView
 
     public override float MeasureHeight()
     {
-        var height = base.MeasureHeight();
+        if (PreferredHeight.IsSet)
+            return PreferredHeight;
+
         var padding = Padding;
         var borderSize = _style.BorderSize;
-        height += padding.Top + padding.Bottom + borderSize.Top + borderSize.Bottom;
-        return height;
+
+        var ownWidth = 0f;
+        if (WidthConstraint.IsSet) ownWidth = WidthConstraint.Value;
+        else if (PreferredWidth.IsSet) ownWidth = PreferredWidth.Value;
+
+        var innerWidth = ownWidth - padding.Left - padding.Right - borderSize.Left - borderSize.Right;
+
+        var maxChildHeight = 0f;
+        foreach (var child in Children)
+        {
+            if (innerWidth > 0f)
+                child.WidthConstraint = innerWidth;
+            var h = child.MeasureHeight();
+            if (h > maxChildHeight) maxChildHeight = h;
+        }
+
+        return maxChildHeight + padding.Top + padding.Bottom + borderSize.Top + borderSize.Bottom;
     }
 
     protected override void OnLayoutChildren()
