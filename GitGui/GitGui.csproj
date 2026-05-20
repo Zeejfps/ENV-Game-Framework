@@ -35,10 +35,11 @@
         <MacBundleId>com.gitgui.app</MacBundleId>
         <MacBundleDisplayName>GitGui</MacBundleDisplayName>
         <MacBundleVersion>1.0.0</MacBundleVersion>
+        <MacBundleIcon>$(MSBuildThisFileDirectory)Assets/commit_bench_icon_mac.png</MacBundleIcon>
         <MacAppBundleDir>$([System.IO.Path]::GetFullPath('$(PublishDir)../$(AssemblyName).app'))</MacAppBundleDir>
       </PropertyGroup>
 
-      <Exec Command="bash &quot;$(MSBuildThisFileDirectory)build-macos-bundle.sh&quot; &quot;$(PublishDir)&quot; &quot;$(MacAppBundleDir)&quot; &quot;$(AssemblyName)&quot; &quot;$(MacBundleId)&quot; &quot;$(MacBundleDisplayName)&quot; &quot;$(MacBundleVersion)&quot;" />
+      <Exec Command="bash &quot;$(MSBuildThisFileDirectory)build-macos-bundle.sh&quot; &quot;$(PublishDir)&quot; &quot;$(MacAppBundleDir)&quot; &quot;$(AssemblyName)&quot; &quot;$(MacBundleId)&quot; &quot;$(MacBundleDisplayName)&quot; &quot;$(MacBundleVersion)&quot; &quot;$(MacBundleIcon)&quot;" />
     </Target>
 
 </Project>
