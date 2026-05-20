@@ -25,7 +25,6 @@ public sealed class DeleteLocalBranchDialog : MultiChildView, IDeleteLocalBranch
     public DeleteLocalBranchDialog(Repo repo, string branchName, Action onClose)
     {
         PreferredWidth = 460f;
-        PreferredHeight = 260f;
 
         _onClose = onClose;
 

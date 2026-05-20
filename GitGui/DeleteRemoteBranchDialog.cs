@@ -23,7 +23,6 @@ public sealed class DeleteRemoteBranchDialog : MultiChildView, IDeleteRemoteBran
     public DeleteRemoteBranchDialog(Repo repo, string remoteName, string branchName, Action onClose)
     {
         PreferredWidth = 480f;
-        PreferredHeight = 280f;
 
         _onClose = onClose;
 
