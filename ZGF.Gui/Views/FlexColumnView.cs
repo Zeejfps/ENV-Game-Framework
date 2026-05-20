@@ -91,20 +91,7 @@ public sealed class FlexColumnView : MultiChildView
         foreach (var child in children)
         {
             var grow = child is FlexItem item ? (float)item.Grow : 0f;
-            var childSize = child.MeasureSelf();
-            var childInitialWidth = childSize.Width;
-            var childInitialHeight = childSize.Height;
-
-            var finalChildHeight = childInitialHeight;
-            // Grow items absorb remaining space; when remainingSpace is negative (children
-            // overflow the parent) they shrink proportionally so the layout stays bounded.
-            // Without this, a Grow-1 child like a scroll pane with tall content keeps its
-            // natural height and overflows its container instead of being clipped+scrolled.
-            if (grow > 0 && totalFlexGrow > 0)
-            {
-                finalChildHeight += (grow / totalFlexGrow) * remainingSpace;
-                if (finalChildHeight < 0) finalChildHeight = 0;
-            }
+            var childInitialWidth = child.MeasureWidth();
 
             float finalChildWidth;
             float childLeft;
@@ -132,6 +119,17 @@ public sealed class FlexColumnView : MultiChildView
                     var horizontalPadding = (position.Width - finalChildWidth) / 2f;
                     childLeft = position.Left + horizontalPadding;
                     break;
+            }
+
+            var finalChildHeight = child.MeasureHeight(finalChildWidth);
+            // Grow items absorb remaining space; when remainingSpace is negative (children
+            // overflow the parent) they shrink proportionally so the layout stays bounded.
+            // Without this, a Grow-1 child like a scroll pane with tall content keeps its
+            // natural height and overflows its container instead of being clipped+scrolled.
+            if (grow > 0 && totalFlexGrow > 0)
+            {
+                finalChildHeight += (grow / totalFlexGrow) * remainingSpace;
+                if (finalChildHeight < 0) finalChildHeight = 0;
             }
 
             child.LeftConstraint = childLeft;
