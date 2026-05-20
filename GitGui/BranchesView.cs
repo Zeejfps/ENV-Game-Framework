@@ -292,6 +292,7 @@ public sealed class BranchesView : MultiChildView
         {
             BranchRowKind.LocalHeader or BranchRowKind.RemotesHeader or BranchRowKind.RemoteHeader or BranchRowKind.StashesHeader => (row.DisplayName, _headerTextStyle),
             BranchRowKind.LocalBranch when isBusy => (row.DisplayName, _branchTextBusyStyle),
+            BranchRowKind.LocalBranch when hasWorktreeMarker => (row.DisplayName, _branchTextBusyStyle),
             BranchRowKind.LocalBranch when row.IsHead => (row.DisplayName, _headTextStyle),
             _ => (row.DisplayName, isSelected ? _branchTextSelectedStyle : _branchTextStyle),
         };

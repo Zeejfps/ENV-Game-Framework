@@ -26,4 +26,5 @@ public interface IRepoRegistry
     bool IsWorktreeExpanded(Guid primaryId);
     void SetWorktreeExpanded(Guid primaryId, bool expanded);
     void ReplaceWorktreesFor(Guid primaryId, IReadOnlyList<WorktreeDescriptor> desired);
+    void SetPrimaryBranch(Guid primaryId, string? branch);
 }

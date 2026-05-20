@@ -92,11 +92,11 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
             if (r.Id == active.Id) continue;
             var rootId = r.ParentRepoId ?? r.Id;
             if (rootId != primaryId) continue;
-            // DisplayName is set to the worktree's branch name by WorktreeSyncService when
-            // the worktree is on a named branch. Path-derived fallbacks (detached HEAD)
-            // simply won't match any branch and produce no annotation, which is fine.
-            if (!string.IsNullOrEmpty(r.DisplayName))
-                set.Add(r.DisplayName);
+            // Repo.Branch is populated from `git worktree list` by WorktreeSyncService for
+            // both the primary and its worktrees. Detached HEADs leave it null and produce
+            // no marker (correct: there's no branch name to take).
+            if (!string.IsNullOrEmpty(r.Branch))
+                set.Add(r.Branch);
         }
         Update(s => s with { WorktreeBranches = set });
     }
@@ -271,7 +271,33 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
     {
         if (State.Value.IsBranchOpInFlight) return;
         if (isHead) return;
+        // Branch is checked out in a sibling worktree (or in the primary while a worktree
+        // is active) — git will refuse the checkout. Surface the sibling instead so the
+        // user can switch context with one click rather than reading a fatal: error.
+        if (State.Value.WorktreeBranches.Contains(fullPath))
+        {
+            SwitchToSiblingHoldingBranch(fullPath);
+            return;
+        }
         StartCheckoutLocal(fullPath);
+    }
+
+    private void SwitchToSiblingHoldingBranch(string branchName)
+    {
+        var active = _registry.Active.Value;
+        if (active is null) return;
+        var primaryId = active.ParentRepoId ?? active.Id;
+        foreach (var r in _registry.Repos)
+        {
+            if (r.Id == active.Id) continue;
+            var rootId = r.ParentRepoId ?? r.Id;
+            if (rootId != primaryId) continue;
+            if (string.Equals(r.Branch, branchName, StringComparison.Ordinal))
+            {
+                _registry.SetActive(r.Id);
+                return;
+            }
+        }
     }
 
     public void ActivateRemoteBranch(string remoteName, string fullPath)
@@ -372,30 +398,40 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
 
         var state = State.Value;
         var thisRowBusy = state.BusyBranch == fullPath;
-        var checkoutDisabled = isHead || state.IsBranchOpInFlight;
+        var checkedOutElsewhere = state.WorktreeBranches.Contains(fullPath);
+        var checkoutDisabled = isHead || state.IsBranchOpInFlight || checkedOutElsewhere;
         var renameDisabled = thisRowBusy;
-        var deleteDisabled = isHead || thisRowBusy;
+        var deleteDisabled = isHead || thisRowBusy || checkedOutElsewhere;
 
         var capturedRepo = repo;
         var capturedName = fullPath;
-        return
-        [
-            new RepoBarContextMenu.Item(
-                "Checkout",
-                () => StartCheckoutLocal(capturedName),
-                LucideIcons.Branch,
-                Enabled: !checkoutDisabled),
-            new RepoBarContextMenu.Item(
-                "Rename…",
-                () => _bus.Broadcast(new ShowRenameBranchDialogMessage(capturedRepo, capturedName)),
-                LucideIcons.PencilLine,
-                Enabled: !renameDisabled),
-            new RepoBarContextMenu.Item(
-                "Delete…",
-                () => _bus.Broadcast(new ShowDeleteLocalBranchDialogMessage(capturedRepo, capturedName)),
-                LucideIcons.Trash,
-                Enabled: !deleteDisabled)
-        ];
+        var items = new List<RepoBarContextMenu.Item>();
+
+        if (checkedOutElsewhere)
+        {
+            items.Add(new RepoBarContextMenu.Item(
+                "Switch to worktree",
+                () => SwitchToSiblingHoldingBranch(capturedName),
+                LucideIcons.Branch));
+        }
+
+        items.Add(new RepoBarContextMenu.Item(
+            "Checkout",
+            () => StartCheckoutLocal(capturedName),
+            LucideIcons.Branch,
+            Enabled: !checkoutDisabled));
+        items.Add(new RepoBarContextMenu.Item(
+            "Rename…",
+            () => _bus.Broadcast(new ShowRenameBranchDialogMessage(capturedRepo, capturedName)),
+            LucideIcons.PencilLine,
+            Enabled: !renameDisabled));
+        items.Add(new RepoBarContextMenu.Item(
+            "Delete…",
+            () => _bus.Broadcast(new ShowDeleteLocalBranchDialogMessage(capturedRepo, capturedName)),
+            LucideIcons.Trash,
+            Enabled: !deleteDisabled));
+
+        return items;
     }
 
     public IReadOnlyList<RepoBarContextMenu.Item> BuildRemoteBranchMenuItems(string remoteName, string fullPath)

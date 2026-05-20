@@ -293,6 +293,22 @@ public sealed class RepoRegistry : IRepoRegistry
         Save();
     }
 
+    // Records the primary's HEAD branch (from `git worktree list`) so the BranchesView
+    // can mark it as "taken" when active is a sibling worktree.
+    public void SetPrimaryBranch(Guid primaryId, string? branch)
+    {
+        for (var i = 0; i < Repos.Count; i++)
+        {
+            var r = Repos[i];
+            if (r.Id != primaryId || r.IsWorktree) continue;
+            if (r.Branch == branch) return;
+            Repos.Replace(i, r with { Branch = branch });
+            WorktreesChanged.Value++;
+            Save();
+            return;
+        }
+    }
+
     // Discovery side-effect entry point: callers pass the result of `git worktree list`
     // (with the primary's own entry already filtered out). The registry diffs against
     // its current children, adding/removing Repo records and migrating Active if the
@@ -320,9 +336,9 @@ public sealed class RepoRegistry : IRepoRegistry
             if (desiredByPath.TryGetValue(normalized, out var d))
             {
                 var newDisplay = d.DisplayName ?? Path.GetFileName(normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-                if (r.DisplayName != newDisplay || r.IsMissing)
+                if (r.DisplayName != newDisplay || r.Branch != d.Branch || r.IsMissing)
                 {
-                    Repos.Replace(i, r with { DisplayName = newDisplay, IsMissing = false });
+                    Repos.Replace(i, r with { DisplayName = newDisplay, Branch = d.Branch, IsMissing = false });
                     changed = true;
                 }
             }
@@ -349,7 +365,7 @@ public sealed class RepoRegistry : IRepoRegistry
             var normalized = Path.GetFullPath(d.Path);
             if (seenPaths.Contains(normalized)) continue;
             var display = d.DisplayName ?? Path.GetFileName(normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-            Repos.Add(new Repo(Guid.NewGuid(), normalized, display, ParentRepoId: primaryId));
+            Repos.Add(new Repo(Guid.NewGuid(), normalized, display, ParentRepoId: primaryId) { Branch = d.Branch });
             changed = true;
         }
 
@@ -364,4 +380,4 @@ public sealed class RepoRegistry : IRepoRegistry
         RepoStateStore.Save(_statePath, Repos, Groups, Active.Value?.Id, _branchesUi, _worktreesExpanded);
 }
 
-public sealed record WorktreeDescriptor(string Path, string? DisplayName);
+public sealed record WorktreeDescriptor(string Path, string? DisplayName, string? Branch = null);

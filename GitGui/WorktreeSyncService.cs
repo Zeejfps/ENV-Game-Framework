@@ -61,6 +61,8 @@ internal sealed class WorktreeSyncService : IDisposable
     // Worktrees share refs/heads with their primary, so a branch update visible to one
     // is visible to all. The primary's RepoWatcher fires RefsChangedMessage(primaryId);
     // we fan out an extra RefsChangedMessage per child so worktree BranchesView refreshes.
+    // We also re-sync the worktree set on refs changes because HEAD swaps in any worktree
+    // (which don't add/remove worktrees) still change which branch is "taken where".
     private void OnRefsChanged(RefsChangedMessage msg)
     {
         Repo? source = null;
@@ -68,12 +70,18 @@ internal sealed class WorktreeSyncService : IDisposable
         {
             if (r.Id == msg.RepoId) { source = r; break; }
         }
-        if (source is null || source.IsWorktree) return;
+        if (source is null) return;
 
-        foreach (var wt in _registry.GetWorktrees(source.Id))
+        var primaryId = source.ParentRepoId ?? source.Id;
+        ScheduleSync(primaryId);
+
+        if (!source.IsWorktree)
         {
-            var id = wt.Id;
-            _bus.Broadcast(new RefsChangedMessage(id));
+            foreach (var wt in _registry.GetWorktrees(source.Id))
+            {
+                var id = wt.Id;
+                _bus.Broadcast(new RefsChangedMessage(id));
+            }
         }
     }
 
@@ -94,21 +102,30 @@ internal sealed class WorktreeSyncService : IDisposable
             var infos = _git.ListWorktrees(primary, out _);
             var primaryNormalized = TryFullPath(primary.Path);
 
+            string? primaryBranch = null;
             var descriptors = new List<WorktreeDescriptor>(infos.Count);
             foreach (var info in infos)
             {
                 if (info.IsBare) continue;
                 var normalized = TryFullPath(info.Path);
-                if (string.Equals(normalized, primaryNormalized, PathCmp)) continue;
+                if (string.Equals(normalized, primaryNormalized, PathCmp))
+                {
+                    primaryBranch = info.Branch;
+                    continue;
+                }
 
                 // Display label: prefer branch name, else last path segment.
                 var display = !string.IsNullOrEmpty(info.Branch)
                     ? info.Branch!
                     : Path.GetFileName(normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-                descriptors.Add(new WorktreeDescriptor(normalized, display));
+                descriptors.Add(new WorktreeDescriptor(normalized, display, info.Branch));
             }
 
-            _dispatcher.Post(() => _registry.ReplaceWorktreesFor(primaryId, descriptors));
+            _dispatcher.Post(() =>
+            {
+                _registry.SetPrimaryBranch(primaryId, primaryBranch);
+                _registry.ReplaceWorktreesFor(primaryId, descriptors);
+            });
         });
     }
 
