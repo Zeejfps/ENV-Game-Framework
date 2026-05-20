@@ -21,6 +21,7 @@ internal sealed class CommitsPresenter : IDisposable
     private CommitSnapshot? _snapshot;
     private Guid _loadingRepoId;
     private string? _selectedSha;
+    private bool _shouldRebroadcastSelection;
 
     public CommitsPresenter(
         ICommitsView view,
@@ -41,6 +42,12 @@ internal sealed class CommitsPresenter : IDisposable
         _subscriptions.Add(_bus.SubscribeScoped<CommitCreatedMessage>(m => ReloadIfActiveRepo(m.RepoId)));
         _subscriptions.Add(_bus.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected));
         _subscriptions.Add(_bus.SubscribeScoped<RefsChangedMessage>(m => ReloadIfActiveRepo(m.RepoId)));
+
+        // CommitsView preserves its visual selection across mode-switch remounts; the
+        // presenters don't. Adopt the carried-over SHA so the next snapshot load
+        // rebroadcasts it, letting the freshly-spawned CommitDetailsPresenter populate.
+        _selectedSha = _view.SelectedSha;
+        _shouldRebroadcastSelection = _selectedSha != null;
     }
 
     public void Dispose()
@@ -143,6 +150,9 @@ internal sealed class CommitsPresenter : IDisposable
             // (e.g. it may have been pruned by a rebase or reset).
             if (_selectedSha != null && !SnapshotContainsSha(snap, _selectedSha))
                 ClearSelectionAndBroadcast();
+            else if (_shouldRebroadcastSelection && _selectedSha != null)
+                _bus.Broadcast(new CommitSelectedMessage(snap.RepoId, _selectedSha));
+            _shouldRebroadcastSelection = false;
         }
 
         _bus.Broadcast(new CommitsLoadedMessage(snap.RepoId));

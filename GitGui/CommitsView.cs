@@ -154,6 +154,8 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         SetDirty();
     }
 
+    public string? SelectedSha => _selectedSha;
+
     private void ScrollShaIntoView(string? sha)
     {
         if (string.IsNullOrEmpty(sha)) return;

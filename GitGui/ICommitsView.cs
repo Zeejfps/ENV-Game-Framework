@@ -16,6 +16,10 @@ public interface ICommitsView
     /// <summary>Push the current selection; <c>null</c> clears it.</summary>
     void SetSelectedSha(string? sha);
 
+    /// <summary>The view's current selection, or <c>null</c>. Survives presenter
+    /// disposal so a freshly-mounted presenter can re-broadcast it.</summary>
+    string? SelectedSha { get; }
+
     /// <summary>Raised when the user clicks a row. Payload is the row's commit SHA.</summary>
     event Action<string> CommitClicked;
 }
