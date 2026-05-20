@@ -32,9 +32,8 @@ public sealed class GuiApp : IDisposable
         _renderFrame = renderFrame;
 
         var contextMenuPane = new MultiChildView();
-        _contextMenuManager = new ContextMenuManager(contextMenuPane);
-
         _inputSystem = new GlfwInputSystem(window.WindowHandle, canvas);
+        _contextMenuManager = new ContextMenuManager(contextMenuPane, _inputSystem.InputSystem);
         _dispatcher = new QueuedUiDispatcher();
 
         context.Canvas = canvas;

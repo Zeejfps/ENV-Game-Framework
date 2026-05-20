@@ -1,4 +1,6 @@
-﻿namespace ZGF.Gui.Tests;
+﻿using ZGF.Geometry;
+
+namespace ZGF.Gui.Tests;
 
 public interface IOpenedContextMenu
 {
@@ -46,13 +48,18 @@ sealed class OpenedContextMenu : IOpenedContextMenu
 public sealed class ContextMenuManager
 {
     private readonly MultiChildView _contextMenuPane;
-    
+    private readonly InputSystem? _inputSystem;
+    private readonly OutsideClickController _outsideClickController;
+    private bool _outsideClickActive;
+
     private readonly HashSet<OpenedContextMenu> _closingMenus = new();
     private readonly Dictionary<ContextMenu, OpenedContextMenu> _openedMenus = new();
-    
-    public ContextMenuManager(MultiChildView contextMenuPane)
+
+    public ContextMenuManager(MultiChildView contextMenuPane, InputSystem? inputSystem = null)
     {
         _contextMenuPane = contextMenuPane;
+        _inputSystem = inputSystem;
+        _outsideClickController = new OutsideClickController(this);
     }
 
     public IOpenedContextMenu? ShowContextMenu(ContextMenu contextMenu, ContextMenu? parentMenu = null)
@@ -66,7 +73,7 @@ public sealed class ContextMenuManager
         {
             ContextMenu = contextMenu,
         };
-        
+
         if (parentMenu != null)
         {
             if (!_openedMenus.TryGetValue(parentMenu, out var openedParentMenu))
@@ -79,6 +86,7 @@ public sealed class ContextMenuManager
 
         _openedMenus[contextMenu] = openedMenu;
         _contextMenuPane.Children.Add(contextMenu);
+        EnsureOutsideClickHandler();
         return openedMenu;
     }
 
@@ -114,6 +122,8 @@ public sealed class ContextMenuManager
                 }
             }
         }
+
+        ReleaseOutsideClickHandlerIfEmpty();
     }
 
     public void RequestCloseMenu(ContextMenu contextMenu)
@@ -146,5 +156,51 @@ public sealed class ContextMenuManager
             opened.Close();
         }
         _openedMenus.Clear();
+        ReleaseOutsideClickHandlerIfEmpty();
+    }
+
+    private void EnsureOutsideClickHandler()
+    {
+        if (_outsideClickActive) return;
+        if (_inputSystem == null) return;
+        _inputSystem.StealFocus(_outsideClickController);
+        _outsideClickActive = true;
+    }
+
+    private void ReleaseOutsideClickHandlerIfEmpty()
+    {
+        if (!_outsideClickActive) return;
+        if (_openedMenus.Count > 0) return;
+        if (_closingMenus.Count > 0) return;
+        _inputSystem?.Blur(_outsideClickController);
+        _outsideClickActive = false;
+    }
+
+    // Called by OutsideClickController when a mouse-press lands while at least one
+    // menu is open. Returns true if the click hit the empty space outside every
+    // open menu and we dismissed them — caller consumes the event in that case so
+    // the dismissing click doesn't also activate the UI underneath. Clicks inside
+    // a menu return false so the per-item controllers handle the selection.
+    internal bool HandleOutsideClick(in PointF point)
+    {
+        foreach (var opened in _openedMenus.Values)
+        {
+            if (opened.ContextMenu.Position.ContainsPoint(point)) return false;
+        }
+        CloseAllImmediately();
+        return true;
+    }
+
+    private sealed class OutsideClickController : KeyboardMouseController
+    {
+        private readonly ContextMenuManager _manager;
+        public OutsideClickController(ContextMenuManager manager) { _manager = manager; }
+
+        public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+        {
+            if (e.State != InputState.Pressed) return;
+            if (_manager.HandleOutsideClick(e.Mouse.Point))
+                e.Consume();
+        }
     }
 }
