@@ -10,15 +10,8 @@ public sealed class ActionButton : HoverableButton
     private readonly TextView _iconView;
     private readonly TextView? _labelView;
     private readonly TextView? _badgeText;
-    // Tight inner row holding [icon, count?]. Nested so the count hugs the icon while
-    // the outer _row keeps a normal gap to the label — without the nesting, every gap in
-    // the row would be the same width and the count would visually float between two
-    // evenly-spaced columns instead of belonging to the icon.
     private readonly RowView _countIconGroup;
     private readonly RowView _row;
-    // When the badge is visible, the icon adopts the badge colour so the arrow + number
-    // read as one coloured unit (matching the sidebar's branch-row badges). State so
-    // BindTextColor can auto-track it and re-run ComputeForeground on flip.
     private readonly State<bool> _hasBadge = new(false);
     private readonly uint? _badgeColor;
 
@@ -40,10 +33,6 @@ public sealed class ActionButton : HoverableButton
         set => _iconView.Rotation = value;
     }
 
-    // Null or 0 hides; non-zero appends the count right after the icon inside the tight
-    // count/icon group. The badge keeps its colour even when the button is disabled —
-    // the count is informational and stays readable regardless of whether the action is
-    // currently available.
     public int? Badge
     {
         set
@@ -91,7 +80,7 @@ public sealed class ActionButton : HoverableButton
                 Text = label,
                 VerticalTextAlignment = TextAlignment.Center,
             };
-            _labelView.BindTextColor(ComputeForeground);
+            _labelView.BindTextColor(ComputeLabelForeground);
             _row.Children.Add(_labelView);
         }
 
@@ -132,8 +121,20 @@ public sealed class ActionButton : HoverableButton
         if (!IsEnabled) return DialogPalette.RowTextMissing;
         // When the badge is showing, the icon adopts the badge colour so the arrow + count
         // read as one unit — and stays that colour even on hover, since the count text
-        // doesn't flash on hover and we don't want the pair to split visually.
+        // doesn't flash on hover and we don't want the pair to split visually. The label
+        // deliberately opts out (see ComputeLabelForeground) so the verb stays neutral and
+        // only the icon+count pair carries the "you have work to push/pull" signal.
         if (_hasBadge && _badgeColor is uint c) return c;
+        return IsHovered ? 0xFFFFFFFFu : DialogPalette.RowText;
+    }
+
+    // Label foreground intentionally ignores the badge: tinting "Push"/"Pull" green/amber
+    // made the whole button read as a status indicator, drowning out the surrounding
+    // verbs. Keeping the label neutral leaves the badge colour to do its job on the
+    // arrow+count pair alone.
+    private uint ComputeLabelForeground()
+    {
+        if (!IsEnabled) return DialogPalette.RowTextMissing;
         return IsHovered ? 0xFFFFFFFFu : DialogPalette.RowText;
     }
 }
