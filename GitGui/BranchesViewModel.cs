@@ -7,6 +7,11 @@ namespace GitGui;
 /// state lives in an immutable <see cref="BranchesState"/> record; views subscribe to
 /// per-field slices and call command methods to drive interactions and git ops.
 ///
+/// The VM exposes the raw model — listing, UI open-state, selection, busy-branch — and
+/// command methods keyed on semantic identifiers (branch full paths, remote names,
+/// folder keys). It does not produce render rows: the view derives rows from
+/// <see cref="Listing"/> and <see cref="Ui"/> and owns its own layout/copy choices.
+///
 /// Section/folder open-state is mirrored into <see cref="IRepoRegistry.SetBranchesUi"/>
 /// after every toggle so it persists across repo switches.
 ///
@@ -17,19 +22,13 @@ namespace GitGui;
 /// </summary>
 internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
 {
-    private const float IndentSection = 0f;
-    private const float IndentRemoteHeader = 12f;
-    private const float IndentLocalTreeBase = 16f;
-    private const float IndentRemoteTreeBase = 28f;
-    private const float IndentStashBase = 16f;
-    private const float IndentLevel = 16f;
-
     private readonly IRepoRegistry _registry;
     private readonly IGitService _gitService;
     private readonly IMessageBus _bus;
     private readonly State<MainViewMode> _mode;
 
-    public IReadable<IReadOnlyList<BranchRow>> Rows { get; }
+    public IReadable<BranchListing?> Listing { get; }
+    public IReadable<BranchesUiState> Ui { get; }
     public IReadable<BranchSelection?> Selection { get; }
     public IReadable<string?> BusyBranch { get; }
     public IReadable<string?> LoadError { get; }
@@ -54,7 +53,8 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         _bus = bus;
         _mode = mode;
 
-        Rows = Slice(s => BuildRows(s.Listing, s.Ui));
+        Listing = Slice(s => s.Listing);
+        Ui = Slice(s => s.Ui);
         Selection = Slice(s => s.Selection);
         BusyBranch = Slice(s => s.BusyBranch);
         LoadError = Slice(s => s.LoadError);
@@ -78,17 +78,8 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
             return;
         }
 
-        var ui = _registry.GetBranchesUi(active.Id) ?? new BranchesUiState();
-        Update(s => s with
-        {
-            Listing = null,
-            Ui = ui,
-            Selection = null,
-            BusyBranch = null,
-            IsBranchOpInFlight = false,
-            IsLoading = true,
-            LoadError = null,
-        });
+        var ui = _registry.GetBranchesUi(active.Id);
+        Update(_ => new BranchesState(Listing: null, Ui: ui, Selection: null, BusyBranch: null, IsLoading: true, LoadError: null));
         StartLoad(active);
     }
 
@@ -110,39 +101,27 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
     {
         if (msg.RepoId != _activeRepoId) return;
         var current = State.Value.Selection;
-        if (current.HasValue && msg.Sha == current.Value.TipSha) return;
         if (current == null) return;
+        if (msg.Sha == current.Value.TipSha) return;
         Update(s => s with { Selection = null });
     }
 
     private void StartLoad(Repo repo)
     {
-        var gitService = _gitService;
-        var gen = Gen.Bump();
-
         Update(s => s.LoadError != null ? s with { LoadError = null } : s);
-        // Same-repo reloads keep IsLoading false so the list doesn't flash a placeholder —
-        // only cross-repo switches set IsLoading via OnActiveRepoChanged.
 
-        Task.Run(() =>
-        {
-            BranchListing listing;
-            try
+        RunBackground<BranchListing>(
+            work: () => (_gitService.GetBranches(repo), null),
+            onResult: (listing, error) =>
             {
-                listing = gitService.GetBranches(repo);
-            }
-            catch (Exception ex)
-            {
-                listing = new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), Array.Empty<StashEntry>(), ex.Message);
-            }
-
-            Dispatcher.Post(() =>
-            {
-                if (Gen.IsStale(gen)) return;
                 if (repo.Id != _activeRepoId) return;
-                ApplyListing(listing);
+                // ApplyListing's error path keys off BranchListing.ErrorMessage, so wrap
+                // RunBackground's separate `error` channel back into a synthetic listing.
+                var applied = error != null
+                    ? new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), Array.Empty<StashEntry>(), error)
+                    : listing!;
+                ApplyListing(applied);
             });
-        });
     }
 
     private void ApplyListing(BranchListing listing)
@@ -165,7 +144,6 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
             };
         });
 
-        // If we cleared selection above, also tell the history view to forget it.
         if (State.Value.Selection == null)
             _bus.Broadcast(new CommitSelectedMessage(_activeRepoId, null));
     }
@@ -193,208 +171,47 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         return false;
     }
 
-    // ---- row interactions ----
-
-    public void OnRowClicked(BranchRow? row)
-    {
-        if (row == null)
-        {
-            ClearSelectionAndBroadcast();
-            return;
-        }
-
-        switch (row.Kind)
-        {
-            case BranchRowKind.LocalHeader:
-                ToggleLocalSection();
-                return;
-            case BranchRowKind.RemotesHeader:
-                ToggleRemotesSection();
-                return;
-            case BranchRowKind.StashesHeader:
-                ToggleStashesSection();
-                return;
-            case BranchRowKind.RemoteHeader:
-                if (row.RemoteName != null) ToggleRemote(row.RemoteName);
-                return;
-            case BranchRowKind.Folder:
-                if (row.FolderKey != null) ToggleFolder(row.FolderKey);
-                return;
-            case BranchRowKind.LocalBranch:
-                if (row.TipSha != null && row.FullPath != null)
-                    SelectAndBroadcast(new BranchSelection(IsRemote: false, IsStash: false, RemoteName: null, FullPath: row.FullPath, TipSha: row.TipSha));
-                return;
-            case BranchRowKind.RemoteBranch:
-                if (row.TipSha != null && row.RemoteName != null && row.FullPath != null)
-                    SelectAndBroadcast(new BranchSelection(IsRemote: true, IsStash: false, RemoteName: row.RemoteName, FullPath: row.FullPath, TipSha: row.TipSha));
-                return;
-            case BranchRowKind.Stash:
-                if (row.TipSha != null && row.FullPath != null)
-                    SelectAndBroadcast(new BranchSelection(IsRemote: false, IsStash: true, RemoteName: null, FullPath: row.FullPath, TipSha: row.TipSha));
-                return;
-        }
-    }
-
-    public void OnRowActivated(BranchRow row)
-    {
-        if (State.Value.IsBranchOpInFlight) return;
-        switch (row.Kind)
-        {
-            case BranchRowKind.LocalBranch:
-                if (row.IsHead) return;
-                if (row.FullPath == null) return;
-                StartCheckoutLocal(row.FullPath);
-                return;
-            case BranchRowKind.RemoteBranch:
-                if (row.RemoteName == null || row.FullPath == null) return;
-                if (LocalBranchExists(row.FullPath))
-                {
-                    StartCheckoutLocal(row.FullPath);
-                }
-                else
-                {
-                    var repo = _registry.Active.Value;
-                    if (repo == null) return;
-                    _bus.Broadcast(new ShowCheckoutDialogMessage(
-                        repo, row.RemoteName, row.FullPath, row.FullPath));
-                }
-                return;
-            case BranchRowKind.Stash:
-                if (row.StashIndex is int idx)
-                    StartStashApply(idx, row.FullPath ?? $"stash@{{{idx}}}", row.DisplayName);
-                return;
-        }
-    }
-
-    // Builds the right-click menu for a row. Only LocalBranch and RemoteBranch rows get a
-    // menu — other rows return an empty list (the controller will not open a menu).
-    public IReadOnlyList<RepoBarContextMenu.Item> BuildContextMenuItems(BranchRow row)
-    {
-        var state = State.Value;
-        var repo = _registry.Active.Value;
-        if (repo == null) return Array.Empty<RepoBarContextMenu.Item>();
-
-        switch (row.Kind)
-        {
-            case BranchRowKind.LocalBranch:
-            {
-                if (row.FullPath == null) return Array.Empty<RepoBarContextMenu.Item>();
-                var thisRowBusy = state.BusyBranch == row.FullPath;
-                var checkoutDisabled = row.IsHead || state.IsBranchOpInFlight;
-                var renameDisabled = thisRowBusy;
-                var deleteDisabled = row.IsHead || thisRowBusy;
-                var capturedRepo = repo;
-                var capturedName = row.FullPath;
-                return new[]
-                {
-                    new RepoBarContextMenu.Item(
-                        "Checkout",
-                        () => StartCheckoutLocal(capturedName),
-                        LucideIcons.Branch,
-                        Enabled: !checkoutDisabled),
-                    new RepoBarContextMenu.Item(
-                        "Rename…",
-                        () => _bus.Broadcast(new ShowRenameBranchDialogMessage(capturedRepo, capturedName)),
-                        LucideIcons.PencilLine,
-                        Enabled: !renameDisabled),
-                    new RepoBarContextMenu.Item(
-                        "Delete…",
-                        () => _bus.Broadcast(new ShowDeleteLocalBranchDialogMessage(capturedRepo, capturedName)),
-                        LucideIcons.Trash,
-                        Enabled: !deleteDisabled),
-                };
-            }
-            case BranchRowKind.RemoteBranch:
-            {
-                if (row.RemoteName == null || row.FullPath == null) return Array.Empty<RepoBarContextMenu.Item>();
-                var checkoutDisabled = state.IsBranchOpInFlight;
-                var capturedRepo = repo;
-                var capturedRemote = row.RemoteName;
-                var capturedName = row.FullPath;
-                return new[]
-                {
-                    new RepoBarContextMenu.Item(
-                        "Checkout",
-                        () => ActivateRemoteForCheckout(capturedRemote, capturedName),
-                        LucideIcons.Branch,
-                        Enabled: !checkoutDisabled),
-                    new RepoBarContextMenu.Item(
-                        "Delete remote branch…",
-                        () => _bus.Broadcast(new ShowDeleteRemoteBranchDialogMessage(capturedRepo, capturedRemote, capturedName)),
-                        LucideIcons.Trash),
-                };
-            }
-            default:
-                return Array.Empty<RepoBarContextMenu.Item>();
-        }
-    }
-
     // ---- section/folder toggles ----
 
-    private void ToggleLocalSection()
+    public void ToggleLocalSection() => MutateUi(ui => ui.LocalOpen = !ui.LocalOpen);
+    public void ToggleRemotesSection() => MutateUi(ui => ui.RemotesOpen = !ui.RemotesOpen);
+    public void ToggleStashesSection() => MutateUi(ui => ui.StashesOpen = !ui.StashesOpen);
+
+    public void ToggleRemote(string remoteName) =>
+        MutateUi(ui => ui.RemoteOpen[remoteName] = !ui.RemoteOpen.GetValueOrDefault(remoteName, true));
+
+    public void ToggleFolder(string key) =>
+        MutateUi(ui => ui.FolderOpen[key] = !ui.FolderOpen.GetValueOrDefault(key, true));
+
+    private void MutateUi(Action<BranchesUiState> mutate)
     {
         Update(s =>
         {
             var ui = s.Ui.Clone();
-            ui.LocalOpen = !ui.LocalOpen;
+            mutate(ui);
             return s with { Ui = ui };
         });
-        PersistUi();
-    }
-
-    private void ToggleRemotesSection()
-    {
-        Update(s =>
-        {
-            var ui = s.Ui.Clone();
-            ui.RemotesOpen = !ui.RemotesOpen;
-            return s with { Ui = ui };
-        });
-        PersistUi();
-    }
-
-    private void ToggleStashesSection()
-    {
-        Update(s =>
-        {
-            var ui = s.Ui.Clone();
-            ui.StashesOpen = !ui.StashesOpen;
-            return s with { Ui = ui };
-        });
-        PersistUi();
-    }
-
-    private void ToggleRemote(string remoteName)
-    {
-        Update(s =>
-        {
-            var ui = s.Ui.Clone();
-            var current = ui.RemoteOpen.TryGetValue(remoteName, out var v) ? v : true;
-            ui.RemoteOpen[remoteName] = !current;
-            return s with { Ui = ui };
-        });
-        PersistUi();
-    }
-
-    private void ToggleFolder(string key)
-    {
-        Update(s =>
-        {
-            var ui = s.Ui.Clone();
-            var current = ui.FolderOpen.TryGetValue(key, out var v) ? v : true;
-            ui.FolderOpen[key] = !current;
-            return s with { Ui = ui };
-        });
-        PersistUi();
-    }
-
-    private void PersistUi()
-    {
         if (_activeRepoId == Guid.Empty) return;
         _registry.SetBranchesUi(_activeRepoId, State.Value.Ui);
     }
 
-    // ---- selection + activation ----
+    // ---- selection ----
+
+    public void SelectLocalBranch(string fullPath, string tipSha)
+        => SelectAndBroadcast(new BranchSelection(IsRemote: false, IsStash: false, RemoteName: null, FullPath: fullPath, TipSha: tipSha));
+
+    public void SelectRemoteBranch(string remoteName, string fullPath, string tipSha)
+        => SelectAndBroadcast(new BranchSelection(IsRemote: true, IsStash: false, RemoteName: remoteName, FullPath: fullPath, TipSha: tipSha));
+
+    public void SelectStash(string stashLabel, string tipSha)
+        => SelectAndBroadcast(new BranchSelection(IsRemote: false, IsStash: true, RemoteName: null, FullPath: stashLabel, TipSha: tipSha));
+
+    public void ClearSelection()
+    {
+        if (State.Value.Selection == null) return;
+        Update(s => s with { Selection = null });
+        _bus.Broadcast(new CommitSelectedMessage(_activeRepoId, null));
+    }
 
     private void SelectAndBroadcast(BranchSelection selection)
     {
@@ -403,75 +220,35 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         _bus.Broadcast(new CommitSelectedMessage(_activeRepoId, selection.TipSha));
     }
 
-    private void ClearSelectionAndBroadcast()
-    {
-        if (State.Value.Selection == null) return;
-        Update(s => s with { Selection = null });
-        _bus.Broadcast(new CommitSelectedMessage(_activeRepoId, null));
-    }
-
     private void SwitchToHistory()
     {
         if (_mode.Value == MainViewMode.History) return;
         _mode.Value = MainViewMode.History;
     }
 
-    private bool LocalBranchExists(string name)
-    {
-        var listing = State.Value.Listing;
-        if (listing == null) return false;
-        foreach (var b in listing.LocalBranches)
-            if (string.Equals(b.Name, name, StringComparison.Ordinal)) return true;
-        return false;
-    }
+    // ---- activation (double-click) ----
 
-    private void ActivateRemoteForCheckout(string remoteName, string branchName)
+    public void ActivateLocalBranch(string fullPath, bool isHead)
     {
         if (State.Value.IsBranchOpInFlight) return;
-        if (LocalBranchExists(branchName))
-        {
-            StartCheckoutLocal(branchName);
-        }
-        else
-        {
-            var repo = _registry.Active.Value;
-            if (repo == null) return;
-            _bus.Broadcast(new ShowCheckoutDialogMessage(repo, remoteName, branchName, branchName));
-        }
+        if (isHead) return;
+        StartCheckoutLocal(fullPath);
     }
 
-    private void StartCheckoutLocal(string branchName)
+    public void ActivateRemoteBranch(string remoteName, string fullPath)
     {
+        if (State.Value.IsBranchOpInFlight) return;
+        if (LocalBranchExists(fullPath))
+        {
+            StartCheckoutLocal(fullPath);
+            return;
+        }
         var repo = _registry.Active.Value;
         if (repo == null) return;
-        if (State.Value.IsBranchOpInFlight) return;
-
-        Update(s => s with { IsBranchOpInFlight = true, BusyBranch = branchName });
-
-        var service = _gitService;
-        var dispatcher = Dispatcher;
-        var bus = _bus;
-
-        Task.Run(() =>
-        {
-            CheckoutOutcome outcome;
-            try { outcome = service.CheckoutLocalBranch(repo, branchName); }
-            catch (Exception ex) { outcome = new CheckoutOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
-            {
-                Update(s => s with { IsBranchOpInFlight = false, BusyBranch = null });
-                if (outcome.Success)
-                    bus.Broadcast(new RefsChangedMessage(repo.Id));
-                else
-                    bus.Broadcast(new ShowOperationErrorMessage(
-                        "Checkout failed",
-                        outcome.ErrorMessage ?? "Checkout failed."));
-            });
-        });
+        _bus.Broadcast(new ShowCheckoutDialogMessage(repo, remoteName, fullPath, fullPath));
     }
 
-    private void StartStashApply(int index, string label, string subject)
+    public void ActivateStash(int index, string label, string subject)
     {
         var repo = _registry.Active.Value;
         if (repo == null) return;
@@ -507,141 +284,104 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         });
     }
 
-    // ---- row building ----
-
-    private static IReadOnlyList<BranchRow> BuildRows(BranchListing? listing, BranchesUiState ui)
+    private bool LocalBranchExists(string name)
     {
-        var rows = new List<BranchRow>();
-        if (listing == null) return rows;
-
-        rows.Add(new BranchRow(BranchRowKind.LocalHeader, "Local", IndentSection, ui.LocalOpen));
-        if (ui.LocalOpen)
-        {
-            var localTree = BuildTree(listing.LocalBranches);
-            EmitTreeRows(rows, localTree, ui, isRemote: false, remoteName: null, IndentLocalTreeBase, depth: 0);
-        }
-
-        rows.Add(new BranchRow(BranchRowKind.RemotesHeader, "Remote", IndentSection, ui.RemotesOpen));
-        if (ui.RemotesOpen)
-        {
-            foreach (var rg in listing.Remotes)
-            {
-                var isOpen = ui.RemoteOpen.TryGetValue(rg.Name, out var v) ? v : true;
-                rows.Add(new BranchRow(BranchRowKind.RemoteHeader, rg.Name, IndentRemoteHeader, isOpen)
-                {
-                    RemoteName = rg.Name,
-                });
-                if (!isOpen) continue;
-                var remoteTree = BuildTree(rg.Branches);
-                EmitTreeRows(rows, remoteTree, ui, isRemote: true, rg.Name, IndentRemoteTreeBase, depth: 0);
-            }
-        }
-
-        if (listing.Stashes.Count > 0)
-        {
-            rows.Add(new BranchRow(BranchRowKind.StashesHeader, "Stashes", IndentSection, ui.StashesOpen));
-            if (ui.StashesOpen)
-            {
-                foreach (var s in listing.Stashes)
-                {
-                    var label = $"stash@{{{s.Index}}}";
-                    rows.Add(new BranchRow(BranchRowKind.Stash, s.Subject, IndentStashBase, isOpen: false)
-                    {
-                        TipSha = s.Sha,
-                        FullPath = label,
-                        StashIndex = s.Index,
-                    });
-                }
-            }
-        }
-        return rows;
+        var listing = State.Value.Listing;
+        if (listing == null) return false;
+        foreach (var b in listing.LocalBranches)
+            if (string.Equals(b.Name, name, StringComparison.Ordinal)) return true;
+        return false;
     }
 
-    private static void EmitTreeRows(List<BranchRow> rows, IReadOnlyList<TreeNode> nodes, BranchesUiState ui, bool isRemote, string? remoteName, float treeBase, int depth)
+    private void StartCheckoutLocal(string branchName)
     {
-        var indent = treeBase + depth * IndentLevel;
-        foreach (var node in nodes)
-        {
-            if (node.Entry is { } entry)
-            {
-                rows.Add(new BranchRow(isRemote ? BranchRowKind.RemoteBranch : BranchRowKind.LocalBranch, node.Segment, indent, isOpen: false)
-                {
-                    TipSha = entry.TipSha,
-                    IsHead = entry.IsHead,
-                    RemoteName = remoteName,
-                    FullPath = entry.Name,
-                    AheadBy = entry.AheadBy,
-                    BehindBy = entry.BehindBy,
-                });
-            }
-            else
-            {
-                var key = MakeFolderKey(isRemote, remoteName, node.FullPath);
-                var open = ui.FolderOpen.TryGetValue(key, out var v) ? v : true;
-                rows.Add(new BranchRow(BranchRowKind.Folder, node.Segment, indent, open)
-                {
-                    RemoteName = remoteName,
-                    FullPath = node.FullPath,
-                    FolderKey = key,
-                });
-                if (open) EmitTreeRows(rows, node.Children, ui, isRemote, remoteName, treeBase, depth + 1);
-            }
-        }
-    }
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+        if (State.Value.IsBranchOpInFlight) return;
 
-    private static string MakeFolderKey(bool isRemote, string? remoteName, string path) =>
-        isRemote ? $"remote:{remoteName}:{path}" : $"local:{path}";
+        Update(s => s with { BusyBranch = branchName });
 
-    private static IReadOnlyList<TreeNode> BuildTree(IReadOnlyList<BranchEntry> branches)
-    {
-        var root = new TreeNode("", "");
-        foreach (var b in branches)
+        var service = _gitService;
+        var dispatcher = Dispatcher;
+        var bus = _bus;
+
+        Task.Run(() =>
         {
-            var segments = b.Name.Split('/');
-            var current = root;
-            for (var i = 0; i < segments.Length; i++)
+            CheckoutOutcome outcome;
+            try { outcome = service.CheckoutLocalBranch(repo, branchName); }
+            catch (Exception ex) { outcome = new CheckoutOutcome(false, ex.Message); }
+
+            dispatcher.Post(() =>
             {
-                var seg = segments[i];
-                var isLeaf = i == segments.Length - 1;
-                if (!current.ChildIndex.TryGetValue(seg, out var child))
-                {
-                    var path = i == 0 ? seg : current.FullPath + "/" + seg;
-                    child = new TreeNode(seg, path);
-                    current.ChildIndex[seg] = child;
-                    current.Children.Add(child);
-                }
-                if (isLeaf) child.Entry = b;
-                current = child;
-            }
-        }
-        SortNode(root);
-        return root.Children;
-    }
-
-    private static void SortNode(TreeNode node)
-    {
-        node.Children.Sort((a, b) =>
-        {
-            var aFolder = a.Entry == null;
-            var bFolder = b.Entry == null;
-            if (aFolder != bFolder) return aFolder ? -1 : 1;
-            return string.Compare(a.Segment, b.Segment, StringComparison.OrdinalIgnoreCase);
+                Update(s => s with { BusyBranch = null });
+                if (outcome.Success)
+                    bus.Broadcast(new RefsChangedMessage(repo.Id));
+                else
+                    bus.Broadcast(new ShowOperationErrorMessage(
+                        "Checkout failed",
+                        outcome.ErrorMessage ?? "Checkout failed."));
+            });
         });
-        foreach (var c in node.Children) SortNode(c);
     }
 
-    private sealed class TreeNode
+    // ---- context menu items (semantic, keyed on the row's identity) ----
+
+    public IReadOnlyList<RepoBarContextMenu.Item> BuildLocalBranchMenuItems(string fullPath, bool isHead)
     {
-        public TreeNode(string segment, string fullPath)
-        {
-            Segment = segment;
-            FullPath = fullPath;
-        }
-        public string Segment { get; }
-        public string FullPath { get; }
-        public BranchEntry? Entry { get; set; }
-        public Dictionary<string, TreeNode> ChildIndex { get; } = new();
-        public List<TreeNode> Children { get; } = new();
+        var repo = _registry.Active.Value;
+        if (repo == null) return Array.Empty<RepoBarContextMenu.Item>();
+
+        var state = State.Value;
+        var thisRowBusy = state.BusyBranch == fullPath;
+        var checkoutDisabled = isHead || state.IsBranchOpInFlight;
+        var renameDisabled = thisRowBusy;
+        var deleteDisabled = isHead || thisRowBusy;
+
+        var capturedRepo = repo;
+        var capturedName = fullPath;
+        return
+        [
+            new RepoBarContextMenu.Item(
+                "Checkout",
+                () => StartCheckoutLocal(capturedName),
+                LucideIcons.Branch,
+                Enabled: !checkoutDisabled),
+            new RepoBarContextMenu.Item(
+                "Rename…",
+                () => _bus.Broadcast(new ShowRenameBranchDialogMessage(capturedRepo, capturedName)),
+                LucideIcons.PencilLine,
+                Enabled: !renameDisabled),
+            new RepoBarContextMenu.Item(
+                "Delete…",
+                () => _bus.Broadcast(new ShowDeleteLocalBranchDialogMessage(capturedRepo, capturedName)),
+                LucideIcons.Trash,
+                Enabled: !deleteDisabled)
+        ];
+    }
+
+    public IReadOnlyList<RepoBarContextMenu.Item> BuildRemoteBranchMenuItems(string remoteName, string fullPath)
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return Array.Empty<RepoBarContextMenu.Item>();
+
+        var state = State.Value;
+        var checkoutDisabled = state.IsBranchOpInFlight;
+
+        var capturedRepo = repo;
+        var capturedRemote = remoteName;
+        var capturedName = fullPath;
+        return
+        [
+            new RepoBarContextMenu.Item(
+                "Checkout",
+                () => ActivateRemoteBranch(capturedRemote, capturedName),
+                LucideIcons.Branch,
+                Enabled: !checkoutDisabled),
+            new RepoBarContextMenu.Item(
+                "Delete remote branch…",
+                () => _bus.Broadcast(new ShowDeleteRemoteBranchDialogMessage(capturedRepo, capturedRemote, capturedName)),
+                LucideIcons.Trash)
+        ];
     }
 }
 
@@ -650,16 +390,18 @@ internal sealed record BranchesState(
     BranchesUiState Ui,
     BranchSelection? Selection,
     string? BusyBranch,
-    bool IsBranchOpInFlight,
     bool IsLoading,
     string? LoadError)
 {
+    // A branch op is in flight whenever BusyBranch is non-null. Reading state should
+    // prefer this property over checking BusyBranch directly for intent clarity.
+    public bool IsBranchOpInFlight => BusyBranch != null;
+
     public static BranchesState Initial { get; } = new(
         Listing: null,
         Ui: new BranchesUiState(),
         Selection: null,
         BusyBranch: null,
-        IsBranchOpInFlight: false,
         IsLoading: false,
         LoadError: null);
 }
