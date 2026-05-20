@@ -12,18 +12,25 @@ namespace GitGui;
 public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
 {
     private const float CloseButtonSize = 28f;
+    private const float DialogWidth = 460f;
+    private const float DialogOuterPadding = 20f;
+    private const float CodeBlockInnerPadding = 8f;
 
+    private readonly string _path;
     private readonly Action _onClose;
     private readonly CheckboxView _forceCheckbox;
     private readonly DialogButton _removeButton;
     private readonly TextView _errorView;
+    private readonly TextView _pathTextView;
+    private readonly TextStyle _pathTextStyle;
 
     public event Action? RemoveRequested;
 
     public RemoveWorktreeDialog(Repo primary, Repo worktree, Action onClose)
     {
-        PreferredWidth = 460f;
+        PreferredWidth = DialogWidth;
         _onClose = onClose;
+        _path = worktree.Path;
 
         var title = new TextView
         {
@@ -52,11 +59,35 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
             TextWrap = TextWrap.Wrap,
         };
 
-        var pathView = new TextView
+        _pathTextStyle = new TextStyle
+        {
+            TextColor = DialogPalette.BodyText,
+            FontFamily = DiffOptions.MonoFontFamily,
+            FontSize = 12f,
+            TextWrap = TextWrap.Wrap,
+        };
+        _pathTextView = new TextView
         {
             Text = worktree.Path,
-            TextColor = DialogPalette.RowTextMissing,
+            TextColor = DialogPalette.BodyText,
+            FontFamily = DiffOptions.MonoFontFamily,
+            FontSize = 12f,
             TextWrap = TextWrap.Wrap,
+        };
+        var pathBox = new RectView
+        {
+            BackgroundColor = Theme.BgDeep,
+            BorderColor = BorderColorStyle.All(DialogPalette.Border),
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(4),
+            Padding = new PaddingStyle
+            {
+                Left = (int)CodeBlockInnerPadding,
+                Right = (int)CodeBlockInnerPadding,
+                Top = 6,
+                Bottom = 6,
+            },
+            Children = { _pathTextView },
         };
 
         var hint = new TextView
@@ -92,13 +123,13 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
             },
         };
 
-        AddChildToSelf(new RectView
+        var dialogBody = new RectView
         {
             BackgroundColor = DialogPalette.Background,
             BorderColor = BorderColorStyle.All(DialogPalette.Border),
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
+            Padding = PaddingStyle.All((int)DialogOuterPadding),
             Children =
             {
                 new FlexColumnView
@@ -110,7 +141,7 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
                         headerRow,
                         new RectView { BackgroundColor = DialogPalette.Separator, PreferredHeight = 1 },
                         prompt,
-                        pathView,
+                        pathBox,
                         _forceCheckbox,
                         hint,
                         _errorView,
@@ -119,7 +150,14 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
                     },
                 },
             },
-        });
+        };
+
+        // ClippingView wraps the dialog so a child that measures too wide (e.g. a path that
+        // can't be word-broken because it has no spaces) still can't draw past the dialog's
+        // rounded edge. The path block also does its own pre-wrap on attach below.
+        var clip = new ClippingView();
+        clip.Children.Add(dialogBody);
+        AddChildToSelf(clip);
 
         this.UseController(_ => new DiscardChangesKbmController(RaiseRemoveRequested, onClose));
 
@@ -129,6 +167,19 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
             ctx.Require<IGitService>(),
             ctx.Require<IUiDispatcher>(),
             ctx.Require<IMessageBus>()));
+    }
+
+    protected override void OnAttachedToContext(Context context)
+    {
+        base.OnAttachedToContext(context);
+        // Path strings have no whitespace, so the framework's word-wrap engine can't break
+        // them. Pre-wrap by inserting newlines at path-separator boundaries so the displayed
+        // block stays inside the dialog's content width.
+        var available = DialogWidth
+                        - 2 * DialogOuterPadding
+                        - 2 * CodeBlockInnerPadding
+                        - 2; // account for the 1px border on each side of the code-block
+        _pathTextView.Text = PathWrap.Wrap(_path, _pathTextStyle, available, context.Canvas);
     }
 
     public bool Force => _forceCheckbox.IsChecked.Value;
