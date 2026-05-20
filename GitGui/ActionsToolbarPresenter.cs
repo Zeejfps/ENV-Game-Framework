@@ -199,6 +199,35 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         _view.PushEnabled = !_isPushing && hasBranchUpstream && _pushStatus.Ahead > 0;
         _view.PullEnabled = !_isPulling && hasBranchUpstream && _pushStatus.Behind > 0;
         _view.FetchEnabled = !_isFetching && _registry.Active.Value != null;
+
+        // Badges follow Ahead/Behind directly — the buttons themselves are still gated by
+        // hasBranchUpstream above, so a disabled button with a non-zero badge can't
+        // actually happen. Spinners suppress the count while an action is in flight so the
+        // user isn't staring at a "3" that hasn't been recomputed since the push started.
+        _view.PushBadge = _isPushing ? null : (hasBranchUpstream ? _pushStatus.Ahead : 0);
+        _view.PullBadge = _isPulling ? null : (hasBranchUpstream ? _pushStatus.Behind : 0);
+
+        UpdateBranchChip();
+    }
+
+    private void UpdateBranchChip()
+    {
+        if (_registry.Active.Value == null)
+        {
+            _view.CurrentBranch = null;
+            _view.CurrentBranchDetached = false;
+            return;
+        }
+        if (_pushStatus.IsDetached)
+        {
+            _view.CurrentBranch = "(detached HEAD)";
+            _view.CurrentBranchDetached = true;
+            return;
+        }
+        _view.CurrentBranch = string.IsNullOrEmpty(_pushStatus.CurrentBranchName)
+            ? null
+            : _pushStatus.CurrentBranchName;
+        _view.CurrentBranchDetached = false;
     }
 
     private void OnPushRequested()

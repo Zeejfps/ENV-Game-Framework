@@ -8,6 +8,8 @@ public sealed class ActionButton : HoverableButton
 {
     private readonly TextView _iconView;
     private readonly TextView? _labelView;
+    private readonly TextView? _badgeView;
+    private readonly RowView _row;
 
     public string Icon
     {
@@ -27,7 +29,31 @@ public sealed class ActionButton : HoverableButton
         set => _iconView.Rotation = value;
     }
 
-    public ActionButton(string icon, string? label, Action onClick, string? tooltip = null)
+    // Optional small count chip rendered after the label (e.g. "3" on Push). Set to null
+    // or 0 to hide; non-zero pops it back in. Colour is fixed at construction time so the
+    // call-site doesn't have to re-pass it on every update. The badge keeps its colour
+    // even when the button is disabled — the count is informational and stays readable
+    // regardless of whether the action is currently available (a disabled Push still
+    // wants to show how many commits are ahead, just dimmed by the count colour itself).
+    public int? Badge
+    {
+        set
+        {
+            if (_badgeView == null) return;
+            var attached = _row.Children.Contains(_badgeView);
+            if (value is int n && n > 0)
+            {
+                _badgeView.Text = n.ToString();
+                if (!attached) _row.Children.Add(_badgeView);
+            }
+            else if (attached)
+            {
+                _row.Children.Remove(_badgeView);
+            }
+        }
+    }
+
+    public ActionButton(string icon, string? label, Action onClick, string? tooltip = null, uint? badgeColor = null)
         : base(onClick, tooltip)
     {
         PreferredHeight = 28;
@@ -41,8 +67,8 @@ public sealed class ActionButton : HoverableButton
         };
         _iconView.BindTextColor(ComputeForeground);
 
-        var row = new RowView { Gap = 6 };
-        row.Children.Add(_iconView);
+        _row = new RowView { Gap = 6 };
+        _row.Children.Add(_iconView);
 
         if (!string.IsNullOrEmpty(label))
         {
@@ -52,7 +78,18 @@ public sealed class ActionButton : HoverableButton
                 VerticalTextAlignment = TextAlignment.Center,
             };
             _labelView.BindTextColor(ComputeForeground);
-            row.Children.Add(_labelView);
+            _row.Children.Add(_labelView);
+        }
+
+        if (badgeColor is uint color)
+        {
+            _badgeView = new TextView
+            {
+                Text = string.Empty,
+                TextColor = color,
+                VerticalTextAlignment = TextAlignment.Center,
+            };
+            // Not added to _row yet — Badge setter inserts it on first non-zero value.
         }
 
         var horizontalPadding = _labelView != null ? 8 : 6;
@@ -63,7 +100,7 @@ public sealed class ActionButton : HoverableButton
                 new PaddingView
                 {
                     Padding = new PaddingStyle { Left = horizontalPadding, Right = horizontalPadding },
-                    Children = { row },
+                    Children = { _row },
                 }
             }
         };

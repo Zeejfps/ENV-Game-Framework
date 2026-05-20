@@ -8,10 +8,25 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
 {
     private const float ToolbarHeight = 44f;
     private const int HorizontalPadding = 8;
-    private const float GroupGap = 4f;
-    private const float SeparatorBreathingRoom = 8f;
+
+    // Spacing rhythm: tight gap within a button cluster, generous breathing room around
+    // the vertical-line separators that mark zone boundaries. The contrast between the two
+    // is what creates the visual grouping — uniform gaps would make everything read as one
+    // long row regardless of how many separators we drew. Buttons inside a cluster sit
+    // almost touching; zones are walled off by ~20px (separator breathing room + line +
+    // breathing room + 2× cluster gap on the outside).
+    private const float WithinClusterGap = 2f;
+    private const float SeparatorBreathingRoom = 9f;
     private const float SeparatorWidth = 1f;
-    private const float SeparatorHeight = 16f;
+    private const float SeparatorHeight = 18f;
+
+    // Ahead/behind palette mirrors BranchesView so the at-a-glance vocabulary ("green = need
+    // to push", "amber = need to pull") is consistent between the sidebar branch rows and
+    // the toolbar buttons. Duplicated literals rather than a shared const because these
+    // belong to a shared *design* concept, not a shared module — co-locating them keeps
+    // each surface readable on its own.
+    private const uint AheadBadgeColor = 0xFF9DD17B;
+    private const uint BehindBadgeColor = 0xFFE6A85C;
 
     private readonly ActionButton _pushButton;
     private readonly ActionButton _pullButton;
@@ -20,6 +35,7 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
     private readonly ActionButton _stashButton;
     private readonly ActionButton _openFolderButton;
     private readonly ActionButton _openTerminalButton;
+    private readonly CurrentBranchChip _branchChip;
     private readonly ErrorBar _errorBar;
     private readonly FlexRowView _contentRow;
 
@@ -35,8 +51,10 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
     {
         PreferredHeight = ToolbarHeight;
 
-        _pushButton = new ActionButton(LucideIcons.Push, "Push", () => PushRequested?.Invoke());
-        _pullButton = new ActionButton(LucideIcons.Pull, "Pull", () => PullRequested?.Invoke());
+        _pushButton = new ActionButton(LucideIcons.Push, "Push", () => PushRequested?.Invoke(),
+            badgeColor: AheadBadgeColor);
+        _pullButton = new ActionButton(LucideIcons.Pull, "Pull", () => PullRequested?.Invoke(),
+            badgeColor: BehindBadgeColor);
         _fetchButton = new ActionButton(LucideIcons.Fetch, "Fetch", () => FetchRequested?.Invoke());
         _branchButton = new ActionButton(LucideIcons.Branch, "Branch", () => BranchRequested?.Invoke());
         _stashButton = new ActionButton(LucideIcons.Stash, "Stash", () => StashRequested?.Invoke());
@@ -45,13 +63,30 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
         _openTerminalButton = new ActionButton(LucideIcons.SquareTerminal, () => OpenInTerminalRequested?.Invoke(),
             tooltip: "Open in terminal");
 
+        _branchChip = new CurrentBranchChip();
+
+        // Layout zones, left to right:
+        //   [ Mode (+ "on master" chip) ]  |  [ Fetch Pull Push ]  |  [ Stash Branch ]  …  [ Folder Terminal ]
+        //              status                     remote sync             local ops             tools
+        //
+        // The status zone (mode + chip) is open by default; when a repo activates, the
+        // chip + its trailing divider both insert via the CurrentBranch setter. The two
+        // mid-row dividers + the (grow) before the tools group create the visible "this
+        // is a new zone" boundaries — within a zone, buttons sit at WithinClusterGap so
+        // they read as a single chunk.
         _contentRow = new FlexRowView
         {
-            Gap = GroupGap,
+            Gap = WithinClusterGap,
             CrossAxisAlignment = CrossAxisAlignment.Center,
             Children =
             {
                 new ModeSwitcherView(),
+                // _branchChip inserts here (index 1) when a repo is active — see the
+                // CurrentBranch setter. The SeparatorSpacer below always sits one slot to
+                // the right of where the chip lands, so the divide between "status" and
+                // "actions" is the same line whether the chip is present or not. When the
+                // chip is hidden the row collapses cleanly to [Mode][separator][sync…].
+                new SeparatorSpacer(),
                 _fetchButton,
                 _pullButton,
                 _pushButton,
@@ -112,6 +147,32 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
     }
 
     public bool StashEnabled { set => _stashButton.IsEnabled.Value = value; }
+
+    public int? PushBadge { set => _pushButton.Badge = value; }
+    public int? PullBadge { set => _pullButton.Badge = value; }
+
+    // Index where the chip slots in — immediately after the mode switcher
+    // (_contentRow.Children[0]), so the chip rides on the left side of the status|sync
+    // separator. Hard-coded because the surrounding children are static; update alongside
+    // the Children list above if the layout shifts.
+    private const int BranchChipInsertIndex = 1;
+
+    public string? CurrentBranch
+    {
+        set
+        {
+            var attached = _contentRow.Children.Contains(_branchChip);
+            if (string.IsNullOrEmpty(value))
+            {
+                if (attached) _contentRow.Children.Remove(_branchChip);
+                return;
+            }
+            _branchChip.BranchName = value;
+            if (!attached) _contentRow.Children.Insert(BranchChipInsertIndex, _branchChip);
+        }
+    }
+
+    public bool CurrentBranchDetached { set => _branchChip.IsDetached = value; }
 
     public bool PushBusy
     {
