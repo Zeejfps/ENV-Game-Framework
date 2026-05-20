@@ -4,12 +4,24 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
+      <Content Include="Assets\**\*">
+        <Link>Assets\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
+      <ProjectReference Include="..\ZGF.AppUtils\ZGF.AppUtils.csproj" />
+      <ProjectReference Include="..\ZGF.Core\ZGF.Core.csproj" />
       <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
       <ProjectReference Include="..\ZGF.Geometry\ZGF.Geometry.csproj" />
       <ProjectReference Include="..\ZGF.Inputs.Mouse\ZGF.Inputs.Mouse.csproj" />
+      <ProjectReference Include="..\ZGF.KeyboardModule.GlfwAdapter\ZGF.KeyboardModule.GlfwAdapter.csproj" />
       <ProjectReference Include="..\ZGF.KeyboardModule\ZGF.KeyboardModule.csproj" />
       <ProjectReference Include="..\ZGF.Observable\ZGF.Observable.csproj" />
     </ItemGroup>

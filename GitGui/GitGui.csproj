@@ -23,7 +23,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\ZGF.Gui.Tests\ZGF.Gui.Tests.csproj" />
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
       <ProjectReference Include="..\ZGF.Observable\ZGF.Observable.csproj" />
     </ItemGroup>
