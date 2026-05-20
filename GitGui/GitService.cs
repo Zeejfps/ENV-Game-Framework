@@ -569,10 +569,15 @@ public sealed class GitService : IGitService
             try
             {
                 using var lg = new Repository(repo.Path);
+                // Our bundled libgit2 ships with empty config search paths and
+                // GlobalSettings.SetConfigSearchPaths is a silent no-op under NativeAOT, so
+                // lg.Config never sees ~/.gitconfig. Build the chain explicitly to pick up
+                // the user's global user.name / user.email.
+                using var cfg = OpenChainedConfig(repo.Path);
                 // BuildSignature returns null when user.name / user.email are missing — turn
                 // that into a friendly message rather than the ArgumentNullException libgit2
                 // would throw if we passed null straight through.
-                var sig = lg.Config.BuildSignature(DateTimeOffset.Now);
+                var sig = cfg.BuildSignature(DateTimeOffset.Now);
                 if (sig == null)
                     return "Set git user.name and user.email before committing.";
 
@@ -596,6 +601,19 @@ public sealed class GitService : IGitService
         {
             return ex.Message;
         }
+    }
+
+    private static Configuration OpenChainedConfig(string repoPath)
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var repoCfg = Path.Combine(repoPath, ".git", "config");
+        var globalCfg = Path.Combine(home, ".gitconfig");
+        var xdgCfg = Path.Combine(home, ".config", "git", "config");
+        return Configuration.BuildFrom(
+            File.Exists(repoCfg) ? repoCfg : null,
+            File.Exists(globalCfg) ? globalCfg : null,
+            File.Exists(xdgCfg) ? xdgCfg : null,
+            null);
     }
 
     public HeadCommitMessage? GetHeadCommitMessage(Repo repo)
