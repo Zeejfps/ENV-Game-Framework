@@ -125,14 +125,7 @@ internal sealed class LocalChangesPanel : MultiChildView
 
         this.UseController(_ => new ScrollSyncController(_scrollPane, _scrollBar, _hScrollBar));
     }
-
-    protected override void OnLayoutChildren()
-    {
-        base.OnLayoutChildren();
-        _scrollBar.PreferredWidth = _scrollPane.VerticalScale < 1f ? ScrollBarSync.Thickness : 0f;
-        _hScrollBar.PreferredHeight = _scrollPane.HorizontalScale < 1f ? ScrollBarSync.Thickness : 0f;
-    }
-
+    
     public void SetFiles(IReadOnlyList<FileChange> files)
     {
         _files = files;
