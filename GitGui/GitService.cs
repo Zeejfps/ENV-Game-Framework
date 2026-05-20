@@ -1131,6 +1131,216 @@ public sealed class GitService : IGitService
         }
     }
 
+    public IReadOnlyList<WorktreeInfo> ListWorktrees(Repo primary, out string? errorMessage)
+    {
+        errorMessage = null;
+        try
+        {
+            if (!Repository.IsValid(primary.Path))
+            {
+                errorMessage = "Not a git repository.";
+                return Array.Empty<WorktreeInfo>();
+            }
+            var stdout = RunGit(primary.Path, out var err, "worktree", "list", "--porcelain");
+            if (err != null)
+            {
+                errorMessage = err;
+                return Array.Empty<WorktreeInfo>();
+            }
+            return ParseWorktreePorcelain(stdout);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            return Array.Empty<WorktreeInfo>();
+        }
+    }
+
+    // Porcelain format: blank-line-separated records, one field per line.
+    //   worktree <abs-path>
+    //   HEAD <sha>     OR omitted for bare
+    //   branch refs/heads/<name>  OR  detached  OR  bare
+    //   locked [reason]            (optional)
+    //   prunable [reason]          (optional)
+    private static IReadOnlyList<WorktreeInfo> ParseWorktreePorcelain(string text)
+    {
+        var results = new List<WorktreeInfo>();
+        if (string.IsNullOrWhiteSpace(text)) return results;
+
+        string? path = null, head = null, branch = null, lockReason = null, prunableReason = null;
+        bool detached = false, bare = false, locked = false, prunable = false;
+
+        void Flush()
+        {
+            if (path is null) return;
+            results.Add(new WorktreeInfo(
+                Path: path,
+                HeadSha: head,
+                Branch: branch,
+                IsDetached: detached,
+                IsBare: bare,
+                IsLocked: locked,
+                LockReason: lockReason,
+                IsPrunable: prunable,
+                PrunableReason: prunableReason));
+            path = null; head = null; branch = null; lockReason = null; prunableReason = null;
+            detached = false; bare = false; locked = false; prunable = false;
+        }
+
+        foreach (var rawLine in text.Split('\n'))
+        {
+            var line = rawLine.TrimEnd('\r');
+            if (line.Length == 0) { Flush(); continue; }
+
+            if (line.StartsWith("worktree ", StringComparison.Ordinal))
+                path = line.Substring("worktree ".Length).Trim();
+            else if (line.StartsWith("HEAD ", StringComparison.Ordinal))
+                head = line.Substring("HEAD ".Length).Trim();
+            else if (line.StartsWith("branch ", StringComparison.Ordinal))
+            {
+                var refName = line.Substring("branch ".Length).Trim();
+                const string prefix = "refs/heads/";
+                branch = refName.StartsWith(prefix, StringComparison.Ordinal) ? refName.Substring(prefix.Length) : refName;
+            }
+            else if (line.Equals("detached", StringComparison.Ordinal)) detached = true;
+            else if (line.Equals("bare", StringComparison.Ordinal)) bare = true;
+            else if (line.Equals("locked", StringComparison.Ordinal)) { locked = true; }
+            else if (line.StartsWith("locked ", StringComparison.Ordinal))
+            {
+                locked = true;
+                lockReason = line.Substring("locked ".Length).Trim();
+            }
+            else if (line.Equals("prunable", StringComparison.Ordinal)) { prunable = true; }
+            else if (line.StartsWith("prunable ", StringComparison.Ordinal))
+            {
+                prunable = true;
+                prunableReason = line.Substring("prunable ".Length).Trim();
+            }
+        }
+        Flush();
+        return results;
+    }
+
+    public WorktreeAddOutcome AddWorktree(Repo primary, WorktreeAddRequest request)
+    {
+        try
+        {
+            if (!Repository.IsValid(primary.Path))
+                return new WorktreeAddOutcome(false, "Not a git repository.");
+            if (string.IsNullOrWhiteSpace(request.Path))
+                return new WorktreeAddOutcome(false, "Worktree path is required.");
+            if (string.IsNullOrWhiteSpace(request.StartPoint))
+                return new WorktreeAddOutcome(false, "Start point is required.");
+
+            var args = new List<string> { "worktree", "add" };
+            if (request.Force) args.Add("--force");
+            if (!string.IsNullOrWhiteSpace(request.NewBranchName))
+            {
+                args.Add("-b");
+                args.Add(request.NewBranchName!);
+            }
+            args.Add(request.Path);
+            args.Add(request.StartPoint);
+
+            var sem = GetRepoLock(primary.Path);
+            sem.Wait();
+            try { return RunWorktreeAdd(primary.Path, args); }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new WorktreeAddOutcome(false, ex.Message);
+        }
+    }
+
+    private static WorktreeAddOutcome RunWorktreeAdd(string repoPath, IReadOnlyList<string> args)
+    {
+        var psi = BuildGitProcessStartInfo(args, repoPath);
+        using var proc = Process.Start(psi);
+        if (proc == null) return new WorktreeAddOutcome(false, "Failed to start git.");
+
+        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+        var stderrTask = proc.StandardError.ReadToEndAsync();
+        proc.WaitForExit();
+        var stderr = stderrTask.GetAwaiter().GetResult();
+        var stdout = stdoutTask.GetAwaiter().GetResult();
+
+        if (proc.ExitCode == 0) return new WorktreeAddOutcome(true, null);
+        var msg = CombineGitOutput(stderr, stdout);
+        if (string.IsNullOrEmpty(msg)) msg = $"git worktree add exited with code {proc.ExitCode}.";
+        return new WorktreeAddOutcome(false, msg);
+    }
+
+    public WorktreeRemoveOutcome RemoveWorktree(Repo primary, string worktreePath, bool force)
+    {
+        try
+        {
+            if (!Repository.IsValid(primary.Path))
+                return new WorktreeRemoveOutcome(false, "Not a git repository.");
+            if (string.IsNullOrWhiteSpace(worktreePath))
+                return new WorktreeRemoveOutcome(false, "Worktree path is required.");
+
+            var args = new List<string> { "worktree", "remove" };
+            if (force) args.Add("--force");
+            args.Add(worktreePath);
+
+            var sem = GetRepoLock(primary.Path);
+            sem.Wait();
+            try
+            {
+                var psi = BuildGitProcessStartInfo(args, primary.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new WorktreeRemoveOutcome(false, "Failed to start git.");
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+                if (proc.ExitCode == 0) return new WorktreeRemoveOutcome(true, null);
+                var msg = CombineGitOutput(stderr, stdout);
+                if (string.IsNullOrEmpty(msg)) msg = $"git worktree remove exited with code {proc.ExitCode}.";
+                return new WorktreeRemoveOutcome(false, msg);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new WorktreeRemoveOutcome(false, ex.Message);
+        }
+    }
+
+    public WorktreePruneOutcome PruneWorktrees(Repo primary)
+    {
+        try
+        {
+            if (!Repository.IsValid(primary.Path))
+                return new WorktreePruneOutcome(false, "Not a git repository.");
+
+            var sem = GetRepoLock(primary.Path);
+            sem.Wait();
+            try
+            {
+                var psi = BuildGitProcessStartInfo(new[] { "worktree", "prune" }, primary.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new WorktreePruneOutcome(false, "Failed to start git.");
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+                if (proc.ExitCode == 0) return new WorktreePruneOutcome(true, null);
+                var msg = CombineGitOutput(stderr, stdout);
+                if (string.IsNullOrEmpty(msg)) msg = $"git worktree prune exited with code {proc.ExitCode}.";
+                return new WorktreePruneOutcome(false, msg);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new WorktreePruneOutcome(false, ex.Message);
+        }
+    }
+
     private static StashOutcome RunGitStash(string repoPath, IReadOnlyList<string> gitArgs, string label)
     {
         var psi = BuildGitProcessStartInfo(gitArgs, repoPath);

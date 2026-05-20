@@ -25,6 +25,10 @@ public sealed class RepoRow : MultiChildView
                 : DialogPalette.RowText;
         }
 
+        // Chevron slot is always present so primaries with and without worktrees share
+        // alignment. The slot becomes interactive (and visible) only when children exist.
+        var chevronSlot = new WorktreeChevron(repo, registry);
+
         var icon = new TextView
         {
             Text = LucideIcons.FolderGit2,
@@ -56,6 +60,7 @@ public sealed class RepoRow : MultiChildView
                     CrossAxisAlignment = CrossAxisAlignment.Center,
                     Children =
                     {
+                        chevronSlot,
                         icon,
                         new FlexItem { Grow = 1, Child = _label },
                     }
@@ -79,13 +84,35 @@ public sealed class RepoRow : MultiChildView
             repo,
             registry,
             h => isHovered.Value = h,
-            _ => BuildMenuItems(repo, registry)));
+            _ => BuildMenuItems(repo, registry, ctx)));
     }
 
-    private static IReadOnlyList<RepoBarContextMenu.Item> BuildMenuItems(Repo repo, IRepoRegistry registry)
+    private static IReadOnlyList<RepoBarContextMenu.Item> BuildMenuItems(Repo repo, IRepoRegistry registry, Context context)
     {
         var sourceGroup = registry.FindGroupContaining(repo.Id);
         var items = new List<RepoBarContextMenu.Item>();
+
+        var bus = context.Get<IMessageBus>();
+        if (bus is not null)
+        {
+            items.Add(new RepoBarContextMenu.Item(
+                "New worktree…",
+                () => bus.Broadcast(new ShowCreateWorktreeDialogMessage(repo)),
+                LucideIcons.Branch));
+
+            var git = context.Get<IGitService>();
+            if (git is not null)
+            {
+                items.Add(new RepoBarContextMenu.Item(
+                    "Prune worktrees",
+                    () =>
+                    {
+                        Task.Run(() => git.PruneWorktrees(repo));
+                        bus.Broadcast(new WorktreesChangedMessage(repo.Id));
+                    },
+                    LucideIcons.Trash));
+            }
+        }
 
         foreach (var group in registry.Groups)
         {

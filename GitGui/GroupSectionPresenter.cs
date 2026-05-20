@@ -14,24 +14,27 @@ internal sealed class GroupSectionPresenter : IDisposable
 
         _view.SetHeader(new GroupHeaderRow(_group));
         _view.BindRows(
-            () => VisibleRepos(_group, _registry),
-            repo => new RepoRow(repo, _registry));
+            () => VisiblePrimaries(_group, _registry),
+            primary => new RepoEntry(primary, _registry));
     }
 
     public void Dispose() { }
 
-    // Collapsed groups still surface the active repo so the user can see "where they are"
-    // when the rest of the group is hidden.
-    private static IEnumerable<Repo> VisibleRepos(Group group, IRepoRegistry registry)
+    // Group.RepoIds holds primary IDs only — worktrees nest under their parent via
+    // RepoEntry. Collapsed groups still surface the active row's primary so the user
+    // can see "where they are" when the rest of the group is hidden.
+    private static IEnumerable<Repo> VisiblePrimaries(Group group, IRepoRegistry registry)
     {
         var reposById = registry.Repos.ToDictionary(r => r.Id);
 
         if (group.IsCollapsed)
         {
-            var activeId = registry.Active.Value?.Id;
+            var active = registry.Active.Value;
+            if (active is null) yield break;
+            var primaryId = active.ParentRepoId ?? active.Id;
             foreach (var repoId in group.RepoIds)
             {
-                if (reposById.TryGetValue(repoId, out var repo) && repo.Id == activeId)
+                if (repoId == primaryId && reposById.TryGetValue(repoId, out var repo))
                     yield return repo;
             }
             yield break;
@@ -39,7 +42,7 @@ internal sealed class GroupSectionPresenter : IDisposable
 
         foreach (var repoId in group.RepoIds)
         {
-            if (reposById.TryGetValue(repoId, out var repo))
+            if (reposById.TryGetValue(repoId, out var repo) && !repo.IsWorktree)
                 yield return repo;
         }
     }

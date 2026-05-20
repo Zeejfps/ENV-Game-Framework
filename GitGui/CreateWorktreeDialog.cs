@@ -1,0 +1,262 @@
+using ZGF.Gui;
+using ZGF.Gui.Layouts;
+using ZGF.Gui.Tests;
+using ZGF.Observable;
+
+namespace GitGui;
+
+/// <summary>
+/// Modal shown from a primary RepoRow's "New worktree…" menu. Collects the three
+/// fields `git worktree add` needs (path, start point, optional new branch name) plus
+/// a force toggle for re-using an existing dirty path. The presenter shells out via
+/// IGitService.AddWorktree.
+/// </summary>
+public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
+{
+    private const float CloseButtonSize = 28f;
+
+    private readonly Action _onClose;
+    private readonly TextInputView _pathInput;
+    private readonly CheckoutDialogKbmController _pathController;
+    private readonly TextInputView _startPointInput;
+    private readonly TextInputView _branchInput;
+    private readonly CheckboxView _forceCheckbox;
+    private readonly DialogButton _createButton;
+    private readonly TextView _errorView;
+
+    public event Action? InputsChanged;
+    public event Action? CreateRequested;
+
+    public CreateWorktreeDialog(Repo primary, Action onClose)
+    {
+        _onClose = onClose;
+
+        var title = new TextView
+        {
+            Text = "New worktree",
+            TextColor = DialogPalette.TitleText,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+
+        var headerRow = new FlexRowView
+        {
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            PreferredHeight = 28,
+            Children =
+            {
+                new MultiChildView { PreferredWidth = CloseButtonSize },
+                new FlexItem { Grow = 1, Child = title },
+                new DialogCloseButton(onClose),
+            },
+        };
+
+        var pathLabel = new TextView
+        {
+            Text = "Worktree path",
+            TextColor = DialogPalette.SectionHeaderText,
+        };
+
+        _pathInput = new TextInputView
+        {
+            BackgroundColor = DialogPalette.ButtonNormal,
+            TextColor = DialogPalette.TitleText,
+            CaretColor = DialogPalette.TitleText,
+            SelectionRectColor = DialogPalette.RowActive,
+            TextWrap = TextWrap.NoWrap,
+        };
+
+        var browseButton = new DialogButton("Browse…", PickPath)
+        {
+            PreferredHeight = 28,
+            PreferredWidth = 80,
+        };
+
+        var pathRow = new FlexRowView
+        {
+            Gap = 6,
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            Children =
+            {
+                new FlexItem
+                {
+                    Grow = 1,
+                    Child = new RectView
+                    {
+                        BackgroundColor = DialogPalette.ButtonNormal,
+                        BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
+                        BorderSize = BorderSizeStyle.All(1),
+                        BorderRadius = BorderRadiusStyle.All(3),
+                        Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
+                        PreferredHeight = 28,
+                        Children = { _pathInput },
+                    },
+                },
+                browseButton,
+            },
+        };
+
+        var startPointLabel = new TextView
+        {
+            Text = "Start point",
+            TextColor = DialogPalette.SectionHeaderText,
+        };
+
+        _startPointInput = new TextInputView
+        {
+            BackgroundColor = DialogPalette.ButtonNormal,
+            TextColor = DialogPalette.TitleText,
+            CaretColor = DialogPalette.TitleText,
+            SelectionRectColor = DialogPalette.RowActive,
+            TextWrap = TextWrap.NoWrap,
+        };
+        _startPointInput.Enter("HEAD");
+
+        var startPointBox = new RectView
+        {
+            BackgroundColor = DialogPalette.ButtonNormal,
+            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(3),
+            Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
+            PreferredHeight = 28,
+            Children = { _startPointInput },
+        };
+
+        var startPointHint = new TextView
+        {
+            Text = "Branch, tag, or commit SHA.",
+            TextColor = DialogPalette.RowTextMissing,
+        };
+
+        var branchLabel = new TextView
+        {
+            Text = "New branch (optional)",
+            TextColor = DialogPalette.SectionHeaderText,
+        };
+
+        _branchInput = new TextInputView
+        {
+            BackgroundColor = DialogPalette.ButtonNormal,
+            TextColor = DialogPalette.TitleText,
+            CaretColor = DialogPalette.TitleText,
+            SelectionRectColor = DialogPalette.RowActive,
+            TextWrap = TextWrap.NoWrap,
+        };
+
+        var branchBox = new RectView
+        {
+            BackgroundColor = DialogPalette.ButtonNormal,
+            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(3),
+            Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
+            PreferredHeight = 28,
+            Children = { _branchInput },
+        };
+
+        var branchHint = new TextView
+        {
+            Text = "Leave blank to check out the start point as-is.",
+            TextColor = DialogPalette.RowTextMissing,
+        };
+
+        _forceCheckbox = new CheckboxView("Force (allow non-empty path or re-used branch)")
+        {
+            PreferredHeight = 22,
+        };
+
+        _errorView = new TextView
+        {
+            Text = string.Empty,
+            TextColor = 0xFFE06C75,
+            TextWrap = TextWrap.Wrap,
+        };
+
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = 32 };
+        _createButton = new DialogButton("Create", RaiseCreateRequested) { PreferredHeight = 32 };
+
+        var buttonsRow = new FlexRowView
+        {
+            Gap = 8,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
+            Children =
+            {
+                new FlexItem { Grow = 1, Child = cancelButton },
+                new FlexItem { Grow = 1, Child = _createButton },
+            },
+        };
+
+        AddChildToSelf(new RectView
+        {
+            BackgroundColor = DialogPalette.Background,
+            BorderColor = BorderColorStyle.All(DialogPalette.Border),
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(10),
+            Padding = PaddingStyle.All(20),
+            Children =
+            {
+                new FlexColumnView
+                {
+                    Gap = 10,
+                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
+                    Children =
+                    {
+                        headerRow,
+                        new RectView { BackgroundColor = DialogPalette.Separator, PreferredHeight = 1 },
+                        pathLabel,
+                        pathRow,
+                        startPointLabel,
+                        startPointBox,
+                        startPointHint,
+                        branchLabel,
+                        branchBox,
+                        branchHint,
+                        _forceCheckbox,
+                        _errorView,
+                        new MultiChildView { PreferredHeight = 4 },
+                        buttonsRow,
+                    },
+                },
+            },
+        });
+
+        _pathController = new CheckoutDialogKbmController(_pathInput, RaiseCreateRequested, onClose);
+        _pathInput.UseController(_ => _pathController);
+        _startPointInput.UseController(_ => new CheckoutDialogKbmController(_startPointInput, RaiseCreateRequested, onClose));
+        _branchInput.UseController(_ => new CheckoutDialogKbmController(_branchInput, RaiseCreateRequested, onClose));
+
+        _pathInput.TextChanged += RaiseInputsChanged;
+        _startPointInput.TextChanged += RaiseInputsChanged;
+
+        var request = new CreateWorktreeRequest(primary);
+        this.UsePresenter(ctx => new CreateWorktreePresenter(
+            this, request,
+            ctx.Require<IGitService>(),
+            ctx.Require<IUiDispatcher>(),
+            ctx.Require<IMessageBus>()));
+    }
+
+    private void RaiseCreateRequested() => CreateRequested?.Invoke();
+    private void RaiseInputsChanged() => InputsChanged?.Invoke();
+
+    private void PickPath()
+    {
+        var shell = Context?.Get<IPlatformShell>();
+        var picked = shell?.PickFolder("Select worktree location");
+        if (!string.IsNullOrEmpty(picked))
+        {
+            _pathInput.Enter(picked);
+            RaiseInputsChanged();
+        }
+    }
+
+    public string Path => new(_pathInput.Text);
+    public string StartPoint => new(_startPointInput.Text);
+    public string NewBranchName => new(_branchInput.Text);
+    public bool Force => _forceCheckbox.IsChecked.Value;
+    public bool CreateEnabled { set => _createButton.IsEnabled.Value = value; }
+    public string? ErrorMessage { set => _errorView.Text = value ?? string.Empty; }
+    public void FocusPath() => _pathController.BeginEditing();
+    public void Close() => _onClose();
+}

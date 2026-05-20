@@ -33,6 +33,7 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
     public IReadable<string?> BusyBranch { get; }
     public IReadable<string?> LoadError { get; }
     public IReadable<bool> IsLoading { get; }
+    public IReadable<IReadOnlySet<string>> WorktreeBranches { get; }
 
     private Guid _activeRepoId;
 
@@ -59,12 +60,49 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         BusyBranch = Slice(s => s.BusyBranch);
         LoadError = Slice(s => s.LoadError);
         IsLoading = Slice(s => s.IsLoading);
+        WorktreeBranches = Slice(s => s.WorktreeBranches);
 
         Subscriptions.Add(_registry.Active.Subscribe(_ => OnActiveRepoChanged()));
         Subscriptions.Add(_bus.SubscribeScoped<CommitCreatedMessage>(OnCommitCreated));
         Subscriptions.Add(_bus.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected));
         Subscriptions.Add(_bus.SubscribeScoped<RefsChangedMessage>(OnRefsChanged));
+        Subscriptions.Add(_bus.SubscribeScoped<WorktreesChangedMessage>(OnWorktreesChanged));
+        Subscriptions.Add(_registry.WorktreesChanged.Subscribe(_ => RefreshWorktreeBranches()));
     }
+
+    private void OnWorktreesChanged(WorktreesChangedMessage _) => RefreshWorktreeBranches();
+
+    // Set of local-branch names that are checked out somewhere other than the active row.
+    // Used by BranchesView to annotate those branches so the user knows trying to check
+    // them out here would conflict. Built from sibling worktrees of the active primary
+    // (or, when a worktree is active, from the primary and all other siblings).
+    private void RefreshWorktreeBranches()
+    {
+        var active = _registry.Active.Value;
+        if (active is null)
+        {
+            Update(s => s.WorktreeBranches.Count == 0 ? s : s with { WorktreeBranches = EmptyStringSet });
+            return;
+        }
+        var primaryId = active.ParentRepoId ?? active.Id;
+
+        var set = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var r in _registry.Repos)
+        {
+            if (r.Id == active.Id) continue;
+            var rootId = r.ParentRepoId ?? r.Id;
+            if (rootId != primaryId) continue;
+            // DisplayName is set to the worktree's branch name by WorktreeSyncService when
+            // the worktree is on a named branch. Path-derived fallbacks (detached HEAD)
+            // simply won't match any branch and produce no annotation, which is fine.
+            if (!string.IsNullOrEmpty(r.DisplayName))
+                set.Add(r.DisplayName);
+        }
+        Update(s => s with { WorktreeBranches = set });
+    }
+
+    private static readonly IReadOnlySet<string> EmptyStringSet = new HashSet<string>();
+
 
     private void OnActiveRepoChanged()
     {
@@ -79,7 +117,8 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         }
 
         var ui = _registry.GetBranchesUi(active.Id);
-        Update(_ => new BranchesState(Listing: null, Ui: ui, Selection: null, BusyBranch: null, IsLoading: true, LoadError: null));
+        Update(_ => new BranchesState(Listing: null, Ui: ui, Selection: null, BusyBranch: null, IsLoading: true, LoadError: null, WorktreeBranches: EmptyStringSet));
+        RefreshWorktreeBranches();
         StartLoad(active);
     }
 
@@ -391,7 +430,8 @@ internal sealed record BranchesState(
     BranchSelection? Selection,
     string? BusyBranch,
     bool IsLoading,
-    string? LoadError)
+    string? LoadError,
+    IReadOnlySet<string> WorktreeBranches)
 {
     // A branch op is in flight whenever BusyBranch is non-null. Reading state should
     // prefer this property over checking BusyBranch directly for intent clarity.
@@ -403,5 +443,6 @@ internal sealed record BranchesState(
         Selection: null,
         BusyBranch: null,
         IsLoading: false,
-        LoadError: null);
+        LoadError: null,
+        WorktreeBranches: new HashSet<string>());
 }

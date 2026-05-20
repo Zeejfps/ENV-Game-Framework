@@ -5,14 +5,15 @@ namespace GitGui;
 
 public static class RepoStateStore
 {
-    private const int CurrentSchemaVersion = 2;
+    private const int CurrentSchemaVersion = 3;
     private const string DefaultGroupName = "Repositories";
 
     public sealed record State(
         List<Repo> Repos,
         List<Group> Groups,
         Guid? ActiveRepoId,
-        Dictionary<Guid, BranchesUiState> BranchesUi);
+        Dictionary<Guid, BranchesUiState> BranchesUi,
+        Dictionary<Guid, bool> WorktreesExpanded);
 
     internal sealed class FileShape
     {
@@ -21,6 +22,7 @@ public static class RepoStateStore
         public List<Group>? Groups { get; set; }
         public Guid? ActiveRepoId { get; set; }
         public Dictionary<Guid, BranchesUiState>? BranchesUi { get; set; }
+        public Dictionary<Guid, bool>? WorktreesExpanded { get; set; }
     }
 
     public static State Load(string path)
@@ -39,13 +41,18 @@ public static class RepoStateStore
                 .Select(r => r with { IsMissing = !IsGitRepo(r.Path) })
                 .ToList();
 
+            // Drop worktree records whose parent primary is gone — they can't be reattached
+            // and a dangling ParentRepoId would corrupt nested rendering.
+            var primaryIds = repos.Where(r => r.ParentRepoId is null).Select(r => r.Id).ToHashSet();
+            repos = repos.Where(r => r.ParentRepoId is null || primaryIds.Contains(r.ParentRepoId.Value)).ToList();
+
             var groups = file.Groups;
             if (groups is null || groups.Count == 0)
             {
                 groups =
                 [
                     new Group(Guid.NewGuid(), DefaultGroupName, IsCollapsed: false,
-                        RepoIds: repos.Select(r => r.Id).ToList())
+                        RepoIds: repos.Where(r => r.ParentRepoId is null).Select(r => r.Id).ToList())
 
                 ];
             }
@@ -54,7 +61,12 @@ public static class RepoStateStore
                 groups = ReconcileGroups(groups, repos);
             }
 
-            return new State(repos, groups, file.ActiveRepoId, file.BranchesUi ?? new Dictionary<Guid, BranchesUiState>());
+            return new State(
+                repos,
+                groups,
+                file.ActiveRepoId,
+                file.BranchesUi ?? new Dictionary<Guid, BranchesUiState>(),
+                file.WorktreesExpanded ?? new Dictionary<Guid, bool>());
         }
         catch (Exception ex)
         {
@@ -68,7 +80,8 @@ public static class RepoStateStore
         IReadOnlyList<Repo> repos,
         IReadOnlyList<Group> groups,
         Guid? activeId,
-        IReadOnlyDictionary<Guid, BranchesUiState> branchesUi)
+        IReadOnlyDictionary<Guid, BranchesUiState> branchesUi,
+        IReadOnlyDictionary<Guid, bool> worktreesExpanded)
     {
         var dir = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(dir))
@@ -81,6 +94,7 @@ public static class RepoStateStore
             Groups = groups.ToList(),
             ActiveRepoId = activeId,
             BranchesUi = branchesUi.ToDictionary(kv => kv.Key, kv => kv.Value),
+            WorktreesExpanded = worktreesExpanded.ToDictionary(kv => kv.Key, kv => kv.Value),
         };
         var json = JsonSerializer.Serialize(file, RepoStateJsonContext.Default.FileShape);
         File.WriteAllText(path, json);
@@ -97,17 +111,22 @@ public static class RepoStateStore
             new List<Repo>(),
             new List<Group> { defaultGroup },
             null,
-            new Dictionary<Guid, BranchesUiState>());
+            new Dictionary<Guid, BranchesUiState>(),
+            new Dictionary<Guid, bool>());
     }
 
+    // Worktrees are children of a primary repo and never appear directly in a Group —
+    // they're discovered by ParentRepoId at render time. Filter them out of every
+    // RepoIds set defensively, in case a hand-edit or older state file slipped one in.
     private static List<Group> ReconcileGroups(List<Group> groups, List<Repo> repos)
     {
-        var knownRepoIds = repos.Select(r => r.Id).ToHashSet();
-        var assigned = groups.SelectMany(g => g.RepoIds).Where(knownRepoIds.Contains).ToHashSet();
-        var orphans = repos.Select(r => r.Id).Where(id => !assigned.Contains(id)).ToList();
+        var primaries = repos.Where(r => r.ParentRepoId is null).ToList();
+        var primaryIds = primaries.Select(r => r.Id).ToHashSet();
+        var assigned = groups.SelectMany(g => g.RepoIds).Where(primaryIds.Contains).ToHashSet();
+        var orphans = primaries.Select(r => r.Id).Where(id => !assigned.Contains(id)).ToList();
 
         var cleaned = groups
-            .Select(g => g with { RepoIds = g.RepoIds.Where(knownRepoIds.Contains).ToList() })
+            .Select(g => g with { RepoIds = g.RepoIds.Where(primaryIds.Contains).ToList() })
             .ToList();
 
         if (orphans.Count > 0)

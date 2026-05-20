@@ -8,6 +8,7 @@ public interface IRepoRegistry
     ObservableList<Group> Groups { get; }
     State<Repo?> Active { get; }
     State<Guid?> RenamingGroupId { get; }
+    State<int> WorktreesChanged { get; }
     void Open(string path);
     void SetActive(Guid id);
     void ToggleGroupCollapsed(Guid groupId);
@@ -21,4 +22,8 @@ public interface IRepoRegistry
     void EndRenameGroup();
     BranchesUiState GetBranchesUi(Guid repoId);
     void SetBranchesUi(Guid repoId, BranchesUiState state);
+    IEnumerable<Repo> GetWorktrees(Guid primaryId);
+    bool IsWorktreeExpanded(Guid primaryId);
+    void SetWorktreeExpanded(Guid primaryId, bool expanded);
+    void ReplaceWorktreesFor(Guid primaryId, IReadOnlyList<WorktreeDescriptor> desired);
 }
