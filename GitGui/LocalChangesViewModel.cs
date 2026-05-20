@@ -81,7 +81,6 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         _commitSpinner = new SpinnerAnimation(dispatcher);
 
         Subscriptions.Add(_registry.Active.Subscribe(_ => StartLoadForActiveRepo()));
-        Subscriptions.Add(_bus.SubscribeScoped<RefsChangedMessage>(OnRefsChanged));
         Subscriptions.Add(_bus.SubscribeScoped<WorkingTreeChangedMessage>(OnWorkingTreeChanged));
     }
 
@@ -278,15 +277,6 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
             });
     }
 
-    // After checkout, the working tree may differ (index reset, untracked-vs-tracked
-    // status flips), so reload from disk for the current repo.
-    private void OnRefsChanged(RefsChangedMessage msg)
-    {
-        var active = _registry.Active.Value;
-        if (active == null || active.Id != msg.RepoId) return;
-        StartLoadForActiveRepo();
-    }
-
     private void OnWorkingTreeChanged(WorkingTreeChangedMessage msg)
     {
         var active = _registry.Active.Value;
@@ -319,8 +309,8 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
 
         // Cross-repo switches blank the panels (and the selection) so the "Loading…"
         // placeholder is shown rather than a stale snapshot from the previous repo.
-        // Same-repo reloads (RefsChangedMessage, WorkingTreeChangedMessage) keep the
-        // lists visible so the panels don't tear down for an incremental refresh.
+        // Same-repo reloads (WorkingTreeChangedMessage) keep the lists visible so the
+        // panels don't tear down for an incremental refresh.
         var isCrossRepoSwitch = _lastLoadedRepoId != active.Id;
         _lastLoadedRepoId = active.Id;
 
