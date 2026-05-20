@@ -31,9 +31,9 @@ public sealed class VerticalScrollPane : MultiChildView
 
     protected override void OnLayoutChild(in RectF position, View child)
     {
-        var childHeight = child.MeasureHeight();
+        var childHeight = child.MeasureHeight(position.Width);
         child.BottomConstraint = position.Top + _distanceFromTop - childHeight;
-        child.LeftConstraint = position.Left;            
+        child.LeftConstraint = position.Left;
         child.WidthConstraint = position.Width;
         child.LayoutSelf();
     }
@@ -91,11 +91,11 @@ public sealed class VerticalScrollPane : MultiChildView
     public void ScrollToBottom()
     {
         var viewportHeight = Position.Height;
-        var contentHeight = _columnView.MeasureHeight();
-        
+        var contentHeight = _columnView.MeasureHeight(Position.Width);
+
         if (contentHeight <= viewportHeight)
             return;
-        
+
         var delta = _distanceFromTop + contentHeight - viewportHeight;
         Scroll(delta);
     }
@@ -108,8 +108,8 @@ public sealed class VerticalScrollPane : MultiChildView
         var contentRect = _columnView.Position;
         
         var viewportHeight = Position.Height;
-        var contentHeight = _columnView.MeasureHeight();
-        
+        var contentHeight = _columnView.MeasureHeight(Position.Width);
+
         if (contentHeight <= viewportHeight)
         {
             _maxDistanceFromTop = 0;
@@ -131,7 +131,7 @@ public sealed class VerticalScrollPane : MultiChildView
     public void SetNormalizedScrollPosition(float normalizedPosition, bool notify = true)
     {
         var viewportHeight = Position.Height;
-        var contentHeight = _columnView.MeasureHeight();
+        var contentHeight = _columnView.MeasureHeight(Position.Width);
 
         var delta = contentHeight - viewportHeight;
         _distanceFromTop = delta * normalizedPosition;

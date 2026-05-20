@@ -89,17 +89,17 @@ public sealed class TextView : MultiChildView
         return max;
     }
 
-    public override float MeasureHeight()
+    public override float MeasureHeight(float availableWidth)
     {
         if (Context == null || _text == null)
             return 0f;
 
         var lineHeight = Context.Canvas.MeasureTextLineHeight(_style);
 
-        if (IsWrapping)
+        // availableWidth <= 0 means "unconstrained"; treat as single-line natural width.
+        if (IsWrapping && availableWidth > 0f)
         {
-            var width = ResolveWrapWidth();
-            EnsureWrapped(width);
+            EnsureWrapped(availableWidth);
             var lines = Math.Max(1, _wrappedLines.Count);
             return lines * lineHeight;
         }
@@ -111,13 +111,6 @@ public sealed class TextView : MultiChildView
     private static bool HasNewlines(string s) => s.IndexOf('\n') >= 0 || s.IndexOf('\r') >= 0;
 
     private static string[] SplitLines(string s) => s.Replace("\r\n", "\n").Split('\n');
-
-    private float ResolveWrapWidth()
-    {
-        if (WidthConstraint.IsSet) return WidthConstraint.Value;
-        if (PreferredWidth.IsSet) return PreferredWidth.Value;
-        return 0f;
-    }
 
     private void EnsureWrapped(float width)
     {

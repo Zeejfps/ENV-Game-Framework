@@ -64,7 +64,7 @@ public sealed class BorderLayoutView : View
 
         if (North != null)
         {
-            var height = North.MeasureHeight();
+            var height = North.MeasureHeight(position.Width);
             North.LeftConstraint = position.Left;
             North.BottomConstraint = position.Top - height;
             North.WidthConstraint = position.Width;
@@ -75,7 +75,7 @@ public sealed class BorderLayoutView : View
 
         if (South != null)
         {
-            var height = South.MeasureHeight();
+            var height = South.MeasureHeight(position.Width);
             South.LeftConstraint = position.Left;
             South.BottomConstraint = position.Bottom;
             South.WidthConstraint = position.Width;

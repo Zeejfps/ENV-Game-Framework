@@ -13,7 +13,7 @@ public sealed class CenterView : MultiChildView
         foreach (var child in Children)
         {
             var childWidth = child.MeasureWidth();
-            var childHeight = child.MeasureHeight();
+            var childHeight = child.MeasureHeight(childWidth);
 
             child.LeftConstraint = position.Left + (position.Width - childWidth) / 2f;
             child.BottomConstraint = position.Bottom + (position.Height - childHeight) / 2f;

@@ -20,7 +20,7 @@ public sealed class FlexColumnView : MultiChildView
         set => SetField(ref field, value);
     }
 
-    public override float MeasureHeight()
+    public override float MeasureHeight(float availableWidth)
     {
         if (PreferredHeight.IsSet)
             return PreferredHeight;
@@ -28,7 +28,7 @@ public sealed class FlexColumnView : MultiChildView
         var totalHeight = 0f;
         foreach (var child in Children)
         {
-            totalHeight += child.MeasureHeight();
+            totalHeight += child.MeasureHeight(availableWidth);
         }
         var spacing = (Children.Count - 1) * Gap;
         return totalHeight + spacing;
@@ -46,19 +46,12 @@ public sealed class FlexColumnView : MultiChildView
         var totalChildrenInitialHeight = 0f;
         var totalFlexGrow = 0f;
 
-        // For Stretch alignment, every child's width is known up front (== position.Width).
-        // Set it before MeasureHeight so height-for-width children (e.g. wrapping text) can
-        // return the correct height in the first measurement pass.
-        var stretchWidth = CrossAxisAlignment == CrossAxisAlignment.Stretch ? position.Width : 0f;
-
         foreach (var child in children)
         {
             var grow = child is FlexItem item ? (float)item.Grow : 0f;
-            if (stretchWidth > 0f)
-            {
-                child.WidthConstraint = stretchWidth;
-            }
-            totalChildrenInitialHeight += child.MeasureHeight();
+            // Pass the column's cross-axis width so height-for-width children (wrapping text)
+            // return the correct height in the first measurement pass.
+            totalChildrenInitialHeight += child.MeasureHeight(position.Width);
             totalFlexGrow += grow;
         }
 

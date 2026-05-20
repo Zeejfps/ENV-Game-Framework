@@ -49,12 +49,12 @@ public sealed class ScrollPane : MultiChildView, IScrollableContent
         var naturalWidth = child.MeasureWidth();
         var contentWidth = Math.Max(position.Width, naturalWidth);
 
-        // Set width before measuring height so height-for-width children behave (irrelevant
-        // for non-wrapping text but cheap to do correctly).
         child.LeftConstraint = position.Left - _distanceFromLeft;
         child.WidthConstraint = contentWidth;
 
-        var naturalHeight = child.MeasureHeight();
+        // Pass contentWidth so height-for-width children (wrapping text) report a height
+        // that matches the width we're about to lay them out at.
+        var naturalHeight = child.MeasureHeight(contentWidth);
         var contentHeight = Math.Max(position.Height, naturalHeight);
 
         // Bottom: positioned so the top edge of content sits at viewport.Top + distanceFromTop.
@@ -130,7 +130,7 @@ public sealed class ScrollPane : MultiChildView, IScrollableContent
     public void SetVerticalNormalizedScrollPosition(float normalized)
     {
         var viewportHeight = Position.Height;
-        var contentHeight = _columnView.MeasureHeight();
+        var contentHeight = _columnView.MeasureHeight(Position.Width);
         var range = contentHeight - viewportHeight;
         if (range <= 0)
         {

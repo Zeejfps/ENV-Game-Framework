@@ -59,7 +59,7 @@ public sealed class TooltipView : MultiChildView
     protected override void OnLayoutSelf()
     {
         var width = MeasureWidth();
-        var height = MeasureHeight();
+        var height = MeasureHeight(width);
         var anchor = _anchorRect;
 
         var left = anchor.Center.X - width * 0.5f;

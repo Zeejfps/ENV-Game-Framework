@@ -22,9 +22,12 @@ public sealed class PaddingView : MultiChildView
         return width;
     }
 
-    public override float MeasureHeight()
+    public override float MeasureHeight(float availableWidth)
     {
-        var height = base.MeasureHeight();
+        var childAvailableWidth = availableWidth > 0f
+            ? availableWidth - _padding.Left - _padding.Right
+            : availableWidth;
+        var height = base.MeasureHeight(childAvailableWidth);
         height += _padding.Top + _padding.Bottom;
         return height;
     }

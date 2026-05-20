@@ -83,7 +83,7 @@ public sealed class ContextMenu : MultiChildView
     protected override void OnLayoutSelf()
     {
         var width = MeasureWidth();
-        var height = MeasureHeight();
+        var height = MeasureHeight(width);
         var bottom = _anchorPoint.Y - height;
 
         Position = new RectF

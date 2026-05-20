@@ -9,11 +9,9 @@ namespace GitGui;
 /// Once content exceeds <c>max</c>, the field caps at that height and a vertical scroll bar
 /// is shown so the rest is reachable by scrolling.
 ///
-/// The desired height is recomputed in <see cref="OnLayoutChildren"/> (after the inner input
-/// has been laid out — at which point its width is known and its <c>MeasureHeight</c> is
-/// reliable) and stored as a <c>PreferredHeight</c>. The next layout pass reads that as the
-/// desired size. This avoids the "measure before width is known" problem that would otherwise
-/// make the field report a runaway height (every char treated as its own wrapped line).
+/// The desired height is recomputed in <see cref="OnLayoutChildren"/> (passing the input's
+/// laid-out width to <c>MeasureHeight</c>) and stored as <c>PreferredHeight</c>; the next
+/// layout pass picks it up.
 /// </summary>
 internal sealed class GrowingDescriptionField : MultiChildView
 {
@@ -106,11 +104,10 @@ internal sealed class GrowingDescriptionField : MultiChildView
     {
         base.OnLayoutChildren();
 
-        // Now that the input has been laid out, its MaxWidthConstraint reflects the actual
-        // viewport width — so its MeasureHeight is reliable. Cache the clamped desired height
-        // as PreferredHeight; the next layout pass will pick it up.
+        // MeasureHeight(width) handles the height-for-width case directly now; pass the
+        // input's laid-out width and cache the clamped desired height as PreferredHeight.
         var chrome = 2f * (BoxBorderThickness + BoxPaddingVertical);
-        var contentHeight = _input.MeasureHeight();
+        var contentHeight = _input.MeasureHeight(_input.Position.Width);
         var desired = Math.Clamp(contentHeight + chrome, _minHeight, _maxHeight);
         if (Math.Abs(desired - PreferredHeight) > 0.5f)
         {

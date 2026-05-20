@@ -34,8 +34,9 @@ public sealed class ImageView : MultiChildView
         return WidthConstraint;
     }
 
-    public override float MeasureHeight()
+    public override float MeasureHeight(float availableWidth)
     {
+        // Images have an intrinsic size and don't reflow — ignore availableWidth.
         if (PreferredHeight.IsSet)
             return PreferredHeight.Value;
 

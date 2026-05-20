@@ -447,7 +447,17 @@ public abstract class View
         }
         else
         {
-            height = MeasureHeight();
+            // Use the same width-fallback chain as the width branch so wrapping/
+            // height-for-width children get the right available width.
+            float availableWidth;
+            if (WidthConstraint.IsSet)
+                availableWidth = WidthConstraint;
+            else if (PreferredWidth.IsSet)
+                availableWidth = PreferredWidth;
+            else
+                availableWidth = MeasureWidth();
+
+            height = MeasureHeight(availableWidth);
         }
         
         Position = new RectF
@@ -471,8 +481,8 @@ public abstract class View
     public Size MeasureSelf()
     {
         var width = MeasureWidth();
-        var height = MeasureHeight();
-        
+        var height = MeasureHeight(width);
+
         return new Size
         {
             Width = width,
@@ -505,22 +515,34 @@ public abstract class View
         return maxWidth;
     }
     
-    public virtual float MeasureHeight()
+    /// <summary>
+    /// Convenience overload that uses the view's intrinsic width as the available width.
+    /// Equivalent to <c>MeasureHeight(MeasureWidth())</c>. Prefer the parameterized overload
+    /// from layout containers — they typically know the width they'll lay out at.
+    /// </summary>
+    public float MeasureHeight() => MeasureHeight(MeasureWidth());
+
+    /// <summary>
+    /// Measure the height this view would occupy when given <paramref name="availableWidth"/>
+    /// of horizontal space. A non-positive value (≤ 0) means "unconstrained — use the view's
+    /// intrinsic width." This is the entry point for height-for-width content (wrapping text).
+    /// </summary>
+    public virtual float MeasureHeight(float availableWidth)
     {
         if (PreferredHeight.IsSet)
         {
             return PreferredHeight;
         }
 
-        return MeasureChildrenHeight();
+        return MeasureChildrenHeight(availableWidth);
     }
 
-    protected float MeasureChildrenHeight()
+    protected float MeasureChildrenHeight(float availableWidth)
     {
         var height = 0f;
         foreach (var child in _children)
         {
-            var childHeight = child.MeasureHeight();
+            var childHeight = child.MeasureHeight(availableWidth);
             if (childHeight > height)
             {
                 height = childHeight;

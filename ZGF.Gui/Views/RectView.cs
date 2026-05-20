@@ -72,11 +72,16 @@ public class RectView : MultiChildView
         return width;
     }
 
-    public override float MeasureHeight()
+    public override float MeasureHeight(float availableWidth)
     {
-        var height = base.MeasureHeight();
         var padding = Padding;
         var borderSize = _style.BorderSize;
+        var horizontalChrome = padding.Left + padding.Right + borderSize.Left + borderSize.Right;
+        // Subtract our own chrome from the width available to children so they wrap correctly.
+        // A non-positive availableWidth means "unconstrained" — leave it as-is so the convention
+        // propagates down to descendants.
+        var childAvailableWidth = availableWidth > 0f ? availableWidth - horizontalChrome : availableWidth;
+        var height = base.MeasureHeight(childAvailableWidth);
         height += padding.Top + padding.Bottom + borderSize.Top + borderSize.Bottom;
         return height;
     }

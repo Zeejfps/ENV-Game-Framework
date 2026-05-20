@@ -204,7 +204,7 @@ public sealed class TextInputView : MultiChildView
         _buffer[index] = c;
     }
 
-    public override float MeasureHeight()
+    public override float MeasureHeight(float availableWidth)
     {
         var canvas = Context?.Canvas;
         if (canvas == null)
@@ -214,19 +214,14 @@ public sealed class TextInputView : MultiChildView
         if (_strLen == 0)
             return lineHeight;
 
-        var width = ResolveWrapWidth();
+        // availableWidth <= 0 means "unconstrained" — fall back to intrinsic width so we
+        // still report a sensible (single-line) height instead of one line per character.
+        var width = availableWidth > 0f ? availableWidth : MeasureWidth();
         var height = GetLines(width, canvas).Count() * lineHeight;
         if (PreferredHeight.IsSet && height < PreferredHeight)
             return PreferredHeight;
 
         return height;
-    }
-
-    private float ResolveWrapWidth()
-    {
-        if (WidthConstraint.IsSet) return WidthConstraint.Value;
-        if (PreferredWidth.IsSet) return PreferredWidth.Value;
-        return MeasureWidth();
     }
 
     private IEnumerable<Range> GetLines(float width, ICanvas canvas)
