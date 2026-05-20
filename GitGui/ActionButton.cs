@@ -93,7 +93,6 @@ public sealed class ActionButton : HoverableButton
                 TextColor = color,
                 VerticalTextAlignment = TextAlignment.Center,
             };
-            // Not attached to _row yet — the Badge setter inserts/removes it as needed.
         }
 
         var horizontalPadding = _labelView != null ? 8 : 6;
@@ -119,19 +118,10 @@ public sealed class ActionButton : HoverableButton
     private uint ComputeForeground()
     {
         if (!IsEnabled) return DialogPalette.RowTextMissing;
-        // When the badge is showing, the icon adopts the badge colour so the arrow + count
-        // read as one unit — and stays that colour even on hover, since the count text
-        // doesn't flash on hover and we don't want the pair to split visually. The label
-        // deliberately opts out (see ComputeLabelForeground) so the verb stays neutral and
-        // only the icon+count pair carries the "you have work to push/pull" signal.
         if (_hasBadge && _badgeColor is uint c) return c;
         return IsHovered ? 0xFFFFFFFFu : DialogPalette.RowText;
     }
 
-    // Label foreground intentionally ignores the badge: tinting "Push"/"Pull" green/amber
-    // made the whole button read as a status indicator, drowning out the surrounding
-    // verbs. Keeping the label neutral leaves the badge colour to do its job on the
-    // arrow+count pair alone.
     private uint ComputeLabelForeground()
     {
         if (!IsEnabled) return DialogPalette.RowTextMissing;
