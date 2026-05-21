@@ -23,8 +23,8 @@ internal sealed class OperationStateBanner
     public event Action? ContinueRequested;
 
     private readonly TextView _text;
-    private readonly DialogButton _abortButton;
-    private readonly DialogButton _continueButton;
+    private readonly ActionButton _abortButton;
+    private readonly ActionButton _continueButton;
     private readonly FlexRowView _row;
     private readonly MultiChildView _container;
     private readonly int _insertAt;
@@ -41,21 +41,19 @@ internal sealed class OperationStateBanner
             TextWrap = TextWrap.Wrap,
         };
 
-        _continueButton = new DialogButton("Continue", () => ContinueRequested?.Invoke())
-        {
-            PreferredHeight = 24,
-            PreferredWidth = 90,
-        };
+        _continueButton = new ActionButton(
+            LucideIcons.ChevronsRight,
+            () => ContinueRequested?.Invoke(),
+            tooltip: "Continue");
 
-        _abortButton = new DialogButton("Abort", () => AbortRequested?.Invoke())
-        {
-            PreferredHeight = 24,
-            PreferredWidth = 90,
-        };
+        _abortButton = new ActionButton(
+            LucideIcons.X,
+            () => AbortRequested?.Invoke(),
+            tooltip: "Abort");
 
         _row = new FlexRowView
         {
-            Gap = 12,
+            Gap = 4,
             CrossAxisAlignment = CrossAxisAlignment.Center,
             Children =
             {
@@ -91,7 +89,6 @@ internal sealed class OperationStateBanner
                 return;
             }
             _text.Text = MessageFor(value);
-            _abortButton.Label = ButtonLabelFor(value);
             UpdateContinueButton(value);
             if (!_container.Children.Contains(View))
             {
@@ -138,14 +135,5 @@ internal sealed class OperationStateBanner
         RepoOperationState.UnmergedPaths =>
             "Working directory contains unresolved conflicts. Resolve them and stage the files to clear this state, or reset.",
         _ => string.Empty,
-    };
-
-    // Label distinguishes destructive-revert ("Abort merge") from no-op-undo ("Reset bisect"
-    // / "Reset"): the user shouldn't have to read the body to know what the button does.
-    private static string ButtonLabelFor(RepoOperationState state) => state switch
-    {
-        RepoOperationState.Bisect => "Reset",
-        RepoOperationState.UnmergedPaths => "Reset",
-        _ => "Abort",
     };
 }
