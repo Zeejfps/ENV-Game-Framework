@@ -17,9 +17,8 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
     private const float CloseButtonSize = 28f;
 
     private readonly Action _onClose;
-    private readonly DialogButton _softButton;
-    private readonly DialogButton _mixedButton;
-    private readonly DialogButton _hardButton;
+    private readonly ResetModeDropdown _modeDropdown;
+    private readonly DialogButton _resetButton;
     private readonly TextView _errorView;
 
     public event Action<ResetMode>? ResetRequested;
@@ -27,7 +26,6 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
     public ResetCommitDialog(Repo repo, string sha, string shortSha, int stagedCount, int unstagedCount, Action onClose)
     {
         PreferredWidth = 520f;
-        PreferredHeight = 340f;
 
         _onClose = onClose;
 
@@ -58,18 +56,8 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
             TextWrap = TextWrap.Wrap,
         };
 
-        _softButton = BuildModeButton(
-            "Soft",
-            "Keep working tree and index; changes appear as staged.",
-            () => RaiseResetRequested(ResetMode.Soft));
-        _mixedButton = BuildModeButton(
-            "Mixed",
-            "Keep working tree; changes appear as unstaged.",
-            () => RaiseResetRequested(ResetMode.Mixed));
-        _hardButton = BuildModeButton(
-            "Hard",
-            "Discard all local changes. Cannot be undone.",
-            () => RaiseResetRequested(ResetMode.Hard));
+        _modeDropdown = new ResetModeDropdown();
+        var modeRow = BuildLabeledRow("Mode:", _modeDropdown);
 
         _errorView = new TextView
         {
@@ -78,9 +66,19 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
             TextWrap = TextWrap.Wrap,
         };
 
-        var cancelButton = new DialogButton("Cancel", onClose)
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = 32, PreferredWidth = 96 };
+        _resetButton = new DialogButton("Reset", RaiseResetRequested) { PreferredHeight = 32, PreferredWidth = 96 };
+
+        var buttonsRow = new FlexRowView
         {
-            PreferredHeight = 32,
+            Gap = 8,
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            Children =
+            {
+                new FlexItem { Grow = 1, Child = new MultiChildView() },
+                cancelButton,
+                _resetButton,
+            },
         };
 
         AddChildToSelf(new RectView
@@ -105,18 +103,16 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
                             PreferredHeight = 1,
                         },
                         prompt,
-                        _softButton,
-                        _mixedButton,
-                        _hardButton,
+                        modeRow,
                         _errorView,
-                        new FlexItem { Grow = 1, Child = new MultiChildView() },
-                        cancelButton,
+                        new MultiChildView { PreferredHeight = 4 },
+                        buttonsRow,
                     },
                 },
             },
         });
 
-        this.UseController(_ => new ResetCommitKbmController(onClose));
+        this.UseController(_ => new ResetCommitKbmController(RaiseResetRequested, onClose));
 
         var request = new ResetCommitRequest(repo, sha);
         this.UsePresenter(ctx => new ResetCommitPresenter(
@@ -128,12 +124,7 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
 
     public bool ButtonsEnabled
     {
-        set
-        {
-            _softButton.IsEnabled.Value = value;
-            _mixedButton.IsEnabled.Value = value;
-            _hardButton.IsEnabled.Value = value;
-        }
+        set => _resetButton.IsEnabled.Value = value;
     }
 
     public string? ErrorMessage
@@ -143,13 +134,35 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
 
     public void Close() => _onClose();
 
-    private void RaiseResetRequested(ResetMode mode) => ResetRequested?.Invoke(mode);
+    private void RaiseResetRequested() => ResetRequested?.Invoke(_modeDropdown.Selected);
 
-    private static DialogButton BuildModeButton(string label, string detail, Action onClick)
-        => new($"{label}  —  {detail}", onClick)
+    private static FlexRowView BuildLabeledRow(string label, MultiChildView value)
+    {
+        var labelText = new TextView
         {
-            PreferredHeight = 40,
+            Text = label,
+            TextColor = DialogPalette.SectionHeaderText,
+            VerticalTextAlignment = TextAlignment.Center,
         };
+        var labelColumn = new FlexRowView
+        {
+            PreferredWidth = 110,
+            MainAxisAlignment = MainAxisAlignment.End,
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            Children = { labelText },
+        };
+        return new FlexRowView
+        {
+            Gap = 10,
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            PreferredHeight = 28,
+            Children =
+            {
+                labelColumn,
+                new FlexItem { Grow = 1, Child = value },
+            },
+        };
+    }
 
     private static string BuildPrompt(int staged, int unstaged)
     {
@@ -161,12 +174,112 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
     }
 }
 
+internal sealed class ResetModeDropdown : HoverableButton
+{
+    private static readonly (ResetMode Mode, string Label, string Detail)[] Options =
+    {
+        (ResetMode.Mixed, "Mixed", "Keep working tree; changes appear unstaged"),
+        (ResetMode.Soft, "Soft", "Keep working tree and index; changes appear staged"),
+        (ResetMode.Hard, "Hard", "Discard all local changes"),
+    };
+
+    private readonly TextView _labelView;
+    private readonly TextView _detailView;
+    public State<ResetMode> SelectedState { get; } = new(ResetMode.Mixed);
+
+    public ResetMode Selected => SelectedState.Value;
+
+    public ResetModeDropdown()
+    {
+        PreferredHeight = 30;
+        _labelView = new TextView
+        {
+            Text = LookupLabel(ResetMode.Mixed),
+            TextColor = DialogPalette.TitleText,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        _detailView = new TextView
+        {
+            Text = LookupDetail(ResetMode.Mixed),
+            TextColor = DialogPalette.RowTextMissing,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        var chevron = new TextView
+        {
+            Text = LucideIcons.ChevronDown,
+            FontFamily = LucideIcons.FontFamily,
+            FontSize = 12,
+            TextColor = DialogPalette.RowText,
+            VerticalTextAlignment = TextAlignment.Center,
+            HorizontalTextAlignment = TextAlignment.Center,
+            PreferredWidth = 16,
+        };
+
+        var row = new FlexRowView
+        {
+            Gap = 10,
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            Children =
+            {
+                _labelView,
+                new FlexItem { Grow = 1, Child = _detailView },
+                chevron,
+            },
+        };
+
+        var background = new RectView
+        {
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(3),
+            Padding = new PaddingStyle { Left = 8, Right = 8, Top = 4, Bottom = 4 },
+            Children = { row },
+        };
+        DialogPalette.BindBorderedButtonChrome(background, IsHovered);
+        SetBackground(background);
+
+        SelectedState.Subscribe(s =>
+        {
+            _labelView.Text = LookupLabel(s);
+            _detailView.Text = LookupDetail(s);
+        });
+    }
+
+    protected override void OnClicked()
+    {
+        var ctx = Context;
+        if (ctx == null) return;
+        var items = new List<RepoBarContextMenu.Item>(Options.Length);
+        foreach (var opt in Options)
+        {
+            var mode = opt.Mode;
+            items.Add(new RepoBarContextMenu.Item(
+                $"{opt.Label} — {opt.Detail}",
+                () => SelectedState.Value = mode));
+        }
+        RepoBarContextMenu.Show(ctx, Position.BottomLeft, items);
+    }
+
+    private static string LookupLabel(ResetMode m)
+    {
+        foreach (var o in Options) if (o.Mode == m) return o.Label;
+        return string.Empty;
+    }
+
+    private static string LookupDetail(ResetMode m)
+    {
+        foreach (var o in Options) if (o.Mode == m) return o.Detail;
+        return string.Empty;
+    }
+}
+
 internal sealed class ResetCommitKbmController : KeyboardMouseController
 {
+    private readonly Action _onConfirm;
     private readonly Action _onCancel;
 
-    public ResetCommitKbmController(Action onCancel)
+    public ResetCommitKbmController(Action onConfirm, Action onCancel)
     {
+        _onConfirm = onConfirm;
         _onCancel = onCancel;
     }
 
@@ -177,6 +290,11 @@ internal sealed class ResetCommitKbmController : KeyboardMouseController
         {
             e.Consume();
             _onCancel();
+        }
+        else if (e.Key == KeyboardKey.Enter || e.Key == KeyboardKey.NumpadEnter)
+        {
+            e.Consume();
+            _onConfirm();
         }
     }
 }
