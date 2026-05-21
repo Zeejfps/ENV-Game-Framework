@@ -1068,6 +1068,112 @@ public sealed class GitService : IGitService
         }
     }
 
+    // Same merge-tree probe as PreviewMerge — git's three-way merge between HEAD and the
+    // target is a reasonable approximation of the conflict landscape a rebase will hit,
+    // even though rebase actually replays each commit individually. Good enough to give
+    // the user a green/amber heads-up; the real outcome surfaces via the rebase op banner.
+    public RebasePreviewResult PreviewRebase(Repo repo, string targetRef)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new RebasePreviewResult(RebasePreviewState.Unknown, "Not a git repository.");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = GitExecutable(),
+                WorkingDirectory = repo.Path,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            psi.ArgumentList.Add("merge-tree");
+            psi.ArgumentList.Add("--write-tree");
+            psi.ArgumentList.Add("--no-messages");
+            psi.ArgumentList.Add(targetRef);
+            psi.ArgumentList.Add("HEAD");
+
+            using var proc = Process.Start(psi);
+            if (proc == null) return new RebasePreviewResult(RebasePreviewState.Unknown, "Failed to start git.");
+            proc.StandardOutput.ReadToEnd();
+            var stderr = proc.StandardError.ReadToEnd();
+            proc.WaitForExit();
+
+            return proc.ExitCode switch
+            {
+                0 => new RebasePreviewResult(RebasePreviewState.Clean, null),
+                1 => new RebasePreviewResult(RebasePreviewState.Conflicts, null),
+                _ => new RebasePreviewResult(RebasePreviewState.Unknown, FirstMeaningfulLine(stderr)),
+            };
+        }
+        catch (Exception ex)
+        {
+            return new RebasePreviewResult(RebasePreviewState.Unknown, ex.Message);
+        }
+    }
+
+    // `git rebase <target>` replays HEAD's commits onto <target>. With --autostash, git
+    // stashes a dirty working tree before the rebase and pops it after success — that
+    // covers the "Stash and reapply local changes" checkbox in the dialog. Conflicts produce
+    // a non-zero exit but leave rebase-apply/ or rebase-merge/ behind, which the operation
+    // banner detects via GetOperationState — surface that as "success with conflicts" so the
+    // caller refreshes and the banner takes over.
+    public RebaseOutcome Rebase(Repo repo, string targetRef, bool autostash)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new RebaseOutcome(false, "Not a git repository.");
+
+            var args = new List<string> { "rebase" };
+            if (autostash) args.Add("--autostash");
+            args.Add(targetRef);
+
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                var psi = BuildGitProcessStartInfo(args, repo.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new RebaseOutcome(false, "Failed to start git.");
+
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+
+                if (proc.ExitCode == 0) return new RebaseOutcome(true, null);
+
+                // Conflict path: rebase leaves rebase-apply/ or rebase-merge/ in the
+                // per-worktree gitdir. If either exists, treat the failure as a successful
+                // start that produced conflicts — the operation banner will guide the user
+                // through resolve/continue/abort.
+                try
+                {
+                    using var lg = new Repository(repo.Path);
+                    var gitDir = lg.Info.Path;
+                    if (Directory.Exists(Path.Combine(gitDir, "rebase-apply"))
+                        || Directory.Exists(Path.Combine(gitDir, "rebase-merge")))
+                    {
+                        return new RebaseOutcome(true, null, HasConflicts: true);
+                    }
+                }
+                catch { /* fall through to error */ }
+
+                var msg = CombineGitOutput(stderr, stdout);
+                if (string.IsNullOrEmpty(msg)) msg = $"git rebase exited with code {proc.ExitCode}.";
+                return new RebaseOutcome(false, msg);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new RebaseOutcome(false, ex.Message);
+        }
+    }
+
     // `git branch -d` refuses to delete a branch not fully merged into its upstream/HEAD;
     // `-D` force-deletes regardless. Also refuses to delete the currently-checked-out branch
     // — callers should gate that in the UI rather than relying on the error.

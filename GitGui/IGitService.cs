@@ -35,6 +35,8 @@ public interface IGitService
     WorktreePruneOutcome PruneWorktrees(Repo primary);
     MergePreviewResult PreviewMerge(Repo repo, string sourceRef);
     MergeOutcome Merge(Repo repo, string sourceRef, MergeStrategy strategy);
+    RebasePreviewResult PreviewRebase(Repo repo, string targetRef);
+    RebaseOutcome Rebase(Repo repo, string targetRef, bool autostash);
 }
 
 public enum MergeStrategy
@@ -55,6 +57,17 @@ public enum MergePreviewState
 public sealed record MergePreviewResult(MergePreviewState State, string? ErrorMessage);
 
 public sealed record MergeOutcome(bool Success, string? ErrorMessage, bool HasConflicts = false);
+
+public enum RebasePreviewState
+{
+    Clean,
+    Conflicts,
+    Unknown,
+}
+
+public sealed record RebasePreviewResult(RebasePreviewState State, string? ErrorMessage);
+
+public sealed record RebaseOutcome(bool Success, string? ErrorMessage, bool HasConflicts = false);
 
 public sealed record AbortOperationOutcome(bool Success, string? ErrorMessage);
 

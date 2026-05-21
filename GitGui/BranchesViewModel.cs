@@ -431,6 +431,12 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
                 LucideIcons.Merge,
                 Enabled: canMerge,
                 LabelSegments: BuildMergeSegments(capturedName, capturedHead)));
+            items.Add(new RepoBarContextMenu.Item(
+                $"Rebase {capturedHead} onto {capturedName}…",
+                () => _bus.Broadcast(new ShowRebaseBranchDialogMessage(capturedRepo, capturedHead, capturedName, capturedName)),
+                LucideIcons.Merge,
+                Enabled: canMerge,
+                LabelSegments: BuildRebaseSegments(capturedHead, capturedName)));
         }
         items.Add(new RepoBarContextMenu.Item(
             "Rename…",
@@ -478,6 +484,12 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
                 LucideIcons.Merge,
                 Enabled: !state.IsBranchOpInFlight,
                 LabelSegments: BuildMergeSegments(display, capturedHead)));
+            items.Add(new RepoBarContextMenu.Item(
+                $"Rebase {capturedHead} onto {display}…",
+                () => _bus.Broadcast(new ShowRebaseBranchDialogMessage(capturedRepo, capturedHead, sourceRef, display)),
+                LucideIcons.Merge,
+                Enabled: !state.IsBranchOpInFlight,
+                LabelSegments: BuildRebaseSegments(capturedHead, display)));
         }
 
         items.Add(new RepoBarContextMenu.Item(
@@ -503,6 +515,15 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         new MenuLabelSegment("Merge "),
         new MenuLabelSegment(source, MergeMenuBranchAccent, Bold: true),
         new MenuLabelSegment(" into "),
+        new MenuLabelSegment(target, MergeMenuBranchAccent, Bold: true),
+        new MenuLabelSegment("…"),
+    ];
+
+    private static IReadOnlyList<MenuLabelSegment> BuildRebaseSegments(string source, string target) =>
+    [
+        new MenuLabelSegment("Rebase "),
+        new MenuLabelSegment(source, MergeMenuBranchAccent, Bold: true),
+        new MenuLabelSegment(" onto "),
         new MenuLabelSegment(target, MergeMenuBranchAccent, Bold: true),
         new MenuLabelSegment("…"),
     ];
