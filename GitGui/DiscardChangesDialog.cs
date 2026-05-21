@@ -15,7 +15,6 @@ namespace GitGui;
 public sealed class DiscardChangesDialog : MultiChildView, IDiscardChangesView
 {
     private const float CloseButtonSize = 28f;
-    private const int MaxListedPaths = 8;
 
     private readonly Action _onClose;
     private readonly DialogButton _discardButton;
@@ -59,10 +58,37 @@ public sealed class DiscardChangesDialog : MultiChildView, IDiscardChangesView
 
         var pathList = new TextView
         {
-            Text = BuildPathListText(paths),
+            Text = string.Join("\n", paths),
             TextColor = DialogPalette.RowText,
             TextWrap = TextWrap.Wrap,
         };
+
+        var scrollPane = new VerticalScrollPane();
+        scrollPane.Children.Add(new PaddingView
+        {
+            Padding = new PaddingStyle { Left = 8, Right = 8, Top = 6, Bottom = 6 },
+            Children = { pathList },
+        });
+        scrollPane.UseController(_ => new VerticalScrollPaneWheelController(scrollPane));
+
+        var vScrollBar = ScrollBarStyles.CreateVertical();
+
+        var scrollHost = new RectView
+        {
+            BackgroundColor = Theme.BgDeep,
+            BorderColor = BorderColorStyle.All(DialogPalette.Border),
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(4),
+            Children =
+            {
+                new BorderLayoutView
+                {
+                    Center = scrollPane,
+                    East = vScrollBar,
+                },
+            },
+        };
+        scrollHost.UsePresenter(_ => new VerticalScrollBarSyncController(scrollPane, vScrollBar));
 
         _errorView = new TextView
         {
@@ -113,7 +139,7 @@ public sealed class DiscardChangesDialog : MultiChildView, IDiscardChangesView
                             PreferredHeight = 1,
                         },
                         prompt,
-                        new FlexItem { Grow = 1, Child = pathList },
+                        new FlexItem { Grow = 1, Child = scrollHost },
                         _errorView,
                         buttonsRow,
                     },
@@ -144,15 +170,6 @@ public sealed class DiscardChangesDialog : MultiChildView, IDiscardChangesView
     public void Close() => _onClose();
 
     private void RaiseDiscardRequested() => DiscardRequested?.Invoke();
-
-    private static string BuildPathListText(IReadOnlyList<string> paths)
-    {
-        if (paths.Count <= MaxListedPaths)
-            return string.Join("\n", paths);
-        var listed = paths.Take(MaxListedPaths);
-        var extra = paths.Count - MaxListedPaths;
-        return string.Join("\n", listed) + $"\n…and {extra} more";
-    }
 }
 
 internal sealed class DiscardChangesKbmController : KeyboardMouseController
