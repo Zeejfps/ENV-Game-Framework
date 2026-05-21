@@ -112,6 +112,16 @@ public sealed class RepoRow : MultiChildView
                     },
                     LucideIcons.Trash));
             }
+
+            items.Add(new RepoBarContextMenu.Item(
+                "Add submodule…",
+                () => bus.Broadcast(new ShowAddSubmoduleDialogMessage(repo)),
+                LucideIcons.FolderGit2));
+
+            items.Add(new RepoBarContextMenu.Item(
+                "Update all submodules…",
+                () => bus.Broadcast(new ShowUpdateSubmodulesDialogMessage(repo, null)),
+                LucideIcons.Pull));
         }
 
         foreach (var group in registry.Groups)

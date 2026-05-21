@@ -76,10 +76,13 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
     // Used by BranchesView to annotate those branches so the user knows trying to check
     // them out here would conflict. Built from sibling worktrees of the active primary
     // (or, when a worktree is active, from the primary and all other siblings).
+    //
+    // Submodules are excluded: they have their own .git directory with independent refs,
+    // so they don't compete for branch checkouts with the parent or with sibling worktrees.
     private void RefreshWorktreeBranches()
     {
         var active = _registry.Active.Value;
-        if (active is null)
+        if (active is null || active.IsSubmodule)
         {
             Update(s => s.WorktreeBranches.Count == 0 ? s : s with { WorktreeBranches = EmptyStringSet });
             return;
@@ -90,6 +93,7 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         foreach (var r in _registry.Repos)
         {
             if (r.Id == active.Id) continue;
+            if (r.IsSubmodule) continue;
             var rootId = r.ParentRepoId ?? r.Id;
             if (rootId != primaryId) continue;
             // Repo.Branch is populated from `git worktree list` by WorktreeSyncService for
@@ -285,11 +289,12 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
     private void SwitchToSiblingHoldingBranch(string branchName)
     {
         var active = _registry.Active.Value;
-        if (active is null) return;
+        if (active is null || active.IsSubmodule) return;
         var primaryId = active.ParentRepoId ?? active.Id;
         foreach (var r in _registry.Repos)
         {
             if (r.Id == active.Id) continue;
+            if (r.IsSubmodule) continue;
             var rootId = r.ParentRepoId ?? r.Id;
             if (rootId != primaryId) continue;
             if (string.Equals(r.Branch, branchName, StringComparison.Ordinal))

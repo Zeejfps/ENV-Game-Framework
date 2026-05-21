@@ -1,5 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
+using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
 
@@ -24,6 +25,8 @@ internal sealed class LocalChangesContentView : MultiChildView
     private readonly VerticalSplitContainer _snapshotContainer;
     private readonly LocalChangesHeaderActionButton _discardButton;
     private readonly LocalChangesHeaderActionButton _stageSelectedButton;
+    private readonly LocalChangesSubmoduleSection _submoduleSection;
+    private readonly BorderLayoutView _topHalf;
 
     // View-side mirror of the VM's Selection, wired in Bind. Lives here so the panels
     // and their rows can be constructed before Bind() — at construction we hand them
@@ -73,6 +76,10 @@ internal sealed class LocalChangesContentView : MultiChildView
             VerticalTextAlignment = TextAlignment.Center,
         };
 
+        _submoduleSection = new LocalChangesSubmoduleSection(
+            onStage: path => _vm?.StageSubmodulePointer(path),
+            onReset: path => _vm?.ResetSubmoduleToRecorded(path));
+
         _diffView = new DiffView();
 
         // Initial 1:2 split (files : diff). The container tracks the split as a fraction
@@ -83,7 +90,14 @@ internal sealed class LocalChangesContentView : MultiChildView
         splitter.BindBackgroundColor(splitterHovered,
             h => h ? CommitsPalette.DividerHoverBg : CommitsPalette.Border);
 
-        _snapshotContainer = new VerticalSplitContainer(BuildContentRow(), _diffView, splitter, bottomFraction: 2f / 3f);
+        // Top half of the split: optional submodule drift section (North, populated only
+        // when there's drift) over the two file panels. North = null hides the section so
+        // the layout collapses and the panels reclaim the full space.
+        _topHalf = new BorderLayoutView
+        {
+            Center = BuildContentRow(),
+        };
+        _snapshotContainer = new VerticalSplitContainer(_topHalf, _diffView, splitter, bottomFraction: 2f / 3f);
 
         splitter.UseController(ctx => new SplitterController(
             ctx,
@@ -137,6 +151,12 @@ internal sealed class LocalChangesContentView : MultiChildView
 
         vm.DiscardEnabled.Subscribe(enabled => _discardButton.IsEnabled.Value = enabled);
         vm.StageSelectedEnabled.Subscribe(enabled => _stageSelectedButton.IsEnabled.Value = enabled);
+
+        vm.DriftedSubmodules.Subscribe(drift =>
+        {
+            _submoduleSection.SetDrift(drift);
+            _topHalf.North = drift.Count > 0 ? _submoduleSection : null;
+        });
     }
 
     private void ApplyDiffVisibility(bool hasTarget, bool collapsed)

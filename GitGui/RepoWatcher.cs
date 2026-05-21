@@ -44,8 +44,10 @@ internal sealed class RepoWatcher : IDisposable
     private readonly Timer _workingTreeDebounce;
     private readonly Timer _refsDebounce;
     private readonly Timer _worktreesDebounce;
+    private readonly Timer _submodulesDebounce;
 
     private readonly string _gitDirPrefix;
+    private readonly string _gitmodulesPath;
 
     private int _disposed;
 
@@ -55,10 +57,12 @@ internal sealed class RepoWatcher : IDisposable
         _dispatcher = dispatcher;
         _bus = bus;
         _gitDirPrefix = Path.Combine(repo.Path, ".git") + Path.DirectorySeparatorChar;
+        _gitmodulesPath = Path.Combine(repo.Path, ".gitmodules");
 
         _workingTreeDebounce = new Timer(_ => OnWorkingTreeDebounce(), null, Timeout.Infinite, Timeout.Infinite);
         _refsDebounce = new Timer(_ => OnRefsDebounce(), null, Timeout.Infinite, Timeout.Infinite);
         _worktreesDebounce = new Timer(_ => OnWorktreesDebounce(), null, Timeout.Infinite, Timeout.Infinite);
+        _submodulesDebounce = new Timer(_ => OnSubmodulesDebounce(), null, Timeout.Infinite, Timeout.Infinite);
 
         _treeWatcher = TryCreateWatcher(repo.Path);
         if (_treeWatcher != null)
@@ -113,11 +117,18 @@ internal sealed class RepoWatcher : IDisposable
     private void OnTreeEvent(object sender, FileSystemEventArgs e)
     {
         if (IsUnderGit(e.FullPath)) return;
+        // .gitmodules lives in the working tree, but edits to it specifically should
+        // re-run submodule discovery rather than just bumping the WorkingTree channel
+        // (which would only re-read GetLocalChanges, not the submodule list).
+        if (IsGitmodules(e.FullPath))
+            ScheduleSubmodules();
         ScheduleWorkingTree();
     }
 
     private void OnTreeRenamed(object sender, RenamedEventArgs e)
     {
+        if (IsGitmodules(e.FullPath) || IsGitmodules(e.OldFullPath))
+            ScheduleSubmodules();
         if (IsUnderGit(e.FullPath) && IsUnderGit(e.OldFullPath)) return;
         ScheduleWorkingTree();
     }
@@ -163,11 +174,24 @@ internal sealed class RepoWatcher : IDisposable
             ScheduleWorktrees();
             return;
         }
+
+        // .git/modules/<name>/ holds each submodule's own gitdir. Changes here mean the
+        // user (or a `git submodule update`) moved a submodule's HEAD or added/removed
+        // an embedded clone. Re-run submodule discovery so drift state stays current.
+        if (gitRelativePath.StartsWith("modules/", StringComparison.Ordinal)
+            || gitRelativePath.Equals("modules", StringComparison.Ordinal))
+        {
+            ScheduleSubmodules();
+            return;
+        }
         // .git/objects/**, .git/logs/**, .git/lfs/**, .git/hooks/**, .git/index — ignored.
     }
 
     private bool IsUnderGit(string fullPath)
         => fullPath.StartsWith(_gitDirPrefix, PathCmp);
+
+    private bool IsGitmodules(string fullPath)
+        => string.Equals(fullPath, _gitmodulesPath, PathCmp);
 
     private string? ToGitRelativePath(string fullPath)
     {
@@ -191,6 +215,12 @@ internal sealed class RepoWatcher : IDisposable
     {
         if (Volatile.Read(ref _disposed) != 0) return;
         _worktreesDebounce.Change(DebounceMs, Timeout.Infinite);
+    }
+
+    private void ScheduleSubmodules()
+    {
+        if (Volatile.Read(ref _disposed) != 0) return;
+        _submodulesDebounce.Change(DebounceMs, Timeout.Infinite);
     }
 
     private void OnWorkingTreeDebounce()
@@ -226,6 +256,17 @@ internal sealed class RepoWatcher : IDisposable
         });
     }
 
+    private void OnSubmodulesDebounce()
+    {
+        if (Volatile.Read(ref _disposed) != 0) return;
+        var repoId = _repo.Id;
+        _dispatcher.Post(() =>
+        {
+            if (Volatile.Read(ref _disposed) != 0) return;
+            _bus.Broadcast(new SubmodulesChangedMessage(repoId));
+        });
+    }
+
     private void OnError(object sender, ErrorEventArgs e)
     {
         // Internal buffer overflowed and events were dropped (huge churn — typically a
@@ -234,6 +275,7 @@ internal sealed class RepoWatcher : IDisposable
         ScheduleWorkingTree();
         ScheduleRefs();
         ScheduleWorktrees();
+        ScheduleSubmodules();
     }
 
     public void Dispose()
@@ -263,5 +305,6 @@ internal sealed class RepoWatcher : IDisposable
         _workingTreeDebounce.Dispose();
         _refsDebounce.Dispose();
         _worktreesDebounce.Dispose();
+        _submodulesDebounce.Dispose();
     }
 }

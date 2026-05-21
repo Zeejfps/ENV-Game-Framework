@@ -20,9 +20,9 @@ internal sealed class GroupSectionPresenter : IDisposable
 
     public void Dispose() { }
 
-    // Group.RepoIds holds primary IDs only — worktrees nest under their parent via
-    // RepoEntry. Collapsed groups still surface the active row's primary so the user
-    // can see "where they are" when the rest of the group is hidden.
+    // Group.RepoIds holds primary IDs only — worktrees and submodules nest under their
+    // parent via RepoEntry. Collapsed groups still surface the active row's primary so
+    // the user can see "where they are" when the rest of the group is hidden.
     private static IEnumerable<Repo> VisiblePrimaries(Group group, IRepoRegistry registry)
     {
         var reposById = registry.Repos.ToDictionary(r => r.Id);
@@ -42,7 +42,7 @@ internal sealed class GroupSectionPresenter : IDisposable
 
         foreach (var repoId in group.RepoIds)
         {
-            if (reposById.TryGetValue(repoId, out var repo) && !repo.IsWorktree)
+            if (reposById.TryGetValue(repoId, out var repo) && repo.IsPrimary)
                 yield return repo;
         }
     }

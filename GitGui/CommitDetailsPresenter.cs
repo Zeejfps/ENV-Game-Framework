@@ -72,6 +72,17 @@ internal sealed class CommitDetailsPresenter : IDisposable
                     error = details.ErrorMessage;
                     details = null;
                 }
+                else
+                {
+                    // Inline submodule pointer changes into the file list. libgit2 also
+                    // surfaces gitlink edits as Modified file changes, so we merge by path:
+                    // each pointer change converts the matching FileChange (or appends a new
+                    // one) so a row renders as "submodule: abc..def (+N)" instead of as a
+                    // featureless "M" line.
+                    var pointerChanges = service.GetSubmodulePointerChanges(repo, sha);
+                    if (pointerChanges.Count > 0)
+                        details = MergePointerChanges(details, pointerChanges);
+                }
             }
             catch (Exception ex)
             {
@@ -85,5 +96,38 @@ internal sealed class CommitDetailsPresenter : IDisposable
                 else if (details != null) view.ShowDetails(details);
             });
         });
+    }
+
+    private static CommitDetails MergePointerChanges(CommitDetails details, IReadOnlyList<SubmodulePointerChange> changes)
+    {
+        var byPath = new Dictionary<string, SubmodulePointerChange>(StringComparer.Ordinal);
+        foreach (var c in changes) byPath[c.Path] = c;
+
+        var newFiles = new List<FileChange>(details.Files.Count + changes.Count);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var f in details.Files)
+        {
+            if (byPath.TryGetValue(f.Path, out var pc))
+            {
+                newFiles.Add(new FileChange(f.Path, f.OldPath, FileChangeStatus.Submodule)
+                {
+                    PointerChange = pc,
+                });
+                seen.Add(f.Path);
+            }
+            else
+            {
+                newFiles.Add(f);
+            }
+        }
+        foreach (var c in changes)
+        {
+            if (seen.Contains(c.Path)) continue;
+            newFiles.Add(new FileChange(c.Path, null, FileChangeStatus.Submodule)
+            {
+                PointerChange = c,
+            });
+        }
+        return details with { Files = newFiles };
     }
 }

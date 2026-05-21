@@ -5,18 +5,18 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-// Slot that sits before the icon on every primary RepoRow. When the primary has
-// worktree children, it renders a clickable chevron that toggles their visibility
-// without activating the repo. Otherwise it occupies the same horizontal space with
-// nothing in it, so rows stay aligned whether or not worktrees exist.
+// Slot that sits before the icon on every primary RepoRow. When the primary has child
+// rows (worktrees and/or submodules), it renders a clickable chevron that toggles their
+// visibility without activating the repo. Otherwise it occupies the same horizontal
+// space with nothing in it, so rows stay aligned whether or not children exist.
 public sealed class WorktreeChevron : MultiChildView
 {
     public WorktreeChevron(Repo primary, IRepoRegistry registry)
     {
         PreferredWidth = RepoBar.RowChevronWidth;
 
-        // Worktrees never own children; skip the work and leave the slot blank.
-        if (primary.IsWorktree)
+        // Only primaries own children; child rows draw a blank slot for alignment.
+        if (!primary.IsPrimary)
         {
             AddChildToSelf(new RectView { PreferredWidth = RepoBar.RowChevronWidth });
             return;

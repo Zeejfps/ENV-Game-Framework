@@ -39,6 +39,11 @@ public sealed class FileChangesSection : MultiChildView
             return;
         }
         foreach (var file in files)
-            _rows.Children.Add(new FileChangeRowView(file));
+        {
+            if (file.Status == FileChangeStatus.Submodule)
+                _rows.Children.Add(new SubmodulePointerRowView(file));
+            else
+                _rows.Children.Add(new FileChangeRowView(file));
+        }
     }
 }

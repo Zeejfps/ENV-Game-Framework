@@ -29,6 +29,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     public IReadable<string?> Placeholder { get; }
     public IReadable<IReadOnlyList<FileChange>> Unstaged { get; }
     public IReadable<IReadOnlyList<FileChange>> Staged { get; }
+    public IReadable<IReadOnlyList<SubmoduleInfo>> DriftedSubmodules { get; }
     public IReadable<Selection> Selection { get; }
     public IReadable<DiffTarget?> SelectedTarget { get; }
     public IReadable<bool> DiscardEnabled { get; }
@@ -68,6 +69,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         Placeholder = Slice(s => s.Placeholder);
         Unstaged = Slice(s => s.Unstaged);
         Staged = Slice(s => s.Staged);
+        DriftedSubmodules = Slice(s => s.DriftedSubmodules);
         Selection = Slice(s => s.Selection);
         SelectedTarget = Slice(s => s.Selection.Single);
         DiscardEnabled = Slice(s =>
@@ -82,6 +84,18 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
 
         Subscriptions.Add(_registry.Active.Subscribe(_ => StartLoadForActiveRepo()));
         Subscriptions.Add(_bus.SubscribeScoped<WorkingTreeChangedMessage>(OnWorkingTreeChanged));
+        // Drift state shifts when the submodule's own HEAD moves (parent's working tree
+        // doesn't necessarily change) — re-load on a SubmodulesChangedMessage too.
+        Subscriptions.Add(_bus.SubscribeScoped<SubmodulesChangedMessage>(OnSubmodulesChanged));
+    }
+
+    private void OnSubmodulesChanged(SubmodulesChangedMessage msg)
+    {
+        var active = _registry.Active.Value;
+        if (active is null) return;
+        var primaryId = active.IsPrimary ? active.Id : (active.ParentRepoId ?? active.Id);
+        if (primaryId != msg.PrimaryRepoId) return;
+        StartLoadForActiveRepo();
     }
 
     public override void Dispose()
@@ -196,6 +210,37 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     // ------- git ops -------
 
     public void Stage(IReadOnlyList<string> paths) => RunIndexOp(paths, isStage: true);
+
+    // Stages a submodule pointer update — same code path as staging a normal file because
+    // `git add <submodule-path>` treats the gitlink as a single index entry.
+    public void StageSubmodulePointer(string submodulePath) => RunIndexOp(new[] { submodulePath }, isStage: true);
+
+    // Resets a submodule's working tree back to the SHA the parent has recorded. Runs
+    // `git submodule update -- <path>` and broadcasts SubmodulesChangedMessage so the
+    // drift list refreshes once the watcher / re-load catches up.
+    public void ResetSubmoduleToRecorded(string submodulePath)
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+        var req = new SubmoduleUpdateRequest(
+            Paths: new[] { submodulePath },
+            Init: false,
+            Recursive: false,
+            Mode: SubmoduleUpdateMode.Checkout);
+        var primaryId = repo.IsPrimary ? repo.Id : (repo.ParentRepoId ?? repo.Id);
+        RunBackground<SubmoduleUpdateOutcome>(
+            work: () =>
+            {
+                try { return (_gitService.UpdateSubmodules(repo, req), null); }
+                catch (Exception ex) { return (null, ex.Message); }
+            },
+            onResult: (outcome, errorMsg) =>
+            {
+                if (errorMsg != null) { Update(s => s with { OpError = errorMsg }); return; }
+                if (outcome is { Success: false }) { Update(s => s with { OpError = outcome.ErrorMessage }); return; }
+                _bus.Broadcast(new SubmodulesChangedMessage(primaryId));
+            });
+    }
 
     public void Unstage(IReadOnlyList<string> paths)
     {
@@ -330,13 +375,31 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         // refresh HEAD's file list alongside the index snapshot — otherwise the staged
         // panel keeps showing HEAD-only rows from a HEAD that no longer exists.
         var amending = _amend != null;
+        // Drift state is fetched from the same place — submodules can drift independently
+        // of file changes (a sibling terminal can move a submodule's HEAD without touching
+        // the parent's working tree), so we always re-query alongside the snapshot.
+        // Submodules themselves don't have nested submodules in our model (one level deep),
+        // so skip the query when the active row is itself a submodule.
+        var canQuerySubmodules = !repo.IsSubmodule;
         RunBackground<LoadResult>(
             work: () =>
             {
                 var snap = _gitService.GetLocalChanges(repo);
                 if (snap.ErrorMessage != null) return (null, snap.ErrorMessage);
                 var headFiles = amending ? _gitService.GetHeadCommitFiles(repo) : null;
-                return (new LoadResult(snap, headFiles), null);
+                IReadOnlyList<SubmoduleInfo> drift = Array.Empty<SubmoduleInfo>();
+                if (canQuerySubmodules)
+                {
+                    var subs = _gitService.ListSubmodules(repo, out _);
+                    if (subs.Count > 0)
+                    {
+                        var driftList = new List<SubmoduleInfo>();
+                        foreach (var s in subs)
+                            if (s.Status != SubmoduleStatus.UpToDate) driftList.Add(s);
+                        drift = driftList;
+                    }
+                }
+                return (new LoadResult(snap, headFiles, drift), null);
             },
             onResult: (result, errorMsg) =>
             {
@@ -350,25 +413,33 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                         Staged = Empty,
                         Unstaged = Empty,
                         Selection = GitGui.Selection.Empty,
+                        DriftedSubmodules = [],
                     });
                     return;
                 }
                 if (result == null) return;
                 if (_amend != null && result.HeadFiles != null)
                     _amend.UpdateHeadFiles(result.HeadFiles);
-                ApplySnapshot(result.Snap);
+                ApplySnapshot(result.Snap, result.Drift);
             });
     }
 
-    private sealed record LoadResult(LocalChangesSnapshot Snap, IReadOnlyList<FileChange>? HeadFiles);
+    private sealed record LoadResult(
+        LocalChangesSnapshot Snap,
+        IReadOnlyList<FileChange>? HeadFiles,
+        IReadOnlyList<SubmoduleInfo> Drift);
 
     // Writes a fresh snapshot — new lists plus whatever selection the caller computes
     // from them — through a single atomic Update. The selection callback receives the
     // pre-update state (so reload-style callers can carry the prior selection through
     // Selection.Create normalization) and the newly-computed displayed staged (so all
     // callers see the same amend-aware view of the staged side the state is about to
-    // hold).
-    private void ApplySnapshot(LocalChangesSnapshot snap, Func<LocalChangesState, IReadOnlyList<FileChange>, Selection> selectionFor)
+    // hold). When drift is null, the existing DriftedSubmodules stays put — used by
+    // stage/unstage/commit, which only mutate the file lists.
+    private void ApplySnapshot(
+        LocalChangesSnapshot snap,
+        Func<LocalChangesState, IReadOnlyList<FileChange>, Selection> selectionFor,
+        IReadOnlyList<SubmoduleInfo>? drift = null)
     {
         _stagedFromIndex = snap.Staged;
         Update(s =>
@@ -381,6 +452,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 Unstaged = snap.Unstaged,
                 Staged = staged,
                 Selection = selectionFor(s, staged),
+                DriftedSubmodules = drift ?? s.DriftedSubmodules,
             };
         });
     }
@@ -389,9 +461,9 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     // gone paths are pruned by Selection.Create). Used for cross-repo reloads, watcher
     // ticks, refs changes, and post-commit snapshots — anywhere the lists change but the
     // selection isn't being explicitly steered to a new place.
-    private void ApplySnapshot(LocalChangesSnapshot snap)
+    private void ApplySnapshot(LocalChangesSnapshot snap, IReadOnlyList<SubmoduleInfo>? drift = null)
         => ApplySnapshot(snap, (s, staged) =>
-            GitGui.Selection.Create(s.Selection.Items, s.Selection.Anchor, snap.Unstaged, staged));
+            GitGui.Selection.Create(s.Selection.Items, s.Selection.Anchor, snap.Unstaged, staged), drift);
 
     private void RunIndexOp(IReadOnlyList<string> paths, bool isStage)
     {

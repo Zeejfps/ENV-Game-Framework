@@ -136,9 +136,9 @@ public sealed class RepoRegistry : IRepoRegistry
 
     public void MoveRepo(Guid repoId, Guid targetGroupId, int insertIndex)
     {
-        // Worktrees follow their primary; they're never directly placed in a group.
+        // Worktrees and submodules follow their primary; only primaries appear in groups.
         var repo = Repos.FirstOrDefault(r => r.Id == repoId);
-        if (repo is not null && repo.IsWorktree) return;
+        if (repo is not null && !repo.IsPrimary) return;
 
         int sourceGroupIndex = -1;
         int sourceRepoIndex = -1;
@@ -218,10 +218,10 @@ public sealed class RepoRegistry : IRepoRegistry
 
         var target = Repos[repoIndex];
 
-        // Removing a primary cascades to its worktree children — they have no meaning
-        // without a parent registry entry.
+        // Removing a primary cascades to its child rows (worktrees + submodules) — they
+        // have no meaning without a parent registry entry.
         var idsToRemove = new HashSet<Guid> { repoId };
-        if (!target.IsWorktree)
+        if (target.IsPrimary)
         {
             foreach (var r in Repos)
             {
@@ -278,7 +278,15 @@ public sealed class RepoRegistry : IRepoRegistry
     {
         foreach (var r in Repos)
         {
-            if (r.ParentRepoId == primaryId) yield return r;
+            if (r.ParentRepoId == primaryId && r.IsWorktree) yield return r;
+        }
+    }
+
+    public IEnumerable<Repo> GetSubmodules(Guid primaryId)
+    {
+        foreach (var r in Repos)
+        {
+            if (r.ParentRepoId == primaryId && r.IsSubmodule) yield return r;
         }
     }
 
@@ -300,7 +308,7 @@ public sealed class RepoRegistry : IRepoRegistry
         for (var i = 0; i < Repos.Count; i++)
         {
             var r = Repos[i];
-            if (r.Id != primaryId || r.IsWorktree) continue;
+            if (r.Id != primaryId || !r.IsPrimary) continue;
             if (r.Branch == branch) return;
             Repos.Replace(i, r with { Branch = branch });
             WorktreesChanged.Value++;
@@ -311,14 +319,13 @@ public sealed class RepoRegistry : IRepoRegistry
 
     // Discovery side-effect entry point: callers pass the result of `git worktree list`
     // (with the primary's own entry already filtered out). The registry diffs against
-    // its current children, adding/removing Repo records and migrating Active if the
-    // user is sitting on a worktree that just disappeared on disk.
+    // its current worktree children, adding/removing Repo records and migrating Active if
+    // the user is sitting on a worktree that just disappeared on disk.
     public void ReplaceWorktreesFor(Guid primaryId, IReadOnlyList<WorktreeDescriptor> desired)
     {
         var primary = Repos.FirstOrDefault(r => r.Id == primaryId);
-        if (primary is null || primary.IsWorktree) return;
+        if (primary is null || !primary.IsPrimary) return;
 
-        var existing = Repos.Where(r => r.ParentRepoId == primaryId).ToList();
         var desiredByPath = new Dictionary<string, WorktreeDescriptor>(
             desired.ToDictionary(d => Path.GetFullPath(d.Path), d => d),
             PathComparison == StringComparison.OrdinalIgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
@@ -326,11 +333,11 @@ public sealed class RepoRegistry : IRepoRegistry
         var changed = false;
         var seenPaths = new HashSet<string>(PathComparison == StringComparison.OrdinalIgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
 
-        // Update or keep existing rows.
+        // Update or keep existing worktree rows.
         for (var i = 0; i < Repos.Count; i++)
         {
             var r = Repos[i];
-            if (r.ParentRepoId != primaryId) continue;
+            if (r.ParentRepoId != primaryId || !r.IsWorktree) continue;
             var normalized = Path.GetFullPath(r.Path);
             seenPaths.Add(normalized);
             if (desiredByPath.TryGetValue(normalized, out var d))
@@ -344,11 +351,11 @@ public sealed class RepoRegistry : IRepoRegistry
             }
         }
 
-        // Remove rows that no longer appear in `git worktree list`.
+        // Remove worktree rows that no longer appear in `git worktree list`.
         for (var i = Repos.Count - 1; i >= 0; i--)
         {
             var r = Repos[i];
-            if (r.ParentRepoId != primaryId) continue;
+            if (r.ParentRepoId != primaryId || !r.IsWorktree) continue;
             var normalized = Path.GetFullPath(r.Path);
             if (!desiredByPath.ContainsKey(normalized))
             {
@@ -365,7 +372,78 @@ public sealed class RepoRegistry : IRepoRegistry
             var normalized = Path.GetFullPath(d.Path);
             if (seenPaths.Contains(normalized)) continue;
             var display = d.DisplayName ?? Path.GetFileName(normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-            Repos.Add(new Repo(Guid.NewGuid(), normalized, display, ParentRepoId: primaryId) { Branch = d.Branch });
+            Repos.Add(new Repo(Guid.NewGuid(), normalized, display, ParentRepoId: primaryId) { Branch = d.Branch, Kind = RepoKind.Worktree });
+            changed = true;
+        }
+
+        if (changed)
+        {
+            WorktreesChanged.Value++;
+            Save();
+        }
+    }
+
+    // Discovery side-effect entry point for submodules — same diff/reconcile shape as
+    // ReplaceWorktreesFor but only touches submodule children. Submodule rows survive
+    // path-stable syncs so their Repo.Id stays put and Active doesn't get invalidated
+    // when a watcher re-runs discovery.
+    public void ReplaceSubmodulesFor(Guid primaryId, IReadOnlyList<SubmoduleDescriptor> desired)
+    {
+        var primary = Repos.FirstOrDefault(r => r.Id == primaryId);
+        if (primary is null || !primary.IsPrimary) return;
+
+        var pathComparer = PathComparison == StringComparison.OrdinalIgnoreCase
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
+
+        var desiredByPath = new Dictionary<string, SubmoduleDescriptor>(pathComparer);
+        foreach (var d in desired) desiredByPath[Path.GetFullPath(d.Path)] = d;
+
+        var changed = false;
+        var seenPaths = new HashSet<string>(pathComparer);
+
+        for (var i = 0; i < Repos.Count; i++)
+        {
+            var r = Repos[i];
+            if (r.ParentRepoId != primaryId || !r.IsSubmodule) continue;
+            var normalized = Path.GetFullPath(r.Path);
+            seenPaths.Add(normalized);
+            if (desiredByPath.TryGetValue(normalized, out var d))
+            {
+                var newDisplay = d.DisplayName ?? Path.GetFileName(normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                if (r.DisplayName != newDisplay || r.Branch != d.Branch || r.IsMissing != !RepoStateStore.IsGitRepo(r.Path))
+                {
+                    Repos.Replace(i, r with { DisplayName = newDisplay, Branch = d.Branch, IsMissing = !RepoStateStore.IsGitRepo(r.Path) });
+                    changed = true;
+                }
+            }
+        }
+
+        for (var i = Repos.Count - 1; i >= 0; i--)
+        {
+            var r = Repos[i];
+            if (r.ParentRepoId != primaryId || !r.IsSubmodule) continue;
+            var normalized = Path.GetFullPath(r.Path);
+            if (!desiredByPath.ContainsKey(normalized))
+            {
+                Repos.RemoveAt(i);
+                _worktreesExpanded.Remove(r.Id);
+                if (Active.Value?.Id == r.Id) Active.Value = primary;
+                changed = true;
+            }
+        }
+
+        foreach (var d in desired)
+        {
+            var normalized = Path.GetFullPath(d.Path);
+            if (seenPaths.Contains(normalized)) continue;
+            var display = d.DisplayName ?? Path.GetFileName(normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            Repos.Add(new Repo(Guid.NewGuid(), normalized, display, ParentRepoId: primaryId)
+            {
+                Branch = d.Branch,
+                Kind = RepoKind.Submodule,
+                IsMissing = !RepoStateStore.IsGitRepo(normalized),
+            });
             changed = true;
         }
 
@@ -381,3 +459,5 @@ public sealed class RepoRegistry : IRepoRegistry
 }
 
 public sealed record WorktreeDescriptor(string Path, string? DisplayName, string? Branch = null);
+
+public sealed record SubmoduleDescriptor(string Path, string? DisplayName, string? Branch = null);

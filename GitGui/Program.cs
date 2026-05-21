@@ -59,4 +59,10 @@ using var worktreeSync = new WorktreeSyncService(
     context.Require<IUiDispatcher>(),
     messageBus);
 
+using var submoduleSync = new SubmoduleSyncService(
+    registry,
+    context.Require<IGitService>(),
+    context.Require<IUiDispatcher>(),
+    messageBus);
+
 appHost.Run();

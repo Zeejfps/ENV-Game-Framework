@@ -1706,6 +1706,368 @@ public sealed class GitService : IGitService
         }
     }
 
+    // ────────── submodules ──────────
+
+    public IReadOnlyList<SubmoduleInfo> ListSubmodules(Repo primary, out string? errorMessage)
+    {
+        errorMessage = null;
+        try
+        {
+            if (!Repository.IsValid(primary.Path))
+            {
+                errorMessage = "Not a git repository.";
+                return Array.Empty<SubmoduleInfo>();
+            }
+
+            var gitmodulesPath = System.IO.Path.Combine(primary.Path, ".gitmodules");
+            if (!File.Exists(gitmodulesPath))
+                return Array.Empty<SubmoduleInfo>();
+
+            // Step 1: enumerate logical entries from .gitmodules. Each `submodule.<name>.path`
+            // row gives us one submodule; .url and .branch hang off the same <name>.
+            var configOut = RunGit(primary.Path, out var cfgErr, "config", "--file", ".gitmodules", "--list");
+            if (cfgErr != null)
+            {
+                errorMessage = cfgErr;
+                return Array.Empty<SubmoduleInfo>();
+            }
+
+            var byName = new Dictionary<string, (string? Path, string? Url, string? Branch)>(StringComparer.Ordinal);
+            foreach (var raw in configOut.Split('\n'))
+            {
+                var line = raw.TrimEnd('\r');
+                if (!line.StartsWith("submodule.", StringComparison.Ordinal)) continue;
+                var eq = line.IndexOf('=');
+                if (eq < 0) continue;
+                var key = line.Substring(0, eq);
+                var value = line.Substring(eq + 1);
+                var lastDot = key.LastIndexOf('.');
+                if (lastDot < 0) continue;
+                var nameStart = "submodule.".Length;
+                var nameLen = lastDot - nameStart;
+                if (nameLen <= 0) continue;
+                var name = key.Substring(nameStart, nameLen);
+                var field = key.Substring(lastDot + 1);
+                byName.TryGetValue(name, out var entry);
+                entry = field switch
+                {
+                    "path"   => (value, entry.Url, entry.Branch),
+                    "url"    => (entry.Path, value, entry.Branch),
+                    "branch" => (entry.Path, entry.Url, value),
+                    _        => entry,
+                };
+                byName[name] = entry;
+            }
+
+            // Step 2: per-path status + describe + current SHA from `git submodule status`.
+            // Per line: '<flag><sha> <path> (<describe>)'
+            //   flag ' ' = up-to-date, '+' = modified, '-' = not initialized, 'U' = conflict.
+            var statusOut = RunGit(primary.Path, out _, "submodule", "status");
+            var statusByPath = new Dictionary<string, (char Flag, string? Sha, string? Describe)>(StringComparer.Ordinal);
+            foreach (var raw in (statusOut ?? string.Empty).Split('\n'))
+            {
+                if (raw.Length < 2) continue;
+                var flag = raw[0];
+                var rest = raw.Substring(1);
+                var sp = rest.IndexOf(' ');
+                if (sp < 0) continue;
+                var sha = rest.Substring(0, sp);
+                var afterSha = rest.Substring(sp + 1);
+                string pathPart;
+                string? describe = null;
+                var parenIdx = afterSha.LastIndexOf(" (", StringComparison.Ordinal);
+                if (parenIdx >= 0 && afterSha.EndsWith(")", StringComparison.Ordinal))
+                {
+                    pathPart = afterSha.Substring(0, parenIdx);
+                    describe = afterSha.Substring(parenIdx + 2, afterSha.Length - parenIdx - 3);
+                }
+                else
+                {
+                    pathPart = afterSha;
+                }
+                statusByPath[NormalizeRelPath(pathPart)] = (flag, sha, describe);
+            }
+
+            // Step 3: authoritative recorded SHA via `git ls-tree HEAD` — submodule status's
+            // SHA reports the CURRENT checkout (or a leading + when modified), not what the
+            // parent's HEAD tree actually records. ls-tree gives the recorded pointer directly.
+            var lsTreeOut = RunGit(primary.Path, out _, "ls-tree", "-r", "HEAD");
+            var recordedByPath = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var raw in (lsTreeOut ?? string.Empty).Split('\n'))
+            {
+                // <mode> SP <type> SP <sha> TAB <path>; gitlinks have mode 160000.
+                if (!raw.StartsWith("160000 ", StringComparison.Ordinal)) continue;
+                var tab = raw.IndexOf('\t');
+                if (tab < 0) continue;
+                var meta = raw.Substring(0, tab);
+                var pathPart = raw.Substring(tab + 1);
+                var parts = meta.Split(' ');
+                if (parts.Length < 3) continue;
+                recordedByPath[NormalizeRelPath(pathPart)] = parts[2];
+            }
+
+            var results = new List<SubmoduleInfo>(byName.Count);
+            foreach (var (_, entry) in byName)
+            {
+                if (entry.Path is null) continue;
+                var rel = NormalizeRelPath(entry.Path);
+                var abs = System.IO.Path.GetFullPath(System.IO.Path.Combine(primary.Path, rel));
+                recordedByPath.TryGetValue(rel, out var recorded);
+                statusByPath.TryGetValue(rel, out var status);
+                var smStatus = status.Flag switch
+                {
+                    '+' => SubmoduleStatus.Modified,
+                    '-' => SubmoduleStatus.NotInitialized,
+                    'U' => SubmoduleStatus.MergeConflict,
+                    _   => SubmoduleStatus.UpToDate,
+                };
+                results.Add(new SubmoduleInfo(
+                    Path: rel,
+                    AbsolutePath: abs,
+                    Url: entry.Url,
+                    Branch: entry.Branch,
+                    RecordedSha: recorded,
+                    CurrentSha: smStatus == SubmoduleStatus.NotInitialized ? null : status.Sha,
+                    Status: smStatus,
+                    Describe: status.Describe));
+            }
+
+            results.Sort((a, b) => string.CompareOrdinal(a.Path, b.Path));
+            return results;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            return Array.Empty<SubmoduleInfo>();
+        }
+    }
+
+    public SubmoduleAddOutcome AddSubmodule(Repo primary, SubmoduleAddRequest request)
+    {
+        try
+        {
+            if (!Repository.IsValid(primary.Path))
+                return new SubmoduleAddOutcome(false, "Not a git repository.");
+            if (string.IsNullOrWhiteSpace(request.Url))
+                return new SubmoduleAddOutcome(false, "Submodule URL is required.");
+            if (string.IsNullOrWhiteSpace(request.Path))
+                return new SubmoduleAddOutcome(false, "Submodule path is required.");
+
+            var args = new List<string> { "submodule", "add" };
+            if (request.Force) args.Add("--force");
+            if (!string.IsNullOrWhiteSpace(request.Branch))
+            {
+                args.Add("-b");
+                args.Add(request.Branch!);
+            }
+            args.Add(request.Url);
+            args.Add(request.Path);
+
+            var sem = GetRepoLock(primary.Path);
+            sem.Wait();
+            try
+            {
+                var (ok, err) = RunMutation(primary.Path, args);
+                return new SubmoduleAddOutcome(ok, err);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new SubmoduleAddOutcome(false, ex.Message);
+        }
+    }
+
+    public SubmoduleUpdateOutcome UpdateSubmodules(Repo primary, SubmoduleUpdateRequest request)
+    {
+        try
+        {
+            if (!Repository.IsValid(primary.Path))
+                return new SubmoduleUpdateOutcome(false, "Not a git repository.");
+
+            var args = new List<string> { "submodule", "update" };
+            if (request.Init) args.Add("--init");
+            if (request.Recursive) args.Add("--recursive");
+            switch (request.Mode)
+            {
+                case SubmoduleUpdateMode.Merge:  args.Add("--merge");  break;
+                case SubmoduleUpdateMode.Rebase: args.Add("--rebase"); break;
+            }
+            if (request.Paths is { Count: > 0 })
+            {
+                args.Add("--");
+                foreach (var p in request.Paths) args.Add(p);
+            }
+
+            var sem = GetRepoLock(primary.Path);
+            sem.Wait();
+            try
+            {
+                var psi = BuildGitProcessStartInfo(args, primary.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new SubmoduleUpdateOutcome(false, "Failed to start git.");
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+                if (proc.ExitCode == 0) return new SubmoduleUpdateOutcome(true, null);
+                // Merge/rebase strategies surface CONFLICT markers in stdout when they fail —
+                // hand that signal up so the dialog can show a "see Operation banner" hint
+                // instead of just a raw error.
+                var combined = stdout + "\n" + stderr;
+                var conflicts = combined.Contains("CONFLICT", StringComparison.Ordinal)
+                                || combined.Contains("merge conflict", StringComparison.OrdinalIgnoreCase);
+                var msg = CombineGitOutput(stderr, stdout);
+                if (string.IsNullOrEmpty(msg)) msg = $"git submodule update exited with code {proc.ExitCode}.";
+                return new SubmoduleUpdateOutcome(false, msg, conflicts);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new SubmoduleUpdateOutcome(false, ex.Message);
+        }
+    }
+
+    public SubmoduleDeinitOutcome DeinitSubmodule(Repo primary, string submodulePath, bool force)
+    {
+        try
+        {
+            if (!Repository.IsValid(primary.Path))
+                return new SubmoduleDeinitOutcome(false, "Not a git repository.");
+            if (string.IsNullOrWhiteSpace(submodulePath))
+                return new SubmoduleDeinitOutcome(false, "Submodule path is required.");
+
+            var sem = GetRepoLock(primary.Path);
+            sem.Wait();
+            try
+            {
+                // Two-step: deinit frees the working tree + .git/modules entry; rm removes
+                // the gitlink and the .gitmodules entry, staging the change as a commit-ready
+                // deletion. Both happen under the same lock so the user sees one atomic op.
+                var deinitArgs = new List<string> { "submodule", "deinit" };
+                if (force) deinitArgs.Add("--force");
+                deinitArgs.Add("--");
+                deinitArgs.Add(submodulePath);
+                var (ok1, err1) = RunMutation(primary.Path, deinitArgs);
+                if (!ok1) return new SubmoduleDeinitOutcome(false, err1);
+
+                var rmArgs = new List<string> { "rm" };
+                if (force) rmArgs.Add("-f");
+                rmArgs.Add("--");
+                rmArgs.Add(submodulePath);
+                var (ok2, err2) = RunMutation(primary.Path, rmArgs);
+                if (!ok2) return new SubmoduleDeinitOutcome(false, err2);
+
+                return new SubmoduleDeinitOutcome(true, null);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new SubmoduleDeinitOutcome(false, ex.Message);
+        }
+    }
+
+    public IReadOnlyList<SubmodulePointerChange> GetSubmodulePointerChanges(Repo repo, string commitSha)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path) || string.IsNullOrWhiteSpace(commitSha))
+                return Array.Empty<SubmodulePointerChange>();
+
+            // diff-tree raw output: ":<src-mode> <dst-mode> <src-sha> <dst-sha> <status>\t<path>"
+            // --root makes the first commit produce its own additions instead of erroring.
+            var rawOut = RunGit(repo.Path, out var err, "diff-tree", "-r", "--no-commit-id",
+                "--root", "--raw", commitSha);
+            if (err != null || string.IsNullOrEmpty(rawOut))
+                return Array.Empty<SubmodulePointerChange>();
+
+            var results = new List<SubmodulePointerChange>();
+            foreach (var raw in rawOut.Split('\n'))
+            {
+                if (!raw.StartsWith(":", StringComparison.Ordinal)) continue;
+                var tab = raw.IndexOf('\t');
+                if (tab < 0) continue;
+                var meta = raw.Substring(1, tab - 1);
+                var pathPart = raw.Substring(tab + 1);
+                var parts = meta.Split(' ');
+                if (parts.Length < 5) continue;
+                var srcMode = parts[0];
+                var dstMode = parts[1];
+                // Only gitlink entries (160000 on either side).
+                if (srcMode != "160000" && dstMode != "160000") continue;
+                var srcSha = parts[2];
+                var dstSha = parts[3];
+
+                int ahead = 0, behind = 0;
+                string? shortLog = null;
+                var subPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(repo.Path, pathPart));
+                var srcZero = IsAllZeros(srcSha);
+                var dstZero = IsAllZeros(dstSha);
+                // Only resolve range info when the submodule is initialized locally AND both
+                // ends are real commits — added/removed entries have a 40-zero sentinel on
+                // one side that no rev-list query can resolve.
+                if (!srcZero && !dstZero && Directory.Exists(subPath) && Repository.IsValid(subPath))
+                {
+                    var rl = RunGit(subPath, out _, "rev-list", "--left-right", "--count", $"{srcSha}...{dstSha}");
+                    if (rl != null)
+                    {
+                        var rlParts = rl.Trim().Split('\t');
+                        if (rlParts.Length == 2)
+                        {
+                            int.TryParse(rlParts[0], out behind);
+                            int.TryParse(rlParts[1], out ahead);
+                        }
+                    }
+                    var log = RunGit(subPath, out _, "log", "--oneline", "--no-decorate", "-n", "20", $"{srcSha}..{dstSha}");
+                    if (!string.IsNullOrWhiteSpace(log)) shortLog = log;
+                }
+
+                results.Add(new SubmodulePointerChange(
+                    Path: NormalizeRelPath(pathPart),
+                    FromSha: srcSha,
+                    ToSha: dstSha,
+                    AheadCount: ahead,
+                    BehindCount: behind,
+                    ShortLog: shortLog));
+            }
+            return results;
+        }
+        catch
+        {
+            return Array.Empty<SubmodulePointerChange>();
+        }
+    }
+
+    // Small shared helper for "spawn git, return (ok, errorOrNull)". Used where multiple
+    // successive mutations need to be sequenced inside a single repo lock.
+    private static (bool Ok, string? Error) RunMutation(string repoPath, IReadOnlyList<string> args)
+    {
+        var psi = BuildGitProcessStartInfo(args, repoPath);
+        using var proc = Process.Start(psi);
+        if (proc == null) return (false, "Failed to start git.");
+        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+        var stderrTask = proc.StandardError.ReadToEndAsync();
+        proc.WaitForExit();
+        var stderr = stderrTask.GetAwaiter().GetResult();
+        var stdout = stdoutTask.GetAwaiter().GetResult();
+        if (proc.ExitCode == 0) return (true, null);
+        var msg = CombineGitOutput(stderr, stdout);
+        if (string.IsNullOrEmpty(msg)) msg = $"git {string.Join(' ', args)} exited with code {proc.ExitCode}.";
+        return (false, msg);
+    }
+
+    private static string NormalizeRelPath(string p) => p.Replace('\\', '/').TrimEnd('/');
+
+    private static bool IsAllZeros(string s)
+    {
+        for (var i = 0; i < s.Length; i++)
+            if (s[i] != '0') return false;
+        return s.Length > 0;
+    }
+
     private static StashOutcome RunGitStash(string repoPath, IReadOnlyList<string> gitArgs, string label)
     {
         var psi = BuildGitProcessStartInfo(gitArgs, repoPath);

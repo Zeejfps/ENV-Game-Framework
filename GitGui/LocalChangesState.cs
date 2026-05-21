@@ -11,7 +11,10 @@ internal readonly record struct LocalChangesState(
     IReadOnlyList<FileChange> Staged,
     Selection Selection,
     string? OpError,
-    bool CommitBusy)
+    bool CommitBusy,
+    // Submodules whose current HEAD differs from the parent's recorded pointer. Empty
+    // when nothing is drifted. Shown in a dedicated section above the file panels.
+    IReadOnlyList<SubmoduleInfo> DriftedSubmodules)
 {
     public const string OpenRepoPlaceholder = "Open a repository to see local changes.";
     public const string LoadingPlaceholder = "Loading…";
@@ -27,7 +30,8 @@ internal readonly record struct LocalChangesState(
         Staged: [],
         Selection: Selection.Empty,
         OpError: null,
-        CommitBusy: false);
+        CommitBusy: false,
+        DriftedSubmodules: []);
 
     // Placeholder is derived, not settable. Loading never tears the panels down when
     // there is data on screen — that's reserved for "nothing to render at all"

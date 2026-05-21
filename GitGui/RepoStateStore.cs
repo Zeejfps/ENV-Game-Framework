@@ -38,10 +38,19 @@ public static class RepoStateStore
                 return EmptyState();
 
             var repos = file.Repos
-                .Select(r => r with { IsMissing = !IsGitRepo(r.Path) })
+                .Select(r =>
+                {
+                    // Backward compat: pre-submodule state files have no Kind field, so the
+                    // deserializer defaults Kind = Primary. Migrate by inferring Kind from
+                    // ParentRepoId (every existing child was a worktree at the time).
+                    var migrated = r;
+                    if (r.ParentRepoId is not null && r.Kind == RepoKind.Primary)
+                        migrated = r with { Kind = RepoKind.Worktree };
+                    return migrated with { IsMissing = !IsGitRepo(migrated.Path) };
+                })
                 .ToList();
 
-            // Drop worktree records whose parent primary is gone — they can't be reattached
+            // Drop child records whose parent primary is gone — they can't be reattached
             // and a dangling ParentRepoId would corrupt nested rendering.
             var primaryIds = repos.Where(r => r.ParentRepoId is null).Select(r => r.Id).ToHashSet();
             repos = repos.Where(r => r.ParentRepoId is null || primaryIds.Contains(r.ParentRepoId.Value)).ToList();

@@ -36,6 +36,11 @@ public interface IGitService
     WorktreeAddOutcome AddWorktree(Repo primary, WorktreeAddRequest request);
     WorktreeRemoveOutcome RemoveWorktree(Repo primary, string worktreePath, bool force);
     WorktreePruneOutcome PruneWorktrees(Repo primary);
+    IReadOnlyList<SubmoduleInfo> ListSubmodules(Repo primary, out string? errorMessage);
+    SubmoduleAddOutcome AddSubmodule(Repo primary, SubmoduleAddRequest request);
+    SubmoduleUpdateOutcome UpdateSubmodules(Repo primary, SubmoduleUpdateRequest request);
+    SubmoduleDeinitOutcome DeinitSubmodule(Repo primary, string submodulePath, bool force);
+    IReadOnlyList<SubmodulePointerChange> GetSubmodulePointerChanges(Repo repo, string commitSha);
     MergePreviewResult PreviewMerge(Repo repo, string sourceRef);
     MergeOutcome Merge(Repo repo, string sourceRef, MergeStrategy strategy);
     RebasePreviewResult PreviewRebase(Repo repo, string targetRef);

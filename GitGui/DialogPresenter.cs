@@ -30,6 +30,9 @@ public sealed class DialogPresenter : IViewBehavior
         _messageBus?.Subscribe<ShowMergeBranchDialogMessage>(OnShowMergeBranchDialog);
         _messageBus?.Subscribe<ShowRebaseBranchDialogMessage>(OnShowRebaseBranchDialog);
         _messageBus?.Subscribe<ShowPublishBranchDialogMessage>(OnShowPublishBranchDialog);
+        _messageBus?.Subscribe<ShowAddSubmoduleDialogMessage>(OnShowAddSubmoduleDialog);
+        _messageBus?.Subscribe<ShowUpdateSubmodulesDialogMessage>(OnShowUpdateSubmodulesDialog);
+        _messageBus?.Subscribe<ShowDeinitSubmoduleDialogMessage>(OnShowDeinitSubmoduleDialog);
     }
 
     public void DetachFromContext(View view, Context context)
@@ -97,6 +100,15 @@ public sealed class DialogPresenter : IViewBehavior
         => ShowDialog(new PublishBranchDialog(
             new PublishBranchRequest(m.Repo, m.LocalBranch),
             OnDialogClosed));
+
+    private void OnShowAddSubmoduleDialog(ShowAddSubmoduleDialogMessage m)
+        => ShowDialog(new AddSubmoduleDialog(m.Primary, OnDialogClosed));
+
+    private void OnShowUpdateSubmodulesDialog(ShowUpdateSubmodulesDialogMessage m)
+        => ShowDialog(new UpdateSubmodulesDialog(m.Primary, m.TargetSubmodule, OnDialogClosed));
+
+    private void OnShowDeinitSubmoduleDialog(ShowDeinitSubmoduleDialogMessage m)
+        => ShowDialog(new DeinitSubmoduleDialog(m.Primary, m.Submodule, OnDialogClosed));
 
     private void ShowDialog(View dialog)
     {

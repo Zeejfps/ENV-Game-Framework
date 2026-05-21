@@ -46,11 +46,11 @@ internal sealed class WorktreeSyncService : IDisposable
             case ListChangeKind.Reset:
                 foreach (var repo in _registry.Repos)
                 {
-                    if (!repo.IsWorktree) ScheduleSync(repo.Id);
+                    if (repo.IsPrimary) ScheduleSync(repo.Id);
                 }
                 break;
             case ListChangeKind.Added:
-                if (change.Item is { } added && !added.IsWorktree)
+                if (change.Item is { } added && added.IsPrimary)
                     ScheduleSync(added.Id);
                 break;
         }
@@ -75,7 +75,7 @@ internal sealed class WorktreeSyncService : IDisposable
         var primaryId = source.ParentRepoId ?? source.Id;
         ScheduleSync(primaryId);
 
-        if (!source.IsWorktree)
+        if (source.IsPrimary)
         {
             foreach (var wt in _registry.GetWorktrees(source.Id))
             {
@@ -97,7 +97,7 @@ internal sealed class WorktreeSyncService : IDisposable
             {
                 if (r.Id == primaryId) { primary = r; break; }
             }
-            if (primary is null || primary.IsWorktree) return;
+            if (primary is null || !primary.IsPrimary) return;
 
             var infos = _git.ListWorktrees(primary, out _);
             var primaryNormalized = TryFullPath(primary.Path);
