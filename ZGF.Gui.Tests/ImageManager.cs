@@ -106,13 +106,14 @@ public sealed unsafe class ImageManager
         }
     }
     
-    private Bitmap PngToBitmap(IDecodedPng png)
+    private Bitmap PngToBitmap(IRawPng png)
     {
-        var width = png.Width;
-        var height = png.Height;
+        var width = (int)png.Ihdr.Width;
+        var height = (int)png.Ihdr.Height;
         var bitmapPixelData = new uint[width * height];
         var pngPixelData = png.PixelData;
-        var bytesPerPixel = png.BytesPerPixel;
+        var bytesPerPixel = png.Ihdr.GetBytesPerPixel();
+        var colorType = png.Ihdr.ColorType;
 
         for (var y = 0; y < height; y++)
         {
@@ -126,7 +127,7 @@ public sealed unsafe class ImageManager
                 byte r = 0, g = 0, b = 0;
                 byte a = 255; // Default to fully opaque.
 
-                switch (png.ColorType)
+                switch (colorType)
                 {
                     case ColorType.TrueColorWithAlpha: // 4 bytes: R, G, B, A
                         r = pngPixelData[sourceIndex];
@@ -154,7 +155,7 @@ public sealed unsafe class ImageManager
                     // This implementation assumes the PngSharp library has already
                     // resolved indexed colors into one of the above formats.
                     default:
-                        throw new NotSupportedException($"The PNG ColorType '{png.ColorType}' is not supported.");
+                        throw new NotSupportedException($"The PNG ColorType '{colorType}' is not supported.");
                 }
 
                 bitmapPixelData[destIndex] = (uint)((a << 24) | (r << 16) | (g << 8) | b);

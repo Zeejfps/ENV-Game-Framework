@@ -28,11 +28,13 @@ public sealed unsafe class GlImageManager : IDisposable
             return;
 
         var png = Png.DecodeFromFile(pathToImageFile);
+        var width = (int)png.Ihdr.Width;
+        var height = (int)png.Ihdr.Height;
         var rgba = DecodeToRgba(png);
 
-        var textureId = UploadRgbaTexture(png.Width, png.Height, rgba);
+        var textureId = UploadRgbaTexture(width, height, rgba);
         _textureIdByImageId.Add(pathToImageFile, textureId);
-        _sizeByImageId.Add(pathToImageFile, new Size { Width = png.Width, Height = png.Height });
+        _sizeByImageId.Add(pathToImageFile, new Size { Width = width, Height = height });
         _ownedTextures.Add(textureId);
     }
 
@@ -120,12 +122,13 @@ public sealed unsafe class GlImageManager : IDisposable
         return textureId;
     }
 
-    private static byte[] DecodeToRgba(IDecodedPng png)
+    private static byte[] DecodeToRgba(IRawPng png)
     {
-        var width = png.Width;
-        var height = png.Height;
+        var width = (int)png.Ihdr.Width;
+        var height = (int)png.Ihdr.Height;
         var src = png.PixelData;
-        var bpp = png.BytesPerPixel;
+        var bpp = png.Ihdr.GetBytesPerPixel();
+        var colorType = png.Ihdr.ColorType;
         var output = new byte[width * height * 4];
 
         for (var y = 0; y < height; y++)
@@ -138,7 +141,7 @@ public sealed unsafe class GlImageManager : IDisposable
                 var dstIndex = (dstY * width + x) * 4;
 
                 byte r = 0, g = 0, b = 0, a = 255;
-                switch (png.ColorType)
+                switch (colorType)
                 {
                     case ColorType.TrueColorWithAlpha:
                         r = src[srcIndex];
@@ -159,7 +162,7 @@ public sealed unsafe class GlImageManager : IDisposable
                         r = g = b = src[srcIndex];
                         break;
                     default:
-                        throw new NotSupportedException($"PNG ColorType '{png.ColorType}' is not supported.");
+                        throw new NotSupportedException($"PNG ColorType '{colorType}' is not supported.");
                 }
 
                 output[dstIndex] = r;

@@ -30,13 +30,15 @@ public sealed unsafe class MetalImageManager : IDisposable
             return;
 
         var png = Png.DecodeFromFile(pathToImageFile);
+        var width = (int)png.Ihdr.Width;
+        var height = (int)png.Ihdr.Height;
         var rgba = DecodeToRgba(png);
 
-        var texture = UploadRgbaTexture(png.Width, png.Height, rgba);
+        var texture = UploadRgbaTexture(width, height, rgba);
 
         var textureId = _nextTextureId++;
         _textureIdByImageId.Add(pathToImageFile, textureId);
-        _sizeByImageId.Add(pathToImageFile, new Size { Width = png.Width, Height = png.Height });
+        _sizeByImageId.Add(pathToImageFile, new Size { Width = width, Height = height });
         _textureByTextureId.Add(textureId, texture);
     }
 
@@ -91,12 +93,13 @@ public sealed unsafe class MetalImageManager : IDisposable
         nuint pixelFormat, nuint width, nuint height,
         [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.I1)] bool mipmapped);
 
-    private static byte[] DecodeToRgba(IDecodedPng png)
+    private static byte[] DecodeToRgba(IRawPng png)
     {
-        var width = png.Width;
-        var height = png.Height;
+        var width = (int)png.Ihdr.Width;
+        var height = (int)png.Ihdr.Height;
         var src = png.PixelData;
-        var bpp = png.BytesPerPixel;
+        var bpp = png.Ihdr.GetBytesPerPixel();
+        var colorType = png.Ihdr.ColorType;
         var output = new byte[width * height * 4];
 
         // Metal textures are top-down by default — no Y flip (unlike the GL path).
@@ -108,7 +111,7 @@ public sealed unsafe class MetalImageManager : IDisposable
                 var dstIndex = (y * width + x) * 4;
 
                 byte r = 0, g = 0, b = 0, a = 255;
-                switch (png.ColorType)
+                switch (colorType)
                 {
                     case ColorType.TrueColorWithAlpha:
                         r = src[srcIndex];
@@ -129,7 +132,7 @@ public sealed unsafe class MetalImageManager : IDisposable
                         r = g = b = src[srcIndex];
                         break;
                     default:
-                        throw new NotSupportedException($"PNG ColorType '{png.ColorType}' is not supported.");
+                        throw new NotSupportedException($"PNG ColorType '{colorType}' is not supported.");
                 }
 
                 output[dstIndex] = r;

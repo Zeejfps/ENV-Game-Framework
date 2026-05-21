@@ -24,19 +24,22 @@ internal sealed class LocalChangesSubmoduleSection : MultiChildView
         _headerText = FileChangesUI.CreateHeaderText("Submodules");
         _rows = new ColumnView { Gap = FileChangesUI.RowGap };
 
-        AddChildToSelf(new BorderLayoutView
+        AddChildToSelf(new ColumnView
         {
-            North = FileChangesUI.CreateHeaderBar(_headerText),
-            Center = new PaddingView
+            Children =
             {
-                Padding = new PaddingStyle
+                FileChangesUI.CreateHeaderBar(_headerText),
+                new PaddingView
                 {
-                    Left = ContentPadding,
-                    Right = ContentPadding,
-                    Top = ContentPadding,
-                    Bottom = ContentPadding,
+                    Padding = new PaddingStyle
+                    {
+                        Left = ContentPadding,
+                        Right = ContentPadding,
+                        Top = ContentPadding,
+                        Bottom = ContentPadding,
+                    },
+                    Children = { _rows },
                 },
-                Children = { _rows },
             },
         });
     }

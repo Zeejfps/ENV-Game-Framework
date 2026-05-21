@@ -185,7 +185,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         var bufferWidth = _colorBuffer.Width;
 
         var fontPixels = _font.Png.PixelData;
-        var fontTextureWidth = _font.Png.Width;
+        var fontTextureWidth = (int)_font.Png.Ihdr.Width;
         
         var destWidth = glyphInfo.Width;
         var destHeight = glyphInfo.Height;

@@ -5,12 +5,12 @@ namespace ZGF.Gui.Tests;
 
 public sealed class BitmapFont
 {
-    public IDecodedPng Png { get; }
+    public IRawPng Png { get; }
     public BMFontFile FontMetrics { get; }
 
     private readonly Dictionary<(int, int), FontKerning> _kerningPairs = new();
     
-    public BitmapFont(IDecodedPng png, BMFontFile file)
+    public BitmapFont(IRawPng png, BMFontFile file)
     {
         Png = png;
         FontMetrics = file;
