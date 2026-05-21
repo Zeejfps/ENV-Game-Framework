@@ -100,7 +100,7 @@ public sealed class HorizontalScrollBarThumbView : MultiChildView
     {
         var width = WidthConstraint * Scale;
 
-        _maxDistanceToLeft = (int)(WidthConstraint - width);
+        _maxDistanceToLeft = Math.Max(0, (int)(WidthConstraint - width));
 
         if (_distanceToLeft < 0)
         {
@@ -126,7 +126,9 @@ public sealed class HorizontalScrollBarThumbView : MultiChildView
 
     public void SetScrollPositionNormalized(float normalizedPosition)
     {
-        DistanceToLeft = normalizedPosition * _maxDistanceToLeft;
+        if (float.IsNaN(normalizedPosition) || float.IsInfinity(normalizedPosition))
+            normalizedPosition = 0f;
+        DistanceToLeft = Math.Clamp(normalizedPosition, 0f, 1f) * _maxDistanceToLeft;
     }
 
     public void Move(float deltaX)

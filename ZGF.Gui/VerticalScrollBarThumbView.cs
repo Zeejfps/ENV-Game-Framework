@@ -99,8 +99,8 @@ public sealed class VerticalScrollBarThumbView : MultiChildView
     protected override void OnLayoutSelf()
     {
         var height = HeightConstraint * Scale;
-        
-        _maxDistanceToTop = (int)(TopConstraint - height - BottomConstraint);
+
+        _maxDistanceToTop = Math.Max(0, (int)(TopConstraint - height - BottomConstraint));
 
         if (_distanceToTop < 0)
         {
@@ -110,7 +110,7 @@ public sealed class VerticalScrollBarThumbView : MultiChildView
         {
             _distanceToTop = _maxDistanceToTop;
         }
-        
+
         var bottom = TopConstraint - _distanceToTop - height;
         Position = new RectF
         {
@@ -120,13 +120,15 @@ public sealed class VerticalScrollBarThumbView : MultiChildView
             Height = height,
         };
 
-        var scrollPositionNormalized = _distanceToTop / _maxDistanceToTop;
+        var scrollPositionNormalized = _maxDistanceToTop > 0 ? _distanceToTop / _maxDistanceToTop : 0f;
         ScrollPositionChanged?.Invoke(scrollPositionNormalized);
     }
 
     public void SetScrollPositionNormalized(float normalizedPosition)
     {
-        DistanceToTop = normalizedPosition * _maxDistanceToTop;
+        if (float.IsNaN(normalizedPosition) || float.IsInfinity(normalizedPosition))
+            normalizedPosition = 0f;
+        DistanceToTop = Math.Clamp(normalizedPosition, 0f, 1f) * _maxDistanceToTop;
     }
 
     public void Move(float deltaY)
