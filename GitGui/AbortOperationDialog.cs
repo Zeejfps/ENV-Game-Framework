@@ -134,6 +134,11 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
         set => _errorView.Text = value ?? string.Empty;
     }
 
+    public string ConfirmButtonLabel
+    {
+        set => _abortButton.Label = value;
+    }
+
     public void Close() => _onClose();
 
     private void RaiseAbortRequested() => AbortRequested?.Invoke();

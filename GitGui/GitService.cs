@@ -1683,7 +1683,8 @@ public sealed class GitService : IGitService
             var t = line.TrimStart();
             if (t.StartsWith("error:", StringComparison.OrdinalIgnoreCase)
                 || t.StartsWith("fatal:", StringComparison.OrdinalIgnoreCase)
-                || t.StartsWith("hint:", StringComparison.OrdinalIgnoreCase))
+                || t.StartsWith("hint:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("warning:", StringComparison.OrdinalIgnoreCase))
                 return true;
         }
         return false;
@@ -1823,7 +1824,8 @@ public sealed class GitService : IGitService
             var trimmed = lines[i].TrimStart();
             if (trimmed.StartsWith("error:", StringComparison.OrdinalIgnoreCase)
                 || trimmed.StartsWith("fatal:", StringComparison.OrdinalIgnoreCase)
-                || trimmed.StartsWith("hint:", StringComparison.OrdinalIgnoreCase))
+                || trimmed.StartsWith("hint:", StringComparison.OrdinalIgnoreCase)
+                || trimmed.StartsWith("warning:", StringComparison.OrdinalIgnoreCase))
             {
                 startIdx = i;
                 break;
@@ -2220,50 +2222,90 @@ public sealed class GitService : IGitService
         }
     }
 
-    // Maps each in-progress state to the canonical `git <op> --abort` (or equivalent) and
-    // shells out. For UnmergedPaths — a stash-apply / checkout -m conflict left with no
-    // op sentinel — `reset --merge` is the documented recovery: it discards the conflicting
-    // worktree changes and clears the unmerged index entries, but keeps clean local mods.
-    public AbortOperationOutcome AbortOperation(Repo repo, RepoOperationState state)
+    // Runs `git <op> --abort` (or the appropriate equivalent) for the in-progress state. For
+    // UnmergedPaths — a stash-apply / checkout -m conflict that leaves the index unmerged
+    // with no sentinel — `reset --merge` is the documented recovery: discards conflicting
+    // worktree changes and clears the unmerged index entries while keeping clean local mods.
+    //
+    // forceQuit switches to `git <op> --quit` (and, for ops without --quit, direct sentinel
+    // removal). Use it as the second-attempt path when --abort can't restore HEAD because
+    // the in-progress sentinel directory is malformed — e.g. a `.git/rebase-merge` left
+    // over from a crashed rebase that's missing `head-name`, where --abort warns and
+    // walks away without actually clearing the state.
+    //
+    // After running the command we re-probe GetOperationState under the same lock and treat
+    // "exit 0 but state still detected" as a failure — git often prints a warning and exits
+    // cleanly when it can't fully recover, and the user would otherwise see the dialog close
+    // but the operation banner reappear immediately. ForceQuitAvailable is set in that case
+    // so the dialog can offer the escape-hatch second click.
+    public AbortOperationOutcome AbortOperation(Repo repo, RepoOperationState state, bool forceQuit = false)
     {
         try
         {
             if (!Repository.IsValid(repo.Path))
                 return new AbortOperationOutcome(false, "Not a git repository.");
 
-            var args = state switch
-            {
-                RepoOperationState.Merge => new[] { "merge", "--abort" },
-                RepoOperationState.Rebase => new[] { "rebase", "--abort" },
-                RepoOperationState.CherryPick => new[] { "cherry-pick", "--abort" },
-                RepoOperationState.Revert => new[] { "revert", "--abort" },
-                RepoOperationState.ApplyMailbox => new[] { "am", "--abort" },
-                RepoOperationState.Bisect => new[] { "bisect", "reset" },
-                RepoOperationState.UnmergedPaths => new[] { "reset", "--merge" },
-                _ => null,
-            };
-            if (args == null)
-                return new AbortOperationOutcome(false, "Nothing to abort.");
-
+            // Pick the verb. For force-quit we prefer git's own --quit (it removes the
+            // sequencer/rebase state without touching the index/workdir) and fall back to
+            // direct sentinel removal for ops that don't have one.
+            var args = forceQuit ? GetForceQuitArgs(state) : GetAbortArgs(state);
             var sem = GetRepoLock(repo.Path);
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo(args, repo.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new AbortOperationOutcome(false, "Failed to start git.");
+                string? cmdMsg = null;
+                int? exitCode = null;
+                if (args != null)
+                {
+                    var psi = BuildGitProcessStartInfo(args, repo.Path);
+                    using var proc = Process.Start(psi);
+                    if (proc == null) return new AbortOperationOutcome(false, "Failed to start git.");
 
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
+                    var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                    var stderrTask = proc.StandardError.ReadToEndAsync();
+                    proc.WaitForExit();
+                    var stderr = stderrTask.GetAwaiter().GetResult();
+                    var stdout = stdoutTask.GetAwaiter().GetResult();
+                    exitCode = proc.ExitCode;
+                    cmdMsg = CombineGitOutput(stderr, stdout);
+                }
+                else if (forceQuit)
+                {
+                    // No `git X --quit` for this op (Merge, Bisect, UnmergedPaths) —
+                    // delete the sentinels ourselves. The user already confirmed they want
+                    // to abandon HEAD recovery, so this is the documented escape hatch.
+                    cmdMsg = ForceClearSentinels(repo, state);
+                    if (cmdMsg != null) return new AbortOperationOutcome(false, cmdMsg);
+                }
+                else
+                {
+                    return new AbortOperationOutcome(false, "Nothing to abort.");
+                }
 
-                if (proc.ExitCode == 0) return new AbortOperationOutcome(true, null);
-                var msg = CombineGitOutput(stderr, stdout);
+                // Authoritative check: does git still see an in-progress op? An exit-0
+                // result combined with leftover state means the command warned and
+                // walked away — typically a malformed sentinel dir from a prior crash.
+                var stillStuck = GetOperationState(repo) != RepoOperationState.None;
+
+                if (!stillStuck && (exitCode == null || exitCode == 0))
+                    return new AbortOperationOutcome(true, null);
+
+                var msg = cmdMsg;
                 if (string.IsNullOrEmpty(msg))
-                    msg = $"git {string.Join(' ', args)} exited with code {proc.ExitCode}.";
-                return new AbortOperationOutcome(false, msg);
+                {
+                    if (stillStuck && exitCode == 0)
+                        msg = $"git {(args != null ? string.Join(' ', args) : "abort")} reported success but the {DescribeState(state)} state is still present.";
+                    else if (exitCode != null)
+                        msg = $"git {(args != null ? string.Join(' ', args) : "abort")} exited with code {exitCode}.";
+                    else
+                        msg = "Abort failed.";
+                }
+
+                // Offer force-quit only on the first attempt and only for ops where it
+                // can do something useful. Force-quit's own failure shouldn't keep
+                // re-offering it.
+                var canForceQuit = !forceQuit && stillStuck && SupportsForceQuit(state);
+                return new AbortOperationOutcome(false, msg, ForceQuitAvailable: canForceQuit);
             }
             finally { sem.Release(); }
         }
@@ -2272,6 +2314,109 @@ public sealed class GitService : IGitService
             return new AbortOperationOutcome(false, ex.Message);
         }
     }
+
+    private static string[]? GetAbortArgs(RepoOperationState state) => state switch
+    {
+        RepoOperationState.Merge => new[] { "merge", "--abort" },
+        RepoOperationState.Rebase => new[] { "rebase", "--abort" },
+        RepoOperationState.CherryPick => new[] { "cherry-pick", "--abort" },
+        RepoOperationState.Revert => new[] { "revert", "--abort" },
+        RepoOperationState.ApplyMailbox => new[] { "am", "--abort" },
+        RepoOperationState.Bisect => new[] { "bisect", "reset" },
+        RepoOperationState.UnmergedPaths => new[] { "reset", "--merge" },
+        _ => null,
+    };
+
+    private static string[]? GetForceQuitArgs(RepoOperationState state) => state switch
+    {
+        RepoOperationState.Rebase => new[] { "rebase", "--quit" },
+        RepoOperationState.CherryPick => new[] { "cherry-pick", "--quit" },
+        RepoOperationState.Revert => new[] { "revert", "--quit" },
+        RepoOperationState.ApplyMailbox => new[] { "am", "--quit" },
+        // Merge, Bisect, UnmergedPaths have no native --quit — handled by sentinel removal.
+        _ => null,
+    };
+
+    private static bool SupportsForceQuit(RepoOperationState state) => state switch
+    {
+        RepoOperationState.Rebase => true,
+        RepoOperationState.CherryPick => true,
+        RepoOperationState.Revert => true,
+        RepoOperationState.ApplyMailbox => true,
+        RepoOperationState.Merge => true,
+        // UnmergedPaths and Bisect: there's no sensible "give up restoring HEAD" since
+        // there's no HEAD-restore phase to skip. `git reset --merge` and `git bisect reset`
+        // either succeed or fail because of something the user has to address.
+        _ => false,
+    };
+
+    // Last-resort cleanup for ops where git has no --quit verb. Each branch removes only
+    // the sentinels that mark this specific op as in-progress; refs (HEAD, index, workdir)
+    // are left alone. Returns null on success or a human-readable error string on failure.
+    private string? ForceClearSentinels(Repo repo, RepoOperationState state)
+    {
+        try
+        {
+            string gitDir;
+            using (var lg = new Repository(repo.Path))
+                gitDir = lg.Info.Path;
+
+            switch (state)
+            {
+                case RepoOperationState.Merge:
+                    TryDeleteFile(Path.Combine(gitDir, "MERGE_HEAD"));
+                    TryDeleteFile(Path.Combine(gitDir, "MERGE_MSG"));
+                    TryDeleteFile(Path.Combine(gitDir, "MERGE_MODE"));
+                    TryDeleteFile(Path.Combine(gitDir, "AUTO_MERGE"));
+                    return null;
+                case RepoOperationState.Rebase:
+                    TryDeleteDir(Path.Combine(gitDir, "rebase-apply"));
+                    TryDeleteDir(Path.Combine(gitDir, "rebase-merge"));
+                    return null;
+                case RepoOperationState.CherryPick:
+                    TryDeleteFile(Path.Combine(gitDir, "CHERRY_PICK_HEAD"));
+                    TryDeleteDir(Path.Combine(gitDir, "sequencer"));
+                    return null;
+                case RepoOperationState.Revert:
+                    TryDeleteFile(Path.Combine(gitDir, "REVERT_HEAD"));
+                    TryDeleteDir(Path.Combine(gitDir, "sequencer"));
+                    return null;
+                case RepoOperationState.ApplyMailbox:
+                    TryDeleteDir(Path.Combine(gitDir, "rebase-apply"));
+                    return null;
+                default:
+                    return $"Force-clear isn't supported for {DescribeState(state)}.";
+            }
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
+    }
+
+    private static void TryDeleteFile(string path)
+    {
+        try { if (File.Exists(path)) File.Delete(path); }
+        catch { /* best-effort */ }
+    }
+
+    private static void TryDeleteDir(string path)
+    {
+        try { if (Directory.Exists(path)) Directory.Delete(path, recursive: true); }
+        catch { /* best-effort */ }
+    }
+
+    private static string DescribeState(RepoOperationState state) => state switch
+    {
+        RepoOperationState.Merge => "merge",
+        RepoOperationState.Rebase => "rebase",
+        RepoOperationState.CherryPick => "cherry-pick",
+        RepoOperationState.Revert => "revert",
+        RepoOperationState.ApplyMailbox => "git-am",
+        RepoOperationState.Bisect => "bisect",
+        RepoOperationState.UnmergedPaths => "unmerged-paths",
+        _ => "operation",
+    };
 
     private static CommitDetails DetailsError(Repo repo, string sha, string message)
         => new(

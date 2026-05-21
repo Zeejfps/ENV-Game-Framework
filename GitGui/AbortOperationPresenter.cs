@@ -11,6 +11,10 @@ internal sealed class AbortOperationPresenter : IDisposable
     private readonly IMessageBus _bus;
 
     private bool _isRunning;
+    // Set after the regular --abort returned with ForceQuitAvailable=true. The next click
+    // sends forceQuit=true, which runs `git X --quit` (or removes sentinels directly) to
+    // clear the stuck state without trying to restore HEAD.
+    private bool _forceQuitMode;
 
     public AbortOperationPresenter(
         IAbortOperationView view,
@@ -48,11 +52,12 @@ internal sealed class AbortOperationPresenter : IDisposable
         var dispatcher = _dispatcher;
         var bus = _bus;
         var view = _view;
+        var forceQuit = _forceQuitMode;
 
         Task.Run(() =>
         {
             AbortOperationOutcome outcome;
-            try { outcome = service.AbortOperation(request.Repo, request.State); }
+            try { outcome = service.AbortOperation(request.Repo, request.State, forceQuit); }
             catch (Exception ex) { outcome = new AbortOperationOutcome(false, ex.Message); }
 
             dispatcher.Post(() =>
@@ -62,6 +67,16 @@ internal sealed class AbortOperationPresenter : IDisposable
                 {
                     view.ErrorMessage = outcome.ErrorMessage ?? "Abort failed.";
                     view.AbortEnabled = true;
+                    // If git couldn't recover (malformed sentinel dir, etc.) but the state
+                    // is force-clearable, flip the confirm button so the next click is the
+                    // explicit "give up restoring HEAD" path. Only flip once — once we're
+                    // in force-quit mode, repeated failures keep the same button label so
+                    // the user isn't ping-ponged.
+                    if (outcome.ForceQuitAvailable && !_forceQuitMode)
+                    {
+                        _forceQuitMode = true;
+                        view.ConfirmButtonLabel = "Force clear";
+                    }
                     return;
                 }
                 view.Close();

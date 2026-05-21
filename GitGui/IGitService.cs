@@ -28,7 +28,7 @@ public interface IGitService
     StashOutcome DropStash(Repo repo, int index);
     DiffResult GetDiff(Repo repo, string path, DiffSide side);
     RepoOperationState GetOperationState(Repo repo);
-    AbortOperationOutcome AbortOperation(Repo repo, RepoOperationState state);
+    AbortOperationOutcome AbortOperation(Repo repo, RepoOperationState state, bool forceQuit = false);
     IReadOnlyList<WorktreeInfo> ListWorktrees(Repo primary, out string? errorMessage);
     WorktreeAddOutcome AddWorktree(Repo primary, WorktreeAddRequest request);
     WorktreeRemoveOutcome RemoveWorktree(Repo primary, string worktreePath, bool force);
@@ -69,7 +69,11 @@ public sealed record RebasePreviewResult(RebasePreviewState State, string? Error
 
 public sealed record RebaseOutcome(bool Success, string? ErrorMessage, bool HasConflicts = false);
 
-public sealed record AbortOperationOutcome(bool Success, string? ErrorMessage);
+// ForceQuitAvailable is set when the regular --abort failed but the in-progress state is
+// recoverable via `git X --quit` or direct sentinel removal — i.e. the user can choose to
+// give up on restoring HEAD and just clear the marker files. Surfaced to the dialog so it
+// can flip its confirm button to a "Force clear" action on the second click.
+public sealed record AbortOperationOutcome(bool Success, string? ErrorMessage, bool ForceQuitAvailable = false);
 
 public enum RepoOperationState
 {
