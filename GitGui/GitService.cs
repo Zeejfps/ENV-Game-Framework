@@ -784,6 +784,45 @@ public sealed class GitService : IGitService
         }
     }
 
+    // Snapshot of HEAD's branch + upstream tracking state. We avoid `git status --branch`
+    // here because porcelain v2 scans the entire working tree for file changes too — for
+    // a HEAD-only probe (called on every refresh, every push/pull preflight) the cost
+    // shows on large repos. Three targeted commands stay fast.
+    private readonly record struct HeadInfo(
+        string? CurrentBranchName,
+        bool IsDetached,
+        bool HasUpstream,
+        int Ahead,
+        int Behind);
+
+    private static HeadInfo GetHeadInfo(string repoPath)
+    {
+        // symbolic-ref returns nonzero on detached HEAD; @{u} returns nonzero with no upstream.
+        var branchOutput = RunGit(repoPath, out _, "symbolic-ref", "-q", "--short", "HEAD");
+        if (branchOutput == null)
+            return new HeadInfo(null, IsDetached: true, HasUpstream: false, Ahead: 0, Behind: 0);
+        var branchName = branchOutput.Trim();
+        if (branchName.Length == 0)
+            return new HeadInfo(null, IsDetached: true, HasUpstream: false, Ahead: 0, Behind: 0);
+
+        var upstreamOutput = RunGit(repoPath, out _, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}");
+        if (string.IsNullOrWhiteSpace(upstreamOutput))
+            return new HeadInfo(branchName, IsDetached: false, HasUpstream: false, Ahead: 0, Behind: 0);
+
+        int ahead = 0, behind = 0;
+        var counts = RunGit(repoPath, out _, "rev-list", "--left-right", "--count", "HEAD...@{u}");
+        if (counts != null)
+        {
+            var parts = counts.Trim().Split('\t');
+            if (parts.Length == 2)
+            {
+                int.TryParse(parts[0], out ahead);
+                int.TryParse(parts[1], out behind);
+            }
+        }
+        return new HeadInfo(branchName, IsDetached: false, HasUpstream: true, Ahead: ahead, Behind: behind);
+    }
+
     public PushStatus GetPushStatus(Repo repo)
     {
         try
@@ -791,19 +830,13 @@ public sealed class GitService : IGitService
             if (!IsGitRepo(repo.Path))
                 return new PushStatus(null, HasUpstream: false, Ahead: 0, Behind: 0, IsDetached: false);
 
-            using var lg = new Repository(repo.Path);
-            if (lg.Info.IsHeadDetached)
-                return new PushStatus(null, HasUpstream: false, Ahead: 0, Behind: 0, IsDetached: true);
-
-            var head = lg.Head;
-            var tracked = head?.TrackedBranch;
-            var tracking = head?.TrackingDetails;
+            var info = GetHeadInfo(repo.Path);
             return new PushStatus(
-                CurrentBranchName: head?.FriendlyName,
-                HasUpstream: tracked != null,
-                Ahead: tracking?.AheadBy ?? 0,
-                Behind: tracking?.BehindBy ?? 0,
-                IsDetached: false);
+                CurrentBranchName: info.CurrentBranchName,
+                HasUpstream: info.HasUpstream,
+                Ahead: info.Ahead,
+                Behind: info.Behind,
+                IsDetached: info.IsDetached);
         }
         catch
         {
@@ -830,17 +863,14 @@ public sealed class GitService : IGitService
             {
                 // Pre-flight: refuse to push from detached HEAD or a branch with no upstream,
                 // because the resulting `git push` error is less actionable than these messages.
-                using (var lg = new Repository(repo.Path))
+                var info = GetHeadInfo(repo.Path);
+                if (info.IsDetached)
+                    return new PushOutcome(false, "HEAD is detached. Check out a branch first.");
+                if (!info.HasUpstream)
                 {
-                    if (lg.Info.IsHeadDetached)
-                        return new PushOutcome(false, "HEAD is detached. Check out a branch first.");
-                    var head = lg.Head;
-                    if (head?.TrackedBranch == null)
-                    {
-                        var name = head?.FriendlyName ?? "(unknown)";
-                        return new PushOutcome(false,
-                            $"Branch '{name}' has no upstream. Set one with: git push -u <remote> {name}");
-                    }
+                    var name = info.CurrentBranchName ?? "(unknown)";
+                    return new PushOutcome(false,
+                        $"Branch '{name}' has no upstream. Set one with: git push -u <remote> {name}");
                 }
 
                 var args = new List<string> { "push" };
@@ -948,17 +978,14 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                using (var lg = new Repository(repo.Path))
+                var info = GetHeadInfo(repo.Path);
+                if (info.IsDetached)
+                    return new PullOutcome(false, "HEAD is detached. Check out a branch first.");
+                if (!info.HasUpstream)
                 {
-                    if (lg.Info.IsHeadDetached)
-                        return new PullOutcome(false, "HEAD is detached. Check out a branch first.");
-                    var head = lg.Head;
-                    if (head?.TrackedBranch == null)
-                    {
-                        var name = head?.FriendlyName ?? "(unknown)";
-                        return new PullOutcome(false,
-                            $"Branch '{name}' has no upstream. Set one with: git branch --set-upstream-to=<remote>/<branch>");
-                    }
+                    var name = info.CurrentBranchName ?? "(unknown)";
+                    return new PullOutcome(false,
+                        $"Branch '{name}' has no upstream. Set one with: git branch --set-upstream-to=<remote>/<branch>");
                 }
 
                 var psi = BuildGitProcessStartInfo("pull", repo.Path);
