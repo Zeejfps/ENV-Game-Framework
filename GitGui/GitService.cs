@@ -774,7 +774,11 @@ public sealed class GitService : IGitService
 
     // Shells out to the `git` CLI so we inherit the user's credential helpers
     // (ssh-agent, osxkeychain, GitHub CLI, …) — libgit2's macOS SSH path is too brittle.
-    public PushOutcome Push(Repo repo)
+    //
+    // force=true uses --force-with-lease: refuses if the remote moved since our last fetch,
+    // so a teammate's concurrent push isn't silently clobbered. Caller is expected to have
+    // confirmed with the user before passing force=true.
+    public PushOutcome Push(Repo repo, bool force = false)
     {
         try
         {
@@ -800,7 +804,9 @@ public sealed class GitService : IGitService
                     }
                 }
 
-                var psi = BuildGitProcessStartInfo("push", repo.Path);
+                var args = new List<string> { "push" };
+                if (force) args.Add("--force-with-lease");
+                var psi = BuildGitProcessStartInfo(args, repo.Path);
                 using var proc = Process.Start(psi);
                 if (proc == null) return new PushOutcome(false, "Failed to start git.");
 

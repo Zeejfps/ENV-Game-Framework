@@ -30,6 +30,7 @@ public sealed class DialogPresenter : IViewBehavior
         _messageBus?.Subscribe<ShowMergeBranchDialogMessage>(OnShowMergeBranchDialog);
         _messageBus?.Subscribe<ShowRebaseBranchDialogMessage>(OnShowRebaseBranchDialog);
         _messageBus?.Subscribe<ShowPublishBranchDialogMessage>(OnShowPublishBranchDialog);
+        _messageBus?.Subscribe<ShowForcePushDialogMessage>(OnShowForcePushDialog);
         _messageBus?.Subscribe<ShowAddSubmoduleDialogMessage>(OnShowAddSubmoduleDialog);
         _messageBus?.Subscribe<ShowUpdateSubmodulesDialogMessage>(OnShowUpdateSubmodulesDialog);
         _messageBus?.Subscribe<ShowDeinitSubmoduleDialogMessage>(OnShowDeinitSubmoduleDialog);
@@ -100,6 +101,9 @@ public sealed class DialogPresenter : IViewBehavior
         => ShowDialog(new PublishBranchDialog(
             new PublishBranchRequest(m.Repo, m.LocalBranch),
             OnDialogClosed));
+
+    private void OnShowForcePushDialog(ShowForcePushDialogMessage m)
+        => ShowDialog(new ForcePushDialog(m.Repo, m.BranchName, m.Ahead, m.Behind, OnDialogClosed));
 
     private void OnShowAddSubmoduleDialog(ShowAddSubmoduleDialogMessage m)
         => ShowDialog(new AddSubmoduleDialog(m.Primary, OnDialogClosed));

@@ -242,6 +242,22 @@ internal sealed class ActionsToolbarPresenter : IDisposable
             return;
         }
 
+        // Diverged from upstream — a plain push would be rejected as non-fast-forward.
+        // Pop a confirmation dialog so the user can opt into a force-push (with lease) instead
+        // of seeing a cryptic error. Common after rebasing already-pushed history.
+        if (!_pushStatus.IsDetached
+            && _pushStatus.HasUpstream
+            && _pushStatus.Ahead > 0
+            && _pushStatus.Behind > 0)
+        {
+            _bus.Broadcast(new ShowForcePushDialogMessage(
+                repo,
+                _pushStatus.CurrentBranchName ?? string.Empty,
+                _pushStatus.Ahead,
+                _pushStatus.Behind));
+            return;
+        }
+
         _isPushing = true;
         UpdateSyncButtons();
         _view.Error = null;
