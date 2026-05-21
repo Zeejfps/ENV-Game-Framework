@@ -379,7 +379,11 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                     {
                         var driftList = new List<SubmoduleInfo>();
                         foreach (var s in subs)
-                            if (s.Status != SubmoduleStatus.UpToDate) driftList.Add(s);
+                        {
+                            if (s.Status == SubmoduleStatus.UpToDate) continue;
+                            if (s.Status == SubmoduleStatus.Modified) continue;
+                            driftList.Add(s);
+                        }
                         drift = driftList;
                     }
                 }
