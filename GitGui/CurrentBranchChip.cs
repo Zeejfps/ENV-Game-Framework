@@ -7,6 +7,7 @@ public sealed class CurrentBranchChip : MultiChildView
 {
     private const float ChipHeight = 28f;
 
+    private readonly TextView _iconView;
     private readonly TextView _prefixView;
     private readonly TextView _nameView;
 
@@ -14,6 +15,14 @@ public sealed class CurrentBranchChip : MultiChildView
     {
         PreferredHeight = ChipHeight;
 
+        _iconView = new TextView
+        {
+            Text = LucideIcons.Branch,
+            FontFamily = LucideIcons.FontFamily,
+            FontSize = 15f,
+            TextColor = Theme.TextStrong,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
         _prefixView = new TextView
         {
             Text = "on",
@@ -24,6 +33,8 @@ public sealed class CurrentBranchChip : MultiChildView
         {
             Text = string.Empty,
             TextColor = Theme.TextStrong,
+            FontSize = 18f,
+            FontWeight = FontWeight.Bold,
             VerticalTextAlignment = TextAlignment.Center,
         };
 
@@ -34,8 +45,8 @@ public sealed class CurrentBranchChip : MultiChildView
             {
                 new RowView
                 {
-                    Gap = 5,
-                    Children = { _prefixView, _nameView },
+                    Gap = 6,
+                    Children = { _iconView, _prefixView, _nameView },
                 },
             },
         });
@@ -51,7 +62,9 @@ public sealed class CurrentBranchChip : MultiChildView
         set
         {
             _prefixView.Text = value ? "at" : "on";
-            _nameView.TextColor = value ? DialogPalette.RowTextMissing : Theme.TextStrong;
+            var nameColor = value ? DialogPalette.RowTextMissing : Theme.TextStrong;
+            _nameView.TextColor = nameColor;
+            _iconView.TextColor = nameColor;
         }
     }
 }
