@@ -65,7 +65,7 @@ public sealed class DeinitSubmoduleDialog : MultiChildView, IDeinitSubmoduleView
             },
         }));
 
-        this.UseController(_ => new DiscardChangesKbmController(RaiseDeinitRequested, onClose));
+        this.UseController(_ => new DialogKbmController(RaiseDeinitRequested, onClose));
 
         var request = new DeinitSubmoduleViewRequest(primary, submodule);
         this.UsePresenter(ctx => new DeinitSubmodulePresenter(

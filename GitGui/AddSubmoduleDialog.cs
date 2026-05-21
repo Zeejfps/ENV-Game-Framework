@@ -28,9 +28,9 @@ public sealed class AddSubmoduleDialog : MultiChildView, IAddSubmoduleView
     {
         _onClose = onClose;
 
-        _urlInput = MakeTextInput();
-        _pathInput = MakeTextInput();
-        _branchInput = MakeTextInput();
+        _urlInput = DialogFrame.TextInput();
+        _pathInput = DialogFrame.TextInput();
+        _branchInput = DialogFrame.TextInput();
 
         _forceCheckbox = new CheckboxView("Force (allow paths previously used)")
         {
@@ -49,12 +49,12 @@ public sealed class AddSubmoduleDialog : MultiChildView, IAddSubmoduleView
             Children =
             {
                 Label("Repository URL"),
-                WrapInput(_urlInput),
+                DialogFrame.WrapInput(_urlInput),
                 Label("Path inside parent"),
-                WrapInput(_pathInput),
+                DialogFrame.WrapInput(_pathInput),
                 Hint("Where to clone the submodule, relative to the parent root."),
                 Label("Track branch (optional)"),
-                WrapInput(_branchInput),
+                DialogFrame.WrapInput(_branchInput),
                 Hint("Leave blank to pin to the upstream HEAD at clone time."),
                 _forceCheckbox,
                 _errorView,
@@ -89,26 +89,6 @@ public sealed class AddSubmoduleDialog : MultiChildView, IAddSubmoduleView
     {
         Text = text,
         TextColor = DialogPalette.RowTextMissing,
-    };
-
-    private static TextInputView MakeTextInput() => new()
-    {
-        BackgroundColor = DialogPalette.ButtonNormal,
-        TextColor = DialogPalette.TitleText,
-        CaretColor = DialogPalette.TitleText,
-        SelectionRectColor = DialogPalette.RowActive,
-        TextWrap = TextWrap.NoWrap,
-    };
-
-    private static View WrapInput(TextInputView input) => new RectView
-    {
-        BackgroundColor = DialogPalette.ButtonNormal,
-        BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
-        BorderSize = BorderSizeStyle.All(1),
-        BorderRadius = BorderRadiusStyle.All(3),
-        Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
-        PreferredHeight = 28,
-        Children = { input },
     };
 
     private void RaiseAddRequested() => AddRequested?.Invoke();

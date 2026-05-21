@@ -32,25 +32,8 @@ public sealed class StashDialog : MultiChildView, IStashView
             TextColor = DialogPalette.SectionHeaderText,
         };
 
-        _messageInput = new TextInputView
-        {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            TextColor = DialogPalette.TitleText,
-            CaretColor = DialogPalette.TitleText,
-            SelectionRectColor = DialogPalette.RowActive,
-            TextWrap = TextWrap.NoWrap,
-        };
-
-        var messageBox = new RectView
-        {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(3),
-            Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
-            PreferredHeight = 28,
-            Children = { _messageInput },
-        };
+        _messageInput = DialogFrame.TextInput();
+        var messageBox = DialogFrame.WrapInput(_messageInput);
 
         _includeUntrackedCheckbox = new CheckboxView("Include untracked files")
         {

@@ -1,7 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
-using ZGF.KeyboardModule;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -94,7 +93,7 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
             },
         }));
 
-        this.UseController(_ => new ResetCommitKbmController(RaiseResetRequested, onClose));
+        this.UseController(_ => new DialogKbmController(RaiseResetRequested, onClose));
 
         var request = new ResetCommitRequest(repo, sha);
         this.UsePresenter(ctx => new ResetCommitPresenter(
@@ -358,29 +357,3 @@ internal sealed class ResetModeDropdown : HoverableButton
     }
 }
 
-internal sealed class ResetCommitKbmController : KeyboardMouseController
-{
-    private readonly Action _onConfirm;
-    private readonly Action _onCancel;
-
-    public ResetCommitKbmController(Action onConfirm, Action onCancel)
-    {
-        _onConfirm = onConfirm;
-        _onCancel = onCancel;
-    }
-
-    public override void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
-    {
-        if (e.State != InputState.Pressed) return;
-        if (e.Key == KeyboardKey.Escape)
-        {
-            e.Consume();
-            _onCancel();
-        }
-        else if (e.Key == KeyboardKey.Enter || e.Key == KeyboardKey.NumpadEnter)
-        {
-            e.Consume();
-            _onConfirm();
-        }
-    }
-}

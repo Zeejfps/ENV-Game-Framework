@@ -1,7 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
-using ZGF.KeyboardModule;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -54,7 +53,7 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
             },
         }));
 
-        this.UseController(_ => new AbortOperationKbmController(RaiseAbortRequested, onClose));
+        this.UseController(_ => new DialogKbmController(RaiseAbortRequested, onClose));
 
         var request = new AbortOperationRequest(repo, state);
         this.UsePresenter(ctx => new AbortOperationPresenter(
@@ -134,33 +133,6 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
             "Reset"),
         _ => ("Abort?", "Cancel the in-progress operation.", "Abort"),
     };
-}
-
-internal sealed class AbortOperationKbmController : KeyboardMouseController
-{
-    private readonly Action _onConfirm;
-    private readonly Action _onCancel;
-
-    public AbortOperationKbmController(Action onConfirm, Action onCancel)
-    {
-        _onConfirm = onConfirm;
-        _onCancel = onCancel;
-    }
-
-    public override void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
-    {
-        if (e.State != InputState.Pressed) return;
-        if (e.Key == KeyboardKey.Escape)
-        {
-            e.Consume();
-            _onCancel();
-        }
-        else if (e.Key == KeyboardKey.Enter || e.Key == KeyboardKey.NumpadEnter)
-        {
-            e.Consume();
-            _onConfirm();
-        }
-    }
 }
 
 public readonly record struct AbortOperationRequest(Repo Repo, RepoOperationState State);

@@ -44,25 +44,8 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
             TextColor = DialogPalette.SectionHeaderText,
         };
 
-        _nameInput = new TextInputView
-        {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            TextColor = DialogPalette.TitleText,
-            CaretColor = DialogPalette.TitleText,
-            SelectionRectColor = DialogPalette.RowActive,
-            TextWrap = TextWrap.NoWrap,
-        };
-
-        var nameBox = new RectView
-        {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(3),
-            Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
-            PreferredHeight = 28,
-            Children = { _nameInput },
-        };
+        _nameInput = DialogFrame.TextInput();
+        var nameBox = DialogFrame.WrapInput(_nameInput);
 
         _trackCheckbox = new CheckboxView("Track this remote branch")
         {

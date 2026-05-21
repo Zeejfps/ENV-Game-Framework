@@ -79,7 +79,7 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
             },
         }));
 
-        this.UseController(_ => new DiscardChangesKbmController(RaiseMergeRequested, onClose));
+        this.UseController(_ => new DialogKbmController(RaiseMergeRequested, onClose));
 
         this.UsePresenter(ctx => new MergeBranchPresenter(
             this, request,

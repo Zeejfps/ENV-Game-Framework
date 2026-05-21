@@ -1,7 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
-using ZGF.KeyboardModule;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -88,7 +87,7 @@ public sealed class DiscardChangesDialog : MultiChildView, IDiscardChangesView
             },
         }));
 
-        this.UseController(_ => new DiscardChangesKbmController(RaiseDiscardRequested, onClose));
+        this.UseController(_ => new DialogKbmController(RaiseDiscardRequested, onClose));
 
         var request = new DiscardChangesRequest(repo, paths);
         this.UsePresenter(ctx => new DiscardChangesPresenter(
@@ -111,33 +110,6 @@ public sealed class DiscardChangesDialog : MultiChildView, IDiscardChangesView
     public void Close() => _onClose();
 
     private void RaiseDiscardRequested() => DiscardRequested?.Invoke();
-}
-
-internal sealed class DiscardChangesKbmController : KeyboardMouseController
-{
-    private readonly Action _onConfirm;
-    private readonly Action _onCancel;
-
-    public DiscardChangesKbmController(Action onConfirm, Action onCancel)
-    {
-        _onConfirm = onConfirm;
-        _onCancel = onCancel;
-    }
-
-    public override void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
-    {
-        if (e.State != InputState.Pressed) return;
-        if (e.Key == KeyboardKey.Escape)
-        {
-            e.Consume();
-            _onCancel();
-        }
-        else if (e.Key == KeyboardKey.Enter || e.Key == KeyboardKey.NumpadEnter)
-        {
-            e.Consume();
-            _onConfirm();
-        }
-    }
 }
 
 public readonly record struct DiscardChangesRequest(Repo Repo, IReadOnlyList<string> Paths);

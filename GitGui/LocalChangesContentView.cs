@@ -27,10 +27,7 @@ internal sealed class LocalChangesContentView : MultiChildView
     private readonly LocalChangesHeaderActionButton _stageSelectedButton;
     private readonly LocalChangesSubmoduleSection _submoduleSection;
     private readonly BorderLayoutView _topHalf;
-
-    // View-side mirror of the VM's Selection, wired in Bind. Lives here so the panels
-    // and their rows can be constructed before Bind() — at construction we hand them
-    // this State; in Bind we subscribe vm.Selection so updates flow through.
+    
     private readonly State<Selection> _selection = new(Selection.Empty);
     private LocalChangesViewModel? _vm;
 

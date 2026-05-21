@@ -108,7 +108,7 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
         clip.Children.Add(dialogBody);
         AddChildToSelf(clip);
 
-        this.UseController(_ => new DiscardChangesKbmController(RaiseRemoveRequested, onClose));
+        this.UseController(_ => new DialogKbmController(RaiseRemoveRequested, onClose));
 
         var request = new RemoveWorktreeRequest(primary, worktree);
         this.UsePresenter(ctx => new RemoveWorktreePresenter(

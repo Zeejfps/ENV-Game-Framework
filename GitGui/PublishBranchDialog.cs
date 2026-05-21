@@ -72,7 +72,7 @@ public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
             },
         }));
 
-        this.UseController(_ => new DiscardChangesKbmController(RaisePublishRequested, onClose));
+        this.UseController(_ => new DialogKbmController(RaisePublishRequested, onClose));
 
         this.UsePresenter(ctx => new PublishBranchPresenter(
             this, request,

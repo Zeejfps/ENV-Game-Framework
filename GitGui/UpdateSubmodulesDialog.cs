@@ -97,7 +97,7 @@ public sealed class UpdateSubmodulesDialog : MultiChildView, IUpdateSubmodulesVi
             },
         }));
 
-        this.UseController(_ => new DiscardChangesKbmController(RaiseUpdateRequested, onClose));
+        this.UseController(_ => new DialogKbmController(RaiseUpdateRequested, onClose));
 
         var request = new UpdateSubmodulesViewRequest(primary, target);
         this.UsePresenter(ctx => new UpdateSubmodulesPresenter(

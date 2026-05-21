@@ -35,14 +35,7 @@ public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
             TextColor = DialogPalette.SectionHeaderText,
         };
 
-        _pathInput = new TextInputView
-        {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            TextColor = DialogPalette.TitleText,
-            CaretColor = DialogPalette.TitleText,
-            SelectionRectColor = DialogPalette.RowActive,
-            TextWrap = TextWrap.NoWrap,
-        };
+        _pathInput = DialogFrame.TextInput();
 
         var browseButton = new DialogButton("Browse…", PickPath)
         {
@@ -56,20 +49,7 @@ public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
             CrossAxisAlignment = CrossAxisAlignment.Center,
             Children =
             {
-                new FlexItem
-                {
-                    Grow = 1,
-                    Child = new RectView
-                    {
-                        BackgroundColor = DialogPalette.ButtonNormal,
-                        BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
-                        BorderSize = BorderSizeStyle.All(1),
-                        BorderRadius = BorderRadiusStyle.All(3),
-                        Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
-                        PreferredHeight = 28,
-                        Children = { _pathInput },
-                    },
-                },
+                new FlexItem { Grow = 1, Child = DialogFrame.WrapInput(_pathInput) },
                 browseButton,
             },
         };
@@ -80,26 +60,9 @@ public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
             TextColor = DialogPalette.SectionHeaderText,
         };
 
-        _startPointInput = new TextInputView
-        {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            TextColor = DialogPalette.TitleText,
-            CaretColor = DialogPalette.TitleText,
-            SelectionRectColor = DialogPalette.RowActive,
-            TextWrap = TextWrap.NoWrap,
-        };
+        _startPointInput = DialogFrame.TextInput();
         _startPointInput.Enter("HEAD");
-
-        var startPointBox = new RectView
-        {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(3),
-            Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
-            PreferredHeight = 28,
-            Children = { _startPointInput },
-        };
+        var startPointBox = DialogFrame.WrapInput(_startPointInput);
 
         var startPointHint = new TextView
         {
@@ -113,25 +76,8 @@ public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
             TextColor = DialogPalette.SectionHeaderText,
         };
 
-        _branchInput = new TextInputView
-        {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            TextColor = DialogPalette.TitleText,
-            CaretColor = DialogPalette.TitleText,
-            SelectionRectColor = DialogPalette.RowActive,
-            TextWrap = TextWrap.NoWrap,
-        };
-
-        var branchBox = new RectView
-        {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(3),
-            Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
-            PreferredHeight = 28,
-            Children = { _branchInput },
-        };
+        _branchInput = DialogFrame.TextInput();
+        var branchBox = DialogFrame.WrapInput(_branchInput);
 
         var branchHint = new TextView
         {

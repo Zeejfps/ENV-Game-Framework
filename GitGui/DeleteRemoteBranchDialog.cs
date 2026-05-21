@@ -57,7 +57,7 @@ public sealed class DeleteRemoteBranchDialog : MultiChildView, IDeleteRemoteBran
             },
         }));
 
-        this.UseController(_ => new DiscardChangesKbmController(RaiseDeleteRequested, onClose));
+        this.UseController(_ => new DialogKbmController(RaiseDeleteRequested, onClose));
 
         var request = new DeleteRemoteBranchRequest(repo, remoteName, branchName);
         this.UsePresenter(ctx => new DeleteRemoteBranchPresenter(

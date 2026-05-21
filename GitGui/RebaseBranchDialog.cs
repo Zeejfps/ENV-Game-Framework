@@ -90,7 +90,7 @@ public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
             },
         }));
 
-        this.UseController(_ => new DiscardChangesKbmController(RaiseRebaseRequested, onClose));
+        this.UseController(_ => new DialogKbmController(RaiseRebaseRequested, onClose));
 
         this.UsePresenter(ctx => new RebaseBranchPresenter(
             this, request,

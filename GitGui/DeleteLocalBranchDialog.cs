@@ -1,7 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
-using ZGF.KeyboardModule;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -65,7 +64,7 @@ public sealed class DeleteLocalBranchDialog : MultiChildView, IDeleteLocalBranch
             },
         }));
 
-        this.UseController(_ => new DiscardChangesKbmController(RaiseDeleteRequested, onClose));
+        this.UseController(_ => new DialogKbmController(RaiseDeleteRequested, onClose));
 
         var request = new DeleteLocalBranchRequest(repo, branchName);
         this.UsePresenter(ctx => new DeleteLocalBranchPresenter(

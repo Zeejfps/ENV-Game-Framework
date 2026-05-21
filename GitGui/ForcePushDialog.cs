@@ -47,7 +47,7 @@ public sealed class ForcePushDialog : MultiChildView, IForcePushView
             },
         }));
 
-        this.UseController(_ => new AbortOperationKbmController(RaiseForcePushRequested, onClose));
+        this.UseController(_ => new DialogKbmController(RaiseForcePushRequested, onClose));
 
         this.UsePresenter(ctx => new ForcePushPresenter(
             this, repo,

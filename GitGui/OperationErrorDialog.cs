@@ -2,7 +2,6 @@ using ZGF.Gui;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.KeyboardModule;
-using ZGF.Observable;
 
 namespace GitGui;
 
@@ -138,29 +137,7 @@ public sealed class OperationErrorDialog : MultiChildView
             },
         });
 
-        this.UseController(_ => new OperationErrorDialogKbmController(onClose));
-    }
-}
-
-internal sealed class OperationErrorDialogKbmController : KeyboardMouseController
-{
-    private readonly Action _onClose;
-
-    public OperationErrorDialogKbmController(Action onClose)
-    {
-        _onClose = onClose;
-    }
-
-    public override void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
-    {
-        if (e.State != InputState.Pressed) return;
-        if (e.Key == KeyboardKey.Escape
-            || e.Key == KeyboardKey.Enter
-            || e.Key == KeyboardKey.NumpadEnter)
-        {
-            e.Consume();
-            _onClose();
-        }
+        this.UseController(_ => new DialogKbmController(onClose));
     }
 }
 
