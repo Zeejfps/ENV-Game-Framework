@@ -658,36 +658,32 @@ public sealed class GitService : IGitService
             if (!Repository.IsValid(repo.Path))
                 return "Not a git repository.";
 
+            var args = new List<string> { "commit", "-m", message };
+            if (amend) args.Add("--amend");
+
             var sem = GetRepoLock(repo.Path);
             sem.Wait();
             try
             {
-                using var lg = new Repository(repo.Path);
-                // Our bundled libgit2 ships with empty config search paths and
-                // GlobalSettings.SetConfigSearchPaths is a silent no-op under NativeAOT, so
-                // lg.Config never sees ~/.gitconfig. Build the chain explicitly to pick up
-                // the user's global user.name / user.email.
-                using var cfg = OpenChainedConfig(repo.Path);
-                // BuildSignature returns null when user.name / user.email are missing — turn
-                // that into a friendly message rather than the ArgumentNullException libgit2
-                // would throw if we passed null straight through.
-                var sig = cfg.BuildSignature(DateTimeOffset.Now);
-                if (sig == null)
-                    return "Set git user.name and user.email before committing.";
+                var psi = BuildGitProcessStartInfo(args, repo.Path);
+                // -m supplies the message, but a configured core.editor would still fire for
+                // merge/rebase/squash flows that prompt to confirm the commit message.
+                psi.EnvironmentVariables["GIT_EDITOR"] = "true";
 
-                if (amend)
-                {
-                    var tip = lg.Head?.Tip;
-                    if (tip == null) return "Nothing to amend — HEAD has no commits.";
-                    // Keep the original author (matches `git commit --amend` default); update
-                    // the committer + time to the current user.
-                    lg.Commit(message, tip.Author, sig, new CommitOptions { AmendPreviousCommit = true });
-                }
-                else
-                {
-                    lg.Commit(message, sig, sig);
-                }
-                return null;
+                using var proc = Process.Start(psi);
+                if (proc == null) return "Failed to start git.";
+
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+
+                if (proc.ExitCode == 0) return null;
+
+                var msg = CombineGitOutput(stderr, stdout);
+                if (string.IsNullOrEmpty(msg)) msg = $"git commit exited with code {proc.ExitCode}.";
+                return msg;
             }
             finally { sem.Release(); }
         }
@@ -695,19 +691,6 @@ public sealed class GitService : IGitService
         {
             return ex.Message;
         }
-    }
-
-    private static Configuration OpenChainedConfig(string repoPath)
-    {
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var repoCfg = Path.Combine(repoPath, ".git", "config");
-        var globalCfg = Path.Combine(home, ".gitconfig");
-        var xdgCfg = Path.Combine(home, ".config", "git", "config");
-        return Configuration.BuildFrom(
-            File.Exists(repoCfg) ? repoCfg : null,
-            File.Exists(globalCfg) ? globalCfg : null,
-            File.Exists(xdgCfg) ? xdgCfg : null,
-            null);
     }
 
     public HeadCommitMessage? GetHeadCommitMessage(Repo repo)
