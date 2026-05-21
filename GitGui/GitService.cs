@@ -24,12 +24,21 @@ public sealed class GitService : IGitService
         return _repoLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
     }
 
+    // `.git` is a directory in a normal repo and a file in worktrees/submodules. Deeper
+    // corruption (missing HEAD, broken objects/) surfaces when the subsequent git command runs.
+    private static bool IsGitRepo(string repoPath)
+    {
+        if (string.IsNullOrEmpty(repoPath)) return false;
+        var dotGit = Path.Combine(repoPath, ".git");
+        return Directory.Exists(dotGit) || File.Exists(dotGit);
+    }
+
 
     public CommitSnapshot Load(Repo repo, int cap)
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return Error(repo, "Not a git repository.");
 
             using var lg = new Repository(repo.Path);
@@ -153,7 +162,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return DetailsError(repo, sha, "Not a git repository.");
 
             using var lg = new Repository(repo.Path);
@@ -213,7 +222,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new BranchListing(repo.Id, Array.Empty<BranchEntry>(), Array.Empty<RemoteGroup>(), Array.Empty<StashEntry>(), "Not a git repository.");
 
             // Seed with all configured remotes so groups still show even when a remote has
@@ -362,7 +371,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return LocalChangesError(repo, "Not a git repository.");
 
             var output = RunGitStatusPorcelain(repo.Path, out var error);
@@ -533,8 +542,9 @@ public sealed class GitService : IGitService
         sem.Wait();
         try
         {
-            using var lg = new Repository(repo.Path);
-            Commands.Stage(lg, paths);
+            var args = new List<string>(paths.Count + 2) { "add", "--" };
+            args.AddRange(paths);
+            RunGitMutationOrThrow(repo.Path, args);
         }
         finally { sem.Release(); }
     }
@@ -546,10 +556,17 @@ public sealed class GitService : IGitService
         sem.Wait();
         try
         {
-            using var lg = new Repository(repo.Path);
-            Commands.Unstage(lg, paths);
+            var args = new List<string>(paths.Count + 3) { "restore", "--staged", "--" };
+            args.AddRange(paths);
+            RunGitMutationOrThrow(repo.Path, args);
         }
         finally { sem.Release(); }
+    }
+
+    private static void RunGitMutationOrThrow(string repoPath, IReadOnlyList<string> args)
+    {
+        var (ok, error) = RunMutation(repoPath, args);
+        if (!ok) throw new InvalidOperationException(error ?? "git command failed.");
     }
 
     public void ResetToParent(Repo repo, IReadOnlyList<string> paths)
@@ -559,22 +576,19 @@ public sealed class GitService : IGitService
         sem.Wait();
         try
         {
-            using var lg = new Repository(repo.Path);
-            var tip = lg.Head?.Tip;
-            if (tip == null) return;
-            var parent = tip.Parents.FirstOrDefault();
-            // Mirrors `git reset <parent|root> -- <paths>` by rewriting index entries directly:
-            // each path's index entry is replaced with the parent's blob (or removed if the
-            // path isn't in the parent / there is no parent). Working tree is untouched.
-            foreach (var p in paths)
-            {
-                var entry = parent?[p];
-                if (entry?.Target is Blob blob)
-                    lg.Index.Add(blob, p, entry.Mode);
-                else
-                    lg.Index.Remove(p);
-            }
-            lg.Index.Write();
+            // No HEAD (unborn branch) → nothing to reset to. Root commit (HEAD with no
+            // parent) → `git reset` has nothing to copy from, so drop the entries from
+            // the index without touching the workdir. Otherwise let `git reset HEAD^`
+            // copy parent blobs back into the index (or remove entries the parent didn't
+            // have). The working tree is untouched in all paths.
+            if (RunGit(repo.Path, out _, "rev-parse", "--verify", "-q", "HEAD") == null)
+                return;
+            var hasParent = RunGit(repo.Path, out _, "rev-parse", "--verify", "-q", "HEAD^") != null;
+            var args = hasParent
+                ? new List<string>(paths.Count + 3) { "reset", "HEAD^", "--" }
+                : new List<string>(paths.Count + 4) { "rm", "--cached", "--force", "--" };
+            args.AddRange(paths);
+            RunGitMutationOrThrow(repo.Path, args);
         }
         finally { sem.Release(); }
     }
@@ -588,36 +602,44 @@ public sealed class GitService : IGitService
         if (paths.Count == 0) return null;
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return "Not a git repository.";
 
             var sem = GetRepoLock(repo.Path);
             sem.Wait();
             try
             {
+                // `git ls-files -z -- <paths>` prints only the tracked subset, NUL-separated.
+                // Anything not in that subset exists only on disk and gets deleted directly;
+                // tracked entries fall through to the `git checkout --` restore below.
+                var lsArgs = new string[paths.Count + 3];
+                lsArgs[0] = "ls-files";
+                lsArgs[1] = "-z";
+                lsArgs[2] = "--";
+                for (var i = 0; i < paths.Count; i++) lsArgs[i + 3] = paths[i];
+                var lsOutput = RunGit(repo.Path, out var lsErr, lsArgs);
+                if (lsOutput == null) return lsErr ?? "git ls-files failed.";
+                var tracked = new HashSet<string>(
+                    lsOutput.Split('\0', StringSplitOptions.RemoveEmptyEntries),
+                    StringComparer.Ordinal);
+
                 var trackedPaths = new List<string>();
-                using (var lg = new Repository(repo.Path))
+                foreach (var p in paths)
                 {
-                    foreach (var p in paths)
+                    if (tracked.Contains(p))
                     {
-                        // Index presence is the tracked/untracked signal: anything in the
-                        // index has had at least one commit or stage and can be restored
-                        // from there; anything else exists only on disk.
-                        if (lg.Index[p] != null)
-                        {
-                            trackedPaths.Add(p);
-                            continue;
-                        }
-                        var fullPath = Path.Combine(repo.Path, p);
-                        try
-                        {
-                            if (File.Exists(fullPath)) File.Delete(fullPath);
-                            else if (Directory.Exists(fullPath)) Directory.Delete(fullPath, recursive: true);
-                        }
-                        catch (Exception ex)
-                        {
-                            return ex.Message;
-                        }
+                        trackedPaths.Add(p);
+                        continue;
+                    }
+                    var fullPath = Path.Combine(repo.Path, p);
+                    try
+                    {
+                        if (File.Exists(fullPath)) File.Delete(fullPath);
+                        else if (Directory.Exists(fullPath)) Directory.Delete(fullPath, recursive: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        return ex.Message;
                     }
                 }
 
@@ -656,7 +678,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return "Not a git repository.";
 
             var args = new List<string> { "commit", "-m", message };
@@ -698,18 +720,17 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path)) return null;
-            using var lg = new Repository(repo.Path);
-            var tip = lg.Head?.Tip;
-            if (tip == null) return null;
-
-            var title = (tip.MessageShort ?? string.Empty).Trim();
-            var full = (tip.Message ?? string.Empty).Replace("\r\n", "\n");
-            // Body is everything after the first blank line (git's subject/body split).
-            var body = string.Empty;
-            var sepIdx = full.IndexOf("\n\n", StringComparison.Ordinal);
-            if (sepIdx >= 0)
-                body = full[(sepIdx + 2)..].TrimEnd();
+            if (!IsGitRepo(repo.Path)) return null;
+            // %s is git's subject (first line), %b is the body (everything after the
+            // blank line after the subject). NUL separates them so a body containing
+            // any newline pattern can't be confused for the boundary. Fails if there
+            // are no commits yet (unborn branch) — RunGit returns null and we propagate.
+            var output = RunGit(repo.Path, out _, "log", "-1", "--format=%s%x00%b", "HEAD");
+            if (output == null) return null;
+            var nul = output.IndexOf('\0');
+            if (nul < 0) return new HeadCommitMessage(output.Trim(), string.Empty);
+            var title = output[..nul].Trim();
+            var body = output[(nul + 1)..].TrimEnd();
             return new HeadCommitMessage(title, body);
         }
         catch
@@ -722,21 +743,38 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path)) return Array.Empty<FileChange>();
-            using var lg = new Repository(repo.Path);
-            var tip = lg.Head?.Tip;
-            if (tip == null) return Array.Empty<FileChange>();
+            if (!IsGitRepo(repo.Path)) return Array.Empty<FileChange>();
+            // --root makes the initial commit emit additions instead of erroring on the
+            // missing parent. --no-commit-id strips the leading SHA. -z switches to NUL
+            // separation: each record is "<status>\0<path>\0", except R/C which carry a
+            // similarity score on the status and a second path: "R100\0<old>\0<new>\0".
+            var output = RunGit(repo.Path, out _, "diff-tree", "-r", "-M", "--name-status",
+                "--no-commit-id", "-z", "--root", "HEAD");
+            if (output == null) return Array.Empty<FileChange>();
 
-            var parentTree = tip.Parents.FirstOrDefault()?.Tree;
-            var changes = lg.Diff.Compare<TreeChanges>(parentTree, tip.Tree);
             var files = new List<FileChange>();
-            foreach (var entry in changes)
+            var parts = output.Split('\0');
+            var i = 0;
+            while (i < parts.Length)
             {
-                files.Add(new FileChange(
-                    entry.Path,
-                    entry.OldPath != entry.Path ? entry.OldPath : null,
-                    MapStatus(entry.Status)));
+                var status = parts[i];
+                if (string.IsNullOrEmpty(status)) { i++; continue; }
+                var letter = status[0];
+                var kind = MapPorcelainCode(letter) ?? FileChangeStatus.Modified;
+                if (letter == 'R' || letter == 'C')
+                {
+                    if (i + 2 >= parts.Length) break;
+                    files.Add(new FileChange(parts[i + 2], parts[i + 1], kind));
+                    i += 3;
+                }
+                else
+                {
+                    if (i + 1 >= parts.Length) break;
+                    files.Add(new FileChange(parts[i + 1], null, kind));
+                    i += 2;
+                }
             }
+
             files.Sort(static (a, b) => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase));
             return files;
         }
@@ -750,7 +788,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new PushStatus(null, HasUpstream: false, Ahead: 0, Behind: 0, IsDetached: false);
 
             using var lg = new Repository(repo.Path);
@@ -783,7 +821,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new PushOutcome(false, "Not a git repository.");
 
             var sem = GetRepoLock(repo.Path);
@@ -836,7 +874,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new PushOutcome(false, "Not a git repository.");
             if (string.IsNullOrWhiteSpace(localBranch))
                 return new PushOutcome(false, "Local branch is required.");
@@ -882,7 +920,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path)) return Array.Empty<string>();
+            if (!IsGitRepo(repo.Path)) return Array.Empty<string>();
             var output = RunGit(repo.Path, out _, "remote");
             if (string.IsNullOrEmpty(output)) return Array.Empty<string>();
             var list = new List<string>();
@@ -903,7 +941,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new PullOutcome(false, "Not a git repository.");
 
             var sem = GetRepoLock(repo.Path);
@@ -951,7 +989,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new FetchOutcome(false, "Not a git repository.");
 
             var sem = GetRepoLock(repo.Path);
@@ -988,7 +1026,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new CheckoutOutcome(false, "Not a git repository.");
 
             var sem = GetRepoLock(repo.Path);
@@ -1006,7 +1044,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new ResetOutcome(false, "Not a git repository.");
 
             var flag = mode switch
@@ -1047,7 +1085,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new CheckoutOutcome(false, "Not a git repository.");
 
             var args = new List<string>
@@ -1073,7 +1111,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new CreateBranchOutcome(false, "Not a git repository.");
 
             var args = checkout
@@ -1115,7 +1153,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new RenameBranchOutcome(false, "Not a git repository.");
 
             var args = new List<string> { "branch", force ? "-M" : "-m", oldName, newName };
@@ -1150,7 +1188,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new MergePreviewResult(MergePreviewState.Unknown, "Not a git repository.");
 
             // git 2.38+: real-merge mode. Exit 0 = clean, 1 = conflicts, >1 = error
@@ -1197,7 +1235,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new MergeOutcome(false, "Not a git repository.");
 
             var args = new List<string> { "merge" };
@@ -1260,7 +1298,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new RebasePreviewResult(RebasePreviewState.Unknown, "Not a git repository.");
 
             var psi = new ProcessStartInfo
@@ -1307,7 +1345,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new RebaseOutcome(false, "Not a git repository.");
 
             var args = new List<string> { "rebase" };
@@ -1365,7 +1403,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new DeleteBranchOutcome(false, "Not a git repository.");
 
             var args = new List<string> { "branch", force ? "-D" : "-d", name };
@@ -1402,7 +1440,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new DeleteRemoteBranchOutcome(false, "Not a git repository.");
 
             var args = new List<string> { "push", remoteName, "--delete", branchName };
@@ -1437,7 +1475,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new StashOutcome(false, "Not a git repository.");
 
             var args = new List<string> { "stash", "push" };
@@ -1464,7 +1502,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new StashOutcome(false, "Not a git repository.");
 
             var args = new List<string> { "stash", "apply", $"stash@{{{index}}}" };
@@ -1512,7 +1550,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new StashOutcome(false, "Not a git repository.");
 
             var args = new List<string> { "stash", "drop", $"stash@{{{index}}}" };
@@ -1532,7 +1570,7 @@ public sealed class GitService : IGitService
         errorMessage = null;
         try
         {
-            if (!Repository.IsValid(primary.Path))
+            if (!IsGitRepo(primary.Path))
             {
                 errorMessage = "Not a git repository.";
                 return Array.Empty<WorktreeInfo>();
@@ -1621,7 +1659,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(primary.Path))
+            if (!IsGitRepo(primary.Path))
                 return new WorktreeAddOutcome(false, "Not a git repository.");
             if (string.IsNullOrWhiteSpace(request.Path))
                 return new WorktreeAddOutcome(false, "Worktree path is required.");
@@ -1671,7 +1709,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(primary.Path))
+            if (!IsGitRepo(primary.Path))
                 return new WorktreeRemoveOutcome(false, "Not a git repository.");
             if (string.IsNullOrWhiteSpace(worktreePath))
                 return new WorktreeRemoveOutcome(false, "Worktree path is required.");
@@ -1709,7 +1747,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(primary.Path))
+            if (!IsGitRepo(primary.Path))
                 return new WorktreePruneOutcome(false, "Not a git repository.");
 
             var sem = GetRepoLock(primary.Path);
@@ -1744,7 +1782,7 @@ public sealed class GitService : IGitService
         errorMessage = null;
         try
         {
-            if (!Repository.IsValid(primary.Path))
+            if (!IsGitRepo(primary.Path))
             {
                 errorMessage = "Not a git repository.";
                 return Array.Empty<SubmoduleInfo>();
@@ -1877,7 +1915,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(primary.Path))
+            if (!IsGitRepo(primary.Path))
                 return new SubmoduleAddOutcome(false, "Not a git repository.");
             if (string.IsNullOrWhiteSpace(request.Url))
                 return new SubmoduleAddOutcome(false, "Submodule URL is required.");
@@ -1913,7 +1951,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(primary.Path))
+            if (!IsGitRepo(primary.Path))
                 return new SubmoduleUpdateOutcome(false, "Not a git repository.");
 
             var args = new List<string> { "submodule", "update" };
@@ -1965,7 +2003,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(primary.Path))
+            if (!IsGitRepo(primary.Path))
                 return new SubmoduleDeinitOutcome(false, "Not a git repository.");
             if (string.IsNullOrWhiteSpace(submodulePath))
                 return new SubmoduleDeinitOutcome(false, "Submodule path is required.");
@@ -2005,7 +2043,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path) || string.IsNullOrWhiteSpace(commitSha))
+            if (!IsGitRepo(repo.Path) || string.IsNullOrWhiteSpace(commitSha))
                 return Array.Empty<SubmodulePointerChange>();
 
             // diff-tree raw output: ":<src-mode> <dst-mode> <src-sha> <dst-sha> <status>\t<path>"
@@ -2040,7 +2078,7 @@ public sealed class GitService : IGitService
                 // Only resolve range info when the submodule is initialized locally AND both
                 // ends are real commits — added/removed entries have a 40-zero sentinel on
                 // one side that no rev-list query can resolve.
-                if (!srcZero && !dstZero && Directory.Exists(subPath) && Repository.IsValid(subPath))
+                if (!srcZero && !dstZero && Directory.Exists(subPath) && IsGitRepo(subPath))
                 {
                     var rl = RunGit(subPath, out _, "rev-list", "--left-right", "--count", $"{srcSha}...{dstSha}");
                     if (rl != null)
@@ -2315,7 +2353,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return DiffError(repo, path, side, "Not a git repository.");
 
             var contextArg = $"--unified={DiffOptions.ContextLines}";
@@ -2644,7 +2682,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path)) return RepoOperationState.None;
+            if (!IsGitRepo(repo.Path)) return RepoOperationState.None;
             string gitDir;
             bool hasConflicts;
             using (var lg = new Repository(repo.Path))
@@ -2702,7 +2740,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new AbortOperationOutcome(false, "Not a git repository.");
 
             // Pick the verb. For force-quit we prefer git's own --quit (it removes the
@@ -2882,7 +2920,7 @@ public sealed class GitService : IGitService
     {
         try
         {
-            if (!Repository.IsValid(repo.Path))
+            if (!IsGitRepo(repo.Path))
                 return new ContinueOperationOutcome(false, "Not a git repository.");
 
             var args = state switch
