@@ -165,36 +165,44 @@ public sealed class GitService : IGitService
             if (!IsGitRepo(repo.Path))
                 return DetailsError(repo, sha, "Not a git repository.");
 
-            using var lg = new Repository(repo.Path);
-            var commit = lg.Lookup<Commit>(sha);
-            if (commit == null)
-                return DetailsError(repo, sha, "Commit not found.");
+            // One log call with NUL-separated fields. %B (raw message) is last so any
+            // newlines inside it can't be confused with field boundaries. Split(_, 10)
+            // caps the chunk count so a NUL inside the body (theoretical, not seen in
+            // practice) lands in the body field rather than producing extra entries.
+            const string fmt = "%H%x00%an%x00%ae%x00%aI%x00%cn%x00%ce%x00%cI%x00%P%x00%s%x00%B";
+            var logOutput = RunGit(repo.Path, out var logErr, "log", "-1", $"--format={fmt}", sha);
+            if (logOutput == null)
+                return DetailsError(repo, sha, logErr ?? "Commit not found.");
 
-            var parentTree = commit.Parents.FirstOrDefault()?.Tree;
-            var changes = lg.Diff.Compare<TreeChanges>(parentTree, commit.Tree);
+            var parts = logOutput.Split('\0', 10);
+            if (parts.Length < 10)
+                return DetailsError(repo, sha, "Unexpected git log output.");
 
-            var files = new List<FileChange>(changes.Count());
-            foreach (var entry in changes)
-            {
-                files.Add(new FileChange(
-                    entry.Path,
-                    entry.OldPath != entry.Path ? entry.OldPath : null,
-                    MapStatus(entry.Status)));
-            }
+            var resolvedSha = parts[0];
+            var parentShas = parts[7].Length == 0
+                ? Array.Empty<string>()
+                : parts[7].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            // --root makes the root commit emit additions (against the empty tree) instead
+            // of erroring on the missing parent. -M enables rename detection. -z switches
+            // to NUL-separated records (see ParseDiffTreeNameStatusZ).
+            var diffOutput = RunGit(repo.Path, out _, "diff-tree", "-r", "-M", "--name-status",
+                "--no-commit-id", "-z", "--root", resolvedSha);
+            var files = ParseDiffTreeNameStatusZ(diffOutput ?? string.Empty);
             files.Sort(static (a, b) => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase));
 
             return new CommitDetails(
                 RepoId: repo.Id,
-                Sha: commit.Sha,
-                AuthorName: commit.Author?.Name ?? string.Empty,
-                AuthorEmail: commit.Author?.Email ?? string.Empty,
-                AuthorWhen: commit.Author?.When ?? DateTimeOffset.MinValue,
-                CommitterName: commit.Committer?.Name ?? string.Empty,
-                CommitterEmail: commit.Committer?.Email ?? string.Empty,
-                CommitterWhen: commit.Committer?.When ?? DateTimeOffset.MinValue,
-                Message: commit.Message ?? string.Empty,
-                MessageShort: commit.MessageShort ?? string.Empty,
-                ParentShas: commit.Parents.Select(p => p.Sha).ToArray(),
+                Sha: resolvedSha,
+                AuthorName: parts[1],
+                AuthorEmail: parts[2],
+                AuthorWhen: ParseIsoDateOrDefault(parts[3]),
+                CommitterName: parts[4],
+                CommitterEmail: parts[5],
+                CommitterWhen: ParseIsoDateOrDefault(parts[6]),
+                Message: parts[9],
+                MessageShort: parts[8],
+                ParentShas: parentShas,
                 Files: files,
                 ErrorMessage: null);
         }
@@ -204,16 +212,40 @@ public sealed class GitService : IGitService
         }
     }
 
-    private static FileChangeStatus MapStatus(ChangeKind kind) => kind switch
+    private static DateTimeOffset ParseIsoDateOrDefault(string s)
+        => DateTimeOffset.TryParse(s, out var when) ? when : DateTimeOffset.MinValue;
+
+    // Parses the NUL-separated output of `git diff-tree --name-status -z`. Each record is
+    // "<status>\0<path>\0", except R/C records which carry a similarity score on the
+    // status and a second path: "R100\0<old>\0<new>\0". Status letters map via the same
+    // table as porcelain v2 (M/A/D/R/C/T).
+    private static List<FileChange> ParseDiffTreeNameStatusZ(string output)
     {
-        ChangeKind.Added => FileChangeStatus.Added,
-        ChangeKind.Deleted => FileChangeStatus.Deleted,
-        ChangeKind.Modified => FileChangeStatus.Modified,
-        ChangeKind.Renamed => FileChangeStatus.Renamed,
-        ChangeKind.Copied => FileChangeStatus.Copied,
-        ChangeKind.TypeChanged => FileChangeStatus.TypeChanged,
-        _ => FileChangeStatus.Unmodified,
-    };
+        var files = new List<FileChange>();
+        if (string.IsNullOrEmpty(output)) return files;
+        var parts = output.Split('\0');
+        var i = 0;
+        while (i < parts.Length)
+        {
+            var status = parts[i];
+            if (string.IsNullOrEmpty(status)) { i++; continue; }
+            var letter = status[0];
+            var kind = MapPorcelainCode(letter) ?? FileChangeStatus.Modified;
+            if (letter == 'R' || letter == 'C')
+            {
+                if (i + 2 >= parts.Length) break;
+                files.Add(new FileChange(parts[i + 2], parts[i + 1], kind));
+                i += 3;
+            }
+            else
+            {
+                if (i + 1 >= parts.Length) break;
+                files.Add(new FileChange(parts[i + 1], null, kind));
+                i += 2;
+            }
+        }
+        return files;
+    }
 
     // Same AOT-marshalling story as GetDiff: libgit2 callbacks for branch enumeration trip
     // NativeAOT's reverse-pinvoke stubs, so remote branches don't show in published builds.
@@ -744,37 +776,10 @@ public sealed class GitService : IGitService
         try
         {
             if (!IsGitRepo(repo.Path)) return Array.Empty<FileChange>();
-            // --root makes the initial commit emit additions instead of erroring on the
-            // missing parent. --no-commit-id strips the leading SHA. -z switches to NUL
-            // separation: each record is "<status>\0<path>\0", except R/C which carry a
-            // similarity score on the status and a second path: "R100\0<old>\0<new>\0".
             var output = RunGit(repo.Path, out _, "diff-tree", "-r", "-M", "--name-status",
                 "--no-commit-id", "-z", "--root", "HEAD");
             if (output == null) return Array.Empty<FileChange>();
-
-            var files = new List<FileChange>();
-            var parts = output.Split('\0');
-            var i = 0;
-            while (i < parts.Length)
-            {
-                var status = parts[i];
-                if (string.IsNullOrEmpty(status)) { i++; continue; }
-                var letter = status[0];
-                var kind = MapPorcelainCode(letter) ?? FileChangeStatus.Modified;
-                if (letter == 'R' || letter == 'C')
-                {
-                    if (i + 2 >= parts.Length) break;
-                    files.Add(new FileChange(parts[i + 2], parts[i + 1], kind));
-                    i += 3;
-                }
-                else
-                {
-                    if (i + 1 >= parts.Length) break;
-                    files.Add(new FileChange(parts[i + 1], null, kind));
-                    i += 2;
-                }
-            }
-
+            var files = ParseDiffTreeNameStatusZ(output);
             files.Sort(static (a, b) => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase));
             return files;
         }
