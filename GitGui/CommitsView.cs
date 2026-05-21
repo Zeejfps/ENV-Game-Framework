@@ -757,15 +757,34 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     {
         var capturedSha = sha;
         var head = _snapshot?.HeadBranchName;
-        var label = head != null ? $"Reset {head} to here" : "Reset to this commit";
+        if (head != null)
+        {
+            return new[]
+            {
+                new RepoBarContextMenu.Item(
+                    $"Reset {head} to here",
+                    () => CheckoutCommitRequested?.Invoke(capturedSha),
+                    LucideIcons.Branch,
+                    LabelSegments: BuildResetSegments(head)),
+            };
+        }
         return new[]
         {
             new RepoBarContextMenu.Item(
-                label,
+                "Reset to this commit",
                 () => CheckoutCommitRequested?.Invoke(capturedSha),
                 LucideIcons.Branch),
         };
     }
+
+    private const uint MenuBranchAccent = 0xFFFFFFFF;
+
+    private static IReadOnlyList<MenuLabelSegment> BuildResetSegments(string branch) =>
+    [
+        new MenuLabelSegment("Reset "),
+        new MenuLabelSegment(branch, MenuBranchAccent, Bold: true),
+        new MenuLabelSegment(" to here"),
+    ];
 
     private static string FormatRelative(DateTimeOffset when)
     {
