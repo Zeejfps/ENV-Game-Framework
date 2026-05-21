@@ -14,6 +14,7 @@ public sealed class ActionButton : HoverableButton
     private readonly RowView _row;
     private readonly State<bool> _hasBadge = new(false);
     private readonly uint? _badgeColor;
+    private readonly uint? _iconColor;
 
     public string Icon
     {
@@ -53,9 +54,10 @@ public sealed class ActionButton : HoverableButton
         }
     }
 
-    public ActionButton(string icon, string? label, Action onClick, string? tooltip = null, uint? badgeColor = null)
+    public ActionButton(string icon, string? label, Action onClick, string? tooltip = null, uint? badgeColor = null, uint? iconColor = null)
         : base(onClick, tooltip)
     {
+        _iconColor = iconColor;
         PreferredHeight = 28;
 
         _iconView = new TextView
@@ -112,13 +114,14 @@ public sealed class ActionButton : HoverableButton
         SetBackground(background);
     }
 
-    public ActionButton(string icon, Action onClick, string? tooltip = null)
-        : this(icon, null, onClick, tooltip) { }
+    public ActionButton(string icon, Action onClick, string? tooltip = null, uint? iconColor = null)
+        : this(icon, null, onClick, tooltip, iconColor: iconColor) { }
 
     private uint ComputeForeground()
     {
         if (!IsEnabled) return DialogPalette.RowTextMissing;
         if (_hasBadge && _badgeColor is uint c) return c;
+        if (_iconColor is uint ic) return ic;
         return IsHovered ? 0xFFFFFFFFu : DialogPalette.RowText;
     }
 

@@ -44,12 +44,14 @@ internal sealed class OperationStateBanner
         _continueButton = new ActionButton(
             LucideIcons.ChevronsRight,
             () => ContinueRequested?.Invoke(),
-            tooltip: "Continue");
+            tooltip: "Continue",
+            iconColor: 0xFF9DD17B);
 
         _abortButton = new ActionButton(
             LucideIcons.X,
             () => AbortRequested?.Invoke(),
-            tooltip: "Abort");
+            tooltip: "Abort",
+            iconColor: 0xFFE06C75);
 
         _row = new FlexRowView
         {
