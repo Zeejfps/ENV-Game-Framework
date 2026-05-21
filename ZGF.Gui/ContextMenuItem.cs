@@ -46,7 +46,18 @@ public sealed class ContextMenuItem : MultiChildView
     public string? Icon
     {
         get => _iconView.Text;
-        set => _iconView.Text = value;
+        set
+        {
+            _iconView.Text = value;
+            // Detach the icon view entirely when no icon is provided so the menu doesn't
+            // reserve a 16-px column of empty space on the left for icon-less items.
+            var hasIcon = !string.IsNullOrEmpty(value);
+            var isInRow = _row.Children.Count > 0 && ReferenceEquals(_row.Children[0], _iconView);
+            if (hasIcon && !isInRow)
+                _row.Children.Insert(0, _iconView);
+            else if (!hasIcon && isInRow)
+                _row.Children.Remove(_iconView);
+        }
     }
 
     public StyleValue<string> IconFontFamily
