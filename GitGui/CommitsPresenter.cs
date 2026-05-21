@@ -22,6 +22,7 @@ internal sealed class CommitsPresenter : IDisposable
     private Guid _loadingRepoId;
     private string? _selectedSha;
     private bool _shouldRebroadcastSelection;
+    private bool _isCheckingOutCommit;
 
     public CommitsPresenter(
         ICommitsView view,
@@ -37,6 +38,7 @@ internal sealed class CommitsPresenter : IDisposable
         _bus = bus;
 
         _view.CommitClicked += OnCommitClicked;
+        _view.CheckoutCommitRequested += OnCheckoutCommitRequested;
 
         _subscriptions.Add(_registry.Active.Subscribe(_ => StartLoadForActiveRepo()));
         _subscriptions.Add(_bus.SubscribeScoped<CommitCreatedMessage>(m => ReloadIfActiveRepo(m.RepoId)));
@@ -55,6 +57,7 @@ internal sealed class CommitsPresenter : IDisposable
         _loadGen.Bump();
         _subscriptions.Dispose();
         _view.CommitClicked -= OnCommitClicked;
+        _view.CheckoutCommitRequested -= OnCheckoutCommitRequested;
     }
 
     private void ReloadIfActiveRepo(Guid repoId)
@@ -81,6 +84,40 @@ internal sealed class CommitsPresenter : IDisposable
         _selectedSha = sha;
         _view.SetSelectedSha(sha);
         _bus.Broadcast(new CommitSelectedMessage(_snapshot.RepoId, sha));
+    }
+
+    private void OnCheckoutCommitRequested(string sha)
+    {
+        if (_isCheckingOutCommit) return;
+        var snap = _snapshot;
+        if (snap == null) return;
+        var repo = _registry.Active.Value;
+        if (repo == null || repo.Id != snap.RepoId) return;
+
+        _isCheckingOutCommit = true;
+        var capturedRepo = repo;
+        var capturedSha = sha;
+        var service = _gitService;
+        var dispatcher = _dispatcher;
+        var bus = _bus;
+
+        Task.Run(() =>
+        {
+            CheckoutOutcome outcome;
+            try { outcome = service.CheckoutCommit(capturedRepo, capturedSha); }
+            catch (Exception ex) { outcome = new CheckoutOutcome(false, ex.Message); }
+
+            dispatcher.Post(() =>
+            {
+                _isCheckingOutCommit = false;
+                if (outcome.Success)
+                    bus.Broadcast(new RefsChangedMessage(capturedRepo.Id));
+                else
+                    bus.Broadcast(new ShowOperationErrorMessage(
+                        "Checkout failed",
+                        outcome.ErrorMessage ?? "Checkout failed."));
+            });
+        });
     }
 
     private void StartLoadForActiveRepo()

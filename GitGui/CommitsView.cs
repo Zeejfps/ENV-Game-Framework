@@ -86,11 +86,13 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     private float _lastNormalizedScroll;
     private float _lastScale = 1f;
     private string? _selectedSha;
+    private string? _contextHighlightSha;
     private bool _truncated;
 
     public event Action<float>? ScrollPositionChanged;
     public event Action<float>? ScaleChanged;
     public event Action<string>? CommitClicked;
+    public event Action<string>? CheckoutCommitRequested;
 
     private readonly TextStyle _rowTextStyle = TextStyles.Row(CommitsPalette.RowText);
     private readonly TextStyle _rowTextActiveStyle = TextStyles.Row(CommitsPalette.RowTextActive);
@@ -103,7 +105,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
 
     public CommitsView()
     {
-        this.UseController(_ => new CommitsViewController(this));
+        this.UseController(ctx => new CommitsViewController(this, ctx));
         this.UsePresenter(ctx => new CommitsPresenter(
             this,
             ctx.Require<IRepoRegistry>(),
@@ -421,6 +423,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
             DrawRowBackground(c, body, node, rowBottom, z);
             DrawGraphCell(c, node, graphStartX, rowBottom, z + 1);
 
+            var isHighlighted = node.Sha == _selectedSha || node.Sha == _contextHighlightSha;
             var textTop = rowBottom;
             var maxLaneAtRow = node.Lane;
             foreach (var l in node.PassThroughLanes) if (l > maxLaneAtRow) maxLaneAtRow = l;
@@ -429,16 +432,15 @@ public sealed class CommitsView : MultiChildView, ICommitsView
             var summaryStartX = LaneCenterX(graphStartX, maxLaneAtRow) + DotRadius + GraphColumnPaddingRight;
             var refsEndX = DrawBadges(c, node, summaryStartX, textTop, z + 2);
             var summaryDraw = Math.Max(0, body.Right - refsEndX);
-            DrawText(c, node.Summary, refsEndX, textTop, summaryDraw, node.Sha == _selectedSha, z + 2);
+            DrawText(c, node.Summary, refsEndX, textTop, summaryDraw, isHighlighted, z + 2);
 
-            var isSelected = node.Sha == _selectedSha;
-            var rowOverlayColor = isSelected ? CommitsPalette.RowHighlight : CommitsPalette.Background;
+            var rowOverlayColor = isHighlighted ? CommitsPalette.RowHighlight : CommitsPalette.Background;
             DrawColumnOverlay(c, authorPanelLeft, rowBottom, hashPanelLeft - authorPanelLeft, rowOverlayColor, z + 3);
-            DrawText(c, node.Author, authorX, textTop, _authorColumnWidth, isSelected, z + 4);
+            DrawText(c, node.Author, authorX, textTop, _authorColumnWidth, isHighlighted, z + 4);
             DrawColumnOverlay(c, hashPanelLeft, rowBottom, datePanelLeft - hashPanelLeft, rowOverlayColor, z + 5);
-            DrawHashText(c, ShortSha(node.Sha), hashX, textTop, _hashColumnWidth, isSelected, z + 6);
+            DrawHashText(c, ShortSha(node.Sha), hashX, textTop, _hashColumnWidth, isHighlighted, z + 6);
             DrawColumnOverlay(c, datePanelLeft, rowBottom, body.Right - datePanelLeft, rowOverlayColor, z + 7);
-            DrawText(c, FormatRelative(node.When), dateX, textTop, _dateColumnWidth, isSelected, z + 8);
+            DrawText(c, FormatRelative(node.When), dateX, textTop, _dateColumnWidth, isHighlighted, z + 8);
         }
 
         c.PopClip();
@@ -446,7 +448,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
 
     private void DrawRowBackground(ICanvas c, RectF body, CommitNode node, float rowBottom, int z)
     {
-        if (node.Sha != _selectedSha) return;
+        if (node.Sha != _selectedSha && node.Sha != _contextHighlightSha) return;
         var rect = new RectF(body.Left, rowBottom, body.Width, RowHeight);
         c.DrawRect(new DrawRectInputs
         {
@@ -706,19 +708,61 @@ public sealed class CommitsView : MultiChildView, ICommitsView
 
     internal void OnClickAt(PointF point)
     {
-        if (_viewModel is not CommitsViewModel.Loaded) return;
+        var sha = HitTestCommitSha(point);
+        if (sha != null) CommitClicked?.Invoke(sha);
+    }
+
+    internal void OnRightClickAt(PointF point, Context context)
+    {
+        var sha = HitTestCommitSha(point);
+        if (sha == null) return;
+
+        var items = BuildCommitMenuItems(sha);
+        if (items.Count == 0) return;
+
+        _contextHighlightSha = sha;
+        SetDirty();
+        var opened = RepoBarContextMenu.Show(context, point, items);
+        if (opened == null)
+        {
+            _contextHighlightSha = null;
+            SetDirty();
+            return;
+        }
+        opened.Closed += () =>
+        {
+            _contextHighlightSha = null;
+            SetDirty();
+        };
+    }
+
+    private string? HitTestCommitSha(PointF point)
+    {
+        if (_viewModel is not CommitsViewModel.Loaded) return null;
         var snap = _snapshot;
-        if (snap == null) return;
+        if (snap == null) return null;
 
         var pos = Position;
         var bodyTop = pos.Top - HeaderHeight;
-        if (point.Y > bodyTop || point.Y < pos.Bottom) return;
-        if (point.X < pos.Left || point.X > pos.Right) return;
+        if (point.Y > bodyTop || point.Y < pos.Bottom) return null;
+        if (point.X < pos.Left || point.X > pos.Right) return null;
 
         var distFromTop = bodyTop - point.Y;
         var row = (int)((distFromTop + _scrollY) / RowHeight);
-        if (row < 0 || row >= snap.Commits.Count) return;
-        CommitClicked?.Invoke(snap.Commits[row].Sha);
+        if (row < 0 || row >= snap.Commits.Count) return null;
+        return snap.Commits[row].Sha;
+    }
+
+    private IReadOnlyList<RepoBarContextMenu.Item> BuildCommitMenuItems(string sha)
+    {
+        var capturedSha = sha;
+        return new[]
+        {
+            new RepoBarContextMenu.Item(
+                "Checkout commit",
+                () => CheckoutCommitRequested?.Invoke(capturedSha),
+                LucideIcons.Branch),
+        };
     }
 
     private static string FormatRelative(DateTimeOffset when)

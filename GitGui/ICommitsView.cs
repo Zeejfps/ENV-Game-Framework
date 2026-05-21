@@ -22,4 +22,7 @@ public interface ICommitsView
 
     /// <summary>Raised when the user clicks a row. Payload is the row's commit SHA.</summary>
     event Action<string> CommitClicked;
+
+    /// <summary>Raised when the user picks "Checkout commit" from a row's context menu.</summary>
+    event Action<string> CheckoutCommitRequested;
 }

@@ -1001,6 +1001,24 @@ public sealed class GitService : IGitService
         }
     }
 
+    public CheckoutOutcome CheckoutCommit(Repo repo, string commitSha)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new CheckoutOutcome(false, "Not a git repository.");
+
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try { return RunGitCheckout(repo.Path, new[] { "checkout", commitSha }); }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new CheckoutOutcome(false, ex.Message);
+        }
+    }
+
     public CheckoutOutcome CheckoutRemoteBranch(Repo repo, string localName, string remoteName, string remoteBranchName, bool track)
     {
         try

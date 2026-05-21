@@ -21,6 +21,7 @@ public interface IGitService
     FetchOutcome Fetch(Repo repo);
     CheckoutOutcome CheckoutLocalBranch(Repo repo, string branchName);
     CheckoutOutcome CheckoutRemoteBranch(Repo repo, string localName, string remoteName, string remoteBranchName, bool track);
+    CheckoutOutcome CheckoutCommit(Repo repo, string commitSha);
     CreateBranchOutcome CreateBranch(Repo repo, string name, string startPoint, bool checkout);
     RenameBranchOutcome RenameBranch(Repo repo, string oldName, string newName, bool force);
     DeleteBranchOutcome DeleteBranch(Repo repo, string name, bool force);

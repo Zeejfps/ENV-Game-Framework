@@ -6,12 +6,14 @@ namespace GitGui;
 internal sealed class CommitsViewController : KeyboardMouseController
 {
     private readonly CommitsView _view;
+    private readonly Context _context;
     private CommitsView.DividerKind _activeDivider = CommitsView.DividerKind.None;
     private float _lastDragX;
 
-    public CommitsViewController(CommitsView view)
+    public CommitsViewController(CommitsView view, Context context)
     {
         _view = view;
+        _context = context;
     }
 
     public override void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
@@ -22,6 +24,16 @@ internal sealed class CommitsViewController : KeyboardMouseController
 
     public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
+        if (e.Button == MouseButton.Right)
+        {
+            if (e.State == InputState.Pressed)
+            {
+                _view.OnRightClickAt(e.Mouse.Point, _context);
+                e.Consume();
+            }
+            return;
+        }
+
         if (e.Button != MouseButton.Left) return;
 
         if (e.State == InputState.Pressed)
