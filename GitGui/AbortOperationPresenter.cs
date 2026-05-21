@@ -9,6 +9,8 @@ internal sealed class AbortOperationPresenter : IDisposable
     private readonly IGitService _gitService;
     private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
+    private readonly SpinnerAnimation _spinner;
+    private readonly SubscriptionGroup _subscriptions = new();
 
     private bool _isRunning;
     // Set after the regular --abort returned with ForceQuitAvailable=true. The next click
@@ -29,12 +31,18 @@ internal sealed class AbortOperationPresenter : IDisposable
         _dispatcher = dispatcher;
         _bus = bus;
 
+        _spinner = new SpinnerAnimation(dispatcher);
+        _subscriptions.Add(_spinner.IsActive.Subscribe(b => _view.IsBusy = b));
+        _subscriptions.Add(_spinner.Rotation.Subscribe(r => _view.BusyRotation = r));
+
         _view.AbortRequested += OnAbortRequested;
         _view.AbortEnabled = request.State != RepoOperationState.None;
     }
 
     public void Dispose()
     {
+        _subscriptions.Dispose();
+        _spinner.Dispose();
         _view.AbortRequested -= OnAbortRequested;
     }
 
@@ -45,7 +53,9 @@ internal sealed class AbortOperationPresenter : IDisposable
 
         _isRunning = true;
         _view.AbortEnabled = false;
+        _view.CancelEnabled = false;
         _view.ErrorMessage = null;
+        _spinner.Start();
 
         var request = _request;
         var service = _gitService;
@@ -63,10 +73,12 @@ internal sealed class AbortOperationPresenter : IDisposable
             dispatcher.Post(() =>
             {
                 _isRunning = false;
+                _spinner.Stop();
                 if (!outcome.Success)
                 {
                     view.ErrorMessage = outcome.ErrorMessage ?? "Abort failed.";
                     view.AbortEnabled = true;
+                    view.CancelEnabled = true;
                     // If git couldn't recover (malformed sentinel dir, etc.) but the state
                     // is force-clearable, flip the confirm button so the next click is the
                     // explicit "give up restoring HEAD" path. Only flip once — once we're

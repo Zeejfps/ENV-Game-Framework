@@ -19,6 +19,8 @@ internal sealed class OperationStateBannerPresenter : IViewBehavior, IDisposable
     private IGitService? _gitService;
     private IUiDispatcher? _dispatcher;
     private IMessageBus? _bus;
+    private SpinnerAnimation? _spinner;
+    private bool _isContinuing;
 
     public OperationStateBannerPresenter(OperationStateBanner banner)
     {
@@ -34,6 +36,10 @@ internal sealed class OperationStateBannerPresenter : IViewBehavior, IDisposable
         _dispatcher = context.Get<IUiDispatcher>();
         _bus = context.Get<IMessageBus>();
         if (_registry == null || _gitService == null || _dispatcher == null || _bus == null) return;
+
+        _spinner = new SpinnerAnimation(_dispatcher);
+        _subscriptions.Add(_spinner.IsActive.Subscribe(b => _banner.IsBusy = b));
+        _subscriptions.Add(_spinner.Rotation.Subscribe(r => _banner.BusyRotation = r));
 
         _subscriptions.Add(_registry.Active.Subscribe(_ => Reload()));
         _subscriptions.Add(_bus.SubscribeScoped<RefsChangedMessage>(_ => Reload()));
@@ -56,6 +62,7 @@ internal sealed class OperationStateBannerPresenter : IViewBehavior, IDisposable
 
     private void OnContinueRequested()
     {
+        if (_isContinuing) return;
         var repo = _registry?.Active.Value;
         var state = _banner.CurrentState;
         var service = _gitService;
@@ -63,6 +70,9 @@ internal sealed class OperationStateBannerPresenter : IViewBehavior, IDisposable
         var bus = _bus;
         if (repo == null || state == RepoOperationState.None || service == null
             || dispatcher == null || bus == null) return;
+
+        _isContinuing = true;
+        _spinner?.Start();
 
         Task.Run(() =>
         {
@@ -72,6 +82,8 @@ internal sealed class OperationStateBannerPresenter : IViewBehavior, IDisposable
 
             dispatcher.Post(() =>
             {
+                _isContinuing = false;
+                _spinner?.Stop();
                 if (outcome.Success)
                 {
                     bus.Broadcast(new RefsChangedMessage(repo.Id));
@@ -126,5 +138,6 @@ internal sealed class OperationStateBannerPresenter : IViewBehavior, IDisposable
         _banner.AbortRequested -= OnAbortRequested;
         _banner.ContinueRequested -= OnContinueRequested;
         _subscriptions.Dispose();
+        _spinner?.Dispose();
     }
 }

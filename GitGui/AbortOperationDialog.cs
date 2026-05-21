@@ -18,6 +18,7 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
 
     private readonly Action _onClose;
     private readonly DialogButton _abortButton;
+    private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
 
     public event Action? AbortRequested;
@@ -65,7 +66,7 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
             TextWrap = TextWrap.Wrap,
         };
 
-        var cancelButton = new DialogButton("Cancel", onClose)
+        _cancelButton = new DialogButton("Cancel", onClose)
         {
             PreferredHeight = 32,
         };
@@ -80,7 +81,7 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexItem { Grow = 1, Child = cancelButton },
+                new FlexItem { Grow = 1, Child = _cancelButton },
                 new FlexItem { Grow = 1, Child = _abortButton },
             },
         };
@@ -129,6 +130,11 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
         set => _abortButton.IsEnabled.Value = value;
     }
 
+    public bool CancelEnabled
+    {
+        set => _cancelButton.IsEnabled.Value = value;
+    }
+
     public string? ErrorMessage
     {
         set => _errorView.Text = value ?? string.Empty;
@@ -137,6 +143,20 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
     public string ConfirmButtonLabel
     {
         set => _abortButton.Label = value;
+    }
+
+    public bool IsBusy
+    {
+        set
+        {
+            _abortButton.Icon = value ? LucideIcons.Loader : string.Empty;
+            if (!value) _abortButton.IconRotation = 0f;
+        }
+    }
+
+    public float BusyRotation
+    {
+        set => _abortButton.IconRotation = value;
     }
 
     public void Close() => _onClose();

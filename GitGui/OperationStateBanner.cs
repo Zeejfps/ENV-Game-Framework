@@ -25,9 +25,12 @@ internal sealed class OperationStateBanner
     private readonly TextView _text;
     private readonly ActionButton _abortButton;
     private readonly ActionButton _continueButton;
+    private readonly TextView _spinnerIcon;
+    private readonly FlexItem _textItem;
     private readonly FlexRowView _row;
     private readonly MultiChildView _container;
     private readonly int _insertAt;
+    private bool _isBusy;
 
     public OperationStateBanner(MultiChildView container, int insertAt = -1)
     {
@@ -53,15 +56,24 @@ internal sealed class OperationStateBanner
             tooltip: "Abort",
             backgroundColor: 0xFFB3514B);
 
+        _spinnerIcon = new TextView
+        {
+            Text = LucideIcons.Loader,
+            FontFamily = LucideIcons.FontFamily,
+            FontSize = 16,
+            TextColor = CommitsPalette.WarningText,
+            VerticalTextAlignment = TextAlignment.Center,
+            HorizontalTextAlignment = TextAlignment.Center,
+            PreferredWidth = 20,
+        };
+
+        _textItem = new FlexItem { Grow = 1, Child = _text };
+
         _row = new FlexRowView
         {
             Gap = 4,
             CrossAxisAlignment = CrossAxisAlignment.Center,
-            Children =
-            {
-                new FlexItem { Grow = 1, Child = _text },
-                _abortButton,
-            },
+            Children = { _textItem, _abortButton },
         };
 
         View = new RectView
@@ -87,11 +99,12 @@ internal sealed class OperationStateBanner
             CurrentState = value;
             if (value == RepoOperationState.None)
             {
+                _isBusy = false;
+                _spinnerIcon.Rotation = 0f;
                 _container.Children.Remove(View);
                 return;
             }
-            _text.Text = MessageFor(value);
-            UpdateContinueButton(value);
+            Render();
             if (!_container.Children.Contains(View))
             {
                 if (_insertAt < 0) _container.Children.Add(View);
@@ -100,14 +113,37 @@ internal sealed class OperationStateBanner
         }
     }
 
-    private void UpdateContinueButton(RepoOperationState state)
+    // Drives the in-flight visual: text swaps to "Continuing rebase…", both action buttons
+    // detach, and a spinner icon takes their slot. Set back to false on completion or error
+    // so the banner restores to the normal warning copy + buttons.
+    public bool IsBusy
     {
-        var show = SupportsContinue(state);
-        var attached = _row.Children.Contains(_continueButton);
-        if (show && !attached)
-            _row.Children.Insert(_row.Children.Count - 1, _continueButton);
-        else if (!show && attached)
-            _row.Children.Remove(_continueButton);
+        set
+        {
+            _isBusy = value;
+            if (!value) _spinnerIcon.Rotation = 0f;
+            if (CurrentState != RepoOperationState.None) Render();
+        }
+    }
+
+    public float BusyRotation
+    {
+        set => _spinnerIcon.Rotation = value;
+    }
+
+    private void Render()
+    {
+        _row.Children.Clear();
+        _row.Children.Add(_textItem);
+        if (_isBusy)
+        {
+            _text.Text = BusyMessageFor(CurrentState);
+            _row.Children.Add(_spinnerIcon);
+            return;
+        }
+        _text.Text = MessageFor(CurrentState);
+        if (SupportsContinue(CurrentState)) _row.Children.Add(_continueButton);
+        _row.Children.Add(_abortButton);
     }
 
     private static bool SupportsContinue(RepoOperationState state) => state switch
@@ -118,6 +154,16 @@ internal sealed class OperationStateBanner
         RepoOperationState.Revert => true,
         RepoOperationState.ApplyMailbox => true,
         _ => false,
+    };
+
+    private static string BusyMessageFor(RepoOperationState state) => state switch
+    {
+        RepoOperationState.Merge => "Continuing merge…",
+        RepoOperationState.Rebase => "Continuing rebase…",
+        RepoOperationState.CherryPick => "Continuing cherry-pick…",
+        RepoOperationState.Revert => "Continuing revert…",
+        RepoOperationState.ApplyMailbox => "Continuing patch apply…",
+        _ => "Working…",
     };
 
     private static string MessageFor(RepoOperationState state) => state switch
