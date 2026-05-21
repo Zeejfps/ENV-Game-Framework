@@ -8,9 +8,8 @@ public sealed class AppView : MultiChildView
     public AppView(TooltipSurfaceView tooltipSurfaceView)
     {
         // North-stack holds the toolbar plus an in-progress-op banner the presenter
-        // inserts/removes as the active repo's state changes. Keeping it as a column
-        // (rather than nesting another BorderLayout's North) means the banner spans
-        // both sidebars and shows above both History and LocalChanges views.
+        // inserts/removes as the active repo's state changes. It sits above
+        // MainContentView only, horizontally aligned with the BranchesHeader to its left.
         var northStack = new FlexColumnView
         {
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
@@ -23,10 +22,20 @@ public sealed class AppView : MultiChildView
             West = ResizableLeftSidebar.Build(new RepoBar(), initialWidth: 220f, minWidth: 220f),
             Center = new BorderLayoutView
             {
-                North = northStack,
+                West = ResizableLeftSidebar.Build(
+                    new FlexColumnView
+                    {
+                        CrossAxisAlignment = CrossAxisAlignment.Stretch,
+                        Children =
+                        {
+                            new BranchesHeader(),
+                            new FlexItem { Grow = 1, Child = new BranchesView() },
+                        },
+                    },
+                    initialWidth: 220f),
                 Center = new BorderLayoutView
                 {
-                    West = ResizableLeftSidebar.Build(new BranchesView(), initialWidth: 220f),
+                    North = northStack,
                     Center = new MainContentView(),
                 },
             },

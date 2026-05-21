@@ -18,10 +18,6 @@ public interface IActionsToolbarView
     // BranchesView so the visual language stays consistent across the two surfaces.
     int? PushBadge { set; }
     int? PullBadge { set; }
-    // Current branch name to display in the toolbar's status chip. Null hides the chip
-    // entirely; non-null + IsDetached=true makes it render "(detached HEAD)" instead.
-    string? CurrentBranch { set; }
-    bool CurrentBranchDetached { set; }
     string? Error { set; }
     event Action PushRequested;
     event Action PullRequested;

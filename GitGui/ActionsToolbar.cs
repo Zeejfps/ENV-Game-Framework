@@ -35,7 +35,6 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
     private readonly ActionButton _stashButton;
     private readonly ActionButton _openFolderButton;
     private readonly ActionButton _openTerminalButton;
-    private readonly CurrentBranchChip _branchChip;
     private readonly ErrorBar _errorBar;
     private readonly FlexRowView _contentRow;
 
@@ -63,17 +62,9 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
         _openTerminalButton = new ActionButton(LucideIcons.SquareTerminal, () => OpenInTerminalRequested?.Invoke(),
             tooltip: "Open in terminal");
 
-        _branchChip = new CurrentBranchChip();
-
         // Layout zones, left to right:
-        //   [ Mode (+ "on master" chip) ]  |  [ Fetch Pull Push ]  |  [ Stash Branch ]  …  [ Folder Terminal ]
-        //              status                     remote sync             local ops             tools
-        //
-        // The status zone (mode + chip) is open by default; when a repo activates, the
-        // chip + its trailing divider both insert via the CurrentBranch setter. The two
-        // mid-row dividers + the (grow) before the tools group create the visible "this
-        // is a new zone" boundaries — within a zone, buttons sit at WithinClusterGap so
-        // they read as a single chunk.
+        //   [ Mode ]  |  [ Fetch Pull Push ]  |  [ Stash Branch ]  …  [ Folder Terminal ]
+        //    status        remote sync             local ops              tools
         _contentRow = new FlexRowView
         {
             Gap = WithinClusterGap,
@@ -81,11 +72,6 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
             Children =
             {
                 new ModeSwitcherView(),
-                // _branchChip inserts here (index 1) when a repo is active — see the
-                // CurrentBranch setter. The SeparatorSpacer below always sits one slot to
-                // the right of where the chip lands, so the divide between "status" and
-                // "actions" is the same line whether the chip is present or not. When the
-                // chip is hidden the row collapses cleanly to [Mode][separator][sync…].
                 new SeparatorSpacer(),
                 _fetchButton,
                 _pullButton,
@@ -150,29 +136,6 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
 
     public int? PushBadge { set => _pushButton.Badge = value; }
     public int? PullBadge { set => _pullButton.Badge = value; }
-
-    // Index where the chip slots in — immediately after the mode switcher
-    // (_contentRow.Children[0]), so the chip rides on the left side of the status|sync
-    // separator. Hard-coded because the surrounding children are static; update alongside
-    // the Children list above if the layout shifts.
-    private const int BranchChipInsertIndex = 1;
-
-    public string? CurrentBranch
-    {
-        set
-        {
-            var attached = _contentRow.Children.Contains(_branchChip);
-            if (string.IsNullOrEmpty(value))
-            {
-                if (attached) _contentRow.Children.Remove(_branchChip);
-                return;
-            }
-            _branchChip.BranchName = value;
-            if (!attached) _contentRow.Children.Insert(BranchChipInsertIndex, _branchChip);
-        }
-    }
-
-    public bool CurrentBranchDetached { set => _branchChip.IsDetached = value; }
 
     public bool PushBusy
     {
