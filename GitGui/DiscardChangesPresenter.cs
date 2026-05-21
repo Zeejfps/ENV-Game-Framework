@@ -7,10 +7,8 @@ internal sealed class DiscardChangesPresenter : IDisposable
     private readonly IDiscardChangesView _view;
     private readonly DiscardChangesRequest _request;
     private readonly IGitService _gitService;
-    private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
-
-    private bool _isRunning;
+    private readonly OperationRunner _runner;
 
     public DiscardChangesPresenter(
         IDiscardChangesView view,
@@ -22,8 +20,8 @@ internal sealed class DiscardChangesPresenter : IDisposable
         _view = view;
         _request = request;
         _gitService = gitService;
-        _dispatcher = dispatcher;
         _bus = bus;
+        _runner = new OperationRunner(dispatcher);
 
         _view.DiscardRequested += OnDiscardRequested;
         _view.DiscardEnabled = request.Paths.Count > 0;
@@ -36,43 +34,27 @@ internal sealed class DiscardChangesPresenter : IDisposable
 
     private void OnDiscardRequested()
     {
-        if (_isRunning) return;
+        if (_runner.IsRunning) return;
         if (_request.Paths.Count == 0) return;
 
-        _isRunning = true;
+        var repoId = _request.Repo.Id;
+
         _view.DiscardEnabled = false;
         _view.ErrorMessage = null;
 
-        var request = _request;
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        var view = _view;
-
-        Task.Run(() =>
-        {
-            string? errorMsg = null;
-            try
+        _runner.Run(
+            () => _gitService.DiscardChanges(_request.Repo, _request.Paths),
+            ex => ex.Message,
+            errorMsg =>
             {
-                errorMsg = service.DiscardChanges(request.Repo, request.Paths);
-            }
-            catch (Exception ex)
-            {
-                errorMsg = ex.Message;
-            }
-
-            dispatcher.Post(() =>
-            {
-                _isRunning = false;
                 if (errorMsg != null)
                 {
-                    view.ErrorMessage = errorMsg;
-                    view.DiscardEnabled = true;
+                    _view.ErrorMessage = errorMsg;
+                    _view.DiscardEnabled = true;
                     return;
                 }
-                view.Close();
-                bus.Broadcast(new WorkingTreeChangedMessage(request.Repo.Id));
+                _view.Close();
+                _bus.Broadcast(new WorkingTreeChangedMessage(repoId));
             });
-        });
     }
 }

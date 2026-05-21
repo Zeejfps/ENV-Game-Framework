@@ -7,10 +7,8 @@ internal sealed class DeleteLocalBranchPresenter : IDisposable
     private readonly IDeleteLocalBranchView _view;
     private readonly DeleteLocalBranchRequest _request;
     private readonly IGitService _gitService;
-    private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
-
-    private bool _isRunning;
+    private readonly OperationRunner _runner;
 
     public DeleteLocalBranchPresenter(
         IDeleteLocalBranchView view,
@@ -22,8 +20,8 @@ internal sealed class DeleteLocalBranchPresenter : IDisposable
         _view = view;
         _request = request;
         _gitService = gitService;
-        _dispatcher = dispatcher;
         _bus = bus;
+        _runner = new OperationRunner(dispatcher);
 
         _view.DeleteRequested += OnDeleteRequested;
         _view.DeleteEnabled = true;
@@ -36,46 +34,30 @@ internal sealed class DeleteLocalBranchPresenter : IDisposable
 
     private void OnDeleteRequested()
     {
-        if (_isRunning) return;
+        if (_runner.IsRunning) return;
 
-        _isRunning = true;
+        var force = _view.Force;
+        var repoId = _request.Repo.Id;
+
         _view.DeleteEnabled = false;
         _view.ErrorMessage = null;
 
-        var force = _view.Force;
-        var request = _request;
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        var view = _view;
-
-        Task.Run(() =>
-        {
-            DeleteBranchOutcome outcome;
-            try
+        _runner.Run(
+            () => _gitService.DeleteBranch(_request.Repo, _request.BranchName, force),
+            ex => new DeleteBranchOutcome(false, ex.Message),
+            outcome =>
             {
-                outcome = service.DeleteBranch(request.Repo, request.BranchName, force);
-            }
-            catch (Exception ex)
-            {
-                outcome = new DeleteBranchOutcome(false, ex.Message);
-            }
-
-            dispatcher.Post(() =>
-            {
-                _isRunning = false;
                 if (!outcome.Success)
                 {
-                    view.ErrorMessage = outcome.ErrorMessage ?? "Delete failed.";
-                    view.DeleteEnabled = true;
+                    _view.ErrorMessage = outcome.ErrorMessage ?? "Delete failed.";
+                    _view.DeleteEnabled = true;
                     return;
                 }
-                view.Close();
+                _view.Close();
                 // BranchesViewModel checks against the fresh listing on RefsChangedMessage
                 // and drops any selection pointing at a name that no longer exists, so we
                 // don't need a separate "branch deleted" signal.
-                bus.Broadcast(new RefsChangedMessage(request.Repo.Id));
+                _bus.Broadcast(new RefsChangedMessage(repoId));
             });
-        });
     }
 }

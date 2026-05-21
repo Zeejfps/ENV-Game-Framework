@@ -7,8 +7,6 @@ namespace GitGui;
 
 public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
 {
-    private const float CloseButtonSize = 28f;
-
     private readonly Action _onClose;
     private readonly DialogButton _rebaseButton;
     private readonly TextView _errorView;
@@ -21,26 +19,6 @@ public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
     public RebaseBranchDialog(RebaseBranchRequest request, Action onClose)
     {
         _onClose = onClose;
-
-        var title = new TextView
-        {
-            Text = "Rebase",
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
 
         var subtitle = new TextView
         {
@@ -79,15 +57,10 @@ public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
             Children = { _previewIcon, _previewText },
         };
 
-        _errorView = new TextView
-        {
-            Text = string.Empty,
-            TextColor = 0xFFE06C75,
-            TextWrap = TextWrap.Wrap,
-        };
+        _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = 32, PreferredWidth = 96 };
-        _rebaseButton = new DialogButton("Rebase", RaiseRebaseRequested) { PreferredHeight = 32, PreferredWidth = 96 };
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
+        _rebaseButton = new DialogButton("Rebase", RaiseRebaseRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
 
         var buttonsRow = new FlexRowView
         {
@@ -101,38 +74,21 @@ public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
             },
         };
 
-        AddChildToSelf(new RectView
+        AddChildToSelf(DialogFrame.Build("Rebase", onClose, new FlexColumnView
         {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
+            Gap = 12,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexColumnView
-                {
-                    Gap = 12,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        subtitle,
-                        new RectView
-                        {
-                            BackgroundColor = DialogPalette.Separator,
-                            PreferredHeight = 1,
-                        },
-                        rebaseRow,
-                        ontoRow,
-                        autostashRow,
-                        _errorView,
-                        new MultiChildView { PreferredHeight = 4 },
-                        buttonsRow,
-                    },
-                },
+                subtitle,
+                rebaseRow,
+                ontoRow,
+                autostashRow,
+                _errorView,
+                new MultiChildView { PreferredHeight = 4 },
+                buttonsRow,
             },
-        });
+        }));
 
         this.UseController(_ => new DiscardChangesKbmController(RaiseRebaseRequested, onClose));
 

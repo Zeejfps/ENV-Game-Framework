@@ -12,8 +12,6 @@ namespace GitGui;
 /// </summary>
 public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
 {
-    private const float CloseButtonSize = 28f;
-
     private readonly Action _onClose;
     private readonly TextInputView _nameInput;
     private readonly CheckoutDialogKbmController _nameController;
@@ -33,26 +31,6 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
         PreferredHeight = 280f;
 
         _onClose = onClose;
-
-        var title = new TextView
-        {
-            Text = "Checkout branch",
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
 
         var subtitle = new TextView
         {
@@ -95,57 +73,23 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
             }
         };
 
-        var cancelButton = new DialogButton("Cancel", onClose)
-        {
-            PreferredHeight = 32,
-        };
-        _checkoutButton = new DialogButton("Checkout", RaiseCheckoutRequested)
-        {
-            PreferredHeight = 32,
-        };
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _checkoutButton = new DialogButton("Checkout", RaiseCheckoutRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
-        var buttonsRow = new FlexRowView
+        AddChildToSelf(DialogFrame.Build("Checkout branch", onClose, new FlexColumnView
         {
-            Gap = 8,
+            Gap = 12,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexItem { Grow = 1, Child = cancelButton },
-                new FlexItem { Grow = 1, Child = _checkoutButton },
+                subtitle,
+                nameLabel,
+                nameBox,
+                _trackCheckbox,
+                new MultiChildView { PreferredHeight = 4 },
+                DialogFrame.ButtonsRow(cancelButton, _checkoutButton),
             },
-        };
-
-        AddChildToSelf(new RectView
-        {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
-            Children =
-            {
-                new FlexColumnView
-                {
-                    Gap = 12,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        new RectView
-                        {
-                            BackgroundColor = DialogPalette.Separator,
-                            PreferredHeight = 1,
-                        },
-                        subtitle,
-                        nameLabel,
-                        nameBox,
-                        _trackCheckbox,
-                        new MultiChildView { PreferredHeight = 4 },
-                        buttonsRow,
-                    },
-                },
-            },
-        });
+        }));
 
         // Controller goes on the INPUT's Behaviors, not the outer dialog's:
         // BaseTextInputKbmController.OnMouseButtonStateChanged consumes left-press events

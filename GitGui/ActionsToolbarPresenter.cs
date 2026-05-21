@@ -156,14 +156,14 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         var suggested = _pushStatus.IsDetached || string.IsNullOrEmpty(_pushStatus.CurrentBranchName)
             ? "HEAD"
             : _pushStatus.CurrentBranchName;
-        _bus.Broadcast(new ShowCreateBranchDialogMessage(repo, suggested));
+        _bus.Broadcast(new ShowDialogMessage(onClose => new CreateBranchDialog(repo, suggested, onClose)));
     }
 
     private void OnStashRequested()
     {
         var repo = _registry.Active.Value;
         if (repo == null) return;
-        _bus.Broadcast(new ShowStashDialogMessage(repo));
+        _bus.Broadcast(new ShowDialogMessage(onClose => new StashDialog(repo, onClose)));
     }
 
     private void ReloadPushStatus()
@@ -216,7 +216,9 @@ internal sealed class ActionsToolbarPresenter : IDisposable
             && !_pushStatus.HasUpstream
             && !string.IsNullOrEmpty(_pushStatus.CurrentBranchName))
         {
-            _bus.Broadcast(new ShowPublishBranchDialogMessage(repo, _pushStatus.CurrentBranchName!));
+            var localBranch = _pushStatus.CurrentBranchName!;
+            _bus.Broadcast(new ShowDialogMessage(onClose => new PublishBranchDialog(
+                new PublishBranchRequest(repo, localBranch), onClose)));
             return;
         }
 
@@ -228,11 +230,11 @@ internal sealed class ActionsToolbarPresenter : IDisposable
             && _pushStatus.Ahead > 0
             && _pushStatus.Behind > 0)
         {
-            _bus.Broadcast(new ShowForcePushDialogMessage(
-                repo,
-                _pushStatus.CurrentBranchName ?? string.Empty,
-                _pushStatus.Ahead,
-                _pushStatus.Behind));
+            var branchName = _pushStatus.CurrentBranchName ?? string.Empty;
+            var ahead = _pushStatus.Ahead;
+            var behind = _pushStatus.Behind;
+            _bus.Broadcast(new ShowDialogMessage(onClose => new ForcePushDialog(
+                repo, branchName, ahead, behind, onClose)));
             return;
         }
 

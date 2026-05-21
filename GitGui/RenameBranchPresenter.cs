@@ -7,10 +7,8 @@ internal sealed class RenameBranchPresenter : IDisposable
     private readonly IRenameBranchView _view;
     private readonly RenameBranchRequest _request;
     private readonly IGitService _gitService;
-    private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
-
-    private bool _isRenaming;
+    private readonly OperationRunner _runner;
 
     public RenameBranchPresenter(
         IRenameBranchView view,
@@ -22,8 +20,8 @@ internal sealed class RenameBranchPresenter : IDisposable
         _view = view;
         _request = request;
         _gitService = gitService;
-        _dispatcher = dispatcher;
         _bus = bus;
+        _runner = new OperationRunner(dispatcher);
 
         _view.NameChanged += OnNameChanged;
         _view.RenameRequested += TryRename;
@@ -39,54 +37,37 @@ internal sealed class RenameBranchPresenter : IDisposable
 
     private void OnNameChanged()
     {
-        if (_isRenaming) return;
+        if (_runner.IsRunning) return;
         var name = _view.Name;
         _view.RenameEnabled = name.Length > 0 && name != _request.CurrentName;
     }
 
     private void TryRename()
     {
-        if (_isRenaming) return;
+        if (_runner.IsRunning) return;
         var newName = _view.Name;
         if (newName.Length == 0 || newName == _request.CurrentName) return;
 
         var force = _view.Force;
+        var repoId = _request.Repo.Id;
+        var oldName = _request.CurrentName;
 
-        _isRenaming = true;
         _view.RenameEnabled = false;
         _view.ErrorMessage = null;
 
-        var repo = _request.Repo;
-        var oldName = _request.CurrentName;
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        var view = _view;
-
-        Task.Run(() =>
-        {
-            RenameBranchOutcome outcome;
-            try
+        _runner.Run(
+            () => _gitService.RenameBranch(_request.Repo, oldName, newName, force),
+            ex => new RenameBranchOutcome(false, ex.Message),
+            outcome =>
             {
-                outcome = service.RenameBranch(repo, oldName, newName, force);
-            }
-            catch (Exception ex)
-            {
-                outcome = new RenameBranchOutcome(false, ex.Message);
-            }
-
-            dispatcher.Post(() =>
-            {
-                _isRenaming = false;
                 if (!outcome.Success)
                 {
-                    view.ErrorMessage = outcome.ErrorMessage ?? "Rename failed.";
-                    view.RenameEnabled = view.Name.Length > 0 && view.Name != oldName;
+                    _view.ErrorMessage = outcome.ErrorMessage ?? "Rename failed.";
+                    _view.RenameEnabled = _view.Name.Length > 0 && _view.Name != oldName;
                     return;
                 }
-                view.Close();
-                bus.Broadcast(new RefsChangedMessage(repo.Id));
+                _view.Close();
+                _bus.Broadcast(new RefsChangedMessage(repoId));
             });
-        });
     }
 }

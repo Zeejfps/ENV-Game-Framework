@@ -10,7 +10,6 @@ namespace GitGui;
 /// </summary>
 public sealed class DeinitSubmoduleDialog : MultiChildView, IDeinitSubmoduleView
 {
-    private const float CloseButtonSize = 28f;
     private const float DialogWidth = 460f;
 
     private readonly Action _onClose;
@@ -24,26 +23,6 @@ public sealed class DeinitSubmoduleDialog : MultiChildView, IDeinitSubmoduleView
     {
         PreferredWidth = DialogWidth;
         _onClose = onClose;
-
-        var title = new TextView
-        {
-            Text = "Deinit submodule",
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
 
         var prompt = new TextView
         {
@@ -66,54 +45,25 @@ public sealed class DeinitSubmoduleDialog : MultiChildView, IDeinitSubmoduleView
             PreferredHeight = 22,
         };
 
-        _errorView = new TextView
-        {
-            Text = string.Empty,
-            TextColor = 0xFFE06C75,
-            TextWrap = TextWrap.Wrap,
-        };
+        _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = 32 };
-        _deinitButton = new DialogButton("Deinit", RaiseDeinitRequested) { PreferredHeight = 32 };
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _deinitButton = new DialogButton("Deinit", RaiseDeinitRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
-        var buttonsRow = new FlexRowView
+        AddChildToSelf(DialogFrame.Build("Deinit submodule", onClose, new FlexColumnView
         {
-            Gap = 8,
+            Gap = 12,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexItem { Grow = 1, Child = cancelButton },
-                new FlexItem { Grow = 1, Child = _deinitButton },
+                prompt,
+                detail,
+                _forceCheckbox,
+                _errorView,
+                new MultiChildView { PreferredHeight = 4 },
+                DialogFrame.ButtonsRow(cancelButton, _deinitButton),
             },
-        };
-
-        AddChildToSelf(new RectView
-        {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
-            Children =
-            {
-                new FlexColumnView
-                {
-                    Gap = 12,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        new RectView { BackgroundColor = DialogPalette.Separator, PreferredHeight = 1 },
-                        prompt,
-                        detail,
-                        _forceCheckbox,
-                        _errorView,
-                        new MultiChildView { PreferredHeight = 4 },
-                        buttonsRow,
-                    },
-                },
-            },
-        });
+        }));
 
         this.UseController(_ => new DiscardChangesKbmController(RaiseDeinitRequested, onClose));
 

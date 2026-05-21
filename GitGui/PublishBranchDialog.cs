@@ -7,8 +7,6 @@ namespace GitGui;
 
 public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
 {
-    private const float CloseButtonSize = 28f;
-
     private readonly Action _onClose;
     private readonly DialogButton _publishButton;
     private readonly TextView _errorView;
@@ -20,26 +18,6 @@ public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
     public PublishBranchDialog(PublishBranchRequest request, Action onClose)
     {
         _onClose = onClose;
-
-        var title = new TextView
-        {
-            Text = "Publish branch",
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
 
         var subtitle = new TextView
         {
@@ -61,15 +39,10 @@ public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
         };
         var trackRow = BuildLabeledRow("", _trackCheckbox);
 
-        _errorView = new TextView
-        {
-            Text = string.Empty,
-            TextColor = 0xFFE06C75,
-            TextWrap = TextWrap.Wrap,
-        };
+        _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = 32, PreferredWidth = 96 };
-        _publishButton = new DialogButton("Publish", RaisePublishRequested) { PreferredHeight = 32, PreferredWidth = 96 };
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
+        _publishButton = new DialogButton("Publish", RaisePublishRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
 
         var buttonsRow = new FlexRowView
         {
@@ -83,38 +56,21 @@ public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
             },
         };
 
-        AddChildToSelf(new RectView
+        AddChildToSelf(DialogFrame.Build("Publish branch", onClose, new FlexColumnView
         {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
+            Gap = 12,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexColumnView
-                {
-                    Gap = 12,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        subtitle,
-                        new RectView
-                        {
-                            BackgroundColor = DialogPalette.Separator,
-                            PreferredHeight = 1,
-                        },
-                        branchRow,
-                        remoteRow,
-                        trackRow,
-                        _errorView,
-                        new MultiChildView { PreferredHeight = 4 },
-                        buttonsRow,
-                    },
-                },
+                subtitle,
+                branchRow,
+                remoteRow,
+                trackRow,
+                _errorView,
+                new MultiChildView { PreferredHeight = 4 },
+                buttonsRow,
             },
-        });
+        }));
 
         this.UseController(_ => new DiscardChangesKbmController(RaisePublishRequested, onClose));
 

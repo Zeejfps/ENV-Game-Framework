@@ -7,10 +7,8 @@ internal sealed class ResetCommitPresenter : IDisposable
     private readonly IResetCommitView _view;
     private readonly ResetCommitRequest _request;
     private readonly IGitService _gitService;
-    private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
-
-    private bool _isRunning;
+    private readonly OperationRunner _runner;
 
     public ResetCommitPresenter(
         IResetCommitView view,
@@ -22,8 +20,8 @@ internal sealed class ResetCommitPresenter : IDisposable
         _view = view;
         _request = request;
         _gitService = gitService;
-        _dispatcher = dispatcher;
         _bus = bus;
+        _runner = new OperationRunner(dispatcher);
 
         _view.ResetRequested += OnResetRequested;
     }
@@ -35,38 +33,28 @@ internal sealed class ResetCommitPresenter : IDisposable
 
     private void OnResetRequested(ResetMode mode)
     {
-        if (_isRunning) return;
+        if (_runner.IsRunning) return;
 
-        _isRunning = true;
+        var repoId = _request.Repo.Id;
+
         _view.ButtonsEnabled = false;
         _view.ErrorMessage = null;
 
-        var request = _request;
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        var view = _view;
-
-        Task.Run(() =>
-        {
-            ResetOutcome outcome;
-            try { outcome = service.ResetCurrent(request.Repo, request.Sha, mode); }
-            catch (Exception ex) { outcome = new ResetOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
+        _runner.Run(
+            () => _gitService.ResetCurrent(_request.Repo, _request.Sha, mode),
+            ex => new ResetOutcome(false, ex.Message),
+            outcome =>
             {
-                _isRunning = false;
                 if (!outcome.Success)
                 {
-                    view.ErrorMessage = outcome.ErrorMessage ?? "Reset failed.";
-                    view.ButtonsEnabled = true;
+                    _view.ErrorMessage = outcome.ErrorMessage ?? "Reset failed.";
+                    _view.ButtonsEnabled = true;
                     return;
                 }
-                view.Close();
-                bus.Broadcast(new RefsChangedMessage(request.Repo.Id));
-                bus.Broadcast(new WorkingTreeChangedMessage(request.Repo.Id));
+                _view.Close();
+                _bus.Broadcast(new RefsChangedMessage(repoId));
+                _bus.Broadcast(new WorkingTreeChangedMessage(repoId));
             });
-        });
     }
 }
 

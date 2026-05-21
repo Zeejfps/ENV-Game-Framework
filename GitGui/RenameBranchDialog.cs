@@ -13,8 +13,6 @@ namespace GitGui;
 /// </summary>
 public sealed class RenameBranchDialog : MultiChildView, IRenameBranchView
 {
-    private const float CloseButtonSize = 28f;
-
     private readonly Action _onClose;
     private readonly TextInputView _nameInput;
     private readonly CheckoutDialogKbmController _nameController;
@@ -29,26 +27,6 @@ public sealed class RenameBranchDialog : MultiChildView, IRenameBranchView
     {
         _onClose = onClose;
         _currentName = currentName;
-
-        var title = new TextView
-        {
-            Text = "Rename branch",
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
 
         var subtitle = new TextView
         {
@@ -87,65 +65,26 @@ public sealed class RenameBranchDialog : MultiChildView, IRenameBranchView
             PreferredHeight = 22,
         };
 
-        _errorView = new TextView
-        {
-            Text = string.Empty,
-            TextColor = 0xFFE06C75,
-            TextWrap = TextWrap.Wrap,
-        };
+        _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose)
-        {
-            PreferredHeight = 32,
-        };
-        _renameButton = new DialogButton("Rename", RaiseRenameRequested)
-        {
-            PreferredHeight = 32,
-        };
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _renameButton = new DialogButton("Rename", RaiseRenameRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
-        var buttonsRow = new FlexRowView
+        AddChildToSelf(DialogFrame.Build("Rename branch", onClose, new FlexColumnView
         {
-            Gap = 8,
+            Gap = 10,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexItem { Grow = 1, Child = cancelButton },
-                new FlexItem { Grow = 1, Child = _renameButton },
+                subtitle,
+                nameLabel,
+                nameBox,
+                _forceCheckbox,
+                _errorView,
+                new MultiChildView { PreferredHeight = 4 },
+                DialogFrame.ButtonsRow(cancelButton, _renameButton),
             },
-        };
-
-        AddChildToSelf(new RectView
-        {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
-            Children =
-            {
-                new FlexColumnView
-                {
-                    Gap = 10,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        new RectView
-                        {
-                            BackgroundColor = DialogPalette.Separator,
-                            PreferredHeight = 1,
-                        },
-                        subtitle,
-                        nameLabel,
-                        nameBox,
-                        _forceCheckbox,
-                        _errorView,
-                        new MultiChildView { PreferredHeight = 4 },
-                        buttonsRow,
-                    },
-                },
-            },
-        });
+        }));
 
         _nameController = new CheckoutDialogKbmController(_nameInput, RaiseRenameRequested, onClose);
         _nameInput.UseController(_ => _nameController);

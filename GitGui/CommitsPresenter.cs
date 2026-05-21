@@ -172,9 +172,9 @@ internal sealed class CommitsPresenter : IDisposable
             dispatcher.Post(() =>
             {
                 _isCheckingOutCommit = false;
-                bus.Broadcast(new ShowResetCommitDialogMessage(
+                bus.Broadcast(new ShowDialogMessage(onClose => new ResetCommitDialog(
                     capturedRepo, capturedSha, shortSha, capturedSummary, capturedBranch,
-                    capturedStaged, capturedUnstaged));
+                    capturedStaged, capturedUnstaged, onClose)));
             });
         });
     }

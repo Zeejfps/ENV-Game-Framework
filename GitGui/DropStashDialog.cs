@@ -12,8 +12,6 @@ namespace GitGui;
 /// </summary>
 public sealed class DropStashDialog : MultiChildView
 {
-    private const float CloseButtonSize = 28f;
-
     private readonly Action _onClose;
     private readonly DialogButton _dropButton;
     private readonly TextView _errorView;
@@ -26,26 +24,6 @@ public sealed class DropStashDialog : MultiChildView
 
         _onClose = onClose;
 
-        var title = new TextView
-        {
-            Text = $"Drop {label}?",
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
-
         var prompt = new TextView
         {
             Text = $"Applied: {subject}\n\nDrop this stash now? This cannot be undone.",
@@ -53,61 +31,22 @@ public sealed class DropStashDialog : MultiChildView
             TextWrap = TextWrap.Wrap,
         };
 
-        _errorView = new TextView
-        {
-            Text = string.Empty,
-            TextColor = 0xFFE06C75,
-            TextWrap = TextWrap.Wrap,
-        };
+        _errorView = DialogFrame.ErrorView();
 
-        var keepButton = new DialogButton("Keep", onClose)
-        {
-            PreferredHeight = 32,
-        };
-        _dropButton = new DialogButton("Drop", () => TryDrop(repo, index))
-        {
-            PreferredHeight = 32,
-        };
+        var keepButton = new DialogButton("Keep", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _dropButton = new DialogButton("Drop", () => TryDrop(repo, index)) { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
-        var buttonsRow = new FlexRowView
+        AddChildToSelf(DialogFrame.Build($"Drop {label}?", onClose, new FlexColumnView
         {
-            Gap = 8,
+            Gap = 12,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexItem { Grow = 1, Child = keepButton },
-                new FlexItem { Grow = 1, Child = _dropButton },
+                prompt,
+                _errorView,
+                DialogFrame.ButtonsRow(keepButton, _dropButton),
             },
-        };
-
-        AddChildToSelf(new RectView
-        {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
-            Children =
-            {
-                new FlexColumnView
-                {
-                    Gap = 12,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        new RectView
-                        {
-                            BackgroundColor = DialogPalette.Separator,
-                            PreferredHeight = 1,
-                        },
-                        prompt,
-                        _errorView,
-                        buttonsRow,
-                    },
-                },
-            },
-        });
+        }));
 
         // The drop call is small enough to inline here; no presenter needed. We grab
         // services from the context the dialog is attached to.
@@ -146,8 +85,8 @@ internal sealed class DropStashPresenter : IDisposable
 {
     private readonly DropStashDialog _view;
     private readonly IGitService _gitService;
-    private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
+    private readonly OperationRunner _runner;
 
     public DropStashPresenter(
         DropStashDialog view,
@@ -157,8 +96,8 @@ internal sealed class DropStashPresenter : IDisposable
     {
         _view = view;
         _gitService = gitService;
-        _dispatcher = dispatcher;
         _bus = bus;
+        _runner = new OperationRunner(dispatcher);
         _view.DropRequested += OnDropRequested;
     }
 
@@ -169,23 +108,14 @@ internal sealed class DropStashPresenter : IDisposable
 
     private void OnDropRequested(Repo repo, int index)
     {
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        var view = _view;
-
-        Task.Run(() =>
-        {
-            StashOutcome outcome;
-            try { outcome = service.DropStash(repo, index); }
-            catch (Exception ex) { outcome = new StashOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
+        _runner.Run(
+            () => _gitService.DropStash(repo, index),
+            ex => new StashOutcome(false, ex.Message),
+            outcome =>
             {
-                view.OnDropOutcome(outcome, repo);
+                _view.OnDropOutcome(outcome, repo);
                 if (outcome.Success)
-                    bus.Broadcast(new RefsChangedMessage(repo.Id));
+                    _bus.Broadcast(new RefsChangedMessage(repo.Id));
             });
-        });
     }
 }

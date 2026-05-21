@@ -7,10 +7,8 @@ internal sealed class UpdateSubmodulesPresenter : IDisposable
     private readonly IUpdateSubmodulesView _view;
     private readonly UpdateSubmodulesViewRequest _request;
     private readonly IGitService _gitService;
-    private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
-
-    private bool _isRunning;
+    private readonly OperationRunner _runner;
 
     public UpdateSubmodulesPresenter(
         IUpdateSubmodulesView view,
@@ -22,8 +20,8 @@ internal sealed class UpdateSubmodulesPresenter : IDisposable
         _view = view;
         _request = request;
         _gitService = gitService;
-        _dispatcher = dispatcher;
         _bus = bus;
+        _runner = new OperationRunner(dispatcher);
 
         _view.UpdateRequested += TryUpdate;
         _view.UpdateEnabled = true;
@@ -36,40 +34,30 @@ internal sealed class UpdateSubmodulesPresenter : IDisposable
 
     private void TryUpdate()
     {
-        if (_isRunning) return;
+        if (_runner.IsRunning) return;
 
-        _isRunning = true;
-        _view.UpdateEnabled = false;
-        _view.ErrorMessage = null;
-
-        var primary = _request.Primary;
-        var primaryId = primary.Id;
+        var primaryId = _request.Primary.Id;
         var target = _request.TargetSubmodule;
         var init = _view.Init;
         var recursive = _view.Recursive;
         var mode = _view.Mode;
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        var view = _view;
+
+        _view.UpdateEnabled = false;
+        _view.ErrorMessage = null;
 
         var req = new SubmoduleUpdateRequest(
             // `git submodule update -- <path>` matches against the .gitmodules path
             // (relative to the parent root); Repo.Path is absolute.
-            Paths: target is null ? null : new[] { ToRelative(primary.Path, target.Path) },
+            Paths: target is null ? null : new[] { ToRelative(_request.Primary.Path, target.Path) },
             Init: init,
             Recursive: recursive,
             Mode: mode);
 
-        Task.Run(() =>
-        {
-            SubmoduleUpdateOutcome outcome;
-            try { outcome = service.UpdateSubmodules(primary, req); }
-            catch (Exception ex) { outcome = new SubmoduleUpdateOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
+        _runner.Run(
+            () => _gitService.UpdateSubmodules(_request.Primary, req),
+            ex => new SubmoduleUpdateOutcome(false, ex.Message),
+            outcome =>
             {
-                _isRunning = false;
                 if (!outcome.Success)
                 {
                     // On a conflict we still close the dialog — the OperationStateBanner
@@ -77,20 +65,19 @@ internal sealed class UpdateSubmodulesPresenter : IDisposable
                     // user has more affordance there than inside the dialog.
                     if (outcome.HasConflicts)
                     {
-                        view.Close();
-                        bus.Broadcast(new SubmodulesChangedMessage(primaryId));
-                        bus.Broadcast(new RefsChangedMessage(primaryId));
+                        _view.Close();
+                        _bus.Broadcast(new SubmodulesChangedMessage(primaryId));
+                        _bus.Broadcast(new RefsChangedMessage(primaryId));
                         return;
                     }
-                    view.ErrorMessage = outcome.ErrorMessage ?? "Update submodules failed.";
-                    view.UpdateEnabled = true;
+                    _view.ErrorMessage = outcome.ErrorMessage ?? "Update submodules failed.";
+                    _view.UpdateEnabled = true;
                     return;
                 }
-                view.Close();
-                bus.Broadcast(new SubmodulesChangedMessage(primaryId));
-                bus.Broadcast(new RefsChangedMessage(primaryId));
+                _view.Close();
+                _bus.Broadcast(new SubmodulesChangedMessage(primaryId));
+                _bus.Broadcast(new RefsChangedMessage(primaryId));
             });
-        });
     }
 
     private static string ToRelative(string parentRoot, string submoduleAbs)

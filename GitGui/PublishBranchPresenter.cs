@@ -9,8 +9,7 @@ internal sealed class PublishBranchPresenter : IDisposable
     private readonly IGitService _gitService;
     private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
-
-    private bool _isPublishing;
+    private readonly OperationRunner _runner;
 
     public PublishBranchPresenter(
         IPublishBranchView view,
@@ -24,6 +23,7 @@ internal sealed class PublishBranchPresenter : IDisposable
         _gitService = gitService;
         _dispatcher = dispatcher;
         _bus = bus;
+        _runner = new OperationRunner(dispatcher);
 
         _view.PublishRequested += TryPublish;
         _view.PublishEnabled = false;
@@ -67,40 +67,30 @@ internal sealed class PublishBranchPresenter : IDisposable
 
     private void TryPublish()
     {
-        if (_isPublishing) return;
+        if (_runner.IsRunning) return;
         var remote = _view.SelectedRemote;
         if (string.IsNullOrEmpty(remote)) return;
 
-        _isPublishing = true;
+        var setUpstream = _view.SetUpstream;
+        var local = _request.LocalBranch;
+        var repoId = _request.Repo.Id;
+
         _view.PublishEnabled = false;
         _view.ErrorMessage = null;
 
-        var repo = _request.Repo;
-        var local = _request.LocalBranch;
-        var setUpstream = _view.SetUpstream;
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        var view = _view;
-
-        Task.Run(() =>
-        {
-            PushOutcome outcome;
-            try { outcome = service.PublishBranch(repo, local, remote, local, setUpstream); }
-            catch (Exception ex) { outcome = new PushOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
+        _runner.Run(
+            () => _gitService.PublishBranch(_request.Repo, local, remote, local, setUpstream),
+            ex => new PushOutcome(false, ex.Message),
+            outcome =>
             {
-                _isPublishing = false;
                 if (!outcome.Success)
                 {
-                    view.ErrorMessage = outcome.ErrorMessage ?? "Publish failed.";
-                    view.PublishEnabled = true;
+                    _view.ErrorMessage = outcome.ErrorMessage ?? "Publish failed.";
+                    _view.PublishEnabled = true;
                     return;
                 }
-                view.Close();
-                bus.Broadcast(new RefsChangedMessage(repo.Id));
+                _view.Close();
+                _bus.Broadcast(new RefsChangedMessage(repoId));
             });
-        });
     }
 }

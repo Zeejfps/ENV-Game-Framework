@@ -11,7 +11,6 @@ namespace GitGui;
 /// </summary>
 public sealed class UpdateSubmodulesDialog : MultiChildView, IUpdateSubmodulesView
 {
-    private const float CloseButtonSize = 28f;
     private const float DialogWidth = 480f;
 
     private readonly Action _onClose;
@@ -32,25 +31,7 @@ public sealed class UpdateSubmodulesDialog : MultiChildView, IUpdateSubmodulesVi
         PreferredWidth = DialogWidth;
         _onClose = onClose;
 
-        var title = new TextView
-        {
-            Text = target is null ? "Update all submodules" : "Update submodule",
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
+        var titleText = target is null ? "Update all submodules" : "Update submodule";
 
         var prompt = new TextView
         {
@@ -91,59 +72,30 @@ public sealed class UpdateSubmodulesDialog : MultiChildView, IUpdateSubmodulesVi
             TextWrap = TextWrap.Wrap,
         };
 
-        _errorView = new TextView
-        {
-            Text = string.Empty,
-            TextColor = 0xFFE06C75,
-            TextWrap = TextWrap.Wrap,
-        };
+        _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = 32 };
-        _updateButton = new DialogButton("Update", RaiseUpdateRequested) { PreferredHeight = 32 };
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _updateButton = new DialogButton("Update", RaiseUpdateRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
-        var buttonsRow = new FlexRowView
+        AddChildToSelf(DialogFrame.Build(titleText, onClose, new FlexColumnView
         {
-            Gap = 8,
+            Gap = 10,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexItem { Grow = 1, Child = cancelButton },
-                new FlexItem { Grow = 1, Child = _updateButton },
+                prompt,
+                _initCheckbox,
+                _recursiveCheckbox,
+                modeLabel,
+                _checkoutMode,
+                _mergeMode,
+                _rebaseMode,
+                conflictsHint,
+                _errorView,
+                new MultiChildView { PreferredHeight = 4 },
+                DialogFrame.ButtonsRow(cancelButton, _updateButton),
             },
-        };
-
-        AddChildToSelf(new RectView
-        {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
-            Children =
-            {
-                new FlexColumnView
-                {
-                    Gap = 10,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        new RectView { BackgroundColor = DialogPalette.Separator, PreferredHeight = 1 },
-                        prompt,
-                        _initCheckbox,
-                        _recursiveCheckbox,
-                        modeLabel,
-                        _checkoutMode,
-                        _mergeMode,
-                        _rebaseMode,
-                        conflictsHint,
-                        _errorView,
-                        new MultiChildView { PreferredHeight = 4 },
-                        buttonsRow,
-                    },
-                },
-            },
-        });
+        }));
 
         this.UseController(_ => new DiscardChangesKbmController(RaiseUpdateRequested, onClose));
 

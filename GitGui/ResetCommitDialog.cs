@@ -14,8 +14,6 @@ namespace GitGui;
 /// </summary>
 public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
 {
-    private const float CloseButtonSize = 28f;
-
     internal const uint SoftColor = 0xFF57F287;
     internal const uint MixedColor = 0xFFE6A85C;
     internal const uint HardColor = 0xFFED4245;
@@ -41,26 +39,6 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
 
         _onClose = onClose;
 
-        var title = new TextView
-        {
-            Text = "Reset to revision",
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
-
         var subtitle = new TextView
         {
             Text = branchName != null
@@ -82,15 +60,10 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
         _modeDropdown = new ResetModeDropdown();
         var modeRow = BuildLabeledRow("Reset type:", _modeDropdown);
 
-        _errorView = new TextView
-        {
-            Text = string.Empty,
-            TextColor = 0xFFE06C75,
-            TextWrap = TextWrap.Wrap,
-        };
+        _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = 32, PreferredWidth = 96 };
-        _resetButton = new DialogButton("Reset", RaiseResetRequested) { PreferredHeight = 32, PreferredWidth = 96 };
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
+        _resetButton = new DialogButton("Reset", RaiseResetRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
 
         var buttonsRow = new FlexRowView
         {
@@ -104,39 +77,22 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
             },
         };
 
-        AddChildToSelf(new RectView
+        AddChildToSelf(DialogFrame.Build("Reset to revision", onClose, new FlexColumnView
         {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
+            Gap = 12,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexColumnView
-                {
-                    Gap = 12,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        new RectView
-                        {
-                            BackgroundColor = DialogPalette.Separator,
-                            PreferredHeight = 1,
-                        },
-                        subtitle,
-                        dirtyHint,
-                        branchRow,
-                        moveToRow,
-                        modeRow,
-                        _errorView,
-                        new MultiChildView { PreferredHeight = 4 },
-                        buttonsRow,
-                    },
-                },
+                subtitle,
+                dirtyHint,
+                branchRow,
+                moveToRow,
+                modeRow,
+                _errorView,
+                new MultiChildView { PreferredHeight = 4 },
+                buttonsRow,
             },
-        });
+        }));
 
         this.UseController(_ => new ResetCommitKbmController(RaiseResetRequested, onClose));
 

@@ -1,4 +1,4 @@
-﻿using ZGF.Observable;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -7,10 +7,8 @@ internal sealed class CheckoutBranchPresenter : IDisposable
     private readonly CheckoutRequest _request;
     private readonly ICheckoutBranchView _view;
     private readonly IGitService _gitService;
-    private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
-
-    private bool _isCheckingOut;
+    private readonly OperationRunner _runner;
 
     public CheckoutBranchPresenter(
         ICheckoutBranchView view,
@@ -22,8 +20,8 @@ internal sealed class CheckoutBranchPresenter : IDisposable
         _view = view;
         _request = request;
         _gitService = gitService;
-        _dispatcher = dispatcher;
         _bus = bus;
+        _runner = new OperationRunner(dispatcher);
 
         _view.NameChanged += OnNameChanged;
         _view.CheckoutRequested += TryCheckout;
@@ -39,53 +37,37 @@ internal sealed class CheckoutBranchPresenter : IDisposable
 
     private void OnNameChanged()
     {
-        if (_isCheckingOut) return;
+        if (_runner.IsRunning) return;
         _view.CheckoutEnabled = _view.Name.Length > 0;
     }
 
     private void TryCheckout()
     {
-        if (_isCheckingOut) return;
+        if (_runner.IsRunning) return;
         var localName = _view.Name;
         if (localName.Length == 0) return;
 
-        _isCheckingOut = true;
+        var track = _view.Track;
+        var repoId = _request.Repo.Id;
+
         _view.CheckoutEnabled = false;
 
-        var request = _request;
-        var track = _view.Track;
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        var view = _view;
-
-        Task.Run(() =>
-        {
-            CheckoutOutcome outcome;
-            try
+        _runner.Run(
+            () => _gitService.CheckoutRemoteBranch(
+                _request.Repo, localName, _request.RemoteName, _request.RemoteBranchName, track),
+            ex => new CheckoutOutcome(false, ex.Message),
+            outcome =>
             {
-                outcome = service.CheckoutRemoteBranch(
-                    request.Repo, localName, request.RemoteName, request.RemoteBranchName, track);
-            }
-            catch (Exception ex)
-            {
-                outcome = new CheckoutOutcome(false, ex.Message);
-            }
-
-            dispatcher.Post(() =>
-            {
-                _isCheckingOut = false;
                 // Close before broadcasting: the error broadcast triggers OverlayView to
                 // swap in CheckoutErrorDialog, and a stale view.Close() afterwards would
                 // remove the brand-new error dialog instead of this one.
-                view.Close();
+                _view.Close();
                 if (outcome.Success)
-                    bus.Broadcast(new RefsChangedMessage(request.Repo.Id));
+                    _bus.Broadcast(new RefsChangedMessage(repoId));
                 else
-                    bus.Broadcast(new ShowOperationErrorMessage(
+                    _bus.Broadcast(new ShowOperationErrorMessage(
                         "Checkout failed",
                         outcome.ErrorMessage ?? "Checkout failed."));
             });
-        });
     }
 }

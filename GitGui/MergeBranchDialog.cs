@@ -7,8 +7,6 @@ namespace GitGui;
 
 public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
 {
-    private const float CloseButtonSize = 28f;
-
     private readonly Action _onClose;
     private readonly DialogButton _mergeButton;
     private readonly TextView _errorView;
@@ -22,26 +20,6 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
     {
         //PreferredWidth = 680f;
         _onClose = onClose;
-
-        var title = new TextView
-        {
-            Text = "Merge branch",
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
 
         var mergeRow = BuildLabeledRow("Merge:", BuildBranchChip(request.SourceDisplay));
         var intoRow = BuildLabeledRow("Into:", BuildBranchChip(request.TargetBranch));
@@ -69,15 +47,10 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
             Children = { _previewIcon, _previewText },
         };
 
-        _errorView = new TextView
-        {
-            Text = string.Empty,
-            TextColor = 0xFFE06C75,
-            TextWrap = TextWrap.Wrap,
-        };
+        _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = 32, PreferredWidth = 96 };
-        _mergeButton = new DialogButton("Merge", RaiseMergeRequested) { PreferredHeight = 32, PreferredWidth = 96 };
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
+        _mergeButton = new DialogButton("Merge", RaiseMergeRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
 
         var buttonsRow = new FlexRowView
         {
@@ -91,37 +64,20 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
             },
         };
 
-        AddChildToSelf(new RectView
+        AddChildToSelf(DialogFrame.Build("Merge branch", onClose, new FlexColumnView
         {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
+            Gap = 12,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexColumnView
-                {
-                    Gap = 12,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        new RectView
-                        {
-                            BackgroundColor = DialogPalette.Separator,
-                            PreferredHeight = 1,
-                        },
-                        mergeRow,
-                        intoRow,
-                        optionRow,
-                        _errorView,
-                        new MultiChildView { PreferredHeight = 4 },
-                        buttonsRow,
-                    },
-                },
+                mergeRow,
+                intoRow,
+                optionRow,
+                _errorView,
+                new MultiChildView { PreferredHeight = 4 },
+                buttonsRow,
             },
-        });
+        }));
 
         this.UseController(_ => new DiscardChangesKbmController(RaiseMergeRequested, onClose));
 

@@ -7,10 +7,8 @@ internal sealed class RemoveWorktreePresenter : IDisposable
     private readonly IRemoveWorktreeView _view;
     private readonly RemoveWorktreeRequest _request;
     private readonly IGitService _gitService;
-    private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
-
-    private bool _isRemoving;
+    private readonly OperationRunner _runner;
 
     public RemoveWorktreePresenter(
         IRemoveWorktreeView view,
@@ -22,8 +20,8 @@ internal sealed class RemoveWorktreePresenter : IDisposable
         _view = view;
         _request = request;
         _gitService = gitService;
-        _dispatcher = dispatcher;
         _bus = bus;
+        _runner = new OperationRunner(dispatcher);
 
         _view.RemoveRequested += TryRemove;
         _view.RemoveEnabled = true;
@@ -36,40 +34,29 @@ internal sealed class RemoveWorktreePresenter : IDisposable
 
     private void TryRemove()
     {
-        if (_isRemoving) return;
+        if (_runner.IsRunning) return;
 
-        _isRemoving = true;
+        var worktreePath = _request.Worktree.Path;
+        var primaryId = _request.Primary.Id;
+        var force = _view.Force;
+
         _view.RemoveEnabled = false;
         _view.ErrorMessage = null;
 
-        var primary = _request.Primary;
-        var worktreePath = _request.Worktree.Path;
-        var primaryId = primary.Id;
-        var force = _view.Force;
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        var view = _view;
-
-        Task.Run(() =>
-        {
-            WorktreeRemoveOutcome outcome;
-            try { outcome = service.RemoveWorktree(primary, worktreePath, force); }
-            catch (Exception ex) { outcome = new WorktreeRemoveOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
+        _runner.Run(
+            () => _gitService.RemoveWorktree(_request.Primary, worktreePath, force),
+            ex => new WorktreeRemoveOutcome(false, ex.Message),
+            outcome =>
             {
-                _isRemoving = false;
                 if (!outcome.Success)
                 {
-                    view.ErrorMessage = outcome.ErrorMessage ?? "Remove worktree failed.";
-                    view.RemoveEnabled = true;
+                    _view.ErrorMessage = outcome.ErrorMessage ?? "Remove worktree failed.";
+                    _view.RemoveEnabled = true;
                     return;
                 }
-                view.Close();
-                bus.Broadcast(new WorktreesChangedMessage(primaryId));
-                bus.Broadcast(new RefsChangedMessage(primaryId));
+                _view.Close();
+                _bus.Broadcast(new WorktreesChangedMessage(primaryId));
+                _bus.Broadcast(new RefsChangedMessage(primaryId));
             });
-        });
     }
 }

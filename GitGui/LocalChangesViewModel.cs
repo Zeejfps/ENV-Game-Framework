@@ -253,7 +253,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         if (paths.Count == 0) return;
         var repo = _registry.Active.Value;
         if (repo == null) return;
-        _bus.Broadcast(new ShowDiscardChangesDialogMessage(repo, paths));
+        _bus.Broadcast(new ShowDialogMessage(onClose => new DiscardChangesDialog(repo, paths, onClose)));
     }
 
     public void Commit()

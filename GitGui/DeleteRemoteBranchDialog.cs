@@ -12,8 +12,6 @@ namespace GitGui;
 /// </summary>
 public sealed class DeleteRemoteBranchDialog : MultiChildView, IDeleteRemoteBranchView
 {
-    private const float CloseButtonSize = 28f;
-
     private readonly Action _onClose;
     private readonly DialogButton _deleteButton;
     private readonly TextView _errorView;
@@ -25,26 +23,6 @@ public sealed class DeleteRemoteBranchDialog : MultiChildView, IDeleteRemoteBran
         PreferredWidth = 480f;
 
         _onClose = onClose;
-
-        var title = new TextView
-        {
-            Text = "Delete remote branch",
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
 
         var prompt = new TextView
         {
@@ -60,63 +38,24 @@ public sealed class DeleteRemoteBranchDialog : MultiChildView, IDeleteRemoteBran
             TextWrap = TextWrap.Wrap,
         };
 
-        _errorView = new TextView
-        {
-            Text = string.Empty,
-            TextColor = 0xFFE06C75,
-            TextWrap = TextWrap.Wrap,
-        };
+        _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose)
-        {
-            PreferredHeight = 32,
-        };
-        _deleteButton = new DialogButton("Delete", RaiseDeleteRequested)
-        {
-            PreferredHeight = 32,
-        };
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _deleteButton = new DialogButton("Delete", RaiseDeleteRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
-        var buttonsRow = new FlexRowView
+        AddChildToSelf(DialogFrame.Build("Delete remote branch", onClose, new FlexColumnView
         {
-            Gap = 8,
+            Gap = 12,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexItem { Grow = 1, Child = cancelButton },
-                new FlexItem { Grow = 1, Child = _deleteButton },
+                prompt,
+                hint,
+                _errorView,
+                new MultiChildView { PreferredHeight = 4 },
+                DialogFrame.ButtonsRow(cancelButton, _deleteButton),
             },
-        };
-
-        AddChildToSelf(new RectView
-        {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
-            Children =
-            {
-                new FlexColumnView
-                {
-                    Gap = 12,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        new RectView
-                        {
-                            BackgroundColor = DialogPalette.Separator,
-                            PreferredHeight = 1,
-                        },
-                        prompt,
-                        hint,
-                        _errorView,
-                        new MultiChildView { PreferredHeight = 4 },
-                        buttonsRow,
-                    },
-                },
-            },
-        });
+        }));
 
         this.UseController(_ => new DiscardChangesKbmController(RaiseDeleteRequested, onClose));
 

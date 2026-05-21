@@ -7,10 +7,8 @@ internal sealed class DeleteRemoteBranchPresenter : IDisposable
     private readonly IDeleteRemoteBranchView _view;
     private readonly DeleteRemoteBranchRequest _request;
     private readonly IGitService _gitService;
-    private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
-
-    private bool _isRunning;
+    private readonly OperationRunner _runner;
 
     public DeleteRemoteBranchPresenter(
         IDeleteRemoteBranchView view,
@@ -22,8 +20,8 @@ internal sealed class DeleteRemoteBranchPresenter : IDisposable
         _view = view;
         _request = request;
         _gitService = gitService;
-        _dispatcher = dispatcher;
         _bus = bus;
+        _runner = new OperationRunner(dispatcher);
 
         _view.DeleteRequested += OnDeleteRequested;
         _view.DeleteEnabled = true;
@@ -36,42 +34,26 @@ internal sealed class DeleteRemoteBranchPresenter : IDisposable
 
     private void OnDeleteRequested()
     {
-        if (_isRunning) return;
+        if (_runner.IsRunning) return;
 
-        _isRunning = true;
+        var repoId = _request.Repo.Id;
+
         _view.DeleteEnabled = false;
         _view.ErrorMessage = null;
 
-        var request = _request;
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        var view = _view;
-
-        Task.Run(() =>
-        {
-            DeleteRemoteBranchOutcome outcome;
-            try
+        _runner.Run(
+            () => _gitService.DeleteRemoteBranch(_request.Repo, _request.RemoteName, _request.BranchName),
+            ex => new DeleteRemoteBranchOutcome(false, ex.Message),
+            outcome =>
             {
-                outcome = service.DeleteRemoteBranch(request.Repo, request.RemoteName, request.BranchName);
-            }
-            catch (Exception ex)
-            {
-                outcome = new DeleteRemoteBranchOutcome(false, ex.Message);
-            }
-
-            dispatcher.Post(() =>
-            {
-                _isRunning = false;
                 if (!outcome.Success)
                 {
-                    view.ErrorMessage = outcome.ErrorMessage ?? "Delete failed.";
-                    view.DeleteEnabled = true;
+                    _view.ErrorMessage = outcome.ErrorMessage ?? "Delete failed.";
+                    _view.DeleteEnabled = true;
                     return;
                 }
-                view.Close();
-                bus.Broadcast(new RefsChangedMessage(request.Repo.Id));
+                _view.Close();
+                _bus.Broadcast(new RefsChangedMessage(repoId));
             });
-        });
     }
 }

@@ -13,8 +13,6 @@ namespace GitGui;
 /// </summary>
 public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
 {
-    private const float CloseButtonSize = 28f;
-
     private readonly Action _onClose;
     private readonly TextInputView _pathInput;
     private readonly CheckoutDialogKbmController _pathController;
@@ -30,26 +28,6 @@ public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
     public CreateWorktreeDialog(Repo primary, Action onClose)
     {
         _onClose = onClose;
-
-        var title = new TextView
-        {
-            Text = "New worktree",
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
 
         var pathLabel = new TextView
         {
@@ -166,60 +144,31 @@ public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
             PreferredHeight = 22,
         };
 
-        _errorView = new TextView
-        {
-            Text = string.Empty,
-            TextColor = 0xFFE06C75,
-            TextWrap = TextWrap.Wrap,
-        };
+        _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = 32 };
-        _createButton = new DialogButton("Create", RaiseCreateRequested) { PreferredHeight = 32 };
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _createButton = new DialogButton("Create", RaiseCreateRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
-        var buttonsRow = new FlexRowView
+        AddChildToSelf(DialogFrame.Build("New worktree", onClose, new FlexColumnView
         {
-            Gap = 8,
+            Gap = 10,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexItem { Grow = 1, Child = cancelButton },
-                new FlexItem { Grow = 1, Child = _createButton },
+                pathLabel,
+                pathRow,
+                startPointLabel,
+                startPointBox,
+                startPointHint,
+                branchLabel,
+                branchBox,
+                branchHint,
+                _forceCheckbox,
+                _errorView,
+                new MultiChildView { PreferredHeight = 4 },
+                DialogFrame.ButtonsRow(cancelButton, _createButton),
             },
-        };
-
-        AddChildToSelf(new RectView
-        {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
-            Children =
-            {
-                new FlexColumnView
-                {
-                    Gap = 10,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        new RectView { BackgroundColor = DialogPalette.Separator, PreferredHeight = 1 },
-                        pathLabel,
-                        pathRow,
-                        startPointLabel,
-                        startPointBox,
-                        startPointHint,
-                        branchLabel,
-                        branchBox,
-                        branchHint,
-                        _forceCheckbox,
-                        _errorView,
-                        new MultiChildView { PreferredHeight = 4 },
-                        buttonsRow,
-                    },
-                },
-            },
-        });
+        }));
 
         _pathController = new CheckoutDialogKbmController(_pathInput, RaiseCreateRequested, onClose);
         _pathInput.UseController(_ => _pathController);

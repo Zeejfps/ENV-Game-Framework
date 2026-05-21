@@ -19,13 +19,7 @@ public sealed class WorktreeRow : MultiChildView
 
         var isHovered = new State<bool>(false);
 
-        uint RowTextColor()
-        {
-            if (worktree.IsMissing) return DialogPalette.RowTextMissing;
-            return registry.Active.Value?.Id == worktree.Id
-                ? DialogPalette.RowTextActive
-                : DialogPalette.RowText;
-        }
+        uint RowTextColor() => RowChrome.RowTextColor(registry, worktree);
 
         var icon = new TextView
         {
@@ -75,21 +69,12 @@ public sealed class WorktreeRow : MultiChildView
                 }
             }
         };
-        background.BindBackgroundColor(() =>
-        {
-            var active = registry.Active.Value?.Id == worktree.Id;
-            return (isHovered.Value, active) switch
-            {
-                (_, true) => DialogPalette.RowActive,
-                (true, false) => DialogPalette.RowHover,
-                _ => DialogPalette.RowTransparent,
-            };
-        });
+        RowChrome.BindRowBackground(background, isHovered, registry, worktree.Id);
         AddChildToSelf(background);
 
-        this.UseController(ctx => new WorktreeRowController(
+        this.UseController(ctx => new NavigableRowController(
             ctx,
-            worktree,
+            worktree.Id,
             registry,
             h => isHovered.Value = h,
             _ => BuildMenuItems(worktree, registry, ctx)));
@@ -122,7 +107,7 @@ public sealed class WorktreeRow : MultiChildView
             {
                 items.Add(new RepoBarContextMenu.Item(
                     "Remove worktree…",
-                    () => bus.Broadcast(new ShowRemoveWorktreeDialogMessage(primary, worktree)),
+                    () => bus.Broadcast(new ShowDialogMessage(onClose => new RemoveWorktreeDialog(primary, worktree, onClose))),
                     LucideIcons.Trash));
             }
         }

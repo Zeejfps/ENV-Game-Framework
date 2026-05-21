@@ -9,8 +9,7 @@ internal sealed class RebaseBranchPresenter : IDisposable
     private readonly IGitService _gitService;
     private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
-
-    private bool _isRebasing;
+    private readonly OperationRunner _runner;
 
     public RebaseBranchPresenter(
         IRebaseBranchView view,
@@ -24,6 +23,7 @@ internal sealed class RebaseBranchPresenter : IDisposable
         _gitService = gitService;
         _dispatcher = dispatcher;
         _bus = bus;
+        _runner = new OperationRunner(dispatcher);
 
         _view.RebaseRequested += TryRebase;
         _view.RebaseEnabled = true;
@@ -57,39 +57,28 @@ internal sealed class RebaseBranchPresenter : IDisposable
 
     private void TryRebase()
     {
-        if (_isRebasing) return;
+        if (_runner.IsRunning) return;
 
-        _isRebasing = true;
+        var autostash = _view.Autostash;
+        var repoId = _request.Repo.Id;
+
         _view.RebaseEnabled = false;
         _view.ErrorMessage = null;
 
-        var repo = _request.Repo;
-        var targetRef = _request.TargetRef;
-        var autostash = _view.Autostash;
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        var view = _view;
-
-        Task.Run(() =>
-        {
-            RebaseOutcome outcome;
-            try { outcome = service.Rebase(repo, targetRef, autostash); }
-            catch (Exception ex) { outcome = new RebaseOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
+        _runner.Run(
+            () => _gitService.Rebase(_request.Repo, _request.TargetRef, autostash),
+            ex => new RebaseOutcome(false, ex.Message),
+            outcome =>
             {
-                _isRebasing = false;
                 if (!outcome.Success)
                 {
-                    view.ErrorMessage = outcome.ErrorMessage ?? "Rebase failed.";
-                    view.RebaseEnabled = true;
+                    _view.ErrorMessage = outcome.ErrorMessage ?? "Rebase failed.";
+                    _view.RebaseEnabled = true;
                     return;
                 }
-                view.Close();
-                bus.Broadcast(new RefsChangedMessage(repo.Id));
-                bus.Broadcast(new WorkingTreeChangedMessage(repo.Id));
+                _view.Close();
+                _bus.Broadcast(new RefsChangedMessage(repoId));
+                _bus.Broadcast(new WorkingTreeChangedMessage(repoId));
             });
-        });
     }
 }

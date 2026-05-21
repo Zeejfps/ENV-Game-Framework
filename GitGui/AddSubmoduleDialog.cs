@@ -12,8 +12,6 @@ namespace GitGui;
 /// </summary>
 public sealed class AddSubmoduleDialog : MultiChildView, IAddSubmoduleView
 {
-    private const float CloseButtonSize = 28f;
-
     private readonly Action _onClose;
     private readonly TextInputView _urlInput;
     private readonly CheckoutDialogKbmController _urlController;
@@ -30,26 +28,6 @@ public sealed class AddSubmoduleDialog : MultiChildView, IAddSubmoduleView
     {
         _onClose = onClose;
 
-        var title = new TextView
-        {
-            Text = "Add submodule",
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
-
         _urlInput = MakeTextInput();
         _pathInput = MakeTextInput();
         _branchInput = MakeTextInput();
@@ -59,60 +37,31 @@ public sealed class AddSubmoduleDialog : MultiChildView, IAddSubmoduleView
             PreferredHeight = 22,
         };
 
-        _errorView = new TextView
-        {
-            Text = string.Empty,
-            TextColor = 0xFFE06C75,
-            TextWrap = TextWrap.Wrap,
-        };
+        _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = 32 };
-        _addButton = new DialogButton("Add", RaiseAddRequested) { PreferredHeight = 32 };
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _addButton = new DialogButton("Add", RaiseAddRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
-        var buttonsRow = new FlexRowView
+        AddChildToSelf(DialogFrame.Build("Add submodule", onClose, new FlexColumnView
         {
-            Gap = 8,
+            Gap = 10,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexItem { Grow = 1, Child = cancelButton },
-                new FlexItem { Grow = 1, Child = _addButton },
+                Label("Repository URL"),
+                WrapInput(_urlInput),
+                Label("Path inside parent"),
+                WrapInput(_pathInput),
+                Hint("Where to clone the submodule, relative to the parent root."),
+                Label("Track branch (optional)"),
+                WrapInput(_branchInput),
+                Hint("Leave blank to pin to the upstream HEAD at clone time."),
+                _forceCheckbox,
+                _errorView,
+                new MultiChildView { PreferredHeight = 4 },
+                DialogFrame.ButtonsRow(cancelButton, _addButton),
             },
-        };
-
-        AddChildToSelf(new RectView
-        {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
-            Children =
-            {
-                new FlexColumnView
-                {
-                    Gap = 10,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        new RectView { BackgroundColor = DialogPalette.Separator, PreferredHeight = 1 },
-                        Label("Repository URL"),
-                        WrapInput(_urlInput),
-                        Label("Path inside parent"),
-                        WrapInput(_pathInput),
-                        Hint("Where to clone the submodule, relative to the parent root."),
-                        Label("Track branch (optional)"),
-                        WrapInput(_branchInput),
-                        Hint("Leave blank to pin to the upstream HEAD at clone time."),
-                        _forceCheckbox,
-                        _errorView,
-                        new MultiChildView { PreferredHeight = 4 },
-                        buttonsRow,
-                    },
-                },
-            },
-        });
+        }));
 
         _urlController = new CheckoutDialogKbmController(_urlInput, RaiseAddRequested, onClose);
         _urlInput.UseController(_ => _urlController);

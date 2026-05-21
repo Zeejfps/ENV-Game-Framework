@@ -11,9 +11,7 @@ namespace GitGui;
 /// </summary>
 public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
 {
-    private const float CloseButtonSize = 28f;
     private const float DialogWidth = 460f;
-    private const float DialogOuterPadding = 20f;
     private const float CodeBlockInnerPadding = 8f;
 
     private readonly string _path;
@@ -31,26 +29,6 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
         PreferredWidth = DialogWidth;
         _onClose = onClose;
         _path = worktree.Path;
-
-        var title = new TextView
-        {
-            Text = "Remove worktree",
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
 
         var prompt = new TextView
         {
@@ -102,55 +80,26 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
             PreferredHeight = 22,
         };
 
-        _errorView = new TextView
-        {
-            Text = string.Empty,
-            TextColor = 0xFFE06C75,
-            TextWrap = TextWrap.Wrap,
-        };
+        _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = 32 };
-        _removeButton = new DialogButton("Remove", RaiseRemoveRequested) { PreferredHeight = 32 };
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _removeButton = new DialogButton("Remove", RaiseRemoveRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
-        var buttonsRow = new FlexRowView
+        var dialogBody = DialogFrame.Build("Remove worktree", onClose, new FlexColumnView
         {
-            Gap = 8,
+            Gap = 12,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexItem { Grow = 1, Child = cancelButton },
-                new FlexItem { Grow = 1, Child = _removeButton },
+                prompt,
+                pathBox,
+                _forceCheckbox,
+                hint,
+                _errorView,
+                new MultiChildView { PreferredHeight = 4 },
+                DialogFrame.ButtonsRow(cancelButton, _removeButton),
             },
-        };
-
-        var dialogBody = new RectView
-        {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All((int)DialogOuterPadding),
-            Children =
-            {
-                new FlexColumnView
-                {
-                    Gap = 12,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        new RectView { BackgroundColor = DialogPalette.Separator, PreferredHeight = 1 },
-                        prompt,
-                        pathBox,
-                        _forceCheckbox,
-                        hint,
-                        _errorView,
-                        new MultiChildView { PreferredHeight = 4 },
-                        buttonsRow,
-                    },
-                },
-            },
-        };
+        });
 
         // ClippingView wraps the dialog so a child that measures too wide (e.g. a path that
         // can't be word-broken because it has no spaces) still can't draw past the dialog's
@@ -176,7 +125,7 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
         // them. Pre-wrap by inserting newlines at path-separator boundaries so the displayed
         // block stays inside the dialog's content width.
         var available = DialogWidth
-                        - 2 * DialogOuterPadding
+                        - 2 * DialogFrame.DefaultPadding
                         - 2 * CodeBlockInnerPadding
                         - 2; // account for the 1px border on each side of the code-block
         _pathTextView.Text = PathWrap.Wrap(_path, _pathTextStyle, available, context.Canvas);

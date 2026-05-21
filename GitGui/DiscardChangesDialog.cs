@@ -14,8 +14,6 @@ namespace GitGui;
 /// </summary>
 public sealed class DiscardChangesDialog : MultiChildView, IDiscardChangesView
 {
-    private const float CloseButtonSize = 28f;
-
     private readonly Action _onClose;
     private readonly DialogButton _discardButton;
     private readonly TextView _errorView;
@@ -29,25 +27,7 @@ public sealed class DiscardChangesDialog : MultiChildView, IDiscardChangesView
 
         _onClose = onClose;
 
-        var title = new TextView
-        {
-            Text = paths.Count == 1 ? "Discard change" : $"Discard {paths.Count} changes",
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
+        var title = paths.Count == 1 ? "Discard change" : $"Discard {paths.Count} changes";
 
         var prompt = new TextView
         {
@@ -90,62 +70,23 @@ public sealed class DiscardChangesDialog : MultiChildView, IDiscardChangesView
         };
         scrollHost.UsePresenter(_ => new VerticalScrollBarSyncController(scrollPane, vScrollBar));
 
-        _errorView = new TextView
-        {
-            Text = string.Empty,
-            TextColor = 0xFFE06C75,
-            TextWrap = TextWrap.Wrap,
-        };
+        _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose)
-        {
-            PreferredHeight = 32,
-        };
-        _discardButton = new DialogButton("Discard", RaiseDiscardRequested)
-        {
-            PreferredHeight = 32,
-        };
+        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _discardButton = new DialogButton("Discard", RaiseDiscardRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
-        var buttonsRow = new FlexRowView
+        AddChildToSelf(DialogFrame.Build(title, onClose, new FlexColumnView
         {
-            Gap = 8,
+            Gap = 12,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexItem { Grow = 1, Child = cancelButton },
-                new FlexItem { Grow = 1, Child = _discardButton },
+                prompt,
+                new FlexItem { Grow = 1, Child = scrollHost },
+                _errorView,
+                DialogFrame.ButtonsRow(cancelButton, _discardButton),
             },
-        };
-
-        AddChildToSelf(new RectView
-        {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
-            Children =
-            {
-                new FlexColumnView
-                {
-                    Gap = 12,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        new RectView
-                        {
-                            BackgroundColor = DialogPalette.Separator,
-                            PreferredHeight = 1,
-                        },
-                        prompt,
-                        new FlexItem { Grow = 1, Child = scrollHost },
-                        _errorView,
-                        buttonsRow,
-                    },
-                },
-            },
-        });
+        }));
 
         this.UseController(_ => new DiscardChangesKbmController(RaiseDiscardRequested, onClose));
 

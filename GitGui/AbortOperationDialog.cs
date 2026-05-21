@@ -14,8 +14,6 @@ namespace GitGui;
 /// </summary>
 public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
 {
-    private const float CloseButtonSize = 28f;
-
     private readonly Action _onClose;
     private readonly DialogButton _abortButton;
     private readonly DialogButton _cancelButton;
@@ -32,26 +30,6 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
 
         var (titleText, bodyText, confirmLabel) = CopyFor(state);
 
-        var title = new TextView
-        {
-            Text = titleText,
-            TextColor = DialogPalette.TitleText,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-
-        var headerRow = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
-            Children =
-            {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem { Grow = 1, Child = title },
-                new DialogCloseButton(onClose),
-            },
-        };
-
         var prompt = new TextView
         {
             Text = bodyText,
@@ -59,61 +37,22 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
             TextWrap = TextWrap.Wrap,
         };
 
-        _errorView = new TextView
-        {
-            Text = string.Empty,
-            TextColor = 0xFFE06C75,
-            TextWrap = TextWrap.Wrap,
-        };
+        _errorView = DialogFrame.ErrorView();
 
-        _cancelButton = new DialogButton("Cancel", onClose)
-        {
-            PreferredHeight = 32,
-        };
-        _abortButton = new DialogButton(confirmLabel, RaiseAbortRequested)
-        {
-            PreferredHeight = 32,
-        };
+        _cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _abortButton = new DialogButton(confirmLabel, RaiseAbortRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
-        var buttonsRow = new FlexRowView
+        AddChildToSelf(DialogFrame.Build(titleText, onClose, new FlexColumnView
         {
-            Gap = 8,
+            Gap = 12,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                new FlexItem { Grow = 1, Child = _cancelButton },
-                new FlexItem { Grow = 1, Child = _abortButton },
+                new FlexItem { Grow = 1, Child = prompt },
+                _errorView,
+                DialogFrame.ButtonsRow(_cancelButton, _abortButton),
             },
-        };
-
-        AddChildToSelf(new RectView
-        {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(10),
-            Padding = PaddingStyle.All(20),
-            Children =
-            {
-                new FlexColumnView
-                {
-                    Gap = 12,
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
-                    {
-                        headerRow,
-                        new RectView
-                        {
-                            BackgroundColor = DialogPalette.Separator,
-                            PreferredHeight = 1,
-                        },
-                        new FlexItem { Grow = 1, Child = prompt },
-                        _errorView,
-                        buttonsRow,
-                    },
-                },
-            },
-        });
+        }));
 
         this.UseController(_ => new AbortOperationKbmController(RaiseAbortRequested, onClose));
 

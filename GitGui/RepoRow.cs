@@ -17,13 +17,7 @@ public sealed class RepoRow : MultiChildView
 
         var isHovered = new State<bool>(false);
 
-        uint RowTextColor()
-        {
-            if (repo.IsMissing) return DialogPalette.RowTextMissing;
-            return registry.Active.Value?.Id == repo.Id
-                ? DialogPalette.RowTextActive
-                : DialogPalette.RowText;
-        }
+        uint RowTextColor() => RowChrome.RowTextColor(registry, repo);
 
         // Chevron slot is always present so primaries with and without worktrees share
         // alignment. The slot becomes interactive (and visible) only when children exist.
@@ -67,16 +61,7 @@ public sealed class RepoRow : MultiChildView
                 }
             }
         };
-        background.BindBackgroundColor(() =>
-        {
-            var active = registry.Active.Value?.Id == repo.Id;
-            return (isHovered.Value, active) switch
-            {
-                (_, true) => DialogPalette.RowActive,
-                (true, false) => DialogPalette.RowHover,
-                _ => DialogPalette.RowTransparent,
-            };
-        });
+        RowChrome.BindRowBackground(background, isHovered, registry, repo.Id);
         AddChildToSelf(background);
 
         this.UseController(ctx => new RepoRowController(
@@ -97,7 +82,7 @@ public sealed class RepoRow : MultiChildView
         {
             items.Add(new RepoBarContextMenu.Item(
                 "New worktree…",
-                () => bus.Broadcast(new ShowCreateWorktreeDialogMessage(repo)),
+                () => bus.Broadcast(new ShowDialogMessage(onClose => new CreateWorktreeDialog(repo, onClose))),
                 LucideIcons.Branch));
 
             var git = context.Get<IGitService>();
@@ -115,12 +100,12 @@ public sealed class RepoRow : MultiChildView
 
             items.Add(new RepoBarContextMenu.Item(
                 "Add submodule…",
-                () => bus.Broadcast(new ShowAddSubmoduleDialogMessage(repo)),
+                () => bus.Broadcast(new ShowDialogMessage(onClose => new AddSubmoduleDialog(repo, onClose))),
                 LucideIcons.Package));
 
             items.Add(new RepoBarContextMenu.Item(
                 "Update all submodules…",
-                () => bus.Broadcast(new ShowUpdateSubmodulesDialogMessage(repo, null)),
+                () => bus.Broadcast(new ShowDialogMessage(onClose => new UpdateSubmodulesDialog(repo, null, onClose))),
                 LucideIcons.Pull));
         }
 

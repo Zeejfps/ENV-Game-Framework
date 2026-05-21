@@ -7,10 +7,8 @@ internal sealed class CreateWorktreePresenter : IDisposable
     private readonly ICreateWorktreeView _view;
     private readonly CreateWorktreeRequest _request;
     private readonly IGitService _gitService;
-    private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
-
-    private bool _isCreating;
+    private readonly OperationRunner _runner;
 
     public CreateWorktreePresenter(
         ICreateWorktreeView view,
@@ -22,8 +20,8 @@ internal sealed class CreateWorktreePresenter : IDisposable
         _view = view;
         _request = request;
         _gitService = gitService;
-        _dispatcher = dispatcher;
         _bus = bus;
+        _runner = new OperationRunner(dispatcher);
 
         _view.InputsChanged += OnInputsChanged;
         _view.CreateRequested += TryCreate;
@@ -39,13 +37,13 @@ internal sealed class CreateWorktreePresenter : IDisposable
 
     private void OnInputsChanged()
     {
-        if (_isCreating) return;
+        if (_runner.IsRunning) return;
         _view.CreateEnabled = _view.Path.Length > 0 && _view.StartPoint.Length > 0;
     }
 
     private void TryCreate()
     {
-        if (_isCreating) return;
+        if (_runner.IsRunning) return;
 
         var path = _view.Path.Trim();
         var startPoint = _view.StartPoint.Trim();
@@ -53,17 +51,10 @@ internal sealed class CreateWorktreePresenter : IDisposable
 
         var newBranch = _view.NewBranchName.Trim();
         var force = _view.Force;
+        var primaryId = _request.Primary.Id;
 
-        _isCreating = true;
         _view.CreateEnabled = false;
         _view.ErrorMessage = null;
-
-        var primary = _request.Primary;
-        var primaryId = primary.Id;
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        var view = _view;
 
         var req = new WorktreeAddRequest(
             Path: path,
@@ -71,27 +62,22 @@ internal sealed class CreateWorktreePresenter : IDisposable
             NewBranchName: newBranch.Length > 0 ? newBranch : null,
             Force: force);
 
-        Task.Run(() =>
-        {
-            WorktreeAddOutcome outcome;
-            try { outcome = service.AddWorktree(primary, req); }
-            catch (Exception ex) { outcome = new WorktreeAddOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
+        _runner.Run(
+            () => _gitService.AddWorktree(_request.Primary, req),
+            ex => new WorktreeAddOutcome(false, ex.Message),
+            outcome =>
             {
-                _isCreating = false;
                 if (!outcome.Success)
                 {
-                    view.ErrorMessage = outcome.ErrorMessage ?? "Create worktree failed.";
-                    view.CreateEnabled = view.Path.Length > 0 && view.StartPoint.Length > 0;
+                    _view.ErrorMessage = outcome.ErrorMessage ?? "Create worktree failed.";
+                    _view.CreateEnabled = _view.Path.Length > 0 && _view.StartPoint.Length > 0;
                     return;
                 }
-                view.Close();
+                _view.Close();
                 // Trigger registry sync — the watcher will also catch the new .git/worktrees/<name>
                 // directory but firing here keeps the UI snappy without waiting for FSW debounce.
-                bus.Broadcast(new WorktreesChangedMessage(primaryId));
-                bus.Broadcast(new RefsChangedMessage(primaryId));
+                _bus.Broadcast(new WorktreesChangedMessage(primaryId));
+                _bus.Broadcast(new RefsChangedMessage(primaryId));
             });
-        });
     }
 }

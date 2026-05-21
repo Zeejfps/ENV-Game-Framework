@@ -57,7 +57,7 @@ internal sealed class OperationStateBannerPresenter : IViewBehavior, IDisposable
         var repo = _registry?.Active.Value;
         var state = _banner.CurrentState;
         if (repo == null || state == RepoOperationState.None) return;
-        _bus?.Broadcast(new ShowAbortOperationDialogMessage(repo, state));
+        _bus?.Broadcast(new ShowDialogMessage(onClose => new AbortOperationDialog(repo, state, onClose)));
     }
 
     private void OnContinueRequested()

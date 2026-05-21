@@ -21,13 +21,7 @@ public sealed class SubmoduleRow : MultiChildView
 
         var isHovered = new State<bool>(false);
 
-        uint RowTextColor()
-        {
-            if (submodule.IsMissing) return DialogPalette.RowTextMissing;
-            return registry.Active.Value?.Id == submodule.Id
-                ? DialogPalette.RowTextActive
-                : DialogPalette.RowText;
-        }
+        uint RowTextColor() => RowChrome.RowTextColor(registry, submodule);
 
         var icon = new TextView
         {
@@ -77,24 +71,19 @@ public sealed class SubmoduleRow : MultiChildView
                 }
             }
         };
-        background.BindBackgroundColor(() =>
-        {
-            var active = registry.Active.Value?.Id == submodule.Id;
-            return (isHovered.Value, active) switch
-            {
-                (_, true) => DialogPalette.RowActive,
-                (true, false) => DialogPalette.RowHover,
-                _ => DialogPalette.RowTransparent,
-            };
-        });
+        RowChrome.BindRowBackground(background, isHovered, registry, submodule.Id);
         AddChildToSelf(background);
 
-        this.UseController(ctx => new SubmoduleRowController(
+        this.UseController(ctx => new NavigableRowController(
             ctx,
-            submodule,
+            submodule.Id,
             registry,
             h => isHovered.Value = h,
-            _ => BuildMenuItems(submodule, registry, ctx)));
+            _ => BuildMenuItems(submodule, registry, ctx),
+            // A submodule that's been added but not initialized has no .git directory of its
+            // own and would render an empty BranchesView/HistoryView. Better to do nothing —
+            // the user can right-click → Update… to initialize it.
+            canActivate: () => !submodule.IsMissing));
     }
 
     private static IReadOnlyList<RepoBarContextMenu.Item> BuildMenuItems(
@@ -127,11 +116,11 @@ public sealed class SubmoduleRow : MultiChildView
             {
                 items.Add(new RepoBarContextMenu.Item(
                     "Update submodule…",
-                    () => bus.Broadcast(new ShowUpdateSubmodulesDialogMessage(primary, submodule)),
+                    () => bus.Broadcast(new ShowDialogMessage(onClose => new UpdateSubmodulesDialog(primary, submodule, onClose))),
                     LucideIcons.Pull));
                 items.Add(new RepoBarContextMenu.Item(
                     "Deinit submodule…",
-                    () => bus.Broadcast(new ShowDeinitSubmoduleDialogMessage(primary, submodule)),
+                    () => bus.Broadcast(new ShowDialogMessage(onClose => new DeinitSubmoduleDialog(primary, submodule, onClose))),
                     LucideIcons.Trash));
             }
         }

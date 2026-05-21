@@ -9,8 +9,7 @@ internal sealed class MergeBranchPresenter : IDisposable
     private readonly IGitService _gitService;
     private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
-
-    private bool _isMerging;
+    private readonly OperationRunner _runner;
 
     public MergeBranchPresenter(
         IMergeBranchView view,
@@ -24,6 +23,7 @@ internal sealed class MergeBranchPresenter : IDisposable
         _gitService = gitService;
         _dispatcher = dispatcher;
         _bus = bus;
+        _runner = new OperationRunner(dispatcher);
 
         _view.MergeRequested += TryMerge;
         _view.MergeEnabled = true;
@@ -57,39 +57,28 @@ internal sealed class MergeBranchPresenter : IDisposable
 
     private void TryMerge()
     {
-        if (_isMerging) return;
+        if (_runner.IsRunning) return;
 
-        _isMerging = true;
+        var strategy = _view.Strategy;
+        var repoId = _request.Repo.Id;
+
         _view.MergeEnabled = false;
         _view.ErrorMessage = null;
 
-        var repo = _request.Repo;
-        var sourceRef = _request.SourceRef;
-        var strategy = _view.Strategy;
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        var bus = _bus;
-        var view = _view;
-
-        Task.Run(() =>
-        {
-            MergeOutcome outcome;
-            try { outcome = service.Merge(repo, sourceRef, strategy); }
-            catch (Exception ex) { outcome = new MergeOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
+        _runner.Run(
+            () => _gitService.Merge(_request.Repo, _request.SourceRef, strategy),
+            ex => new MergeOutcome(false, ex.Message),
+            outcome =>
             {
-                _isMerging = false;
                 if (!outcome.Success)
                 {
-                    view.ErrorMessage = outcome.ErrorMessage ?? "Merge failed.";
-                    view.MergeEnabled = true;
+                    _view.ErrorMessage = outcome.ErrorMessage ?? "Merge failed.";
+                    _view.MergeEnabled = true;
                     return;
                 }
-                view.Close();
-                bus.Broadcast(new RefsChangedMessage(repo.Id));
-                bus.Broadcast(new WorkingTreeChangedMessage(repo.Id));
+                _view.Close();
+                _bus.Broadcast(new RefsChangedMessage(repoId));
+                _bus.Broadcast(new WorkingTreeChangedMessage(repoId));
             });
-        });
     }
 }
