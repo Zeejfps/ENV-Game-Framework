@@ -167,11 +167,14 @@ internal sealed class CommitsPresenter : IDisposable
             var shortSha = capturedSha.Length >= 7 ? capturedSha[..7] : capturedSha;
             var capturedStaged = staged;
             var capturedUnstaged = unstaged;
+            var capturedSummary = LookupSummary(snap, capturedSha) ?? string.Empty;
+            var capturedBranch = snap.HeadBranchName;
             dispatcher.Post(() =>
             {
                 _isCheckingOutCommit = false;
                 bus.Broadcast(new ShowResetCommitDialogMessage(
-                    capturedRepo, capturedSha, shortSha, capturedStaged, capturedUnstaged));
+                    capturedRepo, capturedSha, shortSha, capturedSummary, capturedBranch,
+                    capturedStaged, capturedUnstaged));
             });
         });
     }
@@ -268,5 +271,14 @@ internal sealed class CommitsPresenter : IDisposable
             if (snap.Commits[i].Sha == sha) return true;
         }
         return false;
+    }
+
+    private static string? LookupSummary(CommitSnapshot snap, string sha)
+    {
+        for (var i = 0; i < snap.Commits.Count; i++)
+        {
+            if (snap.Commits[i].Sha == sha) return snap.Commits[i].Summary;
+        }
+        return null;
     }
 }

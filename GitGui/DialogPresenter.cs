@@ -117,7 +117,8 @@ public sealed class DialogPresenter : IViewBehavior
 
     private void OnShowResetCommitDialog(ShowResetCommitDialogMessage m)
         => ShowDialog(new ResetCommitDialog(
-            m.Repo, m.Sha, m.ShortSha, m.StagedCount, m.UnstagedCount, OnDialogClosed));
+            m.Repo, m.Sha, m.ShortSha, m.Summary, m.BranchName,
+            m.StagedCount, m.UnstagedCount, OnDialogClosed));
 
     private void ShowDialog(View dialog)
     {
