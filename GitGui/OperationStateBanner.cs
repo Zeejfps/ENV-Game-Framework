@@ -20,9 +20,12 @@ internal sealed class OperationStateBanner
     public RepoOperationState CurrentState { get; private set; } = RepoOperationState.None;
 
     public event Action? AbortRequested;
+    public event Action? ContinueRequested;
 
     private readonly TextView _text;
     private readonly DialogButton _abortButton;
+    private readonly DialogButton _continueButton;
+    private readonly FlexRowView _row;
     private readonly MultiChildView _container;
     private readonly int _insertAt;
 
@@ -38,10 +41,27 @@ internal sealed class OperationStateBanner
             TextWrap = TextWrap.Wrap,
         };
 
+        _continueButton = new DialogButton("Continue", () => ContinueRequested?.Invoke())
+        {
+            PreferredHeight = 24,
+            PreferredWidth = 90,
+        };
+
         _abortButton = new DialogButton("Abort", () => AbortRequested?.Invoke())
         {
             PreferredHeight = 24,
             PreferredWidth = 90,
+        };
+
+        _row = new FlexRowView
+        {
+            Gap = 12,
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            Children =
+            {
+                new FlexItem { Grow = 1, Child = _text },
+                _abortButton,
+            },
         };
 
         View = new RectView
@@ -56,19 +76,7 @@ internal sealed class OperationStateBanner
                 Top = 6,
                 Bottom = 6,
             },
-            Children =
-            {
-                new FlexRowView
-                {
-                    Gap = 12,
-                    CrossAxisAlignment = CrossAxisAlignment.Center,
-                    Children =
-                    {
-                        new FlexItem { Grow = 1, Child = _text },
-                        _abortButton,
-                    },
-                },
-            },
+            Children = { _row },
         };
     }
 
@@ -84,6 +92,7 @@ internal sealed class OperationStateBanner
             }
             _text.Text = MessageFor(value);
             _abortButton.Label = ButtonLabelFor(value);
+            UpdateContinueButton(value);
             if (!_container.Children.Contains(View))
             {
                 if (_insertAt < 0) _container.Children.Add(View);
@@ -91,6 +100,26 @@ internal sealed class OperationStateBanner
             }
         }
     }
+
+    private void UpdateContinueButton(RepoOperationState state)
+    {
+        var show = SupportsContinue(state);
+        var attached = _row.Children.Contains(_continueButton);
+        if (show && !attached)
+            _row.Children.Insert(_row.Children.Count - 1, _continueButton);
+        else if (!show && attached)
+            _row.Children.Remove(_continueButton);
+    }
+
+    private static bool SupportsContinue(RepoOperationState state) => state switch
+    {
+        RepoOperationState.Merge => true,
+        RepoOperationState.Rebase => true,
+        RepoOperationState.CherryPick => true,
+        RepoOperationState.Revert => true,
+        RepoOperationState.ApplyMailbox => true,
+        _ => false,
+    };
 
     private static string MessageFor(RepoOperationState state) => state switch
     {

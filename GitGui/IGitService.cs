@@ -29,6 +29,7 @@ public interface IGitService
     DiffResult GetDiff(Repo repo, string path, DiffSide side);
     RepoOperationState GetOperationState(Repo repo);
     AbortOperationOutcome AbortOperation(Repo repo, RepoOperationState state, bool forceQuit = false);
+    ContinueOperationOutcome ContinueOperation(Repo repo, RepoOperationState state);
     IReadOnlyList<WorktreeInfo> ListWorktrees(Repo primary, out string? errorMessage);
     WorktreeAddOutcome AddWorktree(Repo primary, WorktreeAddRequest request);
     WorktreeRemoveOutcome RemoveWorktree(Repo primary, string worktreePath, bool force);
@@ -74,6 +75,11 @@ public sealed record RebaseOutcome(bool Success, string? ErrorMessage, bool HasC
 // give up on restoring HEAD and just clear the marker files. Surfaced to the dialog so it
 // can flip its confirm button to a "Force clear" action on the second click.
 public sealed record AbortOperationOutcome(bool Success, string? ErrorMessage, bool ForceQuitAvailable = false);
+
+// HasMoreConflicts is set when `git X --continue` refused because the working tree still
+// has unmerged paths — the operation banner stays up and we surface the message so the
+// user knows they have files left to resolve and stage.
+public sealed record ContinueOperationOutcome(bool Success, string? ErrorMessage, bool HasMoreConflicts = false);
 
 public enum RepoOperationState
 {

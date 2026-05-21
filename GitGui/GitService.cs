@@ -2418,6 +2418,66 @@ public sealed class GitService : IGitService
         _ => "operation",
     };
 
+    public ContinueOperationOutcome ContinueOperation(Repo repo, RepoOperationState state)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new ContinueOperationOutcome(false, "Not a git repository.");
+
+            var args = state switch
+            {
+                RepoOperationState.Merge => new[] { "merge", "--continue" },
+                RepoOperationState.Rebase => new[] { "rebase", "--continue" },
+                RepoOperationState.CherryPick => new[] { "cherry-pick", "--continue" },
+                RepoOperationState.Revert => new[] { "revert", "--continue" },
+                RepoOperationState.ApplyMailbox => new[] { "am", "--continue" },
+                _ => null,
+            };
+            if (args == null)
+                return new ContinueOperationOutcome(false,
+                    $"Continue isn't supported for {DescribeState(state)}.");
+
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                var psi = BuildGitProcessStartInfo(args, repo.Path);
+                psi.EnvironmentVariables["GIT_EDITOR"] = "true";
+                psi.EnvironmentVariables["GIT_SEQUENCE_EDITOR"] = "true";
+
+                using var proc = Process.Start(psi);
+                if (proc == null) return new ContinueOperationOutcome(false, "Failed to start git.");
+
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+
+                if (proc.ExitCode == 0) return new ContinueOperationOutcome(true, null);
+
+                bool hasMoreConflicts;
+                try
+                {
+                    using var lg = new Repository(repo.Path);
+                    hasMoreConflicts = !lg.Index.IsFullyMerged;
+                }
+                catch { hasMoreConflicts = false; }
+
+                var msg = CombineGitOutput(stderr, stdout);
+                if (string.IsNullOrEmpty(msg))
+                    msg = $"git {string.Join(' ', args)} exited with code {proc.ExitCode}.";
+                return new ContinueOperationOutcome(false, msg, HasMoreConflicts: hasMoreConflicts);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new ContinueOperationOutcome(false, ex.Message);
+        }
+    }
+
     private static CommitDetails DetailsError(Repo repo, string sha, string message)
         => new(
             RepoId: repo.Id,

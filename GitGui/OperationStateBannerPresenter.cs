@@ -24,6 +24,7 @@ internal sealed class OperationStateBannerPresenter : IViewBehavior, IDisposable
     {
         _banner = banner;
         _banner.AbortRequested += OnAbortRequested;
+        _banner.ContinueRequested += OnContinueRequested;
     }
 
     public void AttachToContext(View view, Context context)
@@ -51,6 +52,40 @@ internal sealed class OperationStateBannerPresenter : IViewBehavior, IDisposable
         var state = _banner.CurrentState;
         if (repo == null || state == RepoOperationState.None) return;
         _bus?.Broadcast(new ShowAbortOperationDialogMessage(repo, state));
+    }
+
+    private void OnContinueRequested()
+    {
+        var repo = _registry?.Active.Value;
+        var state = _banner.CurrentState;
+        var service = _gitService;
+        var dispatcher = _dispatcher;
+        var bus = _bus;
+        if (repo == null || state == RepoOperationState.None || service == null
+            || dispatcher == null || bus == null) return;
+
+        Task.Run(() =>
+        {
+            ContinueOperationOutcome outcome;
+            try { outcome = service.ContinueOperation(repo, state); }
+            catch (Exception ex) { outcome = new ContinueOperationOutcome(false, ex.Message); }
+
+            dispatcher.Post(() =>
+            {
+                if (outcome.Success)
+                {
+                    bus.Broadcast(new RefsChangedMessage(repo.Id));
+                    bus.Broadcast(new WorkingTreeChangedMessage(repo.Id));
+                    return;
+                }
+                var title = outcome.HasMoreConflicts
+                    ? "Resolve remaining conflicts"
+                    : "Continue failed";
+                bus.Broadcast(new ShowOperationErrorMessage(
+                    title,
+                    outcome.ErrorMessage ?? "Continue failed."));
+            });
+        });
     }
 
     private void Reload()
@@ -89,6 +124,7 @@ internal sealed class OperationStateBannerPresenter : IViewBehavior, IDisposable
     {
         _gen.Bump();
         _banner.AbortRequested -= OnAbortRequested;
+        _banner.ContinueRequested -= OnContinueRequested;
         _subscriptions.Dispose();
     }
 }
