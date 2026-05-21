@@ -15,6 +15,8 @@ public interface IGitService
     IReadOnlyList<FileChange> GetHeadCommitFiles(Repo repo);
     PushStatus GetPushStatus(Repo repo);
     PushOutcome Push(Repo repo);
+    PushOutcome PublishBranch(Repo repo, string localBranch, string remoteName, string remoteBranchName, bool setUpstream);
+    IReadOnlyList<string> GetRemoteNames(Repo repo);
     PullOutcome Pull(Repo repo);
     FetchOutcome Fetch(Repo repo);
     CheckoutOutcome CheckoutLocalBranch(Repo repo, string branchName);

@@ -196,14 +196,12 @@ internal sealed class ActionsToolbarPresenter : IDisposable
     private void UpdateSyncButtons()
     {
         var hasBranchUpstream = !_pushStatus.IsDetached && _pushStatus.HasUpstream;
-        _view.PushEnabled = !_isPushing && hasBranchUpstream && _pushStatus.Ahead > 0;
+        var canPublish = !_pushStatus.IsDetached && !_pushStatus.HasUpstream
+            && !string.IsNullOrEmpty(_pushStatus.CurrentBranchName);
+        _view.PushEnabled = !_isPushing && ((hasBranchUpstream && _pushStatus.Ahead > 0) || canPublish);
         _view.PullEnabled = !_isPulling && hasBranchUpstream && _pushStatus.Behind > 0;
         _view.FetchEnabled = !_isFetching && _registry.Active.Value != null;
 
-        // Badges follow Ahead/Behind directly — the buttons themselves are still gated by
-        // hasBranchUpstream above, so a disabled button with a non-zero badge can't
-        // actually happen. Spinners suppress the count while an action is in flight so the
-        // user isn't staring at a "3" that hasn't been recomputed since the push started.
         _view.PushBadge = _isPushing ? null : (hasBranchUpstream ? _pushStatus.Ahead : 0);
         _view.PullBadge = _isPulling ? null : (hasBranchUpstream ? _pushStatus.Behind : 0);
 
@@ -236,6 +234,14 @@ internal sealed class ActionsToolbarPresenter : IDisposable
         if (repo == null) return;
         if (_isPushing) return;
 
+        if (!_pushStatus.IsDetached
+            && !_pushStatus.HasUpstream
+            && !string.IsNullOrEmpty(_pushStatus.CurrentBranchName))
+        {
+            _bus.Broadcast(new ShowPublishBranchDialogMessage(repo, _pushStatus.CurrentBranchName!));
+            return;
+        }
+
         _isPushing = true;
         UpdateSyncButtons();
         _view.Error = null;
@@ -262,8 +268,6 @@ internal sealed class ActionsToolbarPresenter : IDisposable
                     return;
                 }
 
-                // Broadcast also re-runs ReloadPushStatus via our own subscription, so we
-                // don't call it directly here.
                 bus.Broadcast(new RefsChangedMessage(repo.Id));
             });
         });

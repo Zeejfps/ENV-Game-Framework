@@ -29,6 +29,7 @@ public sealed class DialogPresenter : IViewBehavior
         _messageBus?.Subscribe<ShowRemoveWorktreeDialogMessage>(OnShowRemoveWorktreeDialog);
         _messageBus?.Subscribe<ShowMergeBranchDialogMessage>(OnShowMergeBranchDialog);
         _messageBus?.Subscribe<ShowRebaseBranchDialogMessage>(OnShowRebaseBranchDialog);
+        _messageBus?.Subscribe<ShowPublishBranchDialogMessage>(OnShowPublishBranchDialog);
     }
 
     public void DetachFromContext(View view, Context context)
@@ -90,6 +91,11 @@ public sealed class DialogPresenter : IViewBehavior
     private void OnShowRebaseBranchDialog(ShowRebaseBranchDialogMessage m)
         => ShowDialog(new RebaseBranchDialog(
             new RebaseBranchRequest(m.Repo, m.SourceBranch, m.TargetRef, m.TargetDisplay),
+            OnDialogClosed));
+
+    private void OnShowPublishBranchDialog(ShowPublishBranchDialogMessage m)
+        => ShowDialog(new PublishBranchDialog(
+            new PublishBranchRequest(m.Repo, m.LocalBranch),
             OnDialogClosed));
 
     private void ShowDialog(View dialog)

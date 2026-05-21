@@ -842,6 +842,73 @@ public sealed class GitService : IGitService
         }
     }
 
+    public PushOutcome PublishBranch(Repo repo, string localBranch, string remoteName, string remoteBranchName, bool setUpstream)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path))
+                return new PushOutcome(false, "Not a git repository.");
+            if (string.IsNullOrWhiteSpace(localBranch))
+                return new PushOutcome(false, "Local branch is required.");
+            if (string.IsNullOrWhiteSpace(remoteName))
+                return new PushOutcome(false, "Remote is required.");
+            if (string.IsNullOrWhiteSpace(remoteBranchName))
+                return new PushOutcome(false, "Remote branch name is required.");
+
+            var args = new List<string> { "push" };
+            if (setUpstream) args.Add("--set-upstream");
+            args.Add(remoteName);
+            args.Add($"{localBranch}:{remoteBranchName}");
+
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                var psi = BuildGitProcessStartInfo(args, repo.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new PushOutcome(false, "Failed to start git.");
+
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+
+                if (proc.ExitCode == 0) return new PushOutcome(true, null);
+                var combined = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
+                var msg = FirstMeaningfulLine(combined);
+                if (string.IsNullOrEmpty(msg)) msg = $"git push exited with code {proc.ExitCode}.";
+                return new PushOutcome(false, msg);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new PushOutcome(false, ex.Message);
+        }
+    }
+
+    public IReadOnlyList<string> GetRemoteNames(Repo repo)
+    {
+        try
+        {
+            if (!Repository.IsValid(repo.Path)) return Array.Empty<string>();
+            var output = RunGit(repo.Path, out _, "remote");
+            if (string.IsNullOrEmpty(output)) return Array.Empty<string>();
+            var list = new List<string>();
+            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var name = line.Trim();
+                if (name.Length > 0) list.Add(name);
+            }
+            return list;
+        }
+        catch
+        {
+            return Array.Empty<string>();
+        }
+    }
+
     public PullOutcome Pull(Repo repo)
     {
         try
