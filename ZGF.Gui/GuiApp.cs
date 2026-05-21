@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+using GLFW;
 using ZGF.AppUtils;
 using ZGF.Core;
 using ZGF.Fonts;
@@ -79,6 +81,35 @@ public sealed class GuiApp : IDisposable
         if (scaled <= 0) scaled = pixelSize;
         var handle = _fontBackend.LoadFontFromFile(PathUtils.ResolveLocalPath(path), scaled);
         _canvas.RegisterFont(family, handle);
+    }
+
+    public void SetIcon(string rgbaPath)
+    {
+        var bytes = File.ReadAllBytes(PathUtils.ResolveLocalPath(rgbaPath));
+        var count = BitConverter.ToInt32(bytes, 0);
+        var images = new Image[count];
+        var handles = new GCHandle[count];
+        var offset = 4;
+        try
+        {
+            for (var i = 0; i < count; i++)
+            {
+                var w = BitConverter.ToInt32(bytes, offset); offset += 4;
+                var h = BitConverter.ToInt32(bytes, offset); offset += 4;
+                var len = w * h * 4;
+                var pixels = new byte[len];
+                Buffer.BlockCopy(bytes, offset, pixels, 0, len);
+                offset += len;
+                handles[i] = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+                images[i] = new Image(w, h, handles[i].AddrOfPinnedObject());
+            }
+            Glfw.SetWindowIcon(new Window(_window.WindowHandle), count, images);
+        }
+        finally
+        {
+            foreach (var h in handles)
+                if (h.IsAllocated) h.Free();
+        }
     }
 
     public void Run() => _window.Run();

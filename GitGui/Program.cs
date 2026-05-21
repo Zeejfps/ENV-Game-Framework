@@ -46,6 +46,9 @@ var appHost = GuiApp.CreateDefault(new StartupConfig
 appHost.RegisterFont(LucideIcons.FontFamily, "Assets/Fonts/Lucide/Lucide.ttf", 16);
 appHost.RegisterFont(DiffOptions.MonoFontFamily, "Assets/Fonts/JetBrainsMono/JetBrainsMono-Regular.ttf", 13);
 
+if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    appHost.SetIcon("Assets/commit_bench_icon.rgba");
+
 // IUiDispatcher is registered by GuiApp.CreateDefault, so the watcher service can
 // only be constructed after appHost is built.
 using var repoWatchers = new RepoWatcherService(

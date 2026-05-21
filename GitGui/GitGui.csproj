@@ -7,6 +7,7 @@
         <Nullable>enable</Nullable>
         <PublishAot>true</PublishAot>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <ApplicationIcon>Assets\commit_bench_icon.ico</ApplicationIcon>
     </PropertyGroup>
 
     <ItemGroup>
@@ -18,6 +19,9 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="Assets\Fonts\JetBrainsMono\JetBrainsMono-Regular.ttf">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="Assets\commit_bench_icon.rgba">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
