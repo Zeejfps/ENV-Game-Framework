@@ -823,6 +823,27 @@ public sealed class GitService : IGitService
         return new HeadInfo(branchName, IsDetached: false, HasUpstream: true, Ahead: ahead, Behind: behind);
     }
 
+    // `git rev-parse --git-dir` returns the per-worktree gitdir (the worktree's own
+    // .git/worktrees/<name>/ for secondary worktrees, the main .git/ otherwise), which
+    // is the same thing libgit2's Repository.Info.Path gave us. Returns null on failure
+    // so callers can decide whether that's a problem or just means "no in-progress op".
+    private static string? GetGitDir(string repoPath)
+    {
+        var output = RunGit(repoPath, out _, "rev-parse", "--git-dir");
+        if (string.IsNullOrWhiteSpace(output)) return null;
+        var dir = output.Trim();
+        if (!Path.IsPathRooted(dir)) dir = Path.GetFullPath(Path.Combine(repoPath, dir));
+        return dir;
+    }
+
+    // `git ls-files --unmerged` prints stage-2/stage-3 entries — one line per unmerged
+    // path. Empty output means the index is fully merged.
+    private static bool HasUnmergedPaths(string repoPath)
+    {
+        var output = RunGit(repoPath, out _, "ls-files", "--unmerged");
+        return !string.IsNullOrWhiteSpace(output);
+    }
+
     public PushStatus GetPushStatus(Repo repo)
     {
         try
@@ -1290,16 +1311,15 @@ public sealed class GitService : IGitService
 
                 if (proc.ExitCode == 0) return new MergeOutcome(true, null);
 
-                // Conflict path: MERGE_HEAD exists in the per-worktree gitdir. Use libgit2
-                // for the gitdir lookup since it already handles worktree-vs-primary.
+                // Conflict path: MERGE_HEAD exists in the per-worktree gitdir.
                 // --squash and --ff-only never create MERGE_HEAD, so failures there are
                 // always real errors.
                 if (strategy != MergeStrategy.Squash && strategy != MergeStrategy.FastForwardOnly)
                 {
                     try
                     {
-                        using var lg = new Repository(repo.Path);
-                        if (File.Exists(Path.Combine(lg.Info.Path, "MERGE_HEAD")))
+                        var gitDir = GetGitDir(repo.Path);
+                        if (gitDir != null && File.Exists(Path.Combine(gitDir, "MERGE_HEAD")))
                             return new MergeOutcome(true, null, HasConflicts: true);
                     }
                     catch { /* fall through to error */ }
@@ -1401,10 +1421,10 @@ public sealed class GitService : IGitService
                 // through resolve/continue/abort.
                 try
                 {
-                    using var lg = new Repository(repo.Path);
-                    var gitDir = lg.Info.Path;
-                    if (Directory.Exists(Path.Combine(gitDir, "rebase-apply"))
-                        || Directory.Exists(Path.Combine(gitDir, "rebase-merge")))
+                    var gitDir = GetGitDir(repo.Path);
+                    if (gitDir != null
+                        && (Directory.Exists(Path.Combine(gitDir, "rebase-apply"))
+                            || Directory.Exists(Path.Combine(gitDir, "rebase-merge"))))
                     {
                         return new RebaseOutcome(true, null, HasConflicts: true);
                     }
@@ -1544,9 +1564,7 @@ public sealed class GitService : IGitService
                 // apply check can't distinguish "this apply produced conflicts" from
                 // "those leftover conflicts are still there" and we'd silently swallow
                 // the real failure ("untracked file would be overwritten", etc).
-                bool wasFullyMerged;
-                using (var lgBefore = new Repository(repo.Path))
-                    wasFullyMerged = lgBefore.Index.IsFullyMerged;
+                var wasFullyMerged = !HasUnmergedPaths(repo.Path);
 
                 var outcome = RunGitStash(repo.Path, args, "git stash apply");
                 if (outcome.Success) return outcome;
@@ -1557,12 +1575,8 @@ public sealed class GitService : IGitService
                 // that as success-with-conflicts so the caller can refresh and show the
                 // banner instead of an error dialog. Gate on wasFullyMerged so a real
                 // failure on a repo that already had conflicts still surfaces its error.
-                if (wasFullyMerged)
-                {
-                    using var lgAfter = new Repository(repo.Path);
-                    if (!lgAfter.Index.IsFullyMerged)
-                        return new StashOutcome(true, null, HasConflicts: true);
-                }
+                if (wasFullyMerged && HasUnmergedPaths(repo.Path))
+                    return new StashOutcome(true, null, HasConflicts: true);
                 return outcome;
             }
             finally { sem.Release(); }
@@ -2710,16 +2724,11 @@ public sealed class GitService : IGitService
         try
         {
             if (!IsGitRepo(repo.Path)) return RepoOperationState.None;
-            string gitDir;
-            bool hasConflicts;
-            using (var lg = new Repository(repo.Path))
-            {
-                gitDir = lg.Info.Path;
-                // IsFullyMerged is the cheapest probe — single read of the index header's
-                // unmerged-entries count. Captured here so we don't have to re-open the
-                // repo if the sentinel-file checks come back empty.
-                hasConflicts = !lg.Index.IsFullyMerged;
-            }
+            var gitDir = GetGitDir(repo.Path);
+            if (gitDir == null) return RepoOperationState.None;
+            // Defer the unmerged-paths probe until after the sentinel checks: a real
+            // in-progress op (rebase, merge, etc.) returns before we need it, so the
+            // ls-files call only fires on the fallback path.
 
             // Order matters only for AM-vs-Rebase: `git am` uses rebase-apply/ too, but adds
             // an `applying` marker. Check the marker before falling through to plain rebase.
@@ -2739,7 +2748,7 @@ public sealed class GitService : IGitService
             // `git stash apply` that conflicted, or a `checkout -m` / `read-tree -m` left
             // partway. Fall back to a generic banner so the user isn't left wondering
             // why their working tree is full of conflict markers.
-            return hasConflicts ? RepoOperationState.UnmergedPaths : RepoOperationState.None;
+            return HasUnmergedPaths(repo.Path) ? RepoOperationState.UnmergedPaths : RepoOperationState.None;
         }
         catch
         {
@@ -2882,9 +2891,8 @@ public sealed class GitService : IGitService
     {
         try
         {
-            string gitDir;
-            using (var lg = new Repository(repo.Path))
-                gitDir = lg.Info.Path;
+            var gitDir = GetGitDir(repo.Path);
+            if (gitDir == null) return "Couldn't locate the repository's gitdir.";
 
             switch (state)
             {
@@ -2983,11 +2991,7 @@ public sealed class GitService : IGitService
                 if (proc.ExitCode == 0) return new ContinueOperationOutcome(true, null);
 
                 bool hasMoreConflicts;
-                try
-                {
-                    using var lg = new Repository(repo.Path);
-                    hasMoreConflicts = !lg.Index.IsFullyMerged;
-                }
+                try { hasMoreConflicts = HasUnmergedPaths(repo.Path); }
                 catch { hasMoreConflicts = false; }
 
                 var msg = CombineGitOutput(stderr, stdout);
