@@ -30,6 +30,12 @@ internal static class DialogPalette
     public const uint RowTextMissing = 0x80B5B9C0;
     public const uint SectionHeaderText = Theme.TextHeader;
 
+    // Icon-only accents for child rows nested under a primary in the RepoBar. The icon
+    // stays tinted regardless of hover/active so it remains a stable "what kind of row
+    // is this" identifier; the label still tracks the active/missing palette.
+    public const uint IconAccentWorktree = 0xFF5DADE2;
+    public const uint IconAccentSubmodule = 0xFFB57EDC;
+
     public static void BindBorderedButtonChrome(RectView background, IReadable<bool> isHovered)
     {
         background.BindBackgroundColor(isHovered, h => h ? ButtonHover : ButtonNormal);

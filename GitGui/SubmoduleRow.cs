@@ -37,7 +37,12 @@ public sealed class SubmoduleRow : MultiChildView
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        icon.BindTextColor(RowTextColor);
+        // Tinted purple so the sidebar tells submodule apart from primary / worktree
+        // without leaning on a header row. Matches the StatusSubmodule badge used for
+        // pointer-change rows in CommitDetails so the visual language stays consistent.
+        icon.BindTextColor(() => submodule.IsMissing
+            ? DialogPalette.RowTextMissing
+            : DialogPalette.IconAccentSubmodule);
 
         _label = new TextView
         {

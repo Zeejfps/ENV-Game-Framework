@@ -36,7 +36,11 @@ public sealed class WorktreeRow : MultiChildView
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        icon.BindTextColor(RowTextColor);
+        // Tinted by kind so the sidebar tells worktree apart from primary / submodule
+        // without leaning on a header row. Missing rows mute the accent to match the label.
+        icon.BindTextColor(() => worktree.IsMissing
+            ? DialogPalette.RowTextMissing
+            : DialogPalette.IconAccentWorktree);
 
         _label = new TextView
         {
