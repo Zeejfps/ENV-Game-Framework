@@ -175,13 +175,36 @@ internal sealed class RepoWatcher : IDisposable
             return;
         }
 
-        // .git/modules/<name>/ holds each submodule's own gitdir. Changes here mean the
-        // user (or a `git submodule update`) moved a submodule's HEAD or added/removed
-        // an embedded clone. Re-run submodule discovery so drift state stays current.
-        if (gitRelativePath.StartsWith("modules/", StringComparison.Ordinal)
-            || gitRelativePath.Equals("modules", StringComparison.Ordinal))
+        // .git/modules/<name>/ holds each submodule's own gitdir. Same feedback-loop trap
+        // as `.git/index`: read-only commands like `git submodule status` (called from
+        // ListSubmodules during every LocalChanges load) write to each submodule's index
+        // stat cache, which lives at .git/modules/<name>/index — broadcasting on those
+        // events loops indefinitely as the listener re-runs status. Only trigger on the
+        // ref-equivalent files; index / logs / objects are silently ignored.
+        if (gitRelativePath.Equals("modules", StringComparison.Ordinal))
         {
+            // modules/ directory itself created / deleted — submodule added or all removed.
             ScheduleSubmodules();
+            return;
+        }
+        if (gitRelativePath.StartsWith("modules/", StringComparison.Ordinal))
+        {
+            var afterModules = gitRelativePath.Substring("modules/".Length);
+            var nextSlash = afterModules.IndexOf('/');
+            if (nextSlash < 0)
+            {
+                // modules/<name> directory itself created / deleted — a specific submodule
+                // was added or deinit'd.
+                ScheduleSubmodules();
+                return;
+            }
+            var perSubmodule = afterModules.Substring(nextSlash + 1);
+            if (perSubmodule.Equals("HEAD", StringComparison.Ordinal)
+                || perSubmodule.Equals("packed-refs", StringComparison.Ordinal)
+                || perSubmodule.StartsWith("refs/", StringComparison.Ordinal))
+            {
+                ScheduleSubmodules();
+            }
             return;
         }
         // .git/objects/**, .git/logs/**, .git/lfs/**, .git/hooks/**, .git/index — ignored.
