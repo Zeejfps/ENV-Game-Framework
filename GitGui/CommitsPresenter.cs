@@ -86,6 +86,11 @@ internal sealed class CommitsPresenter : IDisposable
         _bus.Broadcast(new CommitSelectedMessage(_snapshot.RepoId, sha));
     }
 
+    // Smart flow for "Reset <branch> to here":
+    //   - Probe the working tree off-thread.
+    //   - Clean tree → reset --hard immediately (no prompt; nothing local to lose).
+    //   - Any staged/unstaged change → open ResetCommitDialog so the user picks
+    //     soft/mixed/hard explicitly (each preserves a different slice of the dirty state).
     private void OnCheckoutCommitRequested(string sha)
     {
         if (_isCheckingOutCommit) return;
@@ -103,19 +108,70 @@ internal sealed class CommitsPresenter : IDisposable
 
         Task.Run(() =>
         {
-            CheckoutOutcome outcome;
-            try { outcome = service.CheckoutCommit(capturedRepo, capturedSha); }
-            catch (Exception ex) { outcome = new CheckoutOutcome(false, ex.Message); }
+            int staged = 0;
+            int unstaged = 0;
+            string? probeError = null;
+            try
+            {
+                var changes = service.GetLocalChanges(capturedRepo);
+                if (changes.ErrorMessage != null)
+                {
+                    probeError = changes.ErrorMessage;
+                }
+                else
+                {
+                    staged = changes.Staged.Count;
+                    unstaged = changes.Unstaged.Count;
+                }
+            }
+            catch (Exception ex)
+            {
+                probeError = ex.Message;
+            }
 
+            if (probeError != null)
+            {
+                dispatcher.Post(() =>
+                {
+                    _isCheckingOutCommit = false;
+                    bus.Broadcast(new ShowOperationErrorMessage("Reset failed", probeError));
+                });
+                return;
+            }
+
+            var clean = staged == 0 && unstaged == 0;
+            if (clean)
+            {
+                ResetOutcome outcome;
+                try { outcome = service.ResetCurrent(capturedRepo, capturedSha, ResetMode.Hard); }
+                catch (Exception ex) { outcome = new ResetOutcome(false, ex.Message); }
+
+                dispatcher.Post(() =>
+                {
+                    _isCheckingOutCommit = false;
+                    if (outcome.Success)
+                    {
+                        bus.Broadcast(new RefsChangedMessage(capturedRepo.Id));
+                        bus.Broadcast(new WorkingTreeChangedMessage(capturedRepo.Id));
+                    }
+                    else
+                    {
+                        bus.Broadcast(new ShowOperationErrorMessage(
+                            "Reset failed",
+                            outcome.ErrorMessage ?? "Reset failed."));
+                    }
+                });
+                return;
+            }
+
+            var shortSha = capturedSha.Length >= 7 ? capturedSha[..7] : capturedSha;
+            var capturedStaged = staged;
+            var capturedUnstaged = unstaged;
             dispatcher.Post(() =>
             {
                 _isCheckingOutCommit = false;
-                if (outcome.Success)
-                    bus.Broadcast(new RefsChangedMessage(capturedRepo.Id));
-                else
-                    bus.Broadcast(new ShowOperationErrorMessage(
-                        "Checkout failed",
-                        outcome.ErrorMessage ?? "Checkout failed."));
+                bus.Broadcast(new ShowResetCommitDialogMessage(
+                    capturedRepo, capturedSha, shortSha, capturedStaged, capturedUnstaged));
             });
         });
     }

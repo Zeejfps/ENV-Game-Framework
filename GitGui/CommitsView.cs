@@ -756,10 +756,12 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     private IReadOnlyList<RepoBarContextMenu.Item> BuildCommitMenuItems(string sha)
     {
         var capturedSha = sha;
+        var head = _snapshot?.HeadBranchName;
+        var label = head != null ? $"Reset {head} to here" : "Reset to this commit";
         return new[]
         {
             new RepoBarContextMenu.Item(
-                "Checkout commit",
+                label,
                 () => CheckoutCommitRequested?.Invoke(capturedSha),
                 LucideIcons.Branch),
         };

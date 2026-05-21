@@ -34,6 +34,7 @@ public sealed class DialogPresenter : IViewBehavior
         _messageBus?.Subscribe<ShowAddSubmoduleDialogMessage>(OnShowAddSubmoduleDialog);
         _messageBus?.Subscribe<ShowUpdateSubmodulesDialogMessage>(OnShowUpdateSubmodulesDialog);
         _messageBus?.Subscribe<ShowDeinitSubmoduleDialogMessage>(OnShowDeinitSubmoduleDialog);
+        _messageBus?.Subscribe<ShowResetCommitDialogMessage>(OnShowResetCommitDialog);
     }
 
     public void DetachFromContext(View view, Context context)
@@ -113,6 +114,10 @@ public sealed class DialogPresenter : IViewBehavior
 
     private void OnShowDeinitSubmoduleDialog(ShowDeinitSubmoduleDialogMessage m)
         => ShowDialog(new DeinitSubmoduleDialog(m.Primary, m.Submodule, OnDialogClosed));
+
+    private void OnShowResetCommitDialog(ShowResetCommitDialogMessage m)
+        => ShowDialog(new ResetCommitDialog(
+            m.Repo, m.Sha, m.ShortSha, m.StagedCount, m.UnstagedCount, OnDialogClosed));
 
     private void ShowDialog(View dialog)
     {

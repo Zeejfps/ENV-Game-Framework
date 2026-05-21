@@ -127,7 +127,8 @@ public sealed class GitService : IGitService
                     Refs: badges ?? (IReadOnlyList<RefBadge>)Array.Empty<RefBadge>());
             }
 
-            return new CommitSnapshot(repo.Id, repo.Path, nodes, laneCount, truncated, null);
+            var headBranchName = lg.Info.IsHeadDetached ? null : lg.Head?.FriendlyName;
+            return new CommitSnapshot(repo.Id, repo.Path, nodes, laneCount, truncated, null, headBranchName);
         }
         catch (Exception ex)
         {
@@ -1001,21 +1002,44 @@ public sealed class GitService : IGitService
         }
     }
 
-    public CheckoutOutcome CheckoutCommit(Repo repo, string commitSha)
+    public ResetOutcome ResetCurrent(Repo repo, string commitSha, ResetMode mode)
     {
         try
         {
             if (!Repository.IsValid(repo.Path))
-                return new CheckoutOutcome(false, "Not a git repository.");
+                return new ResetOutcome(false, "Not a git repository.");
+
+            var flag = mode switch
+            {
+                ResetMode.Soft => "--soft",
+                ResetMode.Mixed => "--mixed",
+                ResetMode.Hard => "--hard",
+                _ => "--mixed",
+            };
 
             var sem = GetRepoLock(repo.Path);
             sem.Wait();
-            try { return RunGitCheckout(repo.Path, new[] { "checkout", commitSha }); }
+            try
+            {
+                var psi = BuildGitProcessStartInfo(new[] { "reset", flag, commitSha }, repo.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new ResetOutcome(false, "Failed to start git.");
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stdout = stdoutTask.Result;
+                var stderr = stderrTask.Result;
+                if (proc.ExitCode == 0) return new ResetOutcome(true, null);
+                var combined = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
+                var msg = FirstMeaningfulLine(combined);
+                if (string.IsNullOrEmpty(msg)) msg = $"git reset exited with code {proc.ExitCode}.";
+                return new ResetOutcome(false, msg);
+            }
             finally { sem.Release(); }
         }
         catch (Exception ex)
         {
-            return new CheckoutOutcome(false, ex.Message);
+            return new ResetOutcome(false, ex.Message);
         }
     }
 

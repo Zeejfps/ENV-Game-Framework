@@ -21,7 +21,7 @@ public interface IGitService
     FetchOutcome Fetch(Repo repo);
     CheckoutOutcome CheckoutLocalBranch(Repo repo, string branchName);
     CheckoutOutcome CheckoutRemoteBranch(Repo repo, string localName, string remoteName, string remoteBranchName, bool track);
-    CheckoutOutcome CheckoutCommit(Repo repo, string commitSha);
+    ResetOutcome ResetCurrent(Repo repo, string commitSha, ResetMode mode);
     CreateBranchOutcome CreateBranch(Repo repo, string name, string startPoint, bool checkout);
     RenameBranchOutcome RenameBranch(Repo repo, string oldName, string newName, bool force);
     DeleteBranchOutcome DeleteBranch(Repo repo, string name, bool force);
@@ -121,6 +121,15 @@ public sealed record PullOutcome(bool Success, string? ErrorMessage);
 public sealed record FetchOutcome(bool Success, string? ErrorMessage);
 
 public sealed record CheckoutOutcome(bool Success, string? ErrorMessage);
+
+public enum ResetMode
+{
+    Soft,
+    Mixed,
+    Hard,
+}
+
+public sealed record ResetOutcome(bool Success, string? ErrorMessage);
 
 public sealed record CreateBranchOutcome(bool Success, string? ErrorMessage);
 
