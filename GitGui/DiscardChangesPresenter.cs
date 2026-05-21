@@ -71,7 +71,7 @@ internal sealed class DiscardChangesPresenter : IDisposable
                     return;
                 }
                 view.Close();
-                bus.Broadcast(new RefsChangedMessage(request.Repo.Id));
+                bus.Broadcast(new WorkingTreeChangedMessage(request.Repo.Id));
             });
         });
     }

@@ -117,12 +117,7 @@ internal sealed class LocalChangesContentView : MultiChildView
     public void Bind(LocalChangesViewModel vm)
     {
         _vm = vm;
-
-        // Placeholder fires before the list states (the VM mutates them in that order on
-        // a snapshot transition), so the snapshot container is re-attached before the
-        // panels receive their new files — important because SelectableFileRowView
-        // construction inside a detached parent leaves the rows un-attached and they
-        // render blank when the container later returns.
+        
         vm.Placeholder.Subscribe(text =>
         {
             if (text != null) ShowPlaceholder(text);
@@ -130,17 +125,7 @@ internal sealed class LocalChangesContentView : MultiChildView
         });
         vm.Unstaged.Subscribe(list => _unstagedPanel.SetFiles(list));
         vm.Staged.Subscribe(list => _stagedPanel.SetFiles(list));
-
-        // Mirror the VM's selection into the view's State so the rows (already bound at
-        // construction time) re-render reactively. Same Selection instance, just routed
-        // through a State so we don't have to construct the panels lazily.
         vm.Selection.Subscribe(sel => _selection.Value = sel);
-
-        // Diff view target follows the single-selection slice. Multi-select and empty
-        // selection both yield null, which hides the diff pane below. A user toggle on
-        // the diff header (DiffView.IsCollapsed) overlays this: when collapsed, the diff
-        // panel stays mounted at its header height across selection changes so the
-        // chevron stays clickable — the bottom is "visible" but pinned to header height.
         vm.SelectedTarget.Subscribe(target =>
         {
             _diffView.SetTarget(target?.Path, target?.Side ?? DiffSide.Unstaged);
@@ -174,8 +159,6 @@ internal sealed class LocalChangesContentView : MultiChildView
 
     private void AttachSnapshot()
     {
-        // Re-attach the snapshot container BEFORE the panel SetFiles calls fire (see
-        // Bind's ordering comment).
         _centerContainer.Children.Clear();
         _centerContainer.Children.Add(_snapshotContainer);
     }
@@ -183,11 +166,6 @@ internal sealed class LocalChangesContentView : MultiChildView
     private View BuildContentRow()
     {
         var divider = new RectView { PreferredWidth = 1, BackgroundColor = CommitsPalette.Border };
-
-        // Custom layout instead of FlexRowView: with flex, each panel's content's natural
-        // width (long file paths in unstaged, short placeholder in staged) leaks into the
-        // distribution and the panels end up unequal. Here we measure only the center
-        // divider and split the remainder strictly in half.
         return new TransferListRow(_unstagedPanel, divider, _stagedPanel);
     }
 

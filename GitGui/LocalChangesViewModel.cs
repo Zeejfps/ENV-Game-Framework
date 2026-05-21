@@ -41,15 +41,9 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
 
     private readonly SpinnerAnimation _commitSpinner;
 
-    // _stagedFromIndex is whatever GetLocalChanges last returned; the amend-only
-    // bookkeeping (HEAD files, pre-amend editor backups) lives on _amend, which is
-    // non-null exactly when the user is amending.
+
     private IReadOnlyList<FileChange> _stagedFromIndex = Empty;
     private AmendSession? _amend;
-
-    // Tracks which repo we last loaded so cross-repo switches can clear stale lists,
-    // while same-repo reloads (watcher tick, refs change) keep the panels visible
-    // during the refetch.
     private Guid? _lastLoadedRepoId;
 
     public LocalChangesViewModel(
@@ -84,8 +78,6 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
 
         Subscriptions.Add(_registry.Active.Subscribe(_ => StartLoadForActiveRepo()));
         Subscriptions.Add(_bus.SubscribeScoped<WorkingTreeChangedMessage>(OnWorkingTreeChanged));
-        // Drift state shifts when the submodule's own HEAD moves (parent's working tree
-        // doesn't necessarily change) — re-load on a SubmodulesChangedMessage too.
         Subscriptions.Add(_bus.SubscribeScoped<SubmodulesChangedMessage>(OnSubmodulesChanged));
     }
 
@@ -143,9 +135,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
             };
         });
     }
-
-    // ------- row interactions (called by the view in response to row clicks) -------
-
+    
     /// <summary>
     /// Updates selection for a row click. Plain click replaces the selection with the
     /// clicked target; Ctrl/Cmd toggles it; Shift extends the range from the anchor
@@ -155,8 +145,6 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     public void SelectRow(string path, DiffSide side, InputModifiers modifiers)
     {
         var shift = (modifiers & InputModifiers.Shift) != 0;
-        // Cmd on macOS reports as Super; Ctrl on Windows/Linux as Control. Treat both
-        // as the toggle-modifier so the panel feels right on every host.
         var toggle = (modifiers & (InputModifiers.Control | InputModifiers.Super)) != 0;
         var clicked = new DiffTarget(path, side);
 
@@ -196,7 +184,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
 
             return s with
             {
-                Selection = GitGui.Selection.Create(new[] { clicked }, clicked, s.Unstaged, s.Staged),
+                Selection = GitGui.Selection.Create([clicked], clicked, s.Unstaged, s.Staged),
             };
         });
     }
@@ -206,14 +194,10 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         if (State.Value.Selection.Count == 0 && State.Value.Selection.Anchor == null) return;
         Update(s => s with { Selection = GitGui.Selection.Empty });
     }
-
-    // ------- git ops -------
-
+    
     public void Stage(IReadOnlyList<string> paths) => RunIndexOp(paths, isStage: true);
-
-    // Stages a submodule pointer update — same code path as staging a normal file because
-    // `git add <submodule-path>` treats the gitlink as a single index entry.
-    public void StageSubmodulePointer(string submodulePath) => RunIndexOp(new[] { submodulePath }, isStage: true);
+    
+    public void StageSubmodulePointer(string submodulePath) => RunIndexOp([submodulePath], isStage: true);
 
     // Resets a submodule's working tree back to the SHA the parent has recorded. Runs
     // `git submodule update -- <path>` and broadcasts SubmodulesChangedMessage so the
@@ -223,7 +207,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         var repo = _registry.Active.Value;
         if (repo == null) return;
         var req = new SubmoduleUpdateRequest(
-            Paths: new[] { submodulePath },
+            Paths: [submodulePath],
             Init: false,
             Recursive: false,
             Mode: SubmoduleUpdateMode.Checkout);

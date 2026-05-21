@@ -210,8 +210,28 @@ internal sealed class RepoWatcher : IDisposable
         // .git/objects/**, .git/logs/**, .git/lfs/**, .git/hooks/**, .git/index — ignored.
     }
 
+    private static readonly string DotGitSegment = Path.DirectorySeparatorChar + ".git";
+
+    // Matches ".git" as a path segment anywhere in the path — both the repo's own
+    // .git directory and any nested .git from an embedded submodule (where the
+    // submodule's gitdir lives at <sub>/.git/ rather than via a gitlink file).
+    // Without the nested case, the parent's recursive tree watcher fires on the
+    // submodule's `.git/index.lock` churn during every `git status` / `git submodule
+    // status` call, looping reload → status → lock churn → reload.
     private bool IsUnderGit(string fullPath)
-        => fullPath.StartsWith(_gitDirPrefix, PathCmp);
+    {
+        var idx = 0;
+        while ((idx = fullPath.IndexOf(DotGitSegment, idx, PathCmp)) >= 0)
+        {
+            var endIdx = idx + DotGitSegment.Length;
+            if (endIdx == fullPath.Length
+                || fullPath[endIdx] == Path.DirectorySeparatorChar
+                || fullPath[endIdx] == Path.AltDirectorySeparatorChar)
+                return true;
+            idx = endIdx;
+        }
+        return false;
+    }
 
     private bool IsGitmodules(string fullPath)
         => string.Equals(fullPath, _gitmodulesPath, PathCmp);
