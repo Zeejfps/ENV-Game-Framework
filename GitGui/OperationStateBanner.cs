@@ -45,13 +45,13 @@ internal sealed class OperationStateBanner
             LucideIcons.ChevronsRight,
             () => ContinueRequested?.Invoke(),
             tooltip: "Continue",
-            iconColor: 0xFF9DD17B);
+            backgroundColor: 0xFF4E8B3D);
 
         _abortButton = new ActionButton(
             LucideIcons.X,
             () => AbortRequested?.Invoke(),
             tooltip: "Abort",
-            iconColor: 0xFFE06C75);
+            backgroundColor: 0xFFB3514B);
 
         _row = new FlexRowView
         {
