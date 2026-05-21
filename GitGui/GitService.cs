@@ -350,6 +350,13 @@ public sealed class GitService : IGitService
         return (a, b, BranchUpstreamState.Tracked);
     }
 
+    // Shells out to `git status --porcelain=v2 -z` instead of libgit2's RetrieveStatus.
+    // libgit2 doesn't register external filter drivers (git-lfs, custom clean/smudge), so
+    // for LFS-tracked files it falls through to a stat-cache comparison that often reports
+    // "unmodified" when the git CLI sees "modified" — e.g. right after a branch switch
+    // where the smudged workdir was produced from a different pointer than HEAD now has.
+    // Using the CLI keeps our view in sync with what git itself thinks the working tree
+    // contains, the same reason GetBranches and GetDiff already shell out.
     public LocalChangesSnapshot GetLocalChanges(Repo repo)
     {
         try
@@ -357,51 +364,78 @@ public sealed class GitService : IGitService
             if (!Repository.IsValid(repo.Path))
                 return LocalChangesError(repo, "Not a git repository.");
 
-            using var lg = new Repository(repo.Path);
-            var status = lg.RetrieveStatus(new StatusOptions
-            {
-                IncludeIgnored = false,
-                IncludeUntracked = true,
-                RecurseUntrackedDirs = true,
-                DetectRenamesInIndex = true,
-                DetectRenamesInWorkDir = true,
-            });
+            var output = RunGitStatusPorcelain(repo.Path, out var error);
+            if (output == null)
+                return LocalChangesError(repo, error ?? "git status failed.");
 
             var staged = new List<FileChange>();
             var unstaged = new List<FileChange>();
 
-            foreach (var entry in status)
+            // Porcelain v2 with -z is NUL-terminated. Most records are a single
+            // NUL-terminated line; type-2 (rename/copy) records carry an additional
+            // NUL-terminated origPath right after, so we walk byte-by-byte rather than
+            // splitting on NUL up front.
+            var idx = 0;
+            while (idx < output.Length)
             {
-                // Bitwise check: FileStatus is a [Flags] enum, and libgit2 can return an
-                // entry with Ignored combined with other bits (e.g., NewInWorkdir on first
-                // sight of a file matching a newly-added ignore rule). The previous `==`
-                // check let those slip through and they rendered as Added in unstaged.
-                if ((entry.State & FileStatus.Ignored) != 0) continue;
-                if (entry.State == FileStatus.Unaltered) continue;
+                var end = output.IndexOf('\0', idx);
+                if (end < 0) break;
+                var record = output[idx..end];
+                idx = end + 1;
+                if (record.Length == 0) continue;
 
-                // Unmerged paths surface in unstaged only — splitting them into both panels
-                // would double-list and let the user "stage" half of an unresolved file.
-                // The user has to fix the conflict markers and explicitly stage to clear it.
-                if ((entry.State & FileStatus.Conflicted) != 0)
+                var kind = record[0];
+
+                if (kind == '?')
                 {
-                    unstaged.Add(new FileChange(entry.FilePath, null, FileChangeStatus.Conflicted));
+                    // "? path" — untracked.
+                    var path = record.Length > 2 ? record[2..] : string.Empty;
+                    if (path.Length > 0)
+                        unstaged.Add(new FileChange(path, null, FileChangeStatus.Added));
                     continue;
                 }
 
-                var indexStatus = MapIndexStatus(entry.State);
-                if (indexStatus != null)
+                if (kind == '!')
                 {
-                    var oldPath = entry.HeadToIndexRenameDetails?.OldFilePath;
-                    if (oldPath == entry.FilePath) oldPath = null;
-                    staged.Add(new FileChange(entry.FilePath, oldPath, indexStatus.Value));
+                    // Ignored — not requested, but skip defensively if it ever appears.
+                    continue;
                 }
 
-                var workStatus = MapWorkDirStatus(entry.State);
-                if (workStatus != null)
+                if (kind == 'u')
                 {
-                    var oldPath = entry.IndexToWorkDirRenameDetails?.OldFilePath;
-                    if (oldPath == entry.FilePath) oldPath = null;
-                    unstaged.Add(new FileChange(entry.FilePath, oldPath, workStatus.Value));
+                    // "u XY sub m1 m2 m3 mW h1 h2 h3 path" — unmerged. Surface in unstaged
+                    // only; the user has to resolve and stage to clear it. Splitting into
+                    // both panels would invite a half-staged conflict resolution.
+                    var parts = record.Split(' ', 11);
+                    if (parts.Length < 11) continue;
+                    unstaged.Add(new FileChange(parts[10], null, FileChangeStatus.Conflicted));
+                    continue;
+                }
+
+                if (kind == '1')
+                {
+                    // "1 XY sub mH mI mW hH hI path"
+                    var parts = record.Split(' ', 9);
+                    if (parts.Length < 9) continue;
+                    var xy = parts[1];
+                    if (xy.Length < 2) continue;
+                    AddIndexAndWorkdirEntries(staged, unstaged, xy[0], xy[1], parts[8], origPath: null);
+                    continue;
+                }
+
+                if (kind == '2')
+                {
+                    // "2 XY sub mH mI mW hH hI Xscore path"  then  "origPath"
+                    var parts = record.Split(' ', 10);
+                    if (parts.Length < 10) continue;
+                    var xy = parts[1];
+                    if (xy.Length < 2) continue;
+                    var origEnd = output.IndexOf('\0', idx);
+                    if (origEnd < 0) continue;
+                    var origPath = output[idx..origEnd];
+                    idx = origEnd + 1;
+                    AddIndexAndWorkdirEntries(staged, unstaged, xy[0], xy[1], parts[9], origPath);
+                    continue;
                 }
             }
 
@@ -416,23 +450,75 @@ public sealed class GitService : IGitService
         }
     }
 
-    private static FileChangeStatus? MapIndexStatus(FileStatus state)
+    private static void AddIndexAndWorkdirEntries(
+        List<FileChange> staged, List<FileChange> unstaged,
+        char x, char y, string path, string? origPath)
     {
-        if ((state & FileStatus.NewInIndex) != 0) return FileChangeStatus.Added;
-        if ((state & FileStatus.ModifiedInIndex) != 0) return FileChangeStatus.Modified;
-        if ((state & FileStatus.DeletedFromIndex) != 0) return FileChangeStatus.Deleted;
-        if ((state & FileStatus.RenamedInIndex) != 0) return FileChangeStatus.Renamed;
-        if ((state & FileStatus.TypeChangeInIndex) != 0) return FileChangeStatus.TypeChanged;
-        return null;
+        var indexStatus = MapPorcelainCode(x);
+        if (indexStatus != null)
+        {
+            var oldPath = indexStatus == FileChangeStatus.Renamed || indexStatus == FileChangeStatus.Copied ? origPath : null;
+            if (oldPath == path) oldPath = null;
+            staged.Add(new FileChange(path, oldPath, indexStatus.Value));
+        }
+
+        var workStatus = MapPorcelainCode(y);
+        if (workStatus != null)
+        {
+            var oldPath = workStatus == FileChangeStatus.Renamed || workStatus == FileChangeStatus.Copied ? origPath : null;
+            if (oldPath == path) oldPath = null;
+            unstaged.Add(new FileChange(path, oldPath, workStatus.Value));
+        }
     }
 
-    private static FileChangeStatus? MapWorkDirStatus(FileStatus state)
+    private static FileChangeStatus? MapPorcelainCode(char c) => c switch
     {
-        if ((state & FileStatus.NewInWorkdir) != 0) return FileChangeStatus.Added;
-        if ((state & FileStatus.ModifiedInWorkdir) != 0) return FileChangeStatus.Modified;
-        if ((state & FileStatus.DeletedFromWorkdir) != 0) return FileChangeStatus.Deleted;
-        if ((state & FileStatus.RenamedInWorkdir) != 0) return FileChangeStatus.Renamed;
-        if ((state & FileStatus.TypeChangeInWorkdir) != 0) return FileChangeStatus.TypeChanged;
+        'M' => FileChangeStatus.Modified,
+        'A' => FileChangeStatus.Added,
+        'D' => FileChangeStatus.Deleted,
+        'R' => FileChangeStatus.Renamed,
+        'C' => FileChangeStatus.Copied,
+        'T' => FileChangeStatus.TypeChanged,
+        'U' => FileChangeStatus.Conflicted,
+        _ => null,
+    };
+
+    // Uses the raw git executable rather than BuildGitProcessStartInfo's shell wrapper —
+    // status is read-only, runs on every working-tree change, and doesn't need the
+    // interactive-shell env (no auth, no PATH-dependent helpers). -z is required: it
+    // switches records to NUL termination and disables the C-style quoting that wraps
+    // paths with spaces or unicode in the default porcelain output.
+    private static string? RunGitStatusPorcelain(string workingDir, out string? error)
+    {
+        error = null;
+        var psi = new ProcessStartInfo
+        {
+            FileName = GitExecutable(),
+            WorkingDirectory = workingDir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        psi.ArgumentList.Add("status");
+        psi.ArgumentList.Add("--porcelain=v2");
+        psi.ArgumentList.Add("-z");
+        psi.ArgumentList.Add("--untracked-files=all");
+        psi.ArgumentList.Add("--ignored=no");
+
+        using var proc = Process.Start(psi);
+        if (proc == null) { error = "Failed to start git."; return null; }
+
+        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+        var stderrTask = proc.StandardError.ReadToEndAsync();
+        proc.WaitForExit();
+        var stdout = stdoutTask.GetAwaiter().GetResult();
+        var stderr = stderrTask.GetAwaiter().GetResult();
+
+        if (proc.ExitCode == 0) return stdout;
+
+        var msg = FirstMeaningfulLine(stderr);
+        error = string.IsNullOrEmpty(msg) ? $"git status exited with code {proc.ExitCode}." : msg;
         return null;
     }
 
