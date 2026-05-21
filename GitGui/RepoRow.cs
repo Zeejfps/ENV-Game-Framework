@@ -116,7 +116,7 @@ public sealed class RepoRow : MultiChildView
             items.Add(new RepoBarContextMenu.Item(
                 "Add submodule…",
                 () => bus.Broadcast(new ShowAddSubmoduleDialogMessage(repo)),
-                LucideIcons.FolderGit2));
+                LucideIcons.Package));
 
             items.Add(new RepoBarContextMenu.Item(
                 "Update all submodules…",

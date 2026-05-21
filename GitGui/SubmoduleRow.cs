@@ -6,8 +6,9 @@ using ZGF.Observable;
 namespace GitGui;
 
 // Renders a single submodule row nested under its parent in the RepoBar. Same shape
-// as WorktreeRow (deep indent + small icon) but uses the FolderGit2 icon to signal
-// "this is an embedded repository," not a sibling checkout.
+// as WorktreeRow (deep indent + small icon) but uses the Package icon + purple tint
+// to signal "this is an embedded external repository pinned to a specific commit,"
+// not a sibling checkout of the parent.
 public sealed class SubmoduleRow : MultiChildView
 {
     private readonly Repo _submodule;
@@ -30,16 +31,17 @@ public sealed class SubmoduleRow : MultiChildView
 
         var icon = new TextView
         {
-            Text = LucideIcons.FolderGit2,
+            Text = LucideIcons.Package,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 13,
             PreferredWidth = RepoBar.RowIconWidth,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        // Tinted purple so the sidebar tells submodule apart from primary / worktree
-        // without leaning on a header row. Matches the StatusSubmodule badge used for
-        // pointer-change rows in CommitDetails so the visual language stays consistent.
+        // Package icon + purple tint — submodules are mentally "external packages
+        // embedded at a pinned commit," visually distinct from the FolderGit2 used for
+        // primary repos. Tint matches the StatusSubmodule badge used by pointer-change
+        // rows in CommitDetails so the visual language stays consistent across the app.
         icon.BindTextColor(() => submodule.IsMissing
             ? DialogPalette.RowTextMissing
             : DialogPalette.IconAccentSubmodule);
@@ -105,7 +107,7 @@ public sealed class SubmoduleRow : MultiChildView
             items.Add(new RepoBarContextMenu.Item(
                 "Switch to submodule",
                 () => registry.SetActive(submodule.Id),
-                LucideIcons.FolderGit2));
+                LucideIcons.Package));
         }
 
         var shell = context.Get<IPlatformShell>();
