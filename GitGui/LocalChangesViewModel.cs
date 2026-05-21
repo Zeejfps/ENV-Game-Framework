@@ -131,7 +131,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 Title = title,
                 Description = description,
                 Staged = staged,
-                Selection = GitGui.Selection.Create(s.Selection.Items, s.Selection.Anchor, s.Unstaged, staged),
+                Selection = GitGui.Selection.Create(s.Selection.Items, s.Selection.Anchor, s.Selection.Cursor, s.Unstaged, staged),
             };
         });
     }
@@ -166,7 +166,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                         range.Add(new DiffTarget(sideFiles[i].Path, side));
                     return s with
                     {
-                        Selection = GitGui.Selection.Create(range, sel.Anchor, s.Unstaged, s.Staged),
+                        Selection = GitGui.Selection.Create(range, sel.Anchor, clicked, s.Unstaged, s.Staged),
                     };
                 }
             }
@@ -178,13 +178,88 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 if (!alreadySelected) next.Add(clicked);
                 return s with
                 {
-                    Selection = GitGui.Selection.Create(next, clicked, s.Unstaged, s.Staged),
+                    Selection = GitGui.Selection.Create(next, clicked, clicked, s.Unstaged, s.Staged),
                 };
             }
 
             return s with
             {
-                Selection = GitGui.Selection.Create([clicked], clicked, s.Unstaged, s.Staged),
+                Selection = GitGui.Selection.Create([clicked], clicked, clicked, s.Unstaged, s.Staged),
+            };
+        });
+    }
+
+    /// <summary>
+    /// Moves the keyboard cursor up or down within the currently active side, clamping
+    /// at the list edges. With no selection, the first press lands on the top or bottom
+    /// row of the unstaged side (or the staged side if unstaged is empty). When
+    /// <paramref name="extend"/> is true the anchor stays put and the range grows or
+    /// shrinks toward the new cursor position; otherwise the selection collapses to
+    /// the single new row.
+    /// </summary>
+    public void MoveSelection(int delta, bool extend)
+    {
+        if (delta == 0) return;
+
+        Update(s =>
+        {
+            DiffSide side;
+            IReadOnlyList<FileChange> sideFiles;
+            if (s.Selection.Count > 0)
+            {
+                side = s.Selection.Items[0].Side;
+                sideFiles = side == DiffSide.Unstaged ? s.Unstaged : s.Staged;
+            }
+            else if (s.Unstaged.Count > 0)
+            {
+                side = DiffSide.Unstaged;
+                sideFiles = s.Unstaged;
+            }
+            else if (s.Staged.Count > 0)
+            {
+                side = DiffSide.Staged;
+                sideFiles = s.Staged;
+            }
+            else
+            {
+                return s;
+            }
+
+            if (sideFiles.Count == 0) return s;
+
+            int currentIdx;
+            if (s.Selection.Cursor != null && s.Selection.Cursor.Side == side)
+                currentIdx = IndexOfPath(sideFiles, s.Selection.Cursor.Path);
+            else if (s.Selection.Count > 0)
+                currentIdx = IndexOfPath(sideFiles, s.Selection.Items[^1].Path);
+            else
+                currentIdx = delta > 0 ? -1 : sideFiles.Count;
+
+            var newIdx = Math.Clamp(currentIdx + delta, 0, sideFiles.Count - 1);
+            if (newIdx == currentIdx && s.Selection.Count > 0 && !extend) return s;
+
+            var target = new DiffTarget(sideFiles[newIdx].Path, side);
+
+            if (extend && s.Selection.Anchor != null && s.Selection.Anchor.Side == side)
+            {
+                var anchorIdx = IndexOfPath(sideFiles, s.Selection.Anchor.Path);
+                if (anchorIdx >= 0)
+                {
+                    var lo = Math.Min(anchorIdx, newIdx);
+                    var hi = Math.Max(anchorIdx, newIdx);
+                    var range = new List<DiffTarget>(hi - lo + 1);
+                    for (var i = lo; i <= hi; i++)
+                        range.Add(new DiffTarget(sideFiles[i].Path, side));
+                    return s with
+                    {
+                        Selection = GitGui.Selection.Create(range, s.Selection.Anchor, target, s.Unstaged, s.Staged),
+                    };
+                }
+            }
+
+            return s with
+            {
+                Selection = GitGui.Selection.Create([target], target, target, s.Unstaged, s.Staged),
             };
         });
     }
@@ -451,7 +526,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     // selection isn't being explicitly steered to a new place.
     private void ApplySnapshot(LocalChangesSnapshot snap, IReadOnlyList<SubmoduleInfo>? drift = null)
         => ApplySnapshot(snap, (s, staged) =>
-            GitGui.Selection.Create(s.Selection.Items, s.Selection.Anchor, snap.Unstaged, staged), drift);
+            GitGui.Selection.Create(s.Selection.Items, s.Selection.Anchor, s.Selection.Cursor, snap.Unstaged, staged), drift);
 
     private void RunIndexOp(IReadOnlyList<string> paths, bool isStage)
     {

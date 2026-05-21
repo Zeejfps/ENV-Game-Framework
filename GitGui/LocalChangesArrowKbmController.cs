@@ -1,0 +1,53 @@
+using ZGF.Gui;
+using ZGF.Gui.Tests;
+using ZGF.KeyboardModule;
+
+namespace GitGui;
+
+/// <summary>
+/// Arrow-key navigation for the local-changes file lists. Lives on
+/// <see cref="LocalChangesContentView"/> and takes focus when a row is clicked so Up
+/// and Down move the selection within the active side. Shift extends the range from
+/// the anchor. Releases focus on a click outside the content view so text inputs and
+/// other controllers can claim it.
+/// </summary>
+internal sealed class LocalChangesArrowKbmController : KeyboardMouseController
+{
+    private readonly View _view;
+    private readonly Action<int, bool> _onMove;
+
+    public LocalChangesArrowKbmController(View view, Action<int, bool> onMove)
+    {
+        _view = view;
+        _onMove = onMove;
+    }
+
+    public void TakeFocus()
+        => _view.Context?.Get<InputSystem>()?.StealFocus(this);
+
+    public override void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
+    {
+        if (e.Phase != EventPhase.Bubbling) return;
+        if (e.State != InputState.Pressed) return;
+
+        var shift = (e.Modifiers & InputModifiers.Shift) != 0;
+        if (e.Key == KeyboardKey.UpArrow)
+        {
+            _onMove(-1, shift);
+            e.Consume();
+        }
+        else if (e.Key == KeyboardKey.DownArrow)
+        {
+            _onMove(+1, shift);
+            e.Consume();
+        }
+    }
+
+    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    {
+        if (e.Phase != EventPhase.Bubbling) return;
+        if (e.State != InputState.Pressed) return;
+        if (_view.Position.ContainsPoint(e.Mouse.Point)) return;
+        _view.Context?.Get<InputSystem>()?.Blur(this);
+    }
+}

@@ -30,6 +30,7 @@ internal sealed class LocalChangesContentView : MultiChildView
     
     private readonly State<Selection> _selection = new(Selection.Empty);
     private LocalChangesViewModel? _vm;
+    private LocalChangesArrowKbmController? _arrowController;
 
     public LocalChangesContentView()
     {
@@ -109,6 +110,14 @@ internal sealed class LocalChangesContentView : MultiChildView
         };
 
         AddChildToSelf(_centerContainer);
+
+        this.UseController(_ =>
+        {
+            _arrowController = new LocalChangesArrowKbmController(
+                this,
+                (delta, extend) => _vm?.MoveSelection(delta, extend));
+            return _arrowController;
+        });
     }
 
     public void Bind(LocalChangesViewModel vm)
@@ -167,7 +176,10 @@ internal sealed class LocalChangesContentView : MultiChildView
     }
 
     private void OnRowClick(DiffTarget target, InputModifiers modifiers)
-        => _vm?.SelectRow(target.Path, target.Side, modifiers);
+    {
+        _vm?.SelectRow(target.Path, target.Side, modifiers);
+        _arrowController?.TakeFocus();
+    }
 
     private void OnStageAll()
         => _vm?.Stage(_unstagedPanel.Files.Select(f => f.Path).ToList());

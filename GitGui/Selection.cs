@@ -17,20 +17,22 @@ internal sealed class Selection
 {
     public IReadOnlyList<DiffTarget> Items { get; }
     public DiffTarget? Anchor { get; }
+    public DiffTarget? Cursor { get; }
 
     private readonly HashSet<DiffTarget> _itemSet;
 
-    public static readonly Selection Empty = new(Array.Empty<DiffTarget>(), null);
+    public static readonly Selection Empty = new(Array.Empty<DiffTarget>(), null, null);
 
     public int Count => Items.Count;
 
     /// <summary>The single selected target, or null when the selection is empty or multi.</summary>
     public DiffTarget? Single => Items.Count == 1 ? Items[0] : null;
 
-    private Selection(IReadOnlyList<DiffTarget> items, DiffTarget? anchor)
+    private Selection(IReadOnlyList<DiffTarget> items, DiffTarget? anchor, DiffTarget? cursor)
     {
         Items = items;
         Anchor = anchor;
+        Cursor = cursor;
         _itemSet = new HashSet<DiffTarget>(items);
     }
 
@@ -53,10 +55,11 @@ internal sealed class Selection
     public static Selection Create(
         IReadOnlyList<DiffTarget> items,
         DiffTarget? anchor,
+        DiffTarget? cursor,
         IReadOnlyList<FileChange> unstaged,
         IReadOnlyList<FileChange> staged)
     {
-        if (items.Count == 0 && anchor == null) return Empty;
+        if (items.Count == 0 && anchor == null && cursor == null) return Empty;
 
         var unstagedPaths = BuildPathSet(unstaged);
         var stagedPaths = BuildPathSet(staged);
@@ -75,9 +78,16 @@ internal sealed class Selection
             if (anchorAvailable.Contains(anchor.Path)) normalizedAnchor = anchor;
         }
 
-        return pruned.Count == 0 && normalizedAnchor == null
+        DiffTarget? normalizedCursor = null;
+        if (cursor != null)
+        {
+            var cursorAvailable = cursor.Side == DiffSide.Unstaged ? unstagedPaths : stagedPaths;
+            if (cursorAvailable.Contains(cursor.Path)) normalizedCursor = cursor;
+        }
+
+        return pruned.Count == 0 && normalizedAnchor == null && normalizedCursor == null
             ? Empty
-            : new Selection(pruned, normalizedAnchor);
+            : new Selection(pruned, normalizedAnchor, normalizedCursor);
     }
 
     /// <summary>
@@ -94,7 +104,7 @@ internal sealed class Selection
         if (paths.Count == 0) return Empty;
         var items = new List<DiffTarget>(paths.Count);
         foreach (var p in paths) items.Add(new DiffTarget(p, side));
-        return Create(items, items[0], unstaged, staged);
+        return Create(items, items[0], items[0], unstaged, staged);
     }
 
     private static HashSet<string> BuildPathSet(IReadOnlyList<FileChange> files)
