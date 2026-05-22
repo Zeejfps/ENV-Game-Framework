@@ -38,6 +38,7 @@ internal sealed class RepoWatcher : IDisposable
     private readonly Repo _repo;
     private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
+    private readonly IRepoActivityTracker _activity;
 
     private readonly FileSystemWatcher? _treeWatcher;
     private readonly FileSystemWatcher? _gitWatcher;
@@ -51,11 +52,12 @@ internal sealed class RepoWatcher : IDisposable
 
     private int _disposed;
 
-    public RepoWatcher(Repo repo, IUiDispatcher dispatcher, IMessageBus bus)
+    public RepoWatcher(Repo repo, IUiDispatcher dispatcher, IMessageBus bus, IRepoActivityTracker activity)
     {
         _repo = repo;
         _dispatcher = dispatcher;
         _bus = bus;
+        _activity = activity;
         _gitDirPrefix = Path.Combine(repo.Path, ".git") + Path.DirectorySeparatorChar;
         _gitmodulesPath = Path.Combine(repo.Path, ".gitmodules");
 
@@ -242,27 +244,42 @@ internal sealed class RepoWatcher : IDisposable
         return fullPath[_gitDirPrefix.Length..].Replace('\\', '/');
     }
 
+    // Activity-gate: when we ourselves are running git on this repo, the writes
+    // our process causes (index stat cache, per-submodule index, sometimes refs
+    // and tracked-file mtimes) bubble up as FSW events. Treating those as
+    // "external change" and broadcasting them retriggers the same git read,
+    // which writes again, looping forever. The tracker stays "active" for the
+    // git invocation plus a short tail — long enough to absorb the post-syscall
+    // delivery lag. Real external edits during the window are dropped at this
+    // gate, but their effect is already captured in the in-flight reload's
+    // git-status snapshot, so the resulting UI state stays correct.
+    private bool IsOurOwnWrite() => _activity.IsActive(_repo.Path);
+
     private void ScheduleWorkingTree()
     {
         if (Volatile.Read(ref _disposed) != 0) return;
+        if (IsOurOwnWrite()) return;
         _workingTreeDebounce.Change(DebounceMs, Timeout.Infinite);
     }
 
     private void ScheduleRefs()
     {
         if (Volatile.Read(ref _disposed) != 0) return;
+        if (IsOurOwnWrite()) return;
         _refsDebounce.Change(DebounceMs, Timeout.Infinite);
     }
 
     private void ScheduleWorktrees()
     {
         if (Volatile.Read(ref _disposed) != 0) return;
+        if (IsOurOwnWrite()) return;
         _worktreesDebounce.Change(DebounceMs, Timeout.Infinite);
     }
 
     private void ScheduleSubmodules()
     {
         if (Volatile.Read(ref _disposed) != 0) return;
+        if (IsOurOwnWrite()) return;
         _submodulesDebounce.Change(DebounceMs, Timeout.Infinite);
     }
 

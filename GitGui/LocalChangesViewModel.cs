@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Gui;
 using ZGF.Observable;
 
@@ -440,6 +441,9 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         // Submodules themselves don't have nested submodules in our model (one level deep),
         // so skip the query when the active row is itself a submodule.
         var canQuerySubmodules = !repo.IsSubmodule;
+        var loadTag = $"[LocalChanges load {repo.Path}]";
+        Console.WriteLine($"{loadTag} starting (amending={amending}, querySubmodules={canQuerySubmodules})");
+        var loadSw = Stopwatch.StartNew();
         RunBackground<LoadResult>(
             work: () =>
             {
@@ -466,6 +470,8 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
             },
             onResult: (result, errorMsg) =>
             {
+                loadSw.Stop();
+                Console.WriteLine($"{loadTag} finished in {loadSw.ElapsedMilliseconds}ms (error={errorMsg ?? "none"})");
                 if (errorMsg != null)
                 {
                     _stagedFromIndex = Empty;

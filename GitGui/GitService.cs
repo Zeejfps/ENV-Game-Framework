@@ -16,6 +16,16 @@ public sealed class GitService : IGitService
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _repoLocks =
         new(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
 
+    // Every git invocation opens a scope so RepoWatcher can drop the FSW events
+    // our own writes cause. Without this the auto-reload loops on its own
+    // index/stat-cache mutations. See RepoActivityTracker for the full story.
+    private readonly IRepoActivityTracker _activity;
+
+    public GitService(IRepoActivityTracker activity)
+    {
+        _activity = activity;
+    }
+
     private static SemaphoreSlim GetRepoLock(string repoPath)
     {
         string key;
@@ -361,7 +371,7 @@ public sealed class GitService : IGitService
     // points at the most recent entry. Stash list runs through `git log`, so the format
     // codes are the log ones (%H, %s) — NOT the for-each-ref ones (%(objectname)) which
     // get printed literally here.
-    private static IReadOnlyList<StashEntry> LoadStashes(string repoPath)
+    private IReadOnlyList<StashEntry> LoadStashes(string repoPath)
     {
         const char Sep = '\x1F';
         var fmt = $"%H{Sep}%gs";
@@ -418,12 +428,17 @@ public sealed class GitService : IGitService
     // contains, the same reason GetBranches and GetDiff already shell out.
     public LocalChangesSnapshot GetLocalChanges(Repo repo)
     {
+        var tag = $"[Git status {repo.Path}]";
+        var sw = Stopwatch.StartNew();
         try
         {
             if (!IsGitRepo(repo.Path))
                 return LocalChangesError(repo, "Not a git repository.");
 
+            var statusSw = Stopwatch.StartNew();
             var output = RunGitStatusPorcelain(repo.Path, out var error);
+            statusSw.Stop();
+            Console.WriteLine($"{tag} git status returned in {statusSw.ElapsedMilliseconds}ms ({output?.Length ?? 0} bytes)");
             if (output == null)
                 return LocalChangesError(repo, error ?? "git status failed.");
 
@@ -501,10 +516,14 @@ public sealed class GitService : IGitService
             staged.Sort(static (a, b) => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase));
             unstaged.Sort(static (a, b) => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase));
 
+            sw.Stop();
+            Console.WriteLine($"{tag} done in {sw.ElapsedMilliseconds}ms (staged={staged.Count}, unstaged={unstaged.Count})");
             return new LocalChangesSnapshot(repo.Id, staged, unstaged, null);
         }
         catch (Exception ex)
         {
+            sw.Stop();
+            Console.WriteLine($"{tag} threw in {sw.ElapsedMilliseconds}ms: {ex.Message}");
             return LocalChangesError(repo, ex.Message);
         }
     }
@@ -547,9 +566,10 @@ public sealed class GitService : IGitService
     // interactive-shell env (no auth, no PATH-dependent helpers). -z is required: it
     // switches records to NUL termination and disables the C-style quoting that wraps
     // paths with spaces or unicode in the default porcelain output.
-    private static string? RunGitStatusPorcelain(string workingDir, out string? error)
+    private string? RunGitStatusPorcelain(string workingDir, out string? error)
     {
         error = null;
+        using var _ = _activity.Begin(workingDir);
         var psi = BuildDirectGitPsi(workingDir);
         psi.ArgumentList.Add("status");
         psi.ArgumentList.Add("--porcelain=v2");
@@ -782,6 +802,8 @@ public sealed class GitService : IGitService
 
     public IReadOnlyList<FileChange> GetHeadCommitFiles(Repo repo)
     {
+        var tag = $"[Git head-files {repo.Path}]";
+        var sw = Stopwatch.StartNew();
         try
         {
             if (!IsGitRepo(repo.Path)) return Array.Empty<FileChange>();
@@ -790,10 +812,14 @@ public sealed class GitService : IGitService
             if (output == null) return Array.Empty<FileChange>();
             var files = ParseDiffTreeNameStatusZ(output);
             files.Sort(static (a, b) => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase));
+            sw.Stop();
+            Console.WriteLine($"{tag} done in {sw.ElapsedMilliseconds}ms ({files.Count} files)");
             return files;
         }
-        catch
+        catch (Exception ex)
         {
+            sw.Stop();
+            Console.WriteLine($"{tag} threw in {sw.ElapsedMilliseconds}ms: {ex.Message}");
             return Array.Empty<FileChange>();
         }
     }
@@ -809,7 +835,7 @@ public sealed class GitService : IGitService
         int Ahead,
         int Behind);
 
-    private static HeadInfo GetHeadInfo(string repoPath)
+    private HeadInfo GetHeadInfo(string repoPath)
     {
         // symbolic-ref returns nonzero on detached HEAD; @{u} returns nonzero with no upstream.
         var branchOutput = RunGit(repoPath, out _, "symbolic-ref", "-q", "--short", "HEAD");
@@ -841,7 +867,7 @@ public sealed class GitService : IGitService
     // .git/worktrees/<name>/ for secondary worktrees, the main .git/ otherwise), which
     // is the same thing libgit2's Repository.Info.Path gave us. Returns null on failure
     // so callers can decide whether that's a problem or just means "no in-progress op".
-    private static string? GetGitDir(string repoPath)
+    private string? GetGitDir(string repoPath)
     {
         var output = RunGit(repoPath, out _, "rev-parse", "--git-dir");
         if (string.IsNullOrWhiteSpace(output)) return null;
@@ -852,7 +878,7 @@ public sealed class GitService : IGitService
 
     // `git ls-files --unmerged` prints stage-2/stage-3 entries — one line per unmerged
     // path. Empty output means the index is fully merged.
-    private static bool HasUnmergedPaths(string repoPath)
+    private bool HasUnmergedPaths(string repoPath)
     {
         var output = RunGit(repoPath, out _, "ls-files", "--unmerged");
         return !string.IsNullOrWhiteSpace(output);
@@ -1878,6 +1904,8 @@ public sealed class GitService : IGitService
     public IReadOnlyList<SubmoduleInfo> ListSubmodules(Repo primary, out string? errorMessage)
     {
         errorMessage = null;
+        var tag = $"[Git submodules {primary.Path}]";
+        var sw = Stopwatch.StartNew();
         try
         {
             if (!IsGitRepo(primary.Path))
@@ -1888,11 +1916,17 @@ public sealed class GitService : IGitService
 
             var gitmodulesPath = System.IO.Path.Combine(primary.Path, ".gitmodules");
             if (!File.Exists(gitmodulesPath))
+            {
+                Console.WriteLine($"{tag} no .gitmodules ({sw.ElapsedMilliseconds}ms)");
                 return Array.Empty<SubmoduleInfo>();
+            }
 
             // Step 1: enumerate logical entries from .gitmodules. Each `submodule.<name>.path`
             // row gives us one submodule; .url and .branch hang off the same <name>.
+            var stepSw = Stopwatch.StartNew();
             var configOut = RunGit(primary.Path, out var cfgErr, "config", "--file", ".gitmodules", "--list");
+            stepSw.Stop();
+            Console.WriteLine($"{tag} config --list returned in {stepSw.ElapsedMilliseconds}ms ({configOut?.Length ?? 0} bytes)");
             if (cfgErr != null)
             {
                 errorMessage = cfgErr;
@@ -1929,7 +1963,10 @@ public sealed class GitService : IGitService
             // Step 2: per-path status + describe + current SHA from `git submodule status`.
             // Per line: '<flag><sha> <path> (<describe>)'
             //   flag ' ' = up-to-date, '+' = modified, '-' = not initialized, 'U' = conflict.
+            stepSw.Restart();
             var statusOut = RunGit(primary.Path, out _, "submodule", "status");
+            stepSw.Stop();
+            Console.WriteLine($"{tag} submodule status returned in {stepSw.ElapsedMilliseconds}ms ({statusOut?.Length ?? 0} bytes)");
             var statusByPath = new Dictionary<string, (char Flag, string? Sha, string? Describe)>(StringComparer.Ordinal);
             foreach (var raw in (statusOut ?? string.Empty).Split('\n'))
             {
@@ -1958,7 +1995,10 @@ public sealed class GitService : IGitService
             // Step 3: authoritative recorded SHA via `git ls-tree HEAD` — submodule status's
             // SHA reports the CURRENT checkout (or a leading + when modified), not what the
             // parent's HEAD tree actually records. ls-tree gives the recorded pointer directly.
+            stepSw.Restart();
             var lsTreeOut = RunGit(primary.Path, out _, "ls-tree", "-r", "HEAD");
+            stepSw.Stop();
+            Console.WriteLine($"{tag} ls-tree -r HEAD returned in {stepSw.ElapsedMilliseconds}ms ({lsTreeOut?.Length ?? 0} bytes)");
             var recordedByPath = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var raw in (lsTreeOut ?? string.Empty).Split('\n'))
             {
@@ -2000,10 +2040,14 @@ public sealed class GitService : IGitService
             }
 
             results.Sort((a, b) => string.CompareOrdinal(a.Path, b.Path));
+            sw.Stop();
+            Console.WriteLine($"{tag} done in {sw.ElapsedMilliseconds}ms ({results.Count} submodules)");
             return results;
         }
         catch (Exception ex)
         {
+            sw.Stop();
+            Console.WriteLine($"{tag} threw in {sw.ElapsedMilliseconds}ms: {ex.Message}");
             errorMessage = ex.Message;
             return Array.Empty<SubmoduleInfo>();
         }
@@ -2509,16 +2553,17 @@ public sealed class GitService : IGitService
         }
     }
 
-    private static string RunGit(string workingDir, out string? error, params string[] args)
+    private string RunGit(string workingDir, out string? error, params string[] args)
         => RunGitInternal(workingDir, allowExitCode1: false, out error, args)!;
 
     // `git diff --no-index` exits 1 when the two inputs differ — that's normal output, not failure.
-    private static string? RunGitDiff(string workingDir, out string? error, params string[] args)
+    private string? RunGitDiff(string workingDir, out string? error, params string[] args)
         => RunGitInternal(workingDir, allowExitCode1: true, out error, args);
 
-    private static string? RunGitInternal(string workingDir, bool allowExitCode1, out string? error, string[] args)
+    private string? RunGitInternal(string workingDir, bool allowExitCode1, out string? error, string[] args)
     {
         error = null;
+        using var _ = _activity.Begin(workingDir);
         var psi = BuildDirectGitPsi(workingDir);
         foreach (var a in args) psi.ArgumentList.Add(a);
 
@@ -2538,8 +2583,9 @@ public sealed class GitService : IGitService
         return null;
     }
 
-    private static bool IsTracked(string workingDir, string path)
+    private bool IsTracked(string workingDir, string path)
     {
+        using var _ = _activity.Begin(workingDir);
         var psi = BuildDirectGitPsi(workingDir);
         psi.ArgumentList.Add("ls-files");
         psi.ArgumentList.Add("--error-unmatch");

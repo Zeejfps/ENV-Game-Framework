@@ -10,17 +10,20 @@ internal sealed class RepoWatcherService : IDisposable
     private readonly IRepoRegistry _registry;
     private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
+    private readonly IRepoActivityTracker _activity;
     private readonly Dictionary<Guid, RepoWatcher> _watchers = new();
     private readonly IDisposable _reposSub;
 
     public RepoWatcherService(
         IRepoRegistry registry,
         IUiDispatcher dispatcher,
-        IMessageBus bus)
+        IMessageBus bus,
+        IRepoActivityTracker activity)
     {
         _registry = registry;
         _dispatcher = dispatcher;
         _bus = bus;
+        _activity = activity;
 
         // Subscribe fires Reset immediately with the current list contents, so we don't
         // need a separate initial-seed loop.
@@ -60,7 +63,7 @@ internal sealed class RepoWatcherService : IDisposable
         if (_watchers.ContainsKey(repo.Id)) return;
         try
         {
-            _watchers[repo.Id] = new RepoWatcher(repo, _dispatcher, _bus);
+            _watchers[repo.Id] = new RepoWatcher(repo, _dispatcher, _bus, _activity);
         }
         catch
         {

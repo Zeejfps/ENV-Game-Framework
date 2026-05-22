@@ -28,7 +28,9 @@ var statePath = Path.Combine(
 var initialState = RepoStateStore.Load(statePath);
 var registry = new RepoRegistry(initialState, statePath);
 context.AddService<IRepoRegistry>(registry);
-context.AddService<IGitService>(new GitService());
+var repoActivity = new RepoActivityTracker();
+context.AddService<IRepoActivityTracker>(repoActivity);
+context.AddService<IGitService>(new GitService(repoActivity));
 context.AddService<IDragController>(new DragController(registry));
 
 var tooltipSurfaceView = new TooltipSurfaceView();
@@ -54,7 +56,8 @@ if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 using var repoWatchers = new RepoWatcherService(
     registry,
     context.Require<IUiDispatcher>(),
-    messageBus);
+    messageBus,
+    repoActivity);
 
 using var worktreeSync = new WorktreeSyncService(
     registry,
