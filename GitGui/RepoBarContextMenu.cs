@@ -26,12 +26,10 @@ public static class RepoBarContextMenu
 
         var menu = new ContextMenu
         {
-            AnchorPoint = anchor,
             BackgroundColor = DialogPalette.Background,
             BorderColor = BorderColorStyle.All(DialogPalette.Border),
             BorderSize = BorderSizeStyle.All(1),
             Padding = PaddingStyle.All(4),
-            ZIndex = 2000,
         };
 
         foreach (var item in items)
@@ -46,7 +44,6 @@ public static class RepoBarContextMenu
                 TextColor = DialogPalette.RowText,
                 DisabledTextColor = DialogPalette.RowTextMissing,
                 IsEnabled = item.Enabled,
-                ZIndex = 2001,
             };
 
             if (item.LabelSegments is { Count: > 0 } segs)
@@ -61,7 +58,7 @@ public static class RepoBarContextMenu
             menu.Children.Add(menuItem);
         }
 
-        var opened = manager.ShowContextMenu(menu);
+        var opened = manager.ShowContextMenu(menu, anchor);
         if (opened == null) return null;
 
         menu.UseController(_ => new ContextMenuKbmController(opened));

@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using GitGui;
 using LLMit;
 using ZGF.Core;
@@ -14,12 +14,15 @@ context.AddService<IPlatformShell>(
     RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new WindowsPlatformShell()
     : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? new MacOSPlatformShell()
     : new NoopPlatformShell());
-// AppClipboard is a process-local fallback — fine for Linux dev, not what we want on
-// Win/macOS where IClipboard needs to reach the OS pasteboard.
 context.AddService<IClipboard>(
     RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new Win32Clipboard()
     : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? new OsxClipboard()
     : new AppClipboard());
+
+context.AddService<IPopupNativeDecorator>(
+    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new WindowsPopupDecorator()
+    : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? new MacOsPopupDecorator()
+    : new NoopPopupDecorator());
 
 var statePath = Path.Combine(
     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -33,10 +36,7 @@ context.AddService<IRepoActivityTracker>(repoActivity);
 context.AddService<IGitService>(new GitService(repoActivity));
 context.AddService<IDragController>(new DragController(registry));
 
-var tooltipSurfaceView = new TooltipSurfaceView();
-context.AddService<ITooltipService>(tooltipSurfaceView);
-
-var appView = new AppView(tooltipSurfaceView);
+var appView = new AppView();
 var appHost = GuiApp.CreateDefault(new StartupConfig
 {
     WindowTitle = "GitGui",
@@ -48,11 +48,13 @@ var appHost = GuiApp.CreateDefault(new StartupConfig
 appHost.RegisterFont(LucideIcons.FontFamily, "Assets/Fonts/Lucide/Lucide.ttf", 16);
 appHost.RegisterFont(DiffOptions.MonoFontFamily, "Assets/Fonts/JetBrainsMono/JetBrainsMono-Regular.ttf", 13);
 
+context.AddService<ITooltipService>(new PopupTooltipService(
+    context.Require<IPopupWindowFactory>(),
+    context.Require<IWindowCoordinates>()));
+
 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
     appHost.SetIcon("Assets/commit_bench_icon.rgba");
 
-// IUiDispatcher is registered by GuiApp.CreateDefault, so the watcher service can
-// only be constructed after appHost is built.
 using var repoWatchers = new RepoWatcherService(
     registry,
     context.Require<IUiDispatcher>(),

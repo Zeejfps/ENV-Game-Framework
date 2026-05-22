@@ -5,7 +5,7 @@ namespace GitGui;
 
 public sealed class AppView : MultiChildView
 {
-    public AppView(TooltipSurfaceView tooltipSurfaceView)
+    public AppView()
     {
         // North-stack holds the toolbar plus an in-progress-op banner the presenter
         // inserts/removes as the active repo's state changes. It sits above
@@ -44,8 +44,6 @@ public sealed class AppView : MultiChildView
 
         var dialogSurfaceView = new DialogSurfaceView();
         Children.Add(dialogSurfaceView);
-
-        Children.Add(tooltipSurfaceView);
 
         Behaviors.Add(new DialogPresenter(dialogSurfaceView));
         Behaviors.Add(new OperationStateBannerPresenter(operationBanner));

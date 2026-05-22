@@ -38,6 +38,11 @@ public sealed class GlfwInputSystem
 
     public void Update()
     {
+        // Freeze hover state when the cursor leaves this window's bounds. Without
+        // this, Glfw.GetCursorPosition reports stale coords outside the window's
+        // rect and the hover path would clear — defeating, e.g., tooltip hover
+        // while the cursor sits over the tooltip's own popup window.
+        if (!Glfw.GetWindowAttribute(_windowHandle, WindowAttribute.MouseHover)) return;
         Glfw.GetCursorPosition(_windowHandle, out var mouseX, out var mouseY);
         var guiPoint = WindowToGuiCoords(mouseX, mouseY);
         var prevPoint = Mouse.Point;

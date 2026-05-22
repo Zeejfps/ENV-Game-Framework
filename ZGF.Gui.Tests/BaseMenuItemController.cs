@@ -37,13 +37,10 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
             return;
         }
 
-        _contextMenu = new ContextMenu
-        {
-            AnchorPoint = MenuItem.Position.BottomLeft
-        };
+        _contextMenu = new ContextMenu();
         BuildMenu(_contextMenu);
 
-        _openedContextMenu = _contextMenuManager.ShowContextMenu(_contextMenu);
+        _openedContextMenu = _contextMenuManager.ShowContextMenu(_contextMenu, MenuItem.Position.BottomLeft);
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed += OnOpenedContextMenuClosed;

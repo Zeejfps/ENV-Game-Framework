@@ -1,9 +1,9 @@
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using OpenGL.NET;
 using ZGF.Fonts;
 using ZGF.Geometry;
+using ZGF.Gui;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 
@@ -11,80 +11,30 @@ namespace ZGF.Gui.Tests;
 
 public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposable
 {
-    // ---------- GL resources ----------
+    private readonly GlSharedResources _shared;
 
-    private uint _rectShader, _glyphShader, _imageShader, _shadowShader;
-    private int _rectProjLoc, _glyphProjLoc, _imageProjLoc, _shadowProjLoc;
-    private int _glyphAtlasLoc, _imageTexLoc;
     private uint _rectVao, _glyphVao, _imageVao, _shadowVao;
-    private uint _unitQuadVbo;
     private uint _rectInstanceVbo, _glyphInstanceVbo, _imageInstanceVbo, _shadowInstanceVbo;
     private uint _clipUbo;
-    private uint _fontAtlasTextureId;
 
     private Matrix4x4 _projection;
-
-    private readonly GlImageManager _imageManager;
+    private int _atlasUploads;
 
     public OpenGlRenderedCanvas(
         int width, int height,
         FreeTypeFontBackend fonts,
         FontHandle defaultFont,
-        GlImageManager imageManager,
+        GlSharedResources shared,
         float dpiScale = 1f)
         : base(width, height, fonts, defaultFont, dpiScale)
     {
-        _imageManager = imageManager;
+        _shared = shared;
 
         _projection = Matrix4x4.CreateOrthographicOffCenter(0, width, 0, height, -1f, 1f);
-
-        var shadersDir = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
-        _rectShader = new ShaderProgramCompiler()
-            .WithVertexShader(Path.Combine(shadersDir, "canvas_rect.vert.glsl"))
-            .WithFragmentShader(Path.Combine(shadersDir, "canvas_rect.frag.glsl"))
-            .Compile().Id;
-        _glyphShader = new ShaderProgramCompiler()
-            .WithVertexShader(Path.Combine(shadersDir, "canvas_glyph.vert.glsl"))
-            .WithFragmentShader(Path.Combine(shadersDir, "canvas_glyph.frag.glsl"))
-            .Compile().Id;
-        _imageShader = new ShaderProgramCompiler()
-            .WithVertexShader(Path.Combine(shadersDir, "canvas_image.vert.glsl"))
-            .WithFragmentShader(Path.Combine(shadersDir, "canvas_image.frag.glsl"))
-            .Compile().Id;
-        _shadowShader = new ShaderProgramCompiler()
-            .WithVertexShader(Path.Combine(shadersDir, "canvas_shadow.vert.glsl"))
-            .WithFragmentShader(Path.Combine(shadersDir, "canvas_shadow.frag.glsl"))
-            .Compile().Id;
-
-        _rectProjLoc = glGetUniformLocation(_rectShader, "u_projection");
-        _glyphProjLoc = glGetUniformLocation(_glyphShader, "u_projection");
-        _imageProjLoc = glGetUniformLocation(_imageShader, "u_projection");
-        _shadowProjLoc = glGetUniformLocation(_shadowShader, "u_projection");
-        _glyphAtlasLoc = glGetUniformLocation(_glyphShader, "u_atlas");
-        _imageTexLoc = glGetUniformLocation(_imageShader, "u_texture");
-
-        // The ClipRects UBO uses binding point 0, but the shaders can't declare
-        // `binding = 0` on GLSL 410 (macOS), so bind it explicitly per-program.
-        BindClipBlockToZero(_rectShader);
-        BindClipBlockToZero(_glyphShader);
-        BindClipBlockToZero(_imageShader);
-        BindClipBlockToZero(_shadowShader);
-
         UploadProjection();
-
-        // Sampler units: glyph atlas = 0, image texture = 0 (each draw rebinds GL_TEXTURE0).
-        glUseProgram(_glyphShader);
-        glUniform1i(_glyphAtlasLoc, 0);
-        glUseProgram(_imageShader);
-        glUniform1i(_imageTexLoc, 0);
-
-        SetupUnitQuad();
         SetupInstanceBuffers();
         SetupClipUbo();
-        SetupFontAtlas();
     }
-
-    // ---------- Abstract hook implementations ----------
 
     protected override void OnResize(int width, int height)
     {
@@ -92,8 +42,8 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         UploadProjection();
     }
 
-    protected override Size GetImageSizeImpl(string imageId) => _imageManager.GetImageSize(imageId);
-    protected override uint GetImageTextureId(string imageId) => _imageManager.GetTextureId(imageId);
+    protected override Size GetImageSizeImpl(string imageId) => _shared.ImageManager.GetImageSize(imageId);
+    protected override uint GetImageTextureId(string imageId) => _shared.ImageManager.GetTextureId(imageId);
 
     protected override void UploadRectInstances(RectInstance[] data, int count)
     {
@@ -132,7 +82,6 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         glBindBuffer(GL_UNIFORM_BUFFER, _clipUbo);
         if (clips.Count == 0) return;
 
-        // List<Vector4> backing array isn't accessible; copy through stackalloc/temp.
         var n = clips.Count;
         if (n <= 256)
         {
@@ -152,44 +101,20 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
 
     protected override void UpdateAtlasIfDirty()
     {
-        var fonts = FontBackend;
-        if (!fonts.AtlasDirty)
-            return;
-
-        var rect = fonts.DirtyRect;
-        if (rect.IsEmpty)
-        {
-            fonts.ClearDirty();
-            return;
-        }
-
-        var pixels = fonts.AtlasPixels;
-        glBindTexture(GL_TEXTURE_2D, _fontAtlasTextureId);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, fonts.AtlasWidth);
-
-        var offset = rect.Y * fonts.AtlasWidth + rect.X;
-        fixed (byte* ptr = &MemoryMarshal.GetReference(pixels))
-            glTexSubImage2D(GL_TEXTURE_2D, 0, rect.X, rect.Y, rect.Width, rect.Height,
-                GL_RED, GL_UNSIGNED_BYTE, ptr + offset);
-
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-        AssertNoGlError();
-
-        fonts.ClearDirty();
-        LastFrameUploadCount++;
+        _shared.UploadAtlasIfDirty(ref _atlasUploads);
+        LastFrameUploadCount = _atlasUploads;
     }
 
     protected override void IssueDraws(IReadOnlyList<DrawCall> drawCalls)
     {
-        if (drawCalls.Count == 0)
-            return;
+        if (drawCalls.Count == 0) return;
 
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glActiveTexture(GL_TEXTURE0);
 
+        var atlasTex = _shared.FontAtlasTextureId;
         DrawKind boundKind = (DrawKind)255;
         uint boundTexture = 0;
 
@@ -201,22 +126,22 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
                 switch (call.Kind)
                 {
                     case DrawKind.Rect:
-                        glUseProgram(_rectShader);
+                        glUseProgram(_shared.RectShader);
                         glBindVertexArray(_rectVao);
                         break;
                     case DrawKind.Glyph:
-                        glUseProgram(_glyphShader);
+                        glUseProgram(_shared.GlyphShader);
                         glBindVertexArray(_glyphVao);
-                        glBindTexture(GL_TEXTURE_2D, _fontAtlasTextureId);
-                        boundTexture = _fontAtlasTextureId;
+                        glBindTexture(GL_TEXTURE_2D, atlasTex);
+                        boundTexture = atlasTex;
                         break;
                     case DrawKind.Image:
-                        glUseProgram(_imageShader);
+                        glUseProgram(_shared.ImageShader);
                         glBindVertexArray(_imageVao);
                         boundTexture = 0;
                         break;
                     case DrawKind.Shadow:
-                        glUseProgram(_shadowShader);
+                        glUseProgram(_shared.ShadowShader);
                         glBindVertexArray(_shadowVao);
                         break;
                 }
@@ -243,42 +168,19 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         glBindVertexArray(0);
     }
 
-    // ---------- GL setup helpers ----------
-
     private void UploadProjection()
     {
         var p = _projection;
         var ptr = &p.M11;
-        glUseProgram(_rectShader);
-        glUniformMatrix4fv(_rectProjLoc, 1, false, ptr);
-        glUseProgram(_glyphShader);
-        glUniformMatrix4fv(_glyphProjLoc, 1, false, ptr);
-        glUseProgram(_imageShader);
-        glUniformMatrix4fv(_imageProjLoc, 1, false, ptr);
-        glUseProgram(_shadowShader);
-        glUniformMatrix4fv(_shadowProjLoc, 1, false, ptr);
+        glUseProgram(_shared.RectShader);
+        glUniformMatrix4fv(_shared.RectProjLoc, 1, false, ptr);
+        glUseProgram(_shared.GlyphShader);
+        glUniformMatrix4fv(_shared.GlyphProjLoc, 1, false, ptr);
+        glUseProgram(_shared.ImageShader);
+        glUniformMatrix4fv(_shared.ImageProjLoc, 1, false, ptr);
+        glUseProgram(_shared.ShadowShader);
+        glUniformMatrix4fv(_shared.ShadowProjLoc, 1, false, ptr);
         AssertNoGlError();
-    }
-
-    private void SetupUnitQuad()
-    {
-        Span<float> verts = stackalloc float[12]
-        {
-            0f, 0f,
-            1f, 0f,
-            0f, 1f,
-            1f, 0f,
-            1f, 1f,
-            0f, 1f,
-        };
-
-        uint vbo;
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        fixed (float* ptr = &verts[0])
-            glBufferData(GL_ARRAY_BUFFER, verts.Length * sizeof(float), ptr, GL_STATIC_DRAW);
-        AssertNoGlError();
-        _unitQuadVbo = vbo;
     }
 
     private void SetupInstanceBuffers()
@@ -309,14 +211,11 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         uint vao;
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
-
-        glBindBuffer(GL_ARRAY_BUFFER, _unitQuadVbo);
+        glBindBuffer(GL_ARRAY_BUFFER, _shared.UnitQuadVbo);
         glVertexAttribPointer(0, 2, GL_FLOAT, false, 2 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
-
         glBindBuffer(GL_ARRAY_BUFFER, _rectInstanceVbo);
         var stride = sizeof(RectInstance);
-
         AddFloatInstanceAttrib(1, 4, stride, OffsetOf<RectInstance>(nameof(RectInstance.Rect)));
         AddFloatInstanceAttrib(2, 4, stride, OffsetOf<RectInstance>(nameof(RectInstance.BorderRadius)));
         AddFloatInstanceAttrib(3, 4, stride, OffsetOf<RectInstance>(nameof(RectInstance.BorderSize)));
@@ -326,7 +225,6 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         AddUintInstanceAttrib(7, stride, OffsetOf<RectInstance>(nameof(RectInstance.BorderColorBottom)));
         AddUintInstanceAttrib(8, stride, OffsetOf<RectInstance>(nameof(RectInstance.BorderColorLeft)));
         AddUintInstanceAttrib(9, stride, OffsetOf<RectInstance>(nameof(RectInstance.ClipIndex)));
-
         glBindVertexArray(0);
         AssertNoGlError();
         return vao;
@@ -337,20 +235,16 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         uint vao;
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
-
-        glBindBuffer(GL_ARRAY_BUFFER, _unitQuadVbo);
+        glBindBuffer(GL_ARRAY_BUFFER, _shared.UnitQuadVbo);
         glVertexAttribPointer(0, 2, GL_FLOAT, false, 2 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
-
         glBindBuffer(GL_ARRAY_BUFFER, _glyphInstanceVbo);
         var stride = sizeof(GlyphInstance);
-
         AddFloatInstanceAttrib(1, 4, stride, OffsetOf<GlyphInstance>(nameof(GlyphInstance.Rect)));
         AddFloatInstanceAttrib(2, 4, stride, OffsetOf<GlyphInstance>(nameof(GlyphInstance.AtlasUV)));
         AddUintInstanceAttrib(3, stride, OffsetOf<GlyphInstance>(nameof(GlyphInstance.Color)));
         AddUintInstanceAttrib(4, stride, OffsetOf<GlyphInstance>(nameof(GlyphInstance.ClipIndex)));
         AddFloatInstanceAttrib(5, 1, stride, OffsetOf<GlyphInstance>(nameof(GlyphInstance.Rotation)));
-
         glBindVertexArray(0);
         AssertNoGlError();
         return vao;
@@ -361,20 +255,16 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         uint vao;
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
-
-        glBindBuffer(GL_ARRAY_BUFFER, _unitQuadVbo);
+        glBindBuffer(GL_ARRAY_BUFFER, _shared.UnitQuadVbo);
         glVertexAttribPointer(0, 2, GL_FLOAT, false, 2 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
-
         glBindBuffer(GL_ARRAY_BUFFER, _imageInstanceVbo);
         var stride = sizeof(ImageInstance);
-
         AddFloatInstanceAttrib(1, 4, stride, OffsetOf<ImageInstance>(nameof(ImageInstance.Rect)));
         AddFloatInstanceAttrib(2, 4, stride, OffsetOf<ImageInstance>(nameof(ImageInstance.SrcUV)));
         AddUintInstanceAttrib(3, stride, OffsetOf<ImageInstance>(nameof(ImageInstance.Tint)));
         AddUintInstanceAttrib(4, stride, OffsetOf<ImageInstance>(nameof(ImageInstance.ClipIndex)));
         AddFloatInstanceAttrib(5, 1, stride, OffsetOf<ImageInstance>(nameof(ImageInstance.Rotation)));
-
         glBindVertexArray(0);
         AssertNoGlError();
         return vao;
@@ -385,21 +275,17 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         uint vao;
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
-
-        glBindBuffer(GL_ARRAY_BUFFER, _unitQuadVbo);
+        glBindBuffer(GL_ARRAY_BUFFER, _shared.UnitQuadVbo);
         glVertexAttribPointer(0, 2, GL_FLOAT, false, 2 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
-
         glBindBuffer(GL_ARRAY_BUFFER, _shadowInstanceVbo);
         var stride = sizeof(ShadowInstance);
-
         AddFloatInstanceAttrib(1, 4, stride, OffsetOf<ShadowInstance>(nameof(ShadowInstance.OuterRect)));
         AddFloatInstanceAttrib(2, 4, stride, OffsetOf<ShadowInstance>(nameof(ShadowInstance.ShadowRect)));
         AddFloatInstanceAttrib(3, 4, stride, OffsetOf<ShadowInstance>(nameof(ShadowInstance.BorderRadius)));
         AddFloatInstanceAttrib(4, 1, stride, OffsetOf<ShadowInstance>(nameof(ShadowInstance.Sigma)));
         AddUintInstanceAttrib(5, stride, OffsetOf<ShadowInstance>(nameof(ShadowInstance.Color)));
         AddUintInstanceAttrib(6, stride, OffsetOf<ShadowInstance>(nameof(ShadowInstance.ClipIndex)));
-
         glBindVertexArray(0);
         AssertNoGlError();
         return vao;
@@ -431,11 +317,6 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
 
     private static int OffsetOf<T>(string field) => (int)Marshal.OffsetOf<T>(field);
 
-    // macOS / GL 4.1 has no ARB_base_instance, so we cannot use
-    // glDrawArraysInstancedBaseInstance. Instead, before each draw call we
-    // re-point the per-instance attributes at (firstInstance * stride) bytes
-    // into the instance VBO. The VAO must already be bound; the instance VBO
-    // for the kind is bound here.
     private void RebindRectInstancePointers(int firstInstance)
     {
         glBindBuffer(GL_ARRAY_BUFFER, _rectInstanceVbo);
@@ -489,19 +370,6 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         SetUintInstancePointer(6, stride, baseBytes + OffsetOf<ShadowInstance>(nameof(ShadowInstance.ClipIndex)));
     }
 
-    private static void BindClipBlockToZero(uint shader)
-    {
-        Span<byte> name = stackalloc byte[10]; // "ClipRects\0"
-        name[0] = (byte)'C'; name[1] = (byte)'l'; name[2] = (byte)'i'; name[3] = (byte)'p';
-        name[4] = (byte)'R'; name[5] = (byte)'e'; name[6] = (byte)'c'; name[7] = (byte)'t';
-        name[8] = (byte)'s'; name[9] = 0;
-        uint blockIndex;
-        fixed (byte* p = name)
-            blockIndex = glGetUniformBlockIndex(shader, p);
-        if (blockIndex != GL_INVALID_INDEX)
-            glUniformBlockBinding(shader, blockIndex, 0);
-    }
-
     private void SetupClipUbo()
     {
         uint ubo;
@@ -513,51 +381,17 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         _clipUbo = ubo;
     }
 
-    private void SetupFontAtlas()
-    {
-        var fonts = FontBackend;
-        var width = fonts.AtlasWidth;
-        var height = fonts.AtlasHeight;
-        var pixels = fonts.AtlasPixels;
-
-        uint tex;
-        glGenTextures(1, &tex);
-        glBindTexture(GL_TEXTURE_2D, tex);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        fixed (byte* ptr = &MemoryMarshal.GetReference(pixels))
-            glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, ptr);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (int)GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (int)GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (int)GL_CLAMP_TO_EDGE);
-        AssertNoGlError();
-
-        _fontAtlasTextureId = tex;
-        fonts.ClearDirty();
-    }
-
     public void Dispose()
     {
         DeleteBuffer(ref _rectInstanceVbo);
         DeleteBuffer(ref _glyphInstanceVbo);
         DeleteBuffer(ref _imageInstanceVbo);
         DeleteBuffer(ref _shadowInstanceVbo);
-        DeleteBuffer(ref _unitQuadVbo);
         DeleteBuffer(ref _clipUbo);
         DeleteVao(ref _rectVao);
         DeleteVao(ref _glyphVao);
         DeleteVao(ref _imageVao);
         DeleteVao(ref _shadowVao);
-        if (_fontAtlasTextureId != 0)
-        {
-            var id = _fontAtlasTextureId;
-            glDeleteTextures(1, &id);
-            _fontAtlasTextureId = 0;
-        }
-        if (_rectShader != 0) { glDeleteProgram(_rectShader); _rectShader = 0; }
-        if (_glyphShader != 0) { glDeleteProgram(_glyphShader); _glyphShader = 0; }
-        if (_imageShader != 0) { glDeleteProgram(_imageShader); _imageShader = 0; }
-        if (_shadowShader != 0) { glDeleteProgram(_shadowShader); _shadowShader = 0; }
     }
 
     private static void DeleteBuffer(ref uint buf)

@@ -81,7 +81,6 @@ public sealed class ModelSelectorController : KeyboardMouseController
 
         var contextMenu = new ContextMenu
         {
-            AnchorPoint = _modelSelector.Position.BottomLeft,
             BackgroundColor = 0xFF353535,
             BorderColor = BorderColorStyle.All(0xFF3C3C3C),
             Children =
@@ -101,7 +100,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
             }
         };
 
-        _openedContextMenu = _contextMenuManager.ShowContextMenu(contextMenu);
+        _openedContextMenu = _contextMenuManager.ShowContextMenu(contextMenu, _modelSelector.Position.BottomLeft);
         _openedContextMenu.Closed += OnContextMenuClosed;
         _inputSystem = _modelSelector.Context?.Get<InputSystem>();
         _inputSystem?.RegisterController(contextMenu, new ContextMenuKbmController(_openedContextMenu));

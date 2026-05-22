@@ -4,6 +4,8 @@ using ZGF.Core;
 using ZGF.Fonts;
 using ZGF.Gui;
 using ZGF.Gui.Tests;
+
+// FontHandle is in ZGF.Fonts namespace.
 using static GL46;
 using static ZGF.Core.MacOs.Objc;
 
@@ -13,10 +15,12 @@ internal static class PlatformBackend
 {
     public readonly struct Backend
     {
-        public required IWindowApp Window { get; init; }
-        public required RenderedCanvasBase Canvas { get; init; }
+        public required IApp App { get; init; }
+        public required RenderedCanvasBase MainCanvas { get; init; }
         public required FreeTypeFontBackend FontBackend { get; init; }
-        public required Action<Action> RenderFrame { get; init; }
+        public required FontHandle DefaultFont { get; init; }
+        public required GlSharedResources? GlShared { get; init; }
+        public required MetalSharedResources? MetalShared { get; init; }
     }
 
     public static Backend Resolve(StartupConfig config)
@@ -28,68 +32,56 @@ internal static class PlatformBackend
 
     private static Backend ResolveOpenGl(StartupConfig config)
     {
-        var window = new OpenGlApp(config);
-
-        // Canvas runs in logical points; the canvas itself bakes glyphs at
-        // device pixels using DpiScale, so layout/styles stay in logical units
-        // but text renders crisply on HiDPI displays.
-        var dpiScale = window.DpiScale;
+        var app = new OpenGlApp(config);
+        var mainWindow = (OpenGlWindow)app.MainWindow;
+        var dpiScale = mainWindow.DpiScale;
 
         var fontFilePath = PathUtils.ResolveLocalPath("Assets/Fonts/Inter/Inter-Regular.ttf");
         var fonts = new FreeTypeFontBackend();
         var defaultFont = fonts.LoadFontFromFile(fontFilePath, (int)MathF.Round(16 * dpiScale));
         var imageManager = new GlImageManager();
+        var shared = new GlSharedResources(fonts, imageManager);
         var canvas = new OpenGlRenderedCanvas(
-            config.WindowWidth,
-            config.WindowHeight,
-            fonts,
-            defaultFont,
-            imageManager,
-            dpiScale);
+            config.WindowWidth, config.WindowHeight, fonts, defaultFont, shared, dpiScale);
 
         glClearColor(0, 0, 0, 0);
 
-        Action<Action> renderFrame = populate =>
+        mainWindow.RenderFrame = () =>
         {
             glClear(GL_COLOR_BUFFER_BIT);
             canvas.BeginFrame();
-            populate();
+            // Population happens via GuiApp wiring; PopulateMain is set by GuiApp.
+            PopulateMain?.Invoke();
             canvas.EndFrame();
         };
 
         return new Backend
         {
-            Window = window,
-            Canvas = canvas,
+            App = app,
+            MainCanvas = canvas,
             FontBackend = fonts,
-            RenderFrame = renderFrame,
+            DefaultFont = defaultFont,
+            GlShared = shared,
+            MetalShared = null,
         };
     }
 
     private static Backend ResolveMetal(StartupConfig config)
     {
-        var window = new MetalApp(config);
-
-        // Canvas runs in logical points; the canvas itself bakes glyphs at
-        // device pixels using DpiScale, so layout/styles stay in logical units
-        // but text renders crisply on Retina.
-        var dpiScale = window.DpiScale;
+        var app = new MetalApp(config);
+        var mainWindow = (MetalWindow)app.MainWindow;
+        var dpiScale = mainWindow.DpiScale;
 
         var fontFilePath = PathUtils.ResolveLocalPath("Assets/Fonts/Inter/Inter-Regular.ttf");
         var fonts = new FreeTypeFontBackend();
         var defaultFont = fonts.LoadFontFromFile(fontFilePath, (int)MathF.Round(16 * dpiScale));
-        var imageManager = new MetalImageManager(window.Device);
+        var imageManager = new MetalImageManager(app.Device);
+        var shared = new MetalSharedResources(app.Device, app.CommandQueue, fonts, imageManager);
         var canvas = new MetalRenderedCanvas(
-            config.WindowWidth,
-            config.WindowHeight,
-            fonts,
-            defaultFont,
-            imageManager,
-            window.Device,
-            dpiScale);
+            config.WindowWidth, config.WindowHeight, fonts, defaultFont, shared, dpiScale);
 
-        var layer = window.Layer;
-        var queue = window.CommandQueue;
+        var layer = mainWindow.Layer;
+        var queue = app.CommandQueue;
         var nextDrawableSel = Sel("nextDrawable");
         var commandBufferSel = Sel("commandBuffer");
         var renderCommandEncoderSel = Sel("renderCommandEncoderWithDescriptor:");
@@ -98,18 +90,17 @@ internal static class PlatformBackend
         var commitSel = Sel("commit");
         var textureSel = Sel("texture");
 
-        Action<Action> renderFrame = populate =>
+        mainWindow.RenderFrame = () =>
         {
             var drawable = msg_IntPtr(layer, nextDrawableSel);
             if (drawable == IntPtr.Zero) return;
 
             var commandBuffer = msg_IntPtr(queue, commandBufferSel);
             var passDescriptor = BuildRenderPassDescriptor(msg_IntPtr(drawable, textureSel));
-
             var encoder = msg_IntPtr(commandBuffer, renderCommandEncoderSel, passDescriptor);
 
             canvas.BeginFrame();
-            populate();
+            PopulateMain?.Invoke();
             canvas.EndFrame(encoder, commandBuffer);
 
             msg_Void(encoder, endEncodingSel);
@@ -121,23 +112,27 @@ internal static class PlatformBackend
 
         return new Backend
         {
-            Window = window,
-            Canvas = canvas,
+            App = app,
+            MainCanvas = canvas,
             FontBackend = fonts,
-            RenderFrame = renderFrame,
+            DefaultFont = defaultFont,
+            GlShared = null,
+            MetalShared = shared,
         };
     }
+
+    // Wired by GuiApp: the main-window draw callback that fills the canvas.
+    internal static Action? PopulateMain;
 
     private static IntPtr BuildRenderPassDescriptor(IntPtr drawableTexture)
     {
         var descClass = Class("MTLRenderPassDescriptor");
         var desc = msg_IntPtr(descClass, Sel("renderPassDescriptor"));
-        Retain(desc); // returned autoreleased; we'll release after commit.
+        Retain(desc);
 
         var colorAttachments = msg_IntPtr(desc, Sel("colorAttachments"));
         var color0 = msg_IntPtr_NUInt_NUInt(colorAttachments, Sel("objectAtIndexedSubscript:"), 0, 0);
         msg_Void_IntPtr(color0, Sel("setTexture:"), drawableTexture);
-        // 2 = MTLLoadActionClear, 1 = MTLStoreActionStore.
         msg_Void_UInt(color0, Sel("setLoadAction:"), 2);
         msg_Void_UInt(color0, Sel("setStoreAction:"), 1);
         SetClearColor(color0, Sel("setClearColor:"), new ZGF.Core.MacOs.MTLClearColor(0, 0, 0, 1));

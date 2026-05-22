@@ -54,10 +54,7 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
 
         if (SubOptions.Count > 0)
         {
-            var subMenu = new ContextMenu
-            {
-                AnchorPoint = _contextMenuItem.Position.TopRight
-            };
+            var subMenu = new ContextMenu();
             foreach (var subOption in SubOptions)
             {
                 subMenu.Children.Add(new ContextMenuItem
@@ -67,7 +64,8 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             }
 
             var parentMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
-            _openedContextMenu = _contextMenuManager.ShowContextMenu(subMenu, parentMenu);
+            var anchor = _contextMenuItem.Position.TopRight;
+            _openedContextMenu = _contextMenuManager.ShowContextMenu(subMenu, anchor, parentMenu);
             if (_openedContextMenu != null)
             {
                 _openedContextMenu.Closed += OnOpenedContextMenuClosed;

@@ -13,13 +13,16 @@ namespace ZGF.Gui.Tests;
 public sealed class App : IDisposable
 {
     private readonly OpenGlApp _windowApp;
+    private readonly OpenGlWindow _mainWindow;
     private readonly OpenGlRenderedCanvas _canvas;
+    private readonly GlSharedResources _shared;
     private readonly MultiChildView _gui;
 
     private readonly GlfwInputSystem _inputSystem;
     private readonly FreeTypeFontBackend _fontBackend;
     private readonly FontHandle _defaultFont;
     private readonly ContextMenuManager _contextMenuManager;
+    private readonly PopupWindowFactory _popupFactory;
     private readonly GlImageManager _imageManager;
 
     private GlFrameBufferHandle _frameBufferHandle;
@@ -30,6 +33,7 @@ public sealed class App : IDisposable
     public App(StartupConfig startupConfig)
     {
         _windowApp = new OpenGlApp(startupConfig);
+        _mainWindow = (OpenGlWindow)_windowApp.MainWindow;
         _imageManager = new GlImageManager();
         _imageManager.LoadImageFromFile("Assets/Icons/arrow_right.png");
         _imageManager.LoadImageFromFile("Assets/Icons/arrow_up.png");
@@ -39,15 +43,12 @@ public sealed class App : IDisposable
         _fontBackend = new FreeTypeFontBackend();
         _defaultFont = _fontBackend.LoadFontFromFile("Assets/Fonts/Inter/Inter-Regular.ttf", 16);
 
+        _shared = new GlSharedResources(_fontBackend, _imageManager);
         _canvas = new OpenGlRenderedCanvas(
-            startupConfig.WindowWidth,
-            startupConfig.WindowHeight,
-            _fontBackend,
-            _defaultFont,
-            _imageManager
-        );
+            startupConfig.WindowWidth, startupConfig.WindowHeight,
+            _fontBackend, _defaultFont, _shared);
 
-        _inputSystem = new GlfwInputSystem(_windowApp.WindowHandle, _canvas);
+        _inputSystem = new GlfwInputSystem(_mainWindow.WindowHandle, _canvas);
 
         _mesh = Mesh.LoadFromFile("Assets/Models/Suzan_tri.obj");
         _shaderProgram = new ShaderProgramCompiler()
@@ -60,16 +61,8 @@ public sealed class App : IDisposable
         _viewProjectionMatrixUniformLocation = glGetUniformLocation(_shaderProgram.Id, "view_projection_matrix");
         AssertNoGlError();
 
-        var contextMenuPane = new MultiChildView();
-        _contextMenuManager = new ContextMenuManager(contextMenuPane);
-
-        var context = new Context
-        {
-            Canvas = _canvas
-        };
-
+        var context = new Context { Canvas = _canvas };
         context.AddService(_inputSystem.InputSystem);
-        context.AddService(_contextMenuManager);
 #if OSX
         context.AddService<IClipboard>(new OsxClipboard());
 #elif WIN
@@ -77,6 +70,16 @@ public sealed class App : IDisposable
 #else
         context.AddService<IClipboard>(new AppClipboard());
 #endif
+
+        var coordinates = new MainWindowCoordinates(_mainWindow.WindowHandle, _canvas);
+        var noopDecorator = new SampleNoopDecorator();
+        _popupFactory = new PopupWindowFactory(
+            _windowApp, _fontBackend, _defaultFont, _shared, metalShared: null,
+            noopDecorator, context);
+        _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, _inputSystem.InputSystem);
+        context.AddService(_contextMenuManager);
+        context.AddService<IWindowCoordinates>(coordinates);
+        context.AddService<IPopupWindowFactory>(_popupFactory);
 
         glClearColor(0f, 0f, 0f, 0f);
 
@@ -92,16 +95,12 @@ public sealed class App : IDisposable
             Center = center,
         };
 
-        var gui = new MultiChildView
+        _gui = new MultiChildView
         {
             PreferredWidth = _canvas.Width,
             PreferredHeight = _canvas.Height,
             Context = context,
-            Children =
-            {
-                contents,
-                contextMenuPane,
-            }
+            Children = { contents }
         };
 
         var ss = new StyleSheet();
@@ -112,20 +111,16 @@ public sealed class App : IDisposable
             BorderSize = BorderSizeStyle.All(1),
             BorderColor = new BorderColorStyle
             {
-                Left = 0xFF9C9C9C,
-                Top = 0xFF9C9C9C,
-                Right = 0xFFFFFFFF,
-                Bottom = 0xFFFFFFFF
+                Left = 0xFF9C9C9C, Top = 0xFF9C9C9C,
+                Right = 0xFFFFFFFF, Bottom = 0xFFFFFFFF
             },
         });
         ss.AddStyleForClass("raised_panel", new Style
         {
             BorderColor = new BorderColorStyle
             {
-                Top = 0xFFFFFFFF,
-                Left = 0xFFFFFFFF,
-                Right = 0xFF9C9C9C,
-                Bottom = 0xFF9C9C9C
+                Top = 0xFFFFFFFF, Left = 0xFFFFFFFF,
+                Right = 0xFF9C9C9C, Bottom = 0xFF9C9C9C
             },
         });
         ss.AddStyleForClass("window_button", new Style
@@ -133,19 +128,13 @@ public sealed class App : IDisposable
             PreferredWidth = 10f,
             BackgroundColor = 0xFF000000,
         });
+        ss.AddStyleForClass("disabled", new Style { TextColor = 0xFF959595 });
+        _gui.ApplyStyleSheet(ss);
 
-        ss.AddStyleForClass("disabled", new Style
-        {
-            TextColor = 0xFF959595
-        });
-
-        gui.ApplyStyleSheet(ss);
-
-        _gui = gui;
-
-        _windowApp.OnUpdate += HandleUpdate;
-        _windowApp.OnResize += HandleResize;
-        _windowApp.OnFramebufferResize += HandleFramebufferResize;
+        _windowApp.OnTick += HandleTick;
+        _mainWindow.OnResize += HandleResize;
+        _mainWindow.OnFramebufferResize += HandleFramebufferResize;
+        _mainWindow.RenderFrame = Render;
 
         var fov = 45f * (MathF.PI / 180f);
         var aspectRatio = 640f / 480f;
@@ -155,7 +144,6 @@ public sealed class App : IDisposable
         _modelMatrix = Matrix4x4.Identity;
 
         glEnable(GL_DEPTH_TEST);
-
         _stopwatch.Start();
     }
 
@@ -163,21 +151,12 @@ public sealed class App : IDisposable
 
     public void Dispose()
     {
-        _windowApp.OnUpdate -= HandleUpdate;
-        _windowApp.OnResize -= HandleResize;
-        _windowApp.OnFramebufferResize -= HandleFramebufferResize;
+        _windowApp.OnTick -= HandleTick;
+        _mainWindow.OnResize -= HandleResize;
+        _mainWindow.OnFramebufferResize -= HandleFramebufferResize;
+        _popupFactory.Dispose();
+        _shared.Dispose();
         _windowApp.Dispose();
-    }
-
-    private void PrintTree(MultiChildView view, int depth = 0)
-    {
-        var indent = new string(' ', depth * 4);
-        Console.WriteLine($"{indent}{view}");
-        foreach (var child in view.Children)
-        {
-            if (child is MultiChildView multiChildView)
-                PrintTree(multiChildView, depth + 1);
-        }
     }
 
     private void HandleResize(int width, int height)
@@ -185,8 +164,7 @@ public sealed class App : IDisposable
         _gui.PreferredWidth = width;
         _gui.PreferredHeight = height;
         _canvas.Resize(width, height);
-        Render();
-        _windowApp.SwapBuffers();
+        _mainWindow.RenderNow();
     }
 
     private void HandleFramebufferResize(int width, int height)
@@ -199,7 +177,7 @@ public sealed class App : IDisposable
     private Stopwatch _stopwatch = new();
     private int _frames = 0;
 
-    private void HandleUpdate()
+    private void HandleTick()
     {
         rr += 0.005f;
         var t = Matrix4x4.CreateTranslation(0f, 0f, -20);
@@ -207,7 +185,6 @@ public sealed class App : IDisposable
         var s = Matrix4x4.CreateScale(5f, 5f, 5f);
         _modelMatrix = s * r * t;
 
-        Render();
         _inputSystem.Update();
         _contextMenuManager.Update();
 
@@ -223,7 +200,7 @@ public sealed class App : IDisposable
     {
         RenderMesh();
 
-        Glfw.GetFramebufferSize(_windowApp.GlfwWindow, out var width, out var height);
+        Glfw.GetFramebufferSize(_mainWindow.GlfwWindow, out var width, out var height);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glViewport(0, 0, width, height);
         glClearColor(0, 0, 0, 0);
@@ -244,8 +221,6 @@ public sealed class App : IDisposable
     {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _frameBufferHandle.FrameBufferId);
         glViewport(0, 0, _frameBufferHandle.Width, _frameBufferHandle.Height);
-        // The canvas turns depth-test off and blending on each frame; restore the
-        // 3D pass's expected state explicitly instead of relying on init-time setup.
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
         glClearColor(0, 0, 0, 0);
@@ -268,6 +243,14 @@ public sealed class App : IDisposable
 
     public void Exit()
     {
-        Glfw.SetWindowShouldClose(_windowApp.GlfwWindow, true);
+        Glfw.SetWindowShouldClose(_mainWindow.GlfwWindow, true);
+    }
+
+    private sealed class SampleNoopDecorator : IPopupNativeDecorator
+    {
+        public void DecoratePopup(IntPtr handle, bool mousePassThrough) { }
+        public void BeginCapture(IntPtr handle, Action<ZGF.Geometry.PointI> cb) { }
+        public void EndCapture(IntPtr handle) { }
+        public void TransferCapture(IntPtr from, IntPtr to) { }
     }
 }
