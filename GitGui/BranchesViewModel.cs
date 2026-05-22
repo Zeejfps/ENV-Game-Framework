@@ -408,15 +408,34 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         var dispatcher = Dispatcher;
         var bus = _bus;
 
+        var opId = Guid.NewGuid();
+        bus.Broadcast(new OperationStartedMessage(
+            opId,
+            $"Fast-forward {branchName} ← {remoteName}/{remoteBranch}",
+            LucideIcons.Pull));
+
+        // Git's OutputDataReceived/ErrorDataReceived events fire on worker threads. The
+        // bus has no thread guarantees and subscribers touch UI state, so each line is
+        // marshalled to the UI dispatcher before being broadcast.
+        void OnLineFromWorker(string line)
+        {
+            dispatcher.Post(() =>
+            {
+                var (phase, percent) = GitProgressParser.Parse(line);
+                bus.Broadcast(new OperationProgressMessage(opId, phase, percent, line));
+            });
+        }
+
         Task.Run(() =>
         {
             FastForwardOutcome outcome;
-            try { outcome = service.FastForwardBranch(repo, branchName, remoteName, remoteBranch); }
+            try { outcome = service.FastForwardBranch(repo, branchName, remoteName, remoteBranch, OnLineFromWorker); }
             catch (Exception ex) { outcome = new FastForwardOutcome(false, ex.Message); }
 
             dispatcher.Post(() =>
             {
                 Update(s => s with { BusyBranch = null });
+                bus.Broadcast(new OperationFinishedMessage(opId, outcome.Success, outcome.ErrorMessage));
                 if (outcome.Success)
                     bus.Broadcast(new RefsChangedMessage(repo.Id));
                 else

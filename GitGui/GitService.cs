@@ -1095,38 +1095,66 @@ public sealed class GitService : IGitService
     // refreshes the remote ref and then advances the local ref only if the update is a
     // strict fast-forward. Git refuses if <local-branch> is the currently checked-out HEAD
     // (or checked out in any worktree) — the caller should gate that in the UI.
-    public FastForwardOutcome FastForwardBranch(Repo repo, string localBranch, string remoteName, string remoteBranch)
+    //
+    // Streams git's progress output line-by-line to the console so a long fetch (many
+    // commits, big packfile) doesn't look like the UI is hung. `--progress` forces git
+    // to emit the "Counting / Compressing / Receiving / Resolving" lines even though
+    // stderr isn't a TTY here.
+    public FastForwardOutcome FastForwardBranch(Repo repo, string localBranch, string remoteName, string remoteBranch, Action<string>? onLine = null)
     {
+        var tag = $"[Git ff {localBranch} <- {remoteName}/{remoteBranch}]";
         try
         {
             if (!IsGitRepo(repo.Path))
                 return new FastForwardOutcome(false, "Not a git repository.");
 
             var refspec = $"{remoteBranch}:{localBranch}";
-            var args = new List<string> { "fetch", remoteName, refspec };
+            var args = new List<string> { "fetch", "--progress", remoteName, refspec };
             var sem = GetRepoLock(repo.Path);
             sem.Wait();
             try
             {
                 var psi = BuildGitProcessStartInfo(args, repo.Path);
+                var sw = Stopwatch.StartNew();
+                Console.WriteLine($"{tag} starting");
+
                 using var proc = Process.Start(psi);
                 if (proc == null) return new FastForwardOutcome(false, "Failed to start git.");
 
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
+                var captured = new System.Text.StringBuilder();
+                void OnLine(string? line)
+                {
+                    if (string.IsNullOrEmpty(line)) return;
+                    Console.WriteLine($"{tag}   {line}");
+                    lock (captured) captured.AppendLine(line);
+                    onLine?.Invoke(line);
+                }
+                proc.OutputDataReceived += (_, e) => OnLine(e.Data);
+                proc.ErrorDataReceived += (_, e) => OnLine(e.Data);
+                proc.BeginOutputReadLine();
+                proc.BeginErrorReadLine();
                 proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
+                sw.Stop();
 
-                if (proc.ExitCode == 0) return new FastForwardOutcome(true, null);
-                var msg = CombineGitOutput(stderr, stdout);
+                if (proc.ExitCode == 0)
+                {
+                    Console.WriteLine($"{tag} done in {sw.ElapsedMilliseconds}ms");
+                    return new FastForwardOutcome(true, null);
+                }
+
+                string captureText;
+                lock (captured) captureText = captured.ToString();
+                var msg = FirstMeaningfulLine(captureText);
                 if (string.IsNullOrEmpty(msg)) msg = $"git fetch exited with code {proc.ExitCode}.";
+                msg = AugmentCredentialError(msg, captureText);
+                Console.WriteLine($"{tag} failed in {sw.ElapsedMilliseconds}ms: {msg}");
                 return new FastForwardOutcome(false, msg);
             }
             finally { sem.Release(); }
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"{tag} threw: {ex.Message}");
             return new FastForwardOutcome(false, ex.Message);
         }
     }
@@ -2318,6 +2346,13 @@ public sealed class GitService : IGitService
     //
     // Running git through the user's shell with `-i -c` sources their rc files first
     // so ssh and git see the same environment they do in Terminal.
+    //
+    // GIT_TERMINAL_PROMPT=0 disables git's "Username for 'https://...':" / "Password:"
+    // stdin prompts. Without it, an HTTPS remote with no cached credentials makes git
+    // block forever on stdin (which is our pipe, not a TTY) and the only way out is to
+    // kill the process. With it set, git fails fast with
+    //   "fatal: could not read Username for '...': terminal prompts disabled"
+    // which we surface to the user as a clear, actionable error.
     private static ProcessStartInfo BuildGitProcessStartInfo(string gitArgs, string workingDir)
     {
         var psi = new ProcessStartInfo
@@ -2328,6 +2363,7 @@ public sealed class GitService : IGitService
             UseShellExecute = false,
             CreateNoWindow = true,
         };
+        psi.Environment["GIT_TERMINAL_PROMPT"] = "0";
 
         if (OperatingSystem.IsMacOS())
         {
@@ -2336,7 +2372,8 @@ public sealed class GitService : IGitService
             psi.FileName = shell;
             psi.ArgumentList.Add("-i");
             psi.ArgumentList.Add("-c");
-            psi.ArgumentList.Add($"git {gitArgs}");
+            // Inline export so rc-file overrides can't re-enable prompts.
+            psi.ArgumentList.Add($"GIT_TERMINAL_PROMPT=0 git {gitArgs}");
         }
         else
         {
@@ -2361,6 +2398,7 @@ public sealed class GitService : IGitService
             UseShellExecute = false,
             CreateNoWindow = true,
         };
+        psi.Environment["GIT_TERMINAL_PROMPT"] = "0";
 
         if (OperatingSystem.IsMacOS())
         {
@@ -2369,7 +2407,7 @@ public sealed class GitService : IGitService
             psi.FileName = shell;
             psi.ArgumentList.Add("-i");
             psi.ArgumentList.Add("-c");
-            var sb = new System.Text.StringBuilder("git");
+            var sb = new System.Text.StringBuilder("GIT_TERMINAL_PROMPT=0 git");
             foreach (var a in gitArgs)
             {
                 sb.Append(' ');
@@ -2388,6 +2426,29 @@ public sealed class GitService : IGitService
 
     private static string SingleQuoteShellArg(string s)
         => "'" + s.Replace("'", "'\\''") + "'";
+
+    // We force GIT_TERMINAL_PROMPT=0 so HTTPS auth doesn't hang the process. When the
+    // user has no credential helper configured, the resulting error ("could not read
+    // Username for ...: terminal prompts disabled") is technically correct but not
+    // actionable on its own — append a one-line hint pointing at credential helpers /
+    // SSH so the user knows what to do next.
+    private static string AugmentCredentialError(string headline, string fullOutput)
+    {
+        if (string.IsNullOrEmpty(headline) || string.IsNullOrEmpty(fullOutput))
+            return headline;
+        var looksLikeAuth = fullOutput.Contains("terminal prompts disabled", StringComparison.OrdinalIgnoreCase)
+            || fullOutput.Contains("could not read Username", StringComparison.OrdinalIgnoreCase)
+            || fullOutput.Contains("could not read Password", StringComparison.OrdinalIgnoreCase)
+            || fullOutput.Contains("Authentication failed", StringComparison.OrdinalIgnoreCase);
+        if (!looksLikeAuth) return headline;
+
+        var hint = OperatingSystem.IsMacOS()
+            ? "Configure a credential helper (e.g. `git config --global credential.helper osxkeychain`) or switch the remote to SSH."
+            : OperatingSystem.IsWindows()
+                ? "Configure a credential helper (Git Credential Manager ships with Git for Windows) or switch the remote to SSH."
+                : "Configure a credential helper (e.g. `git config --global credential.helper store`) or switch the remote to SSH.";
+        return $"{headline}\n\n{hint}";
+    }
 
     // Pulls the most relevant single line out of a git error blob — typically the
     // "fatal: …" / "error: …" / "hint: …" line near the end. Used by callers that show
