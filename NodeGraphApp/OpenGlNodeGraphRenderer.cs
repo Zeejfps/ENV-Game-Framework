@@ -147,8 +147,8 @@ public sealed class OpenGlNodeGraphRenderer
         var fullPath = PathUtils.ResolveLocalPath($"Assets/Fonts/Inter/{pageName}");
         var decodedPng = Png.DecodeFromFile(fullPath);
         
-        var width = decodedPng.Width;
-        var height = decodedPng.Height;
+        var width = (int)decodedPng.Ihdr.Width;
+        var height = (int)decodedPng.Ihdr.Height;
 
         fixed(void* ptr = &decodedPng.PixelData[0]) 
             glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, ptr); AssertNoGlError();
