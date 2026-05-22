@@ -19,6 +19,7 @@ public sealed class GlfwInputSystem
 
     public InputSystem InputSystem { get; } = new();
     public Mouse Mouse { get; } = new();
+    public Action? OnAnyInput { get; set; }
 
     public GlfwInputSystem(IntPtr windowHandle, RenderedCanvasBase canvas)
         : this((GlfwWindow)windowHandle, canvas) { }
@@ -59,6 +60,7 @@ public sealed class GlfwInputSystem
             Phase = EventPhase.Capturing,
         };
         InputSystem.SendMouseMovedEvent(ref e);
+        OnAnyInput?.Invoke();
     }
 
     private void HandleScrollEvent(GlfwWindow window, double x, double y)
@@ -71,12 +73,15 @@ public sealed class GlfwInputSystem
             Phase = EventPhase.Capturing
         };
         InputSystem.SendMouseScrollEvent(ref e);
+        OnAnyInput?.Invoke();
     }
 
     private void HandleMouseButtonEvent(GlfwWindow window, GLFW.MouseButton button, GLFW.InputState state, ModifierKeys modifiers)
     {
+        Glfw.GetCursorPosition(_windowHandle, out var mouseX, out var mouseY);
+        Mouse.Point = WindowToGuiCoords(mouseX, mouseY);
         PopupDebugLog.Log(PopupDebugLog.Channel.Outside,
-            $"GlfwInputSystem.HandleMouseButtonEvent: hwnd={((IntPtr)window).ToInt64():X} button={button} state={state}");
+            $"GlfwInputSystem.HandleMouseButtonEvent: hwnd={((IntPtr)window).ToInt64():X} button={button} state={state} guiPoint=({Mouse.Point.X:F1},{Mouse.Point.Y:F1})");
         var b = button switch
         {
             GLFW.MouseButton.Left => MouseButton.Left,
@@ -110,6 +115,7 @@ public sealed class GlfwInputSystem
             Phase = EventPhase.Capturing,
         };
         InputSystem.SendMouseButtonEvent(ref e);
+        OnAnyInput?.Invoke();
     }
 
     private void HandleKeyEvent(GlfwWindow window, Keys key, int scanCode, GLFW.InputState state, ModifierKeys mods)
@@ -130,6 +136,7 @@ public sealed class GlfwInputSystem
             Phase = EventPhase.Capturing
         };
         InputSystem.SendKeyboardKeyEvent(ref e);
+        OnAnyInput?.Invoke();
     }
 
     private PointF WindowToGuiCoords(double windowX, double windowY)

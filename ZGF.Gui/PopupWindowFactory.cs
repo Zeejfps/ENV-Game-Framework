@@ -229,6 +229,12 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         return impl;
     }
 
+    public void UpdateActivePopupInput()
+    {
+        for (var i = 0; i < _activePopups.Count; i++)
+            _activePopups[i].UpdateInput();
+    }
+
     public void Dispose()
     {
         foreach (var p in _activePopups) p.Dispose();
@@ -268,6 +274,7 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
         _glShared = glShared;
         _metalShared = metalShared;
 
+        _input.OnAnyInput = () => _window.RequestRedraw();
         WireRenderFrame();
     }
 
@@ -355,6 +362,8 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     }
 
     public void RaiseOutsideClick(PointI screen) => OutsideClick?.Invoke(screen);
+
+    public void UpdateInput() => _input.Update();
 
     public void Dispose()
     {

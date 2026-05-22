@@ -98,20 +98,10 @@ public sealed class OpenGlApp : IApp
             {
                 var w = _windows[i];
                 var isPopup = !(w is OpenGlWindow ogw && ogw.IsMain);
-                if (!w.IsVisible)
-                {
-                    if (isPopup)
-                        Console.Error.WriteLine($"[popup:Lifecycle] MainLoop: skip hwnd={w.WindowHandle.ToInt64():X} reason=!IsVisible NeedsRedraw={w.NeedsRedraw}");
-                    continue;
-                }
-                if (!w.NeedsRedraw)
-                {
-                    if (isPopup)
-                        Console.Error.WriteLine($"[popup:Lifecycle] MainLoop: skip hwnd={w.WindowHandle.ToInt64():X} reason=!NeedsRedraw IsVisible=true");
-                    continue;
-                }
+                if (!w.IsVisible) continue;
+                if (!w.NeedsRedraw) continue;
                 if (isPopup)
-                    Console.Error.WriteLine($"[popup:Lifecycle] MainLoop: render hwnd={w.WindowHandle.ToInt64():X} IsVisible=true NeedsRedraw=true");
+                    Console.Error.WriteLine($"[popup:Lifecycle] MainLoop: render hwnd={w.WindowHandle.ToInt64():X}");
                 w.MakeContextCurrent();
                 w.RenderNow();
                 w.NeedsRedraw = false;

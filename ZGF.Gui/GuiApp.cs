@@ -123,6 +123,7 @@ public sealed class GuiApp : IDisposable
     {
         _dispatcher.Drain();
         _mainInput.Update();
+        _popupFactory.UpdateActivePopupInput();
         _contextMenuManager.Update();
     }
 
