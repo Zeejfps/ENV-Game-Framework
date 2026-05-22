@@ -3,13 +3,6 @@ using ZGF.Gui.Layouts;
 
 namespace GitGui;
 
-/// <summary>
-/// Bottom-of-window status bar showing in-flight git ops (fetch, push, fast-forward, ...).
-/// The bar is hidden (detached from its parent) when no ops are active so it doesn't take
-/// vertical space at rest. <see cref="OperationsStatusBarPresenter"/> drives the contents
-/// via <see cref="AddRow"/> / <see cref="RemoveRow"/> and toggles the log panel via
-/// <see cref="ShowLog"/> / <see cref="HideLog"/>.
-/// </summary>
 internal sealed class OperationsStatusBar
 {
     public RectView View { get; }
@@ -87,7 +80,6 @@ internal sealed class OperationsStatusBar
         _logText.Text = lines.Count == 0 ? "(no output yet)" : string.Join('\n', lines);
         if (_logVisible) return;
         _logVisible = true;
-        // Insert log panel above the rows column inside the bar's inner column.
         var inner = (FlexColumnView)View.Children[0];
         inner.Children.Insert(0, _logPanel);
     }

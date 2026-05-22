@@ -3,16 +3,6 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-/// <summary>
-/// Drives the <see cref="OperationsStatusBar"/> from message-bus events. Owns the per-op
-/// state (label, log buffer, finish countdown) and renders one row per active op. Click
-/// on a row toggles the log popover for that op.
-///
-/// Finished rows linger for <see cref="FinishedLingerMs"/> so the user has time to see
-/// the success/failure marker; after that the row removes itself. Failed rows stay until
-/// the user clicks the dialog away (the existing ShowOperationErrorMessage path), but the
-/// row still self-removes on the same timer — the modal carries the durable error text.
-/// </summary>
 internal sealed class OperationsStatusBarPresenter : IViewBehavior
 {
     private const int FinishedLingerMs = 3000;

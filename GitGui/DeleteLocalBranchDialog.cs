@@ -5,14 +5,6 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-/// <summary>
-/// Confirmation modal for deleting a local branch. Default uses `git branch -d` which
-/// refuses if the branch isn't fully merged into upstream/HEAD; the force checkbox
-/// switches to `-D` which deletes anyway (the destructive option, off by default).
-///
-/// When the branch tracks an existing upstream ref, an extra checkbox lets the user
-/// also delete the remote branch in the same action (`git push &lt;remote&gt; --delete`).
-/// </summary>
 public sealed class DeleteLocalBranchDialog : MultiChildView, IDeleteLocalBranchView
 {
     private readonly Action _onClose;

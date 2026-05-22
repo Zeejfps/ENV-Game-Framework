@@ -4,12 +4,6 @@ using ZGF.Gui.Layouts;
 
 namespace GitGui;
 
-/// <summary>
-/// One row in the <see cref="OperationsStatusBar"/>. Shows the op's icon, label,
-/// current phase, a determinate progress bar, and elapsed time. The whole row is a
-/// HoverableButton so clicking toggles the log popover for this op via the supplied
-/// onToggleLog callback.
-/// </summary>
 internal sealed class OperationRow : HoverableButton
 {
     private readonly TextView _label;
