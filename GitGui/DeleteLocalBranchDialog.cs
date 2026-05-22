@@ -9,17 +9,30 @@ namespace GitGui;
 /// Confirmation modal for deleting a local branch. Default uses `git branch -d` which
 /// refuses if the branch isn't fully merged into upstream/HEAD; the force checkbox
 /// switches to `-D` which deletes anyway (the destructive option, off by default).
+///
+/// When the branch tracks an existing upstream ref, an extra checkbox lets the user
+/// also delete the remote branch in the same action (`git push &lt;remote&gt; --delete`).
 /// </summary>
 public sealed class DeleteLocalBranchDialog : MultiChildView, IDeleteLocalBranchView
 {
     private readonly Action _onClose;
     private readonly CheckboxView _forceCheckbox;
+    private readonly CheckboxView? _deleteRemoteCheckbox;
+    private readonly DialogButton _cancelButton;
     private readonly DialogButton _deleteButton;
     private readonly TextView _errorView;
 
     public event Action? DeleteRequested;
 
     public DeleteLocalBranchDialog(Repo repo, string branchName, Action onClose)
+        : this(repo, branchName, upstreamRemote: null, upstreamBranch: null, onClose) { }
+
+    public DeleteLocalBranchDialog(
+        Repo repo,
+        string branchName,
+        string? upstreamRemote,
+        string? upstreamBranch,
+        Action onClose)
     {
         PreferredWidth = 460f;
 
@@ -44,12 +57,21 @@ public sealed class DeleteLocalBranchDialog : MultiChildView, IDeleteLocalBranch
             PreferredHeight = 22,
         };
 
+        var hasUpstream = !string.IsNullOrEmpty(upstreamRemote) && !string.IsNullOrEmpty(upstreamBranch);
+        if (hasUpstream)
+        {
+            _deleteRemoteCheckbox = new CheckboxView($"Also delete '{upstreamBranch}' on '{upstreamRemote}'")
+            {
+                PreferredHeight = 22,
+            };
+        }
+
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
         _deleteButton = new DialogButton("Delete", RaiseDeleteRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
-        AddChildToSelf(DialogFrame.Build("Delete branch", onClose, new FlexColumnView
+        var content = new FlexColumnView
         {
             Gap = 12,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
@@ -58,15 +80,19 @@ public sealed class DeleteLocalBranchDialog : MultiChildView, IDeleteLocalBranch
                 prompt,
                 _forceCheckbox,
                 hint,
-                _errorView,
-                new MultiChildView { PreferredHeight = 4 },
-                DialogFrame.ButtonsRow(cancelButton, _deleteButton),
             },
-        }));
+        };
+        if (_deleteRemoteCheckbox != null)
+            content.Children.Add(_deleteRemoteCheckbox);
+        content.Children.Add(_errorView);
+        content.Children.Add(new MultiChildView { PreferredHeight = 4 });
+        content.Children.Add(DialogFrame.ButtonsRow(_cancelButton, _deleteButton));
+
+        AddChildToSelf(DialogFrame.Build("Delete branch", onClose, content));
 
         this.UseController(_ => new DialogKbmController(RaiseDeleteRequested, onClose));
 
-        var request = new DeleteLocalBranchRequest(repo, branchName);
+        var request = new DeleteLocalBranchRequest(repo, branchName, upstreamRemote, upstreamBranch);
         this.UsePresenter(ctx => new DeleteLocalBranchPresenter(
             this, request,
             ctx.Require<IGitService>(),
@@ -75,13 +101,30 @@ public sealed class DeleteLocalBranchDialog : MultiChildView, IDeleteLocalBranch
     }
 
     public bool Force => _forceCheckbox.IsChecked.Value;
+    public bool DeleteRemote => _deleteRemoteCheckbox?.IsChecked.Value ?? false;
     public bool DeleteEnabled
     {
         set => _deleteButton.IsEnabled.Value = value;
     }
+    public bool CancelEnabled
+    {
+        set => _cancelButton.IsEnabled.Value = value;
+    }
     public string? ErrorMessage
     {
         set => _errorView.Text = value ?? string.Empty;
+    }
+    public bool IsBusy
+    {
+        set
+        {
+            _deleteButton.Icon = value ? LucideIcons.Loader : string.Empty;
+            if (!value) _deleteButton.IconRotation = 0f;
+        }
+    }
+    public float BusyRotation
+    {
+        set => _deleteButton.IconRotation = value;
     }
 
     private void RaiseDeleteRequested() => DeleteRequested?.Invoke();

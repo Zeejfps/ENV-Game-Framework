@@ -298,7 +298,24 @@ public sealed class GitService : IGitService
                     var name = refname["refs/heads/".Length..];
                     var isHead = headRef == refname;
                     var (ahead, behind, upstreamState) = ParseUpstream(track, upstream);
-                    locals.Add(new BranchEntry(name, sha, isHead, AheadBy: ahead, BehindBy: behind, UpstreamState: upstreamState));
+                    string? upstreamRemote = null;
+                    string? upstreamBranch = null;
+                    if (upstreamState == BranchUpstreamState.Tracked
+                        && upstream.StartsWith("refs/remotes/", StringComparison.Ordinal))
+                    {
+                        var rest = upstream["refs/remotes/".Length..];
+                        var slash = rest.IndexOf('/');
+                        if (slash > 0)
+                        {
+                            upstreamRemote = rest[..slash];
+                            upstreamBranch = rest[(slash + 1)..];
+                        }
+                    }
+                    locals.Add(new BranchEntry(name, sha, isHead,
+                        AheadBy: ahead, BehindBy: behind,
+                        UpstreamState: upstreamState,
+                        UpstreamRemote: upstreamRemote,
+                        UpstreamBranch: upstreamBranch));
                 }
                 else if (refname.StartsWith("refs/remotes/", StringComparison.Ordinal))
                 {

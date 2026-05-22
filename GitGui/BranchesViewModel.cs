@@ -452,9 +452,13 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
             () => _bus.Broadcast(new ShowDialogMessage(onClose => new RenameBranchDialog(capturedRepo, capturedName, onClose))),
             LucideIcons.PencilLine,
             Enabled: !renameDisabled));
+        var entry = FindLocalBranchEntry(fullPath);
+        var upstreamRemote = entry?.UpstreamState == BranchUpstreamState.Tracked ? entry.UpstreamRemote : null;
+        var upstreamBranch = entry?.UpstreamState == BranchUpstreamState.Tracked ? entry.UpstreamBranch : null;
         items.Add(new RepoBarContextMenu.Item(
             "Delete…",
-            () => _bus.Broadcast(new ShowDialogMessage(onClose => new DeleteLocalBranchDialog(capturedRepo, capturedName, onClose))),
+            () => _bus.Broadcast(new ShowDialogMessage(onClose => new DeleteLocalBranchDialog(
+                capturedRepo, capturedName, upstreamRemote, upstreamBranch, onClose))),
             LucideIcons.Trash,
             Enabled: !deleteDisabled));
 
@@ -517,6 +521,15 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         if (listing == null) return null;
         foreach (var b in listing.LocalBranches)
             if (b.IsHead) return b.Name;
+        return null;
+    }
+
+    private BranchEntry? FindLocalBranchEntry(string name)
+    {
+        var listing = State.Value.Listing;
+        if (listing == null) return null;
+        foreach (var b in listing.LocalBranches)
+            if (b.Name == name) return b;
         return null;
     }
 

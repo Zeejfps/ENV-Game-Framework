@@ -15,7 +15,9 @@ public sealed record BranchEntry(
     bool IsHead,
     int? AheadBy = null,
     int? BehindBy = null,
-    BranchUpstreamState UpstreamState = BranchUpstreamState.Tracked);
+    BranchUpstreamState UpstreamState = BranchUpstreamState.Tracked,
+    string? UpstreamRemote = null,
+    string? UpstreamBranch = null);
 
 public sealed record RemoteGroup(string Name, IReadOnlyList<BranchEntry> Branches);
 
