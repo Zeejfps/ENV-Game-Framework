@@ -57,18 +57,15 @@ public sealed class OpenGlWindow : IWindow
 
     public void Show()
     {
-        var prevRedraw = NeedsRedraw;
         Glfw.ShowWindow(_window);
         _isVisible = true;
         NeedsRedraw = true;
-        Console.Error.WriteLine($"[popup:Lifecycle] OpenGlWindow.Show: hwnd={((IntPtr)_window).ToInt64():X} isMain={_isMain} prevNeedsRedraw={prevRedraw} → true");
     }
 
     public void Hide()
     {
         Glfw.HideWindow(_window);
         _isVisible = false;
-        Console.Error.WriteLine($"[popup:Lifecycle] OpenGlWindow.Hide: hwnd={((IntPtr)_window).ToInt64():X} isMain={_isMain} NeedsRedraw={NeedsRedraw}");
     }
 
     public void SetPosition(int screenX, int screenY)

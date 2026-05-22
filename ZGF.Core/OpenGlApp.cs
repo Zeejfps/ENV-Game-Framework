@@ -97,11 +97,8 @@ public sealed class OpenGlApp : IApp
             for (var i = 0; i < _windows.Count; i++)
             {
                 var w = _windows[i];
-                var isPopup = !(w is OpenGlWindow ogw && ogw.IsMain);
                 if (!w.IsVisible) continue;
                 if (!w.NeedsRedraw) continue;
-                if (isPopup)
-                    Console.Error.WriteLine($"[popup:Lifecycle] MainLoop: render hwnd={w.WindowHandle.ToInt64():X}");
                 w.MakeContextCurrent();
                 w.RenderNow();
                 w.NeedsRedraw = false;

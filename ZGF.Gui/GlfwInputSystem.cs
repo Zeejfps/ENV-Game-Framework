@@ -80,8 +80,6 @@ public sealed class GlfwInputSystem
     {
         Glfw.GetCursorPosition(_windowHandle, out var mouseX, out var mouseY);
         Mouse.Point = WindowToGuiCoords(mouseX, mouseY);
-        PopupDebugLog.Log(PopupDebugLog.Channel.Outside,
-            $"GlfwInputSystem.HandleMouseButtonEvent: hwnd={((IntPtr)window).ToInt64():X} button={button} state={state} guiPoint=({Mouse.Point.X:F1},{Mouse.Point.Y:F1})");
         var b = button switch
         {
             GLFW.MouseButton.Left => MouseButton.Left,

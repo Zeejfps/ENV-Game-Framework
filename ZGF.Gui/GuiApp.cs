@@ -75,7 +75,6 @@ public sealed class GuiApp : IDisposable
     private void HandleMainFocusChanged(bool focused)
     {
         if (focused) return;
-        Console.Error.WriteLine($"[popup:Lifecycle] Main window lost focus → closing all context menus");
         _contextMenuManager.CloseAllImmediately();
     }
 

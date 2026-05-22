@@ -1,6 +1,5 @@
 using ZGF.Geometry;
 using ZGF.Gui;
-using PopupDebugLog = ZGF.Gui.PopupDebugLog;
 
 namespace GitGui;
 
@@ -31,8 +30,6 @@ public sealed class PopupTooltipService : ITooltipService
 
         var width = (int)MathF.Ceiling(view.MeasureWidth());
         var height = (int)MathF.Ceiling(view.MeasureHeight(width));
-        PopupDebugLog.Log(PopupDebugLog.Channel.Layout,
-            $"PopupTooltipService.Show: text='{text}' measured={width}x{height} anchor(screen)=({anchorScreen.X},{anchorScreen.Y} {anchorScreen.Width}x{anchorScreen.Height})");
 
         var centerX = anchorScreen.X + anchorScreen.Width / 2;
         var preferred = new RectI(

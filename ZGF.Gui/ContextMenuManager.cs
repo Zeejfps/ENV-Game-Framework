@@ -86,11 +86,7 @@ public sealed class ContextMenuManager
         }
         var width = (int)MathF.Ceiling(menu.MeasureWidth());
         var height = (int)MathF.Ceiling(menu.MeasureHeight(width));
-        PopupDebugLog.Log(PopupDebugLog.Channel.Layout,
-            $"ShowContextMenu: measured {width}x{height} (measureContext={(_measureContext != null ? "yes" : "no")})");
         var screenAnchor = _coordinates.ToScreenPoints(canvasAnchor);
-        PopupDebugLog.Log(PopupDebugLog.Channel.Layout,
-            $"ShowContextMenu: anchor canvas={canvasAnchor} screen=({screenAnchor.X},{screenAnchor.Y})");
 
         var preferred = new RectI(
             X: screenAnchor.X,
@@ -128,8 +124,6 @@ public sealed class ContextMenuManager
     {
         if (_pendingHide.Count > 0)
         {
-            PopupDebugLog.Log(PopupDebugLog.Channel.Outside,
-                $"Update: draining {_pendingHide.Count} pending hide(s)");
             foreach (var menu in _pendingHide)
             {
                 _popupFactory.Release(menu.Popup);
@@ -213,23 +207,17 @@ public sealed class ContextMenuManager
 
     internal void HandleOutsideClick(PointI screenPoint)
     {
-        PopupDebugLog.Log(PopupDebugLog.Channel.Outside,
-            $"HandleOutsideClick: screen=({screenPoint.X},{screenPoint.Y}) opened={_openedMenus.Count}");
         foreach (var opened in _openedMenus.Values)
         {
             var window = (Window)opened.Popup.Window.WindowHandle;
             Glfw.GetWindowPosition(window, out var x, out var y);
             Glfw.GetWindowSize(window, out var w, out var h);
-            PopupDebugLog.Log(PopupDebugLog.Channel.Outside,
-                $"HandleOutsideClick: check popup rect=({x},{y} {w}x{h})");
             if (screenPoint.X >= x && screenPoint.X < x + w &&
                 screenPoint.Y >= y && screenPoint.Y < y + h)
             {
-                PopupDebugLog.Log(PopupDebugLog.Channel.Outside, "HandleOutsideClick: inside an open popup — no dismiss");
                 return;
             }
         }
-        PopupDebugLog.Log(PopupDebugLog.Channel.Outside, "HandleOutsideClick: outside all popups — CloseAllImmediately (deferred Hide)");
         CloseAllImmediately();
     }
 

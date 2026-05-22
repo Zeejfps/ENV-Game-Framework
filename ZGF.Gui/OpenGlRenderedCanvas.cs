@@ -117,11 +117,6 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         var fbW = (int)MathF.Round(Width * DpiScale);
         var fbH = (int)MathF.Round(Height * DpiScale);
         glViewport(0, 0, fbW, fbH);
-        if (PopupDebugLog.IsOn(PopupDebugLog.Channel.Render))
-        {
-            PopupDebugLog.Log(PopupDebugLog.Channel.Render,
-                $"OpenGlRenderedCanvas.IssueDraws canvas={Width}x{Height} dpi={DpiScale} viewport=({fbW}x{fbH}) drawCalls={drawCalls.Count}");
-        }
 
         if (drawCalls.Count == 0) return;
 
