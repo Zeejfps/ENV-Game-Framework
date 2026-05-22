@@ -71,7 +71,10 @@ public sealed class OpenGlApp : IApp
         Glfw.DefaultWindowHints();
 
         Glfw.MakeContextCurrent(glfw);
-        Glfw.SwapInterval(1);
+        // Popups must not gate vsync — each SwapBuffers on each popup context
+        // serializes one vblank wait, so with vsync on N popups the loop
+        // becomes refresh / (1 + N). Only the main window paces vsync.
+        Glfw.SwapInterval(0);
 
         var popup = new OpenGlWindow(glfw, isMain: false);
         _windows.Add(popup);

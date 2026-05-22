@@ -80,19 +80,16 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
         RemoveSubclass(hwnd);
     }
 
-    public void TransferCapture(IntPtr fromGlfw, IntPtr toGlfw)
+    public void TransferCapture(IntPtr fromGlfw, IntPtr toGlfw, Action<PointI> onOutsideClick)
     {
         var fromHwnd = GetHwnd(fromGlfw);
         var toHwnd = GetHwnd(toGlfw);
         if (toHwnd == IntPtr.Zero) return;
 
-        Action<PointI>? callback = null;
-        if (_subclasses.TryGetValue(fromHwnd, out var fromSc)) callback = fromSc.Callback;
-
         RemoveSubclass(fromHwnd);
         if (_capturedHwnd != IntPtr.Zero) ReleaseCapture();
 
-        if (callback != null) InstallSubclass(toHwnd, callback);
+        InstallSubclass(toHwnd, onOutsideClick);
         SetCapture(toHwnd);
         _capturedHwnd = toHwnd;
     }
@@ -130,7 +127,25 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
                 var screen = ScreenPointFromLParam(lParam, hwnd, msg);
                 var gotRect = GetWindowRectStruct(hwnd, out var r);
                 var insideRect = gotRect && ContainsPoint(r, screen);
-                if (!insideRect) sub.Callback(screen);
+                if (!insideRect)
+                {
+                    sub.Callback(screen);
+                    // SetCapture routed this click to the popup hwnd. Re-route
+                    // to the window actually under the cursor so the underlying
+                    // control (e.g. another repo row) still receives the press.
+                    // Without this, a click outside the popup only dismisses
+                    // the menu and is otherwise lost.
+                    ReleaseCapture();
+                    var pt = new POINT { X = screen.X, Y = screen.Y };
+                    var target = WindowFromPoint(pt);
+                    if (target != IntPtr.Zero && target != hwnd)
+                    {
+                        ScreenToClient(target, ref pt);
+                        var lp = (IntPtr)(((pt.Y & 0xFFFF) << 16) | (pt.X & 0xFFFF));
+                        PostMessage(target, msg, wParam, lp);
+                    }
+                    return IntPtr.Zero;
+                }
                 break;
             }
             case WM_CANCELMODE:
@@ -200,4 +215,13 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
 
     [DllImport("user32.dll", EntryPoint = "CallWindowProcW")]
     private static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr WindowFromPoint(POINT pt);
+
+    [DllImport("user32.dll")]
+    private static extern bool ScreenToClient(IntPtr hwnd, ref POINT pt);
+
+    [DllImport("user32.dll", EntryPoint = "PostMessageW")]
+    private static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
 }

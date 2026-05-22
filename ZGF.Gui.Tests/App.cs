@@ -71,7 +71,7 @@ public sealed class App : IDisposable
         context.AddService<IClipboard>(new AppClipboard());
 #endif
 
-        var coordinates = new MainWindowCoordinates(_mainWindow.WindowHandle, _canvas);
+        var coordinates = new WindowCoordinates(_mainWindow.WindowHandle, _canvas);
         var noopDecorator = new SampleNoopDecorator();
         _popupFactory = new PopupWindowFactory(
             _windowApp, _fontBackend, _defaultFont, _shared, metalShared: null,
@@ -251,6 +251,6 @@ public sealed class App : IDisposable
         public void DecoratePopup(IntPtr handle, bool mousePassThrough) { }
         public void BeginCapture(IntPtr handle, Action<ZGF.Geometry.PointI> cb) { }
         public void EndCapture(IntPtr handle) { }
-        public void TransferCapture(IntPtr from, IntPtr to) { }
+        public void TransferCapture(IntPtr from, IntPtr to, Action<ZGF.Geometry.PointI> cb) { }
     }
 }

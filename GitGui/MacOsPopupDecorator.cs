@@ -55,9 +55,10 @@ internal sealed class MacOsPopupDecorator : IPopupNativeDecorator
         _activeCallback = null;
     }
 
-    public void TransferCapture(IntPtr fromGlfw, IntPtr toGlfw)
+    public void TransferCapture(IntPtr fromGlfw, IntPtr toGlfw, Action<PointI> onOutsideClick)
     {
         _capturedNsWindow = NsWindowFromGlfw(toGlfw);
+        _activeCallback = onOutsideClick;
     }
 
     private static IntPtr NsWindowFromGlfw(IntPtr glfwHandle)

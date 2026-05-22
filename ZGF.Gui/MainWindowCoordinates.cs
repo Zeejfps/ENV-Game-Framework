@@ -4,12 +4,12 @@ using ZGF.Gui.Tests;
 
 namespace ZGF.Gui;
 
-public sealed class MainWindowCoordinates : IWindowCoordinates
+public sealed class WindowCoordinates : IWindowCoordinates
 {
     private readonly IntPtr _glfwHandle;
     private readonly RenderedCanvasBase _canvas;
 
-    public MainWindowCoordinates(IntPtr glfwHandle, RenderedCanvasBase canvas)
+    public WindowCoordinates(IntPtr glfwHandle, RenderedCanvasBase canvas)
     {
         _glfwHandle = glfwHandle;
         _canvas = canvas;

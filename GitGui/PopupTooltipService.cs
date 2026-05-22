@@ -22,7 +22,15 @@ public sealed class PopupTooltipService : ITooltipService
 
     public void Show(object owner, string text, RectF anchorRectCanvas)
     {
-        Hide(owner);
+        // Release whatever's currently up regardless of owner. Hide(owner) is a
+        // no-op when a different owner held the previous tooltip, which would
+        // leak its popup native handle on every owner transition.
+        if (_currentPopup != null)
+        {
+            _factory.Release(_currentPopup);
+            _currentPopup = null;
+            _currentOwner = null;
+        }
 
         var view = new TooltipView(text);
         if (_measureContext != null) view.Context = _measureContext;

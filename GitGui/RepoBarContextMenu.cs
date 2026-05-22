@@ -58,7 +58,9 @@ public static class RepoBarContextMenu
             menu.Children.Add(menuItem);
         }
 
-        var opened = manager.ShowContextMenu(menu, anchor);
+        var coords = context.Get<IWindowCoordinates>();
+        var screen = coords != null ? coords.ToScreenPoints(anchor) : default;
+        var opened = manager.ShowContextMenu(menu, screen);
         if (opened == null) return null;
 
         menu.UseController(_ => new ContextMenuKbmController(opened));

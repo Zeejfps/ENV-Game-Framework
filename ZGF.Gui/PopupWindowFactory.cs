@@ -66,6 +66,12 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         popup.Window.SetSize(rect.Width, rect.Height);
         popup.Window.SetPosition(rect.X, rect.Y);
 
+        // After positioning, sync the canvas DPI to the monitor the popup is
+        // now on. Pooled popups may have been created at a different DPI than
+        // the current monitor — without this, text on the new monitor renders
+        // blurry (atlas baked too small) or chunky (baked too large).
+        popup.RefreshDpiScale();
+
         // Synchronous render before show so the first paint isn't a flash.
         popup.Window.MakeContextCurrent();
         popup.Window.RenderNow();
@@ -82,7 +88,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             }
             else
             {
-                _decorator.TransferCapture(_captureHolder.Window.WindowHandle, popup.Window.WindowHandle);
+                _decorator.TransferCapture(_captureHolder.Window.WindowHandle, popup.Window.WindowHandle, popup.RaiseOutsideClick);
                 _captureHolder = popup;
             }
         }
@@ -101,7 +107,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             var newHolder = _activePopups.LastOrDefault(p => !p.MousePassThrough);
             if (newHolder != null)
             {
-                _decorator.TransferCapture(impl.Window.WindowHandle, newHolder.Window.WindowHandle);
+                _decorator.TransferCapture(impl.Window.WindowHandle, newHolder.Window.WindowHandle, newHolder.RaiseOutsideClick);
                 _captureHolder = newHolder;
             }
             else
@@ -205,6 +211,12 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         var popupContext = new Context(_mainContext);
         popupContext.Canvas = canvas;
         popupContext.AddService(input.InputSystem);
+        // Register popup-specific IWindowCoordinates. Without this, callers that
+        // resolve IWindowCoordinates from the popup's context (e.g. a submenu
+        // anchored at a parent-menu-item's canvas position) would inherit the
+        // main window's translator and compute screen anchors against the main
+        // window's origin instead of this popup's.
+        popupContext.AddService<IWindowCoordinates>(new WindowCoordinates(window.WindowHandle, canvas));
 
         var impl = new PopupWindowImpl(window, canvas, input, popupContext, _glShared, _metalShared);
         return impl;
@@ -336,6 +348,11 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     public void Resize(int width, int height)
     {
         _canvas.Resize(width, height);
+    }
+
+    public void RefreshDpiScale()
+    {
+        _canvas.UpdateDpiScale(_window.DpiScale);
     }
 
     public void RaiseOutsideClick(PointI screen) => OutsideClick?.Invoke(screen);

@@ -100,7 +100,11 @@ public sealed class ModelSelectorController : KeyboardMouseController
             }
         };
 
-        _openedContextMenu = _contextMenuManager.ShowContextMenu(contextMenu, _modelSelector.Position.BottomLeft);
+        var coords = _modelSelector.Context?.Get<IWindowCoordinates>();
+        var screen = coords != null
+            ? coords.ToScreenPoints(_modelSelector.Position.BottomLeft)
+            : default;
+        _openedContextMenu = _contextMenuManager.ShowContextMenu(contextMenu, screen);
         _openedContextMenu.Closed += OnContextMenuClosed;
         _inputSystem = _modelSelector.Context?.Get<InputSystem>();
         _inputSystem?.RegisterController(contextMenu, new ContextMenuKbmController(_openedContextMenu));

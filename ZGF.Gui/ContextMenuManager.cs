@@ -70,7 +70,7 @@ public sealed class ContextMenuManager
         _outsideClickController = new MainWindowOutsideClickController(this);
     }
 
-    public IOpenedContextMenu? ShowContextMenu(ContextMenu menu, PointF canvasAnchor, ContextMenu? parentMenu = null)
+    public IOpenedContextMenu? ShowContextMenu(ContextMenu menu, PointI screenAnchor, ContextMenu? parentMenu = null)
     {
         if (_openedMenus.ContainsKey(menu))
             throw new System.Exception("Menu already opened");
@@ -86,7 +86,6 @@ public sealed class ContextMenuManager
         }
         var width = (int)MathF.Ceiling(menu.MeasureWidth());
         var height = (int)MathF.Ceiling(menu.MeasureHeight(width));
-        var screenAnchor = _coordinates.ToScreenPoints(canvasAnchor);
 
         var preferred = new RectI(
             X: screenAnchor.X,
@@ -232,11 +231,15 @@ public sealed class ContextMenuManager
         public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
         {
             if (e.State != InputState.Pressed) return;
-            // Do NOT consume — let the press propagate so a right-click on a
-            // different repo row (while a menu is already open) can both close
-            // the old menu and open a new one in a single click. The logical
-            // close is synchronous (dict cleared via CloseAllImmediately), so
-            // RepoBarContextMenu.Show downstream sees no opened menus.
+            // Fallback path: when the OS-level capture mechanism is unavailable
+            // (e.g. NoopPopupDecorator), the main window's own input system is
+            // the only source of outside-click detection. Don't consume — let
+            // the press propagate so a right-click on a different repo row can
+            // both close the old menu and open a new one in a single click.
+            // On Windows, the platform decorator's subclass intercepts the
+            // captured click and re-posts it to the underlying window, so this
+            // controller sees the re-posted message after the menu has been
+            // logically closed (synchronous dict clear).
             var screen = _manager.Coordinates.ToScreenPoints(e.Mouse.Point);
             _manager.HandleOutsideClick(screen);
         }

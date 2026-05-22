@@ -16,6 +16,8 @@ public sealed class GlfwInputSystem
     private readonly KeyCallback _keyCallback;
     private readonly MouseButtonCallback _mouseButtonCallback;
     private readonly MouseCallback _scrollCallback;
+    private readonly MouseEnterCallback _cursorEnterCallback;
+    private bool _pendingExitClear;
 
     public InputSystem InputSystem { get; } = new();
     public Mouse Mouse { get; } = new();
@@ -32,13 +34,46 @@ public sealed class GlfwInputSystem
         _keyCallback = HandleKeyEvent;
         _mouseButtonCallback = HandleMouseButtonEvent;
         _scrollCallback = HandleScrollEvent;
+        _cursorEnterCallback = HandleCursorEnter;
         Glfw.SetKeyCallback(_windowHandle, _keyCallback);
         Glfw.SetMouseButtonCallback(_windowHandle, _mouseButtonCallback);
         Glfw.SetScrollCallback(_windowHandle, _scrollCallback);
+        Glfw.SetCursorEnterCallback(_windowHandle, _cursorEnterCallback);
+    }
+
+    private void HandleCursorEnter(GlfwWindow window, bool entering)
+    {
+        // GLFW only fires this on enter/exit transitions. When the cursor leaves
+        // the window we can't safely send a synthetic MouseMove right now (we may
+        // be inside GLFW's event-pump and the view tree isn't reentrant); defer
+        // the hover-clear to the next Update() tick.
+        if (!entering) _pendingExitClear = true;
     }
 
     public void Update()
     {
+        // On a hovered→not-hovered transition (CursorEnter callback fired with
+        // entering=false), send one synthetic MouseMove far off-canvas so the
+        // input system clears IsHovered on whichever view was last hovered.
+        // Without this, a quick flick off the window edge would leave the last
+        // hovered view stuck with hover styling / cursor shape until the user
+        // re-enters and lands on a different view.
+        if (_pendingExitClear)
+        {
+            _pendingExitClear = false;
+            var prev = Mouse.Point;
+            Mouse.Point = new PointF(float.MinValue, float.MinValue);
+            var exitEvent = new MouseMoveEvent
+            {
+                Mouse = Mouse,
+                Phase = EventPhase.Capturing,
+            };
+            InputSystem.SendMouseMovedEvent(ref exitEvent);
+            // Don't restore Mouse.Point — the cursor is genuinely outside; the
+            // next Update with MouseHover=true will refresh from GLFW.
+            _ = prev;
+        }
+
         // Freeze hover state when the cursor leaves this window's bounds. Without
         // this, Glfw.GetCursorPosition reports stale coords outside the window's
         // rect and the hover path would clear — defeating, e.g., tooltip hover

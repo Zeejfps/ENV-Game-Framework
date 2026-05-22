@@ -21,7 +21,7 @@ public sealed class GuiApp : IDisposable
     private readonly QueuedUiDispatcher _dispatcher;
     private readonly ContextMenuManager _contextMenuManager;
     private readonly PopupWindowFactory _popupFactory;
-    private readonly MainWindowCoordinates _coordinates;
+    private readonly WindowCoordinates _coordinates;
 
     private GuiApp(
         IApp app,
@@ -42,7 +42,7 @@ public sealed class GuiApp : IDisposable
         _dispatcher = new QueuedUiDispatcher();
 
         var decorator = context.Get<IPopupNativeDecorator>() ?? new DefaultNoopDecorator();
-        _coordinates = new MainWindowCoordinates(app.MainWindow.WindowHandle, mainCanvas);
+        _coordinates = new WindowCoordinates(app.MainWindow.WindowHandle, mainCanvas);
         _popupFactory = new PopupWindowFactory(
             app, fontBackend, defaultFont, glShared, metalShared, decorator, context,
             mainCanvasForFontRegistry: mainCanvas);
@@ -75,6 +75,15 @@ public sealed class GuiApp : IDisposable
     private void HandleMainFocusChanged(bool focused)
     {
         if (focused) return;
+        // On macOS, clicking a popup NSWindow makes it key and main loses focus.
+        // Treat focus loss as "close menus" only when the focus moved outside
+        // our process — i.e., none of our windows are focused. Otherwise the
+        // user is interacting with a menu popup we own.
+        foreach (var w in _app.Windows)
+        {
+            if (Glfw.GetWindowAttribute((Window)w.WindowHandle, WindowAttribute.Focused))
+                return;
+        }
         _contextMenuManager.CloseAllImmediately();
     }
 
@@ -171,6 +180,6 @@ public sealed class GuiApp : IDisposable
         public void DecoratePopup(IntPtr handle, bool mousePassThrough) { }
         public void BeginCapture(IntPtr handle, Action<ZGF.Geometry.PointI> cb) { }
         public void EndCapture(IntPtr handle) { }
-        public void TransferCapture(IntPtr from, IntPtr to) { }
+        public void TransferCapture(IntPtr from, IntPtr to, Action<ZGF.Geometry.PointI> cb) { }
     }
 }

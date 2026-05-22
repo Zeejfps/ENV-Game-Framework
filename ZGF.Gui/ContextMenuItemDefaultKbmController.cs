@@ -1,3 +1,5 @@
+using ZGF.Geometry;
+
 namespace ZGF.Gui.Tests;
 
 public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseController, IDisposable
@@ -64,8 +66,16 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             }
 
             var parentMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
-            var anchor = _contextMenuItem.Position.TopRight;
-            _openedContextMenu = _contextMenuManager.ShowContextMenu(subMenu, anchor, parentMenu);
+            // Resolve coordinates from this menu item's context (the parent
+            // popup's context, which registers its own IWindowCoordinates).
+            // Translating via the main window's coordinates would put the
+            // submenu near the main window's origin instead of next to the
+            // parent menu item.
+            var coords = _contextMenuItem.Context?.Get<IWindowCoordinates>();
+            var screenAnchor = coords != null
+                ? coords.ToScreenPoints(_contextMenuItem.Position.TopRight)
+                : default;
+            _openedContextMenu = _contextMenuManager.ShowContextMenu(subMenu, screenAnchor, parentMenu);
             if (_openedContextMenu != null)
             {
                 _openedContextMenu.Closed += OnOpenedContextMenuClosed;
