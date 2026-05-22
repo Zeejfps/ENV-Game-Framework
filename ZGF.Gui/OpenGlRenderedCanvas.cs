@@ -107,6 +107,22 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
 
     protected override void IssueDraws(IReadOnlyList<DrawCall> drawCalls)
     {
+        // Per-frame setup: the shared shaders' projection uniform is overwritten by
+        // every OTHER canvas that calls UploadProjection, so we must re-establish
+        // this canvas's projection at the start of every frame. Same logic applies
+        // to glViewport: it's per-context, but it's also per-context state we need
+        // to set explicitly when this canvas gets time to draw (window/framebuffer
+        // resizes don't auto-update viewport on subsequent context-make-currents).
+        UploadProjection();
+        var fbW = (int)MathF.Round(Width * DpiScale);
+        var fbH = (int)MathF.Round(Height * DpiScale);
+        glViewport(0, 0, fbW, fbH);
+        if (PopupDebugLog.IsOn(PopupDebugLog.Channel.Render))
+        {
+            PopupDebugLog.Log(PopupDebugLog.Channel.Render,
+                $"OpenGlRenderedCanvas.IssueDraws canvas={Width}x{Height} dpi={DpiScale} viewport=({fbW}x{fbH}) drawCalls={drawCalls.Count}");
+        }
+
         if (drawCalls.Count == 0) return;
 
         glDisable(GL_DEPTH_TEST);

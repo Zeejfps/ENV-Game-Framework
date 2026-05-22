@@ -44,9 +44,10 @@ public sealed class GuiApp : IDisposable
         var decorator = context.Get<IPopupNativeDecorator>() ?? new DefaultNoopDecorator();
         _coordinates = new MainWindowCoordinates(app.MainWindow.WindowHandle, mainCanvas);
         _popupFactory = new PopupWindowFactory(
-            app, fontBackend, defaultFont, glShared, metalShared, decorator, context);
+            app, fontBackend, defaultFont, glShared, metalShared, decorator, context,
+            mainCanvasForFontRegistry: mainCanvas);
 
-        _contextMenuManager = new ContextMenuManager(_popupFactory, _coordinates, _mainInput.InputSystem);
+        _contextMenuManager = new ContextMenuManager(_popupFactory, _coordinates, _mainInput.InputSystem, measureContext: context);
 
         context.Canvas = mainCanvas;
         context.AddService(_mainInput.InputSystem);

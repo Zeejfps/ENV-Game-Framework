@@ -18,6 +18,8 @@ public static class RepoBarContextMenu
 
     public static IOpenedContextMenu? Show(Context context, PointF anchor, IReadOnlyList<Item> items)
     {
+        ZGF.Gui.PopupDebugLog.Log(ZGF.Gui.PopupDebugLog.Channel.Lifecycle,
+            $"RepoBarContextMenu.Show: anchor={anchor} items={items.Count}");
         if (items.Count == 0) return null;
         var manager = context.Get<ContextMenuManager>();
         if (manager == null) return null;

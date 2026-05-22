@@ -62,7 +62,7 @@ public sealed class MetalWindow : IWindow
     public event Action? OnFocusChanged;
     public event Action? OnClose;
 
-    public void Show() { Glfw.ShowWindow(_window); _isVisible = true; }
+    public void Show() { Glfw.ShowWindow(_window); _isVisible = true; NeedsRedraw = true; }
     public void Hide() { Glfw.HideWindow(_window); _isVisible = false; }
     public void SetPosition(int x, int y) => Glfw.SetWindowPosition(_window, x, y);
     public void SetSize(int w, int h) => Glfw.SetWindowSize(_window, w, h);

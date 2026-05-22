@@ -431,6 +431,17 @@ public abstract class RenderedCanvasBase : ICanvas
         _fontsByFamily[family] = handle;
     }
 
+    /// <summary>
+    /// Copies the source canvas's font-family registry onto this canvas. Popup
+    /// canvases need this so views using non-default font families (e.g. icons,
+    /// monospace) can resolve them when measuring/drawing text in a popup window.
+    /// </summary>
+    public void CopyFontsFrom(RenderedCanvasBase source)
+    {
+        foreach (var kv in source._fontsByFamily)
+            _fontsByFamily[kv.Key] = kv.Value;
+    }
+
     private FontHandle ResolveFont(TextStyle style)
     {
         var baseFont = _defaultFont;

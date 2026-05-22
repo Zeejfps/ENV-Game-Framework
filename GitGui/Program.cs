@@ -50,7 +50,8 @@ appHost.RegisterFont(DiffOptions.MonoFontFamily, "Assets/Fonts/JetBrainsMono/Jet
 
 context.AddService<ITooltipService>(new PopupTooltipService(
     context.Require<IPopupWindowFactory>(),
-    context.Require<IWindowCoordinates>()));
+    context.Require<IWindowCoordinates>(),
+    measureContext: context));
 
 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
     appHost.SetIcon("Assets/commit_bench_icon.rgba");

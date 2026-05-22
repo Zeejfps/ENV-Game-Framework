@@ -44,20 +44,29 @@ public sealed class ContextMenuManager
     private readonly IPopupWindowFactory _popupFactory;
     private readonly IWindowCoordinates _coordinates;
     private readonly InputSystem? _mainInputSystem;
+    private readonly Context? _measureContext;
     private readonly MainWindowOutsideClickController _outsideClickController;
     private bool _outsideClickActive;
 
     private readonly HashSet<OpenedContextMenu> _closingMenus = new();
     private readonly Dictionary<ContextMenu, OpenedContextMenu> _openedMenus = new();
+    // Logical close (dict removal, Closed event) happens synchronously so callers
+    // that immediately open a new menu see an empty state. The actual OS-level
+    // Glfw.HideWindow + decorator.EndCapture is deferred to Update() so we don't
+    // hide a popup window from inside its own WND_PROC subclass — which on
+    // Windows leaves activation/capture state half-broken.
+    private readonly List<OpenedContextMenu> _pendingHide = new();
 
     public ContextMenuManager(
         IPopupWindowFactory popupFactory,
         IWindowCoordinates coordinates,
-        InputSystem? mainInputSystem = null)
+        InputSystem? mainInputSystem = null,
+        Context? measureContext = null)
     {
         _popupFactory = popupFactory;
         _coordinates = coordinates;
         _mainInputSystem = mainInputSystem;
+        _measureContext = measureContext;
         _outsideClickController = new MainWindowOutsideClickController(this);
     }
 
@@ -66,9 +75,22 @@ public sealed class ContextMenuManager
         if (_openedMenus.ContainsKey(menu))
             throw new System.Exception("Menu already opened");
 
+        // MeasureWidth/Height walks the view tree which needs a context (for canvas
+        // + fonts) to compute text metrics. Without this, the popup is sized at
+        // whatever default the views fall back to (often zero or tiny) and the
+        // resulting popup truncates its own content. Attach to the main context
+        // for measurement; PopupWindowImpl.SetRoot reassigns to the popup context.
+        if (_measureContext != null && menu.Context == null)
+        {
+            menu.Context = _measureContext;
+        }
         var width = (int)MathF.Ceiling(menu.MeasureWidth());
         var height = (int)MathF.Ceiling(menu.MeasureHeight(width));
+        PopupDebugLog.Log(PopupDebugLog.Channel.Layout,
+            $"ShowContextMenu: measured {width}x{height} (measureContext={(_measureContext != null ? "yes" : "no")})");
         var screenAnchor = _coordinates.ToScreenPoints(canvasAnchor);
+        PopupDebugLog.Log(PopupDebugLog.Channel.Layout,
+            $"ShowContextMenu: anchor canvas={canvasAnchor} screen=({screenAnchor.X},{screenAnchor.Y})");
 
         var preferred = new RectI(
             X: screenAnchor.X,
@@ -104,6 +126,17 @@ public sealed class ContextMenuManager
 
     public void Update()
     {
+        if (_pendingHide.Count > 0)
+        {
+            PopupDebugLog.Log(PopupDebugLog.Channel.Outside,
+                $"Update: draining {_pendingHide.Count} pending hide(s)");
+            foreach (var menu in _pendingHide)
+            {
+                _popupFactory.Release(menu.Popup);
+            }
+            _pendingHide.Clear();
+        }
+
         var now = DateTimeOffset.Now.ToUnixTimeMilliseconds();
         foreach (var menu in _closingMenus.ToList())
         {
@@ -140,18 +173,21 @@ public sealed class ContextMenuManager
 
     public void CloseAllImmediately()
     {
-        foreach (var menu in _closingMenus.ToList())
+        // Logical close is synchronous (so a caller that immediately opens a new
+        // menu sees an empty state), but OS-level Hide+EndCapture is deferred to
+        // Update() via _pendingHide. See _pendingHide field comment.
+        foreach (var menu in _closingMenus)
         {
-            _popupFactory.Release(menu.Popup);
+            _pendingHide.Add(menu);
             menu.Close();
         }
         _closingMenus.Clear();
 
         foreach (var opened in _openedMenus.Values.ToList())
         {
-            _popupFactory.Release(opened.Popup);
             var parent = opened.Parent;
             if (parent != null) parent.Child = null;
+            _pendingHide.Add(opened);
             opened.Close();
         }
         _openedMenus.Clear();
@@ -177,15 +213,23 @@ public sealed class ContextMenuManager
 
     internal void HandleOutsideClick(PointI screenPoint)
     {
+        PopupDebugLog.Log(PopupDebugLog.Channel.Outside,
+            $"HandleOutsideClick: screen=({screenPoint.X},{screenPoint.Y}) opened={_openedMenus.Count}");
         foreach (var opened in _openedMenus.Values)
         {
             var window = (Window)opened.Popup.Window.WindowHandle;
             Glfw.GetWindowPosition(window, out var x, out var y);
             Glfw.GetWindowSize(window, out var w, out var h);
+            PopupDebugLog.Log(PopupDebugLog.Channel.Outside,
+                $"HandleOutsideClick: check popup rect=({x},{y} {w}x{h})");
             if (screenPoint.X >= x && screenPoint.X < x + w &&
                 screenPoint.Y >= y && screenPoint.Y < y + h)
+            {
+                PopupDebugLog.Log(PopupDebugLog.Channel.Outside, "HandleOutsideClick: inside an open popup — no dismiss");
                 return;
+            }
         }
+        PopupDebugLog.Log(PopupDebugLog.Channel.Outside, "HandleOutsideClick: outside all popups — CloseAllImmediately (deferred Hide)");
         CloseAllImmediately();
     }
 
@@ -200,10 +244,13 @@ public sealed class ContextMenuManager
         public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
         {
             if (e.State != InputState.Pressed) return;
-            var hadAnyOpen = _manager.OpenedMenus.Count > 0;
+            // Do NOT consume — let the press propagate so a right-click on a
+            // different repo row (while a menu is already open) can both close
+            // the old menu and open a new one in a single click. The logical
+            // close is synchronous (dict cleared via CloseAllImmediately), so
+            // RepoBarContextMenu.Show downstream sees no opened menus.
             var screen = _manager.Coordinates.ToScreenPoints(e.Mouse.Point);
             _manager.HandleOutsideClick(screen);
-            if (hadAnyOpen) e.Consume();
         }
     }
 }

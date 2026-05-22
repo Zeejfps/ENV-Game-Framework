@@ -97,8 +97,21 @@ public sealed class OpenGlApp : IApp
             for (var i = 0; i < _windows.Count; i++)
             {
                 var w = _windows[i];
-                if (!w.IsVisible) continue;
-                if (!w.NeedsRedraw) continue;
+                var isPopup = !(w is OpenGlWindow ogw && ogw.IsMain);
+                if (!w.IsVisible)
+                {
+                    if (isPopup)
+                        Console.Error.WriteLine($"[popup:Lifecycle] MainLoop: skip hwnd={w.WindowHandle.ToInt64():X} reason=!IsVisible NeedsRedraw={w.NeedsRedraw}");
+                    continue;
+                }
+                if (!w.NeedsRedraw)
+                {
+                    if (isPopup)
+                        Console.Error.WriteLine($"[popup:Lifecycle] MainLoop: skip hwnd={w.WindowHandle.ToInt64():X} reason=!NeedsRedraw IsVisible=true");
+                    continue;
+                }
+                if (isPopup)
+                    Console.Error.WriteLine($"[popup:Lifecycle] MainLoop: render hwnd={w.WindowHandle.ToInt64():X} IsVisible=true NeedsRedraw=true");
                 w.MakeContextCurrent();
                 w.RenderNow();
                 w.NeedsRedraw = false;

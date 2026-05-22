@@ -75,6 +75,8 @@ public sealed class GlfwInputSystem
 
     private void HandleMouseButtonEvent(GlfwWindow window, GLFW.MouseButton button, GLFW.InputState state, ModifierKeys modifiers)
     {
+        PopupDebugLog.Log(PopupDebugLog.Channel.Outside,
+            $"GlfwInputSystem.HandleMouseButtonEvent: hwnd={((IntPtr)window).ToInt64():X} button={button} state={state}");
         var b = button switch
         {
             GLFW.MouseButton.Left => MouseButton.Left,

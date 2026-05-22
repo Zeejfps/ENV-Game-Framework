@@ -45,6 +45,8 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
     public void DecoratePopup(IntPtr glfwHandle, bool mousePassThrough)
     {
         var hwnd = GetHwnd(glfwHandle);
+        ZGF.Gui.PopupDebugLog.Log(ZGF.Gui.PopupDebugLog.Channel.Capture,
+            $"WindowsPopupDecorator.DecoratePopup: glfw={glfwHandle.ToInt64():X} hwnd={hwnd.ToInt64():X} passthrough={mousePassThrough}");
         if (hwnd == IntPtr.Zero) return;
 
         var ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE).ToInt64();
@@ -60,6 +62,8 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
     public void BeginCapture(IntPtr glfwHandle, Action<PointI> onOutsideClick)
     {
         var hwnd = GetHwnd(glfwHandle);
+        ZGF.Gui.PopupDebugLog.Log(ZGF.Gui.PopupDebugLog.Channel.Capture,
+            $"WindowsPopupDecorator.BeginCapture: hwnd={hwnd.ToInt64():X}");
         if (hwnd == IntPtr.Zero) return;
 
         InstallSubclass(hwnd, onOutsideClick);
@@ -70,6 +74,8 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
     public void EndCapture(IntPtr glfwHandle)
     {
         var hwnd = GetHwnd(glfwHandle);
+        ZGF.Gui.PopupDebugLog.Log(ZGF.Gui.PopupDebugLog.Channel.Capture,
+            $"WindowsPopupDecorator.EndCapture: hwnd={hwnd.ToInt64():X} wasCaptured={_capturedHwnd == hwnd}");
         if (hwnd == IntPtr.Zero) return;
 
         if (_capturedHwnd == hwnd)
@@ -84,6 +90,8 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
     {
         var fromHwnd = GetHwnd(fromGlfw);
         var toHwnd = GetHwnd(toGlfw);
+        ZGF.Gui.PopupDebugLog.Log(ZGF.Gui.PopupDebugLog.Channel.Capture,
+            $"WindowsPopupDecorator.TransferCapture: from={fromHwnd.ToInt64():X} to={toHwnd.ToInt64():X}");
         if (toHwnd == IntPtr.Zero) return;
 
         Action<PointI>? callback = null;
@@ -128,12 +136,16 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
             case WM_NCRBUTTONDOWN:
             {
                 var screen = ScreenPointFromLParam(lParam, hwnd, msg);
-                if (!GetWindowRectStruct(hwnd, out var r) || !ContainsPoint(r, screen))
-                    sub.Callback(screen);
+                var gotRect = GetWindowRectStruct(hwnd, out var r);
+                var insideRect = gotRect && ContainsPoint(r, screen);
+                ZGF.Gui.PopupDebugLog.Log(ZGF.Gui.PopupDebugLog.Channel.Capture,
+                    $"SubclassProc: msg={msg:X} screen=({screen.X},{screen.Y}) capturedRect=({r.Left},{r.Top}..{r.Right},{r.Bottom}) inside={insideRect}");
+                if (!insideRect) sub.Callback(screen);
                 break;
             }
             case WM_CANCELMODE:
             {
+                ZGF.Gui.PopupDebugLog.Log(ZGF.Gui.PopupDebugLog.Channel.Capture, "SubclassProc: WM_CANCELMODE");
                 sub.Callback(new PointI(int.MinValue, int.MinValue));
                 break;
             }

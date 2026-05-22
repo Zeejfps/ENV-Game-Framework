@@ -19,6 +19,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     private readonly MetalSharedResources? _metalShared;
     private readonly IPopupNativeDecorator _decorator;
     private readonly Context _mainContext;
+    private readonly RenderedCanvasBase? _mainCanvasForFontRegistry;
 
     private readonly List<PopupWindowImpl> _activePopups = new();
     private readonly List<PopupWindowImpl> _pool = new();
@@ -31,7 +32,8 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         GlSharedResources? glShared,
         MetalSharedResources? metalShared,
         IPopupNativeDecorator decorator,
-        Context mainContext)
+        Context mainContext,
+        RenderedCanvasBase? mainCanvasForFontRegistry = null)
     {
         _app = app;
         _fonts = fonts;
@@ -40,23 +42,31 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         _metalShared = metalShared;
         _decorator = decorator;
         _mainContext = mainContext;
+        _mainCanvasForFontRegistry = mainCanvasForFontRegistry;
     }
 
     public IPopupWindow Acquire(in PopupRequest request)
     {
         var rect = ResolveRect(request);
+        PopupDebugLog.Log(PopupDebugLog.Channel.Lifecycle,
+            $"Acquire: preferred=({request.PreferredScreenRect.X},{request.PreferredScreenRect.Y} {request.PreferredScreenRect.Width}x{request.PreferredScreenRect.Height}) flipped={(request.FlippedScreenRect.HasValue ? request.FlippedScreenRect.ToString() : "null")} resolved=({rect.X},{rect.Y} {rect.Width}x{rect.Height}) passthrough={request.MousePassThrough} pool={_pool.Count} active={_activePopups.Count}");
 
         PopupWindowImpl popup;
+        bool fromPool;
         if (_pool.Count > 0)
         {
             popup = _pool[^1];
             _pool.RemoveAt(_pool.Count - 1);
             popup.Resize(rect.Width, rect.Height);
+            fromPool = true;
         }
         else
         {
             popup = CreateNewPopup(rect.Width, rect.Height, request.MousePassThrough);
+            fromPool = false;
         }
+        PopupDebugLog.Log(PopupDebugLog.Channel.Lifecycle,
+            $"Acquire: popup={popup.Window.WindowHandle.ToInt64():X} fromPool={fromPool}");
 
         popup.MousePassThrough = request.MousePassThrough;
         popup.SetRoot(request.Root);
@@ -65,6 +75,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
         // Synchronous render before show so the first paint isn't a flash.
         popup.Window.MakeContextCurrent();
+        PopupDebugLog.Log(PopupDebugLog.Channel.Context, $"Acquire: MakeContextCurrent for synchronous pre-show render");
         popup.Window.RenderNow();
 
         popup.Window.Show();
@@ -91,6 +102,8 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     {
         if (popup is not PopupWindowImpl impl) return;
         if (!_activePopups.Remove(impl)) return;
+        PopupDebugLog.Log(PopupDebugLog.Channel.Lifecycle,
+            $"Release: popup={impl.Window.WindowHandle.ToInt64():X} active={_activePopups.Count} pool={_pool.Count}");
 
         if (_captureHolder == impl)
         {
@@ -109,7 +122,9 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         }
 
         impl.Window.Hide();
+        PopupDebugLog.Log(PopupDebugLog.Channel.Lifecycle, $"Release: Hide done for {impl.Window.WindowHandle.ToInt64():X}");
         impl.SetRoot(null);
+        PopupDebugLog.Log(PopupDebugLog.Channel.Lifecycle, $"Release: SetRoot(null) done");
 
         if (_pool.Count >= SoftCap)
         {
@@ -118,6 +133,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             evict.Dispose();
         }
         _pool.Add(impl);
+        PopupDebugLog.Log(PopupDebugLog.Channel.Lifecycle, $"Release: added to pool (size={_pool.Count})");
     }
 
     private RectI ResolveRect(in PopupRequest request)
@@ -165,6 +181,8 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
     private PopupWindowImpl CreateNewPopup(int width, int height, bool mousePassThrough)
     {
+        PopupDebugLog.Log(PopupDebugLog.Channel.Lifecycle,
+            $"CreateNewPopup: size={width}x{height} passthrough={mousePassThrough}");
         var window = _app.CreatePopupWindow(new PopupWindowOptions
         {
             WidthPoints = width,
@@ -172,26 +190,27 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             OwnerWindow = _app.MainWindow,
             MousePassThrough = mousePassThrough,
         });
+        PopupDebugLog.Log(PopupDebugLog.Channel.Lifecycle,
+            $"CreateNewPopup: glfw handle={window.WindowHandle.ToInt64():X} dpi={window.DpiScale}");
 
         _decorator.DecoratePopup(window.WindowHandle, mousePassThrough);
 
         RenderedCanvasBase canvas;
-        Action? renderClosure = null;
-        Action? presentClosure = null;
 
         if (_glShared != null)
         {
             window.MakeContextCurrent();
+            PopupDebugLog.Log(PopupDebugLog.Channel.Context,
+                $"CreateNewPopup: MakeContextCurrent before canvas construction (popup VAOs land on popup context)");
             canvas = new OpenGlRenderedCanvas(width, height, _fonts, _defaultFont, _glShared, window.DpiScale);
-            renderClosure = () =>
-            {
-                glClear(GL_COLOR_BUFFER_BIT);
-                canvas.BeginFrame();
-            };
+            if (_mainCanvasForFontRegistry != null)
+                canvas.CopyFontsFrom(_mainCanvasForFontRegistry);
         }
         else if (_metalShared != null)
         {
             canvas = new MetalRenderedCanvas(width, height, _fonts, _defaultFont, _metalShared, window.DpiScale);
+            if (_mainCanvasForFontRegistry != null)
+                canvas.CopyFontsFrom(_mainCanvasForFontRegistry);
             // Metal popup rendering routes through MetalWindow.Layer + a per-frame
             // command buffer. The closure is assembled in PopupWindowImpl.RenderFrame.
         }
@@ -258,12 +277,17 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
         {
             ogw.RenderFrame = () =>
             {
+                PopupDebugLog.Log(PopupDebugLog.Channel.Render,
+                    $"popup RenderFrame begin: hwnd={_window.WindowHandle.ToInt64():X} canvas={_canvas.Width}x{_canvas.Height} hasRoot={_root != null}");
+                glClearColor(0f, 0f, 0f, 0f);
                 glClear(GL_COLOR_BUFFER_BIT);
                 _canvas.BeginFrame();
                 if (_root != null)
                 {
                     _root.LayoutSelf();
                     _root.DrawSelf();
+                    PopupDebugLog.Log(PopupDebugLog.Channel.Layout,
+                        $"popup RenderFrame: root.Position=({_root.Position.Left},{_root.Position.Bottom} {_root.Position.Width}x{_root.Position.Height})");
                 }
                 _canvas.EndFrame();
             };
