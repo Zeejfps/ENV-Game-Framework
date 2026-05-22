@@ -59,7 +59,7 @@ public sealed class MetalWindow : IWindow
 
     public event Action<int, int>? OnResize;
     public event Action<int, int>? OnFramebufferResize;
-    public event Action? OnFocusChanged;
+    public event Action<bool>? OnFocusChanged;
     public event Action? OnClose;
 
     public void Show() { Glfw.ShowWindow(_window); _isVisible = true; NeedsRedraw = true; }
@@ -87,7 +87,7 @@ public sealed class MetalWindow : IWindow
         OnFramebufferResize?.Invoke(width, height);
     }
 
-    private void HandleFocusChanged(Window window, bool focused) => OnFocusChanged?.Invoke();
+    private void HandleFocusChanged(Window window, bool focused) => OnFocusChanged?.Invoke(focused);
     private void HandleClose(Window window) => OnClose?.Invoke();
 
     private static float ComputeDpiScale(Window window, int fbWidth, int fbHeight)

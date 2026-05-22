@@ -11,7 +11,7 @@ public interface IWindow : IDisposable
 
     event Action<int, int> OnResize;
     event Action<int, int> OnFramebufferResize;
-    event Action OnFocusChanged;
+    event Action<bool> OnFocusChanged;
     event Action OnClose;
 
     void Show();

@@ -69,6 +69,14 @@ public sealed class GuiApp : IDisposable
         app.OnTick += HandleTick;
         app.MainWindow.OnResize += HandleResize;
         app.MainWindow.OnFramebufferResize += HandleFramebufferResize;
+        app.MainWindow.OnFocusChanged += HandleMainFocusChanged;
+    }
+
+    private void HandleMainFocusChanged(bool focused)
+    {
+        if (focused) return;
+        Console.Error.WriteLine($"[popup:Lifecycle] Main window lost focus → closing all context menus");
+        _contextMenuManager.CloseAllImmediately();
     }
 
     public static GuiApp CreateDefault(StartupConfig config, Context context, View content)
@@ -152,6 +160,7 @@ public sealed class GuiApp : IDisposable
         _app.OnTick -= HandleTick;
         _app.MainWindow.OnResize -= HandleResize;
         _app.MainWindow.OnFramebufferResize -= HandleFramebufferResize;
+        _app.MainWindow.OnFocusChanged -= HandleMainFocusChanged;
         _popupFactory.Dispose();
         _glShared?.Dispose();
         _metalShared?.Dispose();

@@ -52,7 +52,7 @@ public sealed class OpenGlWindow : IWindow
 
     public event Action<int, int>? OnResize;
     public event Action<int, int>? OnFramebufferResize;
-    public event Action? OnFocusChanged;
+    public event Action<bool>? OnFocusChanged;
     public event Action? OnClose;
 
     public void Show()
@@ -106,7 +106,7 @@ public sealed class OpenGlWindow : IWindow
 
     private void HandleFocusChanged(Window window, bool focused)
     {
-        OnFocusChanged?.Invoke();
+        OnFocusChanged?.Invoke(focused);
     }
 
     private void HandleClose(Window window)
