@@ -550,15 +550,7 @@ public sealed class GitService : IGitService
     private static string? RunGitStatusPorcelain(string workingDir, out string? error)
     {
         error = null;
-        var psi = new ProcessStartInfo
-        {
-            FileName = GitExecutable(),
-            WorkingDirectory = workingDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
+        var psi = BuildDirectGitPsi(workingDir);
         psi.ArgumentList.Add("status");
         psi.ArgumentList.Add("--porcelain=v2");
         psi.ArgumentList.Add("-z");
@@ -1090,16 +1082,6 @@ public sealed class GitService : IGitService
         }
     }
 
-    // Fast-forwards a non-checked-out local branch to its upstream. Uses the refspec form
-    // `git fetch <remote> <remote-branch>:<local-branch>` without a leading `+`, so git
-    // refreshes the remote ref and then advances the local ref only if the update is a
-    // strict fast-forward. Git refuses if <local-branch> is the currently checked-out HEAD
-    // (or checked out in any worktree) — the caller should gate that in the UI.
-    //
-    // Streams git's progress output line-by-line to the console so a long fetch (many
-    // commits, big packfile) doesn't look like the UI is hung. `--progress` forces git
-    // to emit the "Counting / Compressing / Receiving / Resolving" lines even though
-    // stderr isn't a TTY here.
     public FastForwardOutcome FastForwardBranch(Repo repo, string localBranch, string remoteName, string remoteBranch, Action<string>? onLine = null)
     {
         var tag = $"[Git ff {localBranch} <- {remoteName}/{remoteBranch}]";
@@ -1333,15 +1315,7 @@ public sealed class GitService : IGitService
             // git 2.38+: real-merge mode. Exit 0 = clean, 1 = conflicts, >1 = error
             // (old git, missing ref, no merge base, etc). Treat errors as Unknown so the
             // dialog quietly skips the preview rather than blocking the user from merging.
-            var psi = new ProcessStartInfo
-            {
-                FileName = GitExecutable(),
-                WorkingDirectory = repo.Path,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
+            var psi = BuildDirectGitPsi(repo.Path);
             psi.ArgumentList.Add("merge-tree");
             psi.ArgumentList.Add("--write-tree");
             psi.ArgumentList.Add("--no-messages");
@@ -1439,15 +1413,7 @@ public sealed class GitService : IGitService
             if (!IsGitRepo(repo.Path))
                 return new RebasePreviewResult(RebasePreviewState.Unknown, "Not a git repository.");
 
-            var psi = new ProcessStartInfo
-            {
-                FileName = GitExecutable(),
-                WorkingDirectory = repo.Path,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
+            var psi = BuildDirectGitPsi(repo.Path);
             psi.ArgumentList.Add("merge-tree");
             psi.ArgumentList.Add("--write-tree");
             psi.ArgumentList.Add("--no-messages");
@@ -2346,13 +2312,6 @@ public sealed class GitService : IGitService
     //
     // Running git through the user's shell with `-i -c` sources their rc files first
     // so ssh and git see the same environment they do in Terminal.
-    //
-    // GIT_TERMINAL_PROMPT=0 disables git's "Username for 'https://...':" / "Password:"
-    // stdin prompts. Without it, an HTTPS remote with no cached credentials makes git
-    // block forever on stdin (which is our pipe, not a TTY) and the only way out is to
-    // kill the process. With it set, git fails fast with
-    //   "fatal: could not read Username for '...': terminal prompts disabled"
-    // which we surface to the user as a clear, actionable error.
     private static ProcessStartInfo BuildGitProcessStartInfo(string gitArgs, string workingDir)
     {
         var psi = new ProcessStartInfo
@@ -2372,7 +2331,6 @@ public sealed class GitService : IGitService
             psi.FileName = shell;
             psi.ArgumentList.Add("-i");
             psi.ArgumentList.Add("-c");
-            // Inline export so rc-file overrides can't re-enable prompts.
             psi.ArgumentList.Add($"GIT_TERMINAL_PROMPT=0 git {gitArgs}");
         }
         else
@@ -2427,11 +2385,6 @@ public sealed class GitService : IGitService
     private static string SingleQuoteShellArg(string s)
         => "'" + s.Replace("'", "'\\''") + "'";
 
-    // We force GIT_TERMINAL_PROMPT=0 so HTTPS auth doesn't hang the process. When the
-    // user has no credential helper configured, the resulting error ("could not read
-    // Username for ...: terminal prompts disabled") is technically correct but not
-    // actionable on its own — append a one-line hint pointing at credential helpers /
-    // SSH so the user knows what to do next.
     private static string AugmentCredentialError(string headline, string fullOutput)
     {
         if (string.IsNullOrEmpty(headline) || string.IsNullOrEmpty(fullOutput))
@@ -2566,15 +2519,7 @@ public sealed class GitService : IGitService
     private static string? RunGitInternal(string workingDir, bool allowExitCode1, out string? error, string[] args)
     {
         error = null;
-        var psi = new ProcessStartInfo
-        {
-            FileName = GitExecutable(),
-            WorkingDirectory = workingDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
+        var psi = BuildDirectGitPsi(workingDir);
         foreach (var a in args) psi.ArgumentList.Add(a);
 
         using var proc = Process.Start(psi);
@@ -2595,15 +2540,7 @@ public sealed class GitService : IGitService
 
     private static bool IsTracked(string workingDir, string path)
     {
-        var psi = new ProcessStartInfo
-        {
-            FileName = GitExecutable(),
-            WorkingDirectory = workingDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
+        var psi = BuildDirectGitPsi(workingDir);
         psi.ArgumentList.Add("ls-files");
         psi.ArgumentList.Add("--error-unmatch");
         psi.ArgumentList.Add("--");
@@ -2615,6 +2552,21 @@ public sealed class GitService : IGitService
         proc.StandardError.ReadToEnd();
         proc.WaitForExit();
         return proc.ExitCode == 0;
+    }
+
+    private static ProcessStartInfo BuildDirectGitPsi(string workingDir)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = GitExecutable(),
+            WorkingDirectory = workingDir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        psi.Environment["GIT_TERMINAL_PROMPT"] = "0";
+        return psi;
     }
 
     // macOS GUI apps launched outside a terminal don't inherit the user's shell PATH, so

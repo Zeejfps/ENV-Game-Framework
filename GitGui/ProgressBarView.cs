@@ -2,11 +2,6 @@ using ZGF.Gui;
 
 namespace GitGui;
 
-/// <summary>
-/// Determinate progress bar: a dark track with an accent fill whose width is a fraction
-/// of the available width. The fill child is laid out manually so changing
-/// <see cref="Percent"/> just relayouts — no constructor-time Grow plumbing.
-/// </summary>
 public sealed class ProgressBarView : RectView
 {
     private readonly RectView _fill;
@@ -26,7 +21,6 @@ public sealed class ProgressBarView : RectView
         Children.Add(_fill);
     }
 
-    /// <summary>Clamped to [0,1]. Setting triggers a relayout via the dirty-flag plumbing.</summary>
     public float Percent
     {
         get => _percent;

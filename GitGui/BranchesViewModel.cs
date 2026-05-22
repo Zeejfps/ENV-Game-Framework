@@ -414,9 +414,6 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
             $"Fast-forward {branchName} ← {remoteName}/{remoteBranch}",
             LucideIcons.Pull));
 
-        // Git's OutputDataReceived/ErrorDataReceived events fire on worker threads. The
-        // bus has no thread guarantees and subscribers touch UI state, so each line is
-        // marshalled to the UI dispatcher before being broadcast.
         void OnLineFromWorker(string line)
         {
             dispatcher.Post(() =>
