@@ -1090,6 +1090,47 @@ public sealed class GitService : IGitService
         }
     }
 
+    // Fast-forwards a non-checked-out local branch to its upstream. Uses the refspec form
+    // `git fetch <remote> <remote-branch>:<local-branch>` without a leading `+`, so git
+    // refreshes the remote ref and then advances the local ref only if the update is a
+    // strict fast-forward. Git refuses if <local-branch> is the currently checked-out HEAD
+    // (or checked out in any worktree) — the caller should gate that in the UI.
+    public FastForwardOutcome FastForwardBranch(Repo repo, string localBranch, string remoteName, string remoteBranch)
+    {
+        try
+        {
+            if (!IsGitRepo(repo.Path))
+                return new FastForwardOutcome(false, "Not a git repository.");
+
+            var refspec = $"{remoteBranch}:{localBranch}";
+            var args = new List<string> { "fetch", remoteName, refspec };
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                var psi = BuildGitProcessStartInfo(args, repo.Path);
+                using var proc = Process.Start(psi);
+                if (proc == null) return new FastForwardOutcome(false, "Failed to start git.");
+
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                proc.WaitForExit();
+                var stderr = stderrTask.GetAwaiter().GetResult();
+                var stdout = stdoutTask.GetAwaiter().GetResult();
+
+                if (proc.ExitCode == 0) return new FastForwardOutcome(true, null);
+                var msg = CombineGitOutput(stderr, stdout);
+                if (string.IsNullOrEmpty(msg)) msg = $"git fetch exited with code {proc.ExitCode}.";
+                return new FastForwardOutcome(false, msg);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new FastForwardOutcome(false, ex.Message);
+        }
+    }
+
     // Shells out so post-checkout hooks, LFS, and sparse-checkout filters all run; also
     // surfaces the same error wording the user would see in Terminal.
     public CheckoutOutcome CheckoutLocalBranch(Repo repo, string branchName)

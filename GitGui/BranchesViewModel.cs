@@ -396,6 +396,37 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         });
     }
 
+    private void StartFastForwardLocal(string branchName, string remoteName, string remoteBranch)
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+        if (State.Value.IsBranchOpInFlight) return;
+
+        Update(s => s with { BusyBranch = branchName });
+
+        var service = _gitService;
+        var dispatcher = Dispatcher;
+        var bus = _bus;
+
+        Task.Run(() =>
+        {
+            FastForwardOutcome outcome;
+            try { outcome = service.FastForwardBranch(repo, branchName, remoteName, remoteBranch); }
+            catch (Exception ex) { outcome = new FastForwardOutcome(false, ex.Message); }
+
+            dispatcher.Post(() =>
+            {
+                Update(s => s with { BusyBranch = null });
+                if (outcome.Success)
+                    bus.Broadcast(new RefsChangedMessage(repo.Id));
+                else
+                    bus.Broadcast(new ShowOperationErrorMessage(
+                        "Fast-forward failed",
+                        outcome.ErrorMessage ?? "Fast-forward failed."));
+            });
+        });
+    }
+
     // ---- context menu items (semantic, keyed on the row's identity) ----
 
     public IReadOnlyList<RepoBarContextMenu.Item> BuildLocalBranchMenuItems(string fullPath, bool isHead)
@@ -429,6 +460,27 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
             () => StartCheckoutLocal(capturedName),
             LucideIcons.Branch,
             Enabled: !checkoutDisabled));
+
+        var entry = FindLocalBranchEntry(fullPath);
+        if (!isHead
+            && entry?.UpstreamState == BranchUpstreamState.Tracked
+            && !string.IsNullOrEmpty(entry.UpstreamRemote)
+            && !string.IsNullOrEmpty(entry.UpstreamBranch))
+        {
+            var ffRemote = entry.UpstreamRemote;
+            var ffBranch = entry.UpstreamBranch;
+            var ffDisabled = thisRowBusy
+                || checkedOutElsewhere
+                || state.IsBranchOpInFlight
+                || (entry.BehindBy ?? 0) == 0;
+            items.Add(new RepoBarContextMenu.Item(
+                $"Fast-forward to '{ffRemote}/{ffBranch}'",
+                () => StartFastForwardLocal(capturedName, ffRemote, ffBranch),
+                LucideIcons.Pull,
+                Enabled: !ffDisabled,
+                LabelSegments: BuildFastForwardSegments(ffRemote, ffBranch)));
+        }
+
         if (headBranch != null && !isHead)
         {
             var capturedHead = headBranch;
@@ -452,7 +504,6 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
             () => _bus.Broadcast(new ShowDialogMessage(onClose => new RenameBranchDialog(capturedRepo, capturedName, onClose))),
             LucideIcons.PencilLine,
             Enabled: !renameDisabled));
-        var entry = FindLocalBranchEntry(fullPath);
         var upstreamRemote = entry?.UpstreamState == BranchUpstreamState.Tracked ? entry.UpstreamRemote : null;
         var upstreamBranch = entry?.UpstreamState == BranchUpstreamState.Tracked ? entry.UpstreamBranch : null;
         items.Add(new RepoBarContextMenu.Item(
@@ -551,6 +602,13 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         new MenuLabelSegment(" onto "),
         new MenuLabelSegment(target, MergeMenuBranchAccent, Bold: true),
         new MenuLabelSegment("…"),
+    ];
+
+    private static IReadOnlyList<MenuLabelSegment> BuildFastForwardSegments(string remote, string branch) =>
+    [
+        new MenuLabelSegment("Fast-forward to '"),
+        new MenuLabelSegment($"{remote}/{branch}", MergeMenuBranchAccent, Bold: true),
+        new MenuLabelSegment("'"),
     ];
 }
 
