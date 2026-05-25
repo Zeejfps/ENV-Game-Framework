@@ -1,6 +1,5 @@
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
-using ZGF.Observable;
 
 namespace GitGui;
 
@@ -24,16 +23,10 @@ public sealed class LocalChangesView : MultiChildView
             },
         });
 
-        this.UsePresenter(ctx =>
+        this.UseViewModel<LocalChangesViewModel>(vm =>
         {
-            var vm = new LocalChangesViewModel(
-                ctx.Require<IRepoRegistry>(),
-                ctx.Require<IGitService>(),
-                ctx.Require<IUiDispatcher>(),
-                ctx.Require<IMessageBus>());
             content.Bind(vm);
             commitBar.Bind(vm);
-            return vm;
         });
     }
 }
