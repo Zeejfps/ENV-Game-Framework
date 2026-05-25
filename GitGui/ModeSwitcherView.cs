@@ -21,8 +21,8 @@ public sealed class ModeSwitcherView : MultiChildView
     private static readonly uint SegmentActiveText = DialogPalette.RowTextActive;
     private static readonly uint SegmentIdleText = DialogPalette.RowText;
 
-    private readonly Segment _history;
-    private readonly Segment _localChanges;
+    private readonly SegmentView _history;
+    private readonly SegmentView _localChanges;
 
     private State<MainViewMode>? _mode;
     private IDisposable? _subscription;
@@ -32,11 +32,11 @@ public sealed class ModeSwitcherView : MultiChildView
         PreferredHeight = PillHeight;
 
         const float innerRadius = SegmentCornerRadius - 1f;
-        _history = new Segment(
+        _history = new SegmentView(
             "History",
             () => SetMode(MainViewMode.History),
             new BorderRadiusStyle { TopRight = innerRadius, BottomRight = innerRadius });
-        _localChanges = new Segment(
+        _localChanges = new SegmentView(
             "Changes",
             () => SetMode(MainViewMode.LocalChanges),
             new BorderRadiusStyle { TopLeft = innerRadius, BottomLeft = innerRadius });
@@ -89,14 +89,14 @@ public sealed class ModeSwitcherView : MultiChildView
         _localChanges.SetActive(mode == MainViewMode.LocalChanges);
     }
 
-    private sealed class Segment : MultiChildView
+    private sealed class SegmentView : MultiChildView
     {
         private readonly RectView _bg;
         private readonly TextView _label;
         private bool _isActive;
         private bool _isHovered;
 
-        public Segment(string label, Action onClick, BorderRadiusStyle cornerRadius)
+        public SegmentView(string label, Action onClick, BorderRadiusStyle cornerRadius)
         {
             PreferredHeight = PillHeight;
 
