@@ -16,23 +16,16 @@ public sealed class ModeSwitcherView : MultiChildView
     private static readonly uint SegmentActiveText = DialogPalette.RowTextActive;
     private static readonly uint SegmentIdleText = DialogPalette.RowText;
 
-    private readonly SegmentView _history;
-    private readonly SegmentView _localChanges;
-
-    private ModeSwitcherViewModel? _vm;
-
     public ModeSwitcherView()
     {
         PreferredHeight = PillHeight;
 
         const float innerRadius = SegmentCornerRadius - 1f;
-        _history = new SegmentView(
+        var history = new SegmentView(
             "History",
-            () => _vm?.Activate(MainViewMode.History),
             new BorderRadiusStyle { TopRight = innerRadius, BottomRight = innerRadius });
-        _localChanges = new SegmentView(
+        var localChanges = new SegmentView(
             "Changes",
-            () => _vm?.Activate(MainViewMode.LocalChanges),
             new BorderRadiusStyle { TopLeft = innerRadius, BottomLeft = innerRadius });
 
         var separator = new RectView
@@ -51,7 +44,7 @@ public sealed class ModeSwitcherView : MultiChildView
             {
                 new RowView
                 {
-                    Children = { _localChanges, separator, _history },
+                    Children = { localChanges, separator, history },
                 },
             },
         });
@@ -60,15 +53,9 @@ public sealed class ModeSwitcherView : MultiChildView
             ctx => new ModeSwitcherViewModel(ctx.Require<State<MainViewMode>>()),
             (vm, subs) =>
             {
-                _vm = vm;
-                subs.Add(vm.Mode.Subscribe(OnModeChanged));
+                history.Bind(vm.HistorySegment, subs);
+                localChanges.Bind(vm.LocalChangesSegment, subs);
             });
-    }
-
-    private void OnModeChanged(MainViewMode mode)
-    {
-        _history.SetActive(mode == MainViewMode.History);
-        _localChanges.SetActive(mode == MainViewMode.LocalChanges);
     }
 
     private sealed class SegmentView : MultiChildView
@@ -77,8 +64,9 @@ public sealed class ModeSwitcherView : MultiChildView
         private readonly TextView _label;
         private bool _isActive;
         private bool _isHovered;
+        private Action? _onClick;
 
-        public SegmentView(string label, Action onClick, BorderRadiusStyle cornerRadius)
+        public SegmentView(string label, BorderRadiusStyle cornerRadius)
         {
             PreferredHeight = PillHeight;
 
@@ -99,10 +87,19 @@ public sealed class ModeSwitcherView : MultiChildView
             };
             AddChildToSelf(_bg);
 
-            this.UseController(_ => new HoverableButtonController(onClick, OnHoverChanged));
+            this.UseController(_ => new HoverableButtonController(
+                () => _onClick?.Invoke(),
+                OnHoverChanged));
         }
 
-        public void SetActive(bool active)
+        public void Bind(SegmentViewModel vm, SubscriptionGroup subs)
+        {
+            _onClick = vm.Click;
+            subs.Add(vm.IsActive.Subscribe(SetActive));
+            subs.Add(() => _onClick = null);
+        }
+
+        private void SetActive(bool active)
         {
             if (_isActive == active) return;
             _isActive = active;
