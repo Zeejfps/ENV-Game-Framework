@@ -16,4 +16,12 @@ public static class ViewPresenterExtensions
     {
         view.Behaviors.Add(new ViewModelBehavior<TVm>(factory, bind));
     }
+
+    public static void UseViewModel<TVm>(
+        this View view,
+        Action<TVm> bind)
+        where TVm : class, IDisposable
+    {
+        view.Behaviors.Add(new ViewModelBehavior<TVm>(ctx => ctx.Create<TVm>(), bind));
+    }
 }

@@ -1,6 +1,5 @@
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
-using ZGF.Observable;
 
 namespace GitGui;
 
@@ -44,12 +43,10 @@ public sealed class ModeSwitcherView : MultiChildView
             },
         });
 
-        this.UseViewModel(
-            ctx => new ModeSwitcherViewModel(ctx.Require<State<MainViewMode>>()),
-            vm =>
-            {
-                history.Bind(vm.HistorySegment);
-                localChanges.Bind(vm.LocalChangesSegment);
-            });
+        this.UseViewModel<ModeSwitcherViewModel>(vm =>
+        {
+            history.Bind(vm.HistorySegment);
+            localChanges.Bind(vm.LocalChangesSegment);
+        });
     }
 }
