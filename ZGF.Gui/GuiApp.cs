@@ -11,76 +11,97 @@ namespace LLMit;
 
 public sealed class GuiApp : IDisposable
 {
-    private readonly IWindowApp _window;
-    private readonly RenderedCanvasBase _canvas;
+    private readonly IApp _app;
+    private readonly RenderedCanvasBase _mainCanvas;
     private readonly FreeTypeFontBackend _fontBackend;
-    private readonly Action<Action> _renderFrame;
-    private readonly GlfwInputSystem _inputSystem;
-    private readonly MultiChildView _gui;
+    private readonly GlSharedResources? _glShared;
+    private readonly MetalSharedResources? _metalShared;
+    private readonly GlfwInputSystem _mainInput;
+    private readonly MultiChildView _root;
     private readonly QueuedUiDispatcher _dispatcher;
     private readonly ContextMenuManager _contextMenuManager;
+    private readonly PopupWindowFactory _popupFactory;
+    private readonly WindowCoordinates _coordinates;
 
     private GuiApp(
-        IWindowApp window,
-        RenderedCanvasBase canvas,
+        IApp app,
+        RenderedCanvasBase mainCanvas,
         FreeTypeFontBackend fontBackend,
-        Action<Action> renderFrame,
+        GlSharedResources? glShared,
+        MetalSharedResources? metalShared,
+        FontHandle defaultFont,
         Context context,
-        MultiChildView content)
+        View content)
     {
-        _window = window;
-        _canvas = canvas;
+        _app = app;
+        _mainCanvas = mainCanvas;
         _fontBackend = fontBackend;
-        _renderFrame = renderFrame;
-
-        var contextMenuPane = new MultiChildView();
-        _inputSystem = new GlfwInputSystem(window.WindowHandle, canvas);
-        _contextMenuManager = new ContextMenuManager(contextMenuPane, _inputSystem.InputSystem);
+        _glShared = glShared;
+        _metalShared = metalShared;
+        _mainInput = new GlfwInputSystem(app.MainWindow.WindowHandle, mainCanvas);
         _dispatcher = new QueuedUiDispatcher();
 
-        context.Canvas = canvas;
-        context.AddService(_inputSystem.InputSystem);
-        context.AddService(_contextMenuManager);
-        context.AddService<IUiDispatcher>(_dispatcher);
-#if OSX
-        context.AddService<IClipboard>(new OsxClipboard());
-#elif WIN
-        context.AddService<IClipboard>(new Win32Clipboard());
-#else
-        context.AddService<IClipboard>(new AppClipboard());
-#endif
+        var decorator = context.Get<IPopupNativeDecorator>() ?? new DefaultNoopDecorator();
+        _coordinates = new WindowCoordinates(app.MainWindow.WindowHandle, mainCanvas);
+        _popupFactory = new PopupWindowFactory(
+            app, fontBackend, defaultFont, glShared, metalShared, decorator, context,
+            mainCanvasForFontRegistry: mainCanvas);
 
-        _gui = new MultiChildView
+        _contextMenuManager = new ContextMenuManager(_popupFactory, _coordinates, _mainInput.InputSystem, measureContext: context);
+
+        context.Canvas = mainCanvas;
+        context.AddService(_mainInput.InputSystem);
+        context.AddService(_contextMenuManager);
+        context.AddService<IWindowCoordinates>(_coordinates);
+        context.AddService<IPopupWindowFactory>(_popupFactory);
+        context.AddService<IUiDispatcher>(_dispatcher);
+
+        _root = new MultiChildView
         {
-            PreferredWidth = canvas.Width,
-            PreferredHeight = canvas.Height,
+            PreferredWidth = mainCanvas.Width,
+            PreferredHeight = mainCanvas.Height,
             Context = context,
-            Children =
-            {
-                content,
-                contextMenuPane,
-            }
+            Children = { content },
         };
 
-        window.OnUpdate += HandleUpdate;
-        window.OnResize += HandleResize;
-        window.OnFramebufferResize += HandleFramebufferResize;
+        PlatformBackend.PopulateMain = PopulateGui;
+
+        app.OnTick += HandleTick;
+        app.MainWindow.OnResize += HandleResize;
+        app.MainWindow.OnFramebufferResize += HandleFramebufferResize;
+        app.MainWindow.OnFocusChanged += HandleMainFocusChanged;
     }
 
-    public static GuiApp CreateDefault(StartupConfig config, Context context, MultiChildView content)
+    private void HandleMainFocusChanged(bool focused)
+    {
+        if (focused) return;
+        // On macOS, clicking a popup NSWindow makes it key and main loses focus.
+        // Treat focus loss as "close menus" only when the focus moved outside
+        // our process — i.e., none of our windows are focused. Otherwise the
+        // user is interacting with a menu popup we own.
+        foreach (var w in _app.Windows)
+        {
+            if (Glfw.GetWindowAttribute((Window)w.WindowHandle, WindowAttribute.Focused))
+                return;
+        }
+        _contextMenuManager.CloseAllImmediately();
+    }
+
+    public static GuiApp CreateDefault(StartupConfig config, Context context, View content)
     {
         var backend = PlatformBackend.Resolve(config);
-        return new GuiApp(backend.Window, backend.Canvas, backend.FontBackend, backend.RenderFrame, context, content);
+        return new GuiApp(
+            backend.App, backend.MainCanvas, backend.FontBackend,
+            backend.GlShared, backend.MetalShared,
+            backend.DefaultFont, context, content);
     }
 
     public void RegisterFont(string family, string path, int pixelSize)
     {
-        // pixelSize is in logical points; bake at device pixels so the atlas
-        // glyph is high-res on HiDPI (the canvas downscales it when drawing).
-        var scaled = (int)MathF.Round(pixelSize * _canvas.DpiScale);
+        var scaled = (int)MathF.Round(pixelSize * _mainCanvas.DpiScale);
         if (scaled <= 0) scaled = pixelSize;
         var handle = _fontBackend.LoadFontFromFile(PathUtils.ResolveLocalPath(path), scaled);
-        _canvas.RegisterFont(family, handle);
+        _mainCanvas.RegisterFont(family, handle);
     }
 
     public void SetIcon(string rgbaPath)
@@ -103,7 +124,7 @@ public sealed class GuiApp : IDisposable
                 handles[i] = GCHandle.Alloc(pixels, GCHandleType.Pinned);
                 images[i] = new Image(w, h, handles[i].AddrOfPinnedObject());
             }
-            Glfw.SetWindowIcon(new Window(_window.WindowHandle), count, images);
+            Glfw.SetWindowIcon(new Window(_app.MainWindow.WindowHandle), count, images);
         }
         finally
         {
@@ -112,49 +133,53 @@ public sealed class GuiApp : IDisposable
         }
     }
 
-    public void Run() => _window.Run();
+    public void Run() => _app.Run();
 
-    private void HandleUpdate()
+    private void HandleTick()
     {
         _dispatcher.Drain();
-        Render();
-        _inputSystem.Update();
+        _mainInput.Update();
+        _popupFactory.UpdateActivePopupInput();
         _contextMenuManager.Update();
     }
 
     private void HandleResize(int width, int height)
     {
-        _gui.PreferredWidth = width;
-        _gui.PreferredHeight = height;
-        _canvas.Resize(width, height);
-        Render();
-        if (_window is OpenGlApp gl)
-            gl.SwapBuffers();
+        _root.PreferredWidth = width;
+        _root.PreferredHeight = height;
+        _mainCanvas.Resize(width, height);
+        _app.MainWindow.MakeContextCurrent();
+        _app.MainWindow.RenderNow();
     }
 
     private void HandleFramebufferResize(int width, int height)
     {
-        // GL viewport is in framebuffer pixels; Metal's drawable is sized by MetalApp.
-        if (_window is OpenGlApp)
-            GL46.glViewport(0, 0, width, height);
-    }
-
-    private void Render()
-    {
-        _renderFrame(PopulateGui);
+        if (_app is OpenGlApp) GL46.glViewport(0, 0, width, height);
     }
 
     private void PopulateGui()
     {
-        _gui.LayoutSelf();
-        _gui.DrawSelf();
+        _root.LayoutSelf();
+        _root.DrawSelf();
     }
 
     public void Dispose()
     {
-        _window.OnUpdate -= HandleUpdate;
-        _window.OnResize -= HandleResize;
-        _window.OnFramebufferResize -= HandleFramebufferResize;
-        _window.Dispose();
+        _app.OnTick -= HandleTick;
+        _app.MainWindow.OnResize -= HandleResize;
+        _app.MainWindow.OnFramebufferResize -= HandleFramebufferResize;
+        _app.MainWindow.OnFocusChanged -= HandleMainFocusChanged;
+        _popupFactory.Dispose();
+        _glShared?.Dispose();
+        _metalShared?.Dispose();
+        _app.Dispose();
+    }
+
+    private sealed class DefaultNoopDecorator : IPopupNativeDecorator
+    {
+        public void DecoratePopup(IntPtr handle, bool mousePassThrough) { }
+        public void BeginCapture(IntPtr handle, Action<ZGF.Geometry.PointI> cb) { }
+        public void EndCapture(IntPtr handle) { }
+        public void TransferCapture(IntPtr from, IntPtr to, Action<ZGF.Geometry.PointI> cb) { }
     }
 }

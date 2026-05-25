@@ -1,13 +1,12 @@
-﻿using ZGF.Geometry;
+using GLFW;
+using ZGF.Geometry;
 
 namespace ZGF.Gui.Tests;
 
 public interface IOpenedContextMenu
 {
     event Action Closed;
-    MultiChildView View { get; }
     bool IsOpened { get; }
-
     void CancelCloseRequest();
     void CloseRequest();
 }
@@ -18,25 +17,20 @@ sealed class OpenedContextMenu : IOpenedContextMenu
 
     public bool IsOpened { get; private set; } = true;
     public required ContextMenu ContextMenu { get; init; }
+    public required IPopupWindow Popup { get; init; }
     public OpenedContextMenu? Parent { get; set; }
     public OpenedContextMenu? Child { get; set; }
     public long CloseTimestamp { get; set; }
-    public MultiChildView View => ContextMenu;
 
     public bool IsCloseRequested { get; private set; }
 
     public void CancelCloseRequest()
     {
-        if (!IsOpened)
-            return;
-
+        if (!IsOpened) return;
         IsCloseRequested = false;
     }
 
-    public void CloseRequest()
-    {
-        IsCloseRequested = true;
-    }
+    public void CloseRequest() => IsCloseRequested = true;
 
     public void Close()
     {
@@ -47,160 +41,207 @@ sealed class OpenedContextMenu : IOpenedContextMenu
 
 public sealed class ContextMenuManager
 {
-    private readonly MultiChildView _contextMenuPane;
-    private readonly InputSystem? _inputSystem;
-    private readonly OutsideClickController _outsideClickController;
+    private readonly IPopupWindowFactory _popupFactory;
+    private readonly IWindowCoordinates _coordinates;
+    private readonly InputSystem? _mainInputSystem;
+    private readonly Context? _measureContext;
+    private readonly MainWindowOutsideClickController _outsideClickController;
     private bool _outsideClickActive;
 
     private readonly HashSet<OpenedContextMenu> _closingMenus = new();
     private readonly Dictionary<ContextMenu, OpenedContextMenu> _openedMenus = new();
+    // Logical close (dict removal, Closed event) happens synchronously so callers
+    // that immediately open a new menu see an empty state. The actual OS-level
+    // Glfw.HideWindow + decorator.EndCapture is deferred to Update() so we don't
+    // hide a popup window from inside its own WND_PROC subclass — which on
+    // Windows leaves activation/capture state half-broken.
+    private readonly List<OpenedContextMenu> _pendingHide = new();
 
-    public ContextMenuManager(MultiChildView contextMenuPane, InputSystem? inputSystem = null)
+    public ContextMenuManager(
+        IPopupWindowFactory popupFactory,
+        IWindowCoordinates coordinates,
+        InputSystem? mainInputSystem = null,
+        Context? measureContext = null)
     {
-        _contextMenuPane = contextMenuPane;
-        _inputSystem = inputSystem;
-        _outsideClickController = new OutsideClickController(this);
+        _popupFactory = popupFactory;
+        _coordinates = coordinates;
+        _mainInputSystem = mainInputSystem;
+        _measureContext = measureContext;
+        _outsideClickController = new MainWindowOutsideClickController(this);
     }
 
-    public IOpenedContextMenu? ShowContextMenu(ContextMenu contextMenu, ContextMenu? parentMenu = null)
+    public IOpenedContextMenu? ShowContextMenu(ContextMenu menu, PointI screenAnchor, ContextMenu? parentMenu = null)
     {
-        if (_openedMenus.TryGetValue(contextMenu, out var openedMenu))
+        if (_openedMenus.ContainsKey(menu))
+            throw new System.Exception("Menu already opened");
+
+        // MeasureWidth/Height walks the view tree which needs a context (for canvas
+        // + fonts) to compute text metrics. Without this, the popup is sized at
+        // whatever default the views fall back to (often zero or tiny) and the
+        // resulting popup truncates its own content. Attach to the main context
+        // for measurement; PopupWindowImpl.SetRoot reassigns to the popup context.
+        if (_measureContext != null && menu.Context == null)
         {
-            throw new Exception("Menu already opened");
+            menu.Context = _measureContext;
         }
+        var width = (int)MathF.Ceiling(menu.MeasureWidth());
+        var height = (int)MathF.Ceiling(menu.MeasureHeight(width));
 
-        openedMenu = new OpenedContextMenu
+        var preferred = new RectI(
+            X: screenAnchor.X,
+            Y: screenAnchor.Y,
+            Width: width,
+            Height: height);
+
+        var popup = _popupFactory.Acquire(new PopupRequest
         {
-            ContextMenu = contextMenu,
-        };
+            Root = menu,
+            PreferredScreenRect = preferred,
+            FlippedScreenRect = null,
+            MousePassThrough = false,
+        });
 
+        var opened = new OpenedContextMenu { ContextMenu = menu, Popup = popup };
         if (parentMenu != null)
         {
-            if (!_openedMenus.TryGetValue(parentMenu, out var openedParentMenu))
+            if (!_openedMenus.TryGetValue(parentMenu, out var openedParent))
             {
+                _popupFactory.Release(popup);
                 return null;
             }
-            openedParentMenu.Child = openedMenu;
-            openedMenu.Parent = openedParentMenu;
+            openedParent.Child = opened;
+            opened.Parent = openedParent;
         }
 
-        _openedMenus[contextMenu] = openedMenu;
-        _contextMenuPane.Children.Add(contextMenu);
-        EnsureOutsideClickHandler();
-        return openedMenu;
+        _openedMenus[menu] = opened;
+        popup.OutsideClick += HandleOutsideClick;
+        EnsureMainOutsideClickHandler();
+        return opened;
     }
 
     public void Update()
     {
+        if (_pendingHide.Count > 0)
+        {
+            foreach (var menu in _pendingHide)
+            {
+                _popupFactory.Release(menu.Popup);
+            }
+            _pendingHide.Clear();
+        }
+
         var now = DateTimeOffset.Now.ToUnixTimeMilliseconds();
         foreach (var menu in _closingMenus.ToList())
         {
-            var component = menu.ContextMenu;
-            var timestamp = menu.CloseTimestamp;
-            if (now - timestamp > 100)
+            if (now - menu.CloseTimestamp > 100)
             {
-                //Console.WriteLine($"Closing: {menu.GetHashCode()}");
-                _contextMenuPane.Children.Remove(component);
+                _popupFactory.Release(menu.Popup);
                 _closingMenus.Remove(menu);
-                _openedMenus.Remove(component);
+                _openedMenus.Remove(menu.ContextMenu);
                 menu.Close();
             }
         }
 
-        foreach (var contextMenu in _openedMenus.Values.ToList())
+        foreach (var opened in _openedMenus.Values.ToList())
         {
-            if (contextMenu.IsCloseRequested && contextMenu.Child == null)
+            if (opened.IsCloseRequested && opened.Child == null)
             {
-                contextMenu.CloseTimestamp = now;
-                _closingMenus.Add(contextMenu);
-                _openedMenus.Remove(contextMenu.ContextMenu);
+                opened.CloseTimestamp = now;
+                _closingMenus.Add(opened);
+                _openedMenus.Remove(opened.ContextMenu);
 
-                var parent = contextMenu.Parent;
-                if (parent != null)
-                {
-                    parent.Child = null;
-                }
+                var parent = opened.Parent;
+                if (parent != null) parent.Child = null;
             }
         }
 
-        ReleaseOutsideClickHandlerIfEmpty();
+        ReleaseMainOutsideClickHandlerIfEmpty();
     }
 
-    public void RequestCloseMenu(ContextMenu contextMenu)
+    public void RequestCloseMenu(ContextMenu menu)
     {
-        if (_openedMenus.TryGetValue(contextMenu, out var openedMenu))
-        {
-            openedMenu.CloseRequest();
-        }
+        if (_openedMenus.TryGetValue(menu, out var opened))
+            opened.CloseRequest();
     }
 
-    /// <summary>
-    /// Closes every open or closing menu right now, skipping the standard 100 ms
-    /// linger window. Use when a fresh menu interaction needs to wipe whatever was
-    /// previously on screen (e.g. right-clicking again before the old menu fades).
-    /// </summary>
     public void CloseAllImmediately()
     {
-        foreach (var menu in _closingMenus.ToList())
+        // Logical close is synchronous (so a caller that immediately opens a new
+        // menu sees an empty state), but OS-level Hide+EndCapture is deferred to
+        // Update() via _pendingHide. See _pendingHide field comment.
+        foreach (var menu in _closingMenus)
         {
-            _contextMenuPane.Children.Remove(menu.ContextMenu);
+            _pendingHide.Add(menu);
             menu.Close();
         }
         _closingMenus.Clear();
 
         foreach (var opened in _openedMenus.Values.ToList())
         {
-            _contextMenuPane.Children.Remove(opened.ContextMenu);
             var parent = opened.Parent;
             if (parent != null) parent.Child = null;
+            _pendingHide.Add(opened);
             opened.Close();
         }
         _openedMenus.Clear();
-        ReleaseOutsideClickHandlerIfEmpty();
+        ReleaseMainOutsideClickHandlerIfEmpty();
     }
 
-    private void EnsureOutsideClickHandler()
+    private void EnsureMainOutsideClickHandler()
     {
         if (_outsideClickActive) return;
-        if (_inputSystem == null) return;
-        _inputSystem.StealFocus(_outsideClickController);
+        if (_mainInputSystem == null) return;
+        _mainInputSystem.StealFocus(_outsideClickController);
         _outsideClickActive = true;
     }
 
-    private void ReleaseOutsideClickHandlerIfEmpty()
+    private void ReleaseMainOutsideClickHandlerIfEmpty()
     {
         if (!_outsideClickActive) return;
         if (_openedMenus.Count > 0) return;
         if (_closingMenus.Count > 0) return;
-        _inputSystem?.Blur(_outsideClickController);
+        _mainInputSystem?.Blur(_outsideClickController);
         _outsideClickActive = false;
     }
 
-    // Called by OutsideClickController when a mouse-press lands while at least one
-    // menu is open. Returns true if the click hit the empty space outside every
-    // open menu and we dismissed them — caller consumes the event in that case so
-    // the dismissing click doesn't also activate the UI underneath. Clicks inside
-    // a menu return false so the per-item controllers handle the selection.
-    internal bool HandleOutsideClick(in PointF point)
+    internal void HandleOutsideClick(PointI screenPoint)
     {
         foreach (var opened in _openedMenus.Values)
         {
-            if (opened.ContextMenu.Position.ContainsPoint(point)) return false;
+            var window = (Window)opened.Popup.Window.WindowHandle;
+            Glfw.GetWindowPosition(window, out var x, out var y);
+            Glfw.GetWindowSize(window, out var w, out var h);
+            if (screenPoint.X >= x && screenPoint.X < x + w &&
+                screenPoint.Y >= y && screenPoint.Y < y + h)
+            {
+                return;
+            }
         }
         CloseAllImmediately();
-        return true;
     }
 
-    private sealed class OutsideClickController : KeyboardMouseController
+    internal IWindowCoordinates Coordinates => _coordinates;
+    internal IReadOnlyCollection<OpenedContextMenu> OpenedMenus => _openedMenus.Values;
+
+    private sealed class MainWindowOutsideClickController : KeyboardMouseController
     {
         private readonly ContextMenuManager _manager;
-        public OutsideClickController(ContextMenuManager manager) { _manager = manager; }
+        public MainWindowOutsideClickController(ContextMenuManager manager) { _manager = manager; }
 
         public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
         {
             if (e.State != InputState.Pressed) return;
-            if (_manager.HandleOutsideClick(e.Mouse.Point))
-                e.Consume();
+            // Fallback path: when the OS-level capture mechanism is unavailable
+            // (e.g. NoopPopupDecorator), the main window's own input system is
+            // the only source of outside-click detection. Don't consume — let
+            // the press propagate so a right-click on a different repo row can
+            // both close the old menu and open a new one in a single click.
+            // On Windows, the platform decorator's subclass intercepts the
+            // captured click and re-posts it to the underlying window, so this
+            // controller sees the re-posted message after the menu has been
+            // logically closed (synchronous dict clear).
+            var screen = _manager.Coordinates.ToScreenPoints(e.Mouse.Point);
+            _manager.HandleOutsideClick(screen);
         }
     }
 }

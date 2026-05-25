@@ -147,7 +147,7 @@ public abstract class RenderedCanvasBase : ICanvas
     private readonly FontHandle _defaultFont;
     private readonly Dictionary<string, FontHandle> _fontsByFamily = new();
     private int _width, _height;
-    private readonly float _dpiScale;
+    private float _dpiScale;
 
     public int LastFrameUploadCount { get; protected set; }
 
@@ -177,6 +177,18 @@ public abstract class RenderedCanvasBase : ICanvas
         _width = width;
         _height = height;
         OnResize(width, height);
+    }
+
+    /// <summary>
+    /// Updates the DPI scale used for baking font glyph sizes into the atlas.
+    /// Call this when a popup canvas is reused on a different monitor whose
+    /// content scale differs from the one the canvas was created at — otherwise
+    /// glyphs render at the wrong device-pixel size on the new monitor.
+    /// </summary>
+    public void UpdateDpiScale(float dpiScale)
+    {
+        if (dpiScale <= 0f) return;
+        _dpiScale = dpiScale;
     }
 
     // ---------- ICanvas ----------
@@ -429,6 +441,17 @@ public abstract class RenderedCanvasBase : ICanvas
     public void RegisterFont(string family, FontHandle handle)
     {
         _fontsByFamily[family] = handle;
+    }
+
+    /// <summary>
+    /// Copies the source canvas's font-family registry onto this canvas. Popup
+    /// canvases need this so views using non-default font families (e.g. icons,
+    /// monospace) can resolve them when measuring/drawing text in a popup window.
+    /// </summary>
+    public void CopyFontsFrom(RenderedCanvasBase source)
+    {
+        foreach (var kv in source._fontsByFamily)
+            _fontsByFamily[kv.Key] = kv.Value;
     }
 
     private FontHandle ResolveFont(TextStyle style)

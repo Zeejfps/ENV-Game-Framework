@@ -5,25 +5,18 @@ using Monitor = GLFW.Monitor;
 
 namespace ZGF.Core;
 
-public sealed class OpenGlApp : IWindowApp
+public sealed class OpenGlApp : IApp
 {
-    private readonly Window _window;
-    private readonly SizeCallback _windowSizeCallback;
-    private readonly SizeCallback _framebufferSizeCallback;
-
-    private int _width;
-    private int _height;
-    private float _dpiScale = 1f;
+    private readonly OpenGlWindow _mainWindow;
+    private readonly List<IWindow> _windows = new();
     private bool _isDisposed;
 
     public OpenGlApp(StartupConfig startupConfig)
     {
         Glfw.Init();
 
+        Glfw.DefaultWindowHints();
         Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
-        // 4.1 is the highest GL version Apple ships, and macOS only honors a Core
-        // context if OpenglForwardCompatible is true. Targeting 4.1+forward-compat
-        // on every platform keeps a single code path that works on macOS too.
         Glfw.WindowHint(Hint.ContextVersionMajor, 4);
         Glfw.WindowHint(Hint.ContextVersionMinor, 1);
         Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
@@ -33,95 +26,110 @@ public sealed class OpenGlApp : IWindowApp
         if (startupConfig.IsUndecorated)
             Glfw.WindowHint(Hint.Decorated, false);
 
-        _width = startupConfig.WindowWidth;
-        _height = startupConfig.WindowHeight;
-        _window = Glfw.CreateWindow(_width, _height, startupConfig.WindowTitle, Monitor.None, Window.None);
+        var window = Glfw.CreateWindow(
+            startupConfig.WindowWidth, startupConfig.WindowHeight,
+            startupConfig.WindowTitle, Monitor.None, Window.None);
 
-        Glfw.MakeContextCurrent(_window);
+        Glfw.MakeContextCurrent(window);
         Glfw.SwapInterval(1);
-
         Import(Glfw.GetProcAddress);
         AssertNoGlError();
 
-        _dpiScale = ComputeDpiScale(_window);
-
-        _windowSizeCallback = HandleWindowSizeChanged;
-        _framebufferSizeCallback = HandleFramebufferSizeChanged;
-        Glfw.SetWindowSizeCallback(_window, _windowSizeCallback);
-        Glfw.SetFramebufferSizeCallback(_window, _framebufferSizeCallback);
+        _mainWindow = new OpenGlWindow(window, isMain: true);
+        _windows.Add(_mainWindow);
     }
 
-    ~OpenGlApp()
+    public IWindow MainWindow => _mainWindow;
+    public IReadOnlyList<IWindow> Windows => _windows;
+    public Window MainGlfwWindow => _mainWindow.GlfwWindow;
+
+    public event Action? OnTick;
+
+    public void MakeMainContextCurrent()
     {
-        Dispose(false);
+        Glfw.MakeContextCurrent(_mainWindow.GlfwWindow);
     }
 
-    public IntPtr WindowHandle => _window;
-    public Window GlfwWindow => _window;
-    public int Width => _width;
-    public int Height => _height;
-    public float DpiScale => _dpiScale;
+    public IWindow CreatePopupWindow(in PopupWindowOptions options)
+    {
+        Glfw.DefaultWindowHints();
+        Glfw.WindowHint(Hint.Visible, false);
+        Glfw.WindowHint(Hint.Decorated, false);
+        Glfw.WindowHint(Hint.Floating, true);
+        Glfw.WindowHint(Hint.FocusOnShow, false);
+        Glfw.WindowHint(Hint.Resizable, false);
+        Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
+        Glfw.WindowHint(Hint.ContextVersionMajor, 4);
+        Glfw.WindowHint(Hint.ContextVersionMinor, 1);
+        Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
+        Glfw.WindowHint(Hint.OpenglForwardCompatible, true);
 
-    public event Action? OnUpdate;
-    public event Action<int, int>? OnResize;
-    public event Action<int, int>? OnFramebufferResize;
+        var glfw = Glfw.CreateWindow(
+            options.WidthPoints, options.HeightPoints,
+            "", Monitor.None, _mainWindow.GlfwWindow);
 
-    public void SwapBuffers() => Glfw.SwapBuffers(_window);
+        Glfw.DefaultWindowHints();
+
+        Glfw.MakeContextCurrent(glfw);
+        // Popups must not gate vsync — each SwapBuffers on each popup context
+        // serializes one vblank wait, so with vsync on N popups the loop
+        // becomes refresh / (1 + N). Only the main window paces vsync.
+        Glfw.SwapInterval(0);
+
+        var popup = new OpenGlWindow(glfw, isMain: false);
+        _windows.Add(popup);
+        popup.OnClosed += () => _windows.Remove(popup);
+        return popup;
+    }
 
     public void Run()
     {
         var videoMode = Glfw.GetVideoMode(Glfw.PrimaryMonitor);
-        var resolutionX = videoMode.Width;
-        var resolutionY = videoMode.Height;
+        Glfw.GetWindowSize(_mainWindow.GlfwWindow, out var ww, out var wh);
+        var px = (int)((videoMode.Width - ww) * 0.5f);
+        var py = (int)((videoMode.Height - wh) * 0.5f);
+        Glfw.SetWindowPosition(_mainWindow.GlfwWindow, px, py);
+        _mainWindow.Show();
 
-        Glfw.GetWindowSize(_window, out var windowWidth, out var windowHeight);
-        var windowPosX = (int)((resolutionX - windowWidth) * 0.5f);
-        var windowPosY = (int)((resolutionY - windowHeight) * 0.5f);
-        Glfw.SetWindowPosition(_window, windowPosX, windowPosY);
-        Glfw.ShowWindow(_window);
-
-        while (!Glfw.WindowShouldClose(_window))
+        while (!Glfw.WindowShouldClose(_mainWindow.GlfwWindow))
         {
             Glfw.PollEvents();
-            OnUpdate?.Invoke();
-            Glfw.SwapBuffers(_window);
+            OnTick?.Invoke();
+
+            _mainWindow.NeedsRedraw = true;
+            for (var i = 0; i < _windows.Count; i++)
+            {
+                var w = _windows[i];
+                if (!w.IsVisible) continue;
+                if (!w.NeedsRedraw) continue;
+                w.MakeContextCurrent();
+                w.RenderNow();
+                w.NeedsRedraw = false;
+            }
+
+            // Popups asked to close (e.g., WM_CLOSE) get their flag reset; factory handles release.
+            for (var i = _windows.Count - 1; i >= 0; i--)
+            {
+                if (_windows[i] is OpenGlWindow ogw && !ogw.IsMain && Glfw.WindowShouldClose(ogw.GlfwWindow))
+                {
+                    Glfw.SetWindowShouldClose(ogw.GlfwWindow, false);
+                }
+            }
         }
         Dispose();
         Glfw.Terminate();
     }
 
-    private void HandleWindowSizeChanged(Window window, int width, int height)
-    {
-        _width = width;
-        _height = height;
-        OnResize?.Invoke(width, height);
-    }
-
-    private void HandleFramebufferSizeChanged(Window window, int width, int height)
-    {
-        _dpiScale = ComputeDpiScale(_window);
-        OnFramebufferResize?.Invoke(width, height);
-    }
-
-    private static float ComputeDpiScale(Window window)
-    {
-        Glfw.GetFramebufferSize(window, out var fbW, out var fbH);
-        Glfw.GetWindowSize(window, out var winW, out var winH);
-        if (winW > 0 && winH > 0)
-            return MathF.Max((float)fbW / winW, (float)fbH / winH);
-        return 1f;
-    }
-
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    private void Dispose(bool disposing)
-    {
-        if (_isDisposed)
-            return;
+        if (_isDisposed) return;
         _isDisposed = true;
+        // Dispose popups first, then main.
+        for (var i = _windows.Count - 1; i >= 0; i--)
+        {
+            if (_windows[i] != _mainWindow) _windows[i].Dispose();
+        }
+        _mainWindow.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

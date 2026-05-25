@@ -1,4 +1,4 @@
-﻿using ZGF.Geometry;
+using ZGF.Geometry;
 using ZGF.Gui.Layouts;
 
 namespace ZGF.Gui.Tests;
@@ -10,19 +10,12 @@ public sealed class ContextMenu : MultiChildView
     private readonly ColumnView _itemsContainer;
     private readonly RectView _background;
 
-    private PointF _anchorPoint;
-    public PointF AnchorPoint
-    {
-        get => _anchorPoint;
-        set => SetField(ref _anchorPoint, value);
-    }
-
     public StyleValue<uint> BackgroundColor
     {
         get => _background.BackgroundColor;
         set => _background.BackgroundColor = value;
     }
-    
+
     public StyleValue<PaddingStyle> Padding
     {
         get => _background.Padding;
@@ -40,25 +33,16 @@ public sealed class ContextMenu : MultiChildView
         get => _background.BorderColor;
         set => _background.BorderColor = value;
     }
-    
+
     public ContextMenu()
     {
-        _itemsContainer = new ColumnView
-        {
-            Gap = 4
-        };
-        ZIndex = 1;
-        
+        _itemsContainer = new ColumnView { Gap = 4 };
+
         _background = new RectView
         {
             BackgroundColor = 0xFFDEDEDE,
             Padding = PaddingStyle.All(4),
-            BorderSize = new BorderSizeStyle
-            {
-                Left = 1,
-                Right = 1,
-                Bottom = 1
-            },
+            BorderSize = new BorderSizeStyle { Left = 1, Right = 1, Bottom = 1 },
             BoxShadow = new BoxShadowStyle
             {
                 OffsetX = 0f,
@@ -67,16 +51,10 @@ public sealed class ContextMenu : MultiChildView
                 Spread = 0f,
                 Color = 0x60000000,
             },
-            Children =
-            {
-                _itemsContainer
-            },
-            StyleClasses =
-            {
-                "raised_panel"
-            }
+            Children = { _itemsContainer },
+            StyleClasses = { "raised_panel" }
         };
-        
+
         AddChildToSelf(_background);
     }
 
@@ -84,14 +62,6 @@ public sealed class ContextMenu : MultiChildView
     {
         var width = MeasureWidth();
         var height = MeasureHeight(width);
-        var bottom = _anchorPoint.Y - height;
-
-        Position = new RectF
-        {
-            Left = _anchorPoint.X,
-            Bottom = bottom,
-            Width = width,
-            Height = height,
-        };
+        Position = new RectF { Left = 0, Bottom = 0, Width = width, Height = height };
     }
 }

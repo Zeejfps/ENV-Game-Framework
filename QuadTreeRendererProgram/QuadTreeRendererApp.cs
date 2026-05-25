@@ -9,6 +9,7 @@ namespace SoftwareRendererOpenGlBackend;
 public sealed class QuadTreeRendererApp : IDisposable
 {
     private readonly OpenGlApp _windowApp;
+    private readonly OpenGlWindow _mainWindow;
     private readonly QuadTreeRenderer _renderer;
     private readonly QuadTreePointF<Item> _quadTree;
 
@@ -19,6 +20,7 @@ public sealed class QuadTreeRendererApp : IDisposable
     public QuadTreeRendererApp(StartupConfig startupConfig)
     {
         _windowApp = new OpenGlApp(startupConfig);
+        _mainWindow = (OpenGlWindow)_windowApp.MainWindow;
 
         var framebufferWidth = startupConfig.WindowWidth / 2;
         var framebufferHeight = startupConfig.WindowHeight / 2;
@@ -30,22 +32,19 @@ public sealed class QuadTreeRendererApp : IDisposable
             Height = framebufferHeight
         }, 20, maxDepth: 6);
 
-        _renderer = new QuadTreeRenderer(
-            framebufferWidth,
-            framebufferHeight,
-            _quadTree
-        );
+        _renderer = new QuadTreeRenderer(framebufferWidth, framebufferHeight, _quadTree);
 
         _mouseButtonCallback = HandleMouseButtonEvent;
         _cursorPositonCallback = HandleMouseMoveEvent;
         _keyCallback = HandleKeyEvent;
 
-        Glfw.SetMouseButtonCallback(_windowApp.GlfwWindow, _mouseButtonCallback);
-        Glfw.SetCursorPositionCallback(_windowApp.GlfwWindow, _cursorPositonCallback);
-        Glfw.SetKeyCallback(_windowApp.GlfwWindow, _keyCallback);
+        Glfw.SetMouseButtonCallback(_mainWindow.GlfwWindow, _mouseButtonCallback);
+        Glfw.SetCursorPositionCallback(_mainWindow.GlfwWindow, _cursorPositonCallback);
+        Glfw.SetKeyCallback(_mainWindow.GlfwWindow, _keyCallback);
 
-        _windowApp.OnUpdate += HandleUpdate;
-        _windowApp.OnFramebufferResize += HandleFramebufferResize;
+        _windowApp.OnTick += HandleTick;
+        _mainWindow.OnFramebufferResize += HandleFramebufferResize;
+        _mainWindow.RenderFrame = Render;
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     }
@@ -54,19 +53,16 @@ public sealed class QuadTreeRendererApp : IDisposable
 
     public void Dispose()
     {
-        _windowApp.OnUpdate -= HandleUpdate;
-        _windowApp.OnFramebufferResize -= HandleFramebufferResize;
+        _windowApp.OnTick -= HandleTick;
+        _mainWindow.OnFramebufferResize -= HandleFramebufferResize;
         _renderer.Dispose();
         _windowApp.Dispose();
     }
 
     private void HandleKeyEvent(Window window, Keys key, int scanCode, InputState state, ModifierKeys mods)
     {
-        if (key != Keys.Space)
-            return;
-
-        if (state != InputState.Press)
-            return;
+        if (key != Keys.Space) return;
+        if (state != InputState.Press) return;
 
         for (var i = 0; i < 100000; i++)
         {
@@ -78,14 +74,7 @@ public sealed class QuadTreeRendererApp : IDisposable
 
     private void AddItemAt(float x, float y)
     {
-        var item = new Item
-        {
-            Position = new PointF
-            {
-                X = x,
-                Y = y
-            }
-        };
+        var item = new Item { Position = new PointF { X = x, Y = y } };
         _quadTree.Insert(item, item.Position);
     }
 
@@ -102,18 +91,13 @@ public sealed class QuadTreeRendererApp : IDisposable
     private void HandleFramebufferResize(int width, int height)
     {
         glViewport(0, 0, width, height);
-        Render();
-        _windowApp.SwapBuffers();
+        _mainWindow.RenderNow();
     }
 
     private void HandleMouseButtonEvent(Window window, MouseButton button, InputState state, ModifierKeys modifiers)
     {
-        if (button != MouseButton.Left)
-            return;
-
-        if (state != InputState.Press)
-            return;
-
+        if (button != MouseButton.Left) return;
+        if (state != InputState.Press) return;
         Glfw.GetCursorPosition(window, out var windowX, out var windowY);
         WindowToWorldPoint(window, windowX, windowY, out var worldX, out var worldY);
         AddItemAt(worldX, worldY);
@@ -131,8 +115,5 @@ public sealed class QuadTreeRendererApp : IDisposable
         _renderer.Render();
     }
 
-    private void HandleUpdate()
-    {
-        Render();
-    }
+    private void HandleTick() { /* renderer-driven; OpenGlApp.Run will request redraw + RenderNow */ }
 }

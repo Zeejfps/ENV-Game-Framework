@@ -6,6 +6,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
     protected Context Context { get; }
     private readonly ContextMenuManager _contextMenuManager;
     private readonly InputSystem _inputSystem;
+    private readonly IWindowCoordinates? _coordinates;
 
     private ContextMenu? _contextMenu;
     private IOpenedContextMenu? _openedContextMenu;
@@ -17,6 +18,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
         Context = context;
         _contextMenuManager = context.Get<ContextMenuManager>()!;
         _inputSystem = context.Get<InputSystem>()!;
+        _coordinates = context.Get<IWindowCoordinates>();
     }
 
     public void Dispose()
@@ -37,13 +39,13 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
             return;
         }
 
-        _contextMenu = new ContextMenu
-        {
-            AnchorPoint = MenuItem.Position.BottomLeft
-        };
+        _contextMenu = new ContextMenu();
         BuildMenu(_contextMenu);
 
-        _openedContextMenu = _contextMenuManager.ShowContextMenu(_contextMenu);
+        var screen = _coordinates != null
+            ? _coordinates.ToScreenPoints(MenuItem.Position.BottomLeft)
+            : default;
+        _openedContextMenu = _contextMenuManager.ShowContextMenu(_contextMenu, screen);
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed += OnOpenedContextMenuClosed;
