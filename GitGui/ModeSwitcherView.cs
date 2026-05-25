@@ -51,10 +51,10 @@ public sealed class ModeSwitcherView : MultiChildView
 
         this.UseViewModel(
             ctx => new ModeSwitcherViewModel(ctx.Require<State<MainViewMode>>()),
-            (vm, subs) =>
+            vm =>
             {
-                history.Bind(vm.HistorySegment, subs);
-                localChanges.Bind(vm.LocalChangesSegment, subs);
+                history.Bind(vm.HistorySegment);
+                localChanges.Bind(vm.LocalChangesSegment);
             });
     }
 
@@ -92,11 +92,10 @@ public sealed class ModeSwitcherView : MultiChildView
                 OnHoverChanged));
         }
 
-        public void Bind(SegmentViewModel vm, SubscriptionGroup subs)
+        public void Bind(SegmentViewModel vm)
         {
             _onClick = vm.Click;
-            subs.Add(vm.IsActive.Subscribe(SetActive));
-            subs.Add(() => _onClick = null);
+            vm.IsActive.Subscribe(SetActive);
         }
 
         private void SetActive(bool active)

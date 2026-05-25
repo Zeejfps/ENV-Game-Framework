@@ -5,7 +5,7 @@ namespace ZGF.Observable;
 /// — mutate from the UI thread only. If you need background-thread writers later, add
 /// a marshaling layer rather than making this thread-safe.
 /// </summary>
-public sealed class State<T> : IReadable<T>, IInvalidatable
+public sealed class State<T> : IReadable<T>, IInvalidatable, IDisposable
 {
     private T _value;
     private Action<T>? _changed;
@@ -58,7 +58,17 @@ public sealed class State<T> : IReadable<T>, IInvalidatable
     }
     
     public void Set(T value) => Value = value;
-    
+
+    /// <summary>
+    /// Clears all subscribers. After Dispose, the state stops notifying — subscribers
+    /// fall silent without needing to explicitly unsubscribe. Idempotent.
+    /// </summary>
+    public void Dispose()
+    {
+        _changed = null;
+        _invalidated = null;
+    }
+
     public static implicit operator State<T> (T value) => new(value);
     public static implicit operator T(State<T> value) => value.Value;
 

@@ -63,14 +63,17 @@ public sealed class Derived<T> : IReadable<T>, IInvalidatable, IDependencyCollec
     }
 
     /// <summary>
-    /// Unsubscribes from all tracked dependencies. After Dispose, the derived value is
-    /// frozen at its last computed value and will not recompute. Idempotent.
+    /// Unsubscribes from all tracked upstream dependencies and clears all downstream
+    /// subscribers. After Dispose, the derived value is frozen and no further notifications
+    /// fire — subscribers fall silent without needing to explicitly unsubscribe. Idempotent.
     /// </summary>
     public void Dispose()
     {
         foreach (var unsub in _depUnsubscribes) unsub();
         _depUnsubscribes.Clear();
         _dependencies.Clear();
+        _changed = null;
+        _invalidated = null;
     }
 
     private void Recompute()

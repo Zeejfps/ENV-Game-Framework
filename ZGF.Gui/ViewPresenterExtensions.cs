@@ -11,7 +11,7 @@ public static class ViewPresenterExtensions
     public static void UseViewModel<TVm>(
         this View view,
         Func<Context, TVm> factory,
-        Action<TVm, SubscriptionGroup> bind)
+        Action<TVm> bind)
         where TVm : IDisposable
     {
         view.Behaviors.Add(new ViewModelBehavior<TVm>(factory, bind));

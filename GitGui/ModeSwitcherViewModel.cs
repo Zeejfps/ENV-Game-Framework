@@ -18,7 +18,7 @@ internal sealed class SegmentViewModel : IDisposable
 
     internal void SetActive(bool active) => _isActive.Value = active;
 
-    public void Dispose() { }
+    public void Dispose() => _isActive.Dispose();
 }
 
 internal sealed class ModeSwitcherViewModel : IDisposable
