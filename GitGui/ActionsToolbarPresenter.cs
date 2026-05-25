@@ -1,3 +1,4 @@
+using ZGF.Gui;
 using ZGF.Observable;
 
 namespace GitGui;

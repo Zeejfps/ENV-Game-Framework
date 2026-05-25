@@ -4,11 +4,6 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-/// <summary>
-/// A two-segment pill control that drives the global <see cref="MainViewMode"/> state.
-/// Lives in <see cref="ActionsToolbar"/>; reads/writes <c>State&lt;MainViewMode&gt;</c>
-/// looked up from the Context on attach.
-/// </summary>
 public sealed class ModeSwitcherView : MultiChildView
 {
     private const float PillHeight = 28f;
@@ -24,8 +19,7 @@ public sealed class ModeSwitcherView : MultiChildView
     private readonly SegmentView _history;
     private readonly SegmentView _localChanges;
 
-    private State<MainViewMode>? _mode;
-    private IDisposable? _subscription;
+    private ModeSwitcherViewModel? _vm;
 
     public ModeSwitcherView()
     {
@@ -34,11 +28,11 @@ public sealed class ModeSwitcherView : MultiChildView
         const float innerRadius = SegmentCornerRadius - 1f;
         _history = new SegmentView(
             "History",
-            () => SetMode(MainViewMode.History),
+            () => _vm?.Activate(MainViewMode.History),
             new BorderRadiusStyle { TopRight = innerRadius, BottomRight = innerRadius });
         _localChanges = new SegmentView(
             "Changes",
-            () => SetMode(MainViewMode.LocalChanges),
+            () => _vm?.Activate(MainViewMode.LocalChanges),
             new BorderRadiusStyle { TopLeft = innerRadius, BottomLeft = innerRadius });
 
         var separator = new RectView
@@ -61,26 +55,14 @@ public sealed class ModeSwitcherView : MultiChildView
                 },
             },
         });
-    }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        _mode = context.Get<State<MainViewMode>>();
-        if (_mode != null)
-            _subscription = _mode.Subscribe(OnModeChanged);
-    }
-
-    protected override void OnDetachedFromContext(Context context)
-    {
-        _subscription?.Dispose();
-        _subscription = null;
-        _mode = null;
-    }
-
-    private void SetMode(MainViewMode mode)
-    {
-        if (_mode == null) return;
-        _mode.Value = mode;
+        this.UseViewModel(
+            ctx => new ModeSwitcherViewModel(ctx.Require<State<MainViewMode>>()),
+            (vm, subs) =>
+            {
+                _vm = vm;
+                subs.Add(vm.Mode.Subscribe(OnModeChanged));
+            });
     }
 
     private void OnModeChanged(MainViewMode mode)

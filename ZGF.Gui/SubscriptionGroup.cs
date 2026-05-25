@@ -1,11 +1,11 @@
-namespace GitGui;
+namespace ZGF.Gui;
 
 /// <summary>
 /// Collects IDisposable subscriptions added during a view's attach pass and disposes them
 /// all in detach. Replaces the boilerplate `_x?.Dispose(); _x = null;` sequence that view
 /// classes accumulate when they subscribe to several observables and bus messages.
 /// </summary>
-internal sealed class SubscriptionGroup : IDisposable
+public sealed class SubscriptionGroup : IDisposable
 {
     private readonly List<IDisposable> _subscriptions = new();
 
