@@ -1,7 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui;
 using ZGF.Gui.Tests;
-using ZGF.Observable;
 
 namespace GitGui;
 
@@ -100,18 +99,7 @@ public sealed class BranchesView : MultiChildView
     public BranchesView()
     {
         this.UseController(ctx => new BranchesViewController(this, ctx));
-
-        this.UsePresenter(ctx =>
-        {
-            var vm = new BranchesViewModel(
-                ctx.Require<IRepoRegistry>(),
-                ctx.Require<IGitService>(),
-                ctx.Require<IUiDispatcher>(),
-                ctx.Require<IMessageBus>(),
-                ctx.Require<State<MainViewMode>>());
-            Bind(vm);
-            return vm;
-        });
+        this.UseViewModel<BranchesViewModel>(Bind);
     }
 
     private void Bind(BranchesViewModel vm)
