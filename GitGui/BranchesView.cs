@@ -153,75 +153,116 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
     {
         if (rowIndex < 0 || rowIndex >= _rows.Count) return;
         if (_loadError != null) return;
+
         var row = _rows[rowIndex];
-        var rowBottom = rowRect.Bottom;
         var isSelected = _selection.HasValue && _selection.Value.Matches(row);
-
-        var bg = isSelected
-            ? CommitsPalette.RowHighlight
-            : ((state.IsHovered || state.IsContextHighlighted) ? DialogPalette.RowHover : (uint?)null);
-        if (bg != null)
-        {
-            c.DrawRect(new DrawRectInputs
-            {
-                Position = rowRect,
-                Style = new RectStyle { BackgroundColor = bg.Value },
-                ZIndex = z,
-            });
-        }
-
-        var contentLeft = rowRect.Left + BaseIndent + row.Indent;
+        var rowBottom = rowRect.Bottom;
         var rightEdge = rowRect.Right - 14f;
 
-        var hasChevron = row.Kind == BranchRowKind.LocalHeader
-            || row.Kind == BranchRowKind.RemotesHeader
-            || row.Kind == BranchRowKind.RemoteHeader
-            || row.Kind == BranchRowKind.StashesHeader
-            || row.Kind == BranchRowKind.Folder;
-        var isTreeRow = row.Kind == BranchRowKind.Folder
-            || row.Kind == BranchRowKind.LocalBranch
-            || row.Kind == BranchRowKind.RemoteBranch
-            || row.Kind == BranchRowKind.Stash;
+        DrawRowBackground(c, rowRect, isSelected, state, z);
 
-        if (hasChevron)
+        var contentLeft = rowRect.Left + BaseIndent + row.Indent;
+        contentLeft = DrawChevronOrReserveColumn(c, row, contentLeft, rowBottom, z + 1);
+
+        if (IsTreeRow(row) && Context != null)
+            contentLeft = DrawRowIcon(c, row, isSelected, contentLeft, rowBottom, z + 1);
+
+        DrawRowNameAndBadge(c, row, isSelected, contentLeft, rightEdge, rowBottom, z + 1);
+    }
+
+    private void DrawRowBackground(ICanvas c, RectF rowRect, bool isSelected, RowRenderState state, int z)
+    {
+        var bg = isSelected
+            ? CommitsPalette.RowHighlight
+            : state.IsHovered || state.IsContextHighlighted 
+                ? DialogPalette.RowHover
+                : (uint?)null;
+        
+        if (bg == null) return;
+
+        c.DrawRect(new DrawRectInputs
+        {
+            Position = rowRect,
+            Style = new RectStyle { BackgroundColor = bg.Value },
+            ZIndex = z,
+        });
+    }
+
+    private static bool HasChevron(BranchRow row) =>
+        row.Kind is BranchRowKind.LocalHeader
+            or BranchRowKind.RemotesHeader
+            or BranchRowKind.RemoteHeader
+            or BranchRowKind.StashesHeader
+            or BranchRowKind.Folder;
+
+    private static bool IsTreeRow(BranchRow row) =>
+        row.Kind is BranchRowKind.Folder
+            or BranchRowKind.LocalBranch
+            or BranchRowKind.RemoteBranch
+            or BranchRowKind.Stash;
+
+    private float DrawChevronOrReserveColumn(ICanvas c, BranchRow row, float contentLeft, float rowBottom, int z)
+    {
+        if (HasChevron(row))
         {
             c.DrawText(new DrawTextInputs
             {
                 Position = new RectF(contentLeft, rowBottom, ChevronWidth, RowHeight),
                 Text = row.IsOpen ? "▼" : "▶",
                 Style = _chevronStyle,
-                ZIndex = z + 1,
+                ZIndex = z,
             });
-            contentLeft += ChevronColumn;
-        }
-        else if (isTreeRow)
-        {
-            // Branch rows reserve the chevron column so their icons sit in the same x
-            // position as a sibling folder's icon.
-            contentLeft += ChevronColumn;
+            return contentLeft + ChevronColumn;
         }
 
-        if (isTreeRow && Context != null)
-            contentLeft = DrawRowIcon(c, row, isSelected, contentLeft, rowBottom, z + 1);
+        // Branch rows reserve the chevron column so their icons sit in the same x
+        // position as a sibling folder's icon.
+        if (IsTreeRow(row))
+            return contentLeft + ChevronColumn;
 
+        return contentLeft;
+    }
+
+    private void DrawRowNameAndBadge(ICanvas c, BranchRow row, bool isSelected, float contentLeft, float rightEdge, float rowBottom, int z)
+    {
         const float nameBadgeGap = 8f;
         var badgeWidth = (row.Kind == BranchRowKind.LocalBranch && Context != null)
             ? MeasureAheadBehindBadge(row)
             : 0f;
-
-        // Branches checked out in a sibling worktree get muted ("busy") text below — the
-        // visual style alone communicates "you can't take this here", no extra glyph.
-        var isCheckedOutElsewhere = row.Kind == BranchRowKind.LocalBranch
-            && row.FullPath != null
-            && _worktreeBranches.Contains(row.FullPath);
 
         var nameBudget = Math.Max(0f,
             rightEdge - contentLeft
             - (badgeWidth > 0 ? badgeWidth + nameBadgeGap : 0f));
         if (nameBudget <= 0f) return;
 
+        var (text, style) = SelectNameTextAndStyle(row, isSelected);
+        var rendered = TruncateToFit(text, style, nameBudget);
+
+        c.DrawText(new DrawTextInputs
+        {
+            Position = new RectF(contentLeft, rowBottom, nameBudget, RowHeight),
+            Text = rendered,
+            Style = style,
+            ZIndex = z,
+        });
+
+        if (badgeWidth > 0)
+        {
+            var nameWidth = Context!.Canvas.MeasureTextWidth(rendered, style);
+            DrawAheadBehindBadgeAt(c, row, contentLeft + nameWidth + nameBadgeGap, rowBottom, z);
+        }
+    }
+
+    private (string text, TextStyle style) SelectNameTextAndStyle(BranchRow row, bool isSelected)
+    {
+        // Branches checked out in a sibling worktree get muted ("busy") text — the
+        // visual style alone communicates "you can't take this here", no extra glyph.
+        var isCheckedOutElsewhere = row.Kind == BranchRowKind.LocalBranch
+            && row.FullPath != null
+            && _worktreeBranches.Contains(row.FullPath);
         var isBusy = IsBusyRow(row);
-        var (text, style) = row.Kind switch
+
+        return row.Kind switch
         {
             BranchRowKind.LocalHeader or BranchRowKind.RemotesHeader or BranchRowKind.RemoteHeader or BranchRowKind.StashesHeader => (row.DisplayName, _headerTextStyle),
             BranchRowKind.LocalBranch when isBusy => (row.DisplayName, _branchTextBusyStyle),
@@ -229,21 +270,6 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
             BranchRowKind.LocalBranch when row.IsHead => (row.DisplayName, _headTextStyle),
             _ => (row.DisplayName, isSelected ? _branchTextSelectedStyle : _branchTextStyle),
         };
-
-        var rendered = TruncateToFit(text, style, nameBudget);
-        c.DrawText(new DrawTextInputs
-        {
-            Position = new RectF(contentLeft, rowBottom, nameBudget, RowHeight),
-            Text = rendered,
-            Style = style,
-            ZIndex = z + 1,
-        });
-
-        if (badgeWidth > 0)
-        {
-            var nameWidth = Context!.Canvas.MeasureTextWidth(rendered, style);
-            DrawAheadBehindBadgeAt(c, row, contentLeft + nameWidth + nameBadgeGap, rowBottom, z + 1);
-        }
     }
 
     private float DrawRowIcon(ICanvas c, BranchRow row, bool isSelected, float left, float rowBottom, int z)
