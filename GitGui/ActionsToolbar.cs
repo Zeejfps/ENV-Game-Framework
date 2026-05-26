@@ -9,8 +9,6 @@ internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewM
     private const float ToolbarHeight = 44f;
     private const int HorizontalPadding = 8;
     private const float WithinClusterGap = 2f;
-    private const uint AheadBadgeColor = 0xFF9DD17B;
-    private const uint BehindBadgeColor = 0xFFE6A85C;
 
     private readonly ActionButton _pushButton;
     private readonly ActionButton _pullButton;
@@ -25,8 +23,8 @@ internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewM
     {
         PreferredHeight = ToolbarHeight;
 
-        _pushButton = new ActionButton(LucideIcons.Push, "Push", badgeColor: AheadBadgeColor);
-        _pullButton = new ActionButton(LucideIcons.Pull, "Pull", badgeColor: BehindBadgeColor);
+        _pushButton = new ActionButton(LucideIcons.Push, "Push", badgeColor: CommitsPalette.AheadColor);
+        _pullButton = new ActionButton(LucideIcons.Pull, "Pull", badgeColor: CommitsPalette.BehindColor);
         _fetchButton = new ActionButton(LucideIcons.Fetch, "Fetch");
         _branchButton = new ActionButton(LucideIcons.Branch, "Branch");
         _stashButton = new ActionButton(LucideIcons.Stash, "Stash");

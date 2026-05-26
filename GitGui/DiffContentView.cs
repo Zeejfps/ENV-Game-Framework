@@ -5,16 +5,17 @@ using ZGF.Gui.Tests;
 namespace GitGui;
 
 /// <summary>
-/// Virtualized diff body. Owns scroll state on both axes; draws only the rows that intersect
-/// the viewport in <see cref="OnDrawSelf"/>. Emits normalized scroll-position and scale
-/// updates so an external scrollbar sync controller can drive the scrollbars.
+/// Virtualized diff body. Vertical scroll, hit-test boilerplate, and visible-row culling
+/// live in a child <see cref="VirtualRowListView"/>; this view keeps horizontal scroll
+/// (the widget is vertical-only), font-metric resolution, and per-row drawing. Emits
+/// normalized scroll-position and scale updates on both axes so an external scrollbar
+/// sync controller can drive the scrollbars.
 /// </summary>
 internal sealed class DiffContentView : View, IScrollableContent
 {
     private const float GlyphColumnWidth = 18f;
     private const float BannerPaddingX = 8f;
     private const float HunkHeaderGap = 12f;
-    private const float ScrollWheelStep = 60f;
     private const float AssumedFontSize = 13f;
     // Fallback mono advance ratio if the canvas isn't available yet to measure a glyph.
     private const float FallbackMonoAdvanceRatio = 0.6f;
@@ -67,7 +68,8 @@ internal sealed class DiffContentView : View, IScrollableContent
     private float _monoAdvance;
     private bool _metricsResolved;
 
-    private float _scrollY;
+    private readonly VirtualRowListView _list;
+
     private float _scrollX;
     private float _lastNormalizedY;
     private float _lastNormalizedX;
@@ -76,7 +78,15 @@ internal sealed class DiffContentView : View, IScrollableContent
 
     public DiffContentView()
     {
-        this.UseController(_ => new DiffContentViewController(this));
+        _list = new VirtualRowListView
+        {
+            RowHeight = AssumedFontSize, // placeholder until canvas-derived metrics resolve
+            ItemBuilder = DrawDiffRowAt,
+        };
+        _list.ScrollChanged += () => NotifyScrollChanged(viewportFits: false);
+
+        AddChildToSelf(_list);
+        _list.UseController(_ => new VirtualRowListController(_list));
     }
 
     public void SetViewModel(DiffViewModel vm)
@@ -84,7 +94,6 @@ internal sealed class DiffContentView : View, IScrollableContent
         _viewModel = vm;
         _rows.Clear();
         _maxRowChars = 0;
-        _scrollY = 0;
         _scrollX = 0;
         // Metrics depend only on font, not content, but content width depends on metrics;
         // a fresh model forces a recompute on next draw.
@@ -93,6 +102,9 @@ internal sealed class DiffContentView : View, IScrollableContent
         if (vm is DiffViewModel.Loaded loaded)
             FlattenRows(loaded.Result);
 
+        _list.ItemCount = _rows.Count;
+        _list.SetScrollY(0f);
+        _list.NotifyItemsChanged();
         SetDirty();
     }
 
@@ -154,17 +166,11 @@ internal sealed class DiffContentView : View, IScrollableContent
         if (text.Length > _maxRowChars) _maxRowChars = text.Length;
     }
 
-    public void ScrollVerticalBy(float delta)
-    {
-        ApplyScrollDelta(delta, 0);
-    }
-
     public void SetVerticalNormalizedScrollPosition(float normalized)
     {
         var range = ContentHeight() - Position.Height;
-        if (range <= 0) { _scrollY = 0; }
-        else { _scrollY = Math.Clamp(normalized, 0f, 1f) * range; }
-        SetDirty();
+        if (range <= 0) { _list.SetScrollY(0f); }
+        else { _list.SetScrollY(Math.Clamp(normalized, 0f, 1f) * range); }
     }
 
     public void SetHorizontalNormalizedScrollPosition(float normalized)
@@ -173,17 +179,6 @@ internal sealed class DiffContentView : View, IScrollableContent
         if (range <= 0) { _scrollX = 0; }
         else { _scrollX = Math.Clamp(normalized, 0f, 1f) * range; }
         SetDirty();
-    }
-
-    private void ApplyScrollDelta(float dy, float dx)
-    {
-        var prevY = _scrollY;
-        var prevX = _scrollX;
-        _scrollY += dy;
-        _scrollX += dx;
-        ClampScroll();
-        if (Math.Abs(_scrollY - prevY) > 0.0001f || Math.Abs(_scrollX - prevX) > 0.0001f)
-            SetDirty();
     }
 
     private float ContentHeight()
@@ -210,10 +205,11 @@ internal sealed class DiffContentView : View, IScrollableContent
         return Math.Max(lineWidth, bannerWidth);
     }
 
-    private void ClampScroll()
+    private void ClampHorizontalScroll()
     {
-        _scrollY = ScrollMath.ClampScroll(_scrollY, ContentHeight(), Position.Height);
-        _scrollX = ScrollMath.ClampScroll(_scrollX, ContentWidth(), Position.Width);
+        var maxX = Math.Max(0f, ContentWidth() - Position.Width);
+        if (_scrollX < 0f) _scrollX = 0f;
+        else if (_scrollX > maxX) _scrollX = maxX;
     }
 
     private void EnsureMetrics(ICanvas c)
@@ -228,6 +224,13 @@ internal sealed class DiffContentView : View, IScrollableContent
         var digitsTotal = Math.Max(1, GutterDigitCount());
         _gutterWidth = digitsTotal * _monoAdvance + 8f;
         _metricsResolved = true;
+
+        // Resolved row height feeds the widget; it'll re-clamp its scroll on next draw.
+        if (Math.Abs(_list.RowHeight - _lineHeight) > 0.0001f)
+        {
+            _list.RowHeight = _lineHeight;
+            _list.NotifyItemsChanged();
+        }
     }
 
     private int GutterDigitCount()
@@ -277,38 +280,32 @@ internal sealed class DiffContentView : View, IScrollableContent
         }
 
         EnsureMetrics(c);
-        ClampScroll();
+        ClampHorizontalScroll();
         NotifyScrollChanged(viewportFits: false);
+    }
 
-        c.PushClip(pos);
+    private void DrawDiffRowAt(ICanvas c, RectF rowRect, int rowIndex, RowRenderState state, int z)
+    {
+        if (rowIndex < 0 || rowIndex >= _rows.Count) return;
 
+        // Apply horizontal scroll inside the widget's row rect. Vertical position comes
+        // from the widget; horizontal position is our concern.
+        var rowLeft = rowRect.Left - _scrollX;
+        var rowBottom = rowRect.Bottom;
         var rowWidth = ContentWidth();
-        var rowLeft = pos.Left - _scrollX;
 
-        // One row of slack on each side absorbs partial-row overlap at the viewport edges.
-        var firstVisible = Math.Max(0, (int)(_scrollY / _lineHeight) - 1);
-        var lastVisible = Math.Min(_rows.Count - 1,
-            (int)((_scrollY + pos.Height) / _lineHeight) + 1);
-
-        for (var i = firstVisible; i <= lastVisible; i++)
+        switch (_rows[rowIndex])
         {
-            var rowTop = pos.Top + _scrollY - i * _lineHeight;
-            var rowBottom = rowTop - _lineHeight;
-            switch (_rows[i])
-            {
-                case DiffRow.Banner b:
-                    DrawBannerRow(c, b, rowLeft, rowBottom, rowWidth, z + 1);
-                    break;
-                case DiffRow.HunkSeparator s:
-                    DrawHunkSeparatorRow(c, s, rowLeft, rowBottom, rowWidth, z + 1);
-                    break;
-                case DiffRow.Line l:
-                    DrawLineRow(c, l, rowLeft, rowBottom, rowWidth, z + 1);
-                    break;
-            }
+            case DiffRow.Banner b:
+                DrawBannerRow(c, b, rowLeft, rowBottom, rowWidth, z);
+                break;
+            case DiffRow.HunkSeparator s:
+                DrawHunkSeparatorRow(c, s, rowLeft, rowBottom, rowWidth, z);
+                break;
+            case DiffRow.Line l:
+                DrawLineRow(c, l, rowLeft, rowBottom, rowWidth, z);
+                break;
         }
-
-        c.PopClip();
     }
 
     private void DrawBannerRow(ICanvas c, DiffRow.Banner b, float left, float bottom, float width, int z)
@@ -443,7 +440,7 @@ internal sealed class DiffContentView : View, IScrollableContent
             {
                 vScale = vph / contentH;
                 var range = contentH - vph;
-                normalizedY = Math.Clamp(_scrollY / range, 0f, 1f);
+                normalizedY = Math.Clamp(_list.ScrollY / range, 0f, 1f);
             }
 
             if (contentW <= vpw || vpw <= 0)
@@ -481,11 +478,6 @@ internal sealed class DiffContentView : View, IScrollableContent
     }
 
     private static RectStyle SolidBgStyle(uint color) => new() { BackgroundColor = color };
-
-    internal void OnWheel(float deltaY)
-    {
-        ApplyScrollDelta(-deltaY * ScrollWheelStep, 0);
-    }
 
     private static int DigitCount(int n)
     {

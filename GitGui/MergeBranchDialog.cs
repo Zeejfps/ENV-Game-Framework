@@ -162,15 +162,15 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
             {
                 case MergePreviewState.Clean:
                     _previewIcon.Text = LucideIcons.CheckSquare;
-                    _previewIcon.TextColor = 0xFF9DD17B;
+                    _previewIcon.TextColor = CommitsPalette.PreviewCleanColor;
                     _previewText.Text = "Merge can be done without conflicts";
-                    _previewText.TextColor = 0xFF9DD17B;
+                    _previewText.TextColor = CommitsPalette.PreviewCleanColor;
                     break;
                 case MergePreviewState.Conflicts:
                     _previewIcon.Text = LucideIcons.CloudOff;
-                    _previewIcon.TextColor = 0xFFE6A85C;
+                    _previewIcon.TextColor = CommitsPalette.PreviewConflictColor;
                     _previewText.Text = "Merge will produce conflicts";
-                    _previewText.TextColor = 0xFFE6A85C;
+                    _previewText.TextColor = CommitsPalette.PreviewConflictColor;
                     break;
                 default:
                     _previewIcon.Text = string.Empty;

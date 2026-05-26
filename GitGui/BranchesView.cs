@@ -27,9 +27,6 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
     private const float ChevronColumn = ChevronWidth + ChevronGap;
     private const float IconGap = 4f;
 
-    private const uint AheadColor = 0xFF9DD17B;
-    private const uint BehindColor = 0xFFE6A85C;
-
     private readonly TextStyle _branchTextStyle = TextStyles.Row(CommitsPalette.RowText);
     private readonly TextStyle _branchTextSelectedStyle = TextStyles.Row(CommitsPalette.RowTextActive);
     private readonly TextStyle _branchTextBusyStyle = TextStyles.Row(DialogPalette.RowTextMissing);
@@ -50,12 +47,12 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
         HorizontalAlignment = TextAlignment.Center,
     };
     private readonly TextStyle _placeholderStyle = TextStyles.Centered(CommitsPalette.Placeholder);
-    private readonly TextStyle _aheadNumStyle = TextStyles.Row(AheadColor);
-    private readonly TextStyle _behindNumStyle = TextStyles.Row(BehindColor);
-    private readonly TextStyle _aheadIconStyle = TextStyles.Icon(AheadColor);
-    private readonly TextStyle _behindIconStyle = TextStyles.Icon(BehindColor);
-    private readonly TextStyle _upstreamLinkedIconStyle = TextStyles.Icon(AheadColor);
-    private readonly TextStyle _upstreamGoneIconStyle = TextStyles.Icon(BehindColor);
+    private readonly TextStyle _aheadNumStyle = TextStyles.Row(CommitsPalette.AheadColor);
+    private readonly TextStyle _behindNumStyle = TextStyles.Row(CommitsPalette.BehindColor);
+    private readonly TextStyle _aheadIconStyle = TextStyles.Icon(CommitsPalette.AheadColor);
+    private readonly TextStyle _behindIconStyle = TextStyles.Icon(CommitsPalette.BehindColor);
+    private readonly TextStyle _upstreamLinkedIconStyle = TextStyles.Icon(CommitsPalette.AheadColor);
+    private readonly TextStyle _upstreamGoneIconStyle = TextStyles.Icon(CommitsPalette.BehindColor);
     private readonly TextStyle _folderIconStyle = TextStyles.Icon(DialogPalette.SectionHeaderText);
     private readonly TextStyle _branchIconStyle = TextStyles.Icon(CommitsPalette.RowText);
     private readonly TextStyle _branchIconActiveStyle = TextStyles.Icon(CommitsPalette.RowTextActive);

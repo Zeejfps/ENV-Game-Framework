@@ -34,6 +34,12 @@ internal static class CommitsPalette
     public const uint BadgeHeadBg = 0xFF6B4A2F;
     public const uint BadgeText = 0xFFE6E6E6;
 
+    public const uint AheadColor = 0xFF9DD17B;
+    public const uint BehindColor = 0xFFE6A85C;
+
+    public const uint PreviewCleanColor = AheadColor;
+    public const uint PreviewConflictColor = BehindColor;
+
     public static readonly uint[] LanePalette =
     {
         0xFF5865F2,
