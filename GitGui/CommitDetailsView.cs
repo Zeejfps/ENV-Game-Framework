@@ -6,37 +6,6 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-internal static class CommitDetailsPalette
-{
-    public const uint Background = Theme.BgDeep;
-    public const uint Border = Theme.Border;
-    public const uint Primary = Theme.TextPrimary;
-    public const uint Secondary = Theme.TextRow;
-    public const uint Muted = Theme.TextDim;
-    public const uint Placeholder = Theme.TextHeader;
-
-    private static readonly uint[] AvatarPalette =
-    {
-        0xFF5865F2,
-        0xFFEB459E,
-        0xFF57F287,
-        0xFFFEE75C,
-        0xFFED4245,
-        0xFF9B59B6,
-        0xFFE67E22,
-        0xFF1ABC9C,
-    };
-
-    public static uint AvatarColor(string seed)
-    {
-        if (string.IsNullOrEmpty(seed)) return AvatarPalette[0];
-        var h = 0;
-        foreach (var ch in seed) h = unchecked(h * 31 + char.ToLowerInvariant(ch));
-        var idx = ((h % AvatarPalette.Length) + AvatarPalette.Length) % AvatarPalette.Length;
-        return AvatarPalette[idx];
-    }
-}
-
 public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewModel>
 {
     private const int Padding = 14;
@@ -75,9 +44,15 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
         _diffView = new DiffView();
 
         var splitterHovered = new State<bool>(false);
+        var splitterHover = new State<uint>(ThemePresets.Dark.Commits.DividerHoverBg);
+        var splitterIdle = new State<uint>(ThemePresets.Dark.Commits.Border);
         var splitter = new RectView();
-        splitter.BindBackgroundColor(splitterHovered,
-            h => h ? CommitsPalette.DividerHoverBg : CommitsPalette.Border);
+        splitter.BindToTheme(t =>
+        {
+            splitterHover.Value = t.Commits.DividerHoverBg;
+            splitterIdle.Value = t.Commits.Border;
+        });
+        splitter.BindBackgroundColor(() => splitterHovered.Value ? splitterHover.Value : splitterIdle.Value);
 
         _splitContainer = new VerticalSplitContainer(topHalf, _diffView, splitter, bottomFraction: 1f / 2f);
 
@@ -87,13 +62,14 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
             _splitContainer.AdjustBottomFractionByPixels,
             h => splitterHovered.Value = h));
 
-        AddChildToSelf(new RectView
+        var frame = new RectView
         {
-            BackgroundColor = CommitDetailsPalette.Background,
-            BorderColor = new BorderColorStyle { Left = CommitDetailsPalette.Border },
             BorderSize = new BorderSizeStyle { Left = 1 },
             Children = { _splitContainer },
-        });
+        };
+        frame.BindBackgroundColorFromTheme(t => t.CommitDetails.Background);
+        frame.BindBorderColorFromTheme(t => new BorderColorStyle { Left = t.CommitDetails.Border });
+        AddChildToSelf(frame);
 
         this.UseController(_ => new ScrollSyncController(_scrollPane, _vScrollBar, _hScrollBar));
 
@@ -136,12 +112,13 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
     private void ShowPlaceholder(string text)
     {
         _content.Children.Clear();
-        _content.Children.Add(new TextView
+        var placeholder = new TextView
         {
             Text = text,
-            TextColor = CommitDetailsPalette.Placeholder,
             HorizontalTextAlignment = TextAlignment.Center,
-        });
+        };
+        placeholder.BindTextColorFromTheme(t => t.CommitDetails.Placeholder);
+        _content.Children.Add(placeholder);
         _scrollPane.ScrollToOrigin();
     }
 
@@ -154,35 +131,31 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
 
         if (!string.IsNullOrEmpty(d.MessageShort))
         {
-            topColumn.Children.Add(new TextView
-            {
-                Text = d.MessageShort,
-                TextColor = CommitDetailsPalette.Primary,
-            });
+            var subject = new TextView { Text = d.MessageShort };
+            subject.BindTextColorFromTheme(t => t.CommitDetails.Primary);
+            topColumn.Children.Add(subject);
         }
 
         var body = ExtractBody(d.Message, d.MessageShort);
         if (!string.IsNullOrEmpty(body))
         {
-            topColumn.Children.Add(new TextView
-            {
-                Text = body,
-                TextColor = CommitDetailsPalette.Secondary,
-            });
+            var bodyView = new TextView { Text = body };
+            bodyView.BindTextColorFromTheme(t => t.CommitDetails.Secondary);
+            topColumn.Children.Add(bodyView);
         }
 
-        topColumn.Children.Add(new TextView
-        {
-            Text = $"Commit:  {d.Sha}",
-            TextColor = CommitDetailsPalette.Muted,
-        });
-        topColumn.Children.Add(new TextView
+        var shaLine = new TextView { Text = $"Commit:  {d.Sha}" };
+        shaLine.BindTextColorFromTheme(t => t.CommitDetails.Muted);
+        topColumn.Children.Add(shaLine);
+
+        var parentLine = new TextView
         {
             Text = d.ParentShas.Count == 0
                 ? "Parents: (none)"
                 : "Parents: " + string.Join(", ", d.ParentShas.Select(ShortSha)),
-            TextColor = CommitDetailsPalette.Muted,
-        });
+        };
+        parentLine.BindTextColorFromTheme(t => t.CommitDetails.Muted);
+        topColumn.Children.Add(parentLine);
 
         _content.Children.Add(new PaddingView
         {
@@ -203,41 +176,33 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
     private static View BuildAuthorHeader(CommitDetails d)
     {
         var avatarSeed = !string.IsNullOrEmpty(d.AuthorEmail) ? d.AuthorEmail : d.AuthorName;
+        var initialsView = new TextView
+        {
+            Text = Initials(d.AuthorName, d.AuthorEmail),
+            TextColor = 0xFFFFFFFF,
+            FontSize = 16f,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
         var avatar = new RectView
         {
             PreferredWidth = AvatarSize,
             PreferredHeight = AvatarSize,
-            BackgroundColor = CommitDetailsPalette.AvatarColor(avatarSeed),
             BorderRadius = BorderRadiusStyle.All(AvatarSize * 0.5f),
-            Children =
-            {
-                new TextView
-                {
-                    Text = Initials(d.AuthorName, d.AuthorEmail),
-                    TextColor = 0xFFFFFFFF,
-                    FontSize = 16f,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    VerticalTextAlignment = TextAlignment.Center,
-                },
-            },
+            Children = { initialsView },
         };
+        avatar.BindBackgroundColorFromTheme(t => t.CommitDetails.AvatarColor(avatarSeed));
+
+        var nameView = new TextView { Text = FormatAuthor(d.AuthorName, d.AuthorEmail) };
+        nameView.BindTextColorFromTheme(t => t.CommitDetails.Primary);
+
+        var dateView = new TextView { Text = FormatFullDate(d.AuthorWhen) };
+        dateView.BindTextColorFromTheme(t => t.CommitDetails.Muted);
 
         var info = new ColumnView
         {
             Gap = 2,
-            Children =
-            {
-                new TextView
-                {
-                    Text = FormatAuthor(d.AuthorName, d.AuthorEmail),
-                    TextColor = CommitDetailsPalette.Primary,
-                        },
-                new TextView
-                {
-                    Text = FormatFullDate(d.AuthorWhen),
-                    TextColor = CommitDetailsPalette.Muted,
-                        },
-            },
+            Children = { nameView, dateView },
         };
 
         return new FlexRowView
@@ -312,4 +277,3 @@ internal sealed class ScrollPaneWheelController : KeyboardMouseController
         e.Consume();
     }
 }
-

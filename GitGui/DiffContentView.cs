@@ -60,6 +60,9 @@ internal sealed class DiffContentView : View, IScrollableContent
     public float VerticalScale { get; private set; } = 1f;
     public float HorizontalScale { get; private set; } = 1f;
 
+    // Cached snapshot of the current theme. Refreshed by RebuildVisuals on theme swap.
+    private ThemeTokens _tokens = ThemePresets.Dark;
+
     private DiffRenderState _renderState = new DiffRenderState.Placeholder("Select a file to view diff.");
     private readonly List<DiffRow> _rows = new();
     private int _maxRowChars;
@@ -93,6 +96,13 @@ internal sealed class DiffContentView : View, IScrollableContent
 
         AddChildToSelf(_list);
         _list.UseController(_ => new VirtualRowListController(_list));
+        this.BindToTheme(RebuildVisuals);
+    }
+
+    private void RebuildVisuals(ThemeTokens tokens)
+    {
+        _tokens = tokens;
+        SetDirty();
     }
 
     private void OnHorizontalWheel(float deltaX)
@@ -273,26 +283,26 @@ internal sealed class DiffContentView : View, IScrollableContent
         c.DrawRect(new DrawRectInputs
         {
             Position = pos,
-            Style = SolidBgStyle(CommitsPalette.Background),
+            Style = SolidBgStyle(_tokens.Commits.Background),
             ZIndex = z,
         });
 
         switch (_renderState)
         {
             case DiffRenderState.Placeholder p:
-                DrawPlaceholder(c, pos, p.Text, CommitsPalette.Placeholder, z + 1);
+                DrawPlaceholder(c, pos, p.Text, _tokens.Commits.Placeholder, z + 1);
                 NotifyScrollChanged(viewportFits: true);
                 return;
             case DiffRenderState.Loaded loaded when loaded.Result.ErrorMessage != null:
-                DrawPlaceholder(c, pos, loaded.Result.ErrorMessage, CommitsPalette.WarningText, z + 1);
+                DrawPlaceholder(c, pos, loaded.Result.ErrorMessage, _tokens.Commits.WarningText, z + 1);
                 NotifyScrollChanged(viewportFits: true);
                 return;
             case DiffRenderState.Loaded loaded when loaded.Result.IsBinary:
-                DrawPlaceholder(c, pos, "Binary file not shown", CommitsPalette.Placeholder, z + 1);
+                DrawPlaceholder(c, pos, "Binary file not shown", _tokens.Commits.Placeholder, z + 1);
                 NotifyScrollChanged(viewportFits: true);
                 return;
             case DiffRenderState.Loaded when _rows.Count == 0:
-                DrawPlaceholder(c, pos, "No textual changes", CommitsPalette.Placeholder, z + 1);
+                DrawPlaceholder(c, pos, "No textual changes", _tokens.Commits.Placeholder, z + 1);
                 NotifyScrollChanged(viewportFits: true);
                 return;
         }
@@ -331,11 +341,11 @@ internal sealed class DiffContentView : View, IScrollableContent
         c.DrawRect(new DrawRectInputs
         {
             Position = new RectF(left, bottom, width, _lineHeight),
-            Style = SolidBgStyle(DiffPalette.BannerBg),
+            Style = SolidBgStyle(_tokens.Diff.BannerBg),
             ZIndex = z,
         });
         DrawMonoText(c, b.Text, left + BannerPaddingX, bottom,
-            width - BannerPaddingX * 2, DiffPalette.BannerText, TextAlignment.Start, z + 1);
+            width - BannerPaddingX * 2, _tokens.Diff.BannerText, TextAlignment.Start, z + 1);
     }
 
     private void DrawHunkSeparatorRow(ICanvas c, DiffRow.HunkSeparator s, float left, float bottom, float width, int z)
@@ -343,14 +353,14 @@ internal sealed class DiffContentView : View, IScrollableContent
         c.DrawRect(new DrawRectInputs
         {
             Position = new RectF(left, bottom, width, _lineHeight),
-            Style = SolidBgStyle(DiffPalette.HunkSeparatorBg),
+            Style = SolidBgStyle(_tokens.Diff.HunkSeparatorBg),
             ZIndex = z,
         });
 
         var rangeWidth = s.Range.Length * _monoAdvance;
         var textX = left + BannerPaddingX;
         DrawMonoText(c, s.Range, textX, bottom, rangeWidth,
-            DiffPalette.HunkSeparatorRangeText, TextAlignment.Start, z + 1);
+            _tokens.Diff.HunkSeparatorRangeText, TextAlignment.Start, z + 1);
 
         if (s.Header != null)
         {
@@ -358,7 +368,7 @@ internal sealed class DiffContentView : View, IScrollableContent
             var headerWidth = Math.Max(0f, left + width - BannerPaddingX - headerX);
             if (headerWidth > 0)
                 DrawMonoText(c, s.Header, headerX, bottom, headerWidth,
-                    DiffPalette.HunkSeparatorContextText, TextAlignment.Start, z + 1);
+                    _tokens.Diff.HunkSeparatorContextText, TextAlignment.Start, z + 1);
         }
     }
 
@@ -366,15 +376,15 @@ internal sealed class DiffContentView : View, IScrollableContent
     {
         var (glyph, glyphColor) = l.Kind switch
         {
-            DiffLineKind.Added => ("+", DiffPalette.LineAddedGlyphText),
-            DiffLineKind.Removed => ("-", DiffPalette.LineRemovedGlyphText),
-            _ => (" ", DiffPalette.LineContextGlyphText),
+            DiffLineKind.Added => ("+", _tokens.Diff.LineAddedGlyphText),
+            DiffLineKind.Removed => ("-", _tokens.Diff.LineRemovedGlyphText),
+            _ => (" ", _tokens.Diff.LineContextGlyphText),
         };
         var bg = l.Kind switch
         {
-            DiffLineKind.Added => DiffPalette.LineAddedBg,
-            DiffLineKind.Removed => DiffPalette.LineRemovedBg,
-            _ => CommitsPalette.Background,
+            DiffLineKind.Added => _tokens.Diff.LineAddedBg,
+            DiffLineKind.Removed => _tokens.Diff.LineRemovedBg,
+            _ => _tokens.Commits.Background,
         };
 
         c.DrawRect(new DrawRectInputs
@@ -386,17 +396,17 @@ internal sealed class DiffContentView : View, IScrollableContent
 
         var x = left;
         DrawMonoText(c, l.OldNumber, x, bottom, _gutterWidth,
-            DiffPalette.LineNumberText, TextAlignment.End, z + 1);
+            _tokens.Diff.LineNumberText, TextAlignment.End, z + 1);
         x += _gutterWidth + 4f;
         DrawMonoText(c, l.NewNumber, x, bottom, _gutterWidth,
-            DiffPalette.LineNumberText, TextAlignment.End, z + 1);
+            _tokens.Diff.LineNumberText, TextAlignment.End, z + 1);
         x += _gutterWidth + 4f;
         DrawMonoText(c, glyph, x, bottom, GlyphColumnWidth, glyphColor, TextAlignment.Center, z + 1);
         x += GlyphColumnWidth + 4f;
 
         var textWidth = Math.Max(0f, left + width - x);
         DrawMonoText(c, l.Text, x, bottom, textWidth,
-            DiffPalette.LineText, TextAlignment.Start, z + 1);
+            _tokens.Diff.LineText, TextAlignment.Start, z + 1);
     }
 
     private void DrawMonoText(

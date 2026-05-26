@@ -53,11 +53,9 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
         };
         _isCollapsed.Subscribe(c => outerLayout.Center = c ? null : body);
 
-        AddChildToSelf(new RectView
-        {
-            BackgroundColor = CommitsPalette.Background,
-            Children = { outerLayout },
-        });
+        var frame = new RectView { Children = { outerLayout } };
+        frame.BindBackgroundColorFromTheme(t => t.Commits.Background);
+        AddChildToSelf(frame);
 
         this.UseController(_ => new ScrollSyncController(_content, vScrollBar, hScrollBar));
         this.UseViewModel(
@@ -84,9 +82,26 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
 
     private View BuildHeaderBar()
     {
-        const uint titleIdle = 0xFFB5B9C0;
-        const uint titleHover = 0xFFFFFFFFu;
         var hovered = new State<bool>(false);
+
+        // Theme-reactive color states updated by the BindToTheme behavior below. The hover
+        // bindings on the title / chevron / bar read from these via Derived, so a theme swap
+        // OR a hover state change refreshes the chrome.
+        var titleIdle = new State<uint>(ThemePresets.Dark.Text.Row);
+        var titleHover = new State<uint>(ThemePresets.Dark.Text.Strong);
+        var barIdleBg = new State<uint>(ThemePresets.Dark.FileChanges.HeaderBg);
+        var barHoverBg = new State<uint>(ThemePresets.Dark.Dialog.ButtonHover);
+        var topBorder = new State<uint>(ThemePresets.Dark.Commits.Border);
+        var bottomBorder = new State<uint>(ThemePresets.Dark.FileChanges.HeaderBorder);
+        this.BindToTheme(t =>
+        {
+            titleIdle.Value = t.Text.Row;
+            titleHover.Value = t.Text.Strong;
+            barIdleBg.Value = t.FileChanges.HeaderBg;
+            barHoverBg.Value = t.Dialog.ButtonHover;
+            topBorder.Value = t.Commits.Border;
+            bottomBorder.Value = t.FileChanges.HeaderBorder;
+        });
 
         var title = new TextView
         {
@@ -94,7 +109,7 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
             FontSize = 12f,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        title.BindTextColor(() => hovered.Value ? titleHover : titleIdle);
+        title.BindTextColor(() => hovered.Value ? titleHover.Value : titleIdle.Value);
 
         var chevron = new TextView
         {
@@ -105,16 +120,11 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
             PreferredWidth = 16f,
         };
         chevron.BindText(_isCollapsed, c => c ? LucideIcons.ChevronUp : LucideIcons.ChevronDown);
-        chevron.BindTextColor(() => hovered.Value ? titleHover : titleIdle);
+        chevron.BindTextColor(() => hovered.Value ? titleHover.Value : titleIdle.Value);
 
         var bar = new RectView
         {
             PreferredHeight = HeaderHeight,
-            BorderColor = new BorderColorStyle
-            {
-                Top = CommitsPalette.Border,
-                Bottom = 0xFF313338,  // FileChanges.HeaderBorder (legacy const, will migrate in Diff sweep)
-            },
             BorderSize = new BorderSizeStyle { Top = 1, Bottom = 1 },
             Padding = new PaddingStyle { Left = 8, Right = 6 },
             Children =
@@ -131,9 +141,12 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
                 },
             },
         };
-        bar.BindBackgroundColor(() => hovered.Value
-            ? DialogPalette.ButtonHover
-            : 0xFF222326u);  // FileChanges.HeaderBg (legacy const, will migrate in Diff sweep)
+        bar.BindBorderColor(() => new BorderColorStyle
+        {
+            Top = topBorder.Value,
+            Bottom = bottomBorder.Value,
+        });
+        bar.BindBackgroundColor(() => hovered.Value ? barHoverBg.Value : barIdleBg.Value);
 
         bar.UseController(_ => new HoverableButtonController(
             () => _isCollapsed.Value = !_isCollapsed.Value,
