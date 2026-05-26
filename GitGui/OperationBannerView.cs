@@ -6,12 +6,11 @@ namespace GitGui;
 /// <summary>
 /// Banner shown above the main content area while the repo is mid-operation
 /// (merge / rebase / cherry-pick / revert / bisect / am) or has unmerged paths from a
-/// stash-apply conflict. Self-managing: when state is None, the inner content is removed
-/// from this view's children, so the view collapses to zero height in its parent layout.
+/// stash-apply conflict. Self-managing: toggles <see cref="View.IsVisible"/> based on
+/// state, so the view is skipped by layout (no residual gap) when there's nothing to show.
 /// </summary>
 internal sealed class OperationBannerView : MultiChildView
 {
-    private readonly RectView _content;
     private readonly TextView _text;
     private readonly ActionButton _abortButton;
     private readonly ActionButton _continueButton;
@@ -25,6 +24,8 @@ internal sealed class OperationBannerView : MultiChildView
 
     public OperationBannerView()
     {
+        IsVisible = false;
+
         _text = new TextView
         {
             TextColor = CommitsPalette.WarningText,
@@ -64,7 +65,7 @@ internal sealed class OperationBannerView : MultiChildView
             Children = { _textItem, _abortButton },
         };
 
-        _content = new RectView
+        AddChildToSelf(new RectView
         {
             BackgroundColor = CommitsPalette.WarningBg,
             BorderColor = new BorderColorStyle { Bottom = CommitsPalette.WarningBorder },
@@ -77,7 +78,7 @@ internal sealed class OperationBannerView : MultiChildView
                 Bottom = 6,
             },
             Children = { _row },
-        };
+        });
 
         this.UseViewModel<OperationStateBannerViewModel>(vm =>
         {
@@ -95,11 +96,11 @@ internal sealed class OperationBannerView : MultiChildView
         {
             _isBusy = false;
             _spinnerIcon.Rotation = 0f;
-            if (Children.Contains(_content)) RemoveChildFromSelf(_content);
+            IsVisible = false;
             return;
         }
         Render();
-        if (!Children.Contains(_content)) AddChildToSelf(_content);
+        IsVisible = true;
     }
 
     private void SetIsBusy(bool busy)
