@@ -72,9 +72,9 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
     public IReadable<DiffTarget?> Target => _target;
     public IReadable<bool> IsCollapsed => _isCollapsed;
 
-    public void SetTarget(string? path, DiffSide side)
+    public void SetTarget(string? path, DiffSide side, string? commitSha = null)
     {
-        _target.Value = path == null ? null : new DiffTarget(path, side);
+        _target.Value = path == null ? null : new DiffTarget(path, side, commitSha);
     }
 
     public void Bind(DiffViewModel vm)

@@ -3,7 +3,7 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-public record DiffTarget(string Path, DiffSide Side);
+public record DiffTarget(string Path, DiffSide Side, string? CommitSha = null);
 
 public abstract record DiffRenderState
 {
@@ -68,12 +68,13 @@ public sealed class DiffViewModel : IDisposable
         var dispatcher = _dispatcher;
         var path = target.Path;
         var side = target.Side;
+        var commitSha = target.CommitSha;
         Task.Run(() =>
         {
             DiffRenderState result;
             try
             {
-                var diff = service.GetDiff(repo, path, side);
+                var diff = service.GetDiff(repo, path, side, commitSha);
                 result = new DiffRenderState.Loaded(diff);
             }
             catch (Exception ex)

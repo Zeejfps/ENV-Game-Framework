@@ -22,8 +22,13 @@ public sealed class CommitDetailsViewModel : IDisposable
     private readonly GenerationGuard _loadGen = new();
     private readonly State<CommitDetailsRenderState> _renderState =
         new(new CommitDetailsRenderState.Placeholder(DefaultPlaceholder));
+    private readonly State<string?> _selectedPath = new(null);
+    private readonly State<DiffTarget?> _selectedTarget = new(null);
+    private string? _currentSha;
 
     public IReadable<CommitDetailsRenderState> RenderState => _renderState;
+    public IReadable<string?> SelectedPath => _selectedPath;
+    public IReadable<DiffTarget?> SelectedTarget => _selectedTarget;
 
     public CommitDetailsViewModel(
         IGitService gitService,
@@ -43,6 +48,15 @@ public sealed class CommitDetailsViewModel : IDisposable
         _loadGen.Bump();
         _subscriptions.Dispose();
         _renderState.Dispose();
+        _selectedPath.Dispose();
+        _selectedTarget.Dispose();
+    }
+
+    public void SelectFile(string path)
+    {
+        if (string.IsNullOrEmpty(_currentSha)) return;
+        _selectedPath.Value = path;
+        _selectedTarget.Value = new DiffTarget(path, DiffSide.Commit, _currentSha);
     }
 
     private void OnCommitSelected(CommitSelectedMessage msg)
@@ -50,6 +64,9 @@ public sealed class CommitDetailsViewModel : IDisposable
         if (string.IsNullOrEmpty(msg.Sha))
         {
             _loadGen.Bump();
+            _currentSha = null;
+            _selectedPath.Value = null;
+            _selectedTarget.Value = null;
             _renderState.Value = new CommitDetailsRenderState.Placeholder(DefaultPlaceholder);
             return;
         }
@@ -62,6 +79,9 @@ public sealed class CommitDetailsViewModel : IDisposable
         if (repo == null || repo.Id != repoId) return;
 
         var gen = _loadGen.Bump();
+        _currentSha = sha;
+        _selectedPath.Value = null;
+        _selectedTarget.Value = null;
         _renderState.Value = new CommitDetailsRenderState.Placeholder(LoadingPlaceholder);
 
         var service = _gitService;

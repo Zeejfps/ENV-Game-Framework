@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -45,6 +46,10 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
     private readonly ScrollPane _scrollPane;
     private readonly VerticalScrollBarView _vScrollBar;
     private readonly HorizontalScrollBarView _hScrollBar;
+    private readonly DiffView _diffView;
+    private readonly VerticalSplitContainer _splitContainer;
+    private readonly State<string?> _selectedPath = new(null);
+    private CommitDetailsViewModel? _vm;
 
     public CommitDetailsView()
     {
@@ -62,20 +67,34 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
         _vScrollBar = ScrollBarStyles.CreateVertical();
         _hScrollBar = ScrollBarStyles.CreateHorizontal();
 
+        var topHalf = new BorderLayoutView
+        {
+            Center = _scrollPane,
+            East = _vScrollBar,
+            South = _hScrollBar,
+        };
+
+        _diffView = new DiffView();
+
+        var splitterHovered = new State<bool>(false);
+        var splitter = new RectView();
+        splitter.BindBackgroundColor(splitterHovered,
+            h => h ? CommitsPalette.DividerHoverBg : CommitsPalette.Border);
+
+        _splitContainer = new VerticalSplitContainer(topHalf, _diffView, splitter, bottomFraction: 1f / 2f);
+
+        splitter.UseController(ctx => new SplitterController(
+            ctx,
+            DragAxis.Y,
+            _splitContainer.AdjustBottomFractionByPixels,
+            h => splitterHovered.Value = h));
+
         AddChildToSelf(new RectView
         {
             BackgroundColor = CommitDetailsPalette.Background,
             BorderColor = new BorderColorStyle { Left = CommitDetailsPalette.Border },
             BorderSize = new BorderSizeStyle { Left = 1 },
-            Children =
-            {
-                new BorderLayoutView
-                {
-                    Center = _scrollPane,
-                    East = _vScrollBar,
-                    South = _hScrollBar,
-                },
-            },
+            Children = { _splitContainer },
         });
 
         this.UseController(_ => new ScrollSyncController(_scrollPane, _vScrollBar, _hScrollBar));
@@ -85,7 +104,22 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
 
     public void Bind(CommitDetailsViewModel vm)
     {
+        _vm = vm;
         vm.RenderState.Subscribe(SetRenderState);
+        vm.SelectedTarget.Subscribe(target =>
+        {
+            _diffView.SetTarget(target?.Path, target?.Side ?? DiffSide.Commit, target?.CommitSha);
+            ApplyDiffVisibility(target != null, _diffView.IsCollapsed.Value);
+        });
+        vm.SelectedPath.Subscribe(p => _selectedPath.Value = p);
+        _diffView.IsCollapsed.Subscribe(collapsed =>
+            ApplyDiffVisibility(vm.SelectedTarget.Value != null, collapsed));
+    }
+
+    private void ApplyDiffVisibility(bool hasTarget, bool collapsed)
+    {
+        _splitContainer.BottomVisible = hasTarget;
+        _splitContainer.SetBottomCollapsed(hasTarget && collapsed, DiffView.HeaderHeight);
     }
 
     private void SetRenderState(CommitDetailsRenderState state)
@@ -154,10 +188,12 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
             TextColor = CommitDetailsPalette.Muted,
         });
 
-        // Changed files
-        var section = new FileChangesSection("Changes");
-        section.SetFiles(d.Files);
-        _content.Children.Add(section);
+        var changesSection = new FileChangesSection(
+            "Changes",
+            selectedPath: _selectedPath,
+            onRowClicked: f => _vm?.SelectFile(f.Path));
+        changesSection.SetFiles(d.Files);
+        _content.Children.Add(changesSection);
 
         _scrollPane.ScrollToOrigin();
     }

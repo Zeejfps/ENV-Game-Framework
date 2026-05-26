@@ -1,6 +1,6 @@
 namespace GitGui;
 
-public enum DiffSide { Unstaged, Staged }
+public enum DiffSide { Unstaged, Staged, Commit }
 
 public enum DiffLineKind { Context, Added, Removed }
 

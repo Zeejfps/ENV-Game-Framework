@@ -2511,7 +2511,7 @@ public sealed class GitService : IGitService
     // hunk and per line), which the NativeAOT-generated marshalling stubs for GitDiffHunk
     // NRE on. Everything else in libgit2 we use is fine; only diff goes through this
     // callback path. Shell out to `git diff` for diffs to sidestep it entirely.
-    public DiffResult GetDiff(Repo repo, string path, DiffSide side)
+    public DiffResult GetDiff(Repo repo, string path, DiffSide side, string? commitSha = null)
     {
         try
         {
@@ -2522,7 +2522,17 @@ public sealed class GitService : IGitService
             string? patchText;
             string? error;
 
-            if (side == DiffSide.Staged)
+            if (side == DiffSide.Commit)
+            {
+                if (string.IsNullOrEmpty(commitSha))
+                    return DiffError(repo, path, side, "Commit SHA required for commit diff.");
+
+                // `git show` handles root commits and merges correctly; --format= suppresses
+                // the commit message header so the output is a plain patch parseable by ParseGitDiff.
+                patchText = RunGitDiff(repo.Path, out error,
+                    "show", "--no-color", "--format=", "-M", contextArg, commitSha, "--", path);
+            }
+            else if (side == DiffSide.Staged)
             {
                 patchText = RunGitDiff(repo.Path, out error,
                     "diff", "--cached", "--no-color", "-M", contextArg, "--", path);
