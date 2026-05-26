@@ -73,8 +73,13 @@ internal sealed class DiffContentView : View, IScrollableContent
     private float _scrollX;
     private float _lastNormalizedY;
     private float _lastNormalizedX;
-    private float _lastVerticalScale = 1f;
-    private float _lastHorizontalScale = 1f;
+    // Sentinel start so the very first NotifyScrollChanged fires the event even when the
+    // computed scale equals 1. The scrollbar thumb's built-in default is Scale=0.5 with
+    // PreferredHeight=12 — without an explicit "scale=1, hide" message it stays visible
+    // at half width until something else (a file that genuinely needs scroll) forces a
+    // change. -1f is impossible for a real scale.
+    private float _lastVerticalScale = -1f;
+    private float _lastHorizontalScale = -1f;
 
     public DiffContentView()
     {
