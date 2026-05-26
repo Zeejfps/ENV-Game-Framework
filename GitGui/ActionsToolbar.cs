@@ -7,23 +7,10 @@ public sealed class ActionsToolbar : MultiChildView
 {
     private const float ToolbarHeight = 44f;
     private const int HorizontalPadding = 8;
-
-    // Spacing rhythm: tight gap within a button cluster, generous breathing room around
-    // the vertical-line separators that mark zone boundaries. The contrast between the two
-    // is what creates the visual grouping — uniform gaps would make everything read as one
-    // long row regardless of how many separators we drew. Buttons inside a cluster sit
-    // almost touching; zones are walled off by ~20px (separator breathing room + line +
-    // breathing room + 2× cluster gap on the outside).
     private const float WithinClusterGap = 2f;
     private const float SeparatorBreathingRoom = 9f;
     private const float SeparatorWidth = 1f;
     private const float SeparatorHeight = 18f;
-
-    // Ahead/behind palette mirrors BranchesView so the at-a-glance vocabulary ("green = need
-    // to push", "amber = need to pull") is consistent between the sidebar branch rows and
-    // the toolbar buttons. Duplicated literals rather than a shared const because these
-    // belong to a shared *design* concept, not a shared module — co-locating them keeps
-    // each surface readable on its own.
     private const uint AheadBadgeColor = 0xFF9DD17B;
     private const uint BehindBadgeColor = 0xFFE6A85C;
 
@@ -55,9 +42,6 @@ public sealed class ActionsToolbar : MultiChildView
             tooltip: "Open in terminal");
 
         _errorBar = new ErrorBarView(verticalPadding: 2);
-        // Layout zones, left to right:
-        //   [ Mode ]  |  [ Fetch Pull Push ]  |  [ Stash Branch ]  …  [ Folder Terminal ]
-        //    status        remote sync             local ops              tools
         var contentRow = new FlexRowView
         {
             Gap = WithinClusterGap,
