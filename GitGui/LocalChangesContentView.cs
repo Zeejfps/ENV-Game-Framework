@@ -15,7 +15,7 @@ namespace GitGui;
 /// w.r.t. selection — rows highlight reactively against the shared selection, and the
 /// diff view's target tracks <c>SelectedTarget</c> directly.
 /// </summary>
-internal sealed class LocalChangesContentView : MultiChildView
+internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChangesViewModel>
 {
     private readonly LocalChangesPanel _unstagedPanel;
     private readonly LocalChangesPanel _stagedPanel;

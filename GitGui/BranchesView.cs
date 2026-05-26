@@ -54,19 +54,11 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
     private readonly TextStyle _behindNumStyle = TextStyles.Row(BehindColor);
     private readonly TextStyle _aheadIconStyle = TextStyles.Icon(AheadColor);
     private readonly TextStyle _behindIconStyle = TextStyles.Icon(BehindColor);
-    // "Tracked" = green tick (this branch is connected to a remote — drawn for the
-    // minority case since most local feature branches never get an upstream and we don't
-    // want to noise up every row). Reuses the same green as the ahead badge so the
-    // sidebar's "git is good" vocabulary stays consistent. "Upstream gone" = amber
-    // warning (was tracking, remote ref has been deleted).
     private readonly TextStyle _upstreamLinkedIconStyle = TextStyles.Icon(AheadColor);
     private readonly TextStyle _upstreamGoneIconStyle = TextStyles.Icon(BehindColor);
     private readonly TextStyle _folderIconStyle = TextStyles.Icon(DialogPalette.SectionHeaderText);
     private readonly TextStyle _branchIconStyle = TextStyles.Icon(CommitsPalette.RowText);
     private readonly TextStyle _branchIconActiveStyle = TextStyles.Icon(CommitsPalette.RowTextActive);
-    // Dim variant for local-only branches (no upstream configured). The muted tone makes
-    // it visually obvious that the branch hasn't been published anywhere, distinguishing
-    // it from tracked branches without spending extra horizontal space on a second glyph.
     private readonly TextStyle _branchIconLocalOnlyStyle = TextStyles.Icon(DialogPalette.RowTextMissing);
 
     private IReadOnlyList<BranchRow> _rows = Array.Empty<BranchRow>();

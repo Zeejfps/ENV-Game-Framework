@@ -2,7 +2,7 @@ using ZGF.Gui;
 
 namespace GitGui;
 
-internal sealed class SegmentView : MultiChildView
+internal sealed class SegmentView : MultiChildView, IBind<SegmentViewModel>
 {
     private const float SegmentHeight = 28f;
 

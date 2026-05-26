@@ -11,7 +11,7 @@ namespace GitGui;
 /// wires the controls two-way to a <see cref="LocalChangesViewModel"/>; there are no
 /// pass-through properties or events.
 /// </summary>
-internal sealed class CommitBarView : MultiChildView
+internal sealed class CommitBarView : MultiChildView, IBind<LocalChangesViewModel>
 {
     private const int Padding = 10;
     private const float CommitButtonWidth = 120f;
