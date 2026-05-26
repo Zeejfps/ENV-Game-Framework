@@ -1,6 +1,7 @@
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -122,7 +123,7 @@ internal sealed class CommitBarView : MultiChildView
         _amendCheckbox.IsChecked.Changed += b => vm.SetAmend(b);
 
         vm.CommitEnabled.Subscribe(b => _commitButton.IsEnabled.Value = b);
-        vm.OpError.Subscribe(msg => _errorBar.Message = msg);
+        _errorBar.Message.BindTo(vm.OpError);
 
         vm.CommitBusy.Subscribe(b =>
         {

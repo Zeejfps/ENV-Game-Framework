@@ -51,6 +51,46 @@ public static class BindingExtensions
             view.Behaviors.Add(new DerivedPropertyBindingBehavior<TextView, uint>(
                 view, compute, (v, c) => v.TextColor = c));
         }
+
+        /// <summary>
+        /// Binds <see cref="TextView.Rotation"/> to the source observable.
+        /// </summary>
+        public void BindRotation(IReadable<float> source)
+        {
+            view.Behaviors.Add(new PropertyBindingBehavior<TextView, float, float>(
+                view, source, r => r, (v, r) => v.Rotation = r));
+        }
+    }
+
+    extension(View view)
+    {
+        /// <summary>
+        /// Binds <see cref="View.IsVisible"/> to the source observable.
+        /// </summary>
+        public void BindIsVisible(IReadable<bool> source)
+        {
+            view.Behaviors.Add(new PropertyBindingBehavior<View, bool, bool>(
+                view, source, b => b, (v, b) => v.IsVisible = b));
+        }
+
+        /// <summary>
+        /// Binds <see cref="View.IsVisible"/> to a projected source value.
+        /// </summary>
+        public void BindIsVisible<T>(IReadable<T> source, Func<T, bool> project)
+        {
+            view.Behaviors.Add(new PropertyBindingBehavior<View, T, bool>(
+                view, source, project, (v, b) => v.IsVisible = b));
+        }
+
+        /// <summary>
+        /// Binds <see cref="View.IsVisible"/> to a derived value. The function's observable
+        /// reads are auto-tracked.
+        /// </summary>
+        public void BindIsVisible(Func<bool> compute)
+        {
+            view.Behaviors.Add(new DerivedPropertyBindingBehavior<View, bool>(
+                view, compute, (v, b) => v.IsVisible = b));
+        }
     }
 
     extension(RectView view)

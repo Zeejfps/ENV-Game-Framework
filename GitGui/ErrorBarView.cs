@@ -1,4 +1,6 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -9,17 +11,19 @@ namespace GitGui;
 /// </summary>
 internal sealed class ErrorBarView : MultiChildView
 {
-    private readonly TextView _text;
+    public State<string?> Message { get; } = new(null);
 
     public ErrorBarView(int verticalPadding = 4)
     {
-        IsVisible = false;
+        this.BindIsVisible(Message, m => m != null);
 
-        _text = new TextView
+        var text = new TextView
         {
             TextColor = CommitsPalette.WarningText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        text.BindText(Message);
+
         AddChildToSelf(new RectView
         {
             BackgroundColor = CommitsPalette.WarningBg,
@@ -33,22 +37,7 @@ internal sealed class ErrorBarView : MultiChildView
                 Top = verticalPadding,
                 Bottom = verticalPadding,
             },
-            Children = { _text },
+            Children = { text },
         });
-    }
-
-    /// <summary>Show with <paramref name="value"/>, or hide when null.</summary>
-    public string? Message
-    {
-        set
-        {
-            if (value == null)
-            {
-                IsVisible = false;
-                return;
-            }
-            _text.Text = value;
-            IsVisible = true;
-        }
     }
 }

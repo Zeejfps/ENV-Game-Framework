@@ -1,5 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -80,40 +81,29 @@ public sealed class ActionsToolbar : MultiChildView
     {
         _vm = vm;
 
-        vm.PushEnabled.Subscribe(b => _pushButton.IsEnabled.Value = b);
-        vm.PullEnabled.Subscribe(b => _pullButton.IsEnabled.Value = b);
-        vm.FetchEnabled.Subscribe(b => _fetchButton.IsEnabled.Value = b);
-        vm.RepoActionsEnabled.Subscribe(b =>
-        {
-            _openFolderButton.IsEnabled.Value = b;
-            _openTerminalButton.IsEnabled.Value = b;
-            _branchButton.IsEnabled.Value = b;
-        });
-        vm.StashEnabled.Subscribe(b => _stashButton.IsEnabled.Value = b);
-        vm.PushBadge.Subscribe(badge => _pushButton.Badge = badge);
-        vm.PullBadge.Subscribe(badge => _pullButton.Badge = badge);
+        _pushButton.IsEnabled.BindTo(vm.PushEnabled);
+        _pullButton.IsEnabled.BindTo(vm.PullEnabled);
+        _fetchButton.IsEnabled.BindTo(vm.FetchEnabled);
+        _branchButton.IsEnabled.BindTo(vm.RepoActionsEnabled);
+        _openFolderButton.IsEnabled.BindTo(vm.RepoActionsEnabled);
+        _openTerminalButton.IsEnabled.BindTo(vm.RepoActionsEnabled);
+        _stashButton.IsEnabled.BindTo(vm.StashEnabled);
 
-        vm.IsPushing.Subscribe(b =>
-        {
-            _pushButton.Icon = b ? LucideIcons.Loader : LucideIcons.Push;
-            _pushButton.Label = b ? "Pushing" : "Push";
-            if (!b) _pushButton.IconRotation = 0f;
-        });
-        vm.IsPulling.Subscribe(b =>
-        {
-            _pullButton.Icon = b ? LucideIcons.Loader : LucideIcons.Pull;
-            _pullButton.Label = b ? "Pulling" : "Pull";
-            if (!b) _pullButton.IconRotation = 0f;
-        });
-        vm.IsFetching.Subscribe(b =>
-        {
-            _fetchButton.Icon = b ? LucideIcons.Loader : LucideIcons.Fetch;
-            _fetchButton.Label = b ? "Fetching" : "Fetch";
-            if (!b) _fetchButton.IconRotation = 0f;
-        });
-        vm.PushRotation.Subscribe(r => _pushButton.IconRotation = r);
-        vm.PullRotation.Subscribe(r => _pullButton.IconRotation = r);
-        vm.FetchRotation.Subscribe(r => _fetchButton.IconRotation = r);
-        vm.Error.Subscribe(msg => _errorBar.Message = msg);
+        _pushButton.Badge.BindTo(vm.PushBadge);
+        _pullButton.Badge.BindTo(vm.PullBadge);
+
+        _pushButton.Icon.BindTo(vm.IsPushing, b => b ? LucideIcons.Loader : LucideIcons.Push);
+        _pushButton.Label.BindTo(vm.IsPushing, b => b ? "Pushing" : "Push");
+        _pushButton.IconRotation.BindTo(vm.PushRotation);
+
+        _pullButton.Icon.BindTo(vm.IsPulling, b => b ? LucideIcons.Loader : LucideIcons.Pull);
+        _pullButton.Label.BindTo(vm.IsPulling, b => b ? "Pulling" : "Pull");
+        _pullButton.IconRotation.BindTo(vm.PullRotation);
+
+        _fetchButton.Icon.BindTo(vm.IsFetching, b => b ? LucideIcons.Loader : LucideIcons.Fetch);
+        _fetchButton.Label.BindTo(vm.IsFetching, b => b ? "Fetching" : "Fetch");
+        _fetchButton.IconRotation.BindTo(vm.FetchRotation);
+
+        _errorBar.Message.BindTo(vm.Error);
     }
 }
