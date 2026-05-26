@@ -414,30 +414,28 @@ internal sealed class DiffContentView : View, IScrollableContent
         uint color, TextAlignment alignment, int z)
     {
         if (width <= 0 || string.IsNullOrEmpty(text)) return;
-        var style = alignment switch
+        var baseStyle = alignment switch
         {
             TextAlignment.End => MonoEndStyle,
             TextAlignment.Center => MonoCenterStyle,
             _ => MonoStartStyle,
         };
-        style.TextColor = color;
         c.DrawText(new DrawTextInputs
         {
             Position = new RectF(left, bottom, width, _lineHeight),
             Text = text,
-            Style = style,
+            Style = baseStyle with { TextColor = color },
             ZIndex = z,
         });
     }
 
     private void DrawPlaceholder(ICanvas c, RectF pos, string text, uint color, int z)
     {
-        PlaceholderStyle.TextColor = color;
         c.DrawText(new DrawTextInputs
         {
             Position = pos,
             Text = text,
-            Style = PlaceholderStyle,
+            Style = PlaceholderStyle with { TextColor = color },
             ZIndex = z,
         });
     }

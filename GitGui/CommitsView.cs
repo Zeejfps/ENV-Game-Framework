@@ -52,14 +52,14 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     // and the mutable TextStyle fields below — both updated together so a single swap stays
     // visually consistent.
     private ThemeTokens _tokens = ThemePresets.Dark;
-    private readonly TextStyle _rowTextStyle = TextStyles.Row(ThemePresets.Dark.Commits.RowText);
-    private readonly TextStyle _rowTextActiveStyle = TextStyles.Row(ThemePresets.Dark.Commits.RowTextActive);
-    private readonly TextStyle _headerTextStyle = TextStyles.Row(ThemePresets.Dark.Commits.HeaderText);
-    private readonly TextStyle _placeholderStyle = TextStyles.Centered(ThemePresets.Dark.Commits.Placeholder);
-    private readonly TextStyle _badgeTextStyle = TextStyles.Row(ThemePresets.Dark.Commits.BadgeText);
-    private readonly TextStyle _badgeIconStyle = TextStyles.Icon(ThemePresets.Dark.Commits.BadgeText, 12f);
-    private readonly TextStyle _hashTextStyle = TextStyles.Row(ThemePresets.Dark.Commits.RowTextDim);
-    private readonly TextStyle _hashTextActiveStyle = TextStyles.Row(ThemePresets.Dark.Commits.RowTextActive);
+    private TextStyle _rowTextStyle = TextStyles.Row(ThemePresets.Dark.Commits.RowText);
+    private TextStyle _rowTextActiveStyle = TextStyles.Row(ThemePresets.Dark.Commits.RowTextActive);
+    private TextStyle _headerTextStyle = TextStyles.Row(ThemePresets.Dark.Commits.HeaderText);
+    private TextStyle _placeholderStyle = TextStyles.Centered(ThemePresets.Dark.Commits.Placeholder);
+    private TextStyle _badgeTextStyle = TextStyles.Row(ThemePresets.Dark.Commits.BadgeText);
+    private TextStyle _badgeIconStyle = TextStyles.Icon(ThemePresets.Dark.Commits.BadgeText, 12f);
+    private TextStyle _hashTextStyle = TextStyles.Row(ThemePresets.Dark.Commits.RowTextDim);
+    private TextStyle _hashTextActiveStyle = TextStyles.Row(ThemePresets.Dark.Commits.RowTextActive);
 
     public CommitsView()
     {
@@ -89,14 +89,14 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     {
         _tokens = tokens;
         var c = tokens.Commits;
-        _rowTextStyle.TextColor = c.RowText;
-        _rowTextActiveStyle.TextColor = c.RowTextActive;
-        _headerTextStyle.TextColor = c.HeaderText;
-        _placeholderStyle.TextColor = c.Placeholder;
-        _badgeTextStyle.TextColor = c.BadgeText;
-        _badgeIconStyle.TextColor = c.BadgeText;
-        _hashTextStyle.TextColor = c.RowTextDim;
-        _hashTextActiveStyle.TextColor = c.RowTextActive;
+        _rowTextStyle = _rowTextStyle with { TextColor = c.RowText };
+        _rowTextActiveStyle = _rowTextActiveStyle with { TextColor = c.RowTextActive };
+        _headerTextStyle = _headerTextStyle with { TextColor = c.HeaderText };
+        _placeholderStyle = _placeholderStyle with { TextColor = c.Placeholder };
+        _badgeTextStyle = _badgeTextStyle with { TextColor = c.BadgeText };
+        _badgeIconStyle = _badgeIconStyle with { TextColor = c.BadgeText };
+        _hashTextStyle = _hashTextStyle with { TextColor = c.RowTextDim };
+        _hashTextActiveStyle = _hashTextActiveStyle with { TextColor = c.RowTextActive };
         SetDirty();
     }
 

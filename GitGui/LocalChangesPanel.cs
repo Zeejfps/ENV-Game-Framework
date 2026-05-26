@@ -43,20 +43,20 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     // values use the Dark preset so first draw before the BindToTheme callback fires (e.g.
     // measurement during attach) still renders sensibly.
     private ThemeTokens _tokens = ThemePresets.Dark;
-    private readonly TextStyle _badgeGlyphStyle = new()
+    private TextStyle _badgeGlyphStyle = new()
     {
         TextColor = ThemePresets.Dark.FileChanges.BadgeText,
         FontSize = 11f,
         HorizontalAlignment = TextAlignment.Center,
         VerticalAlignment = TextAlignment.Center,
     };
-    private readonly TextStyle _pathTextStyle = new()
+    private TextStyle _pathTextStyle = new()
     {
         TextColor = ThemePresets.Dark.Dialog.RowText,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
-    private readonly TextStyle _pathTextActiveStyle = new()
+    private TextStyle _pathTextActiveStyle = new()
     {
         TextColor = ThemePresets.Dark.Dialog.RowTextActive,
         VerticalAlignment = TextAlignment.Center,
@@ -66,9 +66,9 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     private void RebuildVisuals(ThemeTokens tokens)
     {
         _tokens = tokens;
-        _badgeGlyphStyle.TextColor = tokens.FileChanges.BadgeText;
-        _pathTextStyle.TextColor = tokens.Dialog.RowText;
-        _pathTextActiveStyle.TextColor = tokens.Dialog.RowTextActive;
+        _badgeGlyphStyle = _badgeGlyphStyle with { TextColor = tokens.FileChanges.BadgeText };
+        _pathTextStyle = _pathTextStyle with { TextColor = tokens.Dialog.RowText };
+        _pathTextActiveStyle = _pathTextActiveStyle with { TextColor = tokens.Dialog.RowTextActive };
         SetDirty();
     }
 

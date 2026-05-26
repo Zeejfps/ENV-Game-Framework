@@ -20,19 +20,34 @@ public sealed class TextInputView : MultiChildView
     public StyleValue<uint> TextColor
     {
         get => _textStyle.TextColor;
-        set => SetField(ref _textStyle.TextColor, value);
+        set
+        {
+            if (Equals(_textStyle.TextColor, value)) return;
+            _textStyle = _textStyle with { TextColor = value };
+            SetDirty();
+        }
     }
 
     public StyleValue<float> FontSize
     {
         get => _textStyle.FontSize;
-        set => SetField(ref _textStyle.FontSize, value);
+        set
+        {
+            if (Equals(_textStyle.FontSize, value)) return;
+            _textStyle = _textStyle with { FontSize = value };
+            SetDirty();
+        }
     }
 
     public StyleValue<TextAlignment> TextVerticalAlignment
     {
         get => _textStyle.VerticalAlignment;
-        set => SetField(ref _textStyle.VerticalAlignment, value);
+        set
+        {
+            if (Equals(_textStyle.VerticalAlignment, value)) return;
+            _textStyle = _textStyle with { VerticalAlignment = value };
+            SetDirty();
+        }
     }
 
     public StyleValue<uint> SelectionRectColor
@@ -64,7 +79,7 @@ public sealed class TextInputView : MultiChildView
     public bool IsSelecting => _caretIndex != _selectionStartIndex;
 
     private readonly RectStyle _background = new();
-    private readonly TextStyle _textStyle = new();
+    private TextStyle _textStyle = new();
     private readonly RectStyle _cursorStyle = new();
     private readonly RectStyle _selectionRectStyle = new();
 
@@ -287,14 +302,13 @@ public sealed class TextInputView : MultiChildView
         if (string.IsNullOrEmpty(_placeholderText))
             return;
 
-        // Swap the text color for the placeholder color while reusing the rest of
-        // _textStyle (font, alignment, wrap). Restored before returning so subsequent
-        // draws — once the user types — pick up the original color again.
-        var originalColor = _textStyle.TextColor;
-        if (_placeholderColor.IsSet)
-            _textStyle.TextColor = _placeholderColor;
+        // Substitute the placeholder color into a derived TextStyle for this one draw
+        // call; _textStyle stays at the user's text color since the struct is immutable.
+        var placeholderStyle = _placeholderColor.IsSet
+            ? _textStyle with { TextColor = _placeholderColor }
+            : _textStyle;
 
-        var lineHeight = c.MeasureTextLineHeight(_textStyle);
+        var lineHeight = c.MeasureTextLineHeight(placeholderStyle);
         c.DrawText(new DrawTextInputs
         {
             Position = new RectF
@@ -305,11 +319,9 @@ public sealed class TextInputView : MultiChildView
                 Height = lineHeight,
             },
             Text = _placeholderText!,
-            Style = _textStyle,
+            Style = placeholderStyle,
             ZIndex = GetDrawZIndex(),
         });
-
-        _textStyle.TextColor = originalColor;
     }
 
     private void DrawBackground(in RectF position, ICanvas c)

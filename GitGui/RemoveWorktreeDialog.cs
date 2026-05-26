@@ -20,7 +20,7 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
     private readonly DialogButton _removeButton;
     private readonly TextView _errorView;
     private readonly TextView _pathTextView;
-    private readonly TextStyle _pathTextStyle;
+    private TextStyle _pathTextStyle;
 
     public event Action? RemoveRequested;
 
@@ -54,7 +54,7 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
         _pathTextView.BindToTheme(t =>
         {
             _pathTextView.TextColor = t.Dialog.BodyText;
-            _pathTextStyle.TextColor = t.Dialog.BodyText;
+            _pathTextStyle = _pathTextStyle with { TextColor = t.Dialog.BodyText };
         });
         var pathBox = new RectView
         {

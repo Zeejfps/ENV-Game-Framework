@@ -27,39 +27,40 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
     private const float ChevronColumn = ChevronWidth + ChevronGap;
     private const float IconGap = 4f;
 
-    // Cached snapshot refreshed by RebuildVisuals on theme swap. Mutable TextStyles are
-    // updated in place so draw code can keep references without re-allocating.
+    // Cached snapshot refreshed by RebuildVisuals on theme swap. TextStyle is a value type
+    // — RebuildVisuals re-assigns the fields with a `with` expression so the new color shows
+    // up on the next draw.
     private ThemeTokens _tokens = ThemePresets.Dark;
-    private readonly TextStyle _branchTextStyle = TextStyles.Row(ThemePresets.Dark.Commits.RowText);
-    private readonly TextStyle _branchTextSelectedStyle = TextStyles.Row(ThemePresets.Dark.Commits.RowTextActive);
-    private readonly TextStyle _branchTextBusyStyle = TextStyles.Row(ThemePresets.Dark.Dialog.RowTextMissing);
-    private readonly TextStyle _branchIconBusyStyle = TextStyles.Icon(ThemePresets.Dark.Dialog.RowTextMissing);
-    private readonly TextStyle _headTextStyle = new()
+    private TextStyle _branchTextStyle = TextStyles.Row(ThemePresets.Dark.Commits.RowText);
+    private TextStyle _branchTextSelectedStyle = TextStyles.Row(ThemePresets.Dark.Commits.RowTextActive);
+    private TextStyle _branchTextBusyStyle = TextStyles.Row(ThemePresets.Dark.Dialog.RowTextMissing);
+    private TextStyle _branchIconBusyStyle = TextStyles.Icon(ThemePresets.Dark.Dialog.RowTextMissing);
+    private TextStyle _headTextStyle = new()
     {
         TextColor = ThemePresets.Dark.Commits.RowTextActive,
         FontWeight = FontWeight.Bold,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
-    private readonly TextStyle _headerTextStyle = TextStyles.Row(ThemePresets.Dark.Dialog.SectionHeaderText);
-    private readonly TextStyle _chevronStyle = new()
+    private TextStyle _headerTextStyle = TextStyles.Row(ThemePresets.Dark.Dialog.SectionHeaderText);
+    private TextStyle _chevronStyle = new()
     {
         TextColor = ThemePresets.Dark.Dialog.SectionHeaderText,
         FontSize = 8f,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Center,
     };
-    private readonly TextStyle _placeholderStyle = TextStyles.Centered(ThemePresets.Dark.Commits.Placeholder);
-    private readonly TextStyle _aheadNumStyle = TextStyles.Row(ThemePresets.Dark.Commits.AheadColor);
-    private readonly TextStyle _behindNumStyle = TextStyles.Row(ThemePresets.Dark.Commits.BehindColor);
-    private readonly TextStyle _aheadIconStyle = TextStyles.Icon(ThemePresets.Dark.Commits.AheadColor);
-    private readonly TextStyle _behindIconStyle = TextStyles.Icon(ThemePresets.Dark.Commits.BehindColor);
-    private readonly TextStyle _upstreamLinkedIconStyle = TextStyles.Icon(ThemePresets.Dark.Commits.AheadColor);
-    private readonly TextStyle _upstreamGoneIconStyle = TextStyles.Icon(ThemePresets.Dark.Commits.BehindColor);
-    private readonly TextStyle _folderIconStyle = TextStyles.Icon(ThemePresets.Dark.Dialog.SectionHeaderText);
-    private readonly TextStyle _branchIconStyle = TextStyles.Icon(ThemePresets.Dark.Commits.RowText);
-    private readonly TextStyle _branchIconActiveStyle = TextStyles.Icon(ThemePresets.Dark.Commits.RowTextActive);
-    private readonly TextStyle _branchIconLocalOnlyStyle = TextStyles.Icon(ThemePresets.Dark.Dialog.RowTextMissing);
+    private TextStyle _placeholderStyle = TextStyles.Centered(ThemePresets.Dark.Commits.Placeholder);
+    private TextStyle _aheadNumStyle = TextStyles.Row(ThemePresets.Dark.Commits.AheadColor);
+    private TextStyle _behindNumStyle = TextStyles.Row(ThemePresets.Dark.Commits.BehindColor);
+    private TextStyle _aheadIconStyle = TextStyles.Icon(ThemePresets.Dark.Commits.AheadColor);
+    private TextStyle _behindIconStyle = TextStyles.Icon(ThemePresets.Dark.Commits.BehindColor);
+    private TextStyle _upstreamLinkedIconStyle = TextStyles.Icon(ThemePresets.Dark.Commits.AheadColor);
+    private TextStyle _upstreamGoneIconStyle = TextStyles.Icon(ThemePresets.Dark.Commits.BehindColor);
+    private TextStyle _folderIconStyle = TextStyles.Icon(ThemePresets.Dark.Dialog.SectionHeaderText);
+    private TextStyle _branchIconStyle = TextStyles.Icon(ThemePresets.Dark.Commits.RowText);
+    private TextStyle _branchIconActiveStyle = TextStyles.Icon(ThemePresets.Dark.Commits.RowTextActive);
+    private TextStyle _branchIconLocalOnlyStyle = TextStyles.Icon(ThemePresets.Dark.Dialog.RowTextMissing);
 
     private readonly VirtualRowListView _list;
 
@@ -98,24 +99,24 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
         _tokens = tokens;
         var c = tokens.Commits;
         var d = tokens.Dialog;
-        _branchTextStyle.TextColor = c.RowText;
-        _branchTextSelectedStyle.TextColor = c.RowTextActive;
-        _branchTextBusyStyle.TextColor = d.RowTextMissing;
-        _branchIconBusyStyle.TextColor = d.RowTextMissing;
-        _headTextStyle.TextColor = c.RowTextActive;
-        _headerTextStyle.TextColor = d.SectionHeaderText;
-        _chevronStyle.TextColor = d.SectionHeaderText;
-        _placeholderStyle.TextColor = c.Placeholder;
-        _aheadNumStyle.TextColor = c.AheadColor;
-        _behindNumStyle.TextColor = c.BehindColor;
-        _aheadIconStyle.TextColor = c.AheadColor;
-        _behindIconStyle.TextColor = c.BehindColor;
-        _upstreamLinkedIconStyle.TextColor = c.AheadColor;
-        _upstreamGoneIconStyle.TextColor = c.BehindColor;
-        _folderIconStyle.TextColor = d.SectionHeaderText;
-        _branchIconStyle.TextColor = c.RowText;
-        _branchIconActiveStyle.TextColor = c.RowTextActive;
-        _branchIconLocalOnlyStyle.TextColor = d.RowTextMissing;
+        _branchTextStyle = _branchTextStyle with { TextColor = c.RowText };
+        _branchTextSelectedStyle = _branchTextSelectedStyle with { TextColor = c.RowTextActive };
+        _branchTextBusyStyle = _branchTextBusyStyle with { TextColor = d.RowTextMissing };
+        _branchIconBusyStyle = _branchIconBusyStyle with { TextColor = d.RowTextMissing };
+        _headTextStyle = _headTextStyle with { TextColor = c.RowTextActive };
+        _headerTextStyle = _headerTextStyle with { TextColor = d.SectionHeaderText };
+        _chevronStyle = _chevronStyle with { TextColor = d.SectionHeaderText };
+        _placeholderStyle = _placeholderStyle with { TextColor = c.Placeholder };
+        _aheadNumStyle = _aheadNumStyle with { TextColor = c.AheadColor };
+        _behindNumStyle = _behindNumStyle with { TextColor = c.BehindColor };
+        _aheadIconStyle = _aheadIconStyle with { TextColor = c.AheadColor };
+        _behindIconStyle = _behindIconStyle with { TextColor = c.BehindColor };
+        _upstreamLinkedIconStyle = _upstreamLinkedIconStyle with { TextColor = c.AheadColor };
+        _upstreamGoneIconStyle = _upstreamGoneIconStyle with { TextColor = c.BehindColor };
+        _folderIconStyle = _folderIconStyle with { TextColor = d.SectionHeaderText };
+        _branchIconStyle = _branchIconStyle with { TextColor = c.RowText };
+        _branchIconActiveStyle = _branchIconActiveStyle with { TextColor = c.RowTextActive };
+        _branchIconLocalOnlyStyle = _branchIconLocalOnlyStyle with { TextColor = d.RowTextMissing };
         SetDirty();
     }
 
