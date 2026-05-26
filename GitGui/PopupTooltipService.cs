@@ -1,5 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -9,14 +10,20 @@ public sealed class PopupTooltipService : ITooltipService
 
     private readonly IPopupWindowFactory _factory;
     private readonly IWindowCoordinates _coordinates;
+    private readonly IReadable<StyleSheet>? _sheet;
     private readonly Context? _measureContext;
     private object? _currentOwner;
     private IPopupWindow? _currentPopup;
 
-    public PopupTooltipService(IPopupWindowFactory factory, IWindowCoordinates coordinates, Context? measureContext = null)
+    public PopupTooltipService(
+        IPopupWindowFactory factory,
+        IWindowCoordinates coordinates,
+        IReadable<StyleSheet>? sheet = null,
+        Context? measureContext = null)
     {
         _factory = factory;
         _coordinates = coordinates;
+        _sheet = sheet;
         _measureContext = measureContext;
     }
 
@@ -35,6 +42,11 @@ public sealed class PopupTooltipService : ITooltipService
         var view = new TooltipView(text);
         if (_measureContext != null) view.Context = _measureContext;
         var anchorScreen = _coordinates.ToScreenPoints(anchorRectCanvas);
+
+        // Apply the current sheet to the measurement-time root so MeasureWidth/Height
+        // sees the cascade-resolved padding/border before the popup is sized.
+        if (_sheet != null)
+            view.ApplyStyleSheet(_sheet.Value);
 
         var width = (int)MathF.Ceiling(view.MeasureWidth());
         var height = (int)MathF.Ceiling(view.MeasureHeight(width));
@@ -56,6 +68,7 @@ public sealed class PopupTooltipService : ITooltipService
             PreferredScreenRect = preferred,
             FlippedScreenRect = flipped,
             MousePassThrough = true,
+            Sheet = _sheet,
         });
     }
 

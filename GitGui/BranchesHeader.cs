@@ -25,12 +25,10 @@ internal sealed class BranchesHeader : MultiChildView, IBind<BranchesHeaderViewM
             FontSize = 15f,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        _iconView.StyleClasses.Add(StyleClassNames.DialogHeaderIcon);
 
-        _prefixView = new TextView
-        {
-            TextColor = Theme.TextHeader,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
+        _prefixView = new TextView { VerticalTextAlignment = TextAlignment.Center };
+        _prefixView.StyleClasses.Add(StyleClassNames.DialogHeaderPrefix);
 
         _nameView = new TextView
         {
@@ -38,6 +36,7 @@ internal sealed class BranchesHeader : MultiChildView, IBind<BranchesHeaderViewM
             FontWeight = FontWeight.Bold,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        _nameView.StyleClasses.Add(StyleClassNames.DialogHeaderName);
 
         _content = new PaddingView
         {
@@ -52,11 +51,8 @@ internal sealed class BranchesHeader : MultiChildView, IBind<BranchesHeaderViewM
             },
         };
 
-        AddChildToSelf(new RectView
+        var header = new RectView
         {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = new BorderColorStyle { Bottom = DialogPalette.Border },
-            BorderSize = new BorderSizeStyle { Bottom = 1 },
             Padding = new PaddingStyle { Left = HorizontalPadding, Right = HorizontalPadding },
             Children =
             {
@@ -66,17 +62,23 @@ internal sealed class BranchesHeader : MultiChildView, IBind<BranchesHeaderViewM
                     Children = { _content },
                 },
             },
-        });
+        };
+        header.StyleClasses.Add(StyleClassNames.DialogHeader);
+        AddChildToSelf(header);
 
         this.UseViewModel(this);
     }
 
     public void Bind(BranchesHeaderViewModel vm)
     {
-        _iconView.BindTextColor(vm.IsDetached, d => d ? DialogPalette.RowTextMissing : Theme.TextStrong);
         _prefixView.BindText(vm.IsDetached, d => d ? "at" : "on");
         _nameView.BindText(vm.BranchName);
-        _nameView.BindTextColor(vm.IsDetached, d => d ? DialogPalette.RowTextMissing : Theme.TextStrong);
+
+        // The "detached" modifier on the icon and name views drives their dim color through
+        // the sheet (.dialog-header-icon.detached and .dialog-header-name.detached rules).
+        _iconView.BindModifier(ModifierNames.Detached, vm.IsDetached);
+        _nameView.BindModifier(ModifierNames.Detached, vm.IsDetached);
+
         _content.BindIsVisible(vm.BranchName, n => !string.IsNullOrEmpty(n));
     }
 }

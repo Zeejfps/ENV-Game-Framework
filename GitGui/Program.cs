@@ -9,6 +9,8 @@ using ZGF.Observable;
 var context = new Context();
 var messageBus = new MessageBus();
 context.AddService<IMessageBus>(messageBus);
+var themeService = new ThemeService(ThemePresets.Dark, StyleSheetBuilder.Build);
+context.AddService<IThemeService>(themeService);
 context.AddService(new State<MainViewMode>(MainViewMode.LocalChanges));
 context.AddService<IPlatformShell>(
     RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new WindowsPlatformShell()
@@ -48,9 +50,17 @@ var appHost = GuiApp.CreateDefault(new StartupConfig
 appHost.RegisterFont(LucideIcons.FontFamily, "Assets/Fonts/Lucide/Lucide.ttf", 16);
 appHost.RegisterFont(DiffOptions.MonoFontFamily, "Assets/Fonts/JetBrainsMono/JetBrainsMono-Regular.ttf", 13);
 
+// Subscribe the app root to the theme service's derived sheet. Initial value applies on
+// subscribe; every SetTheme call re-fires and the cascade re-resolves across the tree.
+themeService.Sheet.Subscribe(sheet => appView.ApplyStyleSheet(sheet));
+
+// Debug-only: F12 toggles dark/light at runtime to verify Phase-2 live-swap acceptance.
+appView.UseController(_ => new DebugThemeSwapController(themeService));
+
 context.AddService<ITooltipService>(new PopupTooltipService(
     context.Require<IPopupWindowFactory>(),
     context.Require<IWindowCoordinates>(),
+    themeService.Sheet,
     measureContext: context));
 
 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

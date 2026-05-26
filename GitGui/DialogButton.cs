@@ -50,7 +50,8 @@ public sealed class DialogButton : HoverableButton
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
         };
-        _iconView.BindTextColor(IsEnabled, e => e ? 0xFFFFFFFFu : DialogPalette.RowTextMissing);
+        _iconView.StyleClasses.Add(StyleClassNames.DialogButtonIcon);
+        _iconView.BindModifier(ModifierNames.Disabled, () => !IsEnabled.Value);
 
         _labelView = new TextView
         {
@@ -58,7 +59,8 @@ public sealed class DialogButton : HoverableButton
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        _labelView.BindTextColor(IsEnabled, e => e ? 0xFFFFFFFFu : DialogPalette.RowTextMissing);
+        _labelView.StyleClasses.Add(StyleClassNames.DialogButtonLabel);
+        _labelView.BindModifier(ModifierNames.Disabled, () => !IsEnabled.Value);
 
         _row = new FlexRowView
         {
@@ -68,15 +70,10 @@ public sealed class DialogButton : HoverableButton
             Children = { _labelView },
         };
 
-        var background = new RectView
-        {
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(6),
-            Children = { _row },
-        };
+        var background = new RectView { Children = { _row } };
+        background.StyleClasses.Add(StyleClassNames.DialogButton);
         // Hover styling only when enabled — a disabled button shouldn't react to the pointer.
-        DialogPalette.BindBorderedButtonChrome(background,
-            () => IsEnabled.Value && IsHovered.Value);
+        background.BindModifier(ModifierNames.Hovered, () => IsEnabled.Value && IsHovered.Value);
         SetBackground(background);
     }
 }

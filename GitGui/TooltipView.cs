@@ -7,16 +7,11 @@ public sealed class TooltipView : MultiChildView
 {
     private const int HorizontalPadding = 8;
     private const int VerticalPadding = 4;
-    private const float CornerRadius = 4f;
 
     public TooltipView(string text)
     {
-        AddChildToSelf(new RectView
+        var background = new RectView
         {
-            BackgroundColor = TooltipPalette.Background,
-            BorderColor = BorderColorStyle.All(TooltipPalette.Border),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderRadius = BorderRadiusStyle.All(CornerRadius),
             Padding = new PaddingStyle
             {
                 Left = HorizontalPadding,
@@ -24,25 +19,14 @@ public sealed class TooltipView : MultiChildView
                 Top = VerticalPadding,
                 Bottom = VerticalPadding,
             },
-            BoxShadow = new BoxShadowStyle
-            {
-                OffsetX = 0f,
-                OffsetY = -4f,
-                Blur = 16f,
-                Spread = 0f,
-                Color = TooltipPalette.ShadowColor,
-            },
             Children =
             {
-                new TextView
-                {
-                    Text = text,
-                    TextColor = TooltipPalette.Text,
-                    FontSize = 12,
-                    VerticalTextAlignment = TextAlignment.Center,
-                },
+                new TextView { Text = text },
             },
-        });
+        };
+        background.StyleClasses.Add(StyleClassNames.Tooltip);
+        ((TextView)background.Children[0]).StyleClasses.Add(StyleClassNames.TooltipText);
+        AddChildToSelf(background);
     }
 
     protected override void OnLayoutSelf()
