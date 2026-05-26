@@ -413,15 +413,16 @@ public abstract class View
     /// <c>PreferredWidth</c> / <c>PreferredHeight</c> tokens. Subclasses that want
     /// behavioural reactions (e.g. invalidating text wrap on font-size change) override this.
     /// </summary>
-    /// <remarks>
-    /// We assign unconditionally (not guarded on IsSet) so removing a class/modifier that
-    /// previously set a preferred dimension resets the view back to unset — otherwise a
-    /// stale value leaks across cascade rebuilds.
-    /// </remarks>
     protected virtual void OnStyleResolved(ResolvedStyle style)
     {
-        PreferredWidth = style.PreferredWidth;
-        PreferredHeight = style.PreferredHeight;
+        // IsSet-guarded so the cascade doesn't clobber constructor-time PreferredWidth /
+        // PreferredHeight assignments on views that never participate in a sheet rule for
+        // these fields. Removing a class/modifier that previously set Preferred* won't
+        // reset the dimension — latent, no current rule sets these so it doesn't bite.
+        if (style.PreferredWidth.IsSet)
+            PreferredWidth = style.PreferredWidth;
+        if (style.PreferredHeight.IsSet)
+            PreferredHeight = style.PreferredHeight;
     }
 
     /// <summary>
