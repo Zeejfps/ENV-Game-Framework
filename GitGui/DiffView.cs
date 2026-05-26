@@ -5,12 +5,6 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-public abstract record DiffViewModel
-{
-    public sealed record Placeholder(string Text) : DiffViewModel;
-    public sealed record Loaded(DiffResult Result) : DiffViewModel;
-}
-
 /// <summary>
 /// Diff panel shown below the file lists in Local Changes whenever exactly one file is
 /// selected. <see cref="SetTarget"/> drives the load; the panel renders banners, hunk
@@ -23,7 +17,7 @@ public abstract record DiffViewModel
 /// inside a <c>ScrollPane</c>, which forced O(N) text measurement on every layout pass for
 /// diffs of 5000 lines.
 /// </remarks>
-public sealed class DiffView : MultiChildView, IDiffView
+public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
 {
     // Height of the always-visible header strip. Exposed so the parent split container
     // can pin the bottom panel to exactly this height when the diff is collapsed, so the
@@ -66,21 +60,26 @@ public sealed class DiffView : MultiChildView, IDiffView
         });
 
         this.UseController(_ => new ScrollSyncController(_content, vScrollBar, hScrollBar));
-        this.UsePresenter(ctx => new DiffPresenter(
-            this,
-            ctx.Require<IRepoRegistry>(),
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>()));
+        this.UseViewModel(
+            ctx => new DiffViewModel(
+                _target,
+                ctx.Require<IRepoRegistry>(),
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>()),
+            Bind);
     }
 
     public IReadable<DiffTarget?> Target => _target;
     public IReadable<bool> IsCollapsed => _isCollapsed;
 
-    public void SetViewModel(DiffViewModel vm) => _content.SetViewModel(vm);
-
     public void SetTarget(string? path, DiffSide side)
     {
         _target.Value = path == null ? null : new DiffTarget(path, side);
+    }
+
+    public void Bind(DiffViewModel vm)
+    {
+        vm.RenderState.Subscribe(_content.SetRenderState);
     }
 
     private View BuildHeaderBar()

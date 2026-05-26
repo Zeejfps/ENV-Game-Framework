@@ -60,7 +60,7 @@ internal sealed class DiffContentView : View, IScrollableContent
     public float VerticalScale { get; private set; } = 1f;
     public float HorizontalScale { get; private set; } = 1f;
 
-    private DiffViewModel _viewModel = new DiffViewModel.Placeholder("Select a file to view diff.");
+    private DiffRenderState _renderState = new DiffRenderState.Placeholder("Select a file to view diff.");
     private readonly List<DiffRow> _rows = new();
     private int _maxRowChars;
     private float _gutterWidth;
@@ -107,9 +107,9 @@ internal sealed class DiffContentView : View, IScrollableContent
         }
     }
 
-    public void SetViewModel(DiffViewModel vm)
+    public void SetRenderState(DiffRenderState state)
     {
-        _viewModel = vm;
+        _renderState = state;
         _rows.Clear();
         _maxRowChars = 0;
         _scrollX = 0;
@@ -117,7 +117,7 @@ internal sealed class DiffContentView : View, IScrollableContent
         // a fresh model forces a recompute on next draw.
         _metricsResolved = false;
 
-        if (vm is DiffViewModel.Loaded loaded)
+        if (state is DiffRenderState.Loaded loaded)
             FlattenRows(loaded.Result);
 
         _list.ItemCount = _rows.Count;
@@ -277,21 +277,21 @@ internal sealed class DiffContentView : View, IScrollableContent
             ZIndex = z,
         });
 
-        switch (_viewModel)
+        switch (_renderState)
         {
-            case DiffViewModel.Placeholder p:
+            case DiffRenderState.Placeholder p:
                 DrawPlaceholder(c, pos, p.Text, CommitsPalette.Placeholder, z + 1);
                 NotifyScrollChanged(viewportFits: true);
                 return;
-            case DiffViewModel.Loaded loaded when loaded.Result.ErrorMessage != null:
+            case DiffRenderState.Loaded loaded when loaded.Result.ErrorMessage != null:
                 DrawPlaceholder(c, pos, loaded.Result.ErrorMessage, CommitsPalette.WarningText, z + 1);
                 NotifyScrollChanged(viewportFits: true);
                 return;
-            case DiffViewModel.Loaded loaded when loaded.Result.IsBinary:
+            case DiffRenderState.Loaded loaded when loaded.Result.IsBinary:
                 DrawPlaceholder(c, pos, "Binary file not shown", CommitsPalette.Placeholder, z + 1);
                 NotifyScrollChanged(viewportFits: true);
                 return;
-            case DiffViewModel.Loaded when _rows.Count == 0:
+            case DiffRenderState.Loaded when _rows.Count == 0:
                 DrawPlaceholder(c, pos, "No textual changes", CommitsPalette.Placeholder, z + 1);
                 NotifyScrollChanged(viewportFits: true);
                 return;
