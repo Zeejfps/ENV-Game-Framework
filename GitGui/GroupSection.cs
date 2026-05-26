@@ -4,12 +4,12 @@ using ZGF.Gui.Layouts;
 
 namespace GitGui;
 
-public sealed class GroupSection : MultiChildView, IGroupSectionView
+internal sealed class GroupSection : MultiChildView, IBind<GroupSectionViewModel>
 {
     private readonly MultiChildView _headerSlot;
     private readonly FlexColumnView _rows;
 
-    public GroupSection(Group group)
+    public GroupSection()
     {
         _headerSlot = new MultiChildView();
         _rows = new FlexColumnView
@@ -28,19 +28,12 @@ public sealed class GroupSection : MultiChildView, IGroupSectionView
                 _rows,
             }
         });
-
-        this.UseController(ctx => new GroupSectionController(this, ctx, group.Id));
-        this.UsePresenter(ctx => new GroupSectionPresenter(this, group, ctx.Require<IRepoRegistry>()));
     }
 
-    public void SetHeader(View header)
+    public void Bind(GroupSectionViewModel vm)
     {
-        _headerSlot.Children.Clear();
-        _headerSlot.Children.Add(header);
-    }
-
-    public void BindRows(Func<IEnumerable<Repo>> compute, Func<Repo, View> rowFactory)
-    {
-        _rows.BindChildren(compute, rowFactory);
+        this.UseController(ctx => new GroupSectionController(this, ctx, vm.GroupId));
+        _headerSlot.Children.Add(vm.CreateHeader());
+        _rows.BindChildren(vm.VisiblePrimaries, vm.CreateRepoRow);
     }
 }

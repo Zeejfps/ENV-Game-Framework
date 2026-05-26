@@ -5,14 +5,19 @@ namespace GitGui;
 internal sealed class RepoBarViewModel : IDisposable
 {
     private readonly IRepoRegistry _registry;
+    private readonly IDisposable _groupSectionsSubscription;
 
-    public ObservableList<Group> Groups => _registry.Groups;
+    public ObservableList<GroupSectionViewModel> GroupSections { get; }
     public Command NewGroup { get; }
 
     public RepoBarViewModel(IRepoRegistry registry)
     {
         _registry = registry;
         NewGroup = new Command(DoNewGroup);
+        GroupSections = _registry.Groups.Map(
+            g => new GroupSectionViewModel(g, registry),
+            out _groupSectionsSubscription,
+            vm => vm.Dispose());
     }
 
     private void DoNewGroup()
@@ -21,5 +26,8 @@ internal sealed class RepoBarViewModel : IDisposable
         _registry.BeginRenameGroup(id);
     }
 
-    public void Dispose() { }
+    public void Dispose()
+    {
+        _groupSectionsSubscription.Dispose();
+    }
 }

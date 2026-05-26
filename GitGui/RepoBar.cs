@@ -67,7 +67,10 @@ internal sealed class RepoBar : MultiChildView, IBind<RepoBarViewModel>
     public void Bind(RepoBarViewModel vm)
     {
         _vm = vm;
-        _sections.BindChildren(vm.Groups, group => new GroupSection(group));
+        _sections.BindChildren(
+            vm.GroupSections,
+            _ => new GroupSection(),
+            onCreated: (section, sectionVm) => section.Bind(sectionVm));
     }
 
     private IReadOnlyList<RepoBarContextMenu.Item> BuildBackgroundMenuItems()

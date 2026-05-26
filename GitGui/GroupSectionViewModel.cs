@@ -1,38 +1,37 @@
+using ZGF.Gui;
+
 namespace GitGui;
 
-internal sealed class GroupSectionPresenter : IDisposable
+internal sealed class GroupSectionViewModel : IDisposable
 {
-    private readonly IGroupSectionView _view;
     private readonly Group _group;
     private readonly IRepoRegistry _registry;
 
-    public GroupSectionPresenter(IGroupSectionView view, Group group, IRepoRegistry registry)
+    public Guid GroupId => _group.Id;
+
+    public GroupSectionViewModel(Group group, IRepoRegistry registry)
     {
-        _view = view;
         _group = group;
         _registry = registry;
-
-        _view.SetHeader(new GroupHeaderRow(_group));
-        _view.BindRows(
-            () => VisiblePrimaries(_group, _registry),
-            primary => new RepoEntry(primary, _registry));
     }
 
-    public void Dispose() { }
+    public View CreateHeader() => new GroupHeaderRow(_group);
+
+    public View CreateRepoRow(Repo primary) => new RepoEntry(primary, _registry);
 
     // Group.RepoIds holds primary IDs only — worktrees and submodules nest under their
     // parent via RepoEntry. Collapsed groups still surface the active row's primary so
     // the user can see "where they are" when the rest of the group is hidden.
-    private static IEnumerable<Repo> VisiblePrimaries(Group group, IRepoRegistry registry)
+    public IEnumerable<Repo> VisiblePrimaries()
     {
-        var reposById = registry.Repos.ToDictionary(r => r.Id);
+        var reposById = _registry.Repos.ToDictionary(r => r.Id);
 
-        if (group.IsCollapsed)
+        if (_group.IsCollapsed)
         {
-            var active = registry.Active.Value;
+            var active = _registry.Active.Value;
             if (active is null) yield break;
             var primaryId = active.ParentRepoId ?? active.Id;
-            foreach (var repoId in group.RepoIds)
+            foreach (var repoId in _group.RepoIds)
             {
                 if (repoId == primaryId && reposById.TryGetValue(repoId, out var repo))
                     yield return repo;
@@ -40,10 +39,12 @@ internal sealed class GroupSectionPresenter : IDisposable
             yield break;
         }
 
-        foreach (var repoId in group.RepoIds)
+        foreach (var repoId in _group.RepoIds)
         {
             if (reposById.TryGetValue(repoId, out var repo) && repo.IsPrimary)
                 yield return repo;
         }
     }
+
+    public void Dispose() { }
 }
