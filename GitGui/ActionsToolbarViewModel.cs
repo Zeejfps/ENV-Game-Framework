@@ -1,4 +1,3 @@
-using ZGF.Gui;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -9,11 +8,7 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
     private readonly IGitService _gitService;
     private readonly IPlatformShell _shell;
     private readonly IMessageBus _bus;
-
-    // Push-status and local-changes loads run on independent triggers (refs vs working
-    // tree) and can interleave, so each gets its own generation guard rather than
-    // sharing the base class's single Gen — otherwise a later call would invalidate
-    // the earlier one's pending continuation.
+    
     private readonly GenerationGuard _statusGen = new();
     private readonly GenerationGuard _localChangesGen = new();
 
@@ -214,9 +209,6 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
             return;
         }
 
-        // Diverged from upstream — a plain push would be rejected as non-fast-forward.
-        // Pop a confirmation dialog so the user can opt into a force-push (with lease)
-        // instead of seeing a cryptic error. Common after rebasing already-pushed history.
         if (!pushStatus.IsDetached
             && pushStatus.HasUpstream
             && pushStatus.Ahead > 0
@@ -251,7 +243,7 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
                     Update(s => s with { IsPushing = false, Error = outcome.ErrorMessage ?? "Push failed." });
                     return;
                 }
-                Update(s => s with { IsPushing = false });
+                Update(s => s with { IsPushing = false, PushStatus = s.PushStatus with { Ahead = 0 } });
                 bus.Broadcast(new RefsChangedMessage(repo.Id));
             });
         });
@@ -285,7 +277,7 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
                     Update(s => s with { IsPulling = false, Error = outcome.ErrorMessage ?? "Pull failed." });
                     return;
                 }
-                Update(s => s with { IsPulling = false });
+                Update(s => s with { IsPulling = false, PushStatus = s.PushStatus with { Behind = 0 } });
                 bus.Broadcast(new RefsChangedMessage(repo.Id));
             });
         });
@@ -334,23 +326,4 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         _fetchSpinner.Dispose();
         base.Dispose();
     }
-}
-
-internal sealed record ActionsToolbarState(
-    bool HasActiveRepo,
-    PushStatus PushStatus,
-    bool HasLocalChanges,
-    bool IsPushing,
-    bool IsPulling,
-    bool IsFetching,
-    string? Error)
-{
-    public static ActionsToolbarState Initial { get; } = new(
-        HasActiveRepo: false,
-        PushStatus: new PushStatus(null, HasUpstream: false, Ahead: 0, Behind: 0, IsDetached: false),
-        HasLocalChanges: false,
-        IsPushing: false,
-        IsPulling: false,
-        IsFetching: false,
-        Error: null);
 }
