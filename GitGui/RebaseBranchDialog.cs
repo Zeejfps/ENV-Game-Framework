@@ -23,10 +23,10 @@ public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
         var subtitle = new TextView
         {
             Text = "Copy commits from one branch to another",
-            TextColor = DialogPalette.RowTextMissing,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        subtitle.BindTextColorFromTheme(t => t.Dialog.RowTextMissing);
 
         var rebaseRow = BuildLabeledRow("Rebase:", BuildBranchChip(request.SourceBranch));
         var ontoRow = BuildLabeledRow("On:", BuildBranchChip(request.TargetDisplay));
@@ -47,7 +47,7 @@ public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
         _previewText = new TextView
         {
             Text = string.Empty,
-            TextColor = DialogPalette.RowTextMissing,
+            TextColor = ThemePresets.Dark.Dialog.RowTextMissing,
             VerticalTextAlignment = TextAlignment.Center,
         };
         var previewChip = new FlexRowView
@@ -97,16 +97,21 @@ public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
             ctx.Require<IGitService>(),
             ctx.Require<IUiDispatcher>(),
             ctx.Require<IMessageBus>()));
+
+        this.BindToTheme(t => { _tokens = t; ApplyPreviewState(); });
     }
+
+    private RebasePreviewState _previewStateValue;
+    private ThemeTokens _tokens = ThemePresets.Dark;
 
     private static FlexRowView BuildLabeledRow(string label, MultiChildView value)
     {
         var labelText = new TextView
         {
             Text = label,
-            TextColor = DialogPalette.SectionHeaderText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        labelText.BindTextColorFromTheme(t => t.Dialog.SectionHeaderText);
         var labelColumn = new FlexRowView
         {
             PreferredWidth = 110,
@@ -134,15 +139,16 @@ public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
             Text = LucideIcons.Branch,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 14,
-            TextColor = DialogPalette.BodyText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        icon.BindTextColorFromTheme(t => t.Dialog.BodyText);
+
         var label = new TextView
         {
             Text = name,
-            TextColor = DialogPalette.TitleText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        label.BindTextColorFromTheme(t => t.Dialog.TitleText);
         return new FlexRowView
         {
             Gap = 6,
@@ -169,25 +175,32 @@ public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
     {
         set
         {
-            switch (value)
-            {
-                case RebasePreviewState.Clean:
-                    _previewIcon.Text = LucideIcons.CheckSquare;
-                    _previewIcon.TextColor = CommitsPalette.PreviewCleanColor;
-                    _previewText.Text = "Rebase can be done without conflicts";
-                    _previewText.TextColor = CommitsPalette.PreviewCleanColor;
-                    break;
-                case RebasePreviewState.Conflicts:
-                    _previewIcon.Text = LucideIcons.CloudOff;
-                    _previewIcon.TextColor = CommitsPalette.PreviewConflictColor;
-                    _previewText.Text = "Rebase will produce conflicts";
-                    _previewText.TextColor = CommitsPalette.PreviewConflictColor;
-                    break;
-                default:
-                    _previewIcon.Text = string.Empty;
-                    _previewText.Text = string.Empty;
-                    break;
-            }
+            _previewStateValue = value;
+            ApplyPreviewState();
+        }
+    }
+
+    private void ApplyPreviewState()
+    {
+        var c = _tokens.Commits;
+        switch (_previewStateValue)
+        {
+            case RebasePreviewState.Clean:
+                _previewIcon.Text = LucideIcons.CheckSquare;
+                _previewIcon.TextColor = c.PreviewCleanColor;
+                _previewText.Text = "Rebase can be done without conflicts";
+                _previewText.TextColor = c.PreviewCleanColor;
+                break;
+            case RebasePreviewState.Conflicts:
+                _previewIcon.Text = LucideIcons.CloudOff;
+                _previewIcon.TextColor = c.PreviewConflictColor;
+                _previewText.Text = "Rebase will produce conflicts";
+                _previewText.TextColor = c.PreviewConflictColor;
+                break;
+            default:
+                _previewIcon.Text = string.Empty;
+                _previewText.Text = string.Empty;
+                break;
         }
     }
 

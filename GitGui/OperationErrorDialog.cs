@@ -27,10 +27,10 @@ public sealed class OperationErrorDialog : MultiChildView
         var titleView = new TextView
         {
             Text = title,
-            TextColor = DialogPalette.TitleText,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        titleView.BindTextColorFromTheme(t => t.Dialog.TitleText);
 
         // Pull IClipboard lazily off the context — the dialog is constructed before it's
         // attached, so capturing it in a closure that runs on click is the simplest path.
@@ -57,10 +57,10 @@ public sealed class OperationErrorDialog : MultiChildView
         var messageView = new TextView
         {
             Text = message,
-            TextColor = DialogPalette.BodyText,
             FontFamily = DiffOptions.MonoFontFamily,
             TextWrap = TextWrap.Wrap,
         };
+        messageView.BindTextColorFromTheme(t => t.Dialog.BodyText);
 
         // VerticalScrollPane forces its child to viewport width — that gives the wrapping
         // TextView the bound it needs to wrap instead of measuring its own one-line natural
@@ -79,8 +79,6 @@ public sealed class OperationErrorDialog : MultiChildView
 
         var scrollHost = new RectView
         {
-            BackgroundColor = Theme.BgDeep,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(4),
             Children =
@@ -92,6 +90,8 @@ public sealed class OperationErrorDialog : MultiChildView
                 },
             },
         };
+        scrollHost.BindBackgroundColorFromTheme(t => t.Surfaces.BgDeep);
+        scrollHost.BindBorderColorFromTheme(t => BorderColorStyle.All(t.Dialog.Border));
         scrollHost.UsePresenter(_ => new VerticalScrollBarSyncController(scrollPane, vScrollBar));
 
         var okButton = new DialogButton("OK", onClose)
@@ -109,10 +109,11 @@ public sealed class OperationErrorDialog : MultiChildView
             },
         };
 
-        AddChildToSelf(new RectView
+        var separator = new RectView { PreferredHeight = 1 };
+        separator.BindBackgroundColorFromTheme(t => t.Dialog.Separator);
+
+        var frame = new RectView
         {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(10),
             Padding = PaddingStyle.All(20),
@@ -125,17 +126,16 @@ public sealed class OperationErrorDialog : MultiChildView
                     Children =
                     {
                         headerRow,
-                        new RectView
-                        {
-                            BackgroundColor = DialogPalette.Separator,
-                            PreferredHeight = 1,
-                        },
+                        separator,
                         new FlexItem { Grow = 1, Child = scrollHost },
                         buttonsRow,
                     },
                 },
             },
-        });
+        };
+        frame.BindBackgroundColorFromTheme(t => t.Dialog.Background);
+        frame.BindBorderColorFromTheme(t => BorderColorStyle.All(t.Dialog.Border));
+        AddChildToSelf(frame);
 
         this.UseController(_ => new DialogKbmController(onClose));
     }

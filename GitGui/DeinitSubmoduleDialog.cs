@@ -27,18 +27,18 @@ public sealed class DeinitSubmoduleDialog : MultiChildView, IDeinitSubmoduleView
         var prompt = new TextView
         {
             Text = $"Deinit and remove submodule '{submodule.DisplayName}'?",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindTextColorFromTheme(t => t.Dialog.BodyText);
 
         var detail = new TextView
         {
             Text = "Runs `git submodule deinit` followed by `git rm`. The submodule will " +
                    "be removed from the working tree and the deletion staged in the parent " +
                    "for your next commit.",
-            TextColor = DialogPalette.RowTextMissing,
             TextWrap = TextWrap.Wrap,
         };
+        detail.BindTextColorFromTheme(t => t.Dialog.RowTextMissing);
 
         _forceCheckbox = new CheckboxView("Deinit even if dirty")
         {

@@ -37,7 +37,7 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
         _previewText = new TextView
         {
             Text = string.Empty,
-            TextColor = DialogPalette.RowTextMissing,
+            TextColor = ThemePresets.Dark.Dialog.RowTextMissing,
             VerticalTextAlignment = TextAlignment.Center,
         };
         var previewChip = new FlexRowView
@@ -86,6 +86,8 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
             ctx.Require<IGitService>(),
             ctx.Require<IUiDispatcher>(),
             ctx.Require<IMessageBus>()));
+
+        this.BindToTheme(t => { _tokens = t; ApplyPreviewState(); });
     }
 
     private static FlexRowView BuildLabeledRow(string label, MultiChildView value)
@@ -93,9 +95,9 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
         var labelText = new TextView
         {
             Text = label,
-            TextColor = DialogPalette.SectionHeaderText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        labelText.BindTextColorFromTheme(t => t.Dialog.SectionHeaderText);
         var labelColumn = new FlexRowView
         {
             PreferredWidth = 110,
@@ -123,15 +125,16 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
             Text = LucideIcons.Branch,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 14,
-            TextColor = DialogPalette.BodyText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        icon.BindTextColorFromTheme(t => t.Dialog.BodyText);
+
         var label = new TextView
         {
             Text = name,
-            TextColor = DialogPalette.TitleText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        label.BindTextColorFromTheme(t => t.Dialog.TitleText);
         return new FlexRowView
         {
             Gap = 6,
@@ -154,29 +157,39 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
         set => _errorView.Text = value ?? string.Empty;
     }
 
+    private MergePreviewState _previewStateValue;
+    private ThemeTokens _tokens = ThemePresets.Dark;
+
     public MergePreviewState PreviewState
     {
         set
         {
-            switch (value)
-            {
-                case MergePreviewState.Clean:
-                    _previewIcon.Text = LucideIcons.CheckSquare;
-                    _previewIcon.TextColor = CommitsPalette.PreviewCleanColor;
-                    _previewText.Text = "Merge can be done without conflicts";
-                    _previewText.TextColor = CommitsPalette.PreviewCleanColor;
-                    break;
-                case MergePreviewState.Conflicts:
-                    _previewIcon.Text = LucideIcons.CloudOff;
-                    _previewIcon.TextColor = CommitsPalette.PreviewConflictColor;
-                    _previewText.Text = "Merge will produce conflicts";
-                    _previewText.TextColor = CommitsPalette.PreviewConflictColor;
-                    break;
-                default:
-                    _previewIcon.Text = string.Empty;
-                    _previewText.Text = string.Empty;
-                    break;
-            }
+            _previewStateValue = value;
+            ApplyPreviewState();
+        }
+    }
+
+    private void ApplyPreviewState()
+    {
+        var c = _tokens.Commits;
+        switch (_previewStateValue)
+        {
+            case MergePreviewState.Clean:
+                _previewIcon.Text = LucideIcons.CheckSquare;
+                _previewIcon.TextColor = c.PreviewCleanColor;
+                _previewText.Text = "Merge can be done without conflicts";
+                _previewText.TextColor = c.PreviewCleanColor;
+                break;
+            case MergePreviewState.Conflicts:
+                _previewIcon.Text = LucideIcons.CloudOff;
+                _previewIcon.TextColor = c.PreviewConflictColor;
+                _previewText.Text = "Merge will produce conflicts";
+                _previewText.TextColor = c.PreviewConflictColor;
+                break;
+            default:
+                _previewIcon.Text = string.Empty;
+                _previewText.Text = string.Empty;
+                break;
         }
     }
 
@@ -205,25 +218,27 @@ internal sealed class MergeOptionDropdown : HoverableButton
         _labelView = new TextView
         {
             Text = LookupLabel(MergeStrategy.Default),
-            TextColor = DialogPalette.TitleText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        _labelView.BindTextColorFromTheme(t => t.Dialog.TitleText);
+
         _detailView = new TextView
         {
             Text = LookupDetail(MergeStrategy.Default),
-            TextColor = DialogPalette.RowTextMissing,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        _detailView.BindTextColorFromTheme(t => t.Dialog.RowTextMissing);
+
         var chevron = new TextView
         {
             Text = LucideIcons.ChevronDown,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 12,
-            TextColor = DialogPalette.RowText,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
         };
+        chevron.BindTextColorFromTheme(t => t.Dialog.RowText);
 
         var row = new FlexRowView
         {

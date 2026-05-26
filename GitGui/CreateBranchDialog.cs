@@ -27,31 +27,22 @@ public sealed class CreateBranchDialog : MultiChildView, ICreateBranchView
     {
         _onClose = onClose;
 
-        var nameLabel = new TextView
-        {
-            Text = "Branch name",
-            TextColor = DialogPalette.SectionHeaderText,
-        };
+        var nameLabel = new TextView { Text = "Branch name" };
+        nameLabel.BindTextColorFromTheme(t => t.Dialog.SectionHeaderText);
 
         _nameInput = DialogFrame.TextInput();
         var nameBox = DialogFrame.WrapInput(_nameInput);
 
-        var startPointLabel = new TextView
-        {
-            Text = "Starting point",
-            TextColor = DialogPalette.SectionHeaderText,
-        };
+        var startPointLabel = new TextView { Text = "Starting point" };
+        startPointLabel.BindTextColorFromTheme(t => t.Dialog.SectionHeaderText);
 
         _startPointInput = DialogFrame.TextInput();
         if (suggestedStartPoint.Length > 0)
             _startPointInput.Enter(suggestedStartPoint);
         var startPointBox = DialogFrame.WrapInput(_startPointInput);
 
-        var startPointHint = new TextView
-        {
-            Text = "Branch, tag, or commit SHA. Leave blank for HEAD.",
-            TextColor = DialogPalette.RowTextMissing,
-        };
+        var startPointHint = new TextView { Text = "Branch, tag, or commit SHA. Leave blank for HEAD." };
+        startPointHint.BindTextColorFromTheme(t => t.Dialog.RowTextMissing);
 
         _checkoutCheckbox = new CheckboxView("Check out after create")
         {

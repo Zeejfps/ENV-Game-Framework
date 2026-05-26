@@ -79,17 +79,19 @@ public sealed class AddSubmoduleDialog : MultiChildView, IAddSubmoduleView
             ctx.Require<IMessageBus>()));
     }
 
-    private static TextView Label(string text) => new()
+    private static TextView Label(string text)
     {
-        Text = text,
-        TextColor = DialogPalette.SectionHeaderText,
-    };
+        var view = new TextView { Text = text };
+        view.BindTextColorFromTheme(t => t.Dialog.SectionHeaderText);
+        return view;
+    }
 
-    private static TextView Hint(string text) => new()
+    private static TextView Hint(string text)
     {
-        Text = text,
-        TextColor = DialogPalette.RowTextMissing,
-    };
+        var view = new TextView { Text = text };
+        view.BindTextColorFromTheme(t => t.Dialog.RowTextMissing);
+        return view;
+    }
 
     private void RaiseAddRequested() => AddRequested?.Invoke();
     private void RaiseInputsChanged() => InputsChanged?.Invoke();

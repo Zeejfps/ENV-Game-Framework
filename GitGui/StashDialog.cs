@@ -26,11 +26,8 @@ public sealed class StashDialog : MultiChildView, IStashView
     {
         _onClose = onClose;
 
-        var messageLabel = new TextView
-        {
-            Text = "Message",
-            TextColor = DialogPalette.SectionHeaderText,
-        };
+        var messageLabel = new TextView { Text = "Message" };
+        messageLabel.BindTextColorFromTheme(t => t.Dialog.SectionHeaderText);
 
         _messageInput = DialogFrame.TextInput();
         var messageBox = DialogFrame.WrapInput(_messageInput);

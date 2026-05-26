@@ -22,10 +22,10 @@ public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
         var subtitle = new TextView
         {
             Text = "First push — choose a remote and set the upstream",
-            TextColor = DialogPalette.RowTextMissing,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        subtitle.BindTextColorFromTheme(t => t.Dialog.RowTextMissing);
 
         var branchRow = BuildLabeledRow("Branch:", BuildBranchChip(request.LocalBranch));
 
@@ -86,9 +86,9 @@ public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
         var labelText = new TextView
         {
             Text = label,
-            TextColor = DialogPalette.SectionHeaderText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        labelText.BindTextColorFromTheme(t => t.Dialog.SectionHeaderText);
         var labelColumn = new FlexRowView
         {
             PreferredWidth = 110,
@@ -116,15 +116,16 @@ public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
             Text = LucideIcons.Branch,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 14,
-            TextColor = DialogPalette.BodyText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        icon.BindTextColorFromTheme(t => t.Dialog.BodyText);
+
         var label = new TextView
         {
             Text = name,
-            TextColor = DialogPalette.TitleText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        label.BindTextColorFromTheme(t => t.Dialog.TitleText);
         return new FlexRowView
         {
             Gap = 6,
@@ -165,6 +166,9 @@ internal sealed class RemoteDropdown : HoverableButton
     public State<string> SelectedState { get; } = new(string.Empty);
     public string Selected => SelectedState.Value;
 
+    private readonly State<uint> _placeholderColor = new(ThemePresets.Dark.Dialog.RowTextMissing);
+    private readonly State<uint> _titleColor = new(ThemePresets.Dark.Dialog.TitleText);
+
     public RemoteDropdown()
     {
         PreferredHeight = 30;
@@ -174,13 +178,13 @@ internal sealed class RemoteDropdown : HoverableButton
             Text = LucideIcons.Branch,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 14,
-            TextColor = DialogPalette.BodyText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        icon.BindTextColorFromTheme(t => t.Dialog.BodyText);
+
         _labelView = new TextView
         {
             Text = "(no remotes)",
-            TextColor = DialogPalette.RowTextMissing,
             VerticalTextAlignment = TextAlignment.Center,
         };
         _chevron = new TextView
@@ -188,11 +192,16 @@ internal sealed class RemoteDropdown : HoverableButton
             Text = LucideIcons.ChevronDown,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 12,
-            TextColor = DialogPalette.RowText,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
         };
+        _chevron.BindTextColorFromTheme(t => t.Dialog.RowText);
+        this.BindToTheme(t =>
+        {
+            _placeholderColor.Value = t.Dialog.RowTextMissing;
+            _titleColor.Value = t.Dialog.TitleText;
+        });
 
         var row = new FlexRowView
         {
@@ -216,12 +225,12 @@ internal sealed class RemoteDropdown : HoverableButton
         DialogPalette.BindBorderedButtonChrome(background, IsHovered);
         SetBackground(background);
 
+        _labelView.BindTextColor(() => string.IsNullOrEmpty(SelectedState.Value)
+            ? _placeholderColor.Value
+            : _titleColor.Value);
         SelectedState.Subscribe(s =>
         {
             _labelView.Text = string.IsNullOrEmpty(s) ? "(no remotes)" : s;
-            _labelView.TextColor = string.IsNullOrEmpty(s)
-                ? DialogPalette.RowTextMissing
-                : DialogPalette.TitleText;
         });
     }
 

@@ -28,17 +28,11 @@ public sealed class RenameBranchDialog : MultiChildView, IRenameBranchView
         _onClose = onClose;
         _currentName = currentName;
 
-        var subtitle = new TextView
-        {
-            Text = $"Renaming '{currentName}'",
-            TextColor = DialogPalette.BodyText,
-        };
+        var subtitle = new TextView { Text = $"Renaming '{currentName}'" };
+        subtitle.BindTextColorFromTheme(t => t.Dialog.BodyText);
 
-        var nameLabel = new TextView
-        {
-            Text = "New name",
-            TextColor = DialogPalette.SectionHeaderText,
-        };
+        var nameLabel = new TextView { Text = "New name" };
+        nameLabel.BindTextColorFromTheme(t => t.Dialog.SectionHeaderText);
 
         _nameInput = DialogFrame.TextInput();
         var nameBox = DialogFrame.WrapInput(_nameInput);

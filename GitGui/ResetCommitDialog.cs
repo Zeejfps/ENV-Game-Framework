@@ -43,16 +43,16 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
             Text = branchName != null
                 ? $"Move the '{branchName}' branch HEAD to the selected revision"
                 : "Move HEAD to the selected revision",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        subtitle.BindTextColorFromTheme(t => t.Dialog.BodyText);
 
         var dirtyHint = new TextView
         {
             Text = BuildDirtyHint(stagedCount, unstagedCount),
-            TextColor = DialogPalette.RowTextMissing,
             TextWrap = TextWrap.Wrap,
         };
+        dirtyHint.BindTextColorFromTheme(t => t.Dialog.RowTextMissing);
 
         var branchRow = BuildLabeledRow("Branch:", BuildBranchValue(branchName));
         var moveToRow = BuildLabeledRow("Move to:", BuildCommitValue(shortSha, summary));
@@ -122,9 +122,9 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
         var labelText = new TextView
         {
             Text = label,
-            TextColor = DialogPalette.SectionHeaderText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        labelText.BindTextColorFromTheme(t => t.Dialog.SectionHeaderText);
         var labelColumn = new FlexRowView
         {
             PreferredWidth = 90,
@@ -152,16 +152,17 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
             Text = LucideIcons.Branch,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 14,
-            TextColor = DialogPalette.BodyText,
             VerticalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
         };
+        icon.BindTextColorFromTheme(t => t.Dialog.BodyText);
+
         var label = new TextView
         {
             Text = branchName ?? "(detached HEAD)",
-            TextColor = DialogPalette.TitleText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        label.BindTextColorFromTheme(t => t.Dialog.TitleText);
         return new FlexRowView
         {
             Gap = 6,
@@ -176,24 +177,26 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
         {
             Text = "●",
             FontSize = 10,
-            TextColor = DialogPalette.BodyText,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
         };
+        dot.BindTextColorFromTheme(t => t.Dialog.BodyText);
+
         var shaLabel = new TextView
         {
             Text = shortSha,
-            TextColor = DialogPalette.TitleText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        shaLabel.BindTextColorFromTheme(t => t.Dialog.TitleText);
+
         var summaryLabel = new TextView
         {
             Text = summary,
-            TextColor = DialogPalette.BodyText,
             VerticalTextAlignment = TextAlignment.Center,
             TextWrap = TextWrap.NoWrap,
         };
+        summaryLabel.BindTextColorFromTheme(t => t.Dialog.BodyText);
         var summaryClip = new ClippingView
         {
             Children = { summaryLabel },
@@ -258,26 +261,28 @@ internal sealed class ResetModeDropdown : HoverableButton
         _labelView = new TextView
         {
             Text = LookupLabel(ResetMode.Mixed),
-            TextColor = DialogPalette.TitleText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        _labelView.BindTextColorFromTheme(t => t.Dialog.TitleText);
+
         _detailView = new TextView
         {
             Text = LookupDetail(ResetMode.Mixed),
-            TextColor = DialogPalette.RowTextMissing,
             VerticalTextAlignment = TextAlignment.Center,
             TextWrap = TextWrap.NoWrap,
         };
+        _detailView.BindTextColorFromTheme(t => t.Dialog.RowTextMissing);
+
         var chevron = new TextView
         {
             Text = LucideIcons.ChevronDown,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 12,
-            TextColor = DialogPalette.RowText,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
         };
+        chevron.BindTextColorFromTheme(t => t.Dialog.RowText);
 
         // Wrapping the detail in a ClippingView keeps long descriptions from overflowing
         // past the chevron — the framework's TextView doesn't clip on its own.

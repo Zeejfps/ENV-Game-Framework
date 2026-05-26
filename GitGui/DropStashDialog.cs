@@ -27,9 +27,9 @@ public sealed class DropStashDialog : MultiChildView
         var prompt = new TextView
         {
             Text = $"Applied: {subject}\n\nDrop this stash now? This cannot be undone.",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindTextColorFromTheme(t => t.Dialog.BodyText);
 
         _errorView = DialogFrame.ErrorView();
 

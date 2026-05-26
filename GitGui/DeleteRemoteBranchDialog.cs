@@ -27,16 +27,16 @@ public sealed class DeleteRemoteBranchDialog : MultiChildView, IDeleteRemoteBran
         var prompt = new TextView
         {
             Text = $"Delete '{branchName}' from remote '{remoteName}'?",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindTextColorFromTheme(t => t.Dialog.BodyText);
 
         var hint = new TextView
         {
             Text = "This is a network operation. Your local branches are not affected.",
-            TextColor = DialogPalette.RowTextMissing,
             TextWrap = TextWrap.Wrap,
         };
+        hint.BindTextColorFromTheme(t => t.Dialog.RowTextMissing);
 
         _errorView = DialogFrame.ErrorView();
 

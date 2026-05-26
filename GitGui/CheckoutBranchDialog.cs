@@ -35,14 +35,11 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
         var subtitle = new TextView
         {
             Text = $"Create a local branch from {remoteName}/{remoteBranchName}",
-            TextColor = DialogPalette.BodyText,
         };
+        subtitle.BindTextColorFromTheme(t => t.Dialog.BodyText);
 
-        var nameLabel = new TextView
-        {
-            Text = "Local branch name",
-            TextColor = DialogPalette.SectionHeaderText,
-        };
+        var nameLabel = new TextView { Text = "Local branch name" };
+        nameLabel.BindTextColorFromTheme(t => t.Dialog.SectionHeaderText);
 
         _nameInput = DialogFrame.TextInput();
         var nameBox = DialogFrame.WrapInput(_nameInput);

@@ -32,9 +32,9 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
         var prompt = new TextView
         {
             Text = bodyText,
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindTextColorFromTheme(t => t.Dialog.BodyText);
 
         _errorView = DialogFrame.ErrorView();
 

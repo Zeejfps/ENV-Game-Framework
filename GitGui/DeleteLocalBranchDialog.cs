@@ -33,16 +33,16 @@ public sealed class DeleteLocalBranchDialog : MultiChildView, IDeleteLocalBranch
         var prompt = new TextView
         {
             Text = $"Delete local branch '{branchName}'?",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindTextColorFromTheme(t => t.Dialog.BodyText);
 
         var hint = new TextView
         {
             Text = "Unchecked: refuses if the branch isn't fully merged into its upstream or HEAD.",
-            TextColor = DialogPalette.RowTextMissing,
             TextWrap = TextWrap.Wrap,
         };
+        hint.BindTextColorFromTheme(t => t.Dialog.RowTextMissing);
 
         _forceCheckbox = new CheckboxView("Delete even if not merged")
         {
