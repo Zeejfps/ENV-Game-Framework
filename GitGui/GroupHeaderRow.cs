@@ -5,23 +5,18 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class GroupHeaderRow : MultiChildView, IGroupHeaderRowView
+internal sealed class GroupHeaderRow : MultiChildView, IBind<GroupHeaderRowViewModel>
 {
     private readonly MultiChildView _nameSlot;
+    private readonly TextView _chevron;
+    private readonly State<bool> _isHovered = new(false);
 
-    public event Action? ToggleCollapsedRequested;
-    public Func<IReadOnlyList<RepoBarContextMenu.Item>>? MenuItemsProvider { private get; set; }
-    public Func<bool>? IsRenamingProvider { private get; set; }
-
-    public GroupHeaderRow(Group group)
+    public GroupHeaderRow()
     {
         PreferredHeight = 26;
 
-        var isHovered = new State<bool>(false);
-
-        var chevron = new TextView
+        _chevron = new TextView
         {
-            Text = ChevronFor(group.IsCollapsed),
             TextColor = DialogPalette.SectionHeaderText,
             FontSize = 8f,
             HorizontalTextAlignment = TextAlignment.Center,
@@ -43,30 +38,32 @@ public sealed class GroupHeaderRow : MultiChildView, IGroupHeaderRowView
                     Gap = 8,
                     Children =
                     {
-                        chevron,
+                        _chevron,
                         new FlexItem { Grow = 1, Child = _nameSlot },
                     }
                 }
             }
         };
-        background.BindBackgroundColor(isHovered,
+        background.BindBackgroundColor(_isHovered,
             h => h ? DialogPalette.RowHover : DialogPalette.RowTransparent);
         AddChildToSelf(background);
+    }
+
+    public void Bind(GroupHeaderRowViewModel vm)
+    {
+        _chevron.Text = ChevronFor(vm.Group.IsCollapsed);
+
+        _nameSlot.BindChildren(
+            () => new[] { vm.IsRenaming.Value },
+            vm.CreateNameContent);
 
         this.UseController(ctx => new GroupHeaderController(
             this, ctx,
-            group,
-            h => isHovered.Value = h,
-            _ => MenuItemsProvider?.Invoke() ?? Array.Empty<RepoBarContextMenu.Item>(),
-            () => IsRenamingProvider?.Invoke() ?? false,
-            () => ToggleCollapsedRequested?.Invoke()));
-
-        this.UsePresenter(ctx => new GroupHeaderRowPresenter(this, group, ctx.Require<IRepoRegistry>()));
-    }
-
-    public void BindName(Func<IEnumerable<bool>> isRenamingCompute, Func<bool, View> contentFactory)
-    {
-        _nameSlot.BindChildren(isRenamingCompute, contentFactory);
+            vm.Group,
+            h => _isHovered.Value = h,
+            _ => vm.BuildMenuItems(),
+            () => vm.IsRenaming.Value,
+            vm.ToggleCollapsed.Execute));
     }
 
     private static string ChevronFor(bool isCollapsed) => isCollapsed ? "▶" : "▼";

@@ -15,7 +15,7 @@ internal sealed class RepoBarViewModel : IDisposable
         _registry = registry;
         NewGroup = new Command(DoNewGroup);
         GroupSections = _registry.Groups.Map(
-            g => new GroupSectionViewModel(g, registry),
+            g => new GroupSectionViewModel(g, registry, NewGroup),
             out _groupSectionsSubscription,
             vm => vm.Dispose());
     }

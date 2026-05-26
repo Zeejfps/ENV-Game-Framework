@@ -33,7 +33,11 @@ internal sealed class GroupSection : MultiChildView, IBind<GroupSectionViewModel
     public void Bind(GroupSectionViewModel vm)
     {
         this.UseController(ctx => new GroupSectionController(this, ctx, vm.GroupId));
-        _headerSlot.Children.Add(vm.CreateHeader());
+
+        var header = new GroupHeaderRow();
+        header.Bind(vm.HeaderVm);
+        _headerSlot.Children.Add(header);
+
         _rows.BindChildren(vm.VisiblePrimaries, vm.CreateRepoRow);
     }
 }

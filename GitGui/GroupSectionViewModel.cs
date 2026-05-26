@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -8,14 +9,14 @@ internal sealed class GroupSectionViewModel : IDisposable
     private readonly IRepoRegistry _registry;
 
     public Guid GroupId => _group.Id;
+    public GroupHeaderRowViewModel HeaderVm { get; }
 
-    public GroupSectionViewModel(Group group, IRepoRegistry registry)
+    public GroupSectionViewModel(Group group, IRepoRegistry registry, Command newGroup)
     {
         _group = group;
         _registry = registry;
+        HeaderVm = new GroupHeaderRowViewModel(group, registry, newGroup);
     }
-
-    public View CreateHeader() => new GroupHeaderRow(_group);
 
     public View CreateRepoRow(Repo primary) => new RepoEntry(primary, _registry);
 
@@ -46,5 +47,5 @@ internal sealed class GroupSectionViewModel : IDisposable
         }
     }
 
-    public void Dispose() { }
+    public void Dispose() => HeaderVm.Dispose();
 }
