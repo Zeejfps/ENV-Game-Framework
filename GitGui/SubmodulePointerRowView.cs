@@ -21,11 +21,8 @@ public sealed class SubmodulePointerRowView : MultiChildView
             ? file.Path
             : $"{file.Path}  ·  {ShortSha(pc.FromSha)}..{ShortSha(pc.ToSha)}{RangeSummary(pc)}";
 
-        var pathView = new TextView
-        {
-            Text = text,
-            TextColor = FileChangesPalette.RowText,
-        };
+        var pathView = new TextView { Text = text };
+        pathView.BindTextColorFromTheme(t => t.FileChanges.RowText);
 
         AddChildToSelf(new FlexRowView
         {

@@ -39,25 +39,38 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
 
     private IReadOnlyList<FileChange> _files = Array.Empty<FileChange>();
 
+    // Cached value-typed render state, refreshed in RebuildVisuals on theme swap. Default
+    // values use the Dark preset so first draw before the BindToTheme callback fires (e.g.
+    // measurement during attach) still renders sensibly.
+    private ThemeTokens _tokens = ThemePresets.Dark;
     private readonly TextStyle _badgeGlyphStyle = new()
     {
-        TextColor = FileChangesPalette.BadgeText,
+        TextColor = ThemePresets.Dark.FileChanges.BadgeText,
         FontSize = 11f,
         HorizontalAlignment = TextAlignment.Center,
         VerticalAlignment = TextAlignment.Center,
     };
     private readonly TextStyle _pathTextStyle = new()
     {
-        TextColor = DialogPalette.RowText,
+        TextColor = ThemePresets.Dark.Dialog.RowText,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
     private readonly TextStyle _pathTextActiveStyle = new()
     {
-        TextColor = DialogPalette.RowTextActive,
+        TextColor = ThemePresets.Dark.Dialog.RowTextActive,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
+
+    private void RebuildVisuals(ThemeTokens tokens)
+    {
+        _tokens = tokens;
+        _badgeGlyphStyle.TextColor = tokens.FileChanges.BadgeText;
+        _pathTextStyle.TextColor = tokens.Dialog.RowText;
+        _pathTextActiveStyle.TextColor = tokens.Dialog.RowTextActive;
+        SetDirty();
+    }
 
     // Sentinel start so the first NotifyScrollChanged fires even when the computed scale
     // equals 1 — otherwise the scrollbar thumb's built-in 0.5 default sticks until a real
@@ -153,6 +166,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         selection.Subscribe(_ => SetDirty());
 
         this.UseController(_ => new ScrollSyncController(this, _scrollBar, _hScrollBar));
+        this.BindToTheme(RebuildVisuals);
     }
 
     public void SetFiles(IReadOnlyList<FileChange> files)
@@ -234,7 +248,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
             Position = new RectF(badgeLeft, badgeBottom, badgeSize, badgeSize),
             Style = new RectStyle
             {
-                BackgroundColor = FileChangesPalette.StatusColor(file.Status),
+                BackgroundColor = _tokens.FileChanges.StatusColor(file.Status),
                 BorderRadius = BorderRadiusStyle.All(3),
             },
             ZIndex = z + 1,
@@ -242,7 +256,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         c.DrawText(new DrawTextInputs
         {
             Position = new RectF(badgeLeft, badgeBottom, badgeSize, badgeSize),
-            Text = FileChangesPalette.StatusGlyph(file.Status),
+            Text = FileChangesUtil.StatusGlyph(file.Status),
             Style = _badgeGlyphStyle,
             ZIndex = z + 2,
         });
@@ -253,7 +267,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         if (textWidth <= 0f) return;
 
         var pathStyle = isSelected ? _pathTextActiveStyle : _pathTextStyle;
-        var pathText = FileChangesPalette.FormatPath(file);
+        var pathText = FileChangesUtil.FormatPath(file);
         var rendered = TextMeasure.TruncateToFit(pathText, pathStyle, textWidth, Context.Canvas);
         c.DrawText(new DrawTextInputs
         {

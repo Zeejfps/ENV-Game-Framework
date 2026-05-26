@@ -113,7 +113,7 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
             BorderColor = new BorderColorStyle
             {
                 Top = CommitsPalette.Border,
-                Bottom = FileChangesPalette.HeaderBorder,
+                Bottom = 0xFF313338,  // FileChanges.HeaderBorder (legacy const, will migrate in Diff sweep)
             },
             BorderSize = new BorderSizeStyle { Top = 1, Bottom = 1 },
             Padding = new PaddingStyle { Left = 8, Right = 6 },
@@ -133,7 +133,7 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
         };
         bar.BindBackgroundColor(() => hovered.Value
             ? DialogPalette.ButtonHover
-            : FileChangesPalette.HeaderBg);
+            : 0xFF222326u);  // FileChanges.HeaderBg (legacy const, will migrate in Diff sweep)
 
         bar.UseController(_ => new HoverableButtonController(
             () => _isCollapsed.Value = !_isCollapsed.Value,

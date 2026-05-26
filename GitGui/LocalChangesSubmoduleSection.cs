@@ -54,30 +54,26 @@ internal sealed class LocalChangesSubmoduleSection : MultiChildView
 
     private View BuildRow(SubmoduleInfo info)
     {
+        var glyph = new TextView
+        {
+            Text = "S",
+            FontSize = 11f,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        glyph.BindTextColorFromTheme(t => t.FileChanges.BadgeText);
+
         var badge = new RectView
         {
             PreferredWidth = FileChangesUI.BadgeSize,
             PreferredHeight = FileChangesUI.BadgeSize,
-            BackgroundColor = FileChangesPalette.StatusSubmodule,
             BorderRadius = BorderRadiusStyle.All(3),
-            Children =
-            {
-                new TextView
-                {
-                    Text = "S",
-                    TextColor = FileChangesPalette.BadgeText,
-                    FontSize = 11f,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    VerticalTextAlignment = TextAlignment.Center,
-                },
-            },
+            Children = { glyph },
         };
+        badge.BindBackgroundColorFromTheme(t => t.FileChanges.StatusSubmodule);
 
-        var label = new TextView
-        {
-            Text = $"{info.Path}  ·  {DriftLabel(info)}",
-            TextColor = FileChangesPalette.RowText,
-        };
+        var label = new TextView { Text = $"{info.Path}  ·  {DriftLabel(info)}" };
+        label.BindTextColorFromTheme(t => t.FileChanges.RowText);
 
         var stageButton = new LocalChangesHeaderActionButton(
             LucideIcons.ChevronRight, () => _onStage(info.Path), "Stage pointer update");
