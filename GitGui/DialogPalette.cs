@@ -1,9 +1,15 @@
-﻿using ZGF.Gui;
+using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Observable;
 
 namespace GitGui;
 
+/// <summary>
+/// Legacy compile-time consts kept alive while non-migrated dialog views still reference
+/// them. Values mirror <see cref="ThemePresets"/>.Dark.Dialog one-to-one. Each consumer
+/// migrates to <see cref="IThemeService"/> on its own pass — this class goes away once
+/// the Dialogs sweep is complete and Phase 4 cleanup runs.
+/// </summary>
 internal static class DialogPalette
 {
     public const uint Background = Theme.BgPanel;
@@ -30,26 +36,24 @@ internal static class DialogPalette
     public const uint RowTextMissing = 0x80B5B9C0;
     public const uint SectionHeaderText = Theme.TextHeader;
 
-    // Icon-only accents for child rows nested under a primary in the RepoBar. The icon
-    // stays tinted regardless of hover/active so it remains a stable "what kind of row
-    // is this" identifier; the label still tracks the active/missing palette.
     public const uint IconAccentWorktree = 0xFF5DADE2;
     public const uint IconAccentSubmodule = 0xFFB57EDC;
 
+    /// <summary>
+    /// Apply the bordered-button chrome to <paramref name="background"/> by tagging it with
+    /// <see cref="StyleClassNames.DialogButton"/> and binding a <c>hovered</c> modifier. The
+    /// sheet (built by <see cref="StyleSheetBuilder"/>) supplies the normal + hovered colors,
+    /// so callers automatically pick up theme swaps without further changes.
+    /// </summary>
     public static void BindBorderedButtonChrome(RectView background, IReadable<bool> isHovered)
     {
-        background.BindBackgroundColor(isHovered, h => h ? ButtonHover : ButtonNormal);
-        background.BindBorderColor(isHovered, h => BorderColorStyle.All(h ? ButtonBorderHover : ButtonBorder));
+        background.StyleClasses.Add(StyleClassNames.DialogButton);
+        background.BindModifier(ModifierNames.Hovered, isHovered);
     }
 
-    /// <summary>
-    /// Same chrome bindings as the IReadable&lt;bool&gt; overload but driven by a derived
-    /// predicate — useful when "is hovered" needs to be combined with another state (e.g.
-    /// disabled buttons that shouldn't react to the pointer).
-    /// </summary>
     public static void BindBorderedButtonChrome(RectView background, Func<bool> isEffectivelyHovered)
     {
-        background.BindBackgroundColor(() => isEffectivelyHovered() ? ButtonHover : ButtonNormal);
-        background.BindBorderColor(() => BorderColorStyle.All(isEffectivelyHovered() ? ButtonBorderHover : ButtonBorder));
+        background.StyleClasses.Add(StyleClassNames.DialogButton);
+        background.BindModifier(ModifierNames.Hovered, isEffectivelyHovered);
     }
 }

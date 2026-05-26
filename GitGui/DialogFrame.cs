@@ -21,6 +21,14 @@ internal static class DialogFrame
 
     public static FlexRowView Header(string title, Action onClose)
     {
+        var titleView = new TextView
+        {
+            Text = title,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        titleView.BindTextColorFromTheme(t => t.Dialog.TitleText);
+
         return new FlexRowView
         {
             CrossAxisAlignment = CrossAxisAlignment.Center,
@@ -28,27 +36,18 @@ internal static class DialogFrame
             Children =
             {
                 new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem
-                {
-                    Grow = 1,
-                    Child = new TextView
-                    {
-                        Text = title,
-                        TextColor = DialogPalette.TitleText,
-                        HorizontalTextAlignment = TextAlignment.Center,
-                        VerticalTextAlignment = TextAlignment.Center,
-                    },
-                },
+                new FlexItem { Grow = 1, Child = titleView },
                 new DialogCloseButton(onClose),
             },
         };
     }
 
-    public static RectView Separator() => new()
+    public static RectView Separator()
     {
-        BackgroundColor = DialogPalette.Separator,
-        PreferredHeight = 1,
-    };
+        var view = new RectView { PreferredHeight = 1 };
+        view.BindBackgroundColorFromTheme(t => t.Dialog.Separator);
+        return view;
+    }
 
     public static FlexRowView ButtonsRow(MultiChildView cancel, MultiChildView primary, float gap = DefaultButtonsGap) => new()
     {
@@ -68,33 +67,45 @@ internal static class DialogFrame
         TextWrap = TextWrap.Wrap,
     };
 
-    public static TextInputView TextInput() => new()
+    public static TextInputView TextInput()
     {
-        BackgroundColor = DialogPalette.ButtonNormal,
-        TextColor = DialogPalette.TitleText,
-        CaretColor = DialogPalette.TitleText,
-        SelectionRectColor = DialogPalette.RowActive,
-        TextWrap = TextWrap.NoWrap,
-    };
+        var input = new TextInputView { TextWrap = TextWrap.NoWrap };
+        input.BindToTheme(t =>
+        {
+            input.BackgroundColor = t.Dialog.ButtonNormal;
+            input.TextColor = t.Dialog.TitleText;
+            input.CaretColor = t.Dialog.TitleText;
+            input.SelectionRectColor = t.Dialog.RowActive;
+        });
+        return input;
+    }
 
-    public static RectView WrapInput(TextInputView input) => new()
+    public static RectView WrapInput(TextInputView input)
     {
-        BackgroundColor = DialogPalette.ButtonNormal,
-        BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
-        BorderSize = BorderSizeStyle.All(1),
-        BorderRadius = BorderRadiusStyle.All(3),
-        Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
-        PreferredHeight = 28,
-        Children = { input },
-    };
+        var wrap = new RectView
+        {
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(3),
+            Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
+            PreferredHeight = 28,
+            Children = { input },
+        };
+        wrap.BindBackgroundColorFromTheme(t => t.Dialog.ButtonNormal);
+        wrap.BindBorderColorFromTheme(t => BorderColorStyle.All(t.Dialog.ButtonBorder));
+        return wrap;
+    }
 
-    private static RectView Wrap(View child) => new()
+    private static RectView Wrap(View child)
     {
-        BackgroundColor = DialogPalette.Background,
-        BorderColor = BorderColorStyle.All(DialogPalette.Border),
-        BorderSize = BorderSizeStyle.All(1),
-        BorderRadius = BorderRadiusStyle.All(DefaultBorderRadius),
-        Padding = PaddingStyle.All(DefaultPadding),
-        Children = { child },
-    };
+        var wrap = new RectView
+        {
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(DefaultBorderRadius),
+            Padding = PaddingStyle.All(DefaultPadding),
+            Children = { child },
+        };
+        wrap.BindBackgroundColorFromTheme(t => t.Dialog.Background);
+        wrap.BindBorderColorFromTheme(t => BorderColorStyle.All(t.Dialog.Border));
+        return wrap;
+    }
 }

@@ -1,5 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -24,6 +25,18 @@ public sealed class DialogCopyButton : HoverableButton
         PreferredWidth = 28;
         PreferredHeight = 28;
 
+        var normalText = new State<uint>(ThemePresets.Dark.Dialog.CloseTextNormal);
+        var hoverText = new State<uint>(ThemePresets.Dark.Dialog.CloseTextHover);
+        var normalBg = new State<uint>(ThemePresets.Dark.Dialog.CloseNormal);
+        var hoverBg = new State<uint>(ThemePresets.Dark.Dialog.CloseHover);
+        this.BindToTheme(t =>
+        {
+            normalText.Value = t.Dialog.CloseTextNormal;
+            hoverText.Value = t.Dialog.CloseTextHover;
+            normalBg.Value = t.Dialog.CloseNormal;
+            hoverBg.Value = t.Dialog.CloseHover;
+        });
+
         _label = new TextView
         {
             Text = LucideIcons.Copy,
@@ -32,16 +45,14 @@ public sealed class DialogCopyButton : HoverableButton
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        _label.BindTextColor(IsHovered,
-            h => h ? DialogPalette.CloseTextHover : DialogPalette.CloseTextNormal);
+        _label.BindTextColor(() => IsHovered.Value ? hoverText.Value : normalText.Value);
 
         var background = new RectView
         {
             BorderRadius = BorderRadiusStyle.All(4),
             Children = { _label }
         };
-        background.BindBackgroundColor(IsHovered,
-            h => h ? DialogPalette.CloseHover : DialogPalette.CloseNormal);
+        background.BindBackgroundColor(() => IsHovered.Value ? hoverBg.Value : normalBg.Value);
 
         SetBackground(background);
     }
