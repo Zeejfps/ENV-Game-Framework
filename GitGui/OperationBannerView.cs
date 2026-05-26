@@ -6,37 +6,25 @@ namespace GitGui;
 /// <summary>
 /// Banner shown above the main content area while the repo is mid-operation
 /// (merge / rebase / cherry-pick / revert / bisect / am) or has unmerged paths from a
-/// stash-apply conflict. Same warning palette as <see cref="ErrorBar"/>; hides by removing
-/// itself from <see cref="_container"/> so the parent's gap collapses, shows by
-/// re-inserting at <see cref="_insertAt"/>.
-///
-/// Exposes <see cref="AbortRequested"/> so the presenter can route the click to the
-/// confirmation dialog without coupling the banner to the bus directly. <see cref="CurrentState"/>
-/// stays in sync with whatever the presenter set last so the dialog message can carry it.
+/// stash-apply conflict. Self-managing: when state is None, the inner content is removed
+/// from this view's children, so the view collapses to zero height in its parent layout.
 /// </summary>
-internal sealed class OperationStateBanner
+internal sealed class OperationBannerView : MultiChildView
 {
-    public RectView View { get; }
-    public RepoOperationState CurrentState { get; private set; } = RepoOperationState.None;
-
-    public event Action? AbortRequested;
-    public event Action? ContinueRequested;
-
+    private readonly RectView _content;
     private readonly TextView _text;
     private readonly ActionButton _abortButton;
     private readonly ActionButton _continueButton;
     private readonly TextView _spinnerIcon;
     private readonly FlexItem _textItem;
     private readonly FlexRowView _row;
-    private readonly MultiChildView _container;
-    private readonly int _insertAt;
+
+    private OperationStateBannerViewModel? _vm;
+    private RepoOperationState _currentState = RepoOperationState.None;
     private bool _isBusy;
 
-    public OperationStateBanner(MultiChildView container, int insertAt = -1)
+    public OperationBannerView()
     {
-        _container = container;
-        _insertAt = insertAt;
-
         _text = new TextView
         {
             TextColor = CommitsPalette.WarningText,
@@ -46,13 +34,13 @@ internal sealed class OperationStateBanner
 
         _continueButton = new ActionButton(
             LucideIcons.ChevronsRight,
-            () => ContinueRequested?.Invoke(),
+            () => _vm?.Continue(),
             tooltip: "Continue",
             backgroundColor: 0xFF4E8B3D);
 
         _abortButton = new ActionButton(
             LucideIcons.X,
-            () => AbortRequested?.Invoke(),
+            () => _vm?.Abort(),
             tooltip: "Abort",
             backgroundColor: 0xFFB3514B);
 
@@ -76,7 +64,7 @@ internal sealed class OperationStateBanner
             Children = { _textItem, _abortButton },
         };
 
-        View = new RectView
+        _content = new RectView
         {
             BackgroundColor = CommitsPalette.WarningBg,
             BorderColor = new BorderColorStyle { Bottom = CommitsPalette.WarningBorder },
@@ -90,45 +78,35 @@ internal sealed class OperationStateBanner
             },
             Children = { _row },
         };
-    }
 
-    public RepoOperationState State
-    {
-        set
+        this.UseViewModel<OperationStateBannerViewModel>(vm =>
         {
-            CurrentState = value;
-            if (value == RepoOperationState.None)
-            {
-                _isBusy = false;
-                _spinnerIcon.Rotation = 0f;
-                _container.Children.Remove(View);
-                return;
-            }
-            Render();
-            if (!_container.Children.Contains(View))
-            {
-                if (_insertAt < 0) _container.Children.Add(View);
-                else _container.Children.Insert(_insertAt, View);
-            }
-        }
+            _vm = vm;
+            vm.State.Subscribe(SetState);
+            vm.IsBusy.Subscribe(SetIsBusy);
+            vm.BusyRotation.Subscribe(r => _spinnerIcon.Rotation = r);
+        });
     }
 
-    // Drives the in-flight visual: text swaps to "Continuing rebase…", both action buttons
-    // detach, and a spinner icon takes their slot. Set back to false on completion or error
-    // so the banner restores to the normal warning copy + buttons.
-    public bool IsBusy
+    private void SetState(RepoOperationState state)
     {
-        set
+        _currentState = state;
+        if (state == RepoOperationState.None)
         {
-            _isBusy = value;
-            if (!value) _spinnerIcon.Rotation = 0f;
-            if (CurrentState != RepoOperationState.None) Render();
+            _isBusy = false;
+            _spinnerIcon.Rotation = 0f;
+            if (Children.Contains(_content)) RemoveChildFromSelf(_content);
+            return;
         }
+        Render();
+        if (!Children.Contains(_content)) AddChildToSelf(_content);
     }
 
-    public float BusyRotation
+    private void SetIsBusy(bool busy)
     {
-        set => _spinnerIcon.Rotation = value;
+        _isBusy = busy;
+        if (!busy) _spinnerIcon.Rotation = 0f;
+        if (_currentState != RepoOperationState.None) Render();
     }
 
     private void Render()
@@ -137,12 +115,12 @@ internal sealed class OperationStateBanner
         _row.Children.Add(_textItem);
         if (_isBusy)
         {
-            _text.Text = BusyMessageFor(CurrentState);
+            _text.Text = BusyMessageFor(_currentState);
             _row.Children.Add(_spinnerIcon);
             return;
         }
-        _text.Text = MessageFor(CurrentState);
-        if (SupportsContinue(CurrentState)) _row.Children.Add(_continueButton);
+        _text.Text = MessageFor(_currentState);
+        if (SupportsContinue(_currentState)) _row.Children.Add(_continueButton);
         _row.Children.Add(_abortButton);
     }
 
