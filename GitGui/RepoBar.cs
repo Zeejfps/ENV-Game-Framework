@@ -1,11 +1,10 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
-using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class RepoBar : MultiChildView, IRepoBarView
+internal sealed class RepoBar : MultiChildView, IBind<RepoBarViewModel>
 {
     private const int BarWidth = 220;
     private const int HorizontalPadding = 8;
@@ -13,8 +12,6 @@ public sealed class RepoBar : MultiChildView, IRepoBarView
     internal const int RowChevronWidth = 12;
     internal const int RowIconWidth = 16;
     internal const int RowIconGap = 6;
-    // Extra indent that pushes worktree (child) rows past the primary's chevron+icon
-    // so nesting is visually obvious.
     internal const int WorktreeRowExtraIndent = 16;
     private const int RowTextIndent = RowPaddingLeft + RowChevronWidth + RowIconGap + RowIconWidth + RowIconGap;
     private const int RowTextRightPadding = 12;
@@ -26,8 +23,7 @@ public sealed class RepoBar : MultiChildView, IRepoBarView
         RowTextAvailableWidth - WorktreeRowExtraIndent;
 
     private readonly FlexColumnView _sections;
-
-    public event Action? NewGroupRequested;
+    private RepoBarViewModel? _vm;
 
     public RepoBar()
     {
@@ -65,19 +61,20 @@ public sealed class RepoBar : MultiChildView, IRepoBarView
         });
 
         this.UseController(ctx => new RepoBarContextMenuController(ctx, _ => BuildBackgroundMenuItems()));
-        this.UsePresenter(ctx => new RepoBarPresenter(this, ctx.Require<IRepoRegistry>()));
+        this.UseViewModel(this);
     }
 
-    public void BindGroups(ObservableList<Group> groups, Func<Group, View> sectionFactory)
+    public void Bind(RepoBarViewModel vm)
     {
-        _sections.BindChildren(groups, sectionFactory);
+        _vm = vm;
+        _sections.BindChildren(vm.Groups, group => new GroupSection(group));
     }
 
     private IReadOnlyList<RepoBarContextMenu.Item> BuildBackgroundMenuItems()
     {
         return
         [
-            new RepoBarContextMenu.Item("New group", () => NewGroupRequested?.Invoke(), LucideIcons.FolderPlus),
+            new RepoBarContextMenu.Item("New group", () => _vm?.NewGroup.Execute(), LucideIcons.FolderPlus),
         ];
     }
 }
