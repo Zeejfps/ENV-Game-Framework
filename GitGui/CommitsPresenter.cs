@@ -48,7 +48,7 @@ internal sealed class CommitsPresenter : IDisposable
 
         // CommitsView preserves its visual selection across mode-switch remounts; the
         // presenters don't. Adopt the carried-over SHA so the next snapshot load
-        // rebroadcasts it, letting the freshly-spawned CommitDetailsPresenter populate.
+        // rebroadcasts it, letting the freshly-spawned CommitDetailsViewModel populate.
         _selectedSha = _view.SelectedSha;
         _shouldRebroadcastSelection = _selectedSha != null;
     }

@@ -36,7 +36,7 @@ internal static class CommitDetailsPalette
     }
 }
 
-public sealed class CommitDetailsView : MultiChildView, ICommitDetailsView
+public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewModel>
 {
     private const int Padding = 14;
     private const float AvatarSize = 36f;
@@ -80,15 +80,28 @@ public sealed class CommitDetailsView : MultiChildView, ICommitDetailsView
 
         this.UseController(_ => new ScrollSyncController(_scrollPane, _vScrollBar, _hScrollBar));
 
-        this.UsePresenter(ctx => new CommitDetailsPresenter(
-            this,
-            ctx.Require<IGitService>(),
-            ctx.Require<IRepoRegistry>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(this);
     }
 
-    public void ShowPlaceholder(string text)
+    public void Bind(CommitDetailsViewModel vm)
+    {
+        vm.RenderState.Subscribe(SetRenderState);
+    }
+
+    private void SetRenderState(CommitDetailsRenderState state)
+    {
+        switch (state)
+        {
+            case CommitDetailsRenderState.Placeholder p:
+                ShowPlaceholder(p.Text);
+                break;
+            case CommitDetailsRenderState.Loaded l:
+                ShowDetails(l.Details);
+                break;
+        }
+    }
+
+    private void ShowPlaceholder(string text)
     {
         _content.Children.Clear();
         _content.Children.Add(new TextView
@@ -100,7 +113,7 @@ public sealed class CommitDetailsView : MultiChildView, ICommitDetailsView
         _scrollPane.ScrollToOrigin();
     }
 
-    public void ShowDetails(CommitDetails d)
+    private void ShowDetails(CommitDetails d)
     {
         _content.Children.Clear();
 

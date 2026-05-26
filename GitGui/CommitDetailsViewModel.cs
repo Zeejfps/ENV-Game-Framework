@@ -3,39 +3,46 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-internal sealed class CommitDetailsPresenter : IDisposable
+public abstract record CommitDetailsRenderState
+{
+    public sealed record Placeholder(string Text) : CommitDetailsRenderState;
+    public sealed record Loaded(CommitDetails Details) : CommitDetailsRenderState;
+}
+
+public sealed class CommitDetailsViewModel : IDisposable
 {
     private const string DefaultPlaceholder = "Select a commit to view details.";
+    private const string LoadingPlaceholder = "Loading…";
 
-    private readonly ICommitDetailsView _view;
     private readonly IGitService _gitService;
     private readonly IRepoRegistry _registry;
     private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
     private readonly SubscriptionGroup _subscriptions = new();
     private readonly GenerationGuard _loadGen = new();
+    private readonly State<CommitDetailsRenderState> _renderState =
+        new(new CommitDetailsRenderState.Placeholder(DefaultPlaceholder));
 
-    public CommitDetailsPresenter(
-        ICommitDetailsView view,
+    public IReadable<CommitDetailsRenderState> RenderState => _renderState;
+
+    public CommitDetailsViewModel(
         IGitService gitService,
         IRepoRegistry registry,
         IUiDispatcher dispatcher,
         IMessageBus bus)
     {
-        _view = view;
         _gitService = gitService;
         _registry = registry;
         _dispatcher = dispatcher;
         _bus = bus;
-
         _subscriptions.Add(_bus.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected));
-        _view.ShowPlaceholder(DefaultPlaceholder);
     }
 
     public void Dispose()
     {
         _loadGen.Bump();
         _subscriptions.Dispose();
+        _renderState.Dispose();
     }
 
     private void OnCommitSelected(CommitSelectedMessage msg)
@@ -43,7 +50,7 @@ internal sealed class CommitDetailsPresenter : IDisposable
         if (string.IsNullOrEmpty(msg.Sha))
         {
             _loadGen.Bump();
-            _view.ShowPlaceholder(DefaultPlaceholder);
+            _renderState.Value = new CommitDetailsRenderState.Placeholder(DefaultPlaceholder);
             return;
         }
         StartLoad(msg.RepoId, msg.Sha);
@@ -55,46 +62,37 @@ internal sealed class CommitDetailsPresenter : IDisposable
         if (repo == null || repo.Id != repoId) return;
 
         var gen = _loadGen.Bump();
-        _view.ShowPlaceholder("Loading…");
+        _renderState.Value = new CommitDetailsRenderState.Placeholder(LoadingPlaceholder);
 
         var service = _gitService;
         var dispatcher = _dispatcher;
-        var view = _view;
-
         Task.Run(() =>
         {
-            string? error = null;
-            CommitDetails? details = null;
+            CommitDetailsRenderState result;
             try
             {
-                details = service.LoadDetails(repo, sha);
+                var details = service.LoadDetails(repo, sha);
                 if (details.ErrorMessage != null)
                 {
-                    error = details.ErrorMessage;
-                    details = null;
+                    result = new CommitDetailsRenderState.Placeholder(details.ErrorMessage);
                 }
                 else
                 {
-                    // Inline submodule pointer changes into the file list. libgit2 also
-                    // surfaces gitlink edits as Modified file changes, so we merge by path:
-                    // each pointer change converts the matching FileChange (or appends a new
-                    // one) so a row renders as "submodule: abc..def (+N)" instead of as a
-                    // featureless "M" line.
                     var pointerChanges = service.GetSubmodulePointerChanges(repo, sha);
                     if (pointerChanges.Count > 0)
                         details = MergePointerChanges(details, pointerChanges);
+                    result = new CommitDetailsRenderState.Loaded(details);
                 }
             }
             catch (Exception ex)
             {
-                error = ex.Message;
+                result = new CommitDetailsRenderState.Placeholder(ex.Message);
             }
 
             dispatcher.Post(() =>
             {
                 if (_loadGen.IsStale(gen)) return;
-                if (error != null) view.ShowPlaceholder(error);
-                else if (details != null) view.ShowDetails(details);
+                _renderState.Value = result;
             });
         });
     }
