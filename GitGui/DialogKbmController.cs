@@ -1,6 +1,7 @@
 using ZGF.Gui;
 using ZGF.Gui.Tests;
 using ZGF.KeyboardModule;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -16,6 +17,16 @@ internal sealed class DialogKbmController : KeyboardMouseController
     }
 
     public DialogKbmController(Action onClose) : this(onClose, onClose)
+    {
+    }
+
+    public DialogKbmController(ICommand confirm, Action onCancel)
+        : this(confirm.Execute, onCancel)
+    {
+    }
+
+    public DialogKbmController(IReadable<ICommand?> confirm, Action onCancel)
+        : this(() => confirm.Value?.Execute(), onCancel)
     {
     }
 

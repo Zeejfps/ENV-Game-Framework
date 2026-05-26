@@ -7,7 +7,7 @@ namespace ZGF.Observable;
 /// <see cref="CanExecute"/> is false — the gate is enforced both at the view layer (button
 /// disabled) and here, so callers never need to check first.
 /// </summary>
-public sealed class Command
+public sealed class Command : ICommand
 {
     private readonly Action _execute;
     public IReadable<bool> CanExecute { get; }

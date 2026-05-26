@@ -18,7 +18,7 @@ public abstract class View
             {
                 if (prevContext != null)
                 {
-                    foreach (var behavior in _behaviors)
+                    foreach (var behavior in _behaviors.ToArray())
                     {
                         behavior.DetachFromContext(this, prevContext);
                     }
@@ -30,7 +30,11 @@ public abstract class View
                 if (_context != null)
                 {
                     OnAttachedToContext(_context);
-                    foreach (var behavior in _behaviors)
+                    // Snapshot: a behavior's AttachToContext may add new behaviors via
+                    // UseController/UseViewModel etc. AddBehaviorToSelf already attaches
+                    // those immediately, so the snapshot avoids both CollectionModified
+                    // and double-attach.
+                    foreach (var behavior in _behaviors.ToArray())
                     {
                         behavior.AttachToContext(this, _context);
                     }

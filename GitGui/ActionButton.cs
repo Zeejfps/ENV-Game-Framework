@@ -15,7 +15,6 @@ public sealed class ActionButton : HoverableButton
     public State<string> Label { get; }
     public State<float> IconRotation { get; } = new(0f);
     public State<int?> Badge { get; } = new(null);
-    public State<Command?> Command { get; } = new(null);
 
     public ActionButton(string icon, string? label = null, string? tooltip = null, uint? badgeColor = null, uint? iconColor = null, uint? backgroundColor = null)
         : base(null, tooltip)
@@ -82,20 +81,6 @@ public sealed class ActionButton : HoverableButton
         background.BindBackgroundColor(ComputeBackground);
         SetBackground(background);
     }
-
-    /// <summary>
-    /// Wires <paramref name="command"/> as the click handler and binds <see cref="HoverableButton.IsEnabled"/>
-    /// to its <see cref="ZGF.Observable.Command.CanExecute"/>. Call from a VM bind callback —
-    /// when the VM is disposed, the source <c>CanExecute</c>'s subscribers are cleared and the
-    /// wiring goes dormant.
-    /// </summary>
-    public void BindCommand(Command command)
-    {
-        Command.Value = command;
-        IsEnabled.BindTo(command.CanExecute);
-    }
-
-    protected override void OnClicked() => Command.Value?.Execute();
 
     private uint ComputeBackground()
     {

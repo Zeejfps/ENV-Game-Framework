@@ -9,6 +9,7 @@ public abstract class HoverableButton : MultiChildView
 
     protected State<bool> IsHovered { get; } = new(false);
     public State<bool> IsEnabled { get; } = new(true);
+    public State<ICommand?> Command { get; } = new(null);
 
     protected HoverableButton(Action? onClick = null, string? tooltip = null)
     {
@@ -23,7 +24,17 @@ public abstract class HoverableButton : MultiChildView
         }
     }
 
-    protected virtual void OnClicked() => _onClick?.Invoke();
+    protected virtual void OnClicked()
+    {
+        if (Command.Value is { } cmd) cmd.Execute();
+        else _onClick?.Invoke();
+    }
+
+    public void BindCommand(ICommand command)
+    {
+        Command.Value = command;
+        IsEnabled.BindTo(command.CanExecute);
+    }
 
     protected void SetBackground(View background) => AddChildToSelf(background);
 }

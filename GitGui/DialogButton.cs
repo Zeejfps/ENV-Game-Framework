@@ -40,7 +40,7 @@ public sealed class DialogButton : HoverableButton
         set => _iconView.Rotation = value;
     }
 
-    public DialogButton(string label, Action onClick) : base(onClick)
+    public DialogButton(string label, Action? onClick = null) : base(onClick)
     {
         _iconView = new TextView
         {

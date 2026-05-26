@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -11,13 +12,11 @@ namespace GitGui;
 /// is a destructive action — the worktree changes (and any untracked files in the set)
 /// cannot be recovered from git afterwards.
 /// </summary>
-public sealed class DiscardChangesDialog : MultiChildView, IDiscardChangesView
+internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChangesViewModel>
 {
-    private readonly Action _onClose;
     private readonly DialogButton _discardButton;
     private readonly TextView _errorView;
-
-    public event Action? DiscardRequested;
+    private readonly Action _onClose;
 
     public DiscardChangesDialog(Repo repo, IReadOnlyList<string> paths, Action onClose)
     {
@@ -72,7 +71,7 @@ public sealed class DiscardChangesDialog : MultiChildView, IDiscardChangesView
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _discardButton = new DialogButton("Discard", RaiseDiscardRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _discardButton = new DialogButton("Discard") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build(title, onClose, new FlexColumnView
         {
@@ -87,29 +86,24 @@ public sealed class DiscardChangesDialog : MultiChildView, IDiscardChangesView
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(RaiseDiscardRequested, onClose));
+        this.UseController(_ => new DialogKbmController(_discardButton.Command, _onClose));
 
         var request = new DiscardChangesRequest(repo, paths);
-        this.UsePresenter(ctx => new DiscardChangesPresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new DiscardChangesViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
 
-    public bool DiscardEnabled
+    public void Bind(DiscardChangesViewModel vm)
     {
-        set => _discardButton.IsEnabled.Value = value;
+        _discardButton.BindCommand(vm.Discard);
+        _errorView.BindText(vm.Discard.Error, s => s ?? string.Empty);
+        vm.CloseRequested += _onClose;
     }
-
-    public string? ErrorMessage
-    {
-        set => _errorView.Text = value ?? string.Empty;
-    }
-
-    public void Close() => _onClose();
-
-    private void RaiseDiscardRequested() => DiscardRequested?.Invoke();
 }
 
 public readonly record struct DiscardChangesRequest(Repo Repo, IReadOnlyList<string> Paths);
