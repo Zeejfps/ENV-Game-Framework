@@ -9,7 +9,8 @@ internal sealed class BranchesHeaderViewModel : ViewModelBase<BranchesHeaderStat
     private readonly IGitService _gitService;
     private readonly IMessageBus _bus;
 
-    public IReadable<BranchesHeaderState> Snapshot { get; }
+    public IReadable<string?> BranchName { get; }
+    public IReadable<bool> IsDetached { get; }
 
     public BranchesHeaderViewModel(
         IRepoRegistry registry,
@@ -22,7 +23,8 @@ internal sealed class BranchesHeaderViewModel : ViewModelBase<BranchesHeaderStat
         _gitService = gitService;
         _bus = bus;
 
-        Snapshot = Slice(s => s);
+        BranchName = Slice(s => s.BranchName);
+        IsDetached = Slice(s => s.IsDetached);
 
         Subscriptions.Add(_registry.Active.Subscribe(_ => Reload()));
         Subscriptions.Add(_bus.SubscribeScoped<RefsChangedMessage>(_ => Reload()));
