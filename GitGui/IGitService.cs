@@ -10,6 +10,7 @@ public interface IGitService
     void Unstage(Repo repo, IReadOnlyList<string> paths);
     void ResetToParent(Repo repo, IReadOnlyList<string> paths);
     string? DiscardChanges(Repo repo, IReadOnlyList<string> paths);
+    string? ApplyPatch(Repo repo, string patch, bool cached, bool reverse);
     string? Commit(Repo repo, string message, bool amend);
     HeadCommitMessage? GetHeadCommitMessage(Repo repo);
     IReadOnlyList<FileChange> GetHeadCommitFiles(Repo repo);

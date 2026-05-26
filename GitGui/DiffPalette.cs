@@ -23,4 +23,11 @@ internal static class DiffPalette
 
     public const uint TruncatedFooterBg = HunkSeparatorBg;
     public const uint TruncatedFooterText = HunkSeparatorRangeText;
+
+    public const uint HunkOutline = 0xFF5A8DD6;
+
+    public const uint HunkButtonBg = 0xCC2C313A;
+    public const uint HunkButtonHoverBg = 0xFF3B4150;
+    public const uint HunkButtonBorder = 0xFF4A5060;
+    public const uint HunkButtonText = 0xFFE6E8EC;
 }

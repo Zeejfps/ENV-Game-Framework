@@ -65,7 +65,8 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
                 _target,
                 ctx.Require<IRepoRegistry>(),
                 ctx.Require<IGitService>(),
-                ctx.Require<IUiDispatcher>()),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
             Bind);
     }
 
@@ -80,6 +81,9 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
     public void Bind(DiffViewModel vm)
     {
         vm.RenderState.Subscribe(_content.SetRenderState);
+        _content.OnStageHunk = vm.StageHunk;
+        _content.OnUnstageHunk = vm.UnstageHunk;
+        _content.OnDiscardHunk = vm.RequestDiscardHunk;
     }
 
     private View BuildHeaderBar()

@@ -624,6 +624,53 @@ public sealed class GitService : IGitService
         finally { sem.Release(); }
     }
 
+    public string? ApplyPatch(Repo repo, string patch, bool cached, bool reverse)
+    {
+        if (string.IsNullOrEmpty(patch)) return null;
+        try
+        {
+            if (!IsGitRepo(repo.Path)) return "Not a git repository.";
+
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                var args = new List<string> { "apply", "--whitespace=nowarn" };
+                if (cached) args.Add("--cached");
+                if (reverse) args.Add("--reverse");
+                args.Add("-");
+                return RunGitWithStdin(repo.Path, args, patch);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
+    }
+
+    private string? RunGitWithStdin(string workingDir, IReadOnlyList<string> args, string stdin)
+    {
+        using var _ = _activity.Begin(workingDir);
+        var psi = BuildDirectGitPsi(workingDir);
+        psi.RedirectStandardInput = true;
+        foreach (var a in args) psi.ArgumentList.Add(a);
+
+        using var proc = Process.Start(psi);
+        if (proc == null) return "Failed to start git.";
+
+        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+        var stderrTask = proc.StandardError.ReadToEndAsync();
+        proc.StandardInput.Write(stdin);
+        proc.StandardInput.Close();
+        proc.WaitForExit();
+
+        if (proc.ExitCode == 0) return null;
+
+        var msg = CombineGitOutput(stderrTask.GetAwaiter().GetResult(), stdoutTask.GetAwaiter().GetResult());
+        return string.IsNullOrEmpty(msg) ? $"git apply exited with code {proc.ExitCode}." : msg;
+    }
+
     private static void RunGitMutationOrThrow(string repoPath, IReadOnlyList<string> args)
     {
         var (ok, error) = RunMutation(repoPath, args);
