@@ -12,6 +12,11 @@ namespace GitGui;
 /// a matching local check that local out; remote branches with no matching local pop the
 /// CheckoutBranchDialog. Right-click a local/remote branch row to open a context menu
 /// (Checkout / Rename / Delete). Collapse state is persisted per-repo via IRepoRegistry.
+///
+/// Scroll/hit-test/hover/double-click plumbing lives in <see cref="VirtualRowListView"/>;
+/// row flattening lives in <see cref="BranchTreeBuilder"/>. This view owns the row
+/// visuals (icons, ahead/behind badges, busy/head/worktree styling) and the dispatch
+/// from row indices to <see cref="BranchesViewModel"/> calls.
 /// </summary>
 internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
 {
@@ -21,12 +26,7 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
     private const float ChevronGap = 2f;
     private const float ChevronColumn = ChevronWidth + ChevronGap;
     private const float IconGap = 4f;
-    private const float ScrollWheelStep = 60f;
-    private const int DoubleClickThresholdMs = 400;
 
-    // Ahead = "need to push", behind = "need to pull". Greenish + amber for at-a-glance.
-    // Number uses the default font; icon uses the Lucide glyphs the toolbar push/pull
-    // buttons use so the visual vocabulary stays consistent.
     private const uint AheadColor = 0xFF9DD17B;
     private const uint BehindColor = 0xFFE6A85C;
 
@@ -61,6 +61,8 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
     private readonly TextStyle _branchIconActiveStyle = TextStyles.Icon(CommitsPalette.RowTextActive);
     private readonly TextStyle _branchIconLocalOnlyStyle = TextStyles.Icon(DialogPalette.RowTextMissing);
 
+    private readonly VirtualRowListView _list;
+
     private IReadOnlyList<BranchRow> _rows = Array.Empty<BranchRow>();
     private BranchSelection? _selection;
     private string? _busyBranch;
@@ -71,19 +73,22 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
     private BranchListing? _listing;
     private BranchesUiState _ui = new();
 
-    private float _scrollY;
-    private int _hoveredRowIndex = -1;
-    private int _contextHighlightRowIndex = -1;
-
-    private bool _hasLastClick;
-    private int _lastClickTickMs;
-    private int _lastClickRowIndex = -1;
-
     private BranchesViewModel? _vm;
 
     public BranchesView()
     {
-        this.UseController(ctx => new BranchesViewController(this, ctx));
+        _list = new VirtualRowListView
+        {
+            RowHeight = RowHeight,
+            ItemBuilder = DrawRowAt,
+        };
+        _list.RowClicked += OnRowClicked;
+        _list.RowActivated += OnRowActivated;
+        _list.RowContextRequested += OnRowContextRequested;
+
+        AddChildToSelf(_list);
+        _list.UseController(_ => new VirtualRowListController(_list));
+
         this.UseViewModel(this);
     }
 
@@ -101,11 +106,9 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
 
     private void RebuildRows()
     {
-        _rows = BuildRows(_listing, _ui);
-        _hoveredRowIndex = -1;
-        _contextHighlightRowIndex = -1;
-        if (_rows.Count == 0) _scrollY = 0f;
-        ClampScroll();
+        _rows = BranchTreeBuilder.BuildRows(_listing, _ui);
+        _list.ItemCount = _rows.Count;
+        _list.NotifyItemsChanged();
     }
 
     private void SetSelection(BranchSelection? selection) => _selection = selection;
@@ -113,18 +116,11 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
     private void SetLoadError(string? error) => _loadError = error;
     private void SetIsLoading(bool isLoading) => _isLoading = isLoading;
 
-    private void ClampScroll()
-    {
-        if (Position.Height <= 0) return;
-        _scrollY = ScrollMath.ClampScroll(_scrollY, _rows.Count * RowHeight, Position.Height);
-    }
-
     protected override void OnDrawSelf(ICanvas c)
     {
         var pos = Position;
         var z = GetDrawZIndex();
 
-        c.PushClip(pos);
         c.DrawRect(new DrawRectInputs
         {
             Position = pos,
@@ -141,67 +137,44 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
                 Style = _placeholderStyle,
                 ZIndex = z + 1,
             });
-            c.PopClip();
             return;
         }
 
-        if (_rows.Count == 0)
+        if (_rows.Count == 0 && _isLoading)
         {
-            if (_isLoading)
+            c.DrawText(new DrawTextInputs
             {
-                c.DrawText(new DrawTextInputs
-                {
-                    Position = pos,
-                    Text = "Loading…",
-                    Style = _placeholderStyle,
-                    ZIndex = z + 1,
-                });
-            }
-            c.PopClip();
-            return;
+                Position = pos,
+                Text = "Loading…",
+                Style = _placeholderStyle,
+                ZIndex = z + 1,
+            });
         }
-
-        ClampScroll();
-
-        var top = pos.Top;
-        var bodyHeight = pos.Height;
-        var firstVisible = Math.Max(0, (int)(_scrollY / RowHeight) - 1);
-        var lastVisible = Math.Min(_rows.Count - 1, (int)((_scrollY + bodyHeight) / RowHeight) + 1);
-
-        for (var i = firstVisible; i <= lastVisible; i++)
-        {
-            var row = _rows[i];
-            var rowTop = top + _scrollY - i * RowHeight;
-            var rowBottom = rowTop - RowHeight;
-            if (rowTop <= pos.Bottom || rowBottom >= top) continue;
-
-            DrawRow(c, pos, row, i, rowBottom, z + 1);
-        }
-
-        c.PopClip();
     }
 
-    private void DrawRow(ICanvas c, RectF pos, BranchRow row, int rowIndex, float rowBottom, int z)
+    private void DrawRowAt(ICanvas c, RectF rowRect, int rowIndex, RowRenderState state, int z)
     {
+        if (rowIndex < 0 || rowIndex >= _rows.Count) return;
+        if (_loadError != null) return;
+        var row = _rows[rowIndex];
+        var rowBottom = rowRect.Bottom;
         var isSelected = _selection.HasValue && _selection.Value.Matches(row);
-        var isHovered = rowIndex == _hoveredRowIndex;
-        var isContextHighlighted = rowIndex == _contextHighlightRowIndex;
 
         var bg = isSelected
             ? CommitsPalette.RowHighlight
-            : ((isHovered || isContextHighlighted) ? DialogPalette.RowHover : (uint?)null);
+            : ((state.IsHovered || state.IsContextHighlighted) ? DialogPalette.RowHover : (uint?)null);
         if (bg != null)
         {
             c.DrawRect(new DrawRectInputs
             {
-                Position = new RectF(pos.Left, rowBottom, pos.Width, RowHeight),
+                Position = rowRect,
                 Style = new RectStyle { BackgroundColor = bg.Value },
                 ZIndex = z,
             });
         }
 
-        var contentLeft = pos.Left + BaseIndent + row.Indent;
-        var rightEdge = pos.Right - 14f;
+        var contentLeft = rowRect.Left + BaseIndent + row.Indent;
+        var rightEdge = rowRect.Right - 14f;
 
         var hasChevron = row.Kind == BranchRowKind.LocalHeader
             || row.Kind == BranchRowKind.RemotesHeader
@@ -292,9 +265,6 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
         }
         else
         {
-            // Local-branch icon colour encodes upstream state: green branch = tracked,
-            // amber cloud-off = upstream gone, muted branch = never linked. Busy wins
-            // so an in-flight checkout reads consistently regardless of upstream state.
             if (IsBusyRow(row))
             {
                 glyph = LucideIcons.Branch;
@@ -411,56 +381,38 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
         return TextMeasure.TruncateToFit(text, style, available, Context.Canvas);
     }
 
-    internal void OnWheel(float deltaY)
+    private void OnRowClicked(int rowIndex)
     {
-        if (_rows.Count == 0) return;
-        _scrollY -= deltaY * ScrollWheelStep;
-        ClampScroll();
-    }
-
-    internal void SetHover(PointF point)
-    {
-        var idx = HitTestRow(point);
-        _hoveredRowIndex = idx;
-    }
-
-    internal void ClearHover()
-    {
-        if (_hoveredRowIndex < 0) return;
-        _hoveredRowIndex = -1;
-    }
-
-    internal void OnClickAt(PointF point)
-    {
-        if (!Position.ContainsPoint(point)) return;
         if (_vm == null) return;
-
-        var idx = HitTestRow(point);
-        var row = (idx >= 0 && idx < _rows.Count) ? _rows[idx] : null;
-
+        var row = (rowIndex >= 0 && rowIndex < _rows.Count) ? _rows[rowIndex] : null;
         DispatchClick(_vm, row);
+    }
 
-        if (row == null)
+    private void OnRowActivated(int rowIndex)
+    {
+        if (_vm == null) return;
+        if (rowIndex < 0 || rowIndex >= _rows.Count) return;
+        DispatchActivate(_vm, _rows[rowIndex]);
+    }
+
+    private void OnRowContextRequested(int rowIndex, PointF point)
+    {
+        if (_vm == null) return;
+        if (rowIndex < 0 || rowIndex >= _rows.Count) return;
+        var row = _rows[rowIndex];
+
+        var items = BuildMenuItemsFor(_vm, row);
+        if (items.Count == 0) return;
+        if (Context == null) return;
+
+        _list.SetContextHighlight(rowIndex);
+        var opened = RepoBarContextMenu.Show(Context, point, items);
+        if (opened == null)
         {
-            _hasLastClick = false;
+            _list.SetContextHighlight(null);
             return;
         }
-
-        var now = Environment.TickCount;
-        var isDouble = _hasLastClick
-            && _lastClickRowIndex == idx
-            && unchecked(now - _lastClickTickMs) <= DoubleClickThresholdMs;
-        if (isDouble)
-        {
-            DispatchActivate(_vm, row);
-            _hasLastClick = false;
-        }
-        else
-        {
-            _lastClickTickMs = now;
-            _lastClickRowIndex = idx;
-            _hasLastClick = true;
-        }
+        opened.Closed += () => _list.SetContextHighlight(null);
     }
 
     private static void DispatchClick(BranchesViewModel vm, BranchRow? row)
@@ -521,31 +473,6 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
         }
     }
 
-    // Opens the context menu for the row under <point>, if any. Highlights that row for
-    // the duration of the menu (so the user knows what the menu acts on even though the
-    // pointer floats away from the row). Does not change selection or broadcast — pure
-    // visual hint that clears when the menu closes.
-    internal void OnRightClickAt(PointF point, Context context)
-    {
-        if (_vm == null) return;
-        if (!Position.ContainsPoint(point)) return;
-        var idx = HitTestRow(point);
-        if (idx < 0 || idx >= _rows.Count) return;
-        var row = _rows[idx];
-
-        var items = BuildMenuItemsFor(_vm, row);
-        if (items.Count == 0) return;
-
-        _contextHighlightRowIndex = idx;
-        var opened = RepoBarContextMenu.Show(context, point, items);
-        if (opened == null)
-        {
-            _contextHighlightRowIndex = -1;
-            return;
-        }
-        opened.Closed += () => _contextHighlightRowIndex = -1;
-    }
-
     private static IReadOnlyList<RepoBarContextMenu.Item> BuildMenuItemsFor(BranchesViewModel vm, BranchRow row)
     {
         switch (row.Kind)
@@ -557,171 +484,5 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
             default:
                 return Array.Empty<RepoBarContextMenu.Item>();
         }
-    }
-
-    private int HitTestRow(PointF point)
-    {
-        var pos = Position;
-        if (point.X < pos.Left || point.X > pos.Right) return -1;
-        if (point.Y < pos.Bottom || point.Y > pos.Top) return -1;
-        if (_rows.Count == 0) return -1;
-
-        var distFromTop = pos.Top - point.Y;
-        var idx = (int)((distFromTop + _scrollY) / RowHeight);
-        if (idx < 0 || idx >= _rows.Count) return -1;
-        return idx;
-    }
-
-    // ---- row building ----
-    //
-    // Layout constants live in the view because the VM has no business picking pixel
-    // offsets. Section headers ("Local" / "Remote" / "Stashes") and the per-row indent
-    // math are render concerns that the VM produces no input for beyond the raw listing
-    // and the open/closed flags.
-
-    private const float IndentSection = 0f;
-    private const float IndentRemoteHeader = 12f;
-    private const float IndentLocalTreeBase = 16f;
-    private const float IndentRemoteTreeBase = 28f;
-    private const float IndentStashBase = 16f;
-    private const float IndentLevel = 16f;
-
-    private static IReadOnlyList<BranchRow> BuildRows(BranchListing? listing, BranchesUiState ui)
-    {
-        var rows = new List<BranchRow>();
-        if (listing == null) return rows;
-
-        rows.Add(new BranchRow(BranchRowKind.LocalHeader, "Local", IndentSection, ui.LocalOpen));
-        if (ui.LocalOpen)
-        {
-            var localTree = BuildTree(listing.LocalBranches);
-            EmitTreeRows(rows, localTree, ui, isRemote: false, remoteName: null, IndentLocalTreeBase, depth: 0);
-        }
-
-        rows.Add(new BranchRow(BranchRowKind.RemotesHeader, "Remote", IndentSection, ui.RemotesOpen));
-        if (ui.RemotesOpen)
-        {
-            foreach (var rg in listing.Remotes)
-            {
-                var isOpen = ui.RemoteOpen.TryGetValue(rg.Name, out var v) ? v : true;
-                rows.Add(new BranchRow(BranchRowKind.RemoteHeader, rg.Name, IndentRemoteHeader, isOpen)
-                {
-                    RemoteName = rg.Name,
-                });
-                if (!isOpen) continue;
-                var remoteTree = BuildTree(rg.Branches);
-                EmitTreeRows(rows, remoteTree, ui, isRemote: true, rg.Name, IndentRemoteTreeBase, depth: 0);
-            }
-        }
-
-        if (listing.Stashes.Count > 0)
-        {
-            rows.Add(new BranchRow(BranchRowKind.StashesHeader, "Stashes", IndentSection, ui.StashesOpen));
-            if (ui.StashesOpen)
-            {
-                foreach (var s in listing.Stashes)
-                {
-                    var label = $"stash@{{{s.Index}}}";
-                    rows.Add(new BranchRow(BranchRowKind.Stash, s.Subject, IndentStashBase, isOpen: false)
-                    {
-                        TipSha = s.Sha,
-                        FullPath = label,
-                        StashIndex = s.Index,
-                    });
-                }
-            }
-        }
-        return rows;
-    }
-
-    private static void EmitTreeRows(List<BranchRow> rows, IReadOnlyList<TreeNode> nodes, BranchesUiState ui, bool isRemote, string? remoteName, float treeBase, int depth)
-    {
-        var indent = treeBase + depth * IndentLevel;
-        foreach (var node in nodes)
-        {
-            if (node.Entry is { } entry)
-            {
-                rows.Add(new BranchRow(isRemote ? BranchRowKind.RemoteBranch : BranchRowKind.LocalBranch, node.Segment, indent, isOpen: false)
-                {
-                    TipSha = entry.TipSha,
-                    IsHead = entry.IsHead,
-                    RemoteName = remoteName,
-                    FullPath = entry.Name,
-                    AheadBy = entry.AheadBy,
-                    BehindBy = entry.BehindBy,
-                    UpstreamState = entry.UpstreamState,
-                });
-            }
-            else
-            {
-                var key = MakeFolderKey(isRemote, remoteName, node.FullPath);
-                var open = ui.FolderOpen.TryGetValue(key, out var v) ? v : true;
-                rows.Add(new BranchRow(BranchRowKind.Folder, node.Segment, indent, open)
-                {
-                    RemoteName = remoteName,
-                    FullPath = node.FullPath,
-                    FolderKey = key,
-                });
-                if (open) EmitTreeRows(rows, node.Children, ui, isRemote, remoteName, treeBase, depth + 1);
-            }
-        }
-    }
-
-    private static string MakeFolderKey(bool isRemote, string? remoteName, string path) =>
-        isRemote ? $"remote:{remoteName}:{path}" : $"local:{path}";
-
-    private static IReadOnlyList<TreeNode> BuildTree(IReadOnlyList<BranchEntry> branches)
-    {
-        var root = new TreeNode("", "");
-        foreach (var b in branches)
-        {
-            var segments = b.Name.Split('/');
-            var current = root;
-            for (var i = 0; i < segments.Length; i++)
-            {
-                var seg = segments[i];
-                var isLeaf = i == segments.Length - 1;
-                if (!current.ChildIndex.TryGetValue(seg, out var child))
-                {
-                    var path = i == 0 ? seg : current.FullPath + "/" + seg;
-                    child = new TreeNode(seg, path);
-                    current.ChildIndex[seg] = child;
-                    current.Children.Add(child);
-                }
-                if (isLeaf) child.Entry = b;
-                current = child;
-            }
-        }
-        SortNode(root);
-        return root.Children;
-    }
-
-    // Folders first, then leaves; alphabetical within each group. The leaf-of-the-same-path
-    // case (a branch named "feature" alongside "feature/login") cannot occur in git, so we
-    // don't try to handle a node that's simultaneously a folder and a branch.
-    private static void SortNode(TreeNode node)
-    {
-        node.Children.Sort((a, b) =>
-        {
-            var aFolder = a.Entry == null;
-            var bFolder = b.Entry == null;
-            if (aFolder != bFolder) return aFolder ? -1 : 1;
-            return string.Compare(a.Segment, b.Segment, StringComparison.OrdinalIgnoreCase);
-        });
-        foreach (var c in node.Children) SortNode(c);
-    }
-
-    private sealed class TreeNode
-    {
-        public TreeNode(string segment, string fullPath)
-        {
-            Segment = segment;
-            FullPath = fullPath;
-        }
-        public string Segment { get; }
-        public string FullPath { get; }
-        public BranchEntry? Entry { get; set; }
-        public Dictionary<string, TreeNode> ChildIndex { get; } = new();
-        public List<TreeNode> Children { get; } = new();
     }
 }
