@@ -30,6 +30,16 @@ internal sealed class ScrollSyncController : KeyboardMouseController, IDisposabl
             _content.HorizontalScrollPositionChanged += OnContentHorizontalScroll;
             _hScrollBar.ScrollPositionChanged += _content.SetHorizontalNormalizedScrollPosition;
         }
+
+        // Pull the content's current scale so the bar reflects "fits / hidden" state
+        // even when no event has fired yet. Critical for views that detach + re-attach
+        // (e.g. LocalChangesPanel inside a placeholder-swap parent): each re-attach
+        // builds a fresh controller, and without this initial pull the bar would sit
+        // at its built-in default (PreferredHeight=12, Scale=0.5) until something
+        // unrelated triggered an event.
+        ScrollBarSync.ApplyVertical(_vScrollBar, _content.VerticalScale, 0f);
+        if (_hScrollBar != null)
+            ScrollBarSync.ApplyHorizontal(_hScrollBar, _content.HorizontalScale, 0f);
     }
 
     public void Dispose()

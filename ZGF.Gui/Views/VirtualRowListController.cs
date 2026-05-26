@@ -18,7 +18,7 @@ public sealed class VirtualRowListController : KeyboardMouseController
 
     public override void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
     {
-        _list.OnWheel(e.DeltaY);
+        _list.OnWheel(e.DeltaX, e.DeltaY);
         e.Consume();
     }
 
@@ -37,7 +37,7 @@ public sealed class VirtualRowListController : KeyboardMouseController
         if (e.State != InputState.Pressed) return;
         if (e.Button == MouseButton.Left)
         {
-            _list.OnLeftClick(e.Mouse.Point);
+            _list.OnLeftClick(e.Mouse.Point, e.Modifiers);
             e.Consume();
             return;
         }

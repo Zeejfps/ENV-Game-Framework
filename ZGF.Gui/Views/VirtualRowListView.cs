@@ -39,9 +39,10 @@ public sealed class VirtualRowListView : View
     /// <summary>
     /// Fires when the user left-clicks within the widget. The index is the row that was
     /// hit, or -1 if the click landed in the widget but missed every row (consumers
-    /// typically use -1 to clear selection).
+    /// typically use -1 to clear selection). Modifiers carry Shift/Ctrl/Cmd state for
+    /// consumers that need range-extend or toggle-select semantics.
     /// </summary>
-    public event Action<int>? RowClicked;
+    public event Action<int, InputModifiers>? RowClicked;
 
     /// <summary>Fires when a left-click double-tap lands on the same row within the threshold.</summary>
     public event Action<int>? RowActivated;
@@ -55,6 +56,14 @@ public sealed class VirtualRowListView : View
 
     /// <summary>Fires when <see cref="ScrollY"/> changes (wheel, programmatic scroll, clamp).</summary>
     public event Action? ScrollChanged;
+
+    /// <summary>
+    /// Receives the horizontal component of wheel events the widget itself doesn't act on
+    /// (the list is vertical-only). Consumers that wrap the widget in a horizontally
+    /// scrollable container (e.g. <c>DiffContentView</c>) hook this to apply DeltaX to
+    /// their own scroll offset.
+    /// </summary>
+    public Action<float>? HorizontalWheelHandler { get; set; }
 
     public float ScrollY => _scrollY;
     public int? HoveredIndex => _hoveredIndex < 0 ? null : _hoveredIndex;
@@ -166,17 +175,21 @@ public sealed class VirtualRowListView : View
         c.PopClip();
     }
 
-    internal void OnWheel(float deltaY)
+    internal void OnWheel(float deltaX, float deltaY)
     {
-        if (ItemCount == 0) return;
-        var prev = _scrollY;
-        _scrollY -= deltaY * ScrollWheelStep;
-        ClampScroll();
-        if (_scrollY != prev)
+        if (ItemCount > 0 && deltaY != 0f)
         {
-            ScrollChanged?.Invoke();
-            SetDirty();
+            var prev = _scrollY;
+            _scrollY -= deltaY * ScrollWheelStep;
+            ClampScroll();
+            if (_scrollY != prev)
+            {
+                ScrollChanged?.Invoke();
+                SetDirty();
+            }
         }
+
+        if (deltaX != 0f) HorizontalWheelHandler?.Invoke(deltaX);
     }
 
     internal void OnPointerMove(PointF point)
@@ -194,12 +207,12 @@ public sealed class VirtualRowListView : View
         SetDirty();
     }
 
-    internal void OnLeftClick(PointF point)
+    internal void OnLeftClick(PointF point, InputModifiers modifiers)
     {
         if (!Position.ContainsPoint(point)) return;
         var idx = HitTestRow(point);
 
-        RowClicked?.Invoke(idx);
+        RowClicked?.Invoke(idx, modifiers);
 
         if (idx < 0)
         {

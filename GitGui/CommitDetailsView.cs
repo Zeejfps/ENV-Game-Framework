@@ -256,8 +256,8 @@ internal sealed class ScrollPaneWheelController : KeyboardMouseController
 
     public override void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
     {
-        // Wheel scrolls vertically. Shift+wheel scrolls horizontally would be a future addition.
-        _pane.ScrollVertical(-e.DeltaY * Step);
+        if (e.DeltaY != 0f) _pane.ScrollVertical(-e.DeltaY * Step);
+        if (e.DeltaX != 0f) _pane.ScrollHorizontal(-e.DeltaX * Step);
         e.Consume();
     }
 }

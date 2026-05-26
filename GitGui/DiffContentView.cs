@@ -89,9 +89,22 @@ internal sealed class DiffContentView : View, IScrollableContent
             ItemBuilder = DrawDiffRowAt,
         };
         _list.ScrollChanged += () => NotifyScrollChanged(viewportFits: false);
+        _list.HorizontalWheelHandler = OnHorizontalWheel;
 
         AddChildToSelf(_list);
         _list.UseController(_ => new VirtualRowListController(_list));
+    }
+
+    private void OnHorizontalWheel(float deltaX)
+    {
+        var prev = _scrollX;
+        _scrollX -= deltaX * _list.ScrollWheelStep;
+        ClampHorizontalScroll();
+        if (_scrollX != prev)
+        {
+            SetDirty();
+            NotifyScrollChanged(viewportFits: false);
+        }
     }
 
     public void SetViewModel(DiffViewModel vm)

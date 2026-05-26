@@ -683,7 +683,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         _hoveredDivider = kind;
     }
 
-    private void OnRowClicked(int rowIndex)
+    private void OnRowClicked(int rowIndex, InputModifiers _)
     {
         var snap = _snapshot;
         if (snap == null || rowIndex < 0 || rowIndex >= snap.Commits.Count) return;

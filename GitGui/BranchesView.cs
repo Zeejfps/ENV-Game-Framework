@@ -398,7 +398,7 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
         return TextMeasure.TruncateToFit(text, style, available, Context.Canvas);
     }
 
-    private void OnRowClicked(int rowIndex)
+    private void OnRowClicked(int rowIndex, InputModifiers _)
     {
         if (_vm == null) return;
         var row = (rowIndex >= 0 && rowIndex < _rows.Count) ? _rows[rowIndex] : null;
@@ -499,7 +499,7 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
             case BranchRowKind.RemoteBranch when row.RemoteName != null && row.FullPath != null:
                 return vm.BuildRemoteBranchMenuItems(row.RemoteName, row.FullPath);
             default:
-                return Array.Empty<RepoBarContextMenu.Item>();
+                return [];
         }
     }
 }
