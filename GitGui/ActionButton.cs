@@ -11,6 +11,13 @@ public sealed class ActionButton : HoverableButton
     private readonly uint? _iconColor;
     private readonly uint? _backgroundColor;
 
+    // Theme-reactive holders read by ComputeBackground / ComputeForeground / ComputeLabelForeground
+    // via the Derived auto-tracking path.
+    private readonly State<uint> _buttonHover = new(ThemePresets.Dark.Dialog.ButtonHover);
+    private readonly State<uint> _rowText = new(ThemePresets.Dark.Dialog.RowText);
+    private readonly State<uint> _rowTextMissing = new(ThemePresets.Dark.Dialog.RowTextMissing);
+    private readonly State<uint> _textStrong = new(ThemePresets.Dark.Text.Strong);
+
     public State<string> Icon { get; }
     public State<string> Label { get; }
     public State<float> IconRotation { get; } = new(0f);
@@ -80,6 +87,14 @@ public sealed class ActionButton : HoverableButton
         };
         background.BindBackgroundColor(ComputeBackground);
         SetBackground(background);
+
+        this.BindToTheme(t =>
+        {
+            _buttonHover.Value = t.Dialog.ButtonHover;
+            _rowText.Value = t.Dialog.RowText;
+            _rowTextMissing.Value = t.Dialog.RowTextMissing;
+            _textStrong.Value = t.Text.Strong;
+        });
     }
 
     private uint ComputeBackground()
@@ -89,21 +104,21 @@ public sealed class ActionButton : HoverableButton
             if (!IsEnabled) return Darken(bg, 0x40);
             return IsHovered ? Lighten(bg, 0x18) : bg;
         }
-        return IsEnabled && IsHovered ? DialogPalette.ButtonHover : 0x00000000u;
+        return IsEnabled && IsHovered ? _buttonHover.Value : 0x00000000u;
     }
 
     private uint ComputeForeground()
     {
-        if (!IsEnabled) return DialogPalette.RowTextMissing;
+        if (!IsEnabled) return _rowTextMissing.Value;
         if (Badge.Value is > 0 && _badgeColor is uint c) return c;
         if (_iconColor is uint ic) return ic;
-        return IsHovered ? 0xFFFFFFFFu : DialogPalette.RowText;
+        return IsHovered ? _textStrong.Value : _rowText.Value;
     }
 
     private uint ComputeLabelForeground()
     {
-        if (!IsEnabled) return DialogPalette.RowTextMissing;
-        return IsHovered ? 0xFFFFFFFFu : DialogPalette.RowText;
+        if (!IsEnabled) return _rowTextMissing.Value;
+        return IsHovered ? _textStrong.Value : _rowText.Value;
     }
 
     private static uint Lighten(uint argb, uint delta)
