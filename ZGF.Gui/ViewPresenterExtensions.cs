@@ -24,4 +24,18 @@ public static class ViewPresenterExtensions
     {
         view.Behaviors.Add(new ViewModelBehavior<TVm>(ctx => ctx.Create<TVm>(), bind));
     }
+
+    /// <summary>
+    /// Creates a <typeparamref name="TVm"/> via the host view's context and binds it
+    /// to <paramref name="target"/>. The VM's lifetime tracks the host view (created on
+    /// attach, disposed on detach). Pass <c>this</c> as the target for the self-bound
+    /// case; pass a child view for the parent-owned case.
+    /// </summary>
+    public static void UseViewModel<TVm>(
+        this View host,
+        IBind<TVm> target)
+        where TVm : class, IDisposable
+    {
+        host.Behaviors.Add(new ViewModelBehavior<TVm>(ctx => ctx.Create<TVm>(), target.Bind));
+    }
 }

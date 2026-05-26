@@ -1,6 +1,5 @@
 using ZGF.Geometry;
 using ZGF.Gui;
-using ZGF.Gui.Tests;
 
 namespace GitGui;
 
@@ -14,7 +13,7 @@ namespace GitGui;
 /// CheckoutBranchDialog. Right-click a local/remote branch row to open a context menu
 /// (Checkout / Rename / Delete). Collapse state is persisted per-repo via IRepoRegistry.
 /// </summary>
-public sealed class BranchesView : MultiChildView
+internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
 {
     private const float RowHeight = 22f;
     private const float BaseIndent = 8f;
@@ -77,17 +76,11 @@ public sealed class BranchesView : MultiChildView
     private bool _isLoading;
     private IReadOnlySet<string> _worktreeBranches = new HashSet<string>();
 
-    // Latest values from the VM, used to recompute _rows whenever either changes.
-    // Stored as fields rather than rebuilding from inside each subscription so a paired
-    // Listing+Ui change still produces a consistent row list on each fire.
     private BranchListing? _listing;
     private BranchesUiState _ui = new();
 
     private float _scrollY;
     private int _hoveredRowIndex = -1;
-    // Tracks which row currently has an open right-click context menu, drawn with the
-    // same hover background. Distinct from _hoveredRowIndex because the pointer often
-    // leaves the row while the menu is open.
     private int _contextHighlightRowIndex = -1;
 
     private bool _hasLastClick;
@@ -99,10 +92,10 @@ public sealed class BranchesView : MultiChildView
     public BranchesView()
     {
         this.UseController(ctx => new BranchesViewController(this, ctx));
-        this.UseViewModel<BranchesViewModel>(Bind);
+        this.UseViewModel(this);
     }
 
-    private void Bind(BranchesViewModel vm)
+    public void Bind(BranchesViewModel vm)
     {
         _vm = vm;
         vm.Listing.Subscribe(listing => { _listing = listing; RebuildRows(); });

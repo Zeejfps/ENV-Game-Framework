@@ -3,22 +3,25 @@ using ZGF.Gui.Layouts;
 
 namespace GitGui;
 
-public sealed class ModeSwitcherView : MultiChildView
+internal sealed class ModeSwitcherView : MultiChildView, IBind<ModeSwitcherViewModel>
 {
     private const float PillHeight = 28f;
     private const float PillCornerRadius = 5f;
 
     private const uint PillBorder = DialogPalette.ButtonBorder;
 
+    private readonly SegmentView _history;
+    private readonly SegmentView _localChanges;
+
     public ModeSwitcherView()
     {
         PreferredHeight = PillHeight;
 
         const float innerRadius = PillCornerRadius - 1f;
-        var history = new SegmentView(
+        _history = new SegmentView(
             "History",
             new BorderRadiusStyle { TopRight = innerRadius, BottomRight = innerRadius });
-        var localChanges = new SegmentView(
+        _localChanges = new SegmentView(
             "Changes",
             new BorderRadiusStyle { TopLeft = innerRadius, BottomLeft = innerRadius });
 
@@ -38,15 +41,17 @@ public sealed class ModeSwitcherView : MultiChildView
             {
                 new RowView
                 {
-                    Children = { localChanges, separator, history },
+                    Children = { _localChanges, separator, _history },
                 },
             },
         });
 
-        this.UseViewModel<ModeSwitcherViewModel>(vm =>
-        {
-            history.Bind(vm.HistorySegment);
-            localChanges.Bind(vm.LocalChangesSegment);
-        });
+        this.UseViewModel(this);
+    }
+
+    public void Bind(ModeSwitcherViewModel vm)
+    {
+        _history.Bind(vm.HistorySegment);
+        _localChanges.Bind(vm.LocalChangesSegment);
     }
 }

@@ -3,12 +3,15 @@ using ZGF.Gui.Layouts;
 
 namespace GitGui;
 
-public sealed class LocalChangesView : MultiChildView
+internal sealed class LocalChangesView : MultiChildView, IBind<LocalChangesViewModel>
 {
+    private readonly LocalChangesContentView _content;
+    private readonly CommitBarView _commitBar;
+
     public LocalChangesView()
     {
-        var content = new LocalChangesContentView();
-        var commitBar = new CommitBarView();
+        _content = new LocalChangesContentView();
+        _commitBar = new CommitBarView();
 
         AddChildToSelf(new RectView
         {
@@ -17,16 +20,18 @@ public sealed class LocalChangesView : MultiChildView
             {
                 new BorderLayoutView
                 {
-                    Center = content,
-                    South = commitBar,
+                    Center = _content,
+                    South = _commitBar,
                 },
             },
         });
 
-        this.UseViewModel<LocalChangesViewModel>(vm =>
-        {
-            content.Bind(vm);
-            commitBar.Bind(vm);
-        });
+        this.UseViewModel(this);
+    }
+
+    public void Bind(LocalChangesViewModel vm)
+    {
+        _content.Bind(vm);
+        _commitBar.Bind(vm);
     }
 }

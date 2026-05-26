@@ -9,7 +9,7 @@ namespace GitGui;
 /// stash-apply conflict. Self-managing: toggles <see cref="View.IsVisible"/> based on
 /// state, so the view is skipped by layout (no residual gap) when there's nothing to show.
 /// </summary>
-internal sealed class OperationBannerView : MultiChildView
+internal sealed class OperationBannerView : MultiChildView, IBind<OperationStateBannerViewModel>
 {
     private readonly TextView _text;
     private readonly ActionButton _abortButton;
@@ -77,14 +77,16 @@ internal sealed class OperationBannerView : MultiChildView
             Children = { _row },
         });
 
-        this.UseViewModel<OperationStateBannerViewModel>(vm =>
-        {
-            _abortButton.BindCommand(vm.Abort);
-            _continueButton.BindCommand(vm.Continue);
-            vm.State.Subscribe(SetState);
-            vm.IsBusy.Subscribe(SetIsBusy);
-            vm.BusyRotation.Subscribe(r => _spinnerIcon.Rotation = r);
-        });
+        this.UseViewModel(this);
+    }
+
+    public void Bind(OperationStateBannerViewModel vm)
+    {
+        _abortButton.BindCommand(vm.Abort);
+        _continueButton.BindCommand(vm.Continue);
+        vm.State.Subscribe(SetState);
+        vm.IsBusy.Subscribe(SetIsBusy);
+        vm.BusyRotation.Subscribe(r => _spinnerIcon.Rotation = r);
     }
 
     private void SetState(RepoOperationState state)

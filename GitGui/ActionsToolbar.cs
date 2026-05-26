@@ -4,7 +4,7 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class ActionsToolbar : MultiChildView
+internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewModel>
 {
     private const float ToolbarHeight = 44f;
     private const int HorizontalPadding = 8;
@@ -68,10 +68,10 @@ public sealed class ActionsToolbar : MultiChildView
             Children = { contentRow },
         });
 
-        this.UseViewModel<ActionsToolbarViewModel>(Bind);
+        this.UseViewModel(this);
     }
 
-    private void Bind(ActionsToolbarViewModel vm)
+    public void Bind(ActionsToolbarViewModel vm)
     {
         _pushButton.BindCommand(vm.Push);
         _pullButton.BindCommand(vm.Pull);

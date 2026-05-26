@@ -3,7 +3,7 @@ using ZGF.Gui.Layouts;
 
 namespace GitGui;
 
-public sealed class BranchesHeader : MultiChildView
+internal sealed class BranchesHeader : MultiChildView, IBind<BranchesHeaderViewModel>
 {
     private const float HeaderHeight = 44f;
     private const int HorizontalPadding = 8;
@@ -30,10 +30,12 @@ public sealed class BranchesHeader : MultiChildView
             Children = { _row },
         });
 
-        this.UseViewModel<BranchesHeaderViewModel>(vm =>
-        {
-            vm.Snapshot.Subscribe(s => SetBranch(s.BranchName, s.IsDetached));
-        });
+        this.UseViewModel(this);
+    }
+
+    public void Bind(BranchesHeaderViewModel vm)
+    {
+        vm.Snapshot.Subscribe(s => SetBranch(s.BranchName, s.IsDetached));
     }
 
     private void SetBranch(string? name, bool isDetached)
