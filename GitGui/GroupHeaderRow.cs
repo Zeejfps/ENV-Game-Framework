@@ -17,14 +17,17 @@ internal sealed class GroupHeaderRow : MultiChildView, IBind<GroupHeaderRowViewM
 
         _chevron = new TextView
         {
-            TextColor = DialogPalette.SectionHeaderText,
             FontSize = 8f,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
         };
+        _chevron.BindTextColorFromTheme(t => t.Dialog.SectionHeaderText);
 
         _nameSlot = new MultiChildView();
+
+        var hoverBg = new State<uint>(ThemePresets.Dark.Dialog.RowHover);
+        var transparentBg = new State<uint>(ThemePresets.Dark.Dialog.RowTransparent);
 
         var background = new RectView
         {
@@ -44,8 +47,12 @@ internal sealed class GroupHeaderRow : MultiChildView, IBind<GroupHeaderRowViewM
                 }
             }
         };
-        background.BindBackgroundColor(_isHovered,
-            h => h ? DialogPalette.RowHover : DialogPalette.RowTransparent);
+        background.BindToTheme(t =>
+        {
+            hoverBg.Value = t.Dialog.RowHover;
+            transparentBg.Value = t.Dialog.RowTransparent;
+        });
+        background.BindBackgroundColor(() => _isHovered.Value ? hoverBg.Value : transparentBg.Value);
         AddChildToSelf(background);
     }
 

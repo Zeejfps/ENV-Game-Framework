@@ -11,6 +11,10 @@ public sealed class CheckboxView : HoverableButton
 
     public State<bool> IsChecked { get; } = new(false);
 
+    private readonly State<uint> _idle = new(ThemePresets.Dark.Dialog.RowText);
+    private readonly State<uint> _hover = new(ThemePresets.Dark.Dialog.RowTextActive);
+    private readonly State<uint> _missing = new(ThemePresets.Dark.Dialog.RowTextMissing);
+
     public CheckboxView(string label)
     {
         var iconView = new TextView
@@ -35,13 +39,20 @@ public sealed class CheckboxView : HoverableButton
             CrossAxisAlignment = CrossAxisAlignment.Center,
             Children = { iconView, labelView },
         });
+
+        this.BindToTheme(t =>
+        {
+            _idle.Value = t.Dialog.RowText;
+            _hover.Value = t.Dialog.RowTextActive;
+            _missing.Value = t.Dialog.RowTextMissing;
+        });
     }
 
     protected override void OnClicked() => IsChecked.Value = !IsChecked.Value;
 
     private uint ComputeForeground()
     {
-        if (!IsEnabled.Value) return DialogPalette.RowTextMissing;
-        return IsHovered.Value ? DialogPalette.RowTextActive : DialogPalette.RowText;
+        if (!IsEnabled.Value) return _missing.Value;
+        return IsHovered.Value ? _hover.Value : _idle.Value;
     }
 }

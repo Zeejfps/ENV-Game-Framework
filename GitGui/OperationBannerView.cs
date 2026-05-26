@@ -27,10 +27,10 @@ internal sealed class OperationBannerView : MultiChildView, IBind<OperationState
 
         _text = new TextView
         {
-            TextColor = CommitsPalette.WarningText,
             VerticalTextAlignment = TextAlignment.Center,
             TextWrap = TextWrap.Wrap,
         };
+        _text.BindTextColorFromTheme(t => t.Commits.WarningText);
 
         _continueButton = new ActionButton(
             LucideIcons.ChevronsRight,
@@ -47,11 +47,11 @@ internal sealed class OperationBannerView : MultiChildView, IBind<OperationState
             Text = LucideIcons.Loader,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 16,
-            TextColor = CommitsPalette.WarningText,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             PreferredWidth = 20,
         };
+        _spinnerIcon.BindTextColorFromTheme(t => t.Commits.WarningText);
 
         _textItem = new FlexItem { Grow = 1, Child = _text };
 
@@ -62,10 +62,8 @@ internal sealed class OperationBannerView : MultiChildView, IBind<OperationState
             Children = { _textItem, _abortButton },
         };
 
-        AddChildToSelf(new RectView
+        var bar = new RectView
         {
-            BackgroundColor = CommitsPalette.WarningBg,
-            BorderColor = new BorderColorStyle { Bottom = CommitsPalette.WarningBorder },
             BorderSize = new BorderSizeStyle { Bottom = 1 },
             Padding = new PaddingStyle
             {
@@ -75,7 +73,10 @@ internal sealed class OperationBannerView : MultiChildView, IBind<OperationState
                 Bottom = 6,
             },
             Children = { _row },
-        });
+        };
+        bar.BindBackgroundColorFromTheme(t => t.Commits.WarningBg);
+        bar.BindBorderColorFromTheme(t => new BorderColorStyle { Bottom = t.Commits.WarningBorder });
+        AddChildToSelf(bar);
 
         this.UseViewModel(this);
     }

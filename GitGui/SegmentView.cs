@@ -5,15 +5,11 @@ namespace GitGui;
 internal sealed class SegmentView : MultiChildView, IBind<SegmentViewModel>
 {
     private const float SegmentHeight = 28f;
-
-    private static readonly uint ActiveBg = DialogPalette.RowActive;
-    private static readonly uint HoverBg = DialogPalette.ButtonHover;
-    private static readonly uint IdleBg = 0x00000000u;
-    private static readonly uint ActiveText = DialogPalette.RowTextActive;
-    private static readonly uint IdleText = DialogPalette.RowText;
+    private const uint IdleBg = 0x00000000u;
 
     private readonly RectView _bg;
     private readonly TextView _label;
+    private ThemeTokens _tokens = ThemePresets.Dark;
     private bool _isActive;
     private bool _isHovered;
 
@@ -28,7 +24,6 @@ internal sealed class SegmentView : MultiChildView, IBind<SegmentViewModel>
             Text = label,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
-            TextColor = IdleText,
         };
 
         _bg = new RectView
@@ -40,6 +35,7 @@ internal sealed class SegmentView : MultiChildView, IBind<SegmentViewModel>
         };
         AddChildToSelf(_bg);
 
+        this.BindToTheme(t => { _tokens = t; ApplyVisualState(); });
         this.UseController(_ => new HoverableButtonController(OnClicked, OnHoverChanged));
     }
 
@@ -70,20 +66,21 @@ internal sealed class SegmentView : MultiChildView, IBind<SegmentViewModel>
 
     private void ApplyVisualState()
     {
+        var d = _tokens.Dialog;
         if (_isActive)
         {
-            _bg.BackgroundColor = ActiveBg;
-            _label.TextColor = ActiveText;
+            _bg.BackgroundColor = d.RowActive;
+            _label.TextColor = d.RowTextActive;
         }
         else if (_isHovered)
         {
-            _bg.BackgroundColor = HoverBg;
-            _label.TextColor = ActiveText;
+            _bg.BackgroundColor = d.ButtonHover;
+            _label.TextColor = d.RowTextActive;
         }
         else
         {
             _bg.BackgroundColor = IdleBg;
-            _label.TextColor = IdleText;
+            _label.TextColor = d.RowText;
         }
     }
 }

@@ -55,14 +55,17 @@ internal sealed class GrowingDescriptionField : MultiChildView
 
         _input = new TextInputView
         {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            TextColor = DialogPalette.TitleText,
-            CaretColor = DialogPalette.TitleText,
-            SelectionRectColor = DialogPalette.RowActive,
             TextVerticalAlignment = TextAlignment.Start,
             TextWrap = TextWrap.Wrap,
-            PlaceholderTextColor = DialogPalette.RowTextMissing,
         };
+        _input.BindToTheme(t =>
+        {
+            _input.BackgroundColor = t.Dialog.ButtonNormal;
+            _input.TextColor = t.Dialog.TitleText;
+            _input.CaretColor = t.Dialog.TitleText;
+            _input.SelectionRectColor = t.Dialog.RowActive;
+            _input.PlaceholderTextColor = t.Dialog.RowTextMissing;
+        });
         _input.UseController(_ => new TextInputViewKbmController(_input) { IsMultiLine = true });
 
         _scrollPane = new ScrollPane();
@@ -71,10 +74,8 @@ internal sealed class GrowingDescriptionField : MultiChildView
 
         _scrollBar = ScrollBarStyles.CreateVertical();
 
-        AddChildToSelf(new RectView
+        var frame = new RectView
         {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
             BorderSize = BorderSizeStyle.All((int)BoxBorderThickness),
             BorderRadius = BorderRadiusStyle.All(3),
             Padding = new PaddingStyle
@@ -92,7 +93,10 @@ internal sealed class GrowingDescriptionField : MultiChildView
                     East = _scrollBar,
                 },
             },
-        });
+        };
+        frame.BindBackgroundColorFromTheme(t => t.Dialog.ButtonNormal);
+        frame.BindBorderColorFromTheme(t => BorderColorStyle.All(t.Dialog.ButtonBorder));
+        AddChildToSelf(frame);
 
         this.UseController(_ => new ScrollSyncController(_scrollPane, _scrollBar));
 

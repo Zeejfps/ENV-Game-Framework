@@ -11,11 +11,8 @@ public sealed class DragOverlay : MultiChildView
     public DragOverlay()
     {
         ZIndex = 900;
-        _indicator = new RectView
-        {
-            BackgroundColor = DialogPalette.ButtonBorderHover,
-            BorderRadius = BorderRadiusStyle.All(1),
-        };
+        _indicator = new RectView { BorderRadius = BorderRadiusStyle.All(1) };
+        _indicator.BindBackgroundColorFromTheme(t => t.Dialog.ButtonBorderHover);
     }
 
     protected override void OnAttachedToContext(Context context)

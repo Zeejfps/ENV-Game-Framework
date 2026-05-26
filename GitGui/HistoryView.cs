@@ -21,6 +21,7 @@ public sealed class HistoryView : MultiChildView
     private readonly CommitDetailsView _details;
     private float _detailsWidth = DefaultDetailsWidth;
     private bool _dividerHovered;
+    private ThemeTokens _tokens = ThemePresets.Dark;
 
     public HistoryView()
     {
@@ -29,6 +30,7 @@ public sealed class HistoryView : MultiChildView
         AddChildToSelf(_commits);
         AddChildToSelf(_details);
         this.UseController(_ => new HistoryViewController(this));
+        this.BindToTheme(t => { _tokens = t; SetDirty(); });
     }
 
     protected override void OnLayoutChildren()
@@ -65,13 +67,13 @@ public sealed class HistoryView : MultiChildView
         c.DrawRect(new DrawRectInputs
         {
             Position = new RectF(dividerX - DividerHitWidth * 0.5f, pos.Bottom, DividerHitWidth, pos.Height),
-            Style = new RectStyle { BackgroundColor = CommitsPalette.DividerHoverBg },
+            Style = new RectStyle { BackgroundColor = _tokens.Commits.DividerHoverBg },
             ZIndex = z + 999,
         });
         c.DrawRect(new DrawRectInputs
         {
             Position = new RectF(dividerX - DividerThickness * 0.5f, pos.Bottom, DividerThickness, pos.Height),
-            Style = new RectStyle { BackgroundColor = CommitsPalette.DividerHoverLine },
+            Style = new RectStyle { BackgroundColor = _tokens.Commits.DividerHoverLine },
             ZIndex = z + 1000,
         });
     }

@@ -18,19 +18,18 @@ internal sealed class SeparatorSpacer : MultiChildView
     public SeparatorSpacer()
     {
         PreferredWidth = SeparatorWidth + SeparatorBreathingRoom * 2;
+        var line = new RectView
+        {
+            PreferredWidth = SeparatorWidth,
+            PreferredHeight = SeparatorHeight,
+        };
+        line.BindBackgroundColorFromTheme(t => t.Dialog.Border);
+
         AddChildToSelf(new FlexRowView
         {
             CrossAxisAlignment = CrossAxisAlignment.Center,
             MainAxisAlignment = MainAxisAlignment.Center,
-            Children =
-            {
-                new RectView
-                {
-                    BackgroundColor = DialogPalette.Border,
-                    PreferredWidth = SeparatorWidth,
-                    PreferredHeight = SeparatorHeight,
-                },
-            },
+            Children = { line },
         });
     }
 }

@@ -1,5 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -7,7 +8,6 @@ internal sealed class LocalChangesHeaderActionButton : HoverableButton
 {
     private const float ButtonSize = 22f;
     private const float IconSize = 13f;
-    private const uint IconIdleColor = 0xFFB5B9C0;
     private const uint IconDisabledColor = 0x66B5B9C0;
     private const uint TransparentBg = 0x00000000u;
 
@@ -16,6 +16,16 @@ internal sealed class LocalChangesHeaderActionButton : HoverableButton
     {
         PreferredWidth = ButtonSize;
         PreferredHeight = ButtonSize;
+
+        var idleIcon = new State<uint>(ThemePresets.Dark.Dialog.RowText);
+        var hoverIcon = new State<uint>(ThemePresets.Dark.Text.Strong);
+        var hoverBg = new State<uint>(ThemePresets.Dark.Dialog.ButtonHover);
+        this.BindToTheme(t =>
+        {
+            idleIcon.Value = t.Dialog.RowText;
+            hoverIcon.Value = t.Text.Strong;
+            hoverBg.Value = t.Dialog.ButtonHover;
+        });
 
         var iconView = new TextView
         {
@@ -28,7 +38,7 @@ internal sealed class LocalChangesHeaderActionButton : HoverableButton
         iconView.BindTextColor(() =>
         {
             if (!IsEnabled) return IconDisabledColor;
-            return IsHovered ? 0xFFFFFFFFu : IconIdleColor;
+            return IsHovered ? hoverIcon.Value : idleIcon.Value;
         });
 
         var background = new RectView
@@ -37,7 +47,7 @@ internal sealed class LocalChangesHeaderActionButton : HoverableButton
             Children = { iconView },
         };
         background.BindBackgroundColor(() =>
-            IsEnabled && IsHovered ? DialogPalette.ButtonHover : TransparentBg);
+            IsEnabled && IsHovered ? hoverBg.Value : TransparentBg);
         SetBackground(background);
     }
 }

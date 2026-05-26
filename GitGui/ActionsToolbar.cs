@@ -23,8 +23,11 @@ internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewM
     {
         PreferredHeight = ToolbarHeight;
 
-        _pushButton = new ActionButton(LucideIcons.Push, "Push", badgeColor: CommitsPalette.AheadColor);
-        _pullButton = new ActionButton(LucideIcons.Pull, "Pull", badgeColor: CommitsPalette.BehindColor);
+        // Badge colors are accent hints (ahead green / behind orange) — passed at construction
+        // and not theme-reactive yet. ActionButton would need a State<uint> badge color to
+        // pick up live theme swaps; deferred until a follow-up.
+        _pushButton = new ActionButton(LucideIcons.Push, "Push", badgeColor: ThemePresets.Dark.Commits.AheadColor);
+        _pullButton = new ActionButton(LucideIcons.Pull, "Pull", badgeColor: ThemePresets.Dark.Commits.BehindColor);
         _fetchButton = new ActionButton(LucideIcons.Fetch, "Fetch");
         _branchButton = new ActionButton(LucideIcons.Branch, "Branch");
         _stashButton = new ActionButton(LucideIcons.Stash, "Stash");
@@ -53,10 +56,8 @@ internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewM
             }
         };
 
-        AddChildToSelf(new RectView
+        var frame = new RectView
         {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = new BorderColorStyle { Bottom = DialogPalette.Border },
             BorderSize = new BorderSizeStyle { Bottom = 1 },
             Padding = new PaddingStyle
             {
@@ -64,7 +65,10 @@ internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewM
                 Right = HorizontalPadding,
             },
             Children = { contentRow },
-        });
+        };
+        frame.BindBackgroundColorFromTheme(t => t.Dialog.Background);
+        frame.BindBorderColorFromTheme(t => new BorderColorStyle { Bottom = t.Dialog.Border });
+        AddChildToSelf(frame);
 
         this.UseViewModel(this);
     }

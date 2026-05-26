@@ -30,17 +30,21 @@ internal sealed class GroupHeaderRowViewModel : IDisposable
         Delete = new Command(() => _registry.DeleteGroup(_group.Id));
     }
 
-    public View CreateNameContent(bool isRenaming) =>
-        isRenaming
-            ? new GroupRenameField(_group, _registry)
-            : new TextView
-            {
-                Text = _group.Name,
-                TextColor = DialogPalette.SectionHeaderText,
-                FontSize = 18f,
-                HorizontalTextAlignment = TextAlignment.Start,
-                VerticalTextAlignment = TextAlignment.Center,
-            };
+    public View CreateNameContent(bool isRenaming)
+    {
+        if (isRenaming)
+            return new GroupRenameField(_group, _registry);
+
+        var view = new TextView
+        {
+            Text = _group.Name,
+            FontSize = 18f,
+            HorizontalTextAlignment = TextAlignment.Start,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        view.BindTextColorFromTheme(t => t.Dialog.SectionHeaderText);
+        return view;
+    }
 
     public IReadOnlyList<RepoBarContextMenu.Item> BuildMenuItems()
     {

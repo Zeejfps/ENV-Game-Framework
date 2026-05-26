@@ -69,10 +69,10 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
 
         _placeholder = new TextView
         {
-            TextColor = CommitsPalette.Placeholder,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        _placeholder.BindTextColorFromTheme(t => t.Commits.Placeholder);
 
         _submoduleSection = new LocalChangesSubmoduleSection(
             onStage: path => _vm?.StageSubmodulePointer(path),
@@ -84,9 +84,15 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         // of available height so window resizes scale both halves; the user can drag the
         // splitter to pick a different ratio, which then stays fractional across resizes.
         var splitterHovered = new State<bool>(false);
+        var splitterHover = new State<uint>(ThemePresets.Dark.Commits.DividerHoverBg);
+        var splitterIdle = new State<uint>(ThemePresets.Dark.Commits.Border);
         var splitter = new RectView();
-        splitter.BindBackgroundColor(splitterHovered,
-            h => h ? CommitsPalette.DividerHoverBg : CommitsPalette.Border);
+        splitter.BindToTheme(t =>
+        {
+            splitterHover.Value = t.Commits.DividerHoverBg;
+            splitterIdle.Value = t.Commits.Border;
+        });
+        splitter.BindBackgroundColor(() => splitterHovered.Value ? splitterHover.Value : splitterIdle.Value);
 
         // Top half of the split: optional submodule drift section (North, populated only
         // when there's drift) over the two file panels. North = null hides the section so
@@ -103,12 +109,8 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             _snapshotContainer.AdjustBottomFractionByPixels,
             h => splitterHovered.Value = h));
 
-        _centerContainer = new RectView
-        {
-            BackgroundColor = CommitsPalette.Background,
-            Children = { _snapshotContainer },
-        };
-
+        _centerContainer = new RectView { Children = { _snapshotContainer } };
+        _centerContainer.BindBackgroundColorFromTheme(t => t.Commits.Background);
         AddChildToSelf(_centerContainer);
 
         this.UseController(_ =>
@@ -171,7 +173,8 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
 
     private View BuildContentRow()
     {
-        var divider = new RectView { PreferredWidth = 1, BackgroundColor = CommitsPalette.Border };
+        var divider = new RectView { PreferredWidth = 1 };
+        divider.BindBackgroundColorFromTheme(t => t.Commits.Border);
         return new TransferListRow(_unstagedPanel, divider, _stagedPanel);
     }
 

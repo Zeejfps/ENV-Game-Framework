@@ -8,8 +8,6 @@ internal sealed class ModeSwitcherView : MultiChildView, IBind<ModeSwitcherViewM
     private const float PillHeight = 28f;
     private const float PillCornerRadius = 5f;
 
-    private const uint PillBorder = DialogPalette.ButtonBorder;
-
     private readonly SegmentView _history;
     private readonly SegmentView _localChanges;
 
@@ -25,16 +23,12 @@ internal sealed class ModeSwitcherView : MultiChildView, IBind<ModeSwitcherViewM
             "Changes",
             new BorderRadiusStyle { TopLeft = innerRadius, BottomLeft = innerRadius });
 
-        var separator = new RectView
-        {
-            BackgroundColor = PillBorder,
-            PreferredWidth = 1f,
-        };
+        var separator = new RectView { PreferredWidth = 1f };
+        separator.BindBackgroundColorFromTheme(t => t.Dialog.ButtonBorder);
 
-        AddChildToSelf(new RectView
+        var pill = new RectView
         {
             BackgroundColor = 0x00000000u,
-            BorderColor = BorderColorStyle.All(PillBorder),
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(PillCornerRadius),
             Children =
@@ -44,7 +38,9 @@ internal sealed class ModeSwitcherView : MultiChildView, IBind<ModeSwitcherViewM
                     Children = { _localChanges, separator, _history },
                 },
             },
-        });
+        };
+        pill.BindBorderColorFromTheme(t => BorderColorStyle.All(t.Dialog.ButtonBorder));
+        AddChildToSelf(pill);
 
         this.UseViewModel(this);
     }

@@ -24,10 +24,15 @@ public static class RepoBarContextMenu
 
         manager.CloseAllImmediately();
 
+        // Snapshot the current tokens at open time. Menus are short-lived; live theme swap
+        // during an open menu is out of scope.
+        var tokens = (context.Get<IThemeService>()?.Tokens.Value) ?? ThemePresets.Dark;
+        var d = tokens.Dialog;
+
         var menu = new ContextMenu
         {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
+            BackgroundColor = d.Background,
+            BorderColor = BorderColorStyle.All(d.Border),
             BorderSize = BorderSizeStyle.All(1),
             Padding = PaddingStyle.All(4),
         };
@@ -40,14 +45,14 @@ public static class RepoBarContextMenu
                 Icon = item.Icon,
                 IconFontFamily = LucideIcons.FontFamily,
                 NormalBackgroundColor = 0x00000000,
-                SelectedBackgroundColor = DialogPalette.RowHover,
-                TextColor = DialogPalette.RowText,
-                DisabledTextColor = DialogPalette.RowTextMissing,
+                SelectedBackgroundColor = d.RowHover,
+                TextColor = d.RowText,
+                DisabledTextColor = d.RowTextMissing,
                 IsEnabled = item.Enabled,
             };
 
             if (item.LabelSegments is { Count: > 0 } segs)
-                menuItem.SetLabelView(BuildSegmentsView(segs, item.Enabled));
+                menuItem.SetLabelView(BuildSegmentsView(segs, item.Enabled, d));
 
             var captured = item;
             menuItem.UseController(ctx => new ContextMenuItemDefaultKbmController(menuItem, ctx, () =>
@@ -67,7 +72,7 @@ public static class RepoBarContextMenu
         return opened;
     }
 
-    private static MultiChildView BuildSegmentsView(IReadOnlyList<MenuLabelSegment> segments, bool enabled)
+    private static MultiChildView BuildSegmentsView(IReadOnlyList<MenuLabelSegment> segments, bool enabled, DialogTokens d)
     {
         var row = new FlexRowView
         {
@@ -84,7 +89,7 @@ public static class RepoBarContextMenu
             if (seg.Color.HasValue && enabled)
                 tv.TextColor = seg.Color.Value;
             else
-                tv.TextColor = enabled ? DialogPalette.RowText : DialogPalette.RowTextMissing;
+                tv.TextColor = enabled ? d.RowText : d.RowTextMissing;
             if (seg.Bold && enabled)
                 tv.FontWeight = FontWeight.Bold;
             row.Children.Add(tv);

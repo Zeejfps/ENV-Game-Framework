@@ -18,8 +18,7 @@ public sealed class WorktreeRow : MultiChildView
         PreferredHeight = 26;
 
         var isHovered = new State<bool>(false);
-
-        uint RowTextColor() => RowChrome.RowTextColor(registry, worktree);
+        var tokens = new State<ThemeTokens>(ThemePresets.Dark);
 
         var icon = new TextView
         {
@@ -32,9 +31,10 @@ public sealed class WorktreeRow : MultiChildView
         };
         // Tinted by kind so the sidebar tells worktree apart from primary / submodule
         // without leaning on a header row. Missing rows mute the accent to match the label.
+        icon.BindToTheme(t => tokens.Value = t);
         icon.BindTextColor(() => worktree.IsMissing
-            ? DialogPalette.RowTextMissing
-            : DialogPalette.IconAccentWorktree);
+            ? tokens.Value.Dialog.RowTextMissing
+            : tokens.Value.Dialog.IconAccentWorktree);
 
         _label = new TextView
         {
@@ -42,7 +42,7 @@ public sealed class WorktreeRow : MultiChildView
             HorizontalTextAlignment = TextAlignment.Start,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        _label.BindTextColor(RowTextColor);
+        RowChrome.BindRowTextColor(_label, registry, worktree);
 
         // Indent past the primary's chevron+icon column. The math mirrors the constants
         // RepoRow uses internally so children appear nested visually.

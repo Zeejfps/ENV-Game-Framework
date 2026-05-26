@@ -224,8 +224,8 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         var isSelected = _selection.Value.Contains(path, _side);
 
         var bg = isSelected
-            ? DialogPalette.RowActive
-            : (state.IsHovered ? DialogPalette.RowHover : (uint?)null);
+            ? _tokens.Dialog.RowActive
+            : (state.IsHovered ? _tokens.Dialog.RowHover : (uint?)null);
         if (bg != null)
         {
             c.DrawRect(new DrawRectInputs

@@ -11,25 +11,29 @@ public sealed class GroupRenameField : MultiChildView
 
         var input = new TextInputView
         {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            TextColor = DialogPalette.TitleText,
             FontSize = 18f,
-            CaretColor = DialogPalette.TitleText,
-            SelectionRectColor = DialogPalette.RowActive,
             TextVerticalAlignment = TextAlignment.Center,
         };
+        input.BindToTheme(t =>
+        {
+            input.BackgroundColor = t.Dialog.ButtonNormal;
+            input.TextColor = t.Dialog.TitleText;
+            input.CaretColor = t.Dialog.TitleText;
+            input.SelectionRectColor = t.Dialog.RowActive;
+        });
         input.Enter(group.Name);
         input.SelectAll();
 
-        AddChildToSelf(new RectView
+        var frame = new RectView
         {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorderHover),
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(3),
             Padding = new PaddingStyle { Left = 4, Right = 4 },
             Children = { input }
-        });
+        };
+        frame.BindBackgroundColorFromTheme(t => t.Dialog.ButtonNormal);
+        frame.BindBorderColorFromTheme(t => BorderColorStyle.All(t.Dialog.ButtonBorderHover));
+        AddChildToSelf(frame);
 
         this.UseController(ctx =>
         {

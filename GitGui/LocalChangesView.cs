@@ -13,9 +13,8 @@ internal sealed class LocalChangesView : MultiChildView, IBind<LocalChangesViewM
         _content = new LocalChangesContentView();
         _commitBar = new CommitBarView();
 
-        AddChildToSelf(new RectView
+        var frame = new RectView
         {
-            BackgroundColor = CommitsPalette.Background,
             Children =
             {
                 new BorderLayoutView
@@ -24,7 +23,9 @@ internal sealed class LocalChangesView : MultiChildView, IBind<LocalChangesViewM
                     South = _commitBar,
                 },
             },
-        });
+        };
+        frame.BindBackgroundColorFromTheme(t => t.Commits.Background);
+        AddChildToSelf(frame);
 
         this.UseViewModel(this);
     }
