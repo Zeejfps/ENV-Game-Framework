@@ -1,10 +1,9 @@
 using ZGF.Gui;
 using ZGF.Gui.Layouts;
-using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
+public sealed class ActionsToolbar : MultiChildView
 {
     private const float ToolbarHeight = 44f;
     private const int HorizontalPadding = 8;
@@ -36,37 +35,30 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
     private readonly ActionButton _openFolderButton;
     private readonly ActionButton _openTerminalButton;
     private readonly ErrorBarView _errorBar;
-    private readonly FlexRowView _contentRow;
 
-    public event Action? PushRequested;
-    public event Action? PullRequested;
-    public event Action? FetchRequested;
-    public event Action? OpenInFolderRequested;
-    public event Action? OpenInTerminalRequested;
-    public event Action? BranchRequested;
-    public event Action? StashRequested;
+    private ActionsToolbarViewModel? _vm;
 
     public ActionsToolbar()
     {
         PreferredHeight = ToolbarHeight;
 
-        _pushButton = new ActionButton(LucideIcons.Push, "Push", () => PushRequested?.Invoke(),
+        _pushButton = new ActionButton(LucideIcons.Push, "Push", () => _vm?.Push(),
             badgeColor: AheadBadgeColor);
-        _pullButton = new ActionButton(LucideIcons.Pull, "Pull", () => PullRequested?.Invoke(),
+        _pullButton = new ActionButton(LucideIcons.Pull, "Pull", () => _vm?.Pull(),
             badgeColor: BehindBadgeColor);
-        _fetchButton = new ActionButton(LucideIcons.Fetch, "Fetch", () => FetchRequested?.Invoke());
-        _branchButton = new ActionButton(LucideIcons.Branch, "Branch", () => BranchRequested?.Invoke());
-        _stashButton = new ActionButton(LucideIcons.Stash, "Stash", () => StashRequested?.Invoke());
-        _openFolderButton = new ActionButton(LucideIcons.FolderOpen, () => OpenInFolderRequested?.Invoke(),
+        _fetchButton = new ActionButton(LucideIcons.Fetch, "Fetch", () => _vm?.Fetch());
+        _branchButton = new ActionButton(LucideIcons.Branch, "Branch", () => _vm?.Branch());
+        _stashButton = new ActionButton(LucideIcons.Stash, "Stash", () => _vm?.Stash());
+        _openFolderButton = new ActionButton(LucideIcons.FolderOpen, () => _vm?.OpenFolder(),
             tooltip: "Open in file explorer");
-        _openTerminalButton = new ActionButton(LucideIcons.SquareTerminal, () => OpenInTerminalRequested?.Invoke(),
+        _openTerminalButton = new ActionButton(LucideIcons.SquareTerminal, () => _vm?.OpenTerminal(),
             tooltip: "Open in terminal");
 
         _errorBar = new ErrorBarView(verticalPadding: 2);
         // Layout zones, left to right:
         //   [ Mode ]  |  [ Fetch Pull Push ]  |  [ Stash Branch ]  …  [ Folder Terminal ]
         //    status        remote sync             local ops              tools
-        _contentRow = new FlexRowView
+        var contentRow = new FlexRowView
         {
             Gap = WithinClusterGap,
             CrossAxisAlignment = CrossAxisAlignment.Center,
@@ -90,82 +82,58 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
         AddChildToSelf(new RectView
         {
             BackgroundColor = DialogPalette.Background,
-            BorderColor = new BorderColorStyle
-            {
-                Bottom = DialogPalette.Border
-            },
-            BorderSize = new BorderSizeStyle
-            {
-                Bottom = 1
-            },
+            BorderColor = new BorderColorStyle { Bottom = DialogPalette.Border },
+            BorderSize = new BorderSizeStyle { Bottom = 1 },
             Padding = new PaddingStyle
             {
                 Left = HorizontalPadding,
                 Right = HorizontalPadding,
             },
-            Children = { _contentRow },
+            Children = { contentRow },
         });
 
-        this.UsePresenter(ctx => new ActionsToolbarPresenter(
-            this,
-            ctx.Require<IRepoRegistry>(),
-            ctx.Require<IGitService>(),
-            ctx.Require<IPlatformShell>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel<ActionsToolbarViewModel>(Bind);
     }
 
-    public bool PushEnabled { set => _pushButton.IsEnabled.Value = value; }
-    public bool PullEnabled { set => _pullButton.IsEnabled.Value = value; }
-    public bool FetchEnabled { set => _fetchButton.IsEnabled.Value = value; }
-    public float PushRotation { set => _pushButton.IconRotation = value; }
-    public float PullRotation { set => _pullButton.IconRotation = value; }
-    public float FetchRotation { set => _fetchButton.IconRotation = value; }
-    public string? Error { set => _errorBar.Message = value; }
-
-    public bool RepoActionsEnabled
+    private void Bind(ActionsToolbarViewModel vm)
     {
-        set
+        _vm = vm;
+
+        vm.PushEnabled.Subscribe(b => _pushButton.IsEnabled.Value = b);
+        vm.PullEnabled.Subscribe(b => _pullButton.IsEnabled.Value = b);
+        vm.FetchEnabled.Subscribe(b => _fetchButton.IsEnabled.Value = b);
+        vm.RepoActionsEnabled.Subscribe(b =>
         {
-            _openFolderButton.IsEnabled.Value = value;
-            _openTerminalButton.IsEnabled.Value = value;
-            _branchButton.IsEnabled.Value = value;
-        }
-    }
+            _openFolderButton.IsEnabled.Value = b;
+            _openTerminalButton.IsEnabled.Value = b;
+            _branchButton.IsEnabled.Value = b;
+        });
+        vm.StashEnabled.Subscribe(b => _stashButton.IsEnabled.Value = b);
+        vm.PushBadge.Subscribe(badge => _pushButton.Badge = badge);
+        vm.PullBadge.Subscribe(badge => _pullButton.Badge = badge);
 
-    public bool StashEnabled { set => _stashButton.IsEnabled.Value = value; }
-
-    public int? PushBadge { set => _pushButton.Badge = value; }
-    public int? PullBadge { set => _pullButton.Badge = value; }
-
-    public bool PushBusy
-    {
-        set
+        vm.IsPushing.Subscribe(b =>
         {
-            _pushButton.Icon = value ? LucideIcons.Loader : LucideIcons.Push;
-            _pushButton.Label = value ? "Pushing" : "Push";
-            _pushButton.IconRotation = 0f;
-        }
-    }
-
-    public bool PullBusy
-    {
-        set
+            _pushButton.Icon = b ? LucideIcons.Loader : LucideIcons.Push;
+            _pushButton.Label = b ? "Pushing" : "Push";
+            if (!b) _pushButton.IconRotation = 0f;
+        });
+        vm.IsPulling.Subscribe(b =>
         {
-            _pullButton.Icon = value ? LucideIcons.Loader : LucideIcons.Pull;
-            _pullButton.Label = value ? "Pulling" : "Pull";
-            _pullButton.IconRotation = 0f;
-        }
-    }
-
-    public bool FetchBusy
-    {
-        set
+            _pullButton.Icon = b ? LucideIcons.Loader : LucideIcons.Pull;
+            _pullButton.Label = b ? "Pulling" : "Pull";
+            if (!b) _pullButton.IconRotation = 0f;
+        });
+        vm.IsFetching.Subscribe(b =>
         {
-            _fetchButton.Icon = value ? LucideIcons.Loader : LucideIcons.Fetch;
-            _fetchButton.Label = value ? "Fetching" : "Fetch";
-            _fetchButton.IconRotation = 0f;
-        }
+            _fetchButton.Icon = b ? LucideIcons.Loader : LucideIcons.Fetch;
+            _fetchButton.Label = b ? "Fetching" : "Fetch";
+            if (!b) _fetchButton.IconRotation = 0f;
+        });
+        vm.PushRotation.Subscribe(r => _pushButton.IconRotation = r);
+        vm.PullRotation.Subscribe(r => _pullButton.IconRotation = r);
+        vm.FetchRotation.Subscribe(r => _fetchButton.IconRotation = r);
+        vm.Error.Subscribe(msg => _errorBar.Message = msg);
     }
 
     private sealed class SeparatorSpacer : MultiChildView
