@@ -22,6 +22,12 @@ public sealed class Context
         _services[typeof(T)] = service;
     }
 
+    /// <summary>
+    /// Alias for <see cref="AddService{T}"/>. Registers <paramref name="service"/> against the
+    /// type token <typeparamref name="T"/>; later <see cref="Get{T}"/> calls return it.
+    /// </summary>
+    public void Set<T>(T service) where T : class => AddService(service);
+
     public T? Get<T>() where T : class
     {
         if (_services.TryGetValue(typeof(T), out var service))

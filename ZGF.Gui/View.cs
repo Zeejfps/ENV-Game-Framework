@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.ComponentModel;
 using System.Diagnostics;
 using ZGF.Geometry;
@@ -42,7 +42,7 @@ public abstract class View
             }
         }
     }
-    
+
     public RectF Position
     {
         get;
@@ -60,7 +60,7 @@ public abstract class View
         get;
         set => SetField(ref field, value);
     }
-    
+
     public StyleValue<float> WidthConstraint
     {
         get;
@@ -93,7 +93,11 @@ public abstract class View
     public string? Id
     {
         get;
-        set => SetField(ref field, value);
+        set
+        {
+            if (SetField(ref field, value))
+                ResolveAndApply();
+        }
     }
 
     public int ZIndex
@@ -140,7 +144,7 @@ public abstract class View
             }
         }
     }
-    
+
     private int _siblingIndex;
     public int SiblingIndex => _siblingIndex;
 
@@ -164,24 +168,41 @@ public abstract class View
 
             if (field != null)
                 OnStyleSheetApplied(field);
+            else
+                ResolveAndApply();
 
             SetDirty();
         }
     }
-    
+
     public IStyleClassCollection StyleClasses { get; }
+    public IStyleModifierCollection StyleModifiers { get; }
     public IBehaviorCollection Behaviors { get; }
+
+    /// <summary>
+    /// Cascade output. Built from defaults → matching sheet rules (stable-sorted ascending by
+    /// specificity) → <see cref="_localStyle"/>. Renderers read from this; do not assign to it.
+    /// </summary>
+    protected readonly ResolvedStyle _resolvedStyle = new();
+
+    /// <summary>
+    /// Imperative local-write style. Property setters (e.g. <c>BackgroundColor = X</c>) route
+    /// here; bindings also write here. Wins over the sheet by construction.
+    /// </summary>
+    protected readonly Style _localStyle = new();
 
     protected readonly List<View> _children = new();
     protected readonly HashSet<string> _styleClasses = new();
+    protected readonly HashSet<string> _styleModifiers = new();
     protected readonly List<IViewBehavior> _behaviors = new();
 
     public View()
     {
         StyleClasses = new StyleClassCollection(this);
+        StyleModifiers = new StyleModifierCollection(this);
         Behaviors = new BehaviorCollection(this);
     }
-    
+
     protected virtual void OnAttachedToContext(Context context)
     {
 
@@ -190,8 +211,8 @@ public abstract class View
     protected virtual void OnDetachedFromContext(Context context)
     {
     }
-    
-    
+
+
     public void BringToFront(View view)
     {
         // If its already the last child ignore it
@@ -223,10 +244,10 @@ public abstract class View
         }
         return false;
     }
-    
+
     public bool IsInFrontOf(View view)
     {
-        // Use clearer variable names for readability   
+        // Use clearer variable names for readability
         var nodeA = this;
         var nodeB = view;
         var iNodeA = nodeA;
@@ -287,7 +308,7 @@ public abstract class View
         // We can now safely compare their sibling index to determine their order.
         return nodeA._siblingIndex > nodeB._siblingIndex;
     }
-    
+
     protected void InsertChildToSelf(int index, View view)
     {
         if (index < 0 || index > _children.Count)
@@ -362,23 +383,56 @@ public abstract class View
 
         return null;
     }
-    
-    protected virtual void OnApplyStyle(Style style)
+
+    /// <summary>
+    /// Rebuild <see cref="_resolvedStyle"/> from scratch in cascade order:
+    /// defaults → matching sheet rules (stable-sorted ascending by specificity)
+    /// → <see cref="_localStyle"/>. Invoked whenever the inputs change (style sheet
+    /// swap, classes, modifiers, local writes). After resolution, notifies subclasses
+    /// via <see cref="OnStyleResolved"/>.
+    /// </summary>
+    protected void ResolveAndApply()
     {
-        if (style.PreferredWidth.IsSet)
+        _resolvedStyle.ResetToDefaults();
+
+        var sheet = StyleSheet;
+        if (sheet != null)
         {
-            PreferredWidth = style.PreferredWidth;
+            foreach (var rule in sheet.RulesMatching(this))
+                _resolvedStyle.Apply(rule.Style);
         }
 
-        if (style.PreferredHeight.IsSet)
-        {
-            PreferredHeight = style.PreferredHeight;
-        }
+        _resolvedStyle.Apply(_localStyle);
+
+        OnStyleResolved(_resolvedStyle);
+        SetDirty();
     }
+
+    /// <summary>
+    /// Hook for view subtypes to react to a cascade refresh. The default implementation
+    /// pulls layout fields off the resolved style so framework views still respect
+    /// <c>PreferredWidth</c> / <c>PreferredHeight</c> tokens. Subclasses that want
+    /// behavioural reactions (e.g. invalidating text wrap on font-size change) override this.
+    /// </summary>
+    protected virtual void OnStyleResolved(ResolvedStyle style)
+    {
+        if (style.PreferredWidth.IsSet)
+            PreferredWidth = style.PreferredWidth;
+        if (style.PreferredHeight.IsSet)
+            PreferredHeight = style.PreferredHeight;
+    }
+
+    /// <summary>
+    /// Marks <see cref="_localStyle"/> as having changed and re-runs the cascade. Property
+    /// setters on view subtypes call this after writing to <see cref="_localStyle"/>.
+    /// </summary>
+    protected void MarkLocalStyleDirty() => ResolveAndApply();
 
     protected virtual void OnStyleSheetCleared(StyleSheet styleSheet)
     {
         ClearStyleSheetFromChildren(styleSheet);
+        // The view no longer has a sheet — re-resolve from defaults + local only.
+        ResolveAndApply();
     }
 
     protected virtual void ApplyStyleSheetToChildren(StyleSheet styleSheet)
@@ -401,13 +455,13 @@ public abstract class View
     {
         foreach (var child in _children)
         {
-            //child.ApplyStyleSheetToSelf(styleSheet);
+            child.ClearStyleSheet();
         }
     }
 
     protected virtual void OnDrawSelf(ICanvas c)
     {
-        
+
     }
 
     protected void DrawChild(View child, ICanvas c)
@@ -424,7 +478,7 @@ public abstract class View
     {
         if (EqualityComparer<T>.Default.Equals(field, value))
             return false;
-        
+
         field = value;
         SetDirty();
         return true;
@@ -474,7 +528,7 @@ public abstract class View
 
             height = MeasureHeight(availableWidth);
         }
-        
+
         Position = new RectF
         {
             Left = LeftConstraint,
@@ -511,7 +565,7 @@ public abstract class View
         {
             return PreferredWidth;
         }
-        
+
         return MeasureChildrenWidth();
     }
 
@@ -530,7 +584,7 @@ public abstract class View
 
         return maxWidth;
     }
-    
+
     /// <summary>
     /// Convenience overload that uses the view's intrinsic width as the available width.
     /// Equivalent to <c>MeasureHeight(MeasureWidth())</c>. Prefer the parameterized overload
@@ -567,7 +621,7 @@ public abstract class View
         }
         return height;
     }
-    
+
     public void LayoutSelf()
     {
         if (IsSelfDirty)
@@ -607,7 +661,7 @@ public abstract class View
     {
         SetDirty();
     }
-    
+
     protected void AddChildToSelf(View view)
     {
         if (view.Parent != null)
@@ -626,7 +680,7 @@ public abstract class View
         view.Context = Context;
         OnChildAdded(view);
     }
-    
+
     protected bool RemoveChildFromSelf(View view)
     {
         if (_children.Remove(view))
@@ -641,7 +695,7 @@ public abstract class View
         }
         return false;
     }
-    
+
     public void ApplyStyleSheet(StyleSheet styleSheet)
     {
         StyleSheet = styleSheet;
@@ -673,35 +727,44 @@ public abstract class View
         return true;
     }
 
-    protected void AddStyleClass(string classId)
+    private void AddStyleClass(string classId)
     {
         if (_styleClasses.Add(classId))
         {
-            var styleSheet = StyleSheet;
-            if (styleSheet == null)
-                return;
-
-            if (styleSheet.TryGetByClass(classId, out var classStyle))
-            {
-                OnApplyStyle(classStyle);
-                SetDirty();
-            }
+            ResolveAndApply();
         }
     }
 
-    protected bool RemoveStyleClass(string classId)
+    private bool RemoveStyleClass(string classId)
     {
         if (_styleClasses.Remove(classId))
         {
-            SetDirty();
+            ResolveAndApply();
             return true;
         }
 
         return false;
     }
 
-    
-    
+    private void AddStyleModifier(string modifier)
+    {
+        if (_styleModifiers.Add(modifier))
+        {
+            ResolveAndApply();
+        }
+    }
+
+    private bool RemoveStyleModifier(string modifier)
+    {
+        if (_styleModifiers.Remove(modifier))
+        {
+            ResolveAndApply();
+            return true;
+        }
+
+        return false;
+    }
+
     protected virtual void OnLayoutChild(in RectF position, View child)
     {
         child.LeftConstraint = position.Left;
@@ -711,26 +774,9 @@ public abstract class View
         child.LayoutSelf();
     }
 
-    public void ApplyStyle(Style style)
-    {
-        OnApplyStyle(style);
-    }
-
     protected virtual void OnStyleSheetApplied(StyleSheet styleSheet)
     {
-        foreach (var styleClass in _styleClasses)
-        {
-            if (styleSheet.TryGetByClass(styleClass, out var classStyle))
-            {
-                OnApplyStyle(classStyle);
-            }
-        }
-        
-        if (styleSheet.TryGetById(Id, out var idStyle))
-        {
-            OnApplyStyle(idStyle);
-        }
-        
+        ResolveAndApply();
         ApplyStyleSheetToChildren(styleSheet);
     }
 
@@ -748,7 +794,7 @@ public abstract class View
         var parentZIndex = Parent?.GetDrawZIndex() ?? 0;
         return parentZIndex + ZIndex;
     }
-        
+
     private sealed class BehaviorCollection(View view) : IBehaviorCollection
     {
         public IEnumerator<IViewBehavior> GetEnumerator()
@@ -787,7 +833,9 @@ public abstract class View
         }
 
         public int Count => view._styleClasses.Count;
-        
+
+        public bool Contains(string styleClass) => view._styleClasses.Contains(styleClass);
+
         public void Add(string styleClass)
         {
             view.AddStyleClass(styleClass);
@@ -796,6 +844,33 @@ public abstract class View
         public bool Remove(string styleClass)
         {
             return view.RemoveStyleClass(styleClass);
+        }
+    }
+
+    private sealed class StyleModifierCollection(View view) : IStyleModifierCollection
+    {
+        public IEnumerator<string> GetEnumerator()
+        {
+            return view._styleModifiers.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public int Count => view._styleModifiers.Count;
+
+        public bool Contains(string modifier) => view._styleModifiers.Contains(modifier);
+
+        public void Add(string modifier)
+        {
+            view.AddStyleModifier(modifier);
+        }
+
+        public bool Remove(string modifier)
+        {
+            return view.RemoveStyleModifier(modifier);
         }
     }
 }

@@ -65,6 +65,26 @@ public static class BindingExtensions
     extension(View view)
     {
         /// <summary>
+        /// Toggles a named style modifier (e.g. "hovered", "selected") from a bool source.
+        /// The modifier participates in cascade resolution — sheet rules with that modifier
+        /// in their selector match this view while the source is true.
+        /// </summary>
+        public void BindModifier(string name, IReadable<bool> source)
+        {
+            view.Behaviors.Add(new ModifierBindingBehavior(view, name, source));
+        }
+
+        /// <summary>
+        /// Toggles a named style modifier from a compute function. The function's observable
+        /// reads are auto-tracked. Compose effective state here, e.g.
+        /// <c>BindModifier("hovered", () =&gt; IsEnabled.Value &amp;&amp; IsHovered.Value)</c>.
+        /// </summary>
+        public void BindModifier(string name, Func<bool> compute)
+        {
+            view.Behaviors.Add(new DerivedModifierBindingBehavior(view, name, compute));
+        }
+
+        /// <summary>
         /// Binds <see cref="View.IsVisible"/> to the source observable.
         /// </summary>
         public void BindIsVisible(IReadable<bool> source)

@@ -3,6 +3,7 @@ using ZGF.Core;
 using ZGF.Fonts;
 using ZGF.Geometry;
 using ZGF.Gui.Tests;
+using ZGF.Observable;
 using static GL46;
 using static ZGF.Core.MacOs.Objc;
 
@@ -63,6 +64,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
         popup.MousePassThrough = request.MousePassThrough;
         popup.SetRoot(request.Root);
+        popup.AttachSheetSource(request.Sheet);
         popup.Window.SetSize(rect.Width, rect.Height);
         popup.Window.SetPosition(rect.X, rect.Y);
 
@@ -118,6 +120,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         }
 
         impl.Window.Hide();
+        impl.AttachSheetSource(null);
         impl.SetRoot(null);
 
         if (_pool.Count >= SoftCap)
@@ -246,6 +249,7 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     private readonly GlSharedResources? _glShared;
     private readonly MetalSharedResources? _metalShared;
     private View? _root;
+    private IDisposable? _sheetSubscription;
 
     public event Action<PointI>? OutsideClick;
     public bool MousePassThrough { get; set; }
@@ -345,6 +349,24 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
 
     void IPopupWindow.SetRoot(View root) => SetRoot((View?)root);
 
+    /// <summary>
+    /// Subscribe to a reactive <see cref="StyleSheet"/> source. The current value is applied
+    /// to the popup root immediately, and every subsequent change re-applies. Passing
+    /// <c>null</c> tears down the prior subscription. The factory calls this on acquire and
+    /// again on release.
+    /// </summary>
+    public void AttachSheetSource(IReadable<StyleSheet>? source)
+    {
+        _sheetSubscription?.Dispose();
+        _sheetSubscription = null;
+        if (source == null) return;
+        _sheetSubscription = source.Subscribe(sheet =>
+        {
+            if (_root != null && sheet != null)
+                _root.ApplyStyleSheet(sheet);
+        });
+    }
+
     public void Resize(int width, int height)
     {
         _canvas.Resize(width, height);
@@ -361,6 +383,7 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
 
     public void Dispose()
     {
+        AttachSheetSource(null);
         SetRoot(null);
         if (_canvas is IDisposable d) d.Dispose();
         _window.Dispose();

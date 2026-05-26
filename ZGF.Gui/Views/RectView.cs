@@ -2,55 +2,83 @@ namespace ZGF.Gui;
 
 public class RectView : MultiChildView
 {
-    private readonly RectStyle _style = new();
-
     public StyleValue<uint> BackgroundColor
     {
-        get => _style.BackgroundColor;
-        set => SetField(ref _style.BackgroundColor, value);
+        get => _localStyle.BackgroundColor;
+        set
+        {
+            if (Equals(_localStyle.BackgroundColor, value)) return;
+            _localStyle.BackgroundColor = value;
+            MarkLocalStyleDirty();
+        }
     }
 
     public PaddingStyle Padding
     {
-        get => _style.Padding;
-        set => SetField(ref _style.Padding, value);
+        get => _resolvedStyle.Padding;
+        set
+        {
+            if (Equals(_localStyle.Padding, value)) return;
+            _localStyle.Padding = value;
+            MarkLocalStyleDirty();
+        }
     }
 
     public BorderColorStyle BorderColor
     {
-        get => _style.BorderColor;
-        set => SetField(ref _style.BorderColor, value);
+        get => _resolvedStyle.BorderColor;
+        set
+        {
+            if (Equals(_localStyle.BorderColor, value)) return;
+            _localStyle.BorderColor = value;
+            MarkLocalStyleDirty();
+        }
     }
 
     public BorderSizeStyle BorderSize
     {
-        get => _style.BorderSize;
-        set => SetField(ref _style.BorderSize, value);
+        get => _resolvedStyle.BorderSize;
+        set
+        {
+            if (Equals(_localStyle.BorderSize, value)) return;
+            _localStyle.BorderSize = value;
+            MarkLocalStyleDirty();
+        }
     }
 
     public BorderRadiusStyle BorderRadius
     {
-        get => _style.BorderRadius;
-        set => SetField(ref _style.BorderRadius, value);
+        get => _resolvedStyle.BorderRadius;
+        set
+        {
+            if (Equals(_localStyle.BorderRadius, value)) return;
+            _localStyle.BorderRadius = value;
+            MarkLocalStyleDirty();
+        }
     }
 
     public BoxShadowStyle BoxShadow
     {
-        get => _style.BoxShadow;
-        set => SetField(ref _style.BoxShadow, value);
+        get => _resolvedStyle.BoxShadow;
+        set
+        {
+            if (Equals(_localStyle.BoxShadow, value)) return;
+            _localStyle.BoxShadow = value;
+            MarkLocalStyleDirty();
+        }
     }
 
     protected override void OnDrawSelf(ICanvas c)
     {
         var z = GetDrawZIndex();
 
-        if (_style.BoxShadow.IsActive)
+        if (_resolvedStyle.BoxShadow.IsActive)
         {
             c.DrawBoxShadow(new DrawBoxShadowInputs
             {
                 Position = Position,
-                BorderRadius = _style.BorderRadius,
-                Shadow = _style.BoxShadow,
+                BorderRadius = _resolvedStyle.BorderRadius,
+                Shadow = _resolvedStyle.BoxShadow,
                 ZIndex = z,
             });
         }
@@ -58,28 +86,35 @@ public class RectView : MultiChildView
         c.DrawRect(new DrawRectInputs
         {
             Position = Position,
-            Style = _style,
+            Style = BuildDrawStyle(),
             ZIndex = z,
         });
     }
 
+    private RectStyle BuildDrawStyle() => new()
+    {
+        BackgroundColor = new StyleValue<uint>(_resolvedStyle.BackgroundColor, true),
+        Padding = _resolvedStyle.Padding,
+        BorderColor = _resolvedStyle.BorderColor,
+        BorderSize = _resolvedStyle.BorderSize,
+        BorderRadius = _resolvedStyle.BorderRadius,
+        BoxShadow = _resolvedStyle.BoxShadow,
+    };
+
     public override float MeasureWidth()
     {
-        var width= base.MeasureWidth();
-        var padding = Padding;
-        var borderSize = _style.BorderSize;
+        var width = base.MeasureWidth();
+        var padding = _resolvedStyle.Padding;
+        var borderSize = _resolvedStyle.BorderSize;
         width += padding.Left + padding.Right + borderSize.Left + borderSize.Right;
         return width;
     }
 
     public override float MeasureHeight(float availableWidth)
     {
-        var padding = Padding;
-        var borderSize = _style.BorderSize;
+        var padding = _resolvedStyle.Padding;
+        var borderSize = _resolvedStyle.BorderSize;
         var horizontalChrome = padding.Left + padding.Right + borderSize.Left + borderSize.Right;
-        // Subtract our own chrome from the width available to children so they wrap correctly.
-        // A non-positive availableWidth means "unconstrained" — leave it as-is so the convention
-        // propagates down to descendants.
         var childAvailableWidth = availableWidth > 0f ? availableWidth - horizontalChrome : availableWidth;
         var height = base.MeasureHeight(childAvailableWidth);
         height += padding.Top + padding.Bottom + borderSize.Top + borderSize.Bottom;
@@ -89,14 +124,14 @@ public class RectView : MultiChildView
     protected override void OnLayoutChildren()
     {
         var position = Position;
-        var padding = _style.Padding;
-        var border = _style.BorderSize;
-        
+        var padding = _resolvedStyle.Padding;
+        var border = _resolvedStyle.BorderSize;
+
         var left = position.Left + padding.Left + border.Left;
         var right = position.Right - padding.Right - border.Right;
         var top = position.Top - padding.Top - border.Top;
         var bottom = position.Bottom + padding.Bottom + border.Bottom;
-        
+
         foreach (var child in Children)
         {
             child.LeftConstraint = left;
@@ -105,11 +140,5 @@ public class RectView : MultiChildView
             child.HeightConstraint = top - bottom;
             child.LayoutSelf();
         }
-    }
-
-    protected override void OnApplyStyle(Style style)
-    {
-        base.OnApplyStyle(style);
-        _style.Apply(style);
     }
 }

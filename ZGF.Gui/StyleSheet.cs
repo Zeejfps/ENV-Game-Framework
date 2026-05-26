@@ -1,51 +1,57 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
 namespace ZGF.Gui;
 
 public sealed class StyleSheet
 {
-    private readonly Dictionary<string, Style> _styleByIdLookup = new();
-    private readonly Dictionary<string, Style> _styleByClassLookup = new();
-    
-    public void AddStyleForId(string id, Style style)
+    private readonly List<StyleRule> _rules = new();
+
+    public IReadOnlyList<StyleRule> Rules => _rules;
+
+    /// <summary>
+    /// Primitive rule registration. Within a specificity tier, rules added earlier
+    /// win against rules added later (registration order is the stable tie-breaker
+    /// applied during cascade).
+    /// </summary>
+    public void AddRule(Selector selector, Style style)
     {
-        _styleByIdLookup[id] = style;
+        _rules.Add(new StyleRule(selector, style));
     }
 
-    public void RemoveStyleForId(string id)
-    {
-        _styleByIdLookup.Remove(id);
-    }
-    
     public void AddStyleForClass(string classId, Style style)
     {
-        _styleByClassLookup[classId] = style;
+        AddRule(new Selector(classId: classId), style);
     }
-    
-    public void RemoveStyleForClass(string classId)
+
+    public void AddStyleForId(string id, Style style)
     {
-        _styleByClassLookup.Remove(classId);
+        AddRule(new Selector(id: id), style);
     }
-    
-    public bool TryGetById(string? id, [NotNullWhen(true)] out Style? style)
+
+    /// <summary>
+    /// Yields rules whose selector matches <paramref name="view"/>, ordered by
+    /// ascending specificity (low → high). Within a tier, original sheet registration
+    /// order is preserved. The cascade applies them in this order, so higher-specificity
+    /// rules naturally overwrite lower ones.
+    /// </summary>
+    public IEnumerable<StyleRule> RulesMatching(View view)
     {
-        if (string.IsNullOrEmpty(id))
+        // Group by tier in a stable way: list out all matching rules with their index,
+        // then stable-sort by SpecificityTier ascending. Within a tier, original index
+        // order is preserved.
+        var matched = new List<(int Index, StyleRule Rule)>();
+        for (var i = 0; i < _rules.Count; i++)
         {
-            style = null;
-            return false;
+            var rule = _rules[i];
+            if (rule.Selector.Matches(view))
+                matched.Add((i, rule));
         }
-        
-        return _styleByIdLookup.TryGetValue(id, out style);
-    }
-    
-    public bool TryGetByClass(string? classId, [NotNullWhen(true)] out Style? style)
-    {
-        if (string.IsNullOrEmpty(classId))
+
+        matched.Sort((a, b) =>
         {
-            style = null;
-            return false;
-        }
-        
-        return _styleByClassLookup.TryGetValue(classId, out style);
+            var tierCmp = a.Rule.Selector.SpecificityTier.CompareTo(b.Rule.Selector.SpecificityTier);
+            return tierCmp != 0 ? tierCmp : a.Index.CompareTo(b.Index);
+        });
+
+        foreach (var (_, rule) in matched)
+            yield return rule;
     }
 }
