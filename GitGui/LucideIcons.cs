@@ -32,4 +32,6 @@ internal static class LucideIcons
     public const string ChevronDown = "";  // chevron-down
     public const string Merge = "";        // git-merge
     public const string Package = "";    // package (submodule rows)
+    public const string Sun = "";       // sun (theme toggle, light mode)
+    public const string Moon = "";       // moon (theme toggle, dark mode)
 }

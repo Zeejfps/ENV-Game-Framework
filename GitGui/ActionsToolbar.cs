@@ -52,6 +52,7 @@ internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewM
                 new FlexItem { Grow = 1, Child = new MultiChildView() },
                 _openFolderButton,
                 _openTerminalButton,
+                new ThemeToggleButton(),
                 _errorBar,
             }
         };
