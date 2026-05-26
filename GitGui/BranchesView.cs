@@ -227,7 +227,7 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
     {
         const float nameBadgeGap = 8f;
         var badgeWidth = (row.Kind == BranchRowKind.LocalBranch && Context != null)
-            ? MeasureAheadBehindBadge(row)
+            ? MeasureAheadBehindBadge(c, row)
             : 0f;
 
         var nameBudget = Math.Max(0f,
@@ -255,8 +255,6 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
 
     private (string text, TextStyle style) SelectNameTextAndStyle(BranchRow row, bool isSelected)
     {
-        // Branches checked out in a sibling worktree get muted ("busy") text — the
-        // visual style alone communicates "you can't take this here", no extra glyph.
         var isCheckedOutElsewhere = row.Kind == BranchRowKind.LocalBranch
             && row.FullPath != null
             && _worktreeBranches.Contains(row.FullPath);
@@ -274,45 +272,9 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
 
     private float DrawRowIcon(ICanvas c, BranchRow row, bool isSelected, float left, float rowBottom, int z)
     {
-        string glyph;
-        TextStyle style;
-        if (row.Kind == BranchRowKind.Folder)
-        {
-            glyph = row.IsOpen ? LucideIcons.FolderOpen : LucideIcons.Folder;
-            style = _folderIconStyle;
-        }
-        else if (row.Kind == BranchRowKind.Stash)
-        {
-            glyph = LucideIcons.Stash;
-            style = isSelected ? _branchIconActiveStyle : _branchIconStyle;
-        }
-        else
-        {
-            if (IsBusyRow(row))
-            {
-                glyph = LucideIcons.Branch;
-                style = _branchIconBusyStyle;
-            }
-            else if (row.Kind == BranchRowKind.LocalBranch && row.UpstreamState == BranchUpstreamState.Tracked)
-            {
-                glyph = LucideIcons.Branch;
-                style = _upstreamLinkedIconStyle;
-            }
-            else if (row.Kind == BranchRowKind.LocalBranch && row.UpstreamState == BranchUpstreamState.Gone)
-            {
-                glyph = LucideIcons.CloudOff;
-                style = _upstreamGoneIconStyle;
-            }
-            else
-            {
-                glyph = LucideIcons.Branch;
-                style = row.Kind == BranchRowKind.LocalBranch
-                    ? _branchIconLocalOnlyStyle
-                    : ((row.IsHead || isSelected) ? _branchIconActiveStyle : _branchIconStyle);
-            }
-        }
+        var (glyph, style) = SelectRowIcon(row, isSelected);
+        var width = c.MeasureTextWidth(glyph, style);
 
-        var width = Context!.Canvas.MeasureTextWidth(glyph, style);
         c.DrawText(new DrawTextInputs
         {
             Position = new RectF(left, rowBottom, width, RowHeight),
@@ -323,16 +285,48 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
         return left + width + IconGap;
     }
 
+    private (string glyph, TextStyle style) SelectRowIcon(BranchRow row, bool isSelected)
+    {
+        return row.Kind switch
+        {
+            BranchRowKind.Folder => (
+                row.IsOpen ? LucideIcons.FolderOpen : LucideIcons.Folder,
+                _folderIconStyle),
+            BranchRowKind.Stash => (
+                LucideIcons.Stash,
+                isSelected ? _branchIconActiveStyle : _branchIconStyle),
+            _ => SelectBranchIcon(row, isSelected),
+        };
+    }
+
+    private (string glyph, TextStyle style) SelectBranchIcon(BranchRow row, bool isSelected)
+    {
+        if (IsBusyRow(row))
+            return (LucideIcons.Branch, _branchIconBusyStyle);
+
+        if (row.Kind == BranchRowKind.LocalBranch)
+        {
+            return row.UpstreamState switch
+            {
+                BranchUpstreamState.Tracked => (LucideIcons.Branch, _upstreamLinkedIconStyle),
+                BranchUpstreamState.Gone => (LucideIcons.CloudOff, _upstreamGoneIconStyle),
+                _ => (LucideIcons.Branch, _branchIconLocalOnlyStyle),
+            };
+        }
+
+        var style = (row.IsHead || isSelected) ? _branchIconActiveStyle : _branchIconStyle;
+        return (LucideIcons.Branch, style);
+    }
+
     private const float BadgeGap = 8f;
     private const float BadgeNumIconGap = 0f;
 
-    private float MeasureAheadBehindBadge(BranchRow row)
+    private float MeasureAheadBehindBadge(ICanvas canvas, BranchRow row)
     {
         var ahead = row.AheadBy.GetValueOrDefault();
         var behind = row.BehindBy.GetValueOrDefault();
         if (ahead == 0 && behind == 0) return 0f;
 
-        var canvas = Context!.Canvas;
         var width = 0f;
         if (ahead > 0)
         {
