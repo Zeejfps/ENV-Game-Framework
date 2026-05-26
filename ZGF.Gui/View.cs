@@ -18,6 +18,9 @@ public abstract class View
             {
                 if (prevContext != null)
                 {
+                    // Snapshot: a behavior's DetachFromContext may add/remove behaviors via
+                    // UseController/UseViewModel etc. The snapshot avoids both
+                    // CollectionModified and the index-shift footgun.
                     foreach (var behavior in _behaviors.ToArray())
                     {
                         behavior.DetachFromContext(this, prevContext);
@@ -160,17 +163,13 @@ public abstract class View
             if (field == value)
                 return;
 
-            var prevStyleSheet = field;
             field = value;
-
-            if (prevStyleSheet != null)
-                OnStyleSheetCleared(prevStyleSheet);
-
-            if (field != null)
-                OnStyleSheetApplied(field);
-            else
-                ResolveAndApply();
-
+            // Single cascade per swap on self, then propagate to children (each child's
+            // setter does its own ResolveAndApply). Previously the cleared/applied paths
+            // each ran a ResolveAndApply with a transient null-sheet state in between,
+            // tripling cascade cost across the tree on every theme swap.
+            ResolveAndApply();
+            PropagateStyleSheetToChildren();
             SetDirty();
         }
     }
@@ -414,12 +413,15 @@ public abstract class View
     /// <c>PreferredWidth</c> / <c>PreferredHeight</c> tokens. Subclasses that want
     /// behavioural reactions (e.g. invalidating text wrap on font-size change) override this.
     /// </summary>
+    /// <remarks>
+    /// We assign unconditionally (not guarded on IsSet) so removing a class/modifier that
+    /// previously set a preferred dimension resets the view back to unset — otherwise a
+    /// stale value leaks across cascade rebuilds.
+    /// </remarks>
     protected virtual void OnStyleResolved(ResolvedStyle style)
     {
-        if (style.PreferredWidth.IsSet)
-            PreferredWidth = style.PreferredWidth;
-        if (style.PreferredHeight.IsSet)
-            PreferredHeight = style.PreferredHeight;
+        PreferredWidth = style.PreferredWidth;
+        PreferredHeight = style.PreferredHeight;
     }
 
     /// <summary>
@@ -428,18 +430,18 @@ public abstract class View
     /// </summary>
     protected void MarkLocalStyleDirty() => ResolveAndApply();
 
-    protected virtual void OnStyleSheetCleared(StyleSheet styleSheet)
+    /// <summary>
+    /// Propagate this view's current StyleSheet (which may be null) to every direct child.
+    /// Each child's setter handles its own cascade re-run, so descendants don't pass through
+    /// a transient null-sheet state when an ancestor swaps from one sheet to another.
+    /// </summary>
+    protected virtual void PropagateStyleSheetToChildren()
     {
-        ClearStyleSheetFromChildren(styleSheet);
-        // The view no longer has a sheet — re-resolve from defaults + local only.
-        ResolveAndApply();
-    }
-
-    protected virtual void ApplyStyleSheetToChildren(StyleSheet styleSheet)
-    {
+        var sheet = StyleSheet;
         foreach (var child in _children)
         {
-            child.ApplyStyleSheet(styleSheet);
+            if (sheet != null) child.ApplyStyleSheet(sheet);
+            else child.ClearStyleSheet();
         }
     }
 
@@ -448,14 +450,6 @@ public abstract class View
         foreach (var component in _children)
         {
             component.Context = context;
-        }
-    }
-
-    protected virtual void ClearStyleSheetFromChildren(StyleSheet styleSheet)
-    {
-        foreach (var child in _children)
-        {
-            child.ClearStyleSheet();
         }
     }
 
@@ -772,12 +766,6 @@ public abstract class View
         child.WidthConstraint = position.Width;
         child.HeightConstraint = position.Height;
         child.LayoutSelf();
-    }
-
-    protected virtual void OnStyleSheetApplied(StyleSheet styleSheet)
-    {
-        ResolveAndApply();
-        ApplyStyleSheetToChildren(styleSheet);
     }
 
     protected virtual void OnDrawChildren(ICanvas c)

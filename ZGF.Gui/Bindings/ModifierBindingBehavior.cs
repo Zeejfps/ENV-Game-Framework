@@ -29,6 +29,10 @@ internal sealed class ModifierBindingBehavior : IViewBehavior
     {
         _subscription?.Dispose();
         _subscription = null;
+        // Symmetric with Apply(true) — drop the modifier on detach so a re-parented view
+        // doesn't carry a stale modifier from its previous lifetime. Reattach reads the
+        // source's current value and re-adds if still true.
+        _view.StyleModifiers.Remove(_name);
     }
 
     private void Apply(bool active)

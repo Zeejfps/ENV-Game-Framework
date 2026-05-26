@@ -4,9 +4,12 @@ namespace ZGF.Gui;
 
 public sealed class TextView : MultiChildView
 {
+    // Getters return the cascade-resolved value (what's actually drawn). Setters route
+    // to the imperative local-override slot and trigger a re-cascade. Reading back
+    // therefore reflects the rendered color/font/etc., not just the last local write.
     public StyleValue<uint> TextColor
     {
-        get => _localStyle.TextColor;
+        get => new(_resolvedStyle.TextColor, true);
         set
         {
             if (Equals(_localStyle.TextColor, value)) return;
@@ -17,7 +20,7 @@ public sealed class TextView : MultiChildView
 
     public StyleValue<float> FontSize
     {
-        get => _localStyle.FontSize;
+        get => new(_resolvedStyle.FontSize, true);
         set
         {
             if (Equals(_localStyle.FontSize, value)) return;
@@ -28,7 +31,9 @@ public sealed class TextView : MultiChildView
 
     public StyleValue<string> FontFamily
     {
-        get => _localStyle.FontFamily;
+        get => _resolvedStyle.FontFamily != null
+            ? new StyleValue<string>(_resolvedStyle.FontFamily, true)
+            : default;
         set
         {
             if (Equals(_localStyle.FontFamily, value)) return;
@@ -39,7 +44,7 @@ public sealed class TextView : MultiChildView
 
     public StyleValue<TextAlignment> VerticalTextAlignment
     {
-        get => _localStyle.VerticalAlignment;
+        get => new(_resolvedStyle.VerticalAlignment, true);
         set
         {
             if (Equals(_localStyle.VerticalAlignment, value)) return;
@@ -50,7 +55,7 @@ public sealed class TextView : MultiChildView
 
     public StyleValue<TextAlignment> HorizontalTextAlignment
     {
-        get => _localStyle.HorizontalAlignment;
+        get => new(_resolvedStyle.HorizontalAlignment, true);
         set
         {
             if (Equals(_localStyle.HorizontalAlignment, value)) return;
@@ -61,7 +66,7 @@ public sealed class TextView : MultiChildView
 
     public StyleValue<TextWrap> TextWrap
     {
-        get => _localStyle.TextWrap;
+        get => new(_resolvedStyle.TextWrap, true);
         set
         {
             if (Equals(_localStyle.TextWrap, value)) return;
@@ -73,7 +78,7 @@ public sealed class TextView : MultiChildView
 
     public StyleValue<float> Rotation
     {
-        get => _localStyle.Rotation;
+        get => new(_resolvedStyle.Rotation, true);
         set
         {
             if (Equals(_localStyle.Rotation, value)) return;
@@ -84,7 +89,7 @@ public sealed class TextView : MultiChildView
 
     public StyleValue<FontWeight> FontWeight
     {
-        get => _localStyle.FontWeight;
+        get => new(_resolvedStyle.FontWeight, true);
         set
         {
             if (Equals(_localStyle.FontWeight, value)) return;
@@ -107,6 +112,14 @@ public sealed class TextView : MultiChildView
     private readonly List<string> _wrappedLines = new();
     private float _wrappedForWidth = -1f;
     private string? _wrappedFromText;
+
+    // Snapshot of the wrap-relevant fields at the last invalidation. OnStyleResolved
+    // only invalidates when these actually change, so pure modifier toggles (hover, etc.)
+    // that don't touch font / size / wrap don't trash the wrap cache.
+    private string? _wrappedFontFamily;
+    private float _wrappedFontSize;
+    private FontWeight _wrappedFontWeight;
+    private TextWrap _wrappedTextWrap;
 
     private bool IsWrapping => _resolvedStyle.TextWrap == ZGF.Gui.TextWrap.Wrap;
 
@@ -154,9 +167,20 @@ public sealed class TextView : MultiChildView
     protected override void OnStyleResolved(ResolvedStyle style)
     {
         base.OnStyleResolved(style);
-        // Anything that affects wrap geometry — font, size, wrap mode — has changed,
-        // so the cached wrap is stale.
-        InvalidateWrap();
+        // Only invalidate the wrap cache when a field that actually affects wrap geometry
+        // changed. Hover-only modifier toggles (BindModifier on background color) run
+        // through the cascade too — re-wrapping every hover is pure waste.
+        if (style.FontFamily != _wrappedFontFamily
+            || style.FontSize != _wrappedFontSize
+            || style.FontWeight != _wrappedFontWeight
+            || style.TextWrap != _wrappedTextWrap)
+        {
+            _wrappedFontFamily = style.FontFamily;
+            _wrappedFontSize = style.FontSize;
+            _wrappedFontWeight = style.FontWeight;
+            _wrappedTextWrap = style.TextWrap;
+            InvalidateWrap();
+        }
     }
 
     private static bool HasNewlines(string s) => s.IndexOf('\n') >= 0 || s.IndexOf('\r') >= 0;

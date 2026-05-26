@@ -34,6 +34,8 @@ internal sealed class DerivedModifierBindingBehavior : IViewBehavior
         _subscription = null;
         _derived?.Dispose();
         _derived = null;
+        // Symmetric with Apply(true) — drop the modifier on detach.
+        _view.StyleModifiers.Remove(_name);
     }
 
     private void Apply(bool active)

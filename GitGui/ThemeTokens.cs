@@ -144,7 +144,11 @@ public sealed record CommitsTokens
         LanePalette[((lane % LanePalette.Count) + LanePalette.Count) % LanePalette.Count];
 }
 
-public sealed record DiffTokens
+// Plain sealed class (not record). The private _theme back-ref makes the synthesized
+// record Equals/PrintMembers walk into the owning ThemeTokens — which contains this
+// instance — and StackOverflow on ToString. Plain class equality is reference-equality,
+// which matches our intent: tokens are identity-scoped to their parent ThemeTokens.
+public sealed class DiffTokens
 {
     private ThemeTokens? _theme;
     internal void Wire(ThemeTokens theme) => _theme = theme;
@@ -175,7 +179,9 @@ public sealed record DiffTokens
     public uint TruncatedFooterText => HunkSeparatorRangeText;
 }
 
-public sealed record FileChangesTokens
+// See DiffTokens: plain sealed class so the _theme back-ref doesn't participate in
+// synthesized record Equals / PrintMembers (which would StackOverflow on ToString).
+public sealed class FileChangesTokens
 {
     private ThemeTokens? _theme;
     internal void Wire(ThemeTokens theme) => _theme = theme;

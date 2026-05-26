@@ -338,6 +338,10 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     {
         if (_root != null)
         {
+            // Mirror RemoveChildFromSelf — clear both context AND style sheet so a pooled
+            // root view doesn't carry a reference to the popup factory's last-applied
+            // sheet across Release/Acquire cycles.
+            _root.ClearStyleSheet();
             _root.Context = null;
         }
         _root = root;

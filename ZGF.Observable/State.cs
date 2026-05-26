@@ -52,9 +52,14 @@ public sealed class State<T> : IReadable<T>, IInvalidatable, IDisposable
     /// </summary>
     public IDisposable Subscribe(Action<T> handler)
     {
-        handler(_value);
+        // Register the handler BEFORE firing the initial value. The opposite order leaks
+        // the handler if the initial fire triggers a re-entrant Subscription.Dispose
+        // (which then has no handler to remove yet, and we'd run `_changed += handler`
+        // afterwards, leaving an orphaned subscription).
         _changed += handler;
-        return new Subscription(() => _changed -= handler);
+        var subscription = new Subscription(() => _changed -= handler);
+        handler(_value);
+        return subscription;
     }
     
     public void Set(T value) => Value = value;

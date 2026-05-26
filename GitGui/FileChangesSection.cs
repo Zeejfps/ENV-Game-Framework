@@ -85,10 +85,19 @@ internal sealed class SelectableFileRow : HoverableButton
             Children = { new FileChangeRowView(file) },
         };
         var path = file.Path;
+        var activeBg = new State<uint>(ThemePresets.Dark.Dialog.RowActive);
+        var hoverBg = new State<uint>(ThemePresets.Dark.Dialog.RowHover);
+        var transparentBg = new State<uint>(ThemePresets.Dark.Dialog.RowTransparent);
+        background.BindToTheme(t =>
+        {
+            activeBg.Value = t.Dialog.RowActive;
+            hoverBg.Value = t.Dialog.RowHover;
+            transparentBg.Value = t.Dialog.RowTransparent;
+        });
         background.BindBackgroundColor(() =>
         {
-            if (selectedPath?.Value == path) return DialogPalette.RowActive;
-            return IsHovered ? DialogPalette.RowHover : DialogPalette.RowTransparent;
+            if (selectedPath?.Value == path) return activeBg.Value;
+            return IsHovered ? hoverBg.Value : transparentBg.Value;
         });
         SetBackground(background);
     }

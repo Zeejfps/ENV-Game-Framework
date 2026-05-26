@@ -2,9 +2,11 @@ namespace ZGF.Gui;
 
 public sealed class ImageView : MultiChildView
 {
+    // Getters return the cascade-resolved (drawn) value; setters write to the imperative
+    // local-override slot. See TextView/RectView for the same pattern.
     public StyleValue<uint> TintColor
     {
-        get => _localStyle.TintColor;
+        get => new(_resolvedStyle.TintColor, true);
         set
         {
             if (Equals(_localStyle.TintColor, value)) return;
@@ -15,7 +17,7 @@ public sealed class ImageView : MultiChildView
 
     public StyleValue<float> Rotation
     {
-        get => _localStyle.Rotation;
+        get => new(_resolvedStyle.Rotation, true);
         set
         {
             if (Equals(_localStyle.Rotation, value)) return;

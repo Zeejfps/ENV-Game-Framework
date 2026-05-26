@@ -4,7 +4,10 @@ public class RectView : MultiChildView
 {
     public StyleValue<uint> BackgroundColor
     {
-        get => _localStyle.BackgroundColor;
+        // Return the cascade-resolved value (what's actually drawn), matching the other
+        // getters on this view. The setter still writes to _localStyle (imperative
+        // override slot) and re-cascades.
+        get => new(_resolvedStyle.BackgroundColor, true);
         set
         {
             if (Equals(_localStyle.BackgroundColor, value)) return;

@@ -13,18 +13,22 @@ public static class ColorMath
         if (alpha <= 0f) return under;
         if (alpha >= 1f) return WithAlphaFrom(over, under);
 
-        var ar = (over >> 16) & 0xFF;
-        var ag = (over >> 8) & 0xFF;
-        var ab = over & 0xFF;
+        // Channel deltas must be computed in signed arithmetic. When an 'over' channel is
+        // darker than the 'under' channel (common in Light themes where surfaces are near-
+        // white), (ar - br) in unsigned uint wraps to ~0xFFFFFFxx and the float multiply +
+        // (uint) cast produces a huge value that bleeds into the wrong channel slot.
+        int ar = (int)((over >> 16) & 0xFF);
+        int ag = (int)((over >> 8) & 0xFF);
+        int ab = (int)(over & 0xFF);
 
-        var br = (under >> 16) & 0xFF;
-        var bg = (under >> 8) & 0xFF;
-        var bb = under & 0xFF;
-        var ba = (under >> 24) & 0xFF;
+        int br = (int)((under >> 16) & 0xFF);
+        int bg = (int)((under >> 8) & 0xFF);
+        int bb = (int)(under & 0xFF);
+        uint ba = (under >> 24) & 0xFF;
 
-        var r = (uint)(br + (ar - br) * alpha);
-        var g = (uint)(bg + (ag - bg) * alpha);
-        var b = (uint)(bb + (ab - bb) * alpha);
+        uint r = (uint)Math.Clamp((int)(br + (ar - br) * alpha + 0.5f), 0, 255);
+        uint g = (uint)Math.Clamp((int)(bg + (ag - bg) * alpha + 0.5f), 0, 255);
+        uint b = (uint)Math.Clamp((int)(bb + (ab - bb) * alpha + 0.5f), 0, 255);
 
         return (ba << 24) | (r << 16) | (g << 8) | b;
     }

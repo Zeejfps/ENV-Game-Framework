@@ -46,9 +46,12 @@ public sealed class Derived<T> : IReadable<T>, IInvalidatable, IDependencyCollec
 
     public IDisposable Subscribe(Action<T> handler)
     {
-        handler(_value);
+        // Register before firing — see State.Subscribe for the rationale (re-entrant
+        // Subscription.Dispose during the initial fire would otherwise orphan the handler).
         _changed += handler;
-        return new Subscription(() => _changed -= handler);
+        var subscription = new Subscription(() => _changed -= handler);
+        handler(_value);
+        return subscription;
     }
 
     void IDependencyCollector.AddDependency(IInvalidatable source)

@@ -7,9 +7,11 @@ public sealed class StyleSheet
     public IReadOnlyList<StyleRule> Rules => _rules;
 
     /// <summary>
-    /// Primitive rule registration. Within a specificity tier, rules added earlier
-    /// win against rules added later (registration order is the stable tie-breaker
-    /// applied during cascade).
+    /// Primitive rule registration. Within a specificity tier, rules added LATER win
+    /// over rules added earlier — the cascade applies matching rules in (tier asc,
+    /// index asc) order via <see cref="ResolvedStyle.Apply"/>, which overlays IsSet
+    /// fields, so the last-registered rule in a tier is the last to write each field.
+    /// Register defaults first; override rules go after.
     /// </summary>
     public void AddRule(Selector selector, Style style)
     {
