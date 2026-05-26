@@ -53,15 +53,13 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
 
     public CommitDetailsView()
     {
+        // _content is unpadded so children can opt into edge-to-edge layout. The author/
+        // message/metadata block wraps itself in a PaddingView; FileChangesSection stays
+        // full-width so its header bar spans edge-to-edge.
         _content = new ColumnView { Gap = 8 };
-        var paddedContent = new PaddingView
-        {
-            Padding = new PaddingStyle { Left = Padding, Right = Padding, Top = Padding, Bottom = Padding },
-            Children = { _content },
-        };
 
         _scrollPane = new ScrollPane();
-        _scrollPane.Children.Add(paddedContent);
+        _scrollPane.Children.Add(_content);
         _scrollPane.UseController(_ => new ScrollPaneWheelController(_scrollPane));
 
         _vScrollBar = ScrollBarStyles.CreateVertical();
@@ -151,41 +149,45 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
     {
         _content.Children.Clear();
 
-        // Author header: avatar + Name <email> / date column
-        _content.Children.Add(BuildAuthorHeader(d));
+        var topColumn = new ColumnView { Gap = 8 };
+        topColumn.Children.Add(BuildAuthorHeader(d));
 
-        // Commit message: subject + body, both wrapped
         if (!string.IsNullOrEmpty(d.MessageShort))
         {
-            _content.Children.Add(new TextView
+            topColumn.Children.Add(new TextView
             {
                 Text = d.MessageShort,
                 TextColor = CommitDetailsPalette.Primary,
-                });
+            });
         }
 
         var body = ExtractBody(d.Message, d.MessageShort);
         if (!string.IsNullOrEmpty(body))
         {
-            _content.Children.Add(new TextView
+            topColumn.Children.Add(new TextView
             {
                 Text = body,
                 TextColor = CommitDetailsPalette.Secondary,
             });
         }
 
-        // Metadata
-        _content.Children.Add(new TextView
+        topColumn.Children.Add(new TextView
         {
             Text = $"Commit:  {d.Sha}",
             TextColor = CommitDetailsPalette.Muted,
         });
-        _content.Children.Add(new TextView
+        topColumn.Children.Add(new TextView
         {
             Text = d.ParentShas.Count == 0
                 ? "Parents: (none)"
                 : "Parents: " + string.Join(", ", d.ParentShas.Select(ShortSha)),
             TextColor = CommitDetailsPalette.Muted,
+        });
+
+        _content.Children.Add(new PaddingView
+        {
+            Padding = new PaddingStyle { Left = Padding, Right = Padding, Top = Padding, Bottom = 0 },
+            Children = { topColumn },
         });
 
         var changesSection = new FileChangesSection(
