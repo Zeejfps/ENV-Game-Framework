@@ -8,9 +8,6 @@ public sealed class ActionsToolbar : MultiChildView
     private const float ToolbarHeight = 44f;
     private const int HorizontalPadding = 8;
     private const float WithinClusterGap = 2f;
-    private const float SeparatorBreathingRoom = 9f;
-    private const float SeparatorWidth = 1f;
-    private const float SeparatorHeight = 18f;
     private const uint AheadBadgeColor = 0xFF9DD17B;
     private const uint BehindBadgeColor = 0xFFE6A85C;
 
@@ -118,27 +115,5 @@ public sealed class ActionsToolbar : MultiChildView
         vm.PullRotation.Subscribe(r => _pullButton.IconRotation = r);
         vm.FetchRotation.Subscribe(r => _fetchButton.IconRotation = r);
         vm.Error.Subscribe(msg => _errorBar.Message = msg);
-    }
-
-    private sealed class SeparatorSpacer : MultiChildView
-    {
-        public SeparatorSpacer()
-        {
-            PreferredWidth = SeparatorWidth + SeparatorBreathingRoom * 2;
-            AddChildToSelf(new FlexRowView
-            {
-                CrossAxisAlignment = CrossAxisAlignment.Center,
-                MainAxisAlignment = MainAxisAlignment.Center,
-                Children =
-                {
-                    new RectView
-                    {
-                        BackgroundColor = DialogPalette.Border,
-                        PreferredWidth = SeparatorWidth,
-                        PreferredHeight = SeparatorHeight,
-                    },
-                },
-            });
-        }
     }
 }
