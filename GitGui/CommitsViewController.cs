@@ -1,53 +1,44 @@
-﻿using ZGF.Gui;
+using ZGF.Gui;
 using ZGF.Gui.Tests;
 
 namespace GitGui;
 
+/// <summary>
+/// Handles only the column-divider hover/drag. Row wheel/click/right-click are owned
+/// by the <see cref="VirtualRowListView"/> child and its controller. On press in the
+/// capture phase this controller checks for a divider hit first: if it lands, it
+/// consumes the event and the widget never sees it; otherwise it lets the press
+/// bubble to the widget for normal row handling.
+/// </summary>
 internal sealed class CommitsViewController : KeyboardMouseController
 {
     private readonly CommitsView _view;
-    private readonly Context _context;
     private CommitsView.DividerKind _activeDivider = CommitsView.DividerKind.None;
     private float _lastDragX;
 
     public CommitsViewController(CommitsView view, Context context)
     {
         _view = view;
-        _context = context;
-    }
-
-    public override void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e)
-    {
-        _view.OnWheel(e.DeltaY);
-        e.Consume();
+        _ = context;
     }
 
     public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
-        if (e.Button == MouseButton.Right)
-        {
-            if (e.State == InputState.Pressed)
-            {
-                _view.OnRightClickAt(e.Mouse.Point, _context);
-                e.Consume();
-            }
-            return;
-        }
-
         if (e.Button != MouseButton.Left) return;
 
         if (e.State == InputState.Pressed)
         {
+            // Only act in capture phase — that's when we want to intercept before the
+            // widget gets the click. If we fired again in bubble, we'd re-hit-test and
+            // potentially start a second drag with the same press.
+            if (e.Phase != EventPhase.Capturing) return;
+
             var divider = _view.HitTestDivider(e.Mouse.Point);
-            if (divider != CommitsView.DividerKind.None)
-            {
-                _activeDivider = divider;
-                _lastDragX = e.Mouse.Point.X;
-                _view.Context.RequestFocus(this);
-                e.Consume();
-                return;
-            }
-            _view.OnClickAt(e.Mouse.Point);
+            if (divider == CommitsView.DividerKind.None) return;
+
+            _activeDivider = divider;
+            _lastDragX = e.Mouse.Point.X;
+            _view.Context.RequestFocus(this);
             e.Consume();
             return;
         }

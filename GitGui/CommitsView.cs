@@ -60,7 +60,6 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     private const float GraphColumnPaddingLeft = 12f;
     private const float GraphColumnPaddingRight = 8f;
     private const float ColumnGap = 12f;
-    private const float ScrollWheelStep = 60f;
 
     private const float SummaryColumnWidth = 0f;
     private const float DefaultAuthorColumnWidth = 140f;
@@ -69,7 +68,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     private const float MinColumnWidth = 40f;
     private const float MaxColumnWidth = 600f;
     private const float DividerThickness = 1f;
-    private const float DividerHitWidth = 6f;
+    internal const float DividerHitWidth = 6f;
     private const float BadgePaddingX = 6f;
     private const float BadgeHeight = 16f;
     private const float BadgeGap = 4f;
@@ -82,11 +81,11 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     private CommitsViewModel _viewModel = new CommitsViewModel.NoRepo();
     private CommitSnapshot? _snapshot;
 
-    private float _scrollY;
+    private readonly VirtualRowListView _list;
+
     private float _lastNormalizedScroll;
     private float _lastScale = 1f;
     private string? _selectedSha;
-    private string? _contextHighlightSha;
     private bool _truncated;
 
     public event Action<float>? ScrollPositionChanged;
@@ -105,6 +104,18 @@ public sealed class CommitsView : MultiChildView, ICommitsView
 
     public CommitsView()
     {
+        _list = new VirtualRowListView
+        {
+            RowHeight = RowHeight,
+            ItemBuilder = DrawCommitRowAt,
+        };
+        _list.RowClicked += OnRowClicked;
+        _list.RowContextRequested += OnRowContextRequested;
+        _list.ScrollChanged += NotifyScrollChanged;
+
+        AddChildToSelf(_list);
+        _list.UseController(_ => new VirtualRowListController(_list));
+
         this.UseController(ctx => new CommitsViewController(this, ctx));
         this.UsePresenter(ctx => new CommitsPresenter(
             this,
@@ -112,6 +123,21 @@ public sealed class CommitsView : MultiChildView, ICommitsView
             ctx.Require<IGitService>(),
             ctx.Require<IUiDispatcher>(),
             ctx.Require<IMessageBus>()));
+    }
+
+    protected override void OnLayoutChild(in RectF position, View child)
+    {
+        if (child == _list)
+        {
+            var bodyHeight = Math.Max(0f, position.Height - HeaderHeight);
+            child.LeftConstraint = position.Left;
+            child.BottomConstraint = position.Bottom;
+            child.WidthConstraint = position.Width;
+            child.HeightConstraint = bodyHeight;
+            child.LayoutSelf();
+            return;
+        }
+        base.OnLayoutChild(in position, child);
     }
 
     public void SetViewModel(CommitsViewModel vm)
@@ -126,15 +152,9 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         _viewModel = vm;
         _snapshot = newSnap;
 
-        if (preserveScroll)
-        {
-            _scrollY = ScrollMath.ClampScroll(_scrollY,
-                newSnap!.Commits.Count * RowHeight, Position.Height - HeaderHeight);
-        }
-        else
-        {
-            _scrollY = 0f;
-        }
+        _list.ItemCount = newSnap?.Commits.Count ?? 0;
+        _list.NotifyItemsChanged();
+        if (!preserveScroll) _list.SetScrollY(0f);
 
         NotifyScrollChanged();
 
@@ -170,20 +190,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
             if (snap.Commits[i].Sha == sha) { idx = i; break; }
         }
         if (idx < 0) return;
-
-        var bodyHeight = Position.Height - HeaderHeight;
-        if (bodyHeight <= 0) return;
-
-        var rowStart = idx * RowHeight;
-        var rowEnd = rowStart + RowHeight;
-
-        if (rowStart < _scrollY)
-            _scrollY = rowStart;
-        else if (rowEnd > _scrollY + bodyHeight)
-            _scrollY = rowEnd - bodyHeight;
-
-        _scrollY = ScrollMath.ClampScroll(_scrollY, snap.Commits.Count * RowHeight, bodyHeight);
-        NotifyScrollChanged();
+        _list.EnsureRowVisible(idx);
     }
 
     public bool Truncated => _truncated;
@@ -195,7 +202,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         {
             var snap = _snapshot;
             if (snap == null || snap.Commits.Count == 0) return 1f;
-            var bodyHeight = Position.Height - HeaderHeight;
+            var bodyHeight = _list.Position.Height;
             if (bodyHeight <= 0) return 1f;
             var contentHeight = snap.Commits.Count * RowHeight;
             if (contentHeight <= bodyHeight) return 1f;
@@ -207,11 +214,11 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     {
         var snap = _snapshot;
         if (snap == null) return;
-        var maxScroll = ScrollMath.MaxScroll(snap.Commits.Count * RowHeight, Position.Height - HeaderHeight);
+        var bodyHeight = _list.Position.Height;
+        var contentHeight = snap.Commits.Count * RowHeight;
+        var maxScroll = Math.Max(0f, contentHeight - bodyHeight);
         var newScroll = maxScroll * Math.Clamp(normalized, 0f, 1f);
-        if (Math.Abs(newScroll - _scrollY) < 0.0001f) return;
-        _scrollY = newScroll;
-        NotifyScrollChanged();
+        _list.SetScrollY(newScroll);
     }
 
     private void NotifyScrollChanged()
@@ -221,13 +228,13 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         float scale = 1f;
         if (snap != null && snap.Commits.Count > 0)
         {
-            var bodyHeight = Position.Height - HeaderHeight;
+            var bodyHeight = _list.Position.Height;
             var contentHeight = snap.Commits.Count * RowHeight;
-            var maxScroll = ScrollMath.MaxScroll(contentHeight, bodyHeight);
+            var maxScroll = Math.Max(0f, contentHeight - bodyHeight);
             if (bodyHeight > 0 && maxScroll > 0)
             {
                 scale = bodyHeight / contentHeight;
-                normalized = Math.Clamp(_scrollY / maxScroll, 0f, 1f);
+                normalized = Math.Clamp(_list.ScrollY / maxScroll, 0f, 1f);
             }
         }
 
@@ -259,9 +266,10 @@ public sealed class CommitsView : MultiChildView, ICommitsView
 
         DrawHeader(c, pos, z + 1);
 
-        var bodyTop = pos.Top - HeaderHeight;
-        var bodyRect = new RectF(pos.Left, pos.Bottom, pos.Width, bodyTop - pos.Bottom);
+        var bodyRect = _list.Position;
 
+        // Placeholder text lives in the parent because the widget is row-only.
+        // When ItemCount = 0 the widget no-ops; this text shows through.
         switch (_viewModel)
         {
             case CommitsViewModel.NoRepo:
@@ -274,7 +282,8 @@ public sealed class CommitsView : MultiChildView, ICommitsView
                 DrawPlaceholder(c, ComputeCommitsColumnRect(bodyRect), err.Message, z + 2);
                 break;
             case CommitsViewModel.Loaded:
-                DrawCommits(c, bodyRect, z + 2);
+                if (_snapshot == null || _snapshot.Commits.Count == 0)
+                    DrawPlaceholder(c, ComputeCommitsColumnRect(bodyRect), "No commits.", z + 2);
                 break;
         }
 
@@ -386,22 +395,15 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         return new RectF(body.Left, body.Bottom, width, body.Height);
     }
 
-    private void DrawCommits(ICanvas c, RectF body, int z)
+    private void DrawCommitRowAt(ICanvas c, RectF rowRect, int rowIndex, RowRenderState state, int z)
     {
         var snap = _snapshot;
-        if (snap == null || snap.Commits.Count == 0)
-        {
-            DrawPlaceholder(c, ComputeCommitsColumnRect(body), "No commits.", z);
-            return;
-        }
+        if (snap == null || rowIndex < 0 || rowIndex >= snap.Commits.Count) return;
+        var node = snap.Commits[rowIndex];
 
-        ClampScroll(body, snap.Commits.Count);
+        var body = rowRect; // share names with the original DrawCommits for arithmetic clarity
+        var rowBottom = rowRect.Bottom;
 
-        c.PushClip(body);
-
-        var contentTop = body.Top;
-        var bodyHeight = body.Height;
-        var scrollY = _scrollY;
         var graphStartX = body.Left + GraphColumnPaddingLeft;
         var dateX = body.Right - _dateColumnWidth - ColumnGap;
         var hashX = dateX - _hashColumnWidth - ColumnGap;
@@ -410,52 +412,38 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         var hashPanelLeft = hashX - ColumnGap;
         var datePanelLeft = dateX - ColumnGap;
 
-        var firstVisible = Math.Max(0, (int)(scrollY / RowHeight) - 1);
-        var lastVisible = Math.Min(snap.Commits.Count - 1, (int)((scrollY + bodyHeight) / RowHeight) + 1);
+        var isSelected = node.Sha == _selectedSha;
+        var isHighlighted = isSelected || state.IsContextHighlighted;
 
-        for (var r = firstVisible; r <= lastVisible; r++)
+        if (isHighlighted)
         {
-            var node = snap.Commits[r];
-            var rowTop = contentTop + scrollY - r * RowHeight;
-            var rowBottom = rowTop - RowHeight;
-            if (rowTop <= body.Bottom || rowBottom >= contentTop) continue;
-
-            DrawRowBackground(c, body, node, rowBottom, z);
-            DrawGraphCell(c, node, graphStartX, rowBottom, z + 1);
-
-            var isHighlighted = node.Sha == _selectedSha || node.Sha == _contextHighlightSha;
-            var textTop = rowBottom;
-            var maxLaneAtRow = node.Lane;
-            foreach (var l in node.PassThroughLanes) if (l > maxLaneAtRow) maxLaneAtRow = l;
-            foreach (var l in node.IncomingLanes) if (l > maxLaneAtRow) maxLaneAtRow = l;
-            foreach (var p in node.InWalkParentLanes) if (p.Lane > maxLaneAtRow) maxLaneAtRow = p.Lane;
-            var summaryStartX = LaneCenterX(graphStartX, maxLaneAtRow) + DotRadius + GraphColumnPaddingRight;
-            var refsEndX = DrawBadges(c, node, summaryStartX, textTop, z + 2);
-            var summaryDraw = Math.Max(0, body.Right - refsEndX);
-            DrawText(c, node.Summary, refsEndX, textTop, summaryDraw, isHighlighted, z + 2);
-
-            var rowOverlayColor = isHighlighted ? CommitsPalette.RowHighlight : CommitsPalette.Background;
-            DrawColumnOverlay(c, authorPanelLeft, rowBottom, hashPanelLeft - authorPanelLeft, rowOverlayColor, z + 3);
-            DrawText(c, node.Author, authorX, textTop, _authorColumnWidth, isHighlighted, z + 4);
-            DrawColumnOverlay(c, hashPanelLeft, rowBottom, datePanelLeft - hashPanelLeft, rowOverlayColor, z + 5);
-            DrawHashText(c, ShortSha(node.Sha), hashX, textTop, _hashColumnWidth, isHighlighted, z + 6);
-            DrawColumnOverlay(c, datePanelLeft, rowBottom, body.Right - datePanelLeft, rowOverlayColor, z + 7);
-            DrawText(c, FormatRelative(node.When), dateX, textTop, _dateColumnWidth, isHighlighted, z + 8);
+            c.DrawRect(new DrawRectInputs
+            {
+                Position = rowRect,
+                Style = new RectStyle { BackgroundColor = CommitsPalette.RowHighlight },
+                ZIndex = z,
+            });
         }
 
-        c.PopClip();
-    }
+        DrawGraphCell(c, node, graphStartX, rowBottom, z + 1);
 
-    private void DrawRowBackground(ICanvas c, RectF body, CommitNode node, float rowBottom, int z)
-    {
-        if (node.Sha != _selectedSha && node.Sha != _contextHighlightSha) return;
-        var rect = new RectF(body.Left, rowBottom, body.Width, RowHeight);
-        c.DrawRect(new DrawRectInputs
-        {
-            Position = rect,
-            Style = new RectStyle { BackgroundColor = CommitsPalette.RowHighlight },
-            ZIndex = z,
-        });
+        var textTop = rowBottom;
+        var maxLaneAtRow = node.Lane;
+        foreach (var l in node.PassThroughLanes) if (l > maxLaneAtRow) maxLaneAtRow = l;
+        foreach (var l in node.IncomingLanes) if (l > maxLaneAtRow) maxLaneAtRow = l;
+        foreach (var p in node.InWalkParentLanes) if (p.Lane > maxLaneAtRow) maxLaneAtRow = p.Lane;
+        var summaryStartX = LaneCenterX(graphStartX, maxLaneAtRow) + DotRadius + GraphColumnPaddingRight;
+        var refsEndX = DrawBadges(c, node, summaryStartX, textTop, z + 2);
+        var summaryDraw = Math.Max(0, body.Right - refsEndX);
+        DrawText(c, node.Summary, refsEndX, textTop, summaryDraw, isHighlighted, z + 2);
+
+        var rowOverlayColor = isHighlighted ? CommitsPalette.RowHighlight : CommitsPalette.Background;
+        DrawColumnOverlay(c, authorPanelLeft, rowBottom, hashPanelLeft - authorPanelLeft, rowOverlayColor, z + 3);
+        DrawText(c, node.Author, authorX, textTop, _authorColumnWidth, isHighlighted, z + 4);
+        DrawColumnOverlay(c, hashPanelLeft, rowBottom, datePanelLeft - hashPanelLeft, rowOverlayColor, z + 5);
+        DrawHashText(c, ShortSha(node.Sha), hashX, textTop, _hashColumnWidth, isHighlighted, z + 6);
+        DrawColumnOverlay(c, datePanelLeft, rowBottom, body.Right - datePanelLeft, rowOverlayColor, z + 7);
+        DrawText(c, FormatRelative(node.When), dateX, textTop, _dateColumnWidth, isHighlighted, z + 8);
     }
 
     private static float LaneCenterX(float graphStartX, int lane)
@@ -631,23 +619,6 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     private static string ShortSha(string sha)
         => string.IsNullOrEmpty(sha) ? string.Empty : (sha.Length >= 7 ? sha[..7] : sha);
 
-    private void ClampScroll(RectF body, int commitCount)
-    {
-        _scrollY = ScrollMath.ClampScroll(_scrollY, commitCount * RowHeight, body.Height);
-        NotifyScrollChanged();
-    }
-
-    internal void OnWheel(float deltaY)
-    {
-        if (_viewModel is not CommitsViewModel.Loaded) return;
-        _scrollY -= deltaY * ScrollWheelStep;
-        var snap = _snapshot;
-        if (snap != null)
-            _scrollY = ScrollMath.ClampScroll(_scrollY,
-                snap.Commits.Count * RowHeight, Position.Height - HeaderHeight);
-        NotifyScrollChanged();
-    }
-
     internal enum DividerKind
     {
         None,
@@ -706,51 +677,31 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         _hoveredDivider = kind;
     }
 
-    internal void OnClickAt(PointF point)
+    private void OnRowClicked(int rowIndex)
     {
-        var sha = HitTestCommitSha(point);
-        if (sha != null) CommitClicked?.Invoke(sha);
+        var snap = _snapshot;
+        if (snap == null || rowIndex < 0 || rowIndex >= snap.Commits.Count) return;
+        CommitClicked?.Invoke(snap.Commits[rowIndex].Sha);
     }
 
-    internal void OnRightClickAt(PointF point, Context context)
+    private void OnRowContextRequested(int rowIndex, PointF point)
     {
-        var sha = HitTestCommitSha(point);
-        if (sha == null) return;
+        if (Context == null) return;
+        var snap = _snapshot;
+        if (snap == null || rowIndex < 0 || rowIndex >= snap.Commits.Count) return;
+        var sha = snap.Commits[rowIndex].Sha;
 
         var items = BuildCommitMenuItems(sha);
         if (items.Count == 0) return;
 
-        _contextHighlightSha = sha;
-        SetDirty();
-        var opened = RepoBarContextMenu.Show(context, point, items);
+        _list.SetContextHighlight(rowIndex);
+        var opened = RepoBarContextMenu.Show(Context, point, items);
         if (opened == null)
         {
-            _contextHighlightSha = null;
-            SetDirty();
+            _list.SetContextHighlight(null);
             return;
         }
-        opened.Closed += () =>
-        {
-            _contextHighlightSha = null;
-            SetDirty();
-        };
-    }
-
-    private string? HitTestCommitSha(PointF point)
-    {
-        if (_viewModel is not CommitsViewModel.Loaded) return null;
-        var snap = _snapshot;
-        if (snap == null) return null;
-
-        var pos = Position;
-        var bodyTop = pos.Top - HeaderHeight;
-        if (point.Y > bodyTop || point.Y < pos.Bottom) return null;
-        if (point.X < pos.Left || point.X > pos.Right) return null;
-
-        var distFromTop = bodyTop - point.Y;
-        var row = (int)((distFromTop + _scrollY) / RowHeight);
-        if (row < 0 || row >= snap.Commits.Count) return null;
-        return snap.Commits[row].Sha;
+        opened.Closed += () => _list.SetContextHighlight(null);
     }
 
     private IReadOnlyList<RepoBarContextMenu.Item> BuildCommitMenuItems(string sha)

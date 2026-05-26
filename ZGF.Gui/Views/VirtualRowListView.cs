@@ -70,6 +70,42 @@ public sealed class VirtualRowListView : View
     public override bool ClipsContent => true;
 
     /// <summary>
+    /// Programmatically sets the scroll position (clamped). Fires
+    /// <see cref="ScrollChanged"/> if the value actually changed. Use for scrollbar
+    /// sync, snapshot scroll preservation, or "scroll to" gestures.
+    /// </summary>
+    public void SetScrollY(float y)
+    {
+        var prev = _scrollY;
+        _scrollY = y;
+        ClampScroll();
+        if (_scrollY != prev)
+        {
+            ScrollChanged?.Invoke();
+            SetDirty();
+        }
+    }
+
+    /// <summary>
+    /// Scrolls just enough to bring the row at <paramref name="rowIndex"/> into the
+    /// visible viewport. No-op if the row is already visible or out of range.
+    /// </summary>
+    public void EnsureRowVisible(int rowIndex)
+    {
+        if (rowIndex < 0 || rowIndex >= ItemCount) return;
+        var bodyHeight = Position.Height;
+        if (bodyHeight <= 0) return;
+
+        var rowStart = rowIndex * RowHeight;
+        var rowEnd = rowStart + RowHeight;
+
+        var target = _scrollY;
+        if (rowStart < target) target = rowStart;
+        else if (rowEnd > target + bodyHeight) target = rowEnd - bodyHeight;
+        SetScrollY(target);
+    }
+
+    /// <summary>
     /// Highlights a row as if a context menu were open over it; pass null to clear.
     /// Survives the pointer drifting off the row.
     /// </summary>
