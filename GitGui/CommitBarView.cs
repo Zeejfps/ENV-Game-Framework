@@ -21,7 +21,7 @@ internal sealed class CommitBarView : MultiChildView
     private readonly GrowingDescriptionField _descriptionField;
     private readonly CheckboxView _amendCheckbox;
     private readonly DialogButton _commitButton;
-    private readonly ErrorBar _errorBar;
+    private readonly ErrorBarView _errorBar;
 
     public CommitBarView()
     {
@@ -70,14 +70,12 @@ internal sealed class CommitBarView : MultiChildView
             Children = { _amendCheckbox, _commitButton },
         };
 
-        // Error bar is left out of the column until OpError adds it — that way the
-        // column gap doesn't reserve space for an absent banner.
+        _errorBar = new ErrorBarView();
         var column = new ColumnView
         {
             Gap = 8,
-            Children = { titleBox, _descriptionField, buttonRow },
+            Children = { _errorBar, titleBox, _descriptionField, buttonRow },
         };
-        _errorBar = new ErrorBar(column, insertAt: 0);
 
         AddChildToSelf(new RectView
         {

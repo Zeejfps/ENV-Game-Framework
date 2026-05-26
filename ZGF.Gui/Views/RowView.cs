@@ -13,20 +13,23 @@ public sealed class RowView : MultiChildView
     {
         var position = Position;
         var components = Children;
-        var componentCount = components.Count;
-        if (componentCount == 0)
+        if (components.Count == 0)
         {
             return;
         }
 
         var left = position.Left;
+        var first = true;
         foreach (var component in components)
         {
+            if (!component.IsVisible) continue;
+            if (!first) left += Gap;
             component.LeftConstraint = left;
             component.BottomConstraint = position.Bottom;
             component.HeightConstraint = position.Height;
             component.LayoutSelf();
-            left += component.MeasureWidth() + Gap;
+            left += component.MeasureWidth();
+            first = false;
         }
     }
 
@@ -36,11 +39,14 @@ public sealed class RowView : MultiChildView
             return PreferredWidth;
 
         var totalWidth = 0f;
+        var visibleCount = 0;
         foreach (var child in Children)
         {
+            if (!child.IsVisible) continue;
             totalWidth += child.MeasureWidth();
+            visibleCount++;
         }
-        var spacing = (Children.Count - 1) * Gap;
+        var spacing = visibleCount > 0 ? (visibleCount - 1) * Gap : 0;
 
         return totalWidth + spacing;
     }

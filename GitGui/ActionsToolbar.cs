@@ -35,7 +35,7 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
     private readonly ActionButton _stashButton;
     private readonly ActionButton _openFolderButton;
     private readonly ActionButton _openTerminalButton;
-    private readonly ErrorBar _errorBar;
+    private readonly ErrorBarView _errorBar;
     private readonly FlexRowView _contentRow;
 
     public event Action? PushRequested;
@@ -62,6 +62,7 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
         _openTerminalButton = new ActionButton(LucideIcons.SquareTerminal, () => OpenInTerminalRequested?.Invoke(),
             tooltip: "Open in terminal");
 
+        _errorBar = new ErrorBarView(verticalPadding: 2);
         // Layout zones, left to right:
         //   [ Mode ]  |  [ Fetch Pull Push ]  |  [ Stash Branch ]  …  [ Folder Terminal ]
         //    status        remote sync             local ops              tools
@@ -82,9 +83,9 @@ public sealed class ActionsToolbar : MultiChildView, IActionsToolbarView
                 new FlexItem { Grow = 1, Child = new MultiChildView() },
                 _openFolderButton,
                 _openTerminalButton,
+                _errorBar,
             }
         };
-        _errorBar = new ErrorBar(_contentRow, verticalPadding: 2);
 
         AddChildToSelf(new RectView
         {

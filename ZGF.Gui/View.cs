@@ -99,6 +99,17 @@ public abstract class View
     }
 
     /// <summary>
+    /// When false, this view is skipped from layout (no size, no gap contribution in
+    /// flex/column/row containers) and not drawn — equivalent to CSS <c>display: none</c>.
+    /// Setting triggers a layout pass.
+    /// </summary>
+    public bool IsVisible
+    {
+        get;
+        set => SetField(ref field, value);
+    } = true;
+
+    /// <summary>
     /// When true, this view clips its descendants — both visually (containers that
     /// override this should also <c>PushClip</c> in <c>OnDrawChildren</c>) and for
     /// hit-testing. The input system rejects descendant hits whose cursor point
@@ -505,13 +516,14 @@ public abstract class View
         var maxWidth = 0f;
         foreach (var child in _children)
         {
+            if (!child.IsVisible) continue;
             var childWith = child.MeasureWidth();
             if (childWith > maxWidth)
             {
                 maxWidth = childWith;
             }
         }
-        
+
         return maxWidth;
     }
     
@@ -542,6 +554,7 @@ public abstract class View
         var height = 0f;
         foreach (var child in _children)
         {
+            if (!child.IsVisible) continue;
             var childHeight = child.MeasureHeight(availableWidth);
             if (childHeight > height)
             {
@@ -574,6 +587,7 @@ public abstract class View
 
     private void DrawSelf(ICanvas c)
     {
+        if (!IsVisible) return;
         if (c.TryGetClip(out var clipRect))
         {
             if (!clipRect.Intersects(Position))

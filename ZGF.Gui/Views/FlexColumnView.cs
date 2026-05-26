@@ -26,11 +26,14 @@ public sealed class FlexColumnView : MultiChildView
             return PreferredHeight;
 
         var totalHeight = 0f;
+        var visibleCount = 0;
         foreach (var child in Children)
         {
+            if (!child.IsVisible) continue;
             totalHeight += child.MeasureHeight(availableWidth);
+            visibleCount++;
         }
-        var spacing = (Children.Count - 1) * Gap;
+        var spacing = visibleCount > 0 ? (visibleCount - 1) * Gap : 0f;
         return totalHeight + spacing;
     }
 
@@ -45,17 +48,22 @@ public sealed class FlexColumnView : MultiChildView
 
         var totalChildrenInitialHeight = 0f;
         var totalFlexGrow = 0f;
+        var visibleCount = 0;
 
         foreach (var child in children)
         {
+            if (!child.IsVisible) continue;
             var grow = child is FlexItem item ? (float)item.Grow : 0f;
             // Pass the column's cross-axis width so height-for-width children (wrapping text)
             // return the correct height in the first measurement pass.
             totalChildrenInitialHeight += child.MeasureHeight(position.Width);
             totalFlexGrow += grow;
+            visibleCount++;
         }
 
-        var totalGap = Gap * (children.Count - 1);
+        if (visibleCount == 0) return;
+
+        var totalGap = Gap * (visibleCount - 1);
         var totalContentHeight = totalChildrenInitialHeight + totalGap;
         var remainingSpace = position.Height - totalContentHeight;
 
@@ -73,14 +81,14 @@ public sealed class FlexColumnView : MultiChildView
                     topOffset = remainingSpace / 2f;
                     break;
                 case MainAxisAlignment.SpaceBetween:
-                    interItemSpacing = children.Count > 1 ? remainingSpace / (children.Count - 1) : 0;
+                    interItemSpacing = visibleCount > 1 ? remainingSpace / (visibleCount - 1) : 0;
                     break;
                 case MainAxisAlignment.SpaceAround:
-                    interItemSpacing = remainingSpace / children.Count;
+                    interItemSpacing = remainingSpace / visibleCount;
                     topOffset = interItemSpacing / 2f;
                     break;
                 case MainAxisAlignment.SpaceEvenly:
-                    interItemSpacing = remainingSpace / (children.Count + 1);
+                    interItemSpacing = remainingSpace / (visibleCount + 1);
                     topOffset = interItemSpacing;
                     break;
             }
@@ -90,6 +98,7 @@ public sealed class FlexColumnView : MultiChildView
 
         foreach (var child in children)
         {
+            if (!child.IsVisible) continue;
             var grow = child is FlexItem item ? (float)item.Grow : 0f;
             var childInitialWidth = child.MeasureWidth();
 

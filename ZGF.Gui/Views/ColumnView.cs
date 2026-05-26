@@ -13,15 +13,17 @@ public sealed class ColumnView : MultiChildView
     {
         var position = Position;
         var components = Children;
-        var componentCount = components.Count;
-        if (componentCount == 0)
+        if (components.Count == 0)
         {
             return;
         }
 
         var bottom = position.Top;
+        var first = true;
         foreach (var component in components)
         {
+            if (!component.IsVisible) continue;
+            if (!first) bottom -= Gap;
             component.LeftConstraint = position.Left;
 
             var componentHeight = component.MeasureHeight(position.Width);
@@ -30,7 +32,7 @@ public sealed class ColumnView : MultiChildView
             component.WidthConstraint = position.Width;
             component.HeightConstraint = componentHeight;
             component.LayoutSelf();
-            bottom -= Gap;
+            first = false;
         }
     }
 
@@ -40,11 +42,14 @@ public sealed class ColumnView : MultiChildView
             return PreferredHeight;
 
         var totalHeight = 0f;
+        var visibleCount = 0;
         foreach (var child in Children)
         {
+            if (!child.IsVisible) continue;
             totalHeight += child.MeasureHeight(availableWidth);
+            visibleCount++;
         }
-        var spacing = (Children.Count - 1) * Gap;
+        var spacing = visibleCount > 0 ? (visibleCount - 1) * Gap : 0;
 
         var height = totalHeight + spacing;
         return height;
