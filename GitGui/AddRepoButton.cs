@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 
 namespace GitGui;
 
@@ -22,7 +23,8 @@ public sealed class AddRepoButton : HoverableButton
             BorderRadius = BorderRadiusStyle.All(6),
             Children = { label },
         };
-        DialogPalette.BindBorderedButtonChrome(background, IsHovered);
+        background.StyleClasses.Add(StyleClassNames.DialogButton);
+        background.BindModifier(ModifierNames.Hovered, IsHovered);
         SetBackground(background);
     }
 

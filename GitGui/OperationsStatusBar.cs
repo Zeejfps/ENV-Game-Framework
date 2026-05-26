@@ -24,27 +24,25 @@ internal sealed class OperationsStatusBar
 
         _logText = new TextView
         {
-            TextColor = Theme.TextRow,
             FontFamily = DiffOptions.MonoFontFamily,
             FontSize = 11,
             TextWrap = TextWrap.Wrap,
             VerticalTextAlignment = TextAlignment.Start,
         };
+        _logText.BindTextColorFromTheme(t => t.Text.Row);
 
         _logPanel = new RectView
         {
-            BackgroundColor = Theme.BgDeep,
-            BorderColor = new BorderColorStyle { Bottom = Theme.Border },
             BorderSize = new BorderSizeStyle { Bottom = 1 },
             Padding = new PaddingStyle { Left = 12, Right = 12, Top = 6, Bottom = 6 },
             PreferredHeight = 160f,
             Children = { _logText },
         };
+        _logPanel.BindBackgroundColorFromTheme(t => t.Surfaces.BgDeep);
+        _logPanel.BindBorderColorFromTheme(t => new BorderColorStyle { Bottom = t.Surfaces.Border });
 
         View = new RectView
         {
-            BackgroundColor = Theme.BgHeader,
-            BorderColor = new BorderColorStyle { Top = Theme.Border },
             BorderSize = new BorderSizeStyle { Top = 1 },
             Children =
             {
@@ -55,6 +53,8 @@ internal sealed class OperationsStatusBar
                 },
             },
         };
+        View.BindBackgroundColorFromTheme(t => t.Surfaces.BgHeader);
+        View.BindBorderColorFromTheme(t => new BorderColorStyle { Top = t.Surfaces.Border });
     }
 
     public bool IsVisible => _container.Children.Contains(View);

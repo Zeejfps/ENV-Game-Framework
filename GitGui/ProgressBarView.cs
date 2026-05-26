@@ -9,9 +9,12 @@ public sealed class ProgressBarView : RectView
 
     public ProgressBarView()
     {
-        BackgroundColor = 0xFF2A2C30;
         BorderRadius = BorderRadiusStyle.All(2);
         PreferredHeight = 4f;
+
+        // Track color follows the surfaces palette; the fill defaults to a success-green
+        // accent that callers (OperationRow.MarkSuccess / MarkFailure) override directly.
+        this.BindBackgroundColorFromTheme(t => t.Surfaces.BgHeader);
 
         _fill = new RectView
         {

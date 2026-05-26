@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -311,7 +312,8 @@ internal sealed class ResetModeDropdown : HoverableButton
             Padding = new PaddingStyle { Left = 8, Right = 8, Top = 4, Bottom = 4 },
             Children = { row },
         };
-        DialogPalette.BindBorderedButtonChrome(background, IsHovered);
+        background.StyleClasses.Add(StyleClassNames.DialogButton);
+        background.BindModifier(ModifierNames.Hovered, IsHovered);
         SetBackground(background);
 
         SelectedState.Subscribe(s =>
