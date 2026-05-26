@@ -79,10 +79,39 @@ public sealed class DiffViewModel : IDisposable
     {
         if (!TryGetPatchContext(hunkIndex, out var repo, out var diff)) return;
         var patch = HunkPatchBuilder.Build(diff, hunkIndex);
+
+        var isLastHunk = diff.Hunks.Count == 1;
+        var fromSide = diff.Side;
+        DiffSide? toSide = (cached, reverse) switch
+        {
+            (true, false) => DiffSide.Staged,    // stage: unstaged → staged
+            (true, true) => DiffSide.Unstaged,   // unstage: staged → unstaged
+            _ => null,
+        };
+
+        // Optimistic diff update — when there are hunks left, drop the just-applied one so
+        // the diff repaints immediately. When this was the last hunk and the file moves to
+        // another side, show a brief Loading placeholder; the selection swap below will
+        // kick off a fresh load for the destination side and replace it.
+        if (!isLastHunk)
+        {
+            var remainingHunks = new List<DiffHunk>(diff.Hunks.Count - 1);
+            for (var i = 0; i < diff.Hunks.Count; i++)
+                if (i != hunkIndex) remainingHunks.Add(diff.Hunks[i]);
+            _renderState.Value = new DiffRenderState.Loaded(diff with { Hunks = remainingHunks });
+        }
+        else if (toSide.HasValue)
+        {
+            _renderState.Value = new DiffRenderState.Placeholder(LoadingPlaceholder);
+        }
+
+        _bus.Broadcast(new HunkAppliedOptimisticMessage(repo.Id, diff.Path, fromSide, toSide, isLastHunk));
+
         var service = _gitService;
         var bus = _bus;
         var dispatcher = _dispatcher;
         var repoId = repo.Id;
+        var original = diff;
         Task.Run(() =>
         {
             string? error;
@@ -91,7 +120,17 @@ public sealed class DiffViewModel : IDisposable
 
             dispatcher.Post(() =>
             {
-                if (error != null) { _opError.Value = error; return; }
+                if (error != null)
+                {
+                    _opError.Value = error;
+                    // Roll back the optimistic diff state, and broadcast a working-tree
+                    // change so LocalChangesViewModel re-syncs its lists against the truth
+                    // (we may have optimistically moved the file in OnHunkAppliedOptimistic).
+                    if (_renderState.Value is DiffRenderState.Loaded)
+                        _renderState.Value = new DiffRenderState.Loaded(original);
+                    bus.Broadcast(new WorkingTreeChangedMessage(repoId));
+                    return;
+                }
                 _opError.Value = null;
                 bus.Broadcast(new WorkingTreeChangedMessage(repoId));
             });

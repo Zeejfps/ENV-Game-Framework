@@ -80,6 +80,73 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         Subscriptions.Add(_registry.Active.Subscribe(_ => StartLoadForActiveRepo()));
         Subscriptions.Add(_bus.SubscribeScoped<WorkingTreeChangedMessage>(OnWorkingTreeChanged));
         Subscriptions.Add(_bus.SubscribeScoped<SubmodulesChangedMessage>(OnSubmodulesChanged));
+        Subscriptions.Add(_bus.SubscribeScoped<HunkAppliedOptimisticMessage>(OnHunkAppliedOptimistic));
+    }
+
+    private void OnHunkAppliedOptimistic(HunkAppliedOptimisticMessage msg)
+    {
+        var active = _registry.Active.Value;
+        if (active == null || active.Id != msg.RepoId) return;
+
+        Update(s =>
+        {
+            var unstaged = s.Unstaged;
+            var staged = s.Staged;
+
+            FileChange? entry = msg.FromSide == DiffSide.Unstaged
+                ? FindByPath(unstaged, msg.Path)
+                : FindByPath(staged, msg.Path);
+            if (entry == null) return s;
+
+            if (msg.IsLastHunk)
+            {
+                if (msg.FromSide == DiffSide.Unstaged)
+                    unstaged = RemoveByPath(unstaged, msg.Path);
+                else if (msg.FromSide == DiffSide.Staged)
+                    staged = RemoveByPath(staged, msg.Path);
+            }
+
+            if (msg.ToSide is DiffSide to)
+            {
+                if (to == DiffSide.Unstaged && FindByPath(unstaged, msg.Path) == null)
+                    unstaged = InsertSorted(unstaged, entry);
+                else if (to == DiffSide.Staged && FindByPath(staged, msg.Path) == null)
+                    staged = InsertSorted(staged, entry);
+            }
+
+            // When the file fully moves to the other side, keep the user's focus on it by
+            // shifting the selection to the destination side — same behavior as the
+            // full-file stage/unstage flow in RunIndexOp.
+            Selection selection;
+            if (msg.IsLastHunk && msg.ToSide is DiffSide moved)
+                selection = GitGui.Selection.FromPaths(new[] { msg.Path }, moved, unstaged, staged);
+            else
+                selection = GitGui.Selection.Create(s.Selection.Items, s.Selection.Anchor, s.Selection.Cursor, unstaged, staged);
+
+            return s with { Unstaged = unstaged, Staged = staged, Selection = selection };
+        });
+    }
+
+    private static FileChange? FindByPath(IReadOnlyList<FileChange> list, string path)
+    {
+        foreach (var f in list) if (f.Path == path) return f;
+        return null;
+    }
+
+    private static IReadOnlyList<FileChange> RemoveByPath(IReadOnlyList<FileChange> list, string path)
+    {
+        var next = new List<FileChange>(list.Count);
+        foreach (var f in list) if (f.Path != path) next.Add(f);
+        return next;
+    }
+
+    private static IReadOnlyList<FileChange> InsertSorted(IReadOnlyList<FileChange> list, FileChange entry)
+    {
+        var next = new List<FileChange>(list.Count + 1);
+        next.AddRange(list);
+        next.Add(entry);
+        next.Sort(static (a, b) => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase));
+        return next;
     }
 
     private void OnSubmodulesChanged(SubmodulesChangedMessage msg)
