@@ -13,35 +13,20 @@ public sealed class CommitsPanelView : MultiChildView
     private readonly RectView _warningBar;
     private readonly TextView _warningText;
 
+    private ThemeTokens _tokens = ThemePresets.Dark;
+    private bool _truncated;
+
     public CommitsPanelView()
     {
         _commits = new CommitsView();
         _scrollBar = new VerticalScrollBarView
         {
-            TrackBackgroundColor = CommitsPalette.ScrollTrackBg,
-            TrackBorderColor = new BorderColorStyle
-            {
-                Left = CommitsPalette.ScrollTrackBorder,
-                Top = CommitsPalette.ScrollTrackBorder,
-                Right = CommitsPalette.ScrollTrackBorder,
-                Bottom = CommitsPalette.ScrollTrackBorder,
-            },
             TrackBorderSize = new BorderSizeStyle { Left = 1 },
-        };
-        _scrollBar.Thumb.IdleBackgroundColor = CommitsPalette.ScrollThumbBg;
-        _scrollBar.Thumb.HoveredBackgroundColor = CommitsPalette.ScrollThumbHoverBg;
-        _scrollBar.Thumb.BorderColor = new BorderColorStyle
-        {
-            Left = CommitsPalette.ScrollThumbBorder,
-            Top = CommitsPalette.ScrollThumbBorder,
-            Right = CommitsPalette.ScrollThumbBorder,
-            Bottom = CommitsPalette.ScrollThumbBorder,
         };
         _scrollBar.Thumb.BorderSize = BorderSizeStyle.All(1);
 
         _warningText = new TextView
         {
-            TextColor = CommitsPalette.WarningText,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
@@ -59,7 +44,58 @@ public sealed class CommitsPanelView : MultiChildView
         });
 
         _scrollBar.UseController(_ => new VerticalScrollBarViewController(_scrollBar));
-        this.UseController(_ => new CommitsPanelController(_commits, _scrollBar, _warningBar, _warningText));
+        this.UseController(_ => new CommitsPanelController(_commits, _scrollBar, this));
+        this.BindToTheme(RebuildVisuals);
+    }
+
+    private void RebuildVisuals(ThemeTokens tokens)
+    {
+        _tokens = tokens;
+        var c = tokens.Commits;
+        _scrollBar.TrackBackgroundColor = c.ScrollTrackBg;
+        _scrollBar.TrackBorderColor = new BorderColorStyle
+        {
+            Left = c.ScrollTrackBorder,
+            Top = c.ScrollTrackBorder,
+            Right = c.ScrollTrackBorder,
+            Bottom = c.ScrollTrackBorder,
+        };
+        _scrollBar.Thumb.IdleBackgroundColor = c.ScrollThumbBg;
+        _scrollBar.Thumb.HoveredBackgroundColor = c.ScrollThumbHoverBg;
+        _scrollBar.Thumb.BorderColor = new BorderColorStyle
+        {
+            Left = c.ScrollThumbBorder,
+            Top = c.ScrollThumbBorder,
+            Right = c.ScrollThumbBorder,
+            Bottom = c.ScrollThumbBorder,
+        };
+        _warningText.TextColor = c.WarningText;
+        ApplyWarningBarChrome();
+    }
+
+    internal void SetTruncated(bool truncated)
+    {
+        if (_truncated == truncated) return;
+        _truncated = truncated;
+        _warningBar.PreferredHeight = truncated ? WarningBarShownHeight : 0f;
+        _warningText.Text = truncated ? "History truncated." : null;
+        ApplyWarningBarChrome();
+    }
+
+    private void ApplyWarningBarChrome()
+    {
+        if (_truncated)
+        {
+            _warningBar.BackgroundColor = _tokens.Commits.WarningBg;
+            _warningBar.BorderColor = new BorderColorStyle { Top = _tokens.Commits.WarningBorder };
+            _warningBar.BorderSize = new BorderSizeStyle { Top = 1 };
+        }
+        else
+        {
+            _warningBar.BackgroundColor = 0u;
+            _warningBar.BorderColor = new BorderColorStyle();
+            _warningBar.BorderSize = new BorderSizeStyle();
+        }
     }
 
     protected override void OnLayoutChildren()
@@ -77,15 +113,13 @@ internal sealed class CommitsPanelController : KeyboardMouseController, IDisposa
 {
     private readonly CommitsView _commits;
     private readonly VerticalScrollBarView _scrollBar;
-    private readonly RectView _warningBar;
-    private readonly TextView _warningText;
+    private readonly CommitsPanelView _panel;
 
-    public CommitsPanelController(CommitsView commits, VerticalScrollBarView scrollBar, RectView warningBar, TextView warningText)
+    public CommitsPanelController(CommitsView commits, VerticalScrollBarView scrollBar, CommitsPanelView panel)
     {
         _commits = commits;
         _scrollBar = scrollBar;
-        _warningBar = warningBar;
-        _warningText = warningText;
+        _panel = panel;
 
         _commits.ScrollPositionChanged += OnCommitsScrollChanged;
         _commits.ScaleChanged += OnCommitsScaleChanged;
@@ -118,16 +152,5 @@ internal sealed class CommitsPanelController : KeyboardMouseController, IDisposa
         _commits.SetNormalizedScrollPosition(normalized);
     }
 
-    private void OnTruncatedChanged(bool truncated)
-    {
-        _warningBar.PreferredHeight = truncated ? CommitsPanelView.WarningBarShownHeight : 0f;
-        _warningBar.BackgroundColor = truncated ? CommitsPalette.WarningBg : 0u;
-        _warningBar.BorderColor = truncated
-            ? new BorderColorStyle { Top = CommitsPalette.WarningBorder }
-            : new BorderColorStyle();
-        _warningBar.BorderSize = truncated
-            ? new BorderSizeStyle { Top = 1 }
-            : new BorderSizeStyle();
-        _warningText.Text = truncated ? "History truncated." : null;
-    }
+    private void OnTruncatedChanged(bool truncated) => _panel.SetTruncated(truncated);
 }
