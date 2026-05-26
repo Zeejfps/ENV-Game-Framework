@@ -14,6 +14,8 @@ internal sealed class OperationStateBannerViewModel : ViewModelBase<OperationBan
     public IReadable<RepoOperationState> State { get; }
     public IReadable<bool> IsBusy => _spinner.IsActive;
     public IReadable<float> BusyRotation => _spinner.Rotation;
+    public Command Abort { get; }
+    public Command Continue { get; }
 
     public OperationStateBannerViewModel(
         IRepoRegistry registry,
@@ -28,6 +30,8 @@ internal sealed class OperationStateBannerViewModel : ViewModelBase<OperationBan
         _spinner = new SpinnerAnimation(dispatcher);
 
         State = Slice(s => s.State);
+        Abort = new Command(DoAbort);
+        Continue = new Command(DoContinue);
 
         Subscriptions.Add(_registry.Active.Subscribe(_ => Reload()));
         Subscriptions.Add(_bus.SubscribeScoped<RefsChangedMessage>(_ => Reload()));
@@ -35,7 +39,7 @@ internal sealed class OperationStateBannerViewModel : ViewModelBase<OperationBan
         Subscriptions.Add(_bus.SubscribeScoped<CommitCreatedMessage>(_ => Reload()));
     }
 
-    public void Abort()
+    private void DoAbort()
     {
         var repo = _registry.Active.Value;
         var state = State.Value;
@@ -43,7 +47,7 @@ internal sealed class OperationStateBannerViewModel : ViewModelBase<OperationBan
         _bus.Broadcast(new ShowDialogMessage(onClose => new AbortOperationDialog(repo, state, onClose)));
     }
 
-    public void Continue()
+    private void DoContinue()
     {
         if (_isContinuing) return;
         var repo = _registry.Active.Value;

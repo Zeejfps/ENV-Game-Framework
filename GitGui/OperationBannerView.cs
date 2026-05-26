@@ -18,7 +18,6 @@ internal sealed class OperationBannerView : MultiChildView
     private readonly FlexItem _textItem;
     private readonly FlexRowView _row;
 
-    private OperationStateBannerViewModel? _vm;
     private RepoOperationState _currentState = RepoOperationState.None;
     private bool _isBusy;
 
@@ -35,13 +34,11 @@ internal sealed class OperationBannerView : MultiChildView
 
         _continueButton = new ActionButton(
             LucideIcons.ChevronsRight,
-            () => _vm?.Continue(),
             tooltip: "Continue",
             backgroundColor: 0xFF4E8B3D);
 
         _abortButton = new ActionButton(
             LucideIcons.X,
-            () => _vm?.Abort(),
             tooltip: "Abort",
             backgroundColor: 0xFFB3514B);
 
@@ -82,7 +79,8 @@ internal sealed class OperationBannerView : MultiChildView
 
         this.UseViewModel<OperationStateBannerViewModel>(vm =>
         {
-            _vm = vm;
+            _abortButton.BindCommand(vm.Abort);
+            _continueButton.BindCommand(vm.Continue);
             vm.State.Subscribe(SetState);
             vm.IsBusy.Subscribe(SetIsBusy);
             vm.BusyRotation.Subscribe(r => _spinnerIcon.Rotation = r);

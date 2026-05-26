@@ -21,23 +21,17 @@ public sealed class ActionsToolbar : MultiChildView
     private readonly ActionButton _openTerminalButton;
     private readonly ErrorBarView _errorBar;
 
-    private ActionsToolbarViewModel? _vm;
-
     public ActionsToolbar()
     {
         PreferredHeight = ToolbarHeight;
 
-        _pushButton = new ActionButton(LucideIcons.Push, "Push", () => _vm?.Push(),
-            badgeColor: AheadBadgeColor);
-        _pullButton = new ActionButton(LucideIcons.Pull, "Pull", () => _vm?.Pull(),
-            badgeColor: BehindBadgeColor);
-        _fetchButton = new ActionButton(LucideIcons.Fetch, "Fetch", () => _vm?.Fetch());
-        _branchButton = new ActionButton(LucideIcons.Branch, "Branch", () => _vm?.Branch());
-        _stashButton = new ActionButton(LucideIcons.Stash, "Stash", () => _vm?.Stash());
-        _openFolderButton = new ActionButton(LucideIcons.FolderOpen, () => _vm?.OpenFolder(),
-            tooltip: "Open in file explorer");
-        _openTerminalButton = new ActionButton(LucideIcons.SquareTerminal, () => _vm?.OpenTerminal(),
-            tooltip: "Open in terminal");
+        _pushButton = new ActionButton(LucideIcons.Push, "Push", badgeColor: AheadBadgeColor);
+        _pullButton = new ActionButton(LucideIcons.Pull, "Pull", badgeColor: BehindBadgeColor);
+        _fetchButton = new ActionButton(LucideIcons.Fetch, "Fetch");
+        _branchButton = new ActionButton(LucideIcons.Branch, "Branch");
+        _stashButton = new ActionButton(LucideIcons.Stash, "Stash");
+        _openFolderButton = new ActionButton(LucideIcons.FolderOpen, tooltip: "Open in file explorer");
+        _openTerminalButton = new ActionButton(LucideIcons.SquareTerminal, tooltip: "Open in terminal");
 
         _errorBar = new ErrorBarView(verticalPadding: 2);
         var contentRow = new FlexRowView
@@ -79,15 +73,13 @@ public sealed class ActionsToolbar : MultiChildView
 
     private void Bind(ActionsToolbarViewModel vm)
     {
-        _vm = vm;
-
-        _pushButton.IsEnabled.BindTo(vm.PushEnabled);
-        _pullButton.IsEnabled.BindTo(vm.PullEnabled);
-        _fetchButton.IsEnabled.BindTo(vm.FetchEnabled);
-        _branchButton.IsEnabled.BindTo(vm.RepoActionsEnabled);
-        _openFolderButton.IsEnabled.BindTo(vm.RepoActionsEnabled);
-        _openTerminalButton.IsEnabled.BindTo(vm.RepoActionsEnabled);
-        _stashButton.IsEnabled.BindTo(vm.StashEnabled);
+        _pushButton.BindCommand(vm.Push);
+        _pullButton.BindCommand(vm.Pull);
+        _fetchButton.BindCommand(vm.Fetch);
+        _branchButton.BindCommand(vm.Branch);
+        _stashButton.BindCommand(vm.Stash);
+        _openFolderButton.BindCommand(vm.OpenFolder);
+        _openTerminalButton.BindCommand(vm.OpenTerminal);
 
         _pushButton.Badge.BindTo(vm.PushBadge);
         _pullButton.Badge.BindTo(vm.PullBadge);

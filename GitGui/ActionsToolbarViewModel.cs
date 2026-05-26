@@ -16,11 +16,14 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
     private readonly SpinnerAnimation _pullSpinner;
     private readonly SpinnerAnimation _fetchSpinner;
 
-    public IReadable<bool> PushEnabled { get; }
-    public IReadable<bool> PullEnabled { get; }
-    public IReadable<bool> FetchEnabled { get; }
-    public IReadable<bool> RepoActionsEnabled { get; }
-    public IReadable<bool> StashEnabled { get; }
+    public Command Push { get; }
+    public Command Pull { get; }
+    public Command Fetch { get; }
+    public Command Branch { get; }
+    public Command Stash { get; }
+    public Command OpenFolder { get; }
+    public Command OpenTerminal { get; }
+
     public IReadable<int?> PushBadge { get; }
     public IReadable<int?> PullBadge { get; }
     public IReadable<bool> IsPushing { get; }
@@ -49,11 +52,15 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         _pullSpinner = new SpinnerAnimation(dispatcher);
         _fetchSpinner = new SpinnerAnimation(dispatcher);
 
-        PushEnabled = Slice(ComputePushEnabled);
-        PullEnabled = Slice(ComputePullEnabled);
-        FetchEnabled = Slice(s => !s.IsFetching && s.HasActiveRepo);
-        RepoActionsEnabled = Slice(s => s.HasActiveRepo);
-        StashEnabled = Slice(s => s.HasActiveRepo && s.HasLocalChanges);
+        var repoActionsEnabled = Slice(s => s.HasActiveRepo);
+        Push = new Command(DoPush, Slice(ComputePushEnabled));
+        Pull = new Command(DoPull, Slice(ComputePullEnabled));
+        Fetch = new Command(DoFetch, Slice(s => !s.IsFetching && s.HasActiveRepo));
+        Branch = new Command(DoBranch, repoActionsEnabled);
+        Stash = new Command(DoStash, Slice(s => s.HasActiveRepo && s.HasLocalChanges));
+        OpenFolder = new Command(DoOpenFolder, repoActionsEnabled);
+        OpenTerminal = new Command(DoOpenTerminal, repoActionsEnabled);
+
         PushBadge = Slice(ComputePushBadge);
         PullBadge = Slice(ComputePullBadge);
         IsPushing = Slice(s => s.IsPushing);
@@ -155,7 +162,7 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         });
     }
 
-    public void OpenFolder()
+    private void DoOpenFolder()
     {
         var repo = _registry.Active.Value;
         if (repo == null) return;
@@ -163,7 +170,7 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         catch (Exception ex) { Update(s => s with { Error = $"Open folder failed: {ex.Message}" }); }
     }
 
-    public void OpenTerminal()
+    private void DoOpenTerminal()
     {
         var repo = _registry.Active.Value;
         if (repo == null) return;
@@ -171,7 +178,7 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         catch (Exception ex) { Update(s => s with { Error = $"Open terminal failed: {ex.Message}" }); }
     }
 
-    public void Branch()
+    private void DoBranch()
     {
         var repo = _registry.Active.Value;
         if (repo == null) return;
@@ -184,14 +191,14 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         _bus.Broadcast(new ShowDialogMessage(onClose => new CreateBranchDialog(repo, suggested, onClose)));
     }
 
-    public void Stash()
+    private void DoStash()
     {
         var repo = _registry.Active.Value;
         if (repo == null) return;
         _bus.Broadcast(new ShowDialogMessage(onClose => new StashDialog(repo, onClose)));
     }
 
-    public void Push()
+    private void DoPush()
     {
         var repo = _registry.Active.Value;
         if (repo == null) return;
@@ -249,7 +256,7 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         });
     }
 
-    public void Pull()
+    private void DoPull()
     {
         var repo = _registry.Active.Value;
         if (repo == null) return;
@@ -283,7 +290,7 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         });
     }
 
-    public void Fetch()
+    private void DoFetch()
     {
         var repo = _registry.Active.Value;
         if (repo == null) return;
