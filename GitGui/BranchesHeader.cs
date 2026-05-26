@@ -1,7 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
-using ZGF.Observable;
 
 namespace GitGui;
 
@@ -10,13 +9,48 @@ internal sealed class BranchesHeader : MultiChildView, IBind<BranchesHeaderViewM
     private const float HeaderHeight = 44f;
     private const int HorizontalPadding = 8;
 
-    private readonly CurrentBranchChip _chip;
+    private readonly TextView _iconView;
+    private readonly TextView _prefixView;
+    private readonly TextView _nameView;
+    private readonly PaddingView _content;
 
     public BranchesHeader()
     {
         PreferredHeight = HeaderHeight;
 
-        _chip = new CurrentBranchChip();
+        _iconView = new TextView
+        {
+            Text = LucideIcons.Branch,
+            FontFamily = LucideIcons.FontFamily,
+            FontSize = 15f,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+
+        _prefixView = new TextView
+        {
+            TextColor = Theme.TextHeader,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+
+        _nameView = new TextView
+        {
+            FontSize = 18f,
+            FontWeight = FontWeight.Bold,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+
+        _content = new PaddingView
+        {
+            Padding = new PaddingStyle { Left = 6, Right = 6 },
+            Children =
+            {
+                new RowView
+                {
+                    Gap = 6,
+                    Children = { _iconView, _prefixView, _nameView },
+                },
+            },
+        };
 
         AddChildToSelf(new RectView
         {
@@ -29,7 +63,7 @@ internal sealed class BranchesHeader : MultiChildView, IBind<BranchesHeaderViewM
                 new FlexRowView
                 {
                     CrossAxisAlignment = CrossAxisAlignment.Center,
-                    Children = { _chip },
+                    Children = { _content },
                 },
             },
         });
@@ -39,8 +73,10 @@ internal sealed class BranchesHeader : MultiChildView, IBind<BranchesHeaderViewM
 
     public void Bind(BranchesHeaderViewModel vm)
     {
-        _chip.BranchName.BindTo(vm.BranchName);
-        _chip.IsDetached.BindTo(vm.IsDetached);
-        _chip.BindIsVisible(vm.BranchName, n => !string.IsNullOrEmpty(n));
+        _iconView.BindTextColor(vm.IsDetached, d => d ? DialogPalette.RowTextMissing : Theme.TextStrong);
+        _prefixView.BindText(vm.IsDetached, d => d ? "at" : "on");
+        _nameView.BindText(vm.BranchName);
+        _nameView.BindTextColor(vm.IsDetached, d => d ? DialogPalette.RowTextMissing : Theme.TextStrong);
+        _content.BindIsVisible(vm.BranchName, n => !string.IsNullOrEmpty(n));
     }
 }
