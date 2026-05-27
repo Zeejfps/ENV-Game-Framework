@@ -1,4 +1,6 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -6,16 +8,8 @@ internal sealed class SegmentView : MultiChildView, IBind<SegmentViewModel>
 {
     private const float SegmentHeight = 28f;
 
-    private static readonly uint ActiveBg = DialogPalette.RowActive;
-    private static readonly uint HoverBg = DialogPalette.ButtonHover;
-    private static readonly uint IdleBg = 0x00000000u;
-    private static readonly uint ActiveText = DialogPalette.RowTextActive;
-    private static readonly uint IdleText = DialogPalette.RowText;
-
-    private readonly RectView _bg;
-    private readonly TextView _label;
-    private bool _isActive;
-    private bool _isHovered;
+    private readonly State<bool> _isActive = new(false);
+    private readonly State<bool> _isHovered = new(false);
 
     private SegmentViewModel? _vm;
 
@@ -23,67 +17,37 @@ internal sealed class SegmentView : MultiChildView, IBind<SegmentViewModel>
     {
         PreferredHeight = SegmentHeight;
 
-        _label = new TextView
+        var labelView = new TextView
         {
             Text = label,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
-            TextColor = IdleText,
         };
+        labelView.BindThemedTextColor(s =>
+            _isActive.Value || _isHovered.Value
+                ? s.ModeSwitcher.SegmentActiveText
+                : s.ModeSwitcher.SegmentIdleText);
 
-        _bg = new RectView
+        var bg = new RectView
         {
-            BackgroundColor = IdleBg,
             BorderRadius = cornerRadius,
             Padding = new PaddingStyle { Left = 12, Right = 12 },
-            Children = { _label },
+            Children = { labelView },
         };
-        AddChildToSelf(_bg);
+        bg.BindThemedBackgroundColor(s =>
+            _isActive.Value ? s.ModeSwitcher.SegmentActiveBackground :
+            _isHovered.Value ? s.ModeSwitcher.SegmentHoverBackground :
+            s.ModeSwitcher.SegmentIdleBackground);
+        AddChildToSelf(bg);
 
-        this.UseController(_ => new HoverableButtonController(OnClicked, OnHoverChanged));
+        this.UseController(_ => new HoverableButtonController(OnClicked, h => _isHovered.Value = h));
     }
 
     public void Bind(SegmentViewModel vm)
     {
         _vm = vm;
-        vm.IsActive.Subscribe(SetActive);
+        vm.IsActive.Subscribe(b => _isActive.Value = b);
     }
 
-    private void SetActive(bool active)
-    {
-        if (_isActive == active) return;
-        _isActive = active;
-        ApplyVisualState();
-    }
-
-    private void OnClicked()
-    {
-        _vm?.Activate();
-    }
-
-    private void OnHoverChanged(bool hovered)
-    {
-        if (_isHovered == hovered) return;
-        _isHovered = hovered;
-        ApplyVisualState();
-    }
-
-    private void ApplyVisualState()
-    {
-        if (_isActive)
-        {
-            _bg.BackgroundColor = ActiveBg;
-            _label.TextColor = ActiveText;
-        }
-        else if (_isHovered)
-        {
-            _bg.BackgroundColor = HoverBg;
-            _label.TextColor = ActiveText;
-        }
-        else
-        {
-            _bg.BackgroundColor = IdleBg;
-            _label.TextColor = IdleText;
-        }
-    }
+    private void OnClicked() => _vm?.Activate();
 }

@@ -13,7 +13,8 @@ public sealed record ThemeStyles(
     ActionButtonStyles ActionButton,
     CheckboxStyles Checkbox,
     CommitBarStyles CommitBar,
-    ErrorBarStyles ErrorBar)
+    ErrorBarStyles ErrorBar,
+    ModeSwitcherStyles ModeSwitcher)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -91,7 +92,15 @@ public sealed record ThemeStyles(
         ErrorBar: new ErrorBarStyles(
             Background: 0xFF3D2E14u,
             Border: 0xFFB89050u,
-            Text: 0xFFE9C77Au));
+            Text: 0xFFE9C77Au),
+        ModeSwitcher: new ModeSwitcherStyles(
+            PillBorder: 0xFF3E4047u,
+            SegmentSeparator: 0xFF3E4047u,
+            SegmentIdleBackground: 0x00000000u,
+            SegmentHoverBackground: 0xFF3A3D43u,
+            SegmentActiveBackground: 0xFF404C8Cu,
+            SegmentIdleText: 0xFFB5B9C0u,
+            SegmentActiveText: 0xFFFFFFFFu));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -169,7 +178,15 @@ public sealed record ThemeStyles(
         ErrorBar: new ErrorBarStyles(
             Background: 0xFFFEF3C7u,
             Border: 0xFFD97706u,
-            Text: 0xFF78350Fu));
+            Text: 0xFF78350Fu),
+        ModeSwitcher: new ModeSwitcherStyles(
+            PillBorder: 0xFFD1D5DBu,
+            SegmentSeparator: 0xFFD1D5DBu,
+            SegmentIdleBackground: 0x00000000u,
+            SegmentHoverBackground: 0xFFF3F4F6u,
+            SegmentActiveBackground: 0xFF4F46E5u,
+            SegmentIdleText: 0xFF374151u,
+            SegmentActiveText: 0xFFFFFFFFu));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -246,6 +263,15 @@ public sealed record ErrorBarStyles(
     uint Background,
     uint Border,
     uint Text);
+
+public sealed record ModeSwitcherStyles(
+    uint PillBorder,
+    uint SegmentSeparator,
+    uint SegmentIdleBackground,
+    uint SegmentHoverBackground,
+    uint SegmentActiveBackground,
+    uint SegmentIdleText,
+    uint SegmentActiveText);
 
 public sealed record FileChangeRowStyles(
     uint RowText,
