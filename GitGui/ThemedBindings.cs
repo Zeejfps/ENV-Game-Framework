@@ -1,0 +1,19 @@
+using ZGF.Gui;
+using ZGF.Gui.Bindings;
+
+namespace GitGui;
+
+internal static class ThemedBindings
+{
+    extension(TextView view)
+    {
+        public void BindThemedTextColor(Func<ThemeStyles, uint> select) =>
+            view.BindThemedTextColor<ThemeStyles>(select);
+    }
+
+    extension(RectView view)
+    {
+        public void BindThemedBackgroundColor(Func<ThemeStyles, uint> select) =>
+            view.BindThemedBackgroundColor<ThemeStyles>(select);
+    }
+}

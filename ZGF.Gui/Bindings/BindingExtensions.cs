@@ -53,6 +53,17 @@ public static class BindingExtensions
         }
 
         /// <summary>
+        /// Binds <see cref="TextView.TextColor"/> to a value selected from the active
+        /// <see cref="IThemeService{TStyles}"/> styles. Theme swaps and any observable reads
+        /// inside <paramref name="select"/> are auto-tracked.
+        /// </summary>
+        public void BindThemedTextColor<TStyles>(Func<TStyles, uint> select)
+        {
+            view.Behaviors.Add(new ThemedDerivedPropertyBindingBehavior<TextView, TStyles, uint>(
+                view, select, (v, c) => v.TextColor = c));
+        }
+
+        /// <summary>
         /// Binds <see cref="TextView.Rotation"/> to the source observable.
         /// </summary>
         public void BindRotation(IReadable<float> source)
@@ -112,6 +123,17 @@ public static class BindingExtensions
         {
             view.Behaviors.Add(new DerivedPropertyBindingBehavior<RectView, uint>(
                 view, compute, (v, c) => v.BackgroundColor = c));
+        }
+
+        /// <summary>
+        /// Binds <see cref="RectView.BackgroundColor"/> to a value selected from the active
+        /// <see cref="IThemeService{TStyles}"/> styles. Theme swaps and any observable reads
+        /// inside <paramref name="select"/> are auto-tracked.
+        /// </summary>
+        public void BindThemedBackgroundColor<TStyles>(Func<TStyles, uint> select)
+        {
+            view.Behaviors.Add(new ThemedDerivedPropertyBindingBehavior<RectView, TStyles, uint>(
+                view, select, (v, c) => v.BackgroundColor = c));
         }
 
         /// <summary>
