@@ -71,8 +71,8 @@ internal sealed class ResizableLeftSidebar : MultiChildView
     {
         var splitterHovered = new State<bool>(false);
         var splitter = new RectView();
-        splitter.BindBackgroundColor(splitterHovered,
-            h => h ? CommitsPalette.DividerHoverBg : CommitsPalette.Border);
+        splitter.BindThemedBackgroundColor(s =>
+            splitterHovered.Value ? s.SidebarSplitter.Hover : s.SidebarSplitter.Idle);
 
         var sidebar = new ResizableLeftSidebar(content, splitter, initialWidth, minWidth, maxWidth);
 

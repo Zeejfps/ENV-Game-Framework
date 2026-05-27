@@ -28,9 +28,9 @@ internal sealed class BranchesHeader : MultiChildView, IBind<BranchesHeaderViewM
 
         _prefixView = new TextView
         {
-            TextColor = Theme.TextHeader,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        _prefixView.BindThemedTextColor(s => s.BranchesHeader.PrefixText);
 
         _nameView = new TextView
         {
@@ -52,10 +52,8 @@ internal sealed class BranchesHeader : MultiChildView, IBind<BranchesHeaderViewM
             },
         };
 
-        AddChildToSelf(new RectView
+        var headerBar = new RectView
         {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = new BorderColorStyle { Bottom = DialogPalette.Border },
             BorderSize = new BorderSizeStyle { Bottom = 1 },
             Padding = new PaddingStyle { Left = HorizontalPadding, Right = HorizontalPadding },
             Children =
@@ -66,17 +64,22 @@ internal sealed class BranchesHeader : MultiChildView, IBind<BranchesHeaderViewM
                     Children = { _content },
                 },
             },
-        });
+        };
+        headerBar.BindThemedBackgroundColor(s => s.BranchesHeader.Background);
+        headerBar.BindThemedBorderColor(s => new BorderColorStyle { Bottom = s.BranchesHeader.BorderBottom });
+        AddChildToSelf(headerBar);
 
         this.UseViewModel(this);
     }
 
     public void Bind(BranchesHeaderViewModel vm)
     {
-        _iconView.BindTextColor(vm.IsDetached, d => d ? DialogPalette.RowTextMissing : Theme.TextStrong);
+        _iconView.BindThemedTextColor(s =>
+            vm.IsDetached.Value ? s.BranchesHeader.DetachedText : s.BranchesHeader.ActiveText);
         _prefixView.BindText(vm.IsDetached, d => d ? "at" : "on");
         _nameView.BindText(vm.BranchName);
-        _nameView.BindTextColor(vm.IsDetached, d => d ? DialogPalette.RowTextMissing : Theme.TextStrong);
+        _nameView.BindThemedTextColor(s =>
+            vm.IsDetached.Value ? s.BranchesHeader.DetachedText : s.BranchesHeader.ActiveText);
         _content.BindIsVisible(vm.BranchName, n => !string.IsNullOrEmpty(n));
     }
 }

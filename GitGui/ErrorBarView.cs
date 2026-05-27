@@ -19,15 +19,13 @@ internal sealed class ErrorBarView : MultiChildView
 
         var text = new TextView
         {
-            TextColor = CommitsPalette.WarningText,
             VerticalTextAlignment = TextAlignment.Center,
         };
         text.BindText(Message);
+        text.BindThemedTextColor(s => s.ErrorBar.Text);
 
-        AddChildToSelf(new RectView
+        var box = new RectView
         {
-            BackgroundColor = CommitsPalette.WarningBg,
-            BorderColor = BorderColorStyle.All(CommitsPalette.WarningBorder),
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(3),
             Padding = new PaddingStyle
@@ -38,6 +36,9 @@ internal sealed class ErrorBarView : MultiChildView
                 Bottom = verticalPadding,
             },
             Children = { text },
-        });
+        };
+        box.BindThemedBackgroundColor(s => s.ErrorBar.Background);
+        box.BindThemedBorderColor(s => BorderColorStyle.All(s.ErrorBar.Border));
+        AddChildToSelf(box);
     }
 }

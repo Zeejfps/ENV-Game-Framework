@@ -24,10 +24,8 @@ internal sealed class RepoBar : MultiChildView, IBind<RepoBarViewModel>
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
         };
 
-        AddChildToSelf(new RectView
+        var bar = new RectView
         {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = new BorderColorStyle { Right = DialogPalette.Border },
             BorderSize = new BorderSizeStyle { Right = 1 },
             Padding = new PaddingStyle
             {
@@ -49,7 +47,10 @@ internal sealed class RepoBar : MultiChildView, IBind<RepoBarViewModel>
                     }
                 }
             }
-        });
+        };
+        bar.BindThemedBackgroundColor(s => s.RepoBar.Background);
+        bar.BindThemedBorderColor(s => new BorderColorStyle { Right = s.RepoBar.RightBorder });
+        AddChildToSelf(bar);
 
         this.UseController(ctx => new RepoBarContextMenuController(ctx, _ => BuildBackgroundMenuItems()));
         this.UseViewModel(this);

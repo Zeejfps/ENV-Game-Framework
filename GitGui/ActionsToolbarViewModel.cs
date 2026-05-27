@@ -8,7 +8,8 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
     private readonly IGitService _gitService;
     private readonly IPlatformShell _shell;
     private readonly IMessageBus _bus;
-    
+    private readonly State<ThemeMode> _themeMode;
+
     private readonly GenerationGuard _statusGen = new();
     private readonly GenerationGuard _localChangesGen = new();
 
@@ -23,6 +24,7 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
     public Command Stash { get; }
     public Command OpenFolder { get; }
     public Command OpenTerminal { get; }
+    public Command ToggleTheme { get; }
 
     public IReadable<int?> PushBadge { get; }
     public IReadable<int?> PullBadge { get; }
@@ -30,6 +32,7 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
     public IReadable<bool> IsPulling { get; }
     public IReadable<bool> IsFetching { get; }
     public IReadable<string?> Error { get; }
+    public IReadable<ThemeMode> Theme => _themeMode;
 
     public IReadable<float> PushRotation => _pushSpinner.Rotation;
     public IReadable<float> PullRotation => _pullSpinner.Rotation;
@@ -40,13 +43,15 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         IGitService gitService,
         IPlatformShell shell,
         IUiDispatcher dispatcher,
-        IMessageBus bus)
+        IMessageBus bus,
+        State<ThemeMode> themeMode)
         : base(dispatcher, ActionsToolbarState.Initial)
     {
         _registry = registry;
         _gitService = gitService;
         _shell = shell;
         _bus = bus;
+        _themeMode = themeMode;
 
         _pushSpinner = new SpinnerAnimation(dispatcher);
         _pullSpinner = new SpinnerAnimation(dispatcher);
@@ -60,6 +65,7 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         Stash = new Command(DoStash, Slice(s => s.HasActiveRepo && s.HasLocalChanges));
         OpenFolder = new Command(DoOpenFolder, repoActionsEnabled);
         OpenTerminal = new Command(DoOpenTerminal, repoActionsEnabled);
+        ToggleTheme = new Command(DoToggleTheme);
 
         PushBadge = Slice(ComputePushBadge);
         PullBadge = Slice(ComputePullBadge);
@@ -176,6 +182,11 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         if (repo == null) return;
         try { _shell.OpenTerminal(repo.Path); }
         catch (Exception ex) { Update(s => s with { Error = $"Open terminal failed: {ex.Message}" }); }
+    }
+
+    private void DoToggleTheme()
+    {
+        _themeMode.Value = _themeMode.Value == ThemeMode.Dark ? ThemeMode.Light : ThemeMode.Dark;
     }
 
     private void DoBranch()

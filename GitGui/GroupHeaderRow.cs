@@ -17,12 +17,12 @@ internal sealed class GroupHeaderRow : MultiChildView, IBind<GroupHeaderRowViewM
 
         _chevron = new TextView
         {
-            TextColor = DialogPalette.SectionHeaderText,
             FontSize = 8f,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
         };
+        _chevron.BindThemedTextColor(s => s.GroupHeaderRow.ChevronText);
 
         _nameSlot = new MultiChildView();
 
@@ -44,8 +44,8 @@ internal sealed class GroupHeaderRow : MultiChildView, IBind<GroupHeaderRowViewM
                 }
             }
         };
-        background.BindBackgroundColor(_isHovered,
-            h => h ? DialogPalette.RowHover : DialogPalette.RowTransparent);
+        background.BindThemedBackgroundColor(s =>
+            _isHovered.Value ? s.GroupHeaderRow.BackgroundHover : s.GroupHeaderRow.BackgroundIdle);
         AddChildToSelf(background);
     }
 

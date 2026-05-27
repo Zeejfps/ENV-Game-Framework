@@ -22,9 +22,9 @@ internal sealed class DiscardHunkDialog : MultiChildView, IBind<DiscardHunkViewM
         var prompt = new TextView
         {
             Text = $"Discard this hunk in {path}? This cannot be undone.",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         _errorView = DialogFrame.ErrorView();
 

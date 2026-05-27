@@ -6,11 +6,17 @@ namespace GitGui;
 
 internal sealed class OperationRow : HoverableButton
 {
+    private enum RowState { Idle, Success, Failure }
+
     private readonly TextView _label;
     private readonly TextView _phase;
     private readonly TextView _elapsed;
     private readonly ProgressBarView _bar;
     private readonly RectView _background;
+
+    private OperationRowStyles _styles = ThemeStyles.Dark.OperationRow;
+    private RowState _state = RowState.Idle;
+    private string? _failureMessage;
 
     public OperationRow(string label, string icon, Action onToggleLog)
         : base(onToggleLog)
@@ -20,23 +26,22 @@ internal sealed class OperationRow : HoverableButton
             Text = icon,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 14,
-            TextColor = Theme.TextPrimary,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             PreferredWidth = 18,
         };
+        iconView.BindThemedTextColor(s => s.OperationRow.IconText);
 
         _label = new TextView
         {
             Text = label,
-            TextColor = Theme.TextPrimary,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        _label.BindThemedTextColor(s => s.OperationRow.LabelText);
 
         _phase = new TextView
         {
             Text = string.Empty,
-            TextColor = Theme.TextDim,
             VerticalTextAlignment = TextAlignment.Center,
         };
 
@@ -45,15 +50,14 @@ internal sealed class OperationRow : HoverableButton
         _elapsed = new TextView
         {
             Text = "0s",
-            TextColor = Theme.TextDim,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.End,
             PreferredWidth = 36,
         };
+        _elapsed.BindThemedTextColor(s => s.OperationRow.ElapsedText);
 
         _background = new RectView
         {
-            BackgroundColor = Theme.BgHeader,
             Padding = new PaddingStyle { Left = 12, Right = 12, Top = 6, Bottom = 6 },
             Children =
             {
@@ -72,26 +76,59 @@ internal sealed class OperationRow : HoverableButton
                 },
             },
         };
-        _background.BindBackgroundColor(IsHovered, h => h ? Theme.Border : Theme.BgHeader);
+        _background.BindThemedBackgroundColor(s =>
+            IsHovered.Value ? s.OperationRow.BackgroundHover : s.OperationRow.BackgroundIdle);
         SetBackground(_background);
+
+        this.BindThemed(s =>
+        {
+            _styles = s.OperationRow;
+            ApplyState();
+        });
     }
 
-    public string Phase { set => _phase.Text = value ?? string.Empty; }
+    public string Phase
+    {
+        set
+        {
+            _phase.Text = value ?? string.Empty;
+            if (_state == RowState.Idle) _phase.TextColor = _styles.PhaseTextIdle;
+        }
+    }
     public float Percent { set => _bar.Percent = value; }
     public string Elapsed { set => _elapsed.Text = value; }
 
     public void MarkSuccess()
     {
         _bar.Percent = 1f;
-        _bar.FillColor = 0xFF4E8B3D;
-        _phase.Text = "Done";
-        _phase.TextColor = 0xFF7FB76A;
+        _state = RowState.Success;
+        ApplyState();
     }
 
     public void MarkFailure(string? message)
     {
-        _bar.FillColor = 0xFFB3514B;
-        _phase.Text = string.IsNullOrEmpty(message) ? "Failed" : message;
-        _phase.TextColor = CommitsPalette.WarningText;
+        _state = RowState.Failure;
+        _failureMessage = message;
+        ApplyState();
+    }
+
+    private void ApplyState()
+    {
+        switch (_state)
+        {
+            case RowState.Idle:
+                _phase.TextColor = _styles.PhaseTextIdle;
+                break;
+            case RowState.Success:
+                _bar.FillColor = _styles.SuccessBar;
+                _phase.Text = "Done";
+                _phase.TextColor = _styles.SuccessText;
+                break;
+            case RowState.Failure:
+                _bar.FillColor = _styles.FailureBar;
+                _phase.Text = string.IsNullOrEmpty(_failureMessage) ? "Failed" : _failureMessage;
+                _phase.TextColor = _styles.FailureText;
+                break;
+        }
     }
 }

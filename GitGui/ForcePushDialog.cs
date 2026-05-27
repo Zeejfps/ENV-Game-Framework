@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Observable;
 
@@ -26,9 +27,9 @@ public sealed class ForcePushDialog : MultiChildView, IForcePushView
                  + "A regular push will be rejected. Force-push (with lease) will overwrite the remote "
                  + "branch with your local history; any commits on the remote that you haven't fetched "
                  + "will be lost. The lease refuses the push if the remote moved since your last fetch.",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         _errorView = DialogFrame.ErrorView();
 

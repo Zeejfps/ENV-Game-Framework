@@ -19,16 +19,16 @@ public sealed class DialogCloseButton : HoverableButton
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        label.BindTextColor(IsHovered,
-            h => h ? DialogPalette.CloseTextHover : DialogPalette.CloseTextNormal);
+        label.BindThemedTextColor(s =>
+            IsHovered.Value ? s.DialogIconButton.TextHover : s.DialogIconButton.TextIdle);
 
         var background = new RectView
         {
             BorderRadius = BorderRadiusStyle.All(4),
             Children = { label }
         };
-        background.BindBackgroundColor(IsHovered,
-            h => h ? DialogPalette.CloseHover : DialogPalette.CloseNormal);
+        background.BindThemedBackgroundColor(s =>
+            IsHovered.Value ? s.DialogIconButton.BackgroundHover : s.DialogIconButton.BackgroundIdle);
 
         SetBackground(background);
     }

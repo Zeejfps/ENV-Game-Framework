@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Observable;
 
@@ -38,19 +39,16 @@ public sealed class UpdateSubmodulesDialog : MultiChildView, IUpdateSubmodulesVi
             Text = target is null
                 ? $"Run `git submodule update` on every submodule under '{primary.DisplayName}'."
                 : $"Run `git submodule update` on '{target.DisplayName}'.",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         _initCheckbox = new CheckboxView("Init missing submodules (--init)") { PreferredHeight = 22 };
         _initCheckbox.IsChecked.Value = true;
         _recursiveCheckbox = new CheckboxView("Recurse into nested submodules (--recursive)") { PreferredHeight = 22 };
 
-        var modeLabel = new TextView
-        {
-            Text = "Strategy",
-            TextColor = DialogPalette.SectionHeaderText,
-        };
+        var modeLabel = new TextView { Text = "Strategy" };
+        modeLabel.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
 
         _checkoutMode = new CheckboxView("Checkout (default — reset to recorded SHA)") { PreferredHeight = 22 };
         _checkoutMode.IsChecked.Value = true;
@@ -68,9 +66,9 @@ public sealed class UpdateSubmodulesDialog : MultiChildView, IUpdateSubmodulesVi
         {
             Text = "Merge/rebase strategies may leave the submodule mid-merge on conflict — " +
                    "the Operation banner will offer Abort.",
-            TextColor = DialogPalette.RowTextMissing,
             TextWrap = TextWrap.Wrap,
         };
+        conflictsHint.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
 
         _errorView = DialogFrame.ErrorView();
 

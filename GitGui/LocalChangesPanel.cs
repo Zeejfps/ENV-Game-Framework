@@ -1,5 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -41,23 +42,22 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
 
     private readonly TextStyle _badgeGlyphStyle = new()
     {
-        TextColor = FileChangesPalette.BadgeText,
         FontSize = 11f,
         HorizontalAlignment = TextAlignment.Center,
         VerticalAlignment = TextAlignment.Center,
     };
     private readonly TextStyle _pathTextStyle = new()
     {
-        TextColor = DialogPalette.RowText,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
     private readonly TextStyle _pathTextActiveStyle = new()
     {
-        TextColor = DialogPalette.RowTextActive,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
+
+    private FileChangeRowStyles _rowStyles = ThemeStyles.Dark.FileChangeRow;
 
     // Sentinel start so the first NotifyScrollChanged fires even when the computed scale
     // equals 1 — otherwise the scrollbar thumb's built-in 0.5 default sticks until a real
@@ -135,8 +135,8 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         _bodyContainer = new RectView();
         _bodyContainer.Children.Add(_emptyPlaceholder);
 
-        _scrollBar = ScrollBarStyles.CreateVertical();
-        _hScrollBar = ScrollBarStyles.CreateHorizontal();
+        _scrollBar = ScrollBars.CreateVertical();
+        _hScrollBar = ScrollBars.CreateHorizontal();
 
         AddChildToSelf(new BorderLayoutView
         {
@@ -151,6 +151,15 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         // Selection changes only affect row visuals; a SetDirty is enough — every frame
         // redraws and the ItemBuilder reads the current selection on demand.
         selection.Subscribe(_ => SetDirty());
+
+        this.BindThemed(s =>
+        {
+            _rowStyles = s.FileChangeRow;
+            _badgeGlyphStyle.TextColor = _rowStyles.BadgeText;
+            _pathTextStyle.TextColor = _rowStyles.RowText;
+            _pathTextActiveStyle.TextColor = _rowStyles.RowTextActive;
+            SetDirty();
+        });
 
         this.UseController(_ => new ScrollSyncController(this, _scrollBar, _hScrollBar));
     }
@@ -210,8 +219,8 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         var isSelected = _selection.Value.Contains(path, _side);
 
         var bg = isSelected
-            ? DialogPalette.RowActive
-            : (state.IsHovered ? DialogPalette.RowHover : (uint?)null);
+            ? _rowStyles.RowActive
+            : (state.IsHovered ? _rowStyles.RowHover : (uint?)null);
         if (bg != null)
         {
             c.DrawRect(new DrawRectInputs
@@ -234,7 +243,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
             Position = new RectF(badgeLeft, badgeBottom, badgeSize, badgeSize),
             Style = new RectStyle
             {
-                BackgroundColor = FileChangesPalette.StatusColor(file.Status),
+                BackgroundColor = _rowStyles.StatusColor(file.Status),
                 BorderRadius = BorderRadiusStyle.All(3),
             },
             ZIndex = z + 1,
@@ -242,7 +251,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         c.DrawText(new DrawTextInputs
         {
             Position = new RectF(badgeLeft, badgeBottom, badgeSize, badgeSize),
-            Text = FileChangesPalette.StatusGlyph(file.Status),
+            Text = FileChangeFormatting.StatusGlyph(file.Status),
             Style = _badgeGlyphStyle,
             ZIndex = z + 2,
         });
@@ -253,7 +262,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         if (textWidth <= 0f) return;
 
         var pathStyle = isSelected ? _pathTextActiveStyle : _pathTextStyle;
-        var pathText = FileChangesPalette.FormatPath(file);
+        var pathText = FileChangeFormatting.FormatPath(file);
         var rendered = TextMeasure.TruncateToFit(pathText, pathStyle, textWidth, Context.Canvas);
         c.DrawText(new DrawTextInputs
         {

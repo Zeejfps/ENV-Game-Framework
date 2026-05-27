@@ -7,7 +7,7 @@ namespace GitGui;
 
 public sealed class ActionButton : HoverableButton
 {
-    private readonly uint? _badgeColor;
+    private readonly Func<ThemeStyles, uint>? _badgeColorSelect;
     private readonly uint? _iconColor;
     private readonly uint? _backgroundColor;
 
@@ -16,7 +16,7 @@ public sealed class ActionButton : HoverableButton
     public State<float> IconRotation { get; } = new(0f);
     public State<int?> Badge { get; } = new(null);
 
-    public ActionButton(string icon, string? label = null, string? tooltip = null, uint? badgeColor = null, uint? iconColor = null, uint? backgroundColor = null)
+    public ActionButton(string icon, string? label = null, string? tooltip = null, Func<ThemeStyles, uint>? badgeColor = null, uint? iconColor = null, uint? backgroundColor = null)
         : base(null, tooltip)
     {
         Icon = new State<string>(icon);
@@ -24,6 +24,7 @@ public sealed class ActionButton : HoverableButton
 
         _backgroundColor = backgroundColor;
         _iconColor = iconColor ?? (backgroundColor != null ? 0xFFFFFFFFu : (uint?)null);
+        _badgeColorSelect = badgeColor;
         PreferredHeight = 28;
 
         var iconView = new TextView
@@ -33,19 +34,18 @@ public sealed class ActionButton : HoverableButton
             VerticalTextAlignment = TextAlignment.Center,
         };
         iconView.BindText(Icon);
-        iconView.BindTextColor(ComputeForeground);
+        iconView.BindThemedTextColor(SelectForeground);
         iconView.BindRotation(IconRotation);
 
         var countIconGroup = new RowView { Gap = 0, Children = { iconView } };
 
-        if (badgeColor is uint color)
+        if (badgeColor != null)
         {
-            _badgeColor = color;
             var badgeText = new TextView
             {
-                TextColor = color,
                 VerticalTextAlignment = TextAlignment.Center,
             };
+            badgeText.BindThemedTextColor(badgeColor);
             badgeText.BindText(Badge, n => n?.ToString() ?? string.Empty);
             badgeText.BindIsVisible(Badge, n => n is > 0);
             countIconGroup.Children.Add(badgeText);
@@ -61,7 +61,7 @@ public sealed class ActionButton : HoverableButton
                 VerticalTextAlignment = TextAlignment.Center,
             };
             labelView.BindText(Label);
-            labelView.BindTextColor(ComputeLabelForeground);
+            labelView.BindThemedTextColor(SelectLabelForeground);
             row.Children.Add(labelView);
         }
 
@@ -78,32 +78,32 @@ public sealed class ActionButton : HoverableButton
                 }
             }
         };
-        background.BindBackgroundColor(ComputeBackground);
+        background.BindThemedBackgroundColor(SelectBackground);
         SetBackground(background);
     }
 
-    private uint ComputeBackground()
+    private uint SelectBackground(ThemeStyles s)
     {
         if (_backgroundColor is uint bg)
         {
             if (!IsEnabled) return Darken(bg, 0x40);
             return IsHovered ? Lighten(bg, 0x18) : bg;
         }
-        return IsEnabled && IsHovered ? DialogPalette.ButtonHover : 0x00000000u;
+        return IsEnabled && IsHovered ? s.ActionButton.BackgroundHover : s.ActionButton.BackgroundIdle;
     }
 
-    private uint ComputeForeground()
+    private uint SelectForeground(ThemeStyles s)
     {
-        if (!IsEnabled) return DialogPalette.RowTextMissing;
-        if (Badge.Value is > 0 && _badgeColor is uint c) return c;
+        if (!IsEnabled) return s.ActionButton.TextDisabled;
+        if (Badge.Value is > 0 && _badgeColorSelect != null) return _badgeColorSelect(s);
         if (_iconColor is uint ic) return ic;
-        return IsHovered ? 0xFFFFFFFFu : DialogPalette.RowText;
+        return IsHovered ? s.ActionButton.TextHover : s.ActionButton.TextIdle;
     }
 
-    private uint ComputeLabelForeground()
+    private uint SelectLabelForeground(ThemeStyles s)
     {
-        if (!IsEnabled) return DialogPalette.RowTextMissing;
-        return IsHovered ? 0xFFFFFFFFu : DialogPalette.RowText;
+        if (!IsEnabled) return s.ActionButton.TextDisabled;
+        return IsHovered ? s.ActionButton.TextHover : s.ActionButton.TextIdle;
     }
 
     private static uint Lighten(uint argb, uint delta)

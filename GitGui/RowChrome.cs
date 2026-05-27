@@ -11,23 +11,26 @@ internal static class RowChrome
 {
     public static void BindRowBackground(RectView background, IReadable<bool> isHovered, IRepoRegistry registry, Guid rowId)
     {
-        background.BindBackgroundColor(() =>
+        background.BindThemedBackgroundColor(s =>
         {
             var active = registry.Active.Value?.Id == rowId;
             return (isHovered.Value, active) switch
             {
-                (_, true) => DialogPalette.RowActive,
-                (true, false) => DialogPalette.RowHover,
-                _ => DialogPalette.RowTransparent,
+                (_, true) => s.RepoBarRow.BackgroundActive,
+                (true, false) => s.RepoBarRow.BackgroundHover,
+                _ => s.RepoBarRow.BackgroundIdle,
             };
         });
     }
 
-    public static uint RowTextColor(IRepoRegistry registry, Repo row)
+    public static void BindRowText(TextView view, IRepoRegistry registry, Repo row)
     {
-        if (row.IsMissing) return DialogPalette.RowTextMissing;
-        return registry.Active.Value?.Id == row.Id
-            ? DialogPalette.RowTextActive
-            : DialogPalette.RowText;
+        view.BindThemedTextColor(s =>
+        {
+            if (row.IsMissing) return s.RepoBarRow.TextMissing;
+            return registry.Active.Value?.Id == row.Id
+                ? s.RepoBarRow.TextActive
+                : s.RepoBarRow.TextIdle;
+        });
     }
 }

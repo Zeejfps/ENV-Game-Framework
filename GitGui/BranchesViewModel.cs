@@ -600,30 +600,28 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         return null;
     }
 
-    private const uint MergeMenuBranchAccent = 0xFFFFFFFF;
-
     private static IReadOnlyList<MenuLabelSegment> BuildMergeSegments(string source, string target) =>
     [
         new MenuLabelSegment("Merge "),
-        new MenuLabelSegment(source, MergeMenuBranchAccent, Bold: true),
+        new MenuLabelSegment(source, Bold: true),
         new MenuLabelSegment(" into "),
-        new MenuLabelSegment(target, MergeMenuBranchAccent, Bold: true),
+        new MenuLabelSegment(target, Bold: true),
         new MenuLabelSegment("…"),
     ];
 
     private static IReadOnlyList<MenuLabelSegment> BuildRebaseSegments(string source, string target) =>
     [
         new MenuLabelSegment("Rebase "),
-        new MenuLabelSegment(source, MergeMenuBranchAccent, Bold: true),
+        new MenuLabelSegment(source, Bold: true),
         new MenuLabelSegment(" onto "),
-        new MenuLabelSegment(target, MergeMenuBranchAccent, Bold: true),
+        new MenuLabelSegment(target, Bold: true),
         new MenuLabelSegment("…"),
     ];
 
     private static IReadOnlyList<MenuLabelSegment> BuildFastForwardSegments(string remote, string branch) =>
     [
         new MenuLabelSegment("Fast-forward to '"),
-        new MenuLabelSegment($"{remote}/{branch}", MergeMenuBranchAccent, Bold: true),
+        new MenuLabelSegment($"{remote}/{branch}", Bold: true),
         new MenuLabelSegment("'"),
     ];
 }

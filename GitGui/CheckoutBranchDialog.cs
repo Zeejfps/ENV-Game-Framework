@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -32,17 +33,11 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
 
         _onClose = onClose;
 
-        var subtitle = new TextView
-        {
-            Text = $"Create a local branch from {remoteName}/{remoteBranchName}",
-            TextColor = DialogPalette.BodyText,
-        };
+        var subtitle = new TextView { Text = $"Create a local branch from {remoteName}/{remoteBranchName}" };
+        subtitle.BindThemedTextColor(s => s.DialogBody.BodyText);
 
-        var nameLabel = new TextView
-        {
-            Text = "Local branch name",
-            TextColor = DialogPalette.SectionHeaderText,
-        };
+        var nameLabel = new TextView { Text = "Local branch name" };
+        nameLabel.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
 
         _nameInput = DialogFrame.TextInput();
         var nameBox = DialogFrame.WrapInput(_nameInput);

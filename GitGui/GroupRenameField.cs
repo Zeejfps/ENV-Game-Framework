@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Tests;
 
 namespace GitGui;
@@ -11,25 +12,29 @@ public sealed class GroupRenameField : MultiChildView
 
         var input = new TextInputView
         {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            TextColor = DialogPalette.TitleText,
             FontSize = 18f,
-            CaretColor = DialogPalette.TitleText,
-            SelectionRectColor = DialogPalette.RowActive,
             TextVerticalAlignment = TextAlignment.Center,
         };
+        input.BindThemed(s =>
+        {
+            input.BackgroundColor = s.GroupRenameField.Background;
+            input.TextColor = s.GroupRenameField.Text;
+            input.CaretColor = s.GroupRenameField.Caret;
+            input.SelectionRectColor = s.GroupRenameField.Selection;
+        });
         input.Enter(group.Name);
         input.SelectAll();
 
-        AddChildToSelf(new RectView
+        var box = new RectView
         {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorderHover),
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(3),
             Padding = new PaddingStyle { Left = 4, Right = 4 },
             Children = { input }
-        });
+        };
+        box.BindThemedBackgroundColor(s => s.GroupRenameField.Background);
+        box.BindThemedBorderColor(s => BorderColorStyle.All(s.GroupRenameField.Border));
+        AddChildToSelf(box);
 
         this.UseController(ctx =>
         {

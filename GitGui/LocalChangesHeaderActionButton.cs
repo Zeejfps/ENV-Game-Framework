@@ -7,9 +7,6 @@ internal sealed class LocalChangesHeaderActionButton : HoverableButton
 {
     private const float ButtonSize = 22f;
     private const float IconSize = 13f;
-    private const uint IconIdleColor = 0xFFB5B9C0;
-    private const uint IconDisabledColor = 0x66B5B9C0;
-    private const uint TransparentBg = 0x00000000u;
 
     public LocalChangesHeaderActionButton(string icon, Action? onClick = null, string? tooltip = null)
         : base(onClick, tooltip)
@@ -25,10 +22,10 @@ internal sealed class LocalChangesHeaderActionButton : HoverableButton
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        iconView.BindTextColor(() =>
+        iconView.BindThemedTextColor(s =>
         {
-            if (!IsEnabled) return IconDisabledColor;
-            return IsHovered ? 0xFFFFFFFFu : IconIdleColor;
+            if (!IsEnabled) return s.HeaderActionButton.IconDisabled;
+            return IsHovered ? s.HeaderActionButton.IconHover : s.HeaderActionButton.IconIdle;
         });
 
         var background = new RectView
@@ -36,8 +33,8 @@ internal sealed class LocalChangesHeaderActionButton : HoverableButton
             BorderRadius = BorderRadiusStyle.All(3),
             Children = { iconView },
         };
-        background.BindBackgroundColor(() =>
-            IsEnabled && IsHovered ? DialogPalette.ButtonHover : TransparentBg);
+        background.BindThemedBackgroundColor(s =>
+            IsEnabled && IsHovered ? s.HeaderActionButton.BackgroundHover : s.HeaderActionButton.Background);
         SetBackground(background);
     }
 }

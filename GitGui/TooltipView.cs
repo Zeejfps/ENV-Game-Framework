@@ -1,5 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 
 namespace GitGui;
 
@@ -11,10 +12,16 @@ public sealed class TooltipView : MultiChildView
 
     public TooltipView(string text)
     {
-        AddChildToSelf(new RectView
+        var label = new TextView
         {
-            BackgroundColor = TooltipPalette.Background,
-            BorderColor = BorderColorStyle.All(TooltipPalette.Border),
+            Text = text,
+            FontSize = 12,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        label.BindThemedTextColor(s => s.Tooltip.Text);
+
+        var box = new RectView
+        {
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(CornerRadius),
             Padding = new PaddingStyle
@@ -24,25 +31,19 @@ public sealed class TooltipView : MultiChildView
                 Top = VerticalPadding,
                 Bottom = VerticalPadding,
             },
-            BoxShadow = new BoxShadowStyle
-            {
-                OffsetX = 0f,
-                OffsetY = -4f,
-                Blur = 16f,
-                Spread = 0f,
-                Color = TooltipPalette.ShadowColor,
-            },
-            Children =
-            {
-                new TextView
-                {
-                    Text = text,
-                    TextColor = TooltipPalette.Text,
-                    FontSize = 12,
-                    VerticalTextAlignment = TextAlignment.Center,
-                },
-            },
+            Children = { label },
+        };
+        box.BindThemedBackgroundColor(s => s.Tooltip.Background);
+        box.BindThemedBorderColor(s => BorderColorStyle.All(s.Tooltip.Border));
+        box.BindThemed(s => box.BoxShadow = new BoxShadowStyle
+        {
+            OffsetX = 0f,
+            OffsetY = -4f,
+            Blur = 16f,
+            Spread = 0f,
+            Color = s.Tooltip.Shadow,
         });
+        AddChildToSelf(box);
     }
 
     protected override void OnLayoutSelf()

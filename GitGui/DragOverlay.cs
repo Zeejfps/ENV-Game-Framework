@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 
 namespace GitGui;
 
@@ -13,9 +14,9 @@ public sealed class DragOverlay : MultiChildView
         ZIndex = 900;
         _indicator = new RectView
         {
-            BackgroundColor = DialogPalette.ButtonBorderHover,
             BorderRadius = BorderRadiusStyle.All(1),
         };
+        _indicator.BindThemedBackgroundColor(s => s.DragOverlay.IndicatorColor);
     }
 
     protected override void OnAttachedToContext(Context context)

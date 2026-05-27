@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 
@@ -21,6 +22,14 @@ internal static class DialogFrame
 
     public static FlexRowView Header(string title, Action onClose)
     {
+        var titleText = new TextView
+        {
+            Text = title,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        titleText.BindThemedTextColor(s => s.DialogFrame.TitleText);
+
         return new FlexRowView
         {
             CrossAxisAlignment = CrossAxisAlignment.Center,
@@ -28,27 +37,18 @@ internal static class DialogFrame
             Children =
             {
                 new MultiChildView { PreferredWidth = CloseButtonSize },
-                new FlexItem
-                {
-                    Grow = 1,
-                    Child = new TextView
-                    {
-                        Text = title,
-                        TextColor = DialogPalette.TitleText,
-                        HorizontalTextAlignment = TextAlignment.Center,
-                        VerticalTextAlignment = TextAlignment.Center,
-                    },
-                },
+                new FlexItem { Grow = 1, Child = titleText },
                 new DialogCloseButton(onClose),
             },
         };
     }
 
-    public static RectView Separator() => new()
+    public static RectView Separator()
     {
-        BackgroundColor = DialogPalette.Separator,
-        PreferredHeight = 1,
-    };
+        var view = new RectView { PreferredHeight = 1 };
+        view.BindThemedBackgroundColor(s => s.DialogFrame.HeaderSeparator);
+        return view;
+    }
 
     public static FlexRowView ButtonsRow(MultiChildView cancel, MultiChildView primary, float gap = DefaultButtonsGap) => new()
     {
@@ -61,40 +61,57 @@ internal static class DialogFrame
         },
     };
 
-    public static TextView ErrorView() => new()
+    public static TextView ErrorView()
     {
-        Text = string.Empty,
-        TextColor = 0xFFE06C75,
-        TextWrap = TextWrap.Wrap,
-    };
+        var view = new TextView
+        {
+            Text = string.Empty,
+            TextWrap = TextWrap.Wrap,
+        };
+        view.BindThemedTextColor(s => s.DialogFrame.ErrorText);
+        return view;
+    }
 
-    public static TextInputView TextInput() => new()
+    public static TextInputView TextInput()
     {
-        BackgroundColor = DialogPalette.ButtonNormal,
-        TextColor = DialogPalette.TitleText,
-        CaretColor = DialogPalette.TitleText,
-        SelectionRectColor = DialogPalette.RowActive,
-        TextWrap = TextWrap.NoWrap,
-    };
+        var view = new TextInputView { TextWrap = TextWrap.NoWrap };
+        view.BindThemed(s =>
+        {
+            view.BackgroundColor = s.TextInput.Background;
+            view.TextColor = s.TextInput.Text;
+            view.CaretColor = s.TextInput.Caret;
+            view.SelectionRectColor = s.TextInput.Selection;
+            view.PlaceholderTextColor = s.TextInput.PlaceholderText;
+        });
+        return view;
+    }
 
-    public static RectView WrapInput(TextInputView input) => new()
+    public static RectView WrapInput(TextInputView input)
     {
-        BackgroundColor = DialogPalette.ButtonNormal,
-        BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
-        BorderSize = BorderSizeStyle.All(1),
-        BorderRadius = BorderRadiusStyle.All(3),
-        Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
-        PreferredHeight = 28,
-        Children = { input },
-    };
+        var view = new RectView
+        {
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(3),
+            Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
+            PreferredHeight = 28,
+            Children = { input },
+        };
+        view.BindThemedBackgroundColor(s => s.TextInput.Background);
+        view.BindThemedBorderColor(s => BorderColorStyle.All(s.TextInput.Border));
+        return view;
+    }
 
-    private static RectView Wrap(View child) => new()
+    private static RectView Wrap(View child)
     {
-        BackgroundColor = DialogPalette.Background,
-        BorderColor = BorderColorStyle.All(DialogPalette.Border),
-        BorderSize = BorderSizeStyle.All(1),
-        BorderRadius = BorderRadiusStyle.All(DefaultBorderRadius),
-        Padding = PaddingStyle.All(DefaultPadding),
-        Children = { child },
-    };
+        var view = new RectView
+        {
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(DefaultBorderRadius),
+            Padding = PaddingStyle.All(DefaultPadding),
+            Children = { child },
+        };
+        view.BindThemedBackgroundColor(s => s.DialogFrame.Background);
+        view.BindThemedBorderColor(s => BorderColorStyle.All(s.DialogFrame.Border));
+        return view;
+    }
 }

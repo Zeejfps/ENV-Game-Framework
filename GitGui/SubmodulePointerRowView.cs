@@ -1,5 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.KeyboardModule;
@@ -21,11 +22,8 @@ public sealed class SubmodulePointerRowView : MultiChildView
             ? file.Path
             : $"{file.Path}  ·  {ShortSha(pc.FromSha)}..{ShortSha(pc.ToSha)}{RangeSummary(pc)}";
 
-        var pathView = new TextView
-        {
-            Text = text,
-            TextColor = FileChangesPalette.RowText,
-        };
+        var pathView = new TextView { Text = text };
+        pathView.BindThemedTextColor(s => s.FileChangeRow.RowText);
 
         AddChildToSelf(new FlexRowView
         {

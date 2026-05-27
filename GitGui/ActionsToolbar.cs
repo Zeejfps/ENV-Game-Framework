@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Observable;
 
@@ -17,19 +18,21 @@ internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewM
     private readonly ActionButton _stashButton;
     private readonly ActionButton _openFolderButton;
     private readonly ActionButton _openTerminalButton;
+    private readonly ActionButton _toggleThemeButton;
     private readonly ErrorBarView _errorBar;
 
     public ActionsToolbar()
     {
         PreferredHeight = ToolbarHeight;
 
-        _pushButton = new ActionButton(LucideIcons.Push, "Push", badgeColor: CommitsPalette.AheadColor);
-        _pullButton = new ActionButton(LucideIcons.Pull, "Pull", badgeColor: CommitsPalette.BehindColor);
+        _pushButton = new ActionButton(LucideIcons.Push, "Push", badgeColor: s => s.ActionsToolbar.BadgeAhead);
+        _pullButton = new ActionButton(LucideIcons.Pull, "Pull", badgeColor: s => s.ActionsToolbar.BadgeBehind);
         _fetchButton = new ActionButton(LucideIcons.Fetch, "Fetch");
         _branchButton = new ActionButton(LucideIcons.Branch, "Branch");
         _stashButton = new ActionButton(LucideIcons.Stash, "Stash");
         _openFolderButton = new ActionButton(LucideIcons.FolderOpen, tooltip: "Open in file explorer");
         _openTerminalButton = new ActionButton(LucideIcons.SquareTerminal, tooltip: "Open in terminal");
+        _toggleThemeButton = new ActionButton(LucideIcons.Sun, tooltip: "Toggle theme");
 
         _errorBar = new ErrorBarView(verticalPadding: 2);
         var contentRow = new FlexRowView
@@ -49,14 +52,13 @@ internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewM
                 new FlexItem { Grow = 1, Child = new MultiChildView() },
                 _openFolderButton,
                 _openTerminalButton,
+                _toggleThemeButton,
                 _errorBar,
             }
         };
 
-        AddChildToSelf(new RectView
+        var bar = new RectView
         {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = new BorderColorStyle { Bottom = DialogPalette.Border },
             BorderSize = new BorderSizeStyle { Bottom = 1 },
             Padding = new PaddingStyle
             {
@@ -64,7 +66,10 @@ internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewM
                 Right = HorizontalPadding,
             },
             Children = { contentRow },
-        });
+        };
+        bar.BindThemedBackgroundColor(s => s.ActionsToolbar.Background);
+        bar.BindThemedBorderColor(s => new BorderColorStyle { Bottom = s.ActionsToolbar.BorderBottom });
+        AddChildToSelf(bar);
 
         this.UseViewModel(this);
     }
@@ -78,6 +83,8 @@ internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewM
         _stashButton.BindCommand(vm.Stash);
         _openFolderButton.BindCommand(vm.OpenFolder);
         _openTerminalButton.BindCommand(vm.OpenTerminal);
+        _toggleThemeButton.BindCommand(vm.ToggleTheme);
+        _toggleThemeButton.Icon.BindTo(vm.Theme, m => m == ThemeMode.Dark ? LucideIcons.Sun : LucideIcons.Moon);
 
         _pushButton.Badge.BindTo(vm.PushBadge);
         _pullButton.Badge.BindTo(vm.PullBadge);

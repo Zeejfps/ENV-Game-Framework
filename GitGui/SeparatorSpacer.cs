@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 
 namespace GitGui;
@@ -18,19 +19,19 @@ internal sealed class SeparatorSpacer : MultiChildView
     public SeparatorSpacer()
     {
         PreferredWidth = SeparatorWidth + SeparatorBreathingRoom * 2;
+
+        var line = new RectView
+        {
+            PreferredWidth = SeparatorWidth,
+            PreferredHeight = SeparatorHeight,
+        };
+        line.BindThemedBackgroundColor(s => s.SeparatorSpacer.Line);
+
         AddChildToSelf(new FlexRowView
         {
             CrossAxisAlignment = CrossAxisAlignment.Center,
             MainAxisAlignment = MainAxisAlignment.Center,
-            Children =
-            {
-                new RectView
-                {
-                    BackgroundColor = DialogPalette.Border,
-                    PreferredWidth = SeparatorWidth,
-                    PreferredHeight = SeparatorHeight,
-                },
-            },
+            Children = { line },
         });
     }
 }

@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -33,13 +34,12 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
         var prompt = new TextView
         {
             Text = $"Remove worktree '{worktree.DisplayName}'?",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         _pathTextStyle = new TextStyle
         {
-            TextColor = DialogPalette.BodyText,
             FontFamily = DiffOptions.MonoFontFamily,
             FontSize = 12f,
             TextWrap = TextWrap.Wrap,
@@ -47,15 +47,18 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
         _pathTextView = new TextView
         {
             Text = worktree.Path,
-            TextColor = DialogPalette.BodyText,
             FontFamily = DiffOptions.MonoFontFamily,
             FontSize = 12f,
             TextWrap = TextWrap.Wrap,
         };
+        _pathTextView.BindThemed(s =>
+        {
+            _pathTextView.TextColor = s.DialogBody.BodyText;
+            _pathTextStyle.TextColor = s.DialogBody.BodyText;
+        });
+
         var pathBox = new RectView
         {
-            BackgroundColor = Theme.BgDeep,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(4),
             Padding = new PaddingStyle
@@ -67,13 +70,15 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
             },
             Children = { _pathTextView },
         };
+        pathBox.BindThemedBackgroundColor(s => s.DialogFrame.InsetBackground);
+        pathBox.BindThemedBorderColor(s => BorderColorStyle.All(s.DialogFrame.Border));
 
         var hint = new TextView
         {
             Text = "git refuses if the worktree has uncommitted changes. Check the box to remove anyway.",
-            TextColor = DialogPalette.RowTextMissing,
             TextWrap = TextWrap.Wrap,
         };
+        hint.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
 
         _forceCheckbox = new CheckboxView("Remove even if dirty")
         {

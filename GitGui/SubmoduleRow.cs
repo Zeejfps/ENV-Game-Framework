@@ -17,8 +17,6 @@ public sealed class SubmoduleRow : MultiChildView
 
         var isHovered = new State<bool>(false);
 
-        uint RowTextColor() => RowChrome.RowTextColor(registry, submodule);
-
         var icon = new TextView
         {
             Text = LucideIcons.Package,
@@ -32,9 +30,9 @@ public sealed class SubmoduleRow : MultiChildView
         // embedded at a pinned commit," visually distinct from the FolderGit2 used for
         // primary repos. Tint matches the StatusSubmodule badge used by pointer-change
         // rows in CommitDetails so the visual language stays consistent across the app.
-        icon.BindTextColor(() => submodule.IsMissing
-            ? DialogPalette.RowTextMissing
-            : DialogPalette.IconAccentSubmodule);
+        icon.BindThemedTextColor(s => submodule.IsMissing
+            ? s.RepoBarRow.TextMissing
+            : s.RepoBarRow.IconAccentSubmodule);
 
         var label = new TextView
         {
@@ -43,7 +41,7 @@ public sealed class SubmoduleRow : MultiChildView
             VerticalTextAlignment = TextAlignment.Center,
             TextOverflow = TextOverflow.Ellipsis,
         };
-        label.BindTextColor(RowTextColor);
+        RowChrome.BindRowText(label, registry, submodule);
 
         var leftPad = RepoBar.RowPaddingLeft
                       + RepoBar.RowChevronWidth

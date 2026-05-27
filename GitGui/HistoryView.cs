@@ -1,5 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Tests;
 
 namespace GitGui;
@@ -22,6 +23,8 @@ public sealed class HistoryView : MultiChildView
     private float _detailsWidth = DefaultDetailsWidth;
     private bool _dividerHovered;
 
+    private HistorySplitterStyles _splitterStyles = ThemeStyles.Dark.HistorySplitter;
+
     public HistoryView()
     {
         _commits = new CommitsPanelView();
@@ -29,6 +32,12 @@ public sealed class HistoryView : MultiChildView
         AddChildToSelf(_commits);
         AddChildToSelf(_details);
         this.UseController(_ => new HistoryViewController(this));
+
+        this.BindThemed(s =>
+        {
+            _splitterStyles = s.HistorySplitter;
+            SetDirty();
+        });
     }
 
     protected override void OnLayoutChildren()
@@ -65,13 +74,13 @@ public sealed class HistoryView : MultiChildView
         c.DrawRect(new DrawRectInputs
         {
             Position = new RectF(dividerX - DividerHitWidth * 0.5f, pos.Bottom, DividerHitWidth, pos.Height),
-            Style = new RectStyle { BackgroundColor = CommitsPalette.DividerHoverBg },
+            Style = new RectStyle { BackgroundColor = _splitterStyles.HoverFill },
             ZIndex = z + 999,
         });
         c.DrawRect(new DrawRectInputs
         {
             Position = new RectF(dividerX - DividerThickness * 0.5f, pos.Bottom, DividerThickness, pos.Height),
-            Style = new RectStyle { BackgroundColor = CommitsPalette.DividerHoverLine },
+            Style = new RectStyle { BackgroundColor = _splitterStyles.HoverLine },
             ZIndex = z + 1000,
         });
     }

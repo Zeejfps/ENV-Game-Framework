@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -79,17 +80,19 @@ public sealed class AddSubmoduleDialog : MultiChildView, IAddSubmoduleView
             ctx.Require<IMessageBus>()));
     }
 
-    private static TextView Label(string text) => new()
+    private static TextView Label(string text)
     {
-        Text = text,
-        TextColor = DialogPalette.SectionHeaderText,
-    };
+        var view = new TextView { Text = text };
+        view.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
+        return view;
+    }
 
-    private static TextView Hint(string text) => new()
+    private static TextView Hint(string text)
     {
-        Text = text,
-        TextColor = DialogPalette.RowTextMissing,
-    };
+        var view = new TextView { Text = text };
+        view.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
+        return view;
+    }
 
     private void RaiseAddRequested() => AddRequested?.Invoke();
     private void RaiseInputsChanged() => InputsChanged?.Invoke();

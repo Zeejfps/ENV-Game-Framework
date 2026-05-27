@@ -13,8 +13,6 @@ public sealed class RepoRow : MultiChildView
 
         var isHovered = new State<bool>(false);
 
-        uint RowTextColor() => RowChrome.RowTextColor(registry, repo);
-
         // Chevron slot is always present so primaries with and without worktrees share
         // alignment. The slot becomes interactive (and visible) only when children exist.
         var chevronSlot = new WorktreeChevron(repo, registry);
@@ -28,7 +26,7 @@ public sealed class RepoRow : MultiChildView
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        icon.BindTextColor(RowTextColor);
+        RowChrome.BindRowText(icon, registry, repo);
 
         var label = new TextView
         {
@@ -37,7 +35,7 @@ public sealed class RepoRow : MultiChildView
             VerticalTextAlignment = TextAlignment.Center,
             TextOverflow = TextOverflow.Ellipsis,
         };
-        label.BindTextColor(RowTextColor);
+        RowChrome.BindRowText(label, registry, repo);
 
         var background = new RectView
         {

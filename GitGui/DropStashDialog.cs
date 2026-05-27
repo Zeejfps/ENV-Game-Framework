@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Observable;
 
@@ -27,9 +28,9 @@ public sealed class DropStashDialog : MultiChildView
         var prompt = new TextView
         {
             Text = $"Applied: {subject}\n\nDrop this stash now? This cannot be undone.",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         _errorView = DialogFrame.ErrorView();
 

@@ -69,10 +69,10 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
 
         _placeholder = new TextView
         {
-            TextColor = CommitsPalette.Placeholder,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        _placeholder.BindThemedTextColor(s => s.LocalChangesContent.PlaceholderText);
 
         _submoduleSection = new LocalChangesSubmoduleSection(
             onStage: path => _vm?.StageSubmodulePointer(path),
@@ -82,8 +82,8 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         
         var splitterHovered = new State<bool>(false);
         var splitter = new RectView();
-        splitter.BindBackgroundColor(splitterHovered,
-            h => h ? CommitsPalette.DividerHoverBg : CommitsPalette.Border);
+        splitter.BindThemedBackgroundColor(s =>
+            splitterHovered.Value ? s.LocalChangesContent.SplitterHover : s.LocalChangesContent.SplitterIdle);
         
         _topHalf = new BorderLayoutView
         {
@@ -99,9 +99,9 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
 
         _centerContainer = new RectView
         {
-            BackgroundColor = CommitsPalette.Background,
             Children = { _snapshotContainer },
         };
+        _centerContainer.BindThemedBackgroundColor(s => s.LocalChangesContent.ContentBackground);
 
         AddChildToSelf(_centerContainer);
 
@@ -158,7 +158,8 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
 
     private View BuildContentRow()
     {
-        var divider = new RectView { PreferredWidth = 1, BackgroundColor = CommitsPalette.Border };
+        var divider = new RectView { PreferredWidth = 1 };
+        divider.BindThemedBackgroundColor(s => s.LocalChangesContent.ColumnDivider);
         return new TransferListRow(_unstagedPanel, divider, _stagedPanel);
     }
 

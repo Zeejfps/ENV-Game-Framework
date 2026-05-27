@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -28,17 +29,11 @@ public sealed class RenameBranchDialog : MultiChildView, IRenameBranchView
         _onClose = onClose;
         _currentName = currentName;
 
-        var subtitle = new TextView
-        {
-            Text = $"Renaming '{currentName}'",
-            TextColor = DialogPalette.BodyText,
-        };
+        var subtitle = new TextView { Text = $"Renaming '{currentName}'" };
+        subtitle.BindThemedTextColor(s => s.DialogBody.BodyText);
 
-        var nameLabel = new TextView
-        {
-            Text = "New name",
-            TextColor = DialogPalette.SectionHeaderText,
-        };
+        var nameLabel = new TextView { Text = "New name" };
+        nameLabel.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
 
         _nameInput = DialogFrame.TextInput();
         var nameBox = DialogFrame.WrapInput(_nameInput);

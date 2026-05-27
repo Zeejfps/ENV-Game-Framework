@@ -53,6 +53,17 @@ public static class BindingExtensions
         }
 
         /// <summary>
+        /// Binds <see cref="TextView.TextColor"/> to a value selected from the active
+        /// <see cref="IThemeService{TStyles}"/> styles. Theme swaps and any observable reads
+        /// inside <paramref name="select"/> are auto-tracked.
+        /// </summary>
+        public void BindThemedTextColor<TStyles>(Func<TStyles, uint> select)
+        {
+            view.Behaviors.Add(new ThemedDerivedPropertyBindingBehavior<TextView, TStyles, uint>(
+                view, select, (v, c) => v.TextColor = c));
+        }
+
+        /// <summary>
         /// Binds <see cref="TextView.Rotation"/> to the source observable.
         /// </summary>
         public void BindRotation(IReadable<float> source)
@@ -91,6 +102,18 @@ public static class BindingExtensions
             view.Behaviors.Add(new DerivedPropertyBindingBehavior<View, bool>(
                 view, compute, (v, b) => v.IsVisible = b));
         }
+
+        /// <summary>
+        /// Subscribes to the active <see cref="IThemeService{TStyles}"/> for painted views
+        /// that can't express their colors as discrete property bindings. The callback fires
+        /// once when the view attaches to a context and again on every theme swap; typical
+        /// use is to mutate cached <c>TextStyle</c>/colour fields and call <c>SetDirty()</c>.
+        /// </summary>
+        public void BindThemed<TStyles>(Action<TStyles> onChange)
+        {
+            view.Behaviors.Add(new ThemedDerivedPropertyBindingBehavior<View, TStyles, TStyles>(
+                view, s => s, (v, s) => onChange(s)));
+        }
     }
 
     extension(RectView view)
@@ -115,6 +138,17 @@ public static class BindingExtensions
         }
 
         /// <summary>
+        /// Binds <see cref="RectView.BackgroundColor"/> to a value selected from the active
+        /// <see cref="IThemeService{TStyles}"/> styles. Theme swaps and any observable reads
+        /// inside <paramref name="select"/> are auto-tracked.
+        /// </summary>
+        public void BindThemedBackgroundColor<TStyles>(Func<TStyles, uint> select)
+        {
+            view.Behaviors.Add(new ThemedDerivedPropertyBindingBehavior<RectView, TStyles, uint>(
+                view, select, (v, c) => v.BackgroundColor = c));
+        }
+
+        /// <summary>
         /// Binds <see cref="RectView.BorderColor"/> to the source observable.
         /// </summary>
         public void BindBorderColor<T>(IReadable<T> source, Func<T, BorderColorStyle> project)
@@ -131,6 +165,17 @@ public static class BindingExtensions
         {
             view.Behaviors.Add(new DerivedPropertyBindingBehavior<RectView, BorderColorStyle>(
                 view, compute, (v, c) => v.BorderColor = c));
+        }
+
+        /// <summary>
+        /// Binds <see cref="RectView.BorderColor"/> to a value selected from the active
+        /// <see cref="IThemeService{TStyles}"/> styles. Theme swaps and any observable reads
+        /// inside <paramref name="select"/> are auto-tracked.
+        /// </summary>
+        public void BindThemedBorderColor<TStyles>(Func<TStyles, BorderColorStyle> select)
+        {
+            view.Behaviors.Add(new ThemedDerivedPropertyBindingBehavior<RectView, TStyles, BorderColorStyle>(
+                view, select, (v, c) => v.BorderColor = c));
         }
     }
 

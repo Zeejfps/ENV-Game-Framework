@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 
@@ -55,26 +56,27 @@ internal sealed class GrowingDescriptionField : MultiChildView
 
         _input = new TextInputView
         {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            TextColor = DialogPalette.TitleText,
-            CaretColor = DialogPalette.TitleText,
-            SelectionRectColor = DialogPalette.RowActive,
             TextVerticalAlignment = TextAlignment.Start,
             TextWrap = TextWrap.Wrap,
-            PlaceholderTextColor = DialogPalette.RowTextMissing,
         };
+        _input.BindThemed(s =>
+        {
+            _input.BackgroundColor = s.TextInput.Background;
+            _input.TextColor = s.TextInput.Text;
+            _input.CaretColor = s.TextInput.Caret;
+            _input.SelectionRectColor = s.TextInput.Selection;
+            _input.PlaceholderTextColor = s.TextInput.PlaceholderText;
+        });
         _input.UseController(_ => new TextInputViewKbmController(_input) { IsMultiLine = true });
 
         _scrollPane = new ScrollPane();
         _scrollPane.Children.Add(_input);
         _scrollPane.UseController(_ => new ScrollPaneWheelController(_scrollPane));
 
-        _scrollBar = ScrollBarStyles.CreateVertical();
+        _scrollBar = ScrollBars.CreateVertical();
 
-        AddChildToSelf(new RectView
+        var box = new RectView
         {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
             BorderSize = BorderSizeStyle.All((int)BoxBorderThickness),
             BorderRadius = BorderRadiusStyle.All(3),
             Padding = new PaddingStyle
@@ -92,7 +94,10 @@ internal sealed class GrowingDescriptionField : MultiChildView
                     East = _scrollBar,
                 },
             },
-        });
+        };
+        box.BindThemedBackgroundColor(s => s.TextInput.Background);
+        box.BindThemedBorderColor(s => BorderColorStyle.All(s.TextInput.Border));
+        AddChildToSelf(box);
 
         this.UseController(_ => new ScrollSyncController(_scrollPane, _scrollBar));
 

@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 
 namespace GitGui;
@@ -7,8 +8,6 @@ internal sealed class ModeSwitcherView : MultiChildView, IBind<ModeSwitcherViewM
 {
     private const float PillHeight = 28f;
     private const float PillCornerRadius = 5f;
-
-    private const uint PillBorder = DialogPalette.ButtonBorder;
 
     private readonly SegmentView _history;
     private readonly SegmentView _localChanges;
@@ -25,16 +24,12 @@ internal sealed class ModeSwitcherView : MultiChildView, IBind<ModeSwitcherViewM
             "Changes",
             new BorderRadiusStyle { TopLeft = innerRadius, BottomLeft = innerRadius });
 
-        var separator = new RectView
-        {
-            BackgroundColor = PillBorder,
-            PreferredWidth = 1f,
-        };
+        var separator = new RectView { PreferredWidth = 1f };
+        separator.BindThemedBackgroundColor(s => s.ModeSwitcher.SegmentSeparator);
 
-        AddChildToSelf(new RectView
+        var pill = new RectView
         {
             BackgroundColor = 0x00000000u,
-            BorderColor = BorderColorStyle.All(PillBorder),
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(PillCornerRadius),
             Children =
@@ -44,7 +39,9 @@ internal sealed class ModeSwitcherView : MultiChildView, IBind<ModeSwitcherViewM
                     Children = { _localChanges, separator, _history },
                 },
             },
-        });
+        };
+        pill.BindThemedBorderColor(s => BorderColorStyle.All(s.ModeSwitcher.PillBorder));
+        AddChildToSelf(pill);
 
         this.UseViewModel(this);
     }

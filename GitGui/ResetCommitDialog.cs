@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -43,16 +44,16 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
             Text = branchName != null
                 ? $"Move the '{branchName}' branch HEAD to the selected revision"
                 : "Move HEAD to the selected revision",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        subtitle.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         var dirtyHint = new TextView
         {
             Text = BuildDirtyHint(stagedCount, unstagedCount),
-            TextColor = DialogPalette.RowTextMissing,
             TextWrap = TextWrap.Wrap,
         };
+        dirtyHint.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
 
         var branchRow = BuildLabeledRow("Branch:", BuildBranchValue(branchName));
         var moveToRow = BuildLabeledRow("Move to:", BuildCommitValue(shortSha, summary));
@@ -122,9 +123,9 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
         var labelText = new TextView
         {
             Text = label,
-            TextColor = DialogPalette.SectionHeaderText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        labelText.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
         var labelColumn = new FlexRowView
         {
             PreferredWidth = 90,
@@ -152,16 +153,17 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
             Text = LucideIcons.Branch,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 14,
-            TextColor = DialogPalette.BodyText,
             VerticalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
         };
+        icon.BindThemedTextColor(s => s.DialogBody.BodyText);
+
         var label = new TextView
         {
             Text = branchName ?? "(detached HEAD)",
-            TextColor = DialogPalette.TitleText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        label.BindThemedTextColor(s => s.DialogFrame.TitleText);
         return new FlexRowView
         {
             Gap = 6,
@@ -176,24 +178,26 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
         {
             Text = "●",
             FontSize = 10,
-            TextColor = DialogPalette.BodyText,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
         };
+        dot.BindThemedTextColor(s => s.DialogBody.BodyText);
+
         var shaLabel = new TextView
         {
             Text = shortSha,
-            TextColor = DialogPalette.TitleText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        shaLabel.BindThemedTextColor(s => s.DialogFrame.TitleText);
+
         var summaryLabel = new TextView
         {
             Text = summary,
-            TextColor = DialogPalette.BodyText,
             VerticalTextAlignment = TextAlignment.Center,
             TextWrap = TextWrap.NoWrap,
         };
+        summaryLabel.BindThemedTextColor(s => s.DialogBody.BodyText);
         var summaryClip = new ClippingView
         {
             Children = { summaryLabel },
@@ -258,26 +262,28 @@ internal sealed class ResetModeDropdown : HoverableButton
         _labelView = new TextView
         {
             Text = LookupLabel(ResetMode.Mixed),
-            TextColor = DialogPalette.TitleText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        _labelView.BindThemedTextColor(s => s.DialogFrame.TitleText);
+
         _detailView = new TextView
         {
             Text = LookupDetail(ResetMode.Mixed),
-            TextColor = DialogPalette.RowTextMissing,
             VerticalTextAlignment = TextAlignment.Center,
             TextWrap = TextWrap.NoWrap,
         };
+        _detailView.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
+
         var chevron = new TextView
         {
             Text = LucideIcons.ChevronDown,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 12,
-            TextColor = DialogPalette.RowText,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
         };
+        chevron.BindThemedTextColor(s => s.DialogBody.RowText);
 
         // Wrapping the detail in a ClippingView keeps long descriptions from overflowing
         // past the chevron — the framework's TextView doesn't clip on its own.
@@ -306,7 +312,7 @@ internal sealed class ResetModeDropdown : HoverableButton
             Padding = new PaddingStyle { Left = 8, Right = 8, Top = 4, Bottom = 4 },
             Children = { row },
         };
-        DialogPalette.BindBorderedButtonChrome(background, IsHovered);
+        BorderedButtonChrome.Bind(background, IsHovered);
         SetBackground(background);
 
         SelectedState.Subscribe(s =>
