@@ -25,7 +25,11 @@ public sealed record ThemeStyles(
     RepoBarStyles RepoBar,
     DiffViewStyles DiffView,
     DiffContentStyles DiffContent,
-    DiffHunkButtonStyles DiffHunkButton)
+    DiffHunkButtonStyles DiffHunkButton,
+    ActionsToolbarStyles ActionsToolbar,
+    SeparatorSpacerStyles SeparatorSpacer,
+    SidebarSplitterStyles SidebarSplitter,
+    HistorySplitterStyles HistorySplitter)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -181,7 +185,20 @@ public sealed record ThemeStyles(
             BackgroundIdle: 0xCC2C313Au,
             BackgroundHover: 0xFF3B4150u,
             Border: 0xFF4A5060u,
-            Text: 0xFFE6E8ECu));
+            Text: 0xFFE6E8ECu),
+        ActionsToolbar: new ActionsToolbarStyles(
+            Background: 0xFF1E1F22u,
+            BorderBottom: 0xFF313338u,
+            BadgeAhead: 0xFF9DD17Bu,
+            BadgeBehind: 0xFFE6A85Cu),
+        SeparatorSpacer: new SeparatorSpacerStyles(
+            Line: 0xFF313338u),
+        SidebarSplitter: new SidebarSplitterStyles(
+            Idle: 0xFF313338u,
+            Hover: 0xFF4A5680u),
+        HistorySplitter: new HistorySplitterStyles(
+            HoverFill: 0xFF4A5680u,
+            HoverLine: 0xFF7A8DC8u));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -337,7 +354,20 @@ public sealed record ThemeStyles(
             BackgroundIdle: 0xCCFFFFFFu,
             BackgroundHover: 0xFFE5E7EBu,
             Border: 0xFFD1D5DBu,
-            Text: 0xFF111827u));
+            Text: 0xFF111827u),
+        ActionsToolbar: new ActionsToolbarStyles(
+            Background: 0xFFFFFFFFu,
+            BorderBottom: 0xFFE5E7EBu,
+            BadgeAhead: 0xFF16A34Au,
+            BadgeBehind: 0xFFEA580Cu),
+        SeparatorSpacer: new SeparatorSpacerStyles(
+            Line: 0xFFE5E7EBu),
+        SidebarSplitter: new SidebarSplitterStyles(
+            Idle: 0xFFE5E7EBu,
+            Hover: 0xFFCBD5E1u),
+        HistorySplitter: new HistorySplitterStyles(
+            HoverFill: 0xFFCBD5E1u,
+            HoverLine: 0xFF94A3B8u));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -504,6 +534,23 @@ public sealed record DiffHunkButtonStyles(
     uint BackgroundHover,
     uint Border,
     uint Text);
+
+public sealed record ActionsToolbarStyles(
+    uint Background,
+    uint BorderBottom,
+    uint BadgeAhead,
+    uint BadgeBehind);
+
+public sealed record SeparatorSpacerStyles(
+    uint Line);
+
+public sealed record SidebarSplitterStyles(
+    uint Idle,
+    uint Hover);
+
+public sealed record HistorySplitterStyles(
+    uint HoverFill,
+    uint HoverLine);
 
 public sealed record FileChangeRowStyles(
     uint RowText,

@@ -7,7 +7,7 @@ namespace GitGui;
 
 public sealed class ActionButton : HoverableButton
 {
-    private readonly uint? _badgeColor;
+    private readonly Func<ThemeStyles, uint>? _badgeColorSelect;
     private readonly uint? _iconColor;
     private readonly uint? _backgroundColor;
 
@@ -16,7 +16,7 @@ public sealed class ActionButton : HoverableButton
     public State<float> IconRotation { get; } = new(0f);
     public State<int?> Badge { get; } = new(null);
 
-    public ActionButton(string icon, string? label = null, string? tooltip = null, uint? badgeColor = null, uint? iconColor = null, uint? backgroundColor = null)
+    public ActionButton(string icon, string? label = null, string? tooltip = null, Func<ThemeStyles, uint>? badgeColor = null, uint? iconColor = null, uint? backgroundColor = null)
         : base(null, tooltip)
     {
         Icon = new State<string>(icon);
@@ -24,6 +24,7 @@ public sealed class ActionButton : HoverableButton
 
         _backgroundColor = backgroundColor;
         _iconColor = iconColor ?? (backgroundColor != null ? 0xFFFFFFFFu : (uint?)null);
+        _badgeColorSelect = badgeColor;
         PreferredHeight = 28;
 
         var iconView = new TextView
@@ -38,14 +39,13 @@ public sealed class ActionButton : HoverableButton
 
         var countIconGroup = new RowView { Gap = 0, Children = { iconView } };
 
-        if (badgeColor is uint color)
+        if (badgeColor != null)
         {
-            _badgeColor = color;
             var badgeText = new TextView
             {
-                TextColor = color,
                 VerticalTextAlignment = TextAlignment.Center,
             };
+            badgeText.BindThemedTextColor(badgeColor);
             badgeText.BindText(Badge, n => n?.ToString() ?? string.Empty);
             badgeText.BindIsVisible(Badge, n => n is > 0);
             countIconGroup.Children.Add(badgeText);
@@ -95,7 +95,7 @@ public sealed class ActionButton : HoverableButton
     private uint SelectForeground(ThemeStyles s)
     {
         if (!IsEnabled) return s.ActionButton.TextDisabled;
-        if (Badge.Value is > 0 && _badgeColor is uint c) return c;
+        if (Badge.Value is > 0 && _badgeColorSelect != null) return _badgeColorSelect(s);
         if (_iconColor is uint ic) return ic;
         return IsHovered ? s.ActionButton.TextHover : s.ActionButton.TextIdle;
     }

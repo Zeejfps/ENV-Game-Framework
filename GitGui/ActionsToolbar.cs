@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Observable;
 
@@ -24,8 +25,8 @@ internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewM
     {
         PreferredHeight = ToolbarHeight;
 
-        _pushButton = new ActionButton(LucideIcons.Push, "Push", badgeColor: CommitsPalette.AheadColor);
-        _pullButton = new ActionButton(LucideIcons.Pull, "Pull", badgeColor: CommitsPalette.BehindColor);
+        _pushButton = new ActionButton(LucideIcons.Push, "Push", badgeColor: s => s.ActionsToolbar.BadgeAhead);
+        _pullButton = new ActionButton(LucideIcons.Pull, "Pull", badgeColor: s => s.ActionsToolbar.BadgeBehind);
         _fetchButton = new ActionButton(LucideIcons.Fetch, "Fetch");
         _branchButton = new ActionButton(LucideIcons.Branch, "Branch");
         _stashButton = new ActionButton(LucideIcons.Stash, "Stash");
@@ -56,10 +57,8 @@ internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewM
             }
         };
 
-        AddChildToSelf(new RectView
+        var bar = new RectView
         {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = new BorderColorStyle { Bottom = DialogPalette.Border },
             BorderSize = new BorderSizeStyle { Bottom = 1 },
             Padding = new PaddingStyle
             {
@@ -67,7 +66,10 @@ internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewM
                 Right = HorizontalPadding,
             },
             Children = { contentRow },
-        });
+        };
+        bar.BindThemedBackgroundColor(s => s.ActionsToolbar.Background);
+        bar.BindThemedBorderColor(s => new BorderColorStyle { Bottom = s.ActionsToolbar.BorderBottom });
+        AddChildToSelf(bar);
 
         this.UseViewModel(this);
     }
