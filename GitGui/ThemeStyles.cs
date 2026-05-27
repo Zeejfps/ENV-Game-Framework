@@ -7,11 +7,13 @@ public sealed record ThemeStyles(
     FileChangesSectionStyles FileChangesSection,
     FileChangeRowStyles FileChangeRow,
     DialogFrameStyles DialogFrame,
-    DialogTextInputStyles DialogTextInput,
+    TextInputStyles TextInput,
     BorderedButtonStyles BorderedButton,
     DialogIconButtonStyles DialogIconButton,
     ActionButtonStyles ActionButton,
-    CheckboxStyles Checkbox)
+    CheckboxStyles Checkbox,
+    CommitBarStyles CommitBar,
+    ErrorBarStyles ErrorBar)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -54,7 +56,7 @@ public sealed record ThemeStyles(
             TitleText: 0xFFE6E6E6u,
             HeaderSeparator: 0xFF2A2C30u,
             ErrorText: 0xFFE06C75u),
-        DialogTextInput: new DialogTextInputStyles(
+        TextInput: new TextInputStyles(
             Background: 0xFF2B2D31u,
             Border: 0xFF3E4047u,
             Text: 0xFFE6E6E6u,
@@ -82,7 +84,14 @@ public sealed record ThemeStyles(
         Checkbox: new CheckboxStyles(
             TextIdle: 0xFFB5B9C0u,
             TextHover: 0xFFFFFFFFu,
-            TextDisabled: 0x80B5B9C0u));
+            TextDisabled: 0x80B5B9C0u),
+        CommitBar: new CommitBarStyles(
+            Background: 0xFF2A2C30u,
+            TopBorder: 0xFF313338u),
+        ErrorBar: new ErrorBarStyles(
+            Background: 0xFF3D2E14u,
+            Border: 0xFFB89050u,
+            Text: 0xFFE9C77Au));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -125,7 +134,7 @@ public sealed record ThemeStyles(
             TitleText: 0xFF111827u,
             HeaderSeparator: 0xFFE5E7EBu,
             ErrorText: 0xFFDC2626u),
-        DialogTextInput: new DialogTextInputStyles(
+        TextInput: new TextInputStyles(
             Background: 0xFFFFFFFFu,
             Border: 0xFFD1D5DBu,
             Text: 0xFF111827u,
@@ -153,7 +162,14 @@ public sealed record ThemeStyles(
         Checkbox: new CheckboxStyles(
             TextIdle: 0xFF374151u,
             TextHover: 0xFF111827u,
-            TextDisabled: 0x80374151u));
+            TextDisabled: 0x80374151u),
+        CommitBar: new CommitBarStyles(
+            Background: 0xFFF3F4F6u,
+            TopBorder: 0xFFE5E7EBu),
+        ErrorBar: new ErrorBarStyles(
+            Background: 0xFFFEF3C7u,
+            Border: 0xFFD97706u,
+            Text: 0xFF78350Fu));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -188,7 +204,7 @@ public sealed record DialogFrameStyles(
     uint HeaderSeparator,
     uint ErrorText);
 
-public sealed record DialogTextInputStyles(
+public sealed record TextInputStyles(
     uint Background,
     uint Border,
     uint Text,
@@ -221,6 +237,15 @@ public sealed record CheckboxStyles(
     uint TextIdle,
     uint TextHover,
     uint TextDisabled);
+
+public sealed record CommitBarStyles(
+    uint Background,
+    uint TopBorder);
+
+public sealed record ErrorBarStyles(
+    uint Background,
+    uint Border,
+    uint Text);
 
 public sealed record FileChangeRowStyles(
     uint RowText,

@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -28,14 +29,17 @@ internal sealed class CommitBarView : MultiChildView, IBind<LocalChangesViewMode
     {
         _titleInput = new TextInputView
         {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            TextColor = DialogPalette.TitleText,
-            CaretColor = DialogPalette.TitleText,
-            SelectionRectColor = DialogPalette.RowActive,
             TextWrap = TextWrap.NoWrap,
             PlaceholderText = "Commit title",
-            PlaceholderTextColor = DialogPalette.RowTextMissing,
         };
+        _titleInput.BindThemed(s =>
+        {
+            _titleInput.BackgroundColor = s.TextInput.Background;
+            _titleInput.TextColor = s.TextInput.Text;
+            _titleInput.CaretColor = s.TextInput.Caret;
+            _titleInput.SelectionRectColor = s.TextInput.Selection;
+            _titleInput.PlaceholderTextColor = s.TextInput.PlaceholderText;
+        });
         _titleInput.UseController(_ => new TextInputViewKbmController(_titleInput));
 
         // No PreferredHeight — let the box size to one line of text plus padding/border.
@@ -43,13 +47,13 @@ internal sealed class CommitBarView : MultiChildView, IBind<LocalChangesViewMode
         // RectView adds its own padding+border on top.
         var titleBox = new RectView
         {
-            BackgroundColor = DialogPalette.ButtonNormal,
-            BorderColor = BorderColorStyle.All(DialogPalette.ButtonBorder),
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(3),
             Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
             Children = { _titleInput },
         };
+        titleBox.BindThemedBackgroundColor(s => s.TextInput.Background);
+        titleBox.BindThemedBorderColor(s => BorderColorStyle.All(s.TextInput.Border));
 
         _descriptionField = new GrowingDescriptionField(DescriptionMinHeight, DescriptionMaxHeight)
         {
@@ -78,10 +82,8 @@ internal sealed class CommitBarView : MultiChildView, IBind<LocalChangesViewMode
             Children = { _errorBar, titleBox, _descriptionField, buttonRow },
         };
 
-        AddChildToSelf(new RectView
+        var bar = new RectView
         {
-            BackgroundColor = CommitsPalette.HeaderBg,
-            BorderColor = new BorderColorStyle { Top = CommitsPalette.Border },
             BorderSize = new BorderSizeStyle { Top = 1 },
             Padding = new PaddingStyle
             {
@@ -91,7 +93,10 @@ internal sealed class CommitBarView : MultiChildView, IBind<LocalChangesViewMode
                 Bottom = Padding,
             },
             Children = { column },
-        });
+        };
+        bar.BindThemedBackgroundColor(s => s.CommitBar.Background);
+        bar.BindThemedBorderColor(s => new BorderColorStyle { Top = s.CommitBar.TopBorder });
+        AddChildToSelf(bar);
     }
 
     private LocalChangesViewModel? _vm;

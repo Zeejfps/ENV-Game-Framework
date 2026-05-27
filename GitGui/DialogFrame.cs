@@ -77,11 +77,11 @@ internal static class DialogFrame
         var view = new TextInputView { TextWrap = TextWrap.NoWrap };
         view.BindThemed(s =>
         {
-            view.BackgroundColor = s.DialogTextInput.Background;
-            view.TextColor = s.DialogTextInput.Text;
-            view.CaretColor = s.DialogTextInput.Caret;
-            view.SelectionRectColor = s.DialogTextInput.Selection;
-            view.PlaceholderTextColor = s.DialogTextInput.PlaceholderText;
+            view.BackgroundColor = s.TextInput.Background;
+            view.TextColor = s.TextInput.Text;
+            view.CaretColor = s.TextInput.Caret;
+            view.SelectionRectColor = s.TextInput.Selection;
+            view.PlaceholderTextColor = s.TextInput.PlaceholderText;
         });
         return view;
     }
@@ -96,8 +96,8 @@ internal static class DialogFrame
             PreferredHeight = 28,
             Children = { input },
         };
-        view.BindThemedBackgroundColor(s => s.DialogTextInput.Background);
-        view.BindThemedBorderColor(s => BorderColorStyle.All(s.DialogTextInput.Border));
+        view.BindThemedBackgroundColor(s => s.TextInput.Background);
+        view.BindThemedBorderColor(s => BorderColorStyle.All(s.TextInput.Border));
         return view;
     }
 
