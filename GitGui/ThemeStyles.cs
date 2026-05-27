@@ -35,7 +35,8 @@ public sealed record ThemeStyles(
     TooltipStyles Tooltip,
     CommitsTruncationBarStyles CommitsTruncationBar,
     OperationBannerStyles OperationBanner,
-    OperationRowStyles OperationRow)
+    OperationRowStyles OperationRow,
+    CommitDetailsViewStyles CommitDetailsView)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -58,7 +59,9 @@ public sealed record ThemeStyles(
             HeaderBackground: 0xFF222326u,
             HeaderBorder: 0xFF313338u,
             HeaderText: 0xFF96989Du,
-            EmptyPlaceholderText: 0xFF96989Du),
+            EmptyPlaceholderText: 0xFF96989Du,
+            RowHoverBackground: 0xFF2B2D31u,
+            RowSelectedBackground: 0xFF404C8Cu),
         FileChangeRow: new FileChangeRowStyles(
             RowText: 0xFFB5B9C0u,
             RowTextActive: 0xFFFFFFFFu,
@@ -238,7 +241,16 @@ public sealed record ThemeStyles(
             SuccessBar: 0xFF4E8B3Du,
             SuccessText: 0xFF7FB76Au,
             FailureBar: 0xFFB3514Bu,
-            FailureText: 0xFFE9C77Au));
+            FailureText: 0xFFE9C77Au),
+        CommitDetailsView: new CommitDetailsViewStyles(
+            Background: 0xFF1A1B1Eu,
+            BorderLeft: 0xFF313338u,
+            PrimaryText: 0xFFE6E6E6u,
+            SecondaryText: 0xFFB5B9C0u,
+            MutedText: 0xFF7A7C81u,
+            PlaceholderText: 0xFF96989Du,
+            SplitterIdle: 0xFF313338u,
+            SplitterHover: 0xFF4A5680u));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -261,7 +273,9 @@ public sealed record ThemeStyles(
             HeaderBackground: 0xFFF3F4F6u,
             HeaderBorder: 0xFFE5E7EBu,
             HeaderText: 0xFF6B7280u,
-            EmptyPlaceholderText: 0xFF6B7280u),
+            EmptyPlaceholderText: 0xFF6B7280u,
+            RowHoverBackground: 0xFFF3F4F6u,
+            RowSelectedBackground: 0xFFE0E7FFu),
         FileChangeRow: new FileChangeRowStyles(
             RowText: 0xFF374151u,
             RowTextActive: 0xFFFFFFFFu,
@@ -441,7 +455,16 @@ public sealed record ThemeStyles(
             SuccessBar: 0xFF16A34Au,
             SuccessText: 0xFF166534u,
             FailureBar: 0xFFDC2626u,
-            FailureText: 0xFF7C2D12u));
+            FailureText: 0xFF7C2D12u),
+        CommitDetailsView: new CommitDetailsViewStyles(
+            Background: 0xFFF9FAFBu,
+            BorderLeft: 0xFFE5E7EBu,
+            PrimaryText: 0xFF111827u,
+            SecondaryText: 0xFF374151u,
+            MutedText: 0xFF6B7280u,
+            PlaceholderText: 0xFF9CA3AFu,
+            SplitterIdle: 0xFFE5E7EBu,
+            SplitterHover: 0xFFCBD5E1u));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -467,7 +490,9 @@ public sealed record FileChangesSectionStyles(
     uint HeaderBackground,
     uint HeaderBorder,
     uint HeaderText,
-    uint EmptyPlaceholderText);
+    uint EmptyPlaceholderText,
+    uint RowHoverBackground,
+    uint RowSelectedBackground);
 
 public sealed record DialogFrameStyles(
     uint Background,
@@ -665,6 +690,16 @@ public sealed record OperationRowStyles(
     uint SuccessText,
     uint FailureBar,
     uint FailureText);
+
+public sealed record CommitDetailsViewStyles(
+    uint Background,
+    uint BorderLeft,
+    uint PrimaryText,
+    uint SecondaryText,
+    uint MutedText,
+    uint PlaceholderText,
+    uint SplitterIdle,
+    uint SplitterHover);
 
 public sealed record FileChangeRowStyles(
     uint RowText,

@@ -6,14 +6,10 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-internal static class CommitDetailsPalette
+public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewModel>
 {
-    public const uint Background = Theme.BgDeep;
-    public const uint Border = Theme.Border;
-    public const uint Primary = Theme.TextPrimary;
-    public const uint Secondary = Theme.TextRow;
-    public const uint Muted = Theme.TextDim;
-    public const uint Placeholder = Theme.TextHeader;
+    private const int Padding = 14;
+    private const float AvatarSize = 36f;
 
     private static readonly uint[] AvatarPalette =
     {
@@ -27,7 +23,7 @@ internal static class CommitDetailsPalette
         0xFF1ABC9C,
     };
 
-    public static uint AvatarColor(string seed)
+    private static uint AvatarColor(string seed)
     {
         if (string.IsNullOrEmpty(seed)) return AvatarPalette[0];
         var h = 0;
@@ -35,12 +31,6 @@ internal static class CommitDetailsPalette
         var idx = ((h % AvatarPalette.Length) + AvatarPalette.Length) % AvatarPalette.Length;
         return AvatarPalette[idx];
     }
-}
-
-public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewModel>
-{
-    private const int Padding = 14;
-    private const float AvatarSize = 36f;
 
     private readonly ColumnView _content;
     private readonly ScrollPane _scrollPane;
@@ -71,8 +61,8 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
 
         var splitterHovered = new State<bool>(false);
         var splitter = new RectView();
-        splitter.BindBackgroundColor(splitterHovered,
-            h => h ? CommitsPalette.DividerHoverBg : CommitsPalette.Border);
+        splitter.BindThemedBackgroundColor(s =>
+            splitterHovered.Value ? s.CommitDetailsView.SplitterHover : s.CommitDetailsView.SplitterIdle);
 
         _splitContainer = new VerticalSplitContainer(topHalf, _diffView, splitter, bottomFraction: 1f / 2f);
 
@@ -82,13 +72,14 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
             _splitContainer.AdjustBottomFractionByPixels,
             h => splitterHovered.Value = h));
 
-        AddChildToSelf(new RectView
+        var panel = new RectView
         {
-            BackgroundColor = CommitDetailsPalette.Background,
-            BorderColor = new BorderColorStyle { Left = CommitDetailsPalette.Border },
             BorderSize = new BorderSizeStyle { Left = 1 },
             Children = { _splitContainer },
-        });
+        };
+        panel.BindThemedBackgroundColor(s => s.CommitDetailsView.Background);
+        panel.BindThemedBorderColor(s => new BorderColorStyle { Left = s.CommitDetailsView.BorderLeft });
+        AddChildToSelf(panel);
 
         this.UseController(_ => new ScrollSyncController(_scrollPane, vScrollBar, hScrollBar));
 
@@ -121,12 +112,13 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
     private void ShowPlaceholder(string text)
     {
         _content.Children.Clear();
-        _content.Children.Add(new TextView
+        var placeholder = new TextView
         {
             Text = text,
-            TextColor = CommitDetailsPalette.Placeholder,
             HorizontalTextAlignment = TextAlignment.Center,
-        });
+        };
+        placeholder.BindThemedTextColor(s => s.CommitDetailsView.PlaceholderText);
+        _content.Children.Add(placeholder);
         _scrollPane.ScrollToOrigin();
     }
 
@@ -139,35 +131,31 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
 
         if (!string.IsNullOrEmpty(d.MessageShort))
         {
-            topColumn.Children.Add(new TextView
-            {
-                Text = d.MessageShort,
-                TextColor = CommitDetailsPalette.Primary,
-            });
+            var subject = new TextView { Text = d.MessageShort };
+            subject.BindThemedTextColor(s => s.CommitDetailsView.PrimaryText);
+            topColumn.Children.Add(subject);
         }
 
         var body = ExtractBody(d.Message, d.MessageShort);
         if (!string.IsNullOrEmpty(body))
         {
-            topColumn.Children.Add(new TextView
-            {
-                Text = body,
-                TextColor = CommitDetailsPalette.Secondary,
-            });
+            var bodyText = new TextView { Text = body };
+            bodyText.BindThemedTextColor(s => s.CommitDetailsView.SecondaryText);
+            topColumn.Children.Add(bodyText);
         }
 
-        topColumn.Children.Add(new TextView
-        {
-            Text = $"Commit:  {d.Sha}",
-            TextColor = CommitDetailsPalette.Muted,
-        });
-        topColumn.Children.Add(new TextView
+        var commitLine = new TextView { Text = $"Commit:  {d.Sha}" };
+        commitLine.BindThemedTextColor(s => s.CommitDetailsView.MutedText);
+        topColumn.Children.Add(commitLine);
+
+        var parentLine = new TextView
         {
             Text = d.ParentShas.Count == 0
                 ? "Parents: (none)"
                 : "Parents: " + string.Join(", ", d.ParentShas.Select(ShortSha)),
-            TextColor = CommitDetailsPalette.Muted,
-        });
+        };
+        parentLine.BindThemedTextColor(s => s.CommitDetailsView.MutedText);
+        topColumn.Children.Add(parentLine);
 
         _content.Children.Add(new PaddingView
         {
@@ -192,7 +180,7 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
         {
             PreferredWidth = AvatarSize,
             PreferredHeight = AvatarSize,
-            BackgroundColor = CommitDetailsPalette.AvatarColor(avatarSeed),
+            BackgroundColor = AvatarColor(avatarSeed),
             BorderRadius = BorderRadiusStyle.All(AvatarSize * 0.5f),
             Children =
             {
@@ -207,22 +195,16 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
             },
         };
 
+        var authorName = new TextView { Text = FormatAuthor(d.AuthorName, d.AuthorEmail) };
+        authorName.BindThemedTextColor(s => s.CommitDetailsView.PrimaryText);
+
+        var date = new TextView { Text = FormatFullDate(d.AuthorWhen) };
+        date.BindThemedTextColor(s => s.CommitDetailsView.MutedText);
+
         var info = new ColumnView
         {
             Gap = 2,
-            Children =
-            {
-                new TextView
-                {
-                    Text = FormatAuthor(d.AuthorName, d.AuthorEmail),
-                    TextColor = CommitDetailsPalette.Primary,
-                        },
-                new TextView
-                {
-                    Text = FormatFullDate(d.AuthorWhen),
-                    TextColor = CommitDetailsPalette.Muted,
-                        },
-            },
+            Children = { authorName, date },
         };
 
         return new FlexRowView
