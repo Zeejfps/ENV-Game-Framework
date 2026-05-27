@@ -19,7 +19,8 @@ public sealed record ThemeStyles(
     AddRepoButtonStyles AddRepoButton,
     GroupHeaderRowStyles GroupHeaderRow,
     GroupRenameFieldStyles GroupRenameField,
-    WorktreeChevronStyles WorktreeChevron)
+    WorktreeChevronStyles WorktreeChevron,
+    RepoBarRowStyles RepoBarRow)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -125,7 +126,16 @@ public sealed record ThemeStyles(
             Caret: 0xFFE6E6E6u,
             Selection: 0xFF404C8Cu),
         WorktreeChevron: new WorktreeChevronStyles(
-            Text: 0xFFB5B9C0u));
+            Text: 0xFFB5B9C0u),
+        RepoBarRow: new RepoBarRowStyles(
+            BackgroundIdle: 0x00000000u,
+            BackgroundHover: 0xFF2B2D31u,
+            BackgroundActive: 0xFF404C8Cu,
+            TextIdle: 0xFFB5B9C0u,
+            TextActive: 0xFFFFFFFFu,
+            TextMissing: 0x80B5B9C0u,
+            IconAccentWorktree: 0xFF5DADE2u,
+            IconAccentSubmodule: 0xFFB57EDCu));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -231,7 +241,16 @@ public sealed record ThemeStyles(
             Caret: 0xFF111827u,
             Selection: 0xFFCBD5E1u),
         WorktreeChevron: new WorktreeChevronStyles(
-            Text: 0xFF374151u));
+            Text: 0xFF374151u),
+        RepoBarRow: new RepoBarRowStyles(
+            BackgroundIdle: 0x00000000u,
+            BackgroundHover: 0xFFF3F4F6u,
+            BackgroundActive: 0xFF4F46E5u,
+            TextIdle: 0xFF374151u,
+            TextActive: 0xFFFFFFFFu,
+            TextMissing: 0x80374151u,
+            IconAccentWorktree: 0xFF0EA5E9u,
+            IconAccentSubmodule: 0xFFA855F7u));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -342,6 +361,16 @@ public sealed record GroupRenameFieldStyles(
 
 public sealed record WorktreeChevronStyles(
     uint Text);
+
+public sealed record RepoBarRowStyles(
+    uint BackgroundIdle,
+    uint BackgroundHover,
+    uint BackgroundActive,
+    uint TextIdle,
+    uint TextActive,
+    uint TextMissing,
+    uint IconAccentWorktree,
+    uint IconAccentSubmodule);
 
 public sealed record FileChangeRowStyles(
     uint RowText,
