@@ -33,8 +33,11 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     public IReadable<IReadOnlyList<SubmoduleInfo>> DriftedSubmodules { get; }
     public IReadable<Selection> Selection { get; }
     public IReadable<DiffTarget?> SelectedTarget { get; }
-    public IReadable<bool> DiscardEnabled { get; }
-    public IReadable<bool> StageSelectedEnabled { get; }
+    public Command Discard { get; }
+    public Command StageSelected { get; }
+    public Command UnstageSelected { get; }
+    public Command StageAll { get; }
+    public Command UnstageAll { get; }
     public IReadable<string?> OpError { get; }
     public IReadable<bool> CommitEnabled { get; }
     public IReadable<bool> CommitBusy { get; }
@@ -68,10 +71,17 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         DriftedSubmodules = Slice(s => s.DriftedSubmodules);
         Selection = Slice(s => s.Selection);
         SelectedTarget = Slice(s => s.Selection.Single);
-        DiscardEnabled = Slice(s =>
+        var selectedUnstaged = Slice(s =>
             s.Selection.Count > 0 && s.Selection.Items[0].Side == DiffSide.Unstaged);
-        StageSelectedEnabled = Slice(s =>
-            s.Selection.Count > 0 && s.Selection.Items[0].Side == DiffSide.Unstaged);
+        var selectedStaged = Slice(s =>
+            s.Selection.Count > 0 && s.Selection.Items[0].Side == DiffSide.Staged);
+        var hasUnstaged = Slice(s => s.Unstaged.Count > 0);
+        var hasStaged = Slice(s => s.Staged.Count > 0);
+        Discard = new Command(DoDiscardSelected, selectedUnstaged);
+        StageSelected = new Command(DoStageSelected, selectedUnstaged);
+        UnstageSelected = new Command(DoUnstageSelected, selectedStaged);
+        StageAll = new Command(DoStageAll, hasUnstaged);
+        UnstageAll = new Command(DoUnstageAll, hasStaged);
         OpError = Slice(s => s.OpError);
         CommitEnabled = Slice(s => s.CommitEnabled);
         CommitBusy = Slice(s => s.CommitBusy);
@@ -341,6 +351,25 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         Update(s => s with { Selection = GitGui.Selection.Empty });
     }
     
+    private void DoDiscardSelected()
+    {
+        var paths = State.Value.Selection.PathsOn(DiffSide.Unstaged);
+        if (paths.Count == 0) return;
+        RequestDiscard(paths);
+    }
+
+    private void DoStageSelected()
+        => Stage(State.Value.Selection.PathsOn(DiffSide.Unstaged));
+
+    private void DoUnstageSelected()
+        => Unstage(State.Value.Selection.PathsOn(DiffSide.Staged));
+
+    private void DoStageAll()
+        => Stage(State.Value.Unstaged.Select(f => f.Path).ToList());
+
+    private void DoUnstageAll()
+        => Unstage(State.Value.Staged.Select(f => f.Path).ToList());
+
     public void Stage(IReadOnlyList<string> paths) => RunIndexOp(paths, isStage: true);
     
     public void StageSubmodulePointer(string submodulePath) => RunIndexOp([submodulePath], isStage: true);

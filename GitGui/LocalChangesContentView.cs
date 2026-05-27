@@ -25,6 +25,9 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
     private readonly VerticalSplitContainer _snapshotContainer;
     private readonly LocalChangesHeaderActionButton _discardButton;
     private readonly LocalChangesHeaderActionButton _stageSelectedButton;
+    private readonly LocalChangesHeaderActionButton _stageAllButton;
+    private readonly LocalChangesHeaderActionButton _unstageAllButton;
+    private readonly LocalChangesHeaderActionButton _unstageSelectedButton;
     private readonly LocalChangesSubmoduleSection _submoduleSection;
     private readonly BorderLayoutView _topHalf;
     
@@ -35,11 +38,15 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
     public LocalChangesContentView()
     {
         _discardButton = new LocalChangesHeaderActionButton(
-            LucideIcons.Trash, OnDiscardSelected, "Discard selected changes");
-        _discardButton.IsEnabled.Value = false;
+            LucideIcons.Trash, tooltip: "Discard selected changes");
         _stageSelectedButton = new LocalChangesHeaderActionButton(
-            LucideIcons.ChevronRight, OnStageSelected, "Stage selected");
-        _stageSelectedButton.IsEnabled.Value = false;
+            LucideIcons.ChevronRight, tooltip: "Stage selected");
+        _stageAllButton = new LocalChangesHeaderActionButton(
+            LucideIcons.ChevronsRight, tooltip: "Stage all");
+        _unstageAllButton = new LocalChangesHeaderActionButton(
+            LucideIcons.ChevronsLeft, tooltip: "Unstage all");
+        _unstageSelectedButton = new LocalChangesHeaderActionButton(
+            LucideIcons.ChevronLeft, tooltip: "Unstage selected");
 
         _unstagedPanel = new LocalChangesPanel(
             "Unstaged",
@@ -47,11 +54,7 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             "No unstaged changes.",
             _selection,
             OnRowClick,
-            [
-                _discardButton,
-                _stageSelectedButton,
-                new LocalChangesHeaderActionButton(LucideIcons.ChevronsRight, OnStageAll, "Stage all"),
-            ],
+            [_discardButton, _stageSelectedButton, _stageAllButton],
             onRowActivated: t => _vm?.Stage([t.Path]),
             onEmptyAreaClicked: () => _vm?.ClearSelection());
         _stagedPanel = new LocalChangesPanel(
@@ -60,10 +63,7 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             "No staged changes.",
             _selection,
             OnRowClick,
-            [
-                new LocalChangesHeaderActionButton(LucideIcons.ChevronsLeft, OnUnstageAll, "Unstage all"),
-                new LocalChangesHeaderActionButton(LucideIcons.ChevronLeft, OnUnstageSelected, "Unstage selected"),
-            ],
+            [_unstageAllButton, _unstageSelectedButton],
             onRowActivated: t => _vm?.Unstage([t.Path]),
             onEmptyAreaClicked: () => _vm?.ClearSelection());
 
@@ -131,15 +131,18 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         });
         vm.Unstaged.Subscribe(list => _unstagedPanel.SetFiles(list));
         vm.Staged.Subscribe(list => _stagedPanel.SetFiles(list));
-        vm.Selection.Subscribe(sel => _selection.Value = sel);
+        _selection.BindTo(vm.Selection);
         _diffView.Bind(vm.DiffVm);
         vm.SelectedTarget.Subscribe(target =>
             ApplyDiffVisibility(target != null, _diffView.IsCollapsed.Value));
         _diffView.IsCollapsed.Subscribe(collapsed =>
             ApplyDiffVisibility(vm.SelectedTarget.Value != null, collapsed));
 
-        vm.DiscardEnabled.Subscribe(enabled => _discardButton.IsEnabled.Value = enabled);
-        vm.StageSelectedEnabled.Subscribe(enabled => _stageSelectedButton.IsEnabled.Value = enabled);
+        _discardButton.BindCommand(vm.Discard);
+        _stageSelectedButton.BindCommand(vm.StageSelected);
+        _stageAllButton.BindCommand(vm.StageAll);
+        _unstageAllButton.BindCommand(vm.UnstageAll);
+        _unstageSelectedButton.BindCommand(vm.UnstageSelected);
 
         vm.DriftedSubmodules.Subscribe(drift =>
         {
@@ -179,22 +182,4 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         _arrowController?.TakeFocus();
     }
 
-    private void OnStageAll()
-        => _vm?.Stage(_unstagedPanel.Files.Select(f => f.Path).ToList());
-
-    private void OnUnstageAll()
-        => _vm?.Unstage(_stagedPanel.Files.Select(f => f.Path).ToList());
-
-    private void OnStageSelected()
-        => _vm?.Stage(_selection.Value.PathsOn(DiffSide.Unstaged));
-
-    private void OnUnstageSelected()
-        => _vm?.Unstage(_selection.Value.PathsOn(DiffSide.Staged));
-
-    private void OnDiscardSelected()
-    {
-        var paths = _selection.Value.PathsOn(DiffSide.Unstaged);
-        if (paths.Count == 0) return;
-        _vm?.RequestDiscard(paths);
-    }
 }
