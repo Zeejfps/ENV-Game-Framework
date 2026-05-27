@@ -51,7 +51,7 @@ public sealed class HorizontalScrollBarThumbViewController : KeyboardMouseContro
         {
             _isDragging = true;
             _startPoint = e.Mouse.Point;
-            inputSystem?.RequestFocus(this);
+            inputSystem?.StealFocus(this);
             e.Consume();
             return;
         }

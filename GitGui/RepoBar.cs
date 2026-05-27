@@ -31,39 +31,29 @@ internal sealed class RepoBar : MultiChildView, IBind<RepoBarViewModel>
 
         var vScrollBar = ScrollBars.CreateVertical();
 
-        var scrollArea = new FlexRowView
-        {
-            CrossAxisAlignment = CrossAxisAlignment.Stretch,
-            Children =
-            {
-                new FlexItem { Grow = 1, Child = scrollPane },
-                vScrollBar,
-            },
-        };
-
         var bar = new RectView
         {
             BorderSize = new BorderSizeStyle { Right = 1 },
             Children =
             {
-                new FlexColumnView
+                new BorderLayoutView
                 {
-                    CrossAxisAlignment = CrossAxisAlignment.Stretch,
-                    Children =
+                    Center = new BorderLayoutView
                     {
-                        new FlexItem { Grow = 1, Child = scrollArea },
-                        new PaddingView
+                        Center = scrollPane,
+                        East = vScrollBar,
+                    },
+                    South = new PaddingView
+                    {
+                        Padding = new PaddingStyle
                         {
-                            Padding = new PaddingStyle
-                            {
-                                Left = HorizontalPadding,
-                                Right = HorizontalPadding,
-                                Top = HorizontalPadding,
-                                Bottom = HorizontalPadding,
-                            },
-                            Children = { new AddRepoButton() },
+                            Left = HorizontalPadding,
+                            Right = HorizontalPadding,
+                            Top = HorizontalPadding,
+                            Bottom = HorizontalPadding,
                         },
-                    }
+                        Children = { new AddRepoButton() },
+                    },
                 }
             }
         };

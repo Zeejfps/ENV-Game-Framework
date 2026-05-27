@@ -52,6 +52,31 @@ public sealed class GlfwInputSystem
 
     public void Update()
     {
+        // While a focused component is active (e.g. a scrollbar thumb drag, a splitter
+        // drag, a text-input edit), treat the focus as a mouse capture: keep polling
+        // real cursor coords and dispatching real move events even when the cursor is
+        // outside this window's bounds. Skip the off-canvas synthetic exit, which would
+        // otherwise corrupt the focused controller's drag state (e.g. _startPoint).
+        if (InputSystem.HasFocus)
+        {
+            Glfw.GetCursorPosition(_windowHandle, out var capturedX, out var capturedY);
+            var capturedPoint = WindowToGuiCoords(capturedX, capturedY);
+            if (capturedPoint != Mouse.Point)
+            {
+                Mouse.Point = capturedPoint;
+                var capturedEvent = new MouseMoveEvent
+                {
+                    Mouse = Mouse,
+                    Phase = EventPhase.Capturing,
+                };
+                InputSystem.SendMouseMovedEvent(ref capturedEvent);
+                OnAnyInput?.Invoke();
+            }
+            // Defer the exit-clear until focus releases — we don't want to clobber the
+            // drag's _startPoint with a sentinel value mid-drag.
+            return;
+        }
+
         // On a hovered→not-hovered transition (CursorEnter callback fired with
         // entering=false), send one synthetic MouseMove far off-canvas so the
         // input system clears IsHovered on whichever view was last hovered.

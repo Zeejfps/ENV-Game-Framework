@@ -493,6 +493,8 @@ public sealed class InputSystem
         return _hoverableComponents.Contains(component);
     }
 
+    public bool HasFocus => _focusedComponent != null;
+
     public bool IsFocused(IKeyboardMouseController component)
     {
         var focused = _focusQueue.First;
