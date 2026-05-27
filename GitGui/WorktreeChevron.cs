@@ -24,12 +24,12 @@ public sealed class WorktreeChevron : MultiChildView
 
         var chevron = new TextView
         {
-            TextColor = DialogPalette.RowText,
             FontSize = 8f,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             PreferredWidth = RepoBar.RowChevronWidth,
         };
+        chevron.BindThemedTextColor(s => s.WorktreeChevron.Text);
         // Reads of registry.Repos and the WorktreesChanged version are auto-tracked, so
         // the chevron updates whenever children appear/disappear or expand state flips.
         chevron.BindText(() =>

@@ -16,7 +16,10 @@ public sealed record ThemeStyles(
     ErrorBarStyles ErrorBar,
     ModeSwitcherStyles ModeSwitcher,
     BranchesHeaderStyles BranchesHeader,
-    AddRepoButtonStyles AddRepoButton)
+    AddRepoButtonStyles AddRepoButton,
+    GroupHeaderRowStyles GroupHeaderRow,
+    GroupRenameFieldStyles GroupRenameField,
+    WorktreeChevronStyles WorktreeChevron)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -110,6 +113,18 @@ public sealed record ThemeStyles(
             ActiveText: 0xFFFFFFFFu,
             DetachedText: 0x80B5B9C0u),
         AddRepoButton: new AddRepoButtonStyles(
+            Text: 0xFFB5B9C0u),
+        GroupHeaderRow: new GroupHeaderRowStyles(
+            ChevronText: 0xFF96989Du,
+            BackgroundIdle: 0x00000000u,
+            BackgroundHover: 0xFF2B2D31u),
+        GroupRenameField: new GroupRenameFieldStyles(
+            Background: 0xFF2B2D31u,
+            Border: 0xFF5865F2u,
+            Text: 0xFFE6E6E6u,
+            Caret: 0xFFE6E6E6u,
+            Selection: 0xFF404C8Cu),
+        WorktreeChevron: new WorktreeChevronStyles(
             Text: 0xFFB5B9C0u));
 
     public static readonly ThemeStyles Light = new(
@@ -204,6 +219,18 @@ public sealed record ThemeStyles(
             ActiveText: 0xFF111827u,
             DetachedText: 0x80374151u),
         AddRepoButton: new AddRepoButtonStyles(
+            Text: 0xFF374151u),
+        GroupHeaderRow: new GroupHeaderRowStyles(
+            ChevronText: 0xFF6B7280u,
+            BackgroundIdle: 0x00000000u,
+            BackgroundHover: 0xFFF3F4F6u),
+        GroupRenameField: new GroupRenameFieldStyles(
+            Background: 0xFFFFFFFFu,
+            Border: 0xFF4F46E5u,
+            Text: 0xFF111827u,
+            Caret: 0xFF111827u,
+            Selection: 0xFFCBD5E1u),
+        WorktreeChevron: new WorktreeChevronStyles(
             Text: 0xFF374151u));
 }
 
@@ -299,6 +326,21 @@ public sealed record BranchesHeaderStyles(
     uint DetachedText);
 
 public sealed record AddRepoButtonStyles(
+    uint Text);
+
+public sealed record GroupHeaderRowStyles(
+    uint ChevronText,
+    uint BackgroundIdle,
+    uint BackgroundHover);
+
+public sealed record GroupRenameFieldStyles(
+    uint Background,
+    uint Border,
+    uint Text,
+    uint Caret,
+    uint Selection);
+
+public sealed record WorktreeChevronStyles(
     uint Text);
 
 public sealed record FileChangeRowStyles(
