@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 
 namespace GitGui;
@@ -64,8 +65,8 @@ public sealed class FileChangeRowView : MultiChildView
         var path = new TextView
         {
             Text = FileChangesPalette.FormatPath(file),
-            TextColor = FileChangesPalette.RowText,
         };
+        path.BindThemedTextColor(s => s.FileChangeRow.RowText);
 
         AddChildToSelf(new FlexRowView
         {
