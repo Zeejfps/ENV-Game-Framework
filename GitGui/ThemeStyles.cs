@@ -21,7 +21,8 @@ public sealed record ThemeStyles(
     GroupRenameFieldStyles GroupRenameField,
     WorktreeChevronStyles WorktreeChevron,
     RepoBarRowStyles RepoBarRow,
-    BranchesViewStyles BranchesView)
+    BranchesViewStyles BranchesView,
+    RepoBarStyles RepoBar)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -146,7 +147,10 @@ public sealed record ThemeStyles(
             RowTextDim: 0x80B5B9C0u,
             SectionHeaderText: 0xFF96989Du,
             AheadColor: 0xFF9DD17Bu,
-            BehindColor: 0xFFE6A85Cu));
+            BehindColor: 0xFFE6A85Cu),
+        RepoBar: new RepoBarStyles(
+            Background: 0xFF1E1F22u,
+            RightBorder: 0xFF313338u));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -271,7 +275,10 @@ public sealed record ThemeStyles(
             RowTextDim: 0x80374151u,
             SectionHeaderText: 0xFF6B7280u,
             AheadColor: 0xFF16A34Au,
-            BehindColor: 0xFFEA580Cu));
+            BehindColor: 0xFFEA580Cu),
+        RepoBar: new RepoBarStyles(
+            Background: 0xFFFFFFFFu,
+            RightBorder: 0xFFE5E7EBu));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -403,6 +410,10 @@ public sealed record BranchesViewStyles(
     uint SectionHeaderText,
     uint AheadColor,
     uint BehindColor);
+
+public sealed record RepoBarStyles(
+    uint Background,
+    uint RightBorder);
 
 public sealed record FileChangeRowStyles(
     uint RowText,
