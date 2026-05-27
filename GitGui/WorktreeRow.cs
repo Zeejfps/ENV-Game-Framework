@@ -9,12 +9,8 @@ namespace GitGui;
 // distinguished from primary rows by deeper indent and the Branch icon.
 public sealed class WorktreeRow : MultiChildView
 {
-    private readonly Repo _worktree;
-    private readonly TextView _label;
-
     public WorktreeRow(Repo worktree, IRepoRegistry registry)
     {
-        _worktree = worktree;
         PreferredHeight = 26;
 
         var isHovered = new State<bool>(false);
@@ -36,13 +32,14 @@ public sealed class WorktreeRow : MultiChildView
             ? DialogPalette.RowTextMissing
             : DialogPalette.IconAccentWorktree);
 
-        _label = new TextView
+        var label = new TextView
         {
             Text = worktree.DisplayName,
             HorizontalTextAlignment = TextAlignment.Start,
             VerticalTextAlignment = TextAlignment.Center,
+            TextOverflow = TextOverflow.Ellipsis,
         };
-        _label.BindTextColor(RowTextColor);
+        label.BindTextColor(RowTextColor);
 
         // Indent past the primary's chevron+icon column. The math mirrors the constants
         // RepoRow uses internally so children appear nested visually.
@@ -64,7 +61,7 @@ public sealed class WorktreeRow : MultiChildView
                     Children =
                     {
                         icon,
-                        new FlexItem { Grow = 1, Child = _label },
+                        new FlexItem { Grow = 1, Child = label },
                     }
                 }
             }
@@ -124,12 +121,4 @@ public sealed class WorktreeRow : MultiChildView
         return null;
     }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        _label.Text = TextMeasure.TruncateToFit(
-            _worktree.DisplayName, _labelStyle, RepoBar.WorktreeRowTextAvailableWidth, context.Canvas);
-    }
-
-    private static readonly TextStyle _labelStyle = new();
 }

@@ -11,12 +11,8 @@ namespace GitGui;
 // not a sibling checkout of the parent.
 public sealed class SubmoduleRow : MultiChildView
 {
-    private readonly Repo _submodule;
-    private readonly TextView _label;
-
     public SubmoduleRow(Repo submodule, IRepoRegistry registry)
     {
-        _submodule = submodule;
         PreferredHeight = 26;
 
         var isHovered = new State<bool>(false);
@@ -40,13 +36,14 @@ public sealed class SubmoduleRow : MultiChildView
             ? DialogPalette.RowTextMissing
             : DialogPalette.IconAccentSubmodule);
 
-        _label = new TextView
+        var label = new TextView
         {
             Text = submodule.DisplayName,
             HorizontalTextAlignment = TextAlignment.Start,
             VerticalTextAlignment = TextAlignment.Center,
+            TextOverflow = TextOverflow.Ellipsis,
         };
-        _label.BindTextColor(RowTextColor);
+        label.BindTextColor(RowTextColor);
 
         var leftPad = RepoBar.RowPaddingLeft
                       + RepoBar.RowChevronWidth
@@ -66,7 +63,7 @@ public sealed class SubmoduleRow : MultiChildView
                     Children =
                     {
                         icon,
-                        new FlexItem { Grow = 1, Child = _label },
+                        new FlexItem { Grow = 1, Child = label },
                     }
                 }
             }
@@ -137,12 +134,4 @@ public sealed class SubmoduleRow : MultiChildView
         return null;
     }
 
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        _label.Text = TextMeasure.TruncateToFit(
-            _submodule.DisplayName, _labelStyle, RepoBar.WorktreeRowTextAvailableWidth, context.Canvas);
-    }
-
-    private static readonly TextStyle _labelStyle = new();
 }

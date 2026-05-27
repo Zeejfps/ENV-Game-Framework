@@ -9,5 +9,6 @@ public sealed record TextStyle
     public StyleValue<TextAlignment> HorizontalAlignment;
     public StyleValue<TextAlignment> VerticalAlignment;
     public StyleValue<TextWrap> TextWrap;
+    public StyleValue<TextOverflow> TextOverflow;
     public StyleValue<float> Rotation = new(0f, false);
 }

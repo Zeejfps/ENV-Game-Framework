@@ -46,6 +46,12 @@ public sealed class TextView : MultiChildView
         }
     }
 
+    public StyleValue<TextOverflow> TextOverflow
+    {
+        get => _style.TextOverflow;
+        set => SetField(ref _style.TextOverflow, value);
+    }
+
     public StyleValue<float> Rotation
     {
         get => _style.Rotation;
@@ -171,7 +177,7 @@ public sealed class TextView : MultiChildView
             c.DrawText(new DrawTextInputs
             {
                 Position = Position,
-                Text = _text,
+                Text = Ellipsize(c, _text, Position.Width),
                 Style = _style,
                 ZIndex = z,
             });
@@ -179,6 +185,31 @@ public sealed class TextView : MultiChildView
         }
 
         DrawLines(c, SplitLines(_text), z);
+    }
+
+    private string Ellipsize(ICanvas c, string text, float available)
+    {
+        if (!_style.TextOverflow.IsSet || _style.TextOverflow.Value != ZGF.Gui.TextOverflow.Ellipsis)
+            return text;
+        if (string.IsNullOrEmpty(text)) return text;
+        if (available <= 0f) return string.Empty;
+        if (c.MeasureTextWidth(text, _style) <= available) return text;
+
+        const string ellipsis = "…";
+        var ellipsisWidth = c.MeasureTextWidth(ellipsis, _style);
+        if (ellipsisWidth > available) return ellipsis;
+
+        var lo = 0;
+        var hi = text.Length;
+        while (lo < hi)
+        {
+            var mid = (lo + hi + 1) / 2;
+            if (c.MeasureTextWidth(text.AsSpan(0, mid), _style) + ellipsisWidth <= available)
+                lo = mid;
+            else
+                hi = mid - 1;
+        }
+        return text[..lo] + ellipsis;
     }
 
     private void DrawLines(ICanvas c, IReadOnlyList<string> lines, int z)

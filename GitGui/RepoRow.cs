@@ -7,12 +7,8 @@ namespace GitGui;
 
 public sealed class RepoRow : MultiChildView
 {
-    private readonly Repo _repo;
-    private readonly TextView _label;
-
     public RepoRow(Repo repo, IRepoRegistry registry)
     {
-        _repo = repo;
         PreferredHeight = 28;
 
         var isHovered = new State<bool>(false);
@@ -34,13 +30,14 @@ public sealed class RepoRow : MultiChildView
         };
         icon.BindTextColor(RowTextColor);
 
-        _label = new TextView
+        var label = new TextView
         {
             Text = repo.DisplayName,
             HorizontalTextAlignment = TextAlignment.Start,
             VerticalTextAlignment = TextAlignment.Center,
+            TextOverflow = TextOverflow.Ellipsis,
         };
-        _label.BindTextColor(RowTextColor);
+        label.BindTextColor(RowTextColor);
 
         var background = new RectView
         {
@@ -56,7 +53,7 @@ public sealed class RepoRow : MultiChildView
                     {
                         chevronSlot,
                         icon,
-                        new FlexItem { Grow = 1, Child = _label },
+                        new FlexItem { Grow = 1, Child = label },
                     }
                 }
             }
@@ -135,14 +132,4 @@ public sealed class RepoRow : MultiChildView
 
         return items;
     }
-
-    protected override void OnAttachedToContext(Context context)
-    {
-        base.OnAttachedToContext(context);
-        _label.Text = TextMeasure.TruncateToFit(
-            _repo.DisplayName, _labelStyle, RepoBar.RowTextAvailableWidth, context.Canvas);
-    }
-
-    // Same defaults TextView would apply to _label; reused for measurement-only purposes.
-    private static readonly TextStyle _labelStyle = new();
 }
