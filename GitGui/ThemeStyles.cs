@@ -7,7 +7,9 @@ public sealed record ThemeStyles(
     FileChangesSectionStyles FileChangesSection,
     FileChangeRowStyles FileChangeRow,
     DialogFrameStyles DialogFrame,
-    DialogTextInputStyles DialogTextInput)
+    DialogTextInputStyles DialogTextInput,
+    BorderedButtonStyles BorderedButton,
+    DialogIconButtonStyles DialogIconButton)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -56,7 +58,19 @@ public sealed record ThemeStyles(
             Text: 0xFFE6E6E6u,
             Caret: 0xFFE6E6E6u,
             Selection: 0xFF404C8Cu,
-            PlaceholderText: 0x80B5B9C0u));
+            PlaceholderText: 0x80B5B9C0u),
+        BorderedButton: new BorderedButtonStyles(
+            BackgroundIdle: 0xFF2B2D31u,
+            BackgroundHover: 0xFF3A3D43u,
+            BorderIdle: 0xFF3E4047u,
+            BorderHover: 0xFF5865F2u,
+            Text: 0xFFFFFFFFu,
+            TextDisabled: 0x80B5B9C0u),
+        DialogIconButton: new DialogIconButtonStyles(
+            BackgroundIdle: 0x00000000u,
+            BackgroundHover: 0xFF3A3D43u,
+            TextIdle: 0xFFB5B9C0u,
+            TextHover: 0xFFFFFFFFu));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -105,7 +119,19 @@ public sealed record ThemeStyles(
             Text: 0xFF111827u,
             Caret: 0xFF111827u,
             Selection: 0xFFCBD5E1u,
-            PlaceholderText: 0x806B7280u));
+            PlaceholderText: 0x806B7280u),
+        BorderedButton: new BorderedButtonStyles(
+            BackgroundIdle: 0xFFFFFFFFu,
+            BackgroundHover: 0xFFF3F4F6u,
+            BorderIdle: 0xFFD1D5DBu,
+            BorderHover: 0xFF4F46E5u,
+            Text: 0xFF111827u,
+            TextDisabled: 0x80374151u),
+        DialogIconButton: new DialogIconButtonStyles(
+            BackgroundIdle: 0x00000000u,
+            BackgroundHover: 0xFFE5E7EBu,
+            TextIdle: 0xFF6B7280u,
+            TextHover: 0xFF111827u));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -147,6 +173,20 @@ public sealed record DialogTextInputStyles(
     uint Caret,
     uint Selection,
     uint PlaceholderText);
+
+public sealed record BorderedButtonStyles(
+    uint BackgroundIdle,
+    uint BackgroundHover,
+    uint BorderIdle,
+    uint BorderHover,
+    uint Text,
+    uint TextDisabled);
+
+public sealed record DialogIconButtonStyles(
+    uint BackgroundIdle,
+    uint BackgroundHover,
+    uint TextIdle,
+    uint TextHover);
 
 public sealed record FileChangeRowStyles(
     uint RowText,

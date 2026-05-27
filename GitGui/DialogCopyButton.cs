@@ -32,16 +32,16 @@ public sealed class DialogCopyButton : HoverableButton
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        _label.BindTextColor(IsHovered,
-            h => h ? DialogPalette.CloseTextHover : DialogPalette.CloseTextNormal);
+        _label.BindThemedTextColor(s =>
+            IsHovered.Value ? s.DialogIconButton.TextHover : s.DialogIconButton.TextIdle);
 
         var background = new RectView
         {
             BorderRadius = BorderRadiusStyle.All(4),
             Children = { _label }
         };
-        background.BindBackgroundColor(IsHovered,
-            h => h ? DialogPalette.CloseHover : DialogPalette.CloseNormal);
+        background.BindThemedBackgroundColor(s =>
+            IsHovered.Value ? s.DialogIconButton.BackgroundHover : s.DialogIconButton.BackgroundIdle);
 
         SetBackground(background);
     }

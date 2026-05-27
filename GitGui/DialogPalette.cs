@@ -38,8 +38,10 @@ internal static class DialogPalette
 
     public static void BindBorderedButtonChrome(RectView background, IReadable<bool> isHovered)
     {
-        background.BindBackgroundColor(isHovered, h => h ? ButtonHover : ButtonNormal);
-        background.BindBorderColor(isHovered, h => BorderColorStyle.All(h ? ButtonBorderHover : ButtonBorder));
+        background.BindThemedBackgroundColor(s =>
+            isHovered.Value ? s.BorderedButton.BackgroundHover : s.BorderedButton.BackgroundIdle);
+        background.BindThemedBorderColor(s =>
+            BorderColorStyle.All(isHovered.Value ? s.BorderedButton.BorderHover : s.BorderedButton.BorderIdle));
     }
 
     /// <summary>
@@ -49,7 +51,9 @@ internal static class DialogPalette
     /// </summary>
     public static void BindBorderedButtonChrome(RectView background, Func<bool> isEffectivelyHovered)
     {
-        background.BindBackgroundColor(() => isEffectivelyHovered() ? ButtonHover : ButtonNormal);
-        background.BindBorderColor(() => BorderColorStyle.All(isEffectivelyHovered() ? ButtonBorderHover : ButtonBorder));
+        background.BindThemedBackgroundColor(s =>
+            isEffectivelyHovered() ? s.BorderedButton.BackgroundHover : s.BorderedButton.BackgroundIdle);
+        background.BindThemedBorderColor(s =>
+            BorderColorStyle.All(isEffectivelyHovered() ? s.BorderedButton.BorderHover : s.BorderedButton.BorderIdle));
     }
 }

@@ -50,7 +50,7 @@ public sealed class DialogButton : HoverableButton
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
         };
-        _iconView.BindTextColor(IsEnabled, e => e ? 0xFFFFFFFFu : DialogPalette.RowTextMissing);
+        _iconView.BindThemedTextColor(s => IsEnabled.Value ? s.BorderedButton.Text : s.BorderedButton.TextDisabled);
 
         _labelView = new TextView
         {
@@ -58,7 +58,7 @@ public sealed class DialogButton : HoverableButton
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        _labelView.BindTextColor(IsEnabled, e => e ? 0xFFFFFFFFu : DialogPalette.RowTextMissing);
+        _labelView.BindThemedTextColor(s => IsEnabled.Value ? s.BorderedButton.Text : s.BorderedButton.TextDisabled);
 
         _row = new FlexRowView
         {
