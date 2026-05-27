@@ -19,4 +19,10 @@ internal static class ThemedBindings
         public void BindThemedBorderColor(Func<ThemeStyles, BorderColorStyle> select) =>
             view.BindThemedBorderColor<ThemeStyles>(select);
     }
+
+    extension(View view)
+    {
+        public void BindThemed(Action<ThemeStyles> onChange) =>
+            view.BindThemed<ThemeStyles>(onChange);
+    }
 }

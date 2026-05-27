@@ -1,5 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -41,23 +42,22 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
 
     private readonly TextStyle _badgeGlyphStyle = new()
     {
-        TextColor = FileChangesPalette.BadgeText,
         FontSize = 11f,
         HorizontalAlignment = TextAlignment.Center,
         VerticalAlignment = TextAlignment.Center,
     };
     private readonly TextStyle _pathTextStyle = new()
     {
-        TextColor = DialogPalette.RowText,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
     private readonly TextStyle _pathTextActiveStyle = new()
     {
-        TextColor = DialogPalette.RowTextActive,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
+
+    private FileChangeRowStyles _rowStyles = ThemeStyles.Dark.FileChangeRow;
 
     // Sentinel start so the first NotifyScrollChanged fires even when the computed scale
     // equals 1 — otherwise the scrollbar thumb's built-in 0.5 default sticks until a real
@@ -152,6 +152,15 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         // redraws and the ItemBuilder reads the current selection on demand.
         selection.Subscribe(_ => SetDirty());
 
+        this.BindThemed(s =>
+        {
+            _rowStyles = s.FileChangeRow;
+            _badgeGlyphStyle.TextColor = _rowStyles.BadgeText;
+            _pathTextStyle.TextColor = _rowStyles.RowText;
+            _pathTextActiveStyle.TextColor = _rowStyles.RowTextActive;
+            SetDirty();
+        });
+
         this.UseController(_ => new ScrollSyncController(this, _scrollBar, _hScrollBar));
     }
 
@@ -210,8 +219,8 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         var isSelected = _selection.Value.Contains(path, _side);
 
         var bg = isSelected
-            ? DialogPalette.RowActive
-            : (state.IsHovered ? DialogPalette.RowHover : (uint?)null);
+            ? _rowStyles.RowActive
+            : (state.IsHovered ? _rowStyles.RowHover : (uint?)null);
         if (bg != null)
         {
             c.DrawRect(new DrawRectInputs
@@ -234,7 +243,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
             Position = new RectF(badgeLeft, badgeBottom, badgeSize, badgeSize),
             Style = new RectStyle
             {
-                BackgroundColor = FileChangesPalette.StatusColor(file.Status),
+                BackgroundColor = _rowStyles.StatusColor(file.Status),
                 BorderRadius = BorderRadiusStyle.All(3),
             },
             ZIndex = z + 1,

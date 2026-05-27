@@ -4,7 +4,8 @@ public sealed record ThemeStyles(
     HeaderActionButtonStyles HeaderActionButton,
     LocalChangesContentStyles LocalChangesContent,
     SubmoduleSectionStyles SubmoduleSection,
-    FileChangesSectionStyles FileChangesSection)
+    FileChangesSectionStyles FileChangesSection,
+    FileChangeRowStyles FileChangeRow)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -27,7 +28,20 @@ public sealed record ThemeStyles(
             HeaderBackground: 0xFF222326u,
             HeaderBorder: 0xFF313338u,
             HeaderText: 0xFF96989Du,
-            EmptyPlaceholderText: 0xFF96989Du));
+            EmptyPlaceholderText: 0xFF96989Du),
+        FileChangeRow: new FileChangeRowStyles(
+            RowText: 0xFFB5B9C0u,
+            RowTextActive: 0xFFFFFFFFu,
+            RowHover: 0xFF2B2D31u,
+            RowActive: 0xFF404C8Cu,
+            BadgeText: 0xFF1A1B1Eu,
+            StatusAdded: 0xFF57F287u,
+            StatusModified: 0xFFE9C77Au,
+            StatusDeleted: 0xFFED4245u,
+            StatusRenamed: 0xFF5DADE2u,
+            StatusConflicted: 0xFFED4245u,
+            StatusSubmodule: 0xFFB57EDCu,
+            StatusOther: 0xFF9B59B6u));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -50,7 +64,20 @@ public sealed record ThemeStyles(
             HeaderBackground: 0xFFF3F4F6u,
             HeaderBorder: 0xFFE5E7EBu,
             HeaderText: 0xFF6B7280u,
-            EmptyPlaceholderText: 0xFF6B7280u));
+            EmptyPlaceholderText: 0xFF6B7280u),
+        FileChangeRow: new FileChangeRowStyles(
+            RowText: 0xFF374151u,
+            RowTextActive: 0xFFFFFFFFu,
+            RowHover: 0xFFF3F4F6u,
+            RowActive: 0xFF4F46E5u,
+            BadgeText: 0xFFFFFFFFu,
+            StatusAdded: 0xFF16A34Au,
+            StatusModified: 0xFFCA8A04u,
+            StatusDeleted: 0xFFDC2626u,
+            StatusRenamed: 0xFF2563EBu,
+            StatusConflicted: 0xFFDC2626u,
+            StatusSubmodule: 0xFFA855F7u,
+            StatusOther: 0xFF7C3AEDu));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -77,3 +104,29 @@ public sealed record FileChangesSectionStyles(
     uint HeaderBorder,
     uint HeaderText,
     uint EmptyPlaceholderText);
+
+public sealed record FileChangeRowStyles(
+    uint RowText,
+    uint RowTextActive,
+    uint RowHover,
+    uint RowActive,
+    uint BadgeText,
+    uint StatusAdded,
+    uint StatusModified,
+    uint StatusDeleted,
+    uint StatusRenamed,
+    uint StatusConflicted,
+    uint StatusSubmodule,
+    uint StatusOther)
+{
+    public uint StatusColor(FileChangeStatus status) => status switch
+    {
+        FileChangeStatus.Added => StatusAdded,
+        FileChangeStatus.Modified => StatusModified,
+        FileChangeStatus.Deleted => StatusDeleted,
+        FileChangeStatus.Renamed => StatusRenamed,
+        FileChangeStatus.Conflicted => StatusConflicted,
+        FileChangeStatus.Submodule => StatusSubmodule,
+        _ => StatusOther,
+    };
+}

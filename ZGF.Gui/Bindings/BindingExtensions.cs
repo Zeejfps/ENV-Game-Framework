@@ -102,6 +102,18 @@ public static class BindingExtensions
             view.Behaviors.Add(new DerivedPropertyBindingBehavior<View, bool>(
                 view, compute, (v, b) => v.IsVisible = b));
         }
+
+        /// <summary>
+        /// Subscribes to the active <see cref="IThemeService{TStyles}"/> for painted views
+        /// that can't express their colors as discrete property bindings. The callback fires
+        /// once when the view attaches to a context and again on every theme swap; typical
+        /// use is to mutate cached <c>TextStyle</c>/colour fields and call <c>SetDirty()</c>.
+        /// </summary>
+        public void BindThemed<TStyles>(Action<TStyles> onChange)
+        {
+            view.Behaviors.Add(new ThemedDerivedPropertyBindingBehavior<View, TStyles, TStyles>(
+                view, s => s, (v, s) => onChange(s)));
+        }
     }
 
     extension(RectView view)
