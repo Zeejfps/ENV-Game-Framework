@@ -36,7 +36,9 @@ public sealed record ThemeStyles(
     CommitsTruncationBarStyles CommitsTruncationBar,
     OperationBannerStyles OperationBanner,
     OperationRowStyles OperationRow,
-    CommitDetailsViewStyles CommitDetailsView)
+    CommitDetailsViewStyles CommitDetailsView,
+    DialogBodyStyles DialogBody,
+    BranchPreviewStyles BranchPreview)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -80,7 +82,8 @@ public sealed record ThemeStyles(
             Border: 0xFF313338u,
             TitleText: 0xFFE6E6E6u,
             HeaderSeparator: 0xFF2A2C30u,
-            ErrorText: 0xFFE06C75u),
+            ErrorText: 0xFFE06C75u,
+            InsetBackground: 0xFF1A1B1Eu),
         TextInput: new TextInputStyles(
             Background: 0xFF2B2D31u,
             Border: 0xFF3E4047u,
@@ -250,7 +253,15 @@ public sealed record ThemeStyles(
             MutedText: 0xFF7A7C81u,
             PlaceholderText: 0xFF96989Du,
             SplitterIdle: 0xFF313338u,
-            SplitterHover: 0xFF4A5680u));
+            SplitterHover: 0xFF4A5680u),
+        DialogBody: new DialogBodyStyles(
+            BodyText: 0xFFDCDDDEu,
+            SectionHeaderText: 0xFF96989Du,
+            RowText: 0xFFB5B9C0u,
+            RowTextMissing: 0x80B5B9C0u),
+        BranchPreview: new BranchPreviewStyles(
+            Clean: 0xFF9DD17Bu,
+            Conflict: 0xFFE6A85Cu));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -294,7 +305,8 @@ public sealed record ThemeStyles(
             Border: 0xFFE5E7EBu,
             TitleText: 0xFF111827u,
             HeaderSeparator: 0xFFE5E7EBu,
-            ErrorText: 0xFFDC2626u),
+            ErrorText: 0xFFDC2626u,
+            InsetBackground: 0xFFF9FAFBu),
         TextInput: new TextInputStyles(
             Background: 0xFFFFFFFFu,
             Border: 0xFFD1D5DBu,
@@ -464,7 +476,15 @@ public sealed record ThemeStyles(
             MutedText: 0xFF6B7280u,
             PlaceholderText: 0xFF9CA3AFu,
             SplitterIdle: 0xFFE5E7EBu,
-            SplitterHover: 0xFFCBD5E1u));
+            SplitterHover: 0xFFCBD5E1u),
+        DialogBody: new DialogBodyStyles(
+            BodyText: 0xFF1F2937u,
+            SectionHeaderText: 0xFF6B7280u,
+            RowText: 0xFF374151u,
+            RowTextMissing: 0x80374151u),
+        BranchPreview: new BranchPreviewStyles(
+            Clean: 0xFF16A34Au,
+            Conflict: 0xFFEA580Cu));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -499,7 +519,8 @@ public sealed record DialogFrameStyles(
     uint Border,
     uint TitleText,
     uint HeaderSeparator,
-    uint ErrorText);
+    uint ErrorText,
+    uint InsetBackground);
 
 public sealed record TextInputStyles(
     uint Background,
@@ -700,6 +721,16 @@ public sealed record CommitDetailsViewStyles(
     uint PlaceholderText,
     uint SplitterIdle,
     uint SplitterHover);
+
+public sealed record DialogBodyStyles(
+    uint BodyText,
+    uint SectionHeaderText,
+    uint RowText,
+    uint RowTextMissing);
+
+public sealed record BranchPreviewStyles(
+    uint Clean,
+    uint Conflict);
 
 public sealed record FileChangeRowStyles(
     uint RowText,

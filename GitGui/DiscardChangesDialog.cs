@@ -30,16 +30,16 @@ internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChange
         var prompt = new TextView
         {
             Text = "Discarding cannot be undone. Continue?",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         var pathList = new TextView
         {
             Text = string.Join("\n", paths),
-            TextColor = DialogPalette.RowText,
             TextWrap = TextWrap.Wrap,
         };
+        pathList.BindThemedTextColor(s => s.DialogBody.RowText);
 
         var scrollPane = new VerticalScrollPane();
         scrollPane.Children.Add(new PaddingView
@@ -53,8 +53,6 @@ internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChange
 
         var scrollHost = new RectView
         {
-            BackgroundColor = Theme.BgDeep,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(4),
             Children =
@@ -66,6 +64,8 @@ internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChange
                 },
             },
         };
+        scrollHost.BindThemedBackgroundColor(s => s.DialogFrame.InsetBackground);
+        scrollHost.BindThemedBorderColor(s => BorderColorStyle.All(s.DialogFrame.Border));
         scrollHost.UsePresenter(_ => new VerticalScrollBarSyncController(scrollPane, vScrollBar));
 
         _errorView = DialogFrame.ErrorView();

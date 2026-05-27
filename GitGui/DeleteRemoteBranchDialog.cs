@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -27,16 +28,16 @@ public sealed class DeleteRemoteBranchDialog : MultiChildView, IDeleteRemoteBran
         var prompt = new TextView
         {
             Text = $"Delete '{branchName}' from remote '{remoteName}'?",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         var hint = new TextView
         {
             Text = "This is a network operation. Your local branches are not affected.",
-            TextColor = DialogPalette.RowTextMissing,
             TextWrap = TextWrap.Wrap,
         };
+        hint.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
 
         _errorView = DialogFrame.ErrorView();
 

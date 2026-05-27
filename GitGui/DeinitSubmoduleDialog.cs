@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Observable;
 
@@ -27,18 +28,18 @@ public sealed class DeinitSubmoduleDialog : MultiChildView, IDeinitSubmoduleView
         var prompt = new TextView
         {
             Text = $"Deinit and remove submodule '{submodule.DisplayName}'?",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         var detail = new TextView
         {
             Text = "Runs `git submodule deinit` followed by `git rm`. The submodule will " +
                    "be removed from the working tree and the deletion staged in the parent " +
                    "for your next commit.",
-            TextColor = DialogPalette.RowTextMissing,
             TextWrap = TextWrap.Wrap,
         };
+        detail.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
 
         _forceCheckbox = new CheckboxView("Deinit even if dirty")
         {

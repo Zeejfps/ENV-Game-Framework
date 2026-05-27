@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -27,31 +28,22 @@ public sealed class CreateBranchDialog : MultiChildView, ICreateBranchView
     {
         _onClose = onClose;
 
-        var nameLabel = new TextView
-        {
-            Text = "Branch name",
-            TextColor = DialogPalette.SectionHeaderText,
-        };
+        var nameLabel = new TextView { Text = "Branch name" };
+        nameLabel.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
 
         _nameInput = DialogFrame.TextInput();
         var nameBox = DialogFrame.WrapInput(_nameInput);
 
-        var startPointLabel = new TextView
-        {
-            Text = "Starting point",
-            TextColor = DialogPalette.SectionHeaderText,
-        };
+        var startPointLabel = new TextView { Text = "Starting point" };
+        startPointLabel.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
 
         _startPointInput = DialogFrame.TextInput();
         if (suggestedStartPoint.Length > 0)
             _startPointInput.Enter(suggestedStartPoint);
         var startPointBox = DialogFrame.WrapInput(_startPointInput);
 
-        var startPointHint = new TextView
-        {
-            Text = "Branch, tag, or commit SHA. Leave blank for HEAD.",
-            TextColor = DialogPalette.RowTextMissing,
-        };
+        var startPointHint = new TextView { Text = "Branch, tag, or commit SHA. Leave blank for HEAD." };
+        startPointHint.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
 
         _checkoutCheckbox = new CheckboxView("Check out after create")
         {

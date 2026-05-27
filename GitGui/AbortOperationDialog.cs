@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -32,9 +33,9 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
         var prompt = new TextView
         {
             Text = bodyText,
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         _errorView = DialogFrame.ErrorView();
 

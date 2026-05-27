@@ -22,10 +22,10 @@ public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
         var subtitle = new TextView
         {
             Text = "First push — choose a remote and set the upstream",
-            TextColor = DialogPalette.RowTextMissing,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        subtitle.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
 
         var branchRow = BuildLabeledRow("Branch:", BuildBranchChip(request.LocalBranch));
 
@@ -86,9 +86,9 @@ public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
         var labelText = new TextView
         {
             Text = label,
-            TextColor = DialogPalette.SectionHeaderText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        labelText.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
         var labelColumn = new FlexRowView
         {
             PreferredWidth = 110,
@@ -116,15 +116,16 @@ public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
             Text = LucideIcons.Branch,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 14,
-            TextColor = DialogPalette.BodyText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        icon.BindThemedTextColor(s => s.DialogBody.BodyText);
+
         var label = new TextView
         {
             Text = name,
-            TextColor = DialogPalette.TitleText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        label.BindThemedTextColor(s => s.DialogFrame.TitleText);
         return new FlexRowView
         {
             Gap = 6,
@@ -174,25 +175,29 @@ internal sealed class RemoteDropdown : HoverableButton
             Text = LucideIcons.Branch,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 14,
-            TextColor = DialogPalette.BodyText,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        icon.BindThemedTextColor(s => s.DialogBody.BodyText);
+
         _labelView = new TextView
         {
             Text = "(no remotes)",
-            TextColor = DialogPalette.RowTextMissing,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        _labelView.BindThemedTextColor(s => string.IsNullOrEmpty(SelectedState.Value)
+            ? s.DialogBody.RowTextMissing
+            : s.DialogFrame.TitleText);
+
         _chevron = new TextView
         {
             Text = LucideIcons.ChevronDown,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 12,
-            TextColor = DialogPalette.RowText,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
         };
+        _chevron.BindThemedTextColor(s => s.DialogBody.RowText);
 
         var row = new FlexRowView
         {
@@ -219,9 +224,6 @@ internal sealed class RemoteDropdown : HoverableButton
         SelectedState.Subscribe(s =>
         {
             _labelView.Text = string.IsNullOrEmpty(s) ? "(no remotes)" : s;
-            _labelView.TextColor = string.IsNullOrEmpty(s)
-                ? DialogPalette.RowTextMissing
-                : DialogPalette.TitleText;
         });
     }
 

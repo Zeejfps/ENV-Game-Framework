@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
@@ -33,16 +34,16 @@ public sealed class DeleteLocalBranchDialog : MultiChildView, IDeleteLocalBranch
         var prompt = new TextView
         {
             Text = $"Delete local branch '{branchName}'?",
-            TextColor = DialogPalette.BodyText,
             TextWrap = TextWrap.Wrap,
         };
+        prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         var hint = new TextView
         {
             Text = "Unchecked: refuses if the branch isn't fully merged into its upstream or HEAD.",
-            TextColor = DialogPalette.RowTextMissing,
             TextWrap = TextWrap.Wrap,
         };
+        hint.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
 
         _forceCheckbox = new CheckboxView("Delete even if not merged")
         {
