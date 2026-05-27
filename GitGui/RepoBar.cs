@@ -1,6 +1,7 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
+using ZGF.Gui.Tests;
 
 namespace GitGui;
 
@@ -24,26 +25,44 @@ internal sealed class RepoBar : MultiChildView, IBind<RepoBarViewModel>
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
         };
 
+        var scrollPane = new ScrollPane();
+        scrollPane.Children.Add(_sections);
+        scrollPane.UseController(_ => new ScrollPaneWheelController(scrollPane));
+
+        var vScrollBar = ScrollBars.CreateVertical();
+
+        var scrollArea = new FlexRowView
+        {
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
+            Children =
+            {
+                new FlexItem { Grow = 1, Child = scrollPane },
+                vScrollBar,
+            },
+        };
+
         var bar = new RectView
         {
             BorderSize = new BorderSizeStyle { Right = 1 },
-            Padding = new PaddingStyle
-            {
-                Left = HorizontalPadding,
-                Right = HorizontalPadding,
-                Top = HorizontalPadding,
-                Bottom = HorizontalPadding,
-            },
             Children =
             {
                 new FlexColumnView
                 {
-                    Gap = 6,
                     CrossAxisAlignment = CrossAxisAlignment.Stretch,
                     Children =
                     {
-                        new FlexItem { Grow = 1, Child = _sections },
-                        new AddRepoButton(),
+                        new FlexItem { Grow = 1, Child = scrollArea },
+                        new PaddingView
+                        {
+                            Padding = new PaddingStyle
+                            {
+                                Left = HorizontalPadding,
+                                Right = HorizontalPadding,
+                                Top = HorizontalPadding,
+                                Bottom = HorizontalPadding,
+                            },
+                            Children = { new AddRepoButton() },
+                        },
                     }
                 }
             }
@@ -53,6 +72,7 @@ internal sealed class RepoBar : MultiChildView, IBind<RepoBarViewModel>
         AddChildToSelf(bar);
 
         this.UseController(ctx => new RepoBarContextMenuController(ctx, _ => BuildBackgroundMenuItems()));
+        this.UseController(_ => new ScrollSyncController(scrollPane, vScrollBar));
         this.UseViewModel(this);
     }
 
