@@ -133,10 +133,8 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         vm.Staged.Subscribe(list => _stagedPanel.SetFiles(list));
         _selection.BindTo(vm.Selection);
         _diffView.Bind(vm.DiffVm);
-        vm.SelectedTarget.Subscribe(target =>
-            ApplyDiffVisibility(target != null, _diffView.IsCollapsed.Value));
-        _diffView.IsCollapsed.Subscribe(collapsed =>
-            ApplyDiffVisibility(vm.SelectedTarget.Value != null, collapsed));
+        _snapshotContainer.BindBottomVisible(() => vm.SelectedTarget.Value != null);
+        _snapshotContainer.BindBottomCollapsed(_diffView.IsCollapsed, DiffView.HeaderHeight);
 
         _discardButton.BindCommand(vm.Discard);
         _stageSelectedButton.BindCommand(vm.StageSelected);
@@ -149,12 +147,6 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             _submoduleSection.SetDrift(drift);
             _topHalf.North = drift.Count > 0 ? _submoduleSection : null;
         });
-    }
-
-    private void ApplyDiffVisibility(bool hasTarget, bool collapsed)
-    {
-        _snapshotContainer.BottomVisible = hasTarget;
-        _snapshotContainer.SetBottomCollapsed(hasTarget && collapsed, DiffView.HeaderHeight);
     }
 
     private void ShowPlaceholder(string text)

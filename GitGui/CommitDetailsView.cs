@@ -100,17 +100,9 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
         _vm = vm;
         vm.RenderState.Subscribe(SetRenderState);
         _diffView.Bind(vm.DiffVm);
-        vm.SelectedTarget.Subscribe(target =>
-            ApplyDiffVisibility(target != null, _diffView.IsCollapsed.Value));
-        vm.SelectedPath.Subscribe(p => _selectedPath.Value = p);
-        _diffView.IsCollapsed.Subscribe(collapsed =>
-            ApplyDiffVisibility(vm.SelectedTarget.Value != null, collapsed));
-    }
-
-    private void ApplyDiffVisibility(bool hasTarget, bool collapsed)
-    {
-        _splitContainer.BottomVisible = hasTarget;
-        _splitContainer.SetBottomCollapsed(hasTarget && collapsed, DiffView.HeaderHeight);
+        _selectedPath.BindTo(vm.SelectedPath);
+        _splitContainer.BindBottomVisible(() => vm.SelectedTarget.Value != null);
+        _splitContainer.BindBottomCollapsed(_diffView.IsCollapsed, DiffView.HeaderHeight);
     }
 
     private void SetRenderState(CommitDetailsRenderState state)

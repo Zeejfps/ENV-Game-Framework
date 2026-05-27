@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -55,6 +56,15 @@ internal sealed class VerticalSplitContainer : MultiChildView
         SyncBottomChildren();
         SetDirty();
     }
+
+    public void BindBottomVisible(IReadable<bool> source)
+        => source.Subscribe(v => BottomVisible = v);
+
+    public void BindBottomVisible(Func<bool> compute)
+        => new Derived<bool>(compute).Subscribe(v => BottomVisible = v);
+
+    public void BindBottomCollapsed(IReadable<bool> source, float collapsedHeight)
+        => source.Subscribe(c => SetBottomCollapsed(c, collapsedHeight));
 
     // Positive dy = mouse moved up (Y-up coords). Up = bigger bottom (diff grows), down =
     // smaller bottom. Clamped so neither side can collapse to zero.
