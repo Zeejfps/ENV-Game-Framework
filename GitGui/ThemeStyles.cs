@@ -30,7 +30,12 @@ public sealed record ThemeStyles(
     SeparatorSpacerStyles SeparatorSpacer,
     SidebarSplitterStyles SidebarSplitter,
     HistorySplitterStyles HistorySplitter,
-    ScrollBarStyles ScrollBar)
+    ScrollBarStyles ScrollBar,
+    LocalChangesViewStyles LocalChangesView,
+    TooltipStyles Tooltip,
+    CommitsTruncationBarStyles CommitsTruncationBar,
+    OperationBannerStyles OperationBanner,
+    OperationRowStyles OperationRow)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -207,7 +212,33 @@ public sealed record ThemeStyles(
             TrackBorder: 0xFF313338u,
             ThumbIdleBackground: 0xFF4A4D52u,
             ThumbHoverBackground: 0xFF6A6D72u,
-            ThumbBorder: 0xFF2A2C30u));
+            ThumbBorder: 0xFF2A2C30u),
+        LocalChangesView: new LocalChangesViewStyles(
+            Background: 0xFF1E1F22u),
+        Tooltip: new TooltipStyles(
+            Background: 0xFF2A2C30u,
+            Border: 0xFF313338u,
+            Text: 0xFFE6E6E6u,
+            Shadow: 0x80000000u),
+        CommitsTruncationBar: new CommitsTruncationBarStyles(
+            Background: 0xFF3D2E14u,
+            BorderTop: 0xFFB89050u,
+            Text: 0xFFE9C77Au),
+        OperationBanner: new OperationBannerStyles(
+            Background: 0xFF3D2E14u,
+            BorderBottom: 0xFFB89050u,
+            Text: 0xFFE9C77Au),
+        OperationRow: new OperationRowStyles(
+            IconText: 0xFFE6E6E6u,
+            LabelText: 0xFFE6E6E6u,
+            PhaseTextIdle: 0xFF7A7C81u,
+            ElapsedText: 0xFF7A7C81u,
+            BackgroundIdle: 0xFF2A2C30u,
+            BackgroundHover: 0xFF313338u,
+            SuccessBar: 0xFF4E8B3Du,
+            SuccessText: 0xFF7FB76Au,
+            FailureBar: 0xFFB3514Bu,
+            FailureText: 0xFFE9C77Au));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -384,7 +415,33 @@ public sealed record ThemeStyles(
             TrackBorder: 0xFFE5E7EBu,
             ThumbIdleBackground: 0xFFC1C5CBu,
             ThumbHoverBackground: 0xFF9CA3AFu,
-            ThumbBorder: 0xFFE5E7EBu));
+            ThumbBorder: 0xFFE5E7EBu),
+        LocalChangesView: new LocalChangesViewStyles(
+            Background: 0xFFFFFFFFu),
+        Tooltip: new TooltipStyles(
+            Background: 0xFF374151u,
+            Border: 0xFF1F2937u,
+            Text: 0xFFFFFFFFu,
+            Shadow: 0x40000000u),
+        CommitsTruncationBar: new CommitsTruncationBarStyles(
+            Background: 0xFFFEF3C7u,
+            BorderTop: 0xFFD97706u,
+            Text: 0xFF78350Fu),
+        OperationBanner: new OperationBannerStyles(
+            Background: 0xFFFEF3C7u,
+            BorderBottom: 0xFFD97706u,
+            Text: 0xFF78350Fu),
+        OperationRow: new OperationRowStyles(
+            IconText: 0xFF111827u,
+            LabelText: 0xFF111827u,
+            PhaseTextIdle: 0xFF6B7280u,
+            ElapsedText: 0xFF6B7280u,
+            BackgroundIdle: 0xFFF3F4F6u,
+            BackgroundHover: 0xFFE5E7EBu,
+            SuccessBar: 0xFF16A34Au,
+            SuccessText: 0xFF166534u,
+            FailureBar: 0xFFDC2626u,
+            FailureText: 0xFF7C2D12u));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -577,6 +634,37 @@ public sealed record ScrollBarStyles(
     uint ThumbIdleBackground,
     uint ThumbHoverBackground,
     uint ThumbBorder);
+
+public sealed record LocalChangesViewStyles(
+    uint Background);
+
+public sealed record TooltipStyles(
+    uint Background,
+    uint Border,
+    uint Text,
+    uint Shadow);
+
+public sealed record CommitsTruncationBarStyles(
+    uint Background,
+    uint BorderTop,
+    uint Text);
+
+public sealed record OperationBannerStyles(
+    uint Background,
+    uint BorderBottom,
+    uint Text);
+
+public sealed record OperationRowStyles(
+    uint IconText,
+    uint LabelText,
+    uint PhaseTextIdle,
+    uint ElapsedText,
+    uint BackgroundIdle,
+    uint BackgroundHover,
+    uint SuccessBar,
+    uint SuccessText,
+    uint FailureBar,
+    uint FailureText);
 
 public sealed record FileChangeRowStyles(
     uint RowText,

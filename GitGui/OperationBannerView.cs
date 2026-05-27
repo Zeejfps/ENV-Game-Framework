@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 
 namespace GitGui;
@@ -27,10 +28,10 @@ internal sealed class OperationBannerView : MultiChildView, IBind<OperationState
 
         _text = new TextView
         {
-            TextColor = CommitsPalette.WarningText,
             VerticalTextAlignment = TextAlignment.Center,
             TextWrap = TextWrap.Wrap,
         };
+        _text.BindThemedTextColor(s => s.OperationBanner.Text);
 
         _continueButton = new ActionButton(
             LucideIcons.ChevronsRight,
@@ -47,11 +48,11 @@ internal sealed class OperationBannerView : MultiChildView, IBind<OperationState
             Text = LucideIcons.Loader,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 16,
-            TextColor = CommitsPalette.WarningText,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             PreferredWidth = 20,
         };
+        _spinnerIcon.BindThemedTextColor(s => s.OperationBanner.Text);
 
         _textItem = new FlexItem { Grow = 1, Child = _text };
 
@@ -62,10 +63,8 @@ internal sealed class OperationBannerView : MultiChildView, IBind<OperationState
             Children = { _textItem, _abortButton },
         };
 
-        AddChildToSelf(new RectView
+        var banner = new RectView
         {
-            BackgroundColor = CommitsPalette.WarningBg,
-            BorderColor = new BorderColorStyle { Bottom = CommitsPalette.WarningBorder },
             BorderSize = new BorderSizeStyle { Bottom = 1 },
             Padding = new PaddingStyle
             {
@@ -75,7 +74,10 @@ internal sealed class OperationBannerView : MultiChildView, IBind<OperationState
                 Bottom = 6,
             },
             Children = { _row },
-        });
+        };
+        banner.BindThemedBackgroundColor(s => s.OperationBanner.Background);
+        banner.BindThemedBorderColor(s => new BorderColorStyle { Bottom = s.OperationBanner.BorderBottom });
+        AddChildToSelf(banner);
 
         this.UseViewModel(this);
     }

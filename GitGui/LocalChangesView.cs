@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 
 namespace GitGui;
@@ -13,9 +14,8 @@ internal sealed class LocalChangesView : MultiChildView, IBind<LocalChangesViewM
         _content = new LocalChangesContentView();
         _commitBar = new CommitBarView();
 
-        AddChildToSelf(new RectView
+        var bg = new RectView
         {
-            BackgroundColor = CommitsPalette.Background,
             Children =
             {
                 new BorderLayoutView
@@ -24,7 +24,9 @@ internal sealed class LocalChangesView : MultiChildView, IBind<LocalChangesViewM
                     South = _commitBar,
                 },
             },
-        });
+        };
+        bg.BindThemedBackgroundColor(s => s.LocalChangesView.Background);
+        AddChildToSelf(bg);
 
         this.UseViewModel(this);
     }
