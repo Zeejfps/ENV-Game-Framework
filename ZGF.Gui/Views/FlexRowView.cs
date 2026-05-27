@@ -117,6 +117,19 @@ public sealed class FlexRowView : MultiChildView
 
         var currentLeft = position.Left + leftOffset;
 
+        // Two-phase layout: set constraints + LayoutSelf for non-flex (Grow=0) children
+        // first, then LayoutSelf for flex children. Reason: flex children's LayoutSelf can
+        // have side effects that mutate sibling measurables (e.g. a ScrollPane firing a
+        // scroll-position-changed event whose handler sets a sibling scrollbar's
+        // PreferredWidth). Doing those side effects AFTER the non-flex siblings have been
+        // laid out leaves the resulting SetDirty intact on those siblings, so the next
+        // frame's layout pass re-runs with the new measure. If we instead laid them out
+        // in DOM order with the flex child first, its mid-pass mutation would corrupt the
+        // measures that drove the non-flex sibling's about-to-be-applied LeftConstraint /
+        // WidthConstraint, and the dirty flag would then be consumed by the same pass's
+        // LayoutSelf — stranding the sibling at the wrong position.
+        List<View>? deferredFlexChildren = null;
+
         foreach (var child in children)
         {
             if (!child.IsVisible) continue;
@@ -134,7 +147,7 @@ public sealed class FlexRowView : MultiChildView
                 finalChildWidth += (grow / totalFlexGrow) * remainingSpace;
                 if (finalChildWidth < 0) finalChildWidth = 0;
             }
-            
+
             var crossxisAlignment = CrossAxisAlignment;
 
             // Calculate final height and vertical position
@@ -170,9 +183,23 @@ public sealed class FlexRowView : MultiChildView
             child.BottomConstraint = childBottom;
             child.WidthConstraint = finalChildWidth;
             child.HeightConstraint = finalChildHeight;
-            child.LayoutSelf();
-            
+
+            if (grow > 0)
+            {
+                (deferredFlexChildren ??= new List<View>()).Add(child);
+            }
+            else
+            {
+                child.LayoutSelf();
+            }
+
             currentLeft += finalChildWidth + Gap + interItemSpacing;
+        }
+
+        if (deferredFlexChildren != null)
+        {
+            foreach (var flexChild in deferredFlexChildren)
+                flexChild.LayoutSelf();
         }
     }
 }

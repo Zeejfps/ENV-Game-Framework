@@ -96,6 +96,14 @@ public sealed class FlexColumnView : MultiChildView
 
         var currentTop = position.Top - topOffset;
 
+        // Two-phase layout: lay out non-flex (Grow=0) children before flex ones. See the
+        // matching comment in FlexRowView for the full rationale — short version: flex
+        // children's LayoutSelf can mutate sibling measurables (e.g. a ScrollPane firing
+        // scroll events that set a sibling scrollbar's PreferredHeight). Deferring those
+        // side effects until after non-flex children are laid out lets the resulting
+        // SetDirty trigger a clean re-layout on the next frame.
+        List<View>? deferredFlexChildren = null;
+
         foreach (var child in children)
         {
             if (!child.IsVisible) continue;
@@ -145,9 +153,23 @@ public sealed class FlexColumnView : MultiChildView
             child.BottomConstraint = currentTop - finalChildHeight;
             child.WidthConstraint = finalChildWidth;
             child.HeightConstraint = finalChildHeight;
-            child.LayoutSelf();
+
+            if (grow > 0)
+            {
+                (deferredFlexChildren ??= new List<View>()).Add(child);
+            }
+            else
+            {
+                child.LayoutSelf();
+            }
 
             currentTop -= finalChildHeight + Gap + interItemSpacing;
+        }
+
+        if (deferredFlexChildren != null)
+        {
+            foreach (var flexChild in deferredFlexChildren)
+                flexChild.LayoutSelf();
         }
     }
 }
