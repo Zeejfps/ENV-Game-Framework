@@ -16,7 +16,7 @@ public sealed class DiffViewModel : IDisposable
     private const string EmptyPlaceholder = "Select a file to view diff.";
     private const string LoadingPlaceholder = "Loading…";
 
-    private readonly IReadable<DiffTarget?> _target;
+    private IReadable<DiffTarget?>? _target;
     private readonly IRepoRegistry _registry;
     private readonly IGitService _gitService;
     private readonly IUiDispatcher _dispatcher;
@@ -25,31 +25,35 @@ public sealed class DiffViewModel : IDisposable
     private readonly State<DiffRenderState> _renderState =
         new(new DiffRenderState.Placeholder(EmptyPlaceholder));
     private readonly State<string?> _opError = new(null);
-    private readonly IDisposable _targetSubscription;
+    private IDisposable? _targetSubscription;
     private readonly IDisposable _workingTreeSubscription;
 
     public IReadable<DiffRenderState> RenderState => _renderState;
     public IReadable<string?> OpError => _opError;
 
     public DiffViewModel(
-        IReadable<DiffTarget?> target,
         IRepoRegistry registry,
         IGitService gitService,
         IUiDispatcher dispatcher,
         IMessageBus bus)
     {
-        _target = target;
         _registry = registry;
         _gitService = gitService;
         _dispatcher = dispatcher;
         _bus = bus;
-        _targetSubscription = _target.Subscribe(_ => StartLoad());
         _workingTreeSubscription = _bus.SubscribeScoped<WorkingTreeChangedMessage>(OnWorkingTreeChanged);
+    }
+
+    public void BindTarget(IReadable<DiffTarget?> target)
+    {
+        _targetSubscription?.Dispose();
+        _target = target;
+        _targetSubscription = target.Subscribe(_ => StartLoad());
     }
 
     private void OnWorkingTreeChanged(WorkingTreeChangedMessage msg)
     {
-        if (_target.Value == null) return;
+        if (_target?.Value == null) return;
         var active = _registry.Active.Value;
         if (active == null || active.Id != msg.RepoId) return;
         StartLoad();
@@ -58,7 +62,7 @@ public sealed class DiffViewModel : IDisposable
     public void Dispose()
     {
         _loadGen.Bump();
-        _targetSubscription.Dispose();
+        _targetSubscription?.Dispose();
         _workingTreeSubscription.Dispose();
         _renderState.Dispose();
         _opError.Dispose();
@@ -154,7 +158,7 @@ public sealed class DiffViewModel : IDisposable
     private void StartLoad()
     {
         var gen = _loadGen.Bump();
-        var target = _target.Value;
+        var target = _target?.Value;
 
         if (target == null)
         {

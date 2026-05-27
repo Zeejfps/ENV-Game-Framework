@@ -104,11 +104,9 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
     {
         _vm = vm;
         vm.RenderState.Subscribe(SetRenderState);
+        _diffView.Target = vm.SelectedTarget;
         vm.SelectedTarget.Subscribe(target =>
-        {
-            _diffView.SetTarget(target?.Path, target?.Side ?? DiffSide.Commit, target?.CommitSha);
-            ApplyDiffVisibility(target != null, _diffView.IsCollapsed.Value);
-        });
+            ApplyDiffVisibility(target != null, _diffView.IsCollapsed.Value));
         vm.SelectedPath.Subscribe(p => _selectedPath.Value = p);
         _diffView.IsCollapsed.Subscribe(collapsed =>
             ApplyDiffVisibility(vm.SelectedTarget.Value != null, collapsed));

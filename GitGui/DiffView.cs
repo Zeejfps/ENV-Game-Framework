@@ -7,7 +7,8 @@ namespace GitGui;
 
 /// <summary>
 /// Diff panel shown below the file lists in Local Changes whenever exactly one file is
-/// selected. <see cref="SetTarget"/> drives the load; the panel renders banners, hunk
+/// selected. Assign <see cref="Target"/> to wire the panel to an <see cref="IReadable{T}"/>
+/// of <see cref="DiffTarget"/> — the VM subscribes directly and renders banners, hunk
 /// separators, and per-line gutter+glyph+text rows for the resulting <see cref="DiffResult"/>.
 /// </summary>
 /// <remarks>
@@ -24,10 +25,11 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
     // chevron stays clickable even when the body is hidden.
     public const float HeaderHeight = 24f;
 
-    private readonly State<DiffTarget?> _target = new(null);
     private readonly State<bool> _isCollapsed = new(false);
 
     private readonly DiffContentView _content;
+    private DiffViewModel? _vm;
+    private IReadable<DiffTarget?>? _pendingTarget;
 
     public DiffView()
     {
@@ -60,26 +62,24 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
         });
 
         this.UseController(_ => new ScrollSyncController(_content, vScrollBar, hScrollBar));
-        this.UseViewModel(
-            ctx => new DiffViewModel(
-                _target,
-                ctx.Require<IRepoRegistry>(),
-                ctx.Require<IGitService>(),
-                ctx.Require<IUiDispatcher>(),
-                ctx.Require<IMessageBus>()),
-            Bind);
+        this.UseViewModel(this);
     }
 
-    public IReadable<DiffTarget?> Target => _target;
     public IReadable<bool> IsCollapsed => _isCollapsed;
 
-    public void SetTarget(string? path, DiffSide side, string? commitSha = null)
+    public IReadable<DiffTarget?> Target
     {
-        _target.Value = path == null ? null : new DiffTarget(path, side, commitSha);
+        set
+        {
+            if (_vm != null) _vm.BindTarget(value);
+            else _pendingTarget = value;
+        }
     }
 
     public void Bind(DiffViewModel vm)
     {
+        _vm = vm;
+        if (_pendingTarget != null) vm.BindTarget(_pendingTarget);
         vm.RenderState.Subscribe(_content.SetRenderState);
         _content.OnStageHunk = vm.StageHunk;
         _content.OnUnstageHunk = vm.UnstageHunk;
