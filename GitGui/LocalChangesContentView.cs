@@ -78,19 +78,13 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             onStage: path => _vm?.StageSubmodulePointer(path),
             onReset: path => _vm?.ResetSubmoduleToRecorded(path));
 
-        _diffView = new DiffView();
-
-        // Initial 1:2 split (files : diff). The container tracks the split as a fraction
-        // of available height so window resizes scale both halves; the user can drag the
-        // splitter to pick a different ratio, which then stays fractional across resizes.
+        _diffView = new DiffView(); 
+        
         var splitterHovered = new State<bool>(false);
         var splitter = new RectView();
         splitter.BindBackgroundColor(splitterHovered,
             h => h ? CommitsPalette.DividerHoverBg : CommitsPalette.Border);
-
-        // Top half of the split: optional submodule drift section (North, populated only
-        // when there's drift) over the two file panels. North = null hides the section so
-        // the layout collapses and the panels reclaim the full space.
+        
         _topHalf = new BorderLayoutView
         {
             Center = BuildContentRow(),
