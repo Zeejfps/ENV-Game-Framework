@@ -75,7 +75,7 @@ public sealed class DialogButton : HoverableButton
             Children = { _row },
         };
         // Hover styling only when enabled — a disabled button shouldn't react to the pointer.
-        DialogPalette.BindBorderedButtonChrome(background,
+        BorderedButtonChrome.Bind(background,
             () => IsEnabled.Value && IsHovered.Value);
         SetBackground(background);
     }

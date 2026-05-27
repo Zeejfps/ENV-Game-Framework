@@ -1,5 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 using ZGF.Gui.Tests;
 
@@ -26,11 +27,14 @@ public static class RepoBarContextMenu
 
         var menu = new ContextMenu
         {
-            BackgroundColor = DialogPalette.Background,
-            BorderColor = BorderColorStyle.All(DialogPalette.Border),
             BorderSize = BorderSizeStyle.All(1),
             Padding = PaddingStyle.All(4),
         };
+        menu.BindThemed(s =>
+        {
+            menu.BackgroundColor = s.ContextMenu.Background;
+            menu.BorderColor = BorderColorStyle.All(s.ContextMenu.Border);
+        });
 
         foreach (var item in items)
         {
@@ -40,11 +44,14 @@ public static class RepoBarContextMenu
                 Icon = item.Icon,
                 IconFontFamily = LucideIcons.FontFamily,
                 NormalBackgroundColor = 0x00000000,
-                SelectedBackgroundColor = DialogPalette.RowHover,
-                TextColor = DialogPalette.RowText,
-                DisabledTextColor = DialogPalette.RowTextMissing,
                 IsEnabled = item.Enabled,
             };
+            menuItem.BindThemed(s =>
+            {
+                menuItem.SelectedBackgroundColor = s.ContextMenu.ItemSelectedBackground;
+                menuItem.TextColor = s.ContextMenu.ItemText;
+                menuItem.DisabledTextColor = s.ContextMenu.ItemTextDisabled;
+            });
 
             if (item.LabelSegments is { Count: > 0 } segs)
                 menuItem.SetLabelView(BuildSegmentsView(segs, item.Enabled));
@@ -82,9 +89,13 @@ public static class RepoBarContextMenu
                 VerticalTextAlignment = TextAlignment.Center,
             };
             if (seg.Color.HasValue && enabled)
+            {
                 tv.TextColor = seg.Color.Value;
+            }
             else
-                tv.TextColor = enabled ? DialogPalette.RowText : DialogPalette.RowTextMissing;
+            {
+                tv.BindThemedTextColor(s => enabled ? s.ContextMenu.ItemText : s.ContextMenu.ItemTextDisabled);
+            }
             if (seg.Bold && enabled)
                 tv.FontWeight = FontWeight.Bold;
             row.Children.Add(tv);

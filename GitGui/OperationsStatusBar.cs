@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 
 namespace GitGui;
@@ -24,27 +25,25 @@ internal sealed class OperationsStatusBar
 
         _logText = new TextView
         {
-            TextColor = Theme.TextRow,
             FontFamily = DiffOptions.MonoFontFamily,
             FontSize = 11,
             TextWrap = TextWrap.Wrap,
             VerticalTextAlignment = TextAlignment.Start,
         };
+        _logText.BindThemedTextColor(s => s.OperationsStatusBar.LogText);
 
         _logPanel = new RectView
         {
-            BackgroundColor = Theme.BgDeep,
-            BorderColor = new BorderColorStyle { Bottom = Theme.Border },
             BorderSize = new BorderSizeStyle { Bottom = 1 },
             Padding = new PaddingStyle { Left = 12, Right = 12, Top = 6, Bottom = 6 },
             PreferredHeight = 160f,
             Children = { _logText },
         };
+        _logPanel.BindThemedBackgroundColor(s => s.OperationsStatusBar.LogBackground);
+        _logPanel.BindThemedBorderColor(s => new BorderColorStyle { Bottom = s.OperationsStatusBar.LogBorder });
 
         View = new RectView
         {
-            BackgroundColor = Theme.BgHeader,
-            BorderColor = new BorderColorStyle { Top = Theme.Border },
             BorderSize = new BorderSizeStyle { Top = 1 },
             Children =
             {
@@ -55,6 +54,8 @@ internal sealed class OperationsStatusBar
                 },
             },
         };
+        View.BindThemedBackgroundColor(s => s.OperationsStatusBar.ContainerBackground);
+        View.BindThemedBorderColor(s => new BorderColorStyle { Top = s.OperationsStatusBar.ContainerBorder });
     }
 
     public bool IsVisible => _container.Children.Contains(View);

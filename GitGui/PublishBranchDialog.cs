@@ -218,7 +218,7 @@ internal sealed class RemoteDropdown : HoverableButton
             Padding = new PaddingStyle { Left = 8, Right = 8, Top = 4, Bottom = 4 },
             Children = { row },
         };
-        DialogPalette.BindBorderedButtonChrome(background, IsHovered);
+        BorderedButtonChrome.Bind(background, IsHovered);
         SetBackground(background);
 
         SelectedState.Subscribe(s =>

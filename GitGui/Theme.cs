@@ -1,11 +1,10 @@
 namespace GitGui;
 
 /// <summary>
-/// Foundation colors shared across the per-area palettes. Per-area palettes
-/// (<see cref="CommitsPalette"/>, <see cref="DialogPalette"/>, etc.) still own
-/// names with semantic meaning ("HeaderBg", "RowText"); they reference these
-/// constants for the values that genuinely belong to the whole app, so a brand-wide
-/// adjustment changes one number.
+/// Foundation colors referenced by the few remaining static palettes that haven't
+/// been migrated to <see cref="ThemeStyles"/> yet (<see cref="CommitsPalette"/>,
+/// <see cref="FileChangesPalette"/>). New code should prefer themed bindings against
+/// <c>ThemeStyles</c> directly so theme toggles take effect without rebuilding views.
 /// </summary>
 internal static class Theme
 {

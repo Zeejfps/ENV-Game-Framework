@@ -23,7 +23,7 @@ public sealed class AddRepoButton : HoverableButton
             BorderRadius = BorderRadiusStyle.All(6),
             Children = { label }
         };
-        DialogPalette.BindBorderedButtonChrome(background, IsHovered);
+        BorderedButtonChrome.Bind(background, IsHovered);
         SetBackground(background);
     }
 

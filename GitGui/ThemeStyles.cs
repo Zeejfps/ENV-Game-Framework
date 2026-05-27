@@ -38,7 +38,10 @@ public sealed record ThemeStyles(
     OperationRowStyles OperationRow,
     CommitDetailsViewStyles CommitDetailsView,
     DialogBodyStyles DialogBody,
-    BranchPreviewStyles BranchPreview)
+    BranchPreviewStyles BranchPreview,
+    ContextMenuStyles ContextMenu,
+    DragOverlayStyles DragOverlay,
+    OperationsStatusBarStyles OperationsStatusBar)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -261,7 +264,21 @@ public sealed record ThemeStyles(
             RowTextMissing: 0x80B5B9C0u),
         BranchPreview: new BranchPreviewStyles(
             Clean: 0xFF9DD17Bu,
-            Conflict: 0xFFE6A85Cu));
+            Conflict: 0xFFE6A85Cu),
+        ContextMenu: new ContextMenuStyles(
+            Background: 0xFF1E1F22u,
+            Border: 0xFF313338u,
+            ItemSelectedBackground: 0xFF2B2D31u,
+            ItemText: 0xFFB5B9C0u,
+            ItemTextDisabled: 0x80B5B9C0u),
+        DragOverlay: new DragOverlayStyles(
+            IndicatorColor: 0xFF5865F2u),
+        OperationsStatusBar: new OperationsStatusBarStyles(
+            ContainerBackground: 0xFF2A2C30u,
+            ContainerBorder: 0xFF313338u,
+            LogBackground: 0xFF1A1B1Eu,
+            LogBorder: 0xFF313338u,
+            LogText: 0xFFB5B9C0u));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -484,7 +501,21 @@ public sealed record ThemeStyles(
             RowTextMissing: 0x80374151u),
         BranchPreview: new BranchPreviewStyles(
             Clean: 0xFF16A34Au,
-            Conflict: 0xFFEA580Cu));
+            Conflict: 0xFFEA580Cu),
+        ContextMenu: new ContextMenuStyles(
+            Background: 0xFFFFFFFFu,
+            Border: 0xFFE5E7EBu,
+            ItemSelectedBackground: 0xFFF3F4F6u,
+            ItemText: 0xFF374151u,
+            ItemTextDisabled: 0x80374151u),
+        DragOverlay: new DragOverlayStyles(
+            IndicatorColor: 0xFF4F46E5u),
+        OperationsStatusBar: new OperationsStatusBarStyles(
+            ContainerBackground: 0xFFF3F4F6u,
+            ContainerBorder: 0xFFE5E7EBu,
+            LogBackground: 0xFFF9FAFBu,
+            LogBorder: 0xFFE5E7EBu,
+            LogText: 0xFF374151u));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -731,6 +762,23 @@ public sealed record DialogBodyStyles(
 public sealed record BranchPreviewStyles(
     uint Clean,
     uint Conflict);
+
+public sealed record ContextMenuStyles(
+    uint Background,
+    uint Border,
+    uint ItemSelectedBackground,
+    uint ItemText,
+    uint ItemTextDisabled);
+
+public sealed record DragOverlayStyles(
+    uint IndicatorColor);
+
+public sealed record OperationsStatusBarStyles(
+    uint ContainerBackground,
+    uint ContainerBorder,
+    uint LogBackground,
+    uint LogBorder,
+    uint LogText);
 
 public sealed record FileChangeRowStyles(
     uint RowText,
