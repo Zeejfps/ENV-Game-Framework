@@ -38,6 +38,12 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
+    private readonly TextStyle _headTextSelectedStyle = new()
+    {
+        FontWeight = FontWeight.Bold,
+        VerticalAlignment = TextAlignment.Center,
+        HorizontalAlignment = TextAlignment.Start,
+    };
     private readonly TextStyle _headerTextStyle = TextStyles.Row(0u);
     private readonly TextStyle _chevronStyle = new()
     {
@@ -94,7 +100,8 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
             _branchTextSelectedStyle.TextColor = _styles.RowTextActive;
             _branchTextBusyStyle.TextColor = _styles.RowTextDim;
             _branchIconBusyStyle.TextColor = _styles.RowTextDim;
-            _headTextStyle.TextColor = _styles.RowTextActive;
+            _headTextStyle.TextColor = _styles.HeadIdleText;
+            _headTextSelectedStyle.TextColor = _styles.RowTextActive;
             _headerTextStyle.TextColor = _styles.SectionHeaderText;
             _chevronStyle.TextColor = _styles.SectionHeaderText;
             _placeholderStyle.TextColor = _styles.SectionHeaderText;
@@ -290,7 +297,7 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
             BranchRowKind.LocalHeader or BranchRowKind.RemotesHeader or BranchRowKind.RemoteHeader or BranchRowKind.StashesHeader => (row.DisplayName, _headerTextStyle),
             BranchRowKind.LocalBranch when isBusy => (row.DisplayName, _branchTextBusyStyle),
             BranchRowKind.LocalBranch when isCheckedOutElsewhere => (row.DisplayName, _branchTextBusyStyle),
-            BranchRowKind.LocalBranch when row.IsHead => (row.DisplayName, _headTextStyle),
+            BranchRowKind.LocalBranch when row.IsHead => (row.DisplayName, isSelected ? _headTextSelectedStyle : _headTextStyle),
             _ => (row.DisplayName, isSelected ? _branchTextSelectedStyle : _branchTextStyle),
         };
     }
