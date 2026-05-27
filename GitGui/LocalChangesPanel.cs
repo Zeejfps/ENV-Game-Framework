@@ -251,7 +251,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         c.DrawText(new DrawTextInputs
         {
             Position = new RectF(badgeLeft, badgeBottom, badgeSize, badgeSize),
-            Text = FileChangesPalette.StatusGlyph(file.Status),
+            Text = FileChangeFormatting.StatusGlyph(file.Status),
             Style = _badgeGlyphStyle,
             ZIndex = z + 2,
         });
@@ -262,7 +262,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         if (textWidth <= 0f) return;
 
         var pathStyle = isSelected ? _pathTextActiveStyle : _pathTextStyle;
-        var pathText = FileChangesPalette.FormatPath(file);
+        var pathText = FileChangeFormatting.FormatPath(file);
         var rendered = TextMeasure.TruncateToFit(pathText, pathStyle, textWidth, Context.Canvas);
         c.DrawText(new DrawTextInputs
         {

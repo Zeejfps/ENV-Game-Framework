@@ -60,7 +60,7 @@ internal static class FileChangesUI
         var status = file.Status;
         var glyph = new TextView
         {
-            Text = FileChangesPalette.StatusGlyph(status),
+            Text = FileChangeFormatting.StatusGlyph(status),
             FontSize = 11f,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
