@@ -127,7 +127,8 @@ public sealed record ThemeStyles(
         GroupHeaderRow: new GroupHeaderRowStyles(
             ChevronText: 0xFF96989Du,
             BackgroundIdle: 0x00000000u,
-            BackgroundHover: 0xFF2B2D31u),
+            BackgroundHover: 0xFF2B2D31u,
+            NameText: 0xFF96989Du),
         GroupRenameField: new GroupRenameFieldStyles(
             Background: 0xFF2B2D31u,
             Border: 0xFF5865F2u,
@@ -296,7 +297,8 @@ public sealed record ThemeStyles(
         GroupHeaderRow: new GroupHeaderRowStyles(
             ChevronText: 0xFF6B7280u,
             BackgroundIdle: 0x00000000u,
-            BackgroundHover: 0xFFF3F4F6u),
+            BackgroundHover: 0xFFF3F4F6u,
+            NameText: 0xFF6B7280u),
         GroupRenameField: new GroupRenameFieldStyles(
             Background: 0xFFFFFFFFu,
             Border: 0xFF4F46E5u,
@@ -467,7 +469,8 @@ public sealed record AddRepoButtonStyles(
 public sealed record GroupHeaderRowStyles(
     uint ChevronText,
     uint BackgroundIdle,
-    uint BackgroundHover);
+    uint BackgroundHover,
+    uint NameText);
 
 public sealed record GroupRenameFieldStyles(
     uint Background,
