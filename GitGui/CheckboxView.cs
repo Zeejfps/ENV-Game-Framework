@@ -20,14 +20,14 @@ public sealed class CheckboxView : HoverableButton
             VerticalTextAlignment = TextAlignment.Center,
         };
         iconView.BindText(IsChecked, c => c ? LucideIcons.CheckSquare : LucideIcons.Square);
-        iconView.BindTextColor(ComputeForeground);
+        iconView.BindThemedTextColor(SelectForeground);
 
         var labelView = new TextView
         {
             Text = label,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        labelView.BindTextColor(ComputeForeground);
+        labelView.BindThemedTextColor(SelectForeground);
 
         SetBackground(new FlexRowView
         {
@@ -39,9 +39,9 @@ public sealed class CheckboxView : HoverableButton
 
     protected override void OnClicked() => IsChecked.Value = !IsChecked.Value;
 
-    private uint ComputeForeground()
+    private uint SelectForeground(ThemeStyles s)
     {
-        if (!IsEnabled.Value) return DialogPalette.RowTextMissing;
-        return IsHovered.Value ? DialogPalette.RowTextActive : DialogPalette.RowText;
+        if (!IsEnabled.Value) return s.Checkbox.TextDisabled;
+        return IsHovered.Value ? s.Checkbox.TextHover : s.Checkbox.TextIdle;
     }
 }

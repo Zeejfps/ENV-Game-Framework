@@ -9,7 +9,9 @@ public sealed record ThemeStyles(
     DialogFrameStyles DialogFrame,
     DialogTextInputStyles DialogTextInput,
     BorderedButtonStyles BorderedButton,
-    DialogIconButtonStyles DialogIconButton)
+    DialogIconButtonStyles DialogIconButton,
+    ActionButtonStyles ActionButton,
+    CheckboxStyles Checkbox)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -70,7 +72,17 @@ public sealed record ThemeStyles(
             BackgroundIdle: 0x00000000u,
             BackgroundHover: 0xFF3A3D43u,
             TextIdle: 0xFFB5B9C0u,
-            TextHover: 0xFFFFFFFFu));
+            TextHover: 0xFFFFFFFFu),
+        ActionButton: new ActionButtonStyles(
+            BackgroundIdle: 0x00000000u,
+            BackgroundHover: 0xFF3A3D43u,
+            TextIdle: 0xFFB5B9C0u,
+            TextHover: 0xFFFFFFFFu,
+            TextDisabled: 0x80B5B9C0u),
+        Checkbox: new CheckboxStyles(
+            TextIdle: 0xFFB5B9C0u,
+            TextHover: 0xFFFFFFFFu,
+            TextDisabled: 0x80B5B9C0u));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -131,7 +143,17 @@ public sealed record ThemeStyles(
             BackgroundIdle: 0x00000000u,
             BackgroundHover: 0xFFE5E7EBu,
             TextIdle: 0xFF6B7280u,
-            TextHover: 0xFF111827u));
+            TextHover: 0xFF111827u),
+        ActionButton: new ActionButtonStyles(
+            BackgroundIdle: 0x00000000u,
+            BackgroundHover: 0xFFE5E7EBu,
+            TextIdle: 0xFF6B7280u,
+            TextHover: 0xFF111827u,
+            TextDisabled: 0x80374151u),
+        Checkbox: new CheckboxStyles(
+            TextIdle: 0xFF374151u,
+            TextHover: 0xFF111827u,
+            TextDisabled: 0x80374151u));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -187,6 +209,18 @@ public sealed record DialogIconButtonStyles(
     uint BackgroundHover,
     uint TextIdle,
     uint TextHover);
+
+public sealed record ActionButtonStyles(
+    uint BackgroundIdle,
+    uint BackgroundHover,
+    uint TextIdle,
+    uint TextHover,
+    uint TextDisabled);
+
+public sealed record CheckboxStyles(
+    uint TextIdle,
+    uint TextHover,
+    uint TextDisabled);
 
 public sealed record FileChangeRowStyles(
     uint RowText,

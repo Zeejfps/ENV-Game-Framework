@@ -33,7 +33,7 @@ public sealed class ActionButton : HoverableButton
             VerticalTextAlignment = TextAlignment.Center,
         };
         iconView.BindText(Icon);
-        iconView.BindTextColor(ComputeForeground);
+        iconView.BindThemedTextColor(SelectForeground);
         iconView.BindRotation(IconRotation);
 
         var countIconGroup = new RowView { Gap = 0, Children = { iconView } };
@@ -61,7 +61,7 @@ public sealed class ActionButton : HoverableButton
                 VerticalTextAlignment = TextAlignment.Center,
             };
             labelView.BindText(Label);
-            labelView.BindTextColor(ComputeLabelForeground);
+            labelView.BindThemedTextColor(SelectLabelForeground);
             row.Children.Add(labelView);
         }
 
@@ -78,32 +78,32 @@ public sealed class ActionButton : HoverableButton
                 }
             }
         };
-        background.BindBackgroundColor(ComputeBackground);
+        background.BindThemedBackgroundColor(SelectBackground);
         SetBackground(background);
     }
 
-    private uint ComputeBackground()
+    private uint SelectBackground(ThemeStyles s)
     {
         if (_backgroundColor is uint bg)
         {
             if (!IsEnabled) return Darken(bg, 0x40);
             return IsHovered ? Lighten(bg, 0x18) : bg;
         }
-        return IsEnabled && IsHovered ? DialogPalette.ButtonHover : 0x00000000u;
+        return IsEnabled && IsHovered ? s.ActionButton.BackgroundHover : s.ActionButton.BackgroundIdle;
     }
 
-    private uint ComputeForeground()
+    private uint SelectForeground(ThemeStyles s)
     {
-        if (!IsEnabled) return DialogPalette.RowTextMissing;
+        if (!IsEnabled) return s.ActionButton.TextDisabled;
         if (Badge.Value is > 0 && _badgeColor is uint c) return c;
         if (_iconColor is uint ic) return ic;
-        return IsHovered ? 0xFFFFFFFFu : DialogPalette.RowText;
+        return IsHovered ? s.ActionButton.TextHover : s.ActionButton.TextIdle;
     }
 
-    private uint ComputeLabelForeground()
+    private uint SelectLabelForeground(ThemeStyles s)
     {
-        if (!IsEnabled) return DialogPalette.RowTextMissing;
-        return IsHovered ? 0xFFFFFFFFu : DialogPalette.RowText;
+        if (!IsEnabled) return s.ActionButton.TextDisabled;
+        return IsHovered ? s.ActionButton.TextHover : s.ActionButton.TextIdle;
     }
 
     private static uint Lighten(uint argb, uint delta)
