@@ -5,7 +5,9 @@ public sealed record ThemeStyles(
     LocalChangesContentStyles LocalChangesContent,
     SubmoduleSectionStyles SubmoduleSection,
     FileChangesSectionStyles FileChangesSection,
-    FileChangeRowStyles FileChangeRow)
+    FileChangeRowStyles FileChangeRow,
+    DialogFrameStyles DialogFrame,
+    DialogTextInputStyles DialogTextInput)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -41,7 +43,20 @@ public sealed record ThemeStyles(
             StatusRenamed: 0xFF5DADE2u,
             StatusConflicted: 0xFFED4245u,
             StatusSubmodule: 0xFFB57EDCu,
-            StatusOther: 0xFF9B59B6u));
+            StatusOther: 0xFF9B59B6u),
+        DialogFrame: new DialogFrameStyles(
+            Background: 0xFF1E1F22u,
+            Border: 0xFF313338u,
+            TitleText: 0xFFE6E6E6u,
+            HeaderSeparator: 0xFF2A2C30u,
+            ErrorText: 0xFFE06C75u),
+        DialogTextInput: new DialogTextInputStyles(
+            Background: 0xFF2B2D31u,
+            Border: 0xFF3E4047u,
+            Text: 0xFFE6E6E6u,
+            Caret: 0xFFE6E6E6u,
+            Selection: 0xFF404C8Cu,
+            PlaceholderText: 0x80B5B9C0u));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -77,7 +92,20 @@ public sealed record ThemeStyles(
             StatusRenamed: 0xFF2563EBu,
             StatusConflicted: 0xFFDC2626u,
             StatusSubmodule: 0xFFA855F7u,
-            StatusOther: 0xFF7C3AEDu));
+            StatusOther: 0xFF7C3AEDu),
+        DialogFrame: new DialogFrameStyles(
+            Background: 0xFFFFFFFFu,
+            Border: 0xFFE5E7EBu,
+            TitleText: 0xFF111827u,
+            HeaderSeparator: 0xFFE5E7EBu,
+            ErrorText: 0xFFDC2626u),
+        DialogTextInput: new DialogTextInputStyles(
+            Background: 0xFFFFFFFFu,
+            Border: 0xFFD1D5DBu,
+            Text: 0xFF111827u,
+            Caret: 0xFF111827u,
+            Selection: 0xFFCBD5E1u,
+            PlaceholderText: 0x806B7280u));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -104,6 +132,21 @@ public sealed record FileChangesSectionStyles(
     uint HeaderBorder,
     uint HeaderText,
     uint EmptyPlaceholderText);
+
+public sealed record DialogFrameStyles(
+    uint Background,
+    uint Border,
+    uint TitleText,
+    uint HeaderSeparator,
+    uint ErrorText);
+
+public sealed record DialogTextInputStyles(
+    uint Background,
+    uint Border,
+    uint Text,
+    uint Caret,
+    uint Selection,
+    uint PlaceholderText);
 
 public sealed record FileChangeRowStyles(
     uint RowText,
