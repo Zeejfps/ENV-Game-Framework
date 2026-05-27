@@ -15,5 +15,8 @@ internal static class ThemedBindings
     {
         public void BindThemedBackgroundColor(Func<ThemeStyles, uint> select) =>
             view.BindThemedBackgroundColor<ThemeStyles>(select);
+
+        public void BindThemedBorderColor(Func<ThemeStyles, BorderColorStyle> select) =>
+            view.BindThemedBorderColor<ThemeStyles>(select);
     }
 }

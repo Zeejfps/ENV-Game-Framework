@@ -154,6 +154,17 @@ public static class BindingExtensions
             view.Behaviors.Add(new DerivedPropertyBindingBehavior<RectView, BorderColorStyle>(
                 view, compute, (v, c) => v.BorderColor = c));
         }
+
+        /// <summary>
+        /// Binds <see cref="RectView.BorderColor"/> to a value selected from the active
+        /// <see cref="IThemeService{TStyles}"/> styles. Theme swaps and any observable reads
+        /// inside <paramref name="select"/> are auto-tracked.
+        /// </summary>
+        public void BindThemedBorderColor<TStyles>(Func<TStyles, BorderColorStyle> select)
+        {
+            view.Behaviors.Add(new ThemedDerivedPropertyBindingBehavior<RectView, TStyles, BorderColorStyle>(
+                view, select, (v, c) => v.BorderColor = c));
+        }
     }
 
     extension(MultiChildView parent)

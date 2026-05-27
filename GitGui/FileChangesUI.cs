@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 
 namespace GitGui;
@@ -16,36 +17,42 @@ internal static class FileChangesUI
 
     public static string FormatHeader(string title, int count) => $"{title} ({count})";
 
-    public static TextView CreateHeaderText(string title) => new()
+    public static TextView CreateHeaderText(string title)
     {
-        Text = FormatHeader(title, 0),
-        TextColor = FileChangesPalette.HeaderText,
-    };
+        var view = new TextView { Text = FormatHeader(title, 0) };
+        view.BindThemedTextColor(s => s.FileChangesSection.HeaderText);
+        return view;
+    }
 
-    public static TextView CreateEmptyPlaceholder(string emptyText) => new()
+    public static TextView CreateEmptyPlaceholder(string emptyText)
     {
-        Text = emptyText,
-        TextColor = FileChangesPalette.HeaderText,
-    };
+        var view = new TextView { Text = emptyText };
+        view.BindThemedTextColor(s => s.FileChangesSection.EmptyPlaceholderText);
+        return view;
+    }
 
-    public static RectView CreateHeaderBar(View content) => new()
+    public static RectView CreateHeaderBar(View content)
     {
-        BackgroundColor = FileChangesPalette.HeaderBg,
-        BorderColor = new BorderColorStyle
+        var view = new RectView
         {
-            Top = FileChangesPalette.HeaderBorder,
-            Bottom = FileChangesPalette.HeaderBorder,
-        },
-        BorderSize = new BorderSizeStyle { Top = 1, Bottom = 1 },
-        Padding = new PaddingStyle
+            BorderSize = new BorderSizeStyle { Top = 1, Bottom = 1 },
+            Padding = new PaddingStyle
+            {
+                Left = HeaderPadding,
+                Right = HeaderPadding,
+                Top = HeaderPadding,
+                Bottom = HeaderPadding,
+            },
+            Children = { content },
+        };
+        view.BindThemedBackgroundColor(s => s.FileChangesSection.HeaderBackground);
+        view.BindThemedBorderColor(s => new BorderColorStyle
         {
-            Left = HeaderPadding,
-            Right = HeaderPadding,
-            Top = HeaderPadding,
-            Bottom = HeaderPadding,
-        },
-        Children = { content },
-    };
+            Top = s.FileChangesSection.HeaderBorder,
+            Bottom = s.FileChangesSection.HeaderBorder,
+        });
+        return view;
+    }
 
     /// <summary>Square colored badge containing the single-letter status glyph for a file.</summary>
     public static RectView CreateStatusBadge(FileChange file) => new()
