@@ -92,6 +92,10 @@ public static class RepoBarContextMenu
             {
                 tv.TextColor = seg.Color.Value;
             }
+            else if (seg.Bold && enabled)
+            {
+                tv.BindThemedTextColor(s => s.ContextMenu.AccentText);
+            }
             else
             {
                 tv.BindThemedTextColor(s => enabled ? s.ContextMenu.ItemText : s.ContextMenu.ItemTextDisabled);

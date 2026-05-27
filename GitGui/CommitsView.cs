@@ -734,12 +734,10 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         };
     }
 
-    private const uint MenuBranchAccent = 0xFFFFFFFF;
-
     private static IReadOnlyList<MenuLabelSegment> BuildResetSegments(string branch) =>
     [
         new MenuLabelSegment("Reset "),
-        new MenuLabelSegment(branch, MenuBranchAccent, Bold: true),
+        new MenuLabelSegment(branch, Bold: true),
         new MenuLabelSegment(" to here"),
     ];
 

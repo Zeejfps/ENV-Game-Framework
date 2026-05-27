@@ -270,7 +270,8 @@ public sealed record ThemeStyles(
             Border: 0xFF313338u,
             ItemSelectedBackground: 0xFF2B2D31u,
             ItemText: 0xFFB5B9C0u,
-            ItemTextDisabled: 0x80B5B9C0u),
+            ItemTextDisabled: 0x80B5B9C0u,
+            AccentText: 0xFFFFFFFFu),
         DragOverlay: new DragOverlayStyles(
             IndicatorColor: 0xFF5865F2u),
         OperationsStatusBar: new OperationsStatusBarStyles(
@@ -507,7 +508,8 @@ public sealed record ThemeStyles(
             Border: 0xFFE5E7EBu,
             ItemSelectedBackground: 0xFFF3F4F6u,
             ItemText: 0xFF374151u,
-            ItemTextDisabled: 0x80374151u),
+            ItemTextDisabled: 0x80374151u,
+            AccentText: 0xFF111827u),
         DragOverlay: new DragOverlayStyles(
             IndicatorColor: 0xFF4F46E5u),
         OperationsStatusBar: new OperationsStatusBarStyles(
@@ -768,7 +770,8 @@ public sealed record ContextMenuStyles(
     uint Border,
     uint ItemSelectedBackground,
     uint ItemText,
-    uint ItemTextDisabled);
+    uint ItemTextDisabled,
+    uint AccentText);
 
 public sealed record DragOverlayStyles(
     uint IndicatorColor);
