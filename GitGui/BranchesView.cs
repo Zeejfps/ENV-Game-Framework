@@ -1,5 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 
 namespace GitGui;
 
@@ -27,36 +28,36 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
     private const float ChevronColumn = ChevronWidth + ChevronGap;
     private const float IconGap = 4f;
 
-    private readonly TextStyle _branchTextStyle = TextStyles.Row(CommitsPalette.RowText);
-    private readonly TextStyle _branchTextSelectedStyle = TextStyles.Row(CommitsPalette.RowTextActive);
-    private readonly TextStyle _branchTextBusyStyle = TextStyles.Row(DialogPalette.RowTextMissing);
-    private readonly TextStyle _branchIconBusyStyle = TextStyles.Icon(DialogPalette.RowTextMissing);
+    private readonly TextStyle _branchTextStyle = TextStyles.Row(0u);
+    private readonly TextStyle _branchTextSelectedStyle = TextStyles.Row(0u);
+    private readonly TextStyle _branchTextBusyStyle = TextStyles.Row(0u);
+    private readonly TextStyle _branchIconBusyStyle = TextStyles.Icon(0u);
     private readonly TextStyle _headTextStyle = new()
     {
-        TextColor = CommitsPalette.RowTextActive,
         FontWeight = FontWeight.Bold,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
     };
-    private readonly TextStyle _headerTextStyle = TextStyles.Row(DialogPalette.SectionHeaderText);
+    private readonly TextStyle _headerTextStyle = TextStyles.Row(0u);
     private readonly TextStyle _chevronStyle = new()
     {
-        TextColor = DialogPalette.SectionHeaderText,
         FontSize = 8f,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Center,
     };
-    private readonly TextStyle _placeholderStyle = TextStyles.Centered(CommitsPalette.Placeholder);
-    private readonly TextStyle _aheadNumStyle = TextStyles.Row(CommitsPalette.AheadColor);
-    private readonly TextStyle _behindNumStyle = TextStyles.Row(CommitsPalette.BehindColor);
-    private readonly TextStyle _aheadIconStyle = TextStyles.Icon(CommitsPalette.AheadColor);
-    private readonly TextStyle _behindIconStyle = TextStyles.Icon(CommitsPalette.BehindColor);
-    private readonly TextStyle _upstreamLinkedIconStyle = TextStyles.Icon(CommitsPalette.AheadColor);
-    private readonly TextStyle _upstreamGoneIconStyle = TextStyles.Icon(CommitsPalette.BehindColor);
-    private readonly TextStyle _folderIconStyle = TextStyles.Icon(DialogPalette.SectionHeaderText);
-    private readonly TextStyle _branchIconStyle = TextStyles.Icon(CommitsPalette.RowText);
-    private readonly TextStyle _branchIconActiveStyle = TextStyles.Icon(CommitsPalette.RowTextActive);
-    private readonly TextStyle _branchIconLocalOnlyStyle = TextStyles.Icon(DialogPalette.RowTextMissing);
+    private readonly TextStyle _placeholderStyle = TextStyles.Centered(0u);
+    private readonly TextStyle _aheadNumStyle = TextStyles.Row(0u);
+    private readonly TextStyle _behindNumStyle = TextStyles.Row(0u);
+    private readonly TextStyle _aheadIconStyle = TextStyles.Icon(0u);
+    private readonly TextStyle _behindIconStyle = TextStyles.Icon(0u);
+    private readonly TextStyle _upstreamLinkedIconStyle = TextStyles.Icon(0u);
+    private readonly TextStyle _upstreamGoneIconStyle = TextStyles.Icon(0u);
+    private readonly TextStyle _folderIconStyle = TextStyles.Icon(0u);
+    private readonly TextStyle _branchIconStyle = TextStyles.Icon(0u);
+    private readonly TextStyle _branchIconActiveStyle = TextStyles.Icon(0u);
+    private readonly TextStyle _branchIconLocalOnlyStyle = TextStyles.Icon(0u);
+
+    private BranchesViewStyles _styles = ThemeStyles.Dark.BranchesView;
 
     private readonly VirtualRowListView _list;
 
@@ -85,6 +86,30 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
 
         AddChildToSelf(_list);
         _list.UseController(_ => new VirtualRowListController(_list));
+
+        this.BindThemed(s =>
+        {
+            _styles = s.BranchesView;
+            _branchTextStyle.TextColor = _styles.RowText;
+            _branchTextSelectedStyle.TextColor = _styles.RowTextActive;
+            _branchTextBusyStyle.TextColor = _styles.RowTextDim;
+            _branchIconBusyStyle.TextColor = _styles.RowTextDim;
+            _headTextStyle.TextColor = _styles.RowTextActive;
+            _headerTextStyle.TextColor = _styles.SectionHeaderText;
+            _chevronStyle.TextColor = _styles.SectionHeaderText;
+            _placeholderStyle.TextColor = _styles.SectionHeaderText;
+            _aheadNumStyle.TextColor = _styles.AheadColor;
+            _behindNumStyle.TextColor = _styles.BehindColor;
+            _aheadIconStyle.TextColor = _styles.AheadColor;
+            _behindIconStyle.TextColor = _styles.BehindColor;
+            _upstreamLinkedIconStyle.TextColor = _styles.AheadColor;
+            _upstreamGoneIconStyle.TextColor = _styles.BehindColor;
+            _folderIconStyle.TextColor = _styles.SectionHeaderText;
+            _branchIconStyle.TextColor = _styles.RowText;
+            _branchIconActiveStyle.TextColor = _styles.RowTextActive;
+            _branchIconLocalOnlyStyle.TextColor = _styles.RowTextDim;
+            SetDirty();
+        });
 
         this.UseViewModel(this);
     }
@@ -121,7 +146,7 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
         c.DrawRect(new DrawRectInputs
         {
             Position = pos,
-            Style = new RectStyle { BackgroundColor = CommitsPalette.Background },
+            Style = new RectStyle { BackgroundColor = _styles.ViewBackground },
             ZIndex = z,
         });
 
@@ -173,9 +198,9 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
     private void DrawRowBackground(ICanvas c, RectF rowRect, bool isSelected, RowRenderState state, int z)
     {
         var bg = isSelected
-            ? CommitsPalette.RowHighlight
-            : state.IsHovered || state.IsContextHighlighted 
-                ? DialogPalette.RowHover
+            ? _styles.RowSelectedBackground
+            : state.IsHovered || state.IsContextHighlighted
+                ? _styles.RowHoverBackground
                 : (uint?)null;
         
         if (bg == null) return;

@@ -20,7 +20,8 @@ public sealed record ThemeStyles(
     GroupHeaderRowStyles GroupHeaderRow,
     GroupRenameFieldStyles GroupRenameField,
     WorktreeChevronStyles WorktreeChevron,
-    RepoBarRowStyles RepoBarRow)
+    RepoBarRowStyles RepoBarRow,
+    BranchesViewStyles BranchesView)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -135,7 +136,17 @@ public sealed record ThemeStyles(
             TextActive: 0xFFFFFFFFu,
             TextMissing: 0x80B5B9C0u,
             IconAccentWorktree: 0xFF5DADE2u,
-            IconAccentSubmodule: 0xFFB57EDCu));
+            IconAccentSubmodule: 0xFFB57EDCu),
+        BranchesView: new BranchesViewStyles(
+            ViewBackground: 0xFF1E1F22u,
+            RowSelectedBackground: 0xFF404C8Cu,
+            RowHoverBackground: 0xFF2B2D31u,
+            RowText: 0xFFB5B9C0u,
+            RowTextActive: 0xFFFFFFFFu,
+            RowTextDim: 0x80B5B9C0u,
+            SectionHeaderText: 0xFF96989Du,
+            AheadColor: 0xFF9DD17Bu,
+            BehindColor: 0xFFE6A85Cu));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -250,7 +261,17 @@ public sealed record ThemeStyles(
             TextActive: 0xFFFFFFFFu,
             TextMissing: 0x80374151u,
             IconAccentWorktree: 0xFF0EA5E9u,
-            IconAccentSubmodule: 0xFFA855F7u));
+            IconAccentSubmodule: 0xFFA855F7u),
+        BranchesView: new BranchesViewStyles(
+            ViewBackground: 0xFFFFFFFFu,
+            RowSelectedBackground: 0xFF4F46E5u,
+            RowHoverBackground: 0xFFF3F4F6u,
+            RowText: 0xFF374151u,
+            RowTextActive: 0xFFFFFFFFu,
+            RowTextDim: 0x80374151u,
+            SectionHeaderText: 0xFF6B7280u,
+            AheadColor: 0xFF16A34Au,
+            BehindColor: 0xFFEA580Cu));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -371,6 +392,17 @@ public sealed record RepoBarRowStyles(
     uint TextMissing,
     uint IconAccentWorktree,
     uint IconAccentSubmodule);
+
+public sealed record BranchesViewStyles(
+    uint ViewBackground,
+    uint RowSelectedBackground,
+    uint RowHoverBackground,
+    uint RowText,
+    uint RowTextActive,
+    uint RowTextDim,
+    uint SectionHeaderText,
+    uint AheadColor,
+    uint BehindColor);
 
 public sealed record FileChangeRowStyles(
     uint RowText,
