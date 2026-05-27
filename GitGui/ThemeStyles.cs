@@ -14,7 +14,9 @@ public sealed record ThemeStyles(
     CheckboxStyles Checkbox,
     CommitBarStyles CommitBar,
     ErrorBarStyles ErrorBar,
-    ModeSwitcherStyles ModeSwitcher)
+    ModeSwitcherStyles ModeSwitcher,
+    BranchesHeaderStyles BranchesHeader,
+    AddRepoButtonStyles AddRepoButton)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -100,7 +102,15 @@ public sealed record ThemeStyles(
             SegmentHoverBackground: 0xFF3A3D43u,
             SegmentActiveBackground: 0xFF404C8Cu,
             SegmentIdleText: 0xFFB5B9C0u,
-            SegmentActiveText: 0xFFFFFFFFu));
+            SegmentActiveText: 0xFFFFFFFFu),
+        BranchesHeader: new BranchesHeaderStyles(
+            Background: 0xFF1E1F22u,
+            BorderBottom: 0xFF313338u,
+            PrefixText: 0xFF96989Du,
+            ActiveText: 0xFFFFFFFFu,
+            DetachedText: 0x80B5B9C0u),
+        AddRepoButton: new AddRepoButtonStyles(
+            Text: 0xFFB5B9C0u));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -186,7 +196,15 @@ public sealed record ThemeStyles(
             SegmentHoverBackground: 0xFFF3F4F6u,
             SegmentActiveBackground: 0xFF4F46E5u,
             SegmentIdleText: 0xFF374151u,
-            SegmentActiveText: 0xFFFFFFFFu));
+            SegmentActiveText: 0xFFFFFFFFu),
+        BranchesHeader: new BranchesHeaderStyles(
+            Background: 0xFFFFFFFFu,
+            BorderBottom: 0xFFE5E7EBu,
+            PrefixText: 0xFF6B7280u,
+            ActiveText: 0xFF111827u,
+            DetachedText: 0x80374151u),
+        AddRepoButton: new AddRepoButtonStyles(
+            Text: 0xFF374151u));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -272,6 +290,16 @@ public sealed record ModeSwitcherStyles(
     uint SegmentActiveBackground,
     uint SegmentIdleText,
     uint SegmentActiveText);
+
+public sealed record BranchesHeaderStyles(
+    uint Background,
+    uint BorderBottom,
+    uint PrefixText,
+    uint ActiveText,
+    uint DetachedText);
+
+public sealed record AddRepoButtonStyles(
+    uint Text);
 
 public sealed record FileChangeRowStyles(
     uint RowText,

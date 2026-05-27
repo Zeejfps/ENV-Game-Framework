@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 
 namespace GitGui;
 
@@ -8,20 +9,19 @@ public sealed class AddRepoButton : HoverableButton
     {
         PreferredHeight = 30;
 
+        var label = new TextView
+        {
+            Text = "+  Add Repository",
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        label.BindThemedTextColor(s => s.AddRepoButton.Text);
+
         var background = new RectView
         {
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(6),
-            Children =
-            {
-                new TextView
-                {
-                    Text = "+  Add Repository",
-                    TextColor = DialogPalette.RowText,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    VerticalTextAlignment = TextAlignment.Center,
-                }
-            }
+            Children = { label }
         };
         DialogPalette.BindBorderedButtonChrome(background, IsHovered);
         SetBackground(background);
