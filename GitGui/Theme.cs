@@ -1,10 +1,10 @@
 namespace GitGui;
 
 /// <summary>
-/// Foundation colors referenced by the few remaining static palettes that haven't
-/// been migrated to <see cref="ThemeStyles"/> yet (<see cref="CommitsPalette"/>,
-/// <see cref="FileChangesPalette"/>). New code should prefer themed bindings against
-/// <c>ThemeStyles</c> directly so theme toggles take effect without rebuilding views.
+/// Foundation colors referenced by the lone remaining static palette
+/// (<see cref="FileChangesPalette"/>). New code should prefer themed bindings against
+/// <see cref="ThemeStyles"/> directly so theme toggles take effect without rebuilding
+/// views.
 /// </summary>
 internal static class Theme
 {

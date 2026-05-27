@@ -1,59 +1,9 @@
 using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Observable;
 
 namespace GitGui;
-
-internal static class CommitsPalette
-{
-    public const uint Background = Theme.BgPanel;
-    public const uint Border = Theme.Border;
-    public const uint HeaderBg = Theme.BgHeader;
-    public const uint HeaderText = Theme.TextHeader;
-    public const uint RowText = Theme.TextRow;
-    public const uint RowTextDim = Theme.TextDim;
-    public const uint RowHighlight = 0xFF404C8C;
-    public const uint RowTextActive = Theme.TextStrong;
-    public const uint Placeholder = Theme.TextHeader;
-
-    public const uint ScrollTrackBg = 0xFF26272B;
-    public const uint ScrollTrackBorder = 0xFF313338;
-    public const uint ScrollThumbBg = 0xFF4A4D52;
-    public const uint ScrollThumbHoverBg = 0xFF6A6D72;
-    public const uint ScrollThumbBorder = 0xFF2A2C30;
-
-    public const uint DividerHoverBg = 0xFF4A5680;
-    public const uint DividerHoverLine = 0xFF7A8DC8;
-
-    public const uint WarningBg = 0xFF3D2E14;
-    public const uint WarningBorder = 0xFFB89050;
-    public const uint WarningText = 0xFFE9C77A;
-
-    public const uint BadgeLocalBg = 0xFF2F4A6B;
-    public const uint BadgeRemoteBg = 0xFF4A2F6B;
-    public const uint BadgeHeadBg = 0xFF6B4A2F;
-    public const uint BadgeText = 0xFFE6E6E6;
-
-    public const uint AheadColor = 0xFF9DD17B;
-    public const uint BehindColor = 0xFFE6A85C;
-
-    public const uint PreviewCleanColor = AheadColor;
-    public const uint PreviewConflictColor = BehindColor;
-
-    public static readonly uint[] LanePalette =
-    {
-        0xFF5865F2,
-        0xFFEB459E,
-        0xFF57F287,
-        0xFFFEE75C,
-        0xFFED4245,
-        0xFF9B59B6,
-        0xFFE67E22,
-        0xFF1ABC9C,
-    };
-
-    public static uint LaneColor(int lane) => LanePalette[((lane % LanePalette.Length) + LanePalette.Length) % LanePalette.Length];
-}
 
 public sealed class CommitsView : MultiChildView, ICommitsView
 {
@@ -99,14 +49,30 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     public event Action<string>? CommitClicked;
     public event Action<string>? CheckoutCommitRequested;
 
-    private readonly TextStyle _rowTextStyle = TextStyles.Row(CommitsPalette.RowText);
-    private readonly TextStyle _rowTextActiveStyle = TextStyles.Row(CommitsPalette.RowTextActive);
-    private readonly TextStyle _headerTextStyle = TextStyles.Row(CommitsPalette.HeaderText);
-    private readonly TextStyle _placeholderStyle = TextStyles.Centered(CommitsPalette.Placeholder);
-    private readonly TextStyle _badgeTextStyle = TextStyles.Row(CommitsPalette.BadgeText);
-    private readonly TextStyle _badgeIconStyle = TextStyles.Icon(CommitsPalette.BadgeText, 12f);
-    private readonly TextStyle _hashTextStyle = TextStyles.Row(CommitsPalette.RowTextDim);
-    private readonly TextStyle _hashTextActiveStyle = TextStyles.Row(CommitsPalette.RowTextActive);
+    private static readonly uint[] LanePalette =
+    {
+        0xFF5865F2,
+        0xFFEB459E,
+        0xFF57F287,
+        0xFFFEE75C,
+        0xFFED4245,
+        0xFF9B59B6,
+        0xFFE67E22,
+        0xFF1ABC9C,
+    };
+
+    private static uint LaneColor(int lane) => LanePalette[((lane % LanePalette.Length) + LanePalette.Length) % LanePalette.Length];
+
+    private readonly TextStyle _rowTextStyle = TextStyles.Row(0u);
+    private readonly TextStyle _rowTextActiveStyle = TextStyles.Row(0u);
+    private readonly TextStyle _headerTextStyle = TextStyles.Row(0u);
+    private readonly TextStyle _placeholderStyle = TextStyles.Centered(0u);
+    private readonly TextStyle _badgeTextStyle = TextStyles.Row(0u);
+    private readonly TextStyle _badgeIconStyle = TextStyles.Icon(0u, 12f);
+    private readonly TextStyle _hashTextStyle = TextStyles.Row(0u);
+    private readonly TextStyle _hashTextActiveStyle = TextStyles.Row(0u);
+
+    private CommitsViewStyles _styles = ThemeStyles.Dark.CommitsView;
 
     public CommitsView()
     {
@@ -121,6 +87,20 @@ public sealed class CommitsView : MultiChildView, ICommitsView
 
         AddChildToSelf(_list);
         _list.UseController(_ => new VirtualRowListController(_list));
+
+        this.BindThemed(s =>
+        {
+            _styles = s.CommitsView;
+            _rowTextStyle.TextColor = _styles.RowText;
+            _rowTextActiveStyle.TextColor = _styles.RowTextActive;
+            _headerTextStyle.TextColor = _styles.HeaderText;
+            _placeholderStyle.TextColor = _styles.PlaceholderText;
+            _badgeTextStyle.TextColor = _styles.BadgeText;
+            _badgeIconStyle.TextColor = _styles.BadgeText;
+            _hashTextStyle.TextColor = _styles.RowTextDim;
+            _hashTextActiveStyle.TextColor = _styles.RowTextActive;
+            SetDirty();
+        });
 
         this.UseController(ctx => new CommitsViewController(this, ctx));
         this.UsePresenter(ctx => new CommitsPresenter(
@@ -266,7 +246,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         c.DrawRect(new DrawRectInputs
         {
             Position = pos,
-            Style = new RectStyle { BackgroundColor = CommitsPalette.Background },
+            Style = new RectStyle { BackgroundColor = _styles.Background },
             ZIndex = z,
         });
 
@@ -311,8 +291,8 @@ public sealed class CommitsView : MultiChildView, ICommitsView
             Position = headerRect,
             Style = new RectStyle
             {
-                BackgroundColor = CommitsPalette.HeaderBg,
-                BorderColor = new BorderColorStyle { Bottom = CommitsPalette.Border },
+                BackgroundColor = _styles.HeaderBackground,
+                BorderColor = new BorderColorStyle { Bottom = _styles.HeaderBorderBottom },
                 BorderSize = new BorderSizeStyle { Bottom = 1 },
             },
             ZIndex = z,
@@ -348,14 +328,14 @@ public sealed class CommitsView : MultiChildView, ICommitsView
             c.DrawRect(new DrawRectInputs
             {
                 Position = new RectF(centerX - DividerHitWidth * 0.5f, bottom, DividerHitWidth, height),
-                Style = new RectStyle { BackgroundColor = CommitsPalette.DividerHoverBg },
+                Style = new RectStyle { BackgroundColor = _styles.ColumnDividerHoverFill },
                 ZIndex = z,
             });
         }
         c.DrawRect(new DrawRectInputs
         {
             Position = new RectF(centerX - DividerThickness * 0.5f, bottom, DividerThickness, height),
-            Style = new RectStyle { BackgroundColor = hovered ? CommitsPalette.DividerHoverLine : CommitsPalette.Border },
+            Style = new RectStyle { BackgroundColor = hovered ? _styles.ColumnDividerHoverLine : _styles.ColumnDividerIdle },
             ZIndex = z + 1,
         });
     }
@@ -426,7 +406,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
             c.DrawRect(new DrawRectInputs
             {
                 Position = rowRect,
-                Style = new RectStyle { BackgroundColor = CommitsPalette.RowHighlight },
+                Style = new RectStyle { BackgroundColor = _styles.RowSelectedBackground },
                 ZIndex = z,
             });
         }
@@ -443,7 +423,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         var summaryDraw = Math.Max(0, body.Right - refsEndX);
         DrawText(c, node.Summary, refsEndX, textTop, summaryDraw, isHighlighted, z + 2);
 
-        var rowOverlayColor = isHighlighted ? CommitsPalette.RowHighlight : CommitsPalette.Background;
+        var rowOverlayColor = isHighlighted ? _styles.RowSelectedBackground : _styles.Background;
         DrawColumnOverlay(c, authorPanelLeft, rowBottom, hashPanelLeft - authorPanelLeft, rowOverlayColor, z + 3);
         DrawText(c, node.Author, authorX, textTop, _authorColumnWidth, isHighlighted, z + 4);
         DrawColumnOverlay(c, hashPanelLeft, rowBottom, datePanelLeft - hashPanelLeft, rowOverlayColor, z + 5);
@@ -458,14 +438,14 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     private void DrawGraphCell(ICanvas c, CommitNode node, float graphStartX, float rowBottom, int z)
     {
         var rowCenterY = rowBottom + RowHeight * 0.5f;
-        var commitColor = CommitsPalette.LaneColor(node.Lane);
+        var commitColor = LaneColor(node.Lane);
         var commitCx = LaneCenterX(graphStartX, node.Lane);
 
         // Pass-through verticals (lanes with no interaction at this row).
         foreach (var ptLane in node.PassThroughLanes)
         {
             DrawVertical(c, LaneCenterX(graphStartX, ptLane), rowBottom, RowHeight,
-                CommitsPalette.LaneColor(ptLane), z);
+                LaneColor(ptLane), z);
         }
 
         // Top half of commit's own lane (only if an edge continues from above).
@@ -478,7 +458,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         foreach (var inLane in node.IncomingLanes)
         {
             var inCx = LaneCenterX(graphStartX, inLane);
-            var inColor = CommitsPalette.LaneColor(inLane);
+            var inColor = LaneColor(inLane);
             DrawVertical(c, inCx, rowCenterY, RowHeight * 0.5f, inColor, z);
             DrawHorizontal(c, Math.Min(inCx, commitCx), Math.Max(inCx, commitCx), rowCenterY, inColor, z);
         }
@@ -487,7 +467,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         foreach (var pl in node.InWalkParentLanes)
         {
             var pCx = LaneCenterX(graphStartX, pl.Lane);
-            var pColor = CommitsPalette.LaneColor(pl.Lane);
+            var pColor = LaneColor(pl.Lane);
             if (pl.Lane == node.Lane)
             {
                 DrawVertical(c, commitCx, rowBottom, RowHeight * 0.5f, commitColor, z);
@@ -559,10 +539,10 @@ public sealed class CommitsView : MultiChildView, ICommitsView
                        + (icon != null ? iconWidth + IconGap : 0f);
             var bg = badge.Kind switch
             {
-                RefKind.LocalBranch => CommitsPalette.BadgeLocalBg,
-                RefKind.RemoteBranch => CommitsPalette.BadgeRemoteBg,
-                RefKind.Head => CommitsPalette.BadgeHeadBg,
-                _ => CommitsPalette.BadgeLocalBg,
+                RefKind.LocalBranch => _styles.BadgeLocalBackground,
+                RefKind.RemoteBranch => _styles.BadgeRemoteBackground,
+                RefKind.Head => _styles.BadgeHeadBackground,
+                _ => _styles.BadgeLocalBackground,
             };
             c.DrawRect(new DrawRectInputs
             {

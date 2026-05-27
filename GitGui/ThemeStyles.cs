@@ -41,7 +41,8 @@ public sealed record ThemeStyles(
     BranchPreviewStyles BranchPreview,
     ContextMenuStyles ContextMenu,
     DragOverlayStyles DragOverlay,
-    OperationsStatusBarStyles OperationsStatusBar)
+    OperationsStatusBarStyles OperationsStatusBar,
+    CommitsViewStyles CommitsView)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -279,7 +280,24 @@ public sealed record ThemeStyles(
             ContainerBorder: 0xFF313338u,
             LogBackground: 0xFF1A1B1Eu,
             LogBorder: 0xFF313338u,
-            LogText: 0xFFB5B9C0u));
+            LogText: 0xFFB5B9C0u),
+        CommitsView: new CommitsViewStyles(
+            Background: 0xFF1E1F22u,
+            HeaderBackground: 0xFF2A2C30u,
+            HeaderBorderBottom: 0xFF313338u,
+            HeaderText: 0xFF96989Du,
+            RowText: 0xFFB5B9C0u,
+            RowTextActive: 0xFFFFFFFFu,
+            RowTextDim: 0xFF7A7C81u,
+            RowSelectedBackground: 0xFF404C8Cu,
+            PlaceholderText: 0xFF96989Du,
+            ColumnDividerIdle: 0xFF313338u,
+            ColumnDividerHoverFill: 0xFF4A5680u,
+            ColumnDividerHoverLine: 0xFF7A8DC8u,
+            BadgeLocalBackground: 0xFF2F4A6Bu,
+            BadgeRemoteBackground: 0xFF4A2F6Bu,
+            BadgeHeadBackground: 0xFF6B4A2Fu,
+            BadgeText: 0xFFE6E6E6u));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -517,7 +535,24 @@ public sealed record ThemeStyles(
             ContainerBorder: 0xFFE5E7EBu,
             LogBackground: 0xFFF9FAFBu,
             LogBorder: 0xFFE5E7EBu,
-            LogText: 0xFF374151u));
+            LogText: 0xFF374151u),
+        CommitsView: new CommitsViewStyles(
+            Background: 0xFFFFFFFFu,
+            HeaderBackground: 0xFFF3F4F6u,
+            HeaderBorderBottom: 0xFFE5E7EBu,
+            HeaderText: 0xFF6B7280u,
+            RowText: 0xFF374151u,
+            RowTextActive: 0xFF111827u,
+            RowTextDim: 0xFF9CA3AFu,
+            RowSelectedBackground: 0xFFE0E7FFu,
+            PlaceholderText: 0xFF9CA3AFu,
+            ColumnDividerIdle: 0xFFE5E7EBu,
+            ColumnDividerHoverFill: 0xFFCBD5E1u,
+            ColumnDividerHoverLine: 0xFF94A3B8u,
+            BadgeLocalBackground: 0xFFDBEAFEu,
+            BadgeRemoteBackground: 0xFFEDE9FEu,
+            BadgeHeadBackground: 0xFFFEF3C7u,
+            BadgeText: 0xFF1F2937u));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -782,6 +817,24 @@ public sealed record OperationsStatusBarStyles(
     uint LogBackground,
     uint LogBorder,
     uint LogText);
+
+public sealed record CommitsViewStyles(
+    uint Background,
+    uint HeaderBackground,
+    uint HeaderBorderBottom,
+    uint HeaderText,
+    uint RowText,
+    uint RowTextActive,
+    uint RowTextDim,
+    uint RowSelectedBackground,
+    uint PlaceholderText,
+    uint ColumnDividerIdle,
+    uint ColumnDividerHoverFill,
+    uint ColumnDividerHoverLine,
+    uint BadgeLocalBackground,
+    uint BadgeRemoteBackground,
+    uint BadgeHeadBackground,
+    uint BadgeText);
 
 public sealed record FileChangeRowStyles(
     uint RowText,
