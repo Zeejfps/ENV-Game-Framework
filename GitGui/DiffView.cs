@@ -57,7 +57,7 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
         panel.BindThemedBackgroundColor(s => s.DiffView.PanelBackground);
         AddChildToSelf(panel);
 
-        this.UseController(_ => new ScrollSyncController(_content, vScrollBar, hScrollBar));
+        this.UseBehavior(_ => new ScrollSyncController(_content, vScrollBar, hScrollBar));
     }
 
     public IReadable<bool> IsCollapsed => _isCollapsed;

@@ -161,7 +161,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
             SetDirty();
         });
 
-        this.UseController(_ => new ScrollSyncController(this, _scrollBar, _hScrollBar));
+        this.UseBehavior(_ => new ScrollSyncController(this, _scrollBar, _hScrollBar));
     }
 
     public void SetFiles(IReadOnlyList<FileChange> files)

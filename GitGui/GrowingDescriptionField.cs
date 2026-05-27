@@ -99,7 +99,7 @@ internal sealed class GrowingDescriptionField : MultiChildView
         box.BindThemedBorderColor(s => BorderColorStyle.All(s.TextInput.Border));
         AddChildToSelf(box);
 
-        this.UseController(_ => new ScrollSyncController(_scrollPane, _scrollBar));
+        this.UseBehavior(_ => new ScrollSyncController(_scrollPane, _scrollBar));
 
         // Start at the min size; the first OnLayoutChildren pass will refine this.
         PreferredHeight = _minHeight;

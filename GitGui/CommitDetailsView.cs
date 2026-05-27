@@ -81,7 +81,7 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
         panel.BindThemedBorderColor(s => new BorderColorStyle { Left = s.CommitDetailsView.BorderLeft });
         AddChildToSelf(panel);
 
-        this.UseController(_ => new ScrollSyncController(_scrollPane, vScrollBar, hScrollBar));
+        this.UseBehavior(_ => new ScrollSyncController(_scrollPane, vScrollBar, hScrollBar));
 
         this.UseViewModel(this);
     }
