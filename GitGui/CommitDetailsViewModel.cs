@@ -29,6 +29,7 @@ public sealed class CommitDetailsViewModel : IDisposable
     public IReadable<CommitDetailsRenderState> RenderState => _renderState;
     public IReadable<string?> SelectedPath => _selectedPath;
     public IReadable<DiffTarget?> SelectedTarget => _selectedTarget;
+    public DiffViewModel DiffVm { get; }
 
     public CommitDetailsViewModel(
         IGitService gitService,
@@ -40,12 +41,14 @@ public sealed class CommitDetailsViewModel : IDisposable
         _registry = registry;
         _dispatcher = dispatcher;
         _bus = bus;
+        DiffVm = new DiffViewModel(_selectedTarget, registry, gitService, dispatcher, bus);
         _subscriptions.Add(_bus.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected));
     }
 
     public void Dispose()
     {
         _loadGen.Bump();
+        DiffVm.Dispose();
         _subscriptions.Dispose();
         _renderState.Dispose();
         _selectedPath.Dispose();

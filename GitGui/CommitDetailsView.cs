@@ -44,8 +44,6 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
 
     private readonly ColumnView _content;
     private readonly ScrollPane _scrollPane;
-    private readonly VerticalScrollBarView _vScrollBar;
-    private readonly HorizontalScrollBarView _hScrollBar;
     private readonly DiffView _diffView;
     private readonly VerticalSplitContainer _splitContainer;
     private readonly State<string?> _selectedPath = new(null);
@@ -53,23 +51,20 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
 
     public CommitDetailsView()
     {
-        // _content is unpadded so children can opt into edge-to-edge layout. The author/
-        // message/metadata block wraps itself in a PaddingView; FileChangesSection stays
-        // full-width so its header bar spans edge-to-edge.
         _content = new ColumnView { Gap = 8 };
 
         _scrollPane = new ScrollPane();
         _scrollPane.Children.Add(_content);
         _scrollPane.UseController(_ => new ScrollPaneWheelController(_scrollPane));
 
-        _vScrollBar = ScrollBarStyles.CreateVertical();
-        _hScrollBar = ScrollBarStyles.CreateHorizontal();
+        var vScrollBar = ScrollBarStyles.CreateVertical();
+        var hScrollBar = ScrollBarStyles.CreateHorizontal();
 
         var topHalf = new BorderLayoutView
         {
             Center = _scrollPane,
-            East = _vScrollBar,
-            South = _hScrollBar,
+            East = vScrollBar,
+            South = hScrollBar,
         };
 
         _diffView = new DiffView();
@@ -95,7 +90,7 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
             Children = { _splitContainer },
         });
 
-        this.UseController(_ => new ScrollSyncController(_scrollPane, _vScrollBar, _hScrollBar));
+        this.UseController(_ => new ScrollSyncController(_scrollPane, vScrollBar, hScrollBar));
 
         this.UseViewModel(this);
     }
@@ -104,7 +99,7 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
     {
         _vm = vm;
         vm.RenderState.Subscribe(SetRenderState);
-        _diffView.Target = vm.SelectedTarget;
+        _diffView.Bind(vm.DiffVm);
         vm.SelectedTarget.Subscribe(target =>
             ApplyDiffVisibility(target != null, _diffView.IsCollapsed.Value));
         vm.SelectedPath.Subscribe(p => _selectedPath.Value = p);

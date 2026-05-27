@@ -39,6 +39,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     public IReadable<bool> CommitEnabled { get; }
     public IReadable<bool> CommitBusy { get; }
     public IReadable<float> CommitRotation => _commitSpinner.Rotation;
+    public DiffViewModel DiffVm { get; }
 
     private readonly SpinnerAnimation _commitSpinner;
 
@@ -76,6 +77,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         CommitBusy = Slice(s => s.CommitBusy);
 
         _commitSpinner = new SpinnerAnimation(dispatcher);
+        DiffVm = new DiffViewModel(SelectedTarget, registry, gitService, dispatcher, bus);
 
         Subscriptions.Add(_registry.Active.Subscribe(_ => StartLoadForActiveRepo()));
         Subscriptions.Add(_bus.SubscribeScoped<WorkingTreeChangedMessage>(OnWorkingTreeChanged));
@@ -160,6 +162,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
 
     public override void Dispose()
     {
+        DiffVm.Dispose();
         _commitSpinner.Dispose();
         base.Dispose();
     }

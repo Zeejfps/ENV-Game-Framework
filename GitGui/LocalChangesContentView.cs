@@ -132,7 +132,7 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         vm.Unstaged.Subscribe(list => _unstagedPanel.SetFiles(list));
         vm.Staged.Subscribe(list => _stagedPanel.SetFiles(list));
         vm.Selection.Subscribe(sel => _selection.Value = sel);
-        _diffView.Target = vm.SelectedTarget;
+        _diffView.Bind(vm.DiffVm);
         vm.SelectedTarget.Subscribe(target =>
             ApplyDiffVisibility(target != null, _diffView.IsCollapsed.Value));
         _diffView.IsCollapsed.Subscribe(collapsed =>

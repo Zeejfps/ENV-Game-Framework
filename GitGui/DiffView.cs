@@ -28,8 +28,6 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
     private readonly State<bool> _isCollapsed = new(false);
 
     private readonly DiffContentView _content;
-    private DiffViewModel? _vm;
-    private IReadable<DiffTarget?>? _pendingTarget;
 
     public DiffView()
     {
@@ -62,24 +60,12 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
         });
 
         this.UseController(_ => new ScrollSyncController(_content, vScrollBar, hScrollBar));
-        this.UseViewModel(this);
     }
 
     public IReadable<bool> IsCollapsed => _isCollapsed;
 
-    public IReadable<DiffTarget?> Target
-    {
-        set
-        {
-            if (_vm != null) _vm.BindTarget(value);
-            else _pendingTarget = value;
-        }
-    }
-
     public void Bind(DiffViewModel vm)
     {
-        _vm = vm;
-        if (_pendingTarget != null) vm.BindTarget(_pendingTarget);
         vm.RenderState.Subscribe(_content.SetRenderState);
         _content.OnStageHunk = vm.StageHunk;
         _content.OnUnstageHunk = vm.UnstageHunk;
