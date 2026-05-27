@@ -1,5 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Tests;
 
 namespace GitGui;
@@ -76,6 +77,9 @@ internal sealed class DiffContentView : View, IScrollableContent
     public float VerticalScale { get; private set; } = 1f;
     public float HorizontalScale { get; private set; } = 1f;
 
+    private DiffContentStyles _styles = ThemeStyles.Dark.DiffContent;
+    private DiffHunkButtonStyles _buttonStyles = ThemeStyles.Dark.DiffHunkButton;
+
     private DiffRenderState _renderState = new DiffRenderState.Placeholder("Select a file to view diff.");
     private readonly List<DiffRow> _rows = new();
     private int _maxRowChars;
@@ -125,6 +129,13 @@ internal sealed class DiffContentView : View, IScrollableContent
         AddChildToSelf(_list);
         _list.UseController(_ => new VirtualRowListController(_list));
         this.UseController(_ => new DiffMouseController(this), EventPhaseFilter.Capture);
+
+        this.BindThemed(s =>
+        {
+            _styles = s.DiffContent;
+            _buttonStyles = s.DiffHunkButton;
+            SetDirty();
+        });
     }
 
     private void OnHorizontalWheel(float deltaX)
@@ -338,26 +349,26 @@ internal sealed class DiffContentView : View, IScrollableContent
         c.DrawRect(new DrawRectInputs
         {
             Position = pos,
-            Style = SolidBgStyle(CommitsPalette.Background),
+            Style = SolidBgStyle(_styles.Background),
             ZIndex = z,
         });
 
         switch (_renderState)
         {
             case DiffRenderState.Placeholder p:
-                DrawPlaceholder(c, pos, p.Text, CommitsPalette.Placeholder, z + 1);
+                DrawPlaceholder(c, pos, p.Text, _styles.PlaceholderText, z + 1);
                 NotifyScrollChanged(viewportFits: true);
                 return;
             case DiffRenderState.Loaded loaded when loaded.Result.ErrorMessage != null:
-                DrawPlaceholder(c, pos, loaded.Result.ErrorMessage, CommitsPalette.WarningText, z + 1);
+                DrawPlaceholder(c, pos, loaded.Result.ErrorMessage, _styles.ErrorText, z + 1);
                 NotifyScrollChanged(viewportFits: true);
                 return;
             case DiffRenderState.Loaded loaded when loaded.Result.IsBinary:
-                DrawPlaceholder(c, pos, "Binary file not shown", CommitsPalette.Placeholder, z + 1);
+                DrawPlaceholder(c, pos, "Binary file not shown", _styles.PlaceholderText, z + 1);
                 NotifyScrollChanged(viewportFits: true);
                 return;
             case DiffRenderState.Loaded when _rows.Count == 0:
-                DrawPlaceholder(c, pos, "No textual changes", CommitsPalette.Placeholder, z + 1);
+                DrawPlaceholder(c, pos, "No textual changes", _styles.PlaceholderText, z + 1);
                 NotifyScrollChanged(viewportFits: true);
                 return;
         }
@@ -456,7 +467,7 @@ internal sealed class DiffContentView : View, IScrollableContent
             var width = GetButtonTextWidth(actions[i]) + HunkButtonPaddingX * 2;
             var rect = new RectF(x, btnBottom, width, HunkButtonHeight);
             var hovered = hunkIndex == _hoveredHunkIndex && actions[i] == _hoveredButton;
-            var bg = hovered ? DiffPalette.HunkButtonHoverBg : DiffPalette.HunkButtonBg;
+            var bg = hovered ? _buttonStyles.BackgroundHover : _buttonStyles.BackgroundIdle;
 
             c.DrawRect(new DrawRectInputs
             {
@@ -464,14 +475,14 @@ internal sealed class DiffContentView : View, IScrollableContent
                 Style = new RectStyle
                 {
                     BackgroundColor = bg,
-                    BorderColor = BorderColorStyle.All(DiffPalette.HunkButtonBorder),
+                    BorderColor = BorderColorStyle.All(_buttonStyles.Border),
                     BorderSize = BorderSizeStyle.All(1),
                     BorderRadius = BorderRadiusStyle.All(3),
                 },
                 ZIndex = z,
             });
 
-            HunkButtonTextStyle.TextColor = DiffPalette.HunkButtonText;
+            HunkButtonTextStyle.TextColor = _buttonStyles.Text;
             c.DrawText(new DrawTextInputs
             {
                 Position = rect,
@@ -495,13 +506,13 @@ internal sealed class DiffContentView : View, IScrollableContent
         c.DrawRect(new DrawRectInputs
         {
             Position = new RectF(left, rowRect.Bottom, HunkOutlineThickness, rowRect.Height),
-            Style = SolidBgStyle(DiffPalette.HunkOutline),
+            Style = SolidBgStyle(_styles.HunkOutline),
             ZIndex = z,
         });
         c.DrawRect(new DrawRectInputs
         {
             Position = new RectF(right, rowRect.Bottom, HunkOutlineThickness, rowRect.Height),
-            Style = SolidBgStyle(DiffPalette.HunkOutline),
+            Style = SolidBgStyle(_styles.HunkOutline),
             ZIndex = z,
         });
 
@@ -511,7 +522,7 @@ internal sealed class DiffContentView : View, IScrollableContent
             c.DrawRect(new DrawRectInputs
             {
                 Position = new RectF(left, rowRect.Top - HunkOutlineThickness, rowRect.Width, HunkOutlineThickness),
-                Style = SolidBgStyle(DiffPalette.HunkOutline),
+                Style = SolidBgStyle(_styles.HunkOutline),
                 ZIndex = z,
             });
         }
@@ -520,7 +531,7 @@ internal sealed class DiffContentView : View, IScrollableContent
             c.DrawRect(new DrawRectInputs
             {
                 Position = new RectF(left, rowRect.Bottom, rowRect.Width, HunkOutlineThickness),
-                Style = SolidBgStyle(DiffPalette.HunkOutline),
+                Style = SolidBgStyle(_styles.HunkOutline),
                 ZIndex = z,
             });
         }
@@ -531,11 +542,11 @@ internal sealed class DiffContentView : View, IScrollableContent
         c.DrawRect(new DrawRectInputs
         {
             Position = new RectF(left, bottom, width, _lineHeight),
-            Style = SolidBgStyle(DiffPalette.BannerBg),
+            Style = SolidBgStyle(_styles.SectionBackground),
             ZIndex = z,
         });
         DrawMonoText(c, b.Text, left + BannerPaddingX, bottom,
-            width - BannerPaddingX * 2, DiffPalette.BannerText, TextAlignment.Start, z + 1);
+            width - BannerPaddingX * 2, _styles.SectionMutedText, TextAlignment.Start, z + 1);
     }
 
     private void DrawHunkSeparatorRow(ICanvas c, DiffRow.HunkSeparator s, float left, float bottom, float width, int z)
@@ -543,14 +554,14 @@ internal sealed class DiffContentView : View, IScrollableContent
         c.DrawRect(new DrawRectInputs
         {
             Position = new RectF(left, bottom, width, _lineHeight),
-            Style = SolidBgStyle(DiffPalette.HunkSeparatorBg),
+            Style = SolidBgStyle(_styles.SectionBackground),
             ZIndex = z,
         });
 
         var rangeWidth = s.Range.Length * _monoAdvance;
         var textX = left + BannerPaddingX;
         DrawMonoText(c, s.Range, textX, bottom, rangeWidth,
-            DiffPalette.HunkSeparatorRangeText, TextAlignment.Start, z + 1);
+            _styles.HunkSeparatorRangeText, TextAlignment.Start, z + 1);
 
         if (s.Header != null)
         {
@@ -558,7 +569,7 @@ internal sealed class DiffContentView : View, IScrollableContent
             var headerWidth = Math.Max(0f, left + width - BannerPaddingX - headerX);
             if (headerWidth > 0)
                 DrawMonoText(c, s.Header, headerX, bottom, headerWidth,
-                    DiffPalette.HunkSeparatorContextText, TextAlignment.Start, z + 1);
+                    _styles.SectionMutedText, TextAlignment.Start, z + 1);
         }
     }
 
@@ -568,15 +579,15 @@ internal sealed class DiffContentView : View, IScrollableContent
     {
         var (glyph, glyphColor) = l.Kind switch
         {
-            DiffLineKind.Added => ("+", DiffPalette.LineAddedGlyphText),
-            DiffLineKind.Removed => ("-", DiffPalette.LineRemovedGlyphText),
-            _ => (" ", DiffPalette.LineContextGlyphText),
+            DiffLineKind.Added => ("+", _styles.LineAddedGlyph),
+            DiffLineKind.Removed => ("-", _styles.LineRemovedGlyph),
+            _ => (" ", _styles.LineContextGlyph),
         };
         var bg = l.Kind switch
         {
-            DiffLineKind.Added => DiffPalette.LineAddedBg,
-            DiffLineKind.Removed => DiffPalette.LineRemovedBg,
-            _ => CommitsPalette.Background,
+            DiffLineKind.Added => _styles.LineAddedBackground,
+            DiffLineKind.Removed => _styles.LineRemovedBackground,
+            _ => _styles.Background,
         };
 
         c.DrawRect(new DrawRectInputs
@@ -588,17 +599,17 @@ internal sealed class DiffContentView : View, IScrollableContent
 
         var x = left;
         DrawMonoText(c, l.OldNumber, x, bottom, _gutterWidth,
-            DiffPalette.LineNumberText, TextAlignment.End, z + 1);
+            _styles.LineNumberText, TextAlignment.End, z + 1);
         x += _gutterWidth + 4f;
         DrawMonoText(c, l.NewNumber, x, bottom, _gutterWidth,
-            DiffPalette.LineNumberText, TextAlignment.End, z + 1);
+            _styles.LineNumberText, TextAlignment.End, z + 1);
         x += _gutterWidth + 4f;
         DrawMonoText(c, glyph, x, bottom, GlyphColumnWidth, glyphColor, TextAlignment.Center, z + 1);
         x += GlyphColumnWidth + 4f;
 
         var textWidth = Math.Max(0f, left + width - x);
         DrawMonoText(c, l.Text, x, bottom, textWidth,
-            DiffPalette.LineText, TextAlignment.Start, z + 1);
+            _styles.LineText, TextAlignment.Start, z + 1);
     }
 
     private void DrawMonoText(

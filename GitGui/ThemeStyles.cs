@@ -22,7 +22,10 @@ public sealed record ThemeStyles(
     WorktreeChevronStyles WorktreeChevron,
     RepoBarRowStyles RepoBarRow,
     BranchesViewStyles BranchesView,
-    RepoBarStyles RepoBar)
+    RepoBarStyles RepoBar,
+    DiffViewStyles DiffView,
+    DiffContentStyles DiffContent,
+    DiffHunkButtonStyles DiffHunkButton)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -150,7 +153,35 @@ public sealed record ThemeStyles(
             BehindColor: 0xFFE6A85Cu),
         RepoBar: new RepoBarStyles(
             Background: 0xFF1E1F22u,
-            RightBorder: 0xFF313338u));
+            RightBorder: 0xFF313338u),
+        DiffView: new DiffViewStyles(
+            PanelBackground: 0xFF1E1F22u,
+            HeaderBackgroundIdle: 0xFF222326u,
+            HeaderBackgroundHover: 0xFF3A3D43u,
+            HeaderBorderTop: 0xFF313338u,
+            HeaderBorderBottom: 0xFF313338u,
+            HeaderTitleIdle: 0xFFB5B9C0u,
+            HeaderTitleHover: 0xFFFFFFFFu),
+        DiffContent: new DiffContentStyles(
+            Background: 0xFF1E1F22u,
+            PlaceholderText: 0xFF96989Du,
+            ErrorText: 0xFFE9C77Au,
+            LineText: 0xFFE6E6E6u,
+            LineNumberText: 0xFF7A7C81u,
+            LineAddedBackground: 0xFF284534u,
+            LineAddedGlyph: 0xFF57F287u,
+            LineRemovedBackground: 0xFF432528u,
+            LineRemovedGlyph: 0xFFED4245u,
+            LineContextGlyph: 0xFF96989Du,
+            SectionBackground: 0xFF222326u,
+            SectionMutedText: 0xFFB5B9C0u,
+            HunkSeparatorRangeText: 0xFF96989Du,
+            HunkOutline: 0xFF5A8DD6u),
+        DiffHunkButton: new DiffHunkButtonStyles(
+            BackgroundIdle: 0xCC2C313Au,
+            BackgroundHover: 0xFF3B4150u,
+            Border: 0xFF4A5060u,
+            Text: 0xFFE6E8ECu));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -278,7 +309,35 @@ public sealed record ThemeStyles(
             BehindColor: 0xFFEA580Cu),
         RepoBar: new RepoBarStyles(
             Background: 0xFFFFFFFFu,
-            RightBorder: 0xFFE5E7EBu));
+            RightBorder: 0xFFE5E7EBu),
+        DiffView: new DiffViewStyles(
+            PanelBackground: 0xFFFFFFFFu,
+            HeaderBackgroundIdle: 0xFFF3F4F6u,
+            HeaderBackgroundHover: 0xFFE5E7EBu,
+            HeaderBorderTop: 0xFFE5E7EBu,
+            HeaderBorderBottom: 0xFFE5E7EBu,
+            HeaderTitleIdle: 0xFF6B7280u,
+            HeaderTitleHover: 0xFF111827u),
+        DiffContent: new DiffContentStyles(
+            Background: 0xFFFFFFFFu,
+            PlaceholderText: 0xFF6B7280u,
+            ErrorText: 0xFF92400Eu,
+            LineText: 0xFF111827u,
+            LineNumberText: 0xFF9CA3AFu,
+            LineAddedBackground: 0xFFDCFCE7u,
+            LineAddedGlyph: 0xFF16A34Au,
+            LineRemovedBackground: 0xFFFEE2E2u,
+            LineRemovedGlyph: 0xFFDC2626u,
+            LineContextGlyph: 0xFF6B7280u,
+            SectionBackground: 0xFFF3F4F6u,
+            SectionMutedText: 0xFF374151u,
+            HunkSeparatorRangeText: 0xFF6B7280u,
+            HunkOutline: 0xFF3B82F6u),
+        DiffHunkButton: new DiffHunkButtonStyles(
+            BackgroundIdle: 0xCCFFFFFFu,
+            BackgroundHover: 0xFFE5E7EBu,
+            Border: 0xFFD1D5DBu,
+            Text: 0xFF111827u));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -414,6 +473,37 @@ public sealed record BranchesViewStyles(
 public sealed record RepoBarStyles(
     uint Background,
     uint RightBorder);
+
+public sealed record DiffViewStyles(
+    uint PanelBackground,
+    uint HeaderBackgroundIdle,
+    uint HeaderBackgroundHover,
+    uint HeaderBorderTop,
+    uint HeaderBorderBottom,
+    uint HeaderTitleIdle,
+    uint HeaderTitleHover);
+
+public sealed record DiffContentStyles(
+    uint Background,
+    uint PlaceholderText,
+    uint ErrorText,
+    uint LineText,
+    uint LineNumberText,
+    uint LineAddedBackground,
+    uint LineAddedGlyph,
+    uint LineRemovedBackground,
+    uint LineRemovedGlyph,
+    uint LineContextGlyph,
+    uint SectionBackground,
+    uint SectionMutedText,
+    uint HunkSeparatorRangeText,
+    uint HunkOutline);
+
+public sealed record DiffHunkButtonStyles(
+    uint BackgroundIdle,
+    uint BackgroundHover,
+    uint Border,
+    uint Text);
 
 public sealed record FileChangeRowStyles(
     uint RowText,
