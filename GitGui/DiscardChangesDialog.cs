@@ -49,7 +49,7 @@ internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChange
         });
         scrollPane.UseController(_ => new VerticalScrollPaneWheelController(scrollPane));
 
-        var vScrollBar = ScrollBarStyles.CreateVertical();
+        var vScrollBar = ScrollBars.CreateVertical();
 
         var scrollHost = new RectView
         {

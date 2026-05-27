@@ -32,8 +32,8 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
     public DiffView()
     {
         _content = new DiffContentView();
-        var vScrollBar = ScrollBarStyles.CreateVertical();
-        var hScrollBar = ScrollBarStyles.CreateHorizontal();
+        var vScrollBar = ScrollBars.CreateVertical();
+        var hScrollBar = ScrollBars.CreateHorizontal();
 
         var body = new BorderLayoutView
         {

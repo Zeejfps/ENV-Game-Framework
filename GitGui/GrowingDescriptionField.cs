@@ -73,7 +73,7 @@ internal sealed class GrowingDescriptionField : MultiChildView
         _scrollPane.Children.Add(_input);
         _scrollPane.UseController(_ => new ScrollPaneWheelController(_scrollPane));
 
-        _scrollBar = ScrollBarStyles.CreateVertical();
+        _scrollBar = ScrollBars.CreateVertical();
 
         var box = new RectView
         {

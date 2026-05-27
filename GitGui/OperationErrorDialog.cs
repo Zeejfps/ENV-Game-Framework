@@ -75,7 +75,7 @@ public sealed class OperationErrorDialog : MultiChildView
         });
         scrollPane.UseController(_ => new VerticalScrollPaneWheelController(scrollPane));
 
-        var vScrollBar = ScrollBarStyles.CreateVertical();
+        var vScrollBar = ScrollBars.CreateVertical();
 
         var scrollHost = new RectView
         {

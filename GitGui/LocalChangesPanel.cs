@@ -135,8 +135,8 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         _bodyContainer = new RectView();
         _bodyContainer.Children.Add(_emptyPlaceholder);
 
-        _scrollBar = ScrollBarStyles.CreateVertical();
-        _hScrollBar = ScrollBarStyles.CreateHorizontal();
+        _scrollBar = ScrollBars.CreateVertical();
+        _hScrollBar = ScrollBars.CreateHorizontal();
 
         AddChildToSelf(new BorderLayoutView
         {

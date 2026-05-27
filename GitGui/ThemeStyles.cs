@@ -29,7 +29,8 @@ public sealed record ThemeStyles(
     ActionsToolbarStyles ActionsToolbar,
     SeparatorSpacerStyles SeparatorSpacer,
     SidebarSplitterStyles SidebarSplitter,
-    HistorySplitterStyles HistorySplitter)
+    HistorySplitterStyles HistorySplitter,
+    ScrollBarStyles ScrollBar)
 {
     public static readonly ThemeStyles Dark = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -200,7 +201,13 @@ public sealed record ThemeStyles(
             Hover: 0xFF4A5680u),
         HistorySplitter: new HistorySplitterStyles(
             HoverFill: 0xFF4A5680u,
-            HoverLine: 0xFF7A8DC8u));
+            HoverLine: 0xFF7A8DC8u),
+        ScrollBar: new ScrollBarStyles(
+            TrackBackground: 0xFF26272Bu,
+            TrackBorder: 0xFF313338u,
+            ThumbIdleBackground: 0xFF4A4D52u,
+            ThumbHoverBackground: 0xFF6A6D72u,
+            ThumbBorder: 0xFF2A2C30u));
 
     public static readonly ThemeStyles Light = new(
         HeaderActionButton: new HeaderActionButtonStyles(
@@ -371,7 +378,13 @@ public sealed record ThemeStyles(
             Hover: 0xFFCBD5E1u),
         HistorySplitter: new HistorySplitterStyles(
             HoverFill: 0xFFCBD5E1u,
-            HoverLine: 0xFF94A3B8u));
+            HoverLine: 0xFF94A3B8u),
+        ScrollBar: new ScrollBarStyles(
+            TrackBackground: 0xFFF3F4F6u,
+            TrackBorder: 0xFFE5E7EBu,
+            ThumbIdleBackground: 0xFFC1C5CBu,
+            ThumbHoverBackground: 0xFF9CA3AFu,
+            ThumbBorder: 0xFFE5E7EBu));
 }
 
 public sealed record HeaderActionButtonStyles(
@@ -557,6 +570,13 @@ public sealed record SidebarSplitterStyles(
 public sealed record HistorySplitterStyles(
     uint HoverFill,
     uint HoverLine);
+
+public sealed record ScrollBarStyles(
+    uint TrackBackground,
+    uint TrackBorder,
+    uint ThumbIdleBackground,
+    uint ThumbHoverBackground,
+    uint ThumbBorder);
 
 public sealed record FileChangeRowStyles(
     uint RowText,

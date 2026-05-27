@@ -57,8 +57,8 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
         _scrollPane.Children.Add(_content);
         _scrollPane.UseController(_ => new ScrollPaneWheelController(_scrollPane));
 
-        var vScrollBar = ScrollBarStyles.CreateVertical();
-        var hScrollBar = ScrollBarStyles.CreateHorizontal();
+        var vScrollBar = ScrollBars.CreateVertical();
+        var hScrollBar = ScrollBars.CreateHorizontal();
 
         var topHalf = new BorderLayoutView
         {
