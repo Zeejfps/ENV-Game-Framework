@@ -10,6 +10,7 @@ var context = new Context();
 var messageBus = new MessageBus();
 context.AddService<IMessageBus>(messageBus);
 context.AddService(new State<MainViewMode>(MainViewMode.LocalChanges));
+context.AddService(new State<ThemeMode>(ThemeMode.Dark));
 context.AddService<IPlatformShell>(
     RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new WindowsPlatformShell()
     : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? new MacOSPlatformShell()
