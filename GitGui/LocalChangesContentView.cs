@@ -63,6 +63,7 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             [_viewModeButtonUnstaged, _discardButton, _stageSelectedButton, _stageAllButton],
             onRowActivated: OnUnstagedRowActivated,
             onEmptyAreaClicked: () => _vm?.ClearSelection(),
+            onFolderToggle: OnFolderToggle,
             buildContextMenu: BuildUnstagedMenu);
         _stagedPanel = new LocalChangesPanel(
             "Staged",
@@ -73,6 +74,7 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             [_viewModeButtonStaged, _unstageAllButton, _unstageSelectedButton],
             onRowActivated: OnStagedRowActivated,
             onEmptyAreaClicked: () => _vm?.ClearSelection(),
+            onFolderToggle: OnFolderToggle,
             buildContextMenu: BuildStagedMenu);
 
         _placeholder = new TextView
@@ -184,18 +186,26 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
 
     private void OnRowClick(FileRow row, InputModifiers modifiers)
     {
-        // A plain click on a folder expands/collapses it; clicking with a modifier (or any
-        // click on a file) selects — a folder selection covers all files beneath it.
-        if (row.Kind == FileRowKind.Folder && modifiers == InputModifiers.None)
-            _vm?.ToggleFolder(row.Side, row.FullPath);
-        else
-            _vm?.SelectRow(row.Ref, modifiers);
+        // Single-click selects any row — files and folders are independent items. A folder's
+        // expand/collapse lives on the chevron (handled before this in the panel),
+        // double-click, and the Left/Right arrow keys.
+        _vm?.SelectRow(row.Ref, modifiers);
         _arrowController?.TakeFocus();
     }
 
-    private void OnUnstagedRowActivated(FileRow row) => _vm?.Stage(row.Files);
+    private void OnFolderToggle(FileRow row) => _vm?.ToggleFolder(row.Side, row.FullPath);
 
-    private void OnStagedRowActivated(FileRow row) => _vm?.Unstage(row.Files);
+    private void OnUnstagedRowActivated(FileRow row)
+    {
+        if (row.Kind == FileRowKind.Folder) _vm?.ToggleFolder(row.Side, row.FullPath);
+        else _vm?.Stage(row.Files);
+    }
+
+    private void OnStagedRowActivated(FileRow row)
+    {
+        if (row.Kind == FileRowKind.Folder) _vm?.ToggleFolder(row.Side, row.FullPath);
+        else _vm?.Unstage(row.Files);
+    }
 
     private IReadOnlyList<RepoBarContextMenu.Item> BuildUnstagedMenu(FileRow? target)
     {
@@ -276,14 +286,15 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             "Open in Terminal", () => _vm!.OpenInTerminal(representative), LucideIcons.SquareTerminal));
     }
 
-    // Right-clicking a row already covered by the selection acts on the whole selection;
-    // right-clicking outside it acts on just that row's files (every file under a folder).
+    // Right-clicking a row that's part of the current selection acts on the whole
+    // selection's files; right-clicking any other row acts on just that row's files
+    // (every file under a folder).
     private IReadOnlyList<string> ResolveTargetPaths(FileRow target)
     {
-        var selected = _vm!.Selection.Value.PathsOn(target.Side);
-        var selectedSet = new HashSet<string>(selected);
-        var rowInSelection = target.Files.Count > 0 && target.Files.All(selectedSet.Contains);
-        return rowInSelection ? selected : target.Files;
+        var selection = _vm!.Selection.Value;
+        return selection.ContainsRow(target.Ref)
+            ? selection.PathsOn(target.Side)
+            : target.Files;
     }
 
 }

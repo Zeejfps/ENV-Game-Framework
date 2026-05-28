@@ -451,7 +451,7 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>, I
         return TextMeasure.TruncateToFit(text, style, available, Context.Canvas);
     }
 
-    private void OnRowClicked(int rowIndex, InputModifiers _)
+    private void OnRowClicked(int rowIndex, InputModifiers _, PointF __)
     {
         if (_vm == null) return;
         var row = (rowIndex >= 0 && rowIndex < _rows.Count) ? _rows[rowIndex] : null;

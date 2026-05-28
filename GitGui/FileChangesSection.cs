@@ -163,7 +163,7 @@ public sealed class FileChangesSection : MultiChildView, IScrollableContent
             z);
     }
 
-    private void OnRowClicked(int rowIndex, InputModifiers _)
+    private void OnRowClicked(int rowIndex, InputModifiers _, PointF __)
     {
         if (rowIndex < 0 || rowIndex >= _files.Count) return;
         var file = _files[rowIndex];

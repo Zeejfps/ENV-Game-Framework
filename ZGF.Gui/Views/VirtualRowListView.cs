@@ -40,9 +40,11 @@ public sealed class VirtualRowListView : View
     /// Fires when the user left-clicks within the widget. The index is the row that was
     /// hit, or -1 if the click landed in the widget but missed every row (consumers
     /// typically use -1 to clear selection). Modifiers carry Shift/Ctrl/Cmd state for
-    /// consumers that need range-extend or toggle-select semantics.
+    /// consumers that need range-extend or toggle-select semantics. The point is the
+    /// click location in GUI coordinates, for consumers that hit-test columns within a
+    /// row (e.g. a tree chevron).
     /// </summary>
-    public event Action<int, InputModifiers>? RowClicked;
+    public event Action<int, InputModifiers, PointF>? RowClicked;
 
     /// <summary>Fires when a left-click double-tap lands on the same row within the threshold.</summary>
     public event Action<int>? RowActivated;
@@ -214,7 +216,7 @@ public sealed class VirtualRowListView : View
         if (!Position.ContainsPoint(point)) return;
         var idx = HitTestRow(point);
 
-        RowClicked?.Invoke(idx, modifiers);
+        RowClicked?.Invoke(idx, modifiers, point);
 
         if (idx < 0)
         {

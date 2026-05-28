@@ -92,10 +92,8 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         ViewMode = Slice(s => s.ViewMode);
         UnstagedCollapsed = Slice(s => s.UnstagedCollapsed);
         StagedCollapsed = Slice(s => s.StagedCollapsed);
-        var selectedUnstaged = Slice(s =>
-            s.Selection.Count > 0 && s.Selection.Items[0].Side == DiffSide.Unstaged);
-        var selectedStaged = Slice(s =>
-            s.Selection.Count > 0 && s.Selection.Items[0].Side == DiffSide.Staged);
+        var selectedUnstaged = Slice(s => s.Selection.Side == DiffSide.Unstaged);
+        var selectedStaged = Slice(s => s.Selection.Side == DiffSide.Staged);
         var hasUnstaged = Slice(s => s.Unstaged.Count > 0);
         var hasStaged = Slice(s => s.Staged.Count > 0);
         Discard = new Command(DoDiscardSelected, selectedUnstaged);
@@ -159,7 +157,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
             if (msg.IsLastHunk && msg.ToSide is DiffSide moved)
                 selection = GitGui.Selection.FromPaths(new[] { msg.Path }, moved, unstaged, staged);
             else
-                selection = GitGui.Selection.Create(s.Selection.Items, s.Selection.Anchor, s.Selection.Cursor, unstaged, staged);
+                selection = GitGui.Selection.Create(s.Selection.Rows, s.Selection.Anchor, s.Selection.Cursor, unstaged, staged);
 
             return s with { Unstaged = unstaged, Staged = staged, Selection = selection };
         });
@@ -238,17 +236,17 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 Title = title,
                 Description = description,
                 Staged = staged,
-                Selection = GitGui.Selection.Create(s.Selection.Items, s.Selection.Anchor, s.Selection.Cursor, s.Unstaged, staged),
+                Selection = GitGui.Selection.Create(s.Selection.Rows, s.Selection.Anchor, s.Selection.Cursor, s.Unstaged, staged),
             };
         });
     }
     
     /// <summary>
-    /// Updates selection for a row click. Plain click replaces the selection with the
-    /// clicked row's files (a folder row contributes all files beneath it); Ctrl/Cmd
-    /// toggles them; Shift extends the range from the anchor over the displayed rows
-    /// (same side only). The anchor moves on plain/toggle clicks and stays put on
-    /// shift-extends so subsequent shift-clicks pivot around it.
+    /// Updates selection for a row click. Files and folders are independent selectable
+    /// items: a plain click selects just the clicked row; Ctrl/Cmd toggles it; Shift
+    /// extends the range from the anchor over the displayed rows (same side only). The
+    /// anchor moves on plain/toggle clicks and stays put on shift-extends so subsequent
+    /// shift-clicks pivot around it.
     /// </summary>
     public void SelectRow(FileRowRef clicked, InputModifiers modifiers)
     {
@@ -269,7 +267,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 {
                     var lo = Math.Min(anchorIdx, clickIdx);
                     var hi = Math.Max(anchorIdx, clickIdx);
-                    var range = CollectRange(rows, lo, hi, side);
+                    var range = CollectRange(rows, lo, hi);
                     return s with
                     {
                         Selection = GitGui.Selection.Create(range, anchor, clicked, s.Unstaged, s.Staged),
@@ -277,27 +275,20 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 }
             }
 
-            var clickedFiles = rows[clickIdx].Files;
-
-            if (toggle && s.Selection.Count > 0 && s.Selection.Items[0].Side == side)
+            if (toggle && s.Selection.Side == side)
             {
-                var allPresent = clickedFiles.All(p => s.Selection.Contains(p, side));
-                var clickedSet = new HashSet<string>(clickedFiles);
-                var next = s.Selection.Items
-                    .Where(t => !(t.Side == side && clickedSet.Contains(t.Path)))
-                    .ToList();
-                if (!allPresent)
-                    foreach (var p in clickedFiles) next.Add(new DiffTarget(p, side));
+                var wasPresent = s.Selection.ContainsRow(clicked);
+                var next = s.Selection.Rows.Where(r => !r.Equals(clicked)).ToList();
+                if (!wasPresent) next.Add(clicked);
                 return s with
                 {
                     Selection = GitGui.Selection.Create(next, clicked, clicked, s.Unstaged, s.Staged),
                 };
             }
 
-            var items = clickedFiles.Select(p => new DiffTarget(p, side)).ToList();
             return s with
             {
-                Selection = GitGui.Selection.Create(items, clicked, clicked, s.Unstaged, s.Staged),
+                Selection = GitGui.Selection.Create([clicked], clicked, clicked, s.Unstaged, s.Staged),
             };
         });
     }
@@ -345,12 +336,14 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         _preferences.SetFileViewMode(next);
         Update(s =>
         {
-            // Re-seat the anchor/cursor on the first selected file: a folder cursor carried
-            // over from tree mode has no row to land on in flat mode.
-            FileRowRef? anchor = s.Selection.Items.Count > 0
-                ? new FileRowRef(s.Selection.Items[0].Side, s.Selection.Items[0].Path, IsFolder: false)
-                : null;
-            var sel = GitGui.Selection.Create(s.Selection.Items, anchor, anchor, s.Unstaged, s.Staged);
+            // Collapse the selection down to its file leaves as individual file rows: a
+            // folder row carried over from tree mode has nothing to land on in flat mode,
+            // and the user's intent ("these files") survives the switch either way.
+            var fileRows = s.Selection.Items
+                .Select(t => new FileRowRef(t.Side, t.Path, IsFolder: false))
+                .ToList();
+            FileRowRef? anchor = fileRows.Count > 0 ? fileRows[0] : null;
+            var sel = GitGui.Selection.Create(fileRows, anchor, anchor, s.Unstaged, s.Staged);
             return s with { ViewMode = next, Selection = sel };
         });
     }
@@ -373,16 +366,13 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         return -1;
     }
 
-    // Union of the file paths covered by rows[lo..hi], in display order with duplicates
-    // dropped (a folder row's files overlap its visible child rows).
-    private static List<DiffTarget> CollectRange(IReadOnlyList<FileRow> rows, int lo, int hi, DiffSide side)
+    // The row refs spanned by rows[lo..hi] — every file and folder row in the range is
+    // selected as its own item; folder expansion to files happens in Selection.Create.
+    private static List<FileRowRef> CollectRange(IReadOnlyList<FileRow> rows, int lo, int hi)
     {
-        var seen = new HashSet<string>();
-        var items = new List<DiffTarget>();
-        for (var i = lo; i <= hi; i++)
-            foreach (var p in rows[i].Files)
-                if (seen.Add(p)) items.Add(new DiffTarget(p, side));
-        return items;
+        var refs = new List<FileRowRef>(hi - lo + 1);
+        for (var i = lo; i <= hi; i++) refs.Add(rows[i].Ref);
+        return refs;
     }
 
     /// <summary>
@@ -400,7 +390,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         Update(s =>
         {
             DiffSide side;
-            if (s.Selection.Count > 0) side = s.Selection.Items[0].Side;
+            if (s.Selection.Side is { } selSide) side = selSide;
             else if (s.Unstaged.Count > 0) side = DiffSide.Unstaged;
             else if (s.Staged.Count > 0) side = DiffSide.Staged;
             else return s;
@@ -426,7 +416,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 {
                     var lo = Math.Min(anchorIdx, newIdx);
                     var hi = Math.Max(anchorIdx, newIdx);
-                    var range = CollectRange(rows, lo, hi, side);
+                    var range = CollectRange(rows, lo, hi);
                     return s with
                     {
                         Selection = GitGui.Selection.Create(range, anchor, target, s.Unstaged, s.Staged),
@@ -434,10 +424,9 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 }
             }
 
-            var items = rows[newIdx].Files.Select(p => new DiffTarget(p, side)).ToList();
             return s with
             {
-                Selection = GitGui.Selection.Create(items, target, target, s.Unstaged, s.Staged),
+                Selection = GitGui.Selection.Create([target], target, target, s.Unstaged, s.Staged),
             };
         });
     }
@@ -813,7 +802,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     // selection isn't being explicitly steered to a new place.
     private void ApplySnapshot(LocalChangesSnapshot snap, IReadOnlyList<SubmoduleInfo>? drift = null)
         => ApplySnapshot(snap, (s, staged) =>
-            GitGui.Selection.Create(s.Selection.Items, s.Selection.Anchor, s.Selection.Cursor, snap.Unstaged, staged), drift);
+            GitGui.Selection.Create(s.Selection.Rows, s.Selection.Anchor, s.Selection.Cursor, snap.Unstaged, staged), drift);
 
     private void RunIndexOp(IReadOnlyList<string> paths, bool isStage)
     {

@@ -26,6 +26,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     private readonly Action<FileRow, InputModifiers> _onRowClick;
     private readonly Action<FileRow>? _onRowActivated;
     private readonly Action? _onEmptyAreaClicked;
+    private readonly Action<FileRow>? _onFolderToggle;
     private readonly Func<FileRow?, IReadOnlyList<RepoBarContextMenu.Item>>? _buildContextMenu;
     private readonly TextView _headerText;
     private readonly TextView _emptyPlaceholder;
@@ -38,6 +39,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     private IReadOnlyList<FileRow> _rows = Array.Empty<FileRow>();
     private FileViewMode _viewMode = FileViewMode.Flat;
     private IReadOnlySet<string> _collapsed = new HashSet<string>();
+    private View _currentBody = null!;
 
     private readonly TextStyle _badgeGlyphStyle = new()
     {
@@ -95,6 +97,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         IReadOnlyList<View>? headerActions = null,
         Action<FileRow>? onRowActivated = null,
         Action? onEmptyAreaClicked = null,
+        Action<FileRow>? onFolderToggle = null,
         Func<FileRow?, IReadOnlyList<RepoBarContextMenu.Item>>? buildContextMenu = null)
     {
         _title = title;
@@ -103,6 +106,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         _onRowClick = onRowClick;
         _onRowActivated = onRowActivated;
         _onEmptyAreaClicked = onEmptyAreaClicked;
+        _onFolderToggle = onFolderToggle;
         _buildContextMenu = buildContextMenu;
 
         _headerText = FileChangesUI.CreateHeaderText(title);
@@ -150,6 +154,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         // back in when files arrive. Keeps the layout (header / center / scrollbars) intact.
         _bodyContainer = new RectView();
         _bodyContainer.Children.Add(_emptyPlaceholder);
+        _currentBody = _emptyPlaceholder;
 
         _scrollBar = ScrollBars.CreateVertical();
         _hScrollBar = ScrollBars.CreateHorizontal();
@@ -210,19 +215,22 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     private void RebuildRows()
     {
         _rows = FileTreeBuilder.BuildRows(_files, _side, _viewMode, _collapsed);
-
-        _bodyContainer.Children.Clear();
-        if (_rows.Count == 0)
-        {
-            _bodyContainer.Children.Add(_emptyPlaceholder);
-            _list.ItemCount = 0;
-        }
-        else
-        {
-            _bodyContainer.Children.Add(_list);
-            _list.ItemCount = _rows.Count;
-        }
+        // Only swap the body on a real empty↔non-empty transition. Detaching and
+        // re-adding the list view (e.g. on every folder collapse) churns its
+        // InputSystem controller registration and drops the hover path, so clicks
+        // stop landing until the cursor physically re-enters. Keeping it mounted —
+        // as BranchesView does — avoids that.
+        SetBody(_rows.Count == 0 ? _emptyPlaceholder : _list);
+        _list.ItemCount = _rows.Count;
         _list.NotifyItemsChanged();
+    }
+
+    private void SetBody(View body)
+    {
+        if (ReferenceEquals(_currentBody, body)) return;
+        _bodyContainer.Children.Clear();
+        _bodyContainer.Children.Add(body);
+        _currentBody = body;
     }
 
     protected override void OnDrawSelf(ICanvas c)
@@ -233,14 +241,32 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         NotifyScrollChanged();
     }
 
-    private void OnRowClicked(int rowIndex, InputModifiers modifiers)
+    private void OnRowClicked(int rowIndex, InputModifiers modifiers, PointF point)
     {
         if (rowIndex < 0 || rowIndex >= _rows.Count)
         {
             _onEmptyAreaClicked?.Invoke();
             return;
         }
-        _onRowClick(_rows[rowIndex], modifiers);
+        var row = _rows[rowIndex];
+        // The chevron toggles the folder without disturbing the selection — it consumes
+        // the click before the row's select handler runs.
+        if (row.Kind == FileRowKind.Folder && _onFolderToggle != null && IsChevronHit(row, point))
+        {
+            _onFolderToggle(row);
+            return;
+        }
+        _onRowClick(row, modifiers);
+    }
+
+    // The chevron occupies the indent + chevron column at the left of a folder row; a hit
+    // anywhere from the row's left edge through the chevron toggles (so the small triangle
+    // isn't a pixel-perfect target), while the icon and name select.
+    private bool IsChevronHit(FileRow row, PointF point)
+    {
+        var chevronRight = _list.Position.Left + FileChangesUI.RowPaddingLeft
+            + row.Indent + FileChangesUI.ChevronWidth + FileChangesUI.ChevronGap;
+        return point.X <= chevronRight;
     }
 
     private void OnRowActivated(int rowIndex)
@@ -276,23 +302,17 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
 
         var row = _rows[rowIndex];
         var selection = _selection.Value;
+        var isSelected = selection.ContainsRow(row.Ref);
 
         if (row.Kind == FileRowKind.Folder)
         {
-            var selectedCount = 0;
-            foreach (var p in row.Files)
-                if (selection.Contains(p, _side)) selectedCount++;
-            var allSelected = selectedCount > 0 && selectedCount == row.Files.Count;
-            var partial = selectedCount > 0 && !allSelected;
-
             FileChangesUI.DrawFolderRow(
                 Context.Canvas,
                 rowRect,
                 row.DisplayName,
                 row.Indent,
                 row.IsOpen,
-                allSelected,
-                partial,
+                isSelected,
                 state.IsHovered || state.IsContextHighlighted,
                 _rowStyles,
                 _chevronStyle,
@@ -304,7 +324,6 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         }
 
         var file = row.File!;
-        var isSelected = selection.Contains(file.Path, _side);
         FileChangesUI.DrawFileRow(
             Context.Canvas,
             rowRect,

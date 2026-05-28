@@ -164,9 +164,8 @@ internal static class FileChangesUI
 
     /// <summary>
     /// Draws a tree-mode directory row: collapse chevron, folder icon, then the (possibly
-    /// compacted) folder name. <paramref name="isSelected"/> highlights when every file
-    /// under the folder is selected; <paramref name="isPartial"/> gives a lighter highlight
-    /// when only some are.
+    /// compacted) folder name. <paramref name="isSelected"/> highlights when the folder
+    /// row itself is selected.
     /// </summary>
     public static void DrawFolderRow(
         ICanvas canvas,
@@ -175,7 +174,6 @@ internal static class FileChangesUI
         float indent,
         bool isOpen,
         bool isSelected,
-        bool isPartial,
         bool isHovered,
         FileChangeRowStyles styles,
         TextStyle chevronStyle,
@@ -186,7 +184,7 @@ internal static class FileChangesUI
     {
         var bg = isSelected
             ? styles.RowActive
-            : (isHovered || isPartial ? styles.RowHover : (uint?)null);
+            : (isHovered ? styles.RowHover : (uint?)null);
         if (bg != null)
         {
             canvas.DrawRect(new DrawRectInputs
