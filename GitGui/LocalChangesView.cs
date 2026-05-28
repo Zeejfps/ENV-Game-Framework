@@ -25,7 +25,7 @@ internal sealed class LocalChangesView : MultiChildView, IBind<LocalChangesViewM
                 },
             },
         };
-        bg.BindThemedBackgroundColor(s => s.LocalChangesView.Background);
+        bg.BindThemedBackgroundColor(s => s.Palette.Surface);
         AddChildToSelf(bg);
 
         this.UseViewModel(this);

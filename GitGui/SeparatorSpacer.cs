@@ -25,7 +25,7 @@ internal sealed class SeparatorSpacer : MultiChildView
             PreferredWidth = SeparatorWidth,
             PreferredHeight = SeparatorHeight,
         };
-        line.BindThemedBackgroundColor(s => s.SeparatorSpacer.Line);
+        line.BindThemedBackgroundColor(s => s.Palette.Border);
 
         AddChildToSelf(new FlexRowView
         {

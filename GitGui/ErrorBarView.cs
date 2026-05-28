@@ -22,7 +22,7 @@ internal sealed class ErrorBarView : MultiChildView
             VerticalTextAlignment = TextAlignment.Center,
         };
         text.BindText(Message);
-        text.BindThemedTextColor(s => s.ErrorBar.Text);
+        text.BindThemedTextColor(s => s.Banner.Text);
 
         var box = new RectView
         {
@@ -37,8 +37,8 @@ internal sealed class ErrorBarView : MultiChildView
             },
             Children = { text },
         };
-        box.BindThemedBackgroundColor(s => s.ErrorBar.Background);
-        box.BindThemedBorderColor(s => BorderColorStyle.All(s.ErrorBar.Border));
+        box.BindThemedBackgroundColor(s => s.Banner.Background);
+        box.BindThemedBorderColor(s => BorderColorStyle.All(s.Banner.Border));
         AddChildToSelf(box);
     }
 }

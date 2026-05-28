@@ -26,7 +26,7 @@ public sealed class CommitsPanelView : MultiChildView
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        _warningText.BindThemedTextColor(s => s.CommitsTruncationBar.Text);
+        _warningText.BindThemedTextColor(s => s.Banner.Text);
         _warningText.BindText(_truncated, t => t ? "History truncated." : null);
 
         _warningBar = new RectView
@@ -35,9 +35,9 @@ public sealed class CommitsPanelView : MultiChildView
             Children = { _warningText },
         };
         _warningBar.BindThemedBackgroundColor(s =>
-            _truncated.Value ? s.CommitsTruncationBar.Background : 0u);
+            _truncated.Value ? s.Banner.Background : 0u);
         _warningBar.BindThemedBorderColor(s => _truncated.Value
-            ? new BorderColorStyle { Top = s.CommitsTruncationBar.BorderTop }
+            ? new BorderColorStyle { Top = s.Banner.Border }
             : new BorderColorStyle());
         _truncated.Subscribe(t =>
         {

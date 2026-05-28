@@ -29,7 +29,7 @@ public sealed class WorktreeChevron : MultiChildView
             VerticalTextAlignment = TextAlignment.Center,
             PreferredWidth = RepoBar.RowChevronWidth,
         };
-        chevron.BindThemedTextColor(s => s.WorktreeChevron.Text);
+        chevron.BindThemedTextColor(s => s.Palette.TextSecondary);
         // Reads of registry.Repos and the WorktreesChanged version are auto-tracked, so
         // the chevron updates whenever children appear/disappear or expand state flips.
         chevron.BindText(() =>

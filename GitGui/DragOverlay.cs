@@ -16,7 +16,7 @@ public sealed class DragOverlay : MultiChildView
         {
             BorderRadius = BorderRadiusStyle.All(1),
         };
-        _indicator.BindThemedBackgroundColor(s => s.DragOverlay.IndicatorColor);
+        _indicator.BindThemedBackgroundColor(s => s.Palette.Accent);
     }
 
     protected override void OnAttachedToContext(Context context)

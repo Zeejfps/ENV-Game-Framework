@@ -31,7 +31,7 @@ internal sealed class OperationBannerView : MultiChildView, IBind<OperationState
             VerticalTextAlignment = TextAlignment.Center,
             TextWrap = TextWrap.Wrap,
         };
-        _text.BindThemedTextColor(s => s.OperationBanner.Text);
+        _text.BindThemedTextColor(s => s.Banner.Text);
 
         _continueButton = new ActionButton(
             LucideIcons.ChevronsRight,
@@ -52,7 +52,7 @@ internal sealed class OperationBannerView : MultiChildView, IBind<OperationState
             HorizontalTextAlignment = TextAlignment.Center,
             PreferredWidth = 20,
         };
-        _spinnerIcon.BindThemedTextColor(s => s.OperationBanner.Text);
+        _spinnerIcon.BindThemedTextColor(s => s.Banner.Text);
 
         _textItem = new FlexItem { Grow = 1, Child = _text };
 
@@ -75,8 +75,8 @@ internal sealed class OperationBannerView : MultiChildView, IBind<OperationState
             },
             Children = { _row },
         };
-        banner.BindThemedBackgroundColor(s => s.OperationBanner.Background);
-        banner.BindThemedBorderColor(s => new BorderColorStyle { Bottom = s.OperationBanner.BorderBottom });
+        banner.BindThemedBackgroundColor(s => s.Banner.Background);
+        banner.BindThemedBorderColor(s => new BorderColorStyle { Bottom = s.Banner.Border });
         AddChildToSelf(banner);
 
         this.UseViewModel(this);

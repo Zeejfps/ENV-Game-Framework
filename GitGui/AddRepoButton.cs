@@ -15,7 +15,7 @@ public sealed class AddRepoButton : HoverableButton
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        label.BindThemedTextColor(s => s.AddRepoButton.Text);
+        label.BindThemedTextColor(s => s.Palette.TextSecondary);
 
         var background = new RectView
         {
