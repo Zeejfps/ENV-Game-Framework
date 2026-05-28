@@ -10,7 +10,7 @@ namespace GitGui;
 // stash, pick the files to stash, and optionally keep the index (--keep-index) so staged
 // hunks stay around after stashing. --include-untracked is derived from the row checks:
 // passed iff any selected row is an untracked file.
-public sealed class StashDialog : MultiChildView, IStashView
+internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
 {
     private readonly Action _onClose;
     private readonly TextInputView _messageInput;
@@ -22,9 +22,7 @@ public sealed class StashDialog : MultiChildView, IStashView
     private readonly TextView _fileListHeader;
     private readonly TextView _fileListEmpty;
     private readonly List<FileRow> _rows = new();
-
-    public event Action? StashRequested;
-    public event Action? SelectionChanged;
+    private StashDialogViewModel? _vm;
 
     public StashDialog(Repo repo, Action onClose)
     {
@@ -83,7 +81,7 @@ public sealed class StashDialog : MultiChildView, IStashView
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _stashButton = new DialogButton("Stash", RaiseStashRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _stashButton = new DialogButton("Stash") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Stash changes", onClose, new FlexColumnView
         {
@@ -104,49 +102,49 @@ public sealed class StashDialog : MultiChildView, IStashView
 
         // Same reason as CreateBranchDialog: text-input controllers consume clicks across
         // the view they're on, so attach to the input itself, not the outer dialog.
-        _messageController = new CheckoutDialogKbmController(_messageInput, RaiseStashRequested, onClose);
+        _messageController = new CheckoutDialogKbmController(_messageInput, Submit, onClose);
         _messageInput.UseController(_ => _messageController);
 
         var request = new StashRequest(repo);
-        this.UsePresenter(ctx => new StashPresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>(),
-            ctx.Require<LocalChangesSelectionStore>()));
+        this.UseViewModel(
+            ctx => new StashDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>(),
+                ctx.Require<LocalChangesSelectionStore>()),
+            Bind);
     }
 
-    private void RaiseStashRequested() => StashRequested?.Invoke();
-
-    public string Message => new(_messageInput.Text);
-    public bool KeepStaged => _keepStagedCheckbox.IsChecked.Value;
-
-    public IReadOnlyList<string> SelectedPaths
+    public void Bind(StashDialogViewModel vm)
     {
-        get
+        _vm = vm;
+        vm.CloseRequested += _onClose;
+        vm.FocusMessageRequested += () => _messageController.BeginEditing();
+
+        vm.Message.Subscribe(s =>
         {
-            var list = new List<string>(_rows.Count);
-            foreach (var r in _rows)
-                if (r.Checkbox.IsChecked.Value) list.Add(r.Row.Path);
-            return list;
-        }
+            if (_messageInput.Text.SequenceEqual(s.AsSpan())) return;
+            _messageInput.Clear();
+            if (s.Length > 0) _messageInput.Enter(s.AsSpan());
+        });
+        _messageInput.TextChanged += () => vm.SetMessage(_messageInput.Text.ToString());
+
+        vm.KeepStaged.Subscribe(b => _keepStagedCheckbox.IsChecked.Value = b);
+        _keepStagedCheckbox.IsChecked.Changed += b => vm.SetKeepStaged(b);
+
+        _stashButton.BindCommand(vm.Stash);
+        _errorView.BindText(vm.Stash.Error, s => s ?? string.Empty);
+        _fileListHeader.BindText(vm.FilesHeader);
+
+        vm.Files.Subscribe(RenderFiles);
+
+        vm.RequestFocusMessage();
     }
 
-    public bool StashEnabled
-    {
-        set => _stashButton.IsEnabled.Value = value;
-    }
-    public string? ErrorMessage
-    {
-        set => _errorView.Text = value ?? string.Empty;
-    }
-    public event Action MessageChanged
-    {
-        add => _messageInput.TextChanged += value;
-        remove => _messageInput.TextChanged -= value;
-    }
+    private void Submit() => _vm?.Stash.Execute();
 
-    public void SetFiles(IReadOnlyList<StashFileRow> files, IReadOnlyList<string> preChecked)
+    private void RenderFiles(IReadOnlyList<StashFileRow> files)
     {
         _fileListColumn.Children.Clear();
         _rows.Clear();
@@ -154,31 +152,25 @@ public sealed class StashDialog : MultiChildView, IStashView
         if (files.Count == 0)
         {
             _fileListColumn.Children.Add(_fileListEmpty);
-            UpdateHeader(0, 0);
             return;
         }
 
-        var preCheckedSet = new HashSet<string>(preChecked);
         foreach (var file in files)
         {
-            var row = BuildRow(file, preCheckedSet.Contains(file.Path));
+            var row = BuildRow(file);
             _rows.Add(row);
             _fileListColumn.Children.Add(row.View);
         }
-
-        UpdateHeader(SelectedCount(), _rows.Count);
     }
 
-    public void FocusMessage()
+    private FileRow BuildRow(StashFileRow file)
     {
-        _messageController.BeginEditing();
-    }
-    public void Close() => _onClose();
-
-    private FileRow BuildRow(StashFileRow file, bool initialChecked)
-    {
+        var vm = _vm!;
         var checkbox = new CheckboxView(string.Empty);
-        checkbox.IsChecked.Value = initialChecked;
+        // Seed from VM state BEFORE wiring Changed, so the initial paint doesn't trigger
+        // a phantom toggle through the handler.
+        checkbox.IsChecked.Value = vm.CheckedPaths.Value.Contains(file.Path);
+        checkbox.IsChecked.Changed += _ => vm.ToggleFile(file.Path);
 
         var badge = FileChangesUI.CreateStatusBadge(file.Display);
 
@@ -202,25 +194,7 @@ public sealed class StashDialog : MultiChildView, IStashView
             },
         };
 
-        var row = new FileRow(file, checkbox, rowContent);
-        checkbox.IsChecked.Subscribe(_ =>
-        {
-            UpdateHeader(SelectedCount(), _rows.Count);
-            SelectionChanged?.Invoke();
-        });
-        return row;
-    }
-
-    private int SelectedCount()
-    {
-        var n = 0;
-        foreach (var r in _rows) if (r.Checkbox.IsChecked.Value) n++;
-        return n;
-    }
-
-    private void UpdateHeader(int selected, int total)
-    {
-        _fileListHeader.Text = total == 0 ? "Files" : $"Files ({selected}/{total})";
+        return new FileRow(file, checkbox, rowContent);
     }
 
     private sealed record FileRow(StashFileRow Row, CheckboxView Checkbox, View View);
