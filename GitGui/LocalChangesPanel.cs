@@ -26,6 +26,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     private readonly Action<DiffTarget, InputModifiers> _onRowClick;
     private readonly Action<DiffTarget>? _onRowActivated;
     private readonly Action? _onEmptyAreaClicked;
+    private readonly Func<DiffTarget, IReadOnlyList<RepoBarContextMenu.Item>>? _buildContextMenu;
     private readonly TextView _headerText;
     private readonly TextView _emptyPlaceholder;
     private readonly RectView _bodyContainer;
@@ -76,7 +77,8 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         Action<DiffTarget, InputModifiers> onRowClick,
         IReadOnlyList<View>? headerActions = null,
         Action<DiffTarget>? onRowActivated = null,
-        Action? onEmptyAreaClicked = null)
+        Action? onEmptyAreaClicked = null,
+        Func<DiffTarget, IReadOnlyList<RepoBarContextMenu.Item>>? buildContextMenu = null)
     {
         _title = title;
         _side = side;
@@ -84,6 +86,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         _onRowClick = onRowClick;
         _onRowActivated = onRowActivated;
         _onEmptyAreaClicked = onEmptyAreaClicked;
+        _buildContextMenu = buildContextMenu;
 
         _headerText = FileChangesUI.CreateHeaderText(title);
         _emptyPlaceholder = FileChangesUI.CreateEmptyPlaceholder(emptyText);
@@ -123,6 +126,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         };
         _list.RowClicked += OnRowClicked;
         if (onRowActivated != null) _list.RowActivated += OnRowActivated;
+        if (buildContextMenu != null) _list.RowContextRequested += OnRowContextRequested;
         _list.ScrollChanged += NotifyScrollChanged;
 
         // Empty placeholder swaps in as the body when there are no files; the widget swaps
@@ -202,6 +206,24 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     {
         if (rowIndex < 0 || rowIndex >= _files.Count) return;
         _onRowActivated?.Invoke(new DiffTarget(_files[rowIndex].Path, _side));
+    }
+
+    private void OnRowContextRequested(int rowIndex, PointF point)
+    {
+        if (Context == null || _buildContextMenu == null) return;
+        if (rowIndex < 0 || rowIndex >= _files.Count) return;
+
+        var items = _buildContextMenu(new DiffTarget(_files[rowIndex].Path, _side));
+        if (items.Count == 0) return;
+
+        _list.SetContextHighlight(rowIndex);
+        var opened = RepoBarContextMenu.Show(Context, point, items);
+        if (opened == null)
+        {
+            _list.SetContextHighlight(null);
+            return;
+        }
+        opened.Closed += () => _list.SetContextHighlight(null);
     }
 
     private void DrawFileRowAt(ICanvas c, RectF rowRect, int rowIndex, RowRenderState state, int z)

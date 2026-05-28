@@ -56,7 +56,8 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             OnRowClick,
             [_discardButton, _stageSelectedButton, _stageAllButton],
             onRowActivated: t => _vm?.Stage([t.Path]),
-            onEmptyAreaClicked: () => _vm?.ClearSelection());
+            onEmptyAreaClicked: () => _vm?.ClearSelection(),
+            buildContextMenu: BuildUnstagedMenu);
         _stagedPanel = new LocalChangesPanel(
             "Staged",
             DiffSide.Staged,
@@ -65,7 +66,8 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             OnRowClick,
             [_unstageAllButton, _unstageSelectedButton],
             onRowActivated: t => _vm?.Unstage([t.Path]),
-            onEmptyAreaClicked: () => _vm?.ClearSelection());
+            onEmptyAreaClicked: () => _vm?.ClearSelection(),
+            buildContextMenu: BuildStagedMenu);
 
         _placeholder = new TextView
         {
@@ -167,6 +169,46 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
     {
         _vm?.SelectRow(target.Path, target.Side, modifiers);
         _arrowController?.TakeFocus();
+    }
+
+    private IReadOnlyList<RepoBarContextMenu.Item> BuildUnstagedMenu(DiffTarget target)
+    {
+        if (_vm == null) return [];
+        var paths = ResolveTargetPaths(target);
+        var n = paths.Count;
+        return
+        [
+            new RepoBarContextMenu.Item(
+                n > 1 ? $"Stage {n} Files" : "Stage",
+                () => _vm.Stage(paths),
+                LucideIcons.ChevronRight),
+            new RepoBarContextMenu.Item(
+                n > 1 ? $"Discard {n} Files…" : "Discard…",
+                () => _vm.RequestDiscard(paths),
+                LucideIcons.Trash),
+        ];
+    }
+
+    private IReadOnlyList<RepoBarContextMenu.Item> BuildStagedMenu(DiffTarget target)
+    {
+        if (_vm == null) return [];
+        var paths = ResolveTargetPaths(target);
+        var n = paths.Count;
+        return
+        [
+            new RepoBarContextMenu.Item(
+                n > 1 ? $"Unstage {n} Files" : "Unstage",
+                () => _vm.Unstage(paths),
+                LucideIcons.ChevronLeft),
+        ];
+    }
+
+    // Right-clicking a row inside the current selection acts on the whole selection;
+    // right-clicking outside it acts on just that row.
+    private IReadOnlyList<string> ResolveTargetPaths(DiffTarget target)
+    {
+        var selected = _vm!.Selection.Value.PathsOn(target.Side);
+        return selected.Contains(target.Path) ? selected : [target.Path];
     }
 
 }
