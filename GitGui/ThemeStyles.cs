@@ -42,6 +42,9 @@ public sealed record ThemeStyles(
     public static readonly ThemeStyles Dark = BuildDark();
     public static readonly ThemeStyles Light = BuildLight();
 
+    private static uint WithAlpha(uint color, byte alpha) =>
+        (color & 0x00FFFFFFu) | ((uint)alpha << 24);
+
     private static ThemeStyles BuildDark()
     {
         var p = new ThemePalette(
@@ -63,7 +66,9 @@ public sealed record ThemeStyles(
             AccentHover: 0xFF7480F5u,
             TextStrong: 0xFFFFFFFFu,
             TextPrimary: 0xFFE6E6E6u,
+            TextBody: 0xFFDCDDDEu,
             TextSecondary: 0xFFB5B9C0u,
+            TextMedium: 0xFFB5B9C0u,
             TextMuted: 0xFF96989Du,
             TextDim: 0xFF7A7C81u,
             TextDisabled: 0x80B5B9C0u,
@@ -77,7 +82,15 @@ public sealed record ThemeStyles(
             Info: 0xFF5DADE2u,
             Purple: 0xFFB57EDCu,
             SuccessSoft: 0xFF9DD17Bu,
-            WarningSoft: 0xFFE6A85Cu);
+            WarningSoft: 0xFFE6A85Cu,
+            SuccessBar: 0xFF4E8B3Du,
+            SuccessText: 0xFF7FB76Au,
+            SuccessLineBg: 0xFF284534u,
+            SuccessLineGlyph: 0xFF57F287u,
+            DangerBar: 0xFFB3514Bu,
+            DangerText: 0xFFE9C77Au,
+            DangerLineBg: 0xFF432528u,
+            DangerLineGlyph: 0xFFED4245u);
 
         var banner = new BannerStyles(
             Background: 0xFF3D2E14u,
@@ -91,9 +104,9 @@ public sealed record ThemeStyles(
             HeaderActionButton: new HeaderActionButtonStyles(
                 Background: 0u,
                 BackgroundHover: p.SurfaceHoverStrong,
-                IconIdle: p.TextSecondary,
+                IconIdle: p.TextMedium,
                 IconHover: p.TextStrong,
-                IconDisabled: 0x66B5B9C0u),
+                IconDisabled: WithAlpha(p.TextMedium, 0x66)),
             LocalChangesContent: new LocalChangesContentStyles(
                 ContentBackground: p.Surface,
                 ColumnDivider: p.Border,
@@ -103,7 +116,7 @@ public sealed record ThemeStyles(
             SubmoduleSection: new SubmoduleSectionStyles(
                 BadgeBackground: status.Purple,
                 BadgeText: p.SurfaceSunken,
-                RowText: p.TextSecondary),
+                RowText: p.TextMedium),
             FileChangesSection: new FileChangesSectionStyles(
                 HeaderBackground: p.SurfaceRaised,
                 HeaderBorder: p.Border,
@@ -160,7 +173,7 @@ public sealed record ThemeStyles(
                 TextDisabled: p.TextDisabled,
                 BoxBorderIdle: p.BorderMuted,
                 BoxBorderHover: p.BorderMutedHover,
-                BoxBorderDisabled: 0x664A4D52u,
+                BoxBorderDisabled: WithAlpha(p.BorderMuted, 0x66),
                 BoxFillChecked: p.Accent,
                 BoxFillCheckedHover: p.AccentHover,
                 BoxFillDisabled: p.SurfaceHover,
@@ -228,13 +241,13 @@ public sealed record ThemeStyles(
             DiffContent: new DiffContentStyles(
                 Background: p.Surface,
                 PlaceholderText: p.TextMuted,
-                ErrorText: 0xFFE9C77Au,
+                ErrorText: status.Warning,
                 LineText: p.TextPrimary,
                 LineNumberText: p.TextDim,
-                LineAddedBackground: 0xFF284534u,
-                LineAddedGlyph: status.Success,
-                LineRemovedBackground: 0xFF432528u,
-                LineRemovedGlyph: status.Danger,
+                LineAddedBackground: status.SuccessLineBg,
+                LineAddedGlyph: status.SuccessLineGlyph,
+                LineRemovedBackground: status.DangerLineBg,
+                LineRemovedGlyph: status.DangerLineGlyph,
                 LineContextGlyph: p.TextMuted,
                 SectionBackground: p.SurfaceRaised,
                 SectionMutedText: p.TextSecondary,
@@ -274,10 +287,10 @@ public sealed record ThemeStyles(
                 ElapsedText: p.TextDim,
                 BackgroundIdle: p.SurfaceMuted,
                 BackgroundHover: p.Border,
-                SuccessBar: 0xFF4E8B3Du,
-                SuccessText: 0xFF7FB76Au,
-                FailureBar: 0xFFB3514Bu,
-                FailureText: status.Warning),
+                SuccessBar: status.SuccessBar,
+                SuccessText: status.SuccessText,
+                FailureBar: status.DangerBar,
+                FailureText: status.DangerText),
             CommitDetailsView: new CommitDetailsViewStyles(
                 Background: p.SurfaceSunken,
                 BorderLeft: p.Border,
@@ -288,7 +301,7 @@ public sealed record ThemeStyles(
                 SplitterIdle: p.Border,
                 SplitterHover: p.BorderHoverFill),
             DialogBody: new DialogBodyStyles(
-                BodyText: 0xFFDCDDDEu,
+                BodyText: p.TextBody,
                 SectionHeaderText: p.TextMuted,
                 RowText: p.TextSecondary,
                 RowTextMissing: p.TextDisabled),
@@ -348,7 +361,9 @@ public sealed record ThemeStyles(
             AccentHover: 0xFF6366F1u,
             TextStrong: 0xFF111827u,
             TextPrimary: 0xFF111827u,
+            TextBody: 0xFF1F2937u,
             TextSecondary: 0xFF374151u,
+            TextMedium: 0xFF4B5563u,
             TextMuted: 0xFF6B7280u,
             TextDim: 0xFF9CA3AFu,
             TextDisabled: 0x80374151u,
@@ -362,7 +377,15 @@ public sealed record ThemeStyles(
             Info: 0xFF2563EBu,
             Purple: 0xFFA855F7u,
             SuccessSoft: 0xFF16A34Au,
-            WarningSoft: 0xFFEA580Cu);
+            WarningSoft: 0xFFEA580Cu,
+            SuccessBar: 0xFF16A34Au,
+            SuccessText: 0xFF166534u,
+            SuccessLineBg: 0xFFDCFCE7u,
+            SuccessLineGlyph: 0xFF15803Du,
+            DangerBar: 0xFFDC2626u,
+            DangerText: 0xFF7C2D12u,
+            DangerLineBg: 0xFFFEE2E2u,
+            DangerLineGlyph: 0xFFB91C1Cu);
 
         var banner = new BannerStyles(
             Background: 0xFFFEF3C7u,
@@ -376,9 +399,9 @@ public sealed record ThemeStyles(
             HeaderActionButton: new HeaderActionButtonStyles(
                 Background: 0u,
                 BackgroundHover: p.SurfaceHoverStrong,
-                IconIdle: 0xFF4B5563u,
+                IconIdle: p.TextMedium,
                 IconHover: p.TextStrong,
-                IconDisabled: 0x664B5563u),
+                IconDisabled: WithAlpha(p.TextMedium, 0x66)),
             LocalChangesContent: new LocalChangesContentStyles(
                 ContentBackground: p.Surface,
                 ColumnDivider: p.Border,
@@ -388,7 +411,7 @@ public sealed record ThemeStyles(
             SubmoduleSection: new SubmoduleSectionStyles(
                 BadgeBackground: status.Purple,
                 BadgeText: p.TextOnAccent,
-                RowText: 0xFF4B5563u),
+                RowText: p.TextMedium),
             FileChangesSection: new FileChangesSectionStyles(
                 HeaderBackground: p.SurfaceRaised,
                 HeaderBorder: p.Border,
@@ -420,7 +443,7 @@ public sealed record ThemeStyles(
                 Text: p.TextStrong,
                 Caret: p.TextStrong,
                 Selection: p.BorderHoverFill,
-                PlaceholderText: 0x806B7280u),
+                PlaceholderText: WithAlpha(p.TextMuted, 0x80)),
             BorderedButton: new BorderedButtonStyles(
                 BackgroundIdle: p.Surface,
                 BackgroundHover: p.SurfaceHover,
@@ -445,7 +468,7 @@ public sealed record ThemeStyles(
                 TextDisabled: p.TextDisabled,
                 BoxBorderIdle: p.BorderStrong,
                 BoxBorderHover: p.BorderMutedHover,
-                BoxBorderDisabled: 0x66D1D5DBu,
+                BoxBorderDisabled: WithAlpha(p.BorderStrong, 0x66),
                 BoxFillChecked: p.Accent,
                 BoxFillCheckedHover: p.AccentHover,
                 BoxFillDisabled: p.Border,
@@ -516,17 +539,17 @@ public sealed record ThemeStyles(
                 ErrorText: 0xFF92400Eu,
                 LineText: p.TextStrong,
                 LineNumberText: p.TextMuted,
-                LineAddedBackground: 0xFFDCFCE7u,
-                LineAddedGlyph: 0xFF15803Du,
-                LineRemovedBackground: 0xFFFEE2E2u,
-                LineRemovedGlyph: 0xFFB91C1Cu,
+                LineAddedBackground: status.SuccessLineBg,
+                LineAddedGlyph: status.SuccessLineGlyph,
+                LineRemovedBackground: status.DangerLineBg,
+                LineRemovedGlyph: status.DangerLineGlyph,
                 LineContextGlyph: p.TextMuted,
                 SectionBackground: p.SurfaceRaised,
                 SectionMutedText: p.TextSecondary,
                 HunkSeparatorRangeText: p.TextMuted,
                 HunkOutline: 0xFF3B82F6u),
             DiffHunkButton: new DiffHunkButtonStyles(
-                BackgroundIdle: 0xCCD1D5DBu,
+                BackgroundIdle: WithAlpha(p.BorderStrong, 0xCC),
                 BackgroundHover: p.SurfaceHoverStrong,
                 Border: p.BorderStrong,
                 Text: p.TextStrong),
@@ -548,8 +571,8 @@ public sealed record ThemeStyles(
                 ThumbHoverBackground: p.BorderMutedHover,
                 ThumbBorder: p.Border),
             Tooltip: new TooltipStyles(
-                Background: 0xFF374151u,
-                Border: 0xFF1F2937u,
+                Background: p.TextSecondary,
+                Border: p.TextBody,
                 Text: p.TextOnAccent,
                 Shadow: p.Shadow),
             OperationRow: new OperationRowStyles(
@@ -559,10 +582,10 @@ public sealed record ThemeStyles(
                 ElapsedText: p.TextMuted,
                 BackgroundIdle: p.SurfaceRaised,
                 BackgroundHover: p.SurfaceHoverStrong,
-                SuccessBar: status.Success,
-                SuccessText: 0xFF166534u,
-                FailureBar: status.Danger,
-                FailureText: 0xFF7C2D12u),
+                SuccessBar: status.SuccessBar,
+                SuccessText: status.SuccessText,
+                FailureBar: status.DangerBar,
+                FailureText: status.DangerText),
             CommitDetailsView: new CommitDetailsViewStyles(
                 Background: p.SurfaceSunken,
                 BorderLeft: p.Border,
@@ -573,7 +596,7 @@ public sealed record ThemeStyles(
                 SplitterIdle: p.Border,
                 SplitterHover: p.BorderHoverFill),
             DialogBody: new DialogBodyStyles(
-                BodyText: 0xFF1F2937u,
+                BodyText: p.TextBody,
                 SectionHeaderText: p.TextMuted,
                 RowText: p.TextSecondary,
                 RowTextMissing: p.TextDisabled),
@@ -609,7 +632,7 @@ public sealed record ThemeStyles(
                 BadgeLocalBackground: 0xFFDBEAFEu,
                 BadgeRemoteBackground: 0xFFEDE9FEu,
                 BadgeHeadBackground: 0xFFFEF3C7u,
-                BadgeText: 0xFF1F2937u));
+                BadgeText: p.TextBody));
     }
 }
 
@@ -632,7 +655,9 @@ public sealed record ThemePalette(
     uint AccentHover,
     uint TextStrong,
     uint TextPrimary,
+    uint TextBody,
     uint TextSecondary,
+    uint TextMedium,
     uint TextMuted,
     uint TextDim,
     uint TextDisabled,
@@ -646,7 +671,15 @@ public sealed record StatusPalette(
     uint Info,
     uint Purple,
     uint SuccessSoft,
-    uint WarningSoft);
+    uint WarningSoft,
+    uint SuccessBar,
+    uint SuccessText,
+    uint SuccessLineBg,
+    uint SuccessLineGlyph,
+    uint DangerBar,
+    uint DangerText,
+    uint DangerLineBg,
+    uint DangerLineGlyph);
 
 public sealed record BannerStyles(
     uint Background,
