@@ -36,10 +36,19 @@ public sealed class FileChangesSection : MultiChildView
         _rows = new ColumnView { Gap = FileChangesUI.RowGap };
         _emptyPlaceholder = FileChangesUI.CreateEmptyPlaceholder(emptyText);
 
+        // Header bar stays edge-to-edge as a section separator. Rows also span the full
+        // width so selection/hover backgrounds reach the panel edges; the gutter inset
+        // lives inside each row (see SelectableFileRow / SubmodulePointerRowView), so
+        // content lines up while the highlight runs corner to corner.
+        var paddedRows = new PaddingView
+        {
+            Padding = new PaddingStyle { Bottom = 14 },
+            Children = { _rows },
+        };
+
         AddChildToSelf(new ColumnView
         {
-            Gap = 4,
-            Children = { FileChangesUI.CreateHeaderBar(_headerText), _rows },
+            Children = { FileChangesUI.CreateHeaderBar(_headerText), paddedRows },
         });
     }
 
@@ -80,8 +89,7 @@ internal sealed class SelectableFileRow : HoverableButton
     {
         var background = new RectView
         {
-            BorderRadius = BorderRadiusStyle.All(3),
-            Padding = new PaddingStyle { Left = 4, Right = 4, Top = 2, Bottom = 2 },
+            Padding = new PaddingStyle { Left = 14, Right = 14, Top = 2, Bottom = 2 },
             Children = { new FileChangeRowView(file) },
         };
         var path = file.Path;

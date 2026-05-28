@@ -25,14 +25,23 @@ public sealed class SubmodulePointerRowView : MultiChildView
         var pathView = new TextView { Text = text };
         pathView.BindThemedTextColor(s => s.FileChangeRow.RowText);
 
-        AddChildToSelf(new FlexRowView
+        // Inset matches SelectableFileRow's internal padding so submodule rows align with
+        // the content of selectable rows above/below them in the list.
+        AddChildToSelf(new PaddingView
         {
-            Gap = 8f,
-            CrossAxisAlignment = CrossAxisAlignment.Start,
+            Padding = new PaddingStyle { Left = 14, Right = 14, Top = 2, Bottom = 2 },
             Children =
             {
-                FileChangesUI.CreateStatusBadge(file),
-                new FlexItem { Grow = 1, Child = pathView },
+                new FlexRowView
+                {
+                    Gap = 8f,
+                    CrossAxisAlignment = CrossAxisAlignment.Start,
+                    Children =
+                    {
+                        FileChangesUI.CreateStatusBadge(file),
+                        new FlexItem { Grow = 1, Child = pathView },
+                    },
+                },
             },
         });
 
