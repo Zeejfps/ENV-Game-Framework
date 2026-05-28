@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace ZGF.Gui;
@@ -38,9 +39,11 @@ public sealed class Context
     /// parameters from this context. Picks the greediest public constructor. Throws if any
     /// parameter type is not registered.
     /// </summary>
-    public T Create<T>() where T : class => (T)Create(typeof(T));
+    public T Create<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>()
+        where T : class => (T)Create(typeof(T));
 
-    public object Create(Type type)
+    public object Create(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type type)
     {
         var ctors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
         if (ctors.Length == 0)

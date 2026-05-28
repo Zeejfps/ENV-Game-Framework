@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace ZGF.Gui;
 
 public static class ViewPresenterExtensions
@@ -23,7 +25,7 @@ public static class ViewPresenterExtensions
         view.Behaviors.Add(new ViewModelBehavior<TVm>(factory, bind));
     }
 
-    public static void UseViewModel<TVm>(
+    public static void UseViewModel<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TVm>(
         this View view,
         Action<TVm> bind)
         where TVm : class, IDisposable
@@ -37,7 +39,7 @@ public static class ViewPresenterExtensions
     /// attach, disposed on detach). Pass <c>this</c> as the target for the self-bound
     /// case; pass a child view for the parent-owned case.
     /// </summary>
-    public static void UseViewModel<TVm>(
+    public static void UseViewModel<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TVm>(
         this View host,
         IBind<TVm> target)
         where TVm : class, IDisposable
