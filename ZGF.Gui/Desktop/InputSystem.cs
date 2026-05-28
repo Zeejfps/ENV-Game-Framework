@@ -230,49 +230,58 @@ public sealed class InputSystem
 
     public void SendMouseMovedEvent(ref MouseMoveEvent e)
     {
-        e.Phase = EventPhase.Bubbling;
-        if (_focusedComponent != null)
+        // RefreshHover runs in finally so hover bookkeeping isn't skipped when a
+        // controller in the path consumes the move event (e.g. a modal backdrop).
+        // Otherwise hover state freezes on the consumer and elements the cursor
+        // moves onto never get MouseEnter.
+        try
         {
-            var filter = GetPhaseFilter(_focusedComponent);
-            if (filter.HasFlag(EventPhaseFilter.Bubble))
+            e.Phase = EventPhase.Bubbling;
+            if (_focusedComponent != null)
             {
-                _focusedComponent.OnMouseMoved(ref e);
-                if (e.IsConsumed)
+                var filter = GetPhaseFilter(_focusedComponent);
+                if (filter.HasFlag(EventPhaseFilter.Bubble))
                 {
-                    return;
+                    _focusedComponent.OnMouseMoved(ref e);
+                    if (e.IsConsumed)
+                    {
+                        return;
+                    }
+                }
+            }
+
+            e.Phase = EventPhase.Capturing;
+            foreach (var ctrl in _focusQueue)
+            {
+                var filter = GetPhaseFilter(ctrl);
+                if (filter.HasFlag(EventPhaseFilter.Capture))
+                {
+                    ctrl.OnMouseMoved(ref e);
+                    if (e.IsConsumed)
+                    {
+                        return;
+                    }
+                }
+            }
+
+            e.Phase = EventPhase.Bubbling;
+            foreach (var ctrl in _focusQueue.Reverse())
+            {
+                var filter = GetPhaseFilter(ctrl);
+                if (filter.HasFlag(EventPhaseFilter.Bubble))
+                {
+                    ctrl.OnMouseMoved(ref e);
+                    if (e.IsConsumed)
+                    {
+                        return;
+                    }
                 }
             }
         }
-
-        e.Phase = EventPhase.Capturing;
-        foreach (var ctrl in _focusQueue)
+        finally
         {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Capture))
-            {
-                ctrl.OnMouseMoved(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
+            RefreshHover(e.Mouse);
         }
-
-        e.Phase = EventPhase.Bubbling;
-        foreach (var ctrl in _focusQueue.Reverse())
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Bubble))
-            {
-                ctrl.OnMouseMoved(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
-
-        RefreshHover(e.Mouse);
     }
 
     /// <summary>
