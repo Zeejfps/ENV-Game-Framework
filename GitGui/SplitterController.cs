@@ -62,7 +62,7 @@ internal sealed class SplitterController : KeyboardMouseController, IDisposable
         {
             _dragging = true;
             _lastPoint = e.Mouse.Point;
-            _inputSystem.RequestFocus(this);
+            _inputSystem.StealFocus(this);
             e.Consume();
             return;
         }
