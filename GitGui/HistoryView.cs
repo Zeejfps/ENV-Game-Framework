@@ -22,6 +22,7 @@ public sealed class HistoryView : MultiChildView
     private readonly CommitDetailsView _details;
     private float _detailsWidth = DefaultDetailsWidth;
     private bool _dividerHovered;
+    private PreferencesService? _preferences;
 
     private HistorySplitterStyles _splitterStyles = ThemeStyles.Dark.HistorySplitter;
 
@@ -38,6 +39,18 @@ public sealed class HistoryView : MultiChildView
             _splitterStyles = s.HistorySplitter;
             SetDirty();
         });
+    }
+
+    protected override void OnAttachedToContext(Context context)
+    {
+        _preferences = context.Get<PreferencesService>();
+        if (_preferences is not null)
+            _detailsWidth = _preferences.Current.CommitDetailsWidth;
+    }
+
+    protected override void OnDetachedFromContext(Context context)
+    {
+        _preferences = null;
     }
 
     protected override void OnLayoutChildren()
@@ -108,6 +121,7 @@ public sealed class HistoryView : MultiChildView
         var newWidth = Math.Clamp(_detailsWidth - mouseDeltaX, MinDetailsWidth, Math.Min(MaxDetailsWidth, maxByCenter));
         if (Math.Abs(newWidth - _detailsWidth) < 0.0001f) return;
         _detailsWidth = newWidth;
+        _preferences?.SetCommitDetailsWidth(newWidth);
         SetDirty();
     }
 }

@@ -15,6 +15,7 @@ public static class PreferencesStore
         public int WindowHeight { get; set; } = 900;
         public float RepoBarWidth { get; set; } = 220f;
         public float BranchesWidth { get; set; } = 220f;
+        public float CommitDetailsWidth { get; set; } = 380f;
     }
 
     public static Preferences Load(string path)
@@ -36,6 +37,7 @@ public static class PreferencesStore
                 WindowHeight = file.WindowHeight,
                 RepoBarWidth = file.RepoBarWidth,
                 BranchesWidth = file.BranchesWidth,
+                CommitDetailsWidth = file.CommitDetailsWidth,
             };
         }
         catch (Exception ex)
@@ -59,6 +61,7 @@ public static class PreferencesStore
             WindowHeight = preferences.WindowHeight,
             RepoBarWidth = preferences.RepoBarWidth,
             BranchesWidth = preferences.BranchesWidth,
+            CommitDetailsWidth = preferences.CommitDetailsWidth,
         };
         var json = JsonSerializer.Serialize(file, PreferencesJsonContext.Default.FileShape);
         File.WriteAllText(path, json);

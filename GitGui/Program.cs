@@ -14,6 +14,7 @@ using var preferences = new PreferencesService(PreferencesStore.Load(prefsPath),
 var initialPrefs = preferences.Current;
 
 var context = new Context();
+context.AddService(preferences);
 var messageBus = new MessageBus();
 context.AddService<IMessageBus>(messageBus);
 context.AddService(new State<MainViewMode>(MainViewMode.LocalChanges));

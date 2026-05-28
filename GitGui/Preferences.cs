@@ -7,6 +7,7 @@ public sealed record Preferences
     public int WindowHeight { get; init; } = 900;
     public float RepoBarWidth { get; init; } = 220f;
     public float BranchesWidth { get; init; } = 220f;
+    public float CommitDetailsWidth { get; init; } = 380f;
 
     public static Preferences Default { get; } = new();
 }

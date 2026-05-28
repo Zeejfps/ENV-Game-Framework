@@ -32,6 +32,8 @@ public sealed class PreferencesService : IDisposable
 
     public void SetBranchesWidth(float width) => Mutate(p => p with { BranchesWidth = width });
 
+    public void SetCommitDetailsWidth(float width) => Mutate(p => p with { CommitDetailsWidth = width });
+
     private void Mutate(Func<Preferences, Preferences> mutator)
     {
         lock (_gate)
