@@ -2,13 +2,6 @@ using ZGF.Gui.Tests;
 
 namespace GitGui;
 
-/// <summary>
-/// Mirrors an <see cref="IScrollableContent"/>'s scroll state into stand-alone scroll bars
-/// and routes user-driven scroll-bar changes back into the content. The horizontal scroll
-/// bar is optional for callers that only need a vertical axis (e.g. plain text panes).
-/// Wire up with <c>view.UseBehavior(_ => new ScrollSyncController(...))</c> — this type
-/// is a sidecar (event-handler wiring), not an input controller.
-/// </summary>
 internal sealed class ScrollSyncController : IDisposable
 {
     private readonly IScrollableContent _content;

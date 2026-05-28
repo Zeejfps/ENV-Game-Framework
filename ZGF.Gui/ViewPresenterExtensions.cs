@@ -8,14 +8,6 @@ public static class ViewPresenterExtensions
         view.Behaviors.Add(new PresenterBehavior<T>(factory));
     }
 
-    /// <summary>
-    /// Attaches a sidecar that lives as long as the view does — created on context
-    /// attach, <see cref="IDisposable.Dispose"/> called on detach. Use for behaviors
-    /// that only need lifecycle (e.g. wiring up event handlers between sibling views)
-    /// and don't participate in input dispatch. For input handlers, use
-    /// <see cref="ViewControllerExtensions.UseController{T}"/>. For MVP presenters,
-    /// <see cref="UsePresenter{T}"/> reads better at the call site.
-    /// </summary>
     public static void UseBehavior<T>(this View view, Func<Context, T> factory)
         where T : IDisposable
     {

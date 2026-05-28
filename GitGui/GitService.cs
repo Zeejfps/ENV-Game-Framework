@@ -1648,7 +1648,7 @@ public sealed class GitService : IGitService
         }
     }
 
-    public StashOutcome CreateStash(Repo repo, string message, bool includeUntracked, bool keepIndex)
+    public StashOutcome CreateStash(Repo repo, string message, bool includeUntracked, bool keepIndex, IReadOnlyList<string> paths)
     {
         try
         {
@@ -1662,6 +1662,11 @@ public sealed class GitService : IGitService
             {
                 args.Add("-m");
                 args.Add(message);
+            }
+            if (paths.Count > 0)
+            {
+                args.Add("--");
+                foreach (var p in paths) args.Add(p);
             }
 
             var sem = GetRepoLock(repo.Path);

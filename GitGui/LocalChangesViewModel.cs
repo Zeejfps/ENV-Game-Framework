@@ -23,6 +23,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     private readonly IRepoRegistry _registry;
     private readonly IGitService _gitService;
     private readonly IMessageBus _bus;
+    private readonly LocalChangesSelectionStore _selectionStore;
 
     public IReadable<string> Title { get; }
     public IReadable<string> Description { get; }
@@ -55,12 +56,14 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         IRepoRegistry registry,
         IGitService gitService,
         IUiDispatcher dispatcher,
-        IMessageBus bus)
+        IMessageBus bus,
+        LocalChangesSelectionStore selectionStore)
         : base(dispatcher, LocalChangesState.Initial)
     {
         _registry = registry;
         _gitService = gitService;
         _bus = bus;
+        _selectionStore = selectionStore;
 
         Title = Slice(s => s.Title);
         Description = Slice(s => s.Description);
@@ -93,6 +96,8 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         Subscriptions.Add(_bus.SubscribeScoped<WorkingTreeChangedMessage>(OnWorkingTreeChanged));
         Subscriptions.Add(_bus.SubscribeScoped<SubmodulesChangedMessage>(OnSubmodulesChanged));
         Subscriptions.Add(_bus.SubscribeScoped<HunkAppliedOptimisticMessage>(OnHunkAppliedOptimistic));
+        Subscriptions.Add(Selection.Subscribe(sel =>
+            _selectionStore.UnstagedPaths.Value = sel.PathsOn(DiffSide.Unstaged)));
     }
 
     private void OnHunkAppliedOptimistic(HunkAppliedOptimisticMessage msg)

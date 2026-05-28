@@ -28,7 +28,7 @@ public interface IGitService
     RenameBranchOutcome RenameBranch(Repo repo, string oldName, string newName, bool force);
     DeleteBranchOutcome DeleteBranch(Repo repo, string name, bool force);
     DeleteRemoteBranchOutcome DeleteRemoteBranch(Repo repo, string remoteName, string branchName);
-    StashOutcome CreateStash(Repo repo, string message, bool includeUntracked, bool keepIndex);
+    StashOutcome CreateStash(Repo repo, string message, bool includeUntracked, bool keepIndex, IReadOnlyList<string> paths);
     StashOutcome ApplyStash(Repo repo, int index);
     StashOutcome DropStash(Repo repo, int index);
     DiffResult GetDiff(Repo repo, string path, DiffSide side, string? commitSha = null);

@@ -1,6 +1,8 @@
 using ZGF.Geometry;
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
+using ZGF.Gui.Layouts;
+using ZGF.Gui.Tests;
 
 namespace GitGui;
 
@@ -19,7 +21,7 @@ namespace GitGui;
 /// visuals (icons, ahead/behind badges, busy/head/worktree styling) and the dispatch
 /// from row indices to <see cref="BranchesViewModel"/> calls.
 /// </summary>
-internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
+internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>, IScrollableContent
 {
     private const float RowHeight = 22f;
     private const float BaseIndent = 8f;
@@ -66,6 +68,15 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
     private BranchesViewStyles _styles = ThemeStyles.Dark.BranchesView;
 
     private readonly VirtualRowListView _list;
+    private readonly VerticalScrollBarView _scrollBar;
+
+    private float _lastVerticalScale = -1f;
+    private float _lastNormalizedY;
+
+    public event Action<float>? VerticalScrollPositionChanged;
+    public event Action<float>? HorizontalScrollPositionChanged;
+    public float VerticalScale { get; private set; } = 1f;
+    public float HorizontalScale { get; private set; } = 1f;
 
     private IReadOnlyList<BranchRow> _rows = Array.Empty<BranchRow>();
     private BranchSelection? _selection;
@@ -89,8 +100,15 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
         _list.RowClicked += OnRowClicked;
         _list.RowActivated += OnRowActivated;
         _list.RowContextRequested += OnRowContextRequested;
+        _list.ScrollChanged += NotifyScrollChanged;
 
-        AddChildToSelf(_list);
+        _scrollBar = ScrollBars.CreateVertical();
+
+        AddChildToSelf(new BorderLayoutView
+        {
+            Center = _list,
+            East = _scrollBar,
+        });
         _list.UseController(_ => new VirtualRowListController(_list));
 
         this.BindThemed(s =>
@@ -118,6 +136,7 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
             SetDirty();
         });
 
+        this.UseBehavior(_ => new ScrollSyncController(this, _scrollBar));
         this.UseViewModel(this);
     }
 
@@ -147,6 +166,8 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
 
     protected override void OnDrawSelf(ICanvas c)
     {
+        NotifyScrollChanged();
+
         var pos = Position;
         var z = GetDrawZIndex();
 
@@ -532,6 +553,46 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>
                 return vm.BuildRemoteBranchMenuItems(row.RemoteName, row.FullPath);
             default:
                 return [];
+        }
+    }
+
+    public void SetVerticalNormalizedScrollPosition(float normalized)
+    {
+        var contentHeight = _rows.Count * RowHeight;
+        var bodyHeight = _list.Position.Height;
+        var range = contentHeight - bodyHeight;
+        _list.SetScrollY(range <= 0 ? 0f : Math.Clamp(normalized, 0f, 1f) * range);
+    }
+
+    public void SetHorizontalNormalizedScrollPosition(float normalized) { }
+
+    private void NotifyScrollChanged()
+    {
+        var contentHeight = _rows.Count * RowHeight;
+        var bodyHeight = _list.Position.Height;
+
+        float vScale, normalizedY;
+        if (contentHeight <= bodyHeight || bodyHeight <= 0)
+        {
+            vScale = 1f;
+            normalizedY = 0f;
+        }
+        else
+        {
+            vScale = bodyHeight / contentHeight;
+            var range = contentHeight - bodyHeight;
+            normalizedY = Math.Clamp(_list.ScrollY / range, 0f, 1f);
+        }
+
+        VerticalScale = vScale;
+        HorizontalScale = 1f;
+
+        if (Math.Abs(vScale - _lastVerticalScale) > 0.0001f
+            || Math.Abs(normalizedY - _lastNormalizedY) > 0.0001f)
+        {
+            _lastVerticalScale = vScale;
+            _lastNormalizedY = normalizedY;
+            VerticalScrollPositionChanged?.Invoke(normalizedY);
         }
     }
 }

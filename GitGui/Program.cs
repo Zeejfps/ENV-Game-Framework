@@ -38,6 +38,7 @@ var repoActivity = new RepoActivityTracker();
 context.AddService<IRepoActivityTracker>(repoActivity);
 context.AddService<IGitService>(new GitService(repoActivity));
 context.AddService<IDragController>(new DragController(registry));
+context.AddService(new LocalChangesSelectionStore());
 
 var appView = new AppView();
 var appHost = GuiApp.CreateDefault(new StartupConfig
