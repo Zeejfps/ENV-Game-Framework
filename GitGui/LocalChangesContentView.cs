@@ -187,6 +187,11 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
                 n > 1 ? $"Discard {n} Files…" : "Discard…",
                 () => _vm.RequestDiscard(paths),
                 LucideIcons.Trash));
+            items.Add(new RepoBarContextMenu.Item(
+                n > 1 ? $"Stash {n} Files" : "Stash",
+                () => _vm.StashSelected(paths),
+                LucideIcons.Stash));
+            AppendFileUtilityItems(items, target);
             items.Add(RepoBarContextMenu.Separator);
         }
         items.Add(new RepoBarContextMenu.Item(
@@ -214,6 +219,7 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
                 n > 1 ? $"Unstage {n} Files" : "Unstage",
                 () => _vm.Unstage(paths),
                 LucideIcons.ChevronLeft));
+            AppendFileUtilityItems(items, target);
             items.Add(RepoBarContextMenu.Separator);
         }
         items.Add(new RepoBarContextMenu.Item(
@@ -222,6 +228,24 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             LucideIcons.ChevronsLeft,
             Enabled: _vm.UnstageAll.CanExecute.Value));
         return items;
+    }
+
+    // Copy acts on the whole selection; open-folder / terminal target just the clicked file.
+    private void AppendFileUtilityItems(List<RepoBarContextMenu.Item> items, DiffTarget target)
+    {
+        var paths = ResolveTargetPaths(target);
+        items.Add(RepoBarContextMenu.Separator);
+        items.Add(new RepoBarContextMenu.Item(
+            "Copy Path", () => _vm!.CopyPaths(paths), LucideIcons.Copy));
+        items.Add(new RepoBarContextMenu.Item(
+            "Copy Full Path", () => _vm!.CopyAbsolutePaths(paths), LucideIcons.Copy));
+        items.Add(new RepoBarContextMenu.Item(
+            "Copy File Name", () => _vm!.CopyFileNames(paths), LucideIcons.Copy));
+        items.Add(RepoBarContextMenu.Separator);
+        items.Add(new RepoBarContextMenu.Item(
+            "Open Containing Folder", () => _vm!.OpenContainingFolder(target.Path), LucideIcons.FolderOpen));
+        items.Add(new RepoBarContextMenu.Item(
+            "Open in Terminal", () => _vm!.OpenInTerminal(target.Path), LucideIcons.SquareTerminal));
     }
 
     // Right-clicking a row inside the current selection acts on the whole selection;

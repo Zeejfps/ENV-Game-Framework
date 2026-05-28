@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.IO;
 using ZGF.Gui;
+using ZGF.Gui.Tests;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -24,6 +26,8 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     private readonly IGitService _gitService;
     private readonly IMessageBus _bus;
     private readonly LocalChangesSelectionStore _selectionStore;
+    private readonly IPlatformShell _shell;
+    private readonly IClipboard _clipboard;
 
     public IReadable<string> Title { get; }
     public IReadable<string> Description { get; }
@@ -58,13 +62,17 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         IGitService gitService,
         IUiDispatcher dispatcher,
         IMessageBus bus,
-        LocalChangesSelectionStore selectionStore)
+        LocalChangesSelectionStore selectionStore,
+        IPlatformShell shell,
+        IClipboard clipboard)
         : base(dispatcher, LocalChangesState.Initial)
     {
         _registry = registry;
         _gitService = gitService;
         _bus = bus;
         _selectionStore = selectionStore;
+        _shell = shell;
+        _clipboard = clipboard;
 
         Title = Slice(s => s.Title);
         Description = Slice(s => s.Description);
@@ -439,6 +447,71 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         var repo = _registry.Active.Value;
         if (repo == null) return;
         _bus.Broadcast(new ShowDialogMessage(onClose => new DiscardChangesDialog(repo, paths, onClose)));
+    }
+
+    // Stashes the working-tree changes for the given paths (git's default "WIP on…"
+    // message). Pulls in untracked entries when any selected path is untracked, since
+    // `git stash push -- <path>` skips those otherwise.
+    public void StashSelected(IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+
+        var untracked = new HashSet<string>();
+        foreach (var f in State.Value.Unstaged)
+            if (f.Status == FileChangeStatus.Added) untracked.Add(f.Path);
+        var includeUntracked = paths.Any(untracked.Contains);
+
+        RunBackground<StashOutcome>(
+            work: () =>
+            {
+                try { return (_gitService.CreateStash(repo, string.Empty, includeUntracked, keepIndex: false, paths), null); }
+                catch (Exception ex) { return (null, ex.Message); }
+            },
+            onResult: (outcome, errorMsg) =>
+            {
+                if (errorMsg != null) { Update(s => s with { OpError = errorMsg }); return; }
+                if (outcome is { Success: false }) { Update(s => s with { OpError = outcome.ErrorMessage }); return; }
+                _bus.Broadcast(new RefsChangedMessage(repo.Id));
+                _bus.Broadcast(new WorkingTreeChangedMessage(repo.Id));
+            });
+    }
+
+    public void CopyPaths(IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+        _clipboard.SetText(string.Join(Environment.NewLine, paths));
+    }
+
+    public void CopyAbsolutePaths(IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+        _clipboard.SetText(string.Join(Environment.NewLine, paths.Select(p => Path.Combine(repo.Path, p))));
+    }
+
+    public void CopyFileNames(IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+        _clipboard.SetText(string.Join(Environment.NewLine, paths.Select(Path.GetFileName)));
+    }
+
+    public void OpenContainingFolder(string path)
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+        var dir = Path.GetDirectoryName(Path.Combine(repo.Path, path));
+        if (!string.IsNullOrEmpty(dir)) _shell.OpenFolder(dir);
+    }
+
+    public void OpenInTerminal(string path)
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+        var dir = Path.GetDirectoryName(Path.Combine(repo.Path, path));
+        if (!string.IsNullOrEmpty(dir)) _shell.OpenTerminal(dir);
     }
 
     public void Commit()
