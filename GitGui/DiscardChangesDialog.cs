@@ -7,54 +7,60 @@ using ZGF.Observable;
 namespace GitGui;
 
 /// <summary>
-/// Confirmation modal for discarding unstaged changes. Lists the affected paths so the
-/// user can verify what's about to be thrown away, with a Cancel/Discard pair. Discard
-/// is a destructive action — the worktree changes (and any untracked files in the set)
-/// cannot be recovered from git afterwards.
+/// Confirmation modal for discarding unstaged changes. Lists every unstaged path with a
+/// checkbox — the paths the user had selected when they invoked Discard come pre-checked —
+/// so they can fine-tune the set before committing to the throw-away. Discard is a
+/// destructive action: the worktree changes (and any untracked files in the set) cannot
+/// be recovered from git afterwards.
 /// </summary>
 internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChangesViewModel>
 {
+    private readonly Action _onClose;
     private readonly DialogButton _discardButton;
     private readonly TextView _errorView;
-    private readonly Action _onClose;
+    private readonly ColumnView _fileListColumn;
+    private readonly TextView _fileListHeader;
+    private readonly TextView _fileListEmpty;
+    private DiscardChangesViewModel? _vm;
 
     public DiscardChangesDialog(Repo repo, IReadOnlyList<string> paths, Action onClose)
     {
-        PreferredWidth = 480f;
-        PreferredHeight = 320f;
+        PreferredWidth = 520f;
+        PreferredHeight = 480f;
 
         _onClose = onClose;
 
-        var title = paths.Count == 1 ? "Discard change" : $"Discard {paths.Count} changes";
-
         var prompt = new TextView
         {
-            Text = "Discarding cannot be undone. Continue?",
+            Text = "Discarding cannot be undone. Choose the changes to discard.",
             TextWrap = TextWrap.Wrap,
         };
         prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
-        var pathList = new TextView
+        _fileListHeader = new TextView { Text = "Files" };
+        _fileListHeader.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
+
+        _fileListEmpty = new TextView
         {
-            Text = string.Join("\n", paths),
-            TextWrap = TextWrap.Wrap,
+            Text = "No unstaged changes.",
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
         };
-        pathList.BindThemedTextColor(s => s.DialogBody.RowText);
+        _fileListEmpty.BindThemedTextColor(s => s.FileChangesSection.EmptyPlaceholderText);
+
+        _fileListColumn = new ColumnView { Gap = 1 };
 
         var scrollPane = new VerticalScrollPane();
-        scrollPane.Children.Add(new PaddingView
-        {
-            Padding = new PaddingStyle { Left = 8, Right = 8, Top = 6, Bottom = 6 },
-            Children = { pathList },
-        });
+        scrollPane.Children.Add(_fileListColumn);
         scrollPane.UseController(_ => new VerticalScrollPaneWheelController(scrollPane));
 
         var vScrollBar = ScrollBars.CreateVertical();
 
-        var scrollHost = new RectView
+        var fileScrollHost = new RectView
         {
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(4),
+            Padding = PaddingStyle.All(6),
             Children =
             {
                 new BorderLayoutView
@@ -64,23 +70,24 @@ internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChange
                 },
             },
         };
-        scrollHost.BindThemedBackgroundColor(s => s.DialogFrame.InsetBackground);
-        scrollHost.BindThemedBorderColor(s => BorderColorStyle.All(s.DialogFrame.Border));
-        scrollHost.UsePresenter(_ => new VerticalScrollBarSyncController(scrollPane, vScrollBar));
+        fileScrollHost.BindThemedBackgroundColor(s => s.DialogFrame.InsetBackground);
+        fileScrollHost.BindThemedBorderColor(s => BorderColorStyle.All(s.DialogFrame.Border));
+        fileScrollHost.UsePresenter(_ => new VerticalScrollBarSyncController(scrollPane, vScrollBar));
 
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
         _discardButton = new DialogButton("Discard") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
-        AddChildToSelf(DialogFrame.Build(title, onClose, new FlexColumnView
+        AddChildToSelf(DialogFrame.Build("Discard changes", onClose, new FlexColumnView
         {
-            Gap = 12,
+            Gap = 10,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
                 prompt,
-                new FlexItem { Grow = 1, Child = scrollHost },
+                _fileListHeader,
+                new FlexItem { Grow = 1, Child = fileScrollHost },
                 _errorView,
                 DialogFrame.ButtonsRow(cancelButton, _discardButton),
             },
@@ -100,9 +107,64 @@ internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChange
 
     public void Bind(DiscardChangesViewModel vm)
     {
+        _vm = vm;
+        vm.CloseRequested += _onClose;
+
         _discardButton.BindCommand(vm.Discard);
         _errorView.BindText(vm.Discard.Error, s => s ?? string.Empty);
-        vm.CloseRequested += _onClose;
+        _fileListHeader.BindText(vm.FilesHeader);
+
+        vm.Files.Subscribe(RenderFiles);
+    }
+
+    private void RenderFiles(IReadOnlyList<DiscardFileRow> files)
+    {
+        _fileListColumn.Children.Clear();
+
+        if (files.Count == 0)
+        {
+            _fileListColumn.Children.Add(_fileListEmpty);
+            return;
+        }
+
+        foreach (var file in files)
+            _fileListColumn.Children.Add(BuildRow(file));
+    }
+
+    private CheckboxView BuildRow(DiscardFileRow file)
+    {
+        var vm = _vm!;
+
+        var badge = FileChangesUI.CreateStatusBadge(file.Display);
+
+        var pathText = new TextView
+        {
+            Text = FileChangeFormatting.FormatPath(file.Display),
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        pathText.BindThemedTextColor(s => s.FileChangeRow.RowText);
+
+        var rowContent = new FlexRowView
+        {
+            Gap = 8f,
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            Children =
+            {
+                badge,
+                new FlexItem { Grow = 1, Child = pathText },
+            },
+        };
+
+        var checkbox = new CheckboxView(rowContent)
+        {
+            PreferredHeight = 22,
+        };
+        // Seed from VM state BEFORE wiring Changed, so the initial paint doesn't trigger
+        // a phantom toggle through the handler.
+        checkbox.IsChecked.Value = vm.CheckedPaths.Value.Contains(file.Path);
+        checkbox.IsChecked.Changed += _ => vm.ToggleFile(file.Path);
+
+        return checkbox;
     }
 }
 
