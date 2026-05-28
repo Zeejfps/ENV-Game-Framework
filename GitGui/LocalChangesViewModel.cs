@@ -661,27 +661,59 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         var repo = _registry.Active.Value;
         if (repo == null) return;
 
-        RunBackground<LocalChangesSnapshot>(
-            work: () =>
-            {
-                if (isStage) _gitService.Stage(repo, paths);
-                else _gitService.Unstage(repo, paths);
-                var snap = _gitService.GetLocalChanges(repo);
-                return snap.ErrorMessage != null ? (null, snap.ErrorMessage) : (snap, null);
-            },
-            onResult: (snap, errorMsg) =>
-            {
-                Update(s => s with { OpError = errorMsg });
-                // Keep the prior snapshot rendered on failure — losing the list on every
-                // transient error would erase the user's selection and context.
-                if (snap == null) return;
+        ApplyOptimisticMove(paths, isStage ? DiffSide.Unstaged : DiffSide.Staged);
 
-                // Selection lands on the destination side at the just-moved paths.
-                // FromPaths drops anything libgit2 didn't materialize in the new list.
-                var destSide = isStage ? DiffSide.Staged : DiffSide.Unstaged;
-                ApplySnapshot(snap, (_, staged) =>
-                    GitGui.Selection.FromPaths(paths, destSide, snap.Unstaged, staged));
+        RunIndexMutation(repo, () =>
+        {
+            if (isStage) _gitService.Stage(repo, paths);
+            else _gitService.Unstage(repo, paths);
+        });
+    }
+
+    private void RunIndexMutation(Repo repo, Action mutate)
+    {
+        RunBackground<bool>(
+            work: () => { mutate(); return (true, null); },
+            onResult: (_, errorMsg) =>
+            {
+                _bus.Broadcast(new WorkingTreeChangedMessage(repo.Id));
+                Update(s => s with { OpError = errorMsg });
             });
+    }
+
+    private void ApplyOptimisticMove(IReadOnlyList<string> paths, DiffSide fromSide)
+    {
+        DiffVm.DeferReloadToWorkingTreeChange();
+        var toSide = fromSide == DiffSide.Unstaged ? DiffSide.Staged : DiffSide.Unstaged;
+        Update(s =>
+        {
+            var unstaged = s.Unstaged;
+            var staged = s.Staged;
+            foreach (var path in paths)
+            {
+                var entry = fromSide == DiffSide.Unstaged
+                    ? FindByPath(unstaged, path)
+                    : FindByPath(staged, path);
+                if (entry == null) continue;
+
+                if (fromSide == DiffSide.Unstaged)
+                {
+                    unstaged = RemoveByPath(unstaged, path);
+                    if (FindByPath(staged, path) == null) staged = InsertSorted(staged, entry);
+                }
+                else
+                {
+                    staged = RemoveByPath(staged, path);
+                    if (FindByPath(unstaged, path) == null) unstaged = InsertSorted(unstaged, entry);
+                }
+            }
+            return s with
+            {
+                Unstaged = unstaged,
+                Staged = staged,
+                Selection = GitGui.Selection.FromPaths(paths, toSide, unstaged, staged),
+            };
+        });
     }
 
     private void RunUnstageWithReset(IReadOnlyList<string> toUnstage, IReadOnlyList<string> toResetToParent)
@@ -689,26 +721,18 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         var repo = _registry.Active.Value;
         if (repo == null) return;
 
-        RunBackground<LocalChangesSnapshot>(
-            work: () =>
-            {
-                if (toUnstage.Count > 0) _gitService.Unstage(repo, toUnstage);
-                if (toResetToParent.Count > 0) _gitService.ResetToParent(repo, toResetToParent);
-                var snap = _gitService.GetLocalChanges(repo);
-                return snap.ErrorMessage != null ? (null, snap.ErrorMessage) : (snap, null);
-            },
-            onResult: (snap, errorMsg) =>
-            {
-                Update(s => s with { OpError = errorMsg });
-                if (snap == null) return;
+        // Both batches land on the unstaged side after the reset/unstage.
+        var movedToUnstaged = new List<string>(toUnstage.Count + toResetToParent.Count);
+        movedToUnstaged.AddRange(toUnstage);
+        movedToUnstaged.AddRange(toResetToParent);
 
-                // Both batches land on the unstaged side after the reset/unstage.
-                var movedToUnstaged = new List<string>(toUnstage.Count + toResetToParent.Count);
-                movedToUnstaged.AddRange(toUnstage);
-                movedToUnstaged.AddRange(toResetToParent);
-                ApplySnapshot(snap, (_, staged) =>
-                    GitGui.Selection.FromPaths(movedToUnstaged, DiffSide.Unstaged, snap.Unstaged, staged));
-            });
+        ApplyOptimisticMove(movedToUnstaged, DiffSide.Staged);
+
+        RunIndexMutation(repo, () =>
+        {
+            if (toUnstage.Count > 0) _gitService.Unstage(repo, toUnstage);
+            if (toResetToParent.Count > 0) _gitService.ResetToParent(repo, toResetToParent);
+        });
     }
 
     private static int IndexOfPath(IReadOnlyList<FileChange> files, string path)

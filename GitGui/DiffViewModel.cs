@@ -27,6 +27,7 @@ public sealed class DiffViewModel : IDisposable
     private readonly State<string?> _opError = new(null);
     private readonly IDisposable _targetSubscription;
     private readonly IDisposable _workingTreeSubscription;
+    private bool _deferReloadToWorkingTreeChange;
 
     public IReadable<DiffRenderState> RenderState => _renderState;
     public IReadable<string?> OpError => _opError;
@@ -43,15 +44,22 @@ public sealed class DiffViewModel : IDisposable
         _gitService = gitService;
         _dispatcher = dispatcher;
         _bus = bus;
-        _targetSubscription = _target.Subscribe(_ => StartLoad());
+        _targetSubscription = _target.Subscribe(_ =>
+        {
+            if (_deferReloadToWorkingTreeChange) return;
+            StartLoad();
+        });
         _workingTreeSubscription = _bus.SubscribeScoped<WorkingTreeChangedMessage>(OnWorkingTreeChanged);
     }
 
+    public void DeferReloadToWorkingTreeChange() => _deferReloadToWorkingTreeChange = true;
+
     private void OnWorkingTreeChanged(WorkingTreeChangedMessage msg)
     {
-        if (_target.Value == null) return;
         var active = _registry.Active.Value;
         if (active == null || active.Id != msg.RepoId) return;
+        _deferReloadToWorkingTreeChange = false;
+        if (_target.Value == null) return;
         StartLoad();
     }
 
