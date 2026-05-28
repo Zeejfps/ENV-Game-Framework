@@ -4,17 +4,24 @@ using ZGF.Observable;
 namespace GitGui;
 
 /// <summary>
-/// Shell for the main content area. Mounts one of two mode-specific views (history or local
-/// changes) based on the observed <see cref="MainViewMode"/>. Both view instances are
-/// constructed once and survive mode toggles — the active one is attached as a child;
-/// the inactive one is fully detached so it stops receiving context-driven work.
+/// Shell for the main content area. Mounts both mode-specific views (history and local
+/// changes) up front and toggles their visibility based on the observed
+/// <see cref="MainViewMode"/>. The inactive view stays attached so its presenter / view
+/// model keeps listening to bus events (refs / working-tree / commit changes) and stays
+/// continuously up to date — switching modes is then just a visibility flip, with no
+/// reload flash and no "Loading…" placeholder.
 /// </summary>
 public sealed class MainContentView : MultiChildView
 {
     private readonly HistoryView _history = new();
     private readonly LocalChangesView _localChanges = new();
-    private View? _active;
     private IDisposable? _modeSubscription;
+
+    public MainContentView()
+    {
+        AddChildToSelf(_history);
+        AddChildToSelf(_localChanges);
+    }
 
     protected override void OnAttachedToContext(Context context)
     {
@@ -31,30 +38,23 @@ public sealed class MainContentView : MultiChildView
 
     private void SetActive(MainViewMode mode)
     {
-        var next = mode switch
-        {
-            MainViewMode.History => (View)_history,
-            MainViewMode.LocalChanges => _localChanges,
-            _ => _history,
-        };
-
-        if (ReferenceEquals(_active, next)) return;
-
-        if (_active != null)
-            RemoveChildFromSelf(_active);
-
-        _active = next;
-        AddChildToSelf(next);
+        _history.IsVisible = mode == MainViewMode.History;
+        _localChanges.IsVisible = mode == MainViewMode.LocalChanges;
     }
 
     protected override void OnLayoutChildren()
     {
-        if (_active == null) return;
         var pos = Position;
-        _active.LeftConstraint = pos.Left;
-        _active.BottomConstraint = pos.Bottom;
-        _active.WidthConstraint = pos.Width;
-        _active.HeightConstraint = pos.Height;
-        _active.LayoutSelf();
+        LayoutChildToFill(_history, pos);
+        LayoutChildToFill(_localChanges, pos);
+    }
+
+    private static void LayoutChildToFill(View child, ZGF.Geometry.RectF pos)
+    {
+        child.LeftConstraint = pos.Left;
+        child.BottomConstraint = pos.Bottom;
+        child.WidthConstraint = pos.Width;
+        child.HeightConstraint = pos.Height;
+        child.LayoutSelf();
     }
 }

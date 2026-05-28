@@ -393,6 +393,7 @@ public sealed class InputSystem
             var view = GetView(controller);
             if (view == null) continue;
             if (!view.Position.ContainsPoint(point)) continue;
+            if (!IsViewAndAncestorsVisible(view)) continue;
             // Reject descendants of any clipping ancestor (e.g. ScrollPane) when the
             // cursor falls outside that ancestor's viewport — scrolled-off rows still
             // report their full positions, so without this check a row that has
@@ -416,6 +417,21 @@ public sealed class InputSystem
             if (parent.ClipsContent && !parent.Position.ContainsPoint(point))
                 return false;
             parent = parent.Parent;
+        }
+        return true;
+    }
+
+    // Mirrors the draw-side IsVisible check: a hidden view (or any hidden ancestor) is
+    // also non-interactive. Without this, sibling overlays kept attached just for state
+    // continuity (e.g. MainContentView's cached mode panels) still win hit-tests against
+    // the visible side.
+    private static bool IsViewAndAncestorsVisible(View view)
+    {
+        var current = view;
+        while (current != null)
+        {
+            if (!current.IsVisible) return false;
+            current = current.Parent;
         }
         return true;
     }
