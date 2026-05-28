@@ -65,6 +65,7 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
         {
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(4),
+            Padding = PaddingStyle.All(6),
             Children =
             {
                 new BorderLayoutView
