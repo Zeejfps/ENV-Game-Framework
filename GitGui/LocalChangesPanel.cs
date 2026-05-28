@@ -20,11 +20,6 @@ namespace GitGui;
 /// </summary>
 internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
 {
-    private const float RowHeight = 22f;
-    private const float RowPaddingLeft = 14f;
-    private const float RowPaddingRight = 14f;
-    private const float BadgeGap = 8f;
-
     private readonly string _title;
     private readonly DiffSide _side;
     private readonly IReadable<Selection> _selection;
@@ -123,7 +118,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
 
         _list = new VirtualRowListView
         {
-            RowHeight = RowHeight,
+            RowHeight = FileChangesUI.RowHeight,
             ItemBuilder = DrawFileRowAt,
         };
         _list.RowClicked += OnRowClicked;
@@ -215,62 +210,18 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         if (Context == null) return;
 
         var file = _files[rowIndex];
-        var path = file.Path;
-        var isSelected = _selection.Value.Contains(path, _side);
-
-        var bg = isSelected
-            ? _rowStyles.RowActive
-            : (state.IsHovered ? _rowStyles.RowHover : (uint?)null);
-        if (bg != null)
-        {
-            c.DrawRect(new DrawRectInputs
-            {
-                Position = rowRect,
-                Style = new RectStyle
-                {
-                    BackgroundColor = bg.Value,
-                    BorderRadius = BorderRadiusStyle.All(3),
-                },
-                ZIndex = z,
-            });
-        }
-
-        var badgeSize = FileChangesUI.BadgeSize;
-        var badgeLeft = rowRect.Left + RowPaddingLeft;
-        var badgeBottom = rowRect.Bottom + (RowHeight - badgeSize) * 0.5f;
-        c.DrawRect(new DrawRectInputs
-        {
-            Position = new RectF(badgeLeft, badgeBottom, badgeSize, badgeSize),
-            Style = new RectStyle
-            {
-                BackgroundColor = _rowStyles.StatusColor(file.Status),
-                BorderRadius = BorderRadiusStyle.All(3),
-            },
-            ZIndex = z + 1,
-        });
-        c.DrawText(new DrawTextInputs
-        {
-            Position = new RectF(badgeLeft, badgeBottom, badgeSize, badgeSize),
-            Text = FileChangeFormatting.StatusGlyph(file.Status),
-            Style = _badgeGlyphStyle,
-            ZIndex = z + 2,
-        });
-
-        var textLeft = badgeLeft + badgeSize + BadgeGap;
-        var textRight = rowRect.Right - RowPaddingRight;
-        var textWidth = Math.Max(0f, textRight - textLeft);
-        if (textWidth <= 0f) return;
-
-        var pathStyle = isSelected ? _pathTextActiveStyle : _pathTextStyle;
-        var pathText = FileChangeFormatting.FormatPath(file);
-        var rendered = TextMeasure.TruncateToFit(pathText, pathStyle, textWidth, Context.Canvas);
-        c.DrawText(new DrawTextInputs
-        {
-            Position = new RectF(textLeft, rowRect.Bottom, textWidth, RowHeight),
-            Text = rendered,
-            Style = pathStyle,
-            ZIndex = z + 2,
-        });
+        var isSelected = _selection.Value.Contains(file.Path, _side);
+        FileChangesUI.DrawFileRow(
+            Context.Canvas,
+            rowRect,
+            file,
+            isSelected,
+            state.IsHovered,
+            _rowStyles,
+            _pathTextStyle,
+            _pathTextActiveStyle,
+            _badgeGlyphStyle,
+            z);
     }
 
     // ---- IScrollableContent ----
@@ -282,7 +233,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
 
     public void SetVerticalNormalizedScrollPosition(float normalized)
     {
-        var contentHeight = _files.Count * RowHeight;
+        var contentHeight = _files.Count * FileChangesUI.RowHeight;
         var bodyHeight = _list.Position.Height;
         var range = contentHeight - bodyHeight;
         _list.SetScrollY(range <= 0 ? 0f : Math.Clamp(normalized, 0f, 1f) * range);
@@ -292,7 +243,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
 
     private void NotifyScrollChanged()
     {
-        var contentHeight = _files.Count * RowHeight;
+        var contentHeight = _files.Count * FileChangesUI.RowHeight;
         var bodyHeight = _list.Position.Height;
 
         float vScale, normalizedY;

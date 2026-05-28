@@ -32,30 +32,50 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
         return AvatarPalette[idx];
     }
 
-    private readonly ColumnView _content;
-    private readonly ScrollPane _scrollPane;
+    private readonly ColumnView _headerInfo;
+    private readonly ScrollPane _headerScrollPane;
+    private readonly FileChangesSection _changesSection;
     private readonly DiffView _diffView;
     private readonly VerticalSplitContainer _splitContainer;
+    private readonly VerticalSplitContainer _innerSplit;
     private readonly State<string?> _selectedPath = new(null);
     private CommitDetailsViewModel? _vm;
 
     public CommitDetailsView()
     {
-        _content = new ColumnView { Gap = 8 };
+        _headerInfo = new ColumnView { Gap = 8 };
 
-        _scrollPane = new ScrollPane();
-        _scrollPane.Children.Add(_content);
-        _scrollPane.UseController(_ => new ScrollPaneWheelController(_scrollPane));
+        _headerScrollPane = new ScrollPane();
+        _headerScrollPane.Children.Add(_headerInfo);
+        _headerScrollPane.UseController(_ => new ScrollPaneWheelController(_headerScrollPane));
 
-        var vScrollBar = ScrollBars.CreateVertical();
-        var hScrollBar = ScrollBars.CreateHorizontal();
-
-        var topHalf = new BorderLayoutView
+        var headerVScrollBar = ScrollBars.CreateVertical();
+        var headerHScrollBar = ScrollBars.CreateHorizontal();
+        var headerWithBars = new BorderLayoutView
         {
-            Center = _scrollPane,
-            East = vScrollBar,
-            South = hScrollBar,
+            Center = _headerScrollPane,
+            East = headerVScrollBar,
+            South = headerHScrollBar,
         };
+
+        _changesSection = new FileChangesSection(
+            "Changes",
+            selectedPath: _selectedPath,
+            onRowClicked: f => _vm?.SelectFile(f.Path));
+
+        var innerSplitterHovered = new State<bool>(false);
+        var innerSplitter = new RectView();
+        innerSplitter.BindThemedBackgroundColor(s =>
+            innerSplitterHovered.Value ? s.CommitDetailsView.SplitterHover : s.CommitDetailsView.SplitterIdle);
+        _innerSplit = new VerticalSplitContainer(headerWithBars, _changesSection, innerSplitter, bottomFraction: 1f / 2f)
+        {
+            BottomVisible = false,
+        };
+        innerSplitter.UseController(ctx => new SplitterController(
+            ctx,
+            DragAxis.Y,
+            _innerSplit.AdjustBottomFractionByPixels,
+            h => innerSplitterHovered.Value = h));
 
         _diffView = new DiffView();
 
@@ -64,7 +84,7 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
         splitter.BindThemedBackgroundColor(s =>
             splitterHovered.Value ? s.CommitDetailsView.SplitterHover : s.CommitDetailsView.SplitterIdle);
 
-        _splitContainer = new VerticalSplitContainer(topHalf, _diffView, splitter, bottomFraction: 1f / 2f);
+        _splitContainer = new VerticalSplitContainer(_innerSplit, _diffView, splitter, bottomFraction: 1f / 2f);
 
         splitter.UseController(ctx => new SplitterController(
             ctx,
@@ -81,7 +101,7 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
         panel.BindThemedBorderColor(s => new BorderColorStyle { Left = s.CommitDetailsView.BorderLeft });
         AddChildToSelf(panel);
 
-        this.UseBehavior(_ => new ScrollSyncController(_scrollPane, vScrollBar, hScrollBar));
+        this.UseBehavior(_ => new ScrollSyncController(_headerScrollPane, headerVScrollBar, headerHScrollBar));
 
         this.UseViewModel(this);
     }
@@ -111,20 +131,22 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
 
     private void ShowPlaceholder(string text)
     {
-        _content.Children.Clear();
+        _headerInfo.Children.Clear();
         var placeholder = new TextView
         {
             Text = text,
             HorizontalTextAlignment = TextAlignment.Center,
         };
         placeholder.BindThemedTextColor(s => s.CommitDetailsView.PlaceholderText);
-        _content.Children.Add(placeholder);
-        _scrollPane.ScrollToOrigin();
+        _headerInfo.Children.Add(placeholder);
+        _headerScrollPane.ScrollToOrigin();
+        _changesSection.SetFiles(Array.Empty<FileChange>());
+        _innerSplit.BottomVisible = false;
     }
 
     private void ShowDetails(CommitDetails d)
     {
-        _content.Children.Clear();
+        _headerInfo.Children.Clear();
 
         var topColumn = new ColumnView { Gap = 8 };
         topColumn.Children.Add(BuildAuthorHeader(d));
@@ -157,20 +179,15 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
         parentLine.BindThemedTextColor(s => s.CommitDetailsView.MutedText);
         topColumn.Children.Add(parentLine);
 
-        _content.Children.Add(new PaddingView
+        _headerInfo.Children.Add(new PaddingView
         {
-            Padding = new PaddingStyle { Left = Padding, Right = Padding, Top = Padding, Bottom = 0 },
+            Padding = PaddingStyle.All(Padding),
             Children = { topColumn },
         });
 
-        var changesSection = new FileChangesSection(
-            "Changes",
-            selectedPath: _selectedPath,
-            onRowClicked: f => _vm?.SelectFile(f.Path));
-        changesSection.SetFiles(d.Files);
-        _content.Children.Add(changesSection);
-
-        _scrollPane.ScrollToOrigin();
+        _changesSection.SetFiles(d.Files);
+        _innerSplit.BottomVisible = true;
+        _headerScrollPane.ScrollToOrigin();
     }
 
     private static View BuildAuthorHeader(CommitDetails d)
@@ -279,4 +296,3 @@ internal sealed class ScrollPaneWheelController : KeyboardMouseController
         e.Consume();
     }
 }
-

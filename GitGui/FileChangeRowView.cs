@@ -1,7 +1,3 @@
-using ZGF.Gui;
-using ZGF.Gui.Bindings;
-using ZGF.Gui.Layouts;
-
 namespace GitGui;
 
 internal static class FileChangeFormatting
@@ -23,34 +19,31 @@ internal static class FileChangeFormatting
     {
         if (file.Status == FileChangeStatus.Renamed && !string.IsNullOrEmpty(file.OldPath))
             return $"{file.OldPath} → {file.Path}";
+        if (file.PointerChange is { } pc)
+            return $"{file.Path}  ·  {FormatShortSha(pc.FromSha)}..{FormatShortSha(pc.ToSha)}{FormatRangeSummary(pc)}";
         return file.Path;
     }
-}
 
-/// <summary>
-/// One row in a list of file changes: a colored status badge ("A", "M", "D", …) followed by
-/// the file path. Renamed entries render as "old → new". Reused by both the commit details
-/// panel and the local changes view.
-/// </summary>
-public sealed class FileChangeRowView : MultiChildView
-{
-    public FileChangeRowView(FileChange file)
+    private static string FormatShortSha(string sha)
     {
-        var path = new TextView
-        {
-            Text = FileChangeFormatting.FormatPath(file),
-        };
-        path.BindThemedTextColor(s => s.FileChangeRow.RowText);
+        if (string.IsNullOrEmpty(sha)) return "·";
+        if (IsAllZeros(sha)) return "(none)";
+        return sha.Length >= 7 ? sha[..7] : sha;
+    }
 
-        AddChildToSelf(new FlexRowView
-        {
-            Gap = 8f,
-            CrossAxisAlignment = CrossAxisAlignment.Start,
-            Children =
-            {
-                FileChangesUI.CreateStatusBadge(file),
-                new FlexItem { Grow = 1, Child = path },
-            },
-        });
+    // Submodule isn't initialized locally → counts unavailable. Blank rather than misleading "(+0)".
+    private static string FormatRangeSummary(SubmodulePointerChange pc)
+    {
+        if (pc.AheadCount == 0 && pc.BehindCount == 0) return string.Empty;
+        if (pc.AheadCount > 0 && pc.BehindCount == 0) return $"  (+{pc.AheadCount})";
+        if (pc.BehindCount > 0 && pc.AheadCount == 0) return $"  (-{pc.BehindCount})";
+        return $"  (+{pc.AheadCount}/-{pc.BehindCount})";
+    }
+
+    private static bool IsAllZeros(string s)
+    {
+        for (var i = 0; i < s.Length; i++)
+            if (s[i] != '0') return false;
+        return s.Length > 0;
     }
 }
