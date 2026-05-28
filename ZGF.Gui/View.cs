@@ -60,6 +60,18 @@ public abstract class View
         get;
         set => SetField(ref field, value);
     }
+
+    public StyleValue<float> MinWidthConstraint
+    {
+        get;
+        set => SetField(ref field, value);
+    }
+
+    public StyleValue<float> MinHeightConstraint
+    {
+        get;
+        set => SetField(ref field, value);
+    }
     
     public StyleValue<float> WidthConstraint
     {
@@ -449,6 +461,8 @@ public abstract class View
         else
         {
             width = MeasureWidth();
+            if (MinWidthConstraint.IsSet && width < MinWidthConstraint)
+                width = MinWidthConstraint;
         }
 
         float height;
@@ -462,15 +476,21 @@ public abstract class View
         }
         else
         {
-            // Use the same width-fallback chain as the width branch so wrapping/
-            // height-for-width children get the right available width.
             float availableWidth;
             if (WidthConstraint.IsSet)
+            {
                 availableWidth = WidthConstraint;
+            }
             else if (PreferredWidth.IsSet)
+            {
                 availableWidth = PreferredWidth;
+            }
             else
+            {
                 availableWidth = MeasureWidth();
+                if (MinWidthConstraint.IsSet && availableWidth < MinWidthConstraint)
+                    availableWidth = MinWidthConstraint;
+            }
 
             height = MeasureHeight(availableWidth);
         }
