@@ -11,13 +11,11 @@ namespace GitGui;
 /// `git push &lt;remote&gt; --delete &lt;branch&gt;` — a network operation that doesn't touch
 /// local branches. The server may refuse for protected refs; that error is surfaced.
 /// </summary>
-public sealed class DeleteRemoteBranchDialog : MultiChildView, IDeleteRemoteBranchView
+internal sealed class DeleteRemoteBranchDialog : MultiChildView, IBind<DeleteRemoteBranchDialogViewModel>
 {
-    private readonly Action _onClose;
     private readonly DialogButton _deleteButton;
     private readonly TextView _errorView;
-
-    public event Action? DeleteRequested;
+    private readonly Action _onClose;
 
     public DeleteRemoteBranchDialog(Repo repo, string remoteName, string branchName, Action onClose)
     {
@@ -42,7 +40,7 @@ public sealed class DeleteRemoteBranchDialog : MultiChildView, IDeleteRemoteBran
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _deleteButton = new DialogButton("Delete", RaiseDeleteRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _deleteButton = new DialogButton("Delete") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Delete remote branch", onClose, new FlexColumnView
         {
@@ -58,26 +56,22 @@ public sealed class DeleteRemoteBranchDialog : MultiChildView, IDeleteRemoteBran
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(RaiseDeleteRequested, onClose));
+        this.UseController(_ => new DialogKbmController(_deleteButton.Command, onClose));
 
         var request = new DeleteRemoteBranchRequest(repo, remoteName, branchName);
-        this.UsePresenter(ctx => new DeleteRemoteBranchPresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new DeleteRemoteBranchDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
 
-    public bool DeleteEnabled
+    public void Bind(DeleteRemoteBranchDialogViewModel vm)
     {
-        set => _deleteButton.IsEnabled.Value = value;
+        _deleteButton.BindCommand(vm.Delete);
+        _errorView.BindText(vm.Delete.Error, s => s ?? string.Empty);
+        vm.CloseRequested += _onClose;
     }
-    public string? ErrorMessage
-    {
-        set => _errorView.Text = value ?? string.Empty;
-    }
-
-    private void RaiseDeleteRequested() => DeleteRequested?.Invoke();
-
-    public void Close() => _onClose();
 }
