@@ -61,7 +61,7 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
             if (!isEditing && containsPoint)
             {
                 _textInput.StartEditing();
-                inputSystem?.RequestFocus(this);
+                inputSystem?.StealFocus(this);
             }
             
             var mousePoint = e.Mouse.Point;

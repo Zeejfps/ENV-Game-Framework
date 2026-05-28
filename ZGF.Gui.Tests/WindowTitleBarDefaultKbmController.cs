@@ -81,7 +81,7 @@ public sealed class WindowTitleBarDefaultKbmController : KeyboardMouseController
         {
             _isDragging = true;
             e.Consume();
-            _titleBar.Context?.Get<InputSystem>()!.RequestFocus(this);
+            _titleBar.Context?.Get<InputSystem>()!.StealFocus(this);
             return;
         }
     }

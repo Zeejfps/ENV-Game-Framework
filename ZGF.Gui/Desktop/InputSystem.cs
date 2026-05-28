@@ -484,21 +484,8 @@ public sealed class InputSystem
         }
     }
 
-    public void RequestFocus(IKeyboardMouseController component)
-    {
-        //Console.WriteLine($"Requesting focus: {component}");
-        if (_focusedComponent == null)
-        {
-            _focusedComponent = component;
-            _focusedComponent.OnFocusGained();
-            //Console.WriteLine($"Focused: {component}");
-        }
-    }
-
     /// <summary>
-    /// Take focus unconditionally, blurring whoever currently holds it. Use when
-    /// a UI flow needs to seize focus from a still-active component (e.g. a context
-    /// menu item that pops up a text field on the same click).
+    /// Take focus unconditionally, blurring whoever currently holds it.
     /// </summary>
     public void StealFocus(IKeyboardMouseController component)
     {

@@ -38,7 +38,7 @@ internal sealed class CommitsViewController : KeyboardMouseController
 
             _activeDivider = divider;
             _lastDragX = e.Mouse.Point.X;
-            _view.Context.RequestFocus(this);
+            _view.Context.StealFocus(this);
             e.Consume();
             return;
         }
