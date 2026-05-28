@@ -171,36 +171,57 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         _arrowController?.TakeFocus();
     }
 
-    private IReadOnlyList<RepoBarContextMenu.Item> BuildUnstagedMenu(DiffTarget target)
+    private IReadOnlyList<RepoBarContextMenu.Item> BuildUnstagedMenu(DiffTarget? target)
     {
         if (_vm == null) return [];
-        var paths = ResolveTargetPaths(target);
-        var n = paths.Count;
-        return
-        [
-            new RepoBarContextMenu.Item(
+        var items = new List<RepoBarContextMenu.Item>();
+        if (target != null)
+        {
+            var paths = ResolveTargetPaths(target);
+            var n = paths.Count;
+            items.Add(new RepoBarContextMenu.Item(
                 n > 1 ? $"Stage {n} Files" : "Stage",
                 () => _vm.Stage(paths),
-                LucideIcons.ChevronRight),
-            new RepoBarContextMenu.Item(
+                LucideIcons.ChevronRight));
+            items.Add(new RepoBarContextMenu.Item(
                 n > 1 ? $"Discard {n} Files…" : "Discard…",
                 () => _vm.RequestDiscard(paths),
-                LucideIcons.Trash),
-        ];
+                LucideIcons.Trash));
+            items.Add(RepoBarContextMenu.Separator);
+        }
+        items.Add(new RepoBarContextMenu.Item(
+            "Stage All",
+            () => _vm.StageAll.Execute(),
+            LucideIcons.ChevronsRight,
+            Enabled: _vm.StageAll.CanExecute.Value));
+        items.Add(new RepoBarContextMenu.Item(
+            "Discard All…",
+            () => _vm.DiscardAll.Execute(),
+            LucideIcons.Trash,
+            Enabled: _vm.DiscardAll.CanExecute.Value));
+        return items;
     }
 
-    private IReadOnlyList<RepoBarContextMenu.Item> BuildStagedMenu(DiffTarget target)
+    private IReadOnlyList<RepoBarContextMenu.Item> BuildStagedMenu(DiffTarget? target)
     {
         if (_vm == null) return [];
-        var paths = ResolveTargetPaths(target);
-        var n = paths.Count;
-        return
-        [
-            new RepoBarContextMenu.Item(
+        var items = new List<RepoBarContextMenu.Item>();
+        if (target != null)
+        {
+            var paths = ResolveTargetPaths(target);
+            var n = paths.Count;
+            items.Add(new RepoBarContextMenu.Item(
                 n > 1 ? $"Unstage {n} Files" : "Unstage",
                 () => _vm.Unstage(paths),
-                LucideIcons.ChevronLeft),
-        ];
+                LucideIcons.ChevronLeft));
+            items.Add(RepoBarContextMenu.Separator);
+        }
+        items.Add(new RepoBarContextMenu.Item(
+            "Unstage All",
+            () => _vm.UnstageAll.Execute(),
+            LucideIcons.ChevronsLeft,
+            Enabled: _vm.UnstageAll.CanExecute.Value));
+        return items;
     }
 
     // Right-clicking a row inside the current selection acts on the whole selection;

@@ -26,7 +26,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     private readonly Action<DiffTarget, InputModifiers> _onRowClick;
     private readonly Action<DiffTarget>? _onRowActivated;
     private readonly Action? _onEmptyAreaClicked;
-    private readonly Func<DiffTarget, IReadOnlyList<RepoBarContextMenu.Item>>? _buildContextMenu;
+    private readonly Func<DiffTarget?, IReadOnlyList<RepoBarContextMenu.Item>>? _buildContextMenu;
     private readonly TextView _headerText;
     private readonly TextView _emptyPlaceholder;
     private readonly RectView _bodyContainer;
@@ -78,7 +78,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         IReadOnlyList<View>? headerActions = null,
         Action<DiffTarget>? onRowActivated = null,
         Action? onEmptyAreaClicked = null,
-        Func<DiffTarget, IReadOnlyList<RepoBarContextMenu.Item>>? buildContextMenu = null)
+        Func<DiffTarget?, IReadOnlyList<RepoBarContextMenu.Item>>? buildContextMenu = null)
     {
         _title = title;
         _side = side;
@@ -211,12 +211,14 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     private void OnRowContextRequested(int rowIndex, PointF point)
     {
         if (Context == null || _buildContextMenu == null) return;
-        if (rowIndex < 0 || rowIndex >= _files.Count) return;
 
-        var items = _buildContextMenu(new DiffTarget(_files[rowIndex].Path, _side));
+        var onRow = rowIndex >= 0 && rowIndex < _files.Count;
+        var target = onRow ? new DiffTarget(_files[rowIndex].Path, _side) : null;
+
+        var items = _buildContextMenu(target);
         if (items.Count == 0) return;
 
-        _list.SetContextHighlight(rowIndex);
+        if (onRow) _list.SetContextHighlight(rowIndex);
         var opened = RepoBarContextMenu.Show(Context, point, items);
         if (opened == null)
         {

@@ -48,8 +48,10 @@ public sealed class VirtualRowListView : View
     public event Action<int>? RowActivated;
 
     /// <summary>
-    /// Fires when the user right-clicks on a row. The consumer is responsible for
-    /// opening any menu and calling <see cref="SetContextHighlight"/> to keep the row
+    /// Fires when the user right-clicks within the widget. The index is the row that was
+    /// hit, or -1 if the click landed in the widget but missed every row (consumers use
+    /// -1 to offer an empty-area menu, or ignore it). The consumer is responsible for
+    /// opening any menu and calling <see cref="SetContextHighlight"/> to keep a row
     /// visually marked for the duration of the menu.
     /// </summary>
     public event Action<int, PointF>? RowContextRequested;
@@ -241,7 +243,6 @@ public sealed class VirtualRowListView : View
     {
         if (!Position.ContainsPoint(point)) return;
         var idx = HitTestRow(point);
-        if (idx < 0) return;
         RowContextRequested?.Invoke(idx, point);
     }
 

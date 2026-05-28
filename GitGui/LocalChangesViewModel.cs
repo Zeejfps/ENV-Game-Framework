@@ -39,6 +39,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     public Command UnstageSelected { get; }
     public Command StageAll { get; }
     public Command UnstageAll { get; }
+    public Command DiscardAll { get; }
     public IReadable<string?> OpError { get; }
     public IReadable<bool> CommitEnabled { get; }
     public IReadable<bool> CommitBusy { get; }
@@ -85,6 +86,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         UnstageSelected = new Command(DoUnstageSelected, selectedStaged);
         StageAll = new Command(DoStageAll, hasUnstaged);
         UnstageAll = new Command(DoUnstageAll, hasStaged);
+        DiscardAll = new Command(DoDiscardAll, hasUnstaged);
         OpError = Slice(s => s.OpError);
         CommitEnabled = Slice(s => s.CommitEnabled);
         CommitBusy = Slice(s => s.CommitBusy);
@@ -374,6 +376,9 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
 
     private void DoUnstageAll()
         => Unstage(State.Value.Staged.Select(f => f.Path).ToList());
+
+    private void DoDiscardAll()
+        => RequestDiscard(State.Value.Unstaged.Select(f => f.Path).ToList());
 
     public void Stage(IReadOnlyList<string> paths) => RunIndexOp(paths, isStage: true);
     

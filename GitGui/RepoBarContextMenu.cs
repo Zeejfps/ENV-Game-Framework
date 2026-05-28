@@ -15,7 +15,10 @@ public static class RepoBarContextMenu
         Action OnSelected,
         string? Icon = null,
         bool Enabled = true,
-        IReadOnlyList<MenuLabelSegment>? LabelSegments = null);
+        IReadOnlyList<MenuLabelSegment>? LabelSegments = null,
+        bool IsSeparator = false);
+
+    public static readonly Item Separator = new(string.Empty, static () => { }, IsSeparator: true);
 
     public static IOpenedContextMenu? Show(Context context, PointF anchor, IReadOnlyList<Item> items)
     {
@@ -38,6 +41,14 @@ public static class RepoBarContextMenu
 
         foreach (var item in items)
         {
+            if (item.IsSeparator)
+            {
+                var separator = new RectView { PreferredHeight = 1 };
+                separator.BindThemedBackgroundColor(s => s.ContextMenu.Border);
+                menu.Children.Add(separator);
+                continue;
+            }
+
             var menuItem = new ContextMenuItem
             {
                 Text = item.Label,
