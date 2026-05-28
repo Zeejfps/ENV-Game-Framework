@@ -232,8 +232,10 @@ public sealed class InputSystem
     {
         // RefreshHover runs in finally so hover bookkeeping isn't skipped when a
         // controller in the path consumes the move event (e.g. a modal backdrop).
-        // Otherwise hover state freezes on the consumer and elements the cursor
-        // moves onto never get MouseEnter.
+        // Exception: when the focused component itself consumes, it owns the input
+        // stream (drag, popup outside-click capture); freezing main-window hover is
+        // required so cursor moves over a popup don't re-hover views underneath.
+        var focusedConsumed = false;
         try
         {
             e.Phase = EventPhase.Bubbling;
@@ -245,6 +247,7 @@ public sealed class InputSystem
                     _focusedComponent.OnMouseMoved(ref e);
                     if (e.IsConsumed)
                     {
+                        focusedConsumed = true;
                         return;
                     }
                 }
@@ -280,8 +283,25 @@ public sealed class InputSystem
         }
         finally
         {
-            RefreshHover(e.Mouse);
+            if (!focusedConsumed) RefreshHover(e.Mouse);
         }
+    }
+
+    public void ClearHover()
+    {
+        if (_hoveredComponent == null) return;
+
+        var syntheticMouse = new Mouse { Point = new PointF(float.MinValue, float.MinValue) };
+        var exitEvent = new MouseExitEvent
+        {
+            Mouse = syntheticMouse,
+            Phase = EventPhase.Capturing,
+        };
+        SendMouseExitEvent(ref exitEvent);
+        _hoveredComponent = null;
+        // _focusQueue is intentionally left intact: ClearHover can be re-entered
+        // from inside an outer iteration of this same list (StealFocus during
+        // button dispatch). The next RefreshHover rebuilds it.
     }
 
     /// <summary>

@@ -228,6 +228,18 @@ public sealed class ContextMenuManager
         private readonly ContextMenuManager _manager;
         public MainWindowOutsideClickController(ContextMenuManager manager) { _manager = manager; }
 
+        public override void OnFocusGained()
+        {
+            _manager._mainInputSystem?.ClearHover();
+        }
+
+        public override void OnMouseMoved(ref MouseMoveEvent e)
+        {
+            // Consume so InputSystem skips RefreshHover — otherwise main-window
+            // views under the popup re-hover as the cursor moves over the menu.
+            e.Consume();
+        }
+
         public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
         {
             if (e.State != InputState.Pressed) return;
