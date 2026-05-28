@@ -796,6 +796,7 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
+                using var _ = _activity.Begin(repo.Path);
                 var psi = BuildGitProcessStartInfo(args, repo.Path);
                 // -m supplies the message, but a configured core.editor would still fire for
                 // merge/rebase/squash flows that prompt to confirm the commit message.
