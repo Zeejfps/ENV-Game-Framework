@@ -6,6 +6,8 @@ using ZGF.Gui;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
 
+Console.WriteLine("Hello, World!");
+
 var prefsPath = Path.Combine(
     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
     "GitGui",
@@ -49,6 +51,8 @@ context.AddService<IGitService>(new GitService(repoActivity));
 context.AddService<IDragController>(new DragController(registry));
 context.AddService(new LocalChangesSelectionStore());
 
+Console.WriteLine("About to create app");
+
 var appView = new AppView(preferences);
 var appHost = GuiApp.CreateDefault(new StartupConfig
 {
@@ -58,6 +62,8 @@ var appHost = GuiApp.CreateDefault(new StartupConfig
     IsUndecorated = false
 }, context, appView);
 appHost.OnWindowResized += preferences.SetWindowSize;
+
+Console.WriteLine("App created");
 
 appHost.RegisterFont(LucideIcons.FontFamily, "Assets/Fonts/Lucide/Lucide.ttf", 16);
 appHost.RegisterFont(DiffOptions.MonoFontFamily, "Assets/Fonts/JetBrainsMono/JetBrainsMono-Regular.ttf", 13);

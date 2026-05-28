@@ -41,8 +41,13 @@ internal static class PlatformBackend
         var defaultFont = fonts.LoadFontFromFile(fontFilePath, (int)MathF.Round(16 * dpiScale));
         var imageManager = new GlImageManager();
         var shared = new GlSharedResources(fonts, imageManager);
+        var windowWidth = config.WindowWidth;
+        if (windowWidth <= 0) windowWidth = 1280;
+        var windowHeight = config.WindowHeight;
+        if (windowHeight <= 0) windowHeight = 720;
+
         var canvas = new OpenGlRenderedCanvas(
-            config.WindowWidth, config.WindowHeight, fonts, defaultFont, shared, dpiScale);
+            windowWidth, windowHeight, fonts, defaultFont, shared, dpiScale);
 
         glClearColor(0, 0, 0, 0);
 

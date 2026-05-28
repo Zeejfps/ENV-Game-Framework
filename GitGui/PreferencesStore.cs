@@ -9,13 +9,13 @@ public static class PreferencesStore
 
     internal sealed class FileShape
     {
-        public int SchemaVersion { get; set; }
-        public ThemeMode Theme { get; set; } = ThemeMode.Dark;
-        public int WindowWidth { get; set; } = 1400;
-        public int WindowHeight { get; set; } = 900;
-        public float RepoBarWidth { get; set; } = 220f;
-        public float BranchesWidth { get; set; } = 220f;
-        public float CommitDetailsWidth { get; set; } = 380f;
+        public int? SchemaVersion { get; set; }
+        public ThemeMode? Theme { get; set; } = ThemeMode.Dark;
+        public int? WindowWidth { get; set; } = 1400;
+        public int? WindowHeight { get; set; } = 900;
+        public float? RepoBarWidth { get; set; } = 220f;
+        public float? BranchesWidth { get; set; } = 220f;
+        public float? CommitDetailsWidth { get; set; } = 380f;
     }
 
     public static Preferences Load(string path)
@@ -30,14 +30,15 @@ public static class PreferencesStore
             if (file is null)
                 return Preferences.Default;
 
+            var defaults = Preferences.Default;
             return new Preferences
             {
-                Theme = file.Theme,
-                WindowWidth = file.WindowWidth,
-                WindowHeight = file.WindowHeight,
-                RepoBarWidth = file.RepoBarWidth,
-                BranchesWidth = file.BranchesWidth,
-                CommitDetailsWidth = file.CommitDetailsWidth,
+                Theme = file.Theme ?? defaults.Theme,
+                WindowWidth = file.WindowWidth is > 0 ? file.WindowWidth.Value : defaults.WindowWidth,
+                WindowHeight = file.WindowHeight is > 0 ? file.WindowHeight.Value : defaults.WindowHeight,
+                RepoBarWidth = file.RepoBarWidth is > 0 ? file.RepoBarWidth.Value : defaults.RepoBarWidth,
+                BranchesWidth = file.BranchesWidth is > 0 ? file.BranchesWidth.Value : defaults.BranchesWidth,
+                CommitDetailsWidth = file.CommitDetailsWidth is > 0 ? file.CommitDetailsWidth.Value : defaults.CommitDetailsWidth,
             };
         }
         catch (Exception ex)

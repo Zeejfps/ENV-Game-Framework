@@ -25,8 +25,11 @@ public sealed class PreferencesService : IDisposable
 
     public void SetTheme(ThemeMode mode) => Mutate(p => p with { Theme = mode });
 
-    public void SetWindowSize(int width, int height) =>
+    public void SetWindowSize(int width, int height)
+    {
+        if (width <= 0 || height <= 0) return;
         Mutate(p => p with { WindowWidth = width, WindowHeight = height });
+    }
 
     public void SetRepoBarWidth(float width) => Mutate(p => p with { RepoBarWidth = width });
 
