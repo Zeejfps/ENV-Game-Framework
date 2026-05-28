@@ -138,6 +138,7 @@ public sealed record ThemeStyles(
             SegmentHoverBackground: 0xFF3A3D43u,
             SegmentActiveBackground: 0xFF404C8Cu,
             SegmentIdleText: 0xFFB5B9C0u,
+            SegmentHoverText: 0xFFFFFFFFu,
             SegmentActiveText: 0xFFFFFFFFu),
         BranchesHeader: new BranchesHeaderStyles(
             Background: 0xFF1E1F22u,
@@ -400,6 +401,7 @@ public sealed record ThemeStyles(
             SegmentHoverBackground: 0xFFF3F4F6u,
             SegmentActiveBackground: 0xFF4F46E5u,
             SegmentIdleText: 0xFF374151u,
+            SegmentHoverText: 0xFF111827u,
             SegmentActiveText: 0xFFFFFFFFu),
         BranchesHeader: new BranchesHeaderStyles(
             Background: 0xFFFFFFFFu,
@@ -661,6 +663,7 @@ public sealed record ModeSwitcherStyles(
     uint SegmentHoverBackground,
     uint SegmentActiveBackground,
     uint SegmentIdleText,
+    uint SegmentHoverText,
     uint SegmentActiveText);
 
 public sealed record BranchesHeaderStyles(

@@ -24,9 +24,9 @@ internal sealed class SegmentView : MultiChildView, IBind<SegmentViewModel>
             HorizontalTextAlignment = TextAlignment.Center,
         };
         labelView.BindThemedTextColor(s =>
-            _isActive.Value || _isHovered.Value
-                ? s.ModeSwitcher.SegmentActiveText
-                : s.ModeSwitcher.SegmentIdleText);
+            _isActive.Value ? s.ModeSwitcher.SegmentActiveText :
+            _isHovered.Value ? s.ModeSwitcher.SegmentHoverText :
+            s.ModeSwitcher.SegmentIdleText);
 
         var bg = new RectView
         {
