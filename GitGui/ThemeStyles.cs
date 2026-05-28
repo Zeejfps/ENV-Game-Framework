@@ -116,7 +116,14 @@ public sealed record ThemeStyles(
         Checkbox: new CheckboxStyles(
             TextIdle: 0xFFB5B9C0u,
             TextHover: 0xFFFFFFFFu,
-            TextDisabled: 0x80B5B9C0u),
+            TextDisabled: 0x80B5B9C0u,
+            BoxBorderIdle: 0xFF4A4D52u,
+            BoxBorderHover: 0xFF6A6D72u,
+            BoxBorderDisabled: 0x664A4D52u,
+            BoxFillChecked: 0xFF5865F2u,
+            BoxFillCheckedHover: 0xFF7480F5u,
+            BoxFillDisabled: 0xFF2B2D31u,
+            CheckGlyph: 0xFFFFFFFFu),
         CommitBar: new CommitBarStyles(
             Background: 0xFF2A2C30u,
             TopBorder: 0xFF313338u),
@@ -371,7 +378,14 @@ public sealed record ThemeStyles(
         Checkbox: new CheckboxStyles(
             TextIdle: 0xFF374151u,
             TextHover: 0xFF111827u,
-            TextDisabled: 0x80374151u),
+            TextDisabled: 0x80374151u,
+            BoxBorderIdle: 0xFFD1D5DBu,
+            BoxBorderHover: 0xFF9CA3AFu,
+            BoxBorderDisabled: 0x66D1D5DBu,
+            BoxFillChecked: 0xFF4F46E5u,
+            BoxFillCheckedHover: 0xFF6366F1u,
+            BoxFillDisabled: 0xFFE5E7EBu,
+            CheckGlyph: 0xFFFFFFFFu),
         CommitBar: new CommitBarStyles(
             Background: 0xFFF3F4F6u,
             TopBorder: 0xFFE5E7EBu),
@@ -622,7 +636,14 @@ public sealed record ActionButtonStyles(
 public sealed record CheckboxStyles(
     uint TextIdle,
     uint TextHover,
-    uint TextDisabled);
+    uint TextDisabled,
+    uint BoxBorderIdle,
+    uint BoxBorderHover,
+    uint BoxBorderDisabled,
+    uint BoxFillChecked,
+    uint BoxFillCheckedHover,
+    uint BoxFillDisabled,
+    uint CheckGlyph);
 
 public sealed record CommitBarStyles(
     uint Background,

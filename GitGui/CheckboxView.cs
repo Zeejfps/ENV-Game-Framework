@@ -7,20 +7,33 @@ namespace GitGui;
 
 public sealed class CheckboxView : HoverableButton
 {
-    private const float IconSize = 14f;
+    private const float BoxSize = 16f;
+    private const float BoxRadius = 3f;
+    private const float CheckGlyphSize = 12f;
 
     public State<bool> IsChecked { get; } = new(false);
 
     public CheckboxView(string label)
     {
-        var iconView = new TextView
+        var checkGlyph = new TextView
         {
-            FontFamily = LucideIcons.FontFamily,
-            FontSize = IconSize,
+            FontSize = CheckGlyphSize,
+            HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        iconView.BindText(IsChecked, c => c ? LucideIcons.CheckSquare : LucideIcons.Square);
-        iconView.BindThemedTextColor(SelectForeground);
+        checkGlyph.BindText(IsChecked, c => c ? "✓" : string.Empty);
+        checkGlyph.BindThemedTextColor(s => IsEnabled.Value ? s.Checkbox.CheckGlyph : s.Checkbox.TextDisabled);
+
+        var box = new RectView
+        {
+            PreferredWidth = BoxSize,
+            PreferredHeight = BoxSize,
+            BorderSize = BorderSizeStyle.All(1),
+            BorderRadius = BorderRadiusStyle.All(BoxRadius),
+            Children = { checkGlyph },
+        };
+        box.BindThemedBackgroundColor(SelectBoxFill);
+        box.BindThemedBorderColor(s => BorderColorStyle.All(SelectBoxBorder(s)));
 
         var labelView = new TextView
         {
@@ -31,9 +44,9 @@ public sealed class CheckboxView : HoverableButton
 
         SetBackground(new FlexRowView
         {
-            Gap = 6f,
+            Gap = 8f,
             CrossAxisAlignment = CrossAxisAlignment.Center,
-            Children = { iconView, labelView },
+            Children = { box, labelView },
         });
     }
 
@@ -43,5 +56,19 @@ public sealed class CheckboxView : HoverableButton
     {
         if (!IsEnabled.Value) return s.Checkbox.TextDisabled;
         return IsHovered.Value ? s.Checkbox.TextHover : s.Checkbox.TextIdle;
+    }
+
+    private uint SelectBoxFill(ThemeStyles s)
+    {
+        if (!IsEnabled.Value) return IsChecked.Value ? s.Checkbox.BoxFillDisabled : 0x00000000u;
+        if (!IsChecked.Value) return 0x00000000u;
+        return IsHovered.Value ? s.Checkbox.BoxFillCheckedHover : s.Checkbox.BoxFillChecked;
+    }
+
+    private uint SelectBoxBorder(ThemeStyles s)
+    {
+        if (!IsEnabled.Value) return s.Checkbox.BoxBorderDisabled;
+        if (IsChecked.Value) return IsHovered.Value ? s.Checkbox.BoxFillCheckedHover : s.Checkbox.BoxFillChecked;
+        return IsHovered.Value ? s.Checkbox.BoxBorderHover : s.Checkbox.BoxBorderIdle;
     }
 }
