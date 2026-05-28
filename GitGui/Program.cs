@@ -6,11 +6,19 @@ using ZGF.Gui;
 using ZGF.Gui.Tests;
 using ZGF.Observable;
 
+var prefsPath = Path.Combine(
+    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+    "GitGui",
+    "preferences.json");
+using var preferences = new PreferencesService(PreferencesStore.Load(prefsPath), prefsPath);
+var initialPrefs = preferences.Current;
+
 var context = new Context();
 var messageBus = new MessageBus();
 context.AddService<IMessageBus>(messageBus);
 context.AddService(new State<MainViewMode>(MainViewMode.LocalChanges));
-var themeMode = new State<ThemeMode>(ThemeMode.Dark);
+var themeMode = new State<ThemeMode>(initialPrefs.Theme);
+themeMode.Changed += preferences.SetTheme;
 context.AddService(themeMode);
 context.AddService<IThemeService<ThemeStyles>>(new ThemeService(themeMode));
 context.AddService<IPlatformShell>(
@@ -40,14 +48,15 @@ context.AddService<IGitService>(new GitService(repoActivity));
 context.AddService<IDragController>(new DragController(registry));
 context.AddService(new LocalChangesSelectionStore());
 
-var appView = new AppView();
+var appView = new AppView(preferences);
 var appHost = GuiApp.CreateDefault(new StartupConfig
 {
     WindowTitle = "GitGui",
-    WindowWidth = 1400,
-    WindowHeight = 900,
+    WindowWidth = initialPrefs.WindowWidth,
+    WindowHeight = initialPrefs.WindowHeight,
     IsUndecorated = false
 }, context, appView);
+appHost.OnWindowResized += preferences.SetWindowSize;
 
 appHost.RegisterFont(LucideIcons.FontFamily, "Assets/Fonts/Lucide/Lucide.ttf", 16);
 appHost.RegisterFont(DiffOptions.MonoFontFamily, "Assets/Fonts/JetBrainsMono/JetBrainsMono-Regular.ttf", 13);

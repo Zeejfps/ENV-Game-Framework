@@ -5,11 +5,16 @@ namespace GitGui;
 
 public sealed class AppView : MultiChildView
 {
-    public AppView()
+    public AppView(PreferencesService preferences)
     {
+        var prefs = preferences.Current;
         Children.Add(new BorderLayoutView
         {
-            West = ResizableLeftSidebar.Build(new RepoBar(), initialWidth: 220f, minWidth: 220f),
+            West = ResizableLeftSidebar.Build(
+                new RepoBar(),
+                initialWidth: prefs.RepoBarWidth,
+                minWidth: 220f,
+                onWidthChanged: preferences.SetRepoBarWidth),
             Center = new BorderLayoutView
             {
                 West = ResizableLeftSidebar.Build(
@@ -22,7 +27,8 @@ public sealed class AppView : MultiChildView
                             new FlexItem { Grow = 1, Child = new BranchesView() },
                         },
                     },
-                    initialWidth: 220f),
+                    initialWidth: prefs.BranchesWidth,
+                    onWidthChanged: preferences.SetBranchesWidth),
                 Center = new BorderLayoutView
                 {
                     North = new FlexColumnView

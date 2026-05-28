@@ -133,6 +133,8 @@ public sealed class GuiApp : IDisposable
         }
     }
 
+    public event Action<int, int>? OnWindowResized;
+
     public void Run() => _app.Run();
 
     private void HandleTick()
@@ -150,6 +152,7 @@ public sealed class GuiApp : IDisposable
         _mainCanvas.Resize(width, height);
         _app.MainWindow.MakeContextCurrent();
         _app.MainWindow.RenderNow();
+        OnWindowResized?.Invoke(width, height);
     }
 
     private void HandleFramebufferResize(int width, int height)

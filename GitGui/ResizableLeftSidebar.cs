@@ -19,6 +19,8 @@ internal sealed class ResizableLeftSidebar : MultiChildView
     private readonly float _minWidth;
     private readonly float _maxWidth;
 
+    public Action<float>? WidthChanged { get; set; }
+
     public ResizableLeftSidebar(View content, View splitter, float initialWidth, float minWidth, float maxWidth)
     {
         _content = content;
@@ -37,6 +39,7 @@ internal sealed class ResizableLeftSidebar : MultiChildView
         var newWidth = Math.Clamp((float)PreferredWidth + dx, _minWidth, _maxWidth);
         if (Math.Abs(newWidth - (float)PreferredWidth) < 0.5f) return;
         PreferredWidth = newWidth;
+        WidthChanged?.Invoke(newWidth);
     }
 
     protected override void OnLayoutChildren()
@@ -67,14 +70,18 @@ internal sealed class ResizableLeftSidebar : MultiChildView
         View content,
         float initialWidth,
         float minWidth = 140f,
-        float maxWidth = 600f)
+        float maxWidth = 600f,
+        Action<float>? onWidthChanged = null)
     {
         var splitterHovered = new State<bool>(false);
         var splitter = new RectView();
         splitter.BindThemedBackgroundColor(s =>
             splitterHovered.Value ? s.SidebarSplitter.Hover : s.SidebarSplitter.Idle);
 
-        var sidebar = new ResizableLeftSidebar(content, splitter, initialWidth, minWidth, maxWidth);
+        var sidebar = new ResizableLeftSidebar(content, splitter, initialWidth, minWidth, maxWidth)
+        {
+            WidthChanged = onWidthChanged,
+        };
 
         splitter.UseController(ctx => new SplitterController(
             ctx,
