@@ -455,19 +455,35 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         Update(s => s with { CommitBusy = true, OpError = null });
         _commitSpinner.Start();
 
-        RunBackground<LocalChangesSnapshot>(
-            work: () =>
+        // Inlined (vs RunBackground) so op-completion runs even when Gen advanced —
+        // otherwise a concurrent watcher-driven reload would silently drop the whole
+        // continuation, leaving CommitBusy permanently set and the button stuck.
+        var snapshotGen = Gen.Bump();
+        var dispatcher = Dispatcher;
+        Task.Run(() =>
+        {
+            string? err = null;
+            LocalChangesSnapshot? snap = null;
+            try
             {
-                var err = _gitService.Commit(repo, message, amend);
-                if (err != null) return (null, err);
-                var snap = _gitService.GetLocalChanges(repo);
-                return snap.ErrorMessage != null ? (null, snap.ErrorMessage) : (snap, null);
-            },
-            onResult: (snap, errorMsg) =>
+                err = _gitService.Commit(repo, message, amend);
+                if (err == null)
+                {
+                    var got = _gitService.GetLocalChanges(repo);
+                    if (got.ErrorMessage != null) err = got.ErrorMessage;
+                    else snap = got;
+                }
+            }
+            catch (Exception ex)
+            {
+                err = ex.Message;
+            }
+
+            dispatcher.Post(() =>
             {
                 _commitSpinner.Stop();
-                Update(s => s with { CommitBusy = false, OpError = errorMsg });
-                if (errorMsg != null) return;
+                Update(s => s with { CommitBusy = false, OpError = err });
+                if (err != null) return;
 
                 // After a successful commit the editor is cleared regardless of mode.
                 // When amending we also drop the session — bypassing SetAmend(false)'s
@@ -481,9 +497,10 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 {
                     Update(s => s with { Title = string.Empty, Description = string.Empty });
                 }
-                if (snap != null) ApplySnapshot(snap);
+                if (snap != null && !Gen.IsStale(snapshotGen)) ApplySnapshot(snap);
                 _bus.Broadcast(new CommitCreatedMessage(repo.Id));
             });
+        });
     }
 
     private void OnWorkingTreeChanged(WorkingTreeChangedMessage msg)
