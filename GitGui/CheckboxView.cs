@@ -15,6 +15,22 @@ public sealed class CheckboxView : HoverableButton
 
     public CheckboxView(string label)
     {
+        var labelView = new TextView
+        {
+            Text = label,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        labelView.BindThemedTextColor(SelectForeground);
+        Initialize(labelView);
+    }
+
+    public CheckboxView(MultiChildView content)
+    {
+        Initialize(content);
+    }
+
+    private void Initialize(MultiChildView content)
+    {
         var checkGlyph = new TextView
         {
             FontSize = CheckGlyphSize,
@@ -35,18 +51,11 @@ public sealed class CheckboxView : HoverableButton
         box.BindThemedBackgroundColor(SelectBoxFill);
         box.BindThemedBorderColor(s => BorderColorStyle.All(SelectBoxBorder(s)));
 
-        var labelView = new TextView
-        {
-            Text = label,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-        labelView.BindThemedTextColor(SelectForeground);
-
         SetBackground(new FlexRowView
         {
             Gap = 8f,
             CrossAxisAlignment = CrossAxisAlignment.Center,
-            Children = { box, labelView },
+            Children = { box, new FlexItem { Grow = 1, Child = content } },
         });
     }
 

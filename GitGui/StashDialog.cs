@@ -166,11 +166,6 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
     private FileRow BuildRow(StashFileRow file)
     {
         var vm = _vm!;
-        var checkbox = new CheckboxView(string.Empty);
-        // Seed from VM state BEFORE wiring Changed, so the initial paint doesn't trigger
-        // a phantom toggle through the handler.
-        checkbox.IsChecked.Value = vm.CheckedPaths.Value.Contains(file.Path);
-        checkbox.IsChecked.Changed += _ => vm.ToggleFile(file.Path);
 
         var badge = FileChangesUI.CreateStatusBadge(file.Display);
 
@@ -185,17 +180,24 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
         {
             Gap = 8f,
             CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 22,
             Children =
             {
-                checkbox,
                 badge,
                 new FlexItem { Grow = 1, Child = pathText },
             },
         };
 
-        return new FileRow(file, checkbox, rowContent);
+        var checkbox = new CheckboxView(rowContent)
+        {
+            PreferredHeight = 22,
+        };
+        // Seed from VM state BEFORE wiring Changed, so the initial paint doesn't trigger
+        // a phantom toggle through the handler.
+        checkbox.IsChecked.Value = vm.CheckedPaths.Value.Contains(file.Path);
+        checkbox.IsChecked.Changed += _ => vm.ToggleFile(file.Path);
+
+        return new FileRow(file, checkbox);
     }
 
-    private sealed record FileRow(StashFileRow Row, CheckboxView Checkbox, View View);
+    private sealed record FileRow(StashFileRow Row, CheckboxView View);
 }
