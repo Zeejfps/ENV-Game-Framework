@@ -2,7 +2,6 @@ namespace GitGui;
 
 public sealed record ThemeStyles(
     ThemePalette Palette,
-    StatusPalette Status,
     BannerStyles Banner,
     HeaderActionButtonStyles HeaderActionButton,
     LocalChangesContentStyles LocalChangesContent,
@@ -73,7 +72,27 @@ public sealed record ThemeStyles(
             TextDim: 0xFF7A7C81u,
             TextDisabled: 0x80B5B9C0u,
             TextOnAccent: 0xFFFFFFFFu,
-            Shadow: 0x80000000u);
+            Shadow: 0x80000000u,
+            BarSurface: 0xFF2A2C30u,
+            InputSurface: 0xFF2B2D31u,
+            InputSurfaceHover: 0xFF3A3D43u,
+            TextEmphasis: 0xFFE6E6E6u,
+            TextSubtle: 0xFFB5B9C0u,
+            TextFaint: 0xFF7A7C81u,
+            OnStatusText: 0xFF1A1B1Eu,
+            RowSubtleText: 0xFFFFFFFFu,
+            HunkOutline: 0xFF5A8DD6u,
+            Selection: 0xFF404C8Cu,
+            Placeholder: 0x80B5B9C0u,
+            DialogHeaderSeparator: 0xFF2A2C30u,
+            CheckboxBorderIdle: 0xFF4A4D52u,
+            CheckboxDisabledFill: 0xFF2B2D31u,
+            SegmentActiveBg: 0xFF404C8Cu,
+            ScrollBarTrackBg: 0xFF26272Bu,
+            ScrollBarThumbBorder: 0xFF2A2C30u,
+            OperationRowHoverBg: 0xFF313338u,
+            CommitRowSelectedBg: 0xFF404C8Cu,
+            CommitRowSelectedText: 0xFFFFFFFFu);
 
         var status = new StatusPalette(
             Success: 0xFF57F287u,
@@ -90,258 +109,40 @@ public sealed record ThemeStyles(
             DangerBar: 0xFFB3514Bu,
             DangerText: 0xFFE9C77Au,
             DangerLineBg: 0xFF432528u,
-            DangerLineGlyph: 0xFFED4245u);
+            DangerLineGlyph: 0xFFED4245u,
+            Other: 0xFF9B59B6u,
+            DialogError: 0xFFE06C75u,
+            DiffError: 0xFFE9C77Au);
 
         var banner = new BannerStyles(
             Background: 0xFF3D2E14u,
             Border: 0xFFB89050u,
             Text: 0xFFE9C77Au);
 
-        return new ThemeStyles(
-            Palette: p,
-            Status: status,
-            Banner: banner,
-            HeaderActionButton: new HeaderActionButtonStyles(
-                Background: 0u,
-                BackgroundHover: p.SurfaceHoverStrong,
-                IconIdle: p.TextMedium,
-                IconHover: p.TextStrong,
-                IconDisabled: WithAlpha(p.TextMedium, 0x66)),
-            LocalChangesContent: new LocalChangesContentStyles(
-                ContentBackground: p.Surface,
-                ColumnDivider: p.Border,
-                PlaceholderText: p.TextMuted,
-                SplitterIdle: p.Border,
-                SplitterHover: p.BorderHoverFill),
-            SubmoduleSection: new SubmoduleSectionStyles(
-                BadgeBackground: status.Purple,
-                BadgeText: p.SurfaceSunken,
-                RowText: p.TextMedium),
-            FileChangesSection: new FileChangesSectionStyles(
-                HeaderBackground: p.SurfaceRaised,
-                HeaderBorder: p.Border,
-                HeaderText: p.TextMuted,
-                EmptyPlaceholderText: p.TextMuted),
-            FileChangeRow: new FileChangeRowStyles(
-                RowText: p.TextSecondary,
-                RowTextActive: p.TextOnAccent,
-                RowHover: p.SurfaceHover,
-                RowActive: p.SurfaceSelected,
-                BadgeText: p.SurfaceSunken,
-                StatusAdded: status.Success,
-                StatusModified: status.Warning,
-                StatusDeleted: status.Danger,
-                StatusRenamed: status.Info,
-                StatusConflicted: status.Danger,
-                StatusSubmodule: status.Purple,
-                StatusOther: 0xFF9B59B6u),
-            DialogFrame: new DialogFrameStyles(
-                Background: p.Surface,
-                Border: p.Border,
-                TitleText: p.TextPrimary,
-                HeaderSeparator: p.SurfaceMuted,
-                ErrorText: 0xFFE06C75u,
-                InsetBackground: p.SurfaceSunken),
-            TextInput: new TextInputStyles(
-                Background: p.SurfaceHover,
-                Border: p.BorderStrong,
-                Text: p.TextPrimary,
-                Caret: p.TextPrimary,
-                Selection: p.SurfaceSelected,
-                PlaceholderText: p.TextDisabled),
-            BorderedButton: new BorderedButtonStyles(
-                BackgroundIdle: p.SurfaceHover,
-                BackgroundHover: p.SurfaceHoverStrong,
-                BorderIdle: p.BorderStrong,
-                BorderHover: p.Accent,
-                Text: p.TextStrong,
-                TextDisabled: p.TextDisabled),
-            DialogIconButton: new DialogIconButtonStyles(
-                BackgroundIdle: 0u,
-                BackgroundHover: p.SurfaceHoverStrong,
-                TextIdle: p.TextSecondary,
-                TextHover: p.TextStrong),
-            ActionButton: new ActionButtonStyles(
-                BackgroundIdle: 0u,
-                BackgroundHover: p.SurfaceHoverStrong,
-                TextIdle: p.TextSecondary,
-                TextHover: p.TextStrong,
-                TextDisabled: p.TextDisabled),
-            Checkbox: new CheckboxStyles(
-                TextIdle: p.TextSecondary,
-                TextHover: p.TextStrong,
-                TextDisabled: p.TextDisabled,
-                BoxBorderIdle: p.BorderMuted,
-                BoxBorderHover: p.BorderMutedHover,
-                BoxBorderDisabled: WithAlpha(p.BorderMuted, 0x66),
-                BoxFillChecked: p.Accent,
-                BoxFillCheckedHover: p.AccentHover,
-                BoxFillDisabled: p.SurfaceHover,
-                CheckGlyph: p.TextStrong),
-            CommitBar: new CommitBarStyles(
-                Background: p.SurfaceMuted,
-                TopBorder: p.Border),
-            ModeSwitcher: new ModeSwitcherStyles(
-                PillBorder: p.BorderStrong,
-                SegmentSeparator: p.BorderStrong,
-                SegmentIdleBackground: 0u,
-                SegmentHoverBackground: p.SurfaceHoverStrong,
-                SegmentActiveBackground: p.SurfaceSelected,
-                SegmentIdleText: p.TextSecondary,
-                SegmentHoverText: p.TextStrong,
-                SegmentActiveText: p.TextOnAccent),
-            BranchesHeader: new BranchesHeaderStyles(
-                Background: p.Surface,
-                BorderBottom: p.Border,
-                PrefixText: p.TextMuted,
-                ActiveText: p.TextStrong,
-                DetachedText: p.TextDisabled),
-            GroupHeaderRow: new GroupHeaderRowStyles(
-                ChevronText: p.TextMuted,
-                BackgroundIdle: 0u,
-                BackgroundHover: p.SurfaceHover,
-                NameText: p.TextMuted),
-            GroupRenameField: new GroupRenameFieldStyles(
-                Background: p.SurfaceHover,
-                Border: p.Accent,
-                Text: p.TextPrimary,
-                Caret: p.TextPrimary,
-                Selection: p.SurfaceSelected),
-            RepoBarRow: new RepoBarRowStyles(
-                BackgroundIdle: 0u,
-                BackgroundHover: p.SurfaceHover,
-                BackgroundActive: p.SurfaceSelected,
-                TextIdle: p.TextSecondary,
-                TextActive: p.TextOnAccent,
-                TextMissing: p.TextDisabled,
-                IconAccentWorktree: status.Info,
-                IconAccentSubmodule: status.Purple),
-            BranchesView: new BranchesViewStyles(
-                ViewBackground: p.Surface,
-                RowSelectedBackground: p.SurfaceSelectedSubtle,
-                RowHoverBackground: p.SurfaceHover,
-                RowText: p.TextSecondary,
-                RowTextActive: p.TextOnAccent,
-                HeadIdleText: p.TextStrong,
-                RowTextDim: p.TextDisabled,
-                SectionHeaderText: p.TextMuted,
-                AheadColor: status.SuccessSoft,
-                BehindColor: status.WarningSoft),
-            RepoBar: new RepoBarStyles(
-                Background: p.Surface,
-                RightBorder: p.Border),
-            DiffView: new DiffViewStyles(
-                PanelBackground: p.Surface,
-                HeaderBackgroundIdle: p.SurfaceRaised,
-                HeaderBackgroundHover: p.SurfaceHoverStrong,
-                HeaderBorderTop: p.Border,
-                HeaderBorderBottom: p.Border,
-                HeaderTitleIdle: p.TextSecondary,
-                HeaderTitleHover: p.TextStrong),
-            DiffContent: new DiffContentStyles(
-                Background: p.Surface,
-                PlaceholderText: p.TextMuted,
-                ErrorText: status.Warning,
-                LineText: p.TextPrimary,
-                LineNumberText: p.TextDim,
-                LineAddedBackground: status.SuccessLineBg,
-                LineAddedGlyph: status.SuccessLineGlyph,
-                LineRemovedBackground: status.DangerLineBg,
-                LineRemovedGlyph: status.DangerLineGlyph,
-                LineContextGlyph: p.TextMuted,
-                SectionBackground: p.SurfaceRaised,
-                SectionMutedText: p.TextSecondary,
-                HunkSeparatorRangeText: p.TextMuted,
-                HunkOutline: 0xFF5A8DD6u),
-            DiffHunkButton: new DiffHunkButtonStyles(
-                BackgroundIdle: 0xCC2C313Au,
-                BackgroundHover: 0xFF3B4150u,
-                Border: 0xFF4A5060u,
-                Text: 0xFFE6E8ECu),
-            ActionsToolbar: new ActionsToolbarStyles(
-                Background: p.Surface,
-                BorderBottom: p.Border,
-                BadgeAhead: status.SuccessSoft,
-                BadgeBehind: status.WarningSoft),
-            SidebarSplitter: new SidebarSplitterStyles(
-                Idle: p.Border,
-                Hover: p.BorderHoverFill),
-            HistorySplitter: new HistorySplitterStyles(
-                HoverFill: p.BorderHoverFill,
-                HoverLine: p.BorderHoverLine),
-            ScrollBar: new ScrollBarStyles(
-                TrackBackground: 0xFF26272Bu,
-                TrackBorder: p.Border,
-                ThumbIdleBackground: p.BorderMuted,
-                ThumbHoverBackground: p.BorderMutedHover,
-                ThumbBorder: p.SurfaceMuted),
-            Tooltip: new TooltipStyles(
-                Background: p.SurfaceMuted,
-                Border: p.Border,
-                Text: p.TextPrimary,
-                Shadow: p.Shadow),
-            OperationRow: new OperationRowStyles(
-                IconText: p.TextPrimary,
-                LabelText: p.TextPrimary,
-                PhaseTextIdle: p.TextDim,
-                ElapsedText: p.TextDim,
-                BackgroundIdle: p.SurfaceMuted,
-                BackgroundHover: p.Border,
-                SuccessBar: status.SuccessBar,
-                SuccessText: status.SuccessText,
-                FailureBar: status.DangerBar,
-                FailureText: status.DangerText),
-            CommitDetailsView: new CommitDetailsViewStyles(
-                Background: p.SurfaceSunken,
-                BorderLeft: p.Border,
-                PrimaryText: p.TextPrimary,
-                SecondaryText: p.TextSecondary,
-                MutedText: p.TextDim,
-                PlaceholderText: p.TextMuted,
-                SplitterIdle: p.Border,
-                SplitterHover: p.BorderHoverFill),
-            DialogBody: new DialogBodyStyles(
-                BodyText: p.TextBody,
-                SectionHeaderText: p.TextMuted,
-                RowText: p.TextSecondary,
-                RowTextMissing: p.TextDisabled),
-            BranchPreview: new BranchPreviewStyles(
-                Clean: status.SuccessSoft,
-                Conflict: status.WarningSoft),
-            ContextMenu: new ContextMenuStyles(
-                Background: p.Surface,
-                Border: p.Border,
-                ItemSelectedBackground: p.SurfaceHover,
-                ItemText: p.TextSecondary,
-                ItemTextDisabled: p.TextDisabled,
-                AccentText: p.TextStrong),
-            OperationsStatusBar: new OperationsStatusBarStyles(
-                ContainerBackground: p.SurfaceMuted,
-                ContainerBorder: p.Border,
-                LogBackground: p.SurfaceSunken,
-                LogBorder: p.Border,
-                LogText: p.TextSecondary),
-            CommitsView: new CommitsViewStyles(
-                Background: p.Surface,
-                HeaderBackground: p.SurfaceMuted,
-                HeaderBorderBottom: p.Border,
-                HeaderText: p.TextMuted,
-                RowText: p.TextSecondary,
-                RowTextActive: p.TextOnAccent,
-                RowTextDim: p.TextDim,
-                RowSelectedBackground: p.SurfaceSelected,
-                PlaceholderText: p.TextMuted,
-                ColumnDividerIdle: p.Border,
-                ColumnDividerHoverFill: p.BorderHoverFill,
-                ColumnDividerHoverLine: p.BorderHoverLine,
-                BadgeLocalBackground: 0xFF2F4A6Bu,
-                BadgeRemoteBackground: 0xFF4A2F6Bu,
-                BadgeHeadBackground: 0xFF6B4A2Fu,
-                BadgeText: p.TextPrimary));
+        var tooltip = new TooltipPalette(
+            Background: p.SurfaceMuted,
+            Border: p.Border,
+            Text: p.TextPrimary);
+
+        var hunkButton = new DiffHunkButtonPalette(
+            BackgroundIdle: 0xCC2C313Au,
+            BackgroundHover: 0xFF3B4150u,
+            Border: 0xFF4A5060u,
+            Text: 0xFFE6E8ECu);
+
+        var commitBadge = new CommitBadgePalette(
+            LocalBg: 0xFF2F4A6Bu,
+            RemoteBg: 0xFF4A2F6Bu,
+            HeadBg: 0xFF6B4A2Fu,
+            Text: p.TextPrimary);
+
+        return BuildStyles(p, status, banner, tooltip, hunkButton, commitBadge);
     }
 
     private static ThemeStyles BuildLight()
     {
+        var textMutedLight = 0xFF6B7280u;
+
         var p = new ThemePalette(
             Surface: 0xFFFFFFFFu,
             SurfaceRaised: 0xFFF3F4F6u,
@@ -364,11 +165,31 @@ public sealed record ThemeStyles(
             TextBody: 0xFF1F2937u,
             TextSecondary: 0xFF374151u,
             TextMedium: 0xFF4B5563u,
-            TextMuted: 0xFF6B7280u,
+            TextMuted: textMutedLight,
             TextDim: 0xFF9CA3AFu,
             TextDisabled: 0x80374151u,
             TextOnAccent: 0xFFFFFFFFu,
-            Shadow: 0x40000000u);
+            Shadow: 0x40000000u,
+            BarSurface: 0xFFF3F4F6u,
+            InputSurface: 0xFFFFFFFFu,
+            InputSurfaceHover: 0xFFF3F4F6u,
+            TextEmphasis: 0xFF111827u,
+            TextSubtle: textMutedLight,
+            TextFaint: textMutedLight,
+            OnStatusText: 0xFFFFFFFFu,
+            RowSubtleText: 0xFF1E1B4Bu,
+            HunkOutline: 0xFF3B82F6u,
+            Selection: 0xFFCBD5E1u,
+            Placeholder: WithAlpha(textMutedLight, 0x80),
+            DialogHeaderSeparator: 0xFFE5E7EBu,
+            CheckboxBorderIdle: 0xFFD1D5DBu,
+            CheckboxDisabledFill: 0xFFE5E7EBu,
+            SegmentActiveBg: 0xFF4F46E5u,
+            ScrollBarTrackBg: 0xFFF3F4F6u,
+            ScrollBarThumbBorder: 0xFFE5E7EBu,
+            OperationRowHoverBg: 0xFFE5E7EBu,
+            CommitRowSelectedBg: 0xFFE0E7FFu,
+            CommitRowSelectedText: 0xFF111827u);
 
         var status = new StatusPalette(
             Success: 0xFF16A34Au,
@@ -385,16 +206,45 @@ public sealed record ThemeStyles(
             DangerBar: 0xFFDC2626u,
             DangerText: 0xFF7C2D12u,
             DangerLineBg: 0xFFFEE2E2u,
-            DangerLineGlyph: 0xFFB91C1Cu);
+            DangerLineGlyph: 0xFFB91C1Cu,
+            Other: 0xFF7C3AEDu,
+            DialogError: 0xFFDC2626u,
+            DiffError: 0xFF92400Eu);
 
         var banner = new BannerStyles(
             Background: 0xFFFEF3C7u,
             Border: 0xFFD97706u,
             Text: 0xFF78350Fu);
 
-        return new ThemeStyles(
+        var tooltip = new TooltipPalette(
+            Background: p.TextSecondary,
+            Border: p.TextBody,
+            Text: p.TextOnAccent);
+
+        var hunkButton = new DiffHunkButtonPalette(
+            BackgroundIdle: WithAlpha(p.BorderStrong, 0xCC),
+            BackgroundHover: p.SurfaceHoverStrong,
+            Border: p.BorderStrong,
+            Text: p.TextStrong);
+
+        var commitBadge = new CommitBadgePalette(
+            LocalBg: 0xFFDBEAFEu,
+            RemoteBg: 0xFFEDE9FEu,
+            HeadBg: 0xFFFEF3C7u,
+            Text: p.TextBody);
+
+        return BuildStyles(p, status, banner, tooltip, hunkButton, commitBadge);
+    }
+
+    private static ThemeStyles BuildStyles(
+        ThemePalette p,
+        StatusPalette status,
+        BannerStyles banner,
+        TooltipPalette tooltip,
+        DiffHunkButtonPalette hunkButton,
+        CommitBadgePalette commitBadge) =>
+        new(
             Palette: p,
-            Status: status,
             Banner: banner,
             HeaderActionButton: new HeaderActionButtonStyles(
                 Background: 0u,
@@ -410,7 +260,7 @@ public sealed record ThemeStyles(
                 SplitterHover: p.BorderHoverFill),
             SubmoduleSection: new SubmoduleSectionStyles(
                 BadgeBackground: status.Purple,
-                BadgeText: p.TextOnAccent,
+                BadgeText: p.OnStatusText,
                 RowText: p.TextMedium),
             FileChangesSection: new FileChangesSectionStyles(
                 HeaderBackground: p.SurfaceRaised,
@@ -422,31 +272,31 @@ public sealed record ThemeStyles(
                 RowTextActive: p.TextOnAccent,
                 RowHover: p.SurfaceHover,
                 RowActive: p.SurfaceSelected,
-                BadgeText: p.TextOnAccent,
+                BadgeText: p.OnStatusText,
                 StatusAdded: status.Success,
                 StatusModified: status.Warning,
                 StatusDeleted: status.Danger,
                 StatusRenamed: status.Info,
                 StatusConflicted: status.Danger,
                 StatusSubmodule: status.Purple,
-                StatusOther: 0xFF7C3AEDu),
+                StatusOther: status.Other),
             DialogFrame: new DialogFrameStyles(
                 Background: p.Surface,
                 Border: p.Border,
-                TitleText: p.TextStrong,
-                HeaderSeparator: p.Border,
-                ErrorText: status.Danger,
+                TitleText: p.TextEmphasis,
+                HeaderSeparator: p.DialogHeaderSeparator,
+                ErrorText: status.DialogError,
                 InsetBackground: p.SurfaceSunken),
             TextInput: new TextInputStyles(
-                Background: p.Surface,
+                Background: p.InputSurface,
                 Border: p.BorderStrong,
-                Text: p.TextStrong,
-                Caret: p.TextStrong,
-                Selection: p.BorderHoverFill,
-                PlaceholderText: WithAlpha(p.TextMuted, 0x80)),
+                Text: p.TextEmphasis,
+                Caret: p.TextEmphasis,
+                Selection: p.Selection,
+                PlaceholderText: p.Placeholder),
             BorderedButton: new BorderedButtonStyles(
-                BackgroundIdle: p.Surface,
-                BackgroundHover: p.SurfaceHover,
+                BackgroundIdle: p.InputSurface,
+                BackgroundHover: p.InputSurfaceHover,
                 BorderIdle: p.BorderStrong,
                 BorderHover: p.Accent,
                 Text: p.TextStrong,
@@ -454,34 +304,34 @@ public sealed record ThemeStyles(
             DialogIconButton: new DialogIconButtonStyles(
                 BackgroundIdle: 0u,
                 BackgroundHover: p.SurfaceHoverStrong,
-                TextIdle: p.TextMuted,
+                TextIdle: p.TextSubtle,
                 TextHover: p.TextStrong),
             ActionButton: new ActionButtonStyles(
                 BackgroundIdle: 0u,
                 BackgroundHover: p.SurfaceHoverStrong,
-                TextIdle: p.TextMuted,
+                TextIdle: p.TextSubtle,
                 TextHover: p.TextStrong,
                 TextDisabled: p.TextDisabled),
             Checkbox: new CheckboxStyles(
                 TextIdle: p.TextSecondary,
                 TextHover: p.TextStrong,
                 TextDisabled: p.TextDisabled,
-                BoxBorderIdle: p.BorderStrong,
+                BoxBorderIdle: p.CheckboxBorderIdle,
                 BoxBorderHover: p.BorderMutedHover,
-                BoxBorderDisabled: WithAlpha(p.BorderStrong, 0x66),
+                BoxBorderDisabled: WithAlpha(p.CheckboxBorderIdle, 0x66),
                 BoxFillChecked: p.Accent,
                 BoxFillCheckedHover: p.AccentHover,
-                BoxFillDisabled: p.Border,
+                BoxFillDisabled: p.CheckboxDisabledFill,
                 CheckGlyph: p.TextOnAccent),
             CommitBar: new CommitBarStyles(
-                Background: p.SurfaceRaised,
+                Background: p.BarSurface,
                 TopBorder: p.Border),
             ModeSwitcher: new ModeSwitcherStyles(
                 PillBorder: p.BorderStrong,
                 SegmentSeparator: p.BorderStrong,
                 SegmentIdleBackground: 0u,
-                SegmentHoverBackground: p.SurfaceHover,
-                SegmentActiveBackground: p.Accent,
+                SegmentHoverBackground: p.InputSurfaceHover,
+                SegmentActiveBackground: p.SegmentActiveBg,
                 SegmentIdleText: p.TextSecondary,
                 SegmentHoverText: p.TextStrong,
                 SegmentActiveText: p.TextOnAccent),
@@ -497,26 +347,26 @@ public sealed record ThemeStyles(
                 BackgroundHover: p.SurfaceHover,
                 NameText: p.TextMuted),
             GroupRenameField: new GroupRenameFieldStyles(
-                Background: p.Surface,
+                Background: p.InputSurface,
                 Border: p.Accent,
-                Text: p.TextStrong,
-                Caret: p.TextStrong,
-                Selection: p.BorderHoverFill),
+                Text: p.TextEmphasis,
+                Caret: p.TextEmphasis,
+                Selection: p.Selection),
             RepoBarRow: new RepoBarRowStyles(
                 BackgroundIdle: 0u,
                 BackgroundHover: p.SurfaceHover,
-                BackgroundActive: p.Accent,
+                BackgroundActive: p.SegmentActiveBg,
                 TextIdle: p.TextSecondary,
                 TextActive: p.TextOnAccent,
                 TextMissing: p.TextDisabled,
-                IconAccentWorktree: 0xFF0EA5E9u,
+                IconAccentWorktree: status.Info,
                 IconAccentSubmodule: status.Purple),
             BranchesView: new BranchesViewStyles(
                 ViewBackground: p.Surface,
                 RowSelectedBackground: p.SurfaceSelectedSubtle,
                 RowHoverBackground: p.SurfaceHover,
                 RowText: p.TextSecondary,
-                RowTextActive: 0xFF1E1B4Bu,
+                RowTextActive: p.RowSubtleText,
                 HeadIdleText: p.TextStrong,
                 RowTextDim: p.TextDisabled,
                 SectionHeaderText: p.TextMuted,
@@ -531,14 +381,14 @@ public sealed record ThemeStyles(
                 HeaderBackgroundHover: p.SurfaceHoverStrong,
                 HeaderBorderTop: p.Border,
                 HeaderBorderBottom: p.Border,
-                HeaderTitleIdle: p.TextMuted,
+                HeaderTitleIdle: p.TextSubtle,
                 HeaderTitleHover: p.TextStrong),
             DiffContent: new DiffContentStyles(
                 Background: p.Surface,
                 PlaceholderText: p.TextMuted,
-                ErrorText: 0xFF92400Eu,
-                LineText: p.TextStrong,
-                LineNumberText: p.TextMuted,
+                ErrorText: status.DiffError,
+                LineText: p.TextEmphasis,
+                LineNumberText: p.TextFaint,
                 LineAddedBackground: status.SuccessLineBg,
                 LineAddedGlyph: status.SuccessLineGlyph,
                 LineRemovedBackground: status.DangerLineBg,
@@ -547,12 +397,12 @@ public sealed record ThemeStyles(
                 SectionBackground: p.SurfaceRaised,
                 SectionMutedText: p.TextSecondary,
                 HunkSeparatorRangeText: p.TextMuted,
-                HunkOutline: 0xFF3B82F6u),
+                HunkOutline: p.HunkOutline),
             DiffHunkButton: new DiffHunkButtonStyles(
-                BackgroundIdle: WithAlpha(p.BorderStrong, 0xCC),
-                BackgroundHover: p.SurfaceHoverStrong,
-                Border: p.BorderStrong,
-                Text: p.TextStrong),
+                BackgroundIdle: hunkButton.BackgroundIdle,
+                BackgroundHover: hunkButton.BackgroundHover,
+                Border: hunkButton.Border,
+                Text: hunkButton.Text),
             ActionsToolbar: new ActionsToolbarStyles(
                 Background: p.Surface,
                 BorderBottom: p.Border,
@@ -565,23 +415,23 @@ public sealed record ThemeStyles(
                 HoverFill: p.BorderHoverFill,
                 HoverLine: p.BorderHoverLine),
             ScrollBar: new ScrollBarStyles(
-                TrackBackground: p.SurfaceRaised,
+                TrackBackground: p.ScrollBarTrackBg,
                 TrackBorder: p.Border,
                 ThumbIdleBackground: p.BorderMuted,
                 ThumbHoverBackground: p.BorderMutedHover,
-                ThumbBorder: p.Border),
+                ThumbBorder: p.ScrollBarThumbBorder),
             Tooltip: new TooltipStyles(
-                Background: p.TextSecondary,
-                Border: p.TextBody,
-                Text: p.TextOnAccent,
+                Background: tooltip.Background,
+                Border: tooltip.Border,
+                Text: tooltip.Text,
                 Shadow: p.Shadow),
             OperationRow: new OperationRowStyles(
-                IconText: p.TextStrong,
-                LabelText: p.TextStrong,
-                PhaseTextIdle: p.TextMuted,
-                ElapsedText: p.TextMuted,
-                BackgroundIdle: p.SurfaceRaised,
-                BackgroundHover: p.SurfaceHoverStrong,
+                IconText: p.TextEmphasis,
+                LabelText: p.TextEmphasis,
+                PhaseTextIdle: p.TextFaint,
+                ElapsedText: p.TextFaint,
+                BackgroundIdle: p.BarSurface,
+                BackgroundHover: p.OperationRowHoverBg,
                 SuccessBar: status.SuccessBar,
                 SuccessText: status.SuccessText,
                 FailureBar: status.DangerBar,
@@ -589,10 +439,10 @@ public sealed record ThemeStyles(
             CommitDetailsView: new CommitDetailsViewStyles(
                 Background: p.SurfaceSunken,
                 BorderLeft: p.Border,
-                PrimaryText: p.TextStrong,
+                PrimaryText: p.TextEmphasis,
                 SecondaryText: p.TextSecondary,
-                MutedText: p.TextMuted,
-                PlaceholderText: p.TextDim,
+                MutedText: p.TextFaint,
+                PlaceholderText: p.TextMuted,
                 SplitterIdle: p.Border,
                 SplitterHover: p.BorderHoverFill),
             DialogBody: new DialogBodyStyles(
@@ -611,360 +461,26 @@ public sealed record ThemeStyles(
                 ItemTextDisabled: p.TextDisabled,
                 AccentText: p.TextStrong),
             OperationsStatusBar: new OperationsStatusBarStyles(
-                ContainerBackground: p.SurfaceRaised,
+                ContainerBackground: p.BarSurface,
                 ContainerBorder: p.Border,
                 LogBackground: p.SurfaceSunken,
                 LogBorder: p.Border,
                 LogText: p.TextSecondary),
             CommitsView: new CommitsViewStyles(
                 Background: p.Surface,
-                HeaderBackground: p.SurfaceRaised,
+                HeaderBackground: p.BarSurface,
                 HeaderBorderBottom: p.Border,
                 HeaderText: p.TextMuted,
                 RowText: p.TextSecondary,
-                RowTextActive: p.TextStrong,
+                RowTextActive: p.CommitRowSelectedText,
                 RowTextDim: p.TextDim,
-                RowSelectedBackground: p.SurfaceSelectedSubtle,
-                PlaceholderText: p.TextDim,
+                RowSelectedBackground: p.CommitRowSelectedBg,
+                PlaceholderText: p.TextMuted,
                 ColumnDividerIdle: p.Border,
                 ColumnDividerHoverFill: p.BorderHoverFill,
                 ColumnDividerHoverLine: p.BorderHoverLine,
-                BadgeLocalBackground: 0xFFDBEAFEu,
-                BadgeRemoteBackground: 0xFFEDE9FEu,
-                BadgeHeadBackground: 0xFFFEF3C7u,
-                BadgeText: p.TextBody));
-    }
-}
-
-public sealed record ThemePalette(
-    uint Surface,
-    uint SurfaceRaised,
-    uint SurfaceSunken,
-    uint SurfaceMuted,
-    uint SurfaceHover,
-    uint SurfaceHoverStrong,
-    uint SurfaceSelected,
-    uint SurfaceSelectedSubtle,
-    uint Border,
-    uint BorderStrong,
-    uint BorderMuted,
-    uint BorderMutedHover,
-    uint BorderHoverFill,
-    uint BorderHoverLine,
-    uint Accent,
-    uint AccentHover,
-    uint TextStrong,
-    uint TextPrimary,
-    uint TextBody,
-    uint TextSecondary,
-    uint TextMedium,
-    uint TextMuted,
-    uint TextDim,
-    uint TextDisabled,
-    uint TextOnAccent,
-    uint Shadow);
-
-public sealed record StatusPalette(
-    uint Success,
-    uint Warning,
-    uint Danger,
-    uint Info,
-    uint Purple,
-    uint SuccessSoft,
-    uint WarningSoft,
-    uint SuccessBar,
-    uint SuccessText,
-    uint SuccessLineBg,
-    uint SuccessLineGlyph,
-    uint DangerBar,
-    uint DangerText,
-    uint DangerLineBg,
-    uint DangerLineGlyph);
-
-public sealed record BannerStyles(
-    uint Background,
-    uint Border,
-    uint Text);
-
-public sealed record HeaderActionButtonStyles(
-    uint Background,
-    uint BackgroundHover,
-    uint IconIdle,
-    uint IconHover,
-    uint IconDisabled);
-
-public sealed record LocalChangesContentStyles(
-    uint ContentBackground,
-    uint ColumnDivider,
-    uint PlaceholderText,
-    uint SplitterIdle,
-    uint SplitterHover);
-
-public sealed record SubmoduleSectionStyles(
-    uint BadgeBackground,
-    uint BadgeText,
-    uint RowText);
-
-public sealed record FileChangesSectionStyles(
-    uint HeaderBackground,
-    uint HeaderBorder,
-    uint HeaderText,
-    uint EmptyPlaceholderText);
-
-public sealed record DialogFrameStyles(
-    uint Background,
-    uint Border,
-    uint TitleText,
-    uint HeaderSeparator,
-    uint ErrorText,
-    uint InsetBackground);
-
-public sealed record TextInputStyles(
-    uint Background,
-    uint Border,
-    uint Text,
-    uint Caret,
-    uint Selection,
-    uint PlaceholderText);
-
-public sealed record BorderedButtonStyles(
-    uint BackgroundIdle,
-    uint BackgroundHover,
-    uint BorderIdle,
-    uint BorderHover,
-    uint Text,
-    uint TextDisabled);
-
-public sealed record DialogIconButtonStyles(
-    uint BackgroundIdle,
-    uint BackgroundHover,
-    uint TextIdle,
-    uint TextHover);
-
-public sealed record ActionButtonStyles(
-    uint BackgroundIdle,
-    uint BackgroundHover,
-    uint TextIdle,
-    uint TextHover,
-    uint TextDisabled);
-
-public sealed record CheckboxStyles(
-    uint TextIdle,
-    uint TextHover,
-    uint TextDisabled,
-    uint BoxBorderIdle,
-    uint BoxBorderHover,
-    uint BoxBorderDisabled,
-    uint BoxFillChecked,
-    uint BoxFillCheckedHover,
-    uint BoxFillDisabled,
-    uint CheckGlyph);
-
-public sealed record CommitBarStyles(
-    uint Background,
-    uint TopBorder);
-
-public sealed record ModeSwitcherStyles(
-    uint PillBorder,
-    uint SegmentSeparator,
-    uint SegmentIdleBackground,
-    uint SegmentHoverBackground,
-    uint SegmentActiveBackground,
-    uint SegmentIdleText,
-    uint SegmentHoverText,
-    uint SegmentActiveText);
-
-public sealed record BranchesHeaderStyles(
-    uint Background,
-    uint BorderBottom,
-    uint PrefixText,
-    uint ActiveText,
-    uint DetachedText);
-
-public sealed record GroupHeaderRowStyles(
-    uint ChevronText,
-    uint BackgroundIdle,
-    uint BackgroundHover,
-    uint NameText);
-
-public sealed record GroupRenameFieldStyles(
-    uint Background,
-    uint Border,
-    uint Text,
-    uint Caret,
-    uint Selection);
-
-public sealed record RepoBarRowStyles(
-    uint BackgroundIdle,
-    uint BackgroundHover,
-    uint BackgroundActive,
-    uint TextIdle,
-    uint TextActive,
-    uint TextMissing,
-    uint IconAccentWorktree,
-    uint IconAccentSubmodule);
-
-public sealed record BranchesViewStyles(
-    uint ViewBackground,
-    uint RowSelectedBackground,
-    uint RowHoverBackground,
-    uint RowText,
-    uint RowTextActive,
-    uint HeadIdleText,
-    uint RowTextDim,
-    uint SectionHeaderText,
-    uint AheadColor,
-    uint BehindColor);
-
-public sealed record RepoBarStyles(
-    uint Background,
-    uint RightBorder);
-
-public sealed record DiffViewStyles(
-    uint PanelBackground,
-    uint HeaderBackgroundIdle,
-    uint HeaderBackgroundHover,
-    uint HeaderBorderTop,
-    uint HeaderBorderBottom,
-    uint HeaderTitleIdle,
-    uint HeaderTitleHover);
-
-public sealed record DiffContentStyles(
-    uint Background,
-    uint PlaceholderText,
-    uint ErrorText,
-    uint LineText,
-    uint LineNumberText,
-    uint LineAddedBackground,
-    uint LineAddedGlyph,
-    uint LineRemovedBackground,
-    uint LineRemovedGlyph,
-    uint LineContextGlyph,
-    uint SectionBackground,
-    uint SectionMutedText,
-    uint HunkSeparatorRangeText,
-    uint HunkOutline);
-
-public sealed record DiffHunkButtonStyles(
-    uint BackgroundIdle,
-    uint BackgroundHover,
-    uint Border,
-    uint Text);
-
-public sealed record ActionsToolbarStyles(
-    uint Background,
-    uint BorderBottom,
-    uint BadgeAhead,
-    uint BadgeBehind);
-
-public sealed record SidebarSplitterStyles(
-    uint Idle,
-    uint Hover);
-
-public sealed record HistorySplitterStyles(
-    uint HoverFill,
-    uint HoverLine);
-
-public sealed record ScrollBarStyles(
-    uint TrackBackground,
-    uint TrackBorder,
-    uint ThumbIdleBackground,
-    uint ThumbHoverBackground,
-    uint ThumbBorder);
-
-public sealed record TooltipStyles(
-    uint Background,
-    uint Border,
-    uint Text,
-    uint Shadow);
-
-public sealed record OperationRowStyles(
-    uint IconText,
-    uint LabelText,
-    uint PhaseTextIdle,
-    uint ElapsedText,
-    uint BackgroundIdle,
-    uint BackgroundHover,
-    uint SuccessBar,
-    uint SuccessText,
-    uint FailureBar,
-    uint FailureText);
-
-public sealed record CommitDetailsViewStyles(
-    uint Background,
-    uint BorderLeft,
-    uint PrimaryText,
-    uint SecondaryText,
-    uint MutedText,
-    uint PlaceholderText,
-    uint SplitterIdle,
-    uint SplitterHover);
-
-public sealed record DialogBodyStyles(
-    uint BodyText,
-    uint SectionHeaderText,
-    uint RowText,
-    uint RowTextMissing);
-
-public sealed record BranchPreviewStyles(
-    uint Clean,
-    uint Conflict);
-
-public sealed record ContextMenuStyles(
-    uint Background,
-    uint Border,
-    uint ItemSelectedBackground,
-    uint ItemText,
-    uint ItemTextDisabled,
-    uint AccentText);
-
-public sealed record OperationsStatusBarStyles(
-    uint ContainerBackground,
-    uint ContainerBorder,
-    uint LogBackground,
-    uint LogBorder,
-    uint LogText);
-
-public sealed record CommitsViewStyles(
-    uint Background,
-    uint HeaderBackground,
-    uint HeaderBorderBottom,
-    uint HeaderText,
-    uint RowText,
-    uint RowTextActive,
-    uint RowTextDim,
-    uint RowSelectedBackground,
-    uint PlaceholderText,
-    uint ColumnDividerIdle,
-    uint ColumnDividerHoverFill,
-    uint ColumnDividerHoverLine,
-    uint BadgeLocalBackground,
-    uint BadgeRemoteBackground,
-    uint BadgeHeadBackground,
-    uint BadgeText);
-
-public sealed record FileChangeRowStyles(
-    uint RowText,
-    uint RowTextActive,
-    uint RowHover,
-    uint RowActive,
-    uint BadgeText,
-    uint StatusAdded,
-    uint StatusModified,
-    uint StatusDeleted,
-    uint StatusRenamed,
-    uint StatusConflicted,
-    uint StatusSubmodule,
-    uint StatusOther)
-{
-    public uint StatusColor(FileChangeStatus status) => status switch
-    {
-        FileChangeStatus.Added => StatusAdded,
-        FileChangeStatus.Modified => StatusModified,
-        FileChangeStatus.Deleted => StatusDeleted,
-        FileChangeStatus.Renamed => StatusRenamed,
-        FileChangeStatus.Conflicted => StatusConflicted,
-        FileChangeStatus.Submodule => StatusSubmodule,
-        _ => StatusOther,
-    };
+                BadgeLocalBackground: commitBadge.LocalBg,
+                BadgeRemoteBackground: commitBadge.RemoteBg,
+                BadgeHeadBackground: commitBadge.HeadBg,
+                BadgeText: commitBadge.Text));
 }
