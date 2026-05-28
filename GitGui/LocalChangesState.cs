@@ -14,10 +14,18 @@ internal readonly record struct LocalChangesState(
     bool CommitBusy,
     // Submodules whose current HEAD differs from the parent's recorded pointer. Empty
     // when nothing is drifted. Shown in a dedicated section above the file panels.
-    IReadOnlyList<SubmoduleInfo> DriftedSubmodules)
+    IReadOnlyList<SubmoduleInfo> DriftedSubmodules,
+    // Flat list vs. directory tree. Persisted globally via PreferencesService.
+    FileViewMode ViewMode,
+    // Folder full-paths currently collapsed in tree mode, per side. In-memory only
+    // (resets on repo switch / relaunch). Missing key ⇒ expanded.
+    IReadOnlySet<string> UnstagedCollapsed,
+    IReadOnlySet<string> StagedCollapsed)
 {
     public const string OpenRepoPlaceholder = "Open a repository to see local changes.";
     public const string LoadingPlaceholder = "Loading…";
+
+    private static readonly IReadOnlySet<string> EmptyCollapsed = new HashSet<string>();
 
     public static LocalChangesState Initial { get; } = new(
         Title: string.Empty,
@@ -31,7 +39,10 @@ internal readonly record struct LocalChangesState(
         Selection: Selection.Empty,
         OpError: null,
         CommitBusy: false,
-        DriftedSubmodules: []);
+        DriftedSubmodules: [],
+        ViewMode: FileViewMode.Flat,
+        UnstagedCollapsed: EmptyCollapsed,
+        StagedCollapsed: EmptyCollapsed);
 
     // Placeholder is derived, not settable. Loading never tears the panels down when
     // there is data on screen — that's reserved for "nothing to render at all"

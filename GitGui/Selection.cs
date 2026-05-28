@@ -16,8 +16,12 @@ namespace GitGui;
 internal sealed class Selection
 {
     public IReadOnlyList<DiffTarget> Items { get; }
-    public DiffTarget? Anchor { get; }
-    public DiffTarget? Cursor { get; }
+
+    // Anchor/cursor are row references (a file path or a folder path), not file targets,
+    // so keyboard range-extend and navigation can pivot on a folder row in tree mode. The
+    // selected Items themselves are always file leaves — every git op consumes those.
+    public FileRowRef? Anchor { get; }
+    public FileRowRef? Cursor { get; }
 
     private readonly HashSet<DiffTarget> _itemSet;
 
@@ -28,7 +32,7 @@ internal sealed class Selection
     /// <summary>The single selected target, or null when the selection is empty or multi.</summary>
     public DiffTarget? Single => Items.Count == 1 ? Items[0] : null;
 
-    private Selection(IReadOnlyList<DiffTarget> items, DiffTarget? anchor, DiffTarget? cursor)
+    private Selection(IReadOnlyList<DiffTarget> items, FileRowRef? anchor, FileRowRef? cursor)
     {
         Items = items;
         Anchor = anchor;
@@ -54,8 +58,8 @@ internal sealed class Selection
     /// </summary>
     public static Selection Create(
         IReadOnlyList<DiffTarget> items,
-        DiffTarget? anchor,
-        DiffTarget? cursor,
+        FileRowRef? anchor,
+        FileRowRef? cursor,
         IReadOnlyList<FileChange> unstaged,
         IReadOnlyList<FileChange> staged)
     {
@@ -71,23 +75,27 @@ internal sealed class Selection
             if (available.Contains(t.Path)) pruned.Add(t);
         }
 
-        DiffTarget? normalizedAnchor = null;
-        if (anchor != null)
-        {
-            var anchorAvailable = anchor.Side == DiffSide.Unstaged ? unstagedPaths : stagedPaths;
-            if (anchorAvailable.Contains(anchor.Path)) normalizedAnchor = anchor;
-        }
-
-        DiffTarget? normalizedCursor = null;
-        if (cursor != null)
-        {
-            var cursorAvailable = cursor.Side == DiffSide.Unstaged ? unstagedPaths : stagedPaths;
-            if (cursorAvailable.Contains(cursor.Path)) normalizedCursor = cursor;
-        }
+        var normalizedAnchor = NormalizeRef(anchor, unstagedPaths, stagedPaths);
+        var normalizedCursor = NormalizeRef(cursor, unstagedPaths, stagedPaths);
 
         return pruned.Count == 0 && normalizedAnchor == null && normalizedCursor == null
             ? Empty
             : new Selection(pruned, normalizedAnchor, normalizedCursor);
+    }
+
+    // A file ref survives if its path is still present; a folder ref survives while any
+    // file still sits beneath its prefix (so a folder anchor isn't stranded by an
+    // unrelated file leaving the list).
+    private static FileRowRef? NormalizeRef(FileRowRef? @ref, HashSet<string> unstaged, HashSet<string> staged)
+    {
+        if (@ref is not { } r) return null;
+        var available = r.Side == DiffSide.Unstaged ? unstaged : staged;
+        if (!r.IsFolder) return available.Contains(r.FullPath) ? r : null;
+
+        var prefix = r.FullPath + "/";
+        foreach (var p in available)
+            if (p.StartsWith(prefix, StringComparison.Ordinal)) return r;
+        return null;
     }
 
     /// <summary>
@@ -104,7 +112,8 @@ internal sealed class Selection
         if (paths.Count == 0) return Empty;
         var items = new List<DiffTarget>(paths.Count);
         foreach (var p in paths) items.Add(new DiffTarget(p, side));
-        return Create(items, items[0], items[0], unstaged, staged);
+        var anchor = new FileRowRef(side, paths[0], IsFolder: false);
+        return Create(items, anchor, anchor, unstaged, staged);
     }
 
     private static HashSet<string> BuildPathSet(IReadOnlyList<FileChange> files)

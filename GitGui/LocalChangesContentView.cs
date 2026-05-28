@@ -28,6 +28,8 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
     private readonly LocalChangesHeaderActionButton _stageAllButton;
     private readonly LocalChangesHeaderActionButton _unstageAllButton;
     private readonly LocalChangesHeaderActionButton _unstageSelectedButton;
+    private readonly LocalChangesHeaderActionButton _viewModeButtonUnstaged;
+    private readonly LocalChangesHeaderActionButton _viewModeButtonStaged;
     private readonly LocalChangesSubmoduleSection _submoduleSection;
     private readonly BorderLayoutView _topHalf;
     
@@ -47,6 +49,10 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             LucideIcons.ChevronsLeft, tooltip: "Unstage all");
         _unstageSelectedButton = new LocalChangesHeaderActionButton(
             LucideIcons.ChevronLeft, tooltip: "Unstage selected");
+        _viewModeButtonUnstaged = new LocalChangesHeaderActionButton(
+            LucideIcons.List, onClick: () => _vm?.ToggleViewMode(), tooltip: "Toggle list / tree view");
+        _viewModeButtonStaged = new LocalChangesHeaderActionButton(
+            LucideIcons.List, onClick: () => _vm?.ToggleViewMode(), tooltip: "Toggle list / tree view");
 
         _unstagedPanel = new LocalChangesPanel(
             "Unstaged",
@@ -54,8 +60,8 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             "No unstaged changes.",
             _selection,
             OnRowClick,
-            [_discardButton, _stageSelectedButton, _stageAllButton],
-            onRowActivated: t => _vm?.Stage([t.Path]),
+            [_viewModeButtonUnstaged, _discardButton, _stageSelectedButton, _stageAllButton],
+            onRowActivated: OnUnstagedRowActivated,
             onEmptyAreaClicked: () => _vm?.ClearSelection(),
             buildContextMenu: BuildUnstagedMenu);
         _stagedPanel = new LocalChangesPanel(
@@ -64,8 +70,8 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             "No staged changes.",
             _selection,
             OnRowClick,
-            [_unstageAllButton, _unstageSelectedButton],
-            onRowActivated: t => _vm?.Unstage([t.Path]),
+            [_viewModeButtonStaged, _unstageAllButton, _unstageSelectedButton],
+            onRowActivated: OnStagedRowActivated,
             onEmptyAreaClicked: () => _vm?.ClearSelection(),
             buildContextMenu: BuildStagedMenu);
 
@@ -111,7 +117,8 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         {
             _arrowController = new LocalChangesArrowKbmController(
                 this,
-                (delta, extend) => _vm?.MoveSelection(delta, extend));
+                (delta, extend) => _vm?.MoveSelection(delta, extend),
+                expand => _vm?.SetCursorFolderExpanded(expand));
             return _arrowController;
         });
     }
@@ -127,6 +134,16 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         });
         vm.Unstaged.Subscribe(list => _unstagedPanel.SetFiles(list));
         vm.Staged.Subscribe(list => _stagedPanel.SetFiles(list));
+        vm.ViewMode.Subscribe(mode =>
+        {
+            _unstagedPanel.SetViewMode(mode);
+            _stagedPanel.SetViewMode(mode);
+            var icon = mode == FileViewMode.Tree ? LucideIcons.ListTree : LucideIcons.List;
+            _viewModeButtonUnstaged.SetIcon(icon);
+            _viewModeButtonStaged.SetIcon(icon);
+        });
+        vm.UnstagedCollapsed.Subscribe(set => _unstagedPanel.SetCollapsed(set));
+        vm.StagedCollapsed.Subscribe(set => _stagedPanel.SetCollapsed(set));
         _selection.BindTo(vm.Selection);
         _diffView.Bind(vm.DiffVm);
         _snapshotContainer.BindBottomVisible(() => vm.SelectedTarget.Value != null);
@@ -165,13 +182,22 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         return new TransferListRow(_unstagedPanel, divider, _stagedPanel);
     }
 
-    private void OnRowClick(DiffTarget target, InputModifiers modifiers)
+    private void OnRowClick(FileRow row, InputModifiers modifiers)
     {
-        _vm?.SelectRow(target.Path, target.Side, modifiers);
+        // A plain click on a folder expands/collapses it; clicking with a modifier (or any
+        // click on a file) selects — a folder selection covers all files beneath it.
+        if (row.Kind == FileRowKind.Folder && modifiers == InputModifiers.None)
+            _vm?.ToggleFolder(row.Side, row.FullPath);
+        else
+            _vm?.SelectRow(row.Ref, modifiers);
         _arrowController?.TakeFocus();
     }
 
-    private IReadOnlyList<RepoBarContextMenu.Item> BuildUnstagedMenu(DiffTarget? target)
+    private void OnUnstagedRowActivated(FileRow row) => _vm?.Stage(row.Files);
+
+    private void OnStagedRowActivated(FileRow row) => _vm?.Unstage(row.Files);
+
+    private IReadOnlyList<RepoBarContextMenu.Item> BuildUnstagedMenu(FileRow? target)
     {
         if (_vm == null) return [];
         var items = new List<RepoBarContextMenu.Item>();
@@ -207,7 +233,7 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         return items;
     }
 
-    private IReadOnlyList<RepoBarContextMenu.Item> BuildStagedMenu(DiffTarget? target)
+    private IReadOnlyList<RepoBarContextMenu.Item> BuildStagedMenu(FileRow? target)
     {
         if (_vm == null) return [];
         var items = new List<RepoBarContextMenu.Item>();
@@ -230,10 +256,12 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         return items;
     }
 
-    // Copy acts on the whole selection; open-folder / terminal target just the clicked file.
-    private void AppendFileUtilityItems(List<RepoBarContextMenu.Item> items, DiffTarget target)
+    // Copy acts on the resolved selection; open-folder / terminal target the clicked row
+    // (the folder itself for a folder row, otherwise the file).
+    private void AppendFileUtilityItems(List<RepoBarContextMenu.Item> items, FileRow target)
     {
         var paths = ResolveTargetPaths(target);
+        var representative = target.Kind == FileRowKind.Folder ? target.FullPath : target.File!.Path;
         items.Add(RepoBarContextMenu.Separator);
         items.Add(new RepoBarContextMenu.Item(
             "Copy Path", () => _vm!.CopyPaths(paths), LucideIcons.Copy));
@@ -243,17 +271,19 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             "Copy File Name", () => _vm!.CopyFileNames(paths), LucideIcons.Copy));
         items.Add(RepoBarContextMenu.Separator);
         items.Add(new RepoBarContextMenu.Item(
-            "Open Containing Folder", () => _vm!.OpenContainingFolder(target.Path), LucideIcons.FolderOpen));
+            "Open Containing Folder", () => _vm!.OpenContainingFolder(representative), LucideIcons.FolderOpen));
         items.Add(new RepoBarContextMenu.Item(
-            "Open in Terminal", () => _vm!.OpenInTerminal(target.Path), LucideIcons.SquareTerminal));
+            "Open in Terminal", () => _vm!.OpenInTerminal(representative), LucideIcons.SquareTerminal));
     }
 
-    // Right-clicking a row inside the current selection acts on the whole selection;
-    // right-clicking outside it acts on just that row.
-    private IReadOnlyList<string> ResolveTargetPaths(DiffTarget target)
+    // Right-clicking a row already covered by the selection acts on the whole selection;
+    // right-clicking outside it acts on just that row's files (every file under a folder).
+    private IReadOnlyList<string> ResolveTargetPaths(FileRow target)
     {
         var selected = _vm!.Selection.Value.PathsOn(target.Side);
-        return selected.Contains(target.Path) ? selected : [target.Path];
+        var selectedSet = new HashSet<string>(selected);
+        var rowInSelection = target.Files.Count > 0 && target.Files.All(selectedSet.Contains);
+        return rowInSelection ? selected : target.Files;
     }
 
 }

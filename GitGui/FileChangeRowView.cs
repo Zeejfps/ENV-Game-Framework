@@ -24,6 +24,23 @@ internal static class FileChangeFormatting
         return file.Path;
     }
 
+    // Tree-view variant of FormatPath: the surrounding folder rows already supply the
+    // directory context, so file rows show only the leaf segment(s).
+    public static string FormatLeaf(FileChange file)
+    {
+        if (file.Status == FileChangeStatus.Renamed && !string.IsNullOrEmpty(file.OldPath))
+            return $"{Leaf(file.OldPath)} → {Leaf(file.Path)}";
+        if (file.PointerChange is { } pc)
+            return $"{Leaf(file.Path)}  ·  {FormatShortSha(pc.FromSha)}..{FormatShortSha(pc.ToSha)}{FormatRangeSummary(pc)}";
+        return Leaf(file.Path);
+    }
+
+    private static string Leaf(string path)
+    {
+        var slash = path.LastIndexOf('/');
+        return slash < 0 ? path : path[(slash + 1)..];
+    }
+
     private static string FormatShortSha(string sha)
     {
         if (string.IsNullOrEmpty(sha)) return "·";

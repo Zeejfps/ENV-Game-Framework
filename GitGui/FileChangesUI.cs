@@ -100,7 +100,9 @@ internal static class FileChangesUI
         TextStyle pathStyle,
         TextStyle pathActiveStyle,
         TextStyle badgeGlyphStyle,
-        int z)
+        int z,
+        string? displayText = null,
+        float indent = 0f)
     {
         var bg = isSelected
             ? styles.RowActive
@@ -119,7 +121,7 @@ internal static class FileChangesUI
             });
         }
 
-        var badgeLeft = rowRect.Left + RowPaddingLeft;
+        var badgeLeft = rowRect.Left + RowPaddingLeft + indent;
         var badgeBottom = rowRect.Bottom + (RowHeight - BadgeSize) * 0.5f;
         canvas.DrawRect(new DrawRectInputs
         {
@@ -145,7 +147,7 @@ internal static class FileChangesUI
         if (textWidth <= 0f) return;
 
         var renderStyle = isSelected ? pathActiveStyle : pathStyle;
-        var pathText = FileChangeFormatting.FormatPath(file);
+        var pathText = displayText ?? FileChangeFormatting.FormatPath(file);
         var rendered = TextMeasure.TruncateToFit(pathText, renderStyle, textWidth, canvas);
         canvas.DrawText(new DrawTextInputs
         {
@@ -153,6 +155,82 @@ internal static class FileChangesUI
             Text = rendered,
             Style = renderStyle,
             ZIndex = z + 2,
+        });
+    }
+
+    public const float ChevronWidth = 12f;
+    public const float ChevronGap = 4f;
+    public const float FolderIconGap = 6f;
+
+    /// <summary>
+    /// Draws a tree-mode directory row: collapse chevron, folder icon, then the (possibly
+    /// compacted) folder name. <paramref name="isSelected"/> highlights when every file
+    /// under the folder is selected; <paramref name="isPartial"/> gives a lighter highlight
+    /// when only some are.
+    /// </summary>
+    public static void DrawFolderRow(
+        ICanvas canvas,
+        RectF rowRect,
+        string displayName,
+        float indent,
+        bool isOpen,
+        bool isSelected,
+        bool isPartial,
+        bool isHovered,
+        FileChangeRowStyles styles,
+        TextStyle chevronStyle,
+        TextStyle folderIconStyle,
+        TextStyle textStyle,
+        TextStyle textActiveStyle,
+        int z)
+    {
+        var bg = isSelected
+            ? styles.RowActive
+            : (isHovered || isPartial ? styles.RowHover : (uint?)null);
+        if (bg != null)
+        {
+            canvas.DrawRect(new DrawRectInputs
+            {
+                Position = rowRect,
+                Style = new RectStyle { BackgroundColor = bg.Value, BorderRadius = BorderRadiusStyle.All(3) },
+                ZIndex = z,
+            });
+        }
+
+        var left = rowRect.Left + RowPaddingLeft + indent;
+
+        canvas.DrawText(new DrawTextInputs
+        {
+            Position = new RectF(left, rowRect.Bottom, ChevronWidth, RowHeight),
+            Text = isOpen ? LucideIcons.ChevronDown : LucideIcons.ChevronRight,
+            Style = chevronStyle,
+            ZIndex = z + 1,
+        });
+        left += ChevronWidth + ChevronGap;
+
+        var folderGlyph = isOpen ? LucideIcons.FolderOpen : LucideIcons.Folder;
+        var iconWidth = canvas.MeasureTextWidth(folderGlyph, folderIconStyle);
+        canvas.DrawText(new DrawTextInputs
+        {
+            Position = new RectF(left, rowRect.Bottom, iconWidth, RowHeight),
+            Text = folderGlyph,
+            Style = folderIconStyle,
+            ZIndex = z + 1,
+        });
+        left += iconWidth + FolderIconGap;
+
+        var textRight = rowRect.Right - RowPaddingRight;
+        var textWidth = Math.Max(0f, textRight - left);
+        if (textWidth <= 0f) return;
+
+        var style = isSelected ? textActiveStyle : textStyle;
+        var rendered = TextMeasure.TruncateToFit(displayName, style, textWidth, canvas);
+        canvas.DrawText(new DrawTextInputs
+        {
+            Position = new RectF(left, rowRect.Bottom, textWidth, RowHeight),
+            Text = rendered,
+            Style = style,
+            ZIndex = z + 1,
         });
     }
 }

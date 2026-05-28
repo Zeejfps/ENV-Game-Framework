@@ -16,6 +16,7 @@ public static class PreferencesStore
         public float? RepoBarWidth { get; set; } = 220f;
         public float? BranchesWidth { get; set; } = 220f;
         public float? CommitDetailsWidth { get; set; } = 380f;
+        public FileViewMode? FileViewMode { get; set; } = GitGui.FileViewMode.Flat;
     }
 
     public static Preferences Load(string path)
@@ -39,6 +40,7 @@ public static class PreferencesStore
                 RepoBarWidth = file.RepoBarWidth is > 0 ? file.RepoBarWidth.Value : defaults.RepoBarWidth,
                 BranchesWidth = file.BranchesWidth is > 0 ? file.BranchesWidth.Value : defaults.BranchesWidth,
                 CommitDetailsWidth = file.CommitDetailsWidth is > 0 ? file.CommitDetailsWidth.Value : defaults.CommitDetailsWidth,
+                FileViewMode = file.FileViewMode ?? defaults.FileViewMode,
             };
         }
         catch (Exception ex)
@@ -63,6 +65,7 @@ public static class PreferencesStore
             RepoBarWidth = preferences.RepoBarWidth,
             BranchesWidth = preferences.BranchesWidth,
             CommitDetailsWidth = preferences.CommitDetailsWidth,
+            FileViewMode = preferences.FileViewMode,
         };
         var json = JsonSerializer.Serialize(file, PreferencesJsonContext.Default.FileShape);
         File.WriteAllText(path, json);

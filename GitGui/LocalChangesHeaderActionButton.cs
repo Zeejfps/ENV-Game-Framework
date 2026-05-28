@@ -8,6 +8,8 @@ internal sealed class LocalChangesHeaderActionButton : HoverableButton
     private const float ButtonSize = 22f;
     private const float IconSize = 13f;
 
+    private readonly TextView _iconView;
+
     public LocalChangesHeaderActionButton(string icon, Action? onClick = null, string? tooltip = null)
         : base(onClick, tooltip)
     {
@@ -22,6 +24,7 @@ internal sealed class LocalChangesHeaderActionButton : HoverableButton
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
+        _iconView = iconView;
         iconView.BindThemedTextColor(s =>
         {
             if (!IsEnabled) return s.HeaderActionButton.IconDisabled;
@@ -37,4 +40,6 @@ internal sealed class LocalChangesHeaderActionButton : HoverableButton
             IsEnabled && IsHovered ? s.HeaderActionButton.BackgroundHover : s.HeaderActionButton.Background);
         SetBackground(background);
     }
+
+    public void SetIcon(string icon) => _iconView.Text = icon;
 }

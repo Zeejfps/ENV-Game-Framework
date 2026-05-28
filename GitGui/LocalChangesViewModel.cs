@@ -28,6 +28,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     private readonly LocalChangesSelectionStore _selectionStore;
     private readonly IPlatformShell _shell;
     private readonly IClipboard _clipboard;
+    private readonly PreferencesService _preferences;
 
     public IReadable<string> Title { get; }
     public IReadable<string> Description { get; }
@@ -38,6 +39,9 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     public IReadable<IReadOnlyList<SubmoduleInfo>> DriftedSubmodules { get; }
     public IReadable<Selection> Selection { get; }
     public IReadable<DiffTarget?> SelectedTarget { get; }
+    public IReadable<FileViewMode> ViewMode { get; }
+    public IReadable<IReadOnlySet<string>> UnstagedCollapsed { get; }
+    public IReadable<IReadOnlySet<string>> StagedCollapsed { get; }
     public Command Discard { get; }
     public Command StageSelected { get; }
     public Command UnstageSelected { get; }
@@ -64,7 +68,8 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         IMessageBus bus,
         LocalChangesSelectionStore selectionStore,
         IPlatformShell shell,
-        IClipboard clipboard)
+        IClipboard clipboard,
+        PreferencesService preferences)
         : base(dispatcher, LocalChangesState.Initial)
     {
         _registry = registry;
@@ -73,6 +78,7 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         _selectionStore = selectionStore;
         _shell = shell;
         _clipboard = clipboard;
+        _preferences = preferences;
 
         Title = Slice(s => s.Title);
         Description = Slice(s => s.Description);
@@ -83,6 +89,9 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         DriftedSubmodules = Slice(s => s.DriftedSubmodules);
         Selection = Slice(s => s.Selection);
         SelectedTarget = Slice(s => s.Selection.Single);
+        ViewMode = Slice(s => s.ViewMode);
+        UnstagedCollapsed = Slice(s => s.UnstagedCollapsed);
+        StagedCollapsed = Slice(s => s.StagedCollapsed);
         var selectedUnstaged = Slice(s =>
             s.Selection.Count > 0 && s.Selection.Items[0].Side == DiffSide.Unstaged);
         var selectedStaged = Slice(s =>
@@ -101,6 +110,8 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
 
         _commitSpinner = new SpinnerAnimation(dispatcher);
         DiffVm = new DiffViewModel(SelectedTarget, registry, gitService, dispatcher, bus);
+
+        Update(s => s with { ViewMode = preferences.Current.FileViewMode });
 
         Subscriptions.Add(_registry.Active.Subscribe(_ => StartLoadForActiveRepo()));
         Subscriptions.Add(_bus.SubscribeScoped<WorkingTreeChangedMessage>(OnWorkingTreeChanged));
@@ -234,55 +245,144 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     
     /// <summary>
     /// Updates selection for a row click. Plain click replaces the selection with the
-    /// clicked target; Ctrl/Cmd toggles it; Shift extends the range from the anchor
+    /// clicked row's files (a folder row contributes all files beneath it); Ctrl/Cmd
+    /// toggles them; Shift extends the range from the anchor over the displayed rows
     /// (same side only). The anchor moves on plain/toggle clicks and stays put on
     /// shift-extends so subsequent shift-clicks pivot around it.
     /// </summary>
-    public void SelectRow(string path, DiffSide side, InputModifiers modifiers)
+    public void SelectRow(FileRowRef clicked, InputModifiers modifiers)
     {
         var shift = (modifiers & InputModifiers.Shift) != 0;
         var toggle = (modifiers & (InputModifiers.Control | InputModifiers.Super)) != 0;
-        var clicked = new DiffTarget(path, side);
+        var side = clicked.Side;
 
         Update(s =>
         {
-            var sel = s.Selection;
-            var sideFiles = side == DiffSide.Unstaged ? s.Unstaged : s.Staged;
+            var rows = RowsFor(s, side);
+            var clickIdx = IndexOfRow(rows, clicked);
+            if (clickIdx < 0) return s;
 
-            if (shift && sel.Anchor != null && sel.Anchor.Side == side)
+            if (shift && s.Selection.Anchor is { } anchor && anchor.Side == side)
             {
-                var anchorIdx = IndexOfPath(sideFiles, sel.Anchor.Path);
-                var clickIdx = IndexOfPath(sideFiles, path);
-                if (anchorIdx >= 0 && clickIdx >= 0)
+                var anchorIdx = IndexOfRow(rows, anchor);
+                if (anchorIdx >= 0)
                 {
                     var lo = Math.Min(anchorIdx, clickIdx);
                     var hi = Math.Max(anchorIdx, clickIdx);
-                    var range = new List<DiffTarget>(hi - lo + 1);
-                    for (var i = lo; i <= hi; i++)
-                        range.Add(new DiffTarget(sideFiles[i].Path, side));
+                    var range = CollectRange(rows, lo, hi, side);
                     return s with
                     {
-                        Selection = GitGui.Selection.Create(range, sel.Anchor, clicked, s.Unstaged, s.Staged),
+                        Selection = GitGui.Selection.Create(range, anchor, clicked, s.Unstaged, s.Staged),
                     };
                 }
             }
 
-            if (toggle && sel.Count > 0 && sel.Items[0].Side == side)
+            var clickedFiles = rows[clickIdx].Files;
+
+            if (toggle && s.Selection.Count > 0 && s.Selection.Items[0].Side == side)
             {
-                var alreadySelected = sel.Contains(path, side);
-                var next = sel.Items.Where(t => !t.Equals(clicked)).ToList();
-                if (!alreadySelected) next.Add(clicked);
+                var allPresent = clickedFiles.All(p => s.Selection.Contains(p, side));
+                var clickedSet = new HashSet<string>(clickedFiles);
+                var next = s.Selection.Items
+                    .Where(t => !(t.Side == side && clickedSet.Contains(t.Path)))
+                    .ToList();
+                if (!allPresent)
+                    foreach (var p in clickedFiles) next.Add(new DiffTarget(p, side));
                 return s with
                 {
                     Selection = GitGui.Selection.Create(next, clicked, clicked, s.Unstaged, s.Staged),
                 };
             }
 
+            var items = clickedFiles.Select(p => new DiffTarget(p, side)).ToList();
             return s with
             {
-                Selection = GitGui.Selection.Create([clicked], clicked, clicked, s.Unstaged, s.Staged),
+                Selection = GitGui.Selection.Create(items, clicked, clicked, s.Unstaged, s.Staged),
             };
         });
+    }
+
+    /// <summary>Flips a folder's collapsed state (tree mode only) on the given side.</summary>
+    public void ToggleFolder(DiffSide side, string folderPath)
+    {
+        Update(s =>
+        {
+            var set = side == DiffSide.Unstaged ? s.UnstagedCollapsed : s.StagedCollapsed;
+            var next = new HashSet<string>(set);
+            if (!next.Remove(folderPath)) next.Add(folderPath);
+            return side == DiffSide.Unstaged
+                ? s with { UnstagedCollapsed = next }
+                : s with { StagedCollapsed = next };
+        });
+    }
+
+    /// <summary>
+    /// Expands (<paramref name="expand"/> true) or collapses the folder the keyboard cursor
+    /// sits on. No-op when the cursor isn't on a folder or it's already in that state.
+    /// Wired to Right / Left arrows.
+    /// </summary>
+    public void SetCursorFolderExpanded(bool expand)
+    {
+        Update(s =>
+        {
+            if (s.Selection.Cursor is not { IsFolder: true } cur) return s;
+            var side = cur.Side;
+            var set = side == DiffSide.Unstaged ? s.UnstagedCollapsed : s.StagedCollapsed;
+            var isCollapsed = set.Contains(cur.FullPath);
+            if (expand != isCollapsed) return s;
+            var next = new HashSet<string>(set);
+            if (expand) next.Remove(cur.FullPath); else next.Add(cur.FullPath);
+            return side == DiffSide.Unstaged
+                ? s with { UnstagedCollapsed = next }
+                : s with { StagedCollapsed = next };
+        });
+    }
+
+    /// <summary>Switches between flat and tree view; persists the choice globally.</summary>
+    public void ToggleViewMode()
+    {
+        var next = State.Value.ViewMode == FileViewMode.Flat ? FileViewMode.Tree : FileViewMode.Flat;
+        _preferences.SetFileViewMode(next);
+        Update(s =>
+        {
+            // Re-seat the anchor/cursor on the first selected file: a folder cursor carried
+            // over from tree mode has no row to land on in flat mode.
+            FileRowRef? anchor = s.Selection.Items.Count > 0
+                ? new FileRowRef(s.Selection.Items[0].Side, s.Selection.Items[0].Path, IsFolder: false)
+                : null;
+            var sel = GitGui.Selection.Create(s.Selection.Items, anchor, anchor, s.Unstaged, s.Staged);
+            return s with { ViewMode = next, Selection = sel };
+        });
+    }
+
+    private static IReadOnlyList<FileRow> RowsFor(LocalChangesState s, DiffSide side)
+    {
+        var files = side == DiffSide.Unstaged ? s.Unstaged : s.Staged;
+        var collapsed = side == DiffSide.Unstaged ? s.UnstagedCollapsed : s.StagedCollapsed;
+        return FileTreeBuilder.BuildRows(files, side, s.ViewMode, collapsed);
+    }
+
+    private static int IndexOfRow(IReadOnlyList<FileRow> rows, FileRowRef r)
+    {
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var row = rows[i];
+            if (row.FullPath == r.FullPath && (row.Kind == FileRowKind.Folder) == r.IsFolder)
+                return i;
+        }
+        return -1;
+    }
+
+    // Union of the file paths covered by rows[lo..hi], in display order with duplicates
+    // dropped (a folder row's files overlap its visible child rows).
+    private static List<DiffTarget> CollectRange(IReadOnlyList<FileRow> rows, int lo, int hi, DiffSide side)
+    {
+        var seen = new HashSet<string>();
+        var items = new List<DiffTarget>();
+        for (var i = lo; i <= hi; i++)
+            foreach (var p in rows[i].Files)
+                if (seen.Add(p)) items.Add(new DiffTarget(p, side));
+        return items;
     }
 
     /// <summary>
@@ -300,62 +400,44 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         Update(s =>
         {
             DiffSide side;
-            IReadOnlyList<FileChange> sideFiles;
-            if (s.Selection.Count > 0)
-            {
-                side = s.Selection.Items[0].Side;
-                sideFiles = side == DiffSide.Unstaged ? s.Unstaged : s.Staged;
-            }
-            else if (s.Unstaged.Count > 0)
-            {
-                side = DiffSide.Unstaged;
-                sideFiles = s.Unstaged;
-            }
-            else if (s.Staged.Count > 0)
-            {
-                side = DiffSide.Staged;
-                sideFiles = s.Staged;
-            }
-            else
-            {
-                return s;
-            }
+            if (s.Selection.Count > 0) side = s.Selection.Items[0].Side;
+            else if (s.Unstaged.Count > 0) side = DiffSide.Unstaged;
+            else if (s.Staged.Count > 0) side = DiffSide.Staged;
+            else return s;
 
-            if (sideFiles.Count == 0) return s;
+            var rows = RowsFor(s, side);
+            if (rows.Count == 0) return s;
 
-            int currentIdx;
-            if (s.Selection.Cursor != null && s.Selection.Cursor.Side == side)
-                currentIdx = IndexOfPath(sideFiles, s.Selection.Cursor.Path);
-            else if (s.Selection.Count > 0)
-                currentIdx = IndexOfPath(sideFiles, s.Selection.Items[^1].Path);
-            else
-                currentIdx = delta > 0 ? -1 : sideFiles.Count;
+            int currentIdx = s.Selection.Cursor is { } cur && cur.Side == side
+                ? IndexOfRow(rows, cur)
+                : -1;
+            if (currentIdx < 0)
+                currentIdx = delta > 0 ? -1 : rows.Count;
 
-            var newIdx = Math.Clamp(currentIdx + delta, 0, sideFiles.Count - 1);
+            var newIdx = Math.Clamp(currentIdx + delta, 0, rows.Count - 1);
             if (newIdx == currentIdx && s.Selection.Count > 0 && !extend) return s;
 
-            var target = new DiffTarget(sideFiles[newIdx].Path, side);
+            var target = rows[newIdx].Ref;
 
-            if (extend && s.Selection.Anchor != null && s.Selection.Anchor.Side == side)
+            if (extend && s.Selection.Anchor is { } anchor && anchor.Side == side)
             {
-                var anchorIdx = IndexOfPath(sideFiles, s.Selection.Anchor.Path);
+                var anchorIdx = IndexOfRow(rows, anchor);
                 if (anchorIdx >= 0)
                 {
                     var lo = Math.Min(anchorIdx, newIdx);
                     var hi = Math.Max(anchorIdx, newIdx);
-                    var range = new List<DiffTarget>(hi - lo + 1);
-                    for (var i = lo; i <= hi; i++)
-                        range.Add(new DiffTarget(sideFiles[i].Path, side));
+                    var range = CollectRange(rows, lo, hi, side);
                     return s with
                     {
-                        Selection = GitGui.Selection.Create(range, s.Selection.Anchor, target, s.Unstaged, s.Staged),
+                        Selection = GitGui.Selection.Create(range, anchor, target, s.Unstaged, s.Staged),
                     };
                 }
             }
 
+            var items = rows[newIdx].Files.Select(p => new DiffTarget(p, side)).ToList();
             return s with
             {
-                Selection = GitGui.Selection.Create([target], target, target, s.Unstaged, s.Staged),
+                Selection = GitGui.Selection.Create(items, target, target, s.Unstaged, s.Staged),
             };
         });
     }
@@ -811,13 +893,6 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
             if (toUnstage.Count > 0) _gitService.Unstage(repo, toUnstage);
             if (toResetToParent.Count > 0) _gitService.ResetToParent(repo, toResetToParent);
         });
-    }
-
-    private static int IndexOfPath(IReadOnlyList<FileChange> files, string path)
-    {
-        for (var i = 0; i < files.Count; i++)
-            if (files[i].Path == path) return i;
-        return -1;
     }
 
     private IReadOnlyList<FileChange> ComputeDisplayedStaged()

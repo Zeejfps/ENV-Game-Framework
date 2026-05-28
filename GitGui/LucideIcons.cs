@@ -34,4 +34,6 @@ internal static class LucideIcons
     public const string Package = "";    // package (submodule rows)
     public const string Sun = "";          // sun
     public const string Moon = "";         // moon
+    public const string List = "";         // list (flat file view)
+    public const string ListTree = "";     // list-tree (tree file view)
 }

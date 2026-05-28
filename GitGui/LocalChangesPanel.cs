@@ -23,10 +23,10 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     private readonly string _title;
     private readonly DiffSide _side;
     private readonly IReadable<Selection> _selection;
-    private readonly Action<DiffTarget, InputModifiers> _onRowClick;
-    private readonly Action<DiffTarget>? _onRowActivated;
+    private readonly Action<FileRow, InputModifiers> _onRowClick;
+    private readonly Action<FileRow>? _onRowActivated;
     private readonly Action? _onEmptyAreaClicked;
-    private readonly Func<DiffTarget?, IReadOnlyList<RepoBarContextMenu.Item>>? _buildContextMenu;
+    private readonly Func<FileRow?, IReadOnlyList<RepoBarContextMenu.Item>>? _buildContextMenu;
     private readonly TextView _headerText;
     private readonly TextView _emptyPlaceholder;
     private readonly RectView _bodyContainer;
@@ -35,6 +35,9 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     private readonly HorizontalScrollBarView _hScrollBar;
 
     private IReadOnlyList<FileChange> _files = Array.Empty<FileChange>();
+    private IReadOnlyList<FileRow> _rows = Array.Empty<FileRow>();
+    private FileViewMode _viewMode = FileViewMode.Flat;
+    private IReadOnlySet<string> _collapsed = new HashSet<string>();
 
     private readonly TextStyle _badgeGlyphStyle = new()
     {
@@ -51,6 +54,20 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     {
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Start,
+    };
+    private readonly TextStyle _chevronStyle = new()
+    {
+        FontFamily = LucideIcons.FontFamily,
+        FontSize = 11f,
+        HorizontalAlignment = TextAlignment.Center,
+        VerticalAlignment = TextAlignment.Center,
+    };
+    private readonly TextStyle _folderIconStyle = new()
+    {
+        FontFamily = LucideIcons.FontFamily,
+        FontSize = 13f,
+        HorizontalAlignment = TextAlignment.Start,
+        VerticalAlignment = TextAlignment.Center,
     };
 
     private FileChangeRowStyles _rowStyles = ThemeStyles.Dark.FileChangeRow;
@@ -74,11 +91,11 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         DiffSide side,
         string emptyText,
         IReadable<Selection> selection,
-        Action<DiffTarget, InputModifiers> onRowClick,
+        Action<FileRow, InputModifiers> onRowClick,
         IReadOnlyList<View>? headerActions = null,
-        Action<DiffTarget>? onRowActivated = null,
+        Action<FileRow>? onRowActivated = null,
         Action? onEmptyAreaClicked = null,
-        Func<DiffTarget?, IReadOnlyList<RepoBarContextMenu.Item>>? buildContextMenu = null)
+        Func<FileRow?, IReadOnlyList<RepoBarContextMenu.Item>>? buildContextMenu = null)
     {
         _title = title;
         _side = side;
@@ -157,6 +174,8 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
             _badgeGlyphStyle.TextColor = _rowStyles.BadgeText;
             _pathTextStyle.TextColor = _rowStyles.RowText;
             _pathTextActiveStyle.TextColor = _rowStyles.RowTextActive;
+            _chevronStyle.TextColor = _rowStyles.RowText;
+            _folderIconStyle.TextColor = _rowStyles.RowText;
             SetDirty();
         });
 
@@ -167,9 +186,33 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     {
         _files = files;
         _headerText.Text = FileChangesUI.FormatHeader(_title, files.Count);
+        RebuildRows();
+        // New data: jump back to the top rather than preserving a now-meaningless offset.
+        _list.SetScrollY(0f);
+        NotifyScrollChanged();
+    }
+
+    public void SetViewMode(FileViewMode mode)
+    {
+        if (_viewMode == mode) return;
+        _viewMode = mode;
+        RebuildRows();
+        NotifyScrollChanged();
+    }
+
+    public void SetCollapsed(IReadOnlySet<string> collapsed)
+    {
+        _collapsed = collapsed;
+        RebuildRows();
+        NotifyScrollChanged();
+    }
+
+    private void RebuildRows()
+    {
+        _rows = FileTreeBuilder.BuildRows(_files, _side, _viewMode, _collapsed);
 
         _bodyContainer.Children.Clear();
-        if (files.Count == 0)
+        if (_rows.Count == 0)
         {
             _bodyContainer.Children.Add(_emptyPlaceholder);
             _list.ItemCount = 0;
@@ -177,11 +220,9 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         else
         {
             _bodyContainer.Children.Add(_list);
-            _list.ItemCount = files.Count;
+            _list.ItemCount = _rows.Count;
         }
-        _list.SetScrollY(0f);
         _list.NotifyItemsChanged();
-        NotifyScrollChanged();
     }
 
     protected override void OnDrawSelf(ICanvas c)
@@ -194,26 +235,26 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
 
     private void OnRowClicked(int rowIndex, InputModifiers modifiers)
     {
-        if (rowIndex < 0 || rowIndex >= _files.Count)
+        if (rowIndex < 0 || rowIndex >= _rows.Count)
         {
             _onEmptyAreaClicked?.Invoke();
             return;
         }
-        _onRowClick(new DiffTarget(_files[rowIndex].Path, _side), modifiers);
+        _onRowClick(_rows[rowIndex], modifiers);
     }
 
     private void OnRowActivated(int rowIndex)
     {
-        if (rowIndex < 0 || rowIndex >= _files.Count) return;
-        _onRowActivated?.Invoke(new DiffTarget(_files[rowIndex].Path, _side));
+        if (rowIndex < 0 || rowIndex >= _rows.Count) return;
+        _onRowActivated?.Invoke(_rows[rowIndex]);
     }
 
     private void OnRowContextRequested(int rowIndex, PointF point)
     {
         if (Context == null || _buildContextMenu == null) return;
 
-        var onRow = rowIndex >= 0 && rowIndex < _files.Count;
-        var target = onRow ? new DiffTarget(_files[rowIndex].Path, _side) : null;
+        var onRow = rowIndex >= 0 && rowIndex < _rows.Count;
+        var target = onRow ? _rows[rowIndex] : null;
 
         var items = _buildContextMenu(target);
         if (items.Count == 0) return;
@@ -230,22 +271,53 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
 
     private void DrawFileRowAt(ICanvas c, RectF rowRect, int rowIndex, RowRenderState state, int z)
     {
-        if (rowIndex < 0 || rowIndex >= _files.Count) return;
+        if (rowIndex < 0 || rowIndex >= _rows.Count) return;
         if (Context == null) return;
 
-        var file = _files[rowIndex];
-        var isSelected = _selection.Value.Contains(file.Path, _side);
+        var row = _rows[rowIndex];
+        var selection = _selection.Value;
+
+        if (row.Kind == FileRowKind.Folder)
+        {
+            var selectedCount = 0;
+            foreach (var p in row.Files)
+                if (selection.Contains(p, _side)) selectedCount++;
+            var allSelected = selectedCount > 0 && selectedCount == row.Files.Count;
+            var partial = selectedCount > 0 && !allSelected;
+
+            FileChangesUI.DrawFolderRow(
+                Context.Canvas,
+                rowRect,
+                row.DisplayName,
+                row.Indent,
+                row.IsOpen,
+                allSelected,
+                partial,
+                state.IsHovered || state.IsContextHighlighted,
+                _rowStyles,
+                _chevronStyle,
+                _folderIconStyle,
+                _pathTextStyle,
+                _pathTextActiveStyle,
+                z);
+            return;
+        }
+
+        var file = row.File!;
+        var isSelected = selection.Contains(file.Path, _side);
         FileChangesUI.DrawFileRow(
             Context.Canvas,
             rowRect,
             file,
             isSelected,
-            state.IsHovered,
+            state.IsHovered || state.IsContextHighlighted,
             _rowStyles,
             _pathTextStyle,
             _pathTextActiveStyle,
             _badgeGlyphStyle,
-            z);
+            z,
+            row.DisplayName,
+            row.Indent);
     }
 
     // ---- IScrollableContent ----
@@ -257,7 +329,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
 
     public void SetVerticalNormalizedScrollPosition(float normalized)
     {
-        var contentHeight = _files.Count * FileChangesUI.RowHeight;
+        var contentHeight = _rows.Count * FileChangesUI.RowHeight;
         var bodyHeight = _list.Position.Height;
         var range = contentHeight - bodyHeight;
         _list.SetScrollY(range <= 0 ? 0f : Math.Clamp(normalized, 0f, 1f) * range);
@@ -267,7 +339,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
 
     private void NotifyScrollChanged()
     {
-        var contentHeight = _files.Count * FileChangesUI.RowHeight;
+        var contentHeight = _rows.Count * FileChangesUI.RowHeight;
         var bodyHeight = _list.Position.Height;
 
         float vScale, normalizedY;
