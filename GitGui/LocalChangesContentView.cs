@@ -195,16 +195,17 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
 
     private void OnFolderToggle(FileRow row) => _vm?.ToggleFolder(row.Side, row.FullPath);
 
+    // Double-click stages/unstages a file. Folders toggle via the chevron and arrow keys
+    // only — toggling here too would fight the chevron's per-click toggle and flip the
+    // folder an unpredictable number of times.
     private void OnUnstagedRowActivated(FileRow row)
     {
-        if (row.Kind == FileRowKind.Folder) _vm?.ToggleFolder(row.Side, row.FullPath);
-        else _vm?.Stage(row.Files);
+        if (row.Kind == FileRowKind.File) _vm?.Stage(row.Files);
     }
 
     private void OnStagedRowActivated(FileRow row)
     {
-        if (row.Kind == FileRowKind.Folder) _vm?.ToggleFolder(row.Side, row.FullPath);
-        else _vm?.Unstage(row.Files);
+        if (row.Kind == FileRowKind.File) _vm?.Unstage(row.Files);
     }
 
     private IReadOnlyList<RepoBarContextMenu.Item> BuildUnstagedMenu(FileRow? target)

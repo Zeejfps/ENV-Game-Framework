@@ -72,7 +72,10 @@ internal readonly record struct FileRowRef(DiffSide Side, string FullPath, bool 
 /// </summary>
 internal static class FileTreeBuilder
 {
-    public const float IndentLevel = 14f;
+    // One level of nesting is wider than a folder row's chevron column (chevron + gap),
+    // so a child file's badge sits clearly to the right of its parent folder's icon
+    // rather than lining up with it.
+    public const float IndentLevel = 20f;
 
     private static readonly IReadOnlyList<FileRow> Empty = Array.Empty<FileRow>();
 

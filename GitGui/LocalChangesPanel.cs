@@ -40,6 +40,8 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     private FileViewMode _viewMode = FileViewMode.Flat;
     private IReadOnlySet<string> _collapsed = new HashSet<string>();
     private View _currentBody = null!;
+    private string? _lastChevronTogglePath;
+    private int _lastChevronToggleTick;
 
     private readonly TextStyle _badgeGlyphStyle = new()
     {
@@ -253,6 +255,18 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         // the click before the row's select handler runs.
         if (row.Kind == FileRowKind.Folder && _onFolderToggle != null && IsChevronHit(row, point))
         {
+            // RowClicked fires on every physical click, so a double-click would toggle
+            // twice (a net no-op). Swallow the second click of a double on the same
+            // chevron so a double-click is a single, predictable toggle.
+            var now = Environment.TickCount;
+            if (_lastChevronTogglePath == row.FullPath
+                && unchecked(now - _lastChevronToggleTick) <= _list.DoubleClickThresholdMs)
+            {
+                _lastChevronTogglePath = null;
+                return;
+            }
+            _lastChevronTogglePath = row.FullPath;
+            _lastChevronToggleTick = now;
             _onFolderToggle(row);
             return;
         }
