@@ -5,7 +5,7 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class CommitsView : MultiChildView, ICommitsView
+internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
 {
     private const float HeaderHeight = 28f;
     private const float RowHeight = 26f;
@@ -34,8 +34,9 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     private float _dateColumnWidth = DefaultDateColumnWidth;
     private DividerKind _hoveredDivider = DividerKind.None;
 
-    private CommitsViewModel _viewModel = new CommitsViewModel.NoRepo();
+    private CommitsRenderState _renderState = new CommitsRenderState.NoRepo();
     private CommitSnapshot? _snapshot;
+    private CommitsViewModel? _vm;
 
     private readonly VirtualRowListView _list;
 
@@ -46,8 +47,6 @@ public sealed class CommitsView : MultiChildView, ICommitsView
 
     public event Action<float>? ScrollPositionChanged;
     public event Action<float>? ScaleChanged;
-    public event Action<string>? CommitClicked;
-    public event Action<string>? CheckoutCommitRequested;
 
     private static readonly uint[] LanePalette =
     {
@@ -103,12 +102,14 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         });
 
         this.UseController(ctx => new CommitsViewController(this, ctx));
-        this.UsePresenter(ctx => new CommitsPresenter(
-            this,
-            ctx.Require<IRepoRegistry>(),
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(this);
+    }
+
+    public void Bind(CommitsViewModel vm)
+    {
+        _vm = vm;
+        vm.Render.Subscribe(SetRenderState);
+        vm.SelectedSha.Subscribe(SetSelectedSha);
     }
 
     protected override void OnLayoutChild(in RectF position, View child)
@@ -126,16 +127,16 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         base.OnLayoutChild(in position, child);
     }
 
-    public void SetViewModel(CommitsViewModel vm)
+    private void SetRenderState(CommitsRenderState vm)
     {
-        var newSnap = (vm as CommitsViewModel.Loaded)?.Snapshot;
+        var newSnap = (vm as CommitsRenderState.Loaded)?.Snapshot;
         var prevSnap = _snapshot;
         // Preserve scroll only across snapshot-for-same-repo transitions (soft refresh).
         // Any other transition — first load, repo switch, loading/error placeholders —
         // resets to the top.
         var preserveScroll = newSnap != null && prevSnap != null && newSnap.RepoId == prevSnap.RepoId;
 
-        _viewModel = vm;
+        _renderState = vm;
         _snapshot = newSnap;
 
         _list.ItemCount = newSnap?.Commits.Count ?? 0;
@@ -154,15 +155,13 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         SetDirty();
     }
 
-    public void SetSelectedSha(string? sha)
+    private void SetSelectedSha(string? sha)
     {
         if (_selectedSha == sha) return;
         _selectedSha = sha;
         ScrollShaIntoView(sha);
         SetDirty();
     }
-
-    public string? SelectedSha => _selectedSha;
 
     private void ScrollShaIntoView(string? sha)
     {
@@ -256,18 +255,18 @@ public sealed class CommitsView : MultiChildView, ICommitsView
 
         // Placeholder text lives in the parent because the widget is row-only.
         // When ItemCount = 0 the widget no-ops; this text shows through.
-        switch (_viewModel)
+        switch (_renderState)
         {
-            case CommitsViewModel.NoRepo:
+            case CommitsRenderState.NoRepo:
                 DrawPlaceholder(c, ComputeCommitsColumnRect(bodyRect), "Select a repository to view its history.", z + 2);
                 break;
-            case CommitsViewModel.Loading:
+            case CommitsRenderState.Loading:
                 DrawPlaceholder(c, ComputeCommitsColumnRect(bodyRect), "Loading…", z + 2);
                 break;
-            case CommitsViewModel.Error err:
+            case CommitsRenderState.Error err:
                 DrawPlaceholder(c, ComputeCommitsColumnRect(bodyRect), err.Message, z + 2);
                 break;
-            case CommitsViewModel.Loaded:
+            case CommitsRenderState.Loaded:
                 if (_snapshot == null || _snapshot.Commits.Count == 0)
                     DrawPlaceholder(c, ComputeCommitsColumnRect(bodyRect), "No commits.", z + 2);
                 break;
@@ -667,7 +666,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
     {
         var snap = _snapshot;
         if (snap == null || rowIndex < 0 || rowIndex >= snap.Commits.Count) return;
-        CommitClicked?.Invoke(snap.Commits[rowIndex].Sha);
+        _vm?.SelectCommit(snap.Commits[rowIndex].Sha);
     }
 
     private void OnRowContextRequested(int rowIndex, PointF point)
@@ -700,7 +699,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
             {
                 new RepoBarContextMenu.Item(
                     $"Reset {head} to here",
-                    () => CheckoutCommitRequested?.Invoke(capturedSha),
+                    () => _vm?.RequestReset(capturedSha),
                     LucideIcons.Branch,
                     LabelSegments: BuildResetSegments(head)),
             };
@@ -709,7 +708,7 @@ public sealed class CommitsView : MultiChildView, ICommitsView
         {
             new RepoBarContextMenu.Item(
                 "Reset to this commit",
-                () => CheckoutCommitRequested?.Invoke(capturedSha),
+                () => _vm?.RequestReset(capturedSha),
                 LucideIcons.Branch),
         };
     }
