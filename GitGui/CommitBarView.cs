@@ -103,8 +103,8 @@ internal sealed class CommitBarView : MultiChildView, IBind<LocalChangesViewMode
 
     private LocalChangesViewModel? _vm;
 
-    // Adds the commit title and description as the first two stops of the shared focus
-    // ring (the unstaged file list registers itself as the third).
+    // Adds the commit title and description to the shared focus ring after the unstaged
+    // file list, ahead of the commit button.
     public void RegisterFocusStops(FocusRing ring)
     {
         var titleStop = ring.Add(_titleController.BeginEditing, _titleController.EndEditing);

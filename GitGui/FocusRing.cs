@@ -36,9 +36,12 @@ internal sealed class FocusRing
         var count = _stops.Count;
         for (var step = 1; step <= count; step++)
         {
-            var next = _stops[((index + direction * step) % count + count) % count];
+            var nextIndex = ((index + direction * step) % count + count) % count;
+            var next = _stops[nextIndex];
             if (ReferenceEquals(next, current)) break;
-            if (next.CanFocus != null && !next.CanFocus()) continue;
+            var canFocus = next.CanFocus == null || next.CanFocus();
+            Console.WriteLine($"[focusdbg] Move from {index} dir {direction} -> candidate {nextIndex} canFocus={canFocus}");
+            if (!canFocus) continue;
             current.Blur?.Invoke();
             next.Focus();
             return;

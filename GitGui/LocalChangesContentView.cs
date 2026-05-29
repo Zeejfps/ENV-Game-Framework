@@ -124,9 +124,9 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         this.UseController(_ => _arrowController);
     }
 
-    // Joins the unstaged file list to the shared focus ring as the last stop after the
-    // commit fields. Tab into the list selects the first row when nothing is selected yet
-    // so arrow navigation has a visible starting point.
+    // Joins the unstaged file list to the shared focus ring as the first stop, ahead of
+    // the commit fields. Tab into the list selects the first row when nothing is selected
+    // yet so arrow navigation has a visible starting point.
     public void RegisterFocusStops(FocusRing ring)
     {
         var stop = ring.Add(FocusFiles);

@@ -46,7 +46,12 @@ public abstract class HoverableButton : MultiChildView
 
     // Steals keyboard focus to this button (highlighting it); paired with Blur for the
     // focus ring. No-op until the button is attached to a context.
-    public void FocusSelf() => Context?.Get<InputSystem>()?.StealFocus(_controller);
+    public void FocusSelf()
+    {
+        var input = Context?.Get<InputSystem>();
+        Console.WriteLine($"[focusdbg] FocusSelf {GetType().Name} ctx={Context != null} input={input != null} interactable={(input?.IsInteractable(_controller))}");
+        input?.StealFocus(_controller);
+    }
     public void Blur() => Context?.Get<InputSystem>()?.Blur(_controller);
 
     protected virtual void OnClicked()
