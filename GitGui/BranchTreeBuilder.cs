@@ -28,7 +28,7 @@ internal static class BranchTreeBuilder
         rows.Add(new BranchRow(BranchRowKind.LocalHeader, "Local", IndentSection, ui.LocalOpen));
         if (ui.LocalOpen)
         {
-            var localTree = BuildTree(listing.LocalBranches);
+            var localTree = PathTree.Build(listing.LocalBranches, b => b.Name);
             EmitTreeRows(rows, localTree, ui, isRemote: false, remoteName: null, IndentLocalTreeBase, depth: 0);
         }
 
@@ -43,7 +43,7 @@ internal static class BranchTreeBuilder
                     RemoteName = rg.Name,
                 });
                 if (!isOpen) continue;
-                var remoteTree = BuildTree(rg.Branches);
+                var remoteTree = PathTree.Build(rg.Branches, b => b.Name);
                 EmitTreeRows(rows, remoteTree, ui, isRemote: true, rg.Name, IndentRemoteTreeBase, depth: 0);
             }
         }
@@ -68,12 +68,12 @@ internal static class BranchTreeBuilder
         return rows;
     }
 
-    private static void EmitTreeRows(List<BranchRow> rows, IReadOnlyList<TreeNode> nodes, BranchesUiState ui, bool isRemote, string? remoteName, float treeBase, int depth)
+    private static void EmitTreeRows(List<BranchRow> rows, IReadOnlyList<PathNode<BranchEntry>> nodes, BranchesUiState ui, bool isRemote, string? remoteName, float treeBase, int depth)
     {
         var indent = treeBase + depth * IndentLevel;
         foreach (var node in nodes)
         {
-            if (node.Entry is { } entry)
+            if (node.Leaf is { } entry)
             {
                 rows.Add(new BranchRow(isRemote ? BranchRowKind.RemoteBranch : BranchRowKind.LocalBranch, node.Segment, indent, isOpen: false)
                 {
@@ -103,59 +103,4 @@ internal static class BranchTreeBuilder
 
     private static string MakeFolderKey(bool isRemote, string? remoteName, string path) =>
         isRemote ? $"remote:{remoteName}:{path}" : $"local:{path}";
-
-    private static IReadOnlyList<TreeNode> BuildTree(IReadOnlyList<BranchEntry> branches)
-    {
-        var root = new TreeNode("", "");
-        foreach (var b in branches)
-        {
-            var segments = b.Name.Split('/');
-            var current = root;
-            for (var i = 0; i < segments.Length; i++)
-            {
-                var seg = segments[i];
-                var isLeaf = i == segments.Length - 1;
-                if (!current.ChildIndex.TryGetValue(seg, out var child))
-                {
-                    var path = i == 0 ? seg : current.FullPath + "/" + seg;
-                    child = new TreeNode(seg, path);
-                    current.ChildIndex[seg] = child;
-                    current.Children.Add(child);
-                }
-                if (isLeaf) child.Entry = b;
-                current = child;
-            }
-        }
-        SortNode(root);
-        return root.Children;
-    }
-
-    // Folders first, then leaves; alphabetical within each group. The leaf-of-the-same-path
-    // case (a branch named "feature" alongside "feature/login") cannot occur in git, so we
-    // don't try to handle a node that's simultaneously a folder and a branch.
-    private static void SortNode(TreeNode node)
-    {
-        node.Children.Sort((a, b) =>
-        {
-            var aFolder = a.Entry == null;
-            var bFolder = b.Entry == null;
-            if (aFolder != bFolder) return aFolder ? -1 : 1;
-            return string.Compare(a.Segment, b.Segment, StringComparison.OrdinalIgnoreCase);
-        });
-        foreach (var c in node.Children) SortNode(c);
-    }
-
-    private sealed class TreeNode
-    {
-        public TreeNode(string segment, string fullPath)
-        {
-            Segment = segment;
-            FullPath = fullPath;
-        }
-        public string Segment { get; }
-        public string FullPath { get; }
-        public BranchEntry? Entry { get; set; }
-        public Dictionary<string, TreeNode> ChildIndex { get; } = new();
-        public List<TreeNode> Children { get; } = new();
-    }
 }
