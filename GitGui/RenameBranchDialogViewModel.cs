@@ -22,8 +22,6 @@ internal sealed class RenameBranchDialogViewModel : IDisposable
         var repoId = request.Repo.Id;
         var oldName = request.CurrentName;
 
-        // Disable until the user actually edits to a new value — bare-rename with no change
-        // is meaningless and `git branch -m current current` is just noise.
         var gate = new Derived<bool>(() => Name.Value.Length > 0 && Name.Value != oldName);
 
         Rename = new AsyncCommand(

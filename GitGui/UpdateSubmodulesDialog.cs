@@ -21,6 +21,7 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
     private readonly CheckboxView _mergeMode;
     private readonly CheckboxView _rebaseMode;
     private readonly DialogButton _updateButton;
+    private readonly TextView _errorView;
     private UpdateSubmodulesDialogViewModel? _vm;
 
     public UpdateSubmodulesDialog(Repo primary, Repo? target, Action onClose)
@@ -53,6 +54,8 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
             "the Operation banner will offer Abort.",
             TextWrap.Wrap);
 
+        _errorView = DialogFrame.ErrorView();
+
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
         _updateButton = new DialogButton("Update") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
@@ -70,6 +73,7 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
                 _mergeMode,
                 _rebaseMode,
                 conflictsHint,
+                _errorView,
                 new MultiChildView { PreferredHeight = 4 },
                 DialogFrame.ButtonsRow(cancelButton, _updateButton),
             },
@@ -95,11 +99,8 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
         _initCheckbox.IsChecked.BindTwoWay(vm.Init);
         _recursiveCheckbox.IsChecked.BindTwoWay(vm.Recursive);
         _updateButton.BindCommand(vm.Update);
+        _errorView.BindText(vm.Error, s => s ?? string.Empty);
 
-        // Mutual exclusivity: the VM owns the canonical Mode; the three checkboxes are
-        // a derived presentation. Subscribing to vm.Mode keeps the checkboxes in sync,
-        // and per-checkbox handlers write back to vm.Mode on a user click. Re-clicking
-        // an already-checked option restores it (we never allow "no mode").
         vm.Mode.Subscribe(m =>
         {
             _checkoutMode.IsChecked.Value = m == SubmoduleUpdateMode.Checkout;
@@ -115,9 +116,6 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
 
     private void SelectMode(UpdateSubmodulesDialogViewModel vm, SubmoduleUpdateMode mode, bool isCheckedNow)
     {
-        // A user toggle that turns off the current mode is treated as "stay selected" —
-        // we re-check that one checkbox. Anything else: write the new mode to the VM and
-        // its subscription syncs all three checkboxes.
         if (!isCheckedNow)
         {
             if (vm.Mode.Value == mode)

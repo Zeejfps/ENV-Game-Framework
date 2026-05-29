@@ -86,9 +86,6 @@ internal sealed class PublishBranchDialog : MultiChildView, IBind<PublishBranchD
         _vm = vm;
         vm.CloseRequested += _onClose;
 
-        // The dropdown's selection is the source of truth for both directions; the VM's
-        // SelectedRemote seeds the default after remotes load, which propagates back here
-        // via the two-way binding.
         _remoteDropdown.SelectedState.BindTwoWay(vm.SelectedRemote);
         _trackCheckbox.IsChecked.BindTwoWay(vm.SetUpstream);
         _publishButton.BindCommand(vm.Publish);

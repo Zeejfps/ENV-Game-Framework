@@ -40,8 +40,6 @@ internal sealed class DeleteLocalBranchDialogViewModel : IDisposable
 
         Delete = new AsyncCommand(dispatcher, DoDelete, OnDeleteSucceeded);
 
-        // The spinner reflects the AsyncCommand's running state, plus we drive Start/Stop
-        // so the rotation actually animates rather than just toggling the icon.
         IsBusy = Delete.IsRunning;
         CancelEnabled = new Derived<bool>(() => !Delete.IsRunning.Value);
 
@@ -68,9 +66,6 @@ internal sealed class DeleteLocalBranchDialogViewModel : IDisposable
             DeleteRemoteBranchOutcome remote;
             try { remote = _gitService.DeleteRemoteBranch(_request.Repo, remoteName!, remoteBranch!); }
             catch (Exception ex) { remote = new DeleteRemoteBranchOutcome(false, ex.Message); }
-            // Stash the partial-failure outcome so the success handler can fire the
-            // partial-failure broadcast after the close — the local delete already
-            // succeeded so we still close + refresh refs.
             if (!remote.Success)
                 _partialFailure.Value = remote;
         }

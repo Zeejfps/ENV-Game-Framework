@@ -9,12 +9,14 @@ internal sealed class UpdateSubmodulesDialogViewModel : IDisposable
     private readonly IMessageBus _bus;
     private readonly OperationRunner _runner;
     private readonly State<bool> _isRunning = new(false);
+    private readonly State<string?> _error = new(null);
 
     public State<bool> Init { get; } = new(true);
     public State<bool> Recursive { get; } = new(false);
     public State<SubmoduleUpdateMode> Mode { get; } = new(SubmoduleUpdateMode.Checkout);
 
     public Command Update { get; }
+    public IReadable<string?> Error => _error;
 
     public event Action? CloseRequested;
 
@@ -43,10 +45,9 @@ internal sealed class UpdateSubmodulesDialogViewModel : IDisposable
         var recursive = Recursive.Value;
         var mode = Mode.Value;
         _isRunning.Value = true;
+        _error.Value = null;
 
         var req = new SubmoduleUpdateRequest(
-            // `git submodule update -- <path>` matches against the .gitmodules path
-            // (relative to the parent root); Repo.Path is absolute.
             Paths: target is null ? null : new[] { ToRelative(_request.Primary.Path, target.Path) },
             Init: init,
             Recursive: recursive,
@@ -60,11 +61,6 @@ internal sealed class UpdateSubmodulesDialogViewModel : IDisposable
                 _isRunning.Value = false;
                 if (!outcome.Success)
                 {
-                    // On a conflict we still close the dialog — the OperationStateBanner
-                    // will pick up MERGE_HEAD / rebase-apply and offer the right Abort. The
-                    // user has more affordance there than inside the dialog. We DO NOT
-                    // broadcast refs-changed here because the original presenter does
-                    // broadcast them — preserve that exactly.
                     if (outcome.HasConflicts)
                     {
                         CloseRequested?.Invoke();
@@ -72,10 +68,7 @@ internal sealed class UpdateSubmodulesDialogViewModel : IDisposable
                         _bus.Broadcast(new RefsChangedMessage(primaryId));
                         return;
                     }
-                    CloseRequested?.Invoke();
-                    _bus.Broadcast(new ShowOperationErrorMessage(
-                        "Update submodules failed",
-                        outcome.ErrorMessage ?? "Update submodules failed."));
+                    _error.Value = outcome.ErrorMessage ?? "Update submodules failed.";
                     return;
                 }
                 CloseRequested?.Invoke();
@@ -100,5 +93,4 @@ internal sealed class UpdateSubmodulesDialogViewModel : IDisposable
     }
 }
 
-// TargetSubmodule == null means "update every submodule under the parent".
 internal readonly record struct UpdateSubmodulesViewRequest(Repo Primary, Repo? TargetSubmodule);

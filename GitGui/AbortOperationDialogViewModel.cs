@@ -12,10 +12,6 @@ internal sealed class AbortOperationDialogViewModel : IDisposable
     private readonly SpinnerAnimation _spinner;
     private readonly State<bool> _isRunning = new(false);
     private readonly State<string?> _error = new(null);
-
-    // Set after the regular --abort returned with ForceQuitAvailable=true. The next click
-    // sends forceQuit=true, which runs `git X --quit` (or removes sentinels directly) to
-    // clear the stuck state without trying to restore HEAD.
     private readonly State<bool> _forceQuitMode = new(false);
 
     public IReadable<string> ConfirmButtonLabel { get; }
@@ -73,19 +69,11 @@ internal sealed class AbortOperationDialogViewModel : IDisposable
                 if (!outcome.Success)
                 {
                     _error.Value = outcome.ErrorMessage ?? "Abort failed.";
-                    // If git couldn't recover (malformed sentinel dir, etc.) but the state
-                    // is force-clearable, flip the confirm button so the next click is the
-                    // explicit "give up restoring HEAD" path. Only flip once — once we're
-                    // in force-quit mode, repeated failures keep the same button label so
-                    // the user isn't ping-ponged.
                     if (outcome.ForceQuitAvailable && !_forceQuitMode.Value)
                         _forceQuitMode.Value = true;
                     return;
                 }
                 CloseRequested?.Invoke();
-                // Both messages: RefsChangedMessage refreshes the commit graph and branch
-                // ahead/behind; WorkingTreeChangedMessage refreshes the local-changes panels
-                // (where the conflict markers and ! badges live).
                 _bus.Broadcast(new RefsChangedMessage(repoId));
                 _bus.Broadcast(new WorkingTreeChangedMessage(repoId));
             });

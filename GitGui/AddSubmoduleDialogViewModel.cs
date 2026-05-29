@@ -42,8 +42,6 @@ internal sealed class AddSubmoduleDialogViewModel : IDisposable
             },
             onSuccess: () =>
             {
-                // Sync up quickly without waiting for FSW debounce. WorkingTreeChanged
-                // also fires so the LocalChanges panel notices the new .gitmodules entry.
                 bus.Broadcast(new SubmodulesChangedMessage(primaryId));
                 bus.Broadcast(new WorkingTreeChangedMessage(primaryId));
                 CloseRequested?.Invoke();

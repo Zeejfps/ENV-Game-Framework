@@ -42,9 +42,6 @@ internal sealed class CreateWorktreeDialogViewModel : IDisposable
             },
             onSuccess: () =>
             {
-                // Trigger registry sync — the watcher will also catch the new
-                // .git/worktrees/<name> directory but firing here keeps the UI snappy
-                // without waiting for FSW debounce.
                 bus.Broadcast(new WorktreesChangedMessage(primaryId));
                 bus.Broadcast(new RefsChangedMessage(primaryId));
                 CloseRequested?.Invoke();

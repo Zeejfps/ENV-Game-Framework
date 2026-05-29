@@ -101,7 +101,6 @@ internal sealed class DeleteLocalBranchDialog : MultiChildView, IBind<DeleteLoca
         _cancelButton.IsEnabled.BindTo(vm.CancelEnabled);
         _errorView.BindText(vm.Delete.Error, s => s ?? string.Empty);
 
-        // Spinner: toggle icon based on IsBusy and continuously update rotation while busy.
         vm.IsBusy.Subscribe(b =>
         {
             _deleteButton.Icon = b ? LucideIcons.Loader : string.Empty;

@@ -73,7 +73,6 @@ internal sealed class AbortOperationDialog : MultiChildView, IBind<AbortOperatio
 
         vm.ConfirmButtonLabel.Subscribe(label => _abortButton.Label = label);
 
-        // Spinner: toggle icon based on IsBusy and continuously update rotation while busy.
         vm.IsBusy.Subscribe(b =>
         {
             _abortButton.Icon = b ? LucideIcons.Loader : string.Empty;

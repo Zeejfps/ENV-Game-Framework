@@ -17,9 +17,6 @@ internal sealed class DeinitSubmoduleDialogViewModel : IDisposable
         IMessageBus bus)
     {
         var primaryId = request.Primary.Id;
-        // `git submodule deinit` matches submodules by the path recorded in .gitmodules,
-        // which is relative to the parent root. We store the absolute path on the Repo
-        // for navigation, so relativize before handing to git.
         var submodulePath = ToRelative(request.Primary.Path, request.Submodule.Path);
 
         Deinit = new AsyncCommand(

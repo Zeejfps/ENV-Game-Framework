@@ -4,8 +4,6 @@ namespace GitGui;
 
 internal sealed class ResetCommitDialogViewModel : IDisposable
 {
-    // Default Mixed: matches git's own default and is the safest non-destructive option
-    // that still discards the staged-vs-unstaged distinction.
     public State<ResetMode> Mode { get; } = new(ResetMode.Mixed);
 
     public AsyncCommand Reset { get; }

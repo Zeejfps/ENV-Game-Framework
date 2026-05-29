@@ -53,9 +53,6 @@ internal sealed class PublishBranchDialogViewModel : IDisposable
             },
             gate: gate);
 
-        // Surface the no-remotes message via the same error view that the command's
-        // inline error uses — they're mutually exclusive in practice (the user can't
-        // click Publish if there are no remotes since the gate keeps it disabled).
         ErrorMessage = new Derived<string?>(() => _loadError.Value ?? Publish.Error.Value);
 
         LoadRemotes();
@@ -83,8 +80,6 @@ internal sealed class PublishBranchDialogViewModel : IDisposable
                 else
                 {
                     _loadError.Value = null;
-                    // Pick a default: prefer 'origin' if present (overwhelmingly common),
-                    // otherwise the first listed.
                     var preferred = remotes.FirstOrDefault(o => o == "origin") ?? remotes[0];
                     SelectedRemote.Value = preferred;
                 }

@@ -28,8 +28,6 @@ internal sealed class CreateBranchDialogViewModel : IDisposable
             work: () =>
             {
                 var name = Name.Value;
-                // Empty start-point text means "branch from current HEAD" — fall back so we
-                // don't pass an empty arg to git, which would treat it as a missing positional.
                 var startPoint = StartPoint.Value;
                 if (startPoint.Length == 0) startPoint = "HEAD";
                 var checkout = Checkout.Value;
