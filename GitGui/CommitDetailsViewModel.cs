@@ -9,26 +9,24 @@ public abstract record CommitDetailsRenderState
     public sealed record Loaded(CommitDetails Details) : CommitDetailsRenderState;
 }
 
-public sealed class CommitDetailsViewModel : IDisposable
+internal sealed record CommitDetailsState(
+    CommitDetailsRenderState Render,
+    string? SelectedPath,
+    DiffTarget? SelectedTarget);
+
+internal sealed class CommitDetailsViewModel : ViewModelBase<CommitDetailsState>
 {
     private const string DefaultPlaceholder = "Select a commit to view details.";
     private const string LoadingPlaceholder = "Loading…";
 
     private readonly IGitService _gitService;
     private readonly IRepoRegistry _registry;
-    private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
-    private readonly SubscriptionGroup _subscriptions = new();
-    private readonly GenerationGuard _loadGen = new();
-    private readonly State<CommitDetailsRenderState> _renderState =
-        new(new CommitDetailsRenderState.Placeholder(DefaultPlaceholder));
-    private readonly State<string?> _selectedPath = new(null);
-    private readonly State<DiffTarget?> _selectedTarget = new(null);
     private string? _currentSha;
 
-    public IReadable<CommitDetailsRenderState> RenderState => _renderState;
-    public IReadable<string?> SelectedPath => _selectedPath;
-    public IReadable<DiffTarget?> SelectedTarget => _selectedTarget;
+    public IReadable<CommitDetailsRenderState> RenderState { get; }
+    public IReadable<string?> SelectedPath { get; }
+    public IReadable<DiffTarget?> SelectedTarget { get; }
     public DiffViewModel DiffVm { get; }
 
     public CommitDetailsViewModel(
@@ -36,41 +34,49 @@ public sealed class CommitDetailsViewModel : IDisposable
         IRepoRegistry registry,
         IUiDispatcher dispatcher,
         IMessageBus bus)
+        : base(dispatcher, new CommitDetailsState(
+            new CommitDetailsRenderState.Placeholder(DefaultPlaceholder), null, null))
     {
         _gitService = gitService;
         _registry = registry;
-        _dispatcher = dispatcher;
         _bus = bus;
-        DiffVm = new DiffViewModel(_selectedTarget, registry, gitService, dispatcher, bus);
-        _subscriptions.Add(_bus.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected));
+
+        RenderState = Slice(s => s.Render);
+        SelectedPath = Slice(s => s.SelectedPath);
+        SelectedTarget = Slice(s => s.SelectedTarget);
+
+        DiffVm = new DiffViewModel(SelectedTarget, registry, gitService, dispatcher, bus);
+        Subscriptions.Add(_bus.SubscribeScoped<CommitSelectedMessage>(OnCommitSelected));
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
-        _loadGen.Bump();
         DiffVm.Dispose();
-        _subscriptions.Dispose();
-        _renderState.Dispose();
-        _selectedPath.Dispose();
-        _selectedTarget.Dispose();
+        base.Dispose();
     }
 
     public void SelectFile(string path)
     {
         if (string.IsNullOrEmpty(_currentSha)) return;
-        _selectedPath.Value = path;
-        _selectedTarget.Value = new DiffTarget(path, DiffSide.Commit, _currentSha);
+        Update(s => s with
+        {
+            SelectedPath = path,
+            SelectedTarget = new DiffTarget(path, DiffSide.Commit, _currentSha),
+        });
     }
 
     private void OnCommitSelected(CommitSelectedMessage msg)
     {
         if (string.IsNullOrEmpty(msg.Sha))
         {
-            _loadGen.Bump();
+            Gen.Bump();
             _currentSha = null;
-            _selectedPath.Value = null;
-            _selectedTarget.Value = null;
-            _renderState.Value = new CommitDetailsRenderState.Placeholder(DefaultPlaceholder);
+            Update(s => s with
+            {
+                SelectedPath = null,
+                SelectedTarget = null,
+                Render = new CommitDetailsRenderState.Placeholder(DefaultPlaceholder),
+            });
             return;
         }
         StartLoad(msg.RepoId, msg.Sha);
@@ -81,43 +87,31 @@ public sealed class CommitDetailsViewModel : IDisposable
         var repo = _registry.Active.Value;
         if (repo == null || repo.Id != repoId) return;
 
-        var gen = _loadGen.Bump();
         _currentSha = sha;
-        _selectedPath.Value = null;
-        _selectedTarget.Value = null;
-        _renderState.Value = new CommitDetailsRenderState.Placeholder(LoadingPlaceholder);
-
-        var service = _gitService;
-        var dispatcher = _dispatcher;
-        Task.Run(() =>
+        Update(s => s with
         {
-            CommitDetailsRenderState result;
-            try
-            {
-                var details = service.LoadDetails(repo, sha);
-                if (details.ErrorMessage != null)
-                {
-                    result = new CommitDetailsRenderState.Placeholder(details.ErrorMessage);
-                }
-                else
-                {
-                    var pointerChanges = service.GetSubmodulePointerChanges(repo, sha);
-                    if (pointerChanges.Count > 0)
-                        details = MergePointerChanges(details, pointerChanges);
-                    result = new CommitDetailsRenderState.Loaded(details);
-                }
-            }
-            catch (Exception ex)
-            {
-                result = new CommitDetailsRenderState.Placeholder(ex.Message);
-            }
-
-            dispatcher.Post(() =>
-            {
-                if (_loadGen.IsStale(gen)) return;
-                _renderState.Value = result;
-            });
+            SelectedPath = null,
+            SelectedTarget = null,
+            Render = new CommitDetailsRenderState.Placeholder(LoadingPlaceholder),
         });
+
+        RunBackground<CommitDetailsRenderState>(
+            work: () =>
+            {
+                var details = _gitService.LoadDetails(repo, sha);
+                if (details.ErrorMessage != null)
+                    return (new CommitDetailsRenderState.Placeholder(details.ErrorMessage), null);
+
+                var pointerChanges = _gitService.GetSubmodulePointerChanges(repo, sha);
+                if (pointerChanges.Count > 0)
+                    details = MergePointerChanges(details, pointerChanges);
+                return (new CommitDetailsRenderState.Loaded(details), null);
+            },
+            onResult: (result, error) =>
+                Update(s => s with
+                {
+                    Render = error != null ? new CommitDetailsRenderState.Placeholder(error) : result!,
+                }));
     }
 
     private static CommitDetails MergePointerChanges(CommitDetails details, IReadOnlyList<SubmodulePointerChange> changes)

@@ -11,7 +11,9 @@ public abstract record DiffRenderState
     public sealed record Loaded(DiffResult Result) : DiffRenderState;
 }
 
-public sealed class DiffViewModel : IDisposable
+internal sealed record DiffState(DiffRenderState Render, string? OpError);
+
+internal sealed class DiffViewModel : ViewModelBase<DiffState>
 {
     private const string EmptyPlaceholder = "Select a file to view diff.";
     private const string LoadingPlaceholder = "Loading…";
@@ -19,18 +21,11 @@ public sealed class DiffViewModel : IDisposable
     private readonly IReadable<DiffTarget?> _target;
     private readonly IRepoRegistry _registry;
     private readonly IGitService _gitService;
-    private readonly IUiDispatcher _dispatcher;
     private readonly IMessageBus _bus;
-    private readonly GenerationGuard _loadGen = new();
-    private readonly State<DiffRenderState> _renderState =
-        new(new DiffRenderState.Placeholder(EmptyPlaceholder));
-    private readonly State<string?> _opError = new(null);
-    private readonly IDisposable _targetSubscription;
-    private readonly IDisposable _workingTreeSubscription;
     private bool _deferReloadToWorkingTreeChange;
 
-    public IReadable<DiffRenderState> RenderState => _renderState;
-    public IReadable<string?> OpError => _opError;
+    public IReadable<DiffRenderState> RenderState { get; }
+    public IReadable<string?> OpError { get; }
 
     public DiffViewModel(
         IReadable<DiffTarget?> target,
@@ -38,18 +33,22 @@ public sealed class DiffViewModel : IDisposable
         IGitService gitService,
         IUiDispatcher dispatcher,
         IMessageBus bus)
+        : base(dispatcher, new DiffState(new DiffRenderState.Placeholder(EmptyPlaceholder), null))
     {
         _target = target;
         _registry = registry;
         _gitService = gitService;
-        _dispatcher = dispatcher;
         _bus = bus;
-        _targetSubscription = _target.Subscribe(_ =>
+
+        RenderState = Slice(s => s.Render);
+        OpError = Slice(s => s.OpError);
+
+        Subscriptions.Add(_target.Subscribe(_ =>
         {
             if (_deferReloadToWorkingTreeChange) return;
             StartLoad();
-        });
-        _workingTreeSubscription = _bus.SubscribeScoped<WorkingTreeChangedMessage>(OnWorkingTreeChanged);
+        }));
+        Subscriptions.Add(_bus.SubscribeScoped<WorkingTreeChangedMessage>(OnWorkingTreeChanged));
     }
 
     public void DeferReloadToWorkingTreeChange() => _deferReloadToWorkingTreeChange = true;
@@ -61,15 +60,6 @@ public sealed class DiffViewModel : IDisposable
         _deferReloadToWorkingTreeChange = false;
         if (_target.Value == null) return;
         StartLoad();
-    }
-
-    public void Dispose()
-    {
-        _loadGen.Bump();
-        _targetSubscription.Dispose();
-        _workingTreeSubscription.Dispose();
-        _renderState.Dispose();
-        _opError.Dispose();
     }
 
     public void StageHunk(int hunkIndex) => ApplyHunk(hunkIndex, cached: true, reverse: false);
@@ -106,18 +96,21 @@ public sealed class DiffViewModel : IDisposable
             var remainingHunks = new List<DiffHunk>(diff.Hunks.Count - 1);
             for (var i = 0; i < diff.Hunks.Count; i++)
                 if (i != hunkIndex) remainingHunks.Add(diff.Hunks[i]);
-            _renderState.Value = new DiffRenderState.Loaded(diff with { Hunks = remainingHunks });
+            Update(s => s with { Render = new DiffRenderState.Loaded(diff with { Hunks = remainingHunks }) });
         }
         else if (toSide.HasValue)
         {
-            _renderState.Value = new DiffRenderState.Placeholder(LoadingPlaceholder);
+            Update(s => s with { Render = new DiffRenderState.Placeholder(LoadingPlaceholder) });
         }
 
         _bus.Broadcast(new HunkAppliedOptimisticMessage(repo.Id, diff.Path, fromSide, toSide, isLastHunk));
 
+        // Intentionally unguarded: every apply must broadcast a working-tree change so the
+        // optimistic move (here and in LocalChangesViewModel) reconciles against the truth,
+        // so this op does not run through RunBackground's staleness drop.
         var service = _gitService;
         var bus = _bus;
-        var dispatcher = _dispatcher;
+        var dispatcher = Dispatcher;
         var repoId = repo.Id;
         var original = diff;
         Task.Run(() =>
@@ -130,16 +123,16 @@ public sealed class DiffViewModel : IDisposable
             {
                 if (error != null)
                 {
-                    _opError.Value = error;
+                    Update(s => s with { OpError = error });
                     // Roll back the optimistic diff state, and broadcast a working-tree
                     // change so LocalChangesViewModel re-syncs its lists against the truth
                     // (we may have optimistically moved the file in OnHunkAppliedOptimistic).
-                    if (_renderState.Value is DiffRenderState.Loaded)
-                        _renderState.Value = new DiffRenderState.Loaded(original);
+                    if (State.Value.Render is DiffRenderState.Loaded)
+                        Update(s => s with { Render = new DiffRenderState.Loaded(original) });
                     bus.Broadcast(new WorkingTreeChangedMessage(repoId));
                     return;
                 }
-                _opError.Value = null;
+                Update(s => s with { OpError = null });
                 bus.Broadcast(new WorkingTreeChangedMessage(repoId));
             });
         });
@@ -151,7 +144,7 @@ public sealed class DiffViewModel : IDisposable
         diff = null!;
         var active = _registry.Active.Value;
         if (active == null) return false;
-        if (_renderState.Value is not DiffRenderState.Loaded loaded) return false;
+        if (State.Value.Render is not DiffRenderState.Loaded loaded) return false;
         if (!HunkPatchBuilder.CanPatchHunk(loaded.Result)) return false;
         if (hunkIndex < 0 || hunkIndex >= loaded.Result.Hunks.Count) return false;
         repo = active;
@@ -161,44 +154,29 @@ public sealed class DiffViewModel : IDisposable
 
     private void StartLoad()
     {
-        var gen = _loadGen.Bump();
         var target = _target.Value;
-
         if (target == null)
         {
-            _renderState.Value = new DiffRenderState.Placeholder(EmptyPlaceholder);
+            Gen.Bump();
+            Update(s => s with { Render = new DiffRenderState.Placeholder(EmptyPlaceholder) });
             return;
         }
 
         var repo = _registry.Active.Value;
         if (repo == null) return;
 
-        if (_renderState.Value is not DiffRenderState.Loaded)
-            _renderState.Value = new DiffRenderState.Placeholder(LoadingPlaceholder);
+        if (State.Value.Render is not DiffRenderState.Loaded)
+            Update(s => s with { Render = new DiffRenderState.Placeholder(LoadingPlaceholder) });
 
-        var service = _gitService;
-        var dispatcher = _dispatcher;
         var path = target.Path;
         var side = target.Side;
         var commitSha = target.CommitSha;
-        Task.Run(() =>
-        {
-            DiffRenderState result;
-            try
-            {
-                var diff = service.GetDiff(repo, path, side, commitSha);
-                result = new DiffRenderState.Loaded(diff);
-            }
-            catch (Exception ex)
-            {
-                result = new DiffRenderState.Placeholder(ex.Message);
-            }
-
-            dispatcher.Post(() =>
-            {
-                if (_loadGen.IsStale(gen)) return;
-                _renderState.Value = result;
-            });
-        });
+        RunBackground<DiffRenderState>(
+            work: () => (new DiffRenderState.Loaded(_gitService.GetDiff(repo, path, side, commitSha)), null),
+            onResult: (result, error) =>
+                Update(s => s with
+                {
+                    Render = error != null ? new DiffRenderState.Placeholder(error) : result!,
+                }));
     }
 }

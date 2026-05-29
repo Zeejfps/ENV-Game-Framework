@@ -6,7 +6,7 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewModel>
+internal sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewModel>
 {
     private const int Padding = 14;
     private const float AvatarSize = 36f;

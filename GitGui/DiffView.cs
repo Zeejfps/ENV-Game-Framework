@@ -18,7 +18,7 @@ namespace GitGui;
 /// inside a <c>ScrollPane</c>, which forced O(N) text measurement on every layout pass for
 /// diffs of 5000 lines.
 /// </remarks>
-public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
+internal sealed class DiffView : MultiChildView, IBind<DiffViewModel>
 {
     // Height of the always-visible header strip. Exposed so the parent split container
     // can pin the bottom panel to exactly this height when the diff is collapsed, so the
