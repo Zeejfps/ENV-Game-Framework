@@ -40,6 +40,10 @@ internal sealed class CommitsViewModel : ViewModelBase<CommitsState>
     private Guid _loadingRepoId;
     private bool _isCheckingOutCommit;
 
+    // Lane for the reset probe/apply op. Serialized by _isCheckingOutCommit; kept off the
+    // default Gen lane so a repo-switch reload never drops an in-flight reset's result.
+    private readonly GenerationGuard _resetGen;
+
     public CommitsViewModel(
         IRepoRegistry registry,
         IGitService gitService,
@@ -50,6 +54,8 @@ internal sealed class CommitsViewModel : ViewModelBase<CommitsState>
         _registry = registry;
         _gitService = gitService;
         _bus = bus;
+
+        _resetGen = CreateLane();
 
         Render = Slice(s => s.Render);
         SelectedSha = Slice(s => s.SelectedSha);
@@ -98,81 +104,64 @@ internal sealed class CommitsViewModel : ViewModelBase<CommitsState>
         _isCheckingOutCommit = true;
         var capturedRepo = repo;
         var capturedSha = sha;
-        var service = _gitService;
-        var dispatcher = Dispatcher;
-        var bus = _bus;
 
-        Task.Run(() =>
-        {
-            int staged = 0;
-            int unstaged = 0;
-            string? probeError = null;
-            try
+        // All git I/O happens in work; onResult only dispatches UI. The probe decides between
+        // an immediate hard reset (clean tree) and prompting for the reset mode (dirty tree).
+        RunBackground<ResetProbe>(
+            work: () =>
             {
-                var changes = service.GetLocalChanges(capturedRepo);
+                var changes = _gitService.GetLocalChanges(capturedRepo);
                 if (changes.ErrorMessage != null)
+                    return (new ResetProbe.Failed(changes.ErrorMessage), null);
+
+                var staged = changes.Staged.Count;
+                var unstaged = changes.Unstaged.Count;
+                if (staged == 0 && unstaged == 0)
                 {
-                    probeError = changes.ErrorMessage;
+                    var outcome = _gitService.ResetCurrent(capturedRepo, capturedSha, ResetMode.Hard);
+                    return (new ResetProbe.CleanReset(outcome.Success, outcome.ErrorMessage), null);
                 }
-                else
-                {
-                    staged = changes.Staged.Count;
-                    unstaged = changes.Unstaged.Count;
-                }
-            }
-            catch (Exception ex)
-            {
-                probeError = ex.Message;
-            }
-
-            if (probeError != null)
-            {
-                dispatcher.Post(() =>
-                {
-                    _isCheckingOutCommit = false;
-                    bus.Broadcast(new ShowOperationErrorMessage("Reset failed", probeError));
-                });
-                return;
-            }
-
-            var clean = staged == 0 && unstaged == 0;
-            if (clean)
-            {
-                ResetOutcome outcome;
-                try { outcome = service.ResetCurrent(capturedRepo, capturedSha, ResetMode.Hard); }
-                catch (Exception ex) { outcome = new ResetOutcome(false, ex.Message); }
-
-                dispatcher.Post(() =>
-                {
-                    _isCheckingOutCommit = false;
-                    if (outcome.Success)
-                    {
-                        bus.Broadcast(new RefsChangedMessage(capturedRepo.Id));
-                        bus.Broadcast(new WorkingTreeChangedMessage(capturedRepo.Id));
-                    }
-                    else
-                    {
-                        bus.Broadcast(new ShowOperationErrorMessage(
-                            "Reset failed",
-                            outcome.ErrorMessage ?? "Reset failed."));
-                    }
-                });
-                return;
-            }
-
-            var shortSha = capturedSha.Length >= 7 ? capturedSha[..7] : capturedSha;
-            var capturedStaged = staged;
-            var capturedUnstaged = unstaged;
-            var capturedSummary = LookupSummary(snap, capturedSha) ?? string.Empty;
-            var capturedBranch = snap.HeadBranchName;
-            dispatcher.Post(() =>
+                return (new ResetProbe.NeedsDialog(staged, unstaged), null);
+            },
+            onResult: (probe, error) =>
             {
                 _isCheckingOutCommit = false;
-                bus.Broadcast(new ShowDialogMessage(onClose => new ResetCommitDialog(
-                    capturedRepo, capturedSha, shortSha, capturedSummary, capturedBranch,
-                    capturedStaged, capturedUnstaged, onClose)));
-            });
-        });
+                if (error != null)
+                {
+                    _bus.Broadcast(new ShowOperationErrorMessage("Reset failed", error));
+                    return;
+                }
+                switch (probe)
+                {
+                    case ResetProbe.Failed f:
+                        _bus.Broadcast(new ShowOperationErrorMessage("Reset failed", f.Message));
+                        break;
+                    case ResetProbe.CleanReset c when c.Success:
+                        _bus.Broadcast(new RefsChangedMessage(capturedRepo.Id));
+                        _bus.Broadcast(new WorkingTreeChangedMessage(capturedRepo.Id));
+                        break;
+                    case ResetProbe.CleanReset c:
+                        _bus.Broadcast(new ShowOperationErrorMessage(
+                            "Reset failed", c.Error ?? "Reset failed."));
+                        break;
+                    case ResetProbe.NeedsDialog d:
+                        var shortSha = capturedSha.Length >= 7 ? capturedSha[..7] : capturedSha;
+                        var summary = LookupSummary(snap, capturedSha) ?? string.Empty;
+                        _bus.Broadcast(new ShowDialogMessage(onClose => new ResetCommitDialog(
+                            capturedRepo, capturedSha, shortSha, summary, snap.HeadBranchName,
+                            d.Staged, d.Unstaged, onClose)));
+                        break;
+                }
+            },
+            lane: _resetGen);
+    }
+
+    // Outcome of the off-thread reset probe, handed from work to onResult above.
+    private abstract record ResetProbe
+    {
+        public sealed record Failed(string Message) : ResetProbe;
+        public sealed record CleanReset(bool Success, string? Error) : ResetProbe;
+        public sealed record NeedsDialog(int Staged, int Unstaged) : ResetProbe;
     }
 
     // ---- loading ----

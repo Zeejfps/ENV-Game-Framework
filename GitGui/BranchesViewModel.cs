@@ -41,6 +41,13 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
     // existing presenter treated it that way. Don't fold it into IsBranchOpInFlight.
     private bool _isStashApplying;
 
+    // Op lanes for the mutating commands. Checkout and fast-forward share one lane because
+    // BusyBranch already serializes them; stash apply has its own (it runs independently of
+    // branch ops). They are deliberately separate from the default Gen lane, which is only
+    // bumped by loads/repo-switch — a mutation must still report its result after a switch.
+    private readonly GenerationGuard _branchOpGen;
+    private readonly GenerationGuard _stashGen;
+
     public BranchesViewModel(
         IRepoRegistry registry,
         IGitService gitService,
@@ -53,6 +60,9 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
         _gitService = gitService;
         _bus = bus;
         _mode = mode;
+
+        _branchOpGen = CreateLane();
+        _stashGen = CreateLane();
 
         Listing = Slice(s => s.Listing);
         Ui = Slice(s => s.Ui);
@@ -327,33 +337,25 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
 
         _isStashApplying = true;
 
-        var service = _gitService;
-        var dispatcher = Dispatcher;
-        var bus = _bus;
-
-        Task.Run(() =>
-        {
-            StashOutcome outcome;
-            try { outcome = service.ApplyStash(repo, index); }
-            catch (Exception ex) { outcome = new StashOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
+        RunBackground<StashOutcome>(
+            work: () => (_gitService.ApplyStash(repo, index), null),
+            onResult: (outcome, error) =>
             {
                 _isStashApplying = false;
-                if (!outcome.Success)
+                if (error != null || !outcome!.Success)
                 {
-                    bus.Broadcast(new ShowOperationErrorMessage(
+                    _bus.Broadcast(new ShowOperationErrorMessage(
                         "Stash apply failed",
-                        outcome.ErrorMessage ?? "Stash apply failed."));
+                        (error ?? outcome?.ErrorMessage) ?? "Stash apply failed."));
                     return;
                 }
-                bus.Broadcast(new RefsChangedMessage(repo.Id));
-                bus.Broadcast(new WorkingTreeChangedMessage(repo.Id));
+                _bus.Broadcast(new RefsChangedMessage(repo.Id));
+                _bus.Broadcast(new WorkingTreeChangedMessage(repo.Id));
                 if (outcome.HasConflicts) return;
-                bus.Broadcast(new ShowDialogMessage(onClose => new DropStashDialog(
+                _bus.Broadcast(new ShowDialogMessage(onClose => new DropStashDialog(
                     repo, index, label, subject, onClose)));
-            });
-        });
+            },
+            lane: _stashGen);
     }
 
     private bool LocalBranchExists(string name)
@@ -373,27 +375,19 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
 
         Update(s => s with { BusyBranch = branchName });
 
-        var service = _gitService;
-        var dispatcher = Dispatcher;
-        var bus = _bus;
-
-        Task.Run(() =>
-        {
-            CheckoutOutcome outcome;
-            try { outcome = service.CheckoutLocalBranch(repo, branchName); }
-            catch (Exception ex) { outcome = new CheckoutOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
+        RunBackground<CheckoutOutcome>(
+            work: () => (_gitService.CheckoutLocalBranch(repo, branchName), null),
+            onResult: (outcome, error) =>
             {
                 Update(s => s with { BusyBranch = null });
-                if (outcome.Success)
-                    bus.Broadcast(new RefsChangedMessage(repo.Id));
+                if (error == null && outcome!.Success)
+                    _bus.Broadcast(new RefsChangedMessage(repo.Id));
                 else
-                    bus.Broadcast(new ShowOperationErrorMessage(
+                    _bus.Broadcast(new ShowOperationErrorMessage(
                         "Checkout failed",
-                        outcome.ErrorMessage ?? "Checkout failed."));
-            });
-        });
+                        (error ?? outcome?.ErrorMessage) ?? "Checkout failed."));
+            },
+            lane: _branchOpGen);
     }
 
     private void StartFastForwardLocal(string branchName, string remoteName, string remoteBranch)
@@ -404,7 +398,6 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
 
         Update(s => s with { BusyBranch = branchName });
 
-        var service = _gitService;
         var dispatcher = Dispatcher;
         var bus = _bus;
 
@@ -414,6 +407,9 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
             $"Fast-forward {branchName} ← {remoteName}/{remoteBranch}",
             LucideIcons.Pull));
 
+        // Progress streams on a side-channel: the worker posts each git line straight to the
+        // operations presenter. It is intentionally unguarded — RunBackground's lane only
+        // gates the single terminal result below.
         void OnLineFromWorker(string line)
         {
             dispatcher.Post(() =>
@@ -423,24 +419,22 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
             });
         }
 
-        Task.Run(() =>
-        {
-            FastForwardOutcome outcome;
-            try { outcome = service.FastForwardBranch(repo, branchName, remoteName, remoteBranch, OnLineFromWorker); }
-            catch (Exception ex) { outcome = new FastForwardOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
+        RunBackground<FastForwardOutcome>(
+            work: () => (_gitService.FastForwardBranch(repo, branchName, remoteName, remoteBranch, OnLineFromWorker), null),
+            onResult: (outcome, error) =>
             {
                 Update(s => s with { BusyBranch = null });
-                bus.Broadcast(new OperationFinishedMessage(opId, outcome.Success, outcome.ErrorMessage));
-                if (outcome.Success)
+                var success = error == null && outcome!.Success;
+                var errorMessage = error ?? outcome?.ErrorMessage;
+                bus.Broadcast(new OperationFinishedMessage(opId, success, errorMessage));
+                if (success)
                     bus.Broadcast(new RefsChangedMessage(repo.Id));
                 else
                     bus.Broadcast(new ShowOperationErrorMessage(
                         "Fast-forward failed",
-                        outcome.ErrorMessage ?? "Fast-forward failed."));
-            });
-        });
+                        errorMessage ?? "Fast-forward failed."));
+            },
+            lane: _branchOpGen);
     }
 
     // ---- context menu items (semantic, keyed on the row's identity) ----
