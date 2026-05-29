@@ -8,7 +8,12 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
     private readonly TextInputView _textInput;
 
     public bool IsMultiLine { get; set; }
-    
+
+    public int DoubleClickThresholdMs { get; set; } = 400;
+
+    private bool _hasLastClick;
+    private int _lastClickTickMs;
+
     public BaseTextInputKbmController(TextInputView textInput)
     {
         _textInput = textInput;
@@ -55,6 +60,7 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
             {
                 _textInput.StopEditing();
                 inputSystem?.Blur(this);
+                _hasLastClick = false;
                 return;
             }
 
@@ -63,7 +69,21 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
                 _textInput.StartEditing();
                 inputSystem?.StealFocus(this);
             }
-            
+
+            var now = Environment.TickCount;
+            var isDoubleClick = _hasLastClick
+                && unchecked(now - _lastClickTickMs) <= DoubleClickThresholdMs;
+            if (isDoubleClick)
+            {
+                _textInput.SelectAll();
+                _hasLastClick = false;
+                e.Consume();
+                return;
+            }
+
+            _lastClickTickMs = now;
+            _hasLastClick = true;
+
             var mousePoint = e.Mouse.Point;
             _textInput.MoveCaretTo(mousePoint);
             e.Consume();

@@ -390,7 +390,7 @@ public sealed class TextInputView : MultiChildView
         var width = position.Width - minTextWidth;
 
         startIndex = min;
-        for (var i = min; i < max; i++)
+        for (var i = min; i < max && TextWrap == Gui.TextWrap.Wrap; i++)
         {
             if (_buffer[i] == '\n' || ShouldWrap(startIndex, i+1, c, width))
             {
