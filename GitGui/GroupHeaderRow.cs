@@ -56,15 +56,43 @@ internal sealed class GroupHeaderRow : MultiChildView, IBind<GroupHeaderRowViewM
 
         _nameSlot.BindChildren(
             () => new[] { vm.IsRenaming.Value },
-            vm.CreateNameContent);
+            isRenaming => CreateNameContent(vm, isRenaming));
 
         this.UseController(ctx => new GroupHeaderController(
             this, ctx,
             vm.Group,
             h => _isHovered.Value = h,
-            _ => vm.BuildMenuItems(),
+            _ => BuildMenuItems(vm),
             () => vm.IsRenaming.Value,
             vm.ToggleCollapsed.Execute));
+    }
+
+    private View CreateNameContent(GroupHeaderRowViewModel vm, bool isRenaming)
+    {
+        if (isRenaming) return new GroupRenameField(vm.Group, Context!.Get<IRepoRegistry>()!);
+
+        var name = new TextView
+        {
+            Text = vm.Group.Name,
+            HorizontalTextAlignment = TextAlignment.Start,
+            VerticalTextAlignment = TextAlignment.Center,
+        };
+        name.BindThemedTextColor(s => s.GroupHeaderRow.NameText);
+        return name;
+    }
+
+    private static IReadOnlyList<RepoBarContextMenu.Item> BuildMenuItems(GroupHeaderRowViewModel vm)
+    {
+        var items = new List<RepoBarContextMenu.Item>
+        {
+            new("Rename group", vm.BeginRename.Execute, LucideIcons.PencilLine),
+        };
+
+        if (vm.CanDelete)
+            items.Add(new RepoBarContextMenu.Item("Delete group", vm.Delete.Execute, LucideIcons.Trash));
+
+        items.Add(new RepoBarContextMenu.Item("New group", vm.NewGroup.Execute, LucideIcons.FolderPlus));
+        return items;
     }
 
     private static string ChevronFor(bool isCollapsed) => isCollapsed ? LucideIcons.ChevronRight : LucideIcons.ChevronDown;
