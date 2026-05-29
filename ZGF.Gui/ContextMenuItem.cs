@@ -34,7 +34,8 @@ public sealed class ContextMenuItem : MultiChildView
     private readonly ImageView _arrowIcon;
     private readonly TextView _iconView;
     private readonly TextView _textView;
-    private RowView _row = null!;
+    private readonly TextView _shortcutView;
+    private FlexRowView _row = null!;
     private MultiChildView _labelView = null!;
 
     public string? Text
@@ -92,6 +93,63 @@ public sealed class ContextMenuItem : MultiChildView
     {
         get => _bg.BorderColor;
         set => _bg.BorderColor = value;
+    }
+
+    // Accelerator hint (e.g. "Enter", "Delete") shown just after the label. Null/empty
+    // hides it so plain items keep their tight, content-sized width.
+    private string? _shortcut;
+    public string? Shortcut
+    {
+        get => _shortcut;
+        set
+        {
+            _shortcut = value;
+            _shortcutView.Text = value;
+            var hasShortcut = !string.IsNullOrEmpty(value);
+            var isInRow = _row.Children.Contains(_shortcutView);
+            if (hasShortcut && !isInRow)
+            {
+                var insertAt = IndexInRow(_arrowIcon);
+                if (insertAt < 0) insertAt = _row.Children.Count;
+                _row.Children.Insert(insertAt, _shortcutView);
+            }
+            else if (!hasShortcut && isInRow)
+            {
+                _row.Children.Remove(_shortcutView);
+            }
+        }
+    }
+
+    private StyleValue<uint> _shortcutColor = 0x80B5B9C0;
+    public StyleValue<uint> ShortcutColor
+    {
+        get => _shortcutColor;
+        set
+        {
+            _shortcutColor = value;
+            _shortcutView.TextColor = value;
+        }
+    }
+
+    public bool HasShortcut => !string.IsNullOrEmpty(_shortcut);
+
+    // Intrinsic label width with any column override removed, so the owning menu can find
+    // the widest label among shortcut items and align them all into one shortcut column.
+    public float MeasureLabelWidth()
+    {
+        _labelView.Width = StyleValue<float>.Unset;
+        return _labelView.MeasureWidth();
+    }
+
+    // Fixes the label cell to a shared width so shortcuts line up in a column rather than
+    // hugging each individual label.
+    public void SetLabelColumnWidth(float width) => _labelView.Width = width;
+
+    private int IndexInRow(View child)
+    {
+        for (var i = 0; i < _row.Children.Count; i++)
+            if (ReferenceEquals(_row.Children[i], child)) return i;
+        return -1;
     }
 
     private bool _isEnabled = true;
@@ -200,10 +258,18 @@ public sealed class ContextMenuItem : MultiChildView
             VerticalTextAlignment = TextAlignment.Center,
         };
 
+        _shortcutView = new TextView
+        {
+            VerticalTextAlignment = TextAlignment.Center,
+            HorizontalTextAlignment = TextAlignment.Start,
+            TextColor = _shortcutColor,
+        };
+
         _labelView = _textView;
-        _row = new RowView
+        _row = new FlexRowView
         {
             Gap = 6,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
                 _iconView,

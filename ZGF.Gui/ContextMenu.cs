@@ -59,8 +59,31 @@ public sealed class ContextMenu : MultiChildView
 
     protected override void OnLayoutSelf()
     {
+        AlignShortcutColumn();
         var width = MeasureWidth();
         var height = MeasureHeight(width);
         Position = new RectF { Left = 0, Bottom = 0, Width = width, Height = height };
+    }
+
+    // Gap reserved between the label column and the shortcut column so long labels don't
+    // crowd their shortcut hints.
+    private const float ShortcutColumnGap = 32f;
+
+    // Gives every item that carries a shortcut the same label-cell width — the widest label
+    // among them plus a fixed gap — so their shortcut hints line up in a single column.
+    private void AlignShortcutColumn()
+    {
+        var maxLabel = 0f;
+        foreach (var child in Children)
+            if (child is ContextMenuItem { HasShortcut: true } item)
+            {
+                var w = item.MeasureLabelWidth();
+                if (w > maxLabel) maxLabel = w;
+            }
+        if (maxLabel <= 0f) return;
+        var columnWidth = maxLabel + ShortcutColumnGap;
+        foreach (var child in Children)
+            if (child is ContextMenuItem { HasShortcut: true } item)
+                item.SetLabelColumnWidth(columnWidth);
     }
 }

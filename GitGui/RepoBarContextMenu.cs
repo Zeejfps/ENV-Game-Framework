@@ -16,7 +16,8 @@ public static class RepoBarContextMenu
         string? Icon = null,
         bool Enabled = true,
         IReadOnlyList<MenuLabelSegment>? LabelSegments = null,
-        bool IsSeparator = false);
+        bool IsSeparator = false,
+        string? Shortcut = null);
 
     public static readonly Item Separator = new(string.Empty, static () => { }, IsSeparator: true);
 
@@ -56,12 +57,14 @@ public static class RepoBarContextMenu
                 IconFontFamily = LucideIcons.FontFamily,
                 NormalBackgroundColor = 0x00000000,
                 IsEnabled = item.Enabled,
+                Shortcut = item.Shortcut,
             };
             menuItem.BindThemed(s =>
             {
                 menuItem.SelectedBackgroundColor = s.ContextMenu.ItemSelectedBackground;
                 menuItem.TextColor = s.ContextMenu.ItemText;
                 menuItem.DisabledTextColor = s.ContextMenu.ItemTextDisabled;
+                menuItem.ShortcutColor = s.ContextMenu.ItemTextDisabled;
             });
 
             if (item.LabelSegments is { Count: > 0 } segs)

@@ -16,12 +16,21 @@ internal sealed class LocalChangesArrowKbmController : KeyboardMouseController
     private readonly View _view;
     private readonly Action<int, bool> _onMove;
     private readonly Action<bool> _onExpand;
+    private readonly Action _onActivate;
+    private readonly Action _onDelete;
 
-    public LocalChangesArrowKbmController(View view, Action<int, bool> onMove, Action<bool> onExpand)
+    public LocalChangesArrowKbmController(
+        View view,
+        Action<int, bool> onMove,
+        Action<bool> onExpand,
+        Action onActivate,
+        Action onDelete)
     {
         _view = view;
         _onMove = onMove;
         _onExpand = onExpand;
+        _onActivate = onActivate;
+        _onDelete = onDelete;
     }
 
     public void TakeFocus()
@@ -51,6 +60,16 @@ internal sealed class LocalChangesArrowKbmController : KeyboardMouseController
         else if (e.Key == KeyboardKey.LeftArrow)
         {
             _onExpand(false);
+            e.Consume();
+        }
+        else if (e.Key is KeyboardKey.Enter or KeyboardKey.NumpadEnter)
+        {
+            _onActivate();
+            e.Consume();
+        }
+        else if (e.Key == KeyboardKey.Delete)
+        {
+            _onDelete();
             e.Consume();
         }
     }

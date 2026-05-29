@@ -120,7 +120,9 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             _arrowController = new LocalChangesArrowKbmController(
                 this,
                 (delta, extend) => _vm?.MoveSelection(delta, extend),
-                expand => _vm?.SetCursorFolderExpanded(expand));
+                expand => _vm?.SetCursorFolderExpanded(expand),
+                OnActivateSelection,
+                OnDeleteSelection);
             return _arrowController;
         });
     }
@@ -201,6 +203,25 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
 
     private void OnFolderToggle(FileRow row) => _vm?.ToggleFolder(row.Side, row.FullPath);
 
+    // Enter stages the selection from the unstaged side and unstages it from the staged
+    // side — mirroring the double-click activation. The commands are side-gated, so an
+    // empty or wrong-side selection is a no-op.
+    private void OnActivateSelection()
+    {
+        switch (_vm?.Selection.Value.Side)
+        {
+            case DiffSide.Unstaged: _vm.StageSelected.Execute(); break;
+            case DiffSide.Staged: _vm.UnstageSelected.Execute(); break;
+        }
+    }
+
+    // Delete discards the unstaged selection (routes through the confirm dialog). Staged
+    // rows have nothing to discard, so it's a no-op there.
+    private void OnDeleteSelection()
+    {
+        if (_vm?.Selection.Value.Side == DiffSide.Unstaged) _vm.Discard.Execute();
+    }
+
     // Double-click stages/unstages a file. Folders toggle via the chevron and arrow keys
     // only — toggling here too would fight the chevron's per-click toggle and flip the
     // folder an unpredictable number of times.
@@ -225,11 +246,13 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             items.Add(new RepoBarContextMenu.Item(
                 n > 1 ? $"Stage {n} Files" : "Stage",
                 () => _vm.Stage(paths),
-                LucideIcons.ChevronRight));
+                LucideIcons.ChevronRight,
+                Shortcut: "Enter"));
             items.Add(new RepoBarContextMenu.Item(
                 n > 1 ? $"Discard {n} Files…" : "Discard…",
                 () => _vm.RequestDiscard(paths),
-                LucideIcons.Trash));
+                LucideIcons.Trash,
+                Shortcut: "Delete"));
             items.Add(new RepoBarContextMenu.Item(
                 n > 1 ? $"Stash {n} Files" : "Stash",
                 () => _vm.StashSelected(paths),
@@ -261,7 +284,8 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
             items.Add(new RepoBarContextMenu.Item(
                 n > 1 ? $"Unstage {n} Files" : "Unstage",
                 () => _vm.Unstage(paths),
-                LucideIcons.ChevronLeft));
+                LucideIcons.ChevronLeft,
+                Shortcut: "Enter"));
             AppendFileUtilityItems(items, target);
             items.Add(RepoBarContextMenu.Separator);
         }
