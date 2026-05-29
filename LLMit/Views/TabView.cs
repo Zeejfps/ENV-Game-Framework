@@ -35,7 +35,7 @@ public sealed class TabView : MultiChildView
 
     public TabView()
     {
-        PreferredWidth = 150;
+        Width = 150;
 
         _text = new TextView
         {

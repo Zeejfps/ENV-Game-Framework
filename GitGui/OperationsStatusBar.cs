@@ -36,7 +36,7 @@ internal sealed class OperationsStatusBar
         {
             BorderSize = new BorderSizeStyle { Bottom = 1 },
             Padding = new PaddingStyle { Left = 12, Right = 12, Top = 6, Bottom = 6 },
-            PreferredHeight = 160f,
+            Height = 160f,
             Children = { _logText },
         };
         _logPanel.BindThemedBackgroundColor(s => s.OperationsStatusBar.LogBackground);

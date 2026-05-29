@@ -8,8 +8,8 @@ public sealed class DialogCloseButton : HoverableButton
     public DialogCloseButton(Action onClick, string? tooltip = "Close")
         : base(onClick, tooltip)
     {
-        PreferredWidth = 28;
-        PreferredHeight = 28;
+        Width = 28;
+        Height = 28;
 
         var label = new TextView
         {

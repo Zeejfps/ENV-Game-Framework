@@ -11,7 +11,7 @@ public sealed class ProgressBarView : RectView
     {
         BackgroundColor = 0xFF2A2C30;
         BorderRadius = BorderRadiusStyle.All(2);
-        PreferredHeight = 4f;
+        Height = 4f;
 
         _fill = new RectView
         {

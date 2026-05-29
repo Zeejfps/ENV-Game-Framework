@@ -33,7 +33,7 @@ internal sealed class RebaseBranchDialog : MultiChildView, IBind<RebaseBranchDia
 
         _autostashCheckbox = new CheckboxView("Stash and reapply local changes")
         {
-            PreferredHeight = 24,
+            Height = 24,
         };
         var autostashRow = BuildLabeledRow("", _autostashCheckbox);
 
@@ -63,8 +63,8 @@ internal sealed class RebaseBranchDialog : MultiChildView, IBind<RebaseBranchDia
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
-        _rebaseButton = new DialogButton("Rebase") { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
+        _rebaseButton = new DialogButton("Rebase") { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
 
         var buttonsRow = new FlexRowView
         {
@@ -89,7 +89,7 @@ internal sealed class RebaseBranchDialog : MultiChildView, IBind<RebaseBranchDia
                 ontoRow,
                 autostashRow,
                 _errorView,
-                new MultiChildView { PreferredHeight = 4 },
+                new MultiChildView { Height = 4 },
                 buttonsRow,
             },
         }));
@@ -128,7 +128,7 @@ internal sealed class RebaseBranchDialog : MultiChildView, IBind<RebaseBranchDia
         labelText.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
         var labelColumn = new FlexRowView
         {
-            PreferredWidth = 110,
+            Width = 110,
             MainAxisAlignment = MainAxisAlignment.End,
             CrossAxisAlignment = CrossAxisAlignment.Center,
             Children = { labelText },
@@ -137,7 +137,7 @@ internal sealed class RebaseBranchDialog : MultiChildView, IBind<RebaseBranchDia
         {
             Gap = 10,
             CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
+            Height = 28,
             Children =
             {
                 labelColumn,

@@ -32,7 +32,7 @@ internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialo
         int unstagedCount,
         Action onClose)
     {
-        PreferredWidth = 560f;
+        Width = 560f;
 
         _onClose = onClose;
 
@@ -54,8 +54,8 @@ internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialo
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
-        _resetButton = new DialogButton("Reset") { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
+        _resetButton = new DialogButton("Reset") { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
 
         var buttonsRow = new FlexRowView
         {
@@ -81,7 +81,7 @@ internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialo
                 moveToRow,
                 modeRow,
                 _errorView,
-                new MultiChildView { PreferredHeight = 4 },
+                new MultiChildView { Height = 4 },
                 buttonsRow,
             },
         }));
@@ -116,7 +116,7 @@ internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialo
         labelText.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
         var labelColumn = new FlexRowView
         {
-            PreferredWidth = 90,
+            Width = 90,
             MainAxisAlignment = MainAxisAlignment.End,
             CrossAxisAlignment = CrossAxisAlignment.Center,
             Children = { labelText },
@@ -125,7 +125,7 @@ internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialo
         {
             Gap = 10,
             CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 30,
+            Height = 30,
             Children =
             {
                 labelColumn,
@@ -142,7 +142,7 @@ internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialo
             FontFamily = LucideIcons.FontFamily,
             FontSize = 14,
             VerticalTextAlignment = TextAlignment.Center,
-            PreferredWidth = 16,
+            Width = 16,
         };
         icon.BindThemedTextColor(s => s.DialogBody.BodyText);
 
@@ -168,7 +168,7 @@ internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialo
             FontSize = 10,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
-            PreferredWidth = 16,
+            Width = 16,
         };
         dot.BindThemedTextColor(s => s.DialogBody.BodyText);
 
@@ -233,7 +233,7 @@ internal sealed class ResetModeDropdown : HoverableButton
 
     public ResetModeDropdown()
     {
-        PreferredHeight = 30;
+        Height = 30;
 
         _dotView = new TextView
         {
@@ -242,7 +242,7 @@ internal sealed class ResetModeDropdown : HoverableButton
             TextColor = LookupColor(ResetMode.Mixed),
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
-            PreferredWidth = 14,
+            Width = 14,
         };
         _labelView = new TextView
         {
@@ -266,7 +266,7 @@ internal sealed class ResetModeDropdown : HoverableButton
             FontSize = 12,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
-            PreferredWidth = 16,
+            Width = 16,
         };
         chevron.BindThemedTextColor(s => s.DialogBody.RowText);
 

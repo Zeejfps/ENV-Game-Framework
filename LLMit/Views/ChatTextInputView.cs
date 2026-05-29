@@ -14,7 +14,7 @@ public sealed class ChatTextInputView : MultiChildView
     {
         _textInput = new TextInputView
         {
-            PreferredWidth = 500,
+            Width = 500,
             TextWrap = TextWrap.Wrap,
             TextColor = 0xFFA6A6A6,
             CaretColor = 0xFFA6A6A6,

@@ -22,8 +22,8 @@ public sealed class FlexColumnView : MultiChildView
 
     public override float MeasureHeight(float availableWidth)
     {
-        if (PreferredHeight.IsSet)
-            return PreferredHeight;
+        if (Height.IsSet)
+            return Height;
 
         var totalHeight = 0f;
         var visibleCount = 0;

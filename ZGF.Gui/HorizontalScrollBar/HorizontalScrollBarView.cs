@@ -35,7 +35,7 @@ public sealed class HorizontalScrollBarView : MultiChildView
 
     public HorizontalScrollBarView()
     {
-        PreferredHeight = 12;
+        Height = 12;
 
         _thumbView = new HorizontalScrollBarThumbView();
 

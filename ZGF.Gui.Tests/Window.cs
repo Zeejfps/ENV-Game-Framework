@@ -21,7 +21,7 @@ public sealed class Window : MultiChildView
 
         var leftBorder = new RectView
         {
-            PreferredWidth = 4f,
+            Width = 4f,
             BackgroundColor = 0xFFCECECE,
             BorderColor = new BorderColorStyle
             {
@@ -35,7 +35,7 @@ public sealed class Window : MultiChildView
         
         var rightBorder = new RectView
         {
-            PreferredWidth = 4f,
+            Width = 4f,
             BackgroundColor = 0xFFCECECE,
             BorderColor = new BorderColorStyle
             {
@@ -49,7 +49,7 @@ public sealed class Window : MultiChildView
         
         var bottomBorder = new RectView
         {
-            PreferredHeight = 4f,
+            Height = 4f,
             BackgroundColor = 0xFFCECECE,
             BorderColor = new BorderColorStyle
             {

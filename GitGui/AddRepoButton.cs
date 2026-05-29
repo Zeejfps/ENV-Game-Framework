@@ -7,7 +7,7 @@ public sealed class AddRepoButton : HoverableButton
 {
     public AddRepoButton()
     {
-        PreferredHeight = 30;
+        Height = 30;
 
         var label = new TextView
         {

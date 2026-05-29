@@ -88,13 +88,13 @@ public abstract class View
     public StyleValue<float> RightConstraint => LeftConstraint + WidthConstraint;
     public StyleValue<float> TopConstraint => BottomConstraint + HeightConstraint;
 
-    public StyleValue<float> PreferredWidth
+    public StyleValue<float> Width
     {
         get;
         set => SetField(ref field, value);
     }
 
-    public StyleValue<float> PreferredHeight
+    public StyleValue<float> Height
     {
         get;
         set => SetField(ref field, value);
@@ -379,12 +379,12 @@ public abstract class View
     {
         if (style.PreferredWidth.IsSet)
         {
-            PreferredWidth = style.PreferredWidth;
+            Width = style.PreferredWidth;
         }
 
         if (style.PreferredHeight.IsSet)
         {
-            PreferredHeight = style.PreferredHeight;
+            Height = style.PreferredHeight;
         }
     }
 
@@ -450,9 +450,9 @@ public abstract class View
     protected virtual void OnLayoutSelf()
     {
         float width;
-        if (PreferredWidth.IsSet)
+        if (Width.IsSet)
         {
-            width = PreferredWidth;
+            width = Width;
         }
         else if (WidthConstraint.IsSet)
         {
@@ -466,9 +466,9 @@ public abstract class View
         }
 
         float height;
-        if (PreferredHeight.IsSet)
+        if (Height.IsSet)
         {
-            height = PreferredHeight;
+            height = Height;
         }
         else if (HeightConstraint.IsSet)
         {
@@ -481,9 +481,9 @@ public abstract class View
             {
                 availableWidth = WidthConstraint;
             }
-            else if (PreferredWidth.IsSet)
+            else if (Width.IsSet)
             {
-                availableWidth = PreferredWidth;
+                availableWidth = Width;
             }
             else
             {
@@ -527,9 +527,9 @@ public abstract class View
 
     public virtual float MeasureWidth()
     {
-        if (PreferredWidth.IsSet)
+        if (Width.IsSet)
         {
-            return PreferredWidth;
+            return Width;
         }
         
         return MeasureChildrenWidth();
@@ -565,9 +565,9 @@ public abstract class View
     /// </summary>
     public virtual float MeasureHeight(float availableWidth)
     {
-        if (PreferredHeight.IsSet)
+        if (Height.IsSet)
         {
-            return PreferredHeight;
+            return Height;
         }
 
         return MeasureChildrenHeight(availableWidth);

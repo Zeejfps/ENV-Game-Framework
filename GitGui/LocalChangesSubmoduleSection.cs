@@ -65,8 +65,8 @@ internal sealed class LocalChangesSubmoduleSection : MultiChildView
 
         var badge = new RectView
         {
-            PreferredWidth = FileChangesUI.BadgeSize,
-            PreferredHeight = FileChangesUI.BadgeSize,
+            Width = FileChangesUI.BadgeSize,
+            Height = FileChangesUI.BadgeSize,
             BorderRadius = BorderRadiusStyle.All(3),
             Children = { badgeText },
         };

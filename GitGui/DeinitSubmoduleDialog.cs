@@ -20,7 +20,7 @@ internal sealed class DeinitSubmoduleDialog : MultiChildView, IBind<DeinitSubmod
 
     public DeinitSubmoduleDialog(Repo primary, Repo submodule, Action onClose)
     {
-        PreferredWidth = DialogWidth;
+        Width = DialogWidth;
         _onClose = onClose;
 
         var prompt = new TextView
@@ -38,13 +38,13 @@ internal sealed class DeinitSubmoduleDialog : MultiChildView, IBind<DeinitSubmod
 
         _forceCheckbox = new CheckboxView("Deinit even if dirty")
         {
-            PreferredHeight = 22,
+            Height = 22,
         };
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _deinitButton = new DialogButton("Deinit") { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _deinitButton = new DialogButton("Deinit") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Deinit submodule", onClose, new FlexColumnView
         {
@@ -56,7 +56,7 @@ internal sealed class DeinitSubmoduleDialog : MultiChildView, IBind<DeinitSubmod
                 detail,
                 _forceCheckbox,
                 _errorView,
-                new MultiChildView { PreferredHeight = 4 },
+                new MultiChildView { Height = 4 },
                 DialogFrame.ButtonsRow(cancelButton, _deinitButton),
             },
         }));

@@ -28,7 +28,7 @@ internal sealed class OperationRow : HoverableButton
             FontSize = 14,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
-            PreferredWidth = 18,
+            Width = 18,
         };
         iconView.BindThemedTextColor(s => s.OperationRow.IconText);
 
@@ -45,14 +45,14 @@ internal sealed class OperationRow : HoverableButton
             VerticalTextAlignment = TextAlignment.Center,
         };
 
-        _bar = new ProgressBarView { PreferredWidth = 120f };
+        _bar = new ProgressBarView { Width = 120f };
 
         _elapsed = new TextView
         {
             Text = "0s",
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.End,
-            PreferredWidth = 36,
+            Width = 36,
         };
         _elapsed.BindThemedTextColor(s => s.OperationRow.ElapsedText);
 

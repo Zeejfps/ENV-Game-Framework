@@ -22,8 +22,8 @@ public sealed class OperationErrorDialog : MultiChildView
 
     public OperationErrorDialog(string title, string message, Action onClose)
     {
-        PreferredWidth = 560;
-        PreferredHeight = 360;
+        Width = 560;
+        Height = 360;
 
         var titleView = new TextView
         {
@@ -45,10 +45,10 @@ public sealed class OperationErrorDialog : MultiChildView
         var headerRow = new FlexRowView
         {
             CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
+            Height = 28,
             Children =
             {
-                new MultiChildView { PreferredWidth = CloseButtonSize * 2 },
+                new MultiChildView { Width = CloseButtonSize * 2 },
                 new FlexItem { Grow = 1, Child = titleView },
                 copyButton,
                 new DialogCloseButton(onClose),
@@ -97,7 +97,7 @@ public sealed class OperationErrorDialog : MultiChildView
 
         var okButton = new DialogButton("OK", onClose)
         {
-            PreferredHeight = 32,
+            Height = 32,
         };
 
         var buttonsRow = new FlexRowView
@@ -110,7 +110,7 @@ public sealed class OperationErrorDialog : MultiChildView
             },
         };
 
-        var separator = new RectView { PreferredHeight = 1 };
+        var separator = new RectView { Height = 1 };
         separator.BindThemedBackgroundColor(s => s.DialogFrame.HeaderSeparator);
 
         var frame = new RectView

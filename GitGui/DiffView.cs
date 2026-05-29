@@ -88,14 +88,14 @@ public sealed class DiffView : MultiChildView, IBind<DiffViewModel>
             FontSize = 12f,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
-            PreferredWidth = 16f,
+            Width = 16f,
         };
         chevron.BindText(_isCollapsed, c => c ? LucideIcons.ChevronUp : LucideIcons.ChevronDown);
         chevron.BindThemedTextColor(s => hovered.Value ? s.DiffView.HeaderTitleHover : s.DiffView.HeaderTitleIdle);
 
         var bar = new RectView
         {
-            PreferredHeight = HeaderHeight,
+            Height = HeaderHeight,
             BorderSize = new BorderSizeStyle { Top = 1, Bottom = 1 },
             Padding = new PaddingStyle { Left = 8, Right = 6 },
             Children =

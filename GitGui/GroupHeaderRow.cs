@@ -13,7 +13,7 @@ internal sealed class GroupHeaderRow : MultiChildView, IBind<GroupHeaderRowViewM
 
     public GroupHeaderRow()
     {
-        PreferredHeight = 22;
+        Height = 22;
 
         _chevron = new TextView
         {
@@ -21,7 +21,7 @@ internal sealed class GroupHeaderRow : MultiChildView, IBind<GroupHeaderRowViewM
             FontSize = 11f,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
-            PreferredWidth = 16,
+            Width = 16,
         };
         _chevron.BindThemedTextColor(s => s.GroupHeaderRow.ChevronText);
 

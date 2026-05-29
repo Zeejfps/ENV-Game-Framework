@@ -13,12 +13,12 @@ public sealed class WorktreeChevron : MultiChildView
 {
     public WorktreeChevron(Repo primary, IRepoRegistry registry)
     {
-        PreferredWidth = RepoBar.RowChevronWidth;
+        Width = RepoBar.RowChevronWidth;
 
         // Only primaries own children; child rows draw a blank slot for alignment.
         if (!primary.IsPrimary)
         {
-            AddChildToSelf(new RectView { PreferredWidth = RepoBar.RowChevronWidth });
+            AddChildToSelf(new RectView { Width = RepoBar.RowChevronWidth });
             return;
         }
 
@@ -28,7 +28,7 @@ public sealed class WorktreeChevron : MultiChildView
             FontSize = 11f,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
-            PreferredWidth = RepoBar.RowChevronWidth,
+            Width = RepoBar.RowChevronWidth,
         };
         chevron.BindThemedTextColor(s => s.Palette.TextSecondary);
         // Reads of registry.Repos and the WorktreesChanged version are auto-tracked, so
@@ -42,7 +42,7 @@ public sealed class WorktreeChevron : MultiChildView
 
         var background = new RectView
         {
-            PreferredWidth = RepoBar.RowChevronWidth,
+            Width = RepoBar.RowChevronWidth,
             Children = { chevron },
         };
         AddChildToSelf(background);

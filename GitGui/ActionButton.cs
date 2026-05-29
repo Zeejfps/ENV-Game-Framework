@@ -25,7 +25,7 @@ public sealed class ActionButton : HoverableButton
         _backgroundColor = backgroundColor;
         _iconColor = iconColor ?? (backgroundColor != null ? 0xFFFFFFFFu : (uint?)null);
         _badgeColorSelect = badgeColor;
-        PreferredHeight = 28;
+        Height = 28;
 
         var iconView = new TextView
         {

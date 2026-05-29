@@ -72,7 +72,7 @@ public sealed class HistoryView : MultiChildView
 
         _details.LeftConstraint = pos.Right - detailsWidth;
         _details.BottomConstraint = pos.Bottom;
-        _details.PreferredWidth = detailsWidth;
+        _details.Width = detailsWidth;
         _details.WidthConstraint = detailsWidth;
         _details.HeightConstraint = pos.Height;
         _details.LayoutSelf();

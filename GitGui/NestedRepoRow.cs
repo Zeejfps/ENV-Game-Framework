@@ -19,7 +19,7 @@ public abstract class NestedRepoRow : MultiChildView
         Func<Context, IReadOnlyList<RepoBarContextMenu.Item>> buildMenuItems,
         Func<bool>? canActivate = null)
     {
-        PreferredHeight = 26;
+        Height = 26;
 
         var isHovered = new State<bool>(false);
 
@@ -28,7 +28,7 @@ public abstract class NestedRepoRow : MultiChildView
             Text = iconGlyph,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 13,
-            PreferredWidth = RepoBar.RowIconWidth,
+            Width = RepoBar.RowIconWidth,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };

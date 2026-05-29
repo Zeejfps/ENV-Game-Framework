@@ -23,7 +23,7 @@ internal sealed class ActionsToolbar : MultiChildView, IBind<ActionsToolbarViewM
 
     public ActionsToolbar()
     {
-        PreferredHeight = ToolbarHeight;
+        Height = ToolbarHeight;
 
         _pushButton = new ActionButton(LucideIcons.Push, "Push", badgeColor: s => s.ActionsToolbar.BadgeAhead);
         _pullButton = new ActionButton(LucideIcons.Pull, "Pull", badgeColor: s => s.ActionsToolbar.BadgeBehind);

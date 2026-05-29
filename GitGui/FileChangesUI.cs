@@ -75,8 +75,8 @@ internal static class FileChangesUI
 
         var badge = new RectView
         {
-            PreferredWidth = BadgeSize,
-            PreferredHeight = BadgeSize,
+            Width = BadgeSize,
+            Height = BadgeSize,
             BorderRadius = BorderRadiusStyle.All(3),
             Children = { glyph },
         };

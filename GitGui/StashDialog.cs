@@ -26,8 +26,8 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
 
     public StashDialog(Repo repo, Action onClose)
     {
-        PreferredWidth = 520f;
-        PreferredHeight = 520f;
+        Width = 520f;
+        Height = 520f;
 
         _onClose = onClose;
 
@@ -38,7 +38,7 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
 
         _keepStagedCheckbox = new CheckboxView("Keep staged changes in index")
         {
-            PreferredHeight = 22,
+            Height = 22,
         };
 
         _fileListHeader = DialogFrame.Label("Files");
@@ -79,8 +79,8 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _stashButton = new DialogButton("Stash") { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _stashButton = new DialogButton("Stash") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Stash changes", onClose, new FlexColumnView
         {
@@ -94,7 +94,7 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
                 new FlexItem { Grow = 1, Child = fileScrollHost },
                 _keepStagedCheckbox,
                 _errorView,
-                new MultiChildView { PreferredHeight = 4 },
+                new MultiChildView { Height = 4 },
                 DialogFrame.ButtonsRow(cancelButton, _stashButton),
             },
         }));
@@ -186,7 +186,7 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
 
         var checkbox = new CheckboxView(rowContent)
         {
-            PreferredHeight = 22,
+            Height = 22,
         };
         // Seed from VM state BEFORE wiring Changed, so the initial paint doesn't trigger
         // a phantom toggle through the handler.

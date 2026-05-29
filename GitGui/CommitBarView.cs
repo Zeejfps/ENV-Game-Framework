@@ -62,8 +62,8 @@ internal sealed class CommitBarView : MultiChildView, IBind<LocalChangesViewMode
 
         _commitButton = new DialogButton("Commit", OnCommitClicked)
         {
-            PreferredWidth = CommitButtonWidth,
-            PreferredHeight = 28,
+            Width = CommitButtonWidth,
+            Height = 28,
         };
 
         _amendCheckbox = new CheckboxView("Amend");

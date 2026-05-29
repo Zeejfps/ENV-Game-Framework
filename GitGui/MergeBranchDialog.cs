@@ -52,8 +52,8 @@ internal sealed class MergeBranchDialog : MultiChildView, IBind<MergeBranchDialo
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
-        _mergeButton = new DialogButton("Merge") { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
+        _mergeButton = new DialogButton("Merge") { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
 
         var buttonsRow = new FlexRowView
         {
@@ -77,7 +77,7 @@ internal sealed class MergeBranchDialog : MultiChildView, IBind<MergeBranchDialo
                 intoRow,
                 optionRow,
                 _errorView,
-                new MultiChildView { PreferredHeight = 4 },
+                new MultiChildView { Height = 4 },
                 buttonsRow,
             },
         }));
@@ -116,7 +116,7 @@ internal sealed class MergeBranchDialog : MultiChildView, IBind<MergeBranchDialo
         labelText.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
         var labelColumn = new FlexRowView
         {
-            PreferredWidth = 110,
+            Width = 110,
             MainAxisAlignment = MainAxisAlignment.End,
             CrossAxisAlignment = CrossAxisAlignment.Center,
             Children = { labelText },
@@ -125,7 +125,7 @@ internal sealed class MergeBranchDialog : MultiChildView, IBind<MergeBranchDialo
         {
             Gap = 10,
             CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
+            Height = 28,
             Children =
             {
                 labelColumn,
@@ -201,7 +201,7 @@ internal sealed class MergeOptionDropdown : HoverableButton
 
     public MergeOptionDropdown()
     {
-        PreferredHeight = 30;
+        Height = 30;
         _labelView = new TextView
         {
             Text = LookupLabel(MergeStrategy.Default),
@@ -223,7 +223,7 @@ internal sealed class MergeOptionDropdown : HoverableButton
             FontSize = 12,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
-            PreferredWidth = 16,
+            Width = 16,
         };
         chevron.BindThemedTextColor(s => s.DialogBody.RowText);
 

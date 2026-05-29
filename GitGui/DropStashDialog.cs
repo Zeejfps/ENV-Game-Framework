@@ -21,7 +21,7 @@ public sealed class DropStashDialog : MultiChildView
 
     public DropStashDialog(Repo repo, int index, string label, string subject, Action onClose)
     {
-        PreferredWidth = 460f;
+        Width = 460f;
 
         _onClose = onClose;
 
@@ -34,8 +34,8 @@ public sealed class DropStashDialog : MultiChildView
 
         _errorView = DialogFrame.ErrorView();
 
-        var keepButton = new DialogButton("Keep", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _dropButton = new DialogButton("Drop", () => TryDrop(repo, index)) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        var keepButton = new DialogButton("Keep", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _dropButton = new DialogButton("Drop", () => TryDrop(repo, index)) { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build($"Drop {label}?", onClose, new FlexColumnView
         {

@@ -20,7 +20,7 @@ internal sealed class AbortOperationDialog : MultiChildView, IBind<AbortOperatio
 
     public AbortOperationDialog(Repo repo, RepoOperationState state, Action onClose)
     {
-        PreferredWidth = 480f;
+        Width = 480f;
 
         _onClose = onClose;
 
@@ -35,8 +35,8 @@ internal sealed class AbortOperationDialog : MultiChildView, IBind<AbortOperatio
 
         _errorView = DialogFrame.ErrorView();
 
-        _cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _abortButton = new DialogButton(confirmLabel) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _abortButton = new DialogButton(confirmLabel) { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build(titleText, onClose, new FlexColumnView
         {

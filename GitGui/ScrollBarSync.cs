@@ -14,14 +14,14 @@ internal static class ScrollBarSync
 
     public static void ApplyVertical(VerticalScrollBarView bar, float scale, float normalized)
     {
-        bar.PreferredWidth = scale < 1f ? Thickness : 0f;
+        bar.Width = scale < 1f ? Thickness : 0f;
         bar.Scale = scale;
         bar.SetNormalizedScrollPosition(normalized);
     }
 
     public static void ApplyHorizontal(HorizontalScrollBarView bar, float scale, float normalized)
     {
-        bar.PreferredHeight = scale < 1f ? Thickness : 0f;
+        bar.Height = scale < 1f ? Thickness : 0f;
         bar.Scale = scale;
         bar.SetNormalizedScrollPosition(normalized);
     }

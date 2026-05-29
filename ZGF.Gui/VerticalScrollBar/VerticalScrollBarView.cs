@@ -35,7 +35,7 @@ public sealed class VerticalScrollBarView : MultiChildView
 
     public VerticalScrollBarView()
     {
-        PreferredWidth = 12;
+        Width = 12;
 
         _thumbView = new VerticalScrollBarThumbView();
 

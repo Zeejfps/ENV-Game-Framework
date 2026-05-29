@@ -7,7 +7,7 @@ public sealed class LeftSideBarView : MultiChildView
 {
     public LeftSideBarView()
     {
-        PreferredWidth = 300;
+        Width = 300;
 
         var background = new RectView
         {

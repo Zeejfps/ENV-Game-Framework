@@ -11,7 +11,7 @@ public sealed class TabBarView : MultiChildView
 
     public TabBarView()
     {
-        PreferredHeight = 40;
+        Height = 40;
 
         _layout = new RowView();
 

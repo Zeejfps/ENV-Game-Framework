@@ -40,13 +40,13 @@ internal sealed class CreateBranchDialog : MultiChildView, IBind<CreateBranchDia
 
         _checkoutCheckbox = new CheckboxView("Check out after create")
         {
-            PreferredHeight = 22,
+            Height = 22,
         };
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _createButton = new DialogButton("Create") { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _createButton = new DialogButton("Create") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Create branch", onClose, new FlexColumnView
         {
@@ -61,7 +61,7 @@ internal sealed class CreateBranchDialog : MultiChildView, IBind<CreateBranchDia
                 startPointHint,
                 _checkoutCheckbox,
                 _errorView,
-                new MultiChildView { PreferredHeight = 4 },
+                new MultiChildView { Height = 4 },
                 DialogFrame.ButtonsRow(cancelButton, _createButton),
             },
         }));

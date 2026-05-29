@@ -179,7 +179,7 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
 
     private View BuildContentRow()
     {
-        var divider = new RectView { PreferredWidth = 1 };
+        var divider = new RectView { Width = 1 };
         divider.BindThemedBackgroundColor(s => s.LocalChangesContent.ColumnDivider);
         return new TransferListRow(_unstagedPanel, divider, _stagedPanel);
     }

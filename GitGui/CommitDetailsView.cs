@@ -195,8 +195,8 @@ public sealed class CommitDetailsView : MultiChildView, IBind<CommitDetailsViewM
         var avatarSeed = !string.IsNullOrEmpty(d.AuthorEmail) ? d.AuthorEmail : d.AuthorName;
         var avatar = new RectView
         {
-            PreferredWidth = AvatarSize,
-            PreferredHeight = AvatarSize,
+            Width = AvatarSize,
+            Height = AvatarSize,
             BackgroundColor = AvatarColor(avatarSeed),
             BorderRadius = BorderRadiusStyle.All(AvatarSize * 0.5f),
             Children =

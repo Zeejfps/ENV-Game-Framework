@@ -14,7 +14,7 @@ internal sealed class ModeSwitcherView : MultiChildView, IBind<ModeSwitcherViewM
 
     public ModeSwitcherView()
     {
-        PreferredHeight = PillHeight;
+        Height = PillHeight;
 
         const float innerRadius = PillCornerRadius - 1f;
         _history = new SegmentView(
@@ -24,7 +24,7 @@ internal sealed class ModeSwitcherView : MultiChildView, IBind<ModeSwitcherViewM
             "Changes",
             new BorderRadiusStyle { TopLeft = innerRadius, BottomLeft = innerRadius });
 
-        var separator = new RectView { PreferredWidth = 1f };
+        var separator = new RectView { Width = 1f };
         separator.BindThemedBackgroundColor(s => s.ModeSwitcher.SegmentSeparator);
 
         var pill = new RectView

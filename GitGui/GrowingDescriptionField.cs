@@ -102,7 +102,7 @@ internal sealed class GrowingDescriptionField : MultiChildView
         this.UseBehavior(_ => new ScrollSyncController(_scrollPane, _scrollBar));
 
         // Start at the min size; the first OnLayoutChildren pass will refine this.
-        PreferredHeight = _minHeight;
+        Height = _minHeight;
     }
 
     protected override void OnLayoutChildren()
@@ -114,11 +114,11 @@ internal sealed class GrowingDescriptionField : MultiChildView
         var chrome = 2f * (BoxBorderThickness + BoxPaddingVertical);
         var contentHeight = _input.MeasureHeight(_input.Position.Width);
         var desired = Math.Clamp(contentHeight + chrome, _minHeight, _maxHeight);
-        if (Math.Abs(desired - PreferredHeight) > 0.5f)
+        if (Math.Abs(desired - Height) > 0.5f)
         {
             // Setting PreferredHeight via SetField marks us IsSelfDirty, so the next frame's
             // layout re-runs OnLayoutSelf with the new value.
-            PreferredHeight = desired;
+            Height = desired;
         }
     }
 }

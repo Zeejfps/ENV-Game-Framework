@@ -18,12 +18,12 @@ internal sealed class SeparatorSpacer : MultiChildView
 
     public SeparatorSpacer()
     {
-        PreferredWidth = SeparatorWidth + SeparatorBreathingRoom * 2;
+        Width = SeparatorWidth + SeparatorBreathingRoom * 2;
 
         var line = new RectView
         {
-            PreferredWidth = SeparatorWidth,
-            PreferredHeight = SeparatorHeight,
+            Width = SeparatorWidth,
+            Height = SeparatorHeight,
         };
         line.BindThemedBackgroundColor(s => s.Palette.Border);
 

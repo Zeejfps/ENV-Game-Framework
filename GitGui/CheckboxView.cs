@@ -42,8 +42,8 @@ public sealed class CheckboxView : HoverableButton
 
         var box = new RectView
         {
-            PreferredWidth = BoxSize,
-            PreferredHeight = BoxSize,
+            Width = BoxSize,
+            Height = BoxSize,
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(BoxRadius),
             Children = { checkGlyph },

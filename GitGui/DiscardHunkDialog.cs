@@ -14,8 +14,8 @@ internal sealed class DiscardHunkDialog : MultiChildView, IBind<DiscardHunkViewM
 
     public DiscardHunkDialog(Repo repo, string path, string patch, Action onClose)
     {
-        PreferredWidth = 460f;
-        PreferredHeight = 200f;
+        Width = 460f;
+        Height = 200f;
 
         _onClose = onClose;
 
@@ -28,8 +28,8 @@ internal sealed class DiscardHunkDialog : MultiChildView, IBind<DiscardHunkViewM
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _discardButton = new DialogButton("Discard") { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _discardButton = new DialogButton("Discard") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Discard hunk", onClose, new FlexColumnView
         {

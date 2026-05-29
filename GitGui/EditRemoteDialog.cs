@@ -26,7 +26,7 @@ internal sealed class EditRemoteDialog : MultiChildView, IBind<EditRemoteDialogV
 
     public EditRemoteDialog(Repo repo, string remoteName, Action onClose)
     {
-        PreferredWidth = 540f;
+        Width = 540f;
         _onClose = onClose;
 
         var subtitle = new TextView { Text = "Edit URL of the remote repository" };
@@ -44,7 +44,7 @@ internal sealed class EditRemoteDialog : MultiChildView, IBind<EditRemoteDialogV
         {
             Gap = 8,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
-            PreferredHeight = 28,
+            Height = 28,
             Children =
             {
                 new FlexItem { Grow = 1, Child = DialogFrame.WrapInput(_urlInput) },
@@ -54,8 +54,8 @@ internal sealed class EditRemoteDialog : MultiChildView, IBind<EditRemoteDialogV
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _saveButton = new DialogButton("Save") { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _saveButton = new DialogButton("Save") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Remote", onClose, new FlexColumnView
         {
@@ -69,7 +69,7 @@ internal sealed class EditRemoteDialog : MultiChildView, IBind<EditRemoteDialogV
                 urlLabel,
                 urlRow,
                 _errorView,
-                new MultiChildView { PreferredHeight = 4 },
+                new MultiChildView { Height = 4 },
                 DialogFrame.ButtonsRow(cancelButton, _saveButton),
             },
         }));
@@ -137,8 +137,8 @@ internal sealed class SchemeDropdown : HoverableButton
 
     public SchemeDropdown()
     {
-        PreferredWidth = 84;
-        PreferredHeight = 28;
+        Width = 84;
+        Height = 28;
 
         _labelView = new TextView
         {
@@ -154,7 +154,7 @@ internal sealed class SchemeDropdown : HoverableButton
             FontSize = 12,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
-            PreferredWidth = 14,
+            Width = 14,
         };
         chevron.BindThemedTextColor(s => s.DialogBody.RowText);
 

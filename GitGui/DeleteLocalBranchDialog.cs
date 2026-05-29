@@ -24,7 +24,7 @@ internal sealed class DeleteLocalBranchDialog : MultiChildView, IBind<DeleteLoca
         string? upstreamBranch,
         Action onClose)
     {
-        PreferredWidth = 460f;
+        Width = 460f;
 
         _onClose = onClose;
 
@@ -41,7 +41,7 @@ internal sealed class DeleteLocalBranchDialog : MultiChildView, IBind<DeleteLoca
 
         _forceCheckbox = new CheckboxView("Delete even if not merged")
         {
-            PreferredHeight = 22,
+            Height = 22,
         };
 
         var hasUpstream = !string.IsNullOrEmpty(upstreamRemote) && !string.IsNullOrEmpty(upstreamBranch);
@@ -49,14 +49,14 @@ internal sealed class DeleteLocalBranchDialog : MultiChildView, IBind<DeleteLoca
         {
             _deleteRemoteCheckbox = new CheckboxView($"Also delete '{upstreamBranch}' on '{upstreamRemote}'")
             {
-                PreferredHeight = 22,
+                Height = 22,
             };
         }
 
         _errorView = DialogFrame.ErrorView();
 
-        _cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _deleteButton = new DialogButton("Delete") { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _deleteButton = new DialogButton("Delete") { Height = DialogFrame.DefaultButtonHeight };
 
         var content = new FlexColumnView
         {
@@ -72,7 +72,7 @@ internal sealed class DeleteLocalBranchDialog : MultiChildView, IBind<DeleteLoca
         if (_deleteRemoteCheckbox != null)
             content.Children.Add(_deleteRemoteCheckbox);
         content.Children.Add(_errorView);
-        content.Children.Add(new MultiChildView { PreferredHeight = 4 });
+        content.Children.Add(new MultiChildView { Height = 4 });
         content.Children.Add(DialogFrame.ButtonsRow(_cancelButton, _deleteButton));
 
         AddChildToSelf(DialogFrame.Build("Delete branch", onClose, content));

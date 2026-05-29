@@ -19,7 +19,7 @@ internal sealed class DeleteRemoteBranchDialog : MultiChildView, IBind<DeleteRem
 
     public DeleteRemoteBranchDialog(Repo repo, string remoteName, string branchName, Action onClose)
     {
-        PreferredWidth = 480f;
+        Width = 480f;
 
         _onClose = onClose;
 
@@ -36,8 +36,8 @@ internal sealed class DeleteRemoteBranchDialog : MultiChildView, IBind<DeleteRem
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _deleteButton = new DialogButton("Delete") { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _deleteButton = new DialogButton("Delete") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Delete remote branch", onClose, new FlexColumnView
         {
@@ -48,7 +48,7 @@ internal sealed class DeleteRemoteBranchDialog : MultiChildView, IBind<DeleteRem
                 prompt,
                 hint,
                 _errorView,
-                new MultiChildView { PreferredHeight = 4 },
+                new MultiChildView { Height = 4 },
                 DialogFrame.ButtonsRow(cancelButton, _deleteButton),
             },
         }));

@@ -26,7 +26,7 @@ internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranc
         string suggestedLocalName,
         Action onClose)
     {
-        PreferredWidth = 420f;
+        Width = 420f;
 
         _onClose = onClose;
 
@@ -44,11 +44,11 @@ internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranc
 
         _trackCheckbox = new CheckboxView("Track this remote branch")
         {
-            PreferredHeight = 22,
+            Height = 22,
         };
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _checkoutButton = new DialogButton("Checkout") { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _checkoutButton = new DialogButton("Checkout") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Checkout branch", onClose, new FlexColumnView
         {
@@ -60,7 +60,7 @@ internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranc
                 nameLabel,
                 nameBox,
                 _trackCheckbox,
-                new MultiChildView { PreferredHeight = 4 },
+                new MultiChildView { Height = 4 },
                 DialogFrame.ButtonsRow(cancelButton, _checkoutButton),
             },
         }));

@@ -21,8 +21,8 @@ public sealed class DialogCopyButton : HoverableButton
         : base(null, tooltip)
     {
         _onCopy = onCopy;
-        PreferredWidth = 28;
-        PreferredHeight = 28;
+        Width = 28;
+        Height = 28;
 
         _label = new TextView
         {

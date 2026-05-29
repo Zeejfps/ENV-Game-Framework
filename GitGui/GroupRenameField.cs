@@ -8,7 +8,7 @@ public sealed class GroupRenameField : MultiChildView
 {
     public GroupRenameField(Group group, IRepoRegistry registry)
     {
-        PreferredHeight = 22;
+        Height = 22;
 
         var input = new TextInputView
         {

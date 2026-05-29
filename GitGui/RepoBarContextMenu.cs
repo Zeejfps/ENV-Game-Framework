@@ -43,7 +43,7 @@ public static class RepoBarContextMenu
         {
             if (item.IsSeparator)
             {
-                var separator = new RectView { PreferredHeight = 1 };
+                var separator = new RectView { Height = 1 };
                 separator.BindThemedBackgroundColor(s => s.ContextMenu.Border);
                 menu.Children.Add(separator);
                 continue;

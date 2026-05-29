@@ -9,7 +9,7 @@ public sealed class RepoRow : MultiChildView
 {
     public RepoRow(Repo repo, IRepoRegistry registry)
     {
-        PreferredHeight = 28;
+        Height = 28;
 
         var isHovered = new State<bool>(false);
 
@@ -22,7 +22,7 @@ public sealed class RepoRow : MultiChildView
             Text = LucideIcons.FolderGit2,
             FontFamily = LucideIcons.FontFamily,
             FontSize = 14,
-            PreferredWidth = RepoBar.RowIconWidth,
+            Width = RepoBar.RowIconWidth,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };

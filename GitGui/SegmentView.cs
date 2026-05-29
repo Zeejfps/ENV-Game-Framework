@@ -15,7 +15,7 @@ internal sealed class SegmentView : MultiChildView, IBind<SegmentViewModel>
 
     public SegmentView(string label, BorderRadiusStyle cornerRadius)
     {
-        PreferredHeight = SegmentHeight;
+        Height = SegmentHeight;
 
         var labelView = new TextView
         {

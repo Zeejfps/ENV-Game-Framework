@@ -83,8 +83,8 @@ public sealed class TextView : MultiChildView
 
     public override float MeasureWidth()
     {
-        if (PreferredWidth.IsSet)
-            return PreferredWidth;
+        if (Width.IsSet)
+            return Width;
 
         if (Context == null || _text == null)
             return 0f;

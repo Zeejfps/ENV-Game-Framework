@@ -24,7 +24,7 @@ internal sealed class RemoveWorktreeDialog : MultiChildView, IBind<RemoveWorktre
 
     public RemoveWorktreeDialog(Repo primary, Repo worktree, Action onClose)
     {
-        PreferredWidth = DialogWidth;
+        Width = DialogWidth;
         _onClose = onClose;
         _path = worktree.Path;
 
@@ -76,13 +76,13 @@ internal sealed class RemoveWorktreeDialog : MultiChildView, IBind<RemoveWorktre
 
         _forceCheckbox = new CheckboxView("Remove even if dirty")
         {
-            PreferredHeight = 22,
+            Height = 22,
         };
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _removeButton = new DialogButton("Remove") { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _removeButton = new DialogButton("Remove") { Height = DialogFrame.DefaultButtonHeight };
 
         var dialogBody = DialogFrame.Build("Remove worktree", onClose, new FlexColumnView
         {
@@ -95,7 +95,7 @@ internal sealed class RemoveWorktreeDialog : MultiChildView, IBind<RemoveWorktre
                 _forceCheckbox,
                 hint,
                 _errorView,
-                new MultiChildView { PreferredHeight = 4 },
+                new MultiChildView { Height = 4 },
                 DialogFrame.ButtonsRow(cancelButton, _removeButton),
             },
         });

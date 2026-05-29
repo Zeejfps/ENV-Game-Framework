@@ -25,7 +25,7 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
 
     public UpdateSubmodulesDialog(Repo primary, Repo? target, Action onClose)
     {
-        PreferredWidth = DialogWidth;
+        Width = DialogWidth;
         _onClose = onClose;
 
         var titleText = target is null ? "Update all submodules" : "Update submodule";
@@ -39,14 +39,14 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
         };
         prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
-        _initCheckbox = new CheckboxView("Init missing submodules (--init)") { PreferredHeight = 22 };
-        _recursiveCheckbox = new CheckboxView("Recurse into nested submodules (--recursive)") { PreferredHeight = 22 };
+        _initCheckbox = new CheckboxView("Init missing submodules (--init)") { Height = 22 };
+        _recursiveCheckbox = new CheckboxView("Recurse into nested submodules (--recursive)") { Height = 22 };
 
         var modeLabel = DialogFrame.Label("Strategy");
 
-        _checkoutMode = new CheckboxView("Checkout (default — reset to recorded SHA)") { PreferredHeight = 22 };
-        _mergeMode = new CheckboxView("Merge (--merge)") { PreferredHeight = 22 };
-        _rebaseMode = new CheckboxView("Rebase (--rebase)") { PreferredHeight = 22 };
+        _checkoutMode = new CheckboxView("Checkout (default — reset to recorded SHA)") { Height = 22 };
+        _mergeMode = new CheckboxView("Merge (--merge)") { Height = 22 };
+        _rebaseMode = new CheckboxView("Rebase (--rebase)") { Height = 22 };
 
         var conflictsHint = DialogFrame.Hint(
             "Merge/rebase strategies may leave the submodule mid-merge on conflict — " +
@@ -55,8 +55,8 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _updateButton = new DialogButton("Update") { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _updateButton = new DialogButton("Update") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build(titleText, onClose, new FlexColumnView
         {
@@ -73,7 +73,7 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
                 _rebaseMode,
                 conflictsHint,
                 _errorView,
-                new MultiChildView { PreferredHeight = 4 },
+                new MultiChildView { Height = 4 },
                 DialogFrame.ButtonsRow(cancelButton, _updateButton),
             },
         }));

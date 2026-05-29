@@ -32,13 +32,13 @@ internal sealed class AddSubmoduleDialog : MultiChildView, IBind<AddSubmoduleDia
 
         _forceCheckbox = new CheckboxView("Force (allow paths previously used)")
         {
-            PreferredHeight = 22,
+            Height = 22,
         };
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _addButton = new DialogButton("Add") { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _addButton = new DialogButton("Add") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Add submodule", onClose, new FlexColumnView
         {
@@ -56,7 +56,7 @@ internal sealed class AddSubmoduleDialog : MultiChildView, IBind<AddSubmoduleDia
                 DialogFrame.Hint("Leave blank to pin to the upstream HEAD at clone time."),
                 _forceCheckbox,
                 _errorView,
-                new MultiChildView { PreferredHeight = 4 },
+                new MultiChildView { Height = 4 },
                 DialogFrame.ButtonsRow(cancelButton, _addButton),
             },
         }));

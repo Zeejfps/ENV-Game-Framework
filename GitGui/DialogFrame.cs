@@ -33,10 +33,10 @@ internal static class DialogFrame
         return new FlexRowView
         {
             CrossAxisAlignment = CrossAxisAlignment.Center,
-            PreferredHeight = 28,
+            Height = 28,
             Children =
             {
-                new MultiChildView { PreferredWidth = CloseButtonSize },
+                new MultiChildView { Width = CloseButtonSize },
                 new FlexItem { Grow = 1, Child = titleText },
                 new DialogCloseButton(onClose),
             },
@@ -45,7 +45,7 @@ internal static class DialogFrame
 
     public static RectView Separator()
     {
-        var view = new RectView { PreferredHeight = 1 };
+        var view = new RectView { Height = 1 };
         view.BindThemedBackgroundColor(s => s.DialogFrame.HeaderSeparator);
         return view;
     }
@@ -107,7 +107,7 @@ internal static class DialogFrame
             BorderSize = BorderSizeStyle.All(1),
             BorderRadius = BorderRadiusStyle.All(3),
             Padding = new PaddingStyle { Left = 6, Right = 6, Top = 4, Bottom = 4 },
-            PreferredHeight = 28,
+            Height = 28,
             Children = { input },
         };
         view.BindThemedBackgroundColor(s => s.TextInput.Background);

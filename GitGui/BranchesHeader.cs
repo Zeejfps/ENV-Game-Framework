@@ -16,7 +16,7 @@ internal sealed class BranchesHeader : MultiChildView, IBind<BranchesHeaderViewM
 
     public BranchesHeader()
     {
-        PreferredHeight = HeaderHeight;
+        Height = HeaderHeight;
 
         _iconView = new TextView
         {

@@ -6,7 +6,7 @@ namespace GitGui;
 
 /// <summary>
 /// Wraps a sidebar content view and lays a draggable splitter strip on its right edge.
-/// The wrapper itself owns the sidebar's width via <see cref="View.PreferredWidth"/>, so
+/// The wrapper itself owns the sidebar's width via <see cref="View.Width"/>, so
 /// the surrounding <c>BorderLayoutView</c> reads the new width on each layout pass after
 /// a drag. Width is clamped to <see cref="MinWidth"/> / <see cref="MaxWidth"/>.
 /// </summary>
@@ -27,7 +27,7 @@ internal sealed class ResizableLeftSidebar : MultiChildView
         _splitter = splitter;
         _minWidth = minWidth;
         _maxWidth = maxWidth;
-        PreferredWidth = Math.Clamp(initialWidth, _minWidth, _maxWidth);
+        Width = Math.Clamp(initialWidth, _minWidth, _maxWidth);
         AddChildToSelf(_content);
         AddChildToSelf(_splitter);
     }
@@ -36,9 +36,9 @@ internal sealed class ResizableLeftSidebar : MultiChildView
     // the sidebar usable at both extremes (it can't disappear or eat the main view).
     public void AdjustWidthByPixels(float dx)
     {
-        var newWidth = Math.Clamp((float)PreferredWidth + dx, _minWidth, _maxWidth);
-        if (Math.Abs(newWidth - (float)PreferredWidth) < 0.5f) return;
-        PreferredWidth = newWidth;
+        var newWidth = Math.Clamp((float)Width + dx, _minWidth, _maxWidth);
+        if (Math.Abs(newWidth - (float)Width) < 0.5f) return;
+        Width = newWidth;
         WidthChanged?.Invoke(newWidth);
     }
 

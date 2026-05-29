@@ -35,8 +35,8 @@ public sealed class RowView : MultiChildView
 
     public override float MeasureWidth()
     {
-        if (PreferredWidth.IsSet)
-            return PreferredWidth;
+        if (Width.IsSet)
+            return Width;
 
         var totalWidth = 0f;
         var visibleCount = 0;

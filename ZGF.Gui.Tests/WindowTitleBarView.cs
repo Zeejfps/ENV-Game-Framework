@@ -14,7 +14,7 @@ public sealed class WindowTitleBarView : MultiChildView
 
     public WindowTitleBarView(string title)
     {
-        PreferredHeight = 30f;
+        Height = 30f;
         
         var button = new RectView
         {

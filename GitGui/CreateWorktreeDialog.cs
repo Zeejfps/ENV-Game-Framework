@@ -33,8 +33,8 @@ internal sealed class CreateWorktreeDialog : MultiChildView, IBind<CreateWorktre
 
         var browseButton = new DialogButton("Browse…", PickPath)
         {
-            PreferredHeight = 28,
-            PreferredWidth = 80,
+            Height = 28,
+            Width = 80,
         };
 
         var pathRow = new FlexRowView
@@ -64,13 +64,13 @@ internal sealed class CreateWorktreeDialog : MultiChildView, IBind<CreateWorktre
 
         _forceCheckbox = new CheckboxView("Force (allow non-empty path or re-used branch)")
         {
-            PreferredHeight = 22,
+            Height = 22,
         };
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _createButton = new DialogButton("Create") { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _createButton = new DialogButton("Create") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("New worktree", onClose, new FlexColumnView
         {
@@ -88,7 +88,7 @@ internal sealed class CreateWorktreeDialog : MultiChildView, IBind<CreateWorktre
                 branchHint,
                 _forceCheckbox,
                 _errorView,
-                new MultiChildView { PreferredHeight = 4 },
+                new MultiChildView { Height = 4 },
                 DialogFrame.ButtonsRow(cancelButton, _createButton),
             },
         }));

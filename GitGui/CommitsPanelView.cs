@@ -31,7 +31,7 @@ public sealed class CommitsPanelView : MultiChildView
 
         _warningBar = new RectView
         {
-            PreferredHeight = 0f,
+            Height = 0f,
             Children = { _warningText },
         };
         _warningBar.BindThemedBackgroundColor(s =>
@@ -41,7 +41,7 @@ public sealed class CommitsPanelView : MultiChildView
             : new BorderColorStyle());
         _truncated.Subscribe(t =>
         {
-            _warningBar.PreferredHeight = t ? WarningBarHeight : 0f;
+            _warningBar.Height = t ? WarningBarHeight : 0f;
             _warningBar.BorderSize = t ? new BorderSizeStyle { Top = 1 } : new BorderSizeStyle();
         });
 
@@ -59,7 +59,7 @@ public sealed class CommitsPanelView : MultiChildView
     {
         base.OnLayoutChildren();
         var scale = _commits.Scale;
-        _scrollBar.PreferredWidth = scale < 1f ? ScrollBarSync.Thickness : 0f;
+        _scrollBar.Width = scale < 1f ? ScrollBarSync.Thickness : 0f;
         _scrollBar.Scale = scale;
     }
 }
@@ -98,7 +98,7 @@ internal sealed class CommitsPanelController : KeyboardMouseController, IDisposa
 
     private void OnCommitsScaleChanged(float scale)
     {
-        _scrollBar.PreferredWidth = scale < 1f ? ScrollBarSync.Thickness : 0f;
+        _scrollBar.Width = scale < 1f ? ScrollBarSync.Thickness : 0f;
         _scrollBar.Scale = scale;
     }
 

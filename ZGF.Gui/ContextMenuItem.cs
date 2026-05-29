@@ -182,15 +182,15 @@ public sealed class ContextMenuItem : MultiChildView
 
         _arrowIcon = new ImageView
         {
-            PreferredWidth = 20,
-            PreferredHeight = 20,
+            Width = 20,
+            Height = 20,
             TintColor = 0x0
         };
 
         _iconView = new TextView
         {
             FontSize = 14,
-            PreferredWidth = 16,
+            Width = 16,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
         };

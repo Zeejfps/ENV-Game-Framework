@@ -218,8 +218,8 @@ public sealed class TextInputView : MultiChildView
         // still report a sensible (single-line) height instead of one line per character.
         var width = availableWidth > 0f ? availableWidth : MeasureWidth();
         var height = GetLines(width, canvas).Count() * lineHeight;
-        if (PreferredHeight.IsSet && height < PreferredHeight)
-            return PreferredHeight;
+        if (Height.IsSet && height < Height)
+            return Height;
 
         return height;
     }

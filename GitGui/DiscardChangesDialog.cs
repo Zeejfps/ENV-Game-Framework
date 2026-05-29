@@ -25,8 +25,8 @@ internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChange
 
     public DiscardChangesDialog(Repo repo, IReadOnlyList<string> paths, Action onClose)
     {
-        PreferredWidth = 520f;
-        PreferredHeight = 480f;
+        Width = 520f;
+        Height = 480f;
 
         _onClose = onClose;
 
@@ -75,8 +75,8 @@ internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChange
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _discardButton = new DialogButton("Discard") { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _discardButton = new DialogButton("Discard") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Discard changes", onClose, new FlexColumnView
         {
@@ -156,7 +156,7 @@ internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChange
 
         var checkbox = new CheckboxView(rowContent)
         {
-            PreferredHeight = 22,
+            Height = 22,
         };
         // Seed from VM state BEFORE wiring Changed, so the initial paint doesn't trigger
         // a phantom toggle through the handler.

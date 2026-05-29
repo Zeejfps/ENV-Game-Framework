@@ -39,13 +39,13 @@ internal sealed class RenameBranchDialog : MultiChildView, IBind<RenameBranchDia
 
         _forceCheckbox = new CheckboxView("Force rename even if target exists")
         {
-            PreferredHeight = 22,
+            Height = 22,
         };
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _renameButton = new DialogButton("Rename") { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _renameButton = new DialogButton("Rename") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Rename branch", onClose, new FlexColumnView
         {
@@ -58,7 +58,7 @@ internal sealed class RenameBranchDialog : MultiChildView, IBind<RenameBranchDia
                 nameBox,
                 _forceCheckbox,
                 _errorView,
-                new MultiChildView { PreferredHeight = 4 },
+                new MultiChildView { Height = 4 },
                 DialogFrame.ButtonsRow(cancelButton, _renameButton),
             },
         }));

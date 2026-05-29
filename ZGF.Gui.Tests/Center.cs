@@ -50,7 +50,7 @@ public sealed class Center : MultiChildView
 
         var scrollBarContainer = new RectView
         {
-            PreferredWidth = 14f,
+            Width = 14f,
             BackgroundColor = 0xFF000000,
             Padding = new PaddingStyle
             {
@@ -76,7 +76,7 @@ public sealed class Center : MultiChildView
 
         var textInput = new TextInputView
         {
-            PreferredHeight = 30f
+            Height = 30f
         };
 
         var textField = new RectView
@@ -96,7 +96,7 @@ public sealed class Center : MultiChildView
             East = scrollBarContainer,
             Center = progress,
             South = textField,
-            PreferredHeight = 200
+            Height = 200
         };
 
         var content = new ColumnView

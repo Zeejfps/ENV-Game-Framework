@@ -25,8 +25,8 @@ public sealed class ImageView : MultiChildView
 
     public override float MeasureWidth()
     {
-        if (PreferredWidth.IsSet)
-            return PreferredWidth.Value;
+        if (Width.IsSet)
+            return Width.Value;
 
         if (ImageId != null && Context != null)
             return Context.Canvas.GetImageWidth(ImageId);
@@ -37,8 +37,8 @@ public sealed class ImageView : MultiChildView
     public override float MeasureHeight(float availableWidth)
     {
         // Images have an intrinsic size and don't reflow — ignore availableWidth.
-        if (PreferredHeight.IsSet)
-            return PreferredHeight.Value;
+        if (Height.IsSet)
+            return Height.Value;
 
         if (ImageId != null && Context != null)
             return Context.Canvas.GetImageHeight(ImageId);

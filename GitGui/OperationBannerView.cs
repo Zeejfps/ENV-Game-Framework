@@ -50,7 +50,7 @@ internal sealed class OperationBannerView : MultiChildView, IBind<OperationState
             FontSize = 16,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center,
-            PreferredWidth = 20,
+            Width = 20,
         };
         _spinnerIcon.BindThemedTextColor(s => s.Banner.Text);
 

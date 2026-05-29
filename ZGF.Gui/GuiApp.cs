@@ -58,8 +58,8 @@ public sealed class GuiApp : IDisposable
 
         _root = new MultiChildView
         {
-            PreferredWidth = mainCanvas.Width,
-            PreferredHeight = mainCanvas.Height,
+            Width = mainCanvas.Width,
+            Height = mainCanvas.Height,
             Context = context,
             Children = { content },
         };
@@ -147,8 +147,8 @@ public sealed class GuiApp : IDisposable
 
     private void HandleResize(int width, int height)
     {
-        _root.PreferredWidth = width;
-        _root.PreferredHeight = height;
+        _root.Width = width;
+        _root.Height = height;
         _mainCanvas.Resize(width, height);
         _app.MainWindow.MakeContextCurrent();
         _app.MainWindow.RenderNow();
