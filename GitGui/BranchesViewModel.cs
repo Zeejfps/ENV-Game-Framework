@@ -445,6 +445,30 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
 
     // ---- context menu items (semantic, keyed on the row's identity) ----
 
+    public IReadOnlyList<RepoBarContextMenu.Item> BuildLocalHeaderMenuItems()
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return Array.Empty<RepoBarContextMenu.Item>();
+
+        return new List<RepoBarContextMenu.Item>
+        {
+            new RepoBarContextMenu.Item(
+                "New branch…",
+                CreateBranch,
+                LucideIcons.Branch),
+        };
+    }
+
+    public void CreateBranch()
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return;
+        // Mirror the toolbar's Branch action: seed the starting point with the current
+        // HEAD branch, falling back to "HEAD" when detached (no branch name to seed from).
+        var suggested = GetHeadBranchName() ?? "HEAD";
+        _bus.Broadcast(new ShowDialogMessage(onClose => new CreateBranchDialog(repo, suggested, onClose)));
+    }
+
     public IReadOnlyList<RepoBarContextMenu.Item> BuildLocalBranchMenuItems(string fullPath, bool isHead)
     {
         var repo = _registry.Active.Value;
