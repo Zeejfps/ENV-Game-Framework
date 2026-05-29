@@ -68,10 +68,13 @@ public sealed class TextInputView : MultiChildView
     private readonly RectStyle _cursorStyle = new();
     private readonly RectStyle _selectionRectStyle = new();
 
+    private const float CaretWidth = 2f;
+
     private int _caretIndex;
     private int _strLen;
     private bool _isEditing;
     private int _selectionStartIndex;
+    private float _scrollOffsetX;
     private readonly char[] _buffer;
     
     public ReadOnlySpan<char> Text => _buffer.AsSpan(0, _strLen);
@@ -111,7 +114,7 @@ public sealed class TextInputView : MultiChildView
             return _strLen;
         }
 
-        var xOffset = point.X - Position.Left;
+        var xOffset = point.X - Position.Left + _scrollOffsetX;
         var canvas = Context!.Canvas;
         var lineCount = 1;
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
@@ -252,12 +255,39 @@ public sealed class TextInputView : MultiChildView
         }
     }
 
+    private void UpdateScrollOffset(in RectF position, ICanvas c)
+    {
+        if (TextWrap == Gui.TextWrap.Wrap)
+        {
+            _scrollOffsetX = 0f;
+            return;
+        }
+
+        var caretX = c.MeasureTextWidth(_buffer.AsSpan(0, _caretIndex), _textStyle);
+        var width = position.Width;
+
+        if (caretX - _scrollOffsetX < 0f)
+        {
+            _scrollOffsetX = caretX;
+        }
+        else if (caretX - _scrollOffsetX > width - CaretWidth)
+        {
+            _scrollOffsetX = caretX - width + CaretWidth;
+        }
+
+        var totalWidth = c.MeasureTextWidth(_buffer.AsSpan(0, _strLen), _textStyle);
+        var maxOffset = Math.Max(0f, totalWidth - width + CaretWidth);
+        _scrollOffsetX = Math.Clamp(_scrollOffsetX, 0f, maxOffset);
+    }
+
     protected override void OnDrawSelf(ICanvas c)
     {
         var position = Position;
-        
+
         DrawBackground(position, c);
-        
+
+        UpdateScrollOffset(position, c);
+
         c.PushClip(position);
 
         if (_isEditing && _selectionStartIndex != _caretIndex)
@@ -355,7 +385,7 @@ public sealed class TextInputView : MultiChildView
         var lineHeight = c.MeasureTextLineHeight(_textStyle);
         var minText = _buffer.AsSpan(startIndex, min - startIndex);
         var minTextWidth = c.MeasureTextWidth(minText, _textStyle);
-        var startPointLeft = position.Left + minTextWidth;
+        var startPointLeft = position.Left + minTextWidth - _scrollOffsetX;
         var startPointBottom = position.Top - linesCount * lineHeight;
         var width = position.Width - minTextWidth;
 
@@ -410,7 +440,7 @@ public sealed class TextInputView : MultiChildView
     private void DrawText(in RectF position, ICanvas c)
     {
         var lineHeight = c.MeasureTextLineHeight(_textStyle);
-        var left = position.Left;
+        var left = position.Left - _scrollOffsetX;
         var bottom = position.Top - lineHeight;
         var lines = GetLines(position.Width, c);
         foreach (var line in lines)
@@ -474,8 +504,8 @@ public sealed class TextInputView : MultiChildView
         var cursorPos = new RectF
         {
             Bottom = cursorPosBottom,
-            Left = position.Left + cursorPosLeft,
-            Width = 2,
+            Left = position.Left + cursorPosLeft - _scrollOffsetX,
+            Width = CaretWidth,
             Height = cursorHeight
         };
             
