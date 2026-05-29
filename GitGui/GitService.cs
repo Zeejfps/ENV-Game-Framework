@@ -16,14 +16,14 @@ public sealed class GitService : IGitService
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _repoLocks =
         new(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
 
-    // Every git invocation opens a scope so RepoWatcher can drop the FSW events
-    // our own writes cause. Without this the auto-reload loops on its own
-    // index/stat-cache mutations. See RepoActivityTracker for the full story.
-    private readonly IRepoActivityTracker _activity;
+    // Every git invocation runs through the runner, which opens an activity scope so
+    // RepoWatcher can drop the FSW events our own writes cause. Without this the auto-reload
+    // loops on its own index/stat-cache mutations. See RepoActivityTracker for the full story.
+    private readonly GitProcessRunner _runner;
 
     public GitService(IRepoActivityTracker activity)
     {
-        _activity = activity;
+        _runner = new GitProcessRunner(activity);
     }
 
     private static SemaphoreSlim GetRepoLock(string repoPath)
@@ -561,35 +561,20 @@ public sealed class GitService : IGitService
         _ => null,
     };
 
-    // Uses the raw git executable rather than BuildGitProcessStartInfo's shell wrapper —
-    // status is read-only, runs on every working-tree change, and doesn't need the
-    // interactive-shell env (no auth, no PATH-dependent helpers). -z is required: it
-    // switches records to NUL termination and disables the C-style quoting that wraps
-    // paths with spaces or unicode in the default porcelain output.
+    // Uses the direct git executable rather than the shell wrapper — status is read-only,
+    // runs on every working-tree change, and doesn't need the interactive-shell env (no auth,
+    // no PATH-dependent helpers). -z is required: it switches records to NUL termination and
+    // disables the C-style quoting that wraps paths with spaces or unicode in the default
+    // porcelain output.
     private string? RunGitStatusPorcelain(string workingDir, out string? error)
     {
         error = null;
-        using var _ = _activity.Begin(workingDir);
-        var psi = BuildDirectGitPsi(workingDir);
-        psi.ArgumentList.Add("status");
-        psi.ArgumentList.Add("--porcelain=v2");
-        psi.ArgumentList.Add("-z");
-        psi.ArgumentList.Add("--untracked-files=all");
-        psi.ArgumentList.Add("--ignored=no");
-
-        using var proc = Process.Start(psi);
-        if (proc == null) { error = "Failed to start git."; return null; }
-
-        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-        var stderrTask = proc.StandardError.ReadToEndAsync();
-        proc.WaitForExit();
-        var stdout = stdoutTask.GetAwaiter().GetResult();
-        var stderr = stderrTask.GetAwaiter().GetResult();
-
-        if (proc.ExitCode == 0) return stdout;
-
-        var msg = FirstMeaningfulLine(stderr);
-        error = string.IsNullOrEmpty(msg) ? $"git status exited with code {proc.ExitCode}." : msg;
+        var result = _runner.Run(
+            workingDir,
+            new[] { "status", "--porcelain=v2", "-z", "--untracked-files=all", "--ignored=no" },
+            GitProcessRunner.GitLaunch.Direct);
+        if (result.Ok) return result.Stdout;
+        error = result.FirstLineError("git status");
         return null;
     }
 
@@ -651,27 +636,11 @@ public sealed class GitService : IGitService
 
     private string? RunGitWithStdin(string workingDir, IReadOnlyList<string> args, string stdin)
     {
-        using var _ = _activity.Begin(workingDir);
-        var psi = BuildDirectGitPsi(workingDir);
-        psi.RedirectStandardInput = true;
-        foreach (var a in args) psi.ArgumentList.Add(a);
-
-        using var proc = Process.Start(psi);
-        if (proc == null) return "Failed to start git.";
-
-        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-        var stderrTask = proc.StandardError.ReadToEndAsync();
-        proc.StandardInput.Write(stdin);
-        proc.StandardInput.Close();
-        proc.WaitForExit();
-
-        if (proc.ExitCode == 0) return null;
-
-        var msg = CombineGitOutput(stderrTask.GetAwaiter().GetResult(), stdoutTask.GetAwaiter().GetResult());
-        return string.IsNullOrEmpty(msg) ? $"git apply exited with code {proc.ExitCode}." : msg;
+        var result = _runner.Run(workingDir, args, GitProcessRunner.GitLaunch.Direct, stdin);
+        return result.Ok ? null : result.BlockError("git apply");
     }
 
-    private static void RunGitMutationOrThrow(string repoPath, IReadOnlyList<string> args)
+    private void RunGitMutationOrThrow(string repoPath, IReadOnlyList<string> args)
     {
         var (ok, error) = RunMutation(repoPath, args);
         if (!ok) throw new InvalidOperationException(error ?? "git command failed.");
@@ -755,22 +724,8 @@ public sealed class GitService : IGitService
                 {
                     var args = new List<string> { "checkout", "--" };
                     args.AddRange(trackedPaths);
-                    var psi = BuildGitProcessStartInfo(args, repo.Path);
-                    using var proc = Process.Start(psi);
-                    if (proc == null) return "Failed to start git.";
-                    var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                    var stderrTask = proc.StandardError.ReadToEndAsync();
-                    proc.WaitForExit();
-                    if (proc.ExitCode != 0)
-                    {
-                        var stderr = stderrTask.GetAwaiter().GetResult();
-                        var stdout = stdoutTask.GetAwaiter().GetResult();
-                        var combined = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
-                        var msg = FirstMeaningfulLine(combined);
-                        return string.IsNullOrEmpty(msg)
-                            ? $"git checkout exited with code {proc.ExitCode}."
-                            : msg;
-                    }
+                    var result = _runner.Run(repo.Path, args);
+                    if (!result.Ok) return result.FirstLineError("git checkout");
                 }
                 return null;
             }
@@ -796,26 +751,11 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                using var _ = _activity.Begin(repo.Path);
-                var psi = BuildGitProcessStartInfo(args, repo.Path);
                 // -m supplies the message, but a configured core.editor would still fire for
                 // merge/rebase/squash flows that prompt to confirm the commit message.
-                psi.EnvironmentVariables["GIT_EDITOR"] = "true";
-
-                using var proc = Process.Start(psi);
-                if (proc == null) return "Failed to start git.";
-
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-
-                if (proc.ExitCode == 0) return null;
-
-                var msg = CombineGitOutput(stderr, stdout);
-                if (string.IsNullOrEmpty(msg)) msg = $"git commit exited with code {proc.ExitCode}.";
-                return msg;
+                var result = _runner.Run(repo.Path, args,
+                    configure: static psi => psi.EnvironmentVariables["GIT_EDITOR"] = "true");
+                return result.Ok ? null : result.BlockError("git commit");
             }
             finally { sem.Release(); }
         }
@@ -984,22 +924,8 @@ public sealed class GitService : IGitService
 
                 var args = new List<string> { "push" };
                 if (force) args.Add("--force-with-lease");
-                var psi = BuildGitProcessStartInfo(args, repo.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new PushOutcome(false, "Failed to start git.");
-
-                // Read both streams concurrently so a full pipe buffer on either side can't deadlock.
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-
-                if (proc.ExitCode == 0) return new PushOutcome(true, null);
-                var combined = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
-                var msg = FirstMeaningfulLine(combined);
-                if (string.IsNullOrEmpty(msg)) msg = $"git push exited with code {proc.ExitCode}.";
-                return new PushOutcome(false, msg);
+                var result = _runner.Run(repo.Path, args);
+                return result.Ok ? new PushOutcome(true, null) : new PushOutcome(false, result.FirstLineError("git push"));
             }
             finally { sem.Release(); }
         }
@@ -1031,21 +957,8 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo(args, repo.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new PushOutcome(false, "Failed to start git.");
-
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-
-                if (proc.ExitCode == 0) return new PushOutcome(true, null);
-                var combined = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
-                var msg = FirstMeaningfulLine(combined);
-                if (string.IsNullOrEmpty(msg)) msg = $"git push exited with code {proc.ExitCode}.";
-                return new PushOutcome(false, msg);
+                var result = _runner.Run(repo.Path, args);
+                return result.Ok ? new PushOutcome(true, null) : new PushOutcome(false, result.FirstLineError("git push"));
             }
             finally { sem.Release(); }
         }
@@ -1143,21 +1056,8 @@ public sealed class GitService : IGitService
                         $"Branch '{name}' has no upstream. Set one with: git branch --set-upstream-to=<remote>/<branch>");
                 }
 
-                var psi = BuildGitProcessStartInfo("pull", repo.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new PullOutcome(false, "Failed to start git.");
-
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-
-                if (proc.ExitCode == 0) return new PullOutcome(true, null);
-                var combined = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
-                var msg = FirstMeaningfulLine(combined);
-                if (string.IsNullOrEmpty(msg)) msg = $"git pull exited with code {proc.ExitCode}.";
-                return new PullOutcome(false, msg);
+                var result = _runner.Run(repo.Path, new[] { "pull" });
+                return result.Ok ? new PullOutcome(true, null) : new PullOutcome(false, result.FirstLineError("git pull"));
             }
             finally { sem.Release(); }
         }
@@ -1178,21 +1078,8 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo("fetch --all --prune", repo.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new FetchOutcome(false, "Failed to start git.");
-
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-
-                if (proc.ExitCode == 0) return new FetchOutcome(true, null);
-                var combined = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
-                var msg = FirstMeaningfulLine(combined);
-                if (string.IsNullOrEmpty(msg)) msg = $"git fetch exited with code {proc.ExitCode}.";
-                return new FetchOutcome(false, msg);
+                var result = _runner.Run(repo.Path, new[] { "fetch", "--all", "--prune" });
+                return result.Ok ? new FetchOutcome(true, null) : new FetchOutcome(false, result.FirstLineError("git fetch"));
             }
             finally { sem.Release(); }
         }
@@ -1216,39 +1103,27 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo(args, repo.Path);
                 var sw = Stopwatch.StartNew();
                 Console.WriteLine($"{tag} starting");
 
-                using var proc = Process.Start(psi);
-                if (proc == null) return new FastForwardOutcome(false, "Failed to start git.");
-
-                var captured = new System.Text.StringBuilder();
-                void OnLine(string? line)
+                var (exitCode, captureText, started) = _runner.RunStreaming(repo.Path, args, line =>
                 {
-                    if (string.IsNullOrEmpty(line)) return;
                     Console.WriteLine($"{tag}   {line}");
-                    lock (captured) captured.AppendLine(line);
                     onLine?.Invoke(line);
-                }
-                proc.OutputDataReceived += (_, e) => OnLine(e.Data);
-                proc.ErrorDataReceived += (_, e) => OnLine(e.Data);
-                proc.BeginOutputReadLine();
-                proc.BeginErrorReadLine();
-                proc.WaitForExit();
+                });
                 sw.Stop();
 
-                if (proc.ExitCode == 0)
+                if (!started) return new FastForwardOutcome(false, "Failed to start git.");
+
+                if (exitCode == 0)
                 {
                     Console.WriteLine($"{tag} done in {sw.ElapsedMilliseconds}ms");
                     return new FastForwardOutcome(true, null);
                 }
 
-                string captureText;
-                lock (captured) captureText = captured.ToString();
-                var msg = FirstMeaningfulLine(captureText);
-                if (string.IsNullOrEmpty(msg)) msg = $"git fetch exited with code {proc.ExitCode}.";
-                msg = AugmentCredentialError(msg, captureText);
+                var msg = GitProcessRunner.FirstMeaningfulLine(captureText);
+                if (string.IsNullOrEmpty(msg)) msg = $"git fetch exited with code {exitCode}.";
+                msg = GitProcessRunner.AugmentCredentialError(msg, captureText);
                 Console.WriteLine($"{tag} failed in {sw.ElapsedMilliseconds}ms: {msg}");
                 return new FastForwardOutcome(false, msg);
             }
@@ -1300,19 +1175,8 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo(new[] { "reset", flag, commitSha }, repo.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new ResetOutcome(false, "Failed to start git.");
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stdout = stdoutTask.Result;
-                var stderr = stderrTask.Result;
-                if (proc.ExitCode == 0) return new ResetOutcome(true, null);
-                var combined = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
-                var msg = FirstMeaningfulLine(combined);
-                if (string.IsNullOrEmpty(msg)) msg = $"git reset exited with code {proc.ExitCode}.";
-                return new ResetOutcome(false, msg);
+                var result = _runner.Run(repo.Path, new[] { "reset", flag, commitSha });
+                return result.Ok ? new ResetOutcome(true, null) : new ResetOutcome(false, result.FirstLineError("git reset"));
             }
             finally { sem.Release(); }
         }
@@ -1363,22 +1227,10 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo(args, repo.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new CreateBranchOutcome(false, "Failed to start git.");
-
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-
-                if (proc.ExitCode == 0) return new CreateBranchOutcome(true, null);
-                var combined = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
-                var msg = FirstMeaningfulLine(combined);
-                if (string.IsNullOrEmpty(msg))
-                    msg = $"git {(checkout ? "checkout" : "branch")} exited with code {proc.ExitCode}.";
-                return new CreateBranchOutcome(false, msg);
+                var result = _runner.Run(repo.Path, args);
+                return result.Ok
+                    ? new CreateBranchOutcome(true, null)
+                    : new CreateBranchOutcome(false, result.FirstLineError($"git {(checkout ? "checkout" : "branch")}"));
             }
             finally { sem.Release(); }
         }
@@ -1402,20 +1254,8 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo(args, repo.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new RenameBranchOutcome(false, "Failed to start git.");
-
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-
-                if (proc.ExitCode == 0) return new RenameBranchOutcome(true, null);
-                var msg = CombineGitOutput(stderr, stdout);
-                if (string.IsNullOrEmpty(msg)) msg = $"git branch exited with code {proc.ExitCode}.";
-                return new RenameBranchOutcome(false, msg);
+                var result = _runner.Run(repo.Path, args);
+                return result.Ok ? new RenameBranchOutcome(true, null) : new RenameBranchOutcome(false, result.BlockError("git branch"));
             }
             finally { sem.Release(); }
         }
@@ -1435,24 +1275,17 @@ public sealed class GitService : IGitService
             // git 2.38+: real-merge mode. Exit 0 = clean, 1 = conflicts, >1 = error
             // (old git, missing ref, no merge base, etc). Treat errors as Unknown so the
             // dialog quietly skips the preview rather than blocking the user from merging.
-            var psi = BuildDirectGitPsi(repo.Path);
-            psi.ArgumentList.Add("merge-tree");
-            psi.ArgumentList.Add("--write-tree");
-            psi.ArgumentList.Add("--no-messages");
-            psi.ArgumentList.Add("HEAD");
-            psi.ArgumentList.Add(sourceRef);
+            var result = _runner.Run(
+                repo.Path,
+                new[] { "merge-tree", "--write-tree", "--no-messages", "HEAD", sourceRef },
+                GitProcessRunner.GitLaunch.Direct);
+            if (!result.Started) return new MergePreviewResult(MergePreviewState.Unknown, "Failed to start git.");
 
-            using var proc = Process.Start(psi);
-            if (proc == null) return new MergePreviewResult(MergePreviewState.Unknown, "Failed to start git.");
-            proc.StandardOutput.ReadToEnd();
-            var stderr = proc.StandardError.ReadToEnd();
-            proc.WaitForExit();
-
-            return proc.ExitCode switch
+            return result.ExitCode switch
             {
                 0 => new MergePreviewResult(MergePreviewState.Clean, null),
                 1 => new MergePreviewResult(MergePreviewState.Conflicts, null),
-                _ => new MergePreviewResult(MergePreviewState.Unknown, FirstMeaningfulLine(stderr)),
+                _ => new MergePreviewResult(MergePreviewState.Unknown, GitProcessRunner.FirstMeaningfulLine(result.Stderr)),
             };
         }
         catch (Exception ex)
@@ -1484,17 +1317,8 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo(args, repo.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new MergeOutcome(false, "Failed to start git.");
-
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-
-                if (proc.ExitCode == 0) return new MergeOutcome(true, null);
+                var result = _runner.Run(repo.Path, args);
+                if (result.Ok) return new MergeOutcome(true, null);
 
                 // Conflict path: MERGE_HEAD exists in the per-worktree gitdir.
                 // --squash and --ff-only never create MERGE_HEAD, so failures there are
@@ -1510,9 +1334,7 @@ public sealed class GitService : IGitService
                     catch { /* fall through to error */ }
                 }
 
-                var msg = CombineGitOutput(stderr, stdout);
-                if (string.IsNullOrEmpty(msg)) msg = $"git merge exited with code {proc.ExitCode}.";
-                return new MergeOutcome(false, msg);
+                return new MergeOutcome(false, result.BlockError("git merge"));
             }
             finally { sem.Release(); }
         }
@@ -1533,24 +1355,17 @@ public sealed class GitService : IGitService
             if (!IsGitRepo(repo.Path))
                 return new RebasePreviewResult(RebasePreviewState.Unknown, "Not a git repository.");
 
-            var psi = BuildDirectGitPsi(repo.Path);
-            psi.ArgumentList.Add("merge-tree");
-            psi.ArgumentList.Add("--write-tree");
-            psi.ArgumentList.Add("--no-messages");
-            psi.ArgumentList.Add(targetRef);
-            psi.ArgumentList.Add("HEAD");
+            var result = _runner.Run(
+                repo.Path,
+                new[] { "merge-tree", "--write-tree", "--no-messages", targetRef, "HEAD" },
+                GitProcessRunner.GitLaunch.Direct);
+            if (!result.Started) return new RebasePreviewResult(RebasePreviewState.Unknown, "Failed to start git.");
 
-            using var proc = Process.Start(psi);
-            if (proc == null) return new RebasePreviewResult(RebasePreviewState.Unknown, "Failed to start git.");
-            proc.StandardOutput.ReadToEnd();
-            var stderr = proc.StandardError.ReadToEnd();
-            proc.WaitForExit();
-
-            return proc.ExitCode switch
+            return result.ExitCode switch
             {
                 0 => new RebasePreviewResult(RebasePreviewState.Clean, null),
                 1 => new RebasePreviewResult(RebasePreviewState.Conflicts, null),
-                _ => new RebasePreviewResult(RebasePreviewState.Unknown, FirstMeaningfulLine(stderr)),
+                _ => new RebasePreviewResult(RebasePreviewState.Unknown, GitProcessRunner.FirstMeaningfulLine(result.Stderr)),
             };
         }
         catch (Exception ex)
@@ -1580,17 +1395,8 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo(args, repo.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new RebaseOutcome(false, "Failed to start git.");
-
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-
-                if (proc.ExitCode == 0) return new RebaseOutcome(true, null);
+                var result = _runner.Run(repo.Path, args);
+                if (result.Ok) return new RebaseOutcome(true, null);
 
                 // Conflict path: rebase leaves rebase-apply/ or rebase-merge/ in the
                 // per-worktree gitdir. If either exists, treat the failure as a successful
@@ -1608,9 +1414,7 @@ public sealed class GitService : IGitService
                 }
                 catch { /* fall through to error */ }
 
-                var msg = CombineGitOutput(stderr, stdout);
-                if (string.IsNullOrEmpty(msg)) msg = $"git rebase exited with code {proc.ExitCode}.";
-                return new RebaseOutcome(false, msg);
+                return new RebaseOutcome(false, result.BlockError("git rebase"));
             }
             finally { sem.Release(); }
         }
@@ -1635,20 +1439,8 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo(args, repo.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new DeleteBranchOutcome(false, "Failed to start git.");
-
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-
-                if (proc.ExitCode == 0) return new DeleteBranchOutcome(true, null);
-                var msg = CombineGitOutput(stderr, stdout);
-                if (string.IsNullOrEmpty(msg)) msg = $"git branch exited with code {proc.ExitCode}.";
-                return new DeleteBranchOutcome(false, msg);
+                var result = _runner.Run(repo.Path, args);
+                return result.Ok ? new DeleteBranchOutcome(true, null) : new DeleteBranchOutcome(false, result.BlockError("git branch"));
             }
             finally { sem.Release(); }
         }
@@ -1672,20 +1464,8 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo(args, repo.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new DeleteRemoteBranchOutcome(false, "Failed to start git.");
-
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-
-                if (proc.ExitCode == 0) return new DeleteRemoteBranchOutcome(true, null);
-                var msg = CombineGitOutput(stderr, stdout);
-                if (string.IsNullOrEmpty(msg)) msg = $"git push exited with code {proc.ExitCode}.";
-                return new DeleteRemoteBranchOutcome(false, msg);
+                var result = _runner.Run(repo.Path, args);
+                return result.Ok ? new DeleteRemoteBranchOutcome(true, null) : new DeleteRemoteBranchOutcome(false, result.BlockError("git push"));
             }
             finally { sem.Release(); }
         }
@@ -1910,22 +1690,10 @@ public sealed class GitService : IGitService
         }
     }
 
-    private static WorktreeAddOutcome RunWorktreeAdd(string repoPath, IReadOnlyList<string> args)
+    private WorktreeAddOutcome RunWorktreeAdd(string repoPath, IReadOnlyList<string> args)
     {
-        var psi = BuildGitProcessStartInfo(args, repoPath);
-        using var proc = Process.Start(psi);
-        if (proc == null) return new WorktreeAddOutcome(false, "Failed to start git.");
-
-        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-        var stderrTask = proc.StandardError.ReadToEndAsync();
-        proc.WaitForExit();
-        var stderr = stderrTask.GetAwaiter().GetResult();
-        var stdout = stdoutTask.GetAwaiter().GetResult();
-
-        if (proc.ExitCode == 0) return new WorktreeAddOutcome(true, null);
-        var msg = CombineGitOutput(stderr, stdout);
-        if (string.IsNullOrEmpty(msg)) msg = $"git worktree add exited with code {proc.ExitCode}.";
-        return new WorktreeAddOutcome(false, msg);
+        var result = _runner.Run(repoPath, args);
+        return result.Ok ? new WorktreeAddOutcome(true, null) : new WorktreeAddOutcome(false, result.BlockError("git worktree add"));
     }
 
     public WorktreeRemoveOutcome RemoveWorktree(Repo primary, string worktreePath, bool force)
@@ -1945,18 +1713,8 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo(args, primary.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new WorktreeRemoveOutcome(false, "Failed to start git.");
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-                if (proc.ExitCode == 0) return new WorktreeRemoveOutcome(true, null);
-                var msg = CombineGitOutput(stderr, stdout);
-                if (string.IsNullOrEmpty(msg)) msg = $"git worktree remove exited with code {proc.ExitCode}.";
-                return new WorktreeRemoveOutcome(false, msg);
+                var result = _runner.Run(primary.Path, args);
+                return result.Ok ? new WorktreeRemoveOutcome(true, null) : new WorktreeRemoveOutcome(false, result.BlockError("git worktree remove"));
             }
             finally { sem.Release(); }
         }
@@ -1977,18 +1735,8 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo(new[] { "worktree", "prune" }, primary.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new WorktreePruneOutcome(false, "Failed to start git.");
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-                if (proc.ExitCode == 0) return new WorktreePruneOutcome(true, null);
-                var msg = CombineGitOutput(stderr, stdout);
-                if (string.IsNullOrEmpty(msg)) msg = $"git worktree prune exited with code {proc.ExitCode}.";
-                return new WorktreePruneOutcome(false, msg);
+                var result = _runner.Run(primary.Path, new[] { "worktree", "prune" });
+                return result.Ok ? new WorktreePruneOutcome(true, null) : new WorktreePruneOutcome(false, result.BlockError("git worktree prune"));
             }
             finally { sem.Release(); }
         }
@@ -2213,24 +1961,15 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo(args, primary.Path);
-                using var proc = Process.Start(psi);
-                if (proc == null) return new SubmoduleUpdateOutcome(false, "Failed to start git.");
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-                if (proc.ExitCode == 0) return new SubmoduleUpdateOutcome(true, null);
+                var result = _runner.Run(primary.Path, args);
+                if (result.Ok) return new SubmoduleUpdateOutcome(true, null);
                 // Merge/rebase strategies surface CONFLICT markers in stdout when they fail —
                 // hand that signal up so the dialog can show a "see Operation banner" hint
                 // instead of just a raw error.
-                var combined = stdout + "\n" + stderr;
+                var combined = result.Stdout + "\n" + result.Stderr;
                 var conflicts = combined.Contains("CONFLICT", StringComparison.Ordinal)
                                 || combined.Contains("merge conflict", StringComparison.OrdinalIgnoreCase);
-                var msg = CombineGitOutput(stderr, stdout);
-                if (string.IsNullOrEmpty(msg)) msg = $"git submodule update exited with code {proc.ExitCode}.";
-                return new SubmoduleUpdateOutcome(false, msg, conflicts);
+                return new SubmoduleUpdateOutcome(false, result.BlockError("git submodule update"), conflicts);
             }
             finally { sem.Release(); }
         }
@@ -2353,20 +2092,10 @@ public sealed class GitService : IGitService
 
     // Small shared helper for "spawn git, return (ok, errorOrNull)". Used where multiple
     // successive mutations need to be sequenced inside a single repo lock.
-    private static (bool Ok, string? Error) RunMutation(string repoPath, IReadOnlyList<string> args)
+    private (bool Ok, string? Error) RunMutation(string repoPath, IReadOnlyList<string> args)
     {
-        var psi = BuildGitProcessStartInfo(args, repoPath);
-        using var proc = Process.Start(psi);
-        if (proc == null) return (false, "Failed to start git.");
-        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-        var stderrTask = proc.StandardError.ReadToEndAsync();
-        proc.WaitForExit();
-        var stderr = stderrTask.GetAwaiter().GetResult();
-        var stdout = stdoutTask.GetAwaiter().GetResult();
-        if (proc.ExitCode == 0) return (true, null);
-        var msg = CombineGitOutput(stderr, stdout);
-        if (string.IsNullOrEmpty(msg)) msg = $"git {string.Join(' ', args)} exited with code {proc.ExitCode}.";
-        return (false, msg);
+        var result = _runner.Run(repoPath, args);
+        return result.Ok ? (true, null) : (false, result.BlockError($"git {string.Join(' ', args)}"));
     }
 
     private static string NormalizeRelPath(string p) => p.Replace('\\', '/').TrimEnd('/');
@@ -2378,232 +2107,16 @@ public sealed class GitService : IGitService
         return s.Length > 0;
     }
 
-    private static StashOutcome RunGitStash(string repoPath, IReadOnlyList<string> gitArgs, string label)
+    private StashOutcome RunGitStash(string repoPath, IReadOnlyList<string> gitArgs, string label)
     {
-        var psi = BuildGitProcessStartInfo(gitArgs, repoPath);
-        using var proc = Process.Start(psi);
-        if (proc == null) return new StashOutcome(false, "Failed to start git.");
-
-        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-        var stderrTask = proc.StandardError.ReadToEndAsync();
-        proc.WaitForExit();
-        var stderr = stderrTask.GetAwaiter().GetResult();
-        var stdout = stdoutTask.GetAwaiter().GetResult();
-
-        if (proc.ExitCode == 0) return new StashOutcome(true, null);
-        var msg = CombineGitOutput(stderr, stdout);
-        if (string.IsNullOrEmpty(msg)) msg = $"{label} exited with code {proc.ExitCode}.";
-        return new StashOutcome(false, msg);
+        var result = _runner.Run(repoPath, gitArgs);
+        return result.Ok ? new StashOutcome(true, null) : new StashOutcome(false, result.BlockError(label));
     }
 
-    // Picks the meaningful block out of git's two streams. Rules, in priority order:
-    //   1. If either stream carries an `error:` / `fatal:` / `hint:` prefix, that stream is
-    //      authoritative — use just its extracted block. Don't dilute it with the other
-    //      stream's content, which is typically the noisy `git status` recap a stash/merge
-    //      op runs after the failure ("On branch …", "Changes not staged for commit", etc.).
-    //   2. Otherwise prefer stdout — operations like `git stash apply` with conflicts emit
-    //      the actual signal (CONFLICT lines, "Auto-merging X") on stdout while stderr is
-    //      empty or a stray `\n`.
-    //   3. Fall back to stderr if stdout is whitespace-only.
-    private static string CombineGitOutput(string stderr, string stdout)
+    private CheckoutOutcome RunGitCheckout(string repoPath, IReadOnlyList<string> gitArgs)
     {
-        if (HasGitPrefix(stderr)) return ExtractGitErrorBlock(stderr);
-        if (HasGitPrefix(stdout)) return ExtractGitErrorBlock(stdout);
-        if (!string.IsNullOrWhiteSpace(stdout)) return ExtractGitErrorBlock(stdout);
-        if (!string.IsNullOrWhiteSpace(stderr)) return ExtractGitErrorBlock(stderr);
-        return string.Empty;
-    }
-
-    private static bool HasGitPrefix(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return false;
-        foreach (var line in text.Split('\n'))
-        {
-            var t = line.TrimStart();
-            if (t.StartsWith("error:", StringComparison.OrdinalIgnoreCase)
-                || t.StartsWith("fatal:", StringComparison.OrdinalIgnoreCase)
-                || t.StartsWith("hint:", StringComparison.OrdinalIgnoreCase)
-                || t.StartsWith("warning:", StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-        return false;
-    }
-
-    private static CheckoutOutcome RunGitCheckout(string repoPath, IReadOnlyList<string> gitArgs)
-    {
-        var psi = BuildGitProcessStartInfo(gitArgs, repoPath);
-        using var proc = Process.Start(psi);
-        if (proc == null) return new CheckoutOutcome(false, "Failed to start git.");
-
-        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-        var stderrTask = proc.StandardError.ReadToEndAsync();
-        proc.WaitForExit();
-        var stderr = stderrTask.GetAwaiter().GetResult();
-        var stdout = stdoutTask.GetAwaiter().GetResult();
-
-        if (proc.ExitCode == 0) return new CheckoutOutcome(true, null);
-        var msg = CombineGitOutput(stderr, stdout);
-        if (string.IsNullOrEmpty(msg)) msg = $"git checkout exited with code {proc.ExitCode}.";
-        return new CheckoutOutcome(false, msg);
-    }
-
-    // On macOS, GUI apps launched outside a terminal (Finder, IDE, Launch Services)
-    // don't inherit the user's interactive-shell environment. Anything set up in
-    // .zshrc / .bashrc — 1Password's SSH_AUTH_SOCK, manually-started ssh-agent, the
-    // Homebrew PATH, GIT_SSH_COMMAND overrides — is invisible to the child process,
-    // and `git push` over SSH dies with "Could not read from remote repository".
-    //
-    // Running git through the user's shell with `-i -c` sources their rc files first
-    // so ssh and git see the same environment they do in Terminal.
-    private static ProcessStartInfo BuildGitProcessStartInfo(string gitArgs, string workingDir)
-    {
-        var psi = new ProcessStartInfo
-        {
-            WorkingDirectory = workingDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
-        psi.Environment["GIT_TERMINAL_PROMPT"] = "0";
-
-        if (OperatingSystem.IsMacOS())
-        {
-            var shell = Environment.GetEnvironmentVariable("SHELL");
-            if (string.IsNullOrEmpty(shell)) shell = "/bin/zsh";
-            psi.FileName = shell;
-            psi.ArgumentList.Add("-i");
-            psi.ArgumentList.Add("-c");
-            psi.ArgumentList.Add($"GIT_TERMINAL_PROMPT=0 git {gitArgs}");
-        }
-        else
-        {
-            psi.FileName = "git";
-            foreach (var part in gitArgs.Split(' ', StringSplitOptions.RemoveEmptyEntries))
-                psi.ArgumentList.Add(part);
-        }
-
-        return psi;
-    }
-
-    // Args-list variant for callers passing user-typed strings (e.g. a branch name from a
-    // dialog): each arg is shell-quoted on the macOS `sh -c` path so spaces or metacharacters
-    // can't break the command or inject extra ones.
-    private static ProcessStartInfo BuildGitProcessStartInfo(IReadOnlyList<string> gitArgs, string workingDir)
-    {
-        var psi = new ProcessStartInfo
-        {
-            WorkingDirectory = workingDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
-        psi.Environment["GIT_TERMINAL_PROMPT"] = "0";
-
-        if (OperatingSystem.IsMacOS())
-        {
-            var shell = Environment.GetEnvironmentVariable("SHELL");
-            if (string.IsNullOrEmpty(shell)) shell = "/bin/zsh";
-            psi.FileName = shell;
-            psi.ArgumentList.Add("-i");
-            psi.ArgumentList.Add("-c");
-            var sb = new System.Text.StringBuilder("GIT_TERMINAL_PROMPT=0 git");
-            foreach (var a in gitArgs)
-            {
-                sb.Append(' ');
-                sb.Append(SingleQuoteShellArg(a));
-            }
-            psi.ArgumentList.Add(sb.ToString());
-        }
-        else
-        {
-            psi.FileName = "git";
-            foreach (var a in gitArgs) psi.ArgumentList.Add(a);
-        }
-
-        return psi;
-    }
-
-    private static string SingleQuoteShellArg(string s)
-        => "'" + s.Replace("'", "'\\''") + "'";
-
-    private static string AugmentCredentialError(string headline, string fullOutput)
-    {
-        if (string.IsNullOrEmpty(headline) || string.IsNullOrEmpty(fullOutput))
-            return headline;
-        var looksLikeAuth = fullOutput.Contains("terminal prompts disabled", StringComparison.OrdinalIgnoreCase)
-            || fullOutput.Contains("could not read Username", StringComparison.OrdinalIgnoreCase)
-            || fullOutput.Contains("could not read Password", StringComparison.OrdinalIgnoreCase)
-            || fullOutput.Contains("Authentication failed", StringComparison.OrdinalIgnoreCase);
-        if (!looksLikeAuth) return headline;
-
-        var hint = OperatingSystem.IsMacOS()
-            ? "Configure a credential helper (e.g. `git config --global credential.helper osxkeychain`) or switch the remote to SSH."
-            : OperatingSystem.IsWindows()
-                ? "Configure a credential helper (Git Credential Manager ships with Git for Windows) or switch the remote to SSH."
-                : "Configure a credential helper (e.g. `git config --global credential.helper store`) or switch the remote to SSH.";
-        return $"{headline}\n\n{hint}";
-    }
-
-    // Pulls the most relevant single line out of a git error blob — typically the
-    // "fatal: …" / "error: …" / "hint: …" line near the end. Used by callers that show
-    // the error in a single-line banner (ErrorBar) where multi-line text would overflow.
-    private static string FirstMeaningfulLine(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
-        var lines = text.Split('\n');
-        for (var i = lines.Length - 1; i >= 0; i--)
-        {
-            var line = lines[i].Trim();
-            if (line.StartsWith("fatal:", StringComparison.OrdinalIgnoreCase)
-                || line.StartsWith("error:", StringComparison.OrdinalIgnoreCase))
-                return line;
-        }
-        foreach (var line in lines)
-        {
-            var trimmed = line.Trim();
-            if (trimmed.Length > 0) return trimmed;
-        }
-        return text.Trim();
-    }
-
-    // Returns the full meaningful error block from a git error blob — starting at the
-    // first "error:" / "fatal:" / "hint:" line and including everything after it (the
-    // indented file list under "would be overwritten by merge:", the "Please commit your
-    // changes or stash them" hint, etc.). Used by callers that surface the error in a
-    // scrollable dialog where the full context is useful.
-    private static string ExtractGitErrorBlock(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
-        var lines = text.Split('\n');
-        var startIdx = -1;
-        for (var i = 0; i < lines.Length; i++)
-        {
-            var trimmed = lines[i].TrimStart();
-            if (trimmed.StartsWith("error:", StringComparison.OrdinalIgnoreCase)
-                || trimmed.StartsWith("fatal:", StringComparison.OrdinalIgnoreCase)
-                || trimmed.StartsWith("hint:", StringComparison.OrdinalIgnoreCase)
-                || trimmed.StartsWith("warning:", StringComparison.OrdinalIgnoreCase))
-            {
-                startIdx = i;
-                break;
-            }
-        }
-
-        IEnumerable<string> kept;
-        if (startIdx < 0)
-        {
-            // No git-prefixed line — fall back to all non-empty lines, trimmed.
-            kept = lines.Select(l => l.TrimEnd()).Where(l => l.Length > 0);
-        }
-        else
-        {
-            kept = lines.Skip(startIdx).Select(l => l.TrimEnd());
-        }
-
-        var result = string.Join("\n", kept).TrimEnd();
-        return result.Length > 0 ? result : text.Trim();
+        var result = _runner.Run(repoPath, gitArgs);
+        return result.Ok ? new CheckoutOutcome(true, null) : new CheckoutOutcome(false, result.BlockError("git checkout"));
     }
 
     // LibGit2Sharp's Patch API drives diff output through native→managed callbacks (per
@@ -2672,108 +2185,19 @@ public sealed class GitService : IGitService
     private string? RunGitInternal(string workingDir, bool allowExitCode1, out string? error, string[] args)
     {
         error = null;
-        using var _ = _activity.Begin(workingDir);
-        var psi = BuildDirectGitPsi(workingDir);
-        foreach (var a in args) psi.ArgumentList.Add(a);
-
-        using var proc = Process.Start(psi);
-        if (proc == null) { error = "Failed to start git."; return null; }
-
-        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-        var stderrTask = proc.StandardError.ReadToEndAsync();
-        proc.WaitForExit();
-        var stdout = stdoutTask.GetAwaiter().GetResult();
-        var stderr = stderrTask.GetAwaiter().GetResult();
-
-        if (proc.ExitCode == 0 || (allowExitCode1 && proc.ExitCode == 1)) return stdout;
-
-        var msg = FirstMeaningfulLine(stderr);
-        error = string.IsNullOrEmpty(msg) ? $"git exited with code {proc.ExitCode}." : msg;
+        var result = _runner.Run(workingDir, args, GitProcessRunner.GitLaunch.Direct);
+        if (result.Ok || (allowExitCode1 && result.ExitCode == 1)) return result.Stdout;
+        error = result.FirstLineError("git");
         return null;
     }
 
     private bool IsTracked(string workingDir, string path)
     {
-        using var _ = _activity.Begin(workingDir);
-        var psi = BuildDirectGitPsi(workingDir);
-        psi.ArgumentList.Add("ls-files");
-        psi.ArgumentList.Add("--error-unmatch");
-        psi.ArgumentList.Add("--");
-        psi.ArgumentList.Add(path);
-
-        using var proc = Process.Start(psi);
-        if (proc == null) return false;
-        proc.StandardOutput.ReadToEnd();
-        proc.StandardError.ReadToEnd();
-        proc.WaitForExit();
-        return proc.ExitCode == 0;
-    }
-
-    private static ProcessStartInfo BuildDirectGitPsi(string workingDir)
-    {
-        var psi = new ProcessStartInfo
-        {
-            FileName = GitExecutable(),
-            WorkingDirectory = workingDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
-        psi.Environment["GIT_TERMINAL_PROMPT"] = "0";
-        return psi;
-    }
-
-    // macOS GUI apps launched outside a terminal don't inherit the user's shell PATH, so
-    // Homebrew git (/opt/homebrew/bin/git, /usr/local/bin/git) is invisible to a bare
-    // Process.Start("git"). Ask the login shell where git lives, once, and reuse the
-    // absolute path everywhere.
-    private static string? _gitExecutable;
-    private static readonly object _gitExecutableLock = new();
-
-    private static string GitExecutable()
-    {
-        if (_gitExecutable != null) return _gitExecutable;
-        lock (_gitExecutableLock)
-        {
-            _gitExecutable ??= ResolveGitExecutable();
-            return _gitExecutable;
-        }
-    }
-
-    private static string ResolveGitExecutable()
-    {
-        if (!OperatingSystem.IsMacOS()) return "git";
-
-        try
-        {
-            var shell = Environment.GetEnvironmentVariable("SHELL");
-            if (string.IsNullOrEmpty(shell)) shell = "/bin/zsh";
-            var psi = new ProcessStartInfo
-            {
-                FileName = shell,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-            psi.ArgumentList.Add("-l");
-            psi.ArgumentList.Add("-c");
-            psi.ArgumentList.Add("command -v git");
-            using var proc = Process.Start(psi);
-            if (proc != null)
-            {
-                var path = proc.StandardOutput.ReadToEnd().Trim();
-                proc.WaitForExit();
-                if (path.Length > 0 && File.Exists(path)) return path;
-            }
-        }
-        catch { /* fall through to defaults */ }
-
-        foreach (var p in new[] { "/opt/homebrew/bin/git", "/usr/local/bin/git", "/usr/bin/git" })
-            if (File.Exists(p)) return p;
-
-        return "git";
+        var result = _runner.Run(
+            workingDir,
+            new[] { "ls-files", "--error-unmatch", "--", path },
+            GitProcessRunner.GitLaunch.Direct);
+        return result.Ok;
     }
 
     private static DiffResult ParseGitDiff(Guid repoId, string path, DiffSide side, string patchText)
@@ -3022,17 +2446,10 @@ public sealed class GitService : IGitService
                 int? exitCode = null;
                 if (args != null)
                 {
-                    var psi = BuildGitProcessStartInfo(args, repo.Path);
-                    using var proc = Process.Start(psi);
-                    if (proc == null) return new AbortOperationOutcome(false, "Failed to start git.");
-
-                    var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                    var stderrTask = proc.StandardError.ReadToEndAsync();
-                    proc.WaitForExit();
-                    var stderr = stderrTask.GetAwaiter().GetResult();
-                    var stdout = stdoutTask.GetAwaiter().GetResult();
-                    exitCode = proc.ExitCode;
-                    cmdMsg = CombineGitOutput(stderr, stdout);
+                    var result = _runner.Run(repo.Path, args);
+                    if (!result.Started) return new AbortOperationOutcome(false, "Failed to start git.");
+                    exitCode = result.ExitCode;
+                    cmdMsg = GitProcessRunner.CombineGitOutput(result.Stderr, result.Stdout);
                 }
                 else if (forceQuit)
                 {
@@ -3206,29 +2623,19 @@ public sealed class GitService : IGitService
             sem.Wait();
             try
             {
-                var psi = BuildGitProcessStartInfo(args, repo.Path);
-                psi.EnvironmentVariables["GIT_EDITOR"] = "true";
-                psi.EnvironmentVariables["GIT_SEQUENCE_EDITOR"] = "true";
-
-                using var proc = Process.Start(psi);
-                if (proc == null) return new ContinueOperationOutcome(false, "Failed to start git.");
-
-                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
-                var stderrTask = proc.StandardError.ReadToEndAsync();
-                proc.WaitForExit();
-                var stderr = stderrTask.GetAwaiter().GetResult();
-                var stdout = stdoutTask.GetAwaiter().GetResult();
-
-                if (proc.ExitCode == 0) return new ContinueOperationOutcome(true, null);
+                var result = _runner.Run(repo.Path, args, configure: static psi =>
+                {
+                    psi.EnvironmentVariables["GIT_EDITOR"] = "true";
+                    psi.EnvironmentVariables["GIT_SEQUENCE_EDITOR"] = "true";
+                });
+                if (result.Ok) return new ContinueOperationOutcome(true, null);
 
                 bool hasMoreConflicts;
                 try { hasMoreConflicts = HasUnmergedPaths(repo.Path); }
                 catch { hasMoreConflicts = false; }
 
-                var msg = CombineGitOutput(stderr, stdout);
-                if (string.IsNullOrEmpty(msg))
-                    msg = $"git {string.Join(' ', args)} exited with code {proc.ExitCode}.";
-                return new ContinueOperationOutcome(false, msg, HasMoreConflicts: hasMoreConflicts);
+                return new ContinueOperationOutcome(false,
+                    result.BlockError($"git {string.Join(' ', args)}"), HasMoreConflicts: hasMoreConflicts);
             }
             finally { sem.Release(); }
         }
