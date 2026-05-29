@@ -21,7 +21,6 @@ internal sealed class AddSubmoduleDialog : MultiChildView, IBind<AddSubmoduleDia
     private readonly CheckboxView _forceCheckbox;
     private readonly DialogButton _addButton;
     private readonly TextView _errorView;
-    private AddSubmoduleDialogViewModel? _vm;
 
     public AddSubmoduleDialog(Repo primary, Action onClose)
     {
@@ -62,10 +61,10 @@ internal sealed class AddSubmoduleDialog : MultiChildView, IBind<AddSubmoduleDia
             },
         }));
 
-        _urlController = new CheckoutDialogKbmController(_urlInput, Submit, onClose);
+        _urlController = new CheckoutDialogKbmController(_urlInput, _addButton.Command, onClose);
         _urlInput.UseController(_ => _urlController);
-        _pathInput.UseController(_ => new CheckoutDialogKbmController(_pathInput, Submit, onClose));
-        _branchInput.UseController(_ => new CheckoutDialogKbmController(_branchInput, Submit, onClose));
+        _pathInput.UseController(_ => new CheckoutDialogKbmController(_pathInput, _addButton.Command, onClose));
+        _branchInput.UseController(_ => new CheckoutDialogKbmController(_branchInput, _addButton.Command, onClose));
 
         var request = new AddSubmoduleViewRequest(primary);
         this.UseViewModel(
@@ -79,7 +78,6 @@ internal sealed class AddSubmoduleDialog : MultiChildView, IBind<AddSubmoduleDia
 
     public void Bind(AddSubmoduleDialogViewModel vm)
     {
-        _vm = vm;
         vm.CloseRequested += _onClose;
 
         _urlInput.BindTwoWay(vm.Url);
@@ -91,6 +89,4 @@ internal sealed class AddSubmoduleDialog : MultiChildView, IBind<AddSubmoduleDia
 
         _urlController.BeginEditing();
     }
-
-    private void Submit() => _vm?.Add.Execute();
 }

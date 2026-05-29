@@ -15,7 +15,6 @@ internal sealed class RebaseBranchDialog : MultiChildView, IBind<RebaseBranchDia
     private readonly TextView _errorView;
     private RebasePreviewState _previewState = RebasePreviewState.Unknown;
     private BranchPreviewStyles _previewStyles = ThemeStyles.Dark.BranchPreview;
-    private RebaseBranchDialogViewModel? _vm;
 
     public RebaseBranchDialog(RebaseBranchRequest request, Action onClose)
     {
@@ -95,7 +94,7 @@ internal sealed class RebaseBranchDialog : MultiChildView, IBind<RebaseBranchDia
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(Submit, onClose));
+        this.UseController(_ => new DialogKbmController(_rebaseButton.Command, onClose));
 
         this.UseViewModel(
             ctx => new RebaseBranchDialogViewModel(
@@ -108,7 +107,6 @@ internal sealed class RebaseBranchDialog : MultiChildView, IBind<RebaseBranchDia
 
     public void Bind(RebaseBranchDialogViewModel vm)
     {
-        _vm = vm;
         vm.CloseRequested += _onClose;
         _autostashCheckbox.IsChecked.BindTwoWay(vm.Autostash);
         _rebaseButton.BindCommand(vm.Rebase);
@@ -119,8 +117,6 @@ internal sealed class RebaseBranchDialog : MultiChildView, IBind<RebaseBranchDia
             ApplyPreviewState();
         });
     }
-
-    private void Submit() => _vm?.Rebase.Execute();
 
     private static FlexRowView BuildLabeledRow(string label, MultiChildView value)
     {

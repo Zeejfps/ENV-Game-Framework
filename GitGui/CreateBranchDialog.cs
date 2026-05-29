@@ -21,7 +21,6 @@ internal sealed class CreateBranchDialog : MultiChildView, IBind<CreateBranchDia
     private readonly CheckboxView _checkoutCheckbox;
     private readonly DialogButton _createButton;
     private readonly TextView _errorView;
-    private CreateBranchDialogViewModel? _vm;
 
     public CreateBranchDialog(Repo repo, string suggestedStartPoint, Action onClose)
     {
@@ -70,9 +69,9 @@ internal sealed class CreateBranchDialog : MultiChildView, IBind<CreateBranchDia
         // Controllers go on the inputs (not the dialog) — see CheckoutBranchDialog for why:
         // BaseTextInputKbmController consumes left-press anywhere inside the view it's on,
         // so attaching to the outer dialog would swallow clicks meant for Cancel/Create.
-        _nameController = new CheckoutDialogKbmController(_nameInput, Submit, onClose);
+        _nameController = new CheckoutDialogKbmController(_nameInput, _createButton.Command, onClose);
         _nameInput.UseController(_ => _nameController);
-        _startPointInput.UseController(_ => new CheckoutDialogKbmController(_startPointInput, Submit, onClose));
+        _startPointInput.UseController(_ => new CheckoutDialogKbmController(_startPointInput, _createButton.Command, onClose));
 
         var request = new CreateBranchRequest(repo, suggestedStartPoint);
         this.UseViewModel(
@@ -86,7 +85,6 @@ internal sealed class CreateBranchDialog : MultiChildView, IBind<CreateBranchDia
 
     public void Bind(CreateBranchDialogViewModel vm)
     {
-        _vm = vm;
         vm.CloseRequested += _onClose;
 
         _nameInput.BindTwoWay(vm.Name);
@@ -97,6 +95,4 @@ internal sealed class CreateBranchDialog : MultiChildView, IBind<CreateBranchDia
 
         _nameController.BeginEditing();
     }
-
-    private void Submit() => _vm?.Create.Execute();
 }

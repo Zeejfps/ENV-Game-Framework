@@ -12,7 +12,6 @@ internal sealed class PublishBranchDialog : MultiChildView, IBind<PublishBranchD
     private readonly TextView _errorView;
     private readonly CheckboxView _trackCheckbox;
     private readonly RemoteDropdown _remoteDropdown;
-    private PublishBranchDialogViewModel? _vm;
 
     public PublishBranchDialog(PublishBranchRequest request, Action onClose)
     {
@@ -70,7 +69,7 @@ internal sealed class PublishBranchDialog : MultiChildView, IBind<PublishBranchD
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(Submit, onClose));
+        this.UseController(_ => new DialogKbmController(_publishButton.Command, onClose));
 
         this.UseViewModel(
             ctx => new PublishBranchDialogViewModel(
@@ -83,7 +82,6 @@ internal sealed class PublishBranchDialog : MultiChildView, IBind<PublishBranchD
 
     public void Bind(PublishBranchDialogViewModel vm)
     {
-        _vm = vm;
         vm.CloseRequested += _onClose;
 
         _remoteDropdown.SelectedState.BindTwoWay(vm.SelectedRemote);
@@ -93,8 +91,6 @@ internal sealed class PublishBranchDialog : MultiChildView, IBind<PublishBranchD
 
         vm.Remotes.Subscribe(remotes => _remoteDropdown.SetOptions(remotes));
     }
-
-    private void Submit() => _vm?.Publish.Execute();
 
     private static FlexRowView BuildLabeledRow(string label, MultiChildView value)
     {

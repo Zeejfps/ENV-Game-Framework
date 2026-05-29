@@ -22,7 +22,6 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
     private readonly CheckboxView _rebaseMode;
     private readonly DialogButton _updateButton;
     private readonly TextView _errorView;
-    private UpdateSubmodulesDialogViewModel? _vm;
 
     public UpdateSubmodulesDialog(Repo primary, Repo? target, Action onClose)
     {
@@ -79,7 +78,7 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(Submit, onClose));
+        this.UseController(_ => new DialogKbmController(_updateButton.Command, onClose));
 
         var request = new UpdateSubmodulesViewRequest(primary, target);
         this.UseViewModel(
@@ -93,7 +92,6 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
 
     public void Bind(UpdateSubmodulesDialogViewModel vm)
     {
-        _vm = vm;
         vm.CloseRequested += _onClose;
 
         _initCheckbox.IsChecked.BindTwoWay(vm.Init);
@@ -111,8 +109,6 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
         _mergeMode.IsChecked.Changed += b => SelectMode(vm, SubmoduleUpdateMode.Merge, b);
         _rebaseMode.IsChecked.Changed += b => SelectMode(vm, SubmoduleUpdateMode.Rebase, b);
     }
-
-    private void Submit() => _vm?.Update.Execute();
 
     private void SelectMode(UpdateSubmodulesDialogViewModel vm, SubmoduleUpdateMode mode, bool isCheckedNow)
     {

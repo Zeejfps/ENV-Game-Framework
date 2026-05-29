@@ -10,7 +10,6 @@ internal sealed class ForcePushDialog : MultiChildView, IBind<ForcePushDialogVie
     private readonly Action _onClose;
     private readonly DialogButton _forcePushButton;
     private readonly TextView _errorView;
-    private ForcePushDialogViewModel? _vm;
 
     public ForcePushDialog(Repo repo, string branchName, int ahead, int behind, Action onClose)
     {
@@ -47,7 +46,7 @@ internal sealed class ForcePushDialog : MultiChildView, IBind<ForcePushDialogVie
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(Submit, onClose));
+        this.UseController(_ => new DialogKbmController(_forcePushButton.Command, onClose));
 
         this.UseViewModel(
             ctx => new ForcePushDialogViewModel(
@@ -60,11 +59,8 @@ internal sealed class ForcePushDialog : MultiChildView, IBind<ForcePushDialogVie
 
     public void Bind(ForcePushDialogViewModel vm)
     {
-        _vm = vm;
         vm.CloseRequested += _onClose;
         _forcePushButton.BindCommand(vm.ForcePush);
         _errorView.BindText(vm.ForcePush.Error, s => s ?? string.Empty);
     }
-
-    private void Submit() => _vm?.ForcePush.Execute();
 }

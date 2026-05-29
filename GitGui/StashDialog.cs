@@ -101,7 +101,7 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
 
         // Same reason as CreateBranchDialog: text-input controllers consume clicks across
         // the view they're on, so attach to the input itself, not the outer dialog.
-        _messageController = new CheckoutDialogKbmController(_messageInput, Submit, onClose);
+        _messageController = new CheckoutDialogKbmController(_messageInput, _stashButton.Command, onClose);
         _messageInput.UseController(_ => _messageController);
 
         var request = new StashRequest(repo);
@@ -140,8 +140,6 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
 
         vm.RequestFocusMessage();
     }
-
-    private void Submit() => _vm?.Stash.Execute();
 
     private void RenderFiles(IReadOnlyList<StashFileRow> files)
     {

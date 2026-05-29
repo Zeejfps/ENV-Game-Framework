@@ -15,7 +15,6 @@ internal sealed class MergeBranchDialog : MultiChildView, IBind<MergeBranchDialo
     private readonly TextView _errorView;
     private MergePreviewState _previewState = MergePreviewState.Unknown;
     private BranchPreviewStyles _previewStyles = ThemeStyles.Dark.BranchPreview;
-    private MergeBranchDialogViewModel? _vm;
 
     public MergeBranchDialog(MergeBranchRequest request, Action onClose)
     {
@@ -83,7 +82,7 @@ internal sealed class MergeBranchDialog : MultiChildView, IBind<MergeBranchDialo
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(Submit, onClose));
+        this.UseController(_ => new DialogKbmController(_mergeButton.Command, onClose));
 
         this.UseViewModel(
             ctx => new MergeBranchDialogViewModel(
@@ -96,7 +95,6 @@ internal sealed class MergeBranchDialog : MultiChildView, IBind<MergeBranchDialo
 
     public void Bind(MergeBranchDialogViewModel vm)
     {
-        _vm = vm;
         vm.CloseRequested += _onClose;
         _optionDropdown.SelectedState.BindTwoWay(vm.Strategy);
         _mergeButton.BindCommand(vm.Merge);
@@ -107,8 +105,6 @@ internal sealed class MergeBranchDialog : MultiChildView, IBind<MergeBranchDialo
             ApplyPreviewState();
         });
     }
-
-    private void Submit() => _vm?.Merge.Execute();
 
     private static FlexRowView BuildLabeledRow(string label, MultiChildView value)
     {

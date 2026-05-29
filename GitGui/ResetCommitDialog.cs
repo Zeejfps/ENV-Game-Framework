@@ -21,7 +21,6 @@ internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialo
     private readonly ResetModeDropdown _modeDropdown;
     private readonly DialogButton _resetButton;
     private readonly TextView _errorView;
-    private ResetCommitDialogViewModel? _vm;
 
     public ResetCommitDialog(
         Repo repo,
@@ -87,7 +86,7 @@ internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialo
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(Submit, onClose));
+        this.UseController(_ => new DialogKbmController(_resetButton.Command, onClose));
 
         var request = new ResetCommitRequest(repo, sha);
         this.UseViewModel(
@@ -101,14 +100,11 @@ internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialo
 
     public void Bind(ResetCommitDialogViewModel vm)
     {
-        _vm = vm;
         vm.CloseRequested += _onClose;
         _modeDropdown.SelectedState.BindTwoWay(vm.Mode);
         _resetButton.BindCommand(vm.Reset);
         _errorView.BindText(vm.Reset.Error, s => s ?? string.Empty);
     }
-
-    private void Submit() => _vm?.Reset.Execute();
 
     private static FlexRowView BuildLabeledRow(string label, MultiChildView value)
     {

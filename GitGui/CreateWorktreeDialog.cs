@@ -93,10 +93,10 @@ internal sealed class CreateWorktreeDialog : MultiChildView, IBind<CreateWorktre
             },
         }));
 
-        _pathController = new CheckoutDialogKbmController(_pathInput, Submit, onClose);
+        _pathController = new CheckoutDialogKbmController(_pathInput, _createButton.Command, onClose);
         _pathInput.UseController(_ => _pathController);
-        _startPointInput.UseController(_ => new CheckoutDialogKbmController(_startPointInput, Submit, onClose));
-        _branchInput.UseController(_ => new CheckoutDialogKbmController(_branchInput, Submit, onClose));
+        _startPointInput.UseController(_ => new CheckoutDialogKbmController(_startPointInput, _createButton.Command, onClose));
+        _branchInput.UseController(_ => new CheckoutDialogKbmController(_branchInput, _createButton.Command, onClose));
 
         var request = new CreateWorktreeRequest(primary);
         this.UseViewModel(
@@ -122,8 +122,6 @@ internal sealed class CreateWorktreeDialog : MultiChildView, IBind<CreateWorktre
 
         _pathController.BeginEditing();
     }
-
-    private void Submit() => _vm?.Create.Execute();
 
     private void PickPath()
     {

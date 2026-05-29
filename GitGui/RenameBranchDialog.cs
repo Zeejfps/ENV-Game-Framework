@@ -20,7 +20,6 @@ internal sealed class RenameBranchDialog : MultiChildView, IBind<RenameBranchDia
     private readonly CheckboxView _forceCheckbox;
     private readonly DialogButton _renameButton;
     private readonly TextView _errorView;
-    private RenameBranchDialogViewModel? _vm;
 
     public RenameBranchDialog(Repo repo, string currentName, Action onClose)
     {
@@ -60,7 +59,7 @@ internal sealed class RenameBranchDialog : MultiChildView, IBind<RenameBranchDia
             },
         }));
 
-        _nameController = new CheckoutDialogKbmController(_nameInput, Submit, onClose);
+        _nameController = new CheckoutDialogKbmController(_nameInput, _renameButton.Command, onClose);
         _nameInput.UseController(_ => _nameController);
 
         var request = new RenameBranchRequest(repo, currentName);
@@ -75,7 +74,6 @@ internal sealed class RenameBranchDialog : MultiChildView, IBind<RenameBranchDia
 
     public void Bind(RenameBranchDialogViewModel vm)
     {
-        _vm = vm;
         vm.CloseRequested += _onClose;
 
         _nameInput.BindTwoWay(vm.Name);
@@ -86,6 +84,4 @@ internal sealed class RenameBranchDialog : MultiChildView, IBind<RenameBranchDia
         _nameInput.SelectAll();
         _nameController.BeginEditing();
     }
-
-    private void Submit() => _vm?.Rename.Execute();
 }
