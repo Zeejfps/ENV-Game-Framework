@@ -34,6 +34,23 @@ public sealed class GitService : IGitService
         return _repoLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
     }
 
+    // Acquires the per-repo mutation lock and releases it when the returned scope is disposed.
+    // Use with `using` so every mutation path serializes without hand-written try/finally:
+    //   using var _ = LockRepo(repo.Path);
+    private static RepoLock LockRepo(string repoPath)
+    {
+        var sem = GetRepoLock(repoPath);
+        sem.Wait();
+        return new RepoLock(sem);
+    }
+
+    private readonly struct RepoLock : IDisposable
+    {
+        private readonly SemaphoreSlim _sem;
+        public RepoLock(SemaphoreSlim sem) => _sem = sem;
+        public void Dispose() => _sem.Release();
+    }
+
     // `.git` is a directory in a normal repo and a file in worktrees/submodules. Deeper
     // corruption (missing HEAD, broken objects/) surfaces when the subsequent git command runs.
     private static bool IsGitRepo(string repoPath)
@@ -584,29 +601,19 @@ public sealed class GitService : IGitService
     public void Stage(Repo repo, IReadOnlyList<string> paths)
     {
         if (paths.Count == 0) return;
-        var sem = GetRepoLock(repo.Path);
-        sem.Wait();
-        try
-        {
-            var args = new List<string>(paths.Count + 2) { "add", "--" };
-            args.AddRange(paths);
-            RunGitMutationOrThrow(repo.Path, args);
-        }
-        finally { sem.Release(); }
+        using var _ = LockRepo(repo.Path);
+        var args = new List<string>(paths.Count + 2) { "add", "--" };
+        args.AddRange(paths);
+        RunGitMutationOrThrow(repo.Path, args);
     }
 
     public void Unstage(Repo repo, IReadOnlyList<string> paths)
     {
         if (paths.Count == 0) return;
-        var sem = GetRepoLock(repo.Path);
-        sem.Wait();
-        try
-        {
-            var args = new List<string>(paths.Count + 3) { "restore", "--staged", "--" };
-            args.AddRange(paths);
-            RunGitMutationOrThrow(repo.Path, args);
-        }
-        finally { sem.Release(); }
+        using var _ = LockRepo(repo.Path);
+        var args = new List<string>(paths.Count + 3) { "restore", "--staged", "--" };
+        args.AddRange(paths);
+        RunGitMutationOrThrow(repo.Path, args);
     }
 
     public string? ApplyPatch(Repo repo, string patch, bool cached, bool reverse)
@@ -616,17 +623,12 @@ public sealed class GitService : IGitService
         {
             if (!IsGitRepo(repo.Path)) return "Not a git repository.";
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
-            {
-                var args = new List<string> { "apply", "--whitespace=nowarn" };
-                if (cached) args.Add("--cached");
-                if (reverse) args.Add("--reverse");
-                args.Add("-");
-                return RunGitWithStdin(repo.Path, args, patch);
-            }
-            finally { sem.Release(); }
+            using var _ = LockRepo(repo.Path);
+            var args = new List<string> { "apply", "--whitespace=nowarn" };
+            if (cached) args.Add("--cached");
+            if (reverse) args.Add("--reverse");
+            args.Add("-");
+            return RunGitWithStdin(repo.Path, args, patch);
         }
         catch (Exception ex)
         {
@@ -649,25 +651,20 @@ public sealed class GitService : IGitService
     public void ResetToParent(Repo repo, IReadOnlyList<string> paths)
     {
         if (paths.Count == 0) return;
-        var sem = GetRepoLock(repo.Path);
-        sem.Wait();
-        try
-        {
-            // No HEAD (unborn branch) → nothing to reset to. Root commit (HEAD with no
-            // parent) → `git reset` has nothing to copy from, so drop the entries from
-            // the index without touching the workdir. Otherwise let `git reset HEAD^`
-            // copy parent blobs back into the index (or remove entries the parent didn't
-            // have). The working tree is untouched in all paths.
-            if (RunGit(repo.Path, out _, "rev-parse", "--verify", "-q", "HEAD") == null)
-                return;
-            var hasParent = RunGit(repo.Path, out _, "rev-parse", "--verify", "-q", "HEAD^") != null;
-            var args = hasParent
-                ? new List<string>(paths.Count + 3) { "reset", "HEAD^", "--" }
-                : new List<string>(paths.Count + 4) { "rm", "--cached", "--force", "--" };
-            args.AddRange(paths);
-            RunGitMutationOrThrow(repo.Path, args);
-        }
-        finally { sem.Release(); }
+        using var _lock = LockRepo(repo.Path);
+        // No HEAD (unborn branch) → nothing to reset to. Root commit (HEAD with no
+        // parent) → `git reset` has nothing to copy from, so drop the entries from
+        // the index without touching the workdir. Otherwise let `git reset HEAD^`
+        // copy parent blobs back into the index (or remove entries the parent didn't
+        // have). The working tree is untouched in all paths.
+        if (RunGit(repo.Path, out _, "rev-parse", "--verify", "-q", "HEAD") == null)
+            return;
+        var hasParent = RunGit(repo.Path, out _, "rev-parse", "--verify", "-q", "HEAD^") != null;
+        var args = hasParent
+            ? new List<string>(paths.Count + 3) { "reset", "HEAD^", "--" }
+            : new List<string>(paths.Count + 4) { "rm", "--cached", "--force", "--" };
+        args.AddRange(paths);
+        RunGitMutationOrThrow(repo.Path, args);
     }
 
     // Throws away unstaged workdir changes for the given paths. Tracked files are restored
@@ -682,54 +679,49 @@ public sealed class GitService : IGitService
             if (!IsGitRepo(repo.Path))
                 return "Not a git repository.";
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
+            using var _ = LockRepo(repo.Path);
+            // `git ls-files -z -- <paths>` prints only the tracked subset, NUL-separated.
+            // Anything not in that subset exists only on disk and gets deleted directly;
+            // tracked entries fall through to the `git checkout --` restore below.
+            var lsArgs = new string[paths.Count + 3];
+            lsArgs[0] = "ls-files";
+            lsArgs[1] = "-z";
+            lsArgs[2] = "--";
+            for (var i = 0; i < paths.Count; i++) lsArgs[i + 3] = paths[i];
+            var lsOutput = RunGit(repo.Path, out var lsErr, lsArgs);
+            if (lsOutput == null) return lsErr ?? "git ls-files failed.";
+            var tracked = new HashSet<string>(
+                lsOutput.Split('\0', StringSplitOptions.RemoveEmptyEntries),
+                StringComparer.Ordinal);
+
+            var trackedPaths = new List<string>();
+            foreach (var p in paths)
             {
-                // `git ls-files -z -- <paths>` prints only the tracked subset, NUL-separated.
-                // Anything not in that subset exists only on disk and gets deleted directly;
-                // tracked entries fall through to the `git checkout --` restore below.
-                var lsArgs = new string[paths.Count + 3];
-                lsArgs[0] = "ls-files";
-                lsArgs[1] = "-z";
-                lsArgs[2] = "--";
-                for (var i = 0; i < paths.Count; i++) lsArgs[i + 3] = paths[i];
-                var lsOutput = RunGit(repo.Path, out var lsErr, lsArgs);
-                if (lsOutput == null) return lsErr ?? "git ls-files failed.";
-                var tracked = new HashSet<string>(
-                    lsOutput.Split('\0', StringSplitOptions.RemoveEmptyEntries),
-                    StringComparer.Ordinal);
-
-                var trackedPaths = new List<string>();
-                foreach (var p in paths)
+                if (tracked.Contains(p))
                 {
-                    if (tracked.Contains(p))
-                    {
-                        trackedPaths.Add(p);
-                        continue;
-                    }
-                    var fullPath = Path.Combine(repo.Path, p);
-                    try
-                    {
-                        if (File.Exists(fullPath)) File.Delete(fullPath);
-                        else if (Directory.Exists(fullPath)) Directory.Delete(fullPath, recursive: true);
-                    }
-                    catch (Exception ex)
-                    {
-                        return ex.Message;
-                    }
+                    trackedPaths.Add(p);
+                    continue;
                 }
-
-                if (trackedPaths.Count > 0)
+                var fullPath = Path.Combine(repo.Path, p);
+                try
                 {
-                    var args = new List<string> { "checkout", "--" };
-                    args.AddRange(trackedPaths);
-                    var result = _runner.Run(repo.Path, args);
-                    if (!result.Ok) return result.FirstLineError("git checkout");
+                    if (File.Exists(fullPath)) File.Delete(fullPath);
+                    else if (Directory.Exists(fullPath)) Directory.Delete(fullPath, recursive: true);
                 }
-                return null;
+                catch (Exception ex)
+                {
+                    return ex.Message;
+                }
             }
-            finally { sem.Release(); }
+
+            if (trackedPaths.Count > 0)
+            {
+                var args = new List<string> { "checkout", "--" };
+                args.AddRange(trackedPaths);
+                var result = _runner.Run(repo.Path, args);
+                if (!result.Ok) return result.FirstLineError("git checkout");
+            }
+            return null;
         }
         catch (Exception ex)
         {
@@ -747,17 +739,12 @@ public sealed class GitService : IGitService
             var args = new List<string> { "commit", "-m", message };
             if (amend) args.Add("--amend");
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
-            {
-                // -m supplies the message, but a configured core.editor would still fire for
-                // merge/rebase/squash flows that prompt to confirm the commit message.
-                var result = _runner.Run(repo.Path, args,
-                    configure: static psi => psi.EnvironmentVariables["GIT_EDITOR"] = "true");
-                return result.Ok ? null : result.BlockError("git commit");
-            }
-            finally { sem.Release(); }
+            using var _ = LockRepo(repo.Path);
+            // -m supplies the message, but a configured core.editor would still fire for
+            // merge/rebase/squash flows that prompt to confirm the commit message.
+            var result = _runner.Run(repo.Path, args,
+                configure: static psi => psi.EnvironmentVariables["GIT_EDITOR"] = "true");
+            return result.Ok ? null : result.BlockError("git commit");
         }
         catch (Exception ex)
         {
@@ -906,28 +893,23 @@ public sealed class GitService : IGitService
             if (!IsGitRepo(repo.Path))
                 return new PushOutcome(false, "Not a git repository.");
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
+            using var _ = LockRepo(repo.Path);
+            // Pre-flight: refuse to push from detached HEAD or a branch with no upstream,
+            // because the resulting `git push` error is less actionable than these messages.
+            var info = GetHeadInfo(repo.Path);
+            if (info.IsDetached)
+                return new PushOutcome(false, "HEAD is detached. Check out a branch first.");
+            if (!info.HasUpstream)
             {
-                // Pre-flight: refuse to push from detached HEAD or a branch with no upstream,
-                // because the resulting `git push` error is less actionable than these messages.
-                var info = GetHeadInfo(repo.Path);
-                if (info.IsDetached)
-                    return new PushOutcome(false, "HEAD is detached. Check out a branch first.");
-                if (!info.HasUpstream)
-                {
-                    var name = info.CurrentBranchName ?? "(unknown)";
-                    return new PushOutcome(false,
-                        $"Branch '{name}' has no upstream. Set one with: git push -u <remote> {name}");
-                }
-
-                var args = new List<string> { "push" };
-                if (force) args.Add("--force-with-lease");
-                var result = _runner.Run(repo.Path, args);
-                return result.Ok ? new PushOutcome(true, null) : new PushOutcome(false, result.FirstLineError("git push"));
+                var name = info.CurrentBranchName ?? "(unknown)";
+                return new PushOutcome(false,
+                    $"Branch '{name}' has no upstream. Set one with: git push -u <remote> {name}");
             }
-            finally { sem.Release(); }
+
+            var args = new List<string> { "push" };
+            if (force) args.Add("--force-with-lease");
+            var result = _runner.Run(repo.Path, args);
+            return result.Ok ? new PushOutcome(true, null) : new PushOutcome(false, result.FirstLineError("git push"));
         }
         catch (Exception ex)
         {
@@ -953,14 +935,9 @@ public sealed class GitService : IGitService
             args.Add(remoteName);
             args.Add($"{localBranch}:{remoteBranchName}");
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
-            {
-                var result = _runner.Run(repo.Path, args);
-                return result.Ok ? new PushOutcome(true, null) : new PushOutcome(false, result.FirstLineError("git push"));
-            }
-            finally { sem.Release(); }
+            using var _ = LockRepo(repo.Path);
+            var result = _runner.Run(repo.Path, args);
+            return result.Ok ? new PushOutcome(true, null) : new PushOutcome(false, result.FirstLineError("git push"));
         }
         catch (Exception ex)
         {
@@ -1012,22 +989,17 @@ public sealed class GitService : IGitService
             if (!IsGitRepo(repo.Path))
                 return new EditRemoteOutcome(false, "Not a git repository.");
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
+            using var _ = LockRepo(repo.Path);
+            if (!string.Equals(oldName, newName, StringComparison.Ordinal))
             {
-                if (!string.Equals(oldName, newName, StringComparison.Ordinal))
-                {
-                    var (renamed, renameError) = RunMutation(repo.Path, new[] { "remote", "rename", oldName, newName });
-                    if (!renamed) return new EditRemoteOutcome(false, renameError ?? "Failed to rename remote.");
-                }
-
-                var (urlSet, urlError) = RunMutation(repo.Path, new[] { "remote", "set-url", newName, url });
-                if (!urlSet) return new EditRemoteOutcome(false, urlError ?? "Failed to set remote URL.");
-
-                return new EditRemoteOutcome(true, null);
+                var (renamed, renameError) = RunMutation(repo.Path, new[] { "remote", "rename", oldName, newName });
+                if (!renamed) return new EditRemoteOutcome(false, renameError ?? "Failed to rename remote.");
             }
-            finally { sem.Release(); }
+
+            var (urlSet, urlError) = RunMutation(repo.Path, new[] { "remote", "set-url", newName, url });
+            if (!urlSet) return new EditRemoteOutcome(false, urlError ?? "Failed to set remote URL.");
+
+            return new EditRemoteOutcome(true, null);
         }
         catch (Exception ex)
         {
@@ -1042,24 +1014,19 @@ public sealed class GitService : IGitService
             if (!IsGitRepo(repo.Path))
                 return new PullOutcome(false, "Not a git repository.");
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
+            using var _ = LockRepo(repo.Path);
+            var info = GetHeadInfo(repo.Path);
+            if (info.IsDetached)
+                return new PullOutcome(false, "HEAD is detached. Check out a branch first.");
+            if (!info.HasUpstream)
             {
-                var info = GetHeadInfo(repo.Path);
-                if (info.IsDetached)
-                    return new PullOutcome(false, "HEAD is detached. Check out a branch first.");
-                if (!info.HasUpstream)
-                {
-                    var name = info.CurrentBranchName ?? "(unknown)";
-                    return new PullOutcome(false,
-                        $"Branch '{name}' has no upstream. Set one with: git branch --set-upstream-to=<remote>/<branch>");
-                }
-
-                var result = _runner.Run(repo.Path, new[] { "pull" });
-                return result.Ok ? new PullOutcome(true, null) : new PullOutcome(false, result.FirstLineError("git pull"));
+                var name = info.CurrentBranchName ?? "(unknown)";
+                return new PullOutcome(false,
+                    $"Branch '{name}' has no upstream. Set one with: git branch --set-upstream-to=<remote>/<branch>");
             }
-            finally { sem.Release(); }
+
+            var result = _runner.Run(repo.Path, new[] { "pull" });
+            return result.Ok ? new PullOutcome(true, null) : new PullOutcome(false, result.FirstLineError("git pull"));
         }
         catch (Exception ex)
         {
@@ -1074,14 +1041,9 @@ public sealed class GitService : IGitService
             if (!IsGitRepo(repo.Path))
                 return new FetchOutcome(false, "Not a git repository.");
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
-            {
-                var result = _runner.Run(repo.Path, new[] { "fetch", "--all", "--prune" });
-                return result.Ok ? new FetchOutcome(true, null) : new FetchOutcome(false, result.FirstLineError("git fetch"));
-            }
-            finally { sem.Release(); }
+            using var _ = LockRepo(repo.Path);
+            var result = _runner.Run(repo.Path, new[] { "fetch", "--all", "--prune" });
+            return result.Ok ? new FetchOutcome(true, null) : new FetchOutcome(false, result.FirstLineError("git fetch"));
         }
         catch (Exception ex)
         {
@@ -1099,35 +1061,30 @@ public sealed class GitService : IGitService
 
             var refspec = $"{remoteBranch}:{localBranch}";
             var args = new List<string> { "fetch", "--progress", remoteName, refspec };
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
+            using var _ = LockRepo(repo.Path);
+            var sw = Stopwatch.StartNew();
+            Console.WriteLine($"{tag} starting");
+
+            var (exitCode, captureText, started) = _runner.RunStreaming(repo.Path, args, line =>
             {
-                var sw = Stopwatch.StartNew();
-                Console.WriteLine($"{tag} starting");
+                Console.WriteLine($"{tag}   {line}");
+                onLine?.Invoke(line);
+            });
+            sw.Stop();
 
-                var (exitCode, captureText, started) = _runner.RunStreaming(repo.Path, args, line =>
-                {
-                    Console.WriteLine($"{tag}   {line}");
-                    onLine?.Invoke(line);
-                });
-                sw.Stop();
+            if (!started) return new FastForwardOutcome(false, "Failed to start git.");
 
-                if (!started) return new FastForwardOutcome(false, "Failed to start git.");
-
-                if (exitCode == 0)
-                {
-                    Console.WriteLine($"{tag} done in {sw.ElapsedMilliseconds}ms");
-                    return new FastForwardOutcome(true, null);
-                }
-
-                var msg = GitProcessRunner.FirstMeaningfulLine(captureText);
-                if (string.IsNullOrEmpty(msg)) msg = $"git fetch exited with code {exitCode}.";
-                msg = GitProcessRunner.AugmentCredentialError(msg, captureText);
-                Console.WriteLine($"{tag} failed in {sw.ElapsedMilliseconds}ms: {msg}");
-                return new FastForwardOutcome(false, msg);
+            if (exitCode == 0)
+            {
+                Console.WriteLine($"{tag} done in {sw.ElapsedMilliseconds}ms");
+                return new FastForwardOutcome(true, null);
             }
-            finally { sem.Release(); }
+
+            var msg = GitProcessRunner.FirstMeaningfulLine(captureText);
+            if (string.IsNullOrEmpty(msg)) msg = $"git fetch exited with code {exitCode}.";
+            msg = GitProcessRunner.AugmentCredentialError(msg, captureText);
+            Console.WriteLine($"{tag} failed in {sw.ElapsedMilliseconds}ms: {msg}");
+            return new FastForwardOutcome(false, msg);
         }
         catch (Exception ex)
         {
@@ -1145,10 +1102,8 @@ public sealed class GitService : IGitService
             if (!IsGitRepo(repo.Path))
                 return new CheckoutOutcome(false, "Not a git repository.");
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try { return RunGitCheckout(repo.Path, new[] { "checkout", branchName }); }
-            finally { sem.Release(); }
+            using var _ = LockRepo(repo.Path);
+            return RunGitCheckout(repo.Path, new[] { "checkout", branchName });
         }
         catch (Exception ex)
         {
@@ -1171,14 +1126,9 @@ public sealed class GitService : IGitService
                 _ => "--mixed",
             };
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
-            {
-                var result = _runner.Run(repo.Path, new[] { "reset", flag, commitSha });
-                return result.Ok ? new ResetOutcome(true, null) : new ResetOutcome(false, result.FirstLineError("git reset"));
-            }
-            finally { sem.Release(); }
+            using var _ = LockRepo(repo.Path);
+            var result = _runner.Run(repo.Path, new[] { "reset", flag, commitSha });
+            return result.Ok ? new ResetOutcome(true, null) : new ResetOutcome(false, result.FirstLineError("git reset"));
         }
         catch (Exception ex)
         {
@@ -1199,10 +1149,8 @@ public sealed class GitService : IGitService
                 track ? "--track" : "--no-track",
                 $"{remoteName}/{remoteBranchName}",
             };
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try { return RunGitCheckout(repo.Path, args); }
-            finally { sem.Release(); }
+            using var _ = LockRepo(repo.Path);
+            return RunGitCheckout(repo.Path, args);
         }
         catch (Exception ex)
         {
@@ -1223,16 +1171,11 @@ public sealed class GitService : IGitService
                 ? new List<string> { "checkout", "-b", name, startPoint }
                 : new List<string> { "branch", name, startPoint };
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
-            {
-                var result = _runner.Run(repo.Path, args);
-                return result.Ok
-                    ? new CreateBranchOutcome(true, null)
-                    : new CreateBranchOutcome(false, result.FirstLineError($"git {(checkout ? "checkout" : "branch")}"));
-            }
-            finally { sem.Release(); }
+            using var _ = LockRepo(repo.Path);
+            var result = _runner.Run(repo.Path, args);
+            return result.Ok
+                ? new CreateBranchOutcome(true, null)
+                : new CreateBranchOutcome(false, result.FirstLineError($"git {(checkout ? "checkout" : "branch")}"));
         }
         catch (Exception ex)
         {
@@ -1250,14 +1193,9 @@ public sealed class GitService : IGitService
                 return new RenameBranchOutcome(false, "Not a git repository.");
 
             var args = new List<string> { "branch", force ? "-M" : "-m", oldName, newName };
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
-            {
-                var result = _runner.Run(repo.Path, args);
-                return result.Ok ? new RenameBranchOutcome(true, null) : new RenameBranchOutcome(false, result.BlockError("git branch"));
-            }
-            finally { sem.Release(); }
+            using var _ = LockRepo(repo.Path);
+            var result = _runner.Run(repo.Path, args);
+            return result.Ok ? new RenameBranchOutcome(true, null) : new RenameBranchOutcome(false, result.BlockError("git branch"));
         }
         catch (Exception ex)
         {
@@ -1313,30 +1251,25 @@ public sealed class GitService : IGitService
             }
             args.Add(sourceRef);
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
+            using var _ = LockRepo(repo.Path);
+            var result = _runner.Run(repo.Path, args);
+            if (result.Ok) return new MergeOutcome(true, null);
+
+            // Conflict path: MERGE_HEAD exists in the per-worktree gitdir.
+            // --squash and --ff-only never create MERGE_HEAD, so failures there are
+            // always real errors.
+            if (strategy != MergeStrategy.Squash && strategy != MergeStrategy.FastForwardOnly)
             {
-                var result = _runner.Run(repo.Path, args);
-                if (result.Ok) return new MergeOutcome(true, null);
-
-                // Conflict path: MERGE_HEAD exists in the per-worktree gitdir.
-                // --squash and --ff-only never create MERGE_HEAD, so failures there are
-                // always real errors.
-                if (strategy != MergeStrategy.Squash && strategy != MergeStrategy.FastForwardOnly)
+                try
                 {
-                    try
-                    {
-                        var gitDir = GetGitDir(repo.Path);
-                        if (gitDir != null && File.Exists(Path.Combine(gitDir, "MERGE_HEAD")))
-                            return new MergeOutcome(true, null, HasConflicts: true);
-                    }
-                    catch { /* fall through to error */ }
+                    var gitDir = GetGitDir(repo.Path);
+                    if (gitDir != null && File.Exists(Path.Combine(gitDir, "MERGE_HEAD")))
+                        return new MergeOutcome(true, null, HasConflicts: true);
                 }
-
-                return new MergeOutcome(false, result.BlockError("git merge"));
+                catch { /* fall through to error */ }
             }
-            finally { sem.Release(); }
+
+            return new MergeOutcome(false, result.BlockError("git merge"));
         }
         catch (Exception ex)
         {
@@ -1391,32 +1324,27 @@ public sealed class GitService : IGitService
             if (autostash) args.Add("--autostash");
             args.Add(targetRef);
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
+            using var _ = LockRepo(repo.Path);
+            var result = _runner.Run(repo.Path, args);
+            if (result.Ok) return new RebaseOutcome(true, null);
+
+            // Conflict path: rebase leaves rebase-apply/ or rebase-merge/ in the
+            // per-worktree gitdir. If either exists, treat the failure as a successful
+            // start that produced conflicts — the operation banner will guide the user
+            // through resolve/continue/abort.
             try
             {
-                var result = _runner.Run(repo.Path, args);
-                if (result.Ok) return new RebaseOutcome(true, null);
-
-                // Conflict path: rebase leaves rebase-apply/ or rebase-merge/ in the
-                // per-worktree gitdir. If either exists, treat the failure as a successful
-                // start that produced conflicts — the operation banner will guide the user
-                // through resolve/continue/abort.
-                try
+                var gitDir = GetGitDir(repo.Path);
+                if (gitDir != null
+                    && (Directory.Exists(Path.Combine(gitDir, "rebase-apply"))
+                        || Directory.Exists(Path.Combine(gitDir, "rebase-merge"))))
                 {
-                    var gitDir = GetGitDir(repo.Path);
-                    if (gitDir != null
-                        && (Directory.Exists(Path.Combine(gitDir, "rebase-apply"))
-                            || Directory.Exists(Path.Combine(gitDir, "rebase-merge"))))
-                    {
-                        return new RebaseOutcome(true, null, HasConflicts: true);
-                    }
+                    return new RebaseOutcome(true, null, HasConflicts: true);
                 }
-                catch { /* fall through to error */ }
-
-                return new RebaseOutcome(false, result.BlockError("git rebase"));
             }
-            finally { sem.Release(); }
+            catch { /* fall through to error */ }
+
+            return new RebaseOutcome(false, result.BlockError("git rebase"));
         }
         catch (Exception ex)
         {
@@ -1435,14 +1363,9 @@ public sealed class GitService : IGitService
                 return new DeleteBranchOutcome(false, "Not a git repository.");
 
             var args = new List<string> { "branch", force ? "-D" : "-d", name };
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
-            {
-                var result = _runner.Run(repo.Path, args);
-                return result.Ok ? new DeleteBranchOutcome(true, null) : new DeleteBranchOutcome(false, result.BlockError("git branch"));
-            }
-            finally { sem.Release(); }
+            using var _ = LockRepo(repo.Path);
+            var result = _runner.Run(repo.Path, args);
+            return result.Ok ? new DeleteBranchOutcome(true, null) : new DeleteBranchOutcome(false, result.BlockError("git branch"));
         }
         catch (Exception ex)
         {
@@ -1460,14 +1383,9 @@ public sealed class GitService : IGitService
                 return new DeleteRemoteBranchOutcome(false, "Not a git repository.");
 
             var args = new List<string> { "push", remoteName, "--delete", branchName };
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
-            {
-                var result = _runner.Run(repo.Path, args);
-                return result.Ok ? new DeleteRemoteBranchOutcome(true, null) : new DeleteRemoteBranchOutcome(false, result.BlockError("git push"));
-            }
-            finally { sem.Release(); }
+            using var _ = LockRepo(repo.Path);
+            var result = _runner.Run(repo.Path, args);
+            return result.Ok ? new DeleteRemoteBranchOutcome(true, null) : new DeleteRemoteBranchOutcome(false, result.BlockError("git push"));
         }
         catch (Exception ex)
         {
@@ -1496,10 +1414,8 @@ public sealed class GitService : IGitService
                 foreach (var p in paths) args.Add(p);
             }
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try { return RunGitStash(repo.Path, args, "git stash push"); }
-            finally { sem.Release(); }
+            using var _ = LockRepo(repo.Path);
+            return RunGitStash(repo.Path, args, "git stash push");
         }
         catch (Exception ex)
         {
@@ -1515,33 +1431,28 @@ public sealed class GitService : IGitService
                 return new StashOutcome(false, "Not a git repository.");
 
             var args = new List<string> { "stash", "apply", $"stash@{{{index}}}" };
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
-            {
-                // Snapshot the pre-apply index state. The "apply succeeded with conflicts"
-                // heuristic below relies on the transition from clean → unmerged to decide
-                // whether the non-zero exit is benign — if the index was already unmerged
-                // (e.g. from an earlier failed apply the user hasn't cleared), the post-
-                // apply check can't distinguish "this apply produced conflicts" from
-                // "those leftover conflicts are still there" and we'd silently swallow
-                // the real failure ("untracked file would be overwritten", etc).
-                var wasFullyMerged = !HasUnmergedPaths(repo.Path);
+            using var _ = LockRepo(repo.Path);
+            // Snapshot the pre-apply index state. The "apply succeeded with conflicts"
+            // heuristic below relies on the transition from clean → unmerged to decide
+            // whether the non-zero exit is benign — if the index was already unmerged
+            // (e.g. from an earlier failed apply the user hasn't cleared), the post-
+            // apply check can't distinguish "this apply produced conflicts" from
+            // "those leftover conflicts are still there" and we'd silently swallow
+            // the real failure ("untracked file would be overwritten", etc).
+            var wasFullyMerged = !HasUnmergedPaths(repo.Path);
 
-                var outcome = RunGitStash(repo.Path, args, "git stash apply");
-                if (outcome.Success) return outcome;
+            var outcome = RunGitStash(repo.Path, args, "git stash apply");
+            if (outcome.Success) return outcome;
 
-                // `git stash apply` exits 1 when the apply itself worked but produced
-                // merge conflicts — the user's stash is on disk, the conflicts are visible
-                // in the index, and there's nothing to "fix" about the apply itself. Treat
-                // that as success-with-conflicts so the caller can refresh and show the
-                // banner instead of an error dialog. Gate on wasFullyMerged so a real
-                // failure on a repo that already had conflicts still surfaces its error.
-                if (wasFullyMerged && HasUnmergedPaths(repo.Path))
-                    return new StashOutcome(true, null, HasConflicts: true);
-                return outcome;
-            }
-            finally { sem.Release(); }
+            // `git stash apply` exits 1 when the apply itself worked but produced
+            // merge conflicts — the user's stash is on disk, the conflicts are visible
+            // in the index, and there's nothing to "fix" about the apply itself. Treat
+            // that as success-with-conflicts so the caller can refresh and show the
+            // banner instead of an error dialog. Gate on wasFullyMerged so a real
+            // failure on a repo that already had conflicts still surfaces its error.
+            if (wasFullyMerged && HasUnmergedPaths(repo.Path))
+                return new StashOutcome(true, null, HasConflicts: true);
+            return outcome;
         }
         catch (Exception ex)
         {
@@ -1557,10 +1468,8 @@ public sealed class GitService : IGitService
                 return new StashOutcome(false, "Not a git repository.");
 
             var args = new List<string> { "stash", "drop", $"stash@{{{index}}}" };
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try { return RunGitStash(repo.Path, args, "git stash drop"); }
-            finally { sem.Release(); }
+            using var _ = LockRepo(repo.Path);
+            return RunGitStash(repo.Path, args, "git stash drop");
         }
         catch (Exception ex)
         {
@@ -1679,10 +1588,8 @@ public sealed class GitService : IGitService
             args.Add(request.Path);
             args.Add(request.StartPoint);
 
-            var sem = GetRepoLock(primary.Path);
-            sem.Wait();
-            try { return RunWorktreeAdd(primary.Path, args); }
-            finally { sem.Release(); }
+            using var _ = LockRepo(primary.Path);
+            return RunWorktreeAdd(primary.Path, args);
         }
         catch (Exception ex)
         {
@@ -1709,14 +1616,9 @@ public sealed class GitService : IGitService
             if (force) args.Add("--force");
             args.Add(worktreePath);
 
-            var sem = GetRepoLock(primary.Path);
-            sem.Wait();
-            try
-            {
-                var result = _runner.Run(primary.Path, args);
-                return result.Ok ? new WorktreeRemoveOutcome(true, null) : new WorktreeRemoveOutcome(false, result.BlockError("git worktree remove"));
-            }
-            finally { sem.Release(); }
+            using var _ = LockRepo(primary.Path);
+            var result = _runner.Run(primary.Path, args);
+            return result.Ok ? new WorktreeRemoveOutcome(true, null) : new WorktreeRemoveOutcome(false, result.BlockError("git worktree remove"));
         }
         catch (Exception ex)
         {
@@ -1731,14 +1633,9 @@ public sealed class GitService : IGitService
             if (!IsGitRepo(primary.Path))
                 return new WorktreePruneOutcome(false, "Not a git repository.");
 
-            var sem = GetRepoLock(primary.Path);
-            sem.Wait();
-            try
-            {
-                var result = _runner.Run(primary.Path, new[] { "worktree", "prune" });
-                return result.Ok ? new WorktreePruneOutcome(true, null) : new WorktreePruneOutcome(false, result.BlockError("git worktree prune"));
-            }
-            finally { sem.Release(); }
+            using var _ = LockRepo(primary.Path);
+            var result = _runner.Run(primary.Path, new[] { "worktree", "prune" });
+            return result.Ok ? new WorktreePruneOutcome(true, null) : new WorktreePruneOutcome(false, result.BlockError("git worktree prune"));
         }
         catch (Exception ex)
         {
@@ -1921,14 +1818,9 @@ public sealed class GitService : IGitService
             args.Add(request.Url);
             args.Add(request.Path);
 
-            var sem = GetRepoLock(primary.Path);
-            sem.Wait();
-            try
-            {
-                var (ok, err) = RunMutation(primary.Path, args);
-                return new SubmoduleAddOutcome(ok, err);
-            }
-            finally { sem.Release(); }
+            using var _ = LockRepo(primary.Path);
+            var (ok, err) = RunMutation(primary.Path, args);
+            return new SubmoduleAddOutcome(ok, err);
         }
         catch (Exception ex)
         {
@@ -1957,21 +1849,16 @@ public sealed class GitService : IGitService
                 foreach (var p in request.Paths) args.Add(p);
             }
 
-            var sem = GetRepoLock(primary.Path);
-            sem.Wait();
-            try
-            {
-                var result = _runner.Run(primary.Path, args);
-                if (result.Ok) return new SubmoduleUpdateOutcome(true, null);
-                // Merge/rebase strategies surface CONFLICT markers in stdout when they fail —
-                // hand that signal up so the dialog can show a "see Operation banner" hint
-                // instead of just a raw error.
-                var combined = result.Stdout + "\n" + result.Stderr;
-                var conflicts = combined.Contains("CONFLICT", StringComparison.Ordinal)
-                                || combined.Contains("merge conflict", StringComparison.OrdinalIgnoreCase);
-                return new SubmoduleUpdateOutcome(false, result.BlockError("git submodule update"), conflicts);
-            }
-            finally { sem.Release(); }
+            using var _ = LockRepo(primary.Path);
+            var result = _runner.Run(primary.Path, args);
+            if (result.Ok) return new SubmoduleUpdateOutcome(true, null);
+            // Merge/rebase strategies surface CONFLICT markers in stdout when they fail —
+            // hand that signal up so the dialog can show a "see Operation banner" hint
+            // instead of just a raw error.
+            var combined = result.Stdout + "\n" + result.Stderr;
+            var conflicts = combined.Contains("CONFLICT", StringComparison.Ordinal)
+                            || combined.Contains("merge conflict", StringComparison.OrdinalIgnoreCase);
+            return new SubmoduleUpdateOutcome(false, result.BlockError("git submodule update"), conflicts);
         }
         catch (Exception ex)
         {
@@ -1988,30 +1875,25 @@ public sealed class GitService : IGitService
             if (string.IsNullOrWhiteSpace(submodulePath))
                 return new SubmoduleDeinitOutcome(false, "Submodule path is required.");
 
-            var sem = GetRepoLock(primary.Path);
-            sem.Wait();
-            try
-            {
-                // Two-step: deinit frees the working tree + .git/modules entry; rm removes
-                // the gitlink and the .gitmodules entry, staging the change as a commit-ready
-                // deletion. Both happen under the same lock so the user sees one atomic op.
-                var deinitArgs = new List<string> { "submodule", "deinit" };
-                if (force) deinitArgs.Add("--force");
-                deinitArgs.Add("--");
-                deinitArgs.Add(submodulePath);
-                var (ok1, err1) = RunMutation(primary.Path, deinitArgs);
-                if (!ok1) return new SubmoduleDeinitOutcome(false, err1);
+            using var _ = LockRepo(primary.Path);
+            // Two-step: deinit frees the working tree + .git/modules entry; rm removes
+            // the gitlink and the .gitmodules entry, staging the change as a commit-ready
+            // deletion. Both happen under the same lock so the user sees one atomic op.
+            var deinitArgs = new List<string> { "submodule", "deinit" };
+            if (force) deinitArgs.Add("--force");
+            deinitArgs.Add("--");
+            deinitArgs.Add(submodulePath);
+            var (ok1, err1) = RunMutation(primary.Path, deinitArgs);
+            if (!ok1) return new SubmoduleDeinitOutcome(false, err1);
 
-                var rmArgs = new List<string> { "rm" };
-                if (force) rmArgs.Add("-f");
-                rmArgs.Add("--");
-                rmArgs.Add(submodulePath);
-                var (ok2, err2) = RunMutation(primary.Path, rmArgs);
-                if (!ok2) return new SubmoduleDeinitOutcome(false, err2);
+            var rmArgs = new List<string> { "rm" };
+            if (force) rmArgs.Add("-f");
+            rmArgs.Add("--");
+            rmArgs.Add(submodulePath);
+            var (ok2, err2) = RunMutation(primary.Path, rmArgs);
+            if (!ok2) return new SubmoduleDeinitOutcome(false, err2);
 
-                return new SubmoduleDeinitOutcome(true, null);
-            }
-            finally { sem.Release(); }
+            return new SubmoduleDeinitOutcome(true, null);
         }
         catch (Exception ex)
         {
@@ -2438,58 +2320,53 @@ public sealed class GitService : IGitService
             // sequencer/rebase state without touching the index/workdir) and fall back to
             // direct sentinel removal for ops that don't have one.
             var args = forceQuit ? GetForceQuitArgs(state) : GetAbortArgs(state);
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
+            using var _ = LockRepo(repo.Path);
+            string? cmdMsg = null;
+            int? exitCode = null;
+            if (args != null)
             {
-                string? cmdMsg = null;
-                int? exitCode = null;
-                if (args != null)
-                {
-                    var result = _runner.Run(repo.Path, args);
-                    if (!result.Started) return new AbortOperationOutcome(false, "Failed to start git.");
-                    exitCode = result.ExitCode;
-                    cmdMsg = GitProcessRunner.CombineGitOutput(result.Stderr, result.Stdout);
-                }
-                else if (forceQuit)
-                {
-                    // No `git X --quit` for this op (Merge, Bisect, UnmergedPaths) —
-                    // delete the sentinels ourselves. The user already confirmed they want
-                    // to abandon HEAD recovery, so this is the documented escape hatch.
-                    cmdMsg = ForceClearSentinels(repo, state);
-                    if (cmdMsg != null) return new AbortOperationOutcome(false, cmdMsg);
-                }
-                else
-                {
-                    return new AbortOperationOutcome(false, "Nothing to abort.");
-                }
-
-                // Authoritative check: does git still see an in-progress op? An exit-0
-                // result combined with leftover state means the command warned and
-                // walked away — typically a malformed sentinel dir from a prior crash.
-                var stillStuck = GetOperationState(repo) != RepoOperationState.None;
-
-                if (!stillStuck && (exitCode == null || exitCode == 0))
-                    return new AbortOperationOutcome(true, null);
-
-                var msg = cmdMsg;
-                if (string.IsNullOrEmpty(msg))
-                {
-                    if (stillStuck && exitCode == 0)
-                        msg = $"git {(args != null ? string.Join(' ', args) : "abort")} reported success but the {DescribeState(state)} state is still present.";
-                    else if (exitCode != null)
-                        msg = $"git {(args != null ? string.Join(' ', args) : "abort")} exited with code {exitCode}.";
-                    else
-                        msg = "Abort failed.";
-                }
-
-                // Offer force-quit only on the first attempt and only for ops where it
-                // can do something useful. Force-quit's own failure shouldn't keep
-                // re-offering it.
-                var canForceQuit = !forceQuit && stillStuck && SupportsForceQuit(state);
-                return new AbortOperationOutcome(false, msg, ForceQuitAvailable: canForceQuit);
+                var result = _runner.Run(repo.Path, args);
+                if (!result.Started) return new AbortOperationOutcome(false, "Failed to start git.");
+                exitCode = result.ExitCode;
+                cmdMsg = GitProcessRunner.CombineGitOutput(result.Stderr, result.Stdout);
             }
-            finally { sem.Release(); }
+            else if (forceQuit)
+            {
+                // No `git X --quit` for this op (Merge, Bisect, UnmergedPaths) —
+                // delete the sentinels ourselves. The user already confirmed they want
+                // to abandon HEAD recovery, so this is the documented escape hatch.
+                cmdMsg = ForceClearSentinels(repo, state);
+                if (cmdMsg != null) return new AbortOperationOutcome(false, cmdMsg);
+            }
+            else
+            {
+                return new AbortOperationOutcome(false, "Nothing to abort.");
+            }
+
+            // Authoritative check: does git still see an in-progress op? An exit-0
+            // result combined with leftover state means the command warned and
+            // walked away — typically a malformed sentinel dir from a prior crash.
+            var stillStuck = GetOperationState(repo) != RepoOperationState.None;
+
+            if (!stillStuck && (exitCode == null || exitCode == 0))
+                return new AbortOperationOutcome(true, null);
+
+            var msg = cmdMsg;
+            if (string.IsNullOrEmpty(msg))
+            {
+                if (stillStuck && exitCode == 0)
+                    msg = $"git {(args != null ? string.Join(' ', args) : "abort")} reported success but the {DescribeState(state)} state is still present.";
+                else if (exitCode != null)
+                    msg = $"git {(args != null ? string.Join(' ', args) : "abort")} exited with code {exitCode}.";
+                else
+                    msg = "Abort failed.";
+            }
+
+            // Offer force-quit only on the first attempt and only for ops where it
+            // can do something useful. Force-quit's own failure shouldn't keep
+            // re-offering it.
+            var canForceQuit = !forceQuit && stillStuck && SupportsForceQuit(state);
+            return new AbortOperationOutcome(false, msg, ForceQuitAvailable: canForceQuit);
         }
         catch (Exception ex)
         {
@@ -2619,25 +2496,20 @@ public sealed class GitService : IGitService
                 return new ContinueOperationOutcome(false,
                     $"Continue isn't supported for {DescribeState(state)}.");
 
-            var sem = GetRepoLock(repo.Path);
-            sem.Wait();
-            try
+            using var _ = LockRepo(repo.Path);
+            var result = _runner.Run(repo.Path, args, configure: static psi =>
             {
-                var result = _runner.Run(repo.Path, args, configure: static psi =>
-                {
-                    psi.EnvironmentVariables["GIT_EDITOR"] = "true";
-                    psi.EnvironmentVariables["GIT_SEQUENCE_EDITOR"] = "true";
-                });
-                if (result.Ok) return new ContinueOperationOutcome(true, null);
+                psi.EnvironmentVariables["GIT_EDITOR"] = "true";
+                psi.EnvironmentVariables["GIT_SEQUENCE_EDITOR"] = "true";
+            });
+            if (result.Ok) return new ContinueOperationOutcome(true, null);
 
-                bool hasMoreConflicts;
-                try { hasMoreConflicts = HasUnmergedPaths(repo.Path); }
-                catch { hasMoreConflicts = false; }
+            bool hasMoreConflicts;
+            try { hasMoreConflicts = HasUnmergedPaths(repo.Path); }
+            catch { hasMoreConflicts = false; }
 
-                return new ContinueOperationOutcome(false,
-                    result.BlockError($"git {string.Join(' ', args)}"), HasMoreConflicts: hasMoreConflicts);
-            }
-            finally { sem.Release(); }
+            return new ContinueOperationOutcome(false,
+                result.BlockError($"git {string.Join(' ', args)}"), HasMoreConflicts: hasMoreConflicts);
         }
         catch (Exception ex)
         {
