@@ -27,11 +27,14 @@ internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranc
         Action onClose)
     {
         PreferredWidth = 420f;
-        PreferredHeight = 280f;
 
         _onClose = onClose;
 
-        var subtitle = new TextView { Text = $"Create a local branch from {remoteName}/{remoteBranchName}" };
+        var subtitle = new TextView
+        {
+            Text = $"Create a local branch from {remoteName}/{remoteBranchName}",
+            TextWrap = TextWrap.Wrap,
+        };
         subtitle.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         var nameLabel = DialogFrame.Label("Local branch name");

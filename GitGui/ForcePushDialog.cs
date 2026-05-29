@@ -14,7 +14,6 @@ internal sealed class ForcePushDialog : MultiChildView, IBind<ForcePushDialogVie
     public ForcePushDialog(Repo repo, string branchName, int ahead, int behind, Action onClose)
     {
         PreferredWidth = 520f;
-        PreferredHeight = 260f;
 
         _onClose = onClose;
 

@@ -21,7 +21,6 @@ internal sealed class AbortOperationDialog : MultiChildView, IBind<AbortOperatio
     public AbortOperationDialog(Repo repo, RepoOperationState state, Action onClose)
     {
         PreferredWidth = 480f;
-        PreferredHeight = 240f;
 
         _onClose = onClose;
 

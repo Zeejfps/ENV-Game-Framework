@@ -25,7 +25,11 @@ internal sealed class RenameBranchDialog : MultiChildView, IBind<RenameBranchDia
     {
         _onClose = onClose;
 
-        var subtitle = new TextView { Text = $"Renaming '{currentName}'" };
+        var subtitle = new TextView
+        {
+            Text = $"Renaming '{currentName}'",
+            TextWrap = TextWrap.Wrap,
+        };
         subtitle.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         var nameLabel = DialogFrame.Label("New name");
