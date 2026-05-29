@@ -28,6 +28,13 @@ internal sealed class LocalChangesView : MultiChildView, IBind<LocalChangesViewM
         bg.BindThemedBackgroundColor(s => s.Palette.Surface);
         AddChildToSelf(bg);
 
+        // Tab cycles commit title → commit description → unstaged files → commit button
+        // (when enabled) → (back to title).
+        var focusRing = new FocusRing();
+        _commitBar.RegisterFocusStops(focusRing);
+        _content.RegisterFocusStops(focusRing);
+        _commitBar.RegisterCommitButtonStop(focusRing);
+
         this.UseViewModel(this);
     }
 

@@ -35,7 +35,7 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
     
     private readonly State<Selection> _selection = new(Selection.Empty);
     private LocalChangesViewModel? _vm;
-    private LocalChangesArrowKbmController? _arrowController;
+    private readonly LocalChangesArrowKbmController _arrowController;
 
     public LocalChangesContentView()
     {
@@ -115,16 +115,29 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
 
         AddChildToSelf(_centerContainer);
 
-        this.UseController(_ =>
-        {
-            _arrowController = new LocalChangesArrowKbmController(
-                this,
-                (delta, extend) => _vm?.MoveSelection(delta, extend),
-                expand => _vm?.SetCursorFolderExpanded(expand),
-                OnActivateSelection,
-                OnDeleteSelection);
-            return _arrowController;
-        });
+        _arrowController = new LocalChangesArrowKbmController(
+            this,
+            (delta, extend) => _vm?.MoveSelection(delta, extend),
+            expand => _vm?.SetCursorFolderExpanded(expand),
+            OnActivateSelection,
+            OnDeleteSelection);
+        this.UseController(_ => _arrowController);
+    }
+
+    // Joins the unstaged file list to the shared focus ring as the last stop after the
+    // commit fields. Tab into the list selects the first row when nothing is selected yet
+    // so arrow navigation has a visible starting point.
+    public void RegisterFocusStops(FocusRing ring)
+    {
+        var stop = ring.Add(FocusFiles);
+        _arrowController.OnTab = () => ring.Next(stop);
+        _arrowController.OnShiftTab = () => ring.Previous(stop);
+    }
+
+    private void FocusFiles()
+    {
+        _arrowController.TakeFocus();
+        if (_vm != null && _vm.Selection.Value.Count == 0) _vm.MoveSelection(+1, false);
     }
 
     public void Bind(LocalChangesViewModel vm)
@@ -198,7 +211,7 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         // expand/collapse lives on the chevron (handled before this in the panel),
         // double-click, and the Left/Right arrow keys.
         _vm?.SelectRow(row.Ref, modifiers);
-        _arrowController?.TakeFocus();
+        _arrowController.TakeFocus();
     }
 
     private void OnFolderToggle(FileRow row) => _vm?.ToggleFolder(row.Side, row.FullPath);

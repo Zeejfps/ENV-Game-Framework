@@ -24,6 +24,7 @@ internal sealed class GrowingDescriptionField : MultiChildView
     private readonly float _maxHeight;
 
     private readonly TextInputView _input;
+    private readonly TextInputViewKbmController _inputController;
     private readonly ScrollPane _scrollPane;
     private readonly VerticalScrollBarView _scrollBar;
 
@@ -39,6 +40,21 @@ internal sealed class GrowingDescriptionField : MultiChildView
     {
         add => _input.TextChanged += value;
         remove => _input.TextChanged -= value;
+    }
+
+    public void BeginEditing() => _inputController.BeginEditing();
+    public void EndEditing() => _inputController.EndEditing();
+
+    public Action? OnTab
+    {
+        get => _inputController.OnTab;
+        set => _inputController.OnTab = value;
+    }
+
+    public Action? OnShiftTab
+    {
+        get => _inputController.OnShiftTab;
+        set => _inputController.OnShiftTab = value;
     }
 
     public void Clear() => _input.Clear();
@@ -67,7 +83,8 @@ internal sealed class GrowingDescriptionField : MultiChildView
             _input.SelectionRectColor = s.TextInput.Selection;
             _input.PlaceholderTextColor = s.TextInput.PlaceholderText;
         });
-        _input.UseController(_ => new TextInputViewKbmController(_input) { IsMultiLine = true });
+        _inputController = new TextInputViewKbmController(_input) { IsMultiLine = true };
+        _input.UseController(_ => _inputController);
 
         _scrollPane = new ScrollPane();
         _scrollPane.Children.Add(_input);

@@ -19,6 +19,11 @@ internal sealed class LocalChangesArrowKbmController : KeyboardMouseController
     private readonly Action _onActivate;
     private readonly Action _onDelete;
 
+    // Focus-traversal hooks; wired into the local-changes focus ring so Tab leaves the
+    // file list for the commit fields.
+    public Action? OnTab { get; set; }
+    public Action? OnShiftTab { get; set; }
+
     public LocalChangesArrowKbmController(
         View view,
         Action<int, bool> onMove,
@@ -42,7 +47,13 @@ internal sealed class LocalChangesArrowKbmController : KeyboardMouseController
         if (e.State != InputState.Pressed) return;
 
         var shift = (e.Modifiers & InputModifiers.Shift) != 0;
-        if (e.Key == KeyboardKey.UpArrow)
+        if (e.Key == KeyboardKey.Tab && (OnTab != null || OnShiftTab != null))
+        {
+            if (shift) OnShiftTab?.Invoke();
+            else OnTab?.Invoke();
+            e.Consume();
+        }
+        else if (e.Key == KeyboardKey.UpArrow)
         {
             _onMove(-1, shift);
             e.Consume();

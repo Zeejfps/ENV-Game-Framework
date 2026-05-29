@@ -9,6 +9,11 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
 
     public bool IsMultiLine { get; set; }
 
+    // Optional focus-traversal hooks. When set, Tab / Shift+Tab move focus instead of
+    // inserting a tab character — the owner wires these into a focus ring.
+    public Action? OnTab { get; set; }
+    public Action? OnShiftTab { get; set; }
+
     public int DoubleClickThresholdMs { get; set; } = 400;
 
     private bool _hasLastClick;
@@ -27,6 +32,15 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
     {
         _textInput.StartEditing();
         _textInput.Context?.Get<InputSystem>()?.StealFocus(this);
+    }
+
+    // Ends the edit session and releases focus — the counterpart to BeginEditing, used
+    // when focus moves elsewhere (e.g. a focus ring tabbing away) so the caret doesn't
+    // linger in an unfocused field.
+    public void EndEditing()
+    {
+        _textInput.StopEditing();
+        _textInput.Context?.Get<InputSystem>()?.Blur(this);
     }
     
     public override void OnMouseMoved(ref MouseMoveEvent e)
@@ -106,6 +120,14 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
 
     protected virtual void OnKeyboardKeyPressed(ref KeyboardKeyEvent e)
     {
+        if (e.Key == KeyboardKey.Tab && (OnTab != null || OnShiftTab != null))
+        {
+            if ((e.Modifiers & InputModifiers.Shift) != 0) OnShiftTab?.Invoke();
+            else OnTab?.Invoke();
+            e.Consume();
+            return;
+        }
+
         var ctrlModifier = InputModifiers.Control;
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {

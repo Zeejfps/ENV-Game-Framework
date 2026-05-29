@@ -75,8 +75,9 @@ public sealed class DialogButton : HoverableButton
             Children = { _row },
         };
         // Hover styling only when enabled — a disabled button shouldn't react to the pointer.
+        // Focus-ring highlighting reuses the same chrome so a tabbed-to button looks hovered.
         BorderedButtonChrome.Bind(background,
-            () => IsEnabled.Value && IsHovered.Value);
+            () => IsEnabled.Value && (IsHovered.Value || IsFocusHighlighted.Value));
         SetBackground(background);
     }
 }

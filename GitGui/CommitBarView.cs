@@ -20,6 +20,7 @@ internal sealed class CommitBarView : MultiChildView, IBind<LocalChangesViewMode
     private const float DescriptionMaxHeight = 240f;
 
     private readonly TextInputView _titleInput;
+    private readonly TextInputViewKbmController _titleController;
     private readonly GrowingDescriptionField _descriptionField;
     private readonly CheckboxView _amendCheckbox;
     private readonly DialogButton _commitButton;
@@ -40,7 +41,8 @@ internal sealed class CommitBarView : MultiChildView, IBind<LocalChangesViewMode
             _titleInput.SelectionRectColor = s.TextInput.Selection;
             _titleInput.PlaceholderTextColor = s.TextInput.PlaceholderText;
         });
-        _titleInput.UseController(_ => new TextInputViewKbmController(_titleInput));
+        _titleController = new TextInputViewKbmController(_titleInput);
+        _titleInput.UseController(_ => _titleController);
 
         // No PreferredHeight — let the box size to one line of text plus padding/border.
         // The input itself reports MeasureHeight = lineHeight (single line, NoWrap), and the
@@ -100,6 +102,32 @@ internal sealed class CommitBarView : MultiChildView, IBind<LocalChangesViewMode
     }
 
     private LocalChangesViewModel? _vm;
+
+    // Adds the commit title and description as the first two stops of the shared focus
+    // ring (the unstaged file list registers itself as the third).
+    public void RegisterFocusStops(FocusRing ring)
+    {
+        var titleStop = ring.Add(_titleController.BeginEditing, _titleController.EndEditing);
+        _titleController.OnTab = () => ring.Next(titleStop);
+        _titleController.OnShiftTab = () => ring.Previous(titleStop);
+
+        var descriptionStop = ring.Add(_descriptionField.BeginEditing, _descriptionField.EndEditing);
+        _descriptionField.OnTab = () => ring.Next(descriptionStop);
+        _descriptionField.OnShiftTab = () => ring.Previous(descriptionStop);
+    }
+
+    // Registered separately (after the file list) so the commit button is the last stop in
+    // the cycle. It only participates while enabled, and shows its hover chrome while
+    // focused; Enter commits.
+    public void RegisterCommitButtonStop(FocusRing ring)
+    {
+        var commitStop = ring.Add(
+            _commitButton.FocusSelf,
+            _commitButton.Blur,
+            canFocus: () => _commitButton.IsEnabled.Value);
+        _commitButton.OnTab = () => ring.Next(commitStop);
+        _commitButton.OnShiftTab = () => ring.Previous(commitStop);
+    }
 
     public void Bind(LocalChangesViewModel vm)
     {
