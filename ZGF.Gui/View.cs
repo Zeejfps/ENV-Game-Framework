@@ -160,37 +160,13 @@ public abstract class View
     private bool IsSelfDirty { get; set; } = true;
     private bool IsChildrenDirty => _children.Any(child => child.IsDirty);
 
-    protected StyleSheet? StyleSheet
-    {
-        get;
-        set
-        {
-            if (field == value)
-                return;
-
-            var prevStyleSheet = field;
-            field = value;
-
-            if (prevStyleSheet != null)
-                OnStyleSheetCleared(prevStyleSheet);
-
-            if (field != null)
-                OnStyleSheetApplied(field);
-
-            SetDirty();
-        }
-    }
-    
-    public IStyleClassCollection StyleClasses { get; }
     public IBehaviorCollection Behaviors { get; }
 
     protected readonly List<View> _children = new();
-    protected readonly HashSet<string> _styleClasses = new();
     protected readonly List<IViewBehavior> _behaviors = new();
 
     public View()
     {
-        StyleClasses = new StyleClassCollection(this);
         Behaviors = new BehaviorCollection(this);
     }
     
@@ -325,7 +301,6 @@ public abstract class View
 
         view.Parent = this;
         view.Depth = Depth + 1;
-        view.StyleSheet = StyleSheet;
         view.Context = Context;
         OnChildAdded(view);
     }
@@ -375,45 +350,11 @@ public abstract class View
         return null;
     }
     
-    protected virtual void OnApplyStyle(Style style)
-    {
-        if (style.PreferredWidth.IsSet)
-        {
-            Width = style.PreferredWidth;
-        }
-
-        if (style.PreferredHeight.IsSet)
-        {
-            Height = style.PreferredHeight;
-        }
-    }
-
-    protected virtual void OnStyleSheetCleared(StyleSheet styleSheet)
-    {
-        ClearStyleSheetFromChildren(styleSheet);
-    }
-
-    protected virtual void ApplyStyleSheetToChildren(StyleSheet styleSheet)
-    {
-        foreach (var child in _children)
-        {
-            child.ApplyStyleSheet(styleSheet);
-        }
-    }
-
     protected virtual void OnApplyContextToChildren(Context? context)
     {
         foreach (var component in _children)
         {
             component.Context = context;
-        }
-    }
-
-    protected virtual void ClearStyleSheetFromChildren(StyleSheet styleSheet)
-    {
-        foreach (var child in _children)
-        {
-            //child.ApplyStyleSheetToSelf(styleSheet);
         }
     }
 
@@ -642,11 +583,10 @@ public abstract class View
         view.Parent = this;
         view.Depth = Depth + 1;
         view._siblingIndex =  siblingIndex;
-        view.StyleSheet = StyleSheet;
         view.Context = Context;
         OnChildAdded(view);
     }
-    
+
     protected bool RemoveChildFromSelf(View view)
     {
         if (_children.Remove(view))
@@ -655,21 +595,10 @@ public abstract class View
             view.Parent = null;
             view.Depth = 0;
             view._siblingIndex = 0;
-            view.StyleSheet = null;
             OnChildRemoved(view);
             return true;
         }
         return false;
-    }
-    
-    public void ApplyStyleSheet(StyleSheet styleSheet)
-    {
-        StyleSheet = styleSheet;
-    }
-
-    public void ClearStyleSheet()
-    {
-        StyleSheet = null;
     }
 
     private void AddBehaviorToSelf(IViewBehavior behavior)
@@ -693,35 +622,6 @@ public abstract class View
         return true;
     }
 
-    protected void AddStyleClass(string classId)
-    {
-        if (_styleClasses.Add(classId))
-        {
-            var styleSheet = StyleSheet;
-            if (styleSheet == null)
-                return;
-
-            if (styleSheet.TryGetByClass(classId, out var classStyle))
-            {
-                OnApplyStyle(classStyle);
-                SetDirty();
-            }
-        }
-    }
-
-    protected bool RemoveStyleClass(string classId)
-    {
-        if (_styleClasses.Remove(classId))
-        {
-            SetDirty();
-            return true;
-        }
-
-        return false;
-    }
-
-    
-    
     protected virtual void OnLayoutChild(in RectF position, View child)
     {
         child.LeftConstraint = position.Left;
@@ -729,29 +629,6 @@ public abstract class View
         child.WidthConstraint = position.Width;
         child.HeightConstraint = position.Height;
         child.LayoutSelf();
-    }
-
-    public void ApplyStyle(Style style)
-    {
-        OnApplyStyle(style);
-    }
-
-    protected virtual void OnStyleSheetApplied(StyleSheet styleSheet)
-    {
-        foreach (var styleClass in _styleClasses)
-        {
-            if (styleSheet.TryGetByClass(styleClass, out var classStyle))
-            {
-                OnApplyStyle(classStyle);
-            }
-        }
-        
-        if (styleSheet.TryGetById(Id, out var idStyle))
-        {
-            OnApplyStyle(idStyle);
-        }
-        
-        ApplyStyleSheetToChildren(styleSheet);
     }
 
     protected virtual void OnDrawChildren(ICanvas c)
@@ -791,31 +668,6 @@ public abstract class View
         public bool Remove(IViewBehavior behavior)
         {
             return view.RemoveBehaviorFromSelf(behavior);
-        }
-    }
-
-    private sealed class StyleClassCollection(View view) : IStyleClassCollection
-    {
-        public IEnumerator<string> GetEnumerator()
-        {
-            return view._styleClasses.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        public int Count => view._styleClasses.Count;
-        
-        public void Add(string styleClass)
-        {
-            view.AddStyleClass(styleClass);
-        }
-
-        public bool Remove(string styleClass)
-        {
-            return view.RemoveStyleClass(styleClass);
         }
     }
 }

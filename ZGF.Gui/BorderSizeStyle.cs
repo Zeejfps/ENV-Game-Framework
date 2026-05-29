@@ -17,19 +17,4 @@ public struct BorderSizeStyle
             Bottom = size,
         };
     }
-
-    public void ApplyTo(ref BorderSizeStyle style)
-    {
-        if (Left.IsSet)
-            style.Left = Left.Value;
-        
-        if (Right.IsSet)
-            style.Right = Right.Value;
-        
-        if (Top.IsSet)
-            style.Top = Top.Value;
-        
-        if (Bottom.IsSet)
-            style.Bottom = Bottom.Value;
-    }
 }

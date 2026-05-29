@@ -106,10 +106,4 @@ public class RectView : MultiChildView
             child.LayoutSelf();
         }
     }
-
-    protected override void OnApplyStyle(Style style)
-    {
-        base.OnApplyStyle(style);
-        _style.Apply(style);
-    }
 }

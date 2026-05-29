@@ -17,19 +17,4 @@ public struct BorderRadiusStyle
             BottomLeft = radius,
         };
     }
-
-    public void ApplyTo(ref BorderRadiusStyle style)
-    {
-        if (TopLeft.IsSet)
-            style.TopLeft = TopLeft.Value;
-
-        if (TopRight.IsSet)
-            style.TopRight = TopRight.Value;
-
-        if (BottomRight.IsSet)
-            style.BottomRight = BottomRight.Value;
-
-        if (BottomLeft.IsSet)
-            style.BottomLeft = BottomLeft.Value;
-    }
 }

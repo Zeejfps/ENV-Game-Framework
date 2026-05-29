@@ -19,14 +19,7 @@ public sealed class MenuItem : MultiChildView
         {
             if (SetField(ref _isDisabled, value))
             {
-                if (_isDisabled)
-                {
-                    _textView.StyleClasses.Add("disabled");
-                }
-                else
-                {
-                    _textView.StyleClasses.Remove("disabled");
-                }
+                _textView.TextColor = _isDisabled ? 0xFF959595 : 0xFF000000;
             }
         }
     }

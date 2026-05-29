@@ -8,16 +8,4 @@ public sealed class RectStyle
     public BorderSizeStyle BorderSize;
     public BorderRadiusStyle BorderRadius;
     public BoxShadowStyle BoxShadow;
-
-    public void Apply(Style style)
-    {
-        if (style.BackgroundColor.IsSet)
-            BackgroundColor = style.BackgroundColor.Value;
-
-        style.Padding.ApplyTo(ref Padding);
-        style.BorderSize.ApplyTo(ref BorderSize);
-        style.BorderColor.ApplyTo(ref BorderColor);
-        style.BorderRadius.ApplyTo(ref BorderRadius);
-        style.BoxShadow.ApplyTo(ref BoxShadow);
-    }
 }

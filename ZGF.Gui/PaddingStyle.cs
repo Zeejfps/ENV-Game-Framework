@@ -17,19 +17,4 @@ public struct PaddingStyle
             Bottom = size,
         };
     }
-
-    public void ApplyTo(ref PaddingStyle padding)
-    {
-        if (Left.IsSet)
-            padding.Left = Left.Value;
-        
-        if (Right.IsSet)
-            padding.Right = Right.Value;
-        
-        if (Top.IsSet)
-            padding.Top = Top.Value;
-        
-        if (Bottom.IsSet)
-            padding.Bottom = Bottom.Value;
-    }
 }

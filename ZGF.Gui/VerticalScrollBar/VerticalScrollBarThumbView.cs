@@ -87,10 +87,6 @@ public sealed class VerticalScrollBarThumbView : MultiChildView
                 Right = 0xFFFFFFFF,
                 Bottom = 0xFFFFFFFF
             },
-            StyleClasses =
-            {
-                "raised_panel"
-            }
         };
 
         AddChildToSelf(_background);

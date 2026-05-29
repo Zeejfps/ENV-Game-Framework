@@ -147,17 +147,6 @@ public sealed class TextView : MultiChildView
         _wrappedFromText = null;
     }
 
-    protected override void OnApplyStyle(Style style)
-    {
-        base.OnApplyStyle(style);
-        if (style.TextColor.IsSet)
-            _style.TextColor = style.TextColor;
-        if (style.FontSize.IsSet)
-            _style.FontSize = style.FontSize;
-        if (style.Rotation.IsSet)
-            _style.Rotation = style.Rotation;
-    }
-
     protected override void OnDrawSelf(ICanvas c)
     {
         if (_text == null)

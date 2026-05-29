@@ -103,34 +103,6 @@ public sealed class App : IDisposable
             Children = { contents }
         };
 
-        var ss = new StyleSheet();
-        ss.AddStyleForClass("inset_panel", new Style
-        {
-            BackgroundColor = 0xFF000000,
-            Padding = PaddingStyle.All(1),
-            BorderSize = BorderSizeStyle.All(1),
-            BorderColor = new BorderColorStyle
-            {
-                Left = 0xFF9C9C9C, Top = 0xFF9C9C9C,
-                Right = 0xFFFFFFFF, Bottom = 0xFFFFFFFF
-            },
-        });
-        ss.AddStyleForClass("raised_panel", new Style
-        {
-            BorderColor = new BorderColorStyle
-            {
-                Top = 0xFFFFFFFF, Left = 0xFFFFFFFF,
-                Right = 0xFF9C9C9C, Bottom = 0xFF9C9C9C
-            },
-        });
-        ss.AddStyleForClass("window_button", new Style
-        {
-            PreferredWidth = 10f,
-            BackgroundColor = 0xFF000000,
-        });
-        ss.AddStyleForClass("disabled", new Style { TextColor = 0xFF959595 });
-        _gui.ApplyStyleSheet(ss);
-
         _windowApp.OnTick += HandleTick;
         _mainWindow.OnResize += HandleResize;
         _mainWindow.OnFramebufferResize += HandleFramebufferResize;

@@ -52,7 +52,6 @@ public sealed class ContextMenu : MultiChildView
                 Color = 0x60000000,
             },
             Children = { _itemsContainer },
-            StyleClasses = { "raised_panel" }
         };
 
         AddChildToSelf(_background);

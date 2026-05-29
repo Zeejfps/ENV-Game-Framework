@@ -18,20 +18,28 @@ public sealed class WindowTitleBarView : MultiChildView
         
         var button = new RectView
         {
-            StyleClasses =
+            Width = 10f,
+            BackgroundColor = 0xFF000000,
+            Padding = PaddingStyle.All(1),
+            BorderSize = BorderSizeStyle.All(1),
+            BorderColor = new BorderColorStyle
             {
-                "inset_panel",
-                "window_button"
-            }
+                Left = 0xFF9C9C9C, Top = 0xFF9C9C9C,
+                Right = 0xFFFFFFFF, Bottom = 0xFFFFFFFF
+            },
         };
 
         var button2 = new RectView
         {
-            StyleClasses =
+            Width = 10f,
+            BackgroundColor = 0xFF000000,
+            Padding = PaddingStyle.All(1),
+            BorderSize = BorderSizeStyle.All(1),
+            BorderColor = new BorderColorStyle
             {
-                "inset_panel",
-                "window_button"
-            }
+                Left = 0xFF9C9C9C, Top = 0xFF9C9C9C,
+                Right = 0xFFFFFFFF, Bottom = 0xFFFFFFFF
+            },
         };
 
         _titleTextView = new TextView
