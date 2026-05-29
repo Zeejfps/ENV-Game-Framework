@@ -1,7 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
-using ZGF.Gui.Tests;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -12,7 +11,7 @@ namespace GitGui;
 /// "Reset type:" stack, with the reset mode picked via a coloured-dot dropdown (green
 /// soft, amber mixed, red hard) so the destructiveness reads at a glance.
 /// </summary>
-public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
+internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialogViewModel>
 {
     internal const uint SoftColor = 0xFF57F287;
     internal const uint MixedColor = 0xFFE6A85C;
@@ -22,8 +21,7 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
     private readonly ResetModeDropdown _modeDropdown;
     private readonly DialogButton _resetButton;
     private readonly TextView _errorView;
-
-    public event Action<ResetMode>? ResetRequested;
+    private ResetCommitDialogViewModel? _vm;
 
     public ResetCommitDialog(
         Repo repo,
@@ -58,7 +56,7 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
-        _resetButton = new DialogButton("Reset", RaiseResetRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
+        _resetButton = new DialogButton("Reset") { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
 
         var buttonsRow = new FlexRowView
         {
@@ -89,29 +87,28 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(RaiseResetRequested, onClose));
+        this.UseController(_ => new DialogKbmController(Submit, onClose));
 
         var request = new ResetCommitRequest(repo, sha);
-        this.UsePresenter(ctx => new ResetCommitPresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new ResetCommitDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
 
-    public bool ButtonsEnabled
+    public void Bind(ResetCommitDialogViewModel vm)
     {
-        set => _resetButton.IsEnabled.Value = value;
+        _vm = vm;
+        vm.CloseRequested += _onClose;
+        _modeDropdown.SelectedState.BindTwoWay(vm.Mode);
+        _resetButton.BindCommand(vm.Reset);
+        _errorView.BindText(vm.Reset.Error, s => s ?? string.Empty);
     }
 
-    public string? ErrorMessage
-    {
-        set => _errorView.Text = value ?? string.Empty;
-    }
-
-    public void Close() => _onClose();
-
-    private void RaiseResetRequested() => ResetRequested?.Invoke(_modeDropdown.Selected);
+    private void Submit() => _vm?.Reset.Execute();
 
     private static FlexRowView BuildLabeledRow(string label, MultiChildView value)
     {
@@ -230,9 +227,6 @@ internal sealed class ResetModeDropdown : HoverableButton
         (ResetMode.Hard, "Hard", "Discard all local changes", ResetCommitDialog.HardColor),
     };
 
-    // Default Mixed: matches git's own default and is the safest non-destructive option
-    // that still discards the staged-vs-unstaged distinction (which the user is
-    // re-considering anyway by resetting).
     public State<ResetMode> SelectedState { get; } = new(ResetMode.Mixed);
 
     public ResetMode Selected => SelectedState.Value;
@@ -357,4 +351,3 @@ internal sealed class ResetModeDropdown : HoverableButton
         return ResetCommitDialog.MixedColor;
     }
 }
-

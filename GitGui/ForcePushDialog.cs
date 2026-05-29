@@ -5,13 +5,12 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class ForcePushDialog : MultiChildView, IForcePushView
+internal sealed class ForcePushDialog : MultiChildView, IBind<ForcePushDialogViewModel>
 {
     private readonly Action _onClose;
     private readonly DialogButton _forcePushButton;
     private readonly TextView _errorView;
-
-    public event Action? ForcePushRequested;
+    private ForcePushDialogViewModel? _vm;
 
     public ForcePushDialog(Repo repo, string branchName, int ahead, int behind, Action onClose)
     {
@@ -34,7 +33,7 @@ public sealed class ForcePushDialog : MultiChildView, IForcePushView
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _forcePushButton = new DialogButton("Force push", RaiseForcePushRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _forcePushButton = new DialogButton("Force push") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Force push?", onClose, new FlexColumnView
         {
@@ -48,26 +47,24 @@ public sealed class ForcePushDialog : MultiChildView, IForcePushView
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(RaiseForcePushRequested, onClose));
+        this.UseController(_ => new DialogKbmController(Submit, onClose));
 
-        this.UsePresenter(ctx => new ForcePushPresenter(
-            this, repo,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new ForcePushDialogViewModel(
+                repo,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
 
-    public bool ForcePushEnabled
+    public void Bind(ForcePushDialogViewModel vm)
     {
-        set => _forcePushButton.IsEnabled.Value = value;
+        _vm = vm;
+        vm.CloseRequested += _onClose;
+        _forcePushButton.BindCommand(vm.ForcePush);
+        _errorView.BindText(vm.ForcePush.Error, s => s ?? string.Empty);
     }
 
-    public string? ErrorMessage
-    {
-        set => _errorView.Text = value ?? string.Empty;
-    }
-
-    public void Close() => _onClose();
-
-    private void RaiseForcePushRequested() => ForcePushRequested?.Invoke();
+    private void Submit() => _vm?.ForcePush.Execute();
 }

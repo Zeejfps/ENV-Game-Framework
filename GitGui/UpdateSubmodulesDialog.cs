@@ -10,7 +10,7 @@ namespace GitGui;
 /// on an individual submodule row. Lets the user pick init / recursive flags plus an
 /// update strategy (checkout / merge / rebase).
 /// </summary>
-public sealed class UpdateSubmodulesDialog : MultiChildView, IUpdateSubmodulesView
+internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmodulesDialogViewModel>
 {
     private const float DialogWidth = 480f;
 
@@ -21,11 +21,7 @@ public sealed class UpdateSubmodulesDialog : MultiChildView, IUpdateSubmodulesVi
     private readonly CheckboxView _mergeMode;
     private readonly CheckboxView _rebaseMode;
     private readonly DialogButton _updateButton;
-    private readonly TextView _errorView;
-
-    private SubmoduleUpdateMode _mode = SubmoduleUpdateMode.Checkout;
-
-    public event Action? UpdateRequested;
+    private UpdateSubmodulesDialogViewModel? _vm;
 
     public UpdateSubmodulesDialog(Repo primary, Repo? target, Action onClose)
     {
@@ -44,32 +40,21 @@ public sealed class UpdateSubmodulesDialog : MultiChildView, IUpdateSubmodulesVi
         prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         _initCheckbox = new CheckboxView("Init missing submodules (--init)") { PreferredHeight = 22 };
-        _initCheckbox.IsChecked.Value = true;
         _recursiveCheckbox = new CheckboxView("Recurse into nested submodules (--recursive)") { PreferredHeight = 22 };
 
         var modeLabel = DialogFrame.Label("Strategy");
 
         _checkoutMode = new CheckboxView("Checkout (default — reset to recorded SHA)") { PreferredHeight = 22 };
-        _checkoutMode.IsChecked.Value = true;
         _mergeMode = new CheckboxView("Merge (--merge)") { PreferredHeight = 22 };
         _rebaseMode = new CheckboxView("Rebase (--rebase)") { PreferredHeight = 22 };
-
-        // Mutual exclusivity — clicking one selects it and unchecks the others. Re-clicking
-        // an already-checked option restores it (we never allow "no mode" — defaults to
-        // Checkout). Subscribing on each per-mode checkbox keeps the rule local.
-        _checkoutMode.IsChecked.Subscribe(v => SelectMode(SubmoduleUpdateMode.Checkout, v));
-        _mergeMode.IsChecked.Subscribe(v => SelectMode(SubmoduleUpdateMode.Merge, v));
-        _rebaseMode.IsChecked.Subscribe(v => SelectMode(SubmoduleUpdateMode.Rebase, v));
 
         var conflictsHint = DialogFrame.Hint(
             "Merge/rebase strategies may leave the submodule mid-merge on conflict — " +
             "the Operation banner will offer Abort.",
             TextWrap.Wrap);
 
-        _errorView = DialogFrame.ErrorView();
-
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _updateButton = new DialogButton("Update", RaiseUpdateRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _updateButton = new DialogButton("Update") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build(titleText, onClose, new FlexColumnView
         {
@@ -85,50 +70,68 @@ public sealed class UpdateSubmodulesDialog : MultiChildView, IUpdateSubmodulesVi
                 _mergeMode,
                 _rebaseMode,
                 conflictsHint,
-                _errorView,
                 new MultiChildView { PreferredHeight = 4 },
                 DialogFrame.ButtonsRow(cancelButton, _updateButton),
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(RaiseUpdateRequested, onClose));
+        this.UseController(_ => new DialogKbmController(Submit, onClose));
 
         var request = new UpdateSubmodulesViewRequest(primary, target);
-        this.UsePresenter(ctx => new UpdateSubmodulesPresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new UpdateSubmodulesDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
 
-    private void SelectMode(SubmoduleUpdateMode mode, bool isCheckedNow)
+    public void Bind(UpdateSubmodulesDialogViewModel vm)
+    {
+        _vm = vm;
+        vm.CloseRequested += _onClose;
+
+        _initCheckbox.IsChecked.BindTwoWay(vm.Init);
+        _recursiveCheckbox.IsChecked.BindTwoWay(vm.Recursive);
+        _updateButton.BindCommand(vm.Update);
+
+        // Mutual exclusivity: the VM owns the canonical Mode; the three checkboxes are
+        // a derived presentation. Subscribing to vm.Mode keeps the checkboxes in sync,
+        // and per-checkbox handlers write back to vm.Mode on a user click. Re-clicking
+        // an already-checked option restores it (we never allow "no mode").
+        vm.Mode.Subscribe(m =>
+        {
+            _checkoutMode.IsChecked.Value = m == SubmoduleUpdateMode.Checkout;
+            _mergeMode.IsChecked.Value = m == SubmoduleUpdateMode.Merge;
+            _rebaseMode.IsChecked.Value = m == SubmoduleUpdateMode.Rebase;
+        });
+        _checkoutMode.IsChecked.Changed += b => SelectMode(vm, SubmoduleUpdateMode.Checkout, b);
+        _mergeMode.IsChecked.Changed += b => SelectMode(vm, SubmoduleUpdateMode.Merge, b);
+        _rebaseMode.IsChecked.Changed += b => SelectMode(vm, SubmoduleUpdateMode.Rebase, b);
+    }
+
+    private void Submit() => _vm?.Update.Execute();
+
+    private void SelectMode(UpdateSubmodulesDialogViewModel vm, SubmoduleUpdateMode mode, bool isCheckedNow)
     {
         // A user toggle that turns off the current mode is treated as "stay selected" —
-        // we re-check it. Anything else: switch to the new mode and uncheck siblings.
+        // we re-check that one checkbox. Anything else: write the new mode to the VM and
+        // its subscription syncs all three checkboxes.
         if (!isCheckedNow)
         {
-            if (_mode == mode) ApplyMode(_mode);
+            if (vm.Mode.Value == mode)
+                CheckboxFor(mode).IsChecked.Value = true;
             return;
         }
-        if (_mode == mode) return;
-        _mode = mode;
-        ApplyMode(mode);
+        if (vm.Mode.Value == mode) return;
+        vm.Mode.Value = mode;
     }
 
-    private void ApplyMode(SubmoduleUpdateMode mode)
+    private CheckboxView CheckboxFor(SubmoduleUpdateMode mode) => mode switch
     {
-        _checkoutMode.IsChecked.Value = mode == SubmoduleUpdateMode.Checkout;
-        _mergeMode.IsChecked.Value = mode == SubmoduleUpdateMode.Merge;
-        _rebaseMode.IsChecked.Value = mode == SubmoduleUpdateMode.Rebase;
-    }
-
-    public bool Init => _initCheckbox.IsChecked.Value;
-    public bool Recursive => _recursiveCheckbox.IsChecked.Value;
-    public SubmoduleUpdateMode Mode => _mode;
-    public bool UpdateEnabled { set => _updateButton.IsEnabled.Value = value; }
-    public string? ErrorMessage { set => _errorView.Text = value ?? string.Empty; }
-
-    private void RaiseUpdateRequested() => UpdateRequested?.Invoke();
-
-    public void Close() => _onClose();
+        SubmoduleUpdateMode.Merge => _mergeMode,
+        SubmoduleUpdateMode.Rebase => _rebaseMode,
+        _ => _checkoutMode,
+    };
 }

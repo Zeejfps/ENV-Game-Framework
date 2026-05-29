@@ -9,10 +9,9 @@ namespace GitGui;
 /// <summary>
 /// Modal shown from a primary RepoRow's "New worktree…" menu. Collects the three
 /// fields `git worktree add` needs (path, start point, optional new branch name) plus
-/// a force toggle for re-using an existing dirty path. The presenter shells out via
-/// IGitService.AddWorktree.
+/// a force toggle for re-using an existing dirty path.
 /// </summary>
-public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
+internal sealed class CreateWorktreeDialog : MultiChildView, IBind<CreateWorktreeDialogViewModel>
 {
     private readonly Action _onClose;
     private readonly TextInputView _pathInput;
@@ -22,9 +21,7 @@ public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
     private readonly CheckboxView _forceCheckbox;
     private readonly DialogButton _createButton;
     private readonly TextView _errorView;
-
-    public event Action? InputsChanged;
-    public event Action? CreateRequested;
+    private CreateWorktreeDialogViewModel? _vm;
 
     public CreateWorktreeDialog(Repo primary, Action onClose)
     {
@@ -54,7 +51,6 @@ public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
         var startPointLabel = DialogFrame.Label("Start point");
 
         _startPointInput = DialogFrame.TextInput();
-        _startPointInput.Enter("HEAD");
         var startPointBox = DialogFrame.WrapInput(_startPointInput);
 
         var startPointHint = DialogFrame.Hint("Branch, tag, or commit SHA.");
@@ -74,7 +70,7 @@ public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _createButton = new DialogButton("Create", RaiseCreateRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _createButton = new DialogButton("Create") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("New worktree", onClose, new FlexColumnView
         {
@@ -97,42 +93,45 @@ public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
             },
         }));
 
-        _pathController = new CheckoutDialogKbmController(_pathInput, RaiseCreateRequested, onClose);
+        _pathController = new CheckoutDialogKbmController(_pathInput, Submit, onClose);
         _pathInput.UseController(_ => _pathController);
-        _startPointInput.UseController(_ => new CheckoutDialogKbmController(_startPointInput, RaiseCreateRequested, onClose));
-        _branchInput.UseController(_ => new CheckoutDialogKbmController(_branchInput, RaiseCreateRequested, onClose));
-
-        _pathInput.TextChanged += RaiseInputsChanged;
-        _startPointInput.TextChanged += RaiseInputsChanged;
+        _startPointInput.UseController(_ => new CheckoutDialogKbmController(_startPointInput, Submit, onClose));
+        _branchInput.UseController(_ => new CheckoutDialogKbmController(_branchInput, Submit, onClose));
 
         var request = new CreateWorktreeRequest(primary);
-        this.UsePresenter(ctx => new CreateWorktreePresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new CreateWorktreeDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
 
-    private void RaiseCreateRequested() => CreateRequested?.Invoke();
-    private void RaiseInputsChanged() => InputsChanged?.Invoke();
+    public void Bind(CreateWorktreeDialogViewModel vm)
+    {
+        _vm = vm;
+        vm.CloseRequested += _onClose;
+
+        _pathInput.BindTwoWay(vm.Path);
+        _startPointInput.BindTwoWay(vm.StartPoint);
+        _branchInput.BindTwoWay(vm.NewBranchName);
+        _forceCheckbox.IsChecked.BindTwoWay(vm.Force);
+        _createButton.BindCommand(vm.Create);
+        _errorView.BindText(vm.Create.Error, s => s ?? string.Empty);
+
+        _pathController.BeginEditing();
+    }
+
+    private void Submit() => _vm?.Create.Execute();
 
     private void PickPath()
     {
         var shell = Context?.Get<IPlatformShell>();
         var picked = shell?.PickFolder("Select worktree location");
-        if (!string.IsNullOrEmpty(picked))
+        if (!string.IsNullOrEmpty(picked) && _vm != null)
         {
-            _pathInput.Enter(picked);
-            RaiseInputsChanged();
+            _vm.Path.Value = picked;
         }
     }
-
-    public string Path => new(_pathInput.Text);
-    public string StartPoint => new(_startPointInput.Text);
-    public string NewBranchName => new(_branchInput.Text);
-    public bool Force => _forceCheckbox.IsChecked.Value;
-    public bool CreateEnabled { set => _createButton.IsEnabled.Value = value; }
-    public string? ErrorMessage { set => _errorView.Text = value ?? string.Empty; }
-    public void FocusPath() => _pathController.BeginEditing();
-    public void Close() => _onClose();
 }

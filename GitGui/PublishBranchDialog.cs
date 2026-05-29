@@ -5,15 +5,14 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
+internal sealed class PublishBranchDialog : MultiChildView, IBind<PublishBranchDialogViewModel>
 {
     private readonly Action _onClose;
     private readonly DialogButton _publishButton;
     private readonly TextView _errorView;
     private readonly CheckboxView _trackCheckbox;
     private readonly RemoteDropdown _remoteDropdown;
-
-    public event Action? PublishRequested;
+    private PublishBranchDialogViewModel? _vm;
 
     public PublishBranchDialog(PublishBranchRequest request, Action onClose)
     {
@@ -35,14 +34,13 @@ public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
         _trackCheckbox = new CheckboxView("Track this remote branch (set upstream)")
         {
             PreferredHeight = 24,
-            IsChecked = { Value = true },
         };
         var trackRow = BuildLabeledRow("", _trackCheckbox);
 
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
-        _publishButton = new DialogButton("Publish", RaisePublishRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
+        _publishButton = new DialogButton("Publish") { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
 
         var buttonsRow = new FlexRowView
         {
@@ -72,14 +70,34 @@ public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(RaisePublishRequested, onClose));
+        this.UseController(_ => new DialogKbmController(Submit, onClose));
 
-        this.UsePresenter(ctx => new PublishBranchPresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new PublishBranchDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
+
+    public void Bind(PublishBranchDialogViewModel vm)
+    {
+        _vm = vm;
+        vm.CloseRequested += _onClose;
+
+        // The dropdown's selection is the source of truth for both directions; the VM's
+        // SelectedRemote seeds the default after remotes load, which propagates back here
+        // via the two-way binding.
+        _remoteDropdown.SelectedState.BindTwoWay(vm.SelectedRemote);
+        _trackCheckbox.IsChecked.BindTwoWay(vm.SetUpstream);
+        _publishButton.BindCommand(vm.Publish);
+        _errorView.BindText(vm.ErrorMessage, s => s ?? string.Empty);
+
+        vm.Remotes.Subscribe(remotes => _remoteDropdown.SetOptions(remotes));
+    }
+
+    private void Submit() => _vm?.Publish.Execute();
 
     private static FlexRowView BuildLabeledRow(string label, MultiChildView value)
     {
@@ -133,29 +151,9 @@ public sealed class PublishBranchDialog : MultiChildView, IPublishBranchView
             Children = { icon, label },
         };
     }
-
-    private void RaisePublishRequested() => PublishRequested?.Invoke();
-
-    public string SelectedRemote => _remoteDropdown.Selected;
-    public bool SetUpstream => _trackCheckbox.IsChecked.Value;
-
-    public bool PublishEnabled
-    {
-        set => _publishButton.IsEnabled.Value = value;
-    }
-
-    public string? ErrorMessage
-    {
-        set => _errorView.Text = value ?? string.Empty;
-    }
-
-    public void SetRemotes(IReadOnlyList<string> remotes)
-    {
-        _remoteDropdown.SetOptions(remotes);
-    }
-
-    public void Close() => _onClose();
 }
+
+internal readonly record struct PublishBranchRequest(Repo Repo, string LocalBranch);
 
 internal sealed class RemoteDropdown : HoverableButton
 {
@@ -232,15 +230,12 @@ internal sealed class RemoteDropdown : HoverableButton
         _options = options;
         if (options.Count == 0)
         {
-            SelectedState.Value = string.Empty;
             IsEnabled.Value = false;
             _chevron.Text = string.Empty;
             return;
         }
         IsEnabled.Value = true;
         _chevron.Text = options.Count > 1 ? LucideIcons.ChevronDown : string.Empty;
-        var preferred = options.FirstOrDefault(o => o == "origin") ?? options[0];
-        SelectedState.Value = preferred;
     }
 
     protected override void OnClicked()

@@ -5,22 +5,20 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
+internal sealed class MergeBranchDialog : MultiChildView, IBind<MergeBranchDialogViewModel>
 {
     private readonly Action _onClose;
     private readonly DialogButton _mergeButton;
-    private readonly TextView _errorView;
     private readonly MergeOptionDropdown _optionDropdown;
     private readonly TextView _previewIcon;
     private readonly TextView _previewText;
+    private readonly TextView _errorView;
     private MergePreviewState _previewState = MergePreviewState.Unknown;
     private BranchPreviewStyles _previewStyles = ThemeStyles.Dark.BranchPreview;
-
-    public event Action? MergeRequested;
+    private MergeBranchDialogViewModel? _vm;
 
     public MergeBranchDialog(MergeBranchRequest request, Action onClose)
     {
-        //PreferredWidth = 680f;
         _onClose = onClose;
 
         var mergeRow = BuildLabeledRow("Merge:", BuildBranchChip(request.SourceDisplay));
@@ -56,7 +54,7 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
-        _mergeButton = new DialogButton("Merge", RaiseMergeRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
+        _mergeButton = new DialogButton("Merge") { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
 
         var buttonsRow = new FlexRowView
         {
@@ -85,14 +83,32 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(RaiseMergeRequested, onClose));
+        this.UseController(_ => new DialogKbmController(Submit, onClose));
 
-        this.UsePresenter(ctx => new MergeBranchPresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new MergeBranchDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
+
+    public void Bind(MergeBranchDialogViewModel vm)
+    {
+        _vm = vm;
+        vm.CloseRequested += _onClose;
+        _optionDropdown.SelectedState.BindTwoWay(vm.Strategy);
+        _mergeButton.BindCommand(vm.Merge);
+        _errorView.BindText(vm.Merge.Error, s => s ?? string.Empty);
+        vm.PreviewState.Subscribe(s =>
+        {
+            _previewState = s;
+            ApplyPreviewState();
+        });
+    }
+
+    private void Submit() => _vm?.Merge.Execute();
 
     private static FlexRowView BuildLabeledRow(string label, MultiChildView value)
     {
@@ -147,29 +163,6 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
         };
     }
 
-    private void RaiseMergeRequested() => MergeRequested?.Invoke();
-
-    public MergeStrategy Strategy => _optionDropdown.Selected;
-
-    public bool MergeEnabled
-    {
-        set => _mergeButton.IsEnabled.Value = value;
-    }
-
-    public string? ErrorMessage
-    {
-        set => _errorView.Text = value ?? string.Empty;
-    }
-
-    public MergePreviewState PreviewState
-    {
-        set
-        {
-            _previewState = value;
-            ApplyPreviewState();
-        }
-    }
-
     private void ApplyPreviewState()
     {
         switch (_previewState)
@@ -192,8 +185,6 @@ public sealed class MergeBranchDialog : MultiChildView, IMergeBranchView
                 break;
         }
     }
-
-    public void Close() => _onClose();
 }
 
 internal sealed class MergeOptionDropdown : HoverableButton

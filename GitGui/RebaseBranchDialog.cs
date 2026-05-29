@@ -5,18 +5,17 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
+internal sealed class RebaseBranchDialog : MultiChildView, IBind<RebaseBranchDialogViewModel>
 {
     private readonly Action _onClose;
     private readonly DialogButton _rebaseButton;
-    private readonly TextView _errorView;
     private readonly CheckboxView _autostashCheckbox;
     private readonly TextView _previewIcon;
     private readonly TextView _previewText;
+    private readonly TextView _errorView;
     private RebasePreviewState _previewState = RebasePreviewState.Unknown;
     private BranchPreviewStyles _previewStyles = ThemeStyles.Dark.BranchPreview;
-
-    public event Action? RebaseRequested;
+    private RebaseBranchDialogViewModel? _vm;
 
     public RebaseBranchDialog(RebaseBranchRequest request, Action onClose)
     {
@@ -66,7 +65,7 @@ public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
-        _rebaseButton = new DialogButton("Rebase", RaiseRebaseRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
+        _rebaseButton = new DialogButton("Rebase") { PreferredHeight = DialogFrame.DefaultButtonHeight, PreferredWidth = 96 };
 
         var buttonsRow = new FlexRowView
         {
@@ -96,14 +95,32 @@ public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(RaiseRebaseRequested, onClose));
+        this.UseController(_ => new DialogKbmController(Submit, onClose));
 
-        this.UsePresenter(ctx => new RebaseBranchPresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new RebaseBranchDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
+
+    public void Bind(RebaseBranchDialogViewModel vm)
+    {
+        _vm = vm;
+        vm.CloseRequested += _onClose;
+        _autostashCheckbox.IsChecked.BindTwoWay(vm.Autostash);
+        _rebaseButton.BindCommand(vm.Rebase);
+        _errorView.BindText(vm.Rebase.Error, s => s ?? string.Empty);
+        vm.PreviewState.Subscribe(s =>
+        {
+            _previewState = s;
+            ApplyPreviewState();
+        });
+    }
+
+    private void Submit() => _vm?.Rebase.Execute();
 
     private static FlexRowView BuildLabeledRow(string label, MultiChildView value)
     {
@@ -158,29 +175,6 @@ public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
         };
     }
 
-    private void RaiseRebaseRequested() => RebaseRequested?.Invoke();
-
-    public bool Autostash => _autostashCheckbox.IsChecked.Value;
-
-    public bool RebaseEnabled
-    {
-        set => _rebaseButton.IsEnabled.Value = value;
-    }
-
-    public string? ErrorMessage
-    {
-        set => _errorView.Text = value ?? string.Empty;
-    }
-
-    public RebasePreviewState PreviewState
-    {
-        set
-        {
-            _previewState = value;
-            ApplyPreviewState();
-        }
-    }
-
     private void ApplyPreviewState()
     {
         switch (_previewState)
@@ -203,6 +197,4 @@ public sealed class RebaseBranchDialog : MultiChildView, IRebaseBranchView
                 break;
         }
     }
-
-    public void Close() => _onClose();
 }

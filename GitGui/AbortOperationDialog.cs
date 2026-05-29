@@ -1,7 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
-using ZGF.Gui.Tests;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -12,14 +11,12 @@ namespace GitGui;
 /// All variants are destructive — any in-progress conflict resolutions and (for
 /// reset --merge) conflicting worktree edits are thrown away — so the user confirms first.
 /// </summary>
-public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
+internal sealed class AbortOperationDialog : MultiChildView, IBind<AbortOperationDialogViewModel>
 {
     private readonly Action _onClose;
     private readonly DialogButton _abortButton;
     private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
-
-    public event Action? AbortRequested;
 
     public AbortOperationDialog(Repo repo, RepoOperationState state, Action onClose)
     {
@@ -40,7 +37,7 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
         _errorView = DialogFrame.ErrorView();
 
         _cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _abortButton = new DialogButton(confirmLabel, RaiseAbortRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _abortButton = new DialogButton(confirmLabel) { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build(titleText, onClose, new FlexColumnView
         {
@@ -54,53 +51,36 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(RaiseAbortRequested, onClose));
+        this.UseController(_ => new DialogKbmController(_abortButton.Command, onClose));
 
         var request = new AbortOperationRequest(repo, state);
-        this.UsePresenter(ctx => new AbortOperationPresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new AbortOperationDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
 
-    public bool AbortEnabled
+    public void Bind(AbortOperationDialogViewModel vm)
     {
-        set => _abortButton.IsEnabled.Value = value;
-    }
+        vm.CloseRequested += _onClose;
 
-    public bool CancelEnabled
-    {
-        set => _cancelButton.IsEnabled.Value = value;
-    }
+        _abortButton.BindCommand(vm.Abort);
+        _cancelButton.IsEnabled.BindTo(vm.CancelEnabled);
+        _errorView.BindText(vm.Error, s => s ?? string.Empty);
 
-    public string? ErrorMessage
-    {
-        set => _errorView.Text = value ?? string.Empty;
-    }
+        vm.ConfirmButtonLabel.Subscribe(label => _abortButton.Label = label);
 
-    public string ConfirmButtonLabel
-    {
-        set => _abortButton.Label = value;
-    }
-
-    public bool IsBusy
-    {
-        set
+        // Spinner: toggle icon based on IsBusy and continuously update rotation while busy.
+        vm.IsBusy.Subscribe(b =>
         {
-            _abortButton.Icon = value ? LucideIcons.Loader : string.Empty;
-            if (!value) _abortButton.IconRotation = 0f;
-        }
+            _abortButton.Icon = b ? LucideIcons.Loader : string.Empty;
+            if (!b) _abortButton.IconRotation = 0f;
+        });
+        vm.BusyRotation.Subscribe(r => _abortButton.IconRotation = r);
     }
-
-    public float BusyRotation
-    {
-        set => _abortButton.IconRotation = value;
-    }
-
-    public void Close() => _onClose();
-
-    private void RaiseAbortRequested() => AbortRequested?.Invoke();
 
     private static (string Title, string Body, string Confirm) CopyFor(RepoOperationState state) => state switch
     {
@@ -135,5 +115,3 @@ public sealed class AbortOperationDialog : MultiChildView, IAbortOperationView
         _ => ("Abort?", "Cancel the in-progress operation.", "Abort"),
     };
 }
-
-public readonly record struct AbortOperationRequest(Repo Repo, RepoOperationState State);
