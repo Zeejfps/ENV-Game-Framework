@@ -13,6 +13,9 @@ internal sealed class GenerationGuard
     /// <summary>Bumps the generation and returns the new token to capture.</summary>
     public int Bump() => ++_current;
 
+    /// <summary>The current token, captured without bumping — for cross-lane guards.</summary>
+    public int Current => _current;
+
     /// <summary>True when <paramref name="token"/> is no longer the current generation.</summary>
     public bool IsStale(int token) => token != _current;
 }

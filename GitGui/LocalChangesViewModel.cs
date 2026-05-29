@@ -61,6 +61,12 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
     private AmendSession? _amend;
     private Guid? _lastLoadedRepoId;
 
+    // Loads run on the base Gen lane (repo switches / watcher reloads invalidate each other).
+    // Mutations and commit get their own lanes so staging a file never drops an in-flight
+    // reload, and a reload never drops the commit continuation (which must reset CommitBusy).
+    private readonly GenerationGuard _opGen;
+    private readonly GenerationGuard _commitGen;
+
     public LocalChangesViewModel(
         IRepoRegistry registry,
         IGitService gitService,
@@ -79,6 +85,8 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         _shell = shell;
         _clipboard = clipboard;
         _preferences = preferences;
+        _opGen = CreateLane();
+        _commitGen = CreateLane();
 
         Title = Slice(s => s.Title);
         Description = Slice(s => s.Description);
@@ -487,7 +495,8 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 if (errorMsg != null) { Update(s => s with { OpError = errorMsg }); return; }
                 if (outcome is { Success: false }) { Update(s => s with { OpError = outcome.ErrorMessage }); return; }
                 _bus.Broadcast(new SubmodulesChangedMessage(primaryId));
-            });
+            },
+            lane: _opGen);
     }
 
     public void Unstage(IReadOnlyList<string> paths)
@@ -546,7 +555,8 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 if (outcome is { Success: false }) { Update(s => s with { OpError = outcome.ErrorMessage }); return; }
                 _bus.Broadcast(new RefsChangedMessage(repo.Id));
                 _bus.Broadcast(new WorkingTreeChangedMessage(repo.Id));
-            });
+            },
+            lane: _opGen);
     }
 
     public void CopyPaths(IReadOnlyList<string> paths)
@@ -604,31 +614,21 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
         Update(s => s with { CommitBusy = true, OpError = null });
         _commitSpinner.Start();
 
-        // Inlined (vs RunBackground) so op-completion runs even when Gen advanced —
-        // otherwise a concurrent watcher-driven reload would silently drop the whole
-        // continuation, leaving CommitBusy permanently set and the button stuck.
-        var snapshotGen = Gen.Bump();
-        var dispatcher = Dispatcher;
-        Task.Run(() =>
-        {
-            string? err = null;
-            LocalChangesSnapshot? snap = null;
-            try
+        // Commit runs on its own lane so the continuation always runs (resetting CommitBusy)
+        // even if a watcher-driven reload advances the load lane mid-commit — that race used
+        // to leave the button permanently stuck. The post-commit snapshot is still gated on
+        // the load lane (bumped here to invalidate any in-flight reload), so a reload that
+        // superseded us isn't clobbered.
+        var loadToken = Gen.Bump();
+        RunBackground<LocalChangesSnapshot>(
+            work: () =>
             {
-                err = _gitService.Commit(repo, message, amend);
-                if (err == null)
-                {
-                    var got = _gitService.GetLocalChanges(repo);
-                    if (got.ErrorMessage != null) err = got.ErrorMessage;
-                    else snap = got;
-                }
-            }
-            catch (Exception ex)
-            {
-                err = ex.Message;
-            }
-
-            dispatcher.Post(() =>
+                var err = _gitService.Commit(repo, message, amend);
+                if (err != null) return (null, err);
+                var got = _gitService.GetLocalChanges(repo);
+                return got.ErrorMessage != null ? (null, got.ErrorMessage) : (got, null);
+            },
+            onResult: (snap, err) =>
             {
                 _commitSpinner.Stop();
                 Update(s => s with { CommitBusy = false, OpError = err });
@@ -646,10 +646,10 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
                 {
                     Update(s => s with { Title = string.Empty, Description = string.Empty });
                 }
-                if (snap != null && !Gen.IsStale(snapshotGen)) ApplySnapshot(snap);
+                if (snap != null && !Gen.IsStale(loadToken)) ApplySnapshot(snap);
                 _bus.Broadcast(new CommitCreatedMessage(repo.Id));
-            });
-        });
+            },
+            lane: _commitGen);
     }
 
     private void OnWorkingTreeChanged(WorkingTreeChangedMessage msg)
@@ -827,7 +827,8 @@ internal sealed class LocalChangesViewModel : ViewModelBase<LocalChangesState>
             {
                 _bus.Broadcast(new WorkingTreeChangedMessage(repo.Id));
                 Update(s => s with { OpError = errorMsg });
-            });
+            },
+            lane: _opGen);
     }
 
     private void ApplyOptimisticMove(IReadOnlyList<string> paths, DiffSide fromSide)
