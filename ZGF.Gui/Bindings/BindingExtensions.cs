@@ -1,9 +1,30 @@
+using ZGF.Gui.Tests;
 using ZGF.Observable;
 
 namespace ZGF.Gui.Bindings;
 
 public static class BindingExtensions
 {
+    extension(TextInputView input)
+    {
+        /// <summary>
+        /// Two-way sync between the input's text buffer and a string state. On bind, the
+        /// state's value is pushed into the input; thereafter, edits in either direction
+        /// propagate. The state-side equality guard plus a buffer-equality guard on the
+        /// input side prevent feedback loops.
+        /// </summary>
+        public void BindTwoWay(State<string> state)
+        {
+            state.Subscribe(s =>
+            {
+                if (input.Text.SequenceEqual(s.AsSpan())) return;
+                input.Clear();
+                if (s.Length > 0) input.Enter(s.AsSpan());
+            });
+            input.TextChanged += () => state.Value = input.Text.ToString();
+        }
+    }
+
     extension(TextView view)
     {
         /// <summary>

@@ -9,17 +9,16 @@ namespace GitGui;
 /// <summary>
 /// Modal shown when the user double-clicks a remote branch that has no matching local
 /// branch. Lets them pick the local branch name and whether to set up tracking, then
-/// runs `git checkout -b <local> [--track|--no-track] <remote>/<branch>`.
+/// runs `git checkout -b &lt;local&gt; [--track|--no-track] &lt;remote&gt;/&lt;branch&gt;`.
 /// </summary>
-public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
+internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranchDialogViewModel>
 {
     private readonly Action _onClose;
     private readonly TextInputView _nameInput;
     private readonly CheckoutDialogKbmController _nameController;
     private readonly CheckboxView _trackCheckbox;
     private readonly DialogButton _checkoutButton;
-
-    public event Action? CheckoutRequested;
+    private CheckoutBranchDialogViewModel? _vm;
 
     public CheckoutBranchDialog(
         Repo repo,
@@ -44,14 +43,10 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
         _trackCheckbox = new CheckboxView("Track this remote branch")
         {
             PreferredHeight = 22,
-            IsChecked =
-            {
-                Value = true
-            }
         };
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _checkoutButton = new DialogButton("Checkout", RaiseCheckoutRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _checkoutButton = new DialogButton("Checkout") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Checkout branch", onClose, new FlexColumnView
         {
@@ -72,39 +67,34 @@ public sealed class CheckoutBranchDialog : MultiChildView, ICheckoutBranchView
         // BaseTextInputKbmController.OnMouseButtonStateChanged consumes left-press events
         // anywhere inside the view it's attached to, so putting it on the dialog would
         // swallow clicks meant for the Cancel/Checkout buttons.
-        _nameController = new CheckoutDialogKbmController(_nameInput, RaiseCheckoutRequested, onClose);
+        _nameController = new CheckoutDialogKbmController(_nameInput, Submit, onClose);
         _nameInput.UseController(_ => _nameController);
 
         var request = new CheckoutRequest(repo, remoteName, remoteBranchName, suggestedLocalName);
-        this.UsePresenter(ctx => new CheckoutBranchPresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new CheckoutBranchDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
 
-    private void RaiseCheckoutRequested() => CheckoutRequested?.Invoke();
+    public void Bind(CheckoutBranchDialogViewModel vm)
+    {
+        _vm = vm;
+        vm.CloseRequested += _onClose;
 
-    public string Name => new(_nameInput.Text);
-    public bool Track => _trackCheckbox.IsChecked.Value;
-    public bool CheckoutEnabled
-    {
-        set => _checkoutButton.IsEnabled.Value = value;
-    }
-    public event Action NameChanged
-    {
-        add => _nameInput.TextChanged += value;
-        remove => _nameInput.TextChanged -= value;
-    }
-    public void FocusName(string initialText)
-    {
-        // Must run after the input is attached to a context — doing it earlier produced an
-        // empty-looking field (buffer wrote OK, but StartEditing/StealFocus hadn't run yet
-        // so caret/selection visuals were stale and typing didn't engage).
-        if (initialText.Length > 0)
-            _nameInput.Enter(initialText);
+        _nameInput.BindTwoWay(vm.Name);
+        _trackCheckbox.IsChecked.BindTwoWay(vm.Track);
+        _checkoutButton.BindCommand(vm.Checkout);
+
+        // Bind runs after the input is attached to a context — doing focus earlier (e.g.
+        // in the dialog ctor) produced an empty-looking field, since StartEditing/StealFocus
+        // hadn't run yet and caret/selection visuals were stale.
         _nameInput.SelectAll();
         _nameController.BeginEditing();
     }
-    public void Close() => _onClose();
+
+    private void Submit() => _vm?.Checkout.Execute();
 }
