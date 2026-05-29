@@ -28,15 +28,24 @@ internal static class RemoteUrl
 
     public static string Convert(string url, RemoteUrlScheme target)
     {
-        if (!TryParse(url.Trim(), out var host, out var path, out var user))
+        var trimmed = url.Trim();
+        if (!TryParse(trimmed, out var host, out var path, out var user))
             return url;
 
-        return target switch
+        switch (target)
         {
-            RemoteUrlScheme.Https => $"https://{host}/{path}",
-            RemoteUrlScheme.Ssh => $"{(user.Length == 0 ? "git" : user)}@{host}:{path}",
-            _ => url,
-        };
+            case RemoteUrlScheme.Https:
+                return $"https://{host}/{path}";
+            case RemoteUrlScheme.Ssh:
+                // The user component is only meaningful for SSH. An HTTPS source carries an
+                // HTTP auth username (e.g. "Zee@github.com") that must not leak into the
+                // SSH URL, so only preserve a user parsed from an SSH source; otherwise
+                // default to the conventional "git".
+                var sshUser = user.Length > 0 && Detect(trimmed) == RemoteUrlScheme.Ssh ? user : "git";
+                return $"{sshUser}@{host}:{path}";
+            default:
+                return url;
+        }
     }
 
     private static bool TryParse(string url, out string host, out string path, out string user)
