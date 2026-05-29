@@ -1,4 +1,3 @@
-using ZGF.Gui;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -17,8 +16,6 @@ internal sealed class GroupSectionViewModel : IDisposable
         _registry = registry;
         HeaderVm = new GroupHeaderRowViewModel(group, registry, newGroup);
     }
-
-    public View CreateRepoRow(Repo primary) => new RepoEntry(primary, _registry);
 
     // Group.RepoIds holds primary IDs only — worktrees and submodules nest under their
     // parent via RepoEntry. Collapsed groups still surface the active row's primary so
