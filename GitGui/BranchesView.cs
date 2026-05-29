@@ -24,7 +24,7 @@ namespace GitGui;
 internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>, IScrollableContent
 {
     private const float RowHeight = 22f;
-    private const float BaseIndent = 8f;
+    private const float BaseIndent = TreeMetrics.BaseIndent;
     private const float ChevronWidth = 14f;
     private const float ChevronGap = 2f;
     private const float ChevronColumn = ChevronWidth + ChevronGap;

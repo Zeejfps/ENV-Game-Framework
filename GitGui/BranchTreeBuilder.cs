@@ -13,12 +13,12 @@ internal static class BranchTreeBuilder
     // Section headers ("Local" / "Remote" / "Stashes") and the per-row indent math are
     // render concerns the VM produces no input for beyond the raw listing and the
     // open/closed flags, so the constants live with the builder rather than the VM.
-    private const float IndentSection = 0f;
-    private const float IndentRemoteHeader = 12f;
-    private const float IndentLocalTreeBase = 16f;
-    private const float IndentRemoteTreeBase = 28f;
-    private const float IndentStashBase = 16f;
-    private const float IndentLevel = 16f;
+    private const float IndentLevel = TreeMetrics.IndentLevel;
+    private const float IndentSection = 0f;                  // section header (Local / Remote / Stashes)
+    private const float IndentRemoteHeader = IndentLevel;    // one level under the Remote section
+    private const float IndentLocalTreeBase = IndentLevel;   // local branches: one level under their section
+    private const float IndentRemoteTreeBase = IndentLevel * 2; // remote branches: under section → remote
+    private const float IndentStashBase = IndentLevel;       // stashes: one level under their section
 
     public static IReadOnlyList<BranchRow> BuildRows(BranchListing? listing, BranchesUiState ui)
     {

@@ -72,10 +72,10 @@ internal readonly record struct FileRowRef(DiffSide Side, string FullPath, bool 
 /// </summary>
 internal static class FileTreeBuilder
 {
-    // One level of nesting is wider than a folder row's chevron column (chevron + gap),
-    // so a child file's badge sits clearly to the right of its parent folder's icon
-    // rather than lining up with it.
-    public const float IndentLevel = 20f;
+    // Shared with the other tree views. File rows reserve the same chevron column as
+    // folder rows (see FileChangesUI.DrawFileRow), so a child file's icon lands one full
+    // level to the right of its parent folder's icon — matching BranchesView's nesting.
+    public const float IndentLevel = TreeMetrics.IndentLevel;
 
     private static readonly IReadOnlyList<FileRow> Empty = Array.Empty<FileRow>();
 

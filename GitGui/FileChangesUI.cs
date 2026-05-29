@@ -17,7 +17,7 @@ internal static class FileChangesUI
     public const int RowGap = 2;
     public const float BadgeSize = 16f;
     public const float RowHeight = 22f;
-    public const float RowPaddingLeft = 14f;
+    public const float RowPaddingLeft = TreeMetrics.BaseIndent;
     public const float RowPaddingRight = 14f;
     public const float BadgeGap = 8f;
 
@@ -103,7 +103,8 @@ internal static class FileChangesUI
         TextStyle statusIconStyle,
         int z,
         string? displayText = null,
-        float indent = 0f)
+        float indent = 0f,
+        bool reserveChevronColumn = false)
     {
         var bg = isSelected
             ? styles.RowActive
@@ -122,7 +123,10 @@ internal static class FileChangesUI
             });
         }
 
-        var iconLeft = rowRect.Left + RowPaddingLeft + indent;
+        // In tree mode, reserve the same chevron column folder rows draw into so a file's
+        // icon lines up under sibling folder icons (and one level right of its parent's).
+        var iconLeft = rowRect.Left + RowPaddingLeft + indent
+            + (reserveChevronColumn ? ChevronWidth + ChevronGap : 0f);
         statusIconStyle.TextColor = styles.StatusColor(file.Status);
         canvas.DrawText(new DrawTextInputs
         {

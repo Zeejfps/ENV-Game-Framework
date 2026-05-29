@@ -8,11 +8,13 @@ namespace GitGui;
 internal sealed class RepoBar : MultiChildView, IBind<RepoBarViewModel>
 {
     private const int HorizontalPadding = 8;
-    internal const int RowPaddingLeft = 12;
+    internal const int RowPaddingLeft = (int)TreeMetrics.BaseIndent;
     internal const int RowChevronWidth = 12;
     internal const int RowIconWidth = 16;
     internal const int RowIconGap = 6;
-    internal const int WorktreeRowExtraIndent = 16;
+    // Nests a worktree/submodule one level (icon-to-icon) under its primary, matching the
+    // other tree views' per-level step.
+    internal const int WorktreeRowExtraIndent = (int)TreeMetrics.IndentLevel;
 
     private readonly FlexColumnView _sections;
     private RepoBarViewModel? _vm;

@@ -350,7 +350,8 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
             _statusIconStyle,
             z,
             row.DisplayName,
-            row.Indent);
+            row.Indent,
+            reserveChevronColumn: _viewMode == FileViewMode.Tree);
     }
 
     // ---- IScrollableContent ----
