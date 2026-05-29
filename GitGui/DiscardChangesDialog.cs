@@ -37,8 +37,7 @@ internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChange
         };
         prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
-        _fileListHeader = new TextView { Text = "Files" };
-        _fileListHeader.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
+        _fileListHeader = DialogFrame.Label("Files");
 
         _fileListEmpty = new TextView
         {

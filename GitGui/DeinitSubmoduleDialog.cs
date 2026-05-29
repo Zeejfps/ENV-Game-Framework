@@ -32,14 +32,11 @@ public sealed class DeinitSubmoduleDialog : MultiChildView, IDeinitSubmoduleView
         };
         prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
-        var detail = new TextView
-        {
-            Text = "Runs `git submodule deinit` followed by `git rm`. The submodule will " +
-                   "be removed from the working tree and the deletion staged in the parent " +
-                   "for your next commit.",
-            TextWrap = TextWrap.Wrap,
-        };
-        detail.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
+        var detail = DialogFrame.Hint(
+            "Runs `git submodule deinit` followed by `git rm`. The submodule will " +
+            "be removed from the working tree and the deletion staged in the parent " +
+            "for your next commit.",
+            TextWrap.Wrap);
 
         _forceCheckbox = new CheckboxView("Deinit even if dirty")
         {

@@ -47,8 +47,7 @@ public sealed class UpdateSubmodulesDialog : MultiChildView, IUpdateSubmodulesVi
         _initCheckbox.IsChecked.Value = true;
         _recursiveCheckbox = new CheckboxView("Recurse into nested submodules (--recursive)") { PreferredHeight = 22 };
 
-        var modeLabel = new TextView { Text = "Strategy" };
-        modeLabel.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
+        var modeLabel = DialogFrame.Label("Strategy");
 
         _checkoutMode = new CheckboxView("Checkout (default — reset to recorded SHA)") { PreferredHeight = 22 };
         _checkoutMode.IsChecked.Value = true;
@@ -62,13 +61,10 @@ public sealed class UpdateSubmodulesDialog : MultiChildView, IUpdateSubmodulesVi
         _mergeMode.IsChecked.Subscribe(v => SelectMode(SubmoduleUpdateMode.Merge, v));
         _rebaseMode.IsChecked.Subscribe(v => SelectMode(SubmoduleUpdateMode.Rebase, v));
 
-        var conflictsHint = new TextView
-        {
-            Text = "Merge/rebase strategies may leave the submodule mid-merge on conflict — " +
-                   "the Operation banner will offer Abort.",
-            TextWrap = TextWrap.Wrap,
-        };
-        conflictsHint.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
+        var conflictsHint = DialogFrame.Hint(
+            "Merge/rebase strategies may leave the submodule mid-merge on conflict — " +
+            "the Operation banner will offer Abort.",
+            TextWrap.Wrap);
 
         _errorView = DialogFrame.ErrorView();
 

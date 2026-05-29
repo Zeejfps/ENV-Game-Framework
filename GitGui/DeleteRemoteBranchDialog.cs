@@ -30,12 +30,9 @@ internal sealed class DeleteRemoteBranchDialog : MultiChildView, IBind<DeleteRem
         };
         prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
-        var hint = new TextView
-        {
-            Text = "This is a network operation. Your local branches are not affected.",
-            TextWrap = TextWrap.Wrap,
-        };
-        hint.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
+        var hint = DialogFrame.Hint(
+            "This is a network operation. Your local branches are not affected.",
+            TextWrap.Wrap);
 
         _errorView = DialogFrame.ErrorView();
 

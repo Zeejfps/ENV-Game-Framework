@@ -38,12 +38,9 @@ public sealed class DeleteLocalBranchDialog : MultiChildView, IDeleteLocalBranch
         };
         prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
 
-        var hint = new TextView
-        {
-            Text = "Unchecked: refuses if the branch isn't fully merged into its upstream or HEAD.",
-            TextWrap = TextWrap.Wrap,
-        };
-        hint.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
+        var hint = DialogFrame.Hint(
+            "Unchecked: refuses if the branch isn't fully merged into its upstream or HEAD.",
+            TextWrap.Wrap);
 
         _forceCheckbox = new CheckboxView("Delete even if not merged")
         {

@@ -31,8 +31,7 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
 
         _onClose = onClose;
 
-        var messageLabel = new TextView { Text = "Message" };
-        messageLabel.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
+        var messageLabel = DialogFrame.Label("Message");
 
         _messageInput = DialogFrame.TextInput();
         var messageBox = DialogFrame.WrapInput(_messageInput);
@@ -42,8 +41,7 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
             PreferredHeight = 22,
         };
 
-        _fileListHeader = new TextView { Text = "Files" };
-        _fileListHeader.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
+        _fileListHeader = DialogFrame.Label("Files");
 
         _fileListEmpty = new TextView
         {

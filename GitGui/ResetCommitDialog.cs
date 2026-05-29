@@ -48,12 +48,7 @@ public sealed class ResetCommitDialog : MultiChildView, IResetCommitView
         };
         subtitle.BindThemedTextColor(s => s.DialogBody.BodyText);
 
-        var dirtyHint = new TextView
-        {
-            Text = BuildDirtyHint(stagedCount, unstagedCount),
-            TextWrap = TextWrap.Wrap,
-        };
-        dirtyHint.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
+        var dirtyHint = DialogFrame.Hint(BuildDirtyHint(stagedCount, unstagedCount), TextWrap.Wrap);
 
         var branchRow = BuildLabeledRow("Branch:", BuildBranchValue(branchName));
         var moveToRow = BuildLabeledRow("Move to:", BuildCommitValue(shortSha, summary));

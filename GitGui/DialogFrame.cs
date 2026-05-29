@@ -72,6 +72,20 @@ internal static class DialogFrame
         return view;
     }
 
+    public static TextView Label(string text)
+    {
+        var view = new TextView { Text = text };
+        view.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
+        return view;
+    }
+
+    public static TextView Hint(string text, TextWrap wrap = TextWrap.NoWrap)
+    {
+        var view = new TextView { Text = text, TextWrap = wrap };
+        view.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
+        return view;
+    }
+
     public static TextInputView TextInput()
     {
         var view = new TextInputView { TextWrap = TextWrap.NoWrap };

@@ -32,8 +32,7 @@ public sealed class RenameBranchDialog : MultiChildView, IRenameBranchView
         var subtitle = new TextView { Text = $"Renaming '{currentName}'" };
         subtitle.BindThemedTextColor(s => s.DialogBody.BodyText);
 
-        var nameLabel = new TextView { Text = "New name" };
-        nameLabel.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
+        var nameLabel = DialogFrame.Label("New name");
 
         _nameInput = DialogFrame.TextInput();
         var nameBox = DialogFrame.WrapInput(_nameInput);

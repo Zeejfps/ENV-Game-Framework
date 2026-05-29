@@ -49,14 +49,14 @@ public sealed class AddSubmoduleDialog : MultiChildView, IAddSubmoduleView
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
             Children =
             {
-                Label("Repository URL"),
+                DialogFrame.Label("Repository URL"),
                 DialogFrame.WrapInput(_urlInput),
-                Label("Path inside parent"),
+                DialogFrame.Label("Path inside parent"),
                 DialogFrame.WrapInput(_pathInput),
-                Hint("Where to clone the submodule, relative to the parent root."),
-                Label("Track branch (optional)"),
+                DialogFrame.Hint("Where to clone the submodule, relative to the parent root."),
+                DialogFrame.Label("Track branch (optional)"),
                 DialogFrame.WrapInput(_branchInput),
-                Hint("Leave blank to pin to the upstream HEAD at clone time."),
+                DialogFrame.Hint("Leave blank to pin to the upstream HEAD at clone time."),
                 _forceCheckbox,
                 _errorView,
                 new MultiChildView { PreferredHeight = 4 },
@@ -78,20 +78,6 @@ public sealed class AddSubmoduleDialog : MultiChildView, IAddSubmoduleView
             ctx.Require<IGitService>(),
             ctx.Require<IUiDispatcher>(),
             ctx.Require<IMessageBus>()));
-    }
-
-    private static TextView Label(string text)
-    {
-        var view = new TextView { Text = text };
-        view.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
-        return view;
-    }
-
-    private static TextView Hint(string text)
-    {
-        var view = new TextView { Text = text };
-        view.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
-        return view;
     }
 
     private void RaiseAddRequested() => AddRequested?.Invoke();

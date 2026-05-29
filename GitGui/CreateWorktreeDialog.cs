@@ -30,8 +30,7 @@ public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
     {
         _onClose = onClose;
 
-        var pathLabel = new TextView { Text = "Worktree path" };
-        pathLabel.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
+        var pathLabel = DialogFrame.Label("Worktree path");
 
         _pathInput = DialogFrame.TextInput();
 
@@ -52,24 +51,20 @@ public sealed class CreateWorktreeDialog : MultiChildView, ICreateWorktreeView
             },
         };
 
-        var startPointLabel = new TextView { Text = "Start point" };
-        startPointLabel.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
+        var startPointLabel = DialogFrame.Label("Start point");
 
         _startPointInput = DialogFrame.TextInput();
         _startPointInput.Enter("HEAD");
         var startPointBox = DialogFrame.WrapInput(_startPointInput);
 
-        var startPointHint = new TextView { Text = "Branch, tag, or commit SHA." };
-        startPointHint.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
+        var startPointHint = DialogFrame.Hint("Branch, tag, or commit SHA.");
 
-        var branchLabel = new TextView { Text = "New branch (optional)" };
-        branchLabel.BindThemedTextColor(s => s.DialogBody.SectionHeaderText);
+        var branchLabel = DialogFrame.Label("New branch (optional)");
 
         _branchInput = DialogFrame.TextInput();
         var branchBox = DialogFrame.WrapInput(_branchInput);
 
-        var branchHint = new TextView { Text = "Leave blank to check out the start point as-is." };
-        branchHint.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
+        var branchHint = DialogFrame.Hint("Leave blank to check out the start point as-is.");
 
         _forceCheckbox = new CheckboxView("Force (allow non-empty path or re-used branch)")
         {

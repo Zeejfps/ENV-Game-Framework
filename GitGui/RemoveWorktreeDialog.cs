@@ -73,12 +73,9 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
         pathBox.BindThemedBackgroundColor(s => s.DialogFrame.InsetBackground);
         pathBox.BindThemedBorderColor(s => BorderColorStyle.All(s.DialogFrame.Border));
 
-        var hint = new TextView
-        {
-            Text = "git refuses if the worktree has uncommitted changes. Check the box to remove anyway.",
-            TextWrap = TextWrap.Wrap,
-        };
-        hint.BindThemedTextColor(s => s.DialogBody.RowTextMissing);
+        var hint = DialogFrame.Hint(
+            "git refuses if the worktree has uncommitted changes. Check the box to remove anyway.",
+            TextWrap.Wrap);
 
         _forceCheckbox = new CheckboxView("Remove even if dirty")
         {
