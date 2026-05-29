@@ -36,4 +36,12 @@ internal static class LucideIcons
     public const string Moon = "";         // moon
     public const string List = "";         // list (flat file view)
     public const string ListTree = "";     // list-tree (tree file view)
+
+    public const string File = "";           // file (type-changed / unknown)
+    public const string FilePlus = "";   // file-plus (added)
+    public const string FileMinus = ""; // file-minus (deleted)
+    public const string FilePenLine = ""; // file-pen-line (modified)
+    public const string FileSymlink = ""; // file-symlink (renamed)
+    public const string Files = "";         // files (copied)
+    public const string FileX = "";         // file-x (conflicted)
 }

@@ -43,9 +43,10 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
     private string? _lastChevronTogglePath;
     private int _lastChevronToggleTick;
 
-    private readonly TextStyle _badgeGlyphStyle = new()
+    private readonly TextStyle _statusIconStyle = new()
     {
-        FontSize = 11f,
+        FontFamily = LucideIcons.FontFamily,
+        FontSize = 14f,
         HorizontalAlignment = TextAlignment.Center,
         VerticalAlignment = TextAlignment.Center,
     };
@@ -178,7 +179,6 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         this.BindThemed(s =>
         {
             _rowStyles = s.FileChangeRow;
-            _badgeGlyphStyle.TextColor = _rowStyles.BadgeText;
             _pathTextStyle.TextColor = _rowStyles.RowText;
             _pathTextActiveStyle.TextColor = _rowStyles.RowTextActive;
             _chevronStyle.TextColor = _rowStyles.RowText;
@@ -347,7 +347,7 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
             _rowStyles,
             _pathTextStyle,
             _pathTextActiveStyle,
-            _badgeGlyphStyle,
+            _statusIconStyle,
             z,
             row.DisplayName,
             row.Indent);

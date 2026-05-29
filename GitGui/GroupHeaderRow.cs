@@ -13,7 +13,7 @@ internal sealed class GroupHeaderRow : MultiChildView, IBind<GroupHeaderRowViewM
 
     public GroupHeaderRow()
     {
-        PreferredHeight = 26;
+        PreferredHeight = 22;
 
         _chevron = new TextView
         {

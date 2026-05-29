@@ -38,7 +38,6 @@ internal sealed class GroupHeaderRowViewModel : IDisposable
         var name = new TextView
         {
             Text = _group.Name,
-            FontSize = 18f,
             HorizontalTextAlignment = TextAlignment.Start,
             VerticalTextAlignment = TextAlignment.Center,
         };

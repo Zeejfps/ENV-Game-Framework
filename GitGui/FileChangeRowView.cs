@@ -15,6 +15,18 @@ internal static class FileChangeFormatting
         _ => "·",
     };
 
+    public static string StatusIcon(FileChangeStatus status) => status switch
+    {
+        FileChangeStatus.Added => LucideIcons.FilePlus,
+        FileChangeStatus.Modified => LucideIcons.FilePenLine,
+        FileChangeStatus.Deleted => LucideIcons.FileMinus,
+        FileChangeStatus.Renamed => LucideIcons.FileSymlink,
+        FileChangeStatus.Copied => LucideIcons.Files,
+        FileChangeStatus.Conflicted => LucideIcons.FileX,
+        FileChangeStatus.Submodule => LucideIcons.Package,
+        _ => LucideIcons.File,
+    };
+
     public static string FormatPath(FileChange file)
     {
         if (file.Status == FileChangeStatus.Renamed && !string.IsNullOrEmpty(file.OldPath))

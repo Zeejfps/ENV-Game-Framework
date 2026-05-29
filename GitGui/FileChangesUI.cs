@@ -86,9 +86,10 @@ internal static class FileChangesUI
 
     /// <summary>
     /// Draws one row of a file-change list at <paramref name="rowRect"/>: selection/hover
-    /// background, colored status badge with glyph, then the truncated file path.
-    /// Used by both <see cref="FileChangesSection"/> and <c>LocalChangesPanel</c> so the
-    /// two flavors stay visually identical.
+    /// background, a status-representing Lucide glyph tinted by the file's status color, then
+    /// the truncated file path. The tinted line icon mirrors the folder/branch icons in the
+    /// other tree views. Used by both <see cref="FileChangesSection"/> and
+    /// <c>LocalChangesPanel</c> so the two flavors stay visually identical.
     /// </summary>
     public static void DrawFileRow(
         ICanvas canvas,
@@ -99,7 +100,7 @@ internal static class FileChangesUI
         FileChangeRowStyles styles,
         TextStyle pathStyle,
         TextStyle pathActiveStyle,
-        TextStyle badgeGlyphStyle,
+        TextStyle statusIconStyle,
         int z,
         string? displayText = null,
         float indent = 0f)
@@ -121,27 +122,17 @@ internal static class FileChangesUI
             });
         }
 
-        var badgeLeft = rowRect.Left + RowPaddingLeft + indent;
-        var badgeBottom = rowRect.Bottom + (RowHeight - BadgeSize) * 0.5f;
-        canvas.DrawRect(new DrawRectInputs
-        {
-            Position = new RectF(badgeLeft, badgeBottom, BadgeSize, BadgeSize),
-            Style = new RectStyle
-            {
-                BackgroundColor = styles.StatusColor(file.Status),
-                BorderRadius = BorderRadiusStyle.All(3),
-            },
-            ZIndex = z + 1,
-        });
+        var iconLeft = rowRect.Left + RowPaddingLeft + indent;
+        statusIconStyle.TextColor = styles.StatusColor(file.Status);
         canvas.DrawText(new DrawTextInputs
         {
-            Position = new RectF(badgeLeft, badgeBottom, BadgeSize, BadgeSize),
-            Text = FileChangeFormatting.StatusGlyph(file.Status),
-            Style = badgeGlyphStyle,
-            ZIndex = z + 2,
+            Position = new RectF(iconLeft, rowRect.Bottom, BadgeSize, RowHeight),
+            Text = FileChangeFormatting.StatusIcon(file.Status),
+            Style = statusIconStyle,
+            ZIndex = z + 1,
         });
 
-        var textLeft = badgeLeft + BadgeSize + BadgeGap;
+        var textLeft = iconLeft + BadgeSize + BadgeGap;
         var textRight = rowRect.Right - RowPaddingRight;
         var textWidth = Math.Max(0f, textRight - textLeft);
         if (textWidth <= 0f) return;

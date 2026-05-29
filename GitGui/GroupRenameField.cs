@@ -12,7 +12,6 @@ public sealed class GroupRenameField : MultiChildView
 
         var input = new TextInputView
         {
-            FontSize = 18f,
             TextVerticalAlignment = TextAlignment.Center,
         };
         input.BindThemed(s =>
