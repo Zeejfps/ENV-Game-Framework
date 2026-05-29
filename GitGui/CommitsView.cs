@@ -9,12 +9,6 @@ internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
 {
     private const float HeaderHeight = 28f;
     private const float RowHeight = 26f;
-    private const float LaneWidth = 16f;
-    private const int MaxRenderedLanes = 12;
-    private const float DotRadius = 5f;
-    private const float EdgeThickness = 2f;
-    private const float GraphColumnPaddingLeft = 12f;
-    private const float GraphColumnPaddingRight = 8f;
     private const float ColumnGap = 12f;
 
     private const float SummaryColumnWidth = 0f;
@@ -47,20 +41,6 @@ internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
 
     public event Action<float>? ScrollPositionChanged;
     public event Action<float>? ScaleChanged;
-
-    private static readonly uint[] LanePalette =
-    {
-        0xFF5865F2,
-        0xFFEB459E,
-        0xFF57F287,
-        0xFFFEE75C,
-        0xFFED4245,
-        0xFF9B59B6,
-        0xFFE67E22,
-        0xFF1ABC9C,
-    };
-
-    private static uint LaneColor(int lane) => LanePalette[((lane % LanePalette.Length) + LanePalette.Length) % LanePalette.Length];
 
     private readonly TextStyle _rowTextStyle = TextStyles.Row(0u);
     private readonly TextStyle _rowTextActiveStyle = TextStyles.Row(0u);
@@ -302,7 +282,7 @@ internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
         var hashX = dateX - _hashColumnWidth - ColumnGap;
         var authorX = hashX - _authorColumnWidth - ColumnGap;
 
-        DrawHeaderText(c, "Commit", pos.Left + GraphColumnPaddingLeft, pos.Top - HeaderHeight, graphWidth, z + 1);
+        DrawHeaderText(c, "Commit", pos.Left + CommitGraphRenderer.PaddingLeft, pos.Top - HeaderHeight, graphWidth, z + 1);
         DrawHeaderText(c, "Author", authorX, pos.Top - HeaderHeight, _authorColumnWidth, z + 1);
         DrawHeaderText(c, "Hash", hashX, pos.Top - HeaderHeight, _hashColumnWidth, z + 1);
         DrawHeaderText(c, "Date", dateX, pos.Top - HeaderHeight, _dateColumnWidth, z + 1);
@@ -364,11 +344,7 @@ internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
     }
 
     private float ComputeGraphColumnWidth()
-    {
-        var laneCount = _snapshot?.LaneCount ?? 0;
-        var lanes = Math.Min(Math.Max(laneCount, 1), MaxRenderedLanes);
-        return GraphColumnPaddingLeft + lanes * LaneWidth + GraphColumnPaddingRight;
-    }
+        => CommitGraphRenderer.ColumnWidth(_snapshot?.LaneCount ?? 0);
 
     private RectF ComputeCommitsColumnRect(RectF body)
     {
@@ -389,7 +365,7 @@ internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
         var body = rowRect; // share names with the original DrawCommits for arithmetic clarity
         var rowBottom = rowRect.Bottom;
 
-        var graphStartX = body.Left + GraphColumnPaddingLeft;
+        var graphStartX = body.Left + CommitGraphRenderer.PaddingLeft;
         var dateX = body.Right - _dateColumnWidth - ColumnGap;
         var hashX = dateX - _hashColumnWidth - ColumnGap;
         var authorX = hashX - _authorColumnWidth - ColumnGap;
@@ -410,14 +386,10 @@ internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
             });
         }
 
-        DrawGraphCell(c, node, graphStartX, rowBottom, z + 1);
+        CommitGraphRenderer.DrawCell(c, node, graphStartX, rowBottom, RowHeight, z + 1);
 
         var textTop = rowBottom;
-        var maxLaneAtRow = node.Lane;
-        foreach (var l in node.PassThroughLanes) if (l > maxLaneAtRow) maxLaneAtRow = l;
-        foreach (var l in node.IncomingLanes) if (l > maxLaneAtRow) maxLaneAtRow = l;
-        foreach (var p in node.InWalkParentLanes) if (p.Lane > maxLaneAtRow) maxLaneAtRow = p.Lane;
-        var summaryStartX = LaneCenterX(graphStartX, maxLaneAtRow) + DotRadius + GraphColumnPaddingRight;
+        var summaryStartX = CommitGraphRenderer.SummaryStartX(graphStartX, node);
         var refsEndX = DrawBadges(c, node, summaryStartX, textTop, z + 2);
         var summaryDraw = Math.Max(0, body.Right - refsEndX);
         DrawText(c, node.Summary, refsEndX, textTop, summaryDraw, isHighlighted, z + 2);
@@ -429,89 +401,6 @@ internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
         DrawHashText(c, ShortSha(node.Sha), hashX, textTop, _hashColumnWidth, isHighlighted, z + 6);
         DrawColumnOverlay(c, datePanelLeft, rowBottom, body.Right - datePanelLeft, rowOverlayColor, z + 7);
         DrawText(c, FormatRelative(node.When), dateX, textTop, _dateColumnWidth, isHighlighted, z + 8);
-    }
-
-    private static float LaneCenterX(float graphStartX, int lane)
-        => graphStartX + Math.Min(lane, MaxRenderedLanes - 1) * LaneWidth + LaneWidth * 0.5f;
-
-    private void DrawGraphCell(ICanvas c, CommitNode node, float graphStartX, float rowBottom, int z)
-    {
-        var rowCenterY = rowBottom + RowHeight * 0.5f;
-        var commitColor = LaneColor(node.Lane);
-        var commitCx = LaneCenterX(graphStartX, node.Lane);
-
-        // Pass-through verticals (lanes with no interaction at this row).
-        foreach (var ptLane in node.PassThroughLanes)
-        {
-            DrawVertical(c, LaneCenterX(graphStartX, ptLane), rowBottom, RowHeight,
-                LaneColor(ptLane), z);
-        }
-
-        // Top half of commit's own lane (only if an edge continues from above).
-        if (node.HasIncomingAtCommitLane)
-        {
-            DrawVertical(c, commitCx, rowCenterY, RowHeight * 0.5f, commitColor, z);
-        }
-
-        // Incoming merge edges from other lanes above this commit.
-        foreach (var inLane in node.IncomingLanes)
-        {
-            var inCx = LaneCenterX(graphStartX, inLane);
-            var inColor = LaneColor(inLane);
-            DrawVertical(c, inCx, rowCenterY, RowHeight * 0.5f, inColor, z);
-            DrawHorizontal(c, Math.Min(inCx, commitCx), Math.Max(inCx, commitCx), rowCenterY, inColor, z);
-        }
-
-        // Outgoing edges to parents (continuation + branches).
-        foreach (var pl in node.InWalkParentLanes)
-        {
-            var pCx = LaneCenterX(graphStartX, pl.Lane);
-            var pColor = LaneColor(pl.Lane);
-            if (pl.Lane == node.Lane)
-            {
-                DrawVertical(c, commitCx, rowBottom, RowHeight * 0.5f, commitColor, z);
-            }
-            else
-            {
-                DrawHorizontal(c, Math.Min(commitCx, pCx), Math.Max(commitCx, pCx), rowCenterY, pColor, z);
-                DrawVertical(c, pCx, rowBottom, RowHeight * 0.5f, pColor, z);
-            }
-        }
-
-        // The dot.
-        var dotRect = new RectF(commitCx - DotRadius, rowCenterY - DotRadius, DotRadius * 2, DotRadius * 2);
-        c.DrawRect(new DrawRectInputs
-        {
-            Position = dotRect,
-            Style = new RectStyle
-            {
-                BackgroundColor = commitColor,
-                BorderRadius = BorderRadiusStyle.All(DotRadius),
-            },
-            ZIndex = z + 1,
-        });
-    }
-
-    private static void DrawVertical(ICanvas c, float cx, float bottomY, float height, uint color, int z)
-    {
-        c.DrawRect(new DrawRectInputs
-        {
-            Position = new RectF(cx - EdgeThickness * 0.5f, bottomY, EdgeThickness, height),
-            Style = new RectStyle { BackgroundColor = color },
-            ZIndex = z,
-        });
-    }
-
-    private static void DrawHorizontal(ICanvas c, float leftX, float rightX, float cy, uint color, int z)
-    {
-        var w = rightX - leftX;
-        if (w <= 0) return;
-        c.DrawRect(new DrawRectInputs
-        {
-            Position = new RectF(leftX, cy - EdgeThickness * 0.5f, w, EdgeThickness),
-            Style = new RectStyle { BackgroundColor = color },
-            ZIndex = z,
-        });
     }
 
     private float DrawBadges(ICanvas c, CommitNode node, float left, float rowBottom, int z)
