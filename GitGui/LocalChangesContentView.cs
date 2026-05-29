@@ -147,6 +147,12 @@ internal sealed class LocalChangesContentView : MultiChildView, IBind<LocalChang
         vm.UnstagedCollapsed.Subscribe(set => _unstagedPanel.SetCollapsed(set));
         vm.StagedCollapsed.Subscribe(set => _stagedPanel.SetCollapsed(set));
         _selection.BindTo(vm.Selection);
+        vm.Selection.Subscribe(sel =>
+        {
+            if (sel.Cursor is not { } cursor) return;
+            _unstagedPanel.EnsureRowVisible(cursor);
+            _stagedPanel.EnsureRowVisible(cursor);
+        });
         _diffView.Bind(vm.DiffVm);
         _snapshotContainer.BindBottomVisible(() => vm.SelectedTarget.Value != null);
         _snapshotContainer.BindBottomCollapsed(_diffView.IsCollapsed, DiffView.HeaderHeight);

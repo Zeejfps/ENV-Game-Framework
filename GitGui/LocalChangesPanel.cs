@@ -199,6 +199,22 @@ internal sealed class LocalChangesPanel : MultiChildView, IScrollableContent
         NotifyScrollChanged();
     }
 
+    // Scrolls just enough to bring the keyboard cursor's row into view. Ignores cursors on
+    // the other side (each panel renders only its own side's rows).
+    public void EnsureRowVisible(FileRowRef row)
+    {
+        if (row.Side != _side) return;
+        for (var i = 0; i < _rows.Count; i++)
+        {
+            var r = _rows[i];
+            if (r.FullPath == row.FullPath && (r.Kind == FileRowKind.Folder) == row.IsFolder)
+            {
+                _list.EnsureRowVisible(i);
+                return;
+            }
+        }
+    }
+
     public void SetViewMode(FileViewMode mode)
     {
         if (_viewMode == mode) return;
