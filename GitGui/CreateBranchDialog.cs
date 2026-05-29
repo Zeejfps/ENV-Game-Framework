@@ -12,7 +12,7 @@ namespace GitGui;
 /// branch name) + a "checkout after create" checkbox. Runs `git branch &lt;name&gt; &lt;start&gt;` or
 /// `git checkout -b &lt;name&gt; &lt;start&gt;` depending on the checkbox.
 /// </summary>
-public sealed class CreateBranchDialog : MultiChildView, ICreateBranchView
+internal sealed class CreateBranchDialog : MultiChildView, IBind<CreateBranchDialogViewModel>
 {
     private readonly Action _onClose;
     private readonly TextInputView _nameInput;
@@ -21,8 +21,6 @@ public sealed class CreateBranchDialog : MultiChildView, ICreateBranchView
     private readonly CheckboxView _checkoutCheckbox;
     private readonly DialogButton _createButton;
     private readonly TextView _errorView;
-
-    public event Action? CreateRequested;
 
     public CreateBranchDialog(Repo repo, string suggestedStartPoint, Action onClose)
     {
@@ -36,8 +34,6 @@ public sealed class CreateBranchDialog : MultiChildView, ICreateBranchView
         var startPointLabel = DialogFrame.Label("Starting point");
 
         _startPointInput = DialogFrame.TextInput();
-        if (suggestedStartPoint.Length > 0)
-            _startPointInput.Enter(suggestedStartPoint);
         var startPointBox = DialogFrame.WrapInput(_startPointInput);
 
         var startPointHint = DialogFrame.Hint("Branch, tag, or commit SHA. Leave blank for HEAD.");
@@ -45,16 +41,12 @@ public sealed class CreateBranchDialog : MultiChildView, ICreateBranchView
         _checkoutCheckbox = new CheckboxView("Check out after create")
         {
             PreferredHeight = 22,
-            IsChecked =
-            {
-                Value = true
-            }
         };
 
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _createButton = new DialogButton("Create", RaiseCreateRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _createButton = new DialogButton("Create") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Create branch", onClose, new FlexColumnView
         {
@@ -77,39 +69,30 @@ public sealed class CreateBranchDialog : MultiChildView, ICreateBranchView
         // Controllers go on the inputs (not the dialog) — see CheckoutBranchDialog for why:
         // BaseTextInputKbmController consumes left-press anywhere inside the view it's on,
         // so attaching to the outer dialog would swallow clicks meant for Cancel/Create.
-        _nameController = new CheckoutDialogKbmController(_nameInput, RaiseCreateRequested, onClose);
+        _nameController = new CheckoutDialogKbmController(_nameInput, _createButton.Command, onClose);
         _nameInput.UseController(_ => _nameController);
-        _startPointInput.UseController(_ => new CheckoutDialogKbmController(_startPointInput, RaiseCreateRequested, onClose));
+        _startPointInput.UseController(_ => new CheckoutDialogKbmController(_startPointInput, _createButton.Command, onClose));
 
         var request = new CreateBranchRequest(repo, suggestedStartPoint);
-        this.UsePresenter(ctx => new CreateBranchPresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new CreateBranchDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
 
-    private void RaiseCreateRequested() => CreateRequested?.Invoke();
+    public void Bind(CreateBranchDialogViewModel vm)
+    {
+        vm.CloseRequested += _onClose;
 
-    public string Name => new(_nameInput.Text);
-    public string StartPoint => new(_startPointInput.Text);
-    public bool Checkout => _checkoutCheckbox.IsChecked.Value;
-    public bool CreateEnabled
-    {
-        set => _createButton.IsEnabled.Value = value;
-    }
-    public string? ErrorMessage
-    {
-        set => _errorView.Text = value ?? string.Empty;
-    }
-    public event Action NameChanged
-    {
-        add => _nameInput.TextChanged += value;
-        remove => _nameInput.TextChanged -= value;
-    }
-    public void FocusName()
-    {
+        _nameInput.BindTwoWay(vm.Name);
+        _startPointInput.BindTwoWay(vm.StartPoint);
+        _checkoutCheckbox.IsChecked.BindTwoWay(vm.Checkout);
+        _createButton.BindCommand(vm.Create);
+        _errorView.BindText(vm.Create.Error, s => s ?? string.Empty);
+
         _nameController.BeginEditing();
     }
-    public void Close() => _onClose();
 }

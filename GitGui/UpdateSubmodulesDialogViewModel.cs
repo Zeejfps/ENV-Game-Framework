@@ -2,52 +2,52 @@ using ZGF.Observable;
 
 namespace GitGui;
 
-internal sealed class UpdateSubmodulesPresenter : IDisposable
+internal sealed class UpdateSubmodulesDialogViewModel : IDisposable
 {
-    private readonly IUpdateSubmodulesView _view;
     private readonly UpdateSubmodulesViewRequest _request;
     private readonly IGitService _gitService;
     private readonly IMessageBus _bus;
     private readonly OperationRunner _runner;
+    private readonly State<bool> _isRunning = new(false);
+    private readonly State<string?> _error = new(null);
 
-    public UpdateSubmodulesPresenter(
-        IUpdateSubmodulesView view,
+    public State<bool> Init { get; } = new(true);
+    public State<bool> Recursive { get; } = new(false);
+    public State<SubmoduleUpdateMode> Mode { get; } = new(SubmoduleUpdateMode.Checkout);
+
+    public Command Update { get; }
+    public IReadable<string?> Error => _error;
+
+    public event Action? CloseRequested;
+
+    public UpdateSubmodulesDialogViewModel(
         UpdateSubmodulesViewRequest request,
         IGitService gitService,
         IUiDispatcher dispatcher,
         IMessageBus bus)
     {
-        _view = view;
         _request = request;
         _gitService = gitService;
         _bus = bus;
         _runner = new OperationRunner(dispatcher);
 
-        _view.UpdateRequested += TryUpdate;
-        _view.UpdateEnabled = true;
+        var canUpdate = new Derived<bool>(() => !_isRunning.Value);
+        Update = new Command(DoUpdate, canUpdate);
     }
 
-    public void Dispose()
+    private void DoUpdate()
     {
-        _view.UpdateRequested -= TryUpdate;
-    }
-
-    private void TryUpdate()
-    {
-        if (_runner.IsRunning) return;
+        if (_isRunning.Value) return;
 
         var primaryId = _request.Primary.Id;
         var target = _request.TargetSubmodule;
-        var init = _view.Init;
-        var recursive = _view.Recursive;
-        var mode = _view.Mode;
-
-        _view.UpdateEnabled = false;
-        _view.ErrorMessage = null;
+        var init = Init.Value;
+        var recursive = Recursive.Value;
+        var mode = Mode.Value;
+        _isRunning.Value = true;
+        _error.Value = null;
 
         var req = new SubmoduleUpdateRequest(
-            // `git submodule update -- <path>` matches against the .gitmodules path
-            // (relative to the parent root); Repo.Path is absolute.
             Paths: target is null ? null : new[] { ToRelative(_request.Primary.Path, target.Path) },
             Init: init,
             Recursive: recursive,
@@ -58,27 +58,26 @@ internal sealed class UpdateSubmodulesPresenter : IDisposable
             ex => new SubmoduleUpdateOutcome(false, ex.Message),
             outcome =>
             {
+                _isRunning.Value = false;
                 if (!outcome.Success)
                 {
-                    // On a conflict we still close the dialog — the OperationStateBanner
-                    // will pick up MERGE_HEAD / rebase-apply and offer the right Abort. The
-                    // user has more affordance there than inside the dialog.
                     if (outcome.HasConflicts)
                     {
-                        _view.Close();
+                        CloseRequested?.Invoke();
                         _bus.Broadcast(new SubmodulesChangedMessage(primaryId));
                         _bus.Broadcast(new RefsChangedMessage(primaryId));
                         return;
                     }
-                    _view.ErrorMessage = outcome.ErrorMessage ?? "Update submodules failed.";
-                    _view.UpdateEnabled = true;
+                    _error.Value = outcome.ErrorMessage ?? "Update submodules failed.";
                     return;
                 }
-                _view.Close();
+                CloseRequested?.Invoke();
                 _bus.Broadcast(new SubmodulesChangedMessage(primaryId));
                 _bus.Broadcast(new RefsChangedMessage(primaryId));
             });
     }
+
+    public void Dispose() { }
 
     private static string ToRelative(string parentRoot, string submoduleAbs)
     {
@@ -93,3 +92,5 @@ internal sealed class UpdateSubmodulesPresenter : IDisposable
         }
     }
 }
+
+internal readonly record struct UpdateSubmodulesViewRequest(Repo Primary, Repo? TargetSubmodule);

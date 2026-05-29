@@ -12,7 +12,7 @@ namespace GitGui;
 /// the same as in `git branch -m`. The force checkbox switches the underlying call to -M,
 /// allowing the rename to overwrite an existing branch of the new name.
 /// </summary>
-public sealed class RenameBranchDialog : MultiChildView, IRenameBranchView
+internal sealed class RenameBranchDialog : MultiChildView, IBind<RenameBranchDialogViewModel>
 {
     private readonly Action _onClose;
     private readonly TextInputView _nameInput;
@@ -20,16 +20,16 @@ public sealed class RenameBranchDialog : MultiChildView, IRenameBranchView
     private readonly CheckboxView _forceCheckbox;
     private readonly DialogButton _renameButton;
     private readonly TextView _errorView;
-    private readonly string _currentName;
-
-    public event Action? RenameRequested;
 
     public RenameBranchDialog(Repo repo, string currentName, Action onClose)
     {
         _onClose = onClose;
-        _currentName = currentName;
 
-        var subtitle = new TextView { Text = $"Renaming '{currentName}'" };
+        var subtitle = new TextView
+        {
+            Text = $"Renaming '{currentName}'",
+            TextWrap = TextWrap.Wrap,
+        };
         subtitle.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         var nameLabel = DialogFrame.Label("New name");
@@ -45,7 +45,7 @@ public sealed class RenameBranchDialog : MultiChildView, IRenameBranchView
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _renameButton = new DialogButton("Rename", RaiseRenameRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _renameButton = new DialogButton("Rename") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Rename branch", onClose, new FlexColumnView
         {
@@ -63,39 +63,29 @@ public sealed class RenameBranchDialog : MultiChildView, IRenameBranchView
             },
         }));
 
-        _nameController = new CheckoutDialogKbmController(_nameInput, RaiseRenameRequested, onClose);
+        _nameController = new CheckoutDialogKbmController(_nameInput, _renameButton.Command, onClose);
         _nameInput.UseController(_ => _nameController);
 
         var request = new RenameBranchRequest(repo, currentName);
-        this.UsePresenter(ctx => new RenameBranchPresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new RenameBranchDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
 
-    private void RaiseRenameRequested() => RenameRequested?.Invoke();
+    public void Bind(RenameBranchDialogViewModel vm)
+    {
+        vm.CloseRequested += _onClose;
 
-    public string Name => new(_nameInput.Text);
-    public bool Force => _forceCheckbox.IsChecked.Value;
-    public bool RenameEnabled
-    {
-        set => _renameButton.IsEnabled.Value = value;
-    }
-    public string? ErrorMessage
-    {
-        set => _errorView.Text = value ?? string.Empty;
-    }
-    public event Action NameChanged
-    {
-        add => _nameInput.TextChanged += value;
-        remove => _nameInput.TextChanged -= value;
-    }
-    public void FocusName()
-    {
-        _nameInput.Enter(_currentName);
+        _nameInput.BindTwoWay(vm.Name);
+        _forceCheckbox.IsChecked.BindTwoWay(vm.Force);
+        _renameButton.BindCommand(vm.Rename);
+        _errorView.BindText(vm.Rename.Error, s => s ?? string.Empty);
+
         _nameInput.SelectAll();
         _nameController.BeginEditing();
     }
-    public void Close() => _onClose();
 }

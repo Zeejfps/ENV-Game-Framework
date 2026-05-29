@@ -1,12 +1,11 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
-using ZGF.Gui.Tests;
 using ZGF.Observable;
 
 namespace GitGui;
 
-public sealed class DeleteLocalBranchDialog : MultiChildView, IDeleteLocalBranchView
+internal sealed class DeleteLocalBranchDialog : MultiChildView, IBind<DeleteLocalBranchDialogViewModel>
 {
     private readonly Action _onClose;
     private readonly CheckboxView _forceCheckbox;
@@ -14,8 +13,6 @@ public sealed class DeleteLocalBranchDialog : MultiChildView, IDeleteLocalBranch
     private readonly DialogButton _cancelButton;
     private readonly DialogButton _deleteButton;
     private readonly TextView _errorView;
-
-    public event Action? DeleteRequested;
 
     public DeleteLocalBranchDialog(Repo repo, string branchName, Action onClose)
         : this(repo, branchName, upstreamRemote: null, upstreamBranch: null, onClose) { }
@@ -59,7 +56,7 @@ public sealed class DeleteLocalBranchDialog : MultiChildView, IDeleteLocalBranch
         _errorView = DialogFrame.ErrorView();
 
         _cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _deleteButton = new DialogButton("Delete", RaiseDeleteRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _deleteButton = new DialogButton("Delete") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
         var content = new FlexColumnView
         {
@@ -80,44 +77,35 @@ public sealed class DeleteLocalBranchDialog : MultiChildView, IDeleteLocalBranch
 
         AddChildToSelf(DialogFrame.Build("Delete branch", onClose, content));
 
-        this.UseController(_ => new DialogKbmController(RaiseDeleteRequested, onClose));
+        this.UseController(_ => new DialogKbmController(_deleteButton.Command, onClose));
 
         var request = new DeleteLocalBranchRequest(repo, branchName, upstreamRemote, upstreamBranch);
-        this.UsePresenter(ctx => new DeleteLocalBranchPresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new DeleteLocalBranchDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
 
-    public bool Force => _forceCheckbox.IsChecked.Value;
-    public bool DeleteRemote => _deleteRemoteCheckbox?.IsChecked.Value ?? false;
-    public bool DeleteEnabled
+    public void Bind(DeleteLocalBranchDialogViewModel vm)
     {
-        set => _deleteButton.IsEnabled.Value = value;
-    }
-    public bool CancelEnabled
-    {
-        set => _cancelButton.IsEnabled.Value = value;
-    }
-    public string? ErrorMessage
-    {
-        set => _errorView.Text = value ?? string.Empty;
-    }
-    public bool IsBusy
-    {
-        set
+        vm.CloseRequested += _onClose;
+
+        _forceCheckbox.IsChecked.BindTwoWay(vm.Force);
+        if (_deleteRemoteCheckbox != null)
+            _deleteRemoteCheckbox.IsChecked.BindTwoWay(vm.DeleteRemote);
+
+        _deleteButton.BindCommand(vm.Delete);
+        _cancelButton.IsEnabled.BindTo(vm.CancelEnabled);
+        _errorView.BindText(vm.Delete.Error, s => s ?? string.Empty);
+
+        vm.IsBusy.Subscribe(b =>
         {
-            _deleteButton.Icon = value ? LucideIcons.Loader : string.Empty;
-            if (!value) _deleteButton.IconRotation = 0f;
-        }
+            _deleteButton.Icon = b ? LucideIcons.Loader : string.Empty;
+            if (!b) _deleteButton.IconRotation = 0f;
+        });
+        vm.BusyRotation.Subscribe(r => _deleteButton.IconRotation = r);
     }
-    public float BusyRotation
-    {
-        set => _deleteButton.IconRotation = value;
-    }
-
-    private void RaiseDeleteRequested() => DeleteRequested?.Invoke();
-
-    public void Close() => _onClose();
 }

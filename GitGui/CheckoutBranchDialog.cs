@@ -18,7 +18,6 @@ internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranc
     private readonly CheckoutDialogKbmController _nameController;
     private readonly CheckboxView _trackCheckbox;
     private readonly DialogButton _checkoutButton;
-    private CheckoutBranchDialogViewModel? _vm;
 
     public CheckoutBranchDialog(
         Repo repo,
@@ -28,11 +27,14 @@ internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranc
         Action onClose)
     {
         PreferredWidth = 420f;
-        PreferredHeight = 280f;
 
         _onClose = onClose;
 
-        var subtitle = new TextView { Text = $"Create a local branch from {remoteName}/{remoteBranchName}" };
+        var subtitle = new TextView
+        {
+            Text = $"Create a local branch from {remoteName}/{remoteBranchName}",
+            TextWrap = TextWrap.Wrap,
+        };
         subtitle.BindThemedTextColor(s => s.DialogBody.BodyText);
 
         var nameLabel = DialogFrame.Label("Local branch name");
@@ -67,7 +69,7 @@ internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranc
         // BaseTextInputKbmController.OnMouseButtonStateChanged consumes left-press events
         // anywhere inside the view it's attached to, so putting it on the dialog would
         // swallow clicks meant for the Cancel/Checkout buttons.
-        _nameController = new CheckoutDialogKbmController(_nameInput, Submit, onClose);
+        _nameController = new CheckoutDialogKbmController(_nameInput, _checkoutButton.Command, onClose);
         _nameInput.UseController(_ => _nameController);
 
         var request = new CheckoutRequest(repo, remoteName, remoteBranchName, suggestedLocalName);
@@ -82,7 +84,6 @@ internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranc
 
     public void Bind(CheckoutBranchDialogViewModel vm)
     {
-        _vm = vm;
         vm.CloseRequested += _onClose;
 
         _nameInput.BindTwoWay(vm.Name);
@@ -95,6 +96,4 @@ internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranc
         _nameInput.SelectAll();
         _nameController.BeginEditing();
     }
-
-    private void Submit() => _vm?.Checkout.Execute();
 }

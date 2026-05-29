@@ -11,7 +11,7 @@ namespace GitGui;
 /// and optional tracked branch that `git submodule add` needs, plus a force toggle
 /// for re-using a path that's been previously used.
 /// </summary>
-public sealed class AddSubmoduleDialog : MultiChildView, IAddSubmoduleView
+internal sealed class AddSubmoduleDialog : MultiChildView, IBind<AddSubmoduleDialogViewModel>
 {
     private readonly Action _onClose;
     private readonly TextInputView _urlInput;
@@ -21,9 +21,6 @@ public sealed class AddSubmoduleDialog : MultiChildView, IAddSubmoduleView
     private readonly CheckboxView _forceCheckbox;
     private readonly DialogButton _addButton;
     private readonly TextView _errorView;
-
-    public event Action? InputsChanged;
-    public event Action? AddRequested;
 
     public AddSubmoduleDialog(Repo primary, Action onClose)
     {
@@ -41,7 +38,7 @@ public sealed class AddSubmoduleDialog : MultiChildView, IAddSubmoduleView
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _addButton = new DialogButton("Add", RaiseAddRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _addButton = new DialogButton("Add") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Add submodule", onClose, new FlexColumnView
         {
@@ -64,31 +61,32 @@ public sealed class AddSubmoduleDialog : MultiChildView, IAddSubmoduleView
             },
         }));
 
-        _urlController = new CheckoutDialogKbmController(_urlInput, RaiseAddRequested, onClose);
+        _urlController = new CheckoutDialogKbmController(_urlInput, _addButton.Command, onClose);
         _urlInput.UseController(_ => _urlController);
-        _pathInput.UseController(_ => new CheckoutDialogKbmController(_pathInput, RaiseAddRequested, onClose));
-        _branchInput.UseController(_ => new CheckoutDialogKbmController(_branchInput, RaiseAddRequested, onClose));
-
-        _urlInput.TextChanged += RaiseInputsChanged;
-        _pathInput.TextChanged += RaiseInputsChanged;
+        _pathInput.UseController(_ => new CheckoutDialogKbmController(_pathInput, _addButton.Command, onClose));
+        _branchInput.UseController(_ => new CheckoutDialogKbmController(_branchInput, _addButton.Command, onClose));
 
         var request = new AddSubmoduleViewRequest(primary);
-        this.UsePresenter(ctx => new AddSubmodulePresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new AddSubmoduleDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
 
-    private void RaiseAddRequested() => AddRequested?.Invoke();
-    private void RaiseInputsChanged() => InputsChanged?.Invoke();
+    public void Bind(AddSubmoduleDialogViewModel vm)
+    {
+        vm.CloseRequested += _onClose;
 
-    public string Url => new(_urlInput.Text);
-    public string Path => new(_pathInput.Text);
-    public string Branch => new(_branchInput.Text);
-    public bool Force => _forceCheckbox.IsChecked.Value;
-    public bool AddEnabled { set => _addButton.IsEnabled.Value = value; }
-    public string? ErrorMessage { set => _errorView.Text = value ?? string.Empty; }
-    public void FocusUrl() => _urlController.BeginEditing();
-    public void Close() => _onClose();
+        _urlInput.BindTwoWay(vm.Url);
+        _pathInput.BindTwoWay(vm.Path);
+        _branchInput.BindTwoWay(vm.Branch);
+        _forceCheckbox.IsChecked.BindTwoWay(vm.Force);
+        _addButton.BindCommand(vm.Add);
+        _errorView.BindText(vm.Add.Error, s => s ?? string.Empty);
+
+        _urlController.BeginEditing();
+    }
 }

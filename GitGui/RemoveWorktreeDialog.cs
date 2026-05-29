@@ -1,7 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
-using ZGF.Gui.Tests;
 using ZGF.Observable;
 
 namespace GitGui;
@@ -10,7 +9,7 @@ namespace GitGui;
 /// Confirmation modal for `git worktree remove`. Refuses if the worktree has uncommitted
 /// changes or untracked files unless Force is checked (delegates the safety check to git).
 /// </summary>
-public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
+internal sealed class RemoveWorktreeDialog : MultiChildView, IBind<RemoveWorktreeDialogViewModel>
 {
     private const float DialogWidth = 460f;
     private const float CodeBlockInnerPadding = 8f;
@@ -22,8 +21,6 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
     private readonly TextView _errorView;
     private readonly TextView _pathTextView;
     private readonly TextStyle _pathTextStyle;
-
-    public event Action? RemoveRequested;
 
     public RemoveWorktreeDialog(Repo primary, Repo worktree, Action onClose)
     {
@@ -85,7 +82,7 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _removeButton = new DialogButton("Remove", RaiseRemoveRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _removeButton = new DialogButton("Remove") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
         var dialogBody = DialogFrame.Build("Remove worktree", onClose, new FlexColumnView
         {
@@ -110,14 +107,24 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
         clip.Children.Add(dialogBody);
         AddChildToSelf(clip);
 
-        this.UseController(_ => new DialogKbmController(RaiseRemoveRequested, onClose));
+        this.UseController(_ => new DialogKbmController(_removeButton.Command, onClose));
 
         var request = new RemoveWorktreeRequest(primary, worktree);
-        this.UsePresenter(ctx => new RemoveWorktreePresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new RemoveWorktreeDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
+    }
+
+    public void Bind(RemoveWorktreeDialogViewModel vm)
+    {
+        vm.CloseRequested += _onClose;
+        _forceCheckbox.IsChecked.BindTwoWay(vm.Force);
+        _removeButton.BindCommand(vm.Remove);
+        _errorView.BindText(vm.Remove.Error, s => s ?? string.Empty);
     }
 
     protected override void OnAttachedToContext(Context context)
@@ -132,12 +139,4 @@ public sealed class RemoveWorktreeDialog : MultiChildView, IRemoveWorktreeView
                         - 2; // account for the 1px border on each side of the code-block
         _pathTextView.Text = PathWrap.Wrap(_path, _pathTextStyle, available, context.Canvas);
     }
-
-    public bool Force => _forceCheckbox.IsChecked.Value;
-    public bool RemoveEnabled { set => _removeButton.IsEnabled.Value = value; }
-    public string? ErrorMessage { set => _errorView.Text = value ?? string.Empty; }
-
-    private void RaiseRemoveRequested() => RemoveRequested?.Invoke();
-
-    public void Close() => _onClose();
 }

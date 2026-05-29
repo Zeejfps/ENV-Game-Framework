@@ -9,7 +9,7 @@ namespace GitGui;
 /// Confirmation modal for `git submodule deinit` + `git rm`. Refuses if the submodule
 /// has uncommitted changes unless Force is checked (delegates the safety check to git).
 /// </summary>
-public sealed class DeinitSubmoduleDialog : MultiChildView, IDeinitSubmoduleView
+internal sealed class DeinitSubmoduleDialog : MultiChildView, IBind<DeinitSubmoduleDialogViewModel>
 {
     private const float DialogWidth = 460f;
 
@@ -17,8 +17,6 @@ public sealed class DeinitSubmoduleDialog : MultiChildView, IDeinitSubmoduleView
     private readonly CheckboxView _forceCheckbox;
     private readonly DialogButton _deinitButton;
     private readonly TextView _errorView;
-
-    public event Action? DeinitRequested;
 
     public DeinitSubmoduleDialog(Repo primary, Repo submodule, Action onClose)
     {
@@ -46,7 +44,7 @@ public sealed class DeinitSubmoduleDialog : MultiChildView, IDeinitSubmoduleView
         _errorView = DialogFrame.ErrorView();
 
         var cancelButton = new DialogButton("Cancel", onClose) { PreferredHeight = DialogFrame.DefaultButtonHeight };
-        _deinitButton = new DialogButton("Deinit", RaiseDeinitRequested) { PreferredHeight = DialogFrame.DefaultButtonHeight };
+        _deinitButton = new DialogButton("Deinit") { PreferredHeight = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Deinit submodule", onClose, new FlexColumnView
         {
@@ -63,21 +61,23 @@ public sealed class DeinitSubmoduleDialog : MultiChildView, IDeinitSubmoduleView
             },
         }));
 
-        this.UseController(_ => new DialogKbmController(RaiseDeinitRequested, onClose));
+        this.UseController(_ => new DialogKbmController(_deinitButton.Command, onClose));
 
         var request = new DeinitSubmoduleViewRequest(primary, submodule);
-        this.UsePresenter(ctx => new DeinitSubmodulePresenter(
-            this, request,
-            ctx.Require<IGitService>(),
-            ctx.Require<IUiDispatcher>(),
-            ctx.Require<IMessageBus>()));
+        this.UseViewModel(
+            ctx => new DeinitSubmoduleDialogViewModel(
+                request,
+                ctx.Require<IGitService>(),
+                ctx.Require<IUiDispatcher>(),
+                ctx.Require<IMessageBus>()),
+            Bind);
     }
 
-    public bool Force => _forceCheckbox.IsChecked.Value;
-    public bool DeinitEnabled { set => _deinitButton.IsEnabled.Value = value; }
-    public string? ErrorMessage { set => _errorView.Text = value ?? string.Empty; }
-
-    private void RaiseDeinitRequested() => DeinitRequested?.Invoke();
-
-    public void Close() => _onClose();
+    public void Bind(DeinitSubmoduleDialogViewModel vm)
+    {
+        vm.CloseRequested += _onClose;
+        _forceCheckbox.IsChecked.BindTwoWay(vm.Force);
+        _deinitButton.BindCommand(vm.Deinit);
+        _errorView.BindText(vm.Deinit.Error, s => s ?? string.Empty);
+    }
 }
