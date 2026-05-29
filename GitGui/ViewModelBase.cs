@@ -115,5 +115,9 @@ internal abstract class ViewModelBase<TState> : IDisposable
         for (var i = _slices.Count - 1; i >= 0; i--)
             _slices[i].Dispose();
         _slices.Clear();
+        // Drop any remaining subscribers on the owned State — slices unhook themselves above,
+        // but direct subscribers (e.g. a view binding straight to State) rely on this to be
+        // severed deterministically rather than waiting for the whole VM to be collected.
+        State.Dispose();
     }
 }
