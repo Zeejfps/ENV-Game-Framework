@@ -10,8 +10,11 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
     private readonly IMessageBus _bus;
     private readonly State<ThemeMode> _themeMode;
 
-    private readonly GenerationGuard _statusGen = new();
-    private readonly GenerationGuard _localChangesGen = new();
+    private readonly GenerationGuard _statusGen;
+    private readonly GenerationGuard _localChangesGen;
+    private readonly GenerationGuard _pushGen;
+    private readonly GenerationGuard _pullGen;
+    private readonly GenerationGuard _fetchGen;
 
     private readonly SpinnerAnimation _pushSpinner;
     private readonly SpinnerAnimation _pullSpinner;
@@ -52,6 +55,12 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         _shell = shell;
         _bus = bus;
         _themeMode = themeMode;
+
+        _statusGen = CreateLane();
+        _localChangesGen = CreateLane();
+        _pushGen = CreateLane();
+        _pullGen = CreateLane();
+        _fetchGen = CreateLane();
 
         _pushSpinner = new SpinnerAnimation(dispatcher);
         _pullSpinner = new SpinnerAnimation(dispatcher);
@@ -125,20 +134,14 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
 
     private void ReloadPushStatus(Repo repo)
     {
-        var gen = _statusGen.Bump();
-        var service = _gitService;
-        var dispatcher = Dispatcher;
-
-        Task.Run(() =>
-        {
-            var status = service.GetPushStatus(repo);
-            dispatcher.Post(() =>
+        RunBackground<PushStatus>(
+            work: () => (_gitService.GetPushStatus(repo), null),
+            onResult: (status, _) =>
             {
-                if (_statusGen.IsStale(gen)) return;
                 if (_registry.Active.Value?.Id != repo.Id) return;
-                Update(s => s with { PushStatus = status });
-            });
-        });
+                Update(s => s with { PushStatus = status! });
+            },
+            lane: _statusGen);
     }
 
     private void ReloadLocalChanges()
@@ -151,21 +154,15 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
             return;
         }
 
-        var gen = _localChangesGen.Bump();
-        var service = _gitService;
-        var dispatcher = Dispatcher;
-
-        Task.Run(() =>
-        {
-            var snap = service.GetLocalChanges(repo);
-            dispatcher.Post(() =>
+        RunBackground<LocalChangesSnapshot>(
+            work: () => (_gitService.GetLocalChanges(repo), null),
+            onResult: (snap, _) =>
             {
-                if (_localChangesGen.IsStale(gen)) return;
                 if (_registry.Active.Value?.Id != repo.Id) return;
-                var hasChanges = snap.Staged.Count + snap.Unstaged.Count > 0;
+                var hasChanges = snap!.Staged.Count + snap.Unstaged.Count > 0;
                 Update(s => s.HasLocalChanges == hasChanges ? s : s with { HasLocalChanges = hasChanges });
-            });
-        });
+            },
+            lane: _localChangesGen);
     }
 
     private void DoOpenFolder()
@@ -243,28 +240,24 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         Update(s => s with { IsPushing = true, Error = null });
         _pushSpinner.Start();
 
-        var service = _gitService;
-        var dispatcher = Dispatcher;
-        var bus = _bus;
-
-        Task.Run(() =>
-        {
-            PushOutcome outcome;
-            try { outcome = service.Push(repo); }
-            catch (Exception ex) { outcome = new PushOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
+        RunBackground<PushOutcome>(
+            work: () =>
+            {
+                var outcome = _gitService.Push(repo);
+                return (outcome, outcome.Success ? null : outcome.ErrorMessage ?? "Push failed.");
+            },
+            onResult: (_, error) =>
             {
                 _pushSpinner.Stop();
-                if (!outcome.Success)
+                if (error != null)
                 {
-                    Update(s => s with { IsPushing = false, Error = outcome.ErrorMessage ?? "Push failed." });
+                    Update(s => s with { IsPushing = false, Error = error });
                     return;
                 }
                 Update(s => s with { IsPushing = false, PushStatus = s.PushStatus with { Ahead = 0 } });
-                bus.Broadcast(new RefsChangedMessage(repo.Id));
-            });
-        });
+                _bus.Broadcast(new RefsChangedMessage(repo.Id));
+            },
+            lane: _pushGen);
     }
 
     private void DoPull()
@@ -277,28 +270,24 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         Update(s => s with { IsPulling = true, Error = null });
         _pullSpinner.Start();
 
-        var service = _gitService;
-        var dispatcher = Dispatcher;
-        var bus = _bus;
-
-        Task.Run(() =>
-        {
-            PullOutcome outcome;
-            try { outcome = service.Pull(repo); }
-            catch (Exception ex) { outcome = new PullOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
+        RunBackground<PullOutcome>(
+            work: () =>
+            {
+                var outcome = _gitService.Pull(repo);
+                return (outcome, outcome.Success ? null : outcome.ErrorMessage ?? "Pull failed.");
+            },
+            onResult: (_, error) =>
             {
                 _pullSpinner.Stop();
-                if (!outcome.Success)
+                if (error != null)
                 {
-                    Update(s => s with { IsPulling = false, Error = outcome.ErrorMessage ?? "Pull failed." });
+                    Update(s => s with { IsPulling = false, Error = error });
                     return;
                 }
                 Update(s => s with { IsPulling = false, PushStatus = s.PushStatus with { Behind = 0 } });
-                bus.Broadcast(new RefsChangedMessage(repo.Id));
-            });
-        });
+                _bus.Broadcast(new RefsChangedMessage(repo.Id));
+            },
+            lane: _pullGen);
     }
 
     private void DoFetch()
@@ -311,34 +300,28 @@ internal sealed class ActionsToolbarViewModel : ViewModelBase<ActionsToolbarStat
         Update(s => s with { IsFetching = true, Error = null });
         _fetchSpinner.Start();
 
-        var service = _gitService;
-        var dispatcher = Dispatcher;
-        var bus = _bus;
-
-        Task.Run(() =>
-        {
-            FetchOutcome outcome;
-            try { outcome = service.Fetch(repo); }
-            catch (Exception ex) { outcome = new FetchOutcome(false, ex.Message); }
-
-            dispatcher.Post(() =>
+        RunBackground<FetchOutcome>(
+            work: () =>
+            {
+                var outcome = _gitService.Fetch(repo);
+                return (outcome, outcome.Success ? null : outcome.ErrorMessage ?? "Fetch failed.");
+            },
+            onResult: (_, error) =>
             {
                 _fetchSpinner.Stop();
-                if (!outcome.Success)
+                if (error != null)
                 {
-                    Update(s => s with { IsFetching = false, Error = outcome.ErrorMessage ?? "Fetch failed." });
+                    Update(s => s with { IsFetching = false, Error = error });
                     return;
                 }
                 Update(s => s with { IsFetching = false });
-                bus.Broadcast(new RefsChangedMessage(repo.Id));
-            });
-        });
+                _bus.Broadcast(new RefsChangedMessage(repo.Id));
+            },
+            lane: _fetchGen);
     }
 
     public override void Dispose()
     {
-        _statusGen.Bump();
-        _localChangesGen.Bump();
         _pushSpinner.Dispose();
         _pullSpinner.Dispose();
         _fetchSpinner.Dispose();
