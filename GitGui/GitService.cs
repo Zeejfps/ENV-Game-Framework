@@ -1076,6 +1076,52 @@ public sealed class GitService : IGitService
         }
     }
 
+    public string? GetRemoteUrl(Repo repo, string remoteName)
+    {
+        try
+        {
+            if (!IsGitRepo(repo.Path)) return null;
+            var output = RunGit(repo.Path, out var error, "remote", "get-url", remoteName);
+            if (error != null) return null;
+            var url = output.Trim();
+            return url.Length == 0 ? null : url;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public EditRemoteOutcome EditRemote(Repo repo, string oldName, string newName, string url)
+    {
+        try
+        {
+            if (!IsGitRepo(repo.Path))
+                return new EditRemoteOutcome(false, "Not a git repository.");
+
+            var sem = GetRepoLock(repo.Path);
+            sem.Wait();
+            try
+            {
+                if (!string.Equals(oldName, newName, StringComparison.Ordinal))
+                {
+                    var (renamed, renameError) = RunMutation(repo.Path, new[] { "remote", "rename", oldName, newName });
+                    if (!renamed) return new EditRemoteOutcome(false, renameError ?? "Failed to rename remote.");
+                }
+
+                var (urlSet, urlError) = RunMutation(repo.Path, new[] { "remote", "set-url", newName, url });
+                if (!urlSet) return new EditRemoteOutcome(false, urlError ?? "Failed to set remote URL.");
+
+                return new EditRemoteOutcome(true, null);
+            }
+            finally { sem.Release(); }
+        }
+        catch (Exception ex)
+        {
+            return new EditRemoteOutcome(false, ex.Message);
+        }
+    }
+
     public PullOutcome Pull(Repo repo)
     {
         try

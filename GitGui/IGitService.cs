@@ -18,6 +18,8 @@ public interface IGitService
     PushOutcome Push(Repo repo, bool force = false);
     PushOutcome PublishBranch(Repo repo, string localBranch, string remoteName, string remoteBranchName, bool setUpstream);
     IReadOnlyList<string> GetRemoteNames(Repo repo);
+    string? GetRemoteUrl(Repo repo, string remoteName);
+    EditRemoteOutcome EditRemote(Repo repo, string oldName, string newName, string url);
     PullOutcome Pull(Repo repo);
     FetchOutcome Fetch(Repo repo);
     FastForwardOutcome FastForwardBranch(Repo repo, string localBranch, string remoteName, string remoteBranch, Action<string>? onLine = null);
@@ -142,5 +144,7 @@ public sealed record RenameBranchOutcome(bool Success, string? ErrorMessage);
 public sealed record DeleteBranchOutcome(bool Success, string? ErrorMessage);
 
 public sealed record DeleteRemoteBranchOutcome(bool Success, string? ErrorMessage);
+
+public sealed record EditRemoteOutcome(bool Success, string? ErrorMessage);
 
 public sealed record StashOutcome(bool Success, string? ErrorMessage, bool HasConflicts = false);
