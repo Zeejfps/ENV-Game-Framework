@@ -17,7 +17,8 @@ internal sealed class GroupHeaderRow : MultiChildView, IBind<GroupHeaderRowViewM
 
         _chevron = new TextView
         {
-            FontSize = 8f,
+            FontFamily = LucideIcons.FontFamily,
+            FontSize = 11f,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             PreferredWidth = 16,
@@ -66,5 +67,5 @@ internal sealed class GroupHeaderRow : MultiChildView, IBind<GroupHeaderRowViewM
             vm.ToggleCollapsed.Execute));
     }
 
-    private static string ChevronFor(bool isCollapsed) => isCollapsed ? "▶" : "▼";
+    private static string ChevronFor(bool isCollapsed) => isCollapsed ? LucideIcons.ChevronRight : LucideIcons.ChevronDown;
 }

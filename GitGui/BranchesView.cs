@@ -49,7 +49,8 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>, I
     private readonly TextStyle _headerTextStyle = TextStyles.Row(0u);
     private readonly TextStyle _chevronStyle = new()
     {
-        FontSize = 8f,
+        FontFamily = LucideIcons.FontFamily,
+        FontSize = 11f,
         VerticalAlignment = TextAlignment.Center,
         HorizontalAlignment = TextAlignment.Center,
     };
@@ -261,7 +262,7 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>, I
             c.DrawText(new DrawTextInputs
             {
                 Position = new RectF(contentLeft, rowBottom, ChevronWidth, RowHeight),
-                Text = row.IsOpen ? "▼" : "▶",
+                Text = row.IsOpen ? LucideIcons.ChevronDown : LucideIcons.ChevronRight,
                 Style = _chevronStyle,
                 ZIndex = z,
             });

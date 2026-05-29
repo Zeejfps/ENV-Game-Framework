@@ -24,7 +24,8 @@ public sealed class WorktreeChevron : MultiChildView
 
         var chevron = new TextView
         {
-            FontSize = 8f,
+            FontFamily = LucideIcons.FontFamily,
+            FontSize = 11f,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             PreferredWidth = RepoBar.RowChevronWidth,
@@ -36,7 +37,7 @@ public sealed class WorktreeChevron : MultiChildView
         {
             _ = registry.WorktreesChanged.Value;
             if (!HasChildren(primary.Id, registry)) return string.Empty;
-            return registry.IsWorktreeExpanded(primary.Id) ? "▼" : "▶";
+            return registry.IsWorktreeExpanded(primary.Id) ? LucideIcons.ChevronDown : LucideIcons.ChevronRight;
         });
 
         var background = new RectView
