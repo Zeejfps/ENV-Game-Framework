@@ -4,14 +4,10 @@ namespace GitGui;
 
 internal sealed class AbortOperationDialogViewModel : IDisposable
 {
-    private readonly SpinnerAnimation _spinner;
     private readonly State<bool> _forceQuitMode = new(false);
     private readonly State<bool> _forceQuitAvailable = new(false);
 
     public IReadable<string> ConfirmButtonLabel { get; }
-    public IReadable<bool> CancelEnabled { get; }
-    public IReadable<bool> IsBusy { get; }
-    public IReadable<float> BusyRotation { get; }
     public IReadable<string?> Error => Abort.Error;
 
     public AsyncCommand Abort { get; }
@@ -24,11 +20,6 @@ internal sealed class AbortOperationDialogViewModel : IDisposable
         IUiDispatcher dispatcher,
         IMessageBus bus)
     {
-        _spinner = new SpinnerAnimation(dispatcher);
-
-        IsBusy = _spinner.IsActive;
-        BusyRotation = _spinner.Rotation;
-
         var defaultLabel = DefaultConfirmLabel(request.State);
         ConfirmButtonLabel = new Derived<string>(() => _forceQuitMode.Value ? "Force clear" : defaultLabel);
 
@@ -57,20 +48,9 @@ internal sealed class AbortOperationDialogViewModel : IDisposable
                 if (_forceQuitAvailable.Value && !_forceQuitMode.Value)
                     _forceQuitMode.Value = true;
             });
-
-        CancelEnabled = new Derived<bool>(() => !Abort.IsRunning.Value);
-
-        Abort.IsRunning.Subscribe(running =>
-        {
-            if (running) _spinner.Start();
-            else _spinner.Stop();
-        });
     }
 
-    public void Dispose()
-    {
-        _spinner.Dispose();
-    }
+    public void Dispose() { }
 
     private static string DefaultConfirmLabel(RepoOperationState state) => state switch
     {

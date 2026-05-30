@@ -17,6 +17,7 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
     private readonly CheckoutDialogKbmController _messageController;
     private readonly CheckboxView _keepStagedCheckbox;
     private readonly DialogButton _stashButton;
+    private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
     private readonly ColumnView _fileListColumn;
     private readonly TextView _fileListHeader;
@@ -79,7 +80,7 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
         _stashButton = new DialogButton("Stash") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Stash changes", onClose, new FlexColumnView
@@ -95,7 +96,7 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
                 _keepStagedCheckbox,
                 _errorView,
                 new MultiChildView { Height = 4 },
-                DialogFrame.ButtonsRow(cancelButton, _stashButton),
+                DialogFrame.ButtonsRow(_cancelButton, _stashButton),
             },
         }));
 
@@ -132,7 +133,8 @@ internal sealed class StashDialog : MultiChildView, IBind<StashDialogViewModel>
         vm.KeepStaged.Subscribe(b => _keepStagedCheckbox.IsChecked.Value = b);
         _keepStagedCheckbox.IsChecked.Changed += b => vm.SetKeepStaged(b);
 
-        _stashButton.BindCommand(vm.Stash);
+        _stashButton.BindBusyCommand(vm.Stash);
+        _cancelButton.DisableWhile(vm.Stash.IsRunning);
         _errorView.BindText(vm.Stash.Error, s => s ?? string.Empty);
         _fileListHeader.BindText(vm.FilesHeader);
 

@@ -19,6 +19,7 @@ internal sealed class EditRemoteDialog : MultiChildView, IBind<EditRemoteDialogV
     private readonly CheckoutDialogKbmController _nameController;
     private readonly SchemeDropdown _schemeDropdown;
     private readonly DialogButton _saveButton;
+    private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
     private readonly Action _onClose;
 
@@ -54,7 +55,7 @@ internal sealed class EditRemoteDialog : MultiChildView, IBind<EditRemoteDialogV
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
         _saveButton = new DialogButton("Save") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Remote", onClose, new FlexColumnView
@@ -70,7 +71,7 @@ internal sealed class EditRemoteDialog : MultiChildView, IBind<EditRemoteDialogV
                 urlRow,
                 _errorView,
                 new MultiChildView { Height = 4 },
-                DialogFrame.ButtonsRow(cancelButton, _saveButton),
+                DialogFrame.ButtonsRow(_cancelButton, _saveButton),
             },
         }));
 
@@ -104,7 +105,8 @@ internal sealed class EditRemoteDialog : MultiChildView, IBind<EditRemoteDialogV
         vm.Scheme.Subscribe(_schemeDropdown.SetScheme);
         _schemeDropdown.SchemeSelected += vm.SetScheme;
 
-        _saveButton.BindCommand(vm.Save);
+        _saveButton.BindBusyCommand(vm.Save);
+        _cancelButton.DisableWhile(vm.Save.IsRunning);
         _errorView.BindText(vm.Save.Error, s => s ?? string.Empty);
         vm.CloseRequested += _onClose;
 

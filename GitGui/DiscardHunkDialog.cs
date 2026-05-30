@@ -9,6 +9,7 @@ namespace GitGui;
 internal sealed class DiscardHunkDialog : MultiChildView, IBind<DiscardHunkViewModel>
 {
     private readonly DialogButton _discardButton;
+    private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
     private readonly Action _onClose;
 
@@ -28,7 +29,7 @@ internal sealed class DiscardHunkDialog : MultiChildView, IBind<DiscardHunkViewM
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
         _discardButton = new DialogButton("Discard") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Discard hunk", onClose, new FlexColumnView
@@ -39,7 +40,7 @@ internal sealed class DiscardHunkDialog : MultiChildView, IBind<DiscardHunkViewM
             {
                 new FlexItem { Grow = 1, Child = prompt },
                 _errorView,
-                DialogFrame.ButtonsRow(cancelButton, _discardButton),
+                DialogFrame.ButtonsRow(_cancelButton, _discardButton),
             },
         }));
 
@@ -57,7 +58,8 @@ internal sealed class DiscardHunkDialog : MultiChildView, IBind<DiscardHunkViewM
 
     public void Bind(DiscardHunkViewModel vm)
     {
-        _discardButton.BindCommand(vm.Discard);
+        _discardButton.BindBusyCommand(vm.Discard);
+        _cancelButton.DisableWhile(vm.Discard.IsRunning);
         _errorView.BindText(vm.Discard.Error, s => s ?? string.Empty);
         vm.CloseRequested += _onClose;
     }

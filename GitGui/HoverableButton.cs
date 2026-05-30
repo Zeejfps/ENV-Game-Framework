@@ -66,5 +66,13 @@ public abstract class HoverableButton : MultiChildView
         IsEnabled.BindTo(command.CanExecute);
     }
 
+    /// <summary>
+    /// Drives <see cref="IsEnabled"/> as the inverse of <paramref name="busy"/>. For secondary
+    /// buttons (typically Cancel) that should lock out while a sibling <see cref="AsyncCommand"/>
+    /// is mid-flight, pass that command's <c>IsRunning</c>.
+    /// </summary>
+    public void DisableWhile(IReadable<bool> busy)
+        => IsEnabled.BindTo(new Derived<bool>(() => !busy.Value));
+
     protected void SetBackground(View background) => AddChildToSelf(background);
 }

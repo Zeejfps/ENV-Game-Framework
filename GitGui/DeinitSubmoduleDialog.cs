@@ -16,6 +16,7 @@ internal sealed class DeinitSubmoduleDialog : MultiChildView, IBind<DeinitSubmod
     private readonly Action _onClose;
     private readonly CheckboxView _forceCheckbox;
     private readonly DialogButton _deinitButton;
+    private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
 
     public DeinitSubmoduleDialog(Repo primary, Repo submodule, Action onClose)
@@ -43,7 +44,7 @@ internal sealed class DeinitSubmoduleDialog : MultiChildView, IBind<DeinitSubmod
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
         _deinitButton = new DialogButton("Deinit") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Deinit submodule", onClose, new FlexColumnView
@@ -57,7 +58,7 @@ internal sealed class DeinitSubmoduleDialog : MultiChildView, IBind<DeinitSubmod
                 _forceCheckbox,
                 _errorView,
                 new MultiChildView { Height = 4 },
-                DialogFrame.ButtonsRow(cancelButton, _deinitButton),
+                DialogFrame.ButtonsRow(_cancelButton, _deinitButton),
             },
         }));
 
@@ -77,7 +78,8 @@ internal sealed class DeinitSubmoduleDialog : MultiChildView, IBind<DeinitSubmod
     {
         vm.CloseRequested += _onClose;
         _forceCheckbox.IsChecked.BindTwoWay(vm.Force);
-        _deinitButton.BindCommand(vm.Deinit);
+        _deinitButton.BindBusyCommand(vm.Deinit);
+        _cancelButton.DisableWhile(vm.Deinit.IsRunning);
         _errorView.BindText(vm.Deinit.Error, s => s ?? string.Empty);
     }
 }

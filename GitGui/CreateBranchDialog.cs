@@ -20,6 +20,7 @@ internal sealed class CreateBranchDialog : MultiChildView, IBind<CreateBranchDia
     private readonly TextInputView _startPointInput;
     private readonly CheckboxView _checkoutCheckbox;
     private readonly DialogButton _createButton;
+    private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
 
     public CreateBranchDialog(Repo repo, string suggestedStartPoint, Action onClose)
@@ -45,7 +46,7 @@ internal sealed class CreateBranchDialog : MultiChildView, IBind<CreateBranchDia
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
         _createButton = new DialogButton("Create") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Create branch", onClose, new FlexColumnView
@@ -62,7 +63,7 @@ internal sealed class CreateBranchDialog : MultiChildView, IBind<CreateBranchDia
                 _checkoutCheckbox,
                 _errorView,
                 new MultiChildView { Height = 4 },
-                DialogFrame.ButtonsRow(cancelButton, _createButton),
+                DialogFrame.ButtonsRow(_cancelButton, _createButton),
             },
         }));
 
@@ -90,7 +91,8 @@ internal sealed class CreateBranchDialog : MultiChildView, IBind<CreateBranchDia
         _nameInput.BindTwoWay(vm.Name);
         _startPointInput.BindTwoWay(vm.StartPoint);
         _checkoutCheckbox.IsChecked.BindTwoWay(vm.Checkout);
-        _createButton.BindCommand(vm.Create);
+        _createButton.BindBusyCommand(vm.Create);
+        _cancelButton.DisableWhile(vm.Create.IsRunning);
         _errorView.BindText(vm.Create.Error, s => s ?? string.Empty);
 
         _nameController.BeginEditing();

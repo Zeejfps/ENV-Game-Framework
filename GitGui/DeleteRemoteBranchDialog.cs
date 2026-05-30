@@ -14,6 +14,7 @@ namespace GitGui;
 internal sealed class DeleteRemoteBranchDialog : MultiChildView, IBind<DeleteRemoteBranchDialogViewModel>
 {
     private readonly DialogButton _deleteButton;
+    private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
     private readonly Action _onClose;
 
@@ -36,7 +37,7 @@ internal sealed class DeleteRemoteBranchDialog : MultiChildView, IBind<DeleteRem
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
         _deleteButton = new DialogButton("Delete") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Delete remote branch", onClose, new FlexColumnView
@@ -49,7 +50,7 @@ internal sealed class DeleteRemoteBranchDialog : MultiChildView, IBind<DeleteRem
                 hint,
                 _errorView,
                 new MultiChildView { Height = 4 },
-                DialogFrame.ButtonsRow(cancelButton, _deleteButton),
+                DialogFrame.ButtonsRow(_cancelButton, _deleteButton),
             },
         }));
 
@@ -67,7 +68,8 @@ internal sealed class DeleteRemoteBranchDialog : MultiChildView, IBind<DeleteRem
 
     public void Bind(DeleteRemoteBranchDialogViewModel vm)
     {
-        _deleteButton.BindCommand(vm.Delete);
+        _deleteButton.BindBusyCommand(vm.Delete);
+        _cancelButton.DisableWhile(vm.Delete.IsRunning);
         _errorView.BindText(vm.Delete.Error, s => s ?? string.Empty);
         vm.CloseRequested += _onClose;
     }

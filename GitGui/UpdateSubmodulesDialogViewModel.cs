@@ -4,17 +4,12 @@ namespace GitGui;
 
 internal sealed class UpdateSubmodulesDialogViewModel : IDisposable
 {
-    private readonly SpinnerAnimation _spinner;
-
     public State<bool> Init { get; } = new(true);
     public State<bool> Recursive { get; } = new(false);
     public State<SubmoduleUpdateMode> Mode { get; } = new(SubmoduleUpdateMode.Checkout);
 
     public AsyncCommand Update { get; }
     public IReadable<string?> Error => Update.Error;
-    public IReadable<bool> CancelEnabled { get; }
-    public IReadable<bool> IsBusy { get; }
-    public IReadable<float> BusyRotation { get; }
 
     public event Action? CloseRequested;
 
@@ -24,10 +19,6 @@ internal sealed class UpdateSubmodulesDialogViewModel : IDisposable
         IUiDispatcher dispatcher,
         IMessageBus bus)
     {
-        _spinner = new SpinnerAnimation(dispatcher);
-        IsBusy = _spinner.IsActive;
-        BusyRotation = _spinner.Rotation;
-
         var primaryId = request.Primary.Id;
         var target = request.TargetSubmodule;
 
@@ -53,20 +44,9 @@ internal sealed class UpdateSubmodulesDialogViewModel : IDisposable
                 bus.Broadcast(new SubmodulesChangedMessage(primaryId));
                 bus.Broadcast(new RefsChangedMessage(primaryId));
             });
-
-        CancelEnabled = new Derived<bool>(() => !Update.IsRunning.Value);
-
-        Update.IsRunning.Subscribe(running =>
-        {
-            if (running) _spinner.Start();
-            else _spinner.Stop();
-        });
     }
 
-    public void Dispose()
-    {
-        _spinner.Dispose();
-    }
+    public void Dispose() { }
 
     private static string ToRelative(string parentRoot, string submoduleAbs)
     {

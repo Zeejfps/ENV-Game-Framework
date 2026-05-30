@@ -9,6 +9,7 @@ internal sealed class MergeBranchDialog : MultiChildView, IBind<MergeBranchDialo
 {
     private readonly Action _onClose;
     private readonly DialogButton _mergeButton;
+    private readonly DialogButton _cancelButton;
     private readonly MergeOptionDropdown _optionDropdown;
     private readonly TextView _previewIcon;
     private readonly TextView _previewText;
@@ -52,7 +53,7 @@ internal sealed class MergeBranchDialog : MultiChildView, IBind<MergeBranchDialo
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
         _mergeButton = new DialogButton("Merge") { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
 
         var buttonsRow = new FlexRowView
@@ -62,7 +63,7 @@ internal sealed class MergeBranchDialog : MultiChildView, IBind<MergeBranchDialo
             Children =
             {
                 new FlexItem { Grow = 1, Child = previewChip },
-                cancelButton,
+                _cancelButton,
                 _mergeButton,
             },
         };
@@ -97,7 +98,8 @@ internal sealed class MergeBranchDialog : MultiChildView, IBind<MergeBranchDialo
     {
         vm.CloseRequested += _onClose;
         _optionDropdown.SelectedState.BindTwoWay(vm.Strategy);
-        _mergeButton.BindCommand(vm.Merge);
+        _mergeButton.BindBusyCommand(vm.Merge);
+        _cancelButton.DisableWhile(vm.Merge.IsRunning);
         _errorView.BindText(vm.Merge.Error, s => s ?? string.Empty);
         vm.PreviewState.Subscribe(s =>
         {

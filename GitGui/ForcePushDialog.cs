@@ -9,6 +9,7 @@ internal sealed class ForcePushDialog : MultiChildView, IBind<ForcePushDialogVie
 {
     private readonly Action _onClose;
     private readonly DialogButton _forcePushButton;
+    private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
 
     public ForcePushDialog(Repo repo, string branchName, int ahead, int behind, Action onClose)
@@ -30,7 +31,7 @@ internal sealed class ForcePushDialog : MultiChildView, IBind<ForcePushDialogVie
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
         _forcePushButton = new DialogButton("Force push") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Force push?", onClose, new FlexColumnView
@@ -41,7 +42,7 @@ internal sealed class ForcePushDialog : MultiChildView, IBind<ForcePushDialogVie
             {
                 new FlexItem { Grow = 1, Child = prompt },
                 _errorView,
-                DialogFrame.ButtonsRow(cancelButton, _forcePushButton),
+                DialogFrame.ButtonsRow(_cancelButton, _forcePushButton),
             },
         }));
 
@@ -59,7 +60,8 @@ internal sealed class ForcePushDialog : MultiChildView, IBind<ForcePushDialogVie
     public void Bind(ForcePushDialogViewModel vm)
     {
         vm.CloseRequested += _onClose;
-        _forcePushButton.BindCommand(vm.ForcePush);
+        _forcePushButton.BindBusyCommand(vm.ForcePush);
+        _cancelButton.DisableWhile(vm.ForcePush.IsRunning);
         _errorView.BindText(vm.ForcePush.Error, s => s ?? string.Empty);
     }
 }

@@ -18,6 +18,7 @@ internal sealed class RemoveWorktreeDialog : MultiChildView, IBind<RemoveWorktre
     private readonly Action _onClose;
     private readonly CheckboxView _forceCheckbox;
     private readonly DialogButton _removeButton;
+    private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
     private readonly TextView _pathTextView;
     private readonly TextStyle _pathTextStyle;
@@ -81,7 +82,7 @@ internal sealed class RemoveWorktreeDialog : MultiChildView, IBind<RemoveWorktre
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
         _removeButton = new DialogButton("Remove") { Height = DialogFrame.DefaultButtonHeight };
 
         var dialogBody = DialogFrame.Build("Remove worktree", onClose, new FlexColumnView
@@ -96,7 +97,7 @@ internal sealed class RemoveWorktreeDialog : MultiChildView, IBind<RemoveWorktre
                 hint,
                 _errorView,
                 new MultiChildView { Height = 4 },
-                DialogFrame.ButtonsRow(cancelButton, _removeButton),
+                DialogFrame.ButtonsRow(_cancelButton, _removeButton),
             },
         });
 
@@ -123,7 +124,8 @@ internal sealed class RemoveWorktreeDialog : MultiChildView, IBind<RemoveWorktre
     {
         vm.CloseRequested += _onClose;
         _forceCheckbox.IsChecked.BindTwoWay(vm.Force);
-        _removeButton.BindCommand(vm.Remove);
+        _removeButton.BindBusyCommand(vm.Remove);
+        _cancelButton.DisableWhile(vm.Remove.IsRunning);
         _errorView.BindText(vm.Remove.Error, s => s ?? string.Empty);
     }
 

@@ -20,6 +20,7 @@ internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialo
     private readonly Action _onClose;
     private readonly ResetModeDropdown _modeDropdown;
     private readonly DialogButton _resetButton;
+    private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
 
     public ResetCommitDialog(
@@ -54,7 +55,7 @@ internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialo
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
         _resetButton = new DialogButton("Reset") { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
 
         var buttonsRow = new FlexRowView
@@ -64,7 +65,7 @@ internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialo
             Children =
             {
                 new FlexItem { Grow = 1, Child = new MultiChildView() },
-                cancelButton,
+                _cancelButton,
                 _resetButton,
             },
         };
@@ -102,7 +103,8 @@ internal sealed class ResetCommitDialog : MultiChildView, IBind<ResetCommitDialo
     {
         vm.CloseRequested += _onClose;
         _modeDropdown.SelectedState.BindTwoWay(vm.Mode);
-        _resetButton.BindCommand(vm.Reset);
+        _resetButton.BindBusyCommand(vm.Reset);
+        _cancelButton.DisableWhile(vm.Reset.IsRunning);
         _errorView.BindText(vm.Reset.Error, s => s ?? string.Empty);
     }
 

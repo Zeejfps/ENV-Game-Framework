@@ -20,6 +20,7 @@ internal sealed class AddSubmoduleDialog : MultiChildView, IBind<AddSubmoduleDia
     private readonly TextInputView _branchInput;
     private readonly CheckboxView _forceCheckbox;
     private readonly DialogButton _addButton;
+    private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
 
     public AddSubmoduleDialog(Repo primary, Action onClose)
@@ -37,7 +38,7 @@ internal sealed class AddSubmoduleDialog : MultiChildView, IBind<AddSubmoduleDia
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
         _addButton = new DialogButton("Add") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Add submodule", onClose, new FlexColumnView
@@ -57,7 +58,7 @@ internal sealed class AddSubmoduleDialog : MultiChildView, IBind<AddSubmoduleDia
                 _forceCheckbox,
                 _errorView,
                 new MultiChildView { Height = 4 },
-                DialogFrame.ButtonsRow(cancelButton, _addButton),
+                DialogFrame.ButtonsRow(_cancelButton, _addButton),
             },
         }));
 
@@ -84,7 +85,8 @@ internal sealed class AddSubmoduleDialog : MultiChildView, IBind<AddSubmoduleDia
         _pathInput.BindTwoWay(vm.Path);
         _branchInput.BindTwoWay(vm.Branch);
         _forceCheckbox.IsChecked.BindTwoWay(vm.Force);
-        _addButton.BindCommand(vm.Add);
+        _addButton.BindBusyCommand(vm.Add);
+        _cancelButton.DisableWhile(vm.Add.IsRunning);
         _errorView.BindText(vm.Add.Error, s => s ?? string.Empty);
 
         _urlController.BeginEditing();

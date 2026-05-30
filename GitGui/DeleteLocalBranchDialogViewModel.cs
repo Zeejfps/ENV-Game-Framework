@@ -8,7 +8,6 @@ internal sealed class DeleteLocalBranchDialogViewModel : IDisposable
     private readonly DeleteLocalBranchRequest _request;
     private readonly IGitService _gitService;
     private readonly IMessageBus _bus;
-    private readonly SpinnerAnimation _spinner;
     private readonly State<DeleteRemoteBranchOutcome?> _partialFailure = new(null);
 
     public State<bool> Force { get; } = new(false);
@@ -16,9 +15,6 @@ internal sealed class DeleteLocalBranchDialogViewModel : IDisposable
     public bool HasUpstream { get; }
 
     public AsyncCommand Delete { get; }
-    public IReadable<bool> CancelEnabled { get; }
-    public IReadable<bool> IsBusy { get; }
-    public IReadable<float> BusyRotation { get; }
 
     public event Action? CloseRequested;
 
@@ -31,23 +27,11 @@ internal sealed class DeleteLocalBranchDialogViewModel : IDisposable
         _request = request;
         _gitService = gitService;
         _bus = bus;
-        _spinner = new SpinnerAnimation(dispatcher);
 
         HasUpstream = !string.IsNullOrEmpty(request.UpstreamRemote)
                       && !string.IsNullOrEmpty(request.UpstreamBranch);
 
-        BusyRotation = _spinner.Rotation;
-
         Delete = new AsyncCommand(dispatcher, DoDelete, OnDeleteSucceeded);
-
-        IsBusy = Delete.IsRunning;
-        CancelEnabled = new Derived<bool>(() => !Delete.IsRunning.Value);
-
-        Delete.IsRunning.Subscribe(b =>
-        {
-            if (b) _spinner.Start();
-            else _spinner.Stop();
-        });
     }
 
     private string? DoDelete()
@@ -88,10 +72,7 @@ internal sealed class DeleteLocalBranchDialogViewModel : IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        _spinner.Dispose();
-    }
+    public void Dispose() { }
 }
 
 internal readonly record struct DeleteLocalBranchRequest(

@@ -89,15 +89,8 @@ internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranc
 
         _nameInput.BindTwoWay(vm.Name);
         _trackCheckbox.IsChecked.BindTwoWay(vm.Track);
-        _checkoutButton.BindCommand(vm.Checkout);
-        _cancelButton.IsEnabled.BindTo(vm.CancelEnabled);
-
-        vm.IsBusy.Subscribe(b =>
-        {
-            _checkoutButton.Icon = b ? LucideIcons.Loader : string.Empty;
-            if (!b) _checkoutButton.IconRotation = 0f;
-        });
-        vm.BusyRotation.Subscribe(r => _checkoutButton.IconRotation = r);
+        _checkoutButton.BindBusyCommand(vm.Checkout);
+        _cancelButton.DisableWhile(vm.Checkout.IsRunning);
 
         // Bind runs after the input is attached to a context — doing focus earlier (e.g.
         // in the dialog ctor) produced an empty-looking field, since StartEditing/StealFocus

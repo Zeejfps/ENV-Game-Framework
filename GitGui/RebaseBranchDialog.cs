@@ -9,6 +9,7 @@ internal sealed class RebaseBranchDialog : MultiChildView, IBind<RebaseBranchDia
 {
     private readonly Action _onClose;
     private readonly DialogButton _rebaseButton;
+    private readonly DialogButton _cancelButton;
     private readonly CheckboxView _autostashCheckbox;
     private readonly TextView _previewIcon;
     private readonly TextView _previewText;
@@ -63,7 +64,7 @@ internal sealed class RebaseBranchDialog : MultiChildView, IBind<RebaseBranchDia
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
         _rebaseButton = new DialogButton("Rebase") { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
 
         var buttonsRow = new FlexRowView
@@ -73,7 +74,7 @@ internal sealed class RebaseBranchDialog : MultiChildView, IBind<RebaseBranchDia
             Children =
             {
                 new FlexItem { Grow = 1, Child = previewChip },
-                cancelButton,
+                _cancelButton,
                 _rebaseButton,
             },
         };
@@ -109,7 +110,8 @@ internal sealed class RebaseBranchDialog : MultiChildView, IBind<RebaseBranchDia
     {
         vm.CloseRequested += _onClose;
         _autostashCheckbox.IsChecked.BindTwoWay(vm.Autostash);
-        _rebaseButton.BindCommand(vm.Rebase);
+        _rebaseButton.BindBusyCommand(vm.Rebase);
+        _cancelButton.DisableWhile(vm.Rebase.IsRunning);
         _errorView.BindText(vm.Rebase.Error, s => s ?? string.Empty);
         vm.PreviewState.Subscribe(s =>
         {

@@ -9,6 +9,7 @@ internal sealed class PublishBranchDialog : MultiChildView, IBind<PublishBranchD
 {
     private readonly Action _onClose;
     private readonly DialogButton _publishButton;
+    private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
     private readonly CheckboxView _trackCheckbox;
     private readonly RemoteDropdown _remoteDropdown;
@@ -38,7 +39,7 @@ internal sealed class PublishBranchDialog : MultiChildView, IBind<PublishBranchD
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
         _publishButton = new DialogButton("Publish") { Height = DialogFrame.DefaultButtonHeight, Width = 96 };
 
         var buttonsRow = new FlexRowView
@@ -48,7 +49,7 @@ internal sealed class PublishBranchDialog : MultiChildView, IBind<PublishBranchD
             Children =
             {
                 new FlexItem { Grow = 1, Child = new MultiChildView() },
-                cancelButton,
+                _cancelButton,
                 _publishButton,
             },
         };
@@ -86,7 +87,8 @@ internal sealed class PublishBranchDialog : MultiChildView, IBind<PublishBranchD
 
         _remoteDropdown.SelectedState.BindTwoWay(vm.SelectedRemote);
         _trackCheckbox.IsChecked.BindTwoWay(vm.SetUpstream);
-        _publishButton.BindCommand(vm.Publish);
+        _publishButton.BindBusyCommand(vm.Publish);
+        _cancelButton.DisableWhile(vm.Publish.IsRunning);
         _errorView.BindText(vm.ErrorMessage, s => s ?? string.Empty);
 
         vm.Remotes.Subscribe(remotes => _remoteDropdown.SetOptions(remotes));

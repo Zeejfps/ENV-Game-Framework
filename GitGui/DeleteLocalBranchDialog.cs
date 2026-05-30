@@ -97,15 +97,8 @@ internal sealed class DeleteLocalBranchDialog : MultiChildView, IBind<DeleteLoca
         if (_deleteRemoteCheckbox != null)
             _deleteRemoteCheckbox.IsChecked.BindTwoWay(vm.DeleteRemote);
 
-        _deleteButton.BindCommand(vm.Delete);
-        _cancelButton.IsEnabled.BindTo(vm.CancelEnabled);
+        _deleteButton.BindBusyCommand(vm.Delete);
+        _cancelButton.DisableWhile(vm.Delete.IsRunning);
         _errorView.BindText(vm.Delete.Error, s => s ?? string.Empty);
-
-        vm.IsBusy.Subscribe(b =>
-        {
-            _deleteButton.Icon = b ? LucideIcons.Loader : string.Empty;
-            if (!b) _deleteButton.IconRotation = 0f;
-        });
-        vm.BusyRotation.Subscribe(r => _deleteButton.IconRotation = r);
     }
 }

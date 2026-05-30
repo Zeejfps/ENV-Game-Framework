@@ -97,16 +97,9 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
 
         _initCheckbox.IsChecked.BindTwoWay(vm.Init);
         _recursiveCheckbox.IsChecked.BindTwoWay(vm.Recursive);
-        _updateButton.BindCommand(vm.Update);
-        _cancelButton.IsEnabled.BindTo(vm.CancelEnabled);
+        _updateButton.BindBusyCommand(vm.Update);
+        _cancelButton.DisableWhile(vm.Update.IsRunning);
         _errorView.BindText(vm.Error, s => s ?? string.Empty);
-
-        vm.IsBusy.Subscribe(b =>
-        {
-            _updateButton.Icon = b ? LucideIcons.Loader : string.Empty;
-            if (!b) _updateButton.IconRotation = 0f;
-        });
-        vm.BusyRotation.Subscribe(r => _updateButton.IconRotation = r);
 
         vm.Mode.Subscribe(m =>
         {

@@ -20,6 +20,7 @@ internal sealed class CreateWorktreeDialog : MultiChildView, IBind<CreateWorktre
     private readonly TextInputView _branchInput;
     private readonly CheckboxView _forceCheckbox;
     private readonly DialogButton _createButton;
+    private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
     private CreateWorktreeDialogViewModel? _vm;
 
@@ -69,7 +70,7 @@ internal sealed class CreateWorktreeDialog : MultiChildView, IBind<CreateWorktre
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
         _createButton = new DialogButton("Create") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("New worktree", onClose, new FlexColumnView
@@ -89,7 +90,7 @@ internal sealed class CreateWorktreeDialog : MultiChildView, IBind<CreateWorktre
                 _forceCheckbox,
                 _errorView,
                 new MultiChildView { Height = 4 },
-                DialogFrame.ButtonsRow(cancelButton, _createButton),
+                DialogFrame.ButtonsRow(_cancelButton, _createButton),
             },
         }));
 
@@ -117,7 +118,8 @@ internal sealed class CreateWorktreeDialog : MultiChildView, IBind<CreateWorktre
         _startPointInput.BindTwoWay(vm.StartPoint);
         _branchInput.BindTwoWay(vm.NewBranchName);
         _forceCheckbox.IsChecked.BindTwoWay(vm.Force);
-        _createButton.BindCommand(vm.Create);
+        _createButton.BindBusyCommand(vm.Create);
+        _cancelButton.DisableWhile(vm.Create.IsRunning);
         _errorView.BindText(vm.Create.Error, s => s ?? string.Empty);
 
         _pathController.BeginEditing();

@@ -17,6 +17,7 @@ internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChange
 {
     private readonly Action _onClose;
     private readonly DialogButton _discardButton;
+    private readonly DialogButton _cancelButton;
     private readonly TextView _errorView;
     private readonly ColumnView _fileListColumn;
     private readonly TextView _fileListHeader;
@@ -75,7 +76,7 @@ internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChange
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
         _discardButton = new DialogButton("Discard") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Discard changes", onClose, new FlexColumnView
@@ -88,7 +89,7 @@ internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChange
                 _fileListHeader,
                 new FlexItem { Grow = 1, Child = fileScrollHost },
                 _errorView,
-                DialogFrame.ButtonsRow(cancelButton, _discardButton),
+                DialogFrame.ButtonsRow(_cancelButton, _discardButton),
             },
         }));
 
@@ -109,7 +110,8 @@ internal sealed class DiscardChangesDialog : MultiChildView, IBind<DiscardChange
         _vm = vm;
         vm.CloseRequested += _onClose;
 
-        _discardButton.BindCommand(vm.Discard);
+        _discardButton.BindBusyCommand(vm.Discard);
+        _cancelButton.DisableWhile(vm.Discard.IsRunning);
         _errorView.BindText(vm.Discard.Error, s => s ?? string.Empty);
         _fileListHeader.BindText(vm.FilesHeader);
 

@@ -66,18 +66,11 @@ internal sealed class AbortOperationDialog : MultiChildView, IBind<AbortOperatio
     {
         vm.CloseRequested += _onClose;
 
-        _abortButton.BindCommand(vm.Abort);
-        _cancelButton.IsEnabled.BindTo(vm.CancelEnabled);
+        _abortButton.BindBusyCommand(vm.Abort);
+        _cancelButton.DisableWhile(vm.Abort.IsRunning);
         _errorView.BindText(vm.Error, s => s ?? string.Empty);
 
         vm.ConfirmButtonLabel.Subscribe(label => _abortButton.Label = label);
-
-        vm.IsBusy.Subscribe(b =>
-        {
-            _abortButton.Icon = b ? LucideIcons.Loader : string.Empty;
-            if (!b) _abortButton.IconRotation = 0f;
-        });
-        vm.BusyRotation.Subscribe(r => _abortButton.IconRotation = r);
     }
 
     private static (string Title, string Body, string Confirm) CopyFor(RepoOperationState state) => state switch

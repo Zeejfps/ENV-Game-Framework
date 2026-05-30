@@ -1,6 +1,7 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
+using ZGF.Observable;
 
 namespace GitGui;
 
@@ -9,6 +10,7 @@ public sealed class DialogButton : HoverableButton
     private readonly TextView _iconView;
     private readonly TextView _labelView;
     private readonly FlexRowView _row;
+    private SpinnerAnimation? _busySpinner;
 
     public string Label
     {
@@ -79,5 +81,39 @@ public sealed class DialogButton : HoverableButton
         BorderedButtonChrome.Bind(background,
             () => IsEnabled.Value && (IsHovered.Value || IsFocusHighlighted.Value));
         SetBackground(background);
+    }
+
+    /// <summary>
+    /// Like <see cref="HoverableButton.BindCommand"/>, but additionally shows a spinning loader
+    /// icon while the command runs. The spinner is owned by the button and driven entirely off
+    /// <see cref="AsyncCommand.IsRunning"/>, so dialogs need no per-VM busy-state plumbing — the
+    /// view model just exposes the command. Call from <c>Bind</c>, after the button is attached
+    /// to a context (its dispatcher is resolved from <see cref="MultiChildView.Context"/>).
+    /// </summary>
+    internal void BindBusyCommand(AsyncCommand command)
+    {
+        BindCommand(command);
+
+        var dispatcher = Context?.Get<IUiDispatcher>();
+        if (dispatcher != null)
+        {
+            _busySpinner = new SpinnerAnimation(dispatcher);
+            _busySpinner.Rotation.Subscribe(r => IconRotation = r);
+        }
+
+        command.IsRunning.Subscribe(running =>
+        {
+            if (running)
+            {
+                _busySpinner?.Start();
+                Icon = LucideIcons.Loader;
+            }
+            else
+            {
+                _busySpinner?.Stop();
+                Icon = string.Empty;
+                IconRotation = 0f;
+            }
+        });
     }
 }
