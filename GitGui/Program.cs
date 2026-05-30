@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using GitGui;
+using ZGF.AppUtils;
 using ZGF.Core;
 using ZGF.Gui;
 using ZGF.Observable;
@@ -57,8 +58,9 @@ var appHost = GuiApp.CreateDefault(new StartupConfig
 }, context, appView);
 appHost.OnWindowResized += preferences.SetWindowSize;
 
-appHost.RegisterFont(LucideIcons.FontFamily, "Assets/Fonts/Lucide/Lucide.ttf", 16);
-appHost.RegisterFont(DiffOptions.MonoFontFamily, "Assets/Fonts/JetBrainsMono/JetBrainsMono-Regular.ttf", 13);
+var fontAssembly = typeof(LucideIcons).Assembly;
+appHost.RegisterFont(LucideIcons.FontFamily, EmbeddedAssets.LoadBytes(fontAssembly, "Lucide.ttf"), 16);
+appHost.RegisterFont(DiffOptions.MonoFontFamily, EmbeddedAssets.LoadBytes(fontAssembly, "JetBrainsMono-Regular.ttf"), 13);
 
 context.AddService<ITooltipService>(new PopupTooltipService(
     context.Require<IPopupWindowFactory>(),

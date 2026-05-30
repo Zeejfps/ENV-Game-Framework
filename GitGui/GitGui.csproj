@@ -15,18 +15,21 @@
     </ItemGroup>
 
     <ItemGroup>
-      <None Update="Assets\Fonts\Lucide\Lucide.ttf">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="Assets\Fonts\JetBrainsMono\JetBrainsMono-Regular.ttf">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
       <None Update="Assets\commit_bench_icon.rgba">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
 
+    <!-- Fonts are embedded into the assembly instead of shipped as loose files. -->
     <ItemGroup>
+      <None Remove="Assets\Fonts\**\*.ttf" />
+      <EmbeddedResource Include="Assets\Fonts\**\*.ttf">
+        <LogicalName>%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ZGF.AppUtils\ZGF.AppUtils.csproj" />
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
       <ProjectReference Include="..\ZGF.Observable\ZGF.Observable.csproj" />
     </ItemGroup>

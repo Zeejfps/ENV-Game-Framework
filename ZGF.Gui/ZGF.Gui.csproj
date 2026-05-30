@@ -8,11 +8,20 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <!-- Non-shader assets (fonts, icons) are still copied next to the binary. -->
-      <Content Include="Assets\**\*" Exclude="Assets\Shaders\**\*">
+      <!-- Shaders and fonts are embedded (see below); everything else under Assets is
+           still copied next to the binary. Font license/readme files stay in the repo
+           but are intentionally neither copied nor embedded. -->
+      <Content Include="Assets\**\*" Exclude="Assets\Shaders\**\*;Assets\Fonts\**\*">
         <Link>Assets\%(RecursiveDir)%(Filename)%(Extension)</Link>
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
+    </ItemGroup>
+
+    <!-- Fonts are platform-independent, so they are always embedded (no per-RID split). -->
+    <ItemGroup>
+      <EmbeddedResource Include="Assets\Fonts\**\*.ttf">
+        <LogicalName>%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
     </ItemGroup>
 
     <!-- Shaders are embedded into the assembly instead of shipped as loose files.

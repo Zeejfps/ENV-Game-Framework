@@ -96,10 +96,20 @@ public sealed class GuiApp : IDisposable
 
     public void RegisterFont(string family, string path, int pixelSize)
     {
-        var scaled = (int)MathF.Round(pixelSize * _mainCanvas.DpiScale);
-        if (scaled <= 0) scaled = pixelSize;
-        var handle = _fontBackend.LoadFontFromFile(PathUtils.ResolveLocalPath(path), scaled);
+        var handle = _fontBackend.LoadFontFromFile(PathUtils.ResolveLocalPath(path), ScalePixelSize(pixelSize));
         _mainCanvas.RegisterFont(family, handle);
+    }
+
+    public void RegisterFont(string family, byte[] fontData, int pixelSize)
+    {
+        var handle = _fontBackend.LoadFontFromMemory(fontData, ScalePixelSize(pixelSize));
+        _mainCanvas.RegisterFont(family, handle);
+    }
+
+    private int ScalePixelSize(int pixelSize)
+    {
+        var scaled = (int)MathF.Round(pixelSize * _mainCanvas.DpiScale);
+        return scaled <= 0 ? pixelSize : scaled;
     }
 
     public void SetIcon(string rgbaPath)

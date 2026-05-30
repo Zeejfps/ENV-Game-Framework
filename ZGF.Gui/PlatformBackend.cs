@@ -1,6 +1,5 @@
 // FontHandle is in ZGF.Fonts namespace.
 using System.Runtime.InteropServices;
-using ZGF.AppUtils;
 using ZGF.Core;
 using ZGF.Fonts;
 using static GL46;
@@ -33,9 +32,8 @@ internal static class PlatformBackend
         var mainWindow = (OpenGlWindow)app.MainWindow;
         var dpiScale = mainWindow.DpiScale;
 
-        var fontFilePath = PathUtils.ResolveLocalPath("Assets/Fonts/Inter/Inter-Regular.ttf");
         var fonts = new FreeTypeFontBackend();
-        var defaultFont = fonts.LoadFontFromFile(fontFilePath, (int)MathF.Round(16 * dpiScale));
+        var defaultFont = fonts.LoadFontFromMemory(EmbeddedAssets.LoadFontBytes("Inter-Regular.ttf"), (int)MathF.Round(16 * dpiScale));
         var imageManager = new GlImageManager();
         var shared = new GlSharedResources(fonts, imageManager);
         var windowWidth = config.WindowWidth;
@@ -74,9 +72,8 @@ internal static class PlatformBackend
         var mainWindow = (MetalWindow)app.MainWindow;
         var dpiScale = mainWindow.DpiScale;
 
-        var fontFilePath = PathUtils.ResolveLocalPath("Assets/Fonts/Inter/Inter-Regular.ttf");
         var fonts = new FreeTypeFontBackend();
-        var defaultFont = fonts.LoadFontFromFile(fontFilePath, (int)MathF.Round(16 * dpiScale));
+        var defaultFont = fonts.LoadFontFromMemory(EmbeddedAssets.LoadFontBytes("Inter-Regular.ttf"), (int)MathF.Round(16 * dpiScale));
         var imageManager = new MetalImageManager(app.Device);
         var shared = new MetalSharedResources(app.Device, app.CommandQueue, fonts, imageManager);
         var canvas = new MetalRenderedCanvas(
