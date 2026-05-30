@@ -14,7 +14,8 @@ namespace GitGui;
 /// branch to check it out: local branches check out directly; remote branches that have
 /// a matching local check that local out; remote branches with no matching local pop the
 /// CheckoutBranchDialog. Right-click a local/remote branch row to open a context menu
-/// (Checkout / Rename / Delete); right-click the "Local" section header to create a new
+/// (Checkout / Rename / Delete); right-click a stash row for Apply / Rename / Delete;
+/// right-click the "Local" section header to create a new
 /// branch (same as the toolbar's Branch button); right-click a remote header (e.g.
 /// "origin") to edit that remote's URL. Collapse state is persisted per-repo via
 /// IRepoRegistry.
@@ -559,6 +560,8 @@ internal sealed class BranchesView : MultiChildView, IBind<BranchesViewModel>, I
                 return vm.BuildLocalBranchMenuItems(row.FullPath, row.IsHead);
             case BranchRowKind.RemoteBranch when row.RemoteName != null && row.FullPath != null:
                 return vm.BuildRemoteBranchMenuItems(row.RemoteName, row.FullPath);
+            case BranchRowKind.Stash when row.StashIndex is int idx && row.FullPath != null:
+                return vm.BuildStashMenuItems(idx, row.FullPath, row.DisplayName);
             default:
                 return [];
         }

@@ -33,6 +33,7 @@ public interface IGitService
     StashOutcome CreateStash(Repo repo, string message, bool includeUntracked, bool keepIndex, IReadOnlyList<string> paths);
     StashOutcome ApplyStash(Repo repo, int index);
     StashOutcome DropStash(Repo repo, int index);
+    StashOutcome RenameStash(Repo repo, int index, string newMessage);
     DiffResult GetDiff(Repo repo, string path, DiffSide side, string? commitSha = null);
     RepoOperationState GetOperationState(Repo repo);
     AbortOperationOutcome AbortOperation(Repo repo, RepoOperationState state, bool forceQuit = false);

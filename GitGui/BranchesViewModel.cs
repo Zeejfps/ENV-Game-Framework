@@ -329,7 +329,15 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
             repo, remoteName, fullPath, fullPath, onClose)));
     }
 
+    // Double-click applies with pop semantics: on a clean apply, prompt to drop the stash.
     public void ActivateStash(int index, string label, string subject)
+        => StartApplyStash(index, label, subject, offerDrop: true);
+
+    // Context-menu "Apply" applies and keeps the stash — drop is a separate menu action.
+    public void ApplyStash(int index, string label, string subject)
+        => StartApplyStash(index, label, subject, offerDrop: false);
+
+    private void StartApplyStash(int index, string label, string subject, bool offerDrop)
     {
         var repo = _registry.Active.Value;
         if (repo == null) return;
@@ -352,8 +360,9 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
                 _bus.Broadcast(new RefsChangedMessage(repo.Id));
                 _bus.Broadcast(new WorkingTreeChangedMessage(repo.Id));
                 if (outcome.HasConflicts) return;
-                _bus.Broadcast(new ShowDialogMessage(onClose => new DropStashDialog(
-                    repo, index, label, subject, onClose)));
+                if (offerDrop)
+                    _bus.Broadcast(new ShowDialogMessage(onClose => new DropStashDialog(
+                        repo, index, label, subject, onClose)));
             },
             lane: _stashGen);
     }
@@ -614,6 +623,32 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
                 capturedRepo, capturedRemote, capturedName, onClose))),
             LucideIcons.Trash));
         return items;
+    }
+
+    public IReadOnlyList<RepoBarContextMenu.Item> BuildStashMenuItems(int index, string label, string subject)
+    {
+        var repo = _registry.Active.Value;
+        if (repo == null) return Array.Empty<RepoBarContextMenu.Item>();
+
+        var capturedRepo = repo;
+        return new List<RepoBarContextMenu.Item>
+        {
+            new RepoBarContextMenu.Item(
+                "Apply",
+                () => ApplyStash(index, label, subject),
+                LucideIcons.Stash,
+                Enabled: !_isStashApplying),
+            new RepoBarContextMenu.Item(
+                "Rename…",
+                () => _bus.Broadcast(new ShowDialogMessage(onClose => new RenameStashDialog(
+                    capturedRepo, index, subject, onClose))),
+                LucideIcons.PencilLine),
+            new RepoBarContextMenu.Item(
+                "Delete…",
+                () => _bus.Broadcast(new ShowDialogMessage(onClose => new DeleteStashDialog(
+                    capturedRepo, index, label, subject, onClose))),
+                LucideIcons.Trash),
+        };
     }
 
     private string? GetHeadBranchName()

@@ -1477,6 +1477,33 @@ public sealed class GitService : IGitService
         }
     }
 
+    public StashOutcome RenameStash(Repo repo, int index, string newMessage)
+    {
+        try
+        {
+            if (!IsGitRepo(repo.Path))
+                return new StashOutcome(false, "Not a git repository.");
+
+            using var _lock = LockRepo(repo.Path);
+
+            // git has no native stash rename. Resolve the stash commit, drop the entry,
+            // then re-store it under the new message. `git stash store` pushes the entry
+            // back onto refs/stash, so a renamed stash moves to the top (stash@{0}).
+            var sha = RunGit(repo.Path, out _, "rev-parse", $"stash@{{{index}}}")?.Trim();
+            if (string.IsNullOrEmpty(sha))
+                return new StashOutcome(false, "Could not resolve stash commit.");
+
+            var dropOutcome = RunGitStash(repo.Path, new[] { "stash", "drop", $"stash@{{{index}}}" }, "git stash drop");
+            if (!dropOutcome.Success) return dropOutcome;
+
+            return RunGitStash(repo.Path, new[] { "stash", "store", "-m", newMessage, sha }, "git stash store");
+        }
+        catch (Exception ex)
+        {
+            return new StashOutcome(false, ex.Message);
+        }
+    }
+
     public IReadOnlyList<WorktreeInfo> ListWorktrees(Repo primary, out string? errorMessage)
     {
         errorMessage = null;
