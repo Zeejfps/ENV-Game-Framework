@@ -646,7 +646,7 @@ internal sealed class BranchesViewModel : ViewModelBase<BranchesState>
             new RepoBarContextMenu.Item(
                 "Delete…",
                 () => _bus.Broadcast(new ShowDialogMessage(onClose => new DeleteStashDialog(
-                    capturedRepo, index, label, subject, onClose))),
+                    capturedRepo, index, subject, onClose))),
                 LucideIcons.Trash),
         };
     }

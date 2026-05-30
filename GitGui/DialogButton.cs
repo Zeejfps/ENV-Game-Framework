@@ -1,7 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
-using ZGF.Observable;
 
 namespace GitGui;
 
@@ -94,12 +93,9 @@ public sealed class DialogButton : HoverableButton
     {
         BindCommand(command);
 
-        var dispatcher = Context?.Get<IUiDispatcher>();
-        if (dispatcher != null)
-        {
-            _busySpinner = new SpinnerAnimation(dispatcher);
+        _busySpinner = Context?.Create<SpinnerAnimation>();
+        if (_busySpinner != null)
             _busySpinner.Rotation.Subscribe(r => IconRotation = r);
-        }
 
         command.IsRunning.Subscribe(running =>
         {

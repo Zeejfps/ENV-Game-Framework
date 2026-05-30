@@ -24,10 +24,11 @@ internal sealed class RenameStashDialog : MultiChildView, IBind<RenameStashDialo
     public RenameStashDialog(Repo repo, int index, string currentMessage, Action onClose)
     {
         _onClose = onClose;
+        MinWidthConstraint = 420f;
 
         var subtitle = new TextView
         {
-            Text = $"Renaming stash@{{{index}}}",
+            Text = $"Renaming '{currentMessage}'",
             TextWrap = TextWrap.Wrap,
         };
         subtitle.BindThemedTextColor(s => s.DialogBody.BodyText);

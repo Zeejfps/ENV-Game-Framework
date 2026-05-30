@@ -18,7 +18,7 @@ public sealed class DeleteStashDialog : MultiChildView
 
     private bool _isRunning;
 
-    public DeleteStashDialog(Repo repo, int index, string label, string subject, Action onClose)
+    public DeleteStashDialog(Repo repo, int index, string subject, Action onClose)
     {
         Width = 460f;
 
@@ -26,7 +26,7 @@ public sealed class DeleteStashDialog : MultiChildView
 
         var prompt = new TextView
         {
-            Text = $"{subject}\n\nDelete this stash? This cannot be undone.",
+            Text = $"{subject}\n\nThis stash will be permanently deleted. This cannot be undone.",
             TextWrap = TextWrap.Wrap,
         };
         prompt.BindThemedTextColor(s => s.DialogBody.BodyText);
@@ -36,7 +36,7 @@ public sealed class DeleteStashDialog : MultiChildView
         var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
         _deleteButton = new DialogButton("Delete", () => TryDelete(repo, index)) { Height = DialogFrame.DefaultButtonHeight };
 
-        AddChildToSelf(DialogFrame.Build($"Delete {label}?", onClose, new FlexColumnView
+        AddChildToSelf(DialogFrame.Build("Delete stash?", onClose, new FlexColumnView
         {
             Gap = 12,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
