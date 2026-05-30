@@ -14,9 +14,10 @@ internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
     private const float SummaryColumnWidth = 0f;
     private const float DefaultAuthorColumnWidth = 140f;
     private const float DefaultHashColumnWidth = 80f;
-    private const float DefaultDateColumnWidth = 110f;
+    private const float DefaultDateColumnWidth = 80f;
     private const float MinColumnWidth = 40f;
     private const float MaxColumnWidth = 600f;
+    private const float MinSummaryWidth = 180f;
     private const float DividerThickness = 1f;
     internal const float DividerHitWidth = 6f;
     private const float BadgePaddingX = 6f;
@@ -252,9 +253,10 @@ internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
                 break;
         }
 
-        var dateXAll = pos.Right - _dateColumnWidth - ColumnGap;
-        var hashXAll = dateXAll - _hashColumnWidth - ColumnGap;
-        var authorXAll = hashXAll - _authorColumnWidth - ColumnGap;
+        GetEffectiveColumnWidths(out var authorW, out var hashW, out var dateW);
+        var dateXAll = pos.Right - dateW - ColumnGap;
+        var hashXAll = dateXAll - hashW - ColumnGap;
+        var authorXAll = hashXAll - authorW - ColumnGap;
         DrawColumnDivider(c, authorXAll - ColumnGap, pos.Bottom, pos.Height, DividerKind.Author, z + 100);
         DrawColumnDivider(c, hashXAll - ColumnGap, pos.Bottom, pos.Height, DividerKind.Hash, z + 100);
         DrawColumnDivider(c, dateXAll - ColumnGap, pos.Bottom, pos.Height, DividerKind.Date, z + 100);
@@ -277,15 +279,16 @@ internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
             ZIndex = z,
         });
 
+        GetEffectiveColumnWidths(out var authorW, out var hashW, out var dateW);
         var graphWidth = ComputeGraphColumnWidth();
-        var dateX = pos.Right - _dateColumnWidth - ColumnGap;
-        var hashX = dateX - _hashColumnWidth - ColumnGap;
-        var authorX = hashX - _authorColumnWidth - ColumnGap;
+        var dateX = pos.Right - dateW - ColumnGap;
+        var hashX = dateX - hashW - ColumnGap;
+        var authorX = hashX - authorW - ColumnGap;
 
         DrawHeaderText(c, "Commit", pos.Left + CommitGraphRenderer.PaddingLeft, pos.Top - HeaderHeight, graphWidth, z + 1);
-        DrawHeaderText(c, "Author", authorX, pos.Top - HeaderHeight, _authorColumnWidth, z + 1);
-        DrawHeaderText(c, "Hash", hashX, pos.Top - HeaderHeight, _hashColumnWidth, z + 1);
-        DrawHeaderText(c, "Date", dateX, pos.Top - HeaderHeight, _dateColumnWidth, z + 1);
+        DrawHeaderText(c, "Author", authorX, pos.Top - HeaderHeight, authorW, z + 1);
+        DrawHeaderText(c, "Hash", hashX, pos.Top - HeaderHeight, hashW, z + 1);
+        DrawHeaderText(c, "Date", dateX, pos.Top - HeaderHeight, dateW, z + 1);
     }
 
     private static void DrawColumnOverlay(ICanvas c, float left, float bottom, float width, uint color, int z)
@@ -346,11 +349,43 @@ internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
     private float ComputeGraphColumnWidth()
         => CommitGraphRenderer.ColumnWidth(_snapshot?.LaneCount ?? 0);
 
+    // The summary (commit message) column has the highest priority: it keeps at least
+    // MinSummaryWidth. When the view is too narrow to honor every metadata column at its
+    // set width, they shrink to make room — Date first, then Hash, then Author — each
+    // down to MinColumnWidth. The set widths (from divider drags) are the upper bound.
+    private void GetEffectiveColumnWidths(out float author, out float hash, out float date)
+    {
+        author = _authorColumnWidth;
+        hash = _hashColumnWidth;
+        date = _dateColumnWidth;
+
+        var totalWidth = Position.Width;
+        if (totalWidth <= 0f) return;
+
+        var available = totalWidth - MinSummaryWidth - ColumnGap * 4f;
+        var deficit = author + hash + date - available;
+        if (deficit <= 0f) return;
+
+        ShrinkColumn(ref date, ref deficit);
+        ShrinkColumn(ref hash, ref deficit);
+        ShrinkColumn(ref author, ref deficit);
+    }
+
+    private static void ShrinkColumn(ref float width, ref float deficit)
+    {
+        if (deficit <= 0f) return;
+        var take = Math.Min(width - MinColumnWidth, deficit);
+        if (take <= 0f) return;
+        width -= take;
+        deficit -= take;
+    }
+
     private RectF ComputeCommitsColumnRect(RectF body)
     {
-        var dateX = body.Right - _dateColumnWidth - ColumnGap;
-        var hashX = dateX - _hashColumnWidth - ColumnGap;
-        var authorX = hashX - _authorColumnWidth - ColumnGap;
+        GetEffectiveColumnWidths(out var authorW, out var hashW, out var dateW);
+        var dateX = body.Right - dateW - ColumnGap;
+        var hashX = dateX - hashW - ColumnGap;
+        var authorX = hashX - authorW - ColumnGap;
         var rightEdge = authorX - ColumnGap;
         var width = Math.Max(0f, rightEdge - body.Left);
         return new RectF(body.Left, body.Bottom, width, body.Height);
@@ -365,10 +400,11 @@ internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
         var body = rowRect; // share names with the original DrawCommits for arithmetic clarity
         var rowBottom = rowRect.Bottom;
 
+        GetEffectiveColumnWidths(out var authorW, out var hashW, out var dateW);
         var graphStartX = body.Left + CommitGraphRenderer.PaddingLeft;
-        var dateX = body.Right - _dateColumnWidth - ColumnGap;
-        var hashX = dateX - _hashColumnWidth - ColumnGap;
-        var authorX = hashX - _authorColumnWidth - ColumnGap;
+        var dateX = body.Right - dateW - ColumnGap;
+        var hashX = dateX - hashW - ColumnGap;
+        var authorX = hashX - authorW - ColumnGap;
         var authorPanelLeft = authorX - ColumnGap;
         var hashPanelLeft = hashX - ColumnGap;
         var datePanelLeft = dateX - ColumnGap;
@@ -396,11 +432,11 @@ internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
 
         var rowOverlayColor = isHighlighted ? _styles.RowSelectedBackground : _styles.Background;
         DrawColumnOverlay(c, authorPanelLeft, rowBottom, hashPanelLeft - authorPanelLeft, rowOverlayColor, z + 3);
-        DrawText(c, node.Author, authorX, textTop, _authorColumnWidth, isHighlighted, z + 4);
+        DrawText(c, node.Author, authorX, textTop, authorW, isHighlighted, z + 4);
         DrawColumnOverlay(c, hashPanelLeft, rowBottom, datePanelLeft - hashPanelLeft, rowOverlayColor, z + 5);
-        DrawHashText(c, ShortSha(node.Sha), hashX, textTop, _hashColumnWidth, isHighlighted, z + 6);
+        DrawHashText(c, ShortSha(node.Sha), hashX, textTop, hashW, isHighlighted, z + 6);
         DrawColumnOverlay(c, datePanelLeft, rowBottom, body.Right - datePanelLeft, rowOverlayColor, z + 7);
-        DrawText(c, FormatRelative(node.When), dateX, textTop, _dateColumnWidth, isHighlighted, z + 8);
+        DrawText(c, FormatRelative(node.When), dateX, textTop, dateW, isHighlighted, z + 8);
     }
 
     private float DrawBadges(ICanvas c, CommitNode node, float left, float rowBottom, int z)
@@ -507,9 +543,10 @@ internal sealed class CommitsView : MultiChildView, IBind<CommitsViewModel>
         if (point.X < pos.Left || point.X > pos.Right) return DividerKind.None;
         if (point.Y < pos.Bottom || point.Y > pos.Top) return DividerKind.None;
 
-        var dateX = pos.Right - _dateColumnWidth - ColumnGap;
-        var hashX = dateX - _hashColumnWidth - ColumnGap;
-        var authorX = hashX - _authorColumnWidth - ColumnGap;
+        GetEffectiveColumnWidths(out var authorW, out var hashW, out var dateW);
+        var dateX = pos.Right - dateW - ColumnGap;
+        var hashX = dateX - hashW - ColumnGap;
+        var authorX = hashX - authorW - ColumnGap;
         var authorDividerX = authorX - ColumnGap;
         var hashDividerX = hashX - ColumnGap;
         var dateDividerX = dateX - ColumnGap;
