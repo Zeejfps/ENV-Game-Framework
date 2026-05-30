@@ -17,6 +17,7 @@ internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranc
     private readonly TextInputView _nameInput;
     private readonly CheckoutDialogKbmController _nameController;
     private readonly CheckboxView _trackCheckbox;
+    private readonly DialogButton _cancelButton;
     private readonly DialogButton _checkoutButton;
 
     public CheckoutBranchDialog(
@@ -47,7 +48,7 @@ internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranc
             Height = 22,
         };
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
         _checkoutButton = new DialogButton("Checkout") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build("Checkout branch", onClose, new FlexColumnView
@@ -61,7 +62,7 @@ internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranc
                 nameBox,
                 _trackCheckbox,
                 new MultiChildView { Height = 4 },
-                DialogFrame.ButtonsRow(cancelButton, _checkoutButton),
+                DialogFrame.ButtonsRow(_cancelButton, _checkoutButton),
             },
         }));
 
@@ -89,6 +90,14 @@ internal sealed class CheckoutBranchDialog : MultiChildView, IBind<CheckoutBranc
         _nameInput.BindTwoWay(vm.Name);
         _trackCheckbox.IsChecked.BindTwoWay(vm.Track);
         _checkoutButton.BindCommand(vm.Checkout);
+        _cancelButton.IsEnabled.BindTo(vm.CancelEnabled);
+
+        vm.IsBusy.Subscribe(b =>
+        {
+            _checkoutButton.Icon = b ? LucideIcons.Loader : string.Empty;
+            if (!b) _checkoutButton.IconRotation = 0f;
+        });
+        vm.BusyRotation.Subscribe(r => _checkoutButton.IconRotation = r);
 
         // Bind runs after the input is attached to a context — doing focus earlier (e.g.
         // in the dialog ctor) produced an empty-looking field, since StartEditing/StealFocus

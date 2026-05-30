@@ -20,6 +20,7 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
     private readonly CheckboxView _checkoutMode;
     private readonly CheckboxView _mergeMode;
     private readonly CheckboxView _rebaseMode;
+    private readonly DialogButton _cancelButton;
     private readonly DialogButton _updateButton;
     private readonly TextView _errorView;
 
@@ -55,7 +56,7 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
 
         _errorView = DialogFrame.ErrorView();
 
-        var cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
+        _cancelButton = new DialogButton("Cancel", onClose) { Height = DialogFrame.DefaultButtonHeight };
         _updateButton = new DialogButton("Update") { Height = DialogFrame.DefaultButtonHeight };
 
         AddChildToSelf(DialogFrame.Build(titleText, onClose, new FlexColumnView
@@ -74,7 +75,7 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
                 conflictsHint,
                 _errorView,
                 new MultiChildView { Height = 4 },
-                DialogFrame.ButtonsRow(cancelButton, _updateButton),
+                DialogFrame.ButtonsRow(_cancelButton, _updateButton),
             },
         }));
 
@@ -97,7 +98,15 @@ internal sealed class UpdateSubmodulesDialog : MultiChildView, IBind<UpdateSubmo
         _initCheckbox.IsChecked.BindTwoWay(vm.Init);
         _recursiveCheckbox.IsChecked.BindTwoWay(vm.Recursive);
         _updateButton.BindCommand(vm.Update);
+        _cancelButton.IsEnabled.BindTo(vm.CancelEnabled);
         _errorView.BindText(vm.Error, s => s ?? string.Empty);
+
+        vm.IsBusy.Subscribe(b =>
+        {
+            _updateButton.Icon = b ? LucideIcons.Loader : string.Empty;
+            if (!b) _updateButton.IconRotation = 0f;
+        });
+        vm.BusyRotation.Subscribe(r => _updateButton.IconRotation = r);
 
         vm.Mode.Subscribe(m =>
         {
