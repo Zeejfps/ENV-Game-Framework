@@ -28,19 +28,19 @@ public sealed unsafe class MetalSharedResources : IDisposable
         Fonts = fonts;
         ImageManager = imageManager;
 
-        var library = LoadLibrary(device, File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "canvas_rect.gen.metal")));
+        var library = LoadLibrary(device, EmbeddedAssets.LoadShaderSource("canvas_rect.gen.metal"));
         RectPipeline = BuildPipeline(device, library, MetalRenderedCanvas.MakeRectVertexDescriptor());
         Release(library);
 
-        library = LoadLibrary(device, File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "canvas_glyph.gen.metal")));
+        library = LoadLibrary(device, EmbeddedAssets.LoadShaderSource("canvas_glyph.gen.metal"));
         GlyphPipeline = BuildPipeline(device, library, MetalRenderedCanvas.MakeGlyphVertexDescriptor());
         Release(library);
 
-        library = LoadLibrary(device, File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "canvas_image.gen.metal")));
+        library = LoadLibrary(device, EmbeddedAssets.LoadShaderSource("canvas_image.gen.metal"));
         ImagePipeline = BuildPipeline(device, library, MetalRenderedCanvas.MakeImageVertexDescriptor());
         Release(library);
 
-        library = LoadLibrary(device, File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "canvas_shadow.gen.metal")));
+        library = LoadLibrary(device, EmbeddedAssets.LoadShaderSource("canvas_shadow.gen.metal"));
         ShadowPipeline = BuildPipeline(device, library, MetalRenderedCanvas.MakeShadowVertexDescriptor());
         Release(library);
 

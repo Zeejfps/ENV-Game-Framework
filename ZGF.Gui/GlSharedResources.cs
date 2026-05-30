@@ -37,22 +37,21 @@ public sealed unsafe class GlSharedResources : IDisposable
         _fonts = fonts;
         _imageManager = imageManager;
 
-        var shadersDir = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
         _rectShader = new ShaderProgramCompiler()
-            .WithVertexShader(Path.Combine(shadersDir, "canvas_rect.vert.glsl"))
-            .WithFragmentShader(Path.Combine(shadersDir, "canvas_rect.frag.glsl"))
+            .WithVertexShaderSource(EmbeddedAssets.LoadShaderSource("canvas_rect.vert.glsl"))
+            .WithFragmentShaderSource(EmbeddedAssets.LoadShaderSource("canvas_rect.frag.glsl"))
             .Compile().Id;
         _glyphShader = new ShaderProgramCompiler()
-            .WithVertexShader(Path.Combine(shadersDir, "canvas_glyph.vert.glsl"))
-            .WithFragmentShader(Path.Combine(shadersDir, "canvas_glyph.frag.glsl"))
+            .WithVertexShaderSource(EmbeddedAssets.LoadShaderSource("canvas_glyph.vert.glsl"))
+            .WithFragmentShaderSource(EmbeddedAssets.LoadShaderSource("canvas_glyph.frag.glsl"))
             .Compile().Id;
         _imageShader = new ShaderProgramCompiler()
-            .WithVertexShader(Path.Combine(shadersDir, "canvas_image.vert.glsl"))
-            .WithFragmentShader(Path.Combine(shadersDir, "canvas_image.frag.glsl"))
+            .WithVertexShaderSource(EmbeddedAssets.LoadShaderSource("canvas_image.vert.glsl"))
+            .WithFragmentShaderSource(EmbeddedAssets.LoadShaderSource("canvas_image.frag.glsl"))
             .Compile().Id;
         _shadowShader = new ShaderProgramCompiler()
-            .WithVertexShader(Path.Combine(shadersDir, "canvas_shadow.vert.glsl"))
-            .WithFragmentShader(Path.Combine(shadersDir, "canvas_shadow.frag.glsl"))
+            .WithVertexShaderSource(EmbeddedAssets.LoadShaderSource("canvas_shadow.vert.glsl"))
+            .WithFragmentShaderSource(EmbeddedAssets.LoadShaderSource("canvas_shadow.frag.glsl"))
             .Compile().Id;
 
         _rectProjLoc = glGetUniformLocation(_rectShader, "u_projection");

@@ -8,10 +8,32 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Content Include="Assets\**\*">
+      <!-- Non-shader assets (fonts, icons) are still copied next to the binary. -->
+      <Content Include="Assets\**\*" Exclude="Assets\Shaders\**\*">
         <Link>Assets\%(RecursiveDir)%(Filename)%(Extension)</Link>
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
+    </ItemGroup>
+
+    <!-- Shaders are embedded into the assembly instead of shipped as loose files.
+         For a platform-specific build (RID set, as all published/AOT builds are),
+         only the backend that platform uses is embedded: Metal on osx RIDs,
+         OpenGL/GLSL elsewhere. A plain `dotnet run` (no RID) embeds both so local
+         development works on any host regardless of the runtime-selected backend. -->
+    <PropertyGroup>
+      <_Rid>$(RuntimeIdentifier)</_Rid>
+    </PropertyGroup>
+
+    <ItemGroup Condition="$(_Rid.StartsWith('osx')) OR '$(_Rid)' == ''">
+      <EmbeddedResource Include="Assets\Shaders\*.gen.metal">
+        <LogicalName>%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup Condition="!$(_Rid.StartsWith('osx'))">
+      <EmbeddedResource Include="Assets\Shaders\*.glsl">
+        <LogicalName>%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>

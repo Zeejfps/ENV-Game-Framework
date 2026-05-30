@@ -6,25 +6,43 @@ namespace OpenGL.NET;
 
 public sealed class ShaderProgramCompiler
 {
-    private string? _vertexShaderFilePath;
-    private string? _fragmentShaderFilePath;
-    private string? _geometryShaderFilePath;
+    private string? _vertexShaderSource;
+    private string? _fragmentShaderSource;
+    private string? _geometryShaderSource;
 
     public ShaderProgramCompiler WithVertexShader(string filePath)
     {
-        _vertexShaderFilePath = filePath;
+        _vertexShaderSource = File.ReadAllText(filePath);
         return this;
     }
-    
+
     public ShaderProgramCompiler WithGeometryShader(string filePath)
     {
-        _geometryShaderFilePath = filePath;
+        _geometryShaderSource = File.ReadAllText(filePath);
         return this;
     }
 
     public ShaderProgramCompiler WithFragmentShader(string filePath)
     {
-        _fragmentShaderFilePath = filePath;
+        _fragmentShaderSource = File.ReadAllText(filePath);
+        return this;
+    }
+
+    public ShaderProgramCompiler WithVertexShaderSource(string source)
+    {
+        _vertexShaderSource = source;
+        return this;
+    }
+
+    public ShaderProgramCompiler WithGeometryShaderSource(string source)
+    {
+        _geometryShaderSource = source;
+        return this;
+    }
+
+    public ShaderProgramCompiler WithFragmentShaderSource(string source)
+    {
+        _fragmentShaderSource = source;
         return this;
     }
 
@@ -32,9 +50,9 @@ public sealed class ShaderProgramCompiler
     {
         var shaderProgramId = glCreateProgram(); AssertNoGlError();
 
-        var vertexShader = CompileAndAttachShader(shaderProgramId, GL_VERTEX_SHADER, _vertexShaderFilePath);
-        var fragmentShader = CompileAndAttachShader(shaderProgramId, GL_FRAGMENT_SHADER, _fragmentShaderFilePath);
-        var geometryShader = CompileAndAttachShader(shaderProgramId, GL_GEOMETRY_SHADER, _geometryShaderFilePath);
+        var vertexShader = CompileAndAttachShader(shaderProgramId, GL_VERTEX_SHADER, _vertexShaderSource);
+        var fragmentShader = CompileAndAttachShader(shaderProgramId, GL_FRAGMENT_SHADER, _fragmentShaderSource);
+        var geometryShader = CompileAndAttachShader(shaderProgramId, GL_GEOMETRY_SHADER, _geometryShaderSource);
 
         glLinkProgram(shaderProgramId); AssertNoGlError();
 
@@ -61,12 +79,12 @@ public sealed class ShaderProgramCompiler
         };
     }
 
-    private uint CompileAndAttachShader(uint shaderProgramId, uint type, string? shaderFilePath)
+    private uint CompileAndAttachShader(uint shaderProgramId, uint type, string? shaderSource)
     {
         uint shaderId = 0;
-        if (!string.IsNullOrEmpty(shaderFilePath))
+        if (!string.IsNullOrEmpty(shaderSource))
         {
-            shaderId = CreateAndCompileShaderFromSourceFile(type, shaderFilePath);
+            shaderId = CreateAndCompileShaderFromSource(type, shaderSource);
             glAttachShader(shaderProgramId, shaderId); AssertNoGlError();
         }
         return shaderId;
