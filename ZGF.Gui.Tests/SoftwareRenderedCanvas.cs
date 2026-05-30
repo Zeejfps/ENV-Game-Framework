@@ -306,7 +306,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         Graphics.BlitTransparent(
             _colorBuffer, offsetX, offsetY, (int)scaledWidth, (int)scaledHeight,
             image, 0, 0, image.Width, image.Height,
-            data.Style.TintColor
+            data.TintColor
         );
     }
 

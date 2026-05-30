@@ -2,7 +2,7 @@
 
 public sealed class RectStyle
 {
-    public StyleValue<uint> BackgroundColor;
+    public uint BackgroundColor;
     public PaddingStyle Padding;
     public BorderColorStyle BorderColor;
     public BorderSizeStyle BorderSize;

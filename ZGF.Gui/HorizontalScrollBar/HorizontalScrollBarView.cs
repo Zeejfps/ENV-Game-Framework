@@ -15,7 +15,7 @@ public sealed class HorizontalScrollBarView : MultiChildView
 
     public HorizontalScrollBarThumbView Thumb => _thumbView;
 
-    public StyleValue<uint> TrackBackgroundColor
+    public uint TrackBackgroundColor
     {
         get => _slideArea.BackgroundColor;
         set => _slideArea.BackgroundColor = value;

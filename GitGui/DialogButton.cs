@@ -1,5 +1,4 @@
 using ZGF.Gui;
-using ZGF.Gui.Bindings;
 using ZGF.Gui.Layouts;
 
 namespace GitGui;

@@ -10,7 +10,7 @@ public sealed class ContextMenu : MultiChildView
     private readonly ColumnView _itemsContainer;
     private readonly RectView _background;
 
-    public StyleValue<uint> BackgroundColor
+    public uint BackgroundColor
     {
         get => _background.BackgroundColor;
         set => _background.BackgroundColor = value;

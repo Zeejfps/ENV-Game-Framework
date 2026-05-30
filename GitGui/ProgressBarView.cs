@@ -33,7 +33,7 @@ public sealed class ProgressBarView : RectView
         }
     }
 
-    public StyleValue<uint> FillColor
+    public uint FillColor
     {
         get => _fill.BackgroundColor;
         set => _fill.BackgroundColor = value;

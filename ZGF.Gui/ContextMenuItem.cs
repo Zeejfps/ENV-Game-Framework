@@ -9,8 +9,8 @@ public sealed class ContextMenuItemData
 
 public sealed class ContextMenuItem : MultiChildView
 {
-    private StyleValue<uint> _normalBackgroundColor;
-    public StyleValue<uint> NormalBackgroundColor
+    private uint _normalBackgroundColor;
+    public uint NormalBackgroundColor
     {
         get => _normalBackgroundColor;
         set
@@ -23,8 +23,8 @@ public sealed class ContextMenuItem : MultiChildView
         }
     }
     
-    private StyleValue<uint> _selectedBackgroundColor;
-    public StyleValue<uint> SelectedBackgroundColor
+    private uint _selectedBackgroundColor;
+    public uint SelectedBackgroundColor
     {
         get => _selectedBackgroundColor;
         set => SetField(ref _selectedBackgroundColor, value);

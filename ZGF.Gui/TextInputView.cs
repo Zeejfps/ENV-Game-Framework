@@ -11,7 +11,7 @@ public sealed class TextInputView : MultiChildView
         set => SetField(ref _textWrap, value);
     }
     
-    public StyleValue<uint> BackgroundColor
+    public uint BackgroundColor
     {
         get => _background.BackgroundColor;
         set => SetField(ref _background.BackgroundColor, value);
@@ -35,13 +35,13 @@ public sealed class TextInputView : MultiChildView
         set => SetField(ref _textStyle.VerticalAlignment, value);
     }
 
-    public StyleValue<uint> SelectionRectColor
+    public uint SelectionRectColor
     {
         get => _selectionRectStyle.BackgroundColor;
         set => SetField(ref _selectionRectStyle.BackgroundColor, value);
     }
 
-    public StyleValue<uint> CaretColor
+    public uint CaretColor
     {
         get => _cursorStyle.BackgroundColor;
         set => SetField(ref _cursorStyle.BackgroundColor, value);

@@ -15,7 +15,7 @@ public sealed class VerticalScrollBarView : MultiChildView
 
     public VerticalScrollBarThumbView Thumb => _thumbView;
 
-    public StyleValue<uint> TrackBackgroundColor
+    public uint TrackBackgroundColor
     {
         get => _slideArea.BackgroundColor;
         set => _slideArea.BackgroundColor = value;

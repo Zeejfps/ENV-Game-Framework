@@ -237,7 +237,7 @@ public abstract class RenderedCanvasBase : ICanvas
                     MathF.Round(style.BorderSize.Right.Value),
                     MathF.Round(style.BorderSize.Bottom.Value),
                     MathF.Round(style.BorderSize.Left.Value)),
-                BgColor = style.BackgroundColor.Value,
+                BgColor = style.BackgroundColor,
                 BorderColorTop = style.BorderColor.Top.Value,
                 BorderColorRight = style.BorderColor.Right.Value,
                 BorderColorBottom = style.BorderColor.Bottom.Value,
@@ -517,9 +517,9 @@ public abstract class RenderedCanvasBase : ICanvas
             {
                 Rect = new Vector4(snappedLeft, snappedBottom, snappedRight - snappedLeft, snappedTop - snappedBottom),
                 SrcUV = new Vector4(0f, 0f, 1f, 1f),
-                Tint = inputs.Style.TintColor.Value,
+                Tint = inputs.TintColor,
                 ClipIndex = (uint)_clipStack.Peek(),
-                Rotation = inputs.Style.Rotation.Value,
+                Rotation = inputs.Rotation,
                 TextureId = GetImageTextureId(imageId),
             }
         });

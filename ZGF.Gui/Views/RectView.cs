@@ -4,7 +4,7 @@ public class RectView : MultiChildView
 {
     private readonly RectStyle _style = new();
 
-    public StyleValue<uint> BackgroundColor
+    public uint BackgroundColor
     {
         get => _style.BackgroundColor;
         set => SetField(ref _style.BackgroundColor, value);
