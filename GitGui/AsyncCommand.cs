@@ -18,6 +18,7 @@ internal sealed class AsyncCommand : ICommand
     private readonly OperationRunner _runner;
     private readonly Func<string?> _work;
     private readonly Action _onSuccess;
+    private readonly Action<string>? _onError;
     private readonly State<bool> _isRunning = new(false);
     private readonly State<string?> _error = new(null);
 
@@ -31,15 +32,21 @@ internal sealed class AsyncCommand : ICommand
     /// Typical use: broadcast bus messages and raise <c>CloseRequested</c>.</param>
     /// <param name="gate">Additional CanExecute condition ANDed with <see cref="IsRunning"/>
     /// being false. Pass null to gate purely on running state.</param>
+    /// <param name="onError">Invoked on the UI thread after a failing result, with the same
+    /// message already published to <see cref="Error"/>. Lets a VM react to failure — toggle a
+    /// retry mode, close and route the error to a dialog — beyond the default of surfacing
+    /// <see cref="Error"/>. Pass null to leave failure handling to <see cref="Error"/> alone.</param>
     public AsyncCommand(
         IUiDispatcher dispatcher,
         Func<string?> work,
         Action onSuccess,
-        IReadable<bool>? gate = null)
+        IReadable<bool>? gate = null,
+        Action<string>? onError = null)
     {
         _runner = new OperationRunner(dispatcher);
         _work = work;
         _onSuccess = onSuccess;
+        _onError = onError;
 
         CanExecute = gate is null
             ? new Derived<bool>(() => !_isRunning.Value)
@@ -57,7 +64,7 @@ internal sealed class AsyncCommand : ICommand
             error =>
             {
                 _isRunning.Value = false;
-                if (error != null) { _error.Value = error; return; }
+                if (error != null) { _error.Value = error; _onError?.Invoke(error); return; }
                 _onSuccess();
             });
     }

@@ -1,26 +1,20 @@
-using ZGF.Gui;
 using ZGF.Observable;
 
 namespace GitGui;
 
 internal sealed class AbortOperationDialogViewModel : IDisposable
 {
-    private readonly AbortOperationRequest _request;
-    private readonly IGitService _gitService;
-    private readonly IMessageBus _bus;
-    private readonly OperationRunner _runner;
     private readonly SpinnerAnimation _spinner;
-    private readonly State<bool> _isRunning = new(false);
-    private readonly State<string?> _error = new(null);
     private readonly State<bool> _forceQuitMode = new(false);
+    private readonly State<bool> _forceQuitAvailable = new(false);
 
     public IReadable<string> ConfirmButtonLabel { get; }
     public IReadable<bool> CancelEnabled { get; }
     public IReadable<bool> IsBusy { get; }
     public IReadable<float> BusyRotation { get; }
-    public IReadable<string?> Error => _error;
+    public IReadable<string?> Error => Abort.Error;
 
-    public Command Abort { get; }
+    public AsyncCommand Abort { get; }
 
     public event Action? CloseRequested;
 
@@ -30,53 +24,47 @@ internal sealed class AbortOperationDialogViewModel : IDisposable
         IUiDispatcher dispatcher,
         IMessageBus bus)
     {
-        _request = request;
-        _gitService = gitService;
-        _bus = bus;
-        _runner = new OperationRunner(dispatcher);
         _spinner = new SpinnerAnimation(dispatcher);
 
         IsBusy = _spinner.IsActive;
         BusyRotation = _spinner.Rotation;
-        CancelEnabled = new Derived<bool>(() => !_isRunning.Value);
 
         var defaultLabel = DefaultConfirmLabel(request.State);
         ConfirmButtonLabel = new Derived<string>(() => _forceQuitMode.Value ? "Force clear" : defaultLabel);
 
-        var canAbort = new Derived<bool>(() =>
-            !_isRunning.Value && request.State != RepoOperationState.None);
-        Abort = new Command(DoAbort, canAbort);
-    }
+        var repoId = request.Repo.Id;
+        var gate = new Derived<bool>(() => request.State != RepoOperationState.None);
 
-    private void DoAbort()
-    {
-        if (_isRunning.Value) return;
-        if (_request.State == RepoOperationState.None) return;
-
-        var forceQuit = _forceQuitMode.Value;
-        var repoId = _request.Repo.Id;
-        _isRunning.Value = true;
-        _error.Value = null;
-        _spinner.Start();
-
-        _runner.Run(
-            () => _gitService.AbortOperation(_request.Repo, _request.State, forceQuit),
-            ex => new AbortOperationOutcome(false, ex.Message),
-            outcome =>
+        Abort = new AsyncCommand(
+            dispatcher,
+            work: () =>
             {
-                _spinner.Stop();
-                _isRunning.Value = false;
-                if (!outcome.Success)
-                {
-                    _error.Value = outcome.ErrorMessage ?? "Abort failed.";
-                    if (outcome.ForceQuitAvailable && !_forceQuitMode.Value)
-                        _forceQuitMode.Value = true;
-                    return;
-                }
+                var outcome = gitService.AbortOperation(request.Repo, request.State, _forceQuitMode.Value);
+                _forceQuitAvailable.Value = outcome.ForceQuitAvailable;
+                return outcome.Success ? null : (outcome.ErrorMessage ?? "Abort failed.");
+            },
+            onSuccess: () =>
+            {
                 CloseRequested?.Invoke();
-                _bus.Broadcast(new RefsChangedMessage(repoId));
-                _bus.Broadcast(new WorkingTreeChangedMessage(repoId));
+                bus.Broadcast(new RefsChangedMessage(repoId));
+                bus.Broadcast(new WorkingTreeChangedMessage(repoId));
+            },
+            gate: gate,
+            onError: _ =>
+            {
+                // A first failure that reports force-quit availability flips the button into
+                // "Force clear" mode so a second press can hard-clear the operation state.
+                if (_forceQuitAvailable.Value && !_forceQuitMode.Value)
+                    _forceQuitMode.Value = true;
             });
+
+        CancelEnabled = new Derived<bool>(() => !Abort.IsRunning.Value);
+
+        Abort.IsRunning.Subscribe(running =>
+        {
+            if (running) _spinner.Start();
+            else _spinner.Stop();
+        });
     }
 
     public void Dispose()
