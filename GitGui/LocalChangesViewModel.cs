@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using ZGF.Gui;
-using ZGF.Gui.Tests;
+using ZGF.Gui.Desktop;
 using ZGF.Observable;
 
 namespace GitGui;

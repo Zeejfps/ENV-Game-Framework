@@ -1,3 +1,5 @@
+using ZGF.Gui.Desktop;
+using ZGF.Gui.VerticalScrollBar;
 using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Tests;

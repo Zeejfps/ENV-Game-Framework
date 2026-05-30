@@ -1,4 +1,4 @@
-namespace ZGF.Gui.Layouts;
+namespace ZGF.Gui.Views;
 
 /// <summary>
 /// Insets its children by a <see cref="PaddingStyle"/>. No background, border, or

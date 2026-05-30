@@ -1,6 +1,7 @@
 using ZGF.Geometry;
+using ZGF.Gui.Desktop;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Views;
 
 /// <summary>
 /// State flags the widget passes to <see cref="VirtualRowListView.ItemBuilder"/> so the

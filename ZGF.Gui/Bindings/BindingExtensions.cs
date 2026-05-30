@@ -1,4 +1,4 @@
-using ZGF.Gui.Tests;
+using ZGF.Gui.Views;
 using ZGF.Observable;
 
 namespace ZGF.Gui.Bindings;

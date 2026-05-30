@@ -1,9 +1,7 @@
 using System.Runtime.InteropServices;
 using GitGui;
-using LLMit;
 using ZGF.Core;
 using ZGF.Gui;
-using ZGF.Gui.Tests;
 using ZGF.Observable;
 
 var prefsPath = Path.Combine(

@@ -1,4 +1,6 @@
-﻿namespace ZGF.Gui.Tests;
+﻿using ZGF.Gui.Views;
+
+namespace ZGF.Gui.Tests;
 
 public sealed class MenuItem : MultiChildView
 {

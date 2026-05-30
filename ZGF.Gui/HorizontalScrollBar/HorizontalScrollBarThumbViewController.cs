@@ -1,6 +1,7 @@
 using ZGF.Geometry;
+using ZGF.Gui.Desktop;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.HorizontalScrollBar;
 
 public sealed class HorizontalScrollBarThumbViewController : KeyboardMouseController
 {

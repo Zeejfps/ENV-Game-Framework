@@ -1,5 +1,7 @@
 using ZGF.Gui;
+using ZGF.Gui.Desktop;
 using ZGF.Gui.Tests;
+using ZGF.Gui.Views;
 using ZGF.KeyboardModule;
 
 namespace LLMit.Views;

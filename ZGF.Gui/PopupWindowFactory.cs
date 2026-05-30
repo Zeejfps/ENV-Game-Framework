@@ -2,7 +2,6 @@ using GLFW;
 using ZGF.Core;
 using ZGF.Fonts;
 using ZGF.Geometry;
-using ZGF.Gui.Tests;
 using static GL46;
 using static ZGF.Core.MacOs.Objc;
 

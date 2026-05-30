@@ -1,4 +1,6 @@
-using ZGF.Gui.Tests;
+using ZGF.Gui;
+using ZGF.Gui.HorizontalScrollBar;
+using ZGF.Gui.VerticalScrollBar;
 
 namespace GitGui;
 

@@ -1,4 +1,6 @@
-namespace ZGF.Gui.Tests;
+using ZGF.Gui.Desktop;
+
+namespace ZGF.Gui;
 
 public abstract class KeyboardMouseController : IKeyboardMouseController
 {

@@ -1,4 +1,6 @@
-namespace ZGF.Gui.Tests;
+using ZGF.Gui.Desktop;
+
+namespace ZGF.Gui.HorizontalScrollBar;
 
 public sealed class HorizontalScrollBarViewController : KeyboardMouseController
 {

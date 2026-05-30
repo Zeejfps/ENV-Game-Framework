@@ -1,3 +1,5 @@
+using ZGF.Gui.Desktop;
+
 namespace ZGF.Gui;
 
 public static class ViewControllerExtensions

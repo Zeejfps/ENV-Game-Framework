@@ -1,15 +1,12 @@
+// FontHandle is in ZGF.Fonts namespace.
 using System.Runtime.InteropServices;
 using ZGF.AppUtils;
 using ZGF.Core;
 using ZGF.Fonts;
-using ZGF.Gui;
-using ZGF.Gui.Tests;
-
-// FontHandle is in ZGF.Fonts namespace.
 using static GL46;
 using static ZGF.Core.MacOs.Objc;
 
-namespace LLMit;
+namespace ZGF.Gui;
 
 internal static class PlatformBackend
 {

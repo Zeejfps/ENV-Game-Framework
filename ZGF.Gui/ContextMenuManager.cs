@@ -1,7 +1,9 @@
 using GLFW;
 using ZGF.Geometry;
+using ZGF.Gui.Desktop;
+using InputState = ZGF.Gui.Desktop.InputState;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui;
 
 public interface IOpenedContextMenu
 {

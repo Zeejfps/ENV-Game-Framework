@@ -1,4 +1,4 @@
-﻿namespace ZGF.Gui.Tests;
+﻿namespace ZGF.Gui;
 
 public sealed class TextInputViewKbmController : BaseTextInputKbmController
 {

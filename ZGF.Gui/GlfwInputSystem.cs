@@ -1,11 +1,12 @@
 using GLFW;
 using ZGF.Geometry;
+using ZGF.Gui.Desktop;
 using ZGF.KeyboardModule.GlfwAdapter;
 using GlfwWindow = GLFW.Window;
-using InputState = ZGF.Gui.InputState;
-using MouseButton = ZGF.Gui.MouseButton;
+using InputState = ZGF.Gui.Desktop.InputState;
+using MouseButton = ZGF.Gui.Desktop.MouseButton;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui;
 
 public sealed class GlfwInputSystem
 {

@@ -1,7 +1,7 @@
 using ZGF.Geometry;
-using ZGF.Gui.Layouts;
+using ZGF.Gui.Views;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui;
 
 /// <summary>
 /// A two-axis scroll pane. Holds a single inner content (a <see cref="ColumnView"/>),

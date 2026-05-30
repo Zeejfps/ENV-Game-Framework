@@ -7,11 +7,9 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using ZGF.Core.MacOs;
 using ZGF.Fonts;
-using ZGF.Geometry;
-using ZGF.Gui;
 using static ZGF.Core.MacOs.Objc;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui;
 
 public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
 {

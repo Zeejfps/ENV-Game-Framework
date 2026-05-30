@@ -1,6 +1,7 @@
 using ZGF.Geometry;
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
+using ZGF.Gui.Views;
 
 namespace GitGui;
 

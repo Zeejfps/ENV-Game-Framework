@@ -1,5 +1,6 @@
 using ZGF.Gui;
-using ZGF.Gui.Tests;
+using ZGF.Gui.Desktop;
+using ZGF.Gui.Views;
 
 namespace GitGui;
 

@@ -1,4 +1,4 @@
-namespace ZGF.Gui;
+namespace ZGF.Gui.Views;
 
 public sealed class ImageView : MultiChildView
 {

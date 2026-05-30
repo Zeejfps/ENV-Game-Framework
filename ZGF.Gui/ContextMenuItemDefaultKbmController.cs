@@ -1,6 +1,6 @@
-using ZGF.Geometry;
+using ZGF.Gui.Desktop;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui;
 
 public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseController, IDisposable
 {

@@ -1,10 +1,9 @@
 using PngSharp.Api;
 using PngSharp.Spec.Chunks.IHDR;
-using ZGF.Gui;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui;
 
 public readonly struct GlFrameBufferHandle
 {

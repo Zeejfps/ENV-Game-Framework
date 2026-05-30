@@ -1,8 +1,9 @@
 using ZGF.Geometry;
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
-using ZGF.Gui.Layouts;
-using ZGF.Gui.Tests;
+using ZGF.Gui.Desktop;
+using ZGF.Gui.VerticalScrollBar;
+using ZGF.Gui.Views;
 
 namespace GitGui;
 

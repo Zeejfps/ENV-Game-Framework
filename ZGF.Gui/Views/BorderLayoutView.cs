@@ -1,4 +1,4 @@
-namespace ZGF.Gui.Layouts;
+namespace ZGF.Gui.Views;
 
 public sealed class BorderLayoutView : View
 {

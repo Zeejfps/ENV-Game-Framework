@@ -1,4 +1,5 @@
 using ZGF.Geometry;
+using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Tests;
 

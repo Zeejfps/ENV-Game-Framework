@@ -1,3 +1,5 @@
+using ZGF.Gui.Desktop;
+
 namespace ZGF.Gui.Tests;
 
 public abstract class BaseMenuItemController : KeyboardMouseController, IDisposable

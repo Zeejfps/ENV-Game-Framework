@@ -6,10 +6,9 @@
 using PngSharp.Api;
 using PngSharp.Spec.Chunks.IHDR;
 using ZGF.Core.MacOs;
-using ZGF.Gui;
 using static ZGF.Core.MacOs.Objc;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui;
 
 public sealed unsafe class MetalImageManager : IDisposable
 {

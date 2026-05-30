@@ -1,4 +1,4 @@
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui;
 
 /// <summary>
 /// Surface a scrollable view exposes so an external sync controller can mirror its scroll

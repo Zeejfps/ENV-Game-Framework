@@ -1,13 +1,10 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
-using OpenGL.NET;
 using ZGF.Fonts;
-using ZGF.Geometry;
-using ZGF.Gui;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui;
 
 public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposable
 {

@@ -1,6 +1,5 @@
 using GLFW;
 using ZGF.Geometry;
-using ZGF.Gui.Tests;
 
 namespace ZGF.Gui;
 

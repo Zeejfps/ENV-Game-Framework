@@ -1,4 +1,4 @@
-﻿namespace ZGF.Gui;
+﻿namespace ZGF.Gui.Desktop;
 
 [Flags]
 public enum InputModifiers

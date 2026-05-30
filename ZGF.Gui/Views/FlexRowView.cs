@@ -1,6 +1,4 @@
-﻿using ZGF.Geometry;
-
-namespace ZGF.Gui.Layouts;
+﻿namespace ZGF.Gui.Views;
 
 public enum MainAxisAlignment
 {

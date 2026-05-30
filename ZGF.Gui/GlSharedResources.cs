@@ -1,7 +1,6 @@
 using System.Runtime.InteropServices;
 using OpenGL.NET;
 using ZGF.Fonts;
-using ZGF.Gui.Tests;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 

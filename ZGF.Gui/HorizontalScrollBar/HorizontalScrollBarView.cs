@@ -1,6 +1,7 @@
 using ZGF.Geometry;
+using ZGF.Gui.Views;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.HorizontalScrollBar;
 
 public sealed class HorizontalScrollBarView : MultiChildView
 {

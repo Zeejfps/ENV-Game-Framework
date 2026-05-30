@@ -1,5 +1,4 @@
 using ZGF.Gui;
-using ZGF.Gui.Tests;
 
 namespace GitGui;
 

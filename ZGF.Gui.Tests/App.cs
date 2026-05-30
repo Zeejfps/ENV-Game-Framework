@@ -4,7 +4,7 @@ using GLFW;
 using OpenGL.NET;
 using ZGF.Core;
 using ZGF.Fonts;
-using ZGF.Gui.Layouts;
+using ZGF.Gui.Views;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 

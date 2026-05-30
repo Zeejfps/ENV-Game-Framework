@@ -3,11 +3,9 @@ using GLFW;
 using ZGF.AppUtils;
 using ZGF.Core;
 using ZGF.Fonts;
-using ZGF.Gui;
-using ZGF.Gui.Tests;
 using ZGF.Observable;
 
-namespace LLMit;
+namespace ZGF.Gui;
 
 public sealed class GuiApp : IDisposable
 {

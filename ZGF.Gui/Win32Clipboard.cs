@@ -1,8 +1,7 @@
-﻿namespace ZGF.Gui.Tests;
-
-using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text;
+
+namespace ZGF.Gui;
 
 public class Win32Clipboard : IClipboard
 {

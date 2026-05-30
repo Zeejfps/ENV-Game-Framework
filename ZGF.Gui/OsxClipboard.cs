@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui;
 
 public class OsxClipboard : IClipboard
 {

@@ -1,7 +1,6 @@
 using System.Runtime.InteropServices;
 using ZGF.Core.MacOs;
 using ZGF.Fonts;
-using ZGF.Gui.Tests;
 using static ZGF.Core.MacOs.Objc;
 
 namespace ZGF.Gui;

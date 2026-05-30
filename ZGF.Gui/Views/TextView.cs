@@ -1,6 +1,6 @@
 using ZGF.Geometry;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Views;
 
 public sealed class TextView : MultiChildView
 {

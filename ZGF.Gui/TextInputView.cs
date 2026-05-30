@@ -1,6 +1,6 @@
 using ZGF.Geometry;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui;
 
 public sealed class TextInputView : MultiChildView
 {

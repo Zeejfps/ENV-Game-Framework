@@ -1,3 +1,5 @@
+using ZGF.Gui.Desktop;
+
 namespace ZGF.Gui;
 
 public sealed class ControllerBehavior<T> : IViewBehavior where T : IKeyboardMouseController
