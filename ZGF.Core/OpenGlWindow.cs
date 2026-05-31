@@ -68,6 +68,8 @@ public sealed class OpenGlWindow : IWindow
         _isVisible = false;
     }
 
+    public void Focus() => Glfw.FocusWindow(_window);
+
     public void SetPosition(int screenX, int screenY)
     {
         Glfw.SetWindowPosition(_window, screenX, screenY);

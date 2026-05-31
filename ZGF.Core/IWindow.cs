@@ -16,6 +16,7 @@ public interface IWindow : IDisposable
 
     void Show();
     void Hide();
+    void Focus();
     void SetPosition(int screenX, int screenY);
     void SetSize(int widthPoints, int heightPoints);
     void RequestRedraw();

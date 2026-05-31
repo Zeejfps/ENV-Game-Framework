@@ -126,6 +126,15 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             evict.Dispose();
         }
         _pool.Add(impl);
+
+        // When the last popup closes, restore OS key focus to the main window so
+        // in-app dialog overlays (e.g. Create Tag) receive keyboard input without
+        // requiring a manual click. On macOS, showing a borderless popup makes it
+        // the key window; hiding it does not automatically return key status to
+        // the main window. Only refocus once no popups remain — closing a submenu
+        // while its parent menu is still open must not pull focus to main.
+        if (_activePopups.Count == 0 && _app.MainWindow is { } main)
+            main.Focus();
     }
 
     private RectI ResolveRect(in PopupRequest request)
