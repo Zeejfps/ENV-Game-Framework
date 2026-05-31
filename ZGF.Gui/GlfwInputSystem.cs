@@ -42,6 +42,22 @@ public sealed class GlfwInputSystem
         Glfw.SetCursorEnterCallback(_windowHandle, _cursorEnterCallback);
     }
 
+    /// <summary>
+    /// Clear all transient input state so this instance can be reused for a fresh
+    /// popup. Resets the underlying <see cref="InputSystem"/> (focus/hover/path) and
+    /// the locally latched fields (pending exit-clear, last-known cursor point). Call
+    /// when the owning popup window is returned to the pool — otherwise a leftover
+    /// focused component keeps <see cref="Desktop.InputSystem.HasFocus"/> true and
+    /// <see cref="Update"/> short-circuits before hover/click dispatch, leaving every
+    /// subsequently pooled popup dead until the app restarts.
+    /// </summary>
+    public void Reset()
+    {
+        InputSystem.Reset();
+        _pendingExitClear = false;
+        Mouse.Point = new PointF(float.MinValue, float.MinValue);
+    }
+
     private void HandleCursorEnter(GlfwWindow window, bool entering)
     {
         // GLFW only fires this on enter/exit transitions. When the cursor leaves

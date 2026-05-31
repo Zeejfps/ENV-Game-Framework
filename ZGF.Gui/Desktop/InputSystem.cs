@@ -305,6 +305,22 @@ public sealed class InputSystem
     }
 
     /// <summary>
+    /// Drop all transient input state — focus, hover, and the built focus path —
+    /// without firing exit/blur callbacks against the (already detached) controllers.
+    /// Used when a popup window is returned to the pool: the views it dispatched to
+    /// are gone, but the InputSystem instance is reused for the next popup. Without
+    /// this, a leftover <see cref="_focusedComponent"/> latches <see cref="HasFocus"/>
+    /// true, and GlfwInputSystem.Update short-circuits before hover/click dispatch —
+    /// leaving every subsequently pooled popup dead until the app restarts.
+    /// </summary>
+    public void Reset()
+    {
+        _focusedComponent = null;
+        _hoveredComponent = null;
+        _focusQueue.Clear();
+    }
+
+    /// <summary>
     /// Re-runs hit-testing from the cursor's current position and fires
     /// MouseEnter / MouseExit events if the hovered controller changed.
     /// Call this when the view tree changes between mouse-move events

@@ -118,6 +118,14 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
         impl.Window.Hide();
         impl.SetRoot(null);
+        // Drop any focus/hover the closing menu's views left on this popup's own
+        // input system. SetRoot(null) unregisters per-controller, but a controller
+        // that still holds focus would leave _focusedComponent latched — and since
+        // this PopupWindowImpl (and its InputSystem) is pooled and reused, that
+        // latch makes HasFocus true forever, short-circuiting GlfwInputSystem.Update
+        // before hover/click dispatch. Result: the next pooled popup (and every one
+        // after) opens dead. Reset clears the latch so each reuse starts clean.
+        impl.ResetInput();
 
         if (_pool.Count >= SoftCap)
         {
@@ -366,6 +374,8 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     public void RaiseOutsideClick(PointI screen) => OutsideClick?.Invoke(screen);
 
     public void UpdateInput() => _input.Update();
+
+    public void ResetInput() => _input.Reset();
 
     public void Dispose()
     {
