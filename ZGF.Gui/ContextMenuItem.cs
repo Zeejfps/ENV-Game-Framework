@@ -31,7 +31,7 @@ public sealed class ContextMenuItem : MultiChildView
     }
 
     private readonly RectView _bg;
-    private readonly ImageView _arrowIcon;
+    private readonly TextView _arrowView;
     private readonly TextView _iconView;
     private readonly TextView _textView;
     private readonly TextView _shortcutView;
@@ -109,7 +109,7 @@ public sealed class ContextMenuItem : MultiChildView
             var isInRow = _row.Children.Contains(_shortcutView);
             if (hasShortcut && !isInRow)
             {
-                var insertAt = IndexInRow(_arrowIcon);
+                var insertAt = IndexInRow(_arrowView);
                 if (insertAt < 0) insertAt = _row.Children.Count;
                 _row.Children.Insert(insertAt, _shortcutView);
             }
@@ -198,6 +198,7 @@ public sealed class ContextMenuItem : MultiChildView
         var color = _isEnabled ? _textColor : _disabledTextColor;
         _textView.TextColor = color;
         _iconView.TextColor = color;
+        _arrowView.TextColor = color;
     }
 
     public void SetLabelView(MultiChildView labelView)
@@ -213,6 +214,17 @@ public sealed class ContextMenuItem : MultiChildView
         _labelView = labelView;
     }
     
+    // Submenu indicator glyph (e.g. a chevron), shown right-aligned when IsArrowVisible.
+    // Rendered as text rather than an image so it follows the icon font in use — set
+    // ArrowFontFamily to the same font the glyph comes from.
+    public string? ArrowGlyph { get; set; }
+
+    public StyleValue<string> ArrowFontFamily
+    {
+        get => _arrowView.FontFamily;
+        set => _arrowView.FontFamily = value;
+    }
+
     private bool _isArrowVisible;
     public bool IsArrowVisible
     {
@@ -221,28 +233,27 @@ public sealed class ContextMenuItem : MultiChildView
         {
             if (SetField(ref _isArrowVisible, value))
             {
-                if (_isArrowVisible)
-                {
-                    _arrowIcon.ImageId = "Assets/Icons/arrow_right.png";
-                }
-                else
-                {
-                    _arrowIcon.ImageId = null;
-                }
+                _arrowView.Text = _isArrowVisible ? ArrowGlyph : null;
+                var isInRow = IndexInRow(_arrowView) >= 0;
+                if (_isArrowVisible && !isInRow)
+                    _row.Children.Add(_arrowView);
+                else if (!_isArrowVisible && isInRow)
+                    _row.Children.Remove(_arrowView);
             }
         }
     }
-    
+
     public ContextMenuItem()
     {
         ZIndex = 2;
         _selectedBackgroundColor= 0xFFE6E6E6;
 
-        _arrowIcon = new ImageView
+        _arrowView = new TextView
         {
-            Width = 20,
-            Height = 20,
-            TintColor = 0x0
+            FontSize = 12,
+            Width = 16,
+            VerticalTextAlignment = TextAlignment.Center,
+            HorizontalTextAlignment = TextAlignment.Center,
         };
 
         _iconView = new TextView
@@ -274,7 +285,6 @@ public sealed class ContextMenuItem : MultiChildView
             {
                 _iconView,
                 _labelView,
-                _arrowIcon,
             }
         };
 

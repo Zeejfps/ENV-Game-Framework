@@ -166,6 +166,17 @@ public sealed class ContextMenuManager
             opened.CloseRequest();
     }
 
+    // Deferred close of every open menu (the whole parent→submenu chain). Only flags
+    // each menu; the actual teardown happens in Update(). Unlike CloseAllImmediately
+    // this performs no structural mutation, so it is safe to call from inside an input
+    // event dispatch — e.g. clicking a submenu item, where synchronously unregistering
+    // controllers would mutate the input system's focus queue mid-iteration.
+    public void RequestCloseAll()
+    {
+        foreach (var opened in _openedMenus.Values)
+            opened.CloseRequest();
+    }
+
     public void CloseAllImmediately()
     {
         // Logical close is synchronous (so a caller that immediately opens a new

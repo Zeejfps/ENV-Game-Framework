@@ -9,6 +9,7 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
     private IOpenedContextMenu? _openedContextMenu;
     private InputSystem? _subMenuInputSystem;
     private ContextMenu? _registeredSubMenu;
+    private readonly Func<ContextMenu>? _subMenuFactory;
 
     public List<ContextMenuItemData> SubOptions { get; }
 
@@ -18,13 +19,15 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
         ContextMenuItem contextMenuItem,
         Context context,
         Action? clicked = null,
-        IEnumerable<ContextMenuItemData>? subOptions = null)
+        IEnumerable<ContextMenuItemData>? subOptions = null,
+        Func<ContextMenu>? subMenuFactory = null)
     {
         _contextMenuItem = contextMenuItem;
         _contextMenuManager = context.Get<ContextMenuManager>()!;
         Clicked = clicked;
+        _subMenuFactory = subMenuFactory;
         SubOptions = subOptions == null ? new List<ContextMenuItemData>() : new List<ContextMenuItemData>(subOptions);
-        if (SubOptions.Count > 0)
+        if (SubOptions.Count > 0 || subMenuFactory != null)
             _contextMenuItem.IsArrowVisible = true;
     }
 
@@ -52,19 +55,9 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             return;
         }
 
-        var inputSystem = _contextMenuItem.Context?.Get<InputSystem>();
-
-        if (SubOptions.Count > 0)
+        var subMenu = BuildSubMenu();
+        if (subMenu != null)
         {
-            var subMenu = new ContextMenu();
-            foreach (var subOption in SubOptions)
-            {
-                subMenu.Children.Add(new ContextMenuItem
-                {
-                    Text = subOption.Text
-                });
-            }
-
             var parentMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
             // Resolve coordinates from this menu item's context (the parent
             // popup's context, which registers its own IWindowCoordinates).
@@ -79,13 +72,33 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
             if (_openedContextMenu != null)
             {
                 _openedContextMenu.Closed += OnOpenedContextMenuClosed;
-                inputSystem?.RegisterController(subMenu, new ContextMenuKbmController(_openedContextMenu));
-                _subMenuInputSystem = inputSystem;
+                // Keep the submenu open while the pointer is over it. The controller
+                // must live on the submenu's OWN popup input system — its context is
+                // assigned when the popup adopts the submenu as its root — so it
+                // receives the submenu's enter/exit events (the parent popup's input
+                // system never sees them).
+                var subInput = subMenu.Context?.Get<InputSystem>();
+                subInput?.RegisterController(subMenu, new ContextMenuKbmController(_openedContextMenu));
+                _subMenuInputSystem = subInput;
                 _registeredSubMenu = subMenu;
             }
         }
 
         _contextMenuItem.IsSelected = true;
+    }
+
+    // A caller-supplied factory takes precedence (its items carry their own actions and
+    // styling); otherwise fall back to the plain text-only SubOptions list.
+    private ContextMenu? BuildSubMenu()
+    {
+        if (_subMenuFactory != null)
+            return _subMenuFactory();
+        if (SubOptions.Count == 0)
+            return null;
+        var subMenu = new ContextMenu();
+        foreach (var subOption in SubOptions)
+            subMenu.Children.Add(new ContextMenuItem { Text = subOption.Text });
+        return subMenu;
     }
 
     private void OnOpenedContextMenuClosed()
