@@ -19,6 +19,7 @@ public sealed class GlfwInputSystem
     private readonly MouseCallback _scrollCallback;
     private readonly MouseEnterCallback _cursorEnterCallback;
     private bool _pendingExitClear;
+    private string? _lastDiagReason;
 
     public InputSystem InputSystem { get; } = new();
     public Mouse Mouse { get; } = new();
@@ -55,6 +56,7 @@ public sealed class GlfwInputSystem
     {
         InputSystem.Reset();
         _pendingExitClear = false;
+        _lastDiagReason = null;
         Mouse.Point = new PointF(float.MinValue, float.MinValue);
     }
 
@@ -67,10 +69,23 @@ public sealed class GlfwInputSystem
         if (!entering) _pendingExitClear = true;
     }
 
+    // Popup-only: log when Update's effective state changes between ticks (focus-latched
+    // short-circuit / cursor-not-hovering / actively dispatching hover). A popup stuck in
+    // "focus-latch" or "no-mousehover" is one that shows but builds no dispatch path — the
+    // root of the dead-context-menu bug.
+    private void DiagReason(string reason)
+    {
+        if (InputSystem.DiagLabel == null) return;
+        if (_lastDiagReason == reason) return;
+        _lastDiagReason = reason;
+        Console.WriteLine($"[ctxmenu-diag {InputSystem.DiagLabel}] update-state={reason}");
+    }
+
     public void Update()
-    { 
+    {
         if (InputSystem.HasFocus)
         {
+            DiagReason("focus-latch (Update short-circuits before hover; clicks route to focused/empty queue)");
             Glfw.GetCursorPosition(_windowHandle, out var capturedX, out var capturedY);
             var capturedPoint = WindowToGuiCoords(capturedX, capturedY);
             if (capturedPoint != Mouse.Point)
@@ -107,8 +122,24 @@ public sealed class GlfwInputSystem
         // this, Glfw.GetCursorPosition reports stale coords outside the window's
         // rect and the hover path would clear — defeating, e.g., tooltip hover
         // while the cursor sits over the tooltip's own popup window.
-        if (!Glfw.GetWindowAttribute(_windowHandle, WindowAttribute.MouseHover)) return;
+        //
+        // Test the cursor against the window rect directly rather than via GLFW's
+        // MouseHover (GLFW_HOVERED) attribute. That attribute is updated only from OS
+        // cursor enter/leave events, which fire solely on cursor *movement*: a context
+        // menu that pops up directly under a stationary cursor never receives an enter
+        // event, so GLFW_HOVERED stays false, Update short-circuits here, and the menu
+        // opens dead until the mouse is jiggled. A direct bounds check reports hover on
+        // the first tick while still freezing once the cursor genuinely leaves the rect.
         Glfw.GetCursorPosition(_windowHandle, out var mouseX, out var mouseY);
+        Glfw.GetWindowSize(_windowHandle, out var winWidth, out var winHeight);
+        var cursorInsideBounds =
+            mouseX >= 0 && mouseY >= 0 && mouseX <= winWidth && mouseY <= winHeight;
+        if (!cursorInsideBounds)
+        {
+            DiagReason("cursor-outside-bounds (cursor not within window rect; hover/queue not built)");
+            return;
+        }
+        DiagReason("active (hover dispatching normally)");
         var guiPoint = WindowToGuiCoords(mouseX, mouseY);
         var prevPoint = Mouse.Point;
         Mouse.Point = guiPoint;

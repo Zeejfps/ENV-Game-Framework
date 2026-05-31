@@ -49,16 +49,23 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         var rect = ResolveRect(request);
 
         PopupWindowImpl popup;
+        bool fromPool;
         if (_pool.Count > 0)
         {
             popup = _pool[^1];
             _pool.RemoveAt(_pool.Count - 1);
             popup.Resize(rect.Width, rect.Height);
+            fromPool = true;
         }
         else
         {
             popup = CreateNewPopup(rect.Width, rect.Height, request.MousePassThrough);
+            fromPool = false;
         }
+
+        // Diagnose only capturing popups (context menus); passthrough popups (tooltips) follow
+        // the cursor and would just spam hover transitions. See InputSystem.DiagLabel.
+        popup.DiagSetLabel(request.MousePassThrough ? null : "popup");
 
         popup.MousePassThrough = request.MousePassThrough;
         popup.SetRoot(request.Root);
@@ -92,6 +99,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             }
         }
 
+        popup.DiagLogShow(fromPool);
         return popup;
     }
 
@@ -372,6 +380,21 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     }
 
     public void RaiseOutsideClick(PointI screen) => OutsideClick?.Invoke(screen);
+
+    // Diagnostics for the intermittent dead-context-menu bug. Label is set per-acquire so only
+    // capturing popups (menus) report; null silences tooltips. See InputSystem.DiagLabel.
+    public void DiagSetLabel(string? label) => _input.InputSystem.DiagLabel = label;
+
+    public void DiagLogShow(bool fromPool)
+    {
+        var sys = _input.InputSystem;
+        if (sys.DiagLabel == null) return;
+        var mouseHover = Glfw.GetWindowAttribute((Window)_window.WindowHandle, WindowAttribute.MouseHover);
+        Console.WriteLine(
+            $"[ctxmenu-diag {sys.DiagLabel}] shown fromPool={fromPool} " +
+            $"hasFocus={sys.DiagHasFocus} queue={sys.DiagFocusQueueCount} mouseHover={mouseHover}" +
+            (sys.DiagHasFocus ? "  <-- LATCH (focus stuck from prior use; Update will short-circuit)" : ""));
+    }
 
     public void UpdateInput() => _input.Update();
 
