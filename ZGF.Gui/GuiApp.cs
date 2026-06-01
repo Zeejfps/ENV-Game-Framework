@@ -20,6 +20,7 @@ public sealed class GuiApp : IDisposable
     private readonly ContextMenuManager _contextMenuManager;
     private readonly PopupWindowFactory _popupFactory;
     private readonly WindowCoordinates _coordinates;
+    private readonly IWindowChrome _windowChrome;
 
     private GuiApp(
         IApp app,
@@ -40,6 +41,7 @@ public sealed class GuiApp : IDisposable
         _dispatcher = new QueuedUiDispatcher();
 
         var decorator = context.Get<IPopupNativeDecorator>() ?? new DefaultNoopDecorator();
+        _windowChrome = context.Get<IWindowChrome>() ?? new NoopWindowChrome();
         _coordinates = new WindowCoordinates(app.MainWindow.WindowHandle, mainCanvas);
         _popupFactory = new PopupWindowFactory(
             app, fontBackend, defaultFont, glShared, metalShared, decorator, context,
@@ -143,6 +145,13 @@ public sealed class GuiApp : IDisposable
 
     public event Action<int, int>? OnWindowResized;
 
+    /// <summary>
+    ///     Switches the main window's native title bar between dark and light
+    ///     appearance. No-op on platforms without a registered <see cref="IWindowChrome"/>.
+    /// </summary>
+    public void SetTitleBarDark(bool dark) =>
+        _windowChrome.SetTitleBarTheme(_app.MainWindow.WindowHandle, dark);
+
     public void Run() => _app.Run();
 
     private void HandleTick()
@@ -192,5 +201,10 @@ public sealed class GuiApp : IDisposable
         public void BeginCapture(IntPtr handle, Action<ZGF.Geometry.PointI> cb) { }
         public void EndCapture(IntPtr handle) { }
         public void TransferCapture(IntPtr from, IntPtr to, Action<ZGF.Geometry.PointI> cb) { }
+    }
+
+    private sealed class NoopWindowChrome : IWindowChrome
+    {
+        public void SetTitleBarTheme(IntPtr handle, bool dark) { }
     }
 }
