@@ -7,5 +7,6 @@ public interface IApp : IDisposable
     event Action OnTick;
     void Run();
     IWindow CreatePopupWindow(in PopupWindowOptions options);
+    IWindow CreateWindow(in WindowOptions options);
     void MakeMainContextCurrent();
 }

@@ -19,6 +19,7 @@ public sealed class GuiApp : IDisposable
     private readonly QueuedUiDispatcher _dispatcher;
     private readonly ContextMenuManager _contextMenuManager;
     private readonly PopupWindowFactory _popupFactory;
+    private readonly SecondaryWindowFactory _secondaryWindows;
     private readonly WindowCoordinates _coordinates;
     private readonly IWindowChrome _windowChrome;
 
@@ -46,6 +47,9 @@ public sealed class GuiApp : IDisposable
         _popupFactory = new PopupWindowFactory(
             app, fontBackend, defaultFont, glShared, metalShared, decorator, context,
             mainCanvasForFontRegistry: mainCanvas);
+        _secondaryWindows = new SecondaryWindowFactory(
+            app, fontBackend, defaultFont, glShared, metalShared, context,
+            mainCanvasForFontRegistry: mainCanvas);
 
         _contextMenuManager = new ContextMenuManager(_popupFactory, _coordinates, _mainInput.InputSystem, measureContext: context);
 
@@ -54,6 +58,7 @@ public sealed class GuiApp : IDisposable
         context.AddService(_contextMenuManager);
         context.AddService<IWindowCoordinates>(_coordinates);
         context.AddService<IPopupWindowFactory>(_popupFactory);
+        context.AddService<ISecondaryWindowFactory>(_secondaryWindows);
         context.AddService<IUiDispatcher>(_dispatcher);
 
         _root = new MultiChildView
@@ -159,6 +164,7 @@ public sealed class GuiApp : IDisposable
         _dispatcher.Drain();
         _mainInput.Update();
         _popupFactory.UpdateActivePopupInput();
+        _secondaryWindows.Update();
         _contextMenuManager.Update();
     }
 
@@ -189,6 +195,7 @@ public sealed class GuiApp : IDisposable
         _app.MainWindow.OnResize -= HandleResize;
         _app.MainWindow.OnFramebufferResize -= HandleFramebufferResize;
         _app.MainWindow.OnFocusChanged -= HandleMainFocusChanged;
+        _secondaryWindows.Dispose();
         _popupFactory.Dispose();
         _glShared?.Dispose();
         _metalShared?.Dispose();

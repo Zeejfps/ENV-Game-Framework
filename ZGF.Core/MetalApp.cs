@@ -70,6 +70,27 @@ public sealed class MetalApp : IApp
         return popup;
     }
 
+    public IWindow CreateWindow(in WindowOptions options)
+    {
+        Glfw.DefaultWindowHints();
+        Glfw.WindowHint(Hint.Visible, false);
+        // A real secondary window: decorated, resizable, focusable when shown — unlike the
+        // borderless floating popups from CreatePopupWindow.
+        Glfw.WindowHint(Hint.Decorated, true);
+        Glfw.WindowHint(Hint.Floating, false);
+        Glfw.WindowHint(Hint.FocusOnShow, true);
+        Glfw.WindowHint(Hint.Resizable, true);
+        Glfw.WindowHint(Hint.ClientApi, ClientApi.None);
+
+        var glfw = Glfw.CreateWindow(options.WidthPoints, options.HeightPoints, options.Title, Monitor.None, Window.None);
+        Glfw.DefaultWindowHints();
+
+        var window = new MetalWindow(glfw, Device, isMain: false);
+        _windows.Add(window);
+        window.OnClosed += () => _windows.Remove(window);
+        return window;
+    }
+
     public void Run()
     {
         var videoMode = Glfw.GetVideoMode(Glfw.PrimaryMonitor);

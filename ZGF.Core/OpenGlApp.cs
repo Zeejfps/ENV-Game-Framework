@@ -82,6 +82,40 @@ public sealed class OpenGlApp : IApp
         return popup;
     }
 
+    public IWindow CreateWindow(in WindowOptions options)
+    {
+        Glfw.DefaultWindowHints();
+        Glfw.WindowHint(Hint.Visible, false);
+        // A real secondary window: decorated, resizable, and able to take focus when shown,
+        // unlike CreatePopupWindow's borderless floating popups.
+        Glfw.WindowHint(Hint.Decorated, true);
+        Glfw.WindowHint(Hint.Floating, false);
+        Glfw.WindowHint(Hint.FocusOnShow, true);
+        Glfw.WindowHint(Hint.Resizable, true);
+        Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
+        Glfw.WindowHint(Hint.ContextVersionMajor, 4);
+        Glfw.WindowHint(Hint.ContextVersionMinor, 1);
+        Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
+        Glfw.WindowHint(Hint.OpenglForwardCompatible, true);
+
+        // Share the GL context with the main window so the shared font atlas / textures
+        // (GlSharedResources) are visible to this window's canvas.
+        var glfw = Glfw.CreateWindow(
+            options.WidthPoints, options.HeightPoints,
+            options.Title, Monitor.None, _mainWindow.GlfwWindow);
+
+        Glfw.DefaultWindowHints();
+
+        Glfw.MakeContextCurrent(glfw);
+        // Like popups, secondary windows must not gate vsync — only the main window paces it.
+        Glfw.SwapInterval(0);
+
+        var window = new OpenGlWindow(glfw, isMain: false);
+        _windows.Add(window);
+        window.OnClosed += () => _windows.Remove(window);
+        return window;
+    }
+
     public void Run()
     {
         var videoMode = Glfw.GetVideoMode(Glfw.PrimaryMonitor);
