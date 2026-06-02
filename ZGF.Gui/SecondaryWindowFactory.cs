@@ -101,6 +101,11 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
             {
                 _active.RemoveAt(i);
                 w.Dispose();
+                // w.Dispose() left no GL context current (it destroyed its own window after
+                // deleting its objects under its own context). Restore the main context so the
+                // run loop's next GL calls — and any GL work between now and the next per-window
+                // MakeContextCurrent — target a valid context.
+                _app.MakeMainContextCurrent();
             }
             else
             {
@@ -257,6 +262,11 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         _window.OnResize -= HandleResize;
         _window.OnFramebufferResize -= HandleFramebufferResize;
         SetRoot(null);
+        // VAOs are per-context (not shared across the GL share group). Make THIS window's
+        // context current before deleting the canvas's objects, otherwise glDeleteVertexArrays
+        // runs against whatever context is current (often the main window) and destroys that
+        // context's same-named VAOs — corrupting the main window's rendering.
+        _window.MakeContextCurrent();
         if (_canvas is IDisposable d) d.Dispose();
         _window.Dispose();
         Closed?.Invoke();
