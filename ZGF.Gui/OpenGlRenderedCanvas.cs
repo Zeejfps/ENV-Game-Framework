@@ -12,6 +12,12 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
 
     private uint _rectVao, _glyphVao, _imageVao, _shadowVao;
     private uint _rectInstanceVbo, _glyphInstanceVbo, _imageInstanceVbo, _shadowInstanceVbo;
+    // Current element capacity of each instance VBO. The CPU staging arrays grow without
+    // bound (see RenderedCanvasBase.EnsureCapacity), so a content-heavy frame — e.g. a
+    // minified file with very long lines, whose whole text is shaped per visible row — can
+    // stage far more instances than the initial Max* sizes. We grow the GPU buffers to match
+    // rather than overrun them: a glBufferSubData past the buffer's size is GL_INVALID_VALUE.
+    private int _rectVboCap, _glyphVboCap, _imageVboCap, _shadowVboCap;
     private uint _clipUbo;
 
     private Matrix4x4 _projection;
@@ -45,6 +51,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
     protected override void UploadRectInstances(RectInstance[] data, int count)
     {
         if (count == 0) return;
+        EnsureInstanceCapacity(_rectInstanceVbo, ref _rectVboCap, count, sizeof(RectInstance));
         glBindBuffer(GL_ARRAY_BUFFER, _rectInstanceVbo);
         fixed (RectInstance* ptr = &data[0])
             glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(RectInstance), ptr);
@@ -53,6 +60,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
     protected override void UploadGlyphInstances(GlyphInstance[] data, int count)
     {
         if (count == 0) return;
+        EnsureInstanceCapacity(_glyphInstanceVbo, ref _glyphVboCap, count, sizeof(GlyphInstance));
         glBindBuffer(GL_ARRAY_BUFFER, _glyphInstanceVbo);
         fixed (GlyphInstance* ptr = &data[0])
             glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(GlyphInstance), ptr);
@@ -61,6 +69,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
     protected override void UploadImageInstances(ImageInstance[] data, int count)
     {
         if (count == 0) return;
+        EnsureInstanceCapacity(_imageInstanceVbo, ref _imageVboCap, count, sizeof(ImageInstance));
         glBindBuffer(GL_ARRAY_BUFFER, _imageInstanceVbo);
         fixed (ImageInstance* ptr = &data[0])
             glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(ImageInstance), ptr);
@@ -69,9 +78,24 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
     protected override void UploadShadowInstances(ShadowInstance[] data, int count)
     {
         if (count == 0) return;
+        EnsureInstanceCapacity(_shadowInstanceVbo, ref _shadowVboCap, count, sizeof(ShadowInstance));
         glBindBuffer(GL_ARRAY_BUFFER, _shadowInstanceVbo);
         fixed (ShadowInstance* ptr = &data[0])
             glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(ShadowInstance), ptr);
+    }
+
+    // Reallocates the buffer's data store (orphaning the old one) when the staged instance
+    // count outgrows it. glBufferData on the same buffer id keeps the VAO attribute bindings
+    // valid — they reference the buffer object, not its size. Growth is geometric so a file
+    // that steadily needs more instances doesn't reallocate every frame.
+    private void EnsureInstanceCapacity(uint vbo, ref int capacity, int count, int elemSize)
+    {
+        if (count <= capacity) return;
+        var newCap = Math.Max(count, capacity * 2);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, newCap * elemSize, (void*)0, GL_DYNAMIC_DRAW);
+        AssertNoGlError();
+        capacity = newCap;
     }
 
     protected override void UploadClips(List<Vector4> clips)
@@ -197,6 +221,11 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         _glyphInstanceVbo = AllocInstanceVbo(MaxGlyphs * sizeof(GlyphInstance));
         _imageInstanceVbo = AllocInstanceVbo(MaxImages * sizeof(ImageInstance));
         _shadowInstanceVbo = AllocInstanceVbo(MaxShadows * sizeof(ShadowInstance));
+
+        _rectVboCap = MaxRects;
+        _glyphVboCap = MaxGlyphs;
+        _imageVboCap = MaxImages;
+        _shadowVboCap = MaxShadows;
 
         _rectVao = CreateRectVao();
         _glyphVao = CreateGlyphVao();
