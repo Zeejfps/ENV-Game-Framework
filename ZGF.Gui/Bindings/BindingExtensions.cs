@@ -10,18 +10,30 @@ public static class BindingExtensions
         /// <summary>
         /// Two-way sync between the input's text buffer and a string state. On bind, the
         /// state's value is pushed into the input; thereafter, edits in either direction
-        /// propagate. The state-side equality guard plus a buffer-equality guard on the
-        /// input side prevent feedback loops.
+        /// propagate. A buffer-equality guard on the state side skips no-op rewrites, and a
+        /// reentrancy guard suppresses the input-side writeback while a programmatic rewrite
+        /// is in flight — so a state-driven <c>Clear()</c>/<c>Enter()</c> (each of which fires
+        /// <see cref="TextInputView.TextChanged"/>) can't write its intermediate empty buffer
+        /// back into the state. This lets a view model replace the value wholesale (e.g. an
+        /// async load, or a transform like a URL scheme switch) without the caret or
+        /// downstream observers seeing a transient blank.
         /// </summary>
         public void BindTwoWay(State<string> state)
         {
+            var suppressWriteback = false;
             state.Subscribe(s =>
             {
                 if (input.Text.SequenceEqual(s.AsSpan())) return;
+                suppressWriteback = true;
                 input.Clear();
                 if (s.Length > 0) input.Enter(s.AsSpan());
+                suppressWriteback = false;
             });
-            input.TextChanged += () => state.Value = input.Text.ToString();
+            input.TextChanged += () =>
+            {
+                if (suppressWriteback) return;
+                state.Value = input.Text.ToString();
+            };
         }
     }
 
