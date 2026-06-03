@@ -155,7 +155,14 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
     private RectI ResolveRect(in PopupRequest request)
     {
-        var (mx, my, mw, mh) = GetMonitorWorkArea(request.PreferredScreenRect);
+        // Pick the target monitor from the anchor (the click point = the rect's
+        // top-left), NOT the rect's center. The rect extends right/down by the
+        // full menu size, so its center is offset from the click by half the
+        // menu; on a multi-monitor setup that offset can push the center across
+        // the midpoint between two monitor centers and select the neighbouring
+        // monitor while the click — and plenty of room — are still on this one.
+        var anchor = new PointI(request.PreferredScreenRect.X, request.PreferredScreenRect.Y);
+        var (mx, my, mw, mh) = GetMonitorWorkArea(anchor);
         if (FitsInside(request.PreferredScreenRect, mx, my, mw, mh))
             return request.PreferredScreenRect;
         if (request.FlippedScreenRect is { } flipped && FitsInside(flipped, mx, my, mw, mh))
@@ -173,23 +180,34 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         return new RectI(x, y, r.Width, r.Height);
     }
 
-    private static (int x, int y, int w, int h) GetMonitorWorkArea(RectI screenRect)
+    private static (int x, int y, int w, int h) GetMonitorWorkArea(PointI anchor)
     {
-        var centerX = screenRect.X + screenRect.Width / 2;
-        var centerY = screenRect.Y + screenRect.Height / 2;
         var monitors = Glfw.Monitors;
         if (monitors.Length == 0)
             return (0, 0, 1920, 1080);
 
+        // Prefer the monitor whose work area actually contains the anchor point.
+        // This is the monitor the user clicked on, regardless of menu size.
+        foreach (var m in monitors)
+        {
+            var wa = m.WorkArea;
+            if (anchor.X >= wa.X && anchor.X < wa.X + wa.Width &&
+                anchor.Y >= wa.Y && anchor.Y < wa.Y + wa.Height)
+            {
+                return (wa.X, wa.Y, wa.Width, wa.Height);
+            }
+        }
+
+        // Fallback (anchor outside every work area — e.g. on a taskbar strip or
+        // just off-screen): nearest monitor by distance from the anchor to the
+        // work-area rect (0 when inside on an axis), not by centre distance.
         var best = monitors[0].WorkArea;
         var bestDist = long.MaxValue;
         foreach (var m in monitors)
         {
             var wa = m.WorkArea;
-            var cmx = wa.X + wa.Width / 2;
-            var cmy = wa.Y + wa.Height / 2;
-            var dx = (long)(cmx - centerX);
-            var dy = (long)(cmy - centerY);
+            var dx = (long)Math.Max(0, Math.Max(wa.X - anchor.X, anchor.X - (wa.X + wa.Width - 1)));
+            var dy = (long)Math.Max(0, Math.Max(wa.Y - anchor.Y, anchor.Y - (wa.Y + wa.Height - 1)));
             var d = dx * dx + dy * dy;
             if (d < bestDist) { bestDist = d; best = wa; }
         }
