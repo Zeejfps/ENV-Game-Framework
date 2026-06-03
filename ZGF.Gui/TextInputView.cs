@@ -1,4 +1,5 @@
 using ZGF.Geometry;
+using ZGF.Observable;
 
 namespace ZGF.Gui;
 
@@ -76,11 +77,21 @@ public sealed class TextInputView : MultiChildView
     private int _selectionStartIndex;
     private float _scrollOffsetX;
     private readonly char[] _buffer;
-    
-    public ReadOnlySpan<char> Text => _buffer.AsSpan(0, _strLen);
-    public bool IsEditing => _isEditing;
+    private readonly State<string> _text = new(string.Empty);
 
-    public event Action? TextChanged;
+    /// <summary>Zero-allocation view of the current text. Prefer this for renderers,
+    /// controllers, and equality checks; use <see cref="TextValue"/> to observe changes.</summary>
+    public ReadOnlySpan<char> Text => _buffer.AsSpan(0, _strLen);
+
+    /// <summary>
+    /// The current text as an observable value, updated on every buffer mutation (a
+    /// programmatic <see cref="SetText"/> emits a single notification). Read-only to callers:
+    /// drive edits through the keyboard controller, <see cref="Enter(System.ReadOnlySpan{char})"/>,
+    /// or <see cref="SetText"/>. Replaces the former <c>TextChanged</c> event so input text can
+    /// participate in the observable graph (bindings, <c>Derived</c>) like any other state.
+    /// </summary>
+    public IReadable<string> TextValue => _text;
+    public bool IsEditing => _isEditing;
 
     public TextInputView()
     {
@@ -649,7 +660,6 @@ public sealed class TextInputView : MultiChildView
 
     public void Delete()
     {
-        var before = _strLen;
         if (_strLen > 0)
         {
             if (IsSelecting)
@@ -664,7 +674,7 @@ public sealed class TextInputView : MultiChildView
             }
         }
         SetDirty();
-        if (_strLen != before) TextChanged?.Invoke();
+        SyncText();
     }
 
     public void Enter(char c)
@@ -678,12 +688,11 @@ public sealed class TextInputView : MultiChildView
         _caretIndex++;
         _selectionStartIndex = _caretIndex;
         SetDirty();
-        TextChanged?.Invoke();
+        SyncText();
     }
 
     public void Enter(ReadOnlySpan<char> text)
     {
-        var before = _strLen;
         if (_caretIndex != _selectionStartIndex)
         {
             DeleteSelection();
@@ -699,7 +708,7 @@ public sealed class TextInputView : MultiChildView
         _caretIndex += text.Length;
         _selectionStartIndex = _caretIndex;
         SetDirty();
-        if (_strLen != before) TextChanged?.Invoke();
+        SyncText();
     }
 
     public string? GetSelectedText()
@@ -720,11 +729,32 @@ public sealed class TextInputView : MultiChildView
 
     public void Clear()
     {
-        var before = _strLen;
         _strLen = 0;
         _caretIndex = 0;
         _selectionStartIndex = 0;
         SetDirty();
-        if (before != 0) TextChanged?.Invoke();
+        SyncText();
     }
+
+    /// <summary>
+    /// Replaces the entire buffer with <paramref name="text"/> in a single edit — one
+    /// <see cref="TextValue"/> notification — and moves the caret to the end. Use for
+    /// programmatic, wholesale replacement (data binding, async load, transforms) where the
+    /// intermediate empty buffer of a <see cref="Clear"/>-then-<see cref="Enter(System.ReadOnlySpan{char})"/>
+    /// must not be observable.
+    /// </summary>
+    public void SetText(ReadOnlySpan<char> text)
+    {
+        var length = Math.Min(text.Length, _buffer.Length);
+        text[..length].CopyTo(_buffer);
+        _strLen = length;
+        _caretIndex = _strLen;
+        _selectionStartIndex = _caretIndex;
+        SetDirty();
+        SyncText();
+    }
+
+    // Publishes the buffer as the observable text value. The State equality guard collapses
+    // no-op edits (e.g. a Delete that removed nothing) into nothing.
+    private void SyncText() => _text.Value = new string(_buffer, 0, _strLen);
 }
