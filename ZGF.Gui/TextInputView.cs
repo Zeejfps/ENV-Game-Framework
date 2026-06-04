@@ -589,6 +589,42 @@ public sealed class TextInputView : MultiChildView
         }
     }
 
+    public void MoveCaretLeftWord(bool select = false)
+    {
+        _caretIndex = FindPreviousWordBoundary(_caretIndex);
+        if (!select)
+            _selectionStartIndex = _caretIndex;
+    }
+
+    public void MoveCaretRightWord(bool select = false)
+    {
+        _caretIndex = FindNextWordBoundary(_caretIndex);
+        if (!select)
+            _selectionStartIndex = _caretIndex;
+    }
+
+    private static bool IsWordChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+
+    private int FindPreviousWordBoundary(int index)
+    {
+        var i = index;
+        while (i > 0 && !IsWordChar(_buffer[i - 1]))
+            i--;
+        while (i > 0 && IsWordChar(_buffer[i - 1]))
+            i--;
+        return i;
+    }
+
+    private int FindNextWordBoundary(int index)
+    {
+        var i = index;
+        while (i < _strLen && IsWordChar(_buffer[i]))
+            i++;
+        while (i < _strLen && !IsWordChar(_buffer[i]))
+            i++;
+        return i;
+    }
+
     public void MoveCaretDown(bool select = false)
     {
         var currIndex = _caretIndex;

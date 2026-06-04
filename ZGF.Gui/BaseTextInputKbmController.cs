@@ -170,6 +170,15 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
             return;
         }
         
+        // Word-jump modifier: Ctrl on Windows/Linux, Option (Alt) on macOS — Cmd/Super is
+        // reserved there for line-start/end, so it's a separate variable from ctrlModifier.
+        var wordModifier = InputModifiers.Control;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            wordModifier = InputModifiers.Alt;
+        }
+        var isWordJump = e.Modifiers.HasFlag(wordModifier);
+
         var isShiftPressed = (e.Modifiers & InputModifiers.Shift) > 0;
         if (e.Key == KeyboardKey.UpArrow)
         {
@@ -187,14 +196,20 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
         
         if (e.Key == KeyboardKey.LeftArrow)
         {
-            _textInput.MoveCaretLeft(isShiftPressed);
+            if (isWordJump)
+                _textInput.MoveCaretLeftWord(isShiftPressed);
+            else
+                _textInput.MoveCaretLeft(isShiftPressed);
             e.Consume();
             return;
         }
-            
+
         if (e.Key == KeyboardKey.RightArrow)
         {
-            _textInput.MoveCaretRight(isShiftPressed);
+            if (isWordJump)
+                _textInput.MoveCaretRightWord(isShiftPressed);
+            else
+                _textInput.MoveCaretRight(isShiftPressed);
             e.Consume();
             return;
         }
