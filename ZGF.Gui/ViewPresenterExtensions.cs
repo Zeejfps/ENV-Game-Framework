@@ -4,16 +4,16 @@ namespace ZGF.Gui;
 
 public static class ViewPresenterExtensions
 {
-    public static void UsePresenter<T>(this View view, Func<Context, T> factory)
+    /// <summary>
+    /// Attaches a disposable whose lifetime tracks the view: created with the view's context on
+    /// attach, disposed on detach. For view-scoped helpers (tooltips, scroll-sync controllers) that
+    /// are neither a ViewModel (<see cref="UseViewModel{TVm}(View, IBind{TVm})"/>) nor an input
+    /// controller (UseController).
+    /// </summary>
+    public static void Use<T>(this View view, Func<Context, T> factory)
         where T : IDisposable
     {
-        view.Behaviors.Add(new PresenterBehavior<T>(factory));
-    }
-
-    public static void UseBehavior<T>(this View view, Func<Context, T> factory)
-        where T : IDisposable
-    {
-        view.Behaviors.Add(new PresenterBehavior<T>(factory));
+        view.Behaviors.Add(new ScopedBehavior<T>(factory));
     }
 
     public static void UseViewModel<TVm>(

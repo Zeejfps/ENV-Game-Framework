@@ -38,7 +38,7 @@ public sealed class InputSystem
                 $"[InputSystem] Warning: registering {controller.GetType().Name} on {view.GetType().Name} " +
                 $"replaces existing controller {existing.Controller.GetType().Name}. " +
                 $"Only one controller per view is supported — attach the second one to a different view, " +
-                $"or use UsePresenter for behaviors that only need lifecycle (no input dispatch).");
+                $"or use View.Use for behaviors that only need lifecycle (no input dispatch).");
             UnregisterController(view);
         }
         _viewToController[view] = new ControllerRegistration(controller, phaseFilter);
