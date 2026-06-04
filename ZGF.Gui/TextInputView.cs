@@ -76,6 +76,11 @@ public sealed class TextInputView : MultiChildView
     private bool _isEditing;
     private int _selectionStartIndex;
     private float _scrollOffsetX;
+
+    // Sticky x for vertical movement: the pixel column Up/Down aim for. Set on the first
+    // Up/Down of a run and reused so passing through a short line doesn't shrink the column;
+    // any horizontal move or edit clears it (-1) so the next Up/Down re-anchors to the caret.
+    private float _goalColumnX = -1f;
     private readonly char[] _buffer;
     private readonly State<string> _text = new(string.Empty);
 
@@ -530,6 +535,7 @@ public sealed class TextInputView : MultiChildView
     
     public void MoveCaretTo(PointF point, bool isSelecting = false)
     {
+        _goalColumnX = -1f;
         _caretIndex = GetCaretIndexFromPoint(point);
         if (!isSelecting)
         {
@@ -539,12 +545,14 @@ public sealed class TextInputView : MultiChildView
 
     public void SelectAll()
     {
+        _goalColumnX = -1f;
         _selectionStartIndex = 0;
         _caretIndex = _strLen;
     }
 
     public void MoveCaretLeft(bool select = false)
     {
+        _goalColumnX = -1f;
         var isSelecting = IsSelecting;
         if (!isSelecting || select)
         {
@@ -568,6 +576,7 @@ public sealed class TextInputView : MultiChildView
 
     public void MoveCaretRight(bool select = false)
     {
+        _goalColumnX = -1f;
         var isSelecting = IsSelecting;
         if (!isSelecting || select)
         {
@@ -591,6 +600,7 @@ public sealed class TextInputView : MultiChildView
 
     public void MoveCaretLeftWord(bool select = false)
     {
+        _goalColumnX = -1f;
         _caretIndex = FindPreviousWordBoundary(_caretIndex);
         if (!select)
             _selectionStartIndex = _caretIndex;
@@ -598,6 +608,7 @@ public sealed class TextInputView : MultiChildView
 
     public void MoveCaretRightWord(bool select = false)
     {
+        _goalColumnX = -1f;
         _caretIndex = FindNextWordBoundary(_caretIndex);
         if (!select)
             _selectionStartIndex = _caretIndex;
@@ -625,54 +636,84 @@ public sealed class TextInputView : MultiChildView
         return i;
     }
 
-    public void MoveCaretDown(bool select = false)
+    public void MoveCaretDown(bool select = false) => MoveCaretVertically(1, select);
+
+    public void MoveCaretUp(bool select = false) => MoveCaretVertically(-1, select);
+
+    // Vertical movement walks the same visual lines GetLines/DrawText produce (hard '\n'
+    // breaks plus soft wraps), and tracks the caret's pixel x so the column is preserved
+    // across proportional fonts rather than by character count.
+    private void MoveCaretVertically(int direction, bool select)
     {
-        var currIndex = _caretIndex;
-        var nextLineStartIndex = FindNextLineStartIndex(currIndex);
-        if (nextLineStartIndex >= _strLen)
+        var canvas = Context?.Canvas;
+        if (canvas == null)
+            return;
+
+        var lines = GetLines(Position.Width, canvas).ToList();
+        var lineIndex = FindCaretLineIndex(lines);
+
+        var lineStart = lines[lineIndex].Start.Value;
+        if (_goalColumnX < 0f)
+            _goalColumnX = canvas.MeasureTextWidth(_buffer.AsSpan(lineStart, _caretIndex - lineStart), _textStyle);
+
+        var targetLineIndex = lineIndex + direction;
+        if (targetLineIndex < 0)
+        {
+            SetCaret(0, select);
+            return;
+        }
+        if (targetLineIndex >= lines.Count)
         {
             SetCaret(_strLen, select);
             return;
         }
 
-        var currentLineStartIndex = FindLineStartIndex(currIndex);
-        var xOffset = currIndex - currentLineStartIndex;
-
-        var nextLineEndIndex = FindLineEndIndex(nextLineStartIndex);
-        var nextLineLength =  nextLineEndIndex - nextLineStartIndex;
-
-        if (xOffset > nextLineLength)
-        {
-            SetCaret(nextLineEndIndex, select);
-            return;
-        }
-
-        SetCaret(nextLineStartIndex + xOffset, select);
+        SetCaret(FindIndexClosestToX(lines[targetLineIndex], _goalColumnX, canvas), select);
     }
 
-    public void MoveCaretUp(bool select = false)
+    private int FindCaretLineIndex(List<Range> lines)
     {
-        var currIndex = _caretIndex;
-        var currentLineStartIndex = FindLineStartIndex(currIndex);
-        if (currentLineStartIndex == 0)
+        for (var i = 0; i < lines.Count; i++)
         {
-            SetCaret(0, select);
-            return;
+            var end = lines[i].End.Value;
+            if (_caretIndex < end)
+                return i;
+
+            // A caret sitting exactly on a soft-wrap boundary (this line's end == the next
+            // line's start) belongs to the next visual line; a '\n' break leaves a gap, so
+            // the caret stays on this line.
+            if (_caretIndex == end)
+            {
+                var isSoftWrapBoundary = i + 1 < lines.Count && lines[i + 1].Start.Value == end;
+                if (!isSoftWrapBoundary)
+                    return i;
+            }
         }
+        return lines.Count - 1;
+    }
 
-        var xOffset = currIndex - currentLineStartIndex;
+    private int FindIndexClosestToX(Range line, float targetX, ICanvas canvas)
+    {
+        var start = line.Start.Value;
+        var end = line.End.Value;
 
-        var prevLineEndIndex = currentLineStartIndex - 1;
-        var prevLineStartIndex = FindLineStartIndex(prevLineEndIndex);
-        var prevLineLength = prevLineEndIndex - prevLineStartIndex;
-
-        if (xOffset > prevLineLength)
+        var bestIndex = start;
+        var bestDistance = targetX;
+        for (var i = start + 1; i <= end; i++)
         {
-            SetCaret(prevLineEndIndex, select);
-            return;
+            var x = canvas.MeasureTextWidth(_buffer.AsSpan(start, i - start), _textStyle);
+            var distance = Math.Abs(x - targetX);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestIndex = i;
+            }
+            else if (x > targetX)
+            {
+                break;
+            }
         }
-
-        SetCaret(prevLineStartIndex + xOffset, select);
+        return bestIndex;
     }
 
     private void SetCaret(int index, bool select)
@@ -682,44 +723,9 @@ public sealed class TextInputView : MultiChildView
             _selectionStartIndex = _caretIndex;
     }
 
-    private int FindLineEndIndex(int currIndex)
-    {
-        for (var i = currIndex; i < _strLen; i++)
-        {
-            if (_buffer[i] == '\n')
-            {
-                return i;
-            }
-        }
-        return _strLen - 1;
-    }
-
-    private int FindLineStartIndex(int currIndex)
-    {
-        for (var i = currIndex - 1; i > 0; i--)
-        {
-            if (_buffer[i] == '\n')
-            {
-                return i + 1;
-            }
-        }
-        return 0;
-    }
-
-    private int FindNextLineStartIndex(int currIndex)
-    {
-        for (var i = currIndex; i < _strLen; i++)
-        {
-            if (_buffer[i] == '\n')
-            {
-                return i + 1;
-            }
-        }
-        return _strLen;
-    }
-
     public void Delete()
     {
+        _goalColumnX = -1f;
         if (_strLen > 0)
         {
             if (IsSelecting)
@@ -739,6 +745,7 @@ public sealed class TextInputView : MultiChildView
 
     public void DeleteWord()
     {
+        _goalColumnX = -1f;
         if (_strLen == 0)
         {
             return;
@@ -761,6 +768,7 @@ public sealed class TextInputView : MultiChildView
 
     public void Enter(char c)
     {
+        _goalColumnX = -1f;
         if (IsSelecting)
         {
             DeleteSelection();
@@ -775,6 +783,7 @@ public sealed class TextInputView : MultiChildView
 
     public void Enter(ReadOnlySpan<char> text)
     {
+        _goalColumnX = -1f;
         if (_caretIndex != _selectionStartIndex)
         {
             DeleteSelection();
@@ -811,6 +820,7 @@ public sealed class TextInputView : MultiChildView
 
     public void Clear()
     {
+        _goalColumnX = -1f;
         _strLen = 0;
         _caretIndex = 0;
         _selectionStartIndex = 0;
@@ -827,6 +837,7 @@ public sealed class TextInputView : MultiChildView
     /// </summary>
     public void SetText(ReadOnlySpan<char> text)
     {
+        _goalColumnX = -1f;
         var length = Math.Min(text.Length, _buffer.Length);
         text[..length].CopyTo(_buffer);
         _strLen = length;
