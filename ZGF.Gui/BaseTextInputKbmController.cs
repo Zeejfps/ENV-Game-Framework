@@ -216,7 +216,10 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
             
         if (e.Key == KeyboardKey.Backspace)
         {
-            _textInput.Delete();
+            if (isWordJump)
+                _textInput.DeleteWord();
+            else
+                _textInput.Delete();
             e.Consume();
             return;
         }

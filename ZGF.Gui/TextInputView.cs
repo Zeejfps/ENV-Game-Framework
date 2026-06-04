@@ -713,6 +713,28 @@ public sealed class TextInputView : MultiChildView
         SyncText();
     }
 
+    public void DeleteWord()
+    {
+        if (_strLen == 0)
+        {
+            return;
+        }
+
+        if (IsSelecting)
+        {
+            DeleteSelection();
+        }
+        else if (_caretIndex > 0)
+        {
+            var wordStart = FindPreviousWordBoundary(_caretIndex);
+            DeleteRange(wordStart, _caretIndex);
+            _caretIndex = wordStart;
+            _selectionStartIndex = _caretIndex;
+        }
+        SetDirty();
+        SyncText();
+    }
+
     public void Enter(char c)
     {
         if (IsSelecting)
