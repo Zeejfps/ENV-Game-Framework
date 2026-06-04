@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ZGF.Gui;
 
-public static class ViewPresenterExtensions
+public static class ViewBehaviorExtensions
 {
     /// <summary>
     /// Attaches a disposable whose lifetime tracks the view: created with the view's context on
