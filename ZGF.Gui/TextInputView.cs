@@ -631,8 +631,7 @@ public sealed class TextInputView : MultiChildView
         var nextLineStartIndex = FindNextLineStartIndex(currIndex);
         if (nextLineStartIndex >= _strLen)
         {
-            _caretIndex = _strLen;
-            _selectionStartIndex = _caretIndex;
+            SetCaret(_strLen, select);
             return;
         }
 
@@ -641,21 +640,46 @@ public sealed class TextInputView : MultiChildView
 
         var nextLineEndIndex = FindLineEndIndex(nextLineStartIndex);
         var nextLineLength =  nextLineEndIndex - nextLineStartIndex;
-        
+
         if (xOffset > nextLineLength)
         {
-            _caretIndex = nextLineEndIndex;
-            _selectionStartIndex = _caretIndex;
+            SetCaret(nextLineEndIndex, select);
             return;
         }
-        
-        _caretIndex = nextLineStartIndex + xOffset;
-        _selectionStartIndex = _caretIndex;
+
+        SetCaret(nextLineStartIndex + xOffset, select);
     }
-    
+
     public void MoveCaretUp(bool select = false)
     {
-        
+        var currIndex = _caretIndex;
+        var currentLineStartIndex = FindLineStartIndex(currIndex);
+        if (currentLineStartIndex == 0)
+        {
+            SetCaret(0, select);
+            return;
+        }
+
+        var xOffset = currIndex - currentLineStartIndex;
+
+        var prevLineEndIndex = currentLineStartIndex - 1;
+        var prevLineStartIndex = FindLineStartIndex(prevLineEndIndex);
+        var prevLineLength = prevLineEndIndex - prevLineStartIndex;
+
+        if (xOffset > prevLineLength)
+        {
+            SetCaret(prevLineEndIndex, select);
+            return;
+        }
+
+        SetCaret(prevLineStartIndex + xOffset, select);
+    }
+
+    private void SetCaret(int index, bool select)
+    {
+        _caretIndex = index;
+        if (!select)
+            _selectionStartIndex = _caretIndex;
     }
 
     private int FindLineEndIndex(int currIndex)
