@@ -22,7 +22,9 @@ public sealed class ControllerBehavior<T> : IViewBehavior where T : IKeyboardMou
 
     public void DetachFromContext(View view, Context context)
     {
-        context.Get<InputSystem>()?.UnregisterController(view);
+        // Remove only this behavior's controller — a view may host others.
+        if (_controller != null)
+            context.Get<InputSystem>()?.UnregisterController(view, _controller);
         if (_controller is IDisposable disposable)
             disposable.Dispose();
         _controller = default;
