@@ -134,6 +134,9 @@ public sealed class OpenGlWindow : IWindow
 
     public void MakeContextCurrent() => Glfw.MakeContextCurrent(_window);
 
+    public string GetClipboardText() => Glfw.GetClipboardString(_window);
+    public void SetClipboardText(string text) => Glfw.SetClipboardString(_window, text);
+
     public void RenderNow()
     {
         RenderFrame?.Invoke();

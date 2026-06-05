@@ -112,6 +112,8 @@ public sealed class MetalWindow : IWindow
     }
     public void RequestRedraw() => NeedsRedraw = true;
     public void MakeContextCurrent() { /* Metal is stateless across windows */ }
+    public string GetClipboardText() => Glfw.GetClipboardString(_window);
+    public void SetClipboardText(string text) => Glfw.SetClipboardString(_window, text);
 
     public void RenderNow() => RenderFrame?.Invoke();
 

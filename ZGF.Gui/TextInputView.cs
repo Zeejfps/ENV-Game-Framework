@@ -81,7 +81,7 @@ public sealed class TextInputView : MultiChildView
     // Up/Down of a run and reused so passing through a short line doesn't shrink the column;
     // any horizontal move or edit clears it (-1) so the next Up/Down re-anchors to the caret.
     private float _goalColumnX = -1f;
-    private readonly char[] _buffer;
+    private char[] _buffer;
     private readonly State<string> _text = new(string.Empty);
 
     /// <summary>Zero-allocation view of the current text. Prefer this for renderers,
@@ -213,8 +213,20 @@ public sealed class TextInputView : MultiChildView
         _strLen--;
     }
 
+    private void EnsureCapacity(int required)
+    {
+        if (required <= _buffer.Length)
+            return;
+
+        var newCapacity = _buffer.Length * 2;
+        while (newCapacity < required)
+            newCapacity *= 2;
+        Array.Resize(ref _buffer, newCapacity);
+    }
+
     private void InsertChar(int index, char c)
     {
+        EnsureCapacity(_strLen + 1);
         _strLen++;
         for (var i = _strLen - 1; i > index; i--)
         {
@@ -813,6 +825,8 @@ public sealed class TextInputView : MultiChildView
             DeleteSelection();
         }
 
+        EnsureCapacity(_strLen + text.Length);
+
         var textEnd = _buffer.AsSpan(_caretIndex, _strLen - _caretIndex);
         textEnd.CopyTo(_buffer.AsSpan(_caretIndex + text.Length));
 
@@ -862,9 +876,9 @@ public sealed class TextInputView : MultiChildView
     public void SetText(ReadOnlySpan<char> text)
     {
         _goalColumnX = -1f;
-        var length = Math.Min(text.Length, _buffer.Length);
-        text[..length].CopyTo(_buffer);
-        _strLen = length;
+        EnsureCapacity(text.Length);
+        text.CopyTo(_buffer);
+        _strLen = text.Length;
         _caretIndex = _strLen;
         _selectionStartIndex = _caretIndex;
         SetDirty();

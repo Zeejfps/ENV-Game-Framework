@@ -59,6 +59,11 @@ public sealed class GuiApp : IDisposable
         context.AddService<ISecondaryWindowFactory>(_secondaryWindows);
         context.AddService<IUiDispatcher>(_dispatcher);
 
+        // Default clipboard routes through the window's display-server connection. Platforms
+        // with a native implementation (Win32/macOS) register their own before this runs.
+        if (context.Get<IClipboard>() == null)
+            context.AddService<IClipboard>(new WindowClipboard(app));
+
         _root = new MultiChildView
         {
             Width = mainCanvas.Width,

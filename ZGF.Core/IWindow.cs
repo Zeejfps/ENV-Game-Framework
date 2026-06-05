@@ -39,4 +39,10 @@ public interface IWindow : IDisposable
     void RequestRedraw();
     void RenderNow();
     void MakeContextCurrent();
+
+    // Reads/writes the system clipboard through this window's connection to the display
+    // server (X11 selections / Wayland data-device on Linux). GetClipboardText returns an
+    // empty string when the clipboard is empty or holds non-text content.
+    string GetClipboardText();
+    void SetClipboardText(string text);
 }
