@@ -10,6 +10,9 @@
     <ItemGroup>
       <ProjectReference Include="..\Glfw.NET\Glfw.NET.csproj" />
       <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
+      <!-- The GLFW window backend maps GLFW keys onto the neutral KeyboardKey it raises. -->
+      <ProjectReference Include="..\ZGF.KeyboardModule\ZGF.KeyboardModule.csproj" />
+      <ProjectReference Include="..\ZGF.KeyboardModule.GlfwAdapter\ZGF.KeyboardModule.GlfwAdapter.csproj" />
     </ItemGroup>
 
 </Project>

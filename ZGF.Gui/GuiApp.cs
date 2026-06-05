@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices;
-using GLFW;
 using ZGF.AppUtils;
 using ZGF.Core;
 using ZGF.Fonts;
@@ -14,7 +12,7 @@ public sealed class GuiApp : IDisposable
     private readonly FreeTypeFontBackend _fontBackend;
     private readonly GlSharedResources? _glShared;
     private readonly MetalSharedResources? _metalShared;
-    private readonly GlfwInputSystem _mainInput;
+    private readonly DesktopInputSystem _mainInput;
     private readonly MultiChildView _root;
     private readonly QueuedUiDispatcher _dispatcher;
     private readonly ContextMenuManager _contextMenuManager;
@@ -38,12 +36,12 @@ public sealed class GuiApp : IDisposable
         _fontBackend = fontBackend;
         _glShared = glShared;
         _metalShared = metalShared;
-        _mainInput = new GlfwInputSystem(app.MainWindow.WindowHandle, mainCanvas);
+        _mainInput = new DesktopInputSystem(app.MainWindow, mainCanvas);
         _dispatcher = new QueuedUiDispatcher();
 
         var decorator = context.Get<IPopupNativeDecorator>() ?? new DefaultNoopDecorator();
         _windowChrome = context.Get<IWindowChrome>() ?? new NoopWindowChrome();
-        _coordinates = new WindowCoordinates(app.MainWindow.WindowHandle, mainCanvas);
+        _coordinates = new WindowCoordinates(app.MainWindow, mainCanvas);
         _popupFactory = new PopupWindowFactory(
             app, fontBackend, defaultFont, glShared, metalShared, decorator, context,
             mainCanvasForFontRegistry: mainCanvas);
@@ -86,7 +84,7 @@ public sealed class GuiApp : IDisposable
         // user is interacting with a menu popup we own.
         foreach (var w in _app.Windows)
         {
-            if (Glfw.GetWindowAttribute((Window)w.WindowHandle, WindowAttribute.Focused))
+            if (w.IsFocused)
                 return;
         }
         _contextMenuManager.CloseAllImmediately();
@@ -123,29 +121,19 @@ public sealed class GuiApp : IDisposable
     {
         var bytes = File.ReadAllBytes(PathUtils.ResolveLocalPath(rgbaPath));
         var count = BitConverter.ToInt32(bytes, 0);
-        var images = new Image[count];
-        var handles = new GCHandle[count];
+        var icons = new List<WindowIconImage>(count);
         var offset = 4;
-        try
+        for (var i = 0; i < count; i++)
         {
-            for (var i = 0; i < count; i++)
-            {
-                var w = BitConverter.ToInt32(bytes, offset); offset += 4;
-                var h = BitConverter.ToInt32(bytes, offset); offset += 4;
-                var len = w * h * 4;
-                var pixels = new byte[len];
-                Buffer.BlockCopy(bytes, offset, pixels, 0, len);
-                offset += len;
-                handles[i] = GCHandle.Alloc(pixels, GCHandleType.Pinned);
-                images[i] = new Image(w, h, handles[i].AddrOfPinnedObject());
-            }
-            Glfw.SetWindowIcon(new Window(_app.MainWindow.WindowHandle), count, images);
+            var w = BitConverter.ToInt32(bytes, offset); offset += 4;
+            var h = BitConverter.ToInt32(bytes, offset); offset += 4;
+            var len = w * h * 4;
+            var pixels = new byte[len];
+            Buffer.BlockCopy(bytes, offset, pixels, 0, len);
+            offset += len;
+            icons.Add(new WindowIconImage(w, h, pixels));
         }
-        finally
-        {
-            foreach (var h in handles)
-                if (h.IsAllocated) h.Free();
-        }
+        _app.MainWindow.SetIcon(icons);
     }
 
     public event Action<int, int>? OnWindowResized;
@@ -155,7 +143,7 @@ public sealed class GuiApp : IDisposable
     ///     appearance. No-op on platforms without a registered <see cref="IWindowChrome"/>.
     /// </summary>
     public void SetTitleBarDark(bool dark) =>
-        _windowChrome.SetTitleBarTheme(_app.MainWindow.WindowHandle, dark);
+        _windowChrome.SetTitleBarTheme(_app.MainWindow.NativeHandle, dark);
 
     public void Run() => _app.Run();
 

@@ -1,5 +1,8 @@
+using System.Runtime.InteropServices;
 using GLFW;
 using ZGF.Core.MacOs;
+using ZGF.KeyboardModule;
+using ZGF.KeyboardModule.GlfwAdapter;
 using static ZGF.Core.MacOs.Objc;
 
 namespace ZGF.Core;
@@ -12,6 +15,10 @@ public sealed class MetalWindow : IWindow
     private readonly SizeCallback _framebufferSizeCallback;
     private readonly FocusCallback _focusCallback;
     private readonly WindowCallback _closeCallback;
+    private readonly KeyCallback _keyCallback;
+    private readonly MouseButtonCallback _mouseButtonCallback;
+    private readonly MouseCallback _scrollCallback;
+    private readonly MouseEnterCallback _cursorEnterCallback;
 
     private int _width;
     private int _height;
@@ -44,29 +51,65 @@ public sealed class MetalWindow : IWindow
         _framebufferSizeCallback = HandleFramebufferSizeChanged;
         _focusCallback = HandleFocusChanged;
         _closeCallback = HandleClose;
+        _keyCallback = HandleKey;
+        _mouseButtonCallback = HandleMouseButton;
+        _scrollCallback = HandleScroll;
+        _cursorEnterCallback = HandleCursorEnter;
         Glfw.SetWindowSizeCallback(window, _windowSizeCallback);
         Glfw.SetFramebufferSizeCallback(window, _framebufferSizeCallback);
         Glfw.SetWindowFocusCallback(window, _focusCallback);
         Glfw.SetCloseCallback(window, _closeCallback);
+        Glfw.SetKeyCallback(window, _keyCallback);
+        Glfw.SetMouseButtonCallback(window, _mouseButtonCallback);
+        Glfw.SetScrollCallback(window, _scrollCallback);
+        Glfw.SetCursorEnterCallback(window, _cursorEnterCallback);
     }
 
     public IntPtr WindowHandle => _window;
+    public IntPtr NativeHandle => NsWindow;
     public int Width => _width;
     public int Height => _height;
     public float DpiScale => _dpiScale;
     public bool IsVisible => _isVisible;
+    public bool IsFocused => Glfw.GetWindowAttribute(_window, WindowAttribute.Focused);
+    public bool IsPointerOver => Glfw.GetWindowAttribute(_window, WindowAttribute.MouseHover);
     public bool NeedsRedraw { get; set; } = true;
 
     public event Action<int, int>? OnResize;
     public event Action<int, int>? OnFramebufferResize;
     public event Action<bool>? OnFocusChanged;
     public event Action? OnClose;
+    public event Action<KeyboardKey, InputAction, KeyModifiers>? OnKey;
+    public event Action<int, InputAction, KeyModifiers>? OnMouseButton;
+    public event Action<double, double>? OnScroll;
+    public event Action<bool>? OnPointerEnter;
 
     public void Show() { Glfw.ShowWindow(_window); _isVisible = true; NeedsRedraw = true; }
     public void Hide() { Glfw.HideWindow(_window); _isVisible = false; }
     public void Focus() => Glfw.FocusWindow(_window);
     public void SetPosition(int x, int y) => Glfw.SetWindowPosition(_window, x, y);
     public void SetSize(int w, int h) => Glfw.SetWindowSize(_window, w, h);
+    public void GetPosition(out int screenX, out int screenY) => Glfw.GetWindowPosition(_window, out screenX, out screenY);
+    public void GetCursorPosition(out double x, out double y) => Glfw.GetCursorPosition(_window, out x, out y);
+    public void SetIcon(IReadOnlyList<WindowIconImage> icons)
+    {
+        var images = new Image[icons.Count];
+        var handles = new GCHandle[icons.Count];
+        try
+        {
+            for (var i = 0; i < icons.Count; i++)
+            {
+                handles[i] = GCHandle.Alloc(icons[i].Pixels, GCHandleType.Pinned);
+                images[i] = new Image(icons[i].Width, icons[i].Height, handles[i].AddrOfPinnedObject());
+            }
+            Glfw.SetWindowIcon(_window, images.Length, images);
+        }
+        finally
+        {
+            foreach (var h in handles)
+                if (h.IsAllocated) h.Free();
+        }
+    }
     public void RequestRedraw() => NeedsRedraw = true;
     public void MakeContextCurrent() { /* Metal is stateless across windows */ }
 
@@ -90,6 +133,16 @@ public sealed class MetalWindow : IWindow
 
     private void HandleFocusChanged(Window window, bool focused) => OnFocusChanged?.Invoke(focused);
     private void HandleClose(Window window) => OnClose?.Invoke();
+
+    private void HandleKey(Window window, Keys key, int scanCode, InputState state, ModifierKeys mods) =>
+        OnKey?.Invoke(key.Adapt(), (InputAction)state, (KeyModifiers)mods);
+
+    private void HandleMouseButton(Window window, GLFW.MouseButton button, InputState state, ModifierKeys mods) =>
+        OnMouseButton?.Invoke((int)button, (InputAction)state, (KeyModifiers)mods);
+
+    private void HandleScroll(Window window, double x, double y) => OnScroll?.Invoke(x, y);
+
+    private void HandleCursorEnter(Window window, bool entering) => OnPointerEnter?.Invoke(entering);
 
     private static float ComputeDpiScale(Window window, int fbWidth, int fbHeight)
     {

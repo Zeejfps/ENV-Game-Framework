@@ -1,23 +1,16 @@
-using GLFW;
+using ZGF.Core;
 using ZGF.Geometry;
 using ZGF.Gui.Desktop;
-using ZGF.KeyboardModule.GlfwAdapter;
-using GlfwWindow = GLFW.Window;
+using ZGF.KeyboardModule;
 using InputState = ZGF.Gui.Desktop.InputState;
 using MouseButton = ZGF.Gui.Desktop.MouseButton;
 
 namespace ZGF.Gui;
 
-public sealed class GlfwInputSystem
+public sealed class DesktopInputSystem
 {
-    private readonly GlfwWindow _windowHandle;
+    private readonly IWindow _window;
     private readonly RenderedCanvasBase _canvas;
-
-    // Held so the delegates aren't GC'd while GLFW holds native pointers to them.
-    private readonly KeyCallback _keyCallback;
-    private readonly MouseButtonCallback _mouseButtonCallback;
-    private readonly MouseCallback _scrollCallback;
-    private readonly MouseEnterCallback _cursorEnterCallback;
     private bool _pendingExitClear;
     private string? _lastDiagReason;
 
@@ -25,22 +18,15 @@ public sealed class GlfwInputSystem
     public Mouse Mouse { get; } = new();
     public Action? OnAnyInput { get; set; }
 
-    public GlfwInputSystem(IntPtr windowHandle, RenderedCanvasBase canvas)
-        : this((GlfwWindow)windowHandle, canvas) { }
-
-    public GlfwInputSystem(GlfwWindow windowHandle, RenderedCanvasBase canvas)
+    public DesktopInputSystem(IWindow window, RenderedCanvasBase canvas)
     {
-        _windowHandle = windowHandle;
+        _window = window;
         _canvas = canvas;
 
-        _keyCallback = HandleKeyEvent;
-        _mouseButtonCallback = HandleMouseButtonEvent;
-        _scrollCallback = HandleScrollEvent;
-        _cursorEnterCallback = HandleCursorEnter;
-        Glfw.SetKeyCallback(_windowHandle, _keyCallback);
-        Glfw.SetMouseButtonCallback(_windowHandle, _mouseButtonCallback);
-        Glfw.SetScrollCallback(_windowHandle, _scrollCallback);
-        Glfw.SetCursorEnterCallback(_windowHandle, _cursorEnterCallback);
+        _window.OnKey += HandleKeyEvent;
+        _window.OnMouseButton += HandleMouseButtonEvent;
+        _window.OnScroll += HandleScrollEvent;
+        _window.OnPointerEnter += HandleCursorEnter;
     }
 
     /// <summary>
@@ -60,12 +46,12 @@ public sealed class GlfwInputSystem
         Mouse.Point = new PointF(float.MinValue, float.MinValue);
     }
 
-    private void HandleCursorEnter(GlfwWindow window, bool entering)
+    private void HandleCursorEnter(bool entering)
     {
-        // GLFW only fires this on enter/exit transitions. When the cursor leaves
+        // The OS only fires this on enter/exit transitions. When the cursor leaves
         // the window we can't safely send a synthetic MouseMove right now (we may
-        // be inside GLFW's event-pump and the view tree isn't reentrant); defer
-        // the hover-clear to the next Update() tick.
+        // be inside the event-pump and the view tree isn't reentrant); defer the
+        // hover-clear to the next Update() tick.
         if (!entering) _pendingExitClear = true;
     }
 
@@ -86,7 +72,7 @@ public sealed class GlfwInputSystem
         if (InputSystem.HasFocus)
         {
             DiagReason("focus-latch (Update short-circuits before hover; clicks route to focused/empty queue)");
-            Glfw.GetCursorPosition(_windowHandle, out var capturedX, out var capturedY);
+            _window.GetCursorPosition(out var capturedX, out var capturedY);
             var capturedPoint = WindowToGuiCoords(capturedX, capturedY);
             if (capturedPoint != Mouse.Point)
             {
@@ -101,7 +87,7 @@ public sealed class GlfwInputSystem
             }
             return;
         }
-        
+
         if (_pendingExitClear)
         {
             _pendingExitClear = false;
@@ -114,24 +100,24 @@ public sealed class GlfwInputSystem
             };
             InputSystem.SendMouseMovedEvent(ref exitEvent);
             // Don't restore Mouse.Point — the cursor is genuinely outside; the
-            // next Update with MouseHover=true will refresh from GLFW.
+            // next Update with MouseHover=true will refresh from the window.
             _ = prev;
         }
 
         // Freeze hover state when the cursor leaves this window's bounds. Without
-        // this, Glfw.GetCursorPosition reports stale coords outside the window's
-        // rect and the hover path would clear — defeating, e.g., tooltip hover
-        // while the cursor sits over the tooltip's own popup window.
+        // this, GetCursorPosition reports stale coords outside the window's rect and
+        // the hover path would clear — defeating, e.g., tooltip hover while the
+        // cursor sits over the tooltip's own popup window.
         //
-        // Test the cursor against the window rect directly rather than via GLFW's
-        // MouseHover (GLFW_HOVERED) attribute. That attribute is updated only from OS
-        // cursor enter/leave events, which fire solely on cursor *movement*: a context
-        // menu that pops up directly under a stationary cursor never receives an enter
-        // event, so GLFW_HOVERED stays false, Update short-circuits here, and the menu
+        // Test the cursor against the window rect directly rather than via the OS
+        // pointer-over attribute. That attribute updates only from OS cursor enter/leave
+        // events, which fire solely on cursor *movement*: a context menu that pops up
+        // directly under a stationary cursor never receives an enter event, so the menu
         // opens dead until the mouse is jiggled. A direct bounds check reports hover on
         // the first tick while still freezing once the cursor genuinely leaves the rect.
-        Glfw.GetCursorPosition(_windowHandle, out var mouseX, out var mouseY);
-        Glfw.GetWindowSize(_windowHandle, out var winWidth, out var winHeight);
+        _window.GetCursorPosition(out var mouseX, out var mouseY);
+        var winWidth = _window.Width;
+        var winHeight = _window.Height;
         var cursorInsideBounds =
             mouseX >= 0 && mouseY >= 0 && mouseX <= winWidth && mouseY <= winHeight;
         if (!cursorInsideBounds)
@@ -158,7 +144,7 @@ public sealed class GlfwInputSystem
         OnAnyInput?.Invoke();
     }
 
-    private void HandleScrollEvent(GlfwWindow window, double x, double y)
+    private void HandleScrollEvent(double x, double y)
     {
         var e = new MouseWheelScrolledEvent
         {
@@ -171,24 +157,18 @@ public sealed class GlfwInputSystem
         OnAnyInput?.Invoke();
     }
 
-    private void HandleMouseButtonEvent(GlfwWindow window, GLFW.MouseButton button, GLFW.InputState state, ModifierKeys modifiers)
+    private void HandleMouseButtonEvent(int buttonIndex, InputAction action, KeyModifiers modifiers)
     {
-        Glfw.GetCursorPosition(_windowHandle, out var mouseX, out var mouseY);
+        _window.GetCursorPosition(out var mouseX, out var mouseY);
         Mouse.Point = WindowToGuiCoords(mouseX, mouseY);
-        var b = button switch
+        var b = buttonIndex switch
         {
-            GLFW.MouseButton.Left => MouseButton.Left,
-            GLFW.MouseButton.Right => MouseButton.Right,
-            GLFW.MouseButton.Middle => MouseButton.Middle,
-            _ => new MouseButton((int)button),
+            0 => MouseButton.Left,
+            1 => MouseButton.Right,
+            2 => MouseButton.Middle,
+            _ => new MouseButton(buttonIndex),
         };
-        var s = state switch
-        {
-            GLFW.InputState.Press => InputState.Pressed,
-            GLFW.InputState.Release => InputState.Released,
-            GLFW.InputState.Repeat => InputState.Pressed,
-            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
-        };
+        var s = MapState(action);
 
         if (s == InputState.Pressed)
         {
@@ -211,20 +191,12 @@ public sealed class GlfwInputSystem
         OnAnyInput?.Invoke();
     }
 
-    private void HandleKeyEvent(GlfwWindow window, Keys key, int scanCode, GLFW.InputState state, ModifierKeys mods)
+    private void HandleKeyEvent(KeyboardKey key, InputAction action, KeyModifiers mods)
     {
-        var s = state switch
-        {
-            GLFW.InputState.Press => InputState.Pressed,
-            GLFW.InputState.Release => InputState.Released,
-            GLFW.InputState.Repeat => InputState.Pressed,
-            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
-        };
-
         var e = new KeyboardKeyEvent
         {
-            Key = key.Adapt(),
-            State = s,
+            Key = key,
+            State = MapState(action),
             Modifiers = (InputModifiers)mods,
             Phase = EventPhase.Capturing
         };
@@ -232,9 +204,18 @@ public sealed class GlfwInputSystem
         OnAnyInput?.Invoke();
     }
 
+    private static InputState MapState(InputAction action) => action switch
+    {
+        InputAction.Press => InputState.Pressed,
+        InputAction.Repeat => InputState.Pressed,
+        InputAction.Release => InputState.Released,
+        _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
+    };
+
     private PointF WindowToGuiCoords(double windowX, double windowY)
     {
-        Glfw.GetWindowSize(_windowHandle, out var width, out var height);
+        var width = _window.Width;
+        var height = _window.Height;
         var scaleX = _canvas.Width / (float)width;
         var scaleY = _canvas.Height / (float)height;
         var screenX = windowX * scaleX;

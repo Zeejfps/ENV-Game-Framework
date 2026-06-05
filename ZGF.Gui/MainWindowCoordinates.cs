@@ -1,24 +1,24 @@
-using GLFW;
+using ZGF.Core;
 using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
 public sealed class WindowCoordinates : IWindowCoordinates
 {
-    private readonly IntPtr _glfwHandle;
+    private readonly IWindow _window;
     private readonly RenderedCanvasBase _canvas;
 
-    public WindowCoordinates(IntPtr glfwHandle, RenderedCanvasBase canvas)
+    public WindowCoordinates(IWindow window, RenderedCanvasBase canvas)
     {
-        _glfwHandle = glfwHandle;
+        _window = window;
         _canvas = canvas;
     }
 
     public PointI ToScreenPoints(PointF canvasPoint)
     {
-        var window = (Window)_glfwHandle;
-        Glfw.GetWindowSize(window, out var winW, out var winH);
-        Glfw.GetWindowPosition(window, out var winX, out var winY);
+        var winW = _window.Width;
+        var winH = _window.Height;
+        _window.GetPosition(out var winX, out var winY);
 
         var windowPointX = canvasPoint.X * (winW / (float)_canvas.Width);
         var windowPointY = winH - canvasPoint.Y * (winH / (float)_canvas.Height);

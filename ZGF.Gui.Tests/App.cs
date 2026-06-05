@@ -18,7 +18,7 @@ public sealed class App : IDisposable
     private readonly GlSharedResources _shared;
     private readonly MultiChildView _gui;
 
-    private readonly GlfwInputSystem _inputSystem;
+    private readonly DesktopInputSystem _inputSystem;
     private readonly FreeTypeFontBackend _fontBackend;
     private readonly FontHandle _defaultFont;
     private readonly ContextMenuManager _contextMenuManager;
@@ -48,7 +48,7 @@ public sealed class App : IDisposable
             startupConfig.WindowWidth, startupConfig.WindowHeight,
             _fontBackend, _defaultFont, _shared);
 
-        _inputSystem = new GlfwInputSystem(_mainWindow.WindowHandle, _canvas);
+        _inputSystem = new DesktopInputSystem(_mainWindow, _canvas);
 
         _mesh = Mesh.LoadFromFile("Assets/Models/Suzan_tri.obj");
         _shaderProgram = new ShaderProgramCompiler()
@@ -71,7 +71,7 @@ public sealed class App : IDisposable
         context.AddService<IClipboard>(new AppClipboard());
 #endif
 
-        var coordinates = new WindowCoordinates(_mainWindow.WindowHandle, _canvas);
+        var coordinates = new WindowCoordinates(_mainWindow, _canvas);
         var noopDecorator = new SampleNoopDecorator();
         _popupFactory = new PopupWindowFactory(
             _windowApp, _fontBackend, _defaultFont, _shared, metalShared: null,

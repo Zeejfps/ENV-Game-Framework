@@ -69,12 +69,12 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
             throw new InvalidOperationException("Either glShared or metalShared must be non-null.");
         }
 
-        var input = new GlfwInputSystem(window.WindowHandle, canvas);
+        var input = new DesktopInputSystem(window, canvas);
 
         var context = new Context(_mainContext);
         context.Canvas = canvas;
         context.AddService(input.InputSystem);
-        context.AddService<IWindowCoordinates>(new WindowCoordinates(window.WindowHandle, canvas));
+        context.AddService<IWindowCoordinates>(new WindowCoordinates(window, canvas));
 
         var impl = new SecondaryWindowImpl(window, canvas, input, context, _glShared, _metalShared);
         impl.SetRoot(request.Root);
@@ -130,7 +130,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
 {
     private readonly IWindow _window;
     private readonly RenderedCanvasBase _canvas;
-    private readonly GlfwInputSystem _input;
+    private readonly DesktopInputSystem _input;
     private readonly Context _context;
     private readonly GlSharedResources? _glShared;
     private readonly MetalSharedResources? _metalShared;
@@ -144,7 +144,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
     public SecondaryWindowImpl(
         IWindow window,
         RenderedCanvasBase canvas,
-        GlfwInputSystem input,
+        DesktopInputSystem input,
         Context context,
         GlSharedResources? glShared,
         MetalSharedResources? metalShared)

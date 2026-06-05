@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using GLFW;
 
 namespace ZGF.Gui;
 
@@ -22,8 +21,7 @@ public sealed class WindowsWindowChrome : IWindowChrome
     public void SetTitleBarTheme(IntPtr nativeWindowHandle, bool dark)
     {
         if (nativeWindowHandle == IntPtr.Zero) return;
-        var hwnd = Native.GetWin32Window((Window)nativeWindowHandle);
-        if (hwnd == IntPtr.Zero) return;
+        var hwnd = nativeWindowHandle;
 
         var value = dark ? 1 : 0;
         if (DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref value, sizeof(int)) != 0)

@@ -1,4 +1,3 @@
-using GLFW;
 using ZGF.Core;
 using ZGF.Fonts;
 using ZGF.Geometry;
@@ -89,12 +88,12 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         {
             if (_captureHolder == null)
             {
-                _decorator.BeginCapture(popup.Window.WindowHandle, popup.RaiseOutsideClick);
+                _decorator.BeginCapture(popup.Window.NativeHandle, popup.RaiseOutsideClick);
                 _captureHolder = popup;
             }
             else
             {
-                _decorator.TransferCapture(_captureHolder.Window.WindowHandle, popup.Window.WindowHandle, popup.RaiseOutsideClick);
+                _decorator.TransferCapture(_captureHolder.Window.NativeHandle, popup.Window.NativeHandle, popup.RaiseOutsideClick);
                 _captureHolder = popup;
             }
         }
@@ -114,12 +113,12 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             var newHolder = _activePopups.LastOrDefault(p => !p.MousePassThrough);
             if (newHolder != null)
             {
-                _decorator.TransferCapture(impl.Window.WindowHandle, newHolder.Window.WindowHandle, newHolder.RaiseOutsideClick);
+                _decorator.TransferCapture(impl.Window.NativeHandle, newHolder.Window.NativeHandle, newHolder.RaiseOutsideClick);
                 _captureHolder = newHolder;
             }
             else
             {
-                _decorator.EndCapture(impl.Window.WindowHandle);
+                _decorator.EndCapture(impl.Window.NativeHandle);
                 _captureHolder = null;
             }
         }
@@ -130,7 +129,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         // input system. SetRoot(null) unregisters per-controller, but a controller
         // that still holds focus would leave _focusedComponent latched — and since
         // this PopupWindowImpl (and its InputSystem) is pooled and reused, that
-        // latch makes HasFocus true forever, short-circuiting GlfwInputSystem.Update
+        // latch makes HasFocus true forever, short-circuiting DesktopInputSystem.Update
         // before hover/click dispatch. Result: the next pooled popup (and every one
         // after) opens dead. Reset clears the latch so each reuse starts clean.
         impl.ResetInput();
@@ -180,17 +179,16 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         return new RectI(x, y, r.Width, r.Height);
     }
 
-    private static (int x, int y, int w, int h) GetMonitorWorkArea(PointI anchor)
+    private (int x, int y, int w, int h) GetMonitorWorkArea(PointI anchor)
     {
-        var monitors = Glfw.Monitors;
-        if (monitors.Length == 0)
+        var monitors = _app.Monitors;
+        if (monitors.Count == 0)
             return (0, 0, 1920, 1080);
 
         // Prefer the monitor whose work area actually contains the anchor point.
         // This is the monitor the user clicked on, regardless of menu size.
-        foreach (var m in monitors)
+        foreach (var wa in monitors)
         {
-            var wa = m.WorkArea;
             if (anchor.X >= wa.X && anchor.X < wa.X + wa.Width &&
                 anchor.Y >= wa.Y && anchor.Y < wa.Y + wa.Height)
             {
@@ -201,11 +199,10 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         // Fallback (anchor outside every work area — e.g. on a taskbar strip or
         // just off-screen): nearest monitor by distance from the anchor to the
         // work-area rect (0 when inside on an axis), not by centre distance.
-        var best = monitors[0].WorkArea;
+        var best = monitors[0];
         var bestDist = long.MaxValue;
-        foreach (var m in monitors)
+        foreach (var wa in monitors)
         {
-            var wa = m.WorkArea;
             var dx = (long)Math.Max(0, Math.Max(wa.X - anchor.X, anchor.X - (wa.X + wa.Width - 1)));
             var dy = (long)Math.Max(0, Math.Max(wa.Y - anchor.Y, anchor.Y - (wa.Y + wa.Height - 1)));
             var d = dx * dx + dy * dy;
@@ -224,7 +221,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             MousePassThrough = mousePassThrough,
         });
 
-        _decorator.DecoratePopup(window.WindowHandle, mousePassThrough);
+        _decorator.DecoratePopup(window.NativeHandle, mousePassThrough);
 
         RenderedCanvasBase canvas;
 
@@ -248,7 +245,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             throw new InvalidOperationException("Either glShared or metalShared must be non-null.");
         }
 
-        var input = new GlfwInputSystem(window.WindowHandle, canvas);
+        var input = new DesktopInputSystem(window, canvas);
 
         var popupContext = new Context(_mainContext);
         popupContext.Canvas = canvas;
@@ -258,7 +255,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         // anchored at a parent-menu-item's canvas position) would inherit the
         // main window's translator and compute screen anchors against the main
         // window's origin instead of this popup's.
-        popupContext.AddService<IWindowCoordinates>(new WindowCoordinates(window.WindowHandle, canvas));
+        popupContext.AddService<IWindowCoordinates>(new WindowCoordinates(window, canvas));
 
         var impl = new PopupWindowImpl(window, canvas, input, popupContext, _glShared, _metalShared);
         return impl;
@@ -283,7 +280,7 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
 {
     private readonly IWindow _window;
     private readonly RenderedCanvasBase _canvas;
-    private readonly GlfwInputSystem _input;
+    private readonly DesktopInputSystem _input;
     private readonly Context _context;
     private readonly GlSharedResources? _glShared;
     private readonly MetalSharedResources? _metalShared;
@@ -297,7 +294,7 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     public PopupWindowImpl(
         IWindow window,
         RenderedCanvasBase canvas,
-        GlfwInputSystem input,
+        DesktopInputSystem input,
         Context context,
         GlSharedResources? glShared,
         MetalSharedResources? metalShared)
@@ -407,7 +404,7 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     {
         var sys = _input.InputSystem;
         if (sys.DiagLabel == null) return;
-        var mouseHover = Glfw.GetWindowAttribute((Window)_window.WindowHandle, WindowAttribute.MouseHover);
+        var mouseHover = _window.IsPointerOver;
         Console.WriteLine(
             $"[ctxmenu-diag {sys.DiagLabel}] shown fromPool={fromPool} " +
             $"hasFocus={sys.DiagHasFocus} queue={sys.DiagFocusQueueCount} mouseHover={mouseHover}" +

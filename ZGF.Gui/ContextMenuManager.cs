@@ -1,4 +1,3 @@
-using GLFW;
 using ZGF.Geometry;
 using ZGF.Gui.Desktop;
 using InputState = ZGF.Gui.Desktop.InputState;
@@ -62,7 +61,7 @@ public sealed class ContextMenuManager
     private readonly Dictionary<ContextMenu, OpenedContextMenu> _openedMenus = new();
     // Logical close (dict removal, Closed event) happens synchronously so callers
     // that immediately open a new menu see an empty state. The actual OS-level
-    // Glfw.HideWindow + decorator.EndCapture is deferred to Update() so we don't
+    // Window.Hide + decorator.EndCapture is deferred to Update() so we don't
     // hide a popup window from inside its own WND_PROC subclass — which on
     // Windows leaves activation/capture state half-broken.
     private readonly List<OpenedContextMenu> _pendingHide = new();
@@ -234,9 +233,10 @@ public sealed class ContextMenuManager
     {
         foreach (var opened in _openedMenus.Values)
         {
-            var window = (Window)opened.Popup.Window.WindowHandle;
-            Glfw.GetWindowPosition(window, out var x, out var y);
-            Glfw.GetWindowSize(window, out var w, out var h);
+            var window = opened.Popup.Window;
+            window.GetPosition(out var x, out var y);
+            var w = window.Width;
+            var h = window.Height;
             if (screenPoint.X >= x && screenPoint.X < x + w &&
                 screenPoint.Y >= y && screenPoint.Y < y + h)
             {

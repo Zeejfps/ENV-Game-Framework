@@ -46,6 +46,7 @@ public sealed class MetalApp : IApp
 
     public IWindow MainWindow => _mainWindow;
     public IReadOnlyList<IWindow> Windows => _windows;
+    public IReadOnlyList<MonitorWorkArea> Monitors => GlfwMonitors.WorkAreas();
 
     public event Action? OnTick;
 

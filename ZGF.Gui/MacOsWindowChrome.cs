@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using GLFW;
 using static ZGF.Core.MacOs.Objc;
 
 namespace ZGF.Gui;
@@ -11,8 +10,7 @@ public sealed class MacOsWindowChrome : IWindowChrome
     public void SetTitleBarTheme(IntPtr nativeWindowHandle, bool dark)
     {
         if (nativeWindowHandle == IntPtr.Zero) return;
-        var nsWindow = Native.GetCocoaWindow((Window)nativeWindowHandle);
-        if (nsWindow == IntPtr.Zero) return;
+        var nsWindow = nativeWindowHandle;
 
         // [window setAppearance:[NSAppearance appearanceNamed:@"NSAppearanceName(Dark)Aqua"]]
         var name = NSString(dark ? "NSAppearanceNameDarkAqua" : "NSAppearanceNameAqua");

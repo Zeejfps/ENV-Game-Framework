@@ -356,7 +356,7 @@ public sealed class InputSystem
     /// Used when a popup window is returned to the pool: the views it dispatched to
     /// are gone, but the InputSystem instance is reused for the next popup. Without
     /// this, a leftover <see cref="_focusedComponent"/> latches <see cref="HasFocus"/>
-    /// true, and GlfwInputSystem.Update short-circuits before hover/click dispatch —
+    /// true, and DesktopInputSystem.Update short-circuits before hover/click dispatch —
     /// leaving every subsequently pooled popup dead until the app restarts.
     /// </summary>
     public void Reset()
