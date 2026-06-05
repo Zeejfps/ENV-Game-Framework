@@ -11,7 +11,9 @@ public sealed class InputSystem
 
     private readonly HashSet<IKeyboardMouseController> _hoverableComponents = new();
     private readonly LinkedList<IKeyboardMouseController> _focusQueue = new();
-    private readonly Dictionary<View, ControllerRegistration> _viewToController = new();
+    // A view may host multiple controllers. They participate in capture/bubble dispatch in
+    // registration order (capture = registration order, bubble = reverse) — see BuildPath.
+    private readonly Dictionary<View, List<ControllerRegistration>> _viewToControllers = new();
     private readonly Dictionary<IKeyboardMouseController, View> _controllerToView = new();
 
     private IKeyboardMouseController? _hoveredComponent;
@@ -32,32 +34,47 @@ public sealed class InputSystem
 
     public void RegisterController(View view, IKeyboardMouseController controller, EventPhaseFilter phaseFilter = EventPhaseFilter.Both)
     {
-        if (_viewToController.TryGetValue(view, out var existing))
+        if (!_viewToControllers.TryGetValue(view, out var list))
         {
-            Console.WriteLine(
-                $"[InputSystem] Warning: registering {controller.GetType().Name} on {view.GetType().Name} " +
-                $"replaces existing controller {existing.Controller.GetType().Name}. " +
-                $"Only one controller per view is supported — attach the second one to a different view, " +
-                $"or use View.Use for behaviors that only need lifecycle (no input dispatch).");
-            UnregisterController(view);
+            list = new List<ControllerRegistration>();
+            _viewToControllers[view] = list;
         }
-        _viewToController[view] = new ControllerRegistration(controller, phaseFilter);
+        // Append: controllers on a view dispatch in registration order (capture order).
+        list.Add(new ControllerRegistration(controller, phaseFilter));
         _controllerToView[controller] = view;
         AddInteractable(controller);
     }
 
+    /// <summary>Remove a single controller from a view, leaving any others on that view intact.</summary>
+    public void UnregisterController(View view, IKeyboardMouseController controller)
+    {
+        if (!_viewToControllers.TryGetValue(view, out var list)) return;
+        var index = list.FindIndex(r => r.Controller == controller);
+        if (index < 0) return;
+        list.RemoveAt(index);
+        if (list.Count == 0)
+            _viewToControllers.Remove(view);
+        _controllerToView.Remove(controller);
+        RemoveInteractable(controller);
+    }
+
+    /// <summary>Remove every controller registered on a view.</summary>
     public void UnregisterController(View view)
     {
-        if (_viewToController.Remove(view, out var registration))
+        if (!_viewToControllers.Remove(view, out var list)) return;
+        foreach (var registration in list)
         {
             _controllerToView.Remove(registration.Controller);
             RemoveInteractable(registration.Controller);
         }
     }
 
+    /// <summary>First controller registered on the view, or null. Prefer the dispatch path for input.</summary>
     public IKeyboardMouseController? GetController(View view)
     {
-        return _viewToController.TryGetValue(view, out var reg) ? reg.Controller : null;
+        return _viewToControllers.TryGetValue(view, out var list) && list.Count > 0
+            ? list[0].Controller
+            : null;
     }
 
     public View? GetView(IKeyboardMouseController controller)
@@ -67,10 +84,14 @@ public sealed class InputSystem
 
     public EventPhaseFilter GetPhaseFilter(IKeyboardMouseController controller)
     {
-        foreach (var kvp in _viewToController.Values)
+        if (_controllerToView.TryGetValue(controller, out var view)
+            && _viewToControllers.TryGetValue(view, out var list))
         {
-            if (kvp.Controller == controller)
-                return kvp.PhaseFilter;
+            foreach (var registration in list)
+            {
+                if (registration.Controller == controller)
+                    return registration.PhaseFilter;
+            }
         }
         return EventPhaseFilter.Both;
     }
@@ -443,16 +464,19 @@ public sealed class InputSystem
         }
     }
 
-    private readonly List<IKeyboardMouseController> _hitTestCache = new();
-    
+    private readonly List<View> _hitTestViews = new();
+
+    // Returns a representative controller for the topmost view under the cursor: that view's
+    // first-registered controller. Hover tracking keys off this representative, so it must be
+    // stable for a given view (a view's controllers all share a z-index and would otherwise
+    // tie non-deterministically). The full set of the view's controllers enters the dispatch
+    // path via BuildPath.
     private IKeyboardMouseController? HitTest(in PointF point)
     {
-        _hitTestCache.Clear();
-        var components = _hitTestCache;
-        foreach (var controller in _hoverableComponents)
+        _hitTestViews.Clear();
+        foreach (var (view, list) in _viewToControllers)
         {
-            var view = GetView(controller);
-            if (view == null) continue;
+            if (list.Count == 0) continue;
             if (!view.Position.ContainsPoint(point)) continue;
             if (!IsViewAndAncestorsVisible(view)) continue;
             // Reject descendants of any clipping ancestor (e.g. ScrollPane) when the
@@ -460,14 +484,14 @@ public sealed class InputSystem
             // report their full positions, so without this check a row that has
             // scrolled into the header band would steal hover from header buttons.
             if (!IsPointInsideClippingAncestors(view, point)) continue;
-            components.Add(controller);
+            _hitTestViews.Add(view);
         }
 
-        if (components.Count == 0)
+        if (_hitTestViews.Count == 0)
             return null;
 
-        components.Sort(CompareByZIndex);
-        return components[0];
+        _hitTestViews.Sort(CompareViewsByZIndex);
+        return _viewToControllers[_hitTestViews[0]][0].Controller;
     }
 
     private static bool IsPointInsideClippingAncestors(View view, in PointF point)
@@ -497,7 +521,7 @@ public sealed class InputSystem
         return true;
     }
 
-    private int CompareByZIndex(IKeyboardMouseController? x, IKeyboardMouseController? y)
+    private static int CompareViewsByZIndex(View? x, View? y)
     {
         if (x == null && y == null)
             return 0;
@@ -506,42 +530,47 @@ public sealed class InputSystem
         if (y == null)
             return -1;
 
-        var viewX = GetView(x);
-        var viewY = GetView(y);
-
-        if (viewX == null && viewY == null)
-            return 0;
-        if (viewX == null)
-            return 1;
-        if (viewY == null)
-            return -1;
-
         // NOTE: Order is swapped here. Greater ZIndex means the value is less - meaning it should be first in list
-        var result = viewY.ZIndex.CompareTo(viewX.ZIndex);
+        var result = y.ZIndex.CompareTo(x.ZIndex);
         if (result == 0)
         {
-            if (viewX.IsInFrontOf(viewY))
+            if (x.IsInFrontOf(y))
                 return -1;
-            if (viewY.IsInFrontOf(viewX))
+            if (y.IsInFrontOf(x))
                 return 1;
             return 0;
         }
         return result;
     }
 
+    private readonly List<View> _pathViews = new();
+
+    // Builds the capture/bubble dispatch path for the hovered view. The path is ordered
+    // ancestor-first (capture order); each view contributes all of its controllers in
+    // registration order. Bubble dispatch walks the same queue in reverse.
     private void BuildPath(IKeyboardMouseController current)
     {
-        _focusQueue.AddFirst(current);
-        var view = GetView(current);
-        var parent = view?.Parent;
-        while (parent != null)
+        var seedView = GetView(current);
+        if (seedView == null)
         {
-            var controller = GetController(parent);
-            if (controller != null && _hoverableComponents.Contains(controller))
+            _focusQueue.AddLast(current);
+            return;
+        }
+
+        _pathViews.Clear();
+        for (var view = seedView; view != null; view = view.Parent)
+            _pathViews.Add(view);
+
+        // _pathViews is seed→root; walk root→seed so the queue is ancestor-first.
+        for (var i = _pathViews.Count - 1; i >= 0; i--)
+        {
+            if (!_viewToControllers.TryGetValue(_pathViews[i], out var list))
+                continue;
+            foreach (var registration in list)
             {
-                _focusQueue.AddFirst(controller);
+                if (_hoverableComponents.Contains(registration.Controller))
+                    _focusQueue.AddLast(registration.Controller);
             }
-            parent = parent.Parent;
         }
     }
 

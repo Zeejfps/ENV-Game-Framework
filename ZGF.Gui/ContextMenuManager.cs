@@ -5,6 +5,14 @@ using InputState = ZGF.Gui.Desktop.InputState;
 
 namespace ZGF.Gui;
 
+// Which way a context menu grows from its anchor. Below (default) grows downward from the
+// anchor; Above grows upward, for triggers near the bottom of the screen.
+public enum MenuPlacement
+{
+    Below,
+    Above,
+}
+
 public interface IOpenedContextMenu
 {
     event Action Closed;
@@ -72,7 +80,7 @@ public sealed class ContextMenuManager
         _outsideClickController = new MainWindowOutsideClickController(this);
     }
 
-    public IOpenedContextMenu? ShowContextMenu(ContextMenu menu, PointI screenAnchor, ContextMenu? parentMenu = null)
+    public IOpenedContextMenu? ShowContextMenu(ContextMenu menu, PointI screenAnchor, ContextMenu? parentMenu = null, MenuPlacement placement = MenuPlacement.Below)
     {
         if (_openedMenus.ContainsKey(menu))
             throw new System.Exception("Menu already opened");
@@ -89,17 +97,22 @@ public sealed class ContextMenuManager
         var width = (int)MathF.Ceiling(menu.MeasureWidth());
         var height = (int)MathF.Ceiling(menu.MeasureHeight(width));
 
-        var preferred = new RectI(
-            X: screenAnchor.X,
-            Y: screenAnchor.Y,
-            Width: width,
-            Height: height);
+        // Below: the menu's top sits at the anchor and it grows down (the default — anchor is
+        // the trigger's bottom edge). Above: the menu's bottom sits at the anchor and it grows
+        // up (anchor is the trigger's top edge), for triggers near the bottom of the screen.
+        // The other direction becomes the flip fallback the popup factory uses when the
+        // preferred placement won't fit on the monitor.
+        var belowRect = new RectI(X: screenAnchor.X, Y: screenAnchor.Y, Width: width, Height: height);
+        var aboveRect = belowRect with { Y = screenAnchor.Y - height };
+        var (preferred, flipped) = placement == MenuPlacement.Above
+            ? (aboveRect, belowRect)
+            : (belowRect, aboveRect);
 
         var popup = _popupFactory.Acquire(new PopupRequest
         {
             Root = menu,
             PreferredScreenRect = preferred,
-            FlippedScreenRect = null,
+            FlippedScreenRect = flipped,
             MousePassThrough = false,
         });
 

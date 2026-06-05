@@ -306,29 +306,33 @@ public sealed class TextInputView : MultiChildView
 
         c.PushClip(position);
 
+        // One vertical offset, shared by text/placeholder/caret/selection so they stay aligned.
+        var lineHeight = c.MeasureTextLineHeight(_textStyle);
+        var verticalOffset = VerticalTextOffset(position, lineHeight, c);
+
         if (_isEditing && _selectionStartIndex != _caretIndex)
         {
-            DrawSelectionBox(position, c);
+            DrawSelectionBox(position, c, verticalOffset);
         }
 
         if (_strLen == 0)
         {
-            DrawPlaceholder(position, c);
+            DrawPlaceholder(position, c, verticalOffset);
         }
         else
         {
-            DrawText(position, c);
+            DrawText(position, c, verticalOffset);
         }
 
         if (_isEditing)
         {
-            DrawCaret(position, c);
+            DrawCaret(position, c, verticalOffset);
         }
 
         c.PopClip();
     }
 
-    private void DrawPlaceholder(in RectF position, ICanvas c)
+    private void DrawPlaceholder(in RectF position, ICanvas c, float verticalOffset)
     {
         if (string.IsNullOrEmpty(_placeholderText))
             return;
@@ -346,7 +350,7 @@ public sealed class TextInputView : MultiChildView
             Position = new RectF
             {
                 Left = position.Left,
-                Bottom = position.Top - lineHeight,
+                Bottom = position.Top - lineHeight + verticalOffset,
                 Width = position.Width,
                 Height = lineHeight,
             },
@@ -368,7 +372,7 @@ public sealed class TextInputView : MultiChildView
         });
     }
 
-    private void DrawSelectionBox(in RectF position, ICanvas c)
+    private void DrawSelectionBox(in RectF position, ICanvas c, float verticalOffset)
     {
         var min = _selectionStartIndex;
         var max = _caretIndex;
@@ -402,7 +406,7 @@ public sealed class TextInputView : MultiChildView
         var minText = _buffer.AsSpan(startIndex, min - startIndex);
         var minTextWidth = c.MeasureTextWidth(minText, _textStyle);
         var startPointLeft = position.Left + minTextWidth - _scrollOffsetX;
-        var startPointBottom = position.Top - linesCount * lineHeight;
+        var startPointBottom = position.Top - linesCount * lineHeight + verticalOffset;
         var width = position.Width - minTextWidth;
 
         startIndex = min;
@@ -453,11 +457,11 @@ public sealed class TextInputView : MultiChildView
         }
     }
 
-    private void DrawText(in RectF position, ICanvas c)
+    private void DrawText(in RectF position, ICanvas c, float verticalOffset)
     {
         var lineHeight = c.MeasureTextLineHeight(_textStyle);
         var left = position.Left - _scrollOffsetX;
-        var bottom = position.Top - lineHeight;
+        var bottom = position.Top - lineHeight + verticalOffset;
         var lines = GetLines(position.Width, c);
         foreach (var line in lines)
         {
@@ -478,6 +482,26 @@ public sealed class TextInputView : MultiChildView
         }
     }
 
+    // Shifts the whole text block down to vertically center it in the box, returning a non-positive
+    // offset added to the top-aligned baseline. Centering is the default for single-line (NoWrap)
+    // inputs — where top-pinning makes descenders graze (and the box clip cut) the bottom edge — and
+    // off for multi-line (Wrap) editors, where the first line must stay put as the user types. An
+    // explicit VerticalAlignment overrides that default either way. Stays 0 when the text is as tall
+    // as / taller than the box, so the first line is never pushed off the top. Computed once per
+    // draw in OnDrawSelf and shared by text/placeholder/caret/selection so they stay aligned.
+    private float VerticalTextOffset(in RectF position, float lineHeight, ICanvas c)
+    {
+        var center = _textStyle.VerticalAlignment.IsSet
+            ? _textStyle.VerticalAlignment.Value == TextAlignment.Center
+            : TextWrap != Gui.TextWrap.Wrap;
+        if (!center)
+            return 0f;
+
+        var lineCount = _strLen == 0 ? 1 : GetLines(position.Width, c).Count();
+        var slack = position.Height - lineCount * lineHeight;
+        return slack > 0f ? -slack * 0.5f : 0f;
+    }
+
     private bool ShouldWrap(int startIndex, int endIndex, ICanvas canvas, float maxWidth)
     {
         var line = _buffer.AsSpan(startIndex, endIndex - startIndex);
@@ -490,7 +514,7 @@ public sealed class TextInputView : MultiChildView
         return lineWidth >= maxWidth;
     }
     
-    private void DrawCaret(in RectF position, ICanvas canvas)
+    private void DrawCaret(in RectF position, ICanvas canvas, float verticalOffset)
     {
         var startIndex = 0;
         var linesCount = 0;
@@ -515,7 +539,7 @@ public sealed class TextInputView : MultiChildView
         var cursorHeight = lineHeight;
         var lineText = _buffer.AsSpan(startIndex, _caretIndex - startIndex);
         var cursorPosLeft = canvas.MeasureTextWidth(lineText, _textStyle);
-        var cursorPosBottom = position.Top - linesCount * lineHeight - cursorHeight;
+        var cursorPosBottom = position.Top - linesCount * lineHeight - cursorHeight + verticalOffset;
         
         var cursorPos = new RectF
         {

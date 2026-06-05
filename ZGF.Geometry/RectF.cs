@@ -12,6 +12,7 @@ public readonly record struct RectF
     public PointF BottomRight => new (Right, Bottom);
     public PointF Center => new(Left + Width * 0.5f, Bottom + Height * 0.5f);
     public PointF TopRight => new(Right, Top);
+    public PointF TopLeft => new(Left, Top);
     public float Area => Width * Height;
 
     public RectF(float left, float bottom, float width, float height)
