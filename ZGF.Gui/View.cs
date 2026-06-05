@@ -72,7 +72,28 @@ public abstract class View
         get;
         set => SetField(ref field, value);
     }
-    
+
+    /// <summary>
+    /// Upper bound on the laid-out width. Unlike <see cref="WidthConstraint"/> this caps the
+    /// resolved size <em>after</em> a fixed <see cref="Width"/> or measured size is chosen, so it
+    /// reins in a view that would otherwise size past its container — e.g. a fixed-width dialog
+    /// frame on a window narrower than that fixed width.
+    /// </summary>
+    public StyleValue<float> MaxWidthConstraint
+    {
+        get;
+        set => SetField(ref field, value);
+    }
+
+    /// <summary>Upper bound on the laid-out height; the vertical counterpart to
+    /// <see cref="MaxWidthConstraint"/>. A view taller than this is capped, and content that no
+    /// longer fits must scroll.</summary>
+    public StyleValue<float> MaxHeightConstraint
+    {
+        get;
+        set => SetField(ref field, value);
+    }
+
     public StyleValue<float> WidthConstraint
     {
         get;
@@ -406,6 +427,9 @@ public abstract class View
                 width = MinWidthConstraint;
         }
 
+        if (MaxWidthConstraint.IsSet && width > MaxWidthConstraint)
+            width = MaxWidthConstraint;
+
         float height;
         if (Height.IsSet)
         {
@@ -417,25 +441,14 @@ public abstract class View
         }
         else
         {
-            float availableWidth;
-            if (WidthConstraint.IsSet)
-            {
-                availableWidth = WidthConstraint;
-            }
-            else if (Width.IsSet)
-            {
-                availableWidth = Width;
-            }
-            else
-            {
-                availableWidth = MeasureWidth();
-                if (MinWidthConstraint.IsSet && availableWidth < MinWidthConstraint)
-                    availableWidth = MinWidthConstraint;
-            }
-
-            height = MeasureHeight(availableWidth);
+            // Measure height at the already-resolved (and capped) width so wrapping content
+            // wraps to the width we'll actually lay out at.
+            height = MeasureHeight(width);
         }
-        
+
+        if (MaxHeightConstraint.IsSet && height > MaxHeightConstraint)
+            height = MaxHeightConstraint;
+
         Position = new RectF
         {
             Left = LeftConstraint,

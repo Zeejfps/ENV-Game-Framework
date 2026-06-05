@@ -34,6 +34,12 @@ public sealed class CenterView : MultiChildView
 
         foreach (var child in Children)
         {
+            // Hand the cap down as Max*Constraint as well: a child with a fixed Width/Height
+            // resolves that fixed size in its own layout and would ignore a plain Width/Height
+            // constraint — the Max bound is what actually reins it back to the viewport.
+            child.MaxWidthConstraint = maxWidth;
+            child.MaxHeightConstraint = maxHeight;
+
             var childWidth = child.MeasureWidth();
             if (child.MinWidthConstraint.IsSet && childWidth < child.MinWidthConstraint)
                 childWidth = child.MinWidthConstraint;
