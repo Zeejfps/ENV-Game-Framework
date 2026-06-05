@@ -346,7 +346,7 @@ public sealed class TextInputView : MultiChildView
             Position = new RectF
             {
                 Left = position.Left,
-                Bottom = position.Top - lineHeight,
+                Bottom = position.Top - lineHeight + TopOffsetForVerticalCenter(position, lineHeight, c),
                 Width = position.Width,
                 Height = lineHeight,
             },
@@ -402,7 +402,7 @@ public sealed class TextInputView : MultiChildView
         var minText = _buffer.AsSpan(startIndex, min - startIndex);
         var minTextWidth = c.MeasureTextWidth(minText, _textStyle);
         var startPointLeft = position.Left + minTextWidth - _scrollOffsetX;
-        var startPointBottom = position.Top - linesCount * lineHeight;
+        var startPointBottom = position.Top - linesCount * lineHeight + TopOffsetForVerticalCenter(position, lineHeight, c);
         var width = position.Width - minTextWidth;
 
         startIndex = min;
@@ -457,7 +457,7 @@ public sealed class TextInputView : MultiChildView
     {
         var lineHeight = c.MeasureTextLineHeight(_textStyle);
         var left = position.Left - _scrollOffsetX;
-        var bottom = position.Top - lineHeight;
+        var bottom = position.Top - lineHeight + TopOffsetForVerticalCenter(position, lineHeight, c);
         var lines = GetLines(position.Width, c);
         foreach (var line in lines)
         {
@@ -476,6 +476,18 @@ public sealed class TextInputView : MultiChildView
             });
             bottom -= lineHeight;
         }
+    }
+
+    // Single-line inputs are usually given a box taller than one line of text; without this the
+    // text would pin to the top, leaving descenders to graze (and get clipped by) the box edge on
+    // tight boxes. Centers the whole text block vertically; returns a non-positive shift (added to
+    // the top-aligned baseline) and stays 0 when the text is as tall as / taller than the box, so
+    // multi-line content keeps top-aligning and the first line is never pushed off the top.
+    private float TopOffsetForVerticalCenter(in RectF position, float lineHeight, ICanvas c)
+    {
+        var textHeight = GetLines(position.Width, c).Count() * lineHeight;
+        var slack = position.Height - textHeight;
+        return slack > 0f ? -slack * 0.5f : 0f;
     }
 
     private bool ShouldWrap(int startIndex, int endIndex, ICanvas canvas, float maxWidth)
@@ -515,7 +527,7 @@ public sealed class TextInputView : MultiChildView
         var cursorHeight = lineHeight;
         var lineText = _buffer.AsSpan(startIndex, _caretIndex - startIndex);
         var cursorPosLeft = canvas.MeasureTextWidth(lineText, _textStyle);
-        var cursorPosBottom = position.Top - linesCount * lineHeight - cursorHeight;
+        var cursorPosBottom = position.Top - linesCount * lineHeight - cursorHeight + TopOffsetForVerticalCenter(position, lineHeight, canvas);
         
         var cursorPos = new RectF
         {
