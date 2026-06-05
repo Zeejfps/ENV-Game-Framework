@@ -6,37 +6,25 @@
         <Nullable>enable</Nullable>
         <PublishAot>true</PublishAot>
     </PropertyGroup>
-    
-    <ItemGroup>
-        <Content Include="Native/win-x64/glfw3.dll" Condition=" '$(OS)' == 'Windows_NT' ">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <TargetPath>glfw3.dll</TargetPath>
-        </Content>
-        <!-- Linux has no bundled native: GLFW is provided by the distro package (e.g. `apt install
-             libglfw3`). NativeLibraryResolver maps the "glfw3" import to the installed libglfw.so.3. -->
-        <Content Include="Native/osx-arm64/libglfw.3.dylib" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' ">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <TargetPath>glfw3</TargetPath>
-        </Content>
-    </ItemGroup>
-</Project>
-<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <PublishAot>true</PublishAot>
-    </PropertyGroup>
-    
     <ItemGroup>
         <Content Include="Native/win-x64/glfw3.dll" Condition=" '$(OS)' == 'Windows_NT' ">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <TargetPath>glfw3.dll</TargetPath>
         </Content>
-<!--        <Content Include="Native/linux-x64/glfw3.so" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' ">-->
-<!--            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>-->
-<!--        </Content>-->
+
+        <!-- Linux native is bundled under its real soname (libglfw.so.3); NativeLibraryResolver
+             loads "libglfw.so.3" first, so the app-local copy is found before any distro package.
+             Built for Ubuntu x64 — see Native/linux-x64/README for how it was produced. -->
+        <Content Include="Native/linux-x64/libglfw.so.3" Condition=" '$(RuntimeIdentifier)' == 'linux-x64' ">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <TargetPath>libglfw.so.3</TargetPath>
+        </Content>
+        <Content Include="Native/linux-x64/libglfw.so.3" Condition=" '$(RuntimeIdentifier)' == '' AND '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' ">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <TargetPath>libglfw.so.3</TargetPath>
+        </Content>
+
         <!-- Select the macOS native by target RID, not host OS: building osx-x64 on an Intel
              runner still has IsOSPlatform(OSX)==true, so a host-OS condition would wrongly bundle
              the arm64 dylib into the x64 app. osx-x64 carries a universal (x86_64+arm64) dylib. -->
