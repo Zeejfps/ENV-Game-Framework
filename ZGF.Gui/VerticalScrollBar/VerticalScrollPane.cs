@@ -40,9 +40,21 @@ public sealed class VerticalScrollPane : MultiChildView
 
     protected override void OnDrawChildren(ICanvas c)
     {
-        c.PushClip(Position);
-        base.OnDrawChildren(c);
-        c.PopClip();
+        // Only clip while content is actually scrolled out of view. When everything fits
+        // (Scale == 1) nothing needs hiding, and clipping to the exact viewport would only
+        // scissor borders and anti-aliasing flush against the edge — e.g. the right border of a
+        // Browse button at the end of a dialog row. Children are forced to the viewport width, so
+        // there is never horizontal overflow to clip regardless.
+        if (Scale < 1f)
+        {
+            c.PushClip(Position);
+            base.OnDrawChildren(c);
+            c.PopClip();
+        }
+        else
+        {
+            base.OnDrawChildren(c);
+        }
     }
     
     public void ScrollUp(float delta)
