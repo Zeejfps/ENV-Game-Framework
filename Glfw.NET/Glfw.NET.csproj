@@ -12,9 +12,8 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <TargetPath>glfw3.dll</TargetPath>
         </Content>
-<!--        <Content Include="Native/linux-x64/glfw3.so" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' ">-->
-<!--            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>-->
-<!--        </Content>-->
+        <!-- Linux has no bundled native: GLFW is provided by the distro package (e.g. `apt install
+             libglfw3`). NativeLibraryResolver maps the "glfw3" import to the installed libglfw.so.3. -->
         <Content Include="Native/osx-arm64/libglfw.3.dylib" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' ">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <TargetPath>glfw3</TargetPath>
