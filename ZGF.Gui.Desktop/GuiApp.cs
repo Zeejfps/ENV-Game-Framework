@@ -191,17 +191,4 @@ public sealed class GuiApp : IDisposable
         _renderBackend.Dispose();
         _app.Dispose();
     }
-
-    private sealed class DefaultNoopDecorator : IPopupNativeDecorator
-    {
-        public void DecoratePopup(IntPtr handle, bool mousePassThrough) { }
-        public void BeginCapture(IntPtr handle, Action<ZGF.Geometry.PointI> cb) { }
-        public void EndCapture(IntPtr handle) { }
-        public void TransferCapture(IntPtr from, IntPtr to, Action<ZGF.Geometry.PointI> cb) { }
-    }
-
-    private sealed class NoopWindowChrome : IWindowChrome
-    {
-        public void SetTitleBarTheme(IWindow window, bool dark) { }
-    }
 }
