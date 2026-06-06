@@ -38,20 +38,20 @@ public sealed unsafe class GlSharedResources : IDisposable
         _imageManager = imageManager;
 
         _rectShader = new ShaderProgramCompiler()
-            .WithVertexShaderSource(EmbeddedAssets.LoadShaderSource("canvas_rect.vert.glsl"))
-            .WithFragmentShaderSource(EmbeddedAssets.LoadShaderSource("canvas_rect.frag.glsl"))
+            .WithVertexShaderSource(ShaderAssets.LoadShaderSource("canvas_rect.vert.glsl"))
+            .WithFragmentShaderSource(ShaderAssets.LoadShaderSource("canvas_rect.frag.glsl"))
             .Compile().Id;
         _glyphShader = new ShaderProgramCompiler()
-            .WithVertexShaderSource(EmbeddedAssets.LoadShaderSource("canvas_glyph.vert.glsl"))
-            .WithFragmentShaderSource(EmbeddedAssets.LoadShaderSource("canvas_glyph.frag.glsl"))
+            .WithVertexShaderSource(ShaderAssets.LoadShaderSource("canvas_glyph.vert.glsl"))
+            .WithFragmentShaderSource(ShaderAssets.LoadShaderSource("canvas_glyph.frag.glsl"))
             .Compile().Id;
         _imageShader = new ShaderProgramCompiler()
-            .WithVertexShaderSource(EmbeddedAssets.LoadShaderSource("canvas_image.vert.glsl"))
-            .WithFragmentShaderSource(EmbeddedAssets.LoadShaderSource("canvas_image.frag.glsl"))
+            .WithVertexShaderSource(ShaderAssets.LoadShaderSource("canvas_image.vert.glsl"))
+            .WithFragmentShaderSource(ShaderAssets.LoadShaderSource("canvas_image.frag.glsl"))
             .Compile().Id;
         _shadowShader = new ShaderProgramCompiler()
-            .WithVertexShaderSource(EmbeddedAssets.LoadShaderSource("canvas_shadow.vert.glsl"))
-            .WithFragmentShaderSource(EmbeddedAssets.LoadShaderSource("canvas_shadow.frag.glsl"))
+            .WithVertexShaderSource(ShaderAssets.LoadShaderSource("canvas_shadow.vert.glsl"))
+            .WithFragmentShaderSource(ShaderAssets.LoadShaderSource("canvas_shadow.frag.glsl"))
             .Compile().Id;
 
         _rectProjLoc = glGetUniformLocation(_rectShader, "u_projection");

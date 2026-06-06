@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <!-- Shaders are embedded into this assembly instead of shipped as loose files.
+         For a platform-specific build (RID set, as all published/AOT builds are),
+         only the backend that platform uses is embedded: Metal on osx RIDs,
+         OpenGL/GLSL elsewhere. A plain `dotnet run` (no RID) embeds both so local
+         development works on any host regardless of the runtime-selected backend. -->
+    <PropertyGroup>
+      <_Rid>$(RuntimeIdentifier)</_Rid>
+    </PropertyGroup>
+
+    <ItemGroup Condition="$(_Rid.StartsWith('osx')) OR '$(_Rid)' == ''">
+      <EmbeddedResource Include="Assets\Shaders\*.gen.metal">
+        <LogicalName>%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup Condition="!$(_Rid.StartsWith('osx'))">
+      <EmbeddedResource Include="Assets\Shaders\*.glsl">
+        <LogicalName>%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+      <ProjectReference Include="..\ZGF.Core\ZGF.Core.csproj" />
+      <ProjectReference Include="..\ZGF.Core.Desktop\ZGF.Core.Desktop.csproj" />
+      <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
+      <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
+      <ProjectReference Include="..\ZGF.AppUtils\ZGF.AppUtils.csproj" />
+      <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
+      <ProjectReference Include="..\ZGF.Geometry\ZGF.Geometry.csproj" />
+      <ProjectReference Include="..\ZGF.Inputs.Mouse\ZGF.Inputs.Mouse.csproj" />
+      <ProjectReference Include="..\ZGF.KeyboardModule\ZGF.KeyboardModule.csproj" />
+      <ProjectReference Include="..\ZGF.Observable\ZGF.Observable.csproj" />
+    </ItemGroup>
+
+</Project>

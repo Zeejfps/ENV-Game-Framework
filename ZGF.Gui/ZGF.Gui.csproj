@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
@@ -8,41 +8,26 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <!-- Shaders and fonts are embedded (see below); everything else under Assets is
-           still copied next to the binary. Font license/readme files stay in the repo
-           but are intentionally neither copied nor embedded. -->
-      <Content Include="Assets\**\*" Exclude="Assets\Shaders\**\*;Assets\Fonts\**\*">
+      <!-- Fonts are embedded (see below); everything else under Assets is still copied next
+           to the binary. Font license/readme files stay in the repo but are intentionally
+           neither copied nor embedded. Backend shaders live in ZGF.Gui.Desktop. -->
+      <Content Include="Assets\**\*" Exclude="Assets\Fonts\**\*">
         <Link>Assets\%(RecursiveDir)%(Filename)%(Extension)</Link>
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
     </ItemGroup>
 
-    <!-- Fonts are platform-independent, so they are always embedded (no per-RID split). -->
+    <!-- Fonts are platform-independent, so they live in the core toolkit and are always
+         embedded (no per-RID split), available to every platform package. -->
     <ItemGroup>
       <EmbeddedResource Include="Assets\Fonts\**\*.ttf">
         <LogicalName>%(Filename)%(Extension)</LogicalName>
       </EmbeddedResource>
     </ItemGroup>
 
-    <!-- Shaders are embedded into the assembly instead of shipped as loose files.
-         For a platform-specific build (RID set, as all published/AOT builds are),
-         only the backend that platform uses is embedded: Metal on osx RIDs,
-         OpenGL/GLSL elsewhere. A plain `dotnet run` (no RID) embeds both so local
-         development works on any host regardless of the runtime-selected backend. -->
-    <PropertyGroup>
-      <_Rid>$(RuntimeIdentifier)</_Rid>
-    </PropertyGroup>
-
-    <ItemGroup Condition="$(_Rid.StartsWith('osx')) OR '$(_Rid)' == ''">
-      <EmbeddedResource Include="Assets\Shaders\*.gen.metal">
-        <LogicalName>%(Filename)%(Extension)</LogicalName>
-      </EmbeddedResource>
-    </ItemGroup>
-
-    <ItemGroup Condition="!$(_Rid.StartsWith('osx'))">
-      <EmbeddedResource Include="Assets\Shaders\*.glsl">
-        <LogicalName>%(Filename)%(Extension)</LogicalName>
-      </EmbeddedResource>
+    <!-- Platform packages (e.g. ZGF.Gui.Desktop) load embedded fonts via internal helpers. -->
+    <ItemGroup>
+      <InternalsVisibleTo Include="ZGF.Gui.Desktop" />
     </ItemGroup>
 
     <ItemGroup>
@@ -52,7 +37,6 @@
       <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
       <ProjectReference Include="..\ZGF.Geometry\ZGF.Geometry.csproj" />
       <ProjectReference Include="..\ZGF.Inputs.Mouse\ZGF.Inputs.Mouse.csproj" />
-      <ProjectReference Include="..\ZGF.KeyboardModule.GlfwAdapter\ZGF.KeyboardModule.GlfwAdapter.csproj" />
       <ProjectReference Include="..\ZGF.KeyboardModule\ZGF.KeyboardModule.csproj" />
       <ProjectReference Include="..\ZGF.Observable\ZGF.Observable.csproj" />
     </ItemGroup>
