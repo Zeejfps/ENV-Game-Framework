@@ -20,7 +20,6 @@
       <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
       <ProjectReference Include="..\ZGF.Gui.Desktop\ZGF.Gui.Desktop.csproj" />
-      <ProjectReference Include="..\ZGF.Inputs.Mouse\ZGF.Inputs.Mouse.csproj" />
       <ProjectReference Include="..\ZGF.KeyboardModule.GlfwAdapter\ZGF.KeyboardModule.GlfwAdapter.csproj" />
       <ProjectReference Include="..\ZGF.WavefrontObjModule\ZGF.WavefrontObjModule.csproj" />
     </ItemGroup>
