@@ -2,7 +2,7 @@ using ZGF.Desktop;
 using ZGF.Fonts;
 using ZGF.Geometry;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop;
 
 public sealed class PopupWindowFactory : IPopupWindowFactory
 {

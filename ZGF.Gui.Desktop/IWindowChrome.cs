@@ -1,6 +1,6 @@
 using ZGF.Desktop;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop;
 
 /// <summary>
 ///     Platform hook for adjusting native window chrome (title bar) that GLFW

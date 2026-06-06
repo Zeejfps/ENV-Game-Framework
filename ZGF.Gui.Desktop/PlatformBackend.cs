@@ -3,8 +3,10 @@ using ZGF.Desktop;
 using ZGF.Desktop.Backends.Metal;
 using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Fonts;
+using ZGF.Gui.Desktop.Backends.Metal;
+using ZGF.Gui.Desktop.Backends.OpenGl;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop;
 
 internal static class PlatformBackend
 {

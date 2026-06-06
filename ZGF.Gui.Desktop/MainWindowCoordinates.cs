@@ -1,7 +1,7 @@
 using ZGF.Desktop;
 using ZGF.Geometry;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop;
 
 public sealed class WindowCoordinates : IWindowCoordinates
 {

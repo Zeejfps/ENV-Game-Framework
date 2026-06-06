@@ -1,8 +1,9 @@
 ﻿using System.Runtime.InteropServices;
-using ZGF.Gui.Desktop;
+using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 using ZGF.KeyboardModule;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop.Components.TextInput;
 
 public abstract class BaseTextInputKbmController : KeyboardMouseController
 {

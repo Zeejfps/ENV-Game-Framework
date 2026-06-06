@@ -3,7 +3,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using ZGF.Desktop;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop.Platforms.Linux;
 
 // On Linux the title bar is drawn by the window manager, not the app — there is no per-window
 // dark-mode attribute like Win32's DWM or macOS's NSAppearance. The closest mechanism is the

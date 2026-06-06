@@ -1,6 +1,7 @@
-﻿using ZGF.Gui.Desktop;
+﻿using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop.Components.ContextMenu;
 
 public sealed class ContextMenuKbmController : KeyboardMouseController
 {

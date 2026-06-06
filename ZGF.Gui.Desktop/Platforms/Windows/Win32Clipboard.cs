@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop.Platforms.Windows;
 
 public class Win32Clipboard : IClipboard
 {

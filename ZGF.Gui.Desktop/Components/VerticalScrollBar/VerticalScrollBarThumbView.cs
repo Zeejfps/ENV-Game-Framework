@@ -1,7 +1,7 @@
 ﻿using ZGF.Geometry;
 using ZGF.Gui.Views;
 
-namespace ZGF.Gui.VerticalScrollBar;
+namespace ZGF.Gui.Desktop.Components.VerticalScrollBar;
 
 public sealed class VerticalScrollBarThumbView : MultiChildView
 {

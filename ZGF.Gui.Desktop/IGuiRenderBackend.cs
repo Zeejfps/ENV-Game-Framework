@@ -1,6 +1,6 @@
 using ZGF.Desktop;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop;
 
 internal interface IGuiRenderBackend : IDisposable
 {

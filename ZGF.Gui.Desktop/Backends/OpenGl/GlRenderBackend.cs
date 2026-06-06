@@ -3,7 +3,7 @@ using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Fonts;
 using static GL46;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop.Backends.OpenGl;
 
 internal sealed class GlRenderBackend : IGuiRenderBackend
 {

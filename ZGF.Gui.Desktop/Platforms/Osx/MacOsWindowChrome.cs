@@ -3,7 +3,7 @@ using System.Runtime.Versioning;
 using ZGF.Desktop;
 using static ZGF.Rendering.Metal.Objc;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop.Platforms.Osx;
 
 [SupportedOSPlatform("macos")]
 public sealed class MacOsWindowChrome : IWindowChrome

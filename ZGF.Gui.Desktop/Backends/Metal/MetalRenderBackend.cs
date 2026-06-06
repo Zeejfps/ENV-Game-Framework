@@ -3,7 +3,7 @@ using ZGF.Desktop.Backends.Metal;
 using ZGF.Fonts;
 using ZGF.Rendering.Metal;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop.Backends.Metal;
 
 internal sealed class MetalRenderBackend : IGuiRenderBackend
 {

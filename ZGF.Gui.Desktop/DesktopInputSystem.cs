@@ -1,11 +1,11 @@
 using ZGF.Desktop;
 using ZGF.Geometry;
-using ZGF.Gui.Desktop;
+using ZGF.Gui.Desktop.Input;
 using ZGF.KeyboardModule;
-using InputState = ZGF.Gui.Desktop.InputState;
-using MouseButton = ZGF.Gui.Desktop.MouseButton;
+using InputState = ZGF.Gui.Desktop.Input.InputState;
+using MouseButton = ZGF.Gui.Desktop.Input.MouseButton;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop;
 
 public sealed class DesktopInputSystem
 {
@@ -33,7 +33,7 @@ public sealed class DesktopInputSystem
     /// popup. Resets the underlying <see cref="InputSystem"/> (focus/hover/path) and
     /// the locally latched fields (pending exit-clear, last-known cursor point). Call
     /// when the owning popup window is returned to the pool — otherwise a leftover
-    /// focused component keeps <see cref="Desktop.InputSystem.HasFocus"/> true and
+    /// focused component keeps <see cref="Input.InputSystem.HasFocus"/> true and
     /// <see cref="Update"/> short-circuits before hover/click dispatch, leaving every
     /// subsequently pooled popup dead until the app restarts.
     /// </summary>

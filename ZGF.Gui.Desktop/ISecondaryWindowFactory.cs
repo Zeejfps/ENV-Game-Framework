@@ -1,6 +1,6 @@
 using ZGF.Desktop;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop;
 
 /// <summary>
 /// Opens real, decorated, resizable secondary top-level windows hosting a ZGF view tree.

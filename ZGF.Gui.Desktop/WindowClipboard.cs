@@ -1,6 +1,6 @@
 using ZGF.Desktop;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop;
 
 // Backs the clipboard with the GLFW window's connection to the display server — the same
 // mechanism every other GUI app uses (X11 selections / Wayland data-device on Linux, the

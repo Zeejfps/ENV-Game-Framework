@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using ZGF.Desktop;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop.Platforms.Windows;
 
 [SupportedOSPlatform("windows")]
 public sealed class WindowsWindowChrome : IWindowChrome

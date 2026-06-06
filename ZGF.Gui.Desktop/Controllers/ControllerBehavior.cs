@@ -1,6 +1,6 @@
-using ZGF.Gui.Desktop;
+using ZGF.Gui.Desktop.Input;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop.Controllers;
 
 public sealed class ControllerBehavior<T> : IViewBehavior where T : IKeyboardMouseController
 {

@@ -1,7 +1,7 @@
 using ZGF.Geometry;
 using ZGF.Gui.Views;
 
-namespace ZGF.Gui.HorizontalScrollBar;
+namespace ZGF.Gui.Desktop.Components.HorizontalScrollBar;
 
 public sealed class HorizontalScrollBarThumbView : MultiChildView
 {

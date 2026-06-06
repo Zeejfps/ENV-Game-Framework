@@ -1,7 +1,8 @@
 using ZGF.Geometry;
-using ZGF.Gui.Desktop;
+using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 
-namespace ZGF.Gui.VerticalScrollBar;
+namespace ZGF.Gui.Desktop.Components.VerticalScrollBar;
 
 public sealed class VerticalScrollBarThumbViewController : KeyboardMouseController
 {

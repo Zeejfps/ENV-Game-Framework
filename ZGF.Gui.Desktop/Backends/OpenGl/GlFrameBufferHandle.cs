@@ -1,4 +1,4 @@
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop.Backends.OpenGl;
 
 public readonly struct GlFrameBufferHandle
 {

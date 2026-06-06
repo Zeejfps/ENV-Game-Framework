@@ -1,6 +1,6 @@
 using ZGF.KeyboardModule;
 
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Gui.Desktop.Input;
 
 public struct KeyboardKeyEvent : IEvent
 {

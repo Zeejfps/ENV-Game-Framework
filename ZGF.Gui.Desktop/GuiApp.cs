@@ -2,9 +2,10 @@ using ZGF.AppUtils;
 using ZGF.Desktop;
 using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Fonts;
+using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Observable;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop;
 
 public sealed class GuiApp : IDisposable
 {

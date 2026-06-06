@@ -1,4 +1,4 @@
-﻿namespace ZGF.Gui;
+﻿namespace ZGF.Gui.Desktop.Components.TextInput;
 
 public sealed class TextInputViewKbmController : BaseTextInputKbmController
 {

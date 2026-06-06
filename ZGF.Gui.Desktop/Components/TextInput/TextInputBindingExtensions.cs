@@ -1,6 +1,6 @@
 using ZGF.Observable;
 
-namespace ZGF.Gui.Bindings;
+namespace ZGF.Gui.Desktop.Components.TextInput;
 
 public static class TextInputBindingExtensions
 {

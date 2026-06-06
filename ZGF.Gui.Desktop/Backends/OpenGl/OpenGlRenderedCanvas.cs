@@ -4,7 +4,7 @@ using ZGF.Fonts;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop.Backends.OpenGl;
 
 public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposable
 {

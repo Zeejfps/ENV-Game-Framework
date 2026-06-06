@@ -1,6 +1,6 @@
 using ZGF.Geometry;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop.Components.ContextMenu;
 
 // Which way a context menu grows from its anchor. Below (default) grows downward from the
 // anchor; Above grows upward, for triggers near the bottom of the screen.

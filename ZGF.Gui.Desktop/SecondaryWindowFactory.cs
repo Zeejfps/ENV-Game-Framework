@@ -1,7 +1,7 @@
 using ZGF.Desktop;
 using ZGF.Fonts;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop;
 
 /// <summary>
 /// Creates decorated, resizable secondary windows (see <see cref="ISecondaryWindowFactory"/>).

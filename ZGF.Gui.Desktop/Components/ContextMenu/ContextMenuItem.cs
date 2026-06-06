@@ -1,6 +1,6 @@
 using ZGF.Gui.Views;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop.Components.ContextMenu;
 
 public sealed class ContextMenuItemData
 {

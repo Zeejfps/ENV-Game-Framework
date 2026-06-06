@@ -1,8 +1,10 @@
 using ZGF.Geometry;
-using ZGF.Gui.Desktop;
-using InputState = ZGF.Gui.Desktop.InputState;
+using ZGF.Gui.Desktop.Components.ContextMenu;
+using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
+using InputState = ZGF.Gui.Desktop.Input.InputState;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop;
 
 sealed class OpenedContextMenu : IOpenedContextMenu
 {

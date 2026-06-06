@@ -1,6 +1,6 @@
 ﻿using ZGF.Geometry;
 
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Gui.Desktop.Input;
 
 public sealed class InputSystem
 {

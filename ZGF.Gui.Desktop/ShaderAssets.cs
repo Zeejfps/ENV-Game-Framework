@@ -1,7 +1,7 @@
 using System.Reflection;
 using AppUtilsAssets = ZGF.AppUtils.EmbeddedAssets;
 
-namespace ZGF.Gui;
+namespace ZGF.Gui.Desktop;
 
 // Canvas shader sources (GLSL for OpenGL, .gen.metal for Metal) are embedded into this
 // desktop package and selected per-RID at build time (see ZGF.Gui.Desktop.csproj).

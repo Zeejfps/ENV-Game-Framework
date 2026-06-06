@@ -1,6 +1,7 @@
-using ZGF.Gui.Desktop;
+using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 
-namespace ZGF.Gui.Views;
+namespace ZGF.Gui.Desktop.Components.VirtualRowList;
 
 /// <summary>
 /// Translates raw mouse events into <see cref="VirtualRowListView"/>'s hit-test +
