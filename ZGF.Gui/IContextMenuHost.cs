@@ -24,4 +24,6 @@ public interface IContextMenuHost
 {
     IOpenedContextMenu? ShowContextMenu(ContextMenu menu, PointI screenAnchor, ContextMenu? parentMenu = null, MenuPlacement placement = MenuPlacement.Below);
     void RequestCloseMenu(ContextMenu menu);
+    void RequestCloseAll();
+    void CloseAllImmediately();
 }
