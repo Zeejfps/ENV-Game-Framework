@@ -1,4 +1,3 @@
-using ZGF.Core;
 using ZGF.Gui;
 using ZGF.Metal;
 
@@ -16,11 +15,8 @@ public static class IosCompatibilityProbe
 {
     public static readonly Type[] ReferencedTypes =
     [
-        // Core abstractions (must be free of any desktop windowing dependency).
-        typeof(IApp),
-        typeof(IWindow),
-
-        // GUI toolkit core (views, context, the renderer seam).
+        // GUI toolkit core (views, context, the renderer seam). It carries no desktop
+        // windowing dependency — that lives in ZGF.Gui.Desktop, which this never references.
         typeof(ICanvas),
         typeof(RenderedCanvasBase),
         typeof(View),
