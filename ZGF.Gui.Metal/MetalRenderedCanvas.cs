@@ -137,7 +137,7 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         var setFragmentTextureSel = Sel("setFragmentTexture:atIndex:");
         var setFragmentSamplerSel = Sel("setFragmentSamplerState:atIndex:");
         var setPipelineSel = Sel("setRenderPipelineState:");
-        var drawPrimSel = Sel("drawPrimitives:vertexStart:vertexCount:instanceCount:");
+        var drawPrimSel = Sel("drawPrimitives:vertexStart:vertexCount:instanceCount:baseInstance:");
 
         for (var i = 0; i < drawCalls.Count; i++)
         {
@@ -195,34 +195,11 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
                 }
             }
 
-            if (call.InstanceStart > 0)
-            {
-                var (buf, stride) = call.Kind switch
-                {
-                    DrawKind.Rect => (_rectInstanceBuffer, sizeof(RectInstance)),
-                    DrawKind.Glyph => (_glyphInstanceBuffer, sizeof(GlyphInstance)),
-                    DrawKind.Image => (_imageInstanceBuffer, sizeof(ImageInstance)),
-                    DrawKind.Shadow => (_shadowInstanceBuffer, sizeof(ShadowInstance)),
-                    _ => (IntPtr.Zero, 0),
-                };
-                msg_Void_IntPtr_NUInt_NUInt(enc, setVertexBufferSel, buf, (nuint)(call.InstanceStart * stride), 3);
-            }
-
-            msg_Void_MTLPrim_NUInt_NUInt_NUInt(enc, drawPrimSel,
-                (nuint)MTLPrimitiveType.Triangle, 0, 6, (nuint)call.InstanceCount);
-
-            if (call.InstanceStart > 0)
-            {
-                var buf = call.Kind switch
-                {
-                    DrawKind.Rect => _rectInstanceBuffer,
-                    DrawKind.Glyph => _glyphInstanceBuffer,
-                    DrawKind.Image => _imageInstanceBuffer,
-                    DrawKind.Shadow => _shadowInstanceBuffer,
-                    _ => IntPtr.Zero,
-                };
-                msg_Void_IntPtr_NUInt_NUInt(enc, setVertexBufferSel, buf, 0, 3);
-            }
+            // baseInstance offsets the per-instance vertex-attribute fetch, so the
+            // instance buffer stays bound at offset 0 (set on pipeline switch above)
+            // and InstanceStart is passed directly instead of rebinding per draw.
+            msg_Void_MTLPrim_NUInt_NUInt_NUInt_NUInt(enc, drawPrimSel,
+                (nuint)MTLPrimitiveType.Triangle, 0, 6, (nuint)call.InstanceCount, (nuint)call.InstanceStart);
         }
     }
 

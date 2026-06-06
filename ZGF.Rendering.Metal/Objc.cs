@@ -67,6 +67,9 @@ public static unsafe class Objc
     public static extern void msg_Void_MTLPrim_NUInt_NUInt_NUInt(IntPtr receiver, IntPtr selector, nuint prim, nuint vertexStart, nuint vertexCount, nuint instanceCount);
 
     [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
+    public static extern void msg_Void_MTLPrim_NUInt_NUInt_NUInt_NUInt(IntPtr receiver, IntPtr selector, nuint prim, nuint vertexStart, nuint vertexCount, nuint instanceCount, nuint baseInstance);
+
+    [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
     public static extern void msg_Void_IntPtr_NUInt(IntPtr receiver, IntPtr selector, IntPtr a, nuint b);
 
     [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
