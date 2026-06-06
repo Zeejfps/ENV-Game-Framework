@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
 using ZGF.Desktop;
+using ZGF.Desktop.Backends.Metal;
+using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Fonts;
 
 namespace ZGF.Gui;

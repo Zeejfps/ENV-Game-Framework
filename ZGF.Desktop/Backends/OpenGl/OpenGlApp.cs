@@ -1,9 +1,10 @@
 using GLFW;
+using ZGF.Desktop.Backends.Glfw;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 using Monitor = GLFW.Monitor;
 
-namespace ZGF.Desktop;
+namespace ZGF.Desktop.Backends.OpenGl;
 
 public sealed class OpenGlApp : IWindowedApp
 {
@@ -13,26 +14,26 @@ public sealed class OpenGlApp : IWindowedApp
 
     public OpenGlApp(StartupConfig startupConfig)
     {
-        Glfw.Init();
+        GLFW.Glfw.Init();
 
-        Glfw.DefaultWindowHints();
-        Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
-        Glfw.WindowHint(Hint.ContextVersionMajor, 4);
-        Glfw.WindowHint(Hint.ContextVersionMinor, 1);
-        Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
-        Glfw.WindowHint(Hint.OpenglForwardCompatible, true);
-        Glfw.WindowHint(Hint.Visible, false);
+        GLFW.Glfw.DefaultWindowHints();
+        GLFW.Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
+        GLFW.Glfw.WindowHint(Hint.ContextVersionMajor, 4);
+        GLFW.Glfw.WindowHint(Hint.ContextVersionMinor, 1);
+        GLFW.Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
+        GLFW.Glfw.WindowHint(Hint.OpenglForwardCompatible, true);
+        GLFW.Glfw.WindowHint(Hint.Visible, false);
 
         if (startupConfig.IsUndecorated)
-            Glfw.WindowHint(Hint.Decorated, false);
+            GLFW.Glfw.WindowHint(Hint.Decorated, false);
 
-        var window = Glfw.CreateWindow(
+        var window = GLFW.Glfw.CreateWindow(
             startupConfig.WindowWidth, startupConfig.WindowHeight,
             startupConfig.WindowTitle, Monitor.None, Window.None);
 
-        Glfw.MakeContextCurrent(window);
-        Glfw.SwapInterval(1);
-        Import(Glfw.GetProcAddress);
+        GLFW.Glfw.MakeContextCurrent(window);
+        GLFW.Glfw.SwapInterval(1);
+        Import(GLFW.Glfw.GetProcAddress);
         AssertNoGlError();
 
         _mainWindow = new OpenGlWindow(window, isMain: true);
@@ -48,34 +49,34 @@ public sealed class OpenGlApp : IWindowedApp
 
     public void MakeMainContextCurrent()
     {
-        Glfw.MakeContextCurrent(_mainWindow.GlfwWindow);
+        GLFW.Glfw.MakeContextCurrent(_mainWindow.GlfwWindow);
     }
 
     public IWindow CreatePopupWindow(in PopupWindowOptions options)
     {
-        Glfw.DefaultWindowHints();
-        Glfw.WindowHint(Hint.Visible, false);
-        Glfw.WindowHint(Hint.Decorated, false);
-        Glfw.WindowHint(Hint.Floating, true);
-        Glfw.WindowHint(Hint.FocusOnShow, false);
-        Glfw.WindowHint(Hint.Resizable, false);
-        Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
-        Glfw.WindowHint(Hint.ContextVersionMajor, 4);
-        Glfw.WindowHint(Hint.ContextVersionMinor, 1);
-        Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
-        Glfw.WindowHint(Hint.OpenglForwardCompatible, true);
+        GLFW.Glfw.DefaultWindowHints();
+        GLFW.Glfw.WindowHint(Hint.Visible, false);
+        GLFW.Glfw.WindowHint(Hint.Decorated, false);
+        GLFW.Glfw.WindowHint(Hint.Floating, true);
+        GLFW.Glfw.WindowHint(Hint.FocusOnShow, false);
+        GLFW.Glfw.WindowHint(Hint.Resizable, false);
+        GLFW.Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
+        GLFW.Glfw.WindowHint(Hint.ContextVersionMajor, 4);
+        GLFW.Glfw.WindowHint(Hint.ContextVersionMinor, 1);
+        GLFW.Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
+        GLFW.Glfw.WindowHint(Hint.OpenglForwardCompatible, true);
 
-        var glfw = Glfw.CreateWindow(
+        var glfw = GLFW.Glfw.CreateWindow(
             options.WidthPoints, options.HeightPoints,
             "", Monitor.None, _mainWindow.GlfwWindow);
 
-        Glfw.DefaultWindowHints();
+        GLFW.Glfw.DefaultWindowHints();
 
-        Glfw.MakeContextCurrent(glfw);
+        GLFW.Glfw.MakeContextCurrent(glfw);
         // Popups must not gate vsync — each SwapBuffers on each popup context
         // serializes one vblank wait, so with vsync on N popups the loop
         // becomes refresh / (1 + N). Only the main window paces vsync.
-        Glfw.SwapInterval(0);
+        GLFW.Glfw.SwapInterval(0);
 
         var popup = new OpenGlWindow(glfw, isMain: false);
         _windows.Add(popup);
@@ -85,31 +86,31 @@ public sealed class OpenGlApp : IWindowedApp
 
     public IWindow CreateWindow(in WindowOptions options)
     {
-        Glfw.DefaultWindowHints();
-        Glfw.WindowHint(Hint.Visible, false);
+        GLFW.Glfw.DefaultWindowHints();
+        GLFW.Glfw.WindowHint(Hint.Visible, false);
         // A real secondary window: decorated, resizable, and able to take focus when shown,
         // unlike CreatePopupWindow's borderless floating popups.
-        Glfw.WindowHint(Hint.Decorated, true);
-        Glfw.WindowHint(Hint.Floating, false);
-        Glfw.WindowHint(Hint.FocusOnShow, true);
-        Glfw.WindowHint(Hint.Resizable, true);
-        Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
-        Glfw.WindowHint(Hint.ContextVersionMajor, 4);
-        Glfw.WindowHint(Hint.ContextVersionMinor, 1);
-        Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
-        Glfw.WindowHint(Hint.OpenglForwardCompatible, true);
+        GLFW.Glfw.WindowHint(Hint.Decorated, true);
+        GLFW.Glfw.WindowHint(Hint.Floating, false);
+        GLFW.Glfw.WindowHint(Hint.FocusOnShow, true);
+        GLFW.Glfw.WindowHint(Hint.Resizable, true);
+        GLFW.Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
+        GLFW.Glfw.WindowHint(Hint.ContextVersionMajor, 4);
+        GLFW.Glfw.WindowHint(Hint.ContextVersionMinor, 1);
+        GLFW.Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
+        GLFW.Glfw.WindowHint(Hint.OpenglForwardCompatible, true);
 
         // Share the GL context with the main window so the shared font atlas / textures
         // (GlSharedResources) are visible to this window's canvas.
-        var glfw = Glfw.CreateWindow(
+        var glfw = GLFW.Glfw.CreateWindow(
             options.WidthPoints, options.HeightPoints,
             options.Title, Monitor.None, _mainWindow.GlfwWindow);
 
-        Glfw.DefaultWindowHints();
+        GLFW.Glfw.DefaultWindowHints();
 
-        Glfw.MakeContextCurrent(glfw);
+        GLFW.Glfw.MakeContextCurrent(glfw);
         // Like popups, secondary windows must not gate vsync — only the main window paces it.
-        Glfw.SwapInterval(0);
+        GLFW.Glfw.SwapInterval(0);
 
         var window = new OpenGlWindow(glfw, isMain: false);
         _windows.Add(window);
@@ -119,16 +120,16 @@ public sealed class OpenGlApp : IWindowedApp
 
     public void Run()
     {
-        var videoMode = Glfw.GetVideoMode(Glfw.PrimaryMonitor);
-        Glfw.GetWindowSize(_mainWindow.GlfwWindow, out var ww, out var wh);
+        var videoMode = GLFW.Glfw.GetVideoMode(GLFW.Glfw.PrimaryMonitor);
+        GLFW.Glfw.GetWindowSize(_mainWindow.GlfwWindow, out var ww, out var wh);
         var px = (int)((videoMode.Width - ww) * 0.5f);
         var py = (int)((videoMode.Height - wh) * 0.5f);
-        Glfw.SetWindowPosition(_mainWindow.GlfwWindow, px, py);
+        GLFW.Glfw.SetWindowPosition(_mainWindow.GlfwWindow, px, py);
         _mainWindow.Show();
 
-        while (!Glfw.WindowShouldClose(_mainWindow.GlfwWindow))
+        while (!GLFW.Glfw.WindowShouldClose(_mainWindow.GlfwWindow))
         {
-            Glfw.PollEvents();
+            GLFW.Glfw.PollEvents();
             OnTick?.Invoke();
 
             _mainWindow.RequestRedraw();
@@ -145,14 +146,14 @@ public sealed class OpenGlApp : IWindowedApp
             for (var i = _windows.Count - 1; i >= 0; i--)
             {
                 var ogw = _windows[i];
-                if (!ogw.IsMain && Glfw.WindowShouldClose(ogw.GlfwWindow))
+                if (!ogw.IsMain && GLFW.Glfw.WindowShouldClose(ogw.GlfwWindow))
                 {
-                    Glfw.SetWindowShouldClose(ogw.GlfwWindow, false);
+                    GLFW.Glfw.SetWindowShouldClose(ogw.GlfwWindow, false);
                 }
             }
         }
         Dispose();
-        Glfw.Terminate();
+        GLFW.Glfw.Terminate();
     }
 
     public void Dispose()

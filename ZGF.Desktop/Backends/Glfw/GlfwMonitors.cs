@@ -1,12 +1,10 @@
-using GLFW;
-
-namespace ZGF.Desktop;
+namespace ZGF.Desktop.Backends.Glfw;
 
 internal static class GlfwMonitors
 {
     public static IReadOnlyList<MonitorWorkArea> WorkAreas()
     {
-        var monitors = Glfw.Monitors;
+        var monitors = GLFW.Glfw.Monitors;
         var result = new MonitorWorkArea[monitors.Length];
         for (var i = 0; i < monitors.Length; i++)
         {

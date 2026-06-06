@@ -4,11 +4,12 @@
 
 using System.Runtime.InteropServices;
 using GLFW;
+using ZGF.Desktop.Backends.Glfw;
 using ZGF.Rendering.Metal;
 using static ZGF.Rendering.Metal.Objc;
 using Monitor = GLFW.Monitor;
 
-namespace ZGF.Desktop;
+namespace ZGF.Desktop.Backends.Metal;
 
 public sealed class MetalApp : IWindowedApp
 {
@@ -24,14 +25,14 @@ public sealed class MetalApp : IWindowedApp
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             throw new PlatformNotSupportedException("MetalApp requires macOS.");
 
-        Glfw.Init();
-        Glfw.DefaultWindowHints();
-        Glfw.WindowHint(Hint.ClientApi, ClientApi.None);
-        Glfw.WindowHint(Hint.Visible, false);
+        GLFW.Glfw.Init();
+        GLFW.Glfw.DefaultWindowHints();
+        GLFW.Glfw.WindowHint(Hint.ClientApi, ClientApi.None);
+        GLFW.Glfw.WindowHint(Hint.Visible, false);
         if (startupConfig.IsUndecorated)
-            Glfw.WindowHint(Hint.Decorated, false);
+            GLFW.Glfw.WindowHint(Hint.Decorated, false);
 
-        var window = Glfw.CreateWindow(
+        var window = GLFW.Glfw.CreateWindow(
             startupConfig.WindowWidth, startupConfig.WindowHeight,
             startupConfig.WindowTitle, Monitor.None, Window.None);
 
@@ -54,16 +55,16 @@ public sealed class MetalApp : IWindowedApp
 
     public IWindow CreatePopupWindow(in PopupWindowOptions options)
     {
-        Glfw.DefaultWindowHints();
-        Glfw.WindowHint(Hint.Visible, false);
-        Glfw.WindowHint(Hint.Decorated, false);
-        Glfw.WindowHint(Hint.Floating, true);
-        Glfw.WindowHint(Hint.FocusOnShow, false);
-        Glfw.WindowHint(Hint.Resizable, false);
-        Glfw.WindowHint(Hint.ClientApi, ClientApi.None);
+        GLFW.Glfw.DefaultWindowHints();
+        GLFW.Glfw.WindowHint(Hint.Visible, false);
+        GLFW.Glfw.WindowHint(Hint.Decorated, false);
+        GLFW.Glfw.WindowHint(Hint.Floating, true);
+        GLFW.Glfw.WindowHint(Hint.FocusOnShow, false);
+        GLFW.Glfw.WindowHint(Hint.Resizable, false);
+        GLFW.Glfw.WindowHint(Hint.ClientApi, ClientApi.None);
 
-        var glfw = Glfw.CreateWindow(options.WidthPoints, options.HeightPoints, "", Monitor.None, Window.None);
-        Glfw.DefaultWindowHints();
+        var glfw = GLFW.Glfw.CreateWindow(options.WidthPoints, options.HeightPoints, "", Monitor.None, Window.None);
+        GLFW.Glfw.DefaultWindowHints();
 
         var popup = new MetalWindow(glfw, Device, CommandQueue, isMain: false);
         _windows.Add(popup);
@@ -73,18 +74,18 @@ public sealed class MetalApp : IWindowedApp
 
     public IWindow CreateWindow(in WindowOptions options)
     {
-        Glfw.DefaultWindowHints();
-        Glfw.WindowHint(Hint.Visible, false);
+        GLFW.Glfw.DefaultWindowHints();
+        GLFW.Glfw.WindowHint(Hint.Visible, false);
         // A real secondary window: decorated, resizable, focusable when shown — unlike the
         // borderless floating popups from CreatePopupWindow.
-        Glfw.WindowHint(Hint.Decorated, true);
-        Glfw.WindowHint(Hint.Floating, false);
-        Glfw.WindowHint(Hint.FocusOnShow, true);
-        Glfw.WindowHint(Hint.Resizable, true);
-        Glfw.WindowHint(Hint.ClientApi, ClientApi.None);
+        GLFW.Glfw.WindowHint(Hint.Decorated, true);
+        GLFW.Glfw.WindowHint(Hint.Floating, false);
+        GLFW.Glfw.WindowHint(Hint.FocusOnShow, true);
+        GLFW.Glfw.WindowHint(Hint.Resizable, true);
+        GLFW.Glfw.WindowHint(Hint.ClientApi, ClientApi.None);
 
-        var glfw = Glfw.CreateWindow(options.WidthPoints, options.HeightPoints, options.Title, Monitor.None, Window.None);
-        Glfw.DefaultWindowHints();
+        var glfw = GLFW.Glfw.CreateWindow(options.WidthPoints, options.HeightPoints, options.Title, Monitor.None, Window.None);
+        GLFW.Glfw.DefaultWindowHints();
 
         var window = new MetalWindow(glfw, Device, CommandQueue, isMain: false);
         _windows.Add(window);
@@ -94,16 +95,16 @@ public sealed class MetalApp : IWindowedApp
 
     public void Run()
     {
-        var videoMode = Glfw.GetVideoMode(Glfw.PrimaryMonitor);
-        Glfw.GetWindowSize(_mainWindow.GlfwWindow, out var ww, out var wh);
+        var videoMode = GLFW.Glfw.GetVideoMode(GLFW.Glfw.PrimaryMonitor);
+        GLFW.Glfw.GetWindowSize(_mainWindow.GlfwWindow, out var ww, out var wh);
         var px = (int)((videoMode.Width - ww) * 0.5f);
         var py = (int)((videoMode.Height - wh) * 0.5f);
-        Glfw.SetWindowPosition(_mainWindow.GlfwWindow, px, py);
+        GLFW.Glfw.SetWindowPosition(_mainWindow.GlfwWindow, px, py);
         _mainWindow.Show();
 
-        while (!Glfw.WindowShouldClose(_mainWindow.GlfwWindow))
+        while (!GLFW.Glfw.WindowShouldClose(_mainWindow.GlfwWindow))
         {
-            Glfw.PollEvents();
+            GLFW.Glfw.PollEvents();
             OnTick?.Invoke();
 
             _mainWindow.RequestRedraw();
@@ -117,12 +118,12 @@ public sealed class MetalApp : IWindowedApp
 
             for (var i = _windows.Count - 1; i >= 0; i--)
             {
-                if (_windows[i] is MetalWindow mw && !mw.IsMain && Glfw.WindowShouldClose(mw.GlfwWindow))
-                    Glfw.SetWindowShouldClose(mw.GlfwWindow, false);
+                if (_windows[i] is MetalWindow mw && !mw.IsMain && GLFW.Glfw.WindowShouldClose(mw.GlfwWindow))
+                    GLFW.Glfw.SetWindowShouldClose(mw.GlfwWindow, false);
             }
         }
         Dispose();
-        Glfw.Terminate();
+        GLFW.Glfw.Terminate();
     }
 
     public void Dispose()

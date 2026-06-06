@@ -5,7 +5,7 @@ using ZGF.KeyboardModule.GlfwAdapter;
 using ZGF.Rendering.Metal;
 using static ZGF.Rendering.Metal.Objc;
 
-namespace ZGF.Desktop;
+namespace ZGF.Desktop.Backends.Metal;
 
 public sealed class MetalWindow : IWindow, IMetalSurface
 {
@@ -45,8 +45,8 @@ public sealed class MetalWindow : IWindow, IMetalSurface
         CommandQueue = commandQueue;
         NsWindow = Native.GetCocoaWindow(window);
 
-        Glfw.GetWindowSize(window, out _width, out _height);
-        Glfw.GetFramebufferSize(window, out var fbW, out var fbH);
+        GLFW.Glfw.GetWindowSize(window, out _width, out _height);
+        GLFW.Glfw.GetFramebufferSize(window, out var fbW, out var fbH);
         _dpiScale = ComputeDpiScale(window, fbW, fbH);
         Layer = AttachMetalLayer(window, device, fbW, fbH);
 
@@ -60,14 +60,14 @@ public sealed class MetalWindow : IWindow, IMetalSurface
         _mouseButtonCallback = HandleMouseButton;
         _scrollCallback = HandleScroll;
         _cursorEnterCallback = HandleCursorEnter;
-        Glfw.SetWindowSizeCallback(window, _windowSizeCallback);
-        Glfw.SetFramebufferSizeCallback(window, _framebufferSizeCallback);
-        Glfw.SetWindowFocusCallback(window, _focusCallback);
-        Glfw.SetCloseCallback(window, _closeCallback);
-        Glfw.SetKeyCallback(window, _keyCallback);
-        Glfw.SetMouseButtonCallback(window, _mouseButtonCallback);
-        Glfw.SetScrollCallback(window, _scrollCallback);
-        Glfw.SetCursorEnterCallback(window, _cursorEnterCallback);
+        GLFW.Glfw.SetWindowSizeCallback(window, _windowSizeCallback);
+        GLFW.Glfw.SetFramebufferSizeCallback(window, _framebufferSizeCallback);
+        GLFW.Glfw.SetWindowFocusCallback(window, _focusCallback);
+        GLFW.Glfw.SetCloseCallback(window, _closeCallback);
+        GLFW.Glfw.SetKeyCallback(window, _keyCallback);
+        GLFW.Glfw.SetMouseButtonCallback(window, _mouseButtonCallback);
+        GLFW.Glfw.SetScrollCallback(window, _scrollCallback);
+        GLFW.Glfw.SetCursorEnterCallback(window, _cursorEnterCallback);
     }
 
     public IntPtr NativeHandle => NsWindow;
@@ -75,8 +75,8 @@ public sealed class MetalWindow : IWindow, IMetalSurface
     public int Height => _height;
     public float DpiScale => _dpiScale;
     public bool IsVisible => _isVisible;
-    public bool IsFocused => Glfw.GetWindowAttribute(_window, WindowAttribute.Focused);
-    public bool IsPointerOver => Glfw.GetWindowAttribute(_window, WindowAttribute.MouseHover);
+    public bool IsFocused => GLFW.Glfw.GetWindowAttribute(_window, WindowAttribute.Focused);
+    public bool IsPointerOver => GLFW.Glfw.GetWindowAttribute(_window, WindowAttribute.MouseHover);
     public bool NeedsRedraw { get; private set; } = true;
 
     public event Action<int, int>? OnResize;
@@ -88,13 +88,13 @@ public sealed class MetalWindow : IWindow, IMetalSurface
     public event Action<double, double>? OnScroll;
     public event Action<bool>? OnPointerEnter;
 
-    public void Show() { Glfw.ShowWindow(_window); _isVisible = true; NeedsRedraw = true; }
-    public void Hide() { Glfw.HideWindow(_window); _isVisible = false; }
-    public void Focus() => Glfw.FocusWindow(_window);
-    public void SetPosition(int x, int y) => Glfw.SetWindowPosition(_window, x, y);
-    public void SetSize(int w, int h) => Glfw.SetWindowSize(_window, w, h);
-    public void GetPosition(out int screenX, out int screenY) => Glfw.GetWindowPosition(_window, out screenX, out screenY);
-    public void GetCursorPosition(out double x, out double y) => Glfw.GetCursorPosition(_window, out x, out y);
+    public void Show() { GLFW.Glfw.ShowWindow(_window); _isVisible = true; NeedsRedraw = true; }
+    public void Hide() { GLFW.Glfw.HideWindow(_window); _isVisible = false; }
+    public void Focus() => GLFW.Glfw.FocusWindow(_window);
+    public void SetPosition(int x, int y) => GLFW.Glfw.SetWindowPosition(_window, x, y);
+    public void SetSize(int w, int h) => GLFW.Glfw.SetWindowSize(_window, w, h);
+    public void GetPosition(out int screenX, out int screenY) => GLFW.Glfw.GetWindowPosition(_window, out screenX, out screenY);
+    public void GetCursorPosition(out double x, out double y) => GLFW.Glfw.GetCursorPosition(_window, out x, out y);
     public void SetIcon(IReadOnlyList<WindowIconImage> icons)
     {
         var images = new Image[icons.Count];
@@ -106,7 +106,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
                 handles[i] = GCHandle.Alloc(icons[i].Pixels, GCHandleType.Pinned);
                 images[i] = new Image(icons[i].Width, icons[i].Height, handles[i].AddrOfPinnedObject());
             }
-            Glfw.SetWindowIcon(_window, images.Length, images);
+            GLFW.Glfw.SetWindowIcon(_window, images.Length, images);
         }
         finally
         {
@@ -116,8 +116,8 @@ public sealed class MetalWindow : IWindow, IMetalSurface
     }
     public void RequestRedraw() => NeedsRedraw = true;
     public void MakeContextCurrent() { /* Metal is stateless across windows */ }
-    public string GetClipboardText() => Glfw.GetClipboardString(_window);
-    public void SetClipboardText(string text) => Glfw.SetClipboardString(_window, text);
+    public string GetClipboardText() => GLFW.Glfw.GetClipboardString(_window);
+    public void SetClipboardText(string text) => GLFW.Glfw.SetClipboardString(_window, text);
 
     public void RenderNow() { RenderFrame?.Invoke(); NeedsRedraw = false; }
 
@@ -125,7 +125,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
     {
         _width = width;
         _height = height;
-        Glfw.GetFramebufferSize(_window, out var fbW, out var fbH);
+        GLFW.Glfw.GetFramebufferSize(_window, out var fbW, out var fbH);
         SetDrawableSize(Layer, fbW, fbH);
         OnResize?.Invoke(width, height);
     }
@@ -158,7 +158,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
             var s = (float)msg_Double(nsWindow, Sel("backingScaleFactor"));
             if (s > 0f) return s;
         }
-        Glfw.GetWindowSize(window, out var winW, out var winH);
+        GLFW.Glfw.GetWindowSize(window, out var winW, out var winH);
         if (winW > 0 && winH > 0)
             return MathF.Max((float)fbWidth / winW, (float)fbHeight / winH);
         return 1f;
@@ -204,7 +204,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
         _isDisposed = true;
         if (!IsMain)
         {
-            Glfw.DestroyWindow(_window);
+            GLFW.Glfw.DestroyWindow(_window);
             OnClosed?.Invoke();
         }
     }
