@@ -6,10 +6,9 @@ using UIKit;
 using ZGF.Fonts;
 using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Gui.iOS.Espresso;
 using ZGF.Gui.Metal;
-using ZGF.Gui.Mobile.Controllers;
 using ZGF.Gui.Mobile.Input;
-using ZGF.Gui.Views;
 using ZGF.Rendering.Metal;
 using AppUtilsAssets = ZGF.AppUtils.EmbeddedAssets;
 
@@ -38,14 +37,12 @@ public sealed class MetalViewController : UIViewController
     private MetalRenderedCanvas? _canvas;
     private Context? _context;
     private MobileInputSystem? _mobileInput;
+    private EspressoDialingScreen? _screen;
     private MultiChildView? _root;
     private CADisplayLink? _displayLink;
 
     private byte[] _fontBytes = null!;
     private float _scale = 1f;
-
-    private TextView _counterLabel = null!;
-    private int _tapCount;
 
     public override void LoadView()
     {
@@ -107,114 +104,15 @@ public sealed class MetalViewController : UIViewController
             _context.AddService(_mobileInput);
             _metalView.Input = _mobileInput;
 
-            _root = BuildUi(logicalW, logicalH, _context);
+            _screen = new EspressoDialingScreen(logicalW, logicalH, _context);
+            _root = _screen.Root;
             StartRenderLoop();
         }
         else if (_canvas.Width != logicalW || _canvas.Height != logicalH)
         {
             _canvas.Resize(logicalW, logicalH);
-            if (_root != null)
-            {
-                _root.Width = logicalW;
-                _root.Height = logicalH;
-            }
+            _screen?.Resize(logicalW, logicalH);
         }
-    }
-
-    // Builds the real View tree: a full-bleed background with a centered rounded card whose
-    // content is a ColumnView of text plus a tappable button. The toolkit measures and
-    // positions everything (card size from its content, centering from CenterView); the button
-    // is driven by the shared ZGF.Gui.Mobile touch stack via UsePointerController.
-    private MultiChildView BuildUi(int width, int height, Context context)
-    {
-        _counterLabel = new TextView
-        {
-            Text = "Not tapped yet",
-            TextColor = 0xFFE0EAFF,
-            FontSize = 15f,
-            TextWrap = TextWrap.Wrap,
-            HorizontalTextAlignment = TextAlignment.Center,
-        };
-
-        var buttonLabel = new TextView
-        {
-            Text = "Tap me",
-            TextColor = 0xFF1B3A6B,
-            FontSize = 18f,
-            HorizontalTextAlignment = TextAlignment.Center,
-        };
-
-        var button = new RectView
-        {
-            Height = 52f,
-            BackgroundColor = ButtonIdleColor,
-            BorderRadius = BorderRadiusStyle.All(12f),
-            Padding = PaddingStyle.All(12),
-            Children = { buttonLabel },
-        };
-
-        button.UsePointerController(_ => new ButtonPointerController(button)
-        {
-            Clicked = HandleButtonClicked,
-            PressedChanged = pressed => button.BackgroundColor = pressed ? ButtonPressedColor : ButtonIdleColor,
-        });
-
-        var card = new RectView
-        {
-            Width = 360f,
-            BackgroundColor = 0xFF3478F6,
-            BorderRadius = BorderRadiusStyle.All(20f),
-            Padding = PaddingStyle.All(24),
-            Children =
-            {
-                new ColumnView
-                {
-                    Gap = 14,
-                    Children =
-                    {
-                        new TextView
-                        {
-                            Text = "Hello from ZGF.Gui",
-                            TextColor = 0xFFFFFFFF,
-                            FontSize = 24f,
-                            TextWrap = TextWrap.Wrap,
-                            HorizontalTextAlignment = TextAlignment.Center,
-                        },
-                        new TextView
-                        {
-                            Text = "A real view tree — laid out and rendered on iOS via Metal.",
-                            TextColor = 0xFFE0EAFF,
-                            FontSize = 16f,
-                            TextWrap = TextWrap.Wrap,
-                            HorizontalTextAlignment = TextAlignment.Center,
-                        },
-                        button,
-                        _counterLabel,
-                    },
-                },
-            },
-        };
-
-        return new MultiChildView
-        {
-            Width = width,
-            Height = height,
-            Context = context,
-            Children =
-            {
-                new RectView { BackgroundColor = 0xFF101522 },
-                new CenterView { Children = { card } },
-            },
-        };
-    }
-
-    private const uint ButtonIdleColor = 0xFFFFFFFF;
-    private const uint ButtonPressedColor = 0xFFBFD4FF;
-
-    private void HandleButtonClicked()
-    {
-        _tapCount++;
-        _counterLabel.Text = _tapCount == 1 ? "Tapped 1 time" : $"Tapped {_tapCount} times";
     }
 
     private void StartRenderLoop()
