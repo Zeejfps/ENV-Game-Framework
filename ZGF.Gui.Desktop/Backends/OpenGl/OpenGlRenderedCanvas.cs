@@ -20,6 +20,13 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
     private int _rectVboCap, _glyphVboCap, _imageVboCap, _shadowVboCap;
     private uint _clipUbo;
 
+    // glDrawArraysInstancedBaseInstance is GL 4.2+. When available we pass the batch's
+    // first-instance offset directly and leave the VAO's instance-attribute pointers at
+    // offset 0, avoiding the per-draw glVertexAttribPointer rebind. macOS caps GL at 4.1
+    // but routes to the Metal backend, so this path is exercised on Windows/Linux, where
+    // the forward-compatible context typically reports the driver's real (>= 4.2) version.
+    private readonly bool _useBaseInstance;
+
     private Matrix4x4 _projection;
     private int _atlasUploads;
 
@@ -33,10 +40,19 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
     {
         _shared = shared;
 
+        _useBaseInstance = DetectBaseInstanceSupport();
         _projection = Matrix4x4.CreateOrthographicOffCenter(0, width, 0, height, -1f, 1f);
         UploadProjection();
         SetupInstanceBuffers();
         SetupClipUbo();
+    }
+
+    private static bool DetectBaseInstanceSupport()
+    {
+        int major = 0, minor = 0;
+        glGetIntegerv(GL_MAJOR_VERSION, &major);
+        glGetIntegerv(GL_MINOR_VERSION, &minor);
+        return major > 4 || (major == 4 && minor >= 2);
     }
 
     protected override void OnResize(int width, int height)
@@ -186,15 +202,25 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
                 boundTexture = call.TextureId;
             }
 
-            switch (call.Kind)
+            // baseInstance offsets the per-instance attribute fetch, so the VAO keeps its
+            // setup-time offset-0 pointers and no per-draw rebind is needed. Older drivers
+            // (< GL 4.2) fall back to rebinding the instance attribute pointers per draw.
+            if (_useBaseInstance)
             {
-                case DrawKind.Rect: RebindRectInstancePointers(call.InstanceStart); break;
-                case DrawKind.Glyph: RebindGlyphInstancePointers(call.InstanceStart); break;
-                case DrawKind.Image: RebindImageInstancePointers(call.InstanceStart); break;
-                case DrawKind.Shadow: RebindShadowInstancePointers(call.InstanceStart); break;
+                glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, call.InstanceCount, (uint)call.InstanceStart);
             }
+            else
+            {
+                switch (call.Kind)
+                {
+                    case DrawKind.Rect: RebindRectInstancePointers(call.InstanceStart); break;
+                    case DrawKind.Glyph: RebindGlyphInstancePointers(call.InstanceStart); break;
+                    case DrawKind.Image: RebindImageInstancePointers(call.InstanceStart); break;
+                    case DrawKind.Shadow: RebindShadowInstancePointers(call.InstanceStart); break;
+                }
 
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 6, call.InstanceCount);
+                glDrawArraysInstanced(GL_TRIANGLES, 0, 6, call.InstanceCount);
+            }
         }
 
         glBindVertexArray(0);
