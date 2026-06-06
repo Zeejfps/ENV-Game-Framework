@@ -1,3 +1,5 @@
+using ZGF.Gui.Desktop.Components.ContextMenu;
+
 namespace ZGF.Gui.Tests;
 
 public sealed class FileMenuItemController : BaseMenuItemController

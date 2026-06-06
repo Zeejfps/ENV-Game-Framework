@@ -1,4 +1,5 @@
 ﻿using ZGF.Gui.Desktop;
+using ZGF.Gui.Desktop.Input;
 
 namespace ZGF.Gui.Tests;
 

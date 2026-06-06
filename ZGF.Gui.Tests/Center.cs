@@ -1,4 +1,6 @@
 ﻿using GLFW;
+using ZGF.Gui.Desktop.Components.TextInput;
+using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Tests;
