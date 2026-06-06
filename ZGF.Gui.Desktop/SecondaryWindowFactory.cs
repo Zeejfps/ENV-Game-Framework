@@ -11,7 +11,7 @@ namespace ZGF.Gui;
 /// </summary>
 public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
 {
-    private readonly IApp _app;
+    private readonly IWindowedApp _app;
     private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
     private readonly IGuiRenderBackend _backend;
@@ -21,7 +21,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
     private readonly List<SecondaryWindowImpl> _active = new();
 
     internal SecondaryWindowFactory(
-        IApp app,
+        IWindowedApp app,
         FreeTypeFontBackend fonts,
         FontHandle defaultFont,
         IGuiRenderBackend backend,

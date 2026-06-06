@@ -5,7 +5,7 @@ using Monitor = GLFW.Monitor;
 
 namespace ZGF.Core;
 
-public sealed class OpenGlApp : IApp
+public sealed class OpenGlApp : IWindowedApp
 {
     private readonly OpenGlWindow _mainWindow;
     private readonly List<OpenGlWindow> _windows = new();

@@ -8,7 +8,7 @@ internal static class PlatformBackend
 {
     internal readonly struct Backend
     {
-        public required IApp App { get; init; }
+        public required IWindowedApp App { get; init; }
         public required RenderedCanvasBase MainCanvas { get; init; }
         public required FreeTypeFontBackend FontBackend { get; init; }
         public required FontHandle DefaultFont { get; init; }

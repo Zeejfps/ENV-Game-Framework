@@ -7,7 +7,7 @@ namespace ZGF.Gui;
 
 public sealed class GuiApp : IDisposable
 {
-    private readonly IApp _app;
+    private readonly IWindowedApp _app;
     private readonly RenderedCanvasBase _mainCanvas;
     private readonly FreeTypeFontBackend _fontBackend;
     private readonly IGuiRenderBackend _renderBackend;
@@ -20,7 +20,7 @@ public sealed class GuiApp : IDisposable
     private readonly IWindowChrome _windowChrome;
 
     private GuiApp(
-        IApp app,
+        IWindowedApp app,
         RenderedCanvasBase mainCanvas,
         FreeTypeFontBackend fontBackend,
         IGuiRenderBackend renderBackend,

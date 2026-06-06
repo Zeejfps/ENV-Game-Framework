@@ -8,7 +8,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 {
     private const int SoftCap = 16;
 
-    private readonly IApp _app;
+    private readonly IWindowedApp _app;
     private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
     private readonly IGuiRenderBackend _backend;
@@ -21,7 +21,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     private PopupWindowImpl? _captureHolder;
 
     internal PopupWindowFactory(
-        IApp app,
+        IWindowedApp app,
         FreeTypeFontBackend fonts,
         FontHandle defaultFont,
         IGuiRenderBackend backend,

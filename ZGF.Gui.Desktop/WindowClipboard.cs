@@ -7,9 +7,9 @@ namespace ZGF.Gui;
 // native clipboard elsewhere). No external xclip/wl-copy processes, so nothing to install.
 public sealed class WindowClipboard : IClipboard
 {
-    private readonly IApp _app;
+    private readonly IWindowedApp _app;
 
-    public WindowClipboard(IApp app)
+    public WindowClipboard(IWindowedApp app)
     {
         _app = app;
     }

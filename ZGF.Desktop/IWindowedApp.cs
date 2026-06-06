@@ -1,6 +1,6 @@
 namespace ZGF.Core;
 
-public interface IApp : IDisposable
+public interface IWindowedApp : IDisposable
 {
     IWindow MainWindow { get; }
     IReadOnlyList<IWindow> Windows { get; }

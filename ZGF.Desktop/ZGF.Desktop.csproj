@@ -1,20 +1,21 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <RootNamespace>ZGF.Core</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\ZGF.Core\ZGF.Core.csproj" />
-      <ProjectReference Include="..\ZGF.Rendering.Metal\ZGF.Rendering.Metal.csproj" />
+      <!-- Abstractions only (IApp/IWindow/options). The neutral KeyboardKey enum is part of
+           the IWindow surface; GLFW/OpenGL/Metal implementations live in ZGF.Core.Desktop. -->
       <ProjectReference Include="..\Glfw.NET\Glfw.NET.csproj" />
       <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
-      <!-- The GLFW window backend maps GLFW keys onto the neutral KeyboardKey it raises. -->
-      <ProjectReference Include="..\ZGF.KeyboardModule\ZGF.KeyboardModule.csproj" />
       <ProjectReference Include="..\ZGF.KeyboardModule.GlfwAdapter\ZGF.KeyboardModule.GlfwAdapter.csproj" />
+      <ProjectReference Include="..\ZGF.KeyboardModule\ZGF.KeyboardModule.csproj" />
+      <ProjectReference Include="..\ZGF.Rendering.Metal\ZGF.Rendering.Metal.csproj" />
     </ItemGroup>
 
 </Project>

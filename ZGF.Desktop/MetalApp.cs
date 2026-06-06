@@ -10,7 +10,7 @@ using Monitor = GLFW.Monitor;
 
 namespace ZGF.Core;
 
-public sealed class MetalApp : IApp
+public sealed class MetalApp : IWindowedApp
 {
     private readonly MetalWindow _mainWindow;
     private readonly List<IWindow> _windows = new();
