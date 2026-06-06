@@ -1,8 +1,8 @@
 using ZGF.Core;
 using ZGF.Fonts;
 using ZGF.Geometry;
+using ZGF.Metal;
 using static GL46;
-using static ZGF.Core.MacOs.Objc;
 
 namespace ZGF.Gui;
 
@@ -329,31 +329,10 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
         }
         else if (_window is ZGF.Core.MetalWindow mw && _metalShared != null)
         {
-            var nextDrawableSel = Sel("nextDrawable");
-            var commandBufferSel = Sel("commandBuffer");
-            var renderCommandEncoderSel = Sel("renderCommandEncoderWithDescriptor:");
-            var endEncodingSel = Sel("endEncoding");
-            var presentDrawableSel = Sel("presentDrawable:");
-            var commitSel = Sel("commit");
-            var textureSel = Sel("texture");
-            mw.RenderFrame = () =>
+            // mw is an IMetalSurface; the per-frame drawable/encoder/present loop is shared.
+            var surfaceRenderer = new MetalSurfaceRenderer(mw);
+            mw.RenderFrame = () => surfaceRenderer.RenderFrame((encoder, commandBuffer) =>
             {
-                var device = _metalShared.Device;
-                // The metal app owns the command queue; pull from the canvas/shared.
-                var queue = MetalQueueAccessor.Get(_metalShared);
-                var drawable = msg_IntPtr(mw.Layer, nextDrawableSel);
-                if (drawable == IntPtr.Zero) return;
-                var commandBuffer = msg_IntPtr(queue, commandBufferSel);
-                var descClass = Class("MTLRenderPassDescriptor");
-                var desc = msg_IntPtr(descClass, Sel("renderPassDescriptor"));
-                Retain(desc);
-                var attachments = msg_IntPtr(desc, Sel("colorAttachments"));
-                var color0 = msg_IntPtr_NUInt_NUInt(attachments, Sel("objectAtIndexedSubscript:"), 0, 0);
-                msg_Void_IntPtr(color0, Sel("setTexture:"), msg_IntPtr(drawable, textureSel));
-                msg_Void_UInt(color0, Sel("setLoadAction:"), 2);
-                msg_Void_UInt(color0, Sel("setStoreAction:"), 1);
-
-                var encoder = msg_IntPtr(commandBuffer, renderCommandEncoderSel, desc);
                 _canvas.BeginFrame();
                 if (_root != null)
                 {
@@ -361,11 +340,7 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
                     _root.DrawSelf();
                 }
                 ((MetalRenderedCanvas)_canvas).EndFrame(encoder, commandBuffer);
-                msg_Void(encoder, endEncodingSel);
-                msg_Void_IntPtr(commandBuffer, presentDrawableSel, drawable);
-                msg_Void(commandBuffer, commitSel);
-                Release(desc);
-            };
+            });
         }
     }
 
@@ -420,19 +395,5 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
         SetRoot(null);
         if (_canvas is IDisposable d) d.Dispose();
         _window.Dispose();
-    }
-}
-
-// MetalSharedResources doesn't currently expose the command queue (which is held
-// by MetalApp). Pull from there at runtime — popups need the queue to submit per-frame.
-internal static class MetalQueueAccessor
-{
-    public static IntPtr Get(MetalSharedResources shared)
-    {
-        // Reach into the MetalApp for the queue. PopupWindowFactory is only
-        // constructed by GuiApp, which knows the IApp; this helper is a stand-in
-        // for "give me the queue" without polluting MetalSharedResources with app state.
-        // We store the queue on the shared object via a side-channel field.
-        return shared.CommandQueue;
     }
 }

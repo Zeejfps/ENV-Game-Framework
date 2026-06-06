@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      iOS compile smoke-test (step 1 of the mobile-rendering prep).
+
+      A class library targeting net10.0-ios that references the platform-independent
+      toolkit (ZGF.Gui, ZGF.Core) and the neutral Metal layer (ZGF.Metal). Its only
+      job is to *compile* against those assemblies under the iOS target, which:
+        - activates the platform-compatibility analyzer (CA1416) on the referenced code,
+          flushing out desktop-only API usage early, and
+        - surfaces restore-time issues (e.g. a transitive native asset with no iOS RID,
+          such as HarfBuzz) before any real iOS app work begins.
+
+      Building requires the iOS workload (`dotnet workload install ios`); the final
+      link still needs a Mac. This project is intentionally NOT part of
+      "ENV Game Framework.sln" so a normal desktop `dotnet build` of the solution
+      does not require the iOS workload. Build it explicitly:
+
+          dotnet build ZGF.Gui.iOS.SmokeTest/ZGF.Gui.iOS.SmokeTest.csproj
+    -->
+
+    <PropertyGroup>
+        <TargetFramework>net10.0-ios</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <SupportedOSPlatformVersion>13.0</SupportedOSPlatformVersion>
+        <IsPublishable>false</IsPublishable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+      <ProjectReference Include="..\ZGF.Core\ZGF.Core.csproj" />
+      <ProjectReference Include="..\ZGF.Metal\ZGF.Metal.csproj" />
+    </ItemGroup>
+
+</Project>

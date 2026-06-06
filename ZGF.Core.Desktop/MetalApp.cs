@@ -40,7 +40,7 @@ public sealed class MetalApp : IApp
         CommandQueue = msg_IntPtr(Device, Sel("newCommandQueue"));
         if (CommandQueue == IntPtr.Zero) throw new System.Exception("newCommandQueue returned null.");
 
-        _mainWindow = new MetalWindow(window, Device, isMain: true);
+        _mainWindow = new MetalWindow(window, Device, CommandQueue, isMain: true);
         _windows.Add(_mainWindow);
     }
 
@@ -65,7 +65,7 @@ public sealed class MetalApp : IApp
         var glfw = Glfw.CreateWindow(options.WidthPoints, options.HeightPoints, "", Monitor.None, Window.None);
         Glfw.DefaultWindowHints();
 
-        var popup = new MetalWindow(glfw, Device, isMain: false);
+        var popup = new MetalWindow(glfw, Device, CommandQueue, isMain: false);
         _windows.Add(popup);
         popup.OnClosed += () => _windows.Remove(popup);
         return popup;
@@ -86,7 +86,7 @@ public sealed class MetalApp : IApp
         var glfw = Glfw.CreateWindow(options.WidthPoints, options.HeightPoints, options.Title, Monitor.None, Window.None);
         Glfw.DefaultWindowHints();
 
-        var window = new MetalWindow(glfw, Device, isMain: false);
+        var window = new MetalWindow(glfw, Device, CommandQueue, isMain: false);
         _windows.Add(window);
         window.OnClosed += () => _windows.Remove(window);
         return window;

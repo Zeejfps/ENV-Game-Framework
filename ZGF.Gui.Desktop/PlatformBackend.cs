@@ -2,8 +2,8 @@
 using System.Runtime.InteropServices;
 using ZGF.Core;
 using ZGF.Fonts;
+using ZGF.Metal;
 using static GL46;
-using static ZGF.Core.MacOs.Objc;
 
 namespace ZGF.Gui;
 
@@ -79,35 +79,17 @@ internal static class PlatformBackend
         var canvas = new MetalRenderedCanvas(
             config.WindowWidth, config.WindowHeight, fonts, defaultFont, shared, dpiScale);
 
-        var layer = mainWindow.Layer;
-        var queue = app.CommandQueue;
-        var nextDrawableSel = Sel("nextDrawable");
-        var commandBufferSel = Sel("commandBuffer");
-        var renderCommandEncoderSel = Sel("renderCommandEncoderWithDescriptor:");
-        var endEncodingSel = Sel("endEncoding");
-        var presentDrawableSel = Sel("presentDrawable:");
-        var commitSel = Sel("commit");
-        var textureSel = Sel("texture");
+        // mainWindow is an IMetalSurface (CAMetalLayer on the GLFW NSWindow). The per-frame
+        // drawable/encoder/present loop is host-agnostic and lives in MetalSurfaceRenderer,
+        // so an iOS host can reuse it by supplying its own IMetalSurface.
+        var surfaceRenderer = new MetalSurfaceRenderer(mainWindow);
 
-        mainWindow.RenderFrame = () =>
+        mainWindow.RenderFrame = () => surfaceRenderer.RenderFrame((encoder, commandBuffer) =>
         {
-            var drawable = msg_IntPtr(layer, nextDrawableSel);
-            if (drawable == IntPtr.Zero) return;
-
-            var commandBuffer = msg_IntPtr(queue, commandBufferSel);
-            var passDescriptor = BuildRenderPassDescriptor(msg_IntPtr(drawable, textureSel));
-            var encoder = msg_IntPtr(commandBuffer, renderCommandEncoderSel, passDescriptor);
-
             canvas.BeginFrame();
             PopulateMain?.Invoke();
             canvas.EndFrame(encoder, commandBuffer);
-
-            msg_Void(encoder, endEncodingSel);
-            msg_Void_IntPtr(commandBuffer, presentDrawableSel, drawable);
-            msg_Void(commandBuffer, commitSel);
-
-            Release(passDescriptor);
-        };
+        });
 
         return new Backend
         {
@@ -122,22 +104,4 @@ internal static class PlatformBackend
 
     // Wired by GuiApp: the main-window draw callback that fills the canvas.
     internal static Action? PopulateMain;
-
-    private static IntPtr BuildRenderPassDescriptor(IntPtr drawableTexture)
-    {
-        var descClass = Class("MTLRenderPassDescriptor");
-        var desc = msg_IntPtr(descClass, Sel("renderPassDescriptor"));
-        Retain(desc);
-
-        var colorAttachments = msg_IntPtr(desc, Sel("colorAttachments"));
-        var color0 = msg_IntPtr_NUInt_NUInt(colorAttachments, Sel("objectAtIndexedSubscript:"), 0, 0);
-        msg_Void_IntPtr(color0, Sel("setTexture:"), drawableTexture);
-        msg_Void_UInt(color0, Sel("setLoadAction:"), 2);
-        msg_Void_UInt(color0, Sel("setStoreAction:"), 1);
-        SetClearColor(color0, Sel("setClearColor:"), new ZGF.Core.MacOs.MTLClearColor(0, 0, 0, 1));
-        return desc;
-    }
-
-    [System.Runtime.InteropServices.DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "objc_msgSend")]
-    private static extern void SetClearColor(IntPtr receiver, IntPtr selector, ZGF.Core.MacOs.MTLClearColor color);
 }

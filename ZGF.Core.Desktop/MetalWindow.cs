@@ -3,11 +3,12 @@ using GLFW;
 using ZGF.Core.MacOs;
 using ZGF.KeyboardModule;
 using ZGF.KeyboardModule.GlfwAdapter;
+using ZGF.Metal;
 using static ZGF.Core.MacOs.Objc;
 
 namespace ZGF.Core;
 
-public sealed class MetalWindow : IWindow
+public sealed class MetalWindow : IWindow, IMetalSurface
 {
     private readonly Window _window;
     private readonly bool _isMain;
@@ -31,13 +32,19 @@ public sealed class MetalWindow : IWindow
     public IntPtr NsWindow { get; }
     public bool IsMain => _isMain;
 
+    // IMetalSurface: the device/queue this window's CAMetalLayer draws with.
+    public IntPtr Device { get; }
+    public IntPtr CommandQueue { get; }
+
     public Action? RenderFrame { get; set; }
     public event Action? OnClosed;
 
-    public MetalWindow(Window window, IntPtr device, bool isMain)
+    public MetalWindow(Window window, IntPtr device, IntPtr commandQueue, bool isMain)
     {
         _window = window;
         _isMain = isMain;
+        Device = device;
+        CommandQueue = commandQueue;
         NsWindow = Native.GetCocoaWindow(window);
 
         Glfw.GetWindowSize(window, out _width, out _height);

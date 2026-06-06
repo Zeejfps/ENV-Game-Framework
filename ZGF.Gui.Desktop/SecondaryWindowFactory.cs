@@ -1,7 +1,7 @@
 using ZGF.Core;
 using ZGF.Fonts;
+using ZGF.Metal;
 using static GL46;
-using static ZGF.Core.MacOs.Objc;
 
 namespace ZGF.Gui;
 
@@ -223,29 +223,10 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         }
         else if (_window is MetalWindow mw && _metalShared != null)
         {
-            var nextDrawableSel = Sel("nextDrawable");
-            var commandBufferSel = Sel("commandBuffer");
-            var renderCommandEncoderSel = Sel("renderCommandEncoderWithDescriptor:");
-            var endEncodingSel = Sel("endEncoding");
-            var presentDrawableSel = Sel("presentDrawable:");
-            var commitSel = Sel("commit");
-            var textureSel = Sel("texture");
-            mw.RenderFrame = () =>
+            // mw is an IMetalSurface; the per-frame drawable/encoder/present loop is shared.
+            var surfaceRenderer = new MetalSurfaceRenderer(mw);
+            mw.RenderFrame = () => surfaceRenderer.RenderFrame((encoder, commandBuffer) =>
             {
-                var queue = _metalShared.CommandQueue;
-                var drawable = msg_IntPtr(mw.Layer, nextDrawableSel);
-                if (drawable == IntPtr.Zero) return;
-                var commandBuffer = msg_IntPtr(queue, commandBufferSel);
-                var descClass = Class("MTLRenderPassDescriptor");
-                var desc = msg_IntPtr(descClass, Sel("renderPassDescriptor"));
-                Retain(desc);
-                var attachments = msg_IntPtr(desc, Sel("colorAttachments"));
-                var color0 = msg_IntPtr_NUInt_NUInt(attachments, Sel("objectAtIndexedSubscript:"), 0, 0);
-                msg_Void_IntPtr(color0, Sel("setTexture:"), msg_IntPtr(drawable, textureSel));
-                msg_Void_UInt(color0, Sel("setLoadAction:"), 2);
-                msg_Void_UInt(color0, Sel("setStoreAction:"), 1);
-
-                var encoder = msg_IntPtr(commandBuffer, renderCommandEncoderSel, desc);
                 _canvas.BeginFrame();
                 if (_root != null)
                 {
@@ -253,11 +234,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
                     _root.DrawSelf();
                 }
                 ((MetalRenderedCanvas)_canvas).EndFrame(encoder, commandBuffer);
-                msg_Void(encoder, endEncodingSel);
-                msg_Void_IntPtr(commandBuffer, presentDrawableSel, drawable);
-                msg_Void(commandBuffer, commitSel);
-                Release(desc);
-            };
+            });
         }
     }
 
