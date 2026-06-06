@@ -9,7 +9,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\ZGF.Core\ZGF.Core.csproj" />
-      <ProjectReference Include="..\ZGF.Metal\ZGF.Metal.csproj" />
+      <ProjectReference Include="..\ZGF.Rendering.Metal\ZGF.Rendering.Metal.csproj" />
       <ProjectReference Include="..\Glfw.NET\Glfw.NET.csproj" />
       <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
       <!-- The GLFW window backend maps GLFW keys onto the neutral KeyboardKey it raises. -->

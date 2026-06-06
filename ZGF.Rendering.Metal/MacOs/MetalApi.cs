@@ -7,7 +7,7 @@ using static ZGF.Core.MacOs.Objc;
 
 namespace ZGF.Core.MacOs;
 
-// Named MetalApi (not "Metal") to avoid colliding with the ZGF.Metal namespace,
+// Named MetalApi (not "Metal") to avoid colliding with the ZGF.Rendering.Metal namespace,
 // which would shadow the type for callers inside the ZGF.* root namespace.
 public static class MetalApi
 {

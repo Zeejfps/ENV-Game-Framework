@@ -5,6 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <RootNamespace>ZGF.Metal</RootNamespace>
     </PropertyGroup>
 
     <!-- Platform-neutral Metal + Objective-C interop. No GLFW / OpenGL / GUI deps, so the
