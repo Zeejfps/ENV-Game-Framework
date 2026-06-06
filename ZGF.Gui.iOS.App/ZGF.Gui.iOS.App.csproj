@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The actual iOS app host for the ZGF GUI toolkit. Stage 1 (current) is a minimal
+      UIKit app used to de-risk the toolchain (Xcode/workload/simulator) before the Metal
+      canvas host is wired in. Stage 2 will add a CAMetalLayer-backed view that drives the
+      shared ZGF.Gui.Metal canvas via ZGF.Rendering.Metal's MetalSurfaceRenderer.
+
+      Not part of "ENV Game Framework.sln" so a normal desktop build needs no iOS workload.
+      Build with -p:BuildIos=true so the referenced toolkit projects expose their
+      net10.0-ios target (and ZGF.Fonts pulls the iOS HarfBuzz native instead of the
+      desktop ones). Requires a Mac + matching Xcode + an iOS simulator runtime:
+
+          dotnet build ZGF.Gui.iOS.App/ZGF.Gui.iOS.App.csproj -p:BuildIos=true
+          dotnet build ZGF.Gui.iOS.App/ZGF.Gui.iOS.App.csproj -p:BuildIos=true -t:Run \
+              -p:_DeviceName=:v2:udid=<simulator-udid>
+    -->
+
+    <PropertyGroup>
+        <TargetFramework>net10.0-ios</TargetFramework>
+        <OutputType>Exe</OutputType>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <SupportedOSPlatformVersion>13.0</SupportedOSPlatformVersion>
+
+        <ApplicationId>ai.series.zgf.guidemo</ApplicationId>
+        <ApplicationTitle>ZGF Gui Demo</ApplicationTitle>
+        <ApplicationVersion>1</ApplicationVersion>
+        <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+      <ProjectReference Include="..\ZGF.Gui.Metal\ZGF.Gui.Metal.csproj" />
+      <ProjectReference Include="..\ZGF.Rendering.Metal\ZGF.Rendering.Metal.csproj" />
+      <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
+      <ProjectReference Include="..\ZGF.Geometry\ZGF.Geometry.csproj" />
+      <ProjectReference Include="..\ZGF.AppUtils\ZGF.AppUtils.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -10,12 +10,23 @@
         <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>
 
+    <!-- FreeType's native lib ships inside the FreeTypeSharp package for every platform
+         (desktop runtimes + an iOS/tvOS xcframework), so it needs no per-platform split.
+         HarfBuzz's managed assembly is in the base package, but its native lib is split into
+         per-platform NativeAssets.* packages: desktop RIDs vs. an iOS framework. -->
     <ItemGroup>
         <PackageReference Include="FreeTypeSharp" Version="3.0.1" />
         <PackageReference Include="HarfBuzzSharp" Version="8.3.0.1" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-ios'">
         <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="8.3.0.1" />
         <PackageReference Include="HarfBuzzSharp.NativeAssets.macOS" Version="8.3.0.1" />
         <PackageReference Include="HarfBuzzSharp.NativeAssets.Win32" Version="8.3.0.1" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
+        <PackageReference Include="HarfBuzzSharp.NativeAssets.iOS" Version="8.3.0.1" />
     </ItemGroup>
 
 </Project>
