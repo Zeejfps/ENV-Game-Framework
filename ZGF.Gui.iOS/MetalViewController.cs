@@ -116,7 +116,7 @@ public sealed class MetalViewController : UIViewController
     {
         var card = new RectView
         {
-            Width = 320f,
+            Width = 360f,
             BackgroundColor = 0xFF3478F6,
             BorderRadius = BorderRadiusStyle.All(20f),
             Padding = PaddingStyle.All(24),
@@ -124,14 +124,15 @@ public sealed class MetalViewController : UIViewController
             {
                 new ColumnView
                 {
-                    Gap = 10,
+                    Gap = 12,
                     Children =
                     {
                         new TextView
                         {
                             Text = "Hello from ZGF.Gui",
                             TextColor = 0xFFFFFFFF,
-                            FontSize = 26f,
+                            FontSize = 24f,
+                            TextWrap = TextWrap.Wrap,
                             HorizontalTextAlignment = TextAlignment.Center,
                         },
                         new TextView
@@ -139,6 +140,7 @@ public sealed class MetalViewController : UIViewController
                             Text = "A real view tree — laid out and rendered on iOS via Metal.",
                             TextColor = 0xFFE0EAFF,
                             FontSize = 16f,
+                            TextWrap = TextWrap.Wrap,
                             HorizontalTextAlignment = TextAlignment.Center,
                         },
                     },
