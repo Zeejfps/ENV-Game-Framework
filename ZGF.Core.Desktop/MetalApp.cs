@@ -35,7 +35,7 @@ public sealed class MetalApp : IApp
             startupConfig.WindowWidth, startupConfig.WindowHeight,
             startupConfig.WindowTitle, Monitor.None, Window.None);
 
-        Device = Metal.MTLCreateSystemDefaultDevice();
+        Device = MetalApi.MTLCreateSystemDefaultDevice();
         if (Device == IntPtr.Zero) throw new System.Exception("MTLCreateSystemDefaultDevice returned null.");
         CommandQueue = msg_IntPtr(Device, Sel("newCommandQueue"));
         if (CommandQueue == IntPtr.Zero) throw new System.Exception("newCommandQueue returned null.");
