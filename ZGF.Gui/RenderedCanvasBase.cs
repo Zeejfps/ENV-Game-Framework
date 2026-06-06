@@ -750,21 +750,21 @@ public abstract class RenderedCanvasBase : ICanvas
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool ArraysMatch<T>(T[] cur, int curCount, T[] prev, int prevCount) where T : IEquatable<T>
+    private static bool ArraysMatch<T>(T[] cur, int curCount, T[] prev, int prevCount) where T : unmanaged
     {
         if (curCount != prevCount) return false;
-        for (var i = 0; i < curCount; i++)
-            if (!cur[i].Equals(prev[i])) return false;
-        return true;
+        var a = MemoryMarshal.AsBytes(cur.AsSpan(0, curCount));
+        var b = MemoryMarshal.AsBytes(prev.AsSpan(0, curCount));
+        return a.SequenceEqual(b);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool ArraysMatch(List<Vector4> cur, Vector4[] prev, int prevCount)
     {
         if (cur.Count != prevCount) return false;
-        for (var i = 0; i < cur.Count; i++)
-            if (cur[i] != prev[i]) return false;
-        return true;
+        var a = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(cur));
+        var b = MemoryMarshal.AsBytes(prev.AsSpan(0, prevCount));
+        return a.SequenceEqual(b);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
