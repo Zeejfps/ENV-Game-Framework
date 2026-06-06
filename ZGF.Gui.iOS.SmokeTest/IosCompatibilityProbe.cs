@@ -1,5 +1,5 @@
 using ZGF.Gui;
-using ZGF.Metal;
+using ZGF.Rendering.Metal;
 
 namespace ZGF.Gui.IOS.SmokeTest;
 
