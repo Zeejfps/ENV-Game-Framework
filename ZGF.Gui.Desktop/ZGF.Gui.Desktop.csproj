@@ -46,4 +46,8 @@
       <ProjectReference Include="..\ZGF.Observable\ZGF.Observable.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Backend\" />
+    </ItemGroup>
+
 </Project>
