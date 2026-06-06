@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Platform-neutral touch/pointer input stack for the GUI toolkit, the mobile parallel
+         to ZGF.Gui.Desktop's keyboard/mouse InputSystem. Shared by every touch host: the iOS
+         app (UIKit touches) and a future Android app (MotionEvent) both reference this and
+         feed it pointer coordinates — the dispatch (hit-test + capture/bubble) lives here, the
+         per-platform glue stays in each app. Depends only on the platform-neutral core
+         (ZGF.Gui view tree + ZGF.Geometry), so it carries no desktop or device dependencies. -->
+
+    <PropertyGroup>
+        <TargetFrameworks>net10.0</TargetFrameworks>
+        <!-- iOS compile coverage is opt-in: `dotnet build -p:BuildIos=true` (needs the ios workload). -->
+        <TargetFrameworks Condition="'$(BuildIos)'=='true'">net10.0;net10.0-ios</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+      <ProjectReference Include="..\ZGF.Geometry\ZGF.Geometry.csproj" />
+    </ItemGroup>
+
+</Project>
