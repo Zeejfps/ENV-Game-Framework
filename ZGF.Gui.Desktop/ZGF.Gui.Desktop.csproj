@@ -46,6 +46,7 @@
 
     <ItemGroup>
       <Folder Include="Backends\" />
+      <Folder Include="Components\" />
       <Folder Include="Platforms\" />
     </ItemGroup>
 
