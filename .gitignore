@@ -2,6 +2,7 @@
 bin/
 obj/
 builds/
+BenchmarkDotNet.Artifacts/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
