@@ -9,6 +9,8 @@ namespace ZGF.Fonts;
 
 public sealed unsafe class FreeTypeFontBackend
 {
+    private const int ShapeCacheGenCap = 256;
+
     private readonly FreeTypeLibrary _library;
     private readonly GlyphAtlas _atlas;
     private readonly Dictionary<long, GlyphRenderInfo> _glyphCache = new();
@@ -252,6 +254,12 @@ public sealed unsafe class FreeTypeFontBackend
             return 0;
 
         var entry = GetEntry(font);
+
+        // Shaped runs are position-independent and immutable for a given (font, text),
+        // so cache them and skip HarfBuzz on repeat lines (the common per-frame case).
+        if (TryGetCachedShape(entry, text, out var cached))
+            return CopyShaped(cached, output);
+
         var buf = entry.HbBuffer!;
         var hbFont = entry.HbFont!;
 
@@ -262,12 +270,12 @@ public sealed unsafe class FreeTypeFontBackend
 
         var infos = buf.GetGlyphInfoSpan();
         var positions = buf.GetGlyphPositionSpan();
-        var n = Math.Min(infos.Length, output.Length);
+        var shaped = new ShapedGlyph[infos.Length];
 
-        for (var i = 0; i < n; i++)
+        for (var i = 0; i < infos.Length; i++)
         {
             var pos = positions[i];
-            output[i] = new ShapedGlyph(
+            shaped[i] = new ShapedGlyph(
                 infos[i].Codepoint,
                 pos.XOffset / 64f,
                 pos.YOffset / 64f,
@@ -275,7 +283,47 @@ public sealed unsafe class FreeTypeFontBackend
                 pos.YAdvance / 64f,
                 (int)infos[i].Cluster);
         }
+
+        PutShape(entry, text.ToString(), shaped);
+        return CopyShaped(shaped, output);
+    }
+
+    private static int CopyShaped(ShapedGlyph[] shaped, Span<ShapedGlyph> output)
+    {
+        var n = Math.Min(shaped.Length, output.Length);
+        shaped.AsSpan(0, n).CopyTo(output);
         return n;
+    }
+
+    private static bool TryGetCachedShape(FontEntry entry, ReadOnlySpan<char> text, out ShapedGlyph[] shaped)
+    {
+        if (entry.ShapeCacheCur is { } cur &&
+            cur.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(text, out shaped!))
+            return true;
+
+        if (entry.ShapeCacheOld is { } old &&
+            old.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(text, out var key, out shaped!))
+        {
+            // Hit in the cold generation: promote so a still-hot line survives the next sweep.
+            PutShape(entry, key, shaped);
+            return true;
+        }
+
+        shaped = null!;
+        return false;
+    }
+
+    private static void PutShape(FontEntry entry, string key, ShapedGlyph[] shaped)
+    {
+        var cur = entry.ShapeCacheCur ??= new Dictionary<string, ShapedGlyph[]>(StringComparer.Ordinal);
+        if (cur.Count >= ShapeCacheGenCap && !cur.ContainsKey(key))
+        {
+            // Two-generation clock eviction: drop the cold generation, demote the current
+            // one. Bounds memory at ~2*ShapeCacheGenCap entries while keeping hot lines.
+            entry.ShapeCacheOld = cur;
+            cur = entry.ShapeCacheCur = new Dictionary<string, ShapedGlyph[]>(StringComparer.Ordinal);
+        }
+        cur[key] = shaped;
     }
 
     private FontEntry GetEntry(FontHandle handle)
@@ -336,5 +384,9 @@ public sealed unsafe class FreeTypeFontBackend
         public HbBuffer? HbBuffer;
         public Dictionary<int, FontHandle>? SizeVariants;
         public FontHandle? EmboldenedVariant;
+
+        // Two-generation cache of shaped runs keyed by line text (see PutShape).
+        public Dictionary<string, ShapedGlyph[]>? ShapeCacheCur;
+        public Dictionary<string, ShapedGlyph[]>? ShapeCacheOld;
     }
 }
