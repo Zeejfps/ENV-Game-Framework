@@ -108,6 +108,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Fonts", "ZGF.Fonts\ZGF.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Desktop", "ZGF.Desktop\ZGF.Desktop.csproj", "{B8BF0A0C-0F04-4850-B1EA-91EAD453D22E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.iOS.SmokeTest", "ZGF.Gui.iOS.SmokeTest\ZGF.Gui.iOS.SmokeTest.csproj", "{480A6DA0-7EB5-4702-B4B9-93EC112D463B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -766,6 +768,18 @@ Global
 		{B8BF0A0C-0F04-4850-B1EA-91EAD453D22E}.Release|x64.Build.0 = Release|Any CPU
 		{B8BF0A0C-0F04-4850-B1EA-91EAD453D22E}.Release|x86.ActiveCfg = Release|Any CPU
 		{B8BF0A0C-0F04-4850-B1EA-91EAD453D22E}.Release|x86.Build.0 = Release|Any CPU
+		{480A6DA0-7EB5-4702-B4B9-93EC112D463B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{480A6DA0-7EB5-4702-B4B9-93EC112D463B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{480A6DA0-7EB5-4702-B4B9-93EC112D463B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{480A6DA0-7EB5-4702-B4B9-93EC112D463B}.Debug|x64.Build.0 = Debug|Any CPU
+		{480A6DA0-7EB5-4702-B4B9-93EC112D463B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{480A6DA0-7EB5-4702-B4B9-93EC112D463B}.Debug|x86.Build.0 = Debug|Any CPU
+		{480A6DA0-7EB5-4702-B4B9-93EC112D463B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{480A6DA0-7EB5-4702-B4B9-93EC112D463B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{480A6DA0-7EB5-4702-B4B9-93EC112D463B}.Release|x64.ActiveCfg = Release|Any CPU
+		{480A6DA0-7EB5-4702-B4B9-93EC112D463B}.Release|x64.Build.0 = Release|Any CPU
+		{480A6DA0-7EB5-4702-B4B9-93EC112D463B}.Release|x86.ActiveCfg = Release|Any CPU
+		{480A6DA0-7EB5-4702-B4B9-93EC112D463B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
