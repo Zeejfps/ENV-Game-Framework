@@ -12,7 +12,6 @@ public sealed class DesktopInputSystem
     private readonly IWindow _window;
     private readonly RenderedCanvasBase _canvas;
     private bool _pendingExitClear;
-    private string? _lastDiagReason;
 
     public InputSystem InputSystem { get; } = new();
     public Mouse Mouse { get; } = new();
@@ -42,7 +41,6 @@ public sealed class DesktopInputSystem
     {
         InputSystem.Reset();
         _pendingExitClear = false;
-        _lastDiagReason = null;
         Mouse.Point = new PointF(float.MinValue, float.MinValue);
     }
 
@@ -55,23 +53,10 @@ public sealed class DesktopInputSystem
         if (!entering) _pendingExitClear = true;
     }
 
-    // Popup-only: log when Update's effective state changes between ticks (focus-latched
-    // short-circuit / cursor-not-hovering / actively dispatching hover). A popup stuck in
-    // "focus-latch" or "no-mousehover" is one that shows but builds no dispatch path — the
-    // root of the dead-context-menu bug.
-    private void DiagReason(string reason)
-    {
-        if (InputSystem.DiagLabel == null) return;
-        if (_lastDiagReason == reason) return;
-        _lastDiagReason = reason;
-        Console.WriteLine($"[ctxmenu-diag {InputSystem.DiagLabel}] update-state={reason}");
-    }
-
     public void Update()
     {
         if (InputSystem.HasFocus)
         {
-            DiagReason("focus-latch (Update short-circuits before hover; clicks route to focused/empty queue)");
             _window.GetCursorPosition(out var capturedX, out var capturedY);
             var capturedPoint = WindowToGuiCoords(capturedX, capturedY);
             if (capturedPoint != Mouse.Point)
@@ -120,12 +105,12 @@ public sealed class DesktopInputSystem
         var winHeight = _window.Height;
         var cursorInsideBounds =
             mouseX >= 0 && mouseY >= 0 && mouseX <= winWidth && mouseY <= winHeight;
+        
         if (!cursorInsideBounds)
         {
-            DiagReason("cursor-outside-bounds (cursor not within window rect; hover/queue not built)");
             return;
         }
-        DiagReason("active (hover dispatching normally)");
+        
         var guiPoint = WindowToGuiCoords(mouseX, mouseY);
         var prevPoint = Mouse.Point;
         Mouse.Point = guiPoint;
