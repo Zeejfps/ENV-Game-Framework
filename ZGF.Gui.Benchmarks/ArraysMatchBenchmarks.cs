@@ -2,12 +2,8 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Running;
-using ZGF.Gui;
 
 using GlyphInstance = ZGF.Gui.RenderedCanvasBase.GlyphInstance;
-
-BenchmarkRunner.Run<ArraysMatchBenchmarks>();
 
 [MemoryDiagnoser]
 public class ArraysMatchBenchmarks

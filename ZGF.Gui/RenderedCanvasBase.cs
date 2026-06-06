@@ -313,14 +313,8 @@ public abstract class RenderedCanvasBase : ICanvas
 
             var lineSlice = textSpan[sliceStart..lineEnd];
 
-            var cursorX = lineStart;
-            if (hCenter)
-            {
-                var width = MeasureLineWidth(font, lineSlice);
-                cursorX = pos.Left + (pos.Width - width) * 0.5f;
-            }
-
-            DrawShapedLine(font, lineSlice, cursorX, baselineY, color, clip, rotation, key);
+            ShapeAndDrawLine(font, lineSlice, lineStart, pos.Left, pos.Width, hCenter,
+                baselineY, color, clip, rotation, key);
 
             if (nl < 0)
                 break;
@@ -330,7 +324,8 @@ public abstract class RenderedCanvasBase : ICanvas
         }
     }
 
-    private void DrawShapedLine(FontHandle font, ReadOnlySpan<char> line, float startX, float baselineY,
+    private void ShapeAndDrawLine(FontHandle font, ReadOnlySpan<char> line, float lineStartX,
+        float boxLeft, float boxWidth, bool hCenter, float baselineY,
         uint color, uint clip, float rotation, long key)
     {
         if (line.Length == 0)
@@ -342,7 +337,18 @@ public abstract class RenderedCanvasBase : ICanvas
             : new ShapedGlyph[line.Length * 2];
 
         var n = _fonts.ShapeText(font, line, shaped);
-        var cursorX = startX;
+
+        var cursorX = lineStartX;
+        if (hCenter)
+        {
+            // Width from the already-shaped run, so the line is shaped once instead
+            // of twice (measure + emit).
+            var total = 0f;
+            for (var i = 0; i < n; i++)
+                total += shaped[i].XAdvance;
+            cursorX = boxLeft + (boxWidth - total / _dpiScale) * 0.5f;
+        }
+
         var atlasWidth = (float)_fonts.AtlasWidth;
         var atlasHeight = (float)_fonts.AtlasHeight;
         // Shaped positions and glyph bitmap dims come back in device pixels;
@@ -571,8 +577,11 @@ public abstract class RenderedCanvasBase : ICanvas
     public void EndFrame()
     {
         SortAndMaterialize();
-        BuildDrawCalls();
-        UploadIfChanged();
+        // Clip rects are referenced by index, so changing them alone doesn't alter
+        // draw-call structure; only instance changes force a rebuild. When nothing
+        // changed, the cached _drawCalls from last frame are reused as-is.
+        if (UploadIfChanged())
+            BuildDrawCalls();
         UpdateAtlasIfDirty();
         IssueDraws(_drawCalls);
     }
@@ -694,9 +703,10 @@ public abstract class RenderedCanvasBase : ICanvas
             });
     }
 
-    private void UploadIfChanged()
+    private bool UploadIfChanged()
     {
         LastFrameUploadCount = 0;
+        var instancesChanged = false;
 
         if (!ArraysMatch(_stagedClips, _prevClips, _prevClipCount))
         {
@@ -716,6 +726,7 @@ public abstract class RenderedCanvasBase : ICanvas
 
             UploadRectInstances(_curRects, _curRectCount);
             LastFrameUploadCount++;
+            instancesChanged = true;
         }
 
         if (!ArraysMatch(_curGlyphs, _curGlyphCount, _prevGlyphs, _prevGlyphCount))
@@ -726,6 +737,7 @@ public abstract class RenderedCanvasBase : ICanvas
 
             UploadGlyphInstances(_curGlyphs, _curGlyphCount);
             LastFrameUploadCount++;
+            instancesChanged = true;
         }
 
         if (!ArraysMatch(_curImages, _curImageCount, _prevImages, _prevImageCount))
@@ -736,6 +748,7 @@ public abstract class RenderedCanvasBase : ICanvas
 
             UploadImageInstances(_curImages, _curImageCount);
             LastFrameUploadCount++;
+            instancesChanged = true;
         }
 
         if (!ArraysMatch(_curShadows, _curShadowCount, _prevShadows, _prevShadowCount))
@@ -746,7 +759,10 @@ public abstract class RenderedCanvasBase : ICanvas
 
             UploadShadowInstances(_curShadows, _curShadowCount);
             LastFrameUploadCount++;
+            instancesChanged = true;
         }
+
+        return instancesChanged;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
