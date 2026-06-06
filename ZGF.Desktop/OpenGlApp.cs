@@ -3,7 +3,7 @@ using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 using Monitor = GLFW.Monitor;
 
-namespace ZGF.Core;
+namespace ZGF.Desktop;
 
 public sealed class OpenGlApp : IWindowedApp
 {

@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
-using ZGF.Core;
+using ZGF.Desktop;
 
 namespace ZGF.Gui;
 

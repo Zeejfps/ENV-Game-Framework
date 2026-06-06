@@ -1,6 +1,6 @@
 using ZGF.KeyboardModule;
 
-namespace ZGF.Core;
+namespace ZGF.Desktop;
 
 public interface IWindow : IDisposable
 {

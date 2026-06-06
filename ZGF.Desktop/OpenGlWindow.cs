@@ -3,7 +3,7 @@ using GLFW;
 using ZGF.KeyboardModule;
 using ZGF.KeyboardModule.GlfwAdapter;
 
-namespace ZGF.Core;
+namespace ZGF.Desktop;
 
 public sealed class OpenGlWindow : IWindow
 {

@@ -1,4 +1,4 @@
-namespace ZGF.Core;
+namespace ZGF.Desktop;
 
 /// <summary>
 /// Platform-neutral key/button transition. Values match the GLFW input states so the

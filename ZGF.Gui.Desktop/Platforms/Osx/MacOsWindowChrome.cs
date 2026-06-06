@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using ZGF.Core;
+using ZGF.Desktop;
 using static ZGF.Rendering.Metal.Objc;
 
 namespace ZGF.Gui;

@@ -1,4 +1,4 @@
-using ZGF.Core;
+using ZGF.Desktop;
 using ZGF.Fonts;
 
 namespace ZGF.Gui;

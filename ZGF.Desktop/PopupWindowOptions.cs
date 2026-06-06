@@ -1,4 +1,4 @@
-namespace ZGF.Core;
+namespace ZGF.Desktop;
 
 public readonly struct PopupWindowOptions
 {

@@ -1,4 +1,4 @@
-namespace ZGF.Core;
+namespace ZGF.Desktop;
 
 // Options for a real, decorated secondary top-level window (resizable, movable, with a
 // native title bar). Distinct from PopupWindowOptions, which describes the undecorated,

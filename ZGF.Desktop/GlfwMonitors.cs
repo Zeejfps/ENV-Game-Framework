@@ -1,6 +1,6 @@
 using GLFW;
 
-namespace ZGF.Core;
+namespace ZGF.Desktop;
 
 internal static class GlfwMonitors
 {

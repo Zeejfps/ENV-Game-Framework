@@ -5,7 +5,7 @@ using ZGF.KeyboardModule.GlfwAdapter;
 using ZGF.Rendering.Metal;
 using static ZGF.Rendering.Metal.Objc;
 
-namespace ZGF.Core;
+namespace ZGF.Desktop;
 
 public sealed class MetalWindow : IWindow, IMetalSurface
 {
