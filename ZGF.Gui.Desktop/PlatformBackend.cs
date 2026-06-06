@@ -1,22 +1,18 @@
-// FontHandle is in ZGF.Fonts namespace.
 using System.Runtime.InteropServices;
 using ZGF.Core;
 using ZGF.Fonts;
-using ZGF.Rendering.Metal;
-using static GL46;
 
 namespace ZGF.Gui;
 
 internal static class PlatformBackend
 {
-    public readonly struct Backend
+    internal readonly struct Backend
     {
         public required IApp App { get; init; }
         public required RenderedCanvasBase MainCanvas { get; init; }
         public required FreeTypeFontBackend FontBackend { get; init; }
         public required FontHandle DefaultFont { get; init; }
-        public required GlSharedResources? GlShared { get; init; }
-        public required MetalSharedResources? MetalShared { get; init; }
+        public required IGuiRenderBackend RenderBackend { get; init; }
     }
 
     public static Backend Resolve(StartupConfig config)
@@ -36,24 +32,15 @@ internal static class PlatformBackend
         var defaultFont = fonts.LoadFontFromMemory(EmbeddedAssets.LoadFontBytes("Inter-Regular.ttf"), (int)MathF.Round(16 * dpiScale));
         var imageManager = new GlImageManager();
         var shared = new GlSharedResources(fonts, imageManager);
+        var backend = new GlRenderBackend(shared, fonts, defaultFont);
+
         var windowWidth = config.WindowWidth;
         if (windowWidth <= 0) windowWidth = 1280;
         var windowHeight = config.WindowHeight;
         if (windowHeight <= 0) windowHeight = 720;
 
-        var canvas = new OpenGlRenderedCanvas(
-            windowWidth, windowHeight, fonts, defaultFont, shared, dpiScale);
-
-        glClearColor(0, 0, 0, 0);
-
-        mainWindow.RenderFrame = () =>
-        {
-            glClear(GL_COLOR_BUFFER_BIT);
-            canvas.BeginFrame();
-            // Population happens via GuiApp wiring; PopulateMain is set by GuiApp.
-            PopulateMain?.Invoke();
-            canvas.EndFrame();
-        };
+        var canvas = backend.CreateCanvas(mainWindow, windowWidth, windowHeight, fontSource: null);
+        backend.WireRenderLoop(mainWindow, canvas, () => PopulateMain?.Invoke(), (0f, 0f, 0f, 0f));
 
         return new Backend
         {
@@ -61,8 +48,7 @@ internal static class PlatformBackend
             MainCanvas = canvas,
             FontBackend = fonts,
             DefaultFont = defaultFont,
-            GlShared = shared,
-            MetalShared = null,
+            RenderBackend = backend,
         };
     }
 
@@ -76,20 +62,10 @@ internal static class PlatformBackend
         var defaultFont = fonts.LoadFontFromMemory(EmbeddedAssets.LoadFontBytes("Inter-Regular.ttf"), (int)MathF.Round(16 * dpiScale));
         var imageManager = new MetalImageManager(app.Device);
         var shared = new MetalSharedResources(app.Device, app.CommandQueue, fonts, imageManager);
-        var canvas = new MetalRenderedCanvas(
-            config.WindowWidth, config.WindowHeight, fonts, defaultFont, shared, dpiScale);
+        var backend = new MetalRenderBackend(shared, fonts, defaultFont);
 
-        // mainWindow is an IMetalSurface (CAMetalLayer on the GLFW NSWindow). The per-frame
-        // drawable/encoder/present loop is host-agnostic and lives in MetalSurfaceRenderer,
-        // so an iOS host can reuse it by supplying its own IMetalSurface.
-        var surfaceRenderer = new MetalSurfaceRenderer(mainWindow);
-
-        mainWindow.RenderFrame = () => surfaceRenderer.RenderFrame((encoder, commandBuffer) =>
-        {
-            canvas.BeginFrame();
-            PopulateMain?.Invoke();
-            canvas.EndFrame(encoder, commandBuffer);
-        });
+        var canvas = backend.CreateCanvas(mainWindow, config.WindowWidth, config.WindowHeight, fontSource: null);
+        backend.WireRenderLoop(mainWindow, canvas, () => PopulateMain?.Invoke(), (0f, 0f, 0f, 0f));
 
         return new Backend
         {
@@ -97,8 +73,7 @@ internal static class PlatformBackend
             MainCanvas = canvas,
             FontBackend = fonts,
             DefaultFont = defaultFont,
-            GlShared = null,
-            MetalShared = shared,
+            RenderBackend = backend,
         };
     }
 

@@ -1,7 +1,5 @@
 using ZGF.Core;
 using ZGF.Fonts;
-using ZGF.Rendering.Metal;
-using static GL46;
 
 namespace ZGF.Gui;
 
@@ -16,27 +14,24 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
     private readonly IApp _app;
     private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
-    private readonly GlSharedResources? _glShared;
-    private readonly MetalSharedResources? _metalShared;
+    private readonly IGuiRenderBackend _backend;
     private readonly Context _mainContext;
     private readonly RenderedCanvasBase? _mainCanvasForFontRegistry;
 
     private readonly List<SecondaryWindowImpl> _active = new();
 
-    public SecondaryWindowFactory(
+    internal SecondaryWindowFactory(
         IApp app,
         FreeTypeFontBackend fonts,
         FontHandle defaultFont,
-        GlSharedResources? glShared,
-        MetalSharedResources? metalShared,
+        IGuiRenderBackend backend,
         Context mainContext,
         RenderedCanvasBase? mainCanvasForFontRegistry = null)
     {
         _app = app;
         _fonts = fonts;
         _defaultFont = defaultFont;
-        _glShared = glShared;
-        _metalShared = metalShared;
+        _backend = backend;
         _mainContext = mainContext;
         _mainCanvasForFontRegistry = mainCanvasForFontRegistry;
     }
@@ -50,24 +45,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
             Title = request.Title,
         });
 
-        RenderedCanvasBase canvas;
-        if (_glShared != null)
-        {
-            window.MakeContextCurrent();
-            canvas = new OpenGlRenderedCanvas(request.Width, request.Height, _fonts, _defaultFont, _glShared, window.DpiScale);
-            if (_mainCanvasForFontRegistry != null)
-                canvas.CopyFontsFrom(_mainCanvasForFontRegistry);
-        }
-        else if (_metalShared != null)
-        {
-            canvas = new MetalRenderedCanvas(request.Width, request.Height, _fonts, _defaultFont, _metalShared, window.DpiScale);
-            if (_mainCanvasForFontRegistry != null)
-                canvas.CopyFontsFrom(_mainCanvasForFontRegistry);
-        }
-        else
-        {
-            throw new InvalidOperationException("Either glShared or metalShared must be non-null.");
-        }
+        var canvas = _backend.CreateCanvas(window, request.Width, request.Height, _mainCanvasForFontRegistry);
 
         var input = new DesktopInputSystem(window, canvas);
 
@@ -76,7 +54,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         context.AddService(input.InputSystem);
         context.AddService<IWindowCoordinates>(new WindowCoordinates(window, canvas));
 
-        var impl = new SecondaryWindowImpl(window, canvas, input, context, _glShared, _metalShared);
+        var impl = new SecondaryWindowImpl(window, canvas, input, context, _backend);
         impl.SetRoot(request.Root);
 
         // Paint once before showing so the first frame isn't a flash of an empty window.
@@ -132,8 +110,6 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
     private readonly RenderedCanvasBase _canvas;
     private readonly DesktopInputSystem _input;
     private readonly Context _context;
-    private readonly GlSharedResources? _glShared;
-    private readonly MetalSharedResources? _metalShared;
     private View? _root;
     private bool _disposed;
 
@@ -146,15 +122,12 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         RenderedCanvasBase canvas,
         DesktopInputSystem input,
         Context context,
-        GlSharedResources? glShared,
-        MetalSharedResources? metalShared)
+        IGuiRenderBackend backend)
     {
         _window = window;
         _canvas = canvas;
         _input = input;
         _context = context;
-        _glShared = glShared;
-        _metalShared = metalShared;
 
         _input.OnAnyInput = () => _window.RequestRedraw();
         _window.OnResize += HandleResize;
@@ -163,7 +136,16 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         // factory Update() so we don't destroy the window from inside its GLFW callback.
         _window.OnClose += () => CloseRequested = true;
 
-        WireRenderFrame();
+        backend.WireRenderLoop(_window, _canvas, DrawContent, (0f, 0f, 0f, 1f));
+    }
+
+    private void DrawContent()
+    {
+        if (_root != null)
+        {
+            _root.LayoutSelf();
+            _root.DrawSelf();
+        }
     }
 
     public void SetRoot(View? root)
@@ -202,40 +184,6 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         // Keep the atlas/viewport DPI in sync when the window moves between monitors of
         // different scale. The canvas recomputes its glViewport from Width*DpiScale each frame.
         _canvas.UpdateDpiScale(_window.DpiScale);
-    }
-
-    private void WireRenderFrame()
-    {
-        if (_window is OpenGlWindow ogw && _glShared != null)
-        {
-            ogw.RenderFrame = () =>
-            {
-                glClearColor(0f, 0f, 0f, 1f);
-                glClear(GL_COLOR_BUFFER_BIT);
-                _canvas.BeginFrame();
-                if (_root != null)
-                {
-                    _root.LayoutSelf();
-                    _root.DrawSelf();
-                }
-                _canvas.EndFrame();
-            };
-        }
-        else if (_window is MetalWindow mw && _metalShared != null)
-        {
-            // mw is an IMetalSurface; the per-frame drawable/encoder/present loop is shared.
-            var surfaceRenderer = new MetalSurfaceRenderer(mw);
-            mw.RenderFrame = () => surfaceRenderer.RenderFrame((encoder, commandBuffer) =>
-            {
-                _canvas.BeginFrame();
-                if (_root != null)
-                {
-                    _root.LayoutSelf();
-                    _root.DrawSelf();
-                }
-                ((MetalRenderedCanvas)_canvas).EndFrame(encoder, commandBuffer);
-            });
-        }
     }
 
     public void Dispose()

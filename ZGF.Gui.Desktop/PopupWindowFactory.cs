@@ -1,8 +1,6 @@
 using ZGF.Core;
 using ZGF.Fonts;
 using ZGF.Geometry;
-using ZGF.Rendering.Metal;
-using static GL46;
 
 namespace ZGF.Gui;
 
@@ -13,8 +11,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     private readonly IApp _app;
     private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
-    private readonly GlSharedResources? _glShared;
-    private readonly MetalSharedResources? _metalShared;
+    private readonly IGuiRenderBackend _backend;
     private readonly IPopupNativeDecorator _decorator;
     private readonly Context _mainContext;
     private readonly RenderedCanvasBase? _mainCanvasForFontRegistry;
@@ -23,12 +20,11 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     private readonly List<PopupWindowImpl> _pool = new();
     private PopupWindowImpl? _captureHolder;
 
-    public PopupWindowFactory(
+    internal PopupWindowFactory(
         IApp app,
         FreeTypeFontBackend fonts,
         FontHandle defaultFont,
-        GlSharedResources? glShared,
-        MetalSharedResources? metalShared,
+        IGuiRenderBackend backend,
         IPopupNativeDecorator decorator,
         Context mainContext,
         RenderedCanvasBase? mainCanvasForFontRegistry = null)
@@ -36,8 +32,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         _app = app;
         _fonts = fonts;
         _defaultFont = defaultFont;
-        _glShared = glShared;
-        _metalShared = metalShared;
+        _backend = backend;
         _decorator = decorator;
         _mainContext = mainContext;
         _mainCanvasForFontRegistry = mainCanvasForFontRegistry;
@@ -223,27 +218,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
         _decorator.DecoratePopup(window.NativeHandle, mousePassThrough);
 
-        RenderedCanvasBase canvas;
-
-        if (_glShared != null)
-        {
-            window.MakeContextCurrent();
-            canvas = new OpenGlRenderedCanvas(width, height, _fonts, _defaultFont, _glShared, window.DpiScale);
-            if (_mainCanvasForFontRegistry != null)
-                canvas.CopyFontsFrom(_mainCanvasForFontRegistry);
-        }
-        else if (_metalShared != null)
-        {
-            canvas = new MetalRenderedCanvas(width, height, _fonts, _defaultFont, _metalShared, window.DpiScale);
-            if (_mainCanvasForFontRegistry != null)
-                canvas.CopyFontsFrom(_mainCanvasForFontRegistry);
-            // Metal popup rendering routes through MetalWindow.Layer + a per-frame
-            // command buffer. The closure is assembled in PopupWindowImpl.RenderFrame.
-        }
-        else
-        {
-            throw new InvalidOperationException("Either glShared or metalShared must be non-null.");
-        }
+        var canvas = _backend.CreateCanvas(window, width, height, _mainCanvasForFontRegistry);
 
         var input = new DesktopInputSystem(window, canvas);
 
@@ -257,7 +232,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         // window's origin instead of this popup's.
         popupContext.AddService<IWindowCoordinates>(new WindowCoordinates(window, canvas));
 
-        var impl = new PopupWindowImpl(window, canvas, input, popupContext, _glShared, _metalShared);
+        var impl = new PopupWindowImpl(window, canvas, input, popupContext, _backend);
         return impl;
     }
 
@@ -282,8 +257,6 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     private readonly RenderedCanvasBase _canvas;
     private readonly DesktopInputSystem _input;
     private readonly Context _context;
-    private readonly GlSharedResources? _glShared;
-    private readonly MetalSharedResources? _metalShared;
     private View? _root;
 
     public event Action<PointI>? OutsideClick;
@@ -296,51 +269,23 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
         RenderedCanvasBase canvas,
         DesktopInputSystem input,
         Context context,
-        GlSharedResources? glShared,
-        MetalSharedResources? metalShared)
+        IGuiRenderBackend backend)
     {
         _window = window;
         _canvas = canvas;
         _input = input;
         _context = context;
-        _glShared = glShared;
-        _metalShared = metalShared;
 
         _input.OnAnyInput = () => _window.RequestRedraw();
-        WireRenderFrame();
+        backend.WireRenderLoop(_window, _canvas, DrawContent, (0f, 0f, 0f, 0f));
     }
 
-    private void WireRenderFrame()
+    private void DrawContent()
     {
-        if (_window is ZGF.Core.OpenGlWindow ogw && _glShared != null)
+        if (_root != null)
         {
-            ogw.RenderFrame = () =>
-            {
-                glClearColor(0f, 0f, 0f, 0f);
-                glClear(GL_COLOR_BUFFER_BIT);
-                _canvas.BeginFrame();
-                if (_root != null)
-                {
-                    _root.LayoutSelf();
-                    _root.DrawSelf();
-                }
-                _canvas.EndFrame();
-            };
-        }
-        else if (_window is ZGF.Core.MetalWindow mw && _metalShared != null)
-        {
-            // mw is an IMetalSurface; the per-frame drawable/encoder/present loop is shared.
-            var surfaceRenderer = new MetalSurfaceRenderer(mw);
-            mw.RenderFrame = () => surfaceRenderer.RenderFrame((encoder, commandBuffer) =>
-            {
-                _canvas.BeginFrame();
-                if (_root != null)
-                {
-                    _root.LayoutSelf();
-                    _root.DrawSelf();
-                }
-                ((MetalRenderedCanvas)_canvas).EndFrame(encoder, commandBuffer);
-            });
+            _root.LayoutSelf();
+            _root.DrawSelf();
         }
     }
 

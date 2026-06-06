@@ -10,8 +10,7 @@ public sealed class GuiApp : IDisposable
     private readonly IApp _app;
     private readonly RenderedCanvasBase _mainCanvas;
     private readonly FreeTypeFontBackend _fontBackend;
-    private readonly GlSharedResources? _glShared;
-    private readonly MetalSharedResources? _metalShared;
+    private readonly IGuiRenderBackend _renderBackend;
     private readonly DesktopInputSystem _mainInput;
     private readonly MultiChildView _root;
     private readonly QueuedUiDispatcher _dispatcher;
@@ -25,8 +24,7 @@ public sealed class GuiApp : IDisposable
         IApp app,
         RenderedCanvasBase mainCanvas,
         FreeTypeFontBackend fontBackend,
-        GlSharedResources? glShared,
-        MetalSharedResources? metalShared,
+        IGuiRenderBackend renderBackend,
         FontHandle defaultFont,
         Context context,
         View content)
@@ -34,8 +32,7 @@ public sealed class GuiApp : IDisposable
         _app = app;
         _mainCanvas = mainCanvas;
         _fontBackend = fontBackend;
-        _glShared = glShared;
-        _metalShared = metalShared;
+        _renderBackend = renderBackend;
         _mainInput = new DesktopInputSystem(app.MainWindow, mainCanvas);
         _dispatcher = new QueuedUiDispatcher();
 
@@ -43,10 +40,10 @@ public sealed class GuiApp : IDisposable
         _windowChrome = context.Get<IWindowChrome>() ?? new NoopWindowChrome();
         _coordinates = new WindowCoordinates(app.MainWindow, mainCanvas);
         _popupFactory = new PopupWindowFactory(
-            app, fontBackend, defaultFont, glShared, metalShared, decorator, context,
+            app, fontBackend, defaultFont, renderBackend, decorator, context,
             mainCanvasForFontRegistry: mainCanvas);
         _secondaryWindows = new SecondaryWindowFactory(
-            app, fontBackend, defaultFont, glShared, metalShared, context,
+            app, fontBackend, defaultFont, renderBackend, context,
             mainCanvasForFontRegistry: mainCanvas);
 
         _contextMenuManager = new ContextMenuManager(_popupFactory, _coordinates, _mainInput.InputSystem, measureContext: context);
@@ -100,7 +97,7 @@ public sealed class GuiApp : IDisposable
         var backend = PlatformBackend.Resolve(config);
         return new GuiApp(
             backend.App, backend.MainCanvas, backend.FontBackend,
-            backend.GlShared, backend.MetalShared,
+            backend.RenderBackend,
             backend.DefaultFont, context, content);
     }
 
@@ -190,8 +187,7 @@ public sealed class GuiApp : IDisposable
         _app.MainWindow.OnFocusChanged -= HandleMainFocusChanged;
         _secondaryWindows.Dispose();
         _popupFactory.Dispose();
-        _glShared?.Dispose();
-        _metalShared?.Dispose();
+        _renderBackend.Dispose();
         _app.Dispose();
     }
 

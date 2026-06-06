@@ -29,6 +29,10 @@
     </ItemGroup>
 
     <ItemGroup>
+      <InternalsVisibleTo Include="ZGF.Gui.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
       <ProjectReference Include="..\ZGF.Core\ZGF.Core.csproj" />
       <ProjectReference Include="..\ZGF.Core.Desktop\ZGF.Core.Desktop.csproj" />

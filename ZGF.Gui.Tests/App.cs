@@ -74,7 +74,8 @@ public sealed class App : IDisposable
         var coordinates = new WindowCoordinates(_mainWindow, _canvas);
         var noopDecorator = new SampleNoopDecorator();
         _popupFactory = new PopupWindowFactory(
-            _windowApp, _fontBackend, _defaultFont, _shared, metalShared: null,
+            _windowApp, _fontBackend, _defaultFont,
+            new GlRenderBackend(_shared, _fontBackend, _defaultFont),
             noopDecorator, context);
         _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, _inputSystem.InputSystem);
         context.AddService(_contextMenuManager);
