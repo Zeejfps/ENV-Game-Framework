@@ -8,8 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <!-- Abstractions only (IApp/IWindow/options). The neutral KeyboardKey enum is part of
-           the IWindow surface; GLFW/OpenGL/Metal implementations live in ZGF.Core.Desktop. -->
+      <!-- Desktop windowing layer: the IWindowedApp/IWindow/options contracts plus the
+           GLFW/OpenGL/Metal backends under Backends/. -->
       <ProjectReference Include="..\Glfw.NET\Glfw.NET.csproj" />
       <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
       <ProjectReference Include="..\ZGF.KeyboardModule.GlfwAdapter\ZGF.KeyboardModule.GlfwAdapter.csproj" />

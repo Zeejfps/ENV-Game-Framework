@@ -1,6 +1,7 @@
 using static GL46;
 using GLFW;
-using ZGF.Core;
+using ZGF.Desktop;
+using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Geometry;
 using ZnvQuadTree;
 

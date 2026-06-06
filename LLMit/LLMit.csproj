@@ -12,7 +12,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\ZGF.Core\ZGF.Core.csproj" />
+      <ProjectReference Include="..\ZGF.Desktop\ZGF.Desktop.csproj" />
       <ProjectReference Include="..\ZGF.Gui.Tests\ZGF.Gui.Tests.csproj" />
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
       <ProjectReference Include="..\ZGF.Gui.Desktop\ZGF.Gui.Desktop.csproj" />

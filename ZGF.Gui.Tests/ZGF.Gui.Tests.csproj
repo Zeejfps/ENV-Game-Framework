@@ -15,8 +15,7 @@
       <ProjectReference Include="..\QuadTreeRendererProgram\QuadTreeRendererProgram.csproj" />
       <ProjectReference Include="..\SoftwareRendererModule\SoftwareRendererModule.csproj" />
       <ProjectReference Include="..\ZGF.BMFontModule\ZGF.BMFontModule.csproj" />
-      <ProjectReference Include="..\ZGF.Core\ZGF.Core.csproj" />
-      <ProjectReference Include="..\ZGF.Core.Desktop\ZGF.Core.Desktop.csproj" />
+      <ProjectReference Include="..\ZGF.Desktop\ZGF.Desktop.csproj" />
       <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
       <ProjectReference Include="..\ZGF.Gui.Desktop\ZGF.Gui.Desktop.csproj" />

@@ -1,5 +1,5 @@
 ﻿using SoftwareRendererOpenGlBackend;
-using ZGF.Core;
+using ZGF.Desktop;
 
 var app = new QuadTreeRendererApp(new StartupConfig
 {

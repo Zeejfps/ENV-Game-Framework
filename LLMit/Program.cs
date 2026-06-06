@@ -1,6 +1,6 @@
 ﻿using LLMit;
 using LLMit.Views;
-using ZGF.Core;
+using ZGF.Desktop;
 using ZGF.Gui;
 
 var context = new Context();
