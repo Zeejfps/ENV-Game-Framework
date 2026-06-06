@@ -8,7 +8,7 @@ namespace ZGF.Core;
 public sealed class OpenGlApp : IApp
 {
     private readonly OpenGlWindow _mainWindow;
-    private readonly List<IWindow> _windows = new();
+    private readonly List<OpenGlWindow> _windows = new();
     private bool _isDisposed;
 
     public OpenGlApp(StartupConfig startupConfig)
@@ -145,7 +145,8 @@ public sealed class OpenGlApp : IApp
             // Popups asked to close (e.g., WM_CLOSE) get their flag reset; factory handles release.
             for (var i = _windows.Count - 1; i >= 0; i--)
             {
-                if (_windows[i] is OpenGlWindow ogw && !ogw.IsMain && Glfw.WindowShouldClose(ogw.GlfwWindow))
+                var ogw = _windows[i];
+                if (!ogw.IsMain && Glfw.WindowShouldClose(ogw.GlfwWindow))
                 {
                     Glfw.SetWindowShouldClose(ogw.GlfwWindow, false);
                 }
