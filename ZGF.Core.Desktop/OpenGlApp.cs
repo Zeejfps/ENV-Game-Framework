@@ -41,7 +41,6 @@ public sealed class OpenGlApp : IApp
 
     public IWindow MainWindow => _mainWindow;
     public IReadOnlyList<IWindow> Windows => _windows;
-    public Window MainGlfwWindow => _mainWindow.GlfwWindow;
 
     public IReadOnlyList<MonitorWorkArea> Monitors => GlfwMonitors.WorkAreas();
 

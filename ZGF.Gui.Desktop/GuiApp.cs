@@ -17,7 +17,6 @@ public sealed class GuiApp : IDisposable
     private readonly ContextMenuManager _contextMenuManager;
     private readonly PopupWindowFactory _popupFactory;
     private readonly SecondaryWindowFactory _secondaryWindows;
-    private readonly WindowCoordinates _coordinates;
     private readonly IWindowChrome _windowChrome;
 
     private GuiApp(
@@ -38,7 +37,7 @@ public sealed class GuiApp : IDisposable
 
         var decorator = context.Get<IPopupNativeDecorator>() ?? new DefaultNoopDecorator();
         _windowChrome = context.Get<IWindowChrome>() ?? new NoopWindowChrome();
-        _coordinates = new WindowCoordinates(app.MainWindow, mainCanvas);
+        var coordinates = new WindowCoordinates(app.MainWindow, mainCanvas);
         _popupFactory = new PopupWindowFactory(
             app, fontBackend, defaultFont, renderBackend, decorator, context,
             mainCanvasForFontRegistry: mainCanvas);
@@ -46,12 +45,12 @@ public sealed class GuiApp : IDisposable
             app, fontBackend, defaultFont, renderBackend, context,
             mainCanvasForFontRegistry: mainCanvas);
 
-        _contextMenuManager = new ContextMenuManager(_popupFactory, _coordinates, _mainInput.InputSystem, measureContext: context);
+        _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, _mainInput.InputSystem, measureContext: context);
 
         context.Canvas = mainCanvas;
         context.AddService(_mainInput.InputSystem);
         context.AddService(_contextMenuManager);
-        context.AddService<IWindowCoordinates>(_coordinates);
+        context.AddService<IWindowCoordinates>(coordinates);
         context.AddService<IPopupWindowFactory>(_popupFactory);
         context.AddService<ISecondaryWindowFactory>(_secondaryWindows);
         context.AddService<IUiDispatcher>(_dispatcher);
