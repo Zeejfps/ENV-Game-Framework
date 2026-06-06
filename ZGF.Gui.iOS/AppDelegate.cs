@@ -1,7 +1,7 @@
 using Foundation;
 using UIKit;
 
-namespace ZGF.Gui.iOS.App;
+namespace ZGF.Gui.iOS;
 
 // Hosts the Metal-backed GUI view controller. The CAMetalLayer canvas rendering is set up
 // in MetalViewController; this just creates the window and makes it visible.

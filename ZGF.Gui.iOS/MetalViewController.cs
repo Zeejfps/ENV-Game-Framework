@@ -7,10 +7,11 @@ using ZGF.Fonts;
 using ZGF.Geometry;
 using ZGF.Gui;
 using ZGF.Gui.Metal;
+using ZGF.Gui.Views;
 using ZGF.Rendering.Metal;
 using AppUtilsAssets = ZGF.AppUtils.EmbeddedAssets;
 
-namespace ZGF.Gui.iOS.App;
+namespace ZGF.Gui.iOS;
 
 // Stage 2 host: wires the shared ZGF.Gui.Metal canvas to a CAMetalLayer-backed view and
 // drives it from a CADisplayLink. Mirrors the desktop setup in ZGF.Gui.Desktop's
@@ -33,6 +34,8 @@ public sealed class MetalViewController : UIViewController
     private MetalSharedResources _shared = null!;
     private MetalSurfaceRenderer _surfaceRenderer = null!;
     private MetalRenderedCanvas? _canvas;
+    private Context? _context;
+    private MultiChildView? _root;
     private CADisplayLink? _displayLink;
 
     private byte[] _fontBytes = null!;
@@ -54,7 +57,7 @@ public sealed class MetalViewController : UIViewController
 
         var layer = _metalView.MetalLayer;
         layer.Device = _device;
-        layer.PixelFormat = MTLPixelFormat.BGRA8Unorm; // matches MetalSharedResources' pipeline color format
+        layer.PixelFormat = global::Metal.MTLPixelFormat.BGRA8Unorm; // matches MetalSharedResources' pipeline color format
         layer.FramebufferOnly = true;
         layer.ContentsScale = _scale;
 
@@ -85,17 +88,75 @@ public sealed class MetalViewController : UIViewController
 
         _scale = (float)(_metalView.Window?.Screen?.Scale ?? UIScreen.MainScreen.Scale);
         _metalView.MetalLayer.ContentsScale = _scale;
-        _metalView.MetalLayer.DrawableSize = new CGSize(logicalW * _scale, logicalH * _scale);
+        _metalView.MetalLayer.DrawableSize = new global::CoreGraphics.CGSize(logicalW * _scale, logicalH * _scale);
 
         if (_canvas == null)
         {
             _canvas = new MetalRenderedCanvas(logicalW, logicalH, _fonts, _defaultFont, _shared, _scale);
+            _context = new Context { Canvas = _canvas };
+            _root = BuildUi(logicalW, logicalH, _context);
             StartRenderLoop();
         }
         else if (_canvas.Width != logicalW || _canvas.Height != logicalH)
         {
             _canvas.Resize(logicalW, logicalH);
+            if (_root != null)
+            {
+                _root.Width = logicalW;
+                _root.Height = logicalH;
+            }
         }
+    }
+
+    // Builds the real View tree: a full-bleed background with a centered rounded card whose
+    // content is a ColumnView of text. The toolkit measures and positions everything (card
+    // size from its content, centering from CenterView) — nothing here is hand-placed, unlike
+    // the first-light DrawScene this replaced.
+    private static MultiChildView BuildUi(int width, int height, Context context)
+    {
+        var card = new RectView
+        {
+            Width = 320f,
+            BackgroundColor = 0xFF3478F6,
+            BorderRadius = BorderRadiusStyle.All(20f),
+            Padding = PaddingStyle.All(24),
+            Children =
+            {
+                new ColumnView
+                {
+                    Gap = 10,
+                    Children =
+                    {
+                        new TextView
+                        {
+                            Text = "Hello from ZGF.Gui",
+                            TextColor = 0xFFFFFFFF,
+                            FontSize = 26f,
+                            HorizontalTextAlignment = TextAlignment.Center,
+                        },
+                        new TextView
+                        {
+                            Text = "A real view tree — laid out and rendered on iOS via Metal.",
+                            TextColor = 0xFFE0EAFF,
+                            FontSize = 16f,
+                            HorizontalTextAlignment = TextAlignment.Center,
+                        },
+                    },
+                },
+            },
+        };
+
+        return new MultiChildView
+        {
+            Width = width,
+            Height = height,
+            Context = context,
+            Children =
+            {
+                new RectView { BackgroundColor = 0xFF101522 },
+                new CenterView { Children = { card } },
+            },
+        };
     }
 
     private void StartRenderLoop()
@@ -107,50 +168,16 @@ public sealed class MetalViewController : UIViewController
     private void RenderFrame()
     {
         var canvas = _canvas;
-        if (canvas == null)
+        var root = _root;
+        if (canvas == null || root == null)
             return;
 
         _surfaceRenderer.RenderFrame((encoder, commandBuffer) =>
         {
             canvas.BeginFrame();
-            DrawScene(canvas);
+            root.LayoutSelf();
+            root.DrawSelf();
             canvas.EndFrame(encoder, commandBuffer);
-        });
-    }
-
-    // First-light scene: a rounded card with centered text. Replaced by a real View tree
-    // (Context + MultiChildView) once the render path is confirmed on the simulator.
-    private static void DrawScene(MetalRenderedCanvas canvas)
-    {
-        var w = canvas.Width;
-        var h = canvas.Height;
-
-        // Canvas is Y-up: y=0 is the bottom. Place the card near the top.
-        var card = new RectF(24, h - 220, w - 48, 160);
-
-        canvas.DrawRect(new DrawRectInputs
-        {
-            Position = card,
-            Style = new RectStyle
-            {
-                BackgroundColor = 0xFF3478F6,
-                BorderRadius = BorderRadiusStyle.All(20f),
-            },
-            ZIndex = 0,
-        });
-
-        canvas.DrawText(new DrawTextInputs
-        {
-            Position = card,
-            Text = "Hello from ZGF.Gui\nrendering on iOS via Metal",
-            Style = new TextStyle
-            {
-                TextColor = 0xFFFFFFFF,
-                FontSize = 22f,
-                HorizontalAlignment = TextAlignment.Center,
-                VerticalAlignment = TextAlignment.Center,
-            },
-            ZIndex = 1,
         });
     }
 

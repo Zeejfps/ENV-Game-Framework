@@ -1,6 +1,6 @@
 using UIKit;
 
-namespace ZGF.Gui.iOS.App;
+namespace ZGF.Gui.iOS;
 
 public static class Program
 {

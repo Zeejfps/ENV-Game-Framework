@@ -1,6 +1,6 @@
 using ZGF.Rendering.Metal;
 
-namespace ZGF.Gui.iOS.App;
+namespace ZGF.Gui.iOS;
 
 // The iOS implementation of the host-agnostic IMetalSurface seam (the desktop counterpart
 // is ZGF.Desktop's MetalWindow). It just exposes the three native handles the shared

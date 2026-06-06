@@ -1,18 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <!--
-      The actual iOS app host for the ZGF GUI toolkit. Stage 1 (current) is a minimal
-      UIKit app used to de-risk the toolchain (Xcode/workload/simulator) before the Metal
-      canvas host is wired in. Stage 2 will add a CAMetalLayer-backed view that drives the
-      shared ZGF.Gui.Metal canvas via ZGF.Rendering.Metal's MetalSurfaceRenderer.
+      The iOS app host for the ZGF GUI toolkit. A CAMetalLayer-backed UIView drives the
+      shared ZGF.Gui.Metal canvas via ZGF.Rendering.Metal's MetalSurfaceRenderer, rendering
+      a real ZGF.Gui View tree (see MetalViewController).
 
       Not part of "ENV Game Framework.sln" so a normal desktop build needs no iOS workload.
       Build with -p:BuildIos=true so the referenced toolkit projects expose their
       net10.0-ios target (and ZGF.Fonts pulls the iOS HarfBuzz native instead of the
       desktop ones). Requires a Mac + matching Xcode + an iOS simulator runtime:
 
-          dotnet build ZGF.Gui.iOS.App/ZGF.Gui.iOS.App.csproj -p:BuildIos=true
-          dotnet build ZGF.Gui.iOS.App/ZGF.Gui.iOS.App.csproj -p:BuildIos=true -t:Run \
+          dotnet build ZGF.Gui.iOS/ZGF.Gui.iOS.csproj -p:BuildIos=true
+          dotnet build ZGF.Gui.iOS/ZGF.Gui.iOS.csproj -p:BuildIos=true -t:Run \
               -p:_DeviceName=:v2:udid=<simulator-udid>
     -->
 

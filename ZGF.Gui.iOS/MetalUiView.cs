@@ -3,7 +3,7 @@ using CoreGraphics;
 using ObjCRuntime;
 using UIKit;
 
-namespace ZGF.Gui.iOS.App;
+namespace ZGF.Gui.iOS;
 
 // A UIView whose backing layer is a CAMetalLayer. Overriding +layerClass is the supported
 // way to get a Metal-backed view: UIKit creates the layer, manages its lifetime, and keeps
