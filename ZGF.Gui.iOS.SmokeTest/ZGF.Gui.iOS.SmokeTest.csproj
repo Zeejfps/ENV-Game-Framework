@@ -4,7 +4,7 @@
       iOS compile smoke-test (step 1 of the mobile-rendering prep).
 
       A class library targeting net10.0-ios that references the platform-independent
-      toolkit (ZGF.Gui, ZGF.Core) and the neutral Metal layer (ZGF.Metal). Its only
+      toolkit (ZGF.Gui) and the neutral Metal layer (ZGF.Metal). Its only
       job is to *compile* against those assemblies under the iOS target, which:
         - activates the platform-compatibility analyzer (CA1416) on the referenced code,
           flushing out desktop-only API usage early, and
@@ -29,7 +29,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
-      <ProjectReference Include="..\ZGF.Core\ZGF.Core.csproj" />
       <ProjectReference Include="..\ZGF.Metal\ZGF.Metal.csproj" />
     </ItemGroup>
 

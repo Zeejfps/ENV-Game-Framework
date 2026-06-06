@@ -2,10 +2,12 @@
 
 A **compile-only** check that the platform-independent toolkit can target iOS.
 
-This project targets `net10.0-ios` and references `ZGF.Gui`, `ZGF.Core`, and
-`ZGF.Metal`. It contains no app — just a probe that forces the compiler to resolve
-those assemblies under the iOS target. Its purpose is to catch problems *early*,
-before any real iOS app exists:
+This project targets `net10.0-ios` and references `ZGF.Gui` and `ZGF.Metal`. It
+contains no app — just a probe that forces the compiler to resolve those assemblies
+under the iOS target. (It deliberately does **not** reference `ZGF.Core`: the
+desktop windowing abstractions live behind `ZGF.Gui.Desktop`, and the toolkit no
+longer depends on them.) Its purpose is to catch problems *early*, before any real
+iOS app exists:
 
 - **Platform-compatibility analysis (CA1416):** desktop-only API usage in the
   referenced code is flagged when compiled for `ios`.
