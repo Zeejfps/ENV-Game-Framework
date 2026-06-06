@@ -10,7 +10,6 @@ namespace ZGF.Core;
 public sealed class MetalWindow : IWindow, IMetalSurface
 {
     private readonly Window _window;
-    private readonly bool _isMain;
     private readonly SizeCallback _windowSizeCallback;
     private readonly SizeCallback _framebufferSizeCallback;
     private readonly FocusCallback _focusCallback;
@@ -22,14 +21,14 @@ public sealed class MetalWindow : IWindow, IMetalSurface
 
     private int _width;
     private int _height;
-    private float _dpiScale = 1f;
+    private float _dpiScale;
     private bool _isVisible;
     private bool _isDisposed;
 
     public Window GlfwWindow => _window;
     public IntPtr Layer { get; }
     public IntPtr NsWindow { get; }
-    public bool IsMain => _isMain;
+    public bool IsMain { get; }
 
     // IMetalSurface: the device/queue this window's CAMetalLayer draws with.
     public IntPtr Device { get; }
@@ -41,7 +40,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
     public MetalWindow(Window window, IntPtr device, IntPtr commandQueue, bool isMain)
     {
         _window = window;
-        _isMain = isMain;
+        IsMain = isMain;
         Device = device;
         CommandQueue = commandQueue;
         NsWindow = Native.GetCocoaWindow(window);
@@ -51,7 +50,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
         _dpiScale = ComputeDpiScale(window, fbW, fbH);
         Layer = AttachMetalLayer(window, device, fbW, fbH);
 
-        _isVisible = isMain ? false : false;
+        _isVisible = false;
 
         _windowSizeCallback = HandleWindowSizeChanged;
         _framebufferSizeCallback = HandleFramebufferSizeChanged;
@@ -204,7 +203,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
     {
         if (_isDisposed) return;
         _isDisposed = true;
-        if (!_isMain)
+        if (!IsMain)
         {
             Glfw.DestroyWindow(_window);
             OnClosed?.Invoke();
