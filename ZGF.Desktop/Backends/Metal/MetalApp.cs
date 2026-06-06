@@ -4,7 +4,6 @@
 
 using System.Runtime.InteropServices;
 using GLFW;
-using ZGF.Desktop.Backends.Glfw;
 using ZGF.Rendering.Metal;
 using static ZGF.Rendering.Metal.Objc;
 using Monitor = GLFW.Monitor;

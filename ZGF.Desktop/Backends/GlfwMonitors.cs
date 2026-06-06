@@ -1,4 +1,4 @@
-namespace ZGF.Desktop.Backends.Glfw;
+namespace ZGF.Desktop.Backends;
 
 internal static class GlfwMonitors
 {
