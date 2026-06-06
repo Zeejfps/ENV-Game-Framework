@@ -103,6 +103,20 @@ public abstract class RenderedCanvasBase : ICanvas
     private ShadowInstance[] _curShadows = Array.Empty<ShadowInstance>();
     private int _curRectCount, _curGlyphCount, _curImageCount, _curShadowCount;
 
+    private DrawKind[] _itemKind = Array.Empty<DrawKind>();
+    private int[] _itemSrc = Array.Empty<int>();
+    private int[] _itemNext = Array.Empty<int>();
+    private DrawKind[] _batchKind = Array.Empty<DrawKind>();
+    private uint[] _batchTex = Array.Empty<uint>();
+    private float[] _batchMinX = Array.Empty<float>();
+    private float[] _batchMinY = Array.Empty<float>();
+    private float[] _batchMaxX = Array.Empty<float>();
+    private float[] _batchMaxY = Array.Empty<float>();
+    private int[] _batchHead = Array.Empty<int>();
+    private int[] _batchTail = Array.Empty<int>();
+    private int[] _batchCountArr = Array.Empty<int>();
+    private int _batchCount;
+
     // Previous-frame mirrors for byte-equal compare
     private RectInstance[] _prevRects = Array.Empty<RectInstance>();
     private GlyphInstance[] _prevGlyphs = Array.Empty<GlyphInstance>();
@@ -603,12 +617,9 @@ public abstract class RenderedCanvasBase : ICanvas
         }
 
         SnapshotStaged();
-        SortAndMaterialize();
-        // Clip rects are referenced by index, so changing them alone doesn't alter
-        // draw-call structure; only instance changes force a rebuild. When nothing
-        // changed, the cached _drawCalls from last frame are reused as-is.
-        if (UploadIfChanged())
-            BuildDrawCalls();
+        SortStaged();
+        BuildBatches();
+        UploadIfChanged();
         UpdateAtlasIfDirty();
         IssueDraws(_drawCalls);
     }
@@ -651,31 +662,12 @@ public abstract class RenderedCanvasBase : ICanvas
         return a.SequenceEqual(b);
     }
 
-    private void SortAndMaterialize()
+    private void SortStaged()
     {
         _stagedRects.Sort(static (a, b) => a.Key.CompareTo(b.Key));
         _stagedGlyphs.Sort(static (a, b) => a.Key.CompareTo(b.Key));
         _stagedImages.Sort(static (a, b) => a.Key.CompareTo(b.Key));
         _stagedShadows.Sort(static (a, b) => a.Key.CompareTo(b.Key));
-
-        EnsureCapacity(ref _curRects, _stagedRects.Count);
-        EnsureCapacity(ref _curGlyphs, _stagedGlyphs.Count);
-        EnsureCapacity(ref _curImages, _stagedImages.Count);
-        EnsureCapacity(ref _curShadows, _stagedShadows.Count);
-
-        for (var i = 0; i < _stagedRects.Count; i++)
-            _curRects[i] = _stagedRects[i].Inst;
-        for (var i = 0; i < _stagedGlyphs.Count; i++)
-            _curGlyphs[i] = _stagedGlyphs[i].Inst;
-        for (var i = 0; i < _stagedImages.Count; i++)
-            _curImages[i] = _stagedImages[i].Inst;
-        for (var i = 0; i < _stagedShadows.Count; i++)
-            _curShadows[i] = _stagedShadows[i].Inst;
-
-        _curRectCount = _stagedRects.Count;
-        _curGlyphCount = _stagedGlyphs.Count;
-        _curImageCount = _stagedImages.Count;
-        _curShadowCount = _stagedShadows.Count;
     }
 
     private static void EnsureCapacity<T>(ref T[] array, int count)
@@ -684,25 +676,36 @@ public abstract class RenderedCanvasBase : ICanvas
             array = new T[Math.Max(count, array.Length * 2)];
     }
 
-    private void BuildDrawCalls()
+    // Walks primitives in paint order (z, then sequence) and merges each into the
+    // most recent same-kind draw call reachable without crossing an overlapping
+    // primitive of another kind, so reordered primitives never overlap and the
+    // result is pixel-identical to strict paint order.
+    private void BuildBatches()
     {
-        _drawCalls.Clear();
+        var total = _stagedRects.Count + _stagedGlyphs.Count + _stagedImages.Count + _stagedShadows.Count;
+        EnsureCapacity(ref _itemKind, total);
+        EnsureCapacity(ref _itemSrc, total);
+        EnsureCapacity(ref _itemNext, total);
+        EnsureCapacity(ref _batchKind, total);
+        EnsureCapacity(ref _batchTex, total);
+        EnsureCapacity(ref _batchMinX, total);
+        EnsureCapacity(ref _batchMinY, total);
+        EnsureCapacity(ref _batchMaxX, total);
+        EnsureCapacity(ref _batchMaxY, total);
+        EnsureCapacity(ref _batchHead, total);
+        EnsureCapacity(ref _batchTail, total);
+        EnsureCapacity(ref _batchCountArr, total);
+        _batchCount = 0;
 
         int ri = 0, gi = 0, ii = 0, si = 0;
-        var rN = _curRectCount;
-        var gN = _curGlyphCount;
-        var iN = _curImageCount;
-        var sN = _curShadowCount;
-
-        DrawKind activeKind = DrawKind.Rect;
-        var activeStart = 0;
-        var activeCount = 0;
-        uint activeTexture = 0;
-        var hasActive = false;
+        var rN = _stagedRects.Count;
+        var gN = _stagedGlyphs.Count;
+        var iN = _stagedImages.Count;
+        var sN = _stagedShadows.Count;
+        var item = 0;
 
         while (ri < rN || gi < gN || ii < iN || si < sN)
         {
-            // Pick kind whose next staged item has the smallest sort key.
             var rKey = ri < rN ? _stagedRects[ri].Key : long.MaxValue;
             var gKey = gi < gN ? _stagedGlyphs[gi].Key : long.MaxValue;
             var iKey = ii < iN ? _stagedImages[ii].Key : long.MaxValue;
@@ -714,64 +717,169 @@ public abstract class RenderedCanvasBase : ICanvas
             else if (iKey <= sKey) pick = DrawKind.Image;
             else pick = DrawKind.Shadow;
 
-            uint pickTex = 0;
-            int pickIndex = 0;
+            int src;
+            uint tex = 0;
+            float minX, minY, maxX, maxY;
             switch (pick)
             {
-                case DrawKind.Rect: pickIndex = ri; break;
-                case DrawKind.Glyph: pickIndex = gi; break;
-                case DrawKind.Image:
-                    pickIndex = ii;
-                    pickTex = _curImages[ii].TextureId;
+                case DrawKind.Rect:
+                    src = ri++;
+                    Bounds(_stagedRects[src].Inst.Rect, 0f, _stagedRects[src].Inst.ClipIndex, out minX, out minY, out maxX, out maxY);
                     break;
-                case DrawKind.Shadow: pickIndex = si; break;
+                case DrawKind.Glyph:
+                    src = gi++;
+                    Bounds(_stagedGlyphs[src].Inst.Rect, _stagedGlyphs[src].Inst.Rotation, _stagedGlyphs[src].Inst.ClipIndex, out minX, out minY, out maxX, out maxY);
+                    break;
+                case DrawKind.Image:
+                    src = ii++;
+                    tex = _stagedImages[src].Inst.TextureId;
+                    Bounds(_stagedImages[src].Inst.Rect, _stagedImages[src].Inst.Rotation, _stagedImages[src].Inst.ClipIndex, out minX, out minY, out maxX, out maxY);
+                    break;
+                default:
+                    src = si++;
+                    Bounds(_stagedShadows[src].Inst.OuterRect, 0f, _stagedShadows[src].Inst.ClipIndex, out minX, out minY, out maxX, out maxY);
+                    break;
             }
 
-            var canExtend = hasActive && pick == activeKind &&
-                            (pick != DrawKind.Image || pickTex == activeTexture);
-
-            if (!canExtend)
-            {
-                if (hasActive)
-                    _drawCalls.Add(new DrawCall
-                    {
-                        Kind = activeKind,
-                        InstanceStart = activeStart,
-                        InstanceCount = activeCount,
-                        TextureId = activeTexture,
-                    });
-
-                activeKind = pick;
-                activeStart = pickIndex;
-                activeCount = 0;
-                activeTexture = pickTex;
-                hasActive = true;
-            }
-
-            activeCount++;
-            switch (pick)
-            {
-                case DrawKind.Rect: ri++; break;
-                case DrawKind.Glyph: gi++; break;
-                case DrawKind.Image: ii++; break;
-                case DrawKind.Shadow: si++; break;
-            }
+            _itemKind[item] = pick;
+            _itemSrc[item] = src;
+            AssignBatch(item, pick, tex, minX, minY, maxX, maxY);
+            item++;
         }
 
-        if (hasActive)
-            _drawCalls.Add(new DrawCall
-            {
-                Kind = activeKind,
-                InstanceStart = activeStart,
-                InstanceCount = activeCount,
-                TextureId = activeTexture,
-            });
+        Materialize();
     }
 
-    private bool UploadIfChanged()
+    private void AssignBatch(int item, DrawKind kind, uint tex, float minX, float minY, float maxX, float maxY)
+    {
+        var empty = maxX <= minX || maxY <= minY;
+        var target = -1;
+        for (var b = _batchCount - 1; b >= 0; b--)
+        {
+            if (_batchKind[b] == kind && (kind != DrawKind.Image || _batchTex[b] == tex))
+            {
+                target = b;
+                break;
+            }
+            if (!empty &&
+                !(maxX <= _batchMinX[b] || _batchMaxX[b] <= minX || maxY <= _batchMinY[b] || _batchMaxY[b] <= minY))
+                break;
+        }
+
+        if (target < 0)
+        {
+            target = _batchCount++;
+            _batchKind[target] = kind;
+            _batchTex[target] = tex;
+            _batchMinX[target] = float.PositiveInfinity;
+            _batchMinY[target] = float.PositiveInfinity;
+            _batchMaxX[target] = float.NegativeInfinity;
+            _batchMaxY[target] = float.NegativeInfinity;
+            _batchHead[target] = -1;
+            _batchTail[target] = -1;
+            _batchCountArr[target] = 0;
+        }
+
+        if (!empty)
+        {
+            if (minX < _batchMinX[target]) _batchMinX[target] = minX;
+            if (minY < _batchMinY[target]) _batchMinY[target] = minY;
+            if (maxX > _batchMaxX[target]) _batchMaxX[target] = maxX;
+            if (maxY > _batchMaxY[target]) _batchMaxY[target] = maxY;
+        }
+
+        if (_batchHead[target] < 0) _batchHead[target] = item;
+        else _itemNext[_batchTail[target]] = item;
+        _batchTail[target] = item;
+        _itemNext[item] = -1;
+        _batchCountArr[target]++;
+    }
+
+    private void Materialize()
+    {
+        EnsureCapacity(ref _curRects, _stagedRects.Count);
+        EnsureCapacity(ref _curGlyphs, _stagedGlyphs.Count);
+        EnsureCapacity(ref _curImages, _stagedImages.Count);
+        EnsureCapacity(ref _curShadows, _stagedShadows.Count);
+
+        _drawCalls.Clear();
+        int rc = 0, gc = 0, ic = 0, sc = 0;
+
+        for (var b = 0; b < _batchCount; b++)
+        {
+            var kind = _batchKind[b];
+            int start;
+            switch (kind)
+            {
+                case DrawKind.Rect:
+                    start = rc;
+                    for (var it = _batchHead[b]; it >= 0; it = _itemNext[it])
+                        _curRects[rc++] = _stagedRects[_itemSrc[it]].Inst;
+                    break;
+                case DrawKind.Glyph:
+                    start = gc;
+                    for (var it = _batchHead[b]; it >= 0; it = _itemNext[it])
+                        _curGlyphs[gc++] = _stagedGlyphs[_itemSrc[it]].Inst;
+                    break;
+                case DrawKind.Image:
+                    start = ic;
+                    for (var it = _batchHead[b]; it >= 0; it = _itemNext[it])
+                        _curImages[ic++] = _stagedImages[_itemSrc[it]].Inst;
+                    break;
+                default:
+                    start = sc;
+                    for (var it = _batchHead[b]; it >= 0; it = _itemNext[it])
+                        _curShadows[sc++] = _stagedShadows[_itemSrc[it]].Inst;
+                    break;
+            }
+
+            _drawCalls.Add(new DrawCall
+            {
+                Kind = kind,
+                InstanceStart = start,
+                InstanceCount = _batchCountArr[b],
+                TextureId = _batchTex[b],
+            });
+        }
+
+        _curRectCount = rc;
+        _curGlyphCount = gc;
+        _curImageCount = ic;
+        _curShadowCount = sc;
+    }
+
+    private void Bounds(Vector4 rect, float rotation, uint clipIndex,
+        out float minX, out float minY, out float maxX, out float maxY)
+    {
+        minX = rect.X;
+        minY = rect.Y;
+        maxX = rect.X + rect.Z;
+        maxY = rect.Y + rect.W;
+
+        if (rotation != 0f)
+        {
+            var cx = (minX + maxX) * 0.5f;
+            var cy = (minY + maxY) * 0.5f;
+            var hw = (maxX - minX) * 0.5f;
+            var hh = (maxY - minY) * 0.5f;
+            var cs = MathF.Abs(MathF.Cos(rotation));
+            var sn = MathF.Abs(MathF.Sin(rotation));
+            var ex = hw * cs + hh * sn;
+            var ey = hw * sn + hh * cs;
+            minX = cx - ex; maxX = cx + ex;
+            minY = cy - ey; maxY = cy + ey;
+        }
+
+        var clip = _stagedClips[(int)clipIndex];
+        if (clip.X > minX) minX = clip.X;
+        if (clip.Y > minY) minY = clip.Y;
+        if (clip.Z < maxX) maxX = clip.Z;
+        if (clip.W < maxY) maxY = clip.W;
+    }
+
+    private void UploadIfChanged()
     {
         LastFrameUploadCount = 0;
-        var instancesChanged = false;
 
         if (!ArraysMatch(_stagedClips, _prevClips, _prevClipCount))
         {
@@ -791,7 +899,6 @@ public abstract class RenderedCanvasBase : ICanvas
 
             UploadRectInstances(_curRects, _curRectCount);
             LastFrameUploadCount++;
-            instancesChanged = true;
         }
 
         if (!ArraysMatch(_curGlyphs, _curGlyphCount, _prevGlyphs, _prevGlyphCount))
@@ -802,7 +909,6 @@ public abstract class RenderedCanvasBase : ICanvas
 
             UploadGlyphInstances(_curGlyphs, _curGlyphCount);
             LastFrameUploadCount++;
-            instancesChanged = true;
         }
 
         if (!ArraysMatch(_curImages, _curImageCount, _prevImages, _prevImageCount))
@@ -813,7 +919,6 @@ public abstract class RenderedCanvasBase : ICanvas
 
             UploadImageInstances(_curImages, _curImageCount);
             LastFrameUploadCount++;
-            instancesChanged = true;
         }
 
         if (!ArraysMatch(_curShadows, _curShadowCount, _prevShadows, _prevShadowCount))
@@ -824,10 +929,7 @@ public abstract class RenderedCanvasBase : ICanvas
 
             UploadShadowInstances(_curShadows, _curShadowCount);
             LastFrameUploadCount++;
-            instancesChanged = true;
         }
-
-        return instancesChanged;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
