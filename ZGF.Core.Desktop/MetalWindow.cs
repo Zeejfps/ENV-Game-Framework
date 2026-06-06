@@ -70,7 +70,6 @@ public sealed class MetalWindow : IWindow, IMetalSurface
         Glfw.SetCursorEnterCallback(window, _cursorEnterCallback);
     }
 
-    public IntPtr WindowHandle => _window;
     public IntPtr NativeHandle => NsWindow;
     public int Width => _width;
     public int Height => _height;

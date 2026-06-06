@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
+using ZGF.Core;
 
 namespace ZGF.Gui;
 
@@ -18,8 +19,9 @@ public sealed class LinuxWindowChrome : IWindowChrome
 
     private IntPtr _display;
 
-    public void SetTitleBarTheme(IntPtr x11Window, bool dark)
+    public void SetTitleBarTheme(IWindow window, bool dark)
     {
+        var x11Window = window.NativeHandle;
         if (x11Window == IntPtr.Zero) return;
 
         if (_display == IntPtr.Zero)

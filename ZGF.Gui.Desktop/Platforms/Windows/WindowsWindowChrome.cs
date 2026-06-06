@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using ZGF.Core;
 
 namespace ZGF.Gui;
 
@@ -18,10 +19,10 @@ public sealed class WindowsWindowChrome : IWindowChrome
     private const uint SWP_NOACTIVATE = 0x0010;
     private const uint SWP_FRAMECHANGED = 0x0020;
 
-    public void SetTitleBarTheme(IntPtr nativeWindowHandle, bool dark)
+    public void SetTitleBarTheme(IWindow window, bool dark)
     {
-        if (nativeWindowHandle == IntPtr.Zero) return;
-        var hwnd = nativeWindowHandle;
+        var hwnd = window.NativeHandle;
+        if (hwnd == IntPtr.Zero) return;
 
         var value = dark ? 1 : 0;
         if (DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref value, sizeof(int)) != 0)

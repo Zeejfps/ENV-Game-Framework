@@ -60,7 +60,6 @@ public sealed class OpenGlWindow : IWindow
         Glfw.SetCursorEnterCallback(window, _cursorEnterCallback);
     }
 
-    public IntPtr WindowHandle => _window;
     public IntPtr NativeHandle => _nativeHandle;
     public int Width => _width;
     public int Height => _height;

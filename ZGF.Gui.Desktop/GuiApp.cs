@@ -145,7 +145,7 @@ public sealed class GuiApp : IDisposable
     ///     appearance. No-op on platforms without a registered <see cref="IWindowChrome"/>.
     /// </summary>
     public void SetTitleBarDark(bool dark) =>
-        _windowChrome.SetTitleBarTheme(_app.MainWindow.NativeHandle, dark);
+        _windowChrome.SetTitleBarTheme(_app.MainWindow, dark);
 
     public void Run() => _app.Run();
 
@@ -201,6 +201,6 @@ public sealed class GuiApp : IDisposable
 
     private sealed class NoopWindowChrome : IWindowChrome
     {
-        public void SetTitleBarTheme(IntPtr handle, bool dark) { }
+        public void SetTitleBarTheme(IWindow window, bool dark) { }
     }
 }

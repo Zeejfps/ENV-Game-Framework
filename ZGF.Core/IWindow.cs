@@ -4,7 +4,6 @@ namespace ZGF.Core;
 
 public interface IWindow : IDisposable
 {
-    IntPtr WindowHandle { get; }
     // The OS-native window handle (Win32 HWND / Cocoa NSWindow / X11 Window). Native chrome
     // and popup decorators consume this so they never touch the windowing backend.
     IntPtr NativeHandle { get; }
@@ -13,8 +12,6 @@ public interface IWindow : IDisposable
     float DpiScale { get; }
     bool IsVisible { get; }
     bool IsFocused { get; }
-    // The OS reports the pointer as inside this window (GLFW_HOVERED equivalent). Used for
-    // diagnostics; hover dispatch uses an explicit bounds check instead.
     bool IsPointerOver { get; }
     bool NeedsRedraw { get; set; }
 
@@ -39,10 +36,7 @@ public interface IWindow : IDisposable
     void RequestRedraw();
     void RenderNow();
     void MakeContextCurrent();
-
-    // Reads/writes the system clipboard through this window's connection to the display
-    // server (X11 selections / Wayland data-device on Linux). GetClipboardText returns an
-    // empty string when the clipboard is empty or holds non-text content.
+    
     string GetClipboardText();
     void SetClipboardText(string text);
 }

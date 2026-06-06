@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using ZGF.Core;
 using static ZGF.Rendering.Metal.Objc;
 
 namespace ZGF.Gui;
@@ -7,10 +8,10 @@ namespace ZGF.Gui;
 [SupportedOSPlatform("macos")]
 public sealed class MacOsWindowChrome : IWindowChrome
 {
-    public void SetTitleBarTheme(IntPtr nativeWindowHandle, bool dark)
+    public void SetTitleBarTheme(IWindow window, bool dark)
     {
-        if (nativeWindowHandle == IntPtr.Zero) return;
-        var nsWindow = nativeWindowHandle;
+        var nsWindow = window.NativeHandle;
+        if (nsWindow == IntPtr.Zero) return;
 
         // [window setAppearance:[NSAppearance appearanceNamed:@"NSAppearanceName(Dark)Aqua"]]
         var name = NSString(dark ? "NSAppearanceNameDarkAqua" : "NSAppearanceNameAqua");
