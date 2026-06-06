@@ -7,9 +7,6 @@ namespace ZGF.Core;
 
 public sealed class OpenGlWindow : IWindow
 {
-    private readonly Window _window;
-    private readonly IntPtr _nativeHandle;
-    private readonly bool _isMain;
     private readonly SizeCallback _windowSizeCallback;
     private readonly SizeCallback _framebufferSizeCallback;
     private readonly FocusCallback _focusCallback;
@@ -25,22 +22,20 @@ public sealed class OpenGlWindow : IWindow
     private bool _isVisible;
     private bool _isDisposed;
 
-    public Window GlfwWindow => _window;
-    public bool IsMain => _isMain;
+    public Window GlfwWindow { get; }
+    public bool IsMain { get; }
 
     public Action? RenderFrame { get; set; }
     public event Action? OnClosed;
 
     public OpenGlWindow(Window window, bool isMain)
     {
-        _window = window;
-        _nativeHandle = ComputeNativeHandle(window);
-        _isMain = isMain;
+        GlfwWindow = window;
+        NativeHandle = ComputeNativeHandle(window);
+        IsMain = isMain;
         Glfw.GetWindowSize(window, out _width, out _height);
         _dpiScale = ComputeDpiScale(window);
-        _isVisible = isMain
-            ? Glfw.GetWindowAttribute(window, WindowAttribute.Visible)
-            : false;
+        _isVisible = isMain && Glfw.GetWindowAttribute(window, WindowAttribute.Visible);
 
         _windowSizeCallback = HandleWindowSizeChanged;
         _framebufferSizeCallback = HandleFramebufferSizeChanged;
@@ -60,13 +55,14 @@ public sealed class OpenGlWindow : IWindow
         Glfw.SetCursorEnterCallback(window, _cursorEnterCallback);
     }
 
-    public IntPtr NativeHandle => _nativeHandle;
+    public IntPtr NativeHandle { get; }
+
     public int Width => _width;
     public int Height => _height;
     public float DpiScale => _dpiScale;
     public bool IsVisible => _isVisible;
-    public bool IsFocused => Glfw.GetWindowAttribute(_window, WindowAttribute.Focused);
-    public bool IsPointerOver => Glfw.GetWindowAttribute(_window, WindowAttribute.MouseHover);
+    public bool IsFocused => Glfw.GetWindowAttribute(GlfwWindow, WindowAttribute.Focused);
+    public bool IsPointerOver => Glfw.GetWindowAttribute(GlfwWindow, WindowAttribute.MouseHover);
     public bool NeedsRedraw { get; private set; } = true;
 
     public event Action<int, int>? OnResize;
@@ -80,34 +76,34 @@ public sealed class OpenGlWindow : IWindow
 
     public void Show()
     {
-        Glfw.ShowWindow(_window);
+        Glfw.ShowWindow(GlfwWindow);
         _isVisible = true;
         NeedsRedraw = true;
     }
 
     public void Hide()
     {
-        Glfw.HideWindow(_window);
+        Glfw.HideWindow(GlfwWindow);
         _isVisible = false;
     }
 
-    public void Focus() => Glfw.FocusWindow(_window);
+    public void Focus() => Glfw.FocusWindow(GlfwWindow);
 
     public void SetPosition(int screenX, int screenY)
     {
-        Glfw.SetWindowPosition(_window, screenX, screenY);
+        Glfw.SetWindowPosition(GlfwWindow, screenX, screenY);
     }
 
     public void SetSize(int widthPoints, int heightPoints)
     {
-        Glfw.SetWindowSize(_window, widthPoints, heightPoints);
+        Glfw.SetWindowSize(GlfwWindow, widthPoints, heightPoints);
     }
 
     public void GetPosition(out int screenX, out int screenY) =>
-        Glfw.GetWindowPosition(_window, out screenX, out screenY);
+        Glfw.GetWindowPosition(GlfwWindow, out screenX, out screenY);
 
     public void GetCursorPosition(out double x, out double y) =>
-        Glfw.GetCursorPosition(_window, out x, out y);
+        Glfw.GetCursorPosition(GlfwWindow, out x, out y);
 
     public void SetIcon(IReadOnlyList<WindowIconImage> icons)
     {
@@ -120,7 +116,7 @@ public sealed class OpenGlWindow : IWindow
                 handles[i] = GCHandle.Alloc(icons[i].Pixels, GCHandleType.Pinned);
                 images[i] = new Image(icons[i].Width, icons[i].Height, handles[i].AddrOfPinnedObject());
             }
-            Glfw.SetWindowIcon(_window, images.Length, images);
+            Glfw.SetWindowIcon(GlfwWindow, images.Length, images);
         }
         finally
         {
@@ -131,15 +127,15 @@ public sealed class OpenGlWindow : IWindow
 
     public void RequestRedraw() => NeedsRedraw = true;
 
-    public void MakeContextCurrent() => Glfw.MakeContextCurrent(_window);
+    public void MakeContextCurrent() => Glfw.MakeContextCurrent(GlfwWindow);
 
-    public string GetClipboardText() => Glfw.GetClipboardString(_window);
-    public void SetClipboardText(string text) => Glfw.SetClipboardString(_window, text);
+    public string GetClipboardText() => Glfw.GetClipboardString(GlfwWindow);
+    public void SetClipboardText(string text) => Glfw.SetClipboardString(GlfwWindow, text);
 
     public void RenderNow()
     {
         RenderFrame?.Invoke();
-        Glfw.SwapBuffers(_window);
+        Glfw.SwapBuffers(GlfwWindow);
         NeedsRedraw = false;
     }
 
@@ -152,7 +148,7 @@ public sealed class OpenGlWindow : IWindow
 
     private void HandleFramebufferSizeChanged(Window window, int width, int height)
     {
-        _dpiScale = ComputeDpiScale(_window);
+        _dpiScale = ComputeDpiScale(GlfwWindow);
         OnFramebufferResize?.Invoke(width, height);
     }
 
@@ -169,7 +165,7 @@ public sealed class OpenGlWindow : IWindow
     private void HandleKey(Window window, Keys key, int scanCode, InputState state, ModifierKeys mods) =>
         OnKey?.Invoke(key.Adapt(), (InputAction)state, (KeyModifiers)mods);
 
-    private void HandleMouseButton(Window window, GLFW.MouseButton button, InputState state, ModifierKeys mods) =>
+    private void HandleMouseButton(Window window, MouseButton button, InputState state, ModifierKeys mods) =>
         OnMouseButton?.Invoke((int)button, (InputAction)state, (KeyModifiers)mods);
 
     private void HandleScroll(Window window, double x, double y) => OnScroll?.Invoke(x, y);
@@ -198,9 +194,9 @@ public sealed class OpenGlWindow : IWindow
     {
         if (_isDisposed) return;
         _isDisposed = true;
-        if (!_isMain)
+        if (!IsMain)
         {
-            Glfw.DestroyWindow(_window);
+            Glfw.DestroyWindow(GlfwWindow);
             OnClosed?.Invoke();
         }
     }
