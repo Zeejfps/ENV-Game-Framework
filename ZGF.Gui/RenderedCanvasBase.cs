@@ -11,7 +11,7 @@ public abstract class RenderedCanvasBase : ICanvas
     // ---------- Per-instance struct types ----------
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct RectInstance : IEquatable<RectInstance>
+    public record struct RectInstance
     {
         public Vector4 Rect;            // x, y, w, h
         public Vector4 BorderRadius;    // tl, tr, br, bl
@@ -22,38 +22,20 @@ public abstract class RenderedCanvasBase : ICanvas
         public uint BorderColorBottom;
         public uint BorderColorLeft;
         public uint ClipIndex;
-
-        public bool Equals(RectInstance other) =>
-            Rect.Equals(other.Rect) &&
-            BorderRadius.Equals(other.BorderRadius) &&
-            BorderSize.Equals(other.BorderSize) &&
-            BgColor == other.BgColor &&
-            BorderColorTop == other.BorderColorTop &&
-            BorderColorRight == other.BorderColorRight &&
-            BorderColorBottom == other.BorderColorBottom &&
-            BorderColorLeft == other.BorderColorLeft &&
-            ClipIndex == other.ClipIndex;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct GlyphInstance : IEquatable<GlyphInstance>
+    public record struct GlyphInstance
     {
         public Vector4 Rect;
         public Vector4 AtlasUV;
         public uint Color;
         public uint ClipIndex;
         public float Rotation; // radians, rotation about the glyph rect's center
-
-        public bool Equals(GlyphInstance other) =>
-            Rect.Equals(other.Rect) &&
-            AtlasUV.Equals(other.AtlasUV) &&
-            Color == other.Color &&
-            ClipIndex == other.ClipIndex &&
-            Rotation == other.Rotation;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct ImageInstance : IEquatable<ImageInstance>
+    public record struct ImageInstance
     {
         public Vector4 Rect;
         public Vector4 SrcUV;
@@ -61,18 +43,10 @@ public abstract class RenderedCanvasBase : ICanvas
         public uint ClipIndex;
         public float Rotation; // radians, rotation about the rect's center
         public uint TextureId; // not uploaded to GPU; used only for batching
-
-        public bool Equals(ImageInstance other) =>
-            Rect.Equals(other.Rect) &&
-            SrcUV.Equals(other.SrcUV) &&
-            Tint == other.Tint &&
-            ClipIndex == other.ClipIndex &&
-            Rotation == other.Rotation &&
-            TextureId == other.TextureId;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct ShadowInstance : IEquatable<ShadowInstance>
+    public record struct ShadowInstance
     {
         public Vector4 OuterRect;       // drawn quad: covers the entire blurred shadow region
         public Vector4 ShadowRect;      // (post-offset, post-spread) source rect in world coords
@@ -81,14 +55,6 @@ public abstract class RenderedCanvasBase : ICanvas
         public uint Color;              // ARGB packed
         public uint ClipIndex;
         private uint _pad;              // keep 16-byte alignment
-
-        public bool Equals(ShadowInstance other) =>
-            OuterRect.Equals(other.OuterRect) &&
-            ShadowRect.Equals(other.ShadowRect) &&
-            BorderRadius.Equals(other.BorderRadius) &&
-            Sigma == other.Sigma &&
-            Color == other.Color &&
-            ClipIndex == other.ClipIndex;
     }
 
     private struct StagedRect { public long Key; public RectInstance Inst; }
