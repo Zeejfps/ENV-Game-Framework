@@ -131,7 +131,7 @@ public sealed class OpenGlApp : IApp
             Glfw.PollEvents();
             OnTick?.Invoke();
 
-            _mainWindow.NeedsRedraw = true;
+            _mainWindow.RequestRedraw();
             for (var i = 0; i < _windows.Count; i++)
             {
                 var w = _windows[i];
@@ -139,7 +139,6 @@ public sealed class OpenGlApp : IApp
                 if (!w.NeedsRedraw) continue;
                 w.MakeContextCurrent();
                 w.RenderNow();
-                w.NeedsRedraw = false;
             }
 
             // Popups asked to close (e.g., WM_CLOSE) get their flag reset; factory handles release.

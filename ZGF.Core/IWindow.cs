@@ -13,7 +13,7 @@ public interface IWindow : IDisposable
     bool IsVisible { get; }
     bool IsFocused { get; }
     bool IsPointerOver { get; }
-    bool NeedsRedraw { get; set; }
+    bool NeedsRedraw { get; }
 
     event Action<int, int> OnResize;
     event Action<int, int> OnFramebufferResize;

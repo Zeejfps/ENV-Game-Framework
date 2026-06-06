@@ -106,14 +106,13 @@ public sealed class MetalApp : IApp
             Glfw.PollEvents();
             OnTick?.Invoke();
 
-            _mainWindow.NeedsRedraw = true;
+            _mainWindow.RequestRedraw();
             for (var i = 0; i < _windows.Count; i++)
             {
                 var w = _windows[i];
                 if (!w.IsVisible) continue;
                 if (!w.NeedsRedraw) continue;
                 w.RenderNow();
-                w.NeedsRedraw = false;
             }
 
             for (var i = _windows.Count - 1; i >= 0; i--)

@@ -67,7 +67,7 @@ public sealed class OpenGlWindow : IWindow
     public bool IsVisible => _isVisible;
     public bool IsFocused => Glfw.GetWindowAttribute(_window, WindowAttribute.Focused);
     public bool IsPointerOver => Glfw.GetWindowAttribute(_window, WindowAttribute.MouseHover);
-    public bool NeedsRedraw { get; set; } = true;
+    public bool NeedsRedraw { get; private set; } = true;
 
     public event Action<int, int>? OnResize;
     public event Action<int, int>? OnFramebufferResize;
@@ -140,6 +140,7 @@ public sealed class OpenGlWindow : IWindow
     {
         RenderFrame?.Invoke();
         Glfw.SwapBuffers(_window);
+        NeedsRedraw = false;
     }
 
     private void HandleWindowSizeChanged(Window window, int width, int height)
