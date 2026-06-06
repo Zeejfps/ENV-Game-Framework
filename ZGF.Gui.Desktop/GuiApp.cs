@@ -3,6 +3,7 @@ using ZGF.Desktop;
 using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Fonts;
 using ZGF.Gui.Desktop.Components.ContextMenu;
+using ZGF.Gui.Desktop.Input;
 using ZGF.Observable;
 
 namespace ZGF.Gui.Desktop;
@@ -34,20 +35,25 @@ public sealed class GuiApp : IDisposable
         _mainCanvas = mainCanvas;
         _fontBackend = fontBackend;
         _renderBackend = renderBackend;
-        _mainInput = new DesktopInputSystem(app.MainWindow, mainCanvas);
+
+        // One arbiter shared by every window's input system decides pointer ownership.
+        // The main window is the base (non-modal) layer; popups register themselves.
+        var pointerArbiter = new PointerOwnershipArbiter();
+        _mainInput = new DesktopInputSystem(app.MainWindow, mainCanvas, pointerArbiter);
+        pointerArbiter.Register(_mainInput, isModal: false);
         _dispatcher = new QueuedUiDispatcher();
 
         var decorator = context.Get<IPopupNativeDecorator>() ?? new DefaultNoopDecorator();
         _windowChrome = context.Get<IWindowChrome>() ?? new NoopWindowChrome();
         var coordinates = new WindowCoordinates(app.MainWindow, mainCanvas);
         _popupFactory = new PopupWindowFactory(
-            app, fontBackend, defaultFont, renderBackend, decorator, context,
+            app, fontBackend, defaultFont, renderBackend, decorator, context, pointerArbiter,
             mainCanvasForFontRegistry: mainCanvas);
         _secondaryWindows = new SecondaryWindowFactory(
             app, fontBackend, defaultFont, renderBackend, context,
             mainCanvasForFontRegistry: mainCanvas);
 
-        _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, _mainInput.InputSystem, measureContext: context);
+        _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, _mainInput, measureContext: context);
 
         context.Canvas = mainCanvas;
         context.AddService(_mainInput.InputSystem);

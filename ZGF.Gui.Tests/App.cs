@@ -8,6 +8,7 @@ using ZGF.Fonts;
 using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Backends.OpenGl;
 using ZGF.Gui.Desktop.Components.ContextMenu;
+using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Desktop.Platforms.Osx;
 using ZGF.Gui.Views;
 using static GL46;
@@ -53,7 +54,9 @@ public sealed class App : IDisposable
             startupConfig.WindowWidth, startupConfig.WindowHeight,
             _fontBackend, _defaultFont, _shared);
 
-        _inputSystem = new DesktopInputSystem(_mainWindow, _canvas);
+        var pointerArbiter = new PointerOwnershipArbiter();
+        _inputSystem = new DesktopInputSystem(_mainWindow, _canvas, pointerArbiter);
+        pointerArbiter.Register(_inputSystem, isModal: false);
 
         _mesh = Mesh.LoadFromFile("Assets/Models/Suzan_tri.obj");
         _shaderProgram = new ShaderProgramCompiler()
@@ -81,8 +84,8 @@ public sealed class App : IDisposable
         _popupFactory = new PopupWindowFactory(
             _windowApp, _fontBackend, _defaultFont,
             new GlRenderBackend(_shared, _fontBackend, _defaultFont),
-            noopDecorator, context);
-        _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, _inputSystem.InputSystem);
+            noopDecorator, context, pointerArbiter);
+        _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, _inputSystem);
         context.AddService<IContextMenuHost>(_contextMenuManager);
         context.AddService<IWindowCoordinates>(coordinates);
         context.AddService<IPopupWindowFactory>(_popupFactory);

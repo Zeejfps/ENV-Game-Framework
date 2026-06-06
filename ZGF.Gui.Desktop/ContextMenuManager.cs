@@ -1,6 +1,5 @@
 using ZGF.Geometry;
 using ZGF.Gui.Desktop.Components.ContextMenu;
-using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
 using InputState = ZGF.Gui.Desktop.Input.InputState;
 
@@ -38,10 +37,7 @@ public sealed class ContextMenuManager : IContextMenuHost
 {
     private readonly IPopupWindowFactory _popupFactory;
     private readonly IWindowCoordinates _coordinates;
-    private readonly InputSystem? _mainInputSystem;
     private readonly Context? _measureContext;
-    private readonly MainWindowOutsideClickController _outsideClickController;
-    private bool _outsideClickActive;
 
     private readonly HashSet<OpenedContextMenu> _closingMenus = new();
     private readonly Dictionary<ContextMenu, OpenedContextMenu> _openedMenus = new();
@@ -55,14 +51,26 @@ public sealed class ContextMenuManager : IContextMenuHost
     public ContextMenuManager(
         IPopupWindowFactory popupFactory,
         IWindowCoordinates coordinates,
-        InputSystem? mainInputSystem = null,
+        DesktopInputSystem? mainInput = null,
         Context? measureContext = null)
     {
         _popupFactory = popupFactory;
         _coordinates = coordinates;
-        _mainInputSystem = mainInputSystem;
         _measureContext = measureContext;
-        _outsideClickController = new MainWindowOutsideClickController(this);
+        // Outside-click fallback for platforms whose decorator provides no OS-level
+        // capture (e.g. NoopPopupDecorator): a press on the main window while a menu is
+        // open is, by definition, outside the menu. Hover modality is handled entirely
+        // by the PointerOwnershipArbiter, so this controller no longer touches focus.
+        if (mainInput != null)
+            mainInput.OnMouseButtonPreview += OnMainWindowPress;
+    }
+
+    private void OnMainWindowPress(MouseButtonEvent e)
+    {
+        if (e.State != InputState.Pressed) return;
+        if (_openedMenus.Count == 0 && _closingMenus.Count == 0) return;
+        var screen = _coordinates.ToScreenPoints(e.Mouse.Point);
+        HandleOutsideClick(screen);
     }
 
     public IOpenedContextMenu? ShowContextMenu(ContextMenu menu, PointI screenAnchor, ContextMenu? parentMenu = null, MenuPlacement placement = MenuPlacement.Below)
@@ -115,7 +123,6 @@ public sealed class ContextMenuManager : IContextMenuHost
 
         _openedMenus[menu] = opened;
         popup.OutsideClick += HandleOutsideClick;
-        EnsureMainOutsideClickHandler();
         return opened;
     }
 
@@ -154,8 +161,6 @@ public sealed class ContextMenuManager : IContextMenuHost
                 if (parent != null) parent.Child = null;
             }
         }
-
-        ReleaseMainOutsideClickHandlerIfEmpty();
     }
 
     public void RequestCloseMenu(ContextMenu menu)
@@ -195,24 +200,6 @@ public sealed class ContextMenuManager : IContextMenuHost
             opened.Close();
         }
         _openedMenus.Clear();
-        ReleaseMainOutsideClickHandlerIfEmpty();
-    }
-
-    private void EnsureMainOutsideClickHandler()
-    {
-        if (_outsideClickActive) return;
-        if (_mainInputSystem == null) return;
-        _mainInputSystem.StealFocus(_outsideClickController);
-        _outsideClickActive = true;
-    }
-
-    private void ReleaseMainOutsideClickHandlerIfEmpty()
-    {
-        if (!_outsideClickActive) return;
-        if (_openedMenus.Count > 0) return;
-        if (_closingMenus.Count > 0) return;
-        _mainInputSystem?.Blur(_outsideClickController);
-        _outsideClickActive = false;
     }
 
     internal void HandleOutsideClick(PointI screenPoint)
@@ -234,38 +221,4 @@ public sealed class ContextMenuManager : IContextMenuHost
 
     internal IWindowCoordinates Coordinates => _coordinates;
     internal IReadOnlyCollection<OpenedContextMenu> OpenedMenus => _openedMenus.Values;
-
-    private sealed class MainWindowOutsideClickController : KeyboardMouseController
-    {
-        private readonly ContextMenuManager _manager;
-        public MainWindowOutsideClickController(ContextMenuManager manager) { _manager = manager; }
-
-        public override void OnFocusGained()
-        {
-            _manager._mainInputSystem?.ClearHover();
-        }
-
-        public override void OnMouseMoved(ref MouseMoveEvent e)
-        {
-            // Consume so InputSystem skips RefreshHover — otherwise main-window
-            // views under the popup re-hover as the cursor moves over the menu.
-            e.Consume();
-        }
-
-        public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
-        {
-            if (e.State != InputState.Pressed) return;
-            // Fallback path: when the OS-level capture mechanism is unavailable
-            // (e.g. NoopPopupDecorator), the main window's own input system is
-            // the only source of outside-click detection. Don't consume — let
-            // the press propagate so a right-click on a different repo row can
-            // both close the old menu and open a new one in a single click.
-            // On Windows, the platform decorator's subclass intercepts the
-            // captured click and re-posts it to the underlying window, so this
-            // controller sees the re-posted message after the menu has been
-            // logically closed (synchronous dict clear).
-            var screen = _manager.Coordinates.ToScreenPoints(e.Mouse.Point);
-            _manager.HandleOutsideClick(screen);
-        }
-    }
 }

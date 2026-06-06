@@ -1,6 +1,7 @@
 using ZGF.Desktop;
 using ZGF.Fonts;
 using ZGF.Geometry;
+using ZGF.Gui.Desktop.Input;
 
 namespace ZGF.Gui.Desktop;
 
@@ -14,6 +15,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     private readonly IGuiRenderBackend _backend;
     private readonly IPopupNativeDecorator _decorator;
     private readonly Context _mainContext;
+    private readonly PointerOwnershipArbiter _arbiter;
     private readonly RenderedCanvasBase? _mainCanvasForFontRegistry;
 
     private readonly List<PopupWindowImpl> _activePopups = new();
@@ -27,6 +29,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         IGuiRenderBackend backend,
         IPopupNativeDecorator decorator,
         Context mainContext,
+        PointerOwnershipArbiter arbiter,
         RenderedCanvasBase? mainCanvasForFontRegistry = null)
     {
         _app = app;
@@ -35,6 +38,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         _backend = backend;
         _decorator = decorator;
         _mainContext = mainContext;
+        _arbiter = arbiter;
         _mainCanvasForFontRegistry = mainCanvasForFontRegistry;
     }
 
@@ -43,23 +47,16 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         var rect = ResolveRect(request);
 
         PopupWindowImpl popup;
-        bool fromPool;
         if (_pool.Count > 0)
         {
             popup = _pool[^1];
             _pool.RemoveAt(_pool.Count - 1);
             popup.Resize(rect.Width, rect.Height);
-            fromPool = true;
         }
         else
         {
             popup = CreateNewPopup(rect.Width, rect.Height, request.MousePassThrough);
-            fromPool = false;
         }
-
-        // Diagnose only capturing popups (context menus); passthrough popups (tooltips) follow
-        // the cursor and would just spam hover transitions. See InputSystem.DiagLabel.
-        popup.DiagSetLabel(request.MousePassThrough ? null : "popup");
 
         popup.MousePassThrough = request.MousePassThrough;
         popup.SetRoot(request.Root);
@@ -79,6 +76,13 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         popup.Window.Show();
         _activePopups.Add(popup);
 
+        // Capturing popups (menus) register as modal so the arbiter denies the main
+        // window pointer ownership while they're open; passthrough popups (tooltips)
+        // are click-through and never own the pointer, so they stay unregistered and
+        // keep their independent hover behavior. A submenu registers after its parent,
+        // placing it above the parent in z-order.
+        _arbiter.Register(popup.PointerWindow, isModal: !request.MousePassThrough);
+
         if (!request.MousePassThrough)
         {
             if (_captureHolder == null)
@@ -93,7 +97,11 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             }
         }
 
-        popup.DiagLogShow(fromPool);
+        // Build this popup's hover path now, synchronously, while it is the topmost
+        // window under the cursor. A menu that opens directly under the pointer is then
+        // live on the very first press — closing the "menu shows but eats the first
+        // click" race where the path was only built a frame later, on the next tick.
+        popup.UpdateInput();
         return popup;
     }
 
@@ -101,6 +109,8 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     {
         if (popup is not PopupWindowImpl impl) return;
         if (!_activePopups.Remove(impl)) return;
+
+        _arbiter.Unregister(impl.PointerWindow);
 
         if (_captureHolder == impl)
         {
@@ -220,7 +230,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
         var canvas = _backend.CreateCanvas(window, width, height, _mainCanvasForFontRegistry);
 
-        var input = new DesktopInputSystem(window, canvas);
+        var input = new DesktopInputSystem(window, canvas, _arbiter);
 
         var popupContext = new Context(_mainContext);
         popupContext.Canvas = canvas;
@@ -263,6 +273,7 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     public bool MousePassThrough { get; set; }
 
     public IWindow Window => _window;
+    public IPointerWindow PointerWindow => _input;
 
     public PopupWindowImpl(
         IWindow window,
@@ -315,21 +326,6 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     }
 
     public void RaiseOutsideClick(PointI screen) => OutsideClick?.Invoke(screen);
-
-    // Diagnostics for the intermittent dead-context-menu bug. Label is set per-acquire so only
-    // capturing popups (menus) report; null silences tooltips. See InputSystem.DiagLabel.
-    public void DiagSetLabel(string? label) => _input.InputSystem.DiagLabel = label;
-
-    public void DiagLogShow(bool fromPool)
-    {
-        var sys = _input.InputSystem;
-        if (sys.DiagLabel == null) return;
-        var mouseHover = _window.IsPointerOver;
-        Console.WriteLine(
-            $"[ctxmenu-diag {sys.DiagLabel}] shown fromPool={fromPool} " +
-            $"hasFocus={sys.DiagHasFocus} queue={sys.DiagFocusQueueCount} mouseHover={mouseHover}" +
-            (sys.DiagHasFocus ? "  <-- LATCH (focus stuck from prior use; Update will short-circuit)" : ""));
-    }
 
     public void UpdateInput() => _input.Update();
 

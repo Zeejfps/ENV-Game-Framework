@@ -19,19 +19,6 @@ public sealed class InputSystem
     private IKeyboardMouseController? _hoveredComponent;
     private IKeyboardMouseController? _focusedComponent;
 
-    /// <summary>
-    /// When set, this input system emits targeted diagnostics (popup-only). Used to trace the
-    /// intermittent "context menu shows but eats no input" bug: a press that arrives with an
-    /// empty focus queue and no focused component routes to nothing — i.e. a dead popup.
-    /// </summary>
-    public string? DiagLabel { get; set; }
-
-    /// <summary>Live snapshot for show-time diagnostics: is focus currently latched?</summary>
-    public bool DiagHasFocus => _focusedComponent != null;
-
-    /// <summary>Live snapshot for show-time diagnostics: size of the built dispatch path.</summary>
-    public int DiagFocusQueueCount => _focusQueue.Count;
-
     public void RegisterController(View view, IKeyboardMouseController controller, EventPhaseFilter phaseFilter = EventPhaseFilter.Both)
     {
         if (!_viewToControllers.TryGetValue(view, out var list))
@@ -164,18 +151,6 @@ public sealed class InputSystem
 
     public void SendMouseButtonEvent(ref MouseButtonEvent e)
     {
-        if (DiagLabel != null && e.State == InputState.Pressed)
-        {
-            // A press with no focused component AND an empty queue routes to nothing — the
-            // exact signature of a dead popup. Logged for popup input systems only.
-            var dead = _focusedComponent == null && _focusQueue.Count == 0;
-            Console.WriteLine(
-                $"[ctxmenu-diag {DiagLabel}] press btn={e.Button} " +
-                $"focused={_focusedComponent?.GetType().Name ?? "none"} " +
-                $"queue={_focusQueue.Count} hovered={_hoveredComponent?.GetType().Name ?? "none"}" +
-                (dead ? "  <-- DEAD (press routes to nothing)" : ""));
-        }
-
         e.Phase = EventPhase.Bubbling;
         if (_focusedComponent != null)
         {

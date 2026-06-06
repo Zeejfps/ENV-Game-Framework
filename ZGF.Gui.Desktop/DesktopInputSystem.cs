@@ -7,25 +7,42 @@ using MouseButton = ZGF.Gui.Desktop.Input.MouseButton;
 
 namespace ZGF.Gui.Desktop;
 
-public sealed class DesktopInputSystem
+public sealed class DesktopInputSystem : IPointerWindow
 {
     private readonly IWindow _window;
     private readonly RenderedCanvasBase _canvas;
+    private readonly PointerOwnershipArbiter? _arbiter;
     private bool _pendingExitClear;
 
     public InputSystem InputSystem { get; } = new();
     public Mouse Mouse { get; } = new();
     public Action? OnAnyInput { get; set; }
 
-    public DesktopInputSystem(IWindow window, RenderedCanvasBase canvas)
+    /// <summary>
+    /// Fires for every mouse button event on this window, before normal dispatch.
+    /// Used by <see cref="ContextMenuManager"/> to detect a click on the main window
+    /// (an "outside click") and close open menus on platforms whose native decorator
+    /// provides no OS-level capture.
+    /// </summary>
+    public event Action<MouseButtonEvent>? OnMouseButtonPreview;
+
+    public DesktopInputSystem(IWindow window, RenderedCanvasBase canvas, PointerOwnershipArbiter? arbiter = null)
     {
         _window = window;
         _canvas = canvas;
+        _arbiter = arbiter;
 
         _window.OnKey += HandleKeyEvent;
         _window.OnMouseButton += HandleMouseButtonEvent;
         _window.OnScroll += HandleScrollEvent;
         _window.OnPointerEnter += HandleCursorEnter;
+    }
+
+    /// <summary>True when the OS cursor is within this window's client bounds.</summary>
+    public bool IsCursorInsideWindow()
+    {
+        _window.GetCursorPosition(out var x, out var y);
+        return x >= 0 && y >= 0 && x <= _window.Width && y <= _window.Height;
     }
 
     /// <summary>
@@ -55,6 +72,19 @@ public sealed class DesktopInputSystem
 
     public void Update()
     {
+        var managed = _arbiter != null && _arbiter.IsRegistered(this);
+
+        // A modal (context menu) is open and this window sits behind it: suppress all
+        // hover/move dispatch so views beneath the menu can't re-hover. This is the
+        // structural replacement for the old focus-steal + consume-move hack — main
+        // window hover is now off whenever a menu is open, by construction.
+        if (managed && _arbiter!.IsBlockedByModal(this))
+        {
+            InputSystem.ClearHover();
+            Mouse.Point = new PointF(float.MinValue, float.MinValue);
+            return;
+        }
+
         if (InputSystem.HasFocus)
         {
             _window.GetCursorPosition(out var capturedX, out var capturedY);
@@ -70,6 +100,15 @@ public sealed class DesktopInputSystem
                 InputSystem.SendMouseMovedEvent(ref capturedEvent);
                 OnAnyInput?.Invoke();
             }
+            return;
+        }
+
+        // Hover belongs to exactly one window: the topmost under the cursor. If that
+        // isn't us, drop any hover we hold and do nothing — no rect test, no dispatch.
+        if (managed && !_arbiter!.OwnsPointer(this))
+        {
+            InputSystem.ClearHover();
+            Mouse.Point = new PointF(float.MinValue, float.MinValue);
             return;
         }
 
@@ -172,6 +211,7 @@ public sealed class DesktopInputSystem
             Modifiers = (InputModifiers)modifiers,
             Phase = EventPhase.Capturing,
         };
+        OnMouseButtonPreview?.Invoke(e);
         InputSystem.SendMouseButtonEvent(ref e);
         OnAnyInput?.Invoke();
     }
