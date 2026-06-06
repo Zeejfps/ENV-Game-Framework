@@ -16,6 +16,7 @@
       <ProjectReference Include="..\SoftwareRendererModule\SoftwareRendererModule.csproj" />
       <ProjectReference Include="..\ZGF.AppUtils\ZGF.AppUtils.csproj" />
       <ProjectReference Include="..\ZGF.Core\ZGF.Core.csproj" />
+      <ProjectReference Include="..\ZGF.Core.Desktop\ZGF.Core.Desktop.csproj" />
       <ProjectReference Include="..\ZGF.Spatial\ZGF.Spatial.csproj" />
     </ItemGroup>
 

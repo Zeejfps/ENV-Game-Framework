@@ -8,11 +8,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Glfw.NET\Glfw.NET.csproj" />
-      <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
-      <!-- The GLFW window backend maps GLFW keys onto the neutral KeyboardKey it raises. -->
+      <!-- Abstractions only (IApp/IWindow/options). The neutral KeyboardKey enum is part of
+           the IWindow surface; GLFW/OpenGL/Metal implementations live in ZGF.Core.Desktop. -->
       <ProjectReference Include="..\ZGF.KeyboardModule\ZGF.KeyboardModule.csproj" />
-      <ProjectReference Include="..\ZGF.KeyboardModule.GlfwAdapter\ZGF.KeyboardModule.GlfwAdapter.csproj" />
     </ItemGroup>
 
 </Project>
