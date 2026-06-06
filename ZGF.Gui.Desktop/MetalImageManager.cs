@@ -5,8 +5,8 @@
 
 using PngSharp.Api;
 using PngSharp.Spec.Chunks.IHDR;
-using ZGF.Core.MacOs;
-using static ZGF.Core.MacOs.Objc;
+using ZGF.Rendering.Metal;
+using static ZGF.Rendering.Metal.Objc;
 
 namespace ZGF.Gui;
 

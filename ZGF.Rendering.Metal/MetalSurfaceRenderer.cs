@@ -1,8 +1,7 @@
 using System.Runtime.InteropServices;
-using ZGF.Core.MacOs;
-using static ZGF.Core.MacOs.Objc;
+using static ZGF.Rendering.Metal.Objc;
 
-namespace ZGF.Metal;
+namespace ZGF.Rendering.Metal;
 
 /// <summary>
 ///     Drives the host-agnostic per-frame Metal loop against an <see cref="IMetalSurface"/>:

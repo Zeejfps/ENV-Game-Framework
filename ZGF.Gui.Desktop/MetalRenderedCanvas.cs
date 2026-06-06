@@ -5,9 +5,9 @@
 
 using System.Numerics;
 using System.Runtime.InteropServices;
-using ZGF.Core.MacOs;
 using ZGF.Fonts;
-using static ZGF.Core.MacOs.Objc;
+using ZGF.Rendering.Metal;
+using static ZGF.Rendering.Metal.Objc;
 
 namespace ZGF.Gui;
 

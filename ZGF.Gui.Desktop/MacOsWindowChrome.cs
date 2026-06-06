@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using static ZGF.Core.MacOs.Objc;
+using static ZGF.Rendering.Metal.Objc;
 
 namespace ZGF.Gui;
 

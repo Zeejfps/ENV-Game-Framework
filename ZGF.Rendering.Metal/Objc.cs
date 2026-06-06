@@ -4,7 +4,7 @@
 
 using System.Runtime.InteropServices;
 
-namespace ZGF.Core.MacOs;
+namespace ZGF.Rendering.Metal;
 
 public static unsafe class Objc
 {

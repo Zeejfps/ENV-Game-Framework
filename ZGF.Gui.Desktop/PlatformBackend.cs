@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using ZGF.Core;
 using ZGF.Fonts;
-using ZGF.Metal;
+using ZGF.Rendering.Metal;
 using static GL46;
 
 namespace ZGF.Gui;

@@ -1,4 +1,4 @@
-namespace ZGF.Metal;
+namespace ZGF.Rendering.Metal;
 
 /// <summary>
 ///     The host-provided Metal drawing surface that a <see cref="MetalSurfaceRenderer"/>

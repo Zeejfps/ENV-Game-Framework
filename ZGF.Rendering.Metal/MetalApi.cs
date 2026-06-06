@@ -3,9 +3,8 @@
 // must not outlive the device that produced them.
 
 using System.Runtime.InteropServices;
-using static ZGF.Core.MacOs.Objc;
 
-namespace ZGF.Core.MacOs;
+namespace ZGF.Rendering.Metal;
 
 // Named MetalApi (not "Metal") to avoid colliding with the ZGF.Rendering.Metal namespace,
 // which would shadow the type for callers inside the ZGF.* root namespace.
