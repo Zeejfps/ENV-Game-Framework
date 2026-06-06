@@ -7,22 +7,10 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
-    <!-- Shaders are embedded into this assembly instead of shipped as loose files.
-         For a platform-specific build (RID set, as all published/AOT builds are),
-         only the backend that platform uses is embedded: Metal on osx RIDs,
-         OpenGL/GLSL elsewhere. A plain `dotnet run` (no RID) embeds both so local
-         development works on any host regardless of the runtime-selected backend. -->
-    <PropertyGroup>
-      <_Rid>$(RuntimeIdentifier)</_Rid>
-    </PropertyGroup>
-
-    <ItemGroup Condition="$(_Rid.StartsWith('osx')) OR '$(_Rid)' == ''">
-      <EmbeddedResource Include="Assets\Shaders\*.gen.metal">
-        <LogicalName>%(Filename)%(Extension)</LogicalName>
-      </EmbeddedResource>
-    </ItemGroup>
-
-    <ItemGroup Condition="!$(_Rid.StartsWith('osx'))">
+    <!-- GLSL shaders for the OpenGL backend are embedded into this assembly. The Metal
+         canvas backend and its .gen.metal shaders now live in ZGF.Gui.Metal (shared with
+         the iOS host); see that project for the Metal shader embedding. -->
+    <ItemGroup>
       <EmbeddedResource Include="Assets\Shaders\*.glsl">
         <LogicalName>%(Filename)%(Extension)</LogicalName>
       </EmbeddedResource>
@@ -34,6 +22,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+      <ProjectReference Include="..\ZGF.Gui.Metal\ZGF.Gui.Metal.csproj" />
       <ProjectReference Include="..\ZGF.Desktop\ZGF.Desktop.csproj" />
       <ProjectReference Include="..\ZGF.Rendering.Metal\ZGF.Rendering.Metal.csproj" />
       <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />

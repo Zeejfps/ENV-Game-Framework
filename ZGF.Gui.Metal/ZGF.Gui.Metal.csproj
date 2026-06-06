@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Platform-neutral Metal backend for the GUI canvas: turns RenderedCanvasBase draw
+         commands into Metal pipelines/buffers/textures. Shared by the desktop host
+         (ZGF.Gui.Desktop, NSWindow) and the iOS host (CAMetalLayer) via the IMetalSurface
+         seam in ZGF.Rendering.Metal. Shaders are compiled from embedded .gen.metal source
+         at runtime (newLibraryWithSource:), so the same assembly works on macOS and iOS. -->
+
+    <PropertyGroup>
+        <TargetFrameworks>net10.0</TargetFrameworks>
+        <!-- iOS compile coverage is opt-in: `dotnet build -p:BuildIos=true` (needs the ios workload). -->
+        <TargetFrameworks Condition="'$(BuildIos)'=='true'">net10.0;net10.0-ios</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Include="Assets\Shaders\*.gen.metal">
+        <LogicalName>%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+      <ProjectReference Include="..\ZGF.Rendering.Metal\ZGF.Rendering.Metal.csproj" />
+      <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
+      <ProjectReference Include="..\ZGF.Geometry\ZGF.Geometry.csproj" />
+      <ProjectReference Include="..\ZGF.AppUtils\ZGF.AppUtils.csproj" />
+      <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
+    </ItemGroup>
+
+</Project>

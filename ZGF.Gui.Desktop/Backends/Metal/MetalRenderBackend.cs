@@ -1,6 +1,7 @@
 using ZGF.Desktop;
 using ZGF.Desktop.Backends.Metal;
 using ZGF.Fonts;
+using ZGF.Gui.Metal;
 using ZGF.Rendering.Metal;
 
 namespace ZGF.Gui.Desktop.Backends.Metal;

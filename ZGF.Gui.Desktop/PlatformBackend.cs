@@ -5,6 +5,7 @@ using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Fonts;
 using ZGF.Gui.Desktop.Backends.Metal;
 using ZGF.Gui.Desktop.Backends.OpenGl;
+using ZGF.Gui.Metal;
 
 namespace ZGF.Gui.Desktop;
 

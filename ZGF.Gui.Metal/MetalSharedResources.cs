@@ -3,7 +3,7 @@ using ZGF.Fonts;
 using ZGF.Rendering.Metal;
 using static ZGF.Rendering.Metal.Objc;
 
-namespace ZGF.Gui.Desktop.Backends.Metal;
+namespace ZGF.Gui.Metal;
 
 public sealed unsafe class MetalSharedResources : IDisposable
 {

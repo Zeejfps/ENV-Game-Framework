@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.Metal;
 using ZGF.Rendering.Metal;
 
 namespace ZGF.Gui.IOS.SmokeTest;
@@ -25,5 +26,11 @@ public static class IosCompatibilityProbe
         // Neutral Metal layer the iOS renderer will reuse.
         typeof(IMetalSurface),
         typeof(MetalSurfaceRenderer),
+
+        // Platform-neutral Metal canvas backend (shared with the desktop host). Compiling
+        // these under net10.0-ios is what proves the backend has no desktop entanglement.
+        typeof(MetalRenderedCanvas),
+        typeof(MetalSharedResources),
+        typeof(MetalImageManager),
     ];
 }

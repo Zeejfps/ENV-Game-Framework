@@ -29,6 +29,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+      <ProjectReference Include="..\ZGF.Gui.Metal\ZGF.Gui.Metal.csproj" />
       <ProjectReference Include="..\ZGF.Rendering.Metal\ZGF.Rendering.Metal.csproj" />
     </ItemGroup>
 
