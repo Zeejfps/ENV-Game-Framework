@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <!-- Platform-neutral Metal + Objective-C interop. No GLFW / OpenGL / GUI deps, so the
+         same Metal rendering host contract is reusable from both the desktop (NSWindow)
+         and a future iOS (UIView/CAMetalLayer) windowing layer. -->
+
+</Project>

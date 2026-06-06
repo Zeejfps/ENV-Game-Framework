@@ -7,7 +7,9 @@ using static ZGF.Core.MacOs.Objc;
 
 namespace ZGF.Core.MacOs;
 
-public static class Metal
+// Named MetalApi (not "Metal") to avoid colliding with the ZGF.Metal namespace,
+// which would shadow the type for callers inside the ZGF.* root namespace.
+public static class MetalApi
 {
     [DllImport("/System/Library/Frameworks/Metal.framework/Metal")]
     public static extern IntPtr MTLCreateSystemDefaultDevice();
