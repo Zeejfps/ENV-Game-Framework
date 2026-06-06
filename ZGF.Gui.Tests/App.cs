@@ -78,7 +78,7 @@ public sealed class App : IDisposable
             new GlRenderBackend(_shared, _fontBackend, _defaultFont),
             noopDecorator, context);
         _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, _inputSystem.InputSystem);
-        context.AddService(_contextMenuManager);
+        context.AddService<IContextMenuHost>(_contextMenuManager);
         context.AddService<IWindowCoordinates>(coordinates);
         context.AddService<IPopupWindowFactory>(_popupFactory);
 

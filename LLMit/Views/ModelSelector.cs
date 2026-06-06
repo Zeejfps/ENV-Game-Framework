@@ -44,7 +44,7 @@ public sealed class ModelSelector : MultiChildView
 public sealed class ModelSelectorController : KeyboardMouseController
 {
     private readonly ModelSelector _modelSelector;
-    private readonly ContextMenuManager _contextMenuManager;
+    private readonly IContextMenuHost _contextMenuManager;
 
     private IOpenedContextMenu? _openedContextMenu;
     private InputSystem? _inputSystem;
@@ -53,7 +53,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
     public ModelSelectorController(ModelSelector modelSelector, Context context)
     {
         _modelSelector = modelSelector;
-        _contextMenuManager = context.Get<ContextMenuManager>()!;
+        _contextMenuManager = context.Get<IContextMenuHost>()!;
         Debug.Assert(_contextMenuManager != null);
     }
 

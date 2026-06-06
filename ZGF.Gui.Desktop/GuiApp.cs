@@ -49,7 +49,7 @@ public sealed class GuiApp : IDisposable
 
         context.Canvas = mainCanvas;
         context.AddService(_mainInput.InputSystem);
-        context.AddService(_contextMenuManager);
+        context.AddService<IContextMenuHost>(_contextMenuManager);
         context.AddService<IWindowCoordinates>(coordinates);
         context.AddService<IPopupWindowFactory>(_popupFactory);
         context.AddService<ISecondaryWindowFactory>(_secondaryWindows);

@@ -4,22 +4,6 @@ using InputState = ZGF.Gui.Desktop.InputState;
 
 namespace ZGF.Gui;
 
-// Which way a context menu grows from its anchor. Below (default) grows downward from the
-// anchor; Above grows upward, for triggers near the bottom of the screen.
-public enum MenuPlacement
-{
-    Below,
-    Above,
-}
-
-public interface IOpenedContextMenu
-{
-    event Action Closed;
-    bool IsOpened { get; }
-    void CancelCloseRequest();
-    void CloseRequest();
-}
-
 sealed class OpenedContextMenu : IOpenedContextMenu
 {
     public event Action? Closed;
@@ -48,7 +32,7 @@ sealed class OpenedContextMenu : IOpenedContextMenu
     }
 }
 
-public sealed class ContextMenuManager
+public sealed class ContextMenuManager : IContextMenuHost
 {
     private readonly IPopupWindowFactory _popupFactory;
     private readonly IWindowCoordinates _coordinates;

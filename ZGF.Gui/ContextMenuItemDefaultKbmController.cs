@@ -5,7 +5,7 @@ namespace ZGF.Gui;
 public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseController, IDisposable
 {
     private readonly ContextMenuItem _contextMenuItem;
-    private readonly ContextMenuManager _contextMenuManager;
+    private readonly IContextMenuHost _contextMenuManager;
     private IOpenedContextMenu? _openedContextMenu;
     private InputSystem? _subMenuInputSystem;
     private ContextMenu? _registeredSubMenu;
@@ -23,7 +23,7 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
         Func<ContextMenu>? subMenuFactory = null)
     {
         _contextMenuItem = contextMenuItem;
-        _contextMenuManager = context.Get<ContextMenuManager>()!;
+        _contextMenuManager = context.Get<IContextMenuHost>()!;
         Clicked = clicked;
         _subMenuFactory = subMenuFactory;
         SubOptions = subOptions == null ? new List<ContextMenuItemData>() : new List<ContextMenuItemData>(subOptions);

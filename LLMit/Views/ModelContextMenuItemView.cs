@@ -28,7 +28,7 @@ public sealed class ModelContextMenuItemView : MultiChildView
         {
             var contextMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
             Debug.Assert(contextMenu != null);
-            var contextMenuManager = _contextMenuItem.Context?.Get<ContextMenuManager>();
+            var contextMenuManager = _contextMenuItem.Context?.Get<IContextMenuHost>();
             contextMenuManager?.RequestCloseMenu(contextMenu);
             Chosen?.Invoke(this);
         }));

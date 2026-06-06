@@ -6,7 +6,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
 {
     protected MenuItem MenuItem { get; }
     protected Context Context { get; }
-    private readonly ContextMenuManager _contextMenuManager;
+    private readonly IContextMenuHost _contextMenuManager;
     private readonly InputSystem _inputSystem;
     private readonly IWindowCoordinates? _coordinates;
 
@@ -18,7 +18,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
     {
         MenuItem = menuItem;
         Context = context;
-        _contextMenuManager = context.Get<ContextMenuManager>()!;
+        _contextMenuManager = context.Get<IContextMenuHost>()!;
         _inputSystem = context.Get<InputSystem>()!;
         _coordinates = context.Get<IWindowCoordinates>();
     }
