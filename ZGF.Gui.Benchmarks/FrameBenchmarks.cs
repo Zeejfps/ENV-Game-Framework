@@ -6,17 +6,19 @@ using ZGF.Gui.Benchmarks;
 
 /// <summary>
 /// Exercises the real per-frame pipeline of <see cref="RenderedCanvasBase"/>.
+/// Every benchmark re-stages its content each iteration (BeginFrame + draws),
+/// exactly as the app does, so the pre-sort clean detection sees draw-order
+/// buffers.
 ///
-/// EndFrame_CleanFrame isolates #2: a frame whose staged content is byte-identical
-/// to the previous frame (the common idle case). The dirty check passes, so the
-/// only question is how much sort/materialize/build-draw-calls work we still do.
+/// IdleFrame_RectsHeavy isolates #2: a large, cheap-to-stage rect set that is
+/// byte-identical frame-to-frame. Rects avoid text-shaping noise, so the
+/// measured delta is the sort/materialize/build work that clean detection skips.
 ///
-/// DrawText_Centered vs DrawText_LeftAligned isolates #3: centered text currently
-/// shapes each line twice (once to measure width, once to emit glyphs); left-aligned
-/// shapes once. The gap is the double-shaping cost.
+/// DrawText_Centered vs DrawText_LeftAligned isolates #3: centered text used to
+/// shape each line twice (measure width + emit glyphs); left-aligned shapes once.
 ///
-/// FullFrame_Static is the end-to-end realistic idle frame (re-stage identical
-/// content + EndFrame) and reflects both #2 and #3 together.
+/// FullFrame_Static is the end-to-end realistic idle frame (rects + text) and
+/// reflects #2 and #3 together.
 /// </summary>
 [MemoryDiagnoser]
 public class FrameBenchmarks
@@ -24,6 +26,7 @@ public class FrameBenchmarks
     private const int Width = 1920;
     private const int Height = 1080;
     private const int RectCount = 300;
+    private const int IdleRectCount = 3000;
     private const int TextCount = 150;
     private const string LineText = "The quick brown fox";
 
@@ -62,17 +65,23 @@ public class FrameBenchmarks
             HorizontalAlignment = TextAlignment.Start,
         };
 
-        // Prime the previous-frame mirrors so EndFrame_CleanFrame measures the
-        // unchanged path rather than the first (always-dirty) upload.
-        StageFrame(_centeredStyle);
-        _canvas.EndFrame();
     }
 
     [Benchmark]
-    public void EndFrame_CleanFrame()
+    public void IdleFrame_RectsHeavy()
     {
-        // Staged content from setup is left untouched (no BeginFrame), so this is
-        // the idle path: dirty check passes, nothing uploads.
+        _canvas.BeginFrame();
+        for (var i = 0; i < IdleRectCount; i++)
+        {
+            var x = (i * 37) % (Width - 120);
+            var y = (i * 53) % (Height - 40);
+            _canvas.DrawRect(new DrawRectInputs
+            {
+                Position = new RectF(x, y, 120, 32),
+                Style = _rectStyle,
+                ZIndex = i % 4,
+            });
+        }
         _canvas.EndFrame();
     }
 

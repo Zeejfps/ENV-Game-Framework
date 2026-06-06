@@ -57,9 +57,15 @@ public abstract class RenderedCanvasBase : ICanvas
         private uint _pad;              // keep 16-byte alignment
     }
 
+    // Pack=1 so these stage entries have no trailing padding and can be compared
+    // as raw bytes against the previous frame's snapshot (see FrameUnchanged).
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct StagedRect { public long Key; public RectInstance Inst; }
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct StagedGlyph { public long Key; public GlyphInstance Inst; }
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct StagedImage { public long Key; public ImageInstance Inst; }
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct StagedShadow { public long Key; public ShadowInstance Inst; }
 
     public enum DrawKind : byte { Rect, Glyph, Image, Shadow }
@@ -104,6 +110,15 @@ public abstract class RenderedCanvasBase : ICanvas
     private ShadowInstance[] _prevShadows = Array.Empty<ShadowInstance>();
     private Vector4[] _prevClips = Array.Empty<Vector4>();
     private int _prevRectCount, _prevGlyphCount, _prevImageCount, _prevShadowCount, _prevClipCount;
+
+    // Previous-frame staged snapshots (pre-sort) used to detect an entirely
+    // unchanged frame before paying for the sort/materialize pass.
+    private StagedRect[] _snapRects = Array.Empty<StagedRect>();
+    private StagedGlyph[] _snapGlyphs = Array.Empty<StagedGlyph>();
+    private StagedImage[] _snapImages = Array.Empty<StagedImage>();
+    private StagedShadow[] _snapShadows = Array.Empty<StagedShadow>();
+    private int _snapRectCount, _snapGlyphCount, _snapImageCount, _snapShadowCount;
+    private bool _hasSnapshot;
 
     private readonly List<DrawCall> _drawCalls = new();
 
@@ -576,6 +591,18 @@ public abstract class RenderedCanvasBase : ICanvas
 
     public void EndFrame()
     {
+        if (FrameUnchanged())
+        {
+            // Idle frame: staged content is byte-identical to last frame, so the
+            // sorted buffers, GPU uploads and draw calls from last frame are all
+            // still valid. Skip the whole sort/materialize/upload/build pass.
+            LastFrameUploadCount = 0;
+            UpdateAtlasIfDirty();
+            IssueDraws(_drawCalls);
+            return;
+        }
+
+        SnapshotStaged();
         SortAndMaterialize();
         // Clip rects are referenced by index, so changing them alone doesn't alter
         // draw-call structure; only instance changes force a rebuild. When nothing
@@ -584,6 +611,44 @@ public abstract class RenderedCanvasBase : ICanvas
             BuildDrawCalls();
         UpdateAtlasIfDirty();
         IssueDraws(_drawCalls);
+    }
+
+    private bool FrameUnchanged()
+    {
+        // Draw order is deterministic for a static UI, so the unsorted staged
+        // buffers are byte-identical frame-to-frame when nothing changed. Checking
+        // this before sorting lets idle frames skip the whole materialize pass.
+        return _hasSnapshot
+            && StagedMatch(_stagedRects, _snapRects, _snapRectCount)
+            && StagedMatch(_stagedGlyphs, _snapGlyphs, _snapGlyphCount)
+            && StagedMatch(_stagedImages, _snapImages, _snapImageCount)
+            && StagedMatch(_stagedShadows, _snapShadows, _snapShadowCount)
+            && ArraysMatch(_stagedClips, _prevClips, _prevClipCount);
+    }
+
+    private void SnapshotStaged()
+    {
+        SnapshotList(_stagedRects, ref _snapRects, out _snapRectCount);
+        SnapshotList(_stagedGlyphs, ref _snapGlyphs, out _snapGlyphCount);
+        SnapshotList(_stagedImages, ref _snapImages, out _snapImageCount);
+        SnapshotList(_stagedShadows, ref _snapShadows, out _snapShadowCount);
+        _hasSnapshot = true;
+    }
+
+    private static void SnapshotList<T>(List<T> src, ref T[] dst, out int count) where T : unmanaged
+    {
+        EnsureCapacity(ref dst, src.Count);
+        CollectionsMarshal.AsSpan(src).CopyTo(dst);
+        count = src.Count;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool StagedMatch<T>(List<T> cur, T[] snap, int snapCount) where T : unmanaged
+    {
+        if (cur.Count != snapCount) return false;
+        var a = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(cur));
+        var b = MemoryMarshal.AsBytes(snap.AsSpan(0, snapCount));
+        return a.SequenceEqual(b);
     }
 
     private void SortAndMaterialize()
