@@ -170,6 +170,26 @@ float2 sdBezier(float2 p, float2 A, float2 B, float2 C)
     return float2(sqrt(res), bestT);
 }
 
+// Arc length along the quadratic Bezier A->B->C from t=0 to t, by trapezoidal
+// integration of |B'(u)|. B'(u) = (1-u)*2(B-A) + u*2(C-B).
+float bezierArcLength(float2 A, float2 B, float2 C, float t)
+{
+    float2 d0 = 2.0 * (B - A);
+    float2 d1 = 2.0 * (C - B);
+    const int N = 16;
+    float step = t / float(N);
+    float prev = length(d0);
+    float total = 0.0;
+    for (int i = 1; i <= N; i++)
+    {
+        float u = t * float(i) / float(N);
+        float cur = length(d0 * (1.0 - u) + d1 * u);
+        total += (prev + cur) * 0.5 * step;
+        prev = cur;
+    }
+    return total;
+}
+
 [shader("fragment")]
 float4 fragmentMain(Varyings v) : SV_Target
 {
@@ -188,6 +208,17 @@ float4 fragmentMain(Varyings v) : SV_Target
         float2 bz = sdBezier(v.pixelPos, v.shapeData.xy, v.shapeData.zw, v.shapeData2.xy);
         d = bz.x - v.halfWidth;
         bezierT = bz.y;
+        if ((v.flags & 4u) != 0u)
+        {
+            // dashing along the curve's arc length
+            float period = v.shapeData2.z + v.shapeData2.w;
+            if (period > 0.0)
+            {
+                float s = bezierArcLength(v.shapeData.xy, v.shapeData.zw, v.shapeData2.xy, bezierT);
+                if ((s - period * floor(s / period)) > v.shapeData2.z)
+                    discard;
+            }
+        }
     }
     else if (v.shapeType == 2u)
     {

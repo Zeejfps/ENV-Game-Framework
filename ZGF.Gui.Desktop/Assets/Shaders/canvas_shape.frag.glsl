@@ -95,6 +95,23 @@ vec2 sdBezier(vec2 p, vec2 A, vec2 B, vec2 C) {
     return vec2(sqrt(res), bestT);
 }
 
+// Arc length along the quadratic Bezier A->B->C from 0 to t (trapezoidal).
+float bezierArcLength(vec2 A, vec2 B, vec2 C, float t) {
+    vec2 d0 = 2.0 * (B - A);
+    vec2 d1 = 2.0 * (C - B);
+    const int N = 16;
+    float step = t / float(N);
+    float prev = length(d0);
+    float total = 0.0;
+    for (int i = 1; i <= N; i++) {
+        float u = t * float(i) / float(N);
+        float cur = length(d0 * (1.0 - u) + d1 * u);
+        total += (prev + cur) * 0.5 * step;
+        prev = cur;
+    }
+    return total;
+}
+
 void main() {
     vec4 clip = u_clipRects[v_clipIndex];
     if (v_pixelPos.x < clip.x || v_pixelPos.x >= clip.z ||
@@ -109,6 +126,14 @@ void main() {
         vec2 bz = sdBezier(v_pixelPos, v_shapeData.xy, v_shapeData.zw, v_shapeData2.xy);
         d = bz.x - v_halfWidth;
         bezierT = bz.y;
+        if ((v_flags & 4u) != 0u) {
+            // dashing along the curve's arc length
+            float period = v_shapeData2.z + v_shapeData2.w;
+            if (period > 0.0) {
+                float s = bezierArcLength(v_shapeData.xy, v_shapeData.zw, v_shapeData2.xy, bezierT);
+                if ((s - period * floor(s / period)) > v_shapeData2.z) discard;
+            }
+        }
     } else if (v_shapeType == 2u) {
         // line with selectable cap
         d = sdLineCapped(v_pixelPos, v_shapeData.xy, v_shapeData.zw, v_halfWidth, v_flags & 3u);

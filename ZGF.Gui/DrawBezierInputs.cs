@@ -12,4 +12,6 @@ public readonly struct DrawBezierInputs
     public required int ZIndex { get; init; }
 
     public uint? GradientEndColor { get; init; } // null = solid Color; else Color -> this along the curve (by parameter t)
+    public float DashLength { get; init; } // with GapLength > 0 enables dashing (by arc length)
+    public float GapLength { get; init; }
 }

@@ -382,6 +382,10 @@ public abstract class RenderedCanvasBase : ICanvas
         var maxY = MathF.Max(p0.Y, MathF.Max(p1.Y, p2.Y)) + pad;
 
         var grad = inputs.GradientEndColor.HasValue;
+        var dashed = inputs.DashLength > 0f && inputs.GapLength > 0f;
+        var flags = 0u;
+        if (grad) flags |= FlagGradient;
+        if (dashed) flags |= FlagDash;
 
         _stagedShapes.Add(new StagedShape
         {
@@ -390,12 +394,12 @@ public abstract class RenderedCanvasBase : ICanvas
             {
                 OuterRect = new Vector4(minX, minY, maxX - minX, maxY - minY),
                 ShapeData = new Vector4(p0.X, p0.Y, p1.X, p1.Y),
-                ShapeData2 = new Vector4(p2.X, p2.Y, 0f, 0f),
+                ShapeData2 = new Vector4(p2.X, p2.Y, dashed ? inputs.DashLength : 0f, dashed ? inputs.GapLength : 0f),
                 HalfWidth = half,
                 Color = inputs.Color,
                 Color2 = grad ? inputs.GradientEndColor!.Value : inputs.Color,
                 ShapeType = ShapeBezier,
-                Flags = grad ? FlagGradient : 0u,
+                Flags = flags,
                 ClipIndex = (uint)_clipStack.Peek(),
             }
         });
