@@ -9,6 +9,7 @@ using ZGF.Gui.Metal;
 using ZGF.Gui.Mobile.Input;
 using ZGF.Rendering.Metal;
 using AppUtilsAssets = ZGF.AppUtils.EmbeddedAssets;
+using CGRect = CoreGraphics.CGRect;
 using CGSize = CoreGraphics.CGSize;
 using MTLPixelFormat = Metal.MTLPixelFormat;
 
@@ -46,8 +47,20 @@ public sealed class MetalViewController : UIViewController
 
     public override void LoadView()
     {
-        _metalView = new MetalUiView(UIScreen.MainScreen.Bounds);
+        // Sized to its window by the scene's root-view-controller assignment and tracked on
+        // resize; ViewDidLayoutSubviews reads the real bounds before building the canvas.
+        _metalView = new MetalUiView(CGRect.Empty)
+        {
+            AutoresizingMask = UIViewAutoresizing.FlexibleWidth | UIViewAutoresizing.FlexibleHeight,
+        };
         View = _metalView;
+    }
+
+    // Display scale without the deprecated UIScreen.MainScreen; the trait environment carries it.
+    private float CurrentScale()
+    {
+        var scale = (float)TraitCollection.DisplayScale;
+        return scale > 0f ? scale : 2f;
     }
 
     public override void ViewDidLoad()
@@ -56,7 +69,7 @@ public sealed class MetalViewController : UIViewController
 
         _device = MTLDevice.SystemDefault ?? throw new InvalidOperationException("No Metal device available.");
         _queue = _device.CreateCommandQueue() ?? throw new InvalidOperationException("Could not create a Metal command queue.");
-        _scale = (float)UIScreen.MainScreen.Scale;
+        _scale = CurrentScale();
 
         var layer = _metalView.MetalLayer;
         layer.Device = _device;
@@ -89,7 +102,7 @@ public sealed class MetalViewController : UIViewController
         if (logicalW <= 0 || logicalH <= 0)
             return;
 
-        _scale = (float)(_metalView.Window?.Screen?.Scale ?? UIScreen.MainScreen.Scale);
+        _scale = CurrentScale();
         _metalView.MetalLayer.ContentsScale = _scale;
         _metalView.MetalLayer.DrawableSize = new CGSize(logicalW * _scale, logicalH * _scale);
 
