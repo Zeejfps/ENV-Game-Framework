@@ -17,7 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <InternalsVisibleTo Include="ZGF.Gui.Tests" />
+      <InternalsVisibleTo Include="ZGF.Gui.Sandbox" />
     </ItemGroup>
 
     <ItemGroup>
