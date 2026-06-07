@@ -26,6 +26,7 @@ public sealed class ChartView : MultiChildView
     private const uint ZoneBorder = 0xFF55E08A;
     private const uint LabelColor = 0xFF7C879E;
     private const uint TasteColor = 0xFF8893A8;
+    private const uint RatioLineColor = 0xAA4C8DFF;
     private const uint PointRing = 0xFFFFFFFF;
 
     private const float MarginLeft = 32f;
@@ -132,6 +133,10 @@ public sealed class ChartView : MultiChildView
         CenterLabel(c, plot.Center.X, plot.Top - 13f, "STRONG", tasteStyle, z + 5);
         CenterLabel(c, plot.Center.X, plot.Bottom + 13f, "WEAK", tasteStyle, z + 5);
 
+        // The brew-ratio path: at a fixed dose+yield the ratio is constant, so dragging TDS slides
+        // the point along TDS = EY / ratio (a ray from the origin). ratio = EY / TDS at the point.
+        DrawRatioLine(c, plot, z + 4);
+
         // The live point, clamped onto the plot so it never leaves the panel.
         var px = MapX(plot, Math.Clamp(_ey, EyMin, EyMax));
         var py = MapY(plot, Math.Clamp(_tds, TdsMin, TdsMax));
@@ -155,6 +160,30 @@ public sealed class ChartView : MultiChildView
             Style = new RectStyle { BackgroundColor = _pointColor, BorderRadius = BorderRadiusStyle.All(core) },
             ZIndex = z + 8,
         });
+    }
+
+    // Draws the iso-ratio diagonal by sampling TDS = EY / ratio across the plot in small steps
+    // (the canvas can't rotate a rect, so the line is a run of tiny rects).
+    private void DrawRatioLine(ICanvas c, in RectF plot, int z)
+    {
+        if (_tds <= 0.01f || _ey <= 0.01f)
+            return;
+
+        var ratio = _ey / _tds;
+        for (var px = plot.Left; px <= plot.Right; px += 2f)
+        {
+            var ey = EyMin + (px - plot.Left) / plot.Width * (EyMax - EyMin);
+            var tds = ey / ratio;
+            if (tds < TdsMin || tds > TdsMax)
+                continue;
+            var y = MapY(plot, tds);
+            c.DrawRect(new DrawRectInputs
+            {
+                Position = new RectF(px, y - 1.25f, 2.75f, 2.75f),
+                Style = new RectStyle { BackgroundColor = RatioLineColor },
+                ZIndex = z,
+            });
+        }
     }
 
     private static void CenterLabel(ICanvas c, float cx, float cy, string text, TextStyle style, int z)
