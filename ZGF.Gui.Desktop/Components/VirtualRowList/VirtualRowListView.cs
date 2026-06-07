@@ -144,6 +144,27 @@ public sealed class VirtualRowListView : View
         SetDirty();
     }
 
+    /// <summary>
+    /// Computes the rect a row currently occupies, in GUI coordinates, for any in-range
+    /// index — even one scrolled outside the viewport. Returns false only when
+    /// <paramref name="index"/> is out of range (covers <see cref="ItemCount"/> == 0).
+    /// The result is purely a function of the index and current scroll, independent of
+    /// layout readiness; callers that need on-screen-ness intersect the rect with
+    /// <see cref="View.Position"/> themselves. Consumers use this to float a retained
+    /// editor over a painted row and let it ride the cell as the list scrolls.
+    /// </summary>
+    public bool TryGetRowRect(int index, out RectF rect)
+    {
+        if (index < 0 || index >= ItemCount)
+        {
+            rect = default;
+            return false;
+        }
+
+        rect = RowRect(index);
+        return true;
+    }
+
     protected override void OnDrawSelf(ICanvas c)
     {
         var pos = Position;
@@ -166,11 +187,9 @@ public sealed class VirtualRowListView : View
 
         for (var i = firstVisible; i <= lastVisible; i++)
         {
-            var rowTop = top + _scrollY - i * RowHeight;
-            var rowBottom = rowTop - RowHeight;
-            if (rowTop <= pos.Bottom || rowBottom >= top) continue;
+            var rowRect = RowRect(i);
+            if (rowRect.Top <= pos.Bottom || rowRect.Bottom >= top) continue;
 
-            var rowRect = new RectF(pos.Left, rowBottom, pos.Width, RowHeight);
             var state = new RowRenderState(
                 IsHovered: i == _hoveredIndex,
                 IsContextHighlighted: i == _contextHighlightIndex);
@@ -247,6 +266,13 @@ public sealed class VirtualRowListView : View
         if (!Position.ContainsPoint(point)) return;
         var idx = HitTestRow(point);
         RowContextRequested?.Invoke(idx, point);
+    }
+
+    private RectF RowRect(int index)
+    {
+        var pos = Position;
+        var rowTop = pos.Top + _scrollY - index * RowHeight;
+        return new RectF(pos.Left, rowTop - RowHeight, pos.Width, RowHeight);
     }
 
     private int HitTestRow(PointF point)
