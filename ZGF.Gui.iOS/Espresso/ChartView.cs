@@ -25,6 +25,7 @@ public sealed class ChartView : MultiChildView
     private const uint ZoneFill = 0x2255E08A;
     private const uint ZoneBorder = 0xFF55E08A;
     private const uint LabelColor = 0xFF7C879E;
+    private const uint TasteColor = 0xFF8893A8;
     private const uint PointRing = 0xFFFFFFFF;
 
     private const float MarginLeft = 32f;
@@ -117,6 +118,20 @@ public sealed class ChartView : MultiChildView
         });
         StrokeRect(c, zone, ZoneBorder, 1f, z + 3);
 
+        // Ambient taste words at the four edges: extraction runs sour -> bitter across X,
+        // strength runs weak -> strong up Y. They orient the chart without a legend.
+        var tasteStyle = new TextStyle
+        {
+            FontSize = 11f,
+            TextColor = TasteColor,
+            HorizontalAlignment = TextAlignment.Center,
+            VerticalAlignment = TextAlignment.Center,
+        };
+        CenterLabel(c, plot.Left + 30f, plot.Center.Y, "SOUR", tasteStyle, z + 5);
+        CenterLabel(c, plot.Right - 34f, plot.Center.Y, "BITTER", tasteStyle, z + 5);
+        CenterLabel(c, plot.Center.X, plot.Top - 13f, "STRONG", tasteStyle, z + 5);
+        CenterLabel(c, plot.Center.X, plot.Bottom + 13f, "WEAK", tasteStyle, z + 5);
+
         // The live point, clamped onto the plot so it never leaves the panel.
         var px = MapX(plot, Math.Clamp(_ey, EyMin, EyMax));
         var py = MapY(plot, Math.Clamp(_tds, TdsMin, TdsMax));
@@ -139,6 +154,19 @@ public sealed class ChartView : MultiChildView
             Position = new RectF(px - core, py - core, core * 2f, core * 2f),
             Style = new RectStyle { BackgroundColor = _pointColor, BorderRadius = BorderRadiusStyle.All(core) },
             ZIndex = z + 8,
+        });
+    }
+
+    private static void CenterLabel(ICanvas c, float cx, float cy, string text, TextStyle style, int z)
+    {
+        const float w = 90f;
+        const float h = 16f;
+        c.DrawText(new DrawTextInputs
+        {
+            Position = new RectF(cx - w * 0.5f, cy - h * 0.5f, w, h),
+            Text = text,
+            Style = style,
+            ZIndex = z,
         });
     }
 
