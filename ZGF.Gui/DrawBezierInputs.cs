@@ -10,4 +10,6 @@ public readonly struct DrawBezierInputs
     public required float Thickness { get; init; }
     public required uint Color { get; init; }
     public required int ZIndex { get; init; }
+
+    public uint? GradientEndColor { get; init; } // null = solid Color; else Color -> this along the curve (by parameter t)
 }

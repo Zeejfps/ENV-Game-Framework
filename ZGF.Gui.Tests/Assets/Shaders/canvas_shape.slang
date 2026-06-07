@@ -114,14 +114,19 @@ float sdLineCapped(float2 p, float2 a, float2 b, float hw, uint cap)
 
 // Unsigned distance from point p to the quadratic Bezier A->B->C (B is the
 // control point). Solves the depressed cubic for the closest parameter t.
+// Returns (distance, t) so callers can shade along the curve.
 // Source: Inigo Quilez (https://www.shadertoy.com/view/MlKcDD).
-float sdBezier(float2 p, float2 A, float2 B, float2 C)
+float2 sdBezier(float2 p, float2 A, float2 B, float2 C)
 {
     float2 b = A - 2.0 * B + C;
     // Degenerate (control collinear with endpoints): fall back to a segment,
     // otherwise the 1/dot(b,b) term below explodes.
     if (dot(b, b) < 1e-4)
-        return sdSegment(p, A, C);
+    {
+        float2 ac = C - A;
+        float td = clamp(dot(p - A, ac) / max(dot(ac, ac), 1e-6), 0.0, 1.0);
+        return float2(sdSegment(p, A, C), td);
+    }
 
     float2 a = B - A;
     float2 e = A - p;
@@ -131,6 +136,7 @@ float sdBezier(float2 p, float2 A, float2 B, float2 C)
     float kz = kk * dot(e, a);
 
     float res;
+    float bestT;
     float pp = ky - kx * kx;
     float pp3 = pp * pp * pp;
     float q = kx * (2.0 * kx * kx - 3.0 * ky) + kz;
@@ -144,6 +150,7 @@ float sdBezier(float2 p, float2 A, float2 B, float2 C)
         float t = clamp(uv.x + uv.y - kx, 0.0, 1.0);
         float2 dd = e + (2.0 * a + b * t) * t;
         res = dot(dd, dd);
+        bestT = t;
     }
     else
     {
@@ -155,9 +162,12 @@ float sdBezier(float2 p, float2 A, float2 B, float2 C)
         float t1 = clamp((-n - m) * z - kx, 0.0, 1.0);
         float2 d0 = e + (2.0 * a + b * t0) * t0;
         float2 d1 = e + (2.0 * a + b * t1) * t1;
-        res = min(dot(d0, d0), dot(d1, d1));
+        float dd0 = dot(d0, d0);
+        float dd1 = dot(d1, d1);
+        res = min(dd0, dd1);
+        bestT = dd0 < dd1 ? t0 : t1;
     }
-    return sqrt(res);
+    return float2(sqrt(res), bestT);
 }
 
 [shader("fragment")]
@@ -171,10 +181,13 @@ float4 fragmentMain(Varyings v) : SV_Target
     }
 
     float d;
+    float bezierT = 0.0;
     if (v.shapeType == 3u)
     {
         // quadratic bezier stroke (round caps/joins)
-        d = sdBezier(v.pixelPos, v.shapeData.xy, v.shapeData.zw, v.shapeData2.xy) - v.halfWidth;
+        float2 bz = sdBezier(v.pixelPos, v.shapeData.xy, v.shapeData.zw, v.shapeData2.xy);
+        d = bz.x - v.halfWidth;
+        bezierT = bz.y;
     }
     else if (v.shapeType == 2u)
     {
@@ -211,11 +224,19 @@ float4 fragmentMain(Varyings v) : SV_Target
     }
 
     float4 rgba = unpackARGB(v.color);
-    if (v.shapeType == 2u && (v.flags & 8u) != 0u)
+    if ((v.flags & 8u) != 0u)
     {
-        // line gradient: lerp color -> color2 along the segment
-        float2 ba = v.shapeData.zw - v.shapeData.xy;
-        float g = clamp(dot(v.pixelPos - v.shapeData.xy, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
+        // gradient: lerp color -> color2 along the stroke
+        float g;
+        if (v.shapeType == 3u)
+        {
+            g = bezierT;
+        }
+        else
+        {
+            float2 ba = v.shapeData.zw - v.shapeData.xy;
+            g = clamp(dot(v.pixelPos - v.shapeData.xy, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
+        }
         rgba = lerp(rgba, unpackARGB(v.color2), g);
     }
     return float4(rgba.rgb, rgba.a * coverage);

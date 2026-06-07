@@ -381,6 +381,8 @@ public abstract class RenderedCanvasBase : ICanvas
         var maxX = MathF.Max(p0.X, MathF.Max(p1.X, p2.X)) + pad;
         var maxY = MathF.Max(p0.Y, MathF.Max(p1.Y, p2.Y)) + pad;
 
+        var grad = inputs.GradientEndColor.HasValue;
+
         _stagedShapes.Add(new StagedShape
         {
             Key = MakeKey(inputs.ZIndex, _sequence++),
@@ -391,7 +393,9 @@ public abstract class RenderedCanvasBase : ICanvas
                 ShapeData2 = new Vector4(p2.X, p2.Y, 0f, 0f),
                 HalfWidth = half,
                 Color = inputs.Color,
+                Color2 = grad ? inputs.GradientEndColor!.Value : inputs.Color,
                 ShapeType = ShapeBezier,
+                Flags = grad ? FlagGradient : 0u,
                 ClipIndex = (uint)_clipStack.Peek(),
             }
         });

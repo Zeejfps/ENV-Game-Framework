@@ -49,11 +49,15 @@ float sdLineCapped(vec2 p, vec2 a, vec2 b, float hw, uint cap) {
     return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
 }
 
-// Unsigned distance to the quadratic Bezier A->B->C (B is the control point).
-// Source: Inigo Quilez (https://www.shadertoy.com/view/MlKcDD).
-float sdBezier(vec2 p, vec2 A, vec2 B, vec2 C) {
+// Distance + closest parameter t for the quadratic Bezier A->B->C (B = control).
+// Returns (distance, t). Source: Inigo Quilez (https://www.shadertoy.com/view/MlKcDD).
+vec2 sdBezier(vec2 p, vec2 A, vec2 B, vec2 C) {
     vec2 b = A - 2.0 * B + C;
-    if (dot(b, b) < 1e-4) return sdSegment(p, A, C); // control collinear -> segment
+    if (dot(b, b) < 1e-4) { // control collinear -> segment
+        vec2 ac = C - A;
+        float td = clamp(dot(p - A, ac) / max(dot(ac, ac), 1e-6), 0.0, 1.0);
+        return vec2(sdSegment(p, A, C), td);
+    }
     vec2 a = B - A;
     vec2 e = A - p;
     float kk = 1.0 / dot(b, b);
@@ -61,6 +65,7 @@ float sdBezier(vec2 p, vec2 A, vec2 B, vec2 C) {
     float ky = kk * (2.0 * dot(a, a) + dot(e, b)) / 3.0;
     float kz = kk * dot(e, a);
     float res;
+    float bestT;
     float pp = ky - kx * kx;
     float pp3 = pp * pp * pp;
     float q = kx * (2.0 * kx * kx - 3.0 * ky) + kz;
@@ -72,6 +77,7 @@ float sdBezier(vec2 p, vec2 A, vec2 B, vec2 C) {
         float t = clamp(uv.x + uv.y - kx, 0.0, 1.0);
         vec2 dd = e + (2.0 * a + b * t) * t;
         res = dot(dd, dd);
+        bestT = t;
     } else {
         float z = sqrt(-pp);
         float v = acos(q / (pp * z * 2.0)) / 3.0;
@@ -81,9 +87,12 @@ float sdBezier(vec2 p, vec2 A, vec2 B, vec2 C) {
         float t1 = clamp((-n - m) * z - kx, 0.0, 1.0);
         vec2 d0 = e + (2.0 * a + b * t0) * t0;
         vec2 d1 = e + (2.0 * a + b * t1) * t1;
-        res = min(dot(d0, d0), dot(d1, d1));
+        float dd0 = dot(d0, d0);
+        float dd1 = dot(d1, d1);
+        res = min(dd0, dd1);
+        bestT = dd0 < dd1 ? t0 : t1;
     }
-    return sqrt(res);
+    return vec2(sqrt(res), bestT);
 }
 
 void main() {
@@ -94,9 +103,12 @@ void main() {
     }
 
     float d;
+    float bezierT = 0.0;
     if (v_shapeType == 3u) {
         // quadratic bezier stroke (round caps/joins)
-        d = sdBezier(v_pixelPos, v_shapeData.xy, v_shapeData.zw, v_shapeData2.xy) - v_halfWidth;
+        vec2 bz = sdBezier(v_pixelPos, v_shapeData.xy, v_shapeData.zw, v_shapeData2.xy);
+        d = bz.x - v_halfWidth;
+        bezierT = bz.y;
     } else if (v_shapeType == 2u) {
         // line with selectable cap
         d = sdLineCapped(v_pixelPos, v_shapeData.xy, v_shapeData.zw, v_halfWidth, v_flags & 3u);
@@ -122,10 +134,15 @@ void main() {
     if (coverage <= 0.0) discard;
 
     vec4 rgba = unpackARGB(v_color);
-    if (v_shapeType == 2u && (v_flags & 8u) != 0u) {
-        // line gradient: mix color -> color2 along the segment
-        vec2 ba = v_shapeData.zw - v_shapeData.xy;
-        float g = clamp(dot(v_pixelPos - v_shapeData.xy, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
+    if ((v_flags & 8u) != 0u) {
+        // gradient: mix color -> color2 along the stroke
+        float g;
+        if (v_shapeType == 3u) {
+            g = bezierT;
+        } else {
+            vec2 ba = v_shapeData.zw - v_shapeData.xy;
+            g = clamp(dot(v_pixelPos - v_shapeData.xy, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
+        }
         rgba = mix(rgba, unpackARGB(v_color2), g);
     }
     f_Color = vec4(rgba.rgb, rgba.a * coverage);
