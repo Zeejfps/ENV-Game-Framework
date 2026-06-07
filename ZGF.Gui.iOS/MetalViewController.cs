@@ -1,16 +1,16 @@
+using System;
 using CoreAnimation;
-using CoreGraphics;
 using Foundation;
 using Metal;
 using UIKit;
 using ZGF.Fonts;
-using ZGF.Geometry;
-using ZGF.Gui;
 using ZGF.Gui.iOS.Espresso;
 using ZGF.Gui.Metal;
 using ZGF.Gui.Mobile.Input;
 using ZGF.Rendering.Metal;
 using AppUtilsAssets = ZGF.AppUtils.EmbeddedAssets;
+using CGSize = CoreGraphics.CGSize;
+using MTLPixelFormat = Metal.MTLPixelFormat;
 
 namespace ZGF.Gui.iOS;
 
@@ -60,7 +60,7 @@ public sealed class MetalViewController : UIViewController
 
         var layer = _metalView.MetalLayer;
         layer.Device = _device;
-        layer.PixelFormat = global::Metal.MTLPixelFormat.BGRA8Unorm; // matches MetalSharedResources' pipeline color format
+        layer.PixelFormat = MTLPixelFormat.BGRA8Unorm; // matches MetalSharedResources' pipeline color format
         layer.FramebufferOnly = true;
         layer.ContentsScale = _scale;
 
@@ -91,7 +91,7 @@ public sealed class MetalViewController : UIViewController
 
         _scale = (float)(_metalView.Window?.Screen?.Scale ?? UIScreen.MainScreen.Scale);
         _metalView.MetalLayer.ContentsScale = _scale;
-        _metalView.MetalLayer.DrawableSize = new global::CoreGraphics.CGSize(logicalW * _scale, logicalH * _scale);
+        _metalView.MetalLayer.DrawableSize = new CGSize(logicalW * _scale, logicalH * _scale);
 
         if (_canvas == null)
         {
@@ -144,7 +144,7 @@ public sealed class MetalViewController : UIViewController
             _displayLink?.Invalidate();
             _displayLink?.Dispose();
             _displayLink = null;
-            (_canvas as IDisposable)?.Dispose();
+            _canvas?.Dispose();
             _shared?.Dispose();
             _imageManager?.Dispose();
         }
