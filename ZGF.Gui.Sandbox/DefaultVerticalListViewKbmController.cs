@@ -5,7 +5,7 @@ using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.VerticalScrollBar;
 using ZGF.KeyboardModule;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.Sandbox;
 
 public sealed class DefaultVerticalListViewKbmController : KeyboardMouseController, IDisposable
 {

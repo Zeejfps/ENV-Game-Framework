@@ -6,7 +6,7 @@ using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 using static OpenGL.NET.GLBuffer;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.Sandbox;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public record struct VertexDefinition

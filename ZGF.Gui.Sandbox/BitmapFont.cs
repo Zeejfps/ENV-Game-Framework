@@ -1,7 +1,7 @@
 ﻿using PngSharp.Api;
 using ZGF.BMFontModule;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.Sandbox;
 
 public sealed class BitmapFont
 {

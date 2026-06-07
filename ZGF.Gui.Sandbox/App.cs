@@ -14,7 +14,7 @@ using ZGF.Gui.Views;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.Sandbox;
 
 public sealed class App : IDisposable
 {

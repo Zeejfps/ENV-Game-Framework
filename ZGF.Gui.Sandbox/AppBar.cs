@@ -1,7 +1,7 @@
 ﻿using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Views;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.Sandbox;
 
 public sealed class AppBar : MultiChildView
 {

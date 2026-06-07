@@ -4,7 +4,7 @@ using ZGF.BMFontModule;
 using ZGF.Geometry;
 using static GL46;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.Sandbox;
 
 internal readonly record struct DrawCommand(int Id, CommandKind Kind, int ZIndex, RectF Clip);
 

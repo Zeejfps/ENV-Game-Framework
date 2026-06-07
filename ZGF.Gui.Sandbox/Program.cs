@@ -1,5 +1,5 @@
 ﻿using ZGF.Desktop;
-using ZGF.Gui.Tests;
+using ZGF.Gui.Sandbox;
 
 var app = new App(new StartupConfig
 {

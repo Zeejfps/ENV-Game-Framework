@@ -1,7 +1,7 @@
 using System.Numerics;
 using ZGF.WavefrontObjModule;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.Sandbox;
 
 public ref struct VertexHelper
 {

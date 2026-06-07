@@ -3,7 +3,7 @@ using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.Sandbox;
 
 public abstract class BaseMenuItemController : KeyboardMouseController, IDisposable
 {

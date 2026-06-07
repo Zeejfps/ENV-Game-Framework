@@ -80,7 +80,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui", "ZGF.Gui\ZGF.Gui.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Desktop", "ZGF.Gui.Desktop\ZGF.Gui.Desktop.csproj", "{CEA85D2F-8936-4B3A-85F6-7B927A3D78EA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Tests", "ZGF.Gui.Tests\ZGF.Gui.Tests.csproj", "{8CD6673C-1BBF-4A13-924A-6FF4040DB8FA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Sandbox", "ZGF.Gui.Sandbox\ZGF.Gui.Sandbox.csproj", "{8CD6673C-1BBF-4A13-924A-6FF4040DB8FA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.BMFontModule", "ZGF.BMFontModule\ZGF.BMFontModule.csproj", "{62706035-9C40-45A5-9BC5-9D0C921BA7D8}"
 EndProject
@@ -111,6 +111,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Metal", "ZGF.Gui.Metal\ZGF.Gui.Metal.csproj", "{D1E67387-B601-4741-A089-96EE1ACF5662}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PngSharp", "PngSharp", "{F374D525-6A8F-C86E-EC2B-1044A6F46595}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Tests", "ZGF.Gui.Tests\ZGF.Gui.Tests.csproj", "{A7BD4CF9-5D67-45A5-B17C-E108DAEB10D9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -782,6 +784,18 @@ Global
 		{D1E67387-B601-4741-A089-96EE1ACF5662}.Release|x64.Build.0 = Release|Any CPU
 		{D1E67387-B601-4741-A089-96EE1ACF5662}.Release|x86.ActiveCfg = Release|Any CPU
 		{D1E67387-B601-4741-A089-96EE1ACF5662}.Release|x86.Build.0 = Release|Any CPU
+		{A7BD4CF9-5D67-45A5-B17C-E108DAEB10D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7BD4CF9-5D67-45A5-B17C-E108DAEB10D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7BD4CF9-5D67-45A5-B17C-E108DAEB10D9}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A7BD4CF9-5D67-45A5-B17C-E108DAEB10D9}.Debug|x64.Build.0 = Debug|Any CPU
+		{A7BD4CF9-5D67-45A5-B17C-E108DAEB10D9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A7BD4CF9-5D67-45A5-B17C-E108DAEB10D9}.Debug|x86.Build.0 = Debug|Any CPU
+		{A7BD4CF9-5D67-45A5-B17C-E108DAEB10D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7BD4CF9-5D67-45A5-B17C-E108DAEB10D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7BD4CF9-5D67-45A5-B17C-E108DAEB10D9}.Release|x64.ActiveCfg = Release|Any CPU
+		{A7BD4CF9-5D67-45A5-B17C-E108DAEB10D9}.Release|x64.Build.0 = Release|Any CPU
+		{A7BD4CF9-5D67-45A5-B17C-E108DAEB10D9}.Release|x86.ActiveCfg = Release|Any CPU
+		{A7BD4CF9-5D67-45A5-B17C-E108DAEB10D9}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

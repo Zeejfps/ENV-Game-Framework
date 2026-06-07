@@ -1,40 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <OutputType>WinExe</OutputType>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <PublishAot>true</PublishAot>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\EasyGameFramework\EasyGameFramework.csproj" />
-      <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
-      <ProjectReference Include="..\QuadTreeRendererProgram\QuadTreeRendererProgram.csproj" />
-      <ProjectReference Include="..\SoftwareRendererModule\SoftwareRendererModule.csproj" />
-      <ProjectReference Include="..\ZGF.BMFontModule\ZGF.BMFontModule.csproj" />
-      <ProjectReference Include="..\ZGF.Desktop\ZGF.Desktop.csproj" />
-      <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
-      <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
-      <ProjectReference Include="..\ZGF.Gui.Desktop\ZGF.Gui.Desktop.csproj" />
-      <ProjectReference Include="..\ZGF.KeyboardModule.GlfwAdapter\ZGF.KeyboardModule.GlfwAdapter.csproj" />
-      <ProjectReference Include="..\ZGF.WavefrontObjModule\ZGF.WavefrontObjModule.csproj" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
 
-    <ItemGroup>
-        <Content Include="Assets\**\*">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-    </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
 
-    <PropertyGroup Condition="$([System.OperatingSystem]::IsMacOS())">
-        <DefineConstants>OSX</DefineConstants>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="$([System.OperatingSystem]::IsWindows())">
-        <DefineConstants>WIN</DefineConstants>
-    </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+  </ItemGroup>
 
 </Project>

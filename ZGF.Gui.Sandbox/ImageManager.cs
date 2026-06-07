@@ -4,7 +4,7 @@ using SoftwareRendererModule;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.Sandbox;
 
 public readonly struct FrameBufferHandle
 {

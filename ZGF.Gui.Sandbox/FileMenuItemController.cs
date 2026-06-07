@@ -1,6 +1,6 @@
 using ZGF.Gui.Desktop.Components.ContextMenu;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.Sandbox;
 
 public sealed class FileMenuItemController : BaseMenuItemController
 {
