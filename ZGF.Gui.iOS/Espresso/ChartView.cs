@@ -25,7 +25,6 @@ public sealed class ChartView : MultiChildView
     private const uint ZoneFill = 0x2255E08A;
     private const uint ZoneBorder = 0xFF55E08A;
     private const uint LabelColor = 0xFF7C879E;
-    private const uint CrosshairColor = 0x33FFFFFF;
     private const uint PointRing = 0xFFFFFFFF;
 
     private const float MarginLeft = 32f;
@@ -122,8 +121,10 @@ public sealed class ChartView : MultiChildView
         var px = MapX(plot, Math.Clamp(_ey, EyMin, EyMax));
         var py = MapY(plot, Math.Clamp(_tds, TdsMin, TdsMax));
 
-        FillRect(c, new RectF(plot.Left, py - 0.5f, plot.Width, 1f), CrosshairColor, z + 4);
-        FillRect(c, new RectF(px - 0.5f, plot.Bottom, 1f, plot.Height), CrosshairColor, z + 4);
+        // Crosshair tinted with the shot colour so the lines clearly read against the grid.
+        var crossColor = (_pointColor & 0x00FFFFFFu) | 0x88000000u;
+        FillRect(c, new RectF(plot.Left, py - 1f, plot.Width, 2f), crossColor, z + 4);
+        FillRect(c, new RectF(px - 1f, plot.Bottom, 2f, plot.Height), crossColor, z + 4);
 
         const float ring = 9f;
         const float core = 6f;
