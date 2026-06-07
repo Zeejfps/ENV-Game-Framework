@@ -385,10 +385,11 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         var stride = sizeof(ShapeInstance);
         AddFloatInstanceAttrib(1, 4, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.OuterRect)));
         AddFloatInstanceAttrib(2, 4, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.ShapeData)));
-        AddFloatInstanceAttrib(3, 1, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.HalfWidth)));
-        AddUintInstanceAttrib(4, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.Color)));
-        AddUintInstanceAttrib(5, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.ShapeType)));
-        AddUintInstanceAttrib(6, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.ClipIndex)));
+        AddFloatInstanceAttrib(3, 4, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.ShapeData2)));
+        AddFloatInstanceAttrib(4, 1, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.HalfWidth)));
+        AddUintInstanceAttrib(5, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.Color)));
+        AddUintInstanceAttrib(6, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.ShapeType)));
+        AddUintInstanceAttrib(7, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.ClipIndex)));
         glBindVertexArray(0);
         AssertNoGlError();
         return vao;
@@ -480,10 +481,11 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         var baseBytes = firstInstance * stride;
         SetFloatInstancePointer(1, 4, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.OuterRect)));
         SetFloatInstancePointer(2, 4, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.ShapeData)));
-        SetFloatInstancePointer(3, 1, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.HalfWidth)));
-        SetUintInstancePointer(4, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.Color)));
-        SetUintInstancePointer(5, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.ShapeType)));
-        SetUintInstancePointer(6, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.ClipIndex)));
+        SetFloatInstancePointer(3, 4, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.ShapeData2)));
+        SetFloatInstancePointer(4, 1, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.HalfWidth)));
+        SetUintInstancePointer(5, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.Color)));
+        SetUintInstancePointer(6, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.ShapeType)));
+        SetUintInstancePointer(7, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.ClipIndex)));
     }
 
     private void SetupClipUbo()

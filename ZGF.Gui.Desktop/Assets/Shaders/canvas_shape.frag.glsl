@@ -6,6 +6,7 @@
 
 in vec2 v_pixelPos;
 in vec4 v_shapeData;
+in vec4 v_shapeData2;
 flat in float v_halfWidth;
 flat in uint v_color;
 flat in uint v_shapeType;
@@ -32,6 +33,43 @@ float sdSegment(vec2 p, vec2 a, vec2 b) {
     return length(pa - ba * h);
 }
 
+// Unsigned distance to the quadratic Bezier A->B->C (B is the control point).
+// Source: Inigo Quilez (https://www.shadertoy.com/view/MlKcDD).
+float sdBezier(vec2 p, vec2 A, vec2 B, vec2 C) {
+    vec2 b = A - 2.0 * B + C;
+    if (dot(b, b) < 1e-4) return sdSegment(p, A, C); // control collinear -> segment
+    vec2 a = B - A;
+    vec2 e = A - p;
+    float kk = 1.0 / dot(b, b);
+    float kx = kk * dot(a, b);
+    float ky = kk * (2.0 * dot(a, a) + dot(e, b)) / 3.0;
+    float kz = kk * dot(e, a);
+    float res;
+    float pp = ky - kx * kx;
+    float pp3 = pp * pp * pp;
+    float q = kx * (2.0 * kx * kx - 3.0 * ky) + kz;
+    float h = q * q + 4.0 * pp3;
+    if (h >= 0.0) {
+        h = sqrt(h);
+        vec2 x = (vec2(h, -h) - q) / 2.0;
+        vec2 uv = sign(x) * pow(abs(x), vec2(1.0 / 3.0));
+        float t = clamp(uv.x + uv.y - kx, 0.0, 1.0);
+        vec2 dd = e + (2.0 * a + b * t) * t;
+        res = dot(dd, dd);
+    } else {
+        float z = sqrt(-pp);
+        float v = acos(q / (pp * z * 2.0)) / 3.0;
+        float m = cos(v);
+        float n = sin(v) * 1.732050808;
+        float t0 = clamp((m + m) * z - kx, 0.0, 1.0);
+        float t1 = clamp((-n - m) * z - kx, 0.0, 1.0);
+        vec2 d0 = e + (2.0 * a + b * t0) * t0;
+        vec2 d1 = e + (2.0 * a + b * t1) * t1;
+        res = min(dot(d0, d0), dot(d1, d1));
+    }
+    return sqrt(res);
+}
+
 void main() {
     vec4 clip = u_clipRects[v_clipIndex];
     if (v_pixelPos.x < clip.x || v_pixelPos.x >= clip.z ||
@@ -40,7 +78,10 @@ void main() {
     }
 
     float d;
-    if (v_shapeType == 2u) {
+    if (v_shapeType == 3u) {
+        // quadratic bezier stroke (round caps/joins)
+        d = sdBezier(v_pixelPos, v_shapeData.xy, v_shapeData.zw, v_shapeData2.xy) - v_halfWidth;
+    } else if (v_shapeType == 2u) {
         // line / capsule (round caps)
         d = sdSegment(v_pixelPos, v_shapeData.xy, v_shapeData.zw) - v_halfWidth;
     } else if (v_shapeType == 1u) {

@@ -10,6 +10,7 @@ public interface ICanvas
     void DrawBoxShadow(in DrawBoxShadowInputs inputs);
     void DrawLine(in DrawLineInputs inputs);
     void DrawCircle(in DrawCircleInputs inputs);
+    void DrawBezier(in DrawBezierInputs inputs);
     
     bool TryGetClip(out RectF rect);
     void PushClip(RectF rect);

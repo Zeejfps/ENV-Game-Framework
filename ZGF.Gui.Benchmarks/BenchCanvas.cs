@@ -23,6 +23,7 @@ public sealed class BenchCanvas : RenderedCanvasBase
     public readonly List<GlyphInstance> CapturedGlyphs = new();
     public readonly List<ImageInstance> CapturedImages = new();
     public readonly List<ShadowInstance> CapturedShadows = new();
+    public readonly List<ShapeInstance> CapturedShapes = new();
     public readonly List<Vector4> CapturedClips = new();
     public readonly List<DrawCall> CapturedDrawCalls = new();
     public int LastDrawCallCount { get; private set; }
@@ -53,6 +54,13 @@ public sealed class BenchCanvas : RenderedCanvasBase
         if (!Capture) return;
         CapturedShadows.Clear();
         for (var i = 0; i < count; i++) CapturedShadows.Add(data[i]);
+    }
+
+    protected override void UploadShapeInstances(ShapeInstance[] data, int count)
+    {
+        if (!Capture) return;
+        CapturedShapes.Clear();
+        for (var i = 0; i < count; i++) CapturedShapes.Add(data[i]);
     }
 
     protected override void UploadClips(List<Vector4> clips)

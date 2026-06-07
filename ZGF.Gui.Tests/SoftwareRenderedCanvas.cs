@@ -91,6 +91,12 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         // backends only); no test currently rasterizes one.
     }
 
+    public void DrawBezier(in DrawBezierInputs inputs)
+    {
+        // Bezier curves are not implemented in the software canvas yet (used by
+        // GPU backends only); no test currently rasterizes one.
+    }
+
     private RectF GetClip()
     {
         if (_clipStack.Count == 0)

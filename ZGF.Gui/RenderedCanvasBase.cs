@@ -58,14 +58,16 @@ public abstract class RenderedCanvasBase : ICanvas
     }
 
     // Generic anti-aliased SDF primitive (see canvas_shape shaders).
-    //   ShapeType 0 filled circle: ShapeData = (cx, cy, radius, _),  HalfWidth unused
-    //   ShapeType 1 ring:          ShapeData = (cx, cy, radius, _),  HalfWidth = half stroke
-    //   ShapeType 2 line/capsule:  ShapeData = (x0, y0, x1, y1),     HalfWidth = half thickness
+    //   ShapeType 0 filled circle: ShapeData = (cx, cy, radius, _),                       HalfWidth unused
+    //   ShapeType 1 ring:          ShapeData = (cx, cy, radius, _),                       HalfWidth = half stroke
+    //   ShapeType 2 line/capsule:  ShapeData = (x0, y0, x1, y1),                          HalfWidth = half thickness
+    //   ShapeType 3 quad bezier:   ShapeData = (p0.xy, control.xy), ShapeData2 = (p2.xy, _, _), HalfWidth = half thickness
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public record struct ShapeInstance
     {
         public Vector4 OuterRect;       // drawn quad (padded AABB), x, y, w, h
         public Vector4 ShapeData;
+        public Vector4 ShapeData2;
         public float HalfWidth;
         public uint Color;              // ARGB packed
         public uint ShapeType;
@@ -75,6 +77,7 @@ public abstract class RenderedCanvasBase : ICanvas
     private const uint ShapeFilledCircle = 0;
     private const uint ShapeRing = 1;
     private const uint ShapeLine = 2;
+    private const uint ShapeBezier = 3;
 
     // Pack=1 so these stage entries have no trailing padding and can be compared
     // as raw bytes against the previous frame's snapshot (see FrameUnchanged).
@@ -339,6 +342,34 @@ public abstract class RenderedCanvasBase : ICanvas
                 HalfWidth = half,
                 Color = inputs.Color,
                 ShapeType = ShapeLine,
+                ClipIndex = (uint)_clipStack.Peek(),
+            }
+        });
+    }
+
+    public void DrawBezier(in DrawBezierInputs inputs)
+    {
+        var p0 = inputs.Start;
+        var p1 = inputs.Control;
+        var p2 = inputs.End;
+        var half = MathF.Max(inputs.Thickness, 0f) * 0.5f;
+        var pad = half + 1.5f;
+        var minX = MathF.Min(p0.X, MathF.Min(p1.X, p2.X)) - pad;
+        var minY = MathF.Min(p0.Y, MathF.Min(p1.Y, p2.Y)) - pad;
+        var maxX = MathF.Max(p0.X, MathF.Max(p1.X, p2.X)) + pad;
+        var maxY = MathF.Max(p0.Y, MathF.Max(p1.Y, p2.Y)) + pad;
+
+        _stagedShapes.Add(new StagedShape
+        {
+            Key = MakeKey(inputs.ZIndex, _sequence++),
+            Inst = new ShapeInstance
+            {
+                OuterRect = new Vector4(minX, minY, maxX - minX, maxY - minY),
+                ShapeData = new Vector4(p0.X, p0.Y, p1.X, p1.Y),
+                ShapeData2 = new Vector4(p2.X, p2.Y, 0f, 0f),
+                HalfWidth = half,
+                Color = inputs.Color,
+                ShapeType = ShapeBezier,
                 ClipIndex = (uint)_clipStack.Peek(),
             }
         });
