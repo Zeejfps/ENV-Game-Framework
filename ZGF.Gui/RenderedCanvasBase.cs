@@ -57,6 +57,25 @@ public abstract class RenderedCanvasBase : ICanvas
         private uint _pad;              // keep 16-byte alignment
     }
 
+    // Generic anti-aliased SDF primitive (see canvas_shape shaders).
+    //   ShapeType 0 filled circle: ShapeData = (cx, cy, radius, _),  HalfWidth unused
+    //   ShapeType 1 ring:          ShapeData = (cx, cy, radius, _),  HalfWidth = half stroke
+    //   ShapeType 2 line/capsule:  ShapeData = (x0, y0, x1, y1),     HalfWidth = half thickness
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public record struct ShapeInstance
+    {
+        public Vector4 OuterRect;       // drawn quad (padded AABB), x, y, w, h
+        public Vector4 ShapeData;
+        public float HalfWidth;
+        public uint Color;              // ARGB packed
+        public uint ShapeType;
+        public uint ClipIndex;
+    }
+
+    private const uint ShapeFilledCircle = 0;
+    private const uint ShapeRing = 1;
+    private const uint ShapeLine = 2;
+
     // Pack=1 so these stage entries have no trailing padding and can be compared
     // as raw bytes against the previous frame's snapshot (see FrameUnchanged).
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -67,8 +86,10 @@ public abstract class RenderedCanvasBase : ICanvas
     private struct StagedImage { public long Key; public ImageInstance Inst; }
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct StagedShadow { public long Key; public ShadowInstance Inst; }
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    private struct StagedShape { public long Key; public ShapeInstance Inst; }
 
-    public enum DrawKind : byte { Rect, Glyph, Image, Shadow }
+    public enum DrawKind : byte { Rect, Glyph, Image, Shadow, Shape }
 
     public readonly struct DrawCall
     {
@@ -84,6 +105,7 @@ public abstract class RenderedCanvasBase : ICanvas
     protected const int MaxGlyphs = 16384;
     protected const int MaxImages = 1024;
     protected const int MaxShadows = 512;
+    protected const int MaxShapes = 2048;
     protected const int MaxClips = 256;
 
     // ---------- Per-frame staging state ----------
@@ -92,6 +114,7 @@ public abstract class RenderedCanvasBase : ICanvas
     private readonly List<StagedGlyph> _stagedGlyphs = new();
     private readonly List<StagedImage> _stagedImages = new();
     private readonly List<StagedShadow> _stagedShadows = new();
+    private readonly List<StagedShape> _stagedShapes = new();
     private readonly List<Vector4> _stagedClips = new();
     private readonly Stack<int> _clipStack = new();
     private int _sequence;
@@ -101,7 +124,8 @@ public abstract class RenderedCanvasBase : ICanvas
     private GlyphInstance[] _curGlyphs = Array.Empty<GlyphInstance>();
     private ImageInstance[] _curImages = Array.Empty<ImageInstance>();
     private ShadowInstance[] _curShadows = Array.Empty<ShadowInstance>();
-    private int _curRectCount, _curGlyphCount, _curImageCount, _curShadowCount;
+    private ShapeInstance[] _curShapes = Array.Empty<ShapeInstance>();
+    private int _curRectCount, _curGlyphCount, _curImageCount, _curShadowCount, _curShapeCount;
 
     private DrawKind[] _itemKind = Array.Empty<DrawKind>();
     private int[] _itemSrc = Array.Empty<int>();
@@ -122,8 +146,9 @@ public abstract class RenderedCanvasBase : ICanvas
     private GlyphInstance[] _prevGlyphs = Array.Empty<GlyphInstance>();
     private ImageInstance[] _prevImages = Array.Empty<ImageInstance>();
     private ShadowInstance[] _prevShadows = Array.Empty<ShadowInstance>();
+    private ShapeInstance[] _prevShapes = Array.Empty<ShapeInstance>();
     private Vector4[] _prevClips = Array.Empty<Vector4>();
-    private int _prevRectCount, _prevGlyphCount, _prevImageCount, _prevShadowCount, _prevClipCount;
+    private int _prevRectCount, _prevGlyphCount, _prevImageCount, _prevShadowCount, _prevShapeCount, _prevClipCount;
 
     // Previous-frame staged snapshots (pre-sort) used to detect an entirely
     // unchanged frame before paying for the sort/materialize pass.
@@ -131,7 +156,8 @@ public abstract class RenderedCanvasBase : ICanvas
     private StagedGlyph[] _snapGlyphs = Array.Empty<StagedGlyph>();
     private StagedImage[] _snapImages = Array.Empty<StagedImage>();
     private StagedShadow[] _snapShadows = Array.Empty<StagedShadow>();
-    private int _snapRectCount, _snapGlyphCount, _snapImageCount, _snapShadowCount;
+    private StagedShape[] _snapShapes = Array.Empty<StagedShape>();
+    private int _snapRectCount, _snapGlyphCount, _snapImageCount, _snapShadowCount, _snapShapeCount;
     private bool _hasSnapshot;
 
     private readonly List<DrawCall> _drawCalls = new();
@@ -194,6 +220,7 @@ public abstract class RenderedCanvasBase : ICanvas
         _stagedGlyphs.Clear();
         _stagedImages.Clear();
         _stagedShadows.Clear();
+        _stagedShapes.Clear();
         _stagedClips.Clear();
         _clipStack.Clear();
         _sequence = 0;
@@ -286,6 +313,58 @@ public abstract class RenderedCanvasBase : ICanvas
                     radius.BottomLeft.Value),
                 Sigma = sigma,
                 Color = shadow.Color.Value,
+                ClipIndex = (uint)_clipStack.Peek(),
+            }
+        });
+    }
+
+    public void DrawLine(in DrawLineInputs inputs)
+    {
+        var p0 = inputs.Start;
+        var p1 = inputs.End;
+        var half = MathF.Max(inputs.Thickness, 0f) * 0.5f;
+        var pad = half + 1.5f;
+        var minX = MathF.Min(p0.X, p1.X) - pad;
+        var minY = MathF.Min(p0.Y, p1.Y) - pad;
+        var maxX = MathF.Max(p0.X, p1.X) + pad;
+        var maxY = MathF.Max(p0.Y, p1.Y) + pad;
+
+        _stagedShapes.Add(new StagedShape
+        {
+            Key = MakeKey(inputs.ZIndex, _sequence++),
+            Inst = new ShapeInstance
+            {
+                OuterRect = new Vector4(minX, minY, maxX - minX, maxY - minY),
+                ShapeData = new Vector4(p0.X, p0.Y, p1.X, p1.Y),
+                HalfWidth = half,
+                Color = inputs.Color,
+                ShapeType = ShapeLine,
+                ClipIndex = (uint)_clipStack.Peek(),
+            }
+        });
+    }
+
+    public void DrawCircle(in DrawCircleInputs inputs)
+    {
+        var c = inputs.Center;
+        var r = MathF.Max(inputs.Radius, 0f);
+        var stroke = MathF.Max(inputs.Thickness, 0f);
+        var ring = stroke > 0f;
+        var half = stroke * 0.5f;
+        var ext = (ring ? r + half : r) + 1.5f;
+        var minX = c.X - ext;
+        var minY = c.Y - ext;
+
+        _stagedShapes.Add(new StagedShape
+        {
+            Key = MakeKey(inputs.ZIndex, _sequence++),
+            Inst = new ShapeInstance
+            {
+                OuterRect = new Vector4(minX, minY, ext * 2f, ext * 2f),
+                ShapeData = new Vector4(c.X, c.Y, r, 0f),
+                HalfWidth = half,
+                Color = inputs.Color,
+                ShapeType = ring ? ShapeRing : ShapeFilledCircle,
                 ClipIndex = (uint)_clipStack.Peek(),
             }
         });
@@ -634,6 +713,7 @@ public abstract class RenderedCanvasBase : ICanvas
             && StagedMatch(_stagedGlyphs, _snapGlyphs, _snapGlyphCount)
             && StagedMatch(_stagedImages, _snapImages, _snapImageCount)
             && StagedMatch(_stagedShadows, _snapShadows, _snapShadowCount)
+            && StagedMatch(_stagedShapes, _snapShapes, _snapShapeCount)
             && ArraysMatch(_stagedClips, _prevClips, _prevClipCount);
     }
 
@@ -643,6 +723,7 @@ public abstract class RenderedCanvasBase : ICanvas
         SnapshotList(_stagedGlyphs, ref _snapGlyphs, out _snapGlyphCount);
         SnapshotList(_stagedImages, ref _snapImages, out _snapImageCount);
         SnapshotList(_stagedShadows, ref _snapShadows, out _snapShadowCount);
+        SnapshotList(_stagedShapes, ref _snapShapes, out _snapShapeCount);
         _hasSnapshot = true;
     }
 
@@ -668,6 +749,7 @@ public abstract class RenderedCanvasBase : ICanvas
         _stagedGlyphs.Sort(static (a, b) => a.Key.CompareTo(b.Key));
         _stagedImages.Sort(static (a, b) => a.Key.CompareTo(b.Key));
         _stagedShadows.Sort(static (a, b) => a.Key.CompareTo(b.Key));
+        _stagedShapes.Sort(static (a, b) => a.Key.CompareTo(b.Key));
     }
 
     private static void EnsureCapacity<T>(ref T[] array, int count)
@@ -682,7 +764,7 @@ public abstract class RenderedCanvasBase : ICanvas
     // result is pixel-identical to strict paint order.
     private void BuildBatches()
     {
-        var total = _stagedRects.Count + _stagedGlyphs.Count + _stagedImages.Count + _stagedShadows.Count;
+        var total = _stagedRects.Count + _stagedGlyphs.Count + _stagedImages.Count + _stagedShadows.Count + _stagedShapes.Count;
         EnsureCapacity(ref _itemKind, total);
         EnsureCapacity(ref _itemSrc, total);
         EnsureCapacity(ref _itemNext, total);
@@ -697,25 +779,28 @@ public abstract class RenderedCanvasBase : ICanvas
         EnsureCapacity(ref _batchCountArr, total);
         _batchCount = 0;
 
-        int ri = 0, gi = 0, ii = 0, si = 0;
+        int ri = 0, gi = 0, ii = 0, si = 0, shi = 0;
         var rN = _stagedRects.Count;
         var gN = _stagedGlyphs.Count;
         var iN = _stagedImages.Count;
         var sN = _stagedShadows.Count;
+        var shN = _stagedShapes.Count;
         var item = 0;
 
-        while (ri < rN || gi < gN || ii < iN || si < sN)
+        while (ri < rN || gi < gN || ii < iN || si < sN || shi < shN)
         {
             var rKey = ri < rN ? _stagedRects[ri].Key : long.MaxValue;
             var gKey = gi < gN ? _stagedGlyphs[gi].Key : long.MaxValue;
             var iKey = ii < iN ? _stagedImages[ii].Key : long.MaxValue;
             var sKey = si < sN ? _stagedShadows[si].Key : long.MaxValue;
+            var shKey = shi < shN ? _stagedShapes[shi].Key : long.MaxValue;
 
             DrawKind pick;
-            if (rKey <= gKey && rKey <= iKey && rKey <= sKey) pick = DrawKind.Rect;
-            else if (gKey <= iKey && gKey <= sKey) pick = DrawKind.Glyph;
-            else if (iKey <= sKey) pick = DrawKind.Image;
-            else pick = DrawKind.Shadow;
+            if (rKey <= gKey && rKey <= iKey && rKey <= sKey && rKey <= shKey) pick = DrawKind.Rect;
+            else if (gKey <= iKey && gKey <= sKey && gKey <= shKey) pick = DrawKind.Glyph;
+            else if (iKey <= sKey && iKey <= shKey) pick = DrawKind.Image;
+            else if (sKey <= shKey) pick = DrawKind.Shadow;
+            else pick = DrawKind.Shape;
 
             int src;
             uint tex = 0;
@@ -735,9 +820,13 @@ public abstract class RenderedCanvasBase : ICanvas
                     tex = _stagedImages[src].Inst.TextureId;
                     Bounds(_stagedImages[src].Inst.Rect, _stagedImages[src].Inst.Rotation, _stagedImages[src].Inst.ClipIndex, out minX, out minY, out maxX, out maxY);
                     break;
-                default:
+                case DrawKind.Shadow:
                     src = si++;
                     Bounds(_stagedShadows[src].Inst.OuterRect, 0f, _stagedShadows[src].Inst.ClipIndex, out minX, out minY, out maxX, out maxY);
+                    break;
+                default:
+                    src = shi++;
+                    Bounds(_stagedShapes[src].Inst.OuterRect, 0f, _stagedShapes[src].Inst.ClipIndex, out minX, out minY, out maxX, out maxY);
                     break;
             }
 
@@ -801,9 +890,10 @@ public abstract class RenderedCanvasBase : ICanvas
         EnsureCapacity(ref _curGlyphs, _stagedGlyphs.Count);
         EnsureCapacity(ref _curImages, _stagedImages.Count);
         EnsureCapacity(ref _curShadows, _stagedShadows.Count);
+        EnsureCapacity(ref _curShapes, _stagedShapes.Count);
 
         _drawCalls.Clear();
-        int rc = 0, gc = 0, ic = 0, sc = 0;
+        int rc = 0, gc = 0, ic = 0, sc = 0, shc = 0;
 
         for (var b = 0; b < _batchCount; b++)
         {
@@ -826,10 +916,15 @@ public abstract class RenderedCanvasBase : ICanvas
                     for (var it = _batchHead[b]; it >= 0; it = _itemNext[it])
                         _curImages[ic++] = _stagedImages[_itemSrc[it]].Inst;
                     break;
-                default:
+                case DrawKind.Shadow:
                     start = sc;
                     for (var it = _batchHead[b]; it >= 0; it = _itemNext[it])
                         _curShadows[sc++] = _stagedShadows[_itemSrc[it]].Inst;
+                    break;
+                default:
+                    start = shc;
+                    for (var it = _batchHead[b]; it >= 0; it = _itemNext[it])
+                        _curShapes[shc++] = _stagedShapes[_itemSrc[it]].Inst;
                     break;
             }
 
@@ -846,6 +941,7 @@ public abstract class RenderedCanvasBase : ICanvas
         _curGlyphCount = gc;
         _curImageCount = ic;
         _curShadowCount = sc;
+        _curShapeCount = shc;
     }
 
     private void Bounds(Vector4 rect, float rotation, uint clipIndex,
@@ -930,6 +1026,16 @@ public abstract class RenderedCanvasBase : ICanvas
             UploadShadowInstances(_curShadows, _curShadowCount);
             LastFrameUploadCount++;
         }
+
+        if (!ArraysMatch(_curShapes, _curShapeCount, _prevShapes, _prevShapeCount))
+        {
+            EnsureCapacity(ref _prevShapes, _curShapeCount);
+            Array.Copy(_curShapes, _prevShapes, _curShapeCount);
+            _prevShapeCount = _curShapeCount;
+
+            UploadShapeInstances(_curShapes, _curShapeCount);
+            LastFrameUploadCount++;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -964,6 +1070,7 @@ public abstract class RenderedCanvasBase : ICanvas
     protected abstract void UploadGlyphInstances(GlyphInstance[] data, int count);
     protected abstract void UploadImageInstances(ImageInstance[] data, int count);
     protected abstract void UploadShadowInstances(ShadowInstance[] data, int count);
+    protected abstract void UploadShapeInstances(ShapeInstance[] data, int count);
     protected abstract void UploadClips(List<Vector4> clips);
     protected abstract void UpdateAtlasIfDirty();
     protected abstract void IssueDraws(IReadOnlyList<DrawCall> drawCalls);

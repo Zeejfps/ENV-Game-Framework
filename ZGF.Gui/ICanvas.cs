@@ -8,6 +8,8 @@ public interface ICanvas
     void DrawText(in DrawTextInputs inputs);
     void DrawImage(in DrawImageInputs inputs);
     void DrawBoxShadow(in DrawBoxShadowInputs inputs);
+    void DrawLine(in DrawLineInputs inputs);
+    void DrawCircle(in DrawCircleInputs inputs);
     
     bool TryGetClip(out RectF rect);
     void PushClip(RectF rect);

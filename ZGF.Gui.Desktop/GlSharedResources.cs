@@ -9,8 +9,8 @@ namespace ZGF.Gui.Desktop;
 
 public sealed unsafe class GlSharedResources : IDisposable
 {
-    private uint _rectShader, _glyphShader, _imageShader, _shadowShader;
-    private int _rectProjLoc, _glyphProjLoc, _imageProjLoc, _shadowProjLoc;
+    private uint _rectShader, _glyphShader, _imageShader, _shadowShader, _shapeShader;
+    private int _rectProjLoc, _glyphProjLoc, _imageProjLoc, _shadowProjLoc, _shapeProjLoc;
     private int _glyphAtlasLoc, _imageTexLoc;
     private uint _unitQuadVbo;
     private uint _fontAtlasTextureId;
@@ -22,10 +22,12 @@ public sealed unsafe class GlSharedResources : IDisposable
     public uint GlyphShader => _glyphShader;
     public uint ImageShader => _imageShader;
     public uint ShadowShader => _shadowShader;
+    public uint ShapeShader => _shapeShader;
     public int RectProjLoc => _rectProjLoc;
     public int GlyphProjLoc => _glyphProjLoc;
     public int ImageProjLoc => _imageProjLoc;
     public int ShadowProjLoc => _shadowProjLoc;
+    public int ShapeProjLoc => _shapeProjLoc;
     public int GlyphAtlasLoc => _glyphAtlasLoc;
     public int ImageTexLoc => _imageTexLoc;
     public uint UnitQuadVbo => _unitQuadVbo;
@@ -54,11 +56,16 @@ public sealed unsafe class GlSharedResources : IDisposable
             .WithVertexShaderSource(ShaderAssets.LoadShaderSource("canvas_shadow.vert.glsl"))
             .WithFragmentShaderSource(ShaderAssets.LoadShaderSource("canvas_shadow.frag.glsl"))
             .Compile().Id;
+        _shapeShader = new ShaderProgramCompiler()
+            .WithVertexShaderSource(ShaderAssets.LoadShaderSource("canvas_shape.vert.glsl"))
+            .WithFragmentShaderSource(ShaderAssets.LoadShaderSource("canvas_shape.frag.glsl"))
+            .Compile().Id;
 
         _rectProjLoc = glGetUniformLocation(_rectShader, "u_projection");
         _glyphProjLoc = glGetUniformLocation(_glyphShader, "u_projection");
         _imageProjLoc = glGetUniformLocation(_imageShader, "u_projection");
         _shadowProjLoc = glGetUniformLocation(_shadowShader, "u_projection");
+        _shapeProjLoc = glGetUniformLocation(_shapeShader, "u_projection");
         _glyphAtlasLoc = glGetUniformLocation(_glyphShader, "u_atlas");
         _imageTexLoc = glGetUniformLocation(_imageShader, "u_texture");
 
@@ -66,6 +73,7 @@ public sealed unsafe class GlSharedResources : IDisposable
         BindClipBlockToZero(_glyphShader);
         BindClipBlockToZero(_imageShader);
         BindClipBlockToZero(_shadowShader);
+        BindClipBlockToZero(_shapeShader);
 
         glUseProgram(_glyphShader);
         glUniform1i(_glyphAtlasLoc, 0);
@@ -165,5 +173,6 @@ public sealed unsafe class GlSharedResources : IDisposable
         if (_glyphShader != 0) { glDeleteProgram(_glyphShader); _glyphShader = 0; }
         if (_imageShader != 0) { glDeleteProgram(_imageShader); _imageShader = 0; }
         if (_shadowShader != 0) { glDeleteProgram(_shadowShader); _shadowShader = 0; }
+        if (_shapeShader != 0) { glDeleteProgram(_shapeShader); _shapeShader = 0; }
     }
 }

@@ -17,6 +17,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
     private readonly Dictionary<int, DrawRectInputs> _rectCommandData = new();
     private readonly Dictionary<int, DrawTextInputs> _textCommandData = new();
     private readonly Dictionary<int, DrawImageInputs> _imageCommandData = new();
+    private readonly Dictionary<int, DrawLineInputs> _lineCommandData = new();
 
     private Bitmap _colorBuffer;
     private BitmapRenderer _bitmapRenderer;
@@ -49,6 +50,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         _rectCommandData.Clear();
         _textCommandData.Clear();
         _imageCommandData.Clear();
+        _lineCommandData.Clear();
     }
 
     public void DrawRect(in DrawRectInputs inputs)
@@ -73,6 +75,20 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         var clip = GetClip();
         _commands.Add(new DrawCommand(id, CommandKind.DrawImage, inputs.ZIndex, clip));
         _imageCommandData.Add(id, inputs);
+    }
+
+    public void DrawLine(in DrawLineInputs inputs)
+    {
+        var id = _commands.Count;
+        var clip = GetClip();
+        _commands.Add(new DrawCommand(id, CommandKind.DrawLine, inputs.ZIndex, clip));
+        _lineCommandData.Add(id, inputs);
+    }
+
+    public void DrawCircle(in DrawCircleInputs inputs)
+    {
+        // Circles are not implemented in the software canvas yet (used by GPU
+        // backends only); no test currently rasterizes one.
     }
 
     private RectF GetClip()
@@ -270,6 +286,10 @@ public sealed class SoftwareRenderedCanvas : ICanvas
                     var imageCommand = _imageCommandData[command.Id];
                     ExecuteCommand(command, imageCommand);
                     break;
+                case CommandKind.DrawLine:
+                    var lineCommand = _lineCommandData[command.Id];
+                    ExecuteDrawLineCommand(command, lineCommand);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -451,6 +471,14 @@ public sealed class SoftwareRenderedCanvas : ICanvas
             cursorX += glyphInfo.XAdvance;
             prevCodePoint = codePoint;
         }
+    }
+
+    private void ExecuteDrawLineCommand(in DrawCommand command, in DrawLineInputs data)
+    {
+        Graphics.DrawLine(_colorBuffer,
+            (int)data.Start.X, (int)data.Start.Y,
+            (int)data.End.X, (int)data.End.Y,
+            data.Color, command.Clip);
     }
 
     public void DrawBoxShadow(in DrawBoxShadowInputs inputs)

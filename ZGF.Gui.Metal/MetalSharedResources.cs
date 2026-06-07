@@ -13,6 +13,7 @@ public sealed unsafe class MetalSharedResources : IDisposable
     public IntPtr GlyphPipeline { get; }
     public IntPtr ImagePipeline { get; }
     public IntPtr ShadowPipeline { get; }
+    public IntPtr ShapePipeline { get; }
     public IntPtr UnitQuadBuffer { get; }
     public IntPtr SamplerState { get; }
     public IntPtr AtlasTexture { get; }
@@ -42,6 +43,10 @@ public sealed unsafe class MetalSharedResources : IDisposable
 
         library = LoadLibrary(device, ShaderAssets.LoadShaderSource("canvas_shadow.gen.metal"));
         ShadowPipeline = BuildPipeline(device, library, MetalRenderedCanvas.MakeShadowVertexDescriptor());
+        Release(library);
+
+        library = LoadLibrary(device, ShaderAssets.LoadShaderSource("canvas_shape.gen.metal"));
+        ShapePipeline = BuildPipeline(device, library, MetalRenderedCanvas.MakeShapeVertexDescriptor());
         Release(library);
 
         UnitQuadBuffer = MakeUnitQuadBuffer(device);
@@ -222,6 +227,7 @@ public sealed unsafe class MetalSharedResources : IDisposable
         Release(AtlasTexture);
         Release(SamplerState);
         Release(UnitQuadBuffer);
+        Release(ShapePipeline);
         Release(ShadowPipeline);
         Release(ImagePipeline);
         Release(GlyphPipeline);

@@ -19,6 +19,7 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
     private IntPtr _glyphInstanceBuffer;
     private IntPtr _imageInstanceBuffer;
     private IntPtr _shadowInstanceBuffer;
+    private IntPtr _shapeInstanceBuffer;
     private IntPtr _globalsBuffer;
     private IntPtr _clipBuffer;
 
@@ -43,6 +44,7 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         _glyphInstanceBuffer = NewSharedBuffer(device, MaxGlyphs * sizeof(GlyphInstance));
         _imageInstanceBuffer = NewSharedBuffer(device, MaxImages * sizeof(ImageInstance));
         _shadowInstanceBuffer = NewSharedBuffer(device, MaxShadows * sizeof(ShadowInstance));
+        _shapeInstanceBuffer = NewSharedBuffer(device, MaxShapes * sizeof(ShapeInstance));
         _globalsBuffer = NewSharedBuffer(device, sizeof(Matrix4x4));
         _clipBuffer = NewSharedBuffer(device, MaxClips * sizeof(Vector4));
 
@@ -110,6 +112,14 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
             Buffer.MemoryCopy(src, dst, MaxShadows * sizeof(ShadowInstance), count * sizeof(ShadowInstance));
     }
 
+    protected override void UploadShapeInstances(ShapeInstance[] data, int count)
+    {
+        if (count == 0) return;
+        var dst = (ShapeInstance*)msg_IntPtr(_shapeInstanceBuffer, Sel("contents"));
+        fixed (ShapeInstance* src = &data[0])
+            Buffer.MemoryCopy(src, dst, MaxShapes * sizeof(ShapeInstance), count * sizeof(ShapeInstance));
+    }
+
     protected override void UploadClips(List<Vector4> clips)
     {
         if (clips.Count == 0) return;
@@ -151,6 +161,7 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
                     DrawKind.Glyph => _shared.GlyphPipeline,
                     DrawKind.Image => _shared.ImagePipeline,
                     DrawKind.Shadow => _shared.ShadowPipeline,
+                    DrawKind.Shape => _shared.ShapePipeline,
                     _ => IntPtr.Zero,
                 };
                 msg_Void_IntPtr(enc, setPipelineSel, pipeline);
@@ -179,6 +190,9 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
                         break;
                     case DrawKind.Shadow:
                         msg_Void_IntPtr_NUInt_NUInt(enc, setVertexBufferSel, _shadowInstanceBuffer, 0, 3);
+                        break;
+                    case DrawKind.Shape:
+                        msg_Void_IntPtr_NUInt_NUInt(enc, setVertexBufferSel, _shapeInstanceBuffer, 0, 3);
                         break;
                 }
 
@@ -277,6 +291,22 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         return desc;
     }
 
+    internal static IntPtr MakeShapeVertexDescriptor()
+    {
+        var desc = MakeVertexDescriptorBase();
+        SetAttribute(desc, 0, MTLVertexFormat.Float2, 0, 2);
+        var off = 0;
+        SetAttribute(desc, 1, MTLVertexFormat.Float4, off, 3); off += 16;
+        SetAttribute(desc, 2, MTLVertexFormat.Float4, off, 3); off += 16;
+        SetAttribute(desc, 3, MTLVertexFormat.Float, off, 3); off += 4;
+        SetAttribute(desc, 4, MTLVertexFormat.UInt, off, 3); off += 4;
+        SetAttribute(desc, 5, MTLVertexFormat.UInt, off, 3); off += 4;
+        SetAttribute(desc, 6, MTLVertexFormat.UInt, off, 3); off += 4;
+        SetLayout(desc, 2, 8, MTLVertexStepFunction.PerVertex);
+        SetLayout(desc, 3, sizeof(ShapeInstance), MTLVertexStepFunction.PerInstance);
+        return desc;
+    }
+
     private static IntPtr MakeVertexDescriptorBase() => New(Class("MTLVertexDescriptor"));
 
     private static void SetAttribute(IntPtr desc, uint index, MTLVertexFormat format, int offset, int bufferIndex)
@@ -308,6 +338,7 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
     {
         Release(_clipBuffer);
         Release(_globalsBuffer);
+        Release(_shapeInstanceBuffer);
         Release(_shadowInstanceBuffer);
         Release(_imageInstanceBuffer);
         Release(_glyphInstanceBuffer);

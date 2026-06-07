@@ -10,14 +10,14 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
 {
     private readonly GlSharedResources _shared;
 
-    private uint _rectVao, _glyphVao, _imageVao, _shadowVao;
-    private uint _rectInstanceVbo, _glyphInstanceVbo, _imageInstanceVbo, _shadowInstanceVbo;
+    private uint _rectVao, _glyphVao, _imageVao, _shadowVao, _shapeVao;
+    private uint _rectInstanceVbo, _glyphInstanceVbo, _imageInstanceVbo, _shadowInstanceVbo, _shapeInstanceVbo;
     // Current element capacity of each instance VBO. The CPU staging arrays grow without
     // bound (see RenderedCanvasBase.EnsureCapacity), so a content-heavy frame — e.g. a
     // minified file with very long lines, whose whole text is shaped per visible row — can
     // stage far more instances than the initial Max* sizes. We grow the GPU buffers to match
     // rather than overrun them: a glBufferSubData past the buffer's size is GL_INVALID_VALUE.
-    private int _rectVboCap, _glyphVboCap, _imageVboCap, _shadowVboCap;
+    private int _rectVboCap, _glyphVboCap, _imageVboCap, _shadowVboCap, _shapeVboCap;
     private uint _clipUbo;
 
     // glDrawArraysInstancedBaseInstance is GL 4.2+. When available we pass the batch's
@@ -114,6 +114,15 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         capacity = newCap;
     }
 
+    protected override void UploadShapeInstances(ShapeInstance[] data, int count)
+    {
+        if (count == 0) return;
+        EnsureInstanceCapacity(_shapeInstanceVbo, ref _shapeVboCap, count, sizeof(ShapeInstance));
+        glBindBuffer(GL_ARRAY_BUFFER, _shapeInstanceVbo);
+        fixed (ShapeInstance* ptr = &data[0])
+            glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(ShapeInstance), ptr);
+    }
+
     protected override void UploadClips(List<Vector4> clips)
     {
         glBindBuffer(GL_UNIFORM_BUFFER, _clipUbo);
@@ -192,6 +201,10 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
                         glUseProgram(_shared.ShadowShader);
                         glBindVertexArray(_shadowVao);
                         break;
+                    case DrawKind.Shape:
+                        glUseProgram(_shared.ShapeShader);
+                        glBindVertexArray(_shapeVao);
+                        break;
                 }
                 boundKind = call.Kind;
             }
@@ -217,6 +230,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
                     case DrawKind.Glyph: RebindGlyphInstancePointers(call.InstanceStart); break;
                     case DrawKind.Image: RebindImageInstancePointers(call.InstanceStart); break;
                     case DrawKind.Shadow: RebindShadowInstancePointers(call.InstanceStart); break;
+                    case DrawKind.Shape: RebindShapeInstancePointers(call.InstanceStart); break;
                 }
 
                 glDrawArraysInstanced(GL_TRIANGLES, 0, 6, call.InstanceCount);
@@ -238,6 +252,8 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         glUniformMatrix4fv(_shared.ImageProjLoc, 1, false, ptr);
         glUseProgram(_shared.ShadowShader);
         glUniformMatrix4fv(_shared.ShadowProjLoc, 1, false, ptr);
+        glUseProgram(_shared.ShapeShader);
+        glUniformMatrix4fv(_shared.ShapeProjLoc, 1, false, ptr);
         AssertNoGlError();
     }
 
@@ -247,16 +263,19 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         _glyphInstanceVbo = AllocInstanceVbo(MaxGlyphs * sizeof(GlyphInstance));
         _imageInstanceVbo = AllocInstanceVbo(MaxImages * sizeof(ImageInstance));
         _shadowInstanceVbo = AllocInstanceVbo(MaxShadows * sizeof(ShadowInstance));
+        _shapeInstanceVbo = AllocInstanceVbo(MaxShapes * sizeof(ShapeInstance));
 
         _rectVboCap = MaxRects;
         _glyphVboCap = MaxGlyphs;
         _imageVboCap = MaxImages;
         _shadowVboCap = MaxShadows;
+        _shapeVboCap = MaxShapes;
 
         _rectVao = CreateRectVao();
         _glyphVao = CreateGlyphVao();
         _imageVao = CreateImageVao();
         _shadowVao = CreateShadowVao();
+        _shapeVao = CreateShapeVao();
     }
 
     private uint AllocInstanceVbo(int sizeBytes)
@@ -354,6 +373,27 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         return vao;
     }
 
+    private uint CreateShapeVao()
+    {
+        uint vao;
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, _shared.UnitQuadVbo);
+        glVertexAttribPointer(0, 2, GL_FLOAT, false, 2 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, _shapeInstanceVbo);
+        var stride = sizeof(ShapeInstance);
+        AddFloatInstanceAttrib(1, 4, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.OuterRect)));
+        AddFloatInstanceAttrib(2, 4, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.ShapeData)));
+        AddFloatInstanceAttrib(3, 1, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.HalfWidth)));
+        AddUintInstanceAttrib(4, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.Color)));
+        AddUintInstanceAttrib(5, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.ShapeType)));
+        AddUintInstanceAttrib(6, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.ClipIndex)));
+        glBindVertexArray(0);
+        AssertNoGlError();
+        return vao;
+    }
+
     private static void AddFloatInstanceAttrib(uint index, int components, int stride, int offset)
     {
         glVertexAttribPointer(index, components, GL_FLOAT, false, stride, (void*)offset);
@@ -433,6 +473,19 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         SetUintInstancePointer(6, stride, baseBytes + OffsetOf<ShadowInstance>(nameof(ShadowInstance.ClipIndex)));
     }
 
+    private void RebindShapeInstancePointers(int firstInstance)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, _shapeInstanceVbo);
+        var stride = sizeof(ShapeInstance);
+        var baseBytes = firstInstance * stride;
+        SetFloatInstancePointer(1, 4, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.OuterRect)));
+        SetFloatInstancePointer(2, 4, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.ShapeData)));
+        SetFloatInstancePointer(3, 1, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.HalfWidth)));
+        SetUintInstancePointer(4, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.Color)));
+        SetUintInstancePointer(5, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.ShapeType)));
+        SetUintInstancePointer(6, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.ClipIndex)));
+    }
+
     private void SetupClipUbo()
     {
         uint ubo;
@@ -450,11 +503,13 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         DeleteBuffer(ref _glyphInstanceVbo);
         DeleteBuffer(ref _imageInstanceVbo);
         DeleteBuffer(ref _shadowInstanceVbo);
+        DeleteBuffer(ref _shapeInstanceVbo);
         DeleteBuffer(ref _clipUbo);
         DeleteVao(ref _rectVao);
         DeleteVao(ref _glyphVao);
         DeleteVao(ref _imageVao);
         DeleteVao(ref _shadowVao);
+        DeleteVao(ref _shapeVao);
     }
 
     private static void DeleteBuffer(ref uint buf)
