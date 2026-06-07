@@ -1,3 +1,4 @@
+using ZGF.Gui;
 using ZGF.Observable;
 
 namespace ZGF.Gui.Desktop.Components.TextInput;
@@ -29,19 +30,52 @@ public static class TextInputBindingExtensions
         /// </summary>
         public void BindTwoWay(IReadable<string> source, Action<string> sink)
         {
-            var suppressWriteback = false;
-            source.Subscribe(s =>
+            // Tie the subscriptions to the view's context lifecycle so they're disposed on
+            // detach. Subscribing inline here would leak: `source` (often a longer-lived VM
+            // observable) retains a closure capturing `input`, so a recreated input is never
+            // collected while its source lives.
+            input.Behaviors.Add(new TwoWayBindingBehavior(input, source, sink));
+        }
+    }
+
+    private sealed class TwoWayBindingBehavior : IViewBehavior
+    {
+        private readonly TextInputView _input;
+        private readonly IReadable<string> _source;
+        private readonly Action<string> _sink;
+        private bool _suppressWriteback;
+        private IDisposable? _sourceSub;
+        private IDisposable? _inputSub;
+
+        public TwoWayBindingBehavior(TextInputView input, IReadable<string> source, Action<string> sink)
+        {
+            _input = input;
+            _source = source;
+            _sink = sink;
+        }
+
+        public void AttachToContext(View view, Context context)
+        {
+            _sourceSub = _source.Subscribe(s =>
             {
-                if (input.Text.SequenceEqual(s.AsSpan())) return;
-                suppressWriteback = true;
-                input.SetText(s.AsSpan());
-                suppressWriteback = false;
+                if (_input.Text.SequenceEqual(s.AsSpan())) return;
+                _suppressWriteback = true;
+                _input.SetText(s.AsSpan());
+                _suppressWriteback = false;
             });
-            input.TextValue.Subscribe(s =>
+            _inputSub = _input.TextValue.Subscribe(s =>
             {
-                if (suppressWriteback) return;
-                sink(s);
+                if (_suppressWriteback) return;
+                _sink(s);
             });
+        }
+
+        public void DetachFromContext(View view, Context context)
+        {
+            _sourceSub?.Dispose();
+            _sourceSub = null;
+            _inputSub?.Dispose();
+            _inputSub = null;
         }
     }
 }

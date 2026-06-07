@@ -38,6 +38,7 @@ internal sealed class DerivedChildrenBindingBehavior<TItem, TChild> : IViewBehav
     {
         _subscription?.Dispose();
         _subscription = null;
+        _derived?.Dispose();
         _derived = null;
         Clear();
     }

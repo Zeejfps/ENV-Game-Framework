@@ -130,6 +130,11 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
         impl.Window.Hide();
         impl.SetRoot(null);
+        // Drop any OutsideClick subscribers the caller wired up (e.g. ContextMenuManager
+        // does `popup.OutsideClick += HandleOutsideClick` on every ShowContextMenu). The
+        // impl is pooled and reused, so without this the handler list grows by one on each
+        // menu open — a slow leak plus redundant close dispatch on every outside click.
+        impl.ClearOutsideClickSubscribers();
         // Drop any focus/hover the closing menu's views left on this popup's own
         // input system. SetRoot(null) unregisters per-controller, but a controller
         // that still holds focus would leave _focusedComponent latched — and since
@@ -326,6 +331,12 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     }
 
     public void RaiseOutsideClick(PointI screen) => OutsideClick?.Invoke(screen);
+
+    /// <summary>
+    /// Removes all <see cref="OutsideClick"/> subscribers. Called when the popup is returned
+    /// to the factory's pool so a reused instance doesn't carry the previous menu's handler.
+    /// </summary>
+    public void ClearOutsideClickSubscribers() => OutsideClick = null;
 
     public void UpdateInput() => _input.Update();
 
