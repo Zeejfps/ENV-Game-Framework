@@ -105,6 +105,18 @@ public static class BindingExtensions
         }
 
         /// <summary>
+        /// Runs an arbitrary side-effect whenever <paramref name="source"/> changes, tied to the
+        /// view's context lifecycle (subscribes on attach, disposes on detach). The generalized
+        /// escape hatch for reactions that aren't a single property assignment — list re-notify,
+        /// scroll reveal, repaint — so a view never has to track subscriptions by hand.
+        /// </summary>
+        public void Bind<T>(IReadable<T> source, Action<T> apply)
+        {
+            view.Behaviors.Add(new PropertyBindingBehavior<View, T, T>(
+                view, source, static x => x, (_, v) => apply(v)));
+        }
+
+        /// <summary>
         /// Subscribes to the active <see cref="IThemeService{TStyles}"/> for painted views
         /// that can't express their colors as discrete property bindings. The callback fires
         /// once when the view attaches to a context and again on every theme swap; typical
