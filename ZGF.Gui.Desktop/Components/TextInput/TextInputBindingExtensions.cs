@@ -1,3 +1,4 @@
+using ZGF.Gui.Views;
 using ZGF.Observable;
 
 namespace ZGF.Gui.Desktop.Components.TextInput;

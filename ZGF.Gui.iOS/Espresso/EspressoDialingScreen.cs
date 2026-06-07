@@ -22,6 +22,9 @@ namespace ZGF.Gui.iOS.Espresso;
 public sealed class EspressoDialingScreen
 {
     private const uint ScreenColor = 0xFF0C0F16;
+    private const uint AccessoryBg = 0xFF1A1F2A;
+    private const uint AccessoryBorder = 0xFF2C3340;
+    private const uint AccessoryDone = 0xFF4C8DFF;
     private const uint TitleColor = 0xFFF2F5FB;
     private const uint LabelColor = 0xFFB9C2D6;
     private const uint ValueColor = 0xFFF2F5FB;
@@ -156,8 +159,18 @@ public sealed class EspressoDialingScreen
         };
 
         var insets = context.Get<KeyboardInsets>();
-        if (insets != null)
-            context.AddService(new KeyboardAvoidanceController(content, insets));
+        var input = context.Get<MobileInputSystem>();
+        var textInput = context.Get<ITextInputService>();
+        KeyboardAccessoryBar? accessory = null;
+        if (insets != null && input != null && textInput != null)
+        {
+            var controller = new KeyboardAvoidanceController(content, insets, input, textInput);
+            context.AddService(controller);
+            accessory = new KeyboardAccessoryBar(insets, AccessoryBg, AccessoryDone, AccessoryBorder)
+            {
+                DoneClicked = controller.Dismiss,
+            };
+        }
 
         var panel = new RectView
         {
@@ -166,13 +179,20 @@ public sealed class EspressoDialingScreen
             Children = { content },
         };
 
-        return new MultiChildView
+        var root = new MultiChildView
         {
             Width = width,
             Height = height,
             Context = context,
             Children = { panel },
         };
+
+        // The Done bar is a full-screen overlay drawn on top of the panel and anchored above the
+        // keyboard. Added last so it paints over the content.
+        if (accessory != null)
+            root.Children.Add(accessory);
+
+        return root;
     }
 
     // A fixed-height band wrapping a single child, used to reserve exact vertical space for text

@@ -30,7 +30,6 @@ public sealed class MetalUiView : UIView, IUIKeyInput, IUITextInputTraits, IText
     public static Class GetLayerClass() => new Class(typeof(CAMetalLayer));
 
     private ITextInputClient? _textClient;
-    private UIView? _accessory;
     private NSObject? _keyboardToken;
     private CGRect _keyboardScreenFrame = CGRect.Empty;
 
@@ -96,8 +95,8 @@ public sealed class MetalUiView : UIView, IUIKeyInput, IUITextInputTraits, IText
 
     public override bool CanBecomeFirstResponder => true;
 
-    // A number pad has no return key, so a "Done" bar above the keyboard dismisses it.
-    public override UIView InputAccessoryView => _accessory ??= BuildDoneBar();
+    // No platform input-accessory view: the "Done" bar is drawn by the framework
+    // (ZGF.Gui.Mobile.Input.KeyboardAccessoryBar) so it's themed like the rest of the UI.
 
     public void BeginEdit(ITextInputClient client)
     {
@@ -154,18 +153,6 @@ public sealed class MetalUiView : UIView, IUIKeyInput, IUITextInputTraits, IText
         }
 
         Insets.SetBottom(inset);
-    }
-
-    private UIToolbar BuildDoneBar()
-    {
-        var bar = new UIToolbar();
-        bar.SizeToFit();
-        bar.Items = new[]
-        {
-            new UIBarButtonItem(UIBarButtonSystemItem.FlexibleSpace),
-            new UIBarButtonItem(UIBarButtonSystemItem.Done, (_, _) => ResignFirstResponder()),
-        };
-        return bar;
     }
 
     private static UIKeyboardType ToKeyboardType(TextInputKeyboard keyboard) => keyboard switch

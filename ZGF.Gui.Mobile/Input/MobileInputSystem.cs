@@ -42,6 +42,15 @@ public sealed class MobileInputSystem
     /// <summary>Raised after any pointer event is dispatched — hosts use it to request a redraw.</summary>
     public Action? OnAnyInput { get; set; }
 
+    /// <summary>Raised on pointer-down with the topmost hit view (null when the touch lands on empty
+    /// space), before the event is dispatched. Lets keyboard glue dismiss when a tap falls outside
+    /// the field being edited.</summary>
+    public Action<View?>? PointerPressed { get; set; }
+
+    /// <summary>Raised on each pointer-move during a gesture; the current location is in
+    /// <see cref="Pointer"/>. Lets keyboard glue dismiss on a downward swipe.</summary>
+    public Action? PointerDragged { get; set; }
+
     public MobileInputSystem(RenderedCanvasBase canvas)
     {
         _canvas = canvas;
@@ -93,9 +102,11 @@ public sealed class MobileInputSystem
         Pointer.IsDown = true;
 
         _activePath.Clear();
-        var hit = HitTest(point);
-        if (hit != null)
-            BuildPath(hit);
+        var hitView = HitTestTopView(point);
+        if (hitView != null && _viewToControllers.TryGetValue(hitView, out var controllers) && controllers.Count > 0)
+            BuildPath(controllers[0]);
+
+        PointerPressed?.Invoke(hitView);
 
         DispatchToPath(point, static (IPointerController c, ref PointerEvent e) => c.OnPointerEntered(ref e));
         DispatchToPath(point, static (IPointerController c, ref PointerEvent e) => c.OnPointerTouched(ref e));
@@ -108,6 +119,7 @@ public sealed class MobileInputSystem
             return;
         var point = ToGuiCoords(x, y);
         Pointer.Point = point;
+        PointerDragged?.Invoke();
         DispatchToPath(point, static (IPointerController c, ref PointerEvent e) => c.OnPointerMoved(ref e));
         OnAnyInput?.Invoke();
     }
@@ -175,7 +187,9 @@ public sealed class MobileInputSystem
 
     // --- Hit testing ----------------------------------------------------------------------
 
-    private IPointerController? HitTest(in PointF point)
+    // The topmost view with a controller under the point, honoring visibility, clipping and
+    // z-order. Returned to PointerPressed so keyboard glue can tell taps inside vs. outside a field.
+    private View? HitTestTopView(in PointF point)
     {
         _hitTestViews.Clear();
         foreach (var (view, list) in _viewToControllers)
@@ -191,7 +205,7 @@ public sealed class MobileInputSystem
             return null;
 
         _hitTestViews.Sort(CompareViewsByZIndex);
-        return _viewToControllers[_hitTestViews[0]][0];
+        return _hitTestViews[0];
     }
 
     private static bool IsPointInsideClippingAncestors(View view, in PointF point)

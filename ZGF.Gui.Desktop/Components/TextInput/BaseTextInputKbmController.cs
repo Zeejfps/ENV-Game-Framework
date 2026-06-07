@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
+using ZGF.Gui.Views;
 using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Desktop.Components.TextInput;

@@ -1,7 +1,7 @@
 using ZGF.Geometry;
 using ZGF.Observable;
 
-namespace ZGF.Gui.Desktop.Components.TextInput;
+namespace ZGF.Gui.Views;
 
 public sealed class TextInputView : MultiChildView
 {
