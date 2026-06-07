@@ -57,6 +57,8 @@ public sealed class SliderView : MultiChildView
     public uint TrackColor { get; set; } = 0xFF2A3142;
     public uint FillColor { get; set; } = 0xFF4C8DFF;
     public uint ThumbColor { get; set; } = 0xFFFFFFFF;
+    public uint ThumbBorderColor { get; set; } = 0x33101522;
+    public float ThumbBorderThickness { get; set; } = 1.5f;
 
     /// <summary>Raised whenever the value changes, whether by drag or by code.</summary>
     public Action<float>? ValueChanged { get; set; }
@@ -84,31 +86,50 @@ public sealed class SliderView : MultiChildView
         var centerY = pos.Bottom + pos.Height * 0.5f;
         var halfTrack = TrackThickness * 0.5f;
 
-        c.DrawRect(new DrawRectInputs
+        // Inset the line endpoints by half the thickness so its rounded caps land exactly on the
+        // slider's left/right edges.
+        var trackLeft = pos.Left + halfTrack;
+        var trackRight = pos.Right - halfTrack;
+        var thumbCenterX = pos.Left + ThumbRadius + Normalized * (pos.Width - 2f * ThumbRadius);
+
+        c.DrawLine(new DrawLineInputs
         {
-            Position = new RectF(pos.Left, centerY - halfTrack, pos.Width, TrackThickness),
-            Style = new RectStyle { BackgroundColor = TrackColor, BorderRadius = BorderRadiusStyle.All(halfTrack) },
+            Start = new PointF(trackLeft, centerY),
+            End = new PointF(trackRight, centerY),
+            Thickness = TrackThickness,
+            Color = TrackColor,
             ZIndex = z,
         });
 
-        var thumbCenterX = pos.Left + ThumbRadius + Normalized * (pos.Width - 2f * ThumbRadius);
-
-        var fillWidth = thumbCenterX - pos.Left;
-        if (fillWidth > 0f)
+        c.DrawLine(new DrawLineInputs
         {
-            c.DrawRect(new DrawRectInputs
-            {
-                Position = new RectF(pos.Left, centerY - halfTrack, fillWidth, TrackThickness),
-                Style = new RectStyle { BackgroundColor = FillColor, BorderRadius = BorderRadiusStyle.All(halfTrack) },
-                ZIndex = z + 1,
-            });
-        }
+            Start = new PointF(trackLeft, centerY),
+            End = new PointF(MathF.Max(thumbCenterX, trackLeft), centerY),
+            Thickness = TrackThickness,
+            Color = FillColor,
+            ZIndex = z + 1,
+        });
 
-        c.DrawRect(new DrawRectInputs
+        var thumbCenter = new PointF(thumbCenterX, centerY);
+        c.DrawCircle(new DrawCircleInputs
         {
-            Position = new RectF(thumbCenterX - ThumbRadius, centerY - ThumbRadius, ThumbRadius * 2f, ThumbRadius * 2f),
-            Style = new RectStyle { BackgroundColor = ThumbColor, BorderRadius = BorderRadiusStyle.All(ThumbRadius) },
+            Center = thumbCenter,
+            Radius = ThumbRadius,
+            Color = ThumbColor,
             ZIndex = z + 2,
         });
+
+        // Subtle ring just inside the thumb edge for definition against the track.
+        if (ThumbBorderThickness > 0f)
+        {
+            c.DrawCircle(new DrawCircleInputs
+            {
+                Center = thumbCenter,
+                Radius = ThumbRadius - ThumbBorderThickness * 0.5f,
+                Color = ThumbBorderColor,
+                ZIndex = z + 3,
+                Thickness = ThumbBorderThickness,
+            });
+        }
     }
 }

@@ -82,7 +82,7 @@ public sealed class ChartView : MultiChildView
         for (var ey = 14f; ey <= 26f; ey += 2f)
         {
             var x = MapX(plot, ey);
-            FillRect(c, new RectF(x - 0.5f, plot.Bottom, 1f, plot.Height), GridColor, z + 1);
+            c.DrawLine(new DrawLineInputs { Start = new PointF(x, plot.Bottom), End = new PointF(x, plot.Top), Thickness = 1f, Color = GridColor, ZIndex = z + 1 });
             c.DrawText(new DrawTextInputs
             {
                 Position = new RectF(x - 14f, outer.Bottom + 3f, 28f, 14f),
@@ -96,7 +96,7 @@ public sealed class ChartView : MultiChildView
         for (var tds = 4f; tds <= 14f; tds += 2f)
         {
             var y = MapY(plot, tds);
-            FillRect(c, new RectF(plot.Left, y - 0.5f, plot.Width, 1f), GridColor, z + 1);
+            c.DrawLine(new DrawLineInputs { Start = new PointF(plot.Left, y), End = new PointF(plot.Right, y), Thickness = 1f, Color = GridColor, ZIndex = z + 1 });
             c.DrawText(new DrawTextInputs
             {
                 Position = new RectF(outer.Left + 2f, y - 7f, MarginLeft - 6f, 14f),
@@ -144,47 +144,34 @@ public sealed class ChartView : MultiChildView
 
         // Crosshair tinted with the shot colour so the lines clearly read against the grid.
         var crossColor = (_pointColor & 0x00FFFFFFu) | 0x88000000u;
-        FillRect(c, new RectF(plot.Left, py - 1f, plot.Width, 2f), crossColor, z + 4);
-        FillRect(c, new RectF(px - 1f, plot.Bottom, 2f, plot.Height), crossColor, z + 4);
+        c.DrawLine(new DrawLineInputs { Start = new PointF(plot.Left, py), End = new PointF(plot.Right, py), Thickness = 1.5f, Color = crossColor, ZIndex = z + 4 });
+        c.DrawLine(new DrawLineInputs { Start = new PointF(px, plot.Bottom), End = new PointF(px, plot.Top), Thickness = 1.5f, Color = crossColor, ZIndex = z + 4 });
 
-        const float ring = 9f;
-        const float core = 6f;
-        c.DrawRect(new DrawRectInputs
-        {
-            Position = new RectF(px - ring, py - ring, ring * 2f, ring * 2f),
-            Style = new RectStyle { BackgroundColor = PointRing, BorderRadius = BorderRadiusStyle.All(ring) },
-            ZIndex = z + 7,
-        });
-        c.DrawRect(new DrawRectInputs
-        {
-            Position = new RectF(px - core, py - core, core * 2f, core * 2f),
-            Style = new RectStyle { BackgroundColor = _pointColor, BorderRadius = BorderRadiusStyle.All(core) },
-            ZIndex = z + 8,
-        });
+        c.DrawCircle(new DrawCircleInputs { Center = new PointF(px, py), Radius = 9f, Color = PointRing, ZIndex = z + 7 });
+        c.DrawCircle(new DrawCircleInputs { Center = new PointF(px, py), Radius = 6f, Color = _pointColor, ZIndex = z + 8 });
     }
 
-    // Draws the iso-ratio diagonal by sampling TDS = EY / ratio across the plot in small steps
-    // (the canvas can't rotate a rect, so the line is a run of tiny rects).
+    // The iso-ratio diagonal TDS = EY / ratio, clipped to the plot's EY/TDS bounds and drawn as a
+    // single anti-aliased line.
     private void DrawRatioLine(ICanvas c, in RectF plot, int z)
     {
         if (_tds <= 0.01f || _ey <= 0.01f)
             return;
 
         var ratio = _ey / _tds;
-        for (var px = plot.Left; px <= plot.Right; px += 2f)
+        var eyLo = MathF.Max(EyMin, TdsMin * ratio);
+        var eyHi = MathF.Min(EyMax, TdsMax * ratio);
+        if (eyHi <= eyLo)
+            return;
+
+        c.DrawLine(new DrawLineInputs
         {
-            var ey = EyMin + (px - plot.Left) / plot.Width * (EyMax - EyMin);
-            var tds = ey / ratio;
-            if (tds < TdsMin || tds > TdsMax)
-                continue;
-            var y = MapY(plot, tds);
-            c.DrawRect(new DrawRectInputs
-            {
-                Position = new RectF(px, y - 1.25f, 2.75f, 2.75f),
-                Style = new RectStyle { BackgroundColor = RatioLineColor },
-                ZIndex = z,
-            });
-        }
+            Start = new PointF(MapX(plot, eyLo), MapY(plot, eyLo / ratio)),
+            End = new PointF(MapX(plot, eyHi), MapY(plot, eyHi / ratio)),
+            Thickness = 2.5f,
+            Color = RatioLineColor,
+            ZIndex = z,
+        });
     }
 
     private static void CenterLabel(ICanvas c, float cx, float cy, string text, TextStyle style, int z)
