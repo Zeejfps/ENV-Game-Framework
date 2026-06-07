@@ -23,6 +23,7 @@ public sealed class NumberFieldView : MultiChildView, ITextInputClient
 
     private readonly TextInputView _input;
     private ITextInputService? _service;
+    private MobileInputSystem? _inputSystem;
     private Context? _context;
 
     private float _value;
@@ -44,8 +45,8 @@ public sealed class NumberFieldView : MultiChildView, ITextInputClient
         // Live preview: each keystroke mutates TextInputView's buffer, which we parse and clamp.
         _input.TextValue.Subscribe(OnInputTextChanged);
 
-        // Tap to focus: raise the keyboard and start routing keystrokes to this field.
-        this.UsePointerController(_ => new ButtonPointerController(this) { Clicked = BeginEditing });
+        // Tap to focus (and select all); a tap while already editing repositions the caret instead.
+        this.UsePointerController(_ => new ButtonPointerController(this) { Clicked = OnTapped });
     }
 
     public float Min { get; set; }
@@ -96,6 +97,7 @@ public sealed class NumberFieldView : MultiChildView, ITextInputClient
         base.OnAttachedToContext(context);
         _context = context;
         _service = context.Get<ITextInputService>();
+        _inputSystem = context.Get<MobileInputSystem>();
         ShowFormatted();
     }
 
@@ -116,6 +118,20 @@ public sealed class NumberFieldView : MultiChildView, ITextInputClient
         child.WidthConstraint = position.Width - PaddingX * 2f;
         child.HeightConstraint = position.Height;
         child.LayoutSelf();
+    }
+
+    private void OnTapped()
+    {
+        if (!_editing)
+        {
+            BeginEditing();
+            return;
+        }
+
+        // Already editing: a second tap drops the selection and moves the caret to the tap point,
+        // like a native field (so you can tap to deselect / reposition instead of re-selecting all).
+        if (_inputSystem != null)
+            _input.MoveCaretTo(_inputSystem.Pointer.Point);
     }
 
     private void BeginEditing()
