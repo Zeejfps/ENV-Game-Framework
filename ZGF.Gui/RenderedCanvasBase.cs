@@ -464,6 +464,7 @@ public abstract class RenderedCanvasBase : ICanvas
         }
 
         var hCenter = style.HorizontalAlignment.IsSet && style.HorizontalAlignment.Value == TextAlignment.Center;
+        var features = style.FontFeatures.IsSet ? style.FontFeatures.Value : FontFeatureSet.None;
         var textSpan = text.AsSpan();
 
         var sliceStart = 0;
@@ -483,7 +484,7 @@ public abstract class RenderedCanvasBase : ICanvas
             var lineSlice = textSpan[sliceStart..lineEnd];
 
             ShapeAndDrawLine(font, lineSlice, lineStart, pos.Left, pos.Width, hCenter,
-                baselineY, color, clip, rotation, key);
+                baselineY, color, clip, rotation, key, features);
 
             if (nl < 0)
                 break;
@@ -495,7 +496,7 @@ public abstract class RenderedCanvasBase : ICanvas
 
     private void ShapeAndDrawLine(FontHandle font, ReadOnlySpan<char> line, float lineStartX,
         float boxLeft, float boxWidth, bool hCenter, float baselineY,
-        uint color, uint clip, float rotation, long key)
+        uint color, uint clip, float rotation, long key, in FontFeatureSet features)
     {
         if (line.Length == 0)
             return;
@@ -505,7 +506,7 @@ public abstract class RenderedCanvasBase : ICanvas
             ? stackalloc ShapedGlyph[StackCap]
             : new ShapedGlyph[line.Length * 2];
 
-        var n = _fonts.ShapeText(font, line, shaped);
+        var n = _fonts.ShapeText(font, line, shaped, features);
 
         var cursorX = lineStartX;
         if (hCenter)
@@ -563,7 +564,7 @@ public abstract class RenderedCanvasBase : ICanvas
         }
     }
 
-    private float MeasureLineWidth(FontHandle font, ReadOnlySpan<char> line)
+    private float MeasureLineWidth(FontHandle font, ReadOnlySpan<char> line, in FontFeatureSet features)
     {
         if (line.Length == 0)
             return 0f;
@@ -572,7 +573,7 @@ public abstract class RenderedCanvasBase : ICanvas
         Span<ShapedGlyph> shaped = line.Length <= StackCap
             ? stackalloc ShapedGlyph[StackCap]
             : new ShapedGlyph[line.Length * 2];
-        var n = _fonts.ShapeText(font, line, shaped);
+        var n = _fonts.ShapeText(font, line, shaped, features);
         var total = 0f;
         for (var i = 0; i < n; i++)
             total += shaped[i].XAdvance;
@@ -720,6 +721,7 @@ public abstract class RenderedCanvasBase : ICanvas
     public float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style)
     {
         var font = ResolveFont(style);
+        var features = style.FontFeatures.IsSet ? style.FontFeatures.Value : FontFeatureSet.None;
         // Multi-line text: width is the widest line's shaped advance.
         var max = 0f;
         var i = 0;
@@ -727,7 +729,7 @@ public abstract class RenderedCanvasBase : ICanvas
         {
             var nl = text[i..].IndexOf('\n');
             var lineEnd = nl < 0 ? text.Length : i + nl;
-            var w = MeasureLineWidth(font, text[i..lineEnd]);
+            var w = MeasureLineWidth(font, text[i..lineEnd], features);
             if (w > max) max = w;
             if (nl < 0) break;
             i = lineEnd + 1;
