@@ -104,11 +104,18 @@ float4 fragmentMain(Varyings v) : SV_Target
     float2 pivot = float2(halfW - radius, halfH - radius);
     bool inCornerZone = (mirror.x > pivot.x) && (mirror.y > pivot.y);
 
+    // Distance from the corner pivot and its screen-space derivative, computed
+    // unconditionally so fwidth has valid neighbours regardless of branch.
+    float d = length(mirror - pivot);
+    float aa = max(fwidth(d), 1e-6);
+
+    float coverage = 1.0;
     bool isFill;
     if (inCornerZone && radius > 0.0)
     {
-        float d = length(mirror - pivot);
-        if (d > radius) discard;
+        // Soft outer edge of the rounded corner: 1 inside, 0 outside, ramped over one pixel.
+        coverage = clamp((radius - d) / aa + 0.5, 0.0, 1.0);
+        if (coverage <= 0.0) discard;
         if (borderH < radius && borderW < radius)
         {
             float ix = (mirror.x - pivot.x) / max(radius - borderW, 1e-6);
@@ -129,7 +136,9 @@ float4 fragmentMain(Varyings v) : SV_Target
 
     if (isFill)
     {
-        return unpackARGB(v.bgColor);
+        float4 fillColor = unpackARGB(v.bgColor);
+        fillColor.a *= coverage;
+        return fillColor;
     }
 
     // Border side priority: bottom > top > right > left (matches software canvas).
@@ -149,5 +158,7 @@ float4 fragmentMain(Varyings v) : SV_Target
         else     pickedColor = v.borderColorBottom;
     }
 
-    return unpackARGB(pickedColor);
+    float4 borderColor = unpackARGB(pickedColor);
+    borderColor.a *= coverage;
+    return borderColor;
 }

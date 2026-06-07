@@ -3,7 +3,7 @@
 #include <metal_texture>
 using namespace metal;
 
-#line 68 "G:/Dev/RiderProjects/ENV-Game-Framework/ZGF.Gui.Tests/Assets/Shaders/canvas_rect.slang"
+#line 68 "/tmp/rectgen/canvas_rect.slang"
 float4 unpackARGB_0(uint c_0)
 {
 
@@ -36,7 +36,7 @@ struct pixelInput_0
 };
 
 
-#line 38 "G:/Dev/RiderProjects/ENV-Game-Framework/ZGF.Gui.Tests/Assets/Shaders/canvas_rect.slang"
+#line 38 "/tmp/rectgen/canvas_rect.slang"
 struct SLANG_ParameterGroup_Globals_0
 {
     matrix<float,int(4),int(4)>  u_projection_0;
@@ -272,113 +272,130 @@ struct KernelContext_0
     }
 
 
+
+    float d_0 = length(mirror_0 - pivot_0);
+    float _S8 = max((fwidth((d_0))), 9.99999997475242708e-07);
+
+
+
     if(inCornerZone_0)
     {
 
-#line 108
+#line 114
         inCornerZone_0 = radius_0 > 0.0;
 
-#line 108
+#line 114
     }
     else
     {
 
-#line 108
+#line 114
         inCornerZone_0 = false;
 
-#line 108
+#line 114
     }
 
-#line 108
+#line 114
     bool isFill_0;
 
-#line 108
+#line 114
+    float coverage_0;
+
+#line 114
     if(inCornerZone_0)
     {
 
-        if((length(mirror_0 - pivot_0)) > radius_0)
+        float coverage_1 = clamp((radius_0 - d_0) / _S8 + 0.5, 0.0, 1.0);
+        if(coverage_1 <= 0.0)
         {
 
-#line 111
+#line 118
             discard_fragment();
 
-#line 111
+#line 118
         }
         if(borderH_0 < radius_0)
         {
 
-#line 112
+#line 119
             inCornerZone_0 = borderW_0 < radius_0;
 
-#line 112
+#line 119
         }
         else
         {
 
-#line 112
+#line 119
             inCornerZone_0 = false;
 
-#line 112
+#line 119
         }
 
-#line 112
+#line 119
         if(inCornerZone_0)
         {
             float ix_0 = (_S7 - _S5) / max(radius_0 - borderW_0, 9.99999997475242708e-07);
             float iy_0 = (mirror_0.y - _S6) / max(radius_0 - borderH_0, 9.99999997475242708e-07);
 
-#line 115
+#line 122
             isFill_0 = (ix_0 * ix_0 + iy_0 * iy_0) <= 1.0;
 
-#line 112
+#line 119
         }
         else
         {
 
-#line 112
+#line 119
             isFill_0 = false;
 
-#line 112
+#line 119
         }
 
-#line 108
+#line 119
+        coverage_0 = coverage_1;
+
+#line 114
     }
     else
     {
 
-#line 126
+#line 133
         bool insideY_0 = (mirror_0.y) < (halfH_0 - borderH_0);
         if(_S7 < (halfW_0 - borderW_0))
         {
 
-#line 127
+#line 134
             inCornerZone_0 = insideY_0;
 
-#line 127
+#line 134
         }
         else
         {
 
-#line 127
+#line 134
             inCornerZone_0 = false;
 
-#line 127
+#line 134
         }
 
-#line 127
+#line 134
         isFill_0 = inCornerZone_0;
 
-#line 108
+#line 134
+        coverage_0 = 1.0;
+
+#line 114
     }
 
-#line 130
+#line 137
     if(isFill_0)
     {
+        thread float4 fillColor_0 = unpackARGB_0(_S1.bgColor_0);
+        fillColor_0.w = fillColor_0.w * coverage_0;
 
-#line 130
-        pixelOutput_0 _S8 = { unpackARGB_0(_S1.bgColor_0) };
-
-        return _S8;
+#line 140
+        pixelOutput_0 _S9 = { fillColor_0 };
+        return _S9;
     }
 
 
@@ -387,94 +404,96 @@ struct KernelContext_0
     bool inRight_0 = _S3 >= (rectW_0 - _S1.borderSize_0.y);
     bool inLeft_0 = _S3 < (_S1.borderSize_0.w);
 
-#line 139
+#line 148
     uint pickedColor_0;
 
 
     if(_S4 < (_S1.borderSize_0.z))
     {
 
-#line 142
+#line 151
         pickedColor_0 = _S1.borderColorBottom_0;
 
-#line 142
+#line 151
     }
     else
     {
 
-#line 143
+#line 152
         if(inTop_0)
         {
 
-#line 143
+#line 152
             pickedColor_0 = _S1.borderColorTop_0;
 
-#line 143
+#line 152
         }
         else
         {
 
-#line 144
+#line 153
             if(inRight_0)
             {
 
-#line 144
+#line 153
                 pickedColor_0 = _S1.borderColorRight_0;
 
-#line 144
+#line 153
             }
             else
             {
 
-#line 145
+#line 154
                 if(inLeft_0)
                 {
 
-#line 145
+#line 154
                     pickedColor_0 = _S1.borderColorLeft_0;
 
-#line 145
+#line 154
                 }
                 else
                 {
                     if(top_0)
                     {
 
-#line 148
+#line 157
                         pickedColor_0 = _S1.borderColorTop_0;
 
-#line 148
+#line 157
                     }
                     else
                     {
 
-#line 148
+#line 157
                         pickedColor_0 = _S1.borderColorBottom_0;
 
-#line 148
+#line 157
                     }
 
-#line 145
+#line 154
                 }
 
-#line 144
+#line 153
             }
 
-#line 143
+#line 152
         }
 
-#line 142
+#line 151
     }
 
-#line 142
-    pixelOutput_0 _S9 = { unpackARGB_0(pickedColor_0) };
+#line 161
+    thread float4 borderColor_0 = unpackARGB_0(pickedColor_0);
+    borderColor_0.w = borderColor_0.w * coverage_0;
 
-#line 152
-    return _S9;
+#line 162
+    pixelOutput_0 _S10 = { borderColor_0 };
+    return _S10;
 }
 
 
-#line 152
+#line 163
 struct vertexMain_Result_0
 {
     float4 position_1 [[position]];
@@ -492,7 +511,7 @@ struct vertexMain_Result_0
 };
 
 
-#line 152
+#line 163
 struct vertexInput_0
 {
     float2 unitPos_0 [[attribute(0)]];
@@ -527,7 +546,7 @@ struct Varyings_0
 
 
 #line 22
-[[vertex]] vertexMain_Result_0 vertexMain(vertexInput_0 _S10 [[stage_in]], SLANG_ParameterGroup_Globals_0 constant* Globals_2 [[buffer(0)]], SLANG_ParameterGroup_ClipRects_0 constant* ClipRects_2 [[buffer(1)]])
+[[vertex]] vertexMain_Result_0 vertexMain(vertexInput_0 _S11 [[stage_in]], SLANG_ParameterGroup_Globals_0 constant* Globals_2 [[buffer(0)]], SLANG_ParameterGroup_ClipRects_0 constant* ClipRects_2 [[buffer(1)]])
 {
 
 #line 22
@@ -540,70 +559,70 @@ struct Varyings_0
     (&kernelContext_1)->ClipRects_0 = ClipRects_2;
 
 #line 52
-    float2 _S11 = _S10.rect_0.zw;
+    float2 _S12 = _S11.rect_0.zw;
 
 #line 52
-    float2 _S12 = _S10.unitPos_0 * _S11;
+    float2 _S13 = _S11.unitPos_0 * _S12;
 
 #line 52
-    float2 pixelPos_3 = _S10.rect_0.xy + _S12;
+    float2 pixelPos_3 = _S11.rect_0.xy + _S13;
 
 #line 51
     thread Varyings_0 o_0;
 
     (&o_0)->position_2 = (((float4(pixelPos_3, 0.0, 1.0)) * (Globals_2->u_projection_0)));
     (&o_0)->pixelPos_2 = pixelPos_3;
-    (&o_0)->localPos_2 = _S12;
-    (&o_0)->rectSize_2 = float4(_S11, _S11);
-    (&o_0)->borderRadius_3 = _S10.borderRadius_2;
-    (&o_0)->borderSize_3 = _S10.borderSize_2;
-    (&o_0)->bgColor_3 = _S10.bgColor_2;
-    (&o_0)->borderColorTop_3 = _S10.borderColorTop_2;
-    (&o_0)->borderColorRight_3 = _S10.borderColorRight_2;
-    (&o_0)->borderColorBottom_3 = _S10.borderColorBottom_2;
-    (&o_0)->borderColorLeft_3 = _S10.borderColorLeft_2;
-    (&o_0)->clipIndex_3 = _S10.clipIndex_2;
+    (&o_0)->localPos_2 = _S13;
+    (&o_0)->rectSize_2 = float4(_S12, _S12);
+    (&o_0)->borderRadius_3 = _S11.borderRadius_2;
+    (&o_0)->borderSize_3 = _S11.borderSize_2;
+    (&o_0)->bgColor_3 = _S11.bgColor_2;
+    (&o_0)->borderColorTop_3 = _S11.borderColorTop_2;
+    (&o_0)->borderColorRight_3 = _S11.borderColorRight_2;
+    (&o_0)->borderColorBottom_3 = _S11.borderColorBottom_2;
+    (&o_0)->borderColorLeft_3 = _S11.borderColorLeft_2;
+    (&o_0)->clipIndex_3 = _S11.clipIndex_2;
 
 #line 64
-    thread vertexMain_Result_0 _S13;
+    thread vertexMain_Result_0 _S14;
 
 #line 64
-    (&_S13)->position_1 = o_0.position_2;
+    (&_S14)->position_1 = o_0.position_2;
 
 #line 64
-    (&_S13)->pixelPos_1 = o_0.pixelPos_2;
+    (&_S14)->pixelPos_1 = o_0.pixelPos_2;
 
 #line 64
-    (&_S13)->localPos_1 = o_0.localPos_2;
+    (&_S14)->localPos_1 = o_0.localPos_2;
 
 #line 64
-    (&_S13)->rectSize_1 = o_0.rectSize_2;
+    (&_S14)->rectSize_1 = o_0.rectSize_2;
 
 #line 64
-    (&_S13)->borderRadius_1 = o_0.borderRadius_3;
+    (&_S14)->borderRadius_1 = o_0.borderRadius_3;
 
 #line 64
-    (&_S13)->borderSize_1 = o_0.borderSize_3;
+    (&_S14)->borderSize_1 = o_0.borderSize_3;
 
 #line 64
-    (&_S13)->bgColor_1 = o_0.bgColor_3;
+    (&_S14)->bgColor_1 = o_0.bgColor_3;
 
 #line 64
-    (&_S13)->borderColorTop_1 = o_0.borderColorTop_3;
+    (&_S14)->borderColorTop_1 = o_0.borderColorTop_3;
 
 #line 64
-    (&_S13)->borderColorRight_1 = o_0.borderColorRight_3;
+    (&_S14)->borderColorRight_1 = o_0.borderColorRight_3;
 
 #line 64
-    (&_S13)->borderColorBottom_1 = o_0.borderColorBottom_3;
+    (&_S14)->borderColorBottom_1 = o_0.borderColorBottom_3;
 
 #line 64
-    (&_S13)->borderColorLeft_1 = o_0.borderColorLeft_3;
+    (&_S14)->borderColorLeft_1 = o_0.borderColorLeft_3;
 
 #line 64
-    (&_S13)->clipIndex_1 = o_0.clipIndex_3;
+    (&_S14)->clipIndex_1 = o_0.clipIndex_3;
 
 #line 64
-    return _S13;
+    return _S14;
 }
 
