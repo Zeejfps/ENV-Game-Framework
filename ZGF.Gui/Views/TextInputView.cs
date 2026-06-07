@@ -120,57 +120,43 @@ public sealed class TextInputView : MultiChildView
         if (_strLen == 0)
             return 0;
 
-        if (point.Y >= Position.Top)
-        {
-            return 0;
-        }
-
-        if (point.Y <= Position.Bottom)
-        {
-            return _strLen;
-        }
-
-        var xOffset = point.X - Position.Left + _scrollOffsetX;
         var canvas = Context!.Canvas;
-        var lineCount = 1;
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
 
-        var lines = GetLines(Position.Width, canvas);
-        foreach (var line in lines)
-        {
-            var lineBottom = Position.Top - lineCount * lineHeight;
-            var lineTop = lineBottom + lineHeight;
+        // Honor the same vertical-centering offset used when drawing, so the line the tap lands on
+        // matches what's on screen. Without this, a vertically-centered single-line field (the
+        // common case) maps every tap to the wrong row and the caret can't follow taps.
+        var verticalOffset = VerticalTextOffset(Position, lineHeight, canvas);
+        var textTop = Position.Top + verticalOffset;
 
-            if (point.Y < lineTop && point.Y >= lineBottom)
-            {
-                var lineStartIndex = line.Start.Value;
-                var lineEndIndex = line.End.Value;
-                var selectionWidth = 0f;
-                for (var i = lineStartIndex+1; i <= line.End.Value; i++)
-                {
-                    var c = _buffer.AsSpan(i-1, 1);
-                    var charWidth = canvas.MeasureTextWidth(c, _textStyle);
-                    var leftPart = _buffer.AsSpan(lineStartIndex, i - lineStartIndex);
-                    var leftPartWidth = canvas.MeasureTextWidth(leftPart, _textStyle);
-                    selectionWidth = leftPartWidth - charWidth * 0.5f;
-                    if (selectionWidth > xOffset)
-                    {
-                        return i - 1;
-                    }
-                }
-                
-                if (xOffset > selectionWidth)
-                {
-                    return lineEndIndex;
-                }
-                        
-                return lineEndIndex - 1;
-            }
-            
-            lineCount++;
+        var lines = GetLines(Position.Width, canvas).ToList();
+
+        // Which visual line the tap falls on; taps in the padding above/below the text clamp to the
+        // first/last line so a tap anywhere in the field still positions the caret.
+        var lineIndex = (int)MathF.Floor((textTop - point.Y) / lineHeight);
+        lineIndex = Math.Clamp(lineIndex, 0, lines.Count - 1);
+
+        var line = lines[lineIndex];
+        var lineStartIndex = line.Start.Value;
+        var lineEndIndex = line.End.Value;
+
+        var xOffset = point.X - Position.Left + _scrollOffsetX;
+        var selectionWidth = 0f;
+        for (var i = lineStartIndex + 1; i <= lineEndIndex; i++)
+        {
+            var c = _buffer.AsSpan(i - 1, 1);
+            var charWidth = canvas.MeasureTextWidth(c, _textStyle);
+            var leftPart = _buffer.AsSpan(lineStartIndex, i - lineStartIndex);
+            var leftPartWidth = canvas.MeasureTextWidth(leftPart, _textStyle);
+            selectionWidth = leftPartWidth - charWidth * 0.5f;
+            if (selectionWidth > xOffset)
+                return i - 1;
         }
-        
-        return _strLen;
+
+        if (xOffset > selectionWidth)
+            return lineEndIndex;
+
+        return lineEndIndex - 1;
     }
 
     private void DeleteSelection()
