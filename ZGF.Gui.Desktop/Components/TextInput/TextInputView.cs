@@ -1,3 +1,4 @@
+using ZGF.Fonts;
 using ZGF.Geometry;
 using ZGF.Observable;
 
@@ -28,6 +29,12 @@ public sealed class TextInputView : MultiChildView
     {
         get => _textStyle.FontSize;
         set => SetField(ref _textStyle.FontSize, value);
+    }
+
+    public StyleValue<FontFeatureSet> FontFeatures
+    {
+        get => _textStyle.FontFeatures;
+        set => SetField(ref _textStyle.FontFeatures, value);
     }
 
     public StyleValue<TextAlignment> TextVerticalAlignment

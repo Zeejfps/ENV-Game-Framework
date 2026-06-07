@@ -1,3 +1,5 @@
+using ZGF.Fonts;
+
 namespace ZGF.Gui;
 
 public sealed record TextStyle
@@ -11,4 +13,5 @@ public sealed record TextStyle
     public StyleValue<TextWrap> TextWrap;
     public StyleValue<TextOverflow> TextOverflow;
     public StyleValue<float> Rotation = new(0f, false);
+    public StyleValue<FontFeatureSet> FontFeatures;
 }

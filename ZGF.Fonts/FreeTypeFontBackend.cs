@@ -248,16 +248,22 @@ public sealed unsafe class FreeTypeFontBackend
     }
 
     public int ShapeText(FontHandle font, ReadOnlySpan<char> text, Span<ShapedGlyph> output)
+        => ShapeText(font, text, output, FontFeatureSet.None);
+
+    public int ShapeText(FontHandle font, ReadOnlySpan<char> text, Span<ShapedGlyph> output, in FontFeatureSet features)
     {
         ThrowIfDisposed();
         if (text.Length == 0)
             return 0;
 
         var entry = GetEntry(font);
+        var sig = features.Signature;
 
-        // Shaped runs are position-independent and immutable for a given (font, text),
-        // so cache them and skip HarfBuzz on repeat lines (the common per-frame case).
-        if (TryGetCachedShape(entry, text, out var cached))
+        // Shaped runs are position-independent and immutable for a given (font, text, features),
+        // so cache them and skip HarfBuzz on repeat lines (the common per-frame case). Each
+        // distinct feature set gets its own cache bucket so e.g. tnum and non-tnum runs of the
+        // same text never collide; sig 0 (the empty set) is the original, untouched bucket.
+        if (TryGetCachedShape(entry, sig, text, out var cached))
             return CopyShaped(cached, output);
 
         var buf = entry.HbBuffer!;
@@ -266,7 +272,7 @@ public sealed unsafe class FreeTypeFontBackend
         buf.ClearContents();
         buf.AddUtf16(text);
         buf.GuessSegmentProperties();
-        hbFont.Shape(buf, Array.Empty<Feature>());
+        hbFont.Shape(buf, BuildHbFeatures(features));
 
         var infos = buf.GetGlyphInfoSpan();
         var positions = buf.GetGlyphPositionSpan();
@@ -284,8 +290,24 @@ public sealed unsafe class FreeTypeFontBackend
                 (int)infos[i].Cluster);
         }
 
-        PutShape(entry, text.ToString(), shaped);
+        PutShape(entry, sig, text.ToString(), shaped);
         return CopyShaped(shaped, output);
+    }
+
+    private static Feature[] BuildHbFeatures(in FontFeatureSet features)
+    {
+        var src = features.Features;
+        if (src.Length == 0)
+            return Array.Empty<Feature>();
+
+        var hb = new Feature[src.Length];
+        for (var i = 0; i < src.Length; i++)
+        {
+            var t = src[i].Tag;
+            var tag = new Tag((char)(byte)(t >> 24), (char)(byte)(t >> 16), (char)(byte)(t >> 8), (char)(byte)t);
+            hb[i] = new Feature(tag, src[i].Value, 0, uint.MaxValue);
+        }
+        return hb;
     }
 
     private static int CopyShaped(ShapedGlyph[] shaped, Span<ShapedGlyph> output)
@@ -295,17 +317,21 @@ public sealed unsafe class FreeTypeFontBackend
         return n;
     }
 
-    private static bool TryGetCachedShape(FontEntry entry, ReadOnlySpan<char> text, out ShapedGlyph[] shaped)
+    private static bool TryGetCachedShape(FontEntry entry, ulong sig, ReadOnlySpan<char> text, out ShapedGlyph[] shaped)
     {
-        if (entry.ShapeCacheCur is { } cur &&
+        shaped = null!;
+        if (entry.ShapeBuckets is null || !entry.ShapeBuckets.TryGetValue(sig, out var bucket))
+            return false;
+
+        if (bucket.Cur is { } cur &&
             cur.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(text, out shaped!))
             return true;
 
-        if (entry.ShapeCacheOld is { } old &&
+        if (bucket.Old is { } old &&
             old.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(text, out var key, out shaped!))
         {
             // Hit in the cold generation: promote so a still-hot line survives the next sweep.
-            PutShape(entry, key, shaped);
+            PutShape(entry, sig, key, shaped);
             return true;
         }
 
@@ -313,15 +339,22 @@ public sealed unsafe class FreeTypeFontBackend
         return false;
     }
 
-    private static void PutShape(FontEntry entry, string key, ShapedGlyph[] shaped)
+    private static void PutShape(FontEntry entry, ulong sig, string key, ShapedGlyph[] shaped)
     {
-        var cur = entry.ShapeCacheCur ??= new Dictionary<string, ShapedGlyph[]>(StringComparer.Ordinal);
+        var buckets = entry.ShapeBuckets ??= new Dictionary<ulong, ShapeBucket>();
+        if (!buckets.TryGetValue(sig, out var bucket))
+        {
+            bucket = new ShapeBucket();
+            buckets[sig] = bucket;
+        }
+
+        var cur = bucket.Cur ??= new Dictionary<string, ShapedGlyph[]>(StringComparer.Ordinal);
         if (cur.Count >= ShapeCacheGenCap && !cur.ContainsKey(key))
         {
             // Two-generation clock eviction: drop the cold generation, demote the current
-            // one. Bounds memory at ~2*ShapeCacheGenCap entries while keeping hot lines.
-            entry.ShapeCacheOld = cur;
-            cur = entry.ShapeCacheCur = new Dictionary<string, ShapedGlyph[]>(StringComparer.Ordinal);
+            // one. Bounds memory at ~2*ShapeCacheGenCap entries per bucket while keeping hot lines.
+            bucket.Old = cur;
+            cur = bucket.Cur = new Dictionary<string, ShapedGlyph[]>(StringComparer.Ordinal);
         }
         cur[key] = shaped;
     }
@@ -385,8 +418,14 @@ public sealed unsafe class FreeTypeFontBackend
         public Dictionary<int, FontHandle>? SizeVariants;
         public FontHandle? EmboldenedVariant;
 
-        // Two-generation cache of shaped runs keyed by line text (see PutShape).
-        public Dictionary<string, ShapedGlyph[]>? ShapeCacheCur;
-        public Dictionary<string, ShapedGlyph[]>? ShapeCacheOld;
+        // Per-feature-set cache of shaped runs, keyed by the feature signature (see PutShape).
+        public Dictionary<ulong, ShapeBucket>? ShapeBuckets;
+    }
+
+    // Two-generation cache of shaped runs keyed by line text, scoped to one feature set.
+    private sealed class ShapeBucket
+    {
+        public Dictionary<string, ShapedGlyph[]>? Cur;
+        public Dictionary<string, ShapedGlyph[]>? Old;
     }
 }

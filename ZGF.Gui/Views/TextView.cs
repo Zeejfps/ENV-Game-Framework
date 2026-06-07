@@ -1,3 +1,4 @@
+using ZGF.Fonts;
 using ZGF.Geometry;
 
 namespace ZGF.Gui.Views;
@@ -62,6 +63,12 @@ public sealed class TextView : MultiChildView
     {
         get => _style.FontWeight;
         set => SetField(ref _style.FontWeight, value);
+    }
+
+    public StyleValue<FontFeatureSet> FontFeatures
+    {
+        get => _style.FontFeatures;
+        set => SetField(ref _style.FontFeatures, value);
     }
 
     private string? _text;
