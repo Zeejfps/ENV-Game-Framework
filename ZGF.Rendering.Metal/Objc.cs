@@ -88,6 +88,18 @@ public static unsafe class Objc
     [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
     public static extern double msg_Double(IntPtr receiver, IntPtr selector);
 
+    // Objective-C autorelease pool. A manual (non-Cocoa) run loop creates autoreleased
+    // objects every turn — NSEvents from event polling, plus per-frame CAMetalDrawables,
+    // command buffers, encoders and render-pass descriptors. With no pool draining each
+    // turn they accumulate as unbounded *unmanaged* growth (the managed heap stays flat).
+    // Push at the top of each loop turn and Pop at the end. On iOS the UIKit run loop
+    // supplies its own pool, so this is only needed by the macOS GLFW loop.
+    [DllImport(Libobjc)]
+    public static extern IntPtr objc_autoreleasePoolPush();
+
+    [DllImport(Libobjc)]
+    public static extern void objc_autoreleasePoolPop(IntPtr pool);
+
     public static IntPtr Sel(string name) => sel_registerName(name);
     public static IntPtr Class(string name) => objc_getClass(name);
 

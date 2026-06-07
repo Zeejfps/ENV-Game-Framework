@@ -103,22 +103,33 @@ public sealed class MetalApp : IWindowedApp
 
         while (!GLFW.Glfw.WindowShouldClose(_mainWindow.GlfwWindow))
         {
-            GLFW.Glfw.PollEvents();
-            OnTick?.Invoke();
-
-            _mainWindow.RequestRedraw();
-            for (var i = 0; i < _windows.Count; i++)
+            // Drain every autoreleased Objective-C object this turn creates (NSEvents from
+            // PollEvents, per-frame drawables / command buffers / encoders / pass descriptors).
+            // Without this pool they leak as unbounded unmanaged growth — see Objc.objc_autoreleasePoolPush.
+            var autoreleasePool = objc_autoreleasePoolPush();
+            try
             {
-                var w = _windows[i];
-                if (!w.IsVisible) continue;
-                if (!w.NeedsRedraw) continue;
-                w.RenderNow();
+                GLFW.Glfw.PollEvents();
+                OnTick?.Invoke();
+
+                _mainWindow.RequestRedraw();
+                for (var i = 0; i < _windows.Count; i++)
+                {
+                    var w = _windows[i];
+                    if (!w.IsVisible) continue;
+                    if (!w.NeedsRedraw) continue;
+                    w.RenderNow();
+                }
+
+                for (var i = _windows.Count - 1; i >= 0; i--)
+                {
+                    if (_windows[i] is MetalWindow mw && !mw.IsMain && GLFW.Glfw.WindowShouldClose(mw.GlfwWindow))
+                        GLFW.Glfw.SetWindowShouldClose(mw.GlfwWindow, false);
+                }
             }
-
-            for (var i = _windows.Count - 1; i >= 0; i--)
+            finally
             {
-                if (_windows[i] is MetalWindow mw && !mw.IsMain && GLFW.Glfw.WindowShouldClose(mw.GlfwWindow))
-                    GLFW.Glfw.SetWindowShouldClose(mw.GlfwWindow, false);
+                objc_autoreleasePoolPop(autoreleasePool);
             }
         }
         Dispose();
