@@ -11,6 +11,11 @@
 //   bezier:        shapeData = (p0.xy, control.xy)            halfWidth = half thickness
 //                  shapeData2 = (p2.xy, _, _)
 //
+// Line-only stroke styling rides in spare fields:
+//   shapeData2.zw = (dash length, gap length)   flags bit 2 enables dashing
+//   color2        = gradient end color          flags bit 3 enables color->color2 gradient
+//   flags bits 0-1 = cap style (0 round, 1 butt, 2 square)
+//
 // Cross-target: Slang emits glsl_410 and Metal. The OpenGL backend consumes the
 // hand-written canvas_shape.{vert,frag}.glsl in this directory; the Metal backend
 // consumes the generated canvas_shape.gen.metal.
@@ -20,11 +25,13 @@ struct VertexInput
     [[vk::location(0)]] float2 unitPos    : POSITION;
     [[vk::location(1)]] float4 outerRect  : TEXCOORD0;   // x, y, w, h in pixel space (drawn quad)
     [[vk::location(2)]] float4 shapeData  : TEXCOORD1;   // line: p0.xy/p1.xy; circle: center.xy/radius; bezier: p0.xy/control.xy
-    [[vk::location(3)]] float4 shapeData2 : TEXCOORD2;   // bezier: p2.xy in .xy
+    [[vk::location(3)]] float4 shapeData2 : TEXCOORD2;   // bezier: p2.xy in .xy; line: dash/gap in .zw
     [[vk::location(4)]] float  halfWidth  : TEXCOORD3;
     [[vk::location(5)]] uint   color      : COLOR0;      // ARGB packed
     [[vk::location(6)]] uint   shapeType  : COLOR1;
     [[vk::location(7)]] uint   clipIndex  : COLOR2;
+    [[vk::location(8)]] uint   color2     : COLOR3;      // line gradient end
+    [[vk::location(9)]] uint   flags      : COLOR4;      // bits 0-1 cap, bit 2 dash, bit 3 gradient
 };
 
 struct Varyings
@@ -37,6 +44,8 @@ struct Varyings
     nointerpolation uint color : COLOR0;
     nointerpolation uint shapeType : COLOR1;
     nointerpolation uint clipIndex : COLOR2;
+    nointerpolation uint color2 : COLOR3;
+    nointerpolation uint flags : COLOR4;
 };
 
 cbuffer Globals
@@ -62,6 +71,8 @@ Varyings vertexMain(VertexInput input)
     o.color = input.color;
     o.shapeType = input.shapeType;
     o.clipIndex = input.clipIndex;
+    o.color2 = input.color2;
+    o.flags = input.flags;
     return o;
 }
 
@@ -81,6 +92,24 @@ float sdSegment(float2 p, float2 a, float2 b)
     float2 ba = b - a;
     float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
     return length(pa - ba * h);
+}
+
+// Signed distance for a stroked line with selectable cap.
+//   cap 0 = round (capsule), 1 = butt (flush rectangle), 2 = square (rectangle + half overhang).
+float sdLineCapped(float2 p, float2 a, float2 b, float hw, uint cap)
+{
+    if (cap == 0u)
+        return sdSegment(p, a, b) - hw;
+
+    float2 ba = b - a;
+    float len = max(length(ba), 1e-6);
+    float2 dir = ba / len;
+    float2 rel = p - (a + b) * 0.5;
+    float along = abs(dot(rel, dir));
+    float perp = abs(dot(rel, float2(-dir.y, dir.x)));
+    float capExt = (cap == 2u) ? hw : 0.0;
+    float2 q = float2(along - (len * 0.5 + capExt), perp - hw);
+    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
 }
 
 // Unsigned distance from point p to the quadratic Bezier A->B->C (B is the
@@ -149,8 +178,18 @@ float4 fragmentMain(Varyings v) : SV_Target
     }
     else if (v.shapeType == 2u)
     {
-        // line / capsule (round caps)
-        d = sdSegment(v.pixelPos, v.shapeData.xy, v.shapeData.zw) - v.halfWidth;
+        // line with selectable cap
+        d = sdLineCapped(v.pixelPos, v.shapeData.xy, v.shapeData.zw, v.halfWidth, v.flags & 3u);
+        if ((v.flags & 4u) != 0u)
+        {
+            // dashing: carve gaps along the arclength measured from p0
+            float2 ba = v.shapeData.zw - v.shapeData.xy;
+            float len = max(length(ba), 1e-6);
+            float s = dot(v.pixelPos - v.shapeData.xy, ba / len);
+            float period = v.shapeData2.z + v.shapeData2.w;
+            if (period > 0.0 && (s - period * floor(s / period)) > v.shapeData2.z)
+                discard;
+        }
     }
     else if (v.shapeType == 1u)
     {
@@ -172,5 +211,12 @@ float4 fragmentMain(Varyings v) : SV_Target
     }
 
     float4 rgba = unpackARGB(v.color);
+    if (v.shapeType == 2u && (v.flags & 8u) != 0u)
+    {
+        // line gradient: lerp color -> color2 along the segment
+        float2 ba = v.shapeData.zw - v.shapeData.xy;
+        float g = clamp(dot(v.pixelPos - v.shapeData.xy, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
+        rgba = lerp(rgba, unpackARGB(v.color2), g);
+    }
     return float4(rgba.rgb, rgba.a * coverage);
 }

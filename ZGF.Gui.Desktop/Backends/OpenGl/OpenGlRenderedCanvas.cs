@@ -390,6 +390,8 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         AddUintInstanceAttrib(5, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.Color)));
         AddUintInstanceAttrib(6, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.ShapeType)));
         AddUintInstanceAttrib(7, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.ClipIndex)));
+        AddUintInstanceAttrib(8, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.Color2)));
+        AddUintInstanceAttrib(9, stride, OffsetOf<ShapeInstance>(nameof(ShapeInstance.Flags)));
         glBindVertexArray(0);
         AssertNoGlError();
         return vao;
@@ -486,6 +488,8 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         SetUintInstancePointer(5, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.Color)));
         SetUintInstancePointer(6, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.ShapeType)));
         SetUintInstancePointer(7, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.ClipIndex)));
+        SetUintInstancePointer(8, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.Color2)));
+        SetUintInstancePointer(9, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.Flags)));
     }
 
     private void SetupClipUbo()

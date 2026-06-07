@@ -11,6 +11,8 @@ flat in float v_halfWidth;
 flat in uint v_color;
 flat in uint v_shapeType;
 flat in uint v_clipIndex;
+flat in uint v_color2;
+flat in uint v_flags;
 
 layout(std140) uniform ClipRects {
     vec4 u_clipRects[256]; // (left, bottom, right, top)
@@ -31,6 +33,20 @@ float sdSegment(vec2 p, vec2 a, vec2 b) {
     vec2 ba = b - a;
     float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
     return length(pa - ba * h);
+}
+
+// Stroked line with selectable cap: 0 round (capsule), 1 butt, 2 square.
+float sdLineCapped(vec2 p, vec2 a, vec2 b, float hw, uint cap) {
+    if (cap == 0u) return sdSegment(p, a, b) - hw;
+    vec2 ba = b - a;
+    float len = max(length(ba), 1e-6);
+    vec2 dir = ba / len;
+    vec2 rel = p - (a + b) * 0.5;
+    float along = abs(dot(rel, dir));
+    float perp = abs(dot(rel, vec2(-dir.y, dir.x)));
+    float capExt = (cap == 2u) ? hw : 0.0;
+    vec2 q = vec2(along - (len * 0.5 + capExt), perp - hw);
+    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
 }
 
 // Unsigned distance to the quadratic Bezier A->B->C (B is the control point).
@@ -82,8 +98,16 @@ void main() {
         // quadratic bezier stroke (round caps/joins)
         d = sdBezier(v_pixelPos, v_shapeData.xy, v_shapeData.zw, v_shapeData2.xy) - v_halfWidth;
     } else if (v_shapeType == 2u) {
-        // line / capsule (round caps)
-        d = sdSegment(v_pixelPos, v_shapeData.xy, v_shapeData.zw) - v_halfWidth;
+        // line with selectable cap
+        d = sdLineCapped(v_pixelPos, v_shapeData.xy, v_shapeData.zw, v_halfWidth, v_flags & 3u);
+        if ((v_flags & 4u) != 0u) {
+            // dashing: carve gaps along the arclength measured from p0
+            vec2 ba = v_shapeData.zw - v_shapeData.xy;
+            float len = max(length(ba), 1e-6);
+            float s = dot(v_pixelPos - v_shapeData.xy, ba / len);
+            float period = v_shapeData2.z + v_shapeData2.w;
+            if (period > 0.0 && (s - period * floor(s / period)) > v_shapeData2.z) discard;
+        }
     } else if (v_shapeType == 1u) {
         // ring: distance to the circle outline, then stroke half-width
         d = abs(length(v_pixelPos - v_shapeData.xy) - v_shapeData.z) - v_halfWidth;
@@ -98,5 +122,11 @@ void main() {
     if (coverage <= 0.0) discard;
 
     vec4 rgba = unpackARGB(v_color);
+    if (v_shapeType == 2u && (v_flags & 8u) != 0u) {
+        // line gradient: mix color -> color2 along the segment
+        vec2 ba = v_shapeData.zw - v_shapeData.xy;
+        float g = clamp(dot(v_pixelPos - v_shapeData.xy, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
+        rgba = mix(rgba, unpackARGB(v_color2), g);
+    }
     f_Color = vec4(rgba.rgb, rgba.a * coverage);
 }

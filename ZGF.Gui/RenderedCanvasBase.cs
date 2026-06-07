@@ -62,6 +62,11 @@ public abstract class RenderedCanvasBase : ICanvas
     //   ShapeType 1 ring:          ShapeData = (cx, cy, radius, _),                       HalfWidth = half stroke
     //   ShapeType 2 line/capsule:  ShapeData = (x0, y0, x1, y1),                          HalfWidth = half thickness
     //   ShapeType 3 quad bezier:   ShapeData = (p0.xy, control.xy), ShapeData2 = (p2.xy, _, _), HalfWidth = half thickness
+    //
+    // Line-only stroke styling rides along in spare fields:
+    //   ShapeData2.zw = (dash length, gap length)   Flags bit 2 enables dashing
+    //   Color2        = gradient end color          Flags bit 3 enables Color -> Color2 gradient
+    //   Flags bits 0-1 = cap style (0 round, 1 butt, 2 square)
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public record struct ShapeInstance
     {
@@ -72,12 +77,17 @@ public abstract class RenderedCanvasBase : ICanvas
         public uint Color;              // ARGB packed
         public uint ShapeType;
         public uint ClipIndex;
+        public uint Color2;             // ARGB packed (line gradient end)
+        public uint Flags;              // bits 0-1 cap, bit 2 dash, bit 3 gradient
     }
 
     private const uint ShapeFilledCircle = 0;
     private const uint ShapeRing = 1;
     private const uint ShapeLine = 2;
     private const uint ShapeBezier = 3;
+
+    private const uint FlagDash = 1u << 2;
+    private const uint FlagGradient = 1u << 3;
 
     // Pack=1 so these stage entries have no trailing padding and can be compared
     // as raw bytes against the previous frame's snapshot (see FrameUnchanged).
@@ -327,10 +337,19 @@ public abstract class RenderedCanvasBase : ICanvas
         var p1 = inputs.End;
         var half = MathF.Max(inputs.Thickness, 0f) * 0.5f;
         var pad = half + 1.5f;
+        // Square caps extend ~half past each end; widen the AABB so a diagonal
+        // cap corner isn't clipped.
+        if (inputs.Cap == LineCap.Square) pad += half;
         var minX = MathF.Min(p0.X, p1.X) - pad;
         var minY = MathF.Min(p0.Y, p1.Y) - pad;
         var maxX = MathF.Max(p0.X, p1.X) + pad;
         var maxY = MathF.Max(p0.Y, p1.Y) + pad;
+
+        var dashed = inputs.DashLength > 0f && inputs.GapLength > 0f;
+        var grad = inputs.GradientEndColor.HasValue;
+        var flags = (uint)inputs.Cap;
+        if (dashed) flags |= FlagDash;
+        if (grad) flags |= FlagGradient;
 
         _stagedShapes.Add(new StagedShape
         {
@@ -339,9 +358,12 @@ public abstract class RenderedCanvasBase : ICanvas
             {
                 OuterRect = new Vector4(minX, minY, maxX - minX, maxY - minY),
                 ShapeData = new Vector4(p0.X, p0.Y, p1.X, p1.Y),
+                ShapeData2 = new Vector4(0f, 0f, dashed ? inputs.DashLength : 0f, dashed ? inputs.GapLength : 0f),
                 HalfWidth = half,
                 Color = inputs.Color,
+                Color2 = grad ? inputs.GradientEndColor!.Value : inputs.Color,
                 ShapeType = ShapeLine,
+                Flags = flags,
                 ClipIndex = (uint)_clipStack.Peek(),
             }
         });
