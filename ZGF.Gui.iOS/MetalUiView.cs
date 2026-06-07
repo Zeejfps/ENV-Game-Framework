@@ -21,6 +21,9 @@ namespace ZGF.Gui.iOS;
 // custom-drawn surface — what editors and game engines do): focusing it raises the keyboard and
 // routes keystrokes to the active ITextInputClient, which owns its own text buffer. It backs the
 // platform-neutral ITextInputService, the text parallel to MobileInputSystem.
+//
+// Keyboard avoidance is NOT done here: this view just reports the keyboard's covered height to the
+// shared KeyboardInsets, and the framework's scroll container does the scrolling. No view shifting.
 public sealed class MetalUiView : UIView, IUIKeyInput, IUITextInputTraits, ITextInputService
 {
     [Export("layerClass")]
@@ -28,17 +31,29 @@ public sealed class MetalUiView : UIView, IUIKeyInput, IUITextInputTraits, IText
 
     private ITextInputClient? _textClient;
     private UIView? _accessory;
+    private NSObject? _keyboardToken;
+    private CGRect _keyboardScreenFrame = CGRect.Empty;
 
     public MetalUiView(CGRect frame) : base(frame)
     {
         MultipleTouchEnabled = false;
         UserInteractionEnabled = true;
+
+        // Report the keyboard's covered height to the framework as it changes.
+        _keyboardToken = UIKeyboard.Notifications.ObserveWillChangeFrame((_, e) =>
+        {
+            _keyboardScreenFrame = e.FrameEnd;
+            ReportKeyboardInset();
+        });
     }
 
     public CAMetalLayer MetalLayer => (CAMetalLayer)Layer;
 
     /// <summary>The shared touch input system to drive; set by the view controller once built.</summary>
     public MobileInputSystem? Input { get; set; }
+
+    /// <summary>Keyboard inset sink; set by the view controller so the framework can avoid the keyboard.</summary>
+    public KeyboardInsets? Insets { get; set; }
 
     public override void TouchesBegan(NSSet touches, UIEvent? evt)
     {
@@ -86,6 +101,10 @@ public sealed class MetalUiView : UIView, IUIKeyInput, IUITextInputTraits, IText
 
     public void BeginEdit(ITextInputClient client)
     {
+        // Switching focus: let the previously-edited field commit and drop its active state.
+        if (!ReferenceEquals(_textClient, client))
+            _textClient?.OnEditingEnded();
+
         _textClient = client;
         KeyboardType = ToKeyboardType(client.Keyboard);
         if (IsFirstResponder)
@@ -118,6 +137,25 @@ public sealed class MetalUiView : UIView, IUIKeyInput, IUITextInputTraits, IText
     [Export("keyboardType")]
     public UIKeyboardType KeyboardType { get; set; } = UIKeyboardType.Default;
 
+    // Translate the keyboard frame into the covered height (canvas points) and hand it to the
+    // framework. The framework's scroll container reserves that space and scrolls the focused field
+    // clear — no view shifting here.
+    private void ReportKeyboardInset()
+    {
+        if (Insets == null)
+            return;
+
+        var inset = 0f;
+        if (!_keyboardScreenFrame.IsEmpty)
+        {
+            var keyboardTop = (float)ConvertRectFromView(_keyboardScreenFrame, null).Y;
+            var viewHeight = (float)Bounds.Height;
+            inset = MathF.Max(0f, viewHeight - keyboardTop);
+        }
+
+        Insets.SetBottom(inset);
+    }
+
     private UIToolbar BuildDoneBar()
     {
         var bar = new UIToolbar();
@@ -136,4 +174,14 @@ public sealed class MetalUiView : UIView, IUIKeyInput, IUITextInputTraits, IText
         TextInputKeyboard.Decimal => UIKeyboardType.DecimalPad,
         _ => UIKeyboardType.Default,
     };
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _keyboardToken?.Dispose();
+            _keyboardToken = null;
+        }
+        base.Dispose(disposing);
+    }
 }

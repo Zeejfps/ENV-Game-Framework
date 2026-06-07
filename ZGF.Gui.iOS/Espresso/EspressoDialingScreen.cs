@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using ZGF.Gui.Mobile.Controllers;
 using ZGF.Gui.Mobile.Controls;
 using ZGF.Gui.Mobile.Input;
+using ZGF.Gui.VerticalScrollBar;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.iOS.Espresso;
@@ -135,9 +136,12 @@ public sealed class EspressoDialingScreen
 
         _chart.Height = ChartHeightFor(height);
 
-        var column = new ColumnView
+        // Content lives in a scroll pane so the framework can pull the focused field out from
+        // behind the keyboard (keyboard avoidance) — the whole column, chart included, scrolls.
+        var content = new VerticalScrollPane
         {
             Gap = RowGap,
+            SmoothScrolling = true,
             Children =
             {
                 Band(TitleH, title),
@@ -151,11 +155,15 @@ public sealed class EspressoDialingScreen
             },
         };
 
+        var insets = context.Get<KeyboardInsets>();
+        if (insets != null)
+            context.AddService(new KeyboardAvoidanceController(content, insets));
+
         var panel = new RectView
         {
             BackgroundColor = ScreenColor,
             Padding = new PaddingStyle { Left = 20, Right = 20, Top = TopPad, Bottom = BottomPad },
-            Children = { column },
+            Children = { content },
         };
 
         return new MultiChildView

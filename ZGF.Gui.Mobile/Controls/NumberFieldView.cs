@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using ZGF.Gui.Mobile.Controllers;
 using ZGF.Gui.Mobile.Input;
@@ -17,6 +16,7 @@ public sealed class NumberFieldView : MultiChildView, ITextInputClient
 {
     private readonly TextView _label;
     private ITextInputService? _service;
+    private Context? _context;
 
     private float _value;
     private string _buffer = string.Empty;
@@ -73,6 +73,7 @@ public sealed class NumberFieldView : MultiChildView, ITextInputClient
     protected override void OnAttachedToContext(Context context)
     {
         base.OnAttachedToContext(context);
+        _context = context;
         _service = context.Get<ITextInputService>();
         UpdateLabel();
     }
@@ -83,6 +84,7 @@ public sealed class NumberFieldView : MultiChildView, ITextInputClient
         if (_editing)
             EndEditing();
         _service = null;
+        _context = null;
     }
 
     private void BeginEditing()
@@ -94,6 +96,7 @@ public sealed class NumberFieldView : MultiChildView, ITextInputClient
         _buffer = _value.ToString(Format, CultureInfo.InvariantCulture);
         UpdateLabel();
         _service.BeginEdit(this);
+        _context?.Get<KeyboardAvoidanceController>()?.Focus(this);
     }
 
     private void EndEditing()
@@ -106,6 +109,7 @@ public sealed class NumberFieldView : MultiChildView, ITextInputClient
             _value = Math.Clamp(v, Min, Max);
         UpdateLabel();
         ValueChanged?.Invoke(_value);
+        _context?.Get<KeyboardAvoidanceController>()?.Blur(this);
     }
 
     // --- ITextInputClient ---------------------------------------------------------------------

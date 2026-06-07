@@ -120,6 +120,11 @@ public sealed class MetalViewController : UIViewController
             // Keyboard/text-entry service: the Metal view is itself the keyboard's first responder.
             _context.AddService<ITextInputService>(_metalView);
 
+            // Keyboard size sink: the view reports it, the framework's scroll container avoids it.
+            var keyboardInsets = new KeyboardInsets();
+            _context.AddService(keyboardInsets);
+            _metalView.Insets = keyboardInsets;
+
             _screen = new EspressoDialingScreen(logicalW, logicalH, _context);
             _root = _screen.Root;
             StartRenderLoop();

@@ -3,19 +3,45 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.VerticalScrollBar;
 
-public sealed class VerticalScrollPane : MultiChildView
+public sealed class VerticalScrollPane : MultiChildView, IKeyboardScrollable
 {
     public event Action<float>? ScrollPositionChanged;
 
-    private float _distanceFromTop;
+    // Fraction of the remaining distance the rendered offset closes each frame while easing.
+    private const float EaseFactor = 0.28f;
+
+    private float _distanceFromTop;   // the target offset
+    private float _displayDistance;   // the rendered offset; eases toward the target when SmoothScrolling
     private float _maxDistanceFromTop;
+    private float _bottomInset;
     private readonly ColumnView _columnView;
+
+    private float CurrentDistance => _displayDistance;
 
     public float ScrollNormalized { get; private set; }
     public float Scale { get; private set; }
     public override IComponentCollection Children => _columnView.Children;
 
     public override bool ClipsContent => true;
+
+    /// <summary>When true the rendered offset eases toward its target over a few frames instead of
+    /// snapping — used for keyboard avoidance so the content glides. Requires a continuously rendering
+    /// host (the animation drives its own next frame from <see cref="OnDrawSelf"/>).</summary>
+    public bool SmoothScrolling { get; set; }
+
+    /// <summary>Points reserved at the bottom of the viewport (e.g. for an on-screen keyboard);
+    /// shrinks the scrollable region so content can be pulled out from behind it.</summary>
+    public float BottomInset
+    {
+        get => _bottomInset;
+        set
+        {
+            if (Math.Abs(_bottomInset - value) < 0.0001f)
+                return;
+            _bottomInset = value;
+            SetDirty();
+        }
+    }
 
     public StyleValue<int> Gap
     {
@@ -32,10 +58,19 @@ public sealed class VerticalScrollPane : MultiChildView
     protected override void OnLayoutChild(in RectF position, View child)
     {
         var childHeight = child.MeasureHeight(position.Width);
-        child.BottomConstraint = position.Top + _distanceFromTop - childHeight;
+        child.BottomConstraint = position.Top + CurrentDistance - childHeight;
         child.LeftConstraint = position.Left;
         child.WidthConstraint = position.Width;
         child.LayoutSelf();
+    }
+
+    protected override void OnDrawSelf(ICanvas c)
+    {
+        // Keep the ease alive: layout only re-runs when dirty, and a SetDirty() issued during a layout
+        // pass is cleared by View.LayoutSelf before the next frame. Draw runs every frame after layout
+        // and isn't gated by the dirty flag, so request the next frame here until the offset settles.
+        if (SmoothScrolling && MathF.Abs(_distanceFromTop - _displayDistance) > 0.0001f)
+            SetDirty();
     }
 
     protected override void OnDrawChildren(ICanvas c)
@@ -67,17 +102,57 @@ public sealed class VerticalScrollPane : MultiChildView
         Scroll(delta);
     }
 
-    public void ScrollTo(MultiChildView view)
+    /// <summary>
+    /// Scroll so <paramref name="descendant"/> (at any depth) sits within the visible region — the
+    /// viewport minus <see cref="BottomInset"/>. Works in absolute canvas coordinates, so the
+    /// descendant need not be a direct child.
+    /// </summary>
+    public void ScrollIntoView(View descendant)
     {
-        if (!Children.Contains(view))
+        RecomputeRange();
+
+        var viewport = Position;
+        const float margin = 8f;
+
+        // Where the descendant sits inside the scrolled content, independent of the current
+        // scroll/ease state: content top and descendant both carry the same offset, so it cancels.
+        // Using this (rather than the rendered Position, which lags behind the target while
+        // SmoothScrolling eases) keeps the computation idempotent — repeated calls converge instead
+        // of compounding, which is what the keyboard's repeated frame notifications would otherwise do.
+        var offsetFromTop = _columnView.Position.Top - descendant.Position.Top;
+        var offsetFromBottom = offsetFromTop + descendant.Position.Height;
+
+        // Canvas-y of the content top is viewport.Top + distance; an edge at offset `o` sits at
+        // (viewport.Top + distance) - o. Solve for the distance that lands the descendant inside the
+        // band [visibleBottom, viewport.Top]. The keyboard covers up to canvas-y == _bottomInset.
+        var visibleBottom = MathF.Max(viewport.Bottom, _bottomInset);
+        var target = _distanceFromTop;
+        var descBottom = viewport.Top + target - offsetFromBottom;
+        var descTop = viewport.Top + target - offsetFromTop;
+
+        if (descBottom < visibleBottom + margin)
+            target += visibleBottom + margin - descBottom;         // hidden below the inset: pull up
+        else if (descTop > viewport.Top - margin)
+            target -= descTop - (viewport.Top - margin);           // above the viewport: pull down
+
+        var clamped = Math.Clamp(target, 0f, _maxDistanceFromTop);
+        if (Math.Abs(clamped - _distanceFromTop) < 0.0001f)
             return;
 
-        var viewportPosition = Position;
-        var viewPosition = view.Position;
-        if (viewPosition.FullyContains(viewPosition))
-            return;
-        
-        // TODO: Finish
+        _distanceFromTop = clamped;
+        SetDirty();
+    }
+
+    // Scroll range depends on the inset (content can be pulled out from behind the keyboard even
+    // when it would otherwise fit). Kept in sync by OnLayoutChildren and recomputed on demand
+    // before a programmatic scroll so it isn't a frame stale.
+    private void RecomputeRange()
+    {
+        var contentHeight = _columnView.MeasureHeight(Position.Width);
+        var effectiveHeight = Position.Height - _bottomInset;
+        _maxDistanceFromTop = MathF.Max(0f, contentHeight - effectiveHeight);
+        if (_distanceFromTop > _maxDistanceFromTop)
+            _distanceFromTop = _maxDistanceFromTop;
     }
 
     public void Scroll(float delta)
@@ -114,26 +189,50 @@ public sealed class VerticalScrollPane : MultiChildView
     
     protected override void OnLayoutChildren()
     {
-        base.OnLayoutChildren();
-        
-        var viewportRect = Position;
-        var contentRect = _columnView.Position;
-        
+        // Finalize the scroll range and clamp _distanceFromTop BEFORE laying out children: the base
+        // pass positions the content at CurrentDistance, so any reset/clamp has to happen first or it
+        // won't take effect until a later pass — and there's no guaranteed later pass once this view
+        // goes clean. (This is what left the content stuck scrolled after the keyboard closed.)
         var viewportHeight = Position.Height;
+        var effectiveHeight = viewportHeight - _bottomInset;
         var contentHeight = _columnView.MeasureHeight(Position.Width);
 
-        if (contentHeight <= viewportHeight)
+        if (contentHeight <= effectiveHeight)
         {
             _maxDistanceFromTop = 0;
+            _distanceFromTop = 0;        // content fits again: return to the top
             Scale = 1f;
+        }
+        else
+        {
+            _maxDistanceFromTop = contentHeight - effectiveHeight;
+            _distanceFromTop = Math.Clamp(_distanceFromTop, 0f, _maxDistanceFromTop);
+            Scale = effectiveHeight / contentHeight;
+        }
+
+        // Ease the rendered offset toward the target (snapping the last half-point so it settles
+        // cleanly). Not clamped to the range: when the keyboard closes the range collapses to 0, and
+        // the offset still needs to glide down through the now-out-of-range values to reach it.
+        // OnDrawSelf keeps requesting frames until this converges.
+        if (SmoothScrolling)
+        {
+            var diff = _distanceFromTop - _displayDistance;
+            _displayDistance = MathF.Abs(diff) < 0.5f ? _distanceFromTop : _displayDistance + diff * EaseFactor;
+        }
+        else
+        {
+            _displayDistance = _distanceFromTop;
+        }
+
+        base.OnLayoutChildren();
+
+        if (_maxDistanceFromTop <= 0f)
+        {
             ScrollNormalized = 0f;
         }
         else
         {
-            _maxDistanceFromTop = contentHeight - viewportHeight;
-            Scale = viewportHeight / contentHeight;
-
-            var scrollOffset = (viewportRect.Bottom - contentRect.Bottom);
+            var scrollOffset = Position.Bottom - _columnView.Position.Bottom;
             ScrollNormalized = 1f - Math.Clamp(scrollOffset / _maxDistanceFromTop, 0f, 1f);
         }
 
