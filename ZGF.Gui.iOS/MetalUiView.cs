@@ -15,10 +15,19 @@ namespace ZGF.Gui.iOS;
 // we forward the primary touch's location (logical points, top-left origin) to the shared
 // MobileInputSystem, which flips Y into canvas space and dispatches to the view tree. All the
 // per-platform code lives in these four overrides — the routing itself is shared with Android.
-public sealed class MetalUiView : UIView
+//
+// Text handling: the same view is the keyboard's first responder. Rather than hosting a hidden
+// UITextField, it conforms to UIKeyInput directly (the supported way to drive the keyboard from a
+// custom-drawn surface — what editors and game engines do): focusing it raises the keyboard and
+// routes keystrokes to the active ITextInputClient, which owns its own text buffer. It backs the
+// platform-neutral ITextInputService, the text parallel to MobileInputSystem.
+public sealed class MetalUiView : UIView, IUIKeyInput, IUITextInputTraits, ITextInputService
 {
     [Export("layerClass")]
     public static Class GetLayerClass() => new Class(typeof(CAMetalLayer));
+
+    private ITextInputClient? _textClient;
+    private UIView? _accessory;
 
     public MetalUiView(CGRect frame) : base(frame)
     {
@@ -67,4 +76,64 @@ public sealed class MetalUiView : UIView
         y = 0f;
         return false;
     }
+
+    // --- Keyboard (ITextInputService + UIKeyInput) ----------------------------------------
+
+    public override bool CanBecomeFirstResponder => true;
+
+    // A number pad has no return key, so a "Done" bar above the keyboard dismisses it.
+    public override UIView InputAccessoryView => _accessory ??= BuildDoneBar();
+
+    public void BeginEdit(ITextInputClient client)
+    {
+        _textClient = client;
+        KeyboardType = ToKeyboardType(client.Keyboard);
+        if (IsFirstResponder)
+            ReloadInputViews(); // switching fields: update the keyboard type in place
+        else
+            BecomeFirstResponder();
+    }
+
+    public void EndEdit(ITextInputClient client)
+    {
+        if (_textClient == client)
+            ResignFirstResponder();
+    }
+
+    public override bool ResignFirstResponder()
+    {
+        var result = base.ResignFirstResponder();
+        var client = _textClient;
+        _textClient = null;
+        client?.OnEditingEnded();
+        return result;
+    }
+
+    // UIKeyInput: the keyboard calls these on the first responder; we forward to the active client.
+    public bool HasText => _textClient?.HasText ?? false;
+    public void InsertText(string text) => _textClient?.InsertText(text);
+    public void DeleteBackward() => _textClient?.DeleteBackward();
+
+    // UITextInputTraits: the keyboard reads this off the first responder to pick its layout.
+    [Export("keyboardType")]
+    public UIKeyboardType KeyboardType { get; set; } = UIKeyboardType.Default;
+
+    private UIToolbar BuildDoneBar()
+    {
+        var bar = new UIToolbar();
+        bar.SizeToFit();
+        bar.Items = new[]
+        {
+            new UIBarButtonItem(UIBarButtonSystemItem.FlexibleSpace),
+            new UIBarButtonItem(UIBarButtonSystemItem.Done, (_, _) => ResignFirstResponder()),
+        };
+        return bar;
+    }
+
+    private static UIKeyboardType ToKeyboardType(TextInputKeyboard keyboard) => keyboard switch
+    {
+        TextInputKeyboard.Number => UIKeyboardType.NumberPad,
+        TextInputKeyboard.Decimal => UIKeyboardType.DecimalPad,
+        _ => UIKeyboardType.Default,
+    };
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using ZGF.Gui.Mobile.Controllers;
 using ZGF.Gui.Mobile.Controls;
+using ZGF.Gui.Mobile.Input;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.iOS.Espresso;
@@ -56,10 +57,13 @@ public sealed class EspressoDialingScreen
     private readonly ChartView _chart = new();
     private TextView _coach = null!;
     private TextView _readout = null!;
-    private TextView _doseValue = null!;
-    private TextView _yieldValue = null!;
-    private TextView _timeValue = null!;
+    private NumberFieldView _doseField = null!;
+    private NumberFieldView _yieldField = null!;
+    private NumberFieldView _timeField = null!;
     private readonly List<(Taste taste, RectView btn, TextView text)> _tasteButtons = new();
+
+    // Guards the slider <-> field two-way binding from re-entering itself.
+    private bool _syncing;
 
     public MultiChildView Root { get; }
 
@@ -118,16 +122,16 @@ public sealed class EspressoDialingScreen
         };
 
         var doseSlider = new SliderView { Min = 14f, Max = 22f, Value = _dose };
-        doseSlider.ValueChanged += v => { _dose = v; Recompute(); };
-        _doseValue = MakeValueLabel();
+        _doseField = MakeValueField(14f, 22f, "0.0", " g", TextInputKeyboard.Decimal);
+        Bind(doseSlider, _doseField, v => _dose = v);
 
         var yieldSlider = new SliderView { Min = 20f, Max = 60f, Value = _yield };
-        yieldSlider.ValueChanged += v => { _yield = v; Recompute(); };
-        _yieldValue = MakeValueLabel();
+        _yieldField = MakeValueField(20f, 60f, "0", " g", TextInputKeyboard.Number);
+        Bind(yieldSlider, _yieldField, v => _yield = v);
 
         var timeSlider = new SliderView { Min = 12f, Max = 45f, Value = _time };
-        timeSlider.ValueChanged += v => { _time = v; Recompute(); };
-        _timeValue = MakeValueLabel();
+        _timeField = MakeValueField(12f, 45f, "0", " s", TextInputKeyboard.Number);
+        Bind(timeSlider, _timeField, v => _time = v);
 
         _chart.Height = ChartHeightFor(height);
 
@@ -140,9 +144,9 @@ public sealed class EspressoDialingScreen
                 _chart,
                 Band(CoachH, _coach),
                 Band(ReadoutH, _readout),
-                SliderRow("Dose", doseSlider, _doseValue),
-                SliderRow("Yield", yieldSlider, _yieldValue),
-                SliderRow("Time", timeSlider, _timeValue),
+                SliderRow("Dose", doseSlider, _doseField),
+                SliderRow("Yield", yieldSlider, _yieldField),
+                SliderRow("Time", timeSlider, _timeField),
                 TasteRow(),
             },
         };
@@ -171,17 +175,43 @@ public sealed class EspressoDialingScreen
         Children = { child },
     };
 
-    private static TextView MakeValueLabel() => new()
+    private static NumberFieldView MakeValueField(float min, float max, string format, string suffix, TextInputKeyboard keyboard) => new()
     {
-        Text = "",
-        Width = 74f,
+        Min = min,
+        Max = max,
+        Format = format,
+        Suffix = suffix,
+        Keyboard = keyboard,
+        Width = 84f,
+        Height = 32f,
         TextColor = ValueColor,
         FontSize = 14f,
-        HorizontalTextAlignment = TextAlignment.End,
-        VerticalTextAlignment = TextAlignment.Center,
     };
 
-    private static FlexRowView SliderRow(string label, SliderView slider, TextView valueLabel)
+    // Two-way binding: dragging the slider updates the field and vice versa, and either path
+    // updates the model + recomputes. The _syncing guard stops the echo from looping.
+    private void Bind(SliderView slider, NumberFieldView field, Action<float> setModel)
+    {
+        slider.ValueChanged += v =>
+        {
+            if (_syncing) return;
+            _syncing = true;
+            setModel(v);
+            Recompute();
+            _syncing = false;
+        };
+        field.ValueChanged += v =>
+        {
+            if (_syncing) return;
+            _syncing = true;
+            setModel(v);
+            slider.Value = v;
+            Recompute();
+            _syncing = false;
+        };
+    }
+
+    private static FlexRowView SliderRow(string label, SliderView slider, View valueField)
     {
         return new FlexRowView
         {
@@ -199,7 +229,7 @@ public sealed class EspressoDialingScreen
                     VerticalTextAlignment = TextAlignment.Center,
                 },
                 new FlexItem { Grow = 1f, Child = slider },
-                valueLabel,
+                valueField,
             },
         };
     }
@@ -301,9 +331,9 @@ public sealed class EspressoDialingScreen
         _chart.SetShot(ey, tds, color);
         _coach.Text = Coach(flow, targetTime);
         _readout.Text = $"1:{ratio:0.0}  •  {flow:0.0} g/s  •  est. EY {ey:0.0}% / TDS {tds:0.0}%";
-        _doseValue.Text = $"{_dose:0.0} g";
-        _yieldValue.Text = $"{_yield:0} g";
-        _timeValue.Text = $"{_time:0} s";
+        _doseField.Value = _dose;
+        _yieldField.Value = _yield;
+        _timeField.Value = _time;
     }
 
     private string Coach(float flow, float targetTime)

@@ -1,3 +1,5 @@
+using System;
+
 namespace ZGF.Gui.Mobile.Input;
 
 /// <summary>

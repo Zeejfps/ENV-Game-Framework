@@ -117,6 +117,9 @@ public sealed class MetalViewController : UIViewController
             _context.AddService(_mobileInput);
             _metalView.Input = _mobileInput;
 
+            // Keyboard/text-entry service: the Metal view is itself the keyboard's first responder.
+            _context.AddService<ITextInputService>(_metalView);
+
             _screen = new EspressoDialingScreen(logicalW, logicalH, _context);
             _root = _screen.Root;
             StartRenderLoop();
