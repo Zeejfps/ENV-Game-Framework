@@ -39,6 +39,10 @@ app, which is the primary real-world driver for these changes.
 
 ### W1 — Layout engine rewrite
 
+> **Detailed design: [W1-Layout.md](./W1-Layout.md)** — concrete `Constraints`/`Measure`/
+> `Arrange` API, the single `FlexView`, split invalidation, a V1→V2 mapping table for every
+> container, and a 7-step phasing plan. The summary below is the rationale only.
+
 **Why.** Three compounding defects in the V1 layout pass.
 
 1. *Measure and arrange are conflated and children are re-measured 2–3× per pass.*
