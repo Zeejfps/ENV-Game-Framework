@@ -5,11 +5,14 @@ using OpenGL.NET;
 using ZGF.Desktop;
 using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Fonts;
+using ZGF.Gui.Bindings;
 using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Backends.OpenGl;
+using ZGF.Gui.Desktop.Components.Calendar;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Desktop.Platforms.Osx;
+using ZGF.Gui.Desktop.Platforms.Windows;
 using ZGF.Gui.Views;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
@@ -98,9 +101,34 @@ public sealed class App : IDisposable
         _modelView = center.ModelView;
         _modelView.ImageId = _frameBufferHandle.ImageId;
 
+        var calendar = new CalendarView();
+        var selectedLabel = new TextView
+        {
+            FontSize = 14,
+            TextColor = 0xFFE0E0E0,
+            HorizontalTextAlignment = TextAlignment.Center,
+        };
+        selectedLabel.BindText(() =>
+            calendar.SelectedDate.Value is { } picked ? picked.ToString("yyyy-MM-dd") : "No date selected");
+
+        var calendarPanel = new RectView
+        {
+            BackgroundColor = 0xFF101010,
+            Padding = PaddingStyle.All(12),
+            Children =
+            {
+                new ColumnView
+                {
+                    Gap = 10,
+                    Children = { calendar, selectedLabel },
+                }
+            }
+        };
+
         var contents = new BorderLayoutView
         {
             North = appBar,
+            West = calendarPanel,
             Center = center,
         };
 
