@@ -99,7 +99,10 @@ public sealed class GuiApp : IDisposable
         _contextMenuManager.CloseAllImmediately();
     }
 
-    public static GuiApp CreateDefault(StartupConfig config, Context context, View content)
+    /// <summary>Starts a fluent <see cref="GuiAppBuilder"/> for configuring and building a GuiApp.</summary>
+    public static GuiAppBuilder CreateBuilder(StartupConfig config) => new(config);
+
+    internal static GuiApp Create(StartupConfig config, Context context, View content)
     {
         var backend = PlatformBackend.Resolve(config);
         return new GuiApp(
@@ -188,6 +191,10 @@ public sealed class GuiApp : IDisposable
 
     public void Dispose()
     {
+        // Detach the whole view tree from the context so views release context-scoped
+        // resources (view models, and roots that own a store via OnDetachedFromContext).
+        _root.Context = null;
+
         _app.OnTick -= HandleTick;
         _app.MainWindow.OnResize -= HandleResize;
         _app.MainWindow.OnFramebufferResize -= HandleFramebufferResize;
