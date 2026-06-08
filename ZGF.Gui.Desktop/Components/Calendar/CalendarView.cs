@@ -42,6 +42,8 @@ public sealed class CalendarView : RectView
     public uint HeaderTextColor { get; set; } = 0xFFE0E0E0;
     public uint WeekdayTextColor { get; set; } = 0xFF9CA3AF;
     public uint NavArrowColor { get; set; } = 0xFFE0E0E0;
+    public uint NavButtonColor { get; set; } = 0x00000000;
+    public uint NavButtonHoverColor { get; set; } = 0xFF333333;
 
     private readonly TextView _title;
     private readonly TextView[] _weekdayLabels = new TextView[Columns];
@@ -130,18 +132,24 @@ public sealed class CalendarView : RectView
         RefreshAll();
     }
 
-    private TextView NavButton(string glyph, Action onClick)
+    private RectView NavButton(string glyph, Action onClick)
     {
-        var button = new TextView
+        var label = new TextView
         {
             Text = glyph,
-            Width = 24,
             FontSize = 18,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             TextColor = NavArrowColor,
         };
-        button.UseController(_ => new CalendarNavButtonController(onClick));
+        var button = new RectView
+        {
+            BackgroundColor = NavButtonColor,
+            BorderRadius = BorderRadiusStyle.All(4),
+            Padding = new PaddingStyle { Left = 8, Right = 8, Top = 3, Bottom = 3 },
+            Children = { label },
+        };
+        button.UseController(_ => new CalendarNavButtonController(button, onClick, NavButtonColor, NavButtonHoverColor));
         return button;
     }
 
