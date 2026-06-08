@@ -3,6 +3,7 @@ using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Desktop.Components.TextInput;
 using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
 using ZGF.Observable;
 
@@ -18,6 +19,18 @@ public sealed class CalendarView : RectView
 
     public State<DateOnly?> SelectedDate { get; } = new(null);
     public State<DateOnly> DisplayedMonth { get; }
+
+    /// <summary>True while the calendar's year field holds keyboard focus. Hosts that float the
+    /// calendar over their own focused editor use this to avoid blurring/closing the picker when the
+    /// user clicks into the year field.</summary>
+    public bool HasKeyboardFocus
+    {
+        get
+        {
+            var input = Context?.Get<InputSystem>();
+            return input is not null && ReferenceEquals(input.FocusedComponent, _yearController);
+        }
+    }
 
     private DateOnly? _minDate;
     public DateOnly? MinDate
@@ -49,6 +62,7 @@ public sealed class CalendarView : RectView
 
     private readonly TextView _monthLabel;
     private readonly TextInputView _yearInput;
+    private readonly CalendarYearInputController _yearController;
     private readonly TextView[] _weekdayLabels = new TextView[Columns];
     private readonly CalendarDayCell[] _cells = new CalendarDayCell[CellCount];
     private readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
@@ -82,7 +96,8 @@ public sealed class CalendarView : RectView
             SelectionRectColor = 0xFF3B82F6,
             TextVerticalAlignment = TextAlignment.Center,
         };
-        _yearInput.UseController(_ => new CalendarYearInputController(_yearInput, CommitYear, RevertYear));
+        _yearController = new CalendarYearInputController(_yearInput, CommitYear, RevertYear);
+        _yearInput.UseController(_ => _yearController);
 
         var yearField = new RectView
         {

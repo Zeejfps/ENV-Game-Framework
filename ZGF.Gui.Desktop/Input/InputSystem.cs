@@ -577,6 +577,10 @@ public sealed class InputSystem
 
     public bool HasFocus => _focusedComponent != null;
 
+    /// <summary>The controller currently holding keyboard focus, or null. Unlike
+    /// <see cref="IsFocused"/> (which reflects hover order), this is the real keyboard-focus target.</summary>
+    public IKeyboardMouseController? FocusedComponent => _focusedComponent;
+
     public bool IsFocused(IKeyboardMouseController component)
     {
         var focused = _focusQueue.First;
