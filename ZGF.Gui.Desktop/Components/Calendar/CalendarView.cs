@@ -1,6 +1,7 @@
 using System.Globalization;
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
+using ZGF.Gui.Desktop.Components.TextInput;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Views;
 using ZGF.Observable;
@@ -44,8 +45,10 @@ public sealed class CalendarView : RectView
     public uint NavArrowColor { get; set; } = 0xFFE0E0E0;
     public uint NavButtonColor { get; set; } = 0x00000000;
     public uint NavButtonHoverColor { get; set; } = 0xFF333333;
+    public uint YearFieldColor { get; set; } = 0xFF2A2A2A;
 
-    private readonly TextView _title;
+    private readonly TextView _monthLabel;
+    private readonly TextInputView _yearInput;
     private readonly TextView[] _weekdayLabels = new TextView[Columns];
     private readonly CalendarDayCell[] _cells = new CalendarDayCell[CellCount];
     private readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
@@ -58,15 +61,57 @@ public sealed class CalendarView : RectView
         BorderRadius = BorderRadiusStyle.All(6);
         Padding = PaddingStyle.All(10);
 
-        var prev = NavButton("‹", () => StepMonth(-1));
-        var next = NavButton("›", () => StepMonth(1));
+        var prev = NavButton("‹", 18, new PaddingStyle { Left = 8, Right = 8, Top = 3, Bottom = 3 }, () => StepMonth(-1));
+        var next = NavButton("›", 18, new PaddingStyle { Left = 8, Right = 8, Top = 3, Bottom = 3 }, () => StepMonth(1));
 
-        _title = new TextView
+        _monthLabel = new TextView
         {
             FontSize = 15,
-            HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             TextColor = HeaderTextColor,
+        };
+
+        _yearInput = new TextInputView
+        {
+            Width = 40,
+            Height = 20,
+            FontSize = 15,
+            BackgroundColor = 0x00000000,
+            TextColor = HeaderTextColor,
+            CaretColor = HeaderTextColor,
+            SelectionRectColor = 0xFF3B82F6,
+            TextVerticalAlignment = TextAlignment.Center,
+        };
+        _yearInput.UseController(_ => new CalendarYearInputController(_yearInput, CommitYear, RevertYear));
+
+        var yearField = new RectView
+        {
+            BackgroundColor = YearFieldColor,
+            BorderRadius = BorderRadiusStyle.All(4),
+            Padding = new PaddingStyle { Left = 6, Right = 6, Top = 2, Bottom = 2 },
+            Children = { _yearInput },
+        };
+
+        var spinner = new ColumnView
+        {
+            Children =
+            {
+                NavButton("▲", 8, new PaddingStyle { Left = 4, Right = 4, Top = 1, Bottom = 1 }, () => StepYear(1)),
+                NavButton("▼", 8, new PaddingStyle { Left = 4, Right = 4, Top = 1, Bottom = 1 }, () => StepYear(-1)),
+            }
+        };
+
+        var titleCluster = new FlexRowView
+        {
+            MainAxisAlignment = MainAxisAlignment.Center,
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            Gap = 6,
+            Children =
+            {
+                _monthLabel,
+                yearField,
+                spinner,
+            }
         };
 
         var header = new FlexRowView
@@ -75,7 +120,7 @@ public sealed class CalendarView : RectView
             Children =
             {
                 prev,
-                new FlexItem { Grow = 1, Child = _title },
+                new FlexItem { Grow = 1, Child = titleCluster },
                 next,
             }
         };
@@ -132,12 +177,12 @@ public sealed class CalendarView : RectView
         RefreshAll();
     }
 
-    private RectView NavButton(string glyph, Action onClick)
+    private RectView NavButton(string glyph, float fontSize, PaddingStyle padding, Action onClick)
     {
         var label = new TextView
         {
             Text = glyph,
-            FontSize = 18,
+            FontSize = fontSize,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             TextColor = NavArrowColor,
@@ -146,7 +191,7 @@ public sealed class CalendarView : RectView
         {
             BackgroundColor = NavButtonColor,
             BorderRadius = BorderRadiusStyle.All(4),
-            Padding = new PaddingStyle { Left = 8, Right = 8, Top = 3, Bottom = 3 },
+            Padding = padding,
             Children = { label },
         };
         button.UseController(_ => new CalendarNavButtonController(button, onClick, NavButtonColor, NavButtonHoverColor));
@@ -158,6 +203,30 @@ public sealed class CalendarView : RectView
         var month = DisplayedMonth.Value;
         DisplayedMonth.Value = new DateOnly(month.Year, month.Month, 1).AddMonths(delta);
     }
+
+    private void StepYear(int delta) => SetYear(DisplayedMonth.Value.Year + delta);
+
+    private void SetYear(int year)
+    {
+        var month = DisplayedMonth.Value;
+        DisplayedMonth.Value = new DateOnly(ClampYear(year), month.Month, 1);
+    }
+
+    private int ClampYear(int year)
+    {
+        if (_minDate.HasValue && year < _minDate.Value.Year) year = _minDate.Value.Year;
+        if (_maxDate.HasValue && year > _maxDate.Value.Year) year = _maxDate.Value.Year;
+        return Math.Clamp(year, 1, 9999);
+    }
+
+    private void CommitYear(string text)
+    {
+        if (int.TryParse(text.Trim(), out var year))
+            SetYear(year);
+        RefreshAll();
+    }
+
+    private void RevertYear() => RefreshAll();
 
     private void OnDayClicked(DateOnly date)
     {
@@ -172,7 +241,9 @@ public sealed class CalendarView : RectView
         var month = DisplayedMonth.Value;
         var firstOfMonth = new DateOnly(month.Year, month.Month, 1);
 
-        _title.Text = firstOfMonth.ToString("MMMM yyyy", _culture);
+        _monthLabel.Text = firstOfMonth.ToString("MMMM", _culture);
+        if (!_yearInput.IsEditing)
+            _yearInput.SetText(month.Year.ToString(CultureInfo.InvariantCulture));
 
         var weekStart = (int)_culture.DateTimeFormat.FirstDayOfWeek;
         var abbreviated = _culture.DateTimeFormat.AbbreviatedDayNames;
