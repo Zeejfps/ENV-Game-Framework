@@ -88,23 +88,37 @@ nothing for a 2D document UI and taxes every container author.
 - [ ] Switch coordinate system to Y-down; update `ScrollPane`/`VerticalScrollPane`.
 - [ ] Bench against a large virtualized list (commits/diff) vs V1 baseline.
 
-### W2 — Observable view properties (delete `SetDirty()` as a convention)
+### W2 — Layout-only invalidation (delete `SetDirty()` as a convention)
 
-**Why.** The most repeated footgun in app code. Every themed view ends with a block of
-property assignments followed by a hand-written `SetDirty()` (GitBench `CommitsView`,
-`BranchesView`, `LocalChangesPanel` theme epilogues). Required by convention, enforced by
-nothing; forgetting it yields invisible stale-paint bugs.
+> **Detailed design: [W2-Properties.md](./W2-Properties.md)** — scope decision (continuous
+> redraw stays), typed layout setters, the property reclassification table, uniform redraw,
+> the custom-drawn-view path, and phasing. Summary below is rationale.
 
-**Direction.** Back paint/layout-affecting view properties with the existing auto-invalidate
-mechanism so assignment *is* the invalidation. Sketch:
-`PaintProp<uint> TextColor` (set → schedule repaint), `LayoutProp<T> Width` (set →
-schedule relayout). Removes hand-written `SetField`/`SetDirty` in `View.cs` and every
-`SetDirty()` call site in app code.
+**Why.** The most repeated footgun in app code — every themed view ends with property
+assignments + a hand-written `SetDirty()` (GitBench `CommitsView`, `BranchesView`,
+`LocalChangesPanel` epilogues), enforced by nothing. And it's *wasteful*: `SetDirty()` forces
+a layout pass (`View.cs:407-410`) even for a colour change that moves no geometry.
+
+**Scope decision.** Continuous per-frame redraw **stays** — change-detection for the GPU is
+the renderer's job and `RenderedCanvasBase.UploadIfChanged` already does it. The framework's
+job is to minimize **layout CPU**, which W1 already gates. Dirty-gated *presentation* is
+explicitly out of scope.
+
+**Direction.** Because every frame redraws, an appearance-only change (colour, highlight,
+theme) needs **no invalidation at all** — it lands next frame for free. So invalidation
+collapses to W1's two **layout** tiers: split `SetField` into `SetMeasure`/`SetArrange` for
+geometry-affecting properties; demote appearance properties to plain auto-properties; and
+**delete** the appearance-change `SetDirty()` calls (they only bought needless layout). Make
+all windows redraw uniformly (drop the popup `NeedsRedraw` gate, `OpenGlApp.cs:139`) so
+dirty-gated popups stop missing async/animated changes. No paint tier, no redraw pump, no
+animation pump. Keep `State<T>` only for two-way control state.
 
 **Checklist.**
-- [ ] `PaintProp<T>` / `LayoutProp<T>` (or unified `ViewProp<T>` with an invalidation kind).
-- [ ] Migrate `View`'s built-in properties off `SetField`.
-- [ ] Remove app-side `SetDirty()` calls as properties migrate.
+- [ ] Split `SetField` into `SetMeasure`/`SetArrange`; demote appearance props to plain.
+- [ ] Reclassify built-in properties (geometry → setter; appearance → plain).
+- [ ] Delete app-side `SetDirty()` on appearance/theme/selection reactions.
+- [ ] Uniform continuous redraw: drop the `NeedsRedraw` gate for popup/secondary windows.
+- [ ] Delete `SetDirty()` from the `View` surface once no caller remains.
 
 ### W3 — Unify the reactive + value primitives
 
