@@ -43,10 +43,11 @@ public abstract class View
         }
     }
     
+    private RectF _position;
     public RectF Position
     {
-        get;
-        protected set => SetField(ref field, value);
+        get => _position;
+        protected set => SetField(ref _position, value);
     }
 
     public StyleValue<float> LeftConstraint
@@ -436,10 +437,21 @@ public abstract class View
         if (_hasMeasured && !_needsMeasure && c.Equals(_measuredFor))
             return _measuredSize;
 
-        var size = c.Constrain(MeasureContent(c));
-        Debug.Assert(float.IsFinite(size.Width) && float.IsFinite(size.Height),
-            $"{GetType().Name}.MeasureContent returned a non-finite size under an unbounded " +
-            "constraint — return natural size, not Max. See docs/W1-Layout.md.");
+        Size size;
+        if (c.MinWidth == c.MaxWidth && c.MinHeight == c.MaxHeight)
+        {
+            // Fully constrained: the size is the constraint regardless of content, so skip
+            // MeasureContent. Children get measured once during Arrange — measuring them here
+            // too (often at a different cross constraint) would thrash the cache on every relayout.
+            size = new Size(c.MaxWidth, c.MaxHeight);
+        }
+        else
+        {
+            size = c.Constrain(MeasureContent(c));
+            Debug.Assert(float.IsFinite(size.Width) && float.IsFinite(size.Height),
+                $"{GetType().Name}.MeasureContent returned a non-finite size under an unbounded " +
+                "constraint — return natural size, not Max. See docs/W1-Layout.md.");
+        }
 
         _measuredSize = size;
         _measuredFor = c;
@@ -464,7 +476,9 @@ public abstract class View
     /// <summary>Assign final geometry (in the current Y-up <see cref="Position"/> space) and place children.</summary>
     public void Arrange(RectF finalBounds)
     {
-        Position = finalBounds;
+        // Direct field assignment: Position is a layout OUTPUT. Routing it through SetField
+        // would call InvalidateMeasure and defeat the measure cache on the very next pass.
+        _position = finalBounds;
         ArrangeContent(finalBounds);
         _needsArrange = false;
         _descendantNeedsLayout = false;

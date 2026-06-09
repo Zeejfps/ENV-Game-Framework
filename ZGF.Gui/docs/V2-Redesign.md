@@ -90,7 +90,7 @@ nothing for a 2D document UI and taxes every container author.
 - [x] Migrate the parent-arranges-children custom containers to native `Measure`/`Arrange` (GitBench: `MainContentView`, `HistoryView`, `ResizableLeftSidebar`, `VerticalSplitContainer`, `CommitsPanelView`, `TransferListRow`, `CommitsView`, `GrowingDescriptionField`, `DragOverlay`). Leaves with custom *measure* (`TextInputView`, `MergeJunctionView`) and self-positioning views (scrollbar thumbs, `ContextMenu`, `TooltipView`) stay on the bridge — popup/secondary window roots still use legacy `LayoutSelf`, so they're unaffected. **Constraint fields kept (Y-up).**
 - [ ] *(deferred — own future effort)* Delete legacy constraint fields + `OnLayoutSelf`/`MeasureWidth`/`MeasureHeight`/`LayoutSelf`; requires refactoring self-positioning views first.
 - [ ] *(deferred — own future effort)* Switch coordinate system to Y-down; rework `ScrollPane`/`VerticalScrollPane`; update draw/input/renderer.
-- [ ] Bench against a large virtualized list (commits/diff) vs V1 baseline.
+- [x] Bench against a large list vs a V1-faithful baseline (`ZGF.Gui.Benchmarks/Layout*`, `--layout` probe). Verified single-measure-per-child + O(changed) relayout; caught & fixed 4 cache bugs (see W1-Layout "Cache invariants"). Findings: comparable raw speed (both µs-fast); V2 wins on forced relayout & generality, V1 a hair faster at idle until root-gating lands.
 
 ### W2 — Layout-only invalidation (delete `SetDirty()` as a convention)
 

@@ -97,7 +97,6 @@ public class RectView : LayoutView
         foreach (var child in _children)
         {
             if (!child.IsVisible) continue;
-            child.Measure(Constraints.Tight(width, height));
             child.Arrange(inner);
         }
     }

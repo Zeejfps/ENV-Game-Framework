@@ -89,7 +89,6 @@ public sealed class BorderLayoutView : View
         if (North != null)
         {
             var height = North.Measure(new Constraints(bounds.Width, bounds.Width, 0, float.PositiveInfinity)).Height;
-            North.Measure(Constraints.Tight(bounds.Width, height));
             North.Arrange(new RectF(bounds.Left, bounds.Top - height, bounds.Width, height));
             centerAreaHeight -= height;
         }
@@ -97,7 +96,6 @@ public sealed class BorderLayoutView : View
         if (South != null)
         {
             var height = South.Measure(new Constraints(bounds.Width, bounds.Width, 0, float.PositiveInfinity)).Height;
-            South.Measure(Constraints.Tight(bounds.Width, height));
             South.Arrange(new RectF(bounds.Left, bounds.Bottom, bounds.Width, height));
             centerAreaHeight -= height;
             bottomOffset += height;
@@ -106,7 +104,6 @@ public sealed class BorderLayoutView : View
         if (West != null)
         {
             var width = West.Measure(new Constraints(0, bounds.Width, centerAreaHeight, centerAreaHeight)).Width;
-            West.Measure(Constraints.Tight(width, centerAreaHeight));
             West.Arrange(new RectF(bounds.Left, bounds.Bottom + bottomOffset, width, centerAreaHeight));
             centerAreaWidth -= width;
             leftOffset += width;
@@ -115,7 +112,6 @@ public sealed class BorderLayoutView : View
         if (East != null)
         {
             var width = East.Measure(new Constraints(0, bounds.Width, centerAreaHeight, centerAreaHeight)).Width;
-            East.Measure(Constraints.Tight(width, centerAreaHeight));
             East.Arrange(new RectF(bounds.Right - width, bounds.Bottom + bottomOffset, width, centerAreaHeight));
             centerAreaWidth -= width;
         }
@@ -124,7 +120,6 @@ public sealed class BorderLayoutView : View
         {
             var w = Math.Max(0f, centerAreaWidth);
             var h = Math.Max(0f, centerAreaHeight);
-            Center.Measure(Constraints.Tight(w, h));
             Center.Arrange(new RectF(bounds.Left + leftOffset, bounds.Bottom + bottomOffset, w, h));
         }
     }

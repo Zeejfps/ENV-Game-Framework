@@ -132,6 +132,30 @@ height, and that same constraint recurs at arrange time → hit. `TextView`'s be
 `_wrappedForWidth`/`_wrappedFromText` cache (`TextView.cs:143`) disappears into the generic
 one.
 
+### Cache invariants (benchmark-verified — see `ZGF.Gui.Benchmarks/Layout*`)
+
+The single-entry `(Constraints → Size)` cache only pays off if a node is measured with the
+**same** constraint each pass. Four rules keep it that way; each was a real bug the
+`LayoutBenchmarks`/`LayoutProbe` caught (steady-state was 41 ms / full re-shape before fixing):
+
+1. **`Arrange` must not invalidate measure.** `Position` is a layout *output*; `Arrange`
+   assigns the backing field directly. Routing it through `SetField` → `InvalidateMeasure`
+   re-dirties every node and defeats the cache next frame.
+2. **No `Tight` re-measure before `Arrange`.** `Arrange(rect)` already gives the child its
+   final bounds and every `ArrangeContent` works off `bounds`, not the measured size. A
+   `child.Measure(Tight(rect))` right before `child.Arrange(rect)` is a second, different
+   constraint that thrashes the cache.
+3. **Measure each child once per pass.** A non-stretch `FlexView` child needs its natural
+   cross *and* its main; measure once cross-loose, reuse the result, and only re-measure in
+   the rare cross-clamped case. (FlexView stores basis/cross in reused buffers.)
+4. **A fully-tight node skips `MeasureContent`.** `View.Measure` returns the constraint size
+   directly when `Min == Max` on both axes — its children are measured once in `Arrange`.
+   Measuring them in `MeasureContent` too (often at a different cross constraint) double-shapes
+   on every relayout.
+
+Result on a 2000-row list: steady-state re-layout reshapes **0** nodes (full cache hit),
+a one-row edit reshapes **1**, a forced root relayout reshapes **0**. Run `--layout` to verify.
+
 ## Sizing rule: `Width`/`Height` are *preferred*, never *imposed*
 
 The single rule that removes V1's `Width` vs `WidthConstraint` vs `Min*`/`Max*` precedence

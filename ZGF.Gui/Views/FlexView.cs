@@ -44,6 +44,18 @@ public class FlexView : LayoutView
 
     private static float GrowOf(View child) => child is FlexItem item ? (float)item.Grow : 0f;
 
+    // Reused per-arrange scratch (indexed by child slot) so the arrange pass allocates nothing.
+    private float[] _mainBuf = [];
+    private float[] _crossBuf = [];
+
+    private void EnsureBuffers()
+    {
+        if (_mainBuf.Length >= _children.Count) return;
+        var size = Math.Max(_children.Count, 4);
+        _mainBuf = new float[size];
+        _crossBuf = new float[size];
+    }
+
     protected override Size MeasureContent(Constraints c)
     {
         var crossMax = Axis == Axis.Vertical ? c.MaxWidth : c.MaxHeight;
@@ -69,17 +81,42 @@ public class FlexView : LayoutView
         var size = new Size(bounds.Width, bounds.Height);
         var mainExtent = Main(size);
         var crossExtent = Cross(size);
+        var stretch = _crossAxisAlignment == CrossAxisAlignment.Stretch;
+        EnsureBuffers();
 
-        // Pass 1: basis (natural main at the cross extent) + total grow weight.
+        // One measure per child: resolve cross + basis main together, cached in scratch buffers.
+        // Stretch tightens cross to the extent; otherwise cross is the child's natural size
+        // (only the rare cross-clamped child needs a second height-for-width measure).
         var totalBasis = 0f;
         var totalGrow = 0f;
         var n = 0;
+        var slot = 0;
         foreach (var child in _children)
         {
-            if (!child.IsVisible) continue;
-            totalBasis += Main(child.Measure(Make(crossExtent, crossExtent, 0, float.PositiveInfinity)));
+            if (!child.IsVisible) { slot++; continue; }
+
+            float cross, main;
+            if (stretch)
+            {
+                main = Main(child.Measure(Make(crossExtent, crossExtent, 0, float.PositiveInfinity)));
+                cross = crossExtent;
+            }
+            else
+            {
+                var s = child.Measure(Make(0, crossExtent, 0, float.PositiveInfinity));
+                var natural = Cross(s);
+                cross = Math.Min(natural, crossExtent);
+                main = cross >= natural
+                    ? Main(s)
+                    : Main(child.Measure(Make(cross, cross, 0, float.PositiveInfinity)));
+            }
+
+            _mainBuf[slot] = main;
+            _crossBuf[slot] = cross;
+            totalBasis += main;
             totalGrow += GrowOf(child);
             n++;
+            slot++;
         }
         if (n == 0) return;
 
@@ -102,20 +139,13 @@ public class FlexView : LayoutView
         // Y-up: vertical advances downward from the top edge; horizontal rightward from the left.
         var cursor = Axis == Axis.Vertical ? bounds.Top - mainOffset : bounds.Left + mainOffset;
 
+        slot = 0;
         foreach (var child in _children)
         {
-            if (!child.IsVisible) continue;
+            if (!child.IsVisible) { slot++; continue; }
 
-            float finalCross;
-            if (_crossAxisAlignment == CrossAxisAlignment.Stretch)
-                finalCross = crossExtent;
-            else
-            {
-                var natural = Cross(child.Measure(Make(0, crossExtent, 0, float.PositiveInfinity)));
-                finalCross = Math.Min(natural, crossExtent);
-            }
-
-            var finalMain = Main(child.Measure(Make(finalCross, finalCross, 0, float.PositiveInfinity)));
+            var finalCross = _crossBuf[slot];
+            var finalMain = _mainBuf[slot];
             var grow = GrowOf(child);
             if (grow > 0 && totalGrow > 0)
             {
@@ -131,12 +161,12 @@ public class FlexView : LayoutView
             else
                 rect = new RectF(cursor, crossPos, finalMain, finalCross);
 
-            child.Measure(Constraints.Tight(rect.Width, rect.Height));
             child.Arrange(rect);
 
             cursor = Axis == Axis.Vertical
                 ? cursor - finalMain - _gap - interItem
                 : cursor + finalMain + _gap + interItem;
+            slot++;
         }
     }
 
