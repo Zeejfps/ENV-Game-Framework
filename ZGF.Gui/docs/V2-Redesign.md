@@ -120,23 +120,30 @@ animation pump. Keep `State<T>` only for two-way control state.
 - [ ] Uniform continuous redraw: drop the `NeedsRedraw` gate for popup/secondary windows.
 - [ ] Delete `SetDirty()` from the `View` surface once no caller remains.
 
-### W3 — Unify the reactive + value primitives
+### W3 — One reactive system, one optional type
 
-**Why.** Three parallel "value that changes" systems: `View.SetField`/dirty,
-`ZGF.Observable` (`State`/`Derived`/`ObservableList`), and `StyleValue<T>`'s has-value/
-is-set struct that participates in neither (`StyleValue.cs`). Crossing one gap touches all
-three (`state.Subscribe` → mutate `StyleValue` field → `SetDirty()`), and views accumulate
-cached-state fields (`_listing`, `_selection`, `_snapshot`, `_rows`) that exist only to
-stash what a `Subscribe` lambda received.
+> **Detailed design: [W3-Reactive.md](./W3-Reactive.md)** — scoped down: W1/W2 already
+> absorbed most of the original W3. Three bounded items + phasing. Summary below is rationale.
 
-**Direction.** One reactive primitive. View properties are observables; bindings are
-`dst.Bind(src)`. Replace `StyleValue<T>`'s "unset" with `T?`/optional rather than a
-parallel struct. Shrinks per-view cached-state fields. Depends on W2.
+**Why.** The original "three competing value-that-changes systems" is mostly resolved by
+W1/W2: `View.SetField`/dirty is now just layout invalidation (W2), and `StyleValue<T>` is
+already gone from layout (W1). What remains is a cleanup: `StyleValue<T>`'s leftover
+optional role on style properties, and the per-view cached-state fields (`_listing`,
+`_selection`, `_snapshot`, `_rows`) that stash what a `Subscribe` lambda received.
+
+**Direction.** Three bounded items. (1) **Retire `StyleValue<T>` → `T?`** — its only
+remaining job is "inherit vs explicitly set," which `Nullable<T>` already is; `.IsSet` →
+`.HasValue`. (2) **Freeze `ZGF.Observable` as the single reactive surface** (`State`/
+`Derived`/`ObservableList`/`IReadable`) — no second optional type, no view-local state
+events. (3) **Read-live** — views hold `IReadable<T>` handles and read `.Value` at draw
+(safe under W2's continuous redraw + single-threaded draw-after-update), instead of caching
+values + subscribing + `SetDirty()`; subscriptions remain only where a change must rebuild.
+View properties stay sinks (W2, not revisited).
 
 **Checklist.**
-- [ ] Decide the single primitive surface (`IReadable<T>`/`State<T>` family stays; fold in view props).
-- [ ] Retire `StyleValue<T>` in favor of optionals; migrate constraint/size properties.
-- [ ] Sweep app views for now-redundant cached-state fields.
+- [ ] Retire `StyleValue<T>` → `T?` across the style surface; delete `StyleValue.cs`.
+- [ ] Affirm/lint the single reactive surface; no new optional type or state events.
+- [ ] Read-live sweep: drop appearance cached-fields + `Subscribe(_ => SetDirty())`.
 
 ### W4 — Pointer-capture input model
 
