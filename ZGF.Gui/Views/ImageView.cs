@@ -44,7 +44,7 @@ public sealed class ImageView : MultiChildView
         {
             Position = Position,
             ImageId = _imageId,
-            ZIndex = ZIndex,
+            ZIndex = GetDrawZIndex(),
             TintColor = TintColor,
             Rotation = Rotation,
         });
