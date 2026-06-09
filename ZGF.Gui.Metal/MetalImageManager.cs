@@ -101,13 +101,14 @@ public sealed unsafe class MetalImageManager : IDisposable
         var colorType = png.Ihdr.ColorType;
         var output = new byte[width * height * 4];
 
-        // Metal textures are top-down by default — no Y flip (unlike the GL path).
+        // Flip Y on upload so texture row 0 holds the image's bottom row, matching the
+        // bottom-up UV convention the shared canvas_image shader samples with (same as the GL path).
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
             {
                 var srcIndex = (y * width + x) * bpp;
-                var dstIndex = (y * width + x) * 4;
+                var dstIndex = ((height - 1 - y) * width + x) * 4;
 
                 byte r = 0, g = 0, b = 0, a = 255;
                 switch (colorType)
