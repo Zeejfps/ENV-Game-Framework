@@ -16,6 +16,22 @@ public static unsafe class Objc
     [DllImport(Libobjc)]
     public static extern IntPtr sel_registerName([MarshalAs(UnmanagedType.LPStr)] string name);
 
+    // --- runtime class creation ---
+    //
+    // Used to synthesize a tiny Objective-C target class at runtime (e.g. the receiver
+    // for NSMenuItem actions) whose method IMPs point at [UnmanagedCallersOnly] statics.
+    // This is the AOT-safe alternative to a managed Objective-C bridge.
+
+    [DllImport(Libobjc)]
+    public static extern IntPtr objc_allocateClassPair(IntPtr superclass, [MarshalAs(UnmanagedType.LPStr)] string name, nuint extraBytes);
+
+    [DllImport(Libobjc)]
+    public static extern void objc_registerClassPair(IntPtr cls);
+
+    [DllImport(Libobjc)]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static extern bool class_addMethod(IntPtr cls, IntPtr name, IntPtr imp, [MarshalAs(UnmanagedType.LPStr)] string types);
+
     // --- objc_msgSend variants ---
     //
     // Apple's libobjc exposes a single `objc_msgSend` symbol; the calling
@@ -32,6 +48,9 @@ public static unsafe class Objc
 
     [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
     public static extern IntPtr msg_IntPtr(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2);
+
+    [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
+    public static extern IntPtr msg_IntPtr(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2, IntPtr arg3);
 
     [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
     public static extern IntPtr msg_IntPtr_Bool(IntPtr receiver, IntPtr selector, [MarshalAs(UnmanagedType.I1)] bool arg);
@@ -53,6 +72,9 @@ public static unsafe class Objc
 
     [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
     public static extern void msg_Void_ULong(IntPtr receiver, IntPtr selector, ulong arg);
+
+    [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
+    public static extern void msg_Void_Long(IntPtr receiver, IntPtr selector, long arg);
 
     [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
     public static extern void msg_Void_IntPtr_ULong_IntPtr(IntPtr receiver, IntPtr selector, IntPtr a, ulong b, IntPtr c);
@@ -87,6 +109,10 @@ public static unsafe class Objc
     // On ARM64, plain objc_msgSend returns floats/doubles directly (no fpret variant).
     [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
     public static extern double msg_Double(IntPtr receiver, IntPtr selector);
+
+    // objc_msgSend returning NSInteger (long on LP64). Used to read e.g. NSMenuItem.tag.
+    [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
+    public static extern long msg_Long(IntPtr receiver, IntPtr selector);
 
     // Objective-C autorelease pool. A manual (non-Cocoa) run loop creates autoreleased
     // objects every turn — NSEvents from event polling, plus per-frame CAMetalDrawables,
