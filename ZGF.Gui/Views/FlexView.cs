@@ -178,13 +178,13 @@ public class FlexView : MultiChildView
     private static float GrowOf(View child) => child is FlexItem item ? (float)item.Grow : 0f;
 
     private float MainBasis(View child, float crossExtent) =>
-        Vert ? child.MeasureHeight(crossExtent) : child.MeasureWidth();
+        Vert ? child.ClampHeight(child.MeasureHeight(crossExtent)) : child.ClampWidth(child.MeasureWidth());
 
     private float MainFinal(View child, float finalCross) =>
-        Vert ? child.MeasureHeight(finalCross) : child.MeasureWidth();
+        Vert ? child.ClampHeight(child.MeasureHeight(finalCross)) : child.ClampWidth(child.MeasureWidth());
 
     private float CrossNatural(View child) =>
-        Vert ? child.MeasureWidth() : child.MeasureHeight(child.MeasureWidth());
+        Vert ? child.ClampWidth(child.MeasureWidth()) : child.ClampHeight(child.MeasureHeight(child.MeasureWidth()));
 
     private float CrossPosition(in RectF pos, float finalCross, float crossExtent)
     {
