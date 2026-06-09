@@ -17,6 +17,8 @@ public sealed class GuiApp : IDisposable
     private readonly DesktopInputSystem _mainInput;
     private readonly MultiChildView _root;
     private readonly QueuedUiDispatcher _dispatcher;
+    private readonly FrameTicker _frameTicker;
+    private long _lastAnimationTimestamp;
     private readonly ContextMenuManager _contextMenuManager;
     private readonly PopupWindowFactory _popupFactory;
     private readonly SecondaryWindowFactory _secondaryWindows;
@@ -41,7 +43,10 @@ public sealed class GuiApp : IDisposable
         var pointerArbiter = new PointerOwnershipArbiter();
         _mainInput = new DesktopInputSystem(app.MainWindow, mainCanvas, pointerArbiter);
         pointerArbiter.Register(_mainInput, isModal: false);
-        _dispatcher = new QueuedUiDispatcher();
+        _mainInput.OnAnyInput = () => app.MainWindow.RequestRedraw();
+        _dispatcher = new QueuedUiDispatcher { OnWorkPosted = app.Wake };
+        _frameTicker = new FrameTicker(onActivated: app.MainWindow.RequestRedraw);
+        _lastAnimationTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
 
         var decorator = context.Get<IPopupNativeDecorator>() ?? new DefaultNoopDecorator();
         _windowChrome = context.Get<IWindowChrome>() ?? new NoopWindowChrome();
@@ -62,6 +67,7 @@ public sealed class GuiApp : IDisposable
         context.AddService<IPopupWindowFactory>(_popupFactory);
         context.AddService<ISecondaryWindowFactory>(_secondaryWindows);
         context.AddService<IUiDispatcher>(_dispatcher);
+        context.AddService<IFrameTicker>(_frameTicker);
 
         // Default clipboard routes through the window's display-server connection. Platforms
         // with a native implementation (Win32/macOS) register their own before this runs.
@@ -75,6 +81,7 @@ public sealed class GuiApp : IDisposable
             Context = context,
             Children = { content },
         };
+        _root.OnRedrawNeeded = app.MainWindow.RequestRedraw;
 
         PlatformBackend.PopulateMain = PopulateGui;
 
@@ -171,10 +178,22 @@ public sealed class GuiApp : IDisposable
     private void HandleTick()
     {
         _dispatcher.Drain();
+        TickAnimations();
         _mainInput.Update();
         _popupFactory.UpdateActivePopupInput();
         _secondaryWindows.Update();
         _contextMenuManager.Update();
+    }
+
+    private void TickAnimations()
+    {
+        var now = System.Diagnostics.Stopwatch.GetTimestamp();
+        var dt = (float)((now - _lastAnimationTimestamp) / (double)System.Diagnostics.Stopwatch.Frequency);
+        _lastAnimationTimestamp = now;
+        // An idle wait or a stall isn't animation time — cap the step so the first frame after
+        // a gap doesn't lurch.
+        const float maxStep = 0.1f;
+        _frameTicker.Tick(dt > maxStep ? maxStep : dt);
     }
 
     private void HandleResize(int width, int height)

@@ -7,6 +7,8 @@ namespace ZGF.Desktop.Backends.OpenGl;
 
 public sealed class OpenGlApp : IWindowedApp
 {
+    private const double IdleEventTimeoutSeconds = 0.1;
+
     private readonly OpenGlWindow _mainWindow;
     private readonly List<OpenGlWindow> _windows = new();
     private bool _isDisposed;
@@ -50,6 +52,8 @@ public sealed class OpenGlApp : IWindowedApp
     {
         Glfw.MakeContextCurrent(_mainWindow.GlfwWindow);
     }
+
+    public void Wake() => Glfw.PostEmptyEvent();
 
     public IWindow CreatePopupWindow(in PopupWindowOptions options)
     {
@@ -131,7 +135,7 @@ public sealed class OpenGlApp : IWindowedApp
             Glfw.PollEvents();
             OnTick?.Invoke();
 
-            _mainWindow.RequestRedraw();
+            var anyRendered = false;
             for (var i = 0; i < _windows.Count; i++)
             {
                 var w = _windows[i];
@@ -139,6 +143,7 @@ public sealed class OpenGlApp : IWindowedApp
                 if (!w.NeedsRedraw) continue;
                 w.MakeContextCurrent();
                 w.RenderNow();
+                anyRendered = true;
             }
 
             // Popups asked to close (e.g., WM_CLOSE) get their flag reset; factory handles release.
@@ -150,6 +155,12 @@ public sealed class OpenGlApp : IWindowedApp
                     Glfw.SetWindowShouldClose(ogw.GlfwWindow, false);
                 }
             }
+
+            // Nothing painted: block for OS events instead of spinning. The timeout bounds
+            // staleness for time-based housekeeping nothing wakes us for; when we did paint,
+            // the main window's vsync'd SwapBuffers paces the loop.
+            if (!anyRendered)
+                Glfw.WaitEventsTimeout(IdleEventTimeoutSeconds);
         }
         Dispose();
         Glfw.Terminate();

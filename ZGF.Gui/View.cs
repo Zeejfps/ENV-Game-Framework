@@ -124,7 +124,11 @@ public abstract class View
 
     public string? Id { get; set; }
 
-    public int ZIndex { get; set; }
+    public int ZIndex
+    {
+        get;
+        set => SetField(ref field, value);
+    }
 
     /// <summary>
     /// When false, this view is skipped from layout (no size, no gap contribution in
@@ -179,6 +183,12 @@ public abstract class View
     private float _measuredHeight;
     private float _measuredHeightAvailableWidth;
 
+    /// <summary>
+    /// Set on a window's root view; invoked when any view in this tree becomes dirty, so the
+    /// window can schedule a redraw instead of repainting every frame.
+    /// </summary>
+    public Action? OnRedrawNeeded { get; set; }
+
     public IBehaviorCollection Behaviors { get; }
 
     protected readonly List<View> _children = new();
@@ -217,6 +227,7 @@ public abstract class View
 
         view.SiblingIndex = _children.Count - 1;
         _children[^1] = view;
+        SetDirty();
     }
 
     public bool IsAncestorOf(View target)
@@ -409,11 +420,17 @@ public abstract class View
         // A change here invalidates every ancestor's cached measure and marks the path dirty.
         // Stop at the first already-dirty ancestor: it (and everything above) was flagged when
         // it became dirty, so the chain to the root is already consistent.
+        var top = this;
         for (var ancestor = Parent; ancestor != null && !ancestor._childrenDirty; ancestor = ancestor.Parent)
         {
             ancestor._childrenDirty = true;
             ancestor.InvalidateMeasure();
+            top = ancestor;
         }
+        // An early-out above means a dirty ancestor's own walk already reached the root and
+        // notified, so only the walk that arrives at the root tells the window.
+        if (top.Parent == null)
+            top.OnRedrawNeeded?.Invoke();
     }
 
     private void InvalidateMeasure()

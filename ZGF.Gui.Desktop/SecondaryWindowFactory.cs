@@ -88,11 +88,6 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
             else
             {
                 w.UpdateInput();
-                // Redraw every tick, like the main window, so external state changes — theme
-                // toggles, diff reloads on working-tree changes — propagate without the user
-                // having to interact with the window first. (Input-only redraw, as popups use,
-                // would leave these stale until the next mouse/keyboard event.)
-                w.RequestRedraw();
             }
         }
     }
@@ -150,13 +145,18 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
 
     public void SetRoot(View? root)
     {
-        if (_root != null) _root.Context = null;
+        if (_root != null)
+        {
+            _root.Context = null;
+            _root.OnRedrawNeeded = null;
+        }
         _root = root;
         if (root != null)
         {
             root.Width = _window.Width;
             root.Height = _window.Height;
             root.Context = _context;
+            root.OnRedrawNeeded = _window.RequestRedraw;
         }
     }
 

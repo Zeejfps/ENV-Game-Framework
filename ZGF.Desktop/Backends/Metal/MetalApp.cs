@@ -12,6 +12,8 @@ namespace ZGF.Desktop.Backends.Metal;
 
 public sealed class MetalApp : IWindowedApp
 {
+    private const double IdleEventTimeoutSeconds = 0.1;
+
     private readonly MetalWindow _mainWindow;
     private readonly List<IWindow> _windows = new();
     private bool _isDisposed;
@@ -51,6 +53,8 @@ public sealed class MetalApp : IWindowedApp
     public event Action? OnTick;
 
     public void MakeMainContextCurrent() { /* Metal is stateless across windows */ }
+
+    public void Wake() => GLFW.Glfw.PostEmptyEvent();
 
     public IWindow CreatePopupWindow(in PopupWindowOptions options)
     {
@@ -112,13 +116,14 @@ public sealed class MetalApp : IWindowedApp
                 GLFW.Glfw.PollEvents();
                 OnTick?.Invoke();
 
-                _mainWindow.RequestRedraw();
+                var anyRendered = false;
                 for (var i = 0; i < _windows.Count; i++)
                 {
                     var w = _windows[i];
                     if (!w.IsVisible) continue;
                     if (!w.NeedsRedraw) continue;
                     w.RenderNow();
+                    anyRendered = true;
                 }
 
                 for (var i = _windows.Count - 1; i >= 0; i--)
@@ -126,6 +131,11 @@ public sealed class MetalApp : IWindowedApp
                     if (_windows[i] is MetalWindow mw && !mw.IsMain && GLFW.Glfw.WindowShouldClose(mw.GlfwWindow))
                         GLFW.Glfw.SetWindowShouldClose(mw.GlfwWindow, false);
                 }
+
+                // Nothing painted: block for OS events instead of spinning. The timeout bounds
+                // staleness for time-based housekeeping nothing wakes us for.
+                if (!anyRendered)
+                    GLFW.Glfw.WaitEventsTimeout(IdleEventTimeoutSeconds);
             }
             finally
             {

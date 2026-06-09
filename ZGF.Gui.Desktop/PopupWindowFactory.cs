@@ -310,11 +310,13 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
         if (_root != null)
         {
             _root.Context = null;
+            _root.OnRedrawNeeded = null;
         }
         _root = root;
         if (root != null)
         {
             root.Context = _context;
+            root.OnRedrawNeeded = _window.RequestRedraw;
         }
     }
 

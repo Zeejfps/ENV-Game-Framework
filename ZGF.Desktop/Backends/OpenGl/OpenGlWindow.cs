@@ -11,6 +11,7 @@ public sealed class OpenGlWindow : IWindow
     private readonly SizeCallback _framebufferSizeCallback;
     private readonly FocusCallback _focusCallback;
     private readonly WindowCallback _closeCallback;
+    private readonly WindowCallback _refreshCallback;
     private readonly KeyCallback _keyCallback;
     private readonly MouseButtonCallback _mouseButtonCallback;
     private readonly MouseCallback _scrollCallback;
@@ -41,6 +42,8 @@ public sealed class OpenGlWindow : IWindow
         _framebufferSizeCallback = HandleFramebufferSizeChanged;
         _focusCallback = HandleFocusChanged;
         _closeCallback = HandleClose;
+        // OS damage event (expose, restore from minimize) — rendering is gated on NeedsRedraw.
+        _refreshCallback = _ => NeedsRedraw = true;
         _keyCallback = HandleKey;
         _mouseButtonCallback = HandleMouseButton;
         _scrollCallback = HandleScroll;
@@ -49,6 +52,7 @@ public sealed class OpenGlWindow : IWindow
         GLFW.Glfw.SetFramebufferSizeCallback(window, _framebufferSizeCallback);
         GLFW.Glfw.SetWindowFocusCallback(window, _focusCallback);
         GLFW.Glfw.SetCloseCallback(window, _closeCallback);
+        GLFW.Glfw.SetWindowRefreshCallback(window, _refreshCallback);
         GLFW.Glfw.SetKeyCallback(window, _keyCallback);
         GLFW.Glfw.SetMouseButtonCallback(window, _mouseButtonCallback);
         GLFW.Glfw.SetScrollCallback(window, _scrollCallback);
@@ -134,9 +138,10 @@ public sealed class OpenGlWindow : IWindow
 
     public void RenderNow()
     {
+        // Cleared before drawing so a redraw requested mid-frame survives to the next iteration.
+        NeedsRedraw = false;
         RenderFrame?.Invoke();
         GLFW.Glfw.SwapBuffers(GlfwWindow);
-        NeedsRedraw = false;
     }
 
     private void HandleWindowSizeChanged(Window window, int width, int height)

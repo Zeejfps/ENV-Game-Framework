@@ -14,6 +14,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
     private readonly SizeCallback _framebufferSizeCallback;
     private readonly FocusCallback _focusCallback;
     private readonly WindowCallback _closeCallback;
+    private readonly WindowCallback _refreshCallback;
     private readonly KeyCallback _keyCallback;
     private readonly MouseButtonCallback _mouseButtonCallback;
     private readonly MouseCallback _scrollCallback;
@@ -56,6 +57,8 @@ public sealed class MetalWindow : IWindow, IMetalSurface
         _framebufferSizeCallback = HandleFramebufferSizeChanged;
         _focusCallback = HandleFocusChanged;
         _closeCallback = HandleClose;
+        // OS damage event (expose, restore from minimize) — rendering is gated on NeedsRedraw.
+        _refreshCallback = _ => NeedsRedraw = true;
         _keyCallback = HandleKey;
         _mouseButtonCallback = HandleMouseButton;
         _scrollCallback = HandleScroll;
@@ -64,6 +67,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
         GLFW.Glfw.SetFramebufferSizeCallback(window, _framebufferSizeCallback);
         GLFW.Glfw.SetWindowFocusCallback(window, _focusCallback);
         GLFW.Glfw.SetCloseCallback(window, _closeCallback);
+        GLFW.Glfw.SetWindowRefreshCallback(window, _refreshCallback);
         GLFW.Glfw.SetKeyCallback(window, _keyCallback);
         GLFW.Glfw.SetMouseButtonCallback(window, _mouseButtonCallback);
         GLFW.Glfw.SetScrollCallback(window, _scrollCallback);
@@ -119,7 +123,8 @@ public sealed class MetalWindow : IWindow, IMetalSurface
     public string GetClipboardText() => GLFW.Glfw.GetClipboardString(_window);
     public void SetClipboardText(string text) => GLFW.Glfw.SetClipboardString(_window, text);
 
-    public void RenderNow() { RenderFrame?.Invoke(); NeedsRedraw = false; }
+    // Cleared before drawing so a redraw requested mid-frame survives to the next iteration.
+    public void RenderNow() { NeedsRedraw = false; RenderFrame?.Invoke(); }
 
     private void HandleWindowSizeChanged(Window window, int width, int height)
     {

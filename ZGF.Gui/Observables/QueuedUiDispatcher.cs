@@ -11,10 +11,22 @@ public sealed class QueuedUiDispatcher : IUiDispatcher
     private readonly object _gate = new();
     private List<Action> _queue = new();
 
+    /// <summary>
+    /// Invoked when <see cref="Post"/> turns the queue non-empty, so a UI loop blocked
+    /// waiting for OS events can be woken to drain. Must be safe to call from any thread.
+    /// </summary>
+    public Action? OnWorkPosted { get; set; }
+
     public void Post(Action action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        lock (_gate) _queue.Add(action);
+        bool wasEmpty;
+        lock (_gate)
+        {
+            wasEmpty = _queue.Count == 0;
+            _queue.Add(action);
+        }
+        if (wasEmpty) OnWorkPosted?.Invoke();
     }
 
     public void Drain()
