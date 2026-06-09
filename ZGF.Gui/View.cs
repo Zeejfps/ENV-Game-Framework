@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.ComponentModel;
 using System.Diagnostics;
 using ZGF.Geometry;
 
@@ -123,17 +122,9 @@ public abstract class View
 
     public View? Parent { get; private set; }
 
-    public string? Id
-    {
-        get;
-        set => SetField(ref field, value);
-    }
+    public string? Id { get; set; }
 
-    public int ZIndex
-    {
-        get;
-        set => SetField(ref field, value);
-    }
+    public int ZIndex { get; set; }
 
     /// <summary>
     /// When false, this view is skipped from layout (no size, no gap contribution in
@@ -173,9 +164,8 @@ public abstract class View
             }
         }
     }
-    
-    private int _siblingIndex;
-    public int SiblingIndex => _siblingIndex;
+
+    public int SiblingIndex { get; private set; }
 
     private bool IsDirty => IsSelfDirty || IsChildrenDirty;
     private bool IsSelfDirty { get; set; } = true;
@@ -214,10 +204,10 @@ public abstract class View
             return;
 
         var lastChild = _children[^1];
-        lastChild._siblingIndex = view.SiblingIndex;
+        lastChild.SiblingIndex = view.SiblingIndex;
         _children[view.SiblingIndex] = lastChild;
 
-        view._siblingIndex = _children.Count - 1;
+        view.SiblingIndex = _children.Count - 1;
         _children[^1] = view;
     }
 
@@ -294,7 +284,7 @@ public abstract class View
 
         // At this point, nodeA and nodeB are guaranteed to be siblings with a shared, non-null parent.
         // We can now safely compare their sibling index to determine their order.
-        return nodeA._siblingIndex > nodeB._siblingIndex;
+        return nodeA.SiblingIndex > nodeB.SiblingIndex;
     }
     
     protected void InsertChildToSelf(int index, View view)
@@ -317,7 +307,7 @@ public abstract class View
 
         for (var i = index; i < _children.Count; i++)
         {
-            _children[i]._siblingIndex = i;
+            _children[i].SiblingIndex = i;
         }
 
         view.Parent = this;
@@ -345,7 +335,7 @@ public abstract class View
         var hi = Math.Max(currentIndex, newIndex);
         for (var i = lo; i <= hi; i++)
         {
-            _children[i]._siblingIndex = i;
+            _children[i].SiblingIndex = i;
         }
 
         SetDirty();
@@ -398,7 +388,7 @@ public abstract class View
     {
         if (EqualityComparer<T>.Default.Equals(field, value))
             return false;
-        
+
         field = value;
         SetDirty();
         return true;
@@ -595,7 +585,7 @@ public abstract class View
 
         view.Parent = this;
         view.Depth = Depth + 1;
-        view._siblingIndex =  siblingIndex;
+        view.SiblingIndex =  siblingIndex;
         view.Context = Context;
         OnChildAdded(view);
     }
@@ -607,7 +597,7 @@ public abstract class View
             view.Context = null;
             view.Parent = null;
             view.Depth = 0;
-            view._siblingIndex = 0;
+            view.SiblingIndex = 0;
             OnChildRemoved(view);
             return true;
         }

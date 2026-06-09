@@ -7,7 +7,7 @@ public class RectView : MultiChildView
     public uint BackgroundColor
     {
         get => _style.BackgroundColor;
-        set => SetField(ref _style.BackgroundColor, value);
+        set => _style.BackgroundColor = value;
     }
 
     public PaddingStyle Padding
@@ -19,7 +19,7 @@ public class RectView : MultiChildView
     public BorderColorStyle BorderColor
     {
         get => _style.BorderColor;
-        set => SetField(ref _style.BorderColor, value);
+        set => _style.BorderColor = value;
     }
 
     public BorderSizeStyle BorderSize
@@ -31,13 +31,13 @@ public class RectView : MultiChildView
     public BorderRadiusStyle BorderRadius
     {
         get => _style.BorderRadius;
-        set => SetField(ref _style.BorderRadius, value);
+        set => _style.BorderRadius = value;
     }
 
     public BoxShadowStyle BoxShadow
     {
         get => _style.BoxShadow;
-        set => SetField(ref _style.BoxShadow, value);
+        set => _style.BoxShadow = value;
     }
 
     protected override void OnDrawSelf(ICanvas c)

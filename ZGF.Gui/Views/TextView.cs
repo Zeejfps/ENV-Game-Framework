@@ -10,7 +10,7 @@ public sealed class TextView : MultiChildView
     public StyleValue<uint> TextColor
     {
         get => _style.TextColor;
-        set => SetField(ref _style.TextColor, value);
+        set => _style.TextColor = value;
     }
 
     public StyleValue<float> FontSize
@@ -28,13 +28,13 @@ public sealed class TextView : MultiChildView
     public StyleValue<TextAlignment> VerticalTextAlignment
     {
         get => _style.VerticalAlignment;
-        set => SetField(ref _style.VerticalAlignment, value);
+        set => _style.VerticalAlignment = value;
     }
 
     public StyleValue<TextAlignment> HorizontalTextAlignment
     {
         get => _style.HorizontalAlignment;
-        set => SetField(ref _style.HorizontalAlignment, value);
+        set => _style.HorizontalAlignment = value;
     }
 
     public StyleValue<TextWrap> TextWrap
@@ -50,13 +50,13 @@ public sealed class TextView : MultiChildView
     public StyleValue<TextOverflow> TextOverflow
     {
         get => _style.TextOverflow;
-        set => SetField(ref _style.TextOverflow, value);
+        set => _style.TextOverflow = value;
     }
 
     public StyleValue<float> Rotation
     {
         get => _style.Rotation;
-        set => SetField(ref _style.Rotation, value);
+        set => _style.Rotation = value;
     }
 
     public StyleValue<FontWeight> FontWeight

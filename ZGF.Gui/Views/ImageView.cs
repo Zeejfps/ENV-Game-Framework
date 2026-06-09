@@ -2,19 +2,8 @@ namespace ZGF.Gui.Views;
 
 public sealed class ImageView : MultiChildView
 {
-    private uint _tintColor = 0xFFFFFFFF;
-    public uint TintColor
-    {
-        get => _tintColor;
-        set => SetField(ref _tintColor, value);
-    }
-
-    private float _rotation;
-    public float Rotation
-    {
-        get => _rotation;
-        set => SetField(ref _rotation, value);
-    }
+    public uint TintColor { get; set; } = 0xFFFFFFFF;
+    public float Rotation { get; set; }
 
     private string? _imageId;
     public string? ImageId
@@ -56,8 +45,8 @@ public sealed class ImageView : MultiChildView
             Position = Position,
             ImageId = _imageId,
             ZIndex = ZIndex,
-            TintColor = _tintColor,
-            Rotation = _rotation,
+            TintColor = TintColor,
+            Rotation = Rotation,
         });
     }
 }
