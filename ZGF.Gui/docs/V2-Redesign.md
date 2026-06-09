@@ -87,8 +87,9 @@ nothing for a 2D document UI and taxes every container author.
 - [x] Compatibility bridge: default `MeasureContent`/`ArrangeContent` drive un-ported legacy subtrees; root driver (`GuiApp.PopulateGui`) runs Measure/Arrange. **Framework + GitBench + 14 tests green.**
 - [x] `LayoutView` base + native ports: `PaddingView`, `CenterView`, `RectView`, `TextView`, `ImageView`, `BorderLayoutView`. Scroll panes intentionally left legacy (driven via bridge) — reworked with Y-down in W1.7.
 - [x] Single axis-parameterized `FlexView` (cross-first basis/grow/shrink, V1-faithful); `Column`/`Row`/`FlexColumn`/`FlexRow` are now thin aliases over it. *(freeze-redistribute upgrade from the design deferred to keep V1 parity; revisit after visual QA)*
-- [ ] Migrate GitBench call sites; delete legacy constraint fields + `OnLayoutSelf`/`MeasureWidth`/`MeasureHeight`.
-- [ ] Switch coordinate system to Y-down; update `ScrollPane`/`VerticalScrollPane` (deferred to last — bridge keeps legacy Y-up alive until then).
+- [x] Migrate the parent-arranges-children custom containers to native `Measure`/`Arrange` (GitBench: `MainContentView`, `HistoryView`, `ResizableLeftSidebar`, `VerticalSplitContainer`, `CommitsPanelView`, `TransferListRow`, `CommitsView`, `GrowingDescriptionField`, `DragOverlay`). Leaves with custom *measure* (`TextInputView`, `MergeJunctionView`) and self-positioning views (scrollbar thumbs, `ContextMenu`, `TooltipView`) stay on the bridge — popup/secondary window roots still use legacy `LayoutSelf`, so they're unaffected. **Constraint fields kept (Y-up).**
+- [ ] *(deferred — own future effort)* Delete legacy constraint fields + `OnLayoutSelf`/`MeasureWidth`/`MeasureHeight`/`LayoutSelf`; requires refactoring self-positioning views first.
+- [ ] *(deferred — own future effort)* Switch coordinate system to Y-down; rework `ScrollPane`/`VerticalScrollPane`; update draw/input/renderer.
 - [ ] Bench against a large virtualized list (commits/diff) vs V1 baseline.
 
 ### W2 — Layout-only invalidation (delete `SetDirty()` as a convention)
