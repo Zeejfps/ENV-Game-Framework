@@ -15,19 +15,19 @@ public sealed class PaddingView : MultiChildView
         set => SetField(ref _padding, value);
     }
 
-    public override float MeasureWidth()
+    protected override float MeasureWidthIntrinsic()
     {
-        var width = base.MeasureWidth();
+        var width = base.MeasureWidthIntrinsic();
         width += _padding.Left + _padding.Right;
         return width;
     }
 
-    public override float MeasureHeight(float availableWidth)
+    protected override float MeasureHeightIntrinsic(float availableWidth)
     {
         var childAvailableWidth = availableWidth > 0f
             ? availableWidth - _padding.Left - _padding.Right
             : availableWidth;
-        var height = base.MeasureHeight(childAvailableWidth);
+        var height = base.MeasureHeightIntrinsic(childAvailableWidth);
         height += _padding.Top + _padding.Bottom;
         return height;
     }

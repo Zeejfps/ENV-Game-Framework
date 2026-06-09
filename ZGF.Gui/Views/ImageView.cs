@@ -12,7 +12,7 @@ public sealed class ImageView : MultiChildView
         set => SetField(ref _imageId, value);
     }
 
-    public override float MeasureWidth()
+    protected override float MeasureWidthIntrinsic()
     {
         if (Width.IsSet)
             return Width.Value;
@@ -23,7 +23,7 @@ public sealed class ImageView : MultiChildView
         return WidthConstraint;
     }
 
-    public override float MeasureHeight(float availableWidth)
+    protected override float MeasureHeightIntrinsic(float availableWidth)
     {
         // Images have an intrinsic size and don't reflow — ignore availableWidth.
         if (Height.IsSet)

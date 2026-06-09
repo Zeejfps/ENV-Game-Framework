@@ -88,7 +88,7 @@ public sealed class TextView : MultiChildView
 
     private bool IsWrapping => _style.TextWrap.IsSet && _style.TextWrap.Value == ZGF.Gui.TextWrap.Wrap;
 
-    public override float MeasureWidth()
+    protected override float MeasureWidthIntrinsic()
     {
         if (Width.IsSet)
             return Width;
@@ -108,7 +108,7 @@ public sealed class TextView : MultiChildView
         return max;
     }
 
-    public override float MeasureHeight(float availableWidth)
+    protected override float MeasureHeightIntrinsic(float availableWidth)
     {
         if (Context == null || _text == null)
             return 0f;

@@ -63,16 +63,16 @@ public class RectView : MultiChildView
         });
     }
 
-    public override float MeasureWidth()
+    protected override float MeasureWidthIntrinsic()
     {
-        var width= base.MeasureWidth();
+        var width= base.MeasureWidthIntrinsic();
         var padding = Padding;
         var borderSize = _style.BorderSize;
         width += padding.Left + padding.Right + borderSize.Left + borderSize.Right;
         return width;
     }
 
-    public override float MeasureHeight(float availableWidth)
+    protected override float MeasureHeightIntrinsic(float availableWidth)
     {
         var padding = Padding;
         var borderSize = _style.BorderSize;
@@ -81,7 +81,7 @@ public class RectView : MultiChildView
         // A non-positive availableWidth means "unconstrained" — leave it as-is so the convention
         // propagates down to descendants.
         var childAvailableWidth = availableWidth > 0f ? availableWidth - horizontalChrome : availableWidth;
-        var height = base.MeasureHeight(childAvailableWidth);
+        var height = base.MeasureHeightIntrinsic(childAvailableWidth);
         height += padding.Top + padding.Bottom + borderSize.Top + borderSize.Bottom;
         return height;
     }

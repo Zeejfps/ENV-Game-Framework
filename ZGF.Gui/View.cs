@@ -167,9 +167,17 @@ public abstract class View
 
     public int SiblingIndex { get; private set; }
 
-    private bool IsDirty => IsSelfDirty || IsChildrenDirty;
     private bool IsSelfDirty { get; set; } = true;
-    private bool IsChildrenDirty => _children.Any(child => child.IsDirty);
+
+    // Set when any descendant is self-dirty. Propagated up on SetDirty and cleared on layout,
+    // so dirty detection is O(1) instead of re-walking the subtree on every LayoutSelf.
+    private bool _childrenDirty;
+
+    private bool _measuredWidthValid;
+    private float _measuredWidth;
+    private bool _measuredHeightValid;
+    private float _measuredHeight;
+    private float _measuredHeightAvailableWidth;
 
     public IBehaviorCollection Behaviors { get; }
 
@@ -397,6 +405,21 @@ public abstract class View
     protected void SetDirty()
     {
         IsSelfDirty = true;
+        InvalidateMeasure();
+        // A change here invalidates every ancestor's cached measure and marks the path dirty.
+        // Stop at the first already-dirty ancestor: it (and everything above) was flagged when
+        // it became dirty, so the chain to the root is already consistent.
+        for (var ancestor = Parent; ancestor != null && !ancestor._childrenDirty; ancestor = ancestor.Parent)
+        {
+            ancestor._childrenDirty = true;
+            ancestor.InvalidateMeasure();
+        }
+    }
+
+    private void InvalidateMeasure()
+    {
+        _measuredWidthValid = false;
+        _measuredHeightValid = false;
     }
 
     protected virtual void OnLayoutSelf()
@@ -487,13 +510,23 @@ public abstract class View
         };
     }
 
-    public virtual float MeasureWidth()
+    public float MeasureWidth()
+    {
+        if (_measuredWidthValid)
+            return _measuredWidth;
+
+        _measuredWidth = MeasureWidthIntrinsic();
+        _measuredWidthValid = true;
+        return _measuredWidth;
+    }
+
+    protected virtual float MeasureWidthIntrinsic()
     {
         if (Width.IsSet)
         {
             return Width;
         }
-        
+
         return MeasureChildrenWidth();
     }
 
@@ -525,7 +558,18 @@ public abstract class View
     /// of horizontal space. A non-positive value (≤ 0) means "unconstrained — use the view's
     /// intrinsic width." This is the entry point for height-for-width content (wrapping text).
     /// </summary>
-    public virtual float MeasureHeight(float availableWidth)
+    public float MeasureHeight(float availableWidth)
+    {
+        if (_measuredHeightValid && _measuredHeightAvailableWidth == availableWidth)
+            return _measuredHeight;
+
+        _measuredHeight = MeasureHeightIntrinsic(availableWidth);
+        _measuredHeightAvailableWidth = availableWidth;
+        _measuredHeightValid = true;
+        return _measuredHeight;
+    }
+
+    protected virtual float MeasureHeightIntrinsic(float availableWidth)
     {
         if (Height.IsSet)
         {
@@ -557,10 +601,12 @@ public abstract class View
             OnLayoutSelf();
             OnLayoutChildren();
             IsSelfDirty = false;
+            _childrenDirty = false;
         }
-        else if (IsChildrenDirty)
+        else if (_childrenDirty)
         {
             OnLayoutChildren();
+            _childrenDirty = false;
         }
     }
 

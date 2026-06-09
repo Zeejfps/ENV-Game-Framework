@@ -242,7 +242,7 @@ public sealed class TextInputView : MultiChildView
         _buffer[index] = c;
     }
 
-    public override float MeasureHeight(float availableWidth)
+    protected override float MeasureHeightIntrinsic(float availableWidth)
     {
         var canvas = Context?.Canvas;
         if (canvas == null)

@@ -56,14 +56,14 @@ public class FlexView : MultiChildView
 
     private bool Vert => Axis == Axis.Vertical;
 
-    public override float MeasureWidth()
+    protected override float MeasureWidthIntrinsic()
     {
         if (Width.IsSet) return Width;
         if (Vert) return MeasureChildrenWidth();
         return SumMain(static c => c.MeasureWidth());
     }
 
-    public override float MeasureHeight(float availableWidth)
+    protected override float MeasureHeightIntrinsic(float availableWidth)
     {
         if (Height.IsSet) return Height;
         if (!Vert) return MeasureChildrenHeight(availableWidth);
