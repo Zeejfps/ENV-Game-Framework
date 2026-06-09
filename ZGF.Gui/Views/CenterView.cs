@@ -40,17 +40,8 @@ public sealed class CenterView : MultiChildView
             child.MaxWidthConstraint = maxWidth;
             child.MaxHeightConstraint = maxHeight;
 
-            var childWidth = child.MeasureWidth();
-            if (child.MinWidthConstraint.IsSet && childWidth < child.MinWidthConstraint)
-                childWidth = child.MinWidthConstraint;
-            if (childWidth > maxWidth)
-                childWidth = maxWidth;
-
-            var childHeight = child.MeasureHeight(childWidth);
-            if (child.MinHeightConstraint.IsSet && childHeight < child.MinHeightConstraint)
-                childHeight = child.MinHeightConstraint;
-            if (childHeight > maxHeight)
-                childHeight = maxHeight;
+            var childWidth = child.ClampWidth(child.MeasureWidth());
+            var childHeight = child.ClampHeight(child.MeasureHeight(childWidth));
 
             child.LeftConstraint = position.Left + (position.Width - childWidth) / 2f;
             child.BottomConstraint = position.Bottom + (position.Height - childHeight) / 2f;

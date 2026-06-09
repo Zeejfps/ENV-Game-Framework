@@ -401,43 +401,8 @@ public abstract class View
 
     protected virtual void OnLayoutSelf()
     {
-        float width;
-        if (Width.IsSet)
-        {
-            width = Width;
-        }
-        else if (WidthConstraint.IsSet)
-        {
-            width = WidthConstraint;
-        }
-        else
-        {
-            width = MeasureWidth();
-            if (MinWidthConstraint.IsSet && width < MinWidthConstraint)
-                width = MinWidthConstraint;
-        }
-
-        if (MaxWidthConstraint.IsSet && width > MaxWidthConstraint)
-            width = MaxWidthConstraint;
-
-        float height;
-        if (Height.IsSet)
-        {
-            height = Height;
-        }
-        else if (HeightConstraint.IsSet)
-        {
-            height = HeightConstraint;
-        }
-        else
-        {
-            // Measure height at the already-resolved (and capped) width so wrapping content
-            // wraps to the width we'll actually lay out at.
-            height = MeasureHeight(width);
-        }
-
-        if (MaxHeightConstraint.IsSet && height > MaxHeightConstraint)
-            height = MaxHeightConstraint;
+        var width = ResolveWidth();
+        var height = ResolveHeight(width);
 
         Position = new RectF
         {
@@ -446,6 +411,59 @@ public abstract class View
             Width = width,
             Height = height,
         };
+    }
+
+    /// <summary>
+    /// The width this view lays out at: a fixed <see cref="Width"/>, else a parent-allotted
+    /// <see cref="WidthConstraint"/>, else the intrinsic <see cref="MeasureWidth"/> — then
+    /// clamped to <see cref="MinWidthConstraint"/>/<see cref="MaxWidthConstraint"/>.
+    /// </summary>
+    protected float ResolveWidth()
+    {
+        float width;
+        if (Width.IsSet)
+            width = Width;
+        else if (WidthConstraint.IsSet)
+            width = WidthConstraint;
+        else
+            width = MeasureWidth();
+
+        return ClampWidth(width);
+    }
+
+    /// <summary>
+    /// The height this view lays out at, measured at <paramref name="availableWidth"/> so
+    /// wrapping content wraps to the width it will actually occupy. Mirrors <see cref="ResolveWidth"/>.
+    /// </summary>
+    protected float ResolveHeight(float availableWidth)
+    {
+        float height;
+        if (Height.IsSet)
+            height = Height;
+        else if (HeightConstraint.IsSet)
+            height = HeightConstraint;
+        else
+            height = MeasureHeight(availableWidth);
+
+        return ClampHeight(height);
+    }
+
+    public float ClampWidth(float width)
+    {
+        if (MinWidthConstraint.IsSet && width < MinWidthConstraint)
+            width = MinWidthConstraint;
+        if (MaxWidthConstraint.IsSet && width > MaxWidthConstraint)
+            width = MaxWidthConstraint;
+        return width;
+    }
+
+    public float ClampHeight(float height)
+    {
+        if (MinHeightConstraint.IsSet && height < MinHeightConstraint)
+            height = MinHeightConstraint;
+        if (MaxHeightConstraint.IsSet && height > MaxHeightConstraint)
+            height = MaxHeightConstraint;
+        return height;
     }
 
     protected virtual void OnLayoutChildren()
