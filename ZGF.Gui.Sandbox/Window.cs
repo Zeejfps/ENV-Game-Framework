@@ -10,7 +10,7 @@ public sealed class Window : MultiChildView
 
     private readonly MultiChildView _contents;
     private readonly WindowTitleBarView _titlePanel;
-    public override IChildrenCollection Children => _contents.Children;
+    public override ChildrenCollection Children => _contents.Children;
 
     public Window(string titleText)
     {

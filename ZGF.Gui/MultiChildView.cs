@@ -1,63 +1,56 @@
-﻿using System.Collections;
+using System.Collections;
 
 namespace ZGF.Gui;
 
 public class MultiChildView : View
 {
-    public virtual IChildrenCollection Children { get; }
+    public virtual ChildrenCollection Children { get; }
 
     public MultiChildView()
     {
         Children = new ChildrenCollection(this);
     }
 
-    private sealed class ChildrenCollection(MultiChildView view) : IChildrenCollection
+    /// <summary>
+    /// A view's children. A concrete collection with a by-value <see cref="Enumerator"/> — the
+    /// same shape as <see cref="List{T}"/> — so <c>foreach (var child in Children)</c> allocates
+    /// nothing. It implements only the non-generic <see cref="IEnumerable"/>, which is all that
+    /// collection-initializer syntax (<c>Children = { a, b }</c>) needs; there is deliberately no
+    /// <c>IEnumerable&lt;View&gt;</c> LINQ surface that would box an enumerator.
+    /// </summary>
+    public sealed class ChildrenCollection(MultiChildView view) : IEnumerable
     {
-        public ChildEnumerator GetEnumerator()
-        {
-            return new ChildEnumerator(view._children);
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return view._children.GetEnumerator();
-        }
-
         public int Count => view._children.Count;
 
         public View this[int index] => view._children[index];
 
-        public void Add(View view1)
-        {
-            view.AddChildToSelf(view1);
-        }
+        public Enumerator GetEnumerator() => new(view._children);
 
-        public void Insert(int index, View view1)
-        {
-            view.InsertChildToSelf(index, view1);
-        }
+        IEnumerator IEnumerable.GetEnumerator() => view._children.GetEnumerator();
 
-        public void Move(View view1, int newIndex)
-        {
-            view.MoveChildToSelf(view1, newIndex);
-        }
+        public void Add(View child) => view.AddChildToSelf(child);
 
-        public bool Remove(View view1)
-        {
-            return view.RemoveChildFromSelf(view1);
-        }
+        public void Insert(int index, View child) => view.InsertChildToSelf(index, child);
 
-        public bool Contains(View view1)
-        {
-            return view._children.Contains(view1);
-        }
+        public void Move(View child, int newIndex) => view.MoveChildToSelf(child, newIndex);
+
+        public bool Remove(View child) => view.RemoveChildFromSelf(child);
+
+        public bool Contains(View child) => view._children.Contains(child);
 
         public void Clear()
         {
             foreach (var child in view._children.ToArray())
-            {
                 Remove(child);
-            }
+        }
+
+        public struct Enumerator(List<View> children)
+        {
+            private List<View>.Enumerator _inner = children.GetEnumerator();
+
+            public View Current => _inner.Current;
+
+            public bool MoveNext() => _inner.MoveNext();
         }
     }
 }

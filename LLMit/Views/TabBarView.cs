@@ -7,7 +7,7 @@ public sealed class TabBarView : MultiChildView
 {
     private readonly RowView _layout;
 
-    public override IChildrenCollection Children => _layout.Children;
+    public override ChildrenCollection Children => _layout.Children;
 
     public TabBarView()
     {

@@ -13,7 +13,7 @@ public sealed class VerticalScrollPane : MultiChildView
 
     public float ScrollNormalized { get; private set; }
     public float Scale { get; private set; }
-    public override IChildrenCollection Children => _columnView.Children;
+    public override ChildrenCollection Children => _columnView.Children;
 
     public override bool ClipsContent => true;
 
