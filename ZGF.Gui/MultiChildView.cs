@@ -18,11 +18,6 @@ public class MultiChildView : View
             return new ChildEnumerator(view._children);
         }
 
-        IEnumerator<View> IEnumerable<View>.GetEnumerator()
-        {
-            return view._children.GetEnumerator();
-        }
-
         IEnumerator IEnumerable.GetEnumerator()
         {
             return view._children.GetEnumerator();

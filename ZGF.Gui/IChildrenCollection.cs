@@ -2,7 +2,12 @@ using System.Collections;
 
 namespace ZGF.Gui;
 
-public interface IChildrenCollection : IEnumerable<View>
+// Implements only the non-generic IEnumerable — enough for collection-initializer syntax
+// (`Children = { a, b }`, which the compiler gates on IEnumerable but fills via Add) while
+// deliberately withholding IEnumerable<View>. Without the generic interface there is no LINQ
+// surface to silently box an enumerator; iterate with foreach, which binds to the struct
+// ChildEnumerator below.
+public interface IChildrenCollection : IEnumerable
 {
     int Count { get; }
     View this[int index] { get; }
@@ -13,9 +18,6 @@ public interface IChildrenCollection : IEnumerable<View>
     bool Contains(View view);
     void Clear();
 
-    // Struct enumerator so `foreach (var child in someCollection)` allocates nothing even
-    // through the interface — the C# foreach pattern binds to this in preference to the
-    // boxed IEnumerator<View> from IEnumerable<View>.
     new ChildEnumerator GetEnumerator();
 }
 
