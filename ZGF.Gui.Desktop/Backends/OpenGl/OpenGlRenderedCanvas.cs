@@ -63,6 +63,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
 
     protected override Size GetImageSizeImpl(string imageId) => _shared.ImageManager.GetImageSize(imageId);
     protected override uint GetImageTextureId(string imageId) => _shared.ImageManager.GetTextureId(imageId);
+    public override void LoadImageFromFile(string path) => _shared.ImageManager.LoadImageFromFile(path);
 
     protected override void UploadRectInstances(RectInstance[] data, int count)
     {

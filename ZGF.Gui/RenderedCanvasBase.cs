@@ -743,6 +743,11 @@ public abstract class RenderedCanvasBase : ICanvas
     public int GetImageWidth(string imageId) => (int)GetImageSize(imageId).Width;
     public int GetImageHeight(string imageId) => (int)GetImageSize(imageId).Height;
 
+    // Loads an image so it can later be drawn (DrawImage) / measured (GetImageSize) by the
+    // path used as its id. Backends that support image draws (Metal, OpenGL) override this;
+    // the default is a no-op so canvases without an image manager don't have to.
+    public virtual void LoadImageFromFile(string path) { }
+
     // ---------- EndFrame: sort, batch, upload, draw ----------
 
     public void EndFrame()

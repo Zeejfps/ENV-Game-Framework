@@ -123,6 +123,15 @@ public sealed class GuiApp : IDisposable
         _mainCanvas.RegisterFont(family, handle);
     }
 
+    // Loads an image into the main canvas and returns the id (the resolved path) to reference
+    // it by — pass that id to ImageView.ImageId. Mirrors RegisterFont's local-path resolution.
+    public string LoadImage(string path)
+    {
+        var resolved = PathUtils.ResolveLocalPath(path);
+        _mainCanvas.LoadImageFromFile(resolved);
+        return resolved;
+    }
+
     private int ScalePixelSize(int pixelSize)
     {
         var scaled = (int)MathF.Round(pixelSize * _mainCanvas.DpiScale);

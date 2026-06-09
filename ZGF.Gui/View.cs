@@ -598,15 +598,20 @@ public abstract class View
     {
         if (IsSelfDirty)
         {
-            OnLayoutSelf();
-            OnLayoutChildren();
+            // Clear before laying out children: OnLayoutChildren can re-dirty this view as a side
+            // effect (e.g. a ScrollPane recomputes its scale and pushes it to a sibling scroll bar
+            // subtree, which propagates _childrenDirty back up through us). Clearing afterwards
+            // would wipe that signal and strand the re-dirtied view; clearing first lets it survive
+            // to the next frame.
             IsSelfDirty = false;
             _childrenDirty = false;
+            OnLayoutSelf();
+            OnLayoutChildren();
         }
         else if (_childrenDirty)
         {
-            OnLayoutChildren();
             _childrenDirty = false;
+            OnLayoutChildren();
         }
     }
 
