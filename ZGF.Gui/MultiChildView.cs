@@ -4,23 +4,28 @@ namespace ZGF.Gui;
 
 public class MultiChildView : View
 {
-    public virtual IComponentCollection Children { get; }
+    public virtual IChildrenCollection Children { get; }
 
     public MultiChildView()
     {
-        Children = new ComponentCollection(this);
+        Children = new ChildrenCollection(this);
     }
 
-    private sealed class ComponentCollection(MultiChildView view) : IComponentCollection
+    private sealed class ChildrenCollection(MultiChildView view) : IChildrenCollection
     {
-        public IEnumerator<View> GetEnumerator()
+        public ChildEnumerator GetEnumerator()
+        {
+            return new ChildEnumerator(view._children);
+        }
+
+        IEnumerator<View> IEnumerable<View>.GetEnumerator()
         {
             return view._children.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return GetEnumerator();
+            return view._children.GetEnumerator();
         }
 
         public int Count => view._children.Count;

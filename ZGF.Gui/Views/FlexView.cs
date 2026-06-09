@@ -60,24 +60,26 @@ public class FlexView : MultiChildView
     {
         if (Width.IsSet) return Width;
         if (Vert) return MeasureChildrenWidth();
-        return SumMain(static c => c.MeasureWidth());
+        return SumMain(0f);
     }
 
     protected override float MeasureHeightIntrinsic(float availableWidth)
     {
         if (Height.IsSet) return Height;
         if (!Vert) return MeasureChildrenHeight(availableWidth);
-        return SumMain(c => c.MeasureHeight(availableWidth));
+        return SumMain(availableWidth);
     }
 
-    private float SumMain(Func<View, float> measure)
+    // Sum of the main-axis size of visible children plus gaps. availableWidth is only
+    // consulted on the vertical axis, where main size is height-for-width.
+    private float SumMain(float availableWidth)
     {
         var total = 0f;
         var count = 0;
         foreach (var child in Children)
         {
             if (!child.IsVisible) continue;
-            total += measure(child);
+            total += Vert ? child.MeasureHeight(availableWidth) : child.MeasureWidth();
             count++;
         }
         return total + (count > 0 ? (count - 1) * Gap : 0f);

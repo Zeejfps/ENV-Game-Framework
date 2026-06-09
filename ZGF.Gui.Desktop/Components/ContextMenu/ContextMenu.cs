@@ -5,7 +5,7 @@ namespace ZGF.Gui.Desktop.Components.ContextMenu;
 
 public sealed class ContextMenu : MultiChildView
 {
-    public override IComponentCollection Children => _itemsContainer.Children;
+    public override IChildrenCollection Children => _itemsContainer.Children;
 
     private readonly ColumnView _itemsContainer;
     private readonly RectView _background;
