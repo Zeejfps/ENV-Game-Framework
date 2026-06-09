@@ -1,6 +1,8 @@
+using ZGF.Geometry;
+
 namespace ZGF.Gui.Views;
 
-public class RectView : MultiChildView
+public class RectView : LayoutView
 {
     private readonly RectStyle _style = new();
 
@@ -63,47 +65,40 @@ public class RectView : MultiChildView
         });
     }
 
-    public override float MeasureWidth()
+    protected override Size MeasureContent(Constraints c)
     {
-        var width= base.MeasureWidth();
-        var padding = Padding;
-        var borderSize = _style.BorderSize;
-        width += padding.Left + padding.Right + borderSize.Left + borderSize.Right;
-        return width;
+        var hChrome = _style.Padding.Left + _style.Padding.Right + _style.BorderSize.Left + _style.BorderSize.Right;
+        var vChrome = _style.Padding.Top + _style.Padding.Bottom + _style.BorderSize.Top + _style.BorderSize.Bottom;
+        var inner = c.Deflate(hChrome, vChrome);
+
+        var w = 0f;
+        var h = 0f;
+        foreach (var child in _children)
+        {
+            if (!child.IsVisible) continue;
+            var s = child.Measure(inner);
+            if (s.Width > w) w = s.Width;
+            if (s.Height > h) h = s.Height;
+        }
+        return new Size(w + hChrome, h + vChrome);
     }
 
-    public override float MeasureHeight(float availableWidth)
+    protected override void ArrangeContent(RectF bounds)
     {
-        var padding = Padding;
-        var borderSize = _style.BorderSize;
-        var horizontalChrome = padding.Left + padding.Right + borderSize.Left + borderSize.Right;
-        // Subtract our own chrome from the width available to children so they wrap correctly.
-        // A non-positive availableWidth means "unconstrained" — leave it as-is so the convention
-        // propagates down to descendants.
-        var childAvailableWidth = availableWidth > 0f ? availableWidth - horizontalChrome : availableWidth;
-        var height = base.MeasureHeight(childAvailableWidth);
-        height += padding.Top + padding.Bottom + borderSize.Top + borderSize.Bottom;
-        return height;
-    }
-
-    protected override void OnLayoutChildren()
-    {
-        var position = Position;
         var padding = _style.Padding;
         var border = _style.BorderSize;
-        
-        var left = position.Left + padding.Left + border.Left;
-        var right = position.Right - padding.Right - border.Right;
-        var top = position.Top - padding.Top - border.Top;
-        var bottom = position.Bottom + padding.Bottom + border.Bottom;
-        
-        foreach (var child in Children)
+
+        var left = bounds.Left + padding.Left + border.Left;
+        var bottom = bounds.Bottom + padding.Bottom + border.Bottom;
+        var width = Math.Max(0f, bounds.Width - padding.Left - padding.Right - border.Left - border.Right);
+        var height = Math.Max(0f, bounds.Height - padding.Top - padding.Bottom - border.Top - border.Bottom);
+        var inner = new RectF(left, bottom, width, height);
+
+        foreach (var child in _children)
         {
-            child.LeftConstraint = left;
-            child.BottomConstraint = bottom;
-            child.WidthConstraint = right - left;
-            child.HeightConstraint = top - bottom;
-            child.LayoutSelf();
+            if (!child.IsVisible) continue;
+            child.Measure(Constraints.Tight(width, height));
+            child.Arrange(inner);
         }
     }
 }

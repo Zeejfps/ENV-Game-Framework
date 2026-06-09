@@ -1,57 +1,16 @@
 namespace ZGF.Gui.Views;
 
-public sealed class ColumnView : MultiChildView
+/// <summary>Vertical stack: a <see cref="FlexView"/> that stretches children across the cross axis. Gap is integral for back-compat.</summary>
+public sealed class ColumnView : FlexView
 {
-    private int _gap;
-    public int Gap
+    public ColumnView()
     {
-        get => _gap;
-        set => SetField(ref _gap, value);
-    }
-    
-    protected override void OnLayoutChildren()
-    {
-        var position = Position;
-        var components = Children;
-        if (components.Count == 0)
-        {
-            return;
-        }
-
-        var bottom = position.Top;
-        var first = true;
-        foreach (var component in components)
-        {
-            if (!component.IsVisible) continue;
-            if (!first) bottom -= Gap;
-            component.LeftConstraint = position.Left;
-
-            var componentHeight = component.MeasureHeight(position.Width);
-            bottom -= componentHeight;
-            component.BottomConstraint = bottom;
-            component.WidthConstraint = position.Width;
-            component.HeightConstraint = componentHeight;
-            component.LayoutSelf();
-            first = false;
-        }
+        CrossAxisAlignment = CrossAxisAlignment.Stretch;
     }
 
-    public override float MeasureHeight(float availableWidth)
+    public new int Gap
     {
-        if (Height.IsSet)
-            return Height;
-
-        var totalHeight = 0f;
-        var visibleCount = 0;
-        foreach (var child in Children)
-        {
-            if (!child.IsVisible) continue;
-            totalHeight += child.MeasureHeight(availableWidth);
-            visibleCount++;
-        }
-        var spacing = visibleCount > 0 ? (visibleCount - 1) * Gap : 0;
-
-        var height = totalHeight + spacing;
-        return height;
+        get => (int)base.Gap;
+        set => base.Gap = value;
     }
 }

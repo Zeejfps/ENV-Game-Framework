@@ -181,6 +181,17 @@ public abstract class View
     private bool IsSelfDirty { get; set; } = true;
     private bool IsChildrenDirty => _children.Any(child => child.IsDirty);
 
+    // ---- W1 box-constraints protocol (additive; bridges to the legacy path below) ----
+    private Constraints _measuredFor;
+    private Size _measuredSize;
+    private bool _hasMeasured;
+    private bool _needsMeasure = true;
+    private bool _needsArrange = true;
+    private bool _descendantNeedsLayout;
+
+    /// <summary>True if this node or some descendant needs a measure/arrange pass.</summary>
+    public bool NeedsLayout => _needsMeasure || _needsArrange || _descendantNeedsLayout;
+
     public IBehaviorCollection Behaviors { get; }
 
     protected readonly List<View> _children = new();
@@ -407,6 +418,89 @@ public abstract class View
     protected void SetDirty()
     {
         IsSelfDirty = true;
+        InvalidateMeasure();
+    }
+
+    // ---- W1 protocol: Measure (pure, cached) / Arrange (assigns geometry) ----
+
+    /// <summary>
+    /// Returns the desired size within <paramref name="c"/>. Pure and cached on the
+    /// constraint: a flex container that measures a child for totals and again at final
+    /// size gets a cache hit the second time. Generalizes TextView's bespoke wrap cache.
+    /// </summary>
+    public Size Measure(Constraints c)
+    {
+        Debug.Assert(float.IsFinite(c.MinWidth) && float.IsFinite(c.MinHeight) &&
+                     c.MinWidth <= c.MaxWidth && c.MinHeight <= c.MaxHeight, "ill-formed constraints");
+
+        if (_hasMeasured && !_needsMeasure && c.Equals(_measuredFor))
+            return _measuredSize;
+
+        var size = c.Constrain(MeasureContent(c));
+        Debug.Assert(float.IsFinite(size.Width) && float.IsFinite(size.Height),
+            $"{GetType().Name}.MeasureContent returned a non-finite size under an unbounded " +
+            "constraint — return natural size, not Max. See docs/W1-Layout.md.");
+
+        _measuredSize = size;
+        _measuredFor = c;
+        _hasMeasured = true;
+        _needsMeasure = false;
+        return size;
+    }
+
+    /// <summary>
+    /// Override per container to measure children and return desired content size. The base
+    /// bridges to the legacy <see cref="MeasureWidth"/>/<see cref="MeasureHeight"/> path so an
+    /// un-ported view can be driven by a ported parent during migration.
+    /// </summary>
+    protected virtual Size MeasureContent(Constraints c)
+    {
+        var w = Width.IsSet ? Width.Value : MeasureWidth();
+        w = Math.Clamp(w, c.MinWidth, c.MaxWidth);
+        var h = Height.IsSet ? Height.Value : MeasureHeight(w);
+        return new Size(w, h);
+    }
+
+    /// <summary>Assign final geometry (in the current Y-up <see cref="Position"/> space) and place children.</summary>
+    public void Arrange(RectF finalBounds)
+    {
+        Position = finalBounds;
+        ArrangeContent(finalBounds);
+        _needsArrange = false;
+        _descendantNeedsLayout = false;
+    }
+
+    /// <summary>
+    /// Override per container to place children via <c>child.Arrange(...)</c>. The base bridges
+    /// to the legacy <see cref="OnLayoutChildren"/> path (which positions a legacy subtree via
+    /// the constraint fields + <c>LayoutSelf</c>).
+    /// </summary>
+    protected virtual void ArrangeContent(RectF bounds)
+    {
+        OnLayoutChildren();
+    }
+
+    /// <summary>Content/size-affecting change. Implies re-arrange. Bubbles a descendant flag to the root.</summary>
+    protected void InvalidateMeasure()
+    {
+        _needsArrange = true;
+        if (_needsMeasure) return;
+        _needsMeasure = true;
+        BubbleDescendantFlag();
+    }
+
+    /// <summary>Position-only change (scroll offset, alignment) — no re-measure.</summary>
+    protected void InvalidateArrange()
+    {
+        if (_needsArrange) return;
+        _needsArrange = true;
+        BubbleDescendantFlag();
+    }
+
+    private void BubbleDescendantFlag()
+    {
+        for (var p = Parent; p != null && !p._descendantNeedsLayout; p = p.Parent)
+            p._descendantNeedsLayout = true;
     }
 
     protected virtual void OnLayoutSelf()

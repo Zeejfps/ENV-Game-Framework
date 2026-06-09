@@ -88,6 +88,49 @@ public sealed class TextView : MultiChildView
 
     private bool IsWrapping => _style.TextWrap.IsSet && _style.TextWrap.Value == ZGF.Gui.TextWrap.Wrap;
 
+    protected override Size MeasureContent(Constraints c)
+    {
+        if (Context == null || _text == null)
+            return new Size(Width.IsSet ? Width.Value : 0f, Height.IsSet ? Height.Value : 0f);
+
+        var lineHeight = Context.Canvas.MeasureTextLineHeight(_style);
+
+        // The width we will actually be laid out at: a fixed Width, else our natural width,
+        // clamped into the incoming constraint (tight cross from a Stretch parent forces it).
+        var laidWidth = Width.IsSet ? Width.Value : NaturalWidth();
+        laidWidth = Math.Clamp(laidWidth, c.MinWidth, c.MaxWidth);
+
+        float height;
+        if (Height.IsSet)
+            height = Height.Value;
+        else if (IsWrapping && float.IsFinite(laidWidth) && laidWidth > 0f)
+        {
+            EnsureWrapped(laidWidth);
+            height = Math.Max(1, _wrappedLines.Count) * lineHeight;
+        }
+        else
+        {
+            var lineCount = HasNewlines(_text) ? SplitLines(_text).Length : 1;
+            height = lineCount * lineHeight;
+        }
+        return new Size(laidWidth, height);
+    }
+
+    private float NaturalWidth()
+    {
+        if (Context == null || _text == null)
+            return 0f;
+        if (!HasNewlines(_text))
+            return Context.Canvas.MeasureTextWidth(_text, _style);
+        var max = 0f;
+        foreach (var line in SplitLines(_text))
+        {
+            var w = Context.Canvas.MeasureTextWidth(line, _style);
+            if (w > max) max = w;
+        }
+        return max;
+    }
+
     public override float MeasureWidth()
     {
         if (Width.IsSet)

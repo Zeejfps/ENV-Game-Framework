@@ -2,6 +2,7 @@ using ZGF.AppUtils;
 using ZGF.Desktop;
 using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Fonts;
+using ZGF.Geometry;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Observable;
@@ -185,7 +186,14 @@ public sealed class GuiApp : IDisposable
 
     private void PopulateGui()
     {
-        _root.LayoutSelf();
+        // W1: drive layout through the box-constraints protocol. The root is sized tight to the
+        // canvas; un-ported containers below run via the legacy bridge in View.MeasureContent/
+        // ArrangeContent. Runs every frame to match continuous redraw; the measure cache makes
+        // re-measure a cache hit and legacy LayoutSelf still gates each subtree.
+        var w = (float)_mainCanvas.Width;
+        var h = (float)_mainCanvas.Height;
+        _root.Measure(Constraints.Tight(w, h));
+        _root.Arrange(new RectF(0, 0, w, h));
         _root.DrawSelf();
     }
 

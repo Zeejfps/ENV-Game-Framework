@@ -1,20 +1,15 @@
+using ZGF.Geometry;
+
 namespace ZGF.Gui.Views;
 
 /// <summary>
-/// Centers each child within its own bounds. Each child is measured at its
-/// intrinsic size and then positioned at the center of this view. Because the
-/// measured size is assigned straight to the child's width/height constraint,
-/// this view also floors that size by the child's Min*Constraint — the raw
-/// measurement doesn't.
-///
-/// The measured size is also capped to this view's own bounds (less
-/// <see cref="Margin"/>), so a child can never be laid out larger than the
-/// space available to it. A child whose content exceeds that cap must scroll
-/// internally; without the cap it would simply overflow and spill past the
-/// viewport. This is what guarantees a centered modal never grows past the
-/// window it sits in.
+/// Centers each child within this view's bounds. Each child is measured loosely (so a child
+/// smaller than the viewport keeps its natural size) and capped to the viewport less
+/// <see cref="Margin"/>, so a child can never be laid out larger than the space available —
+/// a centered modal never grows past the window it sits in; content that exceeds the cap must
+/// scroll internally. A child's <c>Min*Constraint</c> still floors the measured size.
 /// </summary>
-public sealed class CenterView : MultiChildView
+public sealed class CenterView : LayoutView
 {
     /// <summary>
     /// Gap kept between a clamped child and the viewport edge, so a child forced
@@ -26,37 +21,39 @@ public sealed class CenterView : MultiChildView
         set => SetField(ref field, value);
     } = 24f;
 
-    protected override void OnLayoutChildren()
+    protected override Size MeasureContent(Constraints c)
     {
-        var position = Position;
-        var maxWidth = Math.Max(0f, position.Width - Margin * 2f);
-        var maxHeight = Math.Max(0f, position.Height - Margin * 2f);
-
-        foreach (var child in Children)
+        // Report the largest child's natural size (capped to the incoming box). When the parent
+        // hands down a tight constraint, the base Measure's Constrain expands this to fill.
+        var loose = Constraints.Loose(c.MaxWidth, c.MaxHeight);
+        var w = 0f;
+        var h = 0f;
+        foreach (var child in _children)
         {
-            // Hand the cap down as Max*Constraint as well: a child with a fixed Width/Height
-            // resolves that fixed size in its own layout and would ignore a plain Width/Height
-            // constraint — the Max bound is what actually reins it back to the viewport.
-            child.MaxWidthConstraint = maxWidth;
-            child.MaxHeightConstraint = maxHeight;
+            if (!child.IsVisible) continue;
+            var s = child.Measure(loose);
+            if (s.Width > w) w = s.Width;
+            if (s.Height > h) h = s.Height;
+        }
+        return new Size(w, h);
+    }
 
-            var childWidth = child.MeasureWidth();
-            if (child.MinWidthConstraint.IsSet && childWidth < child.MinWidthConstraint)
-                childWidth = child.MinWidthConstraint;
-            if (childWidth > maxWidth)
-                childWidth = maxWidth;
+    protected override void ArrangeContent(RectF bounds)
+    {
+        var maxWidth = Math.Max(0f, bounds.Width - Margin * 2f);
+        var maxHeight = Math.Max(0f, bounds.Height - Margin * 2f);
 
-            var childHeight = child.MeasureHeight(childWidth);
-            if (child.MinHeightConstraint.IsSet && childHeight < child.MinHeightConstraint)
-                childHeight = child.MinHeightConstraint;
-            if (childHeight > maxHeight)
-                childHeight = maxHeight;
+        foreach (var child in _children)
+        {
+            if (!child.IsVisible) continue;
 
-            child.LeftConstraint = position.Left + (position.Width - childWidth) / 2f;
-            child.BottomConstraint = position.Bottom + (position.Height - childHeight) / 2f;
-            child.WidthConstraint = childWidth;
-            child.HeightConstraint = childHeight;
-            child.LayoutSelf();
+            var minW = child.MinWidthConstraint.IsSet ? Math.Min((float)child.MinWidthConstraint, maxWidth) : 0f;
+            var minH = child.MinHeightConstraint.IsSet ? Math.Min((float)child.MinHeightConstraint, maxHeight) : 0f;
+            var size = child.Measure(new Constraints(minW, maxWidth, minH, maxHeight));
+
+            var x = bounds.Left + (bounds.Width - size.Width) / 2f;
+            var y = bounds.Bottom + (bounds.Height - size.Height) / 2f;
+            child.Arrange(new RectF(x, y, size.Width, size.Height));
         }
     }
 }

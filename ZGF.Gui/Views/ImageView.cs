@@ -23,6 +23,17 @@ public sealed class ImageView : MultiChildView
         set => SetField(ref _imageId, value);
     }
 
+    protected override Size MeasureContent(Constraints c)
+    {
+        var w = Width.IsSet
+            ? Width.Value
+            : ImageId != null && Context != null ? Context.Canvas.GetImageWidth(ImageId) : 0f;
+        var h = Height.IsSet
+            ? Height.Value
+            : ImageId != null && Context != null ? Context.Canvas.GetImageHeight(ImageId) : 0f;
+        return new Size(w, h);
+    }
+
     public override float MeasureWidth()
     {
         if (Width.IsSet)
