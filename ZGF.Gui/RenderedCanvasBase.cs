@@ -446,8 +446,6 @@ public abstract class RenderedCanvasBase : ICanvas
         var key = MakeKey(inputs.ZIndex, seq);
 
         var pos = inputs.Position;
-        // Metrics come back in device pixels (FT is set at logical * DpiScale);
-        // convert to logical points for layout math.
         var invScale = 1f / _dpiScale;
         var metrics = _fonts.GetMetrics(font);
         var ascender = metrics.Ascender * invScale;
