@@ -37,11 +37,19 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
 
     public override void OnMouseEnter(ref MouseEnterEvent e)
     {
-        if (_openedContextMenu != null && _openedContextMenu.IsOpened)
-        {
-            _openedContextMenu.CancelCloseRequest();
+        _openedContextMenu?.CancelCloseRequest();
+    }
+
+    // Click-to-open: the pointer arbiter clears main-window hover whenever a modal popup
+    // is open, so a hover-opened menu would immediately receive a synthetic exit and
+    // close itself. Opening on press matches the framework's modal design; the menu
+    // closes on outside click (ContextMenuManager's main-window press preview).
+    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    {
+        if (e.State != InputState.Pressed || e.Button != MouseButton.Left)
             return;
-        }
+        if (_openedContextMenu != null && _openedContextMenu.IsOpened)
+            return;
 
         var screen = _coordinates != null
             ? _coordinates.ToScreenPoints(MenuItem.Position.BottomLeft)
@@ -60,6 +68,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
             _menuInputSystem = menuInput;
             _registeredMenu = _openedContextMenu.Menu;
             _isSelected.Value = true;
+            e.Consume();
         }
     }
 
@@ -82,14 +91,6 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
             _openedContextMenu = null;
         }
         UnregisterMenuController();
-    }
-
-    public override void OnMouseExit(ref MouseExitEvent e)
-    {
-        if (_openedContextMenu != null && _openedContextMenu.IsOpened)
-        {
-            _openedContextMenu.CloseRequest();
-        }
     }
 
     protected abstract void BuildMenu(ContextMenu contextMenu, Context popupContext);

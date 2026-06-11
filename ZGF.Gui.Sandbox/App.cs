@@ -140,6 +140,8 @@ public sealed class App : IDisposable
             Children = { contents }
         };
         _gui.Mount();
+        _gui.OnRedrawNeeded = _mainWindow.RequestRedraw;
+        _inputSystem.OnAnyInput = () => _mainWindow.RequestRedraw();
 
         _windowApp.OnTick += HandleTick;
         _mainWindow.OnResize += HandleResize;
