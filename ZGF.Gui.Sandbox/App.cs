@@ -143,6 +143,21 @@ public sealed class App : IDisposable
         _gui.OnRedrawNeeded = _mainWindow.RequestRedraw;
         _inputSystem.OnAnyInput = () => _mainWindow.RequestRedraw();
 
+        _frameTicker = new FrameTicker(onActivated: _mainWindow.RequestRedraw);
+        context.AddService<IFrameTicker>(_frameTicker);
+        _lastAnimationTimestamp = Stopwatch.GetTimestamp();
+        _frameTicker.Add(dt =>
+        {
+            rr += 0.3f * dt;
+            var t = Matrix4x4.CreateTranslation(0f, 0f, -20);
+            var r = Matrix4x4.CreateRotationY(rr);
+            var sc = Matrix4x4.CreateScale(5f, 5f, 5f);
+            _modelMatrix = sc * r * t;
+            // The model matrix isn't a view, so no SetDirty schedules the next frame —
+            // request it directly to keep the animation self-sustaining.
+            _mainWindow.RequestRedraw();
+        });
+
         _windowApp.OnTick += HandleTick;
         _mainWindow.OnResize += HandleResize;
         _mainWindow.OnFramebufferResize += HandleFramebufferResize;
@@ -188,14 +203,18 @@ public sealed class App : IDisposable
     private Vector3 _cameraPos = new Vector3();
     private Stopwatch _stopwatch = new();
     private int _frames = 0;
+    private readonly FrameTicker _frameTicker;
+    private long _lastAnimationTimestamp;
 
     private void HandleTick()
     {
-        rr += 0.005f;
-        var t = Matrix4x4.CreateTranslation(0f, 0f, -20);
-        var r = Matrix4x4.CreateRotationY(rr);
-        var s = Matrix4x4.CreateScale(5f, 5f, 5f);
-        _modelMatrix = s * r * t;
+        var now = Stopwatch.GetTimestamp();
+        var dt = (float)((now - _lastAnimationTimestamp) / (double)Stopwatch.Frequency);
+        _lastAnimationTimestamp = now;
+        // An idle wait or a stall isn't animation time — cap the step so the first frame
+        // after a gap doesn't lurch.
+        const float maxStep = 0.1f;
+        _frameTicker.Tick(dt > maxStep ? maxStep : dt);
 
         _inputSystem.Update();
         _contextMenuManager.Update();

@@ -16,6 +16,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
     private IOpenedContextMenu? _openedContextMenu;
     private InputSystem? _menuInputSystem;
     private ContextMenu? _registeredMenu;
+    private long _closedAtMs;
 
     protected BaseMenuItemController(View menuItem, State<bool> isSelected, Context context)
     {
@@ -50,6 +51,13 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
             return;
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
             return;
+        // This same press may have just closed the menu via the manager's outside-click
+        // preview (which runs before dispatch) — that's a toggle-close, not a reopen.
+        if (Environment.TickCount64 - _closedAtMs < 100)
+        {
+            e.Consume();
+            return;
+        }
 
         var screen = _coordinates != null
             ? _coordinates.ToScreenPoints(MenuItem.Position.BottomLeft)
@@ -84,6 +92,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
 
     private void OnOpenedContextMenuClosed()
     {
+        _closedAtMs = Environment.TickCount64;
         _isSelected.Value = false;
         if (_openedContextMenu != null)
         {

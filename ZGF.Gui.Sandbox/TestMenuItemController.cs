@@ -13,14 +13,8 @@ public sealed class TestMenuItemController : BaseMenuItemController
 
     protected override void BuildMenu(ContextMenu contextMenu, Context popupContext)
     {
-        contextMenu.Children.Add(new ContextMenuItem(popupContext.Canvas)
-        {
-            Text = "Option 1",
-        });
-        contextMenu.Children.Add(new ContextMenuItem(popupContext.Canvas)
-        {
-            Text = "Option 2",
-        });
+        AddPlainItem(contextMenu, popupContext, "Option 1");
+        AddPlainItem(contextMenu, popupContext, "Option 2");
 
         var option3Menu = new ContextMenuItem(popupContext.Canvas)
         {
@@ -36,10 +30,19 @@ public sealed class TestMenuItemController : BaseMenuItemController
                 new ContextMenuItemData { Text = "Test2" },
                 new ContextMenuItemData { Text = "Test3" },
             }));
-        contextMenu.Children.Add(new ContextMenuItem(popupContext.Canvas)
+        var option4 = new ContextMenuItem(popupContext.Canvas)
         {
             SelectedBackgroundColor = 0xFFF0F0F0,
             Text = "Option 4",
-        });
+        };
+        option4.UseController(popupContext.Require<InputSystem>(), () => new ContextMenuItemDefaultKbmController(option4, popupContext));
+        contextMenu.Children.Add(option4);
+    }
+
+    private static void AddPlainItem(ContextMenu contextMenu, Context popupContext, string text)
+    {
+        var item = new ContextMenuItem(popupContext.Canvas) { Text = text };
+        item.UseController(popupContext.Require<InputSystem>(), () => new ContextMenuItemDefaultKbmController(item, popupContext));
+        contextMenu.Children.Add(item);
     }
 }

@@ -20,6 +20,7 @@ public sealed class FileMenuItemController : BaseMenuItemController
         {
             Text = "Open Model",
         };
+        openModelItem.UseController(popupContext.Require<InputSystem>(), () => new ContextMenuItemDefaultKbmController(openModelItem, popupContext));
         contextMenu.Children.Add(openModelItem);
 
         var exitItem = new ContextMenuItem(popupContext.Canvas)

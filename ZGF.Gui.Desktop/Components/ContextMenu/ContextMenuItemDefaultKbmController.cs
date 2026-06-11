@@ -102,8 +102,14 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
         return ctx =>
         {
             var subMenu = new ContextMenu();
+            var subInput = ctx.Get<InputSystem>();
             foreach (var subOption in subOptions)
-                subMenu.Children.Add(new ContextMenuItem(ctx.Canvas) { Text = subOption.Text });
+            {
+                var subItem = new ContextMenuItem(ctx.Canvas) { Text = subOption.Text };
+                if (subInput != null)
+                    subItem.UseController(subInput, () => new ContextMenuItemDefaultKbmController(subItem, ctx));
+                subMenu.Children.Add(subItem);
+            }
             return subMenu;
         };
     }
@@ -148,6 +154,11 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
                 return;
             }
             Clicked?.Invoke();
+            // A leaf item click completes the interaction: close the whole menu chain.
+            // Submenu parents stay open — their click is not a command. Deferred close
+            // (RequestCloseAll) is required mid-dispatch; see ContextMenuManager.
+            if (SubOptions.Count == 0 && _subMenuFactory == null)
+                _contextMenuManager.RequestCloseAll();
             e.Consume();
         }
     }
