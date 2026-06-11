@@ -117,6 +117,19 @@ public static class BindingExtensions
         }
 
         /// <summary>
+        /// Two-way sync between a view-owned state and a view-model state, tied to the view's
+        /// mounted lifetime (bound on mount, released on unmount). On initial bind
+        /// <paramref name="source"/> wins — pass the VM state as the source so the view
+        /// follows the model. The mount scoping is what makes this safe to use from widget
+        /// CreateView code: an inline <see cref="StateBindingExtensions.BindTwoWay{T}"/> would
+        /// leave the longer-lived source retaining the discarded view after unmount.
+        /// </summary>
+        public void BindTwoWay<T>(State<T> target, State<T> source)
+        {
+            view.Behaviors.Add(new TwoWayStateBindingBehavior<T>(target, source));
+        }
+
+        /// <summary>
         /// Subscribes to the active <see cref="IThemeService{TStyles}"/> for painted views
         /// that can't express their colors as discrete property bindings. The callback fires
         /// once when the view attaches to a context and again on every theme swap; typical
